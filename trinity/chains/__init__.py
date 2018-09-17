@@ -12,12 +12,11 @@ from typing import (
     Any,
     Callable,
     List,
-    Type
 )
 
 from eth import MainnetChain, RopstenChain
 from eth.chains.base import (
-    BaseChain
+    Chain,
 )
 from eth.chains.mainnet import (
     MAINNET_GENESIS_HEADER,
@@ -49,7 +48,7 @@ from trinity.utils.mp import (
     async_method,
     sync_method,
 )
-
+from trinity.chains.light import LightDispatchChain
 
 from .header import (
     AsyncHeaderChain,
@@ -110,7 +109,7 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
             "The base chain directory provided does not exist: `{0}`".format(
                 chain_config.data_dir,
             ),
-            chain_config.data_dir
+            chain_config.data_dir,
         )
 
     # Logfile
@@ -127,7 +126,7 @@ def initialize_data_dir(chain_config: ChainConfig) -> None:
             "The base logging directory provided does not exist: `{0}`".format(
                 chain_config.logdir_path,
             ),
-            chain_config.logdir_path
+            chain_config.logdir_path,
         )
 
     # Chain data-dir
@@ -150,11 +149,7 @@ def initialize_database(chain_config: ChainConfig, chaindb: AsyncChainDB) -> Non
         elif chain_config.network_id == MAINNET_NETWORK_ID:
             chaindb.persist_header(MAINNET_GENESIS_HEADER)
         else:
-            # TODO: add genesis data to ChainConfig and if it's present, use it
-            # here to initialize the chain.
-            raise NotImplementedError(
-                "Only the mainnet and ropsten chains are currently supported"
-            )
+            chaindb.persist_header(chain_config.genesis_header)
 
 
 class TracebackRecorder:
@@ -191,6 +186,21 @@ def record_traceback_on_error(attr: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
+class BaseCustomChain:
+    vm_configuration = ()  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
+
+    def __init__(self, vm_configuration) -> None:
+        self.vm_configuration = vm_configuration
+
+
+class CustomChain(BaseCustomChain, Chain):
+    pass
+
+
+class CustomLightDispatchChain(BaseCustomChain, LightDispatchChain):
+    pass
+
+
 class RemoteTraceback(Exception):
 
     def __init__(self, tb: str) -> None:
@@ -217,18 +227,19 @@ def rebuild_exc(exc, tb):  # type: ignore
 
 def get_chaindb_manager(chain_config: ChainConfig, base_db: BaseAtomicDB) -> BaseManager:
     chaindb = AsyncChainDB(base_db)
-    chain_class: Type[BaseChain]
     if not is_database_initialized(chaindb):
         initialize_database(chain_config, chaindb)
     if chain_config.network_id == MAINNET_NETWORK_ID:
         chain_class = MainnetChain
+        chain = chain_class(base_db)
     elif chain_config.network_id == ROPSTEN_NETWORK_ID:
         chain_class = RopstenChain
+        chain = chain_class(base_db)
     else:
-        raise NotImplementedError(
-            "Only the mainnet and ropsten chains are currently supported"
-        )
-    chain = chain_class(base_db)
+        chain_class = CustomChain
+        vm_configuration = chain_config.chain_vm_config
+        chain = chain_class(base_db)
+        chain.vm_configuration = vm_configuration
 
     headerdb = AsyncHeaderDB(base_db)
     header_chain = AsyncHeaderChain(base_db)

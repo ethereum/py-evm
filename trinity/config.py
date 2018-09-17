@@ -12,10 +12,18 @@ from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
 from eth.chains.mainnet import (
     MAINNET_NETWORK_ID,
+    MAINNET_GENESIS_HEADER,
+    MAINNET_VM_CONFIGURATION
 )
 from eth.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
+    ROPSTEN_GENESIS_HEADER,
+    ROPSTEN_VM_CONFIGURATION
 )
+from eth.vm.base import (
+    BaseVM
+)
+from eth.rlp.headers import BlockHeader
 from p2p.kademlia import Node as KademliaNode
 from p2p.constants import (
     MAINNET_BOOTNODES,
@@ -30,6 +38,9 @@ from trinity.protocol.common.constants import DEFAULT_PREFERRED_NODES
 from trinity.utils.chains import (
     construct_chain_config_params,
     get_data_dir_for_network_id,
+    get_eip1085_genesis_config,
+    get_genesis_header,
+    get_genesis_vm_configuration,
     get_database_socket_path,
     get_jsonrpc_socket_path,
     get_logfile_path,
@@ -52,6 +63,9 @@ DATABASE_DIR_NAME = 'chain'
 
 
 class ChainConfig:
+    _genesis: Path = None
+    _genesis_header: BlockHeader = None
+    _chain_vm_config: Tuple[Tuple[int, Type[BaseVM]], ...] = None
     _trinity_root_dir: Path = None
     _data_dir: Path = None
     _nodekey_path: Path = None
@@ -67,6 +81,7 @@ class ChainConfig:
     def __init__(self,
                  network_id: int,
                  max_peers: int=25,
+                 genesis: str=None,
                  trinity_root_dir: str=None,
                  data_dir: str=None,
                  nodekey_path: str=None,
@@ -86,7 +101,20 @@ class ChainConfig:
         if trinity_root_dir is not None:
             self.trinity_root_dir = trinity_root_dir
 
-        if not preferred_nodes and network_id in DEFAULT_PREFERRED_NODES:
+        if genesis is not None:
+            self._genesis = genesis
+            genesis_config = get_eip1085_genesis_config(self.genesis)
+            self._genesis_header, self.network_id = get_genesis_header(genesis_config)
+            self._chain_vm_config = get_genesis_vm_configuration(genesis_config)
+
+        if self.network_id == MAINNET_NETWORK_ID:
+            self._genesis_header = MAINNET_GENESIS_HEADER
+            self._chain_vm_config = MAINNET_VM_CONFIGURATION
+        elif self.network_id == ROPSTEN_NETWORK_ID:
+            self._genesis_header = ROPSTEN_GENESIS_HEADER
+            self._chain_vm_config = ROPSTEN_VM_CONFIGURATION
+
+        if not preferred_nodes and self.network_id in DEFAULT_PREFERRED_NODES:
             self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
         else:
             self.preferred_nodes = preferred_nodes
@@ -136,6 +164,27 @@ class ChainConfig:
         Return the path of the directory where all log files are stored.
         """
         return self.logfile_path.parent
+
+    @property
+    def genesis(self) -> Path:
+        """
+        Return the path of the genesis configuration file.
+        """
+        return self._genesis
+
+    @property
+    def genesis_header(self) -> BlockHeader:
+        """
+        Return the genesis configuation parsed from the genesis configuration file.
+        """
+        return self._genesis_header
+
+    @property
+    def chain_vm_config(self) -> Tuple[Tuple[int, Type[BaseVM]], ...]:
+        """
+        Return the vm configuration specifed from the genesis configuration file.
+        """
+        return self._chain_vm_config
 
     @property
     def trinity_root_dir(self) -> Path:
@@ -267,24 +316,24 @@ class ChainConfig:
             RopstenFullNode,
             RopstenLightNode,
         )
+        from trinity.nodes.custom import (
+            CustomFullNode,
+            CustomLightNode,
+        )
         if self.sync_mode == SYNC_LIGHT:
             if self.network_id == MAINNET_NETWORK_ID:
                 return MainnetLightNode
             elif self.network_id == ROPSTEN_NETWORK_ID:
                 return RopstenLightNode
             else:
-                raise NotImplementedError(
-                    "Only the mainnet and ropsten chains are currently supported"
-                )
+                return CustomLightNode
         elif self.sync_mode == SYNC_FULL:
             if self.network_id == MAINNET_NETWORK_ID:
                 return MainnetFullNode
             elif self.network_id == ROPSTEN_NETWORK_ID:
                 return RopstenFullNode
             else:
-                raise NotImplementedError(
-                    "Only the mainnet and ropsten chains are currently supported"
-                )
+                return CustomFullNode
         else:
             raise NotImplementedError(
                 "Only full and light sync modes are supported"

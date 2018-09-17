@@ -1,17 +1,22 @@
 import argparse
 import os
+import json
 from pathlib import Path
 from typing import (
+    Dict,
     Iterable,
     Tuple,
+    Type,
     Union,
 )
 
 from eth_utils import (
     decode_hex,
     to_dict,
+    ValidationError
 )
 
+from eth import constants
 from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
 
@@ -22,15 +27,114 @@ from eth.chains.ropsten import (
     ROPSTEN_NETWORK_ID,
 )
 
+from eth.vm.base import (
+    BaseVM
+)
+
+from eth.vm.forks import (
+    TangerineWhistleVM,
+    HomesteadVM,
+    SpuriousDragonVM,
+    ByzantiumVM,
+    ConstantinopleVM,
+)
+
 from p2p.constants import DEFAULT_MAX_PEERS
 
 from trinity.constants import SYNC_LIGHT
+
+from eth.rlp.headers import BlockHeader
 
 
 DEFAULT_DATA_DIRS = {
     ROPSTEN_NETWORK_ID: 'ropsten',
     MAINNET_NETWORK_ID: 'mainnet',
 }
+
+
+def get_genesis_vm_configuration(genesis: Dict[str, str]) -> Tuple[Tuple[int, Type[BaseVM]], ...]:
+    """
+    Returns a vm configuration which is a tuple of block numbers associated to a fork
+    based on the genesis config provided.
+    """
+    custom_chain_config = genesis['config']
+    vm_configuration = []
+    if 'homesteadBlock' in custom_chain_config.keys():
+        vm_configuration.append((custom_chain_config["homesteadBlock"], HomesteadVM))
+    if 'eip150Block' in custom_chain_config.keys():
+        vm_configuration.append((custom_chain_config["eip150Block"], TangerineWhistleVM))
+    if 'eip158Block' in custom_chain_config.keys():
+        vm_configuration.append((custom_chain_config['eip158Block'], SpuriousDragonVM))
+    if 'byzantiumBlock' in custom_chain_config.keys():
+        vm_configuration.append((custom_chain_config['byzantiumBlock'], ByzantiumVM))
+    if 'constantinopleBlock' in custom_chain_config.keys():
+        vm_configuration.append((custom_chain_config['constantinopleBlock'], ConstantinopleVM))
+
+    return tuple(vm_configuration)
+
+
+def get_genesis_header(genesis: Dict[str, str]) -> Tuple[BlockHeader, int]:
+    """
+    Returns the genesis config wrapped as a BlockHeader along with the network_id
+    of the chain.
+    """
+    return BlockHeader(
+        difficulty=int(genesis['difficulty'], 0),
+        extra_data=decode_hex(genesis['extraData']),
+        gas_limit=int(genesis['gasLimit'], 0),
+        gas_used=0,
+        bloom=0,
+        mix_hash=constants.ZERO_HASH32,
+        nonce=constants.GENESIS_NONCE,
+        block_number=0,
+        parent_hash=constants.ZERO_HASH32,
+        receipt_root=constants.BLANK_ROOT_HASH,
+        uncles_hash=constants.EMPTY_UNCLE_HASH,
+        state_root=decode_hex("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544"),
+        timestamp=0,
+        transaction_root=constants.BLANK_ROOT_HASH,
+    ), genesis['config']['chainId']
+
+
+def validate_eip1085_genesis_config(genesis: Dict[str, str]) -> None:
+    """
+    Checks that all valid genesis config parameters are present from the decoded
+    genesis JSON config specified. If any of the required parameters are missing
+    the function will raise a ValidationError.
+    """
+    if 'difficulty' not in genesis.keys():
+        raise ValidationError("genesis config missing required 'difficulty'")
+    if 'gasLimit' not in genesis.keys():
+        raise ValidationError("genesis config missing required 'gasLimit'")
+    if 'nonce' not in genesis.keys():
+        raise ValidationError("genesis config missing required 'nonce'")
+    if 'extraData' not in genesis.keys():
+        raise ValidationError("genesis config missing required 'extraData'")
+    if 'config' not in genesis.keys():
+        raise ValidationError("genesis config missing required 'config'")
+    if 'chainId' not in genesis['config'].keys():
+        raise ValidationError("genesis config missing required 'chainId'")
+
+
+def get_eip1085_genesis_config(genesis_path: Path) -> Dict[str, str]:
+    """
+    Will attempt to decode, validate and return a BlockHeader based on the filepath
+    given for the genesis config. The genesis config should conform to genesis
+    portion of https://github.com/ethereum/EIPs/issues/1085.
+    """
+    if not os.path.exists(genesis_path):
+        raise FileNotFoundError(
+            "The base chain genesis configuration file does not exist: `{0}`".format(
+                genesis_path,
+            ),
+        )
+
+    with open(genesis_path, 'r') as genesis_config:
+        genesis = json.load(genesis_config)
+
+    validate_eip1085_genesis_config(genesis)
+
+    return genesis
 
 
 #
@@ -135,6 +239,10 @@ def construct_chain_config_params(
     if args.trinity_root_dir is not None:
         yield 'trinity_root_dir', args.trinity_root_dir
 
+    if args.genesis is not None:
+        if args.data_dir is None:
+            raise ValueError("Must provide both genesis and data-dir")
+        yield 'genesis', args.genesis
     if args.data_dir is not None:
         yield 'data_dir', args.data_dir
 

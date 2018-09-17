@@ -261,6 +261,12 @@ mode_parser.add_argument(
 # Chain configuration
 #
 chain_parser.add_argument(
+    '--genesis',
+    help=(
+        "File containing a custom genesis block header"
+    ),
+)
+chain_parser.add_argument(
     '--data-dir',
     help=(
         "The directory where chain data is stored"
