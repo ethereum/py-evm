@@ -45,7 +45,7 @@ class AtomicDB(BaseAtomicDB):
 
     @contextmanager
     def atomic_batch(self) -> Generator['AtomicDBWriteBatch', None, None]:
-        with AtomicDBWriteBatch.commit_unexceptional(self) as readable_batch:
+        with AtomicDBWriteBatch._commit_unless_raises(self) as readable_batch:
             yield readable_batch
 
 
@@ -59,8 +59,8 @@ class AtomicDBWriteBatch(BaseDB):
     _write_target_db = None  # type: BaseDB
     _track_diff = None  # type: DBDiffTracker
 
-    def __init__(self, _write_target_db: BaseDB) -> None:
-        self._write_target_db = _write_target_db
+    def __init__(self, write_target_db: BaseDB) -> None:
+        self._write_target_db = write_target_db
         self._track_diff = DBDiffTracker()
 
     def __getitem__(self, key: bytes) -> bytes:
@@ -110,7 +110,13 @@ class AtomicDBWriteBatch(BaseDB):
 
     @classmethod
     @contextmanager
-    def commit_unexceptional(cls, write_target_db):
+    def _commit_unless_raises(cls, write_target_db):
+        """
+        Commit all writes inside the context, unless an exception was raised.
+
+        Although this is technically an external API, it (and this whole class) is only intended
+        to be used by AtomicDB.
+        """
         readable_write_batch = cls(write_target_db)
         try:
             yield readable_write_batch
@@ -125,3 +131,4 @@ class AtomicDBWriteBatch(BaseDB):
         finally:
             # force a shutdown of this batch, to prevent out-of-context usage
             readable_write_batch._track_diff = None
+            readable_write_batch._write_target_db = None

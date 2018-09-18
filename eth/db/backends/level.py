@@ -59,7 +59,7 @@ class LevelDB(BaseAtomicDB):
             try:
                 yield readable_batch
             finally:
-                readable_batch.shutdown()
+                readable_batch.decommission()
 
 
 class LevelDBWriteBatch(BaseDB):
@@ -118,7 +118,7 @@ class LevelDBWriteBatch(BaseDB):
         self._write_batch.delete(key)
         del self._track_diff[key]
 
-    def shutdown(self) -> None:
+    def decommission(self) -> None:
         """
         Prevent any further actions to be taken on this write batch, called after leaving context
         """
