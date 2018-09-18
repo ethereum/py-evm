@@ -10,8 +10,6 @@ RUN apt-get update && apt-get install -y pandoc
 #Copy the application py-evm to the /usr/src/app folder
 COPY . /usr/src/app
 
-# Remove existing virtualenv directory
-RUN rm -rf venv_docker_build
 # Install python dependencies
 RUN pip install virtualenv
 RUN cd /usr/src/app
