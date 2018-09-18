@@ -298,7 +298,7 @@ class BaseServer(BaseService):
 
 class FullServer(BaseServer):
     def _make_peer_pool(self) -> ETHPeerPool:
-        context = ChainContext(
+        eth_network_protocol = ETHProtocol.configure_protocol(
             headerdb=self.headerdb,
             network_id=self.network_id,
             vm_configuration=self.chain.get_vm_configuration(),
@@ -306,7 +306,7 @@ class FullServer(BaseServer):
         return ETHPeerPool(
             privkey=self.privkey,
             max_peers=self.max_peers,
-            context=context,
+            subprotocols=(eth_network_protocol, ),
             token=self.cancel_token,
             event_bus=self.event_bus
         )

@@ -74,7 +74,7 @@ class ETHPeer(BaseChainPeer):
             raise HandshakeFailure(
                 "{} network ({}) does not match ours ({}), disconnecting".format(
                     self, msg['network_id'], self.network_id))
-        genesis = await self.genesis
+        genesis = await self.chain_proto.genesis
         if msg['genesis_hash'] != genesis.hash:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(

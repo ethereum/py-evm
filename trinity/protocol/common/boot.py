@@ -33,7 +33,7 @@ class DAOCheckBootManager(BasePeerBootManager):
         wait for that we may receive other messages from the peer, which are returned so that they
         can be re-added to our subscribers' queues when the peer is finally added to the pool.
         """
-        for start_block, vm_class in self.peer.context.vm_configuration:
+        for start_block, vm_class in self.peer.chain_proto.vm_configuration:
             if not issubclass(vm_class, HomesteadVM):
                 continue
             elif not vm_class.support_dao_fork:

@@ -90,6 +90,8 @@ from .events import (
     PeerCountResponse,
 )
 
+Protocols = Tuple[Type[protocol.Protocol], ...]
+
 
 async def handshake(remote: Node, factory: 'BasePeerFactory') -> 'BasePeer':
     """Perform the auth and P2P handshakes with the given remote.
@@ -160,9 +162,6 @@ class BasePeerContext:
 
 class BasePeer(BaseService):
     conn_idle_timeout = CONN_IDLE_TIMEOUT
-    # Must be defined in subclasses. All items here must be Protocol classes representing
-    # different versions of the same P2P sub-protocol (e.g. ETH, LES, etc).
-    _supported_sub_protocols: List[Type[protocol.Protocol]] = []
     # FIXME: Must be configurable.
     listen_port = 30303
     # Will be set upon the successful completion of a P2P handshake.
@@ -172,14 +171,15 @@ class BasePeer(BaseService):
                  remote: Node,
                  privkey: datatypes.PrivateKey,
                  connection: PeerConnection,
-                 context: BasePeerContext,
+                 subprotocols: Protocols,
                  inbound: bool = False,
                  token: CancelToken = None,
                  ) -> None:
         super().__init__(token)
 
-        # Any contextual information the peer may need.
-        self.context = context
+        # All items here must be Protocol classes representing
+        # different versions of the same P2P sub-protocol (e.g. ETH, LES, etc).
+        self._supported_sub_protocols = subprotocols
 
         # The `Node` that this peer is connected to
         self.remote = remote
@@ -721,10 +721,10 @@ class BasePeerFactory(ABC):
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
-                 context: BasePeerContext,
+                 subprotocols: Protocols,
                  token: CancelToken) -> None:
         self.privkey = privkey
-        self.context = context
+        self.subprotocols = subprotocols
         self.cancel_token = token
 
     def create_peer(self,
@@ -735,7 +735,7 @@ class BasePeerFactory(ABC):
             remote=remote,
             privkey=self.privkey,
             connection=connection,
-            context=self.context,
+            subprotocols=self.subprotocols,
             inbound=inbound,
             token=self.cancel_token,
         )
@@ -750,7 +750,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
-                 context: BasePeerContext,
+                 subprotocols: Protocols,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  token: CancelToken = None,
                  event_bus: Endpoint = None
@@ -759,7 +759,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
         self.privkey = privkey
         self.max_peers = max_peers
-        self.context = context
+        self.subprotocols = subprotocols
 
         self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerSubscriber] = []
@@ -786,7 +786,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     def get_peer_factory(self) -> BasePeerFactory:
         return self.peer_factory_class(
             privkey=self.privkey,
-            context=self.context,
+            subprotocols=self.subprotocols,
             token=self.cancel_token,
         )
 

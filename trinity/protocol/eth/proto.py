@@ -1,3 +1,4 @@
+from abc import ABC
 import logging
 from typing import (
     List,
@@ -20,6 +21,7 @@ from p2p.protocol import (
 )
 
 from trinity.protocol.common.peer import ChainInfo
+from trinity.protocol.common.protocol import ChainProtocol
 from trinity.rlp.block_body import BlockBody
 
 from .commands import (
@@ -41,7 +43,7 @@ if TYPE_CHECKING:
     from .peer import ETHPeer  # noqa: F401
 
 
-class ETHProtocol(Protocol):
+class ETHProtocol(ChainProtocol):
     name = 'eth'
     version = 63
     _commands = [
@@ -56,7 +58,7 @@ class ETHProtocol(Protocol):
     def send_handshake(self, chain_info: ChainInfo) -> None:
         resp = {
             'protocol_version': self.version,
-            'network_id': self.peer.network_id,
+            'network_id': self.network_id,
             'td': chain_info.total_difficulty,
             'best_hash': chain_info.block_hash,
             'genesis_hash': chain_info.genesis_hash,
