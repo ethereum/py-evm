@@ -1,5 +1,7 @@
 import pytest
+
 from eth.db.backends.memory import MemoryDB
+from eth.db.atomic import AtomicDB
 from eth.db import (
     get_db_backend,
 )
@@ -24,6 +26,11 @@ def level_db(config_env, tmpdir):
 @pytest.fixture
 def memory_db():
     return MemoryDB()
+
+
+@pytest.fixture
+def atomic_db():
+    return AtomicDB()
 
 
 def test_raises_if_db_path_is_not_specified(config_env):
