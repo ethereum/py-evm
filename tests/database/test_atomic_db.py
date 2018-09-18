@@ -1,7 +1,5 @@
 import pytest
 
-from eth_utils import ValidationError
-
 from eth.db.atomic import AtomicDB
 
 
@@ -36,13 +34,6 @@ def test_atomic_db_with_set_and_get_unbatched(base_db, atomic_db):
     assert base_db.get(b'key-2') == b'value-2'
 
 
-def test_atomic_db_cannot_recursively_batch(base_db, atomic_db):
-    with atomic_db.atomic_batch() as db:
-        with pytest.raises(AttributeError):
-            with db.atomic_batch():
-                assert False, "AtomicDB should not permit recursive batching of changes"
-
-
 def test_atomic_db_with_set_and_delete(base_db, atomic_db):
     base_db[b'key-1'] = b'origin'
 
@@ -61,47 +52,6 @@ def test_atomic_db_with_set_and_delete(base_db, atomic_db):
         base_db[b'key-1']
     with pytest.raises(KeyError):
         atomic_db[b'key-1']
-
-
-def test_atomic_db_unbatched_sets_are_immediate(atomic_db):
-    atomic_db[b'1'] = b'A'
-
-    with atomic_db.atomic_batch() as db:
-        # Unbatched changes are immediate, and show up in batch reads
-        atomic_db[b'1'] = b'B'
-        assert db[b'1'] == b'B'
-
-        db[b'1'] = b'C1'
-
-        # It doesn't matter what changes happen underlying, all reads now
-        # show the write applied to the batch db handle
-        atomic_db[b'1'] = b'C2'
-        assert db[b'1'] == b'C1'
-
-    # the batch write should overwrite any intermediate changes
-    assert atomic_db[b'1'] == b'C1'
-
-
-def test_atomic_db_cannot_use_write_batch_after_context(atomic_db):
-    atomic_db[b'1'] = b'A'
-
-    with atomic_db.atomic_batch() as db:
-        db[b'1'] = b'B'
-
-    with pytest.raises(ValidationError):
-        db[b'1'] = b'C'
-
-    with pytest.raises(ValidationError):
-        b'1' in db
-
-    with pytest.raises(ValidationError):
-        del db[b'1']
-
-    with pytest.raises(ValidationError):
-        assert db[b'1'] == 'C'
-
-    # none of the invalid changes above should change the original db
-    assert atomic_db[b'1'] == b'B'
 
 
 def test_atomic_db_with_set_and_delete_unbatched(base_db, atomic_db):
