@@ -1,3 +1,9 @@
+"""Connect to the given enode and request some arbitrary data from it.
+
+Run with `python -m scripts.peer -enode <enode>`.
+
+By default connects as a ROPSTEN peer using the ETH protocol.
+"""
 import argparse
 import asyncio
 import logging
@@ -23,20 +29,12 @@ from trinity.protocol.les.peer import LESPeer, LESPeerPool
 from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
 
 
-def _test() -> None:
-    """
-    Create a Peer instance connected to a local geth instance and log messages exchanged with it.
-
-    Use the following command line to run geth:
-
-        ./build/bin/geth -vmodule p2p=4,p2p/discv5=0,eth/*=0 \
-          -nodekeyhex 45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8 \
-          -testnet -lightserv 90
-    """
+def _main() -> None:
     logging.basicConfig(level=TRACE_LEVEL_NUM, format='%(asctime)s %(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-enode', type=str, help="The enode we should connect to", required=True)
+    parser.add_argument('-mainnet', action='store_true')
     parser.add_argument('-light', action='store_true', help="Connect as a light node")
     args = parser.parse_args()
 
@@ -114,4 +112,4 @@ def _test() -> None:
 
 
 if __name__ == "__main__":
-    _test()
+    _main()
