@@ -33,6 +33,8 @@ class PeerRequestHandler(CancellableMixin):
         self.cancel_token = token
 
     async def handle_get_block_bodies(self, peer: ETHPeer, block_hashes: List[Hash32]) -> None:
+        if not peer.is_operational:
+            return
         self.logger.trace("%s requested bodies for %d blocks", peer, len(block_hashes))
         chaindb = cast(AsyncChainDB, self.db)
         bodies = []
@@ -50,6 +52,8 @@ class PeerRequestHandler(CancellableMixin):
         peer.sub_proto.send_block_bodies(bodies)
 
     async def handle_get_receipts(self, peer: ETHPeer, block_hashes: List[Hash32]) -> None:
+        if not peer.is_operational:
+            return
         self.logger.trace("%s requested receipts for %d blocks", peer, len(block_hashes))
         chaindb = cast(AsyncChainDB, self.db)
         receipts = []
@@ -66,6 +70,8 @@ class PeerRequestHandler(CancellableMixin):
         peer.sub_proto.send_receipts(receipts)
 
     async def handle_get_node_data(self, peer: ETHPeer, node_hashes: List[Hash32]) -> None:
+        if not peer.is_operational:
+            return
         self.logger.trace("%s requested %d trie nodes", peer, len(node_hashes))
         chaindb = cast(AsyncChainDB, self.db)
         nodes = []
