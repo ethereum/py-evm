@@ -2,6 +2,10 @@ from typing import (  # noqa: F401
     Type,
 )
 
+from cytoolz import (
+    curry,
+)
+
 from eth_utils import (
     encode_hex,
     ValidationError,
@@ -44,6 +48,13 @@ def make_byzantium_receipt(base_header, transaction, computation, state):
     return frontier_receipt.copy(state_root=status_code)
 
 
+@curry
+def get_uncle_reward(block_reward, block_number, uncle):
+    block_number_delta = block_number - uncle.block_number
+    validate_lte(block_number_delta, MAX_UNCLE_DEPTH)
+    return (8 - block_number_delta) * block_reward // 8
+
+
 EIP658_STATUS_CODES = {
     EIP658_TRANSACTION_STATUS_CODE_SUCCESS,
     EIP658_TRANSACTION_STATUS_CODE_FAILURE,
@@ -63,6 +74,7 @@ class ByzantiumVM(SpuriousDragonVM):
     compute_difficulty = staticmethod(compute_byzantium_difficulty)
     configure_header = configure_byzantium_header
     make_receipt = staticmethod(make_byzantium_receipt)
+    get_uncle_reward = staticmethod(get_uncle_reward(EIP649_BLOCK_REWARD))
 
     @classmethod
     def validate_receipt(cls, receipt: Receipt) -> None:
@@ -80,9 +92,3 @@ class ByzantiumVM(SpuriousDragonVM):
     @staticmethod
     def get_block_reward():
         return EIP649_BLOCK_REWARD
-
-    @staticmethod
-    def get_uncle_reward(block_number, uncle):
-        block_number_delta = block_number - uncle.block_number
-        validate_lte(block_number_delta, MAX_UNCLE_DEPTH)
-        return (8 - block_number_delta) * EIP649_BLOCK_REWARD // 8
