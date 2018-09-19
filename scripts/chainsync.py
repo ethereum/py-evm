@@ -1,3 +1,7 @@
+"""Run the chain syncer, storing data in the given db dir.
+
+Run with `python -m scripts.chainsync -db <path>`.
+"""
 import asyncio
 import logging
 from typing import (
@@ -11,9 +15,9 @@ from eth.exceptions import HeaderNotFound
 from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.les.peer import LESPeerPool
 
-from .common.chain import BaseHeaderChainSyncer
-from .full.chain import FastChainSyncer, RegularChainSyncer
-from .light.chain import LightChainSyncer
+from trinity.sync.common.chain import BaseHeaderChainSyncer
+from trinity.sync.full.chain import FastChainSyncer, RegularChainSyncer
+from trinity.sync.light.chain import LightChainSyncer
 
 
 def _test() -> None:
@@ -141,4 +145,4 @@ def _run_test(profile: bool) -> None:
 
 
 if __name__ == "__main__":
-    _run_test(profile=True)
+    _run_test(profile=False)
