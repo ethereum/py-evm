@@ -367,6 +367,8 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
             self,
             peer: ETHPeer,
             query: Dict[str, Any]) -> None:
+        if not peer.is_operational:
+            return
         self.logger.debug("Peer %s made header request: %s", peer, query)
         request = HeaderRequest(
             query['block_number_or_hash'],

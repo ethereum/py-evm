@@ -49,6 +49,8 @@ class LightChainSyncer(BaseHeaderChainSyncer):
             self.logger.debug("Ignoring %s message from %s", cmd, peer)
 
     async def _handle_get_block_headers(self, peer: LESPeer, msg: Dict[str, Any]) -> None:
+        if not peer.is_operational:
+            return
         self.logger.debug("Peer %s made header request: %s", peer, msg)
         request = HeaderRequest(
             msg['query'].block_number_or_hash,
