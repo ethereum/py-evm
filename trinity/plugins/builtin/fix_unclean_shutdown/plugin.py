@@ -9,14 +9,14 @@ from trinity.config import (
     ChainConfig,
 )
 from trinity.extensibility import (
-    BasePlugin,
+    BaseMainProcessPlugin,
 )
 from trinity.utils.ipc import (
     kill_process_id_gracefully,
 )
 
 
-class FixUncleanShutdownPlugin(BasePlugin):
+class FixUncleanShutdownPlugin(BaseMainProcessPlugin):
 
     @property
     def name(self) -> str:

@@ -23,7 +23,7 @@ from trinity.constants import (
 )
 from trinity.extensibility import (
     BaseEvent,
-    BasePlugin,
+    BaseAsyncStopPlugin,
 )
 from trinity.extensibility.events import (
     ResourceAvailableEvent,
@@ -38,11 +38,12 @@ from trinity.plugins.builtin.tx_pool.validators import (
 from trinity.protocol.eth.peer import ETHPeerPool
 
 
-class TxPlugin(BasePlugin):
+class TxPlugin(BaseAsyncStopPlugin):
     peer_pool: ETHPeerPool = None
     cancel_token: CancelToken = None
     chain: BaseChain = None
     is_enabled: bool = False
+    tx_pool: TxPool = None
 
     @property
     def name(self) -> str:
@@ -81,5 +82,13 @@ class TxPlugin(BasePlugin):
             # tx pool without tx validation in this case
             raise ValueError("The TxPool plugin only supports MainnetChain or RopstenChain")
 
-        tx_pool = TxPool(self.peer_pool, validator, self.cancel_token)
-        asyncio.ensure_future(tx_pool.run())
+        self.tx_pool = TxPool(self.peer_pool, validator, self.cancel_token)
+        asyncio.ensure_future(self.tx_pool.run())
+
+    async def stop(self) -> None:
+        # This isn't really needed for the standard shutdown case as the TxPool will automatically
+        # shutdown whenever the `CancelToken` it was chained with is triggered. It may still be
+        # useful to stop the TxPool plugin individually though.
+        if self.tx_pool.is_operational:
+            await self.tx_pool.cancel()
+            self.logger.info("Successfully stopped TxPool")

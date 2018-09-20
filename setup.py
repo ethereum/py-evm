@@ -36,6 +36,7 @@ deps = {
         "upnpclient>=0.0.8,<1",
     ],
     'trinity': [
+        "async-generator==1.10",
         "bloom-filter==1.3",
         "cachetools>=2.1.0,<3.0.0",
         "coincurve>=8.0.0,<9.0.0",

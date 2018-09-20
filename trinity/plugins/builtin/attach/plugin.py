@@ -9,7 +9,7 @@ from trinity.config import (
     ChainConfig,
 )
 from trinity.extensibility import (
-    BasePlugin,
+    BaseMainProcessPlugin,
 )
 
 from trinity.plugins.builtin.attach.console import (
@@ -17,7 +17,7 @@ from trinity.plugins.builtin.attach.console import (
 )
 
 
-class AttachPlugin(BasePlugin):
+class AttachPlugin(BaseMainProcessPlugin):
 
     def __init__(self, use_ipython: bool = True) -> None:
         super().__init__()

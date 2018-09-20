@@ -2,15 +2,17 @@ from trinity.extensibility.events import (  # noqa: F401
     BaseEvent
 )
 from trinity.extensibility.plugin import (  # noqa: F401
-    BasePlugin,
+    BaseAsyncStopPlugin,
+    BaseMainProcessPlugin,
     BaseIsolatedPlugin,
+    BasePlugin,
+    BaseSyncStopPlugin,
     DebugPlugin,
     PluginContext,
-    PluginProcessScope,
 )
 from trinity.extensibility.plugin_manager import (  # noqa: F401
+    BaseManagerProcessScope,
     MainAndIsolatedProcessScope,
     PluginManager,
-    ManagerProcessScope,
     SharedProcessScope,
 )

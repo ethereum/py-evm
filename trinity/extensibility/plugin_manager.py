@@ -1,14 +1,21 @@
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from argparse import (
     ArgumentParser,
     Namespace,
     _SubParsersAction,
 )
+import asyncio
 import logging
 from typing import (
     Any,
+    Awaitable,
     Dict,
     Iterable,
     List,
+    Optional,
     Union,
 )
 
@@ -24,27 +31,96 @@ from trinity.extensibility.events import (
     BaseEvent,
     PluginStartedEvent,
 )
+from trinity.extensibility.exceptions import (
+    UnsuitableShutdownError,
+)
 from trinity.extensibility.plugin import (
+    BaseAsyncStopPlugin,
+    BaseIsolatedPlugin,
+    BaseMainProcessPlugin,
     BasePlugin,
+    BaseSyncStopPlugin,
     PluginContext,
-    PluginProcessScope,
 )
 
 
-class MainAndIsolatedProcessScope():
+class BaseManagerProcessScope(ABC):
+    """
+    Define the operational model under which a ``PluginManager`` runs.
+    """
+
+    endpoint: Endpoint
+
+    @abstractmethod
+    def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
+        """
+        Define whether a ``PluginManager`` operating under this scope is responsible
+        for a given plugin or not.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+    @abstractmethod
+    def create_plugin_context(self,
+                              plugin: BasePlugin,
+                              args: Namespace,
+                              chain_config: ChainConfig,
+                              boot_kwargs: Dict[str, Any]) -> PluginContext:
+        """
+        Create the ``PluginContext`` for a given plugin.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+
+class MainAndIsolatedProcessScope(BaseManagerProcessScope):
 
     def __init__(self, event_bus: EventBus, main_proc_endpoint: Endpoint) -> None:
         self.event_bus = event_bus
         self.endpoint = main_proc_endpoint
 
+    def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
+        return isinstance(plugin, BaseIsolatedPlugin) or isinstance(plugin, BaseMainProcessPlugin)
 
-class SharedProcessScope():
+    def create_plugin_context(self,
+                              plugin: BasePlugin,
+                              args: Namespace,
+                              chain_config: ChainConfig,
+                              boot_kwargs: Dict[str, Any]) -> PluginContext:
+
+        if isinstance(plugin, BaseIsolatedPlugin):
+            # Isolated plugins get an entirely new endpoint to be passed into that new process
+            context = PluginContext(
+                self.event_bus.create_endpoint(plugin.name)
+            )
+            context.args = args
+            context.chain_config = chain_config
+            context.boot_kwargs = boot_kwargs
+            return context
+
+        # A plugin that overtakes the main process never gets far enough to even get a context.
+        # For now it should be safe to just return `None`. Maybe reconsider in the future.
+        return None
+
+
+class SharedProcessScope(BaseManagerProcessScope):
 
     def __init__(self, shared_proc_endpoint: Endpoint) -> None:
         self.endpoint = shared_proc_endpoint
 
+    def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
+        return isinstance(plugin, BaseAsyncStopPlugin)
 
-ManagerProcessScope = Union[SharedProcessScope, MainAndIsolatedProcessScope]
+    def create_plugin_context(self,
+                              plugin: BasePlugin,
+                              args: Namespace,
+                              chain_config: ChainConfig,
+                              boot_kwargs: Dict[str, Any]) -> PluginContext:
+
+        # Plugins that run in a shared process all share the endpoint of the plugin manager
+        context = PluginContext(self.endpoint)
+        context.args = args
+        context.chain_config = chain_config
+        context.boot_kwargs = boot_kwargs
+        return context
 
 
 class PluginManager:
@@ -57,10 +133,7 @@ class PluginManager:
         This API is very much in flux and is expected to change heavily.
     """
 
-    MAIN_AND_ISOLATED_SCOPES = {PluginProcessScope.MAIN, PluginProcessScope.ISOLATED}
-    MAIN_AND_SHARED_SCOPES = {PluginProcessScope.MAIN, PluginProcessScope.SHARED}
-
-    def __init__(self, scope: ManagerProcessScope) -> None:
+    def __init__(self, scope: BaseManagerProcessScope) -> None:
         self._scope = scope
         self._plugin_store: List[BasePlugin] = []
         self._started_plugins: List[BasePlugin] = []
@@ -103,7 +176,8 @@ class PluginManager:
         """
         for plugin in self._plugin_store:
 
-            if plugin is exclude or not self._is_responsible_for_plugin(plugin):
+            if plugin is exclude or not self._scope.is_responsible_for_plugin(plugin):
+                self._logger.debug("Skipping plugin %s (not responsible)", plugin.name)
                 continue
 
             plugin.handle_event(event)
@@ -116,65 +190,77 @@ class PluginManager:
 
             plugin._start()
             self._started_plugins.append(plugin)
-            self._logger.info("Plugin started: {}".format(plugin.name))
+            self._logger.info("Plugin started: %s", plugin.name)
             self.broadcast(PluginStartedEvent(plugin), plugin)
 
     def prepare(self,
                 args: Namespace,
                 chain_config: ChainConfig,
                 boot_kwargs: Dict[str, Any] = None) -> None:
+        """
+        Create a ``PluginContext`` for every plugin that this plugin manager instance
+        is responsible for.
+        """
         for plugin in self._plugin_store:
 
-            if not self._is_responsible_for_plugin(plugin):
+            if not self._scope.is_responsible_for_plugin(plugin):
                 continue
 
-            context = self._create_context_for_plugin(plugin, args, chain_config, boot_kwargs)
+            context = self._scope.create_plugin_context(plugin, args, chain_config, boot_kwargs)
             plugin.set_context(context)
 
-    def shutdown(self) -> None:
+    def shutdown_blocking(self) -> None:
+        """
+        Synchronously shut down all started plugins.
+        """
+
+        if isinstance(self._scope, SharedProcessScope):
+            raise UnsuitableShutdownError("Use `shutdown` for instances of this scope")
+
+        self._logger.info("Shutting down PluginManager with scope %s", type(self._scope))
+
         for plugin in self._started_plugins:
+
+            if not isinstance(plugin, BaseSyncStopPlugin):
+                continue
+
             try:
+                self._logger.info("Stopping plugin: %s", plugin.name)
                 plugin.stop()
+                self._logger.info("Successfully stopped plugin: %s", plugin.name)
             except Exception:
                 self._logger.exception("Exception thrown while stopping plugin %s", plugin.name)
 
-    def _is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
+    async def shutdown(self) -> None:
+        """
+        Asynchronously shut down all started plugins.
+        """
 
-        main_or_isolated_plugin = plugin.process_scope in self.MAIN_AND_ISOLATED_SCOPES
-        shared_plugin = not main_or_isolated_plugin
+        if isinstance(self._scope, MainAndIsolatedProcessScope):
+            raise UnsuitableShutdownError("Use `shutdown_blocking` for instances of this scope")
 
-        manager_for_main_or_isolated = isinstance(self._scope, MainAndIsolatedProcessScope)
-        manager_for_shared = not manager_for_main_or_isolated
+        self._logger.info("Shutting down PluginManager with scope %s", type(self._scope))
 
-        return ((main_or_isolated_plugin and manager_for_main_or_isolated) or
-                (shared_plugin and manager_for_shared))
+        async_plugins = [
+            plugin for plugin in self._started_plugins
+            if isinstance(plugin, BaseAsyncStopPlugin)
+        ]
 
-    def _create_context_for_plugin(self,
-                                   plugin: BasePlugin,
-                                   args: Namespace,
-                                   chain_config: ChainConfig,
-                                   boot_kwargs: Dict[str, Any]) -> PluginContext:
+        stop_results = await asyncio.gather(
+            *self._stop_plugins(async_plugins), return_exceptions=True
+        )
 
-        context: PluginContext = None
-        if plugin.process_scope in self.MAIN_AND_SHARED_SCOPES:
-            # A plugin that runs in a shared process as well as a plugin that overtakes the main
-            # process uses the endpoint of the PluginManager which will either be the main
-            # endpoint or the networking endpoint in the case of Trinity
-            context = PluginContext(self._scope.endpoint)
-        elif plugin.process_scope is PluginProcessScope.ISOLATED:
-            # A plugin that runs in it's own process gets a new endpoint created to get
-            # passed into that new process
+        for plugin, result in zip(async_plugins, stop_results):
+            if isinstance(result, Exception):
+                self._logger.error(
+                    'Exception thrown while stopping plugin %s: %s', plugin.name, result
+                )
+            else:
+                self._logger.info("Successfully stopped plugin: %s", plugin.name)
 
-            # mypy doesn't know it can only be that scope at this point. The `isinstance`
-            # check avoids adding an ignore
-            if isinstance(self._scope, MainAndIsolatedProcessScope):
-                endpoint = self._scope.event_bus.create_endpoint(plugin.name)
-                context = PluginContext(endpoint)
-        else:
-            Exception("Invariant: unreachable code path")
-
-        context.args = args
-        context.chain_config = chain_config
-        context.boot_kwargs = boot_kwargs
-
-        return context
+    def _stop_plugins(self,
+                      plugins: Iterable[BaseAsyncStopPlugin]
+                      ) -> Iterable[Awaitable[Optional[Exception]]]:
+        for plugin in plugins:
+            self._logger.info("Stopping plugin: %s", plugin.name)
+            yield plugin.stop()
