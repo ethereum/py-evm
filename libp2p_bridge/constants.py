@@ -1,0 +1,6 @@
+UNKNOWN_PID = ""
+UNKNOWN_TOPIC = ""
+
+INT_BYTES = 32
+
+COLLATION_TOPIC_FORMAT = "shardCollations_{}"
