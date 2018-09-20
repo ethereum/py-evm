@@ -237,13 +237,18 @@ class BaseService(ABC, CancellableMixin):
         The ``_cleanup()`` coroutine is invoked before the child services may have finished
         their cleanup.
         """
-        await asyncio.gather(*[
-            child_service.events.cleaned_up.wait()
-            for child_service in self._child_services],
-            *[task for task in self._tasks],
-            self._cleanup()
-        )
+        if self._child_services:
+            self.logger.debug("Waiting for child services: %s", list(self._child_services))
+            await asyncio.gather(*[
+                child_service.events.cleaned_up.wait()
+                for child_service in self._child_services])
+            self.logger.debug("All child services finished")
+        if self._tasks:
+            self.logger.debug("Waiting for tasks: %s", list(self._tasks))
+            await asyncio.gather(*self._tasks)
+            self.logger.debug("All tasks finished")
 
+        await self._cleanup()
         self.events.cleaned_up.set()
 
     def cancel_nowait(self) -> None:
@@ -268,6 +273,10 @@ class BaseService(ABC, CancellableMixin):
             self.logger.info(
                 "Timed out waiting for %s to finish its cleanup, forcibly cancelling pending "
                 "tasks and exiting anyway", self)
+            if self._tasks:
+                self.logger.debug("Pending tasks: %s", list(self._tasks))
+            if self._child_services:
+                self.logger.debug("Pending child services: %s", list(self._child_services))
             self._forcibly_cancel_all_tasks()
             # Sleep a bit because the Future.cancel() method just schedules the callbacks, so we
             # need to give the event loop a chance to actually call them.
