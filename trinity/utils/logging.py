@@ -39,6 +39,16 @@ LOG_BACKUP_COUNT = 10
 LOG_MAX_MB = 5
 
 
+class TrinityLogFormatter(logging.Formatter):
+
+    def __init__(self, fmt: str, datefmt: str) -> None:
+        super().__init__(fmt, datefmt)
+
+    def format(self, record: logging.LogRecord) -> str:
+        record.shortname = record.name.split('.')[-1]  # type: ignore
+        return super().format(record)
+
+
 class HasTraceLogger:
     _logger: TraceLogger = None
 
@@ -69,8 +79,8 @@ def setup_trinity_stderr_logging(level: int=None,
     handler_stream.setLevel(level)
 
     # TODO: allow configuring `detailed` logging
-    formatter = logging.Formatter(
-        fmt='%(levelname)8s  %(asctime)s  %(module)10s  %(message)s',
+    formatter = TrinityLogFormatter(
+        fmt='%(levelname)8s  %(asctime)s  %(shortname)20s  %(message)s',
         datefmt='%m-%d %H:%M:%S'
     )
 

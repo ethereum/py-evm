@@ -768,12 +768,17 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             self.run_task(self.handle_peer_count_requests())
 
     async def handle_peer_count_requests(self) -> None:
-        async for req in self.event_bus.stream(PeerCountRequest):
-            # We are listening for all `PeerCountRequest` events but we ensure to
-            # only send a `PeerCountResponse` to the callsite that made the request.
-            # We do that by retrieving a `BroadcastConfig` from the request via the
-            # `event.broadcast_config()` API.
-            self.event_bus.broadcast(PeerCountResponse(len(self)), req.broadcast_config())
+        async def f() -> None:
+            # FIXME: There must be a way to cancel event_bus.stream() when our token is triggered,
+            # but for the time being we just wrap everything in self.wait().
+            async for req in self.event_bus.stream(PeerCountRequest):
+                # We are listening for all `PeerCountRequest` events but we ensure to only send a
+                # `PeerCountResponse` to the callsite that made the request.  We do that by
+                # retrieving a `BroadcastConfig` from the request via the
+                # `event.broadcast_config()` API.
+                self.event_bus.broadcast(PeerCountResponse(len(self)), req.broadcast_config())
+
+        await self.wait(f())
 
     def __len__(self) -> int:
         return len(self.connected_nodes)
