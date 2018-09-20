@@ -206,7 +206,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             self.logger.debug("binding failed, already waiting for ping")
             return False
 
-        self.logger.debug("bonding completed successfully with %s", node)
+        self.logger.trace("bonding completed successfully with %s", node)
         self.update_routing_table(node)
         return True
 
@@ -224,9 +224,9 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             try:
                 got_ping = await self.cancel_token.cancellable_wait(
                     event.wait(), timeout=kademlia.k_request_timeout)
-                self.logger.debug('got expected ping from %s', remote)
+                self.logger.trace('got expected ping from %s', remote)
             except TimeoutError:
-                self.logger.debug('timed out waiting for ping from %s', remote)
+                self.logger.trace('timed out waiting for ping from %s', remote)
 
         return got_ping
 
@@ -251,9 +251,9 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             try:
                 got_pong = await self.cancel_token.cancellable_wait(
                     event.wait(), timeout=kademlia.k_request_timeout)
-                self.logger.debug('got expected pong with token %s', encode_hex(token))
+                self.logger.trace('got expected pong with token %s', encode_hex(token))
             except TimeoutError:
-                self.logger.debug(
+                self.logger.trace(
                     'timed out waiting for pong from %s (token == %s)',
                     remote,
                     encode_hex(token),
@@ -281,9 +281,9 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             try:
                 await self.cancel_token.cancellable_wait(
                     event.wait(), timeout=kademlia.k_request_timeout)
-                self.logger.debug('got expected neighbours response from %s', remote)
+                self.logger.trace('got expected neighbours response from %s', remote)
             except TimeoutError:
-                self.logger.debug(
+                self.logger.trace(
                     'timed out waiting for %d neighbours from %s', kademlia.k_bucket_size, remote)
 
         return tuple(n for n in neighbours if n != self.this_node)
@@ -320,12 +320,12 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
                 c for c in all_candidates
                 if (not self.ping_callbacks.locked(c) and not self.pong_callbacks.locked(c))
             )
-            self.logger.debug("got %s new candidates", len(candidates))
+            self.logger.trace("got %s new candidates", len(candidates))
             # Add new candidates to nodes_seen so that we don't attempt to bond with failing ones
             # in the future.
             nodes_seen.update(candidates)
             bonded = await asyncio.gather(*(self.bond(c) for c in candidates))
-            self.logger.debug("bonded with %s candidates", bonded.count(True))
+            self.logger.trace("bonded with %s candidates", bonded.count(True))
             return tuple(c for c in candidates if bonded[candidates.index(c)])
 
         def _exclude_if_asked(nodes: Iterable[kademlia.Node]) -> List[kademlia.Node]:
@@ -336,7 +336,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.logger.debug("starting lookup; initial neighbours: %s", closest)
         nodes_to_ask = _exclude_if_asked(closest)
         while nodes_to_ask:
-            self.logger.debug("node lookup; querying %s", nodes_to_ask)
+            self.logger.trace("node lookup; querying %s", nodes_to_ask)
             nodes_asked.update(nodes_to_ask)
             results = await asyncio.gather(*(
                 _find_node(node_id, n)
@@ -493,7 +493,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.send(node, message)
         # Return the msg hash, which is used as a token to identify pongs.
         token = message[:MAC_SIZE]
-        self.logger.debug('>>> ping (v4) %s (token == %s)', node, encode_hex(token))
+        self.logger.trace('>>> ping (v4) %s (token == %s)', node, encode_hex(token))
         # XXX: This hack is needed because there are lots of parity 1.10 nodes out there that send
         # the wrong token on pong msgs (https://github.com/paritytech/parity/issues/8038). We
         # should get rid of this once there are no longer too many parity 1.10 nodes out there.
@@ -787,10 +787,10 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             except TimeoutError:
                 # A timeout here just means we didn't get at least MAX_ENTRIES_PER_TOPIC nodes,
                 # but we'll still process the ones we get.
-                self.logger.debug(
+                self.logger.trace(
                     'timed out waiting for %d neighbours from %s', MAX_ENTRIES_PER_TOPIC, remote)
             finally:
-                self.logger.debug('got %d topic nodes from %s', len(nodes), remote)
+                self.logger.trace('got %d topic nodes from %s', len(nodes), remote)
 
         return tuple(n for n in nodes if n != self.this_node)
 

@@ -135,10 +135,6 @@ def setup_queue_logging(log_queue: 'Queue[str]', level: int) -> None:
     logger.addHandler(queue_handler)
     logger.setLevel(level)
 
-    # These loggers generates too much DEBUG noise, drowning out the important things, so force
-    # the INFO level for it until https://github.com/ethereum/py-evm/issues/806 is fixed.
-    logging.getLogger('p2p.kademlia').setLevel(logging.INFO)
-    logging.getLogger('p2p.discovery').setLevel(logging.INFO)
     logger.debug('Logging initialized: PID=%s', os.getpid())
 
 
