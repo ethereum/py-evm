@@ -7,10 +7,7 @@ from argparse import (
     Namespace,
     _SubParsersAction,
 )
-from enum import (
-    auto,
-    Enum,
-)
+import asyncio
 import logging
 from multiprocessing import (
     Process
@@ -48,20 +45,6 @@ from trinity.utils.logging import (
 )
 
 
-class PluginProcessScope(Enum):
-    """
-    Define the process model in which a plugin operates:
-
-      - ISOLATED: The plugin runs in its own separate process
-      - MAIN: The plugin takes over the Trinity main process (e.g. attach)
-      - SHARED: The plugin runs in a process that is shared with other plugins
-    """
-
-    ISOLATED = auto()
-    MAIN = auto()
-    SHARED = auto()
-
-
 class PluginContext:
     """
     The ``PluginContext`` holds valuable contextual information such as the parsed
@@ -97,14 +80,6 @@ class BasePlugin(ABC):
         raise NotImplementedError(
             "Must be implemented by subclasses"
         )
-
-    @property
-    def process_scope(self) -> PluginProcessScope:
-        """
-        Return the :class:`~trinity.extensibility.plugin.PluginProcessScope` that the plugin uses
-        to operate. The default scope is ``PluginProcessScope.SHARED``.
-        """
-        return PluginProcessScope.SHARED
 
     @property
     def logger(self) -> logging.Logger:
@@ -147,21 +122,42 @@ class BasePlugin(ABC):
         """
         pass
 
+
+class BaseSyncStopPlugin(BasePlugin):
+    """
+    A ``BaseSyncStopPlugin`` unwinds synchronoulsy, hence blocks until shut down is done.
+    """
     def stop(self) -> None:
-        """
-        Called when the plugin gets stopped. Should be overwritten to perform cleanup
-        work in case the plugin set up external resources.
-        """
         pass
 
 
-class BaseIsolatedPlugin(BasePlugin):
+class BaseAsyncStopPlugin(BasePlugin):
+    """
+    A ``BaseAsyncStopPlugin`` unwinds asynchronoulsy, hence needs to be awaited.
+    """
+
+    async def stop(self) -> None:
+        pass
+
+
+class BaseMainProcessPlugin(BasePlugin):
+    """
+    A ``BaseMainProcessPlugin`` overtakes the whole main process before most of the Trinity boot
+    process had a chance to start. In that sense it redefines the whole meaning of the ``trinity``
+    process.
+    """
+    pass
+
+
+class BaseIsolatedPlugin(BaseSyncStopPlugin):
+    """
+    A ``BaseIsolatedPlugin`` runs in an isolated process and doesn't dictate whether its
+    implementation is based on non-blocking asyncio or synchronous calls. When an isolated
+    plugin is stopped it will first receive a SIGINT followed by a SIGTERM soon after.
+    It is up to the plugin to handle these signals accordingly.
+    """
 
     _process: Process = None
-
-    @property
-    def process_scope(self) -> PluginProcessScope:
-        return PluginProcessScope.ISOLATED
 
     def _start(self) -> None:
         self._process = ctx.Process(
@@ -182,7 +178,7 @@ class BaseIsolatedPlugin(BasePlugin):
         kill_process_gracefully(self._process, self.logger)
 
 
-class DebugPlugin(BasePlugin):
+class DebugPlugin(BaseAsyncStopPlugin):
     """
     This is a dummy plugin useful for demonstration and debugging purposes
     """
@@ -195,7 +191,7 @@ class DebugPlugin(BasePlugin):
         arg_parser.add_argument("--debug-plugin", type=bool, required=False)
 
     def handle_event(self, activation_event: BaseEvent) -> None:
-        self.logger.info("Debug plugin: handle_event called: ", activation_event)
+        self.logger.info("Debug plugin: handle_event called: %s", activation_event)
 
     def should_start(self) -> bool:
         self.logger.info("Debug plugin: should_start called")
@@ -203,3 +199,14 @@ class DebugPlugin(BasePlugin):
 
     def start(self) -> None:
         self.logger.info("Debug plugin: start called")
+        asyncio.ensure_future(self.count_forever())
+
+    async def count_forever(self) -> None:
+        i = 0
+        while True:
+            self.logger.info(i)
+            i += 1
+            await asyncio.sleep(1)
+
+    async def stop(self) -> None:
+        self.logger.info("Debug plugin: stop called")
