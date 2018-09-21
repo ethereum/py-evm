@@ -28,7 +28,10 @@ from eth.exceptions import (
     HeaderNotFound,
     ParentNotFound,
 )
-from eth.db.backends.base import BaseDB
+from eth.db.backends.base import (
+    BaseAtomicDB,
+    BaseDB,
+)
 from eth.db.schema import SchemaV1
 from eth.rlp.headers import BlockHeader
 from eth.validation import (
@@ -38,9 +41,9 @@ from eth.validation import (
 
 
 class BaseHeaderDB(ABC):
-    db = None  # type: BaseDB
+    db = None  # type: BaseAtomicDB
 
-    def __init__(self, db: BaseDB) -> None:
+    def __init__(self, db: BaseAtomicDB) -> None:
         self.db = db
 
     #
@@ -97,11 +100,15 @@ class HeaderDB(BaseHeaderDB):
         Raises BlockNotFound if there's no block header with the given number in the
         canonical chain.
         """
+        return self._get_canonical_block_hash(self.db, block_number)
+
+    @staticmethod
+    def _get_canonical_block_hash(db: BaseDB, block_number: BlockNumber) -> Hash32:
         validate_block_number(block_number, title="Block Number")
         number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(block_number)
 
         try:
-            encoded_key = self.db[number_to_hash_key]
+            encoded_key = db[number_to_hash_key]
         except KeyError:
             raise HeaderNotFound(
                 "No canonical header for block number #{0}".format(block_number)
@@ -116,23 +123,39 @@ class HeaderDB(BaseHeaderDB):
         Raises BlockNotFound if there's no block header with the given number in the
         canonical chain.
         """
+        return self._get_canonical_block_header_by_number(self.db, block_number)
+
+    @classmethod
+    def _get_canonical_block_header_by_number(
+            cls,
+            db: BaseDB,
+            block_number: BlockNumber) -> BlockHeader:
         validate_block_number(block_number, title="Block Number")
-        return self.get_block_header_by_hash(self.get_canonical_block_hash(block_number))
+        canonical_block_hash = cls._get_canonical_block_hash(db, block_number)
+        return cls._get_block_header_by_hash(db, canonical_block_hash)
 
     def get_canonical_head(self) -> BlockHeader:
         """
         Returns the current block header at the head of the chain.
         """
+        return self._get_canonical_head(self.db)
+
+    @classmethod
+    def _get_canonical_head(cls, db: BaseDB) -> BlockHeader:
         try:
-            canonical_head_hash = self.db[SchemaV1.make_canonical_head_hash_lookup_key()]
+            canonical_head_hash = db[SchemaV1.make_canonical_head_hash_lookup_key()]
         except KeyError:
             raise CanonicalHeadNotFound("No canonical head set for this chain")
-        return self.get_block_header_by_hash(canonical_head_hash)
+        return cls._get_block_header_by_hash(db, canonical_head_hash)
 
     #
     # Header API
     #
     def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
+        return self._get_block_header_by_hash(self.db, block_hash)
+
+    @staticmethod
+    def _get_block_header_by_hash(db: BaseDB, block_hash: Hash32) -> BlockHeader:
         """
         Returns the requested block header as specified by block hash.
 
@@ -140,23 +163,31 @@ class HeaderDB(BaseHeaderDB):
         """
         validate_word(block_hash, title="Block Hash")
         try:
-            header_rlp = self.db[block_hash]
+            header_rlp = db[block_hash]
         except KeyError:
             raise HeaderNotFound("No header with hash {0} found".format(
                 encode_hex(block_hash)))
         return _decode_block_header(header_rlp)
 
     def get_score(self, block_hash: Hash32) -> int:
+        return self._get_score(self.db, block_hash)
+
+    @staticmethod
+    def _get_score(db: BaseDB, block_hash: Hash32) -> int:
         try:
-            encoded_score = self.db[SchemaV1.make_block_hash_to_score_lookup_key(block_hash)]
+            encoded_score = db[SchemaV1.make_block_hash_to_score_lookup_key(block_hash)]
         except KeyError:
             raise HeaderNotFound("No header with hash {0} found".format(
                 encode_hex(block_hash)))
         return rlp.decode(encoded_score, sedes=rlp.sedes.big_endian_int)
 
     def header_exists(self, block_hash: Hash32) -> bool:
+        return self._header_exists(self.db, block_hash)
+
+    @staticmethod
+    def _header_exists(db: BaseDB, block_hash: Hash32) -> bool:
         validate_word(block_hash, title="Block Hash")
-        return block_hash in self.db
+        return block_hash in db
 
     def persist_header(self,
                        header: BlockHeader
@@ -170,7 +201,15 @@ class HeaderDB(BaseHeaderDB):
         Return two iterable of headers, the first containing the new canonical headers,
         the second containing the old canonical headers
         """
+        with self.db.atomic_batch() as db:
+            return self._persist_header_chain(db, headers)
 
+    @classmethod
+    def _persist_header_chain(
+            cls,
+            db: BaseDB,
+            headers: Iterable[BlockHeader]
+    ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
         try:
             first_header = first(headers)
         except StopIteration:
@@ -188,82 +227,86 @@ class HeaderDB(BaseHeaderDB):
                     )
 
             is_genesis = first_header.parent_hash == GENESIS_PARENT_HASH
-            if not is_genesis and not self.header_exists(first_header.parent_hash):
+            if not is_genesis and not cls._header_exists(db, first_header.parent_hash):
                 raise ParentNotFound(
                     "Cannot persist block header ({}) with unknown parent ({})".format(
                         encode_hex(first_header.hash), encode_hex(first_header.parent_hash)))
 
-            score = 0 if is_genesis else self.get_score(first_header.parent_hash)
+            score = 0 if is_genesis else cls._get_score(db, first_header.parent_hash)
 
         for header in headers:
-            self.db.set(
+            db.set(
                 header.hash,
                 rlp.encode(header),
             )
 
             score += header.difficulty
 
-            self.db.set(
+            db.set(
                 SchemaV1.make_block_hash_to_score_lookup_key(header.hash),
                 rlp.encode(score, sedes=rlp.sedes.big_endian_int),
             )
 
         try:
-            head_score = self.get_score(self.get_canonical_head().hash)
+            previous_canonical_head = cls._get_canonical_head(db).hash
+            head_score = cls._get_score(db, previous_canonical_head)
         except CanonicalHeadNotFound:
             (
                 new_canonical_headers,
                 old_canonical_headers
-            ) = self._set_as_canonical_chain_head(header.hash)
+            ) = cls._set_as_canonical_chain_head(db, header.hash)
         else:
             if score > head_score:
                 (
                     new_canonical_headers,
                     old_canonical_headers
-                ) = self._set_as_canonical_chain_head(header.hash)
+                ) = cls._set_as_canonical_chain_head(db, header.hash)
             else:
                 new_canonical_headers = tuple()
                 old_canonical_headers = tuple()
 
         return new_canonical_headers, old_canonical_headers
 
-    def _set_as_canonical_chain_head(self, block_hash: Hash32
+    @classmethod
+    def _set_as_canonical_chain_head(cls, db: BaseDB, block_hash: Hash32
                                      ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
         """
         Sets the canonical chain HEAD to the block header as specified by the
         given block hash.
 
-        Returns iterable of headers newly on the canonical head
+        :return: a tuple of the headers that are newly in the canonical chain, and the headers that
+            are no longer in the canonical chain
         """
         try:
-            header = self.get_block_header_by_hash(block_hash)
+            header = cls._get_block_header_by_hash(db, block_hash)
         except HeaderNotFound:
             raise ValueError(
                 "Cannot use unknown block hash as canonical head: {}".format(block_hash)
             )
 
-        new_canonical_headers = tuple(reversed(self._find_new_ancestors(header)))
+        new_canonical_headers = tuple(reversed(cls._find_new_ancestors(db, header)))
         old_canonical_headers = []
 
         for h in new_canonical_headers:
             try:
-                old_canonical_hash = self.get_canonical_block_hash(h.block_number)
+                old_canonical_hash = cls._get_canonical_block_hash(db, h.block_number)
             except HeaderNotFound:
                 # no old_canonical block, and no more possible
                 break
             else:
-                old_canonical_header = self.get_block_header_by_hash(old_canonical_hash)
+                old_canonical_header = cls._get_block_header_by_hash(db, old_canonical_hash)
                 old_canonical_headers.append(old_canonical_header)
 
         for h in new_canonical_headers:
-            self._add_block_number_to_hash_lookup(h)
+            cls._add_block_number_to_hash_lookup(db, h)
 
-        self.db.set(SchemaV1.make_canonical_head_hash_lookup_key(), header.hash)
+        db.set(SchemaV1.make_canonical_head_hash_lookup_key(), header.hash)
 
         return new_canonical_headers, tuple(old_canonical_headers)
 
+    @classmethod
     @to_tuple
-    def _find_new_ancestors(self, header: BlockHeader) -> Iterable[BlockHeader]:
+    def _find_new_ancestors(cls, db: BaseDB, header: BlockHeader) -> Iterable[BlockHeader]:
         """
         Returns the chain leading up from the given header until (but not including)
         the first ancestor it has in common with our canonical chain.
@@ -278,7 +321,7 @@ class HeaderDB(BaseHeaderDB):
         h = header
         while True:
             try:
-                orig = self.get_canonical_block_header_by_number(h.block_number)
+                orig = cls._get_canonical_block_header_by_number(db, h.block_number)
             except HeaderNotFound:
                 # This just means the block is not on the canonical chain.
                 pass
@@ -293,9 +336,10 @@ class HeaderDB(BaseHeaderDB):
             if h.parent_hash == GENESIS_PARENT_HASH:
                 break
             else:
-                h = self.get_block_header_by_hash(h.parent_hash)
+                h = cls._get_block_header_by_hash(db, h.parent_hash)
 
-    def _add_block_number_to_hash_lookup(self, header: BlockHeader) -> None:
+    @staticmethod
+    def _add_block_number_to_hash_lookup(db: BaseDB, header: BlockHeader) -> None:
         """
         Sets a record in the database to allow looking up this header by its
         block number.
@@ -303,7 +347,7 @@ class HeaderDB(BaseHeaderDB):
         block_number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(
             header.block_number
         )
-        self.db.set(
+        db.set(
             block_number_to_hash_key,
             rlp.encode(header.hash, sedes=rlp.sedes.binary),
         )
