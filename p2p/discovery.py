@@ -768,7 +768,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
         def process(received_echo: Hash32, response: List[kademlia.Node]) -> None:
             if received_echo != echo:
-                self.logger.warn(
+                self.logger.warning(
                     "Unexpected topic_nodes from %s, expected echo %s, got %s",
                     encode_hex(echo), encode_hex(received_echo))
                 return

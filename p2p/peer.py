@@ -367,7 +367,7 @@ class BasePeer(BaseService):
                     "%s stopped responding (%r), disconnecting", self.remote, err)
                 return
             except DecryptionError as err:
-                self.logger.warn(
+                self.logger.warning(
                     "Unable to decrypt message from %s, disconnecting: %r",
                     self, err,
                     exc_info=True,
@@ -434,13 +434,13 @@ class BasePeer(BaseService):
                 in self._subscribers
             )
             if not any(was_added):
-                self.logger.warn(
+                self.logger.warning(
                     "Peer %s has no subscribers for msg type %s",
                     self,
                     cmd_type.__name__,
                 )
         else:
-            self.logger.warn("Peer %s has no subscribers, discarding %s msg", self, cmd)
+            self.logger.warning("Peer %s has no subscribers, discarding %s msg", self, cmd)
 
     def process_msg(self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
         if cmd.is_base_protocol:
@@ -680,7 +680,7 @@ class PeerSubscriber(ABC):
             return True
         except asyncio.queues.QueueFull:
             if hasattr(self, 'logger'):
-                self.logger.warn(  # type: ignore
+                self.logger.warning(  # type: ignore
                     "%s msg queue is full; discarding %s msg from %s",
                     self.__class__.__name__, cmd, peer)
             return False
@@ -932,7 +932,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             self.logger.info("%s finished, removing from pool", peer)
             self.connected_nodes.pop(peer.remote)
         else:
-            self.logger.warn(
+            self.logger.warning(
                 "%s finished but was not found in connected_nodes (%s)", peer, self.connected_nodes)
         for subscriber in self._subscribers:
             subscriber.deregister_peer(peer)

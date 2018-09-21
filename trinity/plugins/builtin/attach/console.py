@@ -11,8 +11,6 @@ from trinity.utils.log_messages import (
 
 from cytoolz import merge
 
-import web3
-
 
 DEFAULT_BANNER: str = (
     "Trinity Console\n"
@@ -66,8 +64,9 @@ def console(ipc_path: Path,
     if not ipc_path.exists():
         raise FileNotFoundError(create_missing_ipc_error_message(ipc_path))
 
-    # cast needed until https://github.com/ethereum/web3.py/issues/867 is fixed
-    w3 = web3.Web3(web3.IPCProvider(str(ipc_path)))
+    # wait to import web3, because it's somewhat large, and not usually used
+    import web3
+    w3 = web3.Web3(web3.IPCProvider(ipc_path))
 
     namespace = merge({'w3': w3}, env)
 
