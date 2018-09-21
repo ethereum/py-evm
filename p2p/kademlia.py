@@ -236,8 +236,11 @@ class RoutingTable:
     def get_random_nodes(self, count: int) -> Iterator[Node]:
         if count > len(self):
             if time.monotonic() - self._initialized_at > 30:
-                self.logger.warn(
-                    "Cannot get %d nodes as RoutingTable contains only %d nodes", count, len(self))
+                self.logger.warning(
+                    "Cannot get %d nodes as RoutingTable contains only %d nodes",
+                    count,
+                    len(self),
+                )
             count = len(self)
         seen: List[Node] = []
         # This is a rather inneficient way of randomizing nodes from all buckets, but even if we

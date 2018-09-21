@@ -114,7 +114,7 @@ class BaseServer(BaseService):
         self.peer_pool = self._make_peer_pool()
 
         if not bootstrap_nodes:
-            self.logger.warn("Running with no bootstrap nodes")
+            self.logger.warning("Running with no bootstrap nodes")
 
     @abstractmethod
     def _make_peer_pool(self) -> ANY_PEER_POOL:

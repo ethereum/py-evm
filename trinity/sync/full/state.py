@@ -194,7 +194,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             node_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_STATE_FETCH]
             await self._handler.handle_get_node_data(peer, node_hashes)
         else:
-            self.logger.warn("%s not handled during StateSync, must be implemented", cmd)
+            self.logger.warning("%s not handled during StateSync, must be implemented", cmd)
 
     async def _handle_get_block_headers(self, peer: ETHPeer, request: HeaderRequest) -> None:
         headers = await self._handler.lookup_headers(request)
@@ -243,7 +243,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             )
             node_data = tuple()
         except AlreadyWaiting as err:
-            self.logger.warn(
+            self.logger.warning(
                 "Already waiting for a NodeData response from %s", peer,
             )
             return
@@ -251,7 +251,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         try:
             self.request_tracker.active_requests.pop(peer)
         except KeyError:
-            self.logger.warn("Unexpected error removing peer from active requests: %s", peer)
+            self.logger.warning("Unexpected error removing peer from active requests: %s", peer)
 
         self.logger.debug("Got %d NodeData entries from %s", len(node_data), peer)
 

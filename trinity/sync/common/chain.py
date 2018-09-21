@@ -186,11 +186,11 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 self.logger.info("Sync with %s completed", peer)
                 break
             except TimeoutError:
-                self.logger.warn("Timeout waiting for header batch from %s, aborting sync", peer)
+                self.logger.warning("Timeout waiting for header batch from %s, aborting sync", peer)
                 await peer.disconnect(DisconnectReason.timeout)
                 break
             except ValidationError as err:
-                self.logger.warn(
+                self.logger.warning(
                     "Invalid header response sent by peer %s disconnecting: %s",
                     peer, err,
                 )
@@ -226,11 +226,14 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                         self.db.coro_get_block_header_by_hash(first.parent_hash)
                     )
                 except HeaderNotFound:
-                    self.logger.warn("Unable to find common ancestor betwen our chain and %s", peer)
+                    self.logger.warning(
+                        "Unable to find common ancestor betwen our chain and %s",
+                        peer,
+                    )
                     break
             elif last_received_header.hash != first.parent_hash:
                 # on follow-ups, require the first header in this batch to be next in succession
-                self.logger.warn(
+                self.logger.warning(
                     "Header batch starts with %r, with parent %s, but last header was %r",
                     first,
                     encode_hex(first.parent_hash[:4]),
@@ -250,7 +253,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                     self._seal_check_random_sample_rate,
                 )
             except ValidationError as e:
-                self.logger.warn("Received invalid headers from %s, disconnecting: %s", peer, e)
+                self.logger.warning("Received invalid headers from %s, disconnecting: %s", peer, e)
                 await peer.disconnect(DisconnectReason.subprotocol_error)
                 break
 
