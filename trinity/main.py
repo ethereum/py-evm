@@ -2,7 +2,6 @@ from argparse import ArgumentParser, Namespace
 import asyncio
 import logging
 import signal
-import time
 from typing import (
     Any,
     Dict,
@@ -44,9 +43,6 @@ from trinity.config import (
 from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT,
     NETWORKING_EVENTBUS_ENDPOINT,
-)
-from trinity.events import (
-    ShutdownRequest
 )
 from trinity.extensibility import (
     PluginManager,
@@ -256,18 +252,6 @@ def trinity_boot(args: Namespace,
     networking_process.start()
     logger.info("Started networking process (pid=%d)", networking_process.pid)
 
-    main_endpoint.subscribe(
-        ShutdownRequest,
-        lambda ev: kill_trinity_gracefully(
-            logger,
-            database_server_process,
-            networking_process,
-            plugin_manager,
-            main_endpoint,
-            event_bus
-        )
-    )
-
     plugin_manager.prepare(args, chain_config, extra_kwargs)
     plugin_manager.broadcast(TrinityStartupEvent(
         args,
@@ -309,13 +293,13 @@ def kill_trinity_gracefully(logger: logging.Logger,
     plugin_manager.shutdown()
     main_endpoint.stop()
     event_bus.stop()
-    kill_process_gracefully(database_server_process, logger)
-    logger.info('DB server process (pid=%d) terminated', database_server_process.pid)
-    # XXX: This short sleep here seems to avoid us hitting a deadlock when attempting to
-    # join() the networking subprocess: https://github.com/ethereum/py-evm/issues/940
-    time.sleep(0.2)
-    kill_process_gracefully(networking_process, logger)
-    logger.info('Networking process (pid=%d) terminated', networking_process.pid)
+    for name, process in [("DB", database_server_process), ("Networking", networking_process)]:
+        # Our sub-processes will have received a SIGINT already (see comment above), so here we
+        # wait 2s for them to finish cleanly, and if they fail we kill them for real.
+        process.join(2)
+        if process.is_alive():
+            kill_process_gracefully(process, logger)
+        logger.info('%s process (pid=%d) terminated', name, process.pid)
 
     # This is required to be within the `kill_trinity_gracefully` so that
     # plugins can trigger a shutdown of the trinity process.
@@ -366,7 +350,7 @@ def launch_node(args: Namespace, chain_config: ChainConfig, endpoint: Endpoint) 
         ))
 
         node = NodeClass(plugin_manager, chain_config)
-        run_service_until_quit(node)
+        run_service_until_quit(node, endpoint)
 
 
 def display_launch_logs(chain_config: ChainConfig) -> None:
@@ -376,9 +360,9 @@ def display_launch_logs(chain_config: ChainConfig) -> None:
     logger.info("Trinity DEBUG log file is created at %s", str(chain_config.logfile_path))
 
 
-def run_service_until_quit(service: BaseService) -> None:
+def run_service_until_quit(service: BaseService, endpoint: Endpoint) -> None:
     loop = service.get_event_loop()
-    asyncio.ensure_future(exit_on_signal(service), loop=loop)
+    asyncio.ensure_future(exit_on_signal(service, endpoint), loop=loop)
     asyncio.ensure_future(service.run(), loop=loop)
     loop.run_forever()
     loop.close()
