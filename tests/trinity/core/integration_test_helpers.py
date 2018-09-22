@@ -147,6 +147,7 @@ def load_mining_chain(db):
 
 class DBFixture(Enum):
     twenty_pow_headers = '20pow_headers.ldb'
+    thousand_pow_headers = '1000pow_headers.ldb'
 
 
 def load_fixture_db(db_fixture, db_class=LevelDB):
