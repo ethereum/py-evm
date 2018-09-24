@@ -1,8 +1,10 @@
 import asyncio
 from abc import abstractmethod
+from contextlib import contextmanager
 from operator import attrgetter
 from typing import (
     AsyncGenerator,
+    Generator,
     Tuple,
     Union,
     cast,
@@ -49,12 +51,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     """
     # We'll only sync if we are connected to at least min_peers_to_sync.
     min_peers_to_sync = 1
-    # TODO: Instead of a fixed timeout, we should use a variable one that gets adjusted based on
-    # the round-trip times from our download requests.
-    _reply_timeout = 60
-    _seal_check_random_sample_rate = SEAL_CHECK_RANDOM_SAMPLE_RATE
     # the latest header hash of the peer on the current sync
-    _target_header_hash = None
     header_queue: TaskQueue[BlockHeader]
 
     def __init__(self,
@@ -67,9 +64,9 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         self.db = db
         self.peer_pool = peer_pool
         self._handler = PeerRequestHandler(self.db, self.logger, self.cancel_token)
-        self._syncing = False
-        self._sync_complete = asyncio.Event()
         self._sync_requests: asyncio.Queue[HeaderRequestingPeer] = asyncio.Queue()
+        self._peer_header_syncer: 'PeerHeaderSyncer' = None
+        self._last_target_header_hash = None
 
         # pending queue size should be big enough to avoid starving the processing consumers, but
         # small enough to avoid wasteful over-requests before post-processing can happen
@@ -84,10 +81,12 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         return 2000
 
     def get_target_header_hash(self) -> Hash32:
-        if self._target_header_hash is None:
-            raise ValidationError("Cannot check the target hash when there is no active sync")
+        if self._peer_header_syncer is None and self._last_target_header_hash is None:
+            raise ValidationError("Cannot check the target hash before a sync has run")
+        elif self._peer_header_syncer is not None:
+            return self._peer_header_syncer.get_target_header_hash()
         else:
-            return self._target_header_hash
+            return self._last_target_header_hash
 
     def register_peer(self, peer: BasePeer) -> None:
         self._sync_requests.put_nowait(cast(HeaderRequestingPeer, self.peer_pool.highest_td_peer))
@@ -124,6 +123,29 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 else:
                     self.run_task(self.sync(peer))
 
+    @property
+    def _syncing(self) -> bool:
+        return self._peer_header_syncer is not None
+
+    @contextmanager
+    def _get_peer_header_syncer(
+            self, peer: HeaderRequestingPeer) -> Generator['PeerHeaderSyncer', None, None]:
+        if self._syncing:
+            raise ValidationError("Cannot sync headers from two peers at the same time")
+
+        self._peer_header_syncer = PeerHeaderSyncer(
+            self.chain,
+            self.db,
+            peer,
+            self.header_queue,
+            self.cancel_token,
+        )
+        try:
+            yield self._peer_header_syncer
+        finally:
+            self._last_target_header_hash = self._peer_header_syncer.get_target_header_hash()
+            self._peer_header_syncer = None
+
     async def sync(self, peer: HeaderRequestingPeer) -> None:
         if self._syncing:
             self.logger.debug(
@@ -135,24 +157,54 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 "doing nothing", len(self.peer_pool), self.min_peers_to_sync)
             return
 
-        self._syncing = True
-        try:
-            await self._sync(peer)
-            self.logger.debug('Sync with peer %s finished normally', peer)
-        except OperationCancelled as e:
-            self.logger.info("Sync with %s was shut down: %s", peer, e)
-        finally:
-            self._syncing = False
+        with self._get_peer_header_syncer(peer) as syncer:
+            await syncer.run()
+        self.logger.info("Sync with %s ended", peer)
 
-    async def _sync(self, peer: HeaderRequestingPeer) -> None:
-        """Try to fetch/process blocks until the given peer's head_hash.
+    @abstractmethod
+    async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
+                          msg: protocol._DecodedMsgType) -> None:
+        raise NotImplementedError("Must be implemented by subclasses")
+
+
+class PeerHeaderSyncer(BaseService):
+    """
+    Sync as many headers as possible with a given peer.
+
+    Here, the run() method will execute the sync loop until our local head is the same as the one
+    with the highest TD announced by any of our peers.
+    """
+    _seal_check_random_sample_rate = SEAL_CHECK_RANDOM_SAMPLE_RATE
+    # the latest header hash of the peer on the current sync
+    header_queue: TaskQueue[BlockHeader]
+
+    def __init__(self,
+                 chain: AsyncChain,
+                 db: AsyncHeaderDB,
+                 peer: HeaderRequestingPeer,
+                 header_queue: TaskQueue[BlockHeader],
+                 token: CancelToken = None) -> None:
+        super().__init__(token)
+        self.chain = chain
+        self.db = db
+        self._peer = peer
+        self.header_queue = header_queue
+        self._target_header_hash = peer.head_hash
+
+    def get_target_header_hash(self) -> Hash32:
+        if self._target_header_hash is None:
+            raise ValidationError("Cannot check the target hash when there is no active sync")
+        else:
+            return self._target_header_hash
+
+    async def _run(self) -> None:
+        """Try to fetch headers until the given peer's head_hash.
 
         Returns when the peer's head_hash is available in our ChainDB, or if any error occurs
         during the sync.
-
-        If in fast-sync mode, the _sync_completed event will be set upon successful completion of
-        a sync.
         """
+        peer = self._peer
+
         head = await self.wait(self.db.coro_get_canonical_head())
         head_td = await self.wait(self.db.coro_get_score(head.hash))
         if peer.head_td <= head_td:
@@ -304,7 +356,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
 
     async def _get_missing_tail(
             self,
-            headers: Tuple[BlockHeader, ...]) -> AsyncGenerator[BlockHeader, None]:
+            headers: Tuple[BlockHeader, ...]) -> AsyncIterator[BlockHeader]:
         """
         We only want headers that are missing, so we iterate over the list
         until we find the first missing header, after which we return all of
@@ -325,8 +377,3 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
 
         for header in iter_headers:
             yield header
-
-    @abstractmethod
-    async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
-                          msg: protocol._DecodedMsgType) -> None:
-        raise NotImplementedError("Must be implemented by subclasses")
