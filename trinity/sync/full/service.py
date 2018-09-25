@@ -50,12 +50,11 @@ class FullNodeSyncer(BaseService):
                 self.cancel_token,
             )
             await fast_syncer.run()
+            # remove the reference so the memory can be reclaimed
+            del fast_syncer
 
         if self.cancel_token.triggered:
             return
-        else:
-            # remove the reference so the memory can be reclaimed
-            del fast_syncer
 
         # Ensure we have the state for our current head.
         head = await self.wait(self.chaindb.coro_get_canonical_head())
@@ -65,12 +64,11 @@ class FullNodeSyncer(BaseService):
             downloader = StateDownloader(
                 self.chaindb, self.base_db, head.state_root, self.peer_pool, self.cancel_token)
             await downloader.run()
+            # remove the reference so the memory can be reclaimed
+            del downloader
 
         if self.cancel_token.triggered:
             return
-        else:
-            # remove the reference so the memory can be reclaimed
-            del downloader
 
         # Now, loop forever, fetching missing blocks and applying them.
         self.logger.info("Starting regular sync; current head: #%d", head.block_number)
