@@ -3,8 +3,8 @@ from abc import abstractmethod
 from contextlib import contextmanager
 from operator import attrgetter
 from typing import (
-    AsyncGenerator,
-    Generator,
+    AsyncIterator,
+    Iterator,
     Tuple,
     Union,
     cast,
@@ -128,8 +128,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         return self._peer_header_syncer is not None
 
     @contextmanager
-    def _get_peer_header_syncer(
-            self, peer: HeaderRequestingPeer) -> Generator['PeerHeaderSyncer', None, None]:
+    def _get_peer_header_syncer(self, peer: HeaderRequestingPeer) -> Iterator['PeerHeaderSyncer']:
         if self._syncing:
             raise ValidationError("Cannot sync headers from two peers at the same time")
 
@@ -137,12 +136,17 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             self.chain,
             self.db,
             peer,
-            self.header_queue,
             self.cancel_token,
         )
+        self.run_child_service(self._peer_header_syncer)
         try:
             yield self._peer_header_syncer
+        except OperationCancelled:
+            pass
+        else:
+            self._peer_header_syncer.cancel_nowait()
         finally:
+            self.logger.info("Header Sync with %s ended", peer)
             self._last_target_header_hash = self._peer_header_syncer.get_target_header_hash()
             self._peer_header_syncer = None
 
@@ -158,8 +162,9 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             return
 
         with self._get_peer_header_syncer(peer) as syncer:
-            await syncer.run()
-        self.logger.info("Sync with %s ended", peer)
+            async for header_batch in syncer.next_header_batch():
+                new_headers = tuple(h for h in header_batch if h not in self.header_queue)
+                await self.wait(self.header_queue.add(new_headers))
 
     @abstractmethod
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
@@ -175,20 +180,16 @@ class PeerHeaderSyncer(BaseService):
     with the highest TD announced by any of our peers.
     """
     _seal_check_random_sample_rate = SEAL_CHECK_RANDOM_SAMPLE_RATE
-    # the latest header hash of the peer on the current sync
-    header_queue: TaskQueue[BlockHeader]
 
     def __init__(self,
                  chain: AsyncChain,
                  db: AsyncHeaderDB,
                  peer: HeaderRequestingPeer,
-                 header_queue: TaskQueue[BlockHeader],
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
         self.db = db
         self._peer = peer
-        self.header_queue = header_queue
         self._target_header_hash = peer.head_hash
 
     def get_target_header_hash(self) -> Hash32:
@@ -198,6 +199,9 @@ class PeerHeaderSyncer(BaseService):
             return self._target_header_hash
 
     async def _run(self) -> None:
+        await self.events.cancelled.wait()
+
+    async def next_header_batch(self) -> AsyncIterator[Tuple[BlockHeader, ...]]:
         """Try to fetch headers until the given peer's head_hash.
 
         Returns when the peer's head_hash is available in our ChainDB, or if any error occurs
@@ -337,8 +341,7 @@ class PeerHeaderSyncer(BaseService):
             # Setting the latest header hash for the peer, before queuing header processing tasks
             self._target_header_hash = peer.head_hash
 
-            new_headers = tuple(h for h in headers if h not in self.header_queue)
-            await self.wait(self.header_queue.add(new_headers))
+            yield headers
             last_received_header = headers[-1]
             start_at = last_received_header.block_number + 1
 
@@ -364,10 +367,6 @@ class PeerHeaderSyncer(BaseService):
         """
         iter_headers = iter(headers)
         for header in iter_headers:
-            if header in self.header_queue:
-                self.logger.debug("Discarding header that is already queued: %s", header)
-                continue
-
             is_present = await self.wait(self.db.coro_header_exists(header.hash))
             if is_present:
                 self.logger.debug("Discarding header that we already have: %s", header)
