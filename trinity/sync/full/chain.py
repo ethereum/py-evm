@@ -61,7 +61,9 @@ from trinity.protocol.les.peer import LESPeer
 from trinity.rlp.block_body import BlockBody
 from trinity.sync.common.chain import BaseHeaderChainSyncer
 from trinity.utils.datastructures import (
+    DuplicateTasks,
     SortableTask,
+    MissingDependency,
     OrderedTaskPreparation,
     TaskQueue,
 )
@@ -448,7 +450,14 @@ class FastChainSyncer(BaseBodyChainSyncer):
 
             try:
                 self._block_persist_tracker.register_tasks(headers)
-            except ValidationError:
+            except DuplicateTasks as exc:
+                # Likely scenario: switched which peer downloads headers, and the new peer isn't
+                # aware of some of the in-progress headers
+                self.logger.debug("Duplicate headers during fast sync %r, skipping", exc.duplicates)
+                duplicates = cast(Tuple[BlockHeader, ...], exc.duplicates)
+                self.header_queue.complete(batch_id, duplicates)
+                continue
+            except MissingDependency:
                 # The parent of this header is not registered as a dependency yet.
                 # Some reasons this might happen, in rough descending order of likelihood:
                 #   - a normal fork: the canonical head isn't the parent of the first header synced

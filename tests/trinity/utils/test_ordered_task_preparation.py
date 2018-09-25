@@ -8,6 +8,8 @@ from eth_utils.toolz import identity
 import pytest
 
 from trinity.utils.datastructures import (
+    DuplicateTasks,
+    MissingDependency,
     OrderedTaskPreparation,
 )
 
@@ -73,7 +75,7 @@ async def test_pruning():
     ti.register_tasks((15, ))
 
     # but depending 3 back in history should raise a validation error, because it's pruned
-    with pytest.raises(ValidationError):
+    with pytest.raises(MissingDependency):
         # this depends on 3
         ti.register_tasks((14, ))
 
@@ -81,10 +83,10 @@ async def test_pruning():
     ti.register_tasks((7, ))
     ti.finish_prereq(OnePrereq.one, (7, ))
 
-    ti.register_tasks((16, ))
-    ti.register_tasks((17, ))
-    with pytest.raises(ValidationError):
-        ti.register_tasks((15, ))
+    ti.register_tasks((26, ))
+    ti.register_tasks((27, ))
+    with pytest.raises(MissingDependency):
+        ti.register_tasks((25, ))
 
 
 @pytest.mark.asyncio
@@ -177,6 +179,14 @@ def test_empty_completion():
         ti.finish_prereq(TwoPrereqs.Prereq1, tuple())
 
 
+def test_reregister_duplicates():
+    ti = OrderedTaskPreparation(TwoPrereqs, identity, lambda x: x - 1)
+    ti.set_finished_dependency(1)
+    ti.register_tasks((2, ))
+    with pytest.raises(DuplicateTasks):
+        ti.register_tasks((2, ))
+
+
 def test_empty_enum():
 
     class NoPrerequisites(Enum):
@@ -200,7 +210,7 @@ async def test_finished_dependency_midstream():
     assert ready == (4, )
 
     # now start in a discontinuous series of tasks
-    with pytest.raises(ValidationError):
+    with pytest.raises(MissingDependency):
         ti.register_tasks((6, ))
 
     ti.set_finished_dependency(5)
