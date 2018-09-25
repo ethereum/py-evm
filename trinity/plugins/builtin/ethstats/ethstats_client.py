@@ -1,126 +1,141 @@
 import asyncio
 import datetime
 import json
-import platform
+import typing
 
 import websockets
 
-from trinity.utils.version import construct_trinity_client_identifier
+from p2p.service import (
+    BaseService,
+)
 
-class EthstatsClient:
-    def __init__(self, websocket: websockets.client.WebSocketClientProtocol, node_id: str, server_url: str, server_secret: str) -> None:
+
+# Returns UTC timestamp in ms, used for latency calculation
+def timestamp_ms():
+    return round(datetime.datetime.utcnow().timestamp() * 1000)
+
+
+class EthstatsMessage(typing.NamedTuple):
+    command: str
+    data: dict
+
+
+class EthstatsException(Exception):
+    pass
+
+
+class EthstatsClient(BaseService):
+    def __init__(
+        self,
+        websocket: websockets.client.WebSocketClientProtocol,
+        node_id: str,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+
         self.websocket = websocket
-        self.send_queue = asyncio.Queue()
-
         self.node_id = node_id
-        self.server_url = server_url
-        self.server_secret = server_secret
 
-        self.client = construct_trinity_client_identifier()
-        self.os = platform.system()
-        self.os_v = platform.release()
+        self.send_queue: asyncio.Queue = asyncio.Queue()
+        self.recv_queue: asyncio.Queue = asyncio.Queue()
 
-    async def response_handler(self) -> None:
-        async for message in self.websocket:
-            command, data = self.stat_recv(message)
-            if command == 'node-pong':
-                timestamp = round(datetime.datetime.now().timestamp() * 1000)
-                latency = (timestamp - data['clientTime']) // 2
-                await self.send_latency(latency)
-    
-    async def request_handler(self) -> None:
-        while True:
-            message = await self.send_queue.get()
-            [command, data] = message
-            await self.stat_send(command, data)
-
-    async def connection_handler(self) -> None:
-        consumer_task = asyncio.ensure_future(self.response_handler())
-        producer_task = asyncio.ensure_future(self.request_handler())
-
-        done, pending = await asyncio.wait(
-            [consumer_task, producer_task],
-            return_when=asyncio.FIRST_COMPLETED,
+    async def _run(self) -> None:
+        await self.wait_first(
+            self.send_handler(),
+            self.recv_handler(),
         )
 
-        for task in pending:
-            task.cancel()
+    # Get messages from websocket, deserialize them and put into queue
+    async def recv_handler(self) -> None:
+        while self.is_operational:
+            json_string: str = await self.websocket.recv()
+            try:
+                message: EthstatsMessage = self.deserialize_message(json_string)
+            except EthstatsException as e:
+                self.logger.info('Cannot parse message from server: %s' % e)
+                return
 
-    async def stat_send(self, command: str, data: dict) -> None:
-        message = {'emit': [
-            command,
-            {**data, 'id': self.node_id},
-        ]}
+            await self.recv_queue.put(message)
 
-        await self.websocket.send(json.dumps(message))
+    # Get messages from queue, serialize them and send over websocket
+    async def send_handler(self) -> None:
+        while self.is_operational:
+            message: EthstatsMessage = await self.send_queue.get()
+            json_string: str = self.serialize_message(message)
 
-    def stat_recv(self, message) -> (str, dict):
+            await self.websocket.send(json_string)
+
+    def serialize_message(self, message: EthstatsMessage) -> str:
+        return json.dumps({'emit': [
+            message.command,
+            {**message.data, 'id': self.node_id},
+        ]})
+
+    def deserialize_message(self, json_string: str) -> EthstatsMessage:
         try:
-            response = json.loads(message)
+            raw_message = json.loads(json_string)
         except json.decoder.JSONDecodeError as e:
-            self.logger.error(f'Failed to parse stats server message: {e.msg}.')
-            return
+            raise EthstatsException('Received incorrect JSON: %s' % e)
 
         try:
-            payload = response['emit']
+            payload = raw_message['emit']
         except KeyError:
-            self.logger.error(f'Invalid stats server message format.')
-            return
+            raise EthstatsException('Received incorrect payload')
 
         if len(payload) == 1:
-            command, = payload
-            data = None
+            command, data = payload + [{}]
         elif len(payload) == 2:
             command, data = payload
         else:
-            self.logger.error(f'Invalid stats server message content.')
-            return
+            raise EthstatsException('Received non-ethstats payload')
 
-        return command, data
+        return EthstatsMessage(command, data)
 
-    async def send_hello(self) -> None:
-        await self.send_queue.put(['hello', {
-            'info': {
-                'name': '#some_name',
-                'contact': '#some_contact',
-                'os': self.os,
-                'os_v': self.os_v,
-                'client': self.client,
-                'canUpdateHistory': True,
-            },
-            'secret': self.server_secret,
-        }])
+    # Get received message from queue for processing
+    async def recv(self) -> EthstatsMessage:
+        return await self.recv_queue.get()
 
-    async def send_latency(self, latency) -> None:
-        await self.send_queue.put(['latency', {
-            'latency': latency,
-        }])
+    # Following methods used to enqueue messages to be sent
 
-    async def send_history(self) -> None:
-        await self.send_queue.put(['history', {
-            'history': {},
-        }])
+    async def send_hello(self, secret: str, info: dict) -> None:
+        await self.send_queue.put(EthstatsMessage(
+            'hello',
+            {'info': info, 'secret': secret},
+        ))
 
-    async def send_block(self, block) -> None:
-        await self.send_queue.put(['block', {
-            'block': block,
-        }])
+    async def send_stats(self, stats: dict) -> None:
+        await self.send_queue.put(EthstatsMessage(
+            'stats',
+            {'stats': stats},
+        ))
 
-    async def send_pending(self) -> None:
-        await self.send_queue.put(['pending', {
-            'stats': {
-                'pending': 0,
-            },
-        }])
+    async def send_block(self, block: dict) -> None:
+        await self.send_queue.put(EthstatsMessage(
+            'block',
+            {'block': block},
+        ))
 
-    async def send_stats(self, stats) -> None:
-        await self.send_queue.put(['stats', {
-            'stats': stats,
-        }])
+    async def send_pending(self, pending: int) -> None:
+        await self.send_queue.put(EthstatsMessage(
+            'pending',
+            {'stats': {'pending': pending}},
+        ))
+
+    async def send_history(self, history: dict) -> None:
+        await self.send_queue.put(EthstatsMessage(
+            'history',
+            {'history': history},
+        ))
 
     async def send_node_ping(self) -> None:
-        timestamp = round(datetime.datetime.now().timestamp() * 1000)
+        await self.send_queue.put(EthstatsMessage(
+            'node-ping',
+            {'clientTime': timestamp_ms()},
+        ))
 
-        await self.send_queue.put(['node-ping', {
-            'clientTime': timestamp,
-        }])
+    async def send_latency(self, latency: int) -> None:
+        await self.send_queue.put(EthstatsMessage(
+            'latency',
+            {'latency': latency},
+        ))
