@@ -179,8 +179,19 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 break
 
             try:
-                fetch_headers_coro = self._fetch_missing_headers(peer, start_at)
-                headers = await self.wait(fetch_headers_coro)
+                all_headers = await self.wait(self._request_headers(peer, start_at))
+                if last_received_header is None:
+                    # Skip over existing headers on the first run-through
+                    headers = tuple(
+                        # The inner list comprehension is needed because async_generators
+                        # cannot be cast to a tuple.
+                        [header async for header in self._get_missing_tail(all_headers)]
+                    )
+                    if len(headers) == 0 and len(all_headers) > 0:
+                        self.logger.debug("All headers were redundant, requesting the next batch.")
+                        continue
+                else:
+                    headers = all_headers
                 self.logger.trace('sync received new headers', headers)
             except OperationCancelled:
                 self.logger.info("Sync with %s completed", peer)
@@ -242,9 +253,10 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 break
 
             self.logger.debug(
-                "Got new header chain from %s starting at #%d",
+                "Got new header chain from %s: %s..%s",
                 peer,
-                first.block_number,
+                first,
+                headers[-1],
             )
             try:
                 await self.chain.coro_validate_chain(
@@ -268,45 +280,41 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             last_received_header = headers[-1]
             start_at = last_received_header.block_number + 1
 
-    async def _fetch_missing_headers(
+    async def _request_headers(
             self, peer: HeaderRequestingPeer, start_at: int) -> Tuple[BlockHeader, ...]:
         """Fetch a batch of headers starting at start_at and return the ones we're missing."""
         self.logger.debug("Requsting chain of headers from %s starting at #%d", peer, start_at)
 
-        headers = await peer.requests.get_block_headers(
+        return await peer.requests.get_block_headers(
             start_at,
             peer.max_headers_fetch,
             skip=0,
             reverse=False,
         )
 
-        # We only want headers that are missing, so we iterate over the list
-        # until we find the first missing header, after which we return all of
-        # the remaining headers.
-        async def get_missing_tail(self: 'BaseHeaderChainSyncer',
-                                   headers: Tuple[BlockHeader, ...]
-                                   ) -> AsyncGenerator[BlockHeader, None]:
-            iter_headers = iter(headers)
-            for header in iter_headers:
-                if header in self.header_queue:
-                    self.logger.debug("Discarding header that is already queued: %s", header)
-                    continue
+    async def _get_missing_tail(
+            self,
+            headers: Tuple[BlockHeader, ...]) -> AsyncGenerator[BlockHeader, None]:
+        """
+        We only want headers that are missing, so we iterate over the list
+        until we find the first missing header, after which we return all of
+        the remaining headers.
+        """
+        iter_headers = iter(headers)
+        for header in iter_headers:
+            if header in self.header_queue:
+                self.logger.debug("Discarding header that is already queued: %s", header)
+                continue
 
-                is_present = await self.wait(self.db.coro_header_exists(header.hash))
-                if is_present:
-                    self.logger.debug("Discarding header that we already have: %s", header)
-                else:
-                    yield header
-                    break
-
-            for header in iter_headers:
+            is_present = await self.wait(self.db.coro_header_exists(header.hash))
+            if is_present:
+                self.logger.debug("Discarding header that we already have: %s", header)
+            else:
                 yield header
+                break
 
-        # The inner list comprehension is needed because async_generators
-        # cannot be cast to a tuple.
-        tail_headers = tuple([header async for header in get_missing_tail(self, headers)])
-
-        return tail_headers
+        for header in iter_headers:
+            yield header
 
     @abstractmethod
     async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
