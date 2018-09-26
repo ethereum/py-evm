@@ -143,7 +143,13 @@ class ResponseCandidateStream(
 
         send_time, future = self.pending_request
         self.last_response_time = time.perf_counter() - send_time
-        future.set_result(msg)
+        try:
+            future.set_result(msg)
+        except asyncio.InvalidStateError:
+            self.logger.debug(
+                "%s received a message response, but future was already done",
+                self,
+            )
 
     async def _get_payload(self, timeout: float) -> TResponsePayload:
         send_time, future = self.pending_request
@@ -176,17 +182,29 @@ class ResponseCandidateStream(
         if self.pending_request is not None:
             self.logger.debug("Stream %r shutting down, cancelling the pending request", self)
             _, future = self.pending_request
-            future.set_exception(PeerConnectionLost(
-                f"Pending request can't complete: {self} is shutting down"
-            ))
+            try:
+                future.set_exception(PeerConnectionLost(
+                    f"Pending request can't complete: {self} is shutting down"
+                ))
+            except asyncio.InvalidStateError:
+                self.logger.debug(
+                    "%s cancelled pending future in cleanup, but it was already done",
+                    self,
+                )
 
     def deregister_peer(self, peer: BasePeer) -> None:
         if self.pending_request is not None:
             self.logger.debug("Peer stream %r shutting down, cancelling the pending request", self)
             _, future = self.pending_request
-            future.set_exception(PeerConnectionLost(
-                f"Pending request can't complete: {self} peer went offline"
-            ))
+            try:
+                future.set_exception(PeerConnectionLost(
+                    f"Pending request can't complete: {self} peer went offline"
+                ))
+            except asyncio.InvalidStateError:
+                self.logger.debug(
+                    "%s cancelled pending future in deregister, but it was already done",
+                    self,
+                )
 
     def __repr__(self) -> str:
         return f'<ResponseCandidateStream({self._peer!s}, {self.response_msg_type!r})>'
