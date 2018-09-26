@@ -248,7 +248,14 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
             timeout: float = None) -> TResult:
 
         if not self.is_operational:
-            raise ValidationError("You must call `launch_service` before initiating a peer request")
+            if self.service is None or not self.service.is_cancelled:
+                raise ValidationError(
+                    f"Must call `launch_service` before sending request to {self._peer}"
+                )
+            else:
+                raise PeerConnectionLost(
+                    f"Response stream closed before sending request to {self._peer}"
+                )
 
         stream = self._response_stream
 
