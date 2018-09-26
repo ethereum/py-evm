@@ -336,6 +336,22 @@ class BaseTaskPrerequisites(Generic[TTask, TPrerequisite]):
         )
 
 
+class DuplicateTasks(Exception, Generic[TTask]):
+    """
+    Tried to register a task that was already registered
+    """
+    def __init__(self, msg: str, duplicates: Tuple[TTask, ...]) -> None:
+        super().__init__(msg)
+        self.duplicates = duplicates
+
+
+class MissingDependency(Exception):
+    """
+    Tried to register a task that is missing a dependency
+    """
+    pass
+
+
 class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
     """
     This class is useful when a series of tasks with prerequisites must be run
@@ -467,6 +483,12 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
         completed = self._prereq_tracker(finished_task)
         completed.set_complete()
         task_id = self._id_of(finished_task)
+        if task_id in self._tasks:
+            raise DuplicateTasks(
+                f"Can't set a new finished dependency {finished_task} id:{task_id}, "
+                "it's already registered",
+                (finished_task, ),
+            )
         self._tasks[task_id] = completed
         if len(self._depths):
             self._depths[task_id] = max(self._depths.values())
@@ -481,14 +503,25 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
 
         :param tasks: the tasks to register, in iteration order
         """
-        task_meta_info = (
+        task_meta_info = tuple(
             (self._prereq_tracker(task), self._id_of(task), self._dependency_of(task))
             for task in tasks
         )
 
+        duplicates = tuple(
+            tracker.task for tracker, task_id, _ in task_meta_info
+            if task_id in self._tasks
+        )
+
+        if duplicates:
+            raise DuplicateTasks(
+                f"Cannot re-register tasks: {duplicates!r} for completion",
+                duplicates,
+            )
+
         for prereq_tracker, task_id, dependency_id in task_meta_info:
             if dependency_id not in self._tasks:
-                raise ValidationError(
+                raise MissingDependency(
                     f"Cannot prepare task {prereq_tracker!r} with id {task_id} and "
                     f"dependency {dependency_id} before preparing its dependency"
                 )
@@ -508,6 +541,10 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
             task_id = self._id_of(task)
             if task_id not in self._tasks:
                 raise ValidationError(f"Cannot finish task {task_id!r} before preparing it")
+            elif task_id not in self._unready:
+                raise ValidationError(
+                    f"Cannot finish prereq {prereq} of task {task} id:{task_id!r} that is complete"
+                )
 
             task_completion = self._tasks[task_id]
             task_completion.finish(prereq)
