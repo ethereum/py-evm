@@ -176,13 +176,17 @@ class ResponseCandidateStream(
         if self.pending_request is not None:
             self.logger.debug("Stream %r shutting down, cancelling the pending request", self)
             _, future = self.pending_request
-            future.set_exception(PeerConnectionLost("Pending request can't complete: peer is gone"))
+            future.set_exception(PeerConnectionLost(
+                f"Pending request can't complete: {self} is shutting down"
+            ))
 
     def deregister_peer(self, peer: BasePeer) -> None:
         if self.pending_request is not None:
             self.logger.debug("Peer stream %r shutting down, cancelling the pending request", self)
             _, future = self.pending_request
-            future.set_exception(PeerConnectionLost("Pending request can't complete: peer is gone"))
+            future.set_exception(PeerConnectionLost(
+                f"Pending request can't complete: {self} peer went offline"
+            ))
 
     def __repr__(self) -> str:
         return f'<ResponseCandidateStream({self._peer!s}, {self.response_msg_type!r})>'
