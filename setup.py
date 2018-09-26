@@ -16,6 +16,7 @@ deps = {
         "pyethash>=0.1.27,<1.0.0",
         "rlp>=1.0.3,<2.0.0",
         "trie>=1.3.5,<2.0.0",
+        "pyblake2>=1.1.2",  # For Python 3.5 and earlier
     ],
     # The eth-extra sections is for libraries that the evm does not
     # explicitly need to function and hence should not depend on.
