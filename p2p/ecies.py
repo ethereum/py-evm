@@ -34,6 +34,14 @@ CURVE = ec.SECP256K1()
 KEY_LEN = 32
 
 
+class _InvalidPublicKey(Exception):
+    """
+    A custom exception raised when trying to convert bytes
+    into an elliptic curve public key.
+    """
+    pass
+
+
 def generate_privkey() -> datatypes.PrivateKey:
     """Generate a new SECP256K1 private key and return it"""
     privkey = ec.generate_private_key(CURVE, default_backend())
@@ -45,8 +53,15 @@ def ecdh_agree(privkey: datatypes.PrivateKey, pubkey: datatypes.PublicKey) -> by
     privkey_as_int = int(cast(int, privkey))
     ec_privkey = ec.derive_private_key(privkey_as_int, CURVE, default_backend())
     pubkey_bytes = b'\x04' + pubkey.to_bytes()
-    pubkey_nums = ec.EllipticCurvePublicNumbers.from_encoded_point(CURVE, pubkey_bytes)
-    ec_pubkey = pubkey_nums.public_key(default_backend())
+    try:
+        # either of these can raise a ValueError:
+        pubkey_nums = ec.EllipticCurvePublicNumbers.from_encoded_point(CURVE, pubkey_bytes)
+        ec_pubkey = pubkey_nums.public_key(default_backend())
+    except ValueError as exc:
+        # Not all bytes can be made into valid public keys, see the warning at
+        # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ec/
+        # under EllipticCurvePublicNumbers(x, y)
+        raise _InvalidPublicKey(str(exc)) from exc
     return ec_privkey.exchange(ec.ECDH(), ec_pubkey)
 
 
@@ -100,7 +115,12 @@ def decrypt(data: bytes, privkey: datatypes.PrivateKey, shared_mac_data: bytes =
 
     #  1) generate shared-secret = kdf( ecdhAgree(myPrivKey, msg[1:65]) )
     shared = data[1:1 + PUBKEY_LEN]
-    key_material = ecdh_agree(privkey, keys.PublicKey(shared))
+    try:
+        key_material = ecdh_agree(privkey, keys.PublicKey(shared))
+    except _InvalidPublicKey as exc:
+        raise DecryptionError(
+            f"Failed to generate shared secret with pubkey {shared}: {exc}"
+        ) from exc
     key = kdf(key_material)
     key_enc, key_mac = key[:KEY_LEN // 2], key[KEY_LEN // 2:]
     key_mac = sha256(key_mac).digest()
