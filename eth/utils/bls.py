@@ -61,6 +61,9 @@ def sqrt_fq2(x):
 
 
 def hash_to_G2(m):
+    """
+    WARNING: this function has not been standardized yet.
+    """
     if m in CACHE:
         return CACHE[m]
     k2 = m
