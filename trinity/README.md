@@ -1,6 +1,6 @@
 # Release Process
 
-1. Populate CHANGELOG
+1. Populate `docs/release_notes/trinity.rst`
 2. Release `py-evm`
 3. Bump py-evm dependency version in `setup_trinity.py`
 4. Manual bump of trinity version in `setup_trinity.py`

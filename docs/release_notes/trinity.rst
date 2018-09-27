@@ -1,6 +1,28 @@
 Trinity 
 =======
 
+0.1.0-alpha.16
+--------------
+
+Released September 27, 2018
+
+- `#1332 <https://github.com/ethereum/py-evm/pull/1332>`_: Bugfix: Comparing rlp objects across processes used to fail sporadically, because of a changing object hash (fixed by upgrading pyrlp to 1.0.3)
+- `#1326 <https://github.com/ethereum/py-evm/pull/1326>`_: Maintenance: Squash a stack trace in the logs when a peer sends us an invalid public key during handshake
+- `#1325 <https://github.com/ethereum/py-evm/pull/1325>`_: Bugfix: When switching to a new peer to sync headers, it might have started from too far behind the tip, and get stuck
+- `#1327 <https://github.com/ethereum/py-evm/pull/1327>`_: Maintenance: Squash some log warnings from trying to make a request to a peer (or receive a response) while it is shutting down
+- `#1321 <https://github.com/ethereum/py-evm/pull/1321>`_: Bugfix: Address a couple race condition exceptions when syncing headers from a new peer, and other downstream processing is in progress
+- `#1316 <https://github.com/ethereum/py-evm/pull/1316>`_: Maintenance: Reduce size of images in documentation
+- `#1313 <https://github.com/ethereum/py-evm/pull/1313>`_: Maintenance: Remove miscellaneous things that are generating python warnings (eg~ using deprecated methods)
+- `#1279 <https://github.com/ethereum/py-evm/pull/1279>`_: Reliability: Atomically persist when storing: a block, a chain of headers, or a cluster of trie nodes
+- `#1304 <https://github.com/ethereum/py-evm/pull/1304>`_: Maintenance: Refactor AtomicDB to return an explict database instance to write into
+- `#1296 <https://github.com/ethereum/py-evm/pull/1296>`_: Maintenance: Require new AtomicDB in chain and header DB layers
+- `#1295 <https://github.com/ethereum/py-evm/pull/1295>`_: Maintenance: New AtomicDB interface to enable a batch of atomic writes (all succeed or all fail)
+- `#1290 <https://github.com/ethereum/py-evm/pull/1290>`_: Bugfix: more graceful recovery when re-launching sync on a fork
+- `#1277 <https://github.com/ethereum/py-evm/pull/1277>`_: Maintenance: add a cancellable ``call_later`` to all services
+- `#1226 <https://github.com/ethereum/py-evm/pull/1226>`_: Performance: enable multiple peer requests to a single fast peer when other peers are slow
+- `#1254 <https://github.com/ethereum/py-evm/pull/1254>`_: Bugfix: peer selection when two peers have exactly the same throughput
+- `#1253 <https://github.com/ethereum/py-evm/pull/1253>`_: Maintenance: prefer f-string formatting in p2p, trinity code
+
 0.1.0-alpha.15
 --------------
 
