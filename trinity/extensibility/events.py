@@ -29,15 +29,6 @@ class BaseEvent:
     pass
 
 
-class TrinityStartupEvent(BaseEvent):
-    """
-    Broadcasted when Trinity is starting.
-    """
-    def __init__(self, args: Namespace, trinity_config: TrinityConfig) -> None:
-        self.args = args
-        self.trinity_config = trinity_config
-
-
 class PluginStartedEvent(BaseEvent):
     """
     Broadcasted when a plugin was started

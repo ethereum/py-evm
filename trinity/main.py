@@ -49,9 +49,6 @@ from trinity.extensibility import (
     PluginManager,
     SharedProcessScope,
 )
-from trinity.extensibility.events import (
-    TrinityStartupEvent
-)
 from trinity.plugins.registry import (
     ENABLED_PLUGINS
 )
@@ -270,10 +267,7 @@ def trinity_boot(args: Namespace,
     )
 
     plugin_manager.prepare(args, trinity_config, extra_kwargs)
-    plugin_manager.broadcast(TrinityStartupEvent(
-        args,
-        trinity_config
-    ))
+
     try:
         loop = asyncio.get_event_loop()
         loop.run_forever()
@@ -361,10 +355,6 @@ def launch_node(args: Namespace, trinity_config: TrinityConfig, endpoint: Endpoi
 
         plugin_manager = setup_plugins(SharedProcessScope(endpoint))
         plugin_manager.prepare(args, trinity_config)
-        plugin_manager.broadcast(TrinityStartupEvent(
-            args,
-            trinity_config
-        ))
 
         node = NodeClass(plugin_manager, trinity_config)
         loop = node.get_event_loop()
