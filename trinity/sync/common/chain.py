@@ -188,7 +188,17 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                         [header async for header in self._get_missing_tail(all_headers)]
                     )
                     if len(headers) == 0 and len(all_headers) > 0:
-                        self.logger.debug("All headers were redundant, requesting the next batch.")
+                        head = await self.wait(self.db.coro_get_canonical_head())
+                        start_at = max(
+                            all_headers[-1].block_number + 1,
+                            head.block_number - MAX_REORG_DEPTH
+                        )
+                        self.logger.debug(
+                            "All %d headers redundant, head at #%d, fetching from #%d",
+                            len(all_headers),
+                            head.block_number,
+                            start_at,
+                        )
                         continue
                 else:
                     headers = all_headers
