@@ -206,7 +206,7 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
         trivial_headers = tuple(header for header in all_headers if _is_body_empty(header))
 
         if trivial_headers:
-            self.logger.debug(
+            self.logger.trace(
                 "Found %d/%d trivial block bodies, skipping those requests",
                 len(trivial_headers),
                 len(all_headers),
