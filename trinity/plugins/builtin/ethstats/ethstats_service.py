@@ -19,6 +19,7 @@ from trinity.utils.version import (
 from trinity.plugins.builtin.ethstats.ethstats_client import (
     EthstatsClient,
     EthstatsMessage,
+    EthstatsData,
     timestamp_ms,
 )
 
@@ -33,11 +34,8 @@ class EthstatsService(BaseService):
         server_secret: str,
         node_id: str,
         node_contact: str,
-
-        *args,
-        **kwargs,
     ) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__()
 
         self.context = context
 
@@ -92,7 +90,7 @@ class EthstatsService(BaseService):
 
             await self.sleep(5)
 
-    def get_node_info(self) -> dict:
+    def get_node_info(self) -> EthstatsData:
         return {
             'name': self.node_id,
             'contact': self.node_contact,
@@ -102,7 +100,7 @@ class EthstatsService(BaseService):
             'canUpdateHistory': False,
         }
 
-    async def get_node_stats(self) -> dict:
+    async def get_node_stats(self) -> EthstatsData:
         response: PeerCountResponse = await self.context.event_bus.request(
             PeerCountRequest()
         )

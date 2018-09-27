@@ -5,19 +5,26 @@ import typing
 
 import websockets
 
+from cancel_token import (
+    CancelToken,
+)
+
 from p2p.service import (
     BaseService,
 )
 
 
 # Returns UTC timestamp in ms, used for latency calculation
-def timestamp_ms():
+def timestamp_ms() -> int:
     return round(datetime.datetime.utcnow().timestamp() * 1000)
+
+
+EthstatsData = typing.Dict[str, typing.Any]
 
 
 class EthstatsMessage(typing.NamedTuple):
     command: str
-    data: dict
+    data: EthstatsData
 
 
 class EthstatsException(Exception):
@@ -29,16 +36,15 @@ class EthstatsClient(BaseService):
         self,
         websocket: websockets.client.WebSocketClientProtocol,
         node_id: str,
-        *args,
-        **kwargs,
+        token: CancelToken = None,
     ) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__(token)
 
         self.websocket = websocket
         self.node_id = node_id
 
-        self.send_queue: asyncio.Queue = asyncio.Queue()
-        self.recv_queue: asyncio.Queue = asyncio.Queue()
+        self.send_queue: asyncio.Queue[EthstatsMessage] = asyncio.Queue()
+        self.recv_queue: asyncio.Queue[EthstatsMessage] = asyncio.Queue()
 
     async def _run(self) -> None:
         await self.wait_first(
@@ -98,19 +104,19 @@ class EthstatsClient(BaseService):
 
     # Following methods used to enqueue messages to be sent
 
-    async def send_hello(self, secret: str, info: dict) -> None:
+    async def send_hello(self, secret: str, info: EthstatsData) -> None:
         await self.send_queue.put(EthstatsMessage(
             'hello',
             {'info': info, 'secret': secret},
         ))
 
-    async def send_stats(self, stats: dict) -> None:
+    async def send_stats(self, stats: EthstatsData) -> None:
         await self.send_queue.put(EthstatsMessage(
             'stats',
             {'stats': stats},
         ))
 
-    async def send_block(self, block: dict) -> None:
+    async def send_block(self, block: EthstatsData) -> None:
         await self.send_queue.put(EthstatsMessage(
             'block',
             {'block': block},
@@ -122,7 +128,7 @@ class EthstatsClient(BaseService):
             {'stats': {'pending': pending}},
         ))
 
-    async def send_history(self, history: dict) -> None:
+    async def send_history(self, history: EthstatsData) -> None:
         await self.send_queue.put(EthstatsMessage(
             'history',
             {'history': history},
