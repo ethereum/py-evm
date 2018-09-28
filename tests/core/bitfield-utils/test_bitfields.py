@@ -1,3 +1,9 @@
+import random
+
+from hypothesis import (
+    given,
+    strategies as st,
+)
 import pytest
 
 from eth.utils.bitfield import (
@@ -5,6 +11,8 @@ from eth.utils.bitfield import (
     set_voted,
     get_bitfield_length,
     get_empty_bitfield,
+    get_vote_count,
+    or_bitfields,
 )
 
 
@@ -85,3 +93,94 @@ def test_bitfield_multiple_votes():
     bitfield = set_voted(bitfield, 0)
     bitfield = set_voted(bitfield, 0)
     assert has_voted(bitfield, 0)
+
+
+def test_get_vote_count():
+    bitfield = get_empty_bitfield(5)
+    bitfield = set_voted(bitfield, 0)
+    bitfield = set_voted(bitfield, 3)
+    assert get_vote_count(bitfield) == 2
+
+
+def test_or_bitfields():
+    bitfield_1 = get_empty_bitfield(2)
+    bitfield_1 = set_voted(bitfield_1, 0)
+    assert get_vote_count(bitfield_1) == 1
+
+    # same size as bitfield_1
+    bitfield_2 = get_empty_bitfield(2)
+    bitfield_2 = set_voted(bitfield_2, 1)
+    assert get_vote_count(bitfield_2) == 1
+
+    bitfield = or_bitfields([bitfield_1, bitfield_2])
+    assert get_vote_count(bitfield) == 2
+
+    # different size from bitfield_1
+    bitfield_3 = get_empty_bitfield(100)
+    bitfield_3 = set_voted(bitfield_3, 99)
+    assert get_vote_count(bitfield_3) == 1
+
+    with pytest.raises(ValueError):
+        or_bitfields([bitfield_1, bitfield_3])
+
+    bitfield = or_bitfields([bitfield_1, bitfield_3], allow_different_size=True)
+    assert get_vote_count(bitfield) == 2
+
+
+@given(st.integers(1, 1000))
+def test_set_vote_and_has_vote(bit_count):
+    bitfield = get_empty_bitfield(bit_count)
+    index = random.choice([i for i in range(bit_count)])
+    bitfield = set_voted(bitfield, index)
+    assert has_voted(bitfield, index)
+
+
+@given(st.integers(1, 999))
+def test_has_voted_random(votes_count):
+    bit_count = 1000
+    bitfield = get_empty_bitfield(bit_count)
+    random_votes = random.sample([i for i in range(bit_count)], votes_count)
+
+    for index in random_votes:
+        bitfield = set_voted(bitfield, index)
+    assert get_vote_count(bitfield) == votes_count
+
+    for index in range(bit_count):
+        if index in random_votes:
+            assert has_voted(bitfield, index)
+        else:
+            assert not has_voted(bitfield, index)
+
+
+@given(st.lists(elements=st.integers(5, 100), min_size=5, unique=True))
+def test_or_bitfields_random(random_bit_counts):
+    bitfields = []
+
+    # Create random bitfields, each has 5 random votes
+    for bit_count in random_bit_counts:
+        bitfield = get_empty_bitfield(bit_count)
+        votes = random.sample(
+            [vote for vote in range(bit_count)],
+            5,
+        )
+        for index in votes:
+            bitfield = set_voted(bitfield, index)
+        bitfields.append(bitfield)
+
+    bitfield = or_bitfields(bitfields, allow_different_size=True)
+
+    max_bit_count = max(random_bit_counts)
+    for index in range(max_bit_count):
+        if has_voted(bitfield, index):
+            # assert any(has_voted(b, index) for b in bitfields)
+            # -> To handle different bit_count sizes case,
+            # we have to handle the IndexError case in tests
+            voted = False
+            for b in bitfields:
+                try:
+                    if has_voted(b, index):
+                        voted = True
+                        break
+                except IndexError:
+                    continue
+            assert voted

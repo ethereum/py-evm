@@ -1,8 +1,12 @@
 from typing import (
     List,
 )
+from cytoolz import (
+    curry,
+)
 
 
+@curry
 def has_voted(bitfield: bytes, index: int) -> bool:
     return bool(bitfield[index // 8] & (128 >> (index % 8)))
 
@@ -24,18 +28,28 @@ def get_empty_bitfield(bit_count: int) -> bytes:
 
 
 def get_vote_count(bitfield: bytes) -> int:
-    votes = 0
-    for index in range(len(bitfield) * 8):
-        if has_voted(bitfield, index):
-            votes += 1
-    return votes
+    return len(
+        tuple(
+            index
+            for index in range(len(bitfield) * 8)
+            if has_voted(bitfield, index)
+        )
+    )
 
 
-def or_bitfields(bitfields: List[bytes]) -> bytes:
+def or_bitfields(bitfields: List[bytes], allow_different_size=False) -> bytes:
+    if allow_different_size:
+        bytes_length = max([len(b) for b in bitfields])
+    else:
+        bytes_length = len(bitfields[0])
+
     new = b''
-    for i in range(len(bitfields[0])):
+    for i in range(bytes_length):
         byte = 0
         for bitfield in bitfields:
-            byte = bitfield[i] | byte
+            if not allow_different_size and len(bitfield) != bytes_length:
+                raise ValueError("The bitfield sizes are different")
+            if i < len(bitfield):
+                byte = bitfield[i] | byte
         new += bytes([byte])
     return new
