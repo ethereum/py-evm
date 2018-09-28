@@ -37,17 +37,13 @@ def get_vote_count(bitfield: bytes) -> int:
     )
 
 
-def or_bitfields(bitfields: List[bytes], allow_different_size=False) -> bytes:
-    if allow_different_size:
-        bytes_length = max([len(b) for b in bitfields])
-    else:
-        bytes_length = len(bitfields[0])
-
+def or_bitfields(bitfields: List[bytes]) -> bytes:
+    bytes_length = len(bitfields[0])
     new = b''
     for i in range(bytes_length):
         byte = 0
         for bitfield in bitfields:
-            if not allow_different_size and len(bitfield) != bytes_length:
+            if len(bitfield) != bytes_length:
                 raise ValueError("The bitfield sizes are different")
             if i < len(bitfield):
                 byte = bitfield[i] | byte

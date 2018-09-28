@@ -135,9 +135,6 @@ def test_or_bitfields():
     with pytest.raises(ValueError):
         or_bitfields([bitfield_1, bitfield_3])
 
-    bitfield = or_bitfields([bitfield_1, bitfield_3], allow_different_size=True)
-    assert get_vote_count(bitfield) == 2
-
 
 @greater_equal_python36
 @given(st.integers(1, 1000))
@@ -167,35 +164,26 @@ def test_has_voted_random(votes_count):
 
 
 @greater_equal_python36
-@given(st.lists(elements=st.integers(5, 100), min_size=5, unique=True))
-def test_or_bitfields_random(random_bit_counts):
+@given(
+    st.lists(
+        st.lists(elements=st.integers(0, 99), min_size=5, max_size=100, unique=True),
+        min_size=1,
+        max_size=100,
+    )
+)
+def test_or_bitfields_random(votes):
     bitfields = []
+    bit_count = 100
 
     # Create random bitfields, each has 5 random votes
-    for bit_count in random_bit_counts:
+    for vote in votes:
         bitfield = get_empty_bitfield(bit_count)
-        votes = random.sample(
-            [vote for vote in range(bit_count)],
-            5,
-        )
-        for index in votes:
+        for index in vote:
             bitfield = set_voted(bitfield, index)
         bitfields.append(bitfield)
 
-    bitfield = or_bitfields(bitfields, allow_different_size=True)
+    bitfield = or_bitfields(bitfields)
 
-    max_bit_count = max(random_bit_counts)
-    for index in range(max_bit_count):
+    for index in range(bit_count):
         if has_voted(bitfield, index):
-            # assert any(has_voted(b, index) for b in bitfields)
-            # -> To handle different bit_count sizes case,
-            # we have to handle the IndexError case in tests
-            voted = False
-            for b in bitfields:
-                try:
-                    if has_voted(b, index):
-                        voted = True
-                        break
-                except IndexError:
-                    continue
-            assert voted
+            assert any(has_voted(b, index) for b in bitfields)
