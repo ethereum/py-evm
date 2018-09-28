@@ -304,10 +304,6 @@ class BaseTaskPrerequisites(Generic[TTask, TPrerequisite]):
 
     @classmethod
     def from_enum(cls, prereqs: Type[TPrerequisite]) -> 'Type[BaseTaskPrerequisites[Any, Any]]':
-
-        if len(prereqs) < 1:
-            raise ValidationError("There must be at least one prerequisite to track completions")
-
         return type('CompletionFor' + prereqs.__name__, (cls, ), dict(_prereqs=prereqs))
 
     def __init__(self, task: TTask) -> None:
@@ -542,6 +538,10 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
                 self._tasks[task_id] = prereq_tracker
                 self._unready.add(task_id)
                 self._dependencies[dependency_id].add(task_id)
+
+                if prereq_tracker.is_complete and self._is_ready(prereq_tracker.task):
+                    # this is possible for tasks with 0 prerequisites (useful for pure ordering)
+                    self._mark_complete(task_id)
 
     def finish_prereq(self, prereq: TPrerequisite, tasks: Tuple[TTask, ...]) -> None:
         """For every task in tasks, mark the given prerequisite as completed"""

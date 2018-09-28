@@ -20,6 +20,10 @@ async def wait(coro, timeout=DEFAULT_TIMEOUT):
     return await asyncio.wait_for(coro, timeout=timeout)
 
 
+class NoPrerequisites(Enum):
+    pass
+
+
 class OnePrereq(Enum):
     one = auto()
 
@@ -188,6 +192,17 @@ def test_reregister_duplicates():
 
 
 @pytest.mark.asyncio
+async def test_no_prereq_tasks():
+    ti = OrderedTaskPreparation(NoPrerequisites, identity, lambda x: x - 1)
+    ti.set_finished_dependency(1)
+    ti.register_tasks((2, 3))
+
+    # with no prerequisites, tasks are *immediately* finished, as long as they are in order
+    finished = await wait(ti.ready_tasks())
+    assert finished == (2, 3)
+
+
+@pytest.mark.asyncio
 async def test_register_out_of_order():
     ti = OrderedTaskPreparation(OnePrereq, identity, lambda x: x - 1, accept_dangling_tasks=True)
     ti.set_finished_dependency(1)
@@ -207,13 +222,29 @@ async def test_register_out_of_order():
     assert finished == (2, 3, 4, 5)
 
 
-def test_empty_enum():
+@pytest.mark.asyncio
+async def test_no_prereq_tasks_out_of_order():
+    ti = OrderedTaskPreparation(
+        NoPrerequisites,
+        identity,
+        lambda x: x - 1,
+        accept_dangling_tasks=True,
+    )
+    ti.set_finished_dependency(1)
+    ti.register_tasks((4, 5))
 
-    class NoPrerequisites(Enum):
+    try:
+        finished = await wait(ti.ready_tasks())
+    except asyncio.TimeoutError:
         pass
+    else:
+        assert False, f"No steps should be ready, but got {finished!r}"
 
-    with pytest.raises(ValidationError):
-        OrderedTaskPreparation(NoPrerequisites, identity, lambda x: x - 1)
+    ti.register_tasks((2, 3))
+
+    # with no prerequisites, tasks are *immediately* finished, as long as they are in order
+    finished = await wait(ti.ready_tasks())
+    assert finished == (2, 3, 4, 5)
 
 
 @pytest.mark.asyncio
