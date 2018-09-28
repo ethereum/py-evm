@@ -1,5 +1,6 @@
 import pytest
 
+pytest.importorskip('eth.utils.bls')  # noqa E402
 from eth.utils.bls import (
     G1,
     G2,
@@ -17,7 +18,12 @@ from eth.utils.bls import (
     verify
 )
 
+from tests.core.helpers import (
+    greater_equal_python36,
+)
 
+
+@greater_equal_python36
 @pytest.mark.parametrize(
     'privkey',
     [
@@ -43,6 +49,7 @@ def test_bls_core(privkey):
     assert verify(msg, pub, sig)
 
 
+@greater_equal_python36
 @pytest.mark.parametrize(
     'msg, privkeys',
     [

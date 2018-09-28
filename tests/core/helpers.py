@@ -1,3 +1,5 @@
+import sys
+
 from cytoolz import curry
 
 import pytest
@@ -11,6 +13,12 @@ from eth.chains.base import MiningChain
 
 from eth.utils.spoof import (
     SpoofTransaction,
+)
+
+
+greater_equal_python36 = pytest.mark.skipif(
+    sys.version_info < (3, 6),
+    reason="requires python3.6 or higher"
 )
 
 

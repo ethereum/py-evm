@@ -15,7 +15,12 @@ from eth.utils.bitfield import (
     or_bitfields,
 )
 
+from tests.core.helpers import (
+    greater_equal_python36,
+)
 
+
+@greater_equal_python36
 @pytest.mark.parametrize(
     'attester_count, bitfield_length',
     [
@@ -31,6 +36,7 @@ def test_bitfield_length(attester_count, bitfield_length):
     assert get_bitfield_length(attester_count) == bitfield_length
 
 
+@greater_equal_python36
 def test_empty_bitfield():
     attesters = list(range(10))
     bitfield = get_empty_bitfield(len(attesters))
@@ -39,6 +45,7 @@ def test_empty_bitfield():
         assert not has_voted(bitfield, attester)
 
 
+@greater_equal_python36
 def test_bitfield_single_votes():
     attesters = list(range(10))
     bitfield = get_empty_bitfield(len(attesters))
@@ -59,6 +66,7 @@ def test_bitfield_single_votes():
                 assert not has_voted(bitfield, attester)
 
 
+@greater_equal_python36
 def test_bitfield_all_votes():
     attesters = list(range(10))
 
@@ -71,6 +79,7 @@ def test_bitfield_all_votes():
     assert bitfield == b'\xff\xc0'
 
 
+@greater_equal_python36
 def test_bitfield_some_votes():
     attesters = list(range(10))
     voters = [0, 4, 5, 9]
@@ -88,6 +97,7 @@ def test_bitfield_some_votes():
             assert not has_voted(bitfield, attester)
 
 
+@greater_equal_python36
 def test_bitfield_multiple_votes():
     bitfield = get_empty_bitfield(1)
     bitfield = set_voted(bitfield, 0)
@@ -95,6 +105,7 @@ def test_bitfield_multiple_votes():
     assert has_voted(bitfield, 0)
 
 
+@greater_equal_python36
 def test_get_vote_count():
     bitfield = get_empty_bitfield(5)
     bitfield = set_voted(bitfield, 0)
@@ -102,6 +113,7 @@ def test_get_vote_count():
     assert get_vote_count(bitfield) == 2
 
 
+@greater_equal_python36
 def test_or_bitfields():
     bitfield_1 = get_empty_bitfield(2)
     bitfield_1 = set_voted(bitfield_1, 0)
@@ -127,6 +139,7 @@ def test_or_bitfields():
     assert get_vote_count(bitfield) == 2
 
 
+@greater_equal_python36
 @given(st.integers(1, 1000))
 def test_set_vote_and_has_vote(bit_count):
     bitfield = get_empty_bitfield(bit_count)
@@ -135,6 +148,7 @@ def test_set_vote_and_has_vote(bit_count):
     assert has_voted(bitfield, index)
 
 
+@greater_equal_python36
 @given(st.integers(1, 999))
 def test_has_voted_random(votes_count):
     bit_count = 1000
@@ -152,6 +166,7 @@ def test_has_voted_random(votes_count):
             assert not has_voted(bitfield, index)
 
 
+@greater_equal_python36
 @given(st.lists(elements=st.integers(5, 100), min_size=5, unique=True))
 def test_or_bitfields_random(random_bit_counts):
     bitfields = []

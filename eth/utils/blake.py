@@ -1,9 +1,4 @@
-try:
-    # Python 3.6
-    from hashlib import blake2b
-except ImportError:
-    # Python 3.5
-    from pyblake2 import blake2b  # type: ignore
+from hashlib import blake2b
 
 
 def blake(data: bytes) -> bytes:

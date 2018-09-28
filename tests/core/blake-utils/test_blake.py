@@ -1,6 +1,13 @@
+import pytest
+
+pytest.importorskip('eth.utils.blake')  # noqa E402
 from eth.utils.blake import blake
+from tests.core.helpers import (
+    greater_equal_python36,
+)
 
 
+@greater_equal_python36
 def test_blake():
     output = blake(b'helloworld')
     assert len(output) == 32
