@@ -33,7 +33,7 @@ def is_ipython_available() -> bool:
 # we'll be able to load plugins from some path and control via Trinity
 # config file which plugin is enabled or not
 
-ENABLED_PLUGINS = [
+BUILTIN_PLUGINS = [
     AttachPlugin() if is_ipython_available() else AttachPlugin(use_ipython=False),
     EthstatsPlugin(),
     FixUncleanShutdownPlugin(),
@@ -41,3 +41,11 @@ ENABLED_PLUGINS = [
     LightPeerChainBridgePlugin(),
     TxPlugin(),
 ]
+
+# Plugins need to define entrypoints at 'trinity.plugins' to automatically get loaded
+# https://packaging.python.org/guides/creating-and-discovering-plugins/#using-package-metadata
+DISCOVERED_PLUGINS = [
+    entry_point.load()() for entry_point in pkg_resources.iter_entry_points('trinity.plugins')
+]
+
+ALL_PLUGINS = BUILTIN_PLUGINS + DISCOVERED_PLUGINS
