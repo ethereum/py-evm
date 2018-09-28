@@ -43,8 +43,8 @@ class EthstatsClient(BaseService):
         self.websocket = websocket
         self.node_id = node_id
 
-        self.send_queue: asyncio.Queue[EthstatsMessage] = asyncio.Queue()
-        self.recv_queue: asyncio.Queue[EthstatsMessage] = asyncio.Queue()
+        self.send_queue: asyncio.Queue['EthstatsMessage'] = asyncio.Queue()
+        self.recv_queue: asyncio.Queue['EthstatsMessage'] = asyncio.Queue()
 
     async def _run(self) -> None:
         await self.wait_first(

@@ -1,5 +1,6 @@
 import os
 import asyncio
+import platform
 
 from argparse import (
     ArgumentParser,
@@ -9,13 +10,12 @@ from argparse import (
 from trinity.extensibility import (
     BaseIsolatedPlugin,
 )
+from trinity.utils.shutdown import (
+    exit_with_service_and_endpoint,
+)
 
 from trinity.plugins.builtin.ethstats.ethstats_service import (
     EthstatsService,
-)
-
-from trinity.utils.shutdown import (
-    exit_with_service_and_endpoint,
 )
 
 
@@ -47,12 +47,12 @@ class EthstatsPlugin(BaseIsolatedPlugin):
         ethstats_parser.add_argument(
             '--ethstats-node-id',
             help='Node ID for stats server',
-            default=os.environ.get('ETHSTATS_NODE_ID'),
+            default=os.environ.get('ETHSTATS_NODE_ID', platform.node()),
         )
         ethstats_parser.add_argument(
             '--ethstats-node-contact',
             help='Node contact information for stats server',
-            default=os.environ.get('ETHSTATS_NODE_CONTACT'),
+            default=os.environ.get('ETHSTATS_NODE_CONTACT', ''),
         )
 
     def should_start(self) -> bool:
@@ -62,8 +62,6 @@ class EthstatsPlugin(BaseIsolatedPlugin):
         configuration_provided: bool = all((
             self.context.args.ethstats_server_url,
             self.context.args.ethstats_server_secret,
-            self.context.args.ethstats_node_id,
-            self.context.args.ethstats_node_contact,
         ))
 
         if not configuration_provided:

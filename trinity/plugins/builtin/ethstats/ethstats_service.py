@@ -2,6 +2,9 @@ import platform
 
 import websockets
 
+from eth.chains.base import (
+    BaseChain,
+)
 from p2p.events import (
     PeerCountRequest,
     PeerCountResponse,
@@ -9,8 +12,20 @@ from p2p.events import (
 from p2p.service import (
     BaseService,
 )
+from trinity import (
+    __version__,
+)
 from trinity.extensibility import (
     PluginContext,
+)
+from trinity.constants import (
+    SYNC_LIGHT,
+)
+from trinity.plugins.builtin.light_peer_chain_bridge.light_peer_chain_bridge import (
+    EventBusLightPeerChain,
+)
+from trinity.utils.db_proxy import (
+    create_db_manager,
 )
 from trinity.utils.version import (
     construct_trinity_client_identifier,
@@ -43,6 +58,8 @@ class EthstatsService(BaseService):
         self.server_secret = server_secret
         self.node_id = node_id
         self.node_contact = node_contact
+
+        self.chain = self.get_chain()
 
     async def _run(self) -> None:
         while self.is_operational:
@@ -87,6 +104,7 @@ class EthstatsService(BaseService):
         while self.is_operational:
             await client.send_node_ping()
             await client.send_stats(await self.get_node_stats())
+            await client.send_block(self.get_node_block())
 
             await self.sleep(5)
 
@@ -94,10 +112,25 @@ class EthstatsService(BaseService):
         return {
             'name': self.node_id,
             'contact': self.node_contact,
+            'node': construct_trinity_client_identifier(),
+            'net': self.context.chain_config.network_id,
+            'port': self.context.chain_config.port,
             'os': platform.system(),
             'os_v': platform.release(),
-            'client': construct_trinity_client_identifier(),
+            'client': __version__,
             'canUpdateHistory': False,
+        }
+
+    def get_node_block(self) -> EthstatsData:
+        head = self.chain.get_canonical_head()
+
+        return {
+            'number': head.block_number,
+            'hash': head.hex_hash,
+            'difficulty': head.difficulty,
+            'totalDifficulty': self.chain.get_score(head.hash),
+            'transactions': [],
+            'uncles': [],
         }
 
     async def get_node_stats(self) -> EthstatsData:
@@ -109,3 +142,21 @@ class EthstatsService(BaseService):
             'active': True,
             'peers': response.peer_count,
         }
+
+    def get_chain(self) -> BaseChain:
+        db_manager = create_db_manager(self.context.chain_config.database_ipc_path)
+        db_manager.connect()
+
+        chain_class = self.context.chain_config.node_class.chain_class
+
+        if self.context.chain_config.sync_mode == SYNC_LIGHT:
+            header_db = db_manager.get_headerdb()  # type: ignore
+            chain = chain_class(
+                header_db,
+                peer_chain=EventBusLightPeerChain(self.context.event_bus)
+            )
+        else:
+            db = db_manager.get_db()  # type: ignore
+            chain = chain_class(db)
+
+        return chain
