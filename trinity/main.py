@@ -57,7 +57,8 @@ from trinity.extensibility.events import (
     TrinityStartupEvent
 )
 from trinity.plugins.registry import (
-    ENABLED_PLUGINS
+    BUILTIN_PLUGINS,
+    DISCOVERED_PLUGINS,
 )
 from trinity.utils.ipc import (
     wait_for_ipc,
@@ -397,6 +398,6 @@ async def handle_networking_exit(service: BaseService,
 def setup_plugins(scope: BaseManagerProcessScope) -> PluginManager:
     plugin_manager = PluginManager(scope)
     # TODO: Implement auto-discovery of plugins based on some convention/configuration scheme
-    plugin_manager.register(ENABLED_PLUGINS)
+    plugin_manager.register(BUILTIN_PLUGINS + DISCOVERED_PLUGINS)
 
     return plugin_manager
