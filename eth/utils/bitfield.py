@@ -1,8 +1,14 @@
+import operator
+
 from typing import (
     List,
 )
 from cytoolz import (
     curry,
+)
+from cytoolz.curried import reduce
+from itertools import (
+    zip_longest,
 )
 
 
@@ -38,14 +44,9 @@ def get_vote_count(bitfield: bytes) -> int:
 
 
 def or_bitfields(bitfields: List[bytes]) -> bytes:
-    bytes_length = len(bitfields[0])
-    new = b''
-    for i in range(bytes_length):
-        byte = 0
-        for bitfield in bitfields:
-            if len(bitfield) != bytes_length:
-                raise ValueError("The bitfield sizes are different")
-            if i < len(bitfield):
-                byte = bitfield[i] | byte
-        new += bytes([byte])
-    return new
+    byte_slices = zip_longest(*bitfields)
+
+    if len(set((len(b) for b in bitfields))) != 1:
+        raise ValueError("The bitfield sizes are different")
+
+    return bytes(map(reduce(operator.or_), byte_slices))

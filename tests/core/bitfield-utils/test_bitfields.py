@@ -175,7 +175,6 @@ def test_or_bitfields_random(votes):
     bitfields = []
     bit_count = 100
 
-    # Create random bitfields, each has 5 random votes
     for vote in votes:
         bitfield = get_empty_bitfield(bit_count)
         for index in vote:
