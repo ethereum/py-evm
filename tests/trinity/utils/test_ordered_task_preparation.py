@@ -187,6 +187,26 @@ def test_reregister_duplicates():
         ti.register_tasks((2, ))
 
 
+@pytest.mark.asyncio
+async def test_register_out_of_order():
+    ti = OrderedTaskPreparation(OnePrereq, identity, lambda x: x - 1, accept_dangling_tasks=True)
+    ti.set_finished_dependency(1)
+    ti.register_tasks((4, 5))
+    ti.finish_prereq(OnePrereq.one, (4, 5))
+
+    try:
+        finished = await wait(ti.ready_tasks())
+    except asyncio.TimeoutError:
+        pass
+    else:
+        assert False, f"No steps should be ready, but got {finished!r}"
+
+    ti.register_tasks((2, 3))
+    ti.finish_prereq(OnePrereq.one, (2, 3))
+    finished = await wait(ti.ready_tasks())
+    assert finished == (2, 3, 4, 5)
+
+
 def test_empty_enum():
 
     class NoPrerequisites(Enum):
