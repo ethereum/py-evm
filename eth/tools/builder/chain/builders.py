@@ -201,7 +201,6 @@ GENESIS_DEFAULTS = (
     ('receipt_root', constants.BLANK_ROOT_HASH),
     ('uncles_hash', constants.EMPTY_UNCLE_HASH),
     ('state_root', constants.BLANK_ROOT_HASH),
-    ('timestamp', int(time.time())),
     ('transaction_root', constants.BLANK_ROOT_HASH),
 )
 
@@ -214,6 +213,7 @@ def _get_default_genesis_params(genesis_state):
             pass
         else:
             yield key, value
+    yield 'timestamp', int(time.time())  # populate the timestamp value at runtime
 
 
 @to_tuple
