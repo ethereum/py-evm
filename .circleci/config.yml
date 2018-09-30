@@ -297,6 +297,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-rpc-state-quadratic
+  py36-beacon:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-beacon
 
   py37-core:
     <<: *common
@@ -316,6 +322,12 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-trinity-integration
+  py37-beacon:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-beacon
 
 workflows:
   version: 2
@@ -326,6 +338,7 @@ workflows:
       - py37-core
       - py37-trinity
       - py37-trinity-integration
+      - py37-beacon
 
       - py36-native-state-byzantium
       - py36-native-state-frontier
@@ -349,6 +362,7 @@ workflows:
       - py36-p2p
       - py36-database
       - py36-rpc-state-quadratic
+      - py36-beacon
 
       - py35-native-state-byzantium
       - py35-native-state-frontier
