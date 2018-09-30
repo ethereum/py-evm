@@ -201,7 +201,10 @@ def get_new_shuffling(seed: Hash32,
     shard_count = beacon_config.shard_count
     avs = get_active_validator_indices(dynasty, validators)
     if len(avs) >= cycle_length * min_committee_size:
-        committees_per_slot = len(avs) // cycle_length // (min_committee_size * 2) + 1
+        committees_per_slot = min(
+            len(avs) // cycle_length // (min_committee_size * 2) + 1,
+            shard_count // cycle_length
+        )
         slots_per_committee = 1
     else:
         committees_per_slot = 1
