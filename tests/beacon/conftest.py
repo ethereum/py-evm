@@ -1,5 +1,9 @@
 import pytest
 
+from eth_utils import (
+    to_tuple,
+)
+
 from eth.beacon.config import (
     BASE_REWARD_QUOTIENT,
     DEFAULT_END_DYNASTY,
@@ -13,6 +17,12 @@ from eth.beacon.config import (
     SQRT_E_DROP_TIME,
     generate_config,
 )
+from eth.beacon.genesis_helpers import (
+    get_genesis_active_state,
+    get_genesis_block,
+    get_genesis_crystallized_state,
+)
+from eth.beacon.types.validator_record import ValidatorRecord
 import eth.utils.bls as bls
 from eth.utils.blake import blake
 
@@ -133,9 +143,8 @@ def sample_validator_record_params():
 
 
 #
-# config
+# Temporary default values
 #
-
 @pytest.fixture
 def init_shuffling_seed():
     return DEFAULT_SHUFFLING_SEED
@@ -146,6 +155,19 @@ def init_randao():
     return DEFAULT_RANDAO
 
 
+@pytest.fixture
+def num_validators():
+    return DEFAULT_NUM_VALIDATORS
+
+
+@pytest.fixture
+def init_validator_keys(pubkeys, num_validators):
+    return pubkeys[:num_validators]
+
+
+#
+# config
+#
 @pytest.fixture
 def base_reward_quotient():
     return BASE_REWARD_QUOTIENT
@@ -218,4 +240,53 @@ def beacon_config(base_reward_quotient,
         shard_count=shard_count,
         slot_duration=slot_duration,
         sqrt_e_drop_time=sqrt_e_drop_time
+    )
+
+
+#
+# genesis
+#
+@pytest.fixture
+@to_tuple
+def genesis_validators(init_validator_keys,
+                       init_randao,
+                       beacon_config):
+    current_dynasty = 1
+    return [
+        ValidatorRecord(
+            pubkey=pub,
+            withdrawal_shard=0,
+            withdrawal_address=blake(pub.to_bytes(32, 'big'))[-20:],
+            randao_commitment=init_randao,
+            balance=beacon_config.deposit_size,
+            start_dynasty=current_dynasty,
+            end_dynasty=beacon_config.default_end_dynasty
+        ) for pub in init_validator_keys
+    ]
+
+
+@pytest.fixture
+def genesis_crystallized_state(genesis_validators,
+                               init_shuffling_seed,
+                               beacon_config):
+    return get_genesis_crystallized_state(
+        genesis_validators,
+        init_shuffling_seed,
+        beacon_config,
+    )
+
+
+@pytest.fixture
+def genesis_active_state(beacon_config):
+    return get_genesis_active_state(beacon_config)
+
+
+@pytest.fixture
+def genesis_block(genesis_active_state, genesis_crystallized_state):
+    active_state_root = genesis_active_state.hash
+    crystallized_state_root = genesis_crystallized_state.hash
+
+    return get_genesis_block(
+        active_state_root=active_state_root,
+        crystallized_state_root=crystallized_state_root,
     )
