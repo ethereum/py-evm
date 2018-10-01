@@ -434,7 +434,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
     - prerequisites: all these must be completed for a task to be ready
         (a necessary but not sufficient condition)
     - ready: a task is ready after all its prereqs are completed, and the task it depends on is
-        also ready
+        also ready. The initial ready task is set with :meth:`set_finished_dependency`
     """
     # methods to extract the id and dependency IDs out of a task
     _id_of: StaticMethod[Callable[[TTask], TTaskID]]
@@ -489,8 +489,15 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
 
     def set_finished_dependency(self, finished_task: TTask) -> None:
         """
-        Mark this task as already finished. Any task being registered in
-        :meth:`register_tasks` must have dependencies that are finished.
+        Mark this task as already finished. This is a bootstrapping method. In general,
+        tasks are marked as finished by :meth:`finish_prereq`. But how do we know which task is
+        first, and that its dependency is complete? We call `set_finished_dependency`.
+
+        Since a task can only become ready when its dependent
+        task is ready, the first result from ready_tasks will be dependent on
+        finished_task set in this method. (More precisely, it will be dependent on *one of*
+        the ``finished_task`` objects set with this method, since the method may be called
+        multiple times)
         """
         completed = self._prereq_tracker(finished_task)
         completed.set_complete()
@@ -507,8 +514,11 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
 
     def register_tasks(self, tasks: Tuple[TTask, ...]) -> None:
         """
-        Initiate a task into tracking. Each task must be registered *after* its dependency has
-        been registered.
+        Initiate a task into tracking. By default, each task must be registered
+        *after* its dependency has been registered.
+
+        If you want to be able to register non-contiguous tasks, you can
+        initialize this intance with: ``accept_dangling_tasks=True``.
 
         :param tasks: the tasks to register, in iteration order
         """
@@ -562,6 +572,13 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
             if task_completion.is_complete and self._is_ready(task):
                 self._mark_complete(task_id)
 
+    async def ready_tasks(self) -> Tuple[TTask, ...]:
+        """
+        Return the next batch of tasks that are ready to process. If none are ready,
+        hang until at least one task becomes ready.
+        """
+        return await queue_get_batch(self._ready_tasks)
+
     def _is_ready(self, task: TTask) -> bool:
         dependency = self._dependency_of(task)
         if dependency in self._declared_finished:
@@ -572,13 +589,6 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
             return True
         else:
             return False
-
-    async def ready_tasks(self) -> Tuple[TTask, ...]:
-        """
-        Return the next batch of tasks that are ready to process. If none are ready,
-        hang until at least one task becomes ready.
-        """
-        return await queue_get_batch(self._ready_tasks)
 
     def _mark_complete(self, task_id: TTaskID) -> None:
         qualified_tasks = tuple([task_id])
