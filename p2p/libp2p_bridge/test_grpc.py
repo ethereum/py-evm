@@ -1,26 +1,26 @@
 import grpc
 
-from libp2p_bridge.config import (
+from p2p.libp2p_bridge.config import (
     RPC_SERVER_LISTEN_IP,
     RPC_SERVER_PORT,
     RPC_CLIENT_IP,
     RPC_CLIENT_PORT,
 )
-from libp2p_bridge.constants import (
+from p2p.libp2p_bridge.constants import (
     COLLATION_TOPIC_FORMAT,
 )
-from libp2p_bridge.grpc_client import (
+from p2p.libp2p_bridge.grpc_client import (
     GRPCClient,
 )
-from libp2p_bridge.message import (
+from p2p.libp2p_bridge.message import (
     Collation,
     CollationRequest,
     MsgType,
 )
 
-import libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2 as event_pb2
-import libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2_grpc as event_pb2_grpc
-import libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2_grpc as rpc_pb2_grpc
+import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2 as event_pb2
+import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2_grpc as event_pb2_grpc
+import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2_grpc as rpc_pb2_grpc
 
 
 def make_event_stub():

@@ -1,6 +1,6 @@
 import pytest
 
-from libp2p_bridge.message import (
+from p2p.libp2p_bridge.message import (
     Collation,
     CollationRequest,
     INT_BYTES,

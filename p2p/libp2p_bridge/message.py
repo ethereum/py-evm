@@ -3,7 +3,7 @@ from eth_utils import (
     int_to_big_endian,
 )
 
-from libp2p_bridge.constants import (
+from p2p.libp2p_bridge.constants import (
     INT_BYTES,
 )
 

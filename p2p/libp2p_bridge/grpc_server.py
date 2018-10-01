@@ -1,20 +1,21 @@
 from concurrent import futures
+import logging
 import time
 
 import grpc
 
-from libp2p_bridge.config import (
+from p2p.libp2p_bridge.config import (
     RPC_SERVER_LISTEN_IP,
     RPC_SERVER_PORT,
 )
-from libp2p_bridge.message import (
+from p2p.libp2p_bridge.message import (
     Collation,
     CollationRequest,
     MsgType,
 )
 
-import libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2 as event_pb2
-import libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2_grpc as event_pb2_grpc
+import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2 as event_pb2
+import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2_grpc as event_pb2_grpc
 
 
 def make_response(status):
@@ -51,6 +52,8 @@ def dispatch(msg_type, data_bytes):
 
 class GRPCServer(event_pb2_grpc.EventServicer):
 
+    logger = logging.getLogger('p2p.libp2p_bridge.grpc_server')
+
     def Receive(self, request, context):
         response = make_response(True)  # Request succeeded
         ret_bytes = dispatch(request.msgType, request.data)
@@ -58,7 +61,7 @@ class GRPCServer(event_pb2_grpc.EventServicer):
             response=response,
             data=ret_bytes,
         )
-        print("Receive: request={}, response={}".format(request, receive_response))
+        self.logger.info("Receive: request=%s, response=%s", request, receive_response)
         return receive_response
 
 
