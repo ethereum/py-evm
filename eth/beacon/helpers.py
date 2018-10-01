@@ -1,4 +1,5 @@
 from typing import (
+    Iterable,
     List,
     TYPE_CHECKING,
 )
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
 
 @to_tuple
 def get_active_validator_indices(dynasty: int,
-                                 validators: List['ValidatorRecord']) -> List[int]:
+                                 validators: Iterable['ValidatorRecord']) -> List[int]:
     o = []
     for index, validator in enumerate(validators):
         if (validator.start_dynasty <= dynasty and dynasty < validator.end_dynasty):

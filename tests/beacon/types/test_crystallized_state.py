@@ -40,7 +40,7 @@ def empty_crystallized_state():
     'expected', [(0), (1), (5)]
 )
 def test_num_validators(expected, beacon_config, empty_crystallized_state):
-    validators = [mock_validator_record(pubkey, config=beacon_config) for pubkey in range(expected)]
+    validators = [mock_validator_record(pubkey, beacon_config) for pubkey in range(expected)]
     crystallized_state = empty_crystallized_state.copy(
         validators=validators,
     )
@@ -77,11 +77,11 @@ def test_num_crosslink_records(expected,
 def test_total_deposits(num_active_validators, beacon_config, empty_crystallized_state):
     start_dynasty = 10
     active_validators = [
-        mock_validator_record(pubkey, config=beacon_config, start_dynasty=start_dynasty)
+        mock_validator_record(pubkey, beacon_config, start_dynasty=start_dynasty)
         for pubkey in range(num_active_validators)
     ]
     non_active_validators = [
-        mock_validator_record(pubkey, config=beacon_config, start_dynasty=start_dynasty + 1)
+        mock_validator_record(pubkey, beacon_config, start_dynasty=start_dynasty + 1)
         for pubkey in range(4)
     ]
 

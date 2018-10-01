@@ -37,16 +37,16 @@ BeaconConfig = namedtuple(
 
 
 def generate_config(*,
-                    base_reward_quotient=BASE_REWARD_QUOTIENT,
-                    default_end_dynasty=DEFAULT_END_DYNASTY,
-                    deposit_size=DEPOSIT_SIZE,
-                    cycle_length=CYCLE_LENGTH,
-                    max_validator_count=MAX_VALIDATOR_COUNT,
-                    min_committee_size=MIN_COMMITTEE_SIZE,
-                    min_dynasty_length=MIN_DYNASTY_LENGTH,
-                    shard_count=SHARD_COUNT,
-                    slot_duration=SLOT_DURATION,
-                    sqrt_e_drop_time=SQRT_E_DROP_TIME):
+                    base_reward_quotient: int=BASE_REWARD_QUOTIENT,
+                    default_end_dynasty: int=DEFAULT_END_DYNASTY,
+                    deposit_size: int=DEPOSIT_SIZE,
+                    cycle_length: int=CYCLE_LENGTH,
+                    max_validator_count: int=MAX_VALIDATOR_COUNT,
+                    min_committee_size: int=MIN_COMMITTEE_SIZE,
+                    min_dynasty_length: int=MIN_DYNASTY_LENGTH,
+                    shard_count: int=SHARD_COUNT,
+                    slot_duration: int=SLOT_DURATION,
+                    sqrt_e_drop_time: int=SQRT_E_DROP_TIME) -> BeaconConfig:
 
     return BeaconConfig(
         base_reward_quotient=BASE_REWARD_QUOTIENT,
