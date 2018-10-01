@@ -21,8 +21,8 @@ class ShardAndCommittee(rlp.Serializable):
     ]
 
     def __init__(self,
-                 shard_id=0,
-                 committee=None):
+                 shard_id,
+                 committee):
         if committee is None:
             committee = ()
 

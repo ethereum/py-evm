@@ -14,24 +14,13 @@ from eth.utils.blake import (
 
 
 @pytest.mark.parametrize(
-    'param,default_value',
-    [
-        ('pending_attestations', ()),
-        ('recent_block_hashes', ()),
-    ]
-)
-def test_defaults(param, default_value, sample_active_state_params):
-    del sample_active_state_params[param]
-    active_state = ActiveState(**sample_active_state_params)
-
-    assert getattr(active_state, param) == default_value
-
-
-@pytest.mark.parametrize(
     'expected', [(0), (1), (5)]
 )
-def test_num_pending_attestations(expected):
-    attestations = [AttestationRecord() for i in range(expected)]
+def test_num_pending_attestations(expected, sample_attestation_record_params):
+    attestations = [
+        AttestationRecord(**sample_attestation_record_params)
+        for i in range(expected)
+    ]
     active_state = ActiveState(
         pending_attestations=attestations,
     )
@@ -51,6 +40,6 @@ def test_num_recent_block_hashes(expected):
     assert active_state.num_recent_block_hashes == expected
 
 
-def test_hash():
-    active_state = ActiveState()
+def test_hash(sample_active_state_params):
+    active_state = ActiveState(**sample_active_state_params)
     assert active_state.hash == blake(rlp.encode(active_state))

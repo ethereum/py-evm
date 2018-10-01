@@ -197,16 +197,16 @@ def sqrt_e_drop_time():
 
 
 @pytest.fixture
-def config(base_reward_quotient,
-           default_end_dynasty,
-           deposit_size,
-           cycle_length,
-           max_validator_count,
-           min_committee_size,
-           min_dynasty_length,
-           shard_count,
-           slot_duration,
-           sqrt_e_drop_time):
+def beacon_config(base_reward_quotient,
+                  default_end_dynasty,
+                  deposit_size,
+                  cycle_length,
+                  max_validator_count,
+                  min_committee_size,
+                  min_dynasty_length,
+                  shard_count,
+                  slot_duration,
+                  sqrt_e_drop_time):
     return generate_config(
         base_reward_quotient=base_reward_quotient,
         default_end_dynasty=default_end_dynasty,

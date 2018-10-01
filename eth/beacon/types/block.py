@@ -37,11 +37,11 @@ class Block(rlp.Serializable):
     ]
 
     def __init__(self,  # noqa: F811
-                 parent_hash=ZERO_HASH32,
-                 slot_number=0,
-                 randao_reveal=ZERO_HASH32,
-                 attestations=None,
-                 pow_chain_ref=ZERO_HASH32,
+                 parent_hash,
+                 slot_number,
+                 randao_reveal,
+                 attestations,
+                 pow_chain_ref,
                  active_state_root=ZERO_HASH32,
                  crystallized_state_root=ZERO_HASH32):
         if attestations is None:

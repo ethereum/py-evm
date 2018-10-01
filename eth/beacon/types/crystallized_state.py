@@ -3,9 +3,6 @@ from rlp.sedes import (
     CountableList,
 )
 
-from eth.constants import (
-    ZERO_HASH32,
-)
 from eth.rlp.sedes import (
     int64,
     hash32,
@@ -55,22 +52,16 @@ class CrystallizedState(rlp.Serializable):
     ]
 
     def __init__(self,
-                 validators=None,
-                 last_state_recalc=0,
-                 shard_and_committee_for_slots=None,
-                 last_justified_slot=0,
-                 justified_streak=0,
-                 last_finalized_slot=0,
-                 current_dynasty=0,
-                 crosslink_records=None,
-                 dynasty_seed=ZERO_HASH32,
-                 dynasty_start=0):
-        if validators is None:
-            validators = ()
-        if shard_and_committee_for_slots is None:
-            shard_and_committee_for_slots = ()
-        if crosslink_records is None:
-            crosslink_records = ()
+                 validators,
+                 last_state_recalc,
+                 shard_and_committee_for_slots,
+                 last_justified_slot,
+                 justified_streak,
+                 last_finalized_slot,
+                 current_dynasty,
+                 crosslink_records,
+                 dynasty_seed,
+                 dynasty_start):
 
         super().__init__(
             validators=validators,
@@ -108,10 +99,8 @@ class CrystallizedState(rlp.Serializable):
     @property
     def total_deposits(self):
         return sum(
-            map(
-                lambda index: self.validators[index].balance,
-                self.active_validator_indices
-            )
+            self.validators[index].balance
+            for index in self.active_validator_indices
         )
 
     @property

@@ -4,9 +4,6 @@ from rlp.sedes import (
     CountableList,
 )
 
-from eth.constants import (
-    ZERO_HASH32,
-)
 from eth.rlp.sedes import (
     int16,
     int64,
@@ -39,13 +36,13 @@ class AttestationRecord(rlp.Serializable):
     ]
 
     def __init__(self,
-                 slot=0,
-                 shard_id=0,
+                 slot,
+                 shard_id,
+                 shard_block_hash,
+                 attester_bitfield,
+                 justified_slot,
+                 justified_block_hash,
                  oblique_parent_hashes=None,
-                 shard_block_hash=ZERO_HASH32,
-                 attester_bitfield=b'',
-                 justified_slot=0,
-                 justified_block_hash=ZERO_HASH32,
                  aggregate_sig=None):
         if oblique_parent_hashes is None:
             oblique_parent_hashes = ()
