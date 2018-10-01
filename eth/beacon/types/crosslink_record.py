@@ -1,3 +1,6 @@
+from eth_typing import (
+    Hash32,
+)
 import rlp
 
 from eth.rlp.sedes import (
@@ -20,9 +23,9 @@ class CrosslinkRecord(rlp.Serializable):
     ]
 
     def __init__(self,
-                 dynasty,
-                 slot,
-                 hash):
+                 dynasty: int,
+                 slot: int,
+                 hash: Hash32) -> None:
 
         super().__init__(
             dynasty=dynasty,

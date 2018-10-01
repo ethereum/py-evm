@@ -1,6 +1,13 @@
+from typing import (
+    Iterable,
+)
+
 import rlp
 from rlp.sedes import (
     CountableList,
+)
+from eth_typing import (
+    Hash32,
 )
 
 from eth.rlp.sedes import (
@@ -28,8 +35,8 @@ class ActiveState(rlp.Serializable):
     ]
 
     def __init__(self,
-                 pending_attestations=None,
-                 recent_block_hashes=None):
+                 pending_attestations: Iterable[AttestationRecord]=None,
+                 recent_block_hashes: Iterable[Hash32]=None) -> None:
         if pending_attestations is None:
             pending_attestations = ()
         if recent_block_hashes is None:
@@ -48,15 +55,15 @@ class ActiveState(rlp.Serializable):
     _hash = None
 
     @property
-    def hash(self):
+    def hash(self) -> Hash32:
         if self._hash is None:
             self._hash = blake(rlp.encode(self))
         return self._hash
 
     @property
-    def num_pending_attestations(self):
+    def num_pending_attestations(self) -> int:
         return len(self.pending_attestations)
 
     @property
-    def num_recent_block_hashes(self):
+    def num_recent_block_hashes(self) -> int:
         return len(self.recent_block_hashes)

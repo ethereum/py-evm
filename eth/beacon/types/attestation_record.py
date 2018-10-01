@@ -1,3 +1,10 @@
+from typing import (
+    Iterable,
+)
+
+from eth_typing import (
+    Hash32,
+)
 import rlp
 from rlp.sedes import (
     binary,
@@ -36,14 +43,14 @@ class AttestationRecord(rlp.Serializable):
     ]
 
     def __init__(self,
-                 slot,
-                 shard_id,
-                 shard_block_hash,
-                 attester_bitfield,
-                 justified_slot,
-                 justified_block_hash,
-                 oblique_parent_hashes=None,
-                 aggregate_sig=None):
+                 slot: int,
+                 shard_id: int,
+                 shard_block_hash: Hash32,
+                 attester_bitfield: bytes,
+                 justified_slot: int,
+                 justified_block_hash: Hash32,
+                 oblique_parent_hashes: Hash32=None,
+                 aggregate_sig: Iterable[int]=None) -> None:
         if oblique_parent_hashes is None:
             oblique_parent_hashes = ()
         if aggregate_sig is None:

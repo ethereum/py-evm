@@ -1,3 +1,7 @@
+from typing import (
+    Iterable,
+)
+
 import rlp
 from rlp.sedes import (
     CountableList,
@@ -21,8 +25,8 @@ class ShardAndCommittee(rlp.Serializable):
     ]
 
     def __init__(self,
-                 shard_id,
-                 committee):
+                 shard_id: int,
+                 committee: Iterable[int])-> None:
         if committee is None:
             committee = ()
 

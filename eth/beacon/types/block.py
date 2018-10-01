@@ -1,7 +1,15 @@
+from typing import (
+    Iterable,
+)
+
+from eth_typing import (
+    Hash32,
+)
 import rlp
 from rlp.sedes import (
     CountableList,
 )
+
 
 from eth.utils.blake import blake
 from eth.constants import (
@@ -36,14 +44,14 @@ class Block(rlp.Serializable):
         ('crystallized_state_root', hash32),
     ]
 
-    def __init__(self,  # noqa: F811
-                 parent_hash,
-                 slot_number,
-                 randao_reveal,
-                 attestations,
-                 pow_chain_ref,
-                 active_state_root=ZERO_HASH32,
-                 crystallized_state_root=ZERO_HASH32):
+    def __init__(self,
+                 parent_hash: Hash32,
+                 slot_number: int,
+                 randao_reveal: Hash32,
+                 attestations: Iterable[AttestationRecord],
+                 pow_chain_ref: Hash32,
+                 active_state_root: Hash32=ZERO_HASH32,
+                 crystallized_state_root: Hash32=ZERO_HASH32) -> None:
         if attestations is None:
             attestations = []
 
@@ -66,11 +74,11 @@ class Block(rlp.Serializable):
     _hash = None
 
     @property
-    def hash(self):
+    def hash(self) -> Hash32:
         if self._hash is None:
             self._hash = blake(rlp.encode(self))
         return self._hash
 
     @property
-    def num_attestations(self):
+    def num_attestations(self) -> int:
         return len(self.attestations)

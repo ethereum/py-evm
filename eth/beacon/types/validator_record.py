@@ -1,3 +1,7 @@
+from eth_typing import (
+    Address,
+    Hash32,
+)
 import rlp
 
 from eth.rlp.sedes import (
@@ -32,13 +36,13 @@ class ValidatorRecord(rlp.Serializable):
     ]
 
     def __init__(self,
-                 pubkey,
-                 withdrawal_shard,
-                 withdrawal_address,
-                 randao_commitment,
-                 balance,
-                 start_dynasty,
-                 end_dynasty):
+                 pubkey: int,
+                 withdrawal_shard: int,
+                 withdrawal_address: Address,
+                 randao_commitment: Hash32,
+                 balance: int,
+                 start_dynasty: int,
+                 end_dynasty: int) -> None:
         super().__init__(
             pubkey=pubkey,
             withdrawal_shard=withdrawal_shard,

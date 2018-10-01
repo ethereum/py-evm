@@ -1,3 +1,12 @@
+from typing import (
+    Iterable,
+    Tuple,
+)
+
+from eth_typing import (
+    Hash32,
+)
+
 import rlp
 from rlp.sedes import (
     CountableList,
@@ -52,16 +61,16 @@ class CrystallizedState(rlp.Serializable):
     ]
 
     def __init__(self,
-                 validators,
-                 last_state_recalc,
-                 shard_and_committee_for_slots,
-                 last_justified_slot,
-                 justified_streak,
-                 last_finalized_slot,
-                 current_dynasty,
-                 crosslink_records,
-                 dynasty_seed,
-                 dynasty_start):
+                 validators: Iterable[ValidatorRecord],
+                 last_state_recalc: int,
+                 shard_and_committee_for_slots: Iterable[Iterable[ShardAndCommittee]],
+                 last_justified_slot: int,
+                 justified_streak: int,
+                 last_finalized_slot: int,
+                 current_dynasty: int,
+                 crosslink_records: Iterable[CrosslinkRecord],
+                 dynasty_seed: Hash32,
+                 dynasty_start: int) -> None:
 
         super().__init__(
             validators=validators,
@@ -84,27 +93,27 @@ class CrystallizedState(rlp.Serializable):
     _hash = None
 
     @property
-    def hash(self):
+    def hash(self) -> Hash32:
         if self._hash is None:
             self._hash = blake(rlp.encode(self))
         return self._hash
 
     @property
-    def active_validator_indices(self):
+    def active_validator_indices(self) -> Tuple[int]:
         return get_active_validator_indices(
             self.current_dynasty,
             self.validators
         )
 
     @property
-    def total_deposits(self):
+    def total_deposits(self) -> int:
         return sum(
             self.validators[index].balance
             for index in self.active_validator_indices
         )
 
     @property
-    def num_validators(self):
+    def num_validators(self) -> int:
         return len(self.validators)
 
     @property
