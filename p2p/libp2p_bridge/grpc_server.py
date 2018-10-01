@@ -50,9 +50,9 @@ def dispatch(msg_type, data_bytes):
     return handler(deserialized_msg)
 
 
-class GRPCServer(event_pb2_grpc.EventServicer):
+class EventServicer(event_pb2_grpc.EventServicer):
 
-    logger = logging.getLogger('p2p.libp2p_bridge.grpc_server')
+    logger = logging.getLogger('p2p.libp2p_bridge.event_servicer')
 
     def Receive(self, request, context):
         response = make_response(True)  # Request succeeded
@@ -65,29 +65,39 @@ class GRPCServer(event_pb2_grpc.EventServicer):
         return receive_response
 
 
+class GRPCServer:
+
+    server = None
+    logger = logging.getLogger('p2p.libp2p_bridge.grpc_server')
+
+    def run(self):
+        self.server = grpc.server(futures.ThreadPoolExecutor())
+        event_pb2_grpc.add_EventServicer_to_server(
+            EventServicer(),
+            self.server,
+        )
+        listen_addr = '{}:{}'.format(RPC_SERVER_LISTEN_IP, RPC_SERVER_PORT)
+        self.server.add_insecure_port(listen_addr)
+        self.server.start()
+        self.logger.info("Server started")
+        try:
+            while True:
+                time.sleep(86400)
+        except KeyboardInterrupt:
+            pass
+        except Exception as e:
+            self.logger.exception("uncaught exception: %s", e)
+        finally:
+            self.server.stop(0)
+
+
 def run_grpc_server():
     # TODO: leave `max_workers=None` in ThreadPoolExecutor,
     #       letting it set as `os.cpu_count() * 5`
-    server = grpc.server(futures.ThreadPoolExecutor())
-    logger = logging.getLogger('p2p.libp2p_bridge.run_grpc_server')
-    event_pb2_grpc.add_EventServicer_to_server(
-        GRPCServer(),
-        server,
-    )
-    listen_addr = '{}:{}'.format(RPC_SERVER_LISTEN_IP, RPC_SERVER_PORT)
-    server.add_insecure_port(listen_addr)
-    server.start()
-    logger.info("Server started")
-    try:
-        while True:
-            time.sleep(86400)
-    except KeyboardInterrupt:
-        pass
-    except Exception as e:
-        logger.exception("uncaught exception: %s", e)
-    finally:
-        server.stop(0)
+    grpc_server = GRPCServer()
+    grpc_server.run()
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     run_grpc_server()
