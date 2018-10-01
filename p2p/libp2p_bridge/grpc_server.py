@@ -66,8 +66,10 @@ class GRPCServer(event_pb2_grpc.EventServicer):
 
 
 def run_grpc_server():
-    # TODO: should confirm how many workers to use
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    # TODO: leave `max_workers=None` in ThreadPoolExecutor,
+    #       letting it set as `os.cpu_count() * 5`
+    server = grpc.server(futures.ThreadPoolExecutor())
+    logger = logging.getLogger('p2p.libp2p_bridge.run_grpc_server')
     event_pb2_grpc.add_EventServicer_to_server(
         GRPCServer(),
         server,
@@ -75,11 +77,15 @@ def run_grpc_server():
     listen_addr = '{}:{}'.format(RPC_SERVER_LISTEN_IP, RPC_SERVER_PORT)
     server.add_insecure_port(listen_addr)
     server.start()
-    print("Server started")
+    logger.info("Server started")
     try:
         while True:
             time.sleep(86400)
     except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        logger.exception("uncaught exception: %s", e)
+    finally:
         server.stop(0)
 
 
