@@ -56,7 +56,7 @@ class GRPCServer(event_pb2_grpc.EventServicer):
 
     def Receive(self, request, context):
         response = make_response(True)  # Request succeeded
-        ret_bytes = dispatch(request.msgType, request.data)
+        ret_bytes = dispatch(MsgType(request.msgType), request.data)
         receive_response = event_pb2.ReceiveResponse(
             response=response,
             data=ret_bytes,

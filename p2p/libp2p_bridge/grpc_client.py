@@ -97,7 +97,7 @@ class GRPCClient:
         req = rpc_pb2.SendRequest(
             peerID=peer_id,
             topic=UNKNOWN_TOPIC,
-            msgType=msg_type,
+            msgType=msg_type.value,
             data=data,
         )
         response = self.stub.Send(req)
@@ -108,7 +108,7 @@ class GRPCClient:
         req = rpc_pb2.SendRequest(
             peerID=UNKNOWN_PID,
             topic=topic,
-            msgType=msg_type,
+            msgType=msg_type.value,
             data=data,
         )
         response = self.stub.Send(req)

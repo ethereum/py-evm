@@ -23,30 +23,14 @@ import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_
 import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2_grpc as rpc_pb2_grpc
 
 
+def make_collation_topic(shard_id):
+    return COLLATION_TOPIC_FORMAT.format(shard_id)
+
+
 def make_event_stub():
     dial_addr = "{}:{}".format(RPC_SERVER_LISTEN_IP, RPC_SERVER_PORT)
     channel = grpc.insecure_channel(dial_addr)
     return event_pb2_grpc.EventStub(channel)
-
-
-def send_receive():
-    """Test if `Receive` servicer works
-    """
-    stub = make_event_stub()
-    cr = CollationRequest(1, 2, "")
-    req = event_pb2.ReceiveRequest(
-        peerID="",
-        topic="",
-        msgType=MsgType.CollationRequest,
-        data=cr.to_bytes(),
-    )
-    stub.Receive(req)
-
-
-# Client
-
-def make_collation_topic(shard_id):
-    return COLLATION_TOPIC_FORMAT.format(shard_id)
 
 
 class P2PClient:
