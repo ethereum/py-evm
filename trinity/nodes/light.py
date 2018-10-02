@@ -11,7 +11,7 @@ from trinity.chains.light import (
     LightDispatchChain,
 )
 from trinity.config import (
-    ChainConfig,
+    TrinityConfig,
 )
 from trinity.extensibility import (
     PluginManager
@@ -32,16 +32,16 @@ class LightNode(Node):
     network_id: int = None
     nodekey: PrivateKey = None
 
-    def __init__(self, plugin_manager: PluginManager, chain_config: ChainConfig) -> None:
-        super().__init__(plugin_manager, chain_config)
+    def __init__(self, plugin_manager: PluginManager, trinity_config: TrinityConfig) -> None:
+        super().__init__(plugin_manager, trinity_config)
 
-        self._network_id = chain_config.network_id
-        self._nodekey = chain_config.nodekey
-        self._port = chain_config.port
-        self._max_peers = chain_config.max_peers
-        self._bootstrap_nodes = chain_config.bootstrap_nodes
-        self._preferred_nodes = chain_config.preferred_nodes
-        self._use_discv5 = chain_config.use_discv5
+        self._network_id = trinity_config.network_id
+        self._nodekey = trinity_config.nodekey
+        self._port = trinity_config.port
+        self._max_peers = trinity_config.max_peers
+        self._bootstrap_nodes = trinity_config.bootstrap_nodes
+        self._preferred_nodes = trinity_config.preferred_nodes
+        self._use_discv5 = trinity_config.use_discv5
 
         self._peer_chain = LightPeerChain(
             self.headerdb,

@@ -6,7 +6,7 @@ from argparse import (
 import time
 
 from trinity.config import (
-    ChainConfig,
+    TrinityConfig,
 )
 from trinity.extensibility import (
     BaseMainProcessPlugin,
@@ -31,11 +31,11 @@ class FixUncleanShutdownPlugin(BaseMainProcessPlugin):
 
         attach_parser.set_defaults(func=self.fix_unclean_shutdown)
 
-    def fix_unclean_shutdown(self, args: Namespace, chain_config: ChainConfig) -> None:
+    def fix_unclean_shutdown(self, args: Namespace, trinity_config: TrinityConfig) -> None:
         self.logger.info("Cleaning up unclean shutdown...")
 
-        self.logger.info("Searching for process id files in %s..." % chain_config.data_dir)
-        pidfiles = tuple(chain_config.data_dir.glob('*.pid'))
+        self.logger.info("Searching for process id files in %s..." % trinity_config.data_dir)
+        pidfiles = tuple(trinity_config.data_dir.glob('*.pid'))
         if len(pidfiles) > 1:
             self.logger.info('Found %d processes from a previous run. Closing...' % len(pidfiles))
         elif len(pidfiles) == 1:
@@ -56,7 +56,7 @@ class FixUncleanShutdownPlugin(BaseMainProcessPlugin):
                     'pidfile %s was gone after killing process id %d' % (pidfile, process_id)
                 )
 
-        db_ipc = chain_config.database_ipc_path
+        db_ipc = trinity_config.database_ipc_path
         try:
             db_ipc.unlink()
             self.logger.info(
@@ -67,7 +67,7 @@ class FixUncleanShutdownPlugin(BaseMainProcessPlugin):
                 'The IPC socket file for database connections at %s was already gone', db_ipc
             )
 
-        jsonrpc_ipc = chain_config.jsonrpc_ipc_path
+        jsonrpc_ipc = trinity_config.jsonrpc_ipc_path
         try:
             jsonrpc_ipc.unlink()
             self.logger.info(

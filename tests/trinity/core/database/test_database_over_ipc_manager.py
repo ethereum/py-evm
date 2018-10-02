@@ -19,7 +19,7 @@ from trinity.chains import (
     get_chaindb_manager,
 )
 from trinity.config import (
-    ChainConfig,
+    TrinityConfig,
 )
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
@@ -44,19 +44,22 @@ def database_server_ipc_path():
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        chain_config = ChainConfig(network_id=ROPSTEN_NETWORK_ID, max_peers=1, data_dir=temp_dir)
+        trinity_config = TrinityConfig(
+            network_id=ROPSTEN_NETWORK_ID,
+            data_dir=temp_dir,
+        )
 
-        manager = get_chaindb_manager(chain_config, core_db)
+        manager = get_chaindb_manager(trinity_config, core_db)
         chaindb_server_process = multiprocessing.Process(
             target=serve_chaindb,
             args=(manager,),
         )
         chaindb_server_process.start()
 
-        wait_for_ipc(chain_config.database_ipc_path)
+        wait_for_ipc(trinity_config.database_ipc_path)
 
         try:
-            yield chain_config.database_ipc_path
+            yield trinity_config.database_ipc_path
         finally:
             kill_process_gracefully(chaindb_server_process, logging.getLogger())
 

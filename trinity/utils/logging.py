@@ -29,7 +29,7 @@ from eth.tools.logging import (
 )
 
 from trinity.config import (
-    ChainConfig,
+    TrinityConfig,
 )
 
 if TYPE_CHECKING:
@@ -97,7 +97,7 @@ def setup_trinity_file_and_queue_logging(
         logger: Logger,
         formatter: Formatter,
         handler_stream: StreamHandler,
-        chain_config: ChainConfig,
+        trinity_config: TrinityConfig,
         level: int=None) -> Tuple[Logger, 'Queue[str]', QueueListener]:
     from .mp import ctx
 
@@ -107,7 +107,7 @@ def setup_trinity_file_and_queue_logging(
     log_queue = ctx.Queue()
 
     handler_file = RotatingFileHandler(
-        str(chain_config.logfile_path),
+        str(trinity_config.logfile_path),
         maxBytes=(10000000 * LOG_MAX_MB),
         backupCount=LOG_BACKUP_COUNT
     )

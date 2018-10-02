@@ -10,20 +10,20 @@ from trinity.chains import (
     is_database_initialized,
 )
 from trinity.config import (
-    ChainConfig,
+    TrinityConfig,
 )
 
 
 @pytest.fixture
-def chain_config():
-    _chain_config = ChainConfig(network_id=1, max_peers=1)
-    initialize_data_dir(_chain_config)
-    return _chain_config
+def trinity_config():
+    _trinity_config = TrinityConfig(network_id=1)
+    initialize_data_dir(_trinity_config)
+    return _trinity_config
 
 
 @pytest.fixture
-def chaindb(chain_config):
-    return ChainDB(LevelDB(db_path=chain_config.database_dir))
+def chaindb(trinity_config):
+    return ChainDB(LevelDB(db_path=trinity_config.database_dir))
 
 
 def test_database_dir_not_initialized_without_canonical_head_block(chaindb):

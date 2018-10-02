@@ -28,7 +28,7 @@ from trinity.constants import (
 )
 from trinity.protocol.common.constants import DEFAULT_PREFERRED_NODES
 from trinity.utils.chains import (
-    construct_chain_config_params,
+    construct_trinity_config_params,
     get_data_dir_for_network_id,
     get_database_socket_path,
     get_jsonrpc_socket_path,
@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 DATABASE_DIR_NAME = 'chain'
 
 
-class ChainConfig:
+class TrinityConfig:
     _trinity_root_dir: Path = None
     _data_dir: Path = None
     _nodekey_path: Path = None
@@ -246,12 +246,12 @@ class ChainConfig:
             )
 
     @classmethod
-    def from_parser_args(cls, parser_args: argparse.Namespace) -> 'ChainConfig':
+    def from_parser_args(cls, parser_args: argparse.Namespace) -> 'TrinityConfig':
         """
         Helper function for initializing from the namespace object produced by
         an ``argparse.ArgumentParser``
         """
-        constructor_kwargs = construct_chain_config_params(parser_args)
+        constructor_kwargs = construct_trinity_config_params(parser_args)
         return cls(**constructor_kwargs)
 
     @property

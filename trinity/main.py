@@ -38,7 +38,7 @@ from trinity.cli_parser import (
     subparser,
 )
 from trinity.config import (
-    ChainConfig,
+    TrinityConfig,
 )
 from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT,
@@ -154,16 +154,16 @@ def main() -> None:
         setup_log_levels(args.log_levels)
 
     try:
-        chain_config = ChainConfig.from_parser_args(args)
+        trinity_config = TrinityConfig.from_parser_args(args)
     except AmbigiousFileSystem:
         parser.error(TRINITY_AMBIGIOUS_FILESYSTEM_INFO)
 
-    if not is_data_dir_initialized(chain_config):
+    if not is_data_dir_initialized(trinity_config):
         # TODO: this will only work as is for chains with known genesis
         # parameters.  Need to flesh out how genesis parameters for custom
         # chains are defined and passed around.
         try:
-            initialize_data_dir(chain_config)
+            initialize_data_dir(trinity_config)
         except AmbigiousFileSystem:
             parser.error(TRINITY_AMBIGIOUS_FILESYSTEM_INFO)
         except MissingPath as e:
@@ -179,11 +179,11 @@ def main() -> None:
         stderr_logger,
         formatter,
         handler_stream,
-        chain_config,
+        trinity_config,
         args.file_log_level,
     )
 
-    display_launch_logs(chain_config)
+    display_launch_logs(trinity_config)
 
     # compute the minimum configured log level across all configured loggers.
     min_configured_log_level = min(
@@ -201,11 +201,11 @@ def main() -> None:
     # Plugins can provide a subcommand with a `func` which does then control
     # the entire process from here.
     if hasattr(args, 'func'):
-        args.func(args, chain_config)
+        args.func(args, trinity_config)
     else:
         trinity_boot(
             args,
-            chain_config,
+            trinity_config,
             extra_kwargs,
             plugin_manager,
             listener,
@@ -216,7 +216,7 @@ def main() -> None:
 
 
 def trinity_boot(args: Namespace,
-                 chain_config: ChainConfig,
+                 trinity_config: TrinityConfig,
                  extra_kwargs: Dict[str, Any],
                  plugin_manager: PluginManager,
                  listener: logging.handlers.QueueListener,
@@ -234,7 +234,7 @@ def trinity_boot(args: Namespace,
     database_server_process = ctx.Process(
         target=run_database_process,
         args=(
-            chain_config,
+            trinity_config,
             LevelDB,
         ),
         kwargs=extra_kwargs,
@@ -242,7 +242,7 @@ def trinity_boot(args: Namespace,
 
     networking_process = ctx.Process(
         target=launch_node,
-        args=(args, chain_config, networking_endpoint,),
+        args=(args, trinity_config, networking_endpoint,),
         kwargs=extra_kwargs,
     )
 
@@ -252,7 +252,7 @@ def trinity_boot(args: Namespace,
 
     # networking process needs the IPC socket file provided by the database process
     try:
-        wait_for_ipc(chain_config.database_ipc_path)
+        wait_for_ipc(trinity_config.database_ipc_path)
     except TimeoutError as e:
         logger.error("Timeout waiting for database to start.  Exiting...")
         kill_process_gracefully(database_server_process, logger)
@@ -273,10 +273,10 @@ def trinity_boot(args: Namespace,
         )
     )
 
-    plugin_manager.prepare(args, chain_config, extra_kwargs)
+    plugin_manager.prepare(args, trinity_config, extra_kwargs)
     plugin_manager.broadcast(TrinityStartupEvent(
         args,
-        chain_config
+        trinity_config
     ))
     try:
         loop = asyncio.get_event_loop()
@@ -329,11 +329,11 @@ def kill_trinity_gracefully(logger: logging.Logger,
 
 @setup_cprofiler('run_database_process')
 @with_queued_logging
-def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> None:
-    with chain_config.process_id_file('database'):
-        base_db = db_class(db_path=chain_config.database_dir)
+def run_database_process(trinity_config: TrinityConfig, db_class: Type[BaseDB]) -> None:
+    with trinity_config.process_id_file('database'):
+        base_db = db_class(db_path=trinity_config.database_dir)
 
-        manager = get_chaindb_manager(chain_config, base_db)
+        manager = get_chaindb_manager(trinity_config, base_db)
         server = manager.get_server()  # type: ignore
 
         def _sigint_handler(*args: Any) -> None:
@@ -350,12 +350,12 @@ def run_database_process(chain_config: ChainConfig, db_class: Type[BaseDB]) -> N
 
 @setup_cprofiler('launch_node')
 @with_queued_logging
-def launch_node(args: Namespace, chain_config: ChainConfig, endpoint: Endpoint) -> None:
-    with chain_config.process_id_file('networking'):
+def launch_node(args: Namespace, trinity_config: TrinityConfig, endpoint: Endpoint) -> None:
+    with trinity_config.process_id_file('networking'):
 
         endpoint.connect()
 
-        NodeClass = chain_config.node_class
+        NodeClass = trinity_config.node_class
         # Temporary hack: We setup a second instance of the PluginManager.
         # The first instance was only to configure the ArgumentParser whereas
         # for now, the second instance that lives inside the networking process
@@ -364,13 +364,13 @@ def launch_node(args: Namespace, chain_config: ChainConfig, endpoint: Endpoint) 
         # run in the shared plugin process or spawn their own.
 
         plugin_manager = setup_plugins(SharedProcessScope(endpoint))
-        plugin_manager.prepare(args, chain_config)
+        plugin_manager.prepare(args, trinity_config)
         plugin_manager.broadcast(TrinityStartupEvent(
             args,
-            chain_config
+            trinity_config
         ))
 
-        node = NodeClass(plugin_manager, chain_config)
+        node = NodeClass(plugin_manager, trinity_config)
         loop = node.get_event_loop()
         asyncio.ensure_future(handle_networking_exit(node, plugin_manager, endpoint), loop=loop)
         asyncio.ensure_future(node.run(), loop=loop)
@@ -378,11 +378,11 @@ def launch_node(args: Namespace, chain_config: ChainConfig, endpoint: Endpoint) 
         loop.close()
 
 
-def display_launch_logs(chain_config: ChainConfig) -> None:
+def display_launch_logs(trinity_config: TrinityConfig) -> None:
     logger = logging.getLogger('trinity')
     logger.info(TRINITY_HEADER)
     logger.info(construct_trinity_client_identifier())
-    logger.info("Trinity DEBUG log file is created at %s", str(chain_config.logfile_path))
+    logger.info("Trinity DEBUG log file is created at %s", str(trinity_config.logfile_path))
 
 
 async def handle_networking_exit(service: BaseService,

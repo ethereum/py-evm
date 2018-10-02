@@ -18,7 +18,7 @@ from trinity.db.header import (
     AsyncHeaderDB,
 )
 from trinity.config import (
-    ChainConfig,
+    TrinityConfig,
 )
 from trinity.extensibility import (
     PluginManager,
@@ -38,14 +38,14 @@ class Node(BaseService):
     """
     chain_class: Type[BaseChain] = None
 
-    def __init__(self, plugin_manager: PluginManager, chain_config: ChainConfig) -> None:
+    def __init__(self, plugin_manager: PluginManager, trinity_config: TrinityConfig) -> None:
         super().__init__()
         self._plugin_manager = plugin_manager
-        self._db_manager = create_db_manager(chain_config.database_ipc_path)
+        self._db_manager = create_db_manager(trinity_config.database_ipc_path)
         self._db_manager.connect()  # type: ignore
         self._headerdb = self._db_manager.get_headerdb()  # type: ignore
 
-        self._jsonrpc_ipc_path: Path = chain_config.jsonrpc_ipc_path
+        self._jsonrpc_ipc_path: Path = trinity_config.jsonrpc_ipc_path
 
     @abstractmethod
     def get_chain(self) -> BaseChain:

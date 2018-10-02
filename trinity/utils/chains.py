@@ -124,10 +124,10 @@ def load_nodekey(nodekey_path: Path) -> PrivateKey:
 
 
 @to_dict
-def construct_chain_config_params(
+def construct_trinity_config_params(
         args: argparse.Namespace) -> Iterable[Tuple[str, Union[int, str, Tuple[str, ...]]]]:
     """
-    Helper function for constructing the kwargs to initialize a ChainConfig object.
+    Helper function for constructing the kwargs to initialize a TrinityConfig object.
     """
     yield 'network_id', args.network_id
     yield 'use_discv5', args.discv5

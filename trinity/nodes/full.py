@@ -4,7 +4,7 @@ from eth.chains.base import (
 
 from p2p.peer import BasePeerPool
 
-from trinity.config import ChainConfig
+from trinity.config import TrinityConfig
 from trinity.extensibility import PluginManager
 from trinity.server import FullServer
 
@@ -15,14 +15,14 @@ class FullNode(Node):
     _chain: BaseChain = None
     _p2p_server: FullServer = None
 
-    def __init__(self, plugin_manager: PluginManager, chain_config: ChainConfig) -> None:
-        super().__init__(plugin_manager, chain_config)
-        self._bootstrap_nodes = chain_config.bootstrap_nodes
-        self._preferred_nodes = chain_config.preferred_nodes
-        self._network_id = chain_config.network_id
-        self._node_key = chain_config.nodekey
-        self._node_port = chain_config.port
-        self._max_peers = chain_config.max_peers
+    def __init__(self, plugin_manager: PluginManager, trinity_config: TrinityConfig) -> None:
+        super().__init__(plugin_manager, trinity_config)
+        self._bootstrap_nodes = trinity_config.bootstrap_nodes
+        self._preferred_nodes = trinity_config.preferred_nodes
+        self._network_id = trinity_config.network_id
+        self._node_key = trinity_config.nodekey
+        self._node_port = trinity_config.port
+        self._max_peers = trinity_config.max_peers
         self.notify_resource_available()
 
     def get_chain(self) -> BaseChain:
