@@ -59,9 +59,12 @@ def get_genesis_crystallized_state(
         last_finalized_slot=0,
         current_dynasty=current_dynasty,
         crosslink_records=[
-            CrosslinkRecord(hash=ZERO_HASH32, slot=0, dynasty=0)
-            for i
-            in range(beacon_config.shard_count)
+            CrosslinkRecord(
+                dynasty=0,
+                slot=0,
+                hash=ZERO_HASH32,
+            )
+            for i in range(beacon_config.shard_count)
         ],
         dynasty_seed=init_shuffling_seed,
         dynasty_start=0,

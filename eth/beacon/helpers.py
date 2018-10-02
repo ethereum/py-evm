@@ -39,6 +39,9 @@ def get_block_hash(
         current_block: 'Block',
         slot: int,
         beacon_config: 'BeaconConfig') -> Hash32:
+    """
+    Get the blockhash from active_state.recent_block_hashes by current block slot number.
+    """
     cycle_length = beacon_config.cycle_length
 
     sback = current_block.slot_number - cycle_length * 2
@@ -46,6 +49,7 @@ def get_block_hash(
     return active_state.recent_block_hashes[slot - sback]
 
 
+@to_tuple
 def get_hashes_from_active_state(active_state: 'ActiveState',
                                  block: 'Block',
                                  from_slot: int,
@@ -64,12 +68,13 @@ def get_hashes_from_active_state(active_state: 'ActiveState',
     return hashes
 
 
+@to_tuple
 def get_hashes_to_sign(active_state: 'ActiveState',
                        block: 'Block',
                        beacon_config: 'BeaconConfig') -> List[Hash32]:
     """
     Given the head block to attest to, collect the list of hashes to be
-    signed in the attestation
+    signed in the attestation.
     """
     cycle_length = beacon_config.cycle_length
 
@@ -84,6 +89,7 @@ def get_hashes_to_sign(active_state: 'ActiveState',
     return hashes
 
 
+@to_tuple
 def get_signed_parent_hashes(active_state: 'ActiveState',
                              block: 'Block',
                              attestation: 'AttestationRecord',
@@ -104,17 +110,23 @@ def get_signed_parent_hashes(active_state: 'ActiveState',
     return parent_hashes
 
 
+@to_tuple
 def get_new_recent_block_hashes(old_block_hashes: List[Hash32],
                                 parent_slot: int,
                                 current_slot: int,
                                 parent_hash: Hash32) -> List[Hash32]:
-    d = current_slot - parent_slot
-    return old_block_hashes[d:] + [parent_hash] * min(d, len(old_block_hashes))
+
+    shift_size = current_slot - parent_slot
+    return (
+        old_block_hashes[shift_size:] +
+        [parent_hash] * min(shift_size, len(old_block_hashes))
+    )
 
 
 #
 # Get shards_and_committees or indices
 #
+@to_tuple
 def get_shards_and_committees_for_slot(
         crystallized_state: 'CrystallizedState',
         slot: int,
@@ -126,6 +138,7 @@ def get_shards_and_committees_for_slot(
     return crystallized_state.shard_and_committee_for_slots[slot - start]
 
 
+@to_tuple
 def get_attestation_indices(crystallized_state: 'CrystallizedState',
                             attestation: 'AttestationRecord',
                             beacon_config: 'BeaconConfig') -> List[int]:
@@ -137,7 +150,7 @@ def get_attestation_indices(crystallized_state: 'CrystallizedState',
             get_shards_and_committees_for_slot(
                 crystallized_state,
                 attestation.slot,
-                beacon_config=beacon_config,
+                beacon_config,
             )
         )
     )
@@ -184,13 +197,16 @@ def shuffle(lst: List[Any],
     return o
 
 
-def split(lst: List[Any], N: int) -> List[Any]:
+@to_tuple
+def split(lst: List[Any], number: int) -> List[Any]:
     list_length = len(lst)
     return [
-        lst[(list_length * i // N): (list_length * (i + 1) // N)] for i in range(N)
+        lst[(list_length * i // number): (list_length * (i + 1) // number)]
+        for i in range(number)
     ]
 
 
+@to_tuple
 def get_new_shuffling(seed: Hash32,
                       validators: List['ValidatorRecord'],
                       dynasty: int,
@@ -237,7 +253,7 @@ def get_proposer_position(parent_block: 'Block',
     shards_and_committees = get_shards_and_committees_for_slot(
         crystallized_state,
         parent_block.slot_number,
-        beacon_config=beacon_config,
+        beacon_config,
     )
     assert shards_and_committees
     shard_and_committee = shards_and_committees[0]

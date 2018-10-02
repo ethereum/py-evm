@@ -14,6 +14,129 @@ from tests.beacon.helpers import (
 )
 
 
+#
+# Get block hashes
+#
+@pytest.mark.parametrize(
+    (
+        'current_block_number,slot,success'
+    ),
+    [
+        (10, 0, True),
+        (10, 9, True),
+        (10, 10, False),
+        (128, 0, True),
+        (128, 127, True),
+        (128, 128, False),
+    ],
+)
+def test_get_block_hash(
+        genesis_block,
+        current_block_number,
+        slot,
+        success,
+        beacon_config):
+    cycle_length = beacon_config.cycle_length
+
+    blocks = get_pseudo_chain(cycle_length * 3, genesis_block)
+    recent_block_hashes = [
+        b'\x00' * 32
+        for i
+        in range(cycle_length * 2 - current_block_number)
+    ] + [block.hash for block in blocks[:current_block_number]]
+    active_state = ActiveState(
+        recent_block_hashes=recent_block_hashes,
+    )
+    current_block = blocks[current_block_number]
+
+    if success:
+        block_hash = get_block_hash(
+            active_state,
+            current_block,
+            slot,
+            beacon_config,
+        )
+        assert block_hash == blocks[slot].hash
+    else:
+        with pytest.raises(AssertionError):
+            get_block_hash(
+                active_state,
+                current_block,
+                slot,
+                beacon_config,
+            )
+
+
+def test_get_hashes_from_active_state():
+    # TODO
+    pass
+
+
+def test_get_hashes_to_sign():
+    # TODO
+    pass
+
+
+def test_get_signed_parent_hashes():
+    # TODO
+    pass
+
+
+def test_get_new_recent_block_hashes():
+    # TODO
+    pass
+
+
+#
+# Get shards_and_committees or indices
+#
+@pytest.mark.parametrize(
+    (
+        'num_validators,slot,success'
+    ),
+    [
+        (100, 0, True),
+        (100, 63, True),
+        (100, 64, False),
+    ],
+)
+def test_get_shards_and_committees_for_slot(
+        genesis_crystallized_state,
+        num_validators,
+        slot,
+        success,
+        beacon_config):
+    crystallized_state = genesis_crystallized_state
+
+    if success:
+        shards_and_committees_for_slot = get_shards_and_committees_for_slot(
+            crystallized_state,
+            slot,
+            beacon_config,
+        )
+        assert len(shards_and_committees_for_slot) > 0
+    else:
+        with pytest.raises(AssertionError):
+            get_shards_and_committees_for_slot(
+                crystallized_state,
+                slot,
+                beacon_config,
+            )
+
+
+def test_get_attestation_indices():
+    # TODO
+    pass
+
+
+#
+# Shuffling
+#
+def test_shuffle_remaining_is_zero():
+    # TODO
+    pass
+
+
 @pytest.mark.parametrize(
     (
         'num_validators,max_validator_count,cycle_length,'
@@ -77,90 +200,14 @@ def test_get_new_shuffling_handles_shard_wrap(genesis_validators, beacon_config)
             assert shard_and_committee.shard_id < beacon_config.shard_count
 
 
-@pytest.mark.parametrize(
-    (
-        'num_validators,slot,success'
-    ),
-    [
-        (100, 0, True),
-        (100, 63, True),
-        (100, 64, False),
-    ],
-)
-def test_get_shards_and_committees_for_slot(
-        genesis_crystallized_state,
-        num_validators,
-        slot,
-        success,
-        beacon_config):
-    crystallized_state = genesis_crystallized_state
-
-    if success:
-        shards_and_committees_for_slot = get_shards_and_committees_for_slot(
-            crystallized_state,
-            slot,
-            beacon_config,
-        )
-        assert len(shards_and_committees_for_slot) > 0
-    else:
-        with pytest.raises(AssertionError):
-            get_shards_and_committees_for_slot(
-                crystallized_state,
-                slot,
-                beacon_config,
-            )
+def test_get_new_shuffling_large_validator_size():
+    # TODO
+    pass
 
 
-@pytest.mark.parametrize(
-    (
-        'current_block_number,slot,success'
-    ),
-    [
-        (10, 0, True),
-        (10, 9, True),
-        (10, 10, False),
-        (128, 0, True),
-        (128, 127, True),
-        (128, 128, False),
-    ],
-)
-def test_get_block_hash(
-        genesis_block,
-        current_block_number,
-        slot,
-        success,
-        beacon_config):
-    cycle_length = beacon_config.cycle_length
-
-    blocks = get_pseudo_chain(cycle_length * 3, genesis_block)
-    recent_block_hashes = [
-        b'\x00' * 32
-        for i
-        in range(cycle_length * 2 - current_block_number)
-    ] + [block.hash for block in blocks[:current_block_number]]
-    active_state = ActiveState(
-        recent_block_hashes=recent_block_hashes,
-    )
-    current_block = blocks[current_block_number]
-
-    if success:
-        block_hash = get_block_hash(
-            active_state,
-            current_block,
-            slot,
-            beacon_config,
-        )
-        assert block_hash == blocks[slot].hash
-    else:
-        with pytest.raises(AssertionError):
-            get_block_hash(
-                active_state,
-                current_block,
-                slot,
-                beacon_config,
-            )
-
-
+#
+# Get proposer postition
+#
 @pytest.mark.parametrize(
     (
         'committee,parent_block_number,result_proposer_index_in_committee'
