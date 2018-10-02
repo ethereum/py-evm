@@ -1,6 +1,7 @@
 from .builders import (  # noqa: F401
     at_block_number,
     build,
+    chain_id,
     chain_split,
     copy,
     dao_fork_at,
@@ -46,6 +47,12 @@ class API:
     # Configure chain vm_configuration
     fork_at = staticmethod(fork_at)
 
+    # Configure chain name
+    name = staticmethod(name)
+
+    # Configure chain chain_id
+    chain_id = staticmethod(chain_id)
+
     # Mainnet Forks
     frontier_at = staticmethod(frontier_at)
     homestead_at = staticmethod(homestead_at)
@@ -68,7 +75,6 @@ class API:
     #
     # Chain Instance Initialization
     #
-    name = staticmethod(name)
     genesis = staticmethod(genesis)
 
     #

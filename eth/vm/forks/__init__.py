@@ -14,5 +14,5 @@ from .byzantium import (  # noqa: F401
     ByzantiumVM,
 )
 from .constantinople import (  # noqa: F401
-    ConstantinopleVM
+    ConstantinopleVM,
 )

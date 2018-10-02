@@ -32,7 +32,7 @@ def _test() -> None:
     from tests.trinity.core.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncMainnetChain, FakeAsyncRopstenChain, FakeAsyncHeaderDB,
         connect_to_peers_loop)
-    from trinity.protocol.common.constants import DEFAULT_PREFERRED_NODES
+    from trinity.constants import DEFAULT_PREFERRED_NODES
     from trinity.protocol.common.context import ChainContext
     from trinity.utils.chains import load_nodekey
 

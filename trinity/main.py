@@ -13,12 +13,6 @@ from lahja import (
     Endpoint,
 )
 
-from eth.chains.mainnet import (
-    MAINNET_NETWORK_ID,
-)
-from eth.chains.ropsten import (
-    ROPSTEN_NETWORK_ID,
-)
 from eth.db.backends.base import BaseDB
 from eth.db.backends.level import LevelDB
 
@@ -42,7 +36,9 @@ from trinity.config import (
 )
 from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT,
+    MAINNET_NETWORK_ID,
     NETWORKING_EVENTBUS_ENDPOINT,
+    ROPSTEN_NETWORK_ID,
 )
 from trinity.events import (
     ShutdownRequest

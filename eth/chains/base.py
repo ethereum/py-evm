@@ -23,14 +23,6 @@ from typing import (  # noqa: F401
 
 import logging
 
-from cytoolz import (
-    assoc,
-    compose,
-    groupby,
-    iterate,
-    take,
-)
-
 from eth_typing import (
     Address,
     BlockNumber,
@@ -40,6 +32,13 @@ from eth_typing import (
 from eth_utils import (
     to_set,
     ValidationError,
+)
+from eth_utils.toolz import (
+    assoc,
+    compose,
+    groupby,
+    iterate,
+    take,
 )
 
 from eth.db.backends.base import BaseAtomicDB
@@ -120,7 +119,7 @@ class BaseChain(Configurable, ABC):
     chaindb = None  # type: BaseChainDB
     chaindb_class = None  # type: Type[BaseChainDB]
     vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
-    network_id = None  # type: int
+    chain_id = None  # type: int
 
     @abstractmethod
     def __init__(self) -> None:

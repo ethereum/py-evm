@@ -7,7 +7,7 @@ import tempfile
 
 import pytest
 
-from eth.chains.ropsten import ROPSTEN_GENESIS_HEADER, ROPSTEN_NETWORK_ID
+from eth.chains.ropsten import ROPSTEN_GENESIS_HEADER
 from eth.db.atomic import (
     AtomicDB,
 )
@@ -21,6 +21,7 @@ from trinity.chains import (
 from trinity.config import (
     TrinityConfig,
 )
+from trinity.constants import ROPSTEN_NETWORK_ID
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
 from trinity.utils.ipc import (

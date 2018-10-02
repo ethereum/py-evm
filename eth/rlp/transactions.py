@@ -84,7 +84,6 @@ class BaseTransactionFields(rlp.Serializable):
 
 
 class BaseTransaction(BaseTransactionFields, BaseTransactionMethods):
-
     @classmethod
     def from_base_transaction(cls, transaction: 'BaseTransaction') -> 'BaseTransaction':
         return rlp.decode(rlp.encode(transaction), sedes=cls)

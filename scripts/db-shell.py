@@ -9,13 +9,16 @@ import argparse
 
 from eth_utils import encode_hex
 
-from eth.chains.mainnet import MAINNET_NETWORK_ID
-from eth.chains.ropsten import ROPSTEN_NETWORK_ID
 from eth.db.chain import ChainDB
 from eth.db.backends.level import LevelDB
 
 from trinity.config import TrinityConfig
-from trinity.constants import SYNC_FULL, SYNC_LIGHT
+from trinity.constants import (
+    MAINNET_NETWORK_ID,
+    ROPSTEN_NETWORK_ID,
+    SYNC_FULL,
+    SYNC_LIGHT,
+)
 
 
 if __name__ == '__main__':

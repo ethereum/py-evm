@@ -35,6 +35,9 @@ The following utilities are provided to assist with constructing a chain class.
 .. autofunction:: eth.tools.builder.chain.name
 
 
+.. autofunction:: eth.tools.builder.chain.chain_id
+
+
 Initializing Chains
 ~~~~~~~~~~~~~~~~~~~
 

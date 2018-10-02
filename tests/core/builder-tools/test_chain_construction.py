@@ -6,17 +6,18 @@ from eth.chains.base import MiningChain
 from eth.consensus.pow import check_pow
 from eth.tools.builder.chain import (
     build,
-    enable_pow_mining,
-    disable_pow_check,
-    name,
-    fork_at,
     byzantium_at,
+    chain_id,
+    constantinople_at,
+    disable_pow_check,
+    enable_pow_mining,
+    fork_at,
     frontier_at,
+    genesis,
     homestead_at,
+    name,
     spurious_dragon_at,
     tangerine_whistle_at,
-    constantinople_at,
-    genesis,
 )
 from eth.vm.forks import (
     FrontierVM,
@@ -141,3 +142,11 @@ def test_chain_builder_disable_pow_check():
             block.header.nonce,
             block.header.difficulty,
         )
+
+
+def test_chain_builder_chain_id():
+    chain = build(
+        MiningChain,
+        chain_id(1234),
+    )
+    assert chain.chain_id == 1234

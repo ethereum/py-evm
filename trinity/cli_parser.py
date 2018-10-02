@@ -4,18 +4,14 @@ from typing import (
     Any,
 )
 
-from eth.chains.mainnet import (
-    MAINNET_NETWORK_ID,
-)
-from eth.chains.ropsten import (
-    ROPSTEN_NETWORK_ID,
-)
 from eth.tools.logging import TRACE_LEVEL_NUM
 
 from p2p.kademlia import Node
 
 from trinity import __version__
 from trinity.constants import (
+    MAINNET_NETWORK_ID,
+    ROPSTEN_NETWORK_ID,
     SYNC_FULL,
     SYNC_LIGHT,
 )

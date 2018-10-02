@@ -19,7 +19,6 @@ class FullNode(Node):
         super().__init__(plugin_manager, trinity_config)
         self._bootstrap_nodes = trinity_config.bootstrap_nodes
         self._preferred_nodes = trinity_config.preferred_nodes
-        self._network_id = trinity_config.network_id
         self._node_key = trinity_config.nodekey
         self._node_port = trinity_config.port
         self._max_peers = trinity_config.max_peers
@@ -46,7 +45,7 @@ class FullNode(Node):
                 bootstrap_nodes=self._bootstrap_nodes,
                 preferred_nodes=self._preferred_nodes,
                 token=self.cancel_token,
-                event_bus=self._plugin_manager.event_bus_endpoint
+                event_bus=self.event_bus,
             )
         return self._p2p_server
 

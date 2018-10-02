@@ -30,6 +30,11 @@ from trinity.utils.db_proxy import (
     create_db_manager
 )
 
+from .events import (
+    NetworkIdRequest,
+    NetworkIdResponse,
+)
+
 
 class Node(BaseService):
     """
@@ -46,6 +51,25 @@ class Node(BaseService):
         self._headerdb = self._db_manager.get_headerdb()  # type: ignore
 
         self._jsonrpc_ipc_path: Path = trinity_config.jsonrpc_ipc_path
+        self._network_id = trinity_config.network_id
+
+        self.event_bus = plugin_manager.event_bus_endpoint
+
+    async def handle_network_id_requests(self) -> None:
+        async def f() -> None:
+            # FIXME: There must be a way to cancel event_bus.stream() when our token is triggered,
+            # but for the time being we just wrap everything in self.wait().
+            async for req in self.event_bus.stream(NetworkIdRequest):
+                # We are listening for all `NetworkIdRequest` events but we ensure to only send a
+                # `NetworkIdResponse` to the callsite that made the request.  We do that by
+                # retrieving a `BroadcastConfig` from the request via the
+                # `event.broadcast_config()` API.
+                self.event_bus.broadcast(
+                    NetworkIdResponse(self._network_id),
+                    req.broadcast_config()
+                )
+
+        await self.wait(f())
 
     @abstractmethod
     def get_chain(self) -> BaseChain:
@@ -93,4 +117,5 @@ class Node(BaseService):
         ))
 
     async def _run(self) -> None:
+        self.run_daemon_task(self.handle_network_id_requests())
         await self.get_p2p_server().run()
