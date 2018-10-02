@@ -1,8 +1,6 @@
 import grpc
 
 from p2p.libp2p_bridge.config import (
-    RPC_SERVER_LISTEN_IP,
-    RPC_SERVER_PORT,
     RPC_CLIENT_IP,
     RPC_CLIENT_PORT,
 )
@@ -18,19 +16,11 @@ from p2p.libp2p_bridge.message import (
     MsgType,
 )
 
-import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2 as event_pb2
-import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2_grpc as event_pb2_grpc
-import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2_grpc as rpc_pb2_grpc
+import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2_grpc as rpc_pb2_grpc  # noqa: E501
 
 
 def make_collation_topic(shard_id):
     return COLLATION_TOPIC_FORMAT.format(shard_id)
-
-
-def make_event_stub():
-    dial_addr = "{}:{}".format(RPC_SERVER_LISTEN_IP, RPC_SERVER_PORT)
-    channel = grpc.insecure_channel(dial_addr)
-    return event_pb2_grpc.EventStub(channel)
 
 
 class P2PClient:
@@ -85,7 +75,8 @@ def test_grpc_client():
     rpc_client.unsubscribe_shards([0])
     assert 1 in rpc_client.get_subscribed_shards()
     # print(rpc_client.get_subscribed_shards())
-    # print(rpc_client.subscribe_shards([40, 56]))  # RPC should fail when subscribing an invalid shard
+    # RPC should fail when subscribing an invalid shard
+    # print(rpc_client.subscribe_shards([40, 56]))
     # print(rpc_client.get_subscribed_shards())
     # print(rpc_client.unsubscribe_shards([40]))
     # print(rpc_client.get_subscribed_shards())

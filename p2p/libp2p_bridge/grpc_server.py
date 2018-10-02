@@ -1,11 +1,6 @@
 import asyncio
 from concurrent import futures
 import logging
-import time
-
-from cancel_token import (
-    CancelToken,
-)
 
 import grpc
 
@@ -24,7 +19,7 @@ from p2p.libp2p_bridge.message import (
 )
 
 import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2 as event_pb2
-import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2_grpc as event_pb2_grpc
+import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2_grpc as event_pb2_grpc  # noqa: E501
 
 
 def make_response(status):
@@ -37,10 +32,12 @@ def make_response(status):
 
 
 def handle_new_collation(collation):
+    # TODO: things should be done when new collation arrives should be added here
     return bytes(True)
 
 
 def handle_collation_request(collation_request):
+    # TODO: things should be done when someone request a collation should be added here
     c = Collation(collation_request.shard_id, collation_request.period, b"fake")
     return c.to_bytes()
 
@@ -80,8 +77,8 @@ class EventServicer(event_pb2_grpc.EventServicer):
 
 class GRPCServer(BaseService):
 
-    server = None
     logger = logging.getLogger('p2p.libp2p_bridge.grpc_server')
+    server = None
 
     async def _run(self):
         # TODO: leave `max_workers=None` in ThreadPoolExecutor,
@@ -97,7 +94,18 @@ class GRPCServer(BaseService):
         self.logger.info("grpc_server started")
         await self.cancel_token.wait()
         self.server.stop(0)
-        self.logger.info("grpc_server exited")
+        self.logger.info("grpc_server stopped")
+
+
+# async def run_grpc_server():
+#     token = CancelToken("grpc_server")
+#     async def cancel(token):
+#         await asyncio.sleep(0.01)
+#         token.trigger()
+#         await asyncio.sleep(0.01)
+#     asyncio.ensure_future(cancel(token))
+#     grpc_server = GRPCServer(token=token)
+#     await grpc_server.run()
 
 
 if __name__ == "__main__":
