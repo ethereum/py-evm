@@ -1,8 +1,9 @@
 
 from typing import (
-    Iterable,
     Any,
+    Iterable,
     Sequence,
+    TypeVar,
 )
 
 from eth_typing import (
@@ -15,6 +16,9 @@ from eth_utils import (
 from eth.utils.blake import (
     blake,
 )
+
+
+TItem = TypeVar('TItem')
 
 
 def shuffle(values: Sequence[Any],
@@ -35,23 +39,23 @@ def shuffle(values: Sequence[Any],
     i = 0
     while i < values_count:
         source = blake(source)
-        for pos in range(0, 30, 3):
-            m = int.from_bytes(source[pos:pos + 3], 'big')
+        for position in range(0, 30, 3):
+            m = int.from_bytes(source[position:position + 3], 'big')
             remaining = values_count - i
             if remaining == 0:
                 break
             rand_max = max_list_count - max_list_count % remaining
             if m < rand_max:
-                replacement_pos = (m % remaining) + i
-                output[i], output[replacement_pos] = output[replacement_pos], output[i]
+                replacement_position = (m % remaining) + i
+                output[i], output[replacement_position] = output[replacement_position], output[i]
                 i += 1
     return output
 
 
 @to_tuple
-def split(lst: Sequence[Any], number: int) -> Iterable[Any]:
-    list_length = len(lst)
+def split(seq: Sequence[TItem], number: int) -> Iterable[Any]:
+    list_length = len(seq)
     return [
-        lst[(list_length * i // number): (list_length * (i + 1) // number)]
+        seq[(list_length * i // number): (list_length * (i + 1) // number)]
         for i in range(number)
     ]

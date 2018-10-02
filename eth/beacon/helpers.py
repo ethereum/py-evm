@@ -1,11 +1,9 @@
 from typing import (
     Any,
     Iterable,
-    List,
     Sequence,
     Tuple,
     TYPE_CHECKING,
-    Union,
 )
 
 from eth_utils import (
@@ -37,7 +35,7 @@ if TYPE_CHECKING:
     from eth.beacon.types.validator_record import ValidatorRecord  # noqa: F401
 
 
-def get_element_from_recent_list(
+def _get_element_from_recent_list(
         target_list: Sequence[Any],
         target_slot: int,
         slot_relative_position: int) -> Any:
@@ -84,7 +82,7 @@ def get_block_hash(
         )
 
     slot_relative_position = current_block_slot_number - cycle_length * 2
-    return get_element_from_recent_list(
+    return _get_element_from_recent_list(
         recent_block_hashes,
         slot,
         slot_relative_position,
@@ -176,7 +174,7 @@ def get_shards_and_committees_for_slot(
 
     slot_relative_position = crystallized_state.last_state_recalc - cycle_length
 
-    yield from get_element_from_recent_list(
+    yield from _get_element_from_recent_list(
         crystallized_state.shard_and_committee_for_slots,
         slot,
         slot_relative_position,
@@ -220,6 +218,27 @@ def get_active_validator_indices(dynasty: int,
 #
 # Shuffling
 #
+def _get_shuffling_committee_slot_portions(
+        active_validators_length: int,
+        cycle_length: int,
+        min_committee_size: int,
+        shard_count: int) -> Tuple[int, int]:
+    if active_validators_length >= cycle_length * min_committee_size:
+        committees_per_slot = min(
+            active_validators_length // cycle_length // (min_committee_size * 2) + 1,
+            shard_count // cycle_length
+        )
+        slots_per_committee = 1
+    else:
+        committees_per_slot = 1
+        slots_per_committee = 1
+        bound = cycle_length * min(min_committee_size, active_validators_length)
+        while(active_validators_length * slots_per_committee < bound):
+            slots_per_committee *= 2
+
+    return committees_per_slot, slots_per_committee
+
+
 @to_tuple
 def get_new_shuffling(seed: Hash32,
                       validators: Sequence['ValidatorRecord'],
@@ -233,32 +252,27 @@ def get_new_shuffling(seed: Hash32,
     cycle_length = beacon_config.cycle_length
     min_committee_size = beacon_config.min_committee_size
     shard_count = beacon_config.shard_count
-    avs = get_active_validator_indices(dynasty, validators)
-    if len(avs) >= cycle_length * min_committee_size:
-        committees_per_slot = min(
-            len(avs) // cycle_length // (min_committee_size * 2) + 1,
-            shard_count // cycle_length
-        )
-        slots_per_committee = 1
-    else:
-        committees_per_slot = 1
-        slots_per_committee = 1
-        while (len(avs) * slots_per_committee < cycle_length * min_committee_size and
-               slots_per_committee < cycle_length):
-            slots_per_committee *= 2
-    output = []
-    shuffled_active_validator_indices = shuffle(avs, seed)
+    active_validators = get_active_validator_indices(dynasty, validators)
+    active_validators_length = len(active_validators)
+
+    committees_per_slot, slots_per_committee = _get_shuffling_committee_slot_portions(
+        active_validators_length,
+        cycle_length,
+        min_committee_size,
+        shard_count,
+    )
+
+    shuffled_active_validator_indices = shuffle(active_validators, seed)
     validators_per_slot = split(shuffled_active_validator_indices, cycle_length)
     for slot, slot_indices in enumerate(validators_per_slot):
         shard_indices = split(slot_indices, committees_per_slot)
         shard_id_start = crosslinking_start_shard + (
             slot * committees_per_slot // slots_per_committee
         )
-        output.append([ShardAndCommittee(
+        yield [ShardAndCommittee(
             shard_id=(shard_id_start + j) % shard_count,
             committee=indices
-        ) for j, indices in enumerate(shard_indices)])
-    return output
+        ) for j, indices in enumerate(shard_indices)]
 
 
 #

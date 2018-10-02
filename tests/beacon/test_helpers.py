@@ -3,9 +3,9 @@ import pytest
 from eth.beacon.types.attestation_record import AttestationRecord
 from eth.beacon.types.shard_and_committee import ShardAndCommittee
 from eth.beacon.helpers import (
+    _get_element_from_recent_list,
     get_attestation_indices,
     get_block_hash,
-    get_element_from_recent_list,
     get_hashes_from_recent_block_hashes,
     get_hashes_to_sign,
     get_new_shuffling,
@@ -49,20 +49,20 @@ def generate_mock_recent_block_hashes(
         ([i for i in range(5)], 6, 1, False, -1),
     ],
 )
-def test_get_element_from_recent_list(target_list,
-                                      target_slot,
-                                      slot_relative_position,
-                                      success,
-                                      result):
+def test__get_element_from_recent_list(target_list,
+                                       target_slot,
+                                       slot_relative_position,
+                                       success,
+                                       result):
     if success:
-        assert result == get_element_from_recent_list(
+        assert result == _get_element_from_recent_list(
             target_list,
             target_slot,
             slot_relative_position,
         )
     else:
         with pytest.raises(ValueError):
-            get_element_from_recent_list(
+            _get_element_from_recent_list(
                 target_list,
                 target_slot,
                 slot_relative_position,
