@@ -1,19 +1,13 @@
 import asyncio
 import logging
-import os
 import random
-import socket
-import string
 import re
 
 import pytest
 
 import rlp
 
-from eth_utils import (
-    decode_hex,
-    to_bytes,
-)
+from eth_utils import decode_hex
 
 from eth_hash.auto import keccak
 
@@ -28,11 +22,17 @@ from trinity.protocol.les.proto import LESProtocol, LESProtocolV2
 from p2p import discovery
 from p2p import kademlia
 
+from tests.p2p.helpers import (
+    get_discovery_protocol,
+    random_address,
+    random_node,
+)
+
 
 # Force our tests to fail quickly if they accidentally make network requests.
 @pytest.fixture(autouse=True)
 def short_timeout(monkeypatch):
-    monkeypatch.setattr(kademlia, 'k_request_timeout', 0.01)
+    monkeypatch.setattr(kademlia, 'k_request_timeout', 0.05)
 
 
 def test_ping_pong():
@@ -343,46 +343,6 @@ def test_find_node_neighbours_v5():
     _test_find_node_neighbours(use_v5=True)
 
 
-@pytest.mark.asyncio
-async def test_topic_query(event_loop):
-    bob = await get_listening_discovery_protocol(event_loop)
-    les_nodes = [random_node() for _ in range(10)]
-    topic = b'les'
-    for n in les_nodes:
-        bob.topic_table.add_node(n, topic)
-    alice = await get_listening_discovery_protocol(event_loop)
-
-    echo = alice.send_topic_query(bob.this_node, topic)
-    received_nodes = await alice.wait_topic_nodes(bob.this_node, echo)
-
-    assert len(received_nodes) == 10
-    assert sorted(received_nodes) == sorted(les_nodes)
-
-
-@pytest.mark.asyncio
-async def test_topic_register(event_loop):
-    bob = await get_listening_discovery_protocol(event_loop)
-    alice = await get_listening_discovery_protocol(event_loop)
-    topics = [b'les', b'les2']
-
-    # In order to register ourselves under a given topic we need to first get a ticket.
-    ticket = await bob.get_ticket(alice.this_node, topics)
-
-    assert ticket is not None
-    assert ticket.topics == topics
-    assert ticket.node == alice.this_node
-    assert len(ticket.registration_times) == 2
-
-    # Now we register ourselves under one of the topics for which we have a ticket.
-    topic_idx = 0
-    bob.send_topic_register(alice.this_node, ticket.topics, topic_idx, ticket.pong)
-    await asyncio.sleep(0.2)
-
-    topic_nodes = alice.topic_table.get_nodes(topics[topic_idx])
-    assert len(topic_nodes) == 1
-    assert topic_nodes[0] == bob.this_node
-
-
 def test_topic_table():
     table = discovery.TopicTable(logging.getLogger("test"))
     topic = b'topic'
@@ -483,21 +443,6 @@ eip8_packets = {
 }
 
 
-def get_discovery_protocol(seed=b"seed", address=None):
-    privkey = keys.PrivateKey(keccak(seed))
-    if address is None:
-        address = random_address()
-    return discovery.DiscoveryProtocol(privkey, address, [], CancelToken("discovery-test"))
-
-
-async def get_listening_discovery_protocol(event_loop):
-    addr = kademlia.Address('127.0.0.1', random.randint(1024, 9999))
-    proto = get_discovery_protocol(os.urandom(4), addr)
-    await event_loop.create_datagram_endpoint(
-        lambda: proto, local_addr=(addr.ip, addr.udp_port), family=socket.AF_INET)
-    return proto
-
-
 def link_transports(proto1, proto2):
     # Link both protocol's transports directly by having one's sendto() call the other's
     # datagram_received().
@@ -511,17 +456,6 @@ def link_transports(proto1, proto2):
         (object,),
         {"sendto": lambda msg, addr: proto1.datagram_received(msg, addr)},
     )
-
-
-def random_address():
-    return kademlia.Address(
-        '10.0.0.{}'.format(random.randint(0, 255)), random.randint(0, 9999))
-
-
-def random_node():
-    seed = to_bytes(text="".join(random.sample(string.ascii_lowercase, 10)))
-    priv_key = keys.PrivateKey(keccak(seed))
-    return kademlia.Node(priv_key.public_key, random_address())
 
 
 class MockHandler:
