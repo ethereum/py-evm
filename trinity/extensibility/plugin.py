@@ -23,7 +23,7 @@ from lahja import (
 )
 
 from trinity.config import (
-    ChainConfig
+    TrinityConfig
 )
 from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT
@@ -58,7 +58,7 @@ class PluginContext:
         self.event_bus = endpoint
         self.boot_kwargs: Dict[str, Any] = None
         self.args: Namespace = None
-        self.chain_config: ChainConfig = None
+        self.trinity_config: TrinityConfig = None
 
     def shutdown_host(self) -> None:
         self.event_bus.broadcast(

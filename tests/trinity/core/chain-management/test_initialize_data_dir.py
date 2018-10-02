@@ -7,58 +7,58 @@ from trinity.chains import (
     initialize_data_dir,
 )
 from trinity.config import (
-    ChainConfig,
+    TrinityConfig,
 )
 
 
 @pytest.fixture
-def chain_config():
-    return ChainConfig(network_id=1, max_peers=1)
+def trinity_config():
+    return TrinityConfig(network_id=1)
 
 
 @pytest.fixture
-def data_dir(chain_config):
-    os.makedirs(chain_config.data_dir, exist_ok=True)
-    assert os.path.exists(chain_config.data_dir)
-    return chain_config.data_dir
+def data_dir(trinity_config):
+    os.makedirs(trinity_config.data_dir, exist_ok=True)
+    assert os.path.exists(trinity_config.data_dir)
+    return trinity_config.data_dir
 
 
 @pytest.fixture
-def database_dir(chain_config, data_dir):
-    os.makedirs(chain_config.database_dir, exist_ok=True)
-    assert os.path.exists(chain_config.database_dir)
-    return chain_config.database_dir
+def database_dir(trinity_config, data_dir):
+    os.makedirs(trinity_config.database_dir, exist_ok=True)
+    assert os.path.exists(trinity_config.database_dir)
+    return trinity_config.database_dir
 
 
 @pytest.fixture
-def nodekey(chain_config, data_dir):
-    with open(chain_config.nodekey_path, 'wb') as nodekey_file:
+def nodekey(trinity_config, data_dir):
+    with open(trinity_config.nodekey_path, 'wb') as nodekey_file:
         nodekey_file.write(b'\x01' * 32)
-    return chain_config.nodekey_path
+    return trinity_config.nodekey_path
 
 
-def test_initializing_data_dir_from_nothing(chain_config):
-    assert not os.path.exists(chain_config.data_dir)
-    assert not is_data_dir_initialized(chain_config)
+def test_initializing_data_dir_from_nothing(trinity_config):
+    assert not os.path.exists(trinity_config.data_dir)
+    assert not is_data_dir_initialized(trinity_config)
 
-    initialize_data_dir(chain_config)
+    initialize_data_dir(trinity_config)
 
-    assert is_data_dir_initialized(chain_config)
-
-
-def test_initializing_data_dir_from_empty_data_dir(chain_config, data_dir):
-    assert not os.path.exists(chain_config.database_dir)
-    assert not is_data_dir_initialized(chain_config)
-
-    initialize_data_dir(chain_config)
-
-    assert is_data_dir_initialized(chain_config)
+    assert is_data_dir_initialized(trinity_config)
 
 
-def test_initializing_data_dir_with_missing_nodekey(chain_config, data_dir, database_dir):
-    assert not os.path.exists(chain_config.nodekey_path)
-    assert not is_data_dir_initialized(chain_config)
+def test_initializing_data_dir_from_empty_data_dir(trinity_config, data_dir):
+    assert not os.path.exists(trinity_config.database_dir)
+    assert not is_data_dir_initialized(trinity_config)
 
-    initialize_data_dir(chain_config)
+    initialize_data_dir(trinity_config)
 
-    assert is_data_dir_initialized(chain_config)
+    assert is_data_dir_initialized(trinity_config)
+
+
+def test_initializing_data_dir_with_missing_nodekey(trinity_config, data_dir, database_dir):
+    assert not os.path.exists(trinity_config.nodekey_path)
+    assert not is_data_dir_initialized(trinity_config)
+
+    initialize_data_dir(trinity_config)
+
+    assert is_data_dir_initialized(trinity_config)

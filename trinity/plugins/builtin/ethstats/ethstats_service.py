@@ -113,8 +113,8 @@ class EthstatsService(BaseService):
             'name': self.node_id,
             'contact': self.node_contact,
             'node': construct_trinity_client_identifier(),
-            'net': self.context.chain_config.network_id,
-            'port': self.context.chain_config.port,
+            'net': self.context.trinity_config.network_id,
+            'port': self.context.trinity_config.port,
             'os': platform.system(),
             'os_v': platform.release(),
             'client': __version__,
@@ -144,12 +144,12 @@ class EthstatsService(BaseService):
         }
 
     def get_chain(self) -> BaseChain:
-        db_manager = create_db_manager(self.context.chain_config.database_ipc_path)
+        db_manager = create_db_manager(self.context.trinity_config.database_ipc_path)
         db_manager.connect()
 
-        chain_class = self.context.chain_config.node_class.chain_class
+        chain_class = self.context.trinity_config.node_class.chain_class
 
-        if self.context.chain_config.sync_mode == SYNC_LIGHT:
+        if self.context.trinity_config.sync_mode == SYNC_LIGHT:
             header_db = db_manager.get_headerdb()  # type: ignore
             chain = chain_class(
                 header_db,

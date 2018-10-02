@@ -14,7 +14,7 @@ from trinity.utils.chains import (
     get_nodekey_path,
 )
 from trinity.config import (
-    ChainConfig,
+    TrinityConfig,
     DATABASE_DIR_NAME,
 )
 from trinity.utils.filesystem import (
@@ -24,7 +24,7 @@ from trinity.utils.filesystem import (
 
 def test_chain_config_computed_properties(xdg_trinity_root):
     data_dir = get_local_data_dir('muffin', xdg_trinity_root)
-    chain_config = ChainConfig(network_id=1234, data_dir=data_dir)
+    chain_config = TrinityConfig(network_id=1234, data_dir=data_dir)
 
     assert chain_config.network_id == 1234
     assert chain_config.data_dir == data_dir
@@ -37,7 +37,7 @@ def test_chain_config_computed_properties_custom_xdg(tmpdir, xdg_trinity_root):
     assert not is_under_path(alt_xdg_root, xdg_trinity_root)
 
     data_dir = get_data_dir_for_network_id(1, alt_xdg_root)
-    chain_config = ChainConfig(trinity_root_dir=alt_xdg_root, network_id=1)
+    chain_config = TrinityConfig(trinity_root_dir=alt_xdg_root, network_id=1)
 
     assert chain_config.network_id == 1
     assert chain_config.data_dir == data_dir
@@ -46,7 +46,7 @@ def test_chain_config_computed_properties_custom_xdg(tmpdir, xdg_trinity_root):
 
 
 def test_chain_config_explicit_properties():
-    chain_config = ChainConfig(
+    chain_config = TrinityConfig(
         network_id=1,
         data_dir='./data-dir',
         nodekey_path='./nodekey'
@@ -74,7 +74,7 @@ def nodekey_path(tmpdir, nodekey_bytes):
 
 
 def test_chain_config_nodekey_loading(nodekey_bytes, nodekey_path):
-    chain_config = ChainConfig(
+    chain_config = TrinityConfig(
         network_id=1,
         nodekey_path=nodekey_path,
     )
@@ -84,7 +84,7 @@ def test_chain_config_nodekey_loading(nodekey_bytes, nodekey_path):
 
 @pytest.mark.parametrize('as_bytes', (True, False))
 def test_chain_config_explictely_provided_nodekey(nodekey_bytes, as_bytes):
-    chain_config = ChainConfig(
+    chain_config = TrinityConfig(
         network_id=1,
         nodekey=nodekey_bytes if as_bytes else keys.PrivateKey(nodekey_bytes),
     )

@@ -47,12 +47,12 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
         self.logger.info('JSON-RPC Server started')
         self.context.event_bus.connect()
 
-        db_manager = create_db_manager(self.context.chain_config.database_ipc_path)
+        db_manager = create_db_manager(self.context.trinity_config.database_ipc_path)
         db_manager.connect()
 
-        chain_class = self.context.chain_config.node_class.chain_class
+        chain_class = self.context.trinity_config.node_class.chain_class
 
-        if self.context.chain_config.sync_mode == SYNC_LIGHT:
+        if self.context.trinity_config.sync_mode == SYNC_LIGHT:
             header_db = db_manager.get_headerdb()  # type: ignore
             event_bus_light_peer_chain = EventBusLightPeerChain(self.context.event_bus)
             chain = chain_class(header_db, peer_chain=event_bus_light_peer_chain)
@@ -61,7 +61,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
             chain = chain_class(db)
 
         rpc = RPCServer(chain, self.context.event_bus)
-        ipc_server = IPCServer(rpc, self.context.chain_config.jsonrpc_ipc_path)
+        ipc_server = IPCServer(rpc, self.context.trinity_config.jsonrpc_ipc_path)
 
         loop = asyncio.get_event_loop()
         asyncio.ensure_future(exit_with_service_and_endpoint(ipc_server, self.context.event_bus))

@@ -25,7 +25,7 @@ from lahja import (
 )
 
 from trinity.config import (
-    ChainConfig
+    TrinityConfig
 )
 from trinity.extensibility.events import (
     BaseEvent,
@@ -63,7 +63,7 @@ class BaseManagerProcessScope(ABC):
     def create_plugin_context(self,
                               plugin: BasePlugin,
                               args: Namespace,
-                              chain_config: ChainConfig,
+                              trinity_config: TrinityConfig,
                               boot_kwargs: Dict[str, Any]) -> PluginContext:
         """
         Create the ``PluginContext`` for a given plugin.
@@ -83,7 +83,7 @@ class MainAndIsolatedProcessScope(BaseManagerProcessScope):
     def create_plugin_context(self,
                               plugin: BasePlugin,
                               args: Namespace,
-                              chain_config: ChainConfig,
+                              trinity_config: TrinityConfig,
                               boot_kwargs: Dict[str, Any]) -> PluginContext:
 
         if isinstance(plugin, BaseIsolatedPlugin):
@@ -92,7 +92,7 @@ class MainAndIsolatedProcessScope(BaseManagerProcessScope):
                 self.event_bus.create_endpoint(plugin.name)
             )
             context.args = args
-            context.chain_config = chain_config
+            context.trinity_config = trinity_config
             context.boot_kwargs = boot_kwargs
             return context
 
@@ -112,13 +112,13 @@ class SharedProcessScope(BaseManagerProcessScope):
     def create_plugin_context(self,
                               plugin: BasePlugin,
                               args: Namespace,
-                              chain_config: ChainConfig,
+                              trinity_config: TrinityConfig,
                               boot_kwargs: Dict[str, Any]) -> PluginContext:
 
         # Plugins that run in a shared process all share the endpoint of the plugin manager
         context = PluginContext(self.endpoint)
         context.args = args
-        context.chain_config = chain_config
+        context.trinity_config = trinity_config
         context.boot_kwargs = boot_kwargs
         return context
 
@@ -195,7 +195,7 @@ class PluginManager:
 
     def prepare(self,
                 args: Namespace,
-                chain_config: ChainConfig,
+                trinity_config: TrinityConfig,
                 boot_kwargs: Dict[str, Any] = None) -> None:
         """
         Create a ``PluginContext`` for every plugin that this plugin manager instance
@@ -206,7 +206,7 @@ class PluginManager:
             if not self._scope.is_responsible_for_plugin(plugin):
                 continue
 
-            context = self._scope.create_plugin_context(plugin, args, chain_config, boot_kwargs)
+            context = self._scope.create_plugin_context(plugin, args, trinity_config, boot_kwargs)
             plugin.set_context(context)
 
     def shutdown_blocking(self) -> None:

@@ -8,7 +8,7 @@ from argparse import (
 )
 
 from trinity.config import (
-    ChainConfig,
+    TrinityConfig,
 )
 
 
@@ -33,9 +33,9 @@ class TrinityStartupEvent(BaseEvent):
     """
     Broadcasted when Trinity is starting.
     """
-    def __init__(self, args: Namespace, chain_config: ChainConfig) -> None:
+    def __init__(self, args: Namespace, trinity_config: TrinityConfig) -> None:
         self.args = args
-        self.chain_config = chain_config
+        self.trinity_config = trinity_config
 
 
 class PluginStartedEvent(BaseEvent):

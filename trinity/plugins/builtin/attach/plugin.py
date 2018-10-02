@@ -6,7 +6,7 @@ from argparse import (
 import sys
 
 from trinity.config import (
-    ChainConfig,
+    TrinityConfig,
 )
 from trinity.extensibility import (
     BaseMainProcessPlugin,
@@ -36,9 +36,9 @@ class AttachPlugin(BaseMainProcessPlugin):
 
         attach_parser.set_defaults(func=self.run_console)
 
-    def run_console(self, args: Namespace, chain_config: ChainConfig) -> None:
+    def run_console(self, args: Namespace, trinity_config: TrinityConfig) -> None:
         try:
-            console(chain_config.jsonrpc_ipc_path, use_ipython=self.use_ipython)
+            console(trinity_config.jsonrpc_ipc_path, use_ipython=self.use_ipython)
         except FileNotFoundError as err:
             self.logger.error(str(err))
             sys.exit(1)

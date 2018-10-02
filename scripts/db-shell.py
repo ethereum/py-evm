@@ -14,7 +14,7 @@ from eth.chains.ropsten import ROPSTEN_NETWORK_ID
 from eth.db.chain import ChainDB
 from eth.db.backends.level import LevelDB
 
-from trinity.config import ChainConfig
+from trinity.config import TrinityConfig
 from trinity.constants import SYNC_FULL, SYNC_LIGHT
 
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     if args.light:
         sync_mode = SYNC_LIGHT
 
-    cfg = ChainConfig(network_id, sync_mode=sync_mode)
+    cfg = TrinityConfig(network_id, sync_mode=sync_mode)
     chaindb = ChainDB(LevelDB(cfg.database_dir))
     head = chaindb.get_canonical_head()
     print("Head #%d; hash: %s, state_root: %s" % (
