@@ -1,8 +1,17 @@
+import asyncio
 from concurrent import futures
 import logging
 import time
 
+from cancel_token import (
+    CancelToken,
+)
+
 import grpc
+
+from p2p.service import (
+    BaseService,
+)
 
 from p2p.libp2p_bridge.config import (
     RPC_SERVER_LISTEN_IP,
@@ -42,9 +51,13 @@ type_msg_map = {
 }
 
 
+class MsgTypeNotFound(Exception):
+    pass
+
+
 def dispatch(msg_type, data_bytes):
     if msg_type not in type_msg_map:
-        return b""
+        raise MsgTypeNotFound("message type: {} is not in type_msg_map".format(msg_type))
     msg_cls, handler = type_msg_map[msg_type]
     deserialized_msg = msg_cls.from_bytes(data_bytes)
     return handler(deserialized_msg)
@@ -65,12 +78,14 @@ class EventServicer(event_pb2_grpc.EventServicer):
         return receive_response
 
 
-class GRPCServer:
+class GRPCServer(BaseService):
 
     server = None
     logger = logging.getLogger('p2p.libp2p_bridge.grpc_server')
 
-    def run(self):
+    async def _run(self):
+        # TODO: leave `max_workers=None` in ThreadPoolExecutor,
+        #       letting it set as `os.cpu_count() * 5`
         self.server = grpc.server(futures.ThreadPoolExecutor())
         event_pb2_grpc.add_EventServicer_to_server(
             EventServicer(),
@@ -79,25 +94,14 @@ class GRPCServer:
         listen_addr = '{}:{}'.format(RPC_SERVER_LISTEN_IP, RPC_SERVER_PORT)
         self.server.add_insecure_port(listen_addr)
         self.server.start()
-        self.logger.info("Server started")
-        try:
-            while True:
-                time.sleep(86400)
-        except KeyboardInterrupt:
-            pass
-        except Exception as e:
-            self.logger.exception("uncaught exception: %s", e)
-        finally:
-            self.server.stop(0)
-
-
-def run_grpc_server():
-    # TODO: leave `max_workers=None` in ThreadPoolExecutor,
-    #       letting it set as `os.cpu_count() * 5`
-    grpc_server = GRPCServer()
-    grpc_server.run()
+        self.logger.info("grpc_server started")
+        await self.cancel_token.wait()
+        self.server.stop(0)
+        self.logger.info("grpc_server exited")
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    run_grpc_server()
+    grpc_server = GRPCServer()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(grpc_server.run())
