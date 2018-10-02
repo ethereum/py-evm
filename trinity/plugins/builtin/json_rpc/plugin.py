@@ -7,6 +7,9 @@ import asyncio
 from trinity.constants import (
     SYNC_LIGHT
 )
+from trinity.db.manager import (
+    create_db_manager
+)
 from trinity.extensibility import (
     BaseIsolatedPlugin,
 )
@@ -18,9 +21,6 @@ from trinity.rpc.main import (
 )
 from trinity.rpc.ipc import (
     IPCServer,
-)
-from trinity.utils.db_proxy import (
-    create_db_manager
 )
 from trinity.utils.shutdown import (
     exit_with_service_and_endpoint,

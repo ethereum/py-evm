@@ -21,11 +21,11 @@ from trinity.extensibility import (
 from trinity.constants import (
     SYNC_LIGHT,
 )
+from trinity.db.manager import (
+    create_db_manager,
+)
 from trinity.plugins.builtin.light_peer_chain_bridge.light_peer_chain_bridge import (
     EventBusLightPeerChain,
-)
-from trinity.utils.db_proxy import (
-    create_db_manager,
 )
 from trinity.utils.version import (
     construct_trinity_client_identifier,

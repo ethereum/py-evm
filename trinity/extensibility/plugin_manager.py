@@ -235,7 +235,6 @@ class PluginManager:
         """
         Asynchronously shut down all started plugins.
         """
-
         if isinstance(self._scope, MainAndIsolatedProcessScope):
             raise UnsuitableShutdownError("Use `shutdown_blocking` for instances of this scope")
 

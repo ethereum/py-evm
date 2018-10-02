@@ -2,7 +2,7 @@ import pytest
 
 import os
 
-from trinity.chains import (
+from trinity.initialization import (
     is_data_dir_initialized,
     initialize_data_dir,
 )

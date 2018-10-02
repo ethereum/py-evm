@@ -4,8 +4,10 @@ from typing import (
 
 from eth.constants import UINT_256_MAX
 
-from trinity.constants import MAXIMUM_OBJECT_MEMORY_BYTES
 from trinity.exceptions import OversizeObject
+
+
+MAXIMUM_OBJECT_MEMORY_BYTES = 10000000
 
 
 def sequence_builder(start_number: int,
