@@ -27,6 +27,10 @@ DEFAULT_SERVERS_URLS = {
 
 
 class EthstatsPlugin(BaseIsolatedPlugin):
+    server_url: str
+    server_secret: str
+    node_id: str
+    node_contact: str
 
     @property
     def name(self) -> str:
@@ -66,16 +70,20 @@ class EthstatsPlugin(BaseIsolatedPlugin):
         )
 
     def should_start(self) -> bool:
-        if not self.context.args.ethstats:
+        args = self.context.args
+
+        if not args.ethstats:
             return False
 
-        self.server_url: str = (
-            self.context.args.ethstats_server_url or self.get_default_server_url()
-        )
-        self.server_secret: str = self.context.args.ethstats_server_secret
+        if (args.ethstats_server_url):
+            self.server_url = args.ethstats_server_url
+        else:
+            self.server_url = self.get_default_server_url()
 
-        self.node_id: str = self.context.args.ethstats_node_id
-        self.node_contact: str = self.context.args.ethstats_node_contact
+        self.server_secret = args.ethstats_server_secret
+
+        self.node_id = args.ethstats_node_id
+        self.node_contact = args.ethstats_node_contact
 
         configuration_provided: bool = all((
             self.server_url,
