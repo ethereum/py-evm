@@ -42,3 +42,5 @@ BUILTIN_PLUGINS = [
 # https://packaging.python.org/guides/creating-and-discovering-plugins/#using-package-metadata
 DISCOVERED_PLUGINS = [
     entry_point.load() for entry_point in pkg_resources.iter_entry_points('trinity.plugins')]
+
+ALL_PLUGINS = BUILTIN_PLUGINS + DISCOVERED_PLUGINS
