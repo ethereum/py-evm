@@ -1,9 +1,11 @@
 from typing import (
-    Iterable,
     Any,
+    Iterable,
     List,
+    Sequence,
     Tuple,
     TYPE_CHECKING,
+    Union,
 )
 
 from eth_utils import (
@@ -20,6 +22,10 @@ from eth.utils.blake import (
 from eth.beacon.types.shard_and_committee import (
     ShardAndCommittee,
 )
+from eth.beacon.utils.random import (
+    shuffle,
+    split,
+)
 
 
 if TYPE_CHECKING:
@@ -31,96 +37,125 @@ if TYPE_CHECKING:
     from eth.beacon.types.validator_record import ValidatorRecord  # noqa: F401
 
 
+def get_element_from_recent_list(
+        target_list: Sequence[Any],
+        target_slot: int,
+        slot_relative_position: int) -> Any:
+    """
+    Returns the element from ``target_list`` by the ``target_slot`` number,
+    where the the element should be at ``target_slot - slot_relative_position``th
+    element of the given ``target_list``.
+    """
+    target_list_length = len(target_list)
+
+    if target_slot < slot_relative_position:
+        raise ValueError(
+            "target_slot (%s) should be greater than or equal to slot_relative_position (%s)" %
+            (target_slot, slot_relative_position)
+        )
+
+    if target_slot >= slot_relative_position + target_list_length:
+        raise ValueError(
+            "target_slot (%s) should be less than "
+            "slot_relative_position (%s) + target_list_length (%s)" %
+            (target_slot, slot_relative_position, target_list_length)
+        )
+    return target_list[target_slot - slot_relative_position]
+
+
 #
-# Get block hashes
+# Get block hash(es)
 #
 def get_block_hash(
-        active_state: 'ActiveState',
-        current_block: 'Block',
+        recent_block_hashes: Sequence[Hash32],
+        current_block_slot_number: int,
         slot: int,
-        beacon_config: 'BeaconConfig') -> Hash32:
+        cycle_length: int) -> Hash32:
     """
-    Get the blockhash from active_state.recent_block_hashes by current block slot number.
+    Returns the blockhash from ``ActiveState.recent_block_hashes`` by
+    ``current_block_slot_number``.
     """
-    cycle_length = beacon_config.cycle_length
-
-    sback = current_block.slot_number - cycle_length * 2
-    assert sback <= slot < sback + cycle_length * 2
-    return active_state.recent_block_hashes[slot - sback]
-
-
-@to_tuple
-def get_hashes_from_active_state(active_state: 'ActiveState',
-                                 block: 'Block',
-                                 from_slot: int,
-                                 to_slot: int,
-                                 beacon_config: 'BeaconConfig') -> List[Hash32]:
-    hashes = [
-        get_block_hash(
-            active_state,
-            block,
-            slot,
-            beacon_config,
+    if len(recent_block_hashes) != cycle_length * 2:
+        raise ValueError(
+            "Length of recent_block_hashes != cycle_length * 2"
+            "\texpected: %s, found: %s" % (
+                cycle_length * 2, len(recent_block_hashes)
+            )
         )
-        for slot
-        in range(from_slot, to_slot + 1)
-    ]
-    return hashes
+
+    slot_relative_position = current_block_slot_number - cycle_length * 2
+    return get_element_from_recent_list(
+        recent_block_hashes,
+        slot,
+        slot_relative_position,
+    )
 
 
 @to_tuple
-def get_hashes_to_sign(active_state: 'ActiveState',
+def get_hashes_from_recent_block_hashes(
+        recent_block_hashes: Sequence[Hash32],
+        current_block_slot_number: int,
+        from_slot: int,
+        to_slot: int,
+        cycle_length: int) -> Iterable[Hash32]:
+    """
+    Returns the block hashes between ``from_slot`` and ``to_slot``.
+    """
+    for slot in range(from_slot, to_slot + 1):
+        yield get_block_hash(
+            recent_block_hashes,
+            current_block_slot_number,
+            slot,
+            cycle_length,
+        )
+
+
+@to_tuple
+def get_hashes_to_sign(recent_block_hashes: Sequence[Hash32],
                        block: 'Block',
-                       beacon_config: 'BeaconConfig') -> List[Hash32]:
+                       cycle_length: int) -> Iterable[Hash32]:
     """
     Given the head block to attest to, collect the list of hashes to be
     signed in the attestation.
     """
-    cycle_length = beacon_config.cycle_length
-
-    hashes = get_hashes_from_active_state(
-        active_state,
-        block,
+    yield from get_hashes_from_recent_block_hashes(
+        recent_block_hashes,
+        block.slot_number,
         from_slot=block.slot_number - cycle_length + 1,
         to_slot=block.slot_number - 1,
-        beacon_config=beacon_config,
-    ) + [blake(block.hash)]
-
-    return hashes
+        cycle_length=cycle_length,
+    )
+    yield blake(block.hash)
 
 
 @to_tuple
-def get_signed_parent_hashes(active_state: 'ActiveState',
+def get_signed_parent_hashes(recent_block_hashes: Sequence[Hash32],
                              block: 'Block',
                              attestation: 'AttestationRecord',
-                             beacon_config: 'BeaconConfig') -> List[Hash32]:
+                             cycle_length: int) -> Iterable[Hash32]:
     """
     Given an attestation and the block they were included in,
-    the list of hashes that were included in the signature
+    the list of hashes that were included in the signature.
     """
-    cycle_length = beacon_config.cycle_length
-    parent_hashes = get_hashes_from_active_state(
-        active_state,
-        block,
+    yield from get_hashes_from_recent_block_hashes(
+        recent_block_hashes,
+        block.slot_number,
         from_slot=attestation.slot - cycle_length + 1,
         to_slot=attestation.slot - len(attestation.oblique_parent_hashes),
-        beacon_config=beacon_config,
-    ) + attestation.oblique_parent_hashes
-
-    return parent_hashes
+        cycle_length=cycle_length,
+    )
+    yield from attestation.oblique_parent_hashes
 
 
 @to_tuple
-def get_new_recent_block_hashes(old_block_hashes: List[Hash32],
+def get_new_recent_block_hashes(old_block_hashes: Sequence[Hash32],
                                 parent_slot: int,
                                 current_slot: int,
-                                parent_hash: Hash32) -> List[Hash32]:
+                                parent_hash: Hash32) -> Iterable[Hash32]:
 
     shift_size = current_slot - parent_slot
-    return (
-        old_block_hashes[shift_size:] +
-        [parent_hash] * min(shift_size, len(old_block_hashes))
-    )
+    parent_hash_repeat = min(shift_size, len(old_block_hashes))
+    return list(old_block_hashes[shift_size:]) + [parent_hash] * parent_hash_repeat
 
 
 #
@@ -130,41 +165,51 @@ def get_new_recent_block_hashes(old_block_hashes: List[Hash32],
 def get_shards_and_committees_for_slot(
         crystallized_state: 'CrystallizedState',
         slot: int,
-        beacon_config: 'BeaconConfig') -> List[ShardAndCommittee]:
-    cycle_length = beacon_config.cycle_length
+        cycle_length: int) -> Iterable[ShardAndCommittee]:
+    if len(crystallized_state.shard_and_committee_for_slots) != cycle_length * 2:
+        raise ValueError(
+            "Length of shard_and_committee_for_slots != cycle_length * 2"
+            "\texpected: %s, found: %s" % (
+                cycle_length * 2, len(crystallized_state.shard_and_committee_for_slots)
+            )
+        )
 
-    start = crystallized_state.last_state_recalc - cycle_length
-    assert start <= slot < start + cycle_length * 2
-    return crystallized_state.shard_and_committee_for_slots[slot - start]
+    slot_relative_position = crystallized_state.last_state_recalc - cycle_length
+
+    yield from get_element_from_recent_list(
+        crystallized_state.shard_and_committee_for_slots,
+        slot,
+        slot_relative_position,
+    )
 
 
 @to_tuple
 def get_attestation_indices(crystallized_state: 'CrystallizedState',
                             attestation: 'AttestationRecord',
-                            beacon_config: 'BeaconConfig') -> List[int]:
+                            cycle_length: int) -> Iterable[int]:
+    """
+    Returns committee of the given attestation.
+    """
     shard_id = attestation.shard_id
 
-    filtered_shards_and_committees_for_slot = list(
-        filter(
-            lambda x: x.shard_id == shard_id,
-            get_shards_and_committees_for_slot(
-                crystallized_state,
-                attestation.slot,
-                beacon_config,
-            )
-        )
+    shards_and_committees_for_slot = get_shards_and_committees_for_slot(
+        crystallized_state,
+        attestation.slot,
+        cycle_length,
     )
 
-    attestation_indices = []  # type: List[int]
-    if filtered_shards_and_committees_for_slot:
-        attestation_indices = filtered_shards_and_committees_for_slot[0].committee
-
-    return attestation_indices
+    for shard_and_committee in shards_and_committees_for_slot:
+        if shard_and_committee.shard_id == shard_id:
+            yield from shard_and_committee.committee
 
 
 @to_tuple
 def get_active_validator_indices(dynasty: int,
-                                 validators: Iterable['ValidatorRecord']) -> List[int]:
+                                 validators: Iterable['ValidatorRecord']) -> Iterable[int]:
+    """
+    TODO: Logic changed
+    https://github.com/ethereum/eth2.0-specs/commit/52cf7f943dc99cfd27db9fb2c03c692858e2a789#diff-a08ecec277db4a6ed0b3635cfadc9af1  # noqa: E501
+    """
     o = []
     for index, validator in enumerate(validators):
         if (validator.start_dynasty <= dynasty and dynasty < validator.end_dynasty):
@@ -175,43 +220,16 @@ def get_active_validator_indices(dynasty: int,
 #
 # Shuffling
 #
-def shuffle(lst: List[Any],
-            seed: Hash32) -> List[Any]:
-    lst_count = len(lst)
-    assert lst_count <= 16777216
-    o = [x for x in lst]
-    source = seed
-    i = 0
-    while i < lst_count:
-        source = blake(source)
-        for pos in range(0, 30, 3):
-            m = int.from_bytes(source[pos:pos + 3], 'big')
-            remaining = lst_count - i
-            if remaining == 0:
-                break
-            rand_max = 16777216 - 16777216 % remaining
-            if m < rand_max:
-                replacement_pos = (m % remaining) + i
-                o[i], o[replacement_pos] = o[replacement_pos], o[i]
-                i += 1
-    return o
-
-
-@to_tuple
-def split(lst: List[Any], number: int) -> List[Any]:
-    list_length = len(lst)
-    return [
-        lst[(list_length * i // number): (list_length * (i + 1) // number)]
-        for i in range(number)
-    ]
-
-
 @to_tuple
 def get_new_shuffling(seed: Hash32,
-                      validators: List['ValidatorRecord'],
+                      validators: Sequence['ValidatorRecord'],
                       dynasty: int,
                       crosslinking_start_shard: int,
-                      beacon_config: 'BeaconConfig') -> List[List[ShardAndCommittee]]:
+                      beacon_config: 'BeaconConfig') -> Iterable[Iterable[ShardAndCommittee]]:
+    """
+    TODO: docstring
+    NOTE: The spec might be updated to output an array rather than an array of arrays.
+    """
     cycle_length = beacon_config.cycle_length
     min_committee_size = beacon_config.min_committee_size
     shard_count = beacon_config.shard_count
@@ -228,8 +246,7 @@ def get_new_shuffling(seed: Hash32,
         while (len(avs) * slots_per_committee < cycle_length * min_committee_size and
                slots_per_committee < cycle_length):
             slots_per_committee *= 2
-    o = []
-
+    output = []
     shuffled_active_validator_indices = shuffle(avs, seed)
     validators_per_slot = split(shuffled_active_validator_indices, cycle_length)
     for slot, slot_indices in enumerate(validators_per_slot):
@@ -237,11 +254,11 @@ def get_new_shuffling(seed: Hash32,
         shard_id_start = crosslinking_start_shard + (
             slot * committees_per_slot // slots_per_committee
         )
-        o.append([ShardAndCommittee(
+        output.append([ShardAndCommittee(
             shard_id=(shard_id_start + j) % shard_count,
             committee=indices
         ) for j, indices in enumerate(shard_indices)])
-    return o
+    return output
 
 
 #
@@ -253,9 +270,13 @@ def get_proposer_position(parent_block: 'Block',
     shards_and_committees = get_shards_and_committees_for_slot(
         crystallized_state,
         parent_block.slot_number,
-        beacon_config,
+        beacon_config.cycle_length,
     )
-    assert shards_and_committees
+    """
+    Returns the proposer index in committee and the ``shard_id``.
+    """
+    if len(shards_and_committees) <= 0:
+        raise ValueError("shards_and_committees should not be empty.")
     shard_and_committee = shards_and_committees[0]
 
     # `proposer_index_in_committee` th attester in `shard_and_committee`
