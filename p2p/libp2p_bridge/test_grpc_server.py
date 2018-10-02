@@ -22,7 +22,7 @@ from p2p.libp2p_bridge.message import (
 )
 
 import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2 as event_pb2
-import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2_grpc as event_pb2_grpc
+import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2_grpc as event_pb2_grpc  # noqa: E501
 
 
 def make_stub():
