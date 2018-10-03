@@ -13,7 +13,7 @@ from google.protobuf import descriptor_pb2
 _sym_db = _symbol_database.Default()
 
 
-from github.com.ethresearch.sharding_p2p_poc.pb.message import message_pb2 as github_dot_com_dot_ethresearch_dot_sharding__p2p__poc_dot_pb_dot_message_dot_message__pb2
+from p2p.libp2p_bridge.pb.message import message_pb2 as github_dot_com_dot_ethresearch_dot_sharding__p2p__poc_dot_pb_dot_message_dot_message__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
@@ -506,84 +506,84 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 RPCAddPeerRequest = _reflection.GeneratedProtocolMessageType('RPCAddPeerRequest', (_message.Message,), dict(
   DESCRIPTOR = _RPCADDPEERREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.rpc.rpc_pb2'
   # @@protoc_insertion_point(class_scope:proto.rpc.RPCAddPeerRequest)
   ))
 _sym_db.RegisterMessage(RPCAddPeerRequest)
 
 RPCSubscribeShardRequest = _reflection.GeneratedProtocolMessageType('RPCSubscribeShardRequest', (_message.Message,), dict(
   DESCRIPTOR = _RPCSUBSCRIBESHARDREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.rpc.rpc_pb2'
   # @@protoc_insertion_point(class_scope:proto.rpc.RPCSubscribeShardRequest)
   ))
 _sym_db.RegisterMessage(RPCSubscribeShardRequest)
 
 RPCUnsubscribeShardRequest = _reflection.GeneratedProtocolMessageType('RPCUnsubscribeShardRequest', (_message.Message,), dict(
   DESCRIPTOR = _RPCUNSUBSCRIBESHARDREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.rpc.rpc_pb2'
   # @@protoc_insertion_point(class_scope:proto.rpc.RPCUnsubscribeShardRequest)
   ))
 _sym_db.RegisterMessage(RPCUnsubscribeShardRequest)
 
 RPCGetSubscribedShardRequest = _reflection.GeneratedProtocolMessageType('RPCGetSubscribedShardRequest', (_message.Message,), dict(
   DESCRIPTOR = _RPCGETSUBSCRIBEDSHARDREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.rpc.rpc_pb2'
   # @@protoc_insertion_point(class_scope:proto.rpc.RPCGetSubscribedShardRequest)
   ))
 _sym_db.RegisterMessage(RPCGetSubscribedShardRequest)
 
 RPCBroadcastCollationRequest = _reflection.GeneratedProtocolMessageType('RPCBroadcastCollationRequest', (_message.Message,), dict(
   DESCRIPTOR = _RPCBROADCASTCOLLATIONREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.rpc.rpc_pb2'
   # @@protoc_insertion_point(class_scope:proto.rpc.RPCBroadcastCollationRequest)
   ))
 _sym_db.RegisterMessage(RPCBroadcastCollationRequest)
 
 RPCSendCollationRequest = _reflection.GeneratedProtocolMessageType('RPCSendCollationRequest', (_message.Message,), dict(
   DESCRIPTOR = _RPCSENDCOLLATIONREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.rpc.rpc_pb2'
   # @@protoc_insertion_point(class_scope:proto.rpc.RPCSendCollationRequest)
   ))
 _sym_db.RegisterMessage(RPCSendCollationRequest)
 
 RPCStopServerRequest = _reflection.GeneratedProtocolMessageType('RPCStopServerRequest', (_message.Message,), dict(
   DESCRIPTOR = _RPCSTOPSERVERREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.rpc.rpc_pb2'
   # @@protoc_insertion_point(class_scope:proto.rpc.RPCStopServerRequest)
   ))
 _sym_db.RegisterMessage(RPCStopServerRequest)
 
 Response = _reflection.GeneratedProtocolMessageType('Response', (_message.Message,), dict(
   DESCRIPTOR = _RESPONSE,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.rpc.rpc_pb2'
   # @@protoc_insertion_point(class_scope:proto.rpc.Response)
   ))
 _sym_db.RegisterMessage(Response)
 
 RPCPlainResponse = _reflection.GeneratedProtocolMessageType('RPCPlainResponse', (_message.Message,), dict(
   DESCRIPTOR = _RPCPLAINRESPONSE,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.rpc.rpc_pb2'
   # @@protoc_insertion_point(class_scope:proto.rpc.RPCPlainResponse)
   ))
 _sym_db.RegisterMessage(RPCPlainResponse)
 
 RPCGetSubscribedShardResponse = _reflection.GeneratedProtocolMessageType('RPCGetSubscribedShardResponse', (_message.Message,), dict(
   DESCRIPTOR = _RPCGETSUBSCRIBEDSHARDRESPONSE,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.rpc.rpc_pb2'
   # @@protoc_insertion_point(class_scope:proto.rpc.RPCGetSubscribedShardResponse)
   ))
 _sym_db.RegisterMessage(RPCGetSubscribedShardResponse)
 
 SendRequest = _reflection.GeneratedProtocolMessageType('SendRequest', (_message.Message,), dict(
   DESCRIPTOR = _SENDREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.rpc.rpc_pb2'
   # @@protoc_insertion_point(class_scope:proto.rpc.SendRequest)
   ))
 _sym_db.RegisterMessage(SendRequest)
 
 SendResponse = _reflection.GeneratedProtocolMessageType('SendResponse', (_message.Message,), dict(
   DESCRIPTOR = _SENDRESPONSE,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.rpc.rpc_pb2'
   # @@protoc_insertion_point(class_scope:proto.rpc.SendResponse)
   ))
 _sym_db.RegisterMessage(SendResponse)

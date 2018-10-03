@@ -34,6 +34,9 @@ deps = {
         "netifaces>=0.10.7<1",
         "pysha3>=1.0.0,<2.0.0",
         "upnpclient>=0.0.8,<1",
+        # only needed for p2p/libp2p_bridge
+        "grpcio",
+        "grpcio-tools",
     ],
     'trinity': [
         "bloom-filter==1.3",

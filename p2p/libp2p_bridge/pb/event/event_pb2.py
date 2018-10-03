@@ -178,21 +178,21 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Response = _reflection.GeneratedProtocolMessageType('Response', (_message.Message,), dict(
   DESCRIPTOR = _RESPONSE,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.event.event_pb2'
   # @@protoc_insertion_point(class_scope:proto.event.Response)
   ))
 _sym_db.RegisterMessage(Response)
 
 ReceiveRequest = _reflection.GeneratedProtocolMessageType('ReceiveRequest', (_message.Message,), dict(
   DESCRIPTOR = _RECEIVEREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.event.event_pb2'
   # @@protoc_insertion_point(class_scope:proto.event.ReceiveRequest)
   ))
 _sym_db.RegisterMessage(ReceiveRequest)
 
 ReceiveResponse = _reflection.GeneratedProtocolMessageType('ReceiveResponse', (_message.Message,), dict(
   DESCRIPTOR = _RECEIVERESPONSE,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.event.event_pb2'
   # @@protoc_insertion_point(class_scope:proto.event.ReceiveResponse)
   ))
 _sym_db.RegisterMessage(ReceiveResponse)

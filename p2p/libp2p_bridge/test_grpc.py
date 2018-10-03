@@ -16,7 +16,7 @@ from p2p.libp2p_bridge.message import (
     MsgType,
 )
 
-import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2_grpc as rpc_pb2_grpc  # noqa: E501
+import p2p.libp2p_bridge.pb.rpc.rpc_pb2_grpc as rpc_pb2_grpc
 
 
 def make_collation_topic(shard_id):

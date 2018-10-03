@@ -11,8 +11,8 @@ from p2p.libp2p_bridge.message import (
     MsgType,
 )
 
-import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2 as event_pb2
-import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.event.event_pb2_grpc as event_pb2_grpc  # noqa: E501
+import p2p.libp2p_bridge.pb.event.event_pb2 as event_pb2
+import p2p.libp2p_bridge.pb.event.event_pb2_grpc as event_pb2_grpc
 
 
 TEST_RPC_SERVER_ADDR = "127.0.0.1:55666"

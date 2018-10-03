@@ -1,10 +1,10 @@
-from constants import (
+from p2p.libp2p_bridge.constants import (
     UNKNOWN_PID,
     UNKNOWN_TOPIC,
 )
 
-import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2 as message_pb2  # noqa: E501
-import p2p.libp2p_bridge.github.com.ethresearch.sharding_p2p_poc.pb.rpc.rpc_pb2 as rpc_pb2
+import p2p.libp2p_bridge.pb.message.message_pb2 as message_pb2
+import p2p.libp2p_bridge.pb.rpc.rpc_pb2 as rpc_pb2
 
 
 class RPCFailure(Exception):

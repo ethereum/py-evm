@@ -575,49 +575,49 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Response = _reflection.GeneratedProtocolMessageType('Response', (_message.Message,), dict(
   DESCRIPTOR = _RESPONSE,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
   # @@protoc_insertion_point(class_scope:proto.message.Response)
   ))
 _sym_db.RegisterMessage(Response)
 
 AddPeerRequest = _reflection.GeneratedProtocolMessageType('AddPeerRequest', (_message.Message,), dict(
   DESCRIPTOR = _ADDPEERREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
   # @@protoc_insertion_point(class_scope:proto.message.AddPeerRequest)
   ))
 _sym_db.RegisterMessage(AddPeerRequest)
 
 AddPeerResponse = _reflection.GeneratedProtocolMessageType('AddPeerResponse', (_message.Message,), dict(
   DESCRIPTOR = _ADDPEERRESPONSE,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
   # @@protoc_insertion_point(class_scope:proto.message.AddPeerResponse)
   ))
 _sym_db.RegisterMessage(AddPeerResponse)
 
 Collation = _reflection.GeneratedProtocolMessageType('Collation', (_message.Message,), dict(
   DESCRIPTOR = _COLLATION,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
   # @@protoc_insertion_point(class_scope:proto.message.Collation)
   ))
 _sym_db.RegisterMessage(Collation)
 
 CollationRequest = _reflection.GeneratedProtocolMessageType('CollationRequest', (_message.Message,), dict(
   DESCRIPTOR = _COLLATIONREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
   # @@protoc_insertion_point(class_scope:proto.message.CollationRequest)
   ))
 _sym_db.RegisterMessage(CollationRequest)
 
 CollationResponse = _reflection.GeneratedProtocolMessageType('CollationResponse', (_message.Message,), dict(
   DESCRIPTOR = _COLLATIONRESPONSE,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
   # @@protoc_insertion_point(class_scope:proto.message.CollationResponse)
   ))
 _sym_db.RegisterMessage(CollationResponse)
 
 ShardPeerRequest = _reflection.GeneratedProtocolMessageType('ShardPeerRequest', (_message.Message,), dict(
   DESCRIPTOR = _SHARDPEERREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
   # @@protoc_insertion_point(class_scope:proto.message.ShardPeerRequest)
   ))
 _sym_db.RegisterMessage(ShardPeerRequest)
@@ -626,19 +626,19 @@ ShardPeerResponse = _reflection.GeneratedProtocolMessageType('ShardPeerResponse'
 
   Peers = _reflection.GeneratedProtocolMessageType('Peers', (_message.Message,), dict(
     DESCRIPTOR = _SHARDPEERRESPONSE_PEERS,
-    __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+    __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
     # @@protoc_insertion_point(class_scope:proto.message.ShardPeerResponse.Peers)
     ))
   ,
 
   ShardPeersEntry = _reflection.GeneratedProtocolMessageType('ShardPeersEntry', (_message.Message,), dict(
     DESCRIPTOR = _SHARDPEERRESPONSE_SHARDPEERSENTRY,
-    __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+    __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
     # @@protoc_insertion_point(class_scope:proto.message.ShardPeerResponse.ShardPeersEntry)
     ))
   ,
   DESCRIPTOR = _SHARDPEERRESPONSE,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
   # @@protoc_insertion_point(class_scope:proto.message.ShardPeerResponse)
   ))
 _sym_db.RegisterMessage(ShardPeerResponse)
@@ -647,28 +647,28 @@ _sym_db.RegisterMessage(ShardPeerResponse.ShardPeersEntry)
 
 NotifyShardsRequest = _reflection.GeneratedProtocolMessageType('NotifyShardsRequest', (_message.Message,), dict(
   DESCRIPTOR = _NOTIFYSHARDSREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
   # @@protoc_insertion_point(class_scope:proto.message.NotifyShardsRequest)
   ))
 _sym_db.RegisterMessage(NotifyShardsRequest)
 
 GeneralRequest = _reflection.GeneratedProtocolMessageType('GeneralRequest', (_message.Message,), dict(
   DESCRIPTOR = _GENERALREQUEST,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
   # @@protoc_insertion_point(class_scope:proto.message.GeneralRequest)
   ))
 _sym_db.RegisterMessage(GeneralRequest)
 
 GeneralResponse = _reflection.GeneratedProtocolMessageType('GeneralResponse', (_message.Message,), dict(
   DESCRIPTOR = _GENERALRESPONSE,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
   # @@protoc_insertion_point(class_scope:proto.message.GeneralResponse)
   ))
 _sym_db.RegisterMessage(GeneralResponse)
 
 MessageWithType = _reflection.GeneratedProtocolMessageType('MessageWithType', (_message.Message,), dict(
   DESCRIPTOR = _MESSAGEWITHTYPE,
-  __module__ = 'github.com.ethresearch.sharding_p2p_poc.pb.message.message_pb2'
+  __module__ = 'p2p.libp2p_bridge.pb.message.message_pb2'
   # @@protoc_insertion_point(class_scope:proto.message.MessageWithType)
   ))
 _sym_db.RegisterMessage(MessageWithType)
