@@ -18,14 +18,14 @@ from eth.db.backends.level import LevelDB
 
 from p2p.service import BaseService
 
+from trinity.db.manager import get_chaindb_manager
 from trinity.exceptions import (
     AmbigiousFileSystem,
     MissingPath,
 )
-from trinity.chains import (
+from trinity.initialization import (
     initialize_data_dir,
     is_data_dir_initialized,
-    get_chaindb_manager,
 )
 from trinity.cli_parser import (
     parser,
@@ -35,8 +35,8 @@ from trinity.config import (
     TrinityConfig,
 )
 from trinity.constants import (
-    MAIN_EVENTBUS_ENDPOINT,
     MAINNET_NETWORK_ID,
+    MAIN_EVENTBUS_ENDPOINT,
     NETWORKING_EVENTBUS_ENDPOINT,
     ROPSTEN_NETWORK_ID,
 )
@@ -175,7 +175,7 @@ def main() -> None:
         stderr_logger,
         formatter,
         handler_stream,
-        trinity_config,
+        trinity_config.logfile_path,
         args.file_log_level,
     )
 

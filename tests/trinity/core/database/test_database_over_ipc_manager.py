@@ -15,7 +15,7 @@ from eth.db.chain import (
     ChainDB,
 )
 
-from trinity.chains import (
+from trinity.db.manager import (
     get_chaindb_manager,
 )
 from trinity.config import (

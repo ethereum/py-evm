@@ -1,8 +1,6 @@
 from p2p.events import PeerCountRequest
 from trinity.nodes.events import NetworkIdRequest
-from trinity.rpc.modules import (
-    RPCModule,
-)
+from trinity.rpc.modules import RPCModule
 
 
 class Net(RPCModule):

@@ -17,6 +17,9 @@ from p2p.service import (
 from trinity.db.header import (
     AsyncHeaderDB,
 )
+from trinity.db.manager import (
+    create_db_manager
+)
 from trinity.config import (
     TrinityConfig,
 )
@@ -26,10 +29,6 @@ from trinity.extensibility import (
 from trinity.extensibility.events import (
     ResourceAvailableEvent
 )
-from trinity.utils.db_proxy import (
-    create_db_manager
-)
-
 from .events import (
     NetworkIdRequest,
     NetworkIdResponse,

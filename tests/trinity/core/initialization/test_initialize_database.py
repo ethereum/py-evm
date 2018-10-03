@@ -4,7 +4,7 @@ import pytest
 from eth.db.backends.level import LevelDB
 from eth.db.chain import ChainDB
 
-from trinity.chains import (
+from trinity.initialization import (
     initialize_data_dir,
     initialize_database,
     is_database_initialized,

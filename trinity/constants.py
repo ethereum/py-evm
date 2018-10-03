@@ -11,18 +11,20 @@ from eth_keys import (
 from p2p.kademlia import Address, Node
 
 
+# sync modes
 SYNC_FULL = 'full'
 SYNC_LIGHT = 'light'
 
+# lahja endpoint names
 MAIN_EVENTBUS_ENDPOINT = 'main'
 NETWORKING_EVENTBUS_ENDPOINT = 'networking'
 
-MAXIMUM_OBJECT_MEMORY_BYTES = 10000000
-
+# Network IDs: https://ethereum.stackexchange.com/questions/17051/how-to-select-a-network-id-or-is-there-a-list-of-network-ids/17101#17101  # noqa: E501
 MAINNET_NETWORK_ID = 1
 ROPSTEN_NETWORK_ID = 3
 
-# The defalt preferred nodes
+
+# Default preferred enodes
 DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
     MAINNET_NETWORK_ID: (
         Node(keys.PublicKey(decode_hex("1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082")),  # noqa: E501
