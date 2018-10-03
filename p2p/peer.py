@@ -384,20 +384,20 @@ class BasePeer(BaseService):
                 return
 
     async def read_msg(self) -> Tuple[protocol.Command, protocol.PayloadType]:
-        header_data = await self.read(HEADER_LEN + MAC_LEN)
-        header = self.decrypt_header(header_data)
-        frame_size = self.get_frame_size(header)
-        # The frame_size specified in the header does not include the padding to 16-byte boundary,
-        # so need to do this here to ensure we read all the frame's data.
-        read_size = roundup_16(frame_size)
-        frame_data = await self.read(read_size + MAC_LEN)
-        msg = self.decrypt_body(frame_data, frame_size)
-        cmd = self.get_protocol_command_for(msg)
-        # NOTE: This used to be a bottleneck but it doesn't seem to be so anymore. If we notice
-        # too much time is being spent on this again, we need to consider running this in a
-        # ProcessPoolExecutor(). Need to make sure we don't use all CPUs in the machine for that,
-        # though, otherwise asyncio's event loop can't run and we can't keep up with other peers.
         try:
+            header_data = await self.read(HEADER_LEN + MAC_LEN)
+            header = self.decrypt_header(header_data)
+            frame_size = self.get_frame_size(header)
+            # The frame_size specified in the header does not include the padding to 16-byte boundary,
+            # so need to do this here to ensure we read all the frame's data.
+            read_size = roundup_16(frame_size)
+            frame_data = await self.read(read_size + MAC_LEN)
+            msg = self.decrypt_body(frame_data, frame_size)
+            cmd = self.get_protocol_command_for(msg)
+            # NOTE: This used to be a bottleneck but it doesn't seem to be so anymore. If we notice
+            # too much time is being spent on this again, we need to consider running this in a
+            # ProcessPoolExecutor(). Need to make sure we don't use all CPUs in the machine for that,
+            # though, otherwise asyncio's event loop can't run and we can't keep up with other peers.
             decoded_msg = cast(Dict[str, Any], cmd.decode(msg))
         except MalformedMessage as err:
             self.logger.debug(
