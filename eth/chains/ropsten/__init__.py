@@ -3,6 +3,7 @@ from eth_utils import decode_hex
 
 from .constants import (
     BYZANTIUM_ROPSTEN_BLOCK,
+    ROPSTEN_CHAIN_ID,
     SPURIOUS_DRAGON_ROPSTEN_BLOCK,
     TANGERINE_WHISTLE_ROPSTEN_BLOCK,
 )
@@ -24,9 +25,6 @@ ROPSTEN_VM_CONFIGURATION = (
     (SPURIOUS_DRAGON_ROPSTEN_BLOCK, SpuriousDragonVM),
     (BYZANTIUM_ROPSTEN_BLOCK, ByzantiumVM),
 )
-
-
-ROPSTEN_CHAIN_ID = 3
 
 
 class BaseRopstenChain:

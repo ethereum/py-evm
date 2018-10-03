@@ -1,3 +1,8 @@
+# https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
+ROPSTEN_CHAIN_ID = 3
+
+# Fork Blocks listed in ascending order
+
 #
 # Byzantium Block
 #

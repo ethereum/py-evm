@@ -1,4 +1,8 @@
-# Blocks listed in ascending order
+# https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
+MAINNET_CHAIN_ID = 1
+
+# Fork Blocks listed in ascending order
+
 
 #
 # Homestead Block

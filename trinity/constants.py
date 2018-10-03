@@ -19,7 +19,7 @@ SYNC_LIGHT = 'light'
 MAIN_EVENTBUS_ENDPOINT = 'main'
 NETWORKING_EVENTBUS_ENDPOINT = 'networking'
 
-# Network IDs: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
+# Network IDs: https://ethereum.stackexchange.com/questions/17051/how-to-select-a-network-id-or-is-there-a-list-of-network-ids/17101#17101  # noqa: E501
 MAINNET_NETWORK_ID = 1
 ROPSTEN_NETWORK_ID = 3
 

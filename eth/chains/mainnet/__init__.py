@@ -7,6 +7,7 @@ from eth_utils import (
 )
 
 from .constants import (
+    MAINNET_CHAIN_ID,
     BYZANTIUM_MAINNET_BLOCK,
     TANGERINE_WHISTLE_MAINNET_BLOCK,
     HOMESTEAD_MAINNET_BLOCK,
@@ -78,9 +79,6 @@ MAINNET_VMS = (
 )
 
 MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))
-
-
-MAINNET_CHAIN_ID = 1
 
 
 class BaseMainnetChain:
