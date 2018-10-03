@@ -398,8 +398,8 @@ class BasePeer(BaseService):
             # NOTE: This used to be a bottleneck but it doesn't seem to be so anymore.
             # If we notice too much time is being spent on this again, we need to 
             # consider running this in a ProcessPoolExecutor(). Need to make sure we 
-            # don't use all CPUs in the machine for that,
-            # though, otherwise asyncio's event loop can't run and we can't keep up with other peers.
+            # don't use all CPUs in the machine for that, though, otherwise asyncio's 
+            # event loop can't run and we can't keep up with other peers.
             decoded_msg = cast(Dict[str, Any], cmd.decode(msg))
         except MalformedMessage as err:
             self.logger.debug(
