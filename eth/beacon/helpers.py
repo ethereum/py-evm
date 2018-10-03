@@ -1,3 +1,6 @@
+from itertools import (
+    repeat,
+)
 from typing import (
     Any,
     Iterable,
@@ -17,6 +20,7 @@ from eth_typing import (
 from eth.utils.blake import (
     blake,
 )
+from eth.beacon.config import BeaconConfig  # noqa: F401
 from eth.beacon.types.shard_and_committee import (
     ShardAndCommittee,
 )
@@ -27,7 +31,6 @@ from eth.beacon.utils.random import (
 
 
 if TYPE_CHECKING:
-    from eth.beacon.config import BeaconConfig  # noqa: F401
     from eth.beacon.types.active_state import ActiveState  # noqa: F401
     from eth.beacon.types.attestation_record import AttestationRecord  # noqa: F401
     from eth.beacon.types.block import Block  # noqa: F401
@@ -153,7 +156,8 @@ def get_new_recent_block_hashes(old_block_hashes: Sequence[Hash32],
 
     shift_size = current_slot - parent_slot
     parent_hash_repeat = min(shift_size, len(old_block_hashes))
-    return list(old_block_hashes[shift_size:]) + [parent_hash] * parent_hash_repeat
+    yield from old_block_hashes[shift_size:]
+    yield from repeat([parent_hash], parent_hash_repeat)
 
 
 #
@@ -268,7 +272,7 @@ def get_new_shuffling(seed: Hash32,
                       validators: Sequence['ValidatorRecord'],
                       dynasty: int,
                       crosslinking_start_shard: int,
-                      beacon_config: 'BeaconConfig') -> Iterable[Iterable[ShardAndCommittee]]:
+                      beacon_config: BeaconConfig) -> Iterable[Iterable[ShardAndCommittee]]:
     """
     Returns shuffled ``shard_and_committee_for_slots`` (``[[ShardAndCommittee]]``) of
     the given active ``validators``.
@@ -349,7 +353,7 @@ def get_new_shuffling(seed: Hash32,
 #
 def get_proposer_position(parent_block: 'Block',
                           crystallized_state: 'CrystallizedState',
-                          beacon_config: 'BeaconConfig') -> Tuple[int, int]:
+                          beacon_config: BeaconConfig) -> Tuple[int, int]:
     shards_and_committees = get_shards_and_committees_for_slot(
         crystallized_state,
         parent_block.slot_number,

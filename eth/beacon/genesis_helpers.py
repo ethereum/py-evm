@@ -10,6 +10,7 @@ from eth_typing import (
 from eth.constants import (
     ZERO_HASH32,
 )
+from eth.beacon.config import BeaconConfig  # noqa: F401
 from eth.beacon.types.active_state import ActiveState
 from eth.beacon.types.block import Block
 from eth.beacon.types.crosslink_record import CrosslinkRecord
@@ -19,7 +20,6 @@ from eth.beacon.helpers import (
 )
 
 if TYPE_CHECKING:
-    from eth.beacon.config import BeaconConfig  # noqa: F401
     from eth.beacon.types.validator_record import ValidatorRecord  # noqa: F401
 
 
@@ -64,7 +64,7 @@ def get_genesis_crystallized_state(
                 slot=0,
                 hash=ZERO_HASH32,
             )
-            for i in range(beacon_config.shard_count)
+            for _ in range(beacon_config.shard_count)
         ],
         dynasty_seed=init_shuffling_seed,
         dynasty_start=0,

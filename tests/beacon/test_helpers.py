@@ -38,35 +38,34 @@ def generate_mock_recent_block_hashes(
 
 @pytest.mark.parametrize(
     (
-        'target_list,target_slot,slot_relative_position,success,result'
+        'target_list,target_slot,slot_relative_position,result'
     ),
     [
-        ([i for i in range(5)], 10, 7, True, 3),
-        ([], 1, 1, False, -1),
+        ([i for i in range(5)], 10, 7, 3),
+        ([], 1, 1, ValueError()),
         # target_slot < slot_relative_position
-        ([i for i in range(5)], 1, 2, False, -1),
+        ([i for i in range(5)], 1, 2, ValueError()),
         # target_slot >= slot_relative_position + target_list_length
-        ([i for i in range(5)], 6, 1, False, -1),
+        ([i for i in range(5)], 6, 1, ValueError()),
     ],
 )
-def test__get_element_from_recent_list(target_list,
-                                       target_slot,
-                                       slot_relative_position,
-                                       success,
-                                       result):
-    if success:
-        assert result == _get_element_from_recent_list(
-            target_list,
-            target_slot,
-            slot_relative_position,
-        )
-    else:
+def test_get_element_from_recent_list(target_list,
+                                      target_slot,
+                                      slot_relative_position,
+                                      result):
+    if isinstance(result, Exception):
         with pytest.raises(ValueError):
             _get_element_from_recent_list(
                 target_list,
                 target_slot,
                 slot_relative_position,
             )
+    else:
+        assert result == _get_element_from_recent_list(
+            target_list,
+            target_slot,
+            slot_relative_position,
+        )
 
 
 #
@@ -179,9 +178,8 @@ def test_get_new_recent_block_hashes(genesis_block,
     )
 
     block = blocks[current_block_slot_number]
-    attestation = AttestationRecord(**sample_attestation_record_params)
     oblique_parent_hashes = [b'\x77' * 32]
-    attestation = attestation.copy(
+    attestation = AttestationRecord(**sample_attestation_record_params).copy(
         slot=10,
         oblique_parent_hashes=oblique_parent_hashes,
     )
@@ -330,13 +328,13 @@ def test_get_new_shuffling_handles_shard_wrap(genesis_validators, beacon_config)
 #
 @pytest.mark.parametrize(
     (
-        'committee,parent_block_number,success,result_proposer_index_in_committee'
+        'committee,parent_block_number,result_proposer_index_in_committee'
     ),
     [
-        ([0, 1, 2, 3], 0, True, 0),
-        ([0, 1, 2, 3], 2, True, 2),
-        ([0, 1, 2, 3], 11, True, 3),
-        ([], 1, False, 0),
+        ([0, 1, 2, 3], 0, 0),
+        ([0, 1, 2, 3], 2, 2),
+        ([0, 1, 2, 3], 11, 3),
+        ([], 1, ValueError()),
     ],
 )
 def test_get_proposer_position(monkeypatch,
@@ -344,7 +342,6 @@ def test_get_proposer_position(monkeypatch,
                                genesis_crystallized_state,
                                committee,
                                parent_block_number,
-                               success,
                                result_proposer_index_in_committee,
                                beacon_config):
     from eth.beacon import helpers
@@ -367,7 +364,14 @@ def test_get_proposer_position(monkeypatch,
         slot_number=parent_block_number,
     )
 
-    if success:
+    if isinstance(result_proposer_index_in_committee, Exception):
+        with pytest.raises(ValueError):
+            get_proposer_position(
+                parent_block,
+                genesis_crystallized_state,
+                beacon_config,
+            )
+    else:
         proposer_index_in_committee, _ = get_proposer_position(
             parent_block,
             genesis_crystallized_state,
@@ -375,10 +379,3 @@ def test_get_proposer_position(monkeypatch,
         )
 
         assert proposer_index_in_committee == result_proposer_index_in_committee
-    else:
-        with pytest.raises(ValueError):
-            get_proposer_position(
-                parent_block,
-                genesis_crystallized_state,
-                beacon_config,
-            )

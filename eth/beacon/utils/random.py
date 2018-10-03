@@ -16,6 +16,9 @@ from eth_utils import (
 from eth.utils.blake import (
     blake,
 )
+from eth.beacon.constants import (
+    SAMPLE_RANGE,
+)
 
 
 TItem = TypeVar('TItem')
@@ -25,18 +28,16 @@ def shuffle(values: Sequence[Any],
             seed: Hash32) -> Iterable[Any]:
     """
     Returns the shuffled ``values`` with seed as entropy.
-    Mainly for shuffling active validators.
+    Mainly for shuffling active validators in-protocol.
+
+    Spec: https://github.com/ethereum/eth2.0-specs/blob/0941d592de7546a428066c0473fd1000a7e3e3af/specs/beacon-chain.md#helper-functions  # noqa: E501
     """
     values_count = len(values)
 
-    # The size of 3 bytes in integer
-    # sample_range = 2 ** (3 * 8) = 2 ** 24 = 16777216
-    sample_range = 16777216
-
-    if values_count > sample_range:
+    if values_count > SAMPLE_RANGE:
         raise ValueError(
-            "values_count (%s) should less than or equal to sample_range (%s)." %
-            (values_count, sample_range)
+            "values_count (%s) should less than or equal to SAMPLE_RANGE (%s)." %
+            (values_count, SAMPLE_RANGE)
         )
 
     output = [x for x in values]
@@ -54,7 +55,7 @@ def shuffle(values: Sequence[Any],
                 break
 
             # Set a random maximum bound of sample_from_source
-            rand_max = sample_range - sample_range % remaining
+            rand_max = SAMPLE_RANGE - SAMPLE_RANGE % remaining
 
             # Select `replacement_position` with the given `sample_from_source` and `remaining`
             if sample_from_source < rand_max:
@@ -75,7 +76,8 @@ def shuffle(values: Sequence[Any],
 @to_tuple
 def split(seq: Sequence[TItem], pieces: int) -> Iterable[Any]:
     """
-    Returns the split ``seq`` in ``pieces`` pieces.
+    Returns the split ``seq`` in ``pieces`` pieces in protocol.
+    Spec: https://github.com/ethereum/eth2.0-specs/blob/0941d592de7546a428066c0473fd1000a7e3e3af/specs/beacon-chain.md#helper-functions  # noqa: E501
     """
     list_length = len(seq)
     return [
