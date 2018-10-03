@@ -1,6 +1,5 @@
-from p2p.events import (
-    PeerCountRequest
-)
+from p2p.events import PeerCountRequest
+from trinity.nodes.events import NetworkIdRequest
 from trinity.rpc.modules import (
     RPCModule,
 )
@@ -11,7 +10,8 @@ class Net(RPCModule):
         """
         Returns the current network ID.
         """
-        return str(self._chain.network_id)
+        response = await self._event_bus.request(NetworkIdRequest())
+        return str(response.network_id)
 
     async def peerCount(self) -> str:
         """

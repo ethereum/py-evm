@@ -79,12 +79,13 @@ MAINNET_VMS = (
 
 MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))
 
-MAINNET_NETWORK_ID = 1
+
+MAINNET_CHAIN_ID = 1
 
 
 class BaseMainnetChain:
+    chain_id = MAINNET_CHAIN_ID
     vm_configuration = MAINNET_VM_CONFIGURATION  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
-    network_id = MAINNET_NETWORK_ID  # type: int
 
 
 class MainnetChain(BaseMainnetChain, Chain):

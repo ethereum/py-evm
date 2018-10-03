@@ -389,10 +389,10 @@ class StateSync(HexaryTrieSync):
 def _test() -> None:
     import argparse
     import signal
-    from eth.chains.ropsten import RopstenChain, ROPSTEN_VM_CONFIGURATION
+    from eth.chains.ropsten import ROPSTEN_VM_CONFIGURATION
     from p2p import ecies
     from p2p.kademlia import Node
-    from trinity.protocol.common.constants import DEFAULT_PREFERRED_NODES
+    from trinity.constants import DEFAULT_PREFERRED_NODES, ROPSTEN_NETWORK_ID
     from trinity.protocol.common.context import ChainContext
     from tests.trinity.core.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncLevelDB, connect_to_peers_loop)
@@ -410,7 +410,7 @@ def _test() -> None:
 
     db = FakeAsyncLevelDB(args.db)
     chaindb = FakeAsyncChainDB(db)
-    network_id = RopstenChain.network_id
+    network_id = ROPSTEN_NETWORK_ID
     if args.enode:
         nodes = tuple([Node.from_uri(args.enode)])
     else:

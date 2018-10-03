@@ -10,12 +10,6 @@ from typing import (
 
 from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
-from eth.chains.mainnet import (
-    MAINNET_NETWORK_ID,
-)
-from eth.chains.ropsten import (
-    ROPSTEN_NETWORK_ID,
-)
 from p2p.kademlia import Node as KademliaNode
 from p2p.constants import (
     MAINNET_BOOTNODES,
@@ -23,10 +17,12 @@ from p2p.constants import (
 )
 
 from trinity.constants import (
+    DEFAULT_PREFERRED_NODES,
+    MAINNET_NETWORK_ID,
+    ROPSTEN_NETWORK_ID,
     SYNC_FULL,
     SYNC_LIGHT,
 )
-from trinity.protocol.common.constants import DEFAULT_PREFERRED_NODES
 from trinity.utils.chains import (
     construct_trinity_config_params,
     get_data_dir_for_network_id,

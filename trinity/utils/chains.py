@@ -15,16 +15,13 @@ from eth_utils import (
 from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
 
-from eth.chains.mainnet import (
-    MAINNET_NETWORK_ID,
-)
-from eth.chains.ropsten import (
-    ROPSTEN_NETWORK_ID,
-)
-
 from p2p.constants import DEFAULT_MAX_PEERS
 
-from trinity.constants import SYNC_LIGHT
+from trinity.constants import (
+    SYNC_LIGHT,
+    MAINNET_NETWORK_ID,
+    ROPSTEN_NETWORK_ID,
+)
 
 
 DEFAULT_DATA_DIRS = {

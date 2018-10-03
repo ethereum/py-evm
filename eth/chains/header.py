@@ -25,7 +25,7 @@ class BaseHeaderChain(Configurable, ABC):
     _headerdb = None  # type: BaseHeaderDB
 
     header = None  # type: BlockHeader
-    network_id = None  # type: int
+    chain_id = None  # type: int
     vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
 
     @abstractmethod

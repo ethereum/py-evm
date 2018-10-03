@@ -19,14 +19,8 @@ from eth import MainnetChain, RopstenChain
 from eth.chains.base import (
     BaseChain
 )
-from eth.chains.mainnet import (
-    MAINNET_GENESIS_HEADER,
-    MAINNET_NETWORK_ID,
-)
-from eth.chains.ropsten import (
-    ROPSTEN_GENESIS_HEADER,
-    ROPSTEN_NETWORK_ID,
-)
+from eth.chains.mainnet import MAINNET_GENESIS_HEADER
+from eth.chains.ropsten import ROPSTEN_GENESIS_HEADER
 from eth.db.backends.base import BaseAtomicDB
 from eth.exceptions import CanonicalHeadNotFound
 
@@ -36,6 +30,10 @@ from trinity.exceptions import (
     MissingPath,
 )
 from trinity.config import TrinityConfig
+from trinity.constants import (
+    MAINNET_NETWORK_ID,
+    ROPSTEN_NETWORK_ID,
+)
 from trinity.db.base import DBProxy
 from trinity.db.chain import AsyncChainDB, ChainDBProxy
 from trinity.db.header import (

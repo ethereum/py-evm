@@ -764,8 +764,6 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerSubscriber] = []
         self.event_bus = event_bus
-        if self.event_bus is not None:
-            self.run_task(self.handle_peer_count_requests())
 
     async def handle_peer_count_requests(self) -> None:
         async def f() -> None:
@@ -856,7 +854,9 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     async def _run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
         # so in order to ensure we cancel all peers when we terminate.
-        self.run_task(self._periodically_report_stats())
+        if self.event_bus is not None:
+            self.run_daemon_task(self.handle_peer_count_requests())
+        self.run_daemon_task(self._periodically_report_stats())
         await self.cancel_token.wait()
 
     async def stop_all_peers(self) -> None:

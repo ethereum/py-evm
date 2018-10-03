@@ -112,7 +112,7 @@ def _chain_with_block_validation(base_db, genesis_state, chain_cls=Chain):
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVM),
         ),
-        network_id=1337,
+        chain_id=1337,
     )
     chain = klass.from_genesis(base_db, genesis_params, genesis_state)
     return chain
@@ -170,7 +170,7 @@ def chain_without_block_validation(
         vm_configuration=(
             (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVMForTesting),
         ),
-        network_id=1337,
+        chain_id=1337,
         **overrides,
     )
     genesis_params = {

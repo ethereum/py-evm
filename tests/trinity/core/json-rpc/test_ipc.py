@@ -18,6 +18,10 @@ from p2p.events import (
     PeerCountRequest,
     PeerCountResponse,
 )
+from trinity.nodes.events import (
+    NetworkIdRequest,
+    NetworkIdResponse,
+)
 
 from trinity.utils.version import construct_trinity_client_identifier
 
@@ -135,6 +139,15 @@ def uint256_to_bytes(uint):
     return to_bytes(uint).rjust(32, b'\0')
 
 
+def mock_network_id(network_id):
+    async def mock_event_bus_interaction(bus):
+        async for req in bus.stream(NetworkIdRequest):
+            bus.broadcast(NetworkIdResponse(network_id), req.broadcast_config())
+            break
+
+    return mock_event_bus_interaction
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     'request_msg, expected',
@@ -176,10 +189,6 @@ def uint256_to_bytes(uint):
             },
         ),
         (
-            build_request('net_version'),
-            {'result': '1337', 'id': 3, 'jsonrpc': '2.0'},
-        ),
-        (
             build_request('net_listening'),
             {'result': True, 'id': 3, 'jsonrpc': '2.0'},
         ),
@@ -191,6 +200,19 @@ async def test_ipc_requests(
         expected,
         event_loop,
         ipc_server):
+    result = await get_ipc_response(jsonrpc_ipc_pipe_path, request_msg, event_loop)
+    assert result == expected
+
+
+@pytest.mark.asyncio
+async def test_network_id_ipc_request(
+        jsonrpc_ipc_pipe_path,
+        event_loop,
+        event_bus,
+        ipc_server):
+    asyncio.ensure_future(mock_network_id(1337)(event_bus))
+    request_msg = build_request('net_version')
+    expected = {'result': '1337', 'id': 3, 'jsonrpc': '2.0'}
     result = await get_ipc_response(jsonrpc_ipc_pipe_path, request_msg, event_loop)
     assert result == expected
 

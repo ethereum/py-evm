@@ -70,6 +70,14 @@ def name(class_name, chain_class):
 
 
 @curry
+def chain_id(chain_id, chain_class):
+    """
+    Set the ``chain_id`` for the chain class.
+    """
+    return chain_class.configure(chain_id=chain_id)
+
+
+@curry
 def fork_at(vm_class, at_block, chain_class):
     """
     Adds the ``vm_class`` to the chain's ``vm_configuration``.

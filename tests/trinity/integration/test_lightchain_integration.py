@@ -16,7 +16,6 @@ from eth_utils import (
 from eth_hash.auto import keccak
 
 from eth.chains.ropsten import (
-    ROPSTEN_NETWORK_ID,
     ROPSTEN_GENESIS_HEADER,
     ROPSTEN_VM_CONFIGURATION,
 )
@@ -25,6 +24,7 @@ from eth.db.atomic import AtomicDB
 from p2p import ecies
 from p2p.kademlia import Node
 
+from trinity.constants import ROPSTEN_NETWORK_ID
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.les.peer import LESPeerPool
 from trinity.sync.light.chain import LightChainSyncer

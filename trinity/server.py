@@ -58,10 +58,10 @@ from p2p.p2p_proto import (
 from p2p.peer import BasePeer, PeerConnection
 from p2p.service import BaseService
 
+from trinity.constants import DEFAULT_PREFERRED_NODES
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB
-from trinity.protocol.common.constants import DEFAULT_PREFERRED_NODES
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.les.peer import LESPeerPool
@@ -350,11 +350,12 @@ def _test() -> None:
     from pathlib import Path
     import signal
 
-    from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER
+    from eth.chains.ropsten import ROPSTEN_GENESIS_HEADER
 
     from p2p import ecies
     from p2p.constants import ROPSTEN_BOOTNODES
 
+    from trinity.constants import ROPSTEN_NETWORK_ID
     from trinity.utils.chains import load_nodekey
 
     from tests.trinity.core.integration_test_helpers import (
@@ -403,7 +404,7 @@ def _test() -> None:
         chaindb,
         headerdb,
         db,
-        RopstenChain.network_id,
+        ROPSTEN_NETWORK_ID,
         bootstrap_nodes=bootstrap_nodes,
     )
     server.logger.setLevel(log_level)

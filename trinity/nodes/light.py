@@ -35,7 +35,6 @@ class LightNode(Node):
     def __init__(self, plugin_manager: PluginManager, trinity_config: TrinityConfig) -> None:
         super().__init__(plugin_manager, trinity_config)
 
-        self._network_id = trinity_config.network_id
         self._nodekey = trinity_config.nodekey
         self._port = trinity_config.port
         self._max_peers = trinity_config.max_peers
