@@ -205,7 +205,8 @@ def get_attestation_indices(crystallized_state: 'CrystallizedState',
 def get_active_validator_indices(dynasty: int,
                                  validators: Iterable['ValidatorRecord']) -> Iterable[int]:
     """
-    TODO: Logic changed
+    TODO: Logic changed in the latest spec, will have to update when we add validator
+    rotation logic.
     https://github.com/ethereum/eth2.0-specs/commit/52cf7f943dc99cfd27db9fb2c03c692858e2a789#diff-a08ecec277db4a6ed0b3635cfadc9af1  # noqa: E501
     """
     o = []
@@ -219,24 +220,44 @@ def get_active_validator_indices(dynasty: int,
 # Shuffling
 #
 def _get_shuffling_committee_slot_portions(
-        active_validators_length: int,
+        active_validators_size: int,
         cycle_length: int,
         min_committee_size: int,
         shard_count: int) -> Tuple[int, int]:
-    if active_validators_length >= cycle_length * min_committee_size:
+    """
+    Returns committees number per slot and slots number per committee
+    """
+    # If there are enough active validators to form committees for every slot
+    if active_validators_size >= cycle_length * min_committee_size:
+        # One slot can be attested by many committees, but not more than shard_count // cycle_length
         committees_per_slot = min(
-            active_validators_length // cycle_length // (min_committee_size * 2) + 1,
+            active_validators_size // cycle_length // (min_committee_size * 2) + 1,
             shard_count // cycle_length
         )
+        # One committee only has to attest one slot
         slots_per_committee = 1
     else:
+        # One slot can only be asttested by one committee
         committees_per_slot = 1
+        # One committee has to asttest more than one slot
         slots_per_committee = 1
-        bound = cycle_length * min(min_committee_size, active_validators_length)
-        while(active_validators_length * slots_per_committee < bound):
+        bound = cycle_length * min(min_committee_size, active_validators_size)
+        while(active_validators_size * slots_per_committee < bound):
             slots_per_committee *= 2
 
     return committees_per_slot, slots_per_committee
+
+
+@to_tuple
+def _get_shards_and_committees_for_shard_indices(
+        shard_indices: Sequence[Sequence[int]],
+        shard_id_start: int,
+        shard_count: int) -> Iterable[ShardAndCommittee]:
+    for j, indices in enumerate(shard_indices):
+        yield ShardAndCommittee(
+            shard_id=(shard_id_start + j) % shard_count,
+            committee=indices
+        )
 
 
 @to_tuple
@@ -246,33 +267,78 @@ def get_new_shuffling(seed: Hash32,
                       crosslinking_start_shard: int,
                       beacon_config: 'BeaconConfig') -> Iterable[Iterable[ShardAndCommittee]]:
     """
-    TODO: docstring
+    Returns shuffled ``shard_and_committee_for_slots`` (``[[ShardAndCommittee]]``) of
+    the given active ``validators``.
+
+    Two-dimensional:
+    The first layer is ``slot`` number
+        ``shard_and_committee_for_slots[slot] -> [ShardAndCommittee]``
+    The second layer is ``shard_id``
+        ``shard_and_committee_for_slots[slot][shard_id] -> ShardAndCommittee``
+
+    Example:
+        validators:
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        After shuffling:
+            [6, 0, 2, 12, 14, 8, 10, 4, 9, 1, 5, 13, 15, 7, 3, 11]
+        Split by slot:
+            [
+                [6, 0, 2, 12, 14], [8, 10, 4, 9, 1], [5, 13, 15, 7, 3, 11]
+            ]
+        Split by shard:
+            [
+                [6, 0], [2, 12, 14], [8, 10], [4, 9, 1], [5, 13, 15] ,[7, 3, 11]
+            ]
+        Fill to output:
+            [
+                # slot 0
+                [
+                    ShardAndCommittee(shard_id=0, committee=[6, 0]),
+                    ShardAndCommittee(shard_id=1, committee=[2, 12, 14]),
+                ],
+                # slot 1
+                [
+                    ShardAndCommittee(shard_id=2, committee=[8, 10]),
+                    ShardAndCommittee(shard_id=3, committee=[4, 9, 1]),
+                ],
+                # slot 2
+                [
+                    ShardAndCommittee(shard_id=4, committee=[5, 13, 15]),
+                    ShardAndCommittee(shard_id=5, committee=[7, 3, 11]),
+                ],
+            ]
+
     NOTE: The spec might be updated to output an array rather than an array of arrays.
     """
     cycle_length = beacon_config.cycle_length
     min_committee_size = beacon_config.min_committee_size
     shard_count = beacon_config.shard_count
+
     active_validators = get_active_validator_indices(dynasty, validators)
-    active_validators_length = len(active_validators)
+    active_validators_size = len(active_validators)
 
     committees_per_slot, slots_per_committee = _get_shuffling_committee_slot_portions(
-        active_validators_length,
+        active_validators_size,
         cycle_length,
         min_committee_size,
         shard_count,
     )
 
     shuffled_active_validator_indices = shuffle(active_validators, seed)
+
+    # Split the shuffled list into cycle_length pieces
     validators_per_slot = split(shuffled_active_validator_indices, cycle_length)
     for slot, slot_indices in enumerate(validators_per_slot):
+        # Split the shuffled list into committees_per_slot pieces
         shard_indices = split(slot_indices, committees_per_slot)
         shard_id_start = crosslinking_start_shard + (
             slot * committees_per_slot // slots_per_committee
         )
-        yield [ShardAndCommittee(
-            shard_id=(shard_id_start + j) % shard_count,
-            committee=indices
-        ) for j, indices in enumerate(shard_indices)]
+        yield _get_shards_and_committees_for_shard_indices(
+            shard_indices,
+            shard_id_start,
+            shard_count,
+        )
 
 
 #
@@ -291,11 +357,15 @@ def get_proposer_position(parent_block: 'Block',
     """
     if len(shards_and_committees) <= 0:
         raise ValueError("shards_and_committees should not be empty.")
-    shard_and_committee = shards_and_committees[0]
 
     # `proposer_index_in_committee` th attester in `shard_and_committee`
     # is the proposer of the parent block.
-    assert shard_and_committee.committee
+    shard_and_committee = shards_and_committees[0]
+    if len(shard_and_committee.committee) <= 0:
+        raise ValueError(
+            "The first committee should not be empty"
+        )
+
     proposer_index_in_committee = (
         parent_block.slot_number %
         len(shard_and_committee.committee)

@@ -271,7 +271,7 @@ def test_get_attestation_indices(genesis_crystallized_state,
     [
         (1000, 1000, 20, 10, 100),
         (100, 500, 50, 10, 10),
-        (20, 100, 10, 3, 10),
+        (20, 100, 10, 3, 10),  # active_validators_size < cycle_length * min_committee_size
     ],
 )
 def test_get_new_shuffling_is_complete(genesis_validators, beacon_config):
@@ -291,10 +291,9 @@ def test_get_new_shuffling_is_complete(genesis_validators, beacon_config):
     for slot_indices in shuffling:
         for shard_and_committee in slot_indices:
             shards.add(shard_and_committee.shard_id)
-            for vi in shard_and_committee.committee:
-                validators.add(vi)
+            for validator_index in shard_and_committee.committee:
+                validators.add(validator_index)
 
-    # assert len(shards) == beacon_config.shard_count
     assert len(validators) == len(genesis_validators)
 
 
@@ -326,22 +325,18 @@ def test_get_new_shuffling_handles_shard_wrap(genesis_validators, beacon_config)
             assert shard_and_committee.shard_id < beacon_config.shard_count
 
 
-def test_get_new_shuffling_large_validator_size():
-    # TODO
-    pass
-
-
 #
 # Get proposer postition
 #
 @pytest.mark.parametrize(
     (
-        'committee,parent_block_number,result_proposer_index_in_committee'
+        'committee,parent_block_number,success,result_proposer_index_in_committee'
     ),
     [
-        ([0, 1, 2, 3], 0, 0),
-        ([0, 1, 2, 3], 2, 2),
-        ([0, 1, 2, 3], 11, 3),
+        ([0, 1, 2, 3], 0, True, 0),
+        ([0, 1, 2, 3], 2, True, 2),
+        ([0, 1, 2, 3], 11, True, 3),
+        ([], 1, False, 0),
     ],
 )
 def test_get_proposer_position(monkeypatch,
@@ -349,6 +344,7 @@ def test_get_proposer_position(monkeypatch,
                                genesis_crystallized_state,
                                committee,
                                parent_block_number,
+                               success,
                                result_proposer_index_in_committee,
                                beacon_config):
     from eth.beacon import helpers
@@ -371,10 +367,18 @@ def test_get_proposer_position(monkeypatch,
         slot_number=parent_block_number,
     )
 
-    proposer_index_in_committee, _ = get_proposer_position(
-        parent_block,
-        genesis_crystallized_state,
-        beacon_config,
-    )
+    if success:
+        proposer_index_in_committee, _ = get_proposer_position(
+            parent_block,
+            genesis_crystallized_state,
+            beacon_config,
+        )
 
-    assert proposer_index_in_committee == result_proposer_index_in_committee
+        assert proposer_index_in_committee == result_proposer_index_in_committee
+    else:
+        with pytest.raises(ValueError):
+            get_proposer_position(
+                parent_block,
+                genesis_crystallized_state,
+                beacon_config,
+            )
