@@ -225,7 +225,7 @@ def _get_shuffling_committee_slot_portions(
         min_committee_size: int,
         shard_count: int) -> Tuple[int, int]:
     """
-    Returns committees number per slot and slots number per committee
+    Returns committees number per slot and slots number per committee.
     """
     # If there are enough active validators to form committees for every slot
     if active_validators_size >= cycle_length * min_committee_size:
@@ -253,9 +253,12 @@ def _get_shards_and_committees_for_shard_indices(
         shard_indices: Sequence[Sequence[int]],
         shard_id_start: int,
         shard_count: int) -> Iterable[ShardAndCommittee]:
-    for j, indices in enumerate(shard_indices):
+    """
+    Returns filled [ShardAndCommittee] tuple.
+    """
+    for index, indices in enumerate(shard_indices):
         yield ShardAndCommittee(
-            shard_id=(shard_id_start + j) % shard_count,
+            shard_id=(shard_id_start + index) % shard_count,
             committee=indices
         )
 
@@ -273,8 +276,8 @@ def get_new_shuffling(seed: Hash32,
     Two-dimensional:
     The first layer is ``slot`` number
         ``shard_and_committee_for_slots[slot] -> [ShardAndCommittee]``
-    The second layer is ``shard_id``
-        ``shard_and_committee_for_slots[slot][shard_id] -> ShardAndCommittee``
+    The second layer is ``shard_indices`` number
+        ``shard_and_committee_for_slots[slot][shard_indices] -> ShardAndCommittee``
 
     Example:
         validators:
