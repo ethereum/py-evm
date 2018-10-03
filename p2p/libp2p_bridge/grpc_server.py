@@ -1,12 +1,8 @@
-import asyncio
+import time
 from concurrent import futures
 import logging
 
 import grpc
-
-from p2p.service import (
-    BaseService,
-)
 
 from p2p.libp2p_bridge.config import (
     RPC_SERVER_LISTEN_IP,
@@ -75,41 +71,43 @@ class EventServicer(event_pb2_grpc.EventServicer):
         return receive_response
 
 
-class GRPCServer(BaseService):
+class GRPCServer:
 
     logger = logging.getLogger('p2p.libp2p_bridge.grpc_server')
     server = None
 
-    async def _run(self):
+    def __init__(self):
         # TODO: leave `max_workers=None` in ThreadPoolExecutor,
         #       letting it set as `os.cpu_count() * 5`
         self.server = grpc.server(futures.ThreadPoolExecutor())
+
+    def start(self, listen_addr):
         event_pb2_grpc.add_EventServicer_to_server(
             EventServicer(),
             self.server,
         )
-        listen_addr = '{}:{}'.format(RPC_SERVER_LISTEN_IP, RPC_SERVER_PORT)
         self.server.add_insecure_port(listen_addr)
-        self.server.start()
         self.logger.info("grpc_server started")
-        await self.cancel_token.wait()
+        self.server.start()
+
+    def stop(self):
         self.server.stop(0)
-        self.logger.info("grpc_server stopped")
 
-
-# async def run_grpc_server():
-#     token = CancelToken("grpc_server")
-#     async def cancel(token):
-#         await asyncio.sleep(0.01)
-#         token.trigger()
-#         await asyncio.sleep(0.01)
-#     asyncio.ensure_future(cancel(token))
-#     grpc_server = GRPCServer(token=token)
-#     await grpc_server.run()
+    def run(self, listen_addr):
+        self.start(listen_addr)
+        try:
+            while True:
+                time.sleep(86400)
+        except KeyboardInterrupt:
+            pass
+        except Exception as e:
+            self.logger.exception("uncaught exception: %s", e)
+        finally:
+            self.stop()
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
+    listen_addr = '{}:{}'.format(RPC_SERVER_LISTEN_IP, RPC_SERVER_PORT)
     grpc_server = GRPCServer()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(grpc_server.run())
+    grpc_server.run(listen_addr)
