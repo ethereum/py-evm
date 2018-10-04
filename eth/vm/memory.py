@@ -48,12 +48,6 @@ class Memory(object):
             validate_length(value, length=size)
             validate_lte(start_position + size, maximum=len(self))
 
-            if len(self._bytes) < start_position + size:
-                self._bytes.extend(itertools.repeat(
-                    0,
-                    len(self._bytes) - (start_position + size),
-                ))
-
             for idx, v in enumerate(value):
                 self._bytes[start_position + idx] = v
 
