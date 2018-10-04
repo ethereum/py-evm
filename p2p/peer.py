@@ -388,7 +388,10 @@ class BasePeer(BaseService):
         try:
             header = self.decrypt_header(header_data)
         except DecryptionError as err:
-            self.logger.debug("Error in Decrypting message from peer")
+            self.logger.debug(
+                "Unable to decrypt header in message from peer %s: HEADER: %s Error: %r",
+                self, header_data, err,
+            )
             raise MalformedMessage from err
         frame_size = self.get_frame_size(header)
         # The frame_size specified in the header does not include the padding to 16-byte boundary,
@@ -398,7 +401,10 @@ class BasePeer(BaseService):
         try:
             msg = self.decrypt_body(frame_data, frame_size)
         except DecryptionError as err:
-            self.logger.debug("Error in Decrypting message from peer")
+            self.logger.debug(
+                "Unable to decrypt body in message from peer %s: BODY: %s Error: %r",
+                self, frame_data, err,
+            )
             raise MalformedMessage from err
         cmd = self.get_protocol_command_for(msg)
         # NOTE: This used to be a bottleneck but it doesn't seem to be so anymore. If we notice
