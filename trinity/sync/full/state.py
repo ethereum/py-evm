@@ -6,7 +6,6 @@ from pathlib import Path
 import tempfile
 import time
 from typing import (
-    Any,
     cast,
     Dict,
     Iterable,
@@ -14,7 +13,6 @@ from typing import (
     Set,
     Tuple,
     Type,
-    Union,
 )
 
 import cytoolz
@@ -26,7 +24,6 @@ from eth_utils import (
 )
 
 from eth_typing import (
-    BlockIdentifier,
     Hash32
 )
 
@@ -43,7 +40,6 @@ from eth.tools.logging import TraceLogger
 from p2p.service import BaseService
 from p2p.protocol import (
     Command,
-    _DecodedMsgType,
 )
 
 from p2p.exceptions import (
@@ -58,10 +54,7 @@ from trinity.exceptions import (
     AlreadyWaiting,
     SyncRequestAlreadyProcessed,
 )
-from trinity.p2p.handlers import PeerRequestHandler
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
-from trinity.protocol.eth.requests import HeaderRequest
-from trinity.protocol.eth import commands
 from trinity.protocol.eth import (
     constants as eth_constants,
 )
@@ -94,24 +87,11 @@ class StateDownloader(BaseService, PeerSubscriber):
         self._nodes_cache_dir = tempfile.TemporaryDirectory(prefix="pyevm-state-sync-cache")
         self.scheduler = StateSync(
             root_hash, account_db, LevelDB(cast(Path, self._nodes_cache_dir.name)), self.logger)
-        self._handler = PeerRequestHandler(self.chaindb, self.logger, self.cancel_token)
         self.request_tracker = TrieNodeRequestTracker(self._reply_timeout, self.logger)
         self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
 
-    # Throughout the whole state sync our chain head is fixed, so it makes sense to ignore
-    # messages related to new blocks/transactions, but we must handle requests for data from
-    # other peers or else they will disconnect from us.
-    subscription_msg_types: Set[Type[Command]] = {
-        commands.GetBlockHeaders,
-        commands.GetBlockBodies,
-        commands.GetReceipts,
-        commands.GetNodeData,
-        # TODO: all of the following are here to quiet warning logging output
-        # until the messages are properly handled.
-        commands.Transactions,
-        commands.NewBlock,
-        commands.NewBlockHashes,
-    }
+    # We are only interested in peers entering or leaving the pool
+    subscription_msg_types: Set[Type[Command]] = set()
 
     # This is a rather arbitrary value, but when the sync is operating normally we never see
     # the msg queue grow past a few hundred items, so this should be a reasonable limit for
@@ -147,15 +127,6 @@ class StateDownloader(BaseService, PeerSubscriber):
         else:
             raise NoIdlePeers()
 
-    async def _handle_msg_loop(self) -> None:
-        while self.is_operational:
-            peer, cmd, msg = await self.wait(self.msg_queue.get())
-            # Run self._handle_msg() with self.run_task() instead of awaiting for it so that we
-            # can keep consuming msgs while _handle_msg() performs cpu-intensive tasks in separate
-            # processes.
-            peer = cast(ETHPeer, peer)
-            self.run_task(self._handle_msg(peer, cmd, msg))
-
     async def _process_nodes(self, nodes: Iterable[Tuple[Hash32, bytes]]) -> None:
         for node_key, node in nodes:
             self._total_processed_nodes += 1
@@ -165,41 +136,6 @@ class StateDownloader(BaseService, PeerSubscriber):
                 # This means we received a node more than once, which can happen when we
                 # retry after a timeout.
                 pass
-
-    async def _handle_msg(
-            self, peer: ETHPeer, cmd: Command, msg: _DecodedMsgType) -> None:
-        # TODO: stop ignoring these once we have proper handling for these messages.
-        ignored_commands = (commands.Transactions, commands.NewBlock, commands.NewBlockHashes)
-
-        if isinstance(cmd, ignored_commands):
-            pass
-        elif isinstance(cmd, commands.GetBlockHeaders):
-            query = cast(Dict[Any, Union[bool, int]], msg)
-            request = HeaderRequest(
-                cast(BlockIdentifier, query['block_number_or_hash']),
-                query['max_headers'],
-                query['skip'],
-                cast(bool, query['reverse']),
-            )
-            await self._handle_get_block_headers(peer, request)
-        elif isinstance(cmd, commands.GetBlockBodies):
-            # Only serve up to MAX_BODIES_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_BODIES_FETCH]
-            await self._handler.handle_get_block_bodies(peer, block_hashes)
-        elif isinstance(cmd, commands.GetReceipts):
-            # Only serve up to MAX_RECEIPTS_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_RECEIPTS_FETCH]
-            await self._handler.handle_get_receipts(peer, block_hashes)
-        elif isinstance(cmd, commands.GetNodeData):
-            # Only serve up to MAX_STATE_FETCH items in every request.
-            node_hashes = cast(List[Hash32], msg)[:eth_constants.MAX_STATE_FETCH]
-            await self._handler.handle_get_node_data(peer, node_hashes)
-        else:
-            self.logger.warning("%s not handled during StateSync, must be implemented", cmd)
-
-    async def _handle_get_block_headers(self, peer: ETHPeer, request: HeaderRequest) -> None:
-        headers = await self._handler.lookup_headers(request)
-        peer.sub_proto.send_block_headers(headers)
 
     async def _cleanup(self) -> None:
         self._nodes_cache_dir.cleanup()
@@ -306,7 +242,6 @@ class StateDownloader(BaseService, PeerSubscriber):
         """
         self._timer.start()
         self.logger.info("Starting state sync for root hash %s", encode_hex(self.root_hash))
-        self.run_task(self._handle_msg_loop())
         self.run_task(self._periodically_report_progress())
         self.run_task(self._periodically_retry_timedout_and_missing())
         with self.subscribe(self.peer_pool):

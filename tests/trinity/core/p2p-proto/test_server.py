@@ -61,6 +61,9 @@ class ParagonServer(BaseServer):
     def _make_syncer(self):
         return
 
+    def _make_request_server(self):
+        return
+
 
 def get_server(privkey, address):
     base_db = AtomicDB()

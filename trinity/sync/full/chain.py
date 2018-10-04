@@ -9,7 +9,6 @@ from functools import (
 )
 from operator import attrgetter
 from typing import (
-    Any,
     Dict,
     List,
     Set,
@@ -40,24 +39,20 @@ from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
 
-from p2p import protocol
 from p2p.p2p_proto import DisconnectReason
 from p2p.exceptions import BaseP2PError, PeerConnectionLost
-from p2p.peer import BasePeer
+from p2p.peer import BasePeer, PeerSubscriber
 from p2p.protocol import Command
 
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB
-from trinity.protocol.common.peer import BaseChainPeer
 from trinity.protocol.eth.monitors import ETHChainTipMonitor
 from trinity.protocol.eth import commands
 from trinity.protocol.eth.constants import (
     MAX_BODIES_FETCH,
     MAX_RECEIPTS_FETCH,
-    MAX_STATE_FETCH,
 )
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
-from trinity.protocol.eth.requests import HeaderRequest
 from trinity.rlp.block_body import BlockBody
 from trinity.sync.common.chain import BaseHeaderChainSyncer
 from trinity.utils.datastructures import (
@@ -128,7 +123,7 @@ class WaitingPeers:
         return peer
 
 
-class BaseBodyChainSyncer(BaseHeaderChainSyncer):
+class BaseBodyChainSyncer(BaseHeaderChainSyncer, PeerSubscriber):
 
     NO_PEER_RETRY_PAUSE = 5.0
     "If no peers are available for downloading the chain data, retry after this many seconds"
@@ -138,18 +133,15 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
 
     db: AsyncChainDB
 
-    subscription_msg_types: Set[Type[Command]] = {
-        commands.NewBlock,
-        commands.GetBlockHeaders,
-        commands.GetBlockBodies,
-        commands.GetReceipts,
-        commands.GetNodeData,
-        # TODO: all of the following are here to quiet warning logging output
-        # until the messages are properly handled.
-        commands.Transactions,
-        commands.NewBlockHashes,
-    }
     _pending_bodies: Dict[BlockHeader, BlockBody]
+
+    # We are only interested in peers entering or leaving the pool
+    subscription_msg_types: Set[Type[Command]] = set()
+
+    # This is a rather arbitrary value, but when the sync is operating normally we never see
+    # the msg queue grow past a few hundred items, so this should be a reasonable limit for
+    # now.
+    msg_queue_maxsize = 2000
 
     # This class uses the standard ethereum chain tip monitor
     tip_monitor_class = ETHChainTipMonitor
@@ -170,6 +162,10 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
         # - try to get bodies from lower block numbers first
         buffer_size = MAX_BODIES_FETCH * REQUEST_BUFFER_MULTIPLIER
         self._block_body_tasks = TaskQueue(buffer_size, attrgetter('block_number'))
+
+    async def _run(self) -> None:
+        with self.subscribe(self.peer_pool):
+            await super()._run()
 
     async def _assign_body_download_to_peers(self) -> None:
         """
@@ -335,50 +331,6 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
             raise
 
         return block_body_bundles
-
-    async def _handle_msg(self, peer: BaseChainPeer, cmd: protocol.Command,
-                          msg: protocol._DecodedMsgType) -> None:
-        peer = cast(ETHPeer, peer)
-
-        # TODO: stop ignoring these once we have proper handling for these messages.
-        ignored_commands = (commands.Transactions, commands.NewBlockHashes, commands.NewBlock)
-
-        if isinstance(cmd, ignored_commands):
-            pass
-        elif isinstance(cmd, commands.GetBlockHeaders):
-            await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
-        elif isinstance(cmd, commands.GetBlockBodies):
-            # Only serve up to MAX_BODIES_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:MAX_BODIES_FETCH]
-            await self._handler.handle_get_block_bodies(peer, block_hashes)
-        elif isinstance(cmd, commands.GetReceipts):
-            # Only serve up to MAX_RECEIPTS_FETCH items in every request.
-            block_hashes = cast(List[Hash32], msg)[:MAX_RECEIPTS_FETCH]
-            await self._handler.handle_get_receipts(peer, block_hashes)
-        elif isinstance(cmd, commands.GetNodeData):
-            # Only serve up to MAX_STATE_FETCH items in every request.
-            node_hashes = cast(List[Hash32], msg)[:MAX_STATE_FETCH]
-            await self._handler.handle_get_node_data(peer, node_hashes)
-        else:
-            self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
-
-    async def _handle_get_block_headers(
-            self,
-            peer: ETHPeer,
-            query: Dict[str, Any]) -> None:
-        if not peer.is_operational:
-            return
-        self.logger.debug("Peer %s made header request: %s", peer, query)
-        request = HeaderRequest(
-            query['block_number_or_hash'],
-            query['max_headers'],
-            query['skip'],
-            query['reverse'],
-        )
-
-        headers = await self._handler.lookup_headers(request)
-        self.logger.trace("Replying to %s with %d headers", peer, len(headers))
-        peer.sub_proto.send_block_headers(headers)
 
 
 class BlockPersistPrereqs(enum.Enum):
