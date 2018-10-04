@@ -1,5 +1,5 @@
-from collections import (
-    namedtuple,
+from typing import (
+    NamedTuple,
 )
 
 from eth_utils import denoms
@@ -19,20 +19,20 @@ SQRT_E_DROP_TIME = 2**20  # seconds
 assert SQRT_E_DROP_TIME % SLOT_DURATION == 0
 
 
-BeaconConfig = namedtuple(
+BeaconConfig = NamedTuple(
     'BeaconConfig',
-    [
-        'base_reward_quotient',
-        'default_end_dynasty',
-        'deposit_size',
-        'cycle_length',
-        'max_validator_count',
-        'min_committee_size',
-        'min_dynasty_length',
-        'shard_count',
-        'slot_duration',
-        'sqrt_e_drop_time',
-    ]
+    (
+        ('base_reward_quotient', int),
+        ('default_end_dynasty', int),
+        ('deposit_size', int),
+        ('cycle_length', int),
+        ('max_validator_count', int),
+        ('min_committee_size', int),
+        ('min_dynasty_length', int),
+        ('shard_count', int),
+        ('slot_duration', int),
+        ('sqrt_e_drop_time', int),
+    )
 )
 
 
@@ -47,18 +47,17 @@ def generate_config(*,
                     shard_count: int=SHARD_COUNT,
                     slot_duration: int=SLOT_DURATION,
                     sqrt_e_drop_time: int=SQRT_E_DROP_TIME) -> BeaconConfig:
-
     return BeaconConfig(
-        base_reward_quotient=BASE_REWARD_QUOTIENT,
-        default_end_dynasty=DEFAULT_END_DYNASTY,
-        deposit_size=DEPOSIT_SIZE,
-        cycle_length=CYCLE_LENGTH,
-        max_validator_count=MAX_VALIDATOR_COUNT,
-        min_committee_size=MIN_COMMITTEE_SIZE,
-        min_dynasty_length=MIN_DYNASTY_LENGTH,
-        shard_count=SHARD_COUNT,
-        slot_duration=SLOT_DURATION,
-        sqrt_e_drop_time=SQRT_E_DROP_TIME
+        base_reward_quotient=base_reward_quotient,
+        default_end_dynasty=default_end_dynasty,
+        deposit_size=deposit_size,
+        cycle_length=cycle_length,
+        max_validator_count=max_validator_count,
+        min_committee_size=min_committee_size,
+        min_dynasty_length=min_dynasty_length,
+        shard_count=shard_count,
+        slot_duration=slot_duration,
+        sqrt_e_drop_time=sqrt_e_drop_time
     )
 
 
