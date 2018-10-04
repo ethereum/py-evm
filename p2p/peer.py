@@ -385,13 +385,27 @@ class BasePeer(BaseService):
 
     async def read_msg(self) -> Tuple[protocol.Command, protocol.PayloadType]:
         header_data = await self.read(HEADER_LEN + MAC_LEN)
-        header = self.decrypt_header(header_data)
+        try:
+            header = self.decrypt_header(header_data)
+        except DecryptionError as err:
+            self.logger.debug(
+                "Bad message header from peer %s: Error: %r",
+                self, err,
+            )
+            raise MalformedMessage from err
         frame_size = self.get_frame_size(header)
         # The frame_size specified in the header does not include the padding to 16-byte boundary,
         # so need to do this here to ensure we read all the frame's data.
         read_size = roundup_16(frame_size)
         frame_data = await self.read(read_size + MAC_LEN)
-        msg = self.decrypt_body(frame_data, frame_size)
+        try:
+            msg = self.decrypt_body(frame_data, frame_size)
+        except DecryptionError as err:
+            self.logger.debug(
+                "Bad message body from peer %s: Error: %r",
+                self, err,
+            )
+            raise MalformedMessage from err
         cmd = self.get_protocol_command_for(msg)
         # NOTE: This used to be a bottleneck but it doesn't seem to be so anymore. If we notice
         # too much time is being spent on this again, we need to consider running this in a
