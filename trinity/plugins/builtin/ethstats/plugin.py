@@ -7,8 +7,10 @@ from argparse import (
     _SubParsersAction,
 )
 
-from eth.chains.mainnet import MAINNET_NETWORK_ID
-from eth.chains.ropsten import ROPSTEN_NETWORK_ID
+from trinity.constants import (
+    MAINNET_NETWORK_ID,
+    ROPSTEN_NETWORK_ID,
+)
 from trinity.extensibility import (
     BaseIsolatedPlugin,
 )
