@@ -10,7 +10,7 @@ Guide to set up `GRPCServer` and `GRPCClient`
 
 To make the Python code work with the P2P layer in Go, we need to
 - [Spin up the gRPC server in Python](#spinning-up-grpc-server)
-- [Spin up the P2P node in Go](#spinning-up-the-p2p-node), which implies the gRPC server and client in Go are set up as well)
+- [Spin up the P2P node in Go](#spinning-up-the-p2p-node). This implies the gRPC server and client in Go are set up as well.
 
 ### Spinning up gRPC server
 ```
