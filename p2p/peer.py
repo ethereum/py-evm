@@ -389,8 +389,8 @@ class BasePeer(BaseService):
             header = self.decrypt_header(header_data)
         except DecryptionError as err:
             self.logger.debug(
-                "Unable to decrypt header in message from peer %s: HEADER: %s Error: %r",
-                self, header_data, err,
+                "Bad message header from peer %s: Error: %r",
+                self, err,
             )
             raise MalformedMessage from err
         frame_size = self.get_frame_size(header)
@@ -402,8 +402,8 @@ class BasePeer(BaseService):
             msg = self.decrypt_body(frame_data, frame_size)
         except DecryptionError as err:
             self.logger.debug(
-                "Unable to decrypt body in message from peer %s: BODY: %s Error: %r",
-                self, frame_data, err,
+                "Bad message body from peer %s: Error: %r",
+                self, err,
             )
             raise MalformedMessage from err
         cmd = self.get_protocol_command_for(msg)
