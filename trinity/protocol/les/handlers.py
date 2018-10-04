@@ -1,13 +1,11 @@
 from trinity.protocol.common.handlers import (
-    BaseExchangeHandler,
+    BaseChainExchangeHandler,
 )
 
 from .exchanges import GetBlockHeadersExchange
 
 
-class LESExchangeHandler(BaseExchangeHandler):
+class LESExchangeHandler(BaseChainExchangeHandler):
     _exchange_config = {
         'get_block_headers': GetBlockHeadersExchange,
     }
-
-    get_block_headers: GetBlockHeadersExchange

@@ -6,7 +6,6 @@ from typing import (
     AsyncIterator,
     Iterator,
     Tuple,
-    Union,
     cast,
 )
 
@@ -34,12 +33,9 @@ from p2p.service import BaseService
 
 from trinity.db.header import AsyncHeaderDB
 from trinity.p2p.handlers import PeerRequestHandler
-from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
-from trinity.protocol.les.peer import LESPeer, LESPeerPool
+from trinity.protocol.common.peer import BaseChainPeer, BaseChainPeerPool
+from trinity.protocol.eth.peer import ETHPeer
 from trinity.utils.datastructures import TaskQueue
-
-HeaderRequestingPeer = Union[ETHPeer, LESPeer]
-AnyPeerPool = Union[ETHPeerPool, LESPeerPool]
 
 
 class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
@@ -57,14 +53,14 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     def __init__(self,
                  chain: AsyncChain,
                  db: AsyncHeaderDB,
-                 peer_pool: AnyPeerPool,
+                 peer_pool: BaseChainPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
         self.db = db
         self.peer_pool = peer_pool
         self._handler = PeerRequestHandler(self.db, self.logger, self.cancel_token)
-        self._sync_requests: asyncio.Queue[HeaderRequestingPeer] = asyncio.Queue()
+        self._sync_requests: asyncio.Queue[BaseChainPeer] = asyncio.Queue()
         self._peer_header_syncer: 'PeerHeaderSyncer' = None
         self._last_target_header_hash = None
 
@@ -89,7 +85,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             return self._last_target_header_hash
 
     def register_peer(self, peer: BasePeer) -> None:
-        self._sync_requests.put_nowait(cast(HeaderRequestingPeer, self.peer_pool.highest_td_peer))
+        self._sync_requests.put_nowait(cast(BaseChainPeer, self.peer_pool.highest_td_peer))
 
     async def _handle_msg_loop(self) -> None:
         while self.is_operational:
@@ -97,9 +93,9 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             # Our handle_msg() method runs cpu-intensive tasks in sub-processes so that the main
             # loop can keep processing msgs, and that's why we use self.run_task() instead of
             # awaiting for it to finish here.
-            self.run_task(self.handle_msg(cast(HeaderRequestingPeer, peer), cmd, msg))
+            self.run_task(self.handle_msg(cast(BaseChainPeer, peer), cmd, msg))
 
-    async def handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
+    async def handle_msg(self, peer: BaseChainPeer, cmd: protocol.Command,
                          msg: protocol._DecodedMsgType) -> None:
         try:
             await self._handle_msg(peer, cmd, msg)
@@ -128,7 +124,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         return self._peer_header_syncer is not None
 
     @contextmanager
-    def _get_peer_header_syncer(self, peer: HeaderRequestingPeer) -> Iterator['PeerHeaderSyncer']:
+    def _get_peer_header_syncer(self, peer: BaseChainPeer) -> Iterator['PeerHeaderSyncer']:
         if self._syncing:
             raise ValidationError("Cannot sync headers from two peers at the same time")
 
@@ -150,7 +146,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             self._last_target_header_hash = self._peer_header_syncer.get_target_header_hash()
             self._peer_header_syncer = None
 
-    async def sync(self, peer: HeaderRequestingPeer) -> None:
+    async def sync(self, peer: BaseChainPeer) -> None:
         if self._syncing:
             self.logger.debug(
                 "Got a NewBlock or a new peer, but already syncing so doing nothing")
@@ -167,7 +163,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
                 await self.wait(self.header_queue.add(new_headers))
 
     @abstractmethod
-    async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
+    async def _handle_msg(self, peer: BaseChainPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
@@ -184,7 +180,7 @@ class PeerHeaderSyncer(BaseService):
     def __init__(self,
                  chain: AsyncChain,
                  db: AsyncHeaderDB,
-                 peer: HeaderRequestingPeer,
+                 peer: BaseChainPeer,
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
@@ -346,7 +342,7 @@ class PeerHeaderSyncer(BaseService):
             start_at = last_received_header.block_number + 1
 
     async def _request_headers(
-            self, peer: HeaderRequestingPeer, start_at: int) -> Tuple[BlockHeader, ...]:
+            self, peer: BaseChainPeer, start_at: int) -> Tuple[BlockHeader, ...]:
         """Fetch a batch of headers starting at start_at and return the ones we're missing."""
         self.logger.debug("Requsting chain of headers from %s starting at #%d", peer, start_at)
 

@@ -15,7 +15,6 @@ from typing import (
     Set,
     Tuple,
     Type,
-    Union,
     cast,
 )
 
@@ -49,6 +48,7 @@ from p2p.protocol import Command
 
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB
+from trinity.protocol.common.peer import BaseChainPeer
 from trinity.protocol.eth import commands
 from trinity.protocol.eth.constants import (
     MAX_BODIES_FETCH,
@@ -57,7 +57,6 @@ from trinity.protocol.eth.constants import (
 )
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 from trinity.protocol.eth.requests import HeaderRequest
-from trinity.protocol.les.peer import LESPeer
 from trinity.rlp.block_body import BlockBody
 from trinity.sync.common.chain import BaseHeaderChainSyncer
 from trinity.utils.datastructures import (
@@ -69,7 +68,6 @@ from trinity.utils.datastructures import (
 )
 from trinity.utils.timer import Timer
 
-HeaderRequestingPeer = Union[LESPeer, ETHPeer]
 # (ReceiptBundle, (Receipt, (root_hash, receipt_trie_data))
 ReceiptBundle = Tuple[Tuple[Receipt, ...], Tuple[Hash32, Dict[Hash32, bytes]]]
 # (BlockBody, (txn_root, txn_trie_data), uncles_hash)
@@ -334,7 +332,7 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
 
         return block_body_bundles
 
-    async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: protocol.Command,
+    async def _handle_msg(self, peer: BaseChainPeer, cmd: protocol.Command,
                           msg: protocol._DecodedMsgType) -> None:
         peer = cast(ETHPeer, peer)
 
