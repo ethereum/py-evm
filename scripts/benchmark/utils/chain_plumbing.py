@@ -82,9 +82,6 @@ def get_chain(vm: Type[BaseVM]) -> MiningChain:
     ]
 
     vm_without_pow = vm.configure(validate_seal=lambda block: None)
-    vm_configuration = (
-        (constants.GENESIS_BLOCK_NUMBER, vm_without_pow),
-    )
 
     chain = api.build(
         MiningChain,
