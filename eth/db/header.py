@@ -232,7 +232,10 @@ class HeaderDB(BaseHeaderDB):
                     "Cannot persist block header ({}) with unknown parent ({})".format(
                         encode_hex(first_header.hash), encode_hex(first_header.parent_hash)))
 
-            score = 0 if is_genesis else cls._get_score(db, first_header.parent_hash)
+            if is_genesis:
+                score = 0
+            else:
+                score = cls._get_score(db, first_header.parent_hash)
 
         for header in headers:
             db.set(
@@ -251,21 +254,12 @@ class HeaderDB(BaseHeaderDB):
             previous_canonical_head = cls._get_canonical_head(db).hash
             head_score = cls._get_score(db, previous_canonical_head)
         except CanonicalHeadNotFound:
-            (
-                new_canonical_headers,
-                old_canonical_headers
-            ) = cls._set_as_canonical_chain_head(db, header.hash)
-        else:
-            if score > head_score:
-                (
-                    new_canonical_headers,
-                    old_canonical_headers
-                ) = cls._set_as_canonical_chain_head(db, header.hash)
-            else:
-                new_canonical_headers = tuple()
-                old_canonical_headers = tuple()
+            return cls._set_as_canonical_chain_head(db, header.hash)
 
-        return new_canonical_headers, old_canonical_headers
+        if score > head_score:
+            return cls._set_as_canonical_chain_head(db, header.hash)
+        else:
+            return tuple(), tuple()
 
     @classmethod
     def _set_as_canonical_chain_head(cls, db: BaseDB, block_hash: Hash32

@@ -46,11 +46,11 @@ from eth.beacon.types.block import BaseBeaconBlock  # noqa: F401
 class BaseBeaconChainDB(ABC):
     db = None  # type: BaseAtomicDB
 
-    # FIXME: Define more abstractmethod
+    # TODO: Define more abstractmethod
 
     @abstractmethod
     def __init__(self, db: BaseAtomicDB) -> None:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        self.db = db
 
     #
     # Block API
@@ -115,19 +115,12 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         Raises BlockNotFound if there's no block with the given number in the
         canonical chain.
-
-        NOTE: copied from ``eth.db.header.HeaderDB.get_canonical_block_hash``,
-        and changed "header" to "block".
         """
         return self._get_canonical_block_hash(self.db, slot)
 
     @staticmethod
     def _get_canonical_block_hash(db: BaseDB, slot: int) -> Hash32:
-        """
-        NOTE: copied from ``eth.db.header.HeaderDB._get_canonical_block_hash``,
-        and changed "header" to "block".
-        """
-        validate_block_number(slot, title="Slot")  # FIXME: Create validate_slot
+        validate_block_number(slot, title="Slot")  # TODO: Create validate_slot
         slot_to_hash_key = SchemaV1.make_block_slot_to_hash_lookup_key(slot)
         try:
             encoded_key = db[slot_to_hash_key]
@@ -144,9 +137,6 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         Raises BlockNotFound if there's no block with the given slot in the
         canonical chain.
-
-        NOTE: copied from ``eth.db.header.HeaderDB.get_canonical_block_header_by_number``,
-        and changed "header" to "block".
         """
         return self._get_canonical_block_by_slot(self.db, slot)
 
@@ -155,11 +145,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             cls,
             db: BaseDB,
             slot: int) -> BaseBeaconBlock:
-        validate_block_number(slot, title="Slot")  # FIXME: Create validate_slot
-        """
-        NOTE: copied from ``eth.db.header.HeaderDB._get_canonical_block_header_by_number``,
-        and changed "header" to "block".
-        """
+        validate_block_number(slot, title="Slot")  # TODO: Create validate_slot
         canonical_block_hash = cls._get_canonical_block_hash(db, slot)
         return cls._get_block_by_hash(db, canonical_block_hash)
 
@@ -171,10 +157,6 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     @classmethod
     def _get_canonical_head(cls, db: BaseDB) -> BaseBeaconBlock:
-        """
-        NOTE: copied from ``eth.db.header.HeaderDB._get_canonical_head``,
-        and changed "header" to "block".
-        """
         try:
             canonical_head_hash = db[SchemaV1.make_canonical_head_hash_lookup_key()]
         except KeyError:
@@ -190,9 +172,6 @@ class BeaconChainDB(BaseBeaconChainDB):
         Returns the requested block header as specified by block hash.
 
         Raises BlockNotFound if it is not present in the db.
-
-        NOTE: copied from ``eth.db.header.HeaderDB._get_block_by_hash``,
-        and changed "header" to "block".
         """
         validate_word(block_hash, title="Block Hash")
         try:
@@ -203,18 +182,10 @@ class BeaconChainDB(BaseBeaconChainDB):
         return _decode_block(block_rlp)
 
     def get_score(self, block_hash: Hash32) -> int:
-        """
-        NOTE: copied from ``eth.db.header.HeaderDB.get_score``,
-        and changed "header" to "block".
-        """
         return self._get_score(self.db, block_hash)
 
     @staticmethod
     def _get_score(db: BaseDB, block_hash: Hash32) -> int:
-        """
-        NOTE: copied from ``eth.db.header.HeaderDB._get_score``,
-        and changed "header" to "block".
-        """
         try:
             encoded_score = db[SchemaV1.make_block_hash_to_score_lookup_key(block_hash)]
         except KeyError:
@@ -223,34 +194,23 @@ class BeaconChainDB(BaseBeaconChainDB):
         return rlp.decode(encoded_score, sedes=rlp.sedes.big_endian_int)
 
     def block_exists(self, block_hash: Hash32) -> bool:
-        """
-        NOTE: copied from ``eth.db.header.HeaderDB.header_exists``,
-        and changed "header" to "block".
-        """
         return self._block_exists(self.db, block_hash)
 
     @staticmethod
     def _block_exists(db: BaseDB, block_hash: Hash32) -> bool:
-        """
-        NOTE: copied from ``eth.db.header.HeaderDB._header_exists``,
-        and changed "header" to "block".
-        """
         validate_word(block_hash, title="Block Hash")
         return block_hash in db
 
     def persist_block_chain(
         self,
-        headers: Iterable[BaseBeaconBlock]
+        blocks: Iterable[BaseBeaconBlock]
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         """
         Return two iterable of blocks, the first containing the new canonical blocks,
         the second containing the old canonical headers
-
-        NOTE: copied from ``eth.db.header.HeaderDB.persist_header_chain``,
-        and changed "header" to "block".
         """
         with self.db.atomic_batch() as db:
-            return self._persist_block_chain(db, headers)
+            return self._persist_block_chain(db, blocks)
 
     @classmethod
     def _persist_block_chain(
@@ -258,13 +218,6 @@ class BeaconChainDB(BaseBeaconChainDB):
             db: BaseDB,
             blocks: Iterable[BaseBeaconBlock]
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
-        """
-
-        NOTE: copied from ``eth.db.header.HeaderDB._persist_header_chain``,
-        and changed "header" to "block".
-        NOTE: moodified a lot
-        """
-
         try:
             first_block = first(blocks)
         except StopIteration:
@@ -286,7 +239,10 @@ class BeaconChainDB(BaseBeaconChainDB):
                     "Cannot persist block ({}) with unknown parent ({})".format(
                         encode_hex(first_block.hash), encode_hex(first_block.parent_hash)))
 
-            score = 0 if is_genesis else cls._get_score(db, first_block.parent_hash)
+            if is_genesis:
+                score = 0
+            else:
+                score = cls._get_score(db, first_block.parent_hash)
 
         for block in blocks:
             db.set(
@@ -294,7 +250,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                 rlp.encode(block),
             )
 
-            # FIXME: It's a stub before we implement fork choice rule
+            # TODO: It's a stub before we implement fork choice rule
             score += block.slot_number
 
             db.set(
@@ -306,21 +262,12 @@ class BeaconChainDB(BaseBeaconChainDB):
             previous_canonical_head = cls._get_canonical_head(db).hash
             head_score = cls._get_score(db, previous_canonical_head)
         except CanonicalHeadNotFound:
-            (
-                new_canonical_blocks,
-                old_canonical_blocks
-            ) = cls._set_as_canonical_chain_head(db, block.hash)
-        else:
-            if score > head_score:
-                (
-                    new_canonical_blocks,
-                    old_canonical_blocks
-                ) = cls._set_as_canonical_chain_head(db, block.hash)
-            else:
-                new_canonical_blocks = tuple()
-                old_canonical_blocks = tuple()
+            return cls._set_as_canonical_chain_head(db, block.hash)
 
-        return new_canonical_blocks, old_canonical_blocks
+        if score > head_score:
+            return cls._set_as_canonical_chain_head(db, block.hash)
+        else:
+            return tuple(), tuple()
 
     @classmethod
     def _set_as_canonical_chain_head(
@@ -332,10 +279,6 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         :return: a tuple of the blocks that are newly in the canonical chain, and the blocks that
             are no longer in the canonical chain
-
-        NOTE: copied from ``eth.db.header.HeaderDB._set_as_canonical_chain_head``,
-        and changed "header" to "block".
-        NOTE: modified a lot.
         """
         try:
             block = cls._get_block_by_hash(db, block_hash)
@@ -377,9 +320,6 @@ class BeaconChainDB(BaseBeaconChainDB):
         A - B - C - D
                \
                 E - F
-
-        NOTE: copied from ``eth.db.header.HeaderDB._find_new_ancestors``,
-        and changed "header" to "block".
         """
         while True:
             try:
@@ -405,9 +345,6 @@ class BeaconChainDB(BaseBeaconChainDB):
         """
         Sets a record in the database to allow looking up this block by its
         block slot.
-
-        NOTE: copied from ``eth.db.header.HeaderDB._add_block_number_to_hash_lookup``,
-        and changed "header" to "block".
         """
         block_slot_to_hash_key = SchemaV1.make_block_slot_to_hash_lookup_key(
             block.slot_number
