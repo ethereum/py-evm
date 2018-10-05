@@ -1,7 +1,5 @@
 from typing import (
-    Any,
     Iterable,
-    NamedTuple,
     Type
 )
 
@@ -11,7 +9,6 @@ from eth_keys import (
 
 from eth_utils import (
     decode_hex,
-    to_dict,
     to_wei,
 )
 
@@ -31,15 +28,9 @@ from eth.vm.base import (
 from eth.chains.mainnet import (
     BaseMainnetChain,
 )
-from eth.db.atomic import (
-    AtomicDB,
+from eth.tools.builder.chain import (
+    api,
 )
-
-AddressSetup = NamedTuple('AddressSetup', [
-    ('address', Address),
-    ('balance', int),
-    ('code', bytes)
-])
 
 ALL_VM = [vm for _, vm in BaseMainnetChain.vm_configuration]
 
@@ -71,52 +62,29 @@ GENESIS_PARAMS = {
 }
 
 
-@to_dict
-def genesis_state(setup: Iterable[AddressSetup]) -> Any:
-    for value in setup:
-        yield value.address, {
-            "balance": value.balance,
-            "nonce": 0,
-            "code": value.code,
-            "storage": {}
-        }
-
-
-def chain_without_pow(
-        base_db: AtomicDB,
-        vm: Type[BaseVM],
-        genesis_params: Any,
-        genesis_state: Any) -> MiningChain:
+def get_chain(vm: Type[BaseVM]) -> MiningChain:
+    # Genesis Block state
+    gen_state = [
+        (FUNDED_ADDRESS, {
+            "balance": DEFAULT_INITIAL_BALANCE,
+            "code": b'',
+        }),
+        (SECOND_ADDRESS, {
+            "balance": DEFAULT_INITIAL_BALANCE,
+            "code": b'',
+        }),
+    ]
 
     vm_without_pow = vm.configure(validate_seal=lambda block: None)
 
-    klass = MiningChain.configure(
-        __name__='TestChain',
-        vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, vm_without_pow),
-        ))
-    chain = klass.from_genesis(base_db, genesis_params, genesis_state)
-    return chain
-
-
-def get_chain(vm: Type[BaseVM]) -> MiningChain:
-    return chain_without_pow(
-        AtomicDB(),
-        vm,
-        GENESIS_PARAMS,
-        genesis_state([
-            AddressSetup(
-                address=FUNDED_ADDRESS,
-                balance=DEFAULT_INITIAL_BALANCE,
-                code=b''
-            ),
-            AddressSetup(
-                address=SECOND_ADDRESS,
-                balance=DEFAULT_INITIAL_BALANCE,
-                code=b''
-            ),
-        ])
+    chain = api.build(
+        MiningChain,
+        api.fork_at(vm_without_pow, constants.GENESIS_BLOCK_NUMBER),
+        api.disable_pow_check(),
+        api.genesis(params=GENESIS_PARAMS, state=gen_state)
     )
+
+    return chain
 
 
 def get_all_chains() -> Iterable[MiningChain]:
