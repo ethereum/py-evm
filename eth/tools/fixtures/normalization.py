@@ -66,13 +66,10 @@ def normalize_int(value):
 
 
 def normalize_bytes(value):
-    # type(value) maybe also bytes. But for `is_hex(value)` function
-    # value has to be only of the type string
-    value = value.decode('utf-8')
-    if len(value) or is_hex(value) == 0:
-        return decode_hex(value)
-    elif is_bytes(value):
+    if is_bytes(value):
         return value
+    elif is_text(value) and is_hex(value):
+        return decode_hex(value)
     else:
         raise TypeError("Value must be either a string or bytes object")
 
