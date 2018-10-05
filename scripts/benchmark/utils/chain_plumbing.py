@@ -1,7 +1,5 @@
 from typing import (
-    Any,
     Iterable,
-    NamedTuple,
     Type
 )
 
@@ -11,7 +9,6 @@ from eth_keys import (
 
 from eth_utils import (
     decode_hex,
-    to_dict,
     to_wei,
 )
 
@@ -30,9 +27,6 @@ from eth.vm.base import (
 )
 from eth.chains.mainnet import (
     BaseMainnetChain,
-)
-from eth.db.atomic import (
-    AtomicDB,
 )
 from eth.tools.builder.chain import (
     api,
@@ -72,12 +66,12 @@ def get_chain(vm: Type[BaseVM]) -> MiningChain:
     # Genesis Block state
     gen_state = [
         (FUNDED_ADDRESS, {
-            "balance" : DEFAULT_INITIAL_BALANCE,
-            "code" : b'',
+            "balance": DEFAULT_INITIAL_BALANCE,
+            "code": b'',
         }),
         (SECOND_ADDRESS, {
-            "balance" : DEFAULT_INITIAL_BALANCE,
-            "code" : b'',
+            "balance": DEFAULT_INITIAL_BALANCE,
+            "code": b'',
         }),
     ]
 
