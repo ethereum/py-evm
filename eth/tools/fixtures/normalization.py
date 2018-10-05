@@ -24,6 +24,7 @@ from eth_utils import (
     is_hex,
     is_integer,
     is_string,
+    is_text,
     to_bytes,
     to_canonical_address,
     to_dict,
@@ -66,10 +67,10 @@ def normalize_int(value):
 
 
 def normalize_bytes(value):
-    if is_hex(value) or len(value) == 0:
-        return decode_hex(value)
-    elif is_bytes(value):
+    if is_bytes(value):
         return value
+    elif is_text(value) and is_hex(value):
+        return decode_hex(value)
     else:
         raise TypeError("Value must be either a string or bytes object")
 
