@@ -34,19 +34,19 @@ from eth.exceptions import (
     ParentNotFound,
 )
 from eth.validation import (
-    validate_block_number,
     validate_word,
+)
+
+from eth.beacon.types.block import BaseBeaconBlock  # noqa: F401
+from eth.beacon.validation import (
+    validate_slot,
 )
 
 from eth.beacon.db.schema import SchemaV1
 
-from eth.beacon.types.block import BaseBeaconBlock  # noqa: F401
-
 
 class BaseBeaconChainDB(ABC):
     db = None  # type: BaseAtomicDB
-
-    # TODO: Define more abstractmethod
 
     @abstractmethod
     def __init__(self, db: BaseAtomicDB) -> None:
@@ -58,6 +58,37 @@ class BaseBeaconChainDB(ABC):
     @abstractmethod
     def persist_block(self,
                       block: BaseBeaconBlock) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+
+    @abstractmethod
+    def get_canonical_block_hash(self, slot: int) -> Hash32:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+
+    @abstractmethod
+    def get_canonical_block_by_slot(self, slot: int) -> BaseBeaconBlock:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+
+    @abstractmethod
+    def get_canonical_head(self) -> BaseBeaconBlock:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+
+    @abstractmethod
+    def get_block_by_hash(self, block_hash: Hash32) -> BaseBeaconBlock:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+
+    @abstractmethod
+    def get_score(self, block_hash: Hash32) -> int:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+
+    @abstractmethod
+    def block_exists(self, block_hash: Hash32) -> bool:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+
+    @abstractmethod
+    def persist_block_chain(
+        self,
+        blocks: Iterable[BaseBeaconBlock]
+    ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         raise NotImplementedError("BeaconChainDB classes must implement this method")
 
     #
@@ -120,7 +151,7 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     @staticmethod
     def _get_canonical_block_hash(db: BaseDB, slot: int) -> Hash32:
-        validate_block_number(slot, title="Slot")  # TODO: Create validate_slot
+        validate_slot(slot)
         slot_to_hash_key = SchemaV1.make_block_slot_to_hash_lookup_key(slot)
         try:
             encoded_key = db[slot_to_hash_key]
@@ -145,7 +176,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             cls,
             db: BaseDB,
             slot: int) -> BaseBeaconBlock:
-        validate_block_number(slot, title="Slot")  # TODO: Create validate_slot
+        validate_slot(slot)
         canonical_block_hash = cls._get_canonical_block_hash(db, slot)
         return cls._get_block_by_hash(db, canonical_block_hash)
 

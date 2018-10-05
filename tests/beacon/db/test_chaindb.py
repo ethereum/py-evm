@@ -70,7 +70,6 @@ def test_chaindb_persist_block_and_unknown_parent(chaindb, block, seed):
 
 
 def test_chaindb_persist_block_and_block_to_hash(chaindb, block):
-    # block = block.copy(header=set_empty_root(chaindb, block.header))
     block_to_hash_key = SchemaV1.make_block_hash_to_score_lookup_key(block.hash)
     assert not chaindb.exists(block_to_hash_key)
     chaindb.persist_block(block)
@@ -89,7 +88,6 @@ def test_chaindb_get_score(chaindb, genesis_block, sample_block_params):
     assert genesis_score == 0
     assert chaindb.get_score(genesis.hash) == 0
 
-    # block1 = BlockHeader(difficulty=10, block_number=1, gas_limit=0, parent_hash=genesis.hash)
     block1 = BaseBeaconBlock(**sample_block_params).copy(
         parent_hash=genesis.hash,
         slot_number=1,
@@ -102,8 +100,7 @@ def test_chaindb_get_score(chaindb, genesis_block, sample_block_params):
     assert chaindb.get_score(block1.hash) == 1
 
 
-def test_chaindb_get_block_header_by_hash(chaindb, block):
-    # block = block.copy(header=set_empty_root(chaindb, block.header))
+def test_chaindb_get_block_by_hash(chaindb, block):
     chaindb.persist_block(block)
     result_block = chaindb.get_block_by_hash(block.hash)
     validate_rlp_equal(result_block, block)
