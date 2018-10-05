@@ -346,7 +346,12 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         """
         self.logger.debug("Fetching header %s from %s", encode_hex(block_hash), peer)
         max_headers = 1
-        headers = await peer.requests.get_block_headers(block_hash, max_headers, 0, False)
+        headers = await peer.requests.get_block_headers(
+            block_hash,
+            max_headers,
+            skip=0,
+            reverse=False,
+        )
         if not headers:
             raise HeaderNotFound("Peer {} has no block with hash {}".format(peer, block_hash))
         header = headers[0]

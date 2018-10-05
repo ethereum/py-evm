@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import operator
 import random
 from typing import (
@@ -28,6 +29,7 @@ from p2p.peer import (
 )
 
 from trinity.db.header import BaseAsyncHeaderDB
+from trinity.protocol.common.handlers import BaseChainExchangeHandler
 
 from .boot import DAOCheckBootManager
 from .context import ChainContext
@@ -46,6 +48,16 @@ class BaseChainPeer(BasePeer):
 
     head_td: int = None
     head_hash: Hash32 = None
+
+    @property
+    @abstractmethod
+    def requests(self) -> BaseChainExchangeHandler:
+        pass
+
+    @property
+    @abstractmethod
+    def max_headers_fetch(self) -> int:
+        pass
 
     @property
     def headerdb(self) -> BaseAsyncHeaderDB:

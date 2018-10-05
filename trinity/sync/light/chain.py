@@ -4,7 +4,6 @@ from typing import (
     Dict,
     Set,
     Type,
-    Union,
 )
 
 from p2p.protocol import (
@@ -12,14 +11,12 @@ from p2p.protocol import (
     _DecodedMsgType,
 )
 
-from trinity.protocol.eth.peer import ETHPeer
+from trinity.protocol.common.peer import BaseChainPeer
 from trinity.protocol.les import commands
 from trinity.protocol.les.peer import LESPeer
 from trinity.protocol.les.requests import HeaderRequest
 from trinity.sync.common.chain import BaseHeaderChainSyncer
 from trinity.utils.timer import Timer
-
-HeaderRequestingPeer = Union[ETHPeer, LESPeer]
 
 
 class LightChainSyncer(BaseHeaderChainSyncer):
@@ -35,7 +32,7 @@ class LightChainSyncer(BaseHeaderChainSyncer):
         self.run_task(self._persist_headers())
         await super()._run()
 
-    async def _handle_msg(self, peer: HeaderRequestingPeer, cmd: Command,
+    async def _handle_msg(self, peer: BaseChainPeer, cmd: Command,
                           msg: _DecodedMsgType) -> None:
         if isinstance(cmd, commands.Announce):
             self._sync_requests.put_nowait(peer)

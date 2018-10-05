@@ -1,11 +1,16 @@
 from abc import ABC, abstractmethod
 from typing import (
     Any,
+    Awaitable,
+    Callable,
     Dict,
     Iterator,
+    Tuple,
     Type,
+    TYPE_CHECKING,
 )
 
+from eth.rlp.headers import BlockHeader
 from p2p.peer import BasePeer
 
 from trinity.protocol.common.exchanges import (
@@ -46,3 +51,16 @@ class BaseExchangeHandler(ABC):
             for exchange
             in self
         }
+
+
+if TYPE_CHECKING:
+    from mypy_extensions import DefaultArg
+    BlockHeadersCallable = Callable[
+        [BaseExchangeHandler, int, int, DefaultArg(int, 'skip'), DefaultArg(int, 'reverse')],
+        Awaitable[Tuple[BlockHeader, ...]]
+    ]
+
+
+# This class is only needed to please mypy for type checking
+class BaseChainExchangeHandler(BaseExchangeHandler):
+    get_block_headers: 'BlockHeadersCallable'
