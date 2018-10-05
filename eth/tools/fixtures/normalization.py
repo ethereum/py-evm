@@ -24,6 +24,7 @@ from eth_utils import (
     is_hex,
     is_integer,
     is_string,
+    is_text,
     to_bytes,
     to_canonical_address,
     to_dict,
