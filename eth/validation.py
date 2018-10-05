@@ -198,7 +198,7 @@ def validate_unique(values, title="Value"):
         )
 
 
-def validate_block_number(block_number, title="Block Number"):
+def validate_block_number(block_number):
     validate_is_integer(block_number, title="Block Number")
     validate_gte(block_number, 0, title="Block Number")
 

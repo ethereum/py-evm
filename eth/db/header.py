@@ -104,7 +104,7 @@ class HeaderDB(BaseHeaderDB):
 
     @staticmethod
     def _get_canonical_block_hash(db: BaseDB, block_number: BlockNumber) -> Hash32:
-        validate_block_number(block_number, title="Block Number")
+        validate_block_number(block_number)
         number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(block_number)
 
         try:
@@ -130,7 +130,7 @@ class HeaderDB(BaseHeaderDB):
             cls,
             db: BaseDB,
             block_number: BlockNumber) -> BlockHeader:
-        validate_block_number(block_number, title="Block Number")
+        validate_block_number(block_number)
         canonical_block_hash = cls._get_canonical_block_hash(db, block_number)
         return cls._get_block_header_by_hash(db, canonical_block_hash)
 
