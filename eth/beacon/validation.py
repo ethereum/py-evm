@@ -1,3 +1,7 @@
+from typing import (
+    Any,
+)
+
 from eth.validation import (
     validate_gte,
     validate_lte,
@@ -5,7 +9,7 @@ from eth.validation import (
 )
 
 
-def validate_slot(slot):
-    validate_is_integer(slot, title="Slot")
-    validate_gte(slot, 0, title="Slot")
-    validate_lte(slot, 2**64 - 1, title="Slot")
+def validate_slot(slot: Any, title: str="Slot") -> None:
+    validate_is_integer(slot, title)
+    validate_gte(slot, 0, title)
+    validate_lte(slot, 2**64 - 1, title)
