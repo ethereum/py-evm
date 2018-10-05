@@ -87,7 +87,7 @@ jobs:
     docker:
       - image: circleci/python:3.5
         environment:
-          TOXENV: lint-py35
+          TOXENV: py35-lint
   py36-lint:
     <<: *common
     docker:
