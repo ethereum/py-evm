@@ -74,7 +74,10 @@ class ByzantiumVM(SpuriousDragonVM):
     compute_difficulty = staticmethod(compute_byzantium_difficulty)
     configure_header = configure_byzantium_header
     make_receipt = staticmethod(make_byzantium_receipt)
-    get_uncle_reward = staticmethod(get_uncle_reward(EIP649_BLOCK_REWARD))
+    # Separated into two steps due to mypy bug of staticmethod.
+    # https://github.com/python/mypy/issues/5530
+    get_uncle_reward = get_uncle_reward(EIP649_BLOCK_REWARD)
+    get_uncle_reward = staticmethod(get_uncle_reward)
 
     @classmethod
     def validate_receipt(cls, receipt: Receipt) -> None:

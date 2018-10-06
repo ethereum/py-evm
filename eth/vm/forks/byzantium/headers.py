@@ -82,8 +82,8 @@ def create_header_from_parent(difficulty_fn: Callable[[BlockHeader, int], int],
         header_params.setdefault('timestamp', parent_header.timestamp + 1)
 
         header_params['difficulty'] = difficulty_fn(
-            parent_header=parent_header,
-            timestamp=header_params['timestamp'],
+            parent_header,
+            header_params['timestamp'],
         )
     return create_frontier_header_from_parent(parent_header, **header_params)
 
