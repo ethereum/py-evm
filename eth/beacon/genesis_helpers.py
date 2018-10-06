@@ -12,7 +12,7 @@ from eth.constants import (
 )
 from eth.beacon.config import BeaconConfig  # noqa: F401
 from eth.beacon.types.active_state import ActiveState
-from eth.beacon.types.block import Block
+from eth.beacon.types.block import BaseBeaconBlock
 from eth.beacon.types.crosslink_record import CrosslinkRecord
 from eth.beacon.types.crystallized_state import CrystallizedState
 from eth.beacon.helpers import (
@@ -72,8 +72,8 @@ def get_genesis_crystallized_state(
 
 
 def get_genesis_block(active_state_root: Hash32,
-                      crystallized_state_root: Hash32) -> Block:
-    return Block(
+                      crystallized_state_root: Hash32) -> BaseBeaconBlock:
+    return BaseBeaconBlock(
         parent_hash=ZERO_HASH32,
         slot_number=0,
         randao_reveal=ZERO_HASH32,

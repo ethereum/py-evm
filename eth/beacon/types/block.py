@@ -26,7 +26,7 @@ from eth.utils.hexadecimal import (
 from .attestation_record import AttestationRecord
 
 
-class Block(rlp.Serializable):
+class BaseBeaconBlock(rlp.Serializable):
     fields = [
         # Hash of the parent block
         ('parent_hash', hash32),

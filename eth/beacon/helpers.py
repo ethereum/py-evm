@@ -33,7 +33,7 @@ from eth.beacon.utils.random import (
 if TYPE_CHECKING:
     from eth.beacon.types.active_state import ActiveState  # noqa: F401
     from eth.beacon.types.attestation_record import AttestationRecord  # noqa: F401
-    from eth.beacon.types.block import Block  # noqa: F401
+    from eth.beacon.types.block import BaseBeaconBlock  # noqa: F401
     from eth.beacon.types.crystallized_state import CrystallizedState  # noqa: F401
     from eth.beacon.types.validator_record import ValidatorRecord  # noqa: F401
 
@@ -113,7 +113,7 @@ def get_hashes_from_recent_block_hashes(
 
 @to_tuple
 def get_hashes_to_sign(recent_block_hashes: Sequence[Hash32],
-                       block: 'Block',
+                       block: 'BaseBeaconBlock',
                        cycle_length: int) -> Iterable[Hash32]:
     """
     Given the head block to attest to, collect the list of hashes to be
@@ -131,7 +131,7 @@ def get_hashes_to_sign(recent_block_hashes: Sequence[Hash32],
 
 @to_tuple
 def get_signed_parent_hashes(recent_block_hashes: Sequence[Hash32],
-                             block: 'Block',
+                             block: 'BaseBeaconBlock',
                              attestation: 'AttestationRecord',
                              cycle_length: int) -> Iterable[Hash32]:
     """
@@ -351,7 +351,7 @@ def get_new_shuffling(seed: Hash32,
 #
 # Get proposer postition
 #
-def get_proposer_position(parent_block: 'Block',
+def get_proposer_position(parent_block: 'BaseBeaconBlock',
                           crystallized_state: 'CrystallizedState',
                           beacon_config: BeaconConfig) -> Tuple[int, int]:
     shards_and_committees = get_shards_and_committees_for_slot(
