@@ -1,6 +1,9 @@
 from typing import (
+    Any,
+    Dict,
     Iterable,
-    Type
+    Tuple,
+    Type,
 )
 
 from eth_keys import (
@@ -64,33 +67,33 @@ GENESIS_PARAMS = {
     'nonce': constants.GENESIS_NONCE
 }
 
+DEFAULT_GENESIS_STATE = [
+    (FUNDED_ADDRESS, {
+        "balance": DEFAULT_INITIAL_BALANCE,
+        "code": b'',
+    }),
+    (SECOND_ADDRESS, {
+        "balance": DEFAULT_INITIAL_BALANCE,
+        "code": b'',
+    }),
+]
 
-def get_chain(vm: Type[BaseVM]) -> MiningChain:
-    # Genesis Block state
-    gen_state = [
-        (FUNDED_ADDRESS, {
-            "balance": DEFAULT_INITIAL_BALANCE,
-            "code": b'',
-        }),
-        (SECOND_ADDRESS, {
-            "balance": DEFAULT_INITIAL_BALANCE,
-            "code": b'',
-        }),
-    ]
+GenesisState = Iterable[Tuple[Address, Dict[str, Any]]]
 
-    vm_without_pow = vm.configure(validate_seal=lambda block: None)
+
+def get_chain(vm: Type[BaseVM], genesis_state: GenesisState) -> MiningChain:
 
     chain = build(
         MiningChain,
-        fork_at(vm_without_pow, constants.GENESIS_BLOCK_NUMBER),
+        fork_at(vm, constants.GENESIS_BLOCK_NUMBER),
         disable_pow_check(),
-        genesis(params=GENESIS_PARAMS, state=gen_state)
+        genesis(params=GENESIS_PARAMS, state=genesis_state)
     )
 
     return chain
 
 
-def get_all_chains() -> Iterable[MiningChain]:
+def get_all_chains(genesis_state: GenesisState=DEFAULT_GENESIS_STATE) -> Iterable[MiningChain]:
     for vm in ALL_VM:
-        chain = get_chain(vm)
+        chain = get_chain(vm, DEFAULT_GENESIS_STATE)
         yield chain
