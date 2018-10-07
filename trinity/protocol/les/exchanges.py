@@ -11,20 +11,27 @@ from eth.rlp.headers import BlockHeader
 from trinity.protocol.common.exchanges import (
     BaseExchange,
 )
+# Q: What is the order to imports?  and why sometimes new line between imports and sometimes not?
+from trinity.protocol.common.types import BlockBodyBundles
+from trinity.rlp.block_body import BlockBody
 from trinity.utils.les import (
     gen_request_id,
 )
 
 from .normalizers import (
     BlockHeadersNormalizer,
+    GetBlockBodiesNormalizer,
 )
 from .requests import (
     GetBlockHeadersRequest,
+    GetBlockBodiesRequest,
 )
 from .trackers import (
     GetBlockHeadersTracker,
+    GetBlockBodiesTracker,
 )
 from .validators import (
+    GetBlockBodiesValidator,
     GetBlockHeadersValidator,
     match_payload_request_id,
 )
@@ -53,6 +60,28 @@ class GetBlockHeadersExchange(LESExchange[Tuple[BlockHeader, ...]]):
 
         command_args = original_request_args + (gen_request_id(),)
         request = self.request_class(*command_args)  # type: ignore
+
+        return await self.get_result(
+            request,
+            self._normalizer,
+            validator,
+            match_payload_request_id,
+            timeout,
+        )
+
+# Q: Where can I find the correct signature for this class?
+class GetBlockBodiesExchange(LESExchange[Tuple[BlockBody, ...]]):
+    _normalizer = GetBlockBodiesNormalizer()
+    request_class = GetBlockBodiesRequest
+    tracker_class = GetBlockBodiesTracker
+
+    async def __call__(self,  # type: ignore
+                       headers: Tuple[BlockHeader, ...],
+                       timeout: float = None) -> BlockBodyBundles:
+        validator = GetBlockBodiesValidator(headers)
+
+        block_hashes = tuple(header.hash for header in headers)
+        request = self.request_class(block_hashes, gen_request_id())
 
         return await self.get_result(
             request,

@@ -1,9 +1,13 @@
 from typing import (
     Any,
     Dict,
+    Tuple,
 )
 
-from eth_typing import BlockIdentifier
+from eth_typing import (
+    BlockIdentifier,
+    Hash32,
+)
 
 from p2p.protocol import BaseRequest
 
@@ -16,6 +20,8 @@ from .commands import (
     BlockHeaders,
     GetBlockHeaders,
     GetBlockHeadersQuery,
+    BlockBodies,
+    GetBlockBodies,
 )
 
 
@@ -58,4 +64,17 @@ class GetBlockHeadersRequest(BaseRequest[Dict[str, Any]]):
                 skip,
                 reverse,
             ),
+        }
+
+
+class GetBlockBodiesRequest(BaseRequest[Tuple[Hash32, ...]]):
+    cmd_type = GetBlockBodies
+    response_type = BlockBodies
+
+    def __init__(self,
+                 block_hashes: Tuple[Hash32, ...],
+                 request_id: int) -> None:
+        self.command_payload = {
+            'request_id': request_id,
+            'block_hashes': block_hashes,
         }

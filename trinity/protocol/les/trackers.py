@@ -6,10 +6,12 @@ from typing import (
 from eth.rlp.headers import BlockHeader
 
 from trinity.protocol.common.trackers import BasePerformanceTracker
+from trinity.rlp.block_body import BlockBody
 from trinity.utils.headers import sequence_builder
 
 from .requests import (
     GetBlockHeadersRequest,
+    GetBlockBodiesRequest,
 )
 
 
@@ -36,4 +38,22 @@ class GetBlockHeadersTracker(BaseGetBlockHeadersTracker):
         return len(result)
 
     def _get_result_item_count(self, result: Tuple[BlockHeader, ...]) -> int:
+        return len(result)
+
+
+BaseGetBlockBodiesTracker = BasePerformanceTracker[
+    GetBlockBodiesRequest,
+    Tuple[BlockBody, ...],
+]
+
+
+# Q: Where can I find the signature for this class?
+class GetBlockBodiesTracker(BaseGetBlockBodiesTracker):
+    def _get_request_size(self, request: GetBlockBodiesRequest) -> Optional[int]:
+        return len(request.command_payload['block_hashes'])
+
+    def _get_result_size(self, result: Tuple[BlockBody, ...]) -> int:
+        return len(result)
+
+    def _get_result_item_count(self, result: Tuple[BlockBody, ...]) -> int:
         return len(result)
