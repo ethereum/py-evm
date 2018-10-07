@@ -29,7 +29,10 @@ from eth.chains.mainnet import (
     BaseMainnetChain,
 )
 from eth.tools.builder.chain import (
-    api,
+    build,
+    disable_pow_check,
+    fork_at,
+    genesis,
 )
 
 ALL_VM = [vm for _, vm in BaseMainnetChain.vm_configuration]
@@ -77,11 +80,11 @@ def get_chain(vm: Type[BaseVM]) -> MiningChain:
 
     vm_without_pow = vm.configure(validate_seal=lambda block: None)
 
-    chain = api.build(
+    chain = build(
         MiningChain,
-        api.fork_at(vm_without_pow, constants.GENESIS_BLOCK_NUMBER),
-        api.disable_pow_check(),
-        api.genesis(params=GENESIS_PARAMS, state=gen_state)
+        fork_at(vm_without_pow, constants.GENESIS_BLOCK_NUMBER),
+        disable_pow_check(),
+        genesis(params=GENESIS_PARAMS, state=gen_state)
     )
 
     return chain
