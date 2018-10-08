@@ -21,7 +21,7 @@ from eth.utils.blake import (
     blake,
 )
 from eth.beacon.config import BeaconConfig  # noqa: F401
-from eth.beacon.types.shard_and_committee import (
+from eth.beacon.types.shard_and_committees import (
     ShardAndCommittee,
 )
 from eth.beacon.utils.random import (
@@ -31,11 +31,11 @@ from eth.beacon.utils.random import (
 
 
 if TYPE_CHECKING:
-    from eth.beacon.types.active_state import ActiveState  # noqa: F401
-    from eth.beacon.types.attestation_record import AttestationRecord  # noqa: F401
-    from eth.beacon.types.block import BaseBeaconBlock  # noqa: F401
-    from eth.beacon.types.crystallized_state import CrystallizedState  # noqa: F401
-    from eth.beacon.types.validator_record import ValidatorRecord  # noqa: F401
+    from eth.beacon.types.active_states import ActiveState  # noqa: F401
+    from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
+    from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
+    from eth.beacon.types.crystallized_states import CrystallizedState  # noqa: F401
+    from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
 def _get_element_from_recent_list(
@@ -157,7 +157,7 @@ def get_new_recent_block_hashes(old_block_hashes: Sequence[Hash32],
     shift_size = current_slot - parent_slot
     parent_hash_repeat = min(shift_size, len(old_block_hashes))
     yield from old_block_hashes[shift_size:]
-    yield from repeat([parent_hash], parent_hash_repeat)
+    yield from repeat(parent_hash, parent_hash_repeat)
 
 
 #

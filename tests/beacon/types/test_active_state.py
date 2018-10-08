@@ -2,10 +2,10 @@ import pytest
 
 import rlp
 
-from eth.beacon.types.active_state import (
+from eth.beacon.types.active_states import (
     ActiveState,
 )
-from eth.beacon.types.attestation_record import (
+from eth.beacon.types.attestation_records import (
     AttestationRecord,
 )
 from eth.utils.blake import (

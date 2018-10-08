@@ -1,7 +1,7 @@
 import pytest
 
-from eth.beacon.types.attestation_record import AttestationRecord
-from eth.beacon.types.shard_and_committee import ShardAndCommittee
+from eth.beacon.types.attestation_records import AttestationRecord
+from eth.beacon.types.shard_and_committees import ShardAndCommittee
 from eth.beacon.helpers import (
     _get_element_from_recent_list,
     get_attestation_indices,

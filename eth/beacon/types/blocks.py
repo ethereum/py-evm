@@ -23,7 +23,7 @@ from eth.utils.hexadecimal import (
     encode_hex,
 )
 
-from .attestation_record import AttestationRecord
+from .attestation_records import AttestationRecord
 
 
 class BaseBeaconBlock(rlp.Serializable):

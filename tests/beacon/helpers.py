@@ -1,4 +1,4 @@
-from eth.beacon.types.validator_record import (
+from eth.beacon.types.validator_records import (
     ValidatorRecord,
 )
 from eth.constants import (

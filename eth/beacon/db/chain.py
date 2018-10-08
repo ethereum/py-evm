@@ -110,7 +110,21 @@ class BaseBeaconChainDB(ABC):
     def persist_crystallized_state(self,
                                    crystallized_state: CrystallizedState) -> None:
         raise NotImplementedError("BeaconChainDB classes must implement this method")
-        
+
+    #
+    # Active State
+    #
+    def get_active_state_by_root(self, state_root: Hash32) -> ActiveState:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+
+    def get_active_state_root_by_crystallized(self, crystallized_state_root: Hash32) -> Hash32:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+
+    def persist_active_state(self,
+                             active_state: ActiveState,
+                             crystallized_state_root: Hash32) -> None:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+
     #
     # Raw Database API
     #
@@ -406,7 +420,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._get_crystallized_state_by_root(self.db, state_root)
 
     @staticmethod
-    def _get_crystallized_state_by_root(db: BaseDB, state_root: Hash32) -> BaseBeaconBlock:
+    def _get_crystallized_state_by_root(db: BaseDB, state_root: Hash32) -> CrystallizedState:
         """
         Returns the requested crystallized state as specified by state hash.
 
@@ -511,6 +525,91 @@ class BeaconChainDB(BaseBeaconChainDB):
         )
 
     #
+    # Active State API
+    #
+    def get_active_state_by_root(self, state_root: Hash32) -> ActiveState:
+        return self._get_active_state_by_root(self.db, state_root)
+
+    @staticmethod
+    def _get_active_state_by_root(db: BaseDB, state_root: Hash32) -> ActiveState:
+        """
+        Returns the requested crystallized state as specified by state hash.
+
+        Raises StateRootNotFound if it is not present in the db.
+        """
+        # TODO: validate_active_state_root
+        try:
+            state_rlp = db[state_root]
+        except KeyError:
+            raise StateRootNotFound("No state with root {0} found".format(
+                encode_hex(state_rlp)))
+        return _decode_active_state(state_rlp)
+
+    def get_active_state_root_by_crystallized(self, crystallized_state_root: Hash32) -> Hash32:
+        """
+        Returns the state hash for the canonical state at the given crystallized_state_root.
+
+        Raises StateRootNotFound if there's no state with the given slot in the
+        canonical chain.
+        """
+        return self._get_active_state_root_by_crystallized(self.db, crystallized_state_root)
+
+    @staticmethod
+    def _get_active_state_root_by_crystallized(db: BaseDB,
+                                               crystallized_state_root: Hash32) -> Hash32:
+        state_root_to_hash_key = SchemaV1.make_crystallized_to_active_state_root_lookup_key(
+            crystallized_state_root
+        )
+        try:
+            encoded_key = db[state_root_to_hash_key]
+        except KeyError:
+            raise StateRootNotFound(
+                "No canonical active state for crystallized_state_root #{0}".format(
+                    state_root_to_hash_key
+                )
+            )
+        else:
+            return rlp.decode(encoded_key, sedes=rlp.sedes.binary)
+
+    def persist_active_state(self,
+                             active_state: ActiveState,
+                             crystallized_state_root: Hash32) -> None:
+        """
+        Persist the given ActiveState.
+
+        NOTE: only persist active state when recalcuate crystallized state.
+        """
+        return self._persist_active_state(self.db, active_state, crystallized_state_root)
+
+    @classmethod
+    def _persist_active_state(cls,
+                              db: BaseDB,
+                              active_state: ActiveState,
+                              crystallized_state_root: Hash32) -> None:
+        cls._add_crystallized_to_active_state_lookup(db, active_state, crystallized_state_root)
+        db.set(
+            active_state.hash,
+            rlp.encode(active_state),
+        )
+
+    @classmethod
+    def _add_crystallized_to_active_state_lookup(cls,
+                                                 db: BaseDB,
+                                                 active_state: ActiveState,
+                                                 crystallized_state_root: Hash32) -> None:
+        """
+        Sets a record in the database to allow looking up this block by its
+        last state recalculation slot.
+        """
+        slot_to_hash_key = SchemaV1.make_crystallized_to_active_state_root_lookup_key(
+            crystallized_state_root,
+        )
+        db.set(
+            slot_to_hash_key,
+            rlp.encode(active_state.hash, sedes=rlp.sedes.binary),
+        )
+
+    #
     # Raw Database API
     #
     def exists(self, key: bytes) -> bool:
@@ -540,3 +639,9 @@ def _decode_block(block_rlp: bytes) -> BaseBeaconBlock:
 def _decode_crystallized_state(crystallized_state_rlp: bytes) -> CrystallizedState:
     # TODO: forkable CrystallizedState fields?
     return rlp.decode(crystallized_state_rlp, sedes=CrystallizedState)
+
+
+@functools.lru_cache(128)
+def _decode_active_state(active_state_rlp: bytes) -> ActiveState:
+    # TODO: forkable CrystallizedState fields?
+    return rlp.decode(active_state_rlp, sedes=ActiveState)

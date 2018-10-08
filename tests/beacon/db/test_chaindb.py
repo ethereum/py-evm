@@ -25,12 +25,9 @@ from eth.beacon.db.chain import (
     BeaconChainDB,
 )
 from eth.beacon.db.schema import SchemaV1
-from eth.beacon.types.block import (
-    BaseBeaconBlock,
-)
-from eth.beacon.types.crystallized_state import (
-    CrystallizedState,
-)
+from eth.beacon.types.active_states import ActiveState
+from eth.beacon.types.blocks import BaseBeaconBlock
+from eth.beacon.types.crystallized_states import CrystallizedState
 
 
 @pytest.fixture
@@ -49,6 +46,11 @@ def block(request, sample_block_params):
 @pytest.fixture()
 def crystallized_state(sample_crystallized_state_params):
     return CrystallizedState(**sample_crystallized_state_params)
+
+
+@pytest.fixture()
+def active_state(sample_active_state_params):
+    return ActiveState(**sample_active_state_params)
 
 
 def test_chaindb_add_block_number_to_hash_lookup(chaindb, block):
@@ -141,3 +143,25 @@ def test_chaindb_crystallized_state(chaindb, crystallized_state):
     )
     assert result_crystallized_state_root == crystallized_state_2.hash
     assert chaindb._get_deletable_state_roots(chaindb.db) == (crystallized_state.hash, )
+
+
+def test_chaindb_active_state(chaindb, active_state, crystallized_state):
+    crystallized_state_root = crystallized_state.hash
+
+    chaindb.persist_active_state(active_state, crystallized_state_root)
+
+    result_active_state = chaindb.get_active_state_by_root(active_state.hash)
+    assert result_active_state.hash == active_state.hash
+
+    result_active_state_root = chaindb.get_active_state_root_by_crystallized(
+        crystallized_state_root,
+    )
+    assert result_active_state_root == active_state.hash
+
+    # Replacement
+    active_state_2 = active_state.copy(recent_block_hashes=[b'\x77' * 32])
+    chaindb.persist_active_state(active_state_2, crystallized_state.hash)
+    result_active_state_root = chaindb.get_active_state_root_by_crystallized(
+        crystallized_state_root,
+    )
+    assert result_active_state_root == active_state_2.hash

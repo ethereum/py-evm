@@ -20,7 +20,7 @@ from eth.utils.blake import (
     blake,
 )
 
-from .attestation_record import AttestationRecord
+from .attestation_records import AttestationRecord
 
 
 class ActiveState(rlp.Serializable):

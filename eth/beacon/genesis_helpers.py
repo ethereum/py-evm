@@ -11,16 +11,16 @@ from eth.constants import (
     ZERO_HASH32,
 )
 from eth.beacon.config import BeaconConfig  # noqa: F401
-from eth.beacon.types.active_state import ActiveState
-from eth.beacon.types.block import BaseBeaconBlock
-from eth.beacon.types.crosslink_record import CrosslinkRecord
-from eth.beacon.types.crystallized_state import CrystallizedState
+from eth.beacon.types.active_states import ActiveState
+from eth.beacon.types.blocks import BaseBeaconBlock
+from eth.beacon.types.crosslink_records import CrosslinkRecord
+from eth.beacon.types.crystallized_states import CrystallizedState
 from eth.beacon.helpers import (
     get_new_shuffling,
 )
 
 if TYPE_CHECKING:
-    from eth.beacon.types.validator_record import ValidatorRecord  # noqa: F401
+    from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
 def get_genesis_active_state(beacon_config: 'BeaconConfig') -> ActiveState:

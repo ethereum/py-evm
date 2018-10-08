@@ -22,7 +22,7 @@ from eth.beacon.genesis_helpers import (
     get_genesis_block,
     get_genesis_crystallized_state,
 )
-from eth.beacon.types.validator_record import ValidatorRecord
+from eth.beacon.types.validator_records import ValidatorRecord
 import eth.utils.bls as bls
 from eth.utils.blake import blake
 

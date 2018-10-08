@@ -34,6 +34,11 @@ class BaseSchema(ABC):
 
     @staticmethod
     @abstractmethod
+    def make_crystallized_to_active_state_root_lookup_key(state_root: Hash32) -> bytes:
+        raise NotImplementedError('Must be implemented by subclasses')
+
+    @staticmethod
+    @abstractmethod
     def make_deletable_state_roots_lookup_key() -> bytes:
         raise NotImplementedError('Must be implemented by subclasses')
 
@@ -60,7 +65,11 @@ class SchemaV1(BaseSchema):
     #
     @staticmethod
     def make_slot_to_crystallized_state_lookup_key(slot: int) -> bytes:
-        return b'beacon:cycle-to-crystallized-state:%d' % slot
+        return b'beacon:slot-to-crystallized-state:%d' % slot
+
+    @staticmethod
+    def make_crystallized_to_active_state_root_lookup_key(state_root: Hash32) -> bytes:
+        return b'beacon:crystallized-root-to-active-state-root:%s' % state_root
 
     @staticmethod
     def make_deletable_state_roots_lookup_key() -> bytes:

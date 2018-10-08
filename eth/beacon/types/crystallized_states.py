@@ -26,9 +26,9 @@ from eth.beacon.helpers import (
     get_active_validator_indices,
 )
 
-from .crosslink_record import CrosslinkRecord
-from .shard_and_committee import ShardAndCommittee
-from .validator_record import ValidatorRecord
+from .crosslink_records import CrosslinkRecord
+from .shard_and_committees import ShardAndCommittee
+from .validator_records import ValidatorRecord
 
 
 class CrystallizedState(rlp.Serializable):

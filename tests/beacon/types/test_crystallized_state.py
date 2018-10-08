@@ -5,10 +5,10 @@ import rlp
 from eth.constants import (
     ZERO_HASH32,
 )
-from eth.beacon.types.crystallized_state import (
+from eth.beacon.types.crystallized_states import (
     CrystallizedState,
 )
-from eth.beacon.types.crosslink_record import (
+from eth.beacon.types.crosslink_records import (
     CrosslinkRecord,
 )
 from eth.utils.blake import (
