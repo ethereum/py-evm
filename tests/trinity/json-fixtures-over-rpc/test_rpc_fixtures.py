@@ -215,7 +215,7 @@ async def assert_rpc_result(rpc, method, params, expected):
     return result
 
 
-async def validate_account_attribute(fixture_key, rpc_method, rpc, state, addr, at_block):
+async def validate_account_attribute(*, fixture_key, rpc_method, rpc, state, addr, at_block):
     state_result, state_error = await call_rpc(rpc, rpc_method, [addr, at_block])
     assert state_result == state[fixture_key], "Invalid state - %s" % state_error
 
@@ -231,12 +231,12 @@ async def validate_account_state(rpc, state, addr, at_block):
     standardized_state = fixture_state_in_rpc_format(state)
     for fixture_key, rpc_method in RPC_STATE_LOOKUPS:
         await validate_account_attribute(
-            fixture_key,
-            rpc_method,
-            rpc,
-            standardized_state,
-            addr,
-            at_block
+            fixture_key=fixture_key,
+            rpc_method=rpc_method,
+            rpc=rpc,
+            state=standardized_state,
+            addr=addr,
+            at_block=at_block
         )
     for key in state['storage']:
         position = '0x0' if key == '0x' else key

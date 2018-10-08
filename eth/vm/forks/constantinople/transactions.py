@@ -10,7 +10,7 @@ from eth.utils.transactions import (
 
 class ConstantinopleTransaction(ByzantiumTransaction):
     @classmethod
-    def create_unsigned_transaction(cls, nonce, gas_price, gas, to, value, data):
+    def create_unsigned_transaction(cls, *, nonce, gas_price, gas, to, value, data):
         return ConstantinopleUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
 

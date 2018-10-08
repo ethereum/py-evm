@@ -40,7 +40,7 @@ class HomesteadTransaction(FrontierTransaction):
         ))
 
     @classmethod
-    def create_unsigned_transaction(cls, nonce, gas_price, gas, to, value, data):
+    def create_unsigned_transaction(cls, *, nonce, gas_price, gas, to, value, data):
         return HomesteadUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
 

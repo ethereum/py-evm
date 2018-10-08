@@ -30,6 +30,12 @@ def new_transaction(
     """
     nonce = vm.state.account_db.get_nonce(from_)
     tx = vm.create_unsigned_transaction(
-        nonce=nonce, gas_price=gas_price, gas=gas, to=to, value=amount, data=data)
+        nonce=nonce,
+        gas_price=gas_price,
+        gas=gas,
+        to=to,
+        value=amount,
+        data=data,
+    )
 
     return tx.as_signed_transaction(private_key)
