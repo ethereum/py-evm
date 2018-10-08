@@ -65,11 +65,11 @@ def event_loop():
 
 
 @pytest.fixture(scope='module')
-def event_bus(event_loop):
+async def event_bus(event_loop):
     bus = EventBus()
     endpoint = bus.create_endpoint('test')
     bus.start(event_loop)
-    endpoint.connect(event_loop)
+    await endpoint.connect(event_loop)
     try:
         yield endpoint
     finally:

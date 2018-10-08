@@ -47,7 +47,6 @@ class LightNode(Node):
             cast(LESPeerPool, self.get_peer_pool()),
             token=self.cancel_token,
         )
-        self.notify_resource_available()
 
     async def _run(self) -> None:
         self.run_daemon(self._peer_chain)
@@ -77,7 +76,7 @@ class LightNode(Node):
                 preferred_nodes=self._preferred_nodes,
                 use_discv5=self._use_discv5,
                 token=self.cancel_token,
-                event_bus=self._plugin_manager.event_bus_endpoint,
+                event_bus=self.event_bus,
             )
         return self._p2p_server
 

@@ -7,6 +7,11 @@ from typing import (
     Type,
 )
 
+from lahja import (
+    Endpoint,
+    BroadcastConfig,
+)
+
 from eth.chains.base import BaseChain
 
 from p2p.peer import BasePeerPool
@@ -22,9 +27,6 @@ from trinity.db.manager import (
 )
 from trinity.config import (
     TrinityConfig,
-)
-from trinity.extensibility import (
-    PluginManager,
 )
 from trinity.extensibility.events import (
     ResourceAvailableEvent
@@ -42,9 +44,8 @@ class Node(BaseService):
     """
     chain_class: Type[BaseChain] = None
 
-    def __init__(self, plugin_manager: PluginManager, trinity_config: TrinityConfig) -> None:
+    def __init__(self, event_bus: Endpoint, trinity_config: TrinityConfig) -> None:
         super().__init__()
-        self._plugin_manager = plugin_manager
         self._db_manager = create_db_manager(trinity_config.database_ipc_path)
         self._db_manager.connect()  # type: ignore
         self._headerdb = self._db_manager.get_headerdb()  # type: ignore
@@ -52,7 +53,7 @@ class Node(BaseService):
         self._jsonrpc_ipc_path: Path = trinity_config.jsonrpc_ipc_path
         self._network_id = trinity_config.network_id
 
-        self.event_bus = plugin_manager.event_bus_endpoint
+        self.event_bus = event_bus
 
     async def handle_network_id_requests(self) -> None:
         async def f() -> None:
@@ -103,18 +104,27 @@ class Node(BaseService):
         # as the `PeerPool` is available. In the long term, the peer pool may become
         # a plugin itself and we can get rid of this.
         peer_pool = self.get_peer_pool()
-        self._plugin_manager.broadcast(ResourceAvailableEvent(
-            resource=(peer_pool, self.cancel_token),
-            resource_type=type(peer_pool)
-        ))
+
+        self.event_bus.broadcast(
+            ResourceAvailableEvent(
+                resource=(peer_pool, self.cancel_token),
+                resource_type=type(peer_pool)
+            ),
+            BroadcastConfig(internal=True),
+        )
 
         # This broadcasts the *local* chain, which is suited for tasks that aren't blocking
         # for too long. There may be value in also broadcasting the proxied chain.
-        self._plugin_manager.broadcast(ResourceAvailableEvent(
-            resource=self.get_chain(),
-            resource_type=BaseChain
-        ))
+        self.event_bus.broadcast(
+            ResourceAvailableEvent(
+                resource=self.get_chain(),
+                resource_type=BaseChain
+            ),
+            BroadcastConfig(internal=True),
+        )
 
     async def _run(self) -> None:
+        await self.event_bus.wait_for_connection()
+        self.notify_resource_available()
         self.run_daemon_task(self.handle_network_id_requests())
         await self.get_p2p_server().run()
