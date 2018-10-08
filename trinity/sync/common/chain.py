@@ -51,6 +51,11 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     # the latest header hash of the peer on the current sync
     header_queue: TaskQueue[BlockHeader]
 
+    # This is a rather arbitrary value, but when the sync is operating normally we never see
+    # the msg queue grow past a few hundred items, so this should be a reasonable limit for
+    # now.
+    msg_queue_maxsize = 2000
+
     def __init__(self,
                  chain: AsyncChain,
                  db: AsyncHeaderDB,
@@ -69,13 +74,6 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         # small enough to avoid wasteful over-requests before post-processing can happen
         max_pending_headers = ETHPeer.max_headers_fetch * 8
         self.header_queue = TaskQueue(max_pending_headers, attrgetter('block_number'))
-
-    @property
-    def msg_queue_maxsize(self) -> int:
-        # This is a rather arbitrary value, but when the sync is operating normally we never see
-        # the msg queue grow past a few hundred items, so this should be a reasonable limit for
-        # now.
-        return 2000
 
     def get_target_header_hash(self) -> Hash32:
         if self._peer_header_syncer is None and self._last_target_header_hash is None:

@@ -23,6 +23,10 @@ class BaseChainTipMonitor(BaseService, PeerSubscriber):
 
     Subclass must specify :attr:`subscription_msg_types`
     """
+    # This is a rather arbitrary value, but when the sync is operating normally we never see
+    # the msg queue grow past a few hundred items, so this should be a reasonable limit for
+    # now.
+    msg_queue_maxsize = 2000
 
     def __init__(
             self,
@@ -57,13 +61,6 @@ class BaseChainTipMonitor(BaseService, PeerSubscriber):
 
                 await self.wait(new_tip_event.wait())
                 new_tip_event.clear()
-
-    @property
-    def msg_queue_maxsize(self) -> int:
-        # This is a rather arbitrary value, but when the sync is operating normally we never see
-        # the msg queue grow past a few hundred items, so this should be a reasonable limit for
-        # now.
-        return 2000
 
     def register_peer(self, peer: BasePeer) -> None:
         self._notify_tip()
