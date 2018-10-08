@@ -1,4 +1,3 @@
-import asyncio
 from abc import abstractmethod
 from contextlib import contextmanager
 from operator import attrgetter
@@ -6,6 +5,7 @@ from typing import (
     AsyncIterator,
     Iterator,
     Tuple,
+    Type,
     cast,
 )
 
@@ -28,11 +28,12 @@ from eth.rlp.headers import BlockHeader
 from p2p import protocol
 from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import BasePeer, PeerSubscriber
+from p2p.peer import PeerSubscriber
 from p2p.service import BaseService
 
 from trinity.db.header import AsyncHeaderDB
 from trinity.p2p.handlers import PeerRequestHandler
+from trinity.protocol.common.monitors import BaseChainTipMonitor
 from trinity.protocol.common.peer import BaseChainPeer, BaseChainPeerPool
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.utils.datastructures import TaskQueue
@@ -60,9 +61,9 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         self.db = db
         self.peer_pool = peer_pool
         self._handler = PeerRequestHandler(self.db, self.logger, self.cancel_token)
-        self._sync_requests: asyncio.Queue[BaseChainPeer] = asyncio.Queue()
         self._peer_header_syncer: 'PeerHeaderSyncer' = None
         self._last_target_header_hash = None
+        self._tip_monitor = self.tip_monitor_class(peer_pool, token=self.cancel_token)
 
         # pending queue size should be big enough to avoid starving the processing consumers, but
         # small enough to avoid wasteful over-requests before post-processing can happen
@@ -84,8 +85,10 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         else:
             return self._last_target_header_hash
 
-    def register_peer(self, peer: BasePeer) -> None:
-        self._sync_requests.put_nowait(cast(BaseChainPeer, self.peer_pool.highest_td_peer))
+    @property
+    @abstractmethod
+    def tip_monitor_class(self) -> Type[BaseChainTipMonitor]:
+        pass
 
     async def _handle_msg_loop(self) -> None:
         while self.is_operational:
@@ -107,17 +110,18 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
     async def _run(self) -> None:
+        self.run_daemon(self._tip_monitor)
         self.run_task(self._handle_msg_loop())
         with self.subscribe(self.peer_pool):
-            while self.is_operational:
-                try:
-                    peer = await self.wait(self._sync_requests.get())
-                except OperationCancelled:
-                    # In the case of a fast sync, we return once the sync is completed, and our
-                    # caller must then run the StateDownloader.
-                    return
-                else:
-                    self.run_task(self.sync(peer))
+            try:
+                async for highest_td_peer in self._tip_monitor.wait_tip_info():
+                    self.run_task(self.sync(highest_td_peer))
+            except OperationCancelled:
+                # In the case of a fast sync, we return once the sync is completed, and our
+                # caller must then run the StateDownloader.
+                return
+            else:
+                self.logger.debug("chain tip monitor stopped returning tip info to %s", self)
 
     @property
     def _syncing(self) -> bool:
