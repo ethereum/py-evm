@@ -105,6 +105,11 @@ class BaseService(ABC, CancellableMixin):
             self.logger.debug("%s finished: %s", self, e)
         except Exception:
             self.logger.exception("Unexpected error in %r, exiting", self)
+        else:
+            if self.is_cancelled:
+                self.logger.debug("%s cancelled, cleaning up...", self)
+            else:
+                self.logger.debug("%s had nothing left to do, ceasing operation...", self)
         finally:
             # Trigger our cancel token to ensure all pending asyncio tasks and background
             # coroutines started by this service exit cleanly.
