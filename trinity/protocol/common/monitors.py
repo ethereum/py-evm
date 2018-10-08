@@ -76,7 +76,7 @@ class BaseChainTipMonitor(BaseService, PeerSubscriber):
             new_tip_event.set()
 
     async def _run(self) -> None:
-        self.run_task(self._handle_msg_loop())
+        self.run_daemon_task(self._handle_msg_loop())
         with self.subscribe(self._peer_pool):
             await self.wait(self.events.cancelled.wait())
 

@@ -109,7 +109,7 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
 
     async def _run(self) -> None:
         self.run_daemon(self._tip_monitor)
-        self.run_task(self._handle_msg_loop())
+        self.run_daemon_task(self._handle_msg_loop())
         with self.subscribe(self.peer_pool):
             try:
                 async for highest_td_peer in self._tip_monitor.wait_tip_info():
