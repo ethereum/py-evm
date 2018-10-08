@@ -22,7 +22,6 @@ class FullNode(Node):
         self._node_key = trinity_config.nodekey
         self._node_port = trinity_config.port
         self._max_peers = trinity_config.max_peers
-        self.notify_resource_available()
 
     def get_chain(self) -> BaseChain:
         if self._chain is None:

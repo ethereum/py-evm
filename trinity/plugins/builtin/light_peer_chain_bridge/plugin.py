@@ -11,7 +11,6 @@ from trinity.constants import (
     SYNC_LIGHT
 )
 from trinity.extensibility import (
-    BaseEvent,
     BaseAsyncStopPlugin,
 )
 from trinity.chains.light import (
@@ -41,16 +40,24 @@ class LightPeerChainBridgePlugin(BaseAsyncStopPlugin):
     def name(self) -> str:
         return "LightPeerChain Bridge"
 
+    def ready(self) -> None:
+        if self.context.trinity_config.sync_mode != SYNC_LIGHT:
+            return
+
+        self.event_bus.subscribe(
+            ResourceAvailableEvent,
+            self.handle_event
+        )
+
     def should_start(self) -> bool:
         return self.chain is not None and self.context.trinity_config.sync_mode == SYNC_LIGHT
 
-    def handle_event(self, activation_event: BaseEvent) -> None:
-        if isinstance(activation_event, ResourceAvailableEvent):
-            if activation_event.resource_type is BaseChain:
-                self.chain = activation_event.resource
+    def handle_event(self, event: ResourceAvailableEvent) -> None:
+        if event.resource_type is BaseChain:
+            self.chain = event.resource
+            self.boot()
 
     def start(self) -> None:
-        self.logger.info('LightPeerChain Bridge started')
         chain = cast(LightDispatchChain, self.chain)
         self.handler = LightPeerChainEventBusHandler(chain._peer_chain, self.context.event_bus)
         asyncio.ensure_future(self.handler.run())

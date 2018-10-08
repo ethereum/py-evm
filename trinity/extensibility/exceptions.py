@@ -10,3 +10,11 @@ class UnsuitableShutdownError(BaseTrinityError):
     ``PluginManager`` instance that operates in the ``SharedProcessScope``.
     """
     pass
+
+
+class EventBusNotReady(BaseTrinityError):
+    """
+    Raised when a plugin tried to access an EventBus before the plugin
+    had received its ``ready`` call.
+    """
+    pass

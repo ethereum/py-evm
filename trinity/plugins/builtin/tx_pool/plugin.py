@@ -22,7 +22,6 @@ from trinity.constants import (
     SYNC_LIGHT
 )
 from trinity.extensibility import (
-    BaseEvent,
     BaseAsyncStopPlugin,
 )
 from trinity.extensibility.events import (
@@ -55,9 +54,9 @@ class TxPlugin(BaseAsyncStopPlugin):
             help="Enables the Transaction Pool (experimental)",
         )
 
-    def handle_event(self, activation_event: BaseEvent) -> None:
+    def ready(self) -> None:
 
-        light_mode = self.context.chain_config.sync_mode == SYNC_LIGHT
+        light_mode = self.context.args.sync_mode == SYNC_LIGHT
         self.is_enabled = self.context.args.tx_pool and not light_mode
 
         unsupported = self.context.args.tx_pool and light_mode
@@ -66,14 +65,17 @@ class TxPlugin(BaseAsyncStopPlugin):
             self.logger.error('The transaction pool is not yet available in light mode')
             self.context.shutdown_host()
 
-        if isinstance(activation_event, ResourceAvailableEvent):
-            if activation_event.resource_type is ETHPeerPool:
-                self.peer_pool, self.cancel_token = activation_event.resource
-            elif activation_event.resource_type is BaseChain:
-                self.chain = activation_event.resource
+        self.event_bus.subscribe(ResourceAvailableEvent, self.handle_event)
 
-    def should_start(self) -> bool:
-        return all((self.peer_pool is not None, self.chain is not None, self.is_enabled))
+    def handle_event(self, event: ResourceAvailableEvent) -> None:
+
+        if event.resource_type is ETHPeerPool:
+            self.peer_pool, self.cancel_token = event.resource
+        elif event.resource_type is BaseChain:
+            self.chain = event.resource
+
+        if all((self.peer_pool is not None, self.chain is not None, self.is_enabled)):
+            self.boot()
 
     def start(self) -> None:
         if isinstance(self.chain, BaseMainnetChain):

@@ -3,12 +3,9 @@ from typing import (
     Type,
     TYPE_CHECKING,
 )
-from argparse import (
-    Namespace,
-)
 
-from trinity.config import (
-    TrinityConfig,
+from lahja import (
+    BaseEvent,
 )
 
 
@@ -18,23 +15,12 @@ if TYPE_CHECKING:
     )
 
 
-class BaseEvent:
-    """
-    The base class for all plugin events. Plugin events can be broadcasted for all different
-    kind of reasons. Plugins can act based on these events and consume the events even before
-    the plugin is started, giving plugins the chance to start based on an event or a series of
-    events. The startup of Trinity itself can be an event as well as the start of a plugin itself
-    which, for instance, gives other plugins the chance to start based on these previous events.
-    """
-    pass
-
-
 class PluginStartedEvent(BaseEvent):
     """
     Broadcasted when a plugin was started
     """
-    def __init__(self, plugin: 'BasePlugin') -> None:
-        self.plugin = plugin
+    def __init__(self, plugin_type: Type['BasePlugin']) -> None:
+        self.plugin_type = plugin_type
 
 
 class ResourceAvailableEvent(BaseEvent):

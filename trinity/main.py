@@ -108,7 +108,7 @@ TRINITY_AMBIGIOUS_FILESYSTEM_INFO = (
 def main() -> None:
     event_bus = EventBus(ctx)
     main_endpoint = event_bus.create_endpoint(MAIN_EVENTBUS_ENDPOINT)
-    main_endpoint.connect()
+    main_endpoint.connect_no_wait()
 
     plugin_manager = setup_plugins(
         MainAndIsolatedProcessScope(event_bus, main_endpoint)
@@ -343,21 +343,15 @@ def run_database_process(trinity_config: TrinityConfig, db_class: Type[BaseDB]) 
 def launch_node(args: Namespace, trinity_config: TrinityConfig, endpoint: Endpoint) -> None:
     with trinity_config.process_id_file('networking'):
 
-        endpoint.connect()
-
         NodeClass = trinity_config.node_class
-        # Temporary hack: We setup a second instance of the PluginManager.
-        # The first instance was only to configure the ArgumentParser whereas
-        # for now, the second instance that lives inside the networking process
-        # performs the bulk of the work. In the future, the PluginManager
-        # should probably live in its own process and manage whether plugins
-        # run in the shared plugin process or spawn their own.
+        node = NodeClass(endpoint, trinity_config)
+        loop = node.get_event_loop()
 
+        endpoint.connect_no_wait(loop)
+        # This is a second PluginManager instance governing plugins in a shared process.
         plugin_manager = setup_plugins(SharedProcessScope(endpoint))
         plugin_manager.prepare(args, trinity_config)
 
-        node = NodeClass(plugin_manager, trinity_config)
-        loop = node.get_event_loop()
         asyncio.ensure_future(handle_networking_exit(node, plugin_manager, endpoint), loop=loop)
         asyncio.ensure_future(node.run(), loop=loop)
         loop.run_forever()

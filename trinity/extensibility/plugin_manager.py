@@ -27,10 +27,6 @@ from lahja import (
 from trinity.config import (
     TrinityConfig
 )
-from trinity.extensibility.events import (
-    BaseEvent,
-    PluginStartedEvent,
-)
 from trinity.extensibility.exceptions import (
     UnsuitableShutdownError,
 )
@@ -136,7 +132,6 @@ class PluginManager:
     def __init__(self, scope: BaseManagerProcessScope) -> None:
         self._scope = scope
         self._plugin_store: List[BasePlugin] = []
-        self._started_plugins: List[BasePlugin] = []
         self._logger = logging.getLogger("trinity.extensibility.plugin_manager.PluginManager")
 
     @property
@@ -165,34 +160,6 @@ class PluginManager:
         for plugin in self._plugin_store:
             plugin.configure_parser(arg_parser, subparser)
 
-    def broadcast(self, event: BaseEvent, exclude: BasePlugin = None) -> None:
-        """
-        Notify every registered :class:`~trinity.extensibility.plugin.BasePlugin` about an
-        event and check whether the plugin wants to start based on that event.
-
-        If a plugin gets started it will cause a
-        :class:`~trinity.extensibility.events.PluginStartedEvent` to get
-        broadcasted to all other plugins, giving them the chance to start based on that.
-        """
-        for plugin in self._plugin_store:
-
-            if plugin is exclude or not self._scope.is_responsible_for_plugin(plugin):
-                self._logger.debug("Skipping plugin %s (not responsible)", plugin.name)
-                continue
-
-            plugin.handle_event(event)
-
-            if plugin in self._started_plugins:
-                continue
-
-            if not plugin.should_start():
-                continue
-
-            plugin._start()
-            self._started_plugins.append(plugin)
-            self._logger.info("Plugin started: %s", plugin.name)
-            self.broadcast(PluginStartedEvent(plugin), plugin)
-
     def prepare(self,
                 args: Namespace,
                 trinity_config: TrinityConfig,
@@ -208,6 +175,7 @@ class PluginManager:
 
             context = self._scope.create_plugin_context(plugin, args, trinity_config, boot_kwargs)
             plugin.set_context(context)
+            plugin.ready()
 
     def shutdown_blocking(self) -> None:
         """
@@ -219,14 +187,15 @@ class PluginManager:
 
         self._logger.info("Shutting down PluginManager with scope %s", type(self._scope))
 
-        for plugin in self._started_plugins:
+        for plugin in self._plugin_store:
 
-            if not isinstance(plugin, BaseSyncStopPlugin):
+            if not isinstance(plugin, BaseSyncStopPlugin) or not plugin.running:
                 continue
 
             try:
                 self._logger.info("Stopping plugin: %s", plugin.name)
                 plugin.stop()
+                plugin.running = False
                 self._logger.info("Successfully stopped plugin: %s", plugin.name)
             except Exception:
                 self._logger.exception("Exception thrown while stopping plugin %s", plugin.name)
@@ -241,8 +210,8 @@ class PluginManager:
         self._logger.info("Shutting down PluginManager with scope %s", type(self._scope))
 
         async_plugins = [
-            plugin for plugin in self._started_plugins
-            if isinstance(plugin, BaseAsyncStopPlugin)
+            plugin for plugin in self._plugin_store
+            if isinstance(plugin, BaseAsyncStopPlugin) and plugin.running
         ]
 
         stop_results = await asyncio.gather(
@@ -255,6 +224,7 @@ class PluginManager:
                     'Exception thrown while stopping plugin %s: %s', plugin.name, result
                 )
             else:
+                plugin.running = False
                 self._logger.info("Successfully stopped plugin: %s", plugin.name)
 
     def _stop_plugins(self,

@@ -71,25 +71,25 @@ class EthstatsPlugin(BaseIsolatedPlugin):
             default=os.environ.get('ETHSTATS_NODE_CONTACT', ''),
         )
 
-    def should_start(self) -> bool:
+    def ready(self) -> None:
         args = self.context.args
 
         if not args.ethstats:
-            return False
+            return
 
         if not (args.ethstats_server_url or self.get_default_server_url()):
             self.logger.error(
                 'You must provide ethstats server url using the `--ethstats-server-url`'
             )
             self.context.shutdown_host()
-            return False
+            return
 
         if not args.ethstats_server_secret:
             self.logger.error(
                 'You must provide ethstats server secret using `--ethstats-server-secret`'
             )
             self.context.shutdown_host()
-            return False
+            return
 
         if (args.ethstats_server_url):
             self.server_url = args.ethstats_server_url
@@ -101,12 +101,9 @@ class EthstatsPlugin(BaseIsolatedPlugin):
         self.node_id = args.ethstats_node_id
         self.node_contact = args.ethstats_node_contact
 
-        return True
+        self.boot()
 
     def start(self) -> None:
-        self.logger.info('Ethstats service started')
-        self.context.event_bus.connect()
-
         service = EthstatsService(
             self.context,
             self.server_url,

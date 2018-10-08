@@ -29,10 +29,14 @@ from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT
 )
 from trinity.events import (
-    ShutdownRequest
+    ShutdownRequest,
 )
 from trinity.extensibility.events import (
-    BaseEvent
+    BaseEvent,
+    PluginStartedEvent,
+)
+from trinity.extensibility.exceptions import (
+    EventBusNotReady,
 )
 from trinity.utils.ipc import (
     kill_process_gracefully
@@ -70,6 +74,7 @@ class PluginContext:
 class BasePlugin(ABC):
 
     context: PluginContext = None
+    running: bool = False
 
     @property
     @abstractmethod
@@ -85,11 +90,24 @@ class BasePlugin(ABC):
     def logger(self) -> logging.Logger:
         return logging.getLogger('trinity.extensibility.plugin.BasePlugin#{0}'.format(self.name))
 
+    @property
+    def event_bus(self) -> Endpoint:
+        if self.context is None:
+            raise EventBusNotReady("Tried accessing ``event_bus`` before ``ready`` was called")
+
+        return self.context.event_bus
+
     def set_context(self, context: PluginContext) -> None:
         """
         Set the :class:`~trinity.extensibility.plugin.PluginContext` for this plugin.
         """
         self.context = context
+
+    def ready(self) -> None:
+        """
+        Called after the plugin received its context and is ready to bootstrap itself.
+        """
+        pass
 
     def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         """
@@ -97,23 +115,16 @@ class BasePlugin(ABC):
         """
         pass
 
-    def handle_event(self, activation_event: BaseEvent) -> None:
+    def boot(self) -> None:
         """
-        Notify the plugin about an event, giving it the chance to do internal accounting right
-        before :meth:`~trinity.extensibility.plugin.BasePlugin.should_start` is called
+        Prepare the plugin to get started and eventually cause ``start`` to get called.
         """
-
-        pass
-
-    def should_start(self) -> bool:
-        """
-        Return ``True`` if the plugin should start, otherwise return ``False``
-        """
-
-        return False
-
-    def _start(self) -> None:
+        self.running = True
         self.start()
+        self.event_bus.broadcast(
+            PluginStartedEvent(type(self))
+        )
+        self.logger.info("Plugin started: %s", self.name)
 
     def start(self) -> None:
         """
@@ -159,18 +170,26 @@ class BaseIsolatedPlugin(BaseSyncStopPlugin):
 
     _process: Process = None
 
-    def _start(self) -> None:
+    def boot(self) -> None:
+        """
+        Prepare the plugin to get started and eventually cause ``start`` to get called.
+        """
+        self.running = True
         self._process = ctx.Process(
             target=self._prepare_start,
         )
 
         self._process.start()
+        self.logger.info("Plugin started: %s", self.name)
 
     def _prepare_start(self) -> None:
         log_queue = self.context.boot_kwargs['log_queue']
         level = self.context.boot_kwargs.get('log_level', logging.INFO)
         setup_queue_logging(log_queue, level)
-
+        self.event_bus.connect_no_wait()
+        self.event_bus.broadcast(
+            PluginStartedEvent(type(self))
+        )
         self.start()
 
     def stop(self) -> None:
@@ -192,10 +211,6 @@ class DebugPlugin(BaseAsyncStopPlugin):
 
     def handle_event(self, activation_event: BaseEvent) -> None:
         self.logger.info("Debug plugin: handle_event called: %s", activation_event)
-
-    def should_start(self) -> bool:
-        self.logger.info("Debug plugin: should_start called")
-        return True
 
     def start(self) -> None:
         self.logger.info("Debug plugin: start called")
