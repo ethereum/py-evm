@@ -6,6 +6,9 @@ from eth_typing import (
 
 
 class BaseSchema(ABC):
+    #
+    # Block
+    #
     @staticmethod
     @abstractmethod
     def make_canonical_head_hash_lookup_key() -> bytes:
@@ -21,11 +24,27 @@ class BaseSchema(ABC):
     def make_block_hash_to_score_lookup_key(block_hash: Hash32) -> bytes:
         raise NotImplementedError('Must be implemented by subclasses')
 
+    #
+    # States
+    #
+    @staticmethod
+    @abstractmethod
+    def make_slot_to_crystallized_state_lookup_key(slot: int) -> bytes:
+        raise NotImplementedError('Must be implemented by subclasses')
+
+    @staticmethod
+    @abstractmethod
+    def make_deletable_state_roots_lookup_key() -> bytes:
+        raise NotImplementedError('Must be implemented by subclasses')
+
 
 class SchemaV1(BaseSchema):
+    #
+    # Block
+    #
     @staticmethod
     def make_canonical_head_hash_lookup_key() -> bytes:
-        return b'v1:beacon:canonical_head_hash'
+        return b'v1:beacon:canonical-head-hash'
 
     @staticmethod
     def make_block_slot_to_hash_lookup_key(slot: int) -> bytes:
@@ -35,3 +54,14 @@ class SchemaV1(BaseSchema):
     @staticmethod
     def make_block_hash_to_score_lookup_key(block_hash: Hash32) -> bytes:
         return b'beacon:block-hash-to-score:%s' % block_hash
+
+    #
+    # States
+    #
+    @staticmethod
+    def make_slot_to_crystallized_state_lookup_key(slot: int) -> bytes:
+        return b'beacon:cycle-to-crystallized-state:%d' % slot
+
+    @staticmethod
+    def make_deletable_state_roots_lookup_key() -> bytes:
+        return b'beacon:make-deletable-state-roots'

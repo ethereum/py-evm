@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 import functools
 
 from typing import (
-    Dict,
     Iterable,
     Tuple,
 )
@@ -12,13 +11,16 @@ from cytoolz import (
 )
 
 import rlp
+from rlp.sedes import (
+    CountableList,
+)
+from eth_typing import (
+    Hash32,
+)
 from eth_utils import (
     encode_hex,
     to_tuple,
     ValidationError,
-)
-from eth_typing import (
-    Hash32,
 )
 
 from eth.db.backends.base import (
@@ -32,12 +34,18 @@ from eth.exceptions import (
     BlockNotFound,
     CanonicalHeadNotFound,
     ParentNotFound,
+    StateRootNotFound,
+)
+from eth.rlp.sedes import (
+    hash32,
 )
 from eth.validation import (
     validate_word,
 )
 
-from eth.beacon.types.block import BaseBeaconBlock  # noqa: F401
+from eth.beacon.types.active_states import ActiveState  # noqa: F401
+from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
+from eth.beacon.types.crystallized_states import CrystallizedState  # noqa: F401
 from eth.beacon.validation import (
     validate_slot,
 )
@@ -47,10 +55,6 @@ from eth.beacon.db.schema import SchemaV1
 
 class BaseBeaconChainDB(ABC):
     db = None  # type: BaseAtomicDB
-
-    @abstractmethod
-    def __init__(self, db: BaseAtomicDB) -> None:
-        self.db = db
 
     #
     # Block API
@@ -92,6 +96,22 @@ class BaseBeaconChainDB(ABC):
         raise NotImplementedError("BeaconChainDB classes must implement this method")
 
     #
+    # Crystallized State
+    #
+    @abstractmethod
+    def get_crystallized_state_by_root(self, state_root: Hash32) -> CrystallizedState:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+
+    @abstractmethod
+    def get_canonical_crystallized_state_root(self, slot: int) -> Hash32:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+
+    @abstractmethod
+    def persist_crystallized_state(self,
+                                   crystallized_state: CrystallizedState) -> None:
+        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        
+    #
     # Raw Database API
     #
     @abstractmethod
@@ -102,15 +122,9 @@ class BaseBeaconChainDB(ABC):
     def get(self, key: bytes) -> bytes:
         raise NotImplementedError("BeaconChainDB classes must implement this method")
 
-    @abstractmethod
-    def persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
-
 
 class BeaconChainDB(BaseBeaconChainDB):
-    db = None  # type: BaseAtomicDB
-
-    def __init__(self, db):
+    def __init__(self, db: BaseAtomicDB) -> None:
         self.db = db
 
     def persist_block(self,
@@ -386,6 +400,117 @@ class BeaconChainDB(BaseBeaconChainDB):
         )
 
     #
+    # Crystallized State API
+    #
+    def get_crystallized_state_by_root(self, state_root: Hash32) -> CrystallizedState:
+        return self._get_crystallized_state_by_root(self.db, state_root)
+
+    @staticmethod
+    def _get_crystallized_state_by_root(db: BaseDB, state_root: Hash32) -> BaseBeaconBlock:
+        """
+        Returns the requested crystallized state as specified by state hash.
+
+        Raises StateRootNotFound if it is not present in the db.
+        """
+        # TODO: validate_crystallized_state_root
+        try:
+            state_rlp = db[state_root]
+        except KeyError:
+            raise StateRootNotFound("No state with root {0} found".format(
+                encode_hex(state_rlp)))
+        return _decode_crystallized_state(state_rlp)
+
+    def get_canonical_crystallized_state_root(self, slot: int) -> Hash32:
+        """
+        Returns the state hash for the canonical state at the given slot.
+
+        Raises StateRootNotFound if there's no state with the given slot in the
+        canonical chain.
+        """
+        return self._get_canonical_crystallized_state_root(self.db, slot)
+
+    @staticmethod
+    def _get_canonical_crystallized_state_root(db: BaseDB, slot: int) -> Hash32:
+        validate_slot(slot)
+        slot_to_hash_key = SchemaV1.make_slot_to_crystallized_state_lookup_key(slot)
+        try:
+            encoded_key = db[slot_to_hash_key]
+        except KeyError:
+            raise StateRootNotFound(
+                "No canonical crystallized state for slot #{0}".format(slot)
+            )
+        else:
+            return rlp.decode(encoded_key, sedes=rlp.sedes.binary)
+
+    def persist_crystallized_state(self,
+                                   crystallized_state: CrystallizedState) -> None:
+        """
+        Persist the given CrystallizedState.
+        """
+        return self._persist_crystallized_state(self.db, crystallized_state)
+
+    @classmethod
+    def _persist_crystallized_state(cls,
+                                    db: BaseDB,
+                                    crystallized_state: CrystallizedState) -> None:
+        cls._add_slot_to_crystallized_state_lookup(db, crystallized_state)
+        db.set(
+            crystallized_state.hash,
+            rlp.encode(crystallized_state),
+        )
+
+    @classmethod
+    def _add_slot_to_crystallized_state_lookup(cls,
+                                               db: BaseDB,
+                                               crystallized_state: CrystallizedState) -> None:
+        """
+        Sets a record in the database to allow looking up this block by its
+        last state recalculation slot.
+
+        If it's a fork, store the old state root in `deletable_state_roots`.
+        """
+        slot_to_hash_key = SchemaV1.make_slot_to_crystallized_state_lookup_key(
+            crystallized_state.last_state_recalc
+        )
+        if db.exists(slot_to_hash_key):
+            deletable_state_roots = cls._get_deletable_state_roots(db)
+            replaced_state_root = rlp.decode(db[slot_to_hash_key], sedes=rlp.sedes.binary)
+            cls._set_deletatable_state(
+                db,
+                deletable_state_roots + (replaced_state_root, ),
+            )
+        db.set(
+            slot_to_hash_key,
+            rlp.encode(crystallized_state.hash, sedes=rlp.sedes.binary),
+        )
+
+    @staticmethod
+    def _get_deletable_state_roots(db: BaseDB) -> Tuple[Hash32]:
+        """
+        Returns deletable_state_roots.
+        """
+        lookup_key = SchemaV1.make_deletable_state_roots_lookup_key()
+        if not db.exists(lookup_key):
+            db.set(
+                lookup_key,
+                rlp.encode((), sedes=CountableList(hash32)),
+            )
+        deletable_state_roots = rlp.decode(db[lookup_key], sedes=CountableList(hash32))
+
+        return deletable_state_roots
+
+    @staticmethod
+    def _set_deletatable_state(db: BaseDB, deletable_state_roots: Iterable[Hash32]) -> None:
+        """
+        Sets deletable_state_roots.
+        """
+        lookup_key = SchemaV1.make_deletable_state_roots_lookup_key()
+        db.set(
+            lookup_key,
+            rlp.encode(deletable_state_roots, sedes=CountableList(hash32)),
+        )
+
+    #
     # Raw Database API
     #
     def exists(self, key: bytes) -> bool:
@@ -400,14 +525,6 @@ class BeaconChainDB(BaseBeaconChainDB):
         """
         return self.db[key]
 
-    def persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
-        """
-        Store raw trie data to db from a dict
-        """
-        with self.db.atomic_batch() as db:
-            for key, value in trie_data_dict.items():
-                db[key] = value
-
 
 # When performing a chain sync (either fast or regular modes), we'll very often need to look
 # up recent blocks to validate the chain, and decoding their RLP representation is
@@ -415,4 +532,11 @@ class BeaconChainDB(BaseBeaconChainDB):
 # be looking up recent blocks.
 @functools.lru_cache(128)
 def _decode_block(block_rlp: bytes) -> BaseBeaconBlock:
+    # TODO: forkable Block fields?
     return rlp.decode(block_rlp, sedes=BaseBeaconBlock)
+
+
+@functools.lru_cache(128)
+def _decode_crystallized_state(crystallized_state_rlp: bytes) -> CrystallizedState:
+    # TODO: forkable CrystallizedState fields?
+    return rlp.decode(crystallized_state_rlp, sedes=CrystallizedState)
