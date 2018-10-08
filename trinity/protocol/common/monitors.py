@@ -55,7 +55,7 @@ class BaseChainTipMonitor(BaseService, PeerSubscriber):
                     highest_td_peer = self._peer_pool.highest_td_peer
                 except NoConnectedPeers:
                     # no peers are available right now, skip the new tip info yield
-                    continue
+                    pass
                 else:
                     yield highest_td_peer
 
