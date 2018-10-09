@@ -14,6 +14,7 @@ from eth_typing import (
     Hash32
 )
 from eth_utils import (
+    big_endian_to_int,
     ValidationError,
 )
 
@@ -21,9 +22,6 @@ from eth_hash.auto import keccak
 
 from eth.utils.hexadecimal import (
     encode_hex,
-)
-from eth.utils.numeric import (
-    big_endian_to_int,
 )
 from eth.validation import (
     validate_length,

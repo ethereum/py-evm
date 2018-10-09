@@ -1,9 +1,12 @@
+from eth_utils import (
+    big_endian_to_int,
+    int_to_big_endian,
+)
+
 from eth import constants
 
 from eth.utils.numeric import (
-    big_endian_to_int,
     get_highest_bit_index,
-    int_to_big_endian,
 )
 from eth.utils.padding import (
     pad32r,

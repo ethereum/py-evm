@@ -7,11 +7,11 @@ from eth_keys.exceptions import (
 )
 
 from eth_utils import (
+    int_to_big_endian,
     ValidationError,
 )
 from eth.utils.numeric import (
     is_even,
-    int_to_big_endian,
 )
 
 

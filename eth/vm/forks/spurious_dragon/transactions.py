@@ -1,3 +1,7 @@
+from eth_utils import (
+    int_to_big_endian,
+)
+
 import rlp
 
 from eth.vm.forks.homestead.transactions import (
@@ -5,9 +9,6 @@ from eth.vm.forks.homestead.transactions import (
     HomesteadUnsignedTransaction,
 )
 
-from eth.utils.numeric import (
-    int_to_big_endian,
-)
 from eth.utils.transactions import (
     create_transaction_signature,
     extract_chain_id,

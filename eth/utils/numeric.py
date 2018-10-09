@@ -1,21 +1,11 @@
 import functools
 import itertools
-import math
 
 from eth.constants import (
     UINT_255_MAX,
     UINT_256_MAX,
     UINT_256_CEILING,
 )
-
-
-def int_to_big_endian(value: int) -> bytes:
-    byte_length = math.ceil(value.bit_length() / 8)
-    return (value).to_bytes(byte_length, byteorder='big')
-
-
-def big_endian_to_int(value: bytes) -> int:
-    return int.from_bytes(value, byteorder='big')
 
 
 def int_to_bytes32(value):
