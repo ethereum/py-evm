@@ -86,6 +86,7 @@ from .constants import (
 )
 
 from .events import (
+    PeerConnectedEvent,
     PeerCountRequest,
     PeerCountResponse,
 )
@@ -864,6 +865,8 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             peer.add_subscriber(subscriber)
             for msg in msgs:
                 subscriber.add_msg(msg)
+        if self.event_bus is not None:
+            self.event_bus.broadcast(PeerConnectedEvent(peer))
 
     async def _run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
