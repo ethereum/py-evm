@@ -31,6 +31,7 @@ from typing import (
 )
 
 import cytoolz
+import snappy
 
 import rlp
 
