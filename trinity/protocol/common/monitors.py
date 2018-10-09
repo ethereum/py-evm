@@ -14,7 +14,6 @@ from p2p.peer import BasePeer, PeerSubscriber
 from p2p.service import BaseService
 
 from trinity.protocol.common.peer import BaseChainPeer, BaseChainPeerPool
-from trinity.protocol.eth import commands
 
 
 class BaseChainTipMonitor(BaseService, PeerSubscriber):
@@ -66,9 +65,10 @@ class BaseChainTipMonitor(BaseService, PeerSubscriber):
         self._notify_tip()
 
     async def _handle_msg_loop(self) -> None:
+        new_tip_types = tuple(self.subscription_msg_types)
         while self.is_operational:
             peer, cmd, msg = await self.wait(self.msg_queue.get())
-            if isinstance(cmd, commands.NewBlock):
+            if isinstance(cmd, new_tip_types):
                 self._notify_tip()
 
     def _notify_tip(self) -> None:
