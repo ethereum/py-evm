@@ -4,6 +4,7 @@ from eth_keys.exceptions import (
 )
 
 from eth_utils import (
+    big_endian_to_int,
     ValidationError,
 )
 
@@ -15,9 +16,6 @@ from eth.validation import (
     validate_lte,
 )
 
-from eth.utils.numeric import (
-    big_endian_to_int,
-)
 from eth.utils.padding import (
     pad32,
     pad32r,

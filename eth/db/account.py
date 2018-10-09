@@ -19,7 +19,10 @@ from trie import (
 )
 
 from eth_hash.auto import keccak
-from eth_utils import encode_hex
+from eth_utils import (
+    encode_hex,
+    int_to_big_endian,
+)
 
 from eth.constants import (
     BLANK_ROOT_HASH,
@@ -44,9 +47,6 @@ from eth.validation import (
 )
 from eth.tools.logging import (
     TraceLogger
-)
-from eth.utils.numeric import (
-    int_to_big_endian,
 )
 from eth.utils.padding import (
     pad32,

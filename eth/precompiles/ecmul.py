@@ -3,6 +3,8 @@ from py_ecc import (
 )
 
 from eth_utils import (
+    big_endian_to_int,
+    int_to_big_endian,
     ValidationError,
 )
 
@@ -13,10 +15,6 @@ from eth.exceptions import (
 )
 from eth.utils.bn128 import (
     validate_point,
-)
-from eth.utils.numeric import (
-    big_endian_to_int,
-    int_to_big_endian,
 )
 from eth.utils.padding import (
     pad32,

@@ -1,5 +1,9 @@
 import logging
 
+from eth_utils import (
+    int_to_big_endian,
+    big_endian_to_int,
+)
 from eth import constants
 from eth.exceptions import (
     InsufficientStack,
@@ -7,11 +11,6 @@ from eth.exceptions import (
 )
 from eth.validation import (
     validate_stack_item,
-)
-
-from eth.utils.numeric import (
-    int_to_big_endian,
-    big_endian_to_int,
 )
 
 from typing import (  # noqa: F401
