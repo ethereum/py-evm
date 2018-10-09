@@ -407,12 +407,12 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         except OperationCancelled as e:
             self.logger.info("Bootstrapping cancelled: %s", e)
 
-    def datagram_received(self, data: Union[bytes, Text], addr: Tuple[str, int]) -> None:
+    def datagram_received(self, raw_data: Union[bytes, Text], addr: Tuple[str, int]) -> None:
         ip_address, udp_port = addr
         address = kademlia.Address(ip_address, udp_port)
         # The prefix below is what geth uses to identify discv5 msgs.
         # https://github.com/ethereum/go-ethereum/blob/c4712bf96bc1bae4a5ad4600e9719e4a74bde7d5/p2p/discv5/udp.go#L149  # noqa: E501
-        data = snappy.decompress(data)
+        data = snappy.decompress(raw_data)
         if text_if_str(to_bytes, data).startswith(V5_ID_STRING):
             self.receive_v5(address, cast(bytes, data))
         else:

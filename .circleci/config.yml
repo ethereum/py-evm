@@ -24,6 +24,9 @@ common: &common
     - restore_cache:
         keys:
           - cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+    - run
+        name: install libsnappy-dev
+        command: sudo apt install -y libsnappy-dev
     - run:
         name: install dependencies
         command: pip install --user tox
