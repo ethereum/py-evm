@@ -1,7 +1,6 @@
 from abc import (
     ABC,
 )
-import functools
 import logging
 from typing import (
     Iterable,
