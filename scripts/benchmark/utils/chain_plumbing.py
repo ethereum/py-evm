@@ -95,5 +95,5 @@ def get_chain(vm: Type[BaseVM], genesis_state: GenesisState) -> MiningChain:
 
 def get_all_chains(genesis_state: GenesisState=DEFAULT_GENESIS_STATE) -> Iterable[MiningChain]:
     for vm in ALL_VM:
-        chain = get_chain(vm, DEFAULT_GENESIS_STATE)
+        chain = get_chain(vm, genesis_state)
         yield chain
