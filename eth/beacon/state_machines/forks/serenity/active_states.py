@@ -10,16 +10,16 @@ from eth.beacon.helpers import (
 )
 
 if TYPE_CHECKING:
-    from eth.beacon.types.blocks import BaseBeaconBlock
+    from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
 
 
 class SerenityActiveState(ActiveState):
     @classmethod
-    def from_old_active_state_and_blocks(cls,
-                                         old_active_state: ActiveState,
-                                         blocks: Sequence['BaseBlock']):
-        recent_block_hashes = old_active_state.recent_block_hashes
-        pending_attestations = old_active_state.pending_attestations
+    def from_backup_active_state_and_blocks(cls,
+                                            backup_active_state: ActiveState,
+                                            blocks: Sequence['BaseBeaconBlock']) -> ActiveState:
+        recent_block_hashes = backup_active_state.recent_block_hashes
+        pending_attestations = backup_active_state.pending_attestations
 
         index = 0
         while index < len(blocks) - 1:

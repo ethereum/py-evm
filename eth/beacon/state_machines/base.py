@@ -39,11 +39,12 @@ class BaseBeaconStateMachine(Configurable, ABC):
     config = None  # type: BeaconConfig
 
     block = None  # type: BaseBeaconBlock
+
     block_class = None  # type: Type[BaseBeaconBlock]
-
     crystallized_state_class = None  # type: Type[CrystallizedState]
-
     active_state_class = None  # type: Type[ActiveState]
+
+    # TODO: Add abstractmethods
 
 
 class BeaconStateMachine(BaseBeaconStateMachine):
@@ -74,7 +75,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     @classmethod
     def get_block_class(cls) -> Type[BaseBeaconBlock]:
         """
-        Return the :class:`~eth.beacon.types.blocks.BeaconBlock` class that this
+        Returns the :class:`~eth.beacon.types.blocks.BeaconBlock` class that this
         StateMachine uses for blocks.
         """
         if cls.block_class is None:
@@ -83,25 +84,30 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             return cls.block_class
 
     @classmethod
-    @functools.lru_cache(maxsize=32)
     @to_tuple
-    def get_prev_blocks_to_slot(cls,
-                                last_block_hash: Hash32,
-                                chaindb: BaseBeaconChainDB,
-                                depth: int,
-                                start_slot: int) -> Iterable[BaseBeaconBlock]:
+    def get_prev_blocks(cls,
+                        last_block_hash: Hash32,
+                        chaindb: BaseBeaconChainDB,
+                        searching_depth: int,
+                        target_slot_number: int) -> Iterable[BaseBeaconBlock]:
+        """
+        Returns the previous blocks.
+
+        Since the slot numbers might be not continuous. The searching depth is ``searching_depth``
+        and the target slot depth is ``target_slot_number``.
+        """
         if last_block_hash == GENESIS_PARENT_HASH:
             return
 
         block = chaindb.get_block_by_hash(last_block_hash)
 
-        for _ in range(depth):
+        for _ in range(searching_depth):
             yield block
             try:
                 block = chaindb.get_block_by_hash(block.parent_hash)
             except (IndexError, BlockNotFound):
                 break
-            if block.slot_number < start_slot:
+            if block.slot_number < target_slot_number:
                 break
 
     @property
@@ -127,7 +133,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     @classmethod
     def get_crystallized_state_class(cls) -> Type[CrystallizedState]:
         """
-        Return the :class:`~eth.beacon.types.crystallized_states.CrystallizedState` class that this
+        Returns the :class:`~eth.beacon.types.crystallized_states.CrystallizedState` class that this
         StateMachine uses for crystallized_state.
         """
         if cls.crystallized_state_class is None:
@@ -144,38 +150,44 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         Returns latest active state.
 
         It was backed up per cycle. The latest ActiveState could be reproduced by
-        ``old_active_state`` and recent blocks.
+        ``backup_active_state`` and recent blocks.
 
         NOTE: The following logic in beacon chain spec will be changed with the current spec.
         """
         if self._active_state is None:
             # Reproduce ActiveState
-            old_active_state_root = self.chaindb.get_active_state_root_by_crystallized(
+            backup_active_state_root = self.chaindb.get_active_state_root_by_crystallized(
                 self.crystallized_state.hash
             )
-            old_active_state = self.chaindb.get_active_state_by_root(old_active_state_root)
-            old_active_state_slot = self.crystallized_state.last_state_recalc
+            backup_active_state = self.chaindb.get_active_state_by_root(backup_active_state_root)
+            backup_active_state_slot = self.crystallized_state.last_state_recalc
 
-            depth = self.config.CYCLE_LENGTH * 2
-            blocks = self.get_prev_blocks_to_slot(
-                self.parent_block.hash,
-                self.chaindb,
-                depth,
-                start_slot=old_active_state_slot
-            )
-            blocks = blocks[::-1]
+            if backup_active_state_root == self.parent_block.active_state_root:
+                # The backup ActiveState matches current block.
+                self._active_state = backup_active_state
+            else:
+                # Get recent blocks after last ActiveState backup.
+                searching_depth = self.config.CYCLE_LENGTH * 2
+                blocks = self.get_prev_blocks(
+                    last_block_hash=self.parent_block.hash,
+                    chaindb=self.chaindb,
+                    searching_depth=searching_depth,
+                    target_slot_number=backup_active_state_slot
+                )
+                blocks = blocks[::-1]
 
-            self._active_state = self.get_active_state_class().from_old_active_state_and_blocks(
-                old_active_state,
-                blocks,
-            )
+                self._active_state = self.get_active_state_class(
+                ).from_backup_active_state_and_blocks(
+                    backup_active_state,
+                    blocks,
+                )
 
         return self._active_state
 
     @classmethod
     def get_active_state_class(cls) -> Type[ActiveState]:
         """
-        Return the :class:`~eth.beacon.types.active_states.ActiveState` class that this
+        Returns the :class:`~eth.beacon.types.active_states.ActiveState` class that this
         StateMachine uses for crystallized_state.
         """
         if cls.active_state_class is None:

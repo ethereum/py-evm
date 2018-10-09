@@ -85,7 +85,10 @@ def test_num_crosslink_records(expected,
         (20),
     ]
 )
-def test_total_deposits(num_active_validators, deposit_size, default_end_dynasty, empty_crystallized_state):
+def test_total_deposits(num_active_validators,
+                        deposit_size,
+                        default_end_dynasty,
+                        empty_crystallized_state):
     start_dynasty = 10
     active_validators = [
         mock_validator_record(
