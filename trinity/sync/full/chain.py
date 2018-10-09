@@ -49,6 +49,7 @@ from p2p.protocol import Command
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB
 from trinity.protocol.common.peer import BaseChainPeer
+from trinity.protocol.eth.monitors import ETHChainTipMonitor
 from trinity.protocol.eth import commands
 from trinity.protocol.eth.constants import (
     MAX_BODIES_FETCH,
@@ -149,6 +150,9 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
         commands.NewBlockHashes,
     }
     _pending_bodies: Dict[BlockHeader, BlockBody]
+
+    # This class uses the standard ethereum chain tip monitor
+    tip_monitor_class = ETHChainTipMonitor
 
     def __init__(self,
                  chain: AsyncChain,
@@ -337,12 +341,10 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
         peer = cast(ETHPeer, peer)
 
         # TODO: stop ignoring these once we have proper handling for these messages.
-        ignored_commands = (commands.Transactions, commands.NewBlockHashes)
+        ignored_commands = (commands.Transactions, commands.NewBlockHashes, commands.NewBlock)
 
         if isinstance(cmd, ignored_commands):
             pass
-        elif isinstance(cmd, commands.NewBlock):
-            await self._handle_new_block(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, commands.GetBlockHeaders):
             await self._handle_get_block_headers(peer, cast(Dict[str, Any], msg))
         elif isinstance(cmd, commands.GetBlockBodies):
@@ -359,9 +361,6 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer):
             await self._handler.handle_get_node_data(peer, node_hashes)
         else:
             self.logger.debug("%s msg not handled yet, need to be implemented", cmd)
-
-    async def _handle_new_block(self, peer: ETHPeer, msg: Dict[str, Any]) -> None:
-        self._sync_requests.put_nowait(peer)
 
     async def _handle_get_block_headers(
             self,

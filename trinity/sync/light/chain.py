@@ -15,6 +15,7 @@ from trinity.protocol.common.peer import BaseChainPeer
 from trinity.protocol.les import commands
 from trinity.protocol.les.peer import LESPeer
 from trinity.protocol.les.requests import HeaderRequest
+from trinity.protocol.les.monitors import LightChainTipMonitor
 from trinity.sync.common.chain import BaseHeaderChainSyncer
 from trinity.utils.timer import Timer
 
@@ -23,10 +24,11 @@ class LightChainSyncer(BaseHeaderChainSyncer):
     _exit_on_sync_complete = False
 
     subscription_msg_types: Set[Type[Command]] = {
-        commands.Announce,
         commands.GetBlockHeaders,
         commands.BlockHeaders,
     }
+
+    tip_monitor_class = LightChainTipMonitor
 
     async def _run(self) -> None:
         self.run_task(self._persist_headers())
@@ -34,9 +36,7 @@ class LightChainSyncer(BaseHeaderChainSyncer):
 
     async def _handle_msg(self, peer: BaseChainPeer, cmd: Command,
                           msg: _DecodedMsgType) -> None:
-        if isinstance(cmd, commands.Announce):
-            self._sync_requests.put_nowait(peer)
-        elif isinstance(cmd, commands.GetBlockHeaders):
+        if isinstance(cmd, commands.GetBlockHeaders):
             msg = cast(Dict[str, Any], msg)
             await self._handle_get_block_headers(cast(LESPeer, peer), msg)
         elif isinstance(cmd, commands.BlockHeaders):
