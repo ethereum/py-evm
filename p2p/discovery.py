@@ -412,6 +412,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         address = kademlia.Address(ip_address, udp_port)
         # The prefix below is what geth uses to identify discv5 msgs.
         # https://github.com/ethereum/go-ethereum/blob/c4712bf96bc1bae4a5ad4600e9719e4a74bde7d5/p2p/discv5/udp.go#L149  # noqa: E501
+        data = snappy.decompress(data)
         if text_if_str(to_bytes, data).startswith(V5_ID_STRING):
             self.receive_v5(address, cast(bytes, data))
         else:
@@ -421,7 +422,8 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.logger.error('error received: %s', exc)
 
     def send(self, node: kademlia.Node, message: bytes) -> None:
-        self.transport.sendto(message, (node.address.ip, node.address.udp_port))
+        compressed_msg = snappy.compress(message)
+        self.transport.sendto(compressed_msg, (node.address.ip, node.address.udp_port))
 
     async def stop(self) -> None:
         self.logger.info('stopping discovery')

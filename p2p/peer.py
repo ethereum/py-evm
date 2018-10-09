@@ -26,6 +26,7 @@ from typing import (
 )
 
 import sha3
+import snappy
 
 from cytoolz import groupby
 
@@ -331,7 +332,9 @@ class BasePeer(BaseService):
     async def read(self, n: int) -> bytes:
         self.logger.trace("Waiting for %s bytes from %s", n, self.remote)
         try:
-            return await self.wait(self.reader.readexactly(n), timeout=self.conn_idle_timeout)
+            received_msg = await self.wait(self.reader.readexactly(n), timeout=self.conn_idle_timeout)
+            decompressed_msg = snappy.decompress(received_msg)
+            return decompressed_msg
         except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as e:
             raise PeerConnectionLost(repr(e))
 
@@ -552,7 +555,9 @@ class BasePeer(BaseService):
             self.logger.error(
                 "Attempted to send msg with cmd id %d to disconnected peer %s", cmd_id, self)
             return
-        self.writer.write(self.encrypt(header, body))
+        encrypted_msg = self.encrypt(header, body)
+        compressed_msg = snappy.compress(encrypted_msg)
+        self.writer.write(compressed_msg)
 
     def _disconnect(self, reason: DisconnectReason) -> None:
         if not isinstance(reason, DisconnectReason):
