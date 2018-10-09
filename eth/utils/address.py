@@ -4,7 +4,7 @@ from eth_hash.auto import keccak
 from eth_typing import Address
 
 from eth.utils.numeric import (
-    int_to_big_endian,
+    int_to_bytes32,
 )
 
 
@@ -22,5 +22,5 @@ def generate_safe_contract_address(address: Address,
                                    salt: int,
                                    call_data: bytes) -> Address:
     return force_bytes_to_address(
-        keccak(b'\xff' + address + int_to_big_endian(salt) + keccak(call_data))
+        keccak(b'\xff' + address + int_to_bytes32(salt) + keccak(call_data))
     )
