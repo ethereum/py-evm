@@ -4,24 +4,12 @@ from eth_utils import (
     to_tuple,
 )
 
-from eth.beacon.config import (
-    BASE_REWARD_QUOTIENT,
-    DEFAULT_END_DYNASTY,
-    DEPOSIT_SIZE,
-    CYCLE_LENGTH,
-    MAX_VALIDATOR_COUNT,
-    MIN_COMMITTEE_SIZE,
-    MIN_DYNASTY_LENGTH,
-    SHARD_COUNT,
-    SLOT_DURATION,
-    SQRT_E_DROP_TIME,
-    generate_config,
-)
 from eth.beacon.genesis_helpers import (
     get_genesis_active_state,
     get_genesis_block,
     get_genesis_crystallized_state,
 )
+from eth.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 from eth.beacon.types.validator_records import ValidatorRecord
 import eth.utils.bls as bls
 from eth.utils.blake import blake
@@ -170,77 +158,47 @@ def init_validator_keys(pubkeys, num_validators):
 #
 @pytest.fixture
 def base_reward_quotient():
-    return BASE_REWARD_QUOTIENT
+    return SERENITY_CONFIG.BASE_REWARD_QUOTIENT
 
 
 @pytest.fixture
 def default_end_dynasty():
-    return DEFAULT_END_DYNASTY
+    return SERENITY_CONFIG.DEFAULT_END_DYNASTY
 
 
 @pytest.fixture
 def deposit_size():
-    return DEPOSIT_SIZE
+    return SERENITY_CONFIG.DEPOSIT_SIZE
 
 
 @pytest.fixture
 def cycle_length():
-    return CYCLE_LENGTH
-
-
-@pytest.fixture
-def max_validator_count():
-    return MAX_VALIDATOR_COUNT
+    return SERENITY_CONFIG.CYCLE_LENGTH
 
 
 @pytest.fixture
 def min_committee_size():
-    return MIN_COMMITTEE_SIZE
+    return SERENITY_CONFIG.MIN_COMMITTEE_SIZE
 
 
 @pytest.fixture
 def min_dynasty_length():
-    return MIN_DYNASTY_LENGTH
+    return SERENITY_CONFIG.MIN_DYNASTY_LENGTH
 
 
 @pytest.fixture
 def shard_count():
-    return SHARD_COUNT
+    return SERENITY_CONFIG.SHARD_COUNT
 
 
 @pytest.fixture
 def slot_duration():
-    return SLOT_DURATION
+    return SERENITY_CONFIG.SLOT_DURATION
 
 
 @pytest.fixture
 def sqrt_e_drop_time():
-    return SQRT_E_DROP_TIME
-
-
-@pytest.fixture
-def beacon_config(base_reward_quotient,
-                  default_end_dynasty,
-                  deposit_size,
-                  cycle_length,
-                  max_validator_count,
-                  min_committee_size,
-                  min_dynasty_length,
-                  shard_count,
-                  slot_duration,
-                  sqrt_e_drop_time):
-    return generate_config(
-        base_reward_quotient=base_reward_quotient,
-        default_end_dynasty=default_end_dynasty,
-        deposit_size=deposit_size,
-        cycle_length=cycle_length,
-        max_validator_count=max_validator_count,
-        min_committee_size=min_committee_size,
-        min_dynasty_length=min_dynasty_length,
-        shard_count=shard_count,
-        slot_duration=slot_duration,
-        sqrt_e_drop_time=sqrt_e_drop_time
-    )
+    return SERENITY_CONFIG.SQRT_E_DROP_TIME
 
 
 #
@@ -250,7 +208,8 @@ def beacon_config(base_reward_quotient,
 @to_tuple
 def genesis_validators(init_validator_keys,
                        init_randao,
-                       beacon_config):
+                       deposit_size,
+                       default_end_dynasty):
     current_dynasty = 1
     return [
         ValidatorRecord(
@@ -258,9 +217,9 @@ def genesis_validators(init_validator_keys,
             withdrawal_shard=0,
             withdrawal_address=blake(pub.to_bytes(32, 'big'))[-20:],
             randao_commitment=init_randao,
-            balance=beacon_config.deposit_size,
+            balance=deposit_size,
             start_dynasty=current_dynasty,
-            end_dynasty=beacon_config.default_end_dynasty
+            end_dynasty=default_end_dynasty
         ) for pub in init_validator_keys
     ]
 
@@ -268,17 +227,21 @@ def genesis_validators(init_validator_keys,
 @pytest.fixture
 def genesis_crystallized_state(genesis_validators,
                                init_shuffling_seed,
-                               beacon_config):
+                               cycle_length,
+                               min_committee_size,
+                               shard_count):
     return get_genesis_crystallized_state(
         genesis_validators,
         init_shuffling_seed,
-        beacon_config,
+        cycle_length,
+        min_committee_size,
+        shard_count,
     )
 
 
 @pytest.fixture
-def genesis_active_state(beacon_config):
-    return get_genesis_active_state(beacon_config)
+def genesis_active_state(cycle_length):
+    return get_genesis_active_state(cycle_length)
 
 
 @pytest.fixture

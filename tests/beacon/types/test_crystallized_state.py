@@ -39,8 +39,19 @@ def empty_crystallized_state():
 @pytest.mark.parametrize(
     'expected', [(0), (1), (5)]
 )
-def test_num_validators(expected, beacon_config, empty_crystallized_state):
-    validators = [mock_validator_record(pubkey, beacon_config) for pubkey in range(expected)]
+def test_num_validators(expected,
+                        deposit_size,
+                        default_end_dynasty,
+                        empty_crystallized_state):
+    validators = [
+        mock_validator_record(
+            pubkey,
+            deposit_size,
+            default_end_dynasty,
+            start_dynasty=0,
+        )
+        for pubkey in range(expected)
+    ]
     crystallized_state = empty_crystallized_state.copy(
         validators=validators,
     )
@@ -74,14 +85,23 @@ def test_num_crosslink_records(expected,
         (20),
     ]
 )
-def test_total_deposits(num_active_validators, beacon_config, empty_crystallized_state):
+def test_total_deposits(num_active_validators, deposit_size, default_end_dynasty, empty_crystallized_state):
     start_dynasty = 10
     active_validators = [
-        mock_validator_record(pubkey, beacon_config, start_dynasty=start_dynasty)
+        mock_validator_record(
+            pubkey,
+            deposit_size,
+            default_end_dynasty,
+            start_dynasty=start_dynasty,
+        )
         for pubkey in range(num_active_validators)
     ]
     non_active_validators = [
-        mock_validator_record(pubkey, beacon_config, start_dynasty=start_dynasty + 1)
+        mock_validator_record(
+            pubkey, deposit_size,
+            default_end_dynasty,
+            start_dynasty + 1
+        )
         for pubkey in range(4)
     ]
 
@@ -92,7 +112,7 @@ def test_total_deposits(num_active_validators, beacon_config, empty_crystallized
 
     assert len(crystallized_state.active_validator_indices) == len(active_validators)
 
-    expected_total_deposits = beacon_config.deposit_size * num_active_validators
+    expected_total_deposits = deposit_size * num_active_validators
     assert crystallized_state.total_deposits == expected_total_deposits
 
 

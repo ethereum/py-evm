@@ -165,10 +165,9 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             )
             blocks = blocks[::-1]
 
-            self._active_state = self.get_active_state_class().from_old_active_and_blocks(
+            self._active_state = self.get_active_state_class().from_old_active_state_and_blocks(
                 old_active_state,
                 blocks,
-                self.config.CYCLE_LENGTH * 2,
             )
 
         return self._active_state

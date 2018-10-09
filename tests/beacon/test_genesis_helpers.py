@@ -8,22 +8,27 @@ from eth.beacon.genesis_helpers import (
 )
 
 
-def test_get_genesis_active_state(beacon_config):
-    active_state = get_genesis_active_state(beacon_config)
+def test_get_genesis_active_state(cycle_length):
+    active_state = get_genesis_active_state(cycle_length)
     assert active_state.num_pending_attestations == 0
-    assert active_state.num_recent_block_hashes == beacon_config.cycle_length * 2
+    assert active_state.num_recent_block_hashes == cycle_length * 2
 
 
 def test_get_genesis_crystallized_state(genesis_validators,
                                         init_shuffling_seed,
-                                        beacon_config):
+                                        cycle_length,
+                                        min_committee_size,
+                                        shard_count,
+                                        deposit_size):
     crystallized_state = get_genesis_crystallized_state(
         genesis_validators,
         init_shuffling_seed,
-        beacon_config,
+        cycle_length,
+        min_committee_size,
+        shard_count,
     )
-    len_shard_and_committee_for_slots = beacon_config.cycle_length * 2
-    total_deposits = beacon_config.deposit_size * len(genesis_validators)
+    len_shard_and_committee_for_slots = cycle_length * 2
+    total_deposits = deposit_size * len(genesis_validators)
 
     assert crystallized_state.validators == genesis_validators
     assert crystallized_state.last_state_recalc == 0
@@ -33,7 +38,7 @@ def test_get_genesis_crystallized_state(genesis_validators,
     assert crystallized_state.justified_streak == 0
     assert crystallized_state.last_finalized_slot == 0
     assert crystallized_state.current_dynasty == 1
-    assert len(crystallized_state.crosslink_records) == beacon_config.shard_count
+    assert len(crystallized_state.crosslink_records) == shard_count
     for crosslink in crystallized_state.crosslink_records:
         assert crosslink.hash == ZERO_HASH32
         assert crosslink.slot == 0

@@ -9,7 +9,6 @@ BeaconConfig = NamedTuple(
         ('DEFAULT_END_DYNASTY', int),
         ('DEPOSIT_SIZE', int),
         ('CYCLE_LENGTH', int),
-        ('MAX_VALIDATOR_COUNT', int),
         ('MIN_COMMITTEE_SIZE', int),
         ('MIN_DYNASTY_LENGTH', int),
         ('SHARD_COUNT', int),

@@ -3,12 +3,11 @@ from eth_utils import denoms
 from eth.beacon.state_machines.configs import BeaconConfig
 
 
-SENERITY_CONFIG = BeaconConfig(
+SERENITY_CONFIG = BeaconConfig(
     BASE_REWARD_QUOTIENT=2**15,
     DEFAULT_END_DYNASTY=9999999999999999999,
     DEPOSIT_SIZE=32 * denoms.ether,  # WEI
     CYCLE_LENGTH=64,  # slots
-    MAX_VALIDATOR_COUNT=2**22,  # validators
     MIN_COMMITTEE_SIZE=128,  # validators
     MIN_DYNASTY_LENGTH=256,  # slots
     SHARD_COUNT=1024,  # shards

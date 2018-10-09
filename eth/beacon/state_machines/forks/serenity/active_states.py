@@ -1,12 +1,23 @@
+
+from typing import (
+    Sequence,
+    TYPE_CHECKING,
+)
+
 from eth.beacon.types.active_states import ActiveState
 from eth.beacon.helpers import (
     get_new_recent_block_hashes,
 )
 
+if TYPE_CHECKING:
+    from eth.beacon.types.blocks import BaseBeaconBlock
+
 
 class SerenityActiveState(ActiveState):
     @classmethod
-    def from_old_active_and_blocks(cls, old_active_state, blocks, recent_block_hashes_length):
+    def from_old_active_state_and_blocks(cls,
+                                         old_active_state: ActiveState,
+                                         blocks: Sequence['BaseBlock']):
         recent_block_hashes = old_active_state.recent_block_hashes
         pending_attestations = old_active_state.pending_attestations
 

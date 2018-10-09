@@ -89,8 +89,8 @@ def test_get_block_hash(
         current_block_number,
         target_slot,
         success,
-        beacon_config):
-    cycle_length = beacon_config.cycle_length
+        cycle_length):
+    cycle_length = cycle_length
 
     blocks, recent_block_hashes = generate_mock_recent_block_hashes(
         genesis_block,
@@ -147,8 +147,8 @@ def test_get_hashes_from_recent_block_hashes(
     assert len(result) == to_slot - from_slot + 1
 
 
-def test_get_hashes_to_sign(genesis_block, beacon_config):
-    cycle_length = beacon_config.cycle_length
+def test_get_hashes_to_sign(genesis_block, cycle_length):
+    cycle_length = cycle_length
     current_block_slot_number = 1
     blocks, recent_block_hashes = generate_mock_recent_block_hashes(
         genesis_block,
@@ -167,9 +167,9 @@ def test_get_hashes_to_sign(genesis_block, beacon_config):
 
 
 def test_get_new_recent_block_hashes(genesis_block,
-                                     beacon_config,
+                                     cycle_length,
                                      sample_attestation_record_params):
-    cycle_length = beacon_config.cycle_length
+    cycle_length = cycle_length
     current_block_slot_number = 15
     blocks, recent_block_hashes = generate_mock_recent_block_hashes(
         genesis_block,
@@ -233,17 +233,17 @@ def test_get_shard_and_committee_for_slot(
 
 @pytest.mark.parametrize(
     (
-        'num_validators,max_validator_count,cycle_length,'
-        'min_committee_size,shard_count'
+        'num_validators,'
+        'cycle_length,min_committee_size'
     ),
     [
-        (1000, 1000, 20, 10, 100),
+        (1000, 20, 10),
     ],
 )
 def test_get_attestation_indices(genesis_crystallized_state,
                                  sample_attestation_record_params,
-                                 min_committee_size,
-                                 beacon_config):
+                                 cycle_length,
+                                 min_committee_size):
     attestation = AttestationRecord(**sample_attestation_record_params)
     attestation = attestation.copy(
         slot=0,
@@ -253,7 +253,7 @@ def test_get_attestation_indices(genesis_crystallized_state,
     attestation_indices = get_attestation_indices(
         genesis_crystallized_state,
         attestation,
-        beacon_config.cycle_length,
+        cycle_length,
     )
     assert len(attestation_indices) >= min_committee_size
 
@@ -263,27 +263,32 @@ def test_get_attestation_indices(genesis_crystallized_state,
 #
 @pytest.mark.parametrize(
     (
-        'num_validators,max_validator_count,cycle_length,'
-        'min_committee_size,shard_count'
+        'num_validators,'
+        'cycle_length,min_committee_size,shard_count'
     ),
     [
-        (1000, 1000, 20, 10, 100),
-        (100, 500, 50, 10, 10),
-        (20, 100, 10, 3, 10),  # active_validators_size < cycle_length * min_committee_size
+        (1000, 20, 10, 100),
+        (100, 50, 10, 10),
+        (20, 10, 3, 10),  # active_validators_size < cycle_length * min_committee_size
     ],
 )
-def test_get_new_shuffling_is_complete(genesis_validators, beacon_config):
+def test_get_new_shuffling_is_complete(genesis_validators,
+                                       cycle_length,
+                                       min_committee_size,
+                                       shard_count):
     dynasty = 1
 
     shuffling = get_new_shuffling(
-        b'\x35' * 32,
-        genesis_validators,
-        dynasty,
-        0,
-        beacon_config
+        seed=b'\x35' * 32,
+        validators=genesis_validators,
+        dynasty=dynasty,
+        crosslinking_start_shard=0,
+        cycle_length=cycle_length,
+        min_committee_size=min_committee_size,
+        shard_count=shard_count,
     )
 
-    assert len(shuffling) == beacon_config.cycle_length
+    assert len(shuffling) == cycle_length
     validators = set()
     shards = set()
     for slot_indices in shuffling:
@@ -297,30 +302,35 @@ def test_get_new_shuffling_is_complete(genesis_validators, beacon_config):
 
 @pytest.mark.parametrize(
     (
-        'num_validators,max_validator_count,cycle_length,'
-        'min_committee_size,shard_count'
+        'num_validators,'
+        'cycle_length,min_committee_size,shard_count'
     ),
     [
-        (1000, 1000, 20, 10, 100),
-        (100, 500, 50, 10, 10),
-        (20, 100, 10, 3, 10),
+        (1000, 20, 10, 100),
+        (100, 50, 10, 10),
+        (20, 10, 3, 10),
     ],
 )
-def test_get_new_shuffling_handles_shard_wrap(genesis_validators, beacon_config):
+def test_get_new_shuffling_handles_shard_wrap(genesis_validators,
+                                              cycle_length,
+                                              min_committee_size,
+                                              shard_count):
     dynasty = 1
 
     shuffling = get_new_shuffling(
-        b'\x35' * 32,
-        genesis_validators,
-        dynasty,
-        beacon_config.shard_count - 1,
-        beacon_config
+        seed=b'\x35' * 32,
+        validators=genesis_validators,
+        dynasty=dynasty,
+        crosslinking_start_shard=shard_count - 1,
+        cycle_length=cycle_length,
+        min_committee_size=min_committee_size,
+        shard_count=shard_count,
     )
 
     # shard assignments should wrap around to 0 rather than continuing to SHARD_COUNT
     for slot_indices in shuffling:
         for shard_and_committee in slot_indices:
-            assert shard_and_committee.shard_id < beacon_config.shard_count
+            assert shard_and_committee.shard_id < shard_count
 
 
 #
@@ -343,12 +353,12 @@ def test_get_proposer_position(monkeypatch,
                                committee,
                                parent_block_number,
                                result_proposer_index_in_committee,
-                               beacon_config):
+                               cycle_length):
     from eth.beacon import helpers
 
     def mock_get_shards_and_committees_for_slot(parent_block,
                                                 crystallized_state,
-                                                beacon_config):
+                                                cycle_length):
         return [
             ShardAndCommittee(shard_id=1, committee=committee),
         ]
@@ -369,13 +379,13 @@ def test_get_proposer_position(monkeypatch,
             get_proposer_position(
                 parent_block,
                 genesis_crystallized_state,
-                beacon_config,
+                cycle_length,
             )
     else:
         proposer_index_in_committee, _ = get_proposer_position(
             parent_block,
             genesis_crystallized_state,
-            beacon_config,
+            cycle_length,
         )
 
         assert proposer_index_in_committee == result_proposer_index_in_committee

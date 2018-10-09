@@ -20,7 +20,6 @@ from eth_typing import (
 from eth.utils.blake import (
     blake,
 )
-from eth.beacon.config import BeaconConfig  # noqa: F401
 from eth.beacon.types.shard_and_committees import (
     ShardAndCommittee,
 )
@@ -268,11 +267,14 @@ def _get_shards_and_committees_for_shard_indices(
 
 
 @to_tuple
-def get_new_shuffling(seed: Hash32,
+def get_new_shuffling(*,
+                      seed: Hash32,
                       validators: Sequence['ValidatorRecord'],
                       dynasty: int,
                       crosslinking_start_shard: int,
-                      beacon_config: BeaconConfig) -> Iterable[Iterable[ShardAndCommittee]]:
+                      cycle_length: int,
+                      min_committee_size: int,
+                      shard_count: int) -> Iterable[Iterable[ShardAndCommittee]]:
     """
     Returns shuffled ``shard_and_committee_for_slots`` (``[[ShardAndCommittee]]``) of
     the given active ``validators``.
@@ -317,10 +319,6 @@ def get_new_shuffling(seed: Hash32,
 
     NOTE: The spec might be updated to output an array rather than an array of arrays.
     """
-    cycle_length = beacon_config.cycle_length
-    min_committee_size = beacon_config.min_committee_size
-    shard_count = beacon_config.shard_count
-
     active_validators = get_active_validator_indices(dynasty, validators)
     active_validators_size = len(active_validators)
 
@@ -353,11 +351,11 @@ def get_new_shuffling(seed: Hash32,
 #
 def get_proposer_position(parent_block: 'BaseBeaconBlock',
                           crystallized_state: 'CrystallizedState',
-                          beacon_config: BeaconConfig) -> Tuple[int, int]:
+                          cycle_length: int) -> Tuple[int, int]:
     shards_and_committees = get_shards_and_committees_for_slot(
         crystallized_state,
         parent_block.slot_number,
-        beacon_config.cycle_length,
+        cycle_length,
     )
     """
     Returns the proposer index in committee and the ``shard_id``.

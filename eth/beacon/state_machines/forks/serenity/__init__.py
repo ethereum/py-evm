@@ -10,7 +10,7 @@ from eth.beacon.state_machines.base import BeaconStateMachine
 from .active_states import SerenityActiveState
 from .blocks import SerenityBeaconBlock
 from .crystallized_states import SerenityCrystallizedState
-from .configs import SENERITY_CONFIG
+from .configs import SERENITY_CONFIG
 
 
 class SerenityBeaconStateMachine(BeaconStateMachine):
@@ -21,4 +21,4 @@ class SerenityBeaconStateMachine(BeaconStateMachine):
     block_class = SerenityBeaconBlock  # type: Type[BaseBeaconBlock]
     crystallized_state_class = SerenityCrystallizedState  # type: Type[CrystallizedState]
     active_state_class = SerenityActiveState  # type: Type[ActiveState]
-    config = SENERITY_CONFIG
+    config = SERENITY_CONFIG

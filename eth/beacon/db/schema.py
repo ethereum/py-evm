@@ -53,24 +53,24 @@ class SchemaV1(BaseSchema):
 
     @staticmethod
     def make_block_slot_to_hash_lookup_key(slot: int) -> bytes:
-        slot_to_hash_key = b'beacon:block-slot-to-hash:%d' % slot
+        slot_to_hash_key = b'v1:beacon:block-slot-to-hash:%d' % slot
         return slot_to_hash_key
 
     @staticmethod
     def make_block_hash_to_score_lookup_key(block_hash: Hash32) -> bytes:
-        return b'beacon:block-hash-to-score:%s' % block_hash
+        return b'v1:beacon:block-hash-to-score:%s' % block_hash
 
     #
     # States
     #
     @staticmethod
     def make_slot_to_crystallized_state_lookup_key(slot: int) -> bytes:
-        return b'beacon:slot-to-crystallized-state:%d' % slot
+        return b'v1:beacon:slot-to-crystallized-state:%d' % slot
 
     @staticmethod
     def make_crystallized_to_active_state_root_lookup_key(state_root: Hash32) -> bytes:
-        return b'beacon:crystallized-root-to-active-state-root:%s' % state_root
+        return b'v1:beacon:crystallized-root-to-active-state-root:%s' % state_root
 
     @staticmethod
     def make_deletable_state_roots_lookup_key() -> bytes:
-        return b'beacon:make-deletable-state-roots'
+        return b'v1:beacon:make-deletable-state-roots'

@@ -10,7 +10,6 @@ from eth_typing import (
 from eth.constants import (
     ZERO_HASH32,
 )
-from eth.beacon.config import BeaconConfig  # noqa: F401
 from eth.beacon.types.active_states import ActiveState
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.crosslink_records import CrosslinkRecord
@@ -23,8 +22,8 @@ if TYPE_CHECKING:
     from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
-def get_genesis_active_state(beacon_config: 'BeaconConfig') -> ActiveState:
-    recent_block_hashes = [ZERO_HASH32] * beacon_config.cycle_length * 2
+def get_genesis_active_state(cycle_length: int) -> ActiveState:
+    recent_block_hashes = [ZERO_HASH32] * cycle_length * 2
 
     return ActiveState(
         pending_attestations=[],
@@ -35,17 +34,21 @@ def get_genesis_active_state(beacon_config: 'BeaconConfig') -> ActiveState:
 def get_genesis_crystallized_state(
         validators: List['ValidatorRecord'],
         init_shuffling_seed: Hash32,
-        beacon_config: 'BeaconConfig') -> CrystallizedState:
+        cycle_length: int,
+        min_committee_size: int,
+        shard_count: int) -> CrystallizedState:
 
     current_dynasty = 1
     crosslinking_start_shard = 0
 
     shard_and_committee_for_slots = get_new_shuffling(
-        init_shuffling_seed,
-        validators,
-        current_dynasty,
-        crosslinking_start_shard,
-        beacon_config=beacon_config,
+        seed=init_shuffling_seed,
+        validators=validators,
+        dynasty=current_dynasty,
+        crosslinking_start_shard=crosslinking_start_shard,
+        cycle_length=cycle_length,
+        min_committee_size=min_committee_size,
+        shard_count=shard_count,
     )
     # concatenate with itself to span 2*CYCLE_LENGTH
     shard_and_committee_for_slots = shard_and_committee_for_slots + shard_and_committee_for_slots
@@ -64,7 +67,7 @@ def get_genesis_crystallized_state(
                 slot=0,
                 hash=ZERO_HASH32,
             )
-            for _ in range(beacon_config.shard_count)
+            for _ in range(shard_count)
         ],
         dynasty_seed=init_shuffling_seed,
         dynasty_start=0,
