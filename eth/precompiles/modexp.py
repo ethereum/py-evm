@@ -122,7 +122,13 @@ def modexp(computation):
     result = _modexp(computation.msg.data)
 
     _, _, modulus_length = _extract_lengths(computation.msg.data)
-    result_bytes = zpad_left(int_to_big_endian(result), to_size=modulus_length)
+
+    # Modulo 0 is undefined, return zero
+    # https://math.stackexchange.com/questions/516251/why-is-n-mod-0-undefined
+    result_bytes = b'' if modulus_length == 0 else zpad_left(
+        int_to_big_endian(result),
+        to_size=modulus_length
+    )
 
     computation.output = result_bytes
     return computation
