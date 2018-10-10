@@ -62,79 +62,82 @@ class BaseBeaconChainDB(ABC):
     @abstractmethod
     def persist_block(self,
                       block: BaseBeaconBlock) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     @abstractmethod
     def get_canonical_block_hash(self, slot: int) -> Hash32:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     @abstractmethod
     def get_canonical_block_by_slot(self, slot: int) -> BaseBeaconBlock:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     @abstractmethod
     def get_canonical_head(self) -> BaseBeaconBlock:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     @abstractmethod
     def get_block_by_hash(self, block_hash: Hash32) -> BaseBeaconBlock:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     @abstractmethod
     def get_score(self, block_hash: Hash32) -> int:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     @abstractmethod
     def block_exists(self, block_hash: Hash32) -> bool:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     @abstractmethod
     def persist_block_chain(
         self,
         blocks: Iterable[BaseBeaconBlock]
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     #
     # Crystallized State
     #
     @abstractmethod
     def get_crystallized_state_by_root(self, state_root: Hash32) -> CrystallizedState:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     @abstractmethod
     def get_canonical_crystallized_state_root(self, slot: int) -> Hash32:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     @abstractmethod
     def persist_crystallized_state(self,
                                    crystallized_state: CrystallizedState) -> None:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     #
     # Active State
     #
+    @abstractmethod
     def get_active_state_by_root(self, state_root: Hash32) -> ActiveState:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
+    @abstractmethod
     def get_active_state_root_by_crystallized(self, crystallized_state_root: Hash32) -> Hash32:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
+    @abstractmethod
     def persist_active_state(self,
                              active_state: ActiveState,
                              crystallized_state_root: Hash32) -> None:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     #
     # Raw Database API
     #
     @abstractmethod
     def exists(self, key: bytes) -> bool:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
     @abstractmethod
     def get(self, key: bytes) -> bytes:
-        raise NotImplementedError("BeaconChainDB classes must implement this method")
+        pass
 
 
 class BeaconChainDB(BaseBeaconChainDB):
@@ -170,9 +173,9 @@ class BeaconChainDB(BaseBeaconChainDB):
     #
     def get_canonical_block_hash(self, slot: int) -> Hash32:
         """
-        Returns the block hash for the canonical block at the given number.
+        Return the block hash for the canonical block at the given number.
 
-        Raises BlockNotFound if there's no block with the given number in the
+        Raise BlockNotFound if there's no block with the given number in the
         canonical chain.
         """
         return self._get_canonical_block_hash(self.db, slot)
@@ -192,9 +195,9 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     def get_canonical_block_by_slot(self, slot: int) -> BaseBeaconBlock:
         """
-        Returns the block header with the given slot in the canonical chain.
+        Return the block header with the given slot in the canonical chain.
 
-        Raises BlockNotFound if there's no block with the given slot in the
+        Raise BlockNotFound if there's no block with the given slot in the
         canonical chain.
         """
         return self._get_canonical_block_by_slot(self.db, slot)
@@ -210,7 +213,7 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     def get_canonical_head(self) -> BaseBeaconBlock:
         """
-        Returns the current block at the head of the chain.
+        Return the current block at the head of the chain.
         """
         return self._get_canonical_head(self.db)
 
@@ -228,9 +231,9 @@ class BeaconChainDB(BaseBeaconChainDB):
     @staticmethod
     def _get_block_by_hash(db: BaseDB, block_hash: Hash32) -> BaseBeaconBlock:
         """
-        Returns the requested block header as specified by block hash.
+        Return the requested block header as specified by block hash.
 
-        Raises BlockNotFound if it is not present in the db.
+        Raise BlockNotFound if it is not present in the db.
         """
         validate_word(block_hash, title="Block Hash")
         try:
@@ -333,7 +336,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             cls, db: BaseDB,
             block_hash: Hash32) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         """
-        Sets the canonical chain HEAD to the block as specified by the
+        Set the canonical chain HEAD to the block as specified by the
         given block hash.
 
         :return: a tuple of the blocks that are newly in the canonical chain, and the blocks that
@@ -370,7 +373,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     @to_tuple
     def _find_new_ancestors(cls, db: BaseDB, block: BaseBeaconBlock) -> Iterable[BaseBeaconBlock]:
         """
-        Returns the chain leading up from the given block until (but not including)
+        Return the chain leading up from the given block until (but not including)
         the first ancestor it has in common with our canonical chain.
 
         If D is the canonical head in the following chain, and F is the new block,
@@ -402,7 +405,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     @staticmethod
     def _add_block_slot_to_hash_lookup(db: BaseDB, block: BaseBeaconBlock) -> None:
         """
-        Sets a record in the database to allow looking up this block by its
+        Set a record in the database to allow looking up this block by its
         block slot.
         """
         block_slot_to_hash_key = SchemaV1.make_block_slot_to_hash_lookup_key(
@@ -422,7 +425,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     @staticmethod
     def _get_crystallized_state_by_root(db: BaseDB, state_root: Hash32) -> CrystallizedState:
         """
-        Returns the requested crystallized state as specified by state hash.
+        Return the requested crystallized state as specified by state hash.
 
         Raises StateRootNotFound if it is not present in the db.
         """
@@ -436,7 +439,7 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     def get_canonical_crystallized_state_root(self, slot: int) -> Hash32:
         """
-        Returns the state hash for the canonical state at the given slot.
+        Return the state hash for the canonical state at the given slot.
 
         Raises StateRootNotFound if there's no state with the given slot in the
         canonical chain.
@@ -478,7 +481,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                                                db: BaseDB,
                                                crystallized_state: CrystallizedState) -> None:
         """
-        Sets a record in the database to allow looking up this block by its
+        Set a record in the database to allow looking up this block by its
         last state recalculation slot.
 
         If it's a fork, store the old state root in `deletable_state_roots`.
@@ -501,7 +504,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     @staticmethod
     def _get_deletable_state_roots(db: BaseDB) -> Tuple[Hash32]:
         """
-        Returns deletable_state_roots.
+        Return deletable_state_roots.
         """
         lookup_key = SchemaV1.make_deletable_state_roots_lookup_key()
         if not db.exists(lookup_key):
@@ -516,7 +519,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     @staticmethod
     def _set_deletatable_state(db: BaseDB, deletable_state_roots: Iterable[Hash32]) -> None:
         """
-        Sets deletable_state_roots.
+        Set deletable_state_roots.
         """
         lookup_key = SchemaV1.make_deletable_state_roots_lookup_key()
         db.set(
@@ -533,7 +536,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     @staticmethod
     def _get_active_state_by_root(db: BaseDB, state_root: Hash32) -> ActiveState:
         """
-        Returns the requested crystallized state as specified by state hash.
+        Return the requested crystallized state as specified by state hash.
 
         Raises StateRootNotFound if it is not present in the db.
         """
@@ -547,7 +550,7 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     def get_active_state_root_by_crystallized(self, crystallized_state_root: Hash32) -> Hash32:
         """
-        Returns the state hash for the canonical state at the given crystallized_state_root.
+        Return the state hash for the canonical state at the given crystallized_state_root.
 
         Raises StateRootNotFound if there's no state with the given slot in the
         canonical chain.
@@ -598,7 +601,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                                                  active_state: ActiveState,
                                                  crystallized_state_root: Hash32) -> None:
         """
-        Sets a record in the database to allow looking up this block by its
+        Set a record in the database to allow looking up this block by its
         last state recalculation slot.
         """
         slot_to_hash_key = SchemaV1.make_crystallized_to_active_state_root_lookup_key(
@@ -614,7 +617,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     #
     def exists(self, key: bytes) -> bool:
         """
-        Returns True if the given key exists in the database.
+        Return True if the given key exists in the database.
         """
         return self.db.exists(key)
 

@@ -1,5 +1,5 @@
 from typing import (
-    List,
+    Sequence,
     TYPE_CHECKING,
 )
 
@@ -32,7 +32,7 @@ def get_genesis_active_state(cycle_length: int) -> ActiveState:
 
 
 def get_genesis_crystallized_state(
-        validators: List['ValidatorRecord'],
+        validators: Sequence['ValidatorRecord'],
         init_shuffling_seed: Hash32,
         cycle_length: int,
         min_committee_size: int,

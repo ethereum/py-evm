@@ -18,6 +18,7 @@ class SerenityActiveState(ActiveState):
     def from_backup_active_state_and_blocks(cls,
                                             backup_active_state: ActiveState,
                                             blocks: Sequence['BaseBeaconBlock']) -> ActiveState:
+        # NOTE: The following logic in beacon chain spec will be changed with the current spec.
         recent_block_hashes = backup_active_state.recent_block_hashes
         pending_attestations = backup_active_state.pending_attestations
 

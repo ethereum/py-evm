@@ -12,17 +12,17 @@ class BaseSchema(ABC):
     @staticmethod
     @abstractmethod
     def make_canonical_head_hash_lookup_key() -> bytes:
-        raise NotImplementedError('Must be implemented by subclasses')
+        pass
 
     @staticmethod
     @abstractmethod
     def make_block_slot_to_hash_lookup_key(slot: int) -> bytes:
-        raise NotImplementedError('Must be implemented by subclasses')
+        pass
 
     @staticmethod
     @abstractmethod
     def make_block_hash_to_score_lookup_key(block_hash: Hash32) -> bytes:
-        raise NotImplementedError('Must be implemented by subclasses')
+        pass
 
     #
     # States
@@ -30,17 +30,17 @@ class BaseSchema(ABC):
     @staticmethod
     @abstractmethod
     def make_slot_to_crystallized_state_lookup_key(slot: int) -> bytes:
-        raise NotImplementedError('Must be implemented by subclasses')
+        pass
 
     @staticmethod
     @abstractmethod
     def make_crystallized_to_active_state_root_lookup_key(state_root: Hash32) -> bytes:
-        raise NotImplementedError('Must be implemented by subclasses')
+        pass
 
     @staticmethod
     @abstractmethod
     def make_deletable_state_roots_lookup_key() -> bytes:
-        raise NotImplementedError('Must be implemented by subclasses')
+        pass
 
 
 class SchemaV1(BaseSchema):
