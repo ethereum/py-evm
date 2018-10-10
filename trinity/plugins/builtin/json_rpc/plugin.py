@@ -35,7 +35,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
 
     def ready(self) -> None:
         if not self.context.args.disable_rpc:
-            self.boot()
+            self.start()
 
     def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         arg_parser.add_argument(
@@ -44,7 +44,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
             help="Disables the JSON-RPC Server",
         )
 
-    def start(self) -> None:
+    def _start(self) -> None:
         db_manager = create_db_manager(self.context.trinity_config.database_ipc_path)
         db_manager.connect()
 

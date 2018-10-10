@@ -75,9 +75,9 @@ class TxPlugin(BaseAsyncStopPlugin):
             self.chain = event.resource
 
         if all((self.peer_pool is not None, self.chain is not None, self.is_enabled)):
-            self.boot()
+            self.start()
 
-    def start(self) -> None:
+    def _start(self) -> None:
         if isinstance(self.chain, BaseMainnetChain):
             validator = DefaultTransactionValidator(self.chain, BYZANTIUM_MAINNET_BLOCK)
         elif isinstance(self.chain, BaseRopstenChain):
@@ -90,7 +90,7 @@ class TxPlugin(BaseAsyncStopPlugin):
         self.tx_pool = TxPool(self.peer_pool, validator, self.cancel_token)
         asyncio.ensure_future(self.tx_pool.run())
 
-    async def stop(self) -> None:
+    async def _stop(self) -> None:
         # This isn't really needed for the standard shutdown case as the TxPool will automatically
         # shutdown whenever the `CancelToken` it was chained with is triggered. It may still be
         # useful to stop the TxPool plugin individually though.

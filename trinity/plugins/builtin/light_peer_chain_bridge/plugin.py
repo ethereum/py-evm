@@ -55,14 +55,14 @@ class LightPeerChainBridgePlugin(BaseAsyncStopPlugin):
     def handle_event(self, event: ResourceAvailableEvent) -> None:
         if event.resource_type is BaseChain:
             self.chain = event.resource
-            self.boot()
+            self.start()
 
-    def start(self) -> None:
+    def _start(self) -> None:
         chain = cast(LightDispatchChain, self.chain)
         self.handler = LightPeerChainEventBusHandler(chain._peer_chain, self.context.event_bus)
         asyncio.ensure_future(self.handler.run())
 
-    async def stop(self) -> None:
+    async def _stop(self) -> None:
         # This isn't really needed for the standard shutdown case as the LightPeerChain will
         # automatically shutdown whenever the `CancelToken` it was chained with is triggered.
         # It may still be useful to stop the LightPeerChain Bridge plugin individually though.
