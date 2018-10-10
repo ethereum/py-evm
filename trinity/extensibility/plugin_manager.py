@@ -195,7 +195,6 @@ class PluginManager:
             try:
                 self._logger.info("Stopping plugin: %s", plugin.name)
                 plugin.stop()
-                plugin.running = False
                 self._logger.info("Successfully stopped plugin: %s", plugin.name)
             except Exception:
                 self._logger.exception("Exception thrown while stopping plugin %s", plugin.name)
@@ -224,7 +223,6 @@ class PluginManager:
                     'Exception thrown while stopping plugin %s: %s', plugin.name, result
                 )
             else:
-                plugin.running = False
                 self._logger.info("Successfully stopped plugin: %s", plugin.name)
 
     def _stop_plugins(self,

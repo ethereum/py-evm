@@ -115,18 +115,18 @@ class BasePlugin(ABC):
         """
         pass
 
-    def boot(self) -> None:
+    def start(self) -> None:
         """
         Prepare the plugin to get started and eventually cause ``start`` to get called.
         """
         self.running = True
-        self.start()
+        self._start()
         self.event_bus.broadcast(
             PluginStartedEvent(type(self))
         )
         self.logger.info("Plugin started: %s", self.name)
 
-    def start(self) -> None:
+    def _start(self) -> None:
         """
         The ``start`` method is called only once when the plugin is started. In the case
         of an `BaseIsolatedPlugin` this method will be launched in a separate process.
@@ -138,8 +138,19 @@ class BaseSyncStopPlugin(BasePlugin):
     """
     A ``BaseSyncStopPlugin`` unwinds synchronoulsy, hence blocks until shut down is done.
     """
-    def stop(self) -> None:
+    def _stop(self) -> None:
+        """
+        Stop the plugin. Should be overwritten by subclasses.
+        """
         pass
+
+    def stop(self) -> None:
+        """
+        Stop the plugin by delegating to
+        :meth:`~trinity.extensibility.plugin.BaseSyncStopPlugin._stop`
+        """
+        self._stop()
+        self.running = False
 
 
 class BaseAsyncStopPlugin(BasePlugin):
@@ -147,8 +158,19 @@ class BaseAsyncStopPlugin(BasePlugin):
     A ``BaseAsyncStopPlugin`` unwinds asynchronoulsy, hence needs to be awaited.
     """
 
-    async def stop(self) -> None:
+    async def _stop(self) -> None:
+        """
+        Asynchronously stop the plugin. Should be overwritten by subclasses.
+        """
         pass
+
+    async def stop(self) -> None:
+        """
+        Asynchronously stop the plugin by delegating to
+        :meth:`~trinity.extensibility.plugin.BaseAsyncStopPlugin._stop`
+        """
+        await self._stop()
+        self.running = False
 
 
 class BaseMainProcessPlugin(BasePlugin):
@@ -170,7 +192,7 @@ class BaseIsolatedPlugin(BaseSyncStopPlugin):
 
     _process: Process = None
 
-    def boot(self) -> None:
+    def start(self) -> None:
         """
         Prepare the plugin to get started and eventually cause ``start`` to get called.
         """
@@ -190,9 +212,9 @@ class BaseIsolatedPlugin(BaseSyncStopPlugin):
         self.event_bus.broadcast(
             PluginStartedEvent(type(self))
         )
-        self.start()
+        self._start()
 
-    def stop(self) -> None:
+    def _stop(self) -> None:
         self.context.event_bus.stop()
         kill_process_gracefully(self._process, self.logger)
 
@@ -212,7 +234,7 @@ class DebugPlugin(BaseAsyncStopPlugin):
     def handle_event(self, activation_event: BaseEvent) -> None:
         self.logger.info("Debug plugin: handle_event called: %s", activation_event)
 
-    def start(self) -> None:
+    def _start(self) -> None:
         self.logger.info("Debug plugin: start called")
         asyncio.ensure_future(self.count_forever())
 
@@ -223,5 +245,5 @@ class DebugPlugin(BaseAsyncStopPlugin):
             i += 1
             await asyncio.sleep(1)
 
-    async def stop(self) -> None:
+    async def _stop(self) -> None:
         self.logger.info("Debug plugin: stop called")

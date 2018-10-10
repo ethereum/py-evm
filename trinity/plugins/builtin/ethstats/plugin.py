@@ -101,9 +101,9 @@ class EthstatsPlugin(BaseIsolatedPlugin):
         self.node_id = args.ethstats_node_id
         self.node_contact = args.ethstats_node_contact
 
-        self.boot()
+        self.start()
 
-    def start(self) -> None:
+    def _start(self) -> None:
         service = EthstatsService(
             self.context,
             self.server_url,
