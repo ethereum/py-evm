@@ -390,7 +390,7 @@ class BasePeer(BaseService):
         # First get the length of the compressed msg
         len_part = await self.wait(self.reader.readuntil(b';'), timeout=self.conn_idle_timeout)
         # Removing the seperator and converting to int
-        compressed_msg_len = int(len_part[:-1].decode('utf-8'))
+        compressed_msg_len = int(len_part.decode('utf-8')[:-1])
         data = await self.read(compressed_msg_len)
         header_data = data[:HEADER_LEN + MAC_LEN]
         try:
