@@ -4,6 +4,7 @@ import random
 import re
 
 import pytest
+import snappy
 
 import rlp
 
@@ -312,7 +313,7 @@ def test_v5_handlers(monkeypatch):
     for handler, msg in v5_handlers.items():
         mock_handler = MockHandler()
         monkeypatch.setattr(proto, handler, mock_handler)
-        proto.datagram_received(decode_hex(msg), (addr.ip, addr.udp_port))
+        proto.datagram_received(snappy.compress((decode_hex(msg))), (addr.ip, addr.udp_port))
         assert mock_handler.called
 
 

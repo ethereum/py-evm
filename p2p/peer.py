@@ -387,7 +387,12 @@ class BasePeer(BaseService):
                 return
 
     async def read_msg(self) -> Tuple[protocol.Command, protocol.PayloadType]:
-        header_data = await self.read(HEADER_LEN + MAC_LEN)
+        # First get the length of the compressed msg
+        len_part = await self.wait(self.reader.readuntil(b';'), timeout=self.conn_idle_timeout)
+        # Removing the seperator and converting to int
+        compressed_msg_len = int(len_part[:-1].decode('utf-8'))
+        data = await self.read(compressed_msg_len)
+        header_data = data[:HEADER_LEN + MAC_LEN]
         try:
             header = self.decrypt_header(header_data)
         except DecryptionError as err:
@@ -399,8 +404,7 @@ class BasePeer(BaseService):
         frame_size = self.get_frame_size(header)
         # The frame_size specified in the header does not include the padding to 16-byte boundary,
         # so need to do this here to ensure we read all the frame's data.
-        read_size = roundup_16(frame_size)
-        frame_data = await self.read(read_size + MAC_LEN)
+        frame_data = data[HEADER_LEN + MAC_LEN:]
         try:
             msg = self.decrypt_body(frame_data, frame_size)
         except DecryptionError as err:
@@ -557,6 +561,10 @@ class BasePeer(BaseService):
             return
         encrypted_msg = self.encrypt(header, body)
         compressed_msg = snappy.compress(encrypted_msg)
+        # Send the length of the compressed_msg first in bytes
+        # The ';' in the end is used as the seperator
+        compressed_msg_len = bytes(str(len(compressed_msg)), 'utf-8') + b';'
+        self.writer.write(compressed_msg_len)
         self.writer.write(compressed_msg)
 
     def _disconnect(self, reason: DisconnectReason) -> None:
