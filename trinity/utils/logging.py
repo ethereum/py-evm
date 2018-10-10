@@ -28,6 +28,11 @@ from eth.tools.logging import (
     TraceLogger,
 )
 
+from trinity.utils.shellart import (
+    bold_red,
+    bold_yellow,
+)
+
 if TYPE_CHECKING:
     from multiprocessing import Queue  # noqa: F401
 
@@ -42,7 +47,13 @@ class TrinityLogFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         record.shortname = record.name.split('.')[-1]  # type: ignore
-        return super().format(record)
+
+        if record.levelno >= logging.ERROR:
+            return bold_red(super().format(record))
+        elif record.levelno >= logging.WARNING:
+            return bold_yellow(super().format(record))
+        else:
+            return super().format(record)
 
 
 class HasTraceLogger:
