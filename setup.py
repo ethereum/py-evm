@@ -34,6 +34,7 @@ deps = {
         "netifaces>=0.10.7<1",
         "pysha3>=1.0.0,<2.0.0",
         "upnpclient>=0.0.8,<1",
+        "python-snappy>=0.5.3",
     ],
     'trinity': [
         "async-generator==1.10",
