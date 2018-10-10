@@ -1,4 +1,4 @@
-from eth.beacon.types.validator_record import (
+from eth.beacon.types.validator_records import (
     ValidatorRecord,
 )
 from eth.constants import (
@@ -6,15 +6,15 @@ from eth.constants import (
 )
 
 
-def mock_validator_record(pubkey, beacon_config, start_dynasty=0):
+def mock_validator_record(pubkey, deposit_size, default_end_dynasty, start_dynasty=0):
     return ValidatorRecord(
         pubkey=pubkey,
         withdrawal_shard=0,
         withdrawal_address=pubkey.to_bytes(32, 'big')[-20:],
         randao_commitment=b'\x55' * 32,
-        balance=beacon_config.deposit_size,
+        balance=deposit_size,
         start_dynasty=start_dynasty,
-        end_dynasty=beacon_config.default_end_dynasty
+        end_dynasty=default_end_dynasty
     )
 
 

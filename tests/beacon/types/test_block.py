@@ -2,10 +2,10 @@ import pytest
 
 import rlp
 
-from eth.beacon.types.block import (
+from eth.beacon.types.blocks import (
     BaseBeaconBlock,
 )
-from eth.beacon.types.attestation_record import (
+from eth.beacon.types.attestation_records import (
     AttestationRecord,
 )
 from eth.constants import (

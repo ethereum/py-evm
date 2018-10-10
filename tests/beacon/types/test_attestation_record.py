@@ -1,6 +1,6 @@
 import pytest
 
-from eth.beacon.types.attestation_record import (
+from eth.beacon.types.attestation_records import (
     AttestationRecord,
 )
 
