@@ -44,6 +44,7 @@ deps = {
         "plyvel==1.0.5",
         "web3==4.4.1",
         "lahja==0.9.0",
+        "termcolor>=1.1.0,<2.0.0",
         "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin'",
         "websockets==5.0.1",
     ],
