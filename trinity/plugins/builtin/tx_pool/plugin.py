@@ -62,8 +62,9 @@ class TxPlugin(BaseAsyncStopPlugin):
         unsupported = self.context.args.tx_pool and light_mode
 
         if unsupported:
-            self.logger.error('The transaction pool is not yet available in light mode')
-            self.context.shutdown_host()
+            unsupported_msg = "Transaction pool not available in light mode"
+            self.logger.error(unsupported_msg)
+            self.context.shutdown_host(unsupported_msg)
 
         self.event_bus.subscribe(ResourceAvailableEvent, self.handle_event)
 

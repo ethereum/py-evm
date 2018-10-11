@@ -87,7 +87,7 @@ async def test_txpool_deactivated(async_process_runner, command):
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
-        "The transaction pool is not yet available in light mode",
+        "Transaction pool not available in light mode",
     })
 
 
