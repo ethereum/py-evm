@@ -2,10 +2,11 @@ from eth.chains.base import (
     BaseChain
 )
 
+from lahja import Endpoint
+
 from p2p.peer import BasePeerPool
 
 from trinity.config import TrinityConfig
-from trinity.extensibility import PluginManager
 from trinity.server import FullServer
 
 from .base import Node
@@ -15,8 +16,8 @@ class FullNode(Node):
     _chain: BaseChain = None
     _p2p_server: FullServer = None
 
-    def __init__(self, plugin_manager: PluginManager, trinity_config: TrinityConfig) -> None:
-        super().__init__(plugin_manager, trinity_config)
+    def __init__(self, event_bus: Endpoint, trinity_config: TrinityConfig) -> None:
+        super().__init__(event_bus, trinity_config)
         self._bootstrap_nodes = trinity_config.bootstrap_nodes
         self._preferred_nodes = trinity_config.preferred_nodes
         self._node_key = trinity_config.nodekey

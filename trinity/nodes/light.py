@@ -5,6 +5,8 @@ from typing import (
 
 from eth_keys.datatypes import PrivateKey
 
+from lahja import Endpoint
+
 from p2p.peer import BasePeerPool
 
 from trinity.chains.light import (
@@ -12,9 +14,6 @@ from trinity.chains.light import (
 )
 from trinity.config import (
     TrinityConfig,
-)
-from trinity.extensibility import (
-    PluginManager
 )
 from trinity.nodes.base import Node
 from trinity.protocol.les.peer import LESPeerPool
@@ -32,8 +31,8 @@ class LightNode(Node):
     network_id: int = None
     nodekey: PrivateKey = None
 
-    def __init__(self, plugin_manager: PluginManager, trinity_config: TrinityConfig) -> None:
-        super().__init__(plugin_manager, trinity_config)
+    def __init__(self, event_bus: Endpoint, trinity_config: TrinityConfig) -> None:
+        super().__init__(event_bus, trinity_config)
 
         self._nodekey = trinity_config.nodekey
         self._port = trinity_config.port
