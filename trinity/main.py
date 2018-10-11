@@ -262,7 +262,8 @@ def trinity_boot(args: Namespace,
             networking_process,
             plugin_manager,
             main_endpoint,
-            event_bus
+            event_bus,
+            ev.reason
         )
     )
 
@@ -279,7 +280,8 @@ def trinity_boot(args: Namespace,
             networking_process,
             plugin_manager,
             main_endpoint,
-            event_bus
+            event_bus,
+            reason="CTRL+C / Keyboard Interrupt"
         )
 
 
@@ -289,7 +291,7 @@ def kill_trinity_gracefully(logger: logging.Logger,
                             plugin_manager: PluginManager,
                             main_endpoint: Endpoint,
                             event_bus: EventBus,
-                            message: str="Trinity shudown complete\n") -> None:
+                            reason: str=None) -> None:
     # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
     # foreground *process group*, so both our networking and database processes will terminate
     # at the same time and not sequentially as we'd like. That shouldn't be a problem but if
@@ -300,7 +302,9 @@ def kill_trinity_gracefully(logger: logging.Logger,
     # Notice that we still need the kill_process_gracefully() calls here, for when the user
     # simply uses 'kill' to send a signal to the main process, but also because they will
     # perform a non-gracefull shutdown if the process takes too long to terminate.
-    logger.info('Keyboard Interrupt: Stopping')
+
+    hint = f"({reason})" if reason else f""
+    logger.info('Shutting down Trinity %s', hint)
     plugin_manager.shutdown_blocking()
     main_endpoint.stop()
     event_bus.stop()
@@ -312,9 +316,7 @@ def kill_trinity_gracefully(logger: logging.Logger,
             kill_process_gracefully(process, logger)
         logger.info('%s process (pid=%d) terminated', name, process.pid)
 
-    # This is required to be within the `kill_trinity_gracefully` so that
-    # plugins can trigger a shutdown of the trinity process.
-    ArgumentParser().exit(message=message)
+    ArgumentParser().exit(message=f"Trinity shutdown complete {hint}\n")
 
 
 @setup_cprofiler('run_database_process')

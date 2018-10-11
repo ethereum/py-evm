@@ -64,9 +64,9 @@ class PluginContext:
         self.args: Namespace = None
         self.trinity_config: TrinityConfig = None
 
-    def shutdown_host(self) -> None:
+    def shutdown_host(self, reason: str) -> None:
         self.event_bus.broadcast(
-            ShutdownRequest(),
+            ShutdownRequest(reason),
             BroadcastConfig(filter_endpoint=MAIN_EVENTBUS_ENDPOINT)
         )
 

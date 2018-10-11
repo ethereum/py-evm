@@ -81,14 +81,14 @@ class EthstatsPlugin(BaseIsolatedPlugin):
             self.logger.error(
                 'You must provide ethstats server url using the `--ethstats-server-url`'
             )
-            self.context.shutdown_host()
+            self.context.shutdown_host("Missing EthStats Server URL")
             return
 
         if not args.ethstats_server_secret:
             self.logger.error(
                 'You must provide ethstats server secret using `--ethstats-server-secret`'
             )
-            self.context.shutdown_host()
+            self.context.shutdown_host("Missing EthStats Server Secret")
             return
 
         if (args.ethstats_server_url):

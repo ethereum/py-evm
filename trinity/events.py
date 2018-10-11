@@ -4,4 +4,6 @@ from lahja import (
 
 
 class ShutdownRequest(BaseEvent):
-    pass
+
+    def __init__(self, reason: str="") -> None:
+        self.reason = reason
