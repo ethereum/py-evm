@@ -3,35 +3,11 @@ import pytest
 from eth.constants import (
     ZERO_HASH32,
 )
-from eth.beacon.state_machines.forks.serenity import (
-    SerenityBeaconStateMachine,
-)
-from eth.beacon.db.chain import BeaconChainDB
 
 from eth.beacon.helpers import (
     get_block_committees_info,
     get_new_recent_block_hashes,
 )
-
-
-@pytest.fixture
-def fixture_sm_class(config):
-    return SerenityBeaconStateMachine.configure(
-        __name__='SerenityBeaconStateMachineForTesting',
-        config=config,
-    )
-
-
-@pytest.fixture
-def initial_chaindb(base_db,
-                    genesis_block,
-                    genesis_crystallized_state,
-                    genesis_active_state):
-    chaindb = BeaconChainDB(base_db)
-    chaindb.persist_block(genesis_block)
-    chaindb.persist_crystallized_state(genesis_crystallized_state)
-    chaindb.persist_active_state(genesis_active_state, genesis_crystallized_state.hash)
-    return chaindb
 
 
 @pytest.mark.parametrize(

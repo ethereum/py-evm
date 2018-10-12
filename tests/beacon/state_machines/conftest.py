@@ -1,6 +1,10 @@
 import pytest
 
+from eth.beacon.db.chain import BeaconChainDB
 from eth.beacon.state_machines.configs import BeaconConfig
+from eth.beacon.state_machines.forks.serenity import (
+    SerenityBeaconStateMachine,
+)
 
 
 @pytest.fixture
@@ -24,3 +28,23 @@ def config(base_reward_quotient,
         SLOT_DURATION=slot_duration,
         SQRT_E_DROP_TIME=sqrt_e_drop_time,
     )
+
+
+@pytest.fixture
+def fixture_sm_class(config):
+    return SerenityBeaconStateMachine.configure(
+        __name__='SerenityBeaconStateMachineForTesting',
+        config=config,
+    )
+
+
+@pytest.fixture
+def initial_chaindb(base_db,
+                    genesis_block,
+                    genesis_crystallized_state,
+                    genesis_active_state):
+    chaindb = BeaconChainDB(base_db)
+    chaindb.persist_block(genesis_block)
+    chaindb.persist_crystallized_state(genesis_crystallized_state)
+    chaindb.persist_active_state(genesis_active_state, genesis_crystallized_state.hash)
+    return chaindb

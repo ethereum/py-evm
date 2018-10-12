@@ -1,20 +1,16 @@
 from eth.constants import (
     ZERO_HASH32,
 )
+
 from eth.beacon.state_machines.forks.serenity import (
     SerenityBeaconStateMachine,
 )
-from eth.beacon.db.chain import BeaconChainDB
 
 
-def test_state_machine(base_db,
+def test_state_machine(initial_chaindb,
                        genesis_block,
-                       genesis_crystallized_state,
-                       genesis_active_state):
-    chaindb = BeaconChainDB(base_db)
-    chaindb.persist_block(genesis_block)
-    chaindb.persist_crystallized_state(genesis_crystallized_state)
-    chaindb.persist_active_state(genesis_active_state, genesis_crystallized_state.hash)
+                       genesis_crystallized_state):
+    chaindb = initial_chaindb
 
     block_1 = genesis_block.copy(
         parent_hash=genesis_block.hash,
