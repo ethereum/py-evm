@@ -439,7 +439,7 @@ def aggregate_attestation_record(last_justified_slot: int,
         block.shard_block_hash,
         last_justified_slot,
     )
-    
+
     bitfield, sigs = aggregate_votes(
         message,
         votes,
@@ -475,7 +475,7 @@ def aggregate_votes(message: bytes,
     bitfield = pipe(
         bitfield,
         *(
-            functools.partial(set_voted, index=committee_index)
+            set_voted(index=committee_index)
             for committee_index in committee_indices
         )
     )

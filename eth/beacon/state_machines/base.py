@@ -433,7 +433,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         """
         Return the initial attestation by the block proposer.
 
-        The proposer broadcasts zir attestation with the proposed block.
+        The proposer broadcasts their attestation with the proposed block.
         """
         block_committees_info = get_block_committees_info(
             block,
@@ -499,9 +499,8 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     #
     # Attestation validation
     #
-    @classmethod
-    def validate_attestation(cls,
-                             block: BaseBeaconBlock,
+    @staticmethod
+    def validate_attestation(block: BaseBeaconBlock,
                              parent_block: BaseBeaconBlock,
                              crystallized_state: CrystallizedState,
                              active_state: ActiveState,

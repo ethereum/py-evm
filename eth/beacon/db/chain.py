@@ -229,7 +229,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             db: BaseDB,
             slot: int) -> Hash32:
         validate_slot(slot)
-        return cls._get_canonical_block_hash(db, slot)    
+        return cls._get_canonical_block_hash(db, slot)
 
     def get_canonical_head(self) -> BaseBeaconBlock:
         """
