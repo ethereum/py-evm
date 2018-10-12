@@ -1,4 +1,3 @@
-import functools
 from itertools import (
     repeat,
 )

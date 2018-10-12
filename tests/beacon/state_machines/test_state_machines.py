@@ -9,6 +9,20 @@ from eth.beacon.state_machines.forks.serenity import (
 )
 
 
+def test_state_machine_canonical(initial_chaindb,
+                                 genesis_block,
+                                 genesis_crystallized_state,
+                                 genesis_active_state):
+    chaindb = initial_chaindb
+    sm = SerenityStateMachine(chaindb)
+    assert sm.block == genesis_block.copy(
+        slot_number=genesis_block.slot_number + 1,
+        parent_hash=genesis_block.hash
+    )
+    assert sm.crystallized_state == genesis_crystallized_state
+    assert sm.active_state == genesis_active_state
+
+
 def test_state_machine(initial_chaindb,
                        genesis_block,
                        genesis_crystallized_state):
