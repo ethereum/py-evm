@@ -73,6 +73,10 @@ class BaseBeaconChainDB(ABC):
         pass
 
     @abstractmethod
+    def get_canonical_block_hash_by_slot(self, slot: int) -> Hash32:
+        pass
+
+    @abstractmethod
     def get_canonical_head(self) -> BaseBeaconBlock:
         pass
 
@@ -195,7 +199,7 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     def get_canonical_block_by_slot(self, slot: int) -> BaseBeaconBlock:
         """
-        Return the block header with the given slot in the canonical chain.
+        Return the block with the given slot in the canonical chain.
 
         Raise BlockNotFound if there's no block with the given slot in the
         canonical chain.
@@ -207,9 +211,25 @@ class BeaconChainDB(BaseBeaconChainDB):
             cls,
             db: BaseDB,
             slot: int) -> BaseBeaconBlock:
-        validate_slot(slot)
-        canonical_block_hash = cls._get_canonical_block_hash(db, slot)
+        canonical_block_hash = cls._get_canonical_block_hash_by_slot(db, slot)
         return cls._get_block_by_hash(db, canonical_block_hash)
+
+    def get_canonical_block_hash_by_slot(self, slot: int) -> Hash32:
+        """
+        Return the block hash with the given slot in the canonical chain.
+
+        Raise BlockNotFound if there's no block with the given slot in the
+        canonical chain.
+        """
+        return self._get_canonical_block_hash_by_slot(self.db, slot)
+
+    @classmethod
+    def _get_canonical_block_hash_by_slot(
+            cls,
+            db: BaseDB,
+            slot: int) -> Hash32:
+        validate_slot(slot)
+        return cls._get_canonical_block_hash(db, slot)    
 
     def get_canonical_head(self) -> BaseBeaconBlock:
         """

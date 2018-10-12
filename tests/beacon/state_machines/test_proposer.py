@@ -9,38 +9,9 @@ from eth.beacon.helpers import (
     get_new_recent_block_hashes,
 )
 
-
-@pytest.mark.parametrize(
-    (
-        'num_validators,'
-        'cycle_length,min_committee_size,shard_count'
-    ),
-    [
-        (1000, 20, 10, 100),
-    ]
+from eth.beacon.state_machines.validation import (
+    validate_parent_block_proposer,
 )
-def test_import_block_one(fixture_sm_class,
-                          initial_chaindb,
-                          genesis_block):
-    chaindb = initial_chaindb
-
-    # Create the first block
-    block_1_shell = genesis_block.copy(
-        parent_hash=genesis_block.hash,
-        slot_number=genesis_block.slot_number + 1,
-    )
-    sm = fixture_sm_class(chaindb, block_1_shell)
-    active_state_1 = sm.compute_per_block_transtion(
-        sm.crystallized_state,
-        sm.active_state,
-        block_1_shell,
-        sm.chaindb,
-        sm.config,
-    )
-    block_1 = block_1_shell.copy(
-        active_state_root=active_state_1.hash,
-    )
-    sm.import_block(block_1)
 
 
 @pytest.mark.parametrize(
@@ -55,7 +26,7 @@ def test_import_block_one(fixture_sm_class,
 def test_propose_block_and_validate_attestation(fixture_sm_class,
                                                 initial_chaindb,
                                                 genesis_block,
-                                                keymap):
+                                                privkeys):
     chaindb = initial_chaindb
 
     # Propose a block
@@ -73,8 +44,8 @@ def test_propose_block_and_validate_attestation(fixture_sm_class,
             sm.config.CYCLE_LENGTH,
         )
     )
-    public_key = sm.crystallized_state.validators[block_committees_info.proposer_index].pubkey
-    private_key = keymap[public_key]
+    # public_key = sm.crystallized_state.validators[block_committees_info.proposer_index].pubkey
+    private_key = privkeys[block_committees_info.proposer_index]
 
     (block_1, post_crystallized_state, post_active_state, proposer_attestation) = (
         sm.propose_block(
@@ -88,6 +59,13 @@ def test_propose_block_and_validate_attestation(fixture_sm_class,
             private_key=private_key,
         )
     )
+    expect_block_1 = block_1_shell.copy(
+        active_state_root=post_active_state.hash,
+        crystallized_state_root=post_crystallized_state.hash,
+    )
+    assert block_1.hash == expect_block_1.hash
+
+    # Manually update state for testing
     sm._update_the_states(post_crystallized_state, post_active_state)
 
     # Validate the attestation
@@ -117,7 +95,7 @@ def test_propose_block_and_validate_attestation(fixture_sm_class,
     )
 
     # Validate the parent block proposer
-    sm.validate_parent_block_proposer(
+    validate_parent_block_proposer(
         sm.crystallized_state,
         block_2_shell,
         block_1,

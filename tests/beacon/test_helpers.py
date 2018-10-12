@@ -1,9 +1,17 @@
+import random
+
 import pytest
 
+from eth.utils import bls
+from eth.utils.bitfield import (
+    get_empty_bitfield,
+    has_voted,
+)
 from eth.beacon.types.attestation_records import AttestationRecord
 from eth.beacon.types.shard_and_committees import ShardAndCommittee
 from eth.beacon.helpers import (
     _get_element_from_recent_list,
+    aggregate_votes,
     get_attestation_indices,
     get_block_hash,
     get_hashes_from_recent_block_hashes,
@@ -388,3 +396,45 @@ def test_get_block_committees_info(monkeypatch,
             block_committees_info.proposer_index_in_committee ==
             result_proposer_index_in_committee
         )
+
+
+@pytest.mark.parametrize(
+    (
+        'votes_count'
+    ),
+    [
+        (0),
+        (1),
+        (5),
+        (9),
+    ],
+)
+def test_aggregate_votes(votes_count, privkeys, pubkeys):
+    bit_count = 10
+    pre_bitfield = get_empty_bitfield(bit_count)
+    pre_sigs = ()
+
+    random_votes = random.sample([i for i in range(bit_count)], votes_count)
+    message = b'hello'
+
+    # (committee_index, sig, public_key)
+    votes = [
+        (committee_index, bls.sign(message, privkeys[committee_index]), pubkeys[committee_index])
+        for committee_index in random_votes
+    ]
+    bitfield, sigs = aggregate_votes(
+        message,
+        votes,
+        pre_bitfield,
+        pre_sigs,
+    )
+
+    try:
+        _, _, pubs = zip(*votes)
+    except ValueError:
+        pubs = ()
+
+    aggregated_pubs = bls.aggregate_pubs(pubs)
+    for committee_index in random_votes:
+        if has_voted(bitfield, committee_index):
+            assert bls.verify(message, aggregated_pubs, sigs)

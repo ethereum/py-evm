@@ -15,7 +15,7 @@ from .crystallized_states import SerenityCrystallizedState
 from .configs import SERENITY_CONFIG
 
 
-class SerenityBeaconStateMachine(BeaconStateMachine):
+class SerenityStateMachine(BeaconStateMachine):
     # fork name
     fork = 'serenity'  # type: str
 

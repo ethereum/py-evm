@@ -3,7 +3,7 @@ import pytest
 from eth.beacon.db.chain import BeaconChainDB
 from eth.beacon.state_machines.configs import BeaconConfig
 from eth.beacon.state_machines.forks.serenity import (
-    SerenityBeaconStateMachine,
+    SerenityStateMachine,
 )
 
 
@@ -32,8 +32,8 @@ def config(base_reward_quotient,
 
 @pytest.fixture
 def fixture_sm_class(config):
-    return SerenityBeaconStateMachine.configure(
-        __name__='SerenityBeaconStateMachineForTesting',
+    return SerenityStateMachine.configure(
+        __name__='SerenityStateMachineForTesting',
         config=config,
     )
 

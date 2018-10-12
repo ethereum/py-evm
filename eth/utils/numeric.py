@@ -1,6 +1,10 @@
 import functools
 import itertools
 
+from cytoolz import (
+    curry,
+)
+
 from eth.constants import (
     UINT_255_MAX,
     UINT_256_MAX,
@@ -71,3 +75,19 @@ def get_highest_bit_index(value):
         if not value:
             return bit_length
         value >>= 1
+
+
+@curry
+def clamp(inclusive_lower_bound: int,
+          inclusive_upper_bound: int,
+          value: int) -> int:
+    """
+    Bound the given ``value`` between ``inclusive_lower_bound`` and
+    ``inclusive_upper_bound``.
+    """
+    if value <= inclusive_lower_bound:
+        return inclusive_lower_bound
+    elif value >= inclusive_upper_bound:
+        return inclusive_upper_bound
+    else:
+        return value

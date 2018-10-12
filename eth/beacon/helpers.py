@@ -1,5 +1,10 @@
+import functools
 from itertools import (
     repeat,
+)
+
+from cytoolz import (
+    pipe
 )
 from typing import (
     Any,
@@ -15,6 +20,15 @@ from eth_utils import (
 
 from eth_typing import (
     Hash32,
+)
+
+from eth.utils import bls
+from eth.utils.bitfield import (
+    set_voted,
+)
+from eth.utils.blake import blake
+from eth.utils.numeric import (
+    clamp,
 )
 
 from eth.beacon.block_committees_info import BlockCommitteesInfo
@@ -220,18 +234,6 @@ def get_active_validator_indices(dynasty: int,
 #
 # Shuffling
 #
-def clamp(minval: int, x: int, maxval: int) -> int:
-    """
-    Bound the given ``x`` between ``minval`` and ``maxval``
-    """
-    if x <= minval:
-        return minval
-    elif x >= maxval:
-        return maxval
-    else:
-        return x
-
-
 def _get_shuffling_committee_slot_portions(
         active_validators_size: int,
         cycle_length: int,
@@ -333,8 +335,8 @@ def get_new_shuffling(*,
     active_validators_size = len(active_validators)
     committees_per_slot = clamp(
         1,
+        shard_count // cycle_length,
         active_validators_size // cycle_length // (min_committee_size * 2) + 1,
-        shard_count // cycle_length
     )
     shuffled_active_validator_indices = shuffle(active_validators, seed)
 
@@ -365,12 +367,13 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
     """
     Returns the proposer index in committee and the ``shard_id``.
     """
-    if len(shards_and_committees) <= 0:
-        raise ValueError("shards_and_committees should not be empty.")
-
     # `proposer_index_in_committee` th attester in `shard_and_committee`
     # is the proposer of the parent block.
-    shard_and_committee = shards_and_committees[0]
+    try:
+        shard_and_committee = shards_and_committees[0]
+    except IndexError:
+        raise ValueError("shards_and_committees should not be empty.")
+
     proposer_committee_size = len(shard_and_committee.committee)
     if proposer_committee_size <= 0:
         raise ValueError(
@@ -392,3 +395,89 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
         proposer_committee_size=proposer_committee_size,
         shards_and_committees=shards_and_committees,
     )
+
+
+#
+# Signatures and Aggregation
+#
+def create_signing_message(slot: int,
+                           parent_hashes: Iterable[Hash32],
+                           shard_id: int,
+                           shard_block_hash: Hash32,
+                           justified_slot: int) -> bytes:
+    # TODO: will be updated to hashed encoded attestation
+    return blake(
+        slot.to_bytes(8, byteorder='big') +
+        b''.join(parent_hashes) +
+        shard_id.to_bytes(2, byteorder='big') +
+        shard_block_hash +
+        justified_slot.to_bytes(8, 'big')
+    )
+
+
+def aggregate_attestation_record(last_justified_slot: int,
+                                 recent_block_hashes: Iterable[Hash32],
+                                 block: 'BaseBeaconBlock',
+                                 votes: Iterable[Tuple[int, bytes, int]],
+                                 proposer_attestation: 'AttestationRecord',
+                                 cycle_length: int) -> 'AttestationRecord':
+    """
+    Aggregate the votes.
+
+    TODO: Write tests
+    """
+    # Get signing message
+    parent_hashes = get_hashes_to_sign(
+        recent_block_hashes,
+        block,
+        cycle_length,
+    )
+    message = create_signing_message(
+        block.slot_number,
+        parent_hashes,
+        proposer_attestation.shard_id,
+        block.shard_block_hash,
+        last_justified_slot,
+    )
+    
+    bitfield, sigs = aggregate_votes(
+        message,
+        votes,
+        proposer_attestation.bitfield,
+        proposer_attestation.sigs,
+    )
+
+    return proposer_attestation.copy(
+        bitfield=bitfield,
+        sigs=bls.aggregate_sigs(sigs),
+    )
+
+
+def aggregate_votes(message: bytes,
+                    votes: Iterable[Tuple[int, bytes, int]],
+                    pre_bitfield: bytes,
+                    pre_sigs: Iterable[bytes]) -> Tuple[bytes, Iterable[int]]:
+    # Update the bitfield and append the signatures
+    sigs_with_committe_info = tuple(
+        (sig, committee_index)
+        for (committee_index, sig, public_key)
+        in votes
+        if bls.verify(message, public_key, sig)
+    )
+    try:
+        sigs, committee_indices = zip(*sigs_with_committe_info)
+    except ValueError:
+        sigs = ()
+        committee_indices = ()
+
+    sigs = sigs + tuple(pre_sigs)
+    bitfield = pre_bitfield
+    bitfield = pipe(
+        bitfield,
+        *(
+            functools.partial(set_voted, index=committee_index)
+            for committee_index in committee_indices
+        )
+    )
+
+    return bitfield, bls.aggregate_sigs(sigs)
