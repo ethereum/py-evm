@@ -17,9 +17,7 @@ from eth_typing import (
     Hash32,
 )
 
-from eth.utils.blake import (
-    blake,
-)
+from eth.beacon.block_committees_info import BlockCommitteesInfo
 from eth.beacon.types.shard_and_committees import (
     ShardAndCommittee,
 )
@@ -125,7 +123,7 @@ def get_hashes_to_sign(recent_block_hashes: Sequence[Hash32],
         to_slot=block.slot_number - 1,
         cycle_length=cycle_length,
     )
-    yield blake(block.hash)
+    yield block.hash
 
 
 @to_tuple
@@ -222,6 +220,18 @@ def get_active_validator_indices(dynasty: int,
 #
 # Shuffling
 #
+def clamp(minval: int, x: int, maxval: int) -> int:
+    """
+    Bound the given ``x`` between ``minval`` and ``maxval``
+    """
+    if x <= minval:
+        return minval
+    elif x >= maxval:
+        return maxval
+    else:
+        return x
+
+
 def _get_shuffling_committee_slot_portions(
         active_validators_size: int,
         cycle_length: int,
@@ -321,24 +331,19 @@ def get_new_shuffling(*,
     """
     active_validators = get_active_validator_indices(dynasty, validators)
     active_validators_size = len(active_validators)
-
-    committees_per_slot, slots_per_committee = _get_shuffling_committee_slot_portions(
-        active_validators_size,
-        cycle_length,
-        min_committee_size,
-        shard_count,
+    committees_per_slot = clamp(
+        1,
+        active_validators_size // cycle_length // (min_committee_size * 2) + 1,
+        shard_count // cycle_length
     )
-
     shuffled_active_validator_indices = shuffle(active_validators, seed)
 
     # Split the shuffled list into cycle_length pieces
     validators_per_slot = split(shuffled_active_validator_indices, cycle_length)
-    for slot, slot_indices in enumerate(validators_per_slot):
+    for index, slot_indices in enumerate(validators_per_slot):
         # Split the shuffled list into committees_per_slot pieces
         shard_indices = split(slot_indices, committees_per_slot)
-        shard_id_start = crosslinking_start_shard + (
-            slot * committees_per_slot // slots_per_committee
-        )
+        shard_id_start = crosslinking_start_shard + index * committees_per_slot
         yield _get_shards_and_committees_for_shard_indices(
             shard_indices,
             shard_id_start,
@@ -349,9 +354,9 @@ def get_new_shuffling(*,
 #
 # Get proposer postition
 #
-def get_proposer_position(parent_block: 'BaseBeaconBlock',
-                          crystallized_state: 'CrystallizedState',
-                          cycle_length: int) -> Tuple[int, int]:
+def get_block_committees_info(parent_block: 'BaseBeaconBlock',
+                              crystallized_state: 'CrystallizedState',
+                              cycle_length: int) -> BlockCommitteesInfo:
     shards_and_committees = get_shards_and_committees_for_slot(
         crystallized_state,
         parent_block.slot_number,
@@ -366,14 +371,24 @@ def get_proposer_position(parent_block: 'BaseBeaconBlock',
     # `proposer_index_in_committee` th attester in `shard_and_committee`
     # is the proposer of the parent block.
     shard_and_committee = shards_and_committees[0]
-    if len(shard_and_committee.committee) <= 0:
+    proposer_committee_size = len(shard_and_committee.committee)
+    if proposer_committee_size <= 0:
         raise ValueError(
             "The first committee should not be empty"
         )
 
     proposer_index_in_committee = (
         parent_block.slot_number %
-        len(shard_and_committee.committee)
+        proposer_committee_size
     )
 
-    return proposer_index_in_committee, shard_and_committee.shard_id
+    # The index in CrystallizedState.validators
+    proposer_index = shard_and_committee.committee[proposer_index_in_committee]
+
+    return BlockCommitteesInfo(
+        proposer_index=proposer_index,
+        proposer_index_in_committee=proposer_index_in_committee,
+        proposer_shard_id=shard_and_committee.shard_id,
+        proposer_committee_size=proposer_committee_size,
+        shards_and_committees=shards_and_committees,
+    )

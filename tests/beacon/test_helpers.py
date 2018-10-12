@@ -11,10 +11,7 @@ from eth.beacon.helpers import (
     get_new_shuffling,
     get_shards_and_committees_for_slot,
     get_signed_parent_hashes,
-    get_proposer_position,
-)
-from eth.utils.blake import (
-    blake,
+    get_block_committees_info,
 )
 
 from tests.beacon.helpers import (
@@ -163,7 +160,7 @@ def test_get_hashes_to_sign(genesis_block, cycle_length):
         cycle_length,
     )
     assert len(result) == cycle_length
-    assert result[-1] == blake(block.hash)
+    assert result[-1] == block.hash
 
 
 def test_get_new_recent_block_hashes(genesis_block,
@@ -347,13 +344,13 @@ def test_get_new_shuffling_handles_shard_wrap(genesis_validators,
         ([], 1, ValueError()),
     ],
 )
-def test_get_proposer_position(monkeypatch,
-                               genesis_block,
-                               genesis_crystallized_state,
-                               committee,
-                               parent_block_number,
-                               result_proposer_index_in_committee,
-                               cycle_length):
+def test_get_block_committees_info(monkeypatch,
+                                   genesis_block,
+                                   genesis_crystallized_state,
+                                   committee,
+                                   parent_block_number,
+                                   result_proposer_index_in_committee,
+                                   cycle_length):
     from eth.beacon import helpers
 
     def mock_get_shards_and_committees_for_slot(parent_block,
@@ -376,16 +373,18 @@ def test_get_proposer_position(monkeypatch,
 
     if isinstance(result_proposer_index_in_committee, Exception):
         with pytest.raises(ValueError):
-            get_proposer_position(
+            get_block_committees_info(
                 parent_block,
                 genesis_crystallized_state,
                 cycle_length,
             )
     else:
-        proposer_index_in_committee, _ = get_proposer_position(
+        block_committees_info = get_block_committees_info(
             parent_block,
             genesis_crystallized_state,
             cycle_length,
         )
-
-        assert proposer_index_in_committee == result_proposer_index_in_committee
+        assert (
+            block_committees_info.proposer_index_in_committee ==
+            result_proposer_index_in_committee
+        )
