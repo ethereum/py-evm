@@ -31,7 +31,6 @@ from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransactionFields
-from eth.tools.logging import TraceLogger
 
 from trinity.protocol.eth.constants import (
     MAX_BODIES_FETCH,
@@ -43,8 +42,8 @@ from trinity.rlp.block_body import BlockBody
 
 
 class ETHPeerRequestHandler(BasePeerRequestHandler):
-    def __init__(self, db: AsyncChainDB, logger: TraceLogger, token: CancelToken) -> None:
-        super().__init__(db, logger, token)
+    def __init__(self, db: AsyncChainDB, token: CancelToken) -> None:
+        super().__init__(db, token)
         self.db: AsyncChainDB = db
 
     async def handle_get_block_headers(
@@ -142,7 +141,7 @@ class ETHRequestServer(BaseRequestServer):
             peer_pool: ETHPeerPool,
             token: CancelToken = None) -> None:
         super().__init__(peer_pool, token)
-        self._handler = ETHPeerRequestHandler(db, self.logger, self.cancel_token)
+        self._handler = ETHPeerRequestHandler(db, self.cancel_token)
 
     async def _handle_msg(self, base_peer: BasePeer, cmd: Command,
                           msg: protocol._DecodedMsgType) -> None:

@@ -15,8 +15,8 @@ from eth_typing import (
     Hash32,
 )
 from eth.rlp.headers import BlockHeader
-
 from p2p import protocol
+from p2p.cancellable import CancellableMixin
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.protocol import (
     Command,
@@ -24,14 +24,10 @@ from p2p.protocol import (
 )
 from p2p.service import BaseService
 
-from trinity.protocol.common.peer import BaseChainPeerPool
-
-from eth.tools.logging import TraceLogger
-
-from p2p.cancellable import CancellableMixin
-
 from trinity.db.header import AsyncHeaderDB
+from trinity.protocol.common.peer import BaseChainPeerPool
 from trinity.protocol.common.requests import BaseHeaderRequest
+from trinity.utils.logging import HasTraceLogger
 
 
 class BaseRequestServer(BaseService, PeerSubscriber):
@@ -83,10 +79,9 @@ class BaseRequestServer(BaseService, PeerSubscriber):
         pass
 
 
-class BasePeerRequestHandler(CancellableMixin):
-    def __init__(self, db: AsyncHeaderDB, logger: TraceLogger, token: CancelToken) -> None:
+class BasePeerRequestHandler(CancellableMixin, HasTraceLogger):
+    def __init__(self, db: AsyncHeaderDB, token: CancelToken) -> None:
         self.db = db
-        self.logger = logger
         self.cancel_token = token
 
     async def lookup_headers(self,

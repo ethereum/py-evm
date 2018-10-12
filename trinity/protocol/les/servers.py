@@ -54,7 +54,7 @@ class LightRequestServer(BaseRequestServer):
             peer_pool: LESPeerPool,
             token: CancelToken = None) -> None:
         super().__init__(peer_pool, token)
-        self._handler = LESPeerRequestHandler(db, self.logger, self.cancel_token)
+        self._handler = LESPeerRequestHandler(db, self.cancel_token)
 
     async def _handle_msg(self, base_peer: BasePeer, cmd: Command,
                           msg: _DecodedMsgType) -> None:
