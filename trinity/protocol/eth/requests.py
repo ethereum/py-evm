@@ -30,7 +30,7 @@ from .commands import (
 class HeaderRequest(BaseHeaderRequest):
     """
     TODO: this should be removed from this module.  It exists to allow
-    `p2p.handlers.PeerRequestHandler` to have a common API between light and
+    `trinity.protocol.eth.servers.PeerRequestHandler` to have a common API between light and
     full chains so maybe it should go there
     """
     max_size = MAX_HEADERS_FETCH

@@ -6,7 +6,6 @@ from typing import (
     Iterator,
     Tuple,
     Type,
-    cast,
 )
 
 from cancel_token import CancelToken, OperationCancelled
@@ -26,21 +25,18 @@ from eth_utils import (
 )
 from eth.rlp.headers import BlockHeader
 
-from p2p import protocol
 from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
 from p2p.p2p_proto import DisconnectReason
-from p2p.peer import PeerSubscriber
 from p2p.service import BaseService
 
 from trinity.db.header import AsyncHeaderDB
-from trinity.p2p.handlers import PeerRequestHandler
 from trinity.protocol.common.monitors import BaseChainTipMonitor
 from trinity.protocol.common.peer import BaseChainPeer, BaseChainPeerPool
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.utils.datastructures import TaskQueue
 
 
-class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
+class BaseHeaderChainSyncer(BaseService):
     """
     Sync with the Ethereum network by fetching/storing block headers.
 
@@ -52,11 +48,6 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     # the latest header hash of the peer on the current sync
     header_queue: TaskQueue[BlockHeader]
 
-    # This is a rather arbitrary value, but when the sync is operating normally we never see
-    # the msg queue grow past a few hundred items, so this should be a reasonable limit for
-    # now.
-    msg_queue_maxsize = 2000
-
     def __init__(self,
                  chain: AsyncChain,
                  db: AsyncHeaderDB,
@@ -66,7 +57,6 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
         self.chain = chain
         self.db = db
         self.peer_pool = peer_pool
-        self._handler = PeerRequestHandler(self.db, self.logger, self.cancel_token)
         self._peer_header_syncer: 'PeerHeaderSyncer' = None
         self._last_target_header_hash: Hash32 = None
         self._tip_monitor = self.tip_monitor_class(peer_pool, token=self.cancel_token)
@@ -89,38 +79,17 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
     def tip_monitor_class(self) -> Type[BaseChainTipMonitor]:
         pass
 
-    async def _handle_msg_loop(self) -> None:
-        while self.is_operational:
-            peer, cmd, msg = await self.wait(self.msg_queue.get())
-            # Our handle_msg() method runs cpu-intensive tasks in sub-processes so that the main
-            # loop can keep processing msgs, and that's why we use self.run_task() instead of
-            # awaiting for it to finish here.
-            self.run_task(self.handle_msg(cast(BaseChainPeer, peer), cmd, msg))
-
-    async def handle_msg(self, peer: BaseChainPeer, cmd: protocol.Command,
-                         msg: protocol._DecodedMsgType) -> None:
-        try:
-            await self._handle_msg(peer, cmd, msg)
-        except OperationCancelled:
-            # Silently swallow OperationCancelled exceptions because otherwise they'll be caught
-            # by the except below and treated as unexpected.
-            pass
-        except Exception:
-            self.logger.exception("Unexpected error when processing msg from %s", peer)
-
     async def _run(self) -> None:
         self.run_daemon(self._tip_monitor)
-        self.run_daemon_task(self._handle_msg_loop())
-        with self.subscribe(self.peer_pool):
-            try:
-                async for highest_td_peer in self._tip_monitor.wait_tip_info():
-                    self.run_task(self.sync(highest_td_peer))
-            except OperationCancelled:
-                # In the case of a fast sync, we return once the sync is completed, and our
-                # caller must then run the StateDownloader.
-                return
-            else:
-                self.logger.debug("chain tip monitor stopped returning tip info to %s", self)
+        try:
+            async for highest_td_peer in self._tip_monitor.wait_tip_info():
+                self.run_task(self.sync(highest_td_peer))
+        except OperationCancelled:
+            # In the case of a fast sync, we return once the sync is completed, and our
+            # caller must then run the StateDownloader.
+            return
+        else:
+            self.logger.debug("chain tip monitor stopped returning tip info to %s", self)
 
     @property
     def _syncing(self) -> bool:
@@ -164,11 +133,6 @@ class BaseHeaderChainSyncer(BaseService, PeerSubscriber):
             async for header_batch in syncer.next_header_batch():
                 new_headers = tuple(h for h in header_batch if h not in self.header_queue)
                 await self.wait(self.header_queue.add(new_headers))
-
-    @abstractmethod
-    async def _handle_msg(self, peer: BaseChainPeer, cmd: protocol.Command,
-                          msg: protocol._DecodedMsgType) -> None:
-        raise NotImplementedError("Must be implemented by subclasses")
 
 
 class PeerHeaderSyncer(BaseService):

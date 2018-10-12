@@ -92,10 +92,12 @@ class BaseChainPeer(BasePeer):
 
 class BaseChainPeerFactory(BasePeerFactory):
     context: ChainContext
+    peer_class: Type[BaseChainPeer]
 
 
 class BaseChainPeerPool(BasePeerPool):
     connected_nodes: Dict[Node, BaseChainPeer]  # type: ignore
+    peer_factory_class: Type[BaseChainPeerFactory]
 
     @property
     def highest_td_peer(self) -> BaseChainPeer:

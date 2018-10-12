@@ -3,10 +3,10 @@ import asyncio
 import logging
 import secrets
 from typing import (
-    cast,
+    Generic,
     Sequence,
     Tuple,
-    Union,
+    TypeVar,
 )
 
 from eth_keys import datatypes
@@ -63,22 +63,24 @@ from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB
 from trinity.protocol.common.context import ChainContext
+from trinity.protocol.common.peer import BaseChainPeerPool
+from trinity.protocol.common.servers import BaseRequestServer
 from trinity.protocol.eth.peer import ETHPeerPool
+from trinity.protocol.eth.servers import ETHRequestServer
 from trinity.protocol.les.peer import LESPeerPool
+from trinity.protocol.les.servers import LightRequestServer
 from trinity.sync.full.service import FullNodeSyncer
 from trinity.sync.light.chain import LightChainSyncer
 
-
 DIAL_IN_OUT_RATIO = 0.75
 
+TPeerPool = TypeVar('TPeerPool', bound=BaseChainPeerPool)
 
-ANY_PEER_POOL = Union[ETHPeerPool, LESPeerPool]
 
-
-class BaseServer(BaseService):
+class BaseServer(BaseService, Generic[TPeerPool]):
     """Server listening for incoming connections"""
     _tcp_listener = None
-    peer_pool: ANY_PEER_POOL
+    peer_pool: TPeerPool
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
@@ -112,16 +114,21 @@ class BaseServer(BaseService):
         self.use_discv5 = use_discv5
         self.upnp_service = UPnPService(port, token=self.cancel_token)
         self.peer_pool = self._make_peer_pool()
+        self.request_server = self._make_request_server()
 
         if not bootstrap_nodes:
             self.logger.warning("Running with no bootstrap nodes")
 
     @abstractmethod
-    def _make_peer_pool(self) -> ANY_PEER_POOL:
+    def _make_peer_pool(self) -> TPeerPool:
         pass
 
     @abstractmethod
     def _make_syncer(self) -> BaseService:
+        pass
+
+    @abstractmethod
+    def _make_request_server(self) -> BaseRequestServer:
         pass
 
     async def _start_tcp_listener(self) -> None:
@@ -170,6 +177,7 @@ class BaseServer(BaseService):
             token=self.cancel_token,
         )
         self.run_daemon(self.peer_pool)
+        self.run_daemon(self.request_server)
         self.run_daemon(self.discovery)
         # UPNP service is still experimental and not essential, so we don't use run_daemon() for
         # it as that means if it crashes we'd be terminated as well.
@@ -296,7 +304,7 @@ class BaseServer(BaseService):
         await self.peer_pool.start_peer(peer)
 
 
-class FullServer(BaseServer):
+class FullServer(BaseServer[ETHPeerPool]):
     def _make_peer_pool(self) -> ETHPeerPool:
         context = ChainContext(
             headerdb=self.headerdb,
@@ -316,12 +324,19 @@ class FullServer(BaseServer):
             self.chain,
             self.chaindb,
             self.base_db,
-            cast(ETHPeerPool, self.peer_pool),
+            self.peer_pool,
+            token=self.cancel_token,
+        )
+
+    def _make_request_server(self) -> ETHRequestServer:
+        return ETHRequestServer(
+            self.chaindb,
+            self.peer_pool,
             token=self.cancel_token,
         )
 
 
-class LightServer(BaseServer):
+class LightServer(BaseServer[LESPeerPool]):
     def _make_peer_pool(self) -> LESPeerPool:
         context = ChainContext(
             headerdb=self.headerdb,
@@ -340,8 +355,15 @@ class LightServer(BaseServer):
         return LightChainSyncer(
             self.chain,
             self.headerdb,
-            cast(LESPeerPool, self.peer_pool),
+            self.peer_pool,
             self.cancel_token,
+        )
+
+    def _make_request_server(self) -> LightRequestServer:
+        return LightRequestServer(
+            self.headerdb,
+            self.peer_pool,
+            token=self.cancel_token,
         )
 
 

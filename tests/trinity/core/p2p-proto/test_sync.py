@@ -10,7 +10,9 @@ from eth.tools.mining import POWMiningMixin
 from eth.vm.forks.frontier import FrontierVM
 
 
+from trinity.protocol.eth.servers import ETHRequestServer
 from trinity.protocol.les.peer import LESPeer
+from trinity.protocol.les.servers import LightRequestServer
 from trinity.sync.full.chain import FastChainSyncer, RegularChainSyncer
 from trinity.sync.full.state import StateDownloader
 from trinity.sync.light.chain import LightChainSyncer
@@ -45,11 +47,17 @@ async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
         bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
     client = FastChainSyncer(FrontierTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
+    server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
     server = RegularChainSyncer(
         FrontierTestChain(chaindb_20.db),
         chaindb_20,
-        MockPeerPoolWithConnectedPeers([server_peer]))
+        server_peer_pool,
+    )
     asyncio.ensure_future(server.run())
+    server_request_handler = ETHRequestServer(FakeAsyncChainDB(chaindb_20.db), server_peer_pool)
+    asyncio.ensure_future(server_request_handler.run())
+    server_peer.logger.info("%s is serving 20 blocks", server_peer)
+    client_peer.logger.info("%s is syncing up 20", client_peer)
 
     def finalizer():
         event_loop.run_until_complete(server.cancel())
@@ -81,11 +89,17 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
         FrontierTestChain(chaindb_fresh.db),
         chaindb_fresh,
         MockPeerPoolWithConnectedPeers([client_peer]))
+    server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
     server = RegularChainSyncer(
         FrontierTestChain(chaindb_20.db),
         chaindb_20,
-        MockPeerPoolWithConnectedPeers([server_peer]))
+        server_peer_pool,
+    )
     asyncio.ensure_future(server.run())
+    server_request_handler = ETHRequestServer(FakeAsyncChainDB(chaindb_20.db), server_peer_pool)
+    asyncio.ensure_future(server_request_handler.run())
+    server_peer.logger.info("%s is serving 20 blocks", server_peer)
+    client_peer.logger.info("%s is syncing up 20", client_peer)
 
     def finalizer():
         event_loop.run_until_complete(asyncio.gather(
@@ -115,11 +129,17 @@ async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
         FrontierTestChain(chaindb_fresh.db),
         chaindb_fresh,
         MockPeerPoolWithConnectedPeers([client_peer]))
+    server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
     server = LightChainSyncer(
         FrontierTestChain(chaindb_20.db),
         chaindb_20,
-        MockPeerPoolWithConnectedPeers([server_peer]))
+        server_peer_pool,
+    )
     asyncio.ensure_future(server.run())
+    server_request_handler = LightRequestServer(FakeAsyncHeaderDB(chaindb_20.db), server_peer_pool)
+    asyncio.ensure_future(server_request_handler.run())
+    server_peer.logger.info("%s is serving 20 blocks", server_peer)
+    client_peer.logger.info("%s is syncing up 20", client_peer)
 
     def finalizer():
         event_loop.run_until_complete(asyncio.gather(
