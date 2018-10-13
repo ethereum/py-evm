@@ -1,6 +1,9 @@
-import random
-
 import pytest
+from hypothesis import (
+    given,
+    settings,
+    strategies as st,
+)
 
 from eth.utils import bls
 from eth.utils.bitfield import (
@@ -20,6 +23,7 @@ from eth.beacon.helpers import (
     get_shards_and_committees_for_slot,
     get_signed_parent_hashes,
     get_block_committees_info,
+    verify_votes,
 )
 
 from tests.beacon.helpers import (
@@ -398,18 +402,18 @@ def test_get_block_committees_info(monkeypatch,
         )
 
 
+@settings(max_examples=1)
+@given(random=st.randoms())
 @pytest.mark.parametrize(
     (
         'votes_count'
     ),
     [
         (0),
-        (1),
-        (5),
         (9),
     ],
 )
-def test_aggregate_votes(votes_count, privkeys, pubkeys):
+def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
     bit_count = 10
     pre_bitfield = get_empty_bitfield(bit_count)
     pre_sigs = ()
@@ -417,16 +421,21 @@ def test_aggregate_votes(votes_count, privkeys, pubkeys):
     random_votes = random.sample([i for i in range(bit_count)], votes_count)
     message = b'hello'
 
-    # (committee_index, sig, public_key)
+    # Get votes: (committee_index, sig, public_key)
     votes = [
         (committee_index, bls.sign(message, privkeys[committee_index]), pubkeys[committee_index])
         for committee_index in random_votes
     ]
+
+    # Verify
+    sigs, committee_indices = verify_votes(message, votes)
+
+    # Aggregate the votes
     bitfield, sigs = aggregate_votes(
-        message,
-        votes,
-        pre_bitfield,
-        pre_sigs,
+        bitfield=pre_bitfield,
+        sigs=pre_sigs,
+        voting_sigs=sigs,
+        voting_committee_indices=committee_indices
     )
 
     try:
@@ -434,7 +443,12 @@ def test_aggregate_votes(votes_count, privkeys, pubkeys):
     except ValueError:
         pubs = ()
 
+    voted_index = [
+        committee_index
+        for committee_index in random_votes
+        if has_voted(bitfield, committee_index)
+    ]
+    assert len(voted_index) == len(votes)
+
     aggregated_pubs = bls.aggregate_pubs(pubs)
-    for committee_index in random_votes:
-        if has_voted(bitfield, committee_index):
-            assert bls.verify(message, aggregated_pubs, sigs)
+    assert bls.verify(message, aggregated_pubs, sigs)

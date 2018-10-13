@@ -439,11 +439,16 @@ def aggregate_attestation_record(last_justified_slot: int,
         last_justified_slot,
     )
 
+    # Verify
+    # TODO: Verification is very slow, needs to compute in parallel
+    voting_sigs, committee_indices = verify_votes(message, votes)
+
+    # Aggregate the votes
     bitfield, sigs = aggregate_votes(
-        message,
-        votes,
-        proposer_attestation.bitfield,
-        proposer_attestation.sigs,
+        bitfield=proposer_attestation.bitfield,
+        sigs=proposer_attestation.aggregate_sig,
+        voting_sigs=voting_sigs,
+        voting_committee_indices=committee_indices
     )
 
     return proposer_attestation.copy(
@@ -452,11 +457,12 @@ def aggregate_attestation_record(last_justified_slot: int,
     )
 
 
-def aggregate_votes(message: bytes,
-                    votes: Iterable[Tuple[int, bytes, int]],
-                    pre_bitfield: bytes,
-                    pre_sigs: Iterable[bytes]) -> Tuple[bytes, Iterable[int]]:
-    # Update the bitfield and append the signatures
+def verify_votes(
+        message: bytes,
+        votes: Iterable[Tuple[int, bytes, int]]) -> Tuple[Tuple[bytes, ...], Tuple[int, ...]]:
+    """
+    Verify the given votes
+    """
     sigs_with_committe_info = tuple(
         (sig, committee_index)
         for (committee_index, sig, public_key)
@@ -466,16 +472,26 @@ def aggregate_votes(message: bytes,
     try:
         sigs, committee_indices = zip(*sigs_with_committe_info)
     except ValueError:
-        sigs = ()
-        committee_indices = ()
+        sigs = tuple()
+        committee_indices = tuple()
 
-    sigs = sigs + tuple(pre_sigs)
-    bitfield = pre_bitfield
+    return sigs, committee_indices
+
+
+def aggregate_votes(bitfield: bytes,
+                    sigs: Iterable[bytes],
+                    voting_sigs: Iterable[bytes],
+                    voting_committee_indices: Iterable[int]) -> Tuple[bytes, Tuple[int]]:
+    """
+    Aggregate the votes
+    """
+    # Update the bitfield and append the signatures
+    sigs = tuple(sigs) + tuple(voting_sigs)
     bitfield = pipe(
         bitfield,
         *(
             set_voted(index=committee_index)
-            for committee_index in committee_indices
+            for committee_index in voting_committee_indices
         )
     )
 
