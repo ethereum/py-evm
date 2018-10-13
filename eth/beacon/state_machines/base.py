@@ -31,6 +31,7 @@ from eth.utils.datatypes import (
     Configurable,
 )
 
+from eth.beacon.block_proposal import BlockProposal
 from eth.beacon.db.chain import BaseBeaconChainDB
 from eth.beacon.helpers import (
     create_signing_message,
@@ -379,9 +380,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         self,
         crystallized_state: CrystallizedState,
         active_state: ActiveState,
-        block: BaseBeaconBlock,
-        shard_id: int,
-        shard_block_hash: Hash32,
+        block_proposal: 'BlockProposal',
         chaindb: BaseBeaconChainDB,
         config: BeaconConfig,
         private_key: int
@@ -392,7 +391,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         block, post_crystallized_state, post_active_state = self.process_block(
             crystallized_state,
             active_state,
-            block,
+            block_proposal.block,
             chaindb,
             config,
         )
@@ -402,13 +401,16 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             crystallized_state_root=post_crystallized_state.hash,
             active_state_root=post_active_state.hash,
         )
+        block_proposal = BlockProposal(
+            block=post_block,
+            shard_id=block_proposal.shard_id,
+            shard_block_hash=block_proposal.shard_block_hash,
+        )
 
         proposer_attestation = self.attest_proposed_block(
             post_crystallized_state,
             post_active_state,
-            post_block,
-            shard_id,
-            shard_block_hash,
+            block_proposal,
             chaindb,
             config.CYCLE_LENGTH,
             private_key,
@@ -424,9 +426,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     def attest_proposed_block(self,
                               post_crystallized_state: CrystallizedState,
                               post_active_state: ActiveState,
-                              block: BaseBeaconBlock,
-                              shard_id: int,
-                              shard_block_hash: Hash32,
+                              block_proposal: 'BlockProposal',
                               chaindb: BaseBeaconChainDB,
                               cycle_length: int,
                               private_key: int) -> 'AttestationRecord':
@@ -436,7 +436,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         The proposer broadcasts their attestation with the proposed block.
         """
         block_committees_info = get_block_committees_info(
-            block,
+            block_proposal.block,
             post_crystallized_state,
             cycle_length,
         )
@@ -453,14 +453,14 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         # Get signing message and sign it
         parent_hashes = get_hashes_to_sign(
             post_active_state.recent_block_hashes,
-            block,
+            block_proposal.block,
             cycle_length,
         )
         message = create_signing_message(
-            block.slot_number,
+            block_proposal.block.slot_number,
             parent_hashes,
-            shard_id,
-            shard_block_hash,
+            block_proposal.shard_id,
+            block_proposal.shard_block_hash,
             justified_slot,
         )
         sigs = [
@@ -472,10 +472,10 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         aggregate_sig = bls.aggregate_sigs(sigs)
 
         return self.get_attestation_record_class()(
-            slot=block.slot_number,
-            shard_id=shard_id,
+            slot=block_proposal.block.slot_number,
+            shard_id=block_proposal.shard_id,
             oblique_parent_hashes=(),
-            shard_block_hash=shard_block_hash,
+            shard_block_hash=block_proposal.shard_block_hash,
             attester_bitfield=attester_bitfield,
             justified_slot=justified_slot,
             justified_block_hash=justified_block_hash,
