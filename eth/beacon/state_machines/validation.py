@@ -10,6 +10,9 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.exceptions import (
+    BlockNotFound,
+)
 from eth.utils import bls
 from eth.utils.bitfield import (
     get_bitfield_length,
@@ -18,10 +21,14 @@ from eth.utils.bitfield import (
 
 from eth.beacon.helpers import (
     create_signing_message,
+    get_attestation_indices,
     get_block_committees_info,
+    get_signed_parent_hashes,
 )
 
 from eth.beacon.db.chain import BaseBeaconChainDB  # noqa: F401
+
+from eth.beacon.types.active_states import ActiveState  # noqa: F401
 from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
 from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
 from eth.beacon.types.crystallized_states import CrystallizedState  # noqa: F401
@@ -79,6 +86,57 @@ def validate_parent_block_proposer(crystallized_state: 'CrystallizedState',
 #
 # Attestation validation
 #
+
+def validate_attestation(
+        block: BaseBeaconBlock,
+        parent_block: BaseBeaconBlock,
+        crystallized_state: CrystallizedState,
+        recent_block_hashes: Iterable[Hash32],
+        attestation: 'AttestationRecord',
+        chaindb: BaseBeaconChainDB,
+        cycle_length: int) -> None:
+    """
+    Validate the given ``attestation``.
+
+    Raise ``ValidationError`` if it's invalid.
+    """
+    validate_slot(
+        parent_block,
+        attestation,
+        cycle_length,
+    )
+
+    validate_justified(
+        crystallized_state,
+        attestation,
+        chaindb,
+    )
+
+    attestation_indices = get_attestation_indices(
+        crystallized_state,
+        attestation,
+        cycle_length,
+    )
+
+    validate_bitfield(attestation, attestation_indices)
+
+    # TODO: implement versioning
+    validate_version(crystallized_state, attestation)
+
+    parent_hashes = get_signed_parent_hashes(
+        recent_block_hashes,
+        block,
+        attestation,
+        cycle_length,
+    )
+    validate_aggregate_sig(
+        crystallized_state,
+        attestation,
+        attestation_indices,
+        parent_hashes,
+    )
+
+
 def validate_slot(parent_block: 'BaseBeaconBlock',
                   attestation: 'AttestationRecord',
                   cycle_length: int) -> None:
@@ -120,9 +178,9 @@ def validate_justified(crystallized_state: 'CrystallizedState',
                 crystallized_state.last_justified_slot,
             )
         )
-
-    justified_block = chaindb.get_block_by_hash(attestation.justified_block_hash)
-    if justified_block is None:
+    try:
+        justified_block = chaindb.get_block_by_hash(attestation.justified_block_hash)
+    except BlockNotFound:
         raise ValidationError(
             "justified_block_hash %s is not in the canonical chain" %
             attestation.justified_block_hash

@@ -35,11 +35,9 @@ from eth.beacon.block_proposal import BlockProposal
 from eth.beacon.db.chain import BaseBeaconChainDB
 from eth.beacon.helpers import (
     create_signing_message,
-    get_attestation_indices,
+    get_block_committees_info,
     get_hashes_to_sign,
     get_new_recent_block_hashes,
-    get_block_committees_info,
-    get_signed_parent_hashes,
 )
 from eth.beacon.types.active_states import ActiveState
 from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
@@ -48,13 +46,9 @@ from eth.beacon.types.crystallized_states import CrystallizedState
 from eth.beacon.state_machines.configs import BeaconConfig  # noqa: F401
 
 from .validation import (
-    validate_aggregate_sig,
-    validate_bitfield,
-    validate_justified,
+    validate_attestation,
     validate_parent_block_proposer,
-    validate_slot,
     validate_state_roots,
-    validate_version,
 )
 
 
@@ -344,13 +338,12 @@ class BeaconStateMachine(BaseBeaconStateMachine):
 
         # TODO: to implement the RANDAO reveal validation.
         cls.validate_randao_reveal()
-
         for attestation in block.attestations:
-            cls.validate_attestation(
+            validate_attestation(
                 block,
                 parent_block,
                 crystallized_state,
-                active_state,
+                recent_block_hashes,
                 attestation,
                 chaindb,
                 cycle_length,
@@ -401,7 +394,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             crystallized_state_root=post_crystallized_state.hash,
             active_state_root=post_active_state.hash,
         )
-        block_proposal = BlockProposal(
+        filled_block_proposal = BlockProposal(
             block=post_block,
             shard_id=block_proposal.shard_id,
             shard_block_hash=block_proposal.shard_block_hash,
@@ -410,7 +403,8 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         proposer_attestation = self.attest_proposed_block(
             post_crystallized_state,
             post_active_state,
-            block_proposal,
+            active_state,
+            filled_block_proposal,
             chaindb,
             config.CYCLE_LENGTH,
             private_key,
@@ -426,6 +420,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     def attest_proposed_block(self,
                               post_crystallized_state: CrystallizedState,
                               post_active_state: ActiveState,
+                              pre_active_state: ActiveState,
                               block_proposal: 'BlockProposal',
                               chaindb: BaseBeaconChainDB,
                               cycle_length: int,
@@ -456,6 +451,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             block_proposal.block,
             cycle_length,
         )
+
         message = create_signing_message(
             block_proposal.block.slot_number,
             parent_hashes,
@@ -495,55 +491,3 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     def validate_randao_reveal(cls) -> None:
         # TODO: it's a stub
         return
-
-    #
-    # Attestation validation
-    #
-    @staticmethod
-    def validate_attestation(block: BaseBeaconBlock,
-                             parent_block: BaseBeaconBlock,
-                             crystallized_state: CrystallizedState,
-                             active_state: ActiveState,
-                             attestation: 'AttestationRecord',
-                             chaindb: BaseBeaconChainDB,
-                             cycle_length: int) -> None:
-        """
-        Validate the given ``attestation``.
-
-        Raise ``ValidationError`` if it's invalid.
-        """
-        validate_slot(
-            parent_block,
-            attestation,
-            cycle_length,
-        )
-
-        validate_justified(
-            crystallized_state,
-            attestation,
-            chaindb,
-        )
-
-        attestation_indices = get_attestation_indices(
-            crystallized_state,
-            attestation,
-            cycle_length,
-        )
-
-        validate_bitfield(attestation, attestation_indices)
-
-        # TODO: implement versioning
-        validate_version(crystallized_state, attestation)
-
-        parent_hashes = get_signed_parent_hashes(
-            active_state.recent_block_hashes,
-            block,
-            attestation,
-            cycle_length,
-        )
-        validate_aggregate_sig(
-            crystallized_state,
-            attestation,
-            attestation_indices,
-            parent_hashes,
-        )

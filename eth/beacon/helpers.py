@@ -435,7 +435,7 @@ def aggregate_attestation_record(last_justified_slot: int,
         block.slot_number,
         parent_hashes,
         proposer_attestation.shard_id,
-        block.shard_block_hash,
+        proposer_attestation.shard_block_hash,
         last_justified_slot,
     )
 
