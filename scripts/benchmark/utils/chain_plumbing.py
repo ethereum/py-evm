@@ -1,6 +1,12 @@
+from pathlib import (
+    Path,
+)
+import tempfile
+
 from typing import (
     Any,
     Dict,
+    Generator,
     Iterable,
     Tuple,
     Type,
@@ -25,8 +31,11 @@ from eth import (
 from eth.chains.base import (
     MiningChain,
 )
+from eth.db.backends.level import (
+    LevelDB,
+)
 from eth.vm.base import (
-    BaseVM
+    BaseVM,
 )
 from eth.chains.mainnet import (
     BaseMainnetChain,
@@ -81,19 +90,21 @@ DEFAULT_GENESIS_STATE = [
 GenesisState = Iterable[Tuple[Address, Dict[str, Any]]]
 
 
-def get_chain(vm: Type[BaseVM], genesis_state: GenesisState) -> MiningChain:
+def get_chain(vm: Type[BaseVM], genesis_state: GenesisState) -> Generator[MiningChain, None, None]:
 
-    chain = build(
-        MiningChain,
-        fork_at(vm, constants.GENESIS_BLOCK_NUMBER),
-        disable_pow_check(),
-        genesis(params=GENESIS_PARAMS, state=genesis_state)
-    )
-
-    return chain
+    # Chain uses LevelDB
+    with tempfile.TemporaryDirectory() as temp_dir:
+        level_db_obj = LevelDB(Path(temp_dir))
+        level_db_chain = build(
+            MiningChain,
+            fork_at(vm, constants.GENESIS_BLOCK_NUMBER),
+            disable_pow_check(),
+            genesis(db=level_db_obj, params=GENESIS_PARAMS, state=genesis_state)
+        )
+        yield level_db_chain
 
 
 def get_all_chains(genesis_state: GenesisState=DEFAULT_GENESIS_STATE) -> Iterable[MiningChain]:
     for vm in ALL_VM:
         chain = get_chain(vm, genesis_state)
-        yield chain
+        yield next(chain)
