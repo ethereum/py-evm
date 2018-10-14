@@ -26,10 +26,10 @@ from eth.beacon.state_machines.validation import (
         (1000, 20, 10, 100),
     ]
 )
-def test_propose_block_and_validate_attestation(fixture_sm_class,
-                                                initial_chaindb,
-                                                genesis_block,
-                                                privkeys):
+def test_propose_block(fixture_sm_class,
+                       initial_chaindb,
+                       genesis_block,
+                       privkeys):
     chaindb = initial_chaindb
 
     # Propose a block
@@ -39,7 +39,9 @@ def test_propose_block_and_validate_attestation(fixture_sm_class,
     )
     sm = fixture_sm_class(chaindb, block_1_shell)
 
+    #
     # The proposer of block_1
+    #
     block_committees_info = (
         get_block_committees_info(
             block_1_shell,
@@ -94,7 +96,9 @@ def test_propose_block_and_validate_attestation(fixture_sm_class,
         block_committees_info.proposer_index_in_committee
     )
 
+    #
     # The proposer of block_2
+    #
     block_committees_info = (
         get_block_committees_info(
             block_2_shell,

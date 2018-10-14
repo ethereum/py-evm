@@ -18,7 +18,9 @@ from eth.beacon.state_machines.validation import (
     validate_attestation,
     validate_bitfield,
     validate_justified,
+    validate_parent_block_proposer,
     validate_slot,
+    validate_state_roots,
 )
 
 
@@ -101,6 +103,62 @@ def attestation_validation_fixture(fixture_sm_class,
         block_1,
         sm.chaindb
     )
+
+
+@pytest.mark.parametrize(
+    (
+        'num_validators,cycle_length,'
+        'min_committee_size,shard_count'
+    ),
+    [
+        (100, 50, 10, 10)
+    ],
+)
+def test_validate_parent_block_proposer(attestation_validation_fixture,
+                                        cycle_length):
+    (
+        crystallized_state,
+        _,
+        attestation,
+        block,
+        parent_block,
+        _,
+    ) = attestation_validation_fixture
+
+    validate_parent_block_proposer(
+        crystallized_state,
+        block,
+        parent_block,
+        cycle_length,
+    )
+
+    # Case 1: No attestations
+    block = block.copy(
+        attestations=()
+    )
+    with pytest.raises(ValidationError):
+        validate_parent_block_proposer(
+            crystallized_state,
+            block,
+            parent_block,
+            cycle_length,
+        )
+
+    # Case 2: Proposer didn't attest
+    block = block.copy(
+        attestations=[
+            attestation.copy(
+                attester_bitfield=get_empty_bitfield(10),
+            )
+        ]
+    )
+    with pytest.raises(ValidationError):
+        validate_parent_block_proposer(
+            crystallized_state,
+            block,
+            parent_block,
+            cycle_length,
+        )
 
 
 @pytest.mark.parametrize(
@@ -305,4 +363,32 @@ def test_validate_attestation_aggregate_sig(attestation_validation_fixture, cycl
             attestation,
             attestation_indices,
             parent_hashes,
+        )
+
+
+def test_validate_state_roots(genesis_crystallized_state, genesis_active_state, genesis_block):
+
+    validate_state_roots(
+        crystallized_state_root=genesis_crystallized_state.hash,
+        active_state_root=genesis_active_state.hash,
+        block=genesis_block,
+    )
+
+    # Case 1: Wrong crystallized state root
+    with pytest.raises(ValidationError):
+        validate_state_roots(
+            crystallized_state_root=genesis_active_state,
+            active_state_root=genesis_active_state.hash,
+            block=genesis_block.copy(
+                active_state_root=ZERO_HASH32,
+            ),
+        )
+
+    with pytest.raises(ValidationError):
+        validate_state_roots(
+            crystallized_state_root=genesis_active_state,
+            active_state_root=genesis_active_state.hash,
+            block=genesis_block.copy(
+                crystallized_state_root=ZERO_HASH32,
+            ),
         )

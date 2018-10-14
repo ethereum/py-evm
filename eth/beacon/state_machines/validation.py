@@ -86,7 +86,6 @@ def validate_parent_block_proposer(crystallized_state: 'CrystallizedState',
 #
 # Attestation validation
 #
-
 def validate_attestation(
         block: BaseBeaconBlock,
         parent_block: BaseBeaconBlock,
