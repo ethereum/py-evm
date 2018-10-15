@@ -17,6 +17,9 @@ from eth.utils.address import (
 from eth.utils.hexadecimal import (
     encode_hex,
 )
+from eth.utils.numeric import (
+    ceil32,
+)
 from eth.vm import mnemonics
 from eth.vm.computation import (
     BaseComputation
@@ -120,6 +123,9 @@ class Create(Opcode):
     def max_child_gas_modifier(self, gas: int) -> int:
         return gas
 
+    def get_gas_cost(self, data: CreateOpcodeStackData) -> int:
+        return self.gas_cost
+
     def generate_contract_address(self,
                                   stack_data: CreateOpcodeStackData,
                                   call_data: bytes,
@@ -144,9 +150,11 @@ class Create(Opcode):
         return CreateOpcodeStackData(endowment, memory_start, memory_length)
 
     def __call__(self, computation: BaseComputation) -> None:
-        computation.consume_gas(self.gas_cost, reason=self.mnemonic)
 
         stack_data = self.get_stack_data(computation)
+
+        gas_cost = self.get_gas_cost(stack_data)
+        computation.consume_gas(gas_cost, reason=self.mnemonic)
 
         computation.extend_memory(stack_data.memory_start, stack_data.memory_length)
 
@@ -218,6 +226,9 @@ class Create2(CreateByzantium):
         )
 
         return CreateOpcodeStackData(endowment, memory_start, memory_length, salt)
+
+    def get_gas_cost(self, data: CreateOpcodeStackData) -> int:
+        return constants.GAS_SHA3WORD * ceil32(data.memory_length) // 32
 
     def generate_contract_address(self,
                                   stack_data: CreateOpcodeStackData,
