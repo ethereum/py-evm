@@ -1,15 +1,5 @@
 import pytest
-from hypothesis import (
-    given,
-    settings,
-    strategies as st,
-)
 
-from eth.utils import bls
-from eth.utils.bitfield import (
-    get_empty_bitfield,
-    has_voted,
-)
 from eth.beacon.types.attestation_records import AttestationRecord
 from eth.beacon.types.shard_and_committees import ShardAndCommittee
 from eth.beacon.helpers import (
