@@ -31,10 +31,12 @@ from eth.utils.datatypes import (
     Configurable,
 )
 
+from eth.beacon.aggregation import (
+    create_signing_message,
+)
 from eth.beacon.block_proposal import BlockProposal
 from eth.beacon.db.chain import BaseBeaconChainDB
 from eth.beacon.helpers import (
-    create_signing_message,
     get_block_committees_info,
     get_hashes_to_sign,
     get_new_recent_block_hashes,

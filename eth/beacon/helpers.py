@@ -2,9 +2,6 @@ from itertools import (
     repeat,
 )
 
-from cytoolz import (
-    pipe
-)
 from typing import (
     Any,
     Iterable,
@@ -21,11 +18,6 @@ from eth_typing import (
     Hash32,
 )
 
-from eth.utils import bls
-from eth.utils.bitfield import (
-    set_voted,
-)
-from eth.utils.blake import blake
 from eth.utils.numeric import (
     clamp,
 )
@@ -394,105 +386,3 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
         proposer_committee_size=proposer_committee_size,
         shards_and_committees=shards_and_committees,
     )
-
-
-#
-# Signatures and Aggregation
-#
-def create_signing_message(slot: int,
-                           parent_hashes: Iterable[Hash32],
-                           shard_id: int,
-                           shard_block_hash: Hash32,
-                           justified_slot: int) -> bytes:
-    # TODO: will be updated to hashed encoded attestation
-    return blake(
-        slot.to_bytes(8, byteorder='big') +
-        b''.join(parent_hashes) +
-        shard_id.to_bytes(2, byteorder='big') +
-        shard_block_hash +
-        justified_slot.to_bytes(8, 'big')
-    )
-
-
-def aggregate_attestation_record(last_justified_slot: int,
-                                 recent_block_hashes: Iterable[Hash32],
-                                 block: 'BaseBeaconBlock',
-                                 votes: Iterable[Tuple[int, bytes, int]],
-                                 proposer_attestation: 'AttestationRecord',
-                                 cycle_length: int) -> 'AttestationRecord':
-    """
-    Aggregate the votes.
-
-    TODO: Write tests
-    """
-    # Get signing message
-    parent_hashes = get_hashes_to_sign(
-        recent_block_hashes,
-        block,
-        cycle_length,
-    )
-    message = create_signing_message(
-        block.slot_number,
-        parent_hashes,
-        proposer_attestation.shard_id,
-        proposer_attestation.shard_block_hash,
-        last_justified_slot,
-    )
-
-    # Verify
-    # TODO: Verification is very slow, needs to compute in parallel
-    voting_sigs, committee_indices = verify_votes(message, votes)
-
-    # Aggregate the votes
-    bitfield, sigs = aggregate_votes(
-        bitfield=proposer_attestation.bitfield,
-        sigs=proposer_attestation.aggregate_sig,
-        voting_sigs=voting_sigs,
-        voting_committee_indices=committee_indices
-    )
-
-    return proposer_attestation.copy(
-        bitfield=bitfield,
-        sigs=bls.aggregate_sigs(sigs),
-    )
-
-
-def verify_votes(
-        message: bytes,
-        votes: Iterable[Tuple[int, bytes, int]]) -> Tuple[Tuple[bytes, ...], Tuple[int, ...]]:
-    """
-    Verify the given votes
-    """
-    sigs_with_committe_info = tuple(
-        (sig, committee_index)
-        for (committee_index, sig, public_key)
-        in votes
-        if bls.verify(message, public_key, sig)
-    )
-    try:
-        sigs, committee_indices = zip(*sigs_with_committe_info)
-    except ValueError:
-        sigs = tuple()
-        committee_indices = tuple()
-
-    return sigs, committee_indices
-
-
-def aggregate_votes(bitfield: bytes,
-                    sigs: Iterable[bytes],
-                    voting_sigs: Iterable[bytes],
-                    voting_committee_indices: Iterable[int]) -> Tuple[bytes, Tuple[int]]:
-    """
-    Aggregate the votes
-    """
-    # Update the bitfield and append the signatures
-    sigs = tuple(sigs) + tuple(voting_sigs)
-    bitfield = pipe(
-        bitfield,
-        *(
-            set_voted(index=committee_index)
-            for committee_index in voting_committee_indices
-        )
-    )
-
-    return bitfield, bls.aggregate_sigs(sigs)

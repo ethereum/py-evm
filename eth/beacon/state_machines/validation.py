@@ -19,8 +19,10 @@ from eth.utils.bitfield import (
     has_voted,
 )
 
-from eth.beacon.helpers import (
+from eth.beacon.aggregation import (
     create_signing_message,
+)
+from eth.beacon.helpers import (
     get_attestation_indices,
     get_block_committees_info,
     get_signed_parent_hashes,
