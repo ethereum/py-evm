@@ -15,7 +15,6 @@ from eth_utils import (
     to_tuple,
 )
 
-
 from eth.constants import (
     GENESIS_PARENT_HASH,
 )
@@ -44,7 +43,9 @@ from eth.beacon.helpers import (
 from eth.beacon.types.active_states import ActiveState
 from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
 from eth.beacon.types.blocks import BaseBeaconBlock
+from eth.beacon.types.crosslink_records import CrosslinkRecord  # noqa: F401
 from eth.beacon.types.crystallized_states import CrystallizedState
+from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 from eth.beacon.state_machines.configs import BeaconConfig  # noqa: F401
 
 from .validation import (
@@ -272,6 +273,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
 
         self.block = processing_block
         self._update_the_states(processed_crystallized_state, processed_active_state)
+
         # TODO: persist states in BeaconChain if needed
 
         return self.block, self.crystallized_state, self.active_state
@@ -279,9 +281,8 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     #
     # Process block APIs
     #
-    @classmethod
     def process_block(
-            cls,
+            self,
             crystallized_state: CrystallizedState,
             active_state: ActiveState,
             block: BaseBeaconBlock,
@@ -293,7 +294,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         Process ``block`` and return the new crystallized state and active state.
         """
         # Process per block state changes (ActiveState)
-        processing_active_state = cls.compute_per_block_transition(
+        processing_active_state = self.compute_per_block_transition(
             crystallized_state,
             active_state,
             block,
@@ -303,17 +304,18 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         )
 
         # Process per cycle state changes (CrystallizedState and ActiveState)
-        processed_crystallized_state, processed_active_state = cls.compute_cycle_transitions(
+        processed_crystallized_state, processed_active_state = self.compute_cycle_transitions(
             crystallized_state,
             processing_active_state,
+            block,
+            config,
         )
 
         # Return the copy
         result_block = block.copy()
         return result_block, processed_crystallized_state, processed_active_state
 
-    @classmethod
-    def compute_per_block_transition(cls,
+    def compute_per_block_transition(self,
                                      crystallized_state: CrystallizedState,
                                      active_state: ActiveState,
                                      block: BaseBeaconBlock,
@@ -322,7 +324,6 @@ class BeaconStateMachine(BaseBeaconStateMachine):
                                      is_validating_signatures: bool=True) -> ActiveState:
         """
         Process ``block`` and return the new ActiveState.
-
 
         TODO: It doesn't match the latest spec.
         There will be more fields need to be updated in ActiveState.
@@ -344,7 +345,8 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             )
 
         # TODO: to implement the RANDAO reveal validation.
-        cls.validate_randao_reveal()
+        self.validate_randao_reveal()
+
         for attestation in block.attestations:
             validate_attestation(
                 block,
@@ -364,13 +366,91 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             ),
         )
 
-    @classmethod
     def compute_cycle_transitions(
-            cls,
+            self,
             crystallized_state: CrystallizedState,
-            active_state: ActiveState) -> Tuple[CrystallizedState, ActiveState]:
-        # TODO: it's a stub
+            active_state: ActiveState,
+            block: BaseBeaconBlock,
+            config: BeaconConfig) -> Tuple[CrystallizedState, ActiveState]:
+        """
+        Compute the cycle transitions and return processed CrystallizedState and ActiveState.
+        """
+        while block.slot_number >= crystallized_state.last_state_recalc + config.CYCLE_LENGTH:
+            crystallized_state, active_state = self.compute_per_cycle_transition(
+                crystallized_state,
+                active_state,
+                block,
+                config,
+            )
+
+            if self.ready_for_dynasty_transition(crystallized_state, block, config):
+                crystallized_state = self.compute_dynasty_transition(
+                    crystallized_state,
+                    block,
+                    config
+                )
+
         return crystallized_state, active_state
+
+    def compute_per_cycle_transition(
+            self,
+            crystallized_state: CrystallizedState,
+            active_state: ActiveState,
+            block: BaseBeaconBlock,
+            config: BeaconConfig) -> Tuple[CrystallizedState, ActiveState]:
+        """
+        Initialize a new cycle.
+        """
+        # TODO
+        return crystallized_state, active_state
+
+    #
+    # Crosslinks
+    #
+    def compute_crosslinks(self,
+                           crystallized_state: CrystallizedState,
+                           active_state: ActiveState,
+                           block: BaseBeaconBlock,
+                           config: BeaconConfig) -> Tuple['CrosslinkRecord', ...]:
+        # TODO
+        return ()
+
+    #
+    # Rewards and penalties
+    #
+    def apply_rewards_and_penalties(self,
+                                    crystallized_state: CrystallizedState,
+                                    active_state: ActiveState,
+                                    block: BaseBeaconBlock,
+                                    config: BeaconConfig) -> Tuple['ValidatorRecord', ...]:
+        """
+        Apply the rewards and penalties to the validators and return the updated ValidatorRecords.
+        """
+        # TODO
+        return ()
+
+    #
+    # Dynasty
+    #
+    def ready_for_dynasty_transition(self,
+                                     crystallized_state: CrystallizedState,
+                                     block: BaseBeaconBlock,
+                                     config: BeaconConfig) -> bool:
+        """
+        Check if it's ready for dynasty transition.
+        """
+        # TODO
+        return False
+
+    def compute_dynasty_transition(self,
+                                   crystallized_state: CrystallizedState,
+                                   block: BaseBeaconBlock,
+                                   config: BeaconConfig) -> CrystallizedState:
+        """
+        Compute the dynasty transition.
+        """
+        # TODO
+        return crystallized_state
 
     #
     #
