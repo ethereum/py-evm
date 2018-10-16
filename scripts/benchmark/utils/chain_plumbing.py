@@ -2,11 +2,9 @@ from pathlib import (
     Path,
 )
 import tempfile
-
 from typing import (
     Any,
     Dict,
-    Generator,
     Iterable,
     Tuple,
     Type,
@@ -90,9 +88,8 @@ DEFAULT_GENESIS_STATE = [
 GenesisState = Iterable[Tuple[Address, Dict[str, Any]]]
 
 
-def get_chain(vm: Type[BaseVM], genesis_state: GenesisState) -> Generator[MiningChain, None, None]:
+def get_chain(vm: Type[BaseVM], genesis_state: GenesisState) -> Iterable[MiningChain]:
 
-    # Chain uses LevelDB
     with tempfile.TemporaryDirectory() as temp_dir:
         level_db_obj = LevelDB(Path(temp_dir))
         level_db_chain = build(
@@ -106,5 +103,4 @@ def get_chain(vm: Type[BaseVM], genesis_state: GenesisState) -> Generator[Mining
 
 def get_all_chains(genesis_state: GenesisState=DEFAULT_GENESIS_STATE) -> Iterable[MiningChain]:
     for vm in ALL_VM:
-        chain = get_chain(vm, genesis_state)
-        yield next(chain)
+        yield from get_chain(vm, genesis_state)
