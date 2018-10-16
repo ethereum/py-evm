@@ -239,11 +239,11 @@ class AccountDB(BaseAccountDB):
     #
     # Storage
     #
-    def get_storage(self, address, slot):
+    def get_storage(self, address, slot, from_journal=True):
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(slot, title="Storage Slot")
 
-        account = self._get_account(address)
+        account = self._get_account(address, from_journal)
         storage = HashTrie(HexaryTrie(self._journaldb, account.storage_root))
 
         slot_as_key = pad32(int_to_big_endian(slot))
@@ -375,8 +375,8 @@ class AccountDB(BaseAccountDB):
     #
     # Internal
     #
-    def _get_account(self, address):
-        rlp_account = self._journaltrie.get(address, b'')
+    def _get_account(self, address, from_journal=True):
+        rlp_account = (self._journaltrie if from_journal else self._trie_cache).get(address, b'')
         if rlp_account:
             account = rlp.decode(rlp_account, sedes=Account)
         else:

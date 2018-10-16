@@ -1,6 +1,7 @@
 import logging
 from typing import (
-    cast
+    Callable,
+    cast,
 )
 from eth_utils import (
     ValidationError,
@@ -16,7 +17,22 @@ from eth.tools.logging import (
 )
 
 
+def default_refund_strategy(gas_refunded_total: int, amount: int) -> int:
+    if amount < 0:
+        raise ValidationError("Gas refund amount must be positive")
+
+    return gas_refunded_total + amount
+
+
+def allow_negative_refund_strategy(gas_refunded_total: int, amount: int) -> int:
+    return gas_refunded_total + amount
+
+
+RefundStrategy = Callable[[int, int], int]
+
+
 class GasMeter(object):
+
     start_gas = None  # type: int
 
     gas_refunded = None  # type: int
@@ -24,9 +40,12 @@ class GasMeter(object):
 
     logger = cast(TraceLogger, logging.getLogger('eth.gas.GasMeter'))
 
-    def __init__(self, start_gas: int) -> None:
+    def __init__(self,
+                 start_gas: int,
+                 refund_strategy: RefundStrategy = default_refund_strategy) -> None:
         validate_uint256(start_gas, title="Start Gas")
 
+        self.refund_strategy = refund_strategy
         self.start_gas = start_gas
 
         self.gas_remaining = self.start_gas
@@ -70,10 +89,7 @@ class GasMeter(object):
         )
 
     def refund_gas(self, amount: int) -> None:
-        if amount < 0:
-            raise ValidationError("Gas refund amount must be positive")
-
-        self.gas_refunded += amount
+        self.gas_refunded = self.refund_strategy(self.gas_refunded, amount)
 
         self.logger.trace(
             'GAS REFUND: %s + %s -> %s',

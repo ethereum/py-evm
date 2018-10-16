@@ -51,15 +51,16 @@ GENESIS_HEADER = BlockHeader(
 )
 
 
-def prepare_computation(vm_class):
+def setup_computation(vm_class, create_address, code):
 
     message = Message(
         to=CANONICAL_ADDRESS_A,
         sender=CANONICAL_ADDRESS_B,
-        value=100,
+        create_address=create_address,
+        value=0,
         data=b'',
-        code=b'',
-        gas=800,
+        code=code,
+        gas=1000000,
     )
 
     tx_context = vm_class._state_class.transaction_context_class(
@@ -74,6 +75,13 @@ def prepare_computation(vm_class):
         message=message,
         transaction_context=tx_context,
     )
+
+    return computation
+
+
+def prepare_general_computation(vm_class, create_address=None, code=b''):
+
+    computation = setup_computation(vm_class, create_address, code)
 
     computation.state.account_db.touch_account(decode_hex(EMPTY_ADDRESS_IN_STATE))
     computation.state.account_db.set_code(decode_hex(ADDRESS_WITH_CODE[0]), ADDRESS_WITH_CODE[1])
@@ -92,7 +100,7 @@ def prepare_computation(vm_class):
     )
 )
 def test_add(vm_class, val1, val2, expected):
-    computation = prepare_computation(vm_class)
+    computation = prepare_general_computation(vm_class)
     computation.stack_push(val1)
     computation.stack_push(val2)
     computation.opcodes[opcode_values.ADD](computation)
@@ -113,7 +121,7 @@ def test_add(vm_class, val1, val2, expected):
     )
 )
 def test_mul(vm_class, val1, val2, expected):
-    computation = prepare_computation(vm_class)
+    computation = prepare_general_computation(vm_class)
     computation.stack_push(val1)
     computation.stack_push(val2)
     computation.opcodes[opcode_values.MUL](computation)
@@ -139,7 +147,7 @@ def test_mul(vm_class, val1, val2, expected):
     )
 )
 def test_exp(vm_class, base, exponent, expected):
-    computation = prepare_computation(vm_class)
+    computation = prepare_general_computation(vm_class)
     computation.stack_push(exponent)
     computation.stack_push(base)
     computation.opcodes[opcode_values.EXP](computation)
@@ -222,7 +230,7 @@ def test_exp(vm_class, base, exponent, expected):
     )
 )
 def test_shl(vm_class, val1, val2, expected):
-    computation = prepare_computation(vm_class)
+    computation = prepare_general_computation(vm_class)
     computation.stack_push(decode_hex(val1))
     computation.stack_push(decode_hex(val2))
     computation.opcodes[opcode_values.SHL](computation)
@@ -305,7 +313,7 @@ def test_shl(vm_class, val1, val2, expected):
     )
 )
 def test_shr(vm_class, val1, val2, expected):
-    computation = prepare_computation(vm_class)
+    computation = prepare_general_computation(vm_class)
     computation.stack_push(decode_hex(val1))
     computation.stack_push(decode_hex(val2))
     computation.opcodes[opcode_values.SHR](computation)
@@ -418,7 +426,7 @@ def test_shr(vm_class, val1, val2, expected):
     )
 )
 def test_sar(vm_class, val1, val2, expected):
-    computation = prepare_computation(vm_class)
+    computation = prepare_general_computation(vm_class)
     computation.stack_push(decode_hex(val1))
     computation.stack_push(decode_hex(val2))
     computation.opcodes[opcode_values.SAR](computation)
@@ -449,10 +457,162 @@ def test_sar(vm_class, val1, val2, expected):
     )
 )
 def test_extcodehash(vm_class, address, expected):
-    computation = prepare_computation(vm_class)
+    computation = prepare_general_computation(vm_class)
 
     computation.stack_push(decode_hex(address))
     computation.opcodes[opcode_values.EXTCODEHASH](computation)
 
     result = computation.stack_pop(type_hint=constants.BYTES)
     assert encode_hex(pad32(result)) == expected
+
+
+@pytest.mark.parametrize(
+    # Testcases from https://eips.ethereum.org/EIPS/eip-1283
+    'vm_class, code, gas_used, refund, original',
+    (
+        (
+            ByzantiumVM,
+            '0x60006000556000600055',
+            10012,
+            0,
+            0,
+        ),
+        (
+            ByzantiumVM,
+            '0x60006000556001600055',
+            25012,
+            0,
+            0,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60006000556000600055',
+            412,
+            0,
+            0,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60006000556001600055',
+            20212,
+            0,
+            0,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60016000556000600055',
+            20212,
+            19800,
+            0,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60016000556002600055',
+            20212,
+            0,
+            0,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60016000556001600055',
+            20212,
+            0,
+            0,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60006000556000600055',
+            5212,
+            15000,
+            1,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60006000556001600055',
+            5212,
+            4800,
+            1,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60006000556002600055',
+            5212,
+            0,
+            1,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60026000556000600055',
+            5212,
+            15000,
+            1,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60026000556003600055',
+            5212,
+            0,
+            1,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60026000556001600055',
+            5212,
+            4800,
+            1,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60026000556002600055',
+            5212,
+            0,
+            1,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60016000556000600055',
+            5212,
+            15000,
+            1,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60016000556002600055',
+            5212,
+            0,
+            1,
+        ),
+        (
+            ConstantinopleVM,
+            '0x60016000556001600055',
+            412,
+            0,
+            1,
+        ),
+        (
+            ConstantinopleVM,
+            '0x600160005560006000556001600055',
+            40218,
+            19800,
+            0,
+        ),
+        (
+            ConstantinopleVM,
+            '0x600060005560016000556000600055',
+            10218,
+            19800,
+            1,
+        ),
+    )
+)
+def test_sstore(vm_class, code, gas_used, refund, original):
+
+    computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, decode_hex(code))
+
+    computation.state.account_db.set_balance(CANONICAL_ADDRESS_B, 100000000000)
+    computation.state.account_db.set_storage(CANONICAL_ADDRESS_B, 0, original)
+    computation.state.account_db.persist()
+
+    comp = computation.apply_message()
+    assert comp.get_gas_refund() == refund
+    assert comp.get_gas_used() == gas_used

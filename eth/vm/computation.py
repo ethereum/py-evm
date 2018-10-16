@@ -130,7 +130,7 @@ class BaseComputation(Configurable, ABC):
 
         self._memory = Memory()
         self._stack = Stack()
-        self._gas_meter = GasMeter(message.gas)
+        self._gas_meter = self.get_gas_meter()
 
         self.children = []
         self.accounts_to_delete = {}
@@ -406,6 +406,9 @@ class BaseComputation(Configurable, ABC):
     #
     # Getters
     #
+    def get_gas_meter(self) -> GasMeter:
+        return GasMeter(self.msg.gas)
+
     def get_accounts_for_deletion(self) -> Tuple[Tuple[bytes, bytes], ...]:
         if self.is_error:
             return tuple()
