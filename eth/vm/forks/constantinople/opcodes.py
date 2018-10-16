@@ -16,6 +16,9 @@ from eth.vm.forks.byzantium.opcodes import (
 from eth.vm.forks.constantinople.constants import (
     GAS_EXTCODEHASH_EIP1052
 )
+from eth.vm.forks.constantinople.storage import (
+    sstore_eip1283,
+)
 from eth.vm.logic import (
     arithmetic,
     context,
@@ -52,6 +55,11 @@ UPDATED_OPCODES = {
         mnemonic=mnemonics.CREATE2,
         gas_cost=constants.GAS_CREATE,
     )(),
+    opcode_values.SSTORE: as_opcode(
+        logic_fn=sstore_eip1283,
+        mnemonic=mnemonics.SSTORE,
+        gas_cost=constants.GAS_NULL,
+    ),
 }
 
 CONSTANTINOPLE_OPCODES = merge(
