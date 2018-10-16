@@ -260,6 +260,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             block,
             self.chaindb,
             self.config,
+            is_validating_signatures=True,
         )
 
         # Validate state roots
@@ -285,17 +286,20 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             active_state: ActiveState,
             block: BaseBeaconBlock,
             chaindb: BaseBeaconChainDB,
-            config: BeaconConfig) -> Tuple[BaseBeaconBlock, CrystallizedState, ActiveState]:
+            config: BeaconConfig,
+            is_validating_signatures: bool=True
+    ) -> Tuple[BaseBeaconBlock, CrystallizedState, ActiveState]:
         """
         Process ``block`` and return the new crystallized state and active state.
         """
         # Process per block state changes (ActiveState)
-        processing_active_state = cls.compute_per_block_transtion(
+        processing_active_state = cls.compute_per_block_transition(
             crystallized_state,
             active_state,
             block,
             chaindb,
             config.CYCLE_LENGTH,
+            is_validating_signatures=is_validating_signatures,
         )
 
         # Process per cycle state changes (CrystallizedState and ActiveState)
@@ -309,12 +313,13 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         return result_block, processed_crystallized_state, processed_active_state
 
     @classmethod
-    def compute_per_block_transtion(cls,
-                                    crystallized_state: CrystallizedState,
-                                    active_state: ActiveState,
-                                    block: BaseBeaconBlock,
-                                    chaindb: BaseBeaconChainDB,
-                                    cycle_length: int) -> ActiveState:
+    def compute_per_block_transition(cls,
+                                     crystallized_state: CrystallizedState,
+                                     active_state: ActiveState,
+                                     block: BaseBeaconBlock,
+                                     chaindb: BaseBeaconChainDB,
+                                     cycle_length: int,
+                                     is_validating_signatures: bool=True) -> ActiveState:
         """
         Process ``block`` and return the new ActiveState.
 
@@ -349,6 +354,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
                 attestation,
                 chaindb,
                 cycle_length,
+                is_validating_signatures=is_validating_signatures,
             )
 
         return active_state.copy(
@@ -389,6 +395,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             block_proposal.block,
             chaindb,
             config,
+            is_validating_signatures=False,
         )
 
         # Set state roots
@@ -405,7 +412,6 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         proposer_attestation = self.attest_proposed_block(
             post_crystallized_state,
             post_active_state,
-            active_state,
             filled_block_proposal,
             chaindb,
             config.CYCLE_LENGTH,
@@ -422,7 +428,6 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     def attest_proposed_block(self,
                               post_crystallized_state: CrystallizedState,
                               post_active_state: ActiveState,
-                              pre_active_state: ActiveState,
                               block_proposal: 'BlockProposal',
                               chaindb: BaseBeaconChainDB,
                               cycle_length: int,
@@ -461,13 +466,10 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             block_proposal.shard_block_hash,
             justified_slot,
         )
-        sigs = [
-            bls.sign(
-                message,
-                private_key,
-            )
-        ]
-        aggregate_sig = bls.aggregate_sigs(sigs)
+        sig = bls.sign(
+            message,
+            private_key,
+        )
 
         return self.get_attestation_record_class()(
             slot=block_proposal.block.slot_number,
@@ -477,7 +479,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             attester_bitfield=attester_bitfield,
             justified_slot=justified_slot,
             justified_block_hash=justified_block_hash,
-            aggregate_sig=aggregate_sig,
+            aggregate_sig=sig,
         )
 
     #

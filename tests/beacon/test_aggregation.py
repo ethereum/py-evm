@@ -32,7 +32,7 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
     pre_bitfield = get_empty_bitfield(bit_count)
     pre_sigs = ()
 
-    random_votes = random.sample([i for i in range(bit_count)], votes_count)
+    random_votes = random.sample(range(bit_count), votes_count)
     message = b'hello'
 
     # Get votes: (committee_index, sig, public_key)

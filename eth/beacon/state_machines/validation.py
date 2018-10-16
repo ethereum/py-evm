@@ -95,7 +95,8 @@ def validate_attestation(
         recent_block_hashes: Iterable[Hash32],
         attestation: 'AttestationRecord',
         chaindb: BaseBeaconChainDB,
-        cycle_length: int) -> None:
+        cycle_length: int,
+        is_validating_signatures: bool=True) -> None:
     """
     Validate the given ``attestation``.
 
@@ -124,18 +125,19 @@ def validate_attestation(
     # TODO: implement versioning
     validate_version(crystallized_state, attestation)
 
-    parent_hashes = get_signed_parent_hashes(
-        recent_block_hashes,
-        block,
-        attestation,
-        cycle_length,
-    )
-    validate_aggregate_sig(
-        crystallized_state,
-        attestation,
-        attestation_indices,
-        parent_hashes,
-    )
+    if is_validating_signatures:
+        parent_hashes = get_signed_parent_hashes(
+            recent_block_hashes,
+            block,
+            attestation,
+            cycle_length,
+        )
+        validate_aggregate_sig(
+            crystallized_state,
+            attestation,
+            attestation_indices,
+            parent_hashes,
+        )
 
 
 def validate_slot(parent_block: 'BaseBeaconBlock',

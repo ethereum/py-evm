@@ -45,7 +45,7 @@ def _get_element_from_recent_list(
         target_slot: int,
         slot_relative_position: int) -> Any:
     """
-    Returns the element from ``target_list`` by the ``target_slot`` number,
+    Return the element from ``target_list`` by the ``target_slot`` number,
     where the the element should be at ``target_slot - slot_relative_position``th
     element of the given ``target_list``.
     """
@@ -75,7 +75,7 @@ def get_block_hash(
         slot: int,
         cycle_length: int) -> Hash32:
     """
-    Returns the blockhash from ``ActiveState.recent_block_hashes`` by
+    Return the blockhash from ``ActiveState.recent_block_hashes`` by
     ``current_block_slot_number``.
     """
     if len(recent_block_hashes) != cycle_length * 2:
@@ -192,7 +192,7 @@ def get_attestation_indices(crystallized_state: 'CrystallizedState',
                             attestation: 'AttestationRecord',
                             cycle_length: int) -> Iterable[int]:
     """
-    Returns committee of the given attestation.
+    Return committee of the given attestation.
     """
     shard_id = attestation.shard_id
 
@@ -231,7 +231,7 @@ def _get_shuffling_committee_slot_portions(
         min_committee_size: int,
         shard_count: int) -> Tuple[int, int]:
     """
-    Returns committees number per slot and slots number per committee.
+    Return committees number per slot and slots number per committee.
     """
     # If there are enough active validators to form committees for every slot
     if active_validators_size >= cycle_length * min_committee_size:
@@ -279,7 +279,7 @@ def get_new_shuffling(*,
                       min_committee_size: int,
                       shard_count: int) -> Iterable[Iterable[ShardAndCommittee]]:
     """
-    Returns shuffled ``shard_and_committee_for_slots`` (``[[ShardAndCommittee]]``) of
+    Return shuffled ``shard_and_committee_for_slots`` (``[[ShardAndCommittee]]``) of
     the given active ``validators``.
 
     Two-dimensional:
@@ -356,7 +356,7 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
         cycle_length,
     )
     """
-    Returns the proposer index in committee and the ``shard_id``.
+    Return the block committees and proposer info with BlockCommitteesInfo pack.
     """
     # `proposer_index_in_committee` th attester in `shard_and_committee`
     # is the proposer of the parent block.

@@ -80,7 +80,7 @@ def test_import_block_one(fixture_sm_class,
         slot_number=genesis_block.slot_number + 1,
     )
     sm = fixture_sm_class(chaindb, block_1_shell)
-    active_state_1 = sm.compute_per_block_transtion(
+    active_state_1 = sm.compute_per_block_transition(
         sm.crystallized_state,
         sm.active_state,
         block_1_shell,

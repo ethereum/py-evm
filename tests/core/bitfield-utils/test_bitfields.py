@@ -140,7 +140,7 @@ def test_or_bitfields():
 @given(st.integers(1, 1000))
 def test_set_vote_and_has_vote(bit_count):
     bitfield = get_empty_bitfield(bit_count)
-    index = random.choice([i for i in range(bit_count)])
+    index = random.choice(range(bit_count))
     bitfield = set_voted(bitfield, index)
     assert has_voted(bitfield, index)
 
@@ -150,7 +150,7 @@ def test_set_vote_and_has_vote(bit_count):
 def test_has_voted_random(votes_count):
     bit_count = 1000
     bitfield = get_empty_bitfield(bit_count)
-    random_votes = random.sample([i for i in range(bit_count)], votes_count)
+    random_votes = random.sample(range(bit_count), votes_count)
 
     for index in random_votes:
         bitfield = set_voted(bitfield, index)
