@@ -5,7 +5,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.tools.fixtures.normalization import normalize_state
+from eth.tools._utils.normalization import normalize_state
 
 
 ADDRESS_A = b'a' + b'\0' * 19

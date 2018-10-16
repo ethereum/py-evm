@@ -25,7 +25,7 @@ from eth_utils import (
 from eth.tools.fixtures.helpers import (
     get_test_name,
 )
-from eth.tools.fixtures.normalization import (
+from eth.tools._utils.normalization import (
     normalize_environment,
     normalize_execution,
     normalize_state,
