@@ -24,12 +24,12 @@ from eth.db.atomic import AtomicDB
 from eth.validation import (
     validate_vm_configuration,
 )
-from eth.tools.fixtures.normalization import (
-    normalize_state,
-)
 from eth.tools.mining import POWMiningMixin
 from eth.tools._utils.mappings import (
     deep_merge,
+)
+from eth.tools._utils.normalization import (
+    normalize_state,
 )
 from eth.vm.forks import (
     FrontierVM,

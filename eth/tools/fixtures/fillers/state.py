@@ -12,7 +12,7 @@ from eth.db.account import (
 from eth.tools.fixtures.helpers import (
     get_test_name,
 )
-from eth.tools.fixtures.normalization import (
+from eth.tools._utils.normalization import (
     normalize_environment,
     normalize_networks,
     normalize_state,
