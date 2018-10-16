@@ -1,6 +1,5 @@
 from typing import (
     NamedTuple,
-    Tuple,
     TYPE_CHECKING,
 )
 
@@ -18,6 +17,6 @@ BlockProposal = NamedTuple(
     (
         ('block', 'BaseBeaconBlock'),
         ('shard_id', int),
-        ('shard_block_hash', Tuple[Hash32]),
+        ('shard_block_hash', Hash32),
     )
 )
