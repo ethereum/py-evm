@@ -17,6 +17,7 @@ def has_voted(bitfield: bytes, index: int) -> bool:
     return bool(bitfield[index // 8] & (128 >> (index % 8)))
 
 
+@curry
 def set_voted(bitfield: bytes, index: int) -> bytes:
     byte_index = index // 8
     bit_index = index % 8

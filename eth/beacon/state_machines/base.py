@@ -4,6 +4,7 @@ from abc import (
 import logging
 from typing import (
     Iterable,
+    Tuple,
     Type,
 )
 
@@ -21,15 +22,36 @@ from eth.constants import (
 from eth.exceptions import (
     BlockNotFound,
 )
+from eth.utils import bls
+from eth.utils.bitfield import (
+    get_empty_bitfield,
+    set_voted,
+)
 from eth.utils.datatypes import (
     Configurable,
 )
 
+from eth.beacon.aggregation import (
+    create_signing_message,
+)
+from eth.beacon.block_proposal import BlockProposal
 from eth.beacon.db.chain import BaseBeaconChainDB
+from eth.beacon.helpers import (
+    get_block_committees_info,
+    get_hashes_to_sign,
+    get_new_recent_block_hashes,
+)
 from eth.beacon.types.active_states import ActiveState
+from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.crystallized_states import CrystallizedState
 from eth.beacon.state_machines.configs import BeaconConfig  # noqa: F401
+
+from .validation import (
+    validate_attestation,
+    validate_parent_block_proposer,
+    validate_state_roots,
+)
 
 
 class BaseBeaconStateMachine(Configurable, ABC):
@@ -42,6 +64,7 @@ class BaseBeaconStateMachine(Configurable, ABC):
     block_class = None  # type: Type[BaseBeaconBlock]
     crystallized_state_class = None  # type: Type[CrystallizedState]
     active_state_class = None  # type: Type[ActiveState]
+    attestation_record_class = None  # type: Type[AttestationRecord]
 
     # TODO: Add abstractmethods
 
@@ -55,9 +78,17 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     _crytallized_state = None  # type: CrystallizedState
     _active_state = None  # type: ActiveState
 
-    def __init__(self, chaindb: BaseBeaconChainDB, block: BaseBeaconBlock) -> None:
+    def __init__(self, chaindb: BaseBeaconChainDB, block: BaseBeaconBlock=None) -> None:
         self.chaindb = chaindb
-        self.block = self.get_block_class().from_block(block)
+        if block is None:
+            # Build a child block of current head
+            head_block = self.chaindb.get_canonical_head()
+            self.block = self.get_block_class()(*head_block).copy(
+                slot_number=head_block.slot_number + 1,
+                parent_hash=head_block.hash,
+            )
+        else:
+            self.block = self.get_block_class()(*block)
 
     #
     # Logging
@@ -193,9 +224,274 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     def get_active_state_class(cls) -> Type[ActiveState]:
         """
         Return the :class:`~eth.beacon.types.active_states.ActiveState` class that this
-        StateMachine uses for crystallized_state.
+        StateMachine uses for active_state.
         """
         if cls.active_state_class is None:
             raise AttributeError("No `active_state_class` has been set for this StateMachine")
         else:
             return cls.active_state_class
+
+    #
+    # AttestationRecord
+    #
+    @classmethod
+    def get_attestation_record_class(cls) -> Type[AttestationRecord]:
+        """
+        Return the :class:`~eth.beacon.types.attestation_records.AttestationRecord` class that this
+        StateMachine uses for the current fork version.
+        """
+        if cls.attestation_record_class is None:
+            raise AttributeError("No `attestation_record_class` has been set for this StateMachine")
+        else:
+            return cls.attestation_record_class
+
+    #
+    # Import block API
+    #
+    def import_block(
+            self,
+            block: BaseBeaconBlock) -> Tuple[BaseBeaconBlock, CrystallizedState, ActiveState]:
+        """
+        Import the given block to the chain.
+        """
+        processing_block, processed_crystallized_state, processed_active_state = self.process_block(
+            self.crystallized_state,
+            self.active_state,
+            block,
+            self.chaindb,
+            self.config,
+            is_validating_signatures=True,
+        )
+
+        # Validate state roots
+        validate_state_roots(
+            processed_crystallized_state.hash,
+            processed_active_state.hash,
+            block,
+        )
+
+        self.block = processing_block
+        self._update_the_states(processed_crystallized_state, processed_active_state)
+        # TODO: persist states in BeaconChain if needed
+
+        return self.block, self.crystallized_state, self.active_state
+
+    #
+    # Process block APIs
+    #
+    @classmethod
+    def process_block(
+            cls,
+            crystallized_state: CrystallizedState,
+            active_state: ActiveState,
+            block: BaseBeaconBlock,
+            chaindb: BaseBeaconChainDB,
+            config: BeaconConfig,
+            is_validating_signatures: bool=True
+    ) -> Tuple[BaseBeaconBlock, CrystallizedState, ActiveState]:
+        """
+        Process ``block`` and return the new crystallized state and active state.
+        """
+        # Process per block state changes (ActiveState)
+        processing_active_state = cls.compute_per_block_transition(
+            crystallized_state,
+            active_state,
+            block,
+            chaindb,
+            config.CYCLE_LENGTH,
+            is_validating_signatures=is_validating_signatures,
+        )
+
+        # Process per cycle state changes (CrystallizedState and ActiveState)
+        processed_crystallized_state, processed_active_state = cls.compute_cycle_transitions(
+            crystallized_state,
+            processing_active_state,
+        )
+
+        # Return the copy
+        result_block = block.copy()
+        return result_block, processed_crystallized_state, processed_active_state
+
+    @classmethod
+    def compute_per_block_transition(cls,
+                                     crystallized_state: CrystallizedState,
+                                     active_state: ActiveState,
+                                     block: BaseBeaconBlock,
+                                     chaindb: BaseBeaconChainDB,
+                                     cycle_length: int,
+                                     is_validating_signatures: bool=True) -> ActiveState:
+        """
+        Process ``block`` and return the new ActiveState.
+
+
+        TODO: It doesn't match the latest spec.
+        There will be more fields need to be updated in ActiveState.
+        """
+        parent_block = chaindb.get_block_by_hash(block.parent_hash)
+        recent_block_hashes = get_new_recent_block_hashes(
+            active_state.recent_block_hashes,
+            parent_block.slot_number,
+            block.slot_number,
+            block.parent_hash
+        )
+
+        if parent_block.parent_hash != GENESIS_PARENT_HASH:
+            validate_parent_block_proposer(
+                crystallized_state,
+                block,
+                parent_block,
+                cycle_length,
+            )
+
+        # TODO: to implement the RANDAO reveal validation.
+        cls.validate_randao_reveal()
+        for attestation in block.attestations:
+            validate_attestation(
+                block,
+                parent_block,
+                crystallized_state,
+                recent_block_hashes,
+                attestation,
+                chaindb,
+                cycle_length,
+                is_validating_signatures=is_validating_signatures,
+            )
+
+        return active_state.copy(
+            recent_block_hashes=recent_block_hashes,
+            pending_attestations=(
+                active_state.pending_attestations + block.attestations
+            ),
+        )
+
+    @classmethod
+    def compute_cycle_transitions(
+            cls,
+            crystallized_state: CrystallizedState,
+            active_state: ActiveState) -> Tuple[CrystallizedState, ActiveState]:
+        # TODO: it's a stub
+        return crystallized_state, active_state
+
+    #
+    #
+    # Proposer APIs
+    #
+    #
+    def propose_block(
+        self,
+        crystallized_state: CrystallizedState,
+        active_state: ActiveState,
+        block_proposal: 'BlockProposal',
+        chaindb: BaseBeaconChainDB,
+        config: BeaconConfig,
+        private_key: int
+    ) -> Tuple[BaseBeaconBlock, CrystallizedState, ActiveState, 'AttestationRecord']:
+        """
+        Propose the given block.
+        """
+        block, post_crystallized_state, post_active_state = self.process_block(
+            crystallized_state,
+            active_state,
+            block_proposal.block,
+            chaindb,
+            config,
+            is_validating_signatures=False,
+        )
+
+        # Set state roots
+        post_block = block.copy(
+            crystallized_state_root=post_crystallized_state.hash,
+            active_state_root=post_active_state.hash,
+        )
+        filled_block_proposal = BlockProposal(
+            block=post_block,
+            shard_id=block_proposal.shard_id,
+            shard_block_hash=block_proposal.shard_block_hash,
+        )
+
+        proposer_attestation = self.attest_proposed_block(
+            post_crystallized_state,
+            post_active_state,
+            filled_block_proposal,
+            chaindb,
+            config.CYCLE_LENGTH,
+            private_key,
+        )
+        return post_block, post_crystallized_state, post_active_state, proposer_attestation
+
+    def _update_the_states(self,
+                           crystallized_state: CrystallizedState,
+                           active_state: ActiveState) -> None:
+        self._crytallized_state = crystallized_state
+        self._active_state = active_state
+
+    def attest_proposed_block(self,
+                              post_crystallized_state: CrystallizedState,
+                              post_active_state: ActiveState,
+                              block_proposal: 'BlockProposal',
+                              chaindb: BaseBeaconChainDB,
+                              cycle_length: int,
+                              private_key: int) -> 'AttestationRecord':
+        """
+        Return the initial attestation by the block proposer.
+
+        The proposer broadcasts their attestation with the proposed block.
+        """
+        block_committees_info = get_block_committees_info(
+            block_proposal.block,
+            post_crystallized_state,
+            cycle_length,
+        )
+        # Vote
+        attester_bitfield = set_voted(
+            get_empty_bitfield(block_committees_info.proposer_committee_size),
+            block_committees_info.proposer_index_in_committee,
+        )
+
+        # Get justified_slot and justified_block_hash
+        justified_slot = post_crystallized_state.last_justified_slot
+        justified_block_hash = chaindb.get_canonical_block_hash_by_slot(justified_slot)
+
+        # Get signing message and sign it
+        parent_hashes = get_hashes_to_sign(
+            post_active_state.recent_block_hashes,
+            block_proposal.block,
+            cycle_length,
+        )
+
+        message = create_signing_message(
+            block_proposal.block.slot_number,
+            parent_hashes,
+            block_proposal.shard_id,
+            block_proposal.shard_block_hash,
+            justified_slot,
+        )
+        sig = bls.sign(
+            message,
+            private_key,
+        )
+
+        return self.get_attestation_record_class()(
+            slot=block_proposal.block.slot_number,
+            shard_id=block_proposal.shard_id,
+            oblique_parent_hashes=(),
+            shard_block_hash=block_proposal.shard_block_hash,
+            attester_bitfield=attester_bitfield,
+            justified_slot=justified_slot,
+            justified_block_hash=justified_block_hash,
+            aggregate_sig=sig,
+        )
+
+    #
+    #
+    # Validation
+    #
+    #
+
+    #
+    # Randao reveal validation
+    #
+    @classmethod
+    def validate_randao_reveal(cls) -> None:
+        # TODO: it's a stub
+        return

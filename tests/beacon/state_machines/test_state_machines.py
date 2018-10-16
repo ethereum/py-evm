@@ -1,20 +1,32 @@
+import pytest
+
 from eth.constants import (
     ZERO_HASH32,
 )
+
 from eth.beacon.state_machines.forks.serenity import (
-    SerenityBeaconStateMachine,
+    SerenityStateMachine,
 )
-from eth.beacon.db.chain import BeaconChainDB
 
 
-def test_state_machine(base_db,
+def test_state_machine_canonical(initial_chaindb,
+                                 genesis_block,
+                                 genesis_crystallized_state,
+                                 genesis_active_state):
+    chaindb = initial_chaindb
+    sm = SerenityStateMachine(chaindb)
+    assert sm.block == genesis_block.copy(
+        slot_number=genesis_block.slot_number + 1,
+        parent_hash=genesis_block.hash
+    )
+    assert sm.crystallized_state == genesis_crystallized_state
+    assert sm.active_state == genesis_active_state
+
+
+def test_state_machine(initial_chaindb,
                        genesis_block,
-                       genesis_crystallized_state,
-                       genesis_active_state):
-    chaindb = BeaconChainDB(base_db)
-    chaindb.persist_block(genesis_block)
-    chaindb.persist_crystallized_state(genesis_crystallized_state)
-    chaindb.persist_active_state(genesis_active_state, genesis_crystallized_state.hash)
+                       genesis_crystallized_state):
+    chaindb = initial_chaindb
 
     block_1 = genesis_block.copy(
         parent_hash=genesis_block.hash,
@@ -38,10 +50,48 @@ def test_state_machine(base_db,
         active_state_root=b'\x33' * 32,
     )
 
-    sm = SerenityBeaconStateMachine(chaindb, block_3)
+    sm = SerenityStateMachine(chaindb, block_3)
 
     assert sm.crystallized_state == genesis_crystallized_state
-    expect = [ZERO_HASH32] * (sm.config.CYCLE_LENGTH * 2 - 2) + \
+    expect = tuple(
+        [ZERO_HASH32] * (sm.config.CYCLE_LENGTH * 2 - 2) +
         [genesis_block.hash] + [block_1.hash]
-    expect = tuple(expect)
+    )
     assert sm.active_state.recent_block_hashes == expect
+
+
+@pytest.mark.parametrize(
+    (
+        'num_validators,'
+        'cycle_length,min_committee_size,shard_count'
+    ),
+    [
+        (1000, 20, 10, 100),
+    ]
+)
+def test_import_block_one(fixture_sm_class,
+                          initial_chaindb,
+                          genesis_block):
+    chaindb = initial_chaindb
+
+    # Create the first block
+    block_1_shell = genesis_block.copy(
+        parent_hash=genesis_block.hash,
+        slot_number=genesis_block.slot_number + 1,
+    )
+    sm = fixture_sm_class(chaindb, block_1_shell)
+    active_state_1 = sm.compute_per_block_transition(
+        sm.crystallized_state,
+        sm.active_state,
+        block_1_shell,
+        sm.chaindb,
+        sm.config,
+    )
+    block_1 = block_1_shell.copy(
+        active_state_root=active_state_1.hash,
+    )
+    _, _, active_state = sm.import_block(block_1)
+    expect = tuple(
+        [ZERO_HASH32] * (sm.config.CYCLE_LENGTH * 2 - 1) + [genesis_block.hash]
+    )
+    assert active_state.recent_block_hashes == expect
