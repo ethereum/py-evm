@@ -273,6 +273,13 @@ def fixture_vm_class(fixture_data):
         raise ValueError("Unknown Fork Name: {0}".format(fork_name))
 
 
+PRE_STATE_CLEARING_VMS = (
+    FrontierVMForTesting,
+    HomesteadVMForTesting,
+    TangerineWhistleVMForTesting,
+)
+
+
 def test_state_fixtures(fixture, fixture_vm_class):
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
@@ -320,18 +327,43 @@ def test_state_fixtures(fixture, fixture_vm_class):
             r=r,
             s=s,
         )
+    else:
+        raise Exception("Invariant: No transaction specified")
 
     try:
         header, receipt, computation = vm.apply_transaction(vm.block.header, transaction)
-        transactions = vm.block.transactions + (transaction, )
-        receipts = vm.block.get_receipts(chaindb) + (receipt, )
-        block = vm.set_block_transactions(vm.block, header, transactions, receipts)
     except ValidationError as err:
-        block = vm.block
-        transaction_error = err
         logger.warning("Got transaction error", exc_info=True)
+        transaction_error = err
     else:
         transaction_error = False
+
+        transactions = vm.block.transactions + (transaction, )
+        receipts = vm.block.get_receipts(chaindb) + (receipt, )
+        vm.block = vm.set_block_transactions(vm.block, header, transactions, receipts)
+    finally:
+        # This is necessary due to the manner in which the state tests are
+        # generated. State tests are generated from the BlockChainTest tests
+        # in which these transactions are included in the larger context of a
+        # block and thus, the mechanisms which would touch/create/clear the
+        # coinbase account based on the mining reward are present during test
+        # generation, but not part of the execution, thus we must artificially
+        # create the account in VMs prior to the state clearing rules,
+        # as well as conditionally cleaning up the coinbase account when left
+        # empty in VMs after the state clearing rules came into effect.
+        # Related change in geth:
+        # https://github.com/ethereum/go-ethereum/commit/32f28a9360d26a661d55915915f12fd3c70f012b#diff-f53696be8527ac422b8d4de7c8e945c1R149  # noqa: E501
+
+        if isinstance(vm, PRE_STATE_CLEARING_VMS):
+            state.account_db.touch_account(vm.block.header.coinbase)
+            state.account_db.persist()
+            vm.block = vm.block.copy(header=vm.block.header.copy(state_root=state.state_root))
+        elif state.account_db.account_is_empty(vm.block.header.coinbase):
+            state.account_db.delete_account(vm.block.header.coinbase)
+            state.account_db.persist()
+            vm.block = vm.block.copy(header=vm.block.header.copy(state_root=state.state_root))
+
+        block = vm.block
 
     if not transaction_error:
         log_entries = computation.get_log_entries()
