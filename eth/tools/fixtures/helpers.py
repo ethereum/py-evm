@@ -10,6 +10,9 @@ from eth_utils import (
 
 from eth import MainnetChain
 from eth.db.atomic import AtomicDB
+from eth.tools.builder.chain import (
+    disable_pow_check,
+)
 from eth.utils.state import (
     diff_account_db,
 )
@@ -155,6 +158,9 @@ def new_chain_from_fixture(fixture, chain_cls=MainnetChain):
         'ChainFromFixture',
         vm_configuration=vm_config,
     )
+
+    if 'sealEngine' in fixture and fixture['sealEngine'] == 'NoProof':
+        ChainFromFixture = disable_pow_check(ChainFromFixture)
 
     return ChainFromFixture.from_genesis(
         base_db,

@@ -495,6 +495,9 @@ def normalize_blockchain_fixtures(fixture):
         'network': fixture['network'],
     }
 
+    if 'sealEngine' in fixture:
+        normalized_fixture['sealEngine'] = fixture['sealEngine']
+
     if 'genesisRLP' in fixture:
         normalized_fixture['genesisRLP'] = decode_hex(fixture['genesisRLP'])
 
