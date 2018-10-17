@@ -1,8 +1,13 @@
 import operator
 from importlib import import_module
 
+from typing import (
+    Any,
+    Tuple,
+)
 
-def import_string(dotted_path):
+
+def import_string(dotted_path: str) -> Any:
     """
     Source: django.utils.module_loading
     Import a dotted module path and return the attribute/class designated by the
@@ -24,7 +29,7 @@ def import_string(dotted_path):
         raise ImportError(msg)
 
 
-def split_at_longest_importable_path(dotted_path):
+def split_at_longest_importable_path(dotted_path: str) -> Tuple[str, str]:
     num_path_parts = len(dotted_path.split('.'))
 
     for i in range(1, num_path_parts):

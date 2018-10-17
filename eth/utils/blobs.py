@@ -47,7 +47,7 @@ def calc_chunk_root(collation_body: bytes) -> Hash32:
     return calc_merkle_root(chunks)
 
 
-def check_body_size(body):
+def check_body_size(body: bytes) -> bytes:
     if len(body) != COLLATION_SIZE:
         raise ValidationError("{} byte collation body exceeds maximum allowed size".format(
             len(body)

@@ -6,7 +6,6 @@ from cytoolz import (
     pipe
 )
 
-
 from eth_typing import (
     Hash32,
 )
@@ -62,7 +61,7 @@ def verify_votes(
 def aggregate_votes(bitfield: bytes,
                     sigs: Iterable[bytes],
                     voting_sigs: Iterable[bytes],
-                    voting_committee_indices: Iterable[int]) -> Tuple[bytes, Tuple[int]]:
+                    voting_committee_indices: Iterable[int]) -> Tuple[bytes, Tuple[int, int]]:
     """
     Aggregate the votes.
     """

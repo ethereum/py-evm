@@ -40,6 +40,9 @@ from eth_utils.toolz import (
     iterate,
     take,
 )
+from mypy_extensions import (
+    TypedDict,
+)
 
 from eth.db.backends.base import BaseAtomicDB
 from eth.db.chain import (
@@ -105,11 +108,13 @@ if TYPE_CHECKING:
     from eth.vm.base import BaseVM  # noqa: F401
 
 
-# Mapping from address to account state.
-# 'balance', 'nonce' -> int
-# 'code' -> bytes
-# 'storage' -> Dict[int, int]
-AccountState = Dict[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]
+AccountDetails = TypedDict('AccountDetails',
+                           {'balance': int,
+                            'nonce': int,
+                            'code': bytes,
+                            'storage': Dict[int, int]
+                            })
+AccountState = Dict[Address, AccountDetails]
 
 
 class BaseChain(Configurable, ABC):

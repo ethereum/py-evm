@@ -1,7 +1,11 @@
-
 import rlp
 
+from typing import (
+    Tuple,
+)
+
 from eth_keys import keys
+from eth_keys import datatypes
 from eth_keys.exceptions import (
     BadSignature,
 )
@@ -43,7 +47,10 @@ def extract_signature_v(v: int) -> int:
         return V_OFFSET
 
 
-def create_transaction_signature(unsigned_txn, private_key, chain_id=None):
+def create_transaction_signature(unsigned_txn: BaseTransaction,
+                                 private_key: datatypes.PrivateKey,
+                                 chain_id: int=None) -> Tuple[int, int, int]:
+
     transaction_parts = rlp.decode(rlp.encode(unsigned_txn))
 
     if chain_id:
