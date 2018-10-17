@@ -22,6 +22,7 @@ from eth.rlp.blocks import (
 
 DiffObjectType = Union[None, Iterable[Tuple[str, str, str]]]
 
+
 @to_tuple
 def diff_rlp_object(left: BaseBlock, right: BaseBlock) -> DiffObjectType:
     if left != right:

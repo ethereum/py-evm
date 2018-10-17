@@ -1,5 +1,7 @@
 from typing import (
+    Any,
     TypeVar,
+    Union,
 )
 
 from cytoolz import (
@@ -12,15 +14,9 @@ from eth.constants import (
     DEFAULT_SPOOF_S,
 )
 
-
 from eth.rlp.transactions import (
     BaseTransaction,
     BaseUnsignedTransaction,
-)
-from typing import (
-    Any,
-    Callable,
-    Union,
 )
 
 SPOOF_ATTRIBUTES_DEFAULTS = {
@@ -30,6 +26,7 @@ SPOOF_ATTRIBUTES_DEFAULTS = {
 }
 
 T = TypeVar('T', bound='SpoofAttributes')
+
 
 class SpoofAttributes:
     def __init__(

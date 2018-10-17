@@ -10,7 +10,7 @@ from eth_utils import (
 )
 
 from eth_typing import (
-Address,
+    Address,
 )
 
 from eth.db.account import (
@@ -25,6 +25,7 @@ from eth.db.account import (
 AccountState = Dict[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]
 
 DiffType = Iterable[Tuple[Address, str, Union[int, bytes], Union[int, bytes]]]
+
 
 @to_tuple
 def diff_account_db(expected_state: AccountState,

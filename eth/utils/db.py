@@ -1,6 +1,5 @@
 from typing import (
     Dict,
-    Type,
     TYPE_CHECKING,
     Union,
 )
@@ -25,6 +24,7 @@ if TYPE_CHECKING:
 # 'code' -> bytes
 # 'storage' -> Dict[int, int]
 AccountState = Dict[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]
+
 
 def get_parent_header(block_header: BlockHeader, db: 'BaseChainDB') -> BlockHeader:
     """
