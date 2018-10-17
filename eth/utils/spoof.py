@@ -1,3 +1,7 @@
+from typing import (
+    TypeVar,
+)
+
 from cytoolz import (
     merge,
 )
@@ -25,6 +29,7 @@ SPOOF_ATTRIBUTES_DEFAULTS = {
     's': DEFAULT_SPOOF_S
 }
 
+T = TypeVar('T', bound='SpoofAttributes')
 
 class SpoofAttributes:
     def __init__(
@@ -53,7 +58,7 @@ class SpoofAttributes:
         else:
             return getattr(self.spoof_target, attr)
 
-    def copy(self, **kwargs: Any) -> SpoofAttributes:
+    def copy(self: T, **kwargs: Any) -> T:
         new_target = self.spoof_target.copy(**kwargs)
         new_overrides = merge(self.overrides, kwargs)
         return type(self)(new_target, **new_overrides)
