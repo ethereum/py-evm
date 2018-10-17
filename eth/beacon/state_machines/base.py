@@ -385,11 +385,6 @@ class BeaconStateMachine(BaseBeaconStateMachine):
                 block,
             )
 
-            # TODO: it's a STUB before we implement compute_per_cycle_transition
-            crystallized_state = crystallized_state.copy(
-                last_state_recalc=crystallized_state.last_state_recalc + cls.config.CYCLE_LENGTH
-            )
-
             if cls.ready_for_dynasty_transition(crystallized_state, block):
                 crystallized_state = cls.compute_dynasty_transition(
                     crystallized_state,
@@ -407,7 +402,11 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         """
         Initialize a new cycle.
         """
-        # TODO
+        # TODO: it's a STUB before we implement compute_per_cycle_transition
+        crystallized_state = crystallized_state.copy(
+            last_state_recalc=crystallized_state.last_state_recalc + cls.config.CYCLE_LENGTH
+        )
+
         return crystallized_state, active_state
 
     #
