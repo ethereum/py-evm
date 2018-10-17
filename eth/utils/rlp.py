@@ -1,6 +1,11 @@
 from __future__ import absolute_import
 
 import rlp
+from typing import (
+    Iterable,
+    Tuple,
+    Union,
+)
 
 from cytoolz import (
     curry,
@@ -11,9 +16,14 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.rlp.blocks import (
+    BaseBlock,
+)
+
+DiffObjectType = Union[None, Iterable[Tuple[str, str, str]]]
 
 @to_tuple
-def diff_rlp_object(left, right):
+def diff_rlp_object(left: BaseBlock, right: BaseBlock) -> DiffObjectType:
     if left != right:
         rlp_type = type(left)
 
@@ -46,7 +56,10 @@ def diff_rlp_object(left, right):
 
 
 @curry
-def validate_rlp_equal(obj_a, obj_b, obj_a_name=None, obj_b_name=None):
+def validate_rlp_equal(obj_a: BaseBlock,
+                       obj_b: BaseBlock,
+                       obj_a_name: str=None,
+                       obj_b_name: str=None) -> None:
     if obj_a == obj_b:
         return
 

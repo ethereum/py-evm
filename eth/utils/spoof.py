@@ -13,7 +13,11 @@ from eth.rlp.transactions import (
     BaseTransaction,
     BaseUnsignedTransaction,
 )
-from typing import Callable, Union, Any
+from typing import (
+    Any,
+    Callable,
+    Union,
+)
 
 SPOOF_ATTRIBUTES_DEFAULTS = {
     'v': DEFAULT_SPOOF_V,
@@ -43,13 +47,13 @@ class SpoofAttributes:
                 if not hasattr(spoof_target, attr):
                     overrides[attr] = value
 
-    def __getattr__(self, attr: str) -> Union[int, Callable, bytes]:
+    def __getattr__(self, attr: str) -> Any:
         if attr in self.overrides:
             return self.overrides[attr]
         else:
             return getattr(self.spoof_target, attr)
 
-    def copy(self, **kwargs):
+    def copy(self, **kwargs: Any) -> SpoofAttributes:
         new_target = self.spoof_target.copy(**kwargs)
         new_overrides = merge(self.overrides, kwargs)
         return type(self)(new_target, **new_overrides)
