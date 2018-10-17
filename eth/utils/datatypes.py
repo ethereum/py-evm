@@ -67,8 +67,8 @@ class Configurable(object):
     """
     @classmethod
     def configure(cls,
-                  __name__=None,
-                  **overrides):
+                  __name__: str=None,
+                  **overrides: Any) -> type:
 
         if __name__ is None:
             __name__ = cls.__name__

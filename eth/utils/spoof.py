@@ -1,3 +1,9 @@
+from typing import (
+    Any,
+    TypeVar,
+    Union,
+)
+
 from cytoolz import (
     merge,
 )
@@ -8,18 +14,18 @@ from eth.constants import (
     DEFAULT_SPOOF_S,
 )
 
-
 from eth.rlp.transactions import (
     BaseTransaction,
     BaseUnsignedTransaction,
 )
-from typing import Callable, Union, Any
 
 SPOOF_ATTRIBUTES_DEFAULTS = {
     'v': DEFAULT_SPOOF_V,
     'r': DEFAULT_SPOOF_R,
     's': DEFAULT_SPOOF_S
 }
+
+T = TypeVar('T', bound='SpoofAttributes')
 
 
 class SpoofAttributes:
@@ -43,13 +49,13 @@ class SpoofAttributes:
                 if not hasattr(spoof_target, attr):
                     overrides[attr] = value
 
-    def __getattr__(self, attr: str) -> Union[int, Callable, bytes]:
+    def __getattr__(self, attr: str) -> Any:
         if attr in self.overrides:
             return self.overrides[attr]
         else:
             return getattr(self.spoof_target, attr)
 
-    def copy(self, **kwargs):
+    def copy(self: T, **kwargs: Any) -> T:
         new_target = self.spoof_target.copy(**kwargs)
         new_overrides = merge(self.overrides, kwargs)
         return type(self)(new_target, **new_overrides)

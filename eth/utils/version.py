@@ -3,7 +3,7 @@ import sys
 from eth import __version__
 
 
-def construct_evm_runtime_identifier():
+def construct_evm_runtime_identifier() -> str:
     """
     Constructs the EVM runtime identifier string
 
