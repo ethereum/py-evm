@@ -260,7 +260,6 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             self.active_state,
             block,
             self.chaindb,
-            self.config,
             is_validating_signatures=True,
         )
 
@@ -278,49 +277,53 @@ class BeaconStateMachine(BaseBeaconStateMachine):
 
         return self.block, self.crystallized_state, self.active_state
 
+    def _update_the_states(self,
+                           crystallized_state: CrystallizedState,
+                           active_state: ActiveState) -> None:
+        self._crytallized_state = crystallized_state
+        self._active_state = active_state
+
     #
     # Process block APIs
     #
+    @classmethod
     def process_block(
-            self,
+            cls,
             crystallized_state: CrystallizedState,
             active_state: ActiveState,
             block: BaseBeaconBlock,
             chaindb: BaseBeaconChainDB,
-            config: BeaconConfig,
             is_validating_signatures: bool=True
     ) -> Tuple[BaseBeaconBlock, CrystallizedState, ActiveState]:
         """
         Process ``block`` and return the new crystallized state and active state.
         """
         # Process per block state changes (ActiveState)
-        processing_active_state = self.compute_per_block_transition(
+        processing_active_state = cls.compute_per_block_transition(
             crystallized_state,
             active_state,
             block,
             chaindb,
-            config.CYCLE_LENGTH,
             is_validating_signatures=is_validating_signatures,
         )
 
         # Process per cycle state changes (CrystallizedState and ActiveState)
-        processed_crystallized_state, processed_active_state = self.compute_cycle_transitions(
+        processed_crystallized_state, processed_active_state = cls.compute_cycle_transitions(
             crystallized_state,
             processing_active_state,
             block,
-            config,
         )
 
         # Return the copy
         result_block = block.copy()
         return result_block, processed_crystallized_state, processed_active_state
 
-    def compute_per_block_transition(self,
+    @classmethod
+    def compute_per_block_transition(cls,
                                      crystallized_state: CrystallizedState,
                                      active_state: ActiveState,
                                      block: BaseBeaconBlock,
                                      chaindb: BaseBeaconChainDB,
-                                     cycle_length: int,
                                      is_validating_signatures: bool=True) -> ActiveState:
         """
         Process ``block`` and return the new ActiveState.
@@ -341,11 +344,11 @@ class BeaconStateMachine(BaseBeaconStateMachine):
                 crystallized_state,
                 block,
                 parent_block,
-                cycle_length,
+                cls.config.CYCLE_LENGTH,
             )
 
         # TODO: to implement the RANDAO reveal validation.
-        self.validate_randao_reveal()
+        cls.validate_randao_reveal()
 
         for attestation in block.attestations:
             validate_attestation(
@@ -355,7 +358,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
                 recent_block_hashes,
                 attestation,
                 chaindb,
-                cycle_length,
+                cls.config.CYCLE_LENGTH,
                 is_validating_signatures=is_validating_signatures,
             )
 
@@ -366,38 +369,36 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             ),
         )
 
+    @classmethod
     def compute_cycle_transitions(
-            self,
+            cls,
             crystallized_state: CrystallizedState,
             active_state: ActiveState,
-            block: BaseBeaconBlock,
-            config: BeaconConfig) -> Tuple[CrystallizedState, ActiveState]:
+            block: BaseBeaconBlock) -> Tuple[CrystallizedState, ActiveState]:
         """
         Compute the cycle transitions and return processed CrystallizedState and ActiveState.
         """
-        while block.slot_number >= crystallized_state.last_state_recalc + config.CYCLE_LENGTH:
-            crystallized_state, active_state = self.compute_per_cycle_transition(
+        while block.slot_number >= crystallized_state.last_state_recalc + cls.config.CYCLE_LENGTH:
+            crystallized_state, active_state = cls.compute_per_cycle_transition(
                 crystallized_state,
                 active_state,
                 block,
-                config,
             )
 
-            if self.ready_for_dynasty_transition(crystallized_state, block, config):
-                crystallized_state = self.compute_dynasty_transition(
+            if cls.ready_for_dynasty_transition(crystallized_state, block):
+                crystallized_state = cls.compute_dynasty_transition(
                     crystallized_state,
                     block,
-                    config
                 )
 
         return crystallized_state, active_state
 
+    @classmethod
     def compute_per_cycle_transition(
-            self,
+            cls,
             crystallized_state: CrystallizedState,
             active_state: ActiveState,
-            block: BaseBeaconBlock,
-            config: BeaconConfig) -> Tuple[CrystallizedState, ActiveState]:
+            block: BaseBeaconBlock) -> Tuple[CrystallizedState, ActiveState]:
         """
         Initialize a new cycle.
         """
@@ -407,22 +408,22 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     #
     # Crosslinks
     #
-    def compute_crosslinks(self,
+    @classmethod
+    def compute_crosslinks(cls,
                            crystallized_state: CrystallizedState,
                            active_state: ActiveState,
-                           block: BaseBeaconBlock,
-                           config: BeaconConfig) -> Tuple['CrosslinkRecord', ...]:
+                           block: BaseBeaconBlock) -> Tuple['CrosslinkRecord', ...]:
         # TODO
         return ()
 
     #
     # Rewards and penalties
     #
-    def apply_rewards_and_penalties(self,
+    @classmethod
+    def apply_rewards_and_penalties(cls,
                                     crystallized_state: CrystallizedState,
                                     active_state: ActiveState,
-                                    block: BaseBeaconBlock,
-                                    config: BeaconConfig) -> Tuple['ValidatorRecord', ...]:
+                                    block: BaseBeaconBlock) -> Tuple['ValidatorRecord', ...]:
         """
         Apply the rewards and penalties to the validators and return the updated ValidatorRecords.
         """
@@ -432,20 +433,20 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     #
     # Dynasty
     #
-    def ready_for_dynasty_transition(self,
+    @classmethod
+    def ready_for_dynasty_transition(cls,
                                      crystallized_state: CrystallizedState,
-                                     block: BaseBeaconBlock,
-                                     config: BeaconConfig) -> bool:
+                                     block: BaseBeaconBlock) -> bool:
         """
         Check if it's ready for dynasty transition.
         """
         # TODO
         return False
 
-    def compute_dynasty_transition(self,
+    @classmethod
+    def compute_dynasty_transition(cls,
                                    crystallized_state: CrystallizedState,
-                                   block: BaseBeaconBlock,
-                                   config: BeaconConfig) -> CrystallizedState:
+                                   block: BaseBeaconBlock) -> CrystallizedState:
         """
         Compute the dynasty transition.
         """
@@ -457,24 +458,23 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     # Proposer APIs
     #
     #
+    @classmethod
     def propose_block(
-        self,
+        cls,
         crystallized_state: CrystallizedState,
         active_state: ActiveState,
         block_proposal: 'BlockProposal',
         chaindb: BaseBeaconChainDB,
-        config: BeaconConfig,
         private_key: int
     ) -> Tuple[BaseBeaconBlock, CrystallizedState, ActiveState, 'AttestationRecord']:
         """
         Propose the given block.
         """
-        block, post_crystallized_state, post_active_state = self.process_block(
+        block, post_crystallized_state, post_active_state = cls.process_block(
             crystallized_state,
             active_state,
             block_proposal.block,
             chaindb,
-            config,
             is_validating_signatures=False,
         )
 
@@ -489,28 +489,21 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             shard_block_hash=block_proposal.shard_block_hash,
         )
 
-        proposer_attestation = self.attest_proposed_block(
+        proposer_attestation = cls.attest_proposed_block(
             post_crystallized_state,
             post_active_state,
             filled_block_proposal,
             chaindb,
-            config.CYCLE_LENGTH,
             private_key,
         )
         return post_block, post_crystallized_state, post_active_state, proposer_attestation
 
-    def _update_the_states(self,
-                           crystallized_state: CrystallizedState,
-                           active_state: ActiveState) -> None:
-        self._crytallized_state = crystallized_state
-        self._active_state = active_state
-
-    def attest_proposed_block(self,
+    @classmethod
+    def attest_proposed_block(cls,
                               post_crystallized_state: CrystallizedState,
                               post_active_state: ActiveState,
                               block_proposal: 'BlockProposal',
                               chaindb: BaseBeaconChainDB,
-                              cycle_length: int,
                               private_key: int) -> 'AttestationRecord':
         """
         Return the initial attestation by the block proposer.
@@ -520,7 +513,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         block_committees_info = get_block_committees_info(
             block_proposal.block,
             post_crystallized_state,
-            cycle_length,
+            cls.config.CYCLE_LENGTH,
         )
         # Vote
         attester_bitfield = set_voted(
@@ -536,7 +529,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         parent_hashes = get_hashes_to_sign(
             post_active_state.recent_block_hashes,
             block_proposal.block,
-            cycle_length,
+            cls.config.CYCLE_LENGTH,
         )
 
         message = create_signing_message(
@@ -551,7 +544,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             private_key,
         )
 
-        return self.get_attestation_record_class()(
+        return cls.get_attestation_record_class()(
             slot=block_proposal.block.slot_number,
             shard_id=block_proposal.shard_id,
             oblique_parent_hashes=(),
