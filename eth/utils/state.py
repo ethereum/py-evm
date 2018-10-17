@@ -9,13 +9,14 @@ from eth_utils import (
     to_tuple,
 )
 
+from eth_typing import (
+Address,
+)
+
 from eth.db.account import (
     BaseAccountDB,
 )
 
-from eth.typing import (
-    Address,
-)
 
 # Mapping from address to account state.
 # 'balance', 'nonce' -> int
