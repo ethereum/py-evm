@@ -76,9 +76,10 @@ def get_highest_bit_index(value: int) -> int:
     value >>= 1
     for bit_length in itertools.count():
         if not value:
-            break
+            return bit_length
         value >>= 1
-    return bit_length
+
+    raise Exception("Invariant: unreachable code path")
 
 
 @curry

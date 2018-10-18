@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import rlp
 from typing import (
     Iterable,
+    Optional,
     Tuple,
-    Union,
 )
 
 from cytoolz import (
@@ -20,7 +20,7 @@ from eth.rlp.blocks import (
     BaseBlock,
 )
 
-DiffObjectType = Union[None, Iterable[Tuple[str, str, str]]]
+DiffObjectType = Optional[Iterable[Tuple[str, str, str]]]
 
 
 @to_tuple

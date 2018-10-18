@@ -1,7 +1,10 @@
 from typing import (
     Dict,
     TYPE_CHECKING,
-    Union,
+)
+
+from mypy_extensions import (
+    TypedDict,
 )
 
 from eth.db.account import (
@@ -23,7 +26,13 @@ if TYPE_CHECKING:
 # 'balance', 'nonce' -> int
 # 'code' -> bytes
 # 'storage' -> Dict[int, int]
-AccountState = Dict[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]
+AccountDetails = TypedDict('AccountDetails',
+                           {'balance': int,
+                            'nonce': int,
+                            'code': bytes,
+                            'storage': Dict[int, int]
+                            })
+AccountState = Dict[Address, AccountDetails]
 
 
 def get_parent_header(block_header: BlockHeader, db: 'BaseChainDB') -> BlockHeader:
@@ -43,16 +52,10 @@ def get_block_header_by_hash(block_hash: BlockHeader, db: 'BaseChainDB') -> Bloc
 def apply_state_dict(account_db: BaseAccountDB, state_dict: AccountState) -> BaseAccountDB:
 
     for account, account_data in state_dict.items():
-        assert isinstance(account_data["balance"], int)
         account_db.set_balance(account, account_data["balance"])
-
-        assert isinstance(account_data["nonce"], int)
         account_db.set_nonce(account, account_data["nonce"])
-
-        assert isinstance(account_data["code"], bytes)
         account_db.set_code(account, account_data["code"])
 
-        assert isinstance(account_data["storage"], dict)
         for slot, value in account_data["storage"].items():
             account_db.set_storage(account, slot, value)
 

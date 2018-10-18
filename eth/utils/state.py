@@ -5,6 +5,10 @@ from typing import (
     Union,
 )
 
+from mypy_extensions import (
+    TypedDict,
+)
+
 from eth_utils import (
     to_tuple,
 )
@@ -22,7 +26,13 @@ from eth.db.account import (
 # 'balance', 'nonce' -> int
 # 'code' -> bytes
 # 'storage' -> Dict[int, int]
-AccountState = Dict[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]
+AccountDetails = TypedDict('AccountDetails',
+                           {'balance': int,
+                            'nonce': int,
+                            'code': bytes,
+                            'storage': Dict[int, int]
+                            })
+AccountState = Dict[Address, AccountDetails]
 
 DiffType = Iterable[Tuple[Address, str, Union[int, bytes], Union[int, bytes]]]
 
@@ -32,13 +42,8 @@ def diff_account_db(expected_state: AccountState,
                     account_db: BaseAccountDB) -> DiffType:
 
     for account, account_data in sorted(expected_state.items()):
-        assert isinstance(account_data['balance'], int)
         expected_balance = account_data['balance']
-
-        assert isinstance(account_data['nonce'], int)
         expected_nonce = account_data['nonce']
-
-        assert isinstance(account_data['code'], bytes)
         expected_code = account_data['code']
 
         actual_nonce = account_db.get_nonce(account)
@@ -52,7 +57,6 @@ def diff_account_db(expected_state: AccountState,
         if actual_balance != expected_balance:
             yield (account, 'balance', actual_balance, expected_balance)
 
-        assert isinstance(account_data['storage'], dict)
         for slot, expected_storage_value in sorted(account_data['storage'].items()):
             actual_storage_value = account_db.get_storage(account, slot)
             if actual_storage_value != expected_storage_value:

@@ -1,6 +1,6 @@
 from typing import (  # noqa: F401
     Dict,
-    List,
+    Iterable,
     Tuple,
 )
 
@@ -120,14 +120,14 @@ def verify(m: bytes, pub: int, sig: Tuple[int, int]) -> bool:
     return final_exponentiation == FQ12.one()
 
 
-def aggregate_sigs(sigs: List[Tuple[int, int]]) -> Tuple[int, int]:
+def aggregate_sigs(sigs: Iterable[Tuple[int, int]]) -> Tuple[int, int]:
     o = Z2
     for s in sigs:
         o = add(o, decompress_G2(s))
     return compress_G2(o)
 
 
-def aggregate_pubs(pubs: List[int]) -> int:
+def aggregate_pubs(pubs: Iterable[int]) -> int:
     o = Z1
     for p in pubs:
         o = add(o, decompress_G1(p))
