@@ -56,12 +56,18 @@ from eth.beacon.db.schema import SchemaV1
 class BaseBeaconChainDB(ABC):
     db = None  # type: BaseAtomicDB
 
+    @abstractmethod
+    def __init__(self, db: BaseAtomicDB) -> None:
+        pass
+
     #
     # Block API
     #
     @abstractmethod
-    def persist_block(self,
-                      block: BaseBeaconBlock) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+    def persist_block(
+            self,
+            block: BaseBeaconBlock
+    ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         pass
 
     @abstractmethod
@@ -94,8 +100,8 @@ class BaseBeaconChainDB(ABC):
 
     @abstractmethod
     def persist_block_chain(
-        self,
-        blocks: Iterable[BaseBeaconBlock]
+            self,
+            blocks: Iterable[BaseBeaconBlock]
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         pass
 
@@ -148,8 +154,10 @@ class BeaconChainDB(BaseBeaconChainDB):
     def __init__(self, db: BaseAtomicDB) -> None:
         self.db = db
 
-    def persist_block(self,
-                      block: BaseBeaconBlock) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+    def persist_block(
+            self,
+            block: BaseBeaconBlock
+    ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         """
         Persist the given block.
         """
@@ -160,11 +168,11 @@ class BeaconChainDB(BaseBeaconChainDB):
     def _persist_block(
             cls,
             db: 'BaseDB',
-            block: BaseBeaconBlock) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+            block: BaseBeaconBlock
+    ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         block_chain = (block, )
-        new_canonical_blocks, old_canonical_blocks = cls._persist_block_chain(db, block_chain)
 
-        return new_canonical_blocks, old_canonical_blocks
+        return cls._persist_block_chain(db, block_chain)
 
     #
     #
