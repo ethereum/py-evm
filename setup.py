@@ -46,7 +46,7 @@ deps = {
         "web3==4.4.1",
         "lahja==0.9.0",
         "termcolor>=1.1.0,<2.0.0",
-        "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin'",
+        "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",
         "websockets==5.0.1",
     ],
     'test': [
