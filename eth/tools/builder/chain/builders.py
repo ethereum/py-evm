@@ -1,11 +1,30 @@
 import functools
 import time
-from typing import TYPE_CHECKING
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+    Union,
+)
 
 from cytoolz import (
     curry,
     merge,
     pipe,
+)
+
+from mypy_extensions import (
+    TypedDict,
+)
+
+from eth_typing import (
+    Address,
+    BlockNumber,
 )
 
 from eth_utils import (
@@ -19,10 +38,19 @@ from eth.chains.base import (
     BaseChain,
     MiningChain,
 )
-from eth.db.backends.memory import MemoryDB
 from eth.db.atomic import AtomicDB
-from eth.validation import (
-    validate_vm_configuration,
+from eth.db.backends.base import (
+    BaseAtomicDB,
+)
+from eth.db.backends.memory import (
+    MemoryDB,
+)
+from eth.rlp.blocks import (
+    BaseBlock,
+)
+from eth.rlp.headers import (
+    BlockHeader,
+    HeaderParams,
 )
 from eth.tools.mining import POWMiningMixin
 from eth.tools._utils.mappings import (
@@ -30,6 +58,11 @@ from eth.tools._utils.mappings import (
 )
 from eth.tools._utils.normalization import (
     normalize_state,
+from eth.validation import (
+    validate_vm_configuration,
+)
+from eth.vm.base import (
+    BaseVM,
 )
 from eth.vm.forks import (
     FrontierVM,
@@ -44,7 +77,24 @@ if TYPE_CHECKING:
     from typing import Dict, Union  # noqa: F401
 
 
-def build(obj, *applicators):
+VMConfigurationType = Iterable[Tuple[int, Type[BaseVM]]]
+
+
+# Mapping from address to account state.
+# 'balance', 'nonce' -> int
+# 'code' -> bytes
+# 'storage' -> Dict[int, int]
+AccountDetails = TypedDict('AccountDetails',
+                           {'balance': int,
+                            'nonce': int,
+                            'code': bytes,
+                            'storage': Dict[int, int]
+                            })
+AccountState = Dict[Address, AccountDetails]
+GeneralStateType = Union[AccountState, List[Tuple[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]]]  # noqa: E501
+
+
+def build(obj: Any, *applicators: Callable[..., Any]) -> Any:
     """
     Run the provided object through the series of applicator functions.
 
@@ -62,7 +112,7 @@ def build(obj, *applicators):
 # Constructors (creation of chain classes)
 #
 @curry
-def name(class_name, chain_class):
+def name(class_name: str, chain_class: BaseChain) -> type:
     """
     Assign the given name to the chain class.
     """
@@ -70,7 +120,7 @@ def name(class_name, chain_class):
 
 
 @curry
-def chain_id(chain_id, chain_class):
+def chain_id(chain_id: int, chain_class: BaseChain) -> type:
     """
     Set the ``chain_id`` for the chain class.
     """
@@ -78,7 +128,7 @@ def chain_id(chain_id, chain_class):
 
 
 @curry
-def fork_at(vm_class, at_block, chain_class):
+def fork_at(vm_class: Type[BaseVM], at_block: int, chain_class: BaseChain) -> type:
     """
     Adds the ``vm_class`` to the chain's ``vm_configuration``.
 
@@ -117,7 +167,7 @@ def fork_at(vm_class, at_block, chain_class):
     return chain_class.configure(vm_configuration=vm_configuration)
 
 
-def _is_homestead(vm_class):
+def _is_homestead(vm_class: Type[BaseVM]) -> bool:
     if not issubclass(vm_class, HomesteadVM):
         # It isn't a subclass of the HomesteadVM
         return False
@@ -129,7 +179,7 @@ def _is_homestead(vm_class):
 
 
 @to_tuple
-def _set_vm_dao_support_false(vm_configuration):
+def _set_vm_dao_support_false(vm_configuration: VMConfigurationType) -> VMConfigurationType:
     for fork_block, vm_class in vm_configuration:
         if _is_homestead(vm_class):
             yield fork_block, vm_class.configure(support_dao_fork=False)
@@ -138,7 +188,7 @@ def _set_vm_dao_support_false(vm_configuration):
 
 
 @curry
-def disable_dao_fork(chain_class):
+def disable_dao_fork(chain_class: BaseChain) -> type:
     """
     Set the ``support_dao_fork`` flag to ``False`` on the
     :class:`~eth.vm.forks.homestead.HomesteadVM`.  Requires that presence of
@@ -156,7 +206,8 @@ def disable_dao_fork(chain_class):
 
 
 @to_tuple
-def _set_vm_dao_fork_block_number(dao_fork_block_number, vm_configuration):
+def _set_vm_dao_fork_block_number(dao_fork_block_number: int,
+                                  vm_configuration: VMConfigurationType) -> VMConfigurationType:
     for fork_block, vm_class in vm_configuration:
         if _is_homestead(vm_class):
             yield fork_block, vm_class.configure(
@@ -168,7 +219,7 @@ def _set_vm_dao_fork_block_number(dao_fork_block_number, vm_configuration):
 
 
 @curry
-def dao_fork_at(dao_fork_block_number, chain_class):
+def dao_fork_at(dao_fork_block_number: int, chain_class: BaseChain) -> type:
     """
     Set the block number on which the DAO fork will happen.  Requires that a
     version of the :class:`~eth.vm.forks.homestead.HomesteadVM` is present in
@@ -214,7 +265,7 @@ GENESIS_DEFAULTS = (
 
 
 @to_dict
-def _get_default_genesis_params(genesis_state):
+def _get_default_genesis_params(genesis_state: AccountState) -> Iterable[Tuple[str, object]]:
     for key, value in GENESIS_DEFAULTS:
         if key == 'state_root' and genesis_state:
             # leave out the `state_root` if a genesis state was specified
@@ -225,14 +276,14 @@ def _get_default_genesis_params(genesis_state):
 
 
 @to_tuple
-def _mix_in_pow_mining(vm_configuration):
+def _mix_in_pow_mining(vm_configuration: VMConfigurationType) -> VMConfigurationType:
     for fork_block, vm_class in vm_configuration:
         vm_class_with_pow_mining = type(vm_class.__name__, (POWMiningMixin, vm_class), {})
         yield fork_block, vm_class_with_pow_mining
 
 
 @curry
-def enable_pow_mining(chain_class):
+def enable_pow_mining(chain_class: BaseChain) -> type:
     """
     Inject on demand generation of the proof of work mining seal on newly
     mined blocks into each of the chain's vms.
@@ -246,18 +297,18 @@ def enable_pow_mining(chain_class):
 
 class NoChainSealValidationMixin:
     @classmethod
-    def validate_seal(cls, block):
+    def validate_seal(cls, block: BaseBlock) -> None:
         pass
 
 
 class NoVMSealValidationMixin:
     @classmethod
-    def validate_seal(cls, header):
+    def validate_seal(cls, header: BlockHeader) -> None:
         pass
 
 
 @to_tuple
-def _mix_in_disable_seal_validation(vm_configuration):
+def _mix_in_disable_seal_validation(vm_configuration: VMConfigurationType) -> VMConfigurationType:
     for fork_block, vm_class in vm_configuration:
         vm_class_without_seal_validation = type(
             vm_class.__name__,
@@ -268,7 +319,7 @@ def _mix_in_disable_seal_validation(vm_configuration):
 
 
 @curry
-def disable_pow_check(chain_class):
+def disable_pow_check(chain_class: Type[BaseChain]) -> type:
     """
     Disable the proof of work validation check for each of the chain's vms.
     This allows for block mining without generation of the proof of work seal.
@@ -296,7 +347,7 @@ def disable_pow_check(chain_class):
 #
 # Initializers (initialization of chain state and chain class instantiation)
 #
-def _fill_and_normalize_state(simple_state):
+def _fill_and_normalize_state(simple_state: GeneralStateType) -> AccountState:
     base_state = normalize_state(simple_state)
     defaults = {address: {
         "balance": 0,
@@ -309,13 +360,16 @@ def _fill_and_normalize_state(simple_state):
 
 
 @curry
-def genesis(chain_class, db=None, params=None, state=None):
+def genesis(chain_class: BaseChain,
+            db: BaseAtomicDB=None,
+            params: Dict[str, HeaderParams]=None,
+            state: GeneralStateType=None) -> BaseChain:
     """
     Initialize the given chain class with the given genesis header parameters
     and chain state.
     """
     if state is None:
-        genesis_state = {}  # type: Dict[str, Union[int, bytes, Dict[int, int]]]
+        genesis_state = {}  # type: AccountState
     else:
         genesis_state = _fill_and_normalize_state(state)
 
@@ -327,7 +381,7 @@ def genesis(chain_class, db=None, params=None, state=None):
         genesis_params = merge(genesis_params_defaults, params)
 
     if db is None:
-        base_db = AtomicDB()
+        base_db = AtomicDB()  # type: BaseAtomicDB
     else:
         base_db = db
 
@@ -338,7 +392,7 @@ def genesis(chain_class, db=None, params=None, state=None):
 # Builders (build actual block chain)
 #
 @curry
-def mine_block(chain, **kwargs):
+def mine_block(chain: MiningChain, **kwargs: Any) -> MiningChain:
     """
     Mine a new block on the chain.  Header parameters for the new block can be
     overridden using keyword arguments.
@@ -351,7 +405,7 @@ def mine_block(chain, **kwargs):
 
 
 @curry
-def mine_blocks(num_blocks, chain):
+def mine_blocks(num_blocks: int, chain: MiningChain) -> MiningChain:
     """
     Variadic argument version of :func:`~eth.tools.builder.chain.mine_block`
     """
@@ -363,7 +417,7 @@ def mine_blocks(num_blocks, chain):
 
 
 @curry
-def import_block(block, chain):
+def import_block(block: BaseBlock, chain: BaseChain) -> BaseChain:
     """
     Import the provided ``block`` into the chain.
     """
@@ -371,20 +425,21 @@ def import_block(block, chain):
     return chain
 
 
-def import_blocks(*blocks):
+def import_blocks(*blocks: BaseBlock) -> Callable[[BaseChain], BaseChain]:
     """
     Variadic argument version of :func:`~eth.tools.builder.chain.import_block`
     """
     @functools.wraps(import_blocks)
-    def _import_blocks(chain):
+    def _import_blocks(chain: BaseChain) -> BaseChain:
         for block in blocks:
             chain.import_block(block)
         return chain
+
     return _import_blocks
 
 
 @curry
-def copy(chain):
+def copy(chain: MiningChain) -> MiningChain:
     """
     Make a copy of the chain at the given state.  Actions performed on the
     resulting chain will not affect the original chain.
@@ -404,14 +459,14 @@ def copy(chain):
     return chain_copy
 
 
-def chain_split(*splits):
+def chain_split(*splits: Iterable[Callable[..., Any]]) -> Callable[[BaseChain], Iterable[BaseChain]]:   # noqa: E501
     """
     Construct and execute multiple concurrent forks of the chain.
 
     Any number of forks may be executed.  For each fork, provide an iterable of
     commands.
 
-    Returns the resulting chian objects for each fork.
+    Returns the resulting chain objects for each fork.
 
 
     .. code-block:: python
@@ -429,7 +484,7 @@ def chain_split(*splits):
 
     @functools.wraps(chain_split)
     @to_tuple
-    def _chain_split(chain):
+    def _chain_split(chain: BaseChain) -> Iterable[BaseChain]:
         for split_fns in splits:
             result = build(
                 chain,
@@ -441,7 +496,7 @@ def chain_split(*splits):
 
 
 @curry
-def at_block_number(block_number, chain):
+def at_block_number(block_number: BlockNumber, chain: MiningChain) -> MiningChain:
     """
     Rewind the chain back to the given block number.  Calls to things like
     ``get_canonical_head`` will still return the canonical head of the chain,

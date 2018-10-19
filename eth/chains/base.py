@@ -23,6 +23,10 @@ from typing import (  # noqa: F401
 
 import logging
 
+from mypy_extensions import (
+    TypedDict,
+)
+
 from eth_typing import (
     Address,
     BlockNumber,
@@ -109,7 +113,13 @@ if TYPE_CHECKING:
 # 'balance', 'nonce' -> int
 # 'code' -> bytes
 # 'storage' -> Dict[int, int]
-AccountState = Dict[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]
+AccountDetails = TypedDict('AccountDetails',
+                           {'balance': int,
+                            'nonce': int,
+                            'code': bytes,
+                            'storage': Dict[int, int]
+                            })
+AccountState = Dict[Address, AccountDetails]
 
 
 class BaseChain(Configurable, ABC):

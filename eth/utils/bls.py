@@ -90,7 +90,7 @@ def compress_G2(pt: Tuple[FQ2, FQ2, FQ2]) -> Tuple[int, int]:
     return (x.coeffs[0] + 2**255 * (y.coeffs[0] % 2), x.coeffs[1])
 
 
-def decompress_G2(p: Tuple[int, int]) -> Tuple[FQ2, FQ2, FQ2]:
+def decompress_G2(p: bytes) -> Tuple[FQ2, FQ2, FQ2]:
     x1 = p[0] % 2**255
     y1_mod_2 = p[0] // 2**255
     x2 = p[1]
@@ -112,7 +112,7 @@ def privtopub(k: int) -> int:
     return compress_G1(multiply(G1, k))
 
 
-def verify(m: bytes, pub: int, sig: Tuple[int, int]) -> bool:
+def verify(m: bytes, pub: int, sig: bytes) -> bool:
     final_exponentiation = final_exponentiate(
         pairing(decompress_G2(sig), G1, False) *
         pairing(hash_to_G2(m), neg(decompress_G1(pub)), False)
@@ -120,7 +120,7 @@ def verify(m: bytes, pub: int, sig: Tuple[int, int]) -> bool:
     return final_exponentiation == FQ12.one()
 
 
-def aggregate_sigs(sigs: Iterable[Tuple[int, int]]) -> Tuple[int, int]:
+def aggregate_sigs(sigs: Iterable[bytes]) -> Tuple[int, int]:
     o = Z2
     for s in sigs:
         o = add(o, decompress_G2(s))
