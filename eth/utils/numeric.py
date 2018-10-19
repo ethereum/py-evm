@@ -1,8 +1,14 @@
 import functools
 import itertools
+from typing import (
+    Union,
+)
 
 from cytoolz import (
     curry,
+)
+from eth_typing import (
+    Hash32,
 )
 
 from eth.constants import (
@@ -12,7 +18,7 @@ from eth.constants import (
 )
 
 
-def int_to_bytes32(value):
+def int_to_bytes32(value: Union[int, bool]) -> Hash32:
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(
             "Value must be an integer: Got: {0}".format(
@@ -32,7 +38,7 @@ def int_to_bytes32(value):
             )
         )
     value_bytes = value.to_bytes(32, 'big')
-    return value_bytes
+    return Hash32(value_bytes)
 
 
 def ceilXX(value: int, ceiling: int) -> int:
@@ -47,14 +53,14 @@ ceil32 = functools.partial(ceilXX, ceiling=32)
 ceil8 = functools.partial(ceilXX, ceiling=8)
 
 
-def unsigned_to_signed(value):
+def unsigned_to_signed(value: int) -> int:
     if value <= UINT_255_MAX:
         return value
     else:
         return value - UINT_256_CEILING
 
 
-def signed_to_unsigned(value):
+def signed_to_unsigned(value: int) -> int:
     if value < 0:
         return value + UINT_256_CEILING
     else:
@@ -69,12 +75,14 @@ def is_odd(value: int) -> bool:
     return value % 2 == 1
 
 
-def get_highest_bit_index(value):
+def get_highest_bit_index(value: int) -> int:
     value >>= 1
     for bit_length in itertools.count():
         if not value:
             return bit_length
         value >>= 1
+
+    raise Exception("Invariant: unreachable code path")
 
 
 @curry

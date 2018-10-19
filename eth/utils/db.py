@@ -1,6 +1,17 @@
-from eth.rlp.headers import BlockHeader
+from typing import (
+    TYPE_CHECKING,
+)
 
-from typing import TYPE_CHECKING
+from eth.db.account import (
+    BaseAccountDB,
+)
+
+from eth.rlp.headers import (
+    BlockHeader,
+)
+from eth.typing import (
+    AccountState,
+)
 
 if TYPE_CHECKING:
     from eth.db.chain import BaseChainDB  # noqa: F401
@@ -20,7 +31,8 @@ def get_block_header_by_hash(block_hash: BlockHeader, db: 'BaseChainDB') -> Bloc
     return db.get_block_header_by_hash(block_hash)
 
 
-def apply_state_dict(account_db, state_dict):
+def apply_state_dict(account_db: BaseAccountDB, state_dict: AccountState) -> BaseAccountDB:
+
     for account, account_data in state_dict.items():
         account_db.set_balance(account, account_data["balance"])
         account_db.set_nonce(account, account_data["nonce"])

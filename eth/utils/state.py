@@ -2,13 +2,23 @@ from eth_utils import (
     to_tuple,
 )
 
+from eth.db.account import (
+    BaseAccountDB,
+)
+from eth.typing import (
+    AccountDiff,
+    AccountState,
+)
+
 
 @to_tuple
-def diff_account_db(expected_state, account_db):
+def diff_account_db(expected_state: AccountState,
+                    account_db: BaseAccountDB) -> AccountDiff:
+
     for account, account_data in sorted(expected_state.items()):
+        expected_balance = account_data['balance']
         expected_nonce = account_data['nonce']
         expected_code = account_data['code']
-        expected_balance = account_data['balance']
 
         actual_nonce = account_db.get_nonce(account)
         actual_code = account_db.get_code(account)

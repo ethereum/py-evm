@@ -24,7 +24,6 @@ from typing import (  # noqa: F401
 import logging
 
 from eth_typing import (
-    Address,
     BlockNumber,
     Hash32,
 )
@@ -104,16 +103,12 @@ from eth.utils.hexadecimal import (
 from eth.utils.rlp import (
     validate_imported_block_unchanged,
 )
+from eth.typing import (
+    AccountState,
+)
 
 if TYPE_CHECKING:
     from eth.vm.base import BaseVM  # noqa: F401
-
-
-# Mapping from address to account state.
-# 'balance', 'nonce' -> int
-# 'code' -> bytes
-# 'storage' -> Dict[int, int]
-AccountState = Dict[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]
 
 
 class BaseChain(Configurable, ABC):
