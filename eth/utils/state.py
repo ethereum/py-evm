@@ -1,18 +1,3 @@
-from typing import (
-    Dict,
-    Iterable,
-    Tuple,
-    Union,
-)
-
-from mypy_extensions import (
-    TypedDict,
-)
-
-from eth_typing import (
-    Address,
-)
-
 from eth_utils import (
     to_tuple,
 )
@@ -20,20 +5,10 @@ from eth_utils import (
 from eth.db.account import (
     BaseAccountDB,
 )
-
-
-# 'balance', 'nonce' -> int
-# 'code' -> bytes
-# 'storage' -> Dict[int, int]
-AccountDetails = TypedDict('AccountDetails',
-                           {'balance': int,
-                            'nonce': int,
-                            'code': bytes,
-                            'storage': Dict[int, int]
-                            })
-AccountState = Dict[Address, AccountDetails]
-
-AccountDiff = Iterable[Tuple[Address, str, Union[int, bytes], Union[int, bytes]]]
+from eth.typing import (
+    AccountDiff,
+    AccountState,
+)
 
 
 @to_tuple

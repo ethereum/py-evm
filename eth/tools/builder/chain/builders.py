@@ -5,10 +5,8 @@ from typing import (
     Callable,
     Dict,
     Iterable,
-    List,
     Tuple,
     Type,
-    Union,
 )
 
 from cytoolz import (
@@ -17,12 +15,7 @@ from cytoolz import (
     pipe,
 )
 
-from mypy_extensions import (
-    TypedDict,
-)
-
 from eth_typing import (
-    Address,
     BlockNumber,
 )
 
@@ -58,6 +51,10 @@ from eth.tools._utils.mappings import (
 from eth.tools._utils.normalization import (
     normalize_state,
 )
+from eth.typing import (
+    AccountState,
+    GeneralState,
+)
 from eth.validation import (
     validate_vm_configuration,
 )
@@ -75,19 +72,6 @@ from eth.vm.forks import (
 
 
 VMConfigurationType = Iterable[Tuple[int, Type[BaseVM]]]
-
-
-# 'balance', 'nonce' -> int
-# 'code' -> bytes
-# 'storage' -> Dict[int, int]
-AccountDetails = TypedDict('AccountDetails',
-                           {'balance': int,
-                            'nonce': int,
-                            'code': bytes,
-                            'storage': Dict[int, int]
-                            })
-AccountState = Dict[Address, AccountDetails]
-GeneralStateType = Union[AccountState, List[Tuple[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]]]  # noqa: E501
 
 
 def build(obj: Any, *applicators: Callable[..., Any]) -> Any:
@@ -343,7 +327,7 @@ def disable_pow_check(chain_class: Type[BaseChain]) -> type:
 #
 # Initializers (initialization of chain state and chain class instantiation)
 #
-def _fill_and_normalize_state(simple_state: GeneralStateType) -> AccountState:
+def _fill_and_normalize_state(simple_state: GeneralState) -> AccountState:
     base_state = normalize_state(simple_state)
     defaults = {address: {
         "balance": 0,
@@ -359,7 +343,7 @@ def _fill_and_normalize_state(simple_state: GeneralStateType) -> AccountState:
 def genesis(chain_class: BaseChain,
             db: BaseAtomicDB=None,
             params: Dict[str, HeaderParams]=None,
-            state: GeneralStateType=None) -> BaseChain:
+            state: GeneralState=None) -> BaseChain:
     """
     Initialize the given chain class with the given genesis header parameters
     and chain state.
