@@ -77,7 +77,6 @@ from eth.vm.forks import (
 VMConfigurationType = Iterable[Tuple[int, Type[BaseVM]]]
 
 
-# Mapping from address to account state.
 # 'balance', 'nonce' -> int
 # 'code' -> bytes
 # 'storage' -> Dict[int, int]

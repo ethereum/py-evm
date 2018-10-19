@@ -9,12 +9,12 @@ from mypy_extensions import (
     TypedDict,
 )
 
-from eth_utils import (
-    to_tuple,
-)
-
 from eth_typing import (
     Address,
+)
+
+from eth_utils import (
+    to_tuple,
 )
 
 from eth.db.account import (
@@ -22,7 +22,6 @@ from eth.db.account import (
 )
 
 
-# Mapping from address to account state.
 # 'balance', 'nonce' -> int
 # 'code' -> bytes
 # 'storage' -> Dict[int, int]
@@ -34,12 +33,12 @@ AccountDetails = TypedDict('AccountDetails',
                             })
 AccountState = Dict[Address, AccountDetails]
 
-DiffType = Iterable[Tuple[Address, str, Union[int, bytes], Union[int, bytes]]]
+AccountDiff = Iterable[Tuple[Address, str, Union[int, bytes], Union[int, bytes]]]
 
 
 @to_tuple
 def diff_account_db(expected_state: AccountState,
-                    account_db: BaseAccountDB) -> DiffType:
+                    account_db: BaseAccountDB) -> AccountDiff:
 
     for account, account_data in sorted(expected_state.items()):
         expected_balance = account_data['balance']

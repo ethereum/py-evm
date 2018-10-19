@@ -109,7 +109,6 @@ if TYPE_CHECKING:
     from eth.vm.base import BaseVM  # noqa: F401
 
 
-# Mapping from address to account state.
 # 'balance', 'nonce' -> int
 # 'code' -> bytes
 # 'storage' -> Dict[int, int]

@@ -22,7 +22,6 @@ from eth_typing import (
 if TYPE_CHECKING:
     from eth.db.chain import BaseChainDB  # noqa: F401
 
-# Mapping from address to account state.
 # 'balance', 'nonce' -> int
 # 'code' -> bytes
 # 'storage' -> Dict[int, int]

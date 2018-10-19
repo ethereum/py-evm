@@ -20,11 +20,10 @@ from eth.rlp.blocks import (
     BaseBlock,
 )
 
-DiffObjectType = Optional[Iterable[Tuple[str, str, str]]]
-
 
 @to_tuple
-def diff_rlp_object(left: BaseBlock, right: BaseBlock) -> DiffObjectType:
+def diff_rlp_object(left: BaseBlock,
+                    right: BaseBlock) -> Optional[Iterable[Tuple[str, str, str]]]:
     if left != right:
         rlp_type = type(left)
 
