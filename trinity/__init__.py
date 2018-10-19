@@ -13,7 +13,7 @@ except pkg_resources.DistributionNotFound:
 # This is to ensure we call setup_trace_logging() before anything else.
 import eth as _eth_module  # noqa: F401
 
-if sys.platform in {'darwin', 'linux'}:
+if sys.platform in {'darwin', 'linux'} or 'freebsd' in sys.platform:
     # Set `uvloop` as the default event loop
     import asyncio  # noqa: E402
     import uvloop  # noqa: E402
