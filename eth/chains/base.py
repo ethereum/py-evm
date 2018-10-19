@@ -29,10 +29,14 @@ from eth_typing import (
     Hash32,
 )
 
-from eth_utils import (
-    to_set,
-    ValidationError,
-)
+# TODO: drop "warnings" wrapper once issue is resolved in underlying modules
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', category=ImportWarning)
+    from eth_utils import (
+        to_set,
+        ValidationError,
+    )
 from eth_utils.toolz import (
     assoc,
     compose,

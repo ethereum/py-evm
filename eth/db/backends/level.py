@@ -17,8 +17,12 @@ from .base import (
     BaseDB,
 )
 
+import warnings
 if TYPE_CHECKING:
-    import plyvel  # noqa: F401
+    # TODO: drop "warnings" wrapper once issue is resolved in underlying modules
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', category=ImportWarning)
+        import plyvel  # noqa: F401
 
 
 class LevelDB(BaseAtomicDB):
@@ -29,7 +33,10 @@ class LevelDB(BaseAtomicDB):
         if not db_path:
             raise TypeError("Please specifiy a valid path for your database.")
         try:
-            import plyvel  # noqa: F811
+            # TODO: drop "warnings" wrapper once issue is resolved in underlying modules
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', category=ImportWarning)
+                import plyvel  # noqa: F811
         except ImportError:
             raise ImportError(
                 "LevelDB requires the plyvel library which is not available for import."

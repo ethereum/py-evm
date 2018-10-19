@@ -18,7 +18,12 @@ from p2p.exceptions import (
 )
 import netifaces
 from p2p.service import BaseService
-import upnpclient
+
+# TODO: drop "warnings" wrapper once issue is resolved in underlying modules
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore', category=ImportWarning)
+    import upnpclient
 
 
 # UPnP discovery can take a long time, so use a loooong timeout here.
