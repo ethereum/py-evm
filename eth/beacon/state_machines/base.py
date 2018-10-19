@@ -96,13 +96,13 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         self.chaindb = chaindb
         if block is None:
             # Build a child block of current head
-            head_block = self.chaindb.get_canonical_head()
-            self.block = self.get_block_class()(*head_block).copy(
-                slot_number=head_block.slot_number + 1,
-                parent_hash=head_block.hash,
+            block = self.chaindb.get_canonical_head()
+            self.block = self.get_block_class()(**block.as_dict()).copy(
+                slot_number=block.slot_number + 1,
+                parent_hash=block.hash,
             )
         else:
-            self.block = self.get_block_class()(*block)
+            self.block = self.get_block_class()(**block.as_dict())
 
     #
     # Logging

@@ -15,10 +15,10 @@ def test_state_machine_canonical(initial_chaindb,
                                  genesis_active_state):
     chaindb = initial_chaindb
     sm = SerenityStateMachine(chaindb)
-    assert sm.block == genesis_block.copy(
+    assert sm.block.hash == genesis_block.copy(
         slot_number=genesis_block.slot_number + 1,
         parent_hash=genesis_block.hash
-    )
+    ).hash
     assert sm.crystallized_state == genesis_crystallized_state
     assert sm.active_state == genesis_active_state
 
@@ -49,6 +49,8 @@ def test_state_machine(initial_chaindb,
         slot_number=3,
         active_state_root=b'\x33' * 32,
     )
+    # canonical head is block_3
+    chaindb.persist_block(block_3)
 
     sm = SerenityStateMachine(chaindb, block_3)
 
