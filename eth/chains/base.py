@@ -24,7 +24,6 @@ from typing import (  # noqa: F401
 import logging
 
 from eth_typing import (
-    Address,
     BlockNumber,
     Hash32,
 )
@@ -39,9 +38,6 @@ from eth_utils.toolz import (
     groupby,
     iterate,
     take,
-)
-from mypy_extensions import (
-    TypedDict,
 )
 
 from eth.db.backends.base import BaseAtomicDB
@@ -103,18 +99,12 @@ from eth.utils.hexadecimal import (
 from eth.utils.rlp import (
     validate_imported_block_unchanged,
 )
+from eth.typing import (
+    AccountState,
+)
 
 if TYPE_CHECKING:
     from eth.vm.base import BaseVM  # noqa: F401
-
-
-AccountDetails = TypedDict('AccountDetails',
-                           {'balance': int,
-                            'nonce': int,
-                            'code': bytes,
-                            'storage': Dict[int, int]
-                            })
-AccountState = Dict[Address, AccountDetails]
 
 
 class BaseChain(Configurable, ABC):

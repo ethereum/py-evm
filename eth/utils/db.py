@@ -1,10 +1,5 @@
 from typing import (
-    Dict,
     TYPE_CHECKING,
-)
-
-from mypy_extensions import (
-    TypedDict,
 )
 
 from eth.db.account import (
@@ -14,24 +9,12 @@ from eth.db.account import (
 from eth.rlp.headers import (
     BlockHeader,
 )
-
-from eth_typing import (
-    Address,
+from eth.typing import (
+    AccountState,
 )
 
 if TYPE_CHECKING:
     from eth.db.chain import BaseChainDB  # noqa: F401
-
-# 'balance', 'nonce' -> int
-# 'code' -> bytes
-# 'storage' -> Dict[int, int]
-AccountDetails = TypedDict('AccountDetails',
-                           {'balance': int,
-                            'nonce': int,
-                            'code': bytes,
-                            'storage': Dict[int, int]
-                            })
-AccountState = Dict[Address, AccountDetails]
 
 
 def get_parent_header(block_header: BlockHeader, db: 'BaseChainDB') -> BlockHeader:
