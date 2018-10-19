@@ -1,6 +1,7 @@
 import os
 from typing import (
     Callable,
+    cast,
 )
 
 from eth.rlp.transactions import (
@@ -19,4 +20,4 @@ def get_gas_estimator() -> Callable[[BaseState, BaseTransaction], int]:
         'GAS_ESTIMATOR_BACKEND_FUNC',
         'eth.estimators.gas.binary_gas_search_intrinsic_tolerance',
     )
-    return import_string(import_path)
+    return cast(Callable[[BaseState, BaseTransaction], int], import_string(import_path))

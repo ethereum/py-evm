@@ -1,13 +1,15 @@
 import operator
 from importlib import import_module
 
+from types import (
+    ModuleType,
+)
 from typing import (
-    Any,
     Tuple,
 )
 
 
-def import_string(dotted_path: str) -> Any:
+def import_string(dotted_path: str) -> ModuleType:
     """
     Source: django.utils.module_loading
     Import a dotted module path and return the attribute/class designated by the

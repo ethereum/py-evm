@@ -1,6 +1,7 @@
 import os
 from typing import (
     Any,
+    cast,
     Type
 )
 
@@ -20,7 +21,7 @@ def get_db_backend_class(import_path: str = None) -> Type[BaseAtomicDB]:
             'CHAIN_DB_BACKEND_CLASS',
             DEFAULT_DB_BACKEND,
         )
-    return import_string(import_path)
+    return cast(Type[BaseAtomicDB], import_string(import_path))
 
 
 def get_db_backend(import_path: str = None, **init_kwargs: Any) -> BaseAtomicDB:
