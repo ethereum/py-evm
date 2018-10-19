@@ -73,9 +73,6 @@ from eth.vm.forks import (
     ConstantinopleVM,
 )
 
-if TYPE_CHECKING:
-    from typing import Dict, Union  # noqa: F401
-
 
 VMConfigurationType = Iterable[Tuple[int, Type[BaseVM]]]
 
