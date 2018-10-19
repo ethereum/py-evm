@@ -7,6 +7,9 @@ from typing import (
 from cytoolz import (
     curry,
 )
+from eth_typing import (
+    Hash32,
+)
 
 from eth.constants import (
     UINT_255_MAX,
@@ -15,7 +18,7 @@ from eth.constants import (
 )
 
 
-def int_to_bytes32(value: Union[int, bool]) -> bytes:
+def int_to_bytes32(value: Union[int, bool]) -> Hash32:
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(
             "Value must be an integer: Got: {0}".format(
@@ -35,7 +38,7 @@ def int_to_bytes32(value: Union[int, bool]) -> bytes:
             )
         )
     value_bytes = value.to_bytes(32, 'big')
-    return value_bytes
+    return Hash32(value_bytes)
 
 
 def ceilXX(value: int, ceiling: int) -> int:
