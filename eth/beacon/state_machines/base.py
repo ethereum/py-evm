@@ -1,5 +1,6 @@
 from abc import (
     ABC,
+    abstractmethod,
 )
 import logging
 from typing import (
@@ -67,6 +68,19 @@ class BaseBeaconStateMachine(Configurable, ABC):
     attestation_record_class = None  # type: Type[AttestationRecord]
 
     # TODO: Add abstractmethods
+
+    @abstractmethod
+    def __init__(self, chaindb: BaseBeaconChainDB, block: BaseBeaconBlock=None) -> None:
+        pass
+
+    #
+    # Import block API
+    #
+    @abstractmethod
+    def import_block(
+            self,
+            block: BaseBeaconBlock) -> Tuple[BaseBeaconBlock, CrystallizedState, ActiveState]:
+        pass
 
 
 class BeaconStateMachine(BaseBeaconStateMachine):
