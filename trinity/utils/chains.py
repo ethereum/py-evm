@@ -132,6 +132,8 @@ def construct_trinity_config_params(
     if args.trinity_root_dir is not None:
         yield 'trinity_root_dir', args.trinity_root_dir
 
+    yield 'db_backend', args.db_backend
+
     if args.data_dir is not None:
         yield 'data_dir', args.data_dir
 
@@ -142,8 +144,7 @@ def construct_trinity_config_params(
     elif args.nodekey is not None:
         yield 'nodekey', decode_hex(args.nodekey)
 
-    if args.sync_mode is not None:
-        yield 'sync_mode', args.sync_mode
+    yield 'sync_mode', args.sync_mode
 
     if args.max_peers is not None:
         yield 'max_peers', args.max_peers

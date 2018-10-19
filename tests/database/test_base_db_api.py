@@ -2,17 +2,25 @@ import pytest
 from eth.db.backends.memory import MemoryDB
 from eth.db.journal import JournalDB
 from eth.db.batch import BatchDB
+from eth.db.atomic import AtomicDB
+from eth.db.backends.rocks import RocksDB
+from eth.db.backends.level import LevelDB
 
 
-@pytest.fixture(params=[JournalDB, BatchDB, MemoryDB])
-def db(request):
-    base_db = MemoryDB()
+@pytest.fixture(params=[JournalDB, BatchDB, MemoryDB, AtomicDB, LevelDB, RocksDB])
+def db(request, tmpdir):
     if request.param is JournalDB:
-        return JournalDB(base_db)
+        return JournalDB(MemoryDB())
     elif request.param is BatchDB:
-        return BatchDB(base_db)
+        return BatchDB(MemoryDB())
     elif request.param is MemoryDB:
-        return base_db
+        return MemoryDB()
+    elif request.param is AtomicDB:
+        return AtomicDB(MemoryDB())
+    elif request.param is LevelDB:
+        return LevelDB(db_path=tmpdir.mkdir("level_db_path"))
+    elif request.param is RocksDB:
+        return RocksDB(db_path=tmpdir.mkdir("rocks_db_path"))
     else:
         raise Exception("Invariant")
 
@@ -71,8 +79,14 @@ def test_database_api_missing_key_retrieval(db):
         db[b'does-not-exist']
 
 
-def test_database_api_missing_key_for_deletion(db):
-    db.delete(b'does-not-exist')
+def test_database_api_keyerror_for_del_on_missing_key(db):
+    assert not db.exists(b'does-not-exist')
 
     with pytest.raises(KeyError):
         del db[b'does-not-exist']
+
+
+def test_database_api_no_error_for_delete_call_on_missing_key(db):
+    assert not db.exists(b'does-not-exist')
+
+    db.delete(b'does-not-exist')

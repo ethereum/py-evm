@@ -25,6 +25,9 @@ common: &common
         keys:
           - cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
     - run:
+        name: install rocksdb
+        command: sudo sh ./.circleci/install_rocksdb.sh
+    - run:
         name: install dependencies
         command: pip install --user tox
     - run:
@@ -37,6 +40,7 @@ common: &common
           - ~/.cache/pip
           - ~/.local
           - ./eggs
+          - ~/rocksdb/
         key: cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
 geth_steps: &geth_steps
@@ -46,6 +50,9 @@ geth_steps: &geth_steps
     - restore_cache:
         keys:
           - cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+    - run:
+        name: install rocksdb
+        command: sudo sh ./.circleci/install_rocksdb.sh
     - run:
         name: install dependencies
         command: pip install --user tox

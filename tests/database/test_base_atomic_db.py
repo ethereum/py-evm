@@ -4,14 +4,17 @@ from eth_utils import ValidationError
 
 from eth.db.atomic import AtomicDB
 from eth.db.backends.level import LevelDB
+from eth.db.backends.rocks import RocksDB
 
 
-@pytest.fixture(params=['atomic', 'level'])
+@pytest.fixture(params=['atomic', 'level', 'rocks'])
 def atomic_db(request, tmpdir):
     if request.param == 'atomic':
         return AtomicDB()
     elif request.param == 'level':
         return LevelDB(db_path=tmpdir.mkdir("level_db_path"))
+    elif request.param == 'rocks':
+        return RocksDB(db_path=tmpdir.mkdir("rocks_db_path"))
     else:
         raise ValueError("Unexpected database type: {}".format(request.param))
 

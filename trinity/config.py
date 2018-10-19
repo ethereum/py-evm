@@ -10,6 +10,11 @@ from typing import (
 
 from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
+
+from eth.db.backends.base import BaseAtomicDB
+from eth.db.backends.level import LevelDB
+from eth.db.backends.rocks import RocksDB
+
 from p2p.kademlia import Node as KademliaNode
 from p2p.constants import (
     MAINNET_BOOTNODES,
@@ -17,6 +22,8 @@ from p2p.constants import (
 )
 
 from trinity.constants import (
+    DB_LEVEL,
+    DB_ROCKS,
     DEFAULT_PREFERRED_NODES,
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
@@ -72,12 +79,15 @@ class TrinityConfig:
                  port: int=30303,
                  use_discv5: bool = False,
                  preferred_nodes: Tuple[KademliaNode, ...]=None,
-                 bootstrap_nodes: Tuple[KademliaNode, ...]=None) -> None:
+                 bootstrap_nodes: Tuple[KademliaNode, ...]=None,
+                 db_backend: str=DB_LEVEL,
+                 ) -> None:
         self.network_id = network_id
         self.max_peers = max_peers
         self.sync_mode = sync_mode
         self.port = port
         self.use_discv5 = use_discv5
+        self.db_backend = db_backend
 
         if trinity_root_dir is not None:
             self.trinity_root_dir = trinity_root_dir
@@ -170,6 +180,18 @@ class TrinityConfig:
         self._data_dir = Path(value).resolve()
 
     @property
+    def db_class(self) -> Type[BaseAtomicDB]:
+        """
+        The database backend class that will be used for the chain database.
+        """
+        if self.db_backend is None or self.db_backend == DB_LEVEL:
+            return LevelDB
+        elif self.db_backend == DB_ROCKS:
+            return RocksDB
+        else:
+            raise ValueError(f"Unknown datbase backend: {self.db_backend}")
+
+    @property
     def database_dir(self) -> Path:
         """
         Path where the chain database will be stored.
@@ -181,7 +203,7 @@ class TrinityConfig:
         elif self.sync_mode == SYNC_LIGHT:
             return self.data_dir / DATABASE_DIR_NAME / "light"
         else:
-            raise ValueError("Unknown sync mode: {}".format(self.sync_mode))
+            raise ValueError(f"Unknown sync mode: {self.sync_mode}")
 
     @property
     def database_ipc_path(self) -> Path:

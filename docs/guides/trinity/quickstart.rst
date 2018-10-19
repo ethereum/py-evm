@@ -26,6 +26,12 @@ we need to install the ``python3-pip`` package through the following command.
 
   apt-get install python3-pip
 
+Trinity also requires RocksDB which can be installed with the following command:
+
+.. code:: sh
+
+  apt-get install liblz4-dev lib-rocksdb5.8
+
 .. note::
   .. include:: /fragments/virtualenv_explainer.rst
 
@@ -42,7 +48,7 @@ First, install LevelDB and the latest Python 3 with brew:
 
 .. code:: sh
 
-  brew install python3 leveldb
+  brew install python3 leveldb rocksdb
 
 .. note::
   .. include:: /fragments/virtualenv_explainer.rst
