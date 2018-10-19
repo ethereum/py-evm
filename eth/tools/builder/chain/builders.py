@@ -8,7 +8,6 @@ from typing import (
     List,
     Tuple,
     Type,
-    TYPE_CHECKING,
     Union,
 )
 
@@ -58,6 +57,7 @@ from eth.tools._utils.mappings import (
 )
 from eth.tools._utils.normalization import (
     normalize_state,
+)
 from eth.validation import (
     validate_vm_configuration,
 )
