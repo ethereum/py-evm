@@ -2,7 +2,10 @@ from eth_typing import (
     Address,
     Hash32
 )
-from eth_utils import denoms
+
+from eth._warnings import catch_and_ignore_import_warning
+with catch_and_ignore_import_warning():
+    from eth_utils import denoms
 
 
 ANY = 'any'

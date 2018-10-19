@@ -16,7 +16,11 @@ import eth as _eth_module  # noqa: F401
 if sys.platform in {'darwin', 'linux'} or 'freebsd' in sys.platform:
     # Set `uvloop` as the default event loop
     import asyncio  # noqa: E402
-    import uvloop  # noqa: E402
+
+    from eth._warnings import catch_and_ignore_import_warning
+    with catch_and_ignore_import_warning():
+        import uvloop  # noqa: E402
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 from .main import (  # noqa: F401
