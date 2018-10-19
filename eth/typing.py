@@ -2,6 +2,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    NewType,
     Tuple,
     Union,
 )
@@ -30,3 +31,5 @@ GeneralState = Union[
     AccountState,
     List[Tuple[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]]
 ]
+
+VRS = NewType("VRS", Tuple[int, int, int])

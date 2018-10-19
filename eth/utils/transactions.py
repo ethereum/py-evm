@@ -1,9 +1,5 @@
 import rlp
 
-from typing import (
-    Tuple,
-)
-
 from eth_keys import keys
 from eth_keys import datatypes
 from eth_keys.exceptions import (
@@ -13,6 +9,9 @@ from eth_keys.exceptions import (
 from eth_utils import (
     int_to_big_endian,
     ValidationError,
+)
+from eth.typing import (
+    VRS,
 )
 from eth.utils.numeric import (
     is_even,
@@ -49,7 +48,7 @@ def extract_signature_v(v: int) -> int:
 
 def create_transaction_signature(unsigned_txn: BaseTransaction,
                                  private_key: datatypes.PrivateKey,
-                                 chain_id: int=None) -> Tuple[int, int, int]:
+                                 chain_id: int=None) -> VRS:
 
     transaction_parts = rlp.decode(rlp.encode(unsigned_txn))
 
@@ -70,7 +69,7 @@ def create_transaction_signature(unsigned_txn: BaseTransaction,
     else:
         v = canonical_v + V_OFFSET
 
-    return v, r, s
+    return VRS((v, r, s))
 
 
 def validate_transaction_signature(transaction: BaseTransaction) -> None:
