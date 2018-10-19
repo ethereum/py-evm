@@ -28,7 +28,7 @@ def test_get_genesis_crystallized_state(genesis_validators,
         shard_count,
     )
     len_shard_and_committee_for_slots = cycle_length * 2
-    total_deposits = deposit_size * len(genesis_validators)
+    total_balance = deposit_size * len(genesis_validators)
 
     assert crystallized_state.validators == genesis_validators
     assert crystallized_state.last_state_recalc == 0
@@ -43,7 +43,7 @@ def test_get_genesis_crystallized_state(genesis_validators,
         assert crosslink.hash == ZERO_HASH32
         assert crosslink.slot == 0
         assert crosslink.dynasty == 0
-    assert crystallized_state.total_deposits == total_deposits
+    assert crystallized_state.total_balance == total_balance
     assert crystallized_state.dynasty_seed == init_shuffling_seed
     assert crystallized_state.dynasty_start == 0
 

@@ -106,7 +106,7 @@ class CrystallizedState(rlp.Serializable):
         )
 
     @property
-    def total_deposits(self) -> int:
+    def total_balance(self) -> int:
         return sum(
             self.validators[index].balance
             for index in self.active_validator_indices
