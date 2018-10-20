@@ -1,21 +1,27 @@
 from collections.abc import Mapping
 import itertools
 
+from typing import (
+    Any,
+    Dict,
+    Sequence,
+)
+
 from cytoolz import merge_with
 
 
-def merge_if_dicts(values):
+def merge_if_dicts(values: Sequence[Any]) -> Any:
     if all(isinstance(item, Mapping) for item in values):
         return merge_with(merge_if_dicts, *values)
     else:
         return values[-1]
 
 
-def deep_merge(*dicts):
+def deep_merge(*dicts: Dict[Any, Any]) -> Dict[Any, Any]:
     return merge_with(merge_if_dicts, *dicts)
 
 
-def is_cleanly_mergable(*dicts):
+def is_cleanly_mergable(*dicts: Dict[Any, Any]) -> bool:
     """Check that nothing will be overwritten when dictionaries are merged using `deep_merge`.
 
     Examples:

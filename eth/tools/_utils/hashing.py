@@ -2,10 +2,15 @@ from eth_hash.auto import keccak
 
 import rlp
 
+from typing import (
+    Iterable,
+    Tuple,
+)
+
 from eth.rlp.logs import Log
 
 
-def hash_log_entries(log_entries):
+def hash_log_entries(log_entries: Iterable[Tuple[bytes, bytes, bytes]]) -> bytes:
     """
     Helper function for computing the RLP hash of the logs from transaction
     execution.
