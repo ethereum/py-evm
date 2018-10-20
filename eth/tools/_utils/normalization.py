@@ -5,6 +5,16 @@ from collections.abc import (
 )
 import functools
 
+from typing import (
+    Any,
+    AnyStr,
+    Callable,
+    Dict,
+    List,
+    Sequence,
+    Tuple,
+)
+
 from cytoolz import (
     assoc_in,
     compose,
@@ -14,6 +24,10 @@ from cytoolz import (
     merge,
 )
 import cytoolz.curried
+
+from eth_typing import (
+    Address,
+)
 
 from eth_utils import (
     apply_formatters_to_dict,
@@ -41,12 +55,17 @@ from eth.tools._utils.mappings import (
     is_cleanly_mergable,
 )
 
+from eth.typing import (
+    AccountState,
+    GeneralState,
+)
+
 
 #
 # Primitives
 #
 @functools.lru_cache(maxsize=1024)
-def normalize_int(value):
+def normalize_int(value: Any) -> int:
     """
     Robust to integer conversion, handling hex values, string representations,
     and special cases like `0x`.
@@ -66,7 +85,7 @@ def normalize_int(value):
         raise TypeError("Unsupported type: Got `{0}`".format(type(value)))
 
 
-def normalize_bytes(value):
+def normalize_bytes(value: Any) -> bytes:
     if is_bytes(value):
         return value
     elif is_text(value) and is_hex(value):
@@ -78,7 +97,7 @@ def normalize_bytes(value):
 
 
 @functools.lru_cache(maxsize=1024)
-def to_int(value):
+def to_int(value: Any) -> int:
     """
     Robust to integer conversion, handling hex values, string representations,
     and special cases like `0x`.
@@ -93,7 +112,7 @@ def to_int(value):
 
 
 @functools.lru_cache(maxsize=128)
-def normalize_to_address(value):
+def normalize_to_address(value: AnyStr) -> Address:
     if value:
         return to_canonical_address(value)
     else:
@@ -106,21 +125,28 @@ robust_decode_hex = eth_utils.curried.hexstr_if_str(to_bytes)
 #
 # Containers
 #
-def dict_normalizer(formatters, required=None, optional=None):
+
+NormalizerType = Callable[[Dict[Any, Any]], Iterable[Tuple[Any, Any]]]
+
+
+def dict_normalizer(formatters: Dict[Any, Any],
+                    required: Iterable[Any]=None,
+                    optional: Iterable[Any]=None) -> NormalizerType:
+
     all_keys = set(formatters.keys())
 
     if required is None and optional is None:
-        required = all_keys
+        required_set_form = all_keys
     elif required is not None:
-        required = set(required)
+        required_set_form = set(required)
     elif optional is not None:
-        required = all_keys - set(optional)
+        required_set_form = all_keys - set(optional)
     else:
         raise ValueError("Both required and optional keys specified")
 
-    def normalizer(d):
+    def normalizer(d: Dict[Any, Any]) -> Iterable[Tuple[Any, Any]]:
         keys = set(d.keys())
-        missing_keys = required - keys
+        missing_keys = required_set_form - keys
         superfluous_keys = keys - all_keys
         if missing_keys:
             raise KeyError("Missing required keys: {}".format(", ".join(missing_keys)))
@@ -132,9 +158,9 @@ def dict_normalizer(formatters, required=None, optional=None):
     return normalizer
 
 
-def dict_options_normalizer(normalizers):
+def dict_options_normalizer(normalizers: Iterable[Callable[..., Any]]) -> Callable[..., Any]:
 
-    def normalize(d):
+    def normalize(d: Dict[Any, Any]) -> Callable[..., Any]:
         first_exception = None
         for normalizer in normalizers:
             try:
@@ -153,7 +179,7 @@ def dict_options_normalizer(normalizers):
 #
 # Composition
 #
-def state_definition_to_dict(state_definition):
+def state_definition_to_dict(state_definition: GeneralState) -> AccountState:
     """Convert a state definition to the canonical dict form.
 
     State can either be defined in the canonical form, or as a list of sub states that are then
@@ -305,7 +331,9 @@ normalize_environment = dict_options_normalizer([
 #
 # Fixture Normalizers
 #
-def normalize_unsigned_transaction(transaction, indexes):
+def normalize_unsigned_transaction(transaction: Dict[str, Any],
+                                   indexes: Dict[str, Any]) -> Dict[str, Any]:
+
     normalized = normalize_transaction_group(transaction)
     return merge(normalized, {
         transaction_key: normalized[transaction_key][indexes[index_key]]
@@ -318,7 +346,7 @@ def normalize_unsigned_transaction(transaction, indexes):
     })
 
 
-def normalize_account_state(account_state):
+def normalize_account_state(account_state: AccountState) -> AccountState:
     return {
         to_canonical_address(address): {
             'balance': to_int(state['balance']),
@@ -333,14 +361,17 @@ def normalize_account_state(account_state):
 
 
 @to_dict
-def normalize_post_state(post_state):
+def normalize_post_state(post_state: Dict[str, Any]) -> Iterable[Tuple[str, bytes]]:
     yield 'hash', decode_hex(post_state['hash'])
     if 'logs' in post_state:
         yield 'logs', decode_hex(post_state['logs'])
 
 
 @curry
-def normalize_statetest_fixture(fixture, fork, post_state_index):
+def normalize_statetest_fixture(fixture: Dict[str, Any],
+                                fork: str,
+                                post_state_index: int) -> Dict[str, Any]:
+
     post_state = fixture['post'][fork][post_state_index]
 
     normalized_fixture = {
@@ -356,7 +387,7 @@ def normalize_statetest_fixture(fixture, fork, post_state_index):
     return normalized_fixture
 
 
-def normalize_exec(exec_params):
+def normalize_exec(exec_params: Dict[str, Any]) -> Dict[str, Any]:
     return {
         'origin': to_canonical_address(exec_params['origin']),
         'address': to_canonical_address(exec_params['address']),
@@ -368,7 +399,7 @@ def normalize_exec(exec_params):
     }
 
 
-def normalize_callcreates(callcreates):
+def normalize_callcreates(callcreates: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return [
         {
             'data': decode_hex(created_call['data']),
@@ -384,7 +415,7 @@ def normalize_callcreates(callcreates):
 
 
 @to_dict
-def normalize_vmtest_fixture(fixture):
+def normalize_vmtest_fixture(fixture: Dict[str, Any]) -> Iterable[Tuple[str, Any]]:
     yield 'env', normalize_environment(fixture['env'])
     yield 'exec', normalize_exec(fixture['exec'])
     yield 'pre', normalize_account_state(fixture['pre'])
@@ -405,7 +436,7 @@ def normalize_vmtest_fixture(fixture):
         yield 'logs', decode_hex(fixture['logs'])
 
 
-def normalize_signed_transaction(transaction):
+def normalize_signed_transaction(transaction: Dict[str, Any]) -> Dict[str, Any]:
     return {
         'data': robust_decode_hex(transaction['data']),
         'gasLimit': to_int(transaction['gasLimit']),
@@ -420,7 +451,7 @@ def normalize_signed_transaction(transaction):
 
 
 @curry
-def normalize_transactiontest_fixture(fixture, fork):
+def normalize_transactiontest_fixture(fixture: Dict[str, Any], fork: str) -> Dict[str, Any]:
 
     normalized_fixture = {}
 
@@ -440,7 +471,7 @@ def normalize_transactiontest_fixture(fixture, fork):
     return normalized_fixture
 
 
-def normalize_block_header(header):
+def normalize_block_header(header: Dict[str, Any]) -> Dict[str, Any]:
     normalized_header = {
         'bloom': big_endian_to_int(decode_hex(header['bloom'])),
         'coinbase': to_canonical_address(header['coinbase']),
@@ -468,7 +499,7 @@ def normalize_block_header(header):
     return normalized_header
 
 
-def normalize_block(block):
+def normalize_block(block: Dict[str, Any]) -> Dict[str, Any]:
     normalized_block = {}
 
     try:
@@ -487,7 +518,7 @@ def normalize_block(block):
     return normalized_block
 
 
-def normalize_blockchain_fixtures(fixture):
+def normalize_blockchain_fixtures(fixture: Dict[str, Any]) -> Dict[str, Any]:
     normalized_fixture = {
         'blocks': [normalize_block(block_fixture) for block_fixture in fixture['blocks']],
         'genesisBlockHeader': normalize_block_header(fixture['genesisBlockHeader']),
