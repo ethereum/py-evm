@@ -1,5 +1,12 @@
 import functools
 
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Tuple,
+)
+
 try:
     from vyper.compile_lll import (
         compile_to_assembly,
@@ -12,9 +19,9 @@ else:
     vyper_available = True
 
 
-def require_vyper(fn):
+def require_vyper(fn: Callable[..., Any]) -> Callable[..., Any]:
     @functools.wraps(fn)
-    def inner(*args, **kwargs):
+    def inner(*args: Any, **kwargs: Any) -> Any:
         if vyper_available:
             return fn(*args, **kwargs)
         else:
@@ -23,7 +30,7 @@ def require_vyper(fn):
 
 
 @require_vyper
-def compile_vyper_lll(vyper_code):
+def compile_vyper_lll(vyper_code: Any) -> Tuple[bytes, Dict[str, Any]]:
     lll_node = LLLnode.from_list(vyper_code)
     assembly = compile_to_assembly(lll_node)
     code = assembly_to_evm(assembly)
