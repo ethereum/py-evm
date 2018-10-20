@@ -7,13 +7,13 @@ import os
 
 from typing import (  # noqa: F401
     Any,
-    Type,
+    Callable,
+    Dict,
     Iterable,
     List,
-    Union,
+    Type,
     TypeVar,
-    Dict,
-    Callable
+    Union,
 )
 
 
@@ -169,7 +169,7 @@ def env_string(name: str, required: bool=False, default: Union[Type[empty], str]
 def env_list(name: str,
              separator: str =',',
              required: bool=False,
-             default: Union[Type[empty], List]=empty) -> List:
+             default: Union[Type[empty], List[Any]]=empty) -> List[Any]:
     """Pulls an environment variable out of the environment, splitting it on a
     separator, and returning it as a list. Extra whitespace on the list values
     is stripped. List values that evaluate as falsy are removed. If not present
@@ -237,7 +237,7 @@ def get(name: str,
 
         'list': env_list,
         list: env_list,
-    }  # type: Dict[Union[str, Type], Callable[..., Any]]
+    }  # type: Dict[Union[str, Type[Any]], Callable[..., Any]]
 
     fn = fns.get(type, env_string)
     return fn(name, default=default, required=required)

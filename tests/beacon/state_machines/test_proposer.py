@@ -62,7 +62,6 @@ def test_propose_block(fixture_sm_class,
             active_state=sm.active_state,
             block_proposal=block_proposal,
             chaindb=sm.chaindb,
-            config=sm.config,
             private_key=private_key,
         )
     )
@@ -119,7 +118,6 @@ def test_propose_block(fixture_sm_class,
             active_state=sm.active_state,
             block_proposal=block_proposal,
             chaindb=sm.chaindb,
-            config=sm.config,
             private_key=private_key,
         )
     )
