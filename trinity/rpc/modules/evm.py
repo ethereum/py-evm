@@ -6,7 +6,7 @@ from eth_utils import (
 )
 
 from eth.chains.base import (
-    Chain
+    BaseChain
 )
 from eth.tools.fixtures import (
     apply_fixture_block_to_chain,
@@ -25,7 +25,7 @@ from trinity.rpc.modules import (
 
 class EVM(RPCModule):
     @format_params(normalize_blockchain_fixtures)
-    async def resetToGenesisFixture(self, chain_info: Any) -> Chain:
+    async def resetToGenesisFixture(self, chain_info: Any) -> BaseChain:
         '''
         This method is a special case. It returns a new chain object
         which is then replaced inside :class:`~trinity.rpc.main.RPCServer`

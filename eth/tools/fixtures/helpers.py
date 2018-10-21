@@ -2,6 +2,15 @@ import os
 
 import rlp
 
+from typing import (
+    Any,
+    cast,
+    Dict,
+    Iterable,
+    Tuple,
+    Type,
+)
+
 from cytoolz import first
 
 from eth_utils import (
@@ -10,11 +19,26 @@ from eth_utils import (
 
 from eth import MainnetChain
 from eth.db.atomic import AtomicDB
+from eth.rlp.blocks import (
+    BaseBlock,
+)
+from eth.chains.base import (
+    BaseChain,
+)
+from eth.db.account import (
+    BaseAccountDB,
+)
 from eth.tools.builder.chain import (
     disable_pow_check,
 )
+from eth.typing import (
+    AccountState,
+)
 from eth.utils.state import (
     diff_account_db,
+)
+from eth.vm.base import (
+    BaseVM,
 )
 from eth.vm.forks import (
     ByzantiumVM,
@@ -28,7 +52,7 @@ from eth.vm.forks import (
 #
 # State Setup
 #
-def setup_account_db(desired_state, account_db):
+def setup_account_db(desired_state: AccountState, account_db: BaseAccountDB) -> None:
     for account, account_data in desired_state.items():
         for slot, value in account_data['storage'].items():
             account_db.set_storage(account, slot, value)
@@ -43,7 +67,7 @@ def setup_account_db(desired_state, account_db):
     account_db.persist()
 
 
-def verify_account_db(expected_state, account_db):
+def verify_account_db(expected_state: AccountState, account_db: BaseAccountDB) -> None:
     diff = diff_account_db(expected_state, account_db)
     if diff:
         error_messages = []
@@ -76,7 +100,7 @@ def verify_account_db(expected_state, account_db):
         )
 
 
-def chain_vm_configuration(fixture):
+def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[BaseVM]]]:
     network = fixture['network']
 
     if network == 'Frontier':
@@ -129,7 +153,7 @@ def chain_vm_configuration(fixture):
         raise ValueError("Network {0} does not match any known VM rules".format(network))
 
 
-def genesis_params_from_fixture(fixture):
+def genesis_params_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
     return {
         'parent_hash': fixture['genesisBlockHeader']['parentHash'],
         'uncles_hash': fixture['genesisBlockHeader']['uncleHash'],
@@ -149,7 +173,8 @@ def genesis_params_from_fixture(fixture):
     }
 
 
-def new_chain_from_fixture(fixture, chain_cls=MainnetChain):
+def new_chain_from_fixture(fixture: Dict[str, Any],
+                           chain_cls: Type[BaseChain]=MainnetChain) -> BaseChain:
     base_db = AtomicDB()
 
     vm_config = chain_vm_configuration(fixture)
@@ -162,6 +187,8 @@ def new_chain_from_fixture(fixture, chain_cls=MainnetChain):
     if 'sealEngine' in fixture and fixture['sealEngine'] == 'NoProof':
         ChainFromFixture = disable_pow_check(ChainFromFixture)
 
+    cast(Type[BaseChain], ChainFromFixture)
+
     return ChainFromFixture.from_genesis(
         base_db,
         genesis_params=genesis_params_from_fixture(fixture),
@@ -169,7 +196,8 @@ def new_chain_from_fixture(fixture, chain_cls=MainnetChain):
     )
 
 
-def apply_fixture_block_to_chain(block_fixture, chain):
+def apply_fixture_block_to_chain(block_fixture: Dict[str, Any],
+                                 chain: BaseChain) -> Tuple[BaseBlock, BaseBlock, BaseBlock]:
     '''
     :return: (premined_block, mined_block, rlp_encoded_mined_block)
     '''
@@ -191,12 +219,12 @@ def apply_fixture_block_to_chain(block_fixture, chain):
     return (block, mined_block, rlp_encoded_mined_block)
 
 
-def should_run_slow_tests():
+def should_run_slow_tests() -> bool:
     if os.environ.get('TRAVIS_EVENT_TYPE') == 'cron':
         return True
     return False
 
 
-def get_test_name(filler):
+def get_test_name(filler: Dict[str, Any]) -> str:
     assert len(filler) == 1
     return first(filler)

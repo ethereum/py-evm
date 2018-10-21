@@ -1,3 +1,11 @@
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Tuple,
+    Union,
+)
+
 from eth.tools.fixtures.helpers import (
     get_test_name,
 )
@@ -15,14 +23,14 @@ from eth.tools._utils.mappings import deep_merge
 
 
 def fill_vm_test(
-    filler,
-    *,
-    call_creates=None,
-    gas_price=None,
-    gas_remaining=0,
-    logs=None,
-    output=b""
-):
+        filler: Dict[str, Any],
+        *,
+        call_creates: Any=None,
+        gas_price: Union[int, str]=None,
+        gas_remaining: Union[int, str]=0,
+        logs: Iterable[Tuple[bytes, bytes, bytes]]=None,
+        output: bytes=b"") -> Dict[str, Dict[str, Any]]:
+
     test_name = get_test_name(filler)
     test = filler[test_name]
 

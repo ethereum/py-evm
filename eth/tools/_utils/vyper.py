@@ -4,6 +4,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    List,
     Tuple,
 )
 
@@ -30,7 +31,7 @@ def require_vyper(fn: Callable[..., Any]) -> Callable[..., Any]:
 
 
 @require_vyper
-def compile_vyper_lll(vyper_code: Any) -> Tuple[bytes, Dict[str, Any]]:
+def compile_vyper_lll(vyper_code: List[Any]) -> Tuple[bytes, Dict[str, Any]]:
     lll_node = LLLnode.from_list(vyper_code)
     assembly = compile_to_assembly(lll_node)
     code = assembly_to_evm(assembly)

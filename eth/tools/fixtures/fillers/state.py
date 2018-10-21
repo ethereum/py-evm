@@ -1,7 +1,9 @@
 from collections import defaultdict
 from typing import (  # noqa: F401
+    Any,
     Dict,
     List,
+    Sequence,
 )
 
 from eth_utils import encode_hex
@@ -45,7 +47,7 @@ ACCOUNT_STATE_DB_CLASSES = {
 assert all(network in ACCOUNT_STATE_DB_CLASSES for network in ALL_NETWORKS)
 
 
-def fill_state_test(filler):
+def fill_state_test(filler: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     """
     Filler function for filling state tests.
     """

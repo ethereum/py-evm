@@ -92,7 +92,7 @@ def build(obj: Any, *applicators: Callable[..., Any]) -> Any:
 # Constructors (creation of chain classes)
 #
 @curry
-def name(class_name: str, chain_class: BaseChain) -> type:
+def name(class_name: str, chain_class: Type[BaseChain]) -> Type[BaseChain]:
     """
     Assign the given name to the chain class.
     """
@@ -100,7 +100,7 @@ def name(class_name: str, chain_class: BaseChain) -> type:
 
 
 @curry
-def chain_id(chain_id: int, chain_class: BaseChain) -> type:
+def chain_id(chain_id: int, chain_class: Type[BaseChain]) -> Type[BaseChain]:
     """
     Set the ``chain_id`` for the chain class.
     """
@@ -108,7 +108,7 @@ def chain_id(chain_id: int, chain_class: BaseChain) -> type:
 
 
 @curry
-def fork_at(vm_class: Type[BaseVM], at_block: int, chain_class: BaseChain) -> type:
+def fork_at(vm_class: Type[BaseVM], at_block: int, chain_class: Type[BaseChain]) -> Type[BaseChain]:
     """
     Adds the ``vm_class`` to the chain's ``vm_configuration``.
 
@@ -168,7 +168,7 @@ def _set_vm_dao_support_false(vm_configuration: VMConfiguration) -> VMConfigurat
 
 
 @curry
-def disable_dao_fork(chain_class: BaseChain) -> type:
+def disable_dao_fork(chain_class: Type[BaseChain]) -> Type[BaseChain]:
     """
     Set the ``support_dao_fork`` flag to ``False`` on the
     :class:`~eth.vm.forks.homestead.HomesteadVM`.  Requires that presence of
@@ -199,7 +199,7 @@ def _set_vm_dao_fork_block_number(dao_fork_block_number: int,
 
 
 @curry
-def dao_fork_at(dao_fork_block_number: int, chain_class: BaseChain) -> type:
+def dao_fork_at(dao_fork_block_number: int, chain_class: Type[BaseChain]) -> Type[BaseChain]:
     """
     Set the block number on which the DAO fork will happen.  Requires that a
     version of the :class:`~eth.vm.forks.homestead.HomesteadVM` is present in
@@ -263,7 +263,7 @@ def _mix_in_pow_mining(vm_configuration: VMConfiguration) -> VMConfiguration:
 
 
 @curry
-def enable_pow_mining(chain_class: BaseChain) -> type:
+def enable_pow_mining(chain_class: Type[BaseChain]) -> Type[BaseChain]:
     """
     Inject on demand generation of the proof of work mining seal on newly
     mined blocks into each of the chain's vms.
@@ -299,7 +299,7 @@ def _mix_in_disable_seal_validation(vm_configuration: VMConfiguration) -> VMConf
 
 
 @curry
-def disable_pow_check(chain_class: Type[BaseChain]) -> type:
+def disable_pow_check(chain_class: Type[BaseChain]) -> Type[BaseChain]:
     """
     Disable the proof of work validation check for each of the chain's vms.
     This allows for block mining without generation of the proof of work seal.
