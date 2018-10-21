@@ -6,9 +6,13 @@ from typing import (
     Iterator,
     Tuple,
     Type,
+    Union,
 )
 
-from cancel_token import CancelToken, OperationCancelled
+from cancel_token import (
+    CancelToken,
+    OperationCancelled,
+)
 
 from eth.constants import GENESIS_BLOCK_NUMBER
 from eth.chains import AsyncChain
@@ -23,17 +27,43 @@ from eth_utils import (
     encode_hex,
     ValidationError,
 )
-from eth.rlp.headers import BlockHeader
+from eth.rlp.headers import (
+    BlockHeader,
+)
 
-from p2p.constants import MAX_REORG_DEPTH, SEAL_CHECK_RANDOM_SAMPLE_RATE
-from p2p.p2p_proto import DisconnectReason
-from p2p.service import BaseService
+from p2p.constants import (
+    MAX_REORG_DEPTH,
+    SEAL_CHECK_RANDOM_SAMPLE_RATE,
+)
+from p2p.p2p_proto import (
+    DisconnectReason,
+)
+from p2p.service import (
+    BaseService,
+)
 
-from trinity.db.header import AsyncHeaderDB
-from trinity.protocol.common.monitors import BaseChainTipMonitor
-from trinity.protocol.common.peer import BaseChainPeer, BaseChainPeerPool
-from trinity.protocol.eth.peer import ETHPeer
-from trinity.utils.datastructures import TaskQueue
+from trinity.db.header import (
+    AsyncHeaderDB,
+)
+from trinity.protocol.common.monitors import (
+    BaseChainTipMonitor,
+)
+from trinity.protocol.common.peer import (
+    BaseChainPeer,
+    BaseChainPeerPool,
+)
+from trinity.protocol.eth.peer import (
+    ETHPeer,
+)
+from trinity.sync.common.events import (
+    SyncingRequest,
+    SyncingResponse,
+)
+from trinity.utils.datastructures import (
+    TaskQueue,
+)
+
+from .types import SyncProgress
 
 
 class BaseHeaderChainSyncer(BaseService):
@@ -81,6 +111,8 @@ class BaseHeaderChainSyncer(BaseService):
 
     async def _run(self) -> None:
         self.run_daemon(self._tip_monitor)
+        if self.peer_pool.event_bus is not None:
+            self.run_daemon_task(self.handle_syncing_requests())
         try:
             async for highest_td_peer in self._tip_monitor.wait_tip_info():
                 self.run_task(self.sync(highest_td_peer))
@@ -134,6 +166,16 @@ class BaseHeaderChainSyncer(BaseService):
                 new_headers = tuple(h for h in header_batch if h not in self.header_queue)
                 await self.wait(self.header_queue.add(new_headers))
 
+    def syncing(self) -> Union[bool, SyncProgress]:
+        if not self._syncing:
+            return False
+        return self._peer_header_syncer.sync_progress
+
+    async def handle_syncing_requests(self) -> None:
+        async for req in self.peer_pool.event_bus.stream(SyncingRequest):
+            self.peer_pool.event_bus.broadcast(SyncingResponse(self.syncing()),
+                                               req.broadcast_config())
+
 
 class PeerHeaderSyncer(BaseService):
     """
@@ -152,6 +194,7 @@ class PeerHeaderSyncer(BaseService):
         super().__init__(token)
         self.chain = chain
         self.db = db
+        self.sync_progress: SyncProgress = None
         self._peer = peer
         self._target_header_hash = peer.head_hash
 
@@ -183,7 +226,7 @@ class PeerHeaderSyncer(BaseService):
             self.logger.debug(
                 "%s announced Head TD %d, which is higher than ours (%d), starting sync",
                 peer, peer.head_td, head_td)
-
+        self.sync_progress = SyncProgress(head.block_number, head.block_number, peer.head_number)
         self.logger.info("Starting sync with %s", peer)
         last_received_header: BlockHeader = None
         # When we start the sync with a peer, we always request up to MAX_REORG_DEPTH extra
@@ -306,6 +349,7 @@ class PeerHeaderSyncer(BaseService):
 
             yield headers
             last_received_header = headers[-1]
+            self.sync_progress.current_block = last_received_header.block_number
             start_at = last_received_header.block_number + 1
 
     async def _request_headers(

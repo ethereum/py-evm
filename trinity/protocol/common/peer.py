@@ -48,6 +48,7 @@ class BaseChainPeer(BasePeer):
 
     head_td: int = None
     head_hash: Hash32 = None
+    head_number: BlockNumber = None
 
     @property
     @abstractmethod

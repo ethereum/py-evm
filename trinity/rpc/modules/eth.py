@@ -51,6 +51,9 @@ from trinity.rpc.format import (
 from trinity.rpc.modules import (
     RPCModule,
 )
+from trinity.sync.common.events import (
+    SyncingRequest,
+)
 from trinity.utils.validation import (
     validate_transaction_call_dict,
     validate_transaction_gas_estimation_dict,
@@ -264,5 +267,12 @@ class Eth(RPCModule):
     async def protocolVersion(self) -> str:
         return "63"
 
-    async def syncing(self) -> bool:
-        raise NotImplementedError()
+    async def syncing(self) -> Union[bool, Dict[str, BlockNumber]]:
+        res = await self._event_bus.request(SyncingRequest())
+        if isinstance(res.syncing, bool):
+            return res.syncing
+        return {
+            "startingBlock": res.syncing.starting_block,
+            "currentBlock": res.syncing.current_block,
+            "highestBlock": res.syncing.highest_block
+        }
