@@ -43,7 +43,11 @@ from trinity.extensibility.plugin import (
 
 class BaseManagerProcessScope(ABC):
     """
-    Define the operational model under which a ``PluginManager`` runs.
+    Define the operational model under which a
+    :class:`~trinity.extensibility.plugin_manager.PluginManager` works. Subclasses
+    define whether a :class:`~trinity.extensibility.plugin_manager.PluginManager` is
+    responsible to manage a specific plugin and how its
+    :class:`~trinity.extensibility.plugin.PluginContext` is created.
     """
 
     endpoint: Endpoint
@@ -51,8 +55,8 @@ class BaseManagerProcessScope(ABC):
     @abstractmethod
     def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
         """
-        Define whether a ``PluginManager`` operating under this scope is responsible
-        for a given plugin or not.
+        Define whether a :class:`~trinity.extensibility.plugin_manager.PluginManager` operating
+        under this scope is responsible to manage the given ``plugin``.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
@@ -61,7 +65,7 @@ class BaseManagerProcessScope(ABC):
                               plugin: BasePlugin,
                               boot_info: TrinityBootInfo) -> None:
         """
-        Create the ``PluginContext`` for a given plugin.
+        Create the :class:`~trinity.extensibility.plugin.PluginContext` for the given ``plugin``.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
@@ -73,12 +77,23 @@ class MainAndIsolatedProcessScope(BaseManagerProcessScope):
         self.endpoint = main_proc_endpoint
 
     def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
+        """
+        Return ``True`` if if the plugin instance is a subclass of
+        :class:`~trinity.extensibility.plugin.BaseIsolatedPlugin` or
+        :class:`~trinity.extensibility.plugin.BaseMainProcessPlugin`
+        """
         return isinstance(plugin, BaseIsolatedPlugin) or isinstance(plugin, BaseMainProcessPlugin)
 
     def create_plugin_context(self,
                               plugin: BasePlugin,
                               boot_info: TrinityBootInfo) -> None:
 
+        """
+        Create a :class:`~trinity.extensibility.plugin.PluginContext` that holds a reference to a
+        dedicated new :class:`~lahja.endpoint.Endpoint` to enable plugins which run in their own
+        isolated processes to connect to the central :class:`~lahja.endpoint.EventBus` that Trinity
+        uses to enable application wide event-driven communication even across process boundaries.
+        """
         if isinstance(plugin, BaseIsolatedPlugin):
             # Isolated plugins get an entirely new endpoint to be passed into that new process
             plugin.set_context(PluginContext(
@@ -93,12 +108,22 @@ class SharedProcessScope(BaseManagerProcessScope):
         self.endpoint = shared_proc_endpoint
 
     def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
+        """
+        Return ``True`` if if the plugin instance is a subclass of
+        :class:`~trinity.extensibility.plugin.BaseAsyncStopPlugin`.
+        """
         return isinstance(plugin, BaseAsyncStopPlugin)
 
     def create_plugin_context(self,
                               plugin: BasePlugin,
                               boot_info: TrinityBootInfo) -> None:
-
+        """
+        Create a :class:`~trinity.extensibility.plugin.PluginContext` that uses the
+        :class:`~lahja.endpoint.Endpoint` of the
+        :class:`~trinity.extensibility.plugin_manager.PluginManager` to communicate with the
+        central :class:`~lahja.endpoint.EventBus` that Trinity uses to enable application wide,
+        event-driven communication even across process boundaries.
+        """
         # Plugins that run in a shared process all share the endpoint of the plugin manager
         plugin.set_context(PluginContext(self.endpoint, boot_info))
 
@@ -107,6 +132,17 @@ class PluginManager:
     """
     The plugin manager is responsible to register, keep and manage the life cycle of any available
     plugins.
+
+    A :class:`~trinity.extensibility.plugin_manager.PluginManager` is tight to a specific
+    :class:`~trinity.extensibility.plugin_manager.BaseManagerProcessScope` which defines which
+    plugins are controlled by this specific manager instance.
+
+    This is due to the fact that Trinity currently allows plugins to either run in a shared
+    process, also known as the "networking" process, as well as in their own isolated
+    processes.
+
+    Trinity uses two different :class:`~trinity.extensibility.plugin_manager.PluginManager`
+    instances to govern these different categories of plugins.
 
       .. note::
 
@@ -121,7 +157,9 @@ class PluginManager:
     @property
     def event_bus_endpoint(self) -> Endpoint:
         """
-        Return the ``Endpoint`` that the ``PluginManager`` uses to connect to the ``EventBus``
+        Return the :class:`~lahja.endpoint.Endpoint` that the
+        :class:`~trinity.extensibility.plugin_manager.PluginManager` instance uses to connect to
+        the central :class:`~lahja.eventbus.EventBus`.
         """
         return self._scope.endpoint
 
@@ -149,8 +187,9 @@ class PluginManager:
                 trinity_config: TrinityConfig,
                 boot_kwargs: Dict[str, Any] = None) -> None:
         """
-        Create a ``PluginContext`` for every plugin that this plugin manager instance
-        is responsible for.
+        Create and set the :class:`~trinity.extensibility.plugin.PluginContext` and call
+        :meth:`~trinity.extensibility.plugin.BasePlugin.ready` on every plugin that this
+        plugin manager instance is responsible for.
         """
         for plugin in self._plugin_store:
 
@@ -165,7 +204,10 @@ class PluginManager:
 
     def shutdown_blocking(self) -> None:
         """
-        Synchronously shut down all started plugins.
+        Synchronously shut down all running plugins. Raises an
+        :class:`~trinity.extensibility.exceptions.UnsuitableShutdownError` if called on a
+        :class:`~trinity.extensibility.plugin_manager.PluginManager` that operates in the
+        :class:`~trinity.extensibility.plugin_manager.SharedProcessScope`.
         """
 
         if isinstance(self._scope, SharedProcessScope):
@@ -187,7 +229,10 @@ class PluginManager:
 
     async def shutdown(self) -> None:
         """
-        Asynchronously shut down all started plugins.
+        Asynchronously shut down all running plugins. Raises an
+        :class:`~trinity.extensibility.exceptions.UnsuitableShutdownError` if called on a
+        :class:`~trinity.extensibility.plugin_manager.PluginManager` that operates in the
+        :class:`~trinity.extensibility.plugin_manager.MainAndIsolatedProcessScope`.
         """
         if isinstance(self._scope, MainAndIsolatedProcessScope):
             raise UnsuitableShutdownError("Use `shutdown_blocking` for instances of this scope")
