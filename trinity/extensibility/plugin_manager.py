@@ -59,7 +59,7 @@ class BaseManagerProcessScope(ABC):
     @abstractmethod
     def create_plugin_context(self,
                               plugin: BasePlugin,
-                              boot_info: TrinityBootInfo) -> PluginContext:
+                              boot_info: TrinityBootInfo) -> None:
         """
         Create the ``PluginContext`` for a given plugin.
         """
@@ -77,18 +77,14 @@ class MainAndIsolatedProcessScope(BaseManagerProcessScope):
 
     def create_plugin_context(self,
                               plugin: BasePlugin,
-                              boot_info: TrinityBootInfo) -> PluginContext:
+                              boot_info: TrinityBootInfo) -> None:
 
         if isinstance(plugin, BaseIsolatedPlugin):
             # Isolated plugins get an entirely new endpoint to be passed into that new process
-            return PluginContext(
+            plugin.set_context(PluginContext(
                 self.event_bus.create_endpoint(plugin.name),
                 boot_info,
-            )
-
-        # A plugin that overtakes the main process never gets far enough to even get a context.
-        # For now it should be safe to just return `None`. Maybe reconsider in the future.
-        return None
+            ))
 
 
 class SharedProcessScope(BaseManagerProcessScope):
@@ -101,10 +97,10 @@ class SharedProcessScope(BaseManagerProcessScope):
 
     def create_plugin_context(self,
                               plugin: BasePlugin,
-                              boot_info: TrinityBootInfo) -> PluginContext:
+                              boot_info: TrinityBootInfo) -> None:
 
         # Plugins that run in a shared process all share the endpoint of the plugin manager
-        return PluginContext(self.endpoint, boot_info)
+        plugin.set_context(PluginContext(self.endpoint, boot_info))
 
 
 class PluginManager:
@@ -161,11 +157,10 @@ class PluginManager:
             if not self._scope.is_responsible_for_plugin(plugin):
                 continue
 
-            context = self._scope.create_plugin_context(
+            self._scope.create_plugin_context(
                 plugin,
                 TrinityBootInfo(args, trinity_config, boot_kwargs)
             )
-            plugin.set_context(context)
             plugin.ready()
 
     def shutdown_blocking(self) -> None:
