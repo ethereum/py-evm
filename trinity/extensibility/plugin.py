@@ -58,24 +58,55 @@ class TrinityBootInfo(NamedTuple):
 
 class PluginContext:
     """
-    The ``PluginContext`` holds valuable contextual information such as the parsed
-    arguments that were used to launch ``Trinity``. It also provides access to APIs
-    such as the ``EventBus``.
+    The :class:`~trinity.extensibility.plugin.PluginContext` holds valuable contextual information
+    and APIs to be used by a plugin. This includes the parsed arguments that were used to launch
+    ``Trinity`` as well as an :class:`~lahja.endpoint.Endpoint` that the plugin can use to connect
+    to the central :class:`~lahja.eventbus.EventBus`.
 
-    Each plugin gets a ``PluginContext`` injected during startup.
+    The :class:`~trinity.extensibility.plugin.PluginContext` is set during startup and is
+    guaranteed to exist by the time that a plugin receives its
+    :meth:`~trinity.extensibility.plugin.BasePlugin.ready` call.
     """
 
     def __init__(self, endpoint: Endpoint, boot_info: TrinityBootInfo) -> None:
-        self.event_bus = endpoint
+        self._event_bus = endpoint
+        self._args: Namespace = boot_info.args
+        self._trinity_config: TrinityConfig = boot_info.trinity_config
+        # Leaving boot_kwargs as an undocumented public member as it will most likely go away
         self.boot_kwargs: Dict[str, Any] = boot_info.boot_kwargs
-        self.args: Namespace = boot_info.args
-        self.trinity_config: TrinityConfig = boot_info.trinity_config
 
     def shutdown_host(self, reason: str) -> None:
+        """
+        Shutdown ``Trinity`` by broadcasting a :class:`~trinity.events.ShutdownRequest` on the
+        :class:`~lahja.eventbus.EventBus`. The actual shutdown routine is executed and coordinated
+        by the main application process who listens for this event.
+        """
         self.event_bus.broadcast(
             ShutdownRequest(reason),
             BroadcastConfig(filter_endpoint=MAIN_EVENTBUS_ENDPOINT)
         )
+
+    @property
+    def args(self) -> Namespace:
+        """
+        Return the parsed arguments that were used to launch the application
+        """
+        return self._args
+
+    @property
+    def event_bus(self) -> Endpoint:
+        """
+        Return the :class:`~lahja.endpoint.Endpoint` that the plugin uses to connect to the
+        central :class:`~lahja.eventbus.EventBus`
+        """
+        return self._event_bus
+
+    @property
+    def trinity_config(self) -> TrinityConfig:
+        """
+        Return the :class:`~trinity.config.TrinityConfig`
+        """
+        return self._trinity_config
 
 
 class BasePlugin(ABC):
@@ -87,7 +118,7 @@ class BasePlugin(ABC):
     @abstractmethod
     def name(self) -> str:
         """
-        Describe the name of the plugin
+        Describe the name of the plugin.
         """
         raise NotImplementedError(
             "Must be implemented by subclasses"
@@ -95,10 +126,17 @@ class BasePlugin(ABC):
 
     @property
     def logger(self) -> logging.Logger:
+        """
+        Get the :class:`~logging.Logger` for this plugin.
+        """
         return logging.getLogger('trinity.extensibility.plugin.BasePlugin#{0}'.format(self.name))
 
     @property
     def event_bus(self) -> Endpoint:
+        """
+        Get the :class:`~lahja.endpoint.Endpoint` that this plugin uses to connect to the
+        :class:`~lahja.eventbus.EventBus`
+        """
         if self.context is None:
             raise EventBusNotReady("Tried accessing ``event_bus`` before ``ready`` was called")
 
@@ -112,19 +150,24 @@ class BasePlugin(ABC):
 
     def ready(self) -> None:
         """
-        Called after the plugin received its context and is ready to bootstrap itself.
+        Notify the plugin that it is ready to bootstrap itself. Plugins can rely
+        on the :class:`~trinity.extensibility.plugin.PluginContext` to be set
+        after this method has been called.
         """
         pass
 
     def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         """
-        Called at startup, giving the plugin a chance to amend the Trinity CLI argument parser
+        Give the plugin a chance to amend the Trinity CLI argument parser. This hook is called
+        before :meth:`~trinity.extensibility.plugin.BasePlugin.ready`
         """
         pass
 
     def start(self) -> None:
         """
-        Prepare the plugin to get started and eventually cause ``start`` to get called.
+        Delegate to :meth:`~trinity.extensibility.plugin.BasePlugin._start` and set ``running``
+        to ``True``. Broadcast a :class:`~trinity.extensibility.events.PluginStartedEvent` on the
+        :class:`~lahja.eventbus.EventBus` and hence allow other plugins to act accordingly.
         """
         self.running = True
         self._start()
@@ -135,15 +178,19 @@ class BasePlugin(ABC):
 
     def _start(self) -> None:
         """
-        The ``start`` method is called only once when the plugin is started. In the case
-        of an `BaseIsolatedPlugin` this method will be launched in a separate process.
+        Perform the actual plugin start routine. In the case of a `BaseIsolatedPlugin` this method
+        will be called in a separate process.
+
+        This method should usually be overwritten by subclasses with the exception of plugins that
+        set ``func`` on the ``ArgumentParser`` to redefine the entire host program.
         """
         pass
 
 
 class BaseSyncStopPlugin(BasePlugin):
     """
-    A ``BaseSyncStopPlugin`` unwinds synchronoulsy, hence blocks until shut down is done.
+    A :class:`~trinity.extensibility.plugin.BaseSyncStopPlugin` unwinds synchronoulsy, hence blocks
+    until the shutdown is done.
     """
     def _stop(self) -> None:
         """
@@ -153,8 +200,8 @@ class BaseSyncStopPlugin(BasePlugin):
 
     def stop(self) -> None:
         """
-        Stop the plugin by delegating to
-        :meth:`~trinity.extensibility.plugin.BaseSyncStopPlugin._stop`
+        Delegate to :meth:`~trinity.extensibility.plugin.BaseSyncStopPlugin._stop` causing the
+        plugin to stop and setting ``running`` to ``False``.
         """
         self._stop()
         self.running = False
@@ -162,7 +209,8 @@ class BaseSyncStopPlugin(BasePlugin):
 
 class BaseAsyncStopPlugin(BasePlugin):
     """
-    A ``BaseAsyncStopPlugin`` unwinds asynchronoulsy, hence needs to be awaited.
+    A :class:`~trinity.extensibility.plugin.BaseAsyncStopPlugin` unwinds asynchronoulsy, hence
+    needs to be awaited.
     """
 
     async def _stop(self) -> None:
@@ -173,8 +221,8 @@ class BaseAsyncStopPlugin(BasePlugin):
 
     async def stop(self) -> None:
         """
-        Asynchronously stop the plugin by delegating to
-        :meth:`~trinity.extensibility.plugin.BaseAsyncStopPlugin._stop`
+        Delegate to :meth:`~trinity.extensibility.plugin.BaseAsyncStopPlugin._stop` causing the
+        plugin to stop asynchronously and setting ``running`` to ``False``.
         """
         await self._stop()
         self.running = False
@@ -182,18 +230,21 @@ class BaseAsyncStopPlugin(BasePlugin):
 
 class BaseMainProcessPlugin(BasePlugin):
     """
-    A ``BaseMainProcessPlugin`` overtakes the whole main process before most of the Trinity boot
-    process had a chance to start. In that sense it redefines the whole meaning of the ``trinity``
-    process.
+    A :class:`~trinity.extensibility.plugin.BaseMainProcessPlugin` overtakes the whole main process
+    early before any of the subsystems started. In that sense it redefines the whole meaning of the
+    ``trinity`` command.
     """
     pass
 
 
 class BaseIsolatedPlugin(BaseSyncStopPlugin):
     """
-    A ``BaseIsolatedPlugin`` runs in an isolated process and doesn't dictate whether its
-    implementation is based on non-blocking asyncio or synchronous calls. When an isolated
-    plugin is stopped it will first receive a SIGINT followed by a SIGTERM soon after.
+    A :class:`~trinity.extensibility.plugin.BaseIsolatedPlugin` runs in an isolated process and
+    hence provides security and flexibility by not making assumptions about its internal
+    operations.
+
+    Such plugins are free to use non-blocking asyncio as well as synchronous calls. When an
+    isolated plugin is stopped it does first receive a SIGINT followed by a SIGTERM soon after.
     It is up to the plugin to handle these signals accordingly.
     """
 
@@ -201,7 +252,7 @@ class BaseIsolatedPlugin(BaseSyncStopPlugin):
 
     def start(self) -> None:
         """
-        Prepare the plugin to get started and eventually cause ``start`` to get called.
+        Prepare the plugin to get started and eventually call ``_start`` in a separate process.
         """
         self.running = True
         self._process = ctx.Process(

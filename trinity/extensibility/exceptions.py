@@ -3,18 +3,21 @@ from trinity.exceptions import (
 )
 
 
-class UnsuitableShutdownError(BaseTrinityError):
+class EventBusNotReady(BaseTrinityError):
     """
-    Raised when `shutdown` was called on a ``PluginManager`` instance that operates
-    in the ``MainAndIsolatedProcessScope`` or when ``shutdown_blocking`` was called on a
-    ``PluginManager`` instance that operates in the ``SharedProcessScope``.
+    Raised when a plugin tried to access an :class:`~lahja.eventbus.EventBus` before the plugin
+    had received its :meth:`~trinity.extensibility.plugin.BasePlugin.ready` call.
     """
     pass
 
 
-class EventBusNotReady(BaseTrinityError):
+class UnsuitableShutdownError(BaseTrinityError):
     """
-    Raised when a plugin tried to access an EventBus before the plugin
-    had received its ``ready`` call.
+    Raised when :meth:`~trinity.extensibility.plugin_manager.PluginManager.shutdown` was called on
+    a :class:`~trinity.extensibility.plugin_manager.PluginManager` instance that operates in the
+    :class:`~trinity.extensibility.plugin_manager.MainAndIsolatedProcessScope` or when
+    :meth:`~trinity.extensibility.plugin.PluginManager.shutdown_blocking` was called on a
+    :class:`~trinity.extensibility.plugin_manager.PluginManager` instance that operates in the
+    :class:`~trinity.extensibility.plugin_manager.SharedProcessScope`.
     """
     pass
