@@ -37,6 +37,7 @@ from trinity.extensibility.plugin import (
     BasePlugin,
     BaseSyncStopPlugin,
     PluginContext,
+    TrinityBootInfo,
 )
 
 
@@ -58,9 +59,7 @@ class BaseManagerProcessScope(ABC):
     @abstractmethod
     def create_plugin_context(self,
                               plugin: BasePlugin,
-                              args: Namespace,
-                              trinity_config: TrinityConfig,
-                              boot_kwargs: Dict[str, Any]) -> PluginContext:
+                              boot_info: TrinityBootInfo) -> PluginContext:
         """
         Create the ``PluginContext`` for a given plugin.
         """
@@ -78,19 +77,14 @@ class MainAndIsolatedProcessScope(BaseManagerProcessScope):
 
     def create_plugin_context(self,
                               plugin: BasePlugin,
-                              args: Namespace,
-                              trinity_config: TrinityConfig,
-                              boot_kwargs: Dict[str, Any]) -> PluginContext:
+                              boot_info: TrinityBootInfo) -> PluginContext:
 
         if isinstance(plugin, BaseIsolatedPlugin):
             # Isolated plugins get an entirely new endpoint to be passed into that new process
-            context = PluginContext(
-                self.event_bus.create_endpoint(plugin.name)
+            return PluginContext(
+                self.event_bus.create_endpoint(plugin.name),
+                boot_info,
             )
-            context.args = args
-            context.trinity_config = trinity_config
-            context.boot_kwargs = boot_kwargs
-            return context
 
         # A plugin that overtakes the main process never gets far enough to even get a context.
         # For now it should be safe to just return `None`. Maybe reconsider in the future.
@@ -107,16 +101,10 @@ class SharedProcessScope(BaseManagerProcessScope):
 
     def create_plugin_context(self,
                               plugin: BasePlugin,
-                              args: Namespace,
-                              trinity_config: TrinityConfig,
-                              boot_kwargs: Dict[str, Any]) -> PluginContext:
+                              boot_info: TrinityBootInfo) -> PluginContext:
 
         # Plugins that run in a shared process all share the endpoint of the plugin manager
-        context = PluginContext(self.endpoint)
-        context.args = args
-        context.trinity_config = trinity_config
-        context.boot_kwargs = boot_kwargs
-        return context
+        return PluginContext(self.endpoint, boot_info)
 
 
 class PluginManager:
@@ -173,7 +161,10 @@ class PluginManager:
             if not self._scope.is_responsible_for_plugin(plugin):
                 continue
 
-            context = self._scope.create_plugin_context(plugin, args, trinity_config, boot_kwargs)
+            context = self._scope.create_plugin_context(
+                plugin,
+                TrinityBootInfo(args, trinity_config, boot_kwargs)
+            )
             plugin.set_context(context)
             plugin.ready()
 

@@ -15,6 +15,7 @@ from multiprocessing import (
 from typing import (
     Any,
     Dict,
+    NamedTuple
 )
 
 from lahja import (
@@ -49,6 +50,12 @@ from trinity.utils.logging import (
 )
 
 
+class TrinityBootInfo(NamedTuple):
+    args: Namespace
+    trinity_config: TrinityConfig
+    boot_kwargs: Dict[str, Any] = None
+
+
 class PluginContext:
     """
     The ``PluginContext`` holds valuable contextual information such as the parsed
@@ -58,11 +65,11 @@ class PluginContext:
     Each plugin gets a ``PluginContext`` injected during startup.
     """
 
-    def __init__(self, endpoint: Endpoint) -> None:
+    def __init__(self, endpoint: Endpoint, boot_info: TrinityBootInfo) -> None:
         self.event_bus = endpoint
-        self.boot_kwargs: Dict[str, Any] = None
-        self.args: Namespace = None
-        self.trinity_config: TrinityConfig = None
+        self.boot_kwargs: Dict[str, Any] = boot_info.boot_kwargs
+        self.args: Namespace = boot_info.args
+        self.trinity_config: TrinityConfig = boot_info.trinity_config
 
     def shutdown_host(self, reason: str) -> None:
         self.event_bus.broadcast(
