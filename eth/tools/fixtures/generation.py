@@ -1,6 +1,12 @@
 import hashlib
 import os
 
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+)
+
 from cytoolz import (
     curry,
     identity,
@@ -15,14 +21,14 @@ from .loading import (
 #
 # Pytest fixture generation
 #
-def idfn(fixture_params):
+def idfn(fixture_params: Iterable[Any]) -> str:
     """
     Function for pytest to produce uniform names for fixtures.
     """
     return ":".join((str(item) for item in fixture_params))
 
 
-def get_fixtures_file_hash(all_fixture_paths):
+def get_fixtures_file_hash(all_fixture_paths: Iterable[str]) -> str:
     """
     Returns the MD5 hash of the fixture files.  Used for cache busting.
     """
@@ -34,10 +40,10 @@ def get_fixtures_file_hash(all_fixture_paths):
 
 
 @curry
-def generate_fixture_tests(metafunc,
-                           base_fixture_path,
-                           filter_fn=identity,
-                           preprocess_fn=identity):
+def generate_fixture_tests(metafunc: Any,
+                           base_fixture_path: str,
+                           filter_fn: Callable[..., Any]=identity,
+                           preprocess_fn: Callable[..., Any]=identity) -> None:
     """
     Helper function for use with `pytest_generate_tests` which will use the
     pytest caching facilities to reduce the load time for fixture tests.

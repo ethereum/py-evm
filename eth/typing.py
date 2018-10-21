@@ -1,4 +1,6 @@
 from typing import (
+    Any,
+    Callable,
     Dict,
     Iterable,
     List,
@@ -31,5 +33,19 @@ GeneralState = Union[
     AccountState,
     List[Tuple[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]]
 ]
+
+TransactionDict = TypedDict('TransactionDict',
+                            {'nonce': int,
+                             'gasLimit': int,
+                             'gasPrice': int,
+                             'to': Address,
+                             'value': int,
+                             'data': bytes,
+                             'secretKey': bytes,
+                             })
+
+NormalizerType = Callable[[Dict[Any, Any]], Dict[str, Any]]
+
+TransactionNormalizer = Callable[[TransactionDict], TransactionDict]
 
 VRS = NewType("VRS", Tuple[int, int, int])
