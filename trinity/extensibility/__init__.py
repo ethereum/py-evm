@@ -9,6 +9,7 @@ from trinity.extensibility.plugin import (  # noqa: F401
     BaseSyncStopPlugin,
     DebugPlugin,
     PluginContext,
+    TrinityBootInfo,
 )
 from trinity.extensibility.plugin_manager import (  # noqa: F401
     BaseManagerProcessScope,
