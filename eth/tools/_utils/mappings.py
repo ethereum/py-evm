@@ -10,7 +10,7 @@ from typing import (
 from cytoolz import merge_with
 
 
-def merge_if_dicts(values: Sequence[Any]) -> Any:
+def merge_if_dicts(values: Sequence[Dict[Any, Any]]) -> Any:
     if all(isinstance(item, Mapping) for item in values):
         return merge_with(merge_if_dicts, *values)
     else:

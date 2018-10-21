@@ -2,6 +2,14 @@ import functools
 import json
 import os
 
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Tuple,
+)
+
 from cytoolz import (
     curry,
     identity,
@@ -18,13 +26,13 @@ from ._utils import (
 #
 # Filesystem fixture loading.
 #
-def find_fixture_files(fixtures_base_dir):
+def find_fixture_files(fixtures_base_dir: str) -> Iterable[str]:
     all_fixture_paths = recursive_find_files(fixtures_base_dir, "*.json")
     return all_fixture_paths
 
 
 @to_tuple
-def find_fixtures(fixtures_base_dir):
+def find_fixtures(fixtures_base_dir: str) -> Iterable[Tuple[str, str]]:
     """
     Finds all of the (fixture_path, fixture_key) pairs for a given path under
     the JSON test fixtures directory.
@@ -43,7 +51,7 @@ def find_fixtures(fixtures_base_dir):
 # all fixtures from the same file are executed sequentially allowing us to keep
 # a small rolling cache of the loaded fixture files.
 @functools.lru_cache(maxsize=16)
-def load_json_fixture(fixture_path):
+def load_json_fixture(fixture_path: str) -> Dict[str, Any]:
     """
     Loads a fixture file, caching the most recent files it loaded.
     """
@@ -52,7 +60,9 @@ def load_json_fixture(fixture_path):
     return file_fixtures
 
 
-def load_fixture(fixture_path, fixture_key, normalize_fn=identity):
+def load_fixture(fixture_path: str,
+                 fixture_key: str,
+                 normalize_fn: Callable[..., Any]=identity) -> Dict[str, Any]:
     """
     Loads a specific fixture from a fixture file, optionally passing it through
     a normalization function.
@@ -64,7 +74,10 @@ def load_fixture(fixture_path, fixture_key, normalize_fn=identity):
 
 @require_pytest
 @curry
-def filter_fixtures(all_fixtures, fixtures_base_dir, mark_fn=None, ignore_fn=None):
+def filter_fixtures(all_fixtures: Iterable[Any],
+                    fixtures_base_dir: str,
+                    mark_fn: Callable[[str, str], bool]=None,
+                    ignore_fn: Callable[[str, str], bool]=None) -> Any:
     """
     Helper function for filtering test fixtures.
 

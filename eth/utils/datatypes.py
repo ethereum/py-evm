@@ -9,7 +9,7 @@ from eth_utils import (
 )
 
 
-from typing import Any, Dict, Tuple, Iterator, List
+from typing import Any, Dict, Tuple, Type, TypeVar, Iterator, List
 
 
 def _is_local_prop(prop: str) -> bool:
@@ -61,14 +61,17 @@ def _get_top_level_keys(overrides: Dict[str, Any]) -> Iterator[str]:
 # dynamic subclasses where generated through this method
 
 
+T = TypeVar('T')
+
+
 class Configurable(object):
     """
     Base class for simple inline subclassing
     """
     @classmethod
-    def configure(cls,
+    def configure(cls: Type[T],
                   __name__: str=None,
-                  **overrides: Any) -> type:
+                  **overrides: Any) -> Type[T]:
 
         if __name__ is None:
             __name__ = cls.__name__

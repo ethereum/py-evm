@@ -1,8 +1,4 @@
 import binascii
-from collections.abc import (
-    Iterable,
-    Mapping,
-)
 import functools
 
 from typing import (
@@ -10,7 +6,9 @@ from typing import (
     AnyStr,
     Callable,
     Dict,
+    Iterable,
     List,
+    Mapping,
     Sequence,
     Tuple,
 )
@@ -58,6 +56,8 @@ from eth.tools._utils.mappings import (
 from eth.typing import (
     AccountState,
     GeneralState,
+    NormalizerType,
+    TransactionDict,
 )
 
 
@@ -97,7 +97,7 @@ def normalize_bytes(value: Any) -> bytes:
 
 
 @functools.lru_cache(maxsize=1024)
-def to_int(value: Any) -> int:
+def to_int(value: str) -> int:
     """
     Robust to integer conversion, handling hex values, string representations,
     and special cases like `0x`.
@@ -125,11 +125,7 @@ robust_decode_hex = eth_utils.curried.hexstr_if_str(to_bytes)
 #
 # Containers
 #
-
-NormalizerType = Callable[[Dict[Any, Any]], Iterable[Tuple[Any, Any]]]
-
-
-def dict_normalizer(formatters: Dict[Any, Any],
+def dict_normalizer(formatters: Dict[Any, Callable[..., Any]],
                     required: Iterable[Any]=None,
                     optional: Iterable[Any]=None) -> NormalizerType:
 
@@ -137,14 +133,14 @@ def dict_normalizer(formatters: Dict[Any, Any],
 
     if required is None and optional is None:
         required_set_form = all_keys
+    elif required is not None and optional is not None:
+        raise ValueError("Both required and optional keys specified")
     elif required is not None:
         required_set_form = set(required)
     elif optional is not None:
         required_set_form = all_keys - set(optional)
-    else:
-        raise ValueError("Both required and optional keys specified")
 
-    def normalizer(d: Dict[Any, Any]) -> Iterable[Tuple[Any, Any]]:
+    def normalizer(d: Dict[Any, Any]) -> Dict[str, Any]:
         keys = set(d.keys())
         missing_keys = required_set_form - keys
         superfluous_keys = keys - all_keys
@@ -158,9 +154,9 @@ def dict_normalizer(formatters: Dict[Any, Any],
     return normalizer
 
 
-def dict_options_normalizer(normalizers: Iterable[Callable[..., Any]]) -> Callable[..., Any]:
+def dict_options_normalizer(normalizers: Iterable[NormalizerType]) -> NormalizerType:
 
-    def normalize(d: Dict[Any, Any]) -> Callable[..., Any]:
+    def normalize(d: Dict[Any, Any]) -> Dict[str, Any]:
         first_exception = None
         for normalizer in normalizers:
             try:
@@ -251,7 +247,7 @@ normalize_state = compose(
 )
 
 
-normalize_main_transaction = dict_normalizer({
+normalize_main_transaction = dict_normalizer({    # type: ignore # Overwrite type hint not yet supported # noqa: 501
     "data": normalize_bytes,
     "gasLimit": normalize_int,
     "gasPrice": normalize_int,
@@ -259,15 +255,15 @@ normalize_main_transaction = dict_normalizer({
     "secretKey": normalize_bytes,
     "to": normalize_to_address,
     "value": normalize_int,
-})
+})  # type: TransactionNormalizer
 
 
-normalize_transaction = dict_options_normalizer([
+normalize_transaction = dict_options_normalizer([  # type: ignore # Overwrite type hint not yet supported # noqa: 501
     normalize_main_transaction,
-])
+])  # type: TransactionNormalizer
 
 
-normalize_main_transaction_group = dict_normalizer({
+normalize_main_transaction_group = dict_normalizer({   # type: ignore # Overwrite type hint not yet supported # noqa: 501
     "data": eth_utils.curried.apply_formatter_to_array(normalize_bytes),
     "gasLimit": eth_utils.curried.apply_formatter_to_array(normalize_int),
     "gasPrice": normalize_int,
@@ -275,12 +271,12 @@ normalize_main_transaction_group = dict_normalizer({
     "secretKey": normalize_bytes,
     "to": normalize_to_address,
     "value": eth_utils.curried.apply_formatter_to_array(normalize_int),
-})
+})  # type: TransactionNormalizer
 
 
-normalize_transaction_group = dict_options_normalizer([
+normalize_transaction_group = dict_options_normalizer([   # type: ignore # Overwrite type hint not yet supported # noqa: 501
     normalize_main_transaction_group,
-])
+])  # type: TransactionNormalizer
 
 
 normalize_execution = dict_normalizer({
@@ -331,12 +327,12 @@ normalize_environment = dict_options_normalizer([
 #
 # Fixture Normalizers
 #
-def normalize_unsigned_transaction(transaction: Dict[str, Any],
-                                   indexes: Dict[str, Any]) -> Dict[str, Any]:
+def normalize_unsigned_transaction(transaction: TransactionDict,
+                                   indexes: Dict[str, Any]) -> TransactionDict:
 
-    normalized = normalize_transaction_group(transaction)
+    normalized = normalize_transaction_group(transaction)   # type: TransactionDict
     return merge(normalized, {
-        transaction_key: normalized[transaction_key][indexes[index_key]]
+        transaction_key: normalized[transaction_key][indexes[index_key]]    # type: ignore # https://github.com/python/mypy/issues/5359 # noqa: 501
         for transaction_key, index_key in [
             ("gasLimit", "gas"),
             ("value", "value"),

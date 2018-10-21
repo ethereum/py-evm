@@ -1,3 +1,8 @@
+from typing import (
+    Any,
+    Dict,
+)
+
 from cytoolz import (
     assoc_in,
     merge,
@@ -22,7 +27,11 @@ FILLED_WITH_TEMPLATE = "py-evm-{version}"
 #
 # Primary test filler
 #
-def fill_test(filler, info=None, apply_formatter=True, **kwargs):
+def fill_test(filler: Dict[str, Any],
+              info: Dict[str, Any]=None,
+              apply_formatter: bool=True,
+              **kwargs: Any) -> Dict[str, Any]:
+
     test_name = get_test_name(filler)
     test = filler[test_name]
 

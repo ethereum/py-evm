@@ -7,8 +7,10 @@ from functools import (
 )
 from typing import (  # noqa: F401
     Any,
+    Callable,
     Dict,
     List,
+    Sequence,
 )
 from cytoolz import (
     assoc,
@@ -37,6 +39,11 @@ from eth.tools._utils.mappings import (
 )
 from eth.tools._utils.vyper import (
     compile_vyper_lll,
+)
+
+from eth.typing import (
+    GeneralState,
+    TransactionDict,
 )
 
 from ._utils import (
@@ -69,10 +76,10 @@ DEFAULT_MAIN_TRANSACTION = {
     "secretKey": decode_hex("0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"),
     "to": to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"),
     "value": 0
-}
+}   # type: TransactionDict
 
 
-def get_default_transaction(networks):
+def get_default_transaction(networks: Any) -> TransactionDict:
     return DEFAULT_MAIN_TRANSACTION
 
 
@@ -96,7 +103,7 @@ Test.__new__.__defaults__ = (None,)  # type: ignore
 # Filler Generation
 #
 
-def setup_filler(name, environment=None):
+def setup_filler(name: str, environment: Dict[Any, Any]=None) -> Dict[str, Dict[str, Any]]:
     environment = normalize_environment(environment or {})
     return {name: {
         "env": environment,
@@ -104,7 +111,7 @@ def setup_filler(name, environment=None):
     }}
 
 
-def setup_main_filler(name, environment=None):
+def setup_main_filler(name: str, environment: Dict[Any, Any]=None) -> Dict[str, Dict[str, Any]]:
     """
     Kick off the filler generation process by creating the general filler scaffold with
     a test name and general information about the testing environment.
@@ -131,7 +138,7 @@ def setup_main_filler(name, environment=None):
     return setup_filler(name, merge(DEFAULT_MAIN_ENVIRONMENT, environment or {}))
 
 
-def pre_state(*raw_state, filler):
+def pre_state(*raw_state: GeneralState, filler: Dict[str, Any]) -> None:
     """
     Specify the state prior to the test execution. Multiple invocations don't override
     the state but extend it instead.
@@ -162,7 +169,7 @@ def pre_state(*raw_state, filler):
         (address, {"balance", <account balance>})
     """
     @wraps(pre_state)
-    def _pre_state(filler):
+    def _pre_state(filler: Dict[str, Any]) -> Dict[str, Any]:
         test_name = get_test_name(filler)
 
         old_pre_state = filler[test_name].get("pre_state", {})
@@ -178,7 +185,11 @@ def pre_state(*raw_state, filler):
         return assoc_in(filler, [test_name, "pre"], new_pre_state)
 
 
-def _expect(post_state, networks, transaction, filler):
+def _expect(post_state: Dict[str, Any],
+            networks: Any,
+            transaction: TransactionDict,
+            filler: Dict[str, Any]) -> Dict[str, Any]:
+
     test_name = get_test_name(filler)
     test = filler[test_name]
     test_update = {test_name: {}}  # type: Dict[str, Dict[Any, Any]]
@@ -231,7 +242,10 @@ def _expect(post_state, networks, transaction, filler):
     return deep_merge(filler, test_update)
 
 
-def expect(post_state=None, networks=None, transaction=None):
+def expect(post_state: Dict[str, Any]=None,
+           networks: Any=None,
+           transaction: TransactionDict=None) -> Callable[..., Dict[str, Any]]:
+
     """
     Specify the expected result for the test.
 
@@ -276,7 +290,7 @@ def expect(post_state=None, networks=None, transaction=None):
 
 
 @curry
-def execution(execution, filler):
+def execution(execution: Dict[str, Any], filler: Dict[str, Any]) -> Dict[str, Any]:
     """
     For VM tests, specify the code that is being run as well as the current state of
     the EVM. State tests don't support this object. The parameter is a dictionary specifying some
