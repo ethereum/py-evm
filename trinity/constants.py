@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Dict, Tuple
 
 from eth_utils import (
@@ -9,6 +10,10 @@ from eth_keys import (
 )
 
 from p2p.kademlia import Address, Node
+
+
+# The file path to the non-python assets
+ASSETS_DIR = Path(__file__).parent / "assets"
 
 
 # sync modes

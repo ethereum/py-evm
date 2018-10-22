@@ -1,6 +1,7 @@
 import cachetools.func
 
 from typing import (
+    Tuple,
     Type
 )
 
@@ -19,6 +20,10 @@ from eth.rlp.transactions import (
     BaseTransaction,
     BaseTransactionFields
 )
+from eth.vm.base import BaseVM
+
+
+T_VM_CONFIGURATION = Tuple[Tuple[BlockNumber, Type[BaseVM]], ...]
 
 
 class DefaultTransactionValidator():
@@ -30,16 +35,36 @@ class DefaultTransactionValidator():
     transaction class than the one that corresponds to the ``initial_tx_validation_block_number``.
     """
 
-    def __init__(self, chain: BaseChain, initial_tx_validation_block_number: BlockNumber) -> None:
+    def __init__(self,
+                 chain: BaseChain,
+                 vm_configuration: T_VM_CONFIGURATION,
+                 initial_tx_validation_block_number: BlockNumber) -> None:
+        if not vm_configuration:
+            raise TypeError(
+                "The `DefaultTransactionValidator` cannot function with an "
+                "empty vm_configuration"
+            )
+
         self.chain = chain
-        self._initial_tx_class = self._get_tx_class_for_block_number(
-            initial_tx_validation_block_number
-        )
+        self.vm_configuration = vm_configuration
+
         self._ordered_tx_classes = [
             vm_class.get_transaction_class()
-            for _, vm_class in chain.get_vm_configuration()
+            for _, vm_class in self.vm_configuration
         ]
-        self._initial_tx_class_index = self._ordered_tx_classes.index(self._initial_tx_class)
+
+        if initial_tx_validation_block_number is None:
+            self._initial_tx_class = self._get_tx_class_for_block_number(
+                initial_tx_validation_block_number
+            )
+            self._initial_tx_class_index = tuple(
+                vm_class
+                for _, vm_class
+                in self.vm_configuration
+            ).index(self._initial_tx_class)
+        else:
+            self._initial_tx_class = self._ordered_tx_classes[-1]
+            self._initial_tx_class_index = len(self._ordered_tx_classes)
 
     def __call__(self, transaction: BaseTransactionFields) -> bool:
 

@@ -24,7 +24,6 @@ from eth_typing import (
 
 from eth.chains.base import (
     AccountState,
-    BaseChain,
 )
 from eth.db.backends.base import BaseDB
 from eth.db.chain import (
@@ -58,11 +57,13 @@ from trinity.sync.light.service import (
     BaseLightPeerChain,
 )
 
+from .base import BaseAsyncChain
+
 if TYPE_CHECKING:
     from eth.vm.base import BaseVM  # noqa: F401
 
 
-class LightDispatchChain(BaseChain):
+class LightDispatchChain(BaseAsyncChain):
     """
     Provide the :class:`BaseChain` API, even though only a
     :class:`BaseLightPeerChain` is syncing. Store results locally so that not
@@ -91,16 +92,16 @@ class LightDispatchChain(BaseChain):
     def from_genesis(cls,
                      base_db: BaseDB,
                      genesis_params: Dict[str, HeaderParams],
-                     genesis_state: AccountState=None) -> 'BaseChain':
+                     genesis_state: AccountState=None) -> 'BaseAsyncChain':
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     @classmethod
     def from_genesis_header(cls,
                             base_db: BaseDB,
-                            genesis_header: BlockHeader) -> 'BaseChain':
+                            genesis_header: BlockHeader) -> 'BaseAsyncChain':
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
-    def get_chain_at_block_parent(self, block: BaseBlock) -> 'BaseChain':
+    def get_chain_at_block_parent(self, block: BaseBlock) -> 'BaseAsyncChain':
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     #

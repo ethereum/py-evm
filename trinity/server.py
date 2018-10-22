@@ -6,6 +6,7 @@ from typing import (
     Generic,
     Sequence,
     Tuple,
+    Type,
     TypeVar,
 )
 
@@ -19,11 +20,10 @@ from lahja import (
     Endpoint
 )
 
-from eth.chains import AsyncChain
-
 from eth_typing import BlockNumber
 
 from eth.constants import GENESIS_BLOCK_NUMBER
+from eth.vm.base import BaseVM
 
 from p2p.auth import (
     decode_authentication,
@@ -58,6 +58,7 @@ from p2p.p2p_proto import (
 from p2p.peer import BasePeer, PeerConnection
 from p2p.service import BaseService
 
+from trinity.chains.base import BaseAsyncChain
 from trinity.constants import DEFAULT_PREFERRED_NODES
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
@@ -75,6 +76,7 @@ from trinity.sync.light.chain import LightChainSyncer
 DIAL_IN_OUT_RATIO = 0.75
 
 TPeerPool = TypeVar('TPeerPool', bound=BaseChainPeerPool)
+T_VM_CONFIGURATION = Tuple[Tuple[BlockNumber, Type[BaseVM]], ...]
 
 
 class BaseServer(BaseService, Generic[TPeerPool]):
@@ -85,7 +87,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
     def __init__(self,
                  privkey: datatypes.PrivateKey,
                  port: int,
-                 chain: AsyncChain,
+                 chain: BaseAsyncChain,
                  chaindb: AsyncChainDB,
                  headerdb: AsyncHeaderDB,
                  base_db: AsyncBaseDB,
@@ -98,11 +100,16 @@ class BaseServer(BaseService, Generic[TPeerPool]):
                  token: CancelToken = None,
                  ) -> None:
         super().__init__(token)
+        # cross process event bus
         self.event_bus = event_bus
-        self.headerdb = headerdb
-        self.chaindb = chaindb
+
+        # chain information
         self.chain = chain
+        self.chaindb = chaindb
+        self.headerdb = headerdb
         self.base_db = base_db
+
+        # node information
         self.privkey = privkey
         self.port = port
         self.network_id = network_id
@@ -112,6 +119,8 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         if self.preferred_nodes is None and network_id in DEFAULT_PREFERRED_NODES:
             self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
         self.use_discv5 = use_discv5
+
+        # child services
         self.upnp_service = UPnPService(port, token=self.cancel_token)
         self.peer_pool = self._make_peer_pool()
         self.request_server = self._make_request_server()
@@ -309,7 +318,7 @@ class FullServer(BaseServer[ETHPeerPool]):
         context = ChainContext(
             headerdb=self.headerdb,
             network_id=self.network_id,
-            vm_configuration=self.chain.get_vm_configuration(),
+            vm_configuration=self.chain.vm_configuration,
         )
         return ETHPeerPool(
             privkey=self.privkey,
@@ -341,7 +350,7 @@ class LightServer(BaseServer[LESPeerPool]):
         context = ChainContext(
             headerdb=self.headerdb,
             network_id=self.network_id,
-            vm_configuration=self.chain.get_vm_configuration(),
+            vm_configuration=self.chain.vm_configuration,
         )
         return LESPeerPool(
             privkey=self.privkey,

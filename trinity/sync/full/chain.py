@@ -32,7 +32,6 @@ from eth_utils.toolz import (
     valfilter,
 )
 
-from eth.chains import AsyncChain
 from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_UNCLE_HASH,
@@ -46,6 +45,7 @@ from p2p.exceptions import BaseP2PError, PeerConnectionLost
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.protocol import Command
 
+from trinity.chains.base import BaseAsyncChain
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB
 from trinity.protocol.eth.monitors import ETHChainTipMonitor
@@ -151,7 +151,7 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer, PeerSubscriber):
     tip_monitor_class = ETHChainTipMonitor
 
     def __init__(self,
-                 chain: AsyncChain,
+                 chain: BaseAsyncChain,
                  db: AsyncHeaderDB,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
@@ -418,7 +418,7 @@ class FastChainSyncer(BaseBodyChainSyncer):
     db: AsyncChainDB
 
     def __init__(self,
-                 chain: AsyncChain,
+                 chain: BaseAsyncChain,
                  db: AsyncHeaderDB,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
@@ -809,7 +809,7 @@ class RegularChainSyncer(BaseBodyChainSyncer):
     Here, the run() method will execute the sync loop forever, until our CancelToken is triggered.
     """
     def __init__(self,
-                 chain: AsyncChain,
+                 chain: BaseAsyncChain,
                  db: AsyncHeaderDB,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:

@@ -18,9 +18,9 @@ from eth_keys.datatypes import PrivateKey
 from p2p.constants import DEFAULT_MAX_PEERS
 
 from trinity.constants import (
-    SYNC_LIGHT,
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
+    SYNC_LIGHT,
 )
 
 
@@ -131,6 +131,11 @@ def construct_trinity_config_params(
 
     if args.trinity_root_dir is not None:
         yield 'trinity_root_dir', args.trinity_root_dir
+
+    if args.genesis is not None:
+        if args.data_dir is None:
+            raise ValueError("Must provide both genesis and data-dir")
+        yield 'genesis_config', args.genesis
 
     if args.data_dir is not None:
         yield 'data_dir', args.data_dir

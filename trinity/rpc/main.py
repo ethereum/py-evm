@@ -11,14 +11,11 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.chains.base import (
-    AsyncChain,
-)
-
 from lahja import (
     Endpoint
 )
 
+from trinity.chains.base import BaseAsyncChain
 from trinity.rpc.modules import (
     Eth,
     EVM,
@@ -74,7 +71,9 @@ class RPCServer:
         Web3,
     )
 
-    def __init__(self, chain: AsyncChain=None, event_bus: Endpoint=None) -> None:
+    def __init__(self,
+                 chain: BaseAsyncChain=None,
+                 event_bus: Endpoint=None) -> None:
         self.modules: Dict[str, RPCModule] = {}
         self.chain = chain
         for M in self.module_classes:
@@ -143,11 +142,11 @@ class RPCServer:
         return generate_response(request, result, error)
 
     @property
-    def chain(self) -> AsyncChain:
+    def chain(self) -> BaseAsyncChain:
         return self.__chain
 
     @chain.setter
-    def chain(self, new_chain: AsyncChain) -> None:
+    def chain(self, new_chain: BaseAsyncChain) -> None:
         self.__chain = new_chain
         for module in self.modules.values():
             module.set_chain(new_chain)

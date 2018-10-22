@@ -22,8 +22,6 @@ from trinity.sync.light.service import LightPeerChain
 
 
 class LightNode(Node):
-    chain_class: Type[LightDispatchChain] = None
-
     _chain: LightDispatchChain = None
     _peer_chain: LightPeerChain = None
     _p2p_server: LightServer = None
@@ -39,13 +37,16 @@ class LightNode(Node):
         self._max_peers = trinity_config.max_peers
         self._bootstrap_nodes = trinity_config.bootstrap_nodes
         self._preferred_nodes = trinity_config.preferred_nodes
-        self._use_discv5 = trinity_config.use_discv5
 
         self._peer_chain = LightPeerChain(
             self.headerdb,
             cast(LESPeerPool, self.get_peer_pool()),
             token=self.cancel_token,
         )
+
+    @property
+    def chain_class(self) -> Type[LightDispatchChain]:
+        return self.chain_config.light_chain_class
 
     async def _run(self) -> None:
         self.run_daemon(self._peer_chain)
@@ -63,13 +64,13 @@ class LightNode(Node):
         if self._p2p_server is None:
             manager = self.db_manager
             self._p2p_server = LightServer(
-                self._nodekey,
-                self._port,
-                manager.get_chain(),  # type: ignore
-                manager.get_chaindb(),  # type: ignore
-                self.headerdb,
-                manager.get_db(),  # type: ignore
-                self._network_id,
+                privkey=self._nodekey,
+                port=self._port,
+                chain=manager.get_chain(),  # type: ignore
+                chaindb=manager.get_chaindb(),  # type: ignore
+                headerdb=self.headerdb,
+                base_db=manager.get_db(),  # type: ignore
+                network_id=self._network_id,
                 max_peers=self._max_peers,
                 bootstrap_nodes=self._bootstrap_nodes,
                 preferred_nodes=self._preferred_nodes,
