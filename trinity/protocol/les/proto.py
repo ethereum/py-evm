@@ -71,8 +71,8 @@ class LESProtocol(Protocol):
     def send_get_block_bodies(self, block_hashes: List[bytes], request_id: int) -> None:
         if len(block_hashes) > constants.MAX_BODIES_FETCH:
             raise ValueError(
-                "Cannot ask for more than {} blocks in a single request".format(
-                    constants.MAX_BODIES_FETCH))
+                f"Cannot ask for more than {constants.MAX_BODIES_FETCH} blocks in a single request"
+            )
         data = {
             'request_id': request_id,
             'block_hashes': block_hashes,

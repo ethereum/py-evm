@@ -181,7 +181,7 @@ class TrinityConfig:
         elif self.sync_mode == SYNC_LIGHT:
             return self.data_dir / DATABASE_DIR_NAME / "light"
         else:
-            raise ValueError("Unknown sync mode: {}".format(self.sync_mode))
+            raise ValueError(f"Unknown sync mode: {self.sync_mode}")
 
     @property
     def database_ipc_path(self) -> Path:
@@ -238,7 +238,7 @@ class TrinityConfig:
         else:
             raise TypeError(
                 "Nodekey must either be a raw byte-string or an eth_keys "
-                "`PrivateKey` instance"
+                f"`PrivateKey` instance: got {type(self._nodekey)}"
             )
 
     @classmethod

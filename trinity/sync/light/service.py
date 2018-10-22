@@ -171,7 +171,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         peer.sub_proto.send_get_block_bodies([block_hash], request_id)
         reply = await self._wait_for_reply(request_id)
         if not reply['bodies']:
-            raise BlockNotFound("Peer {} has no block with hash {}".format(peer, block_hash))
+            raise BlockNotFound(f"Peer {peer} has no block with hash {block_hash}")
         return reply['bodies'][0]
 
     # TODO add a get_receipts() method to BaseChain API, and dispatch to this, as needed
@@ -185,7 +185,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         peer.sub_proto.send_get_receipts(block_hash, request_id)
         reply = await self._wait_for_reply(request_id)
         if not reply['receipts']:
-            raise BlockNotFound("No block with hash {} found".format(block_hash))
+            raise BlockNotFound(f"No block with hash {block_hash} found")
         return reply['receipts'][0]
 
     # TODO implement AccountDB exceptions that provide the info needed to
@@ -356,7 +356,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
             reverse=False,
         )
         if not headers:
-            raise HeaderNotFound("Peer {} has no block with hash {}".format(peer, block_hash))
+            raise HeaderNotFound(f"Peer {peer} has no block with hash {block_hash}")
         header = headers[0]
         if header.hash != block_hash:
             raise BadLESResponse(

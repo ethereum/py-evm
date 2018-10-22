@@ -45,9 +45,7 @@ class GetNodeDataValidator(BaseValidator[NodeDataBundles]):
         unexpected_keys = node_key_set.difference(self.node_hashes)
 
         if unexpected_keys:
-            raise ValidationError(
-                "Response contains {0} unexpected nodes".format(len(unexpected_keys))
-            )
+            raise ValidationError(f"Response contains {len(unexpected_keys)} unexpected nodes")
 
 
 class ReceiptsValidator(BaseValidator[ReceiptsBundles]):
@@ -69,9 +67,7 @@ class ReceiptsValidator(BaseValidator[ReceiptsBundles]):
         unexpected_roots = actual_receipt_roots.difference(expected_receipt_roots)
 
         if unexpected_roots:
-            raise ValidationError(
-                "Got {0} unexpected receipt roots".format(len(unexpected_roots))
-            )
+            raise ValidationError(f"Got {len(unexpected_roots)} unexpected receipt roots")
 
 
 class GetBlockBodiesValidator(BaseValidator[BlockBodyBundles]):
@@ -90,6 +86,4 @@ class GetBlockBodiesValidator(BaseValidator[BlockBodyBundles]):
         }
         unexpected_keys = actual_keys.difference(expected_keys)
         if unexpected_keys:
-            raise ValidationError(
-                "Got {0} unexpected block bodies".format(len(unexpected_keys))
-            )
+            raise ValidationError(f"Got {len(unexpected_keys)} unexpected block bodies")

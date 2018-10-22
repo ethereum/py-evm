@@ -65,11 +65,9 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
             if first_header.hash != self.block_number_or_hash:
                 raise ValidationError(
                     "Returned headers cannot be matched to header request. "
-                    "Expected first header to have hash of {0} but instead got "
-                    "{1}.".format(
-                        encode_hex(self.block_number_or_hash),
-                        encode_hex(first_header.hash),
-                    )
+                    "Expected first header to have hash of "
+                    f"{encode_hex(self.block_number_or_hash)} but instead got "
+                    f"{encode_hex(first_header.hash)}."
                 )
 
         block_numbers: Tuple[BlockNumber, ...] = tuple(
@@ -115,8 +113,7 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
         # check for numbers that should not be present.
         unexpected_numbers = set(block_numbers).difference(expected_numbers)
         if unexpected_numbers:
-            raise ValidationError(
-                'Unexpected numbers: {0}'.format(unexpected_numbers))
+            raise ValidationError(f'Unexpected numbers: {unexpected_numbers}')
 
         # check that the numbers are correctly ordered.
         expected_order = tuple(sorted(
@@ -126,8 +123,8 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
         if block_numbers != expected_order:
             raise ValidationError(
                 'Returned headers are not correctly ordered.\n'
-                'Expected: {0}\n'
-                'Got     : {1}\n'.format(expected_order, block_numbers)
+                f'Expected: {expected_order}\n'
+                f'Got     : {block_numbers}\n'
             )
 
         # check that all provided numbers are an ordered subset of the master
@@ -140,6 +137,6 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
             else:
                 raise ValidationError(
                     'Returned headers contain an unexpected block number.\n'
-                    'Unexpected Number: {0}\n'
-                    'Expected Numbers : {1}'.format(number, expected_numbers)
+                    f'Unexpected Number: {number}\n'
+                    f'Expected Numbers : {expected_numbers}'
                 )

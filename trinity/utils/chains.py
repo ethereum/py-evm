@@ -51,7 +51,7 @@ def get_data_dir_for_network_id(network_id: int, trinity_root_dir: Path) -> Path
     try:
         return get_local_data_dir(DEFAULT_DATA_DIRS[network_id], trinity_root_dir)
     except KeyError:
-        raise KeyError("Unknown network id: `{0}`".format(network_id))
+        raise KeyError(f"Unknown network id: `{network_id}`")
 
 
 LOG_DIRNAME = 'logs'

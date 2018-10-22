@@ -127,7 +127,7 @@ class BasePlugin(ABC):
         """
         Get the :class:`~logging.Logger` for this plugin.
         """
-        return logging.getLogger('trinity.extensibility.plugin.BasePlugin#{0}'.format(self.name))
+        return logging.getLogger(f'trinity.extensibility.plugin.BasePlugin#{self.name}')
 
     @property
     def event_bus(self) -> Endpoint:

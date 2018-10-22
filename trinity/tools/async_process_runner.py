@@ -61,7 +61,7 @@ class AsyncProcessRunner():
     async def kill_after_timeout(self, timeout_sec: int) -> None:
         await asyncio.sleep(timeout_sec)
         self.kill()
-        raise TimeoutError('Killed process after {} seconds'.format(timeout_sec))
+        raise TimeoutError(f'Killed process after {timeout_sec} seconds')
 
     def kill(self) -> None:
         os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)

@@ -35,8 +35,8 @@ class BaseExchangeHandler(ABC):
         for attr, exchange_cls in self._exchange_config.items():
             if hasattr(self, attr):
                 raise AttributeError(
-                    "Unable to set manager on attribute `{0}` which is already "
-                    "present on the class: {1}".format(attr, getattr(self, attr))
+                    f"Unable to set manager on attribute `{attr}` which is already "
+                    f"present on the class: {getattr(self, attr)}"
                 )
             manager: ExchangeManager[Any, Any, Any]
             manager = ExchangeManager(self._peer, exchange_cls.response_cmd_type, peer.cancel_token)

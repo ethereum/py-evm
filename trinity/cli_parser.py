@@ -74,11 +74,11 @@ class ValidateAndStoreLogLevel(argparse.Action):
             if not path or not raw_log_level:
                 raise argparse.ArgumentError(
                     self,
-                    "Invalid logging config: '{0}'.  Log level may be specified "
+                    f"Invalid logging config: '{value}'.  Log level may be specified "
                     "as a global logging level using the syntax `--log-level "
                     "<LEVEL-NAME>` or for to specify the logging level for an "
                     "individual logger, '--log-level "
-                    "<LOGGER-NAME>:<LEVEL-NAME>'".format(value)
+                    "<LOGGER-NAME>:<LEVEL-NAME>'"
                 )
 
             try:
@@ -87,11 +87,11 @@ class ValidateAndStoreLogLevel(argparse.Action):
                 raise argparse.ArgumentError(
                     self,
                     (
-                        "Invalid logging level.  Got '{0}'.  Must be one of\n"
+                        f"Invalid logging level.  Got '{raw_log_level}'.  Must be one of\n"
                         " - 5/10/20/30/40 (numeric logging levels)\n"
                         " - trace/debug/info/warn/warning/error/critical (lowercase)\n"
                         " - TRACE/DEBUG/INFO/WARN/WARNING/ERROR/CRITICAL (uppercase)\n"
-                    ).format(raw_log_level),
+                    )
                 )
 
         if getattr(namespace, self.dest) is None:
@@ -101,15 +101,13 @@ class ValidateAndStoreLogLevel(argparse.Action):
             if path is None:
                 raise argparse.ArgumentError(
                     self,
-                    "Global logging has already been configured to '{0}'.  The "
-                    "global logging level may only be specified once.".format(
-                        log_level,
-                    )
+                    f"Global logging has already been configured to '{log_level}'.  The "
+                    "global logging level may only be specified once."
                 )
             else:
                 raise argparse.ArgumentError(
                     self,
-                    "The logging level for '{0}' was provided more than once. "
+                    f"The logging level for '{path}' was provided more than once. "
                     "Please ensure the each name is provided only once"
                 )
         log_levels[path] = log_level

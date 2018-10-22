@@ -90,10 +90,8 @@ class ResponseCandidateStream(
             await self.wait(self._lock.acquire(), timeout=timeout)
         except TimeoutError:
             raise AlreadyWaiting(
-                "Timed out waiting for {0} request lock for peer: {1}".format(
-                    self.response_msg_name,
-                    self._peer
-                )
+                f"Timed out waiting for {self.response_msg_name} request lock "
+                f"or peer: {self._peer}"
             )
 
         try:

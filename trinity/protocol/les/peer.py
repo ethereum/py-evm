@@ -77,20 +77,21 @@ class LESPeer(BaseChainPeer):
             self, cmd: Command, msg: _DecodedMsgType) -> None:
         if not isinstance(cmd, (Status, StatusV2)):
             await self.disconnect(DisconnectReason.subprotocol_error)
-            raise HandshakeFailure(
-                "Expected a LES Status msg, got {}, disconnecting".format(cmd))
+            raise HandshakeFailure(f"Expected a LES Status msg, got {cmd}, disconnecting")
         msg = cast(Dict[str, Any], msg)
         if msg['networkId'] != self.network_id:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
-                "{} network ({}) does not match ours ({}), disconnecting".format(
-                    self, msg['networkId'], self.network_id))
+                f"{self} network ({msg['networkId']}) does not match ours "
+                f"({self.network_id}), disconnecting"
+            )
         genesis = await self.genesis
         if msg['genesisHash'] != genesis.hash:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
-                "{} genesis ({}) does not match ours ({}), disconnecting".format(
-                    self, encode_hex(msg['genesisHash']), genesis.hex_hash))
+                f"{self} genesis ({encode_hex(msg['genesisHash'])}) does not "
+                f"match ours ({genesis.hex_hash}), disconnecting"
+            )
         # Eventually we might want to keep connections to peers where we are the only side serving
         # data, but right now both our chain syncer and the Peer.boot() method expect the remote
         # to reply to header requests, so if they don't we simply disconnect here.
