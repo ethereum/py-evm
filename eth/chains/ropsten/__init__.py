@@ -3,6 +3,7 @@ from eth_utils import decode_hex
 
 from .constants import (
     BYZANTIUM_ROPSTEN_BLOCK,
+    CONSTANTINOPLE_BLOCK,
     ROPSTEN_CHAIN_ID,
     SPURIOUS_DRAGON_ROPSTEN_BLOCK,
     TANGERINE_WHISTLE_ROPSTEN_BLOCK,
@@ -14,6 +15,7 @@ from eth.rlp.headers import BlockHeader
 from eth.vm.base import BaseVM  # noqa: F401
 from eth.vm.forks import (
     ByzantiumVM,
+    ConstantinopleVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
 )
@@ -24,6 +26,7 @@ ROPSTEN_VM_CONFIGURATION = (
     (TANGERINE_WHISTLE_ROPSTEN_BLOCK, TangerineWhistleVM),
     (SPURIOUS_DRAGON_ROPSTEN_BLOCK, SpuriousDragonVM),
     (BYZANTIUM_ROPSTEN_BLOCK, ByzantiumVM),
+    (CONSTANTINOPLE_BLOCK, ConstantinopleVM),
 )
 
 
