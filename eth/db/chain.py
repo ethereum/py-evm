@@ -13,21 +13,9 @@ from typing import (
     TYPE_CHECKING,
 )
 
-import rlp
-
-from trie import (
-    HexaryTrie,
-)
-
 from eth_typing import (
     BlockNumber,
     Hash32
-)
-
-from eth_utils import (
-    to_list,
-    to_tuple,
-    ValidationError,
 )
 
 from eth_hash.auto import keccak
@@ -57,6 +45,17 @@ from eth.utils.hexadecimal import (
 from eth.validation import (
     validate_word,
 )
+from eth._warnings import catch_and_ignore_import_warning
+with catch_and_ignore_import_warning():
+    import rlp
+    from trie import (
+        HexaryTrie,
+    )
+    from eth_utils import (
+        to_list,
+        to_tuple,
+        ValidationError,
+    )
 
 if TYPE_CHECKING:
     from eth.rlp.blocks import (  # noqa: F401

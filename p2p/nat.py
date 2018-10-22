@@ -18,7 +18,10 @@ from p2p.exceptions import (
 )
 import netifaces
 from p2p.service import BaseService
-import upnpclient
+
+from eth._warnings import catch_and_ignore_import_warning
+with catch_and_ignore_import_warning():
+    import upnpclient
 
 
 # UPnP discovery can take a long time, so use a loooong timeout here.

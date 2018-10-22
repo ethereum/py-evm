@@ -28,18 +28,6 @@ from eth_typing import (
     Hash32,
 )
 
-from eth_utils import (
-    to_set,
-    ValidationError,
-)
-from eth_utils.toolz import (
-    assoc,
-    compose,
-    groupby,
-    iterate,
-    take,
-)
-
 from eth.db.backends.base import BaseAtomicDB
 from eth.db.chain import (
     BaseChainDB,
@@ -102,6 +90,20 @@ from eth.utils.rlp import (
 from eth.typing import (
     AccountState,
 )
+
+from eth._warnings import catch_and_ignore_import_warning
+with catch_and_ignore_import_warning():
+    from eth_utils import (
+        to_set,
+        ValidationError,
+    )
+    from eth_utils.toolz import (
+        assoc,
+        compose,
+        groupby,
+        iterate,
+        take,
+    )
 
 if TYPE_CHECKING:
     from eth.vm.base import BaseVM  # noqa: F401
