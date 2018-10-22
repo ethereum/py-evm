@@ -1,6 +1,6 @@
 from typing import (
+    Optional,
     Type,
-    Union,
 )
 
 from lahja import (
@@ -14,13 +14,12 @@ from trinity.sync.common.types import (
 
 
 class SyncingResponse(BaseEvent):
-
-    def __init__(self, syncing: Union[bool, SyncProgress]) -> None:
-        self.syncing = syncing
+    def __init__(self, is_syncing: bool, progress: Optional[SyncProgress]) -> None:
+        self.is_syncing: bool = is_syncing
+        self.progress: Optional[SyncProgress] = progress
 
 
 class SyncingRequest(BaseRequestResponseEvent[SyncingResponse]):
-
     @staticmethod
     def expected_response_type() -> Type[SyncingResponse]:
         return SyncingResponse

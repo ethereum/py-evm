@@ -1,13 +1,16 @@
+from typing import (
+    NamedTuple,
+)
+
 from eth_typing import (
     BlockNumber,
 )
 
 
-class SyncProgress:
-    def __init__(self,
-                 starting_block: BlockNumber = None,
-                 current_block: BlockNumber = None,
-                 highest_block: BlockNumber = None) -> None:
-        self.starting_block = starting_block
-        self.current_block = current_block
-        self.highest_block = highest_block
+class SyncProgress(NamedTuple):
+    starting_block: BlockNumber
+    current_block: BlockNumber
+    highest_block: BlockNumber
+
+    def update_current_block(self, new_current_block: BlockNumber) -> 'SyncProgress':
+        return SyncProgress(self.starting_block, new_current_block, self.highest_block)

@@ -454,7 +454,6 @@ def mock_peer_count(count):
     ],
 )
 async def test_peer_pool_over_ipc(
-        monkeypatch,
         jsonrpc_ipc_pipe_path,
         request_msg,
         event_bus_setup_fn,
@@ -473,10 +472,10 @@ async def test_peer_pool_over_ipc(
     assert result == expected
 
 
-def mock_syncing(syncing):
+def mock_syncing(is_syncing, progress=None):
     async def mock_event_bus_interaction(bus):
         async for req in bus.stream(SyncingRequest):
-            bus.broadcast(SyncingResponse(syncing), req.broadcast_config())
+            bus.broadcast(SyncingResponse(is_syncing, progress), req.broadcast_config())
             break
 
     return mock_event_bus_interaction
@@ -493,7 +492,7 @@ def mock_syncing(syncing):
         ),
         (
             build_request('eth_syncing'),
-            mock_syncing(SyncProgress(0, 1, 2)),
+            mock_syncing(True, SyncProgress(0, 1, 2)),
             {'result': {'startingBlock': 0, 'currentBlock': 1, 'highestBlock': 2}, 'id': 3,
              'jsonrpc': '2.0'},
         ),
@@ -503,7 +502,6 @@ def mock_syncing(syncing):
     ],
 )
 async def test_eth_over_ipc(
-        monkeypatch,
         jsonrpc_ipc_pipe_path,
         request_msg,
         event_bus_setup_fn,

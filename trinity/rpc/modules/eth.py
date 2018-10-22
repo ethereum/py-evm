@@ -8,6 +8,9 @@ from typing import (
     List,
     Union,
 )
+from mypy_extensions import (
+    TypedDict,
+)
 
 from eth_typing import (
     Address,
@@ -267,12 +270,17 @@ class Eth(RPCModule):
     async def protocolVersion(self) -> str:
         return "63"
 
-    async def syncing(self) -> Union[bool, Dict[str, BlockNumber]]:
+    class SyncProgress(TypedDict):
+        startingBlock: BlockNumber
+        currentBlock: BlockNumber
+        highestBlock: BlockNumber
+
+    async def syncing(self) -> Union[bool, SyncProgress]:
         res = await self._event_bus.request(SyncingRequest())
-        if isinstance(res.syncing, bool):
-            return res.syncing
-        return {
-            "startingBlock": res.syncing.starting_block,
-            "currentBlock": res.syncing.current_block,
-            "highestBlock": res.syncing.highest_block
-        }
+        if res.is_syncing:
+            return {
+                "startingBlock": res.progress.starting_block,
+                "currentBlock": res.progress.current_block,
+                "highestBlock": res.progress.highest_block
+            }
+        return False

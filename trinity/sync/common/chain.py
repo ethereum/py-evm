@@ -4,9 +4,9 @@ from operator import attrgetter
 from typing import (
     AsyncIterator,
     Iterator,
+    Optional,
     Tuple,
     Type,
-    Union,
 )
 
 from cancel_token import (
@@ -112,7 +112,7 @@ class BaseHeaderChainSyncer(BaseService):
     async def _run(self) -> None:
         self.run_daemon(self._tip_monitor)
         if self.peer_pool.event_bus is not None:
-            self.run_daemon_task(self.handle_syncing_requests())
+            self.run_daemon_task(self.handle_sync_status_requests())
         try:
             async for highest_td_peer in self._tip_monitor.wait_tip_info():
                 self.run_task(self.sync(highest_td_peer))
@@ -166,14 +166,14 @@ class BaseHeaderChainSyncer(BaseService):
                 new_headers = tuple(h for h in header_batch if h not in self.header_queue)
                 await self.wait(self.header_queue.add(new_headers))
 
-    def syncing(self) -> Union[bool, SyncProgress]:
+    def get_sync_status(self) -> Tuple[bool, Optional[SyncProgress]]:
         if not self._syncing:
-            return False
-        return self._peer_header_syncer.sync_progress
+            return False, None
+        return True, self._peer_header_syncer.sync_progress
 
-    async def handle_syncing_requests(self) -> None:
+    async def handle_sync_status_requests(self) -> None:
         async for req in self.peer_pool.event_bus.stream(SyncingRequest):
-            self.peer_pool.event_bus.broadcast(SyncingResponse(self.syncing()),
+            self.peer_pool.event_bus.broadcast(SyncingResponse(*self.get_sync_status()),
                                                req.broadcast_config())
 
 
@@ -349,7 +349,8 @@ class PeerHeaderSyncer(BaseService):
 
             yield headers
             last_received_header = headers[-1]
-            self.sync_progress.current_block = last_received_header.block_number
+            self.sync_progress = \
+                self.sync_progress.update_current_block(last_received_header.block_number)
             start_at = last_received_header.block_number + 1
 
     async def _request_headers(
