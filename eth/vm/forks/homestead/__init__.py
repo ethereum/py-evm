@@ -2,9 +2,6 @@ from typing import Type  # noqa: F401
 from eth.rlp.blocks import BaseBlock  # noqa: F401
 from eth.vm.state import BaseState  # noqa: F401
 
-from eth.chains.mainnet.constants import (
-    DAO_FORK_MAINNET_BLOCK
-)
 from eth.vm.forks.frontier import FrontierVM
 
 from .blocks import HomesteadBlock
@@ -18,7 +15,7 @@ from .state import HomesteadState
 
 class MetaHomesteadVM(FrontierVM):
     support_dao_fork = True
-    dao_fork_block_number = DAO_FORK_MAINNET_BLOCK
+    dao_fork_block_number = 0
 
 
 class HomesteadVM(MetaHomesteadVM):

@@ -13,6 +13,7 @@ from .constants import (
     HOMESTEAD_MAINNET_BLOCK,
     SPURIOUS_DRAGON_MAINNET_BLOCK,
     DAO_FORK_MAINNET_EXTRA_DATA,
+    DAO_FORK_MAINNET_BLOCK,
 )
 from eth import constants
 
@@ -60,7 +61,7 @@ class MainnetDAOValidatorVM:
 
 
 class MainnetHomesteadVM(MainnetDAOValidatorVM, HomesteadVM):
-    pass
+    dao_fork_block_number = DAO_FORK_MAINNET_BLOCK
 
 
 MAINNET_FORK_BLOCKS = (
