@@ -109,8 +109,8 @@ that all database reads and writes are done by a single process.
 Networking Process
 ------------------
 
-The networking process is what kicks of the peer to peer communication, starts the syncing
-process and also serves the JSON-RPC API. It does so by running an instance of
+The networking process is what kicks of the peer to peer communication and starts the syncing
+process. It does so by running an instance of
 :func:`~trinity.nodes.base.Node` in an event loop.
 
 Notice that the instance of :func:`~trinity.nodes.base.Node` has access to the APIs that the
@@ -119,3 +119,14 @@ connections to other peers, starts of the syncing process but will call APIs tha
 the database processes when it comes to actual importing of blocks or reading and writing of other
 things from the database.
 
+The networking process also host an instance of the
+:class:`~trinity.extensibility.plugin_manager.PluginManager` to run plugins that need to deeply
+integrate with the networking process (Further reading:
+:doc:`Writing Plugins</guides/trinity/writing_plugins>`).
+
+Plugin Processes
+----------------
+
+Apart from running these three core processes, there may be additional processes for plugins that
+run in isolated processes. Isolated plugins are explained in depth in the
+:doc:`Writing Plugins</guides/trinity/writing_plugins>` guide.

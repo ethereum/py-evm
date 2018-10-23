@@ -10,3 +10,4 @@ This section aims to provide hands-on guides to demonstrate how to use Trinity. 
 
    quickstart
    architecture
+   writing_plugins
