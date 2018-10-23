@@ -22,6 +22,13 @@ from trinity.nodes.events import (
     NetworkIdRequest,
     NetworkIdResponse,
 )
+from trinity.sync.common.events import (
+    SyncingRequest,
+    SyncingResponse,
+)
+from trinity.sync.common.types import (
+    SyncProgress
+)
 
 from trinity.utils.version import construct_trinity_client_identifier
 
@@ -447,7 +454,54 @@ def mock_peer_count(count):
     ],
 )
 async def test_peer_pool_over_ipc(
-        monkeypatch,
+        jsonrpc_ipc_pipe_path,
+        request_msg,
+        event_bus_setup_fn,
+        event_bus,
+        expected,
+        event_loop,
+        ipc_server):
+
+    asyncio.ensure_future(event_bus_setup_fn(event_bus))
+
+    result = await get_ipc_response(
+        jsonrpc_ipc_pipe_path,
+        request_msg,
+        event_loop
+    )
+    assert result == expected
+
+
+def mock_syncing(is_syncing, progress=None):
+    async def mock_event_bus_interaction(bus):
+        async for req in bus.stream(SyncingRequest):
+            bus.broadcast(SyncingResponse(is_syncing, progress), req.broadcast_config())
+            break
+
+    return mock_event_bus_interaction
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'request_msg, event_bus_setup_fn, expected',
+    (
+        (
+            build_request('eth_syncing'),
+            mock_syncing(False),
+            {'result': False, 'id': 3, 'jsonrpc': '2.0'},
+        ),
+        (
+            build_request('eth_syncing'),
+            mock_syncing(True, SyncProgress(0, 1, 2)),
+            {'result': {'startingBlock': 0, 'currentBlock': 1, 'highestBlock': 2}, 'id': 3,
+             'jsonrpc': '2.0'},
+        ),
+    ),
+    ids=[
+        'eth_syncing_F', 'eth_syncing_T',
+    ],
+)
+async def test_eth_over_ipc(
         jsonrpc_ipc_pipe_path,
         request_msg,
         event_bus_setup_fn,

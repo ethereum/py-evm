@@ -8,6 +8,9 @@ from typing import (
     List,
     Union,
 )
+from mypy_extensions import (
+    TypedDict,
+)
 
 from eth_typing import (
     Address,
@@ -50,6 +53,9 @@ from trinity.rpc.format import (
 )
 from trinity.rpc.modules import (
     RPCModule,
+)
+from trinity.sync.common.events import (
+    SyncingRequest,
 )
 from trinity.utils.validation import (
     validate_transaction_call_dict,
@@ -264,5 +270,17 @@ class Eth(RPCModule):
     async def protocolVersion(self) -> str:
         return "63"
 
-    async def syncing(self) -> bool:
-        raise NotImplementedError()
+    class SyncProgress(TypedDict):
+        startingBlock: BlockNumber
+        currentBlock: BlockNumber
+        highestBlock: BlockNumber
+
+    async def syncing(self) -> Union[bool, SyncProgress]:
+        res = await self._event_bus.request(SyncingRequest())
+        if res.is_syncing:
+            return {
+                "startingBlock": res.progress.starting_block,
+                "currentBlock": res.progress.current_block,
+                "highestBlock": res.progress.highest_block
+            }
+        return False
