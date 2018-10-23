@@ -2,6 +2,7 @@ import argparse
 from contextlib import contextmanager
 from pathlib import Path
 from typing import (
+    Optional,
     TYPE_CHECKING,
     Tuple,
     Type,
@@ -32,8 +33,11 @@ from trinity.constants import (
 )
 from trinity.utils.chains import (
     construct_trinity_config_params,
-    get_data_dir_for_network_id,
+    get_database_base_dir,
+    get_database_dir,
+    get_database_engine_lock_path,
     get_database_socket_path,
+    get_data_dir_for_network_id,
     get_jsonrpc_socket_path,
     get_logfile_path,
     get_nodekey_path,
@@ -180,16 +184,28 @@ class TrinityConfig:
         self._data_dir = Path(value).resolve()
 
     @property
+    def is_db_backend_leveldb(self) -> bool:
+        return self.db_backend == DB_LEVEL
+
+    @property
+    def is_db_backend_rocksdb(self) -> bool:
+        return self.db_backend == DB_ROCKS
+
+    @property
     def db_class(self) -> Type[BaseAtomicDB]:
         """
         The database backend class that will be used for the chain database.
         """
-        if self.db_backend is None or self.db_backend == DB_LEVEL:
+        if self.is_db_backend_leveldb:
             return LevelDB
-        elif self.db_backend == DB_ROCKS:
+        elif self.is_db_backend_rocksdb:
             return RocksDB
         else:
             raise ValueError(f"Unknown datbase backend: {self.db_backend}")
+
+    @property
+    def database_base_dir(self) -> Path:
+        return get_database_base_dir(self.data_dir)
 
     @property
     def database_dir(self) -> Path:
@@ -198,12 +214,18 @@ class TrinityConfig:
 
         This is resolved relative to the ``data_dir``
         """
-        if self.sync_mode == SYNC_FULL:
-            return self.data_dir / DATABASE_DIR_NAME / "full"
-        elif self.sync_mode == SYNC_LIGHT:
-            return self.data_dir / DATABASE_DIR_NAME / "light"
+        return get_database_dir(self.database_base_dir, self.sync_mode)
+
+    @property
+    def database_engine_lock_path(self) -> Path:
+        return get_database_engine_lock_path(self.database_dir)
+
+    @property
+    def on_disk_database_engine(self) -> Optional[str]:
+        if not self.database_engine_lock_path.exists():
+            return None
         else:
-            raise ValueError(f"Unknown sync mode: {self.sync_mode}")
+            return self.database_engine_lock_path.read_text().strip()
 
     @property
     def database_ipc_path(self) -> Path:

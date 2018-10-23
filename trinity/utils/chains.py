@@ -19,6 +19,7 @@ from p2p.constants import DEFAULT_MAX_PEERS
 
 from trinity.constants import (
     SYNC_LIGHT,
+    SYNC_FULL,
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
 )
@@ -92,6 +93,32 @@ def get_database_socket_path(data_dir: Path) -> Path:
         'TRINITY_DATABASE_IPC',
         data_dir / DATABASE_SOCKET_FILENAME,
     ))
+
+
+DATABASE_DIR_NAME = 'chain'
+
+
+def get_database_base_dir(data_dir: Path) -> Path:
+    return data_dir / DATABASE_DIR_NAME
+
+
+def get_database_dir(database_base_dir: Path, sync_mode: str) -> Path:
+    if sync_mode == SYNC_FULL:
+        return database_base_dir / 'full'
+    elif sync_mode == SYNC_LIGHT:
+        return database_base_dir / 'light'
+    else:
+        raise ValueError(
+            f"Unknown sync mode: `{sync_mode}`, must be one of "
+            f"{SYNC_FULL}/{SYNC_LIGHT}"
+        )
+
+
+DATABASE_ENGINE_LOCK_NAME = '.trinity.db_engine.lock'
+
+
+def get_database_engine_lock_path(database_dir: Path) -> Path:
+    return database_dir / DATABASE_ENGINE_LOCK_NAME
 
 
 JSONRPC_SOCKET_FILENAME = 'jsonrpc.ipc'
