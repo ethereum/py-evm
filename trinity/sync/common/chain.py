@@ -349,8 +349,9 @@ class PeerHeaderSyncer(BaseService):
 
             yield headers
             last_received_header = headers[-1]
-            self.sync_progress = \
-                self.sync_progress.update_current_block(last_received_header.block_number)
+            self.sync_progress = self.sync_progress.update_current_block(
+                last_received_header.block_number,
+            )
             start_at = last_received_header.block_number + 1
 
     async def _request_headers(
