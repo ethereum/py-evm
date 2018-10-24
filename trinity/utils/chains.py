@@ -114,10 +114,10 @@ def get_database_dir(database_base_dir: Path, sync_mode: str) -> Path:
         )
 
 
-DATABASE_ENGINE_LOCK_NAME = '.trinity.db_engine.lock'
+DATABASE_ENGINE_LOCK_NAME = '.trinity.db_engine.marker'
 
 
-def get_database_engine_lock_path(database_dir: Path) -> Path:
+def get_database_engine_marker_path(database_dir: Path) -> Path:
     return database_dir / DATABASE_ENGINE_LOCK_NAME
 
 
@@ -159,7 +159,7 @@ def construct_trinity_config_params(
     if args.trinity_root_dir is not None:
         yield 'trinity_root_dir', args.trinity_root_dir
 
-    yield 'db_backend', args.db_backend
+    yield 'db_engine', args.db_engine
 
     if args.data_dir is not None:
         yield 'data_dir', args.data_dir

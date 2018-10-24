@@ -239,27 +239,27 @@ network_parser.add_argument(
 
 
 #
-# Database backend
+# Database engine
 #
-database_backend_group = database_parser.add_mutually_exclusive_group()
-database_backend_group.add_argument(
-    '--db-backend',
+database_engine_group = database_parser.add_mutually_exclusive_group()
+database_engine_group.add_argument(
+    '--db-engine',
     choices={DB_LEVEL, DB_ROCKS},
     default=DB_LEVEL,
 )
-database_backend_group.add_argument(
+database_engine_group.add_argument(
     '--level',
     action='store_const',
     const=DB_LEVEL,
-    dest='db_backend',
-    help="Shortcut for `--db-backend=level`",
+    dest='db_engine',
+    help="Shortcut for `--db-engine=level`",
 )
-database_backend_group.add_argument(
+database_engine_group.add_argument(
     '--rocks',
     action='store_const',
     const=DB_ROCKS,
-    dest='db_backend',
-    help="Shortcut for `--db-backend=rocks`",
+    dest='db_engine',
+    help="Shortcut for `--db-engine=rocks`",
 )
 
 

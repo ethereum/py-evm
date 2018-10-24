@@ -166,9 +166,9 @@ def main() -> None:
 
     # Verify that the database engine that trinity is configured to use matches
     # the existing on-disk engine.
-    if trinity_config.db_backend != trinity_config.on_disk_database_engine:
+    if trinity_config.db_engine != trinity_config.on_disk_database_engine:
         database_dir = trinity_config.database_dir
-        config_engine = trinity_config.db_backend
+        config_engine = trinity_config.db_engine
         on_disk_engine = trinity_config.on_disk_database_engine
         parser.error(
             "\n"

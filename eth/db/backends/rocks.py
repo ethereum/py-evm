@@ -2,7 +2,7 @@ from contextlib import contextmanager
 import logging
 from pathlib import Path
 from typing import (
-    Generator,
+    Iterable,
     TYPE_CHECKING,
 )
 
@@ -62,7 +62,7 @@ class RocksDB(BaseAtomicDB):
         self.db.delete(key)
 
     @contextmanager
-    def atomic_batch(self) -> Generator['RocksDBWriteBatch', None, None]:
+    def atomic_batch(self) -> Iterable['RocksDBWriteBatch']:
         import rocksdb  # noqa: F811
         batch = rocksdb.WriteBatch()
 

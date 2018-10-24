@@ -35,7 +35,7 @@ from trinity.utils.chains import (
     construct_trinity_config_params,
     get_database_base_dir,
     get_database_dir,
-    get_database_engine_lock_path,
+    get_database_engine_marker_path,
     get_database_socket_path,
     get_data_dir_for_network_id,
     get_jsonrpc_socket_path,
@@ -84,14 +84,14 @@ class TrinityConfig:
                  use_discv5: bool = False,
                  preferred_nodes: Tuple[KademliaNode, ...]=None,
                  bootstrap_nodes: Tuple[KademliaNode, ...]=None,
-                 db_backend: str=DB_LEVEL,
+                 db_engine: str=DB_LEVEL,
                  ) -> None:
         self.network_id = network_id
         self.max_peers = max_peers
         self.sync_mode = sync_mode
         self.port = port
         self.use_discv5 = use_discv5
-        self.db_backend = db_backend
+        self.db_engine = db_engine
 
         if trinity_root_dir is not None:
             self.trinity_root_dir = trinity_root_dir
@@ -184,24 +184,24 @@ class TrinityConfig:
         self._data_dir = Path(value).resolve()
 
     @property
-    def is_db_backend_leveldb(self) -> bool:
-        return self.db_backend == DB_LEVEL
+    def is_db_engine_leveldb(self) -> bool:
+        return self.db_engine == DB_LEVEL
 
     @property
-    def is_db_backend_rocksdb(self) -> bool:
-        return self.db_backend == DB_ROCKS
+    def is_db_engine_rocksdb(self) -> bool:
+        return self.db_engine == DB_ROCKS
 
     @property
     def db_class(self) -> Type[BaseAtomicDB]:
         """
         The database backend class that will be used for the chain database.
         """
-        if self.is_db_backend_leveldb:
+        if self.is_db_engine_leveldb:
             return LevelDB
-        elif self.is_db_backend_rocksdb:
+        elif self.is_db_engine_rocksdb:
             return RocksDB
         else:
-            raise ValueError(f"Unknown datbase backend: {self.db_backend}")
+            raise ValueError(f"Unknown datbase backend: {self.db_engine}")
 
     @property
     def database_base_dir(self) -> Path:
@@ -217,15 +217,15 @@ class TrinityConfig:
         return get_database_dir(self.database_base_dir, self.sync_mode)
 
     @property
-    def database_engine_lock_path(self) -> Path:
-        return get_database_engine_lock_path(self.database_dir)
+    def database_engine_marker_path(self) -> Path:
+        return get_database_engine_marker_path(self.database_dir)
 
     @property
     def on_disk_database_engine(self) -> Optional[str]:
-        if not self.database_engine_lock_path.exists():
+        if not self.database_engine_marker_path.exists():
             return None
         else:
-            return self.database_engine_lock_path.read_text().strip()
+            return self.database_engine_marker_path.read_text().strip()
 
     @property
     def database_ipc_path(self) -> Path:

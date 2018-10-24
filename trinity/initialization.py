@@ -29,7 +29,7 @@ def is_data_dir_initialized(trinity_config: TrinityConfig) -> bool:
     - base dir exists
     - chain data-dir exists
     - database dir exists
-    - database engine lock exists
+    - database engine marker exists
     - nodekey exists and is non-empty
     """
     if not trinity_config.data_dir.exists():
@@ -38,7 +38,7 @@ def is_data_dir_initialized(trinity_config: TrinityConfig) -> bool:
     if not trinity_config.database_dir.exists():
         return False
 
-    if not trinity_config.database_engine_lock_path.exists():
+    if not trinity_config.database_engine_marker_path.exists():
         return False
 
     if not trinity_config.logfile_path.parent.exists():
@@ -104,10 +104,10 @@ def initialize_data_dir(trinity_config: TrinityConfig) -> None:
     # Directory for chain database
     os.makedirs(trinity_config.database_dir, exist_ok=True)
 
-    # Database engine lockfile
+    # Database engine marker
     if trinity_config.on_disk_database_engine is None:
-        with trinity_config.database_engine_lock_path.open('w') as engine_lock_file:
-            engine_lock_file.write(trinity_config.db_backend)
+        with trinity_config.database_engine_marker_path.open('w') as engine_marker_file:
+            engine_marker_file.write(trinity_config.db_engine)
 
     # Nodekey
     if trinity_config.nodekey is None:

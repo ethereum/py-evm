@@ -29,12 +29,12 @@ def database_dir(trinity_config, data_dir):
 
 
 @pytest.fixture
-def database_engine_lock(trinity_config, database_dir):
-    with trinity_config.database_engine_lock_path.open('w') as engine_lock_file:
-        engine_lock_file.write(trinity_config.db_backend)
+def database_engine_marker(trinity_config, database_dir):
+    with trinity_config.database_engine_marker_path.open('w') as engine_marker_file:
+        engine_marker_file.write(trinity_config.db_engine)
 
-    assert trinity_config.database_engine_lock_path.exists()
-    return trinity_config.database_engine_lock_path
+    assert trinity_config.database_engine_marker_path.exists()
+    return trinity_config.database_engine_marker_path
 
 
 @pytest.fixture
@@ -62,9 +62,9 @@ def test_initializing_data_dir_from_empty_data_dir(trinity_config, data_dir):
     assert is_data_dir_initialized(trinity_config)
 
 
-def test_initializing_data_dir_with_missing_engine_lock(trinity_config, database_dir):
+def test_initializing_data_dir_with_missing_engine_marker(trinity_config, database_dir):
     assert trinity_config.database_dir.exists()
-    assert not trinity_config.database_engine_lock_path.exists()
+    assert not trinity_config.database_engine_marker_path.exists()
     assert not is_data_dir_initialized(trinity_config)
 
     initialize_data_dir(trinity_config)
@@ -76,7 +76,7 @@ def test_initializing_data_dir_with_missing_nodekey(
         trinity_config,
         data_dir,
         database_dir,
-        database_engine_lock):
+        database_engine_marker):
     assert not trinity_config.nodekey_path.exists()
     assert not is_data_dir_initialized(trinity_config)
 

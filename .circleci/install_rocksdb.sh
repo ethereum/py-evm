@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-set -e
-set -u
+set -o errexit
+set -o nounset
+set -o pipefail
 
 sudo apt-get install -y liblz4-dev libsnappy-dev libgflags-dev zlib1g-dev libbz2-dev libzstd-dev
 
