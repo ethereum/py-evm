@@ -17,28 +17,31 @@ from .base import (
     BaseDB,
 )
 
-from eth._warnings import catch_and_ignore_import_warning
-
 if TYPE_CHECKING:
-    with catch_and_ignore_import_warning():
-        import plyvel  # noqa: F401
+    import rocksdb  # noqa: F401
 
 
-class LevelDB(BaseAtomicDB):
-    logger = logging.getLogger("eth.db.backends.LevelDB")
+class RocksDB(BaseAtomicDB):
+    logger = logging.getLogger("eth.db.backends.RocksDB")
 
-    def __init__(self, db_path: Path = None) -> None:
+    def __init__(self,
+                 db_path: Path = None,
+                 opts: 'rocksdb.Options' = None,
+                 read_only: bool=False) -> None:
         if not db_path:
-            raise TypeError("The LevelDB backend requires a database path")
+            raise TypeError("The RocksDB backend requires a database path")
         try:
-            with catch_and_ignore_import_warning():
-                import plyvel  # noqa: F811
+            import rocksdb  # noqa: F811
         except ImportError:
             raise ImportError(
-                "LevelDB requires the plyvel library which is not available for import."
+                "RocksDB requires the python-rocksdb library which is not "
+                "available for import."
             )
+
+        if opts is None:
+            opts = rocksdb.Options(create_if_missing=True)
         self.db_path = db_path
-        self.db = plyvel.DB(str(db_path), create_if_missing=True, error_if_exists=False)
+        self.db = rocksdb.DB(str(db_path), opts, read_only=read_only)
 
     def __getitem__(self, key: bytes) -> bytes:
         v = self.db.get(key)
@@ -53,30 +56,35 @@ class LevelDB(BaseAtomicDB):
         return self.db.get(key) is not None
 
     def __delitem__(self, key: bytes) -> None:
-        v = self.db.get(key)
-        if v is None:
+        exists, _ = self.db.key_may_exist(key)
+        if not exists:
             raise KeyError(key)
         self.db.delete(key)
 
     @contextmanager
-    def atomic_batch(self) -> Iterator['LevelDBWriteBatch']:
-        with self.db.write_batch(transaction=True) as atomic_batch:
-            readable_batch = LevelDBWriteBatch(self, atomic_batch)
-            try:
-                yield readable_batch
-            finally:
-                readable_batch.decommission()
+    def atomic_batch(self) -> Iterator['RocksDBWriteBatch']:
+        import rocksdb  # noqa: F811
+        batch = rocksdb.WriteBatch()
+
+        readable_batch = RocksDBWriteBatch(self, batch)
+
+        try:
+            yield readable_batch
+        finally:
+            readable_batch.decommission()
+
+        self.db.write(batch)
 
 
-class LevelDBWriteBatch(BaseDB):
+class RocksDBWriteBatch(BaseDB):
     """
-    A native leveldb write batch does not permit reads on the in-progress data.
+    A native rocksdb write batch does not permit reads on the in-progress data.
     This class fills that gap, by tracking the in-progress diff, and adding
     a read interface.
     """
-    logger = logging.getLogger("eth.db.backends.LevelDBWriteBatch")
+    logger = logging.getLogger("eth.db.backends.RocksDBWriteBatch")
 
-    def __init__(self, original_read_db: BaseDB, write_batch: 'plyvel.WriteBatch') -> None:
+    def __init__(self, original_read_db: BaseDB, write_batch: 'rocksdb.WriteBatch') -> None:
         self._original_read_db = original_read_db
         self._write_batch = write_batch
         # keep track of the temporary changes made

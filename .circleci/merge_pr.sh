@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+set -o errexit
+set -o nounset
+
 if [[ -n "${CIRCLE_PR_NUMBER}" ]]; then
   PR_INFO_URL=https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/pulls/$CIRCLE_PR_NUMBER
   PR_BASE_BRANCH=$(curl -L "$PR_INFO_URL" | python -c 'import json, sys; obj = json.load(sys.stdin); sys.stdout.write(obj["base"]["ref"])')

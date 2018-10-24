@@ -10,6 +10,8 @@ from p2p.kademlia import Node
 
 from trinity import __version__
 from trinity.constants import (
+    DB_LEVEL,
+    DB_ROCKS,
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
     SYNC_FULL,
@@ -130,6 +132,7 @@ subparser = parser.add_subparsers(dest='subcommand')
 trinity_parser = parser.add_argument_group('sync mode')
 logging_parser = parser.add_argument_group('logging')
 network_parser = parser.add_argument_group('network')
+database_parser = parser.add_argument_group('database')
 syncing_parser = parser.add_argument_group('sync mode')
 chain_parser = parser.add_argument_group('chain')
 debug_parser = parser.add_argument_group('debug')
@@ -192,14 +195,14 @@ logging_parser.add_argument(
 #
 # Main parser for running trinity as a node.
 #
-networkid_parser = network_parser.add_mutually_exclusive_group()
-networkid_parser.add_argument(
+networkid_group = network_parser.add_mutually_exclusive_group()
+networkid_group.add_argument(
     '--network-id',
     type=int,
     help="Network identifier (1=Mainnet, 3=Ropsten)",
     default=MAINNET_NETWORK_ID,
 )
-networkid_parser.add_argument(
+networkid_group.add_argument(
     '--ropsten',
     action='store_const',
     const=ROPSTEN_NETWORK_ID,
@@ -236,15 +239,40 @@ network_parser.add_argument(
 
 
 #
+# Database engine
+#
+database_engine_group = database_parser.add_mutually_exclusive_group()
+database_engine_group.add_argument(
+    '--db-engine',
+    choices={DB_LEVEL, DB_ROCKS},
+    default=DB_LEVEL,
+)
+database_engine_group.add_argument(
+    '--level',
+    action='store_const',
+    const=DB_LEVEL,
+    dest='db_engine',
+    help="Shortcut for `--db-engine=level`",
+)
+database_engine_group.add_argument(
+    '--rocks',
+    action='store_const',
+    const=DB_ROCKS,
+    dest='db_engine',
+    help="Shortcut for `--db-engine=rocks`",
+)
+
+
+#
 # Sync Mode
 #
-mode_parser = syncing_parser.add_mutually_exclusive_group()
-mode_parser.add_argument(
+mode_group = syncing_parser.add_mutually_exclusive_group()
+mode_group.add_argument(
     '--sync-mode',
     choices={SYNC_LIGHT, SYNC_FULL},
     default=SYNC_FULL,
 )
-mode_parser.add_argument(
+mode_group.add_argument(
     '--light',  # TODO: consider --sync-mode like geth.
     action='store_const',
     const=SYNC_LIGHT,

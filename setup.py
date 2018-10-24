@@ -27,6 +27,7 @@ deps = {
         "eth-hash[pysha3];implementation_name=='cpython'",
         "eth-hash[pycryptodome];implementation_name=='pypy'",
         "plyvel==1.0.5",
+        "python-rocksdb==0.6.9",
     ],
     'p2p': [
         "asyncio-cancel-token==0.1.0a2",
@@ -43,6 +44,7 @@ deps = {
         "coincurve>=8.0.0,<9.0.0",
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.5",
+        "python-rocksdb==0.6.9",
         "web3==4.4.1",
         "lahja==0.9.0",
         "termcolor>=1.1.0,<2.0.0",
@@ -57,7 +59,7 @@ deps = {
         "pytest-asyncio==0.9.0",
         "pytest-cov==2.5.1",
         "pytest-watch>=4.1.0,<5",
-        "pytest-xdist==1.18.1",
+        "pytest-xdist==1.23.2",
         # only needed for p2p
         "pytest-asyncio-network-simulator==0.1.0a2;python_version>='3.6'",
     ],

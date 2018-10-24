@@ -15,6 +15,10 @@ from p2p.kademlia import Address, Node
 SYNC_FULL = 'full'
 SYNC_LIGHT = 'light'
 
+# database backends
+DB_LEVEL = 'level'
+DB_ROCKS = 'rocks'
+
 # lahja endpoint names
 MAIN_EVENTBUS_ENDPOINT = 'main'
 NETWORKING_EVENTBUS_ENDPOINT = 'networking'

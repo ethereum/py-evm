@@ -1,3 +1,4 @@
+import logging
 from logging import Logger
 from multiprocessing import Process
 import os
@@ -27,9 +28,12 @@ DEFAULT_SIGINT_TIMEOUT = 10
 DEFAULT_SIGTERM_TIMEOUT = 5
 
 
+DEFAULT_LOGGER = logging.getLogger('trinity.utils.ipc')
+
+
 def kill_process_gracefully(
         process: Process,
-        logger: Logger,
+        logger: Logger=DEFAULT_LOGGER,
         SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
         SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
     kill_process_id_gracefully(process.pid, process.join, logger, SIGINT_timeout, SIGTERM_timeout)
@@ -37,7 +41,7 @@ def kill_process_gracefully(
 
 def kill_popen_gracefully(
         popen: subprocess.Popen,
-        logger: Logger,
+        logger: Logger=DEFAULT_LOGGER,
         SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
         SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
 
@@ -53,7 +57,7 @@ def kill_popen_gracefully(
 def kill_process_id_gracefully(
         process_id: int,
         wait_for_completion: Callable[[int], None],
-        logger: Logger,
+        logger: Logger=DEFAULT_LOGGER,
         SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
         SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
     try:
