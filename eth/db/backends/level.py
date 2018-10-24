@@ -2,7 +2,7 @@ from contextlib import contextmanager
 import logging
 from pathlib import Path
 from typing import (
-    Iterable,
+    Iterator,
     TYPE_CHECKING,
 )
 
@@ -59,7 +59,7 @@ class LevelDB(BaseAtomicDB):
         self.db.delete(key)
 
     @contextmanager
-    def atomic_batch(self) -> Iterable['LevelDBWriteBatch']:
+    def atomic_batch(self) -> Iterator['LevelDBWriteBatch']:
         with self.db.write_batch(transaction=True) as atomic_batch:
             readable_batch = LevelDBWriteBatch(self, atomic_batch)
             try:
