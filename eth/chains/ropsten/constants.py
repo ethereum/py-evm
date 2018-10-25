@@ -4,12 +4,6 @@ ROPSTEN_CHAIN_ID = 3
 # Fork Blocks listed in ascending order
 
 #
-# Byzantium Block
-#
-BYZANTIUM_ROPSTEN_BLOCK = 1700000
-
-
-#
 # DAO Block
 #
 DAO_FORK_ROPSTEN_BLOCK = 0
@@ -31,3 +25,15 @@ HOMESTEAD_ROPSTEN_BLOCK = 0
 # Spurious Dragon Block
 #
 SPURIOUS_DRAGON_ROPSTEN_BLOCK = 10
+
+
+#
+# Byzantium Block
+#
+BYZANTIUM_ROPSTEN_BLOCK = 1700000
+
+
+#
+# Constantinople
+#
+CONSTANTINOPLE_BLOCK = 4230000
