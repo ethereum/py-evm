@@ -120,9 +120,7 @@ class BasePlugin(ABC):
         """
         Describe the name of the plugin.
         """
-        raise NotImplementedError(
-            "Must be implemented by subclasses"
-        )
+        pass
 
     @property
     def logger(self) -> logging.Logger:
