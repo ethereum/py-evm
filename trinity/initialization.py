@@ -28,17 +28,13 @@ def is_data_dir_initialized(trinity_config: TrinityConfig) -> bool:
     """
     - base dir exists
     - chain data-dir exists
-    - database dir exists
-    - database engine marker exists
     - nodekey exists and is non-empty
+    - canonical chain head in db
     """
-    if not trinity_config.data_dir.exists():
+    if not os.path.exists(trinity_config.data_dir):
         return False
 
-    if not trinity_config.database_dir.exists():
-        return False
-
-    if not trinity_config.database_engine_marker_path.exists():
+    if not os.path.exists(trinity_config.database_dir):
         return False
 
     if not trinity_config.logfile_path.parent.exists():
@@ -101,18 +97,13 @@ def initialize_data_dir(trinity_config: TrinityConfig) -> None:
             trinity_config.logdir_path
         )
 
-    # Directory for chain database
+    # Chain data-dir
     os.makedirs(trinity_config.database_dir, exist_ok=True)
-
-    # Database engine marker
-    if trinity_config.on_disk_database_engine is None:
-        with trinity_config.database_engine_marker_path.open('w') as engine_marker_file:
-            engine_marker_file.write(trinity_config.db_engine)
 
     # Nodekey
     if trinity_config.nodekey is None:
         nodekey = ecies.generate_privkey()
-        with trinity_config.nodekey_path.open('wb') as nodekey_file:
+        with open(trinity_config.nodekey_path, 'wb') as nodekey_file:
             nodekey_file.write(nodekey.to_bytes())
 
 

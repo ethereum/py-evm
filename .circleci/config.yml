@@ -23,30 +23,21 @@ common: &common
         when: on_fail
     - restore_cache:
         keys:
-          - cache-v1-python-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
-    - restore_cache:
-        keys:
-          - cache-v1-rocksdb-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum ".circleci/install_rocksdb.sh" }}
-    - run:
-        name: install rocksdb
-        command: sudo sh ./.circleci/install_rocksdb.sh
-    - save_cache:
-        paths:
-          - ~/rocksdb/
-        key: cache-v1-rocksdb-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum ".circleci/install_rocksdb.sh" }}
+          - cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
     - run:
         name: install dependencies
         command: pip install --user tox
     - run:
         name: run tox
-        command: ~/.local/bin/tox -r
+        command: ~/.local/bin/tox
     - save_cache:
         paths:
           - .hypothesis
+          - .tox
           - ~/.cache/pip
           - ~/.local
           - ./eggs
-        key: cache-v1-python-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+        key: cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
 geth_steps: &geth_steps
   working_directory: ~/repo
@@ -54,17 +45,7 @@ geth_steps: &geth_steps
     - checkout
     - restore_cache:
         keys:
-          - cache-v1-python-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
-    - restore_cache:
-        keys:
-          - cache-v2-rocksdb-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum ".circleci/install_rocksdb.sh" }}
-    - run:
-        name: install rocksdb
-        command: sudo sh ./.circleci/install_rocksdb.sh
-    - save_cache:
-        paths:
-          - ~/rocksdb/
-        key: cache-v2-rocksdb-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum ".circleci/install_rocksdb.sh" }}
+          - cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
     - run:
         name: install dependencies
         command: pip install --user tox
@@ -98,7 +79,7 @@ geth_steps: &geth_steps
           - ./eggs
           - ~/.ethash
           - ~/.py-geth
-        key: cache-v1-python-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+        key: cache-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
 jobs:
   py35-lint:
@@ -285,6 +266,7 @@ jobs:
         environment:
           TOXENV: py36-trinity-integration
   py36-trinity-lightchain_integration:
+    <<: *common
     <<: *geth_steps
     docker:
       - image: circleci/python:3.6

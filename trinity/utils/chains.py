@@ -19,7 +19,6 @@ from p2p.constants import DEFAULT_MAX_PEERS
 
 from trinity.constants import (
     SYNC_LIGHT,
-    SYNC_FULL,
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
 )
@@ -95,32 +94,6 @@ def get_database_socket_path(data_dir: Path) -> Path:
     ))
 
 
-DATABASE_DIR_NAME = 'chain'
-
-
-def get_database_base_dir(data_dir: Path) -> Path:
-    return data_dir / DATABASE_DIR_NAME
-
-
-def get_database_dir(database_base_dir: Path, sync_mode: str) -> Path:
-    if sync_mode == SYNC_FULL:
-        return database_base_dir / 'full'
-    elif sync_mode == SYNC_LIGHT:
-        return database_base_dir / 'light'
-    else:
-        raise ValueError(
-            f"Unknown sync mode: `{sync_mode}`, must be one of "
-            f"{SYNC_FULL}/{SYNC_LIGHT}"
-        )
-
-
-DATABASE_ENGINE_LOCK_NAME = '.trinity.db_engine.marker'
-
-
-def get_database_engine_marker_path(database_dir: Path) -> Path:
-    return database_dir / DATABASE_ENGINE_LOCK_NAME
-
-
 JSONRPC_SOCKET_FILENAME = 'jsonrpc.ipc'
 
 
@@ -159,8 +132,6 @@ def construct_trinity_config_params(
     if args.trinity_root_dir is not None:
         yield 'trinity_root_dir', args.trinity_root_dir
 
-    yield 'db_engine', args.db_engine
-
     if args.data_dir is not None:
         yield 'data_dir', args.data_dir
 
@@ -171,7 +142,8 @@ def construct_trinity_config_params(
     elif args.nodekey is not None:
         yield 'nodekey', decode_hex(args.nodekey)
 
-    yield 'sync_mode', args.sync_mode
+    if args.sync_mode is not None:
+        yield 'sync_mode', args.sync_mode
 
     if args.max_peers is not None:
         yield 'max_peers', args.max_peers
