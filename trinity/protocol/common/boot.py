@@ -38,11 +38,11 @@ class DAOCheckBootManager(BasePeerBootManager):
                 continue
             elif not vm_class.support_dao_fork:
                 break
-            elif start_block > vm_class.dao_fork_block_number:
+            elif start_block > vm_class.get_dao_fork_block_number():
                 # VM comes after the fork, so stop checking
                 break
 
-            start_block = vm_class.dao_fork_block_number - 1
+            start_block = vm_class.get_dao_fork_block_number() - 1
 
             try:
                 headers = await self.peer.requests.get_block_headers(  # type: ignore

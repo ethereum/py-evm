@@ -40,7 +40,10 @@ class MainnetDAOValidatorVM:
         super().validate_header(header, previous_header, check_seal)  # type: ignore
 
         # The special extra_data is set on the ten headers starting at the fork
-        extra_data_block_nums = range(cls.dao_fork_block_number, cls.dao_fork_block_number + 10)
+        extra_data_block_nums = range(
+            cls.get_dao_fork_block_number(),
+            cls.get_dao_fork_block_number() + 10,
+        )
 
         if header.block_number in extra_data_block_nums:
             if cls.support_dao_fork and header.extra_data != DAO_FORK_MAINNET_EXTRA_DATA:
