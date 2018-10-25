@@ -57,6 +57,7 @@ from eth.tools._utils.mappings import (
 from eth.typing import (
     AccountState,
     GeneralState,
+    IntConvertible,
     Normalizer,
     TransactionDict,
     TransactionNormalizer,
@@ -67,16 +68,17 @@ from eth.typing import (
 # Primitives
 #
 @functools.lru_cache(maxsize=1024)
-def normalize_int(value: Any) -> int:
+def normalize_int(value: IntConvertible) -> int:
     """
     Robust to integer conversion, handling hex values, string representations,
     and special cases like `0x`.
     """
     if is_integer(value):
-        return value
+        return cast(int, value)
     elif is_bytes(value):
         return big_endian_to_int(value)
     elif is_hex(value) and is_0x_prefixed(value):
+        value = cast(str, value)
         if len(value) == 2:
             return 0
         else:

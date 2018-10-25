@@ -4,7 +4,6 @@ import rlp
 
 from typing import (
     Any,
-    cast,
     Dict,
     Iterable,
     Tuple,
