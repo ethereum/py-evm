@@ -5,12 +5,16 @@ import signal
 from typing import (
     Any,
     Dict,
+    Type,
 )
 
 from lahja import (
     EventBus,
     Endpoint,
 )
+
+from eth.db.backends.base import BaseDB
+from eth.db.backends.level import LevelDB
 
 from p2p.service import BaseService
 
@@ -164,21 +168,6 @@ def main() -> None:
                 "inside the XDG_TRINITY_ROOT path"
             )
 
-    # Verify that the database engine that trinity is configured to use matches
-    # the existing on-disk engine.
-    if trinity_config.db_engine != trinity_config.on_disk_database_engine:
-        database_dir = trinity_config.database_dir
-        config_engine = trinity_config.db_engine
-        on_disk_engine = trinity_config.on_disk_database_engine
-        parser.error(
-            "\n"
-            f"Database engine mismatch.  The on disk database uses the "
-            f"`{on_disk_engine}` but trinity is configured to use the "
-            f"`{config_engine}.  You must either re-run trinity using the engine "
-            "currently used with the on-disk database or remove the database "
-            f"from `{database_dir}`."
-        )
-
     file_logger, log_queue, listener = setup_trinity_file_and_queue_logging(
         stderr_logger,
         formatter,
@@ -237,7 +226,10 @@ def trinity_boot(args: Namespace,
     # First initialize the database process.
     database_server_process = ctx.Process(
         target=run_database_process,
-        args=(trinity_config,),
+        args=(
+            trinity_config,
+            LevelDB,
+        ),
         kwargs=extra_kwargs,
     )
 
@@ -329,10 +321,9 @@ def kill_trinity_gracefully(logger: logging.Logger,
 
 @setup_cprofiler('run_database_process')
 @with_queued_logging
-def run_database_process(trinity_config: TrinityConfig) -> None:
+def run_database_process(trinity_config: TrinityConfig, db_class: Type[BaseDB]) -> None:
     with trinity_config.process_id_file('database'):
-
-        base_db = trinity_config.db_class(db_path=trinity_config.database_dir)
+        base_db = db_class(db_path=trinity_config.database_dir)
 
         manager = get_chaindb_manager(trinity_config, base_db)
         server = manager.get_server()  # type: ignore

@@ -2,7 +2,7 @@ from contextlib import contextmanager
 import logging
 from pathlib import Path
 from typing import (
-    Iterator,
+    Generator,
     TYPE_CHECKING,
 )
 
@@ -27,9 +27,10 @@ if TYPE_CHECKING:
 class LevelDB(BaseAtomicDB):
     logger = logging.getLogger("eth.db.backends.LevelDB")
 
+    # Creates db as a class variable to avoid level db lock error
     def __init__(self, db_path: Path = None) -> None:
         if not db_path:
-            raise TypeError("The LevelDB backend requires a database path")
+            raise TypeError("Please specifiy a valid path for your database.")
         try:
             with catch_and_ignore_import_warning():
                 import plyvel  # noqa: F811
@@ -53,13 +54,10 @@ class LevelDB(BaseAtomicDB):
         return self.db.get(key) is not None
 
     def __delitem__(self, key: bytes) -> None:
-        v = self.db.get(key)
-        if v is None:
-            raise KeyError(key)
         self.db.delete(key)
 
     @contextmanager
-    def atomic_batch(self) -> Iterator['LevelDBWriteBatch']:
+    def atomic_batch(self) -> Generator['LevelDBWriteBatch', None, None]:
         with self.db.write_batch(transaction=True) as atomic_batch:
             readable_batch = LevelDBWriteBatch(self, atomic_batch)
             try:
