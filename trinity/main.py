@@ -81,15 +81,15 @@ from trinity.utils.version import (
 PRECONFIGURED_NETWORKS = {MAINNET_NETWORK_ID, ROPSTEN_NETWORK_ID}
 
 
-TRINITY_HEADER = (
+TRINITY_HEADER = "\n".join((
     "\n"
-    "      ______     _       _ __       \n"
-    "     /_  __/____(_)___  (_) /___  __\n"
-    "      / / / ___/ / __ \/ / __/ / / /\n"
-    "     / / / /  / / / / / / /_/ /_/ / \n"
-    "    /_/ /_/  /_/_/ /_/_/\__/\__, /  \n"
-    "                           /____/   "
-)
+    r"      ______     _       _ __       ",
+    r"     /_  __/____(_)___  (_) /___  __",
+    r"      / / / ___/ / __ \/ / __/ / / /",
+    r"     / / / /  / / / / / / /_/ /_/ / ",
+    r"    /_/ /_/  /_/_/ /_/_/\__/\__, /  ",
+    r"                           /____/   ",
+))
 
 TRINITY_AMBIGIOUS_FILESYSTEM_INFO = (
     "Could not initialize data directory\n\n"
