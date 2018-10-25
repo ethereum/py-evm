@@ -58,7 +58,7 @@ class BaseManagerProcessScope(ABC):
         Define whether a :class:`~trinity.extensibility.plugin_manager.PluginManager` operating
         under this scope is responsible to manage the given ``plugin``.
         """
-        raise NotImplementedError("Must be implemented by subclasses")
+        pass
 
     @abstractmethod
     def create_plugin_context(self,
@@ -67,7 +67,7 @@ class BaseManagerProcessScope(ABC):
         """
         Create the :class:`~trinity.extensibility.plugin.PluginContext` for the given ``plugin``.
         """
-        raise NotImplementedError("Must be implemented by subclasses")
+        pass
 
 
 class MainAndIsolatedProcessScope(BaseManagerProcessScope):
