@@ -187,8 +187,6 @@ def new_chain_from_fixture(fixture: Dict[str, Any],
     if 'sealEngine' in fixture and fixture['sealEngine'] == 'NoProof':
         ChainFromFixture = disable_pow_check(ChainFromFixture)
 
-    cast(Type[BaseChain], ChainFromFixture)
-
     return ChainFromFixture.from_genesis(
         base_db,
         genesis_params=genesis_params_from_fixture(fixture),
