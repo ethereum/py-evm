@@ -20,4 +20,10 @@ if [ ! -f "/usr/lib/librocksdb.so.5" ]; then
 fi
 if [ ! -f "/usr/lib/librocksdb.so" ]; then
   ln -fs /home/circleci/rocksdb/librocksdb.so.5.8.8 /usr/lib/librocksdb.so
-fi  
+fi
+
+# globally install headers
+if [ ! -d "/usr/include/rocksdb" ]; then
+  sudo mkdir -p /usr/include/rocksdb/
+  ln -fs /home/circleci/rocksdb /usr/include/rocksdb
+fi
