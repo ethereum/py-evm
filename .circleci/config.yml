@@ -266,7 +266,6 @@ jobs:
         environment:
           TOXENV: py36-trinity-integration
   py36-trinity-lightchain_integration:
-    <<: *common
     <<: *geth_steps
     docker:
       - image: circleci/python:3.6
