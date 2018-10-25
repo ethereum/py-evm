@@ -1,5 +1,3 @@
-from typing import cast
-
 from eth_typing import BlockNumber
 
 
@@ -18,7 +16,7 @@ HOMESTEAD_MAINNET_BLOCK = 1150000
 #
 # DAO Block
 #
-DAO_FORK_MAINNET_BLOCK = cast(BlockNumber, 1920000)
+DAO_FORK_MAINNET_BLOCK = BlockNumber(1920000)
 
 DAO_FORK_MAINNET_EXTRA_DATA = b'dao-hard-fork'
 

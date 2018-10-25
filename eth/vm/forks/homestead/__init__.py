@@ -17,13 +17,13 @@ from .state import HomesteadState
 
 class MetaHomesteadVM(FrontierVM):
     support_dao_fork = True
-    dao_fork_block_number = None  # type: Optional[BlockNumber]
+    _dao_fork_block_number = None  # type: Optional[BlockNumber]
 
     @classmethod
     def get_dao_fork_block_number(cls) -> BlockNumber:
-        if cls.dao_fork_block_number is None:
-            raise TypeError("HomesteadVM must be configured with a valid `dao_fork_block_number`")
-        return cls.dao_fork_block_number
+        if cls._dao_fork_block_number is None:
+            raise TypeError("HomesteadVM must be configured with a valid `_dao_fork_block_number`")
+        return cls._dao_fork_block_number
 
 
 class HomesteadVM(MetaHomesteadVM):

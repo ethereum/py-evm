@@ -115,7 +115,7 @@ def chain_vm_configuration(fixture):
     elif network == 'HomesteadToDaoAt5':
         HomesteadVM = BaseHomesteadVM.configure(
             support_dao_fork=True,
-            dao_fork_block_number=5,
+            _dao_fork_block_number=5,
         )
         return (
             (0, HomesteadVM),

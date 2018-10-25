@@ -389,7 +389,7 @@ async def test_rpc_against_fixtures(chain, ipc_server, chain_fixture, fixture_da
     rpc = RPCServer(MainnetFullChain(None))
 
     setup_result, setup_error = await call_rpc(rpc, 'evm_resetToGenesisFixture', [chain_fixture])
-    assert setup_error is None and setup_result is True, "cannot load chain for %r" % fixture_data
+    assert setup_error is None and setup_result is True, "cannot load chain for {0}".format(fixture_data)  # noqa: E501
 
     await validate_accounts(rpc, chain_fixture['pre'])
 

@@ -192,7 +192,7 @@ def _set_vm_dao_fork_block_number(dao_fork_block_number: BlockNumber,
         if _is_homestead(vm_class):
             yield fork_block, vm_class.configure(
                 support_dao_fork=True,
-                dao_fork_block_number=dao_fork_block_number,
+                _dao_fork_block_number=dao_fork_block_number,
             )
         else:
             yield fork_block, vm_class
