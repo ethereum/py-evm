@@ -12,6 +12,7 @@ from typing import (
     Mapping,
     Sequence,
     Tuple,
+    Union,
 )
 
 from cytoolz import (
@@ -89,9 +90,9 @@ def normalize_int(value: IntConvertible) -> int:
         raise TypeError("Unsupported type: Got `{0}`".format(type(value)))
 
 
-def normalize_bytes(value: Any) -> bytes:
+def normalize_bytes(value: Union[bytes, str]) -> bytes:
     if is_bytes(value):
-        return value
+        return cast(bytes, value)
     elif is_text(value) and is_hex(value):
         return decode_hex(value)
     elif is_text(value):
