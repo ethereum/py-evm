@@ -11,6 +11,7 @@ from typing import (
 
 from eth_typing import (
     Address,
+    HexStr,
 )
 from mypy_extensions import (
     TypedDict,
@@ -49,3 +50,5 @@ Normalizer = Callable[[Dict[Any, Any]], Dict[str, Any]]
 TransactionNormalizer = Callable[[TransactionDict], TransactionDict]
 
 VRS = NewType("VRS", Tuple[int, int, int])
+
+IntConvertible = Union[int, bytes, HexStr, str]
