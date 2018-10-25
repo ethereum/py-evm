@@ -75,7 +75,7 @@ def configure_homestead_header(vm, **header_params):
         # get to that. Another alternative would be to do it in Block.mine(), but
         # there we'd need to manually instantiate the State and update
         # header.state_root after we're done.
-        if vm.support_dao_fork and changeset.block_number == vm.dao_fork_block_number:
+        if vm.support_dao_fork and changeset.block_number == vm.get_dao_fork_block_number():
             state = vm.state
 
             for account in dao_drain_list:

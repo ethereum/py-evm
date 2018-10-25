@@ -186,20 +186,20 @@ def disable_dao_fork(chain_class: BaseChain) -> type:
 
 
 @to_tuple
-def _set_vm_dao_fork_block_number(dao_fork_block_number: int,
+def _set_vm_dao_fork_block_number(dao_fork_block_number: BlockNumber,
                                   vm_configuration: VMConfiguration) -> VMConfiguration:
     for fork_block, vm_class in vm_configuration:
         if _is_homestead(vm_class):
             yield fork_block, vm_class.configure(
                 support_dao_fork=True,
-                dao_fork_block_number=dao_fork_block_number,
+                _dao_fork_block_number=dao_fork_block_number,
             )
         else:
             yield fork_block, vm_class
 
 
 @curry
-def dao_fork_at(dao_fork_block_number: int, chain_class: BaseChain) -> type:
+def dao_fork_at(dao_fork_block_number: BlockNumber, chain_class: BaseChain) -> type:
     """
     Set the block number on which the DAO fork will happen.  Requires that a
     version of the :class:`~eth.vm.forks.homestead.HomesteadVM` is present in

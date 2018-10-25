@@ -7,9 +7,14 @@ from eth.tools.builder.chain import api
 
 @pytest.fixture(params=api.mainnet_fork_at_fns)
 def base_chain(request):
+    if request.param is api.homestead_at:
+        fork_fns = (request.param(0), api.dao_fork_at(0))
+    else:
+        fork_fns = (request.param(0),)
+
     chain = api.build(
         MiningChain,
-        request.param(0),
+        *fork_fns,
         api.disable_pow_check(),
         api.genesis(),
     )

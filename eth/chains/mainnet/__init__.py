@@ -13,6 +13,7 @@ from .constants import (
     HOMESTEAD_MAINNET_BLOCK,
     SPURIOUS_DRAGON_MAINNET_BLOCK,
     DAO_FORK_MAINNET_EXTRA_DATA,
+    DAO_FORK_MAINNET_BLOCK,
 )
 from eth import constants as eth_constants
 
@@ -39,7 +40,8 @@ class MainnetDAOValidatorVM:
         super().validate_header(header, previous_header, check_seal)  # type: ignore
 
         # The special extra_data is set on the ten headers starting at the fork
-        extra_data_block_nums = range(cls.dao_fork_block_number, cls.dao_fork_block_number + 10)
+        dao_fork_at = cls.get_dao_fork_block_number()
+        extra_data_block_nums = range(dao_fork_at, dao_fork_at + 10)
 
         if header.block_number in extra_data_block_nums:
             if cls.support_dao_fork and header.extra_data != DAO_FORK_MAINNET_EXTRA_DATA:
@@ -60,7 +62,7 @@ class MainnetDAOValidatorVM:
 
 
 class MainnetHomesteadVM(MainnetDAOValidatorVM, HomesteadVM):
-    pass
+    _dao_fork_block_number = DAO_FORK_MAINNET_BLOCK
 
 
 MAINNET_FORK_BLOCKS = (

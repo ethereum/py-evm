@@ -1,3 +1,6 @@
+from eth_typing import BlockNumber
+
+
 # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
 MAINNET_CHAIN_ID = 1
 
@@ -13,7 +16,7 @@ HOMESTEAD_MAINNET_BLOCK = 1150000
 #
 # DAO Block
 #
-DAO_FORK_MAINNET_BLOCK = 1920000
+DAO_FORK_MAINNET_BLOCK = BlockNumber(1920000)
 
 DAO_FORK_MAINNET_EXTRA_DATA = b'dao-hard-fork'
 

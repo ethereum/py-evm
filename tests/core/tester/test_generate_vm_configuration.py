@@ -129,10 +129,10 @@ def test_generate_vm_configuration(args, kwargs, expected):
                 assert left_vm.support_dao_fork is False
             elif dao_start_block is None:
                 assert left_vm.support_dao_fork is True
-                assert left_vm.dao_fork_block_number == right_block
+                assert left_vm.get_dao_fork_block_number() == right_block
             else:
                 assert left_vm.support_dao_fork is True
-                assert left_vm.dao_fork_block_number == dao_start_block
+                assert left_vm.get_dao_fork_block_number() == dao_start_block
         elif right_vm == Forks.TangerineWhistle:
             assert 'TangerineWhistle' in left_vm.__name__
         elif right_vm == Forks.SpuriousDragon:

@@ -120,10 +120,10 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
             if dao_start_block is False:
                 yield (start_block, vm_class.configure(support_dao_fork=False))
             elif dao_start_block is None:
-                yield (start_block, vm_class.configure(dao_fork_block_number=start_block))
+                yield (start_block, vm_class.configure(_dao_fork_block_number=start_block))
             elif isinstance(dao_start_block, int):
                 validate_gte(dao_start_block, start_block)
-                yield (start_block, vm_class.configure(dao_fork_block_number=dao_start_block))
+                yield (start_block, vm_class.configure(_dao_fork_block_number=dao_start_block))
             else:
                 raise Exception("Invariant: unreachable code path")
         else:
