@@ -176,7 +176,7 @@ def chain_without_block_validation(
     genesis_params = {
         'block_number': constants.GENESIS_BLOCK_NUMBER,
         'difficulty': constants.GENESIS_DIFFICULTY,
-        'gas_limit': constants.GENESIS_GAS_LIMIT,
+        'gas_limit': 3141592,
         'parent_hash': constants.GENESIS_PARENT_HASH,
         'coinbase': constants.GENESIS_COINBASE,
         'nonce': constants.GENESIS_NONCE,

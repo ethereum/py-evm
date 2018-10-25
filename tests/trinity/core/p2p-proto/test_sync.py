@@ -193,7 +193,7 @@ GENESIS_PARAMS = {
     'bloom': 0,
     'difficulty': 5,
     'block_number': constants.GENESIS_BLOCK_NUMBER,
-    'gas_limit': constants.GENESIS_GAS_LIMIT,
+    'gas_limit': 3141592,
     'gas_used': 0,
     'timestamp': 1514764800,
     'extra_data': constants.GENESIS_EXTRA_DATA,

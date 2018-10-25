@@ -30,11 +30,11 @@ def chain(chain_without_block_validation):
         (b'\xff' * 10, None, ADDR_1010, True, 21680),
         (b'\xff' * 10, None, ADDR_1010, False, 21680),
         # sha3 precompile
-        (b'\xff' * 32, None, ADDRESS_2, True, 35381),
-        (b'\xff' * 32, None, ADDRESS_2, False, 35369),
-        (b'\xff' * 320, None, ADDRESS_2, True, 54888),
+        (b'\xff' * 32, None, ADDRESS_2, True, 35333),
+        (b'\xff' * 32, None, ADDRESS_2, False, 35345),
+        (b'\xff' * 320, None, ADDRESS_2, True, 54840),
         # 1000_tolerance binary search
-        (b'\xff' * 32, binary_gas_search_1000_tolerance, ADDRESS_2, True, 23938),
+        (b'\xff' * 32, binary_gas_search_1000_tolerance, ADDRESS_2, True, 23935),
     ),
     ids=[
         'simple default pending',
