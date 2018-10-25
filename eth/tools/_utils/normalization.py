@@ -5,6 +5,7 @@ from typing import (
     Any,
     AnyStr,
     Callable,
+    cast,
     Dict,
     Iterable,
     List,
@@ -56,8 +57,9 @@ from eth.tools._utils.mappings import (
 from eth.typing import (
     AccountState,
     GeneralState,
-    NormalizerType,
+    Normalizer,
     TransactionDict,
+    TransactionNormalizer,
 )
 
 
@@ -127,7 +129,7 @@ robust_decode_hex = eth_utils.curried.hexstr_if_str(to_bytes)
 #
 def dict_normalizer(formatters: Dict[Any, Callable[..., Any]],
                     required: Iterable[Any]=None,
-                    optional: Iterable[Any]=None) -> NormalizerType:
+                    optional: Iterable[Any]=None) -> Normalizer:
 
     all_keys = set(formatters.keys())
 
@@ -154,7 +156,7 @@ def dict_normalizer(formatters: Dict[Any, Callable[..., Any]],
     return normalizer
 
 
-def dict_options_normalizer(normalizers: Iterable[NormalizerType]) -> NormalizerType:
+def dict_options_normalizer(normalizers: Iterable[Normalizer]) -> Normalizer:
 
     def normalize(d: Dict[Any, Any]) -> Dict[str, Any]:
         first_exception = None
@@ -247,7 +249,7 @@ normalize_state = compose(
 )
 
 
-normalize_main_transaction = dict_normalizer({    # type: ignore # Overwrite type hint not yet supported # noqa: 501
+normalize_main_transaction = cast(Normalizer, dict_normalizer({
     "data": normalize_bytes,
     "gasLimit": normalize_int,
     "gasPrice": normalize_int,
@@ -255,15 +257,15 @@ normalize_main_transaction = dict_normalizer({    # type: ignore # Overwrite typ
     "secretKey": normalize_bytes,
     "to": normalize_to_address,
     "value": normalize_int,
-})  # type: TransactionNormalizer
+}))
 
 
-normalize_transaction = dict_options_normalizer([  # type: ignore # Overwrite type hint not yet supported # noqa: 501
+normalize_transaction = cast(TransactionNormalizer, dict_options_normalizer([
     normalize_main_transaction,
-])  # type: TransactionNormalizer
+]))
 
 
-normalize_main_transaction_group = dict_normalizer({   # type: ignore # Overwrite type hint not yet supported # noqa: 501
+normalize_main_transaction_group = cast(Normalizer, dict_normalizer({
     "data": eth_utils.curried.apply_formatter_to_array(normalize_bytes),
     "gasLimit": eth_utils.curried.apply_formatter_to_array(normalize_int),
     "gasPrice": normalize_int,
@@ -271,12 +273,12 @@ normalize_main_transaction_group = dict_normalizer({   # type: ignore # Overwrit
     "secretKey": normalize_bytes,
     "to": normalize_to_address,
     "value": eth_utils.curried.apply_formatter_to_array(normalize_int),
-})  # type: TransactionNormalizer
+}))
 
 
-normalize_transaction_group = dict_options_normalizer([   # type: ignore # Overwrite type hint not yet supported # noqa: 501
+normalize_transaction_group = cast(TransactionNormalizer, dict_options_normalizer([
     normalize_main_transaction_group,
-])  # type: TransactionNormalizer
+]))
 
 
 normalize_execution = dict_normalizer({
@@ -330,9 +332,11 @@ normalize_environment = dict_options_normalizer([
 def normalize_unsigned_transaction(transaction: TransactionDict,
                                    indexes: Dict[str, Any]) -> TransactionDict:
 
-    normalized = normalize_transaction_group(transaction)   # type: TransactionDict
+    normalized = normalize_transaction_group(transaction)
     return merge(normalized, {
-        transaction_key: normalized[transaction_key][indexes[index_key]]    # type: ignore # https://github.com/python/mypy/issues/5359 # noqa: 501
+        # Dynamic key access not yet allowed with TypedDict
+        # https://github.com/python/mypy/issues/5359
+        transaction_key: normalized[transaction_key][indexes[index_key]]  # type: ignore
         for transaction_key, index_key in [
             ("gasLimit", "gas"),
             ("value", "value"),
