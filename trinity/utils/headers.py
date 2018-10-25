@@ -23,7 +23,7 @@ def sequence_builder(start_number: T,
     # Ignore the cutoffs at 0 and UINT_256_MAX, because this is just a gut check anyway,
     # we should never be approaching this value.
     if max_length > MAXIMUM_OBJECT_MEMORY_BYTES // 8:
-        raise OversizeObject("Sequence is too big to fit in memory: {}".format(max_length))
+        raise OversizeObject(f"Sequence is too big to fit in memory: {max_length}")
 
     if reverse:
         step = -1 * (skip + 1)

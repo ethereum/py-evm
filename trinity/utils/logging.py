@@ -151,9 +151,7 @@ def with_queued_logging(fn: Callable[..., Any]) -> Callable[..., Any]:
         try:
             log_queue = kwargs['log_queue']
         except KeyError:
-            raise KeyError("The `log_queue` argument is required when calling `{0}`".format(
-                fn.__name__,
-            ))
+            raise KeyError(f"The `log_queue` argument is required when calling `{fn.__name__}`")
         else:
             level = kwargs.get('log_level', logging.INFO)
             setup_queue_logging(log_queue, level)

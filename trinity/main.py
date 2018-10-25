@@ -118,8 +118,8 @@ def main() -> None:
 
     if args.network_id not in PRECONFIGURED_NETWORKS:
         raise NotImplementedError(
-            "Unsupported network id: {0}.  Only the ropsten and mainnet "
-            "networks are supported.".format(args.network_id)
+            f"Unsupported network id: {args.network_id}.  Only the ropsten and mainnet "
+            "networks are supported."
         )
 
     has_ambigous_logging_config = (

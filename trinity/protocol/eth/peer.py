@@ -66,20 +66,21 @@ class ETHPeer(BaseChainPeer):
             self, cmd: Command, msg: _DecodedMsgType) -> None:
         if not isinstance(cmd, Status):
             await self.disconnect(DisconnectReason.subprotocol_error)
-            raise HandshakeFailure(
-                "Expected a ETH Status msg, got {}, disconnecting".format(cmd))
+            raise HandshakeFailure(f"Expected a ETH Status msg, got {cmd}, disconnecting")
         msg = cast(Dict[str, Any], msg)
         if msg['network_id'] != self.network_id:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
-                "{} network ({}) does not match ours ({}), disconnecting".format(
-                    self, msg['network_id'], self.network_id))
+                f"{self} network ({msg['network_id']}) does not match ours "
+                f"({self.network_id}), disconnecting"
+            )
         genesis = await self.genesis
         if msg['genesis_hash'] != genesis.hash:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
-                "{} genesis ({}) does not match ours ({}), disconnecting".format(
-                    self, encode_hex(msg['genesis_hash']), genesis.hex_hash))
+                f"{self} genesis ({encode_hex(msg['genesis_hash'])}) does not "
+                f"match ours ({genesis.hex_hash}), disconnecting"
+            )
         self.head_td = msg['td']
         self.head_hash = msg['best_hash']
 

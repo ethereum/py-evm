@@ -74,10 +74,8 @@ def initialize_data_dir(trinity_config: TrinityConfig) -> None:
     elif not trinity_config.data_dir.exists():
         # we don't lazily create the base dir for non-default base directories.
         raise MissingPath(
-            "The base chain directory provided does not exist: `{0}`".format(
-                trinity_config.data_dir,
-            ),
-            trinity_config.data_dir
+            f"The base chain directory provided does not exist: `{str(trinity_config.data_dir)}`",
+            trinity_config.data_dir,
         )
 
     # Logfile

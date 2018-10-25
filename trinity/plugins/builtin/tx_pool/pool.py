@@ -116,7 +116,7 @@ class TxPool(BaseService, PeerSubscriber):
         ]
 
     def _construct_bloom_entry(self, peer: ETHPeer, tx: BaseTransactionFields) -> bytes:
-        return "{!r}-{}-{}".format(peer.remote, tx.hash, self._bloom_salt).encode()
+        return f"{repr(peer.remote)}-{tx.hash}-{self._bloom_salt}".encode()
 
     def _add_txs_to_bloom(self, peer: ETHPeer, txs: Iterable[BaseTransactionFields]) -> None:
         for val in txs:
