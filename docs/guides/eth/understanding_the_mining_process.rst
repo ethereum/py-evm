@@ -47,8 +47,11 @@ cookbook.
   from eth.db.atomic import AtomicDB
   from eth.chains.mainnet import MAINNET_GENESIS_HEADER
 
+  # increase the gas limit
+  genesis_header = MAINNET_GENESIS_HEADER.copy(gas_limit=3141592)
+
   # initialize a fresh chain
-  chain = chain_class.from_genesis_header(AtomicDB(), MAINNET_GENESIS_HEADER)
+  chain = chain_class.from_genesis_header(AtomicDB(), genesis_header)
 
 Since we decided to not add any transactions to our block let's just call
 :func:`~~eth.chains.base.MiningChain.mine_block` and see what happens.
@@ -56,7 +59,7 @@ Since we decided to not add any transactions to our block let's just call
 ::
 
   # initialize a fresh chain
-  chain = chain_class.from_genesis_header(AtomicDB(), MAINNET_GENESIS_HEADER)
+  chain = chain_class.from_genesis_header(AtomicDB(), genesis_header)
 
   chain.mine_block()
 
@@ -150,7 +153,7 @@ Let's start off by defining the ``GENESIS_PARAMS``.
         'receipt_root': constants.BLANK_ROOT_HASH,
         'difficulty': 1,
         'block_number': constants.GENESIS_BLOCK_NUMBER,
-        'gas_limit': constants.GENESIS_GAS_LIMIT,
+        'gas_limit': 3141592,
         'timestamp': 1514764800,
         'extra_data': constants.GENESIS_EXTRA_DATA,
         'nonce': constants.GENESIS_NONCE
@@ -330,7 +333,7 @@ zero value transfer transaction.
   ...     'receipt_root': constants.BLANK_ROOT_HASH,
   ...     'difficulty': 1,
   ...     'block_number': constants.GENESIS_BLOCK_NUMBER,
-  ...     'gas_limit': constants.GENESIS_GAS_LIMIT,
+  ...     'gas_limit': 3141592,
   ...     'timestamp': 1514764800,
   ...     'extra_data': constants.GENESIS_EXTRA_DATA,
   ...     'nonce': constants.GENESIS_NONCE

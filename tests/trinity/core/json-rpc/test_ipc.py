@@ -265,7 +265,7 @@ async def test_network_id_ipc_request(
             build_request('eth_estimateGas', params=[{
                 'data': '0x3838533838f3',
             }, 'latest']),
-            {'result': hex(65483), 'id': 3, 'jsonrpc': '2.0'},
+            {'result': hex(65459), 'id': 3, 'jsonrpc': '2.0'},
         ),
         (
             # specifying v,r,s is invalid
