@@ -44,7 +44,7 @@ TransactionDict = TypedDict('TransactionDict',
                              'secretKey': bytes,
                              })
 
-NormalizerType = Callable[[Dict[Any, Any]], Dict[str, Any]]
+Normalizer = Callable[[Dict[Any, Any]], Dict[str, Any]]
 
 TransactionNormalizer = Callable[[TransactionDict], TransactionDict]
 
