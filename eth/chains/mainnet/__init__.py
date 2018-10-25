@@ -14,7 +14,7 @@ from .constants import (
     SPURIOUS_DRAGON_MAINNET_BLOCK,
     DAO_FORK_MAINNET_EXTRA_DATA,
 )
-from eth import constants
+from eth import constants as eth_constants
 
 from eth.chains.base import (
     Chain,
@@ -91,18 +91,18 @@ class MainnetChain(BaseMainnetChain, Chain):
 
 
 MAINNET_GENESIS_HEADER = BlockHeader(
-    difficulty=17179869184,
+    difficulty=eth_constants.GENESIS_DIFFICULTY,
     extra_data=decode_hex("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
-    gas_limit=5000,
+    gas_limit=eth_constants.GENESIS_GAS_LIMIT,
     gas_used=0,
     bloom=0,
-    mix_hash=constants.ZERO_HASH32,
-    nonce=constants.GENESIS_NONCE,
+    mix_hash=eth_constants.ZERO_HASH32,
+    nonce=eth_constants.GENESIS_NONCE,
     block_number=0,
-    parent_hash=constants.ZERO_HASH32,
-    receipt_root=constants.BLANK_ROOT_HASH,
-    uncles_hash=constants.EMPTY_UNCLE_HASH,
+    parent_hash=eth_constants.ZERO_HASH32,
+    receipt_root=eth_constants.BLANK_ROOT_HASH,
+    uncles_hash=eth_constants.EMPTY_UNCLE_HASH,
     state_root=decode_hex("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544"),
     timestamp=0,
-    transaction_root=constants.BLANK_ROOT_HASH,
+    transaction_root=eth_constants.BLANK_ROOT_HASH,
 )
