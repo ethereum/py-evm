@@ -18,6 +18,9 @@ from eth_utils import (
 from eth.chains.base import (
     MiningChain,
 )
+from eth.chains.mainnet import (
+    MainnetChain,
+)
 from eth.tools.fixtures import (
     filter_fixtures,
     generate_fixture_tests,
@@ -25,8 +28,8 @@ from eth.tools.fixtures import (
     should_run_slow_tests,
 )
 
-from trinity.chains.mainnet import (
-    MainnetFullChain
+from trinity.chains.full import (
+    FullChain,
 )
 from trinity.rpc import RPCServer
 from trinity.rpc.format import (
@@ -382,6 +385,10 @@ def chain(chain_without_block_validation):
         # significant difference between a mining chain and a basic chain.
         pytest.skip("Only need to test basic chain")
         return
+
+
+class MainnetFullChain(FullChain):
+    vm_configuration = MainnetChain.vm_configuration
 
 
 @pytest.mark.asyncio
