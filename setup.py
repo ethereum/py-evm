@@ -48,6 +48,7 @@ deps = {
         "termcolor>=1.1.0,<2.0.0",
         "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",
         "websockets==5.0.1",
+        "jsonschema==2.6.0",
     ],
     'test': [
         "hypothesis==3.69.5",
