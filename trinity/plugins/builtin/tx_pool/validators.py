@@ -1,9 +1,6 @@
 import cachetools.func
 
-from typing import (
-    Tuple,
-    Type
-)
+from typing import Type
 
 from eth_typing import (
     BlockNumber,
@@ -20,10 +17,6 @@ from eth.rlp.transactions import (
     BaseTransaction,
     BaseTransactionFields
 )
-from eth.vm.base import BaseVM
-
-
-T_VM_CONFIGURATION = Tuple[Tuple[BlockNumber, Type[BaseVM]], ...]
 
 
 class DefaultTransactionValidator():
@@ -37,16 +30,15 @@ class DefaultTransactionValidator():
 
     def __init__(self,
                  chain: BaseChain,
-                 vm_configuration: T_VM_CONFIGURATION,
-                 initial_tx_validation_block_number: BlockNumber) -> None:
-        if not vm_configuration:
+                 initial_tx_validation_block_number: BlockNumber = None) -> None:
+        if not chain.vm_configuration:
             raise TypeError(
                 "The `DefaultTransactionValidator` cannot function with an "
                 "empty vm_configuration"
             )
 
         self.chain = chain
-        self.vm_configuration = vm_configuration
+        self.vm_configuration = self.chain.vm_configuration
 
         self._ordered_tx_classes = [
             vm_class.get_transaction_class()

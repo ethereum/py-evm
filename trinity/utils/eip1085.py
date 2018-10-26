@@ -141,7 +141,7 @@ def _extract_vm_config(vm_config: Dict[str, str]) -> Iterable[T_VM_FORK]:
 
             HomesteadVM = BaseHomesteadVM.configure(
                 support_dao_fork=True,
-                dao_fork_block_number=dao_fork_block_number,
+                _dao_fork_block_number=dao_fork_block_number,
             )
             yield homestead_fork_block, HomesteadVM
         else:

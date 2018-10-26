@@ -55,7 +55,7 @@ def test_mainnet_eip1085_matches_mainnet_genesis_header(mainnet_genesis_config):
 
     assert issubclass(actual_homestead_vm, HomesteadVM)
     assert actual_homestead_vm.support_dao_fork is True
-    assert actual_homestead_vm.dao_fork_block_number == expected_homestead_vm.dao_fork_block_number
+    assert actual_homestead_vm.get_dao_fork_block_number() == expected_homestead_vm.get_dao_fork_block_number()  # noqa: E501
 
 
 @pytest.fixture
