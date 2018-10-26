@@ -123,7 +123,7 @@ class Node(BaseService):
             BroadcastConfig(internal=True),
         )
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         await self.event_bus.wait_for_connection()
         self.notify_resource_available()
         self.run_daemon_task(self.handle_network_id_requests())

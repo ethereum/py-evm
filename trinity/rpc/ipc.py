@@ -140,7 +140,7 @@ class IPCServer(BaseService):
         self.rpc = rpc
         self.ipc_path = ipc_path
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         self.server = await asyncio.start_unix_server(
             connection_handler(self.rpc.execute, self.cancel_token),
             str(self.ipc_path),
@@ -150,7 +150,7 @@ class IPCServer(BaseService):
         self.logger.info('IPC started at: %s', self.ipc_path.resolve())
         await self.cancel_token.wait()
 
-    async def _cleanup(self) -> None:
+    async def do_cleanup(self) -> None:
         self.server.close()
         await self.server.wait_closed()
         self.ipc_path.unlink()

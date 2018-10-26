@@ -137,7 +137,7 @@ class StateDownloader(BaseService, PeerSubscriber):
                 # retry after a timeout.
                 pass
 
-    async def _cleanup(self) -> None:
+    async def do_cleanup(self) -> None:
         self._nodes_cache_dir.cleanup()
 
     async def request_nodes(self, node_keys: Iterable[Hash32]) -> None:
@@ -235,7 +235,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             next_timeout = self.request_tracker.get_next_timeout()
             await self.sleep(next_timeout - time.time())
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         """Fetch all trie nodes starting from self.root_hash, and store them in self.db.
 
         Raises OperationCancelled if we're interrupted before that is completed.

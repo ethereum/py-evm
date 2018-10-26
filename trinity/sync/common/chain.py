@@ -109,7 +109,7 @@ class BaseHeaderChainSyncer(BaseService):
     def tip_monitor_class(self) -> Type[BaseChainTipMonitor]:
         pass
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         self.run_daemon(self._tip_monitor)
         if self.peer_pool.event_bus is not None:
             self.run_daemon_task(self.handle_sync_status_requests())
@@ -204,7 +204,7 @@ class PeerHeaderSyncer(BaseService):
         else:
             return self._target_header_hash
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         await self.events.cancelled.wait()
 
     async def next_header_batch(self) -> AsyncIterator[Tuple[BlockHeader, ...]]:

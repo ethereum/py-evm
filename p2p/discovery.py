@@ -956,7 +956,7 @@ class DiscoveryService(BaseService):
         self.port = port
         self._lookup_running = asyncio.Lock()
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         await self._start_udp_listener()
         connect_loop_sleep = 2
         self.run_task(self.proto.bootstrap())
@@ -1004,7 +1004,7 @@ class DiscoveryService(BaseService):
             finally:
                 self._last_lookup = time.time()
 
-    async def _cleanup(self) -> None:
+    async def do_cleanup(self) -> None:
         await self.proto.stop()
 
 

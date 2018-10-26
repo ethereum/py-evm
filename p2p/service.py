@@ -84,9 +84,9 @@ class BaseService(ABC, CancellableMixin):
     async def run(
             self,
             finished_callback: Optional[Callable[['BaseService'], None]] = None) -> None:
-        """Await for the service's _run() coroutine.
+        """Await for the service's do_run() coroutine.
 
-        Once _run() returns, triggers the cancel token, call cleanup() and
+        Once do_run() returns, triggers the cancel token, call cleanup() and
         finished_callback (if one was passed).
         """
         if self.is_running:
@@ -100,7 +100,7 @@ class BaseService(ABC, CancellableMixin):
         try:
             async with self._run_lock:
                 self.events.started.set()
-                await self._run()
+                await self.do_run()
         except OperationCancelled as e:
             self.logger.debug("%s finished: %s", self, e)
         except Exception:
@@ -236,10 +236,10 @@ class BaseService(ABC, CancellableMixin):
 
     async def cleanup(self) -> None:
         """
-        Run the ``_cleanup()`` coroutine and set the ``cleaned_up`` event after the service as
+        Run the ``do_cleanup()`` coroutine and set the ``cleaned_up`` event after the service as
         well as all child services finished their cleanup.
 
-        The ``_cleanup()`` coroutine is invoked before the child services may have finished
+        The ``do_cleanup()`` coroutine is invoked before the child services may have finished
         their cleanup.
         """
         if self._child_services:
@@ -253,7 +253,7 @@ class BaseService(ABC, CancellableMixin):
             await asyncio.gather(*self._tasks)
             self.logger.debug("All tasks finished")
 
-        await self._cleanup()
+        await self.do_cleanup()
         self.events.cleaned_up.set()
 
     def cancel_nowait(self) -> None:
@@ -322,17 +322,17 @@ class BaseService(ABC, CancellableMixin):
         await self.wait(asyncio.sleep(delay))
 
     @abstractmethod
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         """Run the service's loop.
 
         Should return or raise OperationCancelled when the CancelToken is triggered.
         """
         raise NotImplementedError()
 
-    async def _cleanup(self) -> None:
+    async def do_cleanup(self) -> None:
         """Clean up any resources held by this service.
 
-        Called after the service's _run() method returns.
+        Called after the service's do_run() method returns.
         """
         pass
 
@@ -357,8 +357,8 @@ def service_timeout(timeout: int) -> Callable[..., Any]:
 
 
 class EmptyService(BaseService):
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         pass
 
-    async def _cleanup(self) -> None:
+    async def do_cleanup(self) -> None:
         pass

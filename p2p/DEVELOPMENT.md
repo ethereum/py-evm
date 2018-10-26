@@ -26,7 +26,7 @@ library.
 
 ```Python
 class Node(BaseService):
-    async def _run(self):
+    async def do_run(self):
         self.discovery = DiscoveryService(token=self.cancel_token)
         self.run_daemon(self.discovery)
         self.run_task(self.discovery.bootstrap())

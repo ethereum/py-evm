@@ -150,7 +150,7 @@ class BasePeerBootManager(BaseService):
         super().__init__(peer.cancel_token)
         self.peer = peer
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         pass
 
 
@@ -351,10 +351,10 @@ class BasePeer(BaseService):
     def is_closing(self) -> bool:
         return self.writer.transport.is_closing()
 
-    async def _cleanup(self) -> None:
+    async def do_cleanup(self) -> None:
         self.close()
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         # The `boot` process is run in the background to allow the `run` loop
         # to continue so that all of the Peer APIs can be used within the
         # `boot` task.
@@ -860,7 +860,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             for msg in msgs:
                 subscriber.add_msg(msg)
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
         # so in order to ensure we cancel all peers when we terminate.
         if self.event_bus is not None:
@@ -875,7 +875,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             peer.disconnect(DisconnectReason.client_quitting) for peer in peers if peer.is_running
         ])
 
-    async def _cleanup(self) -> None:
+    async def do_cleanup(self) -> None:
         await self.stop_all_peers()
 
     async def connect(self, remote: Node) -> BasePeer:

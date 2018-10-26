@@ -10,7 +10,7 @@ class ParentService(BaseService):
     be triggered.
     """
 
-    async def _run(self):
+    async def do_run(self):
         self.daemon = WaitService(token=self.cancel_token)
         self.run_daemon(self.daemon)
         await self.cancel_token.wait()
@@ -18,7 +18,7 @@ class ParentService(BaseService):
 
 class WaitService(BaseService):
 
-    async def _run(self):
+    async def do_run(self):
         await self.cancel_token.wait()
 
 

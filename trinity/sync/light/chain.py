@@ -8,9 +8,9 @@ class LightChainSyncer(BaseHeaderChainSyncer):
 
     tip_monitor_class = LightChainTipMonitor
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         self.run_task(self._persist_headers())
-        await super()._run()
+        await super().do_run()
 
     async def _persist_headers(self) -> None:
         while self.is_operational:

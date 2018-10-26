@@ -35,7 +35,7 @@ class FullNodeSyncer(BaseService):
         self.base_db = base_db
         self.peer_pool = peer_pool
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         head = await self.wait(self.chaindb.coro_get_canonical_head())
         # We're still too slow at block processing, so if our local head is older than
         # FAST_SYNC_CUTOFF we first do a fast-sync run to catch up with the rest of the network.

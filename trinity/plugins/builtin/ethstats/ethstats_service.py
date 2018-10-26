@@ -61,7 +61,7 @@ class EthstatsService(BaseService):
 
         self.chain = self.get_chain()
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         while self.is_operational:
             try:
                 self.logger.info('Connecting to %s...' % self.server_url)

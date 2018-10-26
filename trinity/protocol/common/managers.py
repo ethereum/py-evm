@@ -118,7 +118,7 @@ class ResponseCandidateStream(
     #
     # Service API
     #
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         self.logger.debug("Launching %r", self)
 
         with self.subscribe_peer(self._peer):
@@ -176,7 +176,7 @@ class ResponseCandidateStream(
     def _is_pending(self) -> bool:
         return self.pending_request is not None
 
-    async def _cleanup(self) -> None:
+    async def do_cleanup(self) -> None:
         if self.pending_request is not None:
             self.logger.debug("Stream %r shutting down, cancelling the pending request", self)
             _, future = self.pending_request

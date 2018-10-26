@@ -47,7 +47,7 @@ class BaseRequestServer(BaseService, PeerSubscriber):
         super().__init__(token)
         self._peer_pool = peer_pool
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         self.run_daemon_task(self._handle_msg_loop())
         with self.subscribe(self._peer_pool):
             await self.events.cancelled.wait()

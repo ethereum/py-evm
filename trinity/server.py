@@ -144,7 +144,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             self._tcp_listener.close()
             await self._tcp_listener.wait_closed()
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         self.logger.info("Running server...")
         mapped_external_ip = await self.upnp_service.add_nat_portmap()
         if mapped_external_ip is None:
@@ -185,7 +185,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         self.syncer = self._make_syncer()
         await self.syncer.run()
 
-    async def _cleanup(self) -> None:
+    async def do_cleanup(self) -> None:
         self.logger.info("Closing server...")
         await self._close_tcp_listener()
 

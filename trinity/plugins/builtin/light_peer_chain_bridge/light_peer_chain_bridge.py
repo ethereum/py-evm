@@ -150,7 +150,7 @@ class LightPeerChainEventBusHandler(BaseService):
         self.chain = chain
         self.event_bus = event_bus
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         self.logger.info("Running LightPeerChainEventBusHandler")
 
         self.run_daemon_task(self.handle_get_blockheader_by_hash_requests())

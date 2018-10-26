@@ -47,9 +47,9 @@ class LightNode(Node):
             token=self.cancel_token,
         )
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         self.run_daemon(self._peer_chain)
-        await super()._run()
+        await super().do_run()
 
     def get_chain(self) -> LightDispatchChain:
         if self._chain is None:

@@ -46,7 +46,7 @@ class EthstatsClient(BaseService):
         self.send_queue: asyncio.Queue[EthstatsMessage] = asyncio.Queue()
         self.recv_queue: asyncio.Queue[EthstatsMessage] = asyncio.Queue()
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         await self.wait_first(
             self.send_handler(),
             self.recv_handler(),

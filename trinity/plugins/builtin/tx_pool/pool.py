@@ -67,7 +67,7 @@ class TxPool(BaseService, PeerSubscriber):
     # now.
     msg_queue_maxsize: int = 2000
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         self.logger.info("Running Tx Pool")
 
         with self.subscribe(self._peer_pool):
@@ -122,5 +122,5 @@ class TxPool(BaseService, PeerSubscriber):
         for val in txs:
             self._bloom.add(self._construct_bloom_entry(peer, val))
 
-    async def _cleanup(self) -> None:
+    async def do_cleanup(self) -> None:
         self.logger.info("Stopping Tx Pool...")

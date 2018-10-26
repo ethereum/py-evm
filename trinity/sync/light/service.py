@@ -117,7 +117,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     # to be handled by the chain syncer), so our queue should never grow too much.
     msg_queue_maxsize = 500
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         with self.subscribe(self.peer_pool):
             while self.is_operational:
                 peer, cmd, msg = await self.wait(self.msg_queue.get())

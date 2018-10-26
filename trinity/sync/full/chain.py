@@ -163,9 +163,9 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer, PeerSubscriber):
         buffer_size = MAX_BODIES_FETCH * REQUEST_BUFFER_MULTIPLIER
         self._block_body_tasks = TaskQueue(buffer_size, attrgetter('block_number'))
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         with self.subscribe(self.peer_pool):
-            await super()._run()
+            await super().do_run()
 
     async def _assign_body_download_to_peers(self) -> None:
         """
@@ -372,7 +372,7 @@ class FastChainSyncer(BaseBodyChainSyncer):
             dependency_extractor=attrgetter('parent_hash'),
         )
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
         self._block_persist_tracker.set_finished_dependency(head)
         self.run_daemon_task(self._launch_prerequisite_tasks())
@@ -380,7 +380,7 @@ class FastChainSyncer(BaseBodyChainSyncer):
         self.run_daemon_task(self._assign_body_download_to_peers())
         self.run_daemon_task(self._persist_ready_blocks())
         self.run_daemon_task(self._display_stats())
-        await super()._run()
+        await super().do_run()
 
     def register_peer(self, peer: BasePeer) -> None:
         # when a new peer is added to the pool, add it to the idle peer lists
@@ -740,13 +740,13 @@ class RegularChainSyncer(BaseBodyChainSyncer):
             dependency_extractor=attrgetter('parent_hash'),
         )
 
-    async def _run(self) -> None:
+    async def do_run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
         self._block_import_tracker.set_finished_dependency(head)
         self.run_daemon_task(self._launch_prerequisite_tasks())
         self.run_daemon_task(self._assign_body_download_to_peers())
         self.run_daemon_task(self._import_ready_blocks())
-        await super()._run()
+        await super().do_run()
 
     def register_peer(self, peer: BasePeer) -> None:
         # when a new peer is added to the pool, add it to the idle peer list
