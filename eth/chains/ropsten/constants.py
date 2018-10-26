@@ -1,3 +1,6 @@
+from eth_typing import BlockNumber
+
+
 # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
 ROPSTEN_CHAIN_ID = 3
 
@@ -6,34 +9,34 @@ ROPSTEN_CHAIN_ID = 3
 #
 # DAO Block
 #
-DAO_FORK_ROPSTEN_BLOCK = 0
+DAO_FORK_ROPSTEN_BLOCK = BlockNumber(0)
 
 
 #
 # Tangerine Whistle Block
 #
-TANGERINE_WHISTLE_ROPSTEN_BLOCK = 0
+TANGERINE_WHISTLE_ROPSTEN_BLOCK = BlockNumber(0)
 
 
 #
 # Homestead Block
 #
-HOMESTEAD_ROPSTEN_BLOCK = 0
+HOMESTEAD_ROPSTEN_BLOCK = BlockNumber(0)
 
 
 #
 # Spurious Dragon Block
 #
-SPURIOUS_DRAGON_ROPSTEN_BLOCK = 10
+SPURIOUS_DRAGON_ROPSTEN_BLOCK = BlockNumber(10)
 
 
 #
 # Byzantium Block
 #
-BYZANTIUM_ROPSTEN_BLOCK = 1700000
+BYZANTIUM_ROPSTEN_BLOCK = BlockNumber(1700000)
 
 
 #
 # Constantinople
 #
-CONSTANTINOPLE_ROPSTEN_BLOCK = 4230000
+CONSTANTINOPLE_ROPSTEN_BLOCK = BlockNumber(4230000)
