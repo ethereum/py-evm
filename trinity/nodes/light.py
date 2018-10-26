@@ -66,7 +66,7 @@ class LightNode(Node):
             self._p2p_server = LightServer(
                 privkey=self._nodekey,
                 port=self._port,
-                chain=manager.get_chain(),  # type: ignore
+                chain=self.get_chain(),
                 chaindb=manager.get_chaindb(),  # type: ignore
                 headerdb=self.headerdb,
                 base_db=manager.get_db(),  # type: ignore

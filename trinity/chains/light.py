@@ -223,6 +223,9 @@ class LightDispatchChain(BaseAsyncChain):
     def import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
+    async def coro_import_block(self, block: BaseBlock, perform_validation: bool=True) -> BaseBlock:
+        raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
+
     def mine_block(self, *args: Any, **kwargs: Any) -> BaseBlock:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
@@ -230,6 +233,9 @@ class LightDispatchChain(BaseAsyncChain):
     # Validation API
     #
     def validate_receipt(self, receipt: Receipt, at_header: BlockHeader) -> None:
+        raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
+
+    async def coro_validate_receipt(self, receipt: Receipt, at_header: BlockHeader) -> None:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     def validate_block(self, block: BaseBlock) -> None:
@@ -245,6 +251,13 @@ class LightDispatchChain(BaseAsyncChain):
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     def validate_chain(
+            self,
+            parent: BlockHeader,
+            chain: Tuple[BlockHeader, ...],
+            seal_check_random_sample_rate: int = 1) -> None:
+        raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
+
+    async def coro_validate_chain(
             self,
             parent: BlockHeader,
             chain: Tuple[BlockHeader, ...],

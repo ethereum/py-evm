@@ -275,7 +275,10 @@ class TrinityConfig:
     def get_chain_config(self) -> ChainConfig:
         # the `ChainConfig` object cannot be pickled so we can't cache this
         # value since the TrinityConfig is sent across process boundaries.
-        return ChainConfig.from_eip1085_genesis_config(self.genesis_config)
+        if self.network_id in PRECONFIGURED_NETWORKS:
+            return ChainConfig.from_preconfigured_network(self.network_id)
+        else:
+            return ChainConfig.from_eip1085_genesis_config(self.genesis_config)
 
     @property
     def sync_mode(self) -> str:
