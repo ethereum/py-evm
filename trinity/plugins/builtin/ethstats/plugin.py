@@ -71,7 +71,7 @@ class EthstatsPlugin(BaseIsolatedPlugin):
             default=os.environ.get('ETHSTATS_NODE_CONTACT', ''),
         )
 
-    def ready(self) -> None:
+    def on_ready(self) -> None:
         args = self.context.args
 
         if not args.ethstats:

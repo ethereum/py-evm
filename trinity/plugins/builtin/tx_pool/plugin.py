@@ -54,7 +54,7 @@ class TxPlugin(BaseAsyncStopPlugin):
             help="Enables the Transaction Pool (experimental)",
         )
 
-    def ready(self) -> None:
+    def on_ready(self) -> None:
 
         light_mode = self.context.args.sync_mode == SYNC_LIGHT
         self.is_enabled = self.context.args.tx_pool and not light_mode

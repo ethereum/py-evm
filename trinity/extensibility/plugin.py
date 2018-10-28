@@ -8,6 +8,10 @@ from argparse import (
     _SubParsersAction,
 )
 import asyncio
+from enum import (
+    auto,
+    Enum,
+)
 import logging
 from multiprocessing import (
     Process
@@ -38,6 +42,7 @@ from trinity.extensibility.events import (
 )
 from trinity.extensibility.exceptions import (
     EventBusNotReady,
+    InvalidPluginStatus,
 )
 from trinity.utils.ipc import (
     kill_process_gracefully
@@ -48,6 +53,16 @@ from trinity.utils.mp import (
 from trinity.utils.logging import (
     setup_queue_logging,
 )
+
+
+class PluginStatus(Enum):
+    NOT_READY = auto()
+    READY = auto()
+    STARTED = auto()
+    STOPPED = auto()
+
+
+INVALID_START_STATUS = (PluginStatus.NOT_READY, PluginStatus.STARTED,)
 
 
 class TrinityBootInfo(NamedTuple):
@@ -65,7 +80,7 @@ class PluginContext:
 
     The :class:`~trinity.extensibility.plugin.PluginContext` is set during startup and is
     guaranteed to exist by the time that a plugin receives its
-    :meth:`~trinity.extensibility.plugin.BasePlugin.ready` call.
+    :meth:`~trinity.extensibility.plugin.BasePlugin.on_ready` call.
     """
 
     def __init__(self, endpoint: Endpoint, boot_info: TrinityBootInfo) -> None:
@@ -112,7 +127,7 @@ class PluginContext:
 class BasePlugin(ABC):
 
     context: PluginContext = None
-    running: bool = False
+    status: PluginStatus = PluginStatus.NOT_READY
 
     @property
     @abstractmethod
@@ -140,6 +155,13 @@ class BasePlugin(ABC):
 
         return self.context.event_bus
 
+    @property
+    def running(self) -> bool:
+        """
+        Return ``True`` if the ``status`` is ``PluginStatus.STARTED``, otherwise return ``False``.
+        """
+        return self.status is PluginStatus.STARTED
+
     def set_context(self, context: PluginContext) -> None:
         """
         Set the :class:`~trinity.extensibility.plugin.PluginContext` for this plugin.
@@ -147,6 +169,14 @@ class BasePlugin(ABC):
         self.context = context
 
     def ready(self) -> None:
+        """
+        Set the ``status`` to ``PluginStatus.READY`` and delegate to
+        :meth:`~trinity.extensibility.plugin.BasePlugin.on_ready`
+        """
+        self.status = PluginStatus.READY
+        self.on_ready()
+
+    def on_ready(self) -> None:
         """
         Notify the plugin that it is ready to bootstrap itself. Plugins can rely
         on the :class:`~trinity.extensibility.plugin.PluginContext` to be set
@@ -157,7 +187,7 @@ class BasePlugin(ABC):
     def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         """
         Give the plugin a chance to amend the Trinity CLI argument parser. This hook is called
-        before :meth:`~trinity.extensibility.plugin.BasePlugin.ready`
+        before :meth:`~trinity.extensibility.plugin.BasePlugin.on_ready`
         """
         pass
 
@@ -167,7 +197,13 @@ class BasePlugin(ABC):
         to ``True``. Broadcast a :class:`~trinity.extensibility.events.PluginStartedEvent` on the
         :class:`~lahja.eventbus.EventBus` and hence allow other plugins to act accordingly.
         """
-        self.running = True
+
+        if self.status in INVALID_START_STATUS:
+            raise InvalidPluginStatus(
+                f"Can not start plugin when the plugin status is {self.status}"
+            )
+
+        self.status = PluginStatus.STARTED
         self.do_start()
         self.event_bus.broadcast(
             PluginStartedEvent(type(self))
@@ -202,7 +238,7 @@ class BaseSyncStopPlugin(BasePlugin):
         plugin to stop and setting ``running`` to ``False``.
         """
         self.do_stop()
-        self.running = False
+        self.status = PluginStatus.STOPPED
 
 
 class BaseAsyncStopPlugin(BasePlugin):
@@ -223,7 +259,7 @@ class BaseAsyncStopPlugin(BasePlugin):
         plugin to stop asynchronously and setting ``running`` to ``False``.
         """
         await self.do_stop()
-        self.running = False
+        self.status = PluginStatus.STOPPED
 
 
 class BaseMainProcessPlugin(BasePlugin):
@@ -252,7 +288,7 @@ class BaseIsolatedPlugin(BaseSyncStopPlugin):
         """
         Prepare the plugin to get started and eventually call ``do_start`` in a separate process.
         """
-        self.running = True
+        self.status = PluginStatus.STARTED
         self._process = ctx.Process(
             target=self._prepare_start,
         )
