@@ -135,12 +135,11 @@ def construct_trinity_config_params(
     if args.data_dir is not None:
         yield 'data_dir', args.data_dir
 
-    if args.nodekey_path and args.nodekey:
-        raise ValueError("Cannot provide both nodekey_path and nodekey")
-    elif args.nodekey_path is not None:
-        yield 'nodekey_path', args.nodekey_path
-    elif args.nodekey is not None:
-        yield 'nodekey', decode_hex(args.nodekey)
+    if args.nodekey is not None:
+        if os.path.isfile(args.nodekey):
+            yield 'nodekey_path', args.nodekey
+        else:
+            yield 'nodekey', decode_hex(args.nodekey)
 
     if args.sync_mode is not None:
         yield 'sync_mode', args.sync_mode
