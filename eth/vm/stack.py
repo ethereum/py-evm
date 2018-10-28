@@ -4,7 +4,6 @@ from eth_utils import (
     int_to_big_endian,
     big_endian_to_int,
 )
-from eth import constants
 from eth.exceptions import (
     InsufficientStack,
     FullStack,
@@ -28,7 +27,7 @@ class Stack(object):
     logger = logging.getLogger('eth.vm.stack.Stack')
 
     def __init__(self):
-        self.values = []  # type: List[Union[int, Hash32]]
+        self.values = []  # type: List[int]
 
     def __len__(self):
         return len(self.values)
@@ -36,51 +35,42 @@ class Stack(object):
     def push(self, value):
         """
         Push an item onto the stack.
+        bytes are converted to int before pushing
         """
         if len(self.values) > 1023:
             raise FullStack('Stack limit reached')
 
-        validate_stack_item(value)
+        if isinstance(value, int):
+            stack_item = value
+        elif isinstance(value, bytes):
+            stack_item = big_endian_to_int(value)
+        else:
+            stack_item = value
 
-        self.values.append(value)
+        validate_stack_item(stack_item)
 
-    def pop(self, num_items, type_hint):
+        self.values.append(stack_item)
+
+    def pop_ints(self, num_items):
         """
-        Pop an item off thes stack.
-
-        Note: This function is optimized for speed over readability.
+        Pop items off the stack and return as integers.
         """
-        try:
-            if num_items == 1:
-                return next(self._pop(num_items, type_hint))
-            else:
-                return tuple(self._pop(num_items, type_hint))
-        except IndexError:
+        if len(self.values) < num_items:
             raise InsufficientStack("No stack items")
 
-    def _pop(self, num_items, type_hint):
         for _ in range(num_items):
-            if type_hint == constants.UINT256:
-                value = self.values.pop()
-                if isinstance(value, int):
-                    yield value
-                else:
-                    yield big_endian_to_int(value)
-            elif type_hint == constants.BYTES:
-                value = self.values.pop()
-                if isinstance(value, bytes):
-                    yield value
-                else:
-                    yield int_to_big_endian(value)
-            elif type_hint == constants.ANY:
-                yield self.values.pop()
-            else:
-                raise TypeError(
-                    "Unknown type_hint: {0}.  Must be one of {1}".format(
-                        type_hint,
-                        ", ".join((constants.UINT256, constants.BYTES)),
-                    )
-                )
+            yield self.values.pop()
+
+    def pop_bytes(self, num_items):
+        """
+        Pop items off the stack and return as bytes.
+        """
+        if len(self.values) < num_items:
+            raise InsufficientStack("No stack items")
+
+        for _ in range(num_items):
+            stack_item = self.values.pop()
+            yield int_to_big_endian(stack_item)
 
     def swap(self, position):
         """

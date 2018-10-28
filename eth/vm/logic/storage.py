@@ -6,7 +6,7 @@ from eth.utils.hexadecimal import (
 
 
 def sstore(computation):
-    slot, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    slot, value = computation.stack_pop_ints(num_items=2)
 
     current_value = computation.state.account_db.get_storage(
         address=computation.msg.storage_address,
@@ -50,7 +50,7 @@ def sstore(computation):
 
 
 def sload(computation):
-    slot = computation.stack_pop(type_hint=constants.UINT256)
+    slot, = computation.stack_pop_ints()
 
     value = computation.state.account_db.get_storage(
         address=computation.msg.storage_address,

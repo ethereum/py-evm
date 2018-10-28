@@ -7,7 +7,7 @@ from eth.utils.numeric import (
 
 
 def sha3(computation):
-    start_position, size = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    start_position, size = computation.stack_pop_ints(num_items=2, type_hint=constants.UINT256)
 
     computation.extend_memory(start_position, size)
 

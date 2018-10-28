@@ -105,7 +105,7 @@ def test_add(vm_class, val1, val2, expected):
     computation.stack_push(val2)
     computation.opcodes[opcode_values.ADD](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result, = computation.stack_pop_ints()
 
     assert result == expected
 
@@ -126,7 +126,7 @@ def test_mul(vm_class, val1, val2, expected):
     computation.stack_push(val2)
     computation.opcodes[opcode_values.MUL](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result, = computation.stack_pop_ints()
 
     assert result == expected
 
@@ -152,7 +152,7 @@ def test_exp(vm_class, base, exponent, expected):
     computation.stack_push(base)
     computation.opcodes[opcode_values.EXP](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result, = computation.stack_pop_ints()
 
     assert result == expected
 
@@ -235,7 +235,7 @@ def test_shl(vm_class, val1, val2, expected):
     computation.stack_push(decode_hex(val2))
     computation.opcodes[opcode_values.SHL](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result, = computation.stack_pop_ints()
 
     assert encode_hex(pad32(int_to_big_endian(result))) == expected
 
@@ -318,7 +318,7 @@ def test_shr(vm_class, val1, val2, expected):
     computation.stack_push(decode_hex(val2))
     computation.opcodes[opcode_values.SHR](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result, = computation.stack_pop_ints()
     assert encode_hex(pad32(int_to_big_endian(result))) == expected
 
 
@@ -431,7 +431,7 @@ def test_sar(vm_class, val1, val2, expected):
     computation.stack_push(decode_hex(val2))
     computation.opcodes[opcode_values.SAR](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result, = computation.stack_pop_ints()
     assert encode_hex(pad32(int_to_big_endian(result))) == expected
 
 
@@ -462,7 +462,7 @@ def test_extcodehash(vm_class, address, expected):
     computation.stack_push(decode_hex(address))
     computation.opcodes[opcode_values.EXTCODEHASH](computation)
 
-    result = computation.stack_pop(type_hint=constants.BYTES)
+    result, = computation.stack_pop_bytes()
     assert encode_hex(pad32(result)) == expected
 
 

@@ -32,7 +32,7 @@ from .call import max_child_gas_eip150
 
 
 def return_op(computation: BaseComputation) -> None:
-    start_position, size = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    start_position, size = computation.stack_pop_ints(num_items=2)
 
     computation.extend_memory(start_position, size)
 
@@ -42,7 +42,7 @@ def return_op(computation: BaseComputation) -> None:
 
 
 def revert(computation: BaseComputation) -> None:
-    start_position, size = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    start_position, size = computation.stack_pop_ints(num_items=2)
 
     computation.extend_memory(start_position, size)
 
@@ -52,13 +52,13 @@ def revert(computation: BaseComputation) -> None:
 
 
 def selfdestruct(computation: BaseComputation) -> None:
-    beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+    beneficiary = force_bytes_to_address(next(computation.stack_pop_bytes()))
     _selfdestruct(computation, beneficiary)
     raise Halt('SELFDESTRUCT')
 
 
 def selfdestruct_eip150(computation: BaseComputation) -> None:
-    beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+    beneficiary = force_bytes_to_address(next(computation.stack_pop_bytes()))
     if not computation.state.account_db.account_exists(beneficiary):
         computation.consume_gas(
             constants.GAS_SELFDESTRUCT_NEWACCOUNT,
@@ -68,7 +68,7 @@ def selfdestruct_eip150(computation: BaseComputation) -> None:
 
 
 def selfdestruct_eip161(computation: BaseComputation) -> None:
-    beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+    beneficiary = force_bytes_to_address(next(computation.stack_pop_bytes()))
     is_dead = (
         not computation.state.account_db.account_exists(beneficiary) or
         computation.state.account_db.account_is_empty(beneficiary)
@@ -142,10 +142,7 @@ class Create(Opcode):
         return contract_address
 
     def get_stack_data(self, computation: BaseComputation) -> CreateOpcodeStackData:
-        endowment, memory_start, memory_length = computation.stack_pop(
-            num_items=3,
-            type_hint=constants.UINT256,
-        )
+        endowment, memory_start, memory_length = computation.stack_pop_ints(num_items=3)
 
         return CreateOpcodeStackData(endowment, memory_start, memory_length)
 
@@ -220,10 +217,7 @@ class Create2(CreateByzantium):
 
     def get_stack_data(self, computation: BaseComputation) -> CreateOpcodeStackData:
 
-        endowment, memory_start, memory_length, salt = computation.stack_pop(
-            num_items=4,
-            type_hint=constants.UINT256,
-        )
+        endowment, memory_start, memory_length, salt = computation.stack_pop_ints(num_items=4)
 
         return CreateOpcodeStackData(endowment, memory_start, memory_length, salt)
 

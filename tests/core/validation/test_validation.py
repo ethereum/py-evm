@@ -302,9 +302,9 @@ def test_validate_uint256(value, is_valid):
     "value,is_valid",
     (
         ('a', False),
-        (b'', True),
-        (b'a', True),
-        (b'10010010010010010010010010010010', True),
+        (b'', False),
+        (b'a', False),
+        (b'10010010010010010010010010010010', False),
         (b'100100100100100100100100100100100', False),
         (-1, False),
         (0, True),

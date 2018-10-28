@@ -291,17 +291,25 @@ class BaseComputation(Configurable, ABC):
         """
         return self._gas_meter.refund_gas(amount)
 
-    def stack_pop(self, num_items=1, type_hint=None):
+    def stack_pop_ints(self, num_items=1):
         """
         Pop and return a number of items equal to ``num_items`` from the stack.
-        ``type_hint`` can be either ``'uint256'`` or ``'bytes'``.  The return value
-        will be an ``int`` or ``bytes`` type depending on the value provided for
-        the ``type_hint``.
+        The return value will be ``int`` type.
 
         Raise `eth.exceptions.InsufficientStack` if there are not enough items on
         the stack.
         """
-        return self._stack.pop(num_items, type_hint)
+        return self._stack.pop_ints(num_items)
+
+    def stack_pop_bytes(self, num_items=1):
+        """
+        Pop and return a number of items equal to ``num_items`` from the stack.
+        The return value will be ``bytes`` type.
+
+        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
+        the stack.
+        """
+        return self._stack.pop_bytes(num_items)
 
     def stack_push(self, value):
         """

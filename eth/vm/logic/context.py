@@ -12,7 +12,7 @@ from eth.utils.numeric import (
 
 
 def balance(computation):
-    addr = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+    addr = force_bytes_to_address(next(computation.stack_pop_bytes()))
     balance = computation.state.account_db.get_balance(addr)
     computation.stack_push(balance)
 
@@ -37,7 +37,7 @@ def calldataload(computation):
     """
     Load call data into memory.
     """
-    start_position = computation.stack_pop(type_hint=constants.UINT256)
+    start_position, = computation.stack_pop_ints()
 
     value = computation.msg.data[start_position:start_position + 32]
     padded_value = value.ljust(32, b'\x00')
@@ -56,7 +56,7 @@ def calldatacopy(computation):
         mem_start_position,
         calldata_start_position,
         size,
-    ) = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    ) = computation.stack_pop_ints(num_items=3)
 
     computation.extend_memory(mem_start_position, size)
 
@@ -81,7 +81,7 @@ def codecopy(computation):
         mem_start_position,
         code_start_position,
         size,
-    ) = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    ) = computation.stack_pop_ints(num_items=3)
 
     computation.extend_memory(mem_start_position, size)
 
@@ -106,19 +106,19 @@ def gasprice(computation):
 
 
 def extcodesize(computation):
-    account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+    account = force_bytes_to_address(next(computation.stack_pop_bytes()))
     code_size = len(computation.state.account_db.get_code(account))
 
     computation.stack_push(code_size)
 
 
 def extcodecopy(computation):
-    account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+    account = force_bytes_to_address(next(computation.stack_pop_bytes()))
     (
         mem_start_position,
         code_start_position,
         size,
-    ) = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    ) = computation.stack_pop_ints(num_items=3)
 
     computation.extend_memory(mem_start_position, size)
 
@@ -143,7 +143,7 @@ def extcodehash(computation):
     Return the code hash for a given address.
     EIP: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1052.md
     """
-    account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+    account = force_bytes_to_address(next(computation.stack_pop_bytes()))
     account_db = computation.state.account_db
 
     if not account_db.account_exists(account):
@@ -162,7 +162,7 @@ def returndatacopy(computation):
         mem_start_position,
         returndata_start_position,
         size,
-    ) = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    ) = computation.stack_pop_ints(num_items=3)
 
     if returndata_start_position + size > len(computation.return_data):
         raise OutOfBoundsRead(

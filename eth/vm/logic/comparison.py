@@ -10,7 +10,7 @@ def lt(computation):
     """
     Lesser Comparison
     """
-    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop_ints(num_items=2)
 
     if left < right:
         result = 1
@@ -24,7 +24,7 @@ def gt(computation):
     """
     Greater Comparison
     """
-    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop_ints(num_items=2)
 
     if left > right:
         result = 1
@@ -40,7 +40,7 @@ def slt(computation):
     """
     left, right = map(
         unsigned_to_signed,
-        computation.stack_pop(num_items=2, type_hint=constants.UINT256),
+        computation.stack_pop_ints(num_items=2),
     )
 
     if left < right:
@@ -57,7 +57,7 @@ def sgt(computation):
     """
     left, right = map(
         unsigned_to_signed,
-        computation.stack_pop(num_items=2, type_hint=constants.UINT256),
+        computation.stack_pop_ints(num_items=2),
     )
 
     if left > right:
@@ -72,7 +72,7 @@ def eq(computation):
     """
     Equality
     """
-    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop_ints(num_items=2)
 
     if left == right:
         result = 1
@@ -86,7 +86,7 @@ def iszero(computation):
     """
     Not
     """
-    value = computation.stack_pop(type_hint=constants.UINT256)
+    value, = computation.stack_pop_ints()
 
     if value == 0:
         result = 1
@@ -100,7 +100,7 @@ def and_op(computation):
     """
     Bitwise And
     """
-    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop_ints(num_items=2)
 
     result = left & right
 
@@ -111,7 +111,7 @@ def or_op(computation):
     """
     Bitwise Or
     """
-    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop_ints(num_items=2)
 
     result = left | right
 
@@ -122,7 +122,7 @@ def xor(computation):
     """
     Bitwise XOr
     """
-    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop_ints(num_items=2)
 
     result = left ^ right
 
@@ -133,7 +133,7 @@ def not_op(computation):
     """
     Not
     """
-    value = computation.stack_pop(type_hint=constants.UINT256)
+    value, = computation.stack_pop_ints()
 
     result = constants.UINT_256_MAX - value
 
@@ -144,7 +144,7 @@ def byte_op(computation):
     """
     Bitwise And
     """
-    position, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    position, value = computation.stack_pop_ints(num_items=2)
 
     if position >= 32:
         result = 0

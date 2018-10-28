@@ -167,9 +167,7 @@ def validate_uint256(value, title="Value"):
 
 
 def validate_stack_item(value):
-    if isinstance(value, bytes) and len(value) <= 32:
-        return
-    elif isinstance(value, int) and 0 <= value <= UINT_256_MAX:
+    if isinstance(value, int) and 0 <= value <= UINT_256_MAX:
         return
     raise ValidationError(
         "Invalid Stack Item: Must be either a length 32 byte "

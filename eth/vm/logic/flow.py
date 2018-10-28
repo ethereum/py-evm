@@ -1,4 +1,3 @@
-from eth import constants
 from eth.exceptions import (
     InvalidJumpDestination,
     InvalidInstruction,
@@ -14,7 +13,7 @@ def stop(computation):
 
 
 def jump(computation):
-    jump_dest = computation.stack_pop(type_hint=constants.UINT256)
+    jump_dest, = computation.stack_pop_ints()
 
     computation.code.pc = jump_dest
 
@@ -28,7 +27,7 @@ def jump(computation):
 
 
 def jumpi(computation):
-    jump_dest, check_value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    jump_dest, check_value = computation.stack_pop_ints(num_items=2)
 
     if check_value:
         computation.code.pc = jump_dest

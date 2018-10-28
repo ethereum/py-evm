@@ -1,10 +1,8 @@
 import functools
 
-from eth import constants
-
 
 def pop(computation):
-    computation.stack_pop(type_hint=constants.ANY)
+    computation.stack_pop_ints()
 
 
 def push_XX(computation, size):

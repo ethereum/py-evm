@@ -1,8 +1,5 @@
-from eth import constants
-
-
 def blockhash(computation):
-    block_number = computation.stack_pop(type_hint=constants.UINT256)
+    block_number, = computation.stack_pop_ints()
 
     block_hash = computation.state.get_ancestor_hash(block_number)
 

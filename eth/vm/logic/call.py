@@ -140,8 +140,8 @@ class Call(BaseCall):
         return transfer_gas_fee + create_gas_fee
 
     def get_call_params(self, computation):
-        gas = computation.stack_pop(type_hint=constants.UINT256)
-        to = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+        gas, = computation.stack_pop_ints()
+        to = force_bytes_to_address(next(computation.stack_pop_bytes()))
 
         (
             value,
@@ -149,7 +149,7 @@ class Call(BaseCall):
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
-        ) = computation.stack_pop(num_items=5, type_hint=constants.UINT256)
+        ) = computation.stack_pop_ints(num_items=5)
 
         return (
             gas,
@@ -171,8 +171,8 @@ class CallCode(BaseCall):
         return constants.GAS_CALLVALUE if value else 0
 
     def get_call_params(self, computation):
-        gas = computation.stack_pop(type_hint=constants.UINT256)
-        code_address = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+        gas, = computation.stack_pop_ints()
+        code_address = force_bytes_to_address(next(computation.stack_pop_bytes()))
 
         (
             value,
@@ -180,7 +180,7 @@ class CallCode(BaseCall):
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
-        ) = computation.stack_pop(num_items=5, type_hint=constants.UINT256)
+        ) = computation.stack_pop_ints(num_items=5)
 
         to = computation.msg.storage_address
         sender = computation.msg.storage_address
@@ -208,15 +208,15 @@ class DelegateCall(BaseCall):
         return 0
 
     def get_call_params(self, computation):
-        gas = computation.stack_pop(type_hint=constants.UINT256)
-        code_address = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+        gas, = computation.stack_pop_ints()
+        code_address = force_bytes_to_address(next(computation.stack_pop_bytes()))
 
         (
             memory_input_start_position,
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
-        ) = computation.stack_pop(num_items=4, type_hint=constants.UINT256)
+        ) = computation.stack_pop_ints(num_items=4)
 
         to = computation.msg.storage_address
         sender = computation.msg.sender
@@ -321,15 +321,15 @@ class CallEIP161(CallEIP150):
 #
 class StaticCall(CallEIP161):
     def get_call_params(self, computation):
-        gas = computation.stack_pop(type_hint=constants.UINT256)
-        to = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+        gas, = computation.stack_pop_ints()
+        to = force_bytes_to_address(next(computation.stack_pop_bytes()))
 
         (
             memory_input_start_position,
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
-        ) = computation.stack_pop(num_items=4, type_hint=constants.UINT256)
+        ) = computation.stack_pop_ints(num_items=4)
 
         return (
             gas,

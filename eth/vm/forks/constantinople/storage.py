@@ -1,6 +1,3 @@
-from eth.constants import (
-    UINT256
-)
 from eth.vm.forks.constantinople import (
     constants
 )
@@ -11,7 +8,7 @@ from eth.utils.hexadecimal import (
 
 
 def sstore_eip1283(computation):
-    slot, value = computation.stack_pop(num_items=2, type_hint=UINT256)
+    slot, value = computation.stack_pop_ints(num_items=2)
 
     current_value = computation.state.account_db.get_storage(
         address=computation.msg.storage_address,
