@@ -40,7 +40,7 @@ class LightPeerChainBridgePlugin(BaseAsyncStopPlugin):
     def name(self) -> str:
         return "LightPeerChain Bridge"
 
-    def ready(self) -> None:
+    def on_ready(self) -> None:
         if self.context.trinity_config.sync_mode != SYNC_LIGHT:
             return
 

@@ -33,7 +33,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
     def name(self) -> str:
         return "JSON-RPC Server"
 
-    def ready(self) -> None:
+    def on_ready(self) -> None:
         if not self.context.args.disable_rpc:
             self.start()
 
