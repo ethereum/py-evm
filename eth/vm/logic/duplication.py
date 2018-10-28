@@ -1,7 +1,9 @@
 import functools
 
+from eth.vm.computation import BaseComputation
 
-def dup_XX(computation, position):
+
+def dup_XX(computation: BaseComputation, position: int) -> None:
     """
     Stack item duplication.
     """

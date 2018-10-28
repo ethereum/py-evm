@@ -4,6 +4,8 @@ from rlp.sedes import (
     binary,
 )
 
+from typing import List
+
 from .sedes import (
     address,
     int32,
@@ -17,7 +19,7 @@ class Log(rlp.Serializable):
         ('data', binary)
     ]
 
-    def __init__(self, address: bytes, topics: bytes, data: bytes) -> None:
+    def __init__(self, address: bytes, topics: List[int], data: bytes) -> None:
         super().__init__(address, topics, data)
 
     @property

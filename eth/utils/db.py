@@ -2,6 +2,10 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from eth_typing import (
+    Hash32,
+)
+
 from eth.db.account import (
     BaseAccountDB,
 )
@@ -24,7 +28,7 @@ def get_parent_header(block_header: BlockHeader, db: 'BaseChainDB') -> BlockHead
     return db.get_block_header_by_hash(block_header.parent_hash)
 
 
-def get_block_header_by_hash(block_hash: BlockHeader, db: 'BaseChainDB') -> BlockHeader:
+def get_block_header_by_hash(block_hash: Hash32, db: 'BaseChainDB') -> BlockHeader:
     """
     Returns the header for the parent block.
     """

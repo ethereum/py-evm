@@ -4,6 +4,7 @@ import rlp
 
 from typing import (
     Iterable,
+    List,
     Tuple,
 )
 
@@ -14,7 +15,7 @@ from eth_typing import (
 from eth.rlp.logs import Log
 
 
-def hash_log_entries(log_entries: Iterable[Tuple[bytes, bytes, bytes]]) -> Hash32:
+def hash_log_entries(log_entries: Iterable[Tuple[bytes, List[int], bytes]]) -> Hash32:
     """
     Helper function for computing the RLP hash of the logs from transaction
     execution.

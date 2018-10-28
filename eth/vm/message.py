@@ -1,5 +1,7 @@
 import logging
 
+from eth_typing import Address
+
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
@@ -25,17 +27,17 @@ class Message(object):
     logger = logging.getLogger('eth.vm.message.Message')
 
     def __init__(self,
-                 gas,
-                 to,
-                 sender,
-                 value,
-                 data,
-                 code,
-                 depth=0,
-                 create_address=None,
-                 code_address=None,
-                 should_transfer_value=True,
-                 is_static=False):
+                 gas: int,
+                 to: Address,
+                 sender: Address,
+                 value: int,
+                 data: bytes,
+                 code: bytes,
+                 depth: int=0,
+                 create_address: Address=None,
+                 code_address: Address=None,
+                 should_transfer_value: bool=True,
+                 is_static: bool=False) -> None:
         validate_uint256(gas, title="Message.gas")
         self.gas = gas  # type: int
 
@@ -74,27 +76,27 @@ class Message(object):
         self.is_static = is_static
 
     @property
-    def code_address(self):
+    def code_address(self) -> Address:
         if self._code_address is not None:
             return self._code_address
         else:
             return self.to
 
     @code_address.setter
-    def code_address(self, value):
+    def code_address(self, value: Address) -> None:
         self._code_address = value
 
     @property
-    def storage_address(self):
+    def storage_address(self) -> Address:
         if self._storage_address is not None:
             return self._storage_address
         else:
             return self.to
 
     @storage_address.setter
-    def storage_address(self, value):
+    def storage_address(self, value: Address) -> None:
         self._storage_address = value
 
     @property
-    def is_create(self):
+    def is_create(self) -> bool:
         return self.to == CREATE_CONTRACT_ADDRESS

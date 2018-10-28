@@ -4,9 +4,10 @@ from eth import constants
 from eth.utils.numeric import (
     ceil32,
 )
+from eth.vm.computation import BaseComputation
 
 
-def sha3(computation):
+def sha3(computation: BaseComputation) -> None:
     start_position, size = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     computation.extend_memory(start_position, size)

@@ -4,8 +4,10 @@ from eth.utils.hexadecimal import (
     encode_hex,
 )
 
+from eth.vm.computation import BaseComputation
 
-def sstore(computation):
+
+def sstore(computation: BaseComputation) -> None:
     slot, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
     current_value = computation.state.account_db.get_storage(
@@ -49,7 +51,7 @@ def sstore(computation):
     )
 
 
-def sload(computation):
+def sload(computation: BaseComputation) -> None:
     slot = computation.stack_pop(type_hint=constants.UINT256)
 
     value = computation.state.account_db.get_storage(

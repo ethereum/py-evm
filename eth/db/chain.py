@@ -156,7 +156,7 @@ class BaseChainDB(BaseHeaderDB):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
-    def persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
+    def persist_trie_data_dict(self, trie_data_dict: Dict[Hash32, bytes]) -> None:
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
@@ -463,7 +463,7 @@ class ChainDB(HeaderDB, BaseChainDB):
         """
         return self.db[key]
 
-    def persist_trie_data_dict(self, trie_data_dict: Dict[bytes, bytes]) -> None:
+    def persist_trie_data_dict(self, trie_data_dict: Dict[Hash32, bytes]) -> None:
         """
         Store raw trie data to db from a dict
         """

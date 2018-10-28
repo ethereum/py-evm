@@ -4,8 +4,10 @@ from typing import List  # noqa: F401
 
 from eth import constants
 
+from eth.vm.computation import BaseComputation
 
-def log_XX(computation, topic_count):
+
+def log_XX(computation: BaseComputation, topic_count: int) -> None:
     if topic_count < 0 or topic_count > 4:
         raise TypeError("Invalid log topic size.  Must be 0, 1, 2, 3, or 4")
 

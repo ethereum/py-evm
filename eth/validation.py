@@ -1,5 +1,21 @@
 import functools
 
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Sequence,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+    Union,
+)
+
+from eth_typing import (
+    Address,
+    Hash32,
+)
+
 from eth_utils import (
     ValidationError,
 )
@@ -24,22 +40,25 @@ from eth.constants import (
     UINT_256_MAX,
 )
 
+if TYPE_CHECKING:
+    from eth.vm.base import BaseVM      # noqa: F401
 
-def validate_is_bytes(value, title="Value"):
+
+def validate_is_bytes(value: bytes, title: str="Value") -> None:
     if not isinstance(value, bytes):
         raise ValidationError(
             "{title} must be a byte string.  Got: {0}".format(type(value), title=title)
         )
 
 
-def validate_is_integer(value, title="Value"):
+def validate_is_integer(value: Union[int, bool], title: str="Value") -> None:
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValidationError(
             "{title} must be a an integer.  Got: {0}".format(type(value), title=title)
         )
 
 
-def validate_length(value, length, title="Value"):
+def validate_length(value: Sequence[Any], length: int, title: str="Value") -> None:
     if not len(value) == length:
         raise ValidationError(
             "{title} must be of length {0}.  Got {1} of length {2}".format(
@@ -51,7 +70,7 @@ def validate_length(value, length, title="Value"):
         )
 
 
-def validate_length_lte(value, maximum_length, title="Value"):
+def validate_length_lte(value: Sequence[Any], maximum_length: int, title: str="Value") -> None:
     if len(value) > maximum_length:
         raise ValidationError(
             "{title} must be of length less than or equal to {0}.  "
@@ -64,7 +83,7 @@ def validate_length_lte(value, maximum_length, title="Value"):
         )
 
 
-def validate_gte(value, minimum, title="Value"):
+def validate_gte(value: int, minimum: int, title: str="Value") -> None:
     if value < minimum:
         raise ValidationError(
             "{title} {0} is not greater than or equal to {1}".format(
@@ -76,7 +95,7 @@ def validate_gte(value, minimum, title="Value"):
     validate_is_integer(value)
 
 
-def validate_gt(value, minimum, title="Value"):
+def validate_gt(value: int, minimum: int, title: str="Value") -> None:
     if value <= minimum:
         raise ValidationError(
             "{title} {0} is not greater than {1}".format(value, minimum, title=title)
@@ -84,7 +103,7 @@ def validate_gt(value, minimum, title="Value"):
     validate_is_integer(value, title=title)
 
 
-def validate_lte(value, maximum, title="Value"):
+def validate_lte(value: int, maximum: int, title: str="Value") -> None:
     if value > maximum:
         raise ValidationError(
             "{title} {0} is not less than or equal to {1}".format(
@@ -96,7 +115,7 @@ def validate_lte(value, maximum, title="Value"):
     validate_is_integer(value, title=title)
 
 
-def validate_lt(value, maximum, title="Value"):
+def validate_lt(value: int, maximum: int, title: str="Value") -> None:
     if value >= maximum:
         raise ValidationError(
             "{title} {0} is not less than {1}".format(value, maximum, title=title)
@@ -104,28 +123,28 @@ def validate_lt(value, maximum, title="Value"):
     validate_is_integer(value, title=title)
 
 
-def validate_canonical_address(value, title="Value"):
+def validate_canonical_address(value: Address, title: str="Value") -> None:
     if not isinstance(value, bytes) or not len(value) == 20:
         raise ValidationError(
             "{title} {0} is not a valid canonical address".format(value, title=title)
         )
 
 
-def validate_multiple_of(value, multiple_of, title="Value"):
+def validate_multiple_of(value: int, multiple_of: int, title: str="Value") -> None:
     if not value % multiple_of == 0:
         raise ValidationError(
             "{title} {0} is not a multiple of {1}".format(value, multiple_of, title=title)
         )
 
 
-def validate_is_boolean(value, title="Value"):
+def validate_is_boolean(value: bool, title: str="Value") -> None:
     if not isinstance(value, bool):
         raise ValidationError(
             "{title} must be an boolean.  Got type: {0}".format(type(value), title=title)
         )
 
 
-def validate_word(value, title="Value"):
+def validate_word(value: Hash32, title: str="Value") -> None:
     if not isinstance(value, bytes):
         raise ValidationError(
             "{title} is not a valid word. Must be of bytes type: Got: {0}".format(
@@ -142,7 +161,7 @@ def validate_word(value, title="Value"):
         )
 
 
-def validate_uint256(value, title="Value"):
+def validate_uint256(value: int, title: str="Value") -> None:
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValidationError(
             "{title} must be an integer: Got: {0}".format(
@@ -166,7 +185,7 @@ def validate_uint256(value, title="Value"):
         )
 
 
-def validate_stack_item(value):
+def validate_stack_item(value: Union[int, bytes]) -> None:
     if isinstance(value, bytes) and len(value) <= 32:
         return
     elif isinstance(value, int) and 0 <= value <= UINT_256_MAX:
@@ -181,7 +200,7 @@ validate_lt_secpk1n = functools.partial(validate_lte, maximum=SECPK1_N - 1)
 validate_lt_secpk1n2 = functools.partial(validate_lte, maximum=SECPK1_N // 2 - 1)
 
 
-def validate_unique(values, title="Value"):
+def validate_unique(values: Iterable[Any], title: str="Value") -> None:
     if not isdistinct(values):
         duplicates = pipe(
             values,
@@ -198,19 +217,19 @@ def validate_unique(values, title="Value"):
         )
 
 
-def validate_block_number(block_number, title="Block Number"):
+def validate_block_number(block_number: int, title: str="Block Number") -> None:
     validate_is_integer(block_number, title)
     validate_gte(block_number, 0, title)
 
 
-def validate_vm_block_numbers(vm_block_numbers):
+def validate_vm_block_numbers(vm_block_numbers: Iterable[int]) -> None:
     validate_unique(vm_block_numbers, title="Block Number set")
 
     for block_number in vm_block_numbers:
         validate_block_number(block_number)
 
 
-def validate_vm_configuration(vm_configuration):
+def validate_vm_configuration(vm_configuration: Tuple[Tuple[int, Type['BaseVM']], ...]) -> None:
     validate_vm_block_numbers(tuple(
         block_number
         for block_number, _
@@ -218,7 +237,7 @@ def validate_vm_configuration(vm_configuration):
     ))
 
 
-def validate_gas_limit(gas_limit, parent_gas_limit):
+def validate_gas_limit(gas_limit: int, parent_gas_limit: int) -> None:
     if gas_limit < GAS_LIMIT_MINIMUM:
         raise ValidationError("Gas limit {0} is below minimum {1}".format(
             gas_limit, GAS_LIMIT_MINIMUM))
@@ -245,7 +264,7 @@ ALLOWED_HEADER_FIELDS = {
 }
 
 
-def validate_header_params_for_configuration(header_params):
+def validate_header_params_for_configuration(header_params: Dict[str, Any]) -> None:
     extra_fields = set(header_params.keys()).difference(ALLOWED_HEADER_FIELDS)
     if extra_fields:
         raise ValidationError(

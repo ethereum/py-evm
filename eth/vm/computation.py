@@ -12,10 +12,11 @@ from typing import (  # noqa: F401
     Iterator,
     List,
     Tuple,
+    Union,
 )
 
 from eth_typing import (
-    Address
+    Address,
 )
 
 from eth.constants import (
@@ -27,7 +28,7 @@ from eth.exceptions import (
     VMError,
 )
 from eth.tools.logging import (
-    TraceLogger
+    TraceLogger,
 )
 from eth.utils.datatypes import (
     Configurable,
@@ -198,7 +199,7 @@ class BaseComputation(Configurable, ABC):
     #
     def prepare_child_message(self,
                               gas: int,
-                              to: bytes,
+                              to: Address,
                               value: int,
                               data: bytes,
                               code: bytes,
@@ -291,7 +292,9 @@ class BaseComputation(Configurable, ABC):
         """
         return self._gas_meter.refund_gas(amount)
 
-    def stack_pop(self, num_items=1, type_hint=None):
+    def stack_pop(self, num_items: int=1, type_hint: str=None) -> Any:
+        # TODO: Needs to be replaced with
+        # `Union[int, bytes, Tuple[Union[int, bytes], ...]]` if done properly
         """
         Pop and return a number of items equal to ``num_items`` from the stack.
         ``type_hint`` can be either ``'uint256'`` or ``'bytes'``.  The return value
@@ -303,7 +306,7 @@ class BaseComputation(Configurable, ABC):
         """
         return self._stack.pop(num_items, type_hint)
 
-    def stack_push(self, value):
+    def stack_push(self, value: Union[int, bytes]) -> None:
         """
         Push ``value`` onto the stack.
 
@@ -311,13 +314,13 @@ class BaseComputation(Configurable, ABC):
         """
         return self._stack.push(value)
 
-    def stack_swap(self, position):
+    def stack_swap(self, position: int) -> None:
         """
         Swap the item on the top of the stack with the item at ``position``.
         """
         return self._stack.swap(position)
 
-    def stack_dup(self, position):
+    def stack_dup(self, position: int) -> None:
         """
         Duplicate the stack item at ``position`` and pushes it onto the stack.
         """
@@ -575,7 +578,7 @@ class BaseComputation(Configurable, ABC):
         else:
             return self._precompiles
 
-    def get_opcode_fn(self, opcode):
+    def get_opcode_fn(self, opcode: int) -> Opcode:
         try:
             return self.opcodes[opcode]
         except KeyError:

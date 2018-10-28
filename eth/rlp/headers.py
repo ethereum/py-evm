@@ -203,7 +203,7 @@ class BlockHeader(rlp.Serializable):
         return header
 
     def create_execution_context(
-            self, prev_hashes: Union[Tuple[bytes], Tuple[bytes, bytes]]) -> ExecutionContext:
+            self, prev_hashes: Tuple[Hash32, ...]) -> ExecutionContext:
 
         return ExecutionContext(
             coinbase=self.coinbase,
