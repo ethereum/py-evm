@@ -14,7 +14,9 @@ from eth.validation import (
 )
 
 from typing import (  # noqa: F401
+    Generator,
     List,
+    Tuple,
     Union
 )
 from eth_typing import Hash32  # noqa: F401
@@ -27,13 +29,13 @@ class Stack(object):
     __slots__ = ['values']
     logger = logging.getLogger('eth.vm.stack.Stack')
 
-    def __init__(self):
-        self.values = []  # type: List[Union[int, Hash32]]
+    def __init__(self) -> None:
+        self.values = []  # type: List[Union[int, bytes]]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.values)
 
-    def push(self, value):
+    def push(self, value: Union[int, bytes]) -> None:
         """
         Push an item onto the stack.
         """
@@ -44,9 +46,11 @@ class Stack(object):
 
         self.values.append(value)
 
-    def pop(self, num_items, type_hint):
+    def pop(self,
+            num_items: int,
+            type_hint: str) -> Union[int, bytes, Tuple[Union[int, bytes], ...]]:
         """
-        Pop an item off thes stack.
+        Pop an item off the stack.
 
         Note: This function is optimized for speed over readability.
         """
@@ -58,7 +62,7 @@ class Stack(object):
         except IndexError:
             raise InsufficientStack("No stack items")
 
-    def _pop(self, num_items, type_hint):
+    def _pop(self, num_items: int, type_hint: str) -> Generator[Union[int, bytes], None, None]:
         for _ in range(num_items):
             if type_hint == constants.UINT256:
                 value = self.values.pop()
@@ -82,7 +86,7 @@ class Stack(object):
                     )
                 )
 
-    def swap(self, position):
+    def swap(self, position: int) -> None:
         """
         Perform a SWAP operation on the stack.
         """
@@ -92,7 +96,7 @@ class Stack(object):
         except IndexError:
             raise InsufficientStack("Insufficient stack items for SWAP{0}".format(position))
 
-    def dup(self, position):
+    def dup(self, position: int) -> None:
         """
         Perform a DUP operation on the stack.
         """

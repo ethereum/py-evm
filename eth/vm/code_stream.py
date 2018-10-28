@@ -54,11 +54,11 @@ class CodeStream(object):
         return next_opcode
 
     @property
-    def pc(self):
+    def pc(self) -> int:
         return self.stream.tell()
 
     @pc.setter
-    def pc(self, value):
+    def pc(self, value: int) -> None:
         self.stream.seek(min(value, len(self)))
 
     @contextlib.contextmanager

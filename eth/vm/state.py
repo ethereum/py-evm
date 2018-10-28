@@ -5,26 +5,50 @@ from abc import (
 import contextlib
 import logging
 from typing import (  # noqa: F401
+    Any,
+    Callable,
+    cast,
+    Iterator,
+    Tuple,
     Type,
     TYPE_CHECKING
+)
+from uuid import UUID
+
+from eth_typing import (
+    Address,
+    Hash32,
 )
 
 from eth.constants import (
     BLANK_ROOT_HASH,
     MAX_PREV_HEADER_DEPTH,
 )
-from eth.exceptions import StateRootNotFound
 from eth.db.account import (  # noqa: F401
     BaseAccountDB,
     AccountDB,
 )
+from eth.db.backends.base import (
+    BaseDB,
+)
+from eth.exceptions import StateRootNotFound
+from eth.tools.logging import (
+    TraceLogger,
+)
 from eth.utils.datatypes import (
     Configurable,
 )
+from eth.vm.execution_context import (
+    ExecutionContext,
+)
+from eth.vm.message import Message
 
 if TYPE_CHECKING:
     from eth.computation import (  # noqa: F401
         BaseComputation,
+    )
+    from eth.rlp.transactions import (  # noqa: F401
+        BaseTransaction,
     )
     from eth.vm.transaction_context import (  # noqa: F401
         BaseTransactionContext,
@@ -57,7 +81,7 @@ class BaseState(Configurable, ABC):
     account_db_class = None  # type: Type[BaseAccountDB]
     transaction_executor = None  # type: Type[BaseTransactionExecutor]
 
-    def __init__(self, db, execution_context, state_root):
+    def __init__(self, db: BaseDB, execution_context: ExecutionContext, state_root: bytes) -> None:
         self._db = db
         self.execution_context = execution_context
         self.account_db = self.get_account_db_class()(self._db, state_root)
@@ -66,43 +90,44 @@ class BaseState(Configurable, ABC):
     # Logging
     #
     @property
-    def logger(self):
-        return logging.getLogger('eth.vm.state.{0}'.format(self.__class__.__name__))
+    def logger(self) -> TraceLogger:
+        normal_logger = logging.getLogger('eth.vm.state.{0}'.format(self.__class__.__name__))
+        return cast(TraceLogger, normal_logger)
 
     #
     # Block Object Properties (in opcodes)
     #
 
     @property
-    def coinbase(self):
+    def coinbase(self) -> Address:
         """
         Return the current ``coinbase`` from the current :attr:`~execution_context`
         """
         return self.execution_context.coinbase
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> int:
         """
         Return the current ``timestamp`` from the current :attr:`~execution_context`
         """
         return self.execution_context.timestamp
 
     @property
-    def block_number(self):
+    def block_number(self) -> int:
         """
         Return the current ``block_number`` from the current :attr:`~execution_context`
         """
         return self.execution_context.block_number
 
     @property
-    def difficulty(self):
+    def difficulty(self) -> int:
         """
         Return the current ``difficulty`` from the current :attr:`~execution_context`
         """
         return self.execution_context.difficulty
 
     @property
-    def gas_limit(self):
+    def gas_limit(self) -> int:
         """
         Return the current ``gas_limit`` from the current :attr:`~transaction_context`
         """
@@ -112,7 +137,7 @@ class BaseState(Configurable, ABC):
     # Access to account db
     #
     @classmethod
-    def get_account_db_class(cls):
+    def get_account_db_class(cls) -> Type[BaseAccountDB]:
         """
         Return the :class:`~eth.db.account.BaseAccountDB` class that the
         state class uses.
@@ -122,7 +147,7 @@ class BaseState(Configurable, ABC):
         return cls.account_db_class
 
     @property
-    def state_root(self):
+    def state_root(self) -> bytes:
         """
         Return the current ``state_root`` from the underlying database
         """
@@ -131,7 +156,7 @@ class BaseState(Configurable, ABC):
     #
     # Access self._chaindb
     #
-    def snapshot(self):
+    def snapshot(self) -> Tuple[bytes, Tuple[UUID, UUID]]:
         """
         Perform a full snapshot of the current state.
 
@@ -140,7 +165,7 @@ class BaseState(Configurable, ABC):
         """
         return (self.state_root, self.account_db.record())
 
-    def revert(self, snapshot):
+    def revert(self, snapshot: Tuple[bytes, Tuple[UUID, UUID]]) -> None:
         """
         Revert the VM to the state at the snapshot
         """
@@ -151,7 +176,7 @@ class BaseState(Configurable, ABC):
         # now roll the underlying database back
         self.account_db.discard(changeset_id)
 
-    def commit(self, snapshot):
+    def commit(self, snapshot: Tuple[bytes, Tuple[UUID, UUID]]) -> None:
         """
         Commit the journal to the point where the snapshot was taken.  This
         will merge in any changesets that were recorded *after* the snapshot changeset.
@@ -162,7 +187,7 @@ class BaseState(Configurable, ABC):
     #
     # Access self.prev_hashes (Read-only)
     #
-    def get_ancestor_hash(self, block_number):
+    def get_ancestor_hash(self, block_number: int) -> Hash32:
         """
         Return the hash for the ancestor block with number ``block_number``.
         Return the empty bytestring ``b''`` if the block number is outside of the
@@ -175,14 +200,16 @@ class BaseState(Configurable, ABC):
             ancestor_depth >= len(self.execution_context.prev_hashes)
         )
         if is_ancestor_depth_out_of_range:
-            return b''
+            return cast(Hash32, b'')
         ancestor_hash = self.execution_context.prev_hashes[ancestor_depth]
         return ancestor_hash
 
     #
     # Computation
     #
-    def get_computation(self, message, transaction_context):
+    def get_computation(self,
+                        message: Message,
+                        transaction_context: 'BaseTransactionContext') -> 'BaseComputation':
         """
         Return a computation instance for the given `message` and `transaction_context`
         """
@@ -196,7 +223,7 @@ class BaseState(Configurable, ABC):
     # Transaction context
     #
     @classmethod
-    def get_transaction_context_class(cls):
+    def get_transaction_context_class(cls) -> Type['BaseTransactionContext']:
         """
         Return the :class:`~eth.vm.transaction_context.BaseTransactionContext` class that the
         state class uses.
@@ -208,7 +235,7 @@ class BaseState(Configurable, ABC):
     #
     # Execution
     #
-    def apply_transaction(self, transaction):
+    def apply_transaction(self, transaction: 'BaseTransaction') -> Tuple[bytes, 'BaseComputation']:
         """
         Apply transaction to the vm state
 
@@ -221,19 +248,19 @@ class BaseState(Configurable, ABC):
         state_root = self.account_db.make_state_root()
         return state_root, computation
 
-    def get_transaction_executor(self):
+    def get_transaction_executor(self) -> 'BaseTransactionExecutor':
         return self.transaction_executor(self)
 
-    def costless_execute_transaction(self, transaction):
+    def costless_execute_transaction(self, transaction: 'BaseTransaction') -> 'BaseComputation':
         with self.override_transaction_context(gas_price=transaction.gas_price):
             free_transaction = transaction.copy(gas_price=0)
             return self.execute_transaction(free_transaction)
 
     @contextlib.contextmanager
-    def override_transaction_context(self, gas_price):
+    def override_transaction_context(self, gas_price: int) -> Iterator[None]:
         original_context = self.get_transaction_context
 
-        def get_custom_transaction_context(transaction):
+        def get_custom_transaction_context(transaction: 'BaseTransaction') -> BaseTransactionContext:   # noqa: E501
             custom_transaction = transaction.copy(gas_price=gas_price)
             return original_context(custom_transaction)
 
@@ -241,18 +268,18 @@ class BaseState(Configurable, ABC):
         try:
             yield
         finally:
-            self.get_transaction_context = original_context
+            self.get_transaction_context = original_context     # type: ignore # Remove ignore if https://github.com/python/mypy/issues/708 is fixed. # noqa: E501
 
     @abstractmethod
-    def execute_transaction(self, transaction):
+    def execute_transaction(self, transaction: 'BaseTransaction') -> 'BaseComputation':
         raise NotImplementedError()
 
     @abstractmethod
-    def validate_transaction(self, transaction):
+    def validate_transaction(self, transaction: 'BaseTransaction') -> Any:
         raise NotImplementedError
 
     @classmethod
-    def get_transaction_context(cls, transaction):
+    def get_transaction_context(cls, transaction: 'BaseTransaction') -> 'BaseTransactionContext':
         return cls.get_transaction_context_class()(
             gas_price=transaction.gas_price,
             origin=transaction.sender,
@@ -260,10 +287,10 @@ class BaseState(Configurable, ABC):
 
 
 class BaseTransactionExecutor(ABC):
-    def __init__(self, vm_state):
+    def __init__(self, vm_state: BaseState) -> None:
         self.vm_state = vm_state
 
-    def __call__(self, transaction):
+    def __call__(self, transaction: 'BaseTransaction') -> 'BaseComputation':
         valid_transaction = self.validate_transaction(transaction)
         message = self.build_evm_message(valid_transaction)
         computation = self.build_computation(message, valid_transaction)
@@ -271,17 +298,21 @@ class BaseTransactionExecutor(ABC):
         return finalized_computation
 
     @abstractmethod
-    def validate_transaction(self):
+    def validate_transaction(self, transaction: 'BaseTransaction') -> 'BaseTransaction':
         raise NotImplementedError
 
     @abstractmethod
-    def build_evm_message(self):
+    def build_evm_message(self, transaction: 'BaseTransaction') -> Message:
         raise NotImplementedError()
 
     @abstractmethod
-    def build_computation(self):
+    def build_computation(self,
+                          message: Message,
+                          transaction: 'BaseTransaction') -> 'BaseComputation':
         raise NotImplementedError()
 
     @abstractmethod
-    def finalize_computation(self):
+    def finalize_computation(self,
+                             transaction: 'BaseTransaction',
+                             computation: 'BaseComputation') -> 'BaseComputation':
         raise NotImplementedError()

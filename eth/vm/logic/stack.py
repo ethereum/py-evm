@@ -1,20 +1,28 @@
 import functools
 
+from typing import (
+    cast,
+)
+
 from eth import constants
 
+from eth_typing import Hash32
 
-def pop(computation):
+from eth.vm.computation import BaseComputation
+
+
+def pop(computation: BaseComputation) -> None:
     computation.stack_pop(type_hint=constants.ANY)
 
 
-def push_XX(computation, size):
+def push_XX(computation: BaseComputation, size: int) -> None:
     raw_value = computation.code.read(size)
 
     if not raw_value.strip(b'\x00'):
         computation.stack_push(0)
     else:
         padded_value = raw_value.ljust(size, b'\x00')
-        computation.stack_push(padded_value)
+        computation.stack_push(cast(Hash32, padded_value))
 
 
 push1 = functools.partial(push_XX, size=1)

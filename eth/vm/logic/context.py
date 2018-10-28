@@ -1,4 +1,13 @@
 from eth import constants
+
+from typing import (
+    cast,
+)
+
+from eth_typing import (
+    Hash32,
+)
+
 from eth.exceptions import (
     OutOfBoundsRead,
 )
@@ -10,30 +19,32 @@ from eth.utils.numeric import (
     ceil32,
 )
 
+from eth.vm.computation import BaseComputation
 
-def balance(computation):
+
+def balance(computation: BaseComputation) -> None:
     addr = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     balance = computation.state.account_db.get_balance(addr)
     computation.stack_push(balance)
 
 
-def origin(computation):
+def origin(computation: BaseComputation) -> None:
     computation.stack_push(computation.transaction_context.origin)
 
 
-def address(computation):
+def address(computation: BaseComputation) -> None:
     computation.stack_push(computation.msg.storage_address)
 
 
-def caller(computation):
+def caller(computation: BaseComputation) -> None:
     computation.stack_push(computation.msg.sender)
 
 
-def callvalue(computation):
+def callvalue(computation: BaseComputation) -> None:
     computation.stack_push(computation.msg.value)
 
 
-def calldataload(computation):
+def calldataload(computation: BaseComputation) -> None:
     """
     Load call data into memory.
     """
@@ -43,15 +54,15 @@ def calldataload(computation):
     padded_value = value.ljust(32, b'\x00')
     normalized_value = padded_value.lstrip(b'\x00')
 
-    computation.stack_push(normalized_value)
+    computation.stack_push(cast(Hash32, normalized_value))
 
 
-def calldatasize(computation):
+def calldatasize(computation: BaseComputation) -> None:
     size = len(computation.msg.data)
     computation.stack_push(size)
 
 
-def calldatacopy(computation):
+def calldatacopy(computation: BaseComputation) -> None:
     (
         mem_start_position,
         calldata_start_position,
@@ -71,12 +82,12 @@ def calldatacopy(computation):
     computation.memory_write(mem_start_position, size, padded_value)
 
 
-def codesize(computation):
+def codesize(computation: BaseComputation) -> None:
     size = len(computation.code)
     computation.stack_push(size)
 
 
-def codecopy(computation):
+def codecopy(computation: BaseComputation) -> None:
     (
         mem_start_position,
         code_start_position,
@@ -101,18 +112,18 @@ def codecopy(computation):
     computation.memory_write(mem_start_position, size, padded_code_bytes)
 
 
-def gasprice(computation):
+def gasprice(computation: BaseComputation) -> None:
     computation.stack_push(computation.transaction_context.gas_price)
 
 
-def extcodesize(computation):
+def extcodesize(computation: BaseComputation) -> None:
     account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     code_size = len(computation.state.account_db.get_code(account))
 
     computation.stack_push(code_size)
 
 
-def extcodecopy(computation):
+def extcodecopy(computation: BaseComputation) -> None:
     account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     (
         mem_start_position,
@@ -138,7 +149,7 @@ def extcodecopy(computation):
     computation.memory_write(mem_start_position, size, padded_code_bytes)
 
 
-def extcodehash(computation):
+def extcodehash(computation: BaseComputation) -> None:
     """
     Return the code hash for a given address.
     EIP: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1052.md
@@ -152,12 +163,12 @@ def extcodehash(computation):
         computation.stack_push(account_db.get_code_hash(account))
 
 
-def returndatasize(computation):
+def returndatasize(computation: BaseComputation) -> None:
     size = len(computation.return_data)
     computation.stack_push(size)
 
 
-def returndatacopy(computation):
+def returndatacopy(computation: BaseComputation) -> None:
     (
         mem_start_position,
         returndata_start_position,

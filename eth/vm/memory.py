@@ -20,7 +20,7 @@ class Memory(object):
     __slots__ = ['_bytes']
     logger = logging.getLogger('eth.vm.memory.Memory')
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._bytes = bytearray()
 
     def extend(self, start_position: int, size: int) -> None:

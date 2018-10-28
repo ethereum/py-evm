@@ -5,8 +5,10 @@ from eth.utils.numeric import (
     unsigned_to_signed,
 )
 
+from eth.vm.computation import BaseComputation
 
-def lt(computation):
+
+def lt(computation: BaseComputation) -> None:
     """
     Lesser Comparison
     """
@@ -20,7 +22,7 @@ def lt(computation):
     computation.stack_push(result)
 
 
-def gt(computation):
+def gt(computation: BaseComputation) -> None:
     """
     Greater Comparison
     """
@@ -34,7 +36,7 @@ def gt(computation):
     computation.stack_push(result)
 
 
-def slt(computation):
+def slt(computation: BaseComputation) -> None:
     """
     Signed Lesser Comparison
     """
@@ -51,7 +53,7 @@ def slt(computation):
     computation.stack_push(signed_to_unsigned(result))
 
 
-def sgt(computation):
+def sgt(computation: BaseComputation) -> None:
     """
     Signed Greater Comparison
     """
@@ -68,7 +70,7 @@ def sgt(computation):
     computation.stack_push(signed_to_unsigned(result))
 
 
-def eq(computation):
+def eq(computation: BaseComputation) -> None:
     """
     Equality
     """
@@ -82,7 +84,7 @@ def eq(computation):
     computation.stack_push(result)
 
 
-def iszero(computation):
+def iszero(computation: BaseComputation) -> None:
     """
     Not
     """
@@ -96,7 +98,7 @@ def iszero(computation):
     computation.stack_push(result)
 
 
-def and_op(computation):
+def and_op(computation: BaseComputation) -> None:
     """
     Bitwise And
     """
@@ -107,7 +109,7 @@ def and_op(computation):
     computation.stack_push(result)
 
 
-def or_op(computation):
+def or_op(computation: BaseComputation) -> None:
     """
     Bitwise Or
     """
@@ -118,7 +120,7 @@ def or_op(computation):
     computation.stack_push(result)
 
 
-def xor(computation):
+def xor(computation: BaseComputation) -> None:
     """
     Bitwise XOr
     """
@@ -129,7 +131,7 @@ def xor(computation):
     computation.stack_push(result)
 
 
-def not_op(computation):
+def not_op(computation: BaseComputation) -> None:
     """
     Not
     """
@@ -140,7 +142,7 @@ def not_op(computation):
     computation.stack_push(result)
 
 
-def byte_op(computation):
+def byte_op(computation: BaseComputation) -> None:
     """
     Bitwise And
     """
