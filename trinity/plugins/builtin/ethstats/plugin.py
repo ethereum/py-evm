@@ -103,7 +103,7 @@ class EthstatsPlugin(BaseIsolatedPlugin):
 
         self.start()
 
-    def _start(self) -> None:
+    def do_start(self) -> None:
         service = EthstatsService(
             self.context,
             self.server_url,

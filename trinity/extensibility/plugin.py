@@ -163,18 +163,18 @@ class BasePlugin(ABC):
 
     def start(self) -> None:
         """
-        Delegate to :meth:`~trinity.extensibility.plugin.BasePlugin._start` and set ``running``
+        Delegate to :meth:`~trinity.extensibility.plugin.BasePlugin.do_start` and set ``running``
         to ``True``. Broadcast a :class:`~trinity.extensibility.events.PluginStartedEvent` on the
         :class:`~lahja.eventbus.EventBus` and hence allow other plugins to act accordingly.
         """
         self.running = True
-        self._start()
+        self.do_start()
         self.event_bus.broadcast(
             PluginStartedEvent(type(self))
         )
         self.logger.info("Plugin started: %s", self.name)
 
-    def _start(self) -> None:
+    def do_start(self) -> None:
         """
         Perform the actual plugin start routine. In the case of a `BaseIsolatedPlugin` this method
         will be called in a separate process.
@@ -190,7 +190,7 @@ class BaseSyncStopPlugin(BasePlugin):
     A :class:`~trinity.extensibility.plugin.BaseSyncStopPlugin` unwinds synchronoulsy, hence blocks
     until the shutdown is done.
     """
-    def _stop(self) -> None:
+    def do_stop(self) -> None:
         """
         Stop the plugin. Should be overwritten by subclasses.
         """
@@ -198,10 +198,10 @@ class BaseSyncStopPlugin(BasePlugin):
 
     def stop(self) -> None:
         """
-        Delegate to :meth:`~trinity.extensibility.plugin.BaseSyncStopPlugin._stop` causing the
+        Delegate to :meth:`~trinity.extensibility.plugin.BaseSyncStopPlugin.do_stop` causing the
         plugin to stop and setting ``running`` to ``False``.
         """
-        self._stop()
+        self.do_stop()
         self.running = False
 
 
@@ -211,7 +211,7 @@ class BaseAsyncStopPlugin(BasePlugin):
     needs to be awaited.
     """
 
-    async def _stop(self) -> None:
+    async def do_stop(self) -> None:
         """
         Asynchronously stop the plugin. Should be overwritten by subclasses.
         """
@@ -219,10 +219,10 @@ class BaseAsyncStopPlugin(BasePlugin):
 
     async def stop(self) -> None:
         """
-        Delegate to :meth:`~trinity.extensibility.plugin.BaseAsyncStopPlugin._stop` causing the
+        Delegate to :meth:`~trinity.extensibility.plugin.BaseAsyncStopPlugin.do_stop` causing the
         plugin to stop asynchronously and setting ``running`` to ``False``.
         """
-        await self._stop()
+        await self.do_stop()
         self.running = False
 
 
@@ -250,7 +250,7 @@ class BaseIsolatedPlugin(BaseSyncStopPlugin):
 
     def start(self) -> None:
         """
-        Prepare the plugin to get started and eventually call ``_start`` in a separate process.
+        Prepare the plugin to get started and eventually call ``do_start`` in a separate process.
         """
         self.running = True
         self._process = ctx.Process(
@@ -268,9 +268,9 @@ class BaseIsolatedPlugin(BaseSyncStopPlugin):
         self.event_bus.broadcast(
             PluginStartedEvent(type(self))
         )
-        self._start()
+        self.do_start()
 
-    def _stop(self) -> None:
+    def do_stop(self) -> None:
         self.context.event_bus.stop()
         kill_process_gracefully(self._process, self.logger)
 
@@ -290,7 +290,7 @@ class DebugPlugin(BaseAsyncStopPlugin):
     def handle_event(self, activation_event: BaseEvent) -> None:
         self.logger.info("Debug plugin: handle_event called: %s", activation_event)
 
-    def _start(self) -> None:
+    def do_start(self) -> None:
         self.logger.info("Debug plugin: start called")
         asyncio.ensure_future(self.count_forever())
 
@@ -301,5 +301,5 @@ class DebugPlugin(BaseAsyncStopPlugin):
             i += 1
             await asyncio.sleep(1)
 
-    async def _stop(self) -> None:
+    async def do_stop(self) -> None:
         self.logger.info("Debug plugin: stop called")
