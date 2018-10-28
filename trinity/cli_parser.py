@@ -264,12 +264,7 @@ chain_parser.add_argument(
     '--nodekey',
     help=(
         "Hexadecimal encoded private key to use for the nodekey"
-    )
-)
-chain_parser.add_argument(
-    '--nodekey-path',
-    help=(
-        "The filesystem path to the file which contains the nodekey"
+        " or the filesystem path to the file which contains the nodekey"
     )
 )
 
