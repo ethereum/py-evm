@@ -122,5 +122,5 @@ class TxPool(BaseService, PeerSubscriber):
         for val in txs:
             self._bloom.add(self._construct_bloom_entry(peer, val))
 
-    async def _cleanup(self) -> None:
+    async def do_cleanup(self) -> None:
         self.logger.info("Stopping Tx Pool...")
