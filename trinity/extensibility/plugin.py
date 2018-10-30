@@ -127,7 +127,8 @@ class PluginContext:
 class BasePlugin(ABC):
 
     context: PluginContext = None
-    status: PluginStatus = PluginStatus.NOT_READY
+
+    _status: PluginStatus = PluginStatus.NOT_READY
 
     @property
     @abstractmethod
@@ -160,7 +161,14 @@ class BasePlugin(ABC):
         """
         Return ``True`` if the ``status`` is ``PluginStatus.STARTED``, otherwise return ``False``.
         """
-        return self.status is PluginStatus.STARTED
+        return self._status is PluginStatus.STARTED
+
+    @property
+    def status(self) -> PluginStatus:
+        """
+        Return the current :class:`~trinity.extensibility.plugin.PluginStatus` of the plugin.
+        """
+        return self._status
 
     def set_context(self, context: PluginContext) -> None:
         """
@@ -173,7 +181,7 @@ class BasePlugin(ABC):
         Set the ``status`` to ``PluginStatus.READY`` and delegate to
         :meth:`~trinity.extensibility.plugin.BasePlugin.on_ready`
         """
-        self.status = PluginStatus.READY
+        self._status = PluginStatus.READY
         self.on_ready()
 
     def on_ready(self) -> None:
@@ -198,12 +206,12 @@ class BasePlugin(ABC):
         :class:`~lahja.eventbus.EventBus` and hence allow other plugins to act accordingly.
         """
 
-        if self.status in INVALID_START_STATUS:
+        if self._status in INVALID_START_STATUS:
             raise InvalidPluginStatus(
                 f"Can not start plugin when the plugin status is {self.status}"
             )
 
-        self.status = PluginStatus.STARTED
+        self._status = PluginStatus.STARTED
         self.do_start()
         self.event_bus.broadcast(
             PluginStartedEvent(type(self))
@@ -238,7 +246,7 @@ class BaseSyncStopPlugin(BasePlugin):
         plugin to stop and setting ``running`` to ``False``.
         """
         self.do_stop()
-        self.status = PluginStatus.STOPPED
+        self._status = PluginStatus.STOPPED
 
 
 class BaseAsyncStopPlugin(BasePlugin):
@@ -259,7 +267,7 @@ class BaseAsyncStopPlugin(BasePlugin):
         plugin to stop asynchronously and setting ``running`` to ``False``.
         """
         await self.do_stop()
-        self.status = PluginStatus.STOPPED
+        self._status = PluginStatus.STOPPED
 
 
 class BaseMainProcessPlugin(BasePlugin):
@@ -288,7 +296,7 @@ class BaseIsolatedPlugin(BaseSyncStopPlugin):
         """
         Prepare the plugin to get started and eventually call ``do_start`` in a separate process.
         """
-        self.status = PluginStatus.STARTED
+        self._status = PluginStatus.STARTED
         self._process = ctx.Process(
             target=self._prepare_start,
         )
