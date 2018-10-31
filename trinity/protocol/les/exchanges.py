@@ -11,9 +11,7 @@ from eth.rlp.headers import BlockHeader
 from trinity.protocol.common.exchanges import (
     BaseExchange,
 )
-# Q: What is the order to imports?  and why sometimes new line between imports and sometimes not?
 from trinity.protocol.common.types import BlockBodyBundles
-from trinity.rlp.block_body import BlockBody
 from trinity.utils.les import (
     gen_request_id,
 )
@@ -69,8 +67,8 @@ class GetBlockHeadersExchange(LESExchange[Tuple[BlockHeader, ...]]):
             timeout,
         )
 
-# Q: Where can I find the correct signature for this class?
-class GetBlockBodiesExchange(LESExchange[Tuple[BlockBody, ...]]):
+
+class GetBlockBodiesExchange(LESExchange[BlockBodyBundles]):
     _normalizer = GetBlockBodiesNormalizer()
     request_class = GetBlockBodiesRequest
     tracker_class = GetBlockBodiesTracker

@@ -8,7 +8,7 @@ from .exchanges import (
 )
 
 
-class ETHExchangeHandler(BaseChainExchangeHandler):
+class LESExchangeHandler(BaseChainExchangeHandler):
     _exchange_config = {
         'get_block_bodies': GetBlockBodiesExchange,
         'get_block_headers': GetBlockHeadersExchange,

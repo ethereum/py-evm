@@ -8,13 +8,13 @@ from typing import (
 from eth.rlp.headers import BlockHeader
 
 from trinity.protocol.common.normalizers import BaseNormalizer
-from trinity.rlp.block_body import BlockBody
+from trinity.protocol.common.types import BlockBodyBundles
+
 
 TResult = TypeVar('TResult')
 LESNormalizer = BaseNormalizer[Dict[str, Any], TResult]
 
 
-# Q: Shouldn't this be named GetBlockHeadersNormalizer?
 class BlockHeadersNormalizer(LESNormalizer[Tuple[BlockHeader, ...]]):
     @staticmethod
     def normalize_result(message: Dict[str, Any]) -> Tuple[BlockHeader, ...]:
@@ -22,8 +22,19 @@ class BlockHeadersNormalizer(LESNormalizer[Tuple[BlockHeader, ...]]):
         return result
 
 
-class GetBlockBodiesNormalizer(LESNormalizer[Tuple[BlockBody, ...]]):
+class GetBlockBodiesNormalizer(LESNormalizer[BlockBodyBundles]):
     @staticmethod
-    def normalize_result(message: Dict[str, Any]) -> Tuple[BlockBody, ...]:
-        result = message['bodies']
-        return result
+    def normalize_result(message: Dict[str, Any]) -> BlockBodyBundles:
+        bodies = message['bodies']
+
+        uncles_hashes = tuple(map(
+            compose(keccak, rlp.encode),
+            tuple(body.uncles for body in bodies)
+        ))
+        transaction_roots_and_trie_data = tuple(map(
+            make_trie_root_and_nodes,
+            tuple(body.transactions for body in bodies)
+        ))
+
+        body_bundles = tuple(zip(bodies, transaction_roots_and_trie_data, uncles_hashes))
+        return body_bundles

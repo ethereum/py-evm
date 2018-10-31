@@ -39,9 +39,7 @@ class GetBlockBodiesValidator(BaseValidator[BlockBodyBundles]):
         }
         unexpected_keys = actual_keys.difference(expected_keys)
         if unexpected_keys:
-            raise ValidationError(
-                "Got {0} unexpected block bodies".format(len(unexpected_keys))
-            )
+            raise ValidationError(f"Got {len(unexpected_keys)} unexpected block bodies")
 
 
 def match_payload_request_id(request: Dict[str, Any], response: Dict[str, Any]) -> None:
