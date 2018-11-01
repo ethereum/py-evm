@@ -45,7 +45,9 @@ class HeaderRequest(BaseHeaderRequest):
         self.reverse = reverse
         self.request_id = request_id
 
+
 LESRequest = BaseRequest[Dict[str, Any]]
+
 
 class GetBlockHeadersRequest(LESRequest):
     cmd_type = GetBlockHeaders

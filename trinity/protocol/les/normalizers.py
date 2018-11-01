@@ -5,6 +5,12 @@ from typing import (
     TypeVar,
 )
 
+from cytoolz import compose
+
+from eth.db.trie import make_trie_root_and_nodes
+from eth_hash.auto import keccak
+import rlp
+
 from eth.rlp.headers import BlockHeader
 
 from trinity.protocol.common.normalizers import BaseNormalizer
