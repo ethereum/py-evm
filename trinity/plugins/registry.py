@@ -19,6 +19,10 @@ from trinity.plugins.builtin.light_peer_chain_bridge.plugin import (
     LightPeerChainBridgePlugin
 )
 
+from trinity.plugins.examples.peer_count_reporter.plugin import (
+    PeerCountReporterPlugin
+)
+
 
 def is_ipython_available() -> bool:
     try:
@@ -40,6 +44,7 @@ BUILTIN_PLUGINS = [
     JsonRpcServerPlugin(),
     LightPeerChainBridgePlugin(),
     TxPlugin(),
+    PeerCountReporterPlugin(),
 ]
 
 # Plugins need to define entrypoints at 'trinity.plugins' to automatically get loaded

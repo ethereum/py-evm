@@ -176,7 +176,7 @@ Every plugin needs to overwrite ``name`` so voilà, here's our first plugin!
 
 .. literalinclude:: ../../../trinity/plugins/examples/peer_count_reporter/plugin.py
    :language: python
-   :start-after: --START CLASS--
+   :pyobject: PeerCountReporterPlugin
    :end-before: def configure_parser
 
 Of course that doesn't do anything useful yet, bear with us.
@@ -229,8 +229,30 @@ code in a loop or any other kind of action.
   :class:`~trinity.extensibility.events.PluginStartedEvent` and the plugin won't be properly shut
   down with Trinity if the node closes.
 
-Causing a plugin to start
--------------------------
+Let's assume we want to create a plugin that simply periodically prints out the number of connected
+peers.
+
+While it is absolutely possible to put this logic right into the plugin, the preferred way is to
+subclass :class:`~p2p.service.BaseService` and implement the core logic in such a standalone
+service.
+
+.. literalinclude:: ../../../trinity/plugins/examples/peer_count_reporter/plugin.py
+   :language: python
+   :pyobject: PeerCountReporter
+
+Then, the implementation of :meth:`~trinity.extensibility.plugin.BaseIsolatedPlugin.do_start` is
+only concerned about running the service on a fresh event loop.
+
+.. literalinclude:: ../../../trinity/plugins/examples/peer_count_reporter/plugin.py
+   :language: python
+   :pyobject: PeerCountReporterPlugin.do_start
+
+If the example may seem unnecessarily complex, it should be noted that plugins can be implemented
+in many different ways, but this example follows a pattern that is considered best practice within
+the Trinity Code Base.
+
+Starting a plugin
+-----------------
 
 As we've read in the previous section not all plugins should run at any point in time. In fact, the
 circumstances under which we want a plugin to begin its work may vary from plugin to plugin.
@@ -245,19 +267,69 @@ We may want a plugin to only start running if:
 
 Hence, to actually start a plugin, the plugin needs to invoke the
 :meth:`~trinity.extensibility.plugin.BasePlugin.start` method at any moment when it is in its
-``READY`` state.
+``READY`` state. Let's assume a simple case in which we simply want to start the plugin if Trinity
+is started with the ``--report-peer-count`` flag.
+
+.. literalinclude:: ../../../trinity/plugins/examples/peer_count_reporter/plugin.py
+   :language: python
+   :pyobject: PeerCountReporterPlugin.on_ready
+
+In case of a :class:`~trinity.extensibility.plugin.BaseIsolatedProcessPlugin`, this will cause the
+:meth:`~trinity.extensibility.plugin.BaseIsolatedPlugin.do_start` method to run on an entirely
+separated, new process. In other cases
+:meth:`~trinity.extensibility.plugin.BaseIsolatedPlugin.do_start` will simply run in the same
+process as the plugin manager that the plugin is controlled by.
+
 
 Communication pattern
 ~~~~~~~~~~~~~~~~~~~~~
 
-Coming soon: Spoiler: Plugins can communicate with other parts of the application or even other
-plugins via the central event bus.
+For most plugins to be useful they need to be able to communicate with the rest of the application
+as well as other plugins. In addition to that, this kind of communication needs to work across
+process boundaries as plugins will often operate in independent processes.
 
-Making plugins discoverable
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To achieve this, Trinity uses the
+`Lahja project <https://github.com/ethereum/lahja>`_, which enables us to operate
+a lightweight event bus that works across processes. An event bus is a software dedicated to the
+transmission of events from a broadcaster to interested parties.
 
-Coming soon.
+This kind of architecture allows for efficient and decoupled communication between different parts
+of Trinity including plugins.
 
-.. warning::
-  **Wait?! This is it? No! This is draft version of the plugin guide as small DEVCON IV gitft.
-  This will turn into a much more detailed guide shortly after the devcon craze is over.**
+For instance, a plugin may be interested to perform some action every time that a new peer connects
+to our node. These kind of events get exposed on the EventBus and hence allow a wide range of
+plugins to make use of them.
+
+For an event to be usable across processes it needs to be pickable and in general should be a
+shallow Data Transfer Object (`DTO <https://en.wikipedia.org/wiki/Data_transfer_object>`_)
+
+Every plugin has access to the event bus via its
+:meth:`~trinity.extensibility.plugin.BasePlugin.event_bus` property and in fact we have already
+used it in the above example to get the current number of connected peers.
+
+.. note::
+  This guide will soon cover communication through the event bus in more detail. For now, the
+  `Lahja documentation <https://github.com/ethereum/lahja/blob/master/README.md>`_ gives us some
+  more information about the available APIs and how to use them.
+
+Distributing plugins
+~~~~~~~~~~~~~~~~~~~~
+
+Of course, plugins are more fun if we can share them and anyone can simply install them through
+``pip``. The good news is, it's not hard at all!
+
+In this guide, we won't go into details about how to create Python packages as this is already
+`covered in the official Python docs <https://packaging.python.org/tutorials/packaging-projects/>`_
+.
+
+Once we have a ``setup.py`` file, all we have to do is to expose our plugin under
+``trinity.plugins`` via the ``entry_points`` section.
+
+.. literalinclude:: ../../../tests/trinity/integration/trinity_test_plugin/setup.py
+   :language: python
+
+Check out the `official documentation on entry points <https://packaging.python.org/guides/creating-and-discovering-plugins/#using-package-metadata>`_
+for a deeper explanation.
+
+A plugin where the ``setup.py`` file is configured as described can be installed by
+``pip install <package-name>``` and is immediately available as a plugin in Trinity.
