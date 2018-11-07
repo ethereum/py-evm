@@ -24,6 +24,7 @@ from typing import (  # noqa: F401
 import logging
 
 from eth_typing import (
+    Address,
     BlockNumber,
     Hash32,
 )
@@ -241,9 +242,14 @@ class BaseChain(Configurable, ABC):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def create_unsigned_transaction(self,
-                                    *args: Any,
-                                    **kwargs: Any) -> BaseUnsignedTransaction:
+    def create_unsigned_transaction(cls,
+                                    *,
+                                    nonce: int,
+                                    gas_price: int,
+                                    gas: int,
+                                    to: Address,
+                                    value: int,
+                                    data: bytes) -> BaseUnsignedTransaction:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
@@ -573,12 +579,24 @@ class Chain(BaseChain):
         return self.get_vm().create_transaction(*args, **kwargs)
 
     def create_unsigned_transaction(self,
-                                    *args: Any,
-                                    **kwargs: Any) -> BaseUnsignedTransaction:
+                                    *,
+                                    nonce: int,
+                                    gas_price: int,
+                                    gas: int,
+                                    to: Address,
+                                    value: int,
+                                    data: bytes) -> BaseUnsignedTransaction:
         """
         Passthrough helper to the current VM class.
         """
-        return self.get_vm().create_unsigned_transaction(*args, **kwargs)
+        return self.get_vm().create_unsigned_transaction(
+            nonce=nonce,
+            gas_price=gas_price,
+            gas=gas,
+            to=to,
+            value=value,
+            data=data,
+        )
 
     #
     # Execution API

@@ -12,11 +12,6 @@ from eth_utils import (
 
 import rlp
 
-from eth.rlp.transactions import (
-    BaseTransaction,
-    BaseUnsignedTransaction,
-)
-
 from eth.vm.forks.homestead.transactions import (
     HomesteadTransaction,
     HomesteadUnsignedTransaction,
@@ -46,14 +41,14 @@ class SpuriousDragonTransaction(HomesteadTransaction):
             ))
 
     @classmethod
-    def create_unsigned_transaction(cls,         # type: ignore
+    def create_unsigned_transaction(cls,
                                     *,
                                     nonce: int,
                                     gas_price: int,
                                     gas: int,
                                     to: Address,
                                     value: int,
-                                    data: bytes) -> BaseTransaction:
+                                    data: bytes) -> 'SpuriousDragonUnsignedTransaction':
         return SpuriousDragonUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
     @property
@@ -79,9 +74,9 @@ class SpuriousDragonTransaction(HomesteadTransaction):
 
 
 class SpuriousDragonUnsignedTransaction(HomesteadUnsignedTransaction):
-    def as_signed_transaction(self,                     # type: ignore
+    def as_signed_transaction(self,
                               private_key: PrivateKey,
-                              chain_id: int=None) -> BaseUnsignedTransaction:
+                              chain_id: int=None) -> SpuriousDragonTransaction:
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return SpuriousDragonTransaction(
             nonce=self.nonce,

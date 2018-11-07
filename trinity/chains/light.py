@@ -17,6 +17,7 @@ from typing import (  # noqa: F401
 )
 
 from eth_typing import (
+    Address,
     BlockNumber,
     Hash32,
 )
@@ -184,9 +185,14 @@ class LightDispatchChain(BaseChain):
     def create_transaction(self, *args: Any, **kwargs: Any) -> BaseTransaction:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
-    def create_unsigned_transaction(self,
-                                    *args: Any,
-                                    **kwargs: Any) -> BaseUnsignedTransaction:
+    def create_unsigned_transaction(cls,
+                                    *,
+                                    nonce: int,
+                                    gas_price: int,
+                                    gas: int,
+                                    to: Address,
+                                    value: int,
+                                    data: bytes) -> BaseUnsignedTransaction:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     def get_canonical_transaction(self, transaction_hash: Hash32) -> BaseTransaction:

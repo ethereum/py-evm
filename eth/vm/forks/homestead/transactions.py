@@ -47,19 +47,19 @@ class HomesteadTransaction(FrontierTransaction):
         ))
 
     @classmethod
-    def create_unsigned_transaction(cls,        # type: ignore
+    def create_unsigned_transaction(cls,
                                     *,
                                     nonce: int,
                                     gas_price: int,
                                     gas: int,
                                     to: Address,
                                     value: int,
-                                    data: bytes) -> BaseTransaction:
+                                    data: bytes) -> 'HomesteadUnsignedTransaction':
         return HomesteadUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
 
 class HomesteadUnsignedTransaction(FrontierUnsignedTransaction):
-    def as_signed_transaction(self, private_key: PrivateKey) -> BaseTransaction:    # type: ignore
+    def as_signed_transaction(self, private_key: PrivateKey) -> HomesteadTransaction:
         v, r, s = create_transaction_signature(self, private_key)
         return HomesteadTransaction(
             nonce=self.nonce,
