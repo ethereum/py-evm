@@ -55,7 +55,10 @@ from eth.rlp.receipts import Receipt
 from eth.rlp.sedes import (
     int32,
 )
-from eth.rlp.transactions import BaseTransaction
+from eth.rlp.transactions import (
+    BaseTransaction,
+    BaseUnsignedTransaction,
+)
 from eth.utils.datatypes import (
     Configurable,
 )
@@ -263,12 +266,19 @@ class BaseVM(Configurable, ABC):
     # Transactions
     #
     @abstractmethod
-    def create_transaction(self, *args: Any, **kwargs: Any) -> Any:
+    def create_transaction(self, *args: Any, **kwargs: Any) -> BaseTransaction:
         raise NotImplementedError("VM classes must implement this method")
 
     @classmethod
     @abstractmethod
-    def create_unsigned_transaction(cls, *args: Any, **kwargs: Any) -> Any:
+    def create_unsigned_transaction(cls,
+                                    *,
+                                    nonce: int,
+                                    gas_price: int,
+                                    gas: int,
+                                    to: Address,
+                                    value: int,
+                                    data: bytes) -> BaseUnsignedTransaction:
         raise NotImplementedError("VM classes must implement this method")
 
     @classmethod
@@ -693,18 +703,32 @@ class VM(BaseVM):
     #
     # Transactions
     #
-    def create_transaction(self, *args: Any, **kwargs: Any) -> BaseState:
+    def create_transaction(self, *args: Any, **kwargs: Any) -> BaseTransaction:
         """
         Proxy for instantiating a signed transaction for this VM.
         """
         return self.get_transaction_class()(*args, **kwargs)
 
     @classmethod
-    def create_unsigned_transaction(cls, *args: Any, **kwargs: Any) -> BaseTransaction:
+    def create_unsigned_transaction(cls,
+                                    *,
+                                    nonce: int,
+                                    gas_price: int,
+                                    gas: int,
+                                    to: Address,
+                                    value: int,
+                                    data: bytes) -> 'BaseUnsignedTransaction':
         """
         Proxy for instantiating an unsigned transaction for this VM.
         """
-        return cls.get_transaction_class().create_unsigned_transaction(*args, **kwargs)
+        return cls.get_transaction_class().create_unsigned_transaction(
+            nonce=nonce,
+            gas_price=gas_price,
+            gas=gas,
+            to=to,
+            value=value,
+            data=data
+        )
 
     @classmethod
     def get_transaction_class(cls) -> Type[BaseTransaction]:

@@ -1,11 +1,6 @@
 from eth_keys.datatypes import PrivateKey
 from eth_typing import Address
 
-from eth.rlp.transactions import (
-    BaseTransaction,
-    BaseUnsignedTransaction,
-)
-
 from eth.utils.transactions import (
     create_transaction_signature,
 )
@@ -18,21 +13,21 @@ from eth.vm.forks.spurious_dragon.transactions import (
 
 class ByzantiumTransaction(SpuriousDragonTransaction):
     @classmethod
-    def create_unsigned_transaction(cls,                 # type: ignore
+    def create_unsigned_transaction(cls,
                                     *,
                                     nonce: int,
                                     gas_price: int,
                                     gas: int,
                                     to: Address,
                                     value: int,
-                                    data: bytes) -> BaseTransaction:
+                                    data: bytes) -> 'ByzantiumUnsignedTransaction':
         return ByzantiumUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
 
 class ByzantiumUnsignedTransaction(SpuriousDragonUnsignedTransaction):
-    def as_signed_transaction(self,                          # type: ignore
+    def as_signed_transaction(self,
                               private_key: PrivateKey,
-                              chain_id: int=None) -> BaseUnsignedTransaction:
+                              chain_id: int=None) -> ByzantiumTransaction:
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return ByzantiumTransaction(
             nonce=self.nonce,

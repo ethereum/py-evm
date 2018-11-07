@@ -2,9 +2,6 @@ from abc import (
     ABC,
     abstractmethod
 )
-from typing import (
-    Any,
-)
 
 import rlp
 from rlp.sedes import (
@@ -17,7 +14,9 @@ from eth_typing import (
 )
 
 from eth_hash.auto import keccak
-
+from eth_keys.datatypes import (
+    PrivateKey
+)
 from eth_utils import (
     ValidationError,
 )
@@ -150,7 +149,14 @@ class BaseTransaction(BaseTransactionFields, BaseTransactionMethods):
 
     @classmethod
     @abstractmethod
-    def create_unsigned_transaction(self, *args: Any, **kwargs: Any) -> 'BaseTransaction':
+    def create_unsigned_transaction(cls,
+                                    *,
+                                    nonce: int,
+                                    gas_price: int,
+                                    gas: int,
+                                    to: Address,
+                                    value: int,
+                                    data: bytes) -> 'BaseUnsignedTransaction':
         """
         Create an unsigned transaction.
         """
@@ -171,7 +177,7 @@ class BaseUnsignedTransaction(rlp.Serializable, BaseTransactionMethods, ABC):
     # API that must be implemented by all Transaction subclasses.
     #
     @abstractmethod
-    def as_signed_transaction(self, private_key: bytes) -> 'BaseTransaction':
+    def as_signed_transaction(self, private_key: PrivateKey) -> 'BaseTransaction':
         """
         Return a version of this transaction which has been signed using the
         provided `private_key`

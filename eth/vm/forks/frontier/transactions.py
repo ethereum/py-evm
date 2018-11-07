@@ -83,14 +83,14 @@ class FrontierTransaction(BaseTransaction):
         ))
 
     @classmethod
-    def create_unsigned_transaction(cls,                     # type: ignore
+    def create_unsigned_transaction(cls,
                                     *,
                                     nonce: int,
                                     gas_price: int,
                                     gas: int,
                                     to: Address,
                                     value: int,
-                                    data: bytes) -> BaseTransaction:
+                                    data: bytes) -> 'FrontierUnsignedTransaction':
         return FrontierUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
 
@@ -106,7 +106,7 @@ class FrontierUnsignedTransaction(BaseUnsignedTransaction):
         validate_is_bytes(self.data, title="Transaction.data")
         super().validate()
 
-    def as_signed_transaction(self, private_key: PrivateKey) -> BaseTransaction:    # type: ignore
+    def as_signed_transaction(self, private_key: PrivateKey) -> FrontierTransaction:
         v, r, s = create_transaction_signature(self, private_key)
         return FrontierTransaction(
             nonce=self.nonce,
