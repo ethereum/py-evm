@@ -1,13 +1,5 @@
 from eth import constants
 
-from typing import (
-    cast,
-)
-
-from eth_typing import (
-    Hash32,
-)
-
 from eth.exceptions import (
     OutOfBoundsRead,
 )
@@ -54,7 +46,7 @@ def calldataload(computation: BaseComputation) -> None:
     padded_value = value.ljust(32, b'\x00')
     normalized_value = padded_value.lstrip(b'\x00')
 
-    computation.stack_push(cast(Hash32, normalized_value))
+    computation.stack_push(normalized_value)
 
 
 def calldatasize(computation: BaseComputation) -> None:

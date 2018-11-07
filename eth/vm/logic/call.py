@@ -4,7 +4,6 @@ from abc import (
 )
 
 from typing import (
-    Any,
     Tuple,
 )
 
@@ -38,11 +37,11 @@ class BaseCall(Opcode, ABC):
                               computation: BaseComputation,
                               gas: int,
                               to: Address,
-                              value: int) -> Any:
+                              value: int) -> int:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def get_call_params(self, computation: BaseComputation) -> Any:
+    def get_call_params(self, computation: BaseComputation) -> CallParams:
         raise NotImplementedError("Must be implemented by subclasses")
 
     def compute_msg_gas(self,

@@ -132,7 +132,7 @@ class BaseVM(Configurable, ABC):
                      base_header: BlockHeader,
                      transaction: BaseTransaction,
                      computation: BaseComputation,
-                     state: BaseState) -> Any:
+                     state: BaseState) -> Receipt:
         """
         Generate the receipt resulting from applying the transaction.
 
@@ -161,18 +161,18 @@ class BaseVM(Configurable, ABC):
                                base_block: BaseBlock,
                                new_header: BlockHeader,
                                transactions: Tuple[BaseTransaction, ...],
-                               receipts: Tuple[Receipt, ...]) -> Any:
+                               receipts: Tuple[Receipt, ...]) -> BaseBlock:
         raise NotImplementedError("VM classes must implement this method")
 
     #
     # Finalization
     #
     @abstractmethod
-    def finalize_block(self, block: BaseBlock) -> Any:
+    def finalize_block(self, block: BaseBlock) -> BaseBlock:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
-    def pack_block(self, block: BaseBlock, *args: Any, **kwargs: Any) -> Any:
+    def pack_block(self, block: BaseBlock, *args: Any, **kwargs: Any) -> BaseBlock:
         raise NotImplementedError("VM classes must implement this method")
 
     #
@@ -180,7 +180,7 @@ class BaseVM(Configurable, ABC):
     #
     @classmethod
     @abstractmethod
-    def compute_difficulty(cls, parent_header: BlockHeader, timestamp: int) -> Any:
+    def compute_difficulty(cls, parent_header: BlockHeader, timestamp: int) -> int:
         """
         Compute the difficulty for a block header.
 
@@ -190,7 +190,7 @@ class BaseVM(Configurable, ABC):
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
-    def configure_header(self, **header_params: Any) -> Any:
+    def configure_header(self, **header_params: Any) -> BlockHeader:
         """
         Setup the current header with the provided parameters.  This can be
         used to set fields like the gas limit or timestamp to value different
@@ -200,7 +200,9 @@ class BaseVM(Configurable, ABC):
 
     @classmethod
     @abstractmethod
-    def create_header_from_parent(cls, parent_header: BlockHeader, **header_params: Any) -> Any:
+    def create_header_from_parent(cls,
+                                  parent_header: BlockHeader,
+                                  **header_params: Any) -> BlockHeader:
         """
         Creates and initializes a new block header from the provided
         `parent_header`.
@@ -214,7 +216,7 @@ class BaseVM(Configurable, ABC):
     @abstractmethod
     def generate_block_from_parent_header_and_coinbase(cls,
                                                        parent_header: BlockHeader,
-                                                       coinbase: Address) -> Any:
+                                                       coinbase: Address) -> BaseBlock:
         raise NotImplementedError("VM classes must implement this method")
 
     @classmethod
@@ -248,7 +250,9 @@ class BaseVM(Configurable, ABC):
     @classmethod
     @abstractmethod
     @to_tuple
-    def get_prev_hashes(cls, last_block_hash: Hash32, chaindb: BaseChainDB) -> Any:
+    def get_prev_hashes(cls,
+                        last_block_hash: Hash32,
+                        chaindb: BaseChainDB) -> Optional[Iterable[Hash32]]:
         raise NotImplementedError("VM classes must implement this method")
 
     @staticmethod
@@ -334,12 +338,12 @@ class BaseVM(Configurable, ABC):
     #
     @classmethod
     @abstractmethod
-    def get_state_class(cls) -> Any:
+    def get_state_class(cls) -> Type[BaseState]:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
     @contextlib.contextmanager
-    def state_in_temp_block(self) -> Any:
+    def state_in_temp_block(self) -> Iterator[BaseState]:
         raise NotImplementedError("VM classes must implement this method")
 
 

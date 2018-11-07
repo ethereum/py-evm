@@ -1,12 +1,6 @@
 import functools
 
-from typing import (
-    cast,
-)
-
 from eth import constants
-
-from eth_typing import Hash32
 
 from eth.vm.computation import BaseComputation
 
@@ -22,7 +16,7 @@ def push_XX(computation: BaseComputation, size: int) -> None:
         computation.stack_push(0)
     else:
         padded_value = raw_value.ljust(size, b'\x00')
-        computation.stack_push(cast(Hash32, padded_value))
+        computation.stack_push(padded_value)
 
 
 push1 = functools.partial(push_XX, size=1)

@@ -1,5 +1,4 @@
 import rlp
-from typing import cast
 
 from eth_keys.datatypes import PrivateKey
 
@@ -72,7 +71,7 @@ class FrontierTransaction(BaseTransaction):
         validate_transaction_signature(self)
 
     def get_sender(self) -> Address:
-        return cast(Address, extract_transaction_sender(self))
+        return extract_transaction_sender(self)
 
     def get_intrinsic_gas(self) -> int:
         return _get_frontier_intrinsic_gas(self.data)

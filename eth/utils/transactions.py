@@ -11,6 +11,7 @@ from eth_utils import (
     ValidationError,
 )
 from eth.typing import (
+    Address,
     VRS,
 )
 from eth.utils.numeric import (
@@ -91,7 +92,7 @@ def validate_transaction_signature(transaction: BaseTransaction) -> None:
         raise ValidationError("Invalid Signature")
 
 
-def extract_transaction_sender(transaction: BaseTransaction) -> bytes:
+def extract_transaction_sender(transaction: BaseTransaction) -> Address:
     if is_eip_155_signed_transaction(transaction):
         if is_even(transaction.v):
             v = 28
@@ -108,4 +109,4 @@ def extract_transaction_sender(transaction: BaseTransaction) -> bytes:
     message = transaction.get_message_for_signing()
     public_key = signature.recover_public_key_from_msg(message)
     sender = public_key.to_canonical_address()
-    return sender
+    return Address(sender)

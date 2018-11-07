@@ -41,7 +41,7 @@ class FrontierComputation(BaseComputation):
     Inherits from :class:`~eth.vm.computation.BaseComputation`
     """
     # Override
-    opcodes = FRONTIER_OPCODES      # type: ignore # Mypy doesn't allow overwrite type
+    opcodes = FRONTIER_OPCODES
     _precompiles = FRONTIER_PRECOMPILES
 
     def apply_message(self) -> BaseComputation:
