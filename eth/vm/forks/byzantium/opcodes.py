@@ -3,6 +3,11 @@ import functools
 
 from cytoolz import merge
 
+from typing import (
+    Any,
+    Callable,
+)
+
 from eth import constants
 
 from eth.exceptions import (
@@ -10,6 +15,7 @@ from eth.exceptions import (
 )
 from eth.vm import mnemonics
 from eth.vm import opcode_values
+from eth.vm.computation import BaseComputation
 from eth.vm.forks.tangerine_whistle.constants import (
     GAS_CALL_EIP150,
     GAS_SELFDESTRUCT_EIP150
@@ -26,9 +32,9 @@ from eth.vm.opcode import as_opcode
 from eth.vm.forks.spurious_dragon.opcodes import SPURIOUS_DRAGON_OPCODES
 
 
-def ensure_no_static(opcode_fn):
+def ensure_no_static(opcode_fn: Callable[..., Any]) -> Callable[..., Any]:
     @functools.wraps(opcode_fn)
-    def inner(computation):
+    def inner(computation: BaseComputation) -> Callable[..., Any]:
         if computation.msg.is_static:
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
         return opcode_fn(computation)

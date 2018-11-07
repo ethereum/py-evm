@@ -1,6 +1,8 @@
 from eth.constants import (
     UINT256
 )
+
+from eth.vm.computation import BaseComputation
 from eth.vm.forks.constantinople import (
     constants
 )
@@ -10,7 +12,7 @@ from eth.utils.hexadecimal import (
 )
 
 
-def sstore_eip1283(computation):
+def sstore_eip1283(computation: BaseComputation) -> None:
     slot, value = computation.stack_pop(num_items=2, type_hint=UINT256)
 
     current_value = computation.state.account_db.get_storage(

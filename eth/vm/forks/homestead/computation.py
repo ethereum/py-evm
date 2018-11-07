@@ -7,6 +7,7 @@ from eth.exceptions import (
 from eth.utils.hexadecimal import (
     encode_hex,
 )
+from eth.vm.computation import BaseComputation
 from eth.vm.forks.frontier.computation import (
     FrontierComputation,
 )
@@ -22,7 +23,7 @@ class HomesteadComputation(FrontierComputation):
     # Override
     opcodes = HOMESTEAD_OPCODES
 
-    def apply_create_message(self):
+    def apply_create_message(self) -> BaseComputation:
         snapshot = self.state.snapshot()
 
         computation = self.apply_message()

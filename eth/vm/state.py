@@ -260,7 +260,7 @@ class BaseState(Configurable, ABC):
     def override_transaction_context(self, gas_price: int) -> Iterator[None]:
         original_context = self.get_transaction_context
 
-        def get_custom_transaction_context(transaction: 'BaseTransaction') -> BaseTransactionContext:   # noqa: E501
+        def get_custom_transaction_context(transaction: 'BaseTransaction') -> 'BaseTransactionContext':   # noqa: E501
             custom_transaction = transaction.copy(gas_price=gas_price)
             return original_context(custom_transaction)
 

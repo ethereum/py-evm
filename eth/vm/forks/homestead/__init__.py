@@ -35,6 +35,6 @@ class HomesteadVM(MetaHomesteadVM):
     _state_class = HomesteadState  # type: Type[BaseState]
 
     # method overrides
-    create_header_from_parent = staticmethod(create_homestead_header_from_parent)
-    compute_difficulty = staticmethod(compute_homestead_difficulty)
+    create_header_from_parent = staticmethod(create_homestead_header_from_parent)   # type: ignore
+    compute_difficulty = staticmethod(compute_homestead_difficulty)     # type: ignore
     configure_header = configure_homestead_header

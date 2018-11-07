@@ -7,6 +7,7 @@ from eth.exceptions import (
 from eth.utils.hexadecimal import (
     encode_hex,
 )
+from eth.vm.computation import BaseComputation
 from eth.vm.forks.homestead.computation import (
     HomesteadComputation,
 )
@@ -23,7 +24,7 @@ class SpuriousDragonComputation(HomesteadComputation):
     # Override
     opcodes = SPURIOUS_DRAGON_OPCODES
 
-    def apply_create_message(self):
+    def apply_create_message(self) -> BaseComputation:
         snapshot = self.state.snapshot()
 
         # EIP161 nonce incrementation

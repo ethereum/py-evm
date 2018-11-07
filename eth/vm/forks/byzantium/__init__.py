@@ -15,12 +15,15 @@ from eth.constants import (
     MAX_UNCLE_DEPTH,
 )
 from eth.rlp.blocks import BaseBlock  # noqa: F401
+from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
+from eth.rlp.transactions import BaseTransaction
 from eth.validation import (
     validate_lte,
 )
 from eth.vm.forks.spurious_dragon import SpuriousDragonVM
 from eth.vm.forks.frontier import make_frontier_receipt
+from eth.vm.computation import BaseComputation
 from eth.vm.state import BaseState  # noqa: F401
 
 from .blocks import ByzantiumBlock
@@ -37,7 +40,10 @@ from .headers import (
 from .state import ByzantiumState
 
 
-def make_byzantium_receipt(base_header, transaction, computation, state):
+def make_byzantium_receipt(base_header: BlockHeader,
+                           transaction: BaseTransaction,
+                           computation: BaseComputation,
+                           state: BaseState) -> Receipt:
     frontier_receipt = make_frontier_receipt(base_header, transaction, computation, state)
 
     if computation.is_error:
@@ -49,7 +55,7 @@ def make_byzantium_receipt(base_header, transaction, computation, state):
 
 
 @curry
-def get_uncle_reward(block_reward, block_number, uncle):
+def get_uncle_reward(block_reward: int, block_number: int, uncle: BaseBlock) -> int:
     block_number_delta = block_number - uncle.block_number
     validate_lte(block_number_delta, MAX_UNCLE_DEPTH)
     return (8 - block_number_delta) * block_reward // 8
@@ -70,10 +76,10 @@ class ByzantiumVM(SpuriousDragonVM):
     _state_class = ByzantiumState  # type: Type[BaseState]
 
     # Methods
-    create_header_from_parent = staticmethod(create_byzantium_header_from_parent)
-    compute_difficulty = staticmethod(compute_byzantium_difficulty)
+    create_header_from_parent = staticmethod(create_byzantium_header_from_parent)   # type: ignore
+    compute_difficulty = staticmethod(compute_byzantium_difficulty)     # type: ignore
     configure_header = configure_byzantium_header
-    make_receipt = staticmethod(make_byzantium_receipt)
+    make_receipt = staticmethod(make_byzantium_receipt)     # type: ignore
     # Separated into two steps due to mypy bug of staticmethod.
     # https://github.com/python/mypy/issues/5530
     get_uncle_reward = get_uncle_reward(EIP649_BLOCK_REWARD)
@@ -93,5 +99,5 @@ class ByzantiumVM(SpuriousDragonVM):
             )
 
     @staticmethod
-    def get_block_reward():
+    def get_block_reward() -> int:
         return EIP649_BLOCK_REWARD

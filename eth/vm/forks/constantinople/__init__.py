@@ -28,11 +28,11 @@ class ConstantinopleVM(ByzantiumVM):
     _state_class = ConstantinopleState  # type: Type[BaseState]
 
     # Methods
-    create_header_from_parent = staticmethod(create_constantinople_header_from_parent)
-    compute_difficulty = staticmethod(compute_constantinople_difficulty)
+    create_header_from_parent = staticmethod(create_constantinople_header_from_parent)  # type: ignore  # noqa: E501
+    compute_difficulty = staticmethod(compute_constantinople_difficulty)    # type: ignore
     configure_header = configure_constantinople_header
     get_uncle_reward = staticmethod(get_uncle_reward(EIP1234_BLOCK_REWARD))
 
     @staticmethod
-    def get_block_reward():
+    def get_block_reward() -> int:
         return EIP1234_BLOCK_REWARD

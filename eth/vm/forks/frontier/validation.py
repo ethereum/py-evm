@@ -2,8 +2,15 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.db.account import BaseAccountDB
 
-def validate_frontier_transaction(account_db, transaction):
+from eth.rlp.headers import BlockHeader
+from eth.rlp.transactions import BaseTransaction
+
+from eth.vm.base import BaseVM
+
+
+def validate_frontier_transaction(account_db: BaseAccountDB, transaction: BaseTransaction) -> None:
     gas_cost = transaction.gas * transaction.gas_price
     sender_balance = account_db.get_balance(transaction.sender)
 
@@ -21,7 +28,9 @@ def validate_frontier_transaction(account_db, transaction):
         raise ValidationError("Invalid transaction nonce")
 
 
-def validate_frontier_transaction_against_header(_vm, base_header, transaction):
+def validate_frontier_transaction_against_header(_vm: BaseVM,
+                                                 base_header: BlockHeader,
+                                                 transaction: BaseTransaction) -> None:
     if base_header.gas_used + transaction.gas > base_header.gas_limit:
         raise ValidationError(
             "Transaction exceeds gas limit: using {}, bringing total to {}, but limit is {}".format(

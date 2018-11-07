@@ -1,4 +1,5 @@
 from eth import constants
+
 from eth.vm import mnemonics
 from eth.vm import opcode_values
 from eth.vm.logic import (
@@ -17,7 +18,9 @@ from eth.vm.logic import (
     swap,
     system,
 )
-from eth.vm.opcode import as_opcode
+from eth.vm.opcode import (
+    as_opcode,
+)
 
 
 FRONTIER_OPCODES = {
