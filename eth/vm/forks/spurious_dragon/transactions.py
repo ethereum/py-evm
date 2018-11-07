@@ -1,8 +1,21 @@
+from typing import Optional
+
+from eth_keys.datatypes import PrivateKey
+
+from eth_typing import (
+    Address,
+)
+
 from eth_utils import (
     int_to_big_endian,
 )
 
 import rlp
+
+from eth.rlp.transactions import (
+    BaseTransaction,
+    BaseUnsignedTransaction,
+)
 
 from eth.vm.forks.homestead.transactions import (
     HomesteadTransaction,
@@ -17,7 +30,7 @@ from eth.utils.transactions import (
 
 
 class SpuriousDragonTransaction(HomesteadTransaction):
-    def get_message_for_signing(self):
+    def get_message_for_signing(self) -> bytes:
         if is_eip_155_signed_transaction(self):
             txn_parts = rlp.decode(rlp.encode(self))
             txn_parts_for_signing = txn_parts[:-3] + [int_to_big_endian(self.chain_id), b'', b'']
@@ -33,25 +46,32 @@ class SpuriousDragonTransaction(HomesteadTransaction):
             ))
 
     @classmethod
-    def create_unsigned_transaction(cls, *, nonce, gas_price, gas, to, value, data):
+    def create_unsigned_transaction(cls,         # type: ignore
+                                    *,
+                                    nonce: int,
+                                    gas_price: int,
+                                    gas: int,
+                                    to: Address,
+                                    value: int,
+                                    data: bytes) -> BaseTransaction:
         return SpuriousDragonUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
     @property
-    def chain_id(self):
+    def chain_id(self) -> Optional[int]:
         if is_eip_155_signed_transaction(self):
             return extract_chain_id(self.v)
         else:
             return None
 
     @property
-    def v_min(self):
+    def v_min(self) -> int:     # type: ignore
         if is_eip_155_signed_transaction(self):
             return 35 + (2 * self.chain_id)
         else:
             return 27
 
     @property
-    def v_max(self):
+    def v_max(self) -> int:     # type: ignore
         if is_eip_155_signed_transaction(self):
             return 36 + (2 * self.chain_id)
         else:
@@ -59,7 +79,9 @@ class SpuriousDragonTransaction(HomesteadTransaction):
 
 
 class SpuriousDragonUnsignedTransaction(HomesteadUnsignedTransaction):
-    def as_signed_transaction(self, private_key, chain_id=None):
+    def as_signed_transaction(self,                     # type: ignore
+                              private_key: PrivateKey,
+                              chain_id: int=None) -> BaseUnsignedTransaction:
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return SpuriousDragonTransaction(
             nonce=self.nonce,

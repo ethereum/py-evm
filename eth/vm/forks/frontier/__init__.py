@@ -1,19 +1,19 @@
 from typing import Type  # noqa: F401
-from eth.rlp.blocks import BaseBlock  # noqa: F401
-from eth.vm.state import BaseState  # noqa: F401
-
 
 from eth.constants import (
     BLOCK_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
 )
+
+from eth.rlp.blocks import BaseBlock  # noqa: F401
+from eth.rlp.headers import BlockHeader
+from eth.rlp.logs import Log
+from eth.rlp.receipts import Receipt
+from eth.rlp.transactions import BaseTransaction
+
 from eth.vm.base import VM
-from eth.rlp.receipts import (
-    Receipt,
-)
-from eth.rlp.logs import (
-    Log,
-)
+from eth.vm.computation import BaseComputation
+from eth.vm.state import BaseState  # noqa: F401
 
 from .blocks import FrontierBlock
 from .state import FrontierState
@@ -25,7 +25,10 @@ from .headers import (
 from .validation import validate_frontier_transaction_against_header
 
 
-def make_frontier_receipt(base_header, transaction, computation, state):
+def make_frontier_receipt(base_header: BlockHeader,
+                          transaction: BaseTransaction,
+                          computation: BaseComputation,
+                          state: BaseState) -> Receipt:
     # Reusable for other forks
 
     logs = [
@@ -62,22 +65,22 @@ class FrontierVM(VM):
     _state_class = FrontierState  # type: Type[BaseState]
 
     # methods
-    create_header_from_parent = staticmethod(create_frontier_header_from_parent)
-    compute_difficulty = staticmethod(compute_frontier_difficulty)
+    create_header_from_parent = staticmethod(create_frontier_header_from_parent)    # type: ignore
+    compute_difficulty = staticmethod(compute_frontier_difficulty)      # type: ignore
     configure_header = configure_frontier_header
-    make_receipt = staticmethod(make_frontier_receipt)
+    make_receipt = staticmethod(make_frontier_receipt)      # type: ignore
     validate_transaction_against_header = validate_frontier_transaction_against_header
 
     @staticmethod
-    def get_block_reward():
+    def get_block_reward() -> int:
         return BLOCK_REWARD
 
     @staticmethod
-    def get_uncle_reward(block_number, uncle):
+    def get_uncle_reward(block_number: int, uncle: BaseBlock) -> int:
         return BLOCK_REWARD * (
             UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number
         ) // UNCLE_DEPTH_PENALTY_FACTOR
 
     @classmethod
-    def get_nephew_reward(cls):
+    def get_nephew_reward(cls) -> int:
         return cls.get_block_reward() // 32

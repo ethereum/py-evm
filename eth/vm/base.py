@@ -273,7 +273,7 @@ class BaseVM(Configurable, ABC):
 
     @classmethod
     @abstractmethod
-    def get_transaction_class(cls) -> Any:
+    def get_transaction_class(cls) -> Type[BaseTransaction]:
         raise NotImplementedError("VM classes must implement this method")
 
     #

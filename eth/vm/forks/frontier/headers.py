@@ -1,5 +1,10 @@
 from __future__ import absolute_import
 
+from typing import (
+    Any,
+    TYPE_CHECKING,
+)
+
 from eth.validation import (
     validate_gt,
     validate_header_params_for_configuration,
@@ -24,8 +29,11 @@ from .constants import (
     FRONTIER_DIFFICULTY_ADJUSTMENT_CUTOFF
 )
 
+if TYPE_CHECKING:
+    from eth.vm.forks.frontier import FrontierVM    # noqa: F401
 
-def compute_frontier_difficulty(parent_header, timestamp):
+
+def compute_frontier_difficulty(parent_header: BlockHeader, timestamp: int) -> int:
     """
     Computes the difficulty for a frontier block based on the parent block.
     """
@@ -65,7 +73,8 @@ def compute_frontier_difficulty(parent_header, timestamp):
     return difficulty
 
 
-def create_frontier_header_from_parent(parent_header, **header_params):
+def create_frontier_header_from_parent(parent_header: BlockHeader,
+                                       **header_params: Any) -> BlockHeader:
     if 'difficulty' not in header_params:
         # Use setdefault to ensure the new header has the same timestamp we use to calculate its
         # difficulty.
@@ -85,7 +94,7 @@ def create_frontier_header_from_parent(parent_header, **header_params):
     return header
 
 
-def configure_frontier_header(vm, **header_params):
+def configure_frontier_header(vm: "FrontierVM", **header_params: Any) -> BlockHeader:
     validate_header_params_for_configuration(header_params)
 
     with vm.block.header.build_changeset(**header_params) as changeset:

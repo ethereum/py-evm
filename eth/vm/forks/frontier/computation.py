@@ -1,18 +1,18 @@
+from eth import precompiles
+
 from eth_hash.auto import keccak
 
 from eth.constants import (
     GAS_CODEDEPOSIT,
     STACK_DEPTH_LIMIT,
 )
-from eth import precompiles
-from eth.vm.computation import (
-    BaseComputation
-)
+
 from eth.exceptions import (
     OutOfGas,
     InsufficientFunds,
     StackDepthLimit,
 )
+
 from eth.utils.address import (
     force_bytes_to_address,
 )
@@ -20,7 +20,12 @@ from eth.utils.hexadecimal import (
     encode_hex,
 )
 
+from eth.vm.computation import (
+    BaseComputation,
+)
+
 from .opcodes import FRONTIER_OPCODES
+
 
 FRONTIER_PRECOMPILES = {
     force_bytes_to_address(b'\x01'): precompiles.ecrecover,
@@ -36,10 +41,10 @@ class FrontierComputation(BaseComputation):
     Inherits from :class:`~eth.vm.computation.BaseComputation`
     """
     # Override
-    opcodes = FRONTIER_OPCODES
+    opcodes = FRONTIER_OPCODES      # type: ignore # Mypy doesn't allow overwrite type
     _precompiles = FRONTIER_PRECOMPILES
 
-    def apply_message(self):
+    def apply_message(self) -> BaseComputation:
         snapshot = self.state.snapshot()
 
         if self.msg.depth > STACK_DEPTH_LIMIT:
@@ -78,7 +83,7 @@ class FrontierComputation(BaseComputation):
 
         return computation
 
-    def apply_create_message(self):
+    def apply_create_message(self) -> BaseComputation:
         computation = self.apply_message()
 
         if computation.is_error:

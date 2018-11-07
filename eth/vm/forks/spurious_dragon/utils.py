@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from eth_utils import to_set
 
 from eth import constants
@@ -6,12 +8,14 @@ from eth.utils.address import (
     force_bytes_to_address,
 )
 
+from eth.vm.computation import BaseComputation
+
 
 THREE = force_bytes_to_address(b'\x03')
 
 
 @to_set
-def collect_touched_accounts(computation):
+def collect_touched_accounts(computation: BaseComputation) -> Iterable[bytes]:
     """
     Collect all of the accounts that *may* need to be deleted based on EIP161:
 

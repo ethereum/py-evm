@@ -1,10 +1,10 @@
-from eth_utils import (
-    decode_hex,
+from typing import (
+    Any,
+    TYPE_CHECKING,
 )
 
-from eth.validation import (
-    validate_gt,
-    validate_header_params_for_configuration,
+from eth_utils import (
+    decode_hex,
 )
 
 from eth.constants import (
@@ -13,8 +13,13 @@ from eth.constants import (
     BOMB_EXPONENTIAL_PERIOD,
     BOMB_EXPONENTIAL_FREE_PERIODS,
 )
+from eth.rlp.headers import BlockHeader
 from eth.utils.db import (
     get_parent_header,
+)
+from eth.validation import (
+    validate_gt,
+    validate_header_params_for_configuration,
 )
 from eth.vm.forks.frontier.headers import (
     create_frontier_header_from_parent,
@@ -24,8 +29,11 @@ from .constants import (
     HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF
 )
 
+if TYPE_CHECKING:
+    from eth.vm.forks.homestead import HomesteadVM      # noqa: F401
 
-def compute_homestead_difficulty(parent_header, timestamp):
+
+def compute_homestead_difficulty(parent_header: BlockHeader, timestamp: int) -> int:
     """
     Computes the difficulty for a homestead block based on the parent block.
     """
@@ -47,7 +55,8 @@ def compute_homestead_difficulty(parent_header, timestamp):
         return difficulty
 
 
-def create_homestead_header_from_parent(parent_header, **header_params):
+def create_homestead_header_from_parent(parent_header: BlockHeader,
+                                        **header_params: Any) -> BlockHeader:
     if 'difficulty' not in header_params:
         # Use setdefault to ensure the new header has the same timestamp we use to calculate its
         # difficulty.
@@ -59,7 +68,7 @@ def create_homestead_header_from_parent(parent_header, **header_params):
     return create_frontier_header_from_parent(parent_header, **header_params)
 
 
-def configure_homestead_header(vm, **header_params):
+def configure_homestead_header(vm: "HomesteadVM", **header_params: Any) -> BlockHeader:
     validate_header_params_for_configuration(header_params)
 
     with vm.block.header.build_changeset(**header_params) as changeset:

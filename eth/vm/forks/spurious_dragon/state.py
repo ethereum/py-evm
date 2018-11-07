@@ -1,7 +1,11 @@
+from eth.rlp.transactions import BaseTransaction
 
 from eth.utils.hexadecimal import (
     encode_hex,
 )
+
+from eth.vm.computation import BaseComputation
+
 from eth.vm.forks.homestead.state import (
     HomesteadState,
     HomesteadTransactionExecutor,
@@ -12,7 +16,9 @@ from .utils import collect_touched_accounts
 
 
 class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
-    def finalize_computation(self, transaction, computation):
+    def finalize_computation(self,
+                             transaction: BaseTransaction,
+                             computation: BaseComputation) -> BaseComputation:
         computation = super().finalize_computation(transaction, computation)
 
         #
