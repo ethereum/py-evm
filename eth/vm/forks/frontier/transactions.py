@@ -37,8 +37,13 @@ from eth.utils.transactions import (
 
 class FrontierTransaction(BaseTransaction):
 
-    v_max = 28
-    v_min = 27
+    @property
+    def v_min(self) -> int:
+        return 27
+
+    @property
+    def v_max(self) -> int:
+        return 28
 
     def validate(self) -> None:
         validate_uint256(self.nonce, title="Transaction.nonce")
