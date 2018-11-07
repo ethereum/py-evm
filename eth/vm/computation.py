@@ -115,7 +115,7 @@ class BaseComputation(Configurable, ABC):
     accounts_to_delete = None  # type: Dict[bytes, bytes]
 
     # VM configuration
-    opcodes = None  # type: Dict[int, Opcode]
+    opcodes = None  # type: Dict[int, Any]
     _precompiles = None  # type: Dict[Address, Callable[['BaseComputation'], Any]]
 
     logger = cast(TraceLogger, logging.getLogger('eth.vm.computation.Computation'))

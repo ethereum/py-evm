@@ -3,7 +3,6 @@ import random
 
 from typing import (
     Any,
-    cast,
     Dict,
     List,
     Tuple,
@@ -73,7 +72,7 @@ def calc_state_root(state: AccountState, account_db_class: Type[BaseAccountDB]) 
 
 def generate_random_keypair() -> Tuple[bytes, Address]:
     key_object = keys.PrivateKey(pad32(int_to_big_endian(random.getrandbits(8 * 32))))
-    return key_object.to_bytes(), cast(Address, key_object.public_key.to_canonical_address())
+    return key_object.to_bytes(), Address(key_object.public_key.to_canonical_address())
 
 
 def generate_random_address() -> Address:

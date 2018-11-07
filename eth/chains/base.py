@@ -610,7 +610,8 @@ class Chain(BaseChain):
         This is referred to as a `call()` in web3.
         """
         with self.get_vm(at_header).state_in_temp_block() as state:
-            computation = state.costless_execute_transaction(transaction)
+            # Ignore is to not bleed the SpoofTransaction deeper into the code base
+            computation = state.costless_execute_transaction(transaction)  # type: ignore
 
         computation.raise_if_error()
         return computation.output

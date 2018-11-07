@@ -5,13 +5,12 @@ from abc import (
 import contextlib
 import logging
 from typing import (  # noqa: F401
-    Any,
-    Callable,
     cast,
+    Callable,
     Iterator,
     Tuple,
     Type,
-    TYPE_CHECKING
+    TYPE_CHECKING,
 )
 from uuid import UUID
 
@@ -200,7 +199,7 @@ class BaseState(Configurable, ABC):
             ancestor_depth >= len(self.execution_context.prev_hashes)
         )
         if is_ancestor_depth_out_of_range:
-            return cast(Hash32, b'')
+            return Hash32(b'')
         ancestor_hash = self.execution_context.prev_hashes[ancestor_depth]
         return ancestor_hash
 
@@ -275,7 +274,7 @@ class BaseState(Configurable, ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def validate_transaction(self, transaction: 'BaseTransaction') -> Any:
+    def validate_transaction(self, transaction: 'BaseTransaction') -> None:
         raise NotImplementedError
 
     @classmethod

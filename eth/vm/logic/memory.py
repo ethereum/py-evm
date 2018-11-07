@@ -1,8 +1,4 @@
-from typing import cast
-
 from eth import constants
-
-from eth_typing import Hash32
 
 from eth.vm.computation import BaseComputation
 
@@ -37,7 +33,7 @@ def mload(computation: BaseComputation) -> None:
     computation.extend_memory(start_position, 32)
 
     value = computation.memory_read(start_position, 32)
-    computation.stack_push(cast(Hash32, value))
+    computation.stack_push(value)
 
 
 def msize(computation: BaseComputation) -> None:
