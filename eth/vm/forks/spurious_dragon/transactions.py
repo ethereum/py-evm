@@ -59,14 +59,14 @@ class SpuriousDragonTransaction(HomesteadTransaction):
             return None
 
     @property
-    def v_min(self) -> int:     # type: ignore
+    def v_min(self) -> int:
         if is_eip_155_signed_transaction(self):
             return 35 + (2 * self.chain_id)
         else:
             return 27
 
     @property
-    def v_max(self) -> int:     # type: ignore
+    def v_max(self) -> int:
         if is_eip_155_signed_transaction(self):
             return 36 + (2 * self.chain_id)
         else:
