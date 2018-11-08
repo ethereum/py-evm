@@ -3,7 +3,9 @@ from eth.beacon.types.crystallized_states import CrystallizedState
 
 class SerenityCrystallizedState(CrystallizedState):
     @classmethod
-    def from_crystallized_state(cls, crystallized_state):
+    def from_crystallized_state(cls,
+                                crystallized_state: CrystallizedState
+                                ) -> "SerenityCrystallizedState":
         return cls(
             validators=crystallized_state.validators,
             last_state_recalc=crystallized_state.last_state_recalc,

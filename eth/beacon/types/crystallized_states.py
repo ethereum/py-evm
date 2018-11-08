@@ -117,5 +117,5 @@ class CrystallizedState(rlp.Serializable):
         return len(self.validators)
 
     @property
-    def num_crosslink_records(self):
+    def num_crosslink_records(self) -> int:
         return len(self.crosslink_records)
