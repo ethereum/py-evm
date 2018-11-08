@@ -1,3 +1,7 @@
+from typing import (
+    Tuple,
+)
+
 from eth_utils import (
     big_endian_to_int,
     int_to_big_endian,
@@ -14,8 +18,13 @@ from eth.utils.padding import (
     zpad_left,
 )
 
+from eth.vm.computation import (
+    BaseComputation,
+)
 
-def _compute_adjusted_exponent_length(exponent_length, first_32_exponent_bytes):
+
+def _compute_adjusted_exponent_length(exponent_length: int,
+                                      first_32_exponent_bytes: bytes) -> int:
     exponent = big_endian_to_int(first_32_exponent_bytes)
 
     if exponent_length <= 32 and exponent == 0:
@@ -30,7 +39,7 @@ def _compute_adjusted_exponent_length(exponent_length, first_32_exponent_bytes):
         )
 
 
-def _compute_complexity(length):
+def _compute_complexity(length: int) -> int:
     if length <= 64:
         return length ** 2
     elif length <= 1024:
@@ -41,7 +50,7 @@ def _compute_complexity(length):
         return length ** 2 // 16 + 480 * length - 199680
 
 
-def _extract_lengths(data):
+def _extract_lengths(data: bytes) -> Tuple[int, int, int]:
     # extract argument lengths
     base_length_bytes = pad32r(data[:32])
     base_length = big_endian_to_int(base_length_bytes)
@@ -55,7 +64,7 @@ def _extract_lengths(data):
     return base_length, exponent_length, modulus_length
 
 
-def _compute_modexp_gas_fee(data):
+def _compute_modexp_gas_fee(data: bytes) -> int:
     base_length, exponent_length, modulus_length = _extract_lengths(data)
 
     first_32_exponent_bytes = zpad_right(
@@ -76,7 +85,7 @@ def _compute_modexp_gas_fee(data):
     return gas_fee
 
 
-def _modexp(data):
+def _modexp(data: bytes) -> int:
     base_length, exponent_length, modulus_length = _extract_lengths(data)
 
     if base_length == 0:
@@ -112,7 +121,7 @@ def _modexp(data):
     return result
 
 
-def modexp(computation):
+def modexp(computation: BaseComputation) -> BaseComputation:
     """
     https://github.com/ethereum/EIPs/pull/198
     """

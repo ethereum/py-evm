@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from cytoolz import (
     curry,
     pipe,
@@ -16,6 +18,7 @@ from eth import constants
 from eth.exceptions import (
     VMError,
 )
+
 from eth.utils.bn128 import (
     validate_point,
 )
@@ -23,12 +26,16 @@ from eth.utils.padding import (
     pad32,
 )
 
+from eth.vm.computation import (
+    BaseComputation,
+)
+
 
 ZERO = (bn128.FQ2.one(), bn128.FQ2.one(), bn128.FQ2.zero())
 EXPONENT = bn128.FQ12.one()
 
 
-def ecpairing(computation):
+def ecpairing(computation: BaseComputation) -> BaseComputation:
     if len(computation.msg.data) % 192:
         # data length must be an exact multiple of 192
         raise VMError("Invalid ECPAIRING parameters")
@@ -52,7 +59,7 @@ def ecpairing(computation):
     return computation
 
 
-def _ecpairing(data):
+def _ecpairing(data: bytes) -> bool:
     exponent = bn128.FQ12.one()
 
     processing_pipeline = (
@@ -67,7 +74,7 @@ def _ecpairing(data):
 
 
 @curry
-def _process_point(data_buffer, exponent):
+def _process_point(data_buffer: bytes, exponent: int) -> int:
     x1, y1, x2_i, x2_r, y2_i, y2_r = _extract_point(data_buffer)
     p1 = validate_point(x1, y1)
 
@@ -91,7 +98,7 @@ def _process_point(data_buffer, exponent):
     return exponent * bn128.pairing(p2, p1, final_exponentiate=False)
 
 
-def _extract_point(data_slice):
+def _extract_point(data_slice: bytes) -> Tuple[int, int, int, int, int, int]:
     x1_bytes = data_slice[:32]
     y1_bytes = data_slice[32:64]
     x2_i_bytes = data_slice[64:96]

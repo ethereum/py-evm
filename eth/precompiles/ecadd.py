@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from py_ecc import (
     optimized_bn128 as bn128,
 )
@@ -21,8 +23,12 @@ from eth.utils.padding import (
     pad32r,
 )
 
+from eth.vm.computation import (
+    BaseComputation,
+)
 
-def ecadd(computation):
+
+def ecadd(computation: BaseComputation) -> BaseComputation:
     computation.consume_gas(constants.GAS_ECADD, reason='ECADD Precompile')
 
     try:
@@ -39,7 +45,7 @@ def ecadd(computation):
     return computation
 
 
-def _ecadd(data):
+def _ecadd(data: bytes) -> Tuple[bn128.FQ, bn128.FQ]:
     x1_bytes = pad32r(data[:32])
     y1_bytes = pad32r(data[32:64])
     x2_bytes = pad32r(data[64:96])

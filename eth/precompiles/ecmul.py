@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from py_ecc import (
     optimized_bn128 as bn128,
 )
@@ -21,8 +23,12 @@ from eth.utils.padding import (
     pad32r,
 )
 
+from eth.vm.computation import (
+    BaseComputation,
+)
 
-def ecmul(computation):
+
+def ecmul(computation: BaseComputation) -> BaseComputation:
     computation.consume_gas(constants.GAS_ECMUL, reason='ECMUL Precompile')
 
     try:
@@ -39,7 +45,7 @@ def ecmul(computation):
     return computation
 
 
-def _ecmull(data):
+def _ecmull(data: bytes) -> Tuple[bn128.FQ, bn128.FQ]:
     x_bytes = pad32r(data[:32])
     y_bytes = pad32r(data[32:64])
     m_bytes = pad32r(data[64:96])

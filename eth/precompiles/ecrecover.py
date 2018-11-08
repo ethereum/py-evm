@@ -10,19 +10,22 @@ from eth_utils import (
 
 from eth import constants
 
-from eth.validation import (
-    validate_lt_secpk1n,
-    validate_gte,
-    validate_lte,
-)
-
 from eth.utils.padding import (
     pad32,
     pad32r,
 )
 
+from eth.validation import (
+    validate_lt_secpk1n,
+    validate_gte,
+    validate_lte,
+)
+from eth.vm.computation import (
+    BaseComputation,
+)
 
-def ecrecover(computation):
+
+def ecrecover(computation: BaseComputation) -> BaseComputation:
     computation.consume_gas(constants.GAS_ECRECOVER, reason="ECRecover Precompile")
     raw_message_hash = computation.msg.data[:32]
     message_hash = pad32r(raw_message_hash)
