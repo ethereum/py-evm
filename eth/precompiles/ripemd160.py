@@ -8,9 +8,12 @@ from eth.utils.numeric import (
 from eth.utils.padding import (
     pad32,
 )
+from eth.vm.computation import (
+    BaseComputation,
+)
 
 
-def ripemd160(computation):
+def ripemd160(computation: BaseComputation) -> BaseComputation:
     word_count = ceil32(len(computation.msg.data)) // 32
     gas_fee = constants.GAS_RIPEMD160 + word_count * constants.GAS_RIPEMD160WORD
 

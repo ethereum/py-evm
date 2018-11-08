@@ -6,8 +6,12 @@ from eth.utils.numeric import (
     ceil32,
 )
 
+from eth.vm.computation import (
+    BaseComputation,
+)
 
-def sha256(computation):
+
+def sha256(computation: BaseComputation) -> BaseComputation:
     word_count = ceil32(len(computation.msg.data)) // 32
     gas_fee = constants.GAS_SHA256 + word_count * constants.GAS_SHA256WORD
 
