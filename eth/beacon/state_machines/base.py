@@ -95,7 +95,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     # Logging
     #
     @property
-    def logger(self):
+    def logger(self) -> logging.Logger:
         return logging.getLogger('eth.beacon.state_machines.base.BeaconStateMachine.{0}'.format(
             self.__class__.__name__
         ))
