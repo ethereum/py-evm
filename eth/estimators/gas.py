@@ -1,19 +1,35 @@
+from typing import (
+    cast,
+    Optional,
+)
+
 from cytoolz import (
     curry,
 )
 
+from eth.exceptions import (
+    VMError,
+)
+
+from eth.rlp.transactions import (
+    BaseTransaction,
+)
 
 from eth.utils.spoof import (
     SpoofTransaction,
 )
 
+from eth.vm.state import (
+    BaseState,
+)
 
-def _get_computation_error(state, transaction):
+
+def _get_computation_error(state: BaseState, transaction: SpoofTransaction) -> Optional[VMError]:
 
     snapshot = state.snapshot()
 
     try:
-        computation = state.execute_transaction(transaction)
+        computation = state.execute_transaction(cast(BaseTransaction, transaction))
         if computation.is_error:
             return computation._error
         else:
@@ -24,7 +40,7 @@ def _get_computation_error(state, transaction):
 
 
 @curry
-def binary_gas_search(state, transaction, tolerance=1):
+def binary_gas_search(state: BaseState, transaction: BaseTransaction, tolerance: int=1) -> int:
     """
     Run the transaction with various gas limits, progressively
     approaching the minimum needed to succeed without an OutOfGas exception.
