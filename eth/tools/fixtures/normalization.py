@@ -53,7 +53,9 @@ from eth.tools._utils.mappings import (
     is_cleanly_mergable,
 )
 from eth.tools._utils.normalization import (
-    normalize_transaction_group
+    normalize_transaction_group,
+    normalize_environment,
+    to_int,
 )
 
 from eth.typing import (
