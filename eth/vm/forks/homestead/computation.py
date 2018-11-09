@@ -4,7 +4,7 @@ from eth import constants
 from eth.exceptions import (
     OutOfGas,
 )
-from eth.utils.hexadecimal import (
+from eth_utils import (
     encode_hex,
 )
 from eth.vm.computation import BaseComputation

@@ -2,14 +2,14 @@ from __future__ import unicode_literals
 
 import pytest
 
+from eth_utils import (
+    encode_hex,
+    decode_hex,
+)
+
 from hypothesis import (
     given,
     strategies as st,
-)
-
-from eth.utils.hexadecimal import (
-    encode_hex,
-    decode_hex,
 )
 
 

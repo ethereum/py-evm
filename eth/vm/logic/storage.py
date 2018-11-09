@@ -1,8 +1,7 @@
-from eth import constants
-
-from eth.utils.hexadecimal import (
+from eth_utils import (
     encode_hex,
 )
+from eth import constants
 
 from eth.vm.computation import BaseComputation
 

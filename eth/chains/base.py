@@ -28,6 +28,9 @@ from eth_typing import (
     BlockNumber,
     Hash32,
 )
+from eth_utils import (
+    encode_hex,
+)
 
 from eth.db.backends.base import BaseAtomicDB
 from eth.db.chain import (
@@ -81,9 +84,6 @@ from eth.utils.datatypes import (
 )
 from eth.utils.headers import (
     compute_gas_limit_bounds,
-)
-from eth.utils.hexadecimal import (
-    encode_hex,
 )
 from eth.utils.rlp import (
     validate_imported_block_unchanged,

@@ -1,6 +1,6 @@
 from eth.rlp.transactions import BaseTransaction
 
-from eth.utils.hexadecimal import (
+from eth_utils import (
     encode_hex,
 )
 

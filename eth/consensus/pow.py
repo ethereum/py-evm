@@ -4,25 +4,25 @@ from typing import (  # noqa: F401
     Tuple
 )
 
+from eth_typing import (
+    Hash32
+)
+
+from eth_utils import (
+    big_endian_to_int,
+    ValidationError,
+    encode_hex,
+)
+
+from eth_hash.auto import keccak
+
 from pyethash import (
     EPOCH_LENGTH,
     hashimoto_light,
     mkcache_bytes,
 )
 
-from eth_typing import (
-    Hash32
-)
-from eth_utils import (
-    big_endian_to_int,
-    ValidationError,
-)
 
-from eth_hash.auto import keccak
-
-from eth.utils.hexadecimal import (
-    encode_hex,
-)
 from eth.validation import (
     validate_length,
     validate_lte,

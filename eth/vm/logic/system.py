@@ -1,7 +1,9 @@
 from eth_typing import (
     Address,
 )
-
+from eth_utils import (
+    encode_hex,
+)
 from eth import constants
 from eth.exceptions import (
     Halt,
@@ -13,9 +15,6 @@ from eth.utils.address import (
     force_bytes_to_address,
     generate_contract_address,
     generate_safe_contract_address,
-)
-from eth.utils.hexadecimal import (
-    encode_hex,
 )
 from eth.utils.numeric import (
     ceil32,

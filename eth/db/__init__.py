@@ -1,16 +1,14 @@
 import os
 from typing import (
     Any,
-    cast,
-    Type
+    Type,
+    cast
 )
 
-from eth.utils.module_loading import (
-    import_string,
-)
-from eth.db.backends.base import (
-    BaseAtomicDB,
-)
+from eth_utils import import_string
+
+from eth.db.backends.base import BaseAtomicDB
+
 
 DEFAULT_DB_BACKEND = 'eth.db.atomic.AtomicDB'
 

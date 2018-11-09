@@ -1,7 +1,7 @@
-from eth.rlp.blocks import BaseBlock
-from eth.utils.hexadecimal import (
+from eth_utils import (
     encode_hex,
 )
+from eth.rlp.blocks import BaseBlock
 
 
 def format_block(block: BaseBlock) -> str:

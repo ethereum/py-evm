@@ -2,6 +2,9 @@ from __future__ import absolute_import
 from typing import Type  # noqa: F401
 
 from eth_hash.auto import keccak
+from eth_utils import (
+    encode_hex,
+)
 
 from eth.constants import CREATE_CONTRACT_ADDRESS
 from eth.db.account import (
@@ -17,9 +20,6 @@ from eth.rlp.transactions import (
 
 from eth.utils.address import (
     generate_contract_address,
-)
-from eth.utils.hexadecimal import (
-    encode_hex,
 )
 
 from eth.vm.computation import (

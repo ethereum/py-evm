@@ -1,3 +1,7 @@
+from eth_utils import (
+    encode_hex,
+)
+
 from eth.constants import (
     UINT256
 )
@@ -5,10 +9,6 @@ from eth.constants import (
 from eth.vm.computation import BaseComputation
 from eth.vm.forks.constantinople import (
     constants
-)
-
-from eth.utils.hexadecimal import (
-    encode_hex,
 )
 
 

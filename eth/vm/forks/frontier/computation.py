@@ -1,6 +1,9 @@
 from eth import precompiles
 
 from eth_hash.auto import keccak
+from eth_utils import (
+    encode_hex,
+)
 
 from eth.constants import (
     GAS_CODEDEPOSIT,
@@ -15,9 +18,6 @@ from eth.exceptions import (
 
 from eth.utils.address import (
     force_bytes_to_address,
-)
-from eth.utils.hexadecimal import (
-    encode_hex,
 )
 
 from eth.vm.computation import (
