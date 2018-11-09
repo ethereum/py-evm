@@ -3,6 +3,9 @@ import json
 
 from eth_hash.auto import keccak
 
+from eth_utils import (
+    encode_hex,
+)
 from eth.tools.fixtures.helpers import (
     get_test_name,
 )
@@ -11,10 +14,6 @@ from eth.tools.fixtures.fillers import (
 )
 from eth.tools.fixtures.fillers.formatters import (
     filler_formatter,
-)
-
-from eth.utils.hexadecimal import (
-    encode_hex,
 )
 
 

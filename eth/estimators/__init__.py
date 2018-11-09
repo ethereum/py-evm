@@ -1,18 +1,14 @@
 import os
 from typing import (
     Callable,
-    cast,
+    cast
 )
 
-from eth.rlp.transactions import (
-    BaseTransaction,
-)
-from eth.utils.module_loading import (
-    import_string,
-)
-from eth.vm.state import (
-    BaseState,
-)
+
+from eth_utils import import_string
+
+from eth.rlp.transactions import BaseTransaction
+from eth.vm.state import BaseState
 
 
 def get_gas_estimator() -> Callable[[BaseState, BaseTransaction], int]:

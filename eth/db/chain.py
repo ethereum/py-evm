@@ -17,6 +17,9 @@ from eth_typing import (
     BlockNumber,
     Hash32
 )
+from eth_utils import (
+    encode_hex,
+)
 
 from eth_hash.auto import keccak
 
@@ -39,9 +42,6 @@ from eth.rlp.headers import (
 from eth.rlp.receipts import (
     Receipt
 )
-from eth.utils.hexadecimal import (
-    encode_hex,
-)
 from eth.validation import (
     validate_word,
 )
@@ -59,9 +59,7 @@ with catch_and_ignore_import_warning():
 
 if TYPE_CHECKING:
     from eth.rlp.blocks import (  # noqa: F401
-        BaseBlock
-    )
-    from eth.rlp.transactions import (  # noqa: F401
+        BaseBlock,
         BaseTransaction
     )
 

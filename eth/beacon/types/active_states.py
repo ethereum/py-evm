@@ -9,12 +9,12 @@ from rlp.sedes import (
 from eth_typing import (
     Hash32,
 )
+from eth_utils import (
+    encode_hex,
+)
 
 from eth.rlp.sedes import (
     hash32
-)
-from eth.utils.hexadecimal import (
-    encode_hex,
 )
 from eth.utils.blake import (
     blake,

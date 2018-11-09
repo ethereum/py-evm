@@ -20,6 +20,10 @@ from eth_typing import (
 
 from eth_hash.auto import keccak
 
+from eth_utils import (
+    encode_hex,
+)
+
 from eth.constants import (
     ZERO_ADDRESS,
     ZERO_HASH32,
@@ -29,8 +33,8 @@ from eth.constants import (
     BLANK_ROOT_HASH,
 )
 
-from eth.utils.hexadecimal import (
-    encode_hex,
+from eth.vm.execution_context import (
+    ExecutionContext,
 )
 
 from .sedes import (
@@ -38,10 +42,6 @@ from .sedes import (
     hash32,
     int256,
     trie_root,
-)
-
-from eth.vm.execution_context import (
-    ExecutionContext,
 )
 
 

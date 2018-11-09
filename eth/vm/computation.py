@@ -9,7 +9,6 @@ from typing import (  # noqa: F401
     Callable,
     cast,
     Dict,
-    Iterator,
     List,
     Tuple,
     Union,
@@ -17,6 +16,9 @@ from typing import (  # noqa: F401
 
 from eth_typing import (
     Address,
+)
+from eth_utils import (
+    encode_hex,
 )
 
 from eth.constants import (
@@ -32,9 +34,6 @@ from eth.tools.logging import (
 )
 from eth.utils.datatypes import (
     Configurable,
-)
-from eth.utils.hexadecimal import (
-    encode_hex,
 )
 from eth.utils.numeric import (
     ceil32,

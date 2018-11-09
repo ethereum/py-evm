@@ -6,6 +6,9 @@ from typing import (
 from eth_typing import (
     Hash32,
 )
+from eth_utils import (
+    encode_hex,
+)
 
 import rlp
 from rlp.sedes import (
@@ -15,9 +18,6 @@ from rlp.sedes import (
 from eth.rlp.sedes import (
     int64,
     hash32,
-)
-from eth.utils.hexadecimal import (
-    encode_hex,
 )
 from eth.utils.blake import (
     blake,

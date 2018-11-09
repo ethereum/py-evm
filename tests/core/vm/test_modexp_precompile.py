@@ -1,11 +1,12 @@
 import pytest
 
+from eth_utils import (
+    decode_hex,
+)
+
 from eth.precompiles.modexp import (
     _modexp,
     _compute_modexp_gas_fee,
-)
-from eth.utils.hexadecimal import (
-    decode_hex,
 )
 
 

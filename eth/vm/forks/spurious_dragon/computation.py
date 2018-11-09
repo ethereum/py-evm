@@ -1,11 +1,11 @@
 from eth_hash.auto import keccak
+from eth_utils import (
+    encode_hex,
+)
 
 from eth import constants
 from eth.exceptions import (
     OutOfGas,
-)
-from eth.utils.hexadecimal import (
-    encode_hex,
 )
 from eth.vm.computation import BaseComputation
 from eth.vm.forks.homestead.computation import (
