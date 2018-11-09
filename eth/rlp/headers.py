@@ -108,22 +108,22 @@ class BlockHeader(rlp.Serializable):
                  nonce: bytes=GENESIS_NONCE) -> None:
         ...
 
-    def __init__(self,  # noqa: F811
-                 difficulty,
-                 block_number,
-                 gas_limit,
-                 timestamp=None,
-                 coinbase=ZERO_ADDRESS,
-                 parent_hash=ZERO_HASH32,
-                 uncles_hash=EMPTY_UNCLE_HASH,
-                 state_root=BLANK_ROOT_HASH,
-                 transaction_root=BLANK_ROOT_HASH,
-                 receipt_root=BLANK_ROOT_HASH,
-                 bloom=0,
-                 gas_used=0,
-                 extra_data=b'',
-                 mix_hash=ZERO_HASH32,
-                 nonce=GENESIS_NONCE):
+    def __init__(self,              # type: ignore  # noqa: F811
+                 difficulty: int,
+                 block_number: int,
+                 gas_limit: int,
+                 timestamp: int=None,
+                 coinbase: Address=ZERO_ADDRESS,
+                 parent_hash: Hash32=ZERO_HASH32,
+                 uncles_hash: Hash32=EMPTY_UNCLE_HASH,
+                 state_root: Hash32=BLANK_ROOT_HASH,
+                 transaction_root: Hash32=BLANK_ROOT_HASH,
+                 receipt_root: Hash32=BLANK_ROOT_HASH,
+                 bloom: int=0,
+                 gas_used: int=0,
+                 extra_data: bytes=b'',
+                 mix_hash: Hash32=ZERO_HASH32,
+                 nonce: bytes=GENESIS_NONCE) -> None:
         if timestamp is None:
             timestamp = int(time.time())
         super().__init__(
@@ -163,7 +163,7 @@ class BlockHeader(rlp.Serializable):
         return keccak(rlp.encode(self[:-2], MiningHeader))
 
     @property
-    def hex_hash(self):
+    def hex_hash(self) -> str:
         return encode_hex(self.hash)
 
     @classmethod

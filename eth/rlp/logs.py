@@ -4,7 +4,10 @@ from rlp.sedes import (
     binary,
 )
 
-from typing import List
+from typing import (
+    List,
+    Tuple,
+)
 
 from .sedes import (
     address,
@@ -23,7 +26,7 @@ class Log(rlp.Serializable):
         super().__init__(address, topics, data)
 
     @property
-    def bloomables(self):
+    def bloomables(self) -> Tuple[bytes, ...]:
         return (
             self.address,
         ) + tuple(
