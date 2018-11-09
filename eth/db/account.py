@@ -28,6 +28,9 @@ from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
+from eth.db.backends.base import (
+    BaseDB,
+)
 from eth.db.batch import (
     BatchDB,
 )
@@ -71,7 +74,7 @@ class BaseAccountDB(ABC):
 
     @property
     @abstractmethod
-    def state_root(self):
+    def state_root(self) -> Hash32:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
@@ -82,11 +85,11 @@ class BaseAccountDB(ABC):
     # Storage
     #
     @abstractmethod
-    def get_storage(self, address, slot):
+    def get_storage(self, address: Address, slot: int) -> int:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def set_storage(self, address, slot, value):
+    def set_storage(self, address: Address, slot: int, value: int) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
@@ -104,40 +107,40 @@ class BaseAccountDB(ABC):
     # Balance
     #
     @abstractmethod
-    def get_balance(self, address):
+    def get_balance(self, address: Address) -> int:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def set_balance(self, address, balance):
+    def set_balance(self, address: Address, balance: int) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def delta_balance(self, address, delta):
+    def delta_balance(self, address: Address, delta: int) -> None:
         self.set_balance(address, self.get_balance(address) + delta)
 
     #
     # Code
     #
     @abstractmethod
-    def set_code(self, address, code):
+    def set_code(self, address: Address, code: bytes) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def get_code(self, address):
+    def get_code(self, address: Address) -> bytes:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def get_code_hash(self, address):
+    def get_code_hash(self, address: Address) -> Hash32:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def delete_code(self, address):
+    def delete_code(self, address: Address) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
     #
     # Account Methods
     #
     @abstractmethod
-    def account_is_empty(self, address):
+    def account_is_empty(self, address: Address) -> bool:
         raise NotImplementedError("Must be implemented by subclass")
 
     #
@@ -177,7 +180,7 @@ class AccountDB(BaseAccountDB):
 
     logger = cast(TraceLogger, logging.getLogger('eth.db.account.AccountDB'))
 
-    def __init__(self, db, state_root=BLANK_ROOT_HASH):
+    def __init__(self, db: BaseDB, state_root: Hash32=BLANK_ROOT_HASH) -> None:
         r"""
         Internal implementation details (subject to rapid change):
         Database entries go through several pipes, like so...
@@ -225,11 +228,11 @@ class AccountDB(BaseAccountDB):
         self._journaltrie = JournalDB(self._trie_cache)
 
     @property
-    def state_root(self):
+    def state_root(self) -> Hash32:
         return self._trie.root_hash
 
     @state_root.setter
-    def state_root(self, value):
+    def state_root(self, value: Hash32) -> None:
         self._trie_cache.reset_cache()
         self._trie.root_hash = value
 
@@ -239,7 +242,7 @@ class AccountDB(BaseAccountDB):
     #
     # Storage
     #
-    def get_storage(self, address, slot, from_journal=True):
+    def get_storage(self, address: Address, slot: int, from_journal: bool=True) -> int:
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(slot, title="Storage Slot")
 
@@ -254,7 +257,7 @@ class AccountDB(BaseAccountDB):
         else:
             return 0
 
-    def set_storage(self, address, slot, value):
+    def set_storage(self, address: Address, slot: int, value: int) -> None:
         validate_uint256(value, title="Storage Value")
         validate_uint256(slot, title="Storage Slot")
         validate_canonical_address(address, title="Storage Address")
@@ -272,7 +275,7 @@ class AccountDB(BaseAccountDB):
 
         self._set_account(address, account.copy(storage_root=storage.root_hash))
 
-    def delete_storage(self, address):
+    def delete_storage(self, address: Address) -> None:
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
@@ -281,13 +284,13 @@ class AccountDB(BaseAccountDB):
     #
     # Balance
     #
-    def get_balance(self, address):
+    def get_balance(self, address: Address) -> int:
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
         return account.balance
 
-    def set_balance(self, address, balance):
+    def set_balance(self, address: Address, balance: int) -> None:
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(balance, title="Account Balance")
 
@@ -297,27 +300,27 @@ class AccountDB(BaseAccountDB):
     #
     # Nonce
     #
-    def get_nonce(self, address):
+    def get_nonce(self, address: Address) -> int:
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
         return account.nonce
 
-    def set_nonce(self, address, nonce):
+    def set_nonce(self, address: Address, nonce: int) -> None:
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(nonce, title="Nonce")
 
         account = self._get_account(address)
         self._set_account(address, account.copy(nonce=nonce))
 
-    def increment_nonce(self, address):
+    def increment_nonce(self, address: Address) -> None:
         current_nonce = self.get_nonce(address)
         self.set_nonce(address, current_nonce + 1)
 
     #
     # Code
     #
-    def get_code(self, address):
+    def get_code(self, address: Address) -> bytes:
         validate_canonical_address(address, title="Storage Address")
 
         try:
@@ -325,7 +328,7 @@ class AccountDB(BaseAccountDB):
         except KeyError:
             return b""
 
-    def set_code(self, address, code):
+    def set_code(self, address: Address, code: bytes) -> None:
         validate_canonical_address(address, title="Storage Address")
         validate_is_bytes(code, title="Code")
 
@@ -335,13 +338,13 @@ class AccountDB(BaseAccountDB):
         self._journaldb[code_hash] = code
         self._set_account(address, account.copy(code_hash=code_hash))
 
-    def get_code_hash(self, address):
+    def get_code_hash(self, address: Address) -> Hash32:
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
         return account.code_hash
 
-    def delete_code(self, address):
+    def delete_code(self, address: Address) -> None:
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
@@ -350,32 +353,32 @@ class AccountDB(BaseAccountDB):
     #
     # Account Methods
     #
-    def account_has_code_or_nonce(self, address):
+    def account_has_code_or_nonce(self, address: Address) -> bool:
         return self.get_nonce(address) != 0 or self.get_code_hash(address) != EMPTY_SHA3
 
-    def delete_account(self, address):
+    def delete_account(self, address: Address) -> None:
         validate_canonical_address(address, title="Storage Address")
 
         del self._journaltrie[address]
 
-    def account_exists(self, address):
+    def account_exists(self, address: Address) -> bool:
         validate_canonical_address(address, title="Storage Address")
 
         return self._journaltrie.get(address, b'') != b''
 
-    def touch_account(self, address):
+    def touch_account(self, address: Address) -> None:
         validate_canonical_address(address, title="Storage Address")
 
         account = self._get_account(address)
         self._set_account(address, account)
 
-    def account_is_empty(self, address):
+    def account_is_empty(self, address: Address) -> bool:
         return not self.account_has_code_or_nonce(address) and self.get_balance(address) == 0
 
     #
     # Internal
     #
-    def _get_account(self, address, from_journal=True):
+    def _get_account(self, address: Address, from_journal: bool=True) -> Account:
         rlp_account = (self._journaltrie if from_journal else self._trie_cache).get(address, b'')
         if rlp_account:
             account = rlp.decode(rlp_account, sedes=Account)
@@ -383,7 +386,7 @@ class AccountDB(BaseAccountDB):
             account = Account()
         return account
 
-    def _set_account(self, address, account):
+    def _set_account(self, address: Address, account: Account) -> None:
         rlp_account = rlp.encode(account, sedes=Account)
         self._journaltrie[address] = rlp_account
 
@@ -424,7 +427,7 @@ class AccountDB(BaseAccountDB):
                     continue
                 else:
                     accounts_displayed.add(address)
-                    account = self._get_account(address)
+                    account = self._get_account(Address(address))
                     self.logger.trace(
                         "Account %s: balance %d, nonce %d, storage root %s, code hash %s",
                         encode_hex(address),

@@ -6,8 +6,18 @@ from collections.abc import (
     MutableMapping,
 )
 
+from typing import (
+    Any,
+    TYPE_CHECKING
+)
 
-class BaseDB(MutableMapping, ABC):
+if TYPE_CHECKING:
+    MM = MutableMapping[bytes, bytes]
+else:
+    MM = MutableMapping
+
+
+class BaseDB(MM, ABC):
     """
     This is an abstract key/value lookup with all :class:`bytes` values,
     with some convenience methods for databases. As much as possible,
@@ -35,9 +45,10 @@ class BaseDB(MutableMapping, ABC):
     def exists(self, key: bytes) -> bool:
         return self.__contains__(key)
 
-    def __contains__(self, key):
+    def __contains__(self, key: bytes) -> bool:     # type: ignore # Breaks LSP
         if hasattr(self, '_exists'):
-            return self._exists(key)
+            # Classes which inherit this class would have `_exists` attr
+            return self._exists(key)    # type: ignore
         else:
             return super().__contains__(key)
 
@@ -47,10 +58,10 @@ class BaseDB(MutableMapping, ABC):
         except KeyError:
             return None
 
-    def __iter__(self):
-        raise NotImplementedError("By default, DB classes cannot by iterated.")
+    def __iter__(self) -> None:
+        raise NotImplementedError("By default, DB classes cannot be iterated.")
 
-    def __len__(self):
+    def __len__(self) -> int:
         raise NotImplementedError("By default, DB classes cannot return the total number of keys.")
 
 
@@ -80,5 +91,5 @@ class BaseAtomicDB(BaseDB):
             # or neither will
     """
     @abstractmethod
-    def atomic_batch(self):
+    def atomic_batch(self) -> Any:
         raise NotImplementedError

@@ -37,7 +37,7 @@ class BatchDB(BaseDB):
             self.clear()
             self.logger.exception("Unexpected error occurred during batch update")
 
-    def clear(self):
+    def clear(self) -> None:
         self._track_diff = DBDiffTracker()
 
     def commit(self, apply_deletes: bool = True) -> None:
