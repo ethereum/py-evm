@@ -128,6 +128,14 @@ class BaseVM(Configurable, ABC):
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
+    def apply_all_transactions(
+            self,
+            transactions: Tuple[BaseTransaction, ...],
+            base_header: BlockHeader
+    ) -> Tuple[BlockHeader, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:
+        raise NotImplementedError("VM classes must implement this method")
+
+    @abstractmethod
     def make_receipt(self,
                      base_header: BlockHeader,
                      transaction: BaseTransaction,
@@ -452,9 +460,11 @@ class VM(BaseVM):
             transaction_context,
         )
 
-    def apply_all_transactions(self,
-                               transactions: Tuple[BaseTransaction, ...],
-                               base_header: BlockHeader) -> Tuple[BlockHeader, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:   # noqa: E501
+    def apply_all_transactions(
+            self,
+            transactions: Tuple[BaseTransaction, ...],
+            base_header: BlockHeader
+    ) -> Tuple[BlockHeader, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:
         """
         Determine the results of applying all transactions to the base header.
         This does *not* update the current block or header of the VM.

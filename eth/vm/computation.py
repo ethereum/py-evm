@@ -115,7 +115,7 @@ class BaseComputation(Configurable, ABC):
 
     # VM configuration
     opcodes = None  # type: Dict[int, Any]
-    _precompiles = None  # type: Dict[Address, Callable[['BaseComputation'], Any]]
+    _precompiles = None  # type: Dict[Address, Callable[['BaseComputation'], 'BaseComputation']]
 
     logger = cast(TraceLogger, logging.getLogger('eth.vm.computation.Computation'))
 

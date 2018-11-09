@@ -42,7 +42,7 @@ class FrontierComputation(BaseComputation):
     """
     # Override
     opcodes = FRONTIER_OPCODES
-    _precompiles = FRONTIER_PRECOMPILES
+    _precompiles = FRONTIER_PRECOMPILES     # type: ignore # https://github.com/python/mypy/issues/708 # noqa: E501
 
     def apply_message(self) -> BaseComputation:
         snapshot = self.state.snapshot()

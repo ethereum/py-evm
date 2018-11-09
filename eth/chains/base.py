@@ -118,7 +118,6 @@ with catch_and_ignore_import_warning():
 if TYPE_CHECKING:
     from eth.vm.base import (     # noqa: F401
         BaseVM,
-        VM,
     )
 
 
@@ -176,7 +175,7 @@ class BaseChain(Configurable, ABC):
         return cls.get_vm_class_for_block_number(header.block_number)
 
     @abstractmethod
-    def get_vm(self, header: BlockHeader=None) -> 'VM':
+    def get_vm(self, header: BlockHeader=None) -> 'BaseVM':
         raise NotImplementedError("Chain classes must implement this method")
 
     @classmethod
@@ -243,10 +242,11 @@ class BaseChain(Configurable, ABC):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def build_block_with_transactions(self,
-                                      transactions: Tuple[BaseTransaction, ...],
-                                      parent_header: BlockHeader=None
-                                      ) -> Tuple[BaseBlock, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:      # noqa: E501
+    def build_block_with_transactions(
+            self,
+            transactions: Tuple[BaseTransaction, ...],
+            parent_header: BlockHeader=None
+    ) -> Tuple[BaseBlock, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -335,7 +335,7 @@ class Chain(BaseChain):
     current block number.
     """
     logger = logging.getLogger("eth.chain.chain.Chain")
-    gas_estimator = None     # type: Callable[[BaseState, BaseTransaction], int]
+    gas_estimator = None  # type: Callable[[BaseState, BaseTransaction], int]
 
     chaindb_class = ChainDB  # type: Type[BaseChainDB]
 
@@ -418,7 +418,7 @@ class Chain(BaseChain):
     #
     # VM API
     #
-    def get_vm(self, at_header: BlockHeader=None) -> 'VM':
+    def get_vm(self, at_header: BlockHeader=None) -> 'BaseVM':
         """
         Returns the VM instance for the given block number.
         """
@@ -541,10 +541,11 @@ class Chain(BaseChain):
         """
         return self.chaindb.get_canonical_block_hash(block_number)
 
-    def build_block_with_transactions(self,
-                                      transactions: Tuple[BaseTransaction, ...],
-                                      parent_header: BlockHeader=None
-                                      ) -> Tuple[BaseBlock, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:      # noqa: E501
+    def build_block_with_transactions(
+            self,
+            transactions: Tuple[BaseTransaction, ...],
+            parent_header: BlockHeader=None
+    ) -> Tuple[BaseBlock, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:
         """
         Generate a block with the provided transactions. This does *not* import
         that block into your chain. If you want this new block in your chain,
@@ -647,7 +648,7 @@ class Chain(BaseChain):
         if at_header is None:
             at_header = self.get_canonical_head()
         with self.get_vm(at_header).state_in_temp_block() as state:
-            return self.gas_estimator(state, transaction)               # type: ignore
+            return self.gas_estimator(state, transaction)   # type: ignore
 
     def import_block(self,
                      block: BaseBlock,
@@ -912,7 +913,7 @@ class MiningChain(Chain):
         self.header = self.create_header_from_parent(mined_block.header)
         return mined_block
 
-    def get_vm(self, at_header: BlockHeader=None) -> 'VM':
+    def get_vm(self, at_header: BlockHeader=None) -> 'BaseVM':
         if at_header is None:
             at_header = self.header
 
