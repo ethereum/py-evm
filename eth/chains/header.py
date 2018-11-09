@@ -1,12 +1,21 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Tuple, Type  # noqa: F401
+from typing import (      # noqa: F401
+    Any,
+    cast,
+    Dict,
+    Tuple,
+    Type,
+)
 
 from eth_typing import (
     BlockNumber,
     Hash32,
 )
 
-from eth.db.backends.base import BaseDB
+from eth.db.backends.base import (
+    BaseAtomicDB,
+    BaseDB,
+)
 from eth.db.header import (  # noqa: F401
     BaseHeaderDB,
     HeaderDB,
@@ -47,7 +56,7 @@ class BaseHeaderChain(Configurable, ABC):
     #
     @classmethod
     @abstractmethod
-    def get_headerdb_class(cls):
+    def get_headerdb_class(cls) -> Type[BaseHeaderDB]:
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -73,7 +82,9 @@ class BaseHeaderChain(Configurable, ABC):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def import_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
+    def import_header(self,
+                      header: BlockHeader
+                      ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
         raise NotImplementedError("Chain classes must implement this method")
 
 
@@ -82,7 +93,7 @@ class HeaderChain(BaseHeaderChain):
 
     def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
         self.base_db = base_db
-        self.headerdb = self.get_headerdb_class()(base_db)
+        self.headerdb = self.get_headerdb_class()(cast(BaseAtomicDB, base_db))
 
         if header is None:
             self.header = self.get_canonical_head()
@@ -99,7 +110,7 @@ class HeaderChain(BaseHeaderChain):
         """
         Initializes the chain from the genesis header.
         """
-        headerdb = cls.get_headerdb_class()(base_db)
+        headerdb = cls.get_headerdb_class()(cast(BaseAtomicDB, base_db))
         headerdb.persist_header(genesis_header)
         return cls(base_db, genesis_header)
 
@@ -107,7 +118,7 @@ class HeaderChain(BaseHeaderChain):
     # Helpers
     #
     @classmethod
-    def get_headerdb_class(cls):
+    def get_headerdb_class(cls) -> Type[BaseHeaderDB]:
         """
         Returns the class which should be used for the `headerdb`
         """
@@ -151,7 +162,9 @@ class HeaderChain(BaseHeaderChain):
         """
         return self.headerdb.header_exists(block_hash)
 
-    def import_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
+    def import_header(self,
+                      header: BlockHeader
+                      ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
         """
         Direct passthrough to `headerdb`
 

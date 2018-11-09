@@ -12,6 +12,7 @@ from typing import (  # noqa: F401
     cast,
     Dict,
     Generator,
+    Iterable,
     Iterator,
     List,
     Optional,
@@ -32,6 +33,12 @@ from eth_utils import (
     encode_hex,
 )
 
+from eth.constants import (
+    BLANK_ROOT_HASH,
+    EMPTY_UNCLE_HASH,
+    MAX_UNCLE_DEPTH,
+)
+
 from eth.db.backends.base import BaseAtomicDB
 from eth.db.chain import (
     BaseChainDB,
@@ -40,11 +47,7 @@ from eth.db.chain import (
 from eth.db.header import (
     HeaderDB,
 )
-from eth.constants import (
-    BLANK_ROOT_HASH,
-    EMPTY_UNCLE_HASH,
-    MAX_UNCLE_DEPTH,
-)
+
 from eth.estimators import (
     get_gas_estimator,
 )
@@ -53,15 +56,7 @@ from eth.exceptions import (
     TransactionNotFound,
     VMNotFound,
 )
-from eth.utils.spoof import (
-    SpoofTransaction,
-)
-from eth.validation import (
-    validate_block_number,
-    validate_uint256,
-    validate_word,
-    validate_vm_configuration,
-)
+
 from eth.rlp.blocks import (
     BaseBlock,
 )
@@ -76,6 +71,14 @@ from eth.rlp.transactions import (
     BaseTransaction,
     BaseUnsignedTransaction,
 )
+
+from eth.typing import (
+    AccountState,
+)
+
+from eth.utils.spoof import (
+    SpoofTransaction,
+)
 from eth.utils.db import (
     apply_state_dict,
 )
@@ -88,9 +91,15 @@ from eth.utils.headers import (
 from eth.utils.rlp import (
     validate_imported_block_unchanged,
 )
-from eth.typing import (
-    AccountState,
+
+from eth.validation import (
+    validate_block_number,
+    validate_uint256,
+    validate_word,
+    validate_vm_configuration,
 )
+from eth.vm.computation import BaseComputation
+from eth.vm.state import BaseState      # noqa: F401
 
 from eth._warnings import catch_and_ignore_import_warning
 with catch_and_ignore_import_warning():
@@ -107,7 +116,10 @@ with catch_and_ignore_import_warning():
     )
 
 if TYPE_CHECKING:
-    from eth.vm.base import BaseVM  # noqa: F401
+    from eth.vm.base import (     # noqa: F401
+        BaseVM,
+        VM,
+    )
 
 
 class BaseChain(Configurable, ABC):
@@ -164,7 +176,7 @@ class BaseChain(Configurable, ABC):
         return cls.get_vm_class_for_block_number(header.block_number)
 
     @abstractmethod
-    def get_vm(self, header: BlockHeader=None) -> 'BaseVM':
+    def get_vm(self, header: BlockHeader=None) -> 'VM':
         raise NotImplementedError("Chain classes must implement this method")
 
     @classmethod
@@ -196,11 +208,11 @@ class BaseChain(Configurable, ABC):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def get_canonical_head(self):
+    def get_canonical_head(self) -> BlockHeader:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def get_score(self, block_hash):
+    def get_score(self, block_hash: Hash32) -> int:
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -227,11 +239,14 @@ class BaseChain(Configurable, ABC):
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def get_canonical_block_hash(self, block_number):
+    def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
-    def build_block_with_transactions(self, transactions, parent_header):
+    def build_block_with_transactions(self,
+                                      transactions: Tuple[BaseTransaction, ...],
+                                      parent_header: BlockHeader=None
+                                      ) -> Tuple[BaseBlock, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:      # noqa: E501
         raise NotImplementedError("Chain classes must implement this method")
 
     #
@@ -320,7 +335,7 @@ class Chain(BaseChain):
     current block number.
     """
     logger = logging.getLogger("eth.chain.chain.Chain")
-    gas_estimator = None  # type: Callable
+    gas_estimator = None     # type: Callable[[BaseState, BaseTransaction], int]
 
     chaindb_class = ChainDB  # type: Type[BaseChainDB]
 
@@ -334,8 +349,8 @@ class Chain(BaseChain):
 
         self.chaindb = self.get_chaindb_class()(base_db)
         self.headerdb = HeaderDB(base_db)
-        if self.gas_estimator is None:
-            self.gas_estimator = get_gas_estimator()  # type: ignore
+        if self.gas_estimator is None:                  # type: ignore
+            self.gas_estimator = get_gas_estimator()    # type: ignore
 
     #
     # Helpers
@@ -403,7 +418,7 @@ class Chain(BaseChain):
     #
     # VM API
     #
-    def get_vm(self, at_header: BlockHeader=None) -> 'BaseVM':
+    def get_vm(self, at_header: BlockHeader=None) -> 'VM':
         """
         Returns the VM instance for the given block number.
         """
@@ -414,7 +429,9 @@ class Chain(BaseChain):
     #
     # Header API
     #
-    def create_header_from_parent(self, parent_header, **header_params):
+    def create_header_from_parent(self,
+                                  parent_header: BlockHeader,
+                                  **header_params: HeaderParams) -> BlockHeader:
         """
         Passthrough helper to the VM class of the block descending from the
         given header.
@@ -432,7 +449,7 @@ class Chain(BaseChain):
         validate_word(block_hash, title="Block Hash")
         return self.chaindb.get_block_header_by_hash(block_hash)
 
-    def get_canonical_head(self):
+    def get_canonical_head(self) -> BlockHeader:
         """
         Returns the block header at the canonical chain head.
 
@@ -440,7 +457,7 @@ class Chain(BaseChain):
         """
         return self.chaindb.get_canonical_head()
 
-    def get_score(self, block_hash):
+    def get_score(self, block_hash: Hash32) -> int:
         """
         Returns the difficulty score of the block with the given hash.
 
@@ -498,7 +515,7 @@ class Chain(BaseChain):
         block_header = self.get_block_header_by_hash(block_hash)
         return self.get_block_by_header(block_header)
 
-    def get_block_by_header(self, block_header):
+    def get_block_by_header(self, block_header: BlockHeader) -> BaseBlock:
         """
         Returns the requested block as specified by the block header.
         """
@@ -524,7 +541,10 @@ class Chain(BaseChain):
         """
         return self.chaindb.get_canonical_block_hash(block_number)
 
-    def build_block_with_transactions(self, transactions, parent_header=None):
+    def build_block_with_transactions(self,
+                                      transactions: Tuple[BaseTransaction, ...],
+                                      parent_header: BlockHeader=None
+                                      ) -> Tuple[BaseBlock, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:      # noqa: E501
         """
         Generate a block with the provided transactions. This does *not* import
         that block into your chain. If you want this new block in your chain,
@@ -554,12 +574,12 @@ class Chain(BaseChain):
         found in the main chain.
         """
         (block_num, index) = self.chaindb.get_transaction_index(transaction_hash)
-        VM = self.get_vm_class_for_block_number(block_num)
+        VM_class = self.get_vm_class_for_block_number(block_num)
 
         transaction = self.chaindb.get_transaction_by_index(
             block_num,
             index,
-            VM.get_transaction_class(),
+            VM_class.get_transaction_class(),
         )
 
         if transaction.hash == transaction_hash:
@@ -627,7 +647,7 @@ class Chain(BaseChain):
         if at_header is None:
             at_header = self.get_canonical_head()
         with self.get_vm(at_header).state_in_temp_block() as state:
-            return self.gas_estimator(state, transaction)
+            return self.gas_estimator(state, transaction)               # type: ignore
 
     def import_block(self,
                      block: BaseBlock,
@@ -689,8 +709,8 @@ class Chain(BaseChain):
     # Validation API
     #
     def validate_receipt(self, receipt: Receipt, at_header: BlockHeader) -> None:
-        VM = self.get_vm_class(at_header)
-        VM.validate_receipt(receipt)
+        VM_class = self.get_vm_class(at_header)
+        VM_class.validate_receipt(receipt)
 
     def validate_block(self, block: BaseBlock) -> None:
         """
@@ -704,9 +724,9 @@ class Chain(BaseChain):
         """
         if block.is_genesis:
             raise ValidationError("Cannot validate genesis block this way")
-        VM = self.get_vm_class_for_block_number(BlockNumber(block.number))
+        VM_class = self.get_vm_class_for_block_number(BlockNumber(block.number))
         parent_block = self.get_block_by_hash(block.header.parent_hash)
-        VM.validate_header(block.header, parent_block.header, check_seal=True)
+        VM_class.validate_header(block.header, parent_block.header, check_seal=True)
         self.validate_uncles(block)
         self.validate_gaslimit(block.header)
 
@@ -714,8 +734,8 @@ class Chain(BaseChain):
         """
         Validate the seal on the given header.
         """
-        VM = self.get_vm_class_for_block_number(BlockNumber(header.block_number))
-        VM.validate_seal(header)
+        VM_class = self.get_vm_class_for_block_number(BlockNumber(header.block_number))
+        VM_class.validate_seal(header)
 
     def validate_gaslimit(self, header: BlockHeader) -> None:
         """
@@ -830,7 +850,7 @@ class Chain(BaseChain):
 
 
 @to_set
-def _extract_uncle_hashes(blocks):
+def _extract_uncle_hashes(blocks: Iterable[BaseBlock]) -> Iterable[Hash32]:
     for block in blocks:
         for uncle in block.uncles:
             yield uncle.hash
@@ -843,7 +863,9 @@ class MiningChain(Chain):
         super().__init__(base_db)
         self.header = self.ensure_header(header)
 
-    def apply_transaction(self, transaction):
+    def apply_transaction(self,
+                          transaction: BaseTransaction
+                          ) -> Tuple[BaseBlock, Receipt, BaseComputation]:
         """
         Applies the transaction to the current tip block.
 
@@ -890,7 +912,7 @@ class MiningChain(Chain):
         self.header = self.create_header_from_parent(mined_block.header)
         return mined_block
 
-    def get_vm(self, at_header: BlockHeader=None) -> 'BaseVM':
+    def get_vm(self, at_header: BlockHeader=None) -> 'VM':
         if at_header is None:
             at_header = self.header
 

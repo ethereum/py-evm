@@ -21,6 +21,9 @@ from eth_utils import (
 
 from eth.chains.base import Chain
 from eth.chains.mainnet import MainnetChain
+from eth.rlp.blocks import (
+    BaseBlock,
+)
 from eth.rlp.headers import (
     BlockHeader
 )
@@ -144,7 +147,7 @@ class MainnetTesterChain(BaseMainnetTesterChain):
     configuration of fork rules.
     """
     @classmethod
-    def validate_seal(cls, block):
+    def validate_seal(cls, block: BaseBlock) -> None:
         """
         We don't validate the proof of work seal on the tester chain.
         """
