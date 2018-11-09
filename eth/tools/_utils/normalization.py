@@ -1,4 +1,3 @@
-import binascii
 import functools
 
 from typing import (
@@ -8,10 +7,7 @@ from typing import (
     cast,
     Dict,
     Iterable,
-    List,
     Mapping,
-    Sequence,
-    Tuple,
     Union,
 )
 
@@ -19,9 +15,7 @@ from cytoolz import (
     assoc_in,
     compose,
     concat,
-    curry,
     identity,
-    merge,
 )
 import cytoolz.curried
 
@@ -41,7 +35,6 @@ from eth_utils import (
     is_text,
     to_bytes,
     to_canonical_address,
-    to_dict,
     ValidationError,
 )
 import eth_utils.curried
@@ -60,7 +53,6 @@ from eth.typing import (
     GeneralState,
     IntConvertible,
     Normalizer,
-    TransactionDict,
     TransactionNormalizer,
 )
 

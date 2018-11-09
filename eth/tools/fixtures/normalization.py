@@ -1,46 +1,28 @@
 import binascii
-import functools
 
 from typing import (
     Any,
-    AnyStr,
-    Callable,
     Dict,
     Iterable,
     List,
-    Mapping,
     Sequence,
     Tuple,
 )
 
 from cytoolz import (
-    assoc_in,
-    compose,
-    concat,
     curry,
-    identity,
     merge,
-)
-import cytoolz.curried
-
-from eth_typing import (
-    Address,
 )
 
 from eth_utils import (
-    apply_formatters_to_dict,
     big_endian_to_int,
     decode_hex,
-    is_0x_prefixed,
     is_bytes,
     is_hex,
-    is_integer,
-    is_string,
     is_text,
     to_bytes,
     to_canonical_address,
     to_dict,
-    ValidationError,
 )
 import eth_utils.curried
 
@@ -48,20 +30,14 @@ from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
 
-from eth.tools._utils.mappings import (
-    deep_merge,
-    is_cleanly_mergable,
-)
 from eth.tools._utils.normalization import (
-    normalize_transaction_group,
     normalize_environment,
+    normalize_transaction_group,
     to_int,
 )
 
 from eth.typing import (
     AccountState,
-    GeneralState,
-    Normalizer,
     TransactionDict,
 )
 
