@@ -121,7 +121,7 @@ class Journal(BaseDB):
     #
     # Database API
     #
-    def __getitem__(self, key: bytes) -> Union[bytes, DeletedEntry]:
+    def __getitem__(self, key: bytes) -> Union[bytes, DeletedEntry]:    # type: ignore # Breaks LSP
         """
         For key lookups we need to iterate through the changesets in reverse
         order, returning from the first one in which the key is present.

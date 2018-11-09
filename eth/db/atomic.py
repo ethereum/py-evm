@@ -1,6 +1,9 @@
 from contextlib import contextmanager
 import logging
-from typing import Generator
+from typing import (
+    Generator,
+    Iterator,
+)
 
 from eth_utils import (
     ValidationError,
@@ -110,14 +113,14 @@ class AtomicDBWriteBatch(BaseDB):
 
     @classmethod
     @contextmanager
-    def _commit_unless_raises(cls, write_target_db):
+    def _commit_unless_raises(cls, write_target_db: BaseDB) -> Iterator['AtomicDBWriteBatch']:
         """
         Commit all writes inside the context, unless an exception was raised.
 
         Although this is technically an external API, it (and this whole class) is only intended
         to be used by AtomicDB.
         """
-        readable_write_batch = cls(write_target_db)
+        readable_write_batch = cls(write_target_db)     # type: AtomicDBWriteBatch
         try:
             yield readable_write_batch
         except Exception:

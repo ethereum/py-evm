@@ -146,7 +146,7 @@ class HeaderDB(BaseHeaderDB):
             canonical_head_hash = db[SchemaV1.make_canonical_head_hash_lookup_key()]
         except KeyError:
             raise CanonicalHeadNotFound("No canonical head set for this chain")
-        return cls._get_block_header_by_hash(db, canonical_head_hash)
+        return cls._get_block_header_by_hash(db, Hash32(canonical_head_hash))
 
     #
     # Header API

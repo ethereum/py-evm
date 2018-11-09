@@ -2,18 +2,31 @@ from collections.abc import (
     Mapping,
     MutableMapping,
 )
-from typing import (  # noqa: F401
+from typing import (
+    cast,
     Dict,
     Iterable,
     Union,
+    TYPE_CHECKING,
 )
+
+from eth.db.backends.base import BaseDB
+
+if TYPE_CHECKING:
+    ABC_Mutable_Mapping = MutableMapping[bytes, Union[bytes, 'MissingReason']]
+    ABC_Mapping = Mapping[bytes, Union[bytes, 'MissingReason']]
+else:
+    ABC_Mutable_Mapping = MutableMapping
+    ABC_Mapping = Mapping
 
 
 class MissingReason:
-    def __init__(self, reason):
+    def __init__(self, reason: str) -> None:
         self.reason = reason
 
-    def __str__(self, reason):
+    def __str__(self, reason: str) -> str:      # type: ignore
+        # Ignoring mypy type here because the function signature
+        # has been overwritten from the traditional `def __str__(self): ...`
         return "Key is missing because it was {}".format(self.reason)
 
 
@@ -34,11 +47,11 @@ class DiffMissingError(KeyError):
         super().__init__(missing_key, reason)
 
     @property
-    def is_deleted(self):
+    def is_deleted(self) -> bool:
         return self.reason == DELETED
 
 
-class DBDiffTracker(MutableMapping):
+class DBDiffTracker(ABC_Mutable_Mapping):
     """
     Records changes to a :class:`~eth.db.BaseDB`
 
@@ -53,41 +66,41 @@ class DBDiffTracker(MutableMapping):
     When it's time to take the tracked changes and write them to your database,
     get the :class:`DBDiff` with :meth:`DBDiffTracker.diff` and use the attached methods.
     """
-    def __init__(self):
-        self._changes = {}  # type: Dict[bytes, Union[bytes, DiffMissingError]]
+    def __init__(self) -> None:
+        self._changes = {}  # type: Dict[bytes, Union[bytes, MissingReason]]
 
-    def __contains__(self, key):
+    def __contains__(self, key: bytes) -> bool:     # type: ignore # Breaks LSP
         result = self._changes.get(key, NEVER_INSERTED)
         return result not in (DELETED, NEVER_INSERTED)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: bytes) -> bytes:
         result = self._changes.get(key, NEVER_INSERTED)
         if result in (DELETED, NEVER_INSERTED):
-            raise DiffMissingError(key, result)
+            raise DiffMissingError(key, cast(MissingReason, result))
         else:
-            return result
+            return cast(bytes, result)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: bytes, value: Union[bytes, MissingReason]) -> None:
         self._changes[key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: bytes) -> None:
         # The diff does not have access to any underlying db,
         # so it cannot check if the key exists before deleting.
         self._changes[key] = DELETED
 
-    def __iter__(self):
+    def __iter__(self) -> None:
         raise NotImplementedError(
             "Cannot iterate through changes, use diff().apply_to(db) to update a database"
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._changes)
 
-    def diff(self):
+    def diff(self) -> 'DBDiff':
         return DBDiff(dict(self._changes))
 
 
-class DBDiff(Mapping):
+class DBDiff(ABC_Mapping):
     """
     DBDiff is a read-only view of the updates/inserts and deletes
     generated when tracking changes with :class:`DBDiffTracker`.
@@ -95,30 +108,32 @@ class DBDiff(Mapping):
     The primary usage is to apply these changes to your underlying
     database with :meth:`apply_to`.
     """
-    _changes = None  # type: Dict[bytes, Union[bytes, DiffMissingError]]
+    _changes = None  # type: Dict[bytes, Union[bytes, MissingReason]]
 
-    def __init__(self, changes: Dict[bytes, Union[bytes, DiffMissingError]] = None) -> None:
+    def __init__(self, changes: Dict[bytes, Union[bytes, MissingReason]] = None) -> None:
         if changes is None:
             self._changes = {}
         else:
             self._changes = changes
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: bytes) -> bytes:
         result = self._changes.get(key, NEVER_INSERTED)
         if result in (DELETED, NEVER_INSERTED):
-            raise DiffMissingError(key, result)
+            raise DiffMissingError(key, cast(MissingReason, result))
         else:
-            return result
+            return cast(bytes, result)
 
-    def __iter__(self):
+    def __iter__(self) -> None:
         raise NotImplementedError(
             "Cannot iterate through changes, use apply_to(db) to update a database"
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._changes)
 
-    def apply_to(self, db: MutableMapping, apply_deletes: bool = True) -> None:
+    def apply_to(self,
+                 db: Union[BaseDB, ABC_Mutable_Mapping],
+                 apply_deletes: bool = True) -> None:
         """
         Apply the changes in this diff to the given database.
         You may choose to opt out of deleting any underlying keys.
@@ -136,7 +151,7 @@ class DBDiff(Mapping):
                 else:
                     pass
             else:
-                db[key] = value
+                db[key] = cast(bytes, value)
 
     @classmethod
     def join(cls, diffs: Iterable['DBDiff']) -> 'DBDiff':
