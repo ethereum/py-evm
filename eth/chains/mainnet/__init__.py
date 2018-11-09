@@ -1,4 +1,8 @@
-from typing import Tuple, Type  # noqa: F401
+from typing import (    # noqa: F401
+    Tuple,
+    Type,
+    TypeVar,
+)
 
 from eth_utils import (
     decode_hex,
@@ -31,13 +35,16 @@ from eth.vm.forks import (
 )
 
 
-class MainnetDAOValidatorVM:
+class MainnetDAOValidatorVM(HomesteadVM):
     """Only on mainnet, TheDAO fork is accompanied by special extra data. Validate those headers"""
 
     @classmethod
-    def validate_header(cls, header, previous_header, check_seal=True):
-        # ignore mypy warnings, because super's validate_header is defined by mixing w/ other class
-        super().validate_header(header, previous_header, check_seal)  # type: ignore
+    def validate_header(cls,
+                        header: BlockHeader,
+                        previous_header: BlockHeader,
+                        check_seal: bool=True) -> None:
+
+        super().validate_header(header, previous_header, check_seal)
 
         # The special extra_data is set on the ten headers starting at the fork
         dao_fork_at = cls.get_dao_fork_block_number()
@@ -61,7 +68,7 @@ class MainnetDAOValidatorVM:
                 )
 
 
-class MainnetHomesteadVM(MainnetDAOValidatorVM, HomesteadVM):
+class MainnetHomesteadVM(MainnetDAOValidatorVM):
     _dao_fork_block_number = DAO_FORK_MAINNET_BLOCK
 
 
