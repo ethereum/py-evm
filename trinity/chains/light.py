@@ -175,8 +175,9 @@ class LightDispatchChain(BaseChain):
     def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
         return self._headerdb.get_canonical_block_hash(block_number)
 
-    def build_block_with_transactions(
-            self, transactions: Tuple[BaseTransaction, ...], parent_header: BlockHeader) -> None:
+    def build_block_with_transactions(self,
+                                      transactions: Tuple[BaseTransaction, ...],
+                                      parent_header: BlockHeader=None) -> Tuple[BaseBlock, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:        # noqa: E501
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     #

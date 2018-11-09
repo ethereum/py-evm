@@ -1,7 +1,5 @@
 from lru import LRU
 
-from typing import Any
-
 from eth.db.backends.base import BaseDB
 
 
@@ -18,16 +16,16 @@ class CacheDB(BaseDB):
     def reset_cache(self) -> None:
         self._cached_values = LRU(self._cache_size)
 
-    def __getitem__(self, key: Any) -> Any:
+    def __getitem__(self, key: bytes) -> bytes:
         if key not in self._cached_values:
             self._cached_values[key] = self._db[key]
         return self._cached_values[key]
 
-    def __setitem__(self, key: Any, value: Any) -> None:
+    def __setitem__(self, key: bytes, value: bytes) -> None:
         self._cached_values[key] = value
         self._db[key] = value
 
-    def __delitem__(self, key: Any) -> None:
+    def __delitem__(self, key: bytes) -> None:
         if key in self._cached_values:
             del self._cached_values[key]
         del self._db[key]

@@ -7,6 +7,7 @@ from multiprocessing.managers import (  # type: ignore
 from typing import Tuple, Type
 
 from eth.db.backends.base import BaseDB
+from eth.db.header import BaseHeaderDB
 from eth.chains.header import (
     BaseHeaderChain,
     HeaderChain,
@@ -51,7 +52,7 @@ class AsyncHeaderChainProxy(BaseProxy, BaseAsyncHeaderChain, BaseHeaderChain):
         raise NotImplementedError("Chain classes must implement this method")
 
     @classmethod
-    def get_headerdb_class(cls) -> BaseDB:
+    def get_headerdb_class(cls) -> Type[BaseHeaderDB]:
         raise NotImplementedError("Chain classes must implement this method")
 
     coro_get_block_header_by_hash = async_method('get_block_header_by_hash')
