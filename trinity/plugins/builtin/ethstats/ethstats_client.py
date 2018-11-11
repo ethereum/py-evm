@@ -59,7 +59,7 @@ class EthstatsClient(BaseService):
             try:
                 message: EthstatsMessage = self.deserialize_message(json_string)
             except EthstatsException as e:
-                self.logger.info('Cannot parse message from server: %s' % e)
+                self.logger.warning('Cannot parse message from server: %s' % e)
                 return
 
             await self.recv_queue.put(message)
@@ -83,6 +83,9 @@ class EthstatsClient(BaseService):
             raw_message = json.loads(json_string)
         except json.decoder.JSONDecodeError as e:
             raise EthstatsException('Received incorrect JSON: %s' % e)
+
+        if isinstance(raw_message, str):
+            raise EthstatsException(f'Received invalid payload: {raw_message}')
 
         try:
             payload = raw_message['emit']
