@@ -44,27 +44,18 @@ from eth_utils.toolz import (
     pipe,
 )
 
+from eth.typing import (
+    StaticMethod,
+)
+
 from trinity.utils.queues import (
     queue_get_batch,
     queue_get_nowait,
 )
 
-TFunc = TypeVar('TFunc')
 TPrerequisite = TypeVar('TPrerequisite', bound=Enum)
 TTask = TypeVar('TTask')
 TTaskID = TypeVar('TTaskID')
-
-
-class StaticMethod(Generic[TFunc]):
-    """
-    A property class purely to convince mypy to let us assign a function to an
-    instance variable. See more at: https://github.com/python/mypy/issues/708#issuecomment-405812141
-    """
-    def __get__(self, oself: Any, owner: Any) -> TFunc:
-        return self._func
-
-    def __set__(self, oself: Any, value: TFunc) -> None:
-        self._func = value
 
 
 @total_ordering

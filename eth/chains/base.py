@@ -20,6 +20,8 @@ from typing import (  # noqa: F401
     Type,
     TYPE_CHECKING,
     Union,
+    TypeVar,
+    Generic,
 )
 
 import logging
@@ -72,8 +74,9 @@ from eth.rlp.transactions import (
     BaseUnsignedTransaction,
 )
 
-from eth.typing import (
+from eth.typing import (  # noqa: F401
     AccountState,
+    StaticMethod,
 )
 
 from eth.utils.spoof import (
@@ -99,7 +102,7 @@ from eth.validation import (
     validate_vm_configuration,
 )
 from eth.vm.computation import BaseComputation
-from eth.vm.state import BaseState      # noqa: F401
+from eth.vm.state import BaseState  # noqa: F401
 
 from eth._warnings import catch_and_ignore_import_warning
 with catch_and_ignore_import_warning():
@@ -335,7 +338,7 @@ class Chain(BaseChain):
     current block number.
     """
     logger = logging.getLogger("eth.chain.chain.Chain")
-    gas_estimator = None  # type: Callable[[BaseState, BaseTransaction], int]
+    gas_estimator = None  # type: StaticMethod[Callable[[BaseState, Union[BaseTransaction, SpoofTransaction]], int]]  # noqa: E501
 
     chaindb_class = ChainDB  # type: Type[BaseChainDB]
 
@@ -349,8 +352,8 @@ class Chain(BaseChain):
 
         self.chaindb = self.get_chaindb_class()(base_db)
         self.headerdb = HeaderDB(base_db)
-        if self.gas_estimator is None:                  # type: ignore
-            self.gas_estimator = get_gas_estimator()    # type: ignore
+        if self.gas_estimator is None:
+            self.gas_estimator = get_gas_estimator()
 
     #
     # Helpers
@@ -648,7 +651,7 @@ class Chain(BaseChain):
         if at_header is None:
             at_header = self.get_canonical_head()
         with self.get_vm(at_header).state_in_temp_block() as state:
-            return self.gas_estimator(state, transaction)   # type: ignore
+            return self.gas_estimator(state, transaction)
 
     def import_block(self,
                      block: BaseBlock,
