@@ -1,6 +1,7 @@
 from argparse import ArgumentParser, Namespace
 import asyncio
 import logging
+import os
 import signal
 from typing import (
     Any,
@@ -254,26 +255,7 @@ def trinity_boot(args: Namespace,
     networking_process.start()
     logger.info("Started networking process (pid=%d)", networking_process.pid)
 
-    main_endpoint.subscribe(
-        ShutdownRequest,
-        lambda ev: kill_trinity_gracefully(
-            logger,
-            database_server_process,
-            networking_process,
-            plugin_manager,
-            main_endpoint,
-            event_bus,
-            ev.reason
-        )
-    )
-
-    plugin_manager.prepare(args, trinity_config, extra_kwargs)
-
-    try:
-        loop = asyncio.get_event_loop()
-        loop.run_forever()
-        loop.close()
-    except KeyboardInterrupt:
+    def kill_trinity_with_reason(reason: str) -> None:
         kill_trinity_gracefully(
             logger,
             database_server_process,
@@ -281,8 +263,23 @@ def trinity_boot(args: Namespace,
             plugin_manager,
             main_endpoint,
             event_bus,
-            reason="CTRL+C / Keyboard Interrupt"
+            reason=reason
         )
+
+    main_endpoint.subscribe(
+        ShutdownRequest,
+        lambda ev: kill_trinity_with_reason(ev.reason)
+    )
+
+    plugin_manager.prepare(args, trinity_config, extra_kwargs)
+
+    try:
+        loop = asyncio.get_event_loop()
+        loop.add_signal_handler(signal.SIGTERM, lambda: kill_trinity_with_reason("SIGTERM"))
+        loop.run_forever()
+        loop.close()
+    except KeyboardInterrupt:
+        kill_trinity_with_reason("CTRL+C / Keyboard Interrupt")
 
 
 def kill_trinity_gracefully(logger: logging.Logger,
@@ -363,6 +360,7 @@ def launch_node(args: Namespace, trinity_config: TrinityConfig, endpoint: Endpoi
 def display_launch_logs(trinity_config: TrinityConfig) -> None:
     logger = logging.getLogger('trinity')
     logger.info(TRINITY_HEADER)
+    logger.info("Started main process (pid=%d)", os.getpid())
     logger.info(construct_trinity_client_identifier())
     logger.info("Trinity DEBUG log file is created at %s", str(trinity_config.logfile_path))
 
