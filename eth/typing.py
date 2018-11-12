@@ -2,11 +2,13 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generic,
     Iterable,
     List,
     NewType,
     Tuple,
     Union,
+    TypeVar,
 )
 
 from eth_typing import (
@@ -52,3 +54,18 @@ TransactionNormalizer = Callable[[TransactionDict], TransactionDict]
 VRS = NewType("VRS", Tuple[int, int, int])
 
 IntConvertible = Union[int, bytes, HexStr, str]
+
+
+TFunc = TypeVar('TFunc')
+
+
+class StaticMethod(Generic[TFunc]):
+    """
+    A property class purely to convince mypy to let us assign a function to an
+    instance variable. See more at: https://github.com/python/mypy/issues/708#issuecomment-405812141
+    """
+    def __get__(self, oself: Any, owner: Any) -> TFunc:
+        return self._func
+
+    def __set__(self, oself: Any, value: TFunc) -> None:
+        self._func = value
