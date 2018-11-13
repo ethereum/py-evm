@@ -11,6 +11,7 @@ from typing import (  # noqa: F401
     Tuple,
     Type,
     TYPE_CHECKING,
+    Union,
 )
 from uuid import UUID
 
@@ -34,6 +35,9 @@ from eth.exceptions import StateRootNotFound
 from eth.tools.logging import (
     TraceLogger,
 )
+from eth.typing import (
+    BaseOrSpoofTransaction,
+)
 from eth.utils.datatypes import (
     Configurable,
 )
@@ -49,6 +53,7 @@ if TYPE_CHECKING:
     from eth.rlp.transactions import (  # noqa: F401
         BaseTransaction,
     )
+
     from eth.vm.transaction_context import (  # noqa: F401
         BaseTransactionContext,
     )
@@ -250,7 +255,8 @@ class BaseState(Configurable, ABC):
     def get_transaction_executor(self) -> 'BaseTransactionExecutor':
         return self.transaction_executor(self)
 
-    def costless_execute_transaction(self, transaction: 'BaseTransaction') -> 'BaseComputation':
+    def costless_execute_transaction(self,
+                                     transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
         with self.override_transaction_context(gas_price=transaction.gas_price):
             free_transaction = transaction.copy(gas_price=0)
             return self.execute_transaction(free_transaction)
@@ -270,15 +276,16 @@ class BaseState(Configurable, ABC):
             self.get_transaction_context = original_context     # type: ignore # Remove ignore if https://github.com/python/mypy/issues/708 is fixed. # noqa: E501
 
     @abstractmethod
-    def execute_transaction(self, transaction: 'BaseTransaction') -> 'BaseComputation':
+    def execute_transaction(self, transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
         raise NotImplementedError()
 
     @abstractmethod
-    def validate_transaction(self, transaction: 'BaseTransaction') -> None:
+    def validate_transaction(self, transaction: BaseOrSpoofTransaction) -> None:
         raise NotImplementedError
 
     @classmethod
-    def get_transaction_context(cls, transaction: 'BaseTransaction') -> 'BaseTransactionContext':
+    def get_transaction_context(cls,
+                                transaction: BaseOrSpoofTransaction) -> 'BaseTransactionContext':
         return cls.get_transaction_context_class()(
             gas_price=transaction.gas_price,
             origin=transaction.sender,
@@ -289,7 +296,7 @@ class BaseTransactionExecutor(ABC):
     def __init__(self, vm_state: BaseState) -> None:
         self.vm_state = vm_state
 
-    def __call__(self, transaction: 'BaseTransaction') -> 'BaseComputation':
+    def __call__(self, transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
         valid_transaction = self.validate_transaction(transaction)
         message = self.build_evm_message(valid_transaction)
         computation = self.build_computation(message, valid_transaction)
@@ -297,21 +304,21 @@ class BaseTransactionExecutor(ABC):
         return finalized_computation
 
     @abstractmethod
-    def validate_transaction(self, transaction: 'BaseTransaction') -> 'BaseTransaction':
+    def validate_transaction(self, transaction: BaseOrSpoofTransaction) -> BaseOrSpoofTransaction:
         raise NotImplementedError
 
     @abstractmethod
-    def build_evm_message(self, transaction: 'BaseTransaction') -> Message:
+    def build_evm_message(self, transaction: BaseOrSpoofTransaction) -> Message:
         raise NotImplementedError()
 
     @abstractmethod
     def build_computation(self,
                           message: Message,
-                          transaction: 'BaseTransaction') -> 'BaseComputation':
+                          transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
         raise NotImplementedError()
 
     @abstractmethod
     def finalize_computation(self,
-                             transaction: 'BaseTransaction',
+                             transaction: BaseOrSpoofTransaction,
                              computation: 'BaseComputation') -> 'BaseComputation':
         raise NotImplementedError()

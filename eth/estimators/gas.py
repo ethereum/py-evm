@@ -1,5 +1,4 @@
 from typing import (
-    cast,
     Optional,
 )
 
@@ -29,7 +28,7 @@ def _get_computation_error(state: BaseState, transaction: SpoofTransaction) -> O
     snapshot = state.snapshot()
 
     try:
-        computation = state.execute_transaction(cast(BaseTransaction, transaction))
+        computation = state.execute_transaction(transaction)
         if computation.is_error:
             return computation._error
         else:

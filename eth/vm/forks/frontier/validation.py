@@ -5,12 +5,18 @@ from eth_utils import (
 from eth.db.account import BaseAccountDB
 
 from eth.rlp.headers import BlockHeader
+
 from eth.rlp.transactions import BaseTransaction
+
+from eth.typing import (
+    BaseOrSpoofTransaction
+)
 
 from eth.vm.base import BaseVM
 
 
-def validate_frontier_transaction(account_db: BaseAccountDB, transaction: BaseTransaction) -> None:
+def validate_frontier_transaction(account_db: BaseAccountDB,
+                                  transaction: BaseOrSpoofTransaction) -> None:
     gas_cost = transaction.gas * transaction.gas_price
     sender_balance = account_db.get_balance(transaction.sender)
 

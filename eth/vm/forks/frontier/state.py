@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from typing import Type  # noqa: F401
+from typing import Type, Union  # noqa: F401
 
 from eth_hash.auto import keccak
 from eth_utils import (
@@ -14,10 +14,9 @@ from eth.exceptions import (
     ContractCreationCollision,
 )
 
-from eth.rlp.transactions import (
-    BaseTransaction,
+from eth.typing import (
+    BaseOrSpoofTransaction,
 )
-
 from eth.utils.address import (
     generate_contract_address,
 )
@@ -45,7 +44,7 @@ from .validation import validate_frontier_transaction
 
 class FrontierTransactionExecutor(BaseTransactionExecutor):
 
-    def validate_transaction(self, transaction: BaseTransaction) -> BaseTransaction:
+    def validate_transaction(self, transaction: BaseOrSpoofTransaction) -> BaseOrSpoofTransaction:
 
         # Validate the transaction
         transaction.validate()
@@ -53,7 +52,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
         return transaction
 
-    def build_evm_message(self, transaction: BaseTransaction) -> Message:
+    def build_evm_message(self, transaction: BaseOrSpoofTransaction) -> Message:
 
         gas_fee = transaction.gas * transaction.gas_price
 
@@ -105,7 +104,9 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         )
         return message
 
-    def build_computation(self, message: Message, transaction: BaseTransaction) -> BaseComputation:
+    def build_computation(self,
+                          message: Message,
+                          transaction: BaseOrSpoofTransaction) -> BaseComputation:
         """Apply the message to the VM."""
         transaction_context = self.vm_state.get_transaction_context(transaction)
         if message.is_create:
@@ -139,7 +140,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         return computation
 
     def finalize_computation(self,
-                             transaction: BaseTransaction,
+                             transaction: BaseOrSpoofTransaction,
                              computation: BaseComputation) -> BaseComputation:
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
@@ -192,9 +193,9 @@ class FrontierState(BaseState):
     account_db_class = AccountDB  # Type[BaseAccountDB]
     transaction_executor = FrontierTransactionExecutor  # Type[BaseTransactionExecutor]
 
-    def validate_transaction(self, transaction: BaseTransaction) -> None:
+    def validate_transaction(self, transaction: BaseOrSpoofTransaction) -> None:
         validate_frontier_transaction(self.account_db, transaction)
 
-    def execute_transaction(self, transaction: BaseTransaction) -> BaseTransactionExecutor:
+    def execute_transaction(self, transaction: BaseOrSpoofTransaction) -> BaseTransactionExecutor:
         executor = self.get_transaction_executor()
         return executor(transaction)
