@@ -9,6 +9,7 @@ from typing import (
     Tuple,
     Union,
     TypeVar,
+    TYPE_CHECKING,
 )
 
 from eth_typing import (
@@ -18,6 +19,14 @@ from eth_typing import (
 from mypy_extensions import (
     TypedDict,
 )
+
+if TYPE_CHECKING:
+    from eth.rlp.transactions import (  # noqa: F401
+        BaseTransaction
+    )
+    from eth.utils.spoof import (  # noqa: F401
+        SpoofTransaction
+    )
 
 
 # TODO: Move into eth_typing
@@ -31,6 +40,8 @@ AccountDetails = TypedDict('AccountDetails',
 AccountState = Dict[Address, AccountDetails]
 
 AccountDiff = Iterable[Tuple[Address, str, Union[int, bytes], Union[int, bytes]]]
+
+BaseOrSpoofTransaction = Union['BaseTransaction', 'SpoofTransaction']
 
 GeneralState = Union[
     AccountState,

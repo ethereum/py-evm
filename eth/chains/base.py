@@ -76,12 +76,10 @@ from eth.rlp.transactions import (
 
 from eth.typing import (  # noqa: F401
     AccountState,
+    BaseOrSpoofTransaction,
     StaticMethod,
 )
 
-from eth.utils.spoof import (
-    SpoofTransaction,
-)
 from eth.utils.db import (
     apply_state_dict,
 )
@@ -280,14 +278,14 @@ class BaseChain(Configurable, ABC):
     @abstractmethod
     def get_transaction_result(
             self,
-            transaction: Union[BaseTransaction, SpoofTransaction],
+            transaction: BaseOrSpoofTransaction,
             at_header: BlockHeader) -> bytes:
         raise NotImplementedError("Chain classes must implement this method")
 
     @abstractmethod
     def estimate_gas(
             self,
-            transaction: Union[BaseTransaction, SpoofTransaction],
+            transaction: BaseOrSpoofTransaction,
             at_header: BlockHeader=None) -> int:
         raise NotImplementedError("Chain classes must implement this method")
 
@@ -338,7 +336,7 @@ class Chain(BaseChain):
     current block number.
     """
     logger = logging.getLogger("eth.chain.chain.Chain")
-    gas_estimator = None  # type: StaticMethod[Callable[[BaseState, Union[BaseTransaction, SpoofTransaction]], int]]  # noqa: E501
+    gas_estimator = None  # type: StaticMethod[Callable[[BaseState, BaseOrSpoofTransaction], int]]
 
     chaindb_class = ChainDB  # type: Type[BaseChainDB]
 
@@ -627,22 +625,21 @@ class Chain(BaseChain):
     #
     def get_transaction_result(
             self,
-            transaction: Union[BaseTransaction, SpoofTransaction],
+            transaction: BaseOrSpoofTransaction,
             at_header: BlockHeader) -> bytes:
         """
         Return the result of running the given transaction.
         This is referred to as a `call()` in web3.
         """
         with self.get_vm(at_header).state_in_temp_block() as state:
-            # Ignore is to not bleed the SpoofTransaction deeper into the code base
-            computation = state.costless_execute_transaction(transaction)  # type: ignore
+            computation = state.costless_execute_transaction(transaction)
 
         computation.raise_if_error()
         return computation.output
 
     def estimate_gas(
             self,
-            transaction: Union[BaseTransaction, SpoofTransaction],
+            transaction: BaseOrSpoofTransaction,
             at_header: BlockHeader=None) -> int:
         """
         Returns an estimation of the amount of gas the given transaction will

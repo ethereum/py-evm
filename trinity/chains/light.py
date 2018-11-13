@@ -47,8 +47,8 @@ from eth.rlp.transactions import (
     BaseTransaction,
     BaseUnsignedTransaction,
 )
-from eth.utils.spoof import (
-    SpoofTransaction,
+from eth.typing import (
+    BaseOrSpoofTransaction,
 )
 from eth.vm.computation import (
     BaseComputation
@@ -209,13 +209,13 @@ class LightDispatchChain(BaseChain):
 
     def get_transaction_result(
             self,
-            transaction: Union[BaseTransaction, SpoofTransaction],
+            transaction: BaseOrSpoofTransaction,
             at_header: BlockHeader) -> bytes:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     def estimate_gas(
             self,
-            transaction: Union[BaseTransaction, SpoofTransaction],
+            transaction: BaseOrSpoofTransaction,
             at_header: BlockHeader=None) -> int:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
