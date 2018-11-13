@@ -3,7 +3,6 @@ from collections.abc import (
     MutableMapping,
 )
 from typing import (
-    cast,
     Dict,
     Iterable,
     Union,
@@ -69,16 +68,16 @@ class DBDiffTracker(ABC_Mutable_Mapping):
     def __init__(self) -> None:
         self._changes = {}  # type: Dict[bytes, Union[bytes, MissingReason]]
 
-    def __contains__(self, key: bytes) -> bool:     # type: ignore # Breaks LSP
+    def __contains__(self, key: bytes) -> bool:  # type: ignore # Breaks LSP
         result = self._changes.get(key, NEVER_INSERTED)
         return result not in (DELETED, NEVER_INSERTED)
 
     def __getitem__(self, key: bytes) -> bytes:
         result = self._changes.get(key, NEVER_INSERTED)
         if result in (DELETED, NEVER_INSERTED):
-            raise DiffMissingError(key, cast(MissingReason, result))
+            raise DiffMissingError(key, result)  # type: ignore # ignore over cast for perf reasons
         else:
-            return cast(bytes, result)
+            return result  # type: ignore # ignore over cast for perf reasons
 
     def __setitem__(self, key: bytes, value: Union[bytes, MissingReason]) -> None:
         self._changes[key] = value
@@ -119,9 +118,9 @@ class DBDiff(ABC_Mapping):
     def __getitem__(self, key: bytes) -> bytes:
         result = self._changes.get(key, NEVER_INSERTED)
         if result in (DELETED, NEVER_INSERTED):
-            raise DiffMissingError(key, cast(MissingReason, result))
+            raise DiffMissingError(key, result)  # type: ignore # ignore over cast for perf reasons
         else:
-            return cast(bytes, result)
+            return result  # type: ignore # ignore over cast for perf reasons
 
     def __iter__(self) -> None:
         raise NotImplementedError(
@@ -151,7 +150,7 @@ class DBDiff(ABC_Mapping):
                 else:
                     pass
             else:
-                db[key] = cast(bytes, value)
+                db[key] = value  # type: ignore # ignore over cast for perf reasons
 
     @classmethod
     def join(cls, diffs: Iterable['DBDiff']) -> 'DBDiff':
