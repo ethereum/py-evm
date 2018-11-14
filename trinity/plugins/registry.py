@@ -1,5 +1,11 @@
 import pkg_resources
+from typing import (
+    Tuple,
+)
 
+from trinity.extensibility import (
+    BasePlugin,
+)
 from trinity.plugins.builtin.attach.plugin import (
     AttachPlugin
 )
@@ -19,10 +25,6 @@ from trinity.plugins.builtin.light_peer_chain_bridge.plugin import (
     LightPeerChainBridgePlugin
 )
 
-from trinity.plugins.examples.peer_count_reporter.plugin import (
-    PeerCountReporterPlugin
-)
-
 
 def is_ipython_available() -> bool:
     try:
@@ -33,24 +35,21 @@ def is_ipython_available() -> bool:
         return True
 
 
-# This is our poor mans central plugin registry for now. In the future,
-# we'll be able to load plugins from some path and control via Trinity
-# config file which plugin is enabled or not
-
-BUILTIN_PLUGINS = [
+BUILTIN_PLUGINS = (
     AttachPlugin() if is_ipython_available() else AttachPlugin(use_ipython=False),
     EthstatsPlugin(),
     FixUncleanShutdownPlugin(),
     JsonRpcServerPlugin(),
     LightPeerChainBridgePlugin(),
     TxPlugin(),
-    PeerCountReporterPlugin(),
-]
+)
 
-# Plugins need to define entrypoints at 'trinity.plugins' to automatically get loaded
-# https://packaging.python.org/guides/creating-and-discovering-plugins/#using-package-metadata
-DISCOVERED_PLUGINS = [
-    entry_point.load()() for entry_point in pkg_resources.iter_entry_points('trinity.plugins')
-]
 
-ALL_PLUGINS = BUILTIN_PLUGINS + DISCOVERED_PLUGINS
+def discover_plugins() -> Tuple[BasePlugin, ...]:
+    # Plugins need to define entrypoints at 'trinity.plugins' to automatically get loaded
+    # https://packaging.python.org/guides/creating-and-discovering-plugins/#using-package-metadata
+
+    return tuple(entry_point.load()() for entry_point in pkg_resources.iter_entry_points('trinity.plugins'))
+
+def get_all_plugins() -> Tuple[BasePlugin, ...]:
+    return BUILTIN_PLUGINS + discover_plugins()
