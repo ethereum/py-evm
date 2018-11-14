@@ -49,7 +49,10 @@ def discover_plugins() -> Tuple[BasePlugin, ...]:
     # Plugins need to define entrypoints at 'trinity.plugins' to automatically get loaded
     # https://packaging.python.org/guides/creating-and-discovering-plugins/#using-package-metadata
 
-    return tuple(entry_point.load()() for entry_point in pkg_resources.iter_entry_points('trinity.plugins'))
+    return tuple(
+        entry_point.load()() for entry_point in pkg_resources.iter_entry_points('trinity.plugins')
+    )
+
 
 def get_all_plugins() -> Tuple[BasePlugin, ...]:
     return BUILTIN_PLUGINS + discover_plugins()
