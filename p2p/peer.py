@@ -841,7 +841,10 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             await peer.disconnect(DisconnectReason.timeout)
             return
         else:
-            self._add_peer(peer, buffer.get_messages())
+            if peer.is_operational:
+                self._add_peer(peer, buffer.get_messages())
+            else:
+                self.logger.debug('%s disconnected during boot-up, not adding to pool', peer)
 
     def _add_peer(self,
                   peer: BasePeer,
