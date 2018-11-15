@@ -21,7 +21,7 @@ class LightChainSyncer(BaseHeaderChainSyncer):
 
             head = await self.wait(self.db.coro_get_canonical_head())
             self.logger.info(
-                "Imported %d headers in %0.2f seconds, new head: #%d",
-                len(headers), timer.elapsed, head.block_number)
+                "Imported %d headers in %0.2f seconds, new head: %s",
+                len(headers), timer.elapsed, head)
 
             self.header_queue.complete(batch_id, headers)

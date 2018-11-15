@@ -467,8 +467,8 @@ class FastChainSyncer(BaseBodyChainSyncer):
                 last_head = head
 
                 self.logger.info(
-                    "Advanced by %d blocks in %0.1f seconds, new head: #%d",
-                    block_num_change, timer.pop_elapsed(), head.block_number)
+                    "Advanced by %d blocks in %0.1f seconds, new head: %s",
+                    block_num_change, timer.pop_elapsed(), head)
 
     async def _persist_ready_blocks(self) -> None:
         """
@@ -793,10 +793,10 @@ class RegularChainSyncer(BaseBodyChainSyncer):
 
             head = await self.wait(self.db.coro_get_canonical_head())
             self.logger.info(
-                "Synced chain segment with %d blocks in %.2f seconds, new head: #%d",
+                "Synced chain segment with %d blocks in %.2f seconds, new head: %s",
                 len(completed_headers),
                 timer.elapsed,
-                head.block_number,
+                head,
             )
 
     async def _import_blocks(self, headers: Tuple[BlockHeader, ...]) -> None:
