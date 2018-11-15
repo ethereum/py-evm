@@ -77,7 +77,7 @@ def load_fixture(fixture_path: str,
 def filter_fixtures(all_fixtures: Iterable[Any],
                     fixtures_base_dir: str,
                     mark_fn: Callable[[str, str], bool]=None,
-                    ignore_fn: Callable[[str, str], bool]=None) -> Any:
+                    ignore_fn: Callable[..., bool]=None) -> Any:
     """
     Helper function for filtering test fixtures.
 
