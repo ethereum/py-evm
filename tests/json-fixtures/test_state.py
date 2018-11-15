@@ -162,12 +162,33 @@ def mark_statetest_fixtures(fixture_path, fixture_key, fixture_fork, fixture_ind
         return pytest.mark.xfail(reason="Listed in INCORRECT_UPSTREAM_TESTS.")
 
 
+def generate_ignore_fn_for_fork(metafunc):
+    """
+    The statetest fixtures have different definitions for each fork and we must ensure to only run
+    test against against the intended fork (e.g run Constantinople state tests against
+    Constantinople VM).
+    We can not rely on `pytest -k` matching for that as that matches against an identification
+    string that includes the path and name of the test which in some cases also contains fork
+    fork names. A test file may be named "ConstantinopleSomething.json" but still contains
+    individual definitions per fork.
+    """
+    passed_fork = metafunc.config.getoption('fork')
+    if passed_fork:
+        passed_fork = passed_fork.lower()
+
+        def ignore_fn(fixture_path, fixture_key, fixture_fork, post_state_index):
+            return fixture_fork.lower() != passed_fork
+
+        return ignore_fn
+
+
 def pytest_generate_tests(metafunc):
     generate_fixture_tests(
         metafunc=metafunc,
         base_fixture_path=BASE_FIXTURE_PATH,
         preprocess_fn=expand_fixtures_forks,
         filter_fn=filter_fixtures(
+            ignore_fn=generate_ignore_fn_for_fork(metafunc),
             fixtures_base_dir=BASE_FIXTURE_PATH,
             mark_fn=mark_statetest_fixtures,
         ),

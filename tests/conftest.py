@@ -186,3 +186,7 @@ def chain_without_block_validation(
     }
     chain = klass.from_genesis(base_db, genesis_params, genesis_state)
     return chain
+
+
+def pytest_addoption(parser):
+    parser.addoption("--fork", type=str, required=False)
