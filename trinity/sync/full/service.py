@@ -42,7 +42,7 @@ class FullNodeSyncer(BaseService):
         # See https://github.com/ethereum/py-evm/issues/654 for more details
         if head.timestamp < time.time() - FAST_SYNC_CUTOFF:
             # Fast-sync chain data.
-            self.logger.info("Starting fast-sync; current head: #%d", head.block_number)
+            self.logger.info("Starting fast-sync; current head: %s", head)
             fast_syncer = FastChainSyncer(
                 self.chain,
                 self.chaindb,
@@ -50,6 +50,12 @@ class FullNodeSyncer(BaseService):
                 self.cancel_token,
             )
             await fast_syncer.run()
+
+            previous_head = head
+            head = await self.wait(self.chaindb.coro_get_canonical_head())
+            self.logger.info(
+                "Finished fast fast-sync; previous head: %s, current head: %s", previous_head, head
+            )
             # remove the reference so the memory can be reclaimed
             del fast_syncer
 
@@ -57,10 +63,9 @@ class FullNodeSyncer(BaseService):
             return
 
         # Ensure we have the state for our current head.
-        head = await self.wait(self.chaindb.coro_get_canonical_head())
         if head.state_root != BLANK_ROOT_HASH and head.state_root not in self.base_db:
             self.logger.info(
-                "Missing state for current head (#%d), downloading it", head.block_number)
+                "Missing state for current head %s, downloading it", head)
             downloader = StateDownloader(
                 self.chaindb, self.base_db, head.state_root, self.peer_pool, self.cancel_token)
             await downloader.run()
@@ -71,7 +76,7 @@ class FullNodeSyncer(BaseService):
             return
 
         # Now, loop forever, fetching missing blocks and applying them.
-        self.logger.info("Starting regular sync; current head: #%d", head.block_number)
+        self.logger.info("Starting regular sync; current head: %s", head)
         regular_syncer = RegularChainSyncer(
             self.chain, self.chaindb, self.peer_pool, self.cancel_token)
         await regular_syncer.run()
