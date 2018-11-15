@@ -256,9 +256,9 @@ class PeerHeaderSyncer(BaseService):
                             head.block_number - MAX_REORG_DEPTH
                         )
                         self.logger.debug(
-                            "All %d headers redundant, head at #%d, fetching from #%d",
+                            "All %d headers redundant, head at %s, fetching from #%d",
                             len(all_headers),
-                            head.block_number,
+                            head,
                             start_at,
                         )
                         continue
