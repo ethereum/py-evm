@@ -23,12 +23,13 @@ setup(
     keywords='ethereum blockchain evm trinity',
     packages=[],
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3.6',
     ],
+    python_requires=">=3.6,<4"
     # trinity
     entry_points={
         'console_scripts': ['trinity=trinity:main'],
