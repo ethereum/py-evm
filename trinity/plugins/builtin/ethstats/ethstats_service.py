@@ -108,6 +108,7 @@ class EthstatsService(BaseService):
             await self.sleep(5)
 
     def get_node_info(self) -> EthstatsData:
+        '''Getter for data that should be sent once, on start-up.'''
         return {
             'name': self.node_id,
             'contact': self.node_contact,
@@ -121,6 +122,7 @@ class EthstatsService(BaseService):
         }
 
     def get_node_block(self) -> EthstatsData:
+        '''Getter for data that should be sent on every new chain tip change.'''
         head = self.chain.get_canonical_head()
 
         return {
@@ -133,7 +135,7 @@ class EthstatsService(BaseService):
         }
 
     async def get_node_stats(self) -> EthstatsData:
-
+        '''Getter for data that should be sent periodically.'''
         try:
             peer_count = (await self.wait(
                 self.context.event_bus.request(PeerCountRequest()),
@@ -145,6 +147,7 @@ class EthstatsService(BaseService):
 
         return {
             'active': True,
+            'uptime': 100,
             'peers': peer_count,
         }
 
