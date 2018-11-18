@@ -57,8 +57,16 @@ async def handshake(
     use_eip8 = False
     initiator = HandshakeInitiator(remote, privkey, use_eip8, token)
     reader, writer = await initiator.connect()
-    aes_secret, mac_secret, egress_mac, ingress_mac = await _handshake(
-        initiator, reader, writer, token)
+    try:
+        aes_secret, mac_secret, egress_mac, ingress_mac = await _handshake(
+            initiator, reader, writer, token)
+    except Exception:
+        if not reader.at_eof():
+            reader.feed_eof()
+        writer.close()
+        await asyncio.sleep(0)
+        raise
+
     return aes_secret, mac_secret, egress_mac, ingress_mac, reader, writer
 
 
