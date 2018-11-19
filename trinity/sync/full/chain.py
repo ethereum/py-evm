@@ -3,6 +3,7 @@ from asyncio import (
     PriorityQueue,
 )
 from concurrent.futures import CancelledError
+import datetime
 import enum
 from functools import (
     partial,
@@ -11,6 +12,7 @@ from operator import attrgetter
 from typing import (
     Dict,
     List,
+    NamedTuple,
     Set,
     Tuple,
     Type,
@@ -62,6 +64,8 @@ from trinity.utils.datastructures import (
     OrderedTaskPreparation,
     TaskQueue,
 )
+from trinity.utils.ema import EMA
+from trinity.utils.humanize import humanize_elapsed
 from trinity.utils.timer import Timer
 
 # (ReceiptBundle, (Receipt, (root_hash, receipt_trie_data))
@@ -338,6 +342,71 @@ class BlockPersistPrereqs(enum.Enum):
     StoreReceipts = enum.auto()
 
 
+class ChainSyncStats(NamedTuple):
+    prev_head: BlockHeader
+    latest_head: BlockHeader
+
+    elapsed: float
+
+    num_blocks: int
+    blocks_per_second: float
+
+    num_transactions: int
+    transactions_per_second: float
+
+
+class ChainSyncPerformanceTracker:
+    def __init__(self, head: BlockHeader) -> None:
+        # The `head` from the previous time we reported stats
+        self.prev_head = head
+        # The latest `head` we have synced
+        self.latest_head = head
+
+        # A `Timer` object to report elapsed time between reports
+        self.timer = Timer()
+
+        # EMA of the blocks per second
+        self.blocks_per_second_ema = EMA(initial_value=0, smoothing_factor=0.05)
+
+        # EMA of the transactions per second
+        self.transactions_per_second_ema = EMA(initial_value=0, smoothing_factor=0.05)
+
+        # Number of transactions processed
+        self.num_transactions = 0
+
+    def record_transactions(self, count: int) -> None:
+        self.num_transactions += count
+
+    def set_latest_head(self, head: BlockHeader) -> None:
+        self.latest_head = head
+
+    def report(self) -> ChainSyncStats:
+        elapsed = self.timer.pop_elapsed()
+
+        num_blocks = self.latest_head.block_number - self.prev_head.block_number
+        blocks_per_second = num_blocks / elapsed
+        transactions_per_second = self.num_transactions / elapsed
+
+        self.blocks_per_second_ema.update(blocks_per_second)
+        self.transactions_per_second_ema.update(transactions_per_second)
+
+        stats = ChainSyncStats(
+            prev_head=self.prev_head,
+            latest_head=self.latest_head,
+            elapsed=elapsed,
+            num_blocks=num_blocks,
+            blocks_per_second=self.blocks_per_second_ema.value,
+            num_transactions=self.num_transactions,
+            transactions_per_second=self.transactions_per_second_ema.value,
+        )
+
+        # reset the counters
+        self.num_transactions = 0
+        self.prev_head = self.latest_head
+
+        return stats
+
+
 class FastChainSyncer(BaseBodyChainSyncer):
     """
     Sync with the Ethereum network by fetching block headers/bodies and storing them in our DB.
@@ -374,6 +443,8 @@ class FastChainSyncer(BaseBodyChainSyncer):
 
     async def _run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
+        self.tracker = ChainSyncPerformanceTracker(head)
+
         self._block_persist_tracker.set_finished_dependency(head)
         self.run_daemon_task(self._launch_prerequisite_tasks())
         self.run_daemon_task(self._assign_receipt_download_to_peers())
@@ -445,9 +516,6 @@ class FastChainSyncer(BaseBodyChainSyncer):
             self.header_queue.complete(batch_id, headers)
 
     async def _display_stats(self) -> None:
-        last_head = await self.wait(self.db.coro_get_canonical_head())
-        timer = Timer()
-
         while self.is_operational:
             await self.sleep(5)
             self.logger.debug(
@@ -459,16 +527,29 @@ class FastChainSyncer(BaseBodyChainSyncer):
                 )],
             )
 
-            head = await self.wait(self.db.coro_get_canonical_head())
-            if head == last_head:
-                continue
-            else:
-                block_num_change = head.block_number - last_head.block_number
-                last_head = head
-
-                self.logger.info(
-                    "Advanced by %d blocks in %0.1f seconds, new head: %s",
-                    block_num_change, timer.pop_elapsed(), head)
+            stats = self.tracker.report()
+            utcnow = int(datetime.datetime.utcnow().timestamp())
+            head_age = utcnow - stats.latest_head.timestamp
+            self.logger.info(
+                (
+                    "blks=%-4d  "
+                    "txs=%-5d  "
+                    "bps=%-3d  "
+                    "tps=%-4d  "
+                    "elapsed=%0.1f  "
+                    "head=#%d (%s\u2026%s)  "
+                    "age=%s"
+                ),
+                stats.num_blocks,
+                stats.num_transactions,
+                stats.blocks_per_second,
+                stats.transactions_per_second,
+                stats.elapsed,
+                stats.latest_head.block_number,
+                stats.latest_head.hex_hash[2:6],
+                stats.latest_head.hex_hash[-4:],
+                humanize_elapsed(head_age),
+            )
 
     async def _persist_ready_blocks(self) -> None:
         """
@@ -514,8 +595,12 @@ class FastChainSyncer(BaseBodyChainSyncer):
                 tx_class = block_class.get_transaction_class()
                 transactions = [tx_class.from_base_transaction(tx) for tx in body.transactions]
 
+                # record progress in the tracker
+                self.tracker.record_transactions(len(transactions))
+
             block = block_class(header, transactions, uncles)
             await self.wait(self.db.coro_persist_block(block))
+            self.tracker.set_latest_head(header)
 
     async def _assign_receipt_download_to_peers(self) -> None:
         """
