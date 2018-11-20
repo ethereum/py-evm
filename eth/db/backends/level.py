@@ -28,7 +28,9 @@ class LevelDB(BaseAtomicDB):
     logger = logging.getLogger("eth.db.backends.LevelDB")
 
     # Creates db as a class variable to avoid level db lock error
-    def __init__(self, db_path: Path = None) -> None:
+    def __init__(self,
+                 db_path: Path=None,
+                 max_open_files: int=None) -> None:
         if not db_path:
             raise TypeError("Please specifiy a valid path for your database.")
         try:
@@ -39,7 +41,12 @@ class LevelDB(BaseAtomicDB):
                 "LevelDB requires the plyvel library which is not available for import."
             )
         self.db_path = db_path
-        self.db = plyvel.DB(str(db_path), create_if_missing=True, error_if_exists=False)
+        self.db = plyvel.DB(
+            str(db_path),
+            create_if_missing=True,
+            error_if_exists=False,
+            max_open_files=max_open_files
+        )
 
     def __getitem__(self, key: bytes) -> bytes:
         v = self.db.get(key)

@@ -62,6 +62,7 @@ from trinity.sync.full.hexary_trie import (
     HexaryTrieSync,
     SyncRequest,
 )
+from trinity.utils.os import get_open_fd_limit
 from trinity.utils.timer import Timer
 
 
@@ -85,8 +86,17 @@ class StateDownloader(BaseService, PeerSubscriber):
         # We use a LevelDB instance for the nodes cache because a full state download, if run
         # uninterrupted will visit more than 180M nodes, making an in-memory cache unfeasible.
         self._nodes_cache_dir = tempfile.TemporaryDirectory(prefix="pyevm-state-sync-cache")
+
+        # Allow the LevelDB instance to consume half of the entire file descriptor limit that
+        # the OS permits. Let the other half be reserved for other db access, networking etc.
+        max_open_files = get_open_fd_limit() // 2
+
         self.scheduler = StateSync(
-            root_hash, account_db, LevelDB(cast(Path, self._nodes_cache_dir.name)), self.logger)
+            root_hash,
+            account_db,
+            LevelDB(Path(self._nodes_cache_dir.name), max_open_files),
+            self.logger
+        )
         self.request_tracker = TrieNodeRequestTracker(self._reply_timeout, self.logger)
         self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
 
