@@ -8,11 +8,13 @@ from eth_utils import (
 from eth.chains.base import (
     BaseChain
 )
+from eth.tools._utils.normalization import (
+    normalize_block,
+    normalize_blockchain_fixtures,
+)
 from eth.tools.fixtures import (
     apply_fixture_block_to_chain,
     new_chain_from_fixture,
-    normalize_block,
-    normalize_blockchain_fixtures,
 )
 
 from trinity.rpc.format import (

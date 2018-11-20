@@ -12,7 +12,9 @@ from eth_utils import (
 from eth.tools.fixtures import (
     generate_fixture_tests,
     load_fixture,
-    normalize_transactiontest_fixture
+)
+from eth.tools._utils.normalization import (
+    normalize_transactiontest_fixture,
 )
 from eth.vm.forks.frontier.transactions import (
     FrontierTransaction

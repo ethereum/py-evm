@@ -14,6 +14,9 @@ from eth.tools.rlp import (
     assert_imported_genesis_header_unchanged,
     assert_mined_block_unchanged,
 )
+from eth.tools._utils.normalization import (
+    normalize_blockchain_fixtures,
+)
 from eth.tools.fixtures import (
     apply_fixture_block_to_chain,
     filter_fixtures,
@@ -21,7 +24,6 @@ from eth.tools.fixtures import (
     genesis_params_from_fixture,
     load_fixture,
     new_chain_from_fixture,
-    normalize_blockchain_fixtures,
     verify_account_db,
 )
 
