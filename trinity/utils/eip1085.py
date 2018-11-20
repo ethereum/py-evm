@@ -53,10 +53,10 @@ from eth.vm.forks import (
 )
 
 
-T_RAW_EIP1085 = Dict[str, Any]
-T_GENESIS_PARAMS = Dict[str, Union[int, BlockNumber, bytes, Hash32]]
-T_VM_FORK = Tuple[BlockNumber, Type[BaseVM]]
-T_VM_CONFIGURATION = Tuple[T_VM_FORK, ...]
+RawEIP1085Dict = Dict[str, Any]
+GenesisDict = Dict[str, Union[int, BlockNumber, bytes, Hash32]]
+VMFork = Tuple[BlockNumber, Type[BaseVM]]
+VMConfiguration = Tuple[VMFork, ...]
 
 
 class RawAccountDetails(TypedDict):
@@ -89,7 +89,7 @@ class GenesisParams(NamedTuple):
     extra_data: Hash32
     gas_limit: int
 
-    def to_dict(self) -> T_GENESIS_PARAMS:
+    def to_dict(self) -> GenesisDict:
         return {
             'block_number': 0,
             'nonce': self.nonce,
@@ -105,7 +105,7 @@ class GenesisData(NamedTuple):
     chain_id: int
     params: GenesisParams
     state: Dict[Address, Account]
-    vm_configuration: T_VM_CONFIGURATION
+    vm_configuration: VMConfiguration
 
 
 def get_eip1085_schema() -> Dict[str, Any]:
@@ -118,7 +118,7 @@ def get_eip1085_schema() -> Dict[str, Any]:
     return eip1085_schema
 
 
-def validate_raw_eip1085_genesis_config(genesis_config: T_RAW_EIP1085) -> None:
+def validate_raw_eip1085_genesis_config(genesis_config: RawEIP1085Dict) -> None:
     """
     Validate that all valid genesis config parameters are present from the decoded
     genesis JSON config specified.
@@ -131,7 +131,7 @@ def validate_raw_eip1085_genesis_config(genesis_config: T_RAW_EIP1085) -> None:
 
 
 @to_tuple
-def _extract_vm_config(vm_config: Dict[str, str]) -> Iterable[T_VM_FORK]:
+def _extract_vm_config(vm_config: Dict[str, str]) -> Iterable[VMFork]:
     if 'frontierForkBlock' in vm_config.keys():
         yield to_int(hexstr=vm_config['frontierForkBlock']), FrontierVM
     if 'homesteadForkBlock' in vm_config.keys():
@@ -157,7 +157,7 @@ def _extract_vm_config(vm_config: Dict[str, str]) -> Iterable[T_VM_FORK]:
 
 
 @to_tuple
-def _filter_vm_config(vm_config: T_VM_CONFIGURATION) -> Iterable[T_VM_FORK]:
+def _filter_vm_config(vm_config: VMConfiguration) -> Iterable[VMFork]:
     for idx, (fork_block, vm_class) in enumerate(vm_config):
         if fork_block == 0:
             subsequent_fork_blocks = {block_num for block_num, _ in vm_config[idx + 1:]}
@@ -183,7 +183,7 @@ ALL_VMS_BY_FORK = {
 
 
 @to_tuple
-def _normalize_vm_config(vm_config: T_VM_CONFIGURATION) -> Iterable[T_VM_FORK]:
+def _normalize_vm_config(vm_config: VMConfiguration) -> Iterable[VMFork]:
     """
     Take the declared vm_configuration and inject the VM for block 0 *if*
     there is no vm set to start at block 0.
@@ -206,7 +206,7 @@ def _normalize_vm_config(vm_config: T_VM_CONFIGURATION) -> Iterable[T_VM_FORK]:
     yield from vm_config
 
 
-def extract_vm_configuration(genesis_config: T_RAW_EIP1085) -> T_VM_CONFIGURATION:
+def extract_vm_configuration(genesis_config: RawEIP1085Dict) -> VMConfiguration:
     """
     Returns a vm configuration which is a tuple of block numbers associated to a fork
     based on the genesis config provided.
@@ -214,7 +214,7 @@ def extract_vm_configuration(genesis_config: T_RAW_EIP1085) -> T_VM_CONFIGURATIO
     return _normalize_vm_config(_filter_vm_config(_extract_vm_config(genesis_config['params'])))
 
 
-def extract_genesis_params(genesis_config: T_RAW_EIP1085) -> GenesisParams:
+def extract_genesis_params(genesis_config: RawEIP1085Dict) -> GenesisParams:
     raw_params = genesis_config['genesis']
 
     return GenesisParams(
@@ -227,7 +227,7 @@ def extract_genesis_params(genesis_config: T_RAW_EIP1085) -> GenesisParams:
     )
 
 
-def extract_chain_id(genesis_config: T_RAW_EIP1085) -> int:
+def extract_chain_id(genesis_config: RawEIP1085Dict) -> int:
     return to_int(hexstr=genesis_config['params']['chainId'])
 
 
@@ -260,7 +260,7 @@ def extract_genesis_state(genesis_config: Dict[str, Any]) -> Dict[Address, Accou
         return {}
 
 
-def extract_genesis_data(raw_genesis_config: T_RAW_EIP1085) -> GenesisData:
+def extract_genesis_data(raw_genesis_config: RawEIP1085Dict) -> GenesisData:
     version = raw_genesis_config['version']
     if version != '1':
         raise ValueError(f"Unsupported version: {version}")
