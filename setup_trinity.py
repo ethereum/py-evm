@@ -7,7 +7,7 @@ setup(
     name='trinity',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
     # NOT CURRENTLY APPLICABLE. VERSION BUMPS MANUAL FOR NOW
-    version='0.1.0-alpha.16',
+    version='0.1.0-alpha.17',
     description='The Trinity Ethereum Client',
     author='Ethereum Foundation',
     author_email='piper@pipermerriam.com',
@@ -16,7 +16,7 @@ setup(
     py_modules=[],
     install_requires=[
         # DON'T FORGET TO BUMP THIS TOOOOOO!!!!!!!
-        'py-evm[trinity,p2p]==0.2.0a33',
+        'py-evm[trinity,p2p]==0.2.0a34',
     ],
     license='MIT',
     zip_safe=False,
@@ -29,7 +29,7 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python :: 3.6',
     ],
-    python_requires=">=3.6,<4"
+    python_requires=">=3.6,<4",
     # trinity
     entry_points={
         'console_scripts': ['trinity=trinity:main'],
