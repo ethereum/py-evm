@@ -537,7 +537,7 @@ class FastChainSyncer(BaseBodyChainSyncer):
                     "bps=%-3d  "
                     "tps=%-4d  "
                     "elapsed=%0.1f  "
-                    "head=#%d (%s\u2026%s)  "
+                    "head=#%d (%s...%s)  "
                     "age=%s"
                 ),
                 stats.num_blocks,
