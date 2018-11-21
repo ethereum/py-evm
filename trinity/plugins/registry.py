@@ -9,6 +9,9 @@ from trinity.extensibility import (
 from trinity.plugins.builtin.attach.plugin import (
     AttachPlugin
 )
+from trinity.plugins.builtin.block_importer.plugin import (
+    BlockImporterPlugin
+)
 from trinity.plugins.builtin.ethstats.plugin import (
     EthstatsPlugin,
 )
@@ -37,6 +40,7 @@ def is_ipython_available() -> bool:
 
 BUILTIN_PLUGINS = (
     AttachPlugin() if is_ipython_available() else AttachPlugin(use_ipython=False),
+    BlockImporterPlugin(),
     EthstatsPlugin(),
     FixUncleanShutdownPlugin(),
     JsonRpcServerPlugin(),
