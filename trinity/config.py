@@ -14,16 +14,13 @@ from typing import (
 
 from eth_typing import (
     Address,
-    BlockNumber,
 )
 
 from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
 
 from eth.db.backends.base import BaseAtomicDB
-from eth.vm.base import (
-    BaseVM
-)
+from eth.typing import VMConfiguration
 
 from p2p.kademlia import Node as KademliaNode
 from p2p.constants import (
@@ -69,8 +66,6 @@ if TYPE_CHECKING:
     from trinity.chains.light import LightDispatchChain  # noqa: F401
 
 DATABASE_DIR_NAME = 'chain'
-
-T_VM_CONFIGURATION = Tuple[Tuple[BlockNumber, Type[BaseVM]], ...]
 
 
 MAINNET_EIP1085_PATH = ASSETS_DIR / 'eip1085' / 'mainnet.json'
@@ -183,7 +178,7 @@ class ChainConfig:
         ))
 
     @property
-    def vm_configuration(self) -> T_VM_CONFIGURATION:
+    def vm_configuration(self) -> VMConfiguration:
         """
         Return the vm configuration specifed from the genesis configuration file.
         """

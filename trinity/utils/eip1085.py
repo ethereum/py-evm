@@ -7,7 +7,6 @@ from typing import (
     Iterable,
     NamedTuple,
     Tuple,
-    Type,
     Union,
 )
 
@@ -41,8 +40,11 @@ from eth_utils.toolz import (
     sliding_window,
 )
 
-from eth.typing import AccountDetails
-from eth.vm.base import BaseVM
+from eth.typing import (
+    AccountDetails,
+    VMConfiguration,
+    VMFork
+)
 from eth.vm.forks import (
     TangerineWhistleVM,
     FrontierVM,
@@ -55,8 +57,6 @@ from eth.vm.forks import (
 
 RawEIP1085Dict = Dict[str, Any]
 GenesisDict = Dict[str, Union[int, BlockNumber, bytes, Hash32]]
-VMFork = Tuple[BlockNumber, Type[BaseVM]]
-VMConfiguration = Tuple[VMFork, ...]
 
 
 class RawAccountDetails(TypedDict):

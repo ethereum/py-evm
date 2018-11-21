@@ -6,14 +6,17 @@ from typing import (
     Iterable,
     List,
     NewType,
+    Sequence,
     Tuple,
     Union,
+    Type,
     TypeVar,
     TYPE_CHECKING,
 )
 
 from eth_typing import (
     Address,
+    BlockNumber,
     HexStr,
 )
 from mypy_extensions import (
@@ -26,6 +29,9 @@ if TYPE_CHECKING:
     )
     from eth.utils.spoof import (  # noqa: F401
         SpoofTransaction
+    )
+    from eth.vm.base import (  # noqa: F401
+        BaseVM
     )
 
 
@@ -61,6 +67,10 @@ TransactionDict = TypedDict('TransactionDict',
 Normalizer = Callable[[Dict[Any, Any]], Dict[str, Any]]
 
 TransactionNormalizer = Callable[[TransactionDict], TransactionDict]
+
+VMFork = Tuple[BlockNumber, Type['BaseVM']]
+
+VMConfiguration = Sequence[VMFork]
 
 VRS = NewType("VRS", Tuple[int, int, int])
 
