@@ -134,7 +134,7 @@ def construct_trinity_config_params(
 
     if args.genesis is not None:
         if args.data_dir is None:
-            raise ValueError("Must provide both genesis and data-dir")
+            raise ValueError("When providing a custom genesis, must also provide a data-dir")
         yield 'genesis_config', args.genesis
 
     if args.data_dir is not None:
