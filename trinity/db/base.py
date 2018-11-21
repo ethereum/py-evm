@@ -1,3 +1,7 @@
+from contextlib import contextmanager
+from typing import (
+    Generator,
+)
 # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
 # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
 from multiprocessing.managers import (  # type: ignore
@@ -5,6 +9,7 @@ from multiprocessing.managers import (  # type: ignore
 )
 
 from eth.db.backends.base import BaseDB
+from eth.db.atomic import AtomicDBWriteBatch
 
 from trinity.utils.mp import async_method
 
@@ -15,12 +20,13 @@ class DBProxy(BaseProxy):
         '__delitem__',
         '__getitem__',
         '__setitem__',
+        'atomic_batch',
+        'coro_set',
+        'coro_exists',
         'delete',
         'exists',
         'get',
         'set',
-        'coro_set',
-        'coro_exists',
     )
     coro_set = async_method('set')
     coro_exists = async_method('exists')
@@ -48,6 +54,11 @@ class DBProxy(BaseProxy):
 
     def __contains__(self, key: bytes) -> bool:
         return self._callmethod('__contains__', (key,))
+
+    @contextmanager
+    def atomic_batch(self) -> Generator['AtomicDBWriteBatch', None, None]:
+        with AtomicDBWriteBatch._commit_unless_raises(self) as readable_batch:
+            yield readable_batch
 
 
 class AsyncBaseDB(BaseDB):

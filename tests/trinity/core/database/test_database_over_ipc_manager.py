@@ -94,3 +94,19 @@ def test_db_over_ipc_manager(manager):
 
     with pytest.raises(KeyError):
         db[b'not-present']
+
+
+def test_atomic_batch_over_ipc_manager(manager):
+    db = manager.get_db()
+
+    assert b'key-b' not in db
+    assert b'key-c' not in db
+
+    with db.atomic_batch() as batch:
+        batch.set(b'key-b', b'value-b')
+        batch.set(b'key-c', b'value-c')
+
+    assert b'key-b' in db
+    assert db[b'key-b'] == b'value-b'
+    assert b'key-c' in db
+    assert db[b'key-c'] == b'value-c'
