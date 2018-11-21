@@ -8,15 +8,16 @@ from typing import (
     NewType,
     Sequence,
     Tuple,
-    Union,
     Type,
     TypeVar,
     TYPE_CHECKING,
+    Union,
 )
 
 from eth_typing import (
     Address,
     BlockNumber,
+    Hash32,
     HexStr,
 )
 from mypy_extensions import (
@@ -54,6 +55,17 @@ GeneralState = Union[
     List[Tuple[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]]
 ]
 
+GenesisDict = Dict[str, Union[int, BlockNumber, bytes, Hash32]]
+
+Normalizer = Callable[[Dict[Any, Any]], Dict[str, Any]]
+
+RawAccountDetails = TypedDict('RawAccountDetails',
+                              {'balance': HexStr,
+                               'nonce': HexStr,
+                               'code': HexStr,
+                               'storage': Dict[HexStr, HexStr]
+                               })
+
 TransactionDict = TypedDict('TransactionDict',
                             {'nonce': int,
                              'gasLimit': int,
@@ -63,8 +75,6 @@ TransactionDict = TypedDict('TransactionDict',
                              'data': bytes,
                              'secretKey': bytes,
                              })
-
-Normalizer = Callable[[Dict[Any, Any]], Dict[str, Any]]
 
 TransactionNormalizer = Callable[[TransactionDict], TransactionDict]
 

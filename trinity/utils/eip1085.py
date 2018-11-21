@@ -7,11 +7,6 @@ from typing import (
     Iterable,
     NamedTuple,
     Tuple,
-    Union,
-)
-
-from mypy_extensions import (
-    TypedDict,
 )
 
 from jsonschema import (
@@ -42,8 +37,10 @@ from eth_utils.toolz import (
 
 from eth.typing import (
     AccountDetails,
+    GenesisDict,
     VMConfiguration,
-    VMFork
+    VMFork,
+    RawAccountDetails,
 )
 from eth.vm.forks import (
     TangerineWhistleVM,
@@ -56,14 +53,6 @@ from eth.vm.forks import (
 
 
 RawEIP1085Dict = Dict[str, Any]
-GenesisDict = Dict[str, Union[int, BlockNumber, bytes, Hash32]]
-
-
-class RawAccountDetails(TypedDict):
-    balance: HexStr
-    nonce: HexStr
-    code: HexStr
-    storage: Dict[HexStr, HexStr]
 
 
 class Account(NamedTuple):
