@@ -16,6 +16,7 @@ from cancel_token import CancelToken
 from eth_utils import (
     ValidationError,
 )
+from eth_utils.toolz import concat
 
 from p2p.exceptions import PeerConnectionLost
 from p2p.peer import BasePeer, PeerSubscriber
@@ -27,6 +28,7 @@ from p2p.protocol import (
 from p2p.service import BaseService
 
 from trinity.exceptions import AlreadyWaiting
+from trinity.utils.timer import Timer
 
 from .constants import ROUND_TRIP_TIMEOUT
 from .normalizers import BaseNormalizer
@@ -257,14 +259,27 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
 
         stream = self._response_stream
 
+        timer = Timer()
         async for payload in stream.payload_candidates(request, tracker, timeout=timeout):
             try:
                 payload_validator(payload)
 
+                timer.pop_elapsed()
                 if normalizer.is_normalization_slow:
-                    result = await stream._run_in_executor(normalizer.normalize_result, payload)
+                    result = tuple(concat(await asyncio.gather(*(
+                        stream._run_in_executor(result_part_cb)
+                        for result_part_cb
+                        in normalizer.normalize_result(payload)
+                    ))))
+                    #result = await stream._run_in_executor(normalizer.normalize_result, payload)
                 else:
                     result = normalizer.normalize_result(payload)
+                self.service.logger.debug(
+                    'Normalization for %s took %0.1d seconds (slow: %s)',
+                    stream.response_msg_name,
+                    timer.pop_elapsed(),
+                    'y' if normalizer.is_normalization_slow else 'n',
+                )
 
                 validate_result(result)
             except ValidationError as err:
