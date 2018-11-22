@@ -6,14 +6,18 @@ from typing import (
     Iterable,
     List,
     NewType,
+    Sequence,
     Tuple,
-    Union,
+    Type,
     TypeVar,
     TYPE_CHECKING,
+    Union,
 )
 
 from eth_typing import (
     Address,
+    BlockNumber,
+    Hash32,
     HexStr,
 )
 from mypy_extensions import (
@@ -26,6 +30,9 @@ if TYPE_CHECKING:
     )
     from eth.utils.spoof import (  # noqa: F401
         SpoofTransaction
+    )
+    from eth.vm.base import (  # noqa: F401
+        BaseVM
     )
 
 
@@ -48,6 +55,17 @@ GeneralState = Union[
     List[Tuple[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]]
 ]
 
+GenesisDict = Dict[str, Union[int, BlockNumber, bytes, Hash32]]
+
+Normalizer = Callable[[Dict[Any, Any]], Dict[str, Any]]
+
+RawAccountDetails = TypedDict('RawAccountDetails',
+                              {'balance': HexStr,
+                               'nonce': HexStr,
+                               'code': HexStr,
+                               'storage': Dict[HexStr, HexStr]
+                               })
+
 TransactionDict = TypedDict('TransactionDict',
                             {'nonce': int,
                              'gasLimit': int,
@@ -58,9 +76,11 @@ TransactionDict = TypedDict('TransactionDict',
                              'secretKey': bytes,
                              })
 
-Normalizer = Callable[[Dict[Any, Any]], Dict[str, Any]]
-
 TransactionNormalizer = Callable[[TransactionDict], TransactionDict]
+
+VMFork = Tuple[BlockNumber, Type['BaseVM']]
+
+VMConfiguration = Sequence[VMFork]
 
 VRS = NewType("VRS", Tuple[int, int, int])
 
