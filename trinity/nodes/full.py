@@ -1,11 +1,10 @@
-from eth.chains.base import (
-    BaseChain
-)
+from typing import Type
 
 from lahja import Endpoint
 
 from p2p.peer import BasePeerPool
 
+from trinity.chains.full import FullChain
 from trinity.config import TrinityConfig
 from trinity.server import FullServer
 
@@ -13,7 +12,7 @@ from .base import Node
 
 
 class FullNode(Node):
-    _chain: BaseChain = None
+    _chain: FullChain = None
     _p2p_server: FullServer = None
 
     def __init__(self, event_bus: Endpoint, trinity_config: TrinityConfig) -> None:
@@ -24,7 +23,11 @@ class FullNode(Node):
         self._node_port = trinity_config.port
         self._max_peers = trinity_config.max_peers
 
-    def get_chain(self) -> BaseChain:
+    @property
+    def chain_class(self) -> Type[FullChain]:
+        return self.chain_config.full_chain_class
+
+    def get_chain(self) -> FullChain:
         if self._chain is None:
             self._chain = self.chain_class(self.db_manager.get_db())  # type: ignore
 
@@ -34,13 +37,13 @@ class FullNode(Node):
         if self._p2p_server is None:
             manager = self.db_manager
             self._p2p_server = FullServer(
-                self._node_key,
-                self._node_port,
-                manager.get_chain(),  # type: ignore
-                manager.get_chaindb(),  # type: ignore
-                self.headerdb,
-                manager.get_db(),  # type: ignore
-                self._network_id,
+                privkey=self._node_key,
+                port=self._node_port,
+                chain=self.get_chain(),
+                chaindb=manager.get_chaindb(),  # type: ignore
+                headerdb=self.headerdb,
+                base_db=manager.get_db(),  # type: ignore
+                network_id=self._network_id,
                 max_peers=self._max_peers,
                 bootstrap_nodes=self._bootstrap_nodes,
                 preferred_nodes=self._preferred_nodes,

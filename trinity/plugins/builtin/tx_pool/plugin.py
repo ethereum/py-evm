@@ -11,15 +11,15 @@ from eth.chains.base import (
 )
 from eth.chains.mainnet import (
     BYZANTIUM_MAINNET_BLOCK,
-    BaseMainnetChain,
 )
 from eth.chains.ropsten import (
     BYZANTIUM_ROPSTEN_BLOCK,
-    BaseRopstenChain,
 )
 
 from trinity.constants import (
-    SYNC_LIGHT
+    SYNC_LIGHT,
+    MAINNET_NETWORK_ID,
+    ROPSTEN_NETWORK_ID,
 )
 from trinity.extensibility import (
     BaseAsyncStopPlugin,
@@ -79,9 +79,9 @@ class TxPlugin(BaseAsyncStopPlugin):
             self.start()
 
     def do_start(self) -> None:
-        if isinstance(self.chain, BaseMainnetChain):
+        if self.context.trinity_config.network_id == MAINNET_NETWORK_ID:
             validator = DefaultTransactionValidator(self.chain, BYZANTIUM_MAINNET_BLOCK)
-        elif isinstance(self.chain, BaseRopstenChain):
+        elif self.context.trinity_config.network_id == ROPSTEN_NETWORK_ID:
             validator = DefaultTransactionValidator(self.chain, BYZANTIUM_ROPSTEN_BLOCK)
         else:
             # TODO: We could hint the user about e.g. a --tx-pool-no-validation flag to run the

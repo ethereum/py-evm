@@ -3,9 +3,6 @@ from pathlib import Path
 from multiprocessing.managers import (
     BaseManager,
 )
-from typing import (
-    Type,
-)
 
 from lahja import (
     Endpoint,
@@ -26,6 +23,7 @@ from trinity.db.manager import (
     create_db_manager
 )
 from trinity.config import (
+    ChainConfig,
     TrinityConfig,
 )
 from trinity.extensibility.events import (
@@ -42,10 +40,9 @@ class Node(BaseService):
     Create usable nodes by adding subclasses that define the following
     unset attributes.
     """
-    chain_class: Type[BaseChain] = None
-
     def __init__(self, event_bus: Endpoint, trinity_config: TrinityConfig) -> None:
         super().__init__()
+        self.trinity_config = trinity_config
         self._db_manager = create_db_manager(trinity_config.database_ipc_path)
         self._db_manager.connect()
         self._headerdb = self._db_manager.get_headerdb()  # type: ignore
@@ -70,6 +67,17 @@ class Node(BaseService):
                 )
 
         await self.wait(f())
+
+    _chain_config: ChainConfig = None
+
+    @property
+    def chain_config(self) -> ChainConfig:
+        """
+        Convenience and caching mechanism for the `ChainConfig`.
+        """
+        if self._chain_config is None:
+            self._chain_config = self.trinity_config.get_chain_config()
+        return self._chain_config
 
     @abstractmethod
     def get_chain(self) -> BaseChain:

@@ -20,9 +20,6 @@ from eth_utils import (
 
 import rlp
 
-from eth.chains.base import (
-    AsyncChain
-)
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
@@ -35,6 +32,8 @@ from eth.rlp.headers import (
 from eth.rlp.transactions import (
     BaseTransaction
 )
+
+from trinity.chains.base import BaseAsyncChain
 
 
 def transaction_to_dict(transaction: BaseTransaction) -> Dict[str, str]:
@@ -102,7 +101,7 @@ def header_to_dict(header: BlockHeader) -> Dict[str, str]:
 
 
 def block_to_dict(block: BaseBlock,
-                  chain: AsyncChain,
+                  chain: BaseAsyncChain,
                   include_transactions: bool) -> Dict[str, Union[str, List[str]]]:
 
     header_dict = header_to_dict(block.header)

@@ -1,8 +1,12 @@
 import argparse
+import json
 import logging
+from pathlib import Path
 from typing import (
     Any,
 )
+
+from eth_utils import ValidationError
 
 from eth.tools.logging import TRACE_LEVEL_NUM
 
@@ -15,6 +19,7 @@ from trinity.constants import (
     SYNC_FULL,
     SYNC_LIGHT,
 )
+from trinity.utils.eip1085 import validate_raw_eip1085_genesis_config
 
 
 class ValidateAndStoreEnodes(argparse.Action):
@@ -254,6 +259,46 @@ mode_parser.add_argument(
 #
 # Chain configuration
 #
+class EIP1085GenesisLoader(argparse.Action):
+    def __call__(self,
+                 parser: argparse.ArgumentParser,
+                 namespace: argparse.Namespace,
+                 value: Any,
+                 option_string: str=None) -> None:
+        genesis_file_path = Path(value)
+
+        if not genesis_file_path.exists():
+            raise argparse.ArgumentError(
+                self,
+                f"No genesis file found at: `{value}`"
+            )
+
+        try:
+            genesis_config = json.load(genesis_file_path.open())
+        except json.JSONDecodeError:
+            raise argparse.ArgumentError(
+                self,
+                f"The genesis file at `{value}` is not valid json"
+            )
+
+        try:
+            validate_raw_eip1085_genesis_config(genesis_config)
+        except ValidationError as err:
+            raise argparse.ArgumentError(
+                self,
+                f"The genesis file at `{value}` does not pass EIP1085 validation: {err}"
+            )
+
+        setattr(namespace, self.dest, genesis_config)
+
+
+chain_parser.add_argument(
+    '--genesis',
+    help=(
+        "File containing a custom genesis block header"
+    ),
+    action=EIP1085GenesisLoader,
+)
 chain_parser.add_argument(
     '--data-dir',
     help=(
