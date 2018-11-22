@@ -3,11 +3,11 @@ import time
 
 from cancel_token import CancelToken
 
-from eth.chains import AsyncChain
 from eth.constants import BLANK_ROOT_HASH
 
 from p2p.service import BaseService
 
+from trinity.chains.base import BaseAsyncChain
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
 from trinity.protocol.eth.peer import ETHPeerPool
@@ -18,13 +18,13 @@ from .state import StateDownloader
 
 
 class FullNodeSyncer(BaseService):
-    chain: AsyncChain = None
+    chain: BaseAsyncChain = None
     chaindb: AsyncChainDB = None
     base_db: AsyncBaseDB = None
     peer_pool: ETHPeerPool = None
 
     def __init__(self,
-                 chain: AsyncChain,
+                 chain: BaseAsyncChain,
                  chaindb: AsyncChainDB,
                  base_db: AsyncBaseDB,
                  peer_pool: ETHPeerPool,

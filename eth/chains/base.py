@@ -143,10 +143,6 @@ class BaseChain(Configurable, ABC):
     def get_chaindb_class(cls) -> Type[BaseChainDB]:
         raise NotImplementedError("Chain classes must implement this method")
 
-    @classmethod
-    def get_vm_configuration(cls) -> Tuple[Tuple[int, Type['BaseVM']], ...]:
-        return cls.vm_configuration
-
     #
     # Chain API
     #
@@ -918,39 +914,3 @@ class MiningChain(Chain):
             at_header = self.header
 
         return super().get_vm(at_header)
-
-
-# This class is a work in progress; its main purpose is to define the API of an asyncio-compatible
-# Chain implementation.
-class AsyncChain(Chain):
-    # TODO: this really belongs in the `trinity` module.
-
-    async def coro_import_block(self,
-                                block: BlockHeader,
-                                perform_validation: bool=True,
-                                ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
-        raise NotImplementedError()
-
-    async def coro_validate_chain(
-            self,
-            parent: BlockHeader,
-            chain: Tuple[BlockHeader, ...],
-            seal_check_random_sample_rate: int = 1) -> None:
-        raise NotImplementedError()
-
-    async def coro_validate_receipt(self,
-                                    receipt: Receipt,
-                                    at_header: BlockHeader) -> None:
-        raise NotImplementedError()
-
-    async def coro_get_block_by_hash(self,
-                                     block_hash: Hash32) -> BaseBlock:
-        raise NotImplementedError()
-
-    async def coro_get_block_by_header(self,
-                                       header: BlockHeader) -> BaseBlock:
-        raise NotImplementedError()
-
-    async def coro_get_canonical_block_by_number(self,
-                                                 block_number: BlockNumber) -> BaseBlock:
-        raise NotImplementedError()

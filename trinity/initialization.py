@@ -1,20 +1,14 @@
 import os
 
-from eth.chains.mainnet import (
-    MAINNET_GENESIS_HEADER,
-)
-from eth.chains.ropsten import (
-    ROPSTEN_GENESIS_HEADER,
-)
+from eth.db.backends.base import BaseAtomicDB
 from eth.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
 
-from trinity.constants import (
-    ROPSTEN_NETWORK_ID,
-    MAINNET_NETWORK_ID,
+from trinity.config import (
+    ChainConfig,
+    TrinityConfig,
 )
-from trinity.config import TrinityConfig
 from trinity.db.chain import AsyncChainDB
 from trinity.exceptions import (
     MissingPath,
@@ -92,7 +86,7 @@ def initialize_data_dir(trinity_config: TrinityConfig) -> None:
             "The base logging directory provided does not exist: `{0}`".format(
                 trinity_config.logdir_path,
             ),
-            trinity_config.logdir_path
+            trinity_config.logdir_path,
         )
 
     # Chain data-dir
@@ -105,18 +99,10 @@ def initialize_data_dir(trinity_config: TrinityConfig) -> None:
             nodekey_file.write(nodekey.to_bytes())
 
 
-def initialize_database(trinity_config: TrinityConfig, chaindb: AsyncChainDB) -> None:
+def initialize_database(chain_config: ChainConfig,
+                        chaindb: AsyncChainDB,
+                        base_db: BaseAtomicDB) -> None:
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
-        if trinity_config.network_id == ROPSTEN_NETWORK_ID:
-            # We're starting with a fresh DB.
-            chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
-        elif trinity_config.network_id == MAINNET_NETWORK_ID:
-            chaindb.persist_header(MAINNET_GENESIS_HEADER)
-        else:
-            # TODO: add genesis data to TrinityConfig and if it's present, use it
-            # here to initialize the chain.
-            raise NotImplementedError(
-                "Only the mainnet and ropsten chains are currently supported"
-            )
+        chain_config.initialize_chain(base_db)

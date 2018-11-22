@@ -4,9 +4,7 @@ from argparse import (
 )
 import asyncio
 
-from trinity.constants import (
-    SYNC_LIGHT
-)
+from trinity.chains.base import BaseAsyncChain
 from trinity.db.manager import (
     create_db_manager
 )
@@ -48,15 +46,20 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
         db_manager = create_db_manager(self.context.trinity_config.database_ipc_path)
         db_manager.connect()
 
-        chain_class = self.context.trinity_config.node_class.chain_class
+        trinity_config = self.context.trinity_config
+        chain_config = trinity_config.get_chain_config()
 
-        if self.context.trinity_config.sync_mode == SYNC_LIGHT:
+        chain: BaseAsyncChain
+
+        if self.context.trinity_config.is_light_mode:
             header_db = db_manager.get_headerdb()  # type: ignore
             event_bus_light_peer_chain = EventBusLightPeerChain(self.context.event_bus)
-            chain = chain_class(header_db, peer_chain=event_bus_light_peer_chain)
-        else:
+            chain = chain_config.light_chain_class(header_db, peer_chain=event_bus_light_peer_chain)
+        elif trinity_config.is_full_mode:
             db = db_manager.get_db()  # type: ignore
-            chain = chain_class(db)
+            chain = chain_config.full_chain_class(db)
+        else:
+            raise NotImplementedError(f"Unsupported mode: {trinity_config.sync_mode}")
 
         rpc = RPCServer(chain, self.context.event_bus)
         ipc_server = IPCServer(rpc, self.context.trinity_config.jsonrpc_ipc_path)

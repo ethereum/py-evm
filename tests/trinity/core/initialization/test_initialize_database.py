@@ -1,6 +1,5 @@
 import pytest
 
-# TODO: use a custom chain class only for testing.
 from eth.db.backends.level import LevelDB
 from eth.db.chain import ChainDB
 
@@ -22,11 +21,16 @@ def trinity_config():
 
 
 @pytest.fixture
-def chaindb(trinity_config):
-    return ChainDB(LevelDB(db_path=trinity_config.database_dir))
+def base_db(trinity_config):
+    return LevelDB(db_path=trinity_config.database_dir)
 
 
-def test_initialize_database(trinity_config, chaindb):
+@pytest.fixture
+def chaindb(base_db):
+    return ChainDB(base_db)
+
+
+def test_initialize_database(trinity_config, chaindb, base_db):
     assert not is_database_initialized(chaindb)
-    initialize_database(trinity_config, chaindb)
+    initialize_database(trinity_config.get_chain_config(), chaindb, base_db)
     assert is_database_initialized(chaindb)

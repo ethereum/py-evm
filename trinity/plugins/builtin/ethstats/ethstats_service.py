@@ -155,16 +155,18 @@ class EthstatsService(BaseService):
         db_manager = create_db_manager(self.context.trinity_config.database_ipc_path)
         db_manager.connect()
 
-        chain_class = self.context.trinity_config.node_class.chain_class
+        chain_config = self.context.trinity_config.get_chain_config()
+
+        chain: BaseChain
 
         if self.context.trinity_config.sync_mode == SYNC_LIGHT:
             header_db = db_manager.get_headerdb()  # type: ignore
-            chain = chain_class(
+            chain = chain_config.light_chain_class(
                 header_db,
                 peer_chain=EventBusLightPeerChain(self.context.event_bus)
             )
         else:
             db = db_manager.get_db()  # type: ignore
-            chain = chain_class(db)
+            chain = chain_config.full_chain_class(db)
 
         return chain

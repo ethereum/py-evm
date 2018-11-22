@@ -27,9 +27,6 @@ from eth_utils import (
 from eth.constants import (
     ZERO_ADDRESS,
 )
-from eth.chains.base import (
-    AsyncChain,
-)
 from eth.rlp.blocks import (
     BaseBlock
 )
@@ -43,6 +40,7 @@ from eth.vm.state import (
     BaseAccountDB
 )
 
+from trinity.chains.base import BaseAsyncChain
 from trinity.rpc.format import (
     block_to_dict,
     header_to_dict,
@@ -63,7 +61,7 @@ from trinity.utils.validation import (
 )
 
 
-async def get_header(chain: AsyncChain, at_block: Union[str, int]) -> BlockHeader:
+async def get_header(chain: BaseAsyncChain, at_block: Union[str, int]) -> BlockHeader:
     if at_block == 'pending':
         raise NotImplementedError("RPC interface does not support the 'pending' block at this time")
     elif at_block == 'latest':
@@ -83,7 +81,7 @@ async def get_header(chain: AsyncChain, at_block: Union[str, int]) -> BlockHeade
     return at_header
 
 
-async def account_db_at_block(chain: AsyncChain,
+async def account_db_at_block(chain: BaseAsyncChain,
                               at_block: Union[str, int],
                               read_only: bool=True) ->BaseAccountDB:
     at_header = await get_header(chain, at_block)
@@ -91,7 +89,7 @@ async def account_db_at_block(chain: AsyncChain,
     return vm.state.account_db
 
 
-async def get_block_at_number(chain: AsyncChain, at_block: Union[str, int]) -> BaseBlock:
+async def get_block_at_number(chain: BaseAsyncChain, at_block: Union[str, int]) -> BaseBlock:
     # mypy doesn't have user defined type guards yet
     # https://github.com/python/mypy/issues/5206
     if is_integer(at_block) and at_block >= 0:  # type: ignore
@@ -103,7 +101,7 @@ async def get_block_at_number(chain: AsyncChain, at_block: Union[str, int]) -> B
 
 
 def dict_to_spoof_transaction(
-        chain: AsyncChain,
+        chain: BaseAsyncChain,
         header: BlockHeader,
         transaction_dict: Dict[str, Any]) -> SpoofTransaction:
     """

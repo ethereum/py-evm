@@ -15,7 +15,6 @@ from cancel_token import (
 )
 
 from eth.constants import GENESIS_BLOCK_NUMBER
-from eth.chains import AsyncChain
 from eth.exceptions import (
     HeaderNotFound,
 )
@@ -42,26 +41,13 @@ from p2p.service import (
     BaseService,
 )
 
-from trinity.db.header import (
-    AsyncHeaderDB,
-)
-from trinity.protocol.common.monitors import (
-    BaseChainTipMonitor,
-)
-from trinity.protocol.common.peer import (
-    BaseChainPeer,
-    BaseChainPeerPool,
-)
-from trinity.protocol.eth.peer import (
-    ETHPeer,
-)
-from trinity.sync.common.events import (
-    SyncingRequest,
-    SyncingResponse,
-)
-from trinity.utils.datastructures import (
-    TaskQueue,
-)
+from trinity.chains.base import BaseAsyncChain
+from trinity.db.header import AsyncHeaderDB
+from trinity.protocol.common.monitors import BaseChainTipMonitor
+from trinity.protocol.common.peer import BaseChainPeer, BaseChainPeerPool
+from trinity.protocol.eth.peer import ETHPeer
+from trinity.sync.common.events import SyncingRequest, SyncingResponse
+from trinity.utils.datastructures import TaskQueue
 
 from .types import SyncProgress
 
@@ -79,7 +65,7 @@ class BaseHeaderChainSyncer(BaseService):
     header_queue: TaskQueue[BlockHeader]
 
     def __init__(self,
-                 chain: AsyncChain,
+                 chain: BaseAsyncChain,
                  db: AsyncHeaderDB,
                  peer_pool: BaseChainPeerPool,
                  token: CancelToken = None) -> None:
@@ -187,7 +173,7 @@ class PeerHeaderSyncer(BaseService):
     _seal_check_random_sample_rate = SEAL_CHECK_RANDOM_SAMPLE_RATE
 
     def __init__(self,
-                 chain: AsyncChain,
+                 chain: BaseAsyncChain,
                  db: AsyncHeaderDB,
                  peer: BaseChainPeer,
                  token: CancelToken = None) -> None:
