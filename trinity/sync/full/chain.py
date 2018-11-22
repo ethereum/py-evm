@@ -20,6 +20,11 @@ from typing import (
 )
 
 from cancel_token import CancelToken, OperationCancelled
+
+from lahja import (
+    Endpoint,
+)
+
 from eth_typing import Hash32
 from eth_utils import (
     ValidationError,
@@ -812,10 +817,13 @@ class RegularChainSyncer(BaseBodyChainSyncer):
                  chain: BaseAsyncChain,
                  db: AsyncHeaderDB,
                  peer_pool: ETHPeerPool,
+                 block_import_fn,
                  token: CancelToken = None) -> None:
         super().__init__(chain, db, peer_pool, token)
 
         self._body_peers = WaitingPeers(commands.BlockBodies)
+
+        self._block_import_fn = block_import_fn
 
         # track when block bodies are downloaded, so that blocks can be imported
         self._block_import_tracker = OrderedTaskPreparation(
@@ -907,7 +915,7 @@ class RegularChainSyncer(BaseBodyChainSyncer):
             block = block_class(header, transactions, uncles)
             timer = Timer()
             _, new_canonical_blocks, old_canonical_blocks = await self.wait(
-                self.chain.coro_import_block(block, perform_validation=True)
+                self._block_import_fn(block, perform_validation=True)
             )
 
             if new_canonical_blocks == (block,):

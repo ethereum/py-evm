@@ -9,7 +9,10 @@ from eth import constants
 from eth.tools.mining import POWMiningMixin
 from eth.vm.forks.frontier import FrontierVM
 
-
+from trinity.plugins.builtin.block_importer import (
+    BlockImportHandler,
+    EventBusBlockImporter,
+)
 from trinity.protocol.eth.servers import ETHRequestServer
 from trinity.protocol.les.peer import LESPeer
 from trinity.protocol.les.servers import LightRequestServer
@@ -80,20 +83,33 @@ async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 
 
 @pytest.mark.asyncio
-async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
+async def test_regular_syncer(request, event_loop, event_bus, chaindb_fresh, chaindb_20):
+
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
         alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
         bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
+
+    client_chain = FrontierTestChain(chaindb_fresh.db)
+    client_block_import_handler = BlockImportHandler(client_chain, event_bus)
+    client_block_import_api = EventBusBlockImporter(event_bus)
+
     client = RegularChainSyncer(
-        FrontierTestChain(chaindb_fresh.db),
+        client_chain,
         chaindb_fresh,
-        MockPeerPoolWithConnectedPeers([client_peer]))
+        MockPeerPoolWithConnectedPeers([client_peer]),
+        block_import_fn=client_block_import_api.coro_import_block)
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
+
+    server_chain = FrontierTestChain(chaindb_20.db)
+    server_block_import_handler = BlockImportHandler(server_chain, event_bus)
+    server_block_import_api = EventBusBlockImporter(event_bus)
+
     server = RegularChainSyncer(
-        FrontierTestChain(chaindb_20.db),
+        server_chain,
         chaindb_20,
         server_peer_pool,
+        block_import_fn=server_block_import_api.coro_import_block
     )
     asyncio.ensure_future(server.run())
     server_request_handler = ETHRequestServer(FakeAsyncChainDB(chaindb_20.db), server_peer_pool)
@@ -105,6 +121,8 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
         event_loop.run_until_complete(asyncio.gather(
             client.cancel(),
             server.cancel(),
+            client_block_import_handler.cancel(),
+            server_block_import_handler.cancel(),
             loop=event_loop,
         ))
         # Yield control so that client/server.run() returns, otherwise asyncio will complain.
@@ -112,6 +130,8 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     request.addfinalizer(finalizer)
 
     asyncio.ensure_future(client.run())
+    asyncio.ensure_future(client_block_import_handler.run())
+    asyncio.ensure_future(server_block_import_handler.run())
 
     await wait_for_head(client.db, server.db.get_canonical_head())
     head = client.db.get_canonical_head()

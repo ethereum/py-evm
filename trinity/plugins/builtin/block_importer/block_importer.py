@@ -101,6 +101,7 @@ class EventBusBlockImporter:
                                 block: BlockHeader,
                                 perform_validation: bool=True,
                                 ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+
         event = ImportBlockRequest(block, perform_validation)
         # TODO: We need to teach Lahja to accept a BroadcastConfig for `request`
         # to make that more efficient. Without that, blocks are broadcasted across
