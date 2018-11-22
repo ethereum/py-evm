@@ -334,6 +334,7 @@ class FullServer(BaseServer[ETHPeerPool]):
             self.chaindb,
             self.base_db,
             self.peer_pool,
+            self.event_bus,
             token=self.cancel_token,
         )
 

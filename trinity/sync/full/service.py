@@ -10,6 +10,9 @@ from p2p.service import BaseService
 from trinity.chains.base import BaseAsyncChain
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
+from trinity.plugins.builtin.block_importer.block_importer import (
+    EventBusBlockImporter,
+)
 from trinity.protocol.eth.peer import ETHPeerPool
 
 from .chain import FastChainSyncer, RegularChainSyncer
@@ -28,15 +31,26 @@ class FullNodeSyncer(BaseService):
                  chaindb: AsyncChainDB,
                  base_db: AsyncBaseDB,
                  peer_pool: ETHPeerPool,
+                 event_bus,
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
         self.chaindb = chaindb
         self.base_db = base_db
         self.peer_pool = peer_pool
+        self.event_bus = event_bus
 
     async def _run(self) -> None:
         head = await self.wait(self.chaindb.coro_get_canonical_head())
+
+        block_importer_api = EventBusBlockImporter(self.event_bus)
+
+        # Now, loop forever, fetching missing blocks and applying them.
+        self.logger.info("Starting regular sync; current head: %s", head)
+        regular_syncer = RegularChainSyncer(
+            self.chain, self.chaindb, self.peer_pool, block_importer_api.coro_import_block, self.cancel_token)
+        await regular_syncer.run()
+
         # We're still too slow at block processing, so if our local head is older than
         # FAST_SYNC_CUTOFF we first do a fast-sync run to catch up with the rest of the network.
         # See https://github.com/ethereum/py-evm/issues/654 for more details

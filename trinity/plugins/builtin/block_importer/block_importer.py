@@ -74,6 +74,8 @@ class BlockImportHandler(BaseService):
 
         self.run_daemon_task(self.handle_import_block_requests())
 
+        await self.cancel_token.wait()
+
     async def handle_import_block_requests(self) -> None:
         async for event in self.event_bus.stream(ImportBlockRequest):
 
