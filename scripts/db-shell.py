@@ -16,6 +16,7 @@ from trinity.config import TrinityConfig
 from trinity.constants import (
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
+    SYNC_FAST,
     SYNC_FULL,
     SYNC_LIGHT,
 )
@@ -30,9 +31,13 @@ if __name__ == '__main__':
     network_id = MAINNET_NETWORK_ID
     if args.ropsten:
         network_id = ROPSTEN_NETWORK_ID
-    sync_mode = SYNC_FULL
-    if args.light:
+
+    if args.full:
+        sync_mode = SYNC_FULL
+    elif args.light:
         sync_mode = SYNC_LIGHT
+    else:
+        sync_mode = SYNC_FAST
 
     cfg = TrinityConfig(network_id, sync_mode=sync_mode)
     chaindb = ChainDB(LevelDB(cfg.database_dir))

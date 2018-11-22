@@ -33,6 +33,7 @@ from trinity.constants import (
     DEFAULT_PREFERRED_NODES,
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
+    SYNC_FAST,
     SYNC_FULL,
     SYNC_LIGHT,
 )
@@ -212,7 +213,7 @@ class TrinityConfig:
                  nodekey_path: str=None,
                  logfile_path: str=None,
                  nodekey: PrivateKey=None,
-                 sync_mode: str=SYNC_FULL,
+                 sync_mode: str=SYNC_FAST,
                  port: int=30303,
                  use_discv5: bool = False,
                  preferred_nodes: Tuple[KademliaNode, ...]=None,
@@ -375,7 +376,9 @@ class TrinityConfig:
 
         This is resolved relative to the ``data_dir``
         """
-        if self.sync_mode == SYNC_FULL:
+        if self.sync_mode == SYNC_FAST:
+            return self.data_dir / DATABASE_DIR_NAME / "fast"
+        elif self.sync_mode == SYNC_FULL:
             return self.data_dir / DATABASE_DIR_NAME / "full"
         elif self.sync_mode == SYNC_LIGHT:
             return self.data_dir / DATABASE_DIR_NAME / "light"
