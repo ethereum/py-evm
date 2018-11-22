@@ -54,6 +54,8 @@ from eth.tools._utils.normalization import (
 from eth.typing import (
     AccountState,
     GeneralState,
+    VMFork,
+    VMConfiguration,
 )
 from eth.validation import (
     validate_vm_configuration,
@@ -69,9 +71,6 @@ from eth.vm.forks import (
     ByzantiumVM,
     ConstantinopleVM,
 )
-
-
-VMConfiguration = Iterable[Tuple[int, Type[BaseVM]]]
 
 
 def build(obj: Any, *applicators: Callable[..., Any]) -> Any:
@@ -159,7 +158,7 @@ def _is_homestead(vm_class: Type[BaseVM]) -> bool:
 
 
 @to_tuple
-def _set_vm_dao_support_false(vm_configuration: VMConfiguration) -> VMConfiguration:
+def _set_vm_dao_support_false(vm_configuration: VMConfiguration) -> Iterable[VMFork]:
     for fork_block, vm_class in vm_configuration:
         if _is_homestead(vm_class):
             yield fork_block, vm_class.configure(support_dao_fork=False)
@@ -187,7 +186,7 @@ def disable_dao_fork(chain_class: Type[BaseChain]) -> Type[BaseChain]:
 
 @to_tuple
 def _set_vm_dao_fork_block_number(dao_fork_block_number: BlockNumber,
-                                  vm_configuration: VMConfiguration) -> VMConfiguration:
+                                  vm_configuration: VMConfiguration) -> Iterable[VMFork]:
     for fork_block, vm_class in vm_configuration:
         if _is_homestead(vm_class):
             yield fork_block, vm_class.configure(
@@ -257,7 +256,7 @@ def _get_default_genesis_params(genesis_state: AccountState) -> Iterable[Tuple[s
 
 
 @to_tuple
-def _mix_in_pow_mining(vm_configuration: VMConfiguration) -> VMConfiguration:
+def _mix_in_pow_mining(vm_configuration: VMConfiguration) -> Iterable[VMFork]:
     for fork_block, vm_class in vm_configuration:
         vm_class_with_pow_mining = type(vm_class.__name__, (POWMiningMixin, vm_class), {})
         yield fork_block, vm_class_with_pow_mining
@@ -289,7 +288,7 @@ class NoVMSealValidationMixin:
 
 
 @to_tuple
-def _mix_in_disable_seal_validation(vm_configuration: VMConfiguration) -> VMConfiguration:
+def _mix_in_disable_seal_validation(vm_configuration: VMConfiguration) -> Iterable[VMFork]:
     for fork_block, vm_class in vm_configuration:
         vm_class_without_seal_validation = type(
             vm_class.__name__,
