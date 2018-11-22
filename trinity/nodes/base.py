@@ -49,6 +49,7 @@ class Node(BaseService):
 
         self._jsonrpc_ipc_path: Path = trinity_config.jsonrpc_ipc_path
         self._network_id = trinity_config.network_id
+        self._use_discv5 = trinity_config.use_discv5
 
         self.event_bus = event_bus
 

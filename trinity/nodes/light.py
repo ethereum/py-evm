@@ -37,7 +37,6 @@ class LightNode(Node):
         self._max_peers = trinity_config.max_peers
         self._bootstrap_nodes = trinity_config.bootstrap_nodes
         self._preferred_nodes = trinity_config.preferred_nodes
-        self._use_discv5 = trinity_config.use_discv5
 
         self._peer_chain = LightPeerChain(
             self.headerdb,
