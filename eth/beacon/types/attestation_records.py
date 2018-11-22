@@ -13,9 +13,9 @@ from rlp.sedes import (
 )
 
 from eth.rlp.sedes import (
-    int16,
-    int64,
-    int256,
+    uint16,
+    uint64,
+    uint256,
     hash32,
 )
 
@@ -26,9 +26,9 @@ class AttestationRecord(rlp.Serializable):
     """
     fields = [
         # Slot number
-        ('slot', int64),
+        ('slot', uint64),
         # Shard ID
-        ('shard_id', int16),
+        ('shard_id', uint16),
         # List of block hashes that this signature is signing over that
         # are NOT part of the current chain, in order of oldest to newest
         ('oblique_parent_hashes', CountableList(hash32)),
@@ -37,10 +37,10 @@ class AttestationRecord(rlp.Serializable):
         # Who is participating
         ('attester_bitfield', binary),
         # Last justified block
-        ('justified_slot', int64),
+        ('justified_slot', uint64),
         ('justified_block_hash', hash32),
         # The actual signature
-        ('aggregate_sig', CountableList(int256)),
+        ('aggregate_sig', CountableList(uint256)),
     ]
 
     def __init__(self,

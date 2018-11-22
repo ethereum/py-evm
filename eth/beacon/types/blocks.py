@@ -19,7 +19,7 @@ from eth.constants import (
     ZERO_HASH32,
 )
 from eth.rlp.sedes import (
-    int64,
+    uint64,
     hash32,
 )
 
@@ -31,7 +31,7 @@ class BaseBeaconBlock(rlp.Serializable):
         # Hash of the parent block
         ('parent_hash', hash32),
         # Slot number (for the PoS mechanism)
-        ('slot_number', int64),
+        ('slot_number', uint64),
         # Randao commitment reveal
         ('randao_reveal', hash32),
         # Attestations

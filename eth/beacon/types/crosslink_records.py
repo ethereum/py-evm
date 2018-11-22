@@ -4,7 +4,7 @@ from eth_typing import (
 import rlp
 
 from eth.rlp.sedes import (
-    int64,
+    uint64,
     hash32,
 )
 
@@ -15,9 +15,9 @@ class CrosslinkRecord(rlp.Serializable):
     """
     fields = [
         # What dynasty the crosslink was submitted in
-        ('dynasty', int64),
+        ('dynasty', uint64),
         # slot during which crosslink was added
-        ('slot', int64),
+        ('slot', uint64),
         # The block hash
         ('hash', hash32),
     ]
