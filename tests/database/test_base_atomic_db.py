@@ -2,14 +2,17 @@ import pytest
 
 from eth_utils import ValidationError
 
-from eth.db.atomic import AtomicDB
+from eth.db.atomic import AtomicDB, SeededAtomicDB
 from eth.db.backends.level import LevelDB
 
 
-@pytest.fixture(params=['atomic', 'level'])
+@pytest.fixture(params=['atomic', 'seeded', 'level'])
 def atomic_db(request, tmpdir):
     if request.param == 'atomic':
         return AtomicDB()
+    elif request.param == 'seeded':
+        read_db = LevelDB(db_path=tmpdir.mkdir("level_db_path"))
+        return SeededAtomicDB(read_db)
     elif request.param == 'level':
         return LevelDB(db_path=tmpdir.mkdir("level_db_path"))
     else:

@@ -16,6 +16,7 @@ from eth.db.diff import (
 )
 from eth.db.backends.base import BaseDB, BaseAtomicDB
 from eth.db.backends.memory import MemoryDB
+from eth.db.batch import BatchDB
 
 
 class AtomicDB(BaseAtomicDB):
@@ -50,6 +51,19 @@ class AtomicDB(BaseAtomicDB):
     def atomic_batch(self) -> Generator['AtomicDBWriteBatch', None, None]:
         with AtomicDBWriteBatch._commit_unless_raises(self) as readable_batch:
             yield readable_batch
+
+
+class SeededAtomicDB(AtomicDB):
+    """
+    Load an atomic in-memory database using any backing read database.
+    All changes will be atomically committed to memory, and never touch the underlying database.
+
+    One example use case is when loading a chain database from disk, for testing.
+    """
+    def __init__(self, read_db: BaseDB) -> None:
+        # wrap the read-only database in an in-memory batch DB that will never be committed
+        shielded_db = BatchDB(read_db)
+        super().__init__(shielded_db)
 
 
 class AtomicDBWriteBatch(BaseDB):
