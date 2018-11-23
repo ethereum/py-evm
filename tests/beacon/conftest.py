@@ -1,16 +1,5 @@
 import pytest
 
-from eth_utils import (
-    to_tuple,
-)
-
-from eth.beacon.genesis_helpers import (
-    get_genesis_active_state,
-    get_genesis_block,
-    get_genesis_crystallized_state,
-)
-from eth.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
-from eth.beacon.types.validator_records import ValidatorRecord
 import eth.utils.bls as bls
 from eth.utils.blake import blake
 
@@ -41,20 +30,14 @@ def pubkeys(keymap):
 
 
 @pytest.fixture
-def sample_active_state_params():
-    return {
-        'pending_attestations': [],
-        'recent_block_hashes': [],
-    }
-
-
-@pytest.fixture
 def sample_attestation_record_params():
     return {
         'slot': 10,
-        'shard_id': 12,
-        'oblique_parent_hashes': [],
-        'shard_block_hash': b'\x20' * 32,
+        'shard': 12,
+        'parent_hashes': [b'\x11' * 32],
+        'shard_block_hash': b'\x22' * 32,
+        'last_crosslink_hash': b'\x33' * 32,
+        'shard_block_combined_data_root': b'\x44' * 32,
         'attester_bitfield': b'\x33\x1F',
         'justified_slot': 5,
         'justified_block_hash': b'\x33' * 32,
@@ -63,40 +46,64 @@ def sample_attestation_record_params():
 
 
 @pytest.fixture
-def sample_block_params():
+def sample_beacon_block_params():
     return {
-        'parent_hash': b'\x55' * 32,
-        'slot_number': 10,
-        'randao_reveal': b'\x34' * 32,
-        'attestations': [],
-        'pow_chain_ref': b'\x32' * 32,
-        'active_state_root': b'\x01' * 32,
-        'crystallized_state_root': b'\x05' * 32
+        'slot': 10,
+        'randao_reveal': b'\x55' * 32,
+        'candidate_pow_receipt_root': b'\x55' * 32,
+        'ancestor_hashes': (),
+        'state_root': b'\x55' * 32,
+        'attestations': (),
+        'specials': (),
+        'proposer_signature': (),
     }
 
 
 @pytest.fixture
-def sample_crystallized_state_params():
+def sample_beacon_state_params():
     return {
-        'validators': [],
-        'last_state_recalc': 50,
-        'shard_and_committee_for_slots': [],
-        'last_justified_slot': 100,
-        'justified_streak': 10,
-        'last_finalized_slot': 70,
-        'current_dynasty': 4,
-        'crosslink_records': [],
-        'dynasty_seed': b'\x55' * 32,
-        'dynasty_start': 3,
+        'validator_set_change_slot': 10,
+        'validators': (),
+        'crosslinks': (),
+        'last_state_recalculation_slot': 1,
+        'last_finalized_slot': 2,
+        'last_justified_slot': 2,
+        'justified_streak': 2,
+        'shard_and_committee_for_slots': (),
+        'persistent_committees': (),
+        'persistent_committee_reassignments': (),
+        'next_shuffling_seed': b'\x55' * 32,
+        'deposits_penalized_in_period': (),
+        'validator_set_delta_hash_chain': b'\x55' * 32,
+        'current_exit_seq': 10,
+        'genesis_time': 10,
+        'known_pow_receipt_root': b'\x55' * 32,
+        'candidate_pow_receipt_root': b'\x55' * 32,
+        'candidate_pow_receipt_root_votes': 5,
+        'pre_fork_version': 0,
+        'post_fork_version': 1,
+        'fork_slot_number': 10,
+        'pending_attestations': (),
+        'recent_block_hashes': (),
+        'randao_mix': b'\x55' * 32,
     }
 
 
 @pytest.fixture
 def sample_crosslink_record_params():
     return {
-        'dynasty': 2,
         'slot': 0,
-        'hash': b'\x43' * 32,
+        'shard_block_hash': b'\x43' * 32,
+    }
+
+
+@pytest.fixture
+def sample_proposal_signed_data_params():
+    return {
+        'fork_version': 9,
+        'slot': 10,
+        'shard': 12,
+        'block_hash': b'\x43' * 32,
     }
 
 
@@ -112,8 +119,25 @@ def sample_recent_proposer_record_params():
 @pytest.fixture
 def sample_shard_and_committee_params():
     return {
-        'shard_id': 10,
-        'committee': [],
+        'shard': 10,
+        'committee': (1, 3, 5),
+    }
+
+
+@pytest.fixture
+def sample_shard_reassignment_record():
+    return {
+        'validator_index': 10,
+        'shard': 11,
+        'slot': 12,
+    }
+
+
+@pytest.fixture
+def sample_special_params():
+    return {
+        'kind': 10,
+        'data': b'\x55' * 100,
     }
 
 
@@ -124,9 +148,11 @@ def sample_validator_record_params():
         'withdrawal_shard': 10,
         'withdrawal_address': b'\x01' * 20,
         'randao_commitment': b'\x01' * 32,
+        'randao_last_change': 1,
         'balance': 100,
-        'start_dynasty': 1,
-        'end_dynasty': 3
+        'status': 1,
+        'exit_slot': 0,
+        'exit_seq': 0
     }
 
 
@@ -151,105 +177,3 @@ def num_validators():
 @pytest.fixture
 def init_validator_keys(pubkeys, num_validators):
     return pubkeys[:num_validators]
-
-
-#
-# config
-#
-@pytest.fixture
-def base_reward_quotient():
-    return SERENITY_CONFIG.BASE_REWARD_QUOTIENT
-
-
-@pytest.fixture
-def default_end_dynasty():
-    return SERENITY_CONFIG.DEFAULT_END_DYNASTY
-
-
-@pytest.fixture
-def deposit_size():
-    return SERENITY_CONFIG.DEPOSIT_SIZE
-
-
-@pytest.fixture
-def cycle_length():
-    return SERENITY_CONFIG.CYCLE_LENGTH
-
-
-@pytest.fixture
-def min_committee_size():
-    return SERENITY_CONFIG.MIN_COMMITTEE_SIZE
-
-
-@pytest.fixture
-def min_dynasty_length():
-    return SERENITY_CONFIG.MIN_DYNASTY_LENGTH
-
-
-@pytest.fixture
-def shard_count():
-    return SERENITY_CONFIG.SHARD_COUNT
-
-
-@pytest.fixture
-def slot_duration():
-    return SERENITY_CONFIG.SLOT_DURATION
-
-
-@pytest.fixture
-def sqrt_e_drop_time():
-    return SERENITY_CONFIG.SQRT_E_DROP_TIME
-
-
-#
-# genesis
-#
-@pytest.fixture
-@to_tuple
-def genesis_validators(init_validator_keys,
-                       init_randao,
-                       deposit_size,
-                       default_end_dynasty):
-    current_dynasty = 1
-    return [
-        ValidatorRecord(
-            pubkey=pub,
-            withdrawal_shard=0,
-            withdrawal_address=blake(pub.to_bytes(32, 'big'))[-20:],
-            randao_commitment=init_randao,
-            balance=deposit_size,
-            start_dynasty=current_dynasty,
-            end_dynasty=default_end_dynasty
-        ) for pub in init_validator_keys
-    ]
-
-
-@pytest.fixture
-def genesis_crystallized_state(genesis_validators,
-                               init_shuffling_seed,
-                               cycle_length,
-                               min_committee_size,
-                               shard_count):
-    return get_genesis_crystallized_state(
-        genesis_validators,
-        init_shuffling_seed,
-        cycle_length,
-        min_committee_size,
-        shard_count,
-    )
-
-
-@pytest.fixture
-def genesis_active_state(cycle_length):
-    return get_genesis_active_state(cycle_length)
-
-
-@pytest.fixture
-def genesis_block(genesis_active_state, genesis_crystallized_state):
-    active_state_root = genesis_active_state.hash
-    crystallized_state_root = genesis_crystallized_state.hash
-
-    return get_genesis_block(
-        active_state_root=active_state_root,
-        crystallized_state_root=crystallized_state_root,
-    )

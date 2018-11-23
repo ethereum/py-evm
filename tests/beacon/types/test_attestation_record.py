@@ -8,7 +8,7 @@ from eth.beacon.types.attestation_records import (
 @pytest.mark.parametrize(
     'param,default_value',
     [
-        ('oblique_parent_hashes', ()),
+        ('parent_hashes', ()),
         ('aggregate_sig', (0, 0)),
     ]
 )

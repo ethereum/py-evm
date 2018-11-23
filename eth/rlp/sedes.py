@@ -11,6 +11,7 @@ from eth.constants import (
 address = Binary.fixed_length(20, allow_empty=True)
 collation_body = Binary.fixed_length(COLLATION_SIZE)
 hash32 = Binary.fixed_length(32)
+uint8 = BigEndianInt(8)
 uint16 = BigEndianInt(16)
 uint24 = BigEndianInt(24)
 uint32 = BigEndianInt(32)

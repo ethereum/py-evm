@@ -1,5 +1,5 @@
 from typing import (
-    Iterable,
+    Sequence,
 )
 
 from eth_typing import (
@@ -14,60 +14,61 @@ from rlp.sedes import (
 )
 
 
-from eth.utils.blake import blake
-from eth.constants import (
-    ZERO_HASH32,
-)
 from eth.rlp.sedes import (
-    uint64,
     hash32,
+    uint64,
+    uint256,
 )
+from eth.utils.blake import blake
 
 from .attestation_records import AttestationRecord
+from .special_records import SpecialRecord
 
 
 class BaseBeaconBlock(rlp.Serializable):
     fields = [
-        # Hash of the parent block
-        ('parent_hash', hash32),
-        # Slot number (for the PoS mechanism)
-        ('slot_number', uint64),
-        # Randao commitment reveal
+        # Slot number
+        ('slot', uint64),
+        # Proposer RANDAO reveal
         ('randao_reveal', hash32),
+        # Recent PoW chain reference (receipt root)
+        ('candidate_pow_receipt_root', hash32),
+        # Skip list of previous beacon block hashes
+        # i'th item is the most recent ancestor whose slot is a multiple of 2**i for i = 0, ..., 31
+        ('ancestor_hashes', CountableList(hash32)),
+        # State root
+        ('state_root', hash32),
         # Attestations
         ('attestations', CountableList(AttestationRecord)),
-        # Reference to PoW chain block
-        ('pow_chain_ref', hash32),
-        # Hash of the active state
-        ('active_state_root', hash32),
-        # Hash of the crystallized state
-        ('crystallized_state_root', hash32),
+        # Specials (e.g. logouts, penalties)
+        ('specials', CountableList(SpecialRecord)),
+        # Proposer signature
+        ('proposer_signature', CountableList(uint256)),
     ]
 
     def __init__(self,
-                 parent_hash: Hash32,
-                 slot_number: int,
+                 slot: int,
                  randao_reveal: Hash32,
-                 attestations: Iterable[AttestationRecord],
-                 pow_chain_ref: Hash32,
-                 active_state_root: Hash32=ZERO_HASH32,
-                 crystallized_state_root: Hash32=ZERO_HASH32) -> None:
-        if attestations is None:
-            attestations = []
-
+                 candidate_pow_receipt_root: Hash32,
+                 ancestor_hashes: Sequence[Hash32],
+                 state_root: Hash32,
+                 attestations: Sequence[AttestationRecord],
+                 specials: Sequence[SpecialRecord],
+                 proposer_signature: Sequence[int]) -> None:
         super().__init__(
-            parent_hash=parent_hash,
-            slot_number=slot_number,
+            slot=slot,
             randao_reveal=randao_reveal,
+            candidate_pow_receipt_root=candidate_pow_receipt_root,
+            ancestor_hashes=ancestor_hashes,
+            state_root=state_root,
             attestations=attestations,
-            pow_chain_ref=pow_chain_ref,
-            active_state_root=active_state_root,
-            crystallized_state_root=crystallized_state_root,
+            specials=specials,
+            proposer_signature=proposer_signature,
         )
 
     def __repr__(self) -> str:
         return '<Block #{0} {1}>'.format(
-            self.slot_number,
+            self.slot,
             encode_hex(self.hash)[2:10],
         )
 
