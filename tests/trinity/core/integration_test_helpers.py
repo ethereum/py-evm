@@ -1,14 +1,19 @@
 import asyncio
+from pathlib import Path
 
 from cancel_token import OperationCancelled
+from eth_keys import keys
+from eth_utils import decode_hex
 
-from eth import MainnetChain, RopstenChain
+from eth import MainnetChain, RopstenChain, constants
 from eth.chains.base import (
     MiningChain,
 )
 from eth.db.backends.level import LevelDB
 from eth.db.backends.memory import MemoryDB
-from eth.db.atomic import AtomicDB
+from eth.db.atomic import AtomicDB, SeededAtomicDB
+from eth.tools.mining import POWMiningMixin
+from eth.vm.forks.byzantium import ByzantiumVM
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
@@ -36,6 +41,11 @@ def async_passthrough(base_name):
 
 
 class FakeAsyncAtomicDB(AtomicDB, AsyncBaseDB):
+    coro_set = async_passthrough('set')
+    coro_exists = async_passthrough('exists')
+
+
+class FakeAsyncSeededAtomicDB(SeededAtomicDB, AsyncBaseDB):
     coro_set = async_passthrough('set')
     coro_exists = async_passthrough('exists')
 
@@ -96,3 +106,52 @@ class FakeAsyncChain(MiningChain):
     coro_import_block = coro_import_block
     coro_validate_chain = async_passthrough('validate_chain')
     coro_validate_receipt = async_passthrough('validate_receipt')
+
+
+class ByzantiumTestChain(FakeAsyncChain):
+    vm_configuration = ((0, ByzantiumVM),)
+    chaindb_class = FakeAsyncChainDB
+    network_id = 999
+
+
+FUNDED_ACCT = keys.PrivateKey(
+    decode_hex("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee"))
+
+
+def load_mining_chain(db):
+    class POWByzantiumVM(POWMiningMixin, ByzantiumVM):
+        pass
+
+    class PoWMiningChain(ByzantiumTestChain):
+        vm_configuration = ((0, POWByzantiumVM),)
+
+    GENESIS_PARAMS = {
+        'parent_hash': constants.GENESIS_PARENT_HASH,
+        'uncles_hash': constants.EMPTY_UNCLE_HASH,
+        'coinbase': constants.ZERO_ADDRESS,
+        'transaction_root': constants.BLANK_ROOT_HASH,
+        'receipt_root': constants.BLANK_ROOT_HASH,
+        'bloom': 0,
+        'difficulty': 5,
+        'block_number': constants.GENESIS_BLOCK_NUMBER,
+        'gas_limit': 3141592,
+        'gas_used': 0,
+        'timestamp': 1514764800,
+        'extra_data': constants.GENESIS_EXTRA_DATA,
+        'nonce': constants.GENESIS_NONCE
+    }
+
+    GENESIS_STATE = {
+        FUNDED_ACCT.public_key.to_canonical_address(): {
+            "balance": 100000000000000000,
+            "code": b"",
+            "nonce": 0,
+            "storage": {}
+        }
+    }
+
+    return PoWMiningChain.from_genesis(db, GENESIS_PARAMS, GENESIS_STATE)
+
+
+_trinity_tests = Path(__file__).parent.parent
+TWENTY_HEADERS_LDB_PATH = _trinity_tests / 'integration' / 'fixtures' / '20pow_headers.ldb'

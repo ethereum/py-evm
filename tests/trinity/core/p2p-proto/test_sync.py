@@ -1,14 +1,9 @@
 import asyncio
 
 import pytest
+import shutil
 
-from eth_keys import keys
-from eth_utils import decode_hex
-
-from eth import constants
-from eth.tools.mining import POWMiningMixin
-from eth.vm.forks.frontier import FrontierVM
-
+from eth.db.backends.level import LevelDB
 
 from trinity.protocol.eth.servers import ETHRequestServer
 from trinity.protocol.les.peer import LESPeer
@@ -18,10 +13,13 @@ from trinity.sync.full.state import StateDownloader
 from trinity.sync.light.chain import LightChainSyncer
 
 from tests.trinity.core.integration_test_helpers import (
-    FakeAsyncChain,
+    ByzantiumTestChain,
     FakeAsyncChainDB,
     FakeAsyncHeaderDB,
     FakeAsyncAtomicDB,
+    FakeAsyncSeededAtomicDB,
+    load_mining_chain,
+    TWENTY_HEADERS_LDB_PATH,
 )
 from tests.trinity.core.peer_helpers import (
     get_directly_linked_peers,
@@ -46,10 +44,10 @@ async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
         alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
         bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
-    client = FastChainSyncer(FrontierTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
+    client = FastChainSyncer(ByzantiumTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
     server = RegularChainSyncer(
-        FrontierTestChain(chaindb_20.db),
+        ByzantiumTestChain(chaindb_20.db),
         chaindb_20,
         server_peer_pool,
     )
@@ -86,12 +84,12 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
         alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
         bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
     client = RegularChainSyncer(
-        FrontierTestChain(chaindb_fresh.db),
+        ByzantiumTestChain(chaindb_fresh.db),
         chaindb_fresh,
         MockPeerPoolWithConnectedPeers([client_peer]))
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
     server = RegularChainSyncer(
-        FrontierTestChain(chaindb_20.db),
+        ByzantiumTestChain(chaindb_20.db),
         chaindb_20,
         server_peer_pool,
     )
@@ -126,12 +124,12 @@ async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
         alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
         bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
     client = LightChainSyncer(
-        FrontierTestChain(chaindb_fresh.db),
+        ByzantiumTestChain(chaindb_fresh.db),
         chaindb_fresh,
         MockPeerPoolWithConnectedPeers([client_peer]))
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
     server = LightChainSyncer(
-        FrontierTestChain(chaindb_20.db),
+        ByzantiumTestChain(chaindb_20.db),
         chaindb_20,
         server_peer_pool,
     )
@@ -157,70 +155,31 @@ async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 
 
 @pytest.fixture
-def chaindb_20():
-    chain = PoWMiningChain.from_genesis(FakeAsyncAtomicDB(), GENESIS_PARAMS, GENESIS_STATE)
-    for i in range(20):
-        tx = chain.create_unsigned_transaction(
-            nonce=i,
-            gas_price=1234,
-            gas=1234000,
-            to=RECEIVER.public_key.to_canonical_address(),
-            value=i,
-            data=b'',
-        )
-        chain.apply_transaction(tx.as_signed_transaction(SENDER))
-        chain.mine_block()
+def leveldb_20(tmpdir):
+    fresh_path = tmpdir.join('20-headers.ldb')
+    # copying the files out has two benefits and one cost:
+    # B1. works with xdist, multiple access to the ldb files at the same time
+    # B2. prevents dirty-ing the git index
+    # C1. slows down test, because of time to copy over files
+    shutil.copytree(TWENTY_HEADERS_LDB_PATH, fresh_path)
+    try:
+        yield LevelDB(fresh_path)
+    finally:
+        shutil.rmtree(fresh_path)
+
+
+@pytest.fixture
+def chaindb_20(leveldb_20):
+    chain = load_mining_chain(FakeAsyncSeededAtomicDB(leveldb_20))
+    assert chain.chaindb.get_canonical_head().block_number == 20
     return chain.chaindb
 
 
 @pytest.fixture
 def chaindb_fresh():
-    chain = PoWMiningChain.from_genesis(FakeAsyncAtomicDB(), GENESIS_PARAMS, GENESIS_STATE)
+    chain = load_mining_chain(FakeAsyncAtomicDB())
     assert chain.chaindb.get_canonical_head().block_number == 0
     return chain.chaindb
-
-
-SENDER = keys.PrivateKey(
-    decode_hex("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee"))
-RECEIVER = keys.PrivateKey(
-    decode_hex("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291"))
-GENESIS_PARAMS = {
-    'parent_hash': constants.GENESIS_PARENT_HASH,
-    'uncles_hash': constants.EMPTY_UNCLE_HASH,
-    'coinbase': constants.ZERO_ADDRESS,
-    'transaction_root': constants.BLANK_ROOT_HASH,
-    'receipt_root': constants.BLANK_ROOT_HASH,
-    'bloom': 0,
-    'difficulty': 5,
-    'block_number': constants.GENESIS_BLOCK_NUMBER,
-    'gas_limit': 3141592,
-    'gas_used': 0,
-    'timestamp': 1514764800,
-    'extra_data': constants.GENESIS_EXTRA_DATA,
-    'nonce': constants.GENESIS_NONCE
-}
-GENESIS_STATE = {
-    SENDER.public_key.to_canonical_address(): {
-        "balance": 100000000000000000,
-        "code": b"",
-        "nonce": 0,
-        "storage": {}
-    }
-}
-
-
-class FrontierTestChain(FakeAsyncChain):
-    vm_configuration = ((0, FrontierVM),)
-    chaindb_class = FakeAsyncChainDB
-    network_id = 999
-
-
-class POWFrontierVM(POWMiningMixin, FrontierVM):
-    pass
-
-
-class PoWMiningChain(FrontierTestChain):
-    vm_configuration = ((0, POWFrontierVM),)
 
 
 async def wait_for_head(headerdb, header):
