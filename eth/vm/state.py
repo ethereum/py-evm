@@ -35,6 +35,9 @@ from eth.exceptions import StateRootNotFound
 from eth.tools.logging import (
     TraceLogger,
 )
+from eth.tools.tracing import (
+    Tracer,
+)
 from eth.typing import (
     BaseOrSpoofTransaction,
 )
@@ -89,6 +92,7 @@ class BaseState(Configurable, ABC):
         self._db = db
         self.execution_context = execution_context
         self.account_db = self.get_account_db_class()(self._db, state_root)
+        self.tracer: Tracer = None
 
     #
     # Logging

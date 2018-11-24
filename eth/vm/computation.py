@@ -1,6 +1,9 @@
 from abc import (
     ABC,
-    abstractmethod
+    abstractmethod,
+)
+from copy import (
+    deepcopy,
 )
 import itertools
 import logging
@@ -476,6 +479,14 @@ class BaseComputation(Configurable, ABC):
             "y" if self.msg.is_static else "n",
         )
 
+        if self.state.tracer is not None:
+            self.state.tracer.capture_start(addr_from=encode_hex(self.msg.sender),
+                                            addr_to=encode_hex(self.msg.to),
+                                            call=False,
+                                            input=self.msg.code,
+                                            gas=self.msg.gas,
+                                            value=self.msg.value)
+
         return self
 
     def __exit__(self, exc_type: None, exc_value: None, traceback: None) -> None:
@@ -502,6 +513,10 @@ class BaseComputation(Configurable, ABC):
                         str(exc_value),
                     )),
                 )
+            if self.state.tracer is not None:
+                self.state.tracer.capture_end(output=self.output,
+                                              gas_used=self.get_gas_used(),
+                                              err=exc_value)
 
             # suppress VM exceptions
             return True
@@ -516,9 +531,13 @@ class BaseComputation(Configurable, ABC):
                 self.msg.value,
                 self.msg.depth,
                 "y" if self.msg.is_static else "n",
-                self.msg.gas - self._gas_meter.gas_remaining,
+                self.get_gas_used(),
                 self._gas_meter.gas_remaining,
             )
+            if self.state.tracer is not None:
+                self.state.tracer.capture_end(output=self.output,
+                                              gas_used=self.get_gas_used(),
+                                              err=None)
 
     #
     # State Transition
@@ -546,25 +565,51 @@ class BaseComputation(Configurable, ABC):
         Perform the computation that would be triggered by the VM message.
         """
         with cls(state, message, transaction_context) as computation:
-            # Early exit on pre-compiles
-            if message.code_address in computation.precompiles:
-                computation.precompiles[message.code_address](computation)
-                return computation
+            if computation.state.tracer is None:
+                # Early exit on pre-compiles
+                if message.code_address in computation.precompiles:
+                    computation.precompiles[message.code_address](computation)
+                    return computation
 
             for opcode in computation.code:
                 opcode_fn = computation.get_opcode_fn(opcode)
+                pc = max(0, computation.code.pc - 1)
 
                 computation.logger.trace(
                     "OPCODE: 0x%x (%s) | pc: %s",
                     opcode,
                     opcode_fn.mnemonic,
-                    max(0, computation.code.pc - 1),
+                    pc,
                 )
 
+                if computation.state.tracer is not None:
+                    """
+                    TODO: once we are able to predict gas_used, we can capture_state here,
+                          no dumping of stack and memory required
+                    """
+                    gas_remaining_prev = computation._gas_meter.gas_remaining
+                    stack_prev = deepcopy(computation._stack)
+                    memory_prev = deepcopy(computation._memory)
+                    err: VMError = None
                 try:
                     opcode_fn(computation=computation)
                 except Halt:
                     break
+                except VMError as e:
+                    err = e
+                    raise e
+                finally:
+                    if computation.state.tracer is not None:
+                        gas_used = gas_remaining_prev - computation._gas_meter.gas_remaining
+                        computation.state.tracer.capture_state(computation=computation,
+                                                               pc=pc,
+                                                               op=opcode_fn,
+                                                               gas=gas_remaining_prev,
+                                                               gas_cost=gas_used,
+                                                               memory=memory_prev,
+                                                               stack=stack_prev,
+                                                               depth=message.depth + 1,
+                                                               err=err)
         return computation
 
     #

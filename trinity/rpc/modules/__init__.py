@@ -1,5 +1,6 @@
 from .main import RPCModule  # noqa: F401
 
+from .debug import Debug  # noqa: F401
 from .eth import Eth  # noqa: F401
 from .evm import EVM  # noqa: F401
 from .net import Net  # noqa: F401

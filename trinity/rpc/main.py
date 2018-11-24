@@ -17,6 +17,7 @@ from lahja import (
 
 from trinity.chains.base import BaseAsyncChain
 from trinity.rpc.modules import (
+    Debug,
     Eth,
     EVM,
     Net,
@@ -65,6 +66,7 @@ class RPCServer:
     '''
     chain = None
     module_classes = (
+        Debug,
         Eth,
         EVM,
         Net,
