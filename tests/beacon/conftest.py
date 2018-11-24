@@ -3,6 +3,7 @@ import pytest
 import eth.utils.bls as bls
 from eth.utils.blake import blake
 
+from eth.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
 DEFAULT_SHUFFLING_SEED = b'\00' * 32
 DEFAULT_RANDAO = b'\45' * 32
@@ -177,3 +178,126 @@ def num_validators():
 @pytest.fixture
 def init_validator_keys(pubkeys, num_validators):
     return pubkeys[:num_validators]
+
+
+#
+# config
+#
+@pytest.fixture
+def shard_count():
+    return SERENITY_CONFIG.SHARD_COUNT
+
+
+@pytest.fixture
+def deposit_size():
+    return SERENITY_CONFIG.DEPOSIT_SIZE
+
+
+@pytest.fixture
+def min_online_deposit_size():
+    return SERENITY_CONFIG.MIN_ONLINE_DEPOSIT_SIZE
+
+
+@pytest.fixture
+def deposit_contract_address():
+    return SERENITY_CONFIG.DEPOSIT_CONTRACT_ADDRESS
+
+
+@pytest.fixture
+def target_committee_size():
+    return SERENITY_CONFIG.TARGET_COMMITTEE_SIZE
+
+
+@pytest.fixture
+def genesis_time():
+    return SERENITY_CONFIG.GENESIS_TIME
+
+
+@pytest.fixture
+def slot_duration():
+    return SERENITY_CONFIG.SLOT_DURATION
+
+
+@pytest.fixture
+def cycle_length():
+    return SERENITY_CONFIG.CYCLE_LENGTH
+
+
+@pytest.fixture
+def min_validator_set_change_interval():
+    return SERENITY_CONFIG.MIN_VALIDATOR_SET_CHANGE_INTERVAL
+
+
+@pytest.fixture
+def shard_persistent_committee_change_period():
+    return SERENITY_CONFIG.SHARD_PERSISTENT_COMMITTEE_CHANGE_PERIOD
+
+
+@pytest.fixture
+def min_attestation_inclusion_delay():
+    return SERENITY_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
+
+
+@pytest.fixture
+def randao_slots_per_layer():
+    return SERENITY_CONFIG.RANDAO_SLOTS_PER_LAYER
+
+
+@pytest.fixture
+def sqrt_e_drop_time():
+    return SERENITY_CONFIG.SQRT_E_DROP_TIME
+
+
+@pytest.fixture
+def withdrawals_per_cycle():
+    return SERENITY_CONFIG.WITHDRAWALS_PER_CYCLE
+
+
+@pytest.fixture
+def min_withdrawal_period():
+    return SERENITY_CONFIG.MIN_WITHDRAWAL_PERIOD
+
+
+@pytest.fixture
+def deletion_period():
+    return SERENITY_CONFIG.DELETION_PERIOD
+
+
+@pytest.fixture
+def collective_penalty_calculation_period():
+    return SERENITY_CONFIG.COLLECTIVE_PENALTY_CALCULATION_PERIOD
+
+
+@pytest.fixture
+def pow_receipt_root_voting_period():
+    return SERENITY_CONFIG.POW_RECEIPT_ROOT_VOTING_PERIOD
+
+
+@pytest.fixture
+def slashing_whistleblower_reward_denominator():
+    return SERENITY_CONFIG.SLASHING_WHISTLEBLOWER_REWARD_DENOMINATOR
+
+
+@pytest.fixture
+def base_reward_quotient():
+    return SERENITY_CONFIG.BASE_REWARD_QUOTIENT
+
+
+@pytest.fixture
+def max_validator_churn_quotient():
+    return SERENITY_CONFIG.MAX_VALIDATOR_CHURN_QUOTIENT
+
+
+@pytest.fixture
+def pow_contract_merkle_tree_depth():
+    return SERENITY_CONFIG.POW_CONTRACT_MERKLE_TREE_DEPTH
+
+
+@pytest.fixture
+def logout_message():
+    return SERENITY_CONFIG.LOGOUT_MESSAGE
+
+
+@pytest.fixture
+def initial_fork_version():
+    return SERENITY_CONFIG.INITIAL_FORK_VERSION
