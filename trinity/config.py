@@ -34,6 +34,7 @@ from trinity.constants import (
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
     SYNC_FULL,
+    SYNC_FAST,
     SYNC_LIGHT,
 )
 from trinity.utils.chains import (
@@ -212,7 +213,7 @@ class TrinityConfig:
                  nodekey_path: str=None,
                  logfile_path: str=None,
                  nodekey: PrivateKey=None,
-                 sync_mode: str=SYNC_FULL,
+                 sync_mode: str=SYNC_FAST,
                  port: int=30303,
                  use_discv5: bool = False,
                  preferred_nodes: Tuple[KademliaNode, ...]=None,
@@ -281,13 +282,17 @@ class TrinityConfig:
 
     @sync_mode.setter
     def sync_mode(self, value: str) -> None:
-        if value not in {SYNC_FULL, SYNC_LIGHT}:
+        if value not in {SYNC_FULL, SYNC_FAST, SYNC_LIGHT}:
             raise ValueError(f"Unknown sync mode: {value}")
         self._sync_mode = value
 
     @property
     def is_light_mode(self) -> bool:
         return self.sync_mode == SYNC_LIGHT
+
+    @property
+    def is_fast_mode(self) -> bool:
+        return self.sync_mode == SYNC_FAST
 
     @property
     def is_full_mode(self) -> bool:
@@ -377,6 +382,8 @@ class TrinityConfig:
         """
         if self.sync_mode == SYNC_FULL:
             return self.data_dir / DATABASE_DIR_NAME / "full"
+        elif self.sync_mode == SYNC_FAST:
+            return self.data_dir / DATABASE_DIR_NAME / "fast"
         elif self.sync_mode == SYNC_LIGHT:
             return self.data_dir / DATABASE_DIR_NAME / "light"
         else:
@@ -457,7 +464,7 @@ class TrinityConfig:
         from trinity.nodes.full import FullNode
         from trinity.nodes.light import LightNode
 
-        if self.is_full_mode:
+        if self.is_full_mode or self.is_fast_mode:
             return FullNode
         elif self.is_light_mode:
             return LightNode

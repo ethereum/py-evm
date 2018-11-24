@@ -28,7 +28,7 @@ def test_trinity_config_computed_properties(xdg_trinity_root):
 
     assert trinity_config.network_id == 1
     assert trinity_config.data_dir == data_dir
-    assert trinity_config.database_dir == data_dir / DATABASE_DIR_NAME / "full"
+    assert trinity_config.database_dir == data_dir / DATABASE_DIR_NAME / "fast"
     assert trinity_config.nodekey_path == get_nodekey_path(data_dir)
 
 
@@ -41,7 +41,7 @@ def test_trinity_config_computed_properties_custom_xdg(tmpdir, xdg_trinity_root)
 
     assert trinity_config.network_id == 1
     assert trinity_config.data_dir == data_dir
-    assert trinity_config.database_dir == data_dir / DATABASE_DIR_NAME / "full"
+    assert trinity_config.database_dir == data_dir / DATABASE_DIR_NAME / "fast"
     assert trinity_config.nodekey_path == get_nodekey_path(data_dir)
 
 

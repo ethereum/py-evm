@@ -17,6 +17,7 @@ from trinity.constants import (
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
     SYNC_FULL,
+    SYNC_FAST,
     SYNC_LIGHT,
 )
 from trinity.utils.eip1085 import validate_raw_eip1085_genesis_config
@@ -244,8 +245,8 @@ network_parser.add_argument(
 mode_parser = syncing_parser.add_mutually_exclusive_group()
 mode_parser.add_argument(
     '--sync-mode',
-    choices={SYNC_LIGHT, SYNC_FULL},
-    default=SYNC_FULL,
+    choices={SYNC_LIGHT, SYNC_FAST, SYNC_FULL},
+    default=SYNC_FAST,
 )
 mode_parser.add_argument(
     '--light',  # TODO: consider --sync-mode like geth.
