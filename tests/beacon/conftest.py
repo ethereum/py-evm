@@ -78,15 +78,22 @@ def sample_beacon_state_params():
         'validator_set_delta_hash_chain': b'\x55' * 32,
         'current_exit_seq': 10,
         'genesis_time': 10,
-        'known_pow_receipt_root': b'\x55' * 32,
-        'candidate_pow_receipt_root': b'\x55' * 32,
-        'candidate_pow_receipt_root_votes': 5,
+        'processed_pow_receipt_root': b'\x55' * 32,
+        'candidate_pow_receipt_roots': (),
         'pre_fork_version': 0,
         'post_fork_version': 1,
         'fork_slot_number': 10,
         'pending_attestations': (),
         'recent_block_hashes': (),
         'randao_mix': b'\x55' * 32,
+    }
+
+
+@pytest.fixture
+def sample_candidate_pow_receipt_root_record_params():
+    return {
+        'candidate_pow_receipt_root': b'\x43' * 32,
+        'votes': 10,
     }
 
 

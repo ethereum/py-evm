@@ -31,7 +31,7 @@ class BaseBeaconBlock(rlp.Serializable):
         ('slot', uint64),
         # Proposer RANDAO reveal
         ('randao_reveal', hash32),
-        # Recent PoW chain reference (receipt root)
+        # Recent PoW receipt root
         ('candidate_pow_receipt_root', hash32),
         # Skip list of previous beacon block hashes
         # i'th item is the most recent ancestor whose slot is a multiple of 2**i for i = 0, ..., 31

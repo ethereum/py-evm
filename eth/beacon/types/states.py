@@ -24,6 +24,7 @@ from eth.utils.blake import (
 )
 
 from .attestation_records import AttestationRecord
+from .candidate_pow_receipt_root_records import CandidatePoWReceiptRootRecord
 from .crosslink_records import CrosslinkRecord
 from .shard_and_committees import ShardAndCommittee
 from .shard_reassignment_records import ShardReassignmentRecord
@@ -64,10 +65,9 @@ class BeaconState(rlp.Serializable):
         ('current_exit_seq', uint64),
         # Genesis time
         ('genesis_time', uint64),
-        # PoW chain reference
-        ('known_pow_receipt_root', hash32),
-        ('candidate_pow_receipt_root', hash32),
-        ('candidate_pow_receipt_root_votes', uint64),
+        # PoW receipt root
+        ('processed_pow_receipt_root', hash32),
+        ('candidate_pow_receipt_roots', CountableList(CandidatePoWReceiptRootRecord)),
         # Parameters relevant to hard forks / versioning.
         # Should be updated only by hard forks.
         ('pre_fork_version', uint64),
@@ -91,9 +91,7 @@ class BeaconState(rlp.Serializable):
                  validator_set_delta_hash_chain: Hash32,
                  current_exit_seq: int,
                  genesis_time: int,
-                 known_pow_receipt_root: Hash32,
-                 candidate_pow_receipt_root: Hash32,
-                 candidate_pow_receipt_root_votes: int,
+                 processed_pow_receipt_root: Hash32,
                  pre_fork_version: int,
                  post_fork_version: int,
                  fork_slot_number: int,
@@ -104,6 +102,7 @@ class BeaconState(rlp.Serializable):
                  persistent_committees: Sequence[Sequence[int]]=None,
                  persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=None,
                  deposits_penalized_in_period: Sequence[int]=None,
+                 candidate_pow_receipt_roots: Sequence[CandidatePoWReceiptRootRecord]=None,
                  pending_attestations: Sequence[AttestationRecord]=None,
                  recent_block_hashes: Sequence[Hash32]=None
                  ) -> None:
@@ -140,9 +139,8 @@ class BeaconState(rlp.Serializable):
             validator_set_delta_hash_chain=validator_set_delta_hash_chain,
             current_exit_seq=current_exit_seq,
             genesis_time=genesis_time,
-            known_pow_receipt_root=known_pow_receipt_root,
-            candidate_pow_receipt_root=candidate_pow_receipt_root,
-            candidate_pow_receipt_root_votes=candidate_pow_receipt_root_votes,
+            processed_pow_receipt_root=processed_pow_receipt_root,
+            candidate_pow_receipt_roots=candidate_pow_receipt_roots,
             pre_fork_version=pre_fork_version,
             post_fork_version=post_fork_version,
             fork_slot_number=fork_slot_number,
