@@ -8,8 +8,8 @@ from rlp.sedes import (
 )
 
 from eth.rlp.sedes import (
-    uint16,
     uint24,
+    uint64,
 )
 
 
@@ -19,7 +19,7 @@ class ShardAndCommittee(rlp.Serializable):
     """
     fields = [
         # Shard number
-        ('shard', uint16),
+        ('shard', uint64),
         # Validator indices
         ('committee', CountableList(uint24)),
     ]

@@ -1,7 +1,6 @@
 import rlp
 
 from eth.rlp.sedes import (
-    uint16,
     uint24,
     uint64,
 )
@@ -15,7 +14,7 @@ class ShardReassignmentRecord(rlp.Serializable):
         # Which validator to reassign
         ('validator_index', uint24),
         # To which shard
-        ('shard', uint16),
+        ('shard', uint64),
         # When
         ('slot', uint64),
     ]

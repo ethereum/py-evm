@@ -13,7 +13,6 @@ from rlp.sedes import (
 )
 
 from eth.rlp.sedes import (
-    uint16,
     uint64,
     uint256,
     hash32,
@@ -28,7 +27,7 @@ class AttestationRecord(rlp.Serializable):
         # Slot number
         ('slot', uint64),
         # Shard number
-        ('shard', uint16),
+        ('shard', uint64),
         # Beacon block hashes not part of the current chain, oldest to newest
         ('parent_hashes', CountableList(hash32)),
         # Shard block hash being attested to
