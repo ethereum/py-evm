@@ -1,3 +1,6 @@
+import sys
+import asyncio
+import pexpect
 import pytest
 
 from trinity.tools.async_process_runner import AsyncProcessRunner
@@ -107,6 +110,34 @@ async def test_light_boot(async_process_runner, command):
         "Started networking process",
         "IPC started at",
     })
+
+
+@pytest.mark.parametrize(
+    'command',
+    (
+        ('trinity', ),
+    )
+)
+@pytest.mark.asyncio
+async def test_web3(command, async_process_runner):
+    await async_process_runner.run(command, timeout_sec=30)
+    assert await contains_all(async_process_runner.stderr, {
+        "Started DB server process",
+        "Started networking process",
+        "IPC started at",
+    })
+
+    attached_trinity = pexpect.spawn('trinity', ['attach'], logfile=sys.stdout)
+    try:
+        attached_trinity.expect("An instance of Web3 connected to the running chain")
+        attached_trinity.sendline("w3.net.version")
+        attached_trinity.expect("'1'")
+        attached_trinity.sendline("w3")
+        attached_trinity.expect("web3.main.Web3")
+    except pexpect.TIMEOUT:
+        raise Exception("Trinity attach timeout")
+    finally:
+        attached_trinity.close()
 
 
 @pytest.mark.parametrize(
