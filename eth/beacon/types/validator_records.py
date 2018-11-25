@@ -33,8 +33,8 @@ class ValidatorRecord(rlp.Serializable):
         ('balance', uint64),
         # Status code
         ('status', uint8),
-        # Slot when validator exited (or 0)
-        ('exit_slot', uint64),
+        # Slot when validator last changed status (or 0)
+        ('last_status_change_slot', uint64),
         # Sequence number when validator exited (or 0)
         ('exit_seq', uint64),
     ]
@@ -47,7 +47,7 @@ class ValidatorRecord(rlp.Serializable):
                  randao_last_change: int,
                  balance: int,
                  status: int,
-                 exit_slot: int,
+                 last_status_change_slot: int,
                  exit_seq: int) -> None:
         super().__init__(
             pubkey=pubkey,
@@ -57,6 +57,6 @@ class ValidatorRecord(rlp.Serializable):
             randao_last_change=randao_last_change,
             balance=balance,
             status=status,
-            exit_slot=exit_slot,
+            last_status_change_slot=last_status_change_slot,
             exit_seq=exit_seq,
         )

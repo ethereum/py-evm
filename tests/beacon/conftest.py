@@ -152,7 +152,7 @@ def sample_validator_record_params():
         'randao_last_change': 1,
         'balance': 100,
         'status': 1,
-        'exit_slot': 0,
+        'last_status_change_slot': 0,
         'exit_seq': 0
     }
 
