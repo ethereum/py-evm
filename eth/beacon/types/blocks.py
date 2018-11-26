@@ -54,7 +54,9 @@ class BaseBeaconBlock(rlp.Serializable):
                  state_root: Hash32,
                  attestations: Sequence[AttestationRecord],
                  specials: Sequence[SpecialRecord],
-                 proposer_signature: Sequence[int]) -> None:
+                 proposer_signature: Sequence[int]=None) -> None:
+        if proposer_signature is None:
+            proposer_signature = (0, 0)
         super().__init__(
             slot=slot,
             randao_reveal=randao_reveal,
@@ -83,3 +85,10 @@ class BaseBeaconBlock(rlp.Serializable):
     @property
     def num_attestations(self) -> int:
         return len(self.attestations)
+
+    @property
+    def parent_hash(self) -> Hash32:
+        if not self.ancestor_hashes:
+            return None
+        else:
+            return self.ancestor_hashes[0]

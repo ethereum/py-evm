@@ -9,8 +9,7 @@ from eth.constants import (
 def mock_validator_record(pubkey, deposit_size, default_end_dynasty, start_dynasty=0):
     return ValidatorRecord(
         pubkey=pubkey,
-        withdrawal_shard=0,
-        withdrawal_address=pubkey.to_bytes(32, 'big')[-20:],
+        withdrawal_credentials=b'\x44' * 32,
         randao_commitment=b'\x55' * 32,
         balance=deposit_size,
         start_dynasty=start_dynasty,

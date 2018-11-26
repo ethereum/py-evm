@@ -56,7 +56,7 @@ def sample_beacon_block_params():
         'state_root': b'\x55' * 32,
         'attestations': (),
         'specials': (),
-        'proposer_signature': (),
+        'proposer_signature': (0, 0),
     }
 
 
@@ -108,7 +108,6 @@ def sample_crosslink_record_params():
 @pytest.fixture
 def sample_proposal_signed_data_params():
     return {
-        'fork_version': 9,
         'slot': 10,
         'shard': 12,
         'block_hash': b'\x43' * 32,
@@ -153,8 +152,7 @@ def sample_special_params():
 def sample_validator_record_params():
     return {
         'pubkey': 123,
-        'withdrawal_shard': 10,
-        'withdrawal_address': b'\x01' * 20,
+        'withdrawal_credentials': b'\x01' * 32,
         'randao_commitment': b'\x01' * 32,
         'randao_last_change': 1,
         'balance': 100,

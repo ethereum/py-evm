@@ -1,13 +1,9 @@
 from eth_typing import (
-    Address,
     Hash32,
 )
 import rlp
 
 from eth.rlp.sedes import (
-    address,
-    uint8,
-    uint16,
     uint64,
     uint256,
     hash32,
@@ -21,10 +17,8 @@ class ValidatorRecord(rlp.Serializable):
     fields = [
         # BLS public key
         ('pubkey', uint256),
-        # Withdrawal shard number
-        ('withdrawal_shard', uint16),
-        # Withdrawal address
-        ('withdrawal_address', address),
+        # Withdrawal credentials
+        ('withdrawal_credentials', hash32),
         # RANDAO commitment
         ('randao_commitment', hash32),
         # Slot the RANDAO commitment was last changed
@@ -32,7 +26,7 @@ class ValidatorRecord(rlp.Serializable):
         # Balance in Gwei
         ('balance', uint64),
         # Status code
-        ('status', uint8),
+        ('status', uint64),
         # Slot when validator last changed status (or 0)
         ('last_status_change_slot', uint64),
         # Sequence number when validator exited (or 0)
@@ -41,8 +35,7 @@ class ValidatorRecord(rlp.Serializable):
 
     def __init__(self,
                  pubkey: int,
-                 withdrawal_shard: int,
-                 withdrawal_address: Address,
+                 withdrawal_credentials: Hash32,
                  randao_commitment: Hash32,
                  randao_last_change: int,
                  balance: int,
@@ -51,8 +44,7 @@ class ValidatorRecord(rlp.Serializable):
                  exit_seq: int) -> None:
         super().__init__(
             pubkey=pubkey,
-            withdrawal_shard=withdrawal_shard,
-            withdrawal_address=withdrawal_address,
+            withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             randao_last_change=randao_last_change,
             balance=balance,

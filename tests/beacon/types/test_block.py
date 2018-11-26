@@ -30,3 +30,17 @@ def test_update_attestations(sample_attestation_record_params, sample_beacon_blo
 def test_hash(sample_beacon_block_params):
     block = BaseBeaconBlock(**sample_beacon_block_params)
     assert block.hash == blake(rlp.encode(block))
+
+
+def test_parent_hash(sample_beacon_block_params):
+    block = BaseBeaconBlock(**sample_beacon_block_params)
+    block = block.copy(
+        ancestor_hashes=(),
+    )
+    assert block.parent_hash is None
+
+    sample_parent_hash = b'\x01' * 32
+    block = block.copy(
+        ancestor_hashes=(sample_parent_hash,),
+    )
+    assert block.parent_hash == sample_parent_hash

@@ -278,25 +278,25 @@ class BeaconChainDB(BaseBeaconChainDB):
             return tuple(), tuple()
         else:
             for parent, child in sliding_window(2, blocks):
-                if parent.hash != child.ancestor_hashes[0]:
+                if parent.hash != child.parent_hash:
                     raise ValidationError(
                         "Non-contiguous chain. Expected {} to have {} as parent but was {}".format(
                             encode_hex(child.hash),
                             encode_hex(parent.hash),
-                            encode_hex(child.ancestor_hashes[0]),
+                            encode_hex(child.parent_hash),
                         )
                     )
 
-            is_genesis = first_block.ancestor_hashes[0] == GENESIS_PARENT_HASH
-            if not is_genesis and not cls._block_exists(db, first_block.ancestor_hashes[0]):
+            is_genesis = first_block.parent_hash == GENESIS_PARENT_HASH
+            if not is_genesis and not cls._block_exists(db, first_block.parent_hash):
                 raise ParentNotFound(
                     "Cannot persist block ({}) with unknown parent ({})".format(
-                        encode_hex(first_block.hash), encode_hex(first_block.ancestor_hashes[0])))
+                        encode_hex(first_block.hash), encode_hex(first_block.parent_hash)))
 
             if is_genesis:
                 score = 0
             else:
-                score = cls._get_score(db, first_block.ancestor_hashes[0])
+                score = cls._get_score(db, first_block.parent_hash)
 
         for block in blocks:
             db.set(
@@ -389,10 +389,10 @@ class BeaconChainDB(BaseBeaconChainDB):
             # Found a new ancestor
             yield block
 
-            if block.ancestor_hashes[0] == GENESIS_PARENT_HASH:
+            if block.parent_hash == GENESIS_PARENT_HASH:
                 break
             else:
-                block = cls._get_block_by_hash(db, block.ancestor_hashes[0])
+                block = cls._get_block_by_hash(db, block.parent_hash)
 
     @staticmethod
     def _add_block_slot_to_hash_lookup(db: BaseDB, block: BaseBeaconBlock) -> None:
