@@ -20,7 +20,6 @@ BeaconConfig = NamedTuple(
         ('MIN_VALIDATOR_SET_CHANGE_INTERVAL', int),  # slots
         ('SHARD_PERSISTENT_COMMITTEE_CHANGE_PERIOD', int),  # slots
         ('MIN_ATTESTATION_INCLUSION_DELAY', int),  # slots
-        ('RANDAO_SLOTS_PER_LAYER', int),  # slots
         ('SQRT_E_DROP_TIME', int),  # slots
         ('WITHDRAWALS_PER_CYCLE', int),  # validators
         ('MIN_WITHDRAWAL_PERIOD', int),  # slots
@@ -31,7 +30,7 @@ BeaconConfig = NamedTuple(
         ('BASE_REWARD_QUOTIENT', int),
         ('MAX_VALIDATOR_CHURN_QUOTIENT', int),
         ('POW_CONTRACT_MERKLE_TREE_DEPTH', int),
-        ('LOGOUT_MESSAGE', str),
+        ('MAX_ATTESTATION_COUNT', int),
         ('INITIAL_FORK_VERSION', int),
     )
 )

@@ -47,6 +47,19 @@ def sample_attestation_record_params():
 
 
 @pytest.fixture
+def sample_attestation_signed_data_params():
+    return {
+        'slot': 10,
+        'shard': 12,
+        'parent_hashes': [b'\x11' * 32],
+        'shard_block_hash': b'\x22' * 32,
+        'last_crosslink_hash': b'\x33' * 32,
+        'shard_block_combined_data_root': b'\x44' * 32,
+        'justified_slot': 5,
+    }
+
+
+@pytest.fixture
 def sample_beacon_block_params():
     return {
         'slot': 10,
@@ -154,7 +167,7 @@ def sample_validator_record_params():
         'pubkey': 123,
         'withdrawal_credentials': b'\x01' * 32,
         'randao_commitment': b'\x01' * 32,
-        'randao_last_change': 1,
+        'randao_skips': 1,
         'balance': 100,
         'status': 1,
         'last_status_change_slot': 0,
@@ -244,11 +257,6 @@ def min_attestation_inclusion_delay():
 
 
 @pytest.fixture
-def randao_slots_per_layer():
-    return SERENITY_CONFIG.RANDAO_SLOTS_PER_LAYER
-
-
-@pytest.fixture
 def sqrt_e_drop_time():
     return SERENITY_CONFIG.SQRT_E_DROP_TIME
 
@@ -299,8 +307,8 @@ def pow_contract_merkle_tree_depth():
 
 
 @pytest.fixture
-def logout_message():
-    return SERENITY_CONFIG.LOGOUT_MESSAGE
+def max_attestation_count():
+    return SERENITY_CONFIG.MAX_ATTESTATION_COUNT
 
 
 @pytest.fixture

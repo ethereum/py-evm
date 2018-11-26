@@ -14,7 +14,6 @@ class ProposalSignedData(rlp.Serializable):
     Note: using RLP until we have standardized serialization format.
     """
     fields = [
-        # Fork version
         # Slot number
         ('slot', uint64),
         # Shard number (or `2**64 - 1` for beacon chain)

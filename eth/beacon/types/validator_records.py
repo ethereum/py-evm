@@ -21,8 +21,8 @@ class ValidatorRecord(rlp.Serializable):
         ('withdrawal_credentials', hash32),
         # RANDAO commitment
         ('randao_commitment', hash32),
-        # Slot the RANDAO commitment was last changed
-        ('randao_last_change', uint64),
+        # Slot the proposer has skipped (ie. layers of RANDAO expected)
+        ('randao_skips', uint64),
         # Balance in Gwei
         ('balance', uint64),
         # Status code
@@ -37,7 +37,7 @@ class ValidatorRecord(rlp.Serializable):
                  pubkey: int,
                  withdrawal_credentials: Hash32,
                  randao_commitment: Hash32,
-                 randao_last_change: int,
+                 randao_skips: int,
                  balance: int,
                  status: int,
                  last_status_change_slot: int,
@@ -46,7 +46,7 @@ class ValidatorRecord(rlp.Serializable):
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
-            randao_last_change=randao_last_change,
+            randao_skips=randao_skips,
             balance=balance,
             status=status,
             last_status_change_slot=last_status_change_slot,
