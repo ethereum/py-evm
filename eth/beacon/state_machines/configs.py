@@ -15,7 +15,6 @@ BeaconConfig = NamedTuple(
         ('MIN_ONLINE_DEPOSIT_SIZE', int),  # ETH
         ('DEPOSIT_CONTRACT_ADDRESS', Address),
         ('TARGET_COMMITTEE_SIZE', int),  # validators
-        ('GENESIS_TIME', int),  # seconds
         ('SLOT_DURATION', int),  # seconds
         ('CYCLE_LENGTH', int),  # slots
         ('MIN_VALIDATOR_SET_CHANGE_INTERVAL', int),  # slots

@@ -4,7 +4,7 @@ from rlp.sedes import (
 )
 
 from eth.rlp.sedes import (
-    uint8,
+    uint64,
 )
 
 
@@ -14,7 +14,7 @@ class SpecialRecord(rlp.Serializable):
     """
     fields = [
         # Kind
-        ('kind', uint8),
+        ('kind', uint64),
         # Data
         ('data', binary),
     ]

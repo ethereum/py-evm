@@ -305,7 +305,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             )
 
             # TODO: It's a stub before we implement fork choice rule
-            score += block.slot
+            score = block.slot
 
             db.set(
                 SchemaV1.make_block_hash_to_score_lookup_key(block.hash),
@@ -409,7 +409,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         )
 
     #
-    # Active State API
+    # Beacon State API
     #
     def get_state_by_root(self, state_root: Hash32) -> BeaconState:
         return self._get_state_by_root(self.db, state_root)
@@ -417,7 +417,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     @staticmethod
     def _get_state_by_root(db: BaseDB, state_root: Hash32) -> BeaconState:
         """
-        Return the requested crystallized state as specified by state hash.
+        Return the requested beacon state as specified by state hash.
 
         Raises StateRootNotFound if it is not present in the db.
         """

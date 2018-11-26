@@ -15,7 +15,6 @@ class ProposalSignedData(rlp.Serializable):
     """
     fields = [
         # Fork version
-        ('fork_version', uint64),
         # Slot number
         ('slot', uint64),
         # Shard number (or `2**64 - 1` for beacon chain)
@@ -25,12 +24,10 @@ class ProposalSignedData(rlp.Serializable):
     ]
 
     def __init__(self,
-                 fork_version: int,
                  slot: int,
                  shard: int,
                  block_hash: Hash32) -> None:
         super().__init__(
-            fork_version=fork_version,
             slot=slot,
             shard=shard,
             block_hash=block_hash,
