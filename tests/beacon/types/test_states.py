@@ -15,9 +15,9 @@ from eth.utils.blake import (
     blake,
 )
 
-# from tests.beacon.helpers import (
-#     mock_validator_record,
-# )
+from tests.beacon.helpers import (
+    mock_validator_record,
+)
 
 
 @pytest.fixture
@@ -56,28 +56,24 @@ def test_defaults(sample_beacon_state_params):
     assert state.validators == sample_beacon_state_params['validators']
 
 
-@pytest.mark.xfail(reason="Need to be fixed when helper function is updated")
 @pytest.mark.parametrize(
-    'expected', [(0), (1), (5)]
+    'expected', [(0), (1)]
 )
 def test_num_validators(expected,
                         deposit_size,
-                        default_end_dynasty,
-                        empty_crystallized_state):
+                        empty_beacon_state):
     validators = [
         mock_validator_record(
             pubkey,
             deposit_size,
-            default_end_dynasty,
-            start_dynasty=0,
         )
         for pubkey in range(expected)
     ]
-    crystallized_state = empty_crystallized_state.copy(
+    state = empty_beacon_state.copy(
         validators=validators,
     )
 
-    assert crystallized_state.num_validators == expected
+    assert state.num_validators == expected
 
 
 @pytest.mark.parametrize(
