@@ -1,9 +1,14 @@
 import pytest
 
+from eth.beacon.enums.validator_status_codes import (
+    ValidatorStatusCode,
+)
 from eth.beacon.types.attestation_records import AttestationRecord
 from eth.beacon.types.shard_and_committees import ShardAndCommittee
+from eth.beacon.types.validator_records import ValidatorRecord
 from eth.beacon.helpers import (
     _get_element_from_recent_list,
+    get_active_validator_indices,
     get_attestation_indices,
     get_block_hash,
     get_hashes_from_recent_block_hashes,
@@ -264,31 +269,29 @@ def test_get_attestation_indices(genesis_crystallized_state,
 #
 # Shuffling
 #
-@pytest.mark.xfail(reason="Need to be fixed")
-# @pytest.mark.parametrize(
-#     (
-#         'num_validators,'
-#         'cycle_length,min_committee_size,shard_count'
-#     ),
-#     [
-#         (1000, 20, 10, 100),
-#         (100, 50, 10, 10),
-#         (20, 10, 3, 10),  # active_validators_size < cycle_length * min_committee_size
-#     ],
-# )
+@pytest.mark.parametrize(
+    (
+        'num_validators,'
+        'cycle_length,'
+        'target_committee_size,'
+        'shard_count'
+    ),
+    [
+        (1000, 20, 10, 100),
+        (100, 50, 10, 10),
+        (20, 10, 3, 10),  # active_validators_size < cycle_length * target_committee_size
+    ],
+)
 def test_get_new_shuffling_is_complete(genesis_validators,
                                        cycle_length,
-                                       min_committee_size,
+                                       target_committee_size,
                                        shard_count):
-    dynasty = 1
-
     shuffling = get_new_shuffling(
         seed=b'\x35' * 32,
         validators=genesis_validators,
-        dynasty=dynasty,
         crosslinking_start_shard=0,
         cycle_length=cycle_length,
-        min_committee_size=min_committee_size,
+        target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
 
@@ -297,45 +300,43 @@ def test_get_new_shuffling_is_complete(genesis_validators,
     shards = set()
     for slot_indices in shuffling:
         for shard_and_committee in slot_indices:
-            shards.add(shard_and_committee.shard_id)
+            shards.add(shard_and_committee.shard)
             for validator_index in shard_and_committee.committee:
                 validators.add(validator_index)
 
     assert len(validators) == len(genesis_validators)
 
 
-@pytest.mark.xfail(reason="Need to be fixed")
-# @pytest.mark.parametrize(
-#     (
-#         'num_validators,'
-#         'cycle_length,min_committee_size,shard_count'
-#     ),
-#     [
-#         (1000, 20, 10, 100),
-#         (100, 50, 10, 10),
-#         (20, 10, 3, 10),
-#     ],
-# )
+@pytest.mark.parametrize(
+    (
+        'num_validators,'
+        'cycle_length,'
+        'target_committee_size,'
+        'shard_count'
+    ),
+    [
+        (1000, 20, 10, 100),
+        (100, 50, 10, 10),
+        (20, 10, 3, 10),
+    ],
+)
 def test_get_new_shuffling_handles_shard_wrap(genesis_validators,
                                               cycle_length,
-                                              min_committee_size,
+                                              target_committee_size,
                                               shard_count):
-    dynasty = 1
-
     shuffling = get_new_shuffling(
         seed=b'\x35' * 32,
         validators=genesis_validators,
-        dynasty=dynasty,
         crosslinking_start_shard=shard_count - 1,
         cycle_length=cycle_length,
-        min_committee_size=min_committee_size,
+        target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
 
     # shard assignments should wrap around to 0 rather than continuing to SHARD_COUNT
     for slot_indices in shuffling:
         for shard_and_committee in slot_indices:
-            assert shard_and_committee.shard_id < shard_count
+            assert shard_and_committee.shard < shard_count
 
 
 #
@@ -397,3 +398,22 @@ def test_get_block_committees_info(monkeypatch,
             block_committees_info.proposer_index_in_committee ==
             result_proposer_index_in_committee
         )
+
+
+def test_get_active_validator_indices(sample_validator_record_params):
+    # 3 validators are ACTIVE by default.
+    validators = [
+        ValidatorRecord(
+            **sample_validator_record_params,
+        )
+        for i in range(3)
+    ]
+    active_validator_indices = get_active_validator_indices(validators)
+    assert len(active_validator_indices) == 3
+
+    # Make one validator becomes PENDING_EXIT.
+    validators[0] = validators[0].copy(
+        status=ValidatorStatusCode.PENDING_EXIT,
+    )
+    active_validator_indices = get_active_validator_indices(validators)
+    assert len(active_validator_indices) == 2

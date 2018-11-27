@@ -99,3 +99,29 @@ def clamp(inclusive_lower_bound: int,
         return inclusive_upper_bound
     else:
         return value
+
+
+def int_sqrt(value: int) -> int:
+    """
+    Return the largest integer ``x`` such that ``x**2 <= value``.
+    Ref: https://en.wikipedia.org/wiki/Integer_square_root
+    """
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValueError(
+            "Value must be an integer: Got: {0}".format(
+                type(value),
+            )
+        )
+    if value < 0:
+        raise ValueError(
+            "Value cannot be negative: Got: {0}".format(
+                value,
+            )
+        )
+
+    x = value
+    y = (x + 1) // 2
+    while y < x:
+        x = y
+        y = (x + value // x) // 2
+    return x
