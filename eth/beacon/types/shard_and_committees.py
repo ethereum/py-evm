@@ -1,5 +1,5 @@
 from typing import (
-    Iterable,
+    Sequence,
 )
 
 import rlp
@@ -26,7 +26,7 @@ class ShardAndCommittee(rlp.Serializable):
 
     def __init__(self,
                  shard: int,
-                 committee: Iterable[int])-> None:
+                 committee: Sequence[int])-> None:
         if committee is None:
             committee = ()
 

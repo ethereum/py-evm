@@ -1,3 +1,4 @@
+import pytest
 import rlp
 
 from eth.beacon.types.blocks import (
@@ -13,7 +14,7 @@ from eth.utils.blake import (
 
 def test_defaults(sample_beacon_block_params):
     block = BaseBeaconBlock(**sample_beacon_block_params)
-    block.slot == sample_beacon_block_params['slot']
+    assert block.slot == sample_beacon_block_params['slot']
 
 
 def test_update_attestations(sample_attestation_record_params, sample_beacon_block_params):
@@ -32,15 +33,16 @@ def test_hash(sample_beacon_block_params):
     assert block.hash == blake(rlp.encode(block))
 
 
-def test_parent_hash(sample_beacon_block_params):
-    block = BaseBeaconBlock(**sample_beacon_block_params)
-    block = block.copy(
-        ancestor_hashes=(),
+@pytest.mark.parametrize(
+    'ancestor_hashes, parent_hash',
+    [
+        ((), None),
+        ((b'\x01' * 32,), b'\x01' * 32),
+        ((b'\x01' * 32, b'\x02' * 32), b'\x01' * 32)
+    ]
+)
+def test_parent_hash(sample_beacon_block_params, ancestor_hashes, parent_hash):
+    block = BaseBeaconBlock(**sample_beacon_block_params).copy(
+        ancestor_hashes=ancestor_hashes,
     )
-    assert block.parent_hash is None
-
-    sample_parent_hash = b'\x01' * 32
-    block = block.copy(
-        ancestor_hashes=(sample_parent_hash,),
-    )
-    assert block.parent_hash == sample_parent_hash
+    assert block.parent_hash == parent_hash

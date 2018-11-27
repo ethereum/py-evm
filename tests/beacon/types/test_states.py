@@ -56,27 +56,28 @@ def test_defaults(sample_beacon_state_params):
     assert state.validators == sample_beacon_state_params['validators']
 
 
-# @pytest.mark.parametrize(
-#     'expected', [(0), (1), (5)]
-# )
-# def test_num_validators(expected,
-#                         deposit_size,
-#                         default_end_dynasty,
-#                         empty_crystallized_state):
-#     validators = [
-#         mock_validator_record(
-#             pubkey,
-#             deposit_size,
-#             default_end_dynasty,
-#             start_dynasty=0,
-#         )
-#         for pubkey in range(expected)
-#     ]
-#     crystallized_state = empty_crystallized_state.copy(
-#         validators=validators,
-#     )
+@pytest.mark.xfail(reason="Need to be fixed when helper function is updated")
+@pytest.mark.parametrize(
+    'expected', [(0), (1), (5)]
+)
+def test_num_validators(expected,
+                        deposit_size,
+                        default_end_dynasty,
+                        empty_crystallized_state):
+    validators = [
+        mock_validator_record(
+            pubkey,
+            deposit_size,
+            default_end_dynasty,
+            start_dynasty=0,
+        )
+        for pubkey in range(expected)
+    ]
+    crystallized_state = empty_crystallized_state.copy(
+        validators=validators,
+    )
 
-#     assert crystallized_state.num_validators == expected
+    assert crystallized_state.num_validators == expected
 
 
 @pytest.mark.parametrize(
