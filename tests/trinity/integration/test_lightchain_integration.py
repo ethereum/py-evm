@@ -1,6 +1,8 @@
 import asyncio
 import logging
 from pathlib import Path
+import os
+import re
 import socket
 import subprocess
 import time
@@ -196,10 +198,18 @@ async def test_lightchain_integration(
 
     n = 11
 
-    # Wait for the chain to sync a few headers.
-    async def wait_for_header_sync(block_number):
-        while headerdb.get_canonical_head().block_number < block_number:
+    async def wait_for_header_sync(n):
+        synced = False
+        imported_headers = re.compile("Imported (?P<headers>\d+) headers")
+        while not synced:
+            logger_output = caplog.text.split(os.linesep)
+            imported_headers_logs = filter(imported_headers.search, logger_output)
+            for l in imported_headers_logs:
+                m = re.search(imported_headers, l)
+                if int(m.group("headers")) > n:
+                    synced = True
             await asyncio.sleep(0.1)
+
     await asyncio.wait_for(wait_for_header_sync(n), 5)
 
     # https://ropsten.etherscan.io/block/11
