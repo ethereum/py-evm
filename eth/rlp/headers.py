@@ -40,7 +40,7 @@ from eth.vm.execution_context import (
 from .sedes import (
     address,
     hash32,
-    int256,
+    uint256,
     trie_root,
 )
 
@@ -53,7 +53,7 @@ class MiningHeader(rlp.Serializable):
         ('state_root', trie_root),
         ('transaction_root', trie_root),
         ('receipt_root', trie_root),
-        ('bloom', int256),
+        ('bloom', uint256),
         ('difficulty', big_endian_int),
         ('block_number', big_endian_int),
         ('gas_limit', big_endian_int),
@@ -74,7 +74,7 @@ class BlockHeader(rlp.Serializable):
         ('state_root', trie_root),
         ('transaction_root', trie_root),
         ('receipt_root', trie_root),
-        ('bloom', int256),
+        ('bloom', uint256),
         ('difficulty', big_endian_int),
         ('block_number', big_endian_int),
         ('gas_limit', big_endian_int),

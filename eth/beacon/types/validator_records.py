@@ -1,15 +1,11 @@
 from eth_typing import (
-    Address,
     Hash32,
 )
 import rlp
 
 from eth.rlp.sedes import (
-    address,
-    int16,
-    int64,
-    int128,
-    int256,
+    uint64,
+    uint256,
     hash32,
 )
 
@@ -19,36 +15,40 @@ class ValidatorRecord(rlp.Serializable):
     Note: using RLP until we have standardized serialization format.
     """
     fields = [
-        # The validator's public key
-        ('pubkey', int256),
-        # What shard the validator's balance will be sent to after withdrawal
-        ('withdrawal_shard', int16),
-        # And what address
-        ('withdrawal_address', address),
-        # The validator's current RANDAO beacon commitment
+        # BLS public key
+        ('pubkey', uint256),
+        # Withdrawal credentials
+        ('withdrawal_credentials', hash32),
+        # RANDAO commitment
         ('randao_commitment', hash32),
-        # Current balance
-        ('balance', int128),
-        # Dynasty where the validator is inducted
-        ('start_dynasty', int64),
-        # Dynasty where the validator leaves
-        ('end_dynasty', int64),
+        # Slot the proposer has skipped (ie. layers of RANDAO expected)
+        ('randao_skips', uint64),
+        # Balance in Gwei
+        ('balance', uint64),
+        # Status code
+        ('status', uint64),
+        # Slot when validator last changed status (or 0)
+        ('last_status_change_slot', uint64),
+        # Sequence number when validator exited (or 0)
+        ('exit_seq', uint64),
     ]
 
     def __init__(self,
                  pubkey: int,
-                 withdrawal_shard: int,
-                 withdrawal_address: Address,
+                 withdrawal_credentials: Hash32,
                  randao_commitment: Hash32,
+                 randao_skips: int,
                  balance: int,
-                 start_dynasty: int,
-                 end_dynasty: int) -> None:
+                 status: int,
+                 last_status_change_slot: int,
+                 exit_seq: int) -> None:
         super().__init__(
             pubkey=pubkey,
-            withdrawal_shard=withdrawal_shard,
-            withdrawal_address=withdrawal_address,
+            withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
+            randao_skips=randao_skips,
             balance=balance,
-            start_dynasty=start_dynasty,
-            end_dynasty=end_dynasty,
+            status=status,
+            last_status_change_slot=last_status_change_slot,
+            exit_seq=exit_seq,
         )

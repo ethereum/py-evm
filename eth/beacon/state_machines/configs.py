@@ -2,17 +2,38 @@ from typing import (
     NamedTuple,
 )
 
+from eth.typing import (
+    Address,
+)
+
+
 BeaconConfig = NamedTuple(
     'BeaconConfig',
     (
+        ('SHARD_COUNT', int),  # shards
+        ('DEPOSIT_SIZE', int),  # ETH
+        ('MIN_TOPUP_SIZE', int),  # ETH
+        ('MIN_ONLINE_DEPOSIT_SIZE', int),  # ETH
+        ('DEPOSIT_CONTRACT_ADDRESS', Address),
+        ('DEPOSITS_FOR_CHAIN_START', int),  # deposits
+        ('TARGET_COMMITTEE_SIZE', int),  # validators
+        ('SLOT_DURATION', int),  # seconds
+        ('CYCLE_LENGTH', int),  # slots
+        ('MIN_VALIDATOR_SET_CHANGE_INTERVAL', int),  # slots
+        ('SHARD_PERSISTENT_COMMITTEE_CHANGE_PERIOD', int),  # slots
+        ('MIN_ATTESTATION_INCLUSION_DELAY', int),  # slots
+        ('SQRT_E_DROP_TIME', int),  # slots
+        ('WITHDRAWALS_PER_CYCLE', int),  # validators
+        ('MIN_WITHDRAWAL_PERIOD', int),  # slots
+        ('DELETION_PERIOD', int),  # slots
+        ('COLLECTIVE_PENALTY_CALCULATION_PERIOD', int),  # slots
+        ('POW_RECEIPT_ROOT_VOTING_PERIOD', int),  # slots
+        ('SLASHING_WHISTLEBLOWER_REWARD_DENOMINATOR', int),
         ('BASE_REWARD_QUOTIENT', int),
-        ('DEFAULT_END_DYNASTY', int),
-        ('DEPOSIT_SIZE', int),
-        ('CYCLE_LENGTH', int),
-        ('MIN_COMMITTEE_SIZE', int),
-        ('MIN_DYNASTY_LENGTH', int),
-        ('SHARD_COUNT', int),
-        ('SLOT_DURATION', int),
-        ('SQRT_E_DROP_TIME', int),
+        ('INCLUDER_REWARD_SHARE_QUOTIENT', int),
+        ('MAX_VALIDATOR_CHURN_QUOTIENT', int),
+        ('POW_CONTRACT_MERKLE_TREE_DEPTH', int),
+        ('MAX_ATTESTATION_COUNT', int),
+        ('INITIAL_FORK_VERSION', int),
     )
 )

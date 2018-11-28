@@ -9,22 +9,25 @@ from eth.rlp.sedes import (
 )
 
 
-class CrosslinkRecord(rlp.Serializable):
+class ProposalSignedData(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.
     """
     fields = [
-        # Slot during which crosslink was added
+        # Slot number
         ('slot', uint64),
-        # Shard chain block hash
-        ('shard_block_hash', hash32),
+        # Shard number (or `2**64 - 1` for beacon chain)
+        ('shard', uint64),
+        # Block hash
+        ('block_hash', hash32),
     ]
 
     def __init__(self,
                  slot: int,
-                 shard_block_hash: Hash32) -> None:
-
+                 shard: int,
+                 block_hash: Hash32) -> None:
         super().__init__(
             slot=slot,
-            shard_block_hash=shard_block_hash,
+            shard=shard,
+            block_hash=block_hash,
         )

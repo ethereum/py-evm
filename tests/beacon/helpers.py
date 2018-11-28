@@ -1,3 +1,6 @@
+from eth.beacon.enums.validator_status_codes import (
+    ValidatorStatusCode,
+)
 from eth.beacon.types.validator_records import (
     ValidatorRecord,
 )
@@ -6,15 +9,16 @@ from eth.constants import (
 )
 
 
-def mock_validator_record(pubkey, deposit_size, default_end_dynasty, start_dynasty=0):
+def mock_validator_record(pubkey, deposit_size):
     return ValidatorRecord(
         pubkey=pubkey,
-        withdrawal_shard=0,
-        withdrawal_address=pubkey.to_bytes(32, 'big')[-20:],
+        withdrawal_credentials=b'\x44' * 32,
         randao_commitment=b'\x55' * 32,
+        randao_skips=0,
         balance=deposit_size,
-        start_dynasty=start_dynasty,
-        end_dynasty=default_end_dynasty
+        status=ValidatorStatusCode.ACTIVE,
+        last_status_change_slot=0,
+        exit_seq=0,
     )
 
 

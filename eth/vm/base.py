@@ -53,7 +53,7 @@ from eth.rlp.headers import (
 )
 from eth.rlp.receipts import Receipt
 from eth.rlp.sedes import (
-    int32,
+    uint32,
 )
 from eth.rlp.transactions import (
     BaseTransaction,
@@ -763,7 +763,7 @@ class VM(BaseVM):
                     "present in the provided bloom filter.".format(log_idx)
                 )
             for topic_idx, topic in enumerate(log.topics):
-                if int32.serialize(topic) not in receipt.bloom_filter:
+                if uint32.serialize(topic) not in receipt.bloom_filter:
                     raise ValidationError(
                         "The topic at position {0} from the log entry at "
                         "position {1} is not present in the provided bloom "

@@ -1,5 +1,5 @@
 from typing import (
-    Iterable,
+    Sequence,
 )
 
 import rlp
@@ -8,8 +8,8 @@ from rlp.sedes import (
 )
 
 from eth.rlp.sedes import (
-    int16,
-    int24,
+    uint24,
+    uint64,
 )
 
 
@@ -18,19 +18,19 @@ class ShardAndCommittee(rlp.Serializable):
     Note: using RLP until we have standardized serialization format.
     """
     fields = [
-        # The shard ID
-        ('shard_id', int16),
+        # Shard number
+        ('shard', uint64),
         # Validator indices
-        ('committee', CountableList(int24)),
+        ('committee', CountableList(uint24)),
     ]
 
     def __init__(self,
-                 shard_id: int,
-                 committee: Iterable[int])-> None:
+                 shard: int,
+                 committee: Sequence[int])-> None:
         if committee is None:
             committee = ()
 
         super().__init__(
-            shard_id=shard_id,
+            shard=shard,
             committee=committee,
         )
