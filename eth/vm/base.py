@@ -14,6 +14,7 @@ from typing import (
     Tuple,
     Type,
 )
+from typing import Set  # noqa: F401
 
 import rlp
 
@@ -756,19 +757,29 @@ class VM(BaseVM):
     #
     @classmethod
     def validate_receipt(cls, receipt: Receipt) -> None:
+        already_checked = set()  # type: Set[Hash32]
+
         for log_idx, log in enumerate(receipt.logs):
-            if log.address not in receipt.bloom_filter:
+            if log.address in already_checked:
+                continue
+            elif log.address not in receipt.bloom_filter:
                 raise ValidationError(
                     "The address from the log entry at position {0} is not "
                     "present in the provided bloom filter.".format(log_idx)
                 )
+            already_checked.add(log.address)
+
+        for log_idx, log in enumerate(receipt.logs):
             for topic_idx, topic in enumerate(log.topics):
-                if uint32.serialize(topic) not in receipt.bloom_filter:
+                if topic in already_checked:
+                    continue
+                elif uint32.serialize(topic) not in receipt.bloom_filter:
                     raise ValidationError(
                         "The topic at position {0} from the log entry at "
                         "position {1} is not present in the provided bloom "
                         "filter.".format(topic_idx, log_idx)
                     )
+                already_checked.add(topic)
 
     def validate_block(self, block: BaseBlock) -> None:
         """
