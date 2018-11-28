@@ -5,6 +5,11 @@ from eth.utils.blake import blake
 
 from eth.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
+from eth.beacon.types.attestation_signed_data import (
+    AttestationSignedData,
+)
+
+
 DEFAULT_SHUFFLING_SEED = b'\00' * 32
 DEFAULT_RANDAO = b'\45' * 32
 DEFAULT_NUM_VALIDATORS = 40
@@ -31,17 +36,11 @@ def pubkeys(keymap):
 
 
 @pytest.fixture
-def sample_attestation_record_params():
+def sample_attestation_record_params(sample_attestation_signed_data_params):
     return {
-        'slot': 10,
-        'shard': 12,
-        'parent_hashes': [b'\x11' * 32],
-        'shard_block_hash': b'\x22' * 32,
-        'last_crosslink_hash': b'\x33' * 32,
-        'shard_block_combined_data_root': b'\x44' * 32,
-        'attester_bitfield': b'\x33\x1F',
-        'justified_slot': 5,
-        'justified_block_hash': b'\x33' * 32,
+        'data': AttestationSignedData(**sample_attestation_signed_data_params),
+        'attester_bitfield': b'\12' * 16,
+        'poc_bitfield': b'\34' * 16,
         'aggregate_sig': [0, 0],
     }
 
@@ -51,11 +50,12 @@ def sample_attestation_signed_data_params():
     return {
         'slot': 10,
         'shard': 12,
-        'parent_hashes': [b'\x11' * 32],
-        'shard_block_hash': b'\x22' * 32,
-        'last_crosslink_hash': b'\x33' * 32,
-        'shard_block_combined_data_root': b'\x44' * 32,
+        'block_hash': b'\x11' * 32,
+        'cycle_boundary_hash': b'\x22' * 32,
+        'shard_block_hash': b'\x33' * 32,
+        'last_crosslink_hash': b'\x44' * 32,
         'justified_slot': 5,
+        'justified_block_hash': b'\x55' * 32,
     }
 
 
@@ -81,8 +81,9 @@ def sample_beacon_state_params():
         'crosslinks': (),
         'last_state_recalculation_slot': 1,
         'last_finalized_slot': 2,
-        'last_justified_slot': 2,
-        'justified_streak': 2,
+        'prev_cycle_justification_source': 2,
+        'justification_source': 2,
+        'justified_slot_bitfield': 2,
         'shard_and_committee_for_slots': (),
         'persistent_committees': (),
         'persistent_committee_reassignments': (),
@@ -124,6 +125,16 @@ def sample_fork_data_params():
         'pre_fork_version': 0,
         'post_fork_version': 0,
         'fork_slot_number': 2**64 - 1,
+    }
+
+
+@pytest.fixture
+def sample_processed_attestation_params(sample_attestation_signed_data_params):
+    return {
+        'data': AttestationSignedData(**sample_attestation_signed_data_params),
+        'attester_bitfield': b'\12' * 16,
+        'poc_bitfield': b'\34' * 16,
+        'slot_included': 0,
     }
 
 
@@ -268,6 +279,11 @@ def min_attestation_inclusion_delay():
 @pytest.fixture
 def sqrt_e_drop_time():
     return SERENITY_CONFIG.SQRT_E_DROP_TIME
+
+
+@pytest.fixture
+def includer_reward_share_quotient():
+    return SERENITY_CONFIG.INCLUDER_REWARD_SHARE_QUOTIENT
 
 
 @pytest.fixture

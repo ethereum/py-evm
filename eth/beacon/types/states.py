@@ -23,7 +23,7 @@ from eth.utils.blake import (
     blake,
 )
 
-from .attestation_records import AttestationRecord
+from .processed_attestation import ProcessedAttestation
 from .candidate_pow_receipt_root_records import CandidatePoWReceiptRootRecord
 from .crosslink_records import CrosslinkRecord
 from .shard_and_committees import ShardAndCommittee
@@ -46,10 +46,11 @@ class BeaconState(rlp.Serializable):
         ('last_state_recalculation_slot', uint64),
         # Last finalized slot
         ('last_finalized_slot', uint64),
-        # Last justified slot
-        ('last_justified_slot', uint64),
-        # Number of consecutive justified slots
-        ('justified_streak', uint64),
+        # Justification source
+        ('justification_source', uint64),
+        ('prev_cycle_justification_source', uint64),
+        # Recent justified slot bitmask
+        ('justified_slot_bitfield', uint64),
         # Committee members and their assigned shard, per slot
         ('shard_and_committee_for_slots', CountableList(CountableList(ShardAndCommittee))),
         # Persistent shard committees
@@ -74,7 +75,7 @@ class BeaconState(rlp.Serializable):
         ('post_fork_version', uint64),
         ('fork_slot_number', uint64),
         # Attestations not yet processed
-        ('pending_attestations', CountableList(AttestationRecord)),
+        ('pending_attestations', CountableList(ProcessedAttestation)),
         # recent beacon block hashes needed to process attestations, older to newer
         ('recent_block_hashes', CountableList(hash32)),
         # RANDAO state
@@ -85,8 +86,9 @@ class BeaconState(rlp.Serializable):
                  validator_set_change_slot: int,
                  last_state_recalculation_slot: int,
                  last_finalized_slot: int,
-                 last_justified_slot: int,
-                 justified_streak: int,
+                 justification_source: int,
+                 prev_cycle_justification_source: int,
+                 justified_slot_bitfield: int,
                  next_shuffling_seed: Hash32,
                  validator_set_delta_hash_chain: Hash32,
                  current_exit_seq: int,
@@ -103,7 +105,7 @@ class BeaconState(rlp.Serializable):
                  persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=None,
                  deposits_penalized_in_period: Sequence[int]=None,
                  candidate_pow_receipt_roots: Sequence[CandidatePoWReceiptRootRecord]=None,
-                 pending_attestations: Sequence[AttestationRecord]=None,
+                 pending_attestations: Sequence[ProcessedAttestation]=None,
                  recent_block_hashes: Sequence[Hash32]=None
                  ) -> None:
         if validators is None:
@@ -129,8 +131,9 @@ class BeaconState(rlp.Serializable):
             crosslinks=crosslinks,
             last_state_recalculation_slot=last_state_recalculation_slot,
             last_finalized_slot=last_finalized_slot,
-            last_justified_slot=last_justified_slot,
-            justified_streak=justified_streak,
+            justification_source=justification_source,
+            prev_cycle_justification_source=prev_cycle_justification_source,
+            justified_slot_bitfield=justified_slot_bitfield,
             shard_and_committee_for_slots=shard_and_committee_for_slots,
             persistent_committees=persistent_committees,
             persistent_committee_reassignments=persistent_committee_reassignments,

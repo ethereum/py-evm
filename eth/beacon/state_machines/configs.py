@@ -28,6 +28,7 @@ BeaconConfig = NamedTuple(
         ('POW_RECEIPT_ROOT_VOTING_PERIOD', int),  # slots
         ('SLASHING_WHISTLEBLOWER_REWARD_DENOMINATOR', int),
         ('BASE_REWARD_QUOTIENT', int),
+        ('INCLUDER_REWARD_SHARE_QUOTIENT', int),
         ('MAX_VALIDATOR_CHURN_QUOTIENT', int),
         ('POW_CONTRACT_MERKLE_TREE_DEPTH', int),
         ('MAX_ATTESTATION_COUNT', int),
