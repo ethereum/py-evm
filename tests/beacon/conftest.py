@@ -232,6 +232,11 @@ def deposit_size():
 
 
 @pytest.fixture
+def min_topup_size():
+    return SERENITY_CONFIG.MIN_TOPUP_SIZE
+
+
+@pytest.fixture
 def min_online_deposit_size():
     return SERENITY_CONFIG.MIN_ONLINE_DEPOSIT_SIZE
 
@@ -239,6 +244,11 @@ def min_online_deposit_size():
 @pytest.fixture
 def deposit_contract_address():
     return SERENITY_CONFIG.DEPOSIT_CONTRACT_ADDRESS
+
+
+@pytest.fixture
+def deposits_for_chain_start():
+    return SERENITY_CONFIG.DEPOSITS_FOR_CHAIN_START
 
 
 @pytest.fixture

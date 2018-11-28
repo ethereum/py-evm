@@ -7,8 +7,10 @@ from eth.beacon.state_machines.configs import BeaconConfig
 SERENITY_CONFIG = BeaconConfig(
     SHARD_COUNT=2**10,  # = 1,024 shards
     DEPOSIT_SIZE=2**5,  # = 32 ETH
+    MIN_TOPUP_SIZE=1,  # 1 ETH
     MIN_ONLINE_DEPOSIT_SIZE=2**4,  # = 16 ETH
     DEPOSIT_CONTRACT_ADDRESS=ZERO_ADDRESS,  # TODO: TBD
+    DEPOSITS_FOR_CHAIN_START=2**14,  # = 16,384 deposits
     TARGET_COMMITTEE_SIZE=2**8,  # = 256 validators
     SLOT_DURATION=6,  # seconds
     CYCLE_LENGTH=2**6,  # = 64 slots

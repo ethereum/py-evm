@@ -12,8 +12,10 @@ BeaconConfig = NamedTuple(
     (
         ('SHARD_COUNT', int),  # shards
         ('DEPOSIT_SIZE', int),  # ETH
+        ('MIN_TOPUP_SIZE', int),  # ETH
         ('MIN_ONLINE_DEPOSIT_SIZE', int),  # ETH
         ('DEPOSIT_CONTRACT_ADDRESS', Address),
+        ('DEPOSITS_FOR_CHAIN_START', int),  # deposits
         ('TARGET_COMMITTEE_SIZE', int),  # validators
         ('SLOT_DURATION', int),  # seconds
         ('CYCLE_LENGTH', int),  # slots
