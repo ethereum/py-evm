@@ -21,7 +21,8 @@ from eth.chains import (  # noqa: F401
 #
 #  Ensure we can reach 1024 frames of recursion
 #
-sys.setrecursionlimit(1024 * 10)
+EVM_RECURSION_LIMIT = 1024 * 10
+sys.setrecursionlimit(max(EVM_RECURSION_LIMIT, sys.getrecursionlimit()))
 
 
 __version__ = pkg_resources.get_distribution("py-evm").version
