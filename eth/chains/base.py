@@ -315,13 +315,31 @@ class BaseChain(Configurable, ABC):
     def validate_uncles(self, block: BaseBlock) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
-    @abstractmethod
+    @classmethod
     def validate_chain(
-            self,
+            cls,
             parent: BlockHeader,
             chain: Tuple[BlockHeader, ...],
             seal_check_random_sample_rate: int = 1) -> None:
-        raise NotImplementedError("Chain classes must implement this method")
+
+        all_indices = list(range(len(chain)))
+        if seal_check_random_sample_rate == 1:
+            headers_to_check_seal = set(all_indices)
+        else:
+            sample_size = len(all_indices) // seal_check_random_sample_rate
+            headers_to_check_seal = set(random.sample(all_indices, sample_size))
+
+        for i, header in enumerate(chain):
+            if header.parent_hash != parent.hash:
+                raise ValidationError(
+                    "Invalid header chain; {} has parent {}, but expected {}".format(
+                        header, header.parent_hash, parent.hash))
+            vm_class = cls.get_vm_class_for_block_number(header.block_number)
+            if i in headers_to_check_seal:
+                vm_class.validate_header(header, parent, check_seal=True)
+            else:
+                vm_class.validate_header(header, parent, check_seal=False)
+            parent = header
 
 
 class Chain(BaseChain):
@@ -819,31 +837,6 @@ class Chain(BaseChain):
 
             uncle_vm_class = self.get_vm_class_for_block_number(uncle.block_number)
             uncle_vm_class.validate_uncle(block, uncle, uncle_parent)
-
-    def validate_chain(
-            self,
-            parent: BlockHeader,
-            chain: Tuple[BlockHeader, ...],
-            seal_check_random_sample_rate: int = 1) -> None:
-
-        all_indices = list(range(len(chain)))
-        if seal_check_random_sample_rate == 1:
-            headers_to_check_seal = set(all_indices)
-        else:
-            sample_size = len(all_indices) // seal_check_random_sample_rate
-            headers_to_check_seal = set(random.sample(all_indices, sample_size))
-
-        for i, header in enumerate(chain):
-            if header.parent_hash != parent.hash:
-                raise ValidationError(
-                    "Invalid header chain; {} has parent {}, but expected {}".format(
-                        header, header.parent_hash, parent.hash))
-            vm_class = self.get_vm_class_for_block_number(header.block_number)
-            if i in headers_to_check_seal:
-                vm_class.validate_header(header, parent, check_seal=True)
-            else:
-                vm_class.validate_header(header, parent, check_seal=False)
-            parent = header
 
 
 @to_set

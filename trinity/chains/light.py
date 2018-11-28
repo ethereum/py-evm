@@ -56,6 +56,9 @@ from eth.vm.computation import (
 from trinity.sync.light.service import (
     BaseLightPeerChain,
 )
+from trinity.utils.async_dispatch import (
+    async_method,
+)
 
 from .base import BaseAsyncChain
 
@@ -250,16 +253,4 @@ class LightDispatchChain(BaseAsyncChain):
     def validate_uncles(self, block: BaseBlock) -> None:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
-    def validate_chain(
-            self,
-            parent: BlockHeader,
-            chain: Tuple[BlockHeader, ...],
-            seal_check_random_sample_rate: int = 1) -> None:
-        raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
-
-    async def coro_validate_chain(
-            self,
-            parent: BlockHeader,
-            chain: Tuple[BlockHeader, ...],
-            seal_check_random_sample_rate: int = 1) -> None:
-        raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
+    coro_validate_chain = async_method('validate_chain')
