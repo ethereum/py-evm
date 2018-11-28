@@ -119,6 +119,15 @@ def sample_crosslink_record_params():
 
 
 @pytest.fixture
+def sample_fork_data_params():
+    return {
+        'pre_fork_version': 0,
+        'post_fork_version': 0,
+        'fork_slot_number': 2**64 - 1,
+    }
+
+
+@pytest.fixture
 def sample_proposal_signed_data_params():
     return {
         'slot': 10,
