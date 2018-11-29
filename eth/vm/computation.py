@@ -149,6 +149,9 @@ class BaseComputation(Configurable, ABC):
         """
         return self.msg.sender == self.transaction_context.origin
 
+    #
+    # Error handling
+    #
     @property
     def is_success(self) -> bool:
         """
@@ -192,32 +195,6 @@ class BaseComputation(Configurable, ABC):
         Return ``True`` if the return data should be zerod out due to an error.
         """
         return self.is_error and self._error.erases_return_data
-
-    #
-    # Execution
-    #
-    def prepare_child_message(self,
-                              gas: int,
-                              to: Address,
-                              value: int,
-                              data: bytes,
-                              code: bytes,
-                              **kwargs: Any) -> Message:
-        """
-        Helper method for creating a child computation.
-        """
-        kwargs.setdefault('sender', self.msg.storage_address)
-
-        child_message = Message(
-            gas=gas,
-            to=to,
-            value=value,
-            data=data,
-            code=code,
-            depth=self.msg.depth + 1,
-            **kwargs
-        )
-        return child_message
 
     #
     # Memory Management
@@ -272,6 +249,12 @@ class BaseComputation(Configurable, ABC):
         """
         return self._memory.read(start_position, size)
 
+    #
+    # Gas Consumption
+    #
+    def get_gas_meter(self) -> GasMeter:
+        return GasMeter(self.msg.gas)
+
     def consume_gas(self, amount: int, reason: str) -> None:
         """
         Consume ``amount`` of gas from the remaining gas.
@@ -291,6 +274,30 @@ class BaseComputation(Configurable, ABC):
         """
         return self._gas_meter.refund_gas(amount)
 
+    def get_gas_refund(self) -> int:
+        if self.is_error:
+            return 0
+        else:
+            return self._gas_meter.gas_refunded + sum(c.get_gas_refund() for c in self.children)
+
+    def get_gas_used(self) -> int:
+        if self.should_burn_gas:
+            return self.msg.gas
+        else:
+            return max(
+                0,
+                self.msg.gas - self._gas_meter.gas_remaining,
+            )
+
+    def get_gas_remaining(self) -> int:
+        if self.should_burn_gas:
+            return 0
+        else:
+            return self._gas_meter.gas_remaining
+
+    #
+    # Stack management
+    #
     def stack_pop(self, num_items: int=1, type_hint: str=None) -> Any:
         # TODO: Needs to be replaced with
         # `Union[int, bytes, Tuple[Union[int, bytes], ...]]` if done properly
@@ -326,7 +333,7 @@ class BaseComputation(Configurable, ABC):
         return self._stack.dup(position)
 
     #
-    # Computed properties.
+    # Computation result
     #
     @property
     def output(self) -> bytes:
@@ -349,6 +356,29 @@ class BaseComputation(Configurable, ABC):
     #
     # Runtime operations
     #
+    def prepare_child_message(self,
+                              gas: int,
+                              to: Address,
+                              value: int,
+                              data: bytes,
+                              code: bytes,
+                              **kwargs: Any) -> Message:
+        """
+        Helper method for creating a child computation.
+        """
+        kwargs.setdefault('sender', self.msg.storage_address)
+
+        child_message = Message(
+            gas=gas,
+            to=to,
+            value=value,
+            data=data,
+            code=code,
+            depth=self.msg.depth + 1,
+            **kwargs
+        )
+        return child_message
+
     def apply_child_computation(self, child_msg: Message) -> 'BaseComputation':
         """
         Apply the vm message ``child_msg`` as a child computation.
@@ -387,6 +417,9 @@ class BaseComputation(Configurable, ABC):
                 self.return_data = child_computation.output
         self.children.append(child_computation)
 
+    #
+    # Account management
+    #
     def register_account_for_deletion(self, beneficiary: Address) -> None:
         validate_canonical_address(beneficiary, title="Self destruct beneficiary address")
 
@@ -397,20 +430,6 @@ class BaseComputation(Configurable, ABC):
             )
         self.accounts_to_delete[self.msg.storage_address] = beneficiary
 
-    def add_log_entry(self, account: Address, topics: List[int], data: bytes) -> None:
-        validate_canonical_address(account, title="Log entry address")
-        for topic in topics:
-            validate_uint256(topic, title="Log entry topic")
-        validate_is_bytes(data, title="Log entry data")
-        self._log_entries.append(
-            (self.transaction_context.get_next_log_counter(), account, topics, data))
-
-    #
-    # Getters
-    #
-    def get_gas_meter(self) -> GasMeter:
-        return GasMeter(self.msg.gas)
-
     def get_accounts_for_deletion(self) -> Tuple[Tuple[bytes, bytes], ...]:
         if self.is_error:
             return tuple()
@@ -419,6 +438,17 @@ class BaseComputation(Configurable, ABC):
                 self.accounts_to_delete.items(),
                 *(child.get_accounts_for_deletion() for child in self.children)
             )).items())
+
+    #
+    # EVM logging
+    #
+    def add_log_entry(self, account: Address, topics: List[int], data: bytes) -> None:
+        validate_canonical_address(account, title="Log entry address")
+        for topic in topics:
+            validate_uint256(topic, title="Log entry topic")
+        validate_is_bytes(data, title="Log entry data")
+        self._log_entries.append(
+            (self.transaction_context.get_next_log_counter(), account, topics, data))
 
     def _get_log_entries(self) -> List[Tuple[int, bytes, List[int], bytes]]:
         """
@@ -437,27 +467,6 @@ class BaseComputation(Configurable, ABC):
 
     def get_log_entries(self) -> Tuple[Tuple[bytes, List[int], bytes], ...]:
         return tuple(log[1:] for log in self._get_log_entries())
-
-    def get_gas_refund(self) -> int:
-        if self.is_error:
-            return 0
-        else:
-            return self._gas_meter.gas_refunded + sum(c.get_gas_refund() for c in self.children)
-
-    def get_gas_used(self) -> int:
-        if self.should_burn_gas:
-            return self.msg.gas
-        else:
-            return max(
-                0,
-                self.msg.gas - self._gas_meter.gas_remaining,
-            )
-
-    def get_gas_remaining(self) -> int:
-        if self.should_burn_gas:
-            return 0
-        else:
-            return self._gas_meter.gas_remaining
 
     #
     # Context Manager API
@@ -516,7 +525,7 @@ class BaseComputation(Configurable, ABC):
                 self.msg.value,
                 self.msg.depth,
                 "y" if self.msg.is_static else "n",
-                self.msg.gas - self._gas_meter.gas_remaining,
+                self.get_gas_used(),
                 self._gas_meter.gas_remaining,
             )
 
