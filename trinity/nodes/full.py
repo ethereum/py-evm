@@ -28,10 +28,7 @@ class FullNode(Node):
         return self.chain_config.full_chain_class
 
     def get_chain(self) -> FullChain:
-        if self._chain is None:
-            self._chain = self.chain_class(self.db_manager.get_db())  # type: ignore
-
-        return self._chain
+        return self.get_full_chain()
 
     def get_p2p_server(self) -> FullServer:
         if self._p2p_server is None:
@@ -39,7 +36,7 @@ class FullNode(Node):
             self._p2p_server = FullServer(
                 privkey=self._node_key,
                 port=self._node_port,
-                chain=self.get_chain(),
+                chain=self.get_full_chain(),
                 chaindb=manager.get_chaindb(),  # type: ignore
                 headerdb=self.headerdb,
                 base_db=manager.get_db(),  # type: ignore

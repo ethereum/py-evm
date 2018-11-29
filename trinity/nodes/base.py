@@ -16,6 +16,7 @@ from p2p.service import (
     BaseService,
 )
 
+from trinity.chains.full import FullChain
 from trinity.db.header import (
     AsyncHeaderDB,
 )
@@ -40,6 +41,8 @@ class Node(BaseService):
     Create usable nodes by adding subclasses that define the following
     unset attributes.
     """
+    _full_chain: FullChain = None
+
     def __init__(self, event_bus: Endpoint, trinity_config: TrinityConfig) -> None:
         super().__init__()
         self.trinity_config = trinity_config
@@ -83,6 +86,13 @@ class Node(BaseService):
     @abstractmethod
     def get_chain(self) -> BaseChain:
         raise NotImplementedError("Node classes must implement this method")
+
+    def get_full_chain(self) -> FullChain:
+        if self._full_chain is None:
+            chain_class = self.chain_config.full_chain_class
+            self._full_chain = chain_class(self.db_manager.get_db())  # type: ignore
+
+        return self._full_chain
 
     @abstractmethod
     def get_peer_pool(self) -> BasePeerPool:
