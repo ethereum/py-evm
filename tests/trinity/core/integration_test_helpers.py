@@ -1,18 +1,33 @@
 import asyncio
+from enum import Enum
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 from cancel_token import OperationCancelled
+from eth_keys import keys
+from eth_utils import decode_hex
 
-from eth import MainnetChain, RopstenChain
+from eth import MainnetChain, RopstenChain, constants
 from eth.chains.base import (
     MiningChain,
 )
 from eth.db.backends.level import LevelDB
 from eth.db.backends.memory import MemoryDB
 from eth.db.atomic import AtomicDB
+from eth.tools.builder.chain import (
+    build,
+    byzantium_at,
+    enable_pow_mining,
+    genesis,
+)
+from eth.vm.forks.byzantium import ByzantiumVM
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
 from trinity.db.header import AsyncHeaderDB
+
+ZIPPED_FIXTURES_PATH = Path(__file__).parent.parent / 'integration' / 'fixtures'
 
 
 async def connect_to_peers_loop(peer_pool, nodes):
@@ -96,3 +111,54 @@ class FakeAsyncChain(MiningChain):
     coro_import_block = coro_import_block
     coro_validate_chain = async_passthrough('validate_chain')
     coro_validate_receipt = async_passthrough('validate_receipt')
+    chaindb_class = FakeAsyncChainDB
+
+
+class ByzantiumTestChain(FakeAsyncChain):
+    vm_configuration = ((0, ByzantiumVM),)
+    network_id = 999
+
+
+FUNDED_ACCT = keys.PrivateKey(
+    decode_hex("49a7b37aa6f6645917e7b807e9d1c00d4fa71f18343b0d4122a4d2df64dd6fee"))
+
+
+def load_mining_chain(db):
+    GENESIS_PARAMS = {
+        'coinbase': constants.ZERO_ADDRESS,
+        'difficulty': 5,
+        'gas_limit': 3141592,
+        'timestamp': 1514764800,
+    }
+
+    GENESIS_STATE = {
+        FUNDED_ACCT.public_key.to_canonical_address(): {
+            "balance": 100000000000000000,
+        }
+    }
+
+    return build(
+        FakeAsyncChain,
+        byzantium_at(0),
+        enable_pow_mining(),
+        genesis(db=db, params=GENESIS_PARAMS, state=GENESIS_STATE),
+    )
+
+
+class DBFixture(Enum):
+    twenty_pow_headers = '20pow_headers.ldb'
+
+
+def load_fixture_db(db_fixture, db_class=LevelDB):
+    """
+    Extract the database from the zip file to a temp directory, which has two benefits and one cost:
+    - B1. works with xdist, multiple access to the ldb files at the same time
+    - B2. prevents dirty-ing the git index
+    - C1. slows down test, because of time to extract files
+    """
+    assert isinstance(db_fixture, DBFixture)
+    zipped_path = ZIPPED_FIXTURES_PATH / f"{db_fixture.value}.zip"
+
+    with ZipFile(zipped_path, 'r') as zipped, TemporaryDirectory() as tmpdir:
+        zipped.extractall(tmpdir)
+        yield db_class(Path(tmpdir) / db_fixture.value)
