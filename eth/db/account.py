@@ -49,7 +49,7 @@ from eth.validation import (
     validate_canonical_address,
 )
 from eth.tools.logging import (
-    TraceLogger
+    ExtendedDebugLogger
 )
 from eth.utils.padding import (
     pad32,
@@ -178,7 +178,7 @@ class BaseAccountDB(ABC):
 
 class AccountDB(BaseAccountDB):
 
-    logger = cast(TraceLogger, logging.getLogger('eth.db.account.AccountDB'))
+    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.db.account.AccountDB'))
 
     def __init__(self, db: BaseDB, state_root: Hash32=BLANK_ROOT_HASH) -> None:
         r"""
@@ -407,7 +407,7 @@ class AccountDB(BaseAccountDB):
         self._journaltrie.commit(trie_changeset)
 
     def make_state_root(self) -> Hash32:
-        self.logger.trace("Generating AccountDB trie")
+        self.logger.debug2("Generating AccountDB trie")
         self._journaldb.persist()
         self._journaltrie.persist()
         return self.state_root
@@ -428,7 +428,7 @@ class AccountDB(BaseAccountDB):
                 else:
                     accounts_displayed.add(address)
                     account = self._get_account(Address(address))
-                    self.logger.trace(
+                    self.logger.debug2(
                         "Account %s: balance %d, nonce %d, storage root %s, code hash %s",
                         encode_hex(address),
                         account.balance,

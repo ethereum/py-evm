@@ -33,7 +33,7 @@ from eth.db.backends.base import (
 )
 from eth.exceptions import StateRootNotFound
 from eth.tools.logging import (
-    TraceLogger,
+    ExtendedDebugLogger,
 )
 from eth.typing import (
     BaseOrSpoofTransaction,
@@ -94,9 +94,9 @@ class BaseState(Configurable, ABC):
     # Logging
     #
     @property
-    def logger(self) -> TraceLogger:
+    def logger(self) -> ExtendedDebugLogger:
         normal_logger = logging.getLogger('eth.vm.state.{0}'.format(self.__class__.__name__))
-        return cast(TraceLogger, normal_logger)
+        return cast(ExtendedDebugLogger, normal_logger)
 
     #
     # Block Object Properties (in opcodes)

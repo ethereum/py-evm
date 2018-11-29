@@ -17,7 +17,7 @@ def p2p_logger():
 
     handler = logging.StreamHandler(sys.stdout)
 
-    # level = TRACE_LEVEL_NUM
+    # level = DEBUG2_LEVEL_NUM
     level = logging.DEBUG
     level = logging.INFO
 

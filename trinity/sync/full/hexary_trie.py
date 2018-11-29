@@ -16,7 +16,7 @@ from eth_typing import (
 )
 
 from eth.db.backends.base import BaseDB
-from eth.tools.logging import TraceLogger
+from eth.tools.logging import ExtendedDebugLogger
 
 from trie.constants import (
     NODE_TYPE_BLANK,
@@ -117,7 +117,7 @@ class HexaryTrieSync:
                  root_hash: Hash32,
                  db: AsyncBaseDB,
                  nodes_cache: BaseDB,
-                 logger: TraceLogger) -> None:
+                 logger: ExtendedDebugLogger) -> None:
         # Nodes that haven't been requested yet.
         self.queue: List[SyncRequest] = []
         # Nodes that have been requested to a peer, but not yet committed to the DB, either
@@ -161,11 +161,11 @@ class HexaryTrieSync:
                        is_raw: bool = False) -> None:
         """Schedule a request for the node with the given key."""
         if node_key in self.nodes_cache:
-            self.logger.trace("Node %s already exists in db", encode_hex(node_key))
+            self.logger.debug2("Node %s already exists in db", encode_hex(node_key))
             return
         if await self.db.coro_exists(node_key):
             self.nodes_cache[node_key] = b''
-            self.logger.trace("Node %s already exists in db", encode_hex(node_key))
+            self.logger.debug2("Node %s already exists in db", encode_hex(node_key))
             return
         self._schedule(node_key, parent, depth, leaf_callback, is_raw)
 
@@ -177,7 +177,7 @@ class HexaryTrieSync:
 
         existing = self.requests.get(node_key)
         if existing is not None:
-            self.logger.trace(
+            self.logger.debug2(
                 "Already requesting %s, will just update parents list", node_key)
             existing.parents.append(parent)
             return
@@ -186,7 +186,7 @@ class HexaryTrieSync:
         # Requests get added to both self.queue and self.requests; the former is used to keep
         # track which requests should be sent next, and the latter is used to avoid scheduling a
         # request for a given node multiple times.
-        self.logger.trace("Scheduling retrieval of %s", encode_hex(request.node_key))
+        self.logger.debug2("Scheduling retrieval of %s", encode_hex(request.node_key))
         self.requests[request.node_key] = request
         bisect.insort(self.queue, request)
 
@@ -200,7 +200,7 @@ class HexaryTrieSync:
             if request is None:
                 # This may happen if we resend a request for a node after waiting too long,
                 # and then eventually get two responses with it.
-                self.logger.trace(
+                self.logger.debug2(
                     "No SyncRequest found for %s, maybe we got more than one response for it",
                     encode_hex(node_key))
                 return

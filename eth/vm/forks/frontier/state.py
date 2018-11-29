@@ -77,7 +77,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             data = transaction.data
             code = self.vm_state.account_db.get_code(transaction.to)
 
-        self.vm_state.logger.trace(
+        self.vm_state.logger.debug2(
             (
                 "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
                 "gas-price: %s | s: %s | r: %s | v: %s | data-hash: %s"
@@ -123,7 +123,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                         encode_hex(message.storage_address),
                     )
                 )
-                self.vm_state.logger.trace(
+                self.vm_state.logger.debug2(
                     "Address collision while creating contract: %s",
                     encode_hex(message.storage_address),
                 )
@@ -155,7 +155,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
 
         if gas_refund_amount:
-            self.vm_state.logger.trace(
+            self.vm_state.logger.debug2(
                 'TRANSACTION REFUND: %s -> %s',
                 gas_refund_amount,
                 encode_hex(computation.msg.sender),
@@ -166,7 +166,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         # Miner Fees
         transaction_fee = \
             (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
-        self.vm_state.logger.trace(
+        self.vm_state.logger.debug2(
             'TRANSACTION FEE: %s -> %s',
             transaction_fee,
             encode_hex(self.vm_state.coinbase),
@@ -177,7 +177,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         for account, beneficiary in computation.get_accounts_for_deletion():
             # TODO: need to figure out how we prevent multiple selfdestructs from
             # the same account and if this is the right place to put this.
-            self.vm_state.logger.trace('DELETING ACCOUNT: %s', encode_hex(account))
+            self.vm_state.logger.debug2('DELETING ACCOUNT: %s', encode_hex(account))
 
             # TODO: this balance setting is likely superflous and can be
             # removed since `delete_account` does this.

@@ -18,7 +18,7 @@ from eth_typing import BlockNumber
 from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
 from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
 from eth.db.backends.memory import MemoryDB
-from eth.tools.logging import TRACE_LEVEL_NUM
+from eth.tools.logging import DEBUG2_LEVEL_NUM
 
 from p2p import ecies
 from p2p.kademlia import Node
@@ -31,7 +31,7 @@ from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB, conne
 
 
 def _main() -> None:
-    logging.basicConfig(level=TRACE_LEVEL_NUM, format='%(asctime)s %(levelname)s: %(message)s')
+    logging.basicConfig(level=DEBUG2_LEVEL_NUM, format='%(asctime)s %(levelname)s: %(message)s')
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-enode', type=str, help="The enode we should connect to", required=True)

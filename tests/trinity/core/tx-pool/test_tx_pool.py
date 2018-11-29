@@ -2,7 +2,7 @@ import asyncio
 import pytest
 import uuid
 
-from eth.tools.logging import TraceLogger
+from eth.tools.logging import ExtendedDebugLogger
 from eth.utils.address import (
     force_bytes_to_address
 )
@@ -30,7 +30,7 @@ from tests.trinity.core.peer_helpers import (
 
 
 class SamplePeerSubscriber(PeerSubscriber):
-    logger = TraceLogger("")
+    logger = ExtendedDebugLogger("")
 
     subscription_msg_types = {Command}
 

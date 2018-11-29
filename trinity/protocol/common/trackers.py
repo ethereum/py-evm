@@ -12,7 +12,7 @@ from p2p.protocol import (
 )
 
 from trinity.utils.ema import EMA
-from trinity.utils.logging import HasTraceLogger
+from trinity.utils.logging import HasExtendedDebugLogger
 from trinity.utils.percentile import Percentile
 from trinity.utils.stddev import StandardDeviation
 from .constants import ROUND_TRIP_TIMEOUT
@@ -24,7 +24,7 @@ from .types import (
 TRequest = TypeVar('TRequest', bound=BaseRequest[Any])
 
 
-class BasePerformanceTracker(ABC, HasTraceLogger, Generic[TRequest, TResult]):
+class BasePerformanceTracker(ABC, HasExtendedDebugLogger, Generic[TRequest, TResult]):
     def __init__(self) -> None:
         self.total_msgs = 0
         self.total_items = 0

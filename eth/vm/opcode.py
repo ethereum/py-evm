@@ -15,7 +15,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from eth.tools.logging import TraceLogger
+from eth.tools.logging import ExtendedDebugLogger
 
 from eth.utils.datatypes import Configurable
 
@@ -44,9 +44,9 @@ class Opcode(Configurable, ABC):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @property
-    def logger(self) -> TraceLogger:
+    def logger(self) -> ExtendedDebugLogger:
         logger_obj = logging.getLogger('eth.vm.logic.{0}'.format(self.mnemonic))
-        return cast(TraceLogger, logger_obj)
+        return cast(ExtendedDebugLogger, logger_obj)
 
     @classmethod
     def as_opcode(cls: Type[T],
