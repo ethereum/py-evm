@@ -35,7 +35,7 @@ class LESPeerRequestHandler(BasePeerRequestHandler):
             msg['request_id'],
         )
         headers = await self.lookup_headers(request)
-        self.logger.trace("Replying to %s with %d headers", peer, len(headers))
+        self.logger.debug2("Replying to %s with %d headers", peer, len(headers))
         peer.sub_proto.send_block_headers(headers, buffer_value=0, request_id=request.request_id)
 
 

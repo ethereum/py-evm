@@ -25,7 +25,7 @@ from typing import (
 from cytoolz import dissoc
 
 from eth.tools.logging import (
-    TraceLogger,
+    ExtendedDebugLogger,
 )
 
 from trinity.utils.shellart import (
@@ -56,14 +56,14 @@ class TrinityLogFormatter(logging.Formatter):
             return super().format(record)
 
 
-class HasTraceLogger:
-    _logger: TraceLogger = None
+class HasExtendedDebugLogger:
+    _logger: ExtendedDebugLogger = None
 
     @property
-    def logger(self) -> TraceLogger:
+    def logger(self) -> ExtendedDebugLogger:
         if self._logger is None:
             self._logger = cast(
-                TraceLogger,
+                ExtendedDebugLogger,
                 logging.getLogger(self.__module__ + '.' + self.__class__.__name__)
             )
         return self._logger
@@ -138,7 +138,7 @@ def setup_queue_logging(log_queue: 'Queue[str]', level: int) -> None:
     queue_handler = QueueHandler(log_queue)
     queue_handler.setLevel(level)
 
-    logger = cast(TraceLogger, logging.getLogger())
+    logger = cast(ExtendedDebugLogger, logging.getLogger())
     logger.addHandler(queue_handler)
     logger.setLevel(level)
 

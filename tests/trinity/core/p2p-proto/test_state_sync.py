@@ -16,7 +16,7 @@ from trie import HexaryTrie
 
 from eth.db.backends.memory import MemoryDB
 from eth.db.account import AccountDB
-from eth.tools.logging import TraceLogger
+from eth.tools.logging import ExtendedDebugLogger
 
 from trinity.sync.full.hexary_trie import HexaryTrieSync
 from trinity.sync.full.state import StateSync, TrieNodeRequestTracker
@@ -61,7 +61,8 @@ def test_trie_sync(random, event_loop):
         src_trie, contents = make_random_trie(random)
         dest_db = FakeAsyncMemoryDB()
         nodes_cache = MemoryDB()
-        scheduler = HexaryTrieSync(src_trie.root_hash, dest_db, nodes_cache, TraceLogger("test"))
+        scheduler = HexaryTrieSync(src_trie.root_hash, dest_db, nodes_cache,
+                                   ExtendedDebugLogger("test"))
         requests = scheduler.next_batch()
         while len(requests) > 0:
             results = []
@@ -101,7 +102,7 @@ async def test_state_sync():
     raw_db, state_root, contents = make_random_state(1000)
     dest_db = FakeAsyncMemoryDB()
     nodes_cache = MemoryDB()
-    scheduler = StateSync(state_root, dest_db, nodes_cache, TraceLogger('test'))
+    scheduler = StateSync(state_root, dest_db, nodes_cache, ExtendedDebugLogger('test'))
     requests = scheduler.next_batch(10)
     while requests:
         results = []
@@ -123,7 +124,7 @@ REPLY_TIMEOUT = 5
 
 
 def test_node_request_tracker_get_timed_out():
-    tracker = TrieNodeRequestTracker(REPLY_TIMEOUT, TraceLogger('name'))
+    tracker = TrieNodeRequestTracker(REPLY_TIMEOUT, ExtendedDebugLogger('name'))
     peer1, peer2, peer3, peer4 = object(), object(), object(), object()
     peer_nodes = dict(
         (peer, [os.urandom(32) for _ in range(3)])
@@ -151,7 +152,7 @@ def test_node_request_tracker_get_timed_out():
 
 
 def test_node_request_tracker_get_retriable_missing():
-    tracker = TrieNodeRequestTracker(REPLY_TIMEOUT, TraceLogger('name'))
+    tracker = TrieNodeRequestTracker(REPLY_TIMEOUT, ExtendedDebugLogger('name'))
     now = time.time()
     # Populate the tracker's missing dict with 4 requests, 2 of them made more than
     # REPLY_TIMEOUT seconds in the past and 2 made less than REPLY_TIMEOUT seconds ago.
@@ -176,7 +177,7 @@ def test_node_request_tracker_get_retriable_missing():
 
 
 def test_node_request_tracker_get_next_timeout():
-    tracker = TrieNodeRequestTracker(REPLY_TIMEOUT, TraceLogger('name'))
+    tracker = TrieNodeRequestTracker(REPLY_TIMEOUT, ExtendedDebugLogger('name'))
     oldest_req_time = 1234
 
     # Populate the tracker with missing and active requests, one of each made at oldest_req_time

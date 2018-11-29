@@ -62,13 +62,13 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
         )
 
         headers = await self.lookup_headers(request)
-        self.logger.trace("Replying to %s with %d headers", peer, len(headers))
+        self.logger.debug2("Replying to %s with %d headers", peer, len(headers))
         peer.sub_proto.send_block_headers(headers)
 
     async def handle_get_block_bodies(self, peer: ETHPeer, block_hashes: Sequence[Hash32]) -> None:
         if not peer.is_operational:
             return
-        self.logger.trace("%s requested bodies for %d blocks", peer, len(block_hashes))
+        self.logger.debug2("%s requested bodies for %d blocks", peer, len(block_hashes))
         bodies = []
         # Only serve up to MAX_BODIES_FETCH items in every request.
         for block_hash in block_hashes[:MAX_BODIES_FETCH]:
@@ -81,13 +81,13 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
                 self.db.coro_get_block_transactions(header, BaseTransactionFields))
             uncles = await self.wait(self.db.coro_get_block_uncles(header.uncles_hash))
             bodies.append(BlockBody(transactions, uncles))
-        self.logger.trace("Replying to %s with %d block bodies", peer, len(bodies))
+        self.logger.debug2("Replying to %s with %d block bodies", peer, len(bodies))
         peer.sub_proto.send_block_bodies(bodies)
 
     async def handle_get_receipts(self, peer: ETHPeer, block_hashes: Sequence[Hash32]) -> None:
         if not peer.is_operational:
             return
-        self.logger.trace("%s requested receipts for %d blocks", peer, len(block_hashes))
+        self.logger.debug2("%s requested receipts for %d blocks", peer, len(block_hashes))
         receipts = []
         # Only serve up to MAX_RECEIPTS_FETCH items in every request.
         for block_hash in block_hashes[:MAX_RECEIPTS_FETCH]:
@@ -99,13 +99,13 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
                 continue
             block_receipts = await self.wait(self.db.coro_get_receipts(header, Receipt))
             receipts.append(block_receipts)
-        self.logger.trace("Replying to %s with receipts for %d blocks", peer, len(receipts))
+        self.logger.debug2("Replying to %s with receipts for %d blocks", peer, len(receipts))
         peer.sub_proto.send_receipts(receipts)
 
     async def handle_get_node_data(self, peer: ETHPeer, node_hashes: Sequence[Hash32]) -> None:
         if not peer.is_operational:
             return
-        self.logger.trace("%s requested %d trie nodes", peer, len(node_hashes))
+        self.logger.debug2("%s requested %d trie nodes", peer, len(node_hashes))
         nodes = []
         # Only serve up to MAX_STATE_FETCH items in every request.
         for node_hash in node_hashes[:MAX_STATE_FETCH]:
@@ -115,7 +115,7 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
                 self.logger.debug("%s asked for a trie node we don't have: %s", peer, node_hash)
                 continue
             nodes.append(node)
-        self.logger.trace("Replying to %s with %d trie nodes", peer, len(nodes))
+        self.logger.debug2("Replying to %s with %d trie nodes", peer, len(nodes))
         peer.sub_proto.send_node_data(tuple(nodes))
 
 

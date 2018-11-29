@@ -208,7 +208,7 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer, PeerSubscriber):
         trivial_headers = tuple(header for header in all_headers if _is_body_empty(header))
 
         if trivial_headers:
-            self.logger.trace(
+            self.logger.debug2(
                 "Found %d/%d trivial block bodies, skipping those requests",
                 len(trivial_headers),
                 len(all_headers),
@@ -325,7 +325,7 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer, PeerSubscriber):
             self.logger.debug("Pending block bodies call to %r future cancelled", peer)
             return tuple()
         except OperationCancelled:
-            self.logger.trace("Pending block bodies call to %r operation cancelled", peer)
+            self.logger.debug2("Pending block bodies call to %r operation cancelled", peer)
             return tuple()
         except PeerConnectionLost:
             self.logger.debug("Peer went away, cancelling the block body request and moving on...")
@@ -783,7 +783,7 @@ class FastChainSyncer(BaseBodyChainSyncer):
             self.logger.debug("Pending receipts call to %r future cancelled", peer)
             return tuple()
         except OperationCancelled:
-            self.logger.trace("Pending receipts call to %r operation cancelled", peer)
+            self.logger.debug2("Pending receipts call to %r operation cancelled", peer)
             return tuple()
         except PeerConnectionLost:
             self.logger.debug("Peer went away, cancelling the receipts request and moving on...")

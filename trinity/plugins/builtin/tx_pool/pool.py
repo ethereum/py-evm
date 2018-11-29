@@ -95,7 +95,7 @@ class TxPool(BaseService, PeerSubscriber):
             if len(filtered_tx) == 0:
                 continue
 
-            self.logger.trace(
+            self.logger.debug2(
                 'Sending %d transactions to %s',
                 len(filtered_tx),
                 receiving_peer,
