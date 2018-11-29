@@ -73,11 +73,15 @@ from eth.validation import (
     validate_length_lte,
     validate_gas_limit,
 )
+from eth.vm.computation import BaseComputation
 from eth.vm.message import (
     Message,
 )
 from eth.vm.state import BaseState
-from eth.vm.computation import BaseComputation
+from eth.vm.tracing import (
+    BaseTracer,
+    NoopTracer,
+)
 
 
 class BaseVM(Configurable, ABC):
@@ -396,7 +400,9 @@ class VM(BaseVM):
     #
     def apply_transaction(self,
                           header: BlockHeader,
-                          transaction: BaseTransaction
+                          transaction: BaseTransaction,
+                          *,
+                          tracer: BaseTracer = None,
                           ) -> Tuple[BlockHeader, Receipt, BaseComputation]:
         """
         Apply the transaction to the current block. This is a wrapper around
@@ -405,8 +411,12 @@ class VM(BaseVM):
         :param header: header of the block before application
         :param transaction: to apply
         """
+        if tracer is None:
+            tracer = NoopTracer()
+
         self.validate_transaction_against_header(header, transaction)
-        state_root, computation = self.state.apply_transaction(transaction)
+        with self.state.trace(tracer):
+            state_root, computation = self.state.apply_transaction(transaction)
         receipt = self.make_receipt(header, transaction, computation, self.state)
         self.validate_receipt(receipt)
 
@@ -428,6 +438,8 @@ class VM(BaseVM):
                          data: bytes,
                          code: bytes,
                          code_address: Address=None,
+                         *,
+                         tracer: BaseTracer=None,
                          ) -> BaseComputation:
         """
         Execute raw bytecode in the context of the current state of
@@ -454,11 +466,12 @@ class VM(BaseVM):
         )
 
         # Execute it in the VM
-        return self.state.get_computation(message, transaction_context).apply_computation(
-            self.state,
-            message,
-            transaction_context,
-        )
+        with self.state.trace(tracer):
+            return self.state.get_computation(message, transaction_context).apply_computation(
+                self.state,
+                message,
+                transaction_context,
+            )
 
     def apply_all_transactions(
             self,

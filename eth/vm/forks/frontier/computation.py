@@ -74,6 +74,7 @@ class FrontierComputation(BaseComputation):
             self.state,
             self.msg,
             self.transaction_context,
+            self.tracer,
         )
 
         if computation.is_error:
