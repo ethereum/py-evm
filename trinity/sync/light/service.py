@@ -29,6 +29,7 @@ from eth_hash.auto import keccak
 
 from eth_utils import (
     encode_hex,
+    ValidationError
 )
 
 from trie import HexaryTrie
@@ -167,12 +168,14 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     async def coro_get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
-        request_id = gen_request_id()
-        peer.sub_proto.send_get_block_bodies([block_hash], request_id)
-        reply = await self._wait_for_reply(request_id)
-        if not reply['bodies']:
-            raise BlockNotFound(f"Peer {peer} has no block with hash {block_hash}")
-        return reply['bodies'][0]
+        block_body_bundles = await peer.requests.get_block_bodies((block_hash, ))
+        if len(block_body_bundles) == 0:
+            raise BlockNotFound(f"{peer} has no block with hash {block_hash}")
+        elif len(block_body_bundles) > 1:
+            raise ValidationError(f"Expected one block, but {peer} returned {len(block_body_bundles)} instead")
+        else:
+            # Extracting BlockBody from first element of BlockBodyBundles
+            return block_body_bundles[0][0]
 
     # TODO add a get_receipts() method to BaseChain API, and dispatch to this, as needed
 
