@@ -36,9 +36,9 @@ def shuffle(values: Sequence[Any],
     """
     values_count = len(values)
 
-    if values_count > RAND_MAX:
+    if values_count >= RAND_MAX:
         raise ValueError(
-            "values_count (%s) should less than or equal to RAND_MAX (%s)." %
+            "values_count (%s) should less than RAND_MAX (%s)." %
             (values_count, RAND_MAX)
         )
 
