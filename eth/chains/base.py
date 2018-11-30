@@ -34,6 +34,10 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
 )
+from eth_utils.toolz import (
+    concatv,
+    sliding_window,
+)
 
 from eth.constants import (
     BLANK_ROOT_HASH,
@@ -318,28 +322,34 @@ class BaseChain(Configurable, ABC):
     @classmethod
     def validate_chain(
             cls,
-            parent: BlockHeader,
-            chain: Tuple[BlockHeader, ...],
+            root: BlockHeader,
+            descendants: Tuple[BlockHeader, ...],
             seal_check_random_sample_rate: int = 1) -> None:
+        """
+        Validate that all of the descendents are valid, given that the root header is valid.
 
-        all_indices = list(range(len(chain)))
+        By default, check the seal validity (Proof-of-Work on Ethereum 1.x mainnet) of all headers.
+        This can be expensive. Instead, check a random sample of seals using
+        seal_check_random_sample_rate.
+        """
+
+        all_indices = range(len(descendants))
         if seal_check_random_sample_rate == 1:
-            headers_to_check_seal = set(all_indices)
+            indices_to_check_seal = set(all_indices)
         else:
             sample_size = len(all_indices) // seal_check_random_sample_rate
-            headers_to_check_seal = set(random.sample(all_indices, sample_size))
+            indices_to_check_seal = set(random.sample(all_indices, sample_size))
 
-        for i, header in enumerate(chain):
-            if header.parent_hash != parent.hash:
+        header_pairs = sliding_window(2, concatv([root], descendants))
+
+        for index, (parent, child) in enumerate(header_pairs):
+            if child.parent_hash != parent.hash:
                 raise ValidationError(
                     "Invalid header chain; {} has parent {}, but expected {}".format(
-                        header, header.parent_hash, parent.hash))
-            vm_class = cls.get_vm_class_for_block_number(header.block_number)
-            if i in headers_to_check_seal:
-                vm_class.validate_header(header, parent, check_seal=True)
-            else:
-                vm_class.validate_header(header, parent, check_seal=False)
-            parent = header
+                        child, child.parent_hash, parent.hash))
+            should_check_seal = index in indices_to_check_seal
+            vm_class = cls.get_vm_class_for_block_number(child.block_number)
+            vm_class.validate_header(child, parent, check_seal=should_check_seal)
 
 
 class Chain(BaseChain):
