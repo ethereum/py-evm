@@ -29,3 +29,7 @@ if is_uvloop_supported():
 from .main import (  # noqa: F401
     main,
 )
+
+from .main_beacon import (  # noqa: F401
+    main_beacon,
+)

@@ -32,6 +32,9 @@ setup(
     python_requires=">=3.6,<4",
     # trinity
     entry_points={
-        'console_scripts': ['trinity=trinity:main'],
+        'console_scripts': [
+            'trinity=trinity:main',
+            'trinity-beacon=trinity:main_beacon'
+        ],
     },
 )
