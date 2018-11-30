@@ -57,20 +57,15 @@ class Node(BaseService):
         self.event_bus = event_bus
 
     async def handle_network_id_requests(self) -> None:
-        async def f() -> None:
-            # FIXME: There must be a way to cancel event_bus.stream() when our token is triggered,
-            # but for the time being we just wrap everything in self.wait().
-            async for req in self.event_bus.stream(NetworkIdRequest):
-                # We are listening for all `NetworkIdRequest` events but we ensure to only send a
-                # `NetworkIdResponse` to the callsite that made the request.  We do that by
-                # retrieving a `BroadcastConfig` from the request via the
-                # `event.broadcast_config()` API.
-                self.event_bus.broadcast(
-                    NetworkIdResponse(self._network_id),
-                    req.broadcast_config()
-                )
-
-        await self.wait(f())
+        async for req in self.event_bus.stream(NetworkIdRequest):
+            # We are listening for all `NetworkIdRequest` events but we ensure to only send a
+            # `NetworkIdResponse` to the callsite that made the request.  We do that by
+            # retrieving a `BroadcastConfig` from the request via the
+            # `event.broadcast_config()` API.
+            self.event_bus.broadcast(
+                NetworkIdResponse(self._network_id),
+                req.broadcast_config()
+            )
 
     _chain_config: ChainConfig = None
 
