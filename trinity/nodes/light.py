@@ -4,6 +4,9 @@ from typing import (
 )
 
 from eth_keys.datatypes import PrivateKey
+from eth_utils import (
+    ValidationError,
+)
 
 from lahja import Endpoint
 
@@ -56,7 +59,10 @@ class LightNode(Node):
         if self._chain is None:
             if self.chain_class is None:
                 raise AttributeError("LightNode subclass must set chain_class")
-            self._chain = self.chain_class(self.headerdb, peer_chain=self._peer_chain)
+            elif self._peer_chain is None:
+                raise ValidationError("peer chain is not initialized!")
+            else:
+                self._chain = self.chain_class(self.headerdb, peer_chain=self._peer_chain)
 
         return self._chain
 
@@ -66,7 +72,7 @@ class LightNode(Node):
             self._p2p_server = LightServer(
                 privkey=self._nodekey,
                 port=self._port,
-                chain=self.get_chain(),
+                chain=self.get_full_chain(),
                 chaindb=manager.get_chaindb(),  # type: ignore
                 headerdb=self.headerdb,
                 base_db=manager.get_db(),  # type: ignore
