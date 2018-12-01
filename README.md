@@ -75,6 +75,7 @@ Then install the required python packages via:
 pip install -e .[dev]
 ```
 
+Note: For OSX, if you have an error during the build of ['plyvel'](https://github.com/wbolster/plyvel/issues/34#issuecomment-46703144), you will need to install leveldb with homebrew: brew install leveldb
 
 ### Running the tests
 
@@ -86,6 +87,17 @@ pytest
 
 Or you can install `tox` to run the full test suite.
 
+Note: pytest command run is way to big. If you want to try a faster run you can run:
+
+```sh
+tox -epy36-core
+```
+
+or
+
+```sh
+tox -epy36-lint
+```
 
 ### Releasing
 
