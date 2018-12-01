@@ -23,7 +23,7 @@ deps = {
     # Installing these libraries may make the evm perform better than
     # using the default fallbacks though.
     'eth-extra': [
-        "coincurve>=8.0.0,<9.0.0",
+        "coincurve>=10.0.0,<11.0.0",
         "eth-hash[pysha3];implementation_name=='cpython'",
         "eth-hash[pycryptodome];implementation_name=='pypy'",
         "plyvel==1.0.5",
@@ -40,7 +40,7 @@ deps = {
         "async-generator==1.10",
         "bloom-filter==1.3",
         "cachetools>=2.1.0,<3.0.0",
-        "coincurve>=8.0.0,<9.0.0",
+        "coincurve>=10.0.0,<11.0.0",
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.5",
         "web3==4.4.1",
