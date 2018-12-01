@@ -83,6 +83,7 @@ deps = {
         "bumpversion>=0.5.3,<1",
         "wheel",
         "setuptools>=36.2.0",
+        "pluggy==0.7.1",
         "tox==2.7.0",
         "twine",
     ],
