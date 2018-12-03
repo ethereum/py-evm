@@ -189,14 +189,16 @@ Using ``--preferred-node`` is a good way to ensure Trinity running in
 Retrieving Chain information via web3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-While just running ``trinity`` will start syncing the chain just fine, it doesn't let us interact
-with the chain directly (apart from the JSON-RPC API). However, we can run Trinity with the
-``console`` subcommand to get an interactive ``ipython`` shell that binds a
+While just running ``trinity`` already causes the node to start syncing, it doesn't let us interact
+with the chain directly (apart from the JSON-RPC API).
+
+However, we can attach an interactive shell to a running Trinity instance with the
+``attach`` subcommand. The interactive ``ipython`` shell binds a
 `web3 <http://web3py.readthedocs.io>`_ instance to the ``w3`` variable.
 
 .. code:: sh
 
-  trinity console
+  trinity attach
 
 Now that Trinity runs in an interactive shell mode, let's try to get some information about the
 latest block by calling ``w3.eth.getBlock('latest')``.
