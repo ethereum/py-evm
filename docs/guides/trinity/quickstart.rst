@@ -61,8 +61,8 @@ changes need to be made to the host system apart from having ``Docker`` itself i
 
 .. note::
   While we don't officially support Windows just yet, running Trinity through ``Docker`` is a great
-  way to bypass this current limitation as Trinity can run on any system that runs ``Docker`` [with
-  support for linux containers](https://docs.docker.com/docker-for-windows/#switch-between-windows-and-linux-containers).
+  way to bypass this current limitation as Trinity can run on any system that runs ``Docker`` `with
+  support for linux containers <https://docs.docker.com/docker-for-windows/#switch-between-windows-and-linux-containers>`_.
 
 Using ``Docker`` we have two different options to choose from.
 
