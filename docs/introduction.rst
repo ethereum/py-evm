@@ -15,13 +15,14 @@ If none of this makes sense to you yet we recommend to checkout the
 `higher level description <http://www.ethdocs.org/en/latest/introduction/what-is-ethereum.html>`_
 of the Ethereum project.
 
-Goals
------
+Py-EVM goals
+------------
 
-The main focus is to enrich the Ethereum ecosystem with a Python implementation that is:
+The main focus is to enrich the Ethereum ecosystem with a Python implementation that:
 
-* Well documented
-* Easy to understand
+* Supports Ethereum 1.0 as well as 2.0 / Serenity
+* Is well documented
+* Is easy to understand
 * Has clear APIs
 * Runs fast and resource friendly
 * Is highly flexible to support:
@@ -30,6 +31,21 @@ The main focus is to enrich the Ethereum ecosystem with a Python implementation 
   * Private chains
   * Consortium chains
   * Advanced research
+
+Trinity goals
+-------------
+
+While Py-EVM provides the low level APIs of the Ethereum protocol, it does not aim to implement a
+full or light node directly.
+
+Trinity is a refernece implementation on top of Py-EVM that aims to:
+
+* Provide a reference implementation for an Ethereum 1.0 node (alpha)
+* Support "full" and "light" modes
+* Fully support mainnet as well as several testnets
+* Provide a reference implementation of an Ethereum 2.0 / Serenity beacon node (pre-alpha)
+* Provide a reference implementation of an Ethereum 2.0 / Sereneity validator node (pre-alpha)
+
 
 .. note::
 
