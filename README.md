@@ -1,52 +1,50 @@
-# Python Implementation of the EVM
+# Python Implementation of the Ethereum protocol
 
 [![Join the chat at https://gitter.im/ethereum/py-evm](https://badges.gitter.im/ethereum/py-evm.svg)](https://gitter.im/ethereum/py-evm)
 [![Documentation Status](https://readthedocs.org/projects/py-evm/badge/?version=latest)](http://py-evm.readthedocs.io/en/latest/?badge=latest)
 
 
-## Introducing Py-EVM
+## Py-EVM
 
-Py-EVM is a new implementation of the Ethereum Virtual Machine written in
-python. It is currently in active development but is quickly progressing
-through the test suite provided by ethereum/tests. We have Vitalik, and the
-existing PyEthereum code to thank for the quick progress we’ve made as many
-design decisions were inspired, or even directly ported from the PyEthereum
-codebase.
+Py-EVM is a new implementation of the Ethereum protocol in Python. It contains the low level
+primitives for the existing Ethereum 1.0 chain as well as emerging support for the upcoming
+Ethereum 2.0 / Serenity spec.
 
 ### Goals
 
-Py-EVM aims to eventually become the defacto Python implementation of the EVM,
-enabling a wide array of use cases for both public and private chains. Development will focus on creating an EVM with a well defined API, friendly and
-easy to digest documentation which can be run as a fully functional mainnet
-node.
+Py-EVM aims to eventually become the defacto Python implementation of the Ethereum protocol,
+enabling a wide array of use cases for both public and private chains. 
 
 In particular Py-EVM aims to:
 
-- be an example implementation of the EVM in one of the most widely used and understood languages, Python.
-
-- deliver the low level APIs for clients to build full or light nodes on top of
+- be a reference implementation of the Ethereum 1.0 and 2.0 implementation in one of the most widely used and understood languages, Python.
 
 - be easy to understand and modifiable
 
+- have clear and simple APIs
+
+- come with solid, friendly documentation
+
+- deliver the low level primitives to build various clients on top (including *full* and *light* clients)
+
 - be highly flexible to support both research as well as alternate use cases like private chains.
 
-### Trinity
+## Trinity
 
-While Py-EVM provides the low level APIs of the EVM, it does not aim to implement a full or light node directly.
+While Py-EVM provides the low level APIs of the Ethereum protocol, it does not aim to implement a
+full or light node directly.
 
-We provide a base implementation of a full node called Trinity that is based on Py-EVM.
+### Goals
 
-In the future there may be alternative clients based on the Py-EVM.
+- provide a reference implementation for an Ethereum 1.0 node (alpha)
 
-### Step 1: Alpha Release
+- support "full" and "light" modes
 
-The plan is to begin with an MVP, alpha-level release that is suitable for
-testing purposes. We’ll be looking for early adopters to provide feedback on
-our architecture and API choices as well as general feedback and bug finding.
+- fully support mainnet as well as several testnets
 
-#### Blog posts:
+- provide a reference implementation of an Ethereum 2.0 / Serenity beacon node (pre-alpha)
 
-- https://medium.com/@pipermerriam/py-evm-part-1-origins-25d9ad390b
+- provide a reference implementation of an Ethereum 2.0 / Sereneity validator node (pre-alpha)
 
 
 ## Quickstart
