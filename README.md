@@ -3,8 +3,6 @@
 [![Join the chat at https://gitter.im/ethereum/py-evm](https://badges.gitter.im/ethereum/py-evm.svg)](https://gitter.im/ethereum/py-evm)
 [![Documentation Status](https://readthedocs.org/projects/py-evm/badge/?version=latest)](http://py-evm.readthedocs.io/en/latest/?badge=latest)
 
-[Documentation hosted by ReadTheDocs](http://py-evm.readthedocs.io/en/latest/)
-
 
 ## Introducing Py-EVM
 
@@ -51,95 +49,15 @@ our architecture and API choices as well as general feedback and bug finding.
 - https://medium.com/@pipermerriam/py-evm-part-1-origins-25d9ad390b
 
 
-## Development
-Py-EVM depends on a submodule of the common tests across all clients,
-so you need to clone the repo with the `--recursive` flag. Example:
+## Quickstart
 
-```sh
-git clone --recursive git@github.com:ethereum/py-evm.git
-```
+[Get started in 5 minutes](https://py-evm.readthedocs.io/en/latest/quickstart.html)
 
-Py-EVM requires Python 3. Often, the best way to guarantee a clean Python 3 environment is with [`virtualenv`](https://virtualenv.pypa.io/en/stable/), like:
+## Documentation
 
-```sh
-# once:
-$ virtualenv -p python3 venv
+Check out the [documentation on our official website](http://py-evm.readthedocs.io/en/latest/)
 
-# each session:
-$ . venv/bin/activate
-```
+## Want to help?
 
-Then install the required python packages via:
-
-```sh
-pip install -e .[dev]
-```
-
-
-### Running the tests
-
-You can run the tests with:
-
-```sh
-pytest
-```
-
-Or you can install `tox` to run the full test suite.
-
-
-### Releasing
-
-Pandoc is required for transforming the markdown README to the proper format to
-render correctly on pypi.
-
-For Debian-like systems:
-
-```
-apt install pandoc
-```
-
-Or on OSX:
-
-```sh
-brew install pandoc
-```
-
-To release a new version:
-
-```sh
-bumpversion $$VERSION_PART_TO_BUMP$$
-git push && git push --tags
-make release
-```
-
-To create a docker image:
-
-```sh
-make create-docker-image version=<version>
-```
-
-By default, this will create a new image with two tags pointing to it:
-- `ethereum/trinity:<version>` (explicit version)
-- `ethereum/trinity:latest` (latest until overwritten with a future "latest")
-
-Then, push to docker hub.
-
-```sh
-docker push ethereum/trinity:<version>
-# the following may be left out if we were pushing a patch for an older version
-docker push ethereum/trinity:latest
-```
-
-
-#### How to bumpversion
-
-The version format for this repo is `{major}.{minor}.{patch}` for stable, and
-`{major}.{minor}.{patch}-{stage}.{devnum}` for unstable (`stage` can be alpha or beta).
-
-To issue the next version in line, use bumpversion and specify which part to bump,
-like `bumpversion minor` or `bumpversion devnum`.
-
-If you are in a beta version, `bumpversion stage` will switch to a stable.
-
-To issue an unstable version when the current version is stable, specify the
-new version explicitly, like `bumpversion --new-version 4.0.0-alpha.1 devnum`
+Want to file a bug, contribute some code, or improve documentation? Excellent! Read up on our
+guidelines for [contributing](https://py-evm.readthedocs.io/en/latest/contributing.html) and then check out one of our issues that are labeled [Good First Issue](https://github.com/ethereum/py-evm/issues?q=is%3Aissue+is%3Aopen+label%3A%22Good+First+Issue%22).
