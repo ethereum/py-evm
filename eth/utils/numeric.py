@@ -101,7 +101,7 @@ def clamp(inclusive_lower_bound: int,
         return value
 
 
-def int_sqrt(value: int) -> int:
+def integer_squareroot(value: int) -> int:
     """
     Return the largest integer ``x`` such that ``x**2 <= value``.
     Ref: https://en.wikipedia.org/wiki/Integer_square_root

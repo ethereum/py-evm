@@ -217,13 +217,12 @@ def get_attestation_indices(crystallized_state: 'CrystallizedState',
 @to_tuple
 def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Iterable[int]:
     """
-    Return the active validators.
+    Gets indices of active validators from ``validators``.
     """
-    o = []
-    for index, validator in enumerate(validators):
-        if (validator.status == ValidatorStatusCode.ACTIVE):
-            o.append(index)
-    return o
+    return [
+        i for i, v in enumerate(validators)
+        if v.status in [ValidatorStatusCode.ACTIVE, ValidatorStatusCode.PENDING_EXIT]
+    ]
 
 
 #
@@ -235,7 +234,6 @@ def _get_shards_and_committees_for_shard_indices(
         start_shard: int,
         shard_count: int) -> Iterable[ShardAndCommittee]:
     """
-    FIXME
     Returns filled [ShardAndCommittee] tuple.
     """
     for index, indices in enumerate(shard_indices):
@@ -255,7 +253,7 @@ def get_new_shuffling(*,
                       shard_count: int) -> Iterable[Iterable[ShardAndCommittee]]:
     """
     Return shuffled ``shard_and_committee_for_slots`` (``[[ShardAndCommittee]]``) of
-    the given active ``validators``.
+    the given active ``validators`` using ``seed`` as entropy.
 
     Two-dimensional:
     The first layer is ``slot`` number
@@ -302,9 +300,10 @@ def get_new_shuffling(*,
         shard_count // cycle_length,
         active_validators_size // cycle_length // target_committee_size,
     )
+    # Shuffle with seed
     shuffled_active_validator_indices = shuffle(active_validators, seed)
 
-    # Split the shuffled list into cycle_length pieces
+    # Split the shuffled list into epoch_length pieces
     validators_per_slot = split(shuffled_active_validator_indices, cycle_length)
     for index, slot_indices in enumerate(validators_per_slot):
         # Split the shuffled list into committees_per_slot pieces

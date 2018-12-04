@@ -36,6 +36,8 @@ def shuffle(values: Sequence[Any],
     """
     values_count = len(values)
 
+    # The range of the RNG places an upper-bound on the size of the list that
+    # may be shuffled. It is a logic error to supply an oversized list.
     if values_count >= RAND_MAX:
         raise ValueError(
             "values_count (%s) should less than RAND_MAX (%s)." %
@@ -84,13 +86,13 @@ def shuffle(values: Sequence[Any],
 
 
 @to_tuple
-def split(seq: Sequence[TItem], split_count: int) -> Iterable[Any]:
+def split(values: Sequence[TItem], split_count: int) -> Iterable[Any]:
     """
-    Returns the split ``seq`` in ``split_count`` pieces in protocol.
+    Returns the split ``values`` in ``split_count`` pieces in protocol.
     Spec: https://github.com/ethereum/eth2.0-specs/blob/70cef14a08de70e7bd0455d75cf380eb69694bfb/specs/core/0_beacon-chain.md#helper-functions  # noqa: E501
     """
-    list_length = len(seq)
+    list_length = len(values)
     return [
-        seq[(list_length * i // split_count): (list_length * (i + 1) // split_count)]
+        values[(list_length * i // split_count): (list_length * (i + 1) // split_count)]
         for i in range(split_count)
     ]

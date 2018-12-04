@@ -416,4 +416,11 @@ def test_get_active_validator_indices(sample_validator_record_params):
         status=ValidatorStatusCode.PENDING_EXIT,
     )
     active_validator_indices = get_active_validator_indices(validators)
+    assert len(active_validator_indices) == 3
+
+    # Make one validator becomes PENDING_EXIT.
+    validators[0] = validators[0].copy(
+        status=ValidatorStatusCode.EXITED_WITHOUT_PENALTY,
+    )
+    active_validator_indices = get_active_validator_indices(validators)
     assert len(active_validator_indices) == 2

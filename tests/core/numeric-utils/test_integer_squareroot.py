@@ -1,7 +1,7 @@
 import pytest
 
 from eth.utils.numeric import (
-    int_sqrt,
+    integer_squareroot,
 )
 
 
@@ -21,10 +21,10 @@ from eth.utils.numeric import (
         (-1, ValueError()),
     )
 )
-def test_int_sqrt(value, expected):
+def test_integer_squareroot(value, expected):
     if isinstance(expected, Exception):
         with pytest.raises(ValueError):
-            int_sqrt(value)
+            integer_squareroot(value)
     else:
-        actual = int_sqrt(value)
+        actual = integer_squareroot(value)
         assert actual == expected
