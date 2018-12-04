@@ -21,8 +21,8 @@ class Status(Command):
 class GetBeaconBlocks(Command):
     _cmd_id = 1
     structure = [
-        ('block_number_or_hash', HashOrNumber()),
-        ('max_headers', sedes.big_endian_int),
+        ('block_slot_or_hash', HashOrNumber()),
+        ('max_blocks', sedes.big_endian_int),
     ]
 
 
