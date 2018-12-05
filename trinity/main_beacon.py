@@ -28,6 +28,9 @@ from trinity.events import (
 from trinity.extensibility import (
     PluginManager,
 )
+from trinity.plugins.registry import (
+    BASE_PLUGINS,
+)
 from trinity.utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
@@ -38,7 +41,7 @@ from trinity.utils.mp import (
 
 
 def main_beacon() -> None:
-    main_entry(trinity_boot)
+    main_entry(trinity_boot, BASE_PLUGINS)
 
 
 def trinity_boot(args: Namespace,

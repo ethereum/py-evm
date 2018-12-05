@@ -1,5 +1,5 @@
 from trinity.plugins.registry import (
-    get_all_plugins
+    discover_plugins
 )
 # This plugin is external to this code base and installed by tox
 # In order to install it locally run:
@@ -8,5 +8,5 @@ from peer_count_reporter_plugin import PeerCountReporterPlugin
 
 
 def test_plugin_discovery():
-    plugins = [type(plugin) for plugin in get_all_plugins()]
+    plugins = [type(plugin) for plugin in discover_plugins()]
     assert PeerCountReporterPlugin in plugins
