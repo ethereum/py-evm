@@ -1,5 +1,6 @@
 import bisect
 import math
+from typing import List, Union
 
 from eth_utils.toolz import tail, take
 
@@ -25,7 +26,7 @@ class Percentile:
             raise ValueError("Invalid: percentile must be in the range [0, 1]")
         self.num_below = 0
         self.num_above = 0
-        self.window = []
+        self.window: List[Union[int, float]] = []
         self.percentile = percentile
         self.window_size = window_size
         self.is_outside_window = False
@@ -68,7 +69,7 @@ class Percentile:
             position = percentile_idx % 1
             return left_value + delta * position
 
-    def update(self, value):
+    def update(self, value: Union[int, float]) -> None:
         # We only want to insert the value into our window in the event that it
         # is:
         #
