@@ -6,6 +6,7 @@ from typing import (
     Any,
     Iterable,
     Sequence,
+    Tuple,
     TYPE_CHECKING,
 )
 
@@ -214,7 +215,7 @@ def get_attestation_indices(crystallized_state: 'CrystallizedState',
             yield from shard_and_committee.committee
 
 
-def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Iterable[int]:
+def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tuple[int, ...]:
     """
     Gets indices of active validators from ``validators``.
     """
