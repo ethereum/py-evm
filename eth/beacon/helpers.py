@@ -214,15 +214,14 @@ def get_attestation_indices(crystallized_state: 'CrystallizedState',
             yield from shard_and_committee.committee
 
 
-@to_tuple
 def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Iterable[int]:
     """
     Gets indices of active validators from ``validators``.
     """
-    return [
+    return tuple(
         i for i, v in enumerate(validators)
         if v.status in [ValidatorStatusCode.ACTIVE, ValidatorStatusCode.PENDING_EXIT]
-    ]
+    )
 
 
 #

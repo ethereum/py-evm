@@ -1,9 +1,6 @@
 import pytest
 
 from eth_utils import denoms
-from eth_utils import (
-    to_tuple,
-)
 
 from eth.constants import (
     ZERO_HASH32,
@@ -369,11 +366,10 @@ def initial_fork_version():
 # genesis
 #
 @pytest.fixture
-@to_tuple
 def genesis_validators(init_validator_keys,
                        init_randao,
                        deposit_size):
-    return [
+    return tuple(
         ValidatorRecord(
             pubkey=pub,
             withdrawal_credentials=ZERO_HASH32,
@@ -384,4 +380,4 @@ def genesis_validators(init_validator_keys,
             last_status_change_slot=0,
             exit_seq=0,
         ) for pub in init_validator_keys
-    ]
+    )
