@@ -5,6 +5,7 @@ import signal
 from typing import (
     Any,
     Dict,
+    Iterable,
 )
 
 from lahja import (
@@ -32,8 +33,14 @@ from trinity.events import (
     ShutdownRequest
 )
 from trinity.extensibility import (
+    BasePlugin,
     PluginManager,
     SharedProcessScope,
+)
+from trinity.plugins.registry import (
+    BASE_PLUGINS,
+    discover_plugins,
+    ETH1_NODE_PLUGINS,
 )
 from trinity.utils.ipc import (
     wait_for_ipc,
@@ -53,8 +60,12 @@ from trinity.utils.shutdown import (
 )
 
 
+def get_all_plugins() -> Iterable[BasePlugin]:
+    return BASE_PLUGINS + ETH1_NODE_PLUGINS + discover_plugins()
+
+
 def main() -> None:
-    main_entry(trinity_boot)
+    main_entry(trinity_boot, get_all_plugins())
 
 
 def trinity_boot(args: Namespace,
@@ -142,7 +153,7 @@ def launch_node(args: Namespace, trinity_config: TrinityConfig, endpoint: Endpoi
 
         endpoint.connect_no_wait(loop)
         # This is a second PluginManager instance governing plugins in a shared process.
-        plugin_manager = setup_plugins(SharedProcessScope(endpoint))
+        plugin_manager = setup_plugins(SharedProcessScope(endpoint), get_all_plugins())
         plugin_manager.prepare(args, trinity_config)
 
         asyncio.ensure_future(handle_networking_exit(node, plugin_manager, endpoint), loop=loop)

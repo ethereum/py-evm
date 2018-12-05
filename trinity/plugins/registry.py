@@ -35,10 +35,14 @@ def is_ipython_available() -> bool:
         return True
 
 
-BUILTIN_PLUGINS = (
-    AttachPlugin() if is_ipython_available() else AttachPlugin(use_ipython=False),
-    EthstatsPlugin(),
+BASE_PLUGINS: Tuple[BasePlugin, ...] = (
+    AttachPlugin(use_ipython=is_ipython_available()),
     FixUncleanShutdownPlugin(),
+)
+
+
+ETH1_NODE_PLUGINS: Tuple[BasePlugin, ...] = (
+    EthstatsPlugin(),
     JsonRpcServerPlugin(),
     LightPeerChainBridgePlugin(),
     TxPlugin(),
@@ -52,7 +56,3 @@ def discover_plugins() -> Tuple[BasePlugin, ...]:
     return tuple(
         entry_point.load()() for entry_point in pkg_resources.iter_entry_points('trinity.plugins')
     )
-
-
-def get_all_plugins() -> Tuple[BasePlugin, ...]:
-    return BUILTIN_PLUGINS + discover_plugins()
