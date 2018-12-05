@@ -101,7 +101,7 @@ class ResponseCandidateStream(
                 try:
                     yield await self._get_payload(timeout_remaining)
                 except TimeoutError:
-                    tracker.record_timeout(timeout)
+                    tracker.record_timeout()
                     raise
         finally:
             self._lock.release()
