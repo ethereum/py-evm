@@ -1,27 +1,28 @@
 from typing import (
+    AsyncIterator,
     Awaitable,
     TypeVar,
 )
 
 from cancel_token import CancelToken
 
+TReturn = TypeVar('TReturn')
+
 
 class CancellableMixin:
     cancel_token: CancelToken = None
 
-    _TReturn = TypeVar('_TReturn')
-
     async def wait(self,
-                   awaitable: Awaitable[_TReturn],
+                   awaitable: Awaitable[TReturn],
                    token: CancelToken = None,
-                   timeout: float = None) -> _TReturn:
+                   timeout: float = None) -> TReturn:
         """See wait_first()"""
         return await self.wait_first(awaitable, token=token, timeout=timeout)
 
     async def wait_first(self,
-                         *awaitables: Awaitable[_TReturn],
+                         *awaitables: Awaitable[TReturn],
                          token: CancelToken = None,
-                         timeout: float = None) -> _TReturn:
+                         timeout: float = None) -> TReturn:
         """
         Wait for the first awaitable to complete, unless we timeout or the token chain is triggered.
 
@@ -39,3 +40,30 @@ class CancellableMixin:
         else:
             token_chain = token.chain(self.cancel_token)
         return await token_chain.cancellable_wait(*awaitables, timeout=timeout)
+
+    async def wait_iter(
+            self,
+            aiterable: AsyncIterator[TReturn],
+            token: CancelToken = None,
+            timeout: float = None) -> AsyncIterator[TReturn]:
+        """
+        Iterate through an async iterator, raising the OperationCancelled exception if the token is
+        triggered. For example:
+
+        ::
+
+            async for val in self.wait_iter(my_async_iterator()):
+                do_stuff(val)
+
+        See :meth:`CancellableMixin.wait_first` for using arguments ``token`` and ``timeout``
+        """
+        aiter = aiterable.__aiter__()
+        while True:
+            try:
+                yield await self.wait(
+                    aiter.__anext__(),
+                    token=token,
+                    timeout=timeout,
+                )
+            except StopAsyncIteration:
+                break
