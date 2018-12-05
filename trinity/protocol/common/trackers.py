@@ -12,8 +12,9 @@ from p2p.protocol import (
 )
 
 from trinity.utils.ema import EMA
-from trinity.utils.percentile import Percentile
 from trinity.utils.logging import HasTraceLogger
+from trinity.utils.percentile import Percentile
+from trinity.utils.stddev import StandardDeviation
 from .constants import ROUND_TRIP_TIMEOUT
 from .types import (
     TResult,
@@ -36,9 +37,10 @@ class BasePerformanceTracker(ABC, HasTraceLogger, Generic[TRequest, TResult]):
         # empty responses.
         self.response_quality_ema = EMA(initial_value=0, smoothing_factor=0.05)
 
-        # an EMA of the round trip request/response time
+        # Metrics for the round trip request/response time
         self.round_trip_ema = EMA(initial_value=ROUND_TRIP_TIMEOUT, smoothing_factor=0.05)
-        self.round_trip_95th = Percentile(percentile=0.95, window_size=100)
+        self.round_trip_99th = Percentile(percentile=0.99, window_size=100)
+        self.round_trip_stddev = StandardDeviation()
 
         # an EMA of the items per second
         self.items_per_second_ema = EMA(initial_value=0, smoothing_factor=0.05)
@@ -87,13 +89,13 @@ class BasePerformanceTracker(ABC, HasTraceLogger, Generic[TRequest, TResult]):
             items_per_second = self.total_items / self.total_response_time
 
         try:
-            rt95 = self.round_trip_95th.value
+            rt99 = self.round_trip_99th.value
         except ValueError:
-            rt95 = 0
+            rt99 = 0
 
         # msgs: total number of messages
         # items: total number of items
-        # rtt: round-trip-time (avg/ema/95th)
+        # rtt: round-trip-time (avg/ema/99th)
         # ips: items-per-second (avg/ema)
         # timeouts: total number of timeouts
         # missing: total number of missing response items
@@ -106,7 +108,7 @@ class BasePerformanceTracker(ABC, HasTraceLogger, Generic[TRequest, TResult]):
             self.total_items,
             avg_rtt,
             self.round_trip_ema.value,
-            rt95,
+            rt99,
             items_per_second,
             self.items_per_second_ema.value,
             self.total_timeouts,
@@ -158,7 +160,8 @@ class BasePerformanceTracker(ABC, HasTraceLogger, Generic[TRequest, TResult]):
         self.total_items += num_items
         self.total_response_time += elapsed
         self.round_trip_ema.update(elapsed)
-        self.round_trip_95th.update(elapsed)
+        self.round_trip_99th.update(elapsed)
+        self.round_trip_stddev.update(elapsed)
 
         if elapsed > 0:
             throughput = num_items / elapsed

@@ -80,26 +80,45 @@ class ResponseCandidateStream(
         candidates will stop arriving.
         """
         if timeout is None:
-            timeout = self.response_timeout
+            outer_timeout = self.response_timeout
+        else:
+            outer_timeout = timeout
 
         start_at = time.perf_counter()
 
         # The _lock ensures that we never have two concurrent requests to a
         # single peer for a single command pair in flight.
         try:
-            await self.wait(self._lock.acquire(), timeout=timeout)
+            await self.wait(self._lock.acquire(), timeout=outer_timeout)
         except TimeoutError:
             raise AlreadyWaiting(
                 f"Timed out waiting for {self.response_msg_name} request lock "
                 f"or peer: {self._peer}"
             )
 
+        if timeout is not None or tracker.total_msgs < 20:
+            inner_timeout = outer_timeout
+        else:
+            # We compute a timeout based on the historical performance
+            # of the peer defined as three standard deviations above
+            # the response time for the 99th percentile of requests.
+            try:
+                rtt_99th = tracker.round_trip_99th.value
+                rtt_stddev = tracker.round_trip_stddev.value
+            except ValueError:
+                inner_timeout = self.response_timeout
+            else:
+                inner_timeout = rtt_99th + 3 * rtt_stddev
+
         try:
             self._request(request)
             while self._is_pending():
-                timeout_remaining = max(0, timeout - (time.perf_counter() - start_at))
+                timeout_remaining = max(0, outer_timeout - (time.perf_counter() - start_at))
+
+                payload_timeout = min(inner_timeout, timeout_remaining)
+
                 try:
-                    yield await self._get_payload(timeout_remaining)
+                    yield await self._get_payload(payload_timeout)
                 except TimeoutError:
                     tracker.record_timeout()
                     raise
