@@ -1,18 +1,13 @@
 import pytest
 
-from eth_utils import (
-    to_tuple,
-)
-
-from eth.beacon.genesis_helpers import (
-    get_genesis_active_state,
-    get_genesis_block,
-    get_genesis_crystallized_state,
-)
-from eth.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
-from eth.beacon.types.validator_records import ValidatorRecord
 import eth.utils.bls as bls
 from eth.utils.blake import blake
+
+from eth.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
+
+from eth.beacon.types.attestation_signed_data import (
+    AttestationSignedData,
+)
 
 
 DEFAULT_SHUFFLING_SEED = b'\00' * 32
@@ -41,62 +36,114 @@ def pubkeys(keymap):
 
 
 @pytest.fixture
-def sample_active_state_params():
+def sample_attestation_record_params(sample_attestation_signed_data_params):
     return {
-        'pending_attestations': [],
-        'recent_block_hashes': [],
-    }
-
-
-@pytest.fixture
-def sample_attestation_record_params():
-    return {
-        'slot': 10,
-        'shard_id': 12,
-        'oblique_parent_hashes': [],
-        'shard_block_hash': b'\x20' * 32,
-        'attester_bitfield': b'\x33\x1F',
-        'justified_slot': 5,
-        'justified_block_hash': b'\x33' * 32,
+        'data': AttestationSignedData(**sample_attestation_signed_data_params),
+        'attester_bitfield': b'\12' * 16,
+        'poc_bitfield': b'\34' * 16,
         'aggregate_sig': [0, 0],
     }
 
 
 @pytest.fixture
-def sample_block_params():
+def sample_attestation_signed_data_params():
     return {
-        'parent_hash': b'\x55' * 32,
-        'slot_number': 10,
-        'randao_reveal': b'\x34' * 32,
-        'attestations': [],
-        'pow_chain_ref': b'\x32' * 32,
-        'active_state_root': b'\x01' * 32,
-        'crystallized_state_root': b'\x05' * 32
+        'slot': 10,
+        'shard': 12,
+        'block_hash': b'\x11' * 32,
+        'cycle_boundary_hash': b'\x22' * 32,
+        'shard_block_hash': b'\x33' * 32,
+        'last_crosslink_hash': b'\x44' * 32,
+        'justified_slot': 5,
+        'justified_block_hash': b'\x55' * 32,
     }
 
 
 @pytest.fixture
-def sample_crystallized_state_params():
+def sample_beacon_block_params():
     return {
-        'validators': [],
-        'last_state_recalc': 50,
-        'shard_and_committee_for_slots': [],
-        'last_justified_slot': 100,
-        'justified_streak': 10,
-        'last_finalized_slot': 70,
-        'current_dynasty': 4,
-        'crosslink_records': [],
-        'dynasty_seed': b'\x55' * 32,
-        'dynasty_start': 3,
+        'slot': 10,
+        'randao_reveal': b'\x55' * 32,
+        'candidate_pow_receipt_root': b'\x55' * 32,
+        'ancestor_hashes': (),
+        'state_root': b'\x55' * 32,
+        'attestations': (),
+        'specials': (),
+        'proposer_signature': (0, 0),
+    }
+
+
+@pytest.fixture
+def sample_beacon_state_params():
+    return {
+        'validator_set_change_slot': 10,
+        'validators': (),
+        'crosslinks': (),
+        'last_state_recalculation_slot': 1,
+        'last_finalized_slot': 2,
+        'prev_cycle_justification_source': 2,
+        'justification_source': 2,
+        'justified_slot_bitfield': 2,
+        'shard_and_committee_for_slots': (),
+        'persistent_committees': (),
+        'persistent_committee_reassignments': (),
+        'next_shuffling_seed': b'\x55' * 32,
+        'deposits_penalized_in_period': (),
+        'validator_set_delta_hash_chain': b'\x55' * 32,
+        'current_exit_seq': 10,
+        'genesis_time': 10,
+        'processed_pow_receipt_root': b'\x55' * 32,
+        'candidate_pow_receipt_roots': (),
+        'pre_fork_version': 0,
+        'post_fork_version': 1,
+        'fork_slot_number': 10,
+        'pending_attestations': (),
+        'recent_block_hashes': (),
+        'randao_mix': b'\x55' * 32,
+    }
+
+
+@pytest.fixture
+def sample_candidate_pow_receipt_root_record_params():
+    return {
+        'candidate_pow_receipt_root': b'\x43' * 32,
+        'votes': 10,
     }
 
 
 @pytest.fixture
 def sample_crosslink_record_params():
     return {
-        'dynasty': 2,
         'slot': 0,
-        'hash': b'\x43' * 32,
+        'shard_block_hash': b'\x43' * 32,
+    }
+
+
+@pytest.fixture
+def sample_fork_data_params():
+    return {
+        'pre_fork_version': 0,
+        'post_fork_version': 0,
+        'fork_slot_number': 2**64 - 1,
+    }
+
+
+@pytest.fixture
+def sample_processed_attestation_params(sample_attestation_signed_data_params):
+    return {
+        'data': AttestationSignedData(**sample_attestation_signed_data_params),
+        'attester_bitfield': b'\12' * 16,
+        'poc_bitfield': b'\34' * 16,
+        'slot_included': 0,
+    }
+
+
+@pytest.fixture
+def sample_proposal_signed_data_params():
+    return {
+        'slot': 10,
+        'shard': 12,
+        'block_hash': b'\x43' * 32,
     }
 
 
@@ -112,8 +159,25 @@ def sample_recent_proposer_record_params():
 @pytest.fixture
 def sample_shard_and_committee_params():
     return {
-        'shard_id': 10,
-        'committee': [],
+        'shard': 10,
+        'committee': (1, 3, 5),
+    }
+
+
+@pytest.fixture
+def sample_shard_reassignment_record():
+    return {
+        'validator_index': 10,
+        'shard': 11,
+        'slot': 12,
+    }
+
+
+@pytest.fixture
+def sample_special_params():
+    return {
+        'kind': 10,
+        'data': b'\x55' * 100,
     }
 
 
@@ -121,12 +185,13 @@ def sample_shard_and_committee_params():
 def sample_validator_record_params():
     return {
         'pubkey': 123,
-        'withdrawal_shard': 10,
-        'withdrawal_address': b'\x01' * 20,
+        'withdrawal_credentials': b'\x01' * 32,
         'randao_commitment': b'\x01' * 32,
+        'randao_skips': 1,
         'balance': 100,
-        'start_dynasty': 1,
-        'end_dynasty': 3
+        'status': 1,
+        'last_status_change_slot': 0,
+        'exit_seq': 0
     }
 
 
@@ -157,13 +222,8 @@ def init_validator_keys(pubkeys, num_validators):
 # config
 #
 @pytest.fixture
-def base_reward_quotient():
-    return SERENITY_CONFIG.BASE_REWARD_QUOTIENT
-
-
-@pytest.fixture
-def default_end_dynasty():
-    return SERENITY_CONFIG.DEFAULT_END_DYNASTY
+def shard_count():
+    return SERENITY_CONFIG.SHARD_COUNT
 
 
 @pytest.fixture
@@ -172,23 +232,33 @@ def deposit_size():
 
 
 @pytest.fixture
-def cycle_length():
-    return SERENITY_CONFIG.CYCLE_LENGTH
+def min_topup_size():
+    return SERENITY_CONFIG.MIN_TOPUP_SIZE
 
 
 @pytest.fixture
-def min_committee_size():
-    return SERENITY_CONFIG.MIN_COMMITTEE_SIZE
+def min_online_deposit_size():
+    return SERENITY_CONFIG.MIN_ONLINE_DEPOSIT_SIZE
 
 
 @pytest.fixture
-def min_dynasty_length():
-    return SERENITY_CONFIG.MIN_DYNASTY_LENGTH
+def deposit_contract_address():
+    return SERENITY_CONFIG.DEPOSIT_CONTRACT_ADDRESS
 
 
 @pytest.fixture
-def shard_count():
-    return SERENITY_CONFIG.SHARD_COUNT
+def deposits_for_chain_start():
+    return SERENITY_CONFIG.DEPOSITS_FOR_CHAIN_START
+
+
+@pytest.fixture
+def target_committee_size():
+    return SERENITY_CONFIG.TARGET_COMMITTEE_SIZE
+
+
+@pytest.fixture
+def genesis_time():
+    return SERENITY_CONFIG.GENESIS_TIME
 
 
 @pytest.fixture
@@ -197,59 +267,85 @@ def slot_duration():
 
 
 @pytest.fixture
+def cycle_length():
+    return SERENITY_CONFIG.CYCLE_LENGTH
+
+
+@pytest.fixture
+def min_validator_set_change_interval():
+    return SERENITY_CONFIG.MIN_VALIDATOR_SET_CHANGE_INTERVAL
+
+
+@pytest.fixture
+def shard_persistent_committee_change_period():
+    return SERENITY_CONFIG.SHARD_PERSISTENT_COMMITTEE_CHANGE_PERIOD
+
+
+@pytest.fixture
+def min_attestation_inclusion_delay():
+    return SERENITY_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
+
+
+@pytest.fixture
 def sqrt_e_drop_time():
     return SERENITY_CONFIG.SQRT_E_DROP_TIME
 
 
-#
-# genesis
-#
 @pytest.fixture
-@to_tuple
-def genesis_validators(init_validator_keys,
-                       init_randao,
-                       deposit_size,
-                       default_end_dynasty):
-    current_dynasty = 1
-    return [
-        ValidatorRecord(
-            pubkey=pub,
-            withdrawal_shard=0,
-            withdrawal_address=blake(pub.to_bytes(32, 'big'))[-20:],
-            randao_commitment=init_randao,
-            balance=deposit_size,
-            start_dynasty=current_dynasty,
-            end_dynasty=default_end_dynasty
-        ) for pub in init_validator_keys
-    ]
+def includer_reward_share_quotient():
+    return SERENITY_CONFIG.INCLUDER_REWARD_SHARE_QUOTIENT
 
 
 @pytest.fixture
-def genesis_crystallized_state(genesis_validators,
-                               init_shuffling_seed,
-                               cycle_length,
-                               min_committee_size,
-                               shard_count):
-    return get_genesis_crystallized_state(
-        genesis_validators,
-        init_shuffling_seed,
-        cycle_length,
-        min_committee_size,
-        shard_count,
-    )
+def withdrawals_per_cycle():
+    return SERENITY_CONFIG.WITHDRAWALS_PER_CYCLE
 
 
 @pytest.fixture
-def genesis_active_state(cycle_length):
-    return get_genesis_active_state(cycle_length)
+def min_withdrawal_period():
+    return SERENITY_CONFIG.MIN_WITHDRAWAL_PERIOD
 
 
 @pytest.fixture
-def genesis_block(genesis_active_state, genesis_crystallized_state):
-    active_state_root = genesis_active_state.hash
-    crystallized_state_root = genesis_crystallized_state.hash
+def deletion_period():
+    return SERENITY_CONFIG.DELETION_PERIOD
 
-    return get_genesis_block(
-        active_state_root=active_state_root,
-        crystallized_state_root=crystallized_state_root,
-    )
+
+@pytest.fixture
+def collective_penalty_calculation_period():
+    return SERENITY_CONFIG.COLLECTIVE_PENALTY_CALCULATION_PERIOD
+
+
+@pytest.fixture
+def pow_receipt_root_voting_period():
+    return SERENITY_CONFIG.POW_RECEIPT_ROOT_VOTING_PERIOD
+
+
+@pytest.fixture
+def slashing_whistleblower_reward_denominator():
+    return SERENITY_CONFIG.SLASHING_WHISTLEBLOWER_REWARD_DENOMINATOR
+
+
+@pytest.fixture
+def base_reward_quotient():
+    return SERENITY_CONFIG.BASE_REWARD_QUOTIENT
+
+
+@pytest.fixture
+def max_validator_churn_quotient():
+    return SERENITY_CONFIG.MAX_VALIDATOR_CHURN_QUOTIENT
+
+
+@pytest.fixture
+def pow_contract_merkle_tree_depth():
+    return SERENITY_CONFIG.POW_CONTRACT_MERKLE_TREE_DEPTH
+
+
+@pytest.fixture
+def max_attestation_count():
+    return SERENITY_CONFIG.MAX_ATTESTATION_COUNT
+
+
+@pytest.fixture
+def initial_fork_version():
+    return SERENITY_CONFIG.INITIAL_FORK_VERSION

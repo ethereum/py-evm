@@ -4,7 +4,7 @@ from eth_typing import (
 import rlp
 
 from eth.rlp.sedes import (
-    int64,
+    uint64,
     hash32,
 )
 
@@ -14,21 +14,17 @@ class CrosslinkRecord(rlp.Serializable):
     Note: using RLP until we have standardized serialization format.
     """
     fields = [
-        # What dynasty the crosslink was submitted in
-        ('dynasty', int64),
-        # slot during which crosslink was added
-        ('slot', int64),
-        # The block hash
-        ('hash', hash32),
+        # Slot during which crosslink was added
+        ('slot', uint64),
+        # Shard chain block hash
+        ('shard_block_hash', hash32),
     ]
 
     def __init__(self,
-                 dynasty: int,
                  slot: int,
-                 hash: Hash32) -> None:
+                 shard_block_hash: Hash32) -> None:
 
         super().__init__(
-            dynasty=dynasty,
             slot=slot,
-            hash=hash,
+            shard_block_hash=shard_block_hash,
         )

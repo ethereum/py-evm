@@ -10,7 +10,7 @@ from rlp.sedes import (
 from eth_bloom import BloomFilter
 
 from .sedes import (
-    int256,
+    uint256,
 )
 
 from .logs import Log
@@ -23,7 +23,7 @@ class Receipt(rlp.Serializable):
     fields = [
         ('state_root', binary),
         ('gas_used', big_endian_int),
-        ('bloom', int256),
+        ('bloom', uint256),
         ('logs', CountableList(Log))
     ]
 

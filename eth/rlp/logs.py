@@ -11,14 +11,14 @@ from typing import (
 
 from .sedes import (
     address,
-    int32,
+    uint32,
 )
 
 
 class Log(rlp.Serializable):
     fields = [
         ('address', address),
-        ('topics', CountableList(int32)),
+        ('topics', CountableList(uint32)),
         ('data', binary)
     ]
 
@@ -30,5 +30,5 @@ class Log(rlp.Serializable):
         return (
             self.address,
         ) + tuple(
-            int32.serialize(topic) for topic in self.topics
+            uint32.serialize(topic) for topic in self.topics
         )

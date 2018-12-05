@@ -16,6 +16,7 @@ from p2p.service import (
     BaseService,
 )
 
+from trinity.chains.full import FullChain
 from trinity.db.header import (
     AsyncHeaderDB,
 )
@@ -40,6 +41,8 @@ class Node(BaseService):
     Create usable nodes by adding subclasses that define the following
     unset attributes.
     """
+    _full_chain: FullChain = None
+
     def __init__(self, event_bus: Endpoint, trinity_config: TrinityConfig) -> None:
         super().__init__()
         self.trinity_config = trinity_config
@@ -54,20 +57,15 @@ class Node(BaseService):
         self.event_bus = event_bus
 
     async def handle_network_id_requests(self) -> None:
-        async def f() -> None:
-            # FIXME: There must be a way to cancel event_bus.stream() when our token is triggered,
-            # but for the time being we just wrap everything in self.wait().
-            async for req in self.event_bus.stream(NetworkIdRequest):
-                # We are listening for all `NetworkIdRequest` events but we ensure to only send a
-                # `NetworkIdResponse` to the callsite that made the request.  We do that by
-                # retrieving a `BroadcastConfig` from the request via the
-                # `event.broadcast_config()` API.
-                self.event_bus.broadcast(
-                    NetworkIdResponse(self._network_id),
-                    req.broadcast_config()
-                )
-
-        await self.wait(f())
+        async for req in self.event_bus.stream(NetworkIdRequest):
+            # We are listening for all `NetworkIdRequest` events but we ensure to only send a
+            # `NetworkIdResponse` to the callsite that made the request.  We do that by
+            # retrieving a `BroadcastConfig` from the request via the
+            # `event.broadcast_config()` API.
+            self.event_bus.broadcast(
+                NetworkIdResponse(self._network_id),
+                req.broadcast_config()
+            )
 
     _chain_config: ChainConfig = None
 
@@ -83,6 +81,13 @@ class Node(BaseService):
     @abstractmethod
     def get_chain(self) -> BaseChain:
         raise NotImplementedError("Node classes must implement this method")
+
+    def get_full_chain(self) -> FullChain:
+        if self._full_chain is None:
+            chain_class = self.chain_config.full_chain_class
+            self._full_chain = chain_class(self.db_manager.get_db())  # type: ignore
+
+        return self._full_chain
 
     @abstractmethod
     def get_peer_pool(self) -> BasePeerPool:

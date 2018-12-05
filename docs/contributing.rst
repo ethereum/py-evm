@@ -72,37 +72,9 @@ All parameters as well as the return type of defs are expected to be typed with 
 Documentation
 ~~~~~~~~~~~~~
 
-Public APIs are expected to be annotated with docstrings as seen in the following example.
+Good documentation will lead to quicker adoption and happier users. Please check out our guide
+on `how to create documentation for the Python Ethereum ecosystem <https://github.com/ethereum/snake-charmers-tactical-manual/blob/master/documentation.md>`_.
 
-.. code:: python
-
-    def add_transaction(self,
-                        transaction: BaseTransaction,
-                        computation: BaseComputation,
-                        block: BaseBlock) -> Tuple[Block, Dict[bytes, bytes]]:
-            """
-            Add a transaction to the given block and
-            return `trie_data` to store the transaction data in chaindb in VM layer.
-
-            Update the bloom_filter, transaction trie and receipt trie roots, bloom_filter,
-            bloom, and used_gas of the block.
-
-            :param transaction: the executed transaction
-            :param computation: the Computation object with executed result
-            :param block: the Block which the transaction is added in
-
-            :return: the block and the trie_data
-            """
-
-Docstrings are written in reStructuredText and allow certain type of directives.
-
-Notice that ``:param:`` and ``:return:`` directives are being used to describe parameters and return value. Usage of ``:type:`` and ``:rtype:`` directives on the other hand is discouraged as sphinx directly reads and displays the types from the source code type definitions making any further use of ``:type:`` and ``:rtype:`` obsolete and unnecessarily verbose.
-
-Use imperative, present tense to describe APIs: “return” not “returns”
-
-One way to test if you have it right is to complete the following sentence.
-
-If you call this API it will: __________________________
 
 Pull Requests
 ~~~~~~~~~~~~~
@@ -160,3 +132,24 @@ the new version explicitly, like
 ``bumpversion --new-version 4.0.0-alpha.1 devnum``
 
 
+How to release docker images
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To create a docker image:
+
+.. code:: sh
+
+    make create-docker-image version=<version>
+
+
+By default, this will create a new image with two tags pointing to it:
+ - ``ethereum/trinity:<version>`` (explicit version)
+ - ``ethereum/trinity:latest`` (latest until overwritten with a future "latest")
+
+Then, push to docker hub:
+
+.. code:: sh
+
+    docker push ethereum/trinity:<version>
+    # the following may be left out if we were pushing a patch for an older version
+    docker push ethereum/trinity:latest

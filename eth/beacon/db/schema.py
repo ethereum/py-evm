@@ -24,24 +24,6 @@ class BaseSchema(ABC):
     def make_block_hash_to_score_lookup_key(block_hash: Hash32) -> bytes:
         pass
 
-    #
-    # States
-    #
-    @staticmethod
-    @abstractmethod
-    def make_slot_to_crystallized_state_lookup_key(slot: int) -> bytes:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def make_crystallized_to_active_state_root_lookup_key(state_root: Hash32) -> bytes:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def make_deletable_state_roots_lookup_key() -> bytes:
-        pass
-
 
 class SchemaV1(BaseSchema):
     #
@@ -59,18 +41,3 @@ class SchemaV1(BaseSchema):
     @staticmethod
     def make_block_hash_to_score_lookup_key(block_hash: Hash32) -> bytes:
         return b'v1:beacon:block-hash-to-score:%s' % block_hash
-
-    #
-    # States
-    #
-    @staticmethod
-    def make_slot_to_crystallized_state_lookup_key(slot: int) -> bytes:
-        return b'v1:beacon:slot-to-crystallized-state:%d' % slot
-
-    @staticmethod
-    def make_crystallized_to_active_state_root_lookup_key(state_root: Hash32) -> bytes:
-        return b'v1:beacon:crystallized-root-to-active-state-root:%s' % state_root
-
-    @staticmethod
-    def make_deletable_state_roots_lookup_key() -> bytes:
-        return b'v1:beacon:make-deletable-state-roots'

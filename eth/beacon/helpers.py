@@ -257,14 +257,14 @@ def _get_shuffling_committee_slot_portions(
 @to_tuple
 def _get_shards_and_committees_for_shard_indices(
         shard_indices: Sequence[Sequence[int]],
-        shard_id_start: int,
+        shard_start: int,
         shard_count: int) -> Iterable[ShardAndCommittee]:
     """
     Returns filled [ShardAndCommittee] tuple.
     """
     for index, indices in enumerate(shard_indices):
         yield ShardAndCommittee(
-            shard_id=(shard_id_start + index) % shard_count,
+            shard=(shard_start + index) % shard_count,
             committee=indices
         )
 

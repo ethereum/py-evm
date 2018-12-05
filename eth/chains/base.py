@@ -34,6 +34,10 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
 )
+from eth_utils.toolz import (
+    concatv,
+    sliding_window,
+)
 
 from eth.constants import (
     BLANK_ROOT_HASH,
@@ -315,13 +319,37 @@ class BaseChain(Configurable, ABC):
     def validate_uncles(self, block: BaseBlock) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
-    @abstractmethod
+    @classmethod
     def validate_chain(
-            self,
-            parent: BlockHeader,
-            chain: Tuple[BlockHeader, ...],
+            cls,
+            root: BlockHeader,
+            descendants: Tuple[BlockHeader, ...],
             seal_check_random_sample_rate: int = 1) -> None:
-        raise NotImplementedError("Chain classes must implement this method")
+        """
+        Validate that all of the descendents are valid, given that the root header is valid.
+
+        By default, check the seal validity (Proof-of-Work on Ethereum 1.x mainnet) of all headers.
+        This can be expensive. Instead, check a random sample of seals using
+        seal_check_random_sample_rate.
+        """
+
+        all_indices = range(len(descendants))
+        if seal_check_random_sample_rate == 1:
+            indices_to_check_seal = set(all_indices)
+        else:
+            sample_size = len(all_indices) // seal_check_random_sample_rate
+            indices_to_check_seal = set(random.sample(all_indices, sample_size))
+
+        header_pairs = sliding_window(2, concatv([root], descendants))
+
+        for index, (parent, child) in enumerate(header_pairs):
+            if child.parent_hash != parent.hash:
+                raise ValidationError(
+                    "Invalid header chain; {} has parent {}, but expected {}".format(
+                        child, child.parent_hash, parent.hash))
+            should_check_seal = index in indices_to_check_seal
+            vm_class = cls.get_vm_class_for_block_number(child.block_number)
+            vm_class.validate_header(child, parent, check_seal=should_check_seal)
 
 
 class Chain(BaseChain):
@@ -819,31 +847,6 @@ class Chain(BaseChain):
 
             uncle_vm_class = self.get_vm_class_for_block_number(uncle.block_number)
             uncle_vm_class.validate_uncle(block, uncle, uncle_parent)
-
-    def validate_chain(
-            self,
-            parent: BlockHeader,
-            chain: Tuple[BlockHeader, ...],
-            seal_check_random_sample_rate: int = 1) -> None:
-
-        all_indices = list(range(len(chain)))
-        if seal_check_random_sample_rate == 1:
-            headers_to_check_seal = set(all_indices)
-        else:
-            sample_size = len(all_indices) // seal_check_random_sample_rate
-            headers_to_check_seal = set(random.sample(all_indices, sample_size))
-
-        for i, header in enumerate(chain):
-            if header.parent_hash != parent.hash:
-                raise ValidationError(
-                    "Invalid header chain; {} has parent {}, but expected {}".format(
-                        header, header.parent_hash, parent.hash))
-            vm_class = self.get_vm_class_for_block_number(header.block_number)
-            if i in headers_to_check_seal:
-                vm_class.validate_header(header, parent, check_seal=True)
-            else:
-                vm_class.validate_header(header, parent, check_seal=False)
-            parent = header
 
 
 @to_set
