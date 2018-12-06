@@ -39,6 +39,8 @@ class BCCPeer(BasePeer):
     _supported_sub_protocols = [BCCProtocol]
     sub_proto: BCCProtocol = None
 
+    context: BeaconContext
+
     head_hash: Hash32 = None
 
     async def send_sub_proto_handshake(self) -> None:
