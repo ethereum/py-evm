@@ -131,6 +131,19 @@ def sample_crosslink_record_params():
         'shard_block_hash': b'\x43' * 32,
     }
 
+@pytest.fixture
+def sample_deposit_parameters_records_params():
+    return {
+         # BLS pubkey
+        'pubkey': 123,
+        # BLS proof of possession (a BLS signature)
+        'proof_of_possession': (0, 0),
+        # Withdrawal credentials
+        'withdrawal_credentials': b'\11' * 32,
+        # Initial RANDAO commitment
+        'randao_commitment': b'\11' * 32,
+    }
+
 
 @pytest.fixture
 def sample_fork_data_params():
