@@ -7,7 +7,6 @@ from eth_typing import (
 )
 import rlp
 from rlp.sedes import (
-    binary,
     CountableList,
 )
 

@@ -27,13 +27,13 @@ from tests.beacon.helpers import (
 def generate_mock_recent_block_hashes(
         genesis_block,
         current_block_number,
-        cycle_length):
-    chain_length = (current_block_number // cycle_length + 1) * cycle_length
+        epoch_length):
+    chain_length = (current_block_number // epoch_length + 1) * epoch_length
     blocks = get_pseudo_chain(chain_length, genesis_block)
     recent_block_hashes = [
         b'\x00' * 32
         for i
-        in range(cycle_length * 2 - current_block_number)
+        in range(epoch_length * 2 - current_block_number)
     ] + [block.hash for block in blocks[:current_block_number]]
     return blocks, recent_block_hashes
 
@@ -92,13 +92,13 @@ def test_get_block_hash(
         current_block_number,
         target_slot,
         success,
-        cycle_length):
-    cycle_length = cycle_length
+        epoch_length):
+    epoch_length = epoch_length
 
     blocks, recent_block_hashes = generate_mock_recent_block_hashes(
         genesis_block,
         current_block_number,
-        cycle_length,
+        epoch_length,
     )
 
     if success:
@@ -106,7 +106,7 @@ def test_get_block_hash(
             recent_block_hashes,
             current_block_number,
             target_slot,
-            cycle_length,
+            epoch_length,
         )
         assert block_hash == blocks[target_slot].hash
     else:
@@ -115,14 +115,14 @@ def test_get_block_hash(
                 recent_block_hashes,
                 current_block_number,
                 target_slot,
-                cycle_length,
+                epoch_length,
             )
 
 
 @pytest.mark.xfail(reason="Need to be fixed")
 @pytest.mark.parametrize(
     (
-        'cycle_length,current_block_slot_number,from_slot,to_slot'
+        'epoch_length,current_block_slot_number,from_slot,to_slot'
     ),
     [
         (20, 10, 2, 7),
@@ -134,11 +134,11 @@ def test_get_hashes_from_recent_block_hashes(
         current_block_slot_number,
         from_slot,
         to_slot,
-        cycle_length):
+        epoch_length):
     _, recent_block_hashes = generate_mock_recent_block_hashes(
         genesis_block,
         current_block_slot_number,
-        cycle_length,
+        epoch_length,
     )
 
     result = get_hashes_from_recent_block_hashes(
@@ -146,41 +146,41 @@ def test_get_hashes_from_recent_block_hashes(
         current_block_slot_number,
         from_slot,
         to_slot,
-        cycle_length,
+        epoch_length,
     )
     assert len(result) == to_slot - from_slot + 1
 
 
 @pytest.mark.xfail(reason="Need to be fixed")
-def test_get_hashes_to_sign(genesis_block, cycle_length):
-    cycle_length = cycle_length
+def test_get_hashes_to_sign(genesis_block, epoch_length):
+    epoch_length = epoch_length
     current_block_slot_number = 1
     blocks, recent_block_hashes = generate_mock_recent_block_hashes(
         genesis_block,
         current_block_slot_number,
-        cycle_length,
+        epoch_length,
     )
 
     block = blocks[current_block_slot_number]
     result = get_hashes_to_sign(
         recent_block_hashes,
         block,
-        cycle_length,
+        epoch_length,
     )
-    assert len(result) == cycle_length
+    assert len(result) == epoch_length
     assert result[-1] == block.hash
 
 
 @pytest.mark.xfail(reason="Need to be fixed")
 def test_get_new_recent_block_hashes(genesis_block,
-                                     cycle_length,
+                                     epoch_length,
                                      sample_attestation_record_params):
-    cycle_length = cycle_length
+    epoch_length = epoch_length
     current_block_slot_number = 15
     blocks, recent_block_hashes = generate_mock_recent_block_hashes(
         genesis_block,
         current_block_slot_number,
-        cycle_length,
+        epoch_length,
     )
 
     block = blocks[current_block_slot_number]
@@ -193,9 +193,9 @@ def test_get_new_recent_block_hashes(genesis_block,
         recent_block_hashes,
         block,
         attestation,
-        cycle_length,
+        epoch_length,
     )
-    assert len(result) == cycle_length
+    assert len(result) == epoch_length
     assert result[-1] == oblique_parent_hashes[-1]
 
 
@@ -218,14 +218,14 @@ def test_get_shard_committee_for_slot(
         num_validators,
         slot,
         success,
-        cycle_length):
+        epoch_length):
     crystallized_state = genesis_crystallized_state
 
     if success:
         shards_and_committees_for_slot = get_shards_and_committees_for_slot(
             crystallized_state,
             slot,
-            cycle_length,
+            epoch_length,
         )
         assert len(shards_and_committees_for_slot) > 0
         assert len(shards_and_committees_for_slot[0].committee) > 0
@@ -234,7 +234,7 @@ def test_get_shard_committee_for_slot(
             get_shards_and_committees_for_slot(
                 crystallized_state,
                 slot,
-                cycle_length,
+                epoch_length,
             )
 
 
@@ -242,7 +242,7 @@ def test_get_shard_committee_for_slot(
 # @pytest.mark.parametrize(
 #     (
 #         'num_validators,'
-#         'cycle_length,min_committee_size'
+#         'epoch_length,min_committee_size'
 #     ),
 #     [
 #         (1000, 20, 10),
@@ -250,7 +250,7 @@ def test_get_shard_committee_for_slot(
 # )
 def test_get_attestation_indices(genesis_crystallized_state,
                                  sample_attestation_record_params,
-                                 cycle_length,
+                                 epoch_length,
                                  min_committee_size):
     attestation = AttestationRecord(**sample_attestation_record_params)
     attestation = attestation.copy(
@@ -261,7 +261,7 @@ def test_get_attestation_indices(genesis_crystallized_state,
     attestation_indices = get_attestation_indices(
         genesis_crystallized_state,
         attestation,
-        cycle_length,
+        epoch_length,
     )
     assert len(attestation_indices) >= min_committee_size
 
@@ -272,30 +272,30 @@ def test_get_attestation_indices(genesis_crystallized_state,
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'cycle_length,'
+        'epoch_length,'
         'target_committee_size,'
         'shard_count'
     ),
     [
         (1000, 20, 10, 100),
         (100, 50, 10, 10),
-        (20, 10, 3, 10),  # active_validators_size < cycle_length * target_committee_size
+        (20, 10, 3, 10),  # active_validators_size < epoch_length * target_committee_size
     ],
 )
 def test_get_new_shuffling_is_complete(genesis_validators,
-                                       cycle_length,
+                                       epoch_length,
                                        target_committee_size,
                                        shard_count):
     shuffling = get_new_shuffling(
         seed=b'\x35' * 32,
         validators=genesis_validators,
         crosslinking_start_shard=0,
-        cycle_length=cycle_length,
+        epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
 
-    assert len(shuffling) == cycle_length
+    assert len(shuffling) == epoch_length
     validators = set()
     shards = set()
     for slot_indices in shuffling:
@@ -310,7 +310,7 @@ def test_get_new_shuffling_is_complete(genesis_validators,
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'cycle_length,'
+        'epoch_length,'
         'target_committee_size,'
         'shard_count'
     ),
@@ -321,14 +321,14 @@ def test_get_new_shuffling_is_complete(genesis_validators,
     ],
 )
 def test_get_new_shuffling_handles_shard_wrap(genesis_validators,
-                                              cycle_length,
+                                              epoch_length,
                                               target_committee_size,
                                               shard_count):
     shuffling = get_new_shuffling(
         seed=b'\x35' * 32,
         validators=genesis_validators,
         crosslinking_start_shard=shard_count - 1,
-        cycle_length=cycle_length,
+        epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
@@ -360,12 +360,12 @@ def test_get_block_committees_info(monkeypatch,
                                    committee,
                                    parent_block_number,
                                    result_proposer_index_in_committee,
-                                   cycle_length):
+                                   epoch_length):
     from eth.beacon import helpers
 
     def mock_get_shards_and_committees_for_slot(parent_block,
                                                 crystallized_state,
-                                                cycle_length):
+                                                epoch_length):
         return [
             ShardCommittee(shard_id=1, committee=committee),
         ]
@@ -386,13 +386,13 @@ def test_get_block_committees_info(monkeypatch,
             get_block_committees_info(
                 parent_block,
                 genesis_crystallized_state,
-                cycle_length,
+                epoch_length,
             )
     else:
         block_committees_info = get_block_committees_info(
             parent_block,
             genesis_crystallized_state,
-            cycle_length,
+            epoch_length,
         )
         assert (
             block_committees_info.proposer_index_in_committee ==

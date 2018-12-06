@@ -131,10 +131,11 @@ def sample_crosslink_record_params():
         'shard_block_hash': b'\x43' * 32,
     }
 
+
 @pytest.fixture
 def sample_deposit_parameters_records_params():
     return {
-         # BLS pubkey
+        # BLS pubkey
         'pubkey': 123,
         # BLS proof of possession (a BLS signature)
         'proof_of_possession': (0, 0),
@@ -253,18 +254,38 @@ def shard_count():
 
 
 @pytest.fixture
-def deposit_size():
-    return SERENITY_CONFIG.DEPOSIT_SIZE
+def target_committee_size():
+    return SERENITY_CONFIG.TARGET_COMMITTEE_SIZE
 
 
 @pytest.fixture
-def min_topup_size():
-    return SERENITY_CONFIG.MIN_TOPUP_SIZE
+def max_attestations_per_block():
+    return SERENITY_CONFIG.MAX_ATTESTATIONS_PER_BLOCK
 
 
 @pytest.fixture
-def min_online_deposit_size():
-    return SERENITY_CONFIG.MIN_ONLINE_DEPOSIT_SIZE
+def min_balance():
+    return SERENITY_CONFIG.MIN_BALANCE
+
+
+@pytest.fixture
+def max_balance_churn_quotient():
+    return SERENITY_CONFIG.MAX_BALANCE_CHURN_QUOTIENT
+
+
+@pytest.fixture
+def gwei_per_eth():
+    return SERENITY_CONFIG.GWEI_PER_ETH
+
+
+@pytest.fixture
+def beacon_chain_shard_number():
+    return SERENITY_CONFIG.BEACON_CHAIN_SHARD_NUMBER
+
+
+@pytest.fixture
+def bls_withdrawal_credentials():
+    return SERENITY_CONFIG.BLS_WITHDRAWAL_CREDENTIALS
 
 
 @pytest.fixture
@@ -273,18 +294,18 @@ def deposit_contract_address():
 
 
 @pytest.fixture
-def deposits_for_chain_start():
-    return SERENITY_CONFIG.DEPOSITS_FOR_CHAIN_START
+def deposit_contract_tree_depth():
+    return SERENITY_CONFIG.DEPOSIT_CONTRACT_TREE_DEPTH
 
 
 @pytest.fixture
-def target_committee_size():
-    return SERENITY_CONFIG.TARGET_COMMITTEE_SIZE
+def min_deposit():
+    return SERENITY_CONFIG.MIN_DEPOSIT
 
 
 @pytest.fixture
-def genesis_time():
-    return SERENITY_CONFIG.GENESIS_TIME
+def max_deposit():
+    return SERENITY_CONFIG.MAX_DEPOSIT
 
 
 @pytest.fixture
@@ -293,53 +314,18 @@ def slot_duration():
 
 
 @pytest.fixture
-def cycle_length():
-    return SERENITY_CONFIG.CYCLE_LENGTH
-
-
-@pytest.fixture
-def min_validator_set_change_interval():
-    return SERENITY_CONFIG.MIN_VALIDATOR_SET_CHANGE_INTERVAL
-
-
-@pytest.fixture
-def shard_persistent_committee_change_period():
-    return SERENITY_CONFIG.SHARD_PERSISTENT_COMMITTEE_CHANGE_PERIOD
-
-
-@pytest.fixture
 def min_attestation_inclusion_delay():
     return SERENITY_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
 
 
 @pytest.fixture
-def sqrt_e_drop_time():
-    return SERENITY_CONFIG.SQRT_E_DROP_TIME
+def epoch_length():
+    return SERENITY_CONFIG.EPOCH_LENGTH
 
 
 @pytest.fixture
-def includer_reward_share_quotient():
-    return SERENITY_CONFIG.INCLUDER_REWARD_SHARE_QUOTIENT
-
-
-@pytest.fixture
-def withdrawals_per_cycle():
-    return SERENITY_CONFIG.WITHDRAWALS_PER_CYCLE
-
-
-@pytest.fixture
-def min_withdrawal_period():
-    return SERENITY_CONFIG.MIN_WITHDRAWAL_PERIOD
-
-
-@pytest.fixture
-def deletion_period():
-    return SERENITY_CONFIG.DELETION_PERIOD
-
-
-@pytest.fixture
-def collective_penalty_calculation_period():
-    return SERENITY_CONFIG.COLLECTIVE_PENALTY_CALCULATION_PERIOD
+def min_validator_registry_change_interval():
+    return SERENITY_CONFIG.MIN_VALIDATOR_REGISTRY_CHANGE_INTERVAL
 
 
 @pytest.fixture
@@ -348,8 +334,18 @@ def pow_receipt_root_voting_period():
 
 
 @pytest.fixture
-def slashing_whistleblower_reward_denominator():
-    return SERENITY_CONFIG.SLASHING_WHISTLEBLOWER_REWARD_DENOMINATOR
+def shard_persistent_committee_change_period():
+    return SERENITY_CONFIG.SHARD_PERSISTENT_COMMITTEE_CHANGE_PERIOD
+
+
+@pytest.fixture
+def collective_penalty_calculation_period():
+    return SERENITY_CONFIG.COLLECTIVE_PENALTY_CALCULATION_PERIOD
+
+
+@pytest.fixture
+def zero_balance_validator_ttl():
+    return SERENITY_CONFIG.ZERO_BALANCE_VALIDATOR_TTL
 
 
 @pytest.fixture
@@ -358,23 +354,18 @@ def base_reward_quotient():
 
 
 @pytest.fixture
-def max_validator_churn_quotient():
-    return SERENITY_CONFIG.MAX_VALIDATOR_CHURN_QUOTIENT
+def whistleblower_reward_quotient():
+    return SERENITY_CONFIG.WHISTLEBLOWER_REWARD_QUOTIENT
 
 
 @pytest.fixture
-def pow_contract_merkle_tree_depth():
-    return SERENITY_CONFIG.POW_CONTRACT_MERKLE_TREE_DEPTH
+def includer_reward_quotient():
+    return SERENITY_CONFIG.INCLUDER_REWARD_QUOTIENT
 
 
 @pytest.fixture
-def max_attestation_count():
-    return SERENITY_CONFIG.MAX_ATTESTATION_COUNT
-
-
-@pytest.fixture
-def initial_fork_version():
-    return SERENITY_CONFIG.INITIAL_FORK_VERSION
+def inactivity_penalty_quotient():
+    return SERENITY_CONFIG.INACTIVITY_PENALTY_QUOTIENT
 
 
 #
@@ -383,14 +374,14 @@ def initial_fork_version():
 @pytest.fixture
 def genesis_validators(init_validator_keys,
                        init_randao,
-                       deposit_size):
+                       max_deposit):
     return tuple(
         ValidatorRecord(
             pubkey=pub,
             withdrawal_credentials=ZERO_HASH32,
             randao_commitment=init_randao,
             randao_skips=0,
-            balance=deposit_size * denoms.gwei,
+            balance=max_deposit * denoms.gwei,
             status=ValidatorStatusCode.ACTIVE,
             latest_status_change_slot=0,
             exit_count=0,

@@ -62,12 +62,12 @@ def test_defaults(sample_beacon_state_params):
     'expected', [(0), (1)]
 )
 def test_num_validators(expected,
-                        deposit_size,
+                        max_deposit,
                         empty_beacon_state):
     validator_registry = [
         mock_validator_record(
             pubkey,
-            deposit_size,
+            max_deposit,
         )
         for pubkey in range(expected)
     ]
