@@ -1,9 +1,20 @@
 import pytest
 
+from eth_utils import denoms
+
+from eth.constants import (
+    ZERO_HASH32,
+)
 import eth.utils.bls as bls
 from eth.utils.blake import blake
 
+from eth.beacon.enums.validator_status_codes import (
+    ValidatorStatusCode,
+)
 from eth.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
+from eth.beacon.types.validator_records import (
+    ValidatorRecord,
+)
 
 from eth.beacon.types.attestation_signed_data import (
     AttestationSignedData,
@@ -349,3 +360,24 @@ def max_attestation_count():
 @pytest.fixture
 def initial_fork_version():
     return SERENITY_CONFIG.INITIAL_FORK_VERSION
+
+
+#
+# genesis
+#
+@pytest.fixture
+def genesis_validators(init_validator_keys,
+                       init_randao,
+                       deposit_size):
+    return tuple(
+        ValidatorRecord(
+            pubkey=pub,
+            withdrawal_credentials=ZERO_HASH32,
+            randao_commitment=init_randao,
+            randao_skips=0,
+            balance=deposit_size * denoms.gwei,
+            status=ValidatorStatusCode.ACTIVE,
+            last_status_change_slot=0,
+            exit_seq=0,
+        ) for pub in init_validator_keys
+    )
