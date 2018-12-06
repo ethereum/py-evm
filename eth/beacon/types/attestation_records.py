@@ -13,8 +13,8 @@ from eth.rlp.sedes import (
 )
 
 
-from .attestation_signed_data import (
-    AttestationSignedData,
+from .attestation_data import (
+    AttestationData,
 )
 
 
@@ -23,7 +23,7 @@ class AttestationRecord(rlp.Serializable):
     Note: using RLP until we have standardized serialization format.
     """
     fields = [
-        ('data', AttestationSignedData),
+        ('data', AttestationData),
         # Attester participation bitfield
         ('attester_bitfield', binary),
         # Proof of custody bitfield
@@ -33,7 +33,7 @@ class AttestationRecord(rlp.Serializable):
     ]
 
     def __init__(self,
-                 data: AttestationSignedData,
+                 data: AttestationData,
                  attester_bitfield: bytes,
                  poc_bitfield: bytes,
                  aggregate_sig: Sequence[int]=None) -> None:

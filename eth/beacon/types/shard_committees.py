@@ -13,7 +13,7 @@ from eth.rlp.sedes import (
 )
 
 
-class ShardAndCommittee(rlp.Serializable):
+class ShardCommittee(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.
     """

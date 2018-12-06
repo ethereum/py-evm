@@ -16,8 +16,12 @@ from eth.beacon.types.validator_records import (
     ValidatorRecord,
 )
 
-from eth.beacon.types.attestation_signed_data import (
-    AttestationSignedData,
+from eth.beacon.types.attestation_data import (
+    AttestationData,
+)
+
+from eth.beacon.types.fork_data import (
+    ForkData,
 )
 
 
@@ -47,9 +51,9 @@ def pubkeys(keymap):
 
 
 @pytest.fixture
-def sample_attestation_record_params(sample_attestation_signed_data_params):
+def sample_attestation_record_params(sample_attestation_data_params):
     return {
-        'data': AttestationSignedData(**sample_attestation_signed_data_params),
+        'data': AttestationData(**sample_attestation_data_params),
         'attester_bitfield': b'\12' * 16,
         'poc_bitfield': b'\34' * 16,
         'aggregate_sig': [0, 0],
@@ -57,14 +61,14 @@ def sample_attestation_record_params(sample_attestation_signed_data_params):
 
 
 @pytest.fixture
-def sample_attestation_signed_data_params():
+def sample_attestation_data_params():
     return {
         'slot': 10,
         'shard': 12,
-        'block_hash': b'\x11' * 32,
-        'cycle_boundary_hash': b'\x22' * 32,
+        'beacon_block_hash': b'\x11' * 32,
+        'epoch_boundary_hash': b'\x22' * 32,
         'shard_block_hash': b'\x33' * 32,
-        'last_crosslink_hash': b'\x44' * 32,
+        'latest_crosslink_hash': b'\x44' * 32,
         'justified_slot': 5,
         'justified_block_hash': b'\x55' * 32,
     }
@@ -85,32 +89,30 @@ def sample_beacon_block_params():
 
 
 @pytest.fixture
-def sample_beacon_state_params():
+def sample_beacon_state_params(sample_fork_data_params):
     return {
-        'validator_set_change_slot': 10,
-        'validators': (),
-        'crosslinks': (),
-        'last_state_recalculation_slot': 1,
-        'last_finalized_slot': 2,
-        'prev_cycle_justification_source': 2,
-        'justification_source': 2,
-        'justified_slot_bitfield': 2,
-        'shard_and_committee_for_slots': (),
+        'validator_registry': (),
+        'validator_registry_latest_change_slot': 10,
+        'validator_registry_exit_count': 10,
+        'validator_registry_delta_chain_tip': b'\x55' * 32,
+        'randao_mix': b'\x55' * 32,
+        'next_seed': b'\x55' * 32,
+        'shard_committees_at_slots': (),
         'persistent_committees': (),
         'persistent_committee_reassignments': (),
-        'next_shuffling_seed': b'\x55' * 32,
-        'deposits_penalized_in_period': (),
-        'validator_set_delta_hash_chain': b'\x55' * 32,
-        'current_exit_seq': 10,
-        'genesis_time': 10,
+        'previous_justified_slot': 0,
+        'justified_slot': 0,
+        'justification_bitfield': 0,
+        'finalized_slot': 0,
+        'latest_crosslinks': (),
+        'latest_state_recalculation_slot': 0,
+        'latest_block_hashes': (),
+        'latest_penalized_exit_balances': (),
+        'latest_attestations': (),
         'processed_pow_receipt_root': b'\x55' * 32,
         'candidate_pow_receipt_roots': (),
-        'pre_fork_version': 0,
-        'post_fork_version': 1,
-        'fork_slot_number': 10,
-        'pending_attestations': (),
-        'recent_block_hashes': (),
-        'randao_mix': b'\x55' * 32,
+        'genesis_time': 0,
+        'fork_data': ForkData(**sample_fork_data_params),
     }
 
 
@@ -135,16 +137,16 @@ def sample_fork_data_params():
     return {
         'pre_fork_version': 0,
         'post_fork_version': 0,
-        'fork_slot_number': 2**64 - 1,
+        'fork_slot': 2**64 - 1,
     }
 
 
 @pytest.fixture
-def sample_processed_attestation_params(sample_attestation_signed_data_params):
+def sample_pending_attestation_record_params(sample_attestation_data_params):
     return {
-        'data': AttestationSignedData(**sample_attestation_signed_data_params),
-        'attester_bitfield': b'\12' * 16,
-        'poc_bitfield': b'\34' * 16,
+        'data': AttestationData(**sample_attestation_data_params),
+        'participation_bitfield': b'\12' * 16,
+        'custody_bitfield': b'\34' * 16,
         'slot_included': 0,
     }
 
@@ -168,7 +170,7 @@ def sample_recent_proposer_record_params():
 
 
 @pytest.fixture
-def sample_shard_and_committee_params():
+def sample_shard_committee_params():
     return {
         'shard': 10,
         'committee': (1, 3, 5),
@@ -201,8 +203,8 @@ def sample_validator_record_params():
         'randao_skips': 1,
         'balance': 100,
         'status': 1,
-        'last_status_change_slot': 0,
-        'exit_seq': 0
+        'latest_status_change_slot': 0,
+        'exit_count': 0
     }
 
 
@@ -377,7 +379,7 @@ def genesis_validators(init_validator_keys,
             randao_skips=0,
             balance=deposit_size * denoms.gwei,
             status=ValidatorStatusCode.ACTIVE,
-            last_status_change_slot=0,
-            exit_seq=0,
+            latest_status_change_slot=0,
+            exit_count=0,
         ) for pub in init_validator_keys
     )

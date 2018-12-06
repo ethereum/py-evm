@@ -17,8 +17,8 @@ def mock_validator_record(pubkey, deposit_size):
         randao_skips=0,
         balance=deposit_size,
         status=ValidatorStatusCode.ACTIVE,
-        last_status_change_slot=0,
-        exit_seq=0,
+        latest_status_change_slot=0,
+        exit_count=0,
     )
 
 

@@ -15,15 +15,15 @@ class ForkData(rlp.Serializable):
         # Post fork version
         ('post_fork_version', uint64),
         # Fork slot number
-        ('fork_slot_number', uint64)
+        ('fork_slot', uint64)
     ]
 
     def __init__(self,
                  pre_fork_version: int,
                  post_fork_version: int,
-                 fork_slot_number: int) -> None:
+                 fork_slot: int) -> None:
         super().__init__(
             pre_fork_version=pre_fork_version,
             post_fork_version=post_fork_version,
-            fork_slot_number=fork_slot_number,
+            fork_slot=fork_slot,
         )

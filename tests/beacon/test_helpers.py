@@ -4,7 +4,7 @@ from eth.beacon.enums.validator_status_codes import (
     ValidatorStatusCode,
 )
 from eth.beacon.types.attestation_records import AttestationRecord
-from eth.beacon.types.shard_and_committees import ShardAndCommittee
+from eth.beacon.types.shard_committees import ShardCommittee
 from eth.beacon.types.validator_records import ValidatorRecord
 from eth.beacon.helpers import (
     _get_element_from_recent_list,
@@ -213,7 +213,7 @@ def test_get_new_recent_block_hashes(genesis_block,
         (100, 64, False),
     ],
 )
-def test_get_shard_and_committee_for_slot(
+def test_get_shard_committee_for_slot(
         genesis_crystallized_state,
         num_validators,
         slot,
@@ -299,9 +299,9 @@ def test_get_new_shuffling_is_complete(genesis_validators,
     validators = set()
     shards = set()
     for slot_indices in shuffling:
-        for shard_and_committee in slot_indices:
-            shards.add(shard_and_committee.shard)
-            for validator_index in shard_and_committee.committee:
+        for shard_committee in slot_indices:
+            shards.add(shard_committee.shard)
+            for validator_index in shard_committee.committee:
                 validators.add(validator_index)
 
     assert len(validators) == len(genesis_validators)
@@ -335,8 +335,8 @@ def test_get_new_shuffling_handles_shard_wrap(genesis_validators,
 
     # shard assignments should wrap around to 0 rather than continuing to SHARD_COUNT
     for slot_indices in shuffling:
-        for shard_and_committee in slot_indices:
-            assert shard_and_committee.shard < shard_count
+        for shard_committee in slot_indices:
+            assert shard_committee.shard < shard_count
 
 
 #
@@ -367,7 +367,7 @@ def test_get_block_committees_info(monkeypatch,
                                                 crystallized_state,
                                                 cycle_length):
         return [
-            ShardAndCommittee(shard_id=1, committee=committee),
+            ShardCommittee(shard_id=1, committee=committee),
         ]
 
     monkeypatch.setattr(

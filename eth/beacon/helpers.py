@@ -26,8 +26,8 @@ from eth.beacon.block_committees_info import BlockCommitteesInfo
 from eth.beacon.enums.validator_status_codes import (
     ValidatorStatusCode,
 )
-from eth.beacon.types.shard_and_committees import (
-    ShardAndCommittee,
+from eth.beacon.types.shard_committees import (
+    ShardCommittee,
 )
 from eth.beacon.utils.random import (
     shuffle,
@@ -173,22 +173,22 @@ def get_new_recent_block_hashes(old_block_hashes: Sequence[Hash32],
 def get_shards_and_committees_for_slot(
         crystallized_state: 'CrystallizedState',
         slot: int,
-        cycle_length: int) -> Iterable[ShardAndCommittee]:
+        cycle_length: int) -> Iterable[ShardCommittee]:
     """
     FIXME
     """
-    if len(crystallized_state.shard_and_committee_for_slots) != cycle_length * 2:
+    if len(crystallized_state.shard_committee_for_slots) != cycle_length * 2:
         raise ValueError(
-            "Length of shard_and_committee_for_slots != cycle_length * 2"
+            "Length of shard_committee_for_slots != cycle_length * 2"
             "\texpected: %s, found: %s" % (
-                cycle_length * 2, len(crystallized_state.shard_and_committee_for_slots)
+                cycle_length * 2, len(crystallized_state.shard_committee_for_slots)
             )
         )
 
     slot_relative_position = crystallized_state.last_state_recalc - cycle_length
 
     yield from _get_element_from_recent_list(
-        crystallized_state.shard_and_committee_for_slots,
+        crystallized_state.shard_committee_for_slots,
         slot,
         slot_relative_position,
     )
@@ -210,9 +210,9 @@ def get_attestation_indices(crystallized_state: 'CrystallizedState',
         cycle_length,
     )
 
-    for shard_and_committee in shards_and_committees_for_slot:
-        if shard_and_committee.shard_id == shard_id:
-            yield from shard_and_committee.committee
+    for shard_committee in shards_and_committees_for_slot:
+        if shard_committee.shard_id == shard_id:
+            yield from shard_committee.committee
 
 
 def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tuple[int, ...]:
@@ -232,12 +232,12 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tup
 def _get_shards_and_committees_for_shard_indices(
         shard_indices: Sequence[Sequence[int]],
         start_shard: int,
-        shard_count: int) -> Iterable[ShardAndCommittee]:
+        shard_count: int) -> Iterable[ShardCommittee]:
     """
-    Returns filled [ShardAndCommittee] tuple.
+    Returns filled [ShardCommittee] tuple.
     """
     for index, indices in enumerate(shard_indices):
-        yield ShardAndCommittee(
+        yield ShardCommittee(
             shard=(start_shard + index) % shard_count,
             committee=indices
         )
@@ -250,16 +250,16 @@ def get_new_shuffling(*,
                       crosslinking_start_shard: int,
                       cycle_length: int,
                       target_committee_size: int,
-                      shard_count: int) -> Iterable[Iterable[ShardAndCommittee]]:
+                      shard_count: int) -> Iterable[Iterable[ShardCommittee]]:
     """
-    Return shuffled ``shard_and_committee_for_slots`` (``[[ShardAndCommittee]]``) of
+    Return shuffled ``shard_committee_for_slots`` (``[[ShardCommittee]]``) of
     the given active ``validators`` using ``seed`` as entropy.
 
     Two-dimensional:
     The first layer is ``slot`` number
-        ``shard_and_committee_for_slots[slot] -> [ShardAndCommittee]``
+        ``shard_committee_for_slots[slot] -> [ShardCommittee]``
     The second layer is ``shard_indices`` number
-        ``shard_and_committee_for_slots[slot][shard_indices] -> ShardAndCommittee``
+        ``shard_committee_for_slots[slot][shard_indices] -> ShardCommittee``
 
     Example:
         validators:
@@ -278,18 +278,18 @@ def get_new_shuffling(*,
             [
                 # slot 0
                 [
-                    ShardAndCommittee(shard_id=0, committee=[6, 0]),
-                    ShardAndCommittee(shard_id=1, committee=[2, 12, 14]),
+                    ShardCommittee(shard_id=0, committee=[6, 0]),
+                    ShardCommittee(shard_id=1, committee=[2, 12, 14]),
                 ],
                 # slot 1
                 [
-                    ShardAndCommittee(shard_id=2, committee=[8, 10]),
-                    ShardAndCommittee(shard_id=3, committee=[4, 9, 1]),
+                    ShardCommittee(shard_id=2, committee=[8, 10]),
+                    ShardCommittee(shard_id=3, committee=[4, 9, 1]),
                 ],
                 # slot 2
                 [
-                    ShardAndCommittee(shard_id=4, committee=[5, 13, 15]),
-                    ShardAndCommittee(shard_id=5, committee=[7, 3, 11]),
+                    ShardCommittee(shard_id=4, committee=[5, 13, 15]),
+                    ShardCommittee(shard_id=5, committee=[7, 3, 11]),
                 ],
             ]
     """
@@ -331,14 +331,14 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
     FIXME
     Return the block committees and proposer info with BlockCommitteesInfo pack.
     """
-    # `proposer_index_in_committee` th attester in `shard_and_committee`
+    # `proposer_index_in_committee` th attester in `shard_committee`
     # is the proposer of the parent block.
     try:
-        shard_and_committee = shards_and_committees[0]
+        shard_committee = shards_and_committees[0]
     except IndexError:
         raise ValueError("shards_and_committees should not be empty.")
 
-    proposer_committee_size = len(shard_and_committee.committee)
+    proposer_committee_size = len(shard_committee.committee)
     if proposer_committee_size <= 0:
         raise ValueError(
             "The first committee should not be empty"
@@ -350,12 +350,12 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
     )
 
     # The index in CrystallizedState.validators
-    proposer_index = shard_and_committee.committee[proposer_index_in_committee]
+    proposer_index = shard_committee.committee[proposer_index_in_committee]
 
     return BlockCommitteesInfo(
         proposer_index=proposer_index,
         proposer_index_in_committee=proposer_index_in_committee,
-        proposer_shard_id=shard_and_committee.shard_id,
+        proposer_shard_id=shard_committee.shard_id,
         proposer_committee_size=proposer_committee_size,
         shards_and_committees=shards_and_committees,
     )
