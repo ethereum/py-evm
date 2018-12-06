@@ -7,17 +7,16 @@ from typing import (
     Dict,
     List,
     Optional,
+    Tuple,
     Union,
 )
 
-from eth.tools.tracing import (
+from eth.vm.tracing import (
     StructLogEntry,
-    TraceConfig,
     trace_transaction,
 )
 
 from eth_utils import (
-    decode_hex,
     encode_hex,
     remove_0x_prefix,
 )
@@ -62,15 +61,18 @@ class ExecutionResultRPC(TypedDict):
     structLogs: List[StructLogEntryRPC]
 
 
-def format_struct_logs(logs: List[StructLogEntry]) -> List[StructLogEntryRPC]:
+def format_struct_logs(logs: Tuple[StructLogEntry, ...]) -> List[StructLogEntryRPC]:
 
     def to_zeropad32_str(value: Union[AnyStr, int]) -> str:
+        val: Union[AnyStr, int] = value
         if isinstance(value, int):
-            zp_str = "{0:#0{1}x}".format(value, 4)  # avoid "Odd-length string" error in decode_hex
-            value = decode_hex(zp_str)
+            hexstr = '{0:x}'.format(value)
+            if len(hexstr) % 2 != 0:
+                hexstr = '0' + hexstr  # avoid "Odd-length string" error
+            val = bytes.fromhex(hexstr)  # type: ignore
         elif not is_string(value):
             raise TypeError("Value must be an instance of str or unicode")
-        return remove_0x_prefix(encode_hex(pad32(value)))
+        return remove_0x_prefix(encode_hex(pad32(val)))
 
     logs_formatted = []
     for e in logs:
@@ -78,7 +80,7 @@ def format_struct_logs(logs: List[StructLogEntry]) -> List[StructLogEntryRPC]:
                                   gas=e.gas,
                                   gasCost=e.gas_cost,
                                   memory=[],
-                                  op=e.op.mnemonic,
+                                  op=e.op,
                                   pc=e.pc,
                                   stack=[],
                                   storage={})
@@ -87,10 +89,10 @@ def format_struct_logs(logs: List[StructLogEntry]) -> List[StructLogEntryRPC]:
 
         i = 0
         while i + 32 <= len(e.memory):
-            entry['memory'].append(remove_0x_prefix(encode_hex(e.memory.read(i, 32))))
+            entry['memory'].append(remove_0x_prefix(encode_hex(e.memory[i: i + 32])))
             i += 32
 
-        for e_ in e.stack.values:
+        for e_ in e.stack:
             entry['stack'].append(to_zeropad32_str(e_))
 
         for k, v in e.storage.items():
@@ -107,14 +109,14 @@ class Debug(RPCModule):
         """
         Return the structured logs created during the execution of EVM
         """
-        res = trace_transaction(self._chain, tx_hash,
-                                TraceConfig(debug=options.get("debug", False),
-                                            disable_memory=options.get("disableMemory", False),
-                                            disable_storage=options.get("disableStorage", False),
-                                            disable_stack=options.get("disableStack", False),
-                                            limit=options.get("limit", 0)))
+        res = trace_transaction(self._chain,
+                                tx_hash,
+                                memory=not options.get("disableMemory", False),
+                                storage=not options.get("disableStorage", False),
+                                stack=not options.get("disableStack", False),
+                                limit=options.get("limit", None))
 
         return ExecutionResultRPC(gas=res.gas,
-                                  failed=res.failed,
-                                  returnValue=remove_0x_prefix(encode_hex(res.return_value)),
-                                  structLogs=format_struct_logs(res.struct_logs))
+                                  failed=res.error,
+                                  returnValue=remove_0x_prefix(encode_hex(res.output)),
+                                  structLogs=format_struct_logs(res.logs))

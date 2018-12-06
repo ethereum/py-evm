@@ -115,7 +115,9 @@ class BaseVM(Configurable, ABC):
     @abstractmethod
     def apply_transaction(self,
                           header: BlockHeader,
-                          transaction: BaseTransaction
+                          transaction: BaseTransaction,
+                          *,
+                          tracer: BaseTracer = None,
                           ) -> Tuple[BlockHeader, Receipt, BaseComputation]:
         raise NotImplementedError("VM classes must implement this method")
 

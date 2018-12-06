@@ -21,7 +21,6 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
 )
-
 from eth.constants import (
     GAS_MEMORY,
     GAS_MEMORY_QUADRATIC_DENOMINATOR,
@@ -52,7 +51,10 @@ from eth.vm.message import Message
 from eth.vm.opcode import Opcode
 from eth.vm.stack import Stack
 from eth.vm.state import BaseState
-from eth.vm.tracing import BaseTracer, NoopTracer
+from eth.vm.tracing import (
+    BaseTracer,
+    NoopTracer,
+)
 from eth.vm.transaction_context import BaseTransactionContext
 
 
@@ -126,9 +128,9 @@ class BaseComputation(Configurable, ABC):
 
         if tracer is None:
             assert False
-            self.tracer = NoopTracer()
+            self.tracer: BaseTracer = NoopTracer()
         else:
-            self.tracer = tracer
+            self.tracer: BaseTracer = tracer
 
     #
     # Convenience
@@ -349,7 +351,7 @@ class BaseComputation(Configurable, ABC):
         return self._stack.dup(position)
 
     def dump_stack(self) -> Tuple[int, ...]:
-        return tuple(self._stack)
+        return tuple(self._stack)  # type: ignore
 
     #
     # Computation result

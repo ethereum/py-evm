@@ -1,6 +1,8 @@
 import itertools
 import logging
-from typing import Iterator
+from typing import (
+    Iterator,
+)
 
 from eth.validation import (
     validate_is_bytes,
@@ -24,7 +26,7 @@ class Memory(object):
     def __init__(self) -> None:
         self._bytes = bytearray()
 
-    def __iter__(self) -> Iterator[bytes]:
+    def __iter__(self) -> Iterator[int]:
         return iter(self._bytes)
 
     def extend(self, start_position: int, size: int) -> None:
