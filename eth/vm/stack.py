@@ -1,4 +1,11 @@
 import logging
+from typing import (  # noqa: F401
+    Generator,
+    Iterable,
+    List,
+    Tuple,
+    Union
+)
 
 from eth_utils import (
     int_to_big_endian,
@@ -13,12 +20,6 @@ from eth.validation import (
     validate_stack_item,
 )
 
-from typing import (  # noqa: F401
-    Generator,
-    List,
-    Tuple,
-    Union
-)
 from eth_typing import Hash32  # noqa: F401
 
 
@@ -34,6 +35,18 @@ class Stack(object):
 
     def __len__(self) -> int:
         return len(self.values)
+
+    def __iter__(self) -> Iterable[int]:
+        for item in self.values:
+            if isinstance(item, int):
+                yield item
+            elif isinstance(item, bytes):
+                yield big_endian_to_int(item)
+            else:
+                raise TypeError(
+                    "Invariant: stack should only contain `int` and `bytes` "
+                    "types.  Got: {0}".format(type(item))
+                )
 
     def push(self, value: Union[int, bytes]) -> None:
         """

@@ -2,9 +2,6 @@ from abc import (
     ABC,
     abstractmethod,
 )
-from copy import (
-    deepcopy,
-)
 import itertools
 import logging
 from typing import (  # noqa: F401
@@ -13,6 +10,7 @@ from typing import (  # noqa: F401
     cast,
     Dict,
     List,
+    Optional,
     Tuple,
     Union,
 )
@@ -46,33 +44,16 @@ from eth.validation import (
     validate_is_bytes,
     validate_uint256,
 )
-from eth.vm.code_stream import (
-    CodeStream,
-)
-from eth.vm.gas_meter import (
-    GasMeter,
-)
-from eth.vm.logic.invalid import (
-    InvalidOpcode,
-)
-from eth.vm.memory import (
-    Memory,
-)
-from eth.vm.message import (
-    Message,
-)
-from eth.vm.opcode import (  # noqa: F401
-    Opcode
-)
-from eth.vm.stack import (
-    Stack,
-)
-from eth.vm.state import (
-    BaseState,
-)
-from eth.vm.transaction_context import (
-    BaseTransactionContext
-)
+from eth.vm.code_stream import CodeStream
+from eth.vm.gas_meter import GasMeter
+from eth.vm.logic.invalid import InvalidOpcode
+from eth.vm.memory import Memory
+from eth.vm.message import Message
+from eth.vm.opcode import Opcode
+from eth.vm.stack import Stack
+from eth.vm.state import BaseState
+from eth.vm.tracing import BaseTracer, NoopTracer
+from eth.vm.transaction_context import BaseTransactionContext
 
 
 def memory_gas_cost(size_in_bytes: int) -> int:
@@ -125,7 +106,8 @@ class BaseComputation(Configurable, ABC):
     def __init__(self,
                  state: BaseState,
                  message: Message,
-                 transaction_context: BaseTransactionContext) -> None:
+                 transaction_context: BaseTransactionContext,
+                 tracer: BaseTracer = None) -> None:
 
         self.state = state
         self.msg = message
@@ -142,6 +124,12 @@ class BaseComputation(Configurable, ABC):
         code = message.code
         self.code = CodeStream(code)
 
+        if tracer is None:
+            assert False
+            self.tracer = NoopTracer()
+        else:
+            self.tracer = tracer
+
     #
     # Convenience
     #
@@ -153,8 +141,30 @@ class BaseComputation(Configurable, ABC):
         return self.msg.sender == self.transaction_context.origin
 
     #
+    # Program Counter
+    #
+    def get_pc(self) -> int:
+        return max(0, self.code.pc - 1)
+
+    #
     # Error handling
     #
+    @property
+    def error(self) -> Optional[VMError]:
+        if self.is_error:
+            return self._error
+        else:
+            return None
+
+    @error.setter
+    def error(self, value: VMError) -> None:
+        if not isinstance(value, VMError):
+            raise TypeError(
+                "Computation.error can only be set to a VMError subclass.  Got: "
+                "{0}".format(value)
+            )
+        self._error = value
+
     @property
     def is_success(self) -> bool:
         """
@@ -175,15 +185,15 @@ class BaseComputation(Configurable, ABC):
 
         :raise VMError:
         """
-        if self._error is not None:
-            raise self._error
+        if self.is_error:
+            raise self.error
 
     @property
     def should_burn_gas(self) -> bool:
         """
         Return ``True`` if the remaining gas should be burned.
         """
-        return self.is_error and self._error.burns_gas
+        return self.is_error and self.error.burns_gas
 
     @property
     def should_return_gas(self) -> bool:
@@ -251,6 +261,9 @@ class BaseComputation(Configurable, ABC):
         Read and return ``size`` bytes from memory starting at ``start_position``.
         """
         return self._memory.read(start_position, size)
+
+    def dump_memory(self) -> bytes:
+        return bytearray(self._memory)
 
     #
     # Gas Consumption
@@ -334,6 +347,9 @@ class BaseComputation(Configurable, ABC):
         Duplicate the stack item at ``position`` and pushes it onto the stack.
         """
         return self._stack.dup(position)
+
+    def dump_stack(self) -> Tuple[int, ...]:
+        return tuple(self._stack)
 
     #
     # Computation result
@@ -488,14 +504,6 @@ class BaseComputation(Configurable, ABC):
             "y" if self.msg.is_static else "n",
         )
 
-        if self.state.tracer is not None:
-            self.state.tracer.capture_start(addr_from=encode_hex(self.msg.sender),
-                                            addr_to=encode_hex(self.msg.to),
-                                            call=False,
-                                            input=self.msg.code,
-                                            gas=self.msg.gas,
-                                            value=self.msg.value)
-
         return self
 
     def __exit__(self, exc_type: None, exc_value: None, traceback: None) -> None:
@@ -513,7 +521,7 @@ class BaseComputation(Configurable, ABC):
                 "y" if self.msg.is_static else "n",
                 exc_value,
             )
-            self._error = exc_value
+            self.error = exc_value
             if self.should_burn_gas:
                 self.consume_gas(
                     self._gas_meter.gas_remaining,
@@ -522,10 +530,6 @@ class BaseComputation(Configurable, ABC):
                         str(exc_value),
                     )),
                 )
-            if self.state.tracer is not None:
-                self.state.tracer.capture_end(output=self.output,
-                                              gas_used=self.get_gas_used(),
-                                              err=exc_value)
 
             # suppress VM exceptions
             return True
@@ -543,10 +547,6 @@ class BaseComputation(Configurable, ABC):
                 self.get_gas_used(),
                 self._gas_meter.gas_remaining,
             )
-            if self.state.tracer is not None:
-                self.state.tracer.capture_end(output=self.output,
-                                              gas_used=self.get_gas_used(),
-                                              err=None)
 
     #
     # State Transition
@@ -569,12 +569,13 @@ class BaseComputation(Configurable, ABC):
     def apply_computation(cls,
                           state: BaseState,
                           message: Message,
-                          transaction_context: BaseTransactionContext) -> 'BaseComputation':
+                          transaction_context: BaseTransactionContext,
+                          tracer: BaseTracer) -> 'BaseComputation':
         """
         Perform the computation that would be triggered by the VM message.
         """
-        with cls(state, message, transaction_context) as computation:
-            if computation.state.tracer is None:
+        with cls(state, message, transaction_context, tracer) as computation:
+            if computation.tracer is None:
                 # Early exit on pre-compiles
                 if message.code_address in computation.precompiles:
                     computation.precompiles[message.code_address](computation)
@@ -582,7 +583,7 @@ class BaseComputation(Configurable, ABC):
 
             for opcode in computation.code:
                 opcode_fn = computation.get_opcode_fn(opcode)
-                pc = max(0, computation.code.pc - 1)
+                pc = computation.get_pc()
 
                 computation.logger.trace(
                     "OPCODE: 0x%x (%s) | pc: %s",
@@ -591,34 +592,15 @@ class BaseComputation(Configurable, ABC):
                     pc,
                 )
 
-                if computation.state.tracer is not None:
-                    """
-                    TODO: once we are able to predict gas_used, we can capture_state here,
-                          no dumping of stack and memory required
-                    """
-                    gas_remaining_prev = computation._gas_meter.gas_remaining
-                    stack_prev = deepcopy(computation._stack)
-                    memory_prev = deepcopy(computation._memory)
-                    err: VMError = None
                 try:
-                    opcode_fn(computation=computation)
+                    with computation.tracer.capture(computation, opcode_fn):
+                        opcode_fn(computation=computation)
                 except Halt:
                     break
-                except VMError as e:
-                    err = e
-                    raise e
-                finally:
-                    if computation.state.tracer is not None:
-                        gas_used = gas_remaining_prev - computation._gas_meter.gas_remaining
-                        computation.state.tracer.capture_state(computation=computation,
-                                                               pc=pc,
-                                                               op=opcode_fn,
-                                                               gas=gas_remaining_prev,
-                                                               gas_cost=gas_used,
-                                                               memory=memory_prev,
-                                                               stack=stack_prev,
-                                                               depth=message.depth + 1,
-                                                               err=err)
+
+        # Allow the tracer to record final values.
+        computation.tracer.finalize(computation)
+
         return computation
 
     #

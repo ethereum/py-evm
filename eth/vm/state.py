@@ -8,6 +8,7 @@ from typing import (  # noqa: F401
     cast,
     Callable,
     Iterator,
+    Optional,
     Tuple,
     Type,
     TYPE_CHECKING,
@@ -48,6 +49,7 @@ from eth.vm.execution_context import (
     ExecutionContext,
 )
 from eth.vm.message import Message
+from eth.vm.tracing import BaseTracer
 
 if TYPE_CHECKING:
     from eth.computation import (  # noqa: F401
@@ -88,6 +90,8 @@ class BaseState(Configurable, ABC):
     account_db_class = None  # type: Type[BaseAccountDB]
     transaction_executor = None  # type: Type[BaseTransactionExecutor]
 
+    tracer = None  # type: BaseTracer
+
     def __init__(self, db: BaseDB, execution_context: ExecutionContext, state_root: bytes) -> None:
         self._db = db
         self.execution_context = execution_context
@@ -103,9 +107,19 @@ class BaseState(Configurable, ABC):
         return cast(TraceLogger, normal_logger)
 
     #
+    # Tracing
+    #
+    @contextlib.contextmanager
+    def trace(self, tracer: BaseTracer) -> None:
+        self.tracer = tracer
+        try:
+            yield
+        finally:
+            self.tracer = None
+
+    #
     # Block Object Properties (in opcodes)
     #
-
     @property
     def coinbase(self) -> Address:
         """
@@ -224,7 +238,7 @@ class BaseState(Configurable, ABC):
         if self.computation_class is None:
             raise AttributeError("No `computation_class` has been set for this State")
         else:
-            computation = self.computation_class(self, message, transaction_context)
+            computation = self.computation_class(self, message, transaction_context, self.tracer)
         return computation
 
     #
