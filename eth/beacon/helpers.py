@@ -170,27 +170,39 @@ def get_new_recent_block_hashes(old_block_hashes: Sequence[Hash32],
 # Get shards_committees or indices
 #
 @to_tuple
-def get_shards_committees_for_slot(
-        crystallized_state: 'CrystallizedState',
+def _get_shard_committees_at_slot(
+        latest_state_recalculation_slot: int,
+        shard_committees_at_slots: Sequence[Sequence[ShardCommittee]],
         slot: int,
         epoch_length: int) -> Iterable[ShardCommittee]:
-    """
-    FIXME
-    """
-    if len(crystallized_state.shard_committee_for_slots) != epoch_length * 2:
+    if len(shard_committees_at_slots) != epoch_length * 2:
         raise ValueError(
-            "Length of shard_committee_for_slots != epoch_length * 2"
+            "Length of shard_committees_at_slots != epoch_length * 2"
             "\texpected: %s, found: %s" % (
-                epoch_length * 2, len(crystallized_state.shard_committee_for_slots)
+                epoch_length * 2, len(shard_committees_at_slots)
             )
         )
 
-    slot_relative_position = crystallized_state.last_state_recalc - epoch_length
+    slot_relative_position = latest_state_recalculation_slot - epoch_length
 
     yield from _get_element_from_recent_list(
-        crystallized_state.shard_committee_for_slots,
+        shard_committees_at_slots,
         slot,
         slot_relative_position,
+    )
+
+
+def get_shard_committees_at_slot(state: 'BeaconState',
+                                 slot: int,
+                                 epoch_length: int) -> Tuple[ShardCommittee]:
+    """
+    Returns the ``ShardCommittee`` for the ``slot``.
+    """
+    return _get_shard_committees_at_slot(
+        latest_state_recalculation_slot=state.latest_state_recalculation_slot,
+        shard_committees_at_slots=state.shard_committees_at_slots,
+        slot=slot,
+        epoch_length=epoch_length,
     )
 
 
@@ -204,7 +216,7 @@ def get_attestation_indices(crystallized_state: 'CrystallizedState',
     """
     shard_id = attestation.shard_id
 
-    shards_committees_for_slot = get_shards_committees_for_slot(
+    shards_committees_for_slot = get_shard_committees_at_slot(
         crystallized_state,
         attestation.slot,
         epoch_length,
@@ -325,7 +337,7 @@ def get_new_shuffling(*,
 def get_block_committees_info(parent_block: 'BaseBeaconBlock',
                               crystallized_state: 'CrystallizedState',
                               epoch_length: int) -> BlockCommitteesInfo:
-    shards_committees = get_shards_committees_for_slot(
+    shards_committees = get_shard_committees_at_slot(
         crystallized_state,
         parent_block.slot_number,
         epoch_length,

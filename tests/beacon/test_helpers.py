@@ -14,7 +14,7 @@ from eth.beacon.helpers import (
     get_hashes_from_recent_block_hashes,
     get_hashes_to_sign,
     get_new_shuffling,
-    get_shards_committees_for_slot,
+    _get_shard_committees_at_slot,
     get_signed_parent_hashes,
     get_block_committees_info,
 )
@@ -22,6 +22,21 @@ from eth.beacon.helpers import (
 from tests.beacon.helpers import (
     get_pseudo_chain,
 )
+
+
+def get_sample_shard_committees_at_slots(num_slot,
+                                         num_shard_committee_per_slot,
+                                         sample_shard_committee_params):
+
+    return tuple(
+        [
+            [
+                ShardCommittee(**sample_shard_committee_params)
+                for _ in range(num_shard_committee_per_slot)
+            ]
+            for _ in range(num_slot)
+        ]
+    )
 
 
 def generate_mock_recent_block_hashes(
@@ -202,39 +217,100 @@ def test_get_new_recent_block_hashes(genesis_block,
 #
 # Get shards_committees or indices
 #
-@pytest.mark.xfail(reason="Need to be fixed")
 @pytest.mark.parametrize(
     (
-        'num_validators,slot,success'
+        'num_validators,'
+        'cycle_length,'
+        'latest_state_recalculation_slot,'
+        'num_slot,'
+        'num_shard_committee_per_slot,'
+        'slot,'
+        'success'
     ),
     [
-        (100, 0, True),
-        (100, 63, True),
-        (100, 64, False),
+        (
+            100,
+            64,
+            0,
+            128,
+            10,
+            0,
+            True,
+        ),
+        (
+            100,
+            64,
+            64,
+            128,
+            10,
+            64,
+            True,
+        ),
+        # The length of shard_committees_at_slots != epoch_length * 2
+        (
+            100,
+            64,
+            64,
+            127,
+            10,
+            0,
+            False,
+        ),
+        # slot is too small
+        (
+            100,
+            64,
+            128,
+            128,
+            10,
+            0,
+            False,
+        ),
+        # slot is too large
+        (
+            100,
+            64,
+            0,
+            128,
+            10,
+            64,
+            False,
+        ),
     ],
 )
 def test_get_shard_committee_for_slot(
-        genesis_crystallized_state,
         num_validators,
+        cycle_length,
+        latest_state_recalculation_slot,
+        num_slot,
+        num_shard_committee_per_slot,
         slot,
         success,
-        epoch_length):
-    crystallized_state = genesis_crystallized_state
+        epoch_length,
+        sample_shard_committee_params):
+
+    shard_committees_at_slots = get_sample_shard_committees_at_slots(
+        num_slot,
+        num_shard_committee_per_slot,
+        sample_shard_committee_params
+    )
 
     if success:
-        shards_committees_for_slot = get_shards_committees_for_slot(
-            crystallized_state,
-            slot,
-            epoch_length,
+        shard_committees = _get_shard_committees_at_slot(
+            latest_state_recalculation_slot=latest_state_recalculation_slot,
+            shard_committees_at_slots=shard_committees_at_slots,
+            slot=slot,
+            epoch_length=epoch_length,
         )
-        assert len(shards_committees_for_slot) > 0
-        assert len(shards_committees_for_slot[0].committee) > 0
+        assert len(shard_committees) > 0
+        assert len(shard_committees[0].committee) > 0
     else:
         with pytest.raises(ValueError):
-            get_shards_committees_for_slot(
-                crystallized_state,
-                slot,
-                epoch_length,
+            _get_shard_committees_at_slot(
+                latest_state_recalculation_slot=latest_state_recalculation_slot,
+                shard_committees_at_slots=shard_committees_at_slots,
+                slot=slot,
+                epoch_length=epoch_length,
             )
 
 
@@ -363,17 +439,17 @@ def test_get_block_committees_info(monkeypatch,
                                    epoch_length):
     from eth.beacon import helpers
 
-    def mock_get_shards_committees_for_slot(parent_block,
-                                            crystallized_state,
-                                            epoch_length):
+    def mock_get_shard_committees_at_slot(parent_block,
+                                          crystallized_state,
+                                          epoch_length):
         return [
             ShardCommittee(shard_id=1, committee=committee),
         ]
 
     monkeypatch.setattr(
         helpers,
-        'get_shards_committees_for_slot',
-        mock_get_shards_committees_for_slot
+        '_get_shard_committees_at_slot',
+        mock__get_shard_committees_at_slot
     )
 
     parent_block = genesis_block
