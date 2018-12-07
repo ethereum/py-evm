@@ -6,7 +6,7 @@ from eth.beacon.state_machines.configs import BeaconConfig
 
 SERENITY_CONFIG = BeaconConfig(
     # Misc
-    SHARD_COUNT=2**1,  # (= 1,024) shards
+    SHARD_COUNT=2**10,  # (= 1,024) shards
     TARGET_COMMITTEE_SIZE=2**8,  # (= 256) validators
     MAX_ATTESTATIONS_PER_BLOCK=2**7,  # (= 128) attestations
     MIN_BALANCE=2**4,  # (= 16) ETH
@@ -35,5 +35,5 @@ SERENITY_CONFIG = BeaconConfig(
     BASE_REWARD_QUOTIENT=2**11,  # (= 2,048)
     WHISTLEBLOWER_REWARD_QUOTIENT=2**9,  # (= 512)
     INCLUDER_REWARD_QUOTIENT=2**3,  # (= 8)
-    INACTIVITY_PENALTY_QUOTIENT=2**34,  # (= 131,072)
+    INACTIVITY_PENALTY_QUOTIENT=2**34,  # (= 17,179,869,184)
 )
