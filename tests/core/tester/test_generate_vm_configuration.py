@@ -9,12 +9,13 @@ from eth.chains.tester import (
 
 
 class Forks(enum.Enum):
+    Custom = -1
     Frontier = 0
     Homestead = 1
     TangerineWhistle = 2
     SpuriousDragon = 3
     Byzantium = 4
-    Custom = 5
+    Constantinople = 5
 
 
 class CustomFrontierVM(FrontierVM):
@@ -27,7 +28,7 @@ class CustomFrontierVM(FrontierVM):
         (
             tuple(),
             {},
-            ((0, Forks.Byzantium),),
+            ((0, Forks.Constantinople),),
         ),
         (
             ((0, 'tangerine-whistle'), (1, 'spurious-dragon')),
@@ -139,6 +140,8 @@ def test_generate_vm_configuration(args, kwargs, expected):
             assert 'SpuriousDragon' in left_vm.__name__
         elif right_vm == Forks.Byzantium:
             assert 'Byzantium' in left_vm.__name__
+        elif right_vm == Forks.Constantinople:
+            assert 'Constantinople' in left_vm.__name__
         elif right_vm == Forks.Custom:
             assert 'CustomFrontier' in left_vm.__name__
         else:
