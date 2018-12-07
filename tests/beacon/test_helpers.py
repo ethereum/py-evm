@@ -6,11 +6,13 @@ from eth.beacon.enums.validator_status_codes import (
 from eth.beacon.types.attestation_records import AttestationRecord
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.shard_committees import ShardCommittee
+from eth.beacon.types.states import BeaconState
 from eth.beacon.types.validator_records import ValidatorRecord
 from eth.beacon.helpers import (
     _get_element_from_recent_list,
     get_active_validator_indices,
     get_attestation_indices,
+    get_beacon_proposer_index,
     get_block_hash,
     get_hashes_from_latest_block_hashes,
     get_hashes_to_sign,
@@ -23,6 +25,16 @@ from eth.beacon.helpers import (
 from tests.beacon.helpers import (
     get_pseudo_chain,
 )
+
+
+@pytest.fixture()
+def sample_block(sample_beacon_block_params):
+    return BaseBeaconBlock(**sample_beacon_block_params)
+
+
+@pytest.fixture()
+def sample_state(sample_beacon_state_params):
+    return BeaconState(**sample_beacon_state_params)
 
 
 def get_sample_shard_committees_at_slots(num_slot,
@@ -107,9 +119,7 @@ def test_get_block_hash(
         target_slot,
         success,
         epoch_length,
-        sample_beacon_block_params):
-    sample_block = BaseBeaconBlock(**sample_beacon_block_params)
-
+        sample_block):
     blocks, latest_block_hashes = generate_mock_latest_block_hashes(
         sample_block,
         current_block_number,
@@ -474,6 +484,75 @@ def test_get_block_committees_info(monkeypatch,
             block_committees_info.proposer_index_in_committee ==
             result_proposer_index_in_committee
         )
+
+
+@pytest.mark.parametrize(
+    (
+        'num_validators,'
+        'cycle_length,'
+        'committee,'
+        'slot,'
+        'success,'
+    ),
+    [
+        (
+            100,
+            64,
+            (10, 11, 12),
+            0,
+            True,
+        ),
+        (
+            100,
+            64,
+            (),
+            0,
+            False,
+        ),
+    ]
+)
+def test_get_beacon_proposer_index(
+        monkeypatch,
+        num_validators,
+        cycle_length,
+        committee,
+        slot,
+        success,
+        epoch_length,
+        sample_state):
+
+    from eth.beacon import helpers
+
+    def mock_get_shard_committees_at_slot(state,
+                                          slot,
+                                          epoch_length):
+        return (
+            ShardCommittee(
+                shard=1,
+                committee=committee,
+                total_validator_count=num_validators,
+            ),
+        )
+
+    monkeypatch.setattr(
+        helpers,
+        'get_shard_committees_at_slot',
+        mock_get_shard_committees_at_slot
+    )
+    if success:
+        proposer_index = get_beacon_proposer_index(
+            sample_state,
+            slot,
+            epoch_length
+        )
+        assert proposer_index == committee[slot % len(committee)]
+    else:
+        with pytest.raises(ValueError):
+            get_beacon_proposer_index(
+                sample_state,
+                slot,
+                epoch_length
+            )
 
 
 def test_get_active_validator_indices(sample_validator_record_params):

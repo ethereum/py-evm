@@ -334,10 +334,10 @@ def get_new_shuffling(*,
 # Get proposer postition
 #
 def get_block_committees_info(parent_block: 'BaseBeaconBlock',
-                              crystallized_state: 'CrystallizedState',
+                              state: 'BeaconState',
                               epoch_length: int) -> BlockCommitteesInfo:
     shards_committees = get_shard_committees_at_slot(
-        crystallized_state,
+        state,
         parent_block.slot,
         epoch_length,
     )
@@ -373,3 +373,29 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
         proposer_committee_size=proposer_committee_size,
         shards_committees=shards_committees,
     )
+
+
+def get_beacon_proposer_index(state: 'BeaconState',
+                              slot: int,
+                              epoch_length: int) -> int:
+    """
+    Returns the beacon proposer index for the ``slot``.
+    """
+    shard_committees = get_shard_committees_at_slot(
+        state,
+        slot,
+        epoch_length,
+    )
+    try:
+        first_shard_committee = shard_committees[0]
+    except IndexError:
+        raise ValueError("shard_committees should not be empty.")
+
+    proposer_committee_size = len(first_shard_committee.committee)
+
+    if proposer_committee_size <= 0:
+        raise ValueError(
+            "The first committee should not be empty"
+        )
+
+    return first_shard_committee.committee[slot % len(first_shard_committee.committee)]
