@@ -1,5 +1,6 @@
 import asyncio
 
+from cancel_token import OperationCancelled
 import pytest
 
 from p2p.service import BaseService
@@ -39,6 +40,33 @@ async def test_daemon_exit_causes_parent_cancellation():
     assert not service.is_running
 
     await asyncio.wait_for(service.events.cleaned_up.wait(), timeout=1)
+
+
+@pytest.mark.asyncio
+async def test_cancel_exits_async_generator():
+    service = WaitService()
+    asyncio.ensure_future(service.run())
+
+    async def cancel_soon():
+        await service.sleep(0.05)
+        await service.cancel()
+
+    asyncio.ensure_future(cancel_soon())
+
+    async def async_iterator():
+        yield 1
+        await asyncio.sleep(0.5)
+        assert False, "iterator should have been cancelled by now"
+
+    try:
+        async for val in service.wait_iter(async_iterator()):
+            assert val == 1
+    except OperationCancelled:
+        pass
+    else:
+        assert False, "iterator should have been cancelled during iteration"
+
+    await service.cancel()
 
 
 @pytest.mark.asyncio

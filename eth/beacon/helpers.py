@@ -23,6 +23,9 @@ from eth.utils.numeric import (
 )
 
 from eth.beacon.block_committees_info import BlockCommitteesInfo
+from eth.beacon.enums.validator_status_codes import (
+    ValidatorStatusCode,
+)
 from eth.beacon.types.shard_and_committees import (
     ShardAndCommittee,
 )
@@ -37,6 +40,7 @@ if TYPE_CHECKING:
     from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
     from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth.beacon.types.crystallized_states import CrystallizedState  # noqa: F401
+    from eth.beacon.types.states import BeaconState  # noqa: F401
     from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
@@ -170,6 +174,9 @@ def get_shards_and_committees_for_slot(
         crystallized_state: 'CrystallizedState',
         slot: int,
         cycle_length: int) -> Iterable[ShardAndCommittee]:
+    """
+    FIXME
+    """
     if len(crystallized_state.shard_and_committee_for_slots) != cycle_length * 2:
         raise ValueError(
             "Length of shard_and_committee_for_slots != cycle_length * 2"
@@ -192,6 +199,7 @@ def get_attestation_indices(crystallized_state: 'CrystallizedState',
                             attestation: 'AttestationRecord',
                             cycle_length: int) -> Iterable[int]:
     """
+    FIXME
     Return committee of the given attestation.
     """
     shard_id = attestation.shard_id
@@ -207,64 +215,30 @@ def get_attestation_indices(crystallized_state: 'CrystallizedState',
             yield from shard_and_committee.committee
 
 
-@to_tuple
-def get_active_validator_indices(dynasty: int,
-                                 validators: Iterable['ValidatorRecord']) -> Iterable[int]:
+def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tuple[int, ...]:
     """
-    TODO: Logic changed in the latest spec, will have to update when we add validator
-    rotation logic.
-    https://github.com/ethereum/eth2.0-specs/commit/52cf7f943dc99cfd27db9fb2c03c692858e2a789#diff-a08ecec277db4a6ed0b3635cfadc9af1  # noqa: E501
+    Gets indices of active validators from ``validators``.
     """
-    o = []
-    for index, validator in enumerate(validators):
-        if (validator.start_dynasty <= dynasty and dynasty < validator.end_dynasty):
-            o.append(index)
-    return o
+    return tuple(
+        i for i, v in enumerate(validators)
+        if v.status in [ValidatorStatusCode.ACTIVE, ValidatorStatusCode.PENDING_EXIT]
+    )
 
 
 #
 # Shuffling
 #
-def _get_shuffling_committee_slot_portions(
-        active_validators_size: int,
-        cycle_length: int,
-        min_committee_size: int,
-        shard_count: int) -> Tuple[int, int]:
-    """
-    Return committees number per slot and slots number per committee.
-    """
-    # If there are enough active validators to form committees for every slot
-    if active_validators_size >= cycle_length * min_committee_size:
-        # One slot can be attested by many committees, but not more than shard_count // cycle_length
-        committees_per_slot = min(
-            active_validators_size // cycle_length // (min_committee_size * 2) + 1,
-            shard_count // cycle_length
-        )
-        # One committee only has to attest one slot
-        slots_per_committee = 1
-    else:
-        # One slot can only be asttested by one committee
-        committees_per_slot = 1
-        # One committee has to asttest more than one slot
-        slots_per_committee = 1
-        bound = cycle_length * min(min_committee_size, active_validators_size)
-        while(active_validators_size * slots_per_committee < bound):
-            slots_per_committee *= 2
-
-    return committees_per_slot, slots_per_committee
-
-
 @to_tuple
 def _get_shards_and_committees_for_shard_indices(
         shard_indices: Sequence[Sequence[int]],
-        shard_start: int,
+        start_shard: int,
         shard_count: int) -> Iterable[ShardAndCommittee]:
     """
     Returns filled [ShardAndCommittee] tuple.
     """
     for index, indices in enumerate(shard_indices):
         yield ShardAndCommittee(
-            shard=(shard_start + index) % shard_count,
+            shard=(start_shard + index) % shard_count,
             committee=indices
         )
 
@@ -273,14 +247,13 @@ def _get_shards_and_committees_for_shard_indices(
 def get_new_shuffling(*,
                       seed: Hash32,
                       validators: Sequence['ValidatorRecord'],
-                      dynasty: int,
                       crosslinking_start_shard: int,
                       cycle_length: int,
-                      min_committee_size: int,
+                      target_committee_size: int,
                       shard_count: int) -> Iterable[Iterable[ShardAndCommittee]]:
     """
     Return shuffled ``shard_and_committee_for_slots`` (``[[ShardAndCommittee]]``) of
-    the given active ``validators``.
+    the given active ``validators`` using ``seed`` as entropy.
 
     Two-dimensional:
     The first layer is ``slot`` number
@@ -319,27 +292,26 @@ def get_new_shuffling(*,
                     ShardAndCommittee(shard_id=5, committee=[7, 3, 11]),
                 ],
             ]
-
-    NOTE: The spec might be updated to output an array rather than an array of arrays.
     """
-    active_validators = get_active_validator_indices(dynasty, validators)
+    active_validators = get_active_validator_indices(validators)
     active_validators_size = len(active_validators)
     committees_per_slot = clamp(
         1,
         shard_count // cycle_length,
-        active_validators_size // cycle_length // (min_committee_size * 2) + 1,
+        active_validators_size // cycle_length // target_committee_size,
     )
+    # Shuffle with seed
     shuffled_active_validator_indices = shuffle(active_validators, seed)
 
-    # Split the shuffled list into cycle_length pieces
+    # Split the shuffled list into epoch_length pieces
     validators_per_slot = split(shuffled_active_validator_indices, cycle_length)
     for index, slot_indices in enumerate(validators_per_slot):
         # Split the shuffled list into committees_per_slot pieces
         shard_indices = split(slot_indices, committees_per_slot)
-        shard_id_start = crosslinking_start_shard + index * committees_per_slot
+        start_shard = crosslinking_start_shard + index * committees_per_slot
         yield _get_shards_and_committees_for_shard_indices(
             shard_indices,
-            shard_id_start,
+            start_shard,
             shard_count,
         )
 
@@ -356,6 +328,7 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
         cycle_length,
     )
     """
+    FIXME
     Return the block committees and proposer info with BlockCommitteesInfo pack.
     """
     # `proposer_index_in_committee` th attester in `shard_and_committee`

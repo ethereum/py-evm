@@ -40,12 +40,10 @@ from trinity.constants import (
     ROPSTEN_NETWORK_ID,
 )
 from trinity.extensibility import (
+    BasePlugin,
     BaseManagerProcessScope,
     MainAndIsolatedProcessScope,
     PluginManager,
-)
-from trinity.plugins.registry import (
-    get_all_plugins,
 )
 from trinity.utils.ipc import (
     kill_process_gracefully,
@@ -108,13 +106,14 @@ BootFn = Callable[[
 ], None]
 
 
-def main_entry(trinity_boot: BootFn) -> None:
+def main_entry(trinity_boot: BootFn, plugins: Iterable[BasePlugin]) -> None:
     event_bus = EventBus(ctx)
     main_endpoint = event_bus.create_endpoint(MAIN_EVENTBUS_ENDPOINT)
     main_endpoint.connect_no_wait()
 
     plugin_manager = setup_plugins(
-        MainAndIsolatedProcessScope(event_bus, main_endpoint)
+        MainAndIsolatedProcessScope(event_bus, main_endpoint),
+        plugins
     )
     plugin_manager.amend_argparser_config(parser, subparser)
     args = parser.parse_args()
@@ -211,11 +210,9 @@ def main_entry(trinity_boot: BootFn) -> None:
         )
 
 
-def setup_plugins(scope: BaseManagerProcessScope) -> PluginManager:
+def setup_plugins(scope: BaseManagerProcessScope, plugins: Iterable[BasePlugin]) -> PluginManager:
     plugin_manager = PluginManager(scope)
-    # TODO: most plugins should check if they are in eth1 / eth2 context
-    # and only start when appropriate
-    plugin_manager.register(get_all_plugins())
+    plugin_manager.register(plugins)
 
     return plugin_manager
 
