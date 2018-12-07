@@ -227,13 +227,14 @@ class Create2(CreateByzantium):
         return CreateOpcodeStackData(endowment, memory_start, memory_length, salt)
 
     def get_gas_cost(self, data: CreateOpcodeStackData) -> int:
-        return constants.GAS_SHA3WORD * ceil32(data.memory_length) // 32
+        return constants.GAS_CREATE + constants.GAS_SHA3WORD * ceil32(data.memory_length) // 32
 
     def generate_contract_address(self,
                                   stack_data: CreateOpcodeStackData,
                                   call_data: bytes,
                                   computation: BaseComputation) -> Address:
 
+        computation.state.account_db.increment_nonce(computation.msg.storage_address)
         return generate_safe_contract_address(
             computation.msg.storage_address,
             stack_data.salt,
