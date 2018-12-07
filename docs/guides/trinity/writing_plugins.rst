@@ -333,3 +333,9 @@ for a deeper explanation.
 
 A plugin where the ``setup.py`` file is configured as described can be installed by
 ``pip install <package-name>``` and immediately becomes available as a plugin in Trinity.
+
+.. note::
+
+  Plugins installed from a local directory (instead of the pypi registry), such as the sample
+  plugin described in this article, must be installed with the ``-e`` parameter (Example:
+  ``pip install -e ./trinity-external-plugins/examples/peer_count_reporter``)
