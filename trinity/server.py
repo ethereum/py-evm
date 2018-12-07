@@ -22,7 +22,6 @@ from lahja import (
 
 from eth_typing import BlockNumber
 
-from eth.constants import GENESIS_BLOCK_NUMBER
 from eth.vm.base import BaseVM
 
 from p2p.auth import (
@@ -34,13 +33,6 @@ from p2p.constants import (
     DEFAULT_MAX_PEERS,
     HASH_LEN,
     REPLY_TIMEOUT,
-)
-from p2p.discovery import (
-    get_v5_topic,
-    DiscoveryByTopicProtocol,
-    DiscoveryProtocol,
-    DiscoveryService,
-    PreferredNodeDiscoveryProtocol,
 )
 from p2p.exceptions import (
     DecryptionError,
@@ -95,7 +87,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
                  max_peers: int = DEFAULT_MAX_PEERS,
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
-                 use_discv5: bool = False,
                  event_bus: Endpoint = None,
                  token: CancelToken = None,
                  ) -> None:
@@ -118,7 +109,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         self.preferred_nodes = preferred_nodes
         if self.preferred_nodes is None and network_id in DEFAULT_PREFERRED_NODES:
             self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
-        self.use_discv5 = use_discv5
 
         # child services
         self.upnp_service = UPnPService(port, token=self.cancel_token)
@@ -169,25 +159,10 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         )
         self.logger.info('network: %s', self.network_id)
         self.logger.info('peers: max_peers=%s', self.max_peers)
-        addr = Address(external_ip, self.port, self.port)
-        if self.use_discv5:
-            topic = self._get_discv5_topic()
-            self.logger.info(
-                "Using experimental v5 (topic) discovery mechanism; topic: %s", topic)
-            discovery_proto: DiscoveryProtocol = DiscoveryByTopicProtocol(
-                topic, self.privkey, addr, self.bootstrap_nodes, self.cancel_token)
-        else:
-            discovery_proto = PreferredNodeDiscoveryProtocol(
-                self.privkey, addr, self.bootstrap_nodes, self.preferred_nodes, self.cancel_token)
-        self.discovery = DiscoveryService(
-            discovery_proto,
-            self.peer_pool,
-            self.port,
-            token=self.cancel_token,
-        )
+
         self.run_daemon(self.peer_pool)
         self.run_daemon(self.request_server)
-        self.run_daemon(self.discovery)
+
         # UPNP service is still experimental and not essential, so we don't use run_daemon() for
         # it as that means if it crashes we'd be terminated as well.
         self.run_child_service(self.upnp_service)
@@ -197,13 +172,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
     async def _cleanup(self) -> None:
         self.logger.info("Closing server...")
         await self._close_tcp_listener()
-
-    def _get_discv5_topic(self) -> bytes:
-        genesis_hash = self.headerdb.get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER))
-        # For now DiscoveryByTopicProtocol supports a single topic, so we use the latest version
-        # of our supported protocols.
-        proto = self.peer_pool.peer_factory_class.peer_class._supported_sub_protocols[-1]
-        return get_v5_topic(proto, genesis_hash)
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:

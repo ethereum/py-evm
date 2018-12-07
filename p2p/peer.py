@@ -48,7 +48,10 @@ from lahja import Endpoint
 
 from p2p import auth
 from p2p import protocol
-from p2p.kademlia import Node
+from p2p.kademlia import (
+    from_uris,
+    Node,
+)
 from p2p.exceptions import (
     BadAckMessage,
     DecryptionError,
@@ -81,13 +84,17 @@ from .constants import (
     CONN_IDLE_TIMEOUT,
     DEFAULT_MAX_PEERS,
     DEFAULT_PEER_BOOT_TIMEOUT,
+    DISOVERY_INTERVAL,
     HEADER_LEN,
     MAC_LEN,
+    REQUEST_PEER_CANDIDATE_TIMEOUT,
 )
 
 from .events import (
+    PeerCandidatesRequest,
     PeerCountRequest,
     PeerCountResponse,
+    RandomBootnodeRequest,
 )
 
 
@@ -799,6 +806,43 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 # `event.broadcast_config()` API.
                 self.event_bus.broadcast(PeerCountResponse(len(self)), req.broadcast_config())
 
+    async def maybe_connect_more_peers(self) -> None:
+        while self.is_operational:
+            await self.sleep(DISOVERY_INTERVAL)
+
+            available_peer_slots = self.max_peers - len(self)
+            if available_peer_slots > 0:
+                try:
+                    response = await self.wait(
+                        # TODO: This should use a BroadcastConfig to send the request to discovery
+                        # only as soon as we have cut a new Lahja release.
+                        self.event_bus.request(PeerCandidatesRequest(available_peer_slots)),
+                        timeout=REQUEST_PEER_CANDIDATE_TIMEOUT
+                    )
+                except TimeoutError:
+                    self.logger.warning("Discovery did not answer PeerCandidateRequest in time")
+                    continue
+
+                # In some cases (e.g ROPSTEN or private testnets), the discovery table might be
+                # full of bad peers so if we can't connect to any peers we try a random bootstrap
+                # node as well.
+                if not len(self):
+                    try:
+                        response = await self.wait(
+                            # TODO: This should use a BroadcastConfig to send the request to
+                            # discovery only as soon as we have cut a new Lahja release.
+                            self.event_bus.request(RandomBootnodeRequest()),
+                            timeout=REQUEST_PEER_CANDIDATE_TIMEOUT
+                        )
+                    except TimeoutError:
+                        self.logger.warning(
+                            "Discovery did not answer RandomBootnodeRequest in time"
+                        )
+                        continue
+
+                self.logger.debug2("Received candidates to connect to (%s)", response.candidates)
+                await self.connect_to_nodes(from_uris(response.candidates))
+
     def __len__(self) -> int:
         return len(self.connected_nodes)
 
@@ -880,6 +924,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         # so in order to ensure we cancel all peers when we terminate.
         if self.event_bus is not None:
             self.run_daemon_task(self.handle_peer_count_requests())
+            self.run_daemon_task(self.maybe_connect_more_peers())
         self.run_daemon_task(self._periodically_report_stats())
         await self.cancel_token.wait()
 

@@ -32,6 +32,10 @@ from typing import (
 
 import cytoolz
 
+from lahja import (
+    Endpoint,
+)
+
 import rlp
 
 from eth_typing import Hash32
@@ -56,10 +60,11 @@ from eth.tools.logging import ExtendedDebugLogger, DEBUG2_LEVEL_NUM
 
 from cancel_token import CancelToken, OperationCancelled
 
+from p2p.events import PeerCandidatesRequest, RandomBootnodeRequest
 from p2p.exceptions import AlreadyWaitingDiscoveryResponse, NoEligibleNodes, UnableToGetDiscV5Ticket
+from p2p.kademlia import to_uris
 from p2p import kademlia
 from p2p import protocol
-from p2p.peer import BasePeerPool
 from p2p.service import BaseService
 
 if TYPE_CHECKING:
@@ -951,21 +956,48 @@ class DiscoveryService(BaseService):
     _last_lookup: float = 0
     _lookup_interval: int = 30
 
-    def __init__(self, proto: DiscoveryProtocol, peer_pool: BasePeerPool,
-                 port: int, token: CancelToken = None) -> None:
+    def __init__(self,
+                 proto: DiscoveryProtocol,
+                 port: int,
+                 event_bus: Endpoint,
+                 token: CancelToken = None) -> None:
         super().__init__(token)
         self.proto = proto
-        self.peer_pool = peer_pool
         self.port = port
+        self._event_bus = event_bus
         self._lookup_running = asyncio.Lock()
+
+        self.run_daemon_task(self.handle_get_peer_candidates_requests())
+        self.run_daemon_task(self.handle_get_random_bootnode_requests())
+
+    async def handle_get_peer_candidates_requests(self) -> None:
+        async for event in self._event_bus.stream(PeerCandidatesRequest):
+
+            self.run_task(self.maybe_lookup_random_node())
+
+            nodes = tuple(to_uris(self.proto.get_nodes_to_connect(event.max_candidates)))
+
+            self.logger.debug2("Broadcasting peer candidates (%s)", nodes)
+            self._event_bus.broadcast(
+                event.expected_response_type()(nodes),
+                event.broadcast_config()
+            )
+
+    async def handle_get_random_bootnode_requests(self) -> None:
+        async for event in self._event_bus.stream(RandomBootnodeRequest):
+
+            nodes = tuple(to_uris(self.proto.get_random_bootnode()))
+
+            self.logger.debug2("Broadcasting random boot nodes (%s)", nodes)
+            self._event_bus.broadcast(
+                event.expected_response_type()(nodes),
+                event.broadcast_config()
+            )
 
     async def _run(self) -> None:
         await self._start_udp_listener()
-        connect_loop_sleep = 2
         self.run_task(self.proto.bootstrap())
-        while self.is_operational:
-            await self.maybe_connect_to_more_peers()
-            await self.sleep(connect_loop_sleep)
+        await self.cancel_token.wait()
 
     async def _start_udp_listener(self) -> None:
         loop = asyncio.get_event_loop()
@@ -974,22 +1006,6 @@ class DiscoveryService(BaseService):
             lambda: self.proto,
             local_addr=('0.0.0.0', self.port),
             family=socket.AF_INET)
-
-    async def maybe_connect_to_more_peers(self) -> None:
-        """Connect to more peers if we're not yet maxed out to max_peers"""
-        if self.peer_pool.is_full:
-            self.logger.debug("Already connected to %s peers; sleeping", len(self.peer_pool))
-            return
-
-        self.run_task(self.maybe_lookup_random_node())
-
-        await self.peer_pool.connect_to_nodes(
-            self.proto.get_nodes_to_connect(self.peer_pool.max_peers))
-
-        # In some cases (e.g ROPSTEN or private testnets), the discovery table might be full of
-        # bad peers so if we can't connect to any peers we try a random bootstrap node as well.
-        if not len(self.peer_pool):
-            await self.peer_pool.connect_to_nodes(self.proto.get_random_bootnode())
 
     async def maybe_lookup_random_node(self) -> None:
         if self._last_lookup + self._lookup_interval > time.time():

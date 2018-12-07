@@ -76,3 +76,8 @@ SEAL_CHECK_RANDOM_SAMPLE_RATE = 48
 # The amount of time that the BasePeerPool will wait for a peer to boot before
 # aborting the connection attempt.
 DEFAULT_PEER_BOOT_TIMEOUT = 20
+
+# Interval at which peer pool is checked for potential new candidates
+DISOVERY_INTERVAL = 2
+# Timeout used when fetching peer candidates from discovery
+REQUEST_PEER_CANDIDATE_TIMEOUT = 0.5
