@@ -22,15 +22,17 @@ class ShardCommittee(rlp.Serializable):
         ('shard', uint64),
         # Validator indices
         ('committee', CountableList(uint24)),
+        # Total validator count (for proofs of custody)
+        ('total_validator_count', uint64),
     ]
 
     def __init__(self,
                  shard: int,
-                 committee: Sequence[int])-> None:
-        if committee is None:
-            committee = ()
+                 committee: Sequence[int],
+                 total_validator_count: int)-> None:
 
         super().__init__(
             shard=shard,
             committee=committee,
+            total_validator_count=total_validator_count,
         )

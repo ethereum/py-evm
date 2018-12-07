@@ -232,6 +232,7 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tup
 def _get_shards_and_committees_for_shard_indices(
         shard_indices: Sequence[Sequence[int]],
         start_shard: int,
+        total_validator_count: int,
         shard_count: int) -> Iterable[ShardCommittee]:
     """
     Returns filled [ShardCommittee] tuple.
@@ -239,7 +240,8 @@ def _get_shards_and_committees_for_shard_indices(
     for index, indices in enumerate(shard_indices):
         yield ShardCommittee(
             shard=(start_shard + index) % shard_count,
-            committee=indices
+            committee=indices,
+            total_validator_count=total_validator_count,
         )
 
 
@@ -312,6 +314,7 @@ def get_new_shuffling(*,
         yield _get_shards_and_committees_for_shard_indices(
             shard_indices,
             start_shard,
+            active_validators_size,
             shard_count,
         )
 

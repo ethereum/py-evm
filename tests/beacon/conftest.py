@@ -188,6 +188,7 @@ def sample_shard_committee_params():
     return {
         'shard': 10,
         'committee': (1, 3, 5),
+        'total_validator_count': 100
     }
 
 
