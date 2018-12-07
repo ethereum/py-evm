@@ -117,8 +117,7 @@ class BaseVM(Configurable, ABC):
                           header: BlockHeader,
                           transaction: BaseTransaction,
                           *,
-                          tracer: BaseTracer = None,
-                          ) -> Tuple[BlockHeader, Receipt, BaseComputation]:
+                          tracer: BaseTracer=None) -> Tuple[BlockHeader, Receipt, BaseComputation]:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
@@ -405,8 +404,7 @@ class VM(BaseVM):
                           header: BlockHeader,
                           transaction: BaseTransaction,
                           *,
-                          tracer: BaseTracer = None,
-                          ) -> Tuple[BlockHeader, Receipt, BaseComputation]:
+                          tracer: BaseTracer=None) -> Tuple[BlockHeader, Receipt, BaseComputation]:
         """
         Apply the transaction to the current block. This is a wrapper around
         :func:`~eth.vm.state.State.apply_transaction` with some extra orchestration logic.
@@ -442,8 +440,7 @@ class VM(BaseVM):
                          code: bytes,
                          code_address: Address=None,
                          *,
-                         tracer: BaseTracer=None,
-                         ) -> BaseComputation:
+                         tracer: BaseTracer=None) -> BaseComputation:
         """
         Execute raw bytecode in the context of the current state of
         the virtual machine.

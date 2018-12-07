@@ -16,6 +16,10 @@ from eth.vm.tracing import (
     trace_transaction,
 )
 
+from eth_typing import (
+    Hash32,
+)
+
 from eth_utils import (
     encode_hex,
     remove_0x_prefix,
@@ -105,7 +109,8 @@ def format_struct_logs(logs: Tuple[StructLogEntry, ...]) -> List[StructLogEntryR
 
 class Debug(RPCModule):
 
-    async def traceTransaction(self, tx_hash: str, options: TraceConfigRPC) -> ExecutionResultRPC:
+    async def traceTransaction(self, tx_hash: Hash32,
+                               options: TraceConfigRPC) -> ExecutionResultRPC:
         """
         Return the structured logs created during the execution of EVM
         """

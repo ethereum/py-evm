@@ -67,6 +67,7 @@ def computation(message, transaction_context):
         state=None,
         message=message,
         transaction_context=transaction_context,
+        tracer=None,
     )
     return computation
 
@@ -98,6 +99,7 @@ def test_is_origin_computation(computation, transaction_context):
         state=None,
         message=message2,
         transaction_context=transaction_context,
+        tracer=None,
     )
     assert not computation2.is_origin_computation
 

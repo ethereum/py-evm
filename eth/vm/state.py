@@ -93,7 +93,7 @@ class BaseState(Configurable, ABC):
         self._db = db
         self.execution_context = execution_context
         self.account_db = self.get_account_db_class()(self._db, state_root)
-        self.tracer: BaseTracer = None
+        self.tracer = None  # type: BaseTracer
 
     #
     # Logging

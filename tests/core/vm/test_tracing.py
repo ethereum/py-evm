@@ -28,7 +28,7 @@ def test_apply_transaction(
     tracer = StructTracer()
     new_header, _, computation = vm.apply_transaction(vm.block.header, tx, tracer=tracer)
 
-    assert computation.error is tracer.result.error
+    assert tracer.result.error is (computation.error is not None)
     assert computation.output is tracer.result.output
     assert tracer.result.gas == computation.get_gas_used()
     assert len(tracer.result.logs) == 0

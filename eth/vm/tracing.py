@@ -10,7 +10,6 @@ import logging
 from typing import (
     Dict,
     Iterator,
-    List,
     NamedTuple,
     Optional,
     Tuple,
@@ -62,16 +61,18 @@ class Storage(object):
         self.store[address] = slots
 
 
-class StructLogEntry(NamedTuple):
-    depth: int
-    err: VMError
-    gas: int
-    gas_cost: int
-    memory: Optional[bytes]
-    op: str
-    pc: int
-    stack: Optional[Tuple[int, ...]]
-    storage: Optional[Dict[int, Union[int, bytes]]]
+StructLogEntry = NamedTuple('StructLogEntry',
+                            [
+                                ('depth', int),
+                                ('err', VMError),
+                                ('gas', int),
+                                ('gas_cost', int),
+                                ('memory', Optional[bytes]),
+                                ('op', str),
+                                ('pc', int),
+                                ('stack', Optional[Tuple[int, ...]]),
+                                ('storage', Optional[Dict[int, Union[int, bytes]]])
+                            ])
 
 
 class BaseTracer(ABC):
@@ -97,11 +98,13 @@ class NoopTracer(BaseTracer):
         pass
 
 
-class ExecutionResult(NamedTuple):
-    error: bool
-    gas: int
-    output: bytes
-    logs: Tuple[StructLogEntry, ...]
+ExecutionResult = NamedTuple('ExecutionResult',
+                             [
+                                 ('error', bool),
+                                 ('gas', int),
+                                 ('output', bytes),
+                                 ('logs', Tuple[StructLogEntry, ...]),
+                             ])
 
 
 class StructTracer(BaseTracer):
@@ -124,7 +127,7 @@ class StructTracer(BaseTracer):
         self.is_stack_enabled = stack
         self.is_storage_enabled = storage
         self.limit = limit
-        self.logs: List[StructLogEntry] = []
+        self.logs = []  # type: List[StructLogEntry]
 
     @property
     def is_full(self) -> bool:

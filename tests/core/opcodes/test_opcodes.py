@@ -51,7 +51,7 @@ GENESIS_HEADER = BlockHeader(
 )
 
 
-def setup_computation(vm_class, create_address, code):
+def setup_computation(vm_class, create_address, code, tracer=None):
 
     message = Message(
         to=CANONICAL_ADDRESS_A,
@@ -74,6 +74,7 @@ def setup_computation(vm_class, create_address, code):
         state=vm.state,
         message=message,
         transaction_context=tx_context,
+        tracer=tracer,
     )
 
     return computation

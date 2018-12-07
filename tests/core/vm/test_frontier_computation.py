@@ -51,11 +51,12 @@ def message():
 
 
 @pytest.fixture
-def computation(message, transaction_context, state):
+def computation(message, transaction_context, state, tracer=None):
     computation = FrontierComputation(
         state=state,
         message=message,
         transaction_context=transaction_context,
+        tracer=tracer
     )
     return computation
 

@@ -109,7 +109,7 @@ class BaseComputation(Configurable, ABC):
                  state: BaseState,
                  message: Message,
                  transaction_context: BaseTransactionContext,
-                 tracer: BaseTracer = None) -> None:
+                 tracer: BaseTracer) -> None:
 
         self.state = state
         self.msg = message
@@ -127,10 +127,9 @@ class BaseComputation(Configurable, ABC):
         self.code = CodeStream(code)
 
         if tracer is None:
-            assert False
-            self.tracer: BaseTracer = NoopTracer()
+            self.tracer = NoopTracer()  # type: BaseTracer
         else:
-            self.tracer: BaseTracer = tracer
+            self.tracer = tracer  # type: BaseTracer
 
     #
     # Convenience
@@ -414,12 +413,14 @@ class BaseComputation(Configurable, ABC):
                 self.state,
                 child_msg,
                 self.transaction_context,
+                self.tracer
             ).apply_create_message()
         else:
             child_computation = self.__class__(
                 self.state,
                 child_msg,
                 self.transaction_context,
+                self.tracer
             ).apply_message()
         return child_computation
 
@@ -572,7 +573,7 @@ class BaseComputation(Configurable, ABC):
                           state: BaseState,
                           message: Message,
                           transaction_context: BaseTransactionContext,
-                          tracer: BaseTracer) -> 'BaseComputation':
+                          tracer: BaseTracer=None) -> 'BaseComputation':
         """
         Perform the computation that would be triggered by the VM message.
         """
