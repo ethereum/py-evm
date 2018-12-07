@@ -167,10 +167,10 @@ def get_new_recent_block_hashes(old_block_hashes: Sequence[Hash32],
 
 
 #
-# Get shards_and_committees or indices
+# Get shards_committees or indices
 #
 @to_tuple
-def get_shards_and_committees_for_slot(
+def get_shards_committees_for_slot(
         crystallized_state: 'CrystallizedState',
         slot: int,
         epoch_length: int) -> Iterable[ShardCommittee]:
@@ -204,13 +204,13 @@ def get_attestation_indices(crystallized_state: 'CrystallizedState',
     """
     shard_id = attestation.shard_id
 
-    shards_and_committees_for_slot = get_shards_and_committees_for_slot(
+    shards_committees_for_slot = get_shards_committees_for_slot(
         crystallized_state,
         attestation.slot,
         epoch_length,
     )
 
-    for shard_committee in shards_and_committees_for_slot:
+    for shard_committee in shards_committees_for_slot:
         if shard_committee.shard_id == shard_id:
             yield from shard_committee.committee
 
@@ -229,7 +229,7 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tup
 # Shuffling
 #
 @to_tuple
-def _get_shards_and_committees_for_shard_indices(
+def _get_shards_committees_for_shard_indices(
         shard_indices: Sequence[Sequence[int]],
         start_shard: int,
         total_validator_count: int,
@@ -311,7 +311,7 @@ def get_new_shuffling(*,
         # Split the shuffled list into committees_per_slot pieces
         shard_indices = split(slot_indices, committees_per_slot)
         start_shard = crosslinking_start_shard + index * committees_per_slot
-        yield _get_shards_and_committees_for_shard_indices(
+        yield _get_shards_committees_for_shard_indices(
             shard_indices,
             start_shard,
             active_validators_size,
@@ -325,7 +325,7 @@ def get_new_shuffling(*,
 def get_block_committees_info(parent_block: 'BaseBeaconBlock',
                               crystallized_state: 'CrystallizedState',
                               epoch_length: int) -> BlockCommitteesInfo:
-    shards_and_committees = get_shards_and_committees_for_slot(
+    shards_committees = get_shards_committees_for_slot(
         crystallized_state,
         parent_block.slot_number,
         epoch_length,
@@ -337,9 +337,9 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
     # `proposer_index_in_committee` th attester in `shard_committee`
     # is the proposer of the parent block.
     try:
-        shard_committee = shards_and_committees[0]
+        shard_committee = shards_committees[0]
     except IndexError:
-        raise ValueError("shards_and_committees should not be empty.")
+        raise ValueError("shards_committees should not be empty.")
 
     proposer_committee_size = len(shard_committee.committee)
     if proposer_committee_size <= 0:
@@ -360,5 +360,5 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
         proposer_index_in_committee=proposer_index_in_committee,
         proposer_shard_id=shard_committee.shard_id,
         proposer_committee_size=proposer_committee_size,
-        shards_and_committees=shards_and_committees,
+        shards_committees=shards_committees,
     )

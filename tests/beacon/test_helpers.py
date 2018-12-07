@@ -14,7 +14,7 @@ from eth.beacon.helpers import (
     get_hashes_from_recent_block_hashes,
     get_hashes_to_sign,
     get_new_shuffling,
-    get_shards_and_committees_for_slot,
+    get_shards_committees_for_slot,
     get_signed_parent_hashes,
     get_block_committees_info,
 )
@@ -200,7 +200,7 @@ def test_get_new_recent_block_hashes(genesis_block,
 
 
 #
-# Get shards_and_committees or indices
+# Get shards_committees or indices
 #
 @pytest.mark.xfail(reason="Need to be fixed")
 @pytest.mark.parametrize(
@@ -222,16 +222,16 @@ def test_get_shard_committee_for_slot(
     crystallized_state = genesis_crystallized_state
 
     if success:
-        shards_and_committees_for_slot = get_shards_and_committees_for_slot(
+        shards_committees_for_slot = get_shards_committees_for_slot(
             crystallized_state,
             slot,
             epoch_length,
         )
-        assert len(shards_and_committees_for_slot) > 0
-        assert len(shards_and_committees_for_slot[0].committee) > 0
+        assert len(shards_committees_for_slot) > 0
+        assert len(shards_committees_for_slot[0].committee) > 0
     else:
         with pytest.raises(ValueError):
-            get_shards_and_committees_for_slot(
+            get_shards_committees_for_slot(
                 crystallized_state,
                 slot,
                 epoch_length,
@@ -363,17 +363,17 @@ def test_get_block_committees_info(monkeypatch,
                                    epoch_length):
     from eth.beacon import helpers
 
-    def mock_get_shards_and_committees_for_slot(parent_block,
-                                                crystallized_state,
-                                                epoch_length):
+    def mock_get_shards_committees_for_slot(parent_block,
+                                            crystallized_state,
+                                            epoch_length):
         return [
             ShardCommittee(shard_id=1, committee=committee),
         ]
 
     monkeypatch.setattr(
         helpers,
-        'get_shards_and_committees_for_slot',
-        mock_get_shards_and_committees_for_slot
+        'get_shards_committees_for_slot',
+        mock_get_shards_committees_for_slot
     )
 
     parent_block = genesis_block

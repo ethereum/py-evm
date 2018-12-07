@@ -15,6 +15,6 @@ BlockCommitteesInfo = NamedTuple(
         ('proposer_index_in_committee', int),
         ('proposer_shard_id', int),
         ('proposer_committee_size', int),
-        ('shards_and_committees', Tuple['ShardCommittee'])
+        ('shards_committees', Tuple['ShardCommittee'])
     )
 )
