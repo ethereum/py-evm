@@ -54,8 +54,8 @@ def pubkeys(keymap):
 def sample_attestation_record_params(sample_attestation_data_params):
     return {
         'data': AttestationData(**sample_attestation_data_params),
-        'attester_bitfield': b'\12' * 16,
-        'poc_bitfield': b'\34' * 16,
+        'participation_bitfield': b'\12' * 16,
+        'custody_bitfield': b'\34' * 16,
         'aggregate_sig': [0, 0],
     }
 
