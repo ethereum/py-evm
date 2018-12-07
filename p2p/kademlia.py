@@ -105,6 +105,9 @@ class Node:
         pubkey = keys.PublicKey(decode_hex(parsed.username))
         return cls(pubkey, Address(parsed.hostname, parsed.port))
 
+    def uri(self) -> str:
+        return f'enode://{self.pubkey.to_hex()}@{self.address.ip}:{self.address.tcp_port}'
+
     def __str__(self) -> str:
         return '<Node(%s@%s)>' % (self.pubkey.to_hex()[:6], self.address.ip)
 
@@ -132,6 +135,19 @@ class Node:
 
     def __hash__(self) -> int:
         return hash(self.pubkey)
+
+# TODO: check if we can make the nodes pickable and get rid of these
+# https://github.com/ethereum/py-evm/issues/1578
+
+
+def to_uris(nodes: Iterable[Node]) -> Iterator[str]:
+    for node in nodes:
+        yield node.uri()
+
+
+def from_uris(uris: Iterable[str]) -> Iterator[Node]:
+    for uri in uris:
+        yield Node.from_uri(uri)
 
 
 @total_ordering

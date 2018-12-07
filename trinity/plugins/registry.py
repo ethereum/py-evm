@@ -18,6 +18,9 @@ from trinity.plugins.builtin.fix_unclean_shutdown.plugin import (
 from trinity.plugins.builtin.json_rpc.plugin import (
     JsonRpcServerPlugin,
 )
+from trinity.plugins.builtin.peer_discovery.plugin import (
+    PeerDiscoveryPlugin,
+)
 from trinity.plugins.builtin.tx_pool.plugin import (
     TxPlugin,
 )
@@ -38,6 +41,7 @@ def is_ipython_available() -> bool:
 BASE_PLUGINS: Tuple[BasePlugin, ...] = (
     AttachPlugin(use_ipython=is_ipython_available()),
     FixUncleanShutdownPlugin(),
+    PeerDiscoveryPlugin(),
 )
 
 
