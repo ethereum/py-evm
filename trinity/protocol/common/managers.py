@@ -79,10 +79,7 @@ class ResponseCandidateStream(
         To mark a response as valid, use `complete_request`. After that call, payload
         candidates will stop arriving.
         """
-        if timeout is None:
-            outer_timeout = self.response_timeout
-        else:
-            outer_timeout = timeout
+        outer_timeout = self.response_timeout if timeout is None else timeout
 
         start_at = time.perf_counter()
 
@@ -106,7 +103,7 @@ class ResponseCandidateStream(
                 rtt_99th = tracker.round_trip_99th.value
                 rtt_stddev = tracker.round_trip_stddev.value
             except ValueError:
-                inner_timeout = self.response_timeout
+                inner_timeout = outer_timeout
             else:
                 inner_timeout = rtt_99th + 3 * rtt_stddev
 

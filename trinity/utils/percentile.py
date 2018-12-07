@@ -6,7 +6,7 @@ from typing import List, Union, Deque
 
 class Percentile:
     """
-    Tracks a specific percentile across a window of recent data.
+    Track a specific percentile across a window of recent data.
 
     https://en.wikipedia.org/wiki/Percentile
     """
