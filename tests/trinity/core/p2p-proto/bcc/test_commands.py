@@ -1,13 +1,7 @@
 import pytest
 
-import asyncio
-
-from cancel_token import CancelToken
-
 from eth.beacon.types.attestation_records import AttestationRecord
 from eth.beacon.types.attestation_data import AttestationData
-from eth.db.atomic import AtomicDB
-from eth.beacon.db.chain import BeaconChainDB
 from eth.beacon.types.blocks import BaseBeaconBlock
 
 from eth.constants import (
@@ -15,177 +9,19 @@ from eth.constants import (
 )
 
 from p2p import ecies
-from p2p.exceptions import HandshakeFailure
-from p2p.peer import MsgBuffer
-
-from trinity.protocol.bcc.context import BeaconContext
-from trinity.protocol.bcc.peer import (
-    BCCPeerFactory,
+from p2p.peer import (
+    MsgBuffer,
 )
-from trinity.protocol.bcc.proto import BCCProtocol
+
 from trinity.protocol.bcc.commands import (
-    Status,
-    GetBeaconBlocks,
     BeaconBlocks,
+    GetBeaconBlocks,
     AttestationRecords,
 )
 
-from p2p.tools.paragon.helpers import (
-    get_directly_linked_peers_without_handshake as _get_directly_linked_peers_without_handshake,
-    get_directly_linked_peers as _get_directly_linked_peers,
+from .helpers import (
+    get_directly_linked_peers,
 )
-
-
-def get_fresh_chain_db():
-    db = AtomicDB()
-    genesis_block = BaseBeaconBlock(
-        slot=0,
-        randao_reveal=ZERO_HASH32,
-        candidate_pow_receipt_root=ZERO_HASH32,
-        ancestor_hashes=[ZERO_HASH32] * 32,
-        state_root=ZERO_HASH32,  # note: not the actual genesis state root
-        attestations=[],
-        specials=[],
-        proposer_signature=None,
-    )
-
-    chain_db = BeaconChainDB(db)
-    chain_db.persist_block(genesis_block)
-    return chain_db
-
-
-async def _setup_alice_and_bob_factories(alice_chain_db=None, bob_chain_db=None):
-    cancel_token = CancelToken('trinity.get_directly_linked_peers_without_handshake')
-
-    #
-    # Alice
-    #
-    if alice_chain_db is None:
-        alice_chain_db = get_fresh_chain_db()
-
-    alice_context = BeaconContext(
-        chain_db=alice_chain_db,
-        network_id=1,
-    )
-
-    alice_factory = BCCPeerFactory(
-        privkey=ecies.generate_privkey(),
-        context=alice_context,
-        token=cancel_token,
-    )
-
-    #
-    # Bob
-    #
-    if bob_chain_db is None:
-        bob_chain_db = get_fresh_chain_db()
-
-    bob_context = BeaconContext(
-        chain_db=bob_chain_db,
-        network_id=1,
-    )
-
-    bob_factory = BCCPeerFactory(
-        privkey=ecies.generate_privkey(),
-        context=bob_context,
-        token=cancel_token,
-    )
-
-    return alice_factory, bob_factory
-
-
-async def get_directly_linked_peers_without_handshake(alice_chain_db=None, bob_chain_db=None):
-    alice_factory, bob_factory = await _setup_alice_and_bob_factories(alice_chain_db, bob_chain_db)
-
-    return await _get_directly_linked_peers_without_handshake(
-        alice_factory=alice_factory,
-        bob_factory=bob_factory,
-    )
-
-
-async def get_directly_linked_peers(request, event_loop, alice_chain_db=None, bob_chain_db=None):
-    alice_factory, bob_factory = await _setup_alice_and_bob_factories(
-        alice_chain_db,
-        bob_chain_db,
-    )
-
-    return await _get_directly_linked_peers(
-        request,
-        event_loop,
-        alice_factory=alice_factory,
-        bob_factory=bob_factory,
-    )
-
-
-@pytest.mark.asyncio
-async def test_directly_linked_peers_without_handshake():
-    alice, bob = await get_directly_linked_peers_without_handshake()
-    assert alice.sub_proto is None
-    assert bob.sub_proto is None
-
-
-@pytest.mark.asyncio
-async def test_directly_linked_peers(request, event_loop):
-    alice, bob = await get_directly_linked_peers(request, event_loop)
-    assert isinstance(alice.sub_proto, BCCProtocol)
-    assert isinstance(bob.sub_proto, BCCProtocol)
-
-    assert alice.head_hash == bob.context.chain_db.get_canonical_head().hash
-    assert bob.head_hash == alice.context.chain_db.get_canonical_head().hash
-
-
-@pytest.mark.asyncio
-async def test_unidirectional_handshake(request, event_loop):
-    alice, bob = await get_directly_linked_peers_without_handshake()
-    alice_chain_db = alice.context.chain_db
-    alice_genesis_hash = alice_chain_db.get_canonical_block_by_slot(0).hash
-    alice_head_hash = alice_chain_db.get_canonical_head().hash
-
-    await asyncio.gather(alice.do_p2p_handshake(), bob.do_p2p_handshake())
-
-    await alice.send_sub_proto_handshake()
-    cmd, msg = await bob.read_msg()
-
-    assert isinstance(cmd, Status)
-
-    assert msg["protocol_version"] == BCCProtocol.version
-    assert msg["network_id"] == alice.context.network_id
-    assert msg["genesis_hash"] == alice_head_hash
-    assert msg["best_hash"] == alice_genesis_hash
-
-    await bob.process_sub_proto_handshake(cmd, msg)
-
-    assert bob.head_hash == alice_head_hash
-    assert alice.head_hash is None
-
-    # stop cleanly
-    asyncio.ensure_future(alice.run())
-    asyncio.ensure_future(bob.run())
-    await asyncio.gather(
-        alice.cancel(),
-        bob.cancel(),
-    )
-
-
-@pytest.mark.asyncio
-async def test_handshake_wrong_network_id(request, event_loop):
-    alice, bob = await get_directly_linked_peers_without_handshake()
-    alice.context.network_id += 1
-    await asyncio.gather(alice.do_p2p_handshake(), bob.do_p2p_handshake())
-
-    await alice.send_sub_proto_handshake()
-    cmd, msg = await bob.read_msg()
-
-    with pytest.raises(HandshakeFailure):
-        await bob.process_sub_proto_handshake(cmd, msg)
-
-    # stop cleanly
-    asyncio.ensure_future(alice.run())
-    asyncio.ensure_future(bob.run())
-    await asyncio.gather(
-        alice.cancel(),
-        bob.cancel(),
-    )
 
 
 @pytest.mark.asyncio
