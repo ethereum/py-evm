@@ -75,12 +75,12 @@ def sample_attestation_data_params():
 
 
 @pytest.fixture
-def sample_beacon_block_params():
+def sample_beacon_block_params(epoch_length):
     return {
         'slot': 10,
         'randao_reveal': b'\x55' * 32,
         'candidate_pow_receipt_root': b'\x55' * 32,
-        'ancestor_hashes': (),
+        'ancestor_hashes': tuple([ZERO_HASH32 for _ in range(2 * epoch_length)]),
         'state_root': b'\x55' * 32,
         'attestations': (),
         'specials': (),

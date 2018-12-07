@@ -74,34 +74,33 @@ def _get_element_from_recent_list(
 # Get block hash(es)
 #
 def get_block_hash(
-        recent_block_hashes: Sequence[Hash32],
-        current_block_slot_number: int,
+        latest_block_hashes: Sequence[Hash32],
+        current_block_slot: int,
         slot: int,
         epoch_length: int) -> Hash32:
     """
-    Return the blockhash from ``ActiveState.recent_block_hashes`` by
-    ``current_block_slot_number``.
+    Returns the block hash at a recent ``slot``.
     """
-    if len(recent_block_hashes) != epoch_length * 2:
+    if len(latest_block_hashes) != epoch_length * 2:
         raise ValueError(
-            "Length of recent_block_hashes != epoch_length * 2"
+            "Length of latest_block_hashes != epoch_length * 2"
             "\texpected: %s, found: %s" % (
-                epoch_length * 2, len(recent_block_hashes)
+                epoch_length * 2, len(latest_block_hashes)
             )
         )
 
-    slot_relative_position = current_block_slot_number - epoch_length * 2
+    slot_relative_position = current_block_slot - epoch_length * 2
     return _get_element_from_recent_list(
-        recent_block_hashes,
+        latest_block_hashes,
         slot,
         slot_relative_position,
     )
 
 
 @to_tuple
-def get_hashes_from_recent_block_hashes(
-        recent_block_hashes: Sequence[Hash32],
-        current_block_slot_number: int,
+def get_hashes_from_latest_block_hashes(
+        latest_block_hashes: Sequence[Hash32],
+        current_block_slot: int,
         from_slot: int,
         to_slot: int,
         epoch_length: int) -> Iterable[Hash32]:
@@ -110,33 +109,33 @@ def get_hashes_from_recent_block_hashes(
     """
     for slot in range(from_slot, to_slot + 1):
         yield get_block_hash(
-            recent_block_hashes,
-            current_block_slot_number,
+            latest_block_hashes,
+            current_block_slot,
             slot,
             epoch_length,
         )
 
 
 @to_tuple
-def get_hashes_to_sign(recent_block_hashes: Sequence[Hash32],
+def get_hashes_to_sign(latest_block_hashes: Sequence[Hash32],
                        block: 'BaseBeaconBlock',
                        epoch_length: int) -> Iterable[Hash32]:
     """
     Given the head block to attest to, collect the list of hashes to be
     signed in the attestation.
     """
-    yield from get_hashes_from_recent_block_hashes(
-        recent_block_hashes,
-        block.slot_number,
-        from_slot=block.slot_number - epoch_length + 1,
-        to_slot=block.slot_number - 1,
+    yield from get_hashes_from_latest_block_hashes(
+        latest_block_hashes,
+        block.slot,
+        from_slot=block.slot - epoch_length + 1,
+        to_slot=block.slot - 1,
         epoch_length=epoch_length,
     )
     yield block.hash
 
 
 @to_tuple
-def get_signed_parent_hashes(recent_block_hashes: Sequence[Hash32],
+def get_signed_parent_hashes(latest_block_hashes: Sequence[Hash32],
                              block: 'BaseBeaconBlock',
                              attestation: 'AttestationRecord',
                              epoch_length: int) -> Iterable[Hash32]:
@@ -144,9 +143,9 @@ def get_signed_parent_hashes(recent_block_hashes: Sequence[Hash32],
     Given an attestation and the block they were included in,
     the list of hashes that were included in the signature.
     """
-    yield from get_hashes_from_recent_block_hashes(
-        recent_block_hashes,
-        block.slot_number,
+    yield from get_hashes_from_latest_block_hashes(
+        latest_block_hashes,
+        block.slot,
         from_slot=attestation.slot - epoch_length + 1,
         to_slot=attestation.slot - len(attestation.oblique_parent_hashes),
         epoch_length=epoch_length,
@@ -155,7 +154,7 @@ def get_signed_parent_hashes(recent_block_hashes: Sequence[Hash32],
 
 
 @to_tuple
-def get_new_recent_block_hashes(old_block_hashes: Sequence[Hash32],
+def get_new_latest_block_hashes(old_block_hashes: Sequence[Hash32],
                                 parent_slot: int,
                                 current_slot: int,
                                 parent_hash: Hash32) -> Iterable[Hash32]:
@@ -339,7 +338,7 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
                               epoch_length: int) -> BlockCommitteesInfo:
     shards_committees = get_shard_committees_at_slot(
         crystallized_state,
-        parent_block.slot_number,
+        parent_block.slot,
         epoch_length,
     )
     """
@@ -360,7 +359,7 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
         )
 
     proposer_index_in_committee = (
-        parent_block.slot_number %
+        parent_block.slot %
         proposer_committee_size
     )
 

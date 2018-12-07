@@ -4,6 +4,7 @@ from eth.beacon.enums.validator_status_codes import (
     ValidatorStatusCode,
 )
 from eth.beacon.types.attestation_records import AttestationRecord
+from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.shard_committees import ShardCommittee
 from eth.beacon.types.validator_records import ValidatorRecord
 from eth.beacon.helpers import (
@@ -11,7 +12,7 @@ from eth.beacon.helpers import (
     get_active_validator_indices,
     get_attestation_indices,
     get_block_hash,
-    get_hashes_from_recent_block_hashes,
+    get_hashes_from_latest_block_hashes,
     get_hashes_to_sign,
     get_new_shuffling,
     _get_shard_committees_at_slot,
@@ -39,18 +40,18 @@ def get_sample_shard_committees_at_slots(num_slot,
     )
 
 
-def generate_mock_recent_block_hashes(
+def generate_mock_latest_block_hashes(
         genesis_block,
         current_block_number,
         epoch_length):
     chain_length = (current_block_number // epoch_length + 1) * epoch_length
     blocks = get_pseudo_chain(chain_length, genesis_block)
-    recent_block_hashes = [
+    latest_block_hashes = [
         b'\x00' * 32
         for i
         in range(epoch_length * 2 - current_block_number)
     ] + [block.hash for block in blocks[:current_block_number]]
-    return blocks, recent_block_hashes
+    return blocks, latest_block_hashes
 
 
 @pytest.mark.parametrize(
@@ -88,7 +89,6 @@ def test_get_element_from_recent_list(target_list,
 #
 # Get block hashes
 #
-@pytest.mark.xfail(reason="Need to be fixed")
 @pytest.mark.parametrize(
     (
         'current_block_number,target_slot,success'
@@ -103,22 +103,22 @@ def test_get_element_from_recent_list(target_list,
     ],
 )
 def test_get_block_hash(
-        genesis_block,
         current_block_number,
         target_slot,
         success,
-        epoch_length):
-    epoch_length = epoch_length
+        epoch_length,
+        sample_beacon_block_params):
+    sample_block = BaseBeaconBlock(**sample_beacon_block_params)
 
-    blocks, recent_block_hashes = generate_mock_recent_block_hashes(
-        genesis_block,
+    blocks, latest_block_hashes = generate_mock_latest_block_hashes(
+        sample_block,
         current_block_number,
         epoch_length,
     )
 
     if success:
         block_hash = get_block_hash(
-            recent_block_hashes,
+            latest_block_hashes,
             current_block_number,
             target_slot,
             epoch_length,
@@ -127,7 +127,7 @@ def test_get_block_hash(
     else:
         with pytest.raises(ValueError):
             get_block_hash(
-                recent_block_hashes,
+                latest_block_hashes,
                 current_block_number,
                 target_slot,
                 epoch_length,
@@ -137,28 +137,28 @@ def test_get_block_hash(
 @pytest.mark.xfail(reason="Need to be fixed")
 @pytest.mark.parametrize(
     (
-        'epoch_length,current_block_slot_number,from_slot,to_slot'
+        'epoch_length,current_block_slot,from_slot,to_slot'
     ),
     [
         (20, 10, 2, 7),
         (20, 30, 10, 20),
     ],
 )
-def test_get_hashes_from_recent_block_hashes(
+def test_get_hashes_from_latest_block_hashes(
         genesis_block,
-        current_block_slot_number,
+        current_block_slot,
         from_slot,
         to_slot,
         epoch_length):
-    _, recent_block_hashes = generate_mock_recent_block_hashes(
+    _, latest_block_hashes = generate_mock_latest_block_hashes(
         genesis_block,
-        current_block_slot_number,
+        current_block_slot,
         epoch_length,
     )
 
-    result = get_hashes_from_recent_block_hashes(
-        recent_block_hashes,
-        current_block_slot_number,
+    result = get_hashes_from_latest_block_hashes(
+        latest_block_hashes,
+        current_block_slot,
         from_slot,
         to_slot,
         epoch_length,
@@ -169,16 +169,16 @@ def test_get_hashes_from_recent_block_hashes(
 @pytest.mark.xfail(reason="Need to be fixed")
 def test_get_hashes_to_sign(genesis_block, epoch_length):
     epoch_length = epoch_length
-    current_block_slot_number = 1
-    blocks, recent_block_hashes = generate_mock_recent_block_hashes(
+    current_block_slot = 1
+    blocks, latest_block_hashes = generate_mock_latest_block_hashes(
         genesis_block,
-        current_block_slot_number,
+        current_block_slot,
         epoch_length,
     )
 
-    block = blocks[current_block_slot_number]
+    block = blocks[current_block_slot]
     result = get_hashes_to_sign(
-        recent_block_hashes,
+        latest_block_hashes,
         block,
         epoch_length,
     )
@@ -187,25 +187,25 @@ def test_get_hashes_to_sign(genesis_block, epoch_length):
 
 
 @pytest.mark.xfail(reason="Need to be fixed")
-def test_get_new_recent_block_hashes(genesis_block,
+def test_get_new_latest_block_hashes(genesis_block,
                                      epoch_length,
                                      sample_attestation_record_params):
     epoch_length = epoch_length
-    current_block_slot_number = 15
-    blocks, recent_block_hashes = generate_mock_recent_block_hashes(
+    current_block_slot = 15
+    blocks, latest_block_hashes = generate_mock_latest_block_hashes(
         genesis_block,
-        current_block_slot_number,
+        current_block_slot,
         epoch_length,
     )
 
-    block = blocks[current_block_slot_number]
+    block = blocks[current_block_slot]
     oblique_parent_hashes = [b'\x77' * 32]
     attestation = AttestationRecord(**sample_attestation_record_params).copy(
         slot=10,
         oblique_parent_hashes=oblique_parent_hashes,
     )
     result = get_signed_parent_hashes(
-        recent_block_hashes,
+        latest_block_hashes,
         block,
         attestation,
         epoch_length,
@@ -449,12 +449,12 @@ def test_get_block_committees_info(monkeypatch,
     monkeypatch.setattr(
         helpers,
         '_get_shard_committees_at_slot',
-        mock__get_shard_committees_at_slot
+        mock_get_shard_committees_at_slot
     )
 
     parent_block = genesis_block
     parent_block = genesis_block.copy(
-        slot_number=parent_block_number,
+        slot=parent_block_number,
     )
 
     if isinstance(result_proposer_index_in_committee, Exception):
