@@ -84,8 +84,6 @@ def fixture(fixture_data):
         fixture_key,
         normalize_blockchain_fixtures,
     )
-    if fixture['network'] == 'Constantinople':
-        pytest.skip('Constantinople VM rules not yet supported')
     return fixture
 
 

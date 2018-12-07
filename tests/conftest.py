@@ -23,10 +23,13 @@ from eth.vm.forks.spurious_dragon import SpuriousDragonVM
 # Uncomment this to have logs from tests written to a file.  This is useful for
 # debugging when you need to dump the VM output from test runs.
 """
+import datetime
+import logging
+import os
+from eth.tools.logging import TRACE_LEVEL_NUM
+
 @pytest.yield_fixture(autouse=True)
 def _file_logging(request):
-    import datetime
-    import os
 
     logger = logging.getLogger('eth')
 
