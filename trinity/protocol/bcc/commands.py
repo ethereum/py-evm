@@ -14,6 +14,7 @@ class Status(Command):
     structure = [
         ('protocol_version', sedes.big_endian_int),
         ('network_id', sedes.big_endian_int),
+        ('genesis_hash', sedes.binary),
         ('best_hash', sedes.binary),
     ]
 
