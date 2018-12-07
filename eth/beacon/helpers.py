@@ -18,6 +18,10 @@ from eth_typing import (
     Hash32,
 )
 
+from eth.utils.bitfield import (
+    get_bitfield_length,
+    has_voted,
+)
 from eth.utils.numeric import (
     clamp,
 )
@@ -399,3 +403,53 @@ def get_beacon_proposer_index(state: 'BeaconState',
         )
 
     return first_shard_committee.committee[slot % len(first_shard_committee.committee)]
+
+
+#
+# Bitfields
+#
+@to_tuple
+def _get_shard_committees(shard_committees: Sequence[ShardCommittee],
+                          shard: int) -> Iterable[ShardCommittee]:
+    for item in shard_committees:
+        if item.shard == shard:
+            yield item
+
+
+@to_tuple
+def get_attestation_participants(state: 'BeaconState',
+                                 slot: int,
+                                 shard: int,
+                                 participation_bitfield: bytes,
+                                 epoch_length: int) -> Iterable[int]:
+    """
+    Return the participant indices at for the ``slot`` of shard ``shard``
+    from ``participation_bitfield``.
+    """
+    # Find the relevant committee
+    shard_committees = _get_shard_committees(
+        shard_committees=get_shard_committees_at_slot(
+            state,
+            slot,
+            epoch_length,
+        ),
+        shard=shard,
+    )
+    try:
+        shard_committee = shard_committees[0]
+    except IndexError:
+        raise ValueError("shard_committees should not be empty.")
+
+    if len(participation_bitfield) != get_bitfield_length(len(shard_committee.committee)):
+        raise ValueError(
+            'Invalid bitfield length,'
+            "\texpected: %s, found: %s" % (
+                get_bitfield_length(len(shard_committee.committee)),
+                len(participation_bitfield),
+            )
+        )
+
+    # Find the participating attesters in the committee
+    for bitfield_index, validator_index in enumerate(shard_committee.committee):
+        if has_voted(participation_bitfield, bitfield_index):
+            yield validator_index

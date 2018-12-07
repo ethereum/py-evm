@@ -11,6 +11,7 @@ from eth.beacon.types.validator_records import ValidatorRecord
 from eth.beacon.helpers import (
     _get_element_from_recent_list,
     get_active_validator_indices,
+    get_attestation_participants,
     get_attestation_indices,
     get_beacon_proposer_index,
     get_block_hash,
@@ -579,3 +580,90 @@ def test_get_active_validator_indices(sample_validator_record_params):
     )
     active_validator_indices = get_active_validator_indices(validators)
     assert len(active_validator_indices) == 2
+
+
+@pytest.mark.parametrize(
+    (
+        'num_validators,'
+        'epoch_length,'
+        'committee,'
+        'participation_bitfield,'
+        'expected'
+    ),
+    [
+        (
+            100,
+            64,
+            (10, 11, 12),
+            b'\00',
+            (),
+        ),
+        (
+            100,
+            64,
+            (10, 11, 12),
+            b'\x80',
+            (10,),
+        ),
+        (
+            100,
+            64,
+            (10, 11, 12),
+            b'\xc0',
+            (10, 11),
+        ),
+        (
+            100,
+            64,
+            (10, 11, 12),
+            b'\x00\x00',
+            ValueError(),
+        ),
+    ]
+)
+def test_get_attestation_participants(
+        monkeypatch,
+        num_validators,
+        epoch_length,
+        committee,
+        participation_bitfield,
+        expected,
+        sample_state):
+    from eth.beacon import helpers
+
+    def mock_get_shard_committees_at_slot(state,
+                                          slot,
+                                          epoch_length):
+        return (
+            ShardCommittee(
+                shard=0,
+                committee=committee,
+                total_validator_count=num_validators,
+            ),
+        )
+
+    monkeypatch.setattr(
+        helpers,
+        'get_shard_committees_at_slot',
+        mock_get_shard_committees_at_slot
+    )
+
+    if isinstance(expected, Exception):
+        with pytest.raises(ValueError):
+            get_attestation_participants(
+                state=sample_state,
+                slot=0,
+                shard=0,
+                participation_bitfield=participation_bitfield,
+                epoch_length=epoch_length,
+            )
+    else:
+        result = get_attestation_participants(
+            state=sample_state,
+            slot=0,
+            shard=0,
+            participation_bitfield=participation_bitfield,
+            epoch_length=epoch_length,
+        )
+
+        assert result == expected
