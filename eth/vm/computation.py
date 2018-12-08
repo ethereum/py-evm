@@ -578,7 +578,7 @@ class BaseComputation(Configurable, ABC):
         Perform the computation that would be triggered by the VM message.
         """
         with cls(state, message, transaction_context, tracer) as computation:
-            if computation.tracer is None:
+            if computation.tracer is None or isinstance(computation.tracer, NoopTracer):
                 # Early exit on pre-compiles
                 if message.code_address in computation.precompiles:
                     computation.precompiles[message.code_address](computation)
