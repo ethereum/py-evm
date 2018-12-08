@@ -139,25 +139,6 @@ def get_hashes_to_sign(latest_block_hashes: Sequence[Hash32],
 
 
 @to_tuple
-def get_signed_parent_hashes(latest_block_hashes: Sequence[Hash32],
-                             block: 'BaseBeaconBlock',
-                             attestation: 'AttestationRecord',
-                             epoch_length: int) -> Iterable[Hash32]:
-    """
-    Given an attestation and the block they were included in,
-    the list of hashes that were included in the signature.
-    """
-    yield from get_hashes_from_latest_block_hashes(
-        latest_block_hashes,
-        block.slot,
-        from_slot=attestation.slot - epoch_length + 1,
-        to_slot=attestation.slot - len(attestation.oblique_parent_hashes),
-        epoch_length=epoch_length,
-    )
-    yield from attestation.oblique_parent_hashes
-
-
-@to_tuple
 def get_new_latest_block_hashes(old_block_hashes: Sequence[Hash32],
                                 parent_slot: int,
                                 current_slot: int,
@@ -199,7 +180,7 @@ def get_shard_committees_at_slot(state: 'BeaconState',
                                  slot: int,
                                  epoch_length: int) -> Tuple[ShardCommittee]:
     """
-    Returns the ``ShardCommittee`` for the ``slot``.
+    Return the ``ShardCommittee`` for the ``slot``.
     """
     return _get_shard_committees_at_slot(
         latest_state_recalculation_slot=state.latest_state_recalculation_slot,
@@ -209,30 +190,9 @@ def get_shard_committees_at_slot(state: 'BeaconState',
     )
 
 
-@to_tuple
-def get_attestation_indices(crystallized_state: 'CrystallizedState',
-                            attestation: 'AttestationRecord',
-                            epoch_length: int) -> Iterable[int]:
-    """
-    FIXME
-    Return committee of the given attestation.
-    """
-    shard_id = attestation.shard_id
-
-    shards_committees_for_slot = get_shard_committees_at_slot(
-        crystallized_state,
-        attestation.slot,
-        epoch_length,
-    )
-
-    for shard_committee in shards_committees_for_slot:
-        if shard_committee.shard_id == shard_id:
-            yield from shard_committee.committee
-
-
 def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tuple[int, ...]:
     """
-    Gets indices of active validators from ``validators``.
+    Get indices of active validators from ``validators``.
     """
     return tuple(
         i for i, v in enumerate(validators)
@@ -250,7 +210,7 @@ def _get_shards_committees_for_shard_indices(
         total_validator_count: int,
         shard_count: int) -> Iterable[ShardCommittee]:
     """
-    Returns filled [ShardCommittee] tuple.
+    Return filled [ShardCommittee] tuple.
     """
     for index, indices in enumerate(shard_indices):
         yield ShardCommittee(
@@ -383,7 +343,7 @@ def get_beacon_proposer_index(state: 'BeaconState',
                               slot: int,
                               epoch_length: int) -> int:
     """
-    Returns the beacon proposer index for the ``slot``.
+    Return the beacon proposer index for the ``slot``.
     """
     shard_committees = get_shard_committees_at_slot(
         state,
@@ -409,14 +369,6 @@ def get_beacon_proposer_index(state: 'BeaconState',
 # Bitfields
 #
 @to_tuple
-def _get_shard_committees(shard_committees: Sequence[ShardCommittee],
-                          shard: int) -> Iterable[ShardCommittee]:
-    for item in shard_committees:
-        if item.shard == shard:
-            yield item
-
-
-@to_tuple
 def get_attestation_participants(state: 'BeaconState',
                                  slot: int,
                                  shard: int,
@@ -427,14 +379,21 @@ def get_attestation_participants(state: 'BeaconState',
     from ``participation_bitfield``.
     """
     # Find the relevant committee
-    shard_committees = _get_shard_committees(
-        shard_committees=get_shard_committees_at_slot(
-            state,
-            slot,
-            epoch_length,
-        ),
-        shard=shard,
+    # Filter by slot
+    shard_committees_at_slot = get_shard_committees_at_slot(
+        state,
+        slot,
+        epoch_length,
     )
+    # Filter by shard
+    shard_committees = tuple(
+        [
+            shard_committee
+            for shard_committee in shard_committees_at_slot
+            if shard_committee.shard == shard
+        ]
+    )
+
     try:
         shard_committee = shard_committees[0]
     except IndexError:

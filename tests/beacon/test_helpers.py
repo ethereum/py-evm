@@ -3,7 +3,6 @@ import pytest
 from eth.beacon.enums.validator_status_codes import (
     ValidatorStatusCode,
 )
-from eth.beacon.types.attestation_records import AttestationRecord
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.shard_committees import ShardCommittee
 from eth.beacon.types.states import BeaconState
@@ -12,14 +11,12 @@ from eth.beacon.helpers import (
     _get_element_from_recent_list,
     get_active_validator_indices,
     get_attestation_participants,
-    get_attestation_indices,
     get_beacon_proposer_index,
     get_block_hash,
     get_hashes_from_latest_block_hashes,
     get_hashes_to_sign,
     get_new_shuffling,
     _get_shard_committees_at_slot,
-    get_signed_parent_hashes,
     get_block_committees_info,
 )
 
@@ -145,7 +142,6 @@ def test_get_block_hash(
             )
 
 
-@pytest.mark.xfail(reason="Need to be fixed")
 @pytest.mark.parametrize(
     (
         'epoch_length,current_block_slot,from_slot,to_slot'
@@ -156,13 +152,13 @@ def test_get_block_hash(
     ],
 )
 def test_get_hashes_from_latest_block_hashes(
-        genesis_block,
+        sample_block,
         current_block_slot,
         from_slot,
         to_slot,
         epoch_length):
     _, latest_block_hashes = generate_mock_latest_block_hashes(
-        genesis_block,
+        sample_block,
         current_block_slot,
         epoch_length,
     )
@@ -177,12 +173,11 @@ def test_get_hashes_from_latest_block_hashes(
     assert len(result) == to_slot - from_slot + 1
 
 
-@pytest.mark.xfail(reason="Need to be fixed")
-def test_get_hashes_to_sign(genesis_block, epoch_length):
+def test_get_hashes_to_sign(sample_block, epoch_length):
     epoch_length = epoch_length
     current_block_slot = 1
     blocks, latest_block_hashes = generate_mock_latest_block_hashes(
-        genesis_block,
+        sample_block,
         current_block_slot,
         epoch_length,
     )
@@ -195,34 +190,6 @@ def test_get_hashes_to_sign(genesis_block, epoch_length):
     )
     assert len(result) == epoch_length
     assert result[-1] == block.hash
-
-
-@pytest.mark.xfail(reason="Need to be fixed")
-def test_get_new_latest_block_hashes(genesis_block,
-                                     epoch_length,
-                                     sample_attestation_record_params):
-    epoch_length = epoch_length
-    current_block_slot = 15
-    blocks, latest_block_hashes = generate_mock_latest_block_hashes(
-        genesis_block,
-        current_block_slot,
-        epoch_length,
-    )
-
-    block = blocks[current_block_slot]
-    oblique_parent_hashes = [b'\x77' * 32]
-    attestation = AttestationRecord(**sample_attestation_record_params).copy(
-        slot=10,
-        oblique_parent_hashes=oblique_parent_hashes,
-    )
-    result = get_signed_parent_hashes(
-        latest_block_hashes,
-        block,
-        attestation,
-        epoch_length,
-    )
-    assert len(result) == epoch_length
-    assert result[-1] == oblique_parent_hashes[-1]
 
 
 #
@@ -323,34 +290,6 @@ def test_get_shard_committee_for_slot(
                 slot=slot,
                 epoch_length=epoch_length,
             )
-
-
-@pytest.mark.xfail(reason="Need to be fixed")
-# @pytest.mark.parametrize(
-#     (
-#         'num_validators,'
-#         'epoch_length,min_committee_size'
-#     ),
-#     [
-#         (1000, 20, 10),
-#     ],
-# )
-def test_get_attestation_indices(genesis_crystallized_state,
-                                 sample_attestation_record_params,
-                                 epoch_length,
-                                 min_committee_size):
-    attestation = AttestationRecord(**sample_attestation_record_params)
-    attestation = attestation.copy(
-        slot=0,
-        shard_id=0,
-    )
-
-    attestation_indices = get_attestation_indices(
-        genesis_crystallized_state,
-        attestation,
-        epoch_length,
-    )
-    assert len(attestation_indices) >= min_committee_size
 
 
 #
