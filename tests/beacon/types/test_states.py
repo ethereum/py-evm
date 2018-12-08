@@ -2,8 +2,8 @@ import pytest
 
 import rlp
 
-from eth.constants import (
-    ZERO_HASH32,
+from eth.beacon.types.fork_data import (
+    ForkData,
 )
 from eth.beacon.types.states import (
     BeaconState,
@@ -23,55 +23,56 @@ from tests.beacon.helpers import (
 @pytest.fixture
 def empty_beacon_state():
     return BeaconState(
-        validator_set_change_slot=0,
-        validators=(),
-        crosslinks=(),
-        last_state_recalculation_slot=0,
-        last_finalized_slot=0,
-        justification_source=0,
-        prev_cycle_justification_source=0,
-        justified_slot_bitfield=0,
-        shard_and_committee_for_slots=(),
+        validator_registry=(),
+        validator_registry_latest_change_slot=10,
+        validator_registry_exit_count=10,
+        validator_registry_delta_chain_tip=b'\x55' * 32,
+        randao_mix=b'\x55' * 32,
+        next_seed=b'\x55' * 32,
+        shard_committees_at_slots=(),
         persistent_committees=(),
         persistent_committee_reassignments=(),
-        next_shuffling_seed=ZERO_HASH32,
-        deposits_penalized_in_period=(),
-        validator_set_delta_hash_chain=ZERO_HASH32,
-        current_exit_seq=00,
-        genesis_time=00,
-        processed_pow_receipt_root=ZERO_HASH32,
+        previous_justified_slot=0,
+        justified_slot=0,
+        justification_bitfield=0,
+        finalized_slot=0,
+        latest_crosslinks=(),
+        latest_state_recalculation_slot=0,
+        latest_block_hashes=(),
+        latest_penalized_exit_balances=(),
+        latest_attestations=(),
+        processed_pow_receipt_root=b'\x55' * 32,
         candidate_pow_receipt_roots=(),
-        pre_fork_version=0,
-        post_fork_version=0,
-        fork_slot_number=0,
-        pending_attestations=(),
-        recent_block_hashes=(),
-        randao_mix=ZERO_HASH32,
+        genesis_time=0,
+        fork_data=ForkData(
+            pre_fork_version=0,
+            post_fork_version=0,
+            fork_slot=0,
+        ),
     )
 
 
 def test_defaults(sample_beacon_state_params):
     state = BeaconState(**sample_beacon_state_params)
-    assert state.validator_set_change_slot == \
-        sample_beacon_state_params['validator_set_change_slot']
-    assert state.validators == sample_beacon_state_params['validators']
+    assert state.validator_registry == sample_beacon_state_params['validator_registry']
+    assert state.validator_registry_latest_change_slot == sample_beacon_state_params['validator_registry_latest_change_slot']  # noqa: E501
 
 
 @pytest.mark.parametrize(
     'expected', [(0), (1)]
 )
 def test_num_validators(expected,
-                        deposit_size,
+                        max_deposit,
                         empty_beacon_state):
-    validators = [
+    validator_registry = [
         mock_validator_record(
             pubkey,
-            deposit_size,
+            max_deposit,
         )
         for pubkey in range(expected)
     ]
     state = empty_beacon_state.copy(
-        validators=validators,
+        validator_registry=validator_registry,
     )
 
     assert state.num_validators == expected
@@ -88,7 +89,7 @@ def test_num_crosslink_records(expected,
         for i in range(expected)
     ]
     state = empty_beacon_state.copy(
-        crosslinks=crosslink_records,
+        latest_crosslinks=crosslink_records,
     )
 
     assert state.num_crosslinks == expected

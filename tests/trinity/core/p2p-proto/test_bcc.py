@@ -5,7 +5,7 @@ import asyncio
 from cancel_token import CancelToken
 
 from eth.beacon.types.attestation_records import AttestationRecord
-from eth.beacon.types.attestation_signed_data import AttestationSignedData
+from eth.beacon.types.attestation_data import AttestationData
 from eth.db.atomic import AtomicDB
 from eth.beacon.db.chain import BeaconChainDB
 from eth.beacon.types.blocks import BaseBeaconBlock
@@ -302,18 +302,18 @@ async def test_send_single_attestation(request, event_loop):
     bob.add_subscriber(msg_buffer)
 
     attestation_record = AttestationRecord(
-        data=AttestationSignedData(
+        data=AttestationData(
             slot=0,
             shard=1,
-            block_hash=ZERO_HASH32,
-            cycle_boundary_hash=ZERO_HASH32,
+            beacon_block_hash=ZERO_HASH32,
+            epoch_boundary_hash=ZERO_HASH32,
             shard_block_hash=ZERO_HASH32,
-            last_crosslink_hash=ZERO_HASH32,
+            latest_crosslink_hash=ZERO_HASH32,
             justified_slot=0,
             justified_block_hash=ZERO_HASH32,
         ),
-        attester_bitfield=b"\x00\x00\x00",
-        poc_bitfield=b"\x00\x00\x00",
+        participation_bitfield=b"\x00\x00\x00",
+        custody_bitfield=b"\x00\x00\x00",
     )
 
     alice.sub_proto.send_attestation_records((attestation_record,))
@@ -331,18 +331,18 @@ async def test_send_multiple_attestations(request, event_loop):
 
     attestation_records = tuple(
         AttestationRecord(
-            data=AttestationSignedData(
+            data=AttestationData(
                 slot=0,
-                shard=shard,
-                block_hash=ZERO_HASH32,
-                cycle_boundary_hash=ZERO_HASH32,
+                shard=1,
+                beacon_block_hash=ZERO_HASH32,
+                epoch_boundary_hash=ZERO_HASH32,
                 shard_block_hash=ZERO_HASH32,
-                last_crosslink_hash=ZERO_HASH32,
+                latest_crosslink_hash=ZERO_HASH32,
                 justified_slot=0,
                 justified_block_hash=ZERO_HASH32,
             ),
-            attester_bitfield=b"\x00\x00\x00",
-            poc_bitfield=b"\x00\x00\x00",
+            participation_bitfield=b"\x00\x00\x00",
+            custody_bitfield=b"\x00\x00\x00",
         ) for shard in range(10)
     )
 

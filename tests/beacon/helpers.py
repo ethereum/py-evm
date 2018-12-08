@@ -9,16 +9,16 @@ from eth.constants import (
 )
 
 
-def mock_validator_record(pubkey, deposit_size):
+def mock_validator_record(pubkey, max_deposit):
     return ValidatorRecord(
         pubkey=pubkey,
         withdrawal_credentials=b'\x44' * 32,
         randao_commitment=b'\x55' * 32,
         randao_skips=0,
-        balance=deposit_size,
+        balance=max_deposit,
         status=ValidatorStatusCode.ACTIVE,
-        last_status_change_slot=0,
-        exit_seq=0,
+        latest_status_change_slot=0,
+        exit_count=0,
     )
 
 

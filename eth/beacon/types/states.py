@@ -23,10 +23,11 @@ from eth.utils.blake import (
     blake,
 )
 
-from .processed_attestation import ProcessedAttestation
+from .pending_attestation_records import PendingAttestationRecord
 from .candidate_pow_receipt_root_records import CandidatePoWReceiptRootRecord
 from .crosslink_records import CrosslinkRecord
-from .shard_and_committees import ShardAndCommittee
+from .fork_data import ForkData
+from .shard_committees import ShardCommittee
 from .shard_reassignment_records import ShardReassignmentRecord
 from .validator_records import ValidatorRecord
 
@@ -36,120 +37,108 @@ class BeaconState(rlp.Serializable):
     Note: using RLP until we have standardized serialization format.
     """
     fields = [
-        # Slot of last validator set change
-        ('validator_set_change_slot', uint64),
-        # List of validators
-        ('validators', CountableList(ValidatorRecord)),
-        # Most recent crosslink for each shard
-        ('crosslinks', CountableList(CrosslinkRecord)),
-        # Last cycle-boundary state recalculation
-        ('last_state_recalculation_slot', uint64),
-        # Last finalized slot
-        ('last_finalized_slot', uint64),
-        # Justification source
-        ('justification_source', uint64),
-        ('prev_cycle_justification_source', uint64),
-        # Recent justified slot bitmask
-        ('justified_slot_bitfield', uint64),
-        # Committee members and their assigned shard, per slot
-        ('shard_and_committee_for_slots', CountableList(CountableList(ShardAndCommittee))),
-        # Persistent shard committees
+        # Validator registry
+        ('validator_registry', CountableList(ValidatorRecord)),
+        ('validator_registry_latest_change_slot', uint64),
+        ('validator_registry_exit_count', uint64),
+        ('validator_registry_delta_chain_tip', hash32),  # For light clients to easily track delta
+
+        # Randomness and committees
+        ('randao_mix', hash32),
+        ('next_seed', hash32),
+        ('shard_committees_at_slots', CountableList(CountableList((ShardCommittee)))),
         ('persistent_committees', CountableList(CountableList(uint24))),
         ('persistent_committee_reassignments', CountableList(ShardReassignmentRecord)),
-        # Randao seed used for next shuffling
-        ('next_shuffling_seed', hash32),
-        # Total deposits penalized in the given withdrawal period
-        ('deposits_penalized_in_period', CountableList(uint64)),
-        # Hash chain of validator set changes (for light clients to easily track deltas)
-        ('validator_set_delta_hash_chain', hash32),
-        # Current sequence number for withdrawals
-        ('current_exit_seq', uint64),
-        # Genesis time
-        ('genesis_time', uint64),
+
+        # Finality
+        ('previous_justified_slot', uint64),
+        ('justified_slot', uint64),
+        ('justification_bitfield', uint64),
+        ('finalized_slot', uint64),
+
+        # Recent state
+        ('latest_crosslinks', CountableList(CrosslinkRecord)),
+        ('latest_state_recalculation_slot', uint64),
+        ('latest_block_hashes', CountableList(hash32)),  # Needed to process attestations, older to newer  # noqa: E501
+        ('latest_penalized_exit_balances', CountableList(uint64)),  # Balances penalized at every withdrawal period  # noqa: E501
+        ('latest_attestations', CountableList(PendingAttestationRecord)),
+
         # PoW receipt root
         ('processed_pow_receipt_root', hash32),
         ('candidate_pow_receipt_roots', CountableList(CandidatePoWReceiptRootRecord)),
-        # Parameters relevant to hard forks / versioning.
-        # Should be updated only by hard forks.
-        ('pre_fork_version', uint64),
-        ('post_fork_version', uint64),
-        ('fork_slot_number', uint64),
-        # Attestations not yet processed
-        ('pending_attestations', CountableList(ProcessedAttestation)),
-        # recent beacon block hashes needed to process attestations, older to newer
-        ('recent_block_hashes', CountableList(hash32)),
-        # RANDAO state
-        ('randao_mix', hash32),
+
+        # Misc
+        ('genesis_time', uint64),
+        ('fork_data', ForkData),  # For versioning hard forks
     ]
 
-    def __init__(self,
-                 validator_set_change_slot: int,
-                 last_state_recalculation_slot: int,
-                 last_finalized_slot: int,
-                 justification_source: int,
-                 prev_cycle_justification_source: int,
-                 justified_slot_bitfield: int,
-                 next_shuffling_seed: Hash32,
-                 validator_set_delta_hash_chain: Hash32,
-                 current_exit_seq: int,
-                 genesis_time: int,
-                 processed_pow_receipt_root: Hash32,
-                 pre_fork_version: int,
-                 post_fork_version: int,
-                 fork_slot_number: int,
-                 randao_mix: Hash32,
-                 validators: Sequence[ValidatorRecord]=None,
-                 crosslinks: Sequence[CrosslinkRecord]=None,
-                 shard_and_committee_for_slots: Sequence[Sequence[ShardAndCommittee]]=None,
-                 persistent_committees: Sequence[Sequence[int]]=None,
-                 persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=None,
-                 deposits_penalized_in_period: Sequence[int]=None,
-                 candidate_pow_receipt_roots: Sequence[CandidatePoWReceiptRootRecord]=None,
-                 pending_attestations: Sequence[ProcessedAttestation]=None,
-                 recent_block_hashes: Sequence[Hash32]=None
-                 ) -> None:
-        if validators is None:
-            validators = ()
-        if crosslinks is None:
-            crosslinks = ()
-        if shard_and_committee_for_slots is None:
-            shard_and_committee_for_slots = ()
+    def __init__(
+            self,
+            validator_registry_latest_change_slot: int,
+            validator_registry_exit_count: int,
+            validator_registry_delta_chain_tip: Hash32,
+            randao_mix: Hash32,
+            next_seed: Hash32,
+            previous_justified_slot: int,
+            justified_slot: int,
+            justification_bitfield: int,
+            finalized_slot: int,
+            processed_pow_receipt_root: Hash32,
+            genesis_time: int,
+            fork_data: ForkData,
+            validator_registry: Sequence[ValidatorRecord]=None,
+            shard_committees_at_slots: Sequence[Sequence[ShardCommittee]]=None,
+            persistent_committees: Sequence[Sequence[int]]=None,
+            persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=None,
+            latest_crosslinks: Sequence[CrosslinkRecord]=None,
+            latest_state_recalculation_slot: Sequence[int]=None,
+            latest_block_hashes: Sequence[Hash32]=None,
+            latest_penalized_exit_balances: Sequence[int]=None,
+            latest_attestations: Sequence[PendingAttestationRecord]=None,
+            candidate_pow_receipt_roots: Sequence[CandidatePoWReceiptRootRecord]=None,
+    ) -> None:
+        if validator_registry is None:
+            validator_registry = ()
+        if shard_committees_at_slots is None:
+            shard_committees_at_slots = ()
         if persistent_committees is None:
             persistent_committees = ()
-        if persistent_committee_reassignments is None:
-            persistent_committee_reassignments = ()
-        if deposits_penalized_in_period is None:
-            deposits_penalized_in_period = ()
-        if pending_attestations is None:
-            pending_attestations = ()
-        if recent_block_hashes is None:
-            recent_block_hashes = ()
+        if latest_crosslinks is None:
+            latest_crosslinks = ()
+        if latest_state_recalculation_slot is None:
+            latest_state_recalculation_slot = ()
+        if latest_penalized_exit_balances is None:
+            latest_penalized_exit_balances = ()
+        if latest_penalized_exit_balances is None:
+            latest_penalized_exit_balances = ()
+        if latest_attestations is None:
+            latest_attestations = ()
+        if candidate_pow_receipt_roots is None:
+            candidate_pow_receipt_roots = ()
 
         super().__init__(
-            validator_set_change_slot=validator_set_change_slot,
-            validators=validators,
-            crosslinks=crosslinks,
-            last_state_recalculation_slot=last_state_recalculation_slot,
-            last_finalized_slot=last_finalized_slot,
-            justification_source=justification_source,
-            prev_cycle_justification_source=prev_cycle_justification_source,
-            justified_slot_bitfield=justified_slot_bitfield,
-            shard_and_committee_for_slots=shard_and_committee_for_slots,
+            validator_registry=validator_registry,
+            validator_registry_latest_change_slot=validator_registry_latest_change_slot,
+            validator_registry_exit_count=validator_registry_exit_count,
+            validator_registry_delta_chain_tip=validator_registry_delta_chain_tip,
+            randao_mix=randao_mix,
+            next_seed=next_seed,
+            shard_committees_at_slots=shard_committees_at_slots,
             persistent_committees=persistent_committees,
             persistent_committee_reassignments=persistent_committee_reassignments,
-            next_shuffling_seed=next_shuffling_seed,
-            deposits_penalized_in_period=deposits_penalized_in_period,
-            validator_set_delta_hash_chain=validator_set_delta_hash_chain,
-            current_exit_seq=current_exit_seq,
-            genesis_time=genesis_time,
+            previous_justified_slot=previous_justified_slot,
+            justified_slot=justified_slot,
+            justification_bitfield=justification_bitfield,
+            finalized_slot=finalized_slot,
+            latest_crosslinks=latest_crosslinks,
+            latest_state_recalculation_slot=latest_state_recalculation_slot,
+            latest_block_hashes=latest_block_hashes,
+            latest_penalized_exit_balances=latest_penalized_exit_balances,
+            latest_attestations=latest_attestations,
             processed_pow_receipt_root=processed_pow_receipt_root,
             candidate_pow_receipt_roots=candidate_pow_receipt_roots,
-            pre_fork_version=pre_fork_version,
-            post_fork_version=post_fork_version,
-            fork_slot_number=fork_slot_number,
-            pending_attestations=pending_attestations,
-            recent_block_hashes=recent_block_hashes,
-            randao_mix=randao_mix,
+            genesis_time=genesis_time,
+            fork_data=fork_data,
         )
 
     def __repr__(self) -> str:
@@ -167,8 +156,8 @@ class BeaconState(rlp.Serializable):
 
     @property
     def num_validators(self) -> int:
-        return len(self.validators)
+        return len(self.validator_registry)
 
     @property
     def num_crosslinks(self) -> int:
-        return len(self.crosslinks)
+        return len(self.latest_crosslinks)
