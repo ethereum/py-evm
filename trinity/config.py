@@ -1,3 +1,7 @@
+from abc import (
+    ABC,
+    abstractmethod,
+)
 import argparse
 from contextlib import contextmanager
 import json
@@ -6,9 +10,11 @@ from typing import (
     Any,
     cast,
     Dict,
+    Iterable,
     TYPE_CHECKING,
     Tuple,
     Type,
+    TypeVar,
     Union,
 )
 
@@ -185,6 +191,9 @@ class ChainConfig:
         return self.genesis_data.vm_configuration
 
 
+TAppConfig = TypeVar('TAppConfig', bound='BaseAppConfig')
+
+
 class TrinityConfig:
     _trinity_root_dir: Path = None
 
@@ -202,6 +211,8 @@ class TrinityConfig:
     bootstrap_nodes: Tuple[KademliaNode, ...] = None
 
     _genesis_config: Dict[str, Any] = None
+
+    _app_configs: Dict[Type['BaseAppConfig'], 'BaseAppConfig'] = None
 
     def __init__(self,
                  network_id: int,
@@ -222,6 +233,7 @@ class TrinityConfig:
         self.sync_mode = sync_mode
         self.port = port
         self.use_discv5 = use_discv5
+        self._app_configs = {}
 
         if genesis_config is not None:
             self.genesis_config = genesis_config
@@ -284,14 +296,6 @@ class TrinityConfig:
         if value not in {SYNC_FULL, SYNC_LIGHT}:
             raise ValueError(f"Unknown sync mode: {value}")
         self._sync_mode = value
-
-    @property
-    def is_light_mode(self) -> bool:
-        return self.sync_mode == SYNC_LIGHT
-
-    @property
-    def is_full_mode(self) -> bool:
-        return self.sync_mode == SYNC_FULL
 
     @property
     def logfile_path(self) -> Path:
@@ -440,14 +444,89 @@ class TrinityConfig:
                 f"`PrivateKey` instance: got {type(self._nodekey)}"
             )
 
+    @contextmanager
+    def process_id_file(self, process_name: str):  # type: ignore
+        with PidFile(process_name, self.data_dir):
+            yield
+
     @classmethod
-    def from_parser_args(cls, parser_args: argparse.Namespace) -> 'TrinityConfig':
+    def from_parser_args(cls,
+                         parser_args: argparse.Namespace,
+                         app_config_types: Iterable[Type['BaseAppConfig']]) -> 'TrinityConfig':
         """
         Helper function for initializing from the namespace object produced by
         an ``argparse.ArgumentParser``
         """
         constructor_kwargs = construct_trinity_config_params(parser_args)
-        return cls(**constructor_kwargs)
+        trinity_config = cls(**constructor_kwargs)
+
+        trinity_config.initialize_app_configs(parser_args, app_config_types)
+
+        return trinity_config
+
+    def initialize_app_configs(self,
+                               parser_args: argparse.Namespace,
+                               app_config_types: Iterable[Type['BaseAppConfig']]) -> None:
+        """
+        Initialize all available ``BaseAppConfig`` based on their concrete types,
+        the ``parser_args`` and the existing ``TrinityConfig`` instance.
+        """
+        for app_config_type in app_config_types:
+            self.add_app_config(app_config_type.from_parser_args(parser_args, self))
+
+    def add_app_config(self, app_config: 'BaseAppConfig') -> None:
+        """
+        Register the given ``app_config``.
+        """
+        self._app_configs[type(app_config)] = app_config
+
+    def has_app_config(self, app_config_type: Type['BaseAppConfig']) -> bool:
+        """
+        Check if a ``BaseAppConfig`` exists based on the given ``app_config_type``.
+        """
+        return app_config_type in self._app_configs.keys()
+
+    def get_app_config(self, app_config_type: Type[TAppConfig]) -> TAppConfig:
+        """
+        Return the ``BaseAppConfig`` derived instance based on the given ``app_config_type``.
+        """
+        # We want this API to return the specific type of the app config that is requested.
+        # Our backing field only knows that it is holding `BaseAppConfig`'s but not concrete types
+        return cast(TAppConfig, self._app_configs[app_config_type])
+
+
+class BaseAppConfig(ABC):
+
+    def __init__(self, trinity_config: TrinityConfig):
+        self.trinity_config = trinity_config
+
+    @classmethod
+    @abstractmethod
+    def from_parser_args(cls,
+                         args: argparse.Namespace,
+                         trinity_config: TrinityConfig) -> 'BaseAppConfig':
+        """
+        Initialize from the namespace object produced by
+        an ``argparse.ArgumentParser`` and the ``TrinityConfig``
+        """
+        pass
+
+
+class Eth1AppConfig(BaseAppConfig):
+
+    @classmethod
+    def from_parser_args(cls,
+                         args: argparse.Namespace,
+                         trinity_config: TrinityConfig) -> 'BaseAppConfig':
+        return cls(trinity_config)
+
+    @property
+    def is_light_mode(self) -> bool:
+        return self.trinity_config.sync_mode == SYNC_LIGHT
+
+    @property
+    def is_full_mode(self) -> bool:
+        return self.trinity_config.sync_mode == SYNC_FULL
 
     @property
     def node_class(self) -> Type['Node']:
@@ -464,7 +543,11 @@ class TrinityConfig:
         else:
             raise NotImplementedError("Only full and light sync modes are supported")
 
-    @contextmanager
-    def process_id_file(self, process_name: str):  # type: ignore
-        with PidFile(process_name, self.data_dir):
-            yield
+
+class BeaconAppConfig(BaseAppConfig):
+
+    @classmethod
+    def from_parser_args(cls,
+                         args: argparse.Namespace,
+                         trinity_config: TrinityConfig) -> 'BaseAppConfig':
+        return cls(trinity_config)
