@@ -25,6 +25,7 @@ from trinity.bootstrap import (
 )
 from trinity.config import (
     TrinityConfig,
+    Eth1AppConfig,
 )
 from trinity.constants import (
     NETWORKING_EVENTBUS_ENDPOINT,
@@ -65,7 +66,7 @@ def get_all_plugins() -> Iterable[BasePlugin]:
 
 
 def main() -> None:
-    main_entry(trinity_boot, get_all_plugins())
+    main_entry(trinity_boot, get_all_plugins(), (Eth1AppConfig,))
 
 
 def trinity_boot(args: Namespace,
@@ -147,7 +148,7 @@ def trinity_boot(args: Namespace,
 def launch_node(args: Namespace, trinity_config: TrinityConfig, endpoint: Endpoint) -> None:
     with trinity_config.process_id_file('networking'):
 
-        NodeClass = trinity_config.node_class
+        NodeClass = trinity_config.get_app_config(Eth1AppConfig).node_class
         node = NodeClass(endpoint, trinity_config)
         loop = node.get_event_loop()
 

@@ -32,6 +32,7 @@ from trinity.cli_parser import (
     subparser,
 )
 from trinity.config import (
+    BaseAppConfig,
     TrinityConfig,
 )
 from trinity.constants import (
@@ -106,7 +107,9 @@ BootFn = Callable[[
 ], None]
 
 
-def main_entry(trinity_boot: BootFn, plugins: Iterable[BasePlugin]) -> None:
+def main_entry(trinity_boot: BootFn,
+               plugins: Iterable[BasePlugin],
+               sub_configs: Iterable[Type[BaseAppConfig]]) -> None:
     event_bus = EventBus(ctx)
     main_endpoint = event_bus.create_endpoint(MAIN_EVENTBUS_ENDPOINT)
     main_endpoint.connect_no_wait()
@@ -149,7 +152,7 @@ def main_entry(trinity_boot: BootFn, plugins: Iterable[BasePlugin]) -> None:
         setup_log_levels(args.log_levels)
 
     try:
-        trinity_config = TrinityConfig.from_parser_args(args)
+        trinity_config = TrinityConfig.from_parser_args(args, sub_configs)
     except AmbigiousFileSystem:
         parser.error(TRINITY_AMBIGIOUS_FILESYSTEM_INFO)
 

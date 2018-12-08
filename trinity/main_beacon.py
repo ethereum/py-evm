@@ -21,6 +21,7 @@ from trinity.bootstrap import (
 )
 from trinity.config import (
     TrinityConfig,
+    BeaconAppConfig
 )
 from trinity.events import (
     ShutdownRequest
@@ -41,7 +42,7 @@ from trinity.utils.mp import (
 
 
 def main_beacon() -> None:
-    main_entry(trinity_boot, BASE_PLUGINS)
+    main_entry(trinity_boot, BASE_PLUGINS, (BeaconAppConfig,))
 
 
 def trinity_boot(args: Namespace,

@@ -4,6 +4,7 @@ from argparse import (
 )
 import asyncio
 
+from trinity.config import Eth1AppConfig
 from trinity.chains.base import BaseAsyncChain
 from trinity.db.manager import (
     create_db_manager
@@ -47,15 +48,16 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
         db_manager.connect()
 
         trinity_config = self.context.trinity_config
+        eth1_app_config = self.context.trinity_config.get_app_config(Eth1AppConfig)
         chain_config = trinity_config.get_chain_config()
 
         chain: BaseAsyncChain
 
-        if self.context.trinity_config.is_light_mode:
+        if eth1_app_config.is_light_mode:
             header_db = db_manager.get_headerdb()  # type: ignore
             event_bus_light_peer_chain = EventBusLightPeerChain(self.context.event_bus)
             chain = chain_config.light_chain_class(header_db, peer_chain=event_bus_light_peer_chain)
-        elif trinity_config.is_full_mode:
+        elif eth1_app_config.is_full_mode:
             db = db_manager.get_db()  # type: ignore
             chain = chain_config.full_chain_class(db)
         else:
