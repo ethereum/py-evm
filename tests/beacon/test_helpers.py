@@ -376,61 +376,65 @@ def test_get_new_shuffling_handles_shard_wrap(genesis_validators,
 #
 # Get proposer postition
 #
-@pytest.mark.xfail(reason="Need to be fixed")
 @pytest.mark.parametrize(
     (
-        'committee,parent_block_number,result_proposer_index_in_committee'
+        'num_validators,committee,parent_block_number,result_proposer_index'
     ),
     [
-        ([0, 1, 2, 3], 0, 0),
-        ([0, 1, 2, 3], 2, 2),
-        ([0, 1, 2, 3], 11, 3),
-        ([], 1, ValueError()),
+        (100, [4, 5, 6, 7], 0, 4),
+        (100, [4, 5, 6, 7], 2, 6),
+        (100, [4, 5, 6, 7], 11, 7),
+        (100, [], 1, ValueError()),
     ],
 )
 def test_get_block_committees_info(monkeypatch,
-                                   genesis_block,
-                                   genesis_crystallized_state,
+                                   sample_block,
+                                   sample_state,
+                                   num_validators,
                                    committee,
                                    parent_block_number,
-                                   result_proposer_index_in_committee,
+                                   result_proposer_index,
                                    epoch_length):
     from eth.beacon import helpers
 
-    def mock_get_shard_committees_at_slot(parent_block,
-                                          crystallized_state,
+    def mock_get_shard_committees_at_slot(state,
+                                          slot,
                                           epoch_length):
-        return [
-            ShardCommittee(shard_id=1, committee=committee),
-        ]
+        return (
+            ShardCommittee(
+                shard=1,
+                committee=committee,
+                total_validator_count=num_validators,
+            ),
+        )
 
     monkeypatch.setattr(
         helpers,
-        '_get_shard_committees_at_slot',
+        'get_shard_committees_at_slot',
         mock_get_shard_committees_at_slot
     )
 
-    parent_block = genesis_block
-    parent_block = genesis_block.copy(
+    parent_block = sample_block
+    parent_block = sample_block.copy(
         slot=parent_block_number,
     )
 
-    if isinstance(result_proposer_index_in_committee, Exception):
+    if isinstance(result_proposer_index, Exception):
         with pytest.raises(ValueError):
             get_block_committees_info(
                 parent_block,
-                genesis_crystallized_state,
+                sample_state,
                 epoch_length,
             )
     else:
         block_committees_info = get_block_committees_info(
             parent_block,
-            genesis_crystallized_state,
+            sample_state,
             epoch_length,
         )
         assert (
-            block_committees_info.proposer_index_in_committee ==
-            result_proposer_index_in_committee
+            block_committees_info.proposer_index ==
+            result_proposer_index
         )
 
 

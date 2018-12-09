@@ -43,10 +43,8 @@ from eth.beacon.utils.random import (
 
 
 if TYPE_CHECKING:
-    from eth.beacon.types.active_states import ActiveState  # noqa: F401
     from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
     from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
-    from eth.beacon.types.crystallized_states import CrystallizedState  # noqa: F401
     from eth.beacon.types.states import BeaconState  # noqa: F401
     from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
@@ -309,7 +307,6 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
         epoch_length,
     )
     """
-    FIXME
     Return the block committees and proposer info with BlockCommitteesInfo pack.
     """
     # `proposer_index_in_committee` th attester in `shard_committee`
@@ -330,13 +327,11 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
         proposer_committee_size
     )
 
-    # The index in CrystallizedState.validators
     proposer_index = shard_committee.committee[proposer_index_in_committee]
 
     return BlockCommitteesInfo(
         proposer_index=proposer_index,
-        proposer_index_in_committee=proposer_index_in_committee,
-        proposer_shard_id=shard_committee.shard_id,
+        proposer_shard=shard_committee.shard,
         proposer_committee_size=proposer_committee_size,
         shards_committees=shards_committees,
     )
