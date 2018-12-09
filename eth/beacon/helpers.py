@@ -22,6 +22,9 @@ from eth.utils.bitfield import (
     get_bitfield_length,
     has_voted,
 )
+from eth.utils.blake import (
+    blake,
+)
 from eth.utils.numeric import (
     clamp,
 )
@@ -412,3 +415,29 @@ def get_attestation_participants(state: 'BeaconState',
     for bitfield_index, validator_index in enumerate(shard_committee.committee):
         if has_voted(participation_bitfield, bitfield_index):
             yield validator_index
+
+
+#
+# Misc
+#
+def get_effective_balance(validator: 'ValidatorRecord', max_deposit: int) -> int:
+    """
+    Return the effective balance (also known as "balance at stake") for the ``validator``.
+    """
+    return min(validator.balance, max_deposit)
+
+
+def get_new_validator_registry_delta_chain_tip(current_validator_registry_delta_chain_tip: Hash32,
+                                               index: int,
+                                               pubkey: int,
+                                               flag: int) -> Hash32:
+    """
+    Compute the next hash in the validator registry delta hash chain.
+    """
+    return blake(
+        current_validator_registry_delta_chain_tip +
+        flag.to_bytes(1, 'big') +
+        index.to_bytes(3, 'big') +
+        # TODO: currently, we use 256-bit pubkey which is different form the spec
+        pubkey.to_bytes(32, 'big')
+    )

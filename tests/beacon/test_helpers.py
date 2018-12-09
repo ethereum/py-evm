@@ -1,5 +1,10 @@
 import pytest
 
+from eth.constants import (
+    ZERO_HASH32,
+)
+
+
 from eth.beacon.enums.validator_status_codes import (
     ValidatorStatusCode,
 )
@@ -13,12 +18,15 @@ from eth.beacon.helpers import (
     get_attestation_participants,
     get_beacon_proposer_index,
     get_block_hash,
+    get_effective_balance,
     get_hashes_from_latest_block_hashes,
     get_hashes_to_sign,
     get_new_shuffling,
+    get_new_validator_registry_delta_chain_tip,
     _get_shard_committees_at_slot,
     get_block_committees_info,
 )
+
 
 from tests.beacon.helpers import (
     get_pseudo_chain,
@@ -256,7 +264,7 @@ def test_get_hashes_to_sign(sample_block, epoch_length):
         ),
     ],
 )
-def test_get_shard_committee_for_slot(
+def test_get_shard_committees_at_slot(
         num_validators,
         cycle_length,
         latest_state_recalculation_slot,
@@ -606,3 +614,59 @@ def test_get_attestation_participants(
         )
 
         assert result == expected
+
+
+@pytest.mark.parametrize(
+    (
+        'balance,'
+        'max_deposit,'
+        'expected'
+    ),
+    [
+        (
+            1,
+            32,
+            1,
+        ),
+        (
+            33,
+            32,
+            32,
+        )
+    ]
+)
+def test_get_effective_balance(balance, max_deposit, expected, sample_validator_record_params):
+    validator = ValidatorRecord(**sample_validator_record_params).copy(
+        balance=balance,
+    )
+    result = get_effective_balance(validator, max_deposit)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    (
+        'index,'
+        'pubkey,'
+        'flag,'
+        'expected'
+    ),
+    [
+        (
+            1,
+            2 * 256 - 1,
+            1,
+            b')\x8a4^\xc5\xb4\x06\r\xf3\x0cX\xb8\xdd\x05\x94\xcfY+qF\xbe\xf1\x04\xe3\xe8\xbd\xe5\xef\xfaGY\t'  # noqa: E501
+        ),
+    ]
+)
+def test_get_new_validator_registry_delta_chain_tip(index,
+                                                    pubkey,
+                                                    flag,
+                                                    expected):
+    result = get_new_validator_registry_delta_chain_tip(
+        current_validator_registry_delta_chain_tip=ZERO_HASH32,
+        index=index,
+        pubkey=pubkey,
+        flag=flag,
+    )
+    assert result == expected
