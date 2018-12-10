@@ -20,12 +20,9 @@ from eth.utils.numeric import (
     ceil32,
 )
 from eth.vm import mnemonics
-from eth.vm.computation import (
-    BaseComputation
-)
-from eth.vm.opcode import (
-    Opcode,
-)
+from eth.vm.computation import BaseComputation
+from eth.vm.message import Message
+from eth.vm.opcode import Opcode
 
 from .call import max_child_gas_eip150
 
@@ -193,13 +190,16 @@ class Create(Opcode):
             code=call_data,
             create_address=contract_address,
         )
+        self.apply_create_message(computation, child_msg)
 
+    def apply_create_message(self, computation: BaseComputation, child_msg: Message) -> None:
         child_computation = computation.apply_child_computation(child_msg)
 
         if child_computation.is_error:
             computation.stack_push(0)
         else:
-            computation.stack_push(contract_address)
+            computation.stack_push(child_msg.storage_address)
+
         computation.return_gas(child_computation.get_gas_remaining())
 
 
@@ -240,3 +240,22 @@ class Create2(CreateByzantium):
             stack_data.salt,
             call_data
         )
+
+    def apply_create_message(self, computation: BaseComputation, child_msg: Message) -> None:
+        # We need to ensure that creation operates on empty storage **and**
+        # that if the initialization code fails that we revert the account back
+        # to its original state root.
+        snapshot = computation.state.snapshot()
+
+        computation.state.account_db.delete_storage(child_msg.storage_address)
+
+        child_computation = computation.apply_child_computation(child_msg)
+
+        if child_computation.is_error:
+            computation.state.revert(snapshot)
+            computation.stack_push(0)
+        else:
+            computation.state.commit(snapshot)
+            computation.stack_push(child_msg.storage_address)
+
+        computation.return_gas(child_computation.get_gas_remaining())
