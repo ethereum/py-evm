@@ -51,8 +51,8 @@ async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     asyncio.ensure_future(server.run())
     server_request_handler = ETHRequestServer(FakeAsyncChainDB(chaindb_20.db), server_peer_pool)
     asyncio.ensure_future(server_request_handler.run())
-    server_peer.logger.info("%s is serving 20 blocks", server_peer)
-    client_peer.logger.info("%s is syncing up 20", client_peer)
+    client_peer.logger.info("%s is serving 20 blocks", client_peer)
+    server_peer.logger.info("%s is syncing up 20 blocks", server_peer)
 
     def finalizer():
         event_loop.run_until_complete(server.cancel())
@@ -133,8 +133,8 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     asyncio.ensure_future(server.run())
     server_request_handler = ETHRequestServer(FakeAsyncChainDB(chaindb_20.db), server_peer_pool)
     asyncio.ensure_future(server_request_handler.run())
-    server_peer.logger.info("%s is serving 20 blocks", server_peer)
-    client_peer.logger.info("%s is syncing up 20", client_peer)
+    client_peer.logger.info("%s is serving 20 blocks", client_peer)
+    server_peer.logger.info("%s is syncing up 20 blocks", server_peer)
 
     def finalizer():
         event_loop.run_until_complete(asyncio.gather(
@@ -173,8 +173,8 @@ async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     asyncio.ensure_future(server.run())
     server_request_handler = LightRequestServer(FakeAsyncHeaderDB(chaindb_20.db), server_peer_pool)
     asyncio.ensure_future(server_request_handler.run())
-    server_peer.logger.info("%s is serving 20 blocks", server_peer)
-    client_peer.logger.info("%s is syncing up 20", client_peer)
+    client_peer.logger.info("%s is serving 20 blocks", client_peer)
+    server_peer.logger.info("%s is syncing up 20 blocks", server_peer)
 
     def finalizer():
         event_loop.run_until_complete(asyncio.gather(
