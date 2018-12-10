@@ -44,7 +44,7 @@ deps = {
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.5",
         "web3==4.4.1",
-        "lahja==0.9.0",
+        "lahja==0.10.0",
         "termcolor>=1.1.0,<2.0.0",
         "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",
         "websockets==5.0.1",
