@@ -33,6 +33,9 @@ from p2p.service import (
     BaseService,
 )
 
+from trinity.constants import (
+    TO_NETWORKING_BROADCAST_CONFIG,
+)
 from trinity.utils.async_errors import (
     await_and_wrap_errors,
 )
@@ -230,23 +233,33 @@ class EventBusLightPeerChain(BaseLightPeerChain):
 
     async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
         event = GetBlockHeaderByHashRequest(block_hash)
-        return self._pass_or_raise(await self.event_bus.request(event)).block_header
+        return self._pass_or_raise(
+            await self.event_bus.request(event, TO_NETWORKING_BROADCAST_CONFIG)
+        ).block_header
 
     async def coro_get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
         event = GetBlockBodyByHashRequest(block_hash)
-        return self._pass_or_raise(await self.event_bus.request(event)).block_body
+        return self._pass_or_raise(
+            await self.event_bus.request(event, TO_NETWORKING_BROADCAST_CONFIG)
+        ).block_body
 
     async def coro_get_receipts(self, block_hash: Hash32) -> List[Receipt]:
         event = GetReceiptsRequest(block_hash)
-        return self._pass_or_raise(await self.event_bus.request(event)).receipts
+        return self._pass_or_raise(
+            await self.event_bus.request(event, TO_NETWORKING_BROADCAST_CONFIG)
+        ).receipts
 
     async def coro_get_account(self, block_hash: Hash32, address: Address) -> Account:
         event = GetAccountRequest(block_hash, address)
-        return self._pass_or_raise(await self.event_bus.request(event)).account
+        return self._pass_or_raise(
+            await self.event_bus.request(event, TO_NETWORKING_BROADCAST_CONFIG)
+        ).account
 
     async def coro_get_contract_code(self, block_hash: Hash32, address: Address) -> bytes:
         event = GetContractCodeRequest(block_hash, address)
-        return self._pass_or_raise(await self.event_bus.request(event)).bytez
+        return self._pass_or_raise(
+            await self.event_bus.request(event, TO_NETWORKING_BROADCAST_CONFIG)
+        ).bytez
 
     TResponse = TypeVar("TResponse", bound=BaseLightPeerChainResponse)
 
