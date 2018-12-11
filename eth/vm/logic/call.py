@@ -105,7 +105,7 @@ class BaseCall(Opcode, ABC):
             else:
                 raise Exception("Invariant: Unreachable code path")
 
-            self.logger.trace(
+            self.logger.debug2(
                 "%s failure: %s",
                 self.mnemonic,
                 err_message,

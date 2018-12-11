@@ -61,7 +61,7 @@ class FrontierComputation(BaseComputation):
             self.state.account_db.delta_balance(self.msg.sender, -1 * self.msg.value)
             self.state.account_db.delta_balance(self.msg.storage_address, self.msg.value)
 
-            self.logger.trace(
+            self.logger.debug2(
                 "TRANSFERRED: %s from %s -> %s",
                 self.msg.value,
                 encode_hex(self.msg.sender),
@@ -102,7 +102,7 @@ class FrontierComputation(BaseComputation):
                 except OutOfGas:
                     computation.output = b''
                 else:
-                    self.logger.trace(
+                    self.logger.debug2(
                         "SETTING CODE: %s -> length: %s | hash: %s",
                         encode_hex(self.msg.storage_address),
                         len(contract_code),

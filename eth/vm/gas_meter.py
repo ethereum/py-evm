@@ -13,7 +13,7 @@ from eth.validation import (
     validate_uint256,
 )
 from eth.tools.logging import (
-    TraceLogger
+    ExtendedDebugLogger
 )
 
 
@@ -38,7 +38,7 @@ class GasMeter(object):
     gas_refunded = None  # type: int
     gas_remaining = None  # type: int
 
-    logger = cast(TraceLogger, logging.getLogger('eth.gas.GasMeter'))
+    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.gas.GasMeter'))
 
     def __init__(self,
                  start_gas: int,
@@ -67,7 +67,7 @@ class GasMeter(object):
 
         self.gas_remaining -= amount
 
-        self.logger.trace(
+        self.logger.debug2(
             'GAS CONSUMPTION: %s - %s -> %s (%s)',
             self.gas_remaining + amount,
             amount,
@@ -81,7 +81,7 @@ class GasMeter(object):
 
         self.gas_remaining += amount
 
-        self.logger.trace(
+        self.logger.debug2(
             'GAS RETURNED: %s + %s -> %s',
             self.gas_remaining - amount,
             amount,
@@ -91,7 +91,7 @@ class GasMeter(object):
     def refund_gas(self, amount: int) -> None:
         self.gas_refunded = self.refund_strategy(self.gas_refunded, amount)
 
-        self.logger.trace(
+        self.logger.debug2(
             'GAS REFUND: %s + %s -> %s',
             self.gas_refunded - amount,
             amount,

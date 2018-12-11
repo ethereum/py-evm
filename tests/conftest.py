@@ -1,4 +1,4 @@
-# from eth.utils.logging import TRACE_LEVEL_NUM
+# from eth.utils.logging import DEBUG2_LEVEL_NUM
 
 import pytest
 
@@ -30,7 +30,7 @@ def _file_logging(request):
 
     logger = logging.getLogger('eth')
 
-    level = TRACE_LEVEL_NUM
+    level = DEBUG2_LEVEL_NUM
     #level = logging.DEBUG
     #level = logging.INFO
 

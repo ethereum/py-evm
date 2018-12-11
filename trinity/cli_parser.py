@@ -8,7 +8,7 @@ from typing import (
 
 from eth_utils import ValidationError
 
-from eth.tools.logging import TRACE_LEVEL_NUM
+from eth.tools.logging import DEBUG2_LEVEL_NUM
 
 from p2p.kademlia import Node
 
@@ -41,14 +41,14 @@ class ValidateAndStoreEnodes(argparse.Action):
 
 LOG_LEVEL_CHOICES = {
     # numeric versions
-    '5': TRACE_LEVEL_NUM,
+    '8': DEBUG2_LEVEL_NUM,
     '10': logging.DEBUG,
     '20': logging.INFO,
     '30': logging.WARNING,
     '40': logging.ERROR,
     '50': logging.CRITICAL,
     # string versions
-    'TRACE': TRACE_LEVEL_NUM,
+    'DEBUG2': DEBUG2_LEVEL_NUM,
     'DEBUG': logging.DEBUG,
     'INFO': logging.INFO,
     'WARN': logging.WARNING,

@@ -9,7 +9,7 @@ from eth.rlp.sedes import (
 )
 
 
-class AttestationSignedData(rlp.Serializable):
+class AttestationData(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.
     """
@@ -18,36 +18,36 @@ class AttestationSignedData(rlp.Serializable):
         ('slot', uint64),
         # Shard number
         ('shard', uint64),
-        # Hash of the block we're signing
-        ('block_hash', hash32),
-        # Hash of the ancestor at the cycle boundary
-        ('cycle_boundary_hash', hash32),
+        # Hash of the signed beacon block
+        ('beacon_block_hash', hash32),
+        # Hash of the ancestor at the epoch boundary
+        ('epoch_boundary_hash', hash32),
         # Shard block hash being attested to
         ('shard_block_hash', hash32),
         # Last crosslink hash
-        ('last_crosslink_hash', hash32),
-        # Slot of last justified beacon block
+        ('latest_crosslink_hash', hash32),
+        # Slot of the last justified beacon block
         ('justified_slot', uint64),
-        # Hash of last justified beacon block
+        # Hash of the last justified beacon block
         ('justified_block_hash', hash32),
     ]
 
     def __init__(self,
                  slot: int,
                  shard: int,
-                 block_hash: Hash32,
-                 cycle_boundary_hash: Hash32,
+                 beacon_block_hash: Hash32,
+                 epoch_boundary_hash: Hash32,
                  shard_block_hash: Hash32,
-                 last_crosslink_hash: Hash32,
+                 latest_crosslink_hash: Hash32,
                  justified_slot: int,
                  justified_block_hash: Hash32) -> None:
         super().__init__(
             slot=slot,
             shard=shard,
-            block_hash=block_hash,
-            cycle_boundary_hash=cycle_boundary_hash,
+            beacon_block_hash=beacon_block_hash,
+            epoch_boundary_hash=epoch_boundary_hash,
             shard_block_hash=shard_block_hash,
-            last_crosslink_hash=last_crosslink_hash,
+            latest_crosslink_hash=latest_crosslink_hash,
             justified_slot=justified_slot,
             justified_block_hash=justified_block_hash,
         )

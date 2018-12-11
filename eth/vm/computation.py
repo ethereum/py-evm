@@ -30,7 +30,7 @@ from eth.exceptions import (
     VMError,
 )
 from eth.tools.logging import (
-    TraceLogger,
+    ExtendedDebugLogger,
 )
 from eth.utils.datatypes import (
     Configurable,
@@ -103,7 +103,7 @@ class BaseComputation(Configurable, ABC):
     opcodes = None  # type: Dict[int, Any]
     _precompiles = None  # type: Dict[Address, Callable[['BaseComputation'], 'BaseComputation']]
 
-    logger = cast(TraceLogger, logging.getLogger('eth.vm.computation.Computation'))
+    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.vm.computation.Computation'))
 
     def __init__(self,
                  state: BaseState,
@@ -228,7 +228,7 @@ class BaseComputation(Configurable, ABC):
         before_cost = memory_gas_cost(before_size)
         after_cost = memory_gas_cost(after_size)
 
-        self.logger.trace(
+        self.logger.debug2(
             "MEMORY: size (%s -> %s) | cost (%s -> %s)",
             before_size,
             after_size,
@@ -494,7 +494,7 @@ class BaseComputation(Configurable, ABC):
     # Context Manager API
     #
     def __enter__(self) -> 'BaseComputation':
-        self.logger.trace(
+        self.logger.debug2(
             (
                 "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s "
                 "| depth %s | static: %s"
@@ -511,7 +511,7 @@ class BaseComputation(Configurable, ABC):
 
     def __exit__(self, exc_type: None, exc_value: None, traceback: None) -> None:
         if exc_value and isinstance(exc_value, VMError):
-            self.logger.trace(
+            self.logger.debug2(
                 (
                     "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | "
                     "depth: %s | static: %s | error: %s"
@@ -537,7 +537,7 @@ class BaseComputation(Configurable, ABC):
             # suppress VM exceptions
             return True
         elif exc_type is None:
-            self.logger.trace(
+            self.logger.debug2(
                 (
                     "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | "
                     "depth: %s | static: %s | gas-used: %s | gas-remaining: %s"
@@ -588,7 +588,7 @@ class BaseComputation(Configurable, ABC):
                 opcode_fn = computation.get_opcode_fn(opcode)
                 pc = computation.get_pc()
 
-                computation.logger.trace(
+                computation.logger.debug2(
                     "OPCODE: 0x%x (%s) | pc: %s",
                     opcode,
                     opcode_fn.mnemonic,

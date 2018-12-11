@@ -17,7 +17,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.tools.logging import TraceLogger
+from eth.tools.logging import ExtendedDebugLogger
 
 from p2p.cancellable import CancellableMixin
 from p2p.utils import get_asyncio_executor
@@ -33,7 +33,7 @@ class ServiceEvents:
 
 
 class BaseService(ABC, CancellableMixin):
-    logger: TraceLogger = None
+    logger: ExtendedDebugLogger = None
     # Use a WeakSet so that we don't have to bother updating it when tasks finish.
     _child_services: 'WeakSet[BaseService]'
     _tasks: 'WeakSet[asyncio.Future[Any]]'
@@ -44,7 +44,7 @@ class BaseService(ABC, CancellableMixin):
     # the custom event loop to run in, or None if the default loop should be used
     _loop: asyncio.AbstractEventLoop = None
 
-    _logger: TraceLogger = None
+    _logger: ExtendedDebugLogger = None
 
     def __init__(self,
                  token: CancelToken=None,
@@ -67,10 +67,10 @@ class BaseService(ABC, CancellableMixin):
         self._executor = get_asyncio_executor()
 
     @property
-    def logger(self) -> TraceLogger:
+    def logger(self) -> ExtendedDebugLogger:
         if self._logger is None:
             self._logger = cast(
-                TraceLogger,
+                ExtendedDebugLogger,
                 logging.getLogger(self.__module__ + '.' + self.__class__.__name__)
             )
         return self._logger
@@ -136,7 +136,7 @@ class BaseService(ABC, CancellableMixin):
         """
         @functools.wraps(awaitable)  # type: ignore
         async def _run_task_wrapper() -> None:
-            self.logger.trace("Running task %s", awaitable)
+            self.logger.debug2("Running task %s", awaitable)
             try:
                 await awaitable
             except OperationCancelled:
@@ -145,7 +145,7 @@ class BaseService(ABC, CancellableMixin):
                 self.logger.warning("Task %s finished unexpectedly: %s", awaitable, e)
                 self.logger.debug("Task failure traceback", exc_info=True)
             else:
-                self.logger.trace("Task %s finished with no errors", awaitable)
+                self.logger.debug2("Task %s finished with no errors", awaitable)
         self._tasks.add(asyncio.ensure_future(_run_task_wrapper()))
 
     def run_daemon_task(self, awaitable: Awaitable[Any]) -> None:

@@ -27,7 +27,7 @@ from p2p.service import BaseService
 from trinity.db.header import AsyncHeaderDB
 from trinity.protocol.common.peer import BaseChainPeerPool
 from trinity.protocol.common.requests import BaseHeaderRequest
-from trinity.utils.logging import HasTraceLogger
+from trinity.utils.logging import HasExtendedDebugLogger
 
 
 class BaseRequestServer(BaseService, PeerSubscriber):
@@ -79,7 +79,7 @@ class BaseRequestServer(BaseService, PeerSubscriber):
         pass
 
 
-class BasePeerRequestHandler(CancellableMixin, HasTraceLogger):
+class BasePeerRequestHandler(CancellableMixin, HasExtendedDebugLogger):
     def __init__(self, db: AsyncHeaderDB, token: CancelToken) -> None:
         self.db = db
         self.cancel_token = token

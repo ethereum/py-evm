@@ -333,7 +333,7 @@ class BasePeer(BaseService):
     def get_protocol_command_for(self, msg: bytes) -> protocol.Command:
         """Return the Command corresponding to the cmd_id encoded in the given msg."""
         cmd_id = get_devp2p_cmd_id(msg)
-        self.logger.trace("Got msg with cmd_id: %s", cmd_id)
+        self.logger.debug2("Got msg with cmd_id: %s", cmd_id)
         if cmd_id < self.base_protocol.cmd_length:
             return self.base_protocol.cmd_by_id[cmd_id]
         elif cmd_id < self.sub_proto.cmd_id_offset + self.sub_proto.cmd_length:
@@ -342,7 +342,7 @@ class BasePeer(BaseService):
             raise UnknownProtocolCommand(f"No protocol found for cmd_id {cmd_id}")
 
     async def read(self, n: int) -> bytes:
-        self.logger.trace("Waiting for %s bytes from %s", n, self.remote)
+        self.logger.debug2("Waiting for %s bytes from %s", n, self.remote)
         try:
             return await self.wait(self.reader.readexactly(n), timeout=self.conn_idle_timeout)
         except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as e:
@@ -432,7 +432,7 @@ class BasePeer(BaseService):
             )
             raise
         else:
-            self.logger.trace("Successfully decoded %s msg: %s", cmd, decoded_msg)
+            self.logger.debug2("Successfully decoded %s msg: %s", cmd, decoded_msg)
             self.received_msgs[cmd] += 1
             return cmd, decoded_msg
 
@@ -559,7 +559,7 @@ class BasePeer(BaseService):
 
     def send(self, header: bytes, body: bytes) -> None:
         cmd_id = rlp.decode(body[:1], sedes=rlp.sedes.big_endian_int)
-        self.logger.trace("Sending msg with cmd id %d to %s", cmd_id, self)
+        self.logger.debug2("Sending msg with cmd id %d to %s", cmd_id, self)
         if self.is_closing:
             self.logger.error(
                 "Attempted to send msg with cmd id %d to disconnected peer %s", cmd_id, self)
@@ -691,7 +691,7 @@ class PeerSubscriber(ABC):
 
         if not self.is_subscription_command(type(cmd)):
             if hasattr(self, 'logger'):
-                self.logger.trace(  # type: ignore
+                self.logger.debug2(  # type: ignore
                     "Discarding %s msg from %s; not subscribed to msg type; "
                     "subscriptions: %s",
                     cmd, peer, self.subscription_msg_types,
@@ -700,7 +700,7 @@ class PeerSubscriber(ABC):
 
         try:
             if hasattr(self, 'logger'):
-                self.logger.trace(  # type: ignore
+                self.logger.debug2(  # type: ignore
                     "Adding %s msg from %s to queue; queue_size=%d", cmd, peer, self.queue_size)
             self.msg_queue.put_nowait(msg)
             return True
@@ -908,7 +908,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             UnreachablePeer,
         )
         try:
-            self.logger.trace("Connecting to %s...", remote)
+            self.logger.debug2("Connecting to %s...", remote)
             # We use self.wait() as well as passing our CancelToken to handshake() as a workaround
             # for https://github.com/ethereum/py-evm/issues/670.
             peer = await self.wait(handshake(remote, self.get_peer_factory()))

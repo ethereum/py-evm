@@ -61,7 +61,7 @@ class SpuriousDragonComputation(HomesteadComputation):
                     self.state.revert(snapshot)
                 else:
                     if self.logger:
-                        self.logger.trace(
+                        self.logger.debug2(
                             "SETTING CODE: %s -> length: %s | hash: %s",
                             encode_hex(self.msg.storage_address),
                             len(contract_code),

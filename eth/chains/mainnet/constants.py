@@ -37,3 +37,8 @@ SPURIOUS_DRAGON_MAINNET_BLOCK = BlockNumber(2675000)
 # Byzantium Block
 #
 BYZANTIUM_MAINNET_BLOCK = BlockNumber(4370000)
+
+#
+# Constantinople Block
+#
+CONSTANTINOPLE_MAINNET_BLOCK = BlockNumber(7080000)

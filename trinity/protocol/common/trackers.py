@@ -12,7 +12,9 @@ from p2p.protocol import (
 )
 
 from trinity.utils.ema import EMA
-from trinity.utils.logging import HasTraceLogger
+from trinity.utils.logging import HasExtendedDebugLogger
+from trinity.utils.percentile import Percentile
+from trinity.utils.stddev import StandardDeviation
 from .constants import ROUND_TRIP_TIMEOUT
 from .types import (
     TResult,
@@ -22,7 +24,7 @@ from .types import (
 TRequest = TypeVar('TRequest', bound=BaseRequest[Any])
 
 
-class BasePerformanceTracker(ABC, HasTraceLogger, Generic[TRequest, TResult]):
+class BasePerformanceTracker(ABC, HasExtendedDebugLogger, Generic[TRequest, TResult]):
     def __init__(self) -> None:
         self.total_msgs = 0
         self.total_items = 0
@@ -35,8 +37,10 @@ class BasePerformanceTracker(ABC, HasTraceLogger, Generic[TRequest, TResult]):
         # empty responses.
         self.response_quality_ema = EMA(initial_value=0, smoothing_factor=0.05)
 
-        # an EMA of the round trip request/response time
+        # Metrics for the round trip request/response time
         self.round_trip_ema = EMA(initial_value=ROUND_TRIP_TIMEOUT, smoothing_factor=0.05)
+        self.round_trip_99th = Percentile(percentile=0.99, window_size=200)
+        self.round_trip_stddev = StandardDeviation(window_size=200)
 
         # an EMA of the items per second
         self.items_per_second_ema = EMA(initial_value=0, smoothing_factor=0.05)
@@ -76,39 +80,43 @@ class BasePerformanceTracker(ABC, HasTraceLogger, Generic[TRequest, TResult]):
         """
         if not self.total_msgs:
             return 'None'
-        avg_rtt = self.total_response_time / self.total_msgs
-        if not self.total_response_time:
-            items_per_second = 0.0
-        else:
-            items_per_second = self.total_items / self.total_response_time
+
+        try:
+            rt99 = self.round_trip_99th.value
+        except ValueError:
+            rt99 = 0
+
+        try:
+            rt_stddev = self.round_trip_stddev.value
+        except ValueError:
+            rt_stddev = 0
 
         # msgs: total number of messages
         # items: total number of items
-        # rtt: round-trip-time (avg/ema)
-        # ips: items-per-second (avg/ema)
+        # rtt: round-trip-time (ema/99th/stddev)
+        # ips: items-per-second (ema)
         # timeouts: total number of timeouts
         # missing: total number of missing response items
         # quality: 0-100 for how complete responses are
         return (
-            'msgs=%d  items=%d  rtt=%.2f/%.2f  ips=%.5f/%.5f  '
+            'msgs=%d  items=%d  rtt=%.2f/%.2f/%.2f  ips=%.5f  '
             'timeouts=%d  quality=%d'
         ) % (
             self.total_msgs,
             self.total_items,
-            avg_rtt,
             self.round_trip_ema.value,
-            items_per_second,
+            rt99,
+            rt_stddev,
             self.items_per_second_ema.value,
             self.total_timeouts,
             int(self.response_quality_ema.value),
         )
 
-    def record_timeout(self, timeout: float) -> None:
+    def record_timeout(self) -> None:
         self.total_msgs += 1
         self.total_timeouts += 1
         self.response_quality_ema.update(0)
         self.items_per_second_ema.update(0)
-        self.round_trip_ema.update(timeout)
 
     def record_response(self,
                         elapsed: float,
@@ -148,7 +156,10 @@ class BasePerformanceTracker(ABC, HasTraceLogger, Generic[TRequest, TResult]):
 
         self.total_items += num_items
         self.total_response_time += elapsed
+
         self.round_trip_ema.update(elapsed)
+        self.round_trip_99th.update(elapsed)
+        self.round_trip_stddev.update(elapsed)
 
         if elapsed > 0:
             throughput = num_items / elapsed

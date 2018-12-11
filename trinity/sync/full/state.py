@@ -35,7 +35,7 @@ from eth.constants import (
 )
 from eth.db.backends.level import LevelDB
 from eth.rlp.accounts import Account
-from eth.tools.logging import TraceLogger
+from eth.tools.logging import ExtendedDebugLogger
 
 from p2p.service import BaseService
 from p2p.protocol import (
@@ -124,11 +124,11 @@ class StateDownloader(BaseService, PeerSubscriber):
         async for peer in self.peer_pool:
             peer = cast(ETHPeer, peer)
             if self._peer_missing_nodes[peer].issuperset(node_keys):
-                self.logger.trace("%s doesn't have any of the nodes we want, skipping it", peer)
+                self.logger.debug2("%s doesn't have any of the nodes we want, skipping it", peer)
                 continue
             has_eligible_peers = True
             if peer in self.request_tracker.active_requests:
-                self.logger.trace("%s is not idle, skipping it", peer)
+                self.logger.debug2("%s is not idle, skipping it", peer)
                 continue
             return peer
 
@@ -156,7 +156,7 @@ class StateDownloader(BaseService, PeerSubscriber):
             try:
                 peer = await self.get_peer_for_request(not_yet_requested)
             except NoIdlePeers:
-                self.logger.trace(
+                self.logger.debug2(
                     "No idle peers have any of the %d trie nodes we want, sleeping a bit",
                     len(not_yet_requested),
                 )
@@ -293,7 +293,7 @@ class StateDownloader(BaseService, PeerSubscriber):
 
 class TrieNodeRequestTracker:
 
-    def __init__(self, reply_timeout: int, logger: TraceLogger) -> None:
+    def __init__(self, reply_timeout: int, logger: ExtendedDebugLogger) -> None:
         self.reply_timeout = reply_timeout
         self.logger = logger
         self.active_requests: Dict[ETHPeer, Tuple[float, Tuple[Hash32, ...]]] = {}
