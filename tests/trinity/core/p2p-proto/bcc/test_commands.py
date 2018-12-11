@@ -8,7 +8,6 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
-from p2p import ecies
 from p2p.peer import (
     MsgBuffer,
 )
