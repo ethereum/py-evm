@@ -33,6 +33,8 @@ async def get_request_server_setup(request, event_loop, chain_db):
     def finalizer():
         event_loop.run_until_complete(bob_request_server.cancel())
 
+    request.addfinalizer(finalizer)
+
     return alice, response_buffer
 
 

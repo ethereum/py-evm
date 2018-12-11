@@ -84,10 +84,10 @@ class BCCRequestServer(BaseRequestServer):
         try:
             start_block = get_start_block()
         except BlockNotFound:
-            self.logger.trace("%s requested unknown block %s", block_slot_or_hash)
+            self.logger.debug2("%s requested unknown block %s", block_slot_or_hash)
             blocks = ()
         else:
-            self.logger.trace(
+            self.logger.debug2(
                 "%s requested %d blocks starting with %s",
                 peer,
                 max_blocks,
@@ -95,7 +95,7 @@ class BCCRequestServer(BaseRequestServer):
             )
             blocks = self._get_blocks(start_block, max_blocks)
         finally:
-            self.logger.trace("Replying to %s with %d blocks", peer, len(blocks))
+            self.logger.debug2("Replying to %s with %d blocks", peer, len(blocks))
             peer.sub_proto.send_blocks(blocks)
 
     @to_tuple
