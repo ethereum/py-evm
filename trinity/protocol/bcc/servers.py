@@ -1,4 +1,3 @@
-import functools
 import itertools
 from typing import (
     cast,
@@ -9,7 +8,7 @@ from typing import (
     Type,
 )
 
-from cytoolz import (
+from eth_utils.toolz import (
     cons,
     sliding_window,
     take,
@@ -101,7 +100,10 @@ class BCCRequestServer(BaseRequestServer):
     def _get_blocks(self,
                     start_block: BaseBeaconBlock,
                     max_blocks: int) -> Iterable[BaseBeaconBlock]:
-        if max_blocks <= 0:
+        if max_blocks < 0:
+            raise Exception("Invariant: max blocks cannot be negative")
+
+        if max_blocks == 0:
             return
 
         yield start_block
