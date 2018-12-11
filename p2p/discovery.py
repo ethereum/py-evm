@@ -180,8 +180,10 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
 
         if self.use_v5:
             token = self.send_ping_v5(node, [])
+            log_version = "v5"
         else:
             token = self.send_ping_v4(node)
+            log_version = "v4"
 
         try:
             if self.use_v5:
@@ -189,11 +191,11 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             else:
                 got_pong = await self.wait_pong_v4(node, token)
         except AlreadyWaitingDiscoveryResponse:
-            self.logger.debug("bonding failed, already waiting for pong")
+            self.logger.debug("bonding failed, awaiting %s pong from %s", log_version, node)
             return False
 
         if not got_pong:
-            self.logger.debug("bonding failed, didn't receive pong from %s", node)
+            self.logger.debug("bonding failed, didn't receive %s pong from %s", log_version, node)
             self.routing.remove_node(node)
             return False
 
@@ -569,7 +571,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         try:
             callback = self.pong_callbacks.get_callback(pingid)
         except KeyError:
-            self.logger.debug('unexpected pong from %s (token == %s)', remote, encode_hex(token))
+            self.logger.debug('unexpected v4 pong from %s (token == %s)', remote, encode_hex(token))
         else:
             callback()
 
@@ -829,7 +831,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         try:
             callback = self.pong_callbacks.get_callback(pingid)
         except KeyError:
-            self.logger.debug('unexpected pong from %s (token == %s)', remote, encode_hex(token))
+            self.logger.debug('unexpected v5 pong from %s (token == %s)', remote, encode_hex(token))
         else:
             callback(raw_msg, wait_periods)
 

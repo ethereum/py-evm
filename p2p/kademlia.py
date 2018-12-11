@@ -32,7 +32,7 @@ from eth_hash.auto import keccak
 k_b = 8  # 8 bits per hop
 
 k_bucket_size = 16
-k_request_timeout = 0.9                  # timeout of message round trips
+k_request_timeout = 7.2                  # timeout of message round trips
 k_idle_bucket_refresh_interval = 3600    # ping all nodes in bucket if bucket was idle
 k_find_concurrency = 3                   # parallel find node lookups
 k_pubkey_size = 512
