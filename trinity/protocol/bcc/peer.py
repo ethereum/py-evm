@@ -3,6 +3,7 @@ from eth.beacon.db.chain import BaseBeaconChainDB
 from p2p.peer import (
     BasePeer,
     BasePeerFactory,
+    BasePeerPool,
 )
 # noinspection PyProtectedMember
 from p2p.protocol import (
@@ -83,3 +84,7 @@ class BCCPeer(BasePeer):
 class BCCPeerFactory(BasePeerFactory):
     context: BeaconContext
     peer_class = BCCPeer
+
+
+class BCCPeerPool(BasePeerPool):
+    peer_factory_class = BCCPeerFactory
