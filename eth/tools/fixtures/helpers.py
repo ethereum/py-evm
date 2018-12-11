@@ -193,8 +193,10 @@ def new_chain_from_fixture(fixture: Dict[str, Any],
     )
 
 
-def apply_fixture_block_to_chain(block_fixture: Dict[str, Any],
-                                 chain: BaseChain) -> Tuple[BaseBlock, BaseBlock, BaseBlock]:
+def apply_fixture_block_to_chain(
+        block_fixture: Dict[str, Any],
+        chain: BaseChain,
+        perform_validation: bool=True) -> Tuple[BaseBlock, BaseBlock, BaseBlock]:
     '''
     :return: (premined_block, mined_block, rlp_encoded_mined_block)
     '''
@@ -209,7 +211,7 @@ def apply_fixture_block_to_chain(block_fixture: Dict[str, Any],
 
     block = rlp.decode(block_fixture['rlp'], sedes=block_class)
 
-    mined_block, _, _ = chain.import_block(block)
+    mined_block, _, _ = chain.import_block(block, perform_validation=perform_validation)
 
     rlp_encoded_mined_block = rlp.encode(mined_block, sedes=block_class)
 
