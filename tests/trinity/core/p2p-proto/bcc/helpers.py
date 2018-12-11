@@ -1,3 +1,5 @@
+import asyncio
+
 from cancel_token import CancelToken
 
 from eth.db.atomic import AtomicDB
@@ -98,3 +100,23 @@ async def get_directly_linked_peers(request, event_loop, alice_chain_db=None, bo
         alice_factory=alice_factory,
         bob_factory=bob_factory,
     )
+
+
+async def get_directly_linked_peers_in_peer_pools(request, event_loop, chain_db=None):
+    alice, bob = await get_directly_linked_peers(request, event_loop, bob_chain_db=chain_db)
+    alice_peer_pool = BCCPeerPool(alice.privkey, alice.context)
+    bob_peer_pool = BCCPeerPool(bob.privkey, bob.context)
+
+    asyncio.ensure_future(alice_peer_pool.run())
+    asyncio.ensure_future(bob_peer_pool.run())
+
+    def finalizer():
+        event_loop.run_until_complete(alice_peer_pool.cancel())
+        event_loop.run_until_complete(bob_peer_pool.cancel())
+
+    request.addfinalizer(finalizer)
+
+    alice_peer_pool._add_peer(alice, [])
+    bob_peer_pool._add_peer(bob, [])
+
+    return alice, alice_peer_pool, bob, bob_peer_pool
