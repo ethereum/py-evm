@@ -1,6 +1,14 @@
 import asyncio
 
+from cytoolz import (
+    merge,
+)
+
 from cancel_token import CancelToken
+
+from eth_utils import (
+    to_tuple,
+)
 
 from eth.db.atomic import AtomicDB
 from eth.beacon.db.chain import BeaconChainDB
@@ -12,6 +20,7 @@ from eth.constants import (
 from trinity.protocol.bcc.context import BeaconContext
 from trinity.protocol.bcc.peer import (
     BCCPeerFactory,
+    BCCPeerPool,
 )
 
 from p2p import ecies
@@ -21,21 +30,46 @@ from p2p.tools.paragon.helpers import (
 )
 
 
+def create_test_block(parent=None, **kwargs):
+    defaults = {
+        "slot": 0,
+        "randao_reveal": ZERO_HASH32,
+        "candidate_pow_receipt_root": ZERO_HASH32,
+        "ancestor_hashes": [ZERO_HASH32] * 32,
+        "state_root": ZERO_HASH32,  # note: not the actual genesis state root
+        "attestations": [],
+        "specials": [],
+        "proposer_signature": None,
+    }
+
+    if parent is not None:
+        kwargs["ancestor_hashes"] = [parent.hash] + [ZERO_HASH32] * 31
+        kwargs["slot"] = parent.slot + 1
+
+    return BaseBeaconBlock(**merge(defaults, kwargs))
+
+
+@to_tuple
+def create_branch(length, root, **start_kwargs):
+    if length == 0:
+        return
+
+    parent = create_test_block(parent=root, **start_kwargs)
+    yield parent
+
+    for slot in range(root.slot + 2, root.slot + length + 1):
+        child = create_test_block(parent)
+        yield child
+        parent = child
+
+
 def get_fresh_chain_db():
     db = AtomicDB()
-    genesis_block = BaseBeaconBlock(
-        slot=0,
-        randao_reveal=ZERO_HASH32,
-        candidate_pow_receipt_root=ZERO_HASH32,
-        ancestor_hashes=[ZERO_HASH32] * 32,
-        state_root=ZERO_HASH32,  # note: not the actual genesis state root
-        attestations=[],
-        specials=[],
-        proposer_signature=None,
-    )
+    genesis_block = create_test_block(slot=0)
 
     chain_db = BeaconChainDB(db)
     chain_db.persist_block(genesis_block)
+
     return chain_db
 
 
