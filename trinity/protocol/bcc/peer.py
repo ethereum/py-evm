@@ -5,7 +5,6 @@ from p2p.peer import (
     BasePeerFactory,
     BasePeerPool,
 )
-# noinspection PyProtectedMember
 from p2p.protocol import (
     Command,
     _DecodedMsgType,

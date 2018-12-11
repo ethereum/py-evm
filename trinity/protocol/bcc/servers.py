@@ -31,6 +31,7 @@ from typing import (
     cast,
     Any,
     Dict,
+    Iterable,
     Set,
     Type,
 )
@@ -60,7 +61,7 @@ class BCCRequestServer(BaseRequestServer):
         else:
             raise Exception("Invariant: Only subscribed to GetBeaconBlocks")
 
-    async def _handle_get_beacon_blocks(self, peer: BCCPeer, msg: Dict[str, Any]):
+    async def _handle_get_beacon_blocks(self, peer: BCCPeer, msg: Dict[str, Any]) -> None:
         if not peer.is_operational:
             return
 
@@ -99,7 +100,9 @@ class BCCRequestServer(BaseRequestServer):
             peer.sub_proto.send_blocks(blocks)
 
     @to_tuple
-    def _get_blocks(self, start_block: BaseBeaconBlock, max_blocks: int):
+    def _get_blocks(self,
+                    start_block: BaseBeaconBlock,
+                    max_blocks: int) -> Iterable[BaseBeaconBlock]:
         if max_blocks <= 0:
             return
 
