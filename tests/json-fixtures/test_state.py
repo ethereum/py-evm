@@ -146,6 +146,7 @@ INCORRECT_UPSTREAM_TESTS = {
     # The result is in conflict with the yellow-paper:
     # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-418800369
     ('stRevertTest/RevertInCreateInInit.json', 'RevertInCreateInInit', 'Byzantium', 0),
+    ('stRevertTest/RevertInCreateInInit.json', 'RevertInCreateInInit', 'Constantinople', 0),
 }
 
 
