@@ -69,26 +69,20 @@ class BCCRequestServer(BaseRequestServer):
         max_blocks = cast(int, msg["max_blocks"])
         block_slot_or_hash = msg["block_slot_or_hash"]
 
-        if isinstance(block_slot_or_hash, int):
-            get_start_block = functools.partial(
-                self.db.get_canonical_block_by_slot,
-                cast(int, block_slot_or_hash),
-            )
-        elif isinstance(block_slot_or_hash, bytes):
-            get_start_block = functools.partial(
-                self.db.get_block_by_hash,
-                cast(Hash32, block_slot_or_hash),
-            )
-        else:
-            actual_type = type(block_slot_or_hash)
-            raise TypeError(f"Invariant: unexpected type for 'block_slot_or_hash': {actual_type}")
-
         try:
-            start_block = get_start_block()
+            if isinstance(block_slot_or_hash, int):
+                start_block = self.db.get_canonical_block_by_slot(block_slot_or_hash)
+            elif isinstance(block_slot_or_hash, bytes):
+                start_block = self.db.get_block_by_hash(Hash32(block_slot_or_hash))
+            else:
+                raise TypeError(
+                    f"Invariant: unexpected type for 'block_slot_or_hash': "
+                    f"{type(block_slot_or_hash)}"
+                )
         except BlockNotFound:
-            self.logger.debug2("%s requested unknown block %s", block_slot_or_hash)
-            blocks = ()
-        else:
+            start_block = None
+
+        if start_block is not None:
             self.logger.debug2(
                 "%s requested %d blocks starting with %s",
                 peer,
@@ -96,9 +90,12 @@ class BCCRequestServer(BaseRequestServer):
                 start_block,
             )
             blocks = self._get_blocks(start_block, max_blocks)
-        finally:
-            self.logger.debug2("Replying to %s with %d blocks", peer, len(blocks))
-            peer.sub_proto.send_blocks(blocks)
+        else:
+            self.logger.debug2("%s requested unknown block %s", block_slot_or_hash)
+            blocks = ()
+
+        self.logger.debug2("Replying to %s with %d blocks", peer, len(blocks))
+        peer.sub_proto.send_blocks(blocks)
 
     @to_tuple
     def _get_blocks(self,
