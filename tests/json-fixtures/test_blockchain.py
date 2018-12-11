@@ -111,8 +111,10 @@ def test_blockchain_fixtures(fixture_data, fixture):
     # 2 - loop over blocks:
     #     - apply transactions
     #     - mine block
-    # 4 - profit!!
+    # 3 - diff resulting state with expected state
+    # 4 - check that all previous blocks were valid
 
+    mined_blocks = list()
     for block_fixture in fixture['blocks']:
         should_be_good_block = 'blockHeader' in block_fixture
 
@@ -121,8 +123,12 @@ def test_blockchain_fixtures(fixture_data, fixture):
             continue
 
         if should_be_good_block:
-            (block, mined_block, block_rlp) = apply_fixture_block_to_chain(block_fixture, chain)
-            assert_mined_block_unchanged(block, mined_block)
+            (block, mined_block, block_rlp) = apply_fixture_block_to_chain(
+                block_fixture,
+                chain,
+                perform_validation=False  # we manually validate below
+            )
+            mined_blocks.append((block, mined_block))
         else:
             try:
                 apply_fixture_block_to_chain(block_fixture, chain)
@@ -133,6 +139,10 @@ def test_blockchain_fixtures(fixture_data, fixture):
                 raise AssertionError("Block should have caused a validation error")
 
     latest_block_hash = chain.get_canonical_block_by_number(chain.get_block().number - 1).hash
-    assert latest_block_hash == fixture['lastblockhash']
+    if latest_block_hash != fixture['lastblockhash']:
+        verify_account_db(fixture['postState'], chain.get_vm().state.account_db)
+        assert False, 'the state must be different if the hashes are'
 
-    verify_account_db(fixture['postState'], chain.get_vm().state.account_db)
+    for block, mined_block in mined_blocks:
+        assert_mined_block_unchanged(block, mined_block)
+        chain.validate_block(block)
