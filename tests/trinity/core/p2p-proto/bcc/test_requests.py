@@ -101,8 +101,8 @@ async def test_get_unknown_block_by_hash(request, event_loop):
 async def test_get_canonical_block_range_by_slot(request, event_loop):
     chain_db = get_fresh_chain_db()
     base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0))
-    non_canonical_branch = create_branch(3, root=base_branch[-1])
-    canonical_branch = create_branch(4, root=base_branch[-1])
+    non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
+    canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
     for branch in [base_branch, non_canonical_branch, canonical_branch]:
         chain_db.persist_block_chain(branch)
 
@@ -121,8 +121,8 @@ async def test_get_canonical_block_range_by_slot(request, event_loop):
 async def test_get_canonical_block_range_by_hash(request, event_loop):
     chain_db = get_fresh_chain_db()
     base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0))
-    non_canonical_branch = create_branch(3, root=base_branch[-1])
-    canonical_branch = create_branch(4, root=base_branch[-1])
+    non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
+    canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
     for branch in [base_branch, non_canonical_branch, canonical_branch]:
         chain_db.persist_block_chain(branch)
 
@@ -141,8 +141,8 @@ async def test_get_canonical_block_range_by_hash(request, event_loop):
 async def test_get_incomplete_canonical_block_range(request, event_loop):
     chain_db = get_fresh_chain_db()
     base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0))
-    non_canonical_branch = create_branch(3, root=base_branch[-1])
-    canonical_branch = create_branch(4, root=base_branch[-1])
+    non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
+    canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
     for branch in [base_branch, non_canonical_branch, canonical_branch]:
         chain_db.persist_block_chain(branch)
 
@@ -161,8 +161,8 @@ async def test_get_incomplete_canonical_block_range(request, event_loop):
 async def test_get_non_canonical_branch(request, event_loop):
     chain_db = get_fresh_chain_db()
     base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0))
-    non_canonical_branch = create_branch(3, root=base_branch[-1])
-    canonical_branch = create_branch(4, root=base_branch[-1])
+    non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
+    canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
     for branch in [base_branch, non_canonical_branch, canonical_branch]:
         chain_db.persist_block_chain(branch)
 
@@ -173,5 +173,5 @@ async def test_get_non_canonical_branch(request, event_loop):
 
     assert isinstance(response.command, BeaconBlocks)
     assert len(response.payload) == 1
-    assert [block.slot for block in response.payload] == [2]
+    assert [block.slot for block in response.payload] == [5]
     assert response.payload == (non_canonical_branch[1],)
