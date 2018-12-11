@@ -1,11 +1,24 @@
 import functools
 import itertools
+from typing import (
+    cast,
+    Any,
+    Dict,
+    Iterable,
+    Set,
+    Type,
+)
 
 from cytoolz import (
     cons,
     sliding_window,
     take,
 )
+
+from eth_typing import (
+    Hash32,
+)
+
 from eth_utils import (
     to_tuple,
 )
@@ -25,18 +38,6 @@ from trinity.protocol.bcc import commands
 from trinity.protocol.bcc.peer import (
     BCCPeer,
     BCCPeerPool,
-)
-
-from typing import (
-    cast,
-    Any,
-    Dict,
-    Iterable,
-    Set,
-    Type,
-)
-from eth_typing import (
-    Hash32,
 )
 
 
