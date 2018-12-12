@@ -12,11 +12,12 @@ from rlp.sedes import (
 
 from eth.rlp.sedes import (
     hash32,
+    uint64,
     uint256,
 )
 
 
-class DepositParametersRecord(rlp.Serializable):
+class DepositParameters(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.
     """
@@ -45,3 +46,25 @@ class DepositParametersRecord(rlp.Serializable):
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
         )
+
+
+class Deposit(rlp.Serializable):
+    """
+    Note: using RLP until we have standardized serialization format.
+    """
+
+    fields = [
+        # Receipt Merkle branch
+        ('merkle_branch', CountableList(hash32)),
+        # Merkle tree index
+        ('merkle_tree_index', uint64),
+        # Deposit data
+        ('deposit_data', (
+            # Deposit parameters
+            ('deposit_parameters', DepositParameters),
+            # Value in Gwei
+            ('value', uint64),
+            # Timestamp from deposit contract
+            ('timestamp', uint64),
+        ))
+    ]
