@@ -206,6 +206,12 @@ class ResponseCandidateStream(
                     self,
                 )
 
+    def __del__(self) -> None:
+        if self.pending_request is not None:
+            _, future = self.pending_request
+            if future.cancel():
+                self.logger.debug("Forcefully cancelled a pending response in %s", self)
+
     def deregister_peer(self, peer: BasePeer) -> None:
         if self.pending_request is not None:
             self.logger.debug("Peer stream %r shutting down, cancelling the pending request", self)
