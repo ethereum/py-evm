@@ -253,7 +253,7 @@ def get_new_shuffling(*,
 
 
 #
-# Get proposer postition
+# Get proposer position
 #
 def get_block_committees_info(parent_block: 'BaseBeaconBlock',
                               state: 'BeaconState',
@@ -330,7 +330,7 @@ def get_attestation_participants(state: 'BeaconState',
                                  participation_bitfield: bytes,
                                  epoch_length: int) -> Iterable[int]:
     """
-    Return the participant indices at for the ``slot`` of shard ``shard``
+    Return the participants' indices at the ``slot`` of shard ``shard``
     from ``participation_bitfield``.
     """
     # Find the relevant committee
