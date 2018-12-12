@@ -78,7 +78,7 @@ def verify_account_db(expected_state: AccountState, account_db: BaseAccountDB) -
                         'balance',
                         actual_value,
                         expected_value,
-                        expected_value - actual_value,
+                        actual_value - expected_value,
                     )
                 )
             else:
