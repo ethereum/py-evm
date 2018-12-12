@@ -132,12 +132,12 @@ jobs:
       - image: circleci/python:3.5
         environment:
           TOXENV: py35-native-blockchain-eip158
-  py35-native-blockchain:
+  py35-native-blockchain-transition:
     <<: *common
     docker:
       - image: circleci/python:3.5
         environment:
-          TOXENV: py35-native-blockchain
+          TOXENV: py35-native-blockchain-transition
   py35-vm:
     <<: *common
     docker:
@@ -199,6 +199,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-native-blockchain-eip158
+  py36-native-blockchain-transition:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-native-blockchain-transition
   py36-rpc-state-byzantium:
     <<: *common
     docker:
@@ -338,6 +344,7 @@ workflows:
       - py36-native-blockchain-homestead
       - py36-native-blockchain-eip150
       - py36-native-blockchain-eip158
+      - py36-native-blockchain-transition
       - py36-rpc-state-byzantium
       - py36-rpc-state-frontier
       - py36-rpc-state-homestead
@@ -361,6 +368,7 @@ workflows:
       - py35-native-blockchain-homestead
       - py35-native-blockchain-eip150
       - py35-native-blockchain-eip158
+      - py35-native-blockchain-transition
       - py35-vm
       - py35-core
       - py35-transactions
