@@ -6,35 +6,12 @@ from cytoolz import (
     pipe
 )
 
-from eth_typing import (
-    Hash32,
-)
-
 from eth.utils import bls
 from eth.utils.bitfield import (
     set_voted,
 )
-from eth.beacon.utils.hash import hash_
 
-from eth.beacon.enums.signature_domain import SignatureDomain
-
-
-def create_signing_message(slot: int,
-                           parent_hashes: Iterable[Hash32],
-                           shard_id: int,
-                           shard_block_hash: Hash32,
-                           justified_slot: int) -> bytes:
-    """
-    Return the signining message for attesting.
-    """
-    # TODO: Will be updated with SSZ encoded attestation.
-    return hash_(
-        slot.to_bytes(8, byteorder='big') +
-        b''.join(parent_hashes) +
-        shard_id.to_bytes(2, byteorder='big') +
-        shard_block_hash +
-        justified_slot.to_bytes(8, 'big')
-    )
+from eth.beacon.enums import SignatureDomain
 
 
 def verify_votes(
