@@ -1,5 +1,9 @@
 import pytest
 
+from eth_utils import (
+    ValidationError,
+)
+
 from eth.constants import (
     ZERO_HASH32,
 )
@@ -20,7 +24,6 @@ from eth.beacon.helpers import (
     get_block_hash,
     get_effective_balance,
     get_hashes_from_latest_block_hashes,
-    get_hashes_to_sign,
     get_new_shuffling,
     get_new_validator_registry_delta_chain_tip,
     _get_shard_committees_at_slot,
@@ -137,7 +140,6 @@ def test_get_block_hash(
             latest_block_hashes,
             current_block_number,
             target_slot,
-            epoch_length,
         )
         assert block_hash == blocks[target_slot].hash
     else:
@@ -146,7 +148,6 @@ def test_get_block_hash(
                 latest_block_hashes,
                 current_block_number,
                 target_slot,
-                epoch_length,
             )
 
 
@@ -176,28 +177,8 @@ def test_get_hashes_from_latest_block_hashes(
         current_block_slot,
         from_slot,
         to_slot,
-        epoch_length,
     )
     assert len(result) == to_slot - from_slot + 1
-
-
-def test_get_hashes_to_sign(sample_block, epoch_length):
-    epoch_length = epoch_length
-    current_block_slot = 1
-    blocks, latest_block_hashes = generate_mock_latest_block_hashes(
-        sample_block,
-        current_block_slot,
-        epoch_length,
-    )
-
-    block = blocks[current_block_slot]
-    result = get_hashes_to_sign(
-        latest_block_hashes,
-        block,
-        epoch_length,
-    )
-    assert len(result) == epoch_length
-    assert result[-1] == block.hash
 
 
 #
@@ -384,7 +365,7 @@ def test_get_new_shuffling_handles_shard_wrap(genesis_validators,
         (100, [4, 5, 6, 7], 0, 4),
         (100, [4, 5, 6, 7], 2, 6),
         (100, [4, 5, 6, 7], 11, 7),
-        (100, [], 1, ValueError()),
+        (100, [], 1, ValidationError()),
     ],
 )
 def test_get_block_committees_info(monkeypatch,
@@ -420,7 +401,7 @@ def test_get_block_committees_info(monkeypatch,
     )
 
     if isinstance(result_proposer_index, Exception):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             get_block_committees_info(
                 parent_block,
                 sample_state,
@@ -499,7 +480,7 @@ def test_get_beacon_proposer_index(
         )
         assert proposer_index == committee[slot % len(committee)]
     else:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             get_beacon_proposer_index(
                 sample_state,
                 slot,
@@ -600,7 +581,7 @@ def test_get_attestation_participants(
     )
 
     if isinstance(expected, Exception):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             get_attestation_participants(
                 state=sample_state,
                 slot=0,

@@ -1,4 +1,5 @@
 import pytest
+import itertools
 
 from eth_utils import denoms
 
@@ -80,7 +81,7 @@ def sample_beacon_block_params(epoch_length):
         'slot': 10,
         'randao_reveal': b'\x55' * 32,
         'candidate_pow_receipt_root': b'\x55' * 32,
-        'ancestor_hashes': tuple([ZERO_HASH32 for _ in range(2 * epoch_length)]),
+        'ancestor_hashes': tuple(itertools.repeat(ZERO_HASH32, 2 * epoch_length)),
         'state_root': b'\x55' * 32,
         'attestations': (),
         'specials': (),

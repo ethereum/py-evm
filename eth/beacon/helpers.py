@@ -1,7 +1,3 @@
-from itertools import (
-    repeat,
-)
-
 from typing import (
     Any,
     Iterable,
@@ -12,6 +8,7 @@ from typing import (
 
 from eth_utils import (
     to_tuple,
+    ValidationError,
 )
 
 from eth_typing import (
@@ -80,21 +77,12 @@ def _get_element_from_recent_list(
 #
 def get_block_hash(
         latest_block_hashes: Sequence[Hash32],
-        current_block_slot: int,
-        slot: int,
-        epoch_length: int) -> Hash32:
+        current_slot: int,
+        slot: int) -> Hash32:
     """
     Returns the block hash at a recent ``slot``.
     """
-    if len(latest_block_hashes) != epoch_length * 2:
-        raise ValueError(
-            "Length of latest_block_hashes != epoch_length * 2"
-            "\texpected: %s, found: %s" % (
-                epoch_length * 2, len(latest_block_hashes)
-            )
-        )
-
-    slot_relative_position = current_block_slot - epoch_length * 2
+    slot_relative_position = current_slot - len(latest_block_hashes)
     return _get_element_from_recent_list(
         latest_block_hashes,
         slot,
@@ -105,50 +93,18 @@ def get_block_hash(
 @to_tuple
 def get_hashes_from_latest_block_hashes(
         latest_block_hashes: Sequence[Hash32],
-        current_block_slot: int,
+        current_slot: int,
         from_slot: int,
-        to_slot: int,
-        epoch_length: int) -> Iterable[Hash32]:
+        to_slot: int) -> Iterable[Hash32]:
     """
     Returns the block hashes between ``from_slot`` and ``to_slot``.
     """
     for slot in range(from_slot, to_slot + 1):
         yield get_block_hash(
             latest_block_hashes,
-            current_block_slot,
+            current_slot,
             slot,
-            epoch_length,
         )
-
-
-@to_tuple
-def get_hashes_to_sign(latest_block_hashes: Sequence[Hash32],
-                       block: 'BaseBeaconBlock',
-                       epoch_length: int) -> Iterable[Hash32]:
-    """
-    Given the head block to attest to, collect the list of hashes to be
-    signed in the attestation.
-    """
-    yield from get_hashes_from_latest_block_hashes(
-        latest_block_hashes,
-        block.slot,
-        from_slot=block.slot - epoch_length + 1,
-        to_slot=block.slot - 1,
-        epoch_length=epoch_length,
-    )
-    yield block.hash
-
-
-@to_tuple
-def get_new_latest_block_hashes(old_block_hashes: Sequence[Hash32],
-                                parent_slot: int,
-                                current_slot: int,
-                                parent_hash: Hash32) -> Iterable[Hash32]:
-
-    shift_size = current_slot - parent_slot
-    parent_hash_repeat = min(shift_size, len(old_block_hashes))
-    yield from old_block_hashes[shift_size:]
-    yield from repeat(parent_hash, parent_hash_repeat)
 
 
 #
@@ -314,11 +270,11 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
     try:
         shard_committee = shards_committees[0]
     except IndexError:
-        raise ValueError("shards_committees should not be empty.")
+        raise ValidationError("shards_committees should not be empty.")
 
     proposer_committee_size = len(shard_committee.committee)
     if proposer_committee_size <= 0:
-        raise ValueError(
+        raise ValidationError(
             "The first committee should not be empty"
         )
 
@@ -351,12 +307,12 @@ def get_beacon_proposer_index(state: 'BeaconState',
     try:
         first_shard_committee = shard_committees[0]
     except IndexError:
-        raise ValueError("shard_committees should not be empty.")
+        raise ValidationError("shard_committees should not be empty.")
 
     proposer_committee_size = len(first_shard_committee.committee)
 
     if proposer_committee_size <= 0:
-        raise ValueError(
+        raise ValidationError(
             "The first committee should not be empty"
         )
 
@@ -395,10 +351,10 @@ def get_attestation_participants(state: 'BeaconState',
     try:
         shard_committee = shard_committees[0]
     except IndexError:
-        raise ValueError("shard_committees should not be empty.")
+        raise ValidationError("shard_committees should not be empty.")
 
     if len(participation_bitfield) != get_bitfield_length(len(shard_committee.committee)):
-        raise ValueError(
+        raise ValidationError(
             'Invalid bitfield length,'
             "\texpected: %s, found: %s" % (
                 get_bitfield_length(len(shard_committee.committee)),
