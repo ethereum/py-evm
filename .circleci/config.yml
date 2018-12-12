@@ -102,42 +102,42 @@ jobs:
         environment:
           TOXENV: py36-docs
 
-  py35-native-state-byzantium:
+  py35-native-blockchain-byzantium:
     <<: *common
     docker:
       - image: circleci/python:3.5
         environment:
-          TOXENV: py35-native-state-byzantium
-  py35-native-state-frontier:
+          TOXENV: py35-native-blockchain-byzantium
+  py35-native-blockchain-frontier:
     <<: *common
     docker:
       - image: circleci/python:3.5
         environment:
-          TOXENV: py35-native-state-frontier
-  py35-native-state-homestead:
+          TOXENV: py35-native-blockchain-frontier
+  py35-native-blockchain-homestead:
     <<: *common
     docker:
       - image: circleci/python:3.5
         environment:
-          TOXENV: py35-native-state-homestead
-  py35-native-state-eip150:
+          TOXENV: py35-native-blockchain-homestead
+  py35-native-blockchain-eip150:
     <<: *common
     docker:
       - image: circleci/python:3.5
         environment:
-          TOXENV: py35-native-state-eip150
-  py35-native-state-eip158:
+          TOXENV: py35-native-blockchain-eip150
+  py35-native-blockchain-eip158:
     <<: *common
     docker:
       - image: circleci/python:3.5
         environment:
-          TOXENV: py35-native-state-eip158
-  py35-native-blockchain:
+          TOXENV: py35-native-blockchain-eip158
+  py35-native-blockchain-transition:
     <<: *common
     docker:
       - image: circleci/python:3.5
         environment:
-          TOXENV: py35-native-blockchain
+          TOXENV: py35-native-blockchain-transition
   py35-vm:
     <<: *common
     docker:
@@ -169,36 +169,42 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-benchmark
-  py36-native-state-byzantium:
+  py36-native-blockchain-byzantium:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-native-state-byzantium
-  py36-native-state-frontier:
+          TOXENV: py36-native-blockchain-byzantium
+  py36-native-blockchain-frontier:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-native-state-frontier
-  py36-native-state-homestead:
+          TOXENV: py36-native-blockchain-frontier
+  py36-native-blockchain-homestead:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-native-state-homestead
-  py36-native-state-eip150:
+          TOXENV: py36-native-blockchain-homestead
+  py36-native-blockchain-eip150:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-native-state-eip150
-  py36-native-state-eip158:
+          TOXENV: py36-native-blockchain-eip150
+  py36-native-blockchain-eip158:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-native-state-eip158
+          TOXENV: py36-native-blockchain-eip158
+  py36-native-blockchain-transition:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-native-blockchain-transition
   py36-rpc-state-byzantium:
     <<: *common
     docker:
@@ -229,12 +235,6 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-rpc-state-eip158
-  py36-native-blockchain:
-    <<: *common
-    docker:
-      - image: circleci/python:3.6
-        environment:
-          TOXENV: py36-native-blockchain
   py36-rpc-blockchain:
     <<: *common
     docker:
@@ -339,17 +339,17 @@ workflows:
       - py37-trinity-integration
       - py37-beacon
 
-      - py36-native-state-byzantium
-      - py36-native-state-frontier
-      - py36-native-state-homestead
-      - py36-native-state-eip150
-      - py36-native-state-eip158
+      - py36-native-blockchain-byzantium
+      - py36-native-blockchain-frontier
+      - py36-native-blockchain-homestead
+      - py36-native-blockchain-eip150
+      - py36-native-blockchain-eip158
+      - py36-native-blockchain-transition
       - py36-rpc-state-byzantium
       - py36-rpc-state-frontier
       - py36-rpc-state-homestead
       - py36-rpc-state-eip150
       - py36-rpc-state-eip158
-      - py36-native-blockchain
       - py36-rpc-blockchain
       - py36-vm
       - py36-benchmark
@@ -363,12 +363,12 @@ workflows:
       - py36-rpc-state-quadratic
       - py36-beacon
 
-      - py35-native-state-byzantium
-      - py35-native-state-frontier
-      - py35-native-state-homestead
-      - py35-native-state-eip150
-      - py35-native-state-eip158
-      - py35-native-blockchain
+      - py35-native-blockchain-byzantium
+      - py35-native-blockchain-frontier
+      - py35-native-blockchain-homestead
+      - py35-native-blockchain-eip150
+      - py35-native-blockchain-eip158
+      - py35-native-blockchain-transition
       - py35-vm
       - py35-core
       - py35-transactions
