@@ -36,59 +36,81 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')
 
 
-# These are the slowest 50 tests from the full statetest run.  This list should
-# be regenerated occasionally using `--durations 50`.
+# These are the slowest tests from the full blockchain test run. This list
+# should be regenerated occasionally using `--durations 100`.
 SLOWEST_TESTS = {
-    ('GeneralStateTests/stStaticCall/static_Call50000_sha256', 'static_Call50000_sha256'),
-    ('GeneralStateTests/stStaticCall/static_Call50000_rip160', 'static_Call50000_rip160'),
-    ('GeneralStateTests/stStaticCall/static_Call50000_sha256', 'static_Call50000_sha256'),
-    ('GeneralStateTests/stStaticCall/static_Call50000', 'static_Call50000'),
-    ('GeneralStateTests/stStaticCall/static_Call50000_ecrec', 'static_Call50000_ecrec'),
-    ('GeneralStateTests/stStaticCall/static_Call50000_rip160', 'static_Call50000_rip160'),
-    ('GeneralStateTests/stStaticCall/static_LoopCallsThenRevert', 'static_LoopCallsThenRevert'),
-    ('GeneralStateTests/stStaticCall/static_Call50000_identity2', 'static_Call50000_identity2'),
-    ('GeneralStateTests/stStaticCall/static_Call50000_identity', 'static_Call50000_identity'),
-    ('GeneralStateTests/stStaticCall/static_Return50000_2', 'static_Return50000_2'),
-    ('GeneralStateTests/stCallCreateCallCodeTest/Call1024PreCalls', 'Call1024PreCalls'),
-    ('GeneralStateTests/stChangedEIP150/Call1024PreCalls', 'Call1024PreCalls'),
-    ('GeneralStateTests/stDelegatecallTestHomestead/Call1024PreCalls', 'Call1024PreCalls'),
-    ('GeneralStateTests/stStaticCall/static_Call50000', 'static_Call50000'),
-    ('GeneralStateTests/stStaticCall/static_Call50000_ecrec', 'static_Call50000_ecrec'),
-    ('GeneralStateTests/stStaticCall/static_Call1024PreCalls2', 'static_Call1024PreCalls2'),
-    ('GeneralStateTests/stStaticCall/static_Call50000_identity', 'static_Call50000_identity'),
-    ('GeneralStateTests/stStaticCall/static_Call50000_identity2', 'static_Call50000_identity2'),
-    ('GeneralStateTests/stStaticCall/static_LoopCallsThenRevert', 'static_LoopCallsThenRevert'),
-    ('GeneralStateTests/stCallCreateCallCodeTest/Call1024BalanceTooLow', 'Call1024BalanceTooLow'),  # noqa: E501
-    ('GeneralStateTests/stChangedEIP150/Call1024BalanceTooLow', 'Call1024BalanceTooLow'),
-    ('GeneralStateTests/stCallCreateCallCodeTest/Callcode1024BalanceTooLow', 'Callcode1024BalanceTooLow'),  # noqa: E501
-    ('GeneralStateTests/stChangedEIP150/Callcode1024BalanceTooLow', 'Callcode1024BalanceTooLow'),  # noqa: E501
-    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb0_OOG_atMaxCallDepth', 'CallRecursiveBomb0_OOG_atMaxCallDepth'),  # noqa: E501
-    ('GeneralStateTests/stRevertTest/LoopCallsDepthThenRevert2', 'LoopCallsDepthThenRevert2'),
-    ('GeneralStateTests/stRevertTest/LoopCallsDepthThenRevert3', 'LoopCallsDepthThenRevert3'),
-    ('GeneralStateTests/stDelegatecallTestHomestead/CallRecursiveBombPreCall', 'CallRecursiveBombPreCall'),  # noqa: E501
-    ('GeneralStateTests/stRevertTest/LoopCallsThenRevert', 'LoopCallsThenRevert'),
-    ('GeneralStateTests/stCallCreateCallCodeTest/CallRecursiveBombPreCall', 'CallRecursiveBombPreCall'),  # noqa: E501
-    ('GeneralStateTests/stStaticCall/static_Call50000bytesContract50_1', 'static_Call50000bytesContract50_1'),  # noqa: E501
-    ('GeneralStateTests/stStaticCall/static_Call1024PreCalls', 'static_Call1024PreCalls'),
-    ('GeneralStateTests/stDelegatecallTestHomestead/Call1024BalanceTooLow', 'Call1024BalanceTooLow'),  # noqa: E501
-    ('GeneralStateTests/stDelegatecallTestHomestead/Delegatecall1024', 'Delegatecall1024'),
-    ('GeneralStateTests/stRevertTest/LoopCallsThenRevert', 'LoopCallsThenRevert'),
-    ('GeneralStateTests/stStaticCall/static_Call50000bytesContract50_2', 'static_Call50000bytesContract50_2'),  # noqa: E501
-    ('GeneralStateTests/stStaticCall/static_Call1024PreCalls2', 'static_Call1024PreCalls2'),
-    ('GeneralStateTests/stRandom/randomStatetest636', 'randomStatetest636'),
-    ('GeneralStateTests/stStaticCall/static_Call1024PreCalls3', 'static_Call1024PreCalls3'),
-    ('GeneralStateTests/stRandom/randomStatetest467', 'randomStatetest467'),
-    ('GeneralStateTests/stRandom/randomStatetest458', 'randomStatetest458'),
-    ('GeneralStateTests/stRandom/randomStatetest150', 'randomStatetest150'),
-    ('GeneralStateTests/stRandom/randomStatetest639', 'randomStatetest639'),
-    ('GeneralStateTests/stStaticCall/static_LoopCallsDepthThenRevert2', 'static_LoopCallsDepthThenRevert2'),  # noqa: E501
-    ('GeneralStateTests/stRandom/randomStatetest154', 'randomStatetest154'),
-    ('GeneralStateTests/stRecursiveCreate/recursiveCreateReturnValue', 'recursiveCreateReturnValue'),  # noqa: E501
-    ('GeneralStateTests/stStaticCall/static_LoopCallsDepthThenRevert3', 'static_LoopCallsDepthThenRevert3'),  # noqa: E501
-    ('GeneralStateTests/stSystemOperationsTest/ABAcalls1', 'ABAcalls1'),
-    ('GeneralStateTests/stSpecialTest/failed_tx_xcf416c53', 'failed_tx_xcf416c53'),
-    ('GeneralStateTests/stRandom/randomStatetest159', 'randomStatetest159'),
-    ('GeneralStateTests/stRandom/randomStatetest554', 'randomStatetest554'),
+    ('GeneralStateTests/stStaticCall/static_Call50000_sha256_d0g0v0.json', 'static_Call50000_sha256_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_sha256_d1g0v0.json', 'static_Call50000_sha256_d1g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_rip160_d0g0v0.json', 'static_Call50000_rip160_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_d1g0v0.json', 'static_Call50000_d1g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_ecrec_d1g0v0.json', 'static_Call50000_ecrec_d1g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_rip160_d1g0v0.json', 'static_Call50000_rip160_d1g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_identity2_d1g0v0.json', 'static_Call50000_identity2_d1g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_identity_d1g0v0.json', 'static_Call50000_identity_d1g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Return50000_2_d0g0v0.json', 'static_Return50000_2_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_d0g0v0.json', 'static_Call50000_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000bytesContract50_1_d1g0v0.json', 'static_Call50000bytesContract50_1_d1g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000bytesContract50_2_d1g0v0.json', 'static_Call50000bytesContract50_2_d1g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stChangedEIP150/Call1024PreCalls_d0g0v0.json', 'Call1024PreCalls_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stChangedEIP150/Call1024PreCalls_d0g0v0.json', 'Call1024PreCalls_d0g0v0_EIP150'),  # noqa: E501
+    ('GeneralStateTests/stDelegatecallTestHomestead/Call1024PreCalls_d0g0v0.json', 'Call1024PreCalls_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_ecrec_d0g0v0.json', 'static_Call50000_ecrec_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stAttackTest/ContractCreationSpam_d0g0v0.json', 'ContractCreationSpam_d0g0v0_Frontier'),  # noqa: E501
+    ('GeneralStateTests/stAttackTest/ContractCreationSpam_d0g0v0.json', 'ContractCreationSpam_d0g0v0_Homestead'),  # noqa: E501
+    ('GeneralStateTests/stCallCreateCallCodeTest/Call1024PreCalls_d0g0v0.json', 'Call1024PreCalls_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call1024PreCalls2_d0g0v0.json', 'static_Call1024PreCalls2_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_identity2_d0g0v0.json', 'static_Call50000_identity2_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_identity_d0g0v0.json', 'static_Call50000_identity_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stRecursiveCreate/recursiveCreateReturnValue_d0g0v0.json', 'recursiveCreateReturnValue_d0g0v0_Homestead'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_LoopCallsThenRevert_d0g0v0.json', 'static_LoopCallsThenRevert_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stCallCreateCallCodeTest/Callcode1024OOG_d0g0v0.json', 'Callcode1024OOG_d0g0v0_Frontier'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_LoopCallsThenRevert_d0g1v0.json', 'static_LoopCallsThenRevert_d0g1v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call1024PreCalls3_d1g0v0.json', 'static_Call1024PreCalls3_d1g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call1024PreCalls_d1g0v0.json', 'static_Call1024PreCalls_d1g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call1024PreCalls2_d1g0v0.json', 'static_Call1024PreCalls2_d1g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stDelegatecallTestHomestead/Delegatecall1024OOG_d0g0v0.json', 'Delegatecall1024OOG_d0g0v0_Homestead'),  # noqa: E501
+    ('GeneralStateTests/stChangedEIP150/Call1024BalanceTooLow_d0g0v0.json', 'Call1024BalanceTooLow_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBombLog_d0g0v0.json', 'CallRecursiveBombLog_d0g0v0_Frontier'),  # noqa: E501
+    ('GeneralStateTests/stChangedEIP150/Callcode1024BalanceTooLow_d0g0v0.json', 'Callcode1024BalanceTooLow_d0g0v0_Byzantium'),  # noqa: E501
+    ('bcForkStressTest/ForkStressTest.json', 'ForkStressTest_Frontier'),  # noqa: E501
+    ('bcForkStressTest/ForkStressTest.json', 'ForkStressTest_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stCallCreateCallCodeTest/Call1024OOG_d0g0v0.json', 'Call1024OOG_d0g0v0_Frontier'),  # noqa: E501
+    ('GeneralStateTests/stDelegatecallTestHomestead/Call1024OOG_d0g0v0.json', 'Call1024OOG_d0g0v0_Homestead'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb0_OOG_atMaxCallDepth_d0g0v0.json', 'CallRecursiveBomb0_OOG_atMaxCallDepth_d0g0v0_Homestead'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBombLog_d0g0v0.json', 'CallRecursiveBombLog_d0g0v0_Homestead'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb1_d0g0v0.json', 'CallRecursiveBomb1_d0g0v0_Frontier'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBombLog2_d0g0v0.json', 'CallRecursiveBombLog2_d0g0v0_Homestead'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb0_OOG_atMaxCallDepth_d0g0v0.json', 'CallRecursiveBomb0_OOG_atMaxCallDepth_d0g0v0_Frontier'),  # noqa: E501
+    ('GeneralStateTests/stCallCreateCallCodeTest/Call1024BalanceTooLow_d0g0v0.json', 'Call1024BalanceTooLow_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stChangedEIP150/Call1024BalanceTooLow_d0g0v0.json', 'Call1024BalanceTooLow_d0g0v0_EIP150'),  # noqa: E501
+    ('bcForkStressTest/ForkStressTest.json', 'ForkStressTest_EIP150'),  # noqa: E501
+    ('GeneralStateTests/stDelegatecallTestHomestead/CallRecursiveBombPreCall_d0g0v0.json', 'CallRecursiveBombPreCall_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stChangedEIP150/Callcode1024BalanceTooLow_d0g0v0.json', 'Callcode1024BalanceTooLow_d0g0v0_EIP150'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb1_d0g0v0.json', 'CallRecursiveBomb1_d0g0v0_Homestead'),  # noqa: E501
+    ('GeneralStateTests/stDelegatecallTestHomestead/CallRecursiveBombPreCall_d0g0v0.json', 'CallRecursiveBombPreCall_d0g0v0_Homestead'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb2_d0g0v0.json', 'CallRecursiveBomb2_d0g0v0_Homestead'),  # noqa: E501
+    ('GeneralStateTests/stCallCreateCallCodeTest/Callcode1024BalanceTooLow_d0g0v0.json', 'Callcode1024BalanceTooLow_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/ABAcalls2_d0g0v0.json', 'ABAcalls2_d0g0v0_Frontier'),  # noqa: E501
+    ('GeneralStateTests/stDelegatecallTestHomestead/Delegatecall1024_d0g0v0.json', 'Delegatecall1024_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBombLog2_d0g0v0.json', 'CallRecursiveBombLog2_d0g0v0_Frontier'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb2_d0g0v0.json', 'CallRecursiveBomb2_d0g0v0_Frontier'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb0_OOG_atMaxCallDepth_d0g0v0.json', 'CallRecursiveBomb0_OOG_atMaxCallDepth_d0g0v0_EIP150'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb0_d0g0v0.json', 'CallRecursiveBomb0_d0g0v0_Frontier'),  # noqa: E501
+    ('GeneralStateTests/stDelegatecallTestHomestead/Call1024BalanceTooLow_d0g0v0.json', 'Call1024BalanceTooLow_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb0_d0g0v0.json', 'CallRecursiveBomb0_d0g0v0_Homestead'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000bytesContract50_1_d0g0v0.json', 'static_Call50000bytesContract50_1_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stDelegatecallTestHomestead/Delegatecall1024_d0g0v0.json', 'Delegatecall1024_d0g0v0_EIP150'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb0_OOG_atMaxCallDepth_d0g0v0.json', 'CallRecursiveBomb0_OOG_atMaxCallDepth_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stCallCreateCallCodeTest/CallRecursiveBombPreCall_d0g0v0.json', 'CallRecursiveBombPreCall_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/ABAcalls1_d0g0v0.json', 'ABAcalls1_d0g0v0_Frontier'),  # noqa: E501
+    ('GeneralStateTests/stCallCreateCallCodeTest/CallRecursiveBombPreCall_d0g0v0.json', 'CallRecursiveBombPreCall_d0g0v0_Frontier'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call1MB1024Calldepth_d1g0v0.json', 'static_Call1MB1024Calldepth_d1g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stRevertTest/LoopCallsDepthThenRevert2_d0g0v0.json', 'LoopCallsDepthThenRevert2_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stSystemOperationsTest/ABAcalls2_d0g0v0.json', 'ABAcalls2_d0g0v0_Homestead'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000bytesContract50_2_d0g0v0.json', 'static_Call50000bytesContract50_2_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stRevertTest/LoopCallsDepthThenRevert2_d0g0v0.json', 'LoopCallsDepthThenRevert2_d0g0v0_EIP158'),  # noqa: E501
+    ('GeneralStateTests/stRevertTest/LoopCallsDepthThenRevert3_d0g0v0.json', 'LoopCallsDepthThenRevert3_d0g0v0_EIP158'),  # noqa: E501
+    ('GeneralStateTests/stRevertTest/LoopCallsDepthThenRevert3_d0g0v0.json', 'LoopCallsDepthThenRevert3_d0g0v0_Byzantium'),  # noqa: E501
 }
 
 
@@ -107,30 +129,17 @@ INCORRECT_UPSTREAM_TESTS = {
 
 
 def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
-
-    # XXX Very ugly, not mergable
-    def strip_path(path):
-        '''
-        >>> strip_path('static_Call50000_d0g0v0.json')
-        'static_Call50000'
-        '''
-        assert path.endswith('.json')
-        stripped_path = path[:-5]
-        return '_'.join(stripped_path.split('_')[:-1])
-
-    stripped_path = strip_path(fixture_path)
-    stripped_name = '_'.join(fixture_name.split('_')[:-2])
-    # XXX End very ugly part
+    fixture_id = (fixture_path, fixture_name)
 
     if fixture_path.startswith('bcExploitTest'):
         return pytest.mark.skip("Exploit tests are slow")
     elif fixture_path == 'bcWalletTest/walletReorganizeOwners.json':
         return pytest.mark.skip("Wallet owner reorganization tests are slow")
-    elif (fixture_path, fixture_name) in INCORRECT_UPSTREAM_TESTS:
+    elif fixture_id in INCORRECT_UPSTREAM_TESTS:
         return pytest.mark.xfail(reason="Listed in INCORRECT_UPSTREAM_TESTS.")
     elif 'stTransactionTest/zeroSigTransa' in fixture_path:
         return pytest.mark.skip("EIP-86 not supported.")
-    elif (stripped_path, stripped_name) in SLOWEST_TESTS:
+    elif fixture_id in SLOWEST_TESTS:
         if should_run_slow_tests():
             return
         else:
