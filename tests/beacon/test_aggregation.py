@@ -31,18 +31,23 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
     bit_count = 10
     pre_bitfield = get_empty_bitfield(bit_count)
     pre_sigs = ()
+    domain = 0
 
     random_votes = random.sample(range(bit_count), votes_count)
     message = b'hello'
 
     # Get votes: (committee_index, sig, public_key)
     votes = [
-        (committee_index, bls.sign(message, privkeys[committee_index]), pubkeys[committee_index])
+        (
+            committee_index,
+            bls.sign(message, privkeys[committee_index], domain),
+            pubkeys[committee_index],
+        )
         for committee_index in random_votes
     ]
 
     # Verify
-    sigs, committee_indices = verify_votes(message, votes)
+    sigs, committee_indices = verify_votes(message, votes, domain)
 
     # Aggregate the votes
     bitfield, sigs = aggregate_votes(
@@ -65,4 +70,4 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
     assert len(voted_index) == len(votes)
 
     aggregated_pubs = bls.aggregate_pubs(pubs)
-    assert bls.verify(message, aggregated_pubs, sigs)
+    assert bls.verify(message, aggregated_pubs, sigs, domain)

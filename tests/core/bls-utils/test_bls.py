@@ -15,7 +15,7 @@ from eth.utils.bls import (
     aggregate_sigs,
     aggregate_pubs,
     verify,
-    multi_verify,
+    verify_multiple,
 )
 
 
@@ -85,7 +85,7 @@ def test_multi_aggregation(msg_1, msg_2, privkeys):
     pubs = [aggpub_1, aggpub_2]
     aggsig = aggregate_sigs([aggsig_1, aggsig_2])
 
-    assert multi_verify(
+    assert verify_multiple(
         pubs=pubs,
         msgs=msgs,
         sig=aggsig,

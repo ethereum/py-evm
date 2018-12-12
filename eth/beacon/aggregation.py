@@ -16,6 +16,8 @@ from eth.utils.bitfield import (
 )
 from eth.beacon.utils.hash import hash_
 
+from eth.beacon.enums.signature_domain import SignatureDomain
+
 
 def create_signing_message(slot: int,
                            parent_hashes: Iterable[Hash32],
@@ -37,7 +39,8 @@ def create_signing_message(slot: int,
 
 def verify_votes(
         message: bytes,
-        votes: Iterable[Tuple[int, bytes, int]]) -> Tuple[Tuple[bytes, ...], Tuple[int, ...]]:
+        votes: Iterable[Tuple[int, bytes, int]],
+        domain: SignatureDomain) -> Tuple[Tuple[bytes, ...], Tuple[int, ...]]:
     """
     Verify the given votes.
 
@@ -47,7 +50,7 @@ def verify_votes(
         (sig, committee_index)
         for (committee_index, sig, public_key)
         in votes
-        if bls.verify(message, public_key, sig)
+        if bls.verify(message, public_key, sig, domain)
     )
     try:
         sigs, committee_indices = zip(*sigs_with_committe_info)

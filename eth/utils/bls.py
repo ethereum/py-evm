@@ -1,6 +1,6 @@
 from typing import (  # noqa: F401
     Dict,
-    Iterable,
+    Sequence,
     Tuple,
     Union,
 )
@@ -55,7 +55,7 @@ def FQP_point_to_FQ2_point(pt: Tuple[FQP, FQP, FQP]) -> Tuple[FQ2, FQ2, FQ2]:
     )
 
 
-def modular_squareroot(value: int) -> int:
+def modular_squareroot(value: int) -> FQP:
     """
     ``modular_squareroot(x)`` returns the value ``y`` such that ``y**2 % q == x``,
     and None if this is not possible. In cases where there are two solutions,
@@ -163,21 +163,24 @@ def verify(m: bytes, pub: int, sig: bytes, domain: int) -> bool:
     return final_exponentiation == FQ12.one()
 
 
-def aggregate_sigs(sigs: Iterable[bytes]) -> Tuple[int, int]:
+def aggregate_sigs(sigs: Sequence[bytes]) -> Tuple[int, int]:
     o = Z2
     for s in sigs:
         o = FQP_point_to_FQ2_point(add(o, decompress_G2(s)))
     return compress_G2(o)
 
 
-def aggregate_pubs(pubs: Iterable[int]) -> int:
+def aggregate_pubs(pubs: Sequence[int]) -> int:
     o = Z1
     for p in pubs:
         o = add(o, decompress_G1(p))
     return compress_G1(o)
 
 
-def multi_verify(pubs, msgs, sig, domain):
+def verify_multiple(pubs: Sequence[int],
+                    msgs: Sequence[bytes],
+                    sig: bytes,
+                    domain: int) -> bool:
     len_msgs = len(msgs)
     assert len(pubs) == len_msgs
 
