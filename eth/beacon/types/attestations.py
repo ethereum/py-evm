@@ -18,7 +18,7 @@ from .attestation_data import (
 )
 
 
-class AttestationRecord(rlp.Serializable):
+class Attestation(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.
     """

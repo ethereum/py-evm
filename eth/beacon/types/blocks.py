@@ -21,51 +21,72 @@ from eth.rlp.sedes import (
 )
 from eth.utils.blake import blake
 
-from .attestation_records import AttestationRecord
-from .special_records import SpecialRecord
+from .attestations import Attestation
+from .proposer_slashings import ProposerSlashing
+from .casper_slashings import CasperSlashing
+from .deposits import Deposit
+from .exits import Exit
+
+
+class BeaconBlockBody(rlp.Serializable):
+    fields = [
+        ('attestations', CountableList(Attestation)),
+        ('proposer_slashings', CountableList(ProposerSlashing)),
+        ('casper_slashings', CountableList(CasperSlashing)),
+        ('deposits', CountableList(Deposit)),
+        ('exits', CountableList(Exit)),
+    ]
+
+    def __init__(self,
+                 attestations: Sequence[int],
+                 proposer_slashings: Sequence[int],
+                 casper_slashings: Sequence[int],
+                 deposits: Sequence[int],
+                 exits: Sequence[int])-> None:
+        super().__init__(
+            attestations=attestations,
+            proposer_slashings=proposer_slashings,
+            casper_slashings=casper_slashings,
+            deposits=deposits,
+            exits=exits,
+        )
 
 
 class BaseBeaconBlock(rlp.Serializable):
     fields = [
-        # Slot number
+        # Header
+
         ('slot', uint64),
-        # Proposer RANDAO reveal
-        ('randao_reveal', hash32),
-        # Recent PoW receipt root
-        ('candidate_pow_receipt_root', hash32),
         # Skip list of previous beacon block hashes
         # i'th item is the most recent ancestor whose slot is a multiple of 2**i for i = 0, ..., 31
         ('ancestor_hashes', CountableList(hash32)),
-        # State root
         ('state_root', hash32),
-        # Attestations
-        ('attestations', CountableList(AttestationRecord)),
-        # Specials (e.g. logouts, penalties)
-        ('specials', CountableList(SpecialRecord)),
-        # Proposer signature
-        ('proposer_signature', CountableList(uint256)),
+        ('randao_reveal', hash32),
+        ('candidate_pow_receipt_root', hash32),
+        ('signature', CountableList(uint256)),
+
+        # Body
+        ('body', BeaconBlockBody)
     ]
 
     def __init__(self,
                  slot: int,
-                 randao_reveal: Hash32,
-                 candidate_pow_receipt_root: Hash32,
                  ancestor_hashes: Sequence[Hash32],
                  state_root: Hash32,
-                 attestations: Sequence[AttestationRecord],
-                 specials: Sequence[SpecialRecord],
-                 proposer_signature: Sequence[int]=None) -> None:
-        if proposer_signature is None:
-            proposer_signature = (0, 0)
+                 randao_reveal: Hash32,
+                 candidate_pow_receipt_root: Hash32,
+                 body: BeaconBlockBody,
+                 signature: Sequence[int]=None) -> None:
+        if signature is None:
+            signature = (0, 0)
         super().__init__(
             slot=slot,
-            randao_reveal=randao_reveal,
-            candidate_pow_receipt_root=candidate_pow_receipt_root,
             ancestor_hashes=ancestor_hashes,
             state_root=state_root,
-            attestations=attestations,
-            specials=specials,
-            proposer_signature=proposer_signature,
+            randao_reveal=randao_reveal,
+            candidate_pow_receipt_root=candidate_pow_receipt_root,
+            signature=signature,
+            body=body
         )
 
     def __repr__(self) -> str:
@@ -84,7 +105,7 @@ class BaseBeaconBlock(rlp.Serializable):
 
     @property
     def num_attestations(self) -> int:
-        return len(self.attestations)
+        return len(self.body.attestations)
 
     @property
     def parent_hash(self) -> Hash32:

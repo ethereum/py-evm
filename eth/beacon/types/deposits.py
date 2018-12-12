@@ -48,6 +48,31 @@ class DepositParameters(rlp.Serializable):
         )
 
 
+class DepositData(rlp.Serializable):
+    """
+    Not in spec, this is for fields in Deposit
+    """
+    fields = [
+        # Deposit parameters
+        ('deposit_parameters', DepositParameters),
+        # Value in Gwei
+        ('value', uint64),
+        # Timestamp from deposit contract
+        ('timestamp', uint64),
+    ]
+
+    def __init__(self,
+                 deposit_parameters: DepositParameters,
+                 value: int,
+                 timestamp: int) -> None:
+
+        super().__init__(
+            deposit_parameters=deposit_parameters,
+            value=value,
+            timestamp=timestamp,
+        )
+
+
 class Deposit(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.
@@ -59,12 +84,15 @@ class Deposit(rlp.Serializable):
         # Merkle tree index
         ('merkle_tree_index', uint64),
         # Deposit data
-        ('deposit_data', (
-            # Deposit parameters
-            ('deposit_parameters', DepositParameters),
-            # Value in Gwei
-            ('value', uint64),
-            # Timestamp from deposit contract
-            ('timestamp', uint64),
-        ))
+        ('deposit_data', DepositData),
     ]
+
+    def __init__(self,
+                 merkle_branch: Sequence[Hash32],
+                 merkle_tree_index: int,
+                 deposit_data: DepositData)-> None:
+        super().__init__(
+            merkle_branch=merkle_branch,
+            merkle_tree_index=merkle_tree_index,
+            deposit_data=deposit_data,
+        )

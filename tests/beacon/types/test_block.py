@@ -4,8 +4,8 @@ import rlp
 from eth.beacon.types.blocks import (
     BaseBeaconBlock,
 )
-from eth.beacon.types.attestation_records import (
-    AttestationRecord,
+from eth.beacon.types.attestations import (
+    Attestation,
 )
 from eth.utils.blake import (
     blake,
@@ -17,13 +17,16 @@ def test_defaults(sample_beacon_block_params):
     assert block.slot == sample_beacon_block_params['slot']
 
 
-def test_update_attestations(sample_attestation_record_params, sample_beacon_block_params):
+def test_update_attestations(sample_attestation_params, sample_beacon_block_params):
     block = BaseBeaconBlock(**sample_beacon_block_params)
-    attestations = block.attestations
+    attestations = block.body.attestations
     attestations = list(attestations)
-    attestations.append(AttestationRecord(**sample_attestation_record_params))
-    block2 = block.copy(
+    attestations.append(Attestation(**sample_attestation_params))
+    body2 = block.body.copy(
         attestations=attestations
+    )
+    block2 = block.copy(
+        body=body2
     )
     assert block2.num_attestations == 1
 
