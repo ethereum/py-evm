@@ -1,6 +1,7 @@
 import pytest
 
 from eth_utils import (
+    denoms,
     ValidationError,
 )
 
@@ -609,14 +610,19 @@ def test_get_attestation_participants(
     ),
     [
         (
-            1,
+            1 * denoms.gwei,
             32,
-            1,
+            1 * denoms.gwei,
         ),
         (
-            33,
+            32 * denoms.gwei,
             32,
+            32 * denoms.gwei,
+        ),
+        (
+            33 * denoms.gwei,
             32,
+            32 * denoms.gwei,
         )
     ]
 )

@@ -7,6 +7,7 @@ from typing import (
 )
 
 from eth_utils import (
+    denoms,
     to_tuple,
     ValidationError,
 )
@@ -375,7 +376,7 @@ def get_effective_balance(validator: 'ValidatorRecord', max_deposit: int) -> int
     """
     Return the effective balance (also known as "balance at stake") for the ``validator``.
     """
-    return min(validator.balance, max_deposit)
+    return min(validator.balance, max_deposit * denoms.gwei)
 
 
 def get_new_validator_registry_delta_chain_tip(current_validator_registry_delta_chain_tip: Hash32,
