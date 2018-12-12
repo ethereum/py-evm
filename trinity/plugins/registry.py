@@ -25,6 +25,11 @@ from trinity.plugins.builtin.light_peer_chain_bridge.plugin import (
     LightPeerChainBridgePlugin
 )
 
+from trinity.plugins.builtin.debug.plugin import (
+    DebugReceiverPlugin,
+    DebugSenderPlugin,
+)
+
 
 def is_ipython_available() -> bool:
     try:
@@ -42,6 +47,8 @@ BASE_PLUGINS: Tuple[BasePlugin, ...] = (
 
 
 ETH1_NODE_PLUGINS: Tuple[BasePlugin, ...] = (
+    DebugReceiverPlugin(),
+    DebugSenderPlugin(),
     EthstatsPlugin(),
     JsonRpcServerPlugin(),
     LightPeerChainBridgePlugin(),
