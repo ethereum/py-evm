@@ -29,13 +29,12 @@ from .helpers import (
 
 def empty_body():
     return BeaconBlockBody(
-        attestations=(),
         proposer_slashings=(),
         casper_slashings=(),
+        attestations=(),
         deposits=(),
         exits=(),
     )
-
 
 @pytest.mark.asyncio
 async def test_send_no_blocks(request, event_loop):
@@ -58,7 +57,7 @@ async def test_send_single_block(request, event_loop):
 
     block = BaseBeaconBlock(
         slot=1,
-        ancestor_hashes=[ZERO_HASH32] * 32,
+        parent_root=ZERO_HASH32,
         state_root=ZERO_HASH32,
         randao_reveal=ZERO_HASH32,
         candidate_pow_receipt_root=ZERO_HASH32,
@@ -81,7 +80,7 @@ async def test_send_multiple_blocks(request, event_loop):
     blocks = tuple(
         BaseBeaconBlock(
             slot=slot,
-            ancestor_hashes=[ZERO_HASH32] * 32,
+            parent_root=ZERO_HASH32,
             state_root=ZERO_HASH32,
             randao_reveal=ZERO_HASH32,
             candidate_pow_receipt_root=ZERO_HASH32,

@@ -105,9 +105,9 @@ def sample_attestation_data_params():
 @pytest.fixture
 def sample_beacon_block_body_params():
     return {
-        'attestations': (),
         'proposer_slashings': (),
         'casper_slashings': (),
+        'attestations': (),
         'deposits': (),
         'exits': (),
     }
@@ -117,7 +117,7 @@ def sample_beacon_block_body_params():
 def sample_beacon_block_params(sample_beacon_block_body_params):
     return {
         'slot': 10,
-        'ancestor_hashes': (),
+        'parent_root': b'\x56' * 32,
         'state_root': b'\x55' * 32,
         'randao_reveal': b'\x55' * 32,
         'candidate_pow_receipt_root': b'\x55' * 32,
