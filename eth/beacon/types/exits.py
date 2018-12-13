@@ -4,6 +4,7 @@ from rlp.sedes import (
     CountableList,
 )
 from eth.rlp.sedes import (
+    uint24,
     uint64,
     uint256,
 )
@@ -17,7 +18,7 @@ class Exit(rlp.Serializable):
         # Minimum slot for processing exit
         ('slot', uint64),
         # Index of the exiting validator
-        ('validator_index', uint64),
+        ('validator_index', uint24),
         # Validator signature
         ('signature', CountableList(uint256)),
     ]
