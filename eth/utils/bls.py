@@ -7,6 +7,7 @@ from typing import (  # noqa: F401
 
 from eth_utils import (
     big_endian_to_int,
+    ValidationError,
 )
 
 from py_ecc.optimized_bls12_381 import (  # NOQA
@@ -102,13 +103,17 @@ def compress_G1(pt: Tuple[FQ, FQ, FQ]) -> int:
     return x.n + 2**383 * (y.n % 2)
 
 
-def decompress_G1(p: int) -> Tuple[FQ, FQ, FQ]:
-    if p == 0:
+def decompress_G1(pt: int) -> Tuple[FQ, FQ, FQ]:
+    if pt == 0:
         return (FQ(1), FQ(1), FQ(0))
-    x = p % 2**383
-    y_mod_2 = p // 2**383
+    x = pt % 2**383
+    y_mod_2 = pt // 2**383
     y = pow((x**3 + b.n) % q, (q + 1) // 4, q)
-    assert pow(y, 2, q) == (x**3 + b.n) % q
+
+    if pow(y, 2, q) != (x**3 + b.n) % q:
+        raise ValueError(
+            "he given point is not on G1: y**2 = x**3 + b"
+        )
     if y % 2 != y_mod_2:
         y = q - y
     return (FQ(x), FQ(y), FQ(1))
@@ -118,7 +123,10 @@ def decompress_G1(p: int) -> Tuple[FQ, FQ, FQ]:
 # G2
 #
 def compress_G2(pt: Tuple[FQP, FQP, FQP]) -> Tuple[int, int]:
-    assert is_on_curve(pt, b2)
+    if not is_on_curve(pt, b2):
+        raise ValueError(
+            "The given point is not on the twisted curve over FQ**2"
+        )
     x, y = normalize(pt)
     return (
         int(x.coeffs[0] + 2**383 * (y.coeffs[0] % 2)),
@@ -136,7 +144,10 @@ def decompress_G2(p: bytes) -> Tuple[FQP, FQP, FQP]:
     y = modular_squareroot(x**3 + b2)
     if y.coeffs[0] % 2 != y1_mod_2:
         y = FQ2((y * -1).coeffs)
-    assert is_on_curve((x, y, FQ2([1, 0])), b2)
+    if not is_on_curve((x, y, FQ2([1, 0])), b2):
+        raise ValueError(
+            "The given point is not on the twisted curve over FQ**2"
+        )
     return x, y, FQ2([1, 0])
 
 
@@ -189,7 +200,13 @@ def verify_multiple(pubkeys: Sequence[int],
                     signature: bytes,
                     domain: int) -> bool:
     len_msgs = len(messages)
-    assert len(pubkeys) == len_msgs
+
+    if len(pubkeys) != len_msgs:
+        raise ValidationError(
+            "len(pubkeys) (%s) should be equal to len(messages) (%s)" % (
+                len(pubkeys), len_msgs
+            )
+        )
 
     o = FQ12([1] + [0] * 11)
     for m_pubs in set(messages):
