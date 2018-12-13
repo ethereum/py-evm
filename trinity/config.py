@@ -35,6 +35,7 @@ from p2p.constants import (
 )
 
 from trinity.constants import (
+    APP_NAME_ETH1,
     ASSETS_DIR,
     DEFAULT_PREFERRED_NODES,
     MAINNET_NETWORK_ID,
@@ -216,6 +217,7 @@ class TrinityConfig:
 
     def __init__(self,
                  network_id: int,
+                 app_name: str = APP_NAME_ETH1,
                  genesis_config: Dict[str, Any]=None,
                  max_peers: int=25,
                  trinity_root_dir: str=None,
@@ -228,6 +230,7 @@ class TrinityConfig:
                  use_discv5: bool = False,
                  preferred_nodes: Tuple[KademliaNode, ...]=None,
                  bootstrap_nodes: Tuple[KademliaNode, ...]=None) -> None:
+        self.app_name = app_name
         self.network_id = network_id
         self.max_peers = max_peers
         self.sync_mode = sync_mode
@@ -330,7 +333,7 @@ class TrinityConfig:
         if self._trinity_root_dir is not None:
             return self._trinity_root_dir
         else:
-            return get_xdg_trinity_root()
+            return get_xdg_trinity_root(self.app_name)
 
     @trinity_root_dir.setter
     def trinity_root_dir(self, value: str) -> None:
@@ -348,7 +351,7 @@ class TrinityConfig:
         if self._trinity_root_dir is not None:
             return self._trinity_root_dir
         else:
-            return get_xdg_trinity_root()
+            return get_xdg_trinity_root(self.app_name)
 
     @trinity_root_dir.setter
     def trinity_root_dir(self, value: str) -> None:
@@ -452,6 +455,7 @@ class TrinityConfig:
     @classmethod
     def from_parser_args(cls,
                          parser_args: argparse.Namespace,
+                         app_name: str,
                          app_config_types: Iterable[Type['BaseAppConfig']]) -> 'TrinityConfig':
         """
         Helper function for initializing from the namespace object produced by

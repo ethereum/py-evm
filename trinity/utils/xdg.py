@@ -35,11 +35,12 @@ def get_xdg_data_home() -> Path:
         return get_home() / '.local' / 'share'
 
 
-def get_xdg_trinity_root() -> Path:
+def get_xdg_trinity_root(app_name: str) -> Path:
     """
     Returns the base directory under which trinity will store all data.
     """
+    xdg_lookup_key = f'XDG_{app_name.upper()}_ROOT'
     try:
-        return Path(os.environ['XDG_TRINITY_ROOT'])
+        return Path(os.environ[xdg_lookup_key])
     except KeyError:
-        return get_xdg_data_home() / 'trinity'
+        return get_xdg_data_home() / app_name

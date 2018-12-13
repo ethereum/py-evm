@@ -15,6 +15,7 @@ from eth.chains import (
 
 from trinity.constants import (
     NETWORKING_EVENTBUS_ENDPOINT,
+    APP_NAME_ETH1,
 )
 from trinity.chains.coro import (
     AsyncChainMixin,
@@ -53,7 +54,7 @@ def xdg_trinity_root(monkeypatch, tmpdir):
     dir_path = tmpdir.mkdir('trinity')
     monkeypatch.setenv('XDG_TRINITY_ROOT', str(dir_path))
 
-    assert not is_under_path(os.path.expandvars('$HOME'), get_xdg_trinity_root())
+    assert not is_under_path(os.path.expandvars('$HOME'), get_xdg_trinity_root(APP_NAME_ETH1))
 
     return Path(str(dir_path))
 

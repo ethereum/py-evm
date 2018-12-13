@@ -23,6 +23,9 @@ from trinity.bootstrap import (
     run_database_process,
     setup_plugins,
 )
+from trinity.constants import (
+    APP_NAME_ETH1,
+)
 from trinity.config import (
     TrinityConfig,
     Eth1AppConfig,
@@ -66,7 +69,7 @@ def get_all_plugins() -> Iterable[BasePlugin]:
 
 
 def main() -> None:
-    main_entry(trinity_boot, get_all_plugins(), (Eth1AppConfig,))
+    main_entry(trinity_boot, get_all_plugins(), APP_NAME_ETH1, (Eth1AppConfig,))
 
 
 def trinity_boot(args: Namespace,

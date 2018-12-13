@@ -109,6 +109,7 @@ BootFn = Callable[[
 
 def main_entry(trinity_boot: BootFn,
                plugins: Iterable[BasePlugin],
+               app_name: str,
                sub_configs: Iterable[Type[BaseAppConfig]]) -> None:
     event_bus = EventBus(ctx)
     main_endpoint = event_bus.create_endpoint(MAIN_EVENTBUS_ENDPOINT)
@@ -152,7 +153,7 @@ def main_entry(trinity_boot: BootFn,
         setup_log_levels(args.log_levels)
 
     try:
-        trinity_config = TrinityConfig.from_parser_args(args, sub_configs)
+        trinity_config = TrinityConfig.from_parser_args(args, app_name, sub_configs)
     except AmbigiousFileSystem:
         parser.error(TRINITY_AMBIGIOUS_FILESYSTEM_INFO)
 

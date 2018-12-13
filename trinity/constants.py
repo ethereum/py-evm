@@ -15,6 +15,8 @@ from eth_keys import (
 
 from p2p.kademlia import Address, Node
 
+APP_NAME_ETH1 = 'trinity'
+APP_NAME_BEACON = 'trinity-beacon'
 
 # The file path to the non-python assets
 ASSETS_DIR = Path(__file__).parent / "assets"
