@@ -2,6 +2,7 @@ from typing import (  # noqa: F401
     Dict,
     Iterable,
     Tuple,
+    Union,
 )
 
 
@@ -16,6 +17,7 @@ from py_ecc.optimized_bn128 import (  # NOQA
     FQ,
     FQ2,
     FQ12,
+    FQP,
     pairing,
     normalize,
     field_modulus,
@@ -26,6 +28,9 @@ from py_ecc.optimized_bn128 import (  # NOQA
     final_exponentiate
 )
 from eth.utils.blake import blake
+from eth.utils.bn128 import (
+    FQP_point_to_FQ2_point,
+)
 
 
 CACHE = {}  # type: Dict[bytes, Tuple[FQ2, FQ2, FQ2]]
@@ -38,7 +43,7 @@ assert HEX_ROOT ** 8 != FQ2([1, 0])
 assert HEX_ROOT ** 16 == FQ2([1, 0])
 
 
-def compress_G1(pt: Tuple[FQ2, FQ2, FQ2]) -> int:
+def compress_G1(pt: Tuple[FQ, FQ, FQ]) -> int:
     x, y = normalize(pt)
     return x.n + 2**255 * (y.n % 2)
 
@@ -55,11 +60,11 @@ def decompress_G1(p: int) -> Tuple[FQ, FQ, FQ]:
     return (FQ(x), FQ(y), FQ(1))
 
 
-def sqrt_fq2(x: FQ2) -> FQ2:
+def sqrt_fq2(x: FQP) -> FQ2:
     y = x ** ((field_modulus ** 2 + 15) // 32)
     while y**2 != x:
         y *= HEX_ROOT
-    return y
+    return FQ2(y.coeffs)
 
 
 def hash_to_G2(m: bytes) -> Tuple[FQ2, FQ2, FQ2]:
@@ -79,18 +84,22 @@ def hash_to_G2(m: bytes) -> Tuple[FQ2, FQ2, FQ2]:
         if xcb ** ((field_modulus ** 2 - 1) // 2) == FQ2([1, 0]):
             break
     y = sqrt_fq2(xcb)
-    o = multiply((x, y, FQ2([1, 0])), 2 * field_modulus - curve_order)
+
+    o = FQP_point_to_FQ2_point(multiply((x, y, FQ2([1, 0])), 2 * field_modulus - curve_order))
     CACHE[m] = o
     return o
 
 
-def compress_G2(pt: Tuple[FQ2, FQ2, FQ2]) -> Tuple[int, int]:
+def compress_G2(pt: Tuple[FQP, FQP, FQP]) -> Tuple[int, int]:
     assert is_on_curve(pt, b2)
     x, y = normalize(pt)
-    return (x.coeffs[0] + 2**255 * (y.coeffs[0] % 2), x.coeffs[1])
+    return (
+        int(x.coeffs[0] + 2**255 * (y.coeffs[0] % 2)),
+        int(x.coeffs[1])
+    )
 
 
-def decompress_G2(p: bytes) -> Tuple[FQ2, FQ2, FQ2]:
+def decompress_G2(p: bytes) -> Tuple[FQP, FQP, FQP]:
     x1 = p[0] % 2**255
     y1_mod_2 = p[0] // 2**255
     x2 = p[1]
@@ -99,7 +108,7 @@ def decompress_G2(p: bytes) -> Tuple[FQ2, FQ2, FQ2]:
         return FQ2([1, 0]), FQ2([1, 0]), FQ2([0, 0])
     y = sqrt_fq2(x**3 + b2)
     if y.coeffs[0] % 2 != y1_mod_2:
-        y = y * -1
+        y = FQ2((y * -1).coeffs)
     assert is_on_curve((x, y, FQ2([1, 0])), b2)
     return x, y, FQ2([1, 0])
 
@@ -114,8 +123,8 @@ def privtopub(k: int) -> int:
 
 def verify(m: bytes, pub: int, sig: bytes) -> bool:
     final_exponentiation = final_exponentiate(
-        pairing(decompress_G2(sig), G1, False) *
-        pairing(hash_to_G2(m), neg(decompress_G1(pub)), False)
+        pairing(FQP_point_to_FQ2_point(decompress_G2(sig)), G1, False) *
+        pairing(FQP_point_to_FQ2_point(hash_to_G2(m)), neg(decompress_G1(pub)), False)
     )
     return final_exponentiation == FQ12.one()
 
@@ -123,7 +132,7 @@ def verify(m: bytes, pub: int, sig: bytes) -> bool:
 def aggregate_sigs(sigs: Iterable[bytes]) -> Tuple[int, int]:
     o = Z2
     for s in sigs:
-        o = add(o, decompress_G2(s))
+        o = FQP_point_to_FQ2_point(add(o, decompress_G2(s)))
     return compress_G2(o)
 
 
