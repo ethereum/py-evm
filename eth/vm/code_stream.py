@@ -77,7 +77,7 @@ class CodeStream(object):
     invalid_positions = None
 
     def is_valid_opcode(self, position: int) -> bool:
-        if position >= len(self):
+        if position >= self._length_cache:
             return False
         if position in self.invalid_positions:
             return False
