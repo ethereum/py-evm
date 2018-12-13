@@ -69,5 +69,5 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
     ]
     assert len(voted_index) == len(votes)
 
-    aggregated_pubs = bls.aggregate_pubs(pubs)
+    aggregated_pubs = bls.aggregate_pubkeys(pubs)
     assert bls.verify(message, aggregated_pubs, sigs, domain)
