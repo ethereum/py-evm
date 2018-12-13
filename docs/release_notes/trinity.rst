@@ -1,6 +1,52 @@
 Trinity 
 =======
 
+0.1.0-alpha.18
+--------------
+
+Released December 13, 2018
+
+- `#1579 <https://github.com/ethereum/py-evm/pull/1579>`_: Feature: Full Constantinople support, with `all* <https://github.com/ethereum/py-evm/blob/fd537be45bafb2041c45a92f3d5240db2bc7f517/tests/json-fixtures/test_blockchain.py#L135-L158>`_ tests passing
+- `#1590 <https://github.com/ethereum/py-evm/pull/1590>`_: Performance: CodeStream speedup
+- `#1576 <https://github.com/ethereum/py-evm/pull/1576>`_: Bugfix: require recent enough py-ecc to avoid busted py-ecc release (see `#1572 <https://github.com/ethereum/py-evm/pull/1572>`_)
+- `#1577 <https://github.com/ethereum/py-evm/pull/1577>`_: Maintenance: Show state diffs on all state failures (see #1573)
+- `#1570 <https://github.com/ethereum/py-evm/pull/1570>`_: Maintenance: Cleanup sporadic unclean shutdown of peer request
+- `#1580 <https://github.com/ethereum/py-evm/pull/1580>`_: Maintenance: The logged delta in expected vs actual account balance was backwards
+- `#1573 <https://github.com/ethereum/py-evm/pull/1573>`_: Maintenance: Display state diffs on failing tests, for much easier EVM debugging
+- `#1567 <https://github.com/ethereum/py-evm/pull/1567>`_: Performance: Reduce event bus traffic by enabling point-to-point communication
+- `#1569 <https://github.com/ethereum/py-evm/pull/1569>`_: Bugfix: Increase Kademlia timeouts to work on high-latency networks
+- `#1530 <https://github.com/ethereum/py-evm/pull/1530>`_: Maintenance: Rename logging level from ``trace`` (reserved for EVM tracing) to ``debug2``
+- `#1553 <https://github.com/ethereum/py-evm/pull/1553>`_: Maintenance: Dynamically tune peer timeouts with historical latency (also `#1583 <https://github.com/ethereum/py-evm/pull/1583>`_)
+- `#1560 <https://github.com/ethereum/py-evm/pull/1560>`_: Bugfix: Constantinople CREATE2 gas usage
+- `#1559 <https://github.com/ethereum/py-evm/pull/1559>`_: Feature: Mainnet configuration now defaults to Constantinople rules at 7080000
+- `#1557 <https://github.com/ethereum/py-evm/pull/1557>`_: Docs: Clarify that local plugins must be installed with ``-e``
+- `#1538 <https://github.com/ethereum/py-evm/pull/1538>`_: Maintenance: Variety of dependency resolution warning cleanups
+- `#1549 <https://github.com/ethereum/py-evm/pull/1549>`_: Maintenance: Separate Plugin space for ``trinity`` and ``trinity-beacon``
+- `#1554 <https://github.com/ethereum/py-evm/pull/1554>`_: Maintenance: Enable asynchronous iterators that can be cancelled by a service
+- `#1523 <https://github.com/ethereum/py-evm/pull/1523>`_: Maintenance: Much faster testing of valid PoW chains
+- `#1536 <https://github.com/ethereum/py-evm/pull/1536>`_: Maintenance: Add ``trinity-beacon`` command as a placeholder for future Beacon Chain
+- `#1500 <https://github.com/ethereum/py-evm/pull/1500>`_: Performance: Be smarter about validating the bloom filter, to avoid duplicate hashing
+- `#1537 <https://github.com/ethereum/py-evm/pull/1537>`_: Maintenance: Use new event bus feature to avoid the old hack for clean shutdown
+- `#1544 <https://github.com/ethereum/py-evm/pull/1544>`_: Docs: Quickstart fix -- use ``trinity attach`` instead of console
+- `#1541 <https://github.com/ethereum/py-evm/pull/1541>`_: Docs: Simplify and de-duplicate readme
+- `#1533 <https://github.com/ethereum/py-evm/pull/1533>`_: Bugfix: Light chain data lookups regressed during genesis file feature. Fixed
+- `#1524 <https://github.com/ethereum/py-evm/pull/1524>`_: Bugfix: Validate header chain continuity during light sync
+- `#1528 <https://github.com/ethereum/py-evm/pull/1528>`_: Maintenance: Computation code reorg and gas logging bugfix
+- `#1522 <https://github.com/ethereum/py-evm/pull/1522>`_: Bugfix: Increase the system recursion limit for EVM requirements, but never decrease it
+- `#1519 <https://github.com/ethereum/py-evm/pull/1519>`_: Docs: Document why we must spawn instead of fork on linux (spoiler: asyncio)
+- `#1516 <https://github.com/ethereum/py-evm/pull/1516>`_: Maintenance: Add test for ``trinity attach``
+- `#1299 <https://github.com/ethereum/py-evm/pull/1299>`_: Feature: Launch via custom genesis file (See `EIP proposal <https://github.com/ethereum/EIPs/issues/1085>`_)
+- `#1496 <https://github.com/ethereum/py-evm/pull/1496>`_: Bugfix: Regular chain sync crash
+- The research team has started adding Beacon Chain code to the underlying py-evm repo. It's all a work in progress, but for those who like to follow along:
+
+  - `#1508 <https://github.com/ethereum/py-evm/pull/1508>`_: Rework Eth2.0 Types
+  - `#1543 <https://github.com/ethereum/py-evm/pull/1543>`_: Beacon Chain network commands and protocol scaffolding
+  - `#1521 <https://github.com/ethereum/py-evm/pull/1521>`_: Rework helper functions - part 1
+  - `#1552 <https://github.com/ethereum/py-evm/pull/1552>`_: Beacon Chain protocol class and handshake
+  - `#1555 <https://github.com/ethereum/py-evm/pull/1555>`_: Rename data structures and constants
+  - `#1563 <https://github.com/ethereum/py-evm/pull/1563>`_: Rework helper functions - part 2
+  - `#1574 <https://github.com/ethereum/py-evm/pull/1574>`_: Beacon block request handler
+
 0.1.0-alpha.17
 --------------
 
