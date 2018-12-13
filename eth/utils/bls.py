@@ -34,9 +34,9 @@ from eth.beacon.utils.hash import hash_
 
 
 G2_cofactor = 305502333931268344200999753193121504214466019254188142667664032982267604182971884026507427359259977847832272839041616661285803823378372096355777062779109  # noqa: E501
-qmod = q ** 2 - 1
+FQ2_order = q ** 2 - 1
 eighth_roots_of_unity = [
-    FQ2([1, 1]) ** ((qmod * k) // 8)
+    FQ2([1, 1]) ** ((FQ2_order * k) // 8)
     for k in range(8)
 ]
 
@@ -63,27 +63,30 @@ def modular_squareroot(value: int) -> FQP:
     if both solutions have equal imaginary component the value with higher real
     component is favored.
     """
-    candidate_squareroot = value ** ((qmod + 8) // 16)
+    candidate_squareroot = value ** ((FQ2_order + 8) // 16)
     check = candidate_squareroot ** 2 / value
     if check in eighth_roots_of_unity[::2]:
         x1 = candidate_squareroot / eighth_roots_of_unity[eighth_roots_of_unity.index(check) // 2]
-        x2 = FQ2([-x1.coeffs[0], -x1.coeffs[1]])
-        # x2 = - x2
+        x2 = FQ2([-x1.coeffs[0], -x1.coeffs[1]])  # x2 = -x1
         return x1 if (x1.coeffs[1], x1.coeffs[0]) > (x2.coeffs[1], x2.coeffs[0]) else x2
     return None
 
 
 def hash_to_G2(message: bytes, domain: int) -> Tuple[FQ2, FQ2, FQ2]:
     domain_in_bytes = domain.to_bytes(8, 'big')
-    x1 = big_endian_to_int(hash_(domain_in_bytes + b'\x01' + message))
-    x2 = big_endian_to_int(hash_(domain_in_bytes + b'\x02' + message))
-    x_coordinate = FQ2([x1, x2])  # x1 + x2 * i
+
+    # Initial candidate x coordinate
+    x_re = big_endian_to_int(hash_(domain_in_bytes + b'\x01' + message))
+    x_im = big_endian_to_int(hash_(domain_in_bytes + b'\x02' + message))
+    x_coordinate = FQ2([x_re, x_im])  # x_re + x_im * i
+
+    # Test candidate y coordinates until a one is found
     while 1:
-        x_cubed_plus_b2 = x_coordinate ** 3 + FQ2([4, 4])
-        y_coordinate = modular_squareroot(x_cubed_plus_b2)
-        if y_coordinate is not None:
+        y_coordinate_squared = x_coordinate ** 3 + FQ2([4, 4])  # The curve is y^2 = x^3 + 4(i + 1)
+        y_coordinate = modular_squareroot(y_coordinate_squared)
+        if y_coordinate is not None:  # Check if quadratic residue found
             break
-        x_coordinate += FQ2([1, 0])  # Add one until we get a quadratic residue
+        x_coordinate += FQ2([1, 0])  # Add 1 and try again
 
     return multiply(
         (x_coordinate, y_coordinate, FQ2([1, 0])),
@@ -155,45 +158,49 @@ def privtopub(k: int) -> int:
     return compress_G1(multiply(G1, k))
 
 
-def verify(m: bytes, pub: int, sig: bytes, domain: int) -> bool:
+def verify(message: bytes, pubkey: int, signature: bytes, domain: int) -> bool:
     final_exponentiation = final_exponentiate(
-        pairing(FQP_point_to_FQ2_point(decompress_G2(sig)), G1, False) *
-        pairing(FQP_point_to_FQ2_point(hash_to_G2(m, domain)), neg(decompress_G1(pub)), False)
+        pairing(FQP_point_to_FQ2_point(decompress_G2(signature)), G1, False) *
+        pairing(
+            FQP_point_to_FQ2_point(hash_to_G2(message, domain)),
+            neg(decompress_G1(pubkey)),
+            False
+        )
     )
     return final_exponentiation == FQ12.one()
 
 
-def aggregate_sigs(sigs: Sequence[bytes]) -> Tuple[int, int]:
+def aggregate_signatures(signatures: Sequence[bytes]) -> Tuple[int, int]:
     o = Z2
-    for s in sigs:
+    for s in signatures:
         o = FQP_point_to_FQ2_point(add(o, decompress_G2(s)))
     return compress_G2(o)
 
 
-def aggregate_pubs(pubs: Sequence[int]) -> int:
+def aggregate_pubkeys(pubkeys: Sequence[int]) -> int:
     o = Z1
-    for p in pubs:
+    for p in pubkeys:
         o = add(o, decompress_G1(p))
     return compress_G1(o)
 
 
-def verify_multiple(pubs: Sequence[int],
-                    msgs: Sequence[bytes],
-                    sig: bytes,
+def verify_multiple(pubkeys: Sequence[int],
+                    messages: Sequence[bytes],
+                    signature: bytes,
                     domain: int) -> bool:
-    len_msgs = len(msgs)
-    assert len(pubs) == len_msgs
+    len_msgs = len(messages)
+    assert len(pubkeys) == len_msgs
 
     o = FQ12([1] + [0] * 11)
-    for m in set(msgs):
+    for m_pubs in set(messages):
         # aggregate the pubs
         group_pub = Z1
         for i in range(len_msgs):
-            if msgs[i] == m:
-                group_pub = add(group_pub, decompress_G1(pubs[i]))
+            if messages[i] == m_pubs:
+                group_pub = add(group_pub, decompress_G1(pubkeys[i]))
 
-        o *= pairing(hash_to_G2(m, domain), group_pub, False)
-    o *= pairing(decompress_G2(sig), neg(G1), False)
+        o *= pairing(hash_to_G2(m_pubs, domain), group_pub, False)
+    o *= pairing(decompress_G2(signature), neg(G1), False)
 
     final_exponentiation = final_exponentiate(o)
     return final_exponentiation == FQ12.one()

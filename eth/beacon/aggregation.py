@@ -55,4 +55,4 @@ def aggregate_votes(bitfield: bytes,
         )
     )
 
-    return bitfield, bls.aggregate_sigs(sigs)
+    return bitfield, bls.aggregate_signatures(sigs)
