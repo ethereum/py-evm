@@ -13,7 +13,7 @@ from eth.beacon.types.proposal_signed_data import (
     ProposalSignedData
 )
 
-from eth.beacon.types.casper_slashings import (
+from eth.beacon.types.slashable_vote_data import (
     SlashableVoteData,
 )
 
@@ -21,11 +21,8 @@ from eth.beacon.types.attestation_data import (
     AttestationData,
 )
 
-from eth.beacon.types.deposits import (
-    DepositParameters,
-    DepositData,
-)
-
+from eth.beacon.types.deposits import DepositData
+from eth.beacon.types.deposit_parameters import DepositParameters
 
 from eth.beacon.types.blocks import (
     BeaconBlockBody,
