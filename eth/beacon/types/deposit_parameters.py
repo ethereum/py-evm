@@ -39,8 +39,8 @@ class DepositParameters(rlp.Serializable):
                  randao_commitment: Hash32,
                  proof_of_possession: Sequence[int]=(0, 0)) -> None:
         super().__init__(
-            pubkey=pubkey,
-            proof_of_possession=proof_of_possession,
-            withdrawal_credentials=withdrawal_credentials,
-            randao_commitment=randao_commitment,
+            pubkey,
+            proof_of_possession,
+            withdrawal_credentials,
+            randao_commitment,
         )

@@ -38,8 +38,8 @@ class Attestation(rlp.Serializable):
                  custody_bitfield: bytes,
                  aggregate_sig: Sequence[int]=(0, 0)) -> None:
         super().__init__(
-            data=data,
-            participation_bitfield=participation_bitfield,
-            custody_bitfield=custody_bitfield,
-            aggregate_sig=aggregate_sig,
+            data,
+            participation_bitfield,
+            custody_bitfield,
+            aggregate_sig,
         )

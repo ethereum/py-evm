@@ -42,12 +42,12 @@ class AttestationData(rlp.Serializable):
                  justified_slot: int,
                  justified_block_hash: Hash32) -> None:
         super().__init__(
-            slot=slot,
-            shard=shard,
-            beacon_block_hash=beacon_block_hash,
-            epoch_boundary_hash=epoch_boundary_hash,
-            shard_block_hash=shard_block_hash,
-            latest_crosslink_hash=latest_crosslink_hash,
-            justified_slot=justified_slot,
-            justified_block_hash=justified_block_hash,
+            slot,
+            shard,
+            beacon_block_hash,
+            epoch_boundary_hash,
+            shard_block_hash,
+            latest_crosslink_hash,
+            justified_slot,
+            justified_block_hash,
         )

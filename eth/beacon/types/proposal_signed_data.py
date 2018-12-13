@@ -27,7 +27,7 @@ class ProposalSignedData(rlp.Serializable):
                  shard: int,
                  block_hash: Hash32) -> None:
         super().__init__(
-            slot=slot,
-            shard=shard,
-            block_hash=block_hash,
+            slot,
+            shard,
+            block_hash,
         )

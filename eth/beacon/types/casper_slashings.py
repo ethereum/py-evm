@@ -23,6 +23,6 @@ class CasperSlashing(rlp.Serializable):
                  votes_1: SlashableVoteData,
                  votes_2: SlashableVoteData)-> None:
         super().__init__(
-            votes_1=votes_1,
-            votes_2=votes_2,
+            votes_1,
+            votes_2,
         )

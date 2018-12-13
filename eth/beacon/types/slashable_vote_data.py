@@ -33,8 +33,8 @@ class SlashableVoteData(rlp.Serializable):
                  data: AttestationData,
                  aggregate_signature: Sequence[int]) -> None:
         super().__init__(
-            aggregate_signature_poc_0_indices=aggregate_signature_poc_0_indices,
-            aggregate_signature_poc_1_indices=aggregate_signature_poc_1_indices,
-            data=data,
-            aggregate_signature=aggregate_signature,
+            aggregate_signature_poc_0_indices,
+            aggregate_signature_poc_1_indices,
+            data,
+            aggregate_signature,
         )

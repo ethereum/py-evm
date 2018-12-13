@@ -36,7 +36,7 @@ class Deposit(rlp.Serializable):
                  merkle_tree_index: int,
                  deposit_data: DepositData)-> None:
         super().__init__(
-            merkle_branch=merkle_branch,
-            merkle_tree_index=merkle_tree_index,
-            deposit_data=deposit_data,
+            merkle_branch,
+            merkle_tree_index,
+            deposit_data,
         )

@@ -22,7 +22,7 @@ class DepositData(rlp.Serializable):
                  timestamp: int) -> None:
 
         super().__init__(
-            deposit_parameters=deposit_parameters,
-            value=value,
-            timestamp=timestamp,
+            deposit_parameters,
+            value,
+            timestamp,
         )

@@ -81,13 +81,13 @@ class BaseBeaconBlock(rlp.Serializable):
                  body: BeaconBlockBody,
                  signature: Sequence[int]=(0, 0)) -> None:
         super().__init__(
-            slot=slot,
-            parent_root=parent_root,
-            state_root=state_root,
-            randao_reveal=randao_reveal,
-            candidate_pow_receipt_root=candidate_pow_receipt_root,
-            signature=signature,
-            body=body
+            slot,
+            parent_root,
+            state_root,
+            randao_reveal,
+            candidate_pow_receipt_root,
+            signature,
+            body
         )
 
     def __repr__(self) -> str:

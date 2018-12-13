@@ -28,7 +28,7 @@ class Exit(rlp.Serializable):
                  validator_index: int,
                  signature: Sequence[int]) -> None:
         super().__init__(
-            slot=slot,
-            validator_index=validator_index,
-            signature=signature,
+            slot,
+            validator_index,
+            signature,
         )
