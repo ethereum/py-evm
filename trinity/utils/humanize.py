@@ -1,5 +1,7 @@
 from typing import Iterator
 
+from eth_typing import Hash32
+
 
 def humanize_elapsed(seconds: int) -> str:
     return ''.join(_humanize_elapsed(seconds))
@@ -44,3 +46,12 @@ def _humanize_elapsed(seconds: int) -> Iterator[str]:
             return
 
         remainder %= duration
+
+
+DISPLAY_HASH_BYTES = 3
+
+
+def humanize_hash(value: Hash32) -> str:
+    head = value[:DISPLAY_HASH_BYTES]
+    tail = value[-1 * DISPLAY_HASH_BYTES:]
+    return f"{head.hex()}..{tail.hex()}"
