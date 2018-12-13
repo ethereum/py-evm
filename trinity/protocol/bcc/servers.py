@@ -1,8 +1,6 @@
 import itertools
 from typing import (
     cast,
-    Any,
-    Dict,
     Iterable,
     Set,
     Type,
@@ -33,7 +31,10 @@ from eth.beacon.db.chain import BaseBeaconChainDB
 from eth.beacon.types.blocks import BaseBeaconBlock
 
 from trinity.protocol.common.servers import BaseRequestServer
-from trinity.protocol.bcc import commands
+from trinity.protocol.bcc.commands import (
+    GetBeaconBlocks,
+    GetBeaconBlocksMessage,
+)
 from trinity.protocol.bcc.peer import (
     BCCPeer,
     BCCPeerPool,
@@ -42,7 +43,7 @@ from trinity.protocol.bcc.peer import (
 
 class BCCRequestServer(BaseRequestServer):
     subscription_msg_types: Set[Type[Command]] = {
-        commands.GetBeaconBlocks,
+        GetBeaconBlocks,
     }
 
     def __init__(self,
@@ -56,16 +57,16 @@ class BCCRequestServer(BaseRequestServer):
                           msg: protocol._DecodedMsgType) -> None:
         peer = cast(BCCPeer, base_peer)
 
-        if isinstance(cmd, commands.GetBeaconBlocks):
-            await self._handle_get_beacon_blocks(peer, cast(Dict[str, Any], msg))
+        if isinstance(cmd, GetBeaconBlocks):
+            await self._handle_get_beacon_blocks(peer, cast(GetBeaconBlocksMessage, msg))
         else:
             raise Exception("Invariant: Only subscribed to GetBeaconBlocks")
 
-    async def _handle_get_beacon_blocks(self, peer: BCCPeer, msg: Dict[str, Any]) -> None:
+    async def _handle_get_beacon_blocks(self, peer: BCCPeer, msg: GetBeaconBlocksMessage) -> None:
         if not peer.is_operational:
             return
 
-        max_blocks = cast(int, msg["max_blocks"])
+        max_blocks = msg["max_blocks"]
         block_slot_or_hash = msg["block_slot_or_hash"]
 
         try:

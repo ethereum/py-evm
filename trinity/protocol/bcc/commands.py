@@ -1,10 +1,25 @@
+from typing import (
+    Union,
+)
+
 from rlp import sedes
+
+from mypy_extensions import (
+    TypedDict,
+)
+
+from eth_typing import (
+    Hash32,
+)
 
 from p2p.protocol import (
     Command,
 )
 
-from trinity.rlp.sedes import HashOrNumber
+from trinity.rlp.sedes import (
+    HashOrNumber,
+)
+
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.attestation_records import AttestationRecord
 
@@ -17,6 +32,12 @@ class Status(Command):
         ('genesis_hash', sedes.binary),
         ('best_hash', sedes.binary),
     ]
+
+
+GetBeaconBlocksMessage = TypedDict("GetBeaconBlocksMessage", {
+    "block_slot_or_hash": Union[int, Hash32],
+    "max_blocks": int,
+})
 
 
 class GetBeaconBlocks(Command):
