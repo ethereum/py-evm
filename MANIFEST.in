@@ -6,4 +6,4 @@ include requirements.txt
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 
-recursive-include trinity/assets/*
+recursive-include trinity/assets *
