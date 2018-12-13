@@ -1,10 +1,4 @@
 import rlp
-from rlp.sedes import (
-    CountableList,
-)
-from typing import (
-    Sequence,
-)
 from .slashable_vote_data import SlashableVoteData
 
 

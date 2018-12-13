@@ -12,10 +12,8 @@ from rlp.sedes import (
 
 from eth.rlp.sedes import (
     hash32,
-    uint64,
     uint256,
 )
-
 
 
 class DepositParameters(rlp.Serializable):

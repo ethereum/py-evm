@@ -1,5 +1,4 @@
 import pytest
-import itertools
 
 from eth_utils import denoms
 
@@ -27,7 +26,6 @@ from eth.beacon.types.deposit_parameters import DepositParameters
 from eth.beacon.types.blocks import (
     BeaconBlockBody,
 )
-
 
 from eth.beacon.enums import (
     ValidatorStatusCode,

@@ -17,6 +17,7 @@ from eth.rlp.sedes import (
 
 from .deposit_data import DepositData
 
+
 class Deposit(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.

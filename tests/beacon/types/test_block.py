@@ -1,14 +1,8 @@
-import pytest
-import rlp
-
 from eth.beacon.types.blocks import (
     BaseBeaconBlock,
 )
 from eth.beacon.types.attestations import (
     Attestation,
-)
-from eth.utils.blake import (
-    blake,
 )
 
 
@@ -29,4 +23,3 @@ def test_update_attestations(sample_attestation_params, sample_beacon_block_para
         body=body2
     )
     assert block2.num_attestations == 1
-

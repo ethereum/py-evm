@@ -3,6 +3,7 @@ import rlp
 from eth.rlp.sedes import uint64
 from .deposit_parameters import DepositParameters
 
+
 class DepositData(rlp.Serializable):
     """
     Not in spec, this is for fields in Deposit
