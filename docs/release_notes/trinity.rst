@@ -1,7 +1,7 @@
 Trinity 
 =======
 
-0.1.0-alpha.19
+0.1.0-alpha.20
 --------------
 
 Released December 13, 2018
@@ -47,7 +47,7 @@ Released December 13, 2018
   - `#1563 <https://github.com/ethereum/py-evm/pull/1563>`_: Rework helper functions - part 2
   - `#1574 <https://github.com/ethereum/py-evm/pull/1574>`_: Beacon block request handler
 
-0.1.0-alpha.18
+0.1.0-alpha.18,19
 --------------
 
 That sound you make when you burp in the middle of a hiccup. Hiccurp?
