@@ -1,13 +1,12 @@
 import asyncio
 
-from cytoolz import (
-    merge,
-)
-
 from cancel_token import CancelToken
 
 from eth_utils import (
     to_tuple,
+)
+from eth_utils.toolz import (
+    merge,
 )
 
 from eth.db.atomic import AtomicDB

@@ -6,18 +6,17 @@ from typing import (
     Type,
 )
 
-from eth_utils.toolz import (
-    cons,
-    sliding_window,
-    take,
-)
-
 from eth_typing import (
     Hash32,
 )
 
 from eth_utils import (
     to_tuple,
+)
+from eth_utils.toolz import (
+    cons,
+    sliding_window,
+    take,
 )
 
 from cancel_token import CancelToken
