@@ -271,10 +271,10 @@ def sample_slashable_vote_data_params(sample_attestation_data_params):
 
 @pytest.fixture
 def sample_casper_slashing_params(sample_slashable_vote_data_params):
-    votes = SlashableVoteData(**sample_slashable_vote_data_params)
+    vote_data = SlashableVoteData(**sample_slashable_vote_data_params)
     return {
-        'votes_1': votes,
-        'votes_2': votes,
+        'slashable_vote_data_1': vote_data,
+        'slashable_vote_data_2': vote_data,
     }
 
 
