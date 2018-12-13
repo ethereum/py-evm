@@ -62,7 +62,7 @@ class API:
     constantinople_at = staticmethod(constantinople_at)
 
     # iterable of the fork specific functions
-    mainnet_fork_at_fns = staticmethod(mainnet_fork_at_fns)
+    mainnet_fork_at_fns = mainnet_fork_at_fns
 
     # DAO Fork specific
     dao_fork_at = staticmethod(dao_fork_at)
