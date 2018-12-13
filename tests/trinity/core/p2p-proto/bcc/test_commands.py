@@ -61,7 +61,7 @@ async def test_send_single_block(request, event_loop):
         state_root=ZERO_HASH32,
         randao_reveal=ZERO_HASH32,
         candidate_pow_receipt_root=ZERO_HASH32,
-        signature=None,
+        signature=(0,0),
         body=empty_body(),
     )
     alice.sub_proto.send_blocks((block,))
@@ -84,7 +84,7 @@ async def test_send_multiple_blocks(request, event_loop):
             state_root=ZERO_HASH32,
             randao_reveal=ZERO_HASH32,
             candidate_pow_receipt_root=ZERO_HASH32,
-            signature=None,
+            signature=(0,0),
             body=empty_body(),
         )
         for slot in range(3)

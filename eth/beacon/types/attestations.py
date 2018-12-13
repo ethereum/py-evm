@@ -36,10 +36,7 @@ class Attestation(rlp.Serializable):
                  data: AttestationData,
                  participation_bitfield: bytes,
                  custody_bitfield: bytes,
-                 aggregate_sig: Sequence[int]=None) -> None:
-        if aggregate_sig is None:
-            aggregate_sig = (0, 0)
-
+                 aggregate_sig: Sequence[int]=(0, 0)) -> None:
         super().__init__(
             data=data,
             participation_bitfield=participation_bitfield,

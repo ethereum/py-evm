@@ -79,9 +79,7 @@ class BaseBeaconBlock(rlp.Serializable):
                  randao_reveal: Hash32,
                  candidate_pow_receipt_root: Hash32,
                  body: BeaconBlockBody,
-                 signature: Sequence[int]=None) -> None:
-        if signature is None:
-            signature = (0, 0)
+                 signature: Sequence[int]=(0, 0)) -> None:
         super().__init__(
             slot=slot,
             parent_root=parent_root,
