@@ -205,6 +205,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-native-blockchain-transition
+  py36-all-blockchain-tests:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-all-blockchain-tests
   py36-rpc-state-byzantium:
     <<: *common
     docker:
@@ -330,6 +336,16 @@ jobs:
 
 workflows:
   version: 2
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+     - py36-all-blockchain-tests
   test:
     jobs:
       - py36-docs
