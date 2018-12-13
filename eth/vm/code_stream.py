@@ -15,16 +15,16 @@ from eth.vm import opcode_values
 class CodeStream(object):
     stream = None
     depth_processed = None
-    _len = None
-    _value = None
+    _length_cache = None
+    _raw_code_bytes = None
 
     logger = logging.getLogger('eth.vm.CodeStream')
 
     def __init__(self, code_bytes: bytes) -> None:
         validate_is_bytes(code_bytes, title="CodeStream bytes")
         self.stream = io.BytesIO(code_bytes)
-        self._value = code_bytes
-        self._len = len(code_bytes)
+        self._raw_code_bytes = code_bytes
+        self._length_cache = len(code_bytes)
         self.invalid_positions = set()  # type: Set[int]
         self.depth_processed = 0
 
@@ -32,7 +32,7 @@ class CodeStream(object):
         return self.stream.read(size)
 
     def __len__(self) -> int:
-        return self._len
+        return self._length_cache
 
     def __iter__(self) -> 'CodeStream':
         return self
@@ -41,7 +41,7 @@ class CodeStream(object):
         return self.next()
 
     def __getitem__(self, i: int) -> int:
-        return self._value[i]
+        return self._raw_code_bytes[i]
 
     def next(self) -> int:
         next_opcode_as_byte = self.read(1)
