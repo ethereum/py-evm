@@ -14,6 +14,7 @@ from eth.beacon.enums.validator_status_codes import (
     ValidatorStatusCode,
 )
 from eth.beacon.types.blocks import BaseBeaconBlock
+from eth.beacon.types.fork_data import ForkData
 from eth.beacon.types.shard_committees import ShardCommittee
 from eth.beacon.types.states import BeaconState
 from eth.beacon.types.validator_records import ValidatorRecord
@@ -24,6 +25,8 @@ from eth.beacon.helpers import (
     get_beacon_proposer_index,
     get_block_hash,
     get_effective_balance,
+    get_domain,
+    get_fork_version,
     get_hashes_from_latest_block_hashes,
     get_new_shuffling,
     get_new_validator_registry_delta_chain_tip,
@@ -661,3 +664,68 @@ def test_get_new_validator_registry_delta_chain_tip(index,
         flag=flag,
     )
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    (
+        'pre_fork_version,'
+        'post_fork_version,'
+        'fork_slot,'
+        'current_slot,'
+        'expected'
+    ),
+    [
+        (0, 0, 0, 0, 0),
+        (0, 0, 0, 1, 0),
+        (0, 0, 20, 10, 0),
+        (0, 1, 20, 20, 1),
+        (0, 1, 10, 20, 1),
+    ]
+)
+def test_get_fork_version(pre_fork_version,
+                          post_fork_version,
+                          fork_slot,
+                          current_slot,
+                          expected):
+    fork_data = ForkData(
+        pre_fork_version=pre_fork_version,
+        post_fork_version=post_fork_version,
+        fork_slot=fork_slot,
+    )
+    assert expected == get_fork_version(
+        fork_data,
+        current_slot,
+    )
+
+
+@pytest.mark.parametrize(
+    (
+        'pre_fork_version,'
+        'post_fork_version,'
+        'fork_slot,'
+        'current_slot,'
+        'domain_type,'
+        'expected'
+    ),
+    [
+        (1, 2, 20, 10, 10, 1 * 2 ** 32 + 10),
+        (1, 2, 20, 20, 11, 2 * 2 ** 32 + 11),
+        (1, 2, 10, 20, 12, 2 * 2 ** 32 + 12),
+    ]
+)
+def test_get_domain(pre_fork_version,
+                    post_fork_version,
+                    fork_slot,
+                    current_slot,
+                    domain_type,
+                    expected):
+    fork_data = ForkData(
+        pre_fork_version=pre_fork_version,
+        post_fork_version=post_fork_version,
+        fork_slot=fork_slot,
+    )
+    assert expected == get_domain(
+        fork_data=fork_data,
+        slot=current_slot,
+        domain_type=domain_type,
+    )
