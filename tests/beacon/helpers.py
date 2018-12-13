@@ -21,23 +21,15 @@ def mock_validator_record(pubkey, max_deposit):
 
 def get_pseudo_chain(length, genesis_block):
     """
-    Get a pseudo chain, only slot and parent_hash are valid.
+    Get a pseudo chain, only slot and parent_root are valid.
     """
-    blocks = []
-    ancestor_hashes_len = len(genesis_block.ancestor_hashes)
-    for slot in range(length * 3):
-        if slot > 0:
-            ancestor_hashes = (
-                (blocks[slot - 1].hash, ) +
-                blocks[slot - 1].ancestor_hashes[:ancestor_hashes_len]
-            )
-        else:
-            ancestor_hashes = genesis_block.ancestor_hashes
-        blocks.append(
-            genesis_block.copy(
-                slot=slot,
-                ancestor_hashes=ancestor_hashes
-            )
+    blocks = [genesis_block.copy()]
+    for slot in range(1, length * 3):
+        block = genesis_block.copy(
+            slot=slot,
+            parent_root=blocks[slot - 1].hash
         )
+
+        blocks.append(block)
 
     return tuple(blocks)
