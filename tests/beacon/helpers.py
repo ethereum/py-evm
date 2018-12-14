@@ -5,6 +5,8 @@ from eth.beacon.types.validator_records import (
     ValidatorRecord,
 )
 
+from eth_utils import to_tuple
+
 
 def mock_validator_record(pubkey, max_deposit):
     return ValidatorRecord(
@@ -19,25 +21,16 @@ def mock_validator_record(pubkey, max_deposit):
     )
 
 
+@to_tuple
 def get_pseudo_chain(length, genesis_block):
     """
-    Get a pseudo chain, only slot and parent_hash are valid.
+    Get a pseudo chain, only slot and parent_root are valid.
     """
-    blocks = []
-    ancestor_hashes_len = len(genesis_block.ancestor_hashes)
-    for slot in range(length * 3):
-        if slot > 0:
-            ancestor_hashes = (
-                (blocks[slot - 1].hash, ) +
-                blocks[slot - 1].ancestor_hashes[:ancestor_hashes_len]
-            )
-        else:
-            ancestor_hashes = genesis_block.ancestor_hashes
-        blocks.append(
-            genesis_block.copy(
-                slot=slot,
-                ancestor_hashes=ancestor_hashes
-            )
+    block = genesis_block.copy()
+    yield block
+    for slot in range(1, length * 3):
+        block = genesis_block.copy(
+            slot=slot,
+            parent_root=block.hash
         )
-
-    return tuple(blocks)
+        yield block

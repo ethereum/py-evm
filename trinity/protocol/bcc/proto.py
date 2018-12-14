@@ -3,7 +3,7 @@ import logging
 from p2p.protocol import Protocol
 
 from eth.beacon.types.blocks import BaseBeaconBlock
-from eth.beacon.types.attestation_records import AttestationRecord
+from eth.beacon.types.attestations import Attestation
 
 from trinity.protocol.bcc.commands import (
     Status,
@@ -62,7 +62,7 @@ class BCCProtocol(Protocol):
         header, body = cmd.encode(blocks)
         self.send(header, body)
 
-    def send_attestation_records(self, attestation_records: Tuple[AttestationRecord, ...]) -> None:
+    def send_attestation_records(self, attestations: Tuple[Attestation, ...]) -> None:
         cmd = AttestationRecords(self.cmd_id_offset)
-        header, body = cmd.encode(attestation_records)
+        header, body = cmd.encode(attestations)
         self.send(header, body)

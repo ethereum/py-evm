@@ -11,7 +11,10 @@ from eth_utils.toolz import (
 
 from eth.db.atomic import AtomicDB
 from eth.beacon.db.chain import BeaconChainDB
-from eth.beacon.types.blocks import BaseBeaconBlock
+from eth.beacon.types.blocks import (
+    BaseBeaconBlock,
+    BeaconBlockBody,
+)
 from eth.constants import (
     ZERO_HASH32,
 )
@@ -29,20 +32,29 @@ from p2p.tools.paragon.helpers import (
 )
 
 
+def empty_body():
+    return BeaconBlockBody(
+        proposer_slashings=(),
+        casper_slashings=(),
+        attestations=(),
+        deposits=(),
+        exits=(),
+    )
+
+
 def create_test_block(parent=None, **kwargs):
     defaults = {
         "slot": 0,
+        "parent_root": ZERO_HASH32,
+        "state_root": ZERO_HASH32,  # note: not the actual genesis state root
         "randao_reveal": ZERO_HASH32,
         "candidate_pow_receipt_root": ZERO_HASH32,
-        "ancestor_hashes": [ZERO_HASH32] * 32,
-        "state_root": ZERO_HASH32,  # note: not the actual genesis state root
-        "attestations": [],
-        "specials": [],
-        "proposer_signature": None,
+        "signature": (0, 0),
+        "body": empty_body()
     }
 
     if parent is not None:
-        kwargs["ancestor_hashes"] = [parent.hash] + [ZERO_HASH32] * 31
+        kwargs["parent_root"] = parent.hash
         kwargs["slot"] = parent.slot + 1
 
     return BaseBeaconBlock(**merge(defaults, kwargs))

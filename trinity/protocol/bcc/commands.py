@@ -21,7 +21,7 @@ from trinity.rlp.sedes import (
 )
 
 from eth.beacon.types.blocks import BaseBeaconBlock
-from eth.beacon.types.attestation_records import AttestationRecord
+from eth.beacon.types.attestations import Attestation
 
 
 class Status(Command):
@@ -55,4 +55,4 @@ class BeaconBlocks(Command):
 
 class AttestationRecords(Command):
     _cmd_id = 3
-    structure = sedes.CountableList(AttestationRecord)
+    structure = sedes.CountableList(Attestation)

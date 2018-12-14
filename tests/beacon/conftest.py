@@ -1,5 +1,4 @@
 import pytest
-import itertools
 
 from eth_utils import denoms
 
@@ -9,6 +8,25 @@ from eth.constants import (
 import eth.utils.bls as bls
 from eth.utils.blake import blake
 
+from eth.beacon.types.proposal_signed_data import (
+    ProposalSignedData
+)
+
+from eth.beacon.types.slashable_vote_data import (
+    SlashableVoteData,
+)
+
+from eth.beacon.types.attestation_data import (
+    AttestationData,
+)
+
+from eth.beacon.types.deposits import DepositData
+from eth.beacon.types.deposit_parameters import DepositParameters
+
+from eth.beacon.types.blocks import (
+    BeaconBlockBody,
+)
+
 from eth.beacon.enums import (
     ValidatorStatusCode,
 )
@@ -17,14 +35,9 @@ from eth.beacon.types.validator_records import (
     ValidatorRecord,
 )
 
-from eth.beacon.types.attestation_data import (
-    AttestationData,
-)
-
 from eth.beacon.types.fork_data import (
     ForkData,
 )
-
 
 DEFAULT_SHUFFLING_SEED = b'\00' * 32
 DEFAULT_RANDAO = b'\45' * 32
@@ -52,7 +65,19 @@ def pubkeys(keymap):
 
 
 @pytest.fixture
-def sample_attestation_record_params(sample_attestation_data_params):
+def sample_proposer_slashing_params(sample_proposal_signed_data_params):
+    proposal_data = ProposalSignedData(**sample_proposal_signed_data_params)
+    return {
+        'proposer_index': 1,
+        'proposal_data_1': proposal_data,
+        'proposal_signature_1': (1, 2, 3),
+        'proposal_data_2': proposal_data,
+        'proposal_signature_2': (4, 5, 6),
+    }
+
+
+@pytest.fixture
+def sample_attestation_params(sample_attestation_data_params):
     return {
         'data': AttestationData(**sample_attestation_data_params),
         'participation_bitfield': b'\12' * 16,
@@ -76,16 +101,26 @@ def sample_attestation_data_params():
 
 
 @pytest.fixture
-def sample_beacon_block_params(epoch_length):
+def sample_beacon_block_body_params():
+    return {
+        'proposer_slashings': (),
+        'casper_slashings': (),
+        'attestations': (),
+        'deposits': (),
+        'exits': (),
+    }
+
+
+@pytest.fixture
+def sample_beacon_block_params(sample_beacon_block_body_params):
     return {
         'slot': 10,
+        'parent_root': b'\x56' * 32,
+        'state_root': b'\x55' * 32,
         'randao_reveal': b'\x55' * 32,
         'candidate_pow_receipt_root': b'\x55' * 32,
-        'ancestor_hashes': tuple(itertools.repeat(ZERO_HASH32, 2 * epoch_length)),
-        'state_root': b'\x55' * 32,
-        'attestations': (),
-        'specials': (),
-        'proposer_signature': (0, 0),
+        'signature': (0, 0),
+        'body': BeaconBlockBody(**sample_beacon_block_body_params)
     }
 
 
@@ -134,7 +169,7 @@ def sample_crosslink_record_params():
 
 
 @pytest.fixture
-def sample_deposit_parameters_records_params():
+def sample_deposit_parameters_params():
     return {
         # BLS pubkey
         'pubkey': 123,
@@ -144,6 +179,28 @@ def sample_deposit_parameters_records_params():
         'withdrawal_credentials': b'\11' * 32,
         # Initial RANDAO commitment
         'randao_commitment': b'\11' * 32,
+    }
+
+
+@pytest.fixture
+def sample_deposit_params(sample_deposit_parameters_params):
+    return {
+        'merkle_branch': (),
+        'merkle_tree_index': 5,
+        'deposit_data': DepositData(
+            deposit_parameters=DepositParameters(**sample_deposit_parameters_params),
+            value=56,
+            timestamp=1501851927,
+        )
+    }
+
+
+@pytest.fixture
+def sample_exit_params():
+    return {
+        'slot': 123,
+        'validator_index': 15,
+        'signature': (b'\56' * 32),
     }
 
 
@@ -203,10 +260,21 @@ def sample_shard_reassignment_record():
 
 
 @pytest.fixture
-def sample_special_params():
+def sample_slashable_vote_data_params(sample_attestation_data_params):
     return {
-        'kind': 10,
-        'data': b'\x55' * 100,
+        'aggregate_signature_poc_0_indices': (10, 11, 12, 15, 28),
+        'aggregate_signature_poc_1_indices': (7, 8, 100, 131, 249),
+        'data': sample_attestation_data_params,
+        'aggregate_signature': (1, 2, 3, 4, 5),
+    }
+
+
+@pytest.fixture
+def sample_casper_slashing_params(sample_slashable_vote_data_params):
+    vote_data = SlashableVoteData(**sample_slashable_vote_data_params)
+    return {
+        'slashable_vote_data_1': vote_data,
+        'slashable_vote_data_2': vote_data,
     }
 
 

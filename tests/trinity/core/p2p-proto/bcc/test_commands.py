@@ -1,6 +1,7 @@
 import pytest
 
-from eth.beacon.types.attestation_records import AttestationRecord
+
+from eth.beacon.types.attestations import Attestation
 from eth.beacon.types.attestation_data import AttestationData
 from eth.beacon.types.blocks import BaseBeaconBlock
 
@@ -20,6 +21,7 @@ from trinity.protocol.bcc.commands import (
 
 from .helpers import (
     get_directly_linked_peers,
+    empty_body,
 )
 
 
@@ -44,13 +46,12 @@ async def test_send_single_block(request, event_loop):
 
     block = BaseBeaconBlock(
         slot=1,
+        parent_root=ZERO_HASH32,
+        state_root=ZERO_HASH32,
         randao_reveal=ZERO_HASH32,
         candidate_pow_receipt_root=ZERO_HASH32,
-        ancestor_hashes=[ZERO_HASH32] * 32,
-        state_root=ZERO_HASH32,
-        attestations=[],
-        specials=[],
-        proposer_signature=None,
+        signature=(0, 0),
+        body=empty_body(),
     )
     alice.sub_proto.send_blocks((block,))
 
@@ -68,13 +69,12 @@ async def test_send_multiple_blocks(request, event_loop):
     blocks = tuple(
         BaseBeaconBlock(
             slot=slot,
+            parent_root=ZERO_HASH32,
+            state_root=ZERO_HASH32,
             randao_reveal=ZERO_HASH32,
             candidate_pow_receipt_root=ZERO_HASH32,
-            ancestor_hashes=[ZERO_HASH32] * 32,
-            state_root=ZERO_HASH32,
-            attestations=[],
-            specials=[],
-            proposer_signature=None,
+            signature=(0, 0),
+            body=empty_body(),
         )
         for slot in range(3)
     )
@@ -136,7 +136,7 @@ async def test_send_single_attestation(request, event_loop):
     msg_buffer = MsgBuffer()
     bob.add_subscriber(msg_buffer)
 
-    attestation_record = AttestationRecord(
+    attestation = Attestation(
         data=AttestationData(
             slot=0,
             shard=1,
@@ -151,11 +151,11 @@ async def test_send_single_attestation(request, event_loop):
         custody_bitfield=b"\x00\x00\x00",
     )
 
-    alice.sub_proto.send_attestation_records((attestation_record,))
+    alice.sub_proto.send_attestation_records((attestation,))
 
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, AttestationRecords)
-    assert message.payload == (attestation_record,)
+    assert message.payload == (attestation,)
 
 
 @pytest.mark.asyncio
@@ -164,8 +164,8 @@ async def test_send_multiple_attestations(request, event_loop):
     msg_buffer = MsgBuffer()
     bob.add_subscriber(msg_buffer)
 
-    attestation_records = tuple(
-        AttestationRecord(
+    attestations = tuple(
+        Attestation(
             data=AttestationData(
                 slot=0,
                 shard=1,
@@ -181,8 +181,8 @@ async def test_send_multiple_attestations(request, event_loop):
         ) for shard in range(10)
     )
 
-    alice.sub_proto.send_attestation_records(attestation_records)
+    alice.sub_proto.send_attestation_records(attestations)
 
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, AttestationRecords)
-    assert message.payload == attestation_records
+    assert message.payload == attestations
