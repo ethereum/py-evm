@@ -20,7 +20,7 @@ from typing import (
     Iterator,
     List,
     NamedTuple,
-    Set,
+    FrozenSet,
     Tuple,
     Type,
 )
@@ -636,7 +636,7 @@ class PeerSubscriber(ABC):
 
     @property
     @abstractmethod
-    def subscription_msg_types(self) -> Set[Type[protocol.Command]]:
+    def subscription_msg_types(self) -> FrozenSet[Type[protocol.Command]]:
         """
         The `p2p.protocol.Command` types that this class subscribes to.  Any
         command which is not in this set will not be passed to this subscriber.
