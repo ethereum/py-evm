@@ -19,6 +19,10 @@ from eth.exceptions import (
     VMError,
 )
 
+from eth.typing import (
+    BytesOrView,
+)
+
 from eth.utils.bn128 import (
     validate_point,
     FQP_point_to_FQ2_point,
@@ -60,7 +64,7 @@ def ecpairing(computation: BaseComputation) -> BaseComputation:
     return computation
 
 
-def _ecpairing(data: bytes) -> bool:
+def _ecpairing(data: BytesOrView) -> bool:
     exponent = bn128.FQ12.one()
 
     processing_pipeline = (

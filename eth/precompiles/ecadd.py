@@ -32,7 +32,7 @@ def ecadd(computation: BaseComputation) -> BaseComputation:
     computation.consume_gas(constants.GAS_ECADD, reason='ECADD Precompile')
 
     try:
-        result = _ecadd(computation.msg.data)
+        result = _ecadd(computation.msg.data_as_bytes)
     except ValidationError:
         raise VMError("Invalid ECADD parameters")
 
