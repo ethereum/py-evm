@@ -2,7 +2,7 @@ import itertools
 from typing import (
     cast,
     Iterable,
-    Set,
+    FrozenSet,
     Type,
 )
 
@@ -41,9 +41,9 @@ from trinity.protocol.bcc.peer import (
 
 
 class BCCRequestServer(BaseRequestServer):
-    subscription_msg_types: Set[Type[Command]] = {
+    subscription_msg_types: FrozenSet[Type[Command]] = frozenset({
         GetBeaconBlocks,
-    }
+    })
 
     def __init__(self,
                  db: BaseBeaconChainDB,

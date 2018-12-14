@@ -5,7 +5,7 @@ from typing import (
     AsyncGenerator,
     Callable,
     Generic,
-    Set,
+    FrozenSet,
     Tuple,
     Type,
     cast,
@@ -46,8 +46,8 @@ class ResponseCandidateStream(
     # PeerSubscriber
     #
     @property
-    def subscription_msg_types(self) -> Set[Type[Command]]:
-        return {self.response_msg_type}
+    def subscription_msg_types(self) -> FrozenSet[Type[Command]]:
+        return frozenset({self.response_msg_type})
 
     msg_queue_maxsize = 100
 

@@ -3,7 +3,7 @@ from typing import (
     Callable,
     Iterable,
     List,
-    Set,
+    FrozenSet,
     Type,
 )
 import uuid
@@ -60,7 +60,7 @@ class TxPool(BaseService, PeerSubscriber):
         self._bloom = BloomFilter(max_elements=1000000)
         self._bloom_salt = str(uuid.uuid4())
 
-    subscription_msg_types: Set[Type[Command]] = {Transactions}
+    subscription_msg_types: FrozenSet[Type[Command]] = frozenset({Transactions})
 
     # This is a rather arbitrary value, but when the sync is operating normally we never see
     # the msg queue grow past a few hundred items, so this should be a reasonable limit for

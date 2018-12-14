@@ -1,7 +1,7 @@
 from typing import (
     Any,
     Dict,
-    Set,
+    FrozenSet,
     Type,
     cast,
 )
@@ -44,9 +44,9 @@ class LightRequestServer(BaseRequestServer):
     Monitor commands from peers, to identify inbound requests that should receive a response.
     Handle those inbound requests by querying our local database and replying.
     """
-    subscription_msg_types: Set[Type[Command]] = {
+    subscription_msg_types: FrozenSet[Type[Command]] = frozenset({
         commands.GetBlockHeaders,
-    }
+    })
 
     def __init__(
             self,
