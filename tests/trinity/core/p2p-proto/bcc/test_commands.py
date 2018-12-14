@@ -3,10 +3,7 @@ import pytest
 
 from eth.beacon.types.attestations import Attestation
 from eth.beacon.types.attestation_data import AttestationData
-from eth.beacon.types.blocks import (
-    BaseBeaconBlock,
-    BeaconBlockBody,
-)
+from eth.beacon.types.blocks import BaseBeaconBlock
 
 from eth.constants import (
     ZERO_HASH32,
@@ -24,17 +21,8 @@ from trinity.protocol.bcc.commands import (
 
 from .helpers import (
     get_directly_linked_peers,
+    empty_body,
 )
-
-
-def empty_body():
-    return BeaconBlockBody(
-        proposer_slashings=(),
-        casper_slashings=(),
-        attestations=(),
-        deposits=(),
-        exits=(),
-    )
 
 
 @pytest.mark.asyncio
