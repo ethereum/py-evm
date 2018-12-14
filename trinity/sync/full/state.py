@@ -10,6 +10,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Set,
     FrozenSet,
     Tuple,
     Type,
