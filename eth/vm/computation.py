@@ -29,6 +29,9 @@ from eth.exceptions import (
     Halt,
     VMError,
 )
+from eth.typing import (
+    BytesOrView,
+)
 from eth.tools.logging import (
     ExtendedDebugLogger,
 )
@@ -243,11 +246,17 @@ class BaseComputation(Configurable, ABC):
         """
         return self._memory.write(start_position, size, value)
 
-    def memory_read(self, start_position: int, size: int) -> bytes:
+    def memory_read(self, start_position: int, size: int) -> memoryview:
+        """
+        Read and return a view of ``size`` bytes from memory starting at ``start_position``.
+        """
+        return self._memory.read(start_position, size)
+
+    def memory_read_bytes(self, start_position: int, size: int) -> bytes:
         """
         Read and return ``size`` bytes from memory starting at ``start_position``.
         """
-        return self._memory.read(start_position, size)
+        return self._memory.read_bytes(start_position, size)
 
     #
     # Gas Consumption
@@ -360,7 +369,7 @@ class BaseComputation(Configurable, ABC):
                               gas: int,
                               to: Address,
                               value: int,
-                              data: bytes,
+                              data: BytesOrView,
                               code: bytes,
                               **kwargs: Any) -> Message:
         """

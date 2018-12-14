@@ -42,7 +42,7 @@ def calldataload(computation: BaseComputation) -> None:
     """
     start_position = computation.stack_pop(type_hint=constants.UINT256)
 
-    value = computation.msg.data[start_position:start_position + 32]
+    value = computation.msg.data_as_bytes[start_position:start_position + 32]
     padded_value = value.ljust(32, b'\x00')
     normalized_value = padded_value.lstrip(b'\x00')
 
@@ -68,7 +68,9 @@ def calldatacopy(computation: BaseComputation) -> None:
 
     computation.consume_gas(copy_gas_cost, reason="CALLDATACOPY fee")
 
-    value = computation.msg.data[calldata_start_position: calldata_start_position + size]
+    value = computation.msg.data_as_bytes[
+        calldata_start_position: calldata_start_position + size
+    ]
     padded_value = value.ljust(size, b'\x00')
 
     computation.memory_write(mem_start_position, size, padded_value)

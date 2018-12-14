@@ -57,6 +57,8 @@ GeneralState = Union[
 
 GenesisDict = Dict[str, Union[int, BlockNumber, bytes, Hash32]]
 
+BytesOrView = Union[bytes, memoryview]
+
 Normalizer = Callable[[Dict[Any, Any]], Dict[str, Any]]
 
 RawAccountDetails = TypedDict('RawAccountDetails',

@@ -32,8 +32,7 @@ def return_op(computation: BaseComputation) -> None:
 
     computation.extend_memory(start_position, size)
 
-    output = computation.memory_read(start_position, size)
-    computation.output = bytes(output)
+    computation.output = computation.memory_read_bytes(start_position, size)
     raise Halt('RETURN')
 
 
@@ -42,8 +41,7 @@ def revert(computation: BaseComputation) -> None:
 
     computation.extend_memory(start_position, size)
 
-    output = computation.memory_read(start_position, size)
-    computation.output = bytes(output)
+    computation.output = computation.memory_read_bytes(start_position, size)
     raise Revert(computation.output)
 
 
@@ -163,7 +161,9 @@ class Create(Opcode):
             computation.stack_push(0)
             return
 
-        call_data = computation.memory_read(stack_data.memory_start, stack_data.memory_length)
+        call_data = computation.memory_read_bytes(
+            stack_data.memory_start, stack_data.memory_length
+        )
 
         create_msg_gas = self.max_child_gas_modifier(
             computation.get_gas_remaining()
