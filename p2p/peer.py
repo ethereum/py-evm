@@ -731,7 +731,7 @@ class PeerSubscriber(ABC):
 class MsgBuffer(PeerSubscriber):
     logger = logging.getLogger('p2p.peer.MsgBuffer')
     msg_queue_maxsize = 500
-    subscription_msg_types = {protocol.Command}
+    subscription_msg_types = frozenset({protocol.Command})
 
     @to_tuple
     def get_messages(self) -> Iterator[PeerMessage]:

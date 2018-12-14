@@ -111,7 +111,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         self._pending_replies: Dict[int, Callable[[protocol._DecodedMsgType], None]] = {}
 
     # TODO: be more specific about what messages we want.
-    subscription_msg_types: FrozenSet[Type[Command]] = {Command}
+    subscription_msg_types: FrozenSet[Type[Command]] = frozenset({Command})
 
     # Here we only care about replies to our requests, ignoring most msgs (which are supposed
     # to be handled by the chain syncer), so our queue should never grow too much.

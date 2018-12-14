@@ -124,7 +124,7 @@ class ETHRequestServer(BaseRequestServer):
     Monitor commands from peers, to identify inbound requests that should receive a response.
     Handle those inbound requests by querying our local database and replying.
     """
-    subscription_msg_types: FrozenSet[Type[Command]] = {
+    subscription_msg_types: FrozenSet[Type[Command]] = frozenset({
         commands.GetBlockHeaders,
         commands.GetBlockBodies,
         commands.GetReceipts,
@@ -133,7 +133,7 @@ class ETHRequestServer(BaseRequestServer):
         # until the messages are properly handled.
         commands.Transactions,
         commands.NewBlockHashes,
-    }
+    })
 
     def __init__(
             self,
