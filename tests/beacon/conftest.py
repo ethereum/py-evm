@@ -9,7 +9,7 @@ from eth.constants import (
 import eth.utils.bls as bls
 from eth.utils.blake import blake
 
-from eth.beacon.enums.validator_status_codes import (
+from eth.beacon.enums import (
     ValidatorStatusCode,
 )
 from eth.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG

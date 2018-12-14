@@ -28,7 +28,7 @@ from eth.utils.numeric import (
 )
 
 from eth.beacon.block_committees_info import BlockCommitteesInfo
-from eth.beacon.enums.validator_status_codes import (
+from eth.beacon.enums import (
     ValidatorStatusCode,
 )
 from eth.beacon.types.shard_committees import (
@@ -41,9 +41,11 @@ from eth.beacon.utils.random import (
 
 
 if TYPE_CHECKING:
+    from eth.beacon.enums import SignatureDomain  # noqa: F401
     from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
     from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth.beacon.types.states import BeaconState  # noqa: F401
+    from eth.beacon.types.fork_data import ForkData  # noqa: F401
     from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
@@ -154,7 +156,7 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tup
     """
     return tuple(
         i for i, v in enumerate(validators)
-        if v.status in [ValidatorStatusCode.ACTIVE, ValidatorStatusCode.PENDING_EXIT]
+        if v.status in [ValidatorStatusCode.ACTIVE, ValidatorStatusCode.ACTIVE_PENDING_EXIT]
     )
 
 
@@ -393,3 +395,27 @@ def get_new_validator_registry_delta_chain_tip(current_validator_registry_delta_
         # TODO: currently, we use 256-bit pubkey which is different form the spec
         pubkey.to_bytes(32, 'big')
     )
+
+
+def get_fork_version(fork_data: 'ForkData',
+                     slot: int) -> int:
+    """
+    Return the current ``fork_version`` from the given ``fork_data`` and ``slot``.
+    """
+    if slot < fork_data.fork_slot:
+        return fork_data.pre_fork_version
+    else:
+        return fork_data.post_fork_version
+
+
+def get_domain(fork_data: 'ForkData',
+               slot: int,
+               domain_type: 'SignatureDomain') -> int:
+    """
+    Return the domain number of the current fork and ``domain_type``.
+    """
+    # 2 ** 32 = 4294967296
+    return get_fork_version(
+        fork_data,
+        slot,
+    ) * 4294967296 + domain_type
