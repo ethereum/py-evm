@@ -62,6 +62,9 @@ from trinity.utils.datastructures import (
     OrderedTaskPreparation,
     TaskQueue,
 )
+from trinity.utils.humanize import (
+    humanize_hash,
+)
 
 
 class SkeletonSyncer(BaseService, Generic[TChainPeer]):
@@ -634,7 +637,7 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
                 "%s returned segment starting %s & parent %s, doesn't match %s, ignoring result...",
                 peer,
                 headers[0],
-                headers[0].parent_hash,
+                humanize_hash(headers[0].parent_hash),
                 parent_header,
             )
             return tuple()
@@ -803,7 +806,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
 
         self.logger.debug(
             "Skeleton syncer asserts that parent (%s) of the first header (%s) is already present",
-            first_segment[0].parent_hash,
+            humanize_hash(first_segment[0].parent_hash),
             first_segment[0],
         )
         first_parent = await self._db.coro_get_block_header_by_hash(first_segment[0].parent_hash)
