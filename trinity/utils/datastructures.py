@@ -503,7 +503,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
         self._declared_finished.add(task_id)
         # note that this task is intentionally *not* added to self._unready
 
-    def register_tasks(self, tasks: Tuple[TTask, ...]) -> None:
+    def register_tasks(self, tasks: Tuple[TTask, ...], ignore_duplicates: bool = False) -> None:
         """
         Initiate a task into tracking. By default, each task must be registered
         *after* its dependency has been registered.
@@ -512,22 +512,24 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
         initialize this intance with: ``accept_dangling_tasks=True``.
 
         :param tasks: the tasks to register, in iteration order
+        :param ignore_duplicates: any tasks that have already been registered will be ignored,
+            whether ready or not
         """
-        task_meta_info = tuple(
-            (self._prereq_tracker(task), self._id_of(task), self._dependency_of(task))
-            for task in tasks
-        )
+        identified_tasks = tuple((self._id_of(task), task) for task in tasks)
+        duplicates = tuple(task for task_id, task in identified_tasks if task_id in self._tasks)
 
-        duplicates = tuple(
-            tracker.task for tracker, task_id, _ in task_meta_info
-            if task_id in self._tasks
-        )
-
-        if duplicates:
+        if duplicates and not ignore_duplicates:
             raise DuplicateTasks(
                 f"Cannot re-register tasks: {duplicates!r} for completion",
                 duplicates,
             )
+
+        task_meta_info = tuple(
+            (self._prereq_tracker(task), task_id, self._dependency_of(task))
+            for task_id, task in identified_tasks
+            # when ignoring duplicates, must not try to re-add them
+            if task_id not in self._tasks
+        )
 
         for prereq_tracker, task_id, dependency_id in task_meta_info:
             if not self._accept_dangling_tasks and dependency_id not in self._tasks:

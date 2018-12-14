@@ -203,6 +203,21 @@ async def test_no_prereq_tasks():
 
 
 @pytest.mark.asyncio
+async def test_ignore_duplicates():
+    ti = OrderedTaskPreparation(NoPrerequisites, identity, lambda x: x - 1)
+    ti.set_finished_dependency(1)
+    ti.register_tasks((2, ))
+    # this will ignore the 2 task:
+    ti.register_tasks((2, 3), ignore_duplicates=True)
+    # this will be completely ignored:
+    ti.register_tasks((2, 3), ignore_duplicates=True)
+
+    # with no prerequisites, tasks are *immediately* finished, as long as they are in order
+    finished = await wait(ti.ready_tasks())
+    assert finished == (2, 3)
+
+
+@pytest.mark.asyncio
 async def test_register_out_of_order():
     ti = OrderedTaskPreparation(OnePrereq, identity, lambda x: x - 1, accept_dangling_tasks=True)
     ti.set_finished_dependency(1)
