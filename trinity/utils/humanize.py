@@ -48,7 +48,7 @@ def _humanize_elapsed(seconds: int) -> Iterator[str]:
         remainder %= duration
 
 
-DISPLAY_HASH_BYTES = 3
+DISPLAY_HASH_BYTES = 2
 
 
 def humanize_hash(value: Hash32) -> str:

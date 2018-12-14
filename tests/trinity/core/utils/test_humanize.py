@@ -44,7 +44,7 @@ def test_humanize_elapsed(seconds, expected):
 @pytest.mark.parametrize(
     'hash32,expected',
     (
-        (bytes(range(32)), '000102..1d1e1f'),
+        (bytes(range(32)), '0001..1e1f'),
     )
 )
 def test_humanize_hash(hash32, expected):
