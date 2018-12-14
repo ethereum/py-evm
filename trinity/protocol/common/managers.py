@@ -47,7 +47,7 @@ class ResponseCandidateStream(
     #
     @property
     def subscription_msg_types(self) -> FrozenSet[Type[Command]]:
-        return frozenset(self.response_msg_type)
+        return frozenset({self.response_msg_type})
 
     msg_queue_maxsize = 100
 
