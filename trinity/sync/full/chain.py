@@ -65,7 +65,7 @@ from trinity.utils.datastructures import (
     TaskQueue,
 )
 from trinity.utils.ema import EMA
-from trinity.utils.humanize import humanize_elapsed
+from trinity.utils.humanize import humanize_elapsed, humanize_hash
 from trinity.utils.timer import Timer
 
 # (ReceiptBundle, (Receipt, (root_hash, receipt_trie_data))
@@ -537,7 +537,7 @@ class FastChainSyncer(BaseBodyChainSyncer):
                     "bps=%-3d  "
                     "tps=%-4d  "
                     "elapsed=%0.1f  "
-                    "head=#%d (%s...%s)  "
+                    "head=#%d %s  "
                     "age=%s"
                 ),
                 stats.num_blocks,
@@ -546,8 +546,7 @@ class FastChainSyncer(BaseBodyChainSyncer):
                 stats.transactions_per_second,
                 stats.elapsed,
                 stats.latest_head.block_number,
-                stats.latest_head.hex_hash[2:6],
-                stats.latest_head.hex_hash[-4:],
+                humanize_hash(stats.latest_head.hash),
                 humanize_elapsed(head_age),
             )
 
