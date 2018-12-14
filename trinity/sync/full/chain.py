@@ -140,7 +140,7 @@ class BaseBodyChainSyncer(BaseHeaderChainSyncer, PeerSubscriber):
     _pending_bodies: Dict[BlockHeader, BlockBody]
 
     # We are only interested in peers entering or leaving the pool
-    subscription_msg_types: Set[Type[Command]] = set()
+    subscription_msg_types: Set[Type[Command]] = frozenset()
 
     # This is a rather arbitrary value, but when the sync is operating normally we never see
     # the msg queue grow past a few hundred items, so this should be a reasonable limit for
