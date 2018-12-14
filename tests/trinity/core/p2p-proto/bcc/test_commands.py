@@ -36,6 +36,7 @@ def empty_body():
         exits=(),
     )
 
+
 @pytest.mark.asyncio
 async def test_send_no_blocks(request, event_loop):
     alice, bob = await get_directly_linked_peers(request, event_loop)
