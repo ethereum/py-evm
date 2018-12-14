@@ -101,7 +101,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
 
     # We are only interested in peers entering or leaving the pool
-    subscription_msg_types: Set[Type[Command]] = frozenset()
+    subscription_msg_types: FrozenSet[Type[Command]] = frozenset()
 
     # This is a rather arbitrary value, but when the sync is operating normally we never see
     # the msg queue grow past a few hundred items, so this should be a reasonable limit for
