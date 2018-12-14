@@ -3,4 +3,4 @@ from trinity.protocol.eth import commands
 
 
 class ETHChainTipMonitor(BaseChainTipMonitor):
-    subscription_msg_types = {commands.NewBlock}
+    subscription_msg_types = frozenset({commands.NewBlock})
