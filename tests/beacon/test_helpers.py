@@ -503,14 +503,14 @@ def test_get_active_validator_indices(sample_validator_record_params):
     active_validator_indices = get_active_validator_indices(validators)
     assert len(active_validator_indices) == 3
 
-    # Make one validator becomes PENDING_EXIT.
+    # Make one validator becomes ACTIVE_PENDING_EXIT.
     validators[0] = validators[0].copy(
-        status=ValidatorStatusCode.PENDING_EXIT,
+        status=ValidatorStatusCode.ACTIVE_PENDING_EXIT,
     )
     active_validator_indices = get_active_validator_indices(validators)
     assert len(active_validator_indices) == 3
 
-    # Make one validator becomes PENDING_EXIT.
+    # Make one validator becomes EXITED_WITHOUT_PENALTY.
     validators[0] = validators[0].copy(
         status=ValidatorStatusCode.EXITED_WITHOUT_PENALTY,
     )
@@ -677,7 +677,7 @@ def test_get_new_validator_registry_delta_chain_tip(index,
     [
         (0, 0, 0, 0, 0),
         (0, 0, 0, 1, 0),
-        (0, 0, 20, 10, 0),
+        (0, 1, 20, 10, 0),
         (0, 1, 20, 20, 1),
         (0, 1, 10, 20, 1),
     ]

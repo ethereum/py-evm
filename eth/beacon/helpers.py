@@ -156,7 +156,7 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tup
     """
     return tuple(
         i for i, v in enumerate(validators)
-        if v.status in [ValidatorStatusCode.ACTIVE, ValidatorStatusCode.PENDING_EXIT]
+        if v.status in [ValidatorStatusCode.ACTIVE, ValidatorStatusCode.ACTIVE_PENDING_EXIT]
     )
 
 
