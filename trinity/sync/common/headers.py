@@ -662,13 +662,7 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
                 return tuple()
             else:
                 # stitch headers together in order, ignoring duplicates
-                try:
-                    self._stitcher.register_tasks(headers)
-                except DuplicateTasks as exc:
-                    non_duplicate_headers = tuple(h for h in headers if h not in exc.duplicates)
-                    if len(non_duplicate_headers):
-                        self._stitcher.register_tasks(non_duplicate_headers)
-
+                self._stitcher.register_tasks(headers, ignore_duplicates=True)
                 return headers
 
     async def _request_headers(
@@ -816,21 +810,11 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
             # the first header of this segment was already registered: no problem, carry on
             pass
 
-        try:
-            self._stitcher.register_tasks(first_segment)
-        except DuplicateTasks as exc:
-            non_duplicate_headers = tuple(h for h in first_segment if h not in exc.duplicates)
-            if len(non_duplicate_headers):
-                self._stitcher.register_tasks(non_duplicate_headers)
+        self._stitcher.register_tasks(first_segment, ignore_duplicates=True)
 
         previous_segment = first_segment
         async for segment in self.wait_iter(skeleton_generator):
-            try:
-                self._stitcher.register_tasks(segment)
-            except DuplicateTasks as exc:
-                non_duplicate_headers = tuple(h for h in segment if h not in exc.duplicates)
-                if len(non_duplicate_headers):
-                    self._stitcher.register_tasks(non_duplicate_headers)
+            self._stitcher.register_tasks(segment, ignore_duplicates=True)
 
             gap_length = segment[0].block_number - previous_segment[-1].block_number - 1
             if gap_length > MAX_HEADERS_FETCH:
