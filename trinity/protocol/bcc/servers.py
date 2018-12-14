@@ -118,7 +118,7 @@ class BCCRequestServer(BaseRequestServer):
             # ensure only a connected chain is returned (breaks might occur if the start block is
             # not part of the canonical chain or if the canonical chain changes during execution)
             for parent, child in sliding_window(2, max_blocks_generator):
-                if child.parent_hash == parent.hash:
+                if child.parent_root == parent.hash:
                     yield child
                 else:
                     break
