@@ -274,7 +274,7 @@ is started with the ``--report-peer-count`` flag.
    :language: python
    :pyobject: PeerCountReporterPlugin.on_ready
 
-In case of a :class:`~trinity.extensibility.plugin.BaseIsolatedProcessPlugin`, this will cause the
+In case of a :class:`~trinity.extensibility.plugin.BaseIsolatedPlugin`, this will cause the
 :meth:`~trinity.extensibility.plugin.BaseIsolatedPlugin.do_start` method to run on an entirely
 separated, new process. In other cases
 :meth:`~trinity.extensibility.plugin.BaseIsolatedPlugin.do_start` will simply run in the same
