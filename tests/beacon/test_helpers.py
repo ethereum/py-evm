@@ -10,7 +10,7 @@ from eth.constants import (
 )
 
 
-from eth.beacon.enums.validator_status_codes import (
+from eth.beacon.enums import (
     ValidatorStatusCode,
 )
 from eth.beacon.types.blocks import BaseBeaconBlock

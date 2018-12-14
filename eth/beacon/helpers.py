@@ -28,7 +28,7 @@ from eth.utils.numeric import (
 )
 
 from eth.beacon.block_committees_info import BlockCommitteesInfo
-from eth.beacon.enums.validator_status_codes import (
+from eth.beacon.enums import (
     ValidatorStatusCode,
 )
 from eth.beacon.types.shard_committees import (
@@ -41,7 +41,7 @@ from eth.beacon.utils.random import (
 
 
 if TYPE_CHECKING:
-    from eth.beacon.enums.signature_domain import SignatureDomain  # noqa: F401
+    from eth.beacon.enums import SignatureDomain  # noqa: F401
     from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
     from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth.beacon.types.states import BeaconState  # noqa: F401
