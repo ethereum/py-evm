@@ -330,13 +330,8 @@ def target_committee_size():
 
 
 @pytest.fixture
-def max_attestations_per_block():
-    return SERENITY_CONFIG.MAX_ATTESTATIONS_PER_BLOCK
-
-
-@pytest.fixture
-def min_balance():
-    return SERENITY_CONFIG.MIN_BALANCE
+def ejection_balance():
+    return SERENITY_CONFIG.EJECTION_BALANCE
 
 
 @pytest.fixture
@@ -355,8 +350,18 @@ def beacon_chain_shard_number():
 
 
 @pytest.fixture
-def bls_withdrawal_credentials():
-    return SERENITY_CONFIG.BLS_WITHDRAWAL_CREDENTIALS
+def bls_withdrawal_prefix_byte():
+    return SERENITY_CONFIG.BLS_WITHDRAWAL_PREFIX_BYTE
+
+
+@pytest.fixture
+def max_casper_votes():
+    return SERENITY_CONFIG.MAX_CASPER_VOTES
+
+
+@pytest.fixture
+def latest_block_roots_length():
+    return SERENITY_CONFIG.LATEST_BLOCK_ROOTS_LENGTH
 
 
 @pytest.fixture
@@ -437,6 +442,31 @@ def includer_reward_quotient():
 @pytest.fixture
 def inactivity_penalty_quotient():
     return SERENITY_CONFIG.INACTIVITY_PENALTY_QUOTIENT
+
+
+@pytest.fixture
+def max_proposer_slashings():
+    return SERENITY_CONFIG.MAX_PROPOSER_SLASHINGS
+
+
+@pytest.fixture
+def max_casper_slashings():
+    return SERENITY_CONFIG.MAX_CASPER_SLASHINGS
+
+
+@pytest.fixture
+def max_attestations():
+    return SERENITY_CONFIG.MAX_ATTESTATIONS
+
+
+@pytest.fixture
+def max_deposits():
+    return SERENITY_CONFIG.MAX_DEPOSITS
+
+
+@pytest.fixture
+def max_exits():
+    return SERENITY_CONFIG.MAX_EXITS
 
 
 #
