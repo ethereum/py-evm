@@ -352,6 +352,10 @@ class MissingDependency(Exception):
     pass
 
 
+class NoPrerequisites(Enum):
+    pass
+
+
 class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
     """
     This class is useful when a series of tasks with prerequisites must be run
@@ -435,6 +439,12 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
     _default_max_depth = 10000  # not sure how to pick a good default here
 
     _prereq_tracker: Type[BaseTaskPrerequisites[TTask, TPrerequisite]]
+
+    NoPrerequisites = NoPrerequisites
+    """
+    This is a helper to identify that no prerequisites are required at all, only ordering of tasks
+    It can be used like so: `OrderedTaskPreparation(OrderedTaskPreparation.NoPrerequisites, ...)`
+    """
 
     def __init__(
             self,

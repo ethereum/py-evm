@@ -349,7 +349,16 @@ class BaseChain(Configurable, ABC):
                         child, child.parent_hash, parent.hash))
             should_check_seal = index in indices_to_check_seal
             vm_class = cls.get_vm_class_for_block_number(child.block_number)
-            vm_class.validate_header(child, parent, check_seal=should_check_seal)
+            try:
+                vm_class.validate_header(child, parent, check_seal=should_check_seal)
+            except ValidationError as exc:
+                raise ValidationError(
+                    "%s is not a valid child of %s: %s" % (
+                        child,
+                        parent,
+                        exc,
+                    )
+                ) from exc
 
 
 class Chain(BaseChain):
