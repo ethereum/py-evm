@@ -27,7 +27,6 @@ def test_is_active(sample_validator_record_params):
     validator = ValidatorRecord(**validator_record_params)
     assert validator.is_active
 
-
     validator_record_params = {
         **sample_validator_record_params,
         'status': ValidatorStatusCode.EXITED_WITHOUT_PENALTY
