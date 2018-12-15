@@ -649,7 +649,7 @@ def test_get_effective_balance(balance, max_deposit, expected, sample_validator_
             1,
             2 * 256 - 1,
             1,
-            b')\x8a4^\xc5\xb4\x06\r\xf3\x0cX\xb8\xdd\x05\x94\xcfY+qF\xbe\xf1\x04\xe3\xe8\xbd\xe5\xef\xfaGY\t'  # noqa: E501
+            b'\xe8\xaaH\x14\xa3\xban\x8f^rn1\xdf\xfd\xe1\xed\xe9S*\x80\xf5\xe3\x03\x983\x15\xd1\x91t\xcc\xb4h'  # noqa: E501
         ),
     ]
 )

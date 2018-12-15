@@ -6,7 +6,7 @@ from eth.constants import (
     ZERO_HASH32,
 )
 import eth.utils.bls as bls
-from eth.utils.blake import blake
+from eth.beacon.utils.hash import hash_
 
 from eth.beacon.types.proposal_signed_data import (
     ProposalSignedData
@@ -46,7 +46,7 @@ DEFAULT_NUM_VALIDATORS = 40
 
 @pytest.fixture(scope="session")
 def privkeys():
-    return [int.from_bytes(blake(str(i).encode('utf-8'))[:4], 'big') for i in range(1000)]
+    return [int.from_bytes(hash_(str(i).encode('utf-8'))[:4], 'big') for i in range(1000)]
 
 
 @pytest.fixture(scope="session")

@@ -14,8 +14,8 @@ from eth.exceptions import (
     BlockNotFound,
     ParentNotFound,
 )
-from eth.utils.blake import (
-    blake,
+from eth.beacon.utils.hash import (
+    hash_,
 )
 from eth.utils.rlp import (
     validate_rlp_equal,
@@ -68,7 +68,7 @@ def test_chaindb_persist_block_and_slot_to_hash(chaindb, block):
 
 @given(seed=st.binary(min_size=32, max_size=32))
 def test_chaindb_persist_block_and_unknown_parent(chaindb, block, seed):
-    n_block = block.copy(parent_root=blake(seed))
+    n_block = block.copy(parent_root=hash_(seed))
     with pytest.raises(ParentNotFound):
         chaindb.persist_block(n_block)
 
