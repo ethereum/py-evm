@@ -36,6 +36,7 @@ from eth.beacon.helpers import (
     _get_shard_committees_at_slot,
     get_block_committees_info,
     is_double_vote,
+    is_surround_vote,
 )
 
 
@@ -757,3 +758,22 @@ def test_is_double_vote(sample_attestation_data_params):
     attestation_data_3 = AttestationData(**attestation_data_3_params)
 
     assert not is_double_vote(attestation_data_1, attestation_data_3)
+
+
+def test_is_surround_vote(sample_attestation_data_params):
+    attestation_data_1_params = {
+        **sample_attestation_data_params,
+        'slot': 4,
+        'justified_slot': 0,
+
+    }
+    attestation_data_1 = AttestationData(**attestation_data_1_params)
+
+    attestation_data_2_params = {
+        **sample_attestation_data_params,
+        'slot': 3,
+        'justified_slot': 2,
+    }
+    attestation_data_2 = AttestationData(**attestation_data_2_params)
+
+    assert is_surround_vote(attestation_data_1, attestation_data_2)
