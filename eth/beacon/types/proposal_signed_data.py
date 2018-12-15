@@ -18,16 +18,16 @@ class ProposalSignedData(rlp.Serializable):
         ('slot', uint64),
         # Shard number (or `2**64 - 1` for beacon chain)
         ('shard', uint64),
-        # Block hash
-        ('block_hash', hash32),
+        # block root
+        ('block_root', hash32),
     ]
 
     def __init__(self,
                  slot: int,
                  shard: int,
-                 block_hash: Hash32) -> None:
+                 block_root: Hash32) -> None:
         super().__init__(
             slot,
             shard,
-            block_hash,
+            block_root,
         )

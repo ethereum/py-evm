@@ -58,8 +58,6 @@ class BaseBeaconBlock(rlp.Serializable):
         # Header
         #
         ('slot', uint64),
-        # Skip list of previous beacon block hashes
-        # i'th item is the most recent ancestor whose slot is a multiple of 2**i for i = 0, ..., 31
         ('parent_root', hash32),
         ('state_root', hash32),
         ('randao_reveal', hash32),
@@ -103,6 +101,11 @@ class BaseBeaconBlock(rlp.Serializable):
         if self._hash is None:
             self._hash = hash_(rlp.encode(self))
         return self._hash
+
+    @property
+    def root(self) -> Hash32:
+        # Alias
+        return self.hash
 
     @property
     def num_attestations(self) -> int:

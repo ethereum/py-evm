@@ -96,7 +96,7 @@ async def test_send_get_blocks_by_slot(request, event_loop):
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, GetBeaconBlocks)
     assert message.payload == {
-        "block_slot_or_hash": 123,
+        "block_slot_or_root": 123,
         "max_blocks": 10,
     }
 
@@ -112,7 +112,7 @@ async def test_send_get_blocks_by_hash(request, event_loop):
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, GetBeaconBlocks)
     assert message.payload == {
-        "block_slot_or_hash": b"\x33" * 32,
+        "block_slot_or_root": b"\x33" * 32,
         "max_blocks": 15,
     }
 
@@ -140,12 +140,12 @@ async def test_send_single_attestation(request, event_loop):
         data=AttestationData(
             slot=0,
             shard=1,
-            beacon_block_hash=ZERO_HASH32,
-            epoch_boundary_hash=ZERO_HASH32,
-            shard_block_hash=ZERO_HASH32,
-            latest_crosslink_hash=ZERO_HASH32,
+            beacon_block_root=ZERO_HASH32,
+            epoch_boundary_root=ZERO_HASH32,
+            shard_block_root=ZERO_HASH32,
+            latest_crosslink_root=ZERO_HASH32,
             justified_slot=0,
-            justified_block_hash=ZERO_HASH32,
+            justified_block_root=ZERO_HASH32,
         ),
         participation_bitfield=b"\x00\x00\x00",
         custody_bitfield=b"\x00\x00\x00",
@@ -169,12 +169,12 @@ async def test_send_multiple_attestations(request, event_loop):
             data=AttestationData(
                 slot=0,
                 shard=1,
-                beacon_block_hash=ZERO_HASH32,
-                epoch_boundary_hash=ZERO_HASH32,
-                shard_block_hash=ZERO_HASH32,
-                latest_crosslink_hash=ZERO_HASH32,
+                beacon_block_root=ZERO_HASH32,
+                epoch_boundary_root=ZERO_HASH32,
+                shard_block_root=ZERO_HASH32,
+                latest_crosslink_root=ZERO_HASH32,
                 justified_slot=0,
-                justified_block_hash=ZERO_HASH32,
+                justified_block_root=ZERO_HASH32,
             ),
             participation_bitfield=b"\x00\x00\x00",
             custody_bitfield=b"\x00\x00\x00",

@@ -19,35 +19,35 @@ class AttestationData(rlp.Serializable):
         # Shard number
         ('shard', uint64),
         # Hash of the signed beacon block
-        ('beacon_block_hash', hash32),
+        ('beacon_block_root', hash32),
         # Hash of the ancestor at the epoch boundary
-        ('epoch_boundary_hash', hash32),
-        # Shard block hash being attested to
-        ('shard_block_hash', hash32),
+        ('epoch_boundary_root', hash32),
+        # Shard block root being attested to
+        ('shard_block_root', hash32),
         # Last crosslink hash
-        ('latest_crosslink_hash', hash32),
+        ('latest_crosslink_root', hash32),
         # Slot of the last justified beacon block
         ('justified_slot', uint64),
         # Hash of the last justified beacon block
-        ('justified_block_hash', hash32),
+        ('justified_block_root', hash32),
     ]
 
     def __init__(self,
                  slot: int,
                  shard: int,
-                 beacon_block_hash: Hash32,
-                 epoch_boundary_hash: Hash32,
-                 shard_block_hash: Hash32,
-                 latest_crosslink_hash: Hash32,
+                 beacon_block_root: Hash32,
+                 epoch_boundary_root: Hash32,
+                 shard_block_root: Hash32,
+                 latest_crosslink_root: Hash32,
                  justified_slot: int,
-                 justified_block_hash: Hash32) -> None:
+                 justified_block_root: Hash32) -> None:
         super().__init__(
             slot,
             shard,
-            beacon_block_hash,
-            epoch_boundary_hash,
-            shard_block_hash,
-            latest_crosslink_hash,
+            beacon_block_root,
+            epoch_boundary_root,
+            shard_block_root,
+            latest_crosslink_root,
             justified_slot,
-            justified_block_hash,
+            justified_block_root,
         )

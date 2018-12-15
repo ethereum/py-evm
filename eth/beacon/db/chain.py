@@ -58,7 +58,7 @@ class BaseBeaconChainDB(ABC):
         pass
 
     @abstractmethod
-    def get_canonical_block_hash(self, slot: int) -> Hash32:
+    def get_canonical_block_root(self, slot: int) -> Hash32:
         pass
 
     @abstractmethod
@@ -66,7 +66,7 @@ class BaseBeaconChainDB(ABC):
         pass
 
     @abstractmethod
-    def get_canonical_block_hash_by_slot(self, slot: int) -> Hash32:
+    def get_canonical_block_root_by_slot(self, slot: int) -> Hash32:
         pass
 
     @abstractmethod
@@ -74,15 +74,15 @@ class BaseBeaconChainDB(ABC):
         pass
 
     @abstractmethod
-    def get_block_by_hash(self, block_hash: Hash32) -> BaseBeaconBlock:
+    def get_block_by_root(self, block_root: Hash32) -> BaseBeaconBlock:
         pass
 
     @abstractmethod
-    def get_score(self, block_hash: Hash32) -> int:
+    def get_score(self, block_root: Hash32) -> int:
         pass
 
     @abstractmethod
-    def block_exists(self, block_hash: Hash32) -> bool:
+    def block_exists(self, block_root: Hash32) -> bool:
         pass
 
     @abstractmethod
@@ -147,21 +147,21 @@ class BeaconChainDB(BaseBeaconChainDB):
     #
     # Canonical Chain API
     #
-    def get_canonical_block_hash(self, slot: int) -> Hash32:
+    def get_canonical_block_root(self, slot: int) -> Hash32:
         """
-        Return the block hash for the canonical block at the given number.
+        Return the block root for the canonical block at the given number.
 
         Raise BlockNotFound if there's no block with the given number in the
         canonical chain.
         """
-        return self._get_canonical_block_hash(self.db, slot)
+        return self._get_canonical_block_root(self.db, slot)
 
     @staticmethod
-    def _get_canonical_block_hash(db: BaseDB, slot: int) -> Hash32:
+    def _get_canonical_block_root(db: BaseDB, slot: int) -> Hash32:
         validate_slot(slot)
-        slot_to_hash_key = SchemaV1.make_block_slot_to_hash_lookup_key(slot)
+        slot_to_root_key = SchemaV1.make_block_slot_to_root_lookup_key(slot)
         try:
-            encoded_key = db[slot_to_hash_key]
+            encoded_key = db[slot_to_root_key]
         except KeyError:
             raise BlockNotFound(
                 "No canonical block for block slot #{0}".format(slot)
@@ -183,25 +183,25 @@ class BeaconChainDB(BaseBeaconChainDB):
             cls,
             db: BaseDB,
             slot: int) -> BaseBeaconBlock:
-        canonical_block_hash = cls._get_canonical_block_hash_by_slot(db, slot)
-        return cls._get_block_by_hash(db, canonical_block_hash)
+        canonical_block_root = cls._get_canonical_block_root_by_slot(db, slot)
+        return cls._get_block_by_root(db, canonical_block_root)
 
-    def get_canonical_block_hash_by_slot(self, slot: int) -> Hash32:
+    def get_canonical_block_root_by_slot(self, slot: int) -> Hash32:
         """
-        Return the block hash with the given slot in the canonical chain.
+        Return the block root with the given slot in the canonical chain.
 
         Raise BlockNotFound if there's no block with the given slot in the
         canonical chain.
         """
-        return self._get_canonical_block_hash_by_slot(self.db, slot)
+        return self._get_canonical_block_root_by_slot(self.db, slot)
 
     @classmethod
-    def _get_canonical_block_hash_by_slot(
+    def _get_canonical_block_root_by_slot(
             cls,
             db: BaseDB,
             slot: int) -> Hash32:
         validate_slot(slot)
-        return cls._get_canonical_block_hash(db, slot)
+        return cls._get_canonical_block_root(db, slot)
 
     def get_canonical_head(self) -> BaseBeaconBlock:
         """
@@ -212,48 +212,48 @@ class BeaconChainDB(BaseBeaconChainDB):
     @classmethod
     def _get_canonical_head(cls, db: BaseDB) -> BaseBeaconBlock:
         try:
-            canonical_head_hash = db[SchemaV1.make_canonical_head_hash_lookup_key()]
+            canonical_head_root = db[SchemaV1.make_canonical_head_root_lookup_key()]
         except KeyError:
             raise CanonicalHeadNotFound("No canonical head set for this chain")
-        return cls._get_block_by_hash(db, Hash32(canonical_head_hash))
+        return cls._get_block_by_root(db, Hash32(canonical_head_root))
 
-    def get_block_by_hash(self, block_hash: Hash32) -> BaseBeaconBlock:
-        return self._get_block_by_hash(self.db, block_hash)
+    def get_block_by_root(self, block_root: Hash32) -> BaseBeaconBlock:
+        return self._get_block_by_root(self.db, block_root)
 
     @staticmethod
-    def _get_block_by_hash(db: BaseDB, block_hash: Hash32) -> BaseBeaconBlock:
+    def _get_block_by_root(db: BaseDB, block_root: Hash32) -> BaseBeaconBlock:
         """
-        Return the requested block header as specified by block hash.
+        Return the requested block header as specified by block root.
 
         Raise BlockNotFound if it is not present in the db.
         """
-        validate_word(block_hash, title="Block Hash")
+        validate_word(block_root, title="block root")
         try:
-            block_rlp = db[block_hash]
+            block_rlp = db[block_root]
         except KeyError:
-            raise BlockNotFound("No block with hash {0} found".format(
-                encode_hex(block_hash)))
+            raise BlockNotFound("No block with root {0} found".format(
+                encode_hex(block_root)))
         return _decode_block(block_rlp)
 
-    def get_score(self, block_hash: Hash32) -> int:
-        return self._get_score(self.db, block_hash)
+    def get_score(self, block_root: Hash32) -> int:
+        return self._get_score(self.db, block_root)
 
     @staticmethod
-    def _get_score(db: BaseDB, block_hash: Hash32) -> int:
+    def _get_score(db: BaseDB, block_root: Hash32) -> int:
         try:
-            encoded_score = db[SchemaV1.make_block_hash_to_score_lookup_key(block_hash)]
+            encoded_score = db[SchemaV1.make_block_root_to_score_lookup_key(block_root)]
         except KeyError:
             raise BlockNotFound("No block with hash {0} found".format(
-                encode_hex(block_hash)))
+                encode_hex(block_root)))
         return rlp.decode(encoded_score, sedes=rlp.sedes.big_endian_int)
 
-    def block_exists(self, block_hash: Hash32) -> bool:
-        return self._block_exists(self.db, block_hash)
+    def block_exists(self, block_root: Hash32) -> bool:
+        return self._block_exists(self.db, block_root)
 
     @staticmethod
-    def _block_exists(db: BaseDB, block_hash: Hash32) -> bool:
-        validate_word(block_hash, title="Block Hash")
-        return block_hash in db
+    def _block_exists(db: BaseDB, block_root: Hash32) -> bool:
+        validate_word(block_root, title="block root")
+        return block_root in db
 
     def persist_block_chain(
         self,
@@ -308,7 +308,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             score = block.slot
 
             db.set(
-                SchemaV1.make_block_hash_to_score_lookup_key(block.hash),
+                SchemaV1.make_block_root_to_score_lookup_key(block.hash),
                 rlp.encode(score, sedes=rlp.sedes.big_endian_int),
             )
 
@@ -326,19 +326,19 @@ class BeaconChainDB(BaseBeaconChainDB):
     @classmethod
     def _set_as_canonical_chain_head(
             cls, db: BaseDB,
-            block_hash: Hash32) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
+            block_root: Hash32) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         """
         Set the canonical chain HEAD to the block as specified by the
-        given block hash.
+        given block root.
 
         :return: a tuple of the blocks that are newly in the canonical chain, and the blocks that
             are no longer in the canonical chain
         """
         try:
-            block = cls._get_block_by_hash(db, block_hash)
+            block = cls._get_block_by_root(db, block_root)
         except BlockNotFound:
             raise ValueError(
-                "Cannot use unknown block hash as canonical head: {}".format(block_hash)
+                "Cannot use unknown block root as canonical head: {}".format(block_root)
             )
 
         new_canonical_blocks = tuple(reversed(cls._find_new_ancestors(db, block)))
@@ -346,18 +346,18 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         for block in new_canonical_blocks:
             try:
-                old_canonical_hash = cls._get_canonical_block_hash(db, block.slot)
+                old_canonical_root = cls._get_canonical_block_root(db, block.slot)
             except BlockNotFound:
                 # no old_canonical block, and no more possible
                 break
             else:
-                old_canonical_block = cls._get_block_by_hash(db, old_canonical_hash)
+                old_canonical_block = cls._get_block_by_root(db, old_canonical_root)
                 old_canonical_blocks.append(old_canonical_block)
 
         for block in new_canonical_blocks:
-            cls._add_block_slot_to_hash_lookup(db, block)
+            cls._add_block_slot_to_root_lookup(db, block)
 
-        db.set(SchemaV1.make_canonical_head_hash_lookup_key(), block.hash)
+        db.set(SchemaV1.make_canonical_head_root_lookup_key(), block.hash)
 
         return new_canonical_blocks, tuple(old_canonical_blocks)
 
@@ -392,19 +392,19 @@ class BeaconChainDB(BaseBeaconChainDB):
             if block.parent_root == GENESIS_PARENT_HASH:
                 break
             else:
-                block = cls._get_block_by_hash(db, block.parent_root)
+                block = cls._get_block_by_root(db, block.parent_root)
 
     @staticmethod
-    def _add_block_slot_to_hash_lookup(db: BaseDB, block: BaseBeaconBlock) -> None:
+    def _add_block_slot_to_root_lookup(db: BaseDB, block: BaseBeaconBlock) -> None:
         """
         Set a record in the database to allow looking up this block by its
         block slot.
         """
-        block_slot_to_hash_key = SchemaV1.make_block_slot_to_hash_lookup_key(
+        block_slot_to_root_key = SchemaV1.make_block_slot_to_root_lookup_key(
             block.slot
         )
         db.set(
-            block_slot_to_hash_key,
+            block_slot_to_root_key,
             rlp.encode(block.hash, sedes=rlp.sedes.binary),
         )
 

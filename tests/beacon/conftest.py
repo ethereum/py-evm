@@ -91,12 +91,12 @@ def sample_attestation_data_params():
     return {
         'slot': 10,
         'shard': 12,
-        'beacon_block_hash': b'\x11' * 32,
-        'epoch_boundary_hash': b'\x22' * 32,
-        'shard_block_hash': b'\x33' * 32,
-        'latest_crosslink_hash': b'\x44' * 32,
+        'beacon_block_root': b'\x11' * 32,
+        'epoch_boundary_root': b'\x22' * 32,
+        'shard_block_root': b'\x33' * 32,
+        'latest_crosslink_root': b'\x44' * 32,
         'justified_slot': 5,
-        'justified_block_hash': b'\x55' * 32,
+        'justified_block_root': b'\x55' * 32,
     }
 
 
@@ -127,6 +127,9 @@ def sample_beacon_block_params(sample_beacon_block_body_params):
 @pytest.fixture
 def sample_beacon_state_params(sample_fork_data_params):
     return {
+        'slot': 0,
+        'genesis_time': 0,
+        'fork_data': ForkData(**sample_fork_data_params),
         'validator_registry': (),
         'validator_registry_latest_change_slot': 10,
         'validator_registry_exit_count': 10,
@@ -141,14 +144,12 @@ def sample_beacon_state_params(sample_fork_data_params):
         'justification_bitfield': 0,
         'finalized_slot': 0,
         'latest_crosslinks': (),
-        'latest_state_recalculation_slot': 0,
-        'latest_block_hashes': (),
+        'latest_block_roots': (),
         'latest_penalized_exit_balances': (),
         'latest_attestations': (),
+        'batched_block_roots': (),
         'processed_pow_receipt_root': b'\x55' * 32,
         'candidate_pow_receipt_roots': (),
-        'genesis_time': 0,
-        'fork_data': ForkData(**sample_fork_data_params),
     }
 
 
@@ -164,7 +165,7 @@ def sample_candidate_pow_receipt_root_record_params():
 def sample_crosslink_record_params():
     return {
         'slot': 0,
-        'shard_block_hash': b'\x43' * 32,
+        'shard_block_root': b'\x43' * 32,
     }
 
 
@@ -229,7 +230,7 @@ def sample_proposal_signed_data_params():
     return {
         'slot': 10,
         'shard': 12,
-        'block_hash': b'\x43' * 32,
+        'block_root': b'\x43' * 32,
     }
 
 

@@ -35,7 +35,7 @@ class Status(Command):
 
 
 GetBeaconBlocksMessage = TypedDict("GetBeaconBlocksMessage", {
-    "block_slot_or_hash": Union[int, Hash32],
+    "block_slot_or_root": Union[int, Hash32],
     "max_blocks": int,
 })
 
@@ -43,7 +43,7 @@ GetBeaconBlocksMessage = TypedDict("GetBeaconBlocksMessage", {
 class GetBeaconBlocks(Command):
     _cmd_id = 1
     structure = [
-        ('block_slot_or_hash', HashOrNumber()),
+        ('block_slot_or_root', HashOrNumber()),
         ('max_blocks', sedes.big_endian_int),
     ]
 
