@@ -42,6 +42,7 @@ from eth.beacon.utils.random import (
 if TYPE_CHECKING:
     from eth.beacon.enums import SignatureDomain  # noqa: F401
     from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
+    from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth.beacon.types.states import BeaconState  # noqa: F401
     from eth.beacon.types.fork_data import ForkData  # noqa: F401
@@ -418,3 +419,14 @@ def get_domain(fork_data: 'ForkData',
         fork_data,
         slot,
     ) * 4294967296 + domain_type
+
+
+def is_double_vote(attestation_data_1: 'AttestationData',
+                   attestation_data_2: 'AttestationData') -> bool:
+    """
+    Assumes ``attestation_data_1`` is distinct from ``attestation_data_2``.
+
+    Returns True if the provided ``AttestationData`` are slashable
+    due to a 'double vote'.
+    """
+    return attestation_data_1.slot == attestation_data_2.slot
