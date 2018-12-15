@@ -27,9 +27,8 @@ from eth.utils.numeric import (
     clamp,
 )
 
-from eth.beacon.block_committees_info import BlockCommitteesInfo
-from eth.beacon.enums import (
-    ValidatorStatusCode,
+from eth.beacon.block_committees_info import (
+    BlockCommitteesInfo,
 )
 from eth.beacon.types.shard_committees import (
     ShardCommittee,
@@ -156,7 +155,7 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tup
     """
     return tuple(
         i for i, v in enumerate(validators)
-        if v.status in [ValidatorStatusCode.ACTIVE, ValidatorStatusCode.ACTIVE_PENDING_EXIT]
+        if v.is_active
     )
 
 

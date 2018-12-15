@@ -3,6 +3,9 @@ from eth_typing import (
 )
 import rlp
 
+from eth.beacon.enums import (
+    ValidatorStatusCode,
+)
 from eth.rlp.sedes import (
     uint64,
     uint256,
@@ -52,3 +55,13 @@ class ValidatorRecord(rlp.Serializable):
             latest_status_change_slot=latest_status_change_slot,
             exit_count=exit_count,
         )
+
+    @property
+    def is_active(self) -> bool:
+        """
+        Returns ``True`` if the validator is active.
+        """
+        return self.status in [
+            ValidatorStatusCode.ACTIVE,
+            ValidatorStatusCode.ACTIVE_PENDING_EXIT
+        ]
