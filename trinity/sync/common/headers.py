@@ -158,7 +158,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             pairs = tuple(zip(parents, children))
             try:
                 validate_pair_coros = [
-                    self._chain.coro_validate_chain(parent, (child, ))
+                    self.wait(self._chain.coro_validate_chain(parent, (child, )))
                     for parent, child in pairs
                 ]
                 await asyncio.gather(*validate_pair_coros, loop=self.get_event_loop())
@@ -208,7 +208,11 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             if len(final_headers) == 0:
                 break
 
-            await self._chain.coro_validate_chain(previous_tail_header, final_headers)
+            await self.wait(self._chain.coro_validate_chain(
+                previous_tail_header,
+                final_headers,
+                SEAL_CHECK_RANDOM_SAMPLE_RATE,
+            ))
             await self.wait(self._fetched_headers.put(final_headers))
             previous_tail_header = final_headers[-1]
 
@@ -292,7 +296,11 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                 ) from exc
 
             # validate new headers against the parent in the database
-            await self.wait(self._chain.coro_validate_chain(launch_parent, new_headers))
+            await self.wait(self._chain.coro_validate_chain(
+                launch_parent,
+                new_headers,
+                SEAL_CHECK_RANDOM_SAMPLE_RATE,
+            ))
             return new_headers
 
     async def _fill_in_gap(
@@ -344,7 +352,11 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
         # validate the filled headers
         filled_gap_children = tuple(concatv(gap_headers, pairs[gap_index + 1]))
         try:
-            await self._chain.coro_validate_chain(gap_parent, filled_gap_children)
+            await self.wait(self._chain.coro_validate_chain(
+                gap_parent,
+                filled_gap_children,
+                SEAL_CHECK_RANDOM_SAMPLE_RATE,
+            ))
         except ValidationError:
             self.logger.warning(
                 "%s returned an invalid gap for index %s, with pairs %s, filler %s",
@@ -651,11 +663,11 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
             return tuple()
         else:
             try:
-                await self._chain.coro_validate_chain(
+                await self.wait(self._chain.coro_validate_chain(
                     parent_header,
                     headers,
                     SEAL_CHECK_RANDOM_SAMPLE_RATE,
-                )
+                ))
             except ValidationError as e:
                 self.logger.warning("Received invalid headers from %s, disconnecting: %s", peer, e)
                 await peer.disconnect(DisconnectReason.subprotocol_error)
@@ -821,7 +833,11 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
                 raise ValidationError(f"Header skeleton gap of {gap_length} > {MAX_HEADERS_FETCH}")
             elif gap_length == 0:
                 # no need to fill in when there is no gap, just verify against previous header
-                await self._chain.coro_validate_chain(previous_segment[-1], segment)
+                await self.wait(self._chain.coro_validate_chain(
+                    previous_segment[-1],
+                    segment,
+                    SEAL_CHECK_RANDOM_SAMPLE_RATE,
+                ))
             elif gap_length < 0:
                 raise ValidationError(
                     f"Invalid headers: {gap_length} gap from {previous_segment} to {segment}"
