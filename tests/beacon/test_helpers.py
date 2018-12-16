@@ -760,20 +760,40 @@ def test_is_double_vote(sample_attestation_data_params):
     assert not is_double_vote(attestation_data_1, attestation_data_3)
 
 
-def test_is_surround_vote(sample_attestation_data_params):
+@pytest.mark.parametrize(
+    (
+        'attestation_1_slot,'
+        'attestation_1_justified_slot,'
+        'attestation_2_slot,'
+        'attestation_2_justified_slot,'
+        'expected'
+    ),
+    [
+        (0, 0, 0, 0, False),
+        (4, 3, 3, 2, False),  # not (attestation_1_justified_slot < attestation_2_justified_slot
+        (4, 0, 3, 1, False),  # not (attestation_2_justified_slot + 1 == attestation_2_slot)
+        (4, 0, 4, 3, False),  # not (attestation_2_slot < attestation_1_slot)
+        (4, 0, 3, 2, True),
+    ],
+)
+def test_is_surround_vote(sample_attestation_data_params,
+                          attestation_1_slot,
+                          attestation_1_justified_slot,
+                          attestation_2_slot,
+                          attestation_2_justified_slot,
+                          expected):
     attestation_data_1_params = {
         **sample_attestation_data_params,
-        'slot': 4,
-        'justified_slot': 0,
-
+        'slot': attestation_1_slot,
+        'justified_slot': attestation_1_justified_slot,
     }
     attestation_data_1 = AttestationData(**attestation_data_1_params)
 
     attestation_data_2_params = {
         **sample_attestation_data_params,
-        'slot': 3,
-        'justified_slot': 2,
+        'slot': attestation_2_slot,
+        'justified_slot': attestation_2_justified_slot,
     }
     attestation_data_2 = AttestationData(**attestation_data_2_params)
 
-    assert is_surround_vote(attestation_data_1, attestation_data_2)
+    assert is_surround_vote(attestation_data_1, attestation_data_2) == expected
