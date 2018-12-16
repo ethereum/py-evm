@@ -6,11 +6,12 @@ from typing import (
 from eth.rlp.headers import BlockHeader
 
 from trinity.protocol.common.trackers import BasePerformanceTracker
+from trinity.protocol.common.types import NodeDataBundles
 from trinity.utils.headers import sequence_builder
 
 from .requests import (
     GetBlockHeadersRequest,
-)
+    GetNodeDataRequest)
 
 
 BaseGetBlockHeadersTracker = BasePerformanceTracker[
@@ -36,4 +37,22 @@ class GetBlockHeadersTracker(BaseGetBlockHeadersTracker):
         return len(result)
 
     def _get_result_item_count(self, result: Tuple[BlockHeader, ...]) -> int:
+        return len(result)
+
+
+
+BaseNodeDataTracker = BasePerformanceTracker[
+    GetNodeDataRequest,
+    NodeDataBundles,
+]
+
+
+class GetNodeDataTracker(BaseNodeDataTracker):
+    def _get_request_size(self, request: GetNodeDataRequest) -> Optional[int]:
+        return len(request.command_payload['block_hashes'])
+
+    def _get_result_size(self, result: NodeDataBundles) -> int:
+        return len(result)
+
+    def _get_result_item_count(self, result: NodeDataBundles) -> int:
         return len(result)

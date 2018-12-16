@@ -1,15 +1,16 @@
 from typing import (
     Any,
     Dict,
-)
+    Tuple)
 
-from eth_typing import BlockIdentifier
+from eth_typing import BlockIdentifier, Hash32
 
 from p2p.protocol import BaseRequest
 
 from trinity.protocol.common.requests import (
     BaseHeaderRequest,
 )
+from trinity.protocol.eth.commands import GetNodeData, NodeData
 
 from trinity.protocol.les.constants import MAX_HEADERS_FETCH
 from .commands import (
@@ -40,7 +41,10 @@ class HeaderRequest(BaseHeaderRequest):
         self.request_id = request_id
 
 
-class GetBlockHeadersRequest(BaseRequest[Dict[str, Any]]):
+LESRequest = BaseRequest[Dict[str, Any]]
+
+
+class GetBlockHeadersRequest(LESRequest):
     cmd_type = GetBlockHeaders
     response_type = BlockHeaders
 
@@ -58,4 +62,17 @@ class GetBlockHeadersRequest(BaseRequest[Dict[str, Any]]):
                 skip,
                 reverse,
             ),
+        }
+
+
+class GetNodeDataRequest(LESRequest):
+    cmd_type = GetNodeData
+    response_type = NodeData
+
+    def __init__(self,
+                 block_hashes: Tuple[Hash32, ...], # Should I take the first element of this tuple?
+                 request_id: int) -> None:
+        self.command_payload = {
+            'request_id': request_id,
+            'block_hashes': block_hashes,
         }
