@@ -41,7 +41,6 @@ from eth.beacon.utils.random import (
 
 if TYPE_CHECKING:
     from eth.beacon.enums import SignatureDomain  # noqa: F401
-    from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
     from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth.beacon.types.states import BeaconState  # noqa: F401
