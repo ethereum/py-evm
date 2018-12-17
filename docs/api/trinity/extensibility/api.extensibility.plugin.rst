@@ -14,12 +14,6 @@ BasePlugin
 .. autoclass:: trinity.extensibility.plugin.BasePlugin
   :members:
 
-BaseSyncStopPlugin
-------------------
-
-.. autoclass:: trinity.extensibility.plugin.BaseSyncStopPlugin
-  :members:
-
 BaseAsyncStopPlugin
 -------------------
 

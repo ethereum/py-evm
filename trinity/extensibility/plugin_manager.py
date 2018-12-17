@@ -35,9 +35,11 @@ from trinity.extensibility.plugin import (
     BaseIsolatedPlugin,
     BaseMainProcessPlugin,
     BasePlugin,
-    BaseSyncStopPlugin,
     PluginContext,
     TrinityBootInfo,
+)
+from trinity.utils.ipc import (
+    kill_processes_gracefully,
 )
 
 
@@ -215,17 +217,19 @@ class PluginManager:
 
         self._logger.info("Shutting down PluginManager with scope %s", type(self._scope))
 
-        for plugin in self._plugin_store:
+        plugins = [
+            plugin for plugin in self._plugin_store
+            if isinstance(plugin, BaseIsolatedPlugin) and plugin.running
+        ]
+        processes = [plugin.process for plugin in plugins]
 
-            if not isinstance(plugin, BaseSyncStopPlugin) or not plugin.running:
-                continue
+        for plugin in plugins:
+            self._logger.info("Stopping plugin: %s", plugin.name)
 
-            try:
-                self._logger.info("Stopping plugin: %s", plugin.name)
-                plugin.stop()
-                self._logger.info("Successfully stopped plugin: %s", plugin.name)
-            except Exception:
-                self._logger.exception("Exception thrown while stopping plugin %s", plugin.name)
+        kill_processes_gracefully(processes, self._logger)
+
+        for plugin in plugins:
+            self._logger.info("Successfully stopped plugin: %s", plugin.name)
 
     async def shutdown(self) -> None:
         """
