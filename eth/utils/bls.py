@@ -27,7 +27,7 @@ from py_ecc.optimized_bn128 import (  # NOQA
     curve_order,
     final_exponentiate
 )
-from eth.utils.blake import blake
+from eth.beacon.utils.hash import hash_
 from eth.utils.bn128 import (
     FQP_point_to_FQ2_point,
 )
@@ -75,8 +75,8 @@ def hash_to_G2(m: bytes) -> Tuple[FQ2, FQ2, FQ2]:
         return CACHE[m]
     k2 = m
     while 1:
-        k1 = blake(k2)
-        k2 = blake(k1)
+        k1 = hash_(k2)
+        k2 = hash_(k1)
         x1 = int.from_bytes(k1, 'big') % field_modulus
         x2 = int.from_bytes(k2, 'big') % field_modulus
         x = FQ2([x1, x2])

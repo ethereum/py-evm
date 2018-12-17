@@ -19,7 +19,7 @@ from eth.rlp.sedes import (
     uint64,
     uint256,
 )
-from eth.utils.blake import blake
+from eth.beacon.utils.hash import hash_
 
 from .attestations import Attestation
 from .proposer_slashings import ProposerSlashing
@@ -101,7 +101,7 @@ class BaseBeaconBlock(rlp.Serializable):
     @property
     def hash(self) -> Hash32:
         if self._hash is None:
-            self._hash = blake(rlp.encode(self))
+            self._hash = hash_(rlp.encode(self))
         return self._hash
 
     @property

@@ -19,8 +19,8 @@ from eth.rlp.sedes import (
     uint64,
     hash32,
 )
-from eth.utils.blake import (
-    blake,
+from eth.beacon.utils.hash import (
+    hash_,
 )
 
 from .pending_attestation_records import PendingAttestationRecord
@@ -151,7 +151,7 @@ class BeaconState(rlp.Serializable):
     @property
     def hash(self) -> Hash32:
         if self._hash is None:
-            self._hash = blake(rlp.encode(self))
+            self._hash = hash_(rlp.encode(self))
         return self._hash
 
     @property
