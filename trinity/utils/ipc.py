@@ -5,7 +5,7 @@ import pathlib
 import signal
 import subprocess
 import time
-from typing import Callable
+from typing import Callable, Iterable
 
 
 def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=10) -> None:
@@ -35,6 +35,42 @@ def kill_process_gracefully(
     kill_process_id_gracefully(process.pid, process.join, logger, SIGINT_timeout, SIGTERM_timeout)
 
 
+def kill_processes_gracefully(
+        processes: Iterable[Process],
+        logger: Logger,
+        SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
+        SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
+
+    # Send SIGINT to each process without blocking
+    for process in processes:
+        sigint_process_id(process.pid, lambda _: None, logger, SIGINT_timeout)
+
+    # Now block on each process as long as we have time left in the budget
+    sigint_at = time.time()
+    for process in processes:
+        waited_sec = time.time() - sigint_at
+        if waited_sec >= SIGINT_timeout:
+            logger.debug("Waited %d on SIGINT, moving on", waited_sec)
+            break
+        process.join(SIGINT_timeout)
+
+    # Send SIGTERM to each process without blocking
+    for process in processes:
+        sigterm_process_id(process.pid, lambda _: None, logger, SIGTERM_timeout)
+
+    # Now block on each process as long as we have time left in the budget
+    sigterm_at = time.time()
+    for process in processes:
+        waited_sec = time.time() - sigterm_at
+        if waited_sec >= SIGTERM_timeout:
+            logger.debug("Waited %d on SIGINT, moving on", waited_sec)
+            break
+        process.join(SIGTERM_timeout)
+
+    for process in processes:
+        sigkill_process_id(process.pid, logger)
+
+
 def kill_popen_gracefully(
         popen: subprocess.Popen,
         logger: Logger,
@@ -56,6 +92,18 @@ def kill_process_id_gracefully(
         logger: Logger,
         SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
         SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
+
+    sigint_process_id(process_id, wait_for_completion, logger, SIGINT_timeout)
+    sigterm_process_id(process_id, wait_for_completion, logger, SIGTERM_timeout)
+    sigkill_process_id(process_id, logger)
+
+
+def sigint_process_id(
+        process_id: int,
+        wait_for_completion: Callable[[int], None],
+        logger: Logger,
+        SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT) -> None:
+
     try:
         try:
             os.kill(process_id, signal.SIGINT)
@@ -72,6 +120,13 @@ def kill_process_id_gracefully(
             "with CTRL+C two more times."
         )
 
+
+def sigterm_process_id(
+        process_id: int,
+        wait_for_completion: Callable[[int], None],
+        logger: Logger,
+        SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
+
     try:
         try:
             os.kill(process_id, signal.SIGTERM)
@@ -87,6 +142,11 @@ def kill_process_id_gracefully(
             "Waiting for process to terminate.  You may force termination "
             "with CTRL+C one more time."
         )
+
+
+def sigkill_process_id(
+        process_id: int,
+        logger: Logger) -> None:
 
     try:
         os.kill(process_id, signal.SIGKILL)

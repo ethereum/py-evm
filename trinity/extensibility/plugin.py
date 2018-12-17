@@ -44,9 +44,6 @@ from trinity.extensibility.exceptions import (
     EventBusNotReady,
     InvalidPluginStatus,
 )
-from trinity.utils.ipc import (
-    kill_process_gracefully
-)
 from trinity.utils.mp import (
     ctx,
 )
@@ -229,26 +226,6 @@ class BasePlugin(ABC):
         pass
 
 
-class BaseSyncStopPlugin(BasePlugin):
-    """
-    A :class:`~trinity.extensibility.plugin.BaseSyncStopPlugin` unwinds synchronoulsy, hence blocks
-    until the shutdown is done.
-    """
-    def do_stop(self) -> None:
-        """
-        Stop the plugin. Should be overwritten by subclasses.
-        """
-        pass
-
-    def stop(self) -> None:
-        """
-        Delegate to :meth:`~trinity.extensibility.plugin.BaseSyncStopPlugin.do_stop` causing the
-        plugin to stop and setting ``running`` to ``False``.
-        """
-        self.do_stop()
-        self._status = PluginStatus.STOPPED
-
-
 class BaseAsyncStopPlugin(BasePlugin):
     """
     A :class:`~trinity.extensibility.plugin.BaseAsyncStopPlugin` unwinds asynchronoulsy, hence
@@ -279,7 +256,7 @@ class BaseMainProcessPlugin(BasePlugin):
     pass
 
 
-class BaseIsolatedPlugin(BaseSyncStopPlugin):
+class BaseIsolatedPlugin(BasePlugin):
     """
     A :class:`~trinity.extensibility.plugin.BaseIsolatedPlugin` runs in an isolated process and
     hence provides security and flexibility by not making assumptions about its internal
@@ -291,6 +268,13 @@ class BaseIsolatedPlugin(BaseSyncStopPlugin):
     """
 
     _process: Process = None
+
+    @property
+    def process(self) -> Process:
+        """
+        Return the ``Process`` created by the isolated plugin.
+        """
+        return self._process
 
     def start(self) -> None:
         """
@@ -314,8 +298,14 @@ class BaseIsolatedPlugin(BaseSyncStopPlugin):
         )
         self.do_start()
 
-    def do_stop(self) -> None:
-        kill_process_gracefully(self._process, self.logger)
+    def stop(self) -> None:
+        """
+        Set the ``status`` to `STOPPED`` but rely on the
+        :class:`~trinity.extensibility.plugin_manager.PluginManager` to tear down the process. This
+        allows isolated plugins to be taken down concurrently without depending on a running
+        event loop.
+        """
+        self._status = PluginStatus.STOPPED
 
 
 class DebugPlugin(BaseAsyncStopPlugin):

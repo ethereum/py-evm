@@ -6,7 +6,6 @@ from trinity.extensibility.plugin import (  # noqa: F401
     BaseMainProcessPlugin,
     BaseIsolatedPlugin,
     BasePlugin,
-    BaseSyncStopPlugin,
     DebugPlugin,
     PluginContext,
     TrinityBootInfo,
