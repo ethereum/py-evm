@@ -315,7 +315,6 @@ class BaseIsolatedPlugin(BaseSyncStopPlugin):
         self.do_start()
 
     def do_stop(self) -> None:
-        self.context.event_bus.stop()
         kill_process_gracefully(self._process, self.logger)
 
 
