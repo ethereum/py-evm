@@ -1,3 +1,5 @@
+import pytest
+
 from eth.beacon.enums import (
     ValidatorStatusCode,
 )
@@ -12,24 +14,22 @@ def test_defaults(sample_validator_record_params):
     assert validator.withdrawal_credentials == sample_validator_record_params['withdrawal_credentials']  # noqa: E501
 
 
-def test_is_active(sample_validator_record_params):
+@pytest.mark.parametrize(
+    'status,expected',
+    [
+        (ValidatorStatusCode.PENDING_ACTIVATION, False),
+        (ValidatorStatusCode.ACTIVE, True),
+        (ValidatorStatusCode.ACTIVE_PENDING_EXIT, True),
+        (ValidatorStatusCode.EXITED_WITHOUT_PENALTY, False),
+        (ValidatorStatusCode.EXITED_WITH_PENALTY, False),
+    ],
+)
+def test_is_active(sample_validator_record_params,
+                   status,
+                   expected):
     validator_record_params = {
         **sample_validator_record_params,
-        'status': ValidatorStatusCode.ACTIVE
+        'status': status
     }
     validator = ValidatorRecord(**validator_record_params)
-    assert validator.is_active
-
-    validator_record_params = {
-        **sample_validator_record_params,
-        'status': ValidatorStatusCode.ACTIVE_PENDING_EXIT
-    }
-    validator = ValidatorRecord(**validator_record_params)
-    assert validator.is_active
-
-    validator_record_params = {
-        **sample_validator_record_params,
-        'status': ValidatorStatusCode.EXITED_WITHOUT_PENALTY
-    }
-    validator = ValidatorRecord(**validator_record_params)
-    assert not validator.is_active
+    assert validator.is_active == expected
