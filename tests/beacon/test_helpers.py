@@ -74,7 +74,7 @@ def generate_mock_latest_block_roots(
         b'\x00' * 32
         for i
         in range(epoch_length * 2 - current_block_number)
-    ] + [block.hash for block in blocks[:current_block_number]]
+    ] + [block.root for block in blocks[:current_block_number]]
     return blocks, latest_block_roots
 
 
@@ -144,7 +144,7 @@ def test_get_block_root(
             current_block_number,
             target_slot,
         )
-        assert block_root == blocks[target_slot].hash
+        assert block_root == blocks[target_slot].root
     else:
         with pytest.raises(ValueError):
             get_block_root(

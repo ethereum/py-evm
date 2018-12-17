@@ -278,11 +278,11 @@ class BeaconChainDB(BaseBeaconChainDB):
             return tuple(), tuple()
         else:
             for parent, child in sliding_window(2, blocks):
-                if parent.hash != child.parent_root:
+                if parent.root != child.parent_root:
                     raise ValidationError(
                         "Non-contiguous chain. Expected {} to have {} as parent but was {}".format(
-                            encode_hex(child.hash),
-                            encode_hex(parent.hash),
+                            encode_hex(child.root),
+                            encode_hex(parent.root),
                             encode_hex(child.parent_root),
                         )
                     )
@@ -291,7 +291,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             if not is_genesis and not cls._block_exists(db, first_block.parent_root):
                 raise ParentNotFound(
                     "Cannot persist block ({}) with unknown parent ({})".format(
-                        encode_hex(first_block.hash), encode_hex(first_block.parent_root)))
+                        encode_hex(first_block.root), encode_hex(first_block.parent_root)))
 
             if is_genesis:
                 score = 0
@@ -300,7 +300,7 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         for block in blocks:
             db.set(
-                block.hash,
+                block.root,
                 rlp.encode(block),
             )
 
@@ -308,18 +308,18 @@ class BeaconChainDB(BaseBeaconChainDB):
             score = block.slot
 
             db.set(
-                SchemaV1.make_block_root_to_score_lookup_key(block.hash),
+                SchemaV1.make_block_root_to_score_lookup_key(block.root),
                 rlp.encode(score, sedes=rlp.sedes.big_endian_int),
             )
 
         try:
-            previous_canonical_head = cls._get_canonical_head(db).hash
+            previous_canonical_head = cls._get_canonical_head(db).root
             head_score = cls._get_score(db, previous_canonical_head)
         except CanonicalHeadNotFound:
-            return cls._set_as_canonical_chain_head(db, block.hash)
+            return cls._set_as_canonical_chain_head(db, block.root)
 
         if score > head_score:
-            return cls._set_as_canonical_chain_head(db, block.hash)
+            return cls._set_as_canonical_chain_head(db, block.root)
         else:
             return tuple(), tuple()
 
@@ -357,7 +357,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         for block in new_canonical_blocks:
             cls._add_block_slot_to_root_lookup(db, block)
 
-        db.set(SchemaV1.make_canonical_head_root_lookup_key(), block.hash)
+        db.set(SchemaV1.make_canonical_head_root_lookup_key(), block.root)
 
         return new_canonical_blocks, tuple(old_canonical_blocks)
 
@@ -382,7 +382,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                 # This just means the block is not on the canonical chain.
                 pass
             else:
-                if orig.hash == block.hash:
+                if orig.root == block.root:
                     # Found the common ancestor, stop.
                     break
 
@@ -405,7 +405,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         )
         db.set(
             block_slot_to_root_key,
-            rlp.encode(block.hash, sedes=rlp.sedes.binary),
+            rlp.encode(block.root, sedes=rlp.sedes.binary),
         )
 
     #
@@ -441,7 +441,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                        db: BaseDB,
                        state: BeaconState) -> None:
         db.set(
-            state.hash,
+            state.root,
             rlp.encode(state),
         )
 

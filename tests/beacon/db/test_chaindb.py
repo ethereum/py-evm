@@ -56,13 +56,13 @@ def test_chaindb_add_block_number_to_root_lookup(chaindb, block):
 
 def test_chaindb_persist_block_and_slot_to_root(chaindb, block):
     with pytest.raises(BlockNotFound):
-        chaindb.get_block_by_root(block.hash)
-    slot_to_root_key = SchemaV1.make_block_root_to_score_lookup_key(block.hash)
+        chaindb.get_block_by_root(block.root)
+    slot_to_root_key = SchemaV1.make_block_root_to_score_lookup_key(block.root)
     assert not chaindb.exists(slot_to_root_key)
 
     chaindb.persist_block(block)
 
-    assert chaindb.get_block_by_root(block.hash) == block
+    assert chaindb.get_block_by_root(block.root) == block
     assert chaindb.exists(slot_to_root_key)
 
 
@@ -74,7 +74,7 @@ def test_chaindb_persist_block_and_unknown_parent(chaindb, block, seed):
 
 
 def test_chaindb_persist_block_and_block_to_root(chaindb, block):
-    block_to_root_key = SchemaV1.make_block_root_to_score_lookup_key(block.hash)
+    block_to_root_key = SchemaV1.make_block_root_to_score_lookup_key(block.root)
     assert not chaindb.exists(block_to_root_key)
     chaindb.persist_block(block)
     assert chaindb.exists(block_to_root_key)
@@ -87,37 +87,37 @@ def test_chaindb_get_score(chaindb, sample_beacon_block_params):
     )
     chaindb.persist_block(genesis)
 
-    genesis_score_key = SchemaV1.make_block_root_to_score_lookup_key(genesis.hash)
+    genesis_score_key = SchemaV1.make_block_root_to_score_lookup_key(genesis.root)
     genesis_score = rlp.decode(chaindb.db.get(genesis_score_key), sedes=rlp.sedes.big_endian_int)
     assert genesis_score == 0
-    assert chaindb.get_score(genesis.hash) == 0
+    assert chaindb.get_score(genesis.root) == 0
 
     block1 = BaseBeaconBlock(**sample_beacon_block_params).copy(
-        parent_root=genesis.hash,
+        parent_root=genesis.root,
         slot=1,
     )
     chaindb.persist_block(block1)
 
-    block1_score_key = SchemaV1.make_block_root_to_score_lookup_key(block1.hash)
+    block1_score_key = SchemaV1.make_block_root_to_score_lookup_key(block1.root)
     block1_score = rlp.decode(chaindb.db.get(block1_score_key), sedes=rlp.sedes.big_endian_int)
     assert block1_score == 1
-    assert chaindb.get_score(block1.hash) == 1
+    assert chaindb.get_score(block1.root) == 1
 
 
 def test_chaindb_get_block_by_root(chaindb, block):
     chaindb.persist_block(block)
-    result_block = chaindb.get_block_by_root(block.hash)
+    result_block = chaindb.get_block_by_root(block.root)
     validate_rlp_equal(result_block, block)
 
 
 def test_chaindb_get_canonical_block_root(chaindb, block):
     chaindb.persist_block(block)
     block_root = chaindb.get_canonical_block_root(block.slot)
-    assert block_root == block.hash
+    assert block_root == block.root
 
 
 def test_chaindb_state(chaindb, state):
     chaindb.persist_state(state)
 
-    result_state = chaindb.get_state_by_root(state.hash)
-    assert result_state.hash == state.hash
+    result_state = chaindb.get_state_by_root(state.root)
+    assert result_state.root == state.root

@@ -98,4 +98,4 @@ def test_num_crosslink_records(expected,
 
 def test_hash(sample_beacon_state_params):
     state = BeaconState(**sample_beacon_state_params)
-    assert state.hash == hash_(rlp.encode(state))
+    assert state.root == hash_(rlp.encode(state))

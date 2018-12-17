@@ -91,7 +91,7 @@ class BaseBeaconBlock(rlp.Serializable):
     def __repr__(self) -> str:
         return '<Block #{0} {1}>'.format(
             self.slot,
-            encode_hex(self.hash)[2:10],
+            encode_hex(self.root)[2:10],
         )
 
     _hash = None
@@ -104,7 +104,8 @@ class BaseBeaconBlock(rlp.Serializable):
 
     @property
     def root(self) -> Hash32:
-        # Alias
+        # Alias of `hash`.
+        # Using flat hash, might change to SSZ tree hash.
         return self.hash
 
     @property

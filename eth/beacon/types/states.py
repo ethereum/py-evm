@@ -88,67 +88,52 @@ class BeaconState(rlp.Serializable):
             justification_bitfield: int,
             finalized_slot: int,
             processed_pow_receipt_root: Hash32,
-            validator_registry: Sequence[ValidatorRecord]=None,
-            shard_committees_at_slots: Sequence[Sequence[ShardCommittee]]=None,
-            persistent_committees: Sequence[Sequence[int]]=None,
-            persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=None,
-            latest_crosslinks: Sequence[CrosslinkRecord]=None,
-            latest_block_roots: Sequence[Hash32]=None,
-            latest_penalized_exit_balances: Sequence[int]=None,
-            batched_block_roots: Sequence[Hash32]=None,
-            latest_attestations: Sequence[PendingAttestationRecord]=None,
-            candidate_pow_receipt_roots: Sequence[CandidatePoWReceiptRootRecord]=None
+            validator_registry: Sequence[ValidatorRecord]=(),
+            shard_committees_at_slots: Sequence[Sequence[ShardCommittee]]=(),
+            persistent_committees: Sequence[Sequence[int]]=(),
+            persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=(),
+            latest_crosslinks: Sequence[CrosslinkRecord]=(),
+            latest_block_roots: Sequence[Hash32]=(),
+            latest_penalized_exit_balances: Sequence[int]=(),
+            batched_block_roots: Sequence[Hash32]=(),
+            latest_attestations: Sequence[PendingAttestationRecord]=(),
+            candidate_pow_receipt_roots: Sequence[CandidatePoWReceiptRootRecord]=()
     ) -> None:
-        if validator_registry is None:
-            validator_registry = ()
-        if shard_committees_at_slots is None:
-            shard_committees_at_slots = ()
-        if persistent_committees is None:
-            persistent_committees = ()
-        if persistent_committee_reassignments is None:
-            persistent_committee_reassignments = ()
-        if latest_crosslinks is None:
-            latest_crosslinks = ()
-        if latest_block_roots is None:
-            latest_block_roots = ()
-        if latest_penalized_exit_balances is None:
-            latest_penalized_exit_balances = ()
-        if batched_block_roots is None:
-            batched_block_roots = ()
-        if latest_attestations is None:
-            latest_attestations = ()
-        if candidate_pow_receipt_roots is None:
-            candidate_pow_receipt_roots = ()
-
         super().__init__(
+            # Misc
             slot=slot,
             genesis_time=genesis_time,
             fork_data=fork_data,
+            # Validator registry
             validator_registry=validator_registry,
             validator_registry_latest_change_slot=validator_registry_latest_change_slot,
             validator_registry_exit_count=validator_registry_exit_count,
             validator_registry_delta_chain_tip=validator_registry_delta_chain_tip,
+            # Randomness and committees
             randao_mix=randao_mix,
             next_seed=next_seed,
             shard_committees_at_slots=shard_committees_at_slots,
             persistent_committees=persistent_committees,
             persistent_committee_reassignments=persistent_committee_reassignments,
+            # Finality
             previous_justified_slot=previous_justified_slot,
             justified_slot=justified_slot,
             justification_bitfield=justification_bitfield,
             finalized_slot=finalized_slot,
+            # Recent state
             latest_crosslinks=latest_crosslinks,
             latest_block_roots=latest_block_roots,
             latest_penalized_exit_balances=latest_penalized_exit_balances,
             latest_attestations=latest_attestations,
             batched_block_roots=batched_block_roots,
+            # PoW receipt root
             processed_pow_receipt_root=processed_pow_receipt_root,
             candidate_pow_receipt_roots=candidate_pow_receipt_roots,
         )
 
     def __repr__(self) -> str:
         return 'BeaconState #{0}>'.format(
-            encode_hex(self.hash)[2:10],
+            encode_hex(self.root)[2:10],
         )
 
     _hash = None
@@ -161,7 +146,8 @@ class BeaconState(rlp.Serializable):
 
     @property
     def root(self) -> Hash32:
-        # Alias
+        # Alias of `hash`.
+        # Using flat hash, might change to SSZ tree hash.
         return self.hash
 
     @property
