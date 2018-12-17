@@ -40,6 +40,7 @@ from eth.vm.base import (
     BaseVM,
 )
 from eth.vm.forks import (
+    ConstantinopleVM,
     ByzantiumVM,
     TangerineWhistleVM,
     FrontierVM,
@@ -78,7 +79,7 @@ def verify_account_db(expected_state: AccountState, account_db: BaseAccountDB) -
                         'balance',
                         actual_value,
                         expected_value,
-                        expected_value - actual_value,
+                        actual_value - expected_value,
                     )
                 )
             else:
@@ -122,6 +123,10 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
     elif network == 'Byzantium':
         return (
             (0, ByzantiumVM),
+        )
+    elif network == 'Constantinople':
+        return (
+            (0, ConstantinopleVM),
         )
     elif network == 'FrontierToHomesteadAt5':
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
@@ -193,8 +198,10 @@ def new_chain_from_fixture(fixture: Dict[str, Any],
     )
 
 
-def apply_fixture_block_to_chain(block_fixture: Dict[str, Any],
-                                 chain: BaseChain) -> Tuple[BaseBlock, BaseBlock, BaseBlock]:
+def apply_fixture_block_to_chain(
+        block_fixture: Dict[str, Any],
+        chain: BaseChain,
+        perform_validation: bool=True) -> Tuple[BaseBlock, BaseBlock, BaseBlock]:
     '''
     :return: (premined_block, mined_block, rlp_encoded_mined_block)
     '''
@@ -209,7 +216,7 @@ def apply_fixture_block_to_chain(block_fixture: Dict[str, Any],
 
     block = rlp.decode(block_fixture['rlp'], sedes=block_class)
 
-    mined_block, _, _ = chain.import_block(block)
+    mined_block, _, _ = chain.import_block(block, perform_validation=perform_validation)
 
     rlp_encoded_mined_block = rlp.encode(mined_block, sedes=block_class)
 

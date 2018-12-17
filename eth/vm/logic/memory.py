@@ -32,7 +32,7 @@ def mload(computation: BaseComputation) -> None:
 
     computation.extend_memory(start_position, 32)
 
-    value = computation.memory_read(start_position, 32)
+    value = computation.memory_read_bytes(start_position, 32)
     computation.stack_push(value)
 
 

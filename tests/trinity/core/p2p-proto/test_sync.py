@@ -75,6 +75,46 @@ async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 
 
 @pytest.mark.asyncio
+async def test_skeleton_syncer(request, event_loop, chaindb_fresh, chaindb_1000):
+    client_peer, server_peer = await get_directly_linked_peers(
+        request, event_loop,
+        alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
+        bob_headerdb=FakeAsyncHeaderDB(chaindb_1000.db))
+    client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
+    client = FastChainSyncer(ByzantiumTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
+    server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
+    server = RegularChainSyncer(
+        ByzantiumTestChain(chaindb_1000.db),
+        chaindb_1000,
+        server_peer_pool,
+    )
+    asyncio.ensure_future(server.run())
+    server_request_handler = ETHRequestServer(FakeAsyncChainDB(chaindb_1000.db), server_peer_pool)
+    asyncio.ensure_future(server_request_handler.run())
+    client_peer.logger.info("%s is serving 1000 blocks", client_peer)
+    server_peer.logger.info("%s is syncing up 1000 blocks", server_peer)
+
+    def finalizer():
+        event_loop.run_until_complete(server.cancel())
+        # Yield control so that server.run() returns, otherwise asyncio will complain.
+        event_loop.run_until_complete(asyncio.sleep(0.1))
+    request.addfinalizer(finalizer)
+
+    # FastChainSyncer.run() will return as soon as it's caught up with the peer.
+    await asyncio.wait_for(client.run(), timeout=20)
+
+    head = chaindb_fresh.get_canonical_head()
+    assert head == chaindb_1000.get_canonical_head()
+
+    # Now download the state for the chain's head.
+    state_downloader = StateDownloader(
+        chaindb_fresh, chaindb_fresh.db, head.state_root, client_peer_pool)
+    await asyncio.wait_for(state_downloader.run(), timeout=20)
+
+    assert head.state_root in chaindb_fresh.db
+
+
+@pytest.mark.asyncio
 async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
@@ -108,9 +148,9 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 
     asyncio.ensure_future(client.run())
 
-    await wait_for_head(client.db, server.db.get_canonical_head())
-    head = client.db.get_canonical_head()
-    assert head.state_root in client.db.db
+    await wait_for_head(chaindb_fresh, chaindb_20.get_canonical_head())
+    head = chaindb_fresh.get_canonical_head()
+    assert head.state_root in chaindb_fresh.db
 
 
 @pytest.mark.asyncio
@@ -148,12 +188,24 @@ async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
 
     asyncio.ensure_future(client.run())
 
-    await wait_for_head(client.db, server.db.get_canonical_head())
+    await wait_for_head(chaindb_fresh, chaindb_20.get_canonical_head())
 
 
 @pytest.fixture
 def leveldb_20():
     yield from load_fixture_db(DBFixture.twenty_pow_headers)
+
+
+@pytest.fixture
+def leveldb_1000():
+    yield from load_fixture_db(DBFixture.thousand_pow_headers)
+
+
+@pytest.fixture
+def chaindb_1000(leveldb_1000):
+    chain = load_mining_chain(FakeAsyncAtomicDB(leveldb_1000))
+    assert chain.chaindb.get_canonical_head().block_number == 1000
+    return chain.chaindb
 
 
 @pytest.fixture

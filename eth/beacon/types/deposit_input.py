@@ -16,7 +16,7 @@ from eth.rlp.sedes import (
 )
 
 
-class DepositParametersRecord(rlp.Serializable):
+class DepositInput(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.
     """
@@ -35,13 +35,10 @@ class DepositParametersRecord(rlp.Serializable):
                  pubkey: int,
                  withdrawal_credentials: Hash32,
                  randao_commitment: Hash32,
-                 proof_of_possession: Sequence[int]=None) -> None:
-        if proof_of_possession is None:
-            proof_of_possession = (0, 0)
-
+                 proof_of_possession: Sequence[int]=(0, 0)) -> None:
         super().__init__(
-            pubkey=pubkey,
-            proof_of_possession=proof_of_possession,
-            withdrawal_credentials=withdrawal_credentials,
-            randao_commitment=randao_commitment,
+            pubkey,
+            proof_of_possession,
+            withdrawal_credentials,
+            randao_commitment,
         )

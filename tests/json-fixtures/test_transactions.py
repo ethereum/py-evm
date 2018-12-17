@@ -28,6 +28,9 @@ from eth.vm.forks.spurious_dragon.transactions import (
 from eth.vm.forks.byzantium.transactions import (
     ByzantiumTransaction
 )
+from eth.vm.forks.constantinople.transactions import (
+    ConstantinopleTransaction
+)
 
 from eth_typing.enums import (
     ForkName
@@ -92,7 +95,7 @@ def fixture_transaction_class(fixture_data):
     elif fork_name == ForkName.Byzantium:
         return ByzantiumTransaction
     elif fork_name == ForkName.Constantinople:
-        pytest.skip("Constantinople Transaction class has not been implemented")
+        return ConstantinopleTransaction
     elif fork_name == ForkName.Metropolis:
         pytest.skip("Metropolis Transaction class has not been implemented")
     else:

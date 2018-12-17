@@ -1,12 +1,11 @@
-from eth.beacon.enums.validator_status_codes import (
+from eth.beacon.enums import (
     ValidatorStatusCode,
 )
 from eth.beacon.types.validator_records import (
     ValidatorRecord,
 )
-from eth.constants import (
-    ZERO_HASH32,
-)
+
+from eth_utils import to_tuple
 
 
 def mock_validator_record(pubkey, max_deposit):
@@ -14,7 +13,7 @@ def mock_validator_record(pubkey, max_deposit):
         pubkey=pubkey,
         withdrawal_credentials=b'\x44' * 32,
         randao_commitment=b'\x55' * 32,
-        randao_skips=0,
+        randao_layers=0,
         balance=max_deposit,
         status=ValidatorStatusCode.ACTIVE,
         latest_status_change_slot=0,
@@ -22,16 +21,16 @@ def mock_validator_record(pubkey, max_deposit):
     )
 
 
+@to_tuple
 def get_pseudo_chain(length, genesis_block):
-    """Get a pseudo chain, only slot_number and parent_hash are valid.
     """
-    blocks = []
-    for slot in range(length * 3):
-        blocks.append(
-            genesis_block.copy(
-                slot_number=slot,
-                parent_hash=blocks[slot - 1].hash if slot > 0 else ZERO_HASH32
-            )
+    Get a pseudo chain, only slot and parent_root are valid.
+    """
+    block = genesis_block.copy()
+    yield block
+    for slot in range(1, length * 3):
+        block = genesis_block.copy(
+            slot=slot,
+            parent_root=block.hash
         )
-
-    return blocks
+        yield block

@@ -1,7 +1,3 @@
-from itertools import (
-    repeat,
-)
-
 from typing import (
     Any,
     Iterable,
@@ -11,19 +7,28 @@ from typing import (
 )
 
 from eth_utils import (
+    denoms,
     to_tuple,
+    ValidationError,
 )
 
 from eth_typing import (
     Hash32,
 )
 
+from eth.utils.bitfield import (
+    get_bitfield_length,
+    has_voted,
+)
+from eth.beacon.utils.hash import (
+    hash_,
+)
 from eth.utils.numeric import (
     clamp,
 )
 
 from eth.beacon.block_committees_info import BlockCommitteesInfo
-from eth.beacon.enums.validator_status_codes import (
+from eth.beacon.enums import (
     ValidatorStatusCode,
 )
 from eth.beacon.types.shard_committees import (
@@ -36,11 +41,11 @@ from eth.beacon.utils.random import (
 
 
 if TYPE_CHECKING:
-    from eth.beacon.types.active_states import ActiveState  # noqa: F401
+    from eth.beacon.enums import SignatureDomain  # noqa: F401
     from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
     from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
-    from eth.beacon.types.crystallized_states import CrystallizedState  # noqa: F401
     from eth.beacon.types.states import BeaconState  # noqa: F401
+    from eth.beacon.types.fork_data import ForkData  # noqa: F401
     from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
@@ -74,154 +79,84 @@ def _get_element_from_recent_list(
 # Get block hash(es)
 #
 def get_block_hash(
-        recent_block_hashes: Sequence[Hash32],
-        current_block_slot_number: int,
-        slot: int,
-        epoch_length: int) -> Hash32:
+        latest_block_hashes: Sequence[Hash32],
+        current_slot: int,
+        slot: int) -> Hash32:
     """
-    Return the blockhash from ``ActiveState.recent_block_hashes`` by
-    ``current_block_slot_number``.
+    Returns the block hash at a recent ``slot``.
     """
-    if len(recent_block_hashes) != epoch_length * 2:
-        raise ValueError(
-            "Length of recent_block_hashes != epoch_length * 2"
-            "\texpected: %s, found: %s" % (
-                epoch_length * 2, len(recent_block_hashes)
-            )
-        )
-
-    slot_relative_position = current_block_slot_number - epoch_length * 2
+    slot_relative_position = current_slot - len(latest_block_hashes)
     return _get_element_from_recent_list(
-        recent_block_hashes,
+        latest_block_hashes,
         slot,
         slot_relative_position,
     )
 
 
 @to_tuple
-def get_hashes_from_recent_block_hashes(
-        recent_block_hashes: Sequence[Hash32],
-        current_block_slot_number: int,
+def get_hashes_from_latest_block_hashes(
+        latest_block_hashes: Sequence[Hash32],
+        current_slot: int,
         from_slot: int,
-        to_slot: int,
-        epoch_length: int) -> Iterable[Hash32]:
+        to_slot: int) -> Iterable[Hash32]:
     """
     Returns the block hashes between ``from_slot`` and ``to_slot``.
     """
     for slot in range(from_slot, to_slot + 1):
         yield get_block_hash(
-            recent_block_hashes,
-            current_block_slot_number,
+            latest_block_hashes,
+            current_slot,
             slot,
-            epoch_length,
         )
-
-
-@to_tuple
-def get_hashes_to_sign(recent_block_hashes: Sequence[Hash32],
-                       block: 'BaseBeaconBlock',
-                       epoch_length: int) -> Iterable[Hash32]:
-    """
-    Given the head block to attest to, collect the list of hashes to be
-    signed in the attestation.
-    """
-    yield from get_hashes_from_recent_block_hashes(
-        recent_block_hashes,
-        block.slot_number,
-        from_slot=block.slot_number - epoch_length + 1,
-        to_slot=block.slot_number - 1,
-        epoch_length=epoch_length,
-    )
-    yield block.hash
-
-
-@to_tuple
-def get_signed_parent_hashes(recent_block_hashes: Sequence[Hash32],
-                             block: 'BaseBeaconBlock',
-                             attestation: 'AttestationRecord',
-                             epoch_length: int) -> Iterable[Hash32]:
-    """
-    Given an attestation and the block they were included in,
-    the list of hashes that were included in the signature.
-    """
-    yield from get_hashes_from_recent_block_hashes(
-        recent_block_hashes,
-        block.slot_number,
-        from_slot=attestation.slot - epoch_length + 1,
-        to_slot=attestation.slot - len(attestation.oblique_parent_hashes),
-        epoch_length=epoch_length,
-    )
-    yield from attestation.oblique_parent_hashes
-
-
-@to_tuple
-def get_new_recent_block_hashes(old_block_hashes: Sequence[Hash32],
-                                parent_slot: int,
-                                current_slot: int,
-                                parent_hash: Hash32) -> Iterable[Hash32]:
-
-    shift_size = current_slot - parent_slot
-    parent_hash_repeat = min(shift_size, len(old_block_hashes))
-    yield from old_block_hashes[shift_size:]
-    yield from repeat(parent_hash, parent_hash_repeat)
 
 
 #
 # Get shards_committees or indices
 #
 @to_tuple
-def get_shards_committees_for_slot(
-        crystallized_state: 'CrystallizedState',
+def _get_shard_committees_at_slot(
+        latest_state_recalculation_slot: int,
+        shard_committees_at_slots: Sequence[Sequence[ShardCommittee]],
         slot: int,
         epoch_length: int) -> Iterable[ShardCommittee]:
-    """
-    FIXME
-    """
-    if len(crystallized_state.shard_committee_for_slots) != epoch_length * 2:
+    if len(shard_committees_at_slots) != epoch_length * 2:
         raise ValueError(
-            "Length of shard_committee_for_slots != epoch_length * 2"
+            "Length of shard_committees_at_slots != epoch_length * 2"
             "\texpected: %s, found: %s" % (
-                epoch_length * 2, len(crystallized_state.shard_committee_for_slots)
+                epoch_length * 2, len(shard_committees_at_slots)
             )
         )
 
-    slot_relative_position = crystallized_state.last_state_recalc - epoch_length
+    slot_relative_position = latest_state_recalculation_slot - epoch_length
 
     yield from _get_element_from_recent_list(
-        crystallized_state.shard_committee_for_slots,
+        shard_committees_at_slots,
         slot,
         slot_relative_position,
     )
 
 
-@to_tuple
-def get_attestation_indices(crystallized_state: 'CrystallizedState',
-                            attestation: 'AttestationRecord',
-                            epoch_length: int) -> Iterable[int]:
+def get_shard_committees_at_slot(state: 'BeaconState',
+                                 slot: int,
+                                 epoch_length: int) -> Tuple[ShardCommittee]:
     """
-    FIXME
-    Return committee of the given attestation.
+    Return the ``ShardCommittee`` for the ``slot``.
     """
-    shard_id = attestation.shard_id
-
-    shards_committees_for_slot = get_shards_committees_for_slot(
-        crystallized_state,
-        attestation.slot,
-        epoch_length,
+    return _get_shard_committees_at_slot(
+        latest_state_recalculation_slot=state.latest_state_recalculation_slot,
+        shard_committees_at_slots=state.shard_committees_at_slots,
+        slot=slot,
+        epoch_length=epoch_length,
     )
-
-    for shard_committee in shards_committees_for_slot:
-        if shard_committee.shard_id == shard_id:
-            yield from shard_committee.committee
 
 
 def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tuple[int, ...]:
     """
-    Gets indices of active validators from ``validators``.
+    Get indices of active validators from ``validators``.
     """
     return tuple(
         i for i, v in enumerate(validators)
-        if v.status in [ValidatorStatusCode.ACTIVE, ValidatorStatusCode.PENDING_EXIT]
+        if v.status in [ValidatorStatusCode.ACTIVE, ValidatorStatusCode.ACTIVE_PENDING_EXIT]
     )
 
 
@@ -235,7 +170,7 @@ def _get_shards_committees_for_shard_indices(
         total_validator_count: int,
         shard_count: int) -> Iterable[ShardCommittee]:
     """
-    Returns filled [ShardCommittee] tuple.
+    Return filled [ShardCommittee] tuple.
     """
     for index, indices in enumerate(shard_indices):
         yield ShardCommittee(
@@ -320,18 +255,17 @@ def get_new_shuffling(*,
 
 
 #
-# Get proposer postition
+# Get proposer position
 #
 def get_block_committees_info(parent_block: 'BaseBeaconBlock',
-                              crystallized_state: 'CrystallizedState',
+                              state: 'BeaconState',
                               epoch_length: int) -> BlockCommitteesInfo:
-    shards_committees = get_shards_committees_for_slot(
-        crystallized_state,
-        parent_block.slot_number,
+    shards_committees = get_shard_committees_at_slot(
+        state,
+        parent_block.slot,
         epoch_length,
     )
     """
-    FIXME
     Return the block committees and proposer info with BlockCommitteesInfo pack.
     """
     # `proposer_index_in_committee` th attester in `shard_committee`
@@ -339,26 +273,149 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
     try:
         shard_committee = shards_committees[0]
     except IndexError:
-        raise ValueError("shards_committees should not be empty.")
+        raise ValidationError("shards_committees should not be empty.")
 
     proposer_committee_size = len(shard_committee.committee)
     if proposer_committee_size <= 0:
-        raise ValueError(
+        raise ValidationError(
             "The first committee should not be empty"
         )
 
     proposer_index_in_committee = (
-        parent_block.slot_number %
+        parent_block.slot %
         proposer_committee_size
     )
 
-    # The index in CrystallizedState.validators
     proposer_index = shard_committee.committee[proposer_index_in_committee]
 
     return BlockCommitteesInfo(
         proposer_index=proposer_index,
-        proposer_index_in_committee=proposer_index_in_committee,
-        proposer_shard_id=shard_committee.shard_id,
+        proposer_shard=shard_committee.shard,
         proposer_committee_size=proposer_committee_size,
         shards_committees=shards_committees,
     )
+
+
+def get_beacon_proposer_index(state: 'BeaconState',
+                              slot: int,
+                              epoch_length: int) -> int:
+    """
+    Return the beacon proposer index for the ``slot``.
+    """
+    shard_committees = get_shard_committees_at_slot(
+        state,
+        slot,
+        epoch_length,
+    )
+    try:
+        first_shard_committee = shard_committees[0]
+    except IndexError:
+        raise ValidationError("shard_committees should not be empty.")
+
+    proposer_committee_size = len(first_shard_committee.committee)
+
+    if proposer_committee_size <= 0:
+        raise ValidationError(
+            "The first committee should not be empty"
+        )
+
+    return first_shard_committee.committee[slot % len(first_shard_committee.committee)]
+
+
+#
+# Bitfields
+#
+@to_tuple
+def get_attestation_participants(state: 'BeaconState',
+                                 slot: int,
+                                 shard: int,
+                                 participation_bitfield: bytes,
+                                 epoch_length: int) -> Iterable[int]:
+    """
+    Return the participants' indices at the ``slot`` of shard ``shard``
+    from ``participation_bitfield``.
+    """
+    # Find the relevant committee
+    # Filter by slot
+    shard_committees_at_slot = get_shard_committees_at_slot(
+        state,
+        slot,
+        epoch_length,
+    )
+    # Filter by shard
+    shard_committees = tuple(
+        [
+            shard_committee
+            for shard_committee in shard_committees_at_slot
+            if shard_committee.shard == shard
+        ]
+    )
+
+    try:
+        shard_committee = shard_committees[0]
+    except IndexError:
+        raise ValidationError("shard_committees should not be empty.")
+
+    if len(participation_bitfield) != get_bitfield_length(len(shard_committee.committee)):
+        raise ValidationError(
+            'Invalid bitfield length,'
+            "\texpected: %s, found: %s" % (
+                get_bitfield_length(len(shard_committee.committee)),
+                len(participation_bitfield),
+            )
+        )
+
+    # Find the participating attesters in the committee
+    for bitfield_index, validator_index in enumerate(shard_committee.committee):
+        if has_voted(participation_bitfield, bitfield_index):
+            yield validator_index
+
+
+#
+# Misc
+#
+def get_effective_balance(validator: 'ValidatorRecord', max_deposit: int) -> int:
+    """
+    Return the effective balance (also known as "balance at stake") for the ``validator``.
+    """
+    return min(validator.balance, max_deposit * denoms.gwei)
+
+
+def get_new_validator_registry_delta_chain_tip(current_validator_registry_delta_chain_tip: Hash32,
+                                               index: int,
+                                               pubkey: int,
+                                               flag: int) -> Hash32:
+    """
+    Compute the next hash in the validator registry delta hash chain.
+    """
+    return hash_(
+        current_validator_registry_delta_chain_tip +
+        flag.to_bytes(1, 'big') +
+        index.to_bytes(3, 'big') +
+        # TODO: currently, we use 256-bit pubkey which is different form the spec
+        pubkey.to_bytes(32, 'big')
+    )
+
+
+def get_fork_version(fork_data: 'ForkData',
+                     slot: int) -> int:
+    """
+    Return the current ``fork_version`` from the given ``fork_data`` and ``slot``.
+    """
+    if slot < fork_data.fork_slot:
+        return fork_data.pre_fork_version
+    else:
+        return fork_data.post_fork_version
+
+
+def get_domain(fork_data: 'ForkData',
+               slot: int,
+               domain_type: 'SignatureDomain') -> int:
+    """
+    Return the domain number of the current fork and ``domain_type``.
+    """
+    # 2 ** 32 = 4294967296
+    return get_fork_version(
+        fork_data,
+        slot,
+    ) * 4294967296 + domain_type

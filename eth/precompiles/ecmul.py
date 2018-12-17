@@ -32,7 +32,7 @@ def ecmul(computation: BaseComputation) -> BaseComputation:
     computation.consume_gas(constants.GAS_ECMUL, reason='ECMUL Precompile')
 
     try:
-        result = _ecmull(computation.msg.data)
+        result = _ecmull(computation.msg.data_as_bytes)
     except ValidationError:
         raise VMError("Invalid ECMUL parameters")
 

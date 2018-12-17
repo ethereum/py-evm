@@ -25,7 +25,7 @@ from p2p.protocol import (
 from p2p.service import BaseService
 
 from trinity.db.header import AsyncHeaderDB
-from trinity.protocol.common.peer import BaseChainPeerPool
+from trinity.protocol.common.peer import BasePeerPool
 from trinity.protocol.common.requests import BaseHeaderRequest
 from trinity.utils.logging import HasExtendedDebugLogger
 
@@ -42,7 +42,7 @@ class BaseRequestServer(BaseService, PeerSubscriber):
 
     def __init__(
             self,
-            peer_pool: BaseChainPeerPool,
+            peer_pool: BasePeerPool,
             token: CancelToken = None) -> None:
         super().__init__(token)
         self._peer_pool = peer_pool

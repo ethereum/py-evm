@@ -5,7 +5,7 @@ from typing import (
     AsyncGenerator,
     Callable,
     Generic,
-    Set,
+    FrozenSet,
     Tuple,
     Type,
     cast,
@@ -46,8 +46,8 @@ class ResponseCandidateStream(
     # PeerSubscriber
     #
     @property
-    def subscription_msg_types(self) -> Set[Type[Command]]:
-        return {self.response_msg_type}
+    def subscription_msg_types(self) -> FrozenSet[Type[Command]]:
+        return frozenset({self.response_msg_type})
 
     msg_queue_maxsize = 100
 
@@ -205,6 +205,12 @@ class ResponseCandidateStream(
                     "%s cancelled pending future in cleanup, but it was already done",
                     self,
                 )
+
+    def __del__(self) -> None:
+        if self.pending_request is not None:
+            _, future = self.pending_request
+            if future.cancel():
+                self.logger.debug("Forcefully cancelled a pending response in %s", self)
 
     def deregister_peer(self, peer: BasePeer) -> None:
         if self.pending_request is not None:

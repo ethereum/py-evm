@@ -5,9 +5,13 @@ from eth_typing import Address
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
+from eth.typing import (
+    BytesOrView,
+)
 from eth.validation import (
     validate_canonical_address,
     validate_is_bytes,
+    validate_is_bytes_or_view,
     validate_is_integer,
     validate_gte,
     validate_uint256,
@@ -31,7 +35,7 @@ class Message(object):
                  to: Address,
                  sender: Address,
                  value: int,
-                 data: bytes,
+                 data: BytesOrView,
                  code: bytes,
                  depth: int=0,
                  create_address: Address=None,
@@ -51,7 +55,7 @@ class Message(object):
         validate_uint256(value, title="Message.value")
         self.value = value
 
-        validate_is_bytes(data, title="Message.data")
+        validate_is_bytes_or_view(data, title="Message.data")
         self.data = data
 
         validate_is_integer(depth, title="Message.depth")
@@ -100,3 +104,7 @@ class Message(object):
     @property
     def is_create(self) -> bool:
         return self.to == CREATE_CONTRACT_ADDRESS
+
+    @property
+    def data_as_bytes(self) -> bytes:
+        return bytes(self.data)

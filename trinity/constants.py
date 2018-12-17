@@ -1,6 +1,10 @@
 from pathlib import Path
 from typing import Dict, Tuple
 
+from lahja import (
+    BroadcastConfig,
+)
+
 from eth_utils import (
     decode_hex,
 )
@@ -23,6 +27,7 @@ SYNC_LIGHT = 'light'
 # lahja endpoint names
 MAIN_EVENTBUS_ENDPOINT = 'main'
 NETWORKING_EVENTBUS_ENDPOINT = 'networking'
+TO_NETWORKING_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=NETWORKING_EVENTBUS_ENDPOINT)
 
 # Network IDs: https://ethereum.stackexchange.com/questions/17051/how-to-select-a-network-id-or-is-there-a-list-of-network-ids/17101#17101  # noqa: E501
 MAINNET_NETWORK_ID = 1

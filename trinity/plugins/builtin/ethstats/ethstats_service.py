@@ -19,6 +19,7 @@ from trinity.extensibility import (
 )
 from trinity.constants import (
     SYNC_LIGHT,
+    TO_NETWORKING_BROADCAST_CONFIG,
 )
 from trinity.db.manager import (
     create_db_manager,
@@ -138,7 +139,10 @@ class EthstatsService(BaseService):
         '''Getter for data that should be sent periodically.'''
         try:
             peer_count = (await self.wait(
-                self.context.event_bus.request(PeerCountRequest()),
+                self.context.event_bus.request(
+                    PeerCountRequest(),
+                    TO_NETWORKING_BROADCAST_CONFIG,
+                ),
                 timeout=0.5
             )).peer_count
         except TimeoutError:

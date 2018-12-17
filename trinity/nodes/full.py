@@ -44,7 +44,6 @@ class FullNode(Node):
                 max_peers=self._max_peers,
                 bootstrap_nodes=self._bootstrap_nodes,
                 preferred_nodes=self._preferred_nodes,
-                use_discv5=self._use_discv5,
                 token=self.cancel_token,
                 event_bus=self.event_bus,
             )

@@ -30,7 +30,7 @@ def log_XX(computation: BaseComputation, topic_count: int) -> None:
     )
 
     computation.extend_memory(mem_start_position, size)
-    log_data = computation.memory_read(mem_start_position, size)
+    log_data = computation.memory_read_bytes(mem_start_position, size)
 
     computation.add_log_entry(
         account=computation.msg.storage_address,

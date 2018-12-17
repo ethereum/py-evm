@@ -7,7 +7,7 @@ setup(
     name='trinity',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
     # NOT CURRENTLY APPLICABLE. VERSION BUMPS MANUAL FOR NOW
-    version='0.1.0-alpha.17',
+    version='0.1.0-alpha.20',
     description='The Trinity Ethereum Client',
     author='Ethereum Foundation',
     author_email='piper@pipermerriam.com',
@@ -16,7 +16,7 @@ setup(
     py_modules=[],
     install_requires=[
         # DON'T FORGET TO BUMP THIS TOOOOOO!!!!!!!
-        'py-evm[trinity,p2p]==0.2.0a34',
+        'py-evm[trinity,p2p]==0.2.0a37',
     ],
     license='MIT',
     zip_safe=False,
@@ -28,6 +28,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
     python_requires=">=3.6,<4",
     # trinity

@@ -14,8 +14,8 @@ from eth.exceptions import (
     BlockNotFound,
     ParentNotFound,
 )
-from eth.utils.blake import (
-    blake,
+from eth.beacon.utils.hash import (
+    hash_,
 )
 from eth.utils.rlp import (
     validate_rlp_equal,
@@ -37,7 +37,7 @@ def chaindb(base_db):
 @pytest.fixture(params=[0, 10, 999])
 def block(request, sample_beacon_block_params):
     return BaseBeaconBlock(**sample_beacon_block_params).copy(
-        ancestor_hashes=(GENESIS_PARENT_HASH, ),
+        parent_root=GENESIS_PARENT_HASH,
         slot=request.param,
     )
 
@@ -68,7 +68,7 @@ def test_chaindb_persist_block_and_slot_to_hash(chaindb, block):
 
 @given(seed=st.binary(min_size=32, max_size=32))
 def test_chaindb_persist_block_and_unknown_parent(chaindb, block, seed):
-    n_block = block.copy(ancestor_hashes=(blake(seed), ))
+    n_block = block.copy(parent_root=hash_(seed))
     with pytest.raises(ParentNotFound):
         chaindb.persist_block(n_block)
 
@@ -82,7 +82,7 @@ def test_chaindb_persist_block_and_block_to_hash(chaindb, block):
 
 def test_chaindb_get_score(chaindb, sample_beacon_block_params):
     genesis = BaseBeaconBlock(**sample_beacon_block_params).copy(
-        ancestor_hashes=(GENESIS_PARENT_HASH, ),
+        parent_root=GENESIS_PARENT_HASH,
         slot=0,
     )
     chaindb.persist_block(genesis)
@@ -93,7 +93,7 @@ def test_chaindb_get_score(chaindb, sample_beacon_block_params):
     assert chaindb.get_score(genesis.hash) == 0
 
     block1 = BaseBeaconBlock(**sample_beacon_block_params).copy(
-        ancestor_hashes=(genesis.hash, ),
+        parent_root=genesis.hash,
         slot=1,
     )
     chaindb.persist_block(block1)

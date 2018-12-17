@@ -40,6 +40,10 @@ from eth.constants import (
     UINT_256_MAX,
 )
 
+from eth.typing import (
+    BytesOrView,
+)
+
 if TYPE_CHECKING:
     from eth.vm.base import BaseVM      # noqa: F401
 
@@ -49,6 +53,14 @@ def validate_is_bytes(value: bytes, title: str="Value") -> None:
         raise ValidationError(
             "{title} must be a byte string.  Got: {0}".format(type(value), title=title)
         )
+
+
+def validate_is_bytes_or_view(value: BytesOrView, title: str="Value") -> None:
+    if isinstance(value, (bytes, memoryview)):
+        return
+    raise ValidationError(
+        "{title} must be bytes or memoryview. Got {0}".format(type(value), title=title)
+    )
 
 
 def validate_is_integer(value: Union[int, bool], title: str="Value") -> None:

@@ -1,6 +1,6 @@
 import pytest
 
-from trinity.utils.humanize import humanize_elapsed
+from trinity.utils.humanize import humanize_elapsed, humanize_hash
 
 
 SECOND = 1
@@ -39,3 +39,13 @@ WEEK = 7 * DAY
 def test_humanize_elapsed(seconds, expected):
     actual = humanize_elapsed(seconds)
     assert actual == expected
+
+
+@pytest.mark.parametrize(
+    'hash32,expected',
+    (
+        (bytes(range(32)), '0001..1e1f'),
+    )
+)
+def test_humanize_hash(hash32, expected):
+    assert humanize_hash(hash32) == expected

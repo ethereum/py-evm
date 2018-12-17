@@ -1,7 +1,7 @@
 # Python Implementation of the Ethereum protocol
 
 [![Join the chat at https://gitter.im/ethereum/py-evm](https://badges.gitter.im/ethereum/py-evm.svg)](https://gitter.im/ethereum/py-evm)
-[![Documentation Status](https://readthedocs.org/projects/py-evm/badge/?version=latest)](http://py-evm.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/py-evm/badge/?version=latest)](https://py-evm.readthedocs.io/en/latest/?badge=latest)
 
 
 ## Py-EVM
@@ -53,7 +53,7 @@ full or light node directly.
 
 ## Documentation
 
-Check out the [documentation on our official website](http://py-evm.readthedocs.io/en/latest/)
+Check out the [documentation on our official website](https://py-evm.readthedocs.io/en/latest/)
 
 ## Want to help?
 

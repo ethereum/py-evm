@@ -1,41 +1,82 @@
 import pytest
 
-from eth.beacon.enums.validator_status_codes import (
+from eth_utils import (
+    denoms,
+    ValidationError,
+)
+
+from eth.constants import (
+    ZERO_HASH32,
+)
+
+
+from eth.beacon.enums import (
     ValidatorStatusCode,
 )
-from eth.beacon.types.attestation_records import AttestationRecord
+from eth.beacon.types.blocks import BaseBeaconBlock
+from eth.beacon.types.fork_data import ForkData
 from eth.beacon.types.shard_committees import ShardCommittee
+from eth.beacon.types.states import BeaconState
 from eth.beacon.types.validator_records import ValidatorRecord
 from eth.beacon.helpers import (
     _get_element_from_recent_list,
     get_active_validator_indices,
-    get_attestation_indices,
+    get_attestation_participants,
+    get_beacon_proposer_index,
     get_block_hash,
-    get_hashes_from_recent_block_hashes,
-    get_hashes_to_sign,
+    get_effective_balance,
+    get_domain,
+    get_fork_version,
+    get_hashes_from_latest_block_hashes,
     get_new_shuffling,
-    get_shards_committees_for_slot,
-    get_signed_parent_hashes,
+    get_new_validator_registry_delta_chain_tip,
+    _get_shard_committees_at_slot,
     get_block_committees_info,
 )
+
 
 from tests.beacon.helpers import (
     get_pseudo_chain,
 )
 
 
-def generate_mock_recent_block_hashes(
+@pytest.fixture()
+def sample_block(sample_beacon_block_params):
+    return BaseBeaconBlock(**sample_beacon_block_params)
+
+
+@pytest.fixture()
+def sample_state(sample_beacon_state_params):
+    return BeaconState(**sample_beacon_state_params)
+
+
+def get_sample_shard_committees_at_slots(num_slot,
+                                         num_shard_committee_per_slot,
+                                         sample_shard_committee_params):
+
+    return tuple(
+        [
+            [
+                ShardCommittee(**sample_shard_committee_params)
+                for _ in range(num_shard_committee_per_slot)
+            ]
+            for _ in range(num_slot)
+        ]
+    )
+
+
+def generate_mock_latest_block_hashes(
         genesis_block,
         current_block_number,
         epoch_length):
     chain_length = (current_block_number // epoch_length + 1) * epoch_length
     blocks = get_pseudo_chain(chain_length, genesis_block)
-    recent_block_hashes = [
+    latest_block_hashes = [
         b'\x00' * 32
         for i
         in range(epoch_length * 2 - current_block_number)
     ] + [block.hash for block in blocks[:current_block_number]]
-    return blocks, recent_block_hashes
+    return blocks, latest_block_hashes
 
 
 @pytest.mark.parametrize(
@@ -73,7 +114,6 @@ def test_get_element_from_recent_list(target_list,
 #
 # Get block hashes
 #
-@pytest.mark.xfail(reason="Need to be fixed")
 @pytest.mark.parametrize(
     (
         'current_block_number,target_slot,success'
@@ -88,182 +128,161 @@ def test_get_element_from_recent_list(target_list,
     ],
 )
 def test_get_block_hash(
-        genesis_block,
         current_block_number,
         target_slot,
         success,
-        epoch_length):
-    epoch_length = epoch_length
-
-    blocks, recent_block_hashes = generate_mock_recent_block_hashes(
-        genesis_block,
+        epoch_length,
+        sample_block):
+    blocks, latest_block_hashes = generate_mock_latest_block_hashes(
+        sample_block,
         current_block_number,
         epoch_length,
     )
 
     if success:
         block_hash = get_block_hash(
-            recent_block_hashes,
+            latest_block_hashes,
             current_block_number,
             target_slot,
-            epoch_length,
         )
         assert block_hash == blocks[target_slot].hash
     else:
         with pytest.raises(ValueError):
             get_block_hash(
-                recent_block_hashes,
+                latest_block_hashes,
                 current_block_number,
                 target_slot,
-                epoch_length,
             )
 
 
-@pytest.mark.xfail(reason="Need to be fixed")
 @pytest.mark.parametrize(
     (
-        'epoch_length,current_block_slot_number,from_slot,to_slot'
+        'epoch_length,current_block_slot,from_slot,to_slot'
     ),
     [
         (20, 10, 2, 7),
         (20, 30, 10, 20),
     ],
 )
-def test_get_hashes_from_recent_block_hashes(
-        genesis_block,
-        current_block_slot_number,
+def test_get_hashes_from_latest_block_hashes(
+        sample_block,
+        current_block_slot,
         from_slot,
         to_slot,
         epoch_length):
-    _, recent_block_hashes = generate_mock_recent_block_hashes(
-        genesis_block,
-        current_block_slot_number,
+    _, latest_block_hashes = generate_mock_latest_block_hashes(
+        sample_block,
+        current_block_slot,
         epoch_length,
     )
 
-    result = get_hashes_from_recent_block_hashes(
-        recent_block_hashes,
-        current_block_slot_number,
+    result = get_hashes_from_latest_block_hashes(
+        latest_block_hashes,
+        current_block_slot,
         from_slot,
         to_slot,
-        epoch_length,
     )
     assert len(result) == to_slot - from_slot + 1
-
-
-@pytest.mark.xfail(reason="Need to be fixed")
-def test_get_hashes_to_sign(genesis_block, epoch_length):
-    epoch_length = epoch_length
-    current_block_slot_number = 1
-    blocks, recent_block_hashes = generate_mock_recent_block_hashes(
-        genesis_block,
-        current_block_slot_number,
-        epoch_length,
-    )
-
-    block = blocks[current_block_slot_number]
-    result = get_hashes_to_sign(
-        recent_block_hashes,
-        block,
-        epoch_length,
-    )
-    assert len(result) == epoch_length
-    assert result[-1] == block.hash
-
-
-@pytest.mark.xfail(reason="Need to be fixed")
-def test_get_new_recent_block_hashes(genesis_block,
-                                     epoch_length,
-                                     sample_attestation_record_params):
-    epoch_length = epoch_length
-    current_block_slot_number = 15
-    blocks, recent_block_hashes = generate_mock_recent_block_hashes(
-        genesis_block,
-        current_block_slot_number,
-        epoch_length,
-    )
-
-    block = blocks[current_block_slot_number]
-    oblique_parent_hashes = [b'\x77' * 32]
-    attestation = AttestationRecord(**sample_attestation_record_params).copy(
-        slot=10,
-        oblique_parent_hashes=oblique_parent_hashes,
-    )
-    result = get_signed_parent_hashes(
-        recent_block_hashes,
-        block,
-        attestation,
-        epoch_length,
-    )
-    assert len(result) == epoch_length
-    assert result[-1] == oblique_parent_hashes[-1]
 
 
 #
 # Get shards_committees or indices
 #
-@pytest.mark.xfail(reason="Need to be fixed")
 @pytest.mark.parametrize(
     (
-        'num_validators,slot,success'
+        'num_validators,'
+        'cycle_length,'
+        'latest_state_recalculation_slot,'
+        'num_slot,'
+        'num_shard_committee_per_slot,'
+        'slot,'
+        'success'
     ),
     [
-        (100, 0, True),
-        (100, 63, True),
-        (100, 64, False),
+        (
+            100,
+            64,
+            0,
+            128,
+            10,
+            0,
+            True,
+        ),
+        (
+            100,
+            64,
+            64,
+            128,
+            10,
+            64,
+            True,
+        ),
+        # The length of shard_committees_at_slots != epoch_length * 2
+        (
+            100,
+            64,
+            64,
+            127,
+            10,
+            0,
+            False,
+        ),
+        # slot is too small
+        (
+            100,
+            64,
+            128,
+            128,
+            10,
+            0,
+            False,
+        ),
+        # slot is too large
+        (
+            100,
+            64,
+            0,
+            128,
+            10,
+            64,
+            False,
+        ),
     ],
 )
-def test_get_shard_committee_for_slot(
-        genesis_crystallized_state,
+def test_get_shard_committees_at_slot(
         num_validators,
+        cycle_length,
+        latest_state_recalculation_slot,
+        num_slot,
+        num_shard_committee_per_slot,
         slot,
         success,
-        epoch_length):
-    crystallized_state = genesis_crystallized_state
+        epoch_length,
+        sample_shard_committee_params):
+
+    shard_committees_at_slots = get_sample_shard_committees_at_slots(
+        num_slot,
+        num_shard_committee_per_slot,
+        sample_shard_committee_params
+    )
 
     if success:
-        shards_committees_for_slot = get_shards_committees_for_slot(
-            crystallized_state,
-            slot,
-            epoch_length,
+        shard_committees = _get_shard_committees_at_slot(
+            latest_state_recalculation_slot=latest_state_recalculation_slot,
+            shard_committees_at_slots=shard_committees_at_slots,
+            slot=slot,
+            epoch_length=epoch_length,
         )
-        assert len(shards_committees_for_slot) > 0
-        assert len(shards_committees_for_slot[0].committee) > 0
+        assert len(shard_committees) > 0
+        assert len(shard_committees[0].committee) > 0
     else:
         with pytest.raises(ValueError):
-            get_shards_committees_for_slot(
-                crystallized_state,
-                slot,
-                epoch_length,
+            _get_shard_committees_at_slot(
+                latest_state_recalculation_slot=latest_state_recalculation_slot,
+                shard_committees_at_slots=shard_committees_at_slots,
+                slot=slot,
+                epoch_length=epoch_length,
             )
-
-
-@pytest.mark.xfail(reason="Need to be fixed")
-# @pytest.mark.parametrize(
-#     (
-#         'num_validators,'
-#         'epoch_length,min_committee_size'
-#     ),
-#     [
-#         (1000, 20, 10),
-#     ],
-# )
-def test_get_attestation_indices(genesis_crystallized_state,
-                                 sample_attestation_record_params,
-                                 epoch_length,
-                                 min_committee_size):
-    attestation = AttestationRecord(**sample_attestation_record_params)
-    attestation = attestation.copy(
-        slot=0,
-        shard_id=0,
-    )
-
-    attestation_indices = get_attestation_indices(
-        genesis_crystallized_state,
-        attestation,
-        epoch_length,
-    )
-    assert len(attestation_indices) >= min_committee_size
 
 
 #
@@ -342,62 +361,135 @@ def test_get_new_shuffling_handles_shard_wrap(genesis_validators,
 #
 # Get proposer postition
 #
-@pytest.mark.xfail(reason="Need to be fixed")
 @pytest.mark.parametrize(
     (
-        'committee,parent_block_number,result_proposer_index_in_committee'
+        'num_validators,committee,parent_block_number,result_proposer_index'
     ),
     [
-        ([0, 1, 2, 3], 0, 0),
-        ([0, 1, 2, 3], 2, 2),
-        ([0, 1, 2, 3], 11, 3),
-        ([], 1, ValueError()),
+        (100, [4, 5, 6, 7], 0, 4),
+        (100, [4, 5, 6, 7], 2, 6),
+        (100, [4, 5, 6, 7], 11, 7),
+        (100, [], 1, ValidationError()),
     ],
 )
 def test_get_block_committees_info(monkeypatch,
-                                   genesis_block,
-                                   genesis_crystallized_state,
+                                   sample_block,
+                                   sample_state,
+                                   num_validators,
                                    committee,
                                    parent_block_number,
-                                   result_proposer_index_in_committee,
+                                   result_proposer_index,
                                    epoch_length):
     from eth.beacon import helpers
 
-    def mock_get_shards_committees_for_slot(parent_block,
-                                            crystallized_state,
-                                            epoch_length):
-        return [
-            ShardCommittee(shard_id=1, committee=committee),
-        ]
+    def mock_get_shard_committees_at_slot(state,
+                                          slot,
+                                          epoch_length):
+        return (
+            ShardCommittee(
+                shard=1,
+                committee=committee,
+                total_validator_count=num_validators,
+            ),
+        )
 
     monkeypatch.setattr(
         helpers,
-        'get_shards_committees_for_slot',
-        mock_get_shards_committees_for_slot
+        'get_shard_committees_at_slot',
+        mock_get_shard_committees_at_slot
     )
 
-    parent_block = genesis_block
-    parent_block = genesis_block.copy(
-        slot_number=parent_block_number,
+    parent_block = sample_block
+    parent_block = sample_block.copy(
+        slot=parent_block_number,
     )
 
-    if isinstance(result_proposer_index_in_committee, Exception):
-        with pytest.raises(ValueError):
+    if isinstance(result_proposer_index, Exception):
+        with pytest.raises(ValidationError):
             get_block_committees_info(
                 parent_block,
-                genesis_crystallized_state,
+                sample_state,
                 epoch_length,
             )
     else:
         block_committees_info = get_block_committees_info(
             parent_block,
-            genesis_crystallized_state,
+            sample_state,
             epoch_length,
         )
         assert (
-            block_committees_info.proposer_index_in_committee ==
-            result_proposer_index_in_committee
+            block_committees_info.proposer_index ==
+            result_proposer_index
         )
+
+
+@pytest.mark.parametrize(
+    (
+        'num_validators,'
+        'cycle_length,'
+        'committee,'
+        'slot,'
+        'success,'
+    ),
+    [
+        (
+            100,
+            64,
+            (10, 11, 12),
+            0,
+            True,
+        ),
+        (
+            100,
+            64,
+            (),
+            0,
+            False,
+        ),
+    ]
+)
+def test_get_beacon_proposer_index(
+        monkeypatch,
+        num_validators,
+        cycle_length,
+        committee,
+        slot,
+        success,
+        epoch_length,
+        sample_state):
+
+    from eth.beacon import helpers
+
+    def mock_get_shard_committees_at_slot(state,
+                                          slot,
+                                          epoch_length):
+        return (
+            ShardCommittee(
+                shard=1,
+                committee=committee,
+                total_validator_count=num_validators,
+            ),
+        )
+
+    monkeypatch.setattr(
+        helpers,
+        'get_shard_committees_at_slot',
+        mock_get_shard_committees_at_slot
+    )
+    if success:
+        proposer_index = get_beacon_proposer_index(
+            sample_state,
+            slot,
+            epoch_length
+        )
+        assert proposer_index == committee[slot % len(committee)]
+    else:
+        with pytest.raises(ValidationError):
+            get_beacon_proposer_index(
+                sample_state,
+                slot,
+                epoch_length
+            )
 
 
 def test_get_active_validator_indices(sample_validator_record_params):
@@ -411,16 +503,229 @@ def test_get_active_validator_indices(sample_validator_record_params):
     active_validator_indices = get_active_validator_indices(validators)
     assert len(active_validator_indices) == 3
 
-    # Make one validator becomes PENDING_EXIT.
+    # Make one validator becomes ACTIVE_PENDING_EXIT.
     validators[0] = validators[0].copy(
-        status=ValidatorStatusCode.PENDING_EXIT,
+        status=ValidatorStatusCode.ACTIVE_PENDING_EXIT,
     )
     active_validator_indices = get_active_validator_indices(validators)
     assert len(active_validator_indices) == 3
 
-    # Make one validator becomes PENDING_EXIT.
+    # Make one validator becomes EXITED_WITHOUT_PENALTY.
     validators[0] = validators[0].copy(
         status=ValidatorStatusCode.EXITED_WITHOUT_PENALTY,
     )
     active_validator_indices = get_active_validator_indices(validators)
     assert len(active_validator_indices) == 2
+
+
+@pytest.mark.parametrize(
+    (
+        'num_validators,'
+        'epoch_length,'
+        'committee,'
+        'participation_bitfield,'
+        'expected'
+    ),
+    [
+        (
+            100,
+            64,
+            (10, 11, 12),
+            b'\00',
+            (),
+        ),
+        (
+            100,
+            64,
+            (10, 11, 12),
+            b'\x80',
+            (10,),
+        ),
+        (
+            100,
+            64,
+            (10, 11, 12),
+            b'\xc0',
+            (10, 11),
+        ),
+        (
+            100,
+            64,
+            (10, 11, 12),
+            b'\x00\x00',
+            ValueError(),
+        ),
+    ]
+)
+def test_get_attestation_participants(
+        monkeypatch,
+        num_validators,
+        epoch_length,
+        committee,
+        participation_bitfield,
+        expected,
+        sample_state):
+    from eth.beacon import helpers
+
+    def mock_get_shard_committees_at_slot(state,
+                                          slot,
+                                          epoch_length):
+        return (
+            ShardCommittee(
+                shard=0,
+                committee=committee,
+                total_validator_count=num_validators,
+            ),
+        )
+
+    monkeypatch.setattr(
+        helpers,
+        'get_shard_committees_at_slot',
+        mock_get_shard_committees_at_slot
+    )
+
+    if isinstance(expected, Exception):
+        with pytest.raises(ValidationError):
+            get_attestation_participants(
+                state=sample_state,
+                slot=0,
+                shard=0,
+                participation_bitfield=participation_bitfield,
+                epoch_length=epoch_length,
+            )
+    else:
+        result = get_attestation_participants(
+            state=sample_state,
+            slot=0,
+            shard=0,
+            participation_bitfield=participation_bitfield,
+            epoch_length=epoch_length,
+        )
+
+        assert result == expected
+
+
+@pytest.mark.parametrize(
+    (
+        'balance,'
+        'max_deposit,'
+        'expected'
+    ),
+    [
+        (
+            1 * denoms.gwei,
+            32,
+            1 * denoms.gwei,
+        ),
+        (
+            32 * denoms.gwei,
+            32,
+            32 * denoms.gwei,
+        ),
+        (
+            33 * denoms.gwei,
+            32,
+            32 * denoms.gwei,
+        )
+    ]
+)
+def test_get_effective_balance(balance, max_deposit, expected, sample_validator_record_params):
+    validator = ValidatorRecord(**sample_validator_record_params).copy(
+        balance=balance,
+    )
+    result = get_effective_balance(validator, max_deposit)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    (
+        'index,'
+        'pubkey,'
+        'flag,'
+        'expected'
+    ),
+    [
+        (
+            1,
+            2 * 256 - 1,
+            1,
+            b'\xe8\xaaH\x14\xa3\xban\x8f^rn1\xdf\xfd\xe1\xed\xe9S*\x80\xf5\xe3\x03\x983\x15\xd1\x91t\xcc\xb4h'  # noqa: E501
+        ),
+    ]
+)
+def test_get_new_validator_registry_delta_chain_tip(index,
+                                                    pubkey,
+                                                    flag,
+                                                    expected):
+    result = get_new_validator_registry_delta_chain_tip(
+        current_validator_registry_delta_chain_tip=ZERO_HASH32,
+        index=index,
+        pubkey=pubkey,
+        flag=flag,
+    )
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    (
+        'pre_fork_version,'
+        'post_fork_version,'
+        'fork_slot,'
+        'current_slot,'
+        'expected'
+    ),
+    [
+        (0, 0, 0, 0, 0),
+        (0, 0, 0, 1, 0),
+        (0, 1, 20, 10, 0),
+        (0, 1, 20, 20, 1),
+        (0, 1, 10, 20, 1),
+    ]
+)
+def test_get_fork_version(pre_fork_version,
+                          post_fork_version,
+                          fork_slot,
+                          current_slot,
+                          expected):
+    fork_data = ForkData(
+        pre_fork_version=pre_fork_version,
+        post_fork_version=post_fork_version,
+        fork_slot=fork_slot,
+    )
+    assert expected == get_fork_version(
+        fork_data,
+        current_slot,
+    )
+
+
+@pytest.mark.parametrize(
+    (
+        'pre_fork_version,'
+        'post_fork_version,'
+        'fork_slot,'
+        'current_slot,'
+        'domain_type,'
+        'expected'
+    ),
+    [
+        (1, 2, 20, 10, 10, 1 * 2 ** 32 + 10),
+        (1, 2, 20, 20, 11, 2 * 2 ** 32 + 11),
+        (1, 2, 10, 20, 12, 2 * 2 ** 32 + 12),
+    ]
+)
+def test_get_domain(pre_fork_version,
+                    post_fork_version,
+                    fork_slot,
+                    current_slot,
+                    domain_type,
+                    expected):
+    fork_data = ForkData(
+        pre_fork_version=pre_fork_version,
+        post_fork_version=post_fork_version,
+        fork_slot=fork_slot,
+    )
+    assert expected == get_domain(
+        fork_data=fork_data,
+        slot=current_slot,
+        domain_type=domain_type,
+    )

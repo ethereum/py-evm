@@ -14,5 +14,5 @@ def identity(computation: BaseComputation) -> BaseComputation:
 
     computation.consume_gas(gas_fee, reason="Identity Precompile")
 
-    computation.output = computation.msg.data
+    computation.output = computation.msg.data_as_bytes
     return computation

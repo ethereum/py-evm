@@ -14,7 +14,7 @@ from eth.utils import bls
 from eth.utils.bitfield import (
     set_voted,
 )
-from eth.utils.blake import blake
+from eth.beacon.utils.hash import hash_
 
 
 def create_signing_message(slot: int,
@@ -26,7 +26,7 @@ def create_signing_message(slot: int,
     Return the signining message for attesting.
     """
     # TODO: Will be updated with SSZ encoded attestation.
-    return blake(
+    return hash_(
         slot.to_bytes(8, byteorder='big') +
         b''.join(parent_hashes) +
         shard_id.to_bytes(2, byteorder='big') +

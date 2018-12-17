@@ -40,6 +40,9 @@ from eth.vm.state import (
     BaseAccountDB
 )
 
+from trinity.constants import (
+    TO_NETWORKING_BROADCAST_CONFIG,
+)
 from trinity.chains.base import BaseAsyncChain
 from trinity.rpc.format import (
     block_to_dict,
@@ -274,7 +277,7 @@ class Eth(RPCModule):
         highestBlock: BlockNumber
 
     async def syncing(self) -> Union[bool, SyncProgress]:
-        res = await self._event_bus.request(SyncingRequest())
+        res = await self._event_bus.request(SyncingRequest(), TO_NETWORKING_BROADCAST_CONFIG)
         if res.is_syncing:
             return {
                 "startingBlock": res.progress.starting_block,

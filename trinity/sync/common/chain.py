@@ -1,12 +1,6 @@
-from abc import abstractmethod
-from contextlib import contextmanager
-from operator import attrgetter
 from typing import (
     AsyncIterator,
-    Iterator,
-    Optional,
     Tuple,
-    Type,
 )
 
 from cancel_token import (
@@ -43,124 +37,11 @@ from p2p.service import (
 
 from trinity.chains.base import BaseAsyncChain
 from trinity.db.header import AsyncHeaderDB
-from trinity.protocol.common.monitors import BaseChainTipMonitor
-from trinity.protocol.common.peer import BaseChainPeer, BaseChainPeerPool
-from trinity.protocol.eth.peer import ETHPeer
-from trinity.sync.common.events import SyncingRequest, SyncingResponse
-from trinity.utils.datastructures import TaskQueue
+from trinity.protocol.common.peer import (
+    BaseChainPeer,
+)
 
 from .types import SyncProgress
-
-
-class BaseHeaderChainSyncer(BaseService):
-    """
-    Sync with the Ethereum network by fetching/storing block headers.
-
-    Here, the run() method will execute the sync loop until our local head is the same as the one
-    with the highest TD announced by any of our peers.
-    """
-    # We'll only sync if we are connected to at least min_peers_to_sync.
-    min_peers_to_sync = 1
-    # the latest header hash of the peer on the current sync
-    header_queue: TaskQueue[BlockHeader]
-
-    def __init__(self,
-                 chain: BaseAsyncChain,
-                 db: AsyncHeaderDB,
-                 peer_pool: BaseChainPeerPool,
-                 token: CancelToken = None) -> None:
-        super().__init__(token)
-        self.chain = chain
-        self.db = db
-        self.peer_pool = peer_pool
-        self._peer_header_syncer: 'PeerHeaderSyncer' = None
-        self._last_target_header_hash: Hash32 = None
-        self._tip_monitor = self.tip_monitor_class(peer_pool, token=self.cancel_token)
-
-        # pending queue size should be big enough to avoid starving the processing consumers, but
-        # small enough to avoid wasteful over-requests before post-processing can happen
-        max_pending_headers = ETHPeer.max_headers_fetch * 8
-        self.header_queue = TaskQueue(max_pending_headers, attrgetter('block_number'))
-
-    def get_target_header_hash(self) -> Hash32:
-        if self._peer_header_syncer is None and self._last_target_header_hash is None:
-            raise ValidationError("Cannot check the target hash before a sync has run")
-        elif self._peer_header_syncer is not None:
-            return self._peer_header_syncer.get_target_header_hash()
-        else:
-            return self._last_target_header_hash
-
-    @property
-    @abstractmethod
-    def tip_monitor_class(self) -> Type[BaseChainTipMonitor]:
-        pass
-
-    async def _run(self) -> None:
-        self.run_daemon(self._tip_monitor)
-        if self.peer_pool.event_bus is not None:
-            self.run_daemon_task(self.handle_sync_status_requests())
-        try:
-            async for highest_td_peer in self._tip_monitor.wait_tip_info():
-                self.run_task(self.sync(highest_td_peer))
-        except OperationCancelled:
-            # In the case of a fast sync, we return once the sync is completed, and our
-            # caller must then run the StateDownloader.
-            return
-        else:
-            self.logger.debug("chain tip monitor stopped returning tip info to %s", self)
-
-    @property
-    def _syncing(self) -> bool:
-        return self._peer_header_syncer is not None
-
-    @contextmanager
-    def _get_peer_header_syncer(self, peer: BaseChainPeer) -> Iterator['PeerHeaderSyncer']:
-        if self._syncing:
-            raise ValidationError("Cannot sync headers from two peers at the same time")
-
-        self._peer_header_syncer = PeerHeaderSyncer(
-            self.chain,
-            self.db,
-            peer,
-            self.cancel_token,
-        )
-        self.run_child_service(self._peer_header_syncer)
-        try:
-            yield self._peer_header_syncer
-        except OperationCancelled:
-            pass
-        else:
-            self._peer_header_syncer.cancel_nowait()
-        finally:
-            self.logger.info("Header Sync with %s ended", peer)
-            self._last_target_header_hash = self._peer_header_syncer.get_target_header_hash()
-            self._peer_header_syncer = None
-
-    async def sync(self, peer: BaseChainPeer) -> None:
-        if self._syncing:
-            self.logger.debug(
-                "Got a NewBlock or a new peer, but already syncing so doing nothing")
-            return
-        elif len(self.peer_pool) < self.min_peers_to_sync:
-            self.logger.info(
-                "Connected to less peers (%d) than the minimum (%d) required to sync, "
-                "doing nothing", len(self.peer_pool), self.min_peers_to_sync)
-            return
-
-        with self._get_peer_header_syncer(peer) as syncer:
-            async for header_batch in syncer.next_header_batch():
-                new_headers = tuple(h for h in header_batch if h not in self.header_queue)
-                await self.wait(self.header_queue.add(new_headers))
-
-    def get_sync_status(self) -> Tuple[bool, Optional[SyncProgress]]:
-        if not self._syncing:
-            return False, None
-        return True, self._peer_header_syncer.sync_progress
-
-    async def handle_sync_status_requests(self) -> None:
-        async for req in self.peer_pool.event_bus.stream(SyncingRequest):
-            self.peer_pool.event_bus.broadcast(SyncingResponse(*self.get_sync_status()),
-                                               req.broadcast_config())
 
 
 class PeerHeaderSyncer(BaseService):

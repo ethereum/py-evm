@@ -13,7 +13,7 @@ deps = {
         "eth-utils>=1.3.0b0,<2.0.0",
         "lru-dict>=1.1.6",
         "mypy_extensions>=0.4.1,<1.0.0",
-        "py-ecc==1.4.3",
+        "py-ecc>=1.4.7,<2.0.0",
         "pyethash>=0.1.27,<1.0.0",
         "rlp>=1.0.3,<2.0.0",
         "trie>=1.3.5,<2.0.0",
@@ -44,7 +44,7 @@ deps = {
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.5",
         "web3==4.4.1",
-        "lahja==0.9.0",
+        "lahja==0.10.0",
         "termcolor>=1.1.0,<2.0.0",
         "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",
         "websockets==5.0.1",
@@ -83,10 +83,12 @@ deps = {
         "bumpversion>=0.5.3,<1",
         "wheel",
         "setuptools>=36.2.0",
-        #Fixing this dependency due to: pytest 3.6.4 has requirement pluggy<0.8,>=0.5, but you'll have pluggy 0.8.0 which is incompatible.
+        # Fixing this dependency due to: pytest 3.6.4 has requirement pluggy<0.8,>=0.5, but you'll have pluggy 0.8.0 which is incompatible.
         "pluggy==0.7.1",
-        #Fixing this dependency due to: requests 2.20.1 has requirement idna<2.8,>=2.5, but you'll have idna 2.8 which is incompatible.
+        # Fixing this dependency due to: requests 2.20.1 has requirement idna<2.8,>=2.5, but you'll have idna 2.8 which is incompatible.
         "idna==2.7",
+        # idna 2.7 is not supported by requests 2.18
+        "requests>=2.20,<3",
         "tox==2.7.0",
         "twine",
     ],
@@ -110,7 +112,7 @@ install_requires = deps['eth']
 setup(
     name='py-evm',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
-    version='0.2.0-alpha.34',
+    version='0.2.0-alpha.37',
     description='Python implementation of the Ethereum Virtual Machine',
     long_description_markdown_filename='README.md',
     author='Ethereum Foundation',

@@ -21,6 +21,7 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
 )
+
 from eth.constants import (
     GAS_MEMORY,
     GAS_MEMORY_QUADRATIC_DENOMINATOR,
@@ -28,6 +29,9 @@ from eth.constants import (
 from eth.exceptions import (
     Halt,
     VMError,
+)
+from eth.typing import (
+    BytesOrView,
 )
 from eth.tools.logging import (
     ExtendedDebugLogger,
@@ -43,18 +47,36 @@ from eth.validation import (
     validate_is_bytes,
     validate_uint256,
 )
-from eth.vm.code_stream import CodeStream
-from eth.vm.gas_meter import GasMeter
-from eth.vm.logic.invalid import InvalidOpcode
-from eth.vm.memory import Memory
-from eth.vm.message import Message
-from eth.vm.opcode import Opcode
-from eth.vm.stack import Stack
-from eth.vm.state import BaseState
+from eth.vm.code_stream import (
+    CodeStream,
+)
+from eth.vm.gas_meter import (
+    GasMeter,
+)
+from eth.vm.logic.invalid import (
+    InvalidOpcode,
+)
+from eth.vm.memory import (
+    Memory,
+)
+from eth.vm.message import (
+    Message,
+)
+from eth.vm.opcode import (  # noqa: F401
+    Opcode
+)
+from eth.vm.stack import (
+    Stack,
+)
+from eth.vm.state import (
+    BaseState,
+)
+from eth.vm.transaction_context import (
+    BaseTransactionContext
+)
 from eth.vm.tracing import (
     BaseTracer,
 )
-from eth.vm.transaction_context import BaseTransactionContext
 
 
 def memory_gas_cost(size_in_bytes: int) -> int:
@@ -253,11 +275,17 @@ class BaseComputation(Configurable, ABC):
         """
         return self._memory.write(start_position, size, value)
 
-    def memory_read(self, start_position: int, size: int) -> bytes:
+    def memory_read(self, start_position: int, size: int) -> memoryview:
         """
         Read and return ``size`` bytes from memory starting at ``start_position``.
         """
         return self._memory.read(start_position, size)
+
+    def memory_read_bytes(self, start_position: int, size: int) -> bytes:
+        """
+        Read and return ``size`` bytes from memory starting at ``start_position``.
+        """
+        return self._memory.read_bytes(start_position, size)
 
     def dump_memory(self) -> bytes:
         return bytearray(self._memory)
@@ -376,7 +404,7 @@ class BaseComputation(Configurable, ABC):
                               gas: int,
                               to: Address,
                               value: int,
-                              data: bytes,
+                              data: BytesOrView,
                               code: bytes,
                               **kwargs: Any) -> Message:
         """
