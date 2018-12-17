@@ -14,12 +14,10 @@ from typing import (
     Optional,
     Tuple,
     TYPE_CHECKING,
-    Union,
 )
 
 from eth_typing import (
     Address,
-    Hash32,
 )
 
 from eth_utils import ValidationError
@@ -28,9 +26,8 @@ from eth.exceptions import VMError
 from eth.vm.opcode import Opcode
 
 if TYPE_CHECKING:
-    # avoid circular import
+    from typing import List  # noqa: F401
     from eth.vm.computation import BaseComputation  # noqa: F401
-    from trinity.chains.base import BaseAsyncChain   # noqa: F401
 
 
 class BaseTracer(ABC):
@@ -48,6 +45,7 @@ class NoopTracer(BaseTracer):
     """
     A Tracer class which does nothing.
     """
+
     @contextlib.contextmanager
     def capture(self, computation: 'BaseComputation', opcode_fn: Opcode) -> Iterator[None]:
         yield
@@ -85,7 +83,6 @@ StructLogEntry = NamedTuple('StructLogEntry',
                                 ('stack', Optional[Tuple[int, ...]]),
                                 ('storage', Optional[Dict[int, int]])
                             ])
-
 
 ExecutionResult = NamedTuple('ExecutionResult',
                              [
@@ -198,7 +195,7 @@ class StructTracer(BaseTracer):
                        op: str,
                        pc: int,
                        stack: Tuple[int, ...],
-                       storage: Dict[int, Union[int, bytes]]) -> None:
+                       storage: Dict[int, int]) -> None:
         if self.is_full:
             self.logger.debug(
                 'StructTracer full (limit=%d). Discarding trace log entry',
@@ -217,24 +214,3 @@ class StructTracer(BaseTracer):
             stack=stack,
             storage=storage,
         ))
-
-
-def trace_transaction(chain: 'BaseAsyncChain',
-                      txn_hash: Hash32,
-                      tracer: BaseTracer) -> BaseTracer:
-    block_num, transaction_idx = chain.chaindb.get_transaction_index(txn_hash)
-    block = chain.get_canonical_block_by_number(block_num)
-    transaction = block.transactions[transaction_idx]
-    parent_header = chain.get_block_header_by_hash(block.header.parent_hash)
-    vm = chain.get_vm(parent_header)
-    vm.apply_all_transactions(
-        transactions=block.transactions[:transaction_idx],
-        base_header=parent_header,
-    )
-    _, _, _ = vm.apply_transaction(
-        vm.block.header,
-        transaction,
-        tracer=tracer,
-    )
-
-    return tracer

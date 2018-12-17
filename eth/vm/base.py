@@ -448,6 +448,9 @@ class VM(BaseVM):
         if origin is None:
             origin = sender
 
+        if tracer is None:
+            tracer = NoopTracer()
+
         # Construct a message
         message = Message(
             gas=gas,

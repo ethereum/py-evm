@@ -35,6 +35,9 @@ from eth.vm.forks import (
 from eth.vm.message import (
     Message,
 )
+from eth.vm.tracing import (
+    NoopTracer,
+)
 
 
 NORMALIZED_ADDRESS_A = "0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"
@@ -51,7 +54,7 @@ GENESIS_HEADER = BlockHeader(
 )
 
 
-def setup_computation(vm_class, create_address, code, tracer=None):
+def setup_computation(vm_class, create_address, code, tracer=NoopTracer()):
 
     message = Message(
         to=CANONICAL_ADDRESS_A,

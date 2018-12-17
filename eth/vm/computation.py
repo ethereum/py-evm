@@ -51,7 +51,9 @@ from eth.vm.message import Message
 from eth.vm.opcode import Opcode
 from eth.vm.stack import Stack
 from eth.vm.state import BaseState
-from eth.vm.tracing import BaseTracer
+from eth.vm.tracing import (
+    BaseTracer,
+)
 from eth.vm.transaction_context import BaseTransactionContext
 
 
@@ -567,7 +569,7 @@ class BaseComputation(Configurable, ABC):
                           state: BaseState,
                           message: Message,
                           transaction_context: BaseTransactionContext,
-                          tracer: BaseTracer=None) -> 'BaseComputation':
+                          tracer: BaseTracer) -> 'BaseComputation':
         """
         Perform the computation that would be triggered by the VM message.
         """

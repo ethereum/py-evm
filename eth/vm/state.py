@@ -314,7 +314,7 @@ class BaseTransactionExecutor(ABC):
     def __call__(self, transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
         valid_transaction = self.validate_transaction(transaction)
         message = self.build_evm_message(valid_transaction)
-        computation = self.build_computation(message, valid_transaction)
+        computation = self.build_computation(message, valid_transaction, self.vm_state.tracer)
         finalized_computation = self.finalize_computation(valid_transaction, computation)
         return finalized_computation
 
@@ -329,7 +329,8 @@ class BaseTransactionExecutor(ABC):
     @abstractmethod
     def build_computation(self,
                           message: Message,
-                          transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
+                          transaction: BaseOrSpoofTransaction,
+                          tracer: BaseTracer) -> 'BaseComputation':
         raise NotImplementedError()
 
     @abstractmethod

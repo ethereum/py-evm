@@ -4,16 +4,13 @@ from mypy_extensions import (
 
 from typing import (
     AnyStr,
+    cast,
     Dict,
     List,
     Optional,
     Tuple,
+    TYPE_CHECKING,
     Union,
-)
-
-from eth.vm.tracing import (
-    StructLogEntry,
-    trace_transaction,
 )
 
 from eth_typing import (
@@ -21,21 +18,31 @@ from eth_typing import (
 )
 
 from eth_utils import (
+    decode_hex,
     encode_hex,
     remove_0x_prefix,
-)
-
-from eth.utils.padding import (
-    pad32,
 )
 
 from eth_utils.types import (
     is_string,
 )
 
+from eth.utils.padding import (
+    pad32,
+)
+
+from eth.vm.tracing import (
+    BaseTracer,
+    StructLogEntry,
+    StructTracer,
+)
+
 from trinity.rpc.modules import (
     RPCModule,
 )
+
+if TYPE_CHECKING:
+    from trinity.chains.base import BaseAsyncChain  # noqa: F401
 
 
 class TraceConfigRPC(TypedDict):
@@ -66,7 +73,6 @@ class ExecutionResultRPC(TypedDict):
 
 
 def format_struct_logs(logs: Tuple[StructLogEntry, ...]) -> List[StructLogEntryRPC]:
-
     def to_zeropad32_str(value: Union[AnyStr, int]) -> str:
         val: Union[AnyStr, int] = value
         if isinstance(value, int):
@@ -107,21 +113,46 @@ def format_struct_logs(logs: Tuple[StructLogEntry, ...]) -> List[StructLogEntryR
     return logs_formatted
 
 
+def trace_transaction(chain: 'BaseAsyncChain',
+                      txn_hash: Hash32,
+                      tracer: BaseTracer) -> BaseTracer:
+    block_num, transaction_idx = chain.chaindb.get_transaction_index(txn_hash)
+    block = chain.get_canonical_block_by_number(block_num)
+    transaction = block.transactions[transaction_idx]
+    parent_header = chain.get_block_header_by_hash(block.header.parent_hash)
+    vm = chain.get_vm(parent_header)
+    vm.apply_all_transactions(
+        transactions=block.transactions[:transaction_idx],
+        base_header=parent_header,
+    )
+    _, _, _ = vm.apply_transaction(
+        vm.block.header,
+        transaction,
+        tracer=tracer,
+    )
+
+    return tracer
+
+
 class Debug(RPCModule):
 
-    async def traceTransaction(self, tx_hash: Hash32,
+    async def traceTransaction(self, tx_hash: str,
                                options: TraceConfigRPC) -> ExecutionResultRPC:
         """
         Return the structured logs created during the execution of EVM
         """
-        res = trace_transaction(self._chain,
-                                tx_hash,
-                                memory=not options.get("disableMemory", False),
-                                storage=not options.get("disableStorage", False),
-                                stack=not options.get("disableStack", False),
-                                limit=options.get("limit", None))
 
-        return ExecutionResultRPC(gas=res.gas,
-                                  failed=res.error,
-                                  returnValue=remove_0x_prefix(encode_hex(res.output)),
-                                  structLogs=format_struct_logs(res.logs))
+        tracer_in = StructTracer(memory=not options.get("disableMemory", False),
+                                 storage=not options.get("disableStorage", False),
+                                 stack=not options.get("disableStack", False),
+                                 limit=options.get("limit", None))
+
+        tracer = cast(StructTracer,
+                      trace_transaction(self._chain,
+                                        decode_hex(tx_hash),
+                                        tracer_in))
+
+        return ExecutionResultRPC(gas=tracer.result.gas,
+                                  failed=tracer.result.error,
+                                  returnValue=remove_0x_prefix(encode_hex(tracer.result.output)),
+                                  structLogs=format_struct_logs(tracer.result.logs))

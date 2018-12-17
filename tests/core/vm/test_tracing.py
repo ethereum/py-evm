@@ -10,7 +10,9 @@ from eth.chains.base import Chain
 
 CONTRACT_ADDRESS = decode_hex('0x1000000000000000000000000000000000000000')
 # From `fixtures/VMTests/vmArithmetic/add0.json'
-CONTRACT_CODE = decode_hex('0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff01600055')
+CONTRACT_CODE = decode_hex('0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7ff'
+                           'fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff01600055'
+                           )
 
 
 @pytest.fixture(params=b.mainnet_fork_at_fns)
@@ -94,7 +96,8 @@ def test_trace_add0(
     assert actual_ops == expected_ops
 
     log_0, log_1, log_2, log_3, log_4 = result.logs
-    expected_add_result = to_int(hexstr='0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe')
+    expected_add_result = to_int(hexstr='0xffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+                                        'fffffffe')
 
     # Check expected stack size
     assert len(log_0.stack) == 0

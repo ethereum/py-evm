@@ -13,6 +13,9 @@ from eth.vm.forks.frontier.computation import (
 from eth.vm.transaction_context import (
     BaseTransactionContext,
 )
+from eth.vm.tracing import (
+    NoopTracer,
+)
 
 
 NORMALIZED_ADDRESS_A = "0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"
@@ -51,7 +54,7 @@ def message():
 
 
 @pytest.fixture
-def computation(message, transaction_context, state, tracer=None):
+def computation(message, transaction_context, state, tracer=NoopTracer()):
     computation = FrontierComputation(
         state=state,
         message=message,
