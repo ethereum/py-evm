@@ -474,6 +474,7 @@ class VM(BaseVM):
                 self.state,
                 message,
                 transaction_context,
+                tracer,
             )
 
     def apply_all_transactions(
