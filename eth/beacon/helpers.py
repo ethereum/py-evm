@@ -21,7 +21,7 @@ from eth.utils.bitfield import (
     has_voted,
 )
 from eth.beacon.utils.hash import (
-    hash_,
+    hash_eth2,
 )
 from eth.utils.numeric import (
     clamp,
@@ -371,7 +371,7 @@ def get_new_validator_registry_delta_chain_tip(current_validator_registry_delta_
     """
     Compute the next hash in the validator registry delta hash chain.
     """
-    return hash_(
+    return hash_eth2(
         current_validator_registry_delta_chain_tip +
         flag.to_bytes(1, 'big') +
         index.to_bytes(3, 'big') +

@@ -15,7 +15,7 @@ from eth_utils import (
 )
 
 from eth.beacon.utils.hash import (
-    hash_,
+    hash_eth2,
 )
 from eth.beacon.constants import (
     RAND_BYTES,
@@ -50,7 +50,7 @@ def shuffle(values: Sequence[Any],
     index = 0
     while index < values_count - 1:
         # Re-hash the `source` to obtain a new pattern of bytes.
-        source = hash_(source)
+        source = hash_eth2(source)
 
         # Iterate through the `source` bytes in 3-byte chunks.
         for position in range(0, 32 - (32 % RAND_BYTES), RAND_BYTES):

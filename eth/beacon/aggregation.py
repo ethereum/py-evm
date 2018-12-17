@@ -10,7 +10,6 @@ from eth.utils import bls
 from eth.utils.bitfield import (
     set_voted,
 )
-
 from eth.beacon.enums import SignatureDomain
 
 
