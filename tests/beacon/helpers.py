@@ -13,7 +13,7 @@ def mock_validator_record(pubkey, max_deposit):
         pubkey=pubkey,
         withdrawal_credentials=b'\x44' * 32,
         randao_commitment=b'\x55' * 32,
-        randao_skips=0,
+        randao_layers=0,
         balance=max_deposit,
         status=ValidatorStatusCode.ACTIVE,
         latest_status_change_slot=0,
