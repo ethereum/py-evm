@@ -13,6 +13,12 @@ from eth.rlp.sedes import (
 )
 
 
+VALIDATOR_RECORD_ACTIVE_STATUSES = {
+    ValidatorStatusCode.ACTIVE,
+    ValidatorStatusCode.ACTIVE_PENDING_EXIT,
+}
+
+
 class ValidatorRecord(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.
@@ -61,7 +67,4 @@ class ValidatorRecord(rlp.Serializable):
         """
         Returns ``True`` if the validator is active.
         """
-        return self.status in [
-            ValidatorStatusCode.ACTIVE,
-            ValidatorStatusCode.ACTIVE_PENDING_EXIT
-        ]
+        return self.status in VALIDATOR_RECORD_ACTIVE_STATUSES
