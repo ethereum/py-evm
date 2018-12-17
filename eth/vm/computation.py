@@ -51,10 +51,7 @@ from eth.vm.message import Message
 from eth.vm.opcode import Opcode
 from eth.vm.stack import Stack
 from eth.vm.state import BaseState
-from eth.vm.tracing import (
-    BaseTracer,
-    NoopTracer,
-)
+from eth.vm.tracing import BaseTracer
 from eth.vm.transaction_context import BaseTransactionContext
 
 
@@ -126,10 +123,7 @@ class BaseComputation(Configurable, ABC):
         code = message.code
         self.code = CodeStream(code)
 
-        if tracer is None:
-            self.tracer = NoopTracer()  # type: BaseTracer
-        else:
-            self.tracer = tracer  # type: BaseTracer
+        self.tracer = tracer
 
     #
     # Convenience
@@ -578,11 +572,10 @@ class BaseComputation(Configurable, ABC):
         Perform the computation that would be triggered by the VM message.
         """
         with cls(state, message, transaction_context, tracer) as computation:
-            if computation.tracer is None or isinstance(computation.tracer, NoopTracer):
-                # Early exit on pre-compiles
-                if message.code_address in computation.precompiles:
-                    computation.precompiles[message.code_address](computation)
-                    return computation
+            # Early exit on pre-compiles
+            if message.code_address in computation.precompiles:
+                computation.precompiles[message.code_address](computation)
+                return computation
 
             for opcode in computation.code:
                 opcode_fn = computation.get_opcode_fn(opcode)
