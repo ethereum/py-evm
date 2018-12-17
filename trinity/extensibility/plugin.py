@@ -50,6 +50,9 @@ from trinity._utils.mp import (
 from trinity._utils.logging import (
     setup_queue_logging,
 )
+from trinity._utils.os import (
+    friendly_filename_or_url,
+)
 
 
 class PluginStatus(Enum):
@@ -134,6 +137,13 @@ class BasePlugin(ABC):
         Describe the name of the plugin.
         """
         pass
+
+    @property
+    def normalized_name(self) -> str:
+        """
+        The normalized (computer readable) name of the plugin
+        """
+        return friendly_filename_or_url(self.name)
 
     @property
     def logger(self) -> logging.Logger:
@@ -296,7 +306,8 @@ class BaseIsolatedPlugin(BasePlugin):
         self.event_bus.broadcast(
             PluginStartedEvent(type(self))
         )
-        self.do_start()
+        with self.context.trinity_config.process_id_file(self.normalized_name):
+            self.do_start()
 
     def stop(self) -> None:
         """
