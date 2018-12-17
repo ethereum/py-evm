@@ -21,7 +21,7 @@ from eth.beacon.types.attestation_data import (
 )
 
 from eth.beacon.types.deposits import DepositData
-from eth.beacon.types.deposit_parameters import DepositParameters
+from eth.beacon.types.deposit_parameters import DepositInput
 
 from eth.beacon.types.blocks import (
     BeaconBlockBody,
@@ -188,7 +188,7 @@ def sample_deposit_params(sample_deposit_parameters_params):
         'merkle_branch': (),
         'merkle_tree_index': 5,
         'deposit_data': DepositData(
-            deposit_parameters=DepositParameters(**sample_deposit_parameters_params),
+            deposit_parameters=DepositInput(**sample_deposit_parameters_params),
             value=56,
             timestamp=1501851927,
         )
