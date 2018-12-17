@@ -1,7 +1,7 @@
 
 import rlp
 from eth.rlp.sedes import uint64
-from .deposit_parameters import DepositParameters
+from .deposit_input import DepositInput
 
 
 class DepositData(rlp.Serializable):
@@ -9,8 +9,7 @@ class DepositData(rlp.Serializable):
     Not in spec, this is for fields in Deposit
     """
     fields = [
-        # Deposit parameters
-        ('deposit_parameters', DepositParameters),
+        ('deposit_input', DepositInput),
         # Value in Gwei
         ('value', uint64),
         # Timestamp from deposit contract
@@ -18,12 +17,12 @@ class DepositData(rlp.Serializable):
     ]
 
     def __init__(self,
-                 deposit_parameters: DepositParameters,
+                 deposit_input: DepositInput,
                  value: int,
                  timestamp: int) -> None:
 
         super().__init__(
-            deposit_parameters,
+            deposit_input,
             value,
             timestamp,
         )

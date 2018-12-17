@@ -21,7 +21,7 @@ from eth.beacon.types.attestation_data import (
 )
 
 from eth.beacon.types.deposits import DepositData
-from eth.beacon.types.deposit_parameters import DepositParameters
+from eth.beacon.types.deposit_input import DepositInput
 
 from eth.beacon.types.blocks import (
     BeaconBlockBody,
@@ -169,29 +169,30 @@ def sample_crosslink_record_params():
 
 
 @pytest.fixture
-def sample_deposit_parameters_params():
+def sample_deposit_input_params():
     return {
-        # BLS pubkey
         'pubkey': 123,
-        # BLS proof of possession (a BLS signature)
         'proof_of_possession': (0, 0),
-        # Withdrawal credentials
         'withdrawal_credentials': b'\11' * 32,
-        # Initial RANDAO commitment
         'randao_commitment': b'\11' * 32,
     }
 
 
 @pytest.fixture
-def sample_deposit_params(sample_deposit_parameters_params):
+def sample_deposit_data_params(sample_deposit_input_params):
+    return {
+        'deposit_input': DepositInput(**sample_deposit_input_params),
+        'value': 56,
+        'timestamp': 1501851927,
+    }
+
+
+@pytest.fixture
+def sample_deposit_params(sample_deposit_data_params):
     return {
         'merkle_branch': (),
         'merkle_tree_index': 5,
-        'deposit_data': DepositData(
-            deposit_parameters=DepositParameters(**sample_deposit_parameters_params),
-            value=56,
-            timestamp=1501851927,
-        )
+        'deposit_data': DepositData(**sample_deposit_data_params)
     }
 
 
