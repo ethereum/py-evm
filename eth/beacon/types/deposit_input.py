@@ -16,7 +16,7 @@ from eth.rlp.sedes import (
 )
 
 
-class DepositParameters(rlp.Serializable):
+class DepositInput(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.
     """
