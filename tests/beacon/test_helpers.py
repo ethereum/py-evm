@@ -467,10 +467,12 @@ def test_get_beacon_proposer_index(
 
 
 def test_get_active_validator_indices(sample_validator_record_params):
-    # 3 validators are ACTIVE by default.
+    # 3 validators are ACTIVE
     validators = [
         ValidatorRecord(
             **sample_validator_record_params,
+        ).copy(
+            status=ValidatorStatusCode.ACTIVE,
         )
         for i in range(3)
     ]
@@ -613,7 +615,7 @@ def test_get_effective_balance(balance, max_deposit, expected, sample_validator_
 
 @pytest.mark.parametrize(
     (
-        'index,'
+        'validator_index,'
         'pubkey,'
         'flag,'
         'expected'
@@ -623,17 +625,17 @@ def test_get_effective_balance(balance, max_deposit, expected, sample_validator_
             1,
             2 * 256 - 1,
             1,
-            b'\xe8\xaaH\x14\xa3\xban\x8f^rn1\xdf\xfd\xe1\xed\xe9S*\x80\xf5\xe3\x03\x983\x15\xd1\x91t\xcc\xb4h'  # noqa: E501
+            b'\xb8K\xad[zDE\xef\x00Z\x9c\x04\xdc\x95\xff\x9c\xeaP\x15\xf5\xfb\xdd\x0f\x1c:\xd7U+\x81\x92:\xee'  # noqa: E501
         ),
     ]
 )
-def test_get_new_validator_registry_delta_chain_tip(index,
+def test_get_new_validator_registry_delta_chain_tip(validator_index,
                                                     pubkey,
                                                     flag,
                                                     expected):
     result = get_new_validator_registry_delta_chain_tip(
         current_validator_registry_delta_chain_tip=ZERO_HASH32,
-        index=index,
+        validator_index=validator_index,
         pubkey=pubkey,
         flag=flag,
     )

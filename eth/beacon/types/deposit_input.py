@@ -14,7 +14,7 @@ from eth.rlp.sedes import (
     hash32,
     uint384,
 )
-from eth.beacon.utils.hash import hash_eth2
+from eth.beacon._utils.hash import hash_eth2
 
 
 class DepositInput(rlp.Serializable):
