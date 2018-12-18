@@ -8,7 +8,7 @@ from eth.beacon.enums import (
 )
 from eth.rlp.sedes import (
     uint64,
-    uint256,
+    uint384,
     hash32,
 )
 
@@ -25,7 +25,7 @@ class ValidatorRecord(rlp.Serializable):
     """
     fields = [
         # BLS public key
-        ('pubkey', uint256),
+        ('pubkey', uint384),
         # Withdrawal credentials
         ('withdrawal_credentials', hash32),
         # RANDAO commitment

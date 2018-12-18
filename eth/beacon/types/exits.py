@@ -6,7 +6,7 @@ from rlp.sedes import (
 from eth.rlp.sedes import (
     uint24,
     uint64,
-    uint256,
+    uint384,
 )
 
 
@@ -20,7 +20,7 @@ class Exit(rlp.Serializable):
         # Index of the exiting validator
         ('validator_index', uint24),
         # Validator signature
-        ('signature', CountableList(uint256)),
+        ('signature', CountableList(uint384)),
     ]
 
     def __init__(self,

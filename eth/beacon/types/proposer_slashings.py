@@ -5,7 +5,7 @@ from rlp.sedes import (
 )
 from eth.rlp.sedes import (
     uint24,
-    uint256,
+    uint384,
 )
 from .proposal_signed_data import ProposalSignedData
 
@@ -17,11 +17,11 @@ class ProposerSlashing(rlp.Serializable):
         # First proposal data
         ('proposal_data_1', ProposalSignedData),
         # First proposal signature
-        ('proposal_signature_1', CountableList(uint256)),
+        ('proposal_signature_1', CountableList(uint384)),
         # Second proposal data
         ('proposal_data_2', ProposalSignedData),
         # Second proposal signature
-        ('proposal_signature_2', CountableList(uint256)),
+        ('proposal_signature_2', CountableList(uint384)),
     ]
 
     def __init__(self,

@@ -12,7 +12,7 @@ from rlp.sedes import (
 
 from eth.rlp.sedes import (
     hash32,
-    uint256,
+    uint384,
 )
 
 
@@ -22,9 +22,9 @@ class DepositInput(rlp.Serializable):
     """
     fields = [
         # BLS pubkey
-        ('pubkey', uint256),
+        ('pubkey', uint384),
         # BLS proof of possession (a BLS signature)
-        ('proof_of_possession', CountableList(uint256)),
+        ('proof_of_possession', CountableList(uint384)),
         # Withdrawal credentials
         ('withdrawal_credentials', hash32),
         # Initial RANDAO commitment
