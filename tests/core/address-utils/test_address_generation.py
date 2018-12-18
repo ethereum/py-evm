@@ -5,7 +5,7 @@ from eth_utils import (
     big_endian_to_int,
     is_same_address,
 )
-from eth.utils.address import (
+from eth._utils.address import (
     generate_safe_contract_address,
 )
 

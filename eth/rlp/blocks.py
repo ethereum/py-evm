@@ -12,7 +12,7 @@ from eth_typing import (
     Hash32
 )
 
-from eth.utils.datatypes import (
+from eth._utils.datatypes import (
     Configurable,
 )
 

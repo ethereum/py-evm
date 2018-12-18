@@ -14,10 +14,10 @@ from eth.exceptions import (
     BlockNotFound,
     ParentNotFound,
 )
-from eth.beacon.utils.hash import (
+from eth.beacon._utils.hash import (
     hash_eth2,
 )
-from eth.utils.rlp import (
+from eth._utils.rlp import (
     validate_rlp_equal,
 )
 

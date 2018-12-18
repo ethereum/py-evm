@@ -65,7 +65,7 @@ from p2p.exceptions import (
     UnreachablePeer,
 )
 from p2p.service import BaseService
-from p2p.utils import (
+from p2p._utils import (
     get_devp2p_cmd_id,
     roundup_16,
     sxor,

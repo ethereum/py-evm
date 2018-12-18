@@ -14,7 +14,7 @@ from eth_utils import (
 from p2p.protocol import Command
 
 from trinity.protocol.common.peer import BaseChainPeer
-from trinity.utils.datastructures import (
+from trinity._utils.datastructures import (
     SortableTask,
 )
 

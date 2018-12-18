@@ -21,7 +21,7 @@ from trinity.rpc.main import (
 from trinity.rpc.ipc import (
     IPCServer,
 )
-from trinity.utils.shutdown import (
+from trinity._utils.shutdown import (
     exit_with_service_and_endpoint,
 )
 

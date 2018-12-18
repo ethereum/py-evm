@@ -6,7 +6,7 @@ from eth.vm.forks.byzantium.transactions import (
     ByzantiumUnsignedTransaction,
 )
 
-from eth.utils.transactions import (
+from eth._utils.transactions import (
     create_transaction_signature,
 )
 

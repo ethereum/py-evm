@@ -60,14 +60,14 @@ from eth.rlp.transactions import (
     BaseTransaction,
     BaseUnsignedTransaction,
 )
-from eth.utils.datatypes import (
+from eth._utils.datatypes import (
     Configurable,
 )
-from eth.utils.db import (
+from eth._utils.db import (
     get_parent_header,
     get_block_header_by_hash,
 )
-from eth.utils.headers import (
+from eth._utils.headers import (
     generate_header_from_parent_header,
 )
 from eth.validation import (

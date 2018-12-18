@@ -34,7 +34,7 @@ def _test() -> None:
         connect_to_peers_loop)
     from trinity.constants import DEFAULT_PREFERRED_NODES
     from trinity.protocol.common.context import ChainContext
-    from trinity.utils.chains import load_nodekey
+    from trinity._utils.chains import load_nodekey
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)

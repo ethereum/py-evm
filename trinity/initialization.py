@@ -13,7 +13,7 @@ from trinity.db.chain import AsyncChainDB
 from trinity.exceptions import (
     MissingPath,
 )
-from trinity.utils.filesystem import (
+from trinity._utils.filesystem import (
     is_under_path,
 )
 

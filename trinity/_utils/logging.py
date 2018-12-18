@@ -28,7 +28,7 @@ from eth.tools.logging import (
     ExtendedDebugLogger,
 )
 
-from trinity.utils.shellart import (
+from trinity._utils.shellart import (
     bold_red,
     bold_yellow,
 )

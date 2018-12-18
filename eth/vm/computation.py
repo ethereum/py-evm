@@ -35,10 +35,10 @@ from eth.typing import (
 from eth.tools.logging import (
     ExtendedDebugLogger,
 )
-from eth.utils.datatypes import (
+from eth._utils.datatypes import (
     Configurable,
 )
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     ceil32,
 )
 from eth.validation import (

@@ -30,20 +30,20 @@ from eth.rlp.blocks import (
 from .base_benchmark import (
     BaseBenchmark,
 )
-from utils.chain_plumbing import (
+from _utils.chain_plumbing import (
     FUNDED_ADDRESS,
     FUNDED_ADDRESS_PRIVATE_KEY,
     SECOND_ADDRESS,
     SECOND_ADDRESS_PRIVATE_KEY,
     get_all_chains,
 )
-from utils.compile import (
+from _utils.compile import (
     get_compiled_contract
 )
-from utils.reporting import (
+from _utils.reporting import (
     DefaultStat,
 )
-from utils.tx import (
+from _utils.tx import (
     new_transaction,
 )
 

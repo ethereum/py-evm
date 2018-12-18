@@ -1,5 +1,5 @@
 from eth import constants
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     ceil32,
 )
 

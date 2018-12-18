@@ -7,13 +7,13 @@ from eth.chains.base import (
 from .base_benchmark import (
     BaseBenchmark
 )
-from utils.chain_plumbing import (
+from _utils.chain_plumbing import (
     get_all_chains
 )
-from utils.format import (
+from _utils.format import (
     format_block
 )
-from utils.reporting import (
+from _utils.reporting import (
     DefaultStat
 )
 

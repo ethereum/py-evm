@@ -3,7 +3,7 @@ import pytest
 from eth.constants import UINT_256_MAX
 
 from trinity.exceptions import OversizeObject
-from trinity.utils.headers import sequence_builder
+from trinity._utils.headers import sequence_builder
 
 
 @pytest.mark.parametrize(

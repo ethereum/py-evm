@@ -3,7 +3,7 @@ import pytest
 import uuid
 
 from eth.tools.logging import ExtendedDebugLogger
-from eth.utils.address import (
+from eth._utils.address import (
     force_bytes_to_address
 )
 

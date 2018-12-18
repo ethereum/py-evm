@@ -17,7 +17,7 @@ from eth_utils import (
     encode_hex,
 )
 
-from trinity.utils.headers import sequence_builder
+from trinity._utils.headers import sequence_builder
 
 TResponse = TypeVar('TResponse')
 

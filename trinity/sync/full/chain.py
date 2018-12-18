@@ -59,15 +59,15 @@ from trinity.sync.common.constants import (
 )
 from trinity.sync.common.headers import HeaderSyncerAPI
 from trinity.sync.common.peers import WaitingPeers
-from trinity.utils.datastructures import (
+from trinity._utils.datastructures import (
     DuplicateTasks,
     MissingDependency,
     OrderedTaskPreparation,
     TaskQueue,
 )
-from trinity.utils.ema import EMA
-from trinity.utils.humanize import humanize_elapsed, humanize_hash
-from trinity.utils.timer import Timer
+from trinity._utils.ema import EMA
+from trinity._utils.humanize import humanize_elapsed, humanize_hash
+from trinity._utils.timer import Timer
 
 # (ReceiptBundle, (Receipt, (root_hash, receipt_trie_data))
 ReceiptBundle = Tuple[Tuple[Receipt, ...], Tuple[Hash32, Dict[Hash32, bytes]]]

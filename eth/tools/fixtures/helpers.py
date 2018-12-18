@@ -33,7 +33,7 @@ from eth.tools.builder.chain import (
 from eth.typing import (
     AccountState,
 )
-from eth.utils.state import (
+from eth._utils.state import (
     diff_account_db,
 )
 from eth.vm.base import (

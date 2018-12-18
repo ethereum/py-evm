@@ -23,7 +23,7 @@ from eth.vm.forks.frontier.transactions import (
     FrontierUnsignedTransaction,
 )
 
-from eth.utils.transactions import (
+from eth._utils.transactions import (
     create_transaction_signature,
 )
 

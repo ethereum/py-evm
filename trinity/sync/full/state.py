@@ -63,8 +63,8 @@ from trinity.sync.full.hexary_trie import (
     HexaryTrieSync,
     SyncRequest,
 )
-from trinity.utils.os import get_open_fd_limit
-from trinity.utils.timer import Timer
+from trinity._utils.os import get_open_fd_limit
+from trinity._utils.timer import Timer
 
 
 class StateDownloader(BaseService, PeerSubscriber):

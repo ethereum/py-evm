@@ -43,20 +43,20 @@ from trinity.plugins.registry import (
     discover_plugins,
     ETH1_NODE_PLUGINS,
 )
-from trinity.utils.ipc import (
+from trinity._utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
 )
-from trinity.utils.logging import (
+from trinity._utils.logging import (
     with_queued_logging,
 )
-from trinity.utils.mp import (
+from trinity._utils.mp import (
     ctx,
 )
-from trinity.utils.profiling import (
+from trinity._utils.profiling import (
     setup_cprofiler,
 )
-from trinity.utils.shutdown import (
+from trinity._utils.shutdown import (
     exit_signal_with_service,
 )
 

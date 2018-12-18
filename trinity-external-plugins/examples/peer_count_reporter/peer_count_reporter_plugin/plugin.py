@@ -8,7 +8,7 @@ from p2p.events import PeerCountRequest
 from p2p.service import BaseService
 from lahja import Endpoint
 from trinity.extensibility import BaseIsolatedPlugin
-from trinity.utils.shutdown import exit_with_service_and_endpoint
+from trinity._utils.shutdown import exit_with_service_and_endpoint
 
 
 class PeerCountReporter(BaseService):

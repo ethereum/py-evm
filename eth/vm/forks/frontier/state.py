@@ -17,7 +17,7 @@ from eth.exceptions import (
 from eth.typing import (
     BaseOrSpoofTransaction,
 )
-from eth.utils.address import (
+from eth._utils.address import (
     generate_contract_address,
 )
 

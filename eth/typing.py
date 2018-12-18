@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from eth.rlp.transactions import (  # noqa: F401
         BaseTransaction
     )
-    from eth.utils.spoof import (  # noqa: F401
+    from eth._utils.spoof import (  # noqa: F401
         SpoofTransaction
     )
     from eth.vm.base import (  # noqa: F401

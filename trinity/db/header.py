@@ -20,7 +20,7 @@ from eth.db.header import (
 )
 from eth.rlp.headers import BlockHeader
 
-from trinity.utils.mp import (
+from trinity._utils.mp import (
     async_method,
     sync_method,
 )

@@ -21,7 +21,7 @@ from eth.constants import NULL_BYTE
 from p2p.exceptions import (
     MalformedMessage,
 )
-from p2p.utils import get_devp2p_cmd_id
+from p2p._utils import get_devp2p_cmd_id
 
 # Workaround for import cycles caused by type annotations:
 # http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles

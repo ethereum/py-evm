@@ -42,7 +42,7 @@ from trinity.constants import (
     SYNC_FULL,
     SYNC_LIGHT,
 )
-from trinity.utils.chains import (
+from trinity._utils.chains import (
     construct_trinity_config_params,
     get_data_dir_for_network_id,
     get_database_socket_path,
@@ -51,16 +51,16 @@ from trinity.utils.chains import (
     get_nodekey_path,
     load_nodekey,
 )
-from trinity.utils.eip1085 import (
+from trinity._utils.eip1085 import (
     Account,
     GenesisData,
     GenesisParams,
     extract_genesis_data,
 )
-from trinity.utils.filesystem import (
+from trinity._utils.filesystem import (
     PidFile,
 )
-from trinity.utils.xdg import (
+from trinity._utils.xdg import (
     get_xdg_trinity_root,
 )
 

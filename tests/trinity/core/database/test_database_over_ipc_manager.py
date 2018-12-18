@@ -24,7 +24,7 @@ from trinity.config import (
 from trinity.constants import ROPSTEN_NETWORK_ID
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
-from trinity.utils.ipc import (
+from trinity._utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
 )

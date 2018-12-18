@@ -11,7 +11,7 @@ from eth.beacon.types.states import (
 from eth.beacon.types.crosslink_records import (
     CrosslinkRecord,
 )
-from eth.beacon.utils.hash import (
+from eth.beacon._utils.hash import (
     hash_eth2,
 )
 

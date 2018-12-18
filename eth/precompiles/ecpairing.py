@@ -23,11 +23,11 @@ from eth.typing import (
     BytesOrView,
 )
 
-from eth.utils.bn128 import (
+from eth._utils.bn128 import (
     validate_point,
     FQP_point_to_FQ2_point,
 )
-from eth.utils.padding import (
+from eth._utils.padding import (
     pad32,
 )
 

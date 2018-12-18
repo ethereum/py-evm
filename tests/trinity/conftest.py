@@ -25,10 +25,10 @@ from trinity.rpc.main import (
 from trinity.rpc.ipc import (
     IPCServer,
 )
-from trinity.utils.xdg import (
+from trinity._utils.xdg import (
     get_xdg_trinity_root,
 )
-from trinity.utils.filesystem import (
+from trinity._utils.filesystem import (
     is_under_path,
 )
 from tests.conftest import (

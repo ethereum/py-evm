@@ -19,7 +19,7 @@ from hypothesis import (
     strategies as st,
 )
 
-from trinity.utils.datastructures import TaskQueue
+from trinity._utils.datastructures import TaskQueue
 
 DEFAULT_TIMEOUT = 0.05
 

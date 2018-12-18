@@ -11,7 +11,7 @@ from eth_utils import (
 
 from eth.chains.base import MiningChain
 
-from eth.utils.spoof import (
+from eth._utils.spoof import (
     SpoofTransaction,
 )
 

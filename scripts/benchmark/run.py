@@ -3,7 +3,7 @@
 import logging
 import sys
 
-from eth.utils.version import (
+from eth._utils.version import (
     construct_evm_runtime_identifier
 )
 
@@ -36,14 +36,14 @@ from contract_data import (
     get_contracts
 )
 
-from utils.compile import (
+from _utils.compile import (
     compile_contracts
 )
-from utils.reporting import (
+from _utils.reporting import (
     DefaultStat,
     print_final_benchmark_total_line
 )
-from utils.shellart import (
+from _utils.shellart import (
     bold_green,
     bold_red,
 )

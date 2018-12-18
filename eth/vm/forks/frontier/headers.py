@@ -17,10 +17,10 @@ from eth.constants import (
     BOMB_EXPONENTIAL_PERIOD,
     BOMB_EXPONENTIAL_FREE_PERIODS,
 )
-from eth.utils.db import (
+from eth._utils.db import (
     get_parent_header,
 )
-from eth.utils.headers import (
+from eth._utils.headers import (
     compute_gas_limit,
 )
 from eth.rlp.headers import BlockHeader

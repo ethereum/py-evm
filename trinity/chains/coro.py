@@ -1,4 +1,4 @@
-from trinity.utils.async_dispatch import (
+from trinity._utils.async_dispatch import (
     async_method,
 )
 

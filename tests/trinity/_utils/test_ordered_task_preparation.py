@@ -7,7 +7,7 @@ from eth_utils import (
 from eth_utils.toolz import identity
 import pytest
 
-from trinity.utils.datastructures import (
+from trinity._utils.datastructures import (
     DuplicateTasks,
     MissingDependency,
     OrderedTaskPreparation,

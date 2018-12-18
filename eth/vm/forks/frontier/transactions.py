@@ -27,7 +27,7 @@ from eth.rlp.transactions import (
     BaseUnsignedTransaction,
 )
 
-from eth.utils.transactions import (
+from eth._utils.transactions import (
     create_transaction_signature,
     extract_transaction_sender,
     validate_transaction_signature,

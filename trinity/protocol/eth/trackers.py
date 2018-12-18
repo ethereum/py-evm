@@ -11,7 +11,7 @@ from trinity.protocol.common.types import (
     NodeDataBundles,
     ReceiptsBundles,
 )
-from trinity.utils.headers import sequence_builder
+from trinity._utils.headers import sequence_builder
 
 from .requests import (
     GetBlockBodiesRequest,

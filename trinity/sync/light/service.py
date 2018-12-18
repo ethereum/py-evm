@@ -69,7 +69,7 @@ from p2p.service import (
 from trinity.db.header import BaseAsyncHeaderDB
 from trinity.protocol.les.peer import LESPeer, LESPeerPool
 from trinity.rlp.block_body import BlockBody
-from trinity.utils.les import gen_request_id
+from trinity._utils.les import gen_request_id
 
 
 class BaseLightPeerChain(ABC):

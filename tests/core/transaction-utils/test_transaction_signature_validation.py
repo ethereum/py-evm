@@ -20,7 +20,7 @@ from eth.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonTransaction,
 )
 
-from eth.utils.transactions import (
+from eth._utils.transactions import (
     extract_transaction_sender,
     validate_transaction_signature,
 )

@@ -93,7 +93,7 @@ class P2PProtocol(Protocol):
 
     def send_handshake(self) -> None:
         # TODO: move import out once this is in the trinity codebase
-        from trinity.utils.version import construct_trinity_client_identifier
+        from trinity._utils.version import construct_trinity_client_identifier
         data = dict(version=self.version,
                     client_version_string=construct_trinity_client_identifier(),
                     capabilities=self.peer.capabilities,

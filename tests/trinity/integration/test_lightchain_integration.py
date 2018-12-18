@@ -30,7 +30,7 @@ from trinity.protocol.les.peer import LESPeerPool
 from trinity.protocol.les.servers import LightRequestServer
 from trinity.sync.light.chain import LightChainSyncer
 from trinity.sync.light.service import LightPeerChain
-from trinity.utils.ipc import (
+from trinity._utils.ipc import (
     kill_popen_gracefully,
 )
 

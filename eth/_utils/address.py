@@ -3,7 +3,7 @@ import rlp
 from eth_hash.auto import keccak
 from eth_typing import Address
 
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     int_to_bytes32,
 )
 

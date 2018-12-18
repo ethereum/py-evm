@@ -32,11 +32,11 @@ from trinity.extensibility import (
 from trinity.plugins.registry import (
     BASE_PLUGINS,
 )
-from trinity.utils.ipc import (
+from trinity._utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
 )
-from trinity.utils.mp import (
+from trinity._utils.mp import (
     ctx,
 )
 

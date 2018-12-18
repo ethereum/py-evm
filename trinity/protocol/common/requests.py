@@ -6,7 +6,7 @@ from typing import (
 
 from eth_typing import BlockIdentifier, BlockNumber
 
-from trinity.utils.headers import sequence_builder
+from trinity._utils.headers import sequence_builder
 
 
 class BaseHeaderRequest(ABC):

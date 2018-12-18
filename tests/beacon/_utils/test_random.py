@@ -1,6 +1,6 @@
 import pytest
 
-from eth.beacon.utils.random import (
+from eth.beacon._utils.random import (
     shuffle,
 )
 

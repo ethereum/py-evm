@@ -12,7 +12,7 @@ from trinity.config import (
     MAINNET_EIP1085_PATH,
     ROPSTEN_EIP1085_PATH,
 )
-from trinity.utils.eip1085 import (
+from trinity._utils.eip1085 import (
     validate_raw_eip1085_genesis_config,
     extract_genesis_data,
 )

@@ -16,7 +16,7 @@ from trinity.initialization import (
     is_database_initialized,
     initialize_database,
 )
-from trinity.utils.mp import TracebackRecorder
+from trinity._utils.mp import TracebackRecorder
 
 
 def get_chaindb_manager(trinity_config: TrinityConfig, base_db: BaseAtomicDB) -> BaseManager:

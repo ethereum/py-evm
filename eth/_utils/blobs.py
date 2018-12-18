@@ -13,10 +13,10 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.utils.padding import (
+from eth._utils.padding import (
     zpad_right,
 )
-from eth.utils.merkle import (
+from eth._utils.merkle import (
     calc_merkle_root,
 )
 

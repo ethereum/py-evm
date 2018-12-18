@@ -14,7 +14,7 @@ from eth_utils.toolz import (
     valmap,
 )
 
-from trinity.utils.eip1085 import (
+from trinity._utils.eip1085 import (
     GenesisParams,
     extract_genesis_params,
 )

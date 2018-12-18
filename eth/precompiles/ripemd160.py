@@ -2,10 +2,10 @@ import hashlib
 
 from eth import constants
 
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     ceil32,
 )
-from eth.utils.padding import (
+from eth._utils.padding import (
     pad32,
 )
 from eth.vm.computation import (

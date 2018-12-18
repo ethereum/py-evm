@@ -46,23 +46,23 @@ from trinity.extensibility import (
     MainAndIsolatedProcessScope,
     PluginManager,
 )
-from trinity.utils.ipc import (
+from trinity._utils.ipc import (
     kill_process_gracefully,
 )
-from trinity.utils.logging import (
+from trinity._utils.logging import (
     enable_warnings_by_default,
     setup_log_levels,
     setup_trinity_stderr_logging,
     setup_trinity_file_and_queue_logging,
     with_queued_logging,
 )
-from trinity.utils.mp import (
+from trinity._utils.mp import (
     ctx,
 )
-from trinity.utils.profiling import (
+from trinity._utils.profiling import (
     setup_cprofiler,
 )
-from trinity.utils.version import (
+from trinity._utils.version import (
     construct_trinity_client_identifier,
     is_prerelease,
 )

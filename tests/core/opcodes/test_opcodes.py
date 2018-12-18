@@ -18,7 +18,7 @@ from eth.db.chain import (
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.utils.padding import (
+from eth._utils.padding import (
     pad32
 )
 from eth.vm import (

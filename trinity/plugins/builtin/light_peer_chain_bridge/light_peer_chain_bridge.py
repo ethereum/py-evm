@@ -36,7 +36,7 @@ from p2p.service import (
 from trinity.constants import (
     TO_NETWORKING_BROADCAST_CONFIG,
 )
-from trinity.utils.async_errors import (
+from trinity._utils.async_errors import (
     await_and_wrap_errors,
 )
 from trinity.rlp.block_body import BlockBody

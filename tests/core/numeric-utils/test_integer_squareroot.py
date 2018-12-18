@@ -4,7 +4,7 @@ from hypothesis import (
     strategies as st,
 )
 
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     integer_squareroot,
 )
 

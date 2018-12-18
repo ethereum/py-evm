@@ -14,7 +14,7 @@ from eth.typing import (
     Address,
     VRS,
 )
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     is_even,
 )
 
