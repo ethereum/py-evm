@@ -3,6 +3,9 @@ from argparse import (
     _SubParsersAction,
 )
 import asyncio
+from typing import (
+    Type,
+)
 
 from eth_typing import (
     BlockNumber,
@@ -18,6 +21,7 @@ from eth.constants import (
 from p2p.discovery import (
     get_v5_topic,
     DiscoveryByTopicProtocol,
+    DiscoveryProtocol,
     DiscoveryService,
     PreferredNodeDiscoveryProtocol,
 )
@@ -56,7 +60,7 @@ from trinity._utils.shutdown import (
 )
 
 
-def get_protocol(trinity_config: TrinityConfig) -> Protocol:
+def get_protocol(trinity_config: TrinityConfig) -> Type[Protocol]:
     # For now DiscoveryByTopicProtocol supports a single topic, so we use the latest
     # version of our supported protocols. Maybe this could be more generic?
     # TODO: This needs to support the beacon protocol when we have a way to
@@ -72,11 +76,11 @@ def get_protocol(trinity_config: TrinityConfig) -> Protocol:
             return ETHProtocol
 
 
-def get_discv5_topic(trinity_config: TrinityConfig, protocol: Protocol):
+def get_discv5_topic(trinity_config: TrinityConfig, protocol: Type[Protocol]) -> bytes:
     db_manager = create_db_manager(trinity_config.database_ipc_path)
     db_manager.connect()
 
-    header_db = db_manager.get_headerdb()
+    header_db = db_manager.get_headerdb()  # type: ignore
     genesis_hash = header_db.get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER))
 
     return get_v5_topic(protocol, genesis_hash)
@@ -100,7 +104,7 @@ class DiscoveryBootstrapService(BaseService):
             protocol = get_protocol(self.trinity_config)
             topic = get_discv5_topic(self.trinity_config, protocol)
 
-            discovery_protocol = DiscoveryByTopicProtocol(
+            discovery_protocol: DiscoveryProtocol = DiscoveryByTopicProtocol(
                 topic,
                 self.trinity_config.nodekey,
                 address,
