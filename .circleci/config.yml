@@ -320,6 +320,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-beacon
+  py36-wheel-cli:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-wheel-cli
 
   py37-core:
     <<: *common
@@ -345,6 +351,12 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-beacon
+  py37-wheel-cli:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-wheel-cli
 
 workflows:
   version: 2
@@ -355,6 +367,7 @@ workflows:
       - py37-core
       - py37-trinity
       - py37-trinity-integration
+      - py37-wheel-cli
       - py37-beacon
 
       - py36-native-blockchain-byzantium
@@ -382,6 +395,7 @@ workflows:
       - py36-database
       - py36-rpc-state-quadratic
       - py36-beacon
+      - py36-wheel-cli
 
       - py35-native-blockchain-byzantium
       - py35-native-blockchain-constantinople
