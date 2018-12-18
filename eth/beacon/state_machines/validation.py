@@ -1,12 +1,11 @@
-from typing import (
-    Sequence,
-)
-
 from eth_typing import (
     Hash32
 )
 from eth_utils import (
     ValidationError,
+)
+from eth.constants import (
+    ZERO_HASH32,
 )
 
 
@@ -14,13 +13,15 @@ from eth.beacon.helpers import (
     get_block_hash,
 )
 from eth.beacon.types.states import BeaconState  # noqa: F401
+from eth.beacon.types.attestations import Attestation  # noqa: F401
+from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
 
 
 #
 # Attestation validation
 #
 def validate_attestation(state: BeaconState,
-                         attestation: 'AttestationRecord',
+                         attestation: Attestation,
                          epoch_length: int,
                          min_attestation_inclusion_delay: int,
                          is_validating_signatures: bool=True) -> None:
@@ -54,9 +55,13 @@ def validate_attestation(state: BeaconState,
     )
 
     validate_attestation_latest_crosslink_root(
-        attestation,
-        state.latest_crosslinks[attestation.data.shard].shard_block_root,
+        attestation_data=attestation.data,
+        latest_crosslink_shard_block_root=(
+            state.latest_crosslinks[attestation.data.shard].shard_block_root
+        ),
     )
+
+    validate_attestation_shard_block_root(attestation_data=attestation.data)
 
     if is_validating_signatures:
         validate_attestation_aggregate_signature(
@@ -65,7 +70,7 @@ def validate_attestation(state: BeaconState,
         )
 
 
-def validate_attestation_slot(attestation_data: 'AttestationData',
+def validate_attestation_slot(attestation_data: AttestationData,
                               current_slot: int,
                               epoch_length: int,
                               min_attestation_inclusion_delay: int) -> None:
@@ -97,35 +102,43 @@ def validate_attestation_slot(attestation_data: 'AttestationData',
         )
 
 
-def validate_attestation_justified_slot(attestation_data: 'AttestationData',
+def validate_attestation_justified_slot(attestation_data: AttestationData,
                                         current_slot: int,
                                         previous_justified_slot: int,
                                         justified_slot: int,
                                         epoch_length: int) -> None:
+    """
+    Validate ``justified_slot`` field of ``attestation_data``.
+    Raise ``ValidationError`` if it's invalid.
+    """
     if attestation_data.slot >= current_slot - (current_slot % epoch_length):
         if attestation_data.justified_slot != justified_slot:
             raise ValidationError(
-                "Attestation slot is after recent epoch transition but "
-                "is not targeting the justified slot:\n"
+                "Attestation ``slot`` is after recent epoch transition but attestation"
+                "``justified_slot`` is not targeting the ``justified_slot``:\n"
                 "\tFound: %s, Expected %s" %
                 (attestation_data.justified_slot, justified_slot)
             )
     else:
         if attestation_data.justified_slot != previous_justified_slot:
             raise ValidationError(
-                "Attestation slot is before recent epoch transition but "
-                "is not targeting the previous justified slot:\n"
+                "Attestation ``slot`` is before recent epoch transition but attestation"
+                "``justified_slot`` is not targeting the ``previous_justified_slot:\n"
                 "\tFound: %s, Expected %s" %
                 (attestation_data.justified_slot, previous_justified_slot)
             )
 
 
-def validate_attestation_justified_block_root(attestation_data: 'AttestationData',
+def validate_attestation_justified_block_root(attestation_data: AttestationData,
                                               justified_block_root: Hash32) -> None:
+    """
+    Validate ``justified_block_hash`` field of ``attestation_data``.
+    Raise ``ValidationError`` if it's invalid.
+    """
     if attestation_data.justified_block_hash != justified_block_root:
         raise ValidationError(
-            "Attestation justified block root is not equal to the block root at the "
-            "justified slot:\n"
+            "Attestation ``justified_block_hash`` is not equal to the "
+            "``justified_block_root`` at the ``justified_slot``:\n"
             "\tFound: %s, Expected %s at slot %s" %
             (
                 attestation_data.justified_block_hash,
@@ -135,11 +148,49 @@ def validate_attestation_justified_block_root(attestation_data: 'AttestationData
         )
 
 
-def validate_attestation_latest_crosslink_root(attestation_data: 'AttestationData',
+def validate_attestation_latest_crosslink_root(attestation_data: AttestationData,
                                                latest_crosslink_shard_block_root: Hash32) -> None:
-    pass
+    """
+    Validate that either the ``latest_crosslink_hash`` or ``shard_block_hash``
+    field of ``attestation_data`` is the provided ``latest_crosslink_shard_block_root``.
+    Raise ``ValidationError`` if it's invalid.
+    """
+    acceptable_shard_block_roots = [
+        attestation_data.latest_crosslink_hash,
+        attestation_data.shard_block_hash,
+    ]
+    if latest_crosslink_shard_block_root not in acceptable_shard_block_roots:
+        raise ValidationError(
+            "Neither the attestation ``latest_crosslink_hash`` nor the attestation "
+            "``shard_block_hash`` are equal to the ``latest_crosslink_shard_block_root``.\n"
+            "\tFound: %s and %s, Expected %s" %
+            (
+                attestation_data.latest_crosslink_hash,
+                attestation_data.shard_block_hash,
+                latest_crosslink_shard_block_root,
+            )
+        )
+
+
+def validate_attestation_shard_block_root(attestation_data: AttestationData) -> None:
+    """
+    Validate ``shard_block_hash`` field of `attestation_data`.
+    Raise ``ValidationError`` if it's invalid.
+
+    Note: This is the Phase 0 version of ``shard_block_hash`` validation.
+    This is a built-in stub and will be changed in phase 1.
+    """
+    if attestation_data.shard_block_hash != ZERO_HASH32:
+        raise ValidationError(
+            "Attestation ``shard_block_hash`` is not ZERO_HASH32.\n"
+            "\tFound: %s, Expected %s" %
+            (
+                attestation_data.shard_block_hash,
+                ZERO_HASH32,
+            )
+        )
 
 
 def validate_attestation_aggregate_signature(state: BeaconState,
-                                             attestation: 'AttestationRecord') -> None:
+                                             attestation: Attestation) -> None:
     pass
