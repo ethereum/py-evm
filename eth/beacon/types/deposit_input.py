@@ -14,6 +14,7 @@ from eth.rlp.sedes import (
     hash32,
     uint384,
 )
+from eth.beacon.utils.hash import hash_eth2
 
 
 class DepositInput(rlp.Serializable):
@@ -23,12 +24,12 @@ class DepositInput(rlp.Serializable):
     fields = [
         # BLS pubkey
         ('pubkey', uint384),
-        # BLS proof of possession (a BLS signature)
-        ('proof_of_possession', CountableList(uint384)),
         # Withdrawal credentials
         ('withdrawal_credentials', hash32),
         # Initial RANDAO commitment
         ('randao_commitment', hash32),
+        # BLS proof of possession (a BLS signature)
+        ('proof_of_possession', CountableList(uint384)),
     ]
 
     def __init__(self,
@@ -37,8 +38,16 @@ class DepositInput(rlp.Serializable):
                  randao_commitment: Hash32,
                  proof_of_possession: Sequence[int]=(0, 0)) -> None:
         super().__init__(
-            pubkey,
-            proof_of_possession,
-            withdrawal_credentials,
-            randao_commitment,
+            pubkey=pubkey,
+            withdrawal_credentials=withdrawal_credentials,
+            randao_commitment=randao_commitment,
+            proof_of_possession=proof_of_possession,
         )
+
+    _root = None
+
+    @property
+    def root(self) -> Hash32:
+        if self._root is None:
+            self._root = hash_eth2(rlp.encode(self))
+        return self._root
