@@ -15,7 +15,6 @@ BeaconConfig = NamedTuple(
         ('TARGET_COMMITTEE_SIZE', int),
         ('EJECTION_BALANCE', int),
         ('MAX_BALANCE_CHURN_QUOTIENT', int),
-        ('GWEI_PER_ETH', int),
         ('BEACON_CHAIN_SHARD_NUMBER', int),
         ('BLS_WITHDRAWAL_PREFIX_BYTE', bytes),
         ('MAX_CASPER_VOTES', int),

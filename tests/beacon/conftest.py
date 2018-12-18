@@ -341,11 +341,6 @@ def max_balance_churn_quotient():
 
 
 @pytest.fixture
-def gwei_per_eth():
-    return SERENITY_CONFIG.GWEI_PER_ETH
-
-
-@pytest.fixture
 def beacon_chain_shard_number():
     return SERENITY_CONFIG.BEACON_CHAIN_SHARD_NUMBER
 
@@ -383,6 +378,16 @@ def min_deposit():
 @pytest.fixture
 def max_deposit():
     return SERENITY_CONFIG.MAX_DEPOSIT
+
+
+@pytest.fixture
+def initial_fork_version():
+    return SERENITY_CONFIG.INITIAL_FORK_VERSION
+
+
+@pytest.fixture
+def initial_slot_number():
+    return SERENITY_CONFIG.INITIAL_SLOT_NUMBER
 
 
 @pytest.fixture
