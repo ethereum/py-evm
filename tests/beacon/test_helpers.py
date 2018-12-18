@@ -13,6 +13,9 @@ from eth.constants import (
 from eth.beacon.enums import (
     ValidatorStatusCode,
 )
+from eth.beacon.types.attestation_data import (
+    AttestationData,
+)
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.fork_data import ForkData
 from eth.beacon.types.shard_committees import ShardCommittee
@@ -31,6 +34,8 @@ from eth.beacon.helpers import (
     get_new_validator_registry_delta_chain_tip,
     _get_shard_committees_at_slot,
     get_block_committees_info,
+    is_double_vote,
+    is_surround_vote,
 )
 
 
@@ -698,3 +703,66 @@ def test_get_domain(pre_fork_version,
         slot=current_slot,
         domain_type=domain_type,
     )
+
+
+def test_is_double_vote(sample_attestation_data_params):
+    attestation_data_1_params = {
+        **sample_attestation_data_params,
+        'slot': 12345,
+    }
+    attestation_data_1 = AttestationData(**attestation_data_1_params)
+
+    attestation_data_2_params = {
+        **sample_attestation_data_params,
+        'slot': 12345,
+    }
+    attestation_data_2 = AttestationData(**attestation_data_2_params)
+
+    assert is_double_vote(attestation_data_1, attestation_data_2)
+
+    attestation_data_3_params = {
+        **sample_attestation_data_params,
+        'slot': 54321,
+    }
+    attestation_data_3 = AttestationData(**attestation_data_3_params)
+
+    assert not is_double_vote(attestation_data_1, attestation_data_3)
+
+
+@pytest.mark.parametrize(
+    (
+        'attestation_1_slot,'
+        'attestation_1_justified_slot,'
+        'attestation_2_slot,'
+        'attestation_2_justified_slot,'
+        'expected'
+    ),
+    [
+        (0, 0, 0, 0, False),
+        (4, 3, 3, 2, False),  # not (attestation_1_justified_slot < attestation_2_justified_slot
+        (4, 0, 3, 1, False),  # not (attestation_2_justified_slot + 1 == attestation_2_slot)
+        (4, 0, 4, 3, False),  # not (attestation_2_slot < attestation_1_slot)
+        (4, 0, 3, 2, True),
+    ],
+)
+def test_is_surround_vote(sample_attestation_data_params,
+                          attestation_1_slot,
+                          attestation_1_justified_slot,
+                          attestation_2_slot,
+                          attestation_2_justified_slot,
+                          expected):
+    attestation_data_1_params = {
+        **sample_attestation_data_params,
+        'slot': attestation_1_slot,
+        'justified_slot': attestation_1_justified_slot,
+    }
+    attestation_data_1 = AttestationData(**attestation_data_1_params)
+
+    attestation_data_2_params = {
+        **sample_attestation_data_params,
+        'slot': attestation_2_slot,
+        'justified_slot': attestation_2_justified_slot,
+    }
+    attestation_data_2 = AttestationData(**attestation_data_2_params)
+
+    assert is_surround_vote(attestation_data_1, attestation_data_2) == expected

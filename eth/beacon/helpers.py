@@ -27,9 +27,8 @@ from eth.utils.numeric import (
     clamp,
 )
 
-from eth.beacon.block_committees_info import BlockCommitteesInfo
-from eth.beacon.enums import (
-    ValidatorStatusCode,
+from eth.beacon.block_committees_info import (
+    BlockCommitteesInfo,
 )
 from eth.beacon.types.shard_committees import (
     ShardCommittee,
@@ -42,7 +41,7 @@ from eth.beacon.utils.random import (
 
 if TYPE_CHECKING:
     from eth.beacon.enums import SignatureDomain  # noqa: F401
-    from eth.beacon.types.attestation_records import AttestationRecord  # noqa: F401
+    from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth.beacon.types.states import BeaconState  # noqa: F401
     from eth.beacon.types.fork_data import ForkData  # noqa: F401
@@ -139,7 +138,7 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tup
     """
     return tuple(
         i for i, v in enumerate(validators)
-        if v.status in [ValidatorStatusCode.ACTIVE, ValidatorStatusCode.ACTIVE_PENDING_EXIT]
+        if v.is_active
     )
 
 
@@ -402,3 +401,32 @@ def get_domain(fork_data: 'ForkData',
         fork_data,
         slot,
     ) * 4294967296 + domain_type
+
+
+def is_double_vote(attestation_data_1: 'AttestationData',
+                   attestation_data_2: 'AttestationData') -> bool:
+    """
+    Assumes ``attestation_data_1`` is distinct from ``attestation_data_2``.
+
+    Returns True if the provided ``AttestationData`` are slashable
+    due to a 'double vote'.
+    """
+    return attestation_data_1.slot == attestation_data_2.slot
+
+
+def is_surround_vote(attestation_data_1: 'AttestationData',
+                     attestation_data_2: 'AttestationData') -> bool:
+    """
+    Assumes ``attestation_data_1`` is distinct from ``attestation_data_2``.
+
+    Returns True if the provided ``AttestationData`` are slashable
+    due to a 'surround vote'.
+
+    Note: parameter order matters as this function only checks
+    that ``attestation_data_1`` surrounds ``attestation_data_2``.
+    """
+    return (
+        (attestation_data_1.justified_slot < attestation_data_2.justified_slot) and
+        (attestation_data_2.justified_slot + 1 == attestation_data_2.slot) and
+        (attestation_data_2.slot < attestation_data_1.slot)
+    )
