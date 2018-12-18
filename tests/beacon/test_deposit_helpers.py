@@ -16,7 +16,7 @@ from eth.beacon.enums import (
 from eth.beacon.helpers import (
     get_domain,
 )
-from eth.beacon.deposits import (
+from eth.beacon.deposit_helpers import (
     process_deposit,
     validate_proof_of_possession,
 )
