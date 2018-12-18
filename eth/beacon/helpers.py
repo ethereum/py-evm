@@ -76,38 +76,21 @@ def _get_element_from_recent_list(
 
 
 #
-# Get block hash(es)
+# Get block root
 #
-def get_block_hash(
-        latest_block_hashes: Sequence[Hash32],
+def get_block_root(
+        latest_block_roots: Sequence[Hash32],
         current_slot: int,
         slot: int) -> Hash32:
     """
-    Returns the block hash at a recent ``slot``.
+    Returns the block root at a recent ``slot``.
     """
-    slot_relative_position = current_slot - len(latest_block_hashes)
+    slot_relative_position = current_slot - len(latest_block_roots)
     return _get_element_from_recent_list(
-        latest_block_hashes,
+        latest_block_roots,
         slot,
         slot_relative_position,
     )
-
-
-@to_tuple
-def get_hashes_from_latest_block_hashes(
-        latest_block_hashes: Sequence[Hash32],
-        current_slot: int,
-        from_slot: int,
-        to_slot: int) -> Iterable[Hash32]:
-    """
-    Returns the block hashes between ``from_slot`` and ``to_slot``.
-    """
-    for slot in range(from_slot, to_slot + 1):
-        yield get_block_hash(
-            latest_block_hashes,
-            current_slot,
-            slot,
-        )
 
 
 #
@@ -115,7 +98,7 @@ def get_hashes_from_latest_block_hashes(
 #
 @to_tuple
 def _get_shard_committees_at_slot(
-        latest_state_recalculation_slot: int,
+        state_slot: int,
         shard_committees_at_slots: Sequence[Sequence[ShardCommittee]],
         slot: int,
         epoch_length: int) -> Iterable[ShardCommittee]:
@@ -127,7 +110,7 @@ def _get_shard_committees_at_slot(
             )
         )
 
-    slot_relative_position = latest_state_recalculation_slot - epoch_length
+    slot_relative_position = state_slot - epoch_length
 
     yield from _get_element_from_recent_list(
         shard_committees_at_slots,
@@ -143,7 +126,7 @@ def get_shard_committees_at_slot(state: 'BeaconState',
     Return the ``ShardCommittee`` for the ``slot``.
     """
     return _get_shard_committees_at_slot(
-        latest_state_recalculation_slot=state.latest_state_recalculation_slot,
+        state_slot=state.slot,
         shard_committees_at_slots=state.shard_committees_at_slots,
         slot=slot,
         epoch_length=epoch_length,

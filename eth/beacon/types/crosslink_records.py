@@ -16,15 +16,15 @@ class CrosslinkRecord(rlp.Serializable):
     fields = [
         # Slot during which crosslink was added
         ('slot', uint64),
-        # Shard chain block hash
-        ('shard_block_hash', hash32),
+        # Shard chain block root
+        ('shard_block_root', hash32),
     ]
 
     def __init__(self,
                  slot: int,
-                 shard_block_hash: Hash32) -> None:
+                 shard_block_root: Hash32) -> None:
 
         super().__init__(
             slot=slot,
-            shard_block_hash=shard_block_hash,
+            shard_block_root=shard_block_root,
         )

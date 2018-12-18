@@ -54,7 +54,7 @@ def create_test_block(parent=None, **kwargs):
     }
 
     if parent is not None:
-        kwargs["parent_root"] = parent.hash
+        kwargs["parent_root"] = parent.root
         kwargs["slot"] = parent.slot + 1
 
     return BaseBeaconBlock(**merge(defaults, kwargs))

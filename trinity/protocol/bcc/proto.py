@@ -47,11 +47,11 @@ class BCCProtocol(Protocol):
         self.send(*cmd.encode(resp))
 
     def send_get_blocks(self,
-                        block_slot_or_hash: Union[BlockNumber, Hash32],
+                        block_slot_or_root: Union[BlockNumber, Hash32],
                         max_blocks: int) -> None:
         cmd = GetBeaconBlocks(self.cmd_id_offset)
         data = {
-            'block_slot_or_hash': block_slot_or_hash,
+            'block_slot_or_root': block_slot_or_root,
             'max_blocks': max_blocks,
         }
         header, body = cmd.encode(data)

@@ -66,17 +66,17 @@ class BCCRequestServer(BaseRequestServer):
             return
 
         max_blocks = msg["max_blocks"]
-        block_slot_or_hash = msg["block_slot_or_hash"]
+        block_slot_or_root = msg["block_slot_or_root"]
 
         try:
-            if isinstance(block_slot_or_hash, int):
-                start_block = self.db.get_canonical_block_by_slot(block_slot_or_hash)
-            elif isinstance(block_slot_or_hash, bytes):
-                start_block = self.db.get_block_by_hash(Hash32(block_slot_or_hash))
+            if isinstance(block_slot_or_root, int):
+                start_block = self.db.get_canonical_block_by_slot(block_slot_or_root)
+            elif isinstance(block_slot_or_root, bytes):
+                start_block = self.db.get_block_by_root(Hash32(block_slot_or_root))
             else:
                 raise TypeError(
-                    f"Invariant: unexpected type for 'block_slot_or_hash': "
-                    f"{type(block_slot_or_hash)}"
+                    f"Invariant: unexpected type for 'block_slot_or_root': "
+                    f"{type(block_slot_or_root)}"
                 )
         except BlockNotFound:
             start_block = None
@@ -90,7 +90,7 @@ class BCCRequestServer(BaseRequestServer):
             )
             blocks = self._get_blocks(start_block, max_blocks)
         else:
-            self.logger.debug2("%s requested unknown block %s", block_slot_or_hash)
+            self.logger.debug2("%s requested unknown block %s", block_slot_or_root)
             blocks = ()
 
         self.logger.debug2("Replying to %s with %d blocks", peer, len(blocks))

@@ -8,12 +8,13 @@ SERENITY_CONFIG = BeaconConfig(
     # Misc
     SHARD_COUNT=2**10,  # (= 1,024) shards
     TARGET_COMMITTEE_SIZE=2**8,  # (= 256) validators
-    MAX_ATTESTATIONS_PER_BLOCK=2**7,  # (= 128) attestations
-    MIN_BALANCE=2**4,  # (= 16) ETH
+    EJECTION_BALANCE=2**4,  # (= 16) ETH
     MAX_BALANCE_CHURN_QUOTIENT=2**5,  # (= 32)
     GWEI_PER_ETH=10**9,  # Gwei/ETH
     BEACON_CHAIN_SHARD_NUMBER=2**64 - 1,
-    BLS_WITHDRAWAL_CREDENTIALS=b'\x00',
+    BLS_WITHDRAWAL_PREFIX_BYTE=b'\x00',
+    MAX_CASPER_VOTES=2**10,  # (= 1,024) votes
+    LATEST_BLOCK_ROOTS_LENGTH=2**13,  # (= 8,192) block roots
     # Deposit contract
     DEPOSIT_CONTRACT_ADDRESS=ZERO_ADDRESS,  # TBD
     DEPOSIT_CONTRACT_TREE_DEPTH=2**5,  # (= 32)
@@ -32,8 +33,14 @@ SERENITY_CONFIG = BeaconConfig(
     COLLECTIVE_PENALTY_CALCULATION_PERIOD=2**20,  # (= 1,048,576) slots
     ZERO_BALANCE_VALIDATOR_TTL=2**22,  # (= 4,194,304) slots
     # Reward and penalty quotients
-    BASE_REWARD_QUOTIENT=2**11,  # (= 2,048)
+    BASE_REWARD_QUOTIENT=2**10,  # (= 1,024)
     WHISTLEBLOWER_REWARD_QUOTIENT=2**9,  # (= 512)
     INCLUDER_REWARD_QUOTIENT=2**3,  # (= 8)
     INACTIVITY_PENALTY_QUOTIENT=2**34,  # (= 17,179,869,184)
+    # Max operations per block
+    MAX_PROPOSER_SLASHINGS=2**4,  # (= 16)
+    MAX_CASPER_SLASHINGS=2**4,  # (= 16)
+    MAX_ATTESTATIONS=2**7,  # (= 128)
+    MAX_DEPOSITS=2**4,  # (= 16)
+    MAX_EXITS=2**4,  # (= 16)
 )

@@ -23,11 +23,10 @@ from eth.beacon.helpers import (
     get_active_validator_indices,
     get_attestation_participants,
     get_beacon_proposer_index,
-    get_block_hash,
+    get_block_root,
     get_effective_balance,
     get_domain,
     get_fork_version,
-    get_hashes_from_latest_block_hashes,
     get_new_shuffling,
     get_new_validator_registry_delta_chain_tip,
     _get_shard_committees_at_slot,
@@ -65,18 +64,18 @@ def get_sample_shard_committees_at_slots(num_slot,
     )
 
 
-def generate_mock_latest_block_hashes(
+def generate_mock_latest_block_roots(
         genesis_block,
         current_block_number,
         epoch_length):
     chain_length = (current_block_number // epoch_length + 1) * epoch_length
     blocks = get_pseudo_chain(chain_length, genesis_block)
-    latest_block_hashes = [
+    latest_block_roots = [
         b'\x00' * 32
         for i
         in range(epoch_length * 2 - current_block_number)
-    ] + [block.hash for block in blocks[:current_block_number]]
-    return blocks, latest_block_hashes
+    ] + [block.root for block in blocks[:current_block_number]]
+    return blocks, latest_block_roots
 
 
 @pytest.mark.parametrize(
@@ -112,7 +111,7 @@ def test_get_element_from_recent_list(target_list,
 
 
 #
-# Get block hashes
+# Get block rootes
 #
 @pytest.mark.parametrize(
     (
@@ -127,62 +126,32 @@ def test_get_element_from_recent_list(target_list,
         (128, 128, False),
     ],
 )
-def test_get_block_hash(
+def test_get_block_root(
         current_block_number,
         target_slot,
         success,
         epoch_length,
         sample_block):
-    blocks, latest_block_hashes = generate_mock_latest_block_hashes(
+    blocks, latest_block_roots = generate_mock_latest_block_roots(
         sample_block,
         current_block_number,
         epoch_length,
     )
 
     if success:
-        block_hash = get_block_hash(
-            latest_block_hashes,
+        block_root = get_block_root(
+            latest_block_roots,
             current_block_number,
             target_slot,
         )
-        assert block_hash == blocks[target_slot].hash
+        assert block_root == blocks[target_slot].root
     else:
         with pytest.raises(ValueError):
-            get_block_hash(
-                latest_block_hashes,
+            get_block_root(
+                latest_block_roots,
                 current_block_number,
                 target_slot,
             )
-
-
-@pytest.mark.parametrize(
-    (
-        'epoch_length,current_block_slot,from_slot,to_slot'
-    ),
-    [
-        (20, 10, 2, 7),
-        (20, 30, 10, 20),
-    ],
-)
-def test_get_hashes_from_latest_block_hashes(
-        sample_block,
-        current_block_slot,
-        from_slot,
-        to_slot,
-        epoch_length):
-    _, latest_block_hashes = generate_mock_latest_block_hashes(
-        sample_block,
-        current_block_slot,
-        epoch_length,
-    )
-
-    result = get_hashes_from_latest_block_hashes(
-        latest_block_hashes,
-        current_block_slot,
-        from_slot,
-        to_slot,
-    )
-    assert len(result) == to_slot - from_slot + 1
 
 
 #
@@ -192,7 +161,7 @@ def test_get_hashes_from_latest_block_hashes(
     (
         'num_validators,'
         'cycle_length,'
-        'latest_state_recalculation_slot,'
+        'state_slot,'
         'num_slot,'
         'num_shard_committee_per_slot,'
         'slot,'
@@ -252,7 +221,7 @@ def test_get_hashes_from_latest_block_hashes(
 def test_get_shard_committees_at_slot(
         num_validators,
         cycle_length,
-        latest_state_recalculation_slot,
+        state_slot,
         num_slot,
         num_shard_committee_per_slot,
         slot,
@@ -268,7 +237,7 @@ def test_get_shard_committees_at_slot(
 
     if success:
         shard_committees = _get_shard_committees_at_slot(
-            latest_state_recalculation_slot=latest_state_recalculation_slot,
+            state_slot=state_slot,
             shard_committees_at_slots=shard_committees_at_slots,
             slot=slot,
             epoch_length=epoch_length,
@@ -278,7 +247,7 @@ def test_get_shard_committees_at_slot(
     else:
         with pytest.raises(ValueError):
             _get_shard_committees_at_slot(
-                latest_state_recalculation_slot=latest_state_recalculation_slot,
+                state_slot=state_slot,
                 shard_committees_at_slots=shard_committees_at_slots,
                 slot=slot,
                 epoch_length=epoch_length,

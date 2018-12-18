@@ -23,6 +23,13 @@ from tests.beacon.helpers import (
 @pytest.fixture
 def empty_beacon_state():
     return BeaconState(
+        slot=0,
+        genesis_time=0,
+        fork_data=ForkData(
+            pre_fork_version=0,
+            post_fork_version=0,
+            fork_slot=0,
+        ),
         validator_registry=(),
         validator_registry_latest_change_slot=10,
         validator_registry_exit_count=10,
@@ -37,18 +44,12 @@ def empty_beacon_state():
         justification_bitfield=0,
         finalized_slot=0,
         latest_crosslinks=(),
-        latest_state_recalculation_slot=0,
-        latest_block_hashes=(),
+        latest_block_roots=(),
         latest_penalized_exit_balances=(),
         latest_attestations=(),
+        batched_block_roots=(),
         processed_pow_receipt_root=b'\x55' * 32,
         candidate_pow_receipt_roots=(),
-        genesis_time=0,
-        fork_data=ForkData(
-            pre_fork_version=0,
-            post_fork_version=0,
-            fork_slot=0,
-        ),
     )
 
 
@@ -97,4 +98,4 @@ def test_num_crosslink_records(expected,
 
 def test_hash(sample_beacon_state_params):
     state = BeaconState(**sample_beacon_state_params)
-    assert state.hash == hash_(rlp.encode(state))
+    assert state.root == hash_(rlp.encode(state))

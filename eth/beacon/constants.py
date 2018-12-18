@@ -10,3 +10,5 @@
 RAND_BYTES = 3
 # The highest possible result of the RNG.
 RAND_MAX = 2 ** (RAND_BYTES * 8) - 1
+
+EMPTY_SIGNATURE = (0, 0)

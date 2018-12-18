@@ -13,17 +13,20 @@ BeaconConfig = NamedTuple(
         # Misc
         ('SHARD_COUNT', int),
         ('TARGET_COMMITTEE_SIZE', int),
-        ('MAX_ATTESTATIONS_PER_BLOCK', int),
-        ('MIN_BALANCE', int),
+        ('EJECTION_BALANCE', int),
         ('MAX_BALANCE_CHURN_QUOTIENT', int),
         ('GWEI_PER_ETH', int),
         ('BEACON_CHAIN_SHARD_NUMBER', int),
-        ('BLS_WITHDRAWAL_CREDENTIALS', bytes),
+        ('BLS_WITHDRAWAL_PREFIX_BYTE', bytes),
+        ('MAX_CASPER_VOTES', int),
+        ('LATEST_BLOCK_ROOTS_LENGTH', int),
+        # EMPTY_SIGNATURE is defined in constants.py
         # Deposit contract
         ('DEPOSIT_CONTRACT_ADDRESS', Address),
         ('DEPOSIT_CONTRACT_TREE_DEPTH', int),
         ('MIN_DEPOSIT', int),
         ('MAX_DEPOSIT', int),
+        # ZERO_HASH (ZERO_HASH32) is defined in constants.py
         # Initial values
         ('INITIAL_FORK_VERSION', int),
         ('INITIAL_SLOT_NUMBER', int),
@@ -41,5 +44,11 @@ BeaconConfig = NamedTuple(
         ('WHISTLEBLOWER_REWARD_QUOTIENT', int),
         ('INCLUDER_REWARD_QUOTIENT', int),
         ('INACTIVITY_PENALTY_QUOTIENT', int),
+        # Max operations per block
+        ('MAX_PROPOSER_SLASHINGS', int),
+        ('MAX_CASPER_SLASHINGS', int),
+        ('MAX_ATTESTATIONS', int),
+        ('MAX_DEPOSITS', int),
+        ('MAX_EXITS', int),
     )
 )

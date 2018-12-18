@@ -31,6 +31,6 @@ def get_pseudo_chain(length, genesis_block):
     for slot in range(1, length * 3):
         block = genesis_block.copy(
             slot=slot,
-            parent_root=block.hash
+            parent_root=block.root
         )
         yield block

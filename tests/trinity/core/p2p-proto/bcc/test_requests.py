@@ -43,16 +43,16 @@ async def test_get_single_block_by_slot(request, event_loop):
     chain_db = get_fresh_chain_db()
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
-    block_hash = chain_db.get_canonical_block_hash(0)
-    alice.sub_proto.send_get_blocks(block_hash, 1)
+    block_root = chain_db.get_canonical_block_root(0)
+    alice.sub_proto.send_get_blocks(block_root, 1)
     response = await response_buffer.msg_queue.get()
 
     assert isinstance(response.command, BeaconBlocks)
-    assert response.payload == (chain_db.get_block_by_hash(block_hash),)
+    assert response.payload == (chain_db.get_block_by_root(block_root),)
 
 
 @pytest.mark.asyncio
-async def test_get_single_block_by_hash(request, event_loop):
+async def test_get_single_block_by_root(request, event_loop):
     chain_db = get_fresh_chain_db()
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
@@ -88,7 +88,7 @@ async def test_get_unknown_block_by_slot(request, event_loop):
 
 
 @pytest.mark.asyncio
-async def test_get_unknown_block_by_hash(request, event_loop):
+async def test_get_unknown_block_by_root(request, event_loop):
     chain_db = get_fresh_chain_db()
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
@@ -120,7 +120,7 @@ async def test_get_canonical_block_range_by_slot(request, event_loop):
 
 
 @pytest.mark.asyncio
-async def test_get_canonical_block_range_by_hash(request, event_loop):
+async def test_get_canonical_block_range_by_root(request, event_loop):
     chain_db = get_fresh_chain_db()
     base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0))
     non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
@@ -130,7 +130,7 @@ async def test_get_canonical_block_range_by_hash(request, event_loop):
 
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
-    alice.sub_proto.send_get_blocks(base_branch[1].hash, 4)
+    alice.sub_proto.send_get_blocks(base_branch[1].root, 4)
     response = await response_buffer.msg_queue.get()
 
     assert isinstance(response.command, BeaconBlocks)
@@ -170,7 +170,7 @@ async def test_get_non_canonical_branch(request, event_loop):
 
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
-    alice.sub_proto.send_get_blocks(non_canonical_branch[1].hash, 3)
+    alice.sub_proto.send_get_blocks(non_canonical_branch[1].root, 3)
     response = await response_buffer.msg_queue.get()
 
     assert isinstance(response.command, BeaconBlocks)
