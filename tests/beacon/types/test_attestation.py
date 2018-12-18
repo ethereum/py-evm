@@ -8,7 +8,7 @@ from eth.beacon.types.attestations import (
 @pytest.mark.parametrize(
     'param,default_value',
     [
-        ('aggregate_sig', (0, 0)),
+        ('aggregate_signature', (0, 0)),
     ]
 )
 def test_defaults(param, default_value, sample_attestation_params):

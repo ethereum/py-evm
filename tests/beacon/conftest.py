@@ -82,7 +82,7 @@ def sample_attestation_params(sample_attestation_data_params):
         'data': AttestationData(**sample_attestation_data_params),
         'participation_bitfield': b'\12' * 16,
         'custody_bitfield': b'\34' * 16,
-        'aggregate_sig': [0, 0],
+        'aggregate_signature': [0, 0],
     }
 
 

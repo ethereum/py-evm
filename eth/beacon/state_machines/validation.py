@@ -8,9 +8,21 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
+import rlp
 
+from eth.beacon.enums import (
+    SignatureDomain,
+)
 from eth.beacon.helpers import (
+    get_attestation_participants,
     get_block_hash,
+    get_domain,
+)
+from eth.utils import (
+    bls
+)
+from eth.beacon.utils.hash import (
+    hash_,
 )
 from eth.beacon.types.states import BeaconState  # noqa: F401
 from eth.beacon.types.attestations import Attestation  # noqa: F401
@@ -192,5 +204,47 @@ def validate_attestation_shard_block_root(attestation_data: AttestationData) -> 
 
 
 def validate_attestation_aggregate_signature(state: BeaconState,
-                                             attestation: Attestation) -> None:
-    pass
+                                             attestation: Attestation,
+                                             epoch_length: int) -> None:
+    """
+    Validate ``aggregate_signature`` field of ``attestation``.
+    Raise ``ValidationError`` if it's invalid.
+
+    Note: This is the phase 0 version of `aggregate_signature`` validation.
+    All proof of custody bits are assumed to be 0 within the signed data.
+    This will change to reflect real proof of custody bits in the Phase 1.
+    """
+    participant_indices = get_attestation_participants(
+        state=state,
+        slot=attestation.slot,
+        shard=attestation.shard,
+        participation_bitfield=attestation.participation_bitfield,
+        epoch_length=epoch_length,
+    )
+
+    pubkeys = [
+        state.validator_registry[validator_index].pubkey
+        for validator_index in participant_indices
+    ]
+    group_public_key = bls.aggregate_pubkeys(pubkeys)
+
+    message = hash_(
+        rlp.encode(attestation.data) +
+        (0).to_bytes(1, "big")
+    )
+
+    is_valid_signature = bls.verify(
+        message=message,
+        pubkey=group_public_key,
+        signature=attestation.aggregate_signature,
+        domain=get_domain(
+            fork_data=state.fork_data,
+            slot=attestation.data.slot,
+            domain_type=SignatureDomain.DOMAIN_ATTESTATION,
+        ),
+
+    )
+    if not is_valid_signature:
+        raise ValidationError(
+            "Attestation ``aggregate_signature`` is invalid."
+        )

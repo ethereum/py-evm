@@ -203,3 +203,7 @@ def test_validate_attestation_shard_block_root(sample_attestation_data_params,
             validate_attestation_shard_block_root(
                 attestation_data,
             )
+
+
+def test_validate_attestation_aggregate_signature():
+    pass
