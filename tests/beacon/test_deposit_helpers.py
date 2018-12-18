@@ -17,11 +17,13 @@ from eth.beacon.helpers import (
     get_domain,
 )
 from eth.beacon.deposit_helpers import (
+    min_empty_validator_index,
     process_deposit,
     validate_proof_of_possession,
 )
 from eth.beacon.types.states import BeaconState
 from eth.beacon.types.deposit_input import DepositInput
+from eth.beacon.types.validator_records import ValidatorRecord
 
 
 def sign_proof_of_possession(deposit_input, privkey, domain):
@@ -35,6 +37,41 @@ def make_deposit_input(pubkey, withdrawal_credentials, randao_commitment):
         randao_commitment=randao_commitment,
         proof_of_possession=EMPTY_SIGNATURE,
     )
+
+
+@pytest.mark.parametrize(
+    "balance,"
+    "latest_status_change_slot,"
+    "zero_balance_validator_ttl,"
+    "current_slot,"
+    "expected",
+    (
+        (0, 1, 1, 2, 0),
+        (1, 1, 1, 2, None),  # not (balance == 0)
+        (0, 1, 1, 1, None),  # not (validator.latest_status_change_slot + zero_balance_validator_ttl <= current_slot) # noqa: E501
+    ),
+)
+def test_min_empty_validator_index(sample_validator_record_params,
+                                   balance,
+                                   latest_status_change_slot,
+                                   zero_balance_validator_ttl,
+                                   current_slot,
+                                   expected):
+    validators = [
+        ValidatorRecord(**sample_validator_record_params).copy(
+            balance=balance,
+            latest_status_change_slot=latest_status_change_slot,
+        )
+        for _ in range(10)
+    ]
+
+    result = min_empty_validator_index(
+        validators=validators,
+        current_slot=current_slot,
+        zero_balance_validator_ttl=zero_balance_validator_ttl,
+    )
+
+    assert result == expected
 
 
 @pytest.mark.parametrize(
