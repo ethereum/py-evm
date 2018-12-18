@@ -9,8 +9,8 @@ from eth.beacon.utils.hash import (
 from eth.rlp.sedes import (
     hash32,
     uint24,
-    uint384,
     uint64,
+    uint384,
 )
 
 
