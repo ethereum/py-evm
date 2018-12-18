@@ -91,6 +91,9 @@ GitHub interface and make sure all tests are passing. In general pull requests t
 Releasing
 ~~~~~~~~~
 
+One time setup
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Pandoc is required for transforming the markdown README to the proper
 format to render correctly on pypi.
 
@@ -106,30 +109,54 @@ Or on OSX:
 
     brew install pandoc
 
-To release a new version:
+Final test before each release
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before releasing a new version, build and test the package that will be released:
 
 .. code:: sh
 
-    bumpversion $$VERSION_PART_TO_BUMP$$
-    git push && git push --tags
-    make release
+    git checkout master && git pull
 
-How to bumpversion
-^^^^^^^^^^^^^^^^^^
+    make package
+
+    # in another shell, navigate to the virtualenv mentioned in output of ^
+
+    # load the virtualenv with the packaged trinity release
+    source package-smoke-test/bin/activate
+
+    # smoke test the release
+    trinity --ropsten
+
+Push the release to github & pypi
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After confirming that the release package looks okay, release a new version:
+
+.. code:: sh
+
+    make release bump=$$VERSION_PART_TO_BUMP$$
+
+    # While trinity and py-evm are colocated,
+    # manually change trinity & py-evm version in setup_trinity.py
+    make release-trinity
+
+Which version part to bump
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The version format for this repo is ``{major}.{minor}.{patch}`` for
 stable, and ``{major}.{minor}.{patch}-{stage}.{devnum}`` for unstable
 (``stage`` can be alpha or beta).
 
-To issue the next version in line, use bumpversion and specify which
-part to bump, like ``bumpversion minor`` or ``bumpversion devnum``.
+During a release, specify which part to bump, like
+``make release bump=minor`` or ``make release bump=devnum``.
 
-If you are in a beta version, ``bumpversion stage`` will switch to a
+If you are in a beta version, ``make release bump=stage`` will switch to a
 stable.
 
 To issue an unstable version when the current version is stable, specify
 the new version explicitly, like
-``bumpversion --new-version 4.0.0-alpha.1 devnum``
+``make release bump="--new-version 4.0.0-alpha.1 devnum"``
 
 
 How to release docker images
