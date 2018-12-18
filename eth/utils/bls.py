@@ -31,7 +31,7 @@ from py_ecc.optimized_bls12_381 import (  # NOQA
     curve_order,
     final_exponentiate
 )
-from eth.beacon.utils.hash import hash_
+from eth.beacon.utils.hash import hash_eth2
 
 
 G2_cofactor = 305502333931268344200999753193121504214466019254188142667664032982267604182971884026507427359259977847832272839041616661285803823378372096355777062779109  # noqa: E501
@@ -77,8 +77,8 @@ def hash_to_G2(message: bytes, domain: int) -> Tuple[FQ2, FQ2, FQ2]:
     domain_in_bytes = domain.to_bytes(8, 'big')
 
     # Initial candidate x coordinate
-    x_re = big_endian_to_int(hash_(domain_in_bytes + b'\x01' + message))
-    x_im = big_endian_to_int(hash_(domain_in_bytes + b'\x02' + message))
+    x_re = big_endian_to_int(hash_eth2(domain_in_bytes + b'\x01' + message))
+    x_im = big_endian_to_int(hash_eth2(domain_in_bytes + b'\x02' + message))
     x_coordinate = FQ2([x_re, x_im])  # x_re + x_im * i
 
     # Test candidate y coordinates until a one is found

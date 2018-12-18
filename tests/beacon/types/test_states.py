@@ -12,7 +12,7 @@ from eth.beacon.types.crosslink_records import (
     CrosslinkRecord,
 )
 from eth.beacon.utils.hash import (
-    hash_,
+    hash_eth2,
 )
 
 from tests.beacon.helpers import (
@@ -98,4 +98,4 @@ def test_num_crosslink_records(expected,
 
 def test_hash(sample_beacon_state_params):
     state = BeaconState(**sample_beacon_state_params)
-    assert state.root == hash_(rlp.encode(state))
+    assert state.root == hash_eth2(rlp.encode(state))
