@@ -6,38 +6,18 @@ from cytoolz import (
     pipe
 )
 
-from eth_typing import (
-    Hash32,
-)
-
 from eth.utils import bls
 from eth.utils.bitfield import (
     set_voted,
 )
-from eth.beacon.utils.hash import hash_
 
-
-def create_signing_message(slot: int,
-                           parent_hashes: Iterable[Hash32],
-                           shard_id: int,
-                           shard_block_hash: Hash32,
-                           justified_slot: int) -> bytes:
-    """
-    Return the signining message for attesting.
-    """
-    # TODO: Will be updated with SSZ encoded attestation.
-    return hash_(
-        slot.to_bytes(8, byteorder='big') +
-        b''.join(parent_hashes) +
-        shard_id.to_bytes(2, byteorder='big') +
-        shard_block_hash +
-        justified_slot.to_bytes(8, 'big')
-    )
+from eth.beacon.enums import SignatureDomain
 
 
 def verify_votes(
         message: bytes,
-        votes: Iterable[Tuple[int, bytes, int]]) -> Tuple[Tuple[bytes, ...], Tuple[int, ...]]:
+        votes: Iterable[Tuple[int, bytes, int]],
+        domain: SignatureDomain) -> Tuple[Tuple[bytes, ...], Tuple[int, ...]]:
     """
     Verify the given votes.
 
@@ -47,7 +27,7 @@ def verify_votes(
         (sig, committee_index)
         for (committee_index, sig, public_key)
         in votes
-        if bls.verify(message, public_key, sig)
+        if bls.verify(message, public_key, sig, domain)
     )
     try:
         sigs, committee_indices = zip(*sigs_with_committe_info)
@@ -75,4 +55,4 @@ def aggregate_votes(bitfield: bytes,
         )
     )
 
-    return bitfield, bls.aggregate_sigs(sigs)
+    return bitfield, bls.aggregate_signatures(sigs)
