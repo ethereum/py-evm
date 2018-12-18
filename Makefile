@@ -51,6 +51,10 @@ docs: build-docs
 linux-docs: build-docs
 	readlink -f docs/_build/html/index.html
 
+package: clean
+	python setup.py sdist bdist_wheel
+	python scripts/release/test_package.py
+
 release: clean
 	CURRENT_SIGN_SETTING=$(git config commit.gpgSign)
 	git config commit.gpgSign true
