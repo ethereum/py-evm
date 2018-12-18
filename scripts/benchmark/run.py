@@ -28,14 +28,16 @@ from checks.deploy_dos import (
 )
 
 from checks.simple_value_transfers import (
-    TO_EXISTING_ADDRESS_CONFIG,
-    TO_NON_EXISTING_ADDRESS_CONFIG
+    SimpleValueTransferBenchmarkConfig,
 )
 
 from contract_data import (
     get_contracts
 )
 
+from utils.chain_plumbing import (
+    SECOND_ADDRESS,
+)
 from utils.compile import (
     compile_contracts
 )
@@ -46,6 +48,24 @@ from utils.reporting import (
 from utils.shellart import (
     bold_green,
     bold_red,
+)
+
+DEFAULT_NUM_BLOCKS = 2
+DEFAULT_NUM_TX = 1
+
+TO_EXISTING_ADDRESS_CONFIG = SimpleValueTransferBenchmarkConfig(
+    to_address=SECOND_ADDRESS,
+    greeter_info='Sending to existing address\n',
+    num_blocks=DEFAULT_NUM_BLOCKS,
+    num_tx=DEFAULT_NUM_TX
+)
+
+
+TO_NON_EXISTING_ADDRESS_CONFIG = SimpleValueTransferBenchmarkConfig(
+    to_address=None,
+    greeter_info='Sending to non-existing address\n',
+    num_blocks=DEFAULT_NUM_BLOCKS,
+    num_tx=DEFAULT_NUM_TX
 )
 
 HEADER = (
@@ -76,19 +96,19 @@ def run() -> None:
     total_stat = DefaultStat()
 
     benchmarks = [
-        MineEmptyBlocksBenchmark(),
-        ImportEmptyBlocksBenchmark(),
+        MineEmptyBlocksBenchmark(DEFAULT_NUM_BLOCKS),
+        ImportEmptyBlocksBenchmark(DEFAULT_NUM_BLOCKS),
         SimpleValueTransferBenchmark(TO_EXISTING_ADDRESS_CONFIG),
         SimpleValueTransferBenchmark(TO_NON_EXISTING_ADDRESS_CONFIG),
-        ERC20DeployBenchmark(),
-        ERC20TransferBenchmark(),
-        ERC20ApproveBenchmark(),
-        ERC20TransferFromBenchmark(),
-        DOSContractDeployBenchmark(),
-        DOSContractSstoreUint64Benchmark(),
-        DOSContractCreateEmptyContractBenchmark(),
-        DOSContractRevertSstoreUint64Benchmark(),
-        DOSContractRevertCreateEmptyContractBenchmark(),
+        ERC20DeployBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
+        ERC20TransferBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
+        ERC20ApproveBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
+        ERC20TransferFromBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
+        DOSContractDeployBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
+        DOSContractSstoreUint64Benchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
+        DOSContractCreateEmptyContractBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
+        DOSContractRevertSstoreUint64Benchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
+        DOSContractRevertCreateEmptyContractBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
     ]
 
     for benchmark in benchmarks:

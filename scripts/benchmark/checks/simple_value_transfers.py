@@ -22,7 +22,6 @@ from utils.chain_plumbing import (
     FUNDED_ADDRESS,
     FUNDED_ADDRESS_PRIVATE_KEY,
     get_all_chains,
-    SECOND_ADDRESS,
 )
 from utils.address import (
     generate_random_address,
@@ -42,18 +41,8 @@ class SimpleValueTransferBenchmarkConfig(NamedTuple):
     to_address: Address
     greeter_info: str
     num_blocks: int = 1
+    num_tx: int = 100
 
-
-TO_EXISTING_ADDRESS_CONFIG = SimpleValueTransferBenchmarkConfig(
-    to_address=SECOND_ADDRESS,
-    greeter_info='Sending to existing address\n'
-)
-
-
-TO_NON_EXISTING_ADDRESS_CONFIG = SimpleValueTransferBenchmarkConfig(
-    to_address=None,
-    greeter_info='Sending to non-existing address\n'
-)
 
 # TODO: Investigate why 21000 doesn't work
 SIMPLE_VALUE_TRANSFER_GAS_COST = 22000
@@ -75,10 +64,10 @@ class SimpleValueTransferBenchmark(BaseBenchmark):
     def execute(self) -> DefaultStat:
         total_stat = DefaultStat()
         num_blocks = self.config.num_blocks
+        num_tx = self.config.num_tx
 
         for chain in get_all_chains():
-
-            value = self.as_timed_result(lambda: self.mine_blocks(chain, num_blocks))
+            value = self.as_timed_result(lambda: self.mine_blocks(chain, num_blocks, num_tx))
 
             total_gas_used, total_num_tx = value.wrapped_value
 
@@ -94,15 +83,14 @@ class SimpleValueTransferBenchmark(BaseBenchmark):
 
         return total_stat
 
-    def mine_blocks(self, chain: MiningChain, num_blocks: int) -> Tuple[int, int]:
+    def mine_blocks(self, chain: MiningChain, num_blocks: int, num_tx: int) -> Tuple[int, int]:
         total_gas_used = 0
         total_num_tx = 0
 
         for i in range(1, num_blocks + 1):
-            num_tx = chain.get_block().header.gas_limit // SIMPLE_VALUE_TRANSFER_GAS_COST
             block = self.mine_block(chain, i, num_tx)
-            total_num_tx = total_num_tx + len(block.transactions)
             total_gas_used = total_gas_used + block.header.gas_used
+            total_num_tx = total_num_tx + len(block.transactions)
 
         return total_gas_used, total_num_tx
 

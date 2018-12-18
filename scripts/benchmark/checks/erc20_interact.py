@@ -57,10 +57,12 @@ CONTRACT_NAME = 'SimpleToken'
 
 W3_TX_DEFAULTS = {'gas': 0, 'gasPrice': 0}
 
+DEFAULT_NUM_BLOCKS = 100
+DEFAULT_NUM_TX = 2
+
 
 class BaseERC20Benchmark(BaseBenchmark):
-
-    def __init__(self, num_blocks: int = 100, num_tx: int = 2) -> None:
+    def __init__(self, num_blocks: int = DEFAULT_NUM_BLOCKS, num_tx: int = DEFAULT_NUM_TX) -> None:
         super().__init__()
 
         self.num_blocks = num_blocks
@@ -222,8 +224,8 @@ class BaseERC20Benchmark(BaseBenchmark):
 
 
 class ERC20DeployBenchmark(BaseERC20Benchmark):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, num_blocks: int = DEFAULT_NUM_BLOCKS, num_tx: int = DEFAULT_NUM_TX) -> None:
+        super().__init__(num_blocks, num_tx)
 
     @property
     def name(self) -> str:
@@ -234,8 +236,8 @@ class ERC20DeployBenchmark(BaseERC20Benchmark):
 
 
 class ERC20TransferBenchmark(BaseERC20Benchmark):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, num_blocks: int = DEFAULT_NUM_BLOCKS, num_tx: int = DEFAULT_NUM_TX) -> None:
+        super().__init__(num_blocks, num_tx)
 
     @property
     def name(self) -> str:
@@ -250,8 +252,8 @@ class ERC20TransferBenchmark(BaseERC20Benchmark):
 
 
 class ERC20ApproveBenchmark(BaseERC20Benchmark):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, num_blocks: int = DEFAULT_NUM_BLOCKS, num_tx: int = DEFAULT_NUM_TX) -> None:
+        super().__init__(num_blocks, num_tx)
 
     @property
     def name(self) -> str:
@@ -266,8 +268,8 @@ class ERC20ApproveBenchmark(BaseERC20Benchmark):
 
 
 class ERC20TransferFromBenchmark(BaseERC20Benchmark):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, num_blocks: int = DEFAULT_NUM_BLOCKS, num_tx: int = DEFAULT_NUM_TX) -> None:
+        super().__init__(num_blocks, num_tx)
 
     @property
     def name(self) -> str:
