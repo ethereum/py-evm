@@ -10,16 +10,20 @@ from eth.utils import bls
 from eth.beacon.constants import (
     EMPTY_SIGNATURE,
 )
+from eth.beacon.deposit_helpers import (
+    add_pending_validator,
+    get_min_empty_validator_index,
+    process_deposit,
+    validate_proof_of_possession,
+)
 from eth.beacon.enums import (
     SignatureDomain,
 )
+from eth.beacon.exceptions import (
+    MinEmptyValidatorIndexNotFound,
+)
 from eth.beacon.helpers import (
     get_domain,
-)
-from eth.beacon.deposit_helpers import (
-    min_empty_validator_index,
-    process_deposit,
-    validate_proof_of_possession,
 )
 from eth.beacon.types.states import BeaconState
 from eth.beacon.types.deposit_input import DepositInput
@@ -47,16 +51,16 @@ def make_deposit_input(pubkey, withdrawal_credentials, randao_commitment):
     "expected",
     (
         (0, 1, 1, 2, 0),
-        (1, 1, 1, 2, None),  # not (balance == 0)
-        (0, 1, 1, 1, None),  # not (validator.latest_status_change_slot + zero_balance_validator_ttl <= current_slot) # noqa: E501
+        (1, 1, 1, 2, MinEmptyValidatorIndexNotFound()),  # not (balance == 0)
+        (0, 1, 1, 1, MinEmptyValidatorIndexNotFound()),  # not (validator.latest_status_change_slot + zero_balance_validator_ttl <= current_slot) # noqa: E501
     ),
 )
-def test_min_empty_validator_index(sample_validator_record_params,
-                                   balance,
-                                   latest_status_change_slot,
-                                   zero_balance_validator_ttl,
-                                   current_slot,
-                                   expected):
+def test_get_min_empty_validator_index(sample_validator_record_params,
+                                       balance,
+                                       latest_status_change_slot,
+                                       zero_balance_validator_ttl,
+                                       current_slot,
+                                       expected):
     validators = [
         ValidatorRecord(**sample_validator_record_params).copy(
             balance=balance,
@@ -64,14 +68,72 @@ def test_min_empty_validator_index(sample_validator_record_params,
         )
         for _ in range(10)
     ]
+    if isinstance(expected, Exception):
+        with pytest.raises(MinEmptyValidatorIndexNotFound):
+            get_min_empty_validator_index(
+                validators=validators,
+                current_slot=current_slot,
+                zero_balance_validator_ttl=zero_balance_validator_ttl,
+            )
+    else:
+        result = get_min_empty_validator_index(
+            validators=validators,
+            current_slot=current_slot,
+            zero_balance_validator_ttl=zero_balance_validator_ttl,
+        )
+        assert result == expected
 
-    result = min_empty_validator_index(
-        validators=validators,
-        current_slot=current_slot,
-        zero_balance_validator_ttl=zero_balance_validator_ttl,
+
+@pytest.mark.parametrize(
+    "validator_registry_len,"
+    "min_empty_validator_index_result,"
+    "expected_index",
+    (
+        (10, 1, 1),
+        (10, 5, 5),
+        (10, None, 10),
+    ),
+)
+def test_add_pending_validator(monkeypatch,
+                               sample_beacon_state_params,
+                               sample_validator_record_params,
+                               validator_registry_len,
+                               min_empty_validator_index_result,
+                               expected_index):
+    from eth.beacon import deposit_helpers
+
+    def mock_get_min_empty_validator_index(validators,
+                                           current_slot,
+                                           zero_balance_validator_ttl):
+        if min_empty_validator_index_result is None:
+            raise MinEmptyValidatorIndexNotFound()
+        else:
+            return min_empty_validator_index_result
+
+    monkeypatch.setattr(
+        deposit_helpers,
+        'get_min_empty_validator_index',
+        mock_get_min_empty_validator_index
     )
 
-    assert result == expected
+    state = BeaconState(**sample_beacon_state_params).copy(
+        validator_registry=[
+            ValidatorRecord(**sample_validator_record_params).copy(
+                balance=100,
+            )
+            for _ in range(validator_registry_len)
+        ]
+    )
+    validator = ValidatorRecord(**sample_validator_record_params).copy(
+        balance=5566,
+    )
+    state, index = add_pending_validator(
+        state,
+        validator,
+        zero_balance_validator_ttl=0,  # it's for `get_min_empty_validator_index`
+    )
+    assert index == expected_index
+    assert state.validator_registry[index] == validator
 
 
 @pytest.mark.parametrize(
@@ -102,7 +164,7 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
     if expected is True:
         proof_of_possession = sign_proof_of_possession(deposit_input, privkey, domain)
 
-        assert validate_proof_of_possession(
+        validate_proof_of_possession(
             state=state,
             pubkey=pubkey,
             proof_of_possession=proof_of_possession,

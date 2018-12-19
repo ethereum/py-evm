@@ -161,9 +161,9 @@ class BeaconState(rlp.Serializable):
     def update_validator(self,
                          validator_index: int,
                          validator: ValidatorRecord) -> 'BeaconState':
-        with self.build_changeset() as state_changeset:
-            validator_registry = list(state_changeset.validator_registry)
-            validator_registry[validator_index] = validator
-            state_changeset.validator_registry = tuple(validator_registry)
-            self = state_changeset.commit()
+        validator_registry = list(self.validator_registry)
+        validator_registry[validator_index] = validator
+        self = self.copy(
+            validator_registry=tuple(validator_registry),
+        )
         return self
