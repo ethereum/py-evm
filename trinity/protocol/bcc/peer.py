@@ -1,3 +1,7 @@
+from typing import (
+    cast,
+)
+
 from eth.beacon.db.chain import BaseBeaconChainDB
 
 from p2p.peer import (
@@ -15,6 +19,7 @@ from p2p.p2p_proto import DisconnectReason
 from trinity.protocol.bcc.proto import BCCProtocol
 from trinity.protocol.bcc.commands import (
     Status,
+    StatusMessage,
 )
 from trinity.protocol.bcc.context import (
     BeaconContext,
@@ -22,12 +27,6 @@ from trinity.protocol.bcc.context import (
 
 from eth_utils import (
     encode_hex,
-)
-
-from typing import (
-    cast,
-    Any,
-    Dict,
 )
 from eth_typing import (
     Hash32,
@@ -53,7 +52,7 @@ class BCCPeer(BasePeer):
             await self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure(f"Expected a BCC Status msg, got {cmd}, disconnecting")
 
-        msg = cast(Dict[str, Any], msg)
+        msg = cast(StatusMessage, msg)
         if msg['network_id'] != self.network_id:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(

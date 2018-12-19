@@ -1,4 +1,5 @@
 from typing import (
+    Tuple,
     Union,
 )
 
@@ -22,6 +23,14 @@ from trinity.rlp.sedes import (
 
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.attestations import Attestation
+
+
+StatusMessage = TypedDict("StatusMessage", {
+    'protocol_version': int,
+    'network_id': int,
+    'genesis_hash': Hash32,
+    'head_slot': int,
+})
 
 
 class Status(Command):
@@ -48,9 +57,16 @@ class GetBeaconBlocks(Command):
     ]
 
 
+BeaconBlocksMessage = TypedDict("BeaconBlocksMessage", {
+    'blocks': Tuple[BaseBeaconBlock, ...],
+})
+
+
 class BeaconBlocks(Command):
     _cmd_id = 2
-    structure = sedes.CountableList(BaseBeaconBlock)
+    structure = [
+        ('blocks', sedes.CountableList(BaseBeaconBlock)),
+    ]
 
 
 class AttestationRecords(Command):

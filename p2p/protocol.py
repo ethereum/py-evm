@@ -13,6 +13,10 @@ from typing import (
     Union,
 )
 
+from mypy_extensions import (
+    TypedDict,
+)
+
 import rlp
 from rlp import sedes
 
@@ -28,10 +32,12 @@ from p2p.utils import get_devp2p_cmd_id
 if TYPE_CHECKING:
     from p2p.peer import BasePeer  # noqa: F401
 
+TypedDictPayloadType = TypedDict("TypedDictPayloadType", {})
 PayloadType = Union[
     Dict[str, Any],
     List[rlp.Serializable],
     Tuple[rlp.Serializable, ...],
+    TypedDictPayloadType,
 ]
 
 # A payload to be delivered with a request
