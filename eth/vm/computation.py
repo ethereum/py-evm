@@ -277,7 +277,7 @@ class BaseComputation(Configurable, ABC):
 
     def memory_read(self, start_position: int, size: int) -> memoryview:
         """
-        Read and return ``size`` bytes from memory starting at ``start_position``.
+        Read and return a view of ``size`` bytes from memory starting at ``start_position``.
         """
         return self._memory.read(start_position, size)
 
