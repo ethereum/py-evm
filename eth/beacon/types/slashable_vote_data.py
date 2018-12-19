@@ -7,7 +7,7 @@ from typing import (
 )
 from eth.rlp.sedes import (
     uint24,
-    uint256,
+    uint384,
 )
 from .attestation_data import AttestationData
 
@@ -24,7 +24,7 @@ class SlashableVoteData(rlp.Serializable):
         # Attestation data
         ('data', AttestationData),
         # Aggregate signature
-        ('aggregate_signature', CountableList(uint256)),
+        ('aggregate_signature', CountableList(uint384)),
     ]
 
     def __init__(self,

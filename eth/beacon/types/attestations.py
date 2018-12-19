@@ -9,7 +9,7 @@ from rlp.sedes import (
 )
 
 from eth.rlp.sedes import (
-    uint256,
+    uint384,
 )
 
 
@@ -29,7 +29,7 @@ class Attestation(rlp.Serializable):
         # Proof of custody bitfield
         ('custody_bitfield', binary),
         # BLS aggregate signature
-        ('aggregate_sig', CountableList(uint256)),
+        ('aggregate_sig', CountableList(uint384)),
     ]
 
     def __init__(self,

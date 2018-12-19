@@ -17,7 +17,7 @@ from rlp.sedes import (
 from eth.rlp.sedes import (
     hash32,
     uint64,
-    uint256,
+    uint384,
 )
 from eth.beacon.utils.hash import hash_eth2
 
@@ -62,7 +62,7 @@ class BaseBeaconBlock(rlp.Serializable):
         ('state_root', hash32),
         ('randao_reveal', hash32),
         ('candidate_pow_receipt_root', hash32),
-        ('signature', CountableList(uint256)),
+        ('signature', CountableList(uint384)),
 
         #
         # Body
