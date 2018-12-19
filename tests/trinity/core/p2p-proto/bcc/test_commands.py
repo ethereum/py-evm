@@ -22,25 +22,39 @@ from trinity.protocol.bcc.commands import (
 from .helpers import (
     get_directly_linked_peers,
     empty_body,
+    get_genesis_chain_db,
 )
 
 
 @pytest.mark.asyncio
 async def test_send_no_blocks(request, event_loop):
-    alice, bob = await get_directly_linked_peers(request, event_loop)
+    alice, bob = await get_directly_linked_peers(
+        request,
+        event_loop,
+        alice_chain_db=get_genesis_chain_db(),
+        bob_chain_db=get_genesis_chain_db(),
+    )
     msg_buffer = MsgBuffer()
     bob.add_subscriber(msg_buffer)
 
-    alice.sub_proto.send_blocks(())
+    alice.sub_proto.send_blocks((), request_id=5)
 
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, BeaconBlocks)
-    assert message.payload == ()
+    assert message.payload == {
+        "request_id": 5,
+        "blocks": (),
+    }
 
 
 @pytest.mark.asyncio
 async def test_send_single_block(request, event_loop):
-    alice, bob = await get_directly_linked_peers(request, event_loop)
+    alice, bob = await get_directly_linked_peers(
+        request,
+        event_loop,
+        alice_chain_db=get_genesis_chain_db(),
+        bob_chain_db=get_genesis_chain_db(),
+    )
     msg_buffer = MsgBuffer()
     bob.add_subscriber(msg_buffer)
 
@@ -53,16 +67,24 @@ async def test_send_single_block(request, event_loop):
         signature=(0, 0),
         body=empty_body(),
     )
-    alice.sub_proto.send_blocks((block,))
+    alice.sub_proto.send_blocks((block,), request_id=5)
 
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, BeaconBlocks)
-    assert message.payload == (block,)
+    assert message.payload == {
+        "request_id": 5,
+        "blocks": (block,),
+    }
 
 
 @pytest.mark.asyncio
 async def test_send_multiple_blocks(request, event_loop):
-    alice, bob = await get_directly_linked_peers(request, event_loop)
+    alice, bob = await get_directly_linked_peers(
+        request,
+        event_loop,
+        alice_chain_db=get_genesis_chain_db(),
+        bob_chain_db=get_genesis_chain_db(),
+    )
     msg_buffer = MsgBuffer()
     bob.add_subscriber(msg_buffer)
 
@@ -78,24 +100,33 @@ async def test_send_multiple_blocks(request, event_loop):
         )
         for slot in range(3)
     )
-    alice.sub_proto.send_blocks(blocks)
+    alice.sub_proto.send_blocks(blocks, request_id=5)
 
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, BeaconBlocks)
-    assert message.payload == blocks
+    assert message.payload == {
+        "request_id": 5,
+        "blocks": blocks,
+    }
 
 
 @pytest.mark.asyncio
 async def test_send_get_blocks_by_slot(request, event_loop):
-    alice, bob = await get_directly_linked_peers(request, event_loop)
+    alice, bob = await get_directly_linked_peers(
+        request,
+        event_loop,
+        alice_chain_db=get_genesis_chain_db(),
+        bob_chain_db=get_genesis_chain_db(),
+    )
     msg_buffer = MsgBuffer()
     bob.add_subscriber(msg_buffer)
 
-    alice.sub_proto.send_get_blocks(123, 10)
+    alice.sub_proto.send_get_blocks(123, 10, request_id=5)
 
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, GetBeaconBlocks)
     assert message.payload == {
+        "request_id": 5,
         "block_slot_or_root": 123,
         "max_blocks": 10,
     }
@@ -103,15 +134,21 @@ async def test_send_get_blocks_by_slot(request, event_loop):
 
 @pytest.mark.asyncio
 async def test_send_get_blocks_by_hash(request, event_loop):
-    alice, bob = await get_directly_linked_peers(request, event_loop)
+    alice, bob = await get_directly_linked_peers(
+        request,
+        event_loop,
+        alice_chain_db=get_genesis_chain_db(),
+        bob_chain_db=get_genesis_chain_db(),
+    )
     msg_buffer = MsgBuffer()
     bob.add_subscriber(msg_buffer)
 
-    alice.sub_proto.send_get_blocks(b"\x33" * 32, 15)
+    alice.sub_proto.send_get_blocks(b"\x33" * 32, 15, request_id=5)
 
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, GetBeaconBlocks)
     assert message.payload == {
+        "request_id": 5,
         "block_slot_or_root": b"\x33" * 32,
         "max_blocks": 15,
     }
@@ -119,7 +156,12 @@ async def test_send_get_blocks_by_hash(request, event_loop):
 
 @pytest.mark.asyncio
 async def test_send_no_attestations(request, event_loop):
-    alice, bob = await get_directly_linked_peers(request, event_loop)
+    alice, bob = await get_directly_linked_peers(
+        request,
+        event_loop,
+        alice_chain_db=get_genesis_chain_db(),
+        bob_chain_db=get_genesis_chain_db(),
+    )
     msg_buffer = MsgBuffer()
     bob.add_subscriber(msg_buffer)
 
@@ -132,7 +174,12 @@ async def test_send_no_attestations(request, event_loop):
 
 @pytest.mark.asyncio
 async def test_send_single_attestation(request, event_loop):
-    alice, bob = await get_directly_linked_peers(request, event_loop)
+    alice, bob = await get_directly_linked_peers(
+        request,
+        event_loop,
+        alice_chain_db=get_genesis_chain_db(),
+        bob_chain_db=get_genesis_chain_db(),
+    )
     msg_buffer = MsgBuffer()
     bob.add_subscriber(msg_buffer)
 
@@ -160,7 +207,12 @@ async def test_send_single_attestation(request, event_loop):
 
 @pytest.mark.asyncio
 async def test_send_multiple_attestations(request, event_loop):
-    alice, bob = await get_directly_linked_peers(request, event_loop)
+    alice, bob = await get_directly_linked_peers(
+        request,
+        event_loop,
+        alice_chain_db=get_genesis_chain_db(),
+        bob_chain_db=get_genesis_chain_db(),
+    )
     msg_buffer = MsgBuffer()
     bob.add_subscriber(msg_buffer)
 
