@@ -45,7 +45,7 @@ class Stack(object):
             else:
                 raise TypeError(
                     "Invariant: stack should only contain `int` and `bytes` "
-                    "types.  Got: {0}".format(type(item))
+                    "types.  Got: {!r}".format(item)
                 )
 
     def push(self, value: Union[int, bytes]) -> None:
