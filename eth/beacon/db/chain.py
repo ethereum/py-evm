@@ -233,7 +233,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             finalized_head_root = db[SchemaV1.make_finalized_head_root_lookup_key()]
         except KeyError:
             raise CanonicalHeadNotFound("No finalized head set for this chain")
-        return cls._get_block_by_hash(db, Hash32(finalized_head_root))
+        return cls._get_block_by_root(db, Hash32(finalized_head_root))
 
     def get_block_by_root(self, block_root: Hash32) -> BaseBeaconBlock:
         return self._get_block_by_root(self.db, block_root)

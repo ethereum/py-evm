@@ -22,11 +22,11 @@ class GetBeaconBlocksRequest(BaseRequest[GetBeaconBlocksMessage]):
     response_type = BeaconBlocks
 
     def __init__(self,
-                 block_slot_or_hash: Union[int, Hash32],
+                 block_slot_or_root: Union[int, Hash32],
                  max_blocks: int,
                  request_id: int) -> None:
         self.command_payload = GetBeaconBlocksMessage(
             request_id=request_id,
-            block_slot_or_hash=block_slot_or_hash,
+            block_slot_or_root=block_slot_or_root,
             max_blocks=max_blocks,
         )
