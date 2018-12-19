@@ -38,7 +38,7 @@ from trinity.extensibility.plugin import (
     PluginContext,
     TrinityBootInfo,
 )
-from trinity.utils.ipc import (
+from trinity._utils.ipc import (
     kill_processes_gracefully,
 )
 
