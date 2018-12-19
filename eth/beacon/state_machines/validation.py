@@ -15,14 +15,14 @@ from eth.beacon.enums import (
 )
 from eth.beacon.helpers import (
     get_attestation_participants,
-    get_block_hash,
+    get_block_root,
     get_domain,
 )
 from eth.utils import (
     bls
 )
 from eth.beacon.utils.hash import (
-    hash_,
+    hash_eth2,
 )
 from eth.beacon.types.states import BeaconState  # noqa: F401
 from eth.beacon.types.attestations import Attestation  # noqa: F401
@@ -59,8 +59,8 @@ def validate_attestation(state: BeaconState,
 
     validate_attestation_justified_block_root(
         attestation_data=attestation.data,
-        justified_block_root=get_block_hash(
-            state.latest_block_hashes,
+        justified_block_root=get_block_root(
+            state.latest_block_roots,
             current_slot=state.slot,
             slot=attestation.data.justified_slot,
         ),
@@ -144,16 +144,16 @@ def validate_attestation_justified_slot(attestation_data: AttestationData,
 def validate_attestation_justified_block_root(attestation_data: AttestationData,
                                               justified_block_root: Hash32) -> None:
     """
-    Validate ``justified_block_hash`` field of ``attestation_data``.
+    Validate ``justified_block_root`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
     """
-    if attestation_data.justified_block_hash != justified_block_root:
+    if attestation_data.justified_block_root != justified_block_root:
         raise ValidationError(
-            "Attestation ``justified_block_hash`` is not equal to the "
+            "Attestation ``justified_block_root`` is not equal to the "
             "``justified_block_root`` at the ``justified_slot``:\n"
             "\tFound: %s, Expected %s at slot %s" %
             (
-                attestation_data.justified_block_hash,
+                attestation_data.justified_block_root,
                 justified_block_root,
                 attestation_data.justified_slot,
             )
@@ -163,22 +163,22 @@ def validate_attestation_justified_block_root(attestation_data: AttestationData,
 def validate_attestation_latest_crosslink_root(attestation_data: AttestationData,
                                                latest_crosslink_shard_block_root: Hash32) -> None:
     """
-    Validate that either the ``latest_crosslink_hash`` or ``shard_block_hash``
+    Validate that either the ``latest_crosslink_root`` or ``shard_block_root``
     field of ``attestation_data`` is the provided ``latest_crosslink_shard_block_root``.
     Raise ``ValidationError`` if it's invalid.
     """
     acceptable_shard_block_roots = [
-        attestation_data.latest_crosslink_hash,
-        attestation_data.shard_block_hash,
+        attestation_data.latest_crosslink_root,
+        attestation_data.shard_block_root,
     ]
     if latest_crosslink_shard_block_root not in acceptable_shard_block_roots:
         raise ValidationError(
-            "Neither the attestation ``latest_crosslink_hash`` nor the attestation "
-            "``shard_block_hash`` are equal to the ``latest_crosslink_shard_block_root``.\n"
+            "Neither the attestation ``latest_crosslink_root`` nor the attestation "
+            "``shard_block_root`` are equal to the ``latest_crosslink_shard_block_root``.\n"
             "\tFound: %s and %s, Expected %s" %
             (
-                attestation_data.latest_crosslink_hash,
-                attestation_data.shard_block_hash,
+                attestation_data.latest_crosslink_root,
+                attestation_data.shard_block_root,
                 latest_crosslink_shard_block_root,
             )
         )
@@ -186,18 +186,18 @@ def validate_attestation_latest_crosslink_root(attestation_data: AttestationData
 
 def validate_attestation_shard_block_root(attestation_data: AttestationData) -> None:
     """
-    Validate ``shard_block_hash`` field of `attestation_data`.
+    Validate ``shard_block_root`` field of `attestation_data`.
     Raise ``ValidationError`` if it's invalid.
 
-    Note: This is the Phase 0 version of ``shard_block_hash`` validation.
+    Note: This is the Phase 0 version of ``shard_block_root`` validation.
     This is a built-in stub and will be changed in phase 1.
     """
-    if attestation_data.shard_block_hash != ZERO_HASH32:
+    if attestation_data.shard_block_root != ZERO_HASH32:
         raise ValidationError(
-            "Attestation ``shard_block_hash`` is not ZERO_HASH32.\n"
+            "Attestation ``shard_block_root`` is not ZERO_HASH32.\n"
             "\tFound: %s, Expected %s" %
             (
-                attestation_data.shard_block_hash,
+                attestation_data.shard_block_root,
                 ZERO_HASH32,
             )
         )
@@ -228,7 +228,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     ]
     group_public_key = bls.aggregate_pubkeys(pubkeys)
 
-    message = hash_(
+    message = hash_eth2(
         rlp.encode(attestation.data) +
         (0).to_bytes(1, "big")
     )
