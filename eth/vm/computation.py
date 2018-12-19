@@ -288,7 +288,7 @@ class BaseComputation(Configurable, ABC):
         return self._memory.read_bytes(start_position, size)
 
     def dump_memory(self) -> bytes:
-        return bytearray(self._memory)
+        return self._memory.read_bytes()
 
     #
     # Gas Consumption
