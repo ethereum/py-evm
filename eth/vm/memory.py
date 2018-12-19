@@ -1,8 +1,5 @@
 import itertools
 import logging
-from typing import (
-    Iterator,
-)
 
 from eth.validation import (
     validate_is_bytes,
