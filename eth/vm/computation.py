@@ -437,14 +437,14 @@ class BaseComputation(Configurable, ABC):
                 self.state,
                 child_msg,
                 self.transaction_context,
-                self.tracer
+                self.tracer,
             ).apply_create_message()
         else:
             child_computation = self.__class__(
                 self.state,
                 child_msg,
                 self.transaction_context,
-                self.tracer
+                self.tracer,
             ).apply_message()
         return child_computation
 

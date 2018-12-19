@@ -26,9 +26,6 @@ class Memory(object):
     def __init__(self) -> None:
         self._bytes = bytearray()
 
-    def __iter__(self) -> Iterator[int]:
-        return iter(self._bytes)
-
     def extend(self, start_position: int, size: int) -> None:
         if size == 0:
             return
