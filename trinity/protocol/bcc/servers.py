@@ -65,6 +65,7 @@ class BCCRequestServer(BaseRequestServer):
         if not peer.is_operational:
             return
 
+        request_id = msg["request_id"]
         max_blocks = msg["max_blocks"]
         block_slot_or_root = msg["block_slot_or_root"]
 
@@ -94,7 +95,7 @@ class BCCRequestServer(BaseRequestServer):
             blocks = ()
 
         self.logger.debug2("Replying to %s with %d blocks", peer, len(blocks))
-        peer.sub_proto.send_blocks(blocks)
+        peer.sub_proto.send_blocks(blocks, request_id)
 
     @to_tuple
     def _get_blocks(self,

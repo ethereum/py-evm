@@ -25,6 +25,15 @@ from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.attestations import Attestation
 
 
+RequestMessage = TypedDict("RequestMessage", {
+    "request_id": int,
+})
+
+
+ResponseMessage = TypedDict("ResponseMessage", {
+    "request_id": int,
+})
+
 StatusMessage = TypedDict("StatusMessage", {
     'protocol_version': int,
     'network_id': int,
@@ -39,11 +48,12 @@ class Status(Command):
         ('protocol_version', sedes.big_endian_int),
         ('network_id', sedes.big_endian_int),
         ('genesis_hash', sedes.binary),
-        ('best_hash', sedes.binary),
+        ('head_slot', sedes.big_endian_int),
     ]
 
 
 GetBeaconBlocksMessage = TypedDict("GetBeaconBlocksMessage", {
+    "request_id": int,
     "block_slot_or_root": Union[int, Hash32],
     "max_blocks": int,
 })
@@ -52,12 +62,14 @@ GetBeaconBlocksMessage = TypedDict("GetBeaconBlocksMessage", {
 class GetBeaconBlocks(Command):
     _cmd_id = 1
     structure = [
+        ('request_id', sedes.big_endian_int),
         ('block_slot_or_root', HashOrNumber()),
         ('max_blocks', sedes.big_endian_int),
     ]
 
 
 BeaconBlocksMessage = TypedDict("BeaconBlocksMessage", {
+    'request_id': int,
     'blocks': Tuple[BaseBeaconBlock, ...],
 })
 
@@ -65,6 +77,7 @@ BeaconBlocksMessage = TypedDict("BeaconBlocksMessage", {
 class BeaconBlocks(Command):
     _cmd_id = 2
     structure = [
+        ('request_id', sedes.big_endian_int),
         ('blocks', sedes.CountableList(BaseBeaconBlock)),
     ]
 

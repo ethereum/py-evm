@@ -40,12 +40,12 @@ class BCCPeer(BasePeer):
 
     context: BeaconContext
 
-    head_hash: Hash32 = None
+    head_slot: int = None
 
     async def send_sub_proto_handshake(self) -> None:
         genesis = self.chain_db.get_canonical_block_by_slot(0)
-        head = self.chain_db.get_canonical_head()
-        self.sub_proto.send_handshake(genesis.hash, head.hash)
+        head_slot = self.chain_db.get_canonical_head().slot
+        self.sub_proto.send_handshake(genesis.hash, head_slot)
 
     async def process_sub_proto_handshake(self, cmd: Command, msg: _DecodedMsgType) -> None:
         if not isinstance(cmd, Status):
@@ -68,7 +68,7 @@ class BCCPeer(BasePeer):
                 f"match ours ({encode_hex(genesis_block.hash)}), disconnecting"
             )
 
-        self.head_hash = msg['best_hash']
+        self.head_slot = msg['head_slot']
 
     @property
     def network_id(self) -> int:
