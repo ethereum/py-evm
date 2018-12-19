@@ -10,7 +10,7 @@ from eth_utils import (
 
 from eth import constants
 
-from eth.utils.padding import (
+from eth._utils.padding import (
     pad32,
     pad32r,
 )

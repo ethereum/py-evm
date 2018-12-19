@@ -1,6 +1,6 @@
 import pytest
 
-from eth.utils.datatypes import (
+from eth._utils.datatypes import (
     Configurable,
 )
 

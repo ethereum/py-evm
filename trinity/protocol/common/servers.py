@@ -27,7 +27,7 @@ from p2p.service import BaseService
 from trinity.db.header import AsyncHeaderDB
 from trinity.protocol.common.peer import BasePeerPool
 from trinity.protocol.common.requests import BaseHeaderRequest
-from trinity.utils.logging import HasExtendedDebugLogger
+from trinity._utils.logging import HasExtendedDebugLogger
 
 
 class BaseRequestServer(BaseService, PeerSubscriber):

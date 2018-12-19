@@ -9,7 +9,7 @@ from eth.vm.forks import (
     ConstantinopleVM,
 )
 
-from trinity.utils.eip1085 import extract_vm_configuration
+from trinity._utils.eip1085 import extract_vm_configuration
 
 
 def wrap_config(v):

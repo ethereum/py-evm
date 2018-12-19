@@ -27,7 +27,7 @@ from trinity.db.manager import (
 from trinity.plugins.builtin.light_peer_chain_bridge.light_peer_chain_bridge import (
     EventBusLightPeerChain,
 )
-from trinity.utils.version import (
+from trinity._utils.version import (
     construct_trinity_client_identifier,
 )
 

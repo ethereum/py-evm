@@ -24,8 +24,8 @@ from trinity.constants import (
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
 )
-from trinity.utils.db import MemoryDB
-from trinity.utils.eip1085 import validate_raw_eip1085_genesis_config
+from trinity._utils.db import MemoryDB
+from trinity._utils.eip1085 import validate_raw_eip1085_genesis_config
 
 
 def assert_vm_configuration_equal(left, right):

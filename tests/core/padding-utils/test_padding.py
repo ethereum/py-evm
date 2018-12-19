@@ -1,6 +1,6 @@
 import pytest
 
-from eth.utils.padding import (
+from eth._utils.padding import (
     pad32,
     pad32r
 )

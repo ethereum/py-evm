@@ -5,8 +5,8 @@ from eth_utils import denoms
 from eth.constants import (
     ZERO_HASH32,
 )
-import eth.utils.bls as bls
-from eth.beacon.utils.hash import hash_eth2
+import eth._utils.bls as bls
+from eth.beacon._utils.hash import hash_eth2
 
 from eth.beacon.types.proposal_signed_data import (
     ProposalSignedData

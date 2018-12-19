@@ -3,7 +3,7 @@ from typing import (
     NamedTuple
 )
 
-from utils.shellart import (
+from _utils.shellart import (
     bold_white
 )
 

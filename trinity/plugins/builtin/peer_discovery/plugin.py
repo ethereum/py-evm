@@ -51,7 +51,7 @@ from trinity.protocol.eth.proto import (
 from trinity.protocol.les.proto import (
     LESProtocolV2,
 )
-from trinity.utils.shutdown import (
+from trinity._utils.shutdown import (
     exit_with_service_and_endpoint,
 )
 

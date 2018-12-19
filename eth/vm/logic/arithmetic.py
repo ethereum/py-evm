@@ -4,7 +4,7 @@ from cytoolz import (
 
 from eth import constants
 
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     unsigned_to_signed,
     signed_to_unsigned,
     ceil8,

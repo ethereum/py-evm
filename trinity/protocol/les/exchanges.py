@@ -11,7 +11,7 @@ from eth.rlp.headers import BlockHeader
 from trinity.protocol.common.exchanges import (
     BaseExchange,
 )
-from trinity.utils.les import (
+from trinity._utils.les import (
     gen_request_id,
 )
 

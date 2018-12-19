@@ -33,7 +33,7 @@ from eth.rlp.blocks import (
 from eth.rlp.headers import (
     BlockHeader
 )
-from eth.utils.spoof import (
+from eth._utils.spoof import (
     SpoofTransaction,
 )
 from eth.vm.state import (
@@ -58,7 +58,7 @@ from trinity.rpc.modules import (
 from trinity.sync.common.events import (
     SyncingRequest,
 )
-from trinity.utils.validation import (
+from trinity._utils.validation import (
     validate_transaction_call_dict,
     validate_transaction_gas_estimation_dict,
 )

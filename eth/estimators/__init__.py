@@ -7,7 +7,7 @@ from typing import (
 from eth.typing import (
     BaseOrSpoofTransaction,
 )
-from eth.utils.module_loading import (
+from eth._utils.module_loading import (
     import_string,
 )
 from eth.vm.state import (

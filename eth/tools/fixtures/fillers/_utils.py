@@ -25,10 +25,10 @@ from eth.typing import (
     TransactionDict,
 )
 
-from eth.utils.db import (
+from eth._utils.db import (
     apply_state_dict,
 )
-from eth.utils.padding import (
+from eth._utils.padding import (
     pad32,
 )
 

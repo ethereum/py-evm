@@ -17,7 +17,7 @@ from typing import (
 
 from eth.tools.logging import ExtendedDebugLogger
 
-from eth.utils.datatypes import Configurable
+from eth._utils.datatypes import Configurable
 
 if TYPE_CHECKING:
     from computation import BaseComputation     # noqa: F401

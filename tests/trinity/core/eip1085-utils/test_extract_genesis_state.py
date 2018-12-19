@@ -4,7 +4,7 @@ from eth_utils import (
     encode_hex,
 )
 
-from trinity.utils.eip1085 import (
+from trinity._utils.eip1085 import (
     Account,
     extract_genesis_state,
 )

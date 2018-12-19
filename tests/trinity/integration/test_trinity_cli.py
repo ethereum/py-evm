@@ -3,7 +3,7 @@ import pexpect
 import pytest
 
 from trinity.tools.async_process_runner import AsyncProcessRunner
-from trinity.utils.async_iter import (
+from trinity._utils.async_iter import (
     contains_all
 )
 

@@ -21,7 +21,7 @@ from eth.db.header import (  # noqa: F401
     HeaderDB,
 )
 from eth.rlp.headers import BlockHeader
-from eth.utils.datatypes import (
+from eth._utils.datatypes import (
     Configurable,
 )
 from eth.vm.base import BaseVM  # noqa: F401

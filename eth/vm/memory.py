@@ -8,7 +8,7 @@ from eth.validation import (
     validate_uint256,
 )
 
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     ceil32,
 )
 

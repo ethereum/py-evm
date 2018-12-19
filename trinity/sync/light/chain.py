@@ -7,7 +7,7 @@ from trinity.chains.base import BaseAsyncChain
 from trinity.db.header import AsyncHeaderDB
 from trinity.protocol.les.peer import LESPeerPool
 from trinity.protocol.les.sync import LightHeaderChainSyncer
-from trinity.utils.timer import Timer
+from trinity._utils.timer import Timer
 
 
 class LightChainSyncer(BaseService):

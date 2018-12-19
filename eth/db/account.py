@@ -51,7 +51,7 @@ from eth.validation import (
 from eth.tools.logging import (
     ExtendedDebugLogger
 )
-from eth.utils.padding import (
+from eth._utils.padding import (
     pad32,
 )
 

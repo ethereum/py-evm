@@ -1,7 +1,7 @@
 from eth_hash.auto import keccak
 
 from eth import constants
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     ceil32,
 )
 from eth.vm.computation import BaseComputation

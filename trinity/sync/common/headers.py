@@ -57,12 +57,12 @@ from trinity.sync.common.constants import (
     MAX_SKELETON_REORG_DEPTH,
 )
 from trinity.sync.common.peers import TChainPeer, WaitingPeers
-from trinity.utils.datastructures import (
+from trinity._utils.datastructures import (
     DuplicateTasks,
     OrderedTaskPreparation,
     TaskQueue,
 )
-from trinity.utils.humanize import (
+from trinity._utils.humanize import (
     humanize_hash,
 )
 

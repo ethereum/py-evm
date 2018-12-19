@@ -8,7 +8,7 @@ from eth_utils import (
 
 from eth_keys import keys
 
-from trinity.utils.chains import (
+from trinity._utils.chains import (
     get_data_dir_for_network_id,
     get_local_data_dir,
     get_nodekey_path,
@@ -18,7 +18,7 @@ from trinity.config import (
     BeaconAppConfig,
     DATABASE_DIR_NAME,
 )
-from trinity.utils.filesystem import (
+from trinity._utils.filesystem import (
     is_under_path,
 )
 

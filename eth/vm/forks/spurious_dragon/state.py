@@ -14,7 +14,7 @@ from eth.vm.forks.homestead.state import (
 )
 
 from .computation import SpuriousDragonComputation
-from .utils import collect_touched_accounts
+from ._utils import collect_touched_accounts
 
 
 class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):

@@ -19,7 +19,7 @@ from eth.rlp.sedes import (
     uint64,
     hash32,
 )
-from eth.beacon.utils.hash import (
+from eth.beacon._utils.hash import (
     hash_eth2,
 )
 

@@ -38,7 +38,7 @@ from eth.tools.logging import (
 from eth.typing import (
     BaseOrSpoofTransaction,
 )
-from eth.utils.datatypes import (
+from eth._utils.datatypes import (
     Configurable,
 )
 from eth.vm.execution_context import (

@@ -20,7 +20,7 @@ from eth_utils import (
 from eth.tools.logging import ExtendedDebugLogger
 
 from p2p.cancellable import CancellableMixin
-from p2p.utils import get_asyncio_executor
+from p2p._utils import get_asyncio_executor
 
 
 class ServiceEvents:

@@ -19,7 +19,7 @@ from trinity.constants import (
     SYNC_FULL,
     SYNC_LIGHT,
 )
-from trinity.utils.eip1085 import validate_raw_eip1085_genesis_config
+from trinity._utils.eip1085 import validate_raw_eip1085_genesis_config
 
 
 class ValidateAndStoreEnodes(argparse.Action):

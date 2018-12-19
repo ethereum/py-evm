@@ -20,7 +20,7 @@ from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
 
 from trinity.db.header import AsyncHeaderDB
-from trinity.utils.mp import (
+from trinity._utils.mp import (
     async_method,
     sync_method,
 )

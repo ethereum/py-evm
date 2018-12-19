@@ -3,7 +3,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.utils.rlp import (
+from eth._utils.rlp import (
     validate_rlp_equal,
 )
 

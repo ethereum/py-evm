@@ -56,7 +56,7 @@ from eth.vm.computation import (
 from trinity.sync.light.service import (
     BaseLightPeerChain,
 )
-from trinity.utils.async_dispatch import (
+from trinity._utils.async_dispatch import (
     async_method,
 )
 

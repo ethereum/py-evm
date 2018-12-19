@@ -14,7 +14,7 @@ from eth.rlp.transactions import (
     BaseTransaction,
 )
 
-from eth.utils.spoof import (
+from eth._utils.spoof import (
     SpoofTransaction,
 )
 

@@ -1,6 +1,6 @@
 import pytest
 
-from trinity.utils.humanize import humanize_elapsed, humanize_hash
+from trinity._utils.humanize import humanize_elapsed, humanize_hash
 
 
 SECOND = 1

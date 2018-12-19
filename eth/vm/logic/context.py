@@ -4,10 +4,10 @@ from eth.exceptions import (
     OutOfBoundsRead,
 )
 
-from eth.utils.address import (
+from eth._utils.address import (
     force_bytes_to_address,
 )
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     ceil32,
 )
 

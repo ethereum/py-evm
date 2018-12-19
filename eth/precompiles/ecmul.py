@@ -15,10 +15,10 @@ from eth import constants
 from eth.exceptions import (
     VMError,
 )
-from eth.utils.bn128 import (
+from eth._utils.bn128 import (
     validate_point,
 )
-from eth.utils.padding import (
+from eth._utils.padding import (
     pad32,
     pad32r,
 )

@@ -18,22 +18,22 @@ from eth.rlp.blocks import (
 from .base_benchmark import (
     BaseBenchmark,
 )
-from utils.chain_plumbing import (
+from _utils.chain_plumbing import (
     FUNDED_ADDRESS,
     FUNDED_ADDRESS_PRIVATE_KEY,
     get_all_chains,
     SECOND_ADDRESS,
 )
-from utils.address import (
+from _utils.address import (
     generate_random_address,
 )
-from utils.reporting import (
+from _utils.reporting import (
     DefaultStat,
 )
-from utils.shellart import (
+from _utils.shellart import (
     bold_yellow,
 )
-from utils.tx import (
+from _utils.tx import (
     new_transaction,
 )
 

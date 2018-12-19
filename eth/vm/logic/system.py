@@ -11,12 +11,12 @@ from eth.exceptions import (
     WriteProtection,
 )
 
-from eth.utils.address import (
+from eth._utils.address import (
     force_bytes_to_address,
     generate_contract_address,
     generate_safe_contract_address,
 )
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     ceil32,
 )
 from eth.vm import mnemonics

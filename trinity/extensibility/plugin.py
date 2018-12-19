@@ -44,10 +44,10 @@ from trinity.extensibility.exceptions import (
     EventBusNotReady,
     InvalidPluginStatus,
 )
-from trinity.utils.mp import (
+from trinity._utils.mp import (
     ctx,
 )
-from trinity.utils.logging import (
+from trinity._utils.logging import (
     setup_queue_logging,
 )
 

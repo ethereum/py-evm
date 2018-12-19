@@ -16,14 +16,14 @@ from eth_typing import (
     Hash32,
 )
 
-from eth.utils.bitfield import (
+from eth._utils.bitfield import (
     get_bitfield_length,
     has_voted,
 )
-from eth.beacon.utils.hash import (
+from eth.beacon._utils.hash import (
     hash_eth2,
 )
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     clamp,
 )
 
@@ -33,7 +33,7 @@ from eth.beacon.block_committees_info import (
 from eth.beacon.types.shard_committees import (
     ShardCommittee,
 )
-from eth.beacon.utils.random import (
+from eth.beacon._utils.random import (
     shuffle,
     split,
 )

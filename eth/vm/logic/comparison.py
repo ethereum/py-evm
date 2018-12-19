@@ -1,6 +1,6 @@
 from eth import constants
 
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     signed_to_unsigned,
     unsigned_to_signed,
 )

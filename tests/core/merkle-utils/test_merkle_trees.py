@@ -8,7 +8,7 @@ from eth_hash.auto import (
     keccak,
 )
 
-from eth.utils.merkle import (
+from eth._utils.merkle import (
     calc_merkle_root,
     calc_merkle_tree,
     get_root,

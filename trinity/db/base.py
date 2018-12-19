@@ -11,7 +11,7 @@ from multiprocessing.managers import (  # type: ignore
 from eth.db.backends.base import BaseDB
 from eth.db.atomic import AtomicDBWriteBatch
 
-from trinity.utils.mp import async_method
+from trinity._utils.mp import async_method
 
 
 class DBProxy(BaseProxy):

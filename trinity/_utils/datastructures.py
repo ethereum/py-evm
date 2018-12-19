@@ -48,7 +48,7 @@ from eth.typing import (
     StaticMethod,
 )
 
-from trinity.utils.queues import (
+from trinity._utils.queues import (
     queue_get_batch,
     queue_get_nowait,
 )

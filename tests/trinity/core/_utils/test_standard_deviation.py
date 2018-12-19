@@ -1,6 +1,6 @@
 import pytest
 
-from trinity.utils.stddev import StandardDeviation
+from trinity._utils.stddev import StandardDeviation
 
 
 @pytest.mark.parametrize(

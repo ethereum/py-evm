@@ -84,16 +84,16 @@ from eth.typing import (  # noqa: F401
     StaticMethod,
 )
 
-from eth.utils.db import (
+from eth._utils.db import (
     apply_state_dict,
 )
-from eth.utils.datatypes import (
+from eth._utils.datatypes import (
     Configurable,
 )
-from eth.utils.headers import (
+from eth._utils.headers import (
     compute_gas_limit_bounds,
 )
-from eth.utils.rlp import (
+from eth._utils.rlp import (
     validate_imported_block_unchanged,
 )
 

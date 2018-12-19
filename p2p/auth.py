@@ -27,7 +27,7 @@ from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
 )
-from p2p.utils import (
+from p2p._utils import (
     sxor,
 )
 

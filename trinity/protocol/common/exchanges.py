@@ -13,7 +13,7 @@ from p2p.protocol import (
     TRequestPayload,
 )
 
-from trinity.utils.decorators import classproperty
+from trinity._utils.decorators import classproperty
 from .trackers import (
     BasePerformanceTracker,
 )

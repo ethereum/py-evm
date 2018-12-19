@@ -11,10 +11,10 @@ from p2p.protocol import (
     BaseRequest,
 )
 
-from trinity.utils.ema import EMA
-from trinity.utils.logging import HasExtendedDebugLogger
-from trinity.utils.percentile import Percentile
-from trinity.utils.stddev import StandardDeviation
+from trinity._utils.ema import EMA
+from trinity._utils.logging import HasExtendedDebugLogger
+from trinity._utils.percentile import Percentile
+from trinity._utils.stddev import StandardDeviation
 from .constants import ROUND_TRIP_TIMEOUT
 from .types import (
     TResult,

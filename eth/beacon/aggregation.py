@@ -6,8 +6,8 @@ from cytoolz import (
     pipe
 )
 
-from eth.utils import bls
-from eth.utils.bitfield import (
+from eth._utils import bls
+from eth._utils.bitfield import (
     set_voted,
 )
 from eth.beacon.enums import SignatureDomain

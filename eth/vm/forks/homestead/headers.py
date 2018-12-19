@@ -14,7 +14,7 @@ from eth.constants import (
     BOMB_EXPONENTIAL_FREE_PERIODS,
 )
 from eth.rlp.headers import BlockHeader
-from eth.utils.db import (
+from eth._utils.db import (
     get_parent_header,
 )
 from eth.validation import (

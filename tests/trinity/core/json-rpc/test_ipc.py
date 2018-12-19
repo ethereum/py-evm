@@ -30,7 +30,7 @@ from trinity.sync.common.types import (
     SyncProgress
 )
 
-from trinity.utils.version import construct_trinity_client_identifier
+from trinity._utils.version import construct_trinity_client_identifier
 
 
 def wait_for(path):

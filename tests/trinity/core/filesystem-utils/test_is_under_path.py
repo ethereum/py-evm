@@ -1,6 +1,6 @@
 import pytest
 
-from trinity.utils.filesystem import (
+from trinity._utils.filesystem import (
     is_under_path,
 )
 

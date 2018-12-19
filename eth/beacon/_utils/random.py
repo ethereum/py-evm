@@ -14,7 +14,7 @@ from eth_utils import (
     to_tuple,
 )
 
-from eth.beacon.utils.hash import (
+from eth.beacon._utils.hash import (
     hash_eth2,
 )
 from eth.beacon.constants import (

@@ -19,7 +19,7 @@ from eth.rlp.sedes import (
     uint64,
     uint384,
 )
-from eth.beacon.utils.hash import hash_eth2
+from eth.beacon._utils.hash import hash_eth2
 
 from .attestations import Attestation
 from .proposer_slashings import ProposerSlashing

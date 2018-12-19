@@ -16,7 +16,7 @@ from eth.exceptions import (
     StackDepthLimit,
 )
 
-from eth.utils.address import (
+from eth._utils.address import (
     force_bytes_to_address,
 )
 

@@ -4,7 +4,7 @@ from eth_utils import to_set
 
 from eth import constants
 
-from eth.utils.address import (
+from eth._utils.address import (
     force_bytes_to_address,
 )
 

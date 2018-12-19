@@ -23,7 +23,7 @@ from eth.vm.opcode import (
 
 from eth.vm.computation import BaseComputation
 
-from eth.utils.address import (
+from eth._utils.address import (
     force_bytes_to_address,
 )
 

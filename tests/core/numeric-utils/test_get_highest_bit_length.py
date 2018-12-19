@@ -1,6 +1,6 @@
 import pytest
 
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     get_highest_bit_index,
 )
 

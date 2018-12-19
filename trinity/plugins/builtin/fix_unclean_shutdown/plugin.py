@@ -11,7 +11,7 @@ from trinity.config import (
 from trinity.extensibility import (
     BaseMainProcessPlugin,
 )
-from trinity.utils.ipc import (
+from trinity._utils.ipc import (
     kill_process_id_gracefully,
 )
 

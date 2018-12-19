@@ -6,7 +6,7 @@ from typing import (
 from eth.rlp.headers import BlockHeader
 
 from trinity.protocol.common.trackers import BasePerformanceTracker
-from trinity.utils.headers import sequence_builder
+from trinity._utils.headers import sequence_builder
 
 from .requests import (
     GetBlockHeadersRequest,

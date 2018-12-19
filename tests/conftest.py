@@ -1,4 +1,4 @@
-# from eth.utils.logging import DEBUG2_LEVEL_NUM
+# from eth._utils.logging import DEBUG2_LEVEL_NUM
 
 import pytest
 

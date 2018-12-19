@@ -355,7 +355,7 @@ def _test() -> None:
     from p2p.constants import ROPSTEN_BOOTNODES
 
     from trinity.constants import ROPSTEN_NETWORK_ID
-    from trinity.utils.chains import load_nodekey
+    from trinity._utils.chains import load_nodekey
 
     from tests.trinity.core.integration_test_helpers import (
         FakeAsyncLevelDB, FakeAsyncHeaderDB, FakeAsyncChainDB, FakeAsyncRopstenChain)

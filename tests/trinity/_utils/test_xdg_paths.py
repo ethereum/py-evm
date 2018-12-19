@@ -4,7 +4,7 @@ from trinity.exceptions import (
     AmbigiousFileSystem
 )
 
-from trinity.utils.xdg import (
+from trinity._utils.xdg import (
     get_xdg_trinity_root,
     get_xdg_cache_home,
     get_xdg_config_home,
