@@ -23,12 +23,12 @@ class SerenityStateTransition(BaseStateTransition):
         return state
 
     def per_slot_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
-        state = process_attestations(state, block, self.config)
         # TODO
         return state
 
     def per_block_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
         # TODO
+        state = process_attestations(state, block, self.config)
         return state
 
     def per_epoch_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:

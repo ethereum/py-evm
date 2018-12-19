@@ -1,5 +1,6 @@
 from abc import (
     ABC,
+    abstractmethod,
 )
 from typing import (
     Tuple,
@@ -35,6 +36,33 @@ class BaseBeaconStateMachine(Configurable, ABC):
     state_class = None  # type: Type[BeaconState]
     state_transition_class = None  # type: Type[BaseStateTransition]
 
+    @classmethod
+    @abstractmethod
+    def get_block_class(cls) -> Type[BaseBeaconBlock]:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_state_class(cls) -> Type[BeaconState]:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_state_transiton_class(cls) -> Type[BaseStateTransition]:
+        pass
+
+    @property
+    @abstractmethod
+    def state_transition(self) -> BaseStateTransition:
+        pass
+
+    #
+    # Import block API
+    #
+    @abstractmethod
+    def import_block(self, block: BaseBeaconBlock) -> Tuple[BeaconState, BaseBeaconBlock]:
+        pass
+
 
 class BeaconStateMachine(BaseBeaconStateMachine):
     def __init__(self,
@@ -69,8 +97,8 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     @classmethod
     def get_state_transiton_class(cls) -> Type[BaseStateTransition]:
         """
-        Return the :class:`~eth.beacon.state_machines.state_transition.state_transition_class`
-        class that this StateTransition uses for BeaconState.
+        Return the :class:`~eth.beacon.state_machines.state_transitions.BaseStateTransition`
+        class that this StateTransition uses for StateTransition.
         """
         if cls.state_transition_class is None:
             raise AttributeError("No `state_transition_class` has been set for this StateMachine")
