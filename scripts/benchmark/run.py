@@ -50,22 +50,22 @@ from utils.shellart import (
     bold_red,
 )
 
-DEFAULT_NUM_BLOCKS = 2
-DEFAULT_NUM_TX = 1
+NUM_BLOCKS_TO_BENCHMARK = 2
+NUM_TX_TO_BENCHMARK = 1
 
 TO_EXISTING_ADDRESS_CONFIG = SimpleValueTransferBenchmarkConfig(
     to_address=SECOND_ADDRESS,
     greeter_info='Sending to existing address\n',
-    num_blocks=DEFAULT_NUM_BLOCKS,
-    num_tx=DEFAULT_NUM_TX
+    num_blocks=NUM_BLOCKS_TO_BENCHMARK,
+    num_tx=NUM_TX_TO_BENCHMARK
 )
 
 
 TO_NON_EXISTING_ADDRESS_CONFIG = SimpleValueTransferBenchmarkConfig(
     to_address=None,
     greeter_info='Sending to non-existing address\n',
-    num_blocks=DEFAULT_NUM_BLOCKS,
-    num_tx=DEFAULT_NUM_TX
+    num_blocks=NUM_BLOCKS_TO_BENCHMARK,
+    num_tx=NUM_TX_TO_BENCHMARK
 )
 
 HEADER = (
@@ -96,19 +96,19 @@ def run() -> None:
     total_stat = DefaultStat()
 
     benchmarks = [
-        MineEmptyBlocksBenchmark(DEFAULT_NUM_BLOCKS),
-        ImportEmptyBlocksBenchmark(DEFAULT_NUM_BLOCKS),
+        MineEmptyBlocksBenchmark(NUM_BLOCKS_TO_BENCHMARK),
+        ImportEmptyBlocksBenchmark(NUM_BLOCKS_TO_BENCHMARK),
         SimpleValueTransferBenchmark(TO_EXISTING_ADDRESS_CONFIG),
         SimpleValueTransferBenchmark(TO_NON_EXISTING_ADDRESS_CONFIG),
-        ERC20DeployBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
-        ERC20TransferBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
-        ERC20ApproveBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
-        ERC20TransferFromBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
-        DOSContractDeployBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
-        DOSContractSstoreUint64Benchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
-        DOSContractCreateEmptyContractBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
-        DOSContractRevertSstoreUint64Benchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
-        DOSContractRevertCreateEmptyContractBenchmark(DEFAULT_NUM_BLOCKS, DEFAULT_NUM_TX),
+        ERC20DeployBenchmark(NUM_BLOCKS_TO_BENCHMARK, NUM_TX_TO_BENCHMARK),
+        ERC20TransferBenchmark(NUM_BLOCKS_TO_BENCHMARK, NUM_TX_TO_BENCHMARK),
+        ERC20ApproveBenchmark(NUM_BLOCKS_TO_BENCHMARK, NUM_TX_TO_BENCHMARK),
+        ERC20TransferFromBenchmark(NUM_BLOCKS_TO_BENCHMARK, NUM_TX_TO_BENCHMARK),
+        DOSContractDeployBenchmark(NUM_BLOCKS_TO_BENCHMARK, NUM_TX_TO_BENCHMARK),
+        DOSContractSstoreUint64Benchmark(NUM_BLOCKS_TO_BENCHMARK, NUM_TX_TO_BENCHMARK),
+        DOSContractCreateEmptyContractBenchmark(NUM_BLOCKS_TO_BENCHMARK, NUM_TX_TO_BENCHMARK),
+        DOSContractRevertSstoreUint64Benchmark(NUM_BLOCKS_TO_BENCHMARK, NUM_TX_TO_BENCHMARK),
+        DOSContractRevertCreateEmptyContractBenchmark(NUM_BLOCKS_TO_BENCHMARK, NUM_TX_TO_BENCHMARK),
     ]
 
     for benchmark in benchmarks:

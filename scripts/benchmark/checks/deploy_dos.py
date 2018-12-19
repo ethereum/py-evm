@@ -53,13 +53,13 @@ CONTRACT_NAME = 'DOSContract'
 
 W3_TX_DEFAULTS = {'gas': 0, 'gasPrice': 0}
 
-DEFAULT_NUM_BLOCKS = 20
-DEFAULT_NUM_TX = 10
+NUM_BLOCKS = 20
+NUM_TX = 10
 
 
 class BaseDOSContractBenchmark(BaseBenchmark):
 
-    def __init__(self, num_blocks: int = DEFAULT_NUM_BLOCKS, num_tx: int = DEFAULT_NUM_TX) -> None:
+    def __init__(self, num_blocks: int = NUM_BLOCKS, num_tx: int = NUM_TX) -> None:
         super().__init__()
 
         self.num_blocks = num_blocks
@@ -230,9 +230,6 @@ class BaseDOSContractBenchmark(BaseBenchmark):
 
 
 class DOSContractDeployBenchmark(BaseDOSContractBenchmark):
-    def __init__(self, num_blocks: int = DEFAULT_NUM_BLOCKS, num_tx: int = DEFAULT_NUM_TX) -> None:
-        super().__init__(num_blocks, num_tx)
-
     @property
     def name(self) -> str:
         return 'DOSContract deployment'
@@ -242,9 +239,6 @@ class DOSContractDeployBenchmark(BaseDOSContractBenchmark):
 
 
 class DOSContractSstoreUint64Benchmark(BaseDOSContractBenchmark):
-    def __init__(self, num_blocks: int = DEFAULT_NUM_BLOCKS, num_tx: int = DEFAULT_NUM_TX) -> None:
-        super().__init__(num_blocks, num_tx)
-
     @property
     def name(self) -> str:
         return 'DOSContract sstore uint64'
@@ -258,9 +252,6 @@ class DOSContractSstoreUint64Benchmark(BaseDOSContractBenchmark):
 
 
 class DOSContractCreateEmptyContractBenchmark(BaseDOSContractBenchmark):
-    def __init__(self, num_blocks: int = DEFAULT_NUM_BLOCKS, num_tx: int = DEFAULT_NUM_TX) -> None:
-        super().__init__(num_blocks, num_tx)
-
     @property
     def name(self) -> str:
         return 'DOSContract empty contract deployment'
@@ -274,9 +265,6 @@ class DOSContractCreateEmptyContractBenchmark(BaseDOSContractBenchmark):
 
 
 class DOSContractRevertSstoreUint64Benchmark(BaseDOSContractBenchmark):
-    def __init__(self, num_blocks: int = DEFAULT_NUM_BLOCKS, num_tx: int = DEFAULT_NUM_TX) -> None:
-        super().__init__(num_blocks, num_tx)
-
     @property
     def name(self) -> str:
         return 'DOSContract revert empty sstore uint64'
@@ -290,9 +278,6 @@ class DOSContractRevertSstoreUint64Benchmark(BaseDOSContractBenchmark):
 
 
 class DOSContractRevertCreateEmptyContractBenchmark(BaseDOSContractBenchmark):
-    def __init__(self, num_blocks: int = DEFAULT_NUM_BLOCKS, num_tx: int = DEFAULT_NUM_TX) -> None:
-        super().__init__(num_blocks, num_tx)
-
     @property
     def name(self) -> str:
         return 'DOScontract revert contract deployment'
