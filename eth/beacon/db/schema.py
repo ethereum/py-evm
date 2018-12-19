@@ -24,6 +24,11 @@ class BaseSchema(ABC):
     def make_block_root_to_score_lookup_key(block_root: Hash32) -> bytes:
         pass
 
+    @staticmethod
+    @abstractmethod
+    def make_finalized_head_root_lookup_key() -> bytes:
+        pass
+
 
 class SchemaV1(BaseSchema):
     #
@@ -41,3 +46,7 @@ class SchemaV1(BaseSchema):
     @staticmethod
     def make_block_root_to_score_lookup_key(block_root: Hash32) -> bytes:
         return b'v1:beacon:block-root-to-score:%s' % block_root
+
+    @staticmethod
+    def make_finalized_head_root_lookup_key() -> bytes:
+        return b'v1:beacon:finalized-head-root'
