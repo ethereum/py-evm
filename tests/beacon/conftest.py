@@ -8,8 +8,12 @@ from eth.constants import (
 import eth._utils.bls as bls
 from eth.beacon._utils.hash import hash_eth2
 
+from eth.beacon.helpers import (
+    get_new_shuffling,
+)
+
 from eth.beacon.types.proposal_signed_data import (
-    ProposalSignedData
+    ProposalSignedData,
 )
 
 from eth.beacon.types.slashable_vote_data import (
@@ -20,6 +24,7 @@ from eth.beacon.types.attestation_data import (
     AttestationData,
 )
 
+from eth.beacon.types.states import BeaconState
 from eth.beacon.types.deposits import DepositData
 from eth.beacon.types.deposit_input import DepositInput
 
@@ -46,7 +51,7 @@ DEFAULT_NUM_VALIDATORS = 40
 
 @pytest.fixture(scope="session")
 def privkeys():
-    return [int.from_bytes(hash_eth2(str(i).encode('utf-8'))[:4], 'big') for i in range(1000)]
+    return [int.from_bytes(hash_eth2(str(i).encode('utf-8'))[:4], 'big') for i in range(50)]
 
 
 @pytest.fixture(scope="session")
@@ -134,8 +139,8 @@ def sample_beacon_state_params(sample_fork_data_params):
         'validator_registry_latest_change_slot': 10,
         'validator_registry_exit_count': 10,
         'validator_registry_delta_chain_tip': b'\x55' * 32,
-        'randao_mix': b'\x55' * 32,
-        'next_seed': b'\x55' * 32,
+        'randao_mix': ZERO_HASH32,
+        'next_seed': ZERO_HASH32,
         'shard_committees_at_slots': (),
         'persistent_committees': (),
         'persistent_committee_reassignments': (),
@@ -488,6 +493,27 @@ def max_exits():
 #
 # genesis
 #
+@pytest.fixture
+def genesis_state(sample_beacon_state_params,
+                  genesis_validators,
+                  epoch_length,
+                  target_committee_size,
+                  shard_count):
+    initial_shuffling = get_new_shuffling(
+        seed=ZERO_HASH32,
+        validators=genesis_validators,
+        crosslinking_start_shard=0,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count
+    )
+
+    return BeaconState(**sample_beacon_state_params).copy(
+        validator_registry=genesis_validators,
+        shard_committees_at_slots=initial_shuffling + initial_shuffling,
+    )
+
+
 @pytest.fixture
 def genesis_validators(init_validator_keys,
                        init_randao,

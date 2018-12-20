@@ -68,9 +68,7 @@ def validate_serenity_attestation(state: BeaconState,
 
     validate_serenity_attestation_latest_crosslink_root(
         attestation.data,
-        latest_crosslink_shard_block_root=(
-            state.latest_crosslinks[attestation.data.shard].shard_block_root
-        ),
+        latest_crosslink_root=state.latest_crosslinks[attestation.data.shard].shard_block_root,
     )
 
     validate_serenity_attestation_shard_block_root(attestation.data)
@@ -161,25 +159,25 @@ def validate_serenity_attestation_justified_block_root(attestation_data: Attesta
 
 
 def validate_serenity_attestation_latest_crosslink_root(attestation_data: AttestationData,
-                                                        latest_crosslink_shard_block_root: Hash32) -> None:
+                                                        latest_crosslink_root: Hash32) -> None:
     """
-    Validate that either the ``latest_crosslink_root`` or ``shard_block_root``
-    field of ``attestation_data`` is the provided ``latest_crosslink_shard_block_root``.
+    Validate that either the attestation ``latest_crosslink_root`` or ``shard_block_root``
+    field of ``attestation_data`` is the provided ``latest_crosslink_root``.
     Raise ``ValidationError`` if it's invalid.
     """
     acceptable_shard_block_roots = [
         attestation_data.latest_crosslink_root,
         attestation_data.shard_block_root,
     ]
-    if latest_crosslink_shard_block_root not in acceptable_shard_block_roots:
+    if latest_crosslink_root not in acceptable_shard_block_roots:
         raise ValidationError(
             "Neither the attestation ``latest_crosslink_root`` nor the attestation "
-            "``shard_block_root`` are equal to the ``latest_crosslink_shard_block_root``.\n"
+            "``shard_block_root`` are equal to the ``latest_crosslink_root``.\n"
             "\tFound: %s and %s, Expected %s" %
             (
                 attestation_data.latest_crosslink_root,
                 attestation_data.shard_block_root,
-                latest_crosslink_shard_block_root,
+                latest_crosslink_root,
             )
         )
 
@@ -216,16 +214,16 @@ def validate_serenity_attestation_aggregate_signature(state: BeaconState,
     """
     participant_indices = get_attestation_participants(
         state=state,
-        slot=attestation.slot,
-        shard=attestation.shard,
+        slot=attestation.data.slot,
+        shard=attestation.data.shard,
         participation_bitfield=attestation.participation_bitfield,
         epoch_length=epoch_length,
     )
 
-    pubkeys = [
+    pubkeys = (
         state.validator_registry[validator_index].pubkey
         for validator_index in participant_indices
-    ]
+    )
     group_public_key = bls.aggregate_pubkeys(pubkeys)
 
     message = hash_eth2(
