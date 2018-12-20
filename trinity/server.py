@@ -193,14 +193,22 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             HandshakeFailure,
             asyncio.IncompleteReadError,
         )
+
+        def cleanup_reader_and_writer() -> None:
+            if not reader.at_eof():
+                reader.feed_eof()
+            writer.close()
+
         try:
             await self._receive_handshake(reader, writer)
         except expected_exceptions as e:
             self.logger.debug("Could not complete handshake: %s", e)
+            cleanup_reader_and_writer()
         except OperationCancelled:
             pass
         except Exception as e:
             self.logger.exception("Unexpected error handling handshake")
+            cleanup_reader_and_writer()
 
     async def _receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -208,10 +216,19 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             reader.read(ENCRYPTED_AUTH_MSG_LEN),
             timeout=REPLY_TIMEOUT)
 
-        ip, socket, *_ = writer.get_extra_info("peername")
+        peername = writer.get_extra_info("peername")
+        if peername is None:
+            socket = writer.get_extra_info("socket")
+            sockname = writer.get_extra_info("sockname")
+            raise HandshakeFailure(
+                "Received incoming connection with no remote information:"
+                f"socket={repr(socket)}  sockname={sockname}"
+            )
+
+        ip, socket, *_ = peername
         remote_address = Address(ip, socket)
         self.logger.debug("Receiving handshake from %s", remote_address)
-        got_eip8 = False
+
         try:
             ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
                 msg, self.privkey)
@@ -226,9 +243,10 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             try:
                 ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
                     msg, self.privkey)
-            except DecryptionError as e:
-                self.logger.debug("Failed to decrypt handshake: %s", e)
-                return
+            except DecryptionError as err:
+                raise HandshakeFailure(f"Failed to decrypt handshake: {err}")
+        else:
+            got_eip8 = False
 
         initiator_remote = Node(initiator_pubkey, remote_address)
         responder = HandshakeResponder(initiator_remote, self.privkey, got_eip8, self.cancel_token)
