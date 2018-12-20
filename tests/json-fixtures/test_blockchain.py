@@ -274,7 +274,6 @@ def test_blockchain_fixtures(fixture_data, fixture):
     latest_block_hash = chain.get_canonical_block_by_number(chain.get_block().number - 1).hash
     if latest_block_hash != fixture['lastblockhash']:
         verify_account_db(fixture['postState'], chain.get_vm().state.account_db)
-        assert False, 'the state must be different if the hashes are'
 
     for block, mined_block in mined_blocks:
         assert_mined_block_unchanged(block, mined_block)
