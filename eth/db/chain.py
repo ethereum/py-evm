@@ -284,7 +284,7 @@ class ChainDB(HeaderDB, BaseChainDB):
     #
     def add_receipt(self, block_header: BlockHeader, index_key: int, receipt: Receipt) -> Hash32:
         """
-        Adds the given receipt to the provide block header.
+        Adds the given receipt to the provided block header.
 
         Returns the updated `receipts_root` for updated block header.
         """
@@ -297,7 +297,7 @@ class ChainDB(HeaderDB, BaseChainDB):
                         index_key: int,
                         transaction: 'BaseTransaction') -> Hash32:
         """
-        Adds the given transaction to the provide block header.
+        Adds the given transaction to the provided block header.
 
         Returns the updated `transactions_root` for updated block header.
         """
@@ -317,7 +317,7 @@ class ChainDB(HeaderDB, BaseChainDB):
 
     def get_block_transaction_hashes(self, block_header: BlockHeader) -> Iterable[Hash32]:
         """
-        Returns an iterable of the transaction hashes from th block specified
+        Returns an iterable of the transaction hashes from the block specified
         by the given block header.
         """
         return self._get_block_transaction_hashes(self.db, block_header)

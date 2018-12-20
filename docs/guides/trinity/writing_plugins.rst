@@ -129,7 +129,7 @@ Plugin state: ``NOT_READY``
 
 Every plugin starts out being in the ``NOT_READY`` state. This state begins with the instantiation
 of the plugin and lasts until the :meth:`~trinity.extensibility.plugin.BasePlugin.on_ready` hook
-was called which happens as soon the core infrastructure of Trinity is ready.
+was called which happens as soon as the core infrastructure of Trinity is ready.
 
 Plugin state: ``READY``
 -----------------------
@@ -190,7 +190,7 @@ on, is a good way to deal with that. Implementing
 :meth:`~trinity.extensibility.plugin.BasePlugin.configure_parser` enables us to do exactly that.
 
 This method is called when Trinity starts and bootstraps the plugin system, in other words,
-**before** the start of any plugin. It is passed a :class:`~argparse.ArgumentParser` as well as a
+**before** the start of any plugin. It is passed an :class:`~argparse.ArgumentParser` as well as a
 :class:`~argparse._SubParsersAction` which allows it to amend the configuration of Trinity's
 command line arguments in many different ways.
 
@@ -332,7 +332,7 @@ Check out the `official documentation on entry points <https://packaging.python.
 for a deeper explanation.
 
 A plugin where the ``setup.py`` file is configured as described can be installed by
-``pip install <package-name>``` and immediately becomes available as a plugin in Trinity.
+``pip install <package-name>`` and immediately becomes available as a plugin in Trinity.
 
 .. note::
 
