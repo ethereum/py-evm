@@ -1,3 +1,5 @@
+import os
+
 from cytoolz import (
     identity,
 )
@@ -22,6 +24,7 @@ from eth_utils import (
     encode_hex,
     int_to_big_endian,
     is_integer,
+    to_wei,
 )
 
 from eth.constants import (
@@ -169,8 +172,8 @@ class Eth(RPCModule):
         gas = self._chain.estimate_gas(transaction, header)
         return hex(gas)
 
-    async def gasPrice(self) -> int:
-        raise NotImplementedError()
+    async def gasPrice(self) -> str:
+        return hex(int(os.environ.get('TRINITY_GAS_PRICE', to_wei(1, 'gwei'))))
 
     @format_params(decode_hex, to_int_if_hex)
     async def getBalance(self, address: Address, at_block: Union[str, int]) -> str:
