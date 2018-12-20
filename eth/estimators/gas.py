@@ -5,7 +5,7 @@ from eth_utils.toolz import curry
 from eth.exceptions import VMError
 
 from eth.rlp.transactions import BaseTransaction
-from eth.spoof import SpoofTransaction
+from eth.vm.spoof import SpoofTransaction
 from eth.vm.state import BaseState
 
 
