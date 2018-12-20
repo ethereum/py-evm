@@ -4,11 +4,13 @@ from eth_typing import (
 from eth_utils import (
     ValidationError,
 )
+import rlp
+from typing import Type
+
 from eth.constants import (
     ZERO_HASH32,
 )
 
-import rlp
 
 from eth.beacon.enums import (
     SignatureDomain,
@@ -32,7 +34,7 @@ from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
 #
 # Attestation validation
 #
-def validate_serenity_attestation(state: BeaconState,
+def validate_serenity_attestation(state: Type[BeaconState],
                                   attestation: Attestation,
                                   epoch_length: int,
                                   min_attestation_inclusion_delay: int,
@@ -77,6 +79,7 @@ def validate_serenity_attestation(state: BeaconState,
         validate_serenity_attestation_aggregate_signature(
             state,
             attestation,
+            epoch_length,
         )
 
 
@@ -201,7 +204,7 @@ def validate_serenity_attestation_shard_block_root(attestation_data: Attestation
         )
 
 
-def validate_serenity_attestation_aggregate_signature(state: BeaconState,
+def validate_serenity_attestation_aggregate_signature(state: Type[BeaconState],
                                                       attestation: Attestation,
                                                       epoch_length: int) -> None:
     """
@@ -220,7 +223,7 @@ def validate_serenity_attestation_aggregate_signature(state: BeaconState,
         epoch_length=epoch_length,
     )
 
-    pubkeys = (
+    pubkeys = tuple(
         state.validator_registry[validator_index].pubkey
         for validator_index in participant_indices
     )

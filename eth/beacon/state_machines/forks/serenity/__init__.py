@@ -28,7 +28,7 @@ class SerenityStateMachine(BeaconStateMachine):
                              attestation: Attestation,
                              is_validating_signatures: bool=True) -> None:
         validate_serenity_attestation(
-            self,
+            self.state,
             attestation,
             self.config.EPOCH_LENGTH,
             self.config.MIN_ATTESTATION_INCLUSION_DELAY,
