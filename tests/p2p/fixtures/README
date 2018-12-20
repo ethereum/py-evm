@@ -1,1 +1,0 @@
-sample_1000_headers_rlp: First 1000 headers from mainnet, stored as CountableList(BlockHeader)
