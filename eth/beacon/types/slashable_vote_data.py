@@ -5,6 +5,10 @@ from rlp.sedes import (
 from typing import (
     Sequence,
 )
+from eth_typing import (
+    Hash32,
+)
+from eth.beacon._utils.hash import hash_eth2
 from eth.rlp.sedes import (
     uint24,
     uint384,
@@ -38,3 +42,17 @@ class SlashableVoteData(rlp.Serializable):
             data,
             aggregate_signature,
         )
+
+    _hash = None
+
+    @property
+    def hash(self) -> Hash32:
+        if self._hash is None:
+            self._hash = hash_eth2(rlp.encode(self))
+        return self._hash
+
+    @property
+    def root(self) -> Hash32:
+        # Alias of `hash`.
+        # Using flat hash, will likely use SSZ tree hash.
+        return self.hash
