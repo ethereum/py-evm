@@ -3,7 +3,7 @@ from abc import (
     abstractmethod,
 )
 
-from eth.utils.datatypes import (
+from eth._utils.datatypes import (
     Configurable,
 )
 
