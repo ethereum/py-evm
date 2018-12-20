@@ -420,9 +420,9 @@ def verify_slashable_vote_data(state: BeaconState,
     # TODO: change to hash_tree_root(vote_data) when we have SSZ tree hashing
     vote_data_root = vote_data.root
     messages = [
-        vote_data_root + bytes1(0),
-        vote_data_root + bytes1(1)
     ]
+        vote_data_root + (0).to_bytes(1, 'big'),
+        vote_data_root + (1).to_bytes(1, 'big'),
     return bls.verify_multiple(
         pubkeys=pubkeys,
         messages=messages,
