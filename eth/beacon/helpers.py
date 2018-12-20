@@ -20,7 +20,7 @@ from eth._utils.bitfield import (
     get_bitfield_length,
     has_voted,
 )
-import eth._utils.bls
+import eth._utils.bls as bls
 from eth.beacon._utils.hash import (
     hash_eth2,
 )
