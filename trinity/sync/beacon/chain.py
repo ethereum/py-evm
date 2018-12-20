@@ -1,6 +1,8 @@
+import operator
 from typing import (
     cast,
     Tuple,
+    Iterable,
     AsyncGenerator,
 )
 
@@ -48,12 +50,7 @@ class BeaconChainSyncer(BaseService):
     async def _run(self) -> None:
         self.sync_peer = self.select_sync_peer()
         if not self.sync_peer:
-            self.logger.info("No peers to sync with")
-            return
-
-        if not self.sync_peer_useful():
-            self.logger.info("Not starting sync as no peer is useful")
-            return
+            self.logger.info("No suitable peers to sync with")
 
         await self.sync()
 
@@ -62,19 +59,18 @@ class BeaconChainSyncer(BaseService):
 
     def select_sync_peer(self) -> BCCPeer:
         if len(self.peer_pool) == 0:
-            raise ValueError("No peers to sync with")
-        peers = [
-            cast(BCCPeer, peer)
-            for peer in self.peer_pool.connected_nodes.values()
-        ]
+            return None
 
-        # chooses the peer with the highest head slot
-        sorted_peers = sorted(peers, key=lambda peer: peer.head_slot, reverse=True)
+        # choose the peer with the highest head slot
+        peers = cast(Iterable[BCCPeer], self.peer_pool.connected_nodes.values())
+        sorted_peers = sorted(peers, key=operator.attrgetter("head_slot"), reverse=True)
         best_peer = first(sorted_peers)
-        return best_peer
 
-    def sync_peer_useful(self) -> bool:
-        return self.chain_db.get_finalized_head().slot < self.sync_peer.head_slot
+        finalized_head_slot = self.chain_db.get_finalized_head().slot
+        if best_peer.head_slot <= finalized_head_slot:
+            return None
+
+        return best_peer
 
     async def sync(self) -> None:
         self.logger.info(

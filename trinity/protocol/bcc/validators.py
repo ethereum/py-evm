@@ -41,6 +41,7 @@ class BeaconBlocksValidator(BaseValidator[Tuple[BaseBeaconBlock, ...]]):
         return isinstance(self.block_slot_or_hash, int)
 
     def _validate_first_block(self, blocks: Tuple[BaseBeaconBlock, ...]) -> None:
+        """Validate that the first returned block (if any) is the one that we requested."""
         try:
             first_block = blocks[0]
         except IndexError:
@@ -60,6 +61,7 @@ class BeaconBlocksValidator(BaseValidator[Tuple[BaseBeaconBlock, ...]]):
                 )
 
     def _validate_number(self, blocks: Tuple[BaseBeaconBlock, ...]) -> None:
+        """Validate that no more than the maximum requested number of blocks is returned."""
         if len(blocks) > self.max_blocks:
             raise ValidationError(
                 f"Requested up to {self.max_blocks} blocks but received {len(blocks)}"
@@ -71,10 +73,13 @@ class BeaconBlocksValidator(BaseValidator[Tuple[BaseBeaconBlock, ...]]):
             return
 
         for parent, child in sliding_window(2, blocks):
+            # check that the received blocks form a sequence of descendents connected by parent
+            # hashes, starting with the oldest ancestor
             if child.parent_root != parent.hash:
                 raise ValidationError(
                     "Returned blocks are not a connected branch"
                 )
+            # check that the blocks are ordered by slot and no slot is missing
             if child.slot != parent.slot + 1:
                 raise ValidationError(
                     f"Slot of returned block {child} is not the successor of its parent"

@@ -56,7 +56,7 @@ async def test_sync_from_genesis(request, event_loop):
 
 
 @pytest.mark.asyncio
-async def test_refresh_sync(request, event_loop):
+async def test_sync_from_old_head(request, event_loop):
     genesis = create_test_block(slot=0)
     alice_blocks = (genesis,) + create_branch(length=49, root=genesis)
     bob_blocks = alice_blocks + create_branch(length=50, root=alice_blocks[-1])
@@ -96,7 +96,7 @@ async def test_reorg_sync(request, event_loop):
 
 
 @pytest.mark.asyncio
-async def test_useless_sync(request, event_loop):
+async def test_sync_when_already_at_best_head(request, event_loop):
     genesis = create_test_block(slot=0)
     alice_blocks = (genesis,) + create_branch(length=99, root=genesis, state_root=b"\x11" * 32)
     bob_blocks = (genesis,) + create_branch(length=50, root=genesis, state_root=b"\x22" * 32)
