@@ -544,14 +544,14 @@ class BaseComputation(Configurable, ABC):
     @abstractmethod
     def apply_message(self) -> 'BaseComputation':
         """
-        Execution of an VM message.
+        Execution of a VM message.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
     def apply_create_message(self) -> 'BaseComputation':
         """
-        Execution of an VM message to create a new contract.
+        Execution of a VM message to create a new contract.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 

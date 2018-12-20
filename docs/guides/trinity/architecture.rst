@@ -99,7 +99,7 @@ The database process exposes several chain-related operations, all of which are 
 single process. These aren't necessarily low-level get/set operations, but also include
 higher-level APIs, such as the :func:`~eth.chains.base.Chain.import_block` API.
 
-The way this works is by facilitazing Pythons :class:`~multiprocessing.managers.BaseManager` API
+The way this works is by utilizing Python's :class:`~multiprocessing.managers.BaseManager` API
 and exposing several :class:`~multiprocessing.managers.BaseProxy` proxies to coordinate
 inter-process access to these APIs.
 
@@ -109,17 +109,17 @@ that all database reads and writes are done by a single process.
 Networking Process
 ------------------
 
-The networking process is what kicks of the peer to peer communication and starts the syncing
+The networking process is what kicks off the peer to peer communication and starts the syncing
 process. It does so by running an instance of
 :func:`~trinity.nodes.base.Node` in an event loop.
 
 Notice that the instance of :func:`~trinity.nodes.base.Node` has access to the APIs that the
-database processes exposes. In pracice that means, that the network process controls the
-connections to other peers, starts of the syncing process but will call APIs that run inside
+database processes exposes. In practice that means that the network process controls the
+connections to other peers and starts the syncing process but will call APIs that run inside
 the database processes when it comes to actual importing of blocks or reading and writing of other
 things from the database.
 
-The networking process also host an instance of the
+The networking process also hosts an instance of the
 :class:`~trinity.extensibility.plugin_manager.PluginManager` to run plugins that need to deeply
 integrate with the networking process (Further reading:
 :doc:`Writing Plugins</guides/trinity/writing_plugins>`).
