@@ -191,6 +191,12 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-integration
+  py37-p2p:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-p2p
 
 workflows:
   version: 2

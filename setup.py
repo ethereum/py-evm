@@ -12,7 +12,7 @@ deps = {
         "pysha3>=1.0.0,<2.0.0",
         "upnpclient>=0.0.8,<1",
     ],
-    'trinity-core': [
+    'trinity': [
         "async-generator==1.10",
         "bloom-filter==1.3",
         "cachetools>=2.1.0,<3.0.0",
