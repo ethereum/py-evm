@@ -37,7 +37,11 @@ from p2p.constants import (
 from trinity.constants import (
     ASSETS_DIR,
     DEFAULT_PREFERRED_NODES,
+    IPC_DIR,
+    LOG_DIR,
+    LOG_FILE,
     MAINNET_NETWORK_ID,
+    PID_DIR,
     ROPSTEN_NETWORK_ID,
     SYNC_FULL,
     SYNC_LIGHT,
@@ -47,7 +51,6 @@ from trinity._utils.chains import (
     get_data_dir_for_network_id,
     get_database_socket_path,
     get_jsonrpc_socket_path,
-    get_logfile_path,
     get_nodekey_path,
     load_nodekey,
 )
@@ -72,7 +75,6 @@ if TYPE_CHECKING:
     from trinity.chains.light import LightDispatchChain  # noqa: F401
 
 DATABASE_DIR_NAME = 'chain'
-
 
 MAINNET_EIP1085_PATH = ASSETS_DIR / 'eip1085' / 'mainnet.json'
 ROPSTEN_EIP1085_PATH = ASSETS_DIR / 'eip1085' / 'ropsten.json'
@@ -216,18 +218,19 @@ class TrinityConfig:
 
     def __init__(self,
                  network_id: int,
+                 app_identifier: str="",
                  genesis_config: Dict[str, Any]=None,
                  max_peers: int=25,
                  trinity_root_dir: str=None,
                  data_dir: str=None,
                  nodekey_path: str=None,
-                 logfile_path: str=None,
                  nodekey: PrivateKey=None,
                  sync_mode: str=SYNC_FULL,
                  port: int=30303,
                  use_discv5: bool = False,
                  preferred_nodes: Tuple[KademliaNode, ...]=None,
                  bootstrap_nodes: Tuple[KademliaNode, ...]=None) -> None:
+        self.app_identifier = app_identifier
         self.network_id = network_id
         self.max_peers = max_peers
         self.sync_mode = sync_mode
@@ -276,9 +279,6 @@ class TrinityConfig:
         elif nodekey is not None:
             self.nodekey = nodekey
 
-        if logfile_path is not None:
-            self.logfile_path = logfile_path
-
     def get_chain_config(self) -> ChainConfig:
         # the `ChainConfig` object cannot be pickled so we can't cache this
         # value since the TrinityConfig is sent across process boundaries.
@@ -286,6 +286,10 @@ class TrinityConfig:
             return ChainConfig.from_preconfigured_network(self.network_id)
         else:
             return ChainConfig.from_eip1085_genesis_config(self.genesis_config)
+
+    @property
+    def app_suffix(self) -> str:
+        return "" if len(self.app_identifier) == 0 else f"-{self.app_identifier}"
 
     @property
     def sync_mode(self) -> str:
@@ -302,21 +306,14 @@ class TrinityConfig:
         """
         Return the path to the log file.
         """
-        if self._logfile_path is not None:
-            return self._logfile_path
-        else:
-            return get_logfile_path(self.data_dir)
-
-    @logfile_path.setter
-    def logfile_path(self, value: Path) -> None:
-        self._logfile_path = value
+        return self.logdir_path / LOG_FILE
 
     @property
     def logdir_path(self) -> Path:
         """
         Return the path of the directory where all log files are stored.
         """
-        return self.logfile_path.parent
+        return self.with_app_suffix(self.data_dir / LOG_DIR)
 
     @property
     def trinity_root_dir(self) -> Path:
@@ -380,9 +377,9 @@ class TrinityConfig:
         This is resolved relative to the ``data_dir``
         """
         if self.sync_mode == SYNC_FULL:
-            return self.data_dir / DATABASE_DIR_NAME / "full"
+            return self.with_app_suffix(self.data_dir / DATABASE_DIR_NAME) / "full"
         elif self.sync_mode == SYNC_LIGHT:
-            return self.data_dir / DATABASE_DIR_NAME / "light"
+            return self.with_app_suffix(self.data_dir / DATABASE_DIR_NAME) / "light"
         else:
             raise ValueError(f"Unknown sync mode: {self.sync_mode}")
 
@@ -391,14 +388,28 @@ class TrinityConfig:
         """
         Path for the database IPC socket connection.
         """
-        return get_database_socket_path(self.data_dir)
+        return get_database_socket_path(self.ipc_dir)
+
+    @property
+    def ipc_dir(self) -> Path:
+        """
+        The base directory for all open IPC files.
+        """
+        return self.with_app_suffix(self.data_dir / IPC_DIR)
+
+    @property
+    def pid_dir(self) -> Path:
+        """
+        The base directory for all PID files.
+        """
+        return self.with_app_suffix(self.data_dir / PID_DIR)
 
     @property
     def jsonrpc_ipc_path(self) -> Path:
         """
         Path for the JSON-RPC server IPC socket.
         """
-        return get_jsonrpc_socket_path(self.data_dir)
+        return get_jsonrpc_socket_path(self.ipc_dir)
 
     @property
     def nodekey_path(self) -> Path:
@@ -446,19 +457,20 @@ class TrinityConfig:
 
     @contextmanager
     def process_id_file(self, process_name: str):  # type: ignore
-        with PidFile(process_name, self.data_dir):
+        with PidFile(process_name, self.pid_dir):
             yield
 
     @classmethod
     def from_parser_args(cls,
                          parser_args: argparse.Namespace,
+                         app_identifier: str,
                          app_config_types: Iterable[Type['BaseAppConfig']]) -> 'TrinityConfig':
         """
         Helper function for initializing from the namespace object produced by
         an ``argparse.ArgumentParser``
         """
         constructor_kwargs = construct_trinity_config_params(parser_args)
-        trinity_config = cls(**constructor_kwargs)
+        trinity_config = cls(app_identifier=app_identifier, **constructor_kwargs)
 
         trinity_config.initialize_app_configs(parser_args, app_config_types)
 
@@ -493,6 +505,9 @@ class TrinityConfig:
         # We want this API to return the specific type of the app config that is requested.
         # Our backing field only knows that it is holding `BaseAppConfig`'s but not concrete types
         return cast(TAppConfig, self._app_configs[app_config_type])
+
+    def with_app_suffix(self, path: Path) -> Path:
+        return path.with_name(path.name + self.app_suffix)
 
 
 class BaseAppConfig(ABC):

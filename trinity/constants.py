@@ -16,9 +16,16 @@ from eth_keys import (
 from p2p.kademlia import Address, Node
 
 
+# application identifier
+APP_IDENTIFIER_ETH1 = "eth1"
+APP_IDENTIFIER_BEACON = "beacon"
+
 # The file path to the non-python assets
 ASSETS_DIR = Path(__file__).parent / "assets"
-
+IPC_DIR = 'ipcs'
+LOG_DIR = 'logs'
+LOG_FILE = 'trinity.log'
+PID_DIR = 'pids'
 
 # sync modes
 SYNC_FULL = 'full'

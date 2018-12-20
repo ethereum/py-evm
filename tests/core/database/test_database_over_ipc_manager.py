@@ -21,6 +21,9 @@ from trinity.db.manager import (
 from trinity.config import (
     TrinityConfig,
 )
+from trinity.initialization import (
+    initialize_data_dir,
+)
 from trinity.constants import ROPSTEN_NETWORK_ID
 from trinity.db.chain import ChainDBProxy
 from trinity.db.base import DBProxy
@@ -47,8 +50,9 @@ def database_server_ipc_path():
     with tempfile.TemporaryDirectory() as temp_dir:
         trinity_config = TrinityConfig(
             network_id=ROPSTEN_NETWORK_ID,
-            data_dir=temp_dir,
+            trinity_root_dir=temp_dir,
         )
+        initialize_data_dir(trinity_config)
 
         manager = get_chaindb_manager(trinity_config, core_db)
         chaindb_server_process = multiprocessing.Process(

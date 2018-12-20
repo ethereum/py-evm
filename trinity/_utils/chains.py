@@ -54,17 +54,6 @@ def get_data_dir_for_network_id(network_id: int, trinity_root_dir: Path) -> Path
         raise KeyError(f"Unknown network id: `{network_id}`")
 
 
-LOG_DIRNAME = 'logs'
-LOG_FILENAME = 'trinity.log'
-
-
-def get_logfile_path(data_dir: Path) -> Path:
-    """
-    Return the path to the log file.
-    """
-    return data_dir / LOG_DIRNAME / LOG_FILENAME
-
-
 NODEKEY_FILENAME = 'nodekey'
 
 

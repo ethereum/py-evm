@@ -35,7 +35,7 @@ class FixUncleanShutdownPlugin(BaseMainProcessPlugin):
         self.logger.info("Cleaning up unclean shutdown...")
 
         self.logger.info("Searching for process id files in %s..." % trinity_config.data_dir)
-        pidfiles = tuple(trinity_config.data_dir.glob('*.pid'))
+        pidfiles = tuple(trinity_config.pid_dir.glob('*.pid'))
         if len(pidfiles) > 1:
             self.logger.info('Found %d processes from a previous run. Closing...' % len(pidfiles))
         elif len(pidfiles) == 1:

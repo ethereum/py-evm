@@ -28,6 +28,7 @@ from trinity.config import (
     Eth1AppConfig,
 )
 from trinity.constants import (
+    APP_IDENTIFIER_ETH1,
     NETWORKING_EVENTBUS_ENDPOINT,
 )
 from trinity.events import (
@@ -66,7 +67,7 @@ def get_all_plugins() -> Iterable[BasePlugin]:
 
 
 def main() -> None:
-    main_entry(trinity_boot, get_all_plugins(), (Eth1AppConfig,))
+    main_entry(trinity_boot, APP_IDENTIFIER_ETH1, get_all_plugins(), (Eth1AppConfig,))
 
 
 def trinity_boot(args: Namespace,
