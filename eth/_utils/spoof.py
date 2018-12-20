@@ -59,8 +59,3 @@ class SpoofAttributes:
         new_target = self.spoof_target.copy(**kwargs)
         new_overrides = merge(self.overrides, kwargs)
         return type(self)(new_target, **new_overrides)
-
-
-class SpoofTransaction(SpoofAttributes):
-    def __init__(self, transaction: BaseTransaction, **overrides: Any) -> None:
-        super().__init__(transaction, **overrides)

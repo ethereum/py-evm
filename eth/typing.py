@@ -25,15 +25,9 @@ from mypy_extensions import (
 )
 
 if TYPE_CHECKING:
-    from eth.rlp.transactions import (  # noqa: F401
-        BaseTransaction
-    )
-    from eth._utils.spoof import (  # noqa: F401
-        SpoofTransaction
-    )
-    from eth.vm.base import (  # noqa: F401
-        BaseVM
-    )
+    from eth.rlp.transactions import BaseTransaction  # noqa: F401
+    from eth.vm.spoof import SpoofTransaction  # noqa: F401
+    from eth.vm.base import BaseVM  # noqa: F401
 
 
 # TODO: Move into eth_typing
