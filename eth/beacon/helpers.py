@@ -28,9 +28,18 @@ from eth._utils.numeric import (
     clamp,
 )
 
-from eth.beacon.block_committees_info import BlockCommitteesInfo
-from eth.beacon.types.shard_committees import ShardCommittee
-from eth.beacon.types.validator_registry_delta_block import ValidatorRegistryDeltaBlock
+from eth.beacon.types.validator_registry_delta_block import (
+    ValidatorRegistryDeltaBlock,
+)
+from eth.beacon.block_committees_info import (
+    BlockCommitteesInfo,
+)
+from eth.beacon.enums import (
+    SignatureDomain,
+)
+from eth.beacon.types.shard_committees import (
+    ShardCommittee,
+)
 from eth.beacon._utils.random import (
     shuffle,
     split,
@@ -404,8 +413,7 @@ def get_domain(fork_data: 'ForkData',
 
 def verify_slashable_vote_data(state: BeaconState,
                                vote_data: 'SlashableVoteData',
-                               max_casper_votes: int,
-                               signature_domain_attestation: 'SignatureDomain') -> bool:
+                               max_casper_votes: int) -> bool:
     proof_of_custody_0_indices = vote_data.aggregate_signature_poc_0_indices
     proof_of_custody_1_indices = vote_data.aggregate_signature_poc_1_indices
     vote_count = len(proof_of_custody_0_indices) + len(proof_of_custody_1_indices)
@@ -430,7 +438,7 @@ def verify_slashable_vote_data(state: BeaconState,
         domain=get_domain(
             state.fork_data,
             state.slot,
-            signature_domain_attestation,
+            SignatureDomain.DOMAIN_ATTESTATION,
         ),
     )
 
