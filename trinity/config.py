@@ -306,10 +306,10 @@ class TrinityConfig:
         """
         Return the path to the log file.
         """
-        return self.logdir_path / LOG_FILE
+        return self.log_dir / LOG_FILE
 
     @property
-    def logdir_path(self) -> Path:
+    def log_dir(self) -> Path:
         """
         Return the path of the directory where all log files are stored.
         """
