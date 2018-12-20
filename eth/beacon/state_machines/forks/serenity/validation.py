@@ -18,10 +18,10 @@ from eth.beacon.helpers import (
     get_block_root,
     get_domain,
 )
-from eth.utils import (
+from eth._utils import (
     bls
 )
-from eth.beacon.utils.hash import (
+from eth.beacon._utils.hash import (
     hash_eth2,
 )
 from eth.beacon.types.states import BeaconState  # noqa: F401
@@ -32,33 +32,33 @@ from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
 #
 # Attestation validation
 #
-def validate_attestation(state: BeaconState,
-                         attestation: Attestation,
-                         epoch_length: int,
-                         min_attestation_inclusion_delay: int,
-                         is_validating_signatures: bool=True) -> None:
+def validate_serenity_attestation(state: BeaconState,
+                                  attestation: Attestation,
+                                  epoch_length: int,
+                                  min_attestation_inclusion_delay: int,
+                                  is_validating_signatures: bool=True) -> None:
     """
     Validate the given ``attestation``.
     Raise ``ValidationError`` if it's invalid.
     """
 
-    validate_attestation_slot(
-        attestation_data=attestation.data,
-        current_slot=state.slot,
-        epoch_length=epoch_length,
-        min_attestation_inclusion_delay=min_attestation_inclusion_delay,
+    validate_serenity_attestation_slot(
+        attestation.data,
+        state.slot,
+        epoch_length,
+        min_attestation_inclusion_delay,
     )
 
-    validate_attestation_justified_slot(
-        attestation_data=attestation.data,
-        current_slot=state.slot,
-        previous_justified_slot=state.previous_justified_slot,
-        justified_slot=state.justified_slot,
-        epoch_length=epoch_length,
+    validate_serenity_attestation_justified_slot(
+        attestation.data,
+        state.slot,
+        state.previous_justified_slot,
+        state.justified_slot,
+        epoch_length,
     )
 
-    validate_attestation_justified_block_root(
-        attestation_data=attestation.data,
+    validate_serenity_attestation_justified_block_root(
+        attestation.data,
         justified_block_root=get_block_root(
             state.latest_block_roots,
             current_slot=state.slot,
@@ -66,26 +66,26 @@ def validate_attestation(state: BeaconState,
         ),
     )
 
-    validate_attestation_latest_crosslink_root(
-        attestation_data=attestation.data,
+    validate_serenity_attestation_latest_crosslink_root(
+        attestation.data,
         latest_crosslink_shard_block_root=(
             state.latest_crosslinks[attestation.data.shard].shard_block_root
         ),
     )
 
-    validate_attestation_shard_block_root(attestation_data=attestation.data)
+    validate_serenity_attestation_shard_block_root(attestation.data)
 
     if is_validating_signatures:
-        validate_attestation_aggregate_signature(
+        validate_serenity_attestation_aggregate_signature(
             state,
             attestation,
         )
 
 
-def validate_attestation_slot(attestation_data: AttestationData,
-                              current_slot: int,
-                              epoch_length: int,
-                              min_attestation_inclusion_delay: int) -> None:
+def validate_serenity_attestation_slot(attestation_data: AttestationData,
+                                       current_slot: int,
+                                       epoch_length: int,
+                                       min_attestation_inclusion_delay: int) -> None:
     """
     Validate ``slot`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
@@ -114,11 +114,11 @@ def validate_attestation_slot(attestation_data: AttestationData,
         )
 
 
-def validate_attestation_justified_slot(attestation_data: AttestationData,
-                                        current_slot: int,
-                                        previous_justified_slot: int,
-                                        justified_slot: int,
-                                        epoch_length: int) -> None:
+def validate_serenity_attestation_justified_slot(attestation_data: AttestationData,
+                                                 current_slot: int,
+                                                 previous_justified_slot: int,
+                                                 justified_slot: int,
+                                                 epoch_length: int) -> None:
     """
     Validate ``justified_slot`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
@@ -141,8 +141,8 @@ def validate_attestation_justified_slot(attestation_data: AttestationData,
             )
 
 
-def validate_attestation_justified_block_root(attestation_data: AttestationData,
-                                              justified_block_root: Hash32) -> None:
+def validate_serenity_attestation_justified_block_root(attestation_data: AttestationData,
+                                                       justified_block_root: Hash32) -> None:
     """
     Validate ``justified_block_root`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
@@ -160,8 +160,8 @@ def validate_attestation_justified_block_root(attestation_data: AttestationData,
         )
 
 
-def validate_attestation_latest_crosslink_root(attestation_data: AttestationData,
-                                               latest_crosslink_shard_block_root: Hash32) -> None:
+def validate_serenity_attestation_latest_crosslink_root(attestation_data: AttestationData,
+                                                        latest_crosslink_shard_block_root: Hash32) -> None:
     """
     Validate that either the ``latest_crosslink_root`` or ``shard_block_root``
     field of ``attestation_data`` is the provided ``latest_crosslink_shard_block_root``.
@@ -184,7 +184,7 @@ def validate_attestation_latest_crosslink_root(attestation_data: AttestationData
         )
 
 
-def validate_attestation_shard_block_root(attestation_data: AttestationData) -> None:
+def validate_serenity_attestation_shard_block_root(attestation_data: AttestationData) -> None:
     """
     Validate ``shard_block_root`` field of `attestation_data`.
     Raise ``ValidationError`` if it's invalid.
@@ -203,9 +203,9 @@ def validate_attestation_shard_block_root(attestation_data: AttestationData) -> 
         )
 
 
-def validate_attestation_aggregate_signature(state: BeaconState,
-                                             attestation: Attestation,
-                                             epoch_length: int) -> None:
+def validate_serenity_attestation_aggregate_signature(state: BeaconState,
+                                                      attestation: Attestation,
+                                                      epoch_length: int) -> None:
     """
     Validate ``aggregate_signature`` field of ``attestation``.
     Raise ``ValidationError`` if it's invalid.
