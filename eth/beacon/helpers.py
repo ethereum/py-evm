@@ -401,11 +401,15 @@ def get_domain(fork_data: 'ForkData',
         slot,
     ) * 4294967296 + domain_type
 
-def verify_slashable_vote_data(state: BeaconState, vote_data: SlashableVoteData) -> bool:
-    if vote_count > MAX_CASPER_VOTES:
+
+def verify_slashable_vote_data(state: BeaconState,
+                               vote_data: 'SlashableVoteData',
+                               max_casper_votes: int,
+                               signature_domain_attestation: 'SignatureDomain') -> bool:
     proof_of_custody_0_indices = vote_data.aggregate_signature_poc_0_indices
     proof_of_custody_1_indices = vote_data.aggregate_signature_poc_1_indices
     vote_count = len(proof_of_custody_0_indices) + len(proof_of_custody_1_indices)
+    if vote_count > max_casper_votes:
         return False
 
     pubkeys = [
@@ -426,7 +430,7 @@ def verify_slashable_vote_data(state: BeaconState, vote_data: SlashableVoteData)
         domain=get_domain(
             state.fork_data,
             state.slot,
-            DOMAIN_ATTESTATION,
+            signature_domain_attestation,
         ),
     )
 
