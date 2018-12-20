@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth.beacon.types.states import BeaconState  # noqa: F401
     from eth.beacon.types.fork_data import ForkData  # noqa: F401
-    from eth.beacon.types.slashable_vote_data import SlashableVoteData # noqa: F401
+    from eth.beacon.types.slashable_vote_data import SlashableVoteData  # noqa: F401
     from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
@@ -402,13 +402,15 @@ def get_domain(fork_data: 'ForkData',
     ) * 4294967296 + domain_type
 
 def verify_slashable_vote_data(state: BeaconState, vote_data: SlashableVoteData) -> bool:
-    vote_count = len(vote_data.aggregate_signature_poc_0_indices) + len(vote_data.aggregate_signature_poc_1_indices)
     if vote_count > MAX_CASPER_VOTES:
+    proof_of_custody_0_indices = vote_data.aggregate_signature_poc_0_indices
+    proof_of_custody_1_indices = vote_data.aggregate_signature_poc_1_indices
+    vote_count = len(proof_of_custody_0_indices) + len(proof_of_custody_1_indices)
         return False
 
     pubkeys = [
-        bls.aggregate_pubkeys([state.validators[i].pubkey for i in vote_data.aggregate_signature_poc_0_indices]),
-        bls.aggregate_pubkeys([state.validators[i].pubkey for i in vote_data.aggregate_signature_poc_1_indices])
+        bls.aggregate_pubkeys([state.validators[i].pubkey for i in proof_of_custody_0_indices]),
+        bls.aggregate_pubkeys([state.validators[i].pubkey for i in proof_of_custody_1_indices])
     ]
 
     # TODO: change to hash_tree_root(vote_data) when we have SSZ tree hashing
@@ -427,6 +429,7 @@ def verify_slashable_vote_data(state: BeaconState, vote_data: SlashableVoteData)
             DOMAIN_ATTESTATION,
         ),
     )
+
 
 def is_double_vote(attestation_data_1: 'AttestationData',
                    attestation_data_2: 'AttestationData') -> bool:
