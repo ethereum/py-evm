@@ -9,18 +9,48 @@ from eth_utils import (
 from eth_keys import keys
 
 from trinity._utils.chains import (
+    DATABASE_SOCKET_FILENAME,
     get_data_dir_for_network_id,
     get_local_data_dir,
     get_nodekey_path,
+    JSONRPC_SOCKET_FILENAME,
 )
 from trinity.config import (
     TrinityConfig,
     BeaconAppConfig,
     DATABASE_DIR_NAME,
 )
+from trinity.constants import (
+    IPC_DIR,
+    LOG_DIR,
+    LOG_FILE,
+    PID_DIR
+)
 from trinity._utils.filesystem import (
     is_under_path,
 )
+
+
+@pytest.mark.parametrize(
+    "app_identifier, expected_suffix",
+    (
+        ("beacon", "-beacon"),
+        ("", ""),
+    ),
+)
+def test_trinity_config_app_identifier(xdg_trinity_root, app_identifier, expected_suffix):
+
+    data_dir = get_local_data_dir('muffin', xdg_trinity_root)
+    trinity_config = TrinityConfig(network_id=1, data_dir=data_dir, app_identifier=app_identifier)
+
+    assert trinity_config.network_id == 1
+    assert trinity_config.data_dir == data_dir
+    assert trinity_config.logfile_path == data_dir / (LOG_DIR + expected_suffix) / LOG_FILE
+    assert trinity_config.jsonrpc_ipc_path == data_dir / (IPC_DIR + expected_suffix) / JSONRPC_SOCKET_FILENAME  # noqa: E501
+    assert trinity_config.database_ipc_path == data_dir / (IPC_DIR + expected_suffix) / DATABASE_SOCKET_FILENAME  # noqa: E501
+    assert trinity_config.pid_dir == data_dir / (PID_DIR + expected_suffix)
+    assert trinity_config.database_dir == data_dir / (DATABASE_DIR_NAME + expected_suffix) / "full"
+    assert trinity_config.nodekey_path == get_nodekey_path(data_dir)
 
 
 def test_trinity_config_computed_properties(xdg_trinity_root):

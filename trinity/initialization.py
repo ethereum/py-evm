@@ -20,15 +20,19 @@ from trinity._utils.filesystem import (
 
 def is_data_dir_initialized(trinity_config: TrinityConfig) -> bool:
     """
-    - base dir exists
-    - chain data-dir exists
-    - nodekey exists and is non-empty
-    - canonical chain head in db
+    Return ``True`` if the data directory and all expected sub directories exist,
+    otherwise return ``False``
     """
     if not os.path.exists(trinity_config.data_dir):
         return False
 
     if not os.path.exists(trinity_config.database_dir):
+        return False
+
+    if not os.path.exists(trinity_config.pid_dir):
+        return False
+
+    if not os.path.exists(trinity_config.ipc_dir):
         return False
 
     if not trinity_config.logfile_path.parent.exists():
@@ -89,8 +93,10 @@ def initialize_data_dir(trinity_config: TrinityConfig) -> None:
             trinity_config.logdir_path,
         )
 
-    # Chain data-dir
+    # Initialize chain, pid and ipc directories
     os.makedirs(trinity_config.database_dir, exist_ok=True)
+    os.makedirs(trinity_config.pid_dir, exist_ok=True)
+    os.makedirs(trinity_config.ipc_dir, exist_ok=True)
 
     # Nodekey
     if trinity_config.nodekey is None:
