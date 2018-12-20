@@ -78,19 +78,19 @@ def initialize_data_dir(trinity_config: TrinityConfig) -> None:
 
     # Logfile
     should_create_logdir = (
-        not trinity_config.logdir_path.exists() and
-        is_under_path(trinity_config.trinity_root_dir, trinity_config.logdir_path)
+        not trinity_config.log_dir.exists() and
+        is_under_path(trinity_config.trinity_root_dir, trinity_config.log_dir)
     )
     if should_create_logdir:
-        trinity_config.logdir_path.mkdir(parents=True, exist_ok=True)
+        trinity_config.log_dir.mkdir(parents=True, exist_ok=True)
         trinity_config.logfile_path.touch()
-    elif not trinity_config.logdir_path.exists():
+    elif not trinity_config.log_dir.exists():
         # we don't lazily create the base dir for non-default base directories.
         raise MissingPath(
             "The base logging directory provided does not exist: `{0}`".format(
-                trinity_config.logdir_path,
+                trinity_config.log_dir,
             ),
-            trinity_config.logdir_path,
+            trinity_config.log_dir,
         )
 
     # Initialize chain, pid and ipc directories
