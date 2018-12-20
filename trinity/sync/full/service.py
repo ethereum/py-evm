@@ -92,7 +92,7 @@ def _test() -> None:
     from p2p.kademlia import Node
     from trinity.constants import DEFAULT_PREFERRED_NODES, ROPSTEN_NETWORK_ID
     from trinity.protocol.common.context import ChainContext
-    from tests.trinity.core.integration_test_helpers import (
+    from tests.core.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncRopstenChain, connect_to_peers_loop)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 

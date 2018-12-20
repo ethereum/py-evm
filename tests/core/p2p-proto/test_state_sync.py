@@ -21,7 +21,7 @@ from eth.tools.logging import ExtendedDebugLogger
 from trinity.sync.full.hexary_trie import HexaryTrieSync
 from trinity.sync.full.state import StateSync, TrieNodeRequestTracker
 
-from tests.trinity.core.integration_test_helpers import FakeAsyncMemoryDB
+from tests.core.integration_test_helpers import FakeAsyncMemoryDB
 
 
 # produces a branch node with an extention node who's encoding is less than 32

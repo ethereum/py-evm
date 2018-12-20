@@ -23,7 +23,7 @@ from trinity.protocol.eth.commands import (
 from tests.conftest import (
     funded_address_private_key
 )
-from tests.trinity.core.peer_helpers import (
+from tests.core.peer_helpers import (
     get_directly_linked_peers,
     MockPeerPoolWithConnectedPeers,
 )

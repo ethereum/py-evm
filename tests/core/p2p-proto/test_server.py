@@ -25,7 +25,7 @@ from p2p.tools.paragon import (
 from trinity.server import BaseServer
 
 from tests.p2p.auth_constants import eip8_values
-from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB
+from tests.core.integration_test_helpers import FakeAsyncHeaderDB
 
 
 def get_open_port():

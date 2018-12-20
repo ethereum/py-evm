@@ -16,15 +16,15 @@ from eth_utils import (
 from eth_keys import keys
 from eth_keys import datatypes
 
-from eth._utils.padding import (
-    pad32,
-)
-
 from p2p.exceptions import DecryptionError
 
 from .constants import (
     PUBKEY_LEN,
 )
+
+
+def pad32(value: bytes) -> bytes:
+    return value.rjust(32, b'\x00')
 
 
 CIPHER = algorithms.AES

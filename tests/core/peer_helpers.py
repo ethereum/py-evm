@@ -24,7 +24,7 @@ from trinity.protocol.les.peer import (
     LESPeerFactory,
 )
 
-from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB
+from tests.core.integration_test_helpers import FakeAsyncHeaderDB
 
 
 def get_fresh_mainnet_headerdb():

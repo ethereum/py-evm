@@ -10,7 +10,7 @@ from eth.db.trie import make_trie_root_and_nodes
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 
-from tests.trinity.core.peer_helpers import (
+from tests.core.peer_helpers import (
     get_directly_linked_peers,
 )
 

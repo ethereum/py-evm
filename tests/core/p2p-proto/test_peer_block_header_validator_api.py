@@ -10,7 +10,7 @@ import pytest
 from trinity.protocol.les.commands import GetBlockHeaders
 from trinity.protocol.les.peer import LESPeer
 
-from tests.trinity.core.peer_helpers import (
+from tests.core.peer_helpers import (
     get_directly_linked_peers,
 )
 

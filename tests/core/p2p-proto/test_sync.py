@@ -9,7 +9,7 @@ from trinity.sync.full.chain import FastChainSyncer, RegularChainSyncer
 from trinity.sync.full.state import StateDownloader
 from trinity.sync.light.chain import LightChainSyncer
 
-from tests.trinity.core.integration_test_helpers import (
+from tests.core.integration_test_helpers import (
     ByzantiumTestChain,
     FakeAsyncChainDB,
     FakeAsyncHeaderDB,
@@ -18,7 +18,7 @@ from tests.trinity.core.integration_test_helpers import (
     load_mining_chain,
     DBFixture,
 )
-from tests.trinity.core.peer_helpers import (
+from tests.core.peer_helpers import (
     get_directly_linked_peers,
     MockPeerPoolWithConnectedPeers,
 )

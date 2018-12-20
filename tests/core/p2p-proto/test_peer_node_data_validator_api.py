@@ -8,7 +8,7 @@ from eth_utils import (
     keccak,
 )
 
-from tests.trinity.core.peer_helpers import (
+from tests.core.peer_helpers import (
     get_directly_linked_peers,
 )
 

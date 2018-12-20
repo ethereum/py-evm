@@ -34,7 +34,7 @@ from trinity._utils.ipc import (
     kill_popen_gracefully,
 )
 
-from tests.trinity.core.integration_test_helpers import (
+from tests.core.integration_test_helpers import (
     FakeAsyncChainDB,
     FakeAsyncRopstenChain,
     FakeAsyncHeaderDB,
@@ -105,7 +105,7 @@ def geth_process(geth_command_arguments):
         yield proc
     finally:
         logging.warning('shutting down geth')
-        kill_popen_gracefully(proc, logging.getLogger('tests.trinity.integration.lightchain'))
+        kill_popen_gracefully(proc, logging.getLogger('tests.integration.lightchain'))
         output, errors = proc.communicate()
         logging.warning(
             "Geth Process Exited:\n"
@@ -142,7 +142,7 @@ async def test_lightchain_integration(
 
     In order to run this manually, you can use `tox -e py36-lightchain_integration` or:
 
-        pytest --integration --capture=no tests/trinity/integration/test_lightchain_integration.py
+        pytest --integration --capture=no tests/integration/test_lightchain_integration.py
 
     The fixture for this test was generated with:
 

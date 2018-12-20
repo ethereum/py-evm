@@ -19,7 +19,7 @@ from eth.rlp.transactions import BaseTransactionFields
 
 from trinity.rlp.block_body import BlockBody
 
-from tests.trinity.core.peer_helpers import (
+from tests.core.peer_helpers import (
     get_directly_linked_peers,
 )
 

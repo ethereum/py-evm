@@ -1,4 +1,8 @@
-# from eth._utils.logging import DEBUG2_LEVEL_NUM
+import asyncio
+import os
+from pathlib import Path
+import tempfile
+import uuid
 
 import pytest
 
@@ -9,7 +13,7 @@ from eth_utils import (
 )
 from eth_keys import keys
 
-from eth import constants
+from eth import constants as eth_constants
 from eth.chains.base import (
     Chain,
     MiningChain,
@@ -19,44 +23,79 @@ from eth.db.atomic import AtomicDB
 # to all mainnet vms.
 from eth.vm.forks.spurious_dragon import SpuriousDragonVM
 
+from lahja import (
+    EventBus,
+)
 
-# Uncomment this to have logs from tests written to a file.  This is useful for
-# debugging when you need to dump the VM output from test runs.
-"""
-import datetime
-import logging
-import os
-from eth.tools.logging import TRACE_LEVEL_NUM
+from trinity.constants import (
+    NETWORKING_EVENTBUS_ENDPOINT,
+)
+from trinity.chains.coro import (
+    AsyncChainMixin,
+)
+from trinity.rpc.main import (
+    RPCServer,
+)
+from trinity.rpc.ipc import (
+    IPCServer,
+)
+from trinity._utils.xdg import (
+    get_xdg_trinity_root,
+)
+from trinity._utils.filesystem import (
+    is_under_path,
+)
 
-@pytest.yield_fixture(autouse=True)
-def _file_logging(request):
 
-    logger = logging.getLogger('eth')
+def pytest_addoption(parser):
+    parser.addoption("--enode", type=str, required=False)
+    parser.addoption("--integration", action="store_true", default=False)
+    parser.addoption("--fork", type=str, required=False)
 
-    level = DEBUG2_LEVEL_NUM
-    #level = logging.DEBUG
-    #level = logging.INFO
 
-    logger.setLevel(level)
+class TestAsyncChain(Chain, AsyncChainMixin):
+    pass
 
-    fixture_data = request.getfuncargvalue('fixture_data')
-    fixture_path = fixture_data[0]
-    logfile_name = 'logs/{0}-{1}.log'.format(
-        '-'.join(
-            [os.path.basename(fixture_path)] +
-            [str(value) for value in fixture_data[1:]]
-        ),
-        datetime.datetime.now().isoformat(),
-    )
 
-    with open(logfile_name, 'w') as logfile:
-        handler = logging.StreamHandler(logfile)
-        logger.addHandler(handler)
-        try:
-            yield logger
-        finally:
-            logger.removeHandler(handler)
-"""
+@pytest.fixture(autouse=True)
+def xdg_trinity_root(monkeypatch, tmpdir):
+    """
+    Ensure proper test isolation as well as protecting the real directories.
+    """
+    dir_path = tmpdir.mkdir('trinity')
+    monkeypatch.setenv('XDG_TRINITY_ROOT', str(dir_path))
+
+    assert not is_under_path(os.path.expandvars('$HOME'), get_xdg_trinity_root())
+
+    return Path(str(dir_path))
+
+
+@pytest.fixture(scope='session')
+def event_loop():
+    loop = asyncio.new_event_loop()
+    try:
+        yield loop
+    finally:
+        loop.close()
+
+
+@pytest.fixture(scope='module')
+async def event_bus(event_loop):
+    bus = EventBus()
+    endpoint = bus.create_endpoint(NETWORKING_EVENTBUS_ENDPOINT)
+    bus.start(event_loop)
+    await endpoint.connect(event_loop)
+    try:
+        yield endpoint
+    finally:
+        endpoint.stop()
+        bus.stop()
+
+
+@pytest.fixture(scope='session')
+def jsonrpc_ipc_pipe_path():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield Path(temp_dir) / '{0}.ipc'.format(uuid.uuid4())
 
 
 @pytest.fixture
@@ -113,7 +152,7 @@ def _chain_with_block_validation(base_db, genesis_state, chain_cls=Chain):
     klass = chain_cls.configure(
         __name__='TestChain',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVM),
+            (eth_constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVM),
         ),
         chain_id=1337,
     )
@@ -123,7 +162,7 @@ def _chain_with_block_validation(base_db, genesis_state, chain_cls=Chain):
 
 @pytest.fixture
 def chain_with_block_validation(base_db, genesis_state):
-    return _chain_with_block_validation(base_db, genesis_state)
+    return _chain_with_block_validation(base_db, genesis_state, TestAsyncChain)
 
 
 def import_block_without_validation(chain, block):
@@ -171,25 +210,44 @@ def chain_without_block_validation(
     klass = chain_class.configure(
         __name__='TestChainWithoutBlockValidation',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVMForTesting),
+            (eth_constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVMForTesting),
         ),
         chain_id=1337,
         **overrides,
     )
     genesis_params = {
-        'block_number': constants.GENESIS_BLOCK_NUMBER,
-        'difficulty': constants.GENESIS_DIFFICULTY,
+        'block_number': eth_constants.GENESIS_BLOCK_NUMBER,
+        'difficulty': eth_constants.GENESIS_DIFFICULTY,
         'gas_limit': 3141592,
-        'parent_hash': constants.GENESIS_PARENT_HASH,
-        'coinbase': constants.GENESIS_COINBASE,
-        'nonce': constants.GENESIS_NONCE,
-        'mix_hash': constants.GENESIS_MIX_HASH,
-        'extra_data': constants.GENESIS_EXTRA_DATA,
+        'parent_hash': eth_constants.GENESIS_PARENT_HASH,
+        'coinbase': eth_constants.GENESIS_COINBASE,
+        'nonce': eth_constants.GENESIS_NONCE,
+        'mix_hash': eth_constants.GENESIS_MIX_HASH,
+        'extra_data': eth_constants.GENESIS_EXTRA_DATA,
         'timestamp': 1501851927,
     }
     chain = klass.from_genesis(base_db, genesis_params, genesis_state)
     return chain
 
 
-def pytest_addoption(parser):
-    parser.addoption("--fork", type=str, required=False)
+@pytest.mark.asyncio
+@pytest.fixture
+async def ipc_server(
+        monkeypatch,
+        event_bus,
+        jsonrpc_ipc_pipe_path,
+        event_loop,
+        chain_with_block_validation):
+    '''
+    This fixture runs a single RPC server over IPC over
+    the course of all tests. It yields the IPC server only for monkeypatching purposes
+    '''
+    rpc = RPCServer(chain_with_block_validation, event_bus)
+    ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path, loop=event_loop)
+
+    asyncio.ensure_future(ipc_server.run(), loop=event_loop)
+
+    try:
+        yield ipc_server
+    finally:
+        await ipc_server.cancel()

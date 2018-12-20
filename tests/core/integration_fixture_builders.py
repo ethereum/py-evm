@@ -1,7 +1,7 @@
 from eth_keys import keys
 from eth_utils import decode_hex
 
-from tests.trinity.core.integration_test_helpers import FUNDED_ACCT, load_mining_chain
+from tests.core.integration_test_helpers import FUNDED_ACCT, load_mining_chain
 
 RECEIVER = keys.PrivateKey(
     decode_hex("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291"))
