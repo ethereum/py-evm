@@ -169,8 +169,17 @@ class Eth(RPCModule):
         gas = self._chain.estimate_gas(transaction, header)
         return hex(gas)
 
-    async def gasPrice(self) -> int:
-        raise NotImplementedError()
+    async def gasPrice(self) -> str:
+        canonical_header = self._chain.get_canonical_head()
+        canonical_block = self._chain.get_block_by_header(canonical_header)
+
+        # Sum of all the gas_price in transactions of the block
+        block_overall_gas_price = 0
+        for transaction in canonical_block.transactions:
+            block_overall_gas_price += transaction.gas_price
+        block_average_gas_price = block_overall_gas_price // len(canonical_block.transactions)
+
+        return hex(block_average_gas_price)
 
     @format_params(decode_hex, to_int_if_hex)
     async def getBalance(self, address: Address, at_block: Union[str, int]) -> str:
