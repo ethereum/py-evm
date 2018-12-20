@@ -120,13 +120,6 @@ Before releasing a new version, build and test the package that will be released
 
     make package
 
-    # in another shell, navigate to the virtualenv mentioned in output of ^
-
-    # load the virtualenv with the packaged trinity release
-    source package-smoke-test/bin/activate
-
-    # smoke test the release
-    trinity --ropsten
 
 Push the release to github & pypi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -137,9 +130,6 @@ After confirming that the release package looks okay, release a new version:
 
     make release bump=$$VERSION_PART_TO_BUMP$$
 
-    # While trinity and py-evm are colocated,
-    # manually change trinity & py-evm version in setup_trinity.py
-    make release-trinity
 
 Which version part to bump
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -157,26 +147,3 @@ stable.
 To issue an unstable version when the current version is stable, specify
 the new version explicitly, like
 ``make release bump="--new-version 4.0.0-alpha.1 devnum"``
-
-
-How to release docker images
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To create a docker image:
-
-.. code:: sh
-
-    make create-docker-image version=<version>
-
-
-By default, this will create a new image with two tags pointing to it:
- - ``ethereum/trinity:<version>`` (explicit version)
- - ``ethereum/trinity:latest`` (latest until overwritten with a future "latest")
-
-Then, push to docker hub:
-
-.. code:: sh
-
-    docker push ethereum/trinity:<version>
-    # the following may be left out if we were pushing a patch for an older version
-    docker push ethereum/trinity:latest

@@ -42,7 +42,7 @@ def test_install_local_wheel():
     with TemporaryDirectory() as tmpdir:
         venv_path = create_venv(Path(tmpdir))
         wheel_path = find_wheel(Path('.'))
-        install_wheel(venv_path, wheel_path, extras=['p2p', 'trinity'])
+        install_wheel(venv_path, wheel_path)
         print("Installed", wheel_path.absolute(), "to", venv_path)
         print(f"Activate with `source {venv_path}/bin/activate`")
         input("Press enter when the test has completed. The directory will be deleted.")

@@ -64,17 +64,6 @@ release: clean
 	twine upload dist/*
 	git config commit.gpgSign "$(CURRENT_SIGN_SETTING)"
 
-release-trinity: clean
-	CURRENT_SIGN_SETTING=$(git config commit.gpgSign)
-	git config commit.gpgSign true
-	git push upstream && git push upstream --tags
-	python setup_trinity.py sdist bdist_wheel
-	twine upload dist/*
-	git config commit.gpgSign "$(CURRENT_SIGN_SETTING)"
-
-create-docker-image: clean
-	docker build -t ethereum/trinity:latest -t ethereum/trinity:$(version) .
-
 sdist: clean
 	python setup.py sdist bdist_wheel
 	ls -l dist
