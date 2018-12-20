@@ -42,6 +42,7 @@ NORMALIZED_ADDRESS_B = "0xcd1722f3947def4cf144679da39c4c32bdc35681"
 ADDRESS_WITH_CODE = ("0xddd722f3947def4cf144679da39c4c32bdc35681", b'pseudocode')
 EMPTY_ADDRESS_IN_STATE = NORMALIZED_ADDRESS_A
 ADDRESS_NOT_IN_STATE = NORMALIZED_ADDRESS_B
+ADDRESS_WITH_JUST_BALANCE = "0x0000000000000000000000000000000000000001"
 CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6")
 CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
 GENESIS_HEADER = BlockHeader(
@@ -85,6 +86,8 @@ def prepare_general_computation(vm_class, create_address=None, code=b''):
 
     computation.state.account_db.touch_account(decode_hex(EMPTY_ADDRESS_IN_STATE))
     computation.state.account_db.set_code(decode_hex(ADDRESS_WITH_CODE[0]), ADDRESS_WITH_CODE[1])
+
+    computation.state.account_db.set_balance(decode_hex(ADDRESS_WITH_JUST_BALANCE), 1)
 
     return computation
 
@@ -446,6 +449,11 @@ def test_sar(vm_class, val1, val2, expected):
         (
             ConstantinopleVM,
             EMPTY_ADDRESS_IN_STATE,
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            ADDRESS_WITH_JUST_BALANCE,
             '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470',
         ),
         (
