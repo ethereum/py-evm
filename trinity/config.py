@@ -221,7 +221,6 @@ class TrinityConfig:
                  trinity_root_dir: str=None,
                  data_dir: str=None,
                  nodekey_path: str=None,
-                 logfile_path: str=None,
                  nodekey: PrivateKey=None,
                  sync_mode: str=SYNC_FULL,
                  port: int=30303,
@@ -276,9 +275,6 @@ class TrinityConfig:
         elif nodekey is not None:
             self.nodekey = nodekey
 
-        if logfile_path is not None:
-            self.logfile_path = logfile_path
-
     def get_chain_config(self) -> ChainConfig:
         # the `ChainConfig` object cannot be pickled so we can't cache this
         # value since the TrinityConfig is sent across process boundaries.
@@ -302,14 +298,8 @@ class TrinityConfig:
         """
         Return the path to the log file.
         """
-        if self._logfile_path is not None:
-            return self._logfile_path
-        else:
-            return get_logfile_path(self.data_dir)
+        return get_logfile_path(self.data_dir)
 
-    @logfile_path.setter
-    def logfile_path(self, value: Path) -> None:
-        self._logfile_path = value
 
     @property
     def logdir_path(self) -> Path:
