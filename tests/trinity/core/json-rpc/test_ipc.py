@@ -176,6 +176,14 @@ def mock_network_id(network_id):
             {'result': False, 'id': 3, 'jsonrpc': '2.0'},
         ),
         (
+            build_request('eth_coinbase'),
+            {'result': '0x0000000000000000000000000000000000000000', 'id': 3, 'jsonrpc': '2.0'},
+        ),
+        (
+            build_request('eth_hashrate'),
+            {'result': '0x0', 'id': 3, 'jsonrpc': '2.0'},
+        ),
+        (
             build_request('web3_clientVersion'),
             {'result': construct_trinity_client_identifier(), 'id': 3, 'jsonrpc': '2.0'},
         ),

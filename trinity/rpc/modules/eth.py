@@ -156,8 +156,10 @@ class Eth(RPCModule):
         result = self._chain.get_transaction_result(transaction, header)
         return encode_hex(result)
 
-    async def coinbase(self) -> Hash32:
-        raise NotImplementedError()
+    async def coinbase(self) -> str:
+        # Trinity doesn't support mining yet and hence coinbase_address is default (ZERO_ADDRESS)
+        coinbase_address = ZERO_ADDRESS
+        return encode_hex(coinbase_address)
 
     @format_params(identity, to_int_if_hex)
     async def estimateGas(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
@@ -263,7 +265,9 @@ class Eth(RPCModule):
         return header_to_dict(uncle)
 
     async def hashrate(self) -> str:
-        raise NotImplementedError()
+        # Trinity doesn't support mining yet and hence hashrate is default (0)
+        hashrate = 0
+        return hex(hashrate)
 
     async def mining(self) -> bool:
         return False
