@@ -33,7 +33,7 @@ from eth.rlp.blocks import (
 from eth.rlp.headers import (
     BlockHeader
 )
-from eth._utils.spoof import (
+from eth.vm.spoof import (
     SpoofTransaction,
 )
 from eth.vm.state import (

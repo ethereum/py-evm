@@ -19,7 +19,7 @@ deps = {
         "coincurve>=10.0.0,<11.0.0",
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.5",
-        "py-evm==0.2.0a37",
+        "py-evm==0.2.0a38",
         "web3==4.4.1",
         "lahja==0.10.0",
         "termcolor>=1.1.0,<2.0.0",
@@ -45,7 +45,6 @@ deps = {
         "mypy==0.641",
     ],
     'doc': [
-        "py-evm>=0.2.0-alpha.37",
         "pytest~=3.2",
         # Sphinx pined to `<1.8.0`: https://github.com/sphinx-doc/sphinx/issues/3494
         "Sphinx>=1.5.5,<1.8.0",
