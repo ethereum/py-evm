@@ -44,10 +44,10 @@ from eth.beacon._utils.random import (
     shuffle,
     split,
 )
+import functools
 
 
 if TYPE_CHECKING:
-    from eth.beacon.enums import SignatureDomain  # noqa: F401
     from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth.beacon.types.states import BeaconState  # noqa: F401
@@ -400,7 +400,7 @@ def get_fork_version(fork_data: 'ForkData',
 
 def get_domain(fork_data: 'ForkData',
                slot: int,
-               domain_type: 'SignatureDomain') -> int:
+               domain_type: SignatureDomain) -> int:
     """
     Return the domain number of the current fork and ``domain_type``.
     """
@@ -411,36 +411,75 @@ def get_domain(fork_data: 'ForkData',
     ) * 4294967296 + domain_type
 
 
-def verify_slashable_vote_data(state: BeaconState,
-                               vote_data: 'SlashableVoteData',
-                               max_casper_votes: int) -> bool:
+@to_tuple
+def get_pubkey_for_indices(validators: Sequence[ValidatorRecord],
+                           indices: Sequence[int]) -> Iterable[int]:
+    for index in indices:
+        yield validators[index].pubkey
+
+
+@to_tuple
+def generate_aggregate_pubkeys(state: BeaconState, vote_data: 'SlashableVoteData') -> Iterable[int]:
+    """
+    Computes the aggregate pubkey we expect based on
+    the proof-of-custody indices found in the ``vote_data``.
+    """
     proof_of_custody_0_indices = vote_data.aggregate_signature_poc_0_indices
     proof_of_custody_1_indices = vote_data.aggregate_signature_poc_1_indices
-    vote_count = len(proof_of_custody_0_indices) + len(proof_of_custody_1_indices)
-    if vote_count > max_casper_votes:
-        return False
+    all_indices = (proof_of_custody_0_indices, proof_of_custody_1_indices)
+    get_pubkeys = functools.partial(get_pubkey_for_indices, state.validators)
+    return map(bls.aggregate_pubkeys,
+               map(get_pubkeys, all_indices))
 
-    pubkeys = [
-        bls.aggregate_pubkeys([state.validators[i].pubkey for i in proof_of_custody_0_indices]),
-        bls.aggregate_pubkeys([state.validators[i].pubkey for i in proof_of_custody_1_indices])
-    ]
 
+def build_vote_data_messages(vote_data: 'SlashableVoteData') -> Tuple[bytes, bytes]:
+    """
+    Builds the messages that validators are expected to sign for a ``CasperSlashing`` operation.
+    """
     # TODO: change to hash_tree_root(vote_data) when we have SSZ tree hashing
     vote_data_root = vote_data.root
-    messages = [
-    ]
+    return (
         vote_data_root + (0).to_bytes(1, 'big'),
         vote_data_root + (1).to_bytes(1, 'big'),
+    )
+
+
+def verify_vote_count(vote_data: 'SlashableVoteData', max_casper_votes: int) -> bool:
+    """
+    Ensures we have no more than ``max_casper_votes`` in the ``vote_data``.
+    """
+    return vote_data.vote_count <= max_casper_votes
+
+
+def verify_signature(state: BeaconState, vote_data: 'SlashableVoteData') -> bool:
+    """
+    Ensures we have a valid aggregate signature for the ``vote_data``.
+    """
+    pubkeys = generate_aggregate_pubkeys(state, vote_data)
+
+    messages = build_vote_data_messages(vote_data)
+
+    signature = vote_data.aggregate_signature
+
+    domain = get_domain(state.fork_data, state.slot, SignatureDomain.DOMAIN_ATTESTATION)
+
     return bls.verify_multiple(
         pubkeys=pubkeys,
         messages=messages,
-        signature=vote_data.aggregate_signature,
-        domain=get_domain(
-            state.fork_data,
-            state.slot,
-            SignatureDomain.DOMAIN_ATTESTATION,
-        ),
+        signature=signature,
+        domain=domain,
     )
+
+
+def verify_slashable_vote_data(state: BeaconState,
+                               vote_data: 'SlashableVoteData',
+                               max_casper_votes: int) -> bool:
+    """
+    Ensures that the ``vote_data`` is properly assembled and contains the signature
+    we expect from the validators we expect. Otherwise, returns False as
+    the ``vote_data`` is invalid.
+    """
+    return verify_vote_count(vote_data, max_casper_votes) and verify_signature(state, vote_data)
 
 
 def is_double_vote(attestation_data_1: 'AttestationData',

@@ -56,3 +56,13 @@ class SlashableVoteData(rlp.Serializable):
         # Alias of `hash`.
         # Using flat hash, will likely use SSZ tree hash.
         return self.hash
+
+    _vote_count = None
+
+    @property
+    def vote_count(self) -> int:
+        if self._vote_count is None:
+            count_zero_indices = len(self.aggregate_signature_poc_0_indices)
+            count_one_indices = len(self.aggregate_signature_poc_1_indices)
+            self._vote_count = count_zero_indices + count_one_indices
+        return self._vote_count
