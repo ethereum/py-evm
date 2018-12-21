@@ -5,6 +5,11 @@ from trinity.rpc.modules import RPCModule
 
 
 class Net(RPCModule):
+
+    @property
+    def name(self) -> str:
+        return 'net'
+
     async def version(self) -> str:
         """
         Returns the current network ID.

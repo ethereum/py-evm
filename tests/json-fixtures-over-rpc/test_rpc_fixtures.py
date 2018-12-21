@@ -38,6 +38,10 @@ from trinity.rpc.format import (
     empty_to_0x,
     remove_leading_zeros,
 )
+from trinity.rpc.modules import (
+    ETH1_RPC_MODULES,
+    initialize_modules,
+)
 
 
 ROOT_PROJECT_DIR = Path(__file__).parent.parent.parent
@@ -395,7 +399,9 @@ class MainnetFullChain(FullChain):
 
 @pytest.mark.asyncio
 async def test_rpc_against_fixtures(chain, ipc_server, chain_fixture, fixture_data):
-    rpc = RPCServer(MainnetFullChain(None))
+    rpc = RPCServer(
+        initialize_modules(ETH1_RPC_MODULES, MainnetFullChain(None), None)
+    )
 
     setup_result, setup_error = await call_rpc(rpc, 'evm_resetToGenesisFixture', [chain_fixture])
     assert setup_error is None and setup_result is True, "cannot load chain for {0}".format(fixture_data)  # noqa: E501

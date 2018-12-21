@@ -36,6 +36,10 @@ from trinity.chains.coro import (
 from trinity.rpc.main import (
     RPCServer,
 )
+from trinity.rpc.modules import (
+    ETH1_RPC_MODULES,
+    initialize_modules,
+)
 from trinity.rpc.ipc import (
     IPCServer,
 )
@@ -257,7 +261,9 @@ async def ipc_server(
     This fixture runs a single RPC server over IPC over
     the course of all tests. It yields the IPC server only for monkeypatching purposes
     '''
-    rpc = RPCServer(chain_with_block_validation, event_bus)
+    rpc = RPCServer(
+        initialize_modules(ETH1_RPC_MODULES, chain_with_block_validation, event_bus)
+    )
     ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path, loop=event_loop)
 
     asyncio.ensure_future(ipc_server.run(), loop=event_loop)

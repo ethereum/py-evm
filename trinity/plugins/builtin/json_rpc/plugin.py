@@ -3,8 +3,14 @@ from argparse import (
     _SubParsersAction,
 )
 import asyncio
+from typing import (
+    Tuple
+)
 
-from trinity.config import Eth1AppConfig
+from trinity.config import (
+    Eth1AppConfig,
+    TrinityConfig
+)
 from trinity.chains.base import BaseAsyncChain
 from trinity.db.manager import (
     create_db_manager
@@ -17,6 +23,11 @@ from trinity.plugins.builtin.light_peer_chain_bridge.light_peer_chain_bridge imp
 )
 from trinity.rpc.main import (
     RPCServer,
+)
+from trinity.rpc.modules import (
+    ETH1_RPC_MODULES,
+    initialize_modules,
+    RPCModule,
 )
 from trinity.rpc.ipc import (
     IPCServer,
@@ -43,12 +54,11 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
             help="Disables the JSON-RPC Server",
         )
 
-    def do_start(self) -> None:
-        db_manager = create_db_manager(self.context.trinity_config.database_ipc_path)
+    def setup_eth1_modules(self, trinity_config: TrinityConfig) -> Tuple[RPCModule, ...]:
+        db_manager = create_db_manager(trinity_config.database_ipc_path)
         db_manager.connect()
 
-        trinity_config = self.context.trinity_config
-        eth1_app_config = self.context.trinity_config.get_app_config(Eth1AppConfig)
+        eth1_app_config = trinity_config.get_app_config(Eth1AppConfig)
         chain_config = trinity_config.get_chain_config()
 
         chain: BaseAsyncChain
@@ -63,7 +73,18 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
         else:
             raise NotImplementedError(f"Unsupported mode: {trinity_config.sync_mode}")
 
-        rpc = RPCServer(chain, self.context.event_bus)
+        return initialize_modules(ETH1_RPC_MODULES, chain, self.event_bus)
+
+    def do_start(self) -> None:
+
+        trinity_config = self.context.trinity_config
+
+        if trinity_config.has_app_config(Eth1AppConfig):
+            modules = self.setup_eth1_modules(trinity_config)
+        else:
+            raise Exception("Eth2 not yet supported")
+
+        rpc = RPCServer(modules, self.context.event_bus)
         ipc_server = IPCServer(rpc, self.context.trinity_config.jsonrpc_ipc_path)
 
         loop = asyncio.get_event_loop()

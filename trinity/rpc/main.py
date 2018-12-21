@@ -3,6 +3,7 @@ import logging
 from typing import (
     Any,
     Dict,
+    Sequence,
     Tuple,
     Union,
 )
@@ -17,11 +18,7 @@ from lahja import (
 
 from trinity.chains.base import BaseAsyncChain
 from trinity.rpc.modules import (
-    Eth,
-    EVM,
-    Net,
     RPCModule,
-    Web3,
 )
 
 REQUIRED_REQUEST_KEYS = {
@@ -64,22 +61,21 @@ class RPCServer:
     :meth:`RPCServer.eth_getBlockByHash`.
     '''
     chain = None
-    module_classes = (
-        Eth,
-        EVM,
-        Net,
-        Web3,
-    )
 
     def __init__(self,
-                 chain: BaseAsyncChain=None,
+                 modules: Sequence[RPCModule],
                  event_bus: Endpoint=None) -> None:
         self.modules: Dict[str, RPCModule] = {}
-        self.chain = chain
-        for M in self.module_classes:
-            self.modules[M.__name__.lower()] = M(chain, event_bus)
-        if len(self.modules) != len(self.module_classes):
-            raise ValueError("apparent name conflict in RPC module_classes", self.module_classes)
+
+        for module in modules:
+            name = module.name.lower()
+
+            if name in self.modules:
+                raise ValueError(
+                    f"Apparent name conflict in registered RPC modules, {name} already registered"
+                )
+
+            self.modules[name] = module
 
     def _lookup_method(self, rpc_method: str) -> Any:
         method_pieces = rpc_method.split('_')
