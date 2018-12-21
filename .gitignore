@@ -72,3 +72,5 @@ monkeytype.sqlite3
 
 # idea
 .idea/**
+
+!tests/integration/fixtures/*.ldb.zip

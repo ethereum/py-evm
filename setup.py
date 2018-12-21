@@ -4,30 +4,6 @@ from setuptools import setup, find_packages
 
 
 deps = {
-    'eth': [
-        "cryptography>=2.0.3,<3.0.0",
-        "cytoolz>=0.9.0,<1.0.0",
-        "eth-bloom>=1.0.0,<2.0.0",
-        "eth-keys>=0.2.0b3,<1.0.0",
-        "eth-typing>=2.0.0,<3.0.0",
-        "eth-utils>=1.3.0b0,<2.0.0",
-        "lru-dict>=1.1.6",
-        "mypy_extensions>=0.4.1,<1.0.0",
-        "py-ecc>=1.4.7,<2.0.0",
-        "pyethash>=0.1.27,<1.0.0",
-        "rlp>=1.0.3,<2.0.0",
-        "trie>=1.3.5,<2.0.0",
-    ],
-    # The eth-extra sections is for libraries that the evm does not
-    # explicitly need to function and hence should not depend on.
-    # Installing these libraries may make the evm perform better than
-    # using the default fallbacks though.
-    'eth-extra': [
-        "coincurve>=10.0.0,<11.0.0",
-        "eth-hash[pysha3];implementation_name=='cpython'",
-        "eth-hash[pycryptodome];implementation_name=='pypy'",
-        "plyvel==1.0.5",
-    ],
     'p2p': [
         "asyncio-cancel-token==0.1.0a2",
         "async_lru>=0.1.0,<1.0.0",
@@ -43,6 +19,7 @@ deps = {
         "coincurve>=10.0.0,<11.0.0",
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.5",
+        "py-evm==0.2.0a38",
         "web3==4.4.1",
         "lahja==0.10.0",
         "termcolor>=1.1.0,<2.0.0",
@@ -67,12 +44,7 @@ deps = {
         "flake8==3.5.0",
         "mypy==0.641",
     ],
-    'benchmark': [
-        "termcolor>=1.1.0,<2.0.0",
-        "web3>=4.1.0,<5.0.0",
-    ],
     'doc': [
-        "py-evm>=0.2.0-alpha.14",
         "pytest~=3.2",
         # Sphinx pined to `<1.8.0`: https://github.com/sphinx-doc/sphinx/issues/3494
         "Sphinx>=1.5.5,<1.8.0",
@@ -97,8 +69,6 @@ deps = {
 
 deps['dev'] = (
     deps['dev'] +
-    deps['eth'] +
-    deps['eth-extra'] +
     deps['p2p'] +
     deps['trinity'] +
     deps['test'] +
@@ -107,32 +77,32 @@ deps['dev'] = (
 )
 
 
-install_requires = deps['eth']
+install_requires = deps['trinity'] + deps['p2p']
 
 setup(
-    name='py-evm',
+    name='trinity',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
-    version='0.2.0-alpha.37',
-    description='Python implementation of the Ethereum Virtual Machine',
+    version='0.1.0-alpha.20',
+    description='The Trinity client for the Ethereum network',
     long_description_markdown_filename='README.md',
     author='Ethereum Foundation',
     author_email='piper@pipermerriam.com',
-    url='https://github.com/ethereum/py-evm',
+    url='https://github.com/ethereum/trinity',
     include_package_data=True,
-    py_modules=['eth', 'trinity', 'p2p'],
+    py_modules=['trinity', 'p2p'],
+    python_requires=">=3.6,<4",
     install_requires=install_requires,
     extras_require=deps,
     setup_requires=['setuptools-markdown'],
     license='MIT',
     zip_safe=False,
-    keywords='ethereum blockchain evm',
+    keywords='ethereum blockchain evm trinity',
     packages=find_packages(exclude=["tests", "tests.*"]),
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
     # trinity

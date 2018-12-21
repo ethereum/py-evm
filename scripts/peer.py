@@ -27,7 +27,7 @@ from trinity.protocol.common.context import ChainContext
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 from trinity.protocol.les.peer import LESPeer, LESPeerPool
 
-from tests.trinity.core.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
+from tests.core.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
 
 
 def _main() -> None:

@@ -357,7 +357,7 @@ def _test() -> None:
     from trinity.constants import ROPSTEN_NETWORK_ID
     from trinity._utils.chains import load_nodekey
 
-    from tests.trinity.core.integration_test_helpers import (
+    from tests.core.integration_test_helpers import (
         FakeAsyncLevelDB, FakeAsyncHeaderDB, FakeAsyncChainDB, FakeAsyncRopstenChain)
 
     parser = argparse.ArgumentParser()

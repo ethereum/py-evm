@@ -29,7 +29,7 @@ def _test() -> None:
     from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
     from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
     from eth.db.backends.level import LevelDB
-    from tests.trinity.core.integration_test_helpers import (
+    from tests.core.integration_test_helpers import (
         FakeAsyncChainDB, FakeAsyncMainnetChain, FakeAsyncRopstenChain, FakeAsyncHeaderDB,
         connect_to_peers_loop)
     from trinity.constants import DEFAULT_PREFERRED_NODES
