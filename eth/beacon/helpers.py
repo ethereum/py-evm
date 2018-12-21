@@ -421,7 +421,7 @@ def get_pubkey_for_indices(validators: Sequence['ValidatorRecord'],
 @to_tuple
 def generate_aggregate_pubkeys(state: 'BeaconState', vote_data: 'SlashableVoteData') -> Iterable[int]:
     """
-    Computes the aggregate pubkey we expect based on
+    Compute the aggregate pubkey we expect based on
     the proof-of-custody indices found in the ``vote_data``.
     """
     proof_of_custody_0_indices = vote_data.aggregate_signature_poc_0_indices
@@ -434,7 +434,7 @@ def generate_aggregate_pubkeys(state: 'BeaconState', vote_data: 'SlashableVoteDa
 
 def build_vote_data_messages(vote_data: 'SlashableVoteData') -> Tuple[bytes, bytes]:
     """
-    Builds the messages that validators are expected to sign for a ``CasperSlashing`` operation.
+    Build the messages that validators are expected to sign for a ``CasperSlashing`` operation.
     """
     # TODO: change to hash_tree_root(vote_data) when we have SSZ tree hashing
     vote_data_root = vote_data.root
@@ -446,14 +446,14 @@ def build_vote_data_messages(vote_data: 'SlashableVoteData') -> Tuple[bytes, byt
 
 def verify_vote_count(vote_data: 'SlashableVoteData', max_casper_votes: int) -> bool:
     """
-    Ensures we have no more than ``max_casper_votes`` in the ``vote_data``.
+    Ensure we have no more than ``max_casper_votes`` in the ``vote_data``.
     """
     return vote_data.vote_count <= max_casper_votes
 
 
 def verify_signature(state: 'BeaconState', vote_data: 'SlashableVoteData') -> bool:
     """
-    Ensures we have a valid aggregate signature for the ``vote_data``.
+    Ensure we have a valid aggregate signature for the ``vote_data``.
     """
     pubkeys = generate_aggregate_pubkeys(state, vote_data)
 
@@ -475,8 +475,8 @@ def verify_slashable_vote_data(state: 'BeaconState',
                                vote_data: 'SlashableVoteData',
                                max_casper_votes: int) -> bool:
     """
-    Ensures that the ``vote_data`` is properly assembled and contains the signature
-    we expect from the validators we expect. Otherwise, returns False as
+    Ensure that the ``vote_data`` is properly assembled and contains the signature
+    we expect from the validators we expect. Otherwise, return False as
     the ``vote_data`` is invalid.
     """
     return verify_vote_count(vote_data, max_casper_votes) and verify_signature(state, vote_data)
