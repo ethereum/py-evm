@@ -1,7 +1,7 @@
 # The Trinity Ethereum Client
 
 [![Join the chat at https://gitter.im/ethereum/trinity](https://badges.gitter.im/ethereum/trinity.svg)](https://gitter.im/ethereum/trinity)
-[![Documentation Status](https://readthedocs.org/projects/eth-trinity/badge/?version=latest)](https://eth-trinity.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/trinity-client/badge/?version=latest)](https://trinity-client.readthedocs.io/en/latest/?badge=latest)
 
 
 Trinity is a client for the Ethereum protocol including the existing 1.0 chain
@@ -22,13 +22,13 @@ as well as emerging support for the upcoming Ethereum 2.0 / Serenity spec.
 
 ## Quickstart
 
-[Get started in 5 minutes](https://eth-trinity.readthedocs.io/en/latest/quickstart.html)
+[Get started in 5 minutes](https://trinity-client.readthedocs.io/en/latest/quickstart.html)
 
 ## Documentation
 
-Check out the [documentation on our official website](https://eth-trinity.readthedocs.io/en/latest/)
+Check out the [documentation on our official website](https://trinity-client.readthedocs.io/en/latest/)
 
 ## Want to help?
 
 Want to file a bug, contribute some code, or improve documentation? Excellent! Read up on our
-guidelines for [contributing](https://eth-trinity.readthedocs.io/en/latest/contributing.html) and then check out one of our issues that are labeled [Good First Issue](https://github.com/ethereum/trinity/issues?q=is%3Aissue+is%3Aopen+label%3A%22Good+First+Issue%22).
+guidelines for [contributing](https://trinity-client.readthedocs.io/en/latest/contributing.html) and then check out one of our issues that are labeled [Good First Issue](https://github.com/ethereum/trinity/issues?q=is%3Aissue+is%3Aopen+label%3A%22Good+First+Issue%22).
