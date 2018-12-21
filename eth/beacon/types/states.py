@@ -163,7 +163,7 @@ class BeaconState(rlp.Serializable):
                          validator: ValidatorRecord) -> 'BeaconState':
         validator_registry = list(self.validator_registry)
         validator_registry[validator_index] = validator
-        self = self.copy(
+        updated_state = self.copy(
             validator_registry=tuple(validator_registry),
         )
-        return self
+        return updated_state

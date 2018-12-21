@@ -20,9 +20,6 @@ from eth._utils.bitfield import (
     get_bitfield_length,
     has_voted,
 )
-from eth.beacon._utils.hash import (
-    hash_eth2,
-)
 from eth._utils.numeric import (
     clamp,
 )

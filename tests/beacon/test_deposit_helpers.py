@@ -5,7 +5,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.utils import bls
+from eth._utils import bls
 
 from eth.beacon.constants import (
     EMPTY_SIGNATURE,
@@ -250,7 +250,7 @@ def test_process_deposit(sample_beacon_state_params,
     assert len(result_state.validator_registry) == 2
     assert result_state.validator_registry[1].pubkey == pubkey_2
 
-    # Force the first validator exited
+    # Force the first validator exited -> a empty slot in state.validator_registry.
     result_state = result_state.copy(
         validator_registry=(
             result_state.validator_registry[0].copy(
@@ -261,7 +261,8 @@ def test_process_deposit(sample_beacon_state_params,
         )
     )
 
-    # Add the third validator
+    # Add the third validator.
+    # Should overwrite previously exited validator.
     privkey_3 = privkeys[2]
     pubkey_3 = pubkeys[2]
     deposit_input = make_deposit_input(
@@ -279,5 +280,6 @@ def test_process_deposit(sample_beacon_state_params,
         randao_commitment=randao_commitment,
         zero_balance_validator_ttl=zero_balance_validator_ttl,
     )
+    # Overwrite the second validator.
     assert len(result_state.validator_registry) == 2
     assert result_state.validator_registry[0].pubkey == pubkey_3

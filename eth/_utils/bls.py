@@ -172,11 +172,15 @@ def privtopub(k: int) -> int:
 def verify(message: bytes, pubkey: int, signature: bytes, domain: int) -> bool:
     try:
         final_exponentiation = final_exponentiate(
-            pairing(FQP_point_to_FQ2_point(decompress_G2(signature)), G1, False) *
+            pairing(
+                FQP_point_to_FQ2_point(decompress_G2(signature)),
+                G1,
+                final_exponentiate=False,
+            ) *
             pairing(
                 FQP_point_to_FQ2_point(hash_to_G2(message, domain)),
                 neg(decompress_G1(pubkey)),
-                False
+                final_exponentiate=False,
             )
         )
         return final_exponentiation == FQ12.one()
@@ -220,8 +224,8 @@ def verify_multiple(pubkeys: Sequence[int],
                 if messages[i] == m_pubs:
                     group_pub = add(group_pub, decompress_G1(pubkeys[i]))
 
-            o *= pairing(hash_to_G2(m_pubs, domain), group_pub, False)
-        o *= pairing(decompress_G2(signature), neg(G1), False)
+            o *= pairing(hash_to_G2(m_pubs, domain), group_pub, final_exponentiate=False)
+        o *= pairing(decompress_G2(signature), neg(G1), final_exponentiate=False)
 
         final_exponentiation = final_exponentiate(o)
         return final_exponentiation == FQ12.one()

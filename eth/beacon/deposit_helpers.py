@@ -10,7 +10,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.utils import bls
+from eth._utils import bls
 
 from eth.beacon.constants import (
     EMPTY_SIGNATURE,
@@ -33,11 +33,11 @@ def get_min_empty_validator_index(validators: Sequence[ValidatorRecord],
                                   current_slot: int,
                                   zero_balance_validator_ttl: int) -> int:
     for index, validator in enumerate(validators):
-        if (
-                validator.balance == 0 and
-                validator.latest_status_change_slot + zero_balance_validator_ttl <=
-                current_slot
-        ):
+        is_empty = (
+            validator.balance == 0 and
+            validator.latest_status_change_slot + zero_balance_validator_ttl <= current_slot
+        )
+        if is_empty:
             return index
     raise MinEmptyValidatorIndexNotFound()
 
@@ -89,7 +89,6 @@ def add_pending_validator(state: BeaconState,
     except MinEmptyValidatorIndexNotFound:
         index = None
 
-    if index is None:
         # Append to the validator_registry
         validator_registry = state.validator_registry + (validator,)
         state = state.copy(
@@ -122,7 +121,7 @@ def process_deposit(*,
         randao_commitment,
     )
 
-    validator_pubkeys = tuple([v.pubkey for v in state.validator_registry])
+    validator_pubkeys = tuple(v.pubkey for v in state.validator_registry)
     if pubkey not in validator_pubkeys:
         validator = ValidatorRecord.get_pending_validator(
             pubkey=pubkey,
@@ -142,7 +141,7 @@ def process_deposit(*,
         index = validator_pubkeys.index(pubkey)
         validator = state.validator_registry[index]
 
-        if validator.withdrawal_credentials != validator.withdrawal_credentials:
+        if validator.withdrawal_credentials != withdrawal_credentials:
             raise ValidationError(
                 "`withdrawal_credentials` are incorrect:\n"
                 "\texpected: %s, found: %s" % (
