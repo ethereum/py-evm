@@ -9,6 +9,7 @@ from typing import (
 
 from trinity.config import (
     Eth1AppConfig,
+    BeaconAppConfig,
     TrinityConfig
 )
 from trinity.chains.base import BaseAsyncChain
@@ -25,6 +26,7 @@ from trinity.rpc.main import (
     RPCServer,
 )
 from trinity.rpc.modules import (
+    BEACON_RPC_MODULES,
     ETH1_RPC_MODULES,
     initialize_modules,
     RPCModule,
@@ -75,14 +77,20 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
 
         return initialize_modules(ETH1_RPC_MODULES, chain, self.event_bus)
 
+    def setup_beacon_modules(self, trinity_config: TrinityConfig) -> Tuple[RPCModule, ...]:
+
+        return initialize_modules(BEACON_RPC_MODULES, None, self.event_bus)
+
     def do_start(self) -> None:
 
         trinity_config = self.context.trinity_config
 
         if trinity_config.has_app_config(Eth1AppConfig):
             modules = self.setup_eth1_modules(trinity_config)
+        elif trinity_config.has_app_config(BeaconAppConfig):
+            modules = self.setup_beacon_modules(trinity_config)
         else:
-            raise Exception("Eth2 not yet supported")
+            raise Exception("Unsupported Node Type")
 
         rpc = RPCServer(modules, self.context.event_bus)
         ipc_server = IPCServer(rpc, self.context.trinity_config.jsonrpc_ipc_path)
