@@ -1,6 +1,7 @@
 import pytest
 
 from eth_utils import (
+    big_endian_to_int,
     ValidationError,
 )
 
@@ -39,7 +40,10 @@ def stack():
 def test_push_only_pushes_valid_stack_items(stack, value, is_valid):
     if is_valid:
         stack.push(value)
-        assert stack.values == [value]
+        if isinstance(value, int):
+            assert stack.values == [value]
+        else:
+            assert stack.values == [big_endian_to_int(value)]
     else:
         with pytest.raises(ValidationError):
             stack.push(value)
@@ -67,30 +71,30 @@ def test_dup_does_not_allow_stack_to_exceed_1024_items(stack):
     (
         ([1], UINT256),
         ([1, 2, 3], UINT256),
-        ([b'1', b'10', b'101', b'1010'], BYTES)
+        # ([b'1', b'10', b'101', b'1010'], BYTES)
     )
 )
 def test_pop_returns_latest_stack_item(stack, items, type_hint):
     for each in items:
         stack.push(each)
-    assert stack.pop(num_items=1, type_hint=type_hint) == items[-1]
+    assert stack.pop() == items[-1]
 
 
-@pytest.mark.parametrize(
-    ("value,type_hint,type,is_valid"),
-    (
-        (1, UINT256, int, True),
-        (b'101', BYTES, bytes, True),
-        (1, SECPK1_N, int, False)
-    )
-)
-def test_pop_typecasts_correctly_based_off_type_hint(stack, value, type_hint, type, is_valid):
-    stack.push(value)
-    if is_valid:
-        assert isinstance(stack.pop(num_items=1, type_hint=type_hint), type)
-    else:
-        with pytest.raises(TypeError):
-            stack.pop(type_hint=type_hint)
+# @pytest.mark.parametrize(
+#     ("value,type_hint,type,is_valid"),
+#     (
+#         (1, UINT256, int, True),
+#         (b'101', BYTES, bytes, True),
+#         (1, SECPK1_N, int, False)
+#     )
+# )
+# def test_pop_typecasts_correctly_based_off_type_hint(stack, value, type_hint, type, is_valid):
+#     stack.push(value)
+#     if is_valid:
+#         assert isinstance(stack.pop(num_items=1, type_hint=type_hint), type)
+#     else:
+#         with pytest.raises(TypeError):
+#             stack.pop(type_hint=type_hint)
 
 
 def test_swap_operates_correctly(stack):
@@ -115,7 +119,9 @@ def test_dup_operates_correctly(stack):
 
 def test_pop_raises_InsufficientStack_appropriately(stack):
     with pytest.raises(InsufficientStack):
-        stack.pop(num_items=1, type_hint=UINT256)
+        stack.pop()
+        stack.pop_n(2)
+        stack.pop_n(5)
 
 
 def test_swap_raises_InsufficientStack_appropriately(stack):

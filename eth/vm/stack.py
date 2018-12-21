@@ -30,7 +30,7 @@ class Stack(object):
     logger = logging.getLogger('eth.vm.stack.Stack')
 
     def __init__(self) -> None:
-        self.values = []  # type: List[Union[int, bytes]]
+        self.values = []  # type: List[int]
 
     def __len__(self) -> int:
         return len(self.values)
@@ -44,47 +44,81 @@ class Stack(object):
 
         validate_stack_item(value)
 
-        self.values.append(value)
+        if isinstance(value, int):
+            stack_value = value
+        elif isinstance(value, bytes):
+            stack_value = big_endian_to_int(value)
+        else:
+            raise Exception(
+                "Stack supports only Int or Byte objects, got {} type object".format(type(value))
+            )
 
-    def pop(self,
-            num_items: int,
-            type_hint: str) -> Union[int, bytes, Tuple[Union[int, bytes], ...]]:
-        """
-        Pop an item off the stack.
+        self.values.append(stack_value)
 
-        Note: This function is optimized for speed over readability.
-        """
+    # def pop(self,
+    #         num_items: int,
+    #         type_hint: str) -> Union[int, bytes, Tuple[Union[int, bytes], ...]]:
+    #     """
+    #     Pop an item off the stack.
+    #
+    #     Note: This function is optimized for speed over readability.
+    #     """
+    #     try:
+    #         if num_items == 1:
+    #             return next(self._pop(num_items, type_hint))
+    #         else:
+    #             return tuple(self._pop(num_items, type_hint))
+    #     except IndexError:
+    #         raise InsufficientStack("No stack items")
+    #
+    # def _pop(self, num_items: int, type_hint: str) -> Generator[Union[int, bytes], None, None]:
+    #     for _ in range(num_items):
+    #         if type_hint == constants.UINT256:
+    #             value = self.values.pop()
+    #             if isinstance(value, int):
+    #                 yield value
+    #             else:
+    #                 yield big_endian_to_int(value)
+    #         elif type_hint == constants.BYTES:
+    #             value = self.values.pop()
+    #             if isinstance(value, bytes):
+    #                 yield value
+    #             else:
+    #                 yield int_to_big_endian(value)
+    #         elif type_hint == constants.ANY:
+    #             yield self.values.pop()
+    #         else:
+    #             raise TypeError(
+    #                 "Unknown type_hint: {0}.  Must be one of {1}".format(
+    #                     type_hint,
+    #                     ", ".join((constants.UINT256, constants.BYTES)),
+    #                 )
+    #             )
+
+    def pop(self) -> int:
         try:
-            if num_items == 1:
-                return next(self._pop(num_items, type_hint))
-            else:
-                return tuple(self._pop(num_items, type_hint))
+            return self.values.pop()
         except IndexError:
             raise InsufficientStack("No stack items")
 
-    def _pop(self, num_items: int, type_hint: str) -> Generator[Union[int, bytes], None, None]:
+    def pop_n(self, num_items: int) -> Tuple[int, ...]:
         for _ in range(num_items):
-            if type_hint == constants.UINT256:
-                value = self.values.pop()
-                if isinstance(value, int):
-                    yield value
-                else:
-                    yield big_endian_to_int(value)
-            elif type_hint == constants.BYTES:
-                value = self.values.pop()
-                if isinstance(value, bytes):
-                    yield value
-                else:
-                    yield int_to_big_endian(value)
-            elif type_hint == constants.ANY:
+            try:
                 yield self.values.pop()
-            else:
-                raise TypeError(
-                    "Unknown type_hint: {0}.  Must be one of {1}".format(
-                        type_hint,
-                        ", ".join((constants.UINT256, constants.BYTES)),
-                    )
-                )
+            except IndexError:
+                raise InsufficientStack("No stack items")
+
+    def pop2(self) -> Tuple[int, int]:
+        try:
+            return (self.values.pop(), self.values.pop())
+        except IndexError:
+            raise InsufficientStack("No stack items")
+
+    def pop3(self) -> Tuple[int, int, int]:
+        try:
+            return (self.values.pop(), self.values.pop(), self.values.pop())
+        except IndexError:
+            raise InsufficientStack("No stack items")
 
     def swap(self, position: int) -> None:
         """
