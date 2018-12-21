@@ -133,6 +133,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-benchmark
+  py36-stack-benchmark:
+    <<: *common
+    docker:
+        - image: circleci/python:3.6
+          environment:
+            TOXENV: py36-stack-benchmark
   py36-native-blockchain-byzantium:
     <<: *common
     docker:
@@ -237,6 +243,7 @@ workflows:
       - py36-native-blockchain-transition
       - py36-vm
       - py36-benchmark
+      - py36-stack-benchmark
       - py36-core
       - py36-transactions
       - py36-database
