@@ -68,3 +68,24 @@ class ValidatorRecord(rlp.Serializable):
         Returns ``True`` if the validator is active.
         """
         return self.status in VALIDATOR_RECORD_ACTIVE_STATUSES
+
+    @classmethod
+    def get_pending_validator(cls,
+                              pubkey: int,
+                              withdrawal_credentials: Hash32,
+                              randao_commitment: Hash32,
+                              balance: int,
+                              latest_status_change_slot: int) -> 'ValidatorRecord':
+        """
+        Return a new pending ``ValidatorRecord`` with the given fields.
+        """
+        return cls(
+            pubkey=pubkey,
+            withdrawal_credentials=withdrawal_credentials,
+            randao_commitment=randao_commitment,
+            randao_layers=0,
+            balance=balance,
+            status=ValidatorStatusCode.PENDING_ACTIVATION,
+            latest_status_change_slot=latest_status_change_slot,
+            exit_count=0,
+        )

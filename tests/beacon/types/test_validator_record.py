@@ -33,3 +33,29 @@ def test_is_active(sample_validator_record_params,
     }
     validator = ValidatorRecord(**validator_record_params)
     assert validator.is_active == expected
+
+
+def test_get_pending_validator():
+    pubkey = 123
+    withdrawal_credentials = b'\x11' * 32
+    randao_commitment = b'\x22' * 32
+    balance = 100
+    latest_status_change_slot = 10
+
+    validator = ValidatorRecord.get_pending_validator(
+        pubkey=pubkey,
+        withdrawal_credentials=withdrawal_credentials,
+        randao_commitment=randao_commitment,
+        balance=balance,
+        latest_status_change_slot=latest_status_change_slot,
+    )
+
+    assert validator.pubkey == pubkey
+    assert validator.withdrawal_credentials == withdrawal_credentials
+    assert validator.randao_commitment == randao_commitment
+    assert validator.balance == balance
+    assert validator.latest_status_change_slot == latest_status_change_slot
+
+    assert validator.status == ValidatorStatusCode.PENDING_ACTIVATION
+    assert validator.randao_layers == 0
+    assert validator.exit_count == 0

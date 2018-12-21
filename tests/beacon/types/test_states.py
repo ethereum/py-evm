@@ -99,3 +99,24 @@ def test_num_crosslink_records(expected,
 def test_hash(sample_beacon_state_params):
     state = BeaconState(**sample_beacon_state_params)
     assert state.root == hash_eth2(rlp.encode(state))
+
+
+def test_update_validator(sample_beacon_state_params, sample_validator_record_params, max_deposit):
+    state = BeaconState(**sample_beacon_state_params).copy(
+        validator_registry=[
+            mock_validator_record(
+                pubkey,
+                max_deposit,
+            )
+            for pubkey in range(10)
+        ]
+    )
+
+    new_pubkey = 100
+    validator_index = 5
+    validator = state.validator_registry[validator_index].copy(
+        pubkey=new_pubkey,
+    )
+    result_state = state.update_validator(validator_index=validator_index, validator=validator)
+    assert result_state.validator_registry[validator_index].pubkey == new_pubkey
+    assert state.validator_registry[validator_index].pubkey != new_pubkey
