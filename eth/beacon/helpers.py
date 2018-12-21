@@ -428,8 +428,10 @@ def generate_aggregate_pubkeys(state: 'BeaconState', vote_data: 'SlashableVoteDa
     proof_of_custody_1_indices = vote_data.aggregate_signature_poc_1_indices
     all_indices = (proof_of_custody_0_indices, proof_of_custody_1_indices)
     get_pubkeys = functools.partial(get_pubkey_for_indices, state.validators)
-    return map(bls.aggregate_pubkeys,
-               map(get_pubkeys, all_indices))
+    return map(
+        bls.aggregate_pubkeys,
+        map(get_pubkeys, all_indices),
+    )
 
 
 def build_vote_data_messages(vote_data: 'SlashableVoteData') -> Tuple[bytes, bytes]:
