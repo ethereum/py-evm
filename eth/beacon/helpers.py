@@ -435,18 +435,6 @@ def generate_aggregate_pubkeys(state: 'BeaconState',
     )
 
 
-def build_vote_data_messages(vote_data: 'SlashableVoteData') -> Tuple[bytes, bytes]:
-    """
-    Build the messages that validators are expected to sign for a ``CasperSlashing`` operation.
-    """
-    # TODO: change to hash_tree_root(vote_data) when we have SSZ tree hashing
-    vote_data_root = vote_data.root
-    return (
-        vote_data_root + (0).to_bytes(1, 'big'),
-        vote_data_root + (1).to_bytes(1, 'big'),
-    )
-
-
 def verify_vote_count(vote_data: 'SlashableVoteData', max_casper_votes: int) -> bool:
     """
     Ensure we have no more than ``max_casper_votes`` in the ``vote_data``.
@@ -461,7 +449,7 @@ def verify_slashable_vote_data_signature(state: 'BeaconState',
     """
     pubkeys = generate_aggregate_pubkeys(state, vote_data)
 
-    messages = build_vote_data_messages(vote_data)
+    messages = vote_data.messages
 
     signature = vote_data.aggregate_signature
 

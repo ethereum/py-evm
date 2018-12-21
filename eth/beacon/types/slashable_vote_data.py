@@ -4,6 +4,7 @@ from rlp.sedes import (
 )
 from typing import (
     Sequence,
+    Tuple,
 )
 from eth_typing import (
     Hash32,
@@ -66,3 +67,15 @@ class SlashableVoteData(rlp.Serializable):
             count_one_indices = len(self.aggregate_signature_poc_1_indices)
             self._vote_count = count_zero_indices + count_one_indices
         return self._vote_count
+
+    @property
+    def messages(self) -> Tuple[bytes, bytes]:
+        """
+        Build the messages that validators are expected to sign for a ``CasperSlashing`` operation.
+        """
+        # TODO: change to hash_tree_root(vote_data) when we have SSZ tree hashing
+        vote_data_root = self.root
+        return (
+            vote_data_root + (0).to_bytes(1, 'big'),
+            vote_data_root + (1).to_bytes(1, 'big'),
+        )
