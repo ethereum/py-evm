@@ -453,7 +453,7 @@ def verify_vote_count(vote_data: 'SlashableVoteData', max_casper_votes: int) -> 
     return vote_data.vote_count <= max_casper_votes
 
 
-def verify_signature(state: 'BeaconState', vote_data: 'SlashableVoteData') -> bool:
+def verify_slashable_vote_data_signature(state: 'BeaconState', vote_data: 'SlashableVoteData') -> bool:
     """
     Ensure we have a valid aggregate signature for the ``vote_data``.
     """
@@ -481,7 +481,10 @@ def verify_slashable_vote_data(state: 'BeaconState',
     we expect from the validators we expect. Otherwise, return False as
     the ``vote_data`` is invalid.
     """
-    return verify_vote_count(vote_data, max_casper_votes) and verify_signature(state, vote_data)
+    return (
+        verify_vote_count(vote_data, max_casper_votes) and
+        verify_slashable_vote_data_signature(state, vote_data)
+    )
 
 
 def is_double_vote(attestation_data_1: 'AttestationData',
