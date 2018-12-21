@@ -17,6 +17,7 @@ DEFAULT_BANNER: str = (
     "---------------\n"
     "An instance of Web3 connected to the running chain is available as the "
     "`w3` variable\n"
+    "The exposed `rpc` function allows raw RPC API calls (e.g. rpc('net_listening'))\n"
 )
 
 
@@ -66,9 +67,14 @@ def console(ipc_path: Path,
 
     # wait to import web3, because it's somewhat large, and not usually used
     import web3
-    w3 = web3.Web3(web3.IPCProvider(ipc_path))
+    ipc_provider = web3.IPCProvider(ipc_path)
+    w3 = web3.Web3(ipc_provider)
 
-    namespace = merge({'w3': w3}, env)
+    # Allow omitting params by defaulting to `None`
+    def rpc(method: str, params: Dict[str, Any] = None) -> str:
+        return ipc_provider.make_request(method, params)
+
+    namespace = merge({'w3': w3, 'rpc': rpc}, env)
 
     if use_ipython:
         ipython_shell(namespace, banner)()
