@@ -412,14 +412,14 @@ def get_domain(fork_data: 'ForkData',
 
 
 @to_tuple
-def get_pubkey_for_indices(validators: Sequence[ValidatorRecord],
+def get_pubkey_for_indices(validators: Sequence['ValidatorRecord'],
                            indices: Sequence[int]) -> Iterable[int]:
     for index in indices:
         yield validators[index].pubkey
 
 
 @to_tuple
-def generate_aggregate_pubkeys(state: BeaconState, vote_data: 'SlashableVoteData') -> Iterable[int]:
+def generate_aggregate_pubkeys(state: 'BeaconState', vote_data: 'SlashableVoteData') -> Iterable[int]:
     """
     Computes the aggregate pubkey we expect based on
     the proof-of-custody indices found in the ``vote_data``.
@@ -451,7 +451,7 @@ def verify_vote_count(vote_data: 'SlashableVoteData', max_casper_votes: int) -> 
     return vote_data.vote_count <= max_casper_votes
 
 
-def verify_signature(state: BeaconState, vote_data: 'SlashableVoteData') -> bool:
+def verify_signature(state: 'BeaconState', vote_data: 'SlashableVoteData') -> bool:
     """
     Ensures we have a valid aggregate signature for the ``vote_data``.
     """
@@ -471,7 +471,7 @@ def verify_signature(state: BeaconState, vote_data: 'SlashableVoteData') -> bool
     )
 
 
-def verify_slashable_vote_data(state: BeaconState,
+def verify_slashable_vote_data(state: 'BeaconState',
                                vote_data: 'SlashableVoteData',
                                max_casper_votes: int) -> bool:
     """
