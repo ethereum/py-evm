@@ -1,5 +1,7 @@
 import json
 import os
+from pathlib import Path
+
 import pytest
 
 from cytoolz import (
@@ -38,7 +40,7 @@ from trinity.rpc.format import (
 )
 
 
-ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+ROOT_PROJECT_DIR = Path(__file__).parent.parent.parent
 
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')

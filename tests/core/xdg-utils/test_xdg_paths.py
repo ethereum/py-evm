@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from trinity.exceptions import (
@@ -66,4 +68,4 @@ def test_xdg_path_handling(monkeypatch, envs, resolver, expected):
         with pytest.raises(AmbigiousFileSystem):
             resolver()
     else:
-        assert resolver() == expected
+        assert resolver() == Path(expected)
