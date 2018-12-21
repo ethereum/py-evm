@@ -12,4 +12,3 @@ This section aims to provide a detailed description of all APIs. If you are look
    :name: toc-api
 
    trinity/index
-   eth/index
