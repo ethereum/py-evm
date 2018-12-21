@@ -35,6 +35,27 @@ def test_is_active(sample_validator_record_params,
     assert validator.is_active == expected
 
 
+@pytest.mark.parametrize(
+    'status,expected',
+    [
+        (ValidatorStatusCode.PENDING_ACTIVATION, False),
+        (ValidatorStatusCode.ACTIVE, False),
+        (ValidatorStatusCode.ACTIVE_PENDING_EXIT, False),
+        (ValidatorStatusCode.EXITED_WITHOUT_PENALTY, True),
+        (ValidatorStatusCode.EXITED_WITH_PENALTY, True),
+    ],
+)
+def test_is_exited(sample_validator_record_params,
+                   status,
+                   expected):
+    validator_record_params = {
+        **sample_validator_record_params,
+        'status': status
+    }
+    validator = ValidatorRecord(**validator_record_params)
+    assert validator.is_exited == expected
+
+
 def test_get_pending_validator():
     pubkey = 123
     withdrawal_credentials = b'\x11' * 32

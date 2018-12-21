@@ -17,6 +17,10 @@ VALIDATOR_RECORD_ACTIVE_STATUSES = {
     ValidatorStatusCode.ACTIVE,
     ValidatorStatusCode.ACTIVE_PENDING_EXIT,
 }
+VALIDATOR_RECORD_EXITED_STATUSES = {
+    ValidatorStatusCode.EXITED_WITH_PENALTY,
+    ValidatorStatusCode.EXITED_WITHOUT_PENALTY,
+}
 
 
 class ValidatorRecord(rlp.Serializable):
@@ -61,9 +65,16 @@ class ValidatorRecord(rlp.Serializable):
     @property
     def is_active(self) -> bool:
         """
-        Returns ``True`` if the validator is active.
+        Return ``True`` if the validator is active.
         """
         return self.status in VALIDATOR_RECORD_ACTIVE_STATUSES
+
+    @property
+    def is_exited(self) -> bool:
+        """
+        Return ``True`` if the validator is exited.
+        """
+        return self.status in VALIDATOR_RECORD_EXITED_STATUSES
 
     @classmethod
     def get_pending_validator(cls,
