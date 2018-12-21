@@ -226,7 +226,7 @@ def test_blockchain_fixtures(fixture_data, fixture):
     try:
         chain = new_chain_from_fixture(fixture)
     except ValueError as e:
-        raise AssertionError("could not load chain for %r" % (fixture_data,)) from e
+        raise AssertionError("could not load chain for {}".format((fixture_data,))) from e
 
     genesis_params = genesis_params_from_fixture(fixture)
     expected_genesis_header = BlockHeader(**genesis_params)
