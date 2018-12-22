@@ -19,6 +19,8 @@ from eth.rlp.sedes import (
     uint64,
     uint384,
 )
+
+from eth.beacon.constants import EMPTY_SIGNATURE
 from eth.beacon._utils.hash import hash_eth2
 
 from .attestations import Attestation
@@ -111,3 +113,17 @@ class BaseBeaconBlock(rlp.Serializable):
     @property
     def num_attestations(self) -> int:
         return len(self.body.attestations)
+
+    @classmethod
+    def create_block_without_signature_root(
+            cls,
+            block: 'BaseBeaconBlock') -> 'BaseBeaconBlock':
+        return cls(
+            slot=block.slot,
+            parent_root=block.parent_root,
+            state_root=block.state_root,
+            randao_reveal=block.randao_reveal,
+            candidate_pow_receipt_root=block.candidate_pow_receipt_root,
+            signature=EMPTY_SIGNATURE,
+            body=block.body,
+        )
