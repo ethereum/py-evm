@@ -3,6 +3,7 @@ from abc import (
     abstractmethod
 )
 import contextlib
+import itertools
 import logging
 from typing import (  # noqa: F401
     cast,
@@ -84,11 +85,14 @@ class BaseState(Configurable, ABC):
     transaction_context_class = None  # type: Type[BaseTransactionContext]
     account_db_class = None  # type: Type[BaseAccountDB]
     transaction_executor = None  # type: Type[BaseTransactionExecutor]
+    prev_hashes_generator_backup = None
 
     def __init__(self, db: BaseDB, execution_context: ExecutionContext, state_root: bytes) -> None:
         self._db = db
         self.execution_context = execution_context
         self.account_db = self.get_account_db_class()(self._db, state_root)
+        if execution_context:
+            self.prev_hashes_generator_backup = execution_context.prev_hashes
 
     #
     # Logging
@@ -197,16 +201,34 @@ class BaseState(Configurable, ABC):
         Return the empty bytestring ``b''`` if the block number is outside of the
         range of available block numbers (typically the last 255 blocks).
         """
+        # Create a copy of the generator so that traversing it doesn't change the
+        # original generator
+        self.prev_hashes_generator_backup, temp_prev_hashes_generator = itertools.tee(
+            self.prev_hashes_generator_backup
+        )
+
         ancestor_depth = self.block_number - block_number - 1
         is_ancestor_depth_out_of_range = (
             ancestor_depth >= MAX_PREV_HEADER_DEPTH or
             ancestor_depth < 0 or
-            ancestor_depth >= len(self.execution_context.prev_hashes)
+            block_number < 0
         )
         if is_ancestor_depth_out_of_range:
             return Hash32(b'')
-        ancestor_hash = self.execution_context.prev_hashes[ancestor_depth]
-        return ancestor_hash
+
+        current_ancestor_depth = 0
+        current_ancestor_hash = None
+        while True:
+            try:
+                current_ancestor_hash = next(temp_prev_hashes_generator)
+            except StopIteration:
+                # Ancestor with specified depth not present
+                return Hash32(b'')
+            if current_ancestor_depth == ancestor_depth:
+                return current_ancestor_hash
+            current_ancestor_depth += 1
+
+        raise Exception("Invariant: unreachable code path")
 
     #
     # Computation

@@ -1,7 +1,7 @@
 import time
 from typing import (
+    Iterable,
     Optional,
-    Tuple,
     Union,
     overload,
 )
@@ -203,7 +203,7 @@ class BlockHeader(rlp.Serializable):
         return header
 
     def create_execution_context(
-            self, prev_hashes: Tuple[Hash32, ...]) -> ExecutionContext:
+            self, prev_hashes: Iterable[Hash32]) -> ExecutionContext:
 
         return ExecutionContext(
             coinbase=self.coinbase,

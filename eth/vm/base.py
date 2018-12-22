@@ -4,7 +4,7 @@ from abc import (
     abstractmethod,
 )
 import contextlib
-import functools
+import itertools
 import logging
 from typing import (
     Any,
@@ -28,7 +28,6 @@ from eth_typing import (
 )
 
 from eth_utils import (
-    to_tuple,
     ValidationError,
 )
 
@@ -258,7 +257,6 @@ class BaseVM(Configurable, ABC):
 
     @classmethod
     @abstractmethod
-    @to_tuple
     def get_prev_hashes(cls,
                         last_block_hash: Hash32,
                         chaindb: BaseChainDB) -> Optional[Iterable[Hash32]]:
@@ -691,8 +689,6 @@ class VM(BaseVM):
             return cls.block_class
 
     @classmethod
-    @functools.lru_cache(maxsize=32)
-    @to_tuple
     def get_prev_hashes(cls,
                         last_block_hash: Hash32,
                         chaindb: BaseChainDB) -> Optional[Iterable[Hash32]]:
@@ -709,7 +705,7 @@ class VM(BaseVM):
                 break
 
     @property
-    def previous_hashes(self) -> Optional[Tuple[Hash32, ...]]:
+    def previous_hashes(self) -> Optional[Iterable[Hash32]]:
         """
         Convenience API for accessing the previous 255 block hashes.
         """
@@ -919,7 +915,7 @@ class VM(BaseVM):
     def state_in_temp_block(self) -> Iterator[BaseState]:
         header = self.block.header
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
-        prev_hashes = (header.hash, ) + self.previous_hashes
+        prev_hashes = itertools.chain((header.hash, ), self.previous_hashes)
 
         state = self.get_state_class()(
             db=self.chaindb.db,
