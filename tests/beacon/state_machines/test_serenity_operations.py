@@ -27,10 +27,12 @@ from eth.beacon.state_machines.forks.serenity.operations import (
         'min_attestation_inclusion_delay,'
         'target_committee_size,'
         'shard_count,'
+        'success,'
     ),
     [
-        (10, 2, 1, 2, 2),
-        (40, 4, 2, 3, 5),
+        (10, 2, 1, 2, 2, True),
+        (10, 2, 1, 2, 2, False),
+        (40, 4, 2, 3, 5, True),
     ]
 )
 def test_process_attestations(genesis_state,
@@ -38,7 +40,8 @@ def test_process_attestations(genesis_state,
                               sample_beacon_block_params,
                               sample_beacon_block_body_params,
                               config,
-                              create_mock_signed_attestation):
+                              create_mock_signed_attestation,
+                              success):
 
     attestation_slot = 0
     current_slot = attestation_slot + config.MIN_ATTESTATION_INCLUSION_DELAY
@@ -77,6 +80,20 @@ def test_process_attestations(genesis_state,
 
     assert len(attestations) > 0
 
+    if not success:
+        # create invalid attestation in the future
+        bad_attestation_data = AttestationData(**sample_attestation_data_params).copy(
+            slot=state.slot + 10,
+        )
+        attestations.append(
+            create_mock_signed_attestation(
+                state,
+                state.shard_committees_at_slots[attestation_slot][0],
+                [0],
+                bad_attestation_data,
+            )
+        )
+
     block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
         attestations=attestations,
     )
@@ -84,10 +101,19 @@ def test_process_attestations(genesis_state,
         slot=current_slot,
         body=block_body
     )
-    new_state = process_attestations(
-        state,
-        block,
-        config
-    )
 
-    assert len(new_state.latest_attestations) == len(attestations)
+    if success:
+        new_state = process_attestations(
+            state,
+            block,
+            config
+        )
+
+        assert len(new_state.latest_attestations) == len(attestations)
+    else:
+        with pytest.raises(ValidationError):
+            new_state = process_attestations(
+                state,
+                block,
+                config
+            )
