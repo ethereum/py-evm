@@ -12,7 +12,6 @@ from eth._utils.datatypes import (
 )
 
 from eth.beacon.db.chain import BaseBeaconChainDB
-from eth.beacon.types.attestations import Attestation
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.states import BeaconState
 
@@ -63,15 +62,6 @@ class BaseBeaconStateMachine(Configurable, ABC):
     @abstractmethod
     def import_block(self, block: BaseBeaconBlock) -> Tuple[BeaconState, BaseBeaconBlock]:
         pass
-
-    #
-    # State transition
-    #
-    @abstractmethod
-    def validate_attestation(self,
-                             attestation: Attestation,
-                             is_validating_signatures: bool=True) -> None:
-        raise NotImplementedError
 
 
 class BeaconStateMachine(BaseBeaconStateMachine):

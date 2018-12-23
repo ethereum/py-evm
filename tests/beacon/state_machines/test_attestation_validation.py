@@ -9,28 +9,10 @@ from eth_utils import (
     ValidationError,
 )
 
-import rlp
-
 from eth.constants import (
     ZERO_HASH32,
 )
 
-from eth._utils import bls
-from eth._utils.bitfield import (
-    get_empty_bitfield,
-)
-from eth.beacon._utils.hash import (
-    hash_eth2,
-)
-from eth.beacon.aggregation import (
-    aggregate_votes,
-)
-from eth.beacon.enums import (
-    SignatureDomain,
-)
-from eth.beacon.helpers import (
-    get_domain,
-)
 from eth.beacon.state_machines.forks.serenity.validation import (
     validate_serenity_attestation_aggregate_signature,
     validate_serenity_attestation_latest_crosslink_root,
@@ -39,48 +21,7 @@ from eth.beacon.state_machines.forks.serenity.validation import (
     validate_serenity_attestation_shard_block_root,
     validate_serenity_attestation_slot,
 )
-from eth.beacon.types.attestations import Attestation
 from eth.beacon.types.attestation_data import AttestationData
-
-
-def create_mock_signed_attestation(state,
-                                   shard_committee,
-                                   voting_committee_indices,
-                                   attestation_data,
-                                   privkeys):
-    message = hash_eth2(
-        rlp.encode(attestation_data) +
-        (0).to_bytes(1, "big")
-    )
-    # participants sign message
-    signatures = [
-        bls.sign(
-            message,
-            privkeys[shard_committee.committee[committee_index]],
-            domain=get_domain(
-                fork_data=state.fork_data,
-                slot=attestation_data.slot,
-                domain_type=SignatureDomain.DOMAIN_ATTESTATION,
-            )
-        )
-        for committee_index in voting_committee_indices
-    ]
-
-    # aggregate signatures and construct participant bitfield
-    participation_bitfield, aggregate_signature = aggregate_votes(
-        bitfield=get_empty_bitfield(len(shard_committee.committee)),
-        sigs=(),
-        voting_sigs=signatures,
-        voting_committee_indices=voting_committee_indices,
-    )
-
-    # create attestation from attestation_data, particpipant_bitfield, and signature
-    return Attestation(
-        data=attestation_data,
-        participation_bitfield=participation_bitfield,
-        custody_bitfield=b'',
-        aggregate_signature=aggregate_signature,
-    )
 
 
 @pytest.mark.parametrize(
@@ -301,8 +242,9 @@ def test_validate_serenity_attestation_shard_block_root(sample_attestation_data_
 def test_validate_serenity_attestation_aggregate_signature(genesis_state,
                                                            epoch_length,
                                                            random,
-                                                           privkeys,
                                                            sample_attestation_data_params,
+                                                           create_mock_signed_attestation,
+                                                           config,
                                                            is_valid):
     state = genesis_state
 
@@ -326,7 +268,6 @@ def test_validate_serenity_attestation_aggregate_signature(genesis_state,
         shard_committee,
         voting_committee_indices,
         attestation_data,
-        privkeys,
     )
 
     if is_valid:

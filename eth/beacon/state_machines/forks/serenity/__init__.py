@@ -1,6 +1,5 @@
 from typing import Type  # noqa: F401
 
-from eth.beacon.types.attestations import Attestation
 from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
 from eth.beacon.types.states import BeaconState  # noqa: F401
 
@@ -11,7 +10,6 @@ from .configs import SERENITY_CONFIG
 from .blocks import SerenityBeaconBlock
 from .states import SerenityBeaconState
 from .state_transitions import SerenityStateTransition
-from .validation import validate_serenity_attestation
 
 
 class SerenityStateMachine(BeaconStateMachine):
@@ -23,14 +21,3 @@ class SerenityStateMachine(BeaconStateMachine):
     state_class = SerenityBeaconState  # type: Type[BeaconState]
     state_transition_class = SerenityStateTransition  # type: Type[BaseStateTransition]
     config = SERENITY_CONFIG
-
-    def validate_attestation(self,
-                             attestation: Attestation,
-                             is_validating_signatures: bool=True) -> None:
-        validate_serenity_attestation(
-            self.state,
-            attestation,
-            self.config.EPOCH_LENGTH,
-            self.config.MIN_ATTESTATION_INCLUSION_DELAY,
-            is_validating_signatures,
-        )

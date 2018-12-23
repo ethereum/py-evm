@@ -7,6 +7,7 @@ from eth._utils.datatypes import (
     Configurable,
 )
 
+from eth.beacon.types.attestations import Attestation
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.states import BeaconState
 
@@ -34,3 +35,12 @@ class BaseStateTransition(Configurable, ABC):
     @abstractmethod
     def per_epoch_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
         pass
+
+    #
+    # Operation validations
+    #
+    @abstractmethod
+    def validate_attestation(self,
+                             attestation: Attestation,
+                             is_validating_signatures: bool=True) -> None:
+        raise NotImplementedError
