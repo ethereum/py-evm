@@ -53,6 +53,16 @@ class BeaconBlockBody(rlp.Serializable):
             exits=exits,
         )
 
+    @property
+    def is_empty(self) -> bool:
+        return (
+            len(self.proposer_slashings) == 0 and
+            len(self.casper_slashings) == 0 and
+            len(self.attestations) == 0 and
+            len(self.deposits) == 0 and
+            len(self.exits) == 0
+        )
+
 
 class BaseBeaconBlock(rlp.Serializable):
     fields = [

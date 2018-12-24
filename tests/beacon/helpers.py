@@ -1,11 +1,17 @@
+from eth_utils import to_tuple
+
+from eth._utils import bls
+
+from eth.beacon.constants import (
+    EMPTY_SIGNATURE,
+)
 from eth.beacon.enums import (
     ValidatorStatusCode,
 )
+from eth.beacon.types.deposit_input import DepositInput
 from eth.beacon.types.validator_records import (
     ValidatorRecord,
 )
-
-from eth_utils import to_tuple
 
 
 def mock_validator_record(pubkey):
@@ -33,3 +39,16 @@ def get_pseudo_chain(length, genesis_block):
             parent_root=block.root
         )
         yield block
+
+
+def sign_proof_of_possession(deposit_input, privkey, domain):
+    return bls.sign(deposit_input.root, privkey, domain)
+
+
+def make_deposit_input(pubkey, withdrawal_credentials, randao_commitment):
+    return DepositInput(
+        pubkey=pubkey,
+        withdrawal_credentials=withdrawal_credentials,
+        randao_commitment=randao_commitment,
+        proof_of_possession=EMPTY_SIGNATURE,
+    )

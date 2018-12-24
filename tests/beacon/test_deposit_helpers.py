@@ -5,11 +5,6 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth._utils import bls
-
-from eth.beacon.constants import (
-    EMPTY_SIGNATURE,
-)
 from eth.beacon.deposit_helpers import (
     add_pending_validator,
     get_min_empty_validator_index,
@@ -26,21 +21,12 @@ from eth.beacon.helpers import (
     get_domain,
 )
 from eth.beacon.types.states import BeaconState
-from eth.beacon.types.deposit_input import DepositInput
 from eth.beacon.types.validator_records import ValidatorRecord
 
-
-def sign_proof_of_possession(deposit_input, privkey, domain):
-    return bls.sign(deposit_input.root, privkey, domain)
-
-
-def make_deposit_input(pubkey, withdrawal_credentials, randao_commitment):
-    return DepositInput(
-        pubkey=pubkey,
-        withdrawal_credentials=withdrawal_credentials,
-        randao_commitment=randao_commitment,
-        proof_of_possession=EMPTY_SIGNATURE,
-    )
+from tests.beacon.helpers import (
+    make_deposit_input,
+    sign_proof_of_possession,
+)
 
 
 @pytest.mark.parametrize(
