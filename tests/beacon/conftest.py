@@ -123,6 +123,9 @@ def sample_beacon_block_body_params():
         'proposer_slashings': (),
         'casper_slashings': (),
         'attestations': (),
+        'custody_reseeds': (),
+        'custody_challenges': (),
+        'custody_responses': (),
         'deposits': (),
         'exits': (),
     }
@@ -157,6 +160,7 @@ def sample_beacon_state_params(sample_fork_data_params):
         'shard_committees_at_slots': (),
         'persistent_committees': (),
         'persistent_committee_reassignments': (),
+        'custody_challenges': (),
         'previous_justified_slot': 0,
         'justified_slot': 0,
         'justification_bitfield': b'\x00',
@@ -191,9 +195,10 @@ def sample_crosslink_record_params():
 def sample_deposit_input_params():
     return {
         'pubkey': 123,
-        'proof_of_possession': (0, 0),
         'withdrawal_credentials': b'\11' * 32,
         'randao_commitment': b'\11' * 32,
+        'custody_commitment': ZERO_HASH32,
+        'proof_of_possession': (0, 0),
     }
 
 
@@ -307,7 +312,10 @@ def sample_validator_record_params():
         'randao_layers': 1,
         'status': 1,
         'latest_status_change_slot': 0,
-        'exit_count': 0
+        'exit_count': 0,
+        'custody_commitment': ZERO_HASH32,
+        'latest_custody_reseed_slot': 0,
+        'penultimate_custody_reseed_slot': 0,
     }
 
 
@@ -549,6 +557,9 @@ def genesis_validators(init_validator_keys,
             status=ValidatorStatusCode.ACTIVE,
             latest_status_change_slot=0,
             exit_count=0,
+            custody_commitment=ZERO_HASH32,
+            latest_custody_reseed_slot=0,
+            penultimate_custody_reseed_slot=0,
         ) for pub in init_validator_keys
     )
 

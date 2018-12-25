@@ -40,12 +40,14 @@ def test_get_pending_validator():
     withdrawal_credentials = b'\x11' * 32
     randao_commitment = b'\x22' * 32
     latest_status_change_slot = 10
+    custody_commitment = b'\x33' * 32
 
     validator = ValidatorRecord.get_pending_validator(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
         latest_status_change_slot=latest_status_change_slot,
+        custody_commitment=custody_commitment,
     )
 
     assert validator.pubkey == pubkey

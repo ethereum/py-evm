@@ -34,11 +34,12 @@ def sign_proof_of_possession(deposit_input, privkey, domain):
     return bls.sign(deposit_input.root, privkey, domain)
 
 
-def make_deposit_input(pubkey, withdrawal_credentials, randao_commitment):
+def make_deposit_input(pubkey, withdrawal_credentials, randao_commitment, custody_commitment):
     return DepositInput(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
+        custody_commitment=custody_commitment,
         proof_of_possession=EMPTY_SIGNATURE,
     )
 
@@ -158,6 +159,7 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
     privkey = privkeys[0]
     pubkey = pubkeys[0]
     withdrawal_credentials = b'\x34' * 32
+    custody_commitment = b'\x12' * 32
     randao_commitment = b'\x56' * 32
     domain = get_domain(
         state.fork_data,
@@ -169,6 +171,7 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
+        custody_commitment=custody_commitment,
     )
     if expected is True:
         proof_of_possession = sign_proof_of_possession(deposit_input, privkey, domain)
@@ -179,6 +182,7 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
             proof_of_possession=proof_of_possession,
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
+            custody_commitment=custody_commitment,
         )
     else:
         proof_of_possession = b'\x11' * 32
@@ -189,6 +193,7 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
                 proof_of_possession=proof_of_possession,
                 withdrawal_credentials=withdrawal_credentials,
                 randao_commitment=randao_commitment,
+                custody_commitment=custody_commitment,
             )
 
 
@@ -205,6 +210,7 @@ def test_process_deposit(sample_beacon_state_params,
     pubkey_1 = pubkeys[0]
     deposit = 32 * denoms.gwei
     withdrawal_credentials = b'\x34' * 32
+    custody_commitment = b'\x11' * 32
     randao_commitment = b'\x56' * 32
     domain = get_domain(
         state.fork_data,
@@ -216,6 +222,7 @@ def test_process_deposit(sample_beacon_state_params,
         pubkey=pubkey_1,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
+        custody_commitment=custody_commitment,
     )
     proof_of_possession = sign_proof_of_possession(deposit_input, privkey_1, domain)
     # Add the first validator
@@ -226,6 +233,7 @@ def test_process_deposit(sample_beacon_state_params,
         proof_of_possession=proof_of_possession,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
+        custody_commitment=custody_commitment,
         zero_balance_validator_ttl=zero_balance_validator_ttl,
     )
 
@@ -245,6 +253,7 @@ def test_process_deposit(sample_beacon_state_params,
         pubkey=pubkey_2,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
+        custody_commitment=custody_commitment,
     )
     proof_of_possession = sign_proof_of_possession(deposit_input, privkey_2, domain)
     result_state, index = process_deposit(
@@ -254,6 +263,7 @@ def test_process_deposit(sample_beacon_state_params,
         proof_of_possession=proof_of_possession,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
+        custody_commitment=custody_commitment,
         zero_balance_validator_ttl=zero_balance_validator_ttl,
     )
     assert len(result_state.validator_registry) == 2
@@ -278,6 +288,7 @@ def test_process_deposit(sample_beacon_state_params,
         pubkey=pubkey_3,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
+        custody_commitment=custody_commitment,
     )
     proof_of_possession = sign_proof_of_possession(deposit_input, privkey_3, domain)
     result_state, index = process_deposit(
@@ -287,6 +298,7 @@ def test_process_deposit(sample_beacon_state_params,
         proof_of_possession=proof_of_possession,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
+        custody_commitment=custody_commitment,
         zero_balance_validator_ttl=zero_balance_validator_ttl,
     )
     # Overwrite the second validator.

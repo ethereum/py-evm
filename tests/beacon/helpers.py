@@ -17,6 +17,9 @@ def mock_validator_record(pubkey):
         status=ValidatorStatusCode.ACTIVE,
         latest_status_change_slot=0,
         exit_count=0,
+        custody_commitment=b'\x55' * 32,
+        latest_custody_reseed_slot=0,
+        penultimate_custody_reseed_slot=0,
     )
 
 

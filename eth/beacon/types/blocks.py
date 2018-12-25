@@ -39,10 +39,13 @@ from eth.beacon.typing import (
 
 
 from .attestations import Attestation
-from .proposer_slashings import ProposerSlashing
+from .custody_challenges import CustodyChallenge
+from .custody_reseeds import CustodyReseed
+from .custody_responses import CustodyResponse
 from .casper_slashings import CasperSlashing
 from .deposits import Deposit
 from .exits import Exit
+from .proposer_slashings import ProposerSlashing
 
 if TYPE_CHECKING:
     from eth.beacon.db.chain import BaseBeaconChainDB  # noqa: F401
@@ -53,20 +56,29 @@ class BaseBeaconBlockBody(rlp.Serializable):
         ('proposer_slashings', CountableList(ProposerSlashing)),
         ('casper_slashings', CountableList(CasperSlashing)),
         ('attestations', CountableList(Attestation)),
+        ('custody_reseeds', CountableList(CustodyReseed)),
+        ('custody_challenges', CountableList(CustodyChallenge)),
+        ('custody_responses', CountableList(CustodyResponse)),
         ('deposits', CountableList(Deposit)),
         ('exits', CountableList(Exit)),
     ]
 
     def __init__(self,
-                 proposer_slashings: Sequence[int],
-                 casper_slashings: Sequence[int],
-                 attestations: Sequence[int],
-                 deposits: Sequence[int],
-                 exits: Sequence[int])-> None:
+                 proposer_slashings: Sequence[ProposerSlashing],
+                 casper_slashings: Sequence[CasperSlashing],
+                 attestations: Sequence[Attestation],
+                 custody_reseeds: Sequence[CustodyReseed],
+                 custody_challenges: Sequence[CustodyResponse],
+                 custody_responses: Sequence[CustodyResponse],
+                 deposits: Sequence[Deposit],
+                 exits: Sequence[Exit])-> None:
         super().__init__(
             proposer_slashings=proposer_slashings,
             casper_slashings=casper_slashings,
             attestations=attestations,
+            custody_reseeds=custody_reseeds,
+            custody_challenges=custody_challenges,
+            custody_responses=custody_responses,
             deposits=deposits,
             exits=exits,
         )
@@ -166,6 +178,9 @@ class BeaconBlock(BaseBeaconBlock):
             proposer_slashings=block.body.proposer_slashings,
             casper_slashings=block.body.casper_slashings,
             attestations=block.body.attestations,
+            custody_reseeds=block.body.custody_reseeds,
+            custody_challenges=block.body.custody_challenges,
+            custody_responses=block.body.custody_responses,
             deposits=block.body.deposits,
             exits=block.body.exits,
         )
