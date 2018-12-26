@@ -44,6 +44,7 @@ class BeaconState(rlp.Serializable):
 
         # Validator registry
         ('validator_registry', CountableList(ValidatorRecord)),
+        ('validator_balances', CountableList(uint64)),
         ('validator_registry_latest_change_slot', uint64),
         ('validator_registry_exit_count', uint64),
         ('validator_registry_delta_chain_tip', hash32),  # For light clients to easily track delta
@@ -89,6 +90,7 @@ class BeaconState(rlp.Serializable):
             finalized_slot: int,
             processed_pow_receipt_root: Hash32,
             validator_registry: Sequence[ValidatorRecord]=(),
+            validator_balances: Sequence[int]=(),
             shard_committees_at_slots: Sequence[Sequence[ShardCommittee]]=(),
             persistent_committees: Sequence[Sequence[int]]=(),
             persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=(),
@@ -106,6 +108,7 @@ class BeaconState(rlp.Serializable):
             fork_data=fork_data,
             # Validator registry
             validator_registry=validator_registry,
+            validator_balances=validator_balances,
             validator_registry_latest_change_slot=validator_registry_latest_change_slot,
             validator_registry_exit_count=validator_registry_exit_count,
             validator_registry_delta_chain_tip=validator_registry_delta_chain_tip,
@@ -160,10 +163,16 @@ class BeaconState(rlp.Serializable):
 
     def update_validator(self,
                          validator_index: int,
-                         validator: ValidatorRecord) -> 'BeaconState':
+                         validator: ValidatorRecord,
+                         balance: int) -> 'BeaconState':
         validator_registry = list(self.validator_registry)
         validator_registry[validator_index] = validator
+
+        validator_balances = list(self.validator_balances)
+        validator_balances[validator_index] = balance
+
         updated_state = self.copy(
             validator_registry=tuple(validator_registry),
+            validator_balances=tuple(validator_balances),
         )
         return updated_state
