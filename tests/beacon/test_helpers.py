@@ -1,4 +1,6 @@
+import copy
 import pytest
+import random
 
 from eth_utils import (
     denoms,
@@ -12,6 +14,7 @@ from eth.constants import (
 
 from eth.beacon.enums import (
     ValidatorStatusCode,
+    SignatureDomain,
 )
 from eth.beacon.types.attestation_data import (
     AttestationData,
@@ -19,6 +22,7 @@ from eth.beacon.types.attestation_data import (
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.fork_data import ForkData
 from eth.beacon.types.shard_committees import ShardCommittee
+from eth.beacon.types.slashable_vote_data import SlashableVoteData
 from eth.beacon.types.states import BeaconState
 from eth.beacon.types.validator_records import ValidatorRecord
 from eth.beacon.helpers import (
@@ -34,10 +38,20 @@ from eth.beacon.helpers import (
     get_new_validator_registry_delta_chain_tip,
     _get_shard_committees_at_slot,
     get_block_committees_info,
+    get_pubkey_for_indices,
+    generate_aggregate_pubkeys,
+    verify_vote_count,
+    verify_slashable_vote_data_signature,
+    verify_slashable_vote_data,
     is_double_vote,
     is_surround_vote,
 )
+import eth._utils.bls as bls
 
+from hypothesis import (
+    given,
+    strategies as st,
+)
 
 from tests.beacon.helpers import (
     get_pseudo_chain,
@@ -705,6 +719,210 @@ def test_get_domain(pre_fork_version,
         slot=current_slot,
         domain_type=domain_type,
     )
+
+
+@given(st.data())
+def test_get_pubkey_for_indices(genesis_validators, data):
+    indices = data.draw(st.lists(st.integers(min_value=0,
+                                             max_value=len(genesis_validators)-1)))
+    pubkeys = get_pubkey_for_indices(genesis_validators, indices)
+    all_pubkeys = tuple(
+        map(lambda validator: validator.pubkey, genesis_validators)
+    )
+
+    for pubkey in pubkeys:
+        assert pubkey in all_pubkeys
+
+
+def _list_and_index(data, max_size=None, elements=st.integers()):
+    '''
+    Hypothesis helper function cribbed from their docs on @composite
+    '''
+    xs = data.draw(st.lists(elements, max_size=max_size))
+    i = data.draw(st.integers(min_value=0, max_value=max(len(xs) - 1, 0)))
+    return (xs, i)
+
+
+@given(st.data())
+def test_generate_aggregate_pubkeys(genesis_validators, sample_slashable_vote_data_params, data):
+    (indices, some_index) = _list_and_index(data, elements=st.integers(min_value=0,
+                                                                       max_value=len(genesis_validators)-1))
+    proof_of_custody_0_indices = indices[:some_index]
+    proof_of_custody_1_indices = indices[some_index:]
+
+    key = "aggregate_signature_poc_0_indices"
+    sample_slashable_vote_data_params[key] = proof_of_custody_0_indices
+    key = "aggregate_signature_poc_1_indices"
+    sample_slashable_vote_data_params[key] = proof_of_custody_1_indices
+
+    votes = SlashableVoteData(**sample_slashable_vote_data_params)
+
+    keys = generate_aggregate_pubkeys(genesis_validators, votes)
+    assert len(keys) == 2
+
+    (poc_0_key, poc_1_key) = keys
+
+    poc_0_keys = get_pubkey_for_indices(genesis_validators, proof_of_custody_0_indices)
+    poc_1_keys = get_pubkey_for_indices(genesis_validators, proof_of_custody_1_indices)
+
+    assert bls.aggregate_pubkeys(poc_0_keys) == poc_0_key
+    assert bls.aggregate_pubkeys(poc_1_keys) == poc_1_key
+
+
+@given(st.data())
+def test_verify_vote_count(max_casper_votes, sample_slashable_vote_data_params, data):
+    (indices, some_index) = _list_and_index(data, max_size=max_casper_votes)
+    proof_of_custody_0_indices = indices[:some_index]
+    proof_of_custody_1_indices = indices[some_index:]
+
+    key = "aggregate_signature_poc_0_indices"
+    sample_slashable_vote_data_params[key] = proof_of_custody_0_indices
+    key = "aggregate_signature_poc_1_indices"
+    sample_slashable_vote_data_params[key] = proof_of_custody_1_indices
+
+    votes = SlashableVoteData(**sample_slashable_vote_data_params)
+
+    assert votes.vote_count <= max_casper_votes
+
+
+def _select_indices(max, count):
+    '''
+    Randomly select some validator indices
+    '''
+    indices = []
+    for i in range(count):
+        next_index = random.randint(0, max-1)
+        while next_index in indices:
+            next_index = random.randint(0, max-1)
+        indices.append(next_index)
+    return indices
+
+def _get_indices_aggregate_pubkey_and_signatures(num_validators, num_indices, validators, message, privkeys):
+    indices = _select_indices(num_validators, num_indices)
+    keys = [(v.pubkey, privkeys[i]) for (i, v) in enumerate(validators) if i in indices]
+    pubkeys = tuple(
+        map(lambda pair: pair[0], keys)
+    )
+    aggregate_pubkey = bls.aggregate_pubkeys(pubkeys)
+    privkeys = tuple(
+        map(lambda pair: pair[1], keys)
+    )
+    signatures = tuple(
+        map(lambda key: bls.sign(message,
+                                 key,
+                                 SignatureDomain.DOMAIN_ATTESTATION), privkeys)
+    )
+    return (indices, signatures)
+
+
+def _correct_slashable_vote_data_params(params, validators, messages, privkeys):
+    valid_params = copy.deepcopy(params)
+
+    num_validators = len(validators)
+    num_indices = 5
+
+    key = "aggregate_signature_poc_0_indices"
+    (poc_0_indices,
+     poc_0_signatures) = _get_indices_aggregate_pubkey_and_signatures(num_validators,
+                                                                      num_indices,
+                                                                      validators,
+                                                                      messages[0],
+                                                                      privkeys)
+    valid_params[key] = poc_0_indices
+
+    key = "aggregate_signature_poc_1_indices"
+    # NOTE: does not guarantee non-empty intersection
+    (poc_1_indices,
+     poc_1_signatures) = _get_indices_aggregate_pubkey_and_signatures(num_validators,
+                                                                      num_indices,
+                                                                      validators,
+                                                                      messages[1],
+                                                                      privkeys)
+    valid_params[key] = poc_1_indices
+
+    signatures = poc_0_signatures + poc_1_signatures
+    aggregate_signature = bls.aggregate_signatures(signatures)
+
+    valid_params["aggregate_signature"] = aggregate_signature
+
+    return valid_params
+
+
+def _corrupt_signature(params):
+    params = copy.deepcopy(params)
+    params["aggregate_signature"] = bls.sign(bytes.fromhex('deadbeefcafe'),
+                                             0,
+                                             SignatureDomain.DOMAIN_ATTESTATION)
+    return params
+
+
+def _corrupt_vote_count(params):
+    params = copy.deepcopy(params)
+    params["aggregate_signature_poc_0_indices"].append(0)
+    return params
+
+
+def _create_slashable_vote_data_messages(params):
+    # TODO update when we move to `ssz` tree hash
+    votes = SlashableVoteData(**params)
+    return votes.messages
+
+
+def test_verify_slashable_vote_data_signature(privkeys,
+                                              sample_beacon_state_params,
+                                              genesis_validators,
+                                              sample_slashable_vote_data_params):
+    sample_beacon_state_params["validator_registry"] = genesis_validators
+    state = BeaconState(**sample_beacon_state_params)
+
+    # NOTE: we can do this before "correcting" the params as they touch disjoint subsets of the provided params
+    messages = _create_slashable_vote_data_messages(sample_slashable_vote_data_params)
+
+    valid_params = _correct_slashable_vote_data_params(sample_slashable_vote_data_params, genesis_validators, messages, privkeys)
+    valid_votes = SlashableVoteData(**valid_params)
+    assert verify_slashable_vote_data_signature(state, valid_votes)
+
+    invalid_params = _corrupt_signature(valid_params)
+    invalid_votes = SlashableVoteData(**invalid_params)
+    assert not verify_slashable_vote_data_signature(state, invalid_votes)
+
+def _run_verify_slashable_vote(params, state, max_casper_votes, should_fail):
+    votes = SlashableVoteData(**params)
+    result = verify_slashable_vote_data(state, votes, max_casper_votes)
+    if should_fail:
+        assert not result
+    else:
+        assert result
+
+
+@pytest.mark.parametrize(
+    (
+        'param_mapper,'
+        'should_fail'
+    ),
+    [
+        (lambda params: params, False),
+        (lambda params: _corrupt_vote_count(params), True),
+        (lambda params: _corrupt_signature(params), True),
+        (lambda params: _corrupt_vote_count(_corrupt_signature(params)), True),
+    ],
+)
+def test_verify_slashable_vote_data(param_mapper,
+                                    should_fail,
+                                    privkeys,
+                                    sample_beacon_state_params,
+                                    genesis_validators,
+                                    sample_slashable_vote_data_params,
+                                    max_casper_votes):
+    sample_beacon_state_params["validator_registry"] = genesis_validators
+    state = BeaconState(**sample_beacon_state_params)
+
+    # NOTE: we can do this before "correcting" the params as they touch disjoint subsets of the provided params
+    messages = _create_slashable_vote_data_messages(sample_slashable_vote_data_params)
+
+    params = _correct_slashable_vote_data_params(sample_slashable_vote_data_params, genesis_validators, messages, privkeys)
+    params = param_mapper(params)
+    _run_verify_slashable_vote(params, state, max_casper_votes, should_fail)
 
 
 def test_is_double_vote(sample_attestation_data_params):
