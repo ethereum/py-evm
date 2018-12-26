@@ -115,7 +115,7 @@ class BaseBeaconBlock(rlp.Serializable):
         return len(self.body.attestations)
 
     @classmethod
-    def create_block_without_signature_root(
+    def get_block_without_signature_root(
             cls,
             block: 'BaseBeaconBlock') -> 'BaseBeaconBlock':
         return cls(
@@ -126,4 +126,4 @@ class BaseBeaconBlock(rlp.Serializable):
             candidate_pow_receipt_root=block.candidate_pow_receipt_root,
             signature=EMPTY_SIGNATURE,
             body=block.body,
-        )
+        ).root
