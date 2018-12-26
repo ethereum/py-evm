@@ -43,6 +43,6 @@ class SerenityStateTransition(BaseStateTransition):
         state = process_attestations(state, block, self.config)
         return state
 
-    def per_epoch_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
+    def per_epoch_transition(self, state: BeaconState) -> BeaconState:
         # TODO
         return state
