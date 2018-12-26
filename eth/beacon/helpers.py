@@ -350,11 +350,12 @@ def get_attestation_participants(state: 'BeaconState',
 #
 # Misc
 #
-def get_effective_balance(validator: 'ValidatorRecord', max_deposit: int) -> int:
+def get_effective_balance(validator_balances: Sequence[int], index: int, max_deposit: int) -> int:
     """
-    Return the effective balance (also known as "balance at stake") for the ``validator``.
+    Return the effective balance (also known as "balance at stake") for a
+    ``validator`` with the given ``index``.
     """
-    return min(validator.balance, max_deposit * denoms.gwei)
+    return min(validator_balances[index], max_deposit * denoms.gwei)
 
 
 def get_new_validator_registry_delta_chain_tip(current_validator_registry_delta_chain_tip: Hash32,
