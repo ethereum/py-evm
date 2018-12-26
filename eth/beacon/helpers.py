@@ -419,7 +419,7 @@ def get_pubkey_for_indices(validators: Sequence['ValidatorRecord'],
 
 
 @to_tuple
-def generate_aggregate_pubkeys(state: 'BeaconState',
+def generate_aggregate_pubkeys(validators: Sequence['ValidatorRecord'],
                                vote_data: 'SlashableVoteData') -> Iterable[int]:
     """
     Compute the aggregate pubkey we expect based on
@@ -428,7 +428,7 @@ def generate_aggregate_pubkeys(state: 'BeaconState',
     proof_of_custody_0_indices = vote_data.aggregate_signature_poc_0_indices
     proof_of_custody_1_indices = vote_data.aggregate_signature_poc_1_indices
     all_indices = (proof_of_custody_0_indices, proof_of_custody_1_indices)
-    get_pubkeys = functools.partial(get_pubkey_for_indices, state.validators)
+    get_pubkeys = functools.partial(get_pubkey_for_indices, validators)
     return map(
         bls.aggregate_pubkeys,
         map(get_pubkeys, all_indices),
@@ -447,7 +447,7 @@ def verify_slashable_vote_data_signature(state: 'BeaconState',
     """
     Ensure we have a valid aggregate signature for the ``vote_data``.
     """
-    pubkeys = generate_aggregate_pubkeys(state, vote_data)
+    pubkeys = generate_aggregate_pubkeys(state.validators, vote_data)
 
     messages = vote_data.messages
 
