@@ -28,7 +28,7 @@ def validate_proposer_signature(state: BeaconState,
                                 block: BaseBeaconBlock,
                                 beacon_chain_shard_number: int,
                                 epoch_length: int) -> None:
-    block_without_signature_root = BaseBeaconBlock.create_block_without_signature_root(block).root
+    block_without_signature_root = BaseBeaconBlock.get_block_without_signature_root(block)
 
     proposal_root = ProposalSignedData(
         state.slot,
