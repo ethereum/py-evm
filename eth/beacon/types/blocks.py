@@ -118,12 +118,6 @@ class BaseBeaconBlock(rlp.Serializable):
     def get_block_without_signature_root(
             cls,
             block: 'BaseBeaconBlock') -> Hash32:
-        return cls(
-            slot=block.slot,
-            parent_root=block.parent_root,
-            state_root=block.state_root,
-            randao_reveal=block.randao_reveal,
-            candidate_pow_receipt_root=block.candidate_pow_receipt_root,
-            signature=EMPTY_SIGNATURE,
-            body=block.body,
+        return block.copy(
+            signature=EMPTY_SIGNATURE
         ).root

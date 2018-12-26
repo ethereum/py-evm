@@ -30,6 +30,7 @@ def validate_proposer_signature(state: BeaconState,
                                 epoch_length: int) -> None:
     block_without_signature_root = BaseBeaconBlock.get_block_without_signature_root(block)
 
+    # TODO: Replace this root with tree hash root
     proposal_root = ProposalSignedData(
         state.slot,
         beacon_chain_shard_number,
@@ -40,9 +41,12 @@ def validate_proposer_signature(state: BeaconState,
     beacon_proposer_index = get_beacon_proposer_index(state, state.slot, epoch_length)
     proposer_pubkey = state.validator_registry[beacon_proposer_index].pubkey
 
-    if not verify(
-            pubkey=proposer_pubkey,
-            message=proposal_root,
-            signature=block.signature,
-            domain=get_domain(state.fork_data, state.slot, SignatureDomain.DOMAIN_PROPOSAL)):
+    is_valid_signature = verify(
+        pubkey=proposer_pubkey,
+        message=proposal_root,
+        signature=block.signature,
+        domain=get_domain(state.fork_data, state.slot, SignatureDomain.DOMAIN_PROPOSAL)
+    )
+
+    if not is_valid_signature:
         raise ValidationError("Invalid Proposer Signature on block")

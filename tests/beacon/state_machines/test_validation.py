@@ -4,6 +4,10 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.beacon.enums import (
+    SignatureDomain,
+)
+
 from eth.beacon.state_machines.validation import (
     validate_proposer_signature,
 )
@@ -72,7 +76,7 @@ def test_validate_proposer_signature(
         signature=bls.sign(
             message=proposal_root,
             privkey=proposer_privkey,
-            domain=2,
+            domain=SignatureDomain.DOMAIN_PROPOSAL,
         ),
     )
 
