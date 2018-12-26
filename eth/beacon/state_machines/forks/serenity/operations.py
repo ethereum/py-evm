@@ -10,8 +10,7 @@ from .validation import (
 
 def process_attestations(state: BeaconState,
                          block: BaseBeaconBlock,
-                         config: BeaconConfig,
-                         is_validating_signatures: bool=True) -> BeaconState:
+                         config: BeaconConfig) -> BeaconState:
     """
     Implements 'per-block-processing.operations.attestations' portion of Phase 0 spec:
     https://github.com/ethereum/eth2.0-specs/blob/master/specs/core/0_beacon-chain.md#attestations-1
@@ -27,7 +26,6 @@ def process_attestations(state: BeaconState,
             attestation,
             config.EPOCH_LENGTH,
             config.MIN_ATTESTATION_INCLUSION_DELAY,
-            is_validating_signatures,
         )
 
     # update_latest_attestations

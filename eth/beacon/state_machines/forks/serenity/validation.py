@@ -37,8 +37,7 @@ from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
 def validate_serenity_attestation(state: Type[BeaconState],
                                   attestation: Attestation,
                                   epoch_length: int,
-                                  min_attestation_inclusion_delay: int,
-                                  is_validating_signatures: bool=True) -> None:
+                                  min_attestation_inclusion_delay: int) -> None:
     """
     Validate the given ``attestation``.
     Raise ``ValidationError`` if it's invalid.
@@ -75,12 +74,11 @@ def validate_serenity_attestation(state: Type[BeaconState],
 
     validate_serenity_attestation_shard_block_root(attestation.data)
 
-    if is_validating_signatures:
-        validate_serenity_attestation_aggregate_signature(
-            state,
-            attestation,
-            epoch_length,
-        )
+    validate_serenity_attestation_aggregate_signature(
+        state,
+        attestation,
+        epoch_length,
+    )
 
 
 def validate_serenity_attestation_slot(attestation_data: AttestationData,
