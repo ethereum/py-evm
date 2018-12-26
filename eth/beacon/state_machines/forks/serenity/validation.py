@@ -11,6 +11,10 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
+from eth._utils import bls as bls
+from eth.beacon._utils.hash import (
+    hash_eth2,
+)
 
 from eth.beacon.enums import (
     SignatureDomain,
@@ -19,12 +23,6 @@ from eth.beacon.helpers import (
     get_attestation_participants,
     get_block_root,
     get_domain,
-)
-from eth._utils import (
-    bls
-)
-from eth.beacon._utils.hash import (
-    hash_eth2,
 )
 from eth.beacon.types.states import BeaconState  # noqa: F401
 from eth.beacon.types.attestations import Attestation  # noqa: F401

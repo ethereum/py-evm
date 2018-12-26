@@ -39,6 +39,6 @@ def process_attestations(state: BeaconState,
         for attestation in block.body.attestations
     )
     state = state.copy(
-        latest_attestations=state.latest_attestations + additional_pending_attestations
+        latest_attestations=state.latest_attestations + additional_pending_attestations,
     )
     return state

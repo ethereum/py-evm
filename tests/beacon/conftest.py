@@ -64,7 +64,7 @@ DEFAULT_NUM_VALIDATORS = 40
 
 @pytest.fixture(scope="session")
 def privkeys():
-    return [int.from_bytes(hash_eth2(str(i).encode('utf-8'))[:4], 'big') for i in range(50)]
+    return [int.from_bytes(hash_eth2(str(i).encode('utf-8'))[:4], 'big') for i in range(100)]
 
 
 @pytest.fixture(scope="session")
