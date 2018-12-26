@@ -131,12 +131,11 @@ def test_get_element_from_recent_list(target_list,
         (128, 128, False),
     ],
 )
-def test_get_block_root(
-        current_block_number,
-        target_slot,
-        success,
-        epoch_length,
-        sample_block):
+def test_get_block_root(current_block_number,
+                        target_slot,
+                        success,
+                        epoch_length,
+                        sample_block):
     blocks, latest_block_roots = generate_mock_latest_block_roots(
         sample_block,
         current_block_number,

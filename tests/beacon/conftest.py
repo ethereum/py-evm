@@ -599,4 +599,3 @@ def create_mock_signed_attestation(privkeys):
         )
 
     return create_mock_signed_attestation
-

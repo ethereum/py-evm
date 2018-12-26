@@ -244,7 +244,6 @@ def test_validate_serenity_attestation_aggregate_signature(genesis_state,
                                                            random,
                                                            sample_attestation_data_params,
                                                            create_mock_signed_attestation,
-                                                           config,
                                                            is_valid):
     state = genesis_state
 

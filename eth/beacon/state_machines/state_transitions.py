@@ -3,11 +3,13 @@ from abc import (
     abstractmethod,
 )
 
+from eth_typing import (
+    Hash32,
+)
 from eth._utils.datatypes import (
     Configurable,
 )
 
-from eth.beacon.types.attestations import Attestation
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.states import BeaconState
 
@@ -25,7 +27,9 @@ class BaseStateTransition(Configurable, ABC):
         pass
 
     @abstractmethod
-    def per_slot_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
+    def per_slot_transition(self,
+                            state: BeaconState,
+                            previous_block_root: Hash32) -> BeaconState:
         pass
 
     @abstractmethod
@@ -33,14 +37,5 @@ class BaseStateTransition(Configurable, ABC):
         pass
 
     @abstractmethod
-    def per_epoch_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
+    def per_epoch_transition(self, state: BeaconState) -> BeaconState:
         pass
-
-    #
-    # Operation validations
-    #
-    @abstractmethod
-    def validate_attestation(self,
-                             attestation: Attestation,
-                             is_validating_signatures: bool=True) -> None:
-        raise NotImplementedError

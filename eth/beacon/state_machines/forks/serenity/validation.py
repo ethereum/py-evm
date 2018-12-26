@@ -168,10 +168,10 @@ def validate_serenity_attestation_latest_crosslink_root(attestation_data: Attest
     field of ``attestation_data`` is the provided ``latest_crosslink_root``.
     Raise ``ValidationError`` if it's invalid.
     """
-    acceptable_shard_block_roots = [
+    acceptable_shard_block_roots = {
         attestation_data.latest_crosslink_root,
         attestation_data.shard_block_root,
-    ]
+    }
     if latest_crosslink_root not in acceptable_shard_block_roots:
         raise ValidationError(
             "Neither the attestation ``latest_crosslink_root`` nor the attestation "
@@ -229,6 +229,8 @@ def validate_serenity_attestation_aggregate_signature(state: Type[BeaconState],
     )
     group_public_key = bls.aggregate_pubkeys(pubkeys)
 
+    # TODO: change to tree hashing when we have SSZ
+    # TODO: Replace with AttestationAndCustodyBit data structure
     message = hash_eth2(
         rlp.encode(attestation.data) +
         (0).to_bytes(1, "big")

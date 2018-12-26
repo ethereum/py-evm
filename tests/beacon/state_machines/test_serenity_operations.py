@@ -10,6 +10,7 @@ from eth.constants import (
 
 from eth.beacon.helpers import (
     get_block_root,
+    get_shard_committees_at_slot,
 )
 
 from eth.beacon.types.attestation_data import AttestationData
@@ -18,6 +19,49 @@ from eth.beacon.types.blocks import BeaconBlockBody
 from eth.beacon.state_machines.forks.serenity.operations import (
     process_attestations,
 )
+
+
+@pytest.fixture
+def create_mock_signed_attestations_at_slot(config,
+                                            sample_attestation_data_params,
+                                            create_mock_signed_attestation):
+    def create_mock_signed_attestations_at_slot(state,
+                                                attestation_slot):
+        attestations = []
+        shard_and_committees_at_slot = get_shard_committees_at_slot(
+            state,
+            slot=attestation_slot,
+            epoch_length=config.EPOCH_LENGTH,
+        )
+        for shard_committee in shard_and_committees_at_slot:
+            # have 0th committee member sign
+            voting_committee_indices = [0]
+            latest_crosslink_root = state.latest_crosslinks[shard_committee.shard].shard_block_root
+
+            assert len(shard_committee.committee) > 0
+            attestation_data = AttestationData(**sample_attestation_data_params).copy(
+                slot=attestation_slot,
+                shard=shard_committee.shard,
+                justified_slot=state.previous_justified_slot,
+                justified_block_root=get_block_root(
+                    state.latest_block_roots,
+                    state.slot,
+                    state.previous_justified_slot,
+                ),
+                latest_crosslink_root=latest_crosslink_root,
+                shard_block_root=ZERO_HASH32,
+            )
+
+            attestations.append(
+                create_mock_signed_attestation(
+                    state,
+                    shard_committee,
+                    voting_committee_indices,
+                    attestation_data,
+                )
+            )
+        return tuple(attestations)
+    return create_mock_signed_attestations_at_slot
 
 
 @pytest.mark.parametrize(
@@ -40,7 +84,7 @@ def test_process_attestations(genesis_state,
                               sample_beacon_block_params,
                               sample_beacon_block_body_params,
                               config,
-                              create_mock_signed_attestation,
+                              create_mock_signed_attestations_at_slot,
                               success):
 
     attestation_slot = 0
@@ -49,71 +93,43 @@ def test_process_attestations(genesis_state,
         slot=current_slot,
     )
 
-    attestations = []
-    for shard_committee in state.shard_committees_at_slots[attestation_slot]:
-        # have 0th committee member sign
-        voting_committee_indices = [0]
-        latest_crosslink_root = state.latest_crosslinks[shard_committee.shard].shard_block_root
-
-        assert len(shard_committee.committee) > 0
-        attestation_data = AttestationData(**sample_attestation_data_params).copy(
-            slot=attestation_slot,
-            shard=shard_committee.shard,
-            justified_slot=state.previous_justified_slot,
-            justified_block_root=get_block_root(
-                state.latest_block_roots,
-                state.slot,
-                state.previous_justified_slot,
-            ),
-            latest_crosslink_root=latest_crosslink_root,
-            shard_block_root=ZERO_HASH32,
-        )
-
-        attestations.append(
-            create_mock_signed_attestation(
-                state,
-                shard_committee,
-                voting_committee_indices,
-                attestation_data,
-            )
-        )
+    attestations = create_mock_signed_attestations_at_slot(
+        state,
+        attestation_slot,
+    )
 
     assert len(attestations) > 0
 
     if not success:
         # create invalid attestation in the future
-        bad_attestation_data = AttestationData(**sample_attestation_data_params).copy(
+        invalid_attestation_data = attestations[-1].data.copy(
             slot=state.slot + 10,
         )
-        attestations.append(
-            create_mock_signed_attestation(
-                state,
-                state.shard_committees_at_slots[attestation_slot][0],
-                [0],
-                bad_attestation_data,
-            )
+        invalid_attestation = attestations[-1].copy(
+            data=invalid_attestation_data,
         )
+        attestations = attestations[:-1] + (invalid_attestation,)
 
     block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
         attestations=attestations,
     )
     block = BaseBeaconBlock(**sample_beacon_block_params).copy(
         slot=current_slot,
-        body=block_body
+        body=block_body,
     )
 
     if success:
         new_state = process_attestations(
             state,
             block,
-            config
+            config,
         )
 
         assert len(new_state.latest_attestations) == len(attestations)
     else:
         with pytest.raises(ValidationError):
-            new_state = process_attestations(
+            process_attestations(
                 state,
                 block,
-                config
+                config,
             )

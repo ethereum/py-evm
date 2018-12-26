@@ -1,3 +1,7 @@
+from eth_typing import (
+    Hash32,
+)
+
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.states import BeaconState
 
@@ -16,14 +20,22 @@ class SerenityStateTransition(BaseStateTransition):
         self.config = config
 
     def apply_state_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
-        state = self.per_slot_transition(state, block)
-        state = self.per_block_transition(state, block)
-        state = self.per_epoch_transition(state, block)
+        while state.slot != block.slot:
+            state = self.per_slot_transition(state, block.parent_root)
+            if state.slot == block.slot:
+                state = self.per_block_transition(state, block)
+            if state.slot % self.config.EPOCH_LENGTH == 0:
+                state = self.per_epoch_transition(state)
 
         return state
 
-    def per_slot_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
+    def per_slot_transition(self,
+                            state: BeaconState,
+                            previous_block_root: Hash32) -> BeaconState:
         # TODO
+        state = state.copy(
+            slot=state.slot + 1
+        )
         return state
 
     def per_block_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:

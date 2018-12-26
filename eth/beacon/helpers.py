@@ -84,7 +84,8 @@ def get_block_root(
     """
     Returns the block root at a recent ``slot``.
     """
-    slot_relative_position = max(current_slot - len(latest_block_roots), 0)
+    slot_relative_position = current_slot - len(latest_block_roots)
+    # slot_relative_position = max(current_slot - len(latest_block_roots), 0)
     return _get_element_from_recent_list(
         latest_block_roots,
         slot,
@@ -109,7 +110,7 @@ def _get_shard_committees_at_slot(
             )
         )
 
-    slot_relative_position = max(state_slot - epoch_length, 0)
+    slot_relative_position = state_slot - epoch_length
 
     yield from _get_element_from_recent_list(
         shard_committees_at_slots,
