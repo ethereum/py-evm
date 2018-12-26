@@ -157,3 +157,13 @@ class BeaconState(rlp.Serializable):
     @property
     def num_crosslinks(self) -> int:
         return len(self.latest_crosslinks)
+
+    def update_validator(self,
+                         validator_index: int,
+                         validator: ValidatorRecord) -> 'BeaconState':
+        validator_registry = list(self.validator_registry)
+        validator_registry[validator_index] = validator
+        updated_state = self.copy(
+            validator_registry=tuple(validator_registry),
+        )
+        return updated_state

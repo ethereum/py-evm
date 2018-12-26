@@ -39,14 +39,13 @@ def install_wheel(venv_path, wheel_path, extras=tuple()):
 
 
 def test_install_local_wheel():
-    temporary_dir = TemporaryDirectory()
-    venv_path = create_venv(Path(temporary_dir.name))
-    wheel_path = find_wheel(Path('.'))
-    install_wheel(venv_path, wheel_path, extras=['p2p', 'trinity'])
-    print("Installed", wheel_path.absolute(), "to", venv_path)
-    print(f"Activate with `source {venv_path}/bin/activate`")
-    input("Press enter when the test has completed. The directory will be deleted.")
-    temporary_dir.cleanup()
+    with TemporaryDirectory() as tmpdir:
+        venv_path = create_venv(Path(tmpdir))
+        wheel_path = find_wheel(Path('.'))
+        install_wheel(venv_path, wheel_path)
+        print("Installed", wheel_path.absolute(), "to", venv_path)
+        print(f"Activate with `source {venv_path}/bin/activate`")
+        input("Press enter when the test has completed. The directory will be deleted.")
 
 
 if __name__ == '__main__':

@@ -11,5 +11,4 @@ This section aims to provide a detailed description of all APIs. If you are look
    :maxdepth: 3
    :name: toc-api
 
-   trinity/index
    eth/index

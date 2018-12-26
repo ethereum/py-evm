@@ -20,19 +20,13 @@ from eth._utils.bitfield import (
     get_bitfield_length,
     has_voted,
 )
-from eth.beacon._utils.hash import (
-    hash_eth2,
-)
 from eth._utils.numeric import (
     clamp,
 )
 
-from eth.beacon.block_committees_info import (
-    BlockCommitteesInfo,
-)
-from eth.beacon.types.shard_committees import (
-    ShardCommittee,
-)
+from eth.beacon.block_committees_info import BlockCommitteesInfo
+from eth.beacon.types.shard_committees import ShardCommittee
+from eth.beacon.types.validator_registry_delta_block import ValidatorRegistryDeltaBlock
 from eth.beacon._utils.random import (
     shuffle,
     split,
@@ -365,19 +359,19 @@ def get_effective_balance(validator: 'ValidatorRecord', max_deposit: int) -> int
 
 
 def get_new_validator_registry_delta_chain_tip(current_validator_registry_delta_chain_tip: Hash32,
-                                               index: int,
+                                               validator_index: int,
                                                pubkey: int,
                                                flag: int) -> Hash32:
     """
     Compute the next hash in the validator registry delta hash chain.
     """
-    return hash_eth2(
-        current_validator_registry_delta_chain_tip +
-        flag.to_bytes(1, 'big') +
-        index.to_bytes(3, 'big') +
-        # TODO: currently, we use 256-bit pubkey which is different form the spec
-        pubkey.to_bytes(32, 'big')
-    )
+    # TODO: switch to SSZ tree hashing
+    return ValidatorRegistryDeltaBlock(
+        latest_registry_delta_root=current_validator_registry_delta_chain_tip,
+        validator_index=validator_index,
+        pubkey=pubkey,
+        flag=flag,
+    ).root
 
 
 def get_fork_version(fork_data: 'ForkData',
