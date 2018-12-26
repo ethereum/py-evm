@@ -1,3 +1,9 @@
+import pytest
+
+from eth_utils import (
+    ValidationError,
+)
+
 from eth.beacon.state_machines.validation import (
     validate_proposer_signature,
 )
@@ -39,3 +45,34 @@ def test_validate_proposer_signature(
         beacon_chain_shard_number,
         epoch_length,
     )
+
+
+def test_validate_proposer_bad_signature(
+        beacon_chain_shard_number,
+        epoch_length,
+        sample_beacon_block_params,
+        sample_beacon_state_params,
+        sample_shard_committee_params):
+    block = BaseBeaconBlock(**sample_beacon_block_params)
+    state = BeaconState(**sample_beacon_state_params).copy(
+        validator_registry=[
+            mock_validator_record(
+                pubkey=123,
+                max_deposit=0,
+            )
+            for _ in range(10)
+        ],
+        shard_committees_at_slots=get_sample_shard_committees_at_slots(
+            num_slot=128,
+            num_shard_committee_per_slot=10,
+            sample_shard_committee_params=sample_shard_committee_params,
+        ),
+    )
+
+    with pytest.raises(ValidationError):
+        validate_proposer_signature(
+            state,
+            block,
+            beacon_chain_shard_number,
+            epoch_length,
+        )
