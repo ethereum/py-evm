@@ -79,7 +79,6 @@ def get_block_root(
     Returns the block root at a recent ``slot``.
     """
     slot_relative_position = current_slot - len(latest_block_roots)
-    # slot_relative_position = max(current_slot - len(latest_block_roots), 0)
     return _get_element_from_recent_list(
         latest_block_roots,
         slot,
