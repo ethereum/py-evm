@@ -52,7 +52,6 @@ def test_validate_proposer_signature(
         validator_registry=[
             mock_validator_record(
                 pubkey=proposer_pubkey,
-                max_deposit=0,
             )
             for _ in range(10)
         ],
