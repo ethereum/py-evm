@@ -818,7 +818,8 @@ def _get_indices_aggregate_pubkey_and_signatures(num_validators,
     signatures = tuple(
         map(lambda key: bls.sign(message,
                                  key,
-                                 SignatureDomain.DOMAIN_ATTESTATION), privkeys)
+                                 SignatureDomain.DOMAIN_ATTESTATION),
+            privkeys)
     )
     return (indices, signatures)
 
