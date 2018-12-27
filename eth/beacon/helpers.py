@@ -21,9 +21,6 @@ from eth._utils.bitfield import (
     has_voted,
 )
 import eth._utils.bls as bls
-from eth.beacon._utils.hash import (
-    hash_eth2,
-)
 from eth._utils.numeric import (
     clamp,
 )
