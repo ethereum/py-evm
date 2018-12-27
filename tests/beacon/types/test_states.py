@@ -74,7 +74,7 @@ def test_num_validators(expected,
         ],
         validator_balances=(
             max_deposit
-            for _ in range(10)
+            for _ in range(expected)
         )
     )
 
