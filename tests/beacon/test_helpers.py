@@ -852,7 +852,7 @@ def _correct_slashable_vote_data_params(params, validators, messages, privkeys):
 def _corrupt_signature(params):
     params = copy.deepcopy(params)
     message = bytes.fromhex("deadbeefcafe")
-    privkey = 0
+    privkey = 42
     domain = SignatureDomain.DOMAIN_ATTESTATION
     params["aggregate_signature"] = bls.sign(message, privkey, domain)
     return params
