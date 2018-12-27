@@ -25,18 +25,20 @@ from eth.beacon.db.chain import (
     BeaconChainDB,
 )
 from eth.beacon.db.schema import SchemaV1
-from eth.beacon.types.blocks import BaseBeaconBlock
+from eth.beacon.state_machines.forks.serenity.blocks import (
+    BeaconBlock,
+)
 from eth.beacon.types.states import BeaconState
 
 
 @pytest.fixture
 def chaindb(base_db):
-    return BeaconChainDB(base_db)
+    return BeaconChainDB(base_db, BeaconBlock)
 
 
 @pytest.fixture(params=[0, 10, 999])
 def block(request, sample_beacon_block_params):
-    return BaseBeaconBlock(**sample_beacon_block_params).copy(
+    return BeaconBlock(**sample_beacon_block_params).copy(
         parent_root=GENESIS_PARENT_HASH,
         slot=request.param,
     )
@@ -81,7 +83,7 @@ def test_chaindb_persist_block_and_block_to_root(chaindb, block):
 
 
 def test_chaindb_get_score(chaindb, sample_beacon_block_params):
-    genesis = BaseBeaconBlock(**sample_beacon_block_params).copy(
+    genesis = BeaconBlock(**sample_beacon_block_params).copy(
         parent_root=GENESIS_PARENT_HASH,
         slot=0,
     )
@@ -92,7 +94,7 @@ def test_chaindb_get_score(chaindb, sample_beacon_block_params):
     assert genesis_score == 0
     assert chaindb.get_score(genesis.root) == 0
 
-    block1 = BaseBeaconBlock(**sample_beacon_block_params).copy(
+    block1 = BeaconBlock(**sample_beacon_block_params).copy(
         parent_root=genesis.root,
         slot=1,
     )

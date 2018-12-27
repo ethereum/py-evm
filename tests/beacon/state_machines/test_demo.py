@@ -12,6 +12,8 @@ from eth.beacon.helpers import (
 from eth.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
+
+
 from eth.beacon.types.proposal_signed_data import ProposalSignedData
 
 
@@ -34,10 +36,11 @@ def test_demo(base_db,
               config,
               privkeys,
               pubkeys):
-    chaindb = BeaconChainDB(base_db)
+    chaindb = BeaconChainDB(base_db, SerenityBeaconBlock)
     state = genesis_state
     block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
         slot=state.slot + 2,
+        state_root=state.root,
     )
 
     # Sign block
@@ -67,9 +70,14 @@ def test_demo(base_db,
         ),
     )
 
+    # Store in chaindb
+    chaindb.persist_block(block)
+    chaindb.persist_state(state)
+
     # Get state machine instance
-    sm = fixture_sm_class(chaindb, block, state)
+    sm = fixture_sm_class(chaindb, block.root)
     result_state, _ = sm.import_block(block)
 
     assert state.slot == 0
     assert result_state.slot == block.slot
+    assert isinstance(sm.block, SerenityBeaconBlock)

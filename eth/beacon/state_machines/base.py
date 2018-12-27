@@ -7,6 +7,10 @@ from typing import (
     Type,
 )
 
+from eth_typing import (
+    Hash32,
+)
+
 from eth._utils.datatypes import (
     Configurable,
 )
@@ -30,7 +34,7 @@ class BaseBeaconStateMachine(Configurable, ABC):
     config = None  # type: BeaconConfig
 
     block = None  # type: BaseBeaconBlock
-    state = None  # type: BeaconState
+    _state = None  # type: BeaconState
 
     block_class = None  # type: Type[BaseBeaconBlock]
     state_class = None  # type: Type[BeaconState]
@@ -67,10 +71,16 @@ class BaseBeaconStateMachine(Configurable, ABC):
 class BeaconStateMachine(BaseBeaconStateMachine):
     def __init__(self,
                  chaindb: BaseBeaconChainDB,
-                 block: BaseBeaconBlock,
-                 state: BeaconState) -> None:
-        # TODO: get state from DB, now it's just a stub!
-        self.state = state
+                 block_root: Hash32) -> None:
+        self.chaindb = chaindb
+        self.chaindb.set_block_class(self.get_block_class())
+        self.block = self.chaindb.get_block_by_root(block_root)
+
+    @property
+    def state(self) -> BeaconState:
+        if self._state is None:
+            self._state = self.chaindb.get_state_by_root(self.block.state_root)
+        return self._state
 
     @classmethod
     def get_block_class(cls) -> Type[BaseBeaconBlock]:

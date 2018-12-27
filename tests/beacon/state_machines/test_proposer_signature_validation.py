@@ -9,7 +9,7 @@ from eth._utils import bls
 from eth.beacon.enums import (
     SignatureDomain,
 )
-from eth.beacon.types.blocks import BaseBeaconBlock
+from eth.beacon.types.blocks import BeaconBlock
 from eth.beacon.types.proposal_signed_data import (
     ProposalSignedData,
 )
@@ -59,7 +59,7 @@ def test_validate_serenity_proposer_signature(
         ),
     )
 
-    default_block = BaseBeaconBlock(**sample_beacon_block_params)
+    default_block = BeaconBlock(**sample_beacon_block_params)
     empty_signature_block_root = default_block.block_without_signature_root
 
     proposal_root = ProposalSignedData(
@@ -68,7 +68,7 @@ def test_validate_serenity_proposer_signature(
         empty_signature_block_root,
     ).root
 
-    proposed_block = BaseBeaconBlock(**sample_beacon_block_params).copy(
+    proposed_block = BeaconBlock(**sample_beacon_block_params).copy(
         signature=bls.sign(
             message=proposal_root,
             privkey=proposer_privkey,

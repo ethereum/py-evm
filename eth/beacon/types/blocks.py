@@ -1,5 +1,11 @@
+from abc import (
+    ABC,
+    abstractmethod,
+)
+
 from typing import (
     Sequence,
+    TYPE_CHECKING,
 )
 
 from eth_typing import (
@@ -8,12 +14,16 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
 )
+
 import rlp
 from rlp.sedes import (
     CountableList,
 )
 
 
+from eth._utils.datatypes import (
+    Configurable,
+)
 from eth.rlp.sedes import (
     hash32,
     uint64,
@@ -34,8 +44,11 @@ from .casper_slashings import CasperSlashing
 from .deposits import Deposit
 from .exits import Exit
 
+if TYPE_CHECKING:
+    from eth.beacon.db.chain import BaseBeaconChainDB  # noqa: F401
 
-class BeaconBlockBody(rlp.Serializable):
+
+class BaseBeaconBlockBody(rlp.Serializable):
     fields = [
         ('proposer_slashings', CountableList(ProposerSlashing)),
         ('casper_slashings', CountableList(CasperSlashing)),
@@ -59,7 +72,9 @@ class BeaconBlockBody(rlp.Serializable):
         )
 
 
-class BaseBeaconBlock(rlp.Serializable):
+class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
+    block_body_class = BaseBeaconBlockBody
+
     fields = [
         #
         # Header
@@ -74,7 +89,7 @@ class BaseBeaconBlock(rlp.Serializable):
         #
         # Body
         #
-        ('body', BeaconBlockBody)
+        ('body', block_body_class),
     ]
 
     def __init__(self,
@@ -83,16 +98,16 @@ class BaseBeaconBlock(rlp.Serializable):
                  state_root: Hash32,
                  randao_reveal: Hash32,
                  candidate_pow_receipt_root: Hash32,
-                 body: BeaconBlockBody,
+                 body: BaseBeaconBlockBody,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
-            slot,
-            parent_root,
-            state_root,
-            randao_reveal,
-            candidate_pow_receipt_root,
-            signature,
-            body
+            slot=slot,
+            parent_root=parent_root,
+            state_root=state_root,
+            randao_reveal=randao_reveal,
+            candidate_pow_receipt_root=candidate_pow_receipt_root,
+            signature=signature,
+            body=body,
         )
 
     def __repr__(self) -> str:
@@ -124,3 +139,43 @@ class BaseBeaconBlock(rlp.Serializable):
         return self.copy(
             signature=EMPTY_SIGNATURE
         ).root
+
+    @classmethod
+    @abstractmethod
+    def from_root(cls, root: Hash32, chaindb: 'BaseBeaconChainDB') -> 'BaseBeaconBlock':
+        """
+        Return the block denoted by the given block root.
+        """
+        raise NotImplementedError("Must be implemented by subclasses")
+
+
+class BeaconBlockBody(BaseBeaconBlockBody):
+    pass
+
+
+class BeaconBlock(BaseBeaconBlock):
+    block_body_class = BeaconBlockBody
+
+    @classmethod
+    def from_root(cls, root: Hash32, chaindb: 'BaseBeaconChainDB') -> 'BeaconBlock':
+        """
+        Returns the block denoted by the given block header.
+        """
+        block = chaindb.get_block_by_root(root)
+        body = cls.block_body_class(
+            proposer_slashings=block.body.proposer_slashings,
+            casper_slashings=block.body.casper_slashings,
+            attestations=block.body.attestations,
+            deposits=block.body.deposits,
+            exits=block.body.exits,
+        )
+
+        return cls(
+            slot=block.slot,
+            parent_root=block.parent_root,
+            state_root=block.state_root,
+            randao_reveal=block.randao_reveal,
+            candidate_pow_receipt_root=block.candidate_pow_receipt_root,
+            signature=block.signature,
+            body=body,
+        )

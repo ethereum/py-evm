@@ -4,6 +4,7 @@ import functools
 from typing import (
     Iterable,
     Tuple,
+    Type,
 )
 from cytoolz import (
     first,
@@ -38,7 +39,10 @@ from eth.validation import (
 )
 
 from eth.beacon.types.states import BeaconState  # noqa: F401
-from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
+from eth.beacon.types.blocks import (  # noqa: F401
+    BaseBeaconBlock,
+    BeaconBlock,
+)
 from eth.beacon.validation import (
     validate_slot,
 )
@@ -48,6 +52,11 @@ from eth.beacon.db.schema import SchemaV1
 
 class BaseBeaconChainDB(ABC):
     db = None  # type: BaseAtomicDB
+    block_class = None  # type: Type[BaseBeaconBlock]
+
+    @abstractmethod
+    def set_block_class(self, block_class: Type[BaseBeaconBlock]) -> None:
+        pass
 
     #
     # Block API
@@ -117,8 +126,12 @@ class BaseBeaconChainDB(ABC):
 
 
 class BeaconChainDB(BaseBeaconChainDB):
-    def __init__(self, db: BaseAtomicDB) -> None:
+    def __init__(self, db: BaseAtomicDB, block_class: Type[BaseBeaconBlock]) -> None:
         self.db = db
+        self.block_class = block_class
+
+    def set_block_class(self, block_class: Type[BaseBeaconBlock]) -> None:
+        self.block_class = block_class
 
     def persist_block(self,
                       block: BaseBeaconBlock) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
@@ -126,15 +139,20 @@ class BeaconChainDB(BaseBeaconChainDB):
         Persist the given block.
         """
         with self.db.atomic_batch() as db:
-            return self._persist_block(db, block)
+            return self._persist_block(db, block, self.block_class)
 
     @classmethod
     def _persist_block(
             cls,
             db: 'BaseDB',
-            block: BaseBeaconBlock) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+            block: BaseBeaconBlock,
+            block_class: Type[BaseBeaconBlock]) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
         block_chain = (block, )
-        new_canonical_blocks, old_canonical_blocks = cls._persist_block_chain(db, block_chain)
+        new_canonical_blocks, old_canonical_blocks = cls._persist_block_chain(
+            db,
+            block_chain,
+            block_class,
+        )
 
         return new_canonical_blocks, old_canonical_blocks
 
@@ -176,15 +194,16 @@ class BeaconChainDB(BaseBeaconChainDB):
         Raise BlockNotFound if there's no block with the given slot in the
         canonical chain.
         """
-        return self._get_canonical_block_by_slot(self.db, slot)
+        return self._get_canonical_block_by_slot(self.db, slot, self.block_class)
 
     @classmethod
     def _get_canonical_block_by_slot(
             cls,
             db: BaseDB,
-            slot: int) -> BaseBeaconBlock:
+            slot: int,
+            block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         canonical_block_root = cls._get_canonical_block_root_by_slot(db, slot)
-        return cls._get_block_by_root(db, canonical_block_root)
+        return cls._get_block_by_root(db, canonical_block_root, block_class)
 
     def get_canonical_block_root_by_slot(self, slot: int) -> Hash32:
         """
@@ -207,21 +226,25 @@ class BeaconChainDB(BaseBeaconChainDB):
         """
         Return the current block at the head of the chain.
         """
-        return self._get_canonical_head(self.db)
+        return self._get_canonical_head(self.db, self.block_class)
 
     @classmethod
-    def _get_canonical_head(cls, db: BaseDB) -> BaseBeaconBlock:
+    def _get_canonical_head(cls,
+                            db: BaseDB,
+                            block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         try:
             canonical_head_root = db[SchemaV1.make_canonical_head_root_lookup_key()]
         except KeyError:
             raise CanonicalHeadNotFound("No canonical head set for this chain")
-        return cls._get_block_by_root(db, Hash32(canonical_head_root))
+        return cls._get_block_by_root(db, Hash32(canonical_head_root), block_class)
 
     def get_block_by_root(self, block_root: Hash32) -> BaseBeaconBlock:
-        return self._get_block_by_root(self.db, block_root)
+        return self._get_block_by_root(self.db, block_root, self.block_class)
 
     @staticmethod
-    def _get_block_by_root(db: BaseDB, block_root: Hash32) -> BaseBeaconBlock:
+    def _get_block_by_root(db: BaseDB,
+                           block_root: Hash32,
+                           block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         """
         Return the requested block header as specified by block root.
 
@@ -233,7 +256,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         except KeyError:
             raise BlockNotFound("No block with root {0} found".format(
                 encode_hex(block_root)))
-        return _decode_block(block_rlp)
+        return _decode_block(block_rlp, block_class)
 
     def get_score(self, block_root: Hash32) -> int:
         return self._get_score(self.db, block_root)
@@ -264,13 +287,14 @@ class BeaconChainDB(BaseBeaconChainDB):
         the second containing the old canonical headers
         """
         with self.db.atomic_batch() as db:
-            return self._persist_block_chain(db, blocks)
+            return self._persist_block_chain(db, blocks, self.block_class)
 
     @classmethod
     def _persist_block_chain(
             cls,
             db: BaseDB,
-            blocks: Iterable[BaseBeaconBlock]
+            blocks: Iterable[BaseBeaconBlock],
+            block_class: Type[BaseBeaconBlock]
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         try:
             first_block = first(blocks)
@@ -313,20 +337,23 @@ class BeaconChainDB(BaseBeaconChainDB):
             )
 
         try:
-            previous_canonical_head = cls._get_canonical_head(db).root
+            previous_canonical_head = cls._get_canonical_head(db, block_class).root
             head_score = cls._get_score(db, previous_canonical_head)
         except CanonicalHeadNotFound:
-            return cls._set_as_canonical_chain_head(db, block.root)
+            return cls._set_as_canonical_chain_head(db, block.root, block_class)
 
         if score > head_score:
-            return cls._set_as_canonical_chain_head(db, block.root)
+            return cls._set_as_canonical_chain_head(db, block.root, block_class)
         else:
             return tuple(), tuple()
 
     @classmethod
     def _set_as_canonical_chain_head(
-            cls, db: BaseDB,
-            block_root: Hash32) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
+            cls,
+            db: BaseDB,
+            block_root: Hash32,
+            block_class: Type[BaseBeaconBlock]
+    ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         """
         Set the canonical chain HEAD to the block as specified by the
         given block root.
@@ -335,13 +362,13 @@ class BeaconChainDB(BaseBeaconChainDB):
             are no longer in the canonical chain
         """
         try:
-            block = cls._get_block_by_root(db, block_root)
+            block = cls._get_block_by_root(db, block_root, block_class)
         except BlockNotFound:
             raise ValueError(
                 "Cannot use unknown block root as canonical head: {}".format(block_root)
             )
 
-        new_canonical_blocks = tuple(reversed(cls._find_new_ancestors(db, block)))
+        new_canonical_blocks = tuple(reversed(cls._find_new_ancestors(db, block, block_class)))
         old_canonical_blocks = []
 
         for block in new_canonical_blocks:
@@ -351,7 +378,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                 # no old_canonical block, and no more possible
                 break
             else:
-                old_canonical_block = cls._get_block_by_root(db, old_canonical_root)
+                old_canonical_block = cls._get_block_by_root(db, old_canonical_root, block_class)
                 old_canonical_blocks.append(old_canonical_block)
 
         for block in new_canonical_blocks:
@@ -363,7 +390,11 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     @classmethod
     @to_tuple
-    def _find_new_ancestors(cls, db: BaseDB, block: BaseBeaconBlock) -> Iterable[BaseBeaconBlock]:
+    def _find_new_ancestors(
+            cls,
+            db: BaseDB,
+            block: BaseBeaconBlock,
+            block_class: Type[BaseBeaconBlock]) -> Iterable[BaseBeaconBlock]:
         """
         Return the chain leading up from the given block until (but not including)
         the first ancestor it has in common with our canonical chain.
@@ -377,7 +408,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         """
         while True:
             try:
-                orig = cls._get_canonical_block_by_slot(db, block.slot)
+                orig = cls._get_canonical_block_by_slot(db, block.slot, block_class)
             except BlockNotFound:
                 # This just means the block is not on the canonical chain.
                 pass
@@ -392,7 +423,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             if block.parent_root == GENESIS_PARENT_HASH:
                 break
             else:
-                block = cls._get_block_by_root(db, block.parent_root)
+                block = cls._get_block_by_root(db, block.parent_root, block_class)
 
     @staticmethod
     def _add_block_slot_to_root_lookup(db: BaseDB, block: BaseBeaconBlock) -> None:
@@ -466,9 +497,8 @@ class BeaconChainDB(BaseBeaconChainDB):
 # relatively expensive so we cache that here, but use a small cache because we *should* only
 # be looking up recent blocks.
 @functools.lru_cache(128)
-def _decode_block(block_rlp: bytes) -> BaseBeaconBlock:
-    # TODO: forkable Block fields?
-    return rlp.decode(block_rlp, sedes=BaseBeaconBlock)
+def _decode_block(block_rlp: bytes, sedes: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+    return rlp.decode(block_rlp, sedes=sedes)
 
 
 @functools.lru_cache(128)
