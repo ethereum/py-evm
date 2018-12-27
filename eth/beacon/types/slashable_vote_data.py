@@ -49,7 +49,7 @@ class SlashableVoteData(rlp.Serializable):
     @property
     def hash(self) -> Hash32:
         if self._hash is None:
-            self._hash = hash_eth2(rlp.encode(self))
+            self._hash = hash_eth2(rlp.encode(self.data))
         return self._hash
 
     @property
