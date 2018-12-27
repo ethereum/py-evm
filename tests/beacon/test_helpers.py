@@ -742,14 +742,12 @@ def test_get_pubkey_for_indices(genesis_validators, data):
     max_value_for_list = len(genesis_validators) - 1
     indices = _generate_some_indices(data, max_value_for_list)
     pubkeys = get_pubkey_for_indices(genesis_validators, indices)
-    all_pubkeys = tuple(
-        map(lambda validator: validator.pubkey, genesis_validators)
-    )
 
     assert len(indices) == len(pubkeys)
 
-    for pubkey in pubkeys:
-        assert pubkey in all_pubkeys
+    for index, pubkey in enumerate(pubkeys):
+        validator_index = indices[index]
+        assert genesis_validators[validator_index].pubkey == pubkey
 
 
 def _list_and_index(data, max_size=None, elements=st.integers()):
