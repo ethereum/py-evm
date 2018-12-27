@@ -133,8 +133,8 @@ def sample_beacon_state_params(sample_fork_data_params):
         'validator_registry_latest_change_slot': 10,
         'validator_registry_exit_count': 10,
         'validator_registry_delta_chain_tip': b'\x55' * 32,
-        'randao_mix': b'\x55' * 32,
-        'next_seed': b'\x55' * 32,
+        'latest_randao_mixes': (),
+        'latest_vdf_outputs': (),
         'shard_committees_at_slots': (),
         'persistent_committees': (),
         'persistent_committee_reassignments': (),
@@ -366,6 +366,11 @@ def max_casper_votes():
 @pytest.fixture
 def latest_block_roots_length():
     return SERENITY_CONFIG.LATEST_BLOCK_ROOTS_LENGTH
+
+
+@pytest.fixture
+def latest_randao_mixes_length():
+    return SERENITY_CONFIG.LATEST_RANDAO_MIXES_LENGTH
 
 
 @pytest.fixture
