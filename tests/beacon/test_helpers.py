@@ -803,18 +803,16 @@ def _select_indices(max, count):
     return indices
 
 
-def _get_indices_aggregate_pubkey_and_signatures(num_validators,
-                                                 num_indices,
-                                                 validators,
-                                                 message,
-                                                 privkeys):
+def _get_indices_and_signatures(num_validators,
+                                num_indices,
+                                validators,
+                                message,
+                                privkeys):
     indices = _select_indices(num_validators, num_indices)
-    privkeys = [privkeys[i] for (i, _) in enumerate(validators) if i in indices]
+    privkeys = [privkeys[i] for i in indices]
+    domain = SignatureDomain.DOMAIN_ATTESTATION
     signatures = tuple(
-        map(lambda key: bls.sign(message,
-                                 key,
-                                 SignatureDomain.DOMAIN_ATTESTATION),
-            privkeys)
+        map(lambda key: bls.sign(message, key, domain), privkeys)
     )
     return (indices, signatures)
 
@@ -826,22 +824,20 @@ def _correct_slashable_vote_data_params(params, validators, messages, privkeys):
     num_indices = 5
 
     key = "aggregate_signature_poc_0_indices"
-    (poc_0_indices,
-     poc_0_signatures) = _get_indices_aggregate_pubkey_and_signatures(num_validators,
-                                                                      num_indices,
-                                                                      validators,
-                                                                      messages[0],
-                                                                      privkeys)
+    (poc_0_indices, poc_0_signatures) = _get_indices_and_signatures(num_validators,
+                                                                    num_indices,
+                                                                    validators,
+                                                                    messages[0],
+                                                                    privkeys)
     valid_params[key] = poc_0_indices
 
     key = "aggregate_signature_poc_1_indices"
     # NOTE: does not guarantee non-empty intersection
-    (poc_1_indices,
-     poc_1_signatures) = _get_indices_aggregate_pubkey_and_signatures(num_validators,
-                                                                      num_indices,
-                                                                      validators,
-                                                                      messages[1],
-                                                                      privkeys)
+    (poc_1_indices, poc_1_signatures) = _get_indices_and_signatures(num_validators,
+                                                                    num_indices,
+                                                                    validators,
+                                                                    messages[1],
+                                                                    privkeys)
     valid_params[key] = poc_1_indices
 
     signatures = poc_0_signatures + poc_1_signatures
@@ -854,9 +850,10 @@ def _correct_slashable_vote_data_params(params, validators, messages, privkeys):
 
 def _corrupt_signature(params):
     params = copy.deepcopy(params)
-    params["aggregate_signature"] = bls.sign(bytes.fromhex('deadbeefcafe'),
-                                             0,
-                                             SignatureDomain.DOMAIN_ATTESTATION)
+    message = bytes.fromhex("deadbeefcafe")
+    privkey = 0
+    domain = SignatureDomain.DOMAIN_ATTESTATION
+    params["aggregate_signature"] = bls.sign(message, privkey, domain)
     return params
 
 
