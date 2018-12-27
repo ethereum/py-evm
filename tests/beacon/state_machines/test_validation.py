@@ -64,7 +64,7 @@ def test_validate_proposer_signature(
     )
 
     default_block = BaseBeaconBlock(**sample_beacon_block_params)
-    empty_signature_block_root = BaseBeaconBlock.get_block_without_signature_root(default_block)
+    empty_signature_block_root = default_block.block_without_signature_root
 
     proposal_root = ProposalSignedData(
         state.slot,

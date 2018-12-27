@@ -114,10 +114,8 @@ class BaseBeaconBlock(rlp.Serializable):
     def num_attestations(self) -> int:
         return len(self.body.attestations)
 
-    @classmethod
-    def get_block_without_signature_root(
-            cls,
-            block: 'BaseBeaconBlock') -> Hash32:
-        return block.copy(
+    @property
+    def block_without_signature_root(self) -> Hash32:
+        return self.copy(
             signature=EMPTY_SIGNATURE
         ).root
