@@ -444,7 +444,7 @@ def verify_slashable_vote_data_signature(state: 'BeaconState',
     """
     Ensure we have a valid aggregate signature for the ``vote_data``.
     """
-    pubkeys = generate_aggregate_pubkeys(state.validators, vote_data)
+    pubkeys = generate_aggregate_pubkeys(state.validator_registry, vote_data)
 
     messages = vote_data.messages
 
