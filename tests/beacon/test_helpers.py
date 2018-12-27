@@ -785,7 +785,7 @@ def test_verify_vote_count(max_casper_votes, sample_slashable_vote_data_params, 
 
     votes = SlashableVoteData(**sample_slashable_vote_data_params)
 
-    assert votes.vote_count <= max_casper_votes
+    assert verify_vote_count(votes, max_casper_votes)
 
 
 def _select_indices(max, count):
