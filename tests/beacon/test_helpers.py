@@ -807,14 +807,7 @@ def _get_indices_aggregate_pubkey_and_signatures(num_validators,
                                                  message,
                                                  privkeys):
     indices = _select_indices(num_validators, num_indices)
-    keys = [(v.pubkey, privkeys[i]) for (i, v) in enumerate(validators) if i in indices]
-    pubkeys = tuple(
-        map(lambda pair: pair[0], keys)
-    )
-    aggregate_pubkey = bls.aggregate_pubkeys(pubkeys)
-    privkeys = tuple(
-        map(lambda pair: pair[1], keys)
-    )
+    privkeys = [privkeys[i] for (i, _) in enumerate(validators) if i in indices]
     signatures = tuple(
         map(lambda key: bls.sign(message,
                                  key,
