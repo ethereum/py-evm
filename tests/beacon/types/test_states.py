@@ -34,8 +34,8 @@ def empty_beacon_state():
         validator_registry_latest_change_slot=10,
         validator_registry_exit_count=10,
         validator_registry_delta_chain_tip=b'\x55' * 32,
-        randao_mix=b'\x55' * 32,
-        next_seed=b'\x55' * 32,
+        latest_randao_mixes=(),
+        latest_vdf_outputs=(),
         shard_committees_at_slots=(),
         persistent_committees=(),
         persistent_committee_reassignments=(),
@@ -74,7 +74,7 @@ def test_num_validators(expected,
         ],
         validator_balances=(
             max_deposit
-            for _ in range(10)
+            for _ in range(expected)
         )
     )
 

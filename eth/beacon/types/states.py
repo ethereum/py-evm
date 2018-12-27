@@ -50,8 +50,8 @@ class BeaconState(rlp.Serializable):
         ('validator_registry_delta_chain_tip', hash32),  # For light clients to easily track delta
 
         # Randomness and committees
-        ('randao_mix', hash32),
-        ('next_seed', hash32),
+        ('latest_randao_mixes', CountableList(hash32)),
+        ('latest_vdf_outputs', CountableList(hash32)),
         ('shard_committees_at_slots', CountableList(CountableList((ShardCommittee)))),
         ('persistent_committees', CountableList(CountableList(uint24))),
         ('persistent_committee_reassignments', CountableList(ShardReassignmentRecord)),
@@ -82,8 +82,6 @@ class BeaconState(rlp.Serializable):
             validator_registry_latest_change_slot: int,
             validator_registry_exit_count: int,
             validator_registry_delta_chain_tip: Hash32,
-            randao_mix: Hash32,
-            next_seed: Hash32,
             previous_justified_slot: int,
             justified_slot: int,
             justification_bitfield: int,
@@ -91,6 +89,8 @@ class BeaconState(rlp.Serializable):
             processed_pow_receipt_root: Hash32,
             validator_registry: Sequence[ValidatorRecord]=(),
             validator_balances: Sequence[int]=(),
+            latest_randao_mixes: Sequence[Hash32]=(),
+            latest_vdf_outputs: Sequence[Hash32]=(),
             shard_committees_at_slots: Sequence[Sequence[ShardCommittee]]=(),
             persistent_committees: Sequence[Sequence[int]]=(),
             persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=(),
@@ -113,8 +113,8 @@ class BeaconState(rlp.Serializable):
             validator_registry_exit_count=validator_registry_exit_count,
             validator_registry_delta_chain_tip=validator_registry_delta_chain_tip,
             # Randomness and committees
-            randao_mix=randao_mix,
-            next_seed=next_seed,
+            latest_randao_mixes=latest_randao_mixes,
+            latest_vdf_outputs=latest_vdf_outputs,
             shard_committees_at_slots=shard_committees_at_slots,
             persistent_committees=persistent_committees,
             persistent_committee_reassignments=persistent_committee_reassignments,

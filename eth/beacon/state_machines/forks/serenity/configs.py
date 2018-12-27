@@ -14,6 +14,7 @@ SERENITY_CONFIG = BeaconConfig(
     BLS_WITHDRAWAL_PREFIX_BYTE=b'\x00',
     MAX_CASPER_VOTES=2**10,  # (= 1,024) votes
     LATEST_BLOCK_ROOTS_LENGTH=2**13,  # (= 8,192) block roots
+    LATEST_RANDAO_MIXES_LENGTH=2**13,  # (= 8,192) randao mixes
     # Deposit contract
     DEPOSIT_CONTRACT_ADDRESS=ZERO_ADDRESS,  # TBD
     DEPOSIT_CONTRACT_TREE_DEPTH=2**5,  # (= 32)
