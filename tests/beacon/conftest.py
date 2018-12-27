@@ -1,23 +1,41 @@
 import pytest
+import rlp
 
 from eth.constants import (
     ZERO_HASH32,
 )
+
 import eth._utils.bls as bls
 from eth.beacon._utils.hash import hash_eth2
+from eth._utils.bitfield import (
+    get_empty_bitfield,
+)
+from eth.beacon.aggregation import (
+    aggregate_votes,
+)
+from eth.beacon.enums import (
+    SignatureDomain,
+)
+from eth.beacon.helpers import (
+    get_domain,
+)
+
+from eth.beacon.helpers import (
+    get_new_shuffling,
+)
 
 from eth.beacon.types.proposal_signed_data import (
-    ProposalSignedData
+    ProposalSignedData,
 )
 
 from eth.beacon.types.slashable_vote_data import (
     SlashableVoteData,
 )
 
-from eth.beacon.types.attestation_data import (
-    AttestationData,
-)
-
+from eth.beacon.types.attestation_data import AttestationData
+from eth.beacon.types.attestations import Attestation
+from eth.beacon.types.states import BeaconState
+from eth.beacon.types.crosslink_records import CrosslinkRecord
 from eth.beacon.types.deposits import DepositData
 from eth.beacon.types.deposit_input import DepositInput
 
@@ -44,7 +62,7 @@ DEFAULT_NUM_VALIDATORS = 40
 
 @pytest.fixture(scope="session")
 def privkeys():
-    return [int.from_bytes(hash_eth2(str(i).encode('utf-8'))[:4], 'big') for i in range(1000)]
+    return [int.from_bytes(hash_eth2(str(i).encode('utf-8'))[:4], 'big') for i in range(100)]
 
 
 @pytest.fixture(scope="session")
@@ -80,7 +98,7 @@ def sample_attestation_params(sample_attestation_data_params):
         'data': AttestationData(**sample_attestation_data_params),
         'participation_bitfield': b'\12' * 16,
         'custody_bitfield': b'\34' * 16,
-        'aggregate_sig': [0, 0],
+        'aggregate_signature': [0, 0],
     }
 
 
@@ -492,6 +510,37 @@ def max_exits():
 # genesis
 #
 @pytest.fixture
+def genesis_state(sample_beacon_state_params,
+                  genesis_validators,
+                  epoch_length,
+                  target_committee_size,
+                  initial_slot_number,
+                  shard_count,
+                  latest_block_roots_length):
+    initial_shuffling = get_new_shuffling(
+        seed=ZERO_HASH32,
+        validators=genesis_validators,
+        crosslinking_start_shard=0,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count
+    )
+
+    return BeaconState(**sample_beacon_state_params).copy(
+        validator_registry=genesis_validators,
+        shard_committees_at_slots=initial_shuffling + initial_shuffling,
+        latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
+        latest_crosslinks=tuple(
+            CrosslinkRecord(
+                slot=initial_slot_number,
+                shard_block_root=ZERO_HASH32,
+            )
+            for _ in range(shard_count)
+        )
+    )
+
+
+@pytest.fixture
 def genesis_validators(init_validator_keys,
                        init_randao,
                        max_deposit):
@@ -506,3 +555,49 @@ def genesis_validators(init_validator_keys,
             exit_count=0,
         ) for pub in init_validator_keys
     )
+
+
+#
+# Create mock consensus objects
+#
+@pytest.fixture
+def create_mock_signed_attestation(privkeys):
+    def create_mock_signed_attestation(state,
+                                       shard_committee,
+                                       voting_committee_indices,
+                                       attestation_data):
+        message = hash_eth2(
+            rlp.encode(attestation_data) +
+            (0).to_bytes(1, "big")
+        )
+        # participants sign message
+        signatures = [
+            bls.sign(
+                message,
+                privkeys[shard_committee.committee[committee_index]],
+                domain=get_domain(
+                    fork_data=state.fork_data,
+                    slot=attestation_data.slot,
+                    domain_type=SignatureDomain.DOMAIN_ATTESTATION,
+                )
+            )
+            for committee_index in voting_committee_indices
+        ]
+
+        # aggregate signatures and construct participant bitfield
+        participation_bitfield, aggregate_signature = aggregate_votes(
+            bitfield=get_empty_bitfield(len(shard_committee.committee)),
+            sigs=(),
+            voting_sigs=signatures,
+            voting_committee_indices=voting_committee_indices,
+        )
+
+        # create attestation from attestation_data, particpipant_bitfield, and signature
+        return Attestation(
+            data=attestation_data,
+            participation_bitfield=participation_bitfield,
+            custody_bitfield=b'',
+            aggregate_signature=aggregate_signature,
+        )
+
+    return create_mock_signed_attestation

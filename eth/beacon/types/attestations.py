@@ -29,17 +29,17 @@ class Attestation(rlp.Serializable):
         # Proof of custody bitfield
         ('custody_bitfield', binary),
         # BLS aggregate signature
-        ('aggregate_sig', CountableList(uint384)),
+        ('aggregate_signature', CountableList(uint384)),
     ]
 
     def __init__(self,
                  data: AttestationData,
                  participation_bitfield: bytes,
                  custody_bitfield: bytes,
-                 aggregate_sig: Sequence[int]=(0, 0)) -> None:
+                 aggregate_signature: Sequence[int]=(0, 0)) -> None:
         super().__init__(
             data,
             participation_bitfield,
             custody_bitfield,
-            aggregate_sig,
+            aggregate_signature,
         )
