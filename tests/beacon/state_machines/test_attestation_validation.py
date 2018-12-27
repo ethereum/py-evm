@@ -236,7 +236,6 @@ def test_validate_serenity_attestation_shard_block_root(sample_attestation_data_
         (40, 4, 3, 5, True),
         (20, 5, 3, 2, True),
         (20, 5, 3, 2, False),
-        (10, 2, 3, 4, False),
     ],
 )
 def test_validate_serenity_attestation_aggregate_signature(genesis_state,
