@@ -3,6 +3,11 @@ import itertools
 import pytest
 import random
 
+from hypothesis import (
+    given,
+    strategies as st,
+)
+
 from eth_utils import (
     denoms,
     ValidationError,
@@ -48,11 +53,6 @@ from eth.beacon.helpers import (
     is_surround_vote,
 )
 import eth._utils.bls as bls
-
-from hypothesis import (
-    given,
-    strategies as st,
-)
 
 from tests.beacon.helpers import (
     get_pseudo_chain,
@@ -722,11 +722,25 @@ def test_get_domain(pre_fork_version,
     )
 
 
+def _generate_some_indices(data, max_value_for_list):
+    """
+    Hypothesis helper that generates a list of some integers [0, `max_value_for_list`].
+    The usage is to randomly sample some elements from a sequence of some element.
+    """
+    return data.draw(
+        st.lists(
+            st.integers(
+                min_value=0,
+                max_value=max_value_for_list,
+            ),
+        )
+    )
+
+
 @given(st.data())
 def test_get_pubkey_for_indices(genesis_validators, data):
     max_value_for_list = len(genesis_validators) - 1
-    indices = data.draw(st.lists(st.integers(min_value=0,
-                                             max_value=max_value_for_list)))
+    indices = _generate_some_indices(data, max_value_for_list)
     pubkeys = get_pubkey_for_indices(genesis_validators, indices)
     all_pubkeys = tuple(
         map(lambda validator: validator.pubkey, genesis_validators)
@@ -750,9 +764,13 @@ def _list_and_index(data, max_size=None, elements=st.integers()):
 @given(st.data())
 def test_generate_aggregate_pubkeys(genesis_validators, sample_slashable_vote_data_params, data):
     max_value_for_list = len(genesis_validators) - 1
-    (indices, some_index) = _list_and_index(data,
-                                            elements=st.integers(min_value=0,
-                                                                 max_value=max_value_for_list))
+    (indices, some_index) = _list_and_index(
+        data,
+        elements=st.integers(
+            min_value=0,
+            max_value=max_value_for_list,
+        )
+    )
     proof_of_custody_0_indices = indices[:some_index]
     proof_of_custody_1_indices = indices[some_index:]
 
@@ -791,25 +809,10 @@ def test_verify_vote_count(max_casper_votes, sample_slashable_vote_data_params, 
     assert verify_vote_count(votes, max_casper_votes)
 
 
-def _select_indices(max, count):
-    '''
-    Randomly select some validator indices
-    '''
-    indices = []
-    for i in range(count):
-        next_index = random.randint(0, max - 1)
-        while next_index in indices:
-            next_index = random.randint(0, max - 1)
-        indices.append(next_index)
-    return indices
-
-
-def _get_indices_and_signatures(num_validators,
-                                num_indices,
-                                validators,
-                                message,
-                                privkeys):
-    indices = _select_indices(num_validators, num_indices)
+def _get_indices_and_signatures(num_validators, message, privkeys):
+    num_indices = 5
+    assert num_validators >= num_indices
+    indices = random.sample(range(num_validators), num_indices)
     privkeys = [privkeys[i] for i in indices]
     domain = SignatureDomain.DOMAIN_ATTESTATION
     signatures = tuple(
@@ -822,23 +825,22 @@ def _correct_slashable_vote_data_params(params, validators, messages, privkeys):
     valid_params = copy.deepcopy(params)
 
     num_validators = len(validators)
-    num_indices = 5
 
     key = "aggregate_signature_poc_0_indices"
-    (poc_0_indices, poc_0_signatures) = _get_indices_and_signatures(num_validators,
-                                                                    num_indices,
-                                                                    validators,
-                                                                    messages[0],
-                                                                    privkeys)
+    (poc_0_indices, poc_0_signatures) = _get_indices_and_signatures(
+        num_validators,
+        messages[0],
+        privkeys,
+    )
     valid_params[key] = poc_0_indices
 
     key = "aggregate_signature_poc_1_indices"
     # NOTE: does not guarantee non-empty intersection
-    (poc_1_indices, poc_1_signatures) = _get_indices_and_signatures(num_validators,
-                                                                    num_indices,
-                                                                    validators,
-                                                                    messages[1],
-                                                                    privkeys)
+    (poc_1_indices, poc_1_signatures) = _get_indices_and_signatures(
+        num_validators,
+        messages[1],
+        privkeys,
+    )
     valid_params[key] = poc_1_indices
 
     signatures = poc_0_signatures + poc_1_signatures
@@ -885,10 +887,12 @@ def test_verify_slashable_vote_data_signature(privkeys,
     # touch disjoint subsets of the provided params
     messages = _create_slashable_vote_data_messages(sample_slashable_vote_data_params)
 
-    valid_params = _correct_slashable_vote_data_params(sample_slashable_vote_data_params,
-                                                       genesis_validators,
-                                                       messages,
-                                                       privkeys)
+    valid_params = _correct_slashable_vote_data_params(
+        sample_slashable_vote_data_params,
+        genesis_validators,
+        messages,
+        privkeys,
+    )
     valid_votes = SlashableVoteData(**valid_params)
     assert verify_slashable_vote_data_signature(state, valid_votes)
 
@@ -897,29 +901,29 @@ def test_verify_slashable_vote_data_signature(privkeys,
     assert not verify_slashable_vote_data_signature(state, invalid_votes)
 
 
-def _run_verify_slashable_vote(params, state, max_casper_votes, should_fail):
+def _run_verify_slashable_vote(params, state, max_casper_votes, should_succeed):
     votes = SlashableVoteData(**params)
     result = verify_slashable_vote_data(state, votes, max_casper_votes)
-    if should_fail:
-        assert not result
-    else:
+    if should_succeed:
         assert result
+    else:
+        assert not result
 
 
 @pytest.mark.parametrize(
     (
         'param_mapper,'
-        'should_fail'
+        'should_succeed'
     ),
     [
-        (lambda params: params, False),
-        (lambda params: _corrupt_vote_count(params), True),
-        (lambda params: _corrupt_signature(params), True),
-        (lambda params: _corrupt_vote_count(_corrupt_signature(params)), True),
+        (lambda params: params, True),
+        (lambda params: _corrupt_vote_count(params), False),
+        (lambda params: _corrupt_signature(params), False),
+        (lambda params: _corrupt_vote_count(_corrupt_signature(params)), False),
     ],
 )
 def test_verify_slashable_vote_data(param_mapper,
-                                    should_fail,
+                                    should_succeed,
                                     privkeys,
                                     sample_beacon_state_params,
                                     genesis_validators,
@@ -932,12 +936,14 @@ def test_verify_slashable_vote_data(param_mapper,
     # touch disjoint subsets of the provided params
     messages = _create_slashable_vote_data_messages(sample_slashable_vote_data_params)
 
-    params = _correct_slashable_vote_data_params(sample_slashable_vote_data_params,
-                                                 genesis_validators,
-                                                 messages,
-                                                 privkeys)
+    params = _correct_slashable_vote_data_params(
+        sample_slashable_vote_data_params,
+        genesis_validators,
+        messages,
+        privkeys,
+    )
     params = param_mapper(params)
-    _run_verify_slashable_vote(params, state, max_casper_votes, should_fail)
+    _run_verify_slashable_vote(params, state, max_casper_votes, should_succeed)
 
 
 def test_is_double_vote(sample_attestation_data_params):
