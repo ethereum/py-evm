@@ -723,8 +723,9 @@ def test_get_domain(pre_fork_version,
 
 @given(st.data())
 def test_get_pubkey_for_indices(genesis_validators, data):
+    max_value_for_list = len(genesis_validators) - 1
     indices = data.draw(st.lists(st.integers(min_value=0,
-                                             max_value=len(genesis_validators)-1)))
+                                             max_value=max_value_for_list)))
     pubkeys = get_pubkey_for_indices(genesis_validators, indices)
     all_pubkeys = tuple(
         map(lambda validator: validator.pubkey, genesis_validators)
@@ -745,8 +746,10 @@ def _list_and_index(data, max_size=None, elements=st.integers()):
 
 @given(st.data())
 def test_generate_aggregate_pubkeys(genesis_validators, sample_slashable_vote_data_params, data):
-    (indices, some_index) = _list_and_index(data, elements=st.integers(min_value=0,
-                                                                       max_value=len(genesis_validators)-1))
+    max_value_for_list = len(genesis_validators) - 1
+    (indices, some_index) = _list_and_index(data,
+                                            elements=st.integers(min_value=0,
+                                                                 max_value=max_value_for_list))
     proof_of_custody_0_indices = indices[:some_index]
     proof_of_custody_1_indices = indices[some_index:]
 
@@ -791,13 +794,18 @@ def _select_indices(max, count):
     '''
     indices = []
     for i in range(count):
-        next_index = random.randint(0, max-1)
+        next_index = random.randint(0, max - 1)
         while next_index in indices:
-            next_index = random.randint(0, max-1)
+            next_index = random.randint(0, max - 1)
         indices.append(next_index)
     return indices
 
-def _get_indices_aggregate_pubkey_and_signatures(num_validators, num_indices, validators, message, privkeys):
+
+def _get_indices_aggregate_pubkey_and_signatures(num_validators,
+                                                 num_indices,
+                                                 validators,
+                                                 message,
+                                                 privkeys):
     indices = _select_indices(num_validators, num_indices)
     keys = [(v.pubkey, privkeys[i]) for (i, v) in enumerate(validators) if i in indices]
     pubkeys = tuple(
@@ -875,16 +883,21 @@ def test_verify_slashable_vote_data_signature(privkeys,
     sample_beacon_state_params["validator_registry"] = genesis_validators
     state = BeaconState(**sample_beacon_state_params)
 
-    # NOTE: we can do this before "correcting" the params as they touch disjoint subsets of the provided params
+    # NOTE: we can do this before "correcting" the params as they
+    # touch disjoint subsets of the provided params
     messages = _create_slashable_vote_data_messages(sample_slashable_vote_data_params)
 
-    valid_params = _correct_slashable_vote_data_params(sample_slashable_vote_data_params, genesis_validators, messages, privkeys)
+    valid_params = _correct_slashable_vote_data_params(sample_slashable_vote_data_params,
+                                                       genesis_validators,
+                                                       messages,
+                                                       privkeys)
     valid_votes = SlashableVoteData(**valid_params)
     assert verify_slashable_vote_data_signature(state, valid_votes)
 
     invalid_params = _corrupt_signature(valid_params)
     invalid_votes = SlashableVoteData(**invalid_params)
     assert not verify_slashable_vote_data_signature(state, invalid_votes)
+
 
 def _run_verify_slashable_vote(params, state, max_casper_votes, should_fail):
     votes = SlashableVoteData(**params)
@@ -917,10 +930,14 @@ def test_verify_slashable_vote_data(param_mapper,
     sample_beacon_state_params["validator_registry"] = genesis_validators
     state = BeaconState(**sample_beacon_state_params)
 
-    # NOTE: we can do this before "correcting" the params as they touch disjoint subsets of the provided params
+    # NOTE: we can do this before "correcting" the params as they
+    # touch disjoint subsets of the provided params
     messages = _create_slashable_vote_data_messages(sample_slashable_vote_data_params)
 
-    params = _correct_slashable_vote_data_params(sample_slashable_vote_data_params, genesis_validators, messages, privkeys)
+    params = _correct_slashable_vote_data_params(sample_slashable_vote_data_params,
+                                                 genesis_validators,
+                                                 messages,
+                                                 privkeys)
     params = param_mapper(params)
     _run_verify_slashable_vote(params, state, max_casper_votes, should_fail)
 
