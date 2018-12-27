@@ -50,10 +50,7 @@ def test_validate_proposer_signature(
 
     state = BeaconState(**sample_beacon_state_params).copy(
         validator_registry=[
-            mock_validator_record(
-                pubkey=proposer_pubkey,
-                max_deposit=0,
-            )
+            mock_validator_record(proposer_pubkey)
             for _ in range(10)
         ],
         shard_committees_at_slots=get_sample_shard_committees_at_slots(
