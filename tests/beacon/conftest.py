@@ -1,8 +1,6 @@
 import pytest
 import rlp
 
-from eth_utils import denoms
-
 from eth.constants import (
     ZERO_HASH32,
 )
@@ -149,6 +147,7 @@ def sample_beacon_state_params(sample_fork_data_params):
         'genesis_time': 0,
         'fork_data': ForkData(**sample_fork_data_params),
         'validator_registry': (),
+        'validator_balances': (),
         'validator_registry_latest_change_slot': 10,
         'validator_registry_exit_count': 10,
         'validator_registry_delta_chain_tip': b'\x55' * 32,
@@ -305,7 +304,6 @@ def sample_validator_record_params():
         'withdrawal_credentials': b'\x01' * 32,
         'randao_commitment': b'\x01' * 32,
         'randao_layers': 1,
-        'balance': 100,
         'status': 1,
         'latest_status_change_slot': 0,
         'exit_count': 0
@@ -547,7 +545,6 @@ def genesis_validators(init_validator_keys,
             withdrawal_credentials=ZERO_HASH32,
             randao_commitment=init_randao,
             randao_layers=0,
-            balance=max_deposit * denoms.gwei,
             status=ValidatorStatusCode.ACTIVE,
             latest_status_change_slot=0,
             exit_count=0,

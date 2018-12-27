@@ -3,6 +3,8 @@ from eth_typing import (
 )
 import rlp
 
+from eth.beacon._utils.hash import hash_eth2
+
 from eth.rlp.sedes import (
     uint64,
     hash32,
@@ -31,3 +33,17 @@ class ProposalSignedData(rlp.Serializable):
             shard,
             block_root,
         )
+
+    _hash = None
+
+    @property
+    def hash(self) -> Hash32:
+        if self._hash is None:
+            self._hash = hash_eth2(rlp.encode(self))
+        return self._hash
+
+    @property
+    def root(self) -> Hash32:
+        # Alias of `hash`.
+        # Using flat hash, might change to SSZ tree hash.
+        return self.hash

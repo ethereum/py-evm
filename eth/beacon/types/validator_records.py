@@ -32,8 +32,6 @@ class ValidatorRecord(rlp.Serializable):
         ('randao_commitment', hash32),
         # Slot the proposer has skipped (ie. layers of RANDAO expected)
         ('randao_layers', uint64),
-        # Balance in Gwei
-        ('balance', uint64),
         # Status code
         ('status', uint64),
         # Slot when validator last changed status (or 0)
@@ -47,7 +45,6 @@ class ValidatorRecord(rlp.Serializable):
                  withdrawal_credentials: Hash32,
                  randao_commitment: Hash32,
                  randao_layers: int,
-                 balance: int,
                  status: int,
                  latest_status_change_slot: int,
                  exit_count: int) -> None:
@@ -56,7 +53,6 @@ class ValidatorRecord(rlp.Serializable):
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             randao_layers=randao_layers,
-            balance=balance,
             status=status,
             latest_status_change_slot=latest_status_change_slot,
             exit_count=exit_count,
@@ -74,7 +70,6 @@ class ValidatorRecord(rlp.Serializable):
                               pubkey: int,
                               withdrawal_credentials: Hash32,
                               randao_commitment: Hash32,
-                              balance: int,
                               latest_status_change_slot: int) -> 'ValidatorRecord':
         """
         Return a new pending ``ValidatorRecord`` with the given fields.
@@ -84,7 +79,6 @@ class ValidatorRecord(rlp.Serializable):
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             randao_layers=0,
-            balance=balance,
             status=ValidatorStatusCode.PENDING_ACTIVATION,
             latest_status_change_slot=latest_status_change_slot,
             exit_count=0,

@@ -605,10 +605,8 @@ def test_get_attestation_participants(
     ]
 )
 def test_get_effective_balance(balance, max_deposit, expected, sample_validator_record_params):
-    validator = ValidatorRecord(**sample_validator_record_params).copy(
-        balance=balance,
-    )
-    result = get_effective_balance(validator, max_deposit)
+    balances = (balance,)
+    result = get_effective_balance(balances, 0, max_deposit)
     assert result == expected
 
 

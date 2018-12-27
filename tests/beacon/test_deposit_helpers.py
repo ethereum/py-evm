@@ -60,24 +60,30 @@ def test_get_min_empty_validator_index(sample_validator_record_params,
                                        latest_status_change_slot,
                                        zero_balance_validator_ttl,
                                        current_slot,
+                                       max_deposit,
                                        expected):
     validators = [
         ValidatorRecord(**sample_validator_record_params).copy(
-            balance=balance,
             latest_status_change_slot=latest_status_change_slot,
         )
+        for _ in range(10)
+    ]
+    validator_balances = [
+        balance
         for _ in range(10)
     ]
     if isinstance(expected, Exception):
         with pytest.raises(MinEmptyValidatorIndexNotFound):
             get_min_empty_validator_index(
                 validators=validators,
+                validator_balances=validator_balances,
                 current_slot=current_slot,
                 zero_balance_validator_ttl=zero_balance_validator_ttl,
             )
     else:
         result = get_min_empty_validator_index(
             validators=validators,
+            validator_balances=validator_balances,
             current_slot=current_slot,
             zero_balance_validator_ttl=zero_balance_validator_ttl,
         )
@@ -103,6 +109,7 @@ def test_add_pending_validator(monkeypatch,
     from eth.beacon import deposit_helpers
 
     def mock_get_min_empty_validator_index(validators,
+                                           validator_balances,
                                            current_slot,
                                            zero_balance_validator_ttl):
         if min_empty_validator_index_result is None:
@@ -118,18 +125,20 @@ def test_add_pending_validator(monkeypatch,
 
     state = BeaconState(**sample_beacon_state_params).copy(
         validator_registry=[
-            ValidatorRecord(**sample_validator_record_params).copy(
-                balance=100,
-            )
+            ValidatorRecord(**sample_validator_record_params)
             for _ in range(validator_registry_len)
-        ]
+        ],
+        validator_balances=[
+            100
+            for _ in range(validator_registry_len)
+        ],
     )
-    validator = ValidatorRecord(**sample_validator_record_params).copy(
-        balance=5566,
-    )
+    validator = ValidatorRecord(**sample_validator_record_params)
+    deposit = 5566
     state, index = add_pending_validator(
         state,
         validator,
+        deposit,
         zero_balance_validator_ttl=0,  # it's for `get_min_empty_validator_index`
     )
     assert index == expected_index
@@ -225,7 +234,7 @@ def test_process_deposit(sample_beacon_state_params,
     assert result_state.validator_registry[0].pubkey == pubkey_1
     assert result_state.validator_registry[index].withdrawal_credentials == withdrawal_credentials
     assert result_state.validator_registry[index].randao_commitment == randao_commitment
-    assert result_state.validator_registry[index].balance == deposit
+    assert result_state.validator_balances[index] == deposit
     # test immutable
     assert len(state.validator_registry) == 0
 
@@ -254,11 +263,11 @@ def test_process_deposit(sample_beacon_state_params,
     result_state = result_state.copy(
         validator_registry=(
             result_state.validator_registry[0].copy(
-                balance=0,
                 latest_status_change_slot=0,
             ),
             result_state.validator_registry[1],
-        )
+        ),
+        validator_balances=(0,) + result_state.validator_balances[1:]
     )
 
     # Add the third validator.

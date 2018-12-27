@@ -8,13 +8,12 @@ from eth.beacon.types.validator_records import (
 from eth_utils import to_tuple
 
 
-def mock_validator_record(pubkey, max_deposit):
+def mock_validator_record(pubkey):
     return ValidatorRecord(
         pubkey=pubkey,
         withdrawal_credentials=b'\x44' * 32,
         randao_commitment=b'\x55' * 32,
         randao_layers=0,
-        balance=max_deposit,
         status=ValidatorStatusCode.ACTIVE,
         latest_status_change_slot=0,
         exit_count=0,

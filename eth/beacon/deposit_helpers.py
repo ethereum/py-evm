@@ -30,11 +30,12 @@ from eth.beacon.helpers import (
 
 
 def get_min_empty_validator_index(validators: Sequence[ValidatorRecord],
+                                  validator_balances: Sequence[int],
                                   current_slot: int,
                                   zero_balance_validator_ttl: int) -> int:
-    for index, validator in enumerate(validators):
+    for index, (validator, balance) in enumerate(zip(validators, validator_balances)):
         is_empty = (
-            validator.balance == 0 and
+            balance == 0 and
             validator.latest_status_change_slot + zero_balance_validator_ttl <= current_slot
         )
         if is_empty:
@@ -74,6 +75,7 @@ def validate_proof_of_possession(state: BeaconState,
 
 def add_pending_validator(state: BeaconState,
                           validator: ValidatorRecord,
+                          deposit: int,
                           zero_balance_validator_ttl: int) -> Tuple[BeaconState, int]:
     """
     Add a validator to the existing minimum empty validator index or
@@ -83,6 +85,7 @@ def add_pending_validator(state: BeaconState,
     try:
         index = get_min_empty_validator_index(
             state.validator_registry,
+            state.validator_balances,
             state.slot,
             zero_balance_validator_ttl,
         )
@@ -93,11 +96,12 @@ def add_pending_validator(state: BeaconState,
         validator_registry = state.validator_registry + (validator,)
         state = state.copy(
             validator_registry=validator_registry,
+            validator_balances=state.validator_balances + (deposit, )
         )
         index = len(state.validator_registry) - 1
     else:
         # Use the empty validator index
-        state = state.update_validator(index, validator)
+        state = state.update_validator(index, validator, deposit)
 
     return state, index
 
@@ -127,13 +131,13 @@ def process_deposit(*,
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
-            balance=deposit,
             latest_status_change_slot=state.slot,
         )
 
         state, index = add_pending_validator(
             state,
             validator,
+            deposit,
             zero_balance_validator_ttl,
         )
     else:
@@ -151,9 +155,10 @@ def process_deposit(*,
             )
 
         # Update validator's balance and state
-        validator = validator.copy(
-            balance=validator.balance + deposit,
+        state = state.update_validator(
+            validator_index=index,
+            validator=validator,
+            balance=state.validator_balances[index] + deposit,
         )
-        state = state.update_validator(index, validator)
 
     return state, index
