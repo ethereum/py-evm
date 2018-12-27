@@ -731,6 +731,8 @@ def test_get_pubkey_for_indices(genesis_validators, data):
         map(lambda validator: validator.pubkey, genesis_validators)
     )
 
+    assert len(indices) == len(pubkeys)
+
     for pubkey in pubkeys:
         assert pubkey in all_pubkeys
 
