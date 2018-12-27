@@ -1,4 +1,5 @@
 import copy
+import itertools
 import pytest
 import random
 
@@ -859,7 +860,11 @@ def _corrupt_signature(params):
 
 def _corrupt_vote_count(params):
     params = copy.deepcopy(params)
-    params["aggregate_signature_poc_0_indices"].append(0)
+    key = "aggregate_signature_poc_0_indices"
+    for i in itertools.count():
+        if i not in params[key]:
+            params[key].append(i)
+            break
     return params
 
 
