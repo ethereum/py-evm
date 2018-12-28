@@ -11,6 +11,9 @@ from eth.rlp.sedes import (
     uint24,
     uint64,
 )
+from eth.beacon.typing import (
+    ShardNumber,
+)
 
 
 class ShardCommittee(rlp.Serializable):
@@ -27,7 +30,7 @@ class ShardCommittee(rlp.Serializable):
     ]
 
     def __init__(self,
-                 shard: int,
+                 shard: ShardNumber,
                  committee: Sequence[int],
                  total_validator_count: int)-> None:
 

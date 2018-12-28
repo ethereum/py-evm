@@ -8,7 +8,10 @@ from eth.rlp.sedes import (
     uint384,
 )
 from .proposal_signed_data import ProposalSignedData
-
+from eth.beacon.typing import (
+    BLSSignatureAggregated,
+)
+from eth.beacon.constants import EMPTY_SIGNATURE
 
 class ProposerSlashing(rlp.Serializable):
     fields = [
@@ -27,13 +30,14 @@ class ProposerSlashing(rlp.Serializable):
     def __init__(self,
                  proposer_index: int,
                  proposal_data_1: ProposalSignedData,
-                 proposal_signature_1: Sequence[int],
                  proposal_data_2: ProposalSignedData,
-                 proposal_signature_2: Sequence[int]) -> None:
+                 # default arguments follow non-default arguments
+                 proposal_signature_1: BLSSignatureAggregated = EMPTY_SIGNATURE,
+                 proposal_signature_2: BLSSignatureAggregated = EMPTY_SIGNATURE) -> None:
         super().__init__(
             proposer_index,
             proposal_data_1,
-            proposal_signature_1,
             proposal_data_2,
+            proposal_signature_1,
             proposal_signature_2,
         )

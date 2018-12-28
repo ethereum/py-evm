@@ -9,6 +9,10 @@ from eth.rlp.sedes import (
     uint64,
     hash32,
 )
+from eth.beacon.typing import (
+    SlotNumber,
+    ShardNumber,
+)
 
 
 class ProposalSignedData(rlp.Serializable):
@@ -25,8 +29,8 @@ class ProposalSignedData(rlp.Serializable):
     ]
 
     def __init__(self,
-                 slot: int,
-                 shard: int,
+                 slot: SlotNumber,
+                 shard: ShardNumber,
                  block_root: Hash32) -> None:
         super().__init__(
             slot,

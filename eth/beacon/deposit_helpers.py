@@ -27,6 +27,11 @@ from eth.beacon.types.validator_records import ValidatorRecord
 from eth.beacon.helpers import (
     get_domain,
 )
+from eth.beacon.typing import (
+    BLSPubkey,
+    BLSSignature,
+    Gwei,
+)
 
 
 def get_min_empty_validator_index(validators: Sequence[ValidatorRecord],
@@ -44,8 +49,8 @@ def get_min_empty_validator_index(validators: Sequence[ValidatorRecord],
 
 
 def validate_proof_of_possession(state: BeaconState,
-                                 pubkey: int,
-                                 proof_of_possession: bytes,
+                                 pubkey: BLSPubkey,
+                                 proof_of_possession: BLSSignature,
                                  withdrawal_credentials: Hash32,
                                  randao_commitment: Hash32) -> None:
     deposit_input = DepositInput(
@@ -75,7 +80,7 @@ def validate_proof_of_possession(state: BeaconState,
 
 def add_pending_validator(state: BeaconState,
                           validator: ValidatorRecord,
-                          deposit: int,
+                          deposit: Gwei,
                           zero_balance_validator_ttl: int) -> Tuple[BeaconState, int]:
     """
     Add a validator to the existing minimum empty validator index or
@@ -108,9 +113,9 @@ def add_pending_validator(state: BeaconState,
 
 def process_deposit(*,
                     state: BeaconState,
-                    pubkey: int,
-                    deposit: int,
-                    proof_of_possession: bytes,
+                    pubkey: BLSPubkey,
+                    deposit: Gwei,
+                    proof_of_possession: BLSSignature,
                     withdrawal_credentials: Hash32,
                     randao_commitment: Hash32,
                     zero_balance_validator_ttl: int) -> Tuple[BeaconState, int]:

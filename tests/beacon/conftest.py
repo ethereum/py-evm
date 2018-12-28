@@ -219,7 +219,7 @@ def sample_exit_params():
     return {
         'slot': 123,
         'validator_index': 15,
-        'signature': (b'\56' * 32),
+        'signature': (0, 0),
     }
 
 

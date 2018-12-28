@@ -22,6 +22,12 @@ from eth.rlp.sedes import (
 from eth.beacon._utils.hash import (
     hash_eth2,
 )
+from eth.beacon.typing import (
+    SlotNumber,
+    Bitfield,
+    UnixTime,
+    Gwei,
+)
 
 from .pending_attestation_records import PendingAttestationRecord
 from .candidate_pow_receipt_root_records import CandidatePoWReceiptRootRecord
@@ -76,19 +82,19 @@ class BeaconState(rlp.Serializable):
 
     def __init__(
             self,
-            slot: int,
-            genesis_time: int,
+            slot: SlotNumber,
+            genesis_time: UnixTime,
             fork_data: ForkData,
-            validator_registry_latest_change_slot: int,
+            validator_registry_latest_change_slot: SlotNumber,
             validator_registry_exit_count: int,
             validator_registry_delta_chain_tip: Hash32,
-            previous_justified_slot: int,
-            justified_slot: int,
-            justification_bitfield: int,
-            finalized_slot: int,
+            previous_justified_slot: SlotNumber,
+            justified_slot: SlotNumber,
+            justification_bitfield: Bitfield,
+            finalized_slot: SlotNumber,
             processed_pow_receipt_root: Hash32,
             validator_registry: Sequence[ValidatorRecord]=(),
-            validator_balances: Sequence[int]=(),
+            validator_balances: Sequence[Gwei]=(),
             latest_randao_mixes: Sequence[Hash32]=(),
             latest_vdf_outputs: Sequence[Hash32]=(),
             shard_committees_at_slots: Sequence[Sequence[ShardCommittee]]=(),
@@ -96,7 +102,7 @@ class BeaconState(rlp.Serializable):
             persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=(),
             latest_crosslinks: Sequence[CrosslinkRecord]=(),
             latest_block_roots: Sequence[Hash32]=(),
-            latest_penalized_exit_balances: Sequence[int]=(),
+            latest_penalized_exit_balances: Sequence[Gwei]=(),
             batched_block_roots: Sequence[Hash32]=(),
             latest_attestations: Sequence[PendingAttestationRecord]=(),
             candidate_pow_receipt_roots: Sequence[CandidatePoWReceiptRootRecord]=()
@@ -164,7 +170,7 @@ class BeaconState(rlp.Serializable):
     def update_validator(self,
                          validator_index: int,
                          validator: ValidatorRecord,
-                         balance: int) -> 'BeaconState':
+                         balance: Gwei) -> 'BeaconState':
         validator_registry = list(self.validator_registry)
         validator_registry[validator_index] = validator
 

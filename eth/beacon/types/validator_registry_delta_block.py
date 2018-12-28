@@ -6,6 +6,10 @@ import rlp
 from eth.beacon._utils.hash import (
     hash_eth2,
 )
+from eth.beacon.typing import (
+    BLSPubkey,
+)
+
 from eth.rlp.sedes import (
     hash32,
     uint24,
@@ -28,7 +32,7 @@ class ValidatorRegistryDeltaBlock(rlp.Serializable):
     def __init__(self,
                  latest_registry_delta_root: Hash32,
                  validator_index: int,
-                 pubkey: int,
+                 pubkey: BLSPubkey,
                  flag: int) -> None:
         super().__init__(
             latest_registry_delta_root=latest_registry_delta_root,

@@ -8,7 +8,11 @@ from eth.rlp.sedes import (
     uint64,
     uint384,
 )
-
+from eth.beacon.typing import (
+    SlotNumber,
+    BLSSignatureAggregated,
+)
+from eth.beacon.constants import EMPTY_SIGNATURE
 
 class Exit(rlp.Serializable):
     """
@@ -24,9 +28,9 @@ class Exit(rlp.Serializable):
     ]
 
     def __init__(self,
-                 slot: int,
+                 slot: SlotNumber,
                  validator_index: int,
-                 signature: Sequence[int]) -> None:
+                 signature: BLSSignatureAggregated=EMPTY_SIGNATURE) -> None:
         super().__init__(
             slot,
             validator_index,

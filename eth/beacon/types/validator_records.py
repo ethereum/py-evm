@@ -11,6 +11,11 @@ from eth.rlp.sedes import (
     uint384,
     hash32,
 )
+from eth.beacon.typing import (
+    SlotNumber,
+    BLSPubkey,
+)
+
 
 
 VALIDATOR_RECORD_ACTIVE_STATUSES = {
@@ -41,12 +46,12 @@ class ValidatorRecord(rlp.Serializable):
     ]
 
     def __init__(self,
-                 pubkey: int,
+                 pubkey: BLSPubkey,
                  withdrawal_credentials: Hash32,
                  randao_commitment: Hash32,
-                 randao_layers: int,
-                 status: int,
-                 latest_status_change_slot: int,
+                 randao_layers: SlotNumber,
+                 status: ValidatorStatusCode,
+                 latest_status_change_slot: SlotNumber,
                  exit_count: int) -> None:
         super().__init__(
             pubkey=pubkey,
@@ -67,10 +72,10 @@ class ValidatorRecord(rlp.Serializable):
 
     @classmethod
     def get_pending_validator(cls,
-                              pubkey: int,
+                              pubkey: BLSPubkey,
                               withdrawal_credentials: Hash32,
                               randao_commitment: Hash32,
-                              latest_status_change_slot: int) -> 'ValidatorRecord':
+                              latest_status_change_slot: SlotNumber) -> 'ValidatorRecord':
         """
         Return a new pending ``ValidatorRecord`` with the given fields.
         """
@@ -78,7 +83,7 @@ class ValidatorRecord(rlp.Serializable):
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
-            randao_layers=0,
+            randao_layers=SlotNumber(0),
             status=ValidatorStatusCode.PENDING_ACTIVATION,
             latest_status_change_slot=latest_status_change_slot,
             exit_count=0,

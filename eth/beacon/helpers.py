@@ -51,7 +51,10 @@ if TYPE_CHECKING:
     from eth.beacon.types.fork_data import ForkData  # noqa: F401
     from eth.beacon.types.slashable_vote_data import SlashableVoteData  # noqa: F401
     from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
-
+    from eth.beacon.typing import (
+        ShardNumber,
+        BLSPubkey,
+    )
 
 def _get_element_from_recent_list(
         target_list: Sequence[Any],
@@ -161,7 +164,7 @@ def _get_shards_committees_for_shard_indices(
     """
     for index, indices in enumerate(shard_indices):
         yield ShardCommittee(
-            shard=(start_shard + index) % shard_count,
+            shard=ShardNumber((start_shard + index) % shard_count),
             committee=indices,
             total_validator_count=total_validator_count,
         )
@@ -371,7 +374,7 @@ def get_effective_balance(validator_balances: Sequence[int], index: int, max_dep
 
 def get_new_validator_registry_delta_chain_tip(current_validator_registry_delta_chain_tip: Hash32,
                                                validator_index: int,
-                                               pubkey: int,
+                                               pubkey: BLSPubkey,
                                                flag: int) -> Hash32:
     """
     Compute the next hash in the validator registry delta hash chain.

@@ -4,6 +4,9 @@ from eth.rlp.sedes import (
     uint64,
 )
 
+from eth.beacon.typing import (
+    SlotNumber,
+)
 
 class ForkData(rlp.Serializable):
     """
@@ -21,7 +24,7 @@ class ForkData(rlp.Serializable):
     def __init__(self,
                  pre_fork_version: int,
                  post_fork_version: int,
-                 fork_slot: int) -> None:
+                 fork_slot: SlotNumber) -> None:
         super().__init__(
             pre_fork_version=pre_fork_version,
             post_fork_version=post_fork_version,

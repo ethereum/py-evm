@@ -4,6 +4,10 @@ from eth.rlp.sedes import (
     uint24,
     uint64,
 )
+from eth.beacon.typing import (
+    SlotNumber,
+    ShardNumber,
+)
 
 
 class ShardReassignmentRecord(rlp.Serializable):
@@ -21,8 +25,8 @@ class ShardReassignmentRecord(rlp.Serializable):
 
     def __init__(self,
                  validator_index: int,
-                 shard: int,
-                 slot: int)-> None:
+                 shard: ShardNumber,
+                 slot: SlotNumber)-> None:
         super().__init__(
             validator_index=validator_index,
             shard=shard,

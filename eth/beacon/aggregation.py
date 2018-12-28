@@ -11,11 +11,17 @@ from eth._utils.bitfield import (
     set_voted,
 )
 from eth.beacon.enums import SignatureDomain
+from eth.beacon.typing import (
+    BLSPubkey,
+    BLSSignature,
+    BLSSignatureAggregated,
+    Bitfield,
+)
 
 
 def verify_votes(
         message: bytes,
-        votes: Iterable[Tuple[int, bytes, int]],
+        votes: Iterable[Tuple[int, BLSSignature, BLSPubkey]],
         domain: SignatureDomain) -> Tuple[Tuple[bytes, ...], Tuple[int, ...]]:
     """
     Verify the given votes.
@@ -37,10 +43,10 @@ def verify_votes(
     return sigs, committee_indices
 
 
-def aggregate_votes(bitfield: bytes,
-                    sigs: Iterable[bytes],
-                    voting_sigs: Iterable[bytes],
-                    voting_committee_indices: Iterable[int]) -> Tuple[bytes, Tuple[int, int]]:
+def aggregate_votes(bitfield: Bitfield,
+                    sigs: Iterable[BLSSignature],
+                    voting_sigs: Iterable[BLSSignature],
+                    voting_committee_indices: Iterable[int]) -> Tuple[Bitfield, BLSSignatureAggregated]:
     """
     Aggregate the votes.
     """
