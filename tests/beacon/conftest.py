@@ -437,11 +437,6 @@ def epoch_length():
 
 
 @pytest.fixture
-def min_validator_registry_change_interval():
-    return SERENITY_CONFIG.MIN_VALIDATOR_REGISTRY_CHANGE_INTERVAL
-
-
-@pytest.fixture
 def pow_receipt_root_voting_period():
     return SERENITY_CONFIG.POW_RECEIPT_ROOT_VOTING_PERIOD
 
