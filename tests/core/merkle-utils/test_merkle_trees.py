@@ -74,7 +74,7 @@ def test_merkle_tree_calculation(leaves, tree):
 
 @pytest.mark.parametrize("leave_number", [0, 3, 5, 6, 7, 9])
 def test_invalid_merkle_root_calculation(leave_number):
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):
         calc_merkle_root((b"",) * leave_number)
 
 

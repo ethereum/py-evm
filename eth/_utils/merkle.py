@@ -125,10 +125,10 @@ def calc_merkle_root(items: Sequence[Hashable]) -> Hash32:
 
 def calc_merkle_tree_from_leaves(leaves: Sequence[Hash32]) -> MerkleTree:
     if len(leaves) == 0:
-        raise ValidationError("No items given")
+        raise ValueError("No leaves given")
     n_layers = math.log2(len(leaves)) + 1
     if not n_layers.is_integer():
-        raise ValidationError("Item number is not a power of two")
+        raise ValueError("Number of leaves is not a power of two")
     n_layers = int(n_layers)
     tree = cast(
         MerkleTree,
