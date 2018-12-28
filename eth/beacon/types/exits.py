@@ -8,8 +8,9 @@ from eth.rlp.sedes import (
     uint384,
 )
 from eth.beacon.typing import (
-    SlotNumber,
     BLSSignature,
+    SlotNumber,
+    ValidatorIndex,
 )
 from eth.beacon.constants import EMPTY_SIGNATURE
 

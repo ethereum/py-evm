@@ -13,6 +13,7 @@ from eth.rlp.sedes import (
 )
 from eth.beacon.typing import (
     ShardNumber,
+    ValidatorIndex,
 )
 
 

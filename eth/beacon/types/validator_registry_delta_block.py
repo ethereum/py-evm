@@ -8,6 +8,11 @@ from eth.beacon._utils.hash import (
 )
 from eth.beacon.typing import (
     BLSPubkey,
+    ValidatorIndex,
+)
+
+from eth.beacon.enums import (
+    ValidatorRegistryDeltaFlag,
 )
 
 from eth.rlp.sedes import (

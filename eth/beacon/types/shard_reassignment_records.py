@@ -7,6 +7,7 @@ from eth.rlp.sedes import (
 from eth.beacon.typing import (
     SlotNumber,
     ShardNumber,
+    ValidatorIndex,
 )
 
 

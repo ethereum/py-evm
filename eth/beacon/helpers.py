@@ -33,6 +33,7 @@ from eth.beacon.block_committees_info import (
 )
 from eth.beacon.enums import (
     SignatureDomain,
+    ValidatorRegistryDeltaFlag,
 )
 from eth.beacon.types.shard_committees import (
     ShardCommittee,
@@ -44,13 +45,13 @@ from eth.beacon._utils.random import (
 import functools
 
 from eth.beacon.typing import (
-    ShardNumber,
+    Bitfield,
     BLSPubkey,
+    Ether,
+    Gwei,
+    ShardNumber,
     SlotNumber,
     ValidatorIndex,
-    Bitfield,
-    Gwei,
-    Ether,
 )
 
 if TYPE_CHECKING:
@@ -162,7 +163,7 @@ def get_active_validator_indices(
 #
 @to_tuple
 def _get_shards_committees_for_shard_indices(
-        shard_indices: Sequence[Sequence[ShardNumber]],
+        shard_indices: Sequence[Sequence[ValidatorIndex]],
         start_shard: ShardNumber,
         total_validator_count: int,
         shard_count: int) -> Iterable[ShardCommittee]:
