@@ -33,7 +33,7 @@ class ValidatorRegistryDeltaBlock(rlp.Serializable):
                  latest_registry_delta_root: Hash32,
                  validator_index: ValidatorIndex,
                  pubkey: BLSPubkey,
-                 flag: int) -> None:
+                 flag: ValidatorRegistryDeltaFlag) -> None:
         super().__init__(
             latest_registry_delta_root=latest_registry_delta_root,
             validator_index=validator_index,

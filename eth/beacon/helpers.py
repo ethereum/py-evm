@@ -385,7 +385,7 @@ def get_effective_balance(
 def get_new_validator_registry_delta_chain_tip(current_validator_registry_delta_chain_tip: Hash32,
                                                validator_index: ValidatorIndex,
                                                pubkey: BLSPubkey,
-                                               flag: int) -> Hash32:
+                                               flag: ValidatorRegistryDeltaFlag) -> Hash32:
     """
     Compute the next hash in the validator registry delta hash chain.
     """
