@@ -13,11 +13,6 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.constants import (
-    ZERO_HASH32,
-)
-
-
 from eth.beacon.enums import (
     ValidatorStatusCode,
     SignatureDomain,
@@ -41,7 +36,6 @@ from eth.beacon.helpers import (
     get_domain,
     get_fork_version,
     get_new_shuffling,
-    get_new_validator_registry_delta_chain_tip,
     _get_shard_committees_at_slot,
     get_block_committees_info,
     get_pubkey_for_indices,
@@ -622,35 +616,6 @@ def test_get_attestation_participants(
 def test_get_effective_balance(balance, max_deposit, expected, sample_validator_record_params):
     balances = (balance,)
     result = get_effective_balance(balances, 0, max_deposit)
-    assert result == expected
-
-
-@pytest.mark.parametrize(
-    (
-        'validator_index,'
-        'pubkey,'
-        'flag,'
-        'expected'
-    ),
-    [
-        (
-            1,
-            2 * 256 - 1,
-            1,
-            b'\xb8K\xad[zDE\xef\x00Z\x9c\x04\xdc\x95\xff\x9c\xeaP\x15\xf5\xfb\xdd\x0f\x1c:\xd7U+\x81\x92:\xee'  # noqa: E501
-        ),
-    ]
-)
-def test_get_new_validator_registry_delta_chain_tip(validator_index,
-                                                    pubkey,
-                                                    flag,
-                                                    expected):
-    result = get_new_validator_registry_delta_chain_tip(
-        current_validator_registry_delta_chain_tip=ZERO_HASH32,
-        validator_index=validator_index,
-        pubkey=pubkey,
-        flag=flag,
-    )
     assert result == expected
 
 

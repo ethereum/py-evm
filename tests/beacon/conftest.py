@@ -318,7 +318,8 @@ def sample_validator_registry_delta_block_params():
 
 
 @pytest.fixture
-def empty_beacon_state():
+def empty_beacon_state(latest_block_roots_length,
+                       collective_penalty_calculation_period):
     return BeaconState(
         slot=0,
         genesis_time=0,
@@ -342,8 +343,11 @@ def empty_beacon_state():
         justification_bitfield=0,
         finalized_slot=0,
         latest_crosslinks=(),
-        latest_block_roots=(),
-        latest_penalized_exit_balances=(),
+        latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
+        latest_penalized_exit_balances=tuple(
+            0
+            for _ in range(collective_penalty_calculation_period)
+        ),
         latest_attestations=(),
         batched_block_roots=(),
         processed_pow_receipt_root=b'\x55' * 32,

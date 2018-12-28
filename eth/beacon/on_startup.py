@@ -114,8 +114,11 @@ def get_initial_beacon_state(*,
             CrosslinkRecord(slot=initial_slot_number, shard_block_root=ZERO_HASH32)
             for _ in range(shard_count)
         ]),
-        latest_block_roots=tuple([ZERO_HASH32 for _ in range(latest_block_roots_length)]),
-        latest_penalized_exit_balances=(),
+        latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
+        latest_penalized_exit_balances=tuple(
+            0
+            for _ in range(collective_penalty_calculation_period)
+        ),
         latest_attestations=(),
         batched_block_roots=(),
 
