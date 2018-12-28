@@ -35,9 +35,9 @@ class ProposerSlashing(rlp.Serializable):
                  proposal_signature_1: BLSSignatureAggregated = EMPTY_SIGNATURE,
                  proposal_signature_2: BLSSignatureAggregated = EMPTY_SIGNATURE) -> None:
         super().__init__(
-            proposer_index,
-            proposal_data_1,
-            proposal_data_2,
-            proposal_signature_1,
-            proposal_signature_2,
+            proposer_index=proposer_index,
+            proposal_data_1=proposal_data_1,
+            proposal_data_2=proposal_data_2,
+            proposal_signature_1=proposal_signature_1,
+            proposal_signature_2=proposal_signature_2,
         )

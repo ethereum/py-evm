@@ -43,6 +43,10 @@ from eth.beacon._utils.random import (
 )
 import functools
 
+from eth.beacon.typing import (
+    ShardNumber,
+    BLSPubkey,
+)
 
 if TYPE_CHECKING:
     from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
@@ -51,10 +55,6 @@ if TYPE_CHECKING:
     from eth.beacon.types.fork_data import ForkData  # noqa: F401
     from eth.beacon.types.slashable_vote_data import SlashableVoteData  # noqa: F401
     from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
-    from eth.beacon.typing import (
-        ShardNumber,
-        BLSPubkey,
-    )
 
 
 def _get_element_from_recent_list(
