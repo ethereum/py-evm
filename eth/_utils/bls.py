@@ -35,7 +35,6 @@ from eth.beacon._utils.hash import hash_eth2
 
 from eth.beacon.typing import (
     BLSPubkey,
-    BLSPubkeyAggregated,
     BLSSignature,
     BLSSignatureAggregated,
 )
@@ -202,11 +201,11 @@ def aggregate_signatures(signatures: Sequence[BLSSignature]) -> BLSSignatureAggr
     return BLSSignatureAggregated(compress_G2(o))
 
 
-def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkeyAggregated:
+def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkey:
     o = Z1
     for p in pubkeys:
         o = add(o, decompress_G1(p))
-    return BLSPubkeyAggregated(compress_G1(o))
+    return BLSPubkey(compress_G1(o))
 
 
 def verify_multiple(pubkeys: Sequence[BLSPubkey],

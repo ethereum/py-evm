@@ -3,7 +3,6 @@ from typing import NewType, Tuple
 SlotNumber = NewType('SlotNumber', int)  # uint64
 ShardNumber = NewType('ShardNumber', int)  # uint64
 BLSPubkey = NewType('BLSPubkey', int)  # uint384
-BLSPubkeyAggregated = NewType('BLSPubkeyAggregated', int)  # uint384
 BLSSignature = NewType('BLSSignature', bytes)
 BLSSignatureAggregated = NewType(
     'BLSSignatureAggregated',
