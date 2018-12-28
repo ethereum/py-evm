@@ -29,7 +29,7 @@ from eth.beacon.helpers import (
 )
 from eth.beacon.typing import (
     BLSPubkey,
-    BLSSignature,
+    BLSSignatureBytes,
     Gwei,
 )
 
@@ -50,7 +50,7 @@ def get_min_empty_validator_index(validators: Sequence[ValidatorRecord],
 
 def validate_proof_of_possession(state: BeaconState,
                                  pubkey: BLSPubkey,
-                                 proof_of_possession: BLSSignature,
+                                 proof_of_possession: BLSSignatureBytes,
                                  withdrawal_credentials: Hash32,
                                  randao_commitment: Hash32) -> None:
     deposit_input = DepositInput(
@@ -115,7 +115,7 @@ def process_deposit(*,
                     state: BeaconState,
                     pubkey: BLSPubkey,
                     deposit: Gwei,
-                    proof_of_possession: BLSSignature,
+                    proof_of_possession: BLSSignatureBytes,
                     withdrawal_credentials: Hash32,
                     randao_commitment: Hash32,
                     zero_balance_validator_ttl: int) -> Tuple[BeaconState, int]:

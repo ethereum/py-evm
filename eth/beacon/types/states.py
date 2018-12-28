@@ -25,7 +25,7 @@ from eth.beacon._utils.hash import (
 from eth.beacon.typing import (
     SlotNumber,
     Bitfield,
-    UnixTime,
+    Timestamp,
     Gwei,
 )
 
@@ -83,7 +83,7 @@ class BeaconState(rlp.Serializable):
     def __init__(
             self,
             slot: SlotNumber,
-            genesis_time: UnixTime,
+            genesis_time: Timestamp,
             fork_data: ForkData,
             validator_registry_latest_change_slot: SlotNumber,
             validator_registry_exit_count: int,

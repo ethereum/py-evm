@@ -35,8 +35,8 @@ from eth.beacon._utils.hash import hash_eth2
 
 from eth.beacon.typing import (
     BLSPubkey,
-    BLSSignature,
-    BLSSignatureAggregated,
+    BLSSignatureBytes,
+    BLSSignatureIntegers,
 )
 
 G2_cofactor = 305502333931268344200999753193121504214466019254188142667664032982267604182971884026507427359259977847832272839041616661285803823378372096355777062779109  # noqa: E501
@@ -161,8 +161,8 @@ def decompress_G2(p: bytes) -> Tuple[FQP, FQP, FQP]:
 #
 def sign(message: bytes,
          privkey: int,
-         domain: int) -> BLSSignatureAggregated:
-    return BLSSignatureAggregated(
+         domain: int) -> BLSSignatureIntegers:
+    return BLSSignatureIntegers(
         compress_G2(
             multiply(
                 hash_to_G2(message, domain),
@@ -175,7 +175,7 @@ def privtopub(k: int) -> BLSPubkey:
     return BLSPubkey(compress_G1(multiply(G1, k)))
 
 
-def verify(message: bytes, pubkey: BLSPubkey, signature: BLSSignature, domain: int) -> bool:
+def verify(message: bytes, pubkey: BLSPubkey, signature: BLSSignatureBytes, domain: int) -> bool:
     try:
         final_exponentiation = final_exponentiate(
             pairing(
@@ -194,11 +194,11 @@ def verify(message: bytes, pubkey: BLSPubkey, signature: BLSSignature, domain: i
         return False
 
 
-def aggregate_signatures(signatures: Sequence[BLSSignature]) -> BLSSignatureAggregated:
+def aggregate_signatures(signatures: Sequence[BLSSignatureBytes]) -> BLSSignatureIntegers:
     o = Z2
     for s in signatures:
         o = FQP_point_to_FQ2_point(add(o, decompress_G2(s)))
-    return BLSSignatureAggregated(compress_G2(o))
+    return BLSSignatureIntegers(compress_G2(o))
 
 
 def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkey:
@@ -210,7 +210,7 @@ def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkey:
 
 def verify_multiple(pubkeys: Sequence[BLSPubkey],
                     messages: Sequence[bytes],
-                    signature: BLSSignature,
+                    signature: BLSSignatureBytes,
                     domain: int) -> bool:
     len_msgs = len(messages)
 

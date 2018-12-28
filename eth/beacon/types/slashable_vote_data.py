@@ -15,7 +15,7 @@ from eth.rlp.sedes import (
     uint384,
 )
 from eth.beacon.typing import (
-    BLSSignatureAggregated,
+    BLSSignatureIntegers,
 )
 from eth.beacon.constants import EMPTY_SIGNATURE
 
@@ -41,7 +41,7 @@ class SlashableVoteData(rlp.Serializable):
                  aggregate_signature_poc_0_indices: Sequence[int],
                  aggregate_signature_poc_1_indices: Sequence[int],
                  data: AttestationData,
-                 aggregate_signature: BLSSignatureAggregated = EMPTY_SIGNATURE) -> None:
+                 aggregate_signature: BLSSignatureIntegers = EMPTY_SIGNATURE) -> None:
         super().__init__(
             aggregate_signature_poc_0_indices,
             aggregate_signature_poc_1_indices,

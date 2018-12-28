@@ -24,7 +24,7 @@ from eth.beacon.constants import EMPTY_SIGNATURE
 from eth.beacon._utils.hash import hash_eth2
 from eth.beacon.typing import (
     SlotNumber,
-    BLSSignatureAggregated,
+    BLSSignatureIntegers,
 )
 
 
@@ -84,7 +84,7 @@ class BaseBeaconBlock(rlp.Serializable):
                  randao_reveal: Hash32,
                  candidate_pow_receipt_root: Hash32,
                  body: BeaconBlockBody,
-                 signature: BLSSignatureAggregated=EMPTY_SIGNATURE) -> None:
+                 signature: BLSSignatureIntegers=EMPTY_SIGNATURE) -> None:
         super().__init__(
             slot,
             parent_root,

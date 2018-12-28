@@ -9,7 +9,7 @@ from eth.rlp.sedes import (
 )
 from eth.beacon.typing import (
     SlotNumber,
-    BLSSignatureAggregated,
+    BLSSignatureIntegers,
 )
 from eth.beacon.constants import EMPTY_SIGNATURE
 
@@ -30,7 +30,7 @@ class Exit(rlp.Serializable):
     def __init__(self,
                  slot: SlotNumber,
                  validator_index: int,
-                 signature: BLSSignatureAggregated=EMPTY_SIGNATURE) -> None:
+                 signature: BLSSignatureIntegers=EMPTY_SIGNATURE) -> None:
         super().__init__(
             slot,
             validator_index,

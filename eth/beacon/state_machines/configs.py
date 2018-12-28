@@ -9,7 +9,7 @@ from eth.beacon.typing import (
     SlotNumber,
     ShardNumber,
     Ether,
-    Seconds,
+    Second,
 )
 
 
@@ -37,7 +37,7 @@ BeaconConfig = NamedTuple(
         ('INITIAL_FORK_VERSION', int),
         ('INITIAL_SLOT_NUMBER', SlotNumber),
         # Time parameters
-        ('SLOT_DURATION', Seconds),
+        ('SLOT_DURATION', Second),
         ('MIN_ATTESTATION_INCLUSION_DELAY', int),
         ('EPOCH_LENGTH', int),
         ('POW_RECEIPT_ROOT_VOTING_PERIOD', int),

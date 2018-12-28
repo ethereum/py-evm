@@ -6,7 +6,7 @@ from eth.beacon.typing import (
     SlotNumber,
     ShardNumber,
     Ether,
-    Seconds,
+    Second,
 )
 
 
@@ -30,7 +30,7 @@ SERENITY_CONFIG = BeaconConfig(
     INITIAL_FORK_VERSION=0,
     INITIAL_SLOT_NUMBER=SlotNumber(0),
     # Time parameters
-    SLOT_DURATION=Seconds(6),  # seconds
+    SLOT_DURATION=Second(6),  # seconds
     MIN_ATTESTATION_INCLUSION_DELAY=2**2,  # (= 4) slots
     EPOCH_LENGTH=2**6,  # (= 64) slots
     POW_RECEIPT_ROOT_VOTING_PERIOD=2**10,  # (= 1,024) slots

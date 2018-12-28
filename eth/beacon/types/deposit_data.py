@@ -3,7 +3,7 @@ import rlp
 from eth.rlp.sedes import uint64
 from .deposit_input import DepositInput
 from eth.beacon.typing import (
-    UnixTime,
+    Timestamp,
     Gwei,
 )
 
@@ -23,7 +23,7 @@ class DepositData(rlp.Serializable):
     def __init__(self,
                  deposit_input: DepositInput,
                  value: Gwei,
-                 timestamp: UnixTime) -> None:
+                 timestamp: Timestamp) -> None:
 
         super().__init__(
             deposit_input,
