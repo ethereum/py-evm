@@ -7,7 +7,7 @@ from eth.beacon.state_machines.configs import BeaconConfig
 SERENITY_CONFIG = BeaconConfig(
     # Misc
     SHARD_COUNT=2**10,  # (= 1,024) shards
-    TARGET_COMMITTEE_SIZE=2**8,  # (= 256) validators
+    TARGET_COMMITTEE_SIZE=2**7,  # (= 128) validators
     EJECTION_BALANCE=2**4,  # (= 16) ETH
     MAX_BALANCE_CHURN_QUOTIENT=2**5,  # (= 32)
     BEACON_CHAIN_SHARD_NUMBER=2**64 - 1,
@@ -27,7 +27,6 @@ SERENITY_CONFIG = BeaconConfig(
     SLOT_DURATION=6,  # seconds
     MIN_ATTESTATION_INCLUSION_DELAY=2**2,  # (= 4) slots
     EPOCH_LENGTH=2**6,  # (= 64) slots
-    MIN_VALIDATOR_REGISTRY_CHANGE_INTERVAL=2**8,  # (= 256) slots
     POW_RECEIPT_ROOT_VOTING_PERIOD=2**10,  # (= 1,024) slots
     SHARD_PERSISTENT_COMMITTEE_CHANGE_PERIOD=2**17,  # (= 131,072) slots
     COLLECTIVE_PENALTY_CALCULATION_PERIOD=2**20,  # (= 1,048,576) slots
@@ -36,7 +35,7 @@ SERENITY_CONFIG = BeaconConfig(
     BASE_REWARD_QUOTIENT=2**10,  # (= 1,024)
     WHISTLEBLOWER_REWARD_QUOTIENT=2**9,  # (= 512)
     INCLUDER_REWARD_QUOTIENT=2**3,  # (= 8)
-    INACTIVITY_PENALTY_QUOTIENT=2**34,  # (= 17,179,869,184)
+    INACTIVITY_PENALTY_QUOTIENT=2**24,  # (= 16,777,216)
     # Max operations per block
     MAX_PROPOSER_SLASHINGS=2**4,  # (= 16)
     MAX_CASPER_SLASHINGS=2**4,  # (= 16)
