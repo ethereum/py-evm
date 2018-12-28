@@ -28,7 +28,7 @@ class ProposerSlashing(rlp.Serializable):
     ]
 
     def __init__(self,
-                 proposer_index: int,
+                 proposer_index: ValidatorIndex,
                  proposal_data_1: ProposalSignedData,
                  proposal_data_2: ProposalSignedData,
                  # default arguments follow non-default arguments

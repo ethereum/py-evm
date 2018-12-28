@@ -48,7 +48,7 @@ class ValidatorRecord(rlp.Serializable):
                  pubkey: BLSPubkey,
                  withdrawal_credentials: Hash32,
                  randao_commitment: Hash32,
-                 randao_layers: SlotNumber,
+                 randao_layers: int,
                  status: ValidatorStatusCode,
                  latest_status_change_slot: SlotNumber,
                  exit_count: int) -> None:
@@ -82,7 +82,7 @@ class ValidatorRecord(rlp.Serializable):
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
-            randao_layers=SlotNumber(0),
+            randao_layers=0,
             status=ValidatorStatusCode.PENDING_ACTIVATION,
             latest_status_change_slot=latest_status_change_slot,
             exit_count=0,

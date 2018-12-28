@@ -296,7 +296,7 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
 
 def get_beacon_proposer_index(state: 'BeaconState',
                               slot: SlotNumber,
-                              epoch_length: int) -> int:
+                              epoch_length: int) -> ValidatorIndex:
     """
     Return the beacon proposer index for the ``slot``.
     """
