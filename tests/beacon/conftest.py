@@ -283,7 +283,7 @@ def sample_slashable_vote_data_params(sample_attestation_data_params):
     return {
         'aggregate_signature_poc_0_indices': (10, 11, 12, 15, 28),
         'aggregate_signature_poc_1_indices': (7, 8, 100, 131, 249),
-        'data': sample_attestation_data_params,
+        'data': AttestationData(**sample_attestation_data_params),
         'aggregate_signature': (1, 2, 3, 4, 5),
     }
 

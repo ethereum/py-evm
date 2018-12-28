@@ -20,25 +20,36 @@ from eth._utils.bitfield import (
     get_bitfield_length,
     has_voted,
 )
+import eth._utils.bls as bls
 from eth._utils.numeric import (
     clamp,
 )
 
-from eth.beacon.block_committees_info import BlockCommitteesInfo
-from eth.beacon.types.shard_committees import ShardCommittee
-from eth.beacon.types.validator_registry_delta_block import ValidatorRegistryDeltaBlock
+from eth.beacon.types.validator_registry_delta_block import (
+    ValidatorRegistryDeltaBlock,
+)
+from eth.beacon.block_committees_info import (
+    BlockCommitteesInfo,
+)
+from eth.beacon.enums import (
+    SignatureDomain,
+)
+from eth.beacon.types.shard_committees import (
+    ShardCommittee,
+)
 from eth.beacon._utils.random import (
     shuffle,
     split,
 )
+import functools
 
 
 if TYPE_CHECKING:
-    from eth.beacon.enums import SignatureDomain  # noqa: F401
     from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth.beacon.types.states import BeaconState  # noqa: F401
     from eth.beacon.types.fork_data import ForkData  # noqa: F401
+    from eth.beacon.types.slashable_vote_data import SlashableVoteData  # noqa: F401
     from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
@@ -387,7 +398,7 @@ def get_fork_version(fork_data: 'ForkData',
 
 def get_domain(fork_data: 'ForkData',
                slot: int,
-               domain_type: 'SignatureDomain') -> int:
+               domain_type: SignatureDomain) -> int:
     """
     Return the domain number of the current fork and ``domain_type``.
     """
@@ -396,6 +407,72 @@ def get_domain(fork_data: 'ForkData',
         fork_data,
         slot,
     ) * 4294967296 + domain_type
+
+
+@to_tuple
+def get_pubkey_for_indices(validators: Sequence['ValidatorRecord'],
+                           indices: Sequence[int]) -> Iterable[int]:
+    for index in indices:
+        yield validators[index].pubkey
+
+
+@to_tuple
+def generate_aggregate_pubkeys(validators: Sequence['ValidatorRecord'],
+                               vote_data: 'SlashableVoteData') -> Iterable[int]:
+    """
+    Compute the aggregate pubkey we expect based on
+    the proof-of-custody indices found in the ``vote_data``.
+    """
+    proof_of_custody_0_indices = vote_data.aggregate_signature_poc_0_indices
+    proof_of_custody_1_indices = vote_data.aggregate_signature_poc_1_indices
+    all_indices = (proof_of_custody_0_indices, proof_of_custody_1_indices)
+    get_pubkeys = functools.partial(get_pubkey_for_indices, validators)
+    return map(
+        bls.aggregate_pubkeys,
+        map(get_pubkeys, all_indices),
+    )
+
+
+def verify_vote_count(vote_data: 'SlashableVoteData', max_casper_votes: int) -> bool:
+    """
+    Ensure we have no more than ``max_casper_votes`` in the ``vote_data``.
+    """
+    return vote_data.vote_count <= max_casper_votes
+
+
+def verify_slashable_vote_data_signature(state: 'BeaconState',
+                                         vote_data: 'SlashableVoteData') -> bool:
+    """
+    Ensure we have a valid aggregate signature for the ``vote_data``.
+    """
+    pubkeys = generate_aggregate_pubkeys(state.validator_registry, vote_data)
+
+    messages = vote_data.messages
+
+    signature = vote_data.aggregate_signature
+
+    domain = get_domain(state.fork_data, state.slot, SignatureDomain.DOMAIN_ATTESTATION)
+
+    return bls.verify_multiple(
+        pubkeys=pubkeys,
+        messages=messages,
+        signature=signature,
+        domain=domain,
+    )
+
+
+def verify_slashable_vote_data(state: 'BeaconState',
+                               vote_data: 'SlashableVoteData',
+                               max_casper_votes: int) -> bool:
+    """
+    Ensure that the ``vote_data`` is properly assembled and contains the signature
+    we expect from the validators we expect. Otherwise, return False as
+    the ``vote_data`` is invalid.
+    """
+    return (
+        verify_vote_count(vote_data, max_casper_votes) and
+        verify_slashable_vote_data_signature(state, vote_data)
+    )
 
 
 def is_double_vote(attestation_data_1: 'AttestationData',
