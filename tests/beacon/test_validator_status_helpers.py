@@ -7,9 +7,6 @@ from eth_utils import (
 from eth.beacon.enums import ValidatorStatusCode as code
 
 from eth.beacon.types.shard_committees import ShardCommittee
-from eth.beacon.types.states import BeaconState
-from eth.beacon.types.validator_records import ValidatorRecord
-
 
 from eth.beacon.validator_status_helpers import (
     activate_validator,
@@ -18,15 +15,16 @@ from eth.beacon.validator_status_helpers import (
 )
 
 
-def test_activate_validator(sample_beacon_state_params, sample_validator_record_params):
-    state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=tuple([
-            ValidatorRecord(**sample_validator_record_params).copy(
-                status=code.PENDING_ACTIVATION,
-            )
-            for _ in range(10)
-        ])
-    )
+@pytest.mark.parametrize(
+    (
+        'default_validator_status,'
+    ),
+    [
+        (code.PENDING_ACTIVATION)
+    ]
+)
+def test_activate_validator(ten_validators_state, default_validator_status):
+    state = ten_validators_state
     index = 1
     result_state = activate_validator(
         state,
@@ -38,15 +36,8 @@ def test_activate_validator(sample_beacon_state_params, sample_validator_record_
     assert state.validator_registry[index].status == code.PENDING_ACTIVATION
 
 
-def test_initiate_validator_exit(sample_beacon_state_params, sample_validator_record_params):
-    state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=tuple([
-            ValidatorRecord(**sample_validator_record_params).copy(
-                status=code.ACTIVE,
-            )
-            for _ in range(10)
-        ])
-    )
+def test_initiate_validator_exit(ten_validators_state):
+    state = ten_validators_state
     index = 1
     result_state = initiate_validator_exit(
         state,
@@ -68,8 +59,7 @@ def test_initiate_validator_exit(sample_beacon_state_params, sample_validator_re
     ],
 )
 def test_exit_validator(monkeypatch,
-                        sample_beacon_state_params,
-                        sample_validator_record_params,
+                        ten_validators_state,
                         collective_penalty_calculation_period,
                         whistleblower_reward_quotient,
                         epoch_length,
@@ -95,17 +85,7 @@ def test_exit_validator(monkeypatch,
         mock_get_shard_committees_at_slot
     )
 
-    state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=tuple(
-            ValidatorRecord(**sample_validator_record_params).copy(
-                status=code.ACTIVE,
-            )
-            for _ in range(10)
-        ),
-        validator_balances=tuple(
-            max_deposit
-            for _ in range(10)
-        ),
+    state = ten_validators_state.copy(
         latest_penalized_exit_balances=(32 * denoms.gwei, )
     )
     index = 1

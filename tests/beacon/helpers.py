@@ -14,13 +14,13 @@ from eth.beacon.types.validator_records import (
 )
 
 
-def mock_active_validator_record(pubkey):
+def mock_validator_record(pubkey, status=ValidatorStatusCode.ACTIVE):
     return ValidatorRecord(
         pubkey=pubkey,
         withdrawal_credentials=b'\x44' * 32,
         randao_commitment=b'\x55' * 32,
         randao_layers=0,
-        status=ValidatorStatusCode.ACTIVE,
+        status=status,
         latest_status_change_slot=0,
         exit_count=0,
     )

@@ -101,6 +101,10 @@ class BeaconState(rlp.Serializable):
             latest_attestations: Sequence[PendingAttestationRecord]=(),
             candidate_pow_receipt_roots: Sequence[CandidatePoWReceiptRootRecord]=()
     ) -> None:
+        if len(validator_registry) != len(validator_balances):
+            raise ValueError(
+                "The length of validator_registry and validator_balances should be the same."
+            )
         super().__init__(
             # Misc
             slot=slot,

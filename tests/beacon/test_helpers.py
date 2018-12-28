@@ -874,9 +874,12 @@ def _create_slashable_vote_data_messages(params):
 def test_verify_slashable_vote_data_signature(privkeys,
                                               sample_beacon_state_params,
                                               genesis_validators,
+                                              genesis_balances,
                                               sample_slashable_vote_data_params):
-    sample_beacon_state_params["validator_registry"] = genesis_validators
-    state = BeaconState(**sample_beacon_state_params)
+    state = BeaconState(**sample_beacon_state_params).copy(
+        validator_registry=genesis_validators,
+        validator_balances=genesis_balances,
+    )
 
     # NOTE: we can do this before "correcting" the params as they
     # touch disjoint subsets of the provided params
@@ -922,10 +925,13 @@ def test_verify_slashable_vote_data(param_mapper,
                                     privkeys,
                                     sample_beacon_state_params,
                                     genesis_validators,
+                                    genesis_balances,
                                     sample_slashable_vote_data_params,
                                     max_casper_votes):
-    sample_beacon_state_params["validator_registry"] = genesis_validators
-    state = BeaconState(**sample_beacon_state_params)
+    state = BeaconState(**sample_beacon_state_params).copy(
+        validator_registry=genesis_validators,
+        validator_balances=genesis_balances,
+    )
 
     # NOTE: we can do this before "correcting" the params as they
     # touch disjoint subsets of the provided params

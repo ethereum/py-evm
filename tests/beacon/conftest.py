@@ -24,21 +24,14 @@ from eth.beacon.helpers import (
     get_new_shuffling,
 )
 
-from eth.beacon.types.proposal_signed_data import (
-    ProposalSignedData,
-)
-
-from eth.beacon.types.slashable_vote_data import (
-    SlashableVoteData,
-)
-
 from eth.beacon.types.attestation_data import AttestationData
 from eth.beacon.types.attestations import Attestation
 from eth.beacon.types.states import BeaconState
 from eth.beacon.types.crosslink_records import CrosslinkRecord
 from eth.beacon.types.deposits import DepositData
 from eth.beacon.types.deposit_input import DepositInput
-
+from eth.beacon.types.proposal_signed_data import ProposalSignedData
+from eth.beacon.types.slashable_vote_data import SlashableVoteData
 from eth.beacon.types.blocks import (
     BeaconBlockBody,
 )
@@ -53,6 +46,10 @@ from eth.beacon.types.validator_records import (
 
 from eth.beacon.types.fork_data import (
     ForkData,
+)
+
+from tests.beacon.helpers import (
+    mock_validator_record,
 )
 
 DEFAULT_SHUFFLING_SEED = b'\00' * 32
@@ -320,6 +317,63 @@ def sample_validator_registry_delta_block_params():
     }
 
 
+@pytest.fixture
+def empty_beacon_state():
+    return BeaconState(
+        slot=0,
+        genesis_time=0,
+        fork_data=ForkData(
+            pre_fork_version=0,
+            post_fork_version=0,
+            fork_slot=0,
+        ),
+        validator_registry=(),
+        validator_balances=(),
+        validator_registry_latest_change_slot=10,
+        validator_registry_exit_count=10,
+        validator_registry_delta_chain_tip=b'\x55' * 32,
+        latest_randao_mixes=(),
+        latest_vdf_outputs=(),
+        shard_committees_at_slots=(),
+        persistent_committees=(),
+        persistent_committee_reassignments=(),
+        previous_justified_slot=0,
+        justified_slot=0,
+        justification_bitfield=0,
+        finalized_slot=0,
+        latest_crosslinks=(),
+        latest_block_roots=(),
+        latest_penalized_exit_balances=(),
+        latest_attestations=(),
+        batched_block_roots=(),
+        processed_pow_receipt_root=b'\x55' * 32,
+        candidate_pow_receipt_roots=(),
+    )
+
+
+@pytest.fixture()
+def default_validator_status():
+    return ValidatorStatusCode.ACTIVE
+
+
+@pytest.fixture()
+def ten_validators_state(empty_beacon_state, max_deposit, default_validator_status):
+    validator_count = 10
+    return empty_beacon_state.copy(
+        validator_registry=tuple(
+            mock_validator_record(
+                pubkey=pubkey,
+                status=default_validator_status,
+            )
+            for pubkey in range(validator_count)
+        ),
+        validator_balances=tuple(
+            max_deposit
+            for _ in range(validator_count)
+        )
+    )
+
+
 #
 # Temporary default values
 #
@@ -512,6 +566,7 @@ def max_exits():
 @pytest.fixture
 def genesis_state(sample_beacon_state_params,
                   genesis_validators,
+                  genesis_balances,
                   epoch_length,
                   target_committee_size,
                   initial_slot_number,
@@ -528,6 +583,7 @@ def genesis_state(sample_beacon_state_params,
 
     return BeaconState(**sample_beacon_state_params).copy(
         validator_registry=genesis_validators,
+        validator_balances=genesis_balances,
         shard_committees_at_slots=initial_shuffling + initial_shuffling,
         latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
         latest_crosslinks=tuple(
@@ -554,6 +610,14 @@ def genesis_validators(init_validator_keys,
             latest_status_change_slot=0,
             exit_count=0,
         ) for pub in init_validator_keys
+    )
+
+
+@pytest.fixture
+def genesis_balances(init_validator_keys, max_deposit):
+    return tuple(
+        max_deposit
+        for _ in init_validator_keys
     )
 
 
