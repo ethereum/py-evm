@@ -89,6 +89,7 @@ def get_initial_beacon_state(*,
 
         # Validator registry
         validator_registry=(),
+        validator_balances=(),
         validator_registry_latest_change_slot=initial_slot_number,
         validator_registry_exit_count=0,
         validator_registry_delta_chain_tip=ZERO_HASH32,

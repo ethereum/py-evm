@@ -16,7 +16,7 @@ from eth.beacon._utils.hash import (
 )
 
 from tests.beacon.helpers import (
-    mock_validator_record,
+    mock_active_validator_record,
 )
 
 
@@ -53,6 +53,23 @@ def empty_beacon_state():
     )
 
 
+@pytest.fixture()
+def ten_validator_state(empty_beacon_state, sample_validator_record_params, max_deposit):
+    validator_count = 10
+    return empty_beacon_state.copy(
+        validator_registry=tuple(
+            mock_active_validator_record(
+                pubkey,
+            )
+            for pubkey in range(validator_count)
+        ),
+        validator_balances=tuple(
+            max_deposit
+            for _ in range(validator_count)
+        )
+    )
+
+
 def test_defaults(sample_beacon_state_params):
     state = BeaconState(**sample_beacon_state_params)
     assert state.validator_registry == sample_beacon_state_params['validator_registry']
@@ -67,7 +84,7 @@ def test_num_validators(expected,
                         empty_beacon_state):
     state = empty_beacon_state.copy(
         validator_registry=[
-            mock_validator_record(
+            mock_active_validator_record(
                 pubkey,
             )
             for pubkey in range(expected)
@@ -103,31 +120,30 @@ def test_hash(sample_beacon_state_params):
     assert state.root == hash_eth2(rlp.encode(state))
 
 
-def test_update_validator(sample_beacon_state_params, sample_validator_record_params, max_deposit):
-    state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=[
-            mock_validator_record(
-                pubkey,
-            )
-            for pubkey in range(10)
-        ],
-        validator_balances=(
-            max_deposit
-            for _ in range(10)
-        )
-    )
+@pytest.mark.parametrize(
+    'validator_index, new_pubkey, new_balance',
+    [
+        (0, 5566, 100),
+        (100, 5566, 100),
+    ]
+)
+def test_update_validator(ten_validator_state, validator_index, new_pubkey, new_balance):
+    state = ten_validator_state
+    validator = mock_active_validator_record(new_pubkey)
 
-    new_pubkey = 100
-    validator_index = 5
-    balance = 5566
-    validator = state.validator_registry[validator_index].copy(
-        pubkey=new_pubkey,
-    )
-    result_state = state.update_validator(
-        validator_index=validator_index,
-        validator=validator,
-        balance=balance,
-    )
-    assert result_state.validator_balances[validator_index] == balance
-    assert result_state.validator_registry[validator_index].pubkey == new_pubkey
-    assert state.validator_registry[validator_index].pubkey != new_pubkey
+    if validator_index < state.num_validators:
+        result_state = state.update_validator(
+            validator_index=validator_index,
+            validator=validator,
+            balance=new_balance,
+        )
+        assert result_state.validator_balances[validator_index] == new_balance
+        assert result_state.validator_registry[validator_index].pubkey == new_pubkey
+        assert state.validator_registry[validator_index].pubkey != new_pubkey
+    else:
+        with pytest.raises(IndexError):
+            state.update_validator(
+                validator_index=validator_index,
+                validator=validator,
+                balance=new_balance,
+            )

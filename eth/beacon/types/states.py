@@ -161,20 +161,38 @@ class BeaconState(rlp.Serializable):
     def num_crosslinks(self) -> int:
         return len(self.latest_crosslinks)
 
-    def update_validator(self,
-                         validator_index: int,
-                         validator: ValidatorRecord,
-                         balance: int=None) -> 'BeaconState':
+    def update_validator_registry(self,
+                                  validator_index: int,
+                                  validator: ValidatorRecord) -> 'BeaconState':
+        if validator_index >= self.num_validators or validator_index < 0:
+            raise IndexError("Incorrect validator index")
+
         validator_registry = list(self.validator_registry)
         validator_registry[validator_index] = validator
 
-        validator_balances = list(self.validator_balances)
-        if balance is not None:
-            validator_balances[validator_index] = balance
-
         updated_state = self.copy(
             validator_registry=tuple(validator_registry),
+        )
+        return updated_state
+
+    def update_validator_balance(self,
+                                 validator_index: int,
+                                 balance: int=None) -> 'BeaconState':
+        if validator_index >= self.num_validators or validator_index < 0:
+            raise IndexError("Incorrect validator index")
+
+        validator_balances = list(self.validator_balances)
+        validator_balances[validator_index] = balance
+
+        updated_state = self.copy(
             validator_balances=tuple(validator_balances),
         )
-
         return updated_state
+
+    def update_validator(self,
+                         validator_index: int,
+                         validator: ValidatorRecord,
+                         balance: int) -> 'BeaconState':
+        state = self.update_validator_registry(validator_index, validator)
+        state = state.update_validator_balance(validator_index, balance)
+        return state

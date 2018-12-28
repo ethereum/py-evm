@@ -84,7 +84,7 @@ def activate_validator(state: BeaconState,
         status=code.ACTIVE,
         latest_status_change_slot=state.slot,
     )
-    state = state.update_validator(index, validator)
+    state = state.update_validator_registry(index, validator)
 
     state = state.copy(
         validator_registry_delta_chain_tip=get_new_validator_registry_delta_chain_tip(
@@ -113,7 +113,7 @@ def initiate_validator_exit(state: BeaconState,
         status=code.ACTIVE_PENDING_EXIT,
         latest_status_change_slot=state.slot,
     )
-    state = state.update_validator(index, validator)
+    state = state.update_validator_registry(index, validator)
 
     return state
 
@@ -142,7 +142,7 @@ def exit_validator(state: BeaconState,
         status=new_status,
         latest_status_change_slot=state.slot,
     )
-    state = state.update_validator(index, validator)
+    state = state.update_validator_registry(index, validator)
 
     # Calculate rewards and penalties
     if new_status == code.EXITED_WITH_PENALTY:
@@ -168,7 +168,7 @@ def exit_validator(state: BeaconState,
         validator = validator.copy(
             exit_count=state.validator_registry_exit_count,
         )
-        state = state.update_validator(index, validator)
+        state = state.update_validator_registry(index, validator)
 
         # Update the diff
         state = state.copy(
@@ -231,18 +231,15 @@ def settle_penality_to_validator_and_whistleblower(
         whistleblower_reward_quotient
     )
     whistleblower_index = get_beacon_proposer_index(state, state.slot, epoch_length)
-    whistleblower = state.validator_registry[whistleblower_index]
-    state = state.update_validator(
+    state = state.update_validator_balance(
         whistleblower_index,
-        whistleblower,
-        balance=state.validator_balances[whistleblower_index] - whistleblower_reward,
+        state.validator_balances[whistleblower_index] - whistleblower_reward,
     )
 
     # validator
-    state = state.update_validator(
+    state = state.update_validator_balance(
         validator_index,
-        validator,
-        balance=state.validator_balances[validator_index] - whistleblower_reward,
+        state.validator_balances[validator_index] - whistleblower_reward,
     )
 
     return state

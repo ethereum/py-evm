@@ -14,7 +14,7 @@ from eth.beacon.types.validator_records import (
 )
 
 
-def mock_validator_record(pubkey):
+def mock_active_validator_record(pubkey):
     return ValidatorRecord(
         pubkey=pubkey,
         withdrawal_credentials=b'\x44' * 32,

@@ -118,11 +118,11 @@ def process_deposit(*,
     Process a deposit from Ethereum 1.0.
     """
     validate_proof_of_possession(
-        state,
-        pubkey,
-        proof_of_possession,
-        withdrawal_credentials,
-        randao_commitment,
+        state=state,
+        pubkey=pubkey,
+        proof_of_possession=proof_of_possession,
+        withdrawal_credentials=withdrawal_credentials,
+        randao_commitment=randao_commitment,
     )
 
     validator_pubkeys = tuple(v.pubkey for v in state.validator_registry)
@@ -155,9 +155,8 @@ def process_deposit(*,
             )
 
         # Update validator's balance and state
-        state = state.update_validator(
+        state = state.update_validator_balance(
             validator_index=index,
-            validator=validator,
             balance=state.validator_balances[index] + deposit,
         )
 
