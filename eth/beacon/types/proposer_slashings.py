@@ -9,6 +9,7 @@ from eth.rlp.sedes import (
 from .proposal_signed_data import ProposalSignedData
 from eth.beacon.typing import (
     BLSSignature,
+    ValidatorIndex,
 )
 from eth.beacon.constants import EMPTY_SIGNATURE
 
