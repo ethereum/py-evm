@@ -27,6 +27,7 @@ from eth.beacon.typing import (
     Bitfield,
     Timestamp,
     Gwei,
+    ValidatorIndex,
 )
 
 from .pending_attestation_records import PendingAttestationRecord
@@ -168,7 +169,7 @@ class BeaconState(rlp.Serializable):
         return len(self.latest_crosslinks)
 
     def update_validator(self,
-                         validator_index: int,
+                         validator_index: ValidatorIndex,
                          validator: ValidatorRecord,
                          balance: Gwei) -> 'BeaconState':
         validator_registry = list(self.validator_registry)

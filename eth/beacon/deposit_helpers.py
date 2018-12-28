@@ -28,23 +28,25 @@ from eth.beacon.helpers import (
     get_domain,
 )
 from eth.beacon.typing import (
+    SlotNumber,
     BLSPubkey,
     BLSSignatureBytes,
+    ValidatorIndex,
     Gwei,
 )
 
 
 def get_min_empty_validator_index(validators: Sequence[ValidatorRecord],
-                                  validator_balances: Sequence[int],
-                                  current_slot: int,
-                                  zero_balance_validator_ttl: int) -> int:
+                                  validator_balances: Sequence[Gwei],
+                                  current_slot: SlotNumber,
+                                  zero_balance_validator_ttl: int) -> ValidatorIndex:
     for index, (validator, balance) in enumerate(zip(validators, validator_balances)):
         is_empty = (
             balance == 0 and
             validator.latest_status_change_slot + zero_balance_validator_ttl <= current_slot
         )
         if is_empty:
-            return index
+            return ValidatorIndex(index)
     raise MinEmptyValidatorIndexNotFound()
 
 
@@ -81,7 +83,7 @@ def validate_proof_of_possession(state: BeaconState,
 def add_pending_validator(state: BeaconState,
                           validator: ValidatorRecord,
                           deposit: Gwei,
-                          zero_balance_validator_ttl: int) -> Tuple[BeaconState, int]:
+                          zero_balance_validator_ttl: int) -> Tuple[BeaconState, ValidatorIndex]:
     """
     Add a validator to the existing minimum empty validator index or
     append to ``validator_registry``.
@@ -96,14 +98,13 @@ def add_pending_validator(state: BeaconState,
         )
     except MinEmptyValidatorIndexNotFound:
         index = None
-
         # Append to the validator_registry
         validator_registry = state.validator_registry + (validator,)
         state = state.copy(
             validator_registry=validator_registry,
             validator_balances=state.validator_balances + (deposit, )
         )
-        index = len(state.validator_registry) - 1
+        index = ValidatorIndex(len(state.validator_registry) - 1)
     else:
         # Use the empty validator index
         state = state.update_validator(index, validator, deposit)
@@ -118,7 +119,7 @@ def process_deposit(*,
                     proof_of_possession: BLSSignatureBytes,
                     withdrawal_credentials: Hash32,
                     randao_commitment: Hash32,
-                    zero_balance_validator_ttl: int) -> Tuple[BeaconState, int]:
+                    zero_balance_validator_ttl: int) -> Tuple[BeaconState, ValidatorIndex]:
     """
     Process a deposit from Ethereum 1.0.
     """
@@ -147,7 +148,7 @@ def process_deposit(*,
         )
     else:
         # Top-up - increase balance by deposit
-        index = validator_pubkeys.index(pubkey)
+        index = ValidatorIndex(validator_pubkeys.index(pubkey))
         validator = state.validator_registry[index]
 
         if validator.withdrawal_credentials != withdrawal_credentials:

@@ -46,6 +46,11 @@ import functools
 from eth.beacon.typing import (
     ShardNumber,
     BLSPubkey,
+    SlotNumber,
+    ValidatorIndex,
+    Bitfield,
+    Gwei,
+    Ether,
 )
 
 if TYPE_CHECKING:
@@ -59,8 +64,8 @@ if TYPE_CHECKING:
 
 def _get_element_from_recent_list(
         target_list: Sequence[Any],
-        target_slot: int,
-        slot_relative_position: int) -> Any:
+        target_slot: SlotNumber,
+        slot_relative_position: SlotNumber) -> Any:
     """
     Return the element from ``target_list`` by the ``target_slot`` number,
     where the the element should be at ``target_slot - slot_relative_position``th
@@ -88,12 +93,12 @@ def _get_element_from_recent_list(
 #
 def get_block_root(
         latest_block_roots: Sequence[Hash32],
-        current_slot: int,
-        slot: int) -> Hash32:
+        current_slot: SlotNumber,
+        slot: SlotNumber) -> Hash32:
     """
     Returns the block root at a recent ``slot``.
     """
-    slot_relative_position = current_slot - len(latest_block_roots)
+    slot_relative_position = SlotNumber(current_slot - len(latest_block_roots))
     return _get_element_from_recent_list(
         latest_block_roots,
         slot,
@@ -106,9 +111,9 @@ def get_block_root(
 #
 @to_tuple
 def _get_shard_committees_at_slot(
-        state_slot: int,
+        state_slot: SlotNumber,
         shard_committees_at_slots: Sequence[Sequence[ShardCommittee]],
-        slot: int,
+        slot: SlotNumber,
         epoch_length: int) -> Iterable[ShardCommittee]:
     if len(shard_committees_at_slots) != epoch_length * 2:
         raise ValueError(
@@ -118,7 +123,7 @@ def _get_shard_committees_at_slot(
             )
         )
 
-    slot_relative_position = state_slot - epoch_length
+    slot_relative_position = SlotNumber(state_slot - epoch_length)
 
     yield from _get_element_from_recent_list(
         shard_committees_at_slots,
@@ -128,7 +133,7 @@ def _get_shard_committees_at_slot(
 
 
 def get_shard_committees_at_slot(state: 'BeaconState',
-                                 slot: int,
+                                 slot: SlotNumber,
                                  epoch_length: int) -> Tuple[ShardCommittee]:
     """
     Return the ``ShardCommittee`` for the ``slot``.
@@ -141,12 +146,13 @@ def get_shard_committees_at_slot(state: 'BeaconState',
     )
 
 
-def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tuple[int, ...]:
+def get_active_validator_indices(
+        validators: Sequence['ValidatorRecord']) -> Tuple[ValidatorIndex, ...]:
     """
     Get indices of active validators from ``validators``.
     """
     return tuple(
-        i for i, v in enumerate(validators)
+        ValidatorIndex(i) for i, v in enumerate(validators)
         if v.is_active
     )
 
@@ -156,8 +162,8 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord']) -> Tup
 #
 @to_tuple
 def _get_shards_committees_for_shard_indices(
-        shard_indices: Sequence[Sequence[int]],
-        start_shard: int,
+        shard_indices: Sequence[Sequence[ShardNumber]],
+        start_shard: ShardNumber,
         total_validator_count: int,
         shard_count: int) -> Iterable[ShardCommittee]:
     """
@@ -175,7 +181,7 @@ def _get_shards_committees_for_shard_indices(
 def get_new_shuffling(*,
                       seed: Hash32,
                       validators: Sequence['ValidatorRecord'],
-                      crosslinking_start_shard: int,
+                      crosslinking_start_shard: ShardNumber,
                       epoch_length: int,
                       target_committee_size: int,
                       shard_count: int) -> Iterable[Iterable[ShardCommittee]]:
@@ -288,7 +294,7 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
 
 
 def get_beacon_proposer_index(state: 'BeaconState',
-                              slot: int,
+                              slot: SlotNumber,
                               epoch_length: int) -> int:
     """
     Return the beacon proposer index for the ``slot``.
@@ -318,10 +324,10 @@ def get_beacon_proposer_index(state: 'BeaconState',
 #
 @to_tuple
 def get_attestation_participants(state: 'BeaconState',
-                                 slot: int,
-                                 shard: int,
-                                 participation_bitfield: bytes,
-                                 epoch_length: int) -> Iterable[int]:
+                                 slot: SlotNumber,
+                                 shard: ShardNumber,
+                                 participation_bitfield: Bitfield,
+                                 epoch_length: int) -> Iterable[ValidatorIndex]:
     """
     Return the participants' indices at the ``slot`` of shard ``shard``
     from ``participation_bitfield``.
@@ -365,7 +371,10 @@ def get_attestation_participants(state: 'BeaconState',
 #
 # Misc
 #
-def get_effective_balance(validator_balances: Sequence[int], index: int, max_deposit: int) -> int:
+def get_effective_balance(
+        validator_balances: Sequence[Gwei],
+        index: ValidatorIndex,
+        max_deposit: Ether) -> Gwei:
     """
     Return the effective balance (also known as "balance at stake") for a
     ``validator`` with the given ``index``.
@@ -374,7 +383,7 @@ def get_effective_balance(validator_balances: Sequence[int], index: int, max_dep
 
 
 def get_new_validator_registry_delta_chain_tip(current_validator_registry_delta_chain_tip: Hash32,
-                                               validator_index: int,
+                                               validator_index: ValidatorIndex,
                                                pubkey: BLSPubkey,
                                                flag: int) -> Hash32:
     """
@@ -390,7 +399,7 @@ def get_new_validator_registry_delta_chain_tip(current_validator_registry_delta_
 
 
 def get_fork_version(fork_data: 'ForkData',
-                     slot: int) -> int:
+                     slot: SlotNumber) -> int:
     """
     Return the current ``fork_version`` from the given ``fork_data`` and ``slot``.
     """
@@ -401,7 +410,7 @@ def get_fork_version(fork_data: 'ForkData',
 
 
 def get_domain(fork_data: 'ForkData',
-               slot: int,
+               slot: SlotNumber,
                domain_type: SignatureDomain) -> int:
     """
     Return the domain number of the current fork and ``domain_type``.
@@ -415,14 +424,14 @@ def get_domain(fork_data: 'ForkData',
 
 @to_tuple
 def get_pubkey_for_indices(validators: Sequence['ValidatorRecord'],
-                           indices: Sequence[int]) -> Iterable[int]:
+                           indices: Sequence[ValidatorIndex]) -> Iterable[BLSPubkey]:
     for index in indices:
         yield validators[index].pubkey
 
 
 @to_tuple
 def generate_aggregate_pubkeys(validators: Sequence['ValidatorRecord'],
-                               vote_data: 'SlashableVoteData') -> Iterable[int]:
+                               vote_data: 'SlashableVoteData') -> Iterable[BLSPubkey]:
     """
     Compute the aggregate pubkey we expect based on
     the proof-of-custody indices found in the ``vote_data``.
