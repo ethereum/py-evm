@@ -4,21 +4,20 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth._utils import bls
+
 from eth.beacon.enums import (
     SignatureDomain,
 )
-
-from eth.beacon.state_machines.validation import (
-    validate_proposer_signature,
-)
-
 from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.proposal_signed_data import (
     ProposalSignedData,
 )
 from eth.beacon.types.states import BeaconState
 
-from eth._utils import bls
+from eth.beacon.state_machines.forks.serenity.validation import (
+    validate_serenity_proposer_signature,
+)
 
 from tests.beacon.helpers import mock_validator_record
 from tests.beacon.test_helpers import (
@@ -38,7 +37,7 @@ from tests.beacon.test_helpers import (
         (123, 123, False),
     )
 )
-def test_validate_proposer_signature(
+def test_validate_serenity_proposer_signature(
         proposer_privkey,
         proposer_pubkey,
         is_valid_signature,
@@ -78,7 +77,7 @@ def test_validate_proposer_signature(
     )
 
     if is_valid_signature:
-        validate_proposer_signature(
+        validate_serenity_proposer_signature(
             state,
             proposed_block,
             beacon_chain_shard_number,
@@ -86,7 +85,7 @@ def test_validate_proposer_signature(
         )
     else:
         with pytest.raises(ValidationError):
-            validate_proposer_signature(
+            validate_serenity_proposer_signature(
                 state,
                 proposed_block,
                 beacon_chain_shard_number,

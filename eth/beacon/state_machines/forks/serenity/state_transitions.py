@@ -11,6 +11,9 @@ from eth.beacon.state_machines.state_transitions import BaseStateTransition
 from .operations import (
     process_attestations,
 )
+from .validation import (
+    validate_serenity_proposer_signature,
+)
 
 
 class SerenityStateTransition(BaseStateTransition):
@@ -40,7 +43,15 @@ class SerenityStateTransition(BaseStateTransition):
 
     def per_block_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
         # TODO
+        validate_serenity_proposer_signature(
+            state,
+            block,
+            beacon_chain_shard_number=self.config.BEACON_CHAIN_SHARD_NUMBER,
+            epoch_length=self.config.EPOCH_LENGTH,
+        )
+
         state = process_attestations(state, block, self.config)
+
         return state
 
     def per_epoch_transition(self, state: BeaconState) -> BeaconState:
