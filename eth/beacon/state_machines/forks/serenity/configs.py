@@ -7,7 +7,7 @@ from eth.beacon.state_machines.configs import BeaconConfig
 SERENITY_CONFIG = BeaconConfig(
     # Misc
     SHARD_COUNT=2**10,  # (= 1,024) shards
-    TARGET_COMMITTEE_SIZE=2**8,  # (= 256) validators
+    TARGET_COMMITTEE_SIZE=2**7,  # (= 128) validators
     EJECTION_BALANCE=2**4,  # (= 16) ETH
     MAX_BALANCE_CHURN_QUOTIENT=2**5,  # (= 32)
     BEACON_CHAIN_SHARD_NUMBER=2**64 - 1,
