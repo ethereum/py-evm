@@ -164,15 +164,17 @@ class BeaconState(rlp.Serializable):
     def update_validator(self,
                          validator_index: int,
                          validator: ValidatorRecord,
-                         balance: int) -> 'BeaconState':
+                         balance: int=None) -> 'BeaconState':
         validator_registry = list(self.validator_registry)
         validator_registry[validator_index] = validator
 
         validator_balances = list(self.validator_balances)
-        validator_balances[validator_index] = balance
+        if balance is not None:
+            validator_balances[validator_index] = balance
 
         updated_state = self.copy(
             validator_registry=tuple(validator_registry),
             validator_balances=tuple(validator_balances),
         )
+
         return updated_state

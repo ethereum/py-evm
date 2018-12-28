@@ -75,7 +75,8 @@ def get_initial_beacon_state(*,
                              max_deposit: int,
                              zero_balance_validator_ttl: int,
                              collective_penalty_calculation_period: int,
-                             whistleblower_reward_quotient: int) -> BeaconState:
+                             whistleblower_reward_quotient: int,
+                             latest_randao_mixes_length: int) -> BeaconState:
     state = BeaconState(
         # Misc
         slot=initial_slot_number,
@@ -93,8 +94,10 @@ def get_initial_beacon_state(*,
         validator_registry_delta_chain_tip=ZERO_HASH32,
 
         # Randomness and committees
-        randao_mix=ZERO_HASH32,
-        next_seed=ZERO_HASH32,
+        latest_randao_mixes=tuple(ZERO_HASH32 for _ in range(latest_randao_mixes_length)),
+        latest_vdf_outputs=tuple(
+            ZERO_HASH32 for _ in range(latest_randao_mixes_length // epoch_length)
+        ),
         shard_committees_at_slots=(),
         persistent_committees=(),
         persistent_committee_reassignments=(),
@@ -133,7 +136,8 @@ def get_initial_beacon_state(*,
         )
         # TODO: BeaconState.validator_balances
         is_max_deposit = get_effective_balance(
-            state.validator_registry[validator_index],
+            state.validator_balances,
+            validator_index,
             max_deposit,
         ) == max_deposit * denoms.gwei
         if is_max_deposit:

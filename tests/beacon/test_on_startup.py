@@ -52,7 +52,8 @@ def test_get_initial_beacon_state(
         max_deposit,
         zero_balance_validator_ttl,
         collective_penalty_calculation_period,
-        whistleblower_reward_quotient):
+        whistleblower_reward_quotient,
+        latest_randao_mixes_length):
     withdrawal_credentials = b'\x22' * 32
     randao_commitment = b'\x33' * 32
     fork_data = ForkData(
@@ -112,6 +113,7 @@ def test_get_initial_beacon_state(
         zero_balance_validator_ttl=zero_balance_validator_ttl,
         collective_penalty_calculation_period=collective_penalty_calculation_period,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
+        latest_randao_mixes_length=latest_randao_mixes_length,
     )
 
     assert state.slot == initial_slot_number

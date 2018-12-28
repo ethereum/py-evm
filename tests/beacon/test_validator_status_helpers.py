@@ -96,12 +96,16 @@ def test_exit_validator(monkeypatch,
     )
 
     state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=tuple([
+        validator_registry=tuple(
             ValidatorRecord(**sample_validator_record_params).copy(
                 status=code.ACTIVE,
             )
             for _ in range(10)
-        ]),
+        ),
+        validator_balances=tuple(
+            max_deposit
+            for _ in range(10)
+        ),
         latest_penalized_exit_balances=(32 * denoms.gwei, )
     )
     index = 1

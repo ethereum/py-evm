@@ -214,7 +214,11 @@ def settle_penality_to_validator_and_whistleblower(
         index=last_penalized_slot,
         new_value=(
             state.latest_penalized_exit_balances[last_penalized_slot] +
-            get_effective_balance(validator, max_deposit)
+            get_effective_balance(
+                state.validator_balances,
+                validator_index,
+                max_deposit,
+            )
         ),
     )
     state = state.copy(
@@ -222,18 +226,23 @@ def settle_penality_to_validator_and_whistleblower(
     )
 
     # whistleblower
-    whistleblower_reward = validator.balance // whistleblower_reward_quotient
+    whistleblower_reward = (
+        state.validator_balances[validator_index] //
+        whistleblower_reward_quotient
+    )
     whistleblower_index = get_beacon_proposer_index(state, state.slot, epoch_length)
     whistleblower = state.validator_registry[whistleblower_index]
-    whistleblower = whistleblower.copy(
-        balance=whistleblower.balance - whistleblower_reward,
+    state = state.update_validator(
+        whistleblower_index,
+        whistleblower,
+        balance=state.validator_balances[whistleblower_index] - whistleblower_reward,
     )
-    state = state.update_validator(whistleblower_index, whistleblower)
 
     # validator
-    validator = validator.copy(
-        balance=validator.balance - whistleblower_reward,
+    state = state.update_validator(
+        validator_index,
+        validator,
+        balance=state.validator_balances[validator_index] - whistleblower_reward,
     )
-    state = state.update_validator(validator_index, validator)
 
     return state
