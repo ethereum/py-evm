@@ -3,8 +3,7 @@ from typing import NewType, Tuple
 SlotNumber = NewType('SlotNumber', int)  # uint64
 ShardNumber = NewType('ShardNumber', int)  # uint64
 BLSPubkey = NewType('BLSPubkey', int)  # uint384
-BLSSignatureBytes = NewType('BLSSignatureBytes', bytes)
-BLSSignatureIntegers = NewType('BLSSignatureIntegers', Tuple[int, int])  # Tuple[uint384, uint384]
+BLSSignature = NewType('BLSSignature', Tuple[int, int])  # Tuple[uint384, uint384]
 
 Bitfield = NewType('Bitfield', bytes)  # uint64
 

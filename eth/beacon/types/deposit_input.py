@@ -13,7 +13,7 @@ from eth.rlp.sedes import (
 from eth.beacon._utils.hash import hash_eth2
 from eth.beacon.typing import (
     BLSPubkey,
-    BLSSignatureIntegers,
+    BLSSignature,
 )
 from eth.beacon.constants import EMPTY_SIGNATURE
 
@@ -37,7 +37,7 @@ class DepositInput(rlp.Serializable):
                  pubkey: BLSPubkey,
                  withdrawal_credentials: Hash32,
                  randao_commitment: Hash32,
-                 proof_of_possession: BLSSignatureIntegers=EMPTY_SIGNATURE) -> None:
+                 proof_of_possession: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,

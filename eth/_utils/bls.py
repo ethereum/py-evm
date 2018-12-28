@@ -35,8 +35,7 @@ from eth.beacon._utils.hash import hash_eth2
 
 from eth.beacon.typing import (
     BLSPubkey,
-    BLSSignatureBytes,
-    BLSSignatureIntegers,
+    BLSSignature,
 )
 
 G2_cofactor = 305502333931268344200999753193121504214466019254188142667664032982267604182971884026507427359259977847832272839041616661285803823378372096355777062779109  # noqa: E501
@@ -139,7 +138,7 @@ def compress_G2(pt: Tuple[FQP, FQP, FQP]) -> Tuple[int, int]:
     )
 
 
-def decompress_G2(p: bytes) -> Tuple[FQP, FQP, FQP]:
+def decompress_G2(p: Tuple[int, int]) -> Tuple[FQP, FQP, FQP]:
     x1 = p[0] % 2**383
     y1_mod_2 = p[0] // 2**383
     x2 = p[1]
@@ -161,8 +160,8 @@ def decompress_G2(p: bytes) -> Tuple[FQP, FQP, FQP]:
 #
 def sign(message: bytes,
          privkey: int,
-         domain: int) -> BLSSignatureIntegers:
-    return BLSSignatureIntegers(
+         domain: int) -> BLSSignature:
+    return BLSSignature(
         compress_G2(
             multiply(
                 hash_to_G2(message, domain),
@@ -175,7 +174,7 @@ def privtopub(k: int) -> BLSPubkey:
     return BLSPubkey(compress_G1(multiply(G1, k)))
 
 
-def verify(message: bytes, pubkey: BLSPubkey, signature: BLSSignatureBytes, domain: int) -> bool:
+def verify(message: bytes, pubkey: BLSPubkey, signature: BLSSignature, domain: int) -> bool:
     try:
         final_exponentiation = final_exponentiate(
             pairing(
@@ -194,11 +193,11 @@ def verify(message: bytes, pubkey: BLSPubkey, signature: BLSSignatureBytes, doma
         return False
 
 
-def aggregate_signatures(signatures: Sequence[BLSSignatureBytes]) -> BLSSignatureIntegers:
+def aggregate_signatures(signatures: Sequence[BLSSignature]) -> BLSSignature:
     o = Z2
     for s in signatures:
         o = FQP_point_to_FQ2_point(add(o, decompress_G2(s)))
-    return BLSSignatureIntegers(compress_G2(o))
+    return BLSSignature(compress_G2(o))
 
 
 def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkey:
@@ -210,7 +209,7 @@ def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkey:
 
 def verify_multiple(pubkeys: Sequence[BLSPubkey],
                     messages: Sequence[bytes],
-                    signature: BLSSignatureBytes,
+                    signature: BLSSignature,
                     domain: int) -> bool:
     len_msgs = len(messages)
 

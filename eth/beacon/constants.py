@@ -1,4 +1,4 @@
-from eth.beacon.typing import BLSSignatureIntegers
+from eth.beacon.typing import BLSSignature
 
 #
 # shuffle function
@@ -13,4 +13,4 @@ RAND_BYTES = 3
 # The highest possible result of the RNG.
 RAND_MAX = 2 ** (RAND_BYTES * 8) - 1
 
-EMPTY_SIGNATURE = BLSSignatureIntegers((0, 0))
+EMPTY_SIGNATURE = BLSSignature((0, 0))

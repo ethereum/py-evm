@@ -15,7 +15,7 @@ from .attestation_data import (
 
 from eth.beacon.typing import (
     Bitfield,
-    BLSSignatureIntegers,
+    BLSSignature,
 )
 from eth.beacon.constants import EMPTY_SIGNATURE
 
@@ -38,7 +38,7 @@ class Attestation(rlp.Serializable):
                  data: AttestationData,
                  participation_bitfield: Bitfield,
                  custody_bitfield: Bitfield,
-                 aggregate_signature: BLSSignatureIntegers=EMPTY_SIGNATURE) -> None:
+                 aggregate_signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             data,
             participation_bitfield,
