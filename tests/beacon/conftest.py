@@ -158,7 +158,7 @@ def sample_beacon_state_params(sample_fork_data_params):
         'persistent_committee_reassignments': (),
         'previous_justified_slot': 0,
         'justified_slot': 0,
-        'justification_bitfield': 0,
+        'justification_bitfield': b'\x00',
         'finalized_slot': 0,
         'latest_crosslinks': (),
         'latest_block_roots': (),

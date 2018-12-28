@@ -11,6 +11,7 @@ from eth_utils import (
 
 import rlp
 from rlp.sedes import (
+    binary,
     CountableList,
 )
 
@@ -66,7 +67,8 @@ class BeaconState(rlp.Serializable):
         # Finality
         ('previous_justified_slot', uint64),
         ('justified_slot', uint64),
-        ('justification_bitfield', uint64),
+        # TODO: check if justification_bitfield is bytes or int
+        ('justification_bitfield', binary),
         ('finalized_slot', uint64),
 
         # Recent state
