@@ -31,7 +31,7 @@ class ShardCommittee(rlp.Serializable):
 
     def __init__(self,
                  shard: ShardNumber,
-                 committee: Sequence[int],
+                 committee: Sequence[ValidatorIndex],
                  total_validator_count: int)-> None:
 
         super().__init__(

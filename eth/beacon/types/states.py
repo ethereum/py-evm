@@ -99,7 +99,7 @@ class BeaconState(rlp.Serializable):
             latest_randao_mixes: Sequence[Hash32]=(),
             latest_vdf_outputs: Sequence[Hash32]=(),
             shard_committees_at_slots: Sequence[Sequence[ShardCommittee]]=(),
-            persistent_committees: Sequence[Sequence[int]]=(),
+            persistent_committees: Sequence[Sequence[ValidatorIndex]]=(),
             persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=(),
             latest_crosslinks: Sequence[CrosslinkRecord]=(),
             latest_block_roots: Sequence[Hash32]=(),

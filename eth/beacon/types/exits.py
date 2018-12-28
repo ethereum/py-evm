@@ -29,7 +29,7 @@ class Exit(rlp.Serializable):
 
     def __init__(self,
                  slot: SlotNumber,
-                 validator_index: int,
+                 validator_index: ValidatorIndex,
                  signature: BLSSignatureIntegers=EMPTY_SIGNATURE) -> None:
         super().__init__(
             slot,

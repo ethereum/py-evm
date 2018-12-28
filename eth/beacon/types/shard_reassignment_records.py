@@ -24,7 +24,7 @@ class ShardReassignmentRecord(rlp.Serializable):
     ]
 
     def __init__(self,
-                 validator_index: int,
+                 validator_index: ValidatorIndex,
                  shard: ShardNumber,
                  slot: SlotNumber)-> None:
         super().__init__(
