@@ -56,6 +56,7 @@ if TYPE_CHECKING:
         BLSPubkey,
     )
 
+
 def _get_element_from_recent_list(
         target_list: Sequence[Any],
         target_slot: int,

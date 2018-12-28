@@ -16,8 +16,6 @@ from .attestation_data import (
 )
 
 
-
-
 class PendingAttestationRecord(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.

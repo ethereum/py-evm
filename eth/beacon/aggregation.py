@@ -43,10 +43,11 @@ def verify_votes(
     return sigs, committee_indices
 
 
-def aggregate_votes(bitfield: Bitfield,
-                    sigs: Iterable[BLSSignature],
-                    voting_sigs: Iterable[BLSSignature],
-                    voting_committee_indices: Iterable[int]) -> Tuple[Bitfield, BLSSignatureAggregated]:
+def aggregate_votes(
+        bitfield: Bitfield,
+        sigs: Iterable[BLSSignature],
+        voting_sigs: Iterable[BLSSignature],
+        voting_committee_indices: Iterable[int]) -> Tuple[Bitfield, BLSSignatureAggregated]:
     """
     Aggregate the votes.
     """

@@ -1,7 +1,3 @@
-from typing import (
-    Sequence,
-)
-
 import rlp
 from rlp.sedes import (
     binary,

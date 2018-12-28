@@ -17,7 +17,6 @@ from eth.beacon.typing import (
 )
 
 
-
 VALIDATOR_RECORD_ACTIVE_STATUSES = {
     ValidatorStatusCode.ACTIVE,
     ValidatorStatusCode.ACTIVE_PENDING_EXIT,

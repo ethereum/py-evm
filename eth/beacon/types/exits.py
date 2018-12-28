@@ -1,4 +1,3 @@
-from typing import Sequence
 import rlp
 from rlp.sedes import (
     CountableList,
@@ -13,6 +12,7 @@ from eth.beacon.typing import (
     BLSSignatureAggregated,
 )
 from eth.beacon.constants import EMPTY_SIGNATURE
+
 
 class Exit(rlp.Serializable):
     """

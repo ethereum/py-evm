@@ -8,6 +8,7 @@ from eth.beacon.typing import (
     SlotNumber,
 )
 
+
 class ForkData(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.

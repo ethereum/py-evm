@@ -1,7 +1,3 @@
-from typing import (
-    Sequence,
-)
-
 from eth_typing import (
     Hash32,
 )
@@ -20,6 +16,7 @@ from eth.beacon.typing import (
     BLSSignatureAggregated,
 )
 from eth.beacon.constants import EMPTY_SIGNATURE
+
 
 class DepositInput(rlp.Serializable):
     """
