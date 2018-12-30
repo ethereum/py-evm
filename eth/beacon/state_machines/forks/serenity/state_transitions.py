@@ -10,6 +10,7 @@ from eth.beacon.state_machines.state_transitions import BaseStateTransition
 
 from .operations import (
     process_attestations,
+    validate_randao,
 )
 
 
@@ -40,6 +41,7 @@ class SerenityStateTransition(BaseStateTransition):
 
     def per_block_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
         # TODO
+        state = validate_randao(state, block, self.config)
         state = process_attestations(state, block, self.config)
         return state
 

@@ -14,6 +14,7 @@ from eth.constants import (
 from eth._utils import bls as bls
 from eth.beacon._utils.hash import (
     hash_eth2,
+    repeat_hash_eth2,
 )
 
 from eth.beacon.enums import (
@@ -27,6 +28,8 @@ from eth.beacon.helpers import (
 from eth.beacon.types.states import BeaconState  # noqa: F401
 from eth.beacon.types.attestations import Attestation  # noqa: F401
 from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
+from eth.beacon.types.blocks import BaseBeaconBlock
+from eth.beacon.types.validator_records import ValidatorRecord
 
 
 #
@@ -246,4 +249,21 @@ def validate_serenity_attestation_aggregate_signature(state: Type[BeaconState],
     if not is_valid_signature:
         raise ValidationError(
             "Attestation ``aggregate_signature`` is invalid."
+        )
+
+
+#
+# RANDAO reveal
+#
+
+def validate_serenity_randao_reveal(block: BaseBeaconBlock,
+                                    proposer: ValidatorRecord) -> None:
+    """
+    Validate ``randao_reveal`` field of ``block``.
+    Raise ``ValidationError`` if it's invalid.
+    """
+    if repeat_hash_eth2(block.randao_reveal, proposer.randao_layers) != proposer.randao_commitment:
+        raise ValidationError(
+            "``randao_reveal`` in the block does not match with "
+            "``randao_commitment`` of the proposer."
         )

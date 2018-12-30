@@ -125,3 +125,13 @@ def integer_squareroot(value: int) -> int:
         x = y
         y = (x + value // x) // 2
     return x
+
+
+def bitwise_xor(a: Hash32, b: Hash32) -> Hash32:
+    """
+    Return the xor of hash ``a`` and hash ``b``
+    """
+    c = b''
+    for i in range(32):
+        c += bytes([a[i] ^ b[i]])
+    return c

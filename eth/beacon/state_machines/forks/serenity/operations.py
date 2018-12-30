@@ -2,10 +2,35 @@ from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.pending_attestation_records import PendingAttestationRecord
 from eth.beacon.types.states import BeaconState
 from eth.beacon.state_machines.configs import BeaconConfig
+from eth.beacon.helpers import get_beacon_proposer_index
+from eth._utils.numeric import bitwise_xor
 
 from .validation import (
     validate_serenity_attestation,
+    validate_serenity_randao_reveal,
 )
+
+
+def validate_randao(state: BeaconState,
+                    block: BaseBeaconBlock,
+                    config: BeaconConfig) -> BeaconState:
+    """
+    Implements 'per-block-processing.RANDAO' portion of Phase 0 spec:
+    https://github.com/ethereum/eth2.0-specs/blob/master/specs/core/0_beacon-chain.md#randao
+
+    Verify the ``randao_reveal`` contained within the ``block`` in the context of
+    ``randao_commitment`` in the ``state``
+
+    """
+    proposer = state.validator_registry[get_beacon_proposer_index(state,
+                                                                  state.slot,
+                                                                  config.EPOCH_LENGTH)]
+    validate_serenity_randao_reveal(block, proposer)
+    latest_randao_mix = state.latest_randao_mixes[state.slot % config.LATEST_RANDAO_MIXES_LENGTH]
+    latest_randao_mix = bitwise_xor(latest_randao_mix, block.randao_reveal)
+    proposer.randao_commitment = block.randao_reveal
+    proposer.randao_layers = 0
+    return state
 
 
 def process_attestations(state: BeaconState,
