@@ -134,4 +134,4 @@ def bitwise_xor(a: Hash32, b: Hash32) -> Hash32:
     c = b''
     for i in range(32):
         c += bytes([a[i] ^ b[i]])
-    return c
+    return Hash32(c)
