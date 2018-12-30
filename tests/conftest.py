@@ -79,16 +79,6 @@ def VM(request):
 
 
 @pytest.fixture
-def block_reward(VM):
-    if VM == ByzantiumVM:
-        return 3 * (10**18)
-    elif VM == ConstantinopleVM:
-        return 2 * (10**18)
-    else:
-        return 5 * (10**18)
-
-
-@pytest.fixture
 def base_db():
     return AtomicDB()
 
