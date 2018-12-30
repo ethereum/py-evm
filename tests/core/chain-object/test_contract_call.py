@@ -3,6 +3,7 @@ from cytoolz import (
 )
 from tests.core.helpers import (
     new_transaction,
+    # vm_specific_chain,
 )
 
 from eth_utils import (
@@ -15,6 +16,16 @@ import pytest
 from eth.exceptions import (
     InvalidInstruction,
     OutOfGas,
+    Revert,
+)
+
+from eth.vm.forks import (
+    FrontierVM,
+    HomesteadVM,
+    TangerineWhistleVM,
+    SpuriousDragonVM,
+    ByzantiumVM,
+    ConstantinopleVM,
 )
 
 
@@ -120,24 +131,87 @@ def test_get_transaction_result(
 
 
 @pytest.mark.parametrize(
-    'signature, expected',
+    'vm, signature, expected',
     (
         (
+            FrontierVM,
             'doRevert()',
             InvalidInstruction,
         ),
         (
+            FrontierVM,
+            'useLotsOfGas()',
+            OutOfGas,
+        ),
+
+        (
+            HomesteadVM.configure(
+                support_dao_fork=False,
+            ),
+            'doRevert()',
+            InvalidInstruction,
+        ),
+        (
+            HomesteadVM.configure(
+                support_dao_fork=False,
+            ),
+            'useLotsOfGas()',
+            OutOfGas,
+        ),
+
+        (
+            TangerineWhistleVM,
+            'doRevert()',
+            InvalidInstruction,
+        ),
+        (
+            TangerineWhistleVM,
+            'useLotsOfGas()',
+            OutOfGas,
+        ),
+
+        (
+            SpuriousDragonVM,
+            'doRevert()',
+            InvalidInstruction,
+        ),
+        (
+            SpuriousDragonVM,
+            'useLotsOfGas()',
+            OutOfGas,
+        ),
+
+        (
+            ByzantiumVM,
+            'doRevert()',
+            Revert,
+        ),
+        (
+            ByzantiumVM,
+            'useLotsOfGas()',
+            OutOfGas,
+        ),
+
+        (
+            ConstantinopleVM,
+            'doRevert()',
+            Revert,
+        ),
+        (
+            ConstantinopleVM,
             'useLotsOfGas()',
             OutOfGas,
         ),
     ),
 )
 def test_get_transaction_result_revert(
-        chain,
+        vm,
+        chain_from_vm,
         simple_contract_address,
         signature,
         expected):
 
+    chain = chain_from_vm(vm)
     function_selector = function_signature_to_4byte_selector(signature)
     call_txn = new_transaction(
         chain.get_vm(),

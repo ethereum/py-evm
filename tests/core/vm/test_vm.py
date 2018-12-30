@@ -47,7 +47,7 @@ def test_mine_block_issues_block_reward(chain):
     block = chain.mine_block()
     vm = chain.get_vm()
     coinbase_balance = vm.state.account_db.get_balance(block.header.coinbase)
-    assert coinbase_balance == constants.BLOCK_REWARD
+    assert coinbase_balance == vm.get_block_reward()
 
 
 def test_import_block(chain, funded_address, funded_address_private_key):
