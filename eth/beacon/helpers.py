@@ -514,7 +514,7 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
 # Per Epoch Processing
 #
 
-def total_balance(shard_committee: ShardCommittee, max_deposit: int, validator_balances: int) -> int:
+def total_balance(shard_committee: ShardCommittee, max_deposit: Ether, validator_balances: Sequence[Gwei]) -> Gwei:
     return sum(
         tuple(
             get_effective_balance(validator_balances, validator, max_deposit)
