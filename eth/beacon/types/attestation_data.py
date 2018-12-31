@@ -8,6 +8,11 @@ from eth.rlp.sedes import (
     hash32,
 )
 
+from eth.beacon.typing import (
+    SlotNumber,
+    ShardNumber,
+)
+
 
 class AttestationData(rlp.Serializable):
     """
@@ -33,13 +38,13 @@ class AttestationData(rlp.Serializable):
     ]
 
     def __init__(self,
-                 slot: int,
-                 shard: int,
+                 slot: SlotNumber,
+                 shard: ShardNumber,
                  beacon_block_root: Hash32,
                  epoch_boundary_root: Hash32,
                  shard_block_root: Hash32,
                  latest_crosslink_root: Hash32,
-                 justified_slot: int,
+                 justified_slot: SlotNumber,
                  justified_block_root: Hash32) -> None:
         super().__init__(
             slot,

@@ -22,6 +22,11 @@ from eth.rlp.sedes import (
 
 from eth.beacon.constants import EMPTY_SIGNATURE
 from eth.beacon._utils.hash import hash_eth2
+from eth.beacon.typing import (
+    SlotNumber,
+    BLSSignature,
+)
+
 
 from .attestations import Attestation
 from .proposer_slashings import ProposerSlashing
@@ -73,13 +78,13 @@ class BaseBeaconBlock(rlp.Serializable):
     ]
 
     def __init__(self,
-                 slot: int,
+                 slot: SlotNumber,
                  parent_root: Hash32,
                  state_root: Hash32,
                  randao_reveal: Hash32,
                  candidate_pow_receipt_root: Hash32,
                  body: BeaconBlockBody,
-                 signature: Sequence[int]=(0, 0)) -> None:
+                 signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             slot,
             parent_root,

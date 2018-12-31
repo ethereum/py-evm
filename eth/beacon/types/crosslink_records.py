@@ -8,6 +8,8 @@ from eth.rlp.sedes import (
     hash32,
 )
 
+from eth.beacon.typing import SlotNumber
+
 
 class CrosslinkRecord(rlp.Serializable):
     """
@@ -21,7 +23,7 @@ class CrosslinkRecord(rlp.Serializable):
     ]
 
     def __init__(self,
-                 slot: int,
+                 slot: SlotNumber,
                  shard_block_root: Hash32) -> None:
 
         super().__init__(

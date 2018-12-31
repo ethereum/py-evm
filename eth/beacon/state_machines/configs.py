@@ -5,6 +5,12 @@ from typing import (
 from eth.typing import (
     Address,
 )
+from eth.beacon.typing import (
+    SlotNumber,
+    ShardNumber,
+    Ether,
+    Second,
+)
 
 
 BeaconConfig = NamedTuple(
@@ -13,9 +19,9 @@ BeaconConfig = NamedTuple(
         # Misc
         ('SHARD_COUNT', int),
         ('TARGET_COMMITTEE_SIZE', int),
-        ('EJECTION_BALANCE', int),
+        ('EJECTION_BALANCE', Ether),
         ('MAX_BALANCE_CHURN_QUOTIENT', int),
-        ('BEACON_CHAIN_SHARD_NUMBER', int),
+        ('BEACON_CHAIN_SHARD_NUMBER', ShardNumber),
         ('BLS_WITHDRAWAL_PREFIX_BYTE', bytes),
         ('MAX_CASPER_VOTES', int),
         ('LATEST_BLOCK_ROOTS_LENGTH', int),
@@ -24,14 +30,14 @@ BeaconConfig = NamedTuple(
         # Deposit contract
         ('DEPOSIT_CONTRACT_ADDRESS', Address),
         ('DEPOSIT_CONTRACT_TREE_DEPTH', int),
-        ('MIN_DEPOSIT', int),
-        ('MAX_DEPOSIT', int),
+        ('MIN_DEPOSIT', Ether),
+        ('MAX_DEPOSIT', Ether),
         # ZERO_HASH (ZERO_HASH32) is defined in constants.py
         # Initial values
         ('INITIAL_FORK_VERSION', int),
-        ('INITIAL_SLOT_NUMBER', int),
+        ('INITIAL_SLOT_NUMBER', SlotNumber),
         # Time parameters
-        ('SLOT_DURATION', int),
+        ('SLOT_DURATION', Second),
         ('MIN_ATTESTATION_INCLUSION_DELAY', int),
         ('EPOCH_LENGTH', int),
         ('POW_RECEIPT_ROOT_VOTING_PERIOD', int),

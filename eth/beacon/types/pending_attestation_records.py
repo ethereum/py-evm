@@ -6,7 +6,10 @@ from rlp.sedes import (
 from eth.rlp.sedes import (
     uint64,
 )
-
+from eth.beacon.typing import (
+    SlotNumber,
+    Bitfield,
+)
 
 from .attestation_data import (
     AttestationData,
@@ -30,9 +33,9 @@ class PendingAttestationRecord(rlp.Serializable):
 
     def __init__(self,
                  data: AttestationData,
-                 participation_bitfield: bytes,
-                 custody_bitfield: bytes,
-                 slot_included: int) -> None:
+                 participation_bitfield: Bitfield,
+                 custody_bitfield: Bitfield,
+                 slot_included: SlotNumber) -> None:
         super().__init__(
             data=data,
             participation_bitfield=participation_bitfield,

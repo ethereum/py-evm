@@ -23,10 +23,14 @@ from eth._utils.bls import (
     verify,
 )
 
+from eth.beacon.typing import (
+    ShardNumber,
+)
+
 
 def validate_proposer_signature(state: BeaconState,
                                 block: BaseBeaconBlock,
-                                beacon_chain_shard_number: int,
+                                beacon_chain_shard_number: ShardNumber,
                                 epoch_length: int) -> None:
     block_without_signature_root = block.block_without_signature_root
 

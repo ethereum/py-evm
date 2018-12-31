@@ -10,19 +10,21 @@ from cytoolz.curried import reduce
 from itertools import (
     zip_longest,
 )
+from eth.beacon.typing import Bitfield
 
 
 @curry
-def has_voted(bitfield: bytes, index: int) -> bool:
+def has_voted(bitfield: Bitfield, index: int) -> bool:
     return bool(bitfield[index // 8] & (128 >> (index % 8)))
 
 
 @curry
-def set_voted(bitfield: bytes, index: int) -> bytes:
+def set_voted(bitfield: Bitfield, index: int) -> Bitfield:
     byte_index = index // 8
     bit_index = index % 8
     new_byte_value = bitfield[byte_index] | (128 >> bit_index)
-    return bitfield[:byte_index] + bytes([new_byte_value]) + bitfield[byte_index + 1:]
+    new_bitfield = bitfield[:byte_index] + bytes([new_byte_value]) + bitfield[byte_index + 1:]
+    return Bitfield(new_bitfield)
 
 
 def get_bitfield_length(bit_count: int) -> int:
@@ -30,11 +32,11 @@ def get_bitfield_length(bit_count: int) -> int:
     return (bit_count + 7) // 8
 
 
-def get_empty_bitfield(bit_count: int) -> bytes:
-    return b"\x00" * get_bitfield_length(bit_count)
+def get_empty_bitfield(bit_count: int) -> Bitfield:
+    return Bitfield(b"\x00" * get_bitfield_length(bit_count))
 
 
-def get_vote_count(bitfield: bytes) -> int:
+def get_vote_count(bitfield: Bitfield) -> int:
     return len(
         tuple(
             index
@@ -44,10 +46,10 @@ def get_vote_count(bitfield: bytes) -> int:
     )
 
 
-def or_bitfields(bitfields: List[bytes]) -> bytes:
+def or_bitfields(bitfields: List[Bitfield]) -> Bitfield:
     byte_slices = zip_longest(*bitfields)
 
     if len(set((len(b) for b in bitfields))) != 1:
         raise ValueError("The bitfield sizes are different")
 
-    return bytes(map(reduce(operator.or_), byte_slices))
+    return Bitfield(bytes(map(reduce(operator.or_), byte_slices)))

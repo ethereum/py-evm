@@ -1,7 +1,3 @@
-from typing import (
-    Sequence,
-)
-
 import rlp
 from rlp.sedes import (
     binary,
@@ -16,6 +12,12 @@ from eth.rlp.sedes import (
 from .attestation_data import (
     AttestationData,
 )
+
+from eth.beacon.typing import (
+    Bitfield,
+    BLSSignature,
+)
+from eth.beacon.constants import EMPTY_SIGNATURE
 
 
 class Attestation(rlp.Serializable):
@@ -34,9 +36,9 @@ class Attestation(rlp.Serializable):
 
     def __init__(self,
                  data: AttestationData,
-                 participation_bitfield: bytes,
-                 custody_bitfield: bytes,
-                 aggregate_signature: Sequence[int]=(0, 0)) -> None:
+                 participation_bitfield: Bitfield,
+                 custody_bitfield: Bitfield,
+                 aggregate_signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             data,
             participation_bitfield,
