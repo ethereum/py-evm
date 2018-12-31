@@ -83,7 +83,7 @@ class Pong(Command):
 
 class P2PProtocol(Protocol):
     name = 'p2p'
-    version = 4
+    version = 5
     _commands = [Hello, Ping, Pong, Disconnect]
     cmd_length = 16
 

@@ -88,6 +88,7 @@ from .constants import (
     HEADER_LEN,
     MAC_LEN,
     REQUEST_PEER_CANDIDATE_TIMEOUT,
+    SNAPPY_PROTOCOL_VERSION,
 )
 
 from .events import (
@@ -496,6 +497,12 @@ class BasePeer(BaseService):
                 f"No matching capabilities between us ({self.capabilities}) and {self.remote} "
                 f"({remote_capabilities}), disconnecting"
             )
+
+        # Check whether to support Snappy Compression or not
+        # based on other peer's p2p protocol version
+        if msg['version'] >= SNAPPY_PROTOCOL_VERSION:
+            protocol.Command.snappy_support = True
+
         self.logger.debug(
             "Finished P2P handshake with %s, using sub-protocol %s",
             self.remote, self.sub_proto)

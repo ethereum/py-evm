@@ -50,6 +50,9 @@ geth_steps: &geth_steps
         keys:
           - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
     - run:
+        name: install libsnappy-dev
+        command: sudo apt install -y libsnappy-dev
+    - run:
         name: install dependencies
         command: pip install --user tox
     - run:
