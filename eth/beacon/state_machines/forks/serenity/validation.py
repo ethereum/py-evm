@@ -48,7 +48,7 @@ def validate_serenity_proposer_signature(state: BeaconState,
     proposal_root = ProposalSignedData(
         state.slot,
         beacon_chain_shard_number,
-        block_without_signature_root
+         block_without_signature_root,
     ).root
 
     # Get the public key of proposer
@@ -59,7 +59,7 @@ def validate_serenity_proposer_signature(state: BeaconState,
         pubkey=proposer_pubkey,
         message=proposal_root,
         signature=block.signature,
-        domain=get_domain(state.fork_data, state.slot, SignatureDomain.DOMAIN_PROPOSAL)
+         domain=get_domain(state.fork_data, state.slot, SignatureDomain.DOMAIN_PROPOSAL),
     )
 
     if not is_valid_signature:
