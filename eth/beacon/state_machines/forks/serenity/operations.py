@@ -30,7 +30,7 @@ def validate_randao(state: BeaconState,
     proposer = validator_registry[proposer_index]
 
     validate_serenity_randao_reveal(block, proposer)
-    
+
     latest_randao_mix = latest_randao_mixes[state.slot % config.LATEST_RANDAO_MIXES_LENGTH]
     latest_randao_mix = bitwise_xor(latest_randao_mix, block.randao_reveal)
 
