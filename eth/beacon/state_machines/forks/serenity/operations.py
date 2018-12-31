@@ -22,14 +22,28 @@ def validate_randao(state: BeaconState,
     ``randao_commitment`` in the ``state``
 
     """
-    proposer = state.validator_registry[get_beacon_proposer_index(state,
-                                                                  state.slot,
-                                                                  config.EPOCH_LENGTH)]
+    proposer_index = get_beacon_proposer_index(state, state.slot, config.EPOCH_LENGTH)
+
+    validator_registry = list(state.validator_registry)
+    latest_randao_mixes = list(state.latest_randao_mixes)
+
+    proposer = validator_registry[proposer_index]
+
     validate_serenity_randao_reveal(block, proposer)
-    latest_randao_mix = state.latest_randao_mixes[state.slot % config.LATEST_RANDAO_MIXES_LENGTH]
+    
+    latest_randao_mix = latest_randao_mixes[state.slot % config.LATEST_RANDAO_MIXES_LENGTH]
     latest_randao_mix = bitwise_xor(latest_randao_mix, block.randao_reveal)
-    proposer.randao_commitment = block.randao_reveal
-    proposer.randao_layers = 0
+
+    proposer = proposer.copy(
+        randao_commitment=block.randao_reveal,
+        randao_layers=0,
+    )
+    latest_randao_mixes[state.slot % config.LATEST_RANDAO_MIXES_LENGTH] = latest_randao_mix
+
+    state = state.copy(
+        validator_registry=tuple(validator_registry),
+        latest_randao_mixes=tuple(latest_randao_mixes),
+    )
     return state
 
 

@@ -142,6 +142,7 @@ def sample_beacon_block_params(sample_beacon_block_body_params):
 
 @pytest.fixture
 def sample_beacon_state_params(sample_fork_data_params):
+    print(genesis_validators(init_validator_keys(pubkeys(keymap(privkeys())), num_validators()), init_randao(), max_deposit()))
     return {
         'slot': 0,
         'genesis_time': 0,
@@ -511,7 +512,8 @@ def genesis_state(sample_beacon_state_params,
                   target_committee_size,
                   initial_slot_number,
                   shard_count,
-                  latest_block_roots_length):
+                  latest_block_roots_length,
+                  latest_randao_mixes_length):
     initial_shuffling = get_new_shuffling(
         seed=ZERO_HASH32,
         validators=genesis_validators,
@@ -531,6 +533,10 @@ def genesis_state(sample_beacon_state_params,
                 shard_block_root=ZERO_HASH32,
             )
             for _ in range(shard_count)
+        ),
+        latest_randao_mixes=tuple(
+            b'\x00' * 32
+            for _ in range(latest_randao_mixes_length)
         )
     )
 

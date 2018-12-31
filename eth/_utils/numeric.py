@@ -131,6 +131,18 @@ def bitwise_xor(a: Hash32, b: Hash32) -> Hash32:
     """
     Return the xor of hash ``a`` and hash ``b``
     """
+    if len(a) != 32:
+        raise ValueError(
+            "Arguments must be of size 32: Got: {0}".format(
+                len(a)
+            )
+        )
+    if len(b) != 32:
+        raise ValueError(
+            "Arguments must be of size 32: Got: {0}".format(
+                len(b)
+            )
+        )
     c = b''
     for i in range(32):
         c += bytes([a[i] ^ b[i]])
