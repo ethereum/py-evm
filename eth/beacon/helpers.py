@@ -508,3 +508,17 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
         (attestation_data_2.justified_slot + 1 == attestation_data_2.slot) and
         (attestation_data_2.slot < attestation_data_1.slot)
     )
+
+
+#
+# Per Epoch Processing
+#
+
+def total_balance(shard_committee: ShardCommittee, max_deposit: int, validator_balances: int) -> int:
+    return sum(
+        tuple(
+            get_effective_balance(validator_balances, validator, max_deposit)
+            for validator in
+            shard_committee.committee
+        )
+    )
