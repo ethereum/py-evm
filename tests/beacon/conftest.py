@@ -142,7 +142,6 @@ def sample_beacon_block_params(sample_beacon_block_body_params):
 
 @pytest.fixture
 def sample_beacon_state_params(sample_fork_data_params):
-    print(genesis_validators(init_validator_keys(pubkeys(keymap(privkeys())), num_validators()), init_randao(), max_deposit()))
     return {
         'slot': 0,
         'genesis_time': 0,

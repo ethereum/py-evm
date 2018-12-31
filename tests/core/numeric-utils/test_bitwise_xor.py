@@ -1,7 +1,7 @@
 import pytest
 
-from eth_typing import Hash32
 from eth._utils.numeric import bitwise_xor
+
 
 @pytest.mark.parametrize(
     'a,b,result',

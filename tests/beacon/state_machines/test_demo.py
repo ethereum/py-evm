@@ -2,7 +2,7 @@ import pytest
 
 from eth.beacon.db.chain import BeaconChainDB
 from eth.beacon.types.blocks import BaseBeaconBlock
-from eth.beacon.types.states import BeaconState
+from eth.beacon._utils.hash import hash_eth2
 
 
 @pytest.mark.parametrize(
@@ -22,25 +22,24 @@ def test_demo(base_db, sample_beacon_block_params, genesis_state, fixture_sm_cla
     state = genesis_state
 
     validator_registry = []
+    randao_reveal = b'\x0a' * 32
 
     for validator in state.validator_registry:
         validator = validator.copy(
-            randao_commitment = b"H G'`'\x11\xb8(\xab\xe7\xe3\xaf\xdf\xc7G~s\xf5\xe8\xca\x00\xe5\xea\xd8O\xaa\x1f\xe9A\x81'",
-            randao_layers = 1,
+            randao_commitment=hash_eth2(randao_reveal),
+            randao_layers=1,
         )
         validator_registry.append(validator)
 
-    randao_reveal = b'\x0a' * 32
-
     block = BaseBeaconBlock(**sample_beacon_block_params).copy(
-        slot = state.slot + 2,
-        randao_reveal = randao_reveal,
+        slot=state.slot + 2,
+        randao_reveal=randao_reveal,
     )
 
     state = genesis_state.copy(
-        validator_registry = tuple(validator_registry),
+        validator_registry=tuple(validator_registry),
     )
-    
+
     sm = fixture_sm_class(chaindb, block, state)
     result_state, result_block = sm.import_block(block)
 
