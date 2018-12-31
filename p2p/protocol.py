@@ -13,6 +13,8 @@ from typing import (
     Union,
 )
 
+import snappy
+
 import rlp
 from rlp import sedes
 
@@ -105,10 +107,14 @@ class Command:
         packet_type = get_devp2p_cmd_id(data)
         if packet_type != self.cmd_id:
             raise MalformedMessage(f"Wrong packet type: {packet_type}, expected {self.cmd_id}")
-        return self.decode_payload(data[1:])
+        # Snappy Decompression
+        decompressed_payload = snappy.decompress(data[1:])
+        return self.decode_payload(decompressed_payload)
 
     def encode(self, data: PayloadType) -> Tuple[bytes, bytes]:
-        payload = self.encode_payload(data)
+        uncompressed_payload = self.encode_payload(data)
+        # Snappy Compression
+        payload = snappy.compress(uncompressed_payload)
         enc_cmd_id = rlp.encode(self.cmd_id, sedes=rlp.sedes.big_endian_int)
         frame_size = len(enc_cmd_id) + len(payload)
         if frame_size.bit_length() > 24:
