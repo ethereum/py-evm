@@ -103,3 +103,5 @@ def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconSta
         EPOCH_LENGTH and state.justification_bitfield % 16 in (15, 14),
     ):
         state.finalized_slot = state.previous_justified_slot
+
+    return state
