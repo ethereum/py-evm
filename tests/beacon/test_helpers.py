@@ -179,7 +179,7 @@ def test_get_block_root(current_block_number,
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'cycle_length,'
+        'epoch_length,'
         'state_slot,'
         'num_slot,'
         'num_shard_committee_per_slot,'
@@ -239,13 +239,12 @@ def test_get_block_root(current_block_number,
 )
 def test_get_shard_committees_at_slot(
         num_validators,
-        cycle_length,
+        epoch_length,
         state_slot,
         num_slot,
         num_shard_committee_per_slot,
         slot,
         success,
-        epoch_length,
         sample_shard_committee_params):
 
     shard_committees_at_slots = get_sample_shard_committees_at_slots(
@@ -414,7 +413,7 @@ def test_get_block_committees_info(monkeypatch,
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'cycle_length,'
+        'epoch_length,'
         'committee,'
         'slot,'
         'success,'
@@ -439,11 +438,10 @@ def test_get_block_committees_info(monkeypatch,
 def test_get_beacon_proposer_index(
         monkeypatch,
         num_validators,
-        cycle_length,
+        epoch_length,
         committee,
         slot,
         success,
-        epoch_length,
         sample_state):
 
     from eth.beacon import helpers
