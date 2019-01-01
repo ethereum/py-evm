@@ -37,13 +37,14 @@ def test_demo(base_db,
     chaindb = BeaconChainDB(base_db)
     state = genesis_state
     block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
-        slot=state.slot + 1,
+        slot=state.slot + 2,
     )
 
     # Sign block
     beacon_proposer_index = get_beacon_proposer_index(
+        # TODO: use `state` when the bug of `get_shard_committees_at_slot` is fixed.
         state.copy(
-            slot=state.slot + 1,
+            slot=state.slot + 2,
         ),
         block.slot,
         config.EPOCH_LENGTH,
