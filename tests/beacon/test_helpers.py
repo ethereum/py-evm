@@ -22,10 +22,12 @@ from eth.beacon.enums import (
     ValidatorStatusCode,
     SignatureDomain,
 )
+from eth.beacon.state_machines.forks.serenity.blocks import (
+    SerenityBeaconBlock,
+)
 from eth.beacon.types.attestation_data import (
     AttestationData,
 )
-from eth.beacon.types.blocks import BaseBeaconBlock
 from eth.beacon.types.fork_data import ForkData
 from eth.beacon.types.shard_committees import ShardCommittee
 from eth.beacon.types.slashable_vote_data import SlashableVoteData
@@ -61,7 +63,7 @@ from tests.beacon.helpers import (
 
 @pytest.fixture()
 def sample_block(sample_beacon_block_params):
-    return BaseBeaconBlock(**sample_beacon_block_params)
+    return SerenityBeaconBlock(**sample_beacon_block_params)
 
 
 @pytest.fixture()

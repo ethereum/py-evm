@@ -55,6 +55,7 @@ from eth.beacon.types.fork_data import (
     ForkData,
 )
 
+
 DEFAULT_SHUFFLING_SEED = b'\00' * 32
 DEFAULT_RANDAO = b'\45' * 32
 DEFAULT_NUM_VALIDATORS = 40
@@ -131,7 +132,7 @@ def sample_beacon_block_body_params():
 def sample_beacon_block_params(sample_beacon_block_body_params):
     return {
         'slot': 10,
-        'parent_root': b'\x56' * 32,
+        'parent_root': ZERO_HASH32,
         'state_root': b'\x55' * 32,
         'randao_reveal': b'\x55' * 32,
         'candidate_pow_receipt_root': b'\x55' * 32,

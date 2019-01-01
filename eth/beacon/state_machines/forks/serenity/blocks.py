@@ -1,5 +1,12 @@
-from eth.beacon.types.blocks import BaseBeaconBlock
+from eth.beacon.types.blocks import (
+    BeaconBlock,
+    BeaconBlockBody,
+)
 
 
-class SerenityBeaconBlock(BaseBeaconBlock):
+class SerenityBeaconBlockBody(BeaconBlockBody):
+    pass
+
+
+class SerenityBeaconBlock(BeaconBlock):
     pass
