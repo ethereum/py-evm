@@ -21,12 +21,49 @@ from eth.beacon.enums import (
 )
 from eth.beacon.helpers import (
     get_attestation_participants,
+    get_beacon_proposer_index,
     get_block_root,
     get_domain,
 )
+from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
 from eth.beacon.types.states import BeaconState  # noqa: F401
 from eth.beacon.types.attestations import Attestation  # noqa: F401
 from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
+from eth.beacon.types.proposal_signed_data import ProposalSignedData
+from eth.beacon.typing import (
+    ShardNumber,
+)
+
+
+#
+# Proposer signature validation
+#
+def validate_serenity_proposer_signature(state: BeaconState,
+                                         block: BaseBeaconBlock,
+                                         beacon_chain_shard_number: ShardNumber,
+                                         epoch_length: int) -> None:
+    block_without_signature_root = block.block_without_signature_root
+
+    # TODO: Replace this root with tree hash root
+    proposal_root = ProposalSignedData(
+        state.slot,
+        beacon_chain_shard_number,
+        block_without_signature_root,
+    ).root
+
+    # Get the public key of proposer
+    beacon_proposer_index = get_beacon_proposer_index(state, state.slot, epoch_length)
+    proposer_pubkey = state.validator_registry[beacon_proposer_index].pubkey
+
+    is_valid_signature = bls.verify(
+        pubkey=proposer_pubkey,
+        message=proposal_root,
+        signature=block.signature,
+        domain=get_domain(state.fork_data, state.slot, SignatureDomain.DOMAIN_PROPOSAL),
+    )
+
+    if not is_valid_signature:
+        raise ValidationError("Invalid Proposer Signature on block")
 
 
 #
