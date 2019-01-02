@@ -43,6 +43,9 @@ from eth.beacon.types.blocks import (  # noqa: F401
     BaseBeaconBlock,
     BeaconBlock,
 )
+from eth.beacon.typing import (
+    SlotNumber,
+)
 from eth.beacon.validation import (
     validate_slot,
 )
@@ -55,6 +58,10 @@ class BaseBeaconChainDB(ABC):
     block_class = None  # type: Type[BaseBeaconBlock]
 
     @abstractmethod
+    def __init__(self, db: BaseAtomicDB, block_class: Type[BaseBeaconBlock]) -> None:
+        pass
+
+    @abstractmethod
     def set_block_class(self, block_class: Type[BaseBeaconBlock]) -> None:
         pass
 
@@ -62,20 +69,22 @@ class BaseBeaconChainDB(ABC):
     # Block API
     #
     @abstractmethod
-    def persist_block(self,
-                      block: BaseBeaconBlock) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+    def persist_block(
+            self,
+            block: BaseBeaconBlock
+    ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         pass
 
     @abstractmethod
-    def get_canonical_block_root(self, slot: int) -> Hash32:
+    def get_canonical_block_root(self, slot: SlotNumber) -> Hash32:
         pass
 
     @abstractmethod
-    def get_canonical_block_by_slot(self, slot: int) -> BaseBeaconBlock:
+    def get_canonical_block_by_slot(self, slot: SlotNumber) -> BaseBeaconBlock:
         pass
 
     @abstractmethod
-    def get_canonical_block_root_by_slot(self, slot: int) -> Hash32:
+    def get_canonical_block_root_by_slot(self, slot: SlotNumber) -> Hash32:
         pass
 
     @abstractmethod
@@ -133,8 +142,10 @@ class BeaconChainDB(BaseBeaconChainDB):
     def set_block_class(self, block_class: Type[BaseBeaconBlock]) -> None:
         self.block_class = block_class
 
-    def persist_block(self,
-                      block: BaseBeaconBlock) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+    def persist_block(
+            self,
+            block: BaseBeaconBlock
+    ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         """
         Persist the given block.
         """
@@ -146,7 +157,8 @@ class BeaconChainDB(BaseBeaconChainDB):
             cls,
             db: 'BaseDB',
             block: BaseBeaconBlock,
-            block_class: Type[BaseBeaconBlock]) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+            block_class: Type[BaseBeaconBlock]
+    ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         block_chain = (block, )
         new_canonical_blocks, old_canonical_blocks = cls._persist_block_chain(
             db,
@@ -165,7 +177,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     #
     # Canonical Chain API
     #
-    def get_canonical_block_root(self, slot: int) -> Hash32:
+    def get_canonical_block_root(self, slot: SlotNumber) -> Hash32:
         """
         Return the block root for the canonical block at the given number.
 
@@ -175,7 +187,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._get_canonical_block_root(self.db, slot)
 
     @staticmethod
-    def _get_canonical_block_root(db: BaseDB, slot: int) -> Hash32:
+    def _get_canonical_block_root(db: BaseDB, slot: SlotNumber) -> Hash32:
         validate_slot(slot)
         slot_to_root_key = SchemaV1.make_block_slot_to_root_lookup_key(slot)
         try:
@@ -187,7 +199,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         else:
             return rlp.decode(encoded_key, sedes=rlp.sedes.binary)
 
-    def get_canonical_block_by_slot(self, slot: int) -> BaseBeaconBlock:
+    def get_canonical_block_by_slot(self, slot: SlotNumber) -> BaseBeaconBlock:
         """
         Return the block with the given slot in the canonical chain.
 
@@ -200,12 +212,12 @@ class BeaconChainDB(BaseBeaconChainDB):
     def _get_canonical_block_by_slot(
             cls,
             db: BaseDB,
-            slot: int,
+            slot: SlotNumber,
             block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         canonical_block_root = cls._get_canonical_block_root_by_slot(db, slot)
         return cls._get_block_by_root(db, canonical_block_root, block_class)
 
-    def get_canonical_block_root_by_slot(self, slot: int) -> Hash32:
+    def get_canonical_block_root_by_slot(self, slot: SlotNumber) -> Hash32:
         """
         Return the block root with the given slot in the canonical chain.
 
@@ -218,7 +230,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     def _get_canonical_block_root_by_slot(
             cls,
             db: BaseDB,
-            slot: int) -> Hash32:
+            slot: SlotNumber) -> Hash32:
         validate_slot(slot)
         return cls._get_canonical_block_root(db, slot)
 

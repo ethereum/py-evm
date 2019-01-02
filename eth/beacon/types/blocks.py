@@ -24,6 +24,9 @@ from rlp.sedes import (
 from eth._utils.datatypes import (
     Configurable,
 )
+from eth.constants import (
+    ZERO_HASH32,
+)
 from eth.rlp.sedes import (
     hash32,
     uint64,
@@ -178,4 +181,31 @@ class BeaconBlock(BaseBeaconBlock):
             candidate_pow_receipt_root=block.candidate_pow_receipt_root,
             signature=block.signature,
             body=body,
+        )
+
+    @classmethod
+    def from_parent(cls,
+                    parent_block: 'BaseBeaconBlock',
+                    slot: SlotNumber=None) -> 'BaseBeaconBlock':
+        """
+        Initialize a new block with the `parent` block as the block's
+        parent hash.
+        """
+        if slot is None:
+            slot = parent_block.slot + 1
+
+        return cls(
+            slot=slot,
+            parent_root=parent_block.root,
+            state_root=parent_block.state_root,
+            randao_reveal=ZERO_HASH32,
+            candidate_pow_receipt_root=parent_block.candidate_pow_receipt_root,
+            signature=EMPTY_SIGNATURE,
+            body=cls.block_body_class(
+                proposer_slashings=(),
+                casper_slashings=(),
+                attestations=(),
+                deposits=(),
+                exits=(),
+            ),
         )

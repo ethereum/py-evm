@@ -31,13 +31,13 @@ from eth.beacon.types.proposal_signed_data import ProposalSignedData
 )
 def test_demo(base_db,
               sample_beacon_block_params,
-              genesis_state,
+              startup_state,
               fixture_sm_class,
               config,
               privkeys,
               pubkeys):
     chaindb = BeaconChainDB(base_db, SerenityBeaconBlock)
-    state = genesis_state
+    state = startup_state
     block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
         slot=state.slot + 2,
         state_root=state.root,

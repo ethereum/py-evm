@@ -238,13 +238,13 @@ def test_validate_serenity_attestation_shard_block_root(sample_attestation_data_
         (20, 5, 3, 2, False),
     ],
 )
-def test_validate_serenity_attestation_aggregate_signature(genesis_state,
+def test_validate_serenity_attestation_aggregate_signature(startup_state,
                                                            epoch_length,
                                                            random,
                                                            sample_attestation_data_params,
                                                            create_mock_signed_attestation,
                                                            is_valid):
-    state = genesis_state
+    state = startup_state
 
     # choose committee
     slot = 0
