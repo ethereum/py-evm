@@ -1,3 +1,5 @@
+from typing import Tuple
+from eth.beacon.typing import Gwei
 from eth.beacon.types.states import BeaconState
 from eth.beacon.state_machines.configs import BeaconConfig
 from eth.beacon.helpers import (
@@ -8,9 +10,87 @@ from eth.beacon.helpers import (
 )
 
 
+def epoch_boundary_attesting_balances(
+        state: BeaconState,
+        config: BeaconConfig) -> Tuple[Gwei, Gwei]:
+    EPOCH_LENGTH = config.EPOCH_LENGTH
+    MAX_DEPOSITS = config.MAX_DEPOSITS
+
+    current_epoch_attestations = tuple(
+        attestation
+        for attestation in state.latest_attestations
+        if state.slot - EPOCH_LENGTH <= attestation.data.slot < state.slot
+    )
+    previous_epoch_attestations = tuple(
+        attestation
+        for attestation in state.latest_attestations
+        if state.slot - 2 * EPOCH_LENGTH <= attestation.data.slot < state.slot - EPOCH_LENGTH
+    )
+
+    previous_epoch_justified_attestations = tuple(
+        attestation
+        for attestation in current_epoch_attestations + previous_epoch_attestations
+        if attestation.justified_slot == state.previous_justified_slot
+    )
+
+    previous_epoch_boundary_root = get_block_root(
+        config.LATEST_BLOCK_ROOTS_LENGTH,
+        state.slot,
+        state.slot - 2 * EPOCH_LENGTH)
+    previous_epoch_boundary_attestations = tuple(
+        attestation
+        for attestation in previous_epoch_justified_attestations
+        if attestation.epoch_boundary_root == previous_epoch_boundary_root
+    )
+    previous_epoch_boundary_attester_indices = frozenset.union(*tuple(
+        get_attestation_participants(
+            state,
+            attestation.data.slot,
+            attestation.data.shard,
+            attestation.participation_bitfield,
+            EPOCH_LENGTH,
+        )
+        for attestation in previous_epoch_boundary_attestations
+    ))
+    previous_epoch_boundary_attesting_balance = sum(
+        get_effective_balance(state, index, MAX_DEPOSITS)
+        for index in previous_epoch_boundary_attester_indices
+    )
+
+    current_epoch_boundary_root = get_block_root(
+        config.LATEST_BLOCK_ROOTS_LENGTH,
+        state.slot,
+        state.slot - EPOCH_LENGTH)
+
+    current_epoch_boundary_attestations = tuple(
+        attestation
+        for attestation in current_epoch_attestations
+        if attestation.epoch_boundary_root == current_epoch_boundary_root and
+        attestation.data.justified_slot == state.justified_slot
+    )
+
+    current_epoch_boundary_attester_indices = frozenset.union(*tuple(
+        get_attestation_participants(
+            state,
+            attestation.data.slot,
+            attestation.data.shard,
+            attestation.participation_bitfield,
+            EPOCH_LENGTH,
+        )
+        for attestation in current_epoch_boundary_attestations
+    ))
+
+    current_epoch_boundary_attesting_balance = sum(
+        get_effective_balance(state, index, MAX_DEPOSITS)
+        for index in current_epoch_boundary_attester_indices
+    )
+    return previous_epoch_boundary_attesting_balance, current_epoch_boundary_attesting_balance
+
+
 def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconState:
     EPOCH_LENGTH = config.EPOCH_LENGTH
     MAX_DEPOSITS = config.MAX_DEPOSITS
+
     active_validator_indices = get_active_validator_indices(state.validator_registry)
 
     total_balance = sum(
@@ -20,70 +100,12 @@ def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconSta
             MAX_DEPOSITS)
         for index in active_validator_indices
     )
-    current_epoch_attestations = [
-        attestation
-        for attestation in state.latest_attestations
-        if state.slot - EPOCH_LENGTH <= attestation.data.slot < state.slot
-    ]
-    previous_epoch_attestations = [
-        attestation
-        for attestation in state.latest_attestations
-        if state.slot - 2 * EPOCH_LENGTH <= attestation.data.slot < state.slot - EPOCH_LENGTH
-    ]
 
-    previous_epoch_justified_attestations = [
-        attestation
-        for attestation in current_epoch_attestations + previous_epoch_attestations
-        if attestation.justified_slot == state.previous_justified_slot
-    ]
-    previous_epoch_boundary_attestations = [
-        attestation
-        for attestation in previous_epoch_justified_attestations
-        if attestation.epoch_boundary_root == get_block_root(
-            config.LATEST_BLOCK_ROOTS_LENGTH,
-            state.slot,
-            state.slot - 2 * EPOCH_LENGTH)
-    ]
-    previous_epoch_boundary_attester_indices = frozenset.union(*[
-        get_attestation_participants(
+    previous_epoch_boundary_attesting_balance, current_epoch_boundary_attesting_balance = \
+        epoch_boundary_attesting_balances(
             state,
-            attestation.data.slot,
-            attestation.data.shard,
-            attestation.participation_bitfield,
-            EPOCH_LENGTH,
+            config
         )
-        for attestation in previous_epoch_boundary_attestations
-    ])
-    previous_epoch_boundary_attesting_balance = sum(
-        get_effective_balance(state, index, MAX_DEPOSITS)
-        for index in previous_epoch_boundary_attester_indices
-    )
-
-    current_epoch_boundary_attestations = [
-        attestation
-        for attestation in current_epoch_attestations
-        if attestation.epoch_boundary_root == get_block_root(
-            config.LATEST_BLOCK_ROOTS_LENGTH,
-            state.slot,
-            state.slot - EPOCH_LENGTH) and
-        attestation.data.justified_slot == state.justified_slot
-    ]
-
-    current_epoch_boundary_attester_indices = frozenset.union(*[
-        get_attestation_participants(
-            state,
-            attestation.data.slot,
-            attestation.data.shard,
-            attestation.participation_bitfield,
-            EPOCH_LENGTH,
-        )
-        for attestation in current_epoch_boundary_attestations
-    ])
-
-    current_epoch_boundary_attesting_balance = sum(
-        get_effective_balance(state, index, MAX_DEPOSITS)
-        for index in current_epoch_boundary_attester_indices
-    )
 
     state.previous_justified_slot = state.justified_slot
     state.justification_bitfield = (state.justification_bitfield * 2) % 2**64
