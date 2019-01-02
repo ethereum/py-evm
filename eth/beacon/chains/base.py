@@ -133,7 +133,7 @@ class BaseBeaconChain(Configurable, ABC):
         pass
 
     @abstractmethod
-    def get_block_by_root(self, block_hash: Hash32) -> BaseBeaconBlock:
+    def get_block_by_root(self, block_root: Hash32) -> BaseBeaconBlock:
         pass
 
     @abstractmethod
@@ -141,7 +141,7 @@ class BaseBeaconChain(Configurable, ABC):
         pass
 
     @abstractmethod
-    def get_score(self, block_hash: Hash32) -> int:
+    def get_score(self, block_root: Hash32) -> int:
         pass
 
     @abstractmethod
@@ -255,14 +255,14 @@ class BeaconChain(BaseBeaconChain):
             slot=parent_block.slot + 1,
         ).create_block_from_parent(parent_block, **block_params)
 
-    def get_block_by_root(self, block_hash: Hash32) -> BaseBeaconBlock:
+    def get_block_by_root(self, block_root: Hash32) -> BaseBeaconBlock:
         """
         Return the requested block as specified by block hash.
 
         Raise BlockNotFound if there's no block with the given hash in the db.
         """
-        validate_word(block_hash, title="Block Hash")
-        return self.chaindb.get_block_by_root(block_hash)
+        validate_word(block_root, title="Block Hash")
+        return self.chaindb.get_block_by_root(block_root)
 
     def get_canonical_head(self) -> BaseBeaconBlock:
         """
@@ -272,13 +272,13 @@ class BeaconChain(BaseBeaconChain):
         """
         return self.chaindb.get_canonical_head()
 
-    def get_score(self, block_hash: Hash32) -> int:
+    def get_score(self, block_root: Hash32) -> int:
         """
         Return the score of the block with the given hash.
 
         Raises BlockNotFound if there is no matching black hash.
         """
-        return self.chaindb.get_score(block_hash)
+        return self.chaindb.get_score(block_root)
 
     def ensure_block(self, block: BaseBeaconBlock=None) -> BaseBeaconBlock:
         """
