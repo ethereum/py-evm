@@ -17,6 +17,8 @@ from p2p.protocol import (
 )
 
 from trinity.protocol.common.peer import ChainInfo
+from trinity._utils.les import gen_request_id
+
 from .commands import (
     Status,
     StatusV2,
@@ -68,7 +70,9 @@ class LESProtocol(Protocol):
         self.send(*cmd.encode(resp))
         self.logger.debug("Sending LES/Status msg: %s", resp)
 
-    def send_get_block_bodies(self, block_hashes: List[bytes], request_id: int) -> None:
+    def send_get_block_bodies(self, block_hashes: List[bytes], request_id: int=None) -> int:
+        if request_id is None:
+            request_id = gen_request_id()
         if len(block_hashes) > constants.MAX_BODIES_FETCH:
             raise ValueError(
                 f"Cannot ask for more than {constants.MAX_BODIES_FETCH} blocks in a single request"
@@ -80,19 +84,23 @@ class LESProtocol(Protocol):
         header, body = GetBlockBodies(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
+        return request_id
+
     def send_get_block_headers(
             self,
             block_number_or_hash: Union[BlockNumber, Hash32],
             max_headers: int,
             skip: int,
             reverse: bool,
-            request_id: int) -> None:
+            request_id: int=None) -> int:
         """Send a GetBlockHeaders msg to the remote.
 
         This requests that the remote send us up to max_headers, starting from
         block_number_or_hash if reverse is False or ending at block_number_or_hash if reverse is
         True.
         """
+        if request_id is None:
+            request_id = gen_request_id()
         cmd = GetBlockHeaders(self.cmd_id_offset)
         data = {
             'request_id': request_id,
@@ -106,8 +114,12 @@ class LESProtocol(Protocol):
         header, body = cmd.encode(data)
         self.send(header, body)
 
+        return request_id
+
     def send_block_headers(
-            self, headers: Tuple[BlockHeader, ...], buffer_value: int, request_id: int) -> None:
+            self, headers: Tuple[BlockHeader, ...], buffer_value: int, request_id: int=None) -> int:
+        if request_id is None:
+            request_id = gen_request_id()
         data = {
             'request_id': request_id,
             'headers': headers,
@@ -116,7 +128,11 @@ class LESProtocol(Protocol):
         header, body = BlockHeaders(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
-    def send_get_receipts(self, block_hash: bytes, request_id: int) -> None:
+        return request_id
+
+    def send_get_receipts(self, block_hash: bytes, request_id: int=None) -> int:
+        if request_id is None:
+            request_id = gen_request_id()
         data = {
             'request_id': request_id,
             'block_hashes': [block_hash],
@@ -124,8 +140,12 @@ class LESProtocol(Protocol):
         header, body = GetReceipts(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
+        return request_id
+
     def send_get_proof(self, block_hash: bytes, account_key: bytes, key: bytes, from_level: int,
-                       request_id: int) -> None:
+                       request_id: int=None) -> int:
+        if request_id is None:
+            request_id = gen_request_id()
         data = {
             'request_id': request_id,
             'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
@@ -133,13 +153,19 @@ class LESProtocol(Protocol):
         header, body = GetProofs(self.cmd_id_offset).encode(data)
         self.send(header, body)
 
-    def send_get_contract_code(self, block_hash: bytes, key: bytes, request_id: int) -> None:
+        return request_id
+
+    def send_get_contract_code(self, block_hash: bytes, key: bytes, request_id: int=None) -> int:
+        if request_id is None:
+            request_id = gen_request_id()
         data = {
             'request_id': request_id,
             'code_requests': [ContractCodeRequest(block_hash, key)],
         }
         header, body = GetContractCodes(self.cmd_id_offset).encode(data)
         self.send(header, body)
+
+        return request_id
 
 
 class LESProtocolV2(LESProtocol):
@@ -170,10 +196,14 @@ class LESProtocolV2(LESProtocol):
                        account_key: bytes,
                        key: bytes,
                        from_level: int,
-                       request_id: int) -> None:
+                       request_id: int=None) -> int:
+        if request_id is None:
+            request_id = gen_request_id()
         data = {
             'request_id': request_id,
             'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
         }
         header, body = GetProofsV2(self.cmd_id_offset).encode(data)
         self.send(header, body)
+
+        return request_id
