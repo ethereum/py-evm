@@ -500,7 +500,6 @@ def is_double_vote(attestation_data_1: 'AttestationData',
     target_epoch_1 = attestation_data_1.slot # EPOCH_LENGTH
     target_epoch_2 = attestation_data_2.slot # EPOCH_LENGTH
     return target_epoch_1 == target_epoch_2
-    # return attestation_data_1.slot == attestation_data_2.slot
 
 
 def is_surround_vote(attestation_data_1: 'AttestationData',
