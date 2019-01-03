@@ -25,9 +25,9 @@ class PendingAttestationRecord(rlp.Serializable):
         ('data', AttestationData),
         # Attester participation bitfield
         ('participation_bitfield', binary),
-        # Proof of custody bitfield
+        # Custody bitfield
         ('custody_bitfield', binary),
-        # Slot in which it was included
+        # Slot the attestation was included
         ('slot_included', uint64),
     ]
 

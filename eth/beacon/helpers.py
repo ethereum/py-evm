@@ -437,9 +437,9 @@ def generate_aggregate_pubkeys(validators: Sequence['ValidatorRecord'],
     Compute the aggregate pubkey we expect based on
     the proof-of-custody indices found in the ``vote_data``.
     """
-    proof_of_custody_0_indices = vote_data.aggregate_signature_poc_0_indices
-    proof_of_custody_1_indices = vote_data.aggregate_signature_poc_1_indices
-    all_indices = (proof_of_custody_0_indices, proof_of_custody_1_indices)
+    custody_bit_0_indices = vote_data.custody_bit_0_indices
+    custody_bit_1_indices = vote_data.custody_bit_1_indices
+    all_indices = (custody_bit_0_indices, custody_bit_1_indices)
     get_pubkeys = functools.partial(get_pubkey_for_indices, validators)
     return map(
         bls.aggregate_pubkeys,

@@ -33,6 +33,7 @@ from eth.beacon.typing import (
 
 from .pending_attestation_records import PendingAttestationRecord
 from .candidate_pow_receipt_root_records import CandidatePoWReceiptRootRecord
+from .custody_challenges import CustodyChallenge
 from .crosslink_records import CrosslinkRecord
 from .fork_data import ForkData
 from .shard_committees import ShardCommittee
@@ -63,6 +64,9 @@ class BeaconState(rlp.Serializable):
         ('shard_committees_at_slots', CountableList(CountableList((ShardCommittee)))),
         ('persistent_committees', CountableList(CountableList(uint24))),
         ('persistent_committee_reassignments', CountableList(ShardReassignmentRecord)),
+
+        # Custody challenges
+        ('custody_challenges', CountableList(CustodyChallenge)),
 
         # Finality
         ('previous_justified_slot', uint64),
@@ -103,6 +107,7 @@ class BeaconState(rlp.Serializable):
             shard_committees_at_slots: Sequence[Sequence[ShardCommittee]]=(),
             persistent_committees: Sequence[Sequence[ValidatorIndex]]=(),
             persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=(),
+            custody_challenges: Sequence[CustodyChallenge]=(),
             latest_crosslinks: Sequence[CrosslinkRecord]=(),
             latest_block_roots: Sequence[Hash32]=(),
             latest_penalized_exit_balances: Sequence[Gwei]=(),
@@ -127,6 +132,8 @@ class BeaconState(rlp.Serializable):
             shard_committees_at_slots=shard_committees_at_slots,
             persistent_committees=persistent_committees,
             persistent_committee_reassignments=persistent_committee_reassignments,
+            # Proof of Custody
+            custody_challenges=custody_challenges,
             # Finality
             previous_justified_slot=previous_justified_slot,
             justified_slot=justified_slot,

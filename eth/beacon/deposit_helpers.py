@@ -54,11 +54,13 @@ def validate_proof_of_possession(state: BeaconState,
                                  pubkey: BLSPubkey,
                                  proof_of_possession: BLSSignature,
                                  withdrawal_credentials: Hash32,
-                                 randao_commitment: Hash32) -> None:
+                                 randao_commitment: Hash32,
+                                 custody_commitment: Hash32) -> None:
     deposit_input = DepositInput(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
+        custody_commitment=custody_commitment,
         proof_of_possession=EMPTY_SIGNATURE,
     )
 
@@ -119,6 +121,7 @@ def process_deposit(*,
                     proof_of_possession: BLSSignature,
                     withdrawal_credentials: Hash32,
                     randao_commitment: Hash32,
+                    custody_commitment: Hash32,
                     zero_balance_validator_ttl: int) -> Tuple[BeaconState, ValidatorIndex]:
     """
     Process a deposit from Ethereum 1.0.
@@ -129,6 +132,7 @@ def process_deposit(*,
         proof_of_possession,
         withdrawal_credentials,
         randao_commitment,
+        custody_commitment,
     )
 
     validator_pubkeys = tuple(v.pubkey for v in state.validator_registry)
@@ -138,6 +142,7 @@ def process_deposit(*,
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             latest_status_change_slot=state.slot,
+            custody_commitment=custody_commitment,
         )
 
         state, index = add_pending_validator(

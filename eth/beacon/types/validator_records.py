@@ -42,6 +42,11 @@ class ValidatorRecord(rlp.Serializable):
         ('latest_status_change_slot', uint64),
         # Sequence number when validator exited (or 0)
         ('exit_count', uint64),
+        # Proof of custody commitment
+        ('custody_commitment', hash32),
+        # Slot the proof of custody seed was last changed
+        ('latest_custody_reseed_slot', uint64),
+        ('penultimate_custody_reseed_slot', uint64),
     ]
 
     def __init__(self,
@@ -51,7 +56,10 @@ class ValidatorRecord(rlp.Serializable):
                  randao_layers: int,
                  status: ValidatorStatusCode,
                  latest_status_change_slot: SlotNumber,
-                 exit_count: int) -> None:
+                 exit_count: int,
+                 custody_commitment: Hash32,
+                 latest_custody_reseed_slot: SlotNumber,
+                 penultimate_custody_reseed_slot: SlotNumber) -> None:
         super().__init__(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
@@ -60,6 +68,9 @@ class ValidatorRecord(rlp.Serializable):
             status=status,
             latest_status_change_slot=latest_status_change_slot,
             exit_count=exit_count,
+            custody_commitment=custody_commitment,
+            latest_custody_reseed_slot=latest_custody_reseed_slot,
+            penultimate_custody_reseed_slot=penultimate_custody_reseed_slot,
         )
 
     @property
@@ -74,7 +85,8 @@ class ValidatorRecord(rlp.Serializable):
                               pubkey: BLSPubkey,
                               withdrawal_credentials: Hash32,
                               randao_commitment: Hash32,
-                              latest_status_change_slot: SlotNumber) -> 'ValidatorRecord':
+                              latest_status_change_slot: SlotNumber,
+                              custody_commitment: Hash32) -> 'ValidatorRecord':
         """
         Return a new pending ``ValidatorRecord`` with the given fields.
         """
@@ -86,4 +98,7 @@ class ValidatorRecord(rlp.Serializable):
             status=ValidatorStatusCode.PENDING_ACTIVATION,
             latest_status_change_slot=latest_status_change_slot,
             exit_count=0,
+            custody_commitment=custody_commitment,
+            latest_custody_reseed_slot=SlotNumber(0),
+            penultimate_custody_reseed_slot=SlotNumber(0),
         )
