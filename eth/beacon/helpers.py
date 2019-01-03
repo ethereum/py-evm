@@ -497,8 +497,8 @@ def is_double_vote(attestation_data_1: 'AttestationData',
     Returns True if the provided ``AttestationData`` are slashable
     due to a 'double vote'.
     """
-    target_epoch_1 = attestation_data_1.slot # EPOCH_LENGTH
-    target_epoch_2 = attestation_data_2.slot # EPOCH_LENGTH
+    target_epoch_1 = attestation_data_1.slot  # EPOCH_LENGTH
+    target_epoch_2 = attestation_data_2.slot  # EPOCH_LENGTH
     return target_epoch_1 == target_epoch_2
 
 
@@ -513,10 +513,10 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
     Note: parameter order matters as this function only checks
     that ``attestation_data_1`` surrounds ``attestation_data_2``.
     """
-    source_epoch_1 = attestation_data_1.justified_slot # EPOCH_LENGTH
-    source_epoch_2 = attestation_data_2.justified_slot # EPOCH_LENGTH
-    target_epoch_1 = attestation_data_1.slot # EPOCH_LENGTH
-    target_epoch_2 = attestation_data_2.slot # EPOCH_LENGTH
+    source_epoch_1 = attestation_data_1.justified_slot  # EPOCH_LENGTH
+    source_epoch_2 = attestation_data_2.justified_slot  # EPOCH_LENGTH
+    target_epoch_1 = attestation_data_1.slot  # EPOCH_LENGTH
+    target_epoch_2 = attestation_data_2.slot  # EPOCH_LENGTH
     return (
         (source_epoch_1 < source_epoch_2) and
         (source_epoch_2 + 1 == target_epoch_2) and
