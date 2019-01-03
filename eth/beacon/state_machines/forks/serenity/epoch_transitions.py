@@ -1,5 +1,12 @@
-from typing import Tuple
-from eth.beacon.typing import Gwei
+from typing import (
+    Tuple,
+    Sequence,
+)
+from eth.beacon.typing import (
+    Ether,
+    Gwei,
+)
+from eth.beacon.types.validator_records import ValidatorRecord
 from eth.beacon.types.states import BeaconState
 from eth.beacon.state_machines.configs import BeaconConfig
 from eth.beacon.helpers import (
@@ -99,20 +106,30 @@ def epoch_boundary_attesting_balances(
     return previous_epoch_boundary_attesting_balance, current_epoch_boundary_attesting_balance
 
 
-def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconState:
-    EPOCH_LENGTH = config.EPOCH_LENGTH
-    MAX_DEPOSITS = config.MAX_DEPOSITS
+def get_total_balance(
+        validator_registry: Sequence[ValidatorRecord],
+        validator_balances: Sequence[Gwei],
+        max_deposits: Ether) -> Gwei:
 
-    active_validator_indices = get_active_validator_indices(state.validator_registry)
+    active_validator_indices = get_active_validator_indices(validator_registry)
 
-    total_balance = sum(
+    return sum(
         get_effective_balance(
-            state.validator_balances,
+            validator_balances,
             index,
-            MAX_DEPOSITS)
+            max_deposits)
         for index in active_validator_indices
     )
 
+
+def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconState:
+    EPOCH_LENGTH = config.EPOCH_LENGTH
+
+    total_balance = get_total_balance(
+        state.validator_registry,
+        state.validator_balances,
+        config.MAX_DEPOSITS,
+    )
     (
         previous_epoch_boundary_attesting_balance,
         current_epoch_boundary_attesting_balance
@@ -123,6 +140,7 @@ def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconSta
     justification_bitfield = int.from_bytes(state.justification_bitfield, 'big')
     finalized_slot = state.finalized_slot
 
+    # Add two bits at the right of justification_bitfield. Cap it at 64 bits.
     justification_bitfield = (justification_bitfield * 2) % 2**64
 
     if 3 * previous_epoch_boundary_attesting_balance >= 2 * total_balance:
@@ -131,20 +149,29 @@ def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconSta
     if 3 * current_epoch_boundary_attesting_balance >= 2 * total_balance:
         justification_bitfield |= 1
         justified_slot = state.slot - 1 * EPOCH_LENGTH
-    if any([
-        (
-            previous_justified_slot == state.slot - 2 * EPOCH_LENGTH and
-            justification_bitfield % 4 == 3
-        ),
-        (
-            previous_justified_slot == state.slot - 3 * EPOCH_LENGTH and
-            justification_bitfield % 8 == 7
-        ),
-        (
-            previous_justified_slot == state.slot - 4 * EPOCH_LENGTH and
-            justification_bitfield % 16 in (15, 14)
-        ),
-    ]):
+
+    # Suppose B1, B2, B3, B4 are consecutive blocks and
+    # we are now processing the end of the cycle containing B4.
+
+    # If B4 and is justified using source B3, then B3 is finalized.
+    should_finalize_B3 = (
+        previous_justified_slot == state.slot - 2 * EPOCH_LENGTH and
+        justification_bitfield % 4 == 3
+    )
+
+    # If B4 is justified using source B2, and B3 has been justified,
+    # then B2 is finalized.
+    should_finalize_B2 = (
+        previous_justified_slot == state.slot - 3 * EPOCH_LENGTH and
+        justification_bitfield % 8 == 7
+    )
+    # If B3 is justified using source B1, and B1 has been justified,
+    # then B1 is finalized.
+    should_finalize_B1 = (
+        previous_justified_slot == state.slot - 4 * EPOCH_LENGTH and
+        justification_bitfield % 16 in (15, 14)
+    )
+    if should_finalize_B3 or should_finalize_B2 or should_finalize_B1:
         finalized_slot = previous_justified_slot
 
     return state.copy(
