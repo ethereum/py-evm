@@ -72,7 +72,8 @@ def validate_serenity_proposer_signature(state: BeaconState,
 def validate_serenity_attestation(state: Type[BeaconState],
                                   attestation: Attestation,
                                   epoch_length: int,
-                                  min_attestation_inclusion_delay: int) -> None:
+                                  min_attestation_inclusion_delay: int,
+                                  latest_block_roots_length: int) -> None:
     """
     Validate the given ``attestation``.
     Raise ``ValidationError`` if it's invalid.
@@ -96,9 +97,9 @@ def validate_serenity_attestation(state: Type[BeaconState],
     validate_serenity_attestation_justified_block_root(
         attestation.data,
         justified_block_root=get_block_root(
-            state.latest_block_roots,
-            current_slot=state.slot,
+            state=state,
             slot=attestation.data.justified_slot,
+            latest_block_roots_length=latest_block_roots_length,
         ),
     )
 

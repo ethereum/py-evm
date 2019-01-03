@@ -34,17 +34,16 @@ from eth.beacon.types.slashable_vote_data import SlashableVoteData
 from eth.beacon.types.states import BeaconState
 from eth.beacon.types.validator_records import ValidatorRecord
 from eth.beacon.helpers import (
-    _get_element_from_recent_list,
+    _get_block_root,
+    _get_shard_committees_at_slot,
     get_active_validator_indices,
     get_attestation_participants,
     get_beacon_proposer_index,
-    get_block_root,
     get_effective_balance,
     get_domain,
     get_fork_version,
     get_new_shuffling,
     get_new_validator_registry_delta_chain_tip,
-    _get_shard_committees_at_slot,
     get_block_committees_info,
     get_pubkey_for_indices,
     generate_aggregate_pubkeys,
@@ -88,48 +87,21 @@ def get_sample_shard_committees_at_slots(num_slot,
 
 def generate_mock_latest_block_roots(
         genesis_block,
-        current_block_number,
-        epoch_length):
-    chain_length = (current_block_number // epoch_length + 1) * epoch_length
+        current_slot,
+        epoch_length,
+        latest_block_roots_length):
+    assert current_slot < latest_block_roots_length
+
+    chain_length = (current_slot // epoch_length + 1) * epoch_length
     blocks = get_pseudo_chain(chain_length, genesis_block)
     latest_block_roots = [
-        b'\x00' * 32
-        for i
-        in range(epoch_length * 2 - current_block_number)
-    ] + [block.root for block in blocks[:current_block_number]]
+        block.hash
+        for block in blocks[:current_slot]
+    ] + [
+        ZERO_HASH32
+        for _ in range(latest_block_roots_length - current_slot)
+    ]
     return blocks, latest_block_roots
-
-
-@pytest.mark.parametrize(
-    (
-        'target_list,target_slot,slot_relative_position,result'
-    ),
-    [
-        ([i for i in range(5)], 10, 7, 3),
-        ([], 1, 1, ValueError()),
-        # target_slot < slot_relative_position
-        ([i for i in range(5)], 1, 2, ValueError()),
-        # target_slot >= slot_relative_position + target_list_length
-        ([i for i in range(5)], 6, 1, ValueError()),
-    ],
-)
-def test_get_element_from_recent_list(target_list,
-                                      target_slot,
-                                      slot_relative_position,
-                                      result):
-    if isinstance(result, Exception):
-        with pytest.raises(ValueError):
-            _get_element_from_recent_list(
-                target_list,
-                target_slot,
-                slot_relative_position,
-            )
-    else:
-        assert result == _get_element_from_recent_list(
-            target_list,
-            target_slot,
-            slot_relative_position,
-        )
 
 
 #
@@ -137,7 +109,7 @@ def test_get_element_from_recent_list(target_list,
 #
 @pytest.mark.parametrize(
     (
-        'current_block_number,target_slot,success'
+        'current_slot,target_slot,success'
     ),
     [
         (10, 0, True),
@@ -148,30 +120,34 @@ def test_get_element_from_recent_list(target_list,
         (128, 128, False),
     ],
 )
-def test_get_block_root(current_block_number,
+def test_get_block_root(current_slot,
                         target_slot,
                         success,
                         epoch_length,
+                        latest_block_roots_length,
                         sample_block):
     blocks, latest_block_roots = generate_mock_latest_block_roots(
         sample_block,
-        current_block_number,
+        current_slot,
         epoch_length,
+        latest_block_roots_length,
     )
 
     if success:
-        block_root = get_block_root(
+        block_root = _get_block_root(
             latest_block_roots,
-            current_block_number,
+            current_slot,
             target_slot,
+            latest_block_roots_length,
         )
         assert block_root == blocks[target_slot].root
     else:
         with pytest.raises(ValueError):
-            get_block_root(
+            _get_block_root(
                 latest_block_roots,
-                current_block_number,
+                current_slot,
                 target_slot,
+                latest_block_roots_length,
             )
 
 
@@ -206,16 +182,6 @@ def test_get_block_root(current_block_number,
             10,
             64,
             True,
-        ),
-        # The length of shard_committees_at_slots != epoch_length * 2
-        (
-            100,
-            64,
-            64,
-            127,
-            10,
-            0,
-            False,
         ),
         # slot is too small
         (

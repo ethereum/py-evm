@@ -26,6 +26,7 @@ def process_attestations(state: BeaconState,
             attestation,
             config.EPOCH_LENGTH,
             config.MIN_ATTESTATION_INCLUSION_DELAY,
+            config.LATEST_BLOCK_ROOTS_LENGTH,
         )
 
     # update_latest_attestations
