@@ -183,6 +183,15 @@ def test_get_block_root(current_slot,
             64,
             True,
         ),
+        (
+            100,
+            64,
+            1,
+            128,
+            10,
+            1,
+            True,
+        ),
         # slot is too small
         (
             100,

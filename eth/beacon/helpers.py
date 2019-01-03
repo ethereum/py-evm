@@ -76,8 +76,14 @@ def _get_block_root(
     if state_slot > slot + latest_block_roots_length:
         raise ValueError(
             "state.slot (%s) should be less than or equal to "
-            "(slot + latest_block_roots_length) (%s)" %
-            (state_slot, slot + latest_block_roots_length)
+            "(slot + latest_block_roots_length) (%s), "
+            "where slot=%s, latest_block_roots_length=%s" %
+            (
+                state_slot,
+                slot + latest_block_roots_length,
+                slot,
+                latest_block_roots_length,
+            )
         )
     if slot >= state_slot:
         raise ValueError(
@@ -121,8 +127,15 @@ def _get_shard_committees_at_slot(
         )
     if slot >= earliest_slot_in_array + epoch_length * 2:
         raise ValueError(
-            "slot (%s) should be less than earliest_slot_in_array + epoch_length * 2 (%s)" %
-            (slot, earliest_slot_in_array + epoch_length * 2)
+            "slot (%s) should be less than "
+            "(earliest_slot_in_array + epoch_length * 2) (%s), "
+            "where earliest_slot_in_array=%s, epoch_length=%s" %
+            (
+                slot,
+                earliest_slot_in_array + epoch_length * 2,
+                earliest_slot_in_array,
+                epoch_length,
+            )
         )
 
     return shard_committees_at_slots[slot - earliest_slot_in_array]

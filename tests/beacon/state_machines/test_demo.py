@@ -26,7 +26,7 @@ from eth.beacon.types.proposal_signed_data import ProposalSignedData
         'shard_count'
     ),
     [
-        (10, 2, 1, 2, 2)
+        (10, 10, 1, 2, 2)
     ]
 )
 def test_demo(base_db,
@@ -45,10 +45,7 @@ def test_demo(base_db,
 
     # Sign block
     beacon_proposer_index = get_beacon_proposer_index(
-        # TODO: use `state` when the bug of `get_shard_committees_at_slot` is fixed.
-        state.copy(
-            slot=state.slot + 2,
-        ),
+        state,
         block.slot,
         config.EPOCH_LENGTH,
     )
