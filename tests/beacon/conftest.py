@@ -118,6 +118,14 @@ def sample_attestation_data_params():
 
 
 @pytest.fixture
+def sample_attestation_data_and_custody_bit_params(sample_attestation_data_params):
+    return {
+        'data': AttestationData(**sample_attestation_data_params),
+        'custody_bit': False,
+    }
+
+
+@pytest.fixture
 def sample_beacon_block_body_params():
     return {
         'proposer_slashings': (),
@@ -287,8 +295,8 @@ def sample_shard_reassignment_record():
 @pytest.fixture
 def sample_slashable_vote_data_params(sample_attestation_data_params):
     return {
-        'aggregate_signature_poc_0_indices': (10, 11, 12, 15, 28),
-        'aggregate_signature_poc_1_indices': (7, 8, 100, 131, 249),
+        'custody_bit_0_indices': (10, 11, 12, 15, 28),
+        'custody_bit_1_indices': (7, 8, 100, 131, 249),
         'data': AttestationData(**sample_attestation_data_params),
         'aggregate_signature': (1, 2, 3, 4, 5),
     }

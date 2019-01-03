@@ -65,8 +65,7 @@ class BeaconState(rlp.Serializable):
         ('persistent_committees', CountableList(CountableList(uint24))),
         ('persistent_committee_reassignments', CountableList(ShardReassignmentRecord)),
 
-
-        # Proof of custody
+        # Custody challenges
         ('custody_challenges', CountableList(CustodyChallenge)),
 
         # Finality

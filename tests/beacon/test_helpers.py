@@ -766,13 +766,13 @@ def test_generate_aggregate_pubkeys(genesis_validators, sample_slashable_vote_da
             max_value=max_value_for_list,
         )
     )
-    proof_of_custody_0_indices = indices[:some_index]
-    proof_of_custody_1_indices = indices[some_index:]
+    custody_bit_0_indices = indices[:some_index]
+    custody_bit_1_indices = indices[some_index:]
 
-    key = "aggregate_signature_poc_0_indices"
-    sample_slashable_vote_data_params[key] = proof_of_custody_0_indices
-    key = "aggregate_signature_poc_1_indices"
-    sample_slashable_vote_data_params[key] = proof_of_custody_1_indices
+    key = "custody_bit_0_indices"
+    sample_slashable_vote_data_params[key] = custody_bit_0_indices
+    key = "custody_bit_1_indices"
+    sample_slashable_vote_data_params[key] = custody_bit_1_indices
 
     votes = SlashableVoteData(**sample_slashable_vote_data_params)
 
@@ -781,8 +781,8 @@ def test_generate_aggregate_pubkeys(genesis_validators, sample_slashable_vote_da
 
     (poc_0_key, poc_1_key) = keys
 
-    poc_0_keys = get_pubkey_for_indices(genesis_validators, proof_of_custody_0_indices)
-    poc_1_keys = get_pubkey_for_indices(genesis_validators, proof_of_custody_1_indices)
+    poc_0_keys = get_pubkey_for_indices(genesis_validators, custody_bit_0_indices)
+    poc_1_keys = get_pubkey_for_indices(genesis_validators, custody_bit_1_indices)
 
     assert bls.aggregate_pubkeys(poc_0_keys) == poc_0_key
     assert bls.aggregate_pubkeys(poc_1_keys) == poc_1_key
@@ -791,13 +791,13 @@ def test_generate_aggregate_pubkeys(genesis_validators, sample_slashable_vote_da
 @given(st.data())
 def test_verify_vote_count(max_casper_votes, sample_slashable_vote_data_params, data):
     (indices, some_index) = _list_and_index(data, max_size=max_casper_votes)
-    proof_of_custody_0_indices = indices[:some_index]
-    proof_of_custody_1_indices = indices[some_index:]
+    custody_bit_0_indices = indices[:some_index]
+    custody_bit_1_indices = indices[some_index:]
 
-    key = "aggregate_signature_poc_0_indices"
-    sample_slashable_vote_data_params[key] = proof_of_custody_0_indices
-    key = "aggregate_signature_poc_1_indices"
-    sample_slashable_vote_data_params[key] = proof_of_custody_1_indices
+    key = "custody_bit_0_indices"
+    sample_slashable_vote_data_params[key] = custody_bit_0_indices
+    key = "custody_bit_1_indices"
+    sample_slashable_vote_data_params[key] = custody_bit_1_indices
 
     votes = SlashableVoteData(**sample_slashable_vote_data_params)
 
@@ -821,7 +821,7 @@ def _correct_slashable_vote_data_params(params, validators, messages, privkeys):
 
     num_validators = len(validators)
 
-    key = "aggregate_signature_poc_0_indices"
+    key = "custody_bit_0_indices"
     (poc_0_indices, poc_0_signatures) = _get_indices_and_signatures(
         num_validators,
         messages[0],
@@ -829,7 +829,7 @@ def _correct_slashable_vote_data_params(params, validators, messages, privkeys):
     )
     valid_params[key] = poc_0_indices
 
-    key = "aggregate_signature_poc_1_indices"
+    key = "custody_bit_1_indices"
     # NOTE: does not guarantee non-empty intersection
     (poc_1_indices, poc_1_signatures) = _get_indices_and_signatures(
         num_validators,
@@ -857,7 +857,7 @@ def _corrupt_signature(params):
 
 def _corrupt_vote_count(params):
     params = copy.deepcopy(params)
-    key = "aggregate_signature_poc_0_indices"
+    key = "custody_bit_0_indices"
     for i in itertools.count():
         if i not in params[key]:
             params[key].append(i)

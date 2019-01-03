@@ -21,6 +21,7 @@ from eth.beacon.typing import (
 from eth.beacon.constants import EMPTY_SIGNATURE
 
 from .attestation_data import AttestationData
+from .attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 
 
 class SlashableVoteData(rlp.Serializable):
@@ -28,10 +29,10 @@ class SlashableVoteData(rlp.Serializable):
     Note: using RLP until we have standardized serialization format.
     """
     fields = [
-        # Proof-of-custody indices (0 bits)
-        ('aggregate_signature_poc_0_indices', CountableList(uint24)),
-        # Proof-of-custody indices (1 bits)
-        ('aggregate_signature_poc_1_indices', CountableList(uint24)),
+        # Validator indices with custody bit equal to 0
+        ('custody_bit_0_indices', CountableList(uint24)),
+        # Validator indices with custody bit equal to 1
+        ('custody_bit_1_indices', CountableList(uint24)),
         # Attestation data
         ('data', AttestationData),
         # Aggregate signature
@@ -39,13 +40,13 @@ class SlashableVoteData(rlp.Serializable):
     ]
 
     def __init__(self,
-                 aggregate_signature_poc_0_indices: Sequence[ValidatorIndex],
-                 aggregate_signature_poc_1_indices: Sequence[ValidatorIndex],
+                 custody_bit_0_indices: Sequence[ValidatorIndex],
+                 custody_bit_1_indices: Sequence[ValidatorIndex],
                  data: AttestationData,
                  aggregate_signature: BLSSignature = EMPTY_SIGNATURE) -> None:
         super().__init__(
-            aggregate_signature_poc_0_indices,
-            aggregate_signature_poc_1_indices,
+            custody_bit_0_indices,
+            custody_bit_1_indices,
             data,
             aggregate_signature,
         )
@@ -69,19 +70,18 @@ class SlashableVoteData(rlp.Serializable):
     @property
     def vote_count(self) -> int:
         if self._vote_count is None:
-            count_zero_indices = len(self.aggregate_signature_poc_0_indices)
-            count_one_indices = len(self.aggregate_signature_poc_1_indices)
+            count_zero_indices = len(self.custody_bit_0_indices)
+            count_one_indices = len(self.custody_bit_1_indices)
             self._vote_count = count_zero_indices + count_one_indices
         return self._vote_count
 
     @property
-    def messages(self) -> Tuple[bytes, bytes]:
+    def messages(self) -> Tuple[Hash32, Hash32]:
         """
         Build the messages that validators are expected to sign for a ``CasperSlashing`` operation.
         """
-        # TODO: change to hash_tree_root(vote_data) when we have SSZ tree hashing
-        vote_data_root = self.root
+        # TODO: change to hash_tree_root when we have SSZ tree hashing
         return (
-            vote_data_root + (0).to_bytes(1, 'big'),
-            vote_data_root + (1).to_bytes(1, 'big'),
+            AttestationDataAndCustodyBit(self.data, False).root,
+            AttestationDataAndCustodyBit(self.data, True).root,
         )
