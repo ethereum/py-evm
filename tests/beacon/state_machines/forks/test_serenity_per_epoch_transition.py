@@ -24,4 +24,4 @@ def test_justification_without_validators(
         mock_justification_state_without_validators,
         config):
     state = process_justification(mock_justification_state_without_validators, config)
-    assert state.justification_bitfield == 0b10.to_bytes(8, 'big')
+    assert state.justification_bitfield == 0b11.to_bytes(8, 'big')
