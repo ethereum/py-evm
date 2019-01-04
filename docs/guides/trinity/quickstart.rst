@@ -111,7 +111,7 @@ After Trinity is installed we should have the ``trinity`` command available to s
 
 While it may take a couple of minutes before Trinity can start syncing against the Ethereum mainnet,
 it should print out some valuable information right away which should look something like this.
-If it doesn't please `file an issue <https://github.com/ethereum/py-evm/issues/new>`_
+If it doesn't please `file an issue <https://github.com/ethereum/trinity/issues/new>`_
 to help us getting that bug fixed.
 
 .. code:: sh
