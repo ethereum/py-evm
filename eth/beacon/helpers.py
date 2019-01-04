@@ -123,7 +123,7 @@ def _get_shard_committees_at_slot(
     if earliest_slot_in_array > slot:
         raise ValueError(
             "earliest_slot_in_array (%s) should be less than or equal to slot (%s)" %
-            (earliest_slot_in_array, slot + slot)
+            (earliest_slot_in_array, slot)
         )
     if slot >= earliest_slot_in_array + epoch_length * 2:
         raise ValueError(
