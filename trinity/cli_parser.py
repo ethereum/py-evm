@@ -58,6 +58,18 @@ LOG_LEVEL_CHOICES = {
 }
 
 
+def log_level_formatted_string() -> str:
+    numeric_levels = [k for k in LOG_LEVEL_CHOICES.keys() if k.isdigit()]
+    literal_levels = [k for k in LOG_LEVEL_CHOICES.keys() if not k.isdigit()]
+
+    return (
+        "LEVEL must be one of: "
+        f"\n  {'/'.join(numeric_levels)} (numeric); "
+        f"\n  {'/'.join(literal_levels).lower()} (lowercase); "
+        f"\n  {'/'.join(literal_levels).upper()} (uppercase)."
+    )
+
+
 class ValidateAndStoreLogLevel(argparse.Action):
     def __call__(self,
                  parser: argparse.ArgumentParser,
@@ -81,22 +93,18 @@ class ValidateAndStoreLogLevel(argparse.Action):
                     self,
                     f"Invalid logging config: '{value}'.  Log level may be specified "
                     "as a global logging level using the syntax `--log-level "
-                    "<LEVEL-NAME>` or for to specify the logging level for an "
+                    "<LEVEL>`; or, to specify the logging level for an "
                     "individual logger, '--log-level "
-                    "<LOGGER-NAME>:<LEVEL-NAME>'"
+                    "<LOGGER-NAME>=<LEVEL>'" + '\n' +
+                    log_level_formatted_string()
                 )
 
             try:
                 log_level = LOG_LEVEL_CHOICES[raw_log_level.upper()]
             except KeyError:
-                raise argparse.ArgumentError(
-                    self,
-                    (
-                        f"Invalid logging level.  Got '{raw_log_level}'.  Must be one of\n"
-                        " - 5/10/20/30/40 (numeric logging levels)\n"
-                        " - trace/debug/info/warn/warning/error/critical (lowercase)\n"
-                        " - TRACE/DEBUG/INFO/WARN/WARNING/ERROR/CRITICAL (uppercase)\n"
-                    )
+                raise argparse.ArgumentError(self, (
+                    f"Invalid logging level.  Got '{raw_log_level}'.",
+                    log_level_formatted_string())
                 )
 
         if getattr(namespace, self.dest) is None:
@@ -170,11 +178,7 @@ logging_parser.add_argument(
     dest="log_levels",
     metavar="LEVEL",
     help=(
-        "Configure the logging level. The `LEVEL` may be provide as any of: "
-        "TRACE/DEBUG/INFO/WARN/WARNING/ERROR/CRITICAL, "
-        "5/10/20/30/40/50, or to specify "
-        "the logging level for a specific logger, `--log-level "
-        "LOGGER_NAME=LEVEL`.  Default: INFO"
+        "Configure the logging level. " + log_level_formatted_string()
     ),
 )
 logging_parser.add_argument(
