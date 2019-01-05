@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from .peer import ETHPeer  # noqa: F401
 
 
-# HasExtendedDebugLogger must come first so there's self.logger.debug2()
+# HasExtendedDebugLogger must come before Protocol so there's self.logger.debug2()
 class ETHProtocol(HasExtendedDebugLogger, Protocol):
     name = 'eth'
     version = 63

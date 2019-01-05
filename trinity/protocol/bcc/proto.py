@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from .peer import BCCPeer  # noqa: F401
 
 
-# HasExtendedDebugLogger must come first so there's self.logger.debug2()
+# HasExtendedDebugLogger must come before Protocol so there's self.logger.debug2()
 class BCCProtocol(HasExtendedDebugLogger, Protocol):
     name = "bcc"
     version = 0
