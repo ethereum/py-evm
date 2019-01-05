@@ -45,6 +45,7 @@ from eth_utils import (
     remove_0x_prefix,
     text_if_str,
     to_bytes,
+    to_hex,
     to_list,
     to_tuple,
     int_to_big_endian,
@@ -357,7 +358,9 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             closest = kademlia.sort_by_distance(closest, node_id)[:kademlia.k_bucket_size]
             nodes_to_ask = _exclude_if_asked(closest)
 
-        self.logger.debug("lookup finished for %s: %s", node_id, closest)
+        self.logger.debug(
+            "lookup finished for target %s; closest neighbours: %s", to_hex(node_id), closest
+        )
         return tuple(closest)
 
     async def lookup_random(self) -> Tuple[kademlia.Node, ...]:
