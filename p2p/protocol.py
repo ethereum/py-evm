@@ -144,12 +144,13 @@ class BaseRequest(ABC, Generic[TRequestPayload]):
 
 class Protocol:
     peer: 'BasePeer'
-    logger = logging.getLogger("p2p.protocol.Protocol")
     name: str = None
     version: int = None
     cmd_length: int = None
     # List of Command classes that this protocol supports.
     _commands: List[Type[Command]] = []
+
+    _logger: logging.Logger = None
 
     def __init__(self, peer: 'BasePeer', cmd_id_offset: int) -> None:
         self.peer = peer
@@ -157,6 +158,12 @@ class Protocol:
         self.commands = [cmd_class(cmd_id_offset) for cmd_class in self._commands]
         self.cmd_by_type = {cmd_class: cmd_class(cmd_id_offset) for cmd_class in self._commands}
         self.cmd_by_id = dict((cmd.cmd_id, cmd) for cmd in self.commands)
+
+    @property
+    def logger(self) -> logging.Logger:
+        if self._logger is None:
+            self._logger = logging.getLogger(f"p2p.protocol.{type(self).__name__}")
+        return self._logger
 
     def send(self, header: bytes, body: bytes) -> None:
         self.peer.send(header, body)
