@@ -3,6 +3,8 @@ import itertools
 import pytest
 import random
 
+import cytoolz
+
 from hypothesis import (
     given,
     strategies as st,
@@ -58,6 +60,10 @@ import eth._utils.bls as bls
 from tests.beacon.helpers import (
     get_pseudo_chain,
 )
+
+
+class UnreachableCodePathError(Exception):
+    pass
 
 
 @pytest.fixture()
@@ -822,22 +828,27 @@ def _correct_slashable_vote_data_params(params, validators, messages, privkeys):
 
 
 def _corrupt_signature(params):
-    params = copy.deepcopy(params)
     message = bytes.fromhex("deadbeefcafe")
     privkey = 42
     domain = SignatureDomain.DOMAIN_ATTESTATION
-    params["aggregate_signature"] = bls.sign(message, privkey, domain)
-    return params
+    corrupt_signature = bls.sign(message, privkey, domain)
+
+    return cytoolz.assoc(params, "aggregate_signature", corrupt_signature)
 
 
 def _corrupt_vote_count(params):
-    params = copy.deepcopy(params)
     key = "custody_bit_0_indices"
     for i in itertools.count():
         if i not in params[key]:
-            params[key].append(i)
-            break
-    return params
+            new_vote_count = params[key] + [i]
+            return cytoolz.assoc(
+                params,
+                key,
+                new_vote_count,
+            )
+    else:
+        msg = "list of ``custody_bit_0_indices`` should not exhaust ``itertools.count``"
+        raise UnreachableCodePathError(msg)
 
 
 def _create_slashable_vote_data_messages(params):
