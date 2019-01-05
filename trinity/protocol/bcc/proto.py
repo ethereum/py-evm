@@ -42,14 +42,14 @@ class BCCProtocol(HasExtendedDebugLogger, Protocol):
             "genesis_hash": genesis_hash,
             "best_hash": best_hash,
         }
-        cmd = Status(self.cmd_id_offset)
+        cmd = Status(self.cmd_id_offset, self.snappy_support)
         self.logger.debug2("Sending BCC/Status msg: %s", resp)
         self.send(*cmd.encode(resp))
 
     def send_get_blocks(self,
                         block_slot_or_root: Union[BlockNumber, Hash32],
                         max_blocks: int) -> None:
-        cmd = GetBeaconBlocks(self.cmd_id_offset)
+        cmd = GetBeaconBlocks(self.cmd_id_offset, self.snappy_support)
         data = {
             'block_slot_or_root': block_slot_or_root,
             'max_blocks': max_blocks,
@@ -58,11 +58,11 @@ class BCCProtocol(HasExtendedDebugLogger, Protocol):
         self.send(header, body)
 
     def send_blocks(self, blocks: Tuple[BaseBeaconBlock, ...]) -> None:
-        cmd = BeaconBlocks(self.cmd_id_offset)
+        cmd = BeaconBlocks(self.cmd_id_offset, self.snappy_support)
         header, body = cmd.encode(blocks)
         self.send(header, body)
 
     def send_attestation_records(self, attestations: Tuple[Attestation, ...]) -> None:
-        cmd = AttestationRecords(self.cmd_id_offset)
+        cmd = AttestationRecords(self.cmd_id_offset, self.snappy_support)
         header, body = cmd.encode(attestations)
         self.send(header, body)

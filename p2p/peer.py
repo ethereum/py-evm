@@ -488,20 +488,20 @@ class BasePeer(BaseService):
         if not isinstance(cmd, Hello):
             await self.disconnect(DisconnectReason.bad_protocol)
             raise HandshakeFailure(f"Expected a Hello msg, got {cmd}, disconnecting")
+
+        # Check whether to support Snappy Compression or not
+        # based on other peer's p2p protocol version
+        snappy_support = msg['version'] >= SNAPPY_PROTOCOL_VERSION
+
         remote_capabilities = msg['capabilities']
         try:
-            self.sub_proto = self.select_sub_protocol(remote_capabilities)
+            self.sub_proto = self.select_sub_protocol(remote_capabilities, snappy_support)
         except NoMatchingPeerCapabilities:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 f"No matching capabilities between us ({self.capabilities}) and {self.remote} "
                 f"({remote_capabilities}), disconnecting"
             )
-
-        # Check whether to support Snappy Compression or not
-        # based on other peer's p2p protocol version
-        if msg['version'] >= SNAPPY_PROTOCOL_VERSION:
-            protocol.Command.snappy_support = True
 
         self.logger.debug(
             "Finished P2P handshake with %s, using sub-protocol %s",
@@ -608,8 +608,9 @@ class BasePeer(BaseService):
         if self.is_operational:
             self.cancel_nowait()
 
-    def select_sub_protocol(self, remote_capabilities: List[Tuple[bytes, int]]
-                            ) -> protocol.Protocol:
+    def select_sub_protocol(self,
+                            remote_capabilities: List[Tuple[bytes, int]],
+                            snappy_support: bool) -> protocol.Protocol:
         """Select the sub-protocol to use when talking to the remote.
 
         Find the highest version of our supported sub-protocols that is also supported by the
@@ -626,7 +627,7 @@ class BasePeer(BaseService):
         offset = self.base_protocol.cmd_length
         for proto_class in self._supported_sub_protocols:
             if proto_class.version == highest_matching_version:
-                return proto_class(self, offset)
+                return proto_class(self, offset, snappy_support)
         raise NoMatchingPeerCapabilities()
 
     def __str__(self) -> str:

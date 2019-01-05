@@ -35,6 +35,14 @@ class Hello(Command):
         ('remote_pubkey', sedes.binary)
     ]
 
+    def decompress_payload(self, raw_payload: bytes) -> bytes:
+        # The `Hello` command doesn't support snappy compression
+        return raw_payload
+
+    def compress_payload(self, raw_payload: bytes) -> bytes:
+        # The `Hello` command doesn't support snappy compression
+        return raw_payload
+
 
 @enum.unique
 class DisconnectReason(enum.Enum):
