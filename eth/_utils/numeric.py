@@ -1,3 +1,4 @@
+import decimal
 import functools
 import itertools
 from typing import (
@@ -103,8 +104,7 @@ def clamp(inclusive_lower_bound: int,
 
 def integer_squareroot(value: int) -> int:
     """
-    Return the largest integer ``x`` such that ``x**2 <= value``.
-    Ref: https://en.wikipedia.org/wiki/Integer_square_root
+    Return the integer square root of ``value``.
     """
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(
@@ -119,9 +119,8 @@ def integer_squareroot(value: int) -> int:
             )
         )
 
-    x = value
-    y = (x + 1) // 2
-    while y < x:
-        x = y
-        y = (x + value // x) // 2
-    return x
+    with decimal.localcontext() as ctx:
+        # Set precision to 128, since the largest square root of a
+        # 256-bit integer is a 128-bit integer.
+        ctx.prec = 128
+        return int(decimal.Decimal(value).sqrt())
