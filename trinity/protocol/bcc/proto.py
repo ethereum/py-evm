@@ -1,5 +1,3 @@
-import logging
-
 from p2p.protocol import Protocol
 
 from eth.beacon.types.blocks import BaseBeaconBlock
@@ -22,16 +20,18 @@ from typing import (
     Union,
 )
 
+from trinity._utils.logging import HasExtendedDebugLogger
+
 if TYPE_CHECKING:
     from .peer import BCCPeer  # noqa: F401
 
 
-class BCCProtocol(Protocol):
+# HasExtendedDebugLogger must come first so there's self.logger.debug2()
+class BCCProtocol(HasExtendedDebugLogger, Protocol):
     name = "bcc"
     version = 0
     _commands = [Status, GetBeaconBlocks, BeaconBlocks, AttestationRecords]
     cmd_length = 4
-    logger = logging.getLogger("p2p.bcc.BCCProtocol")
 
     peer: "BCCPeer"
 
@@ -43,7 +43,7 @@ class BCCProtocol(Protocol):
             "best_hash": best_hash,
         }
         cmd = Status(self.cmd_id_offset)
-        self.logger.debug("Sending BCC/Status msg: %s", resp)
+        self.logger.debug2("Sending BCC/Status msg: %s", resp)
         self.send(*cmd.encode(resp))
 
     def send_get_blocks(self,
