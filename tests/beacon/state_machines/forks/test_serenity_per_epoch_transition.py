@@ -44,9 +44,22 @@ def test_justification_without_validators(
     "finalized_slot_after,",
     (
         (
+            # The first epoch transition happens in slot 64
+            # Before the transition, the finalized slot, justified slot, and previous justified slot
+            # should be the genesis.
+            0, 10, 10, 64,
+            0, 0, 0, 0,
+            0, 0, 0b1, 0,
+        ),
+        (
             10, 10, 15, 128,
+            0, 0, 0b01, 0,
             0, 64, 0b11, 0,
-            64, 128, 0b1111, 64,
+        ),
+        (
+            10, 10, 15, 192,
+            0, 64, 0b11, 0,
+            64, 128, 0b111, 64,
         ),
     ),
 )
@@ -93,6 +106,7 @@ def test_justification(
         )
 
         state_before = BeaconState(**sample_beacon_state_params).copy(
+            slot=slot,
             latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
             previous_justified_slot=previous_justified_slot_before,
             justified_slot=justified_slot_before,
