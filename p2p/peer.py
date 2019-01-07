@@ -578,7 +578,7 @@ class BasePeer(BaseService):
             raise ValueError(
                 f"Reason must be an item of DisconnectReason, got {reason}"
             )
-        self.logger.debug("Disconnecting from remote peer; reason: %s", reason.name)
+        self.logger.debug("Disconnecting from remote peer %s; reason: %s", self.remote, reason.name)
         self.base_protocol.send_disconnect(reason.value)
         self.close()
 

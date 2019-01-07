@@ -18,6 +18,10 @@ from eth_typing import (
     Hash32,
 )
 
+from eth_utils import (
+    to_hex,
+)
+
 from p2p import protocol
 from p2p.peer import BasePeer
 from p2p.protocol import (
@@ -75,7 +79,9 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
             try:
                 header = await self.wait(self.db.coro_get_block_header_by_hash(block_hash))
             except HeaderNotFound:
-                self.logger.debug("%s asked for block we don't have: %s", peer, block_hash)
+                self.logger.debug(
+                    "%s asked for a block we don't have: %s", peer, to_hex(block_hash)
+                )
                 continue
             transactions = await self.wait(
                 self.db.coro_get_block_transactions(header, BaseTransactionFields))
@@ -95,7 +101,8 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
                 header = await self.wait(self.db.coro_get_block_header_by_hash(block_hash))
             except HeaderNotFound:
                 self.logger.debug(
-                    "%s asked receipts for block we don't have: %s", peer, block_hash)
+                    "%s asked receipts for a block we don't have: %s", peer, to_hex(block_hash)
+                )
                 continue
             block_receipts = await self.wait(self.db.coro_get_receipts(header, Receipt))
             receipts.append(block_receipts)
@@ -112,7 +119,9 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
             try:
                 node = await self.wait(self.db.coro_get(node_hash))
             except KeyError:
-                self.logger.debug("%s asked for a trie node we don't have: %s", peer, node_hash)
+                self.logger.debug(
+                    "%s asked for a trie node we don't have: %s", peer, to_hex(node_hash)
+                )
                 continue
             nodes.append(node)
         self.logger.debug2("Replying to %s with %d trie nodes", peer, len(nodes))

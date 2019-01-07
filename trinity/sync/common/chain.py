@@ -131,7 +131,7 @@ class PeerHeaderSyncer(BaseService):
                         continue
                 else:
                     headers = all_headers
-                self.logger.debug2('sync received new headers', headers)
+                self.logger.debug2('sync received new headers: %s', headers)
             except OperationCancelled:
                 self.logger.info("Sync with %s completed", peer)
                 break

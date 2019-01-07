@@ -1,4 +1,3 @@
-import logging
 from typing import (
     List,
     Tuple,
@@ -37,11 +36,14 @@ from .commands import (
     Transactions,
 )
 
+from trinity._utils.logging import HasExtendedDebugLogger
+
 if TYPE_CHECKING:
     from .peer import ETHPeer  # noqa: F401
 
 
-class ETHProtocol(Protocol):
+# HasExtendedDebugLogger must come before Protocol so there's self.logger.debug2()
+class ETHProtocol(HasExtendedDebugLogger, Protocol):
     name = 'eth'
     version = 63
     _commands = [
@@ -49,7 +51,6 @@ class ETHProtocol(Protocol):
         GetBlockBodies, BlockBodies, NewBlock, GetNodeData, NodeData,
         GetReceipts, Receipts]
     cmd_length = 17
-    logger = logging.getLogger("p2p.eth.ETHProtocol")
 
     peer: 'ETHPeer'
 
@@ -62,7 +63,7 @@ class ETHProtocol(Protocol):
             'genesis_hash': chain_info.genesis_hash,
         }
         cmd = Status(self.cmd_id_offset)
-        self.logger.debug("Sending ETH/Status msg: %s", resp)
+        self.logger.debug2("Sending ETH/Status msg: %s", resp)
         self.send(*cmd.encode(resp))
 
     #
