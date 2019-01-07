@@ -128,18 +128,18 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-rpc-state-homestead
-  py36-rpc-state-eip150:
+  py36-rpc-state-tangerine_whistle:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-rpc-state-eip150
-  py36-rpc-state-eip158:
+          TOXENV: py36-rpc-state-tangerine_whistle
+  py36-rpc-state-spurious_dragon:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-rpc-state-eip158
+          TOXENV: py36-rpc-state-spurious_dragon
   py36-rpc-blockchain:
     <<: *common
     docker:
@@ -211,8 +211,8 @@ workflows:
       - py36-rpc-state-constantinople
       - py36-rpc-state-frontier
       - py36-rpc-state-homestead
-      - py36-rpc-state-eip150
-      - py36-rpc-state-eip158
+      - py36-rpc-state-tangerine_whistle
+      - py36-rpc-state-spurious_dragon
       - py36-rpc-state-quadratic
       - py36-rpc-blockchain
 
