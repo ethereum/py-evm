@@ -256,24 +256,28 @@ def test_get_shard_committees_at_slot(
         'num_validators,'
         'epoch_length,'
         'target_committee_size,'
-        'shard_count'
+        'shard_count,'
+        'slot'
     ),
     [
-        (1000, 20, 10, 100),
-        (100, 50, 10, 10),
-        (20, 10, 3, 10),  # active_validators_size < epoch_length * target_committee_size
-        # TODO: other slot cases
+        (1000, 20, 10, 100, 0),
+        (1000, 20, 10, 100, 5),
+        (1000, 20, 10, 100, 30),
+        (20, 10, 3, 10, 0),  # active_validators_size < epoch_length * target_committee_size
+        (20, 10, 3, 10, 5),
+        (20, 10, 3, 10, 30),
     ],
 )
 def test_get_shuffling_is_complete(activated_genesis_validators,
                                    epoch_length,
                                    target_committee_size,
-                                   shard_count):
+                                   shard_count,
+                                   slot):
     shuffling = get_shuffling(
         seed=b'\x35' * 32,
         validators=activated_genesis_validators,
         crosslinking_start_shard=0,
-        slot=0,
+        slot=slot,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
@@ -288,6 +292,7 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
             for validator_index in shard_committee.committee:
                 validators.add(validator_index)
 
+    assert len(activated_genesis_validators) > 0
     assert len(validators) == len(activated_genesis_validators)
 
 
@@ -304,13 +309,13 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
         (20, 10, 3, 10),
     ],
 )
-def test_get_shuffling_handles_shard_wrap(genesis_validators,
+def test_get_shuffling_handles_shard_wrap(activated_genesis_validators,
                                           epoch_length,
                                           target_committee_size,
                                           shard_count):
     shuffling = get_shuffling(
         seed=b'\x35' * 32,
-        validators=genesis_validators,
+        validators=activated_genesis_validators,
         crosslinking_start_shard=shard_count - 1,
         slot=0,
         epoch_length=epoch_length,
@@ -677,16 +682,16 @@ def _generate_some_indices(data, max_value_for_list):
 
 
 @given(st.data())
-def test_get_pubkey_for_indices(genesis_validators, data):
-    max_value_for_list = len(genesis_validators) - 1
+def test_get_pubkey_for_indices(activated_genesis_validators, data):
+    max_value_for_list = len(activated_genesis_validators) - 1
     indices = _generate_some_indices(data, max_value_for_list)
-    pubkeys = get_pubkey_for_indices(genesis_validators, indices)
+    pubkeys = get_pubkey_for_indices(activated_genesis_validators, indices)
 
     assert len(indices) == len(pubkeys)
 
     for index, pubkey in enumerate(pubkeys):
         validator_index = indices[index]
-        assert genesis_validators[validator_index].pubkey == pubkey
+        assert activated_genesis_validators[validator_index].pubkey == pubkey
 
 
 def _list_and_index(data, max_size=None, elements=st.integers()):
@@ -699,8 +704,10 @@ def _list_and_index(data, max_size=None, elements=st.integers()):
 
 
 @given(st.data())
-def test_generate_aggregate_pubkeys(genesis_validators, sample_slashable_vote_data_params, data):
-    max_value_for_list = len(genesis_validators) - 1
+def test_generate_aggregate_pubkeys(activated_genesis_validators,
+                                    sample_slashable_vote_data_params,
+                                    data):
+    max_value_for_list = len(activated_genesis_validators) - 1
     (indices, some_index) = _list_and_index(
         data,
         elements=st.integers(
@@ -718,13 +725,13 @@ def test_generate_aggregate_pubkeys(genesis_validators, sample_slashable_vote_da
 
     votes = SlashableVoteData(**sample_slashable_vote_data_params)
 
-    keys = generate_aggregate_pubkeys(genesis_validators, votes)
+    keys = generate_aggregate_pubkeys(activated_genesis_validators, votes)
     assert len(keys) == 2
 
     (poc_0_key, poc_1_key) = keys
 
-    poc_0_keys = get_pubkey_for_indices(genesis_validators, custody_bit_0_indices)
-    poc_1_keys = get_pubkey_for_indices(genesis_validators, custody_bit_1_indices)
+    poc_0_keys = get_pubkey_for_indices(activated_genesis_validators, custody_bit_0_indices)
+    poc_1_keys = get_pubkey_for_indices(activated_genesis_validators, custody_bit_1_indices)
 
     assert bls.aggregate_pubkeys(poc_0_keys) == poc_0_key
     assert bls.aggregate_pubkeys(poc_1_keys) == poc_1_key
@@ -840,13 +847,13 @@ def _create_slashable_vote_data_messages(params):
 def test_verify_slashable_vote_data_signature(num_validators,
                                               privkeys,
                                               sample_beacon_state_params,
-                                              genesis_validators,
+                                              activated_genesis_validators,
                                               genesis_balances,
                                               sample_slashable_vote_data_params,
                                               sample_fork_data_params):
     state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=genesis_validators,
-        validator_balances=genesis_balances,
+        validator_registry=activated_genesis_validators,
+        validator_balances=activated_genesis_validators,
         fork_data=ForkData(**sample_fork_data_params),
     )
 
@@ -907,13 +914,13 @@ def test_verify_slashable_vote_data(num_validators,
                                     needs_fork_data,
                                     privkeys,
                                     sample_beacon_state_params,
-                                    genesis_validators,
+                                    activated_genesis_validators,
                                     genesis_balances,
                                     sample_slashable_vote_data_params,
                                     sample_fork_data_params,
                                     max_casper_votes):
     state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=genesis_validators,
+        validator_registry=activated_genesis_validators,
         validator_balances=genesis_balances,
         fork_data=ForkData(**sample_fork_data_params),
     )

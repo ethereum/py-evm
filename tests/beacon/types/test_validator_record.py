@@ -34,12 +34,11 @@ def test_is_active(sample_validator_record_params,
     assert validator.is_active(slot) == expected
 
 
-def test_get_pending_validator():
+def test_get_pending_validator(far_future_slot):
     pubkey = 123
     withdrawal_credentials = b'\x11' * 32
     randao_commitment = b'\x22' * 32
     custody_commitment = b'\x33' * 32
-    far_future_slot = 1000
 
     validator = ValidatorRecord.get_pending_validator(
         pubkey=pubkey,

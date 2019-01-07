@@ -1,10 +1,6 @@
 import pytest
 import rlp
 
-from eth_utils import (
-    to_tuple,
-)
-
 from eth.constants import (
     ZERO_HASH32,
 )
@@ -379,6 +375,7 @@ def ten_validators_state(empty_beacon_state, max_deposit, far_future_slot):
             mock_validator_record(
                 pubkey=pubkey,
                 far_future_slot=far_future_slot,
+                is_active=True,
             )
             for pubkey in range(validator_count)
         ),
@@ -592,7 +589,7 @@ def max_exits():
 #
 @pytest.fixture
 def genesis_state(sample_beacon_state_params,
-                  genesis_validators,
+                  activated_genesis_validators,
                   genesis_balances,
                   epoch_length,
                   target_committee_size,
@@ -601,7 +598,7 @@ def genesis_state(sample_beacon_state_params,
                   latest_block_roots_length):
     initial_shuffling = get_shuffling(
         seed=ZERO_HASH32,
-        validators=genesis_validators,
+        validators=activated_genesis_validators,
         crosslinking_start_shard=0,
         slot=genesis_slot,
         epoch_length=epoch_length,
@@ -609,7 +606,7 @@ def genesis_state(sample_beacon_state_params,
         shard_count=shard_count
     )
     return BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=genesis_validators,
+        validator_registry=activated_genesis_validators,
         validator_balances=genesis_balances,
         shard_committees_at_slots=initial_shuffling + initial_shuffling,
         latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
@@ -624,10 +621,13 @@ def genesis_state(sample_beacon_state_params,
 
 
 @pytest.fixture
-def genesis_validators(init_validator_pubkeys,
+def initial_validators(init_validator_pubkeys,
                        init_randao,
                        max_deposit,
                        far_future_slot):
+    """
+    Inactive
+    """
     return tuple(
         mock_validator_record(
             pubkey=pubkey,
@@ -635,18 +635,21 @@ def genesis_validators(init_validator_pubkeys,
             withdrawal_credentials=ZERO_HASH32,
             randao_commitment=init_randao,
             status_flags=0,
+            is_active=False,
         )
         for pubkey in init_validator_pubkeys
     )
 
 
 @pytest.fixture
-@to_tuple
-def activated_genesis_validators(genesis_validators, genesis_slot, entry_exit_delay):
-    for validator in genesis_validators:
-        yield validator.copy(
-            activation_slot=genesis_slot
-        )
+def activated_genesis_validators(initial_validators, genesis_slot):
+    """
+    Active
+    """
+    validators = tuple()
+    for validator in initial_validators:
+        validators += (validator.copy(activation_slot=genesis_slot),)
+    return validators
 
 
 @pytest.fixture
