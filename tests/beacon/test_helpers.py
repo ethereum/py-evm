@@ -62,10 +62,6 @@ from tests.beacon.helpers import (
 )
 
 
-class UnreachableCodePathError(Exception):
-    pass
-
-
 @pytest.fixture()
 def sample_block(sample_beacon_block_params):
     return SerenityBeaconBlock(**sample_beacon_block_params)
@@ -861,8 +857,7 @@ def _corrupt_vote_count(params):
                 new_vote_count,
             )
     else:
-        msg = "list of ``custody_bit_0_indices`` should not exhaust ``itertools.count``"
-        raise UnreachableCodePathError(msg)
+        raise Exception("Unreachable code path")
 
 
 def _create_slashable_vote_data_messages(params):
