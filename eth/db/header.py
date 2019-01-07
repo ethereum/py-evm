@@ -210,8 +210,8 @@ class HeaderDB(BaseHeaderDB):
             cls,
             db: BaseDB,
             header: BlockHeader,
-            score
-    ):
+            score: int
+    ) -> int:
         db.set(
             header.hash,
             rlp.encode(header),
