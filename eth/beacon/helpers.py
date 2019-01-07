@@ -74,11 +74,10 @@ def _get_block_root(
     Return the block root at a recent ``slot``.
     """
     if state_slot > slot + latest_block_roots_length:
-        raise ValueError(
-            "state.slot (%s) should be less than or equal to "
-            "(slot + latest_block_roots_length) (%s), "
-            "where slot=%s, latest_block_roots_length=%s" %
-            (
+        raise ValidationError(
+            "state.slot ({}) should be less than or equal to "
+            "(slot + latest_block_roots_length) ({}), "
+            "where slot={}, latest_block_roots_length={}".format(
                 state_slot,
                 slot + latest_block_roots_length,
                 slot,
@@ -86,9 +85,11 @@ def _get_block_root(
             )
         )
     if slot >= state_slot:
-        raise ValueError(
-            "slot (%s) should be less than state.slot (%s)" %
-            (slot, state_slot)
+        raise ValidationError(
+            "slot ({}) should be less than state.slot ({})".format(
+                slot,
+                state_slot,
+            )
         )
     return latest_block_roots[slot % latest_block_roots_length]
 
@@ -121,16 +122,17 @@ def _get_shard_committees_at_slot(
     earliest_slot_in_array = state_slot - (state_slot % epoch_length) - epoch_length
 
     if earliest_slot_in_array > slot:
-        raise ValueError(
-            "earliest_slot_in_array (%s) should be less than or equal to slot (%s)" %
-            (earliest_slot_in_array, slot)
+        raise ValidationError(
+            "earliest_slot_in_array ({}) should be less than or equal to slot ({})".format(
+                earliest_slot_in_array,
+                slot,
+            )
         )
     if slot >= earliest_slot_in_array + epoch_length * 2:
-        raise ValueError(
-            "slot (%s) should be less than "
-            "(earliest_slot_in_array + epoch_length * 2) (%s), "
-            "where earliest_slot_in_array=%s, epoch_length=%s" %
-            (
+        raise ValidationError(
+            "slot ({}) should be less than "
+            "(earliest_slot_in_array + epoch_length * 2) ({}), "
+            "where earliest_slot_in_array={}, epoch_length={}".format(
                 slot,
                 earliest_slot_in_array + epoch_length * 2,
                 earliest_slot_in_array,

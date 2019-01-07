@@ -142,7 +142,7 @@ def test_get_block_root(current_slot,
         )
         assert block_root == blocks[target_slot].root
     else:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             _get_block_root(
                 latest_block_roots,
                 current_slot,
@@ -240,7 +240,7 @@ def test_get_shard_committees_at_slot(
         assert len(shard_committees) > 0
         assert len(shard_committees[0].committee) > 0
     else:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             _get_shard_committees_at_slot(
                 state_slot=state_slot,
                 shard_committees_at_slots=shard_committees_at_slots,
