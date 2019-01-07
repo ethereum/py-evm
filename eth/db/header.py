@@ -212,11 +212,6 @@ class HeaderDB(BaseHeaderDB):
             header: BlockHeader,
             score: int
     ) -> int:
-        db.set(
-            header.hash,
-            rlp.encode(header),
-        )
-
         new_score = score + header.difficulty
 
         db.set(
@@ -251,6 +246,10 @@ class HeaderDB(BaseHeaderDB):
             score = cls._get_score(db, first_header.parent_hash)
 
         curr_chain_head = first_header
+        db.set(
+            curr_chain_head.hash,
+            rlp.encode(curr_chain_head),
+        )
         score = cls._set_hash_scores_to_db(db, curr_chain_head, score)
 
         orig_headers_seq = concat([(first_header,), headers_iterator])
@@ -265,6 +264,11 @@ class HeaderDB(BaseHeaderDB):
                 )
 
             curr_chain_head = child
+            db.set(
+                curr_chain_head.hash,
+                rlp.encode(curr_chain_head),
+            )
+
             score = cls._set_hash_scores_to_db(db, curr_chain_head, score)
 
         try:
