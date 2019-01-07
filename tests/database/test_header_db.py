@@ -85,7 +85,11 @@ def test_headerdb_get_canonical_head_with_header_chain(headerdb, genesis_header)
     'chain_length',
     (0, 1, 2, 3),
 )
-def test_headerdb_get_canonical_head_with_header_chain_iterator(headerdb, genesis_header, chain_length):
+def test_headerdb_get_canonical_head_with_header_chain_iterator(
+        headerdb,
+        genesis_header,
+        chain_length):
+
     headerdb.persist_header(genesis_header)
     headers = mk_header_chain(genesis_header, length=chain_length)
 
