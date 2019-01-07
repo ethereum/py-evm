@@ -362,11 +362,8 @@ def empty_beacon_state(latest_block_roots_length,
         justification_bitfield=0,
         finalized_slot=0,
         latest_crosslinks=(),
-        latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
-        latest_penalized_exit_balances=tuple(
-            0
-            for _ in range(latest_penalized_exit_length)
-        ),
+        latest_block_roots=(ZERO_HASH32,) * latest_block_roots_length,
+        latest_penalized_exit_balances=(0,) * latest_penalized_exit_length,
         latest_attestations=(),
         batched_block_roots=(),
         processed_pow_receipt_root=b'\x55' * 32,
