@@ -15,9 +15,14 @@ from eth.chains.base import (
     MiningChain,
 )
 from eth.db.atomic import AtomicDB
-# TODO: tests should not be locked into one set of VM rules.  Look at expanding
-# to all mainnet vms.
-from eth.vm.forks.spurious_dragon import SpuriousDragonVM
+from eth.vm.forks import (
+    FrontierVM,
+    HomesteadVM,
+    TangerineWhistleVM,
+    SpuriousDragonVM,
+    ByzantiumVM,
+    ConstantinopleVM,
+)
 
 
 # Uncomment this to have logs from tests written to a file.  This is useful for
@@ -59,6 +64,20 @@ def _file_logging(request):
 """
 
 
+@pytest.fixture(params=[
+                FrontierVM,
+                HomesteadVM.configure(
+                    support_dao_fork=False,
+                ),
+                TangerineWhistleVM,
+                SpuriousDragonVM,
+                ByzantiumVM,
+                ConstantinopleVM,
+                ])
+def VM(request):
+    return request.param
+
+
 @pytest.fixture
 def base_db():
     return AtomicDB()
@@ -81,7 +100,7 @@ def funded_address_initial_balance():
     return to_wei(1000, 'ether')
 
 
-def _chain_with_block_validation(base_db, genesis_state, chain_cls=Chain):
+def _chain_with_block_validation(VM, base_db, genesis_state, chain_cls=Chain):
     """
     Return a Chain object containing just the genesis block.
 
@@ -113,7 +132,7 @@ def _chain_with_block_validation(base_db, genesis_state, chain_cls=Chain):
     klass = chain_cls.configure(
         __name__='TestChain',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVM),
+            (constants.GENESIS_BLOCK_NUMBER, VM),
         ),
         chain_id=1337,
     )
@@ -122,8 +141,20 @@ def _chain_with_block_validation(base_db, genesis_state, chain_cls=Chain):
 
 
 @pytest.fixture
-def chain_with_block_validation(base_db, genesis_state):
-    return _chain_with_block_validation(base_db, genesis_state)
+def chain_with_block_validation(VM, base_db, genesis_state):
+    return _chain_with_block_validation(VM, base_db, genesis_state)
+
+
+@pytest.fixture(scope='function')
+def chain_from_vm(request, base_db, genesis_state):
+    """
+    This fixture is to be used only when the properties of the
+    chains differ from one VM to another.
+    For example, the block rewards change from one VM chain to another
+    """
+    def get_chain_from_vm(vm):
+        return _chain_with_block_validation(vm, base_db, genesis_state)
+    return get_chain_from_vm
 
 
 def import_block_without_validation(chain, block):
@@ -150,6 +181,7 @@ def genesis_state(base_genesis_state):
 @pytest.fixture(params=[Chain, MiningChain])
 def chain_without_block_validation(
         request,
+        VM,
         base_db,
         genesis_state):
     """
@@ -166,12 +198,12 @@ def chain_without_block_validation(
         'import_block': import_block_without_validation,
         'validate_block': lambda self, block: None,
     }
-    SpuriousDragonVMForTesting = SpuriousDragonVM.configure(validate_seal=lambda block: None)
+    VMForTesting = VM.configure(validate_seal=lambda block: None)
     chain_class = request.param
     klass = chain_class.configure(
         __name__='TestChainWithoutBlockValidation',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVMForTesting),
+            (constants.GENESIS_BLOCK_NUMBER, VMForTesting),
         ),
         chain_id=1337,
         **overrides,

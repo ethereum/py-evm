@@ -31,7 +31,8 @@ def new_transaction(
         private_key=None,
         gas_price=10,
         gas=100000,
-        data=b''):
+        data=b'',
+        chain_id=None):
     """
     Create and return a transaction sending amount from <from_> to <to>.
 
@@ -47,7 +48,10 @@ def new_transaction(
         data=data,
     )
     if private_key:
-        return tx.as_signed_transaction(private_key, chain_id=1)
+        if chain_id is None:
+            return tx.as_signed_transaction(private_key)
+        else:
+            return tx.as_signed_transaction(private_key, chain_id=chain_id)
     else:
         return SpoofTransaction(tx, from_=from_)
 

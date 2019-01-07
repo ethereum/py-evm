@@ -84,18 +84,18 @@ jobs:
       - image: circleci/python:3.5
         environment:
           TOXENV: py35-native-blockchain-homestead
-  py35-native-blockchain-eip150:
+  py35-native-blockchain-tangerine_whistle:
     <<: *common
     docker:
       - image: circleci/python:3.5
         environment:
-          TOXENV: py35-native-blockchain-eip150
-  py35-native-blockchain-eip158:
+          TOXENV: py35-native-blockchain-tangerine_whistle
+  py35-native-blockchain-spurious_dragon:
     <<: *common
     docker:
       - image: circleci/python:3.5
         environment:
-          TOXENV: py35-native-blockchain-eip158
+          TOXENV: py35-native-blockchain-spurious_dragon
   py35-native-blockchain-transition:
     <<: *common
     docker:
@@ -157,18 +157,18 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-native-blockchain-homestead
-  py36-native-blockchain-eip150:
+  py36-native-blockchain-tangerine_whistle:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-native-blockchain-eip150
-  py36-native-blockchain-eip158:
+          TOXENV: py36-native-blockchain-tangerine_whistle
+  py36-native-blockchain-spurious_dragon:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-native-blockchain-eip158
+          TOXENV: py36-native-blockchain-spurious_dragon
   py36-native-blockchain-transition:
     <<: *common
     docker:
@@ -232,8 +232,8 @@ workflows:
       - py36-native-blockchain-constantinople
       - py36-native-blockchain-frontier
       - py36-native-blockchain-homestead
-      - py36-native-blockchain-eip150
-      - py36-native-blockchain-eip158
+      - py36-native-blockchain-tangerine_whistle
+      - py36-native-blockchain-spurious_dragon
       - py36-native-blockchain-transition
       - py36-vm
       - py36-benchmark
@@ -246,8 +246,8 @@ workflows:
       - py35-native-blockchain-constantinople
       - py35-native-blockchain-frontier
       - py35-native-blockchain-homestead
-      - py35-native-blockchain-eip150
-      - py35-native-blockchain-eip158
+      - py35-native-blockchain-tangerine_whistle
+      - py35-native-blockchain-spurious_dragon
       - py35-native-blockchain-transition
       - py35-vm
       - py35-core
