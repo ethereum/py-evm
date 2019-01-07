@@ -32,7 +32,6 @@ from eth.beacon.types.attestation_data import AttestationData
 from eth.beacon.types.attestations import Attestation
 from eth.beacon.types.states import BeaconState
 from eth.beacon.types.crosslink_records import CrosslinkRecord
-from eth.beacon.types.deposits import Deposit
 from eth.beacon.types.deposit_data import DepositData
 from eth.beacon.types.deposit_input import DepositInput
 from eth.beacon.types.proposal_signed_data import ProposalSignedData
@@ -47,9 +46,7 @@ from eth.beacon.types.fork_data import (
 )
 
 from tests.beacon.helpers import (
-    make_deposit_input,
     mock_validator_record,
-    sign_proof_of_possession,
 )
 
 DEFAULT_SHUFFLING_SEED = b'\00' * 32
@@ -484,22 +481,18 @@ def min_deposit():
     return SERENITY_CONFIG.MIN_DEPOSIT
 
 
-@pytest.fixture(scope="session")
 def max_deposit():
     return SERENITY_CONFIG.MAX_DEPOSIT
 
 
-@pytest.fixture(scope="session")
 def genesis_fork_version():
     return SERENITY_CONFIG.GENESIS_FORK_VERSION
 
 
-@pytest.fixture(scope="session")
 def genesis_slot():
     return SERENITY_CONFIG.GENESIS_SLOT
 
 
-@pytest.fixture(scope="session")
 def far_future_slot():
     return SERENITY_CONFIG.FAR_FUTURE_SLOT
 
@@ -596,59 +589,7 @@ def max_exits():
 
 #
 # genesis
-@pytest.fixture(scope="session")
-def initial_validator_deposits(privkeys,
-                               pubkeys,
-                               genesis_fork_version,
-                               genesis_slot,
-                               max_deposit):
-    withdrawal_credentials = ZERO_HASH32
-    randao_commitment = ZERO_HASH32
-    custody_commitment = ZERO_HASH32
-    fork_data = ForkData(
-        pre_fork_version=genesis_fork_version,
-        post_fork_version=genesis_fork_version,
-        fork_slot=genesis_slot,
-    )
-    domain = get_domain(
-        fork_data=fork_data,
-        slot=genesis_slot,
-        domain_type=SignatureDomain.DOMAIN_DEPOSIT,
-    )
-    validator_count = 10
-
-    return tuple(
-        Deposit(
-            merkle_branch=(
-                b'\x11' * 32
-                for j in range(10)
-            ),
-            merkle_tree_index=i,
-            deposit_data=DepositData(
-                deposit_input=DepositInput(
-                    pubkey=pubkeys[i],
-                    withdrawal_credentials=withdrawal_credentials,
-                    randao_commitment=randao_commitment,
-                    custody_commitment=custody_commitment,
-                    proof_of_possession=sign_proof_of_possession(
-                        deposit_input=make_deposit_input(
-                            pubkey=pubkeys[i],
-                            withdrawal_credentials=withdrawal_credentials,
-                            randao_commitment=randao_commitment,
-                            custody_commitment=custody_commitment,
-                        ),
-                        privkey=privkeys[i],
-                        domain=domain,
-                    ),
-                ),
-                amount=max_deposit,
-                timestamp=0,
-            ),
-        )
-        for i in range(validator_count)
-    )
-
-
+#
 @pytest.fixture
 def genesis_state(sample_beacon_state_params,
                   genesis_validators,
