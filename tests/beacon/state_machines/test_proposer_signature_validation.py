@@ -1,12 +1,14 @@
 import pytest
 
 from eth_utils import (
-    denoms,
     ValidationError,
 )
 
 from eth._utils import bls
 
+from eth.beacon.constants import (
+    GWEI_PER_ETH,
+)
 from eth.beacon.enums import (
     SignatureDomain,
 )
@@ -56,7 +58,7 @@ def test_validate_serenity_proposer_signature(
             for _ in range(10)
         ),
         validator_balances=tuple(
-            max_deposit * denoms.gwei
+            max_deposit * GWEI_PER_ETH
             for _ in range(10)
         ),
         shard_committees_at_slots=get_sample_shard_committees_at_slots(

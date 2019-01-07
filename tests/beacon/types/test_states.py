@@ -2,10 +2,9 @@ import pytest
 
 import rlp
 
-from eth_utils import (
-    denoms,
+from eth.beacon.constants import (
+    GWEI_PER_ETH,
 )
-
 from eth.beacon.types.states import (
     BeaconState,
 )
@@ -54,7 +53,7 @@ def test_num_validators(expected,
             for pubkey in range(expected)
         ),
         validator_balances=tuple(
-            max_deposit * denoms.gwei
+            max_deposit * GWEI_PER_ETH
             for _ in range(expected)
         )
     )

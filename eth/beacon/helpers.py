@@ -5,12 +5,12 @@ from typing import (
     TYPE_CHECKING,
 )
 
+import functools
+
 from eth_utils import (
-    denoms,
     to_tuple,
     ValidationError,
 )
-
 from eth_typing import (
     Hash32,
 )
@@ -23,9 +23,16 @@ import eth._utils.bls as bls
 from eth._utils.numeric import (
     clamp,
 )
+from eth.beacon._utils.random import (
+    shuffle,
+    split,
+)
 
 from eth.beacon.block_committees_info import (
     BlockCommitteesInfo,
+)
+from eth.beacon.constants import (
+    GWEI_PER_ETH,
 )
 from eth.beacon.enums import (
     SignatureDomain,
@@ -33,12 +40,6 @@ from eth.beacon.enums import (
 from eth.beacon.types.shard_committees import (
     ShardCommittee,
 )
-from eth.beacon._utils.random import (
-    shuffle,
-    split,
-)
-import functools
-
 from eth.beacon.typing import (
     Bitfield,
     BLSPubkey,
@@ -387,7 +388,7 @@ def get_effective_balance(
     Return the effective balance (also known as "balance at stake") for a
     ``validator`` with the given ``index``.
     """
-    return min(validator_balances[index], max_deposit * denoms.gwei)
+    return min(validator_balances[index], Gwei(max_deposit * GWEI_PER_ETH))
 
 
 def get_fork_version(fork_data: 'ForkData',

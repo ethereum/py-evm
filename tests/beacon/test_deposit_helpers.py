@@ -1,10 +1,12 @@
 import pytest
 
 from eth_utils import (
-    denoms,
     ValidationError,
 )
 
+from eth.beacon.constants import (
+    GWEI_PER_ETH,
+)
 from eth.beacon.deposit_helpers import (
     add_pending_validator,
     process_deposit,
@@ -104,6 +106,7 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
 def test_process_deposit(sample_beacon_state_params,
                          privkeys,
                          pubkeys,
+                         max_deposit,
                          far_future_slot):
     state = BeaconState(**sample_beacon_state_params).copy(
         slot=1,
@@ -112,7 +115,7 @@ def test_process_deposit(sample_beacon_state_params,
 
     privkey_1 = privkeys[0]
     pubkey_1 = pubkeys[0]
-    amount = 32 * denoms.gwei
+    amount = max_deposit * GWEI_PER_ETH
     withdrawal_credentials = b'\x34' * 32
     custody_commitment = b'\x11' * 32
     randao_commitment = b'\x56' * 32

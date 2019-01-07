@@ -2,7 +2,6 @@ import pytest
 import rlp
 
 from eth_utils import (
-    denoms,
     to_tuple,
 )
 
@@ -17,6 +16,9 @@ from eth._utils.bitfield import (
 )
 from eth.beacon.aggregation import (
     aggregate_votes,
+)
+from eth.beacon.constants import (
+    GWEI_PER_ETH,
 )
 from eth.beacon.enums import (
     SignatureDomain,
@@ -384,7 +386,7 @@ def ten_validators_state(empty_beacon_state, max_deposit, far_future_slot):
             for pubkey in range(validator_count)
         ),
         validator_balances=tuple(
-            max_deposit * denoms.gwei
+            max_deposit * GWEI_PER_ETH
             for _ in range(validator_count)
         )
     )
@@ -480,19 +482,21 @@ def deposit_contract_tree_depth():
 def min_deposit():
     return SERENITY_CONFIG.MIN_DEPOSIT
 
-
+@pytest.fixture
 def max_deposit():
     return SERENITY_CONFIG.MAX_DEPOSIT
 
-
+@pytest.fixture
 def genesis_fork_version():
     return SERENITY_CONFIG.GENESIS_FORK_VERSION
 
 
+@pytest.fixture
 def genesis_slot():
     return SERENITY_CONFIG.GENESIS_SLOT
 
 
+@pytest.fixture
 def far_future_slot():
     return SERENITY_CONFIG.FAR_FUTURE_SLOT
 
@@ -652,7 +656,7 @@ def activated_genesis_validators(genesis_validators, genesis_slot, entry_exit_de
 @pytest.fixture
 def genesis_balances(init_validator_pubkeys, max_deposit):
     return tuple(
-        max_deposit * denoms.gwei
+        max_deposit * GWEI_PER_ETH
         for _ in init_validator_pubkeys
     )
 

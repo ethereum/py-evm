@@ -9,13 +9,15 @@ from hypothesis import (
 )
 
 from eth_utils import (
-    denoms,
     ValidationError,
 )
 from eth_utils.toolz import assoc
 
 from eth.constants import (
     ZERO_HASH32,
+)
+from eth.beacon.constants import (
+    GWEI_PER_ETH,
 )
 from eth.beacon.enums import (
     SignatureDomain,
@@ -572,19 +574,19 @@ def test_get_attestation_participants(
     ),
     [
         (
-            1 * denoms.gwei,
+            1 * GWEI_PER_ETH,
             32,
-            1 * denoms.gwei,
+            1 * GWEI_PER_ETH,
         ),
         (
-            32 * denoms.gwei,
+            32 * GWEI_PER_ETH,
             32,
-            32 * denoms.gwei,
+            32 * GWEI_PER_ETH,
         ),
         (
-            33 * denoms.gwei,
+            33 * GWEI_PER_ETH,
             32,
-            32 * denoms.gwei,
+            32 * GWEI_PER_ETH,
         )
     ]
 )
