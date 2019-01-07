@@ -1,6 +1,11 @@
 import pytest
 import rlp
 
+from eth_utils import (
+    denoms,
+    to_tuple,
+)
+
 from eth.constants import (
     ZERO_HASH32,
 )
@@ -21,40 +26,31 @@ from eth.beacon.helpers import (
 )
 
 from eth.beacon.helpers import (
-    get_new_shuffling,
+    get_shuffling,
 )
-
-from eth.beacon.types.proposal_signed_data import (
-    ProposalSignedData,
-)
-
-from eth.beacon.types.slashable_vote_data import (
-    SlashableVoteData,
-)
-
 from eth.beacon.types.attestation_data import AttestationData
 from eth.beacon.types.attestations import Attestation
 from eth.beacon.types.states import BeaconState
 from eth.beacon.types.crosslink_records import CrosslinkRecord
-from eth.beacon.types.deposits import DepositData
+from eth.beacon.types.deposits import Deposit
+from eth.beacon.types.deposit_data import DepositData
 from eth.beacon.types.deposit_input import DepositInput
+from eth.beacon.types.proposal_signed_data import ProposalSignedData
+from eth.beacon.types.slashable_vote_data import SlashableVoteData
 
 from eth.beacon.types.blocks import (
     BeaconBlockBody,
 )
-
-from eth.beacon.enums import (
-    ValidatorStatusCode,
-)
 from eth.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
-from eth.beacon.types.validator_records import (
-    ValidatorRecord,
-)
-
 from eth.beacon.types.fork_data import (
     ForkData,
 )
 
+from tests.beacon.helpers import (
+    make_deposit_input,
+    mock_validator_record,
+    sign_proof_of_possession,
+)
 
 DEFAULT_SHUFFLING_SEED = b'\00' * 32
 DEFAULT_RANDAO = b'\45' * 32
@@ -214,7 +210,7 @@ def sample_deposit_input_params():
 def sample_deposit_data_params(sample_deposit_input_params):
     return {
         'deposit_input': DepositInput(**sample_deposit_input_params),
-        'value': 56,
+        'amount': 56,
         'timestamp': 1501851927,
     }
 
@@ -312,15 +308,18 @@ def sample_casper_slashing_params(sample_slashable_vote_data_params):
 
 
 @pytest.fixture
-def sample_validator_record_params():
+def sample_validator_record_params(far_future_slot):
     return {
         'pubkey': 123,
         'withdrawal_credentials': b'\x01' * 32,
         'randao_commitment': b'\x01' * 32,
         'randao_layers': 1,
-        'status': 1,
-        'latest_status_change_slot': 0,
+        'activation_slot': far_future_slot,
+        'exit_slot': far_future_slot,
+        'withdrawal_slot': far_future_slot,
+        'penalized_slot': far_future_slot,
         'exit_count': 0,
+        'status_flags': 0,
         'custody_commitment': ZERO_HASH32,
         'latest_custody_reseed_slot': 0,
         'penultimate_custody_reseed_slot': 0,
@@ -333,8 +332,65 @@ def sample_validator_registry_delta_block_params():
         'latest_registry_delta_root': b'\x01' * 32,
         'validator_index': 1,
         'pubkey': 123,
+        'slot': 0,
         'flag': 1,
     }
+
+
+@pytest.fixture
+def empty_beacon_state(latest_block_roots_length,
+                       latest_penalized_exit_length):
+    return BeaconState(
+        slot=0,
+        genesis_time=0,
+        fork_data=ForkData(
+            pre_fork_version=0,
+            post_fork_version=0,
+            fork_slot=0,
+        ),
+        validator_registry=(),
+        validator_balances=(),
+        validator_registry_latest_change_slot=10,
+        validator_registry_exit_count=10,
+        validator_registry_delta_chain_tip=b'\x55' * 32,
+        latest_randao_mixes=(),
+        latest_vdf_outputs=(),
+        shard_committees_at_slots=(),
+        persistent_committees=(),
+        persistent_committee_reassignments=(),
+        previous_justified_slot=0,
+        justified_slot=0,
+        justification_bitfield=0,
+        finalized_slot=0,
+        latest_crosslinks=(),
+        latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
+        latest_penalized_exit_balances=tuple(
+            0
+            for _ in range(latest_penalized_exit_length)
+        ),
+        latest_attestations=(),
+        batched_block_roots=(),
+        processed_pow_receipt_root=b'\x55' * 32,
+        candidate_pow_receipt_roots=(),
+    )
+
+
+@pytest.fixture()
+def ten_validators_state(empty_beacon_state, max_deposit, far_future_slot):
+    validator_count = 10
+    return empty_beacon_state.copy(
+        validator_registry=tuple(
+            mock_validator_record(
+                pubkey=pubkey,
+                far_future_slot=far_future_slot,
+            )
+            for pubkey in range(validator_count)
+        ),
+        validator_balances=tuple(
+            max_deposit * denoms.gwei
+            for _ in range(validator_count)
+        )
+    )
 
 
 #
@@ -356,7 +412,12 @@ def num_validators():
 
 
 @pytest.fixture
-def init_validator_keys(pubkeys, num_validators):
+def init_validator_privkeys(privkeys, num_validators):
+    return privkeys[:num_validators]
+
+
+@pytest.fixture
+def init_validator_pubkeys(pubkeys, num_validators):
     return pubkeys[:num_validators]
 
 
@@ -389,11 +450,6 @@ def beacon_chain_shard_number():
 
 
 @pytest.fixture
-def bls_withdrawal_prefix_byte():
-    return SERENITY_CONFIG.BLS_WITHDRAWAL_PREFIX_BYTE
-
-
-@pytest.fixture
 def max_casper_votes():
     return SERENITY_CONFIG.MAX_CASPER_VOTES
 
@@ -406,6 +462,11 @@ def latest_block_roots_length():
 @pytest.fixture
 def latest_randao_mixes_length():
     return SERENITY_CONFIG.LATEST_RANDAO_MIXES_LENGTH
+
+
+@pytest.fixture
+def latest_penalized_exit_length():
+    return SERENITY_CONFIG.LATEST_PENALIZED_EXIT_LENGTH
 
 
 @pytest.fixture
@@ -423,19 +484,29 @@ def min_deposit():
     return SERENITY_CONFIG.MIN_DEPOSIT
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def max_deposit():
     return SERENITY_CONFIG.MAX_DEPOSIT
 
 
-@pytest.fixture
-def initial_fork_version():
-    return SERENITY_CONFIG.INITIAL_FORK_VERSION
+@pytest.fixture(scope="session")
+def genesis_fork_version():
+    return SERENITY_CONFIG.GENESIS_FORK_VERSION
+
+
+@pytest.fixture(scope="session")
+def genesis_slot():
+    return SERENITY_CONFIG.GENESIS_SLOT
+
+
+@pytest.fixture(scope="session")
+def far_future_slot():
+    return SERENITY_CONFIG.FAR_FUTURE_SLOT
 
 
 @pytest.fixture
-def initial_slot_number():
-    return SERENITY_CONFIG.INITIAL_SLOT_NUMBER
+def bls_withdrawal_prefix_byte():
+    return SERENITY_CONFIG.BLS_WITHDRAWAL_PREFIX_BYTE
 
 
 @pytest.fixture
@@ -454,23 +525,28 @@ def epoch_length():
 
 
 @pytest.fixture
+def min_validator_registry_change_interval():
+    return SERENITY_CONFIG.MIN_VALIDATOR_REGISTRY_CHANGE_INTERVAL
+
+
+@pytest.fixture
+def seed_lookahead():
+    return SERENITY_CONFIG.SEED_LOOKAHEAD
+
+
+@pytest.fixture
+def entry_exit_delay():
+    return SERENITY_CONFIG.ENTRY_EXIT_DELAY
+
+
+@pytest.fixture
 def pow_receipt_root_voting_period():
     return SERENITY_CONFIG.POW_RECEIPT_ROOT_VOTING_PERIOD
 
 
 @pytest.fixture
-def shard_persistent_committee_change_period():
-    return SERENITY_CONFIG.SHARD_PERSISTENT_COMMITTEE_CHANGE_PERIOD
-
-
-@pytest.fixture
-def collective_penalty_calculation_period():
-    return SERENITY_CONFIG.COLLECTIVE_PENALTY_CALCULATION_PERIOD
-
-
-@pytest.fixture
-def zero_balance_validator_ttl():
-    return SERENITY_CONFIG.ZERO_BALANCE_VALIDATOR_TTL
+def min_validator_withdrawal_time():
+    return SERENITY_CONFIG.MIN_VALIDATOR_WITHDRAWAL_TIME
 
 
 @pytest.fixture
@@ -520,31 +596,85 @@ def max_exits():
 
 #
 # genesis
-#
+@pytest.fixture(scope="session")
+def initial_validator_deposits(privkeys,
+                               pubkeys,
+                               genesis_fork_version,
+                               genesis_slot,
+                               max_deposit):
+    withdrawal_credentials = ZERO_HASH32
+    randao_commitment = ZERO_HASH32
+    custody_commitment = ZERO_HASH32
+    fork_data = ForkData(
+        pre_fork_version=genesis_fork_version,
+        post_fork_version=genesis_fork_version,
+        fork_slot=genesis_slot,
+    )
+    domain = get_domain(
+        fork_data=fork_data,
+        slot=genesis_slot,
+        domain_type=SignatureDomain.DOMAIN_DEPOSIT,
+    )
+    validator_count = 10
+
+    return tuple(
+        Deposit(
+            merkle_branch=(
+                b'\x11' * 32
+                for j in range(10)
+            ),
+            merkle_tree_index=i,
+            deposit_data=DepositData(
+                deposit_input=DepositInput(
+                    pubkey=pubkeys[i],
+                    withdrawal_credentials=withdrawal_credentials,
+                    randao_commitment=randao_commitment,
+                    custody_commitment=custody_commitment,
+                    proof_of_possession=sign_proof_of_possession(
+                        deposit_input=make_deposit_input(
+                            pubkey=pubkeys[i],
+                            withdrawal_credentials=withdrawal_credentials,
+                            randao_commitment=randao_commitment,
+                            custody_commitment=custody_commitment,
+                        ),
+                        privkey=privkeys[i],
+                        domain=domain,
+                    ),
+                ),
+                amount=max_deposit,
+                timestamp=0,
+            ),
+        )
+        for i in range(validator_count)
+    )
+
+
 @pytest.fixture
 def genesis_state(sample_beacon_state_params,
                   genesis_validators,
+                  genesis_balances,
                   epoch_length,
                   target_committee_size,
-                  initial_slot_number,
+                  genesis_slot,
                   shard_count,
                   latest_block_roots_length):
-    initial_shuffling = get_new_shuffling(
+    initial_shuffling = get_shuffling(
         seed=ZERO_HASH32,
         validators=genesis_validators,
         crosslinking_start_shard=0,
+        slot=genesis_slot,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count
     )
-
     return BeaconState(**sample_beacon_state_params).copy(
         validator_registry=genesis_validators,
+        validator_balances=genesis_balances,
         shard_committees_at_slots=initial_shuffling + initial_shuffling,
         latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
         latest_crosslinks=tuple(
             CrosslinkRecord(
-                slot=initial_slot_number,
+                slot=genesis_slot,
                 shard_block_root=ZERO_HASH32,
             )
             for _ in range(shard_count)
@@ -553,22 +683,36 @@ def genesis_state(sample_beacon_state_params,
 
 
 @pytest.fixture
-def genesis_validators(init_validator_keys,
+def genesis_validators(init_validator_pubkeys,
                        init_randao,
-                       max_deposit):
+                       max_deposit,
+                       far_future_slot):
     return tuple(
-        ValidatorRecord(
-            pubkey=pub,
+        mock_validator_record(
+            pubkey=pubkey,
+            far_future_slot=far_future_slot,
             withdrawal_credentials=ZERO_HASH32,
             randao_commitment=init_randao,
-            randao_layers=0,
-            status=ValidatorStatusCode.ACTIVE,
-            latest_status_change_slot=0,
-            exit_count=0,
-            custody_commitment=ZERO_HASH32,
-            latest_custody_reseed_slot=0,
-            penultimate_custody_reseed_slot=0,
-        ) for pub in init_validator_keys
+            status_flags=0,
+        )
+        for pubkey in init_validator_pubkeys
+    )
+
+
+@pytest.fixture
+@to_tuple
+def activated_genesis_validators(genesis_validators, genesis_slot, entry_exit_delay):
+    for validator in genesis_validators:
+        yield validator.copy(
+            activation_slot=genesis_slot
+        )
+
+
+@pytest.fixture
+def genesis_balances(init_validator_pubkeys, max_deposit):
+    return tuple(
+        max_deposit * denoms.gwei
+        for _ in init_validator_pubkeys
     )
 
 

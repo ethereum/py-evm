@@ -24,15 +24,11 @@ from eth._utils.numeric import (
     clamp,
 )
 
-from eth.beacon.types.validator_registry_delta_block import (
-    ValidatorRegistryDeltaBlock,
-)
 from eth.beacon.block_committees_info import (
     BlockCommitteesInfo,
 )
 from eth.beacon.enums import (
     SignatureDomain,
-    ValidatorRegistryDeltaFlag,
 )
 from eth.beacon.types.shard_committees import (
     ShardCommittee,
@@ -157,14 +153,14 @@ def get_shard_committees_at_slot(state: 'BeaconState',
     )
 
 
-def get_active_validator_indices(
-        validators: Sequence['ValidatorRecord']) -> Tuple[ValidatorIndex, ...]:
+def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
+                                 slot: SlotNumber) -> Tuple[int, ...]:
     """
     Get indices of active validators from ``validators``.
     """
     return tuple(
-        ValidatorIndex(i) for i, v in enumerate(validators)
-        if v.is_active
+        i for i, v in enumerate(validators)
+        if v.is_active(slot)
     )
 
 
@@ -189,13 +185,14 @@ def _get_shards_committees_for_shard_indices(
 
 
 @to_tuple
-def get_new_shuffling(*,
-                      seed: Hash32,
-                      validators: Sequence['ValidatorRecord'],
-                      crosslinking_start_shard: ShardNumber,
-                      epoch_length: int,
-                      target_committee_size: int,
-                      shard_count: int) -> Iterable[Iterable[ShardCommittee]]:
+def get_shuffling(*,
+                  seed: Hash32,
+                  validators: Sequence['ValidatorRecord'],
+                  crosslinking_start_shard: ShardNumber,
+                  slot: SlotNumber,
+                  epoch_length: int,
+                  target_committee_size: int,
+                  shard_count: int) -> Iterable[Iterable[ShardCommittee]]:
     """
     Return shuffled ``shard_committee_for_slots`` (``[[ShardCommittee]]``) of
     the given active ``validators`` using ``seed`` as entropy.
@@ -238,7 +235,7 @@ def get_new_shuffling(*,
                 ],
             ]
     """
-    active_validators = get_active_validator_indices(validators)
+    active_validators = get_active_validator_indices(validators, slot)
     active_validators_size = len(active_validators)
     committees_per_slot = clamp(
         1,
@@ -391,22 +388,6 @@ def get_effective_balance(
     ``validator`` with the given ``index``.
     """
     return min(validator_balances[index], max_deposit * denoms.gwei)
-
-
-def get_new_validator_registry_delta_chain_tip(current_validator_registry_delta_chain_tip: Hash32,
-                                               validator_index: ValidatorIndex,
-                                               pubkey: BLSPubkey,
-                                               flag: ValidatorRegistryDeltaFlag) -> Hash32:
-    """
-    Compute the next hash in the validator registry delta hash chain.
-    """
-    # TODO: switch to SSZ tree hashing
-    return ValidatorRegistryDeltaBlock(
-        latest_registry_delta_root=current_validator_registry_delta_chain_tip,
-        validator_index=validator_index,
-        pubkey=pubkey,
-        flag=flag,
-    ).root
 
 
 def get_fork_version(fork_data: 'ForkData',

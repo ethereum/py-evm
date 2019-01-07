@@ -17,10 +17,7 @@ from eth_utils.toolz import assoc
 from eth.constants import (
     ZERO_HASH32,
 )
-
-
 from eth.beacon.enums import (
-    ValidatorStatusCode,
     SignatureDomain,
 )
 from eth.beacon.state_machines.forks.serenity.blocks import (
@@ -43,8 +40,7 @@ from eth.beacon.helpers import (
     get_effective_balance,
     get_domain,
     get_fork_version,
-    get_new_shuffling,
-    get_new_validator_registry_delta_chain_tip,
+    get_shuffling,
     get_block_committees_info,
     get_pubkey_for_indices,
     generate_aggregate_pubkeys,
@@ -264,16 +260,18 @@ def test_get_shard_committees_at_slot(
         (1000, 20, 10, 100),
         (100, 50, 10, 10),
         (20, 10, 3, 10),  # active_validators_size < epoch_length * target_committee_size
+        # TODO: other slot cases
     ],
 )
-def test_get_new_shuffling_is_complete(genesis_validators,
-                                       epoch_length,
-                                       target_committee_size,
-                                       shard_count):
-    shuffling = get_new_shuffling(
+def test_get_shuffling_is_complete(activated_genesis_validators,
+                                   epoch_length,
+                                   target_committee_size,
+                                   shard_count):
+    shuffling = get_shuffling(
         seed=b'\x35' * 32,
-        validators=genesis_validators,
+        validators=activated_genesis_validators,
         crosslinking_start_shard=0,
+        slot=0,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
@@ -288,7 +286,7 @@ def test_get_new_shuffling_is_complete(genesis_validators,
             for validator_index in shard_committee.committee:
                 validators.add(validator_index)
 
-    assert len(validators) == len(genesis_validators)
+    assert len(validators) == len(activated_genesis_validators)
 
 
 @pytest.mark.parametrize(
@@ -304,14 +302,15 @@ def test_get_new_shuffling_is_complete(genesis_validators,
         (20, 10, 3, 10),
     ],
 )
-def test_get_new_shuffling_handles_shard_wrap(genesis_validators,
-                                              epoch_length,
-                                              target_committee_size,
-                                              shard_count):
-    shuffling = get_new_shuffling(
+def test_get_shuffling_handles_shard_wrap(genesis_validators,
+                                          epoch_length,
+                                          target_committee_size,
+                                          shard_count):
+    shuffling = get_shuffling(
         seed=b'\x35' * 32,
         validators=genesis_validators,
         crosslinking_start_shard=shard_count - 1,
+        slot=0,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
@@ -456,31 +455,25 @@ def test_get_beacon_proposer_index(
             )
 
 
-def test_get_active_validator_indices(sample_validator_record_params):
+def test_get_active_validator_indices(sample_validator_record_params, far_future_slot):
+    current_slot = 1
     # 3 validators are ACTIVE
     validators = [
         ValidatorRecord(
             **sample_validator_record_params,
         ).copy(
-            status=ValidatorStatusCode.ACTIVE,
+            activation_slot=0,
+            exit_slot=far_future_slot,
         )
         for i in range(3)
     ]
-    active_validator_indices = get_active_validator_indices(validators)
+    active_validator_indices = get_active_validator_indices(validators, current_slot)
     assert len(active_validator_indices) == 3
 
-    # Make one validator becomes ACTIVE_PENDING_EXIT.
     validators[0] = validators[0].copy(
-        status=ValidatorStatusCode.ACTIVE_PENDING_EXIT,
+        activation_slot=2,  # activation_slot < current_slot
     )
-    active_validator_indices = get_active_validator_indices(validators)
-    assert len(active_validator_indices) == 3
-
-    # Make one validator becomes EXITED_WITHOUT_PENALTY.
-    validators[0] = validators[0].copy(
-        status=ValidatorStatusCode.EXITED_WITHOUT_PENALTY,
-    )
-    active_validator_indices = get_active_validator_indices(validators)
+    active_validator_indices = get_active_validator_indices(validators, current_slot)
     assert len(active_validator_indices) == 2
 
 
@@ -598,35 +591,6 @@ def test_get_attestation_participants(
 def test_get_effective_balance(balance, max_deposit, expected, sample_validator_record_params):
     balances = (balance,)
     result = get_effective_balance(balances, 0, max_deposit)
-    assert result == expected
-
-
-@pytest.mark.parametrize(
-    (
-        'validator_index,'
-        'pubkey,'
-        'flag,'
-        'expected'
-    ),
-    [
-        (
-            1,
-            2 * 256 - 1,
-            1,
-            b'\xb8K\xad[zDE\xef\x00Z\x9c\x04\xdc\x95\xff\x9c\xeaP\x15\xf5\xfb\xdd\x0f\x1c:\xd7U+\x81\x92:\xee'  # noqa: E501
-        ),
-    ]
-)
-def test_get_new_validator_registry_delta_chain_tip(validator_index,
-                                                    pubkey,
-                                                    flag,
-                                                    expected):
-    result = get_new_validator_registry_delta_chain_tip(
-        current_validator_registry_delta_chain_tip=ZERO_HASH32,
-        validator_index=validator_index,
-        pubkey=pubkey,
-        flag=flag,
-    )
     assert result == expected
 
 
@@ -875,19 +839,14 @@ def test_verify_slashable_vote_data_signature(num_validators,
                                               privkeys,
                                               sample_beacon_state_params,
                                               genesis_validators,
+                                              genesis_balances,
                                               sample_slashable_vote_data_params,
                                               sample_fork_data_params):
-    beacon_state_params_with_genesis_validators = assoc(
-        sample_beacon_state_params,
-        "validator_registry",
-        genesis_validators,
+    state = BeaconState(**sample_beacon_state_params).copy(
+        validator_registry=genesis_validators,
+        validator_balances=genesis_balances,
+        fork_data=ForkData(**sample_fork_data_params),
     )
-    beacon_state_params_with_fork_data = assoc(
-        beacon_state_params_with_genesis_validators,
-        "fork_data",
-        ForkData(**sample_fork_data_params),
-    )
-    state = BeaconState(**beacon_state_params_with_fork_data)
 
     # NOTE: we can do this before "correcting" the params as they
     # touch disjoint subsets of the provided params
@@ -947,20 +906,15 @@ def test_verify_slashable_vote_data(num_validators,
                                     privkeys,
                                     sample_beacon_state_params,
                                     genesis_validators,
+                                    genesis_balances,
                                     sample_slashable_vote_data_params,
                                     sample_fork_data_params,
                                     max_casper_votes):
-    beacon_state_params_with_genesis_validators = assoc(
-        sample_beacon_state_params,
-        "validator_registry",
-        genesis_validators,
+    state = BeaconState(**sample_beacon_state_params).copy(
+        validator_registry=genesis_validators,
+        validator_balances=genesis_balances,
+        fork_data=ForkData(**sample_fork_data_params),
     )
-    beacon_state_params_with_fork_data = assoc(
-        beacon_state_params_with_genesis_validators,
-        "fork_data",
-        ForkData(**sample_fork_data_params),
-    )
-    state = BeaconState(**beacon_state_params_with_fork_data)
 
     # NOTE: we can do this before "correcting" the params as they
     # touch disjoint subsets of the provided params
