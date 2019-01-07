@@ -19,11 +19,15 @@ from eth_typing import (
 )
 from eth_utils import (
     encode_hex,
+    int_to_big_endian,
 )
 
 from eth.constants import (
+    ANY,
+    BYTES,
     GAS_MEMORY,
     GAS_MEMORY_QUADRATIC_DENOMINATOR,
+    UINT256,
 )
 from eth.exceptions import (
     Halt,
@@ -319,7 +323,41 @@ class BaseComputation(Configurable, ABC):
         Raise `eth.exceptions.InsufficientStack` if there are not enough items on
         the stack.
         """
-        return self._stack.pop(num_items, type_hint)
+        if num_items == 1:
+            stack_item = self._stack.pop()
+            if type_hint == UINT256 or type_hint == ANY:
+                return stack_item
+            elif type_hint == BYTES:
+                return int_to_big_endian(stack_item)
+
+        else:
+            popped_items = tuple(self._stack.pop_n(num_items))
+            if type_hint == UINT256 or type_hint == ANY:
+                return popped_items
+            elif type_hint == BYTES:
+                return tuple(int_to_big_endian(item) for item in popped_items)
+                # for item in popped_items:
+                #     yield int_to_big_endian(item)
+
+        # elif num_items == 2:
+        #     stack_item1, stack_item2 = self._stack.pop2()
+        #     if type_hint == UINT256 or type_hint == ANY:
+        #         return stack_item1, stack_item2
+        #     elif type_hint == BYTES:
+        #         return (int_to_big_endian(stack_item1), int_to_big_endian(stack_item2))
+        # elif num_items == 3:
+        #     stack_item1, stack_item2, stack_item3 = self._stack.pop3()
+        #     if type_hint == UINT256 or type_hint == ANY:
+        #         return stack_item1, stack_item2, stack_item3
+        #     elif type_hint == BYTES:
+        #         return (
+        #             int_to_big_endian(stack_item1),
+        #             int_to_big_endian(stack_item2),
+        #             int_to_big_endian(stack_item3),
+        #         )
+        # else:
+        #     # TODO: Replace with suitable customized Exception
+        #     raise Exception("Cannot pop more than 3 elements from stack")
 
     def stack_push(self, value: Union[int, bytes]) -> None:
         """
