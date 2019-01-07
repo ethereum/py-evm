@@ -8,10 +8,10 @@ not considered to be part of the tree.
 import math
 from typing import (
     cast,
-    Hashable,
     Iterable,
     NewType,
     Sequence,
+    Union,
 )
 
 from cytoolz import (
@@ -78,7 +78,7 @@ def _calc_parent_hash(left_node: Hash32, right_node: Hash32) -> Hash32:
 
 
 def verify_merkle_proof(root: Hash32,
-                        item: Hashable,
+                        item: Union[bytes, bytearray],
                         item_index: int,
                         proof: MerkleProof) -> bool:
     """
@@ -108,7 +108,7 @@ def _hash_layer(layer: Sequence[Hash32]) -> Iterable[Hash32]:
     )
 
 
-def calc_merkle_tree(items: Sequence[Hashable]) -> MerkleTree:
+def calc_merkle_tree(items: Sequence[Union[bytes, bytearray]]) -> MerkleTree:
     """
     Calculate the Merkle tree corresponding to a list of items.
     """
@@ -116,7 +116,7 @@ def calc_merkle_tree(items: Sequence[Hashable]) -> MerkleTree:
     return calc_merkle_tree_from_leaves(leaves)
 
 
-def calc_merkle_root(items: Sequence[Hashable]) -> Hash32:
+def calc_merkle_root(items: Sequence[Union[bytes, bytearray]]) -> Hash32:
     """
     Calculate the Merkle root corresponding to a list of items.
     """
@@ -133,11 +133,15 @@ def calc_merkle_tree_from_leaves(leaves: Sequence[Hash32]) -> MerkleTree:
     tree = cast(
         MerkleTree,
         tuple(
-            take(
-                n_layers,
-                iterate(_hash_layer, leaves),
+            reversed(
+                tuple(
+                    take(
+                        n_layers,
+                        iterate(_hash_layer, leaves),
+                    )
+                )
             )
-        )[::-1]
+        )
     )
     if len(tree[0]) != 1:
         raise Exception("Invariant: There must only be one root")
