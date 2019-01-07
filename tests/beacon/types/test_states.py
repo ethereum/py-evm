@@ -52,10 +52,7 @@ def test_num_validators(expected,
             )
             for pubkey in range(expected)
         ),
-        validator_balances=tuple(
-            max_deposit * GWEI_PER_ETH
-            for _ in range(expected)
-        )
+        validator_balances=(max_deposit * GWEI_PER_ETH,) * expected,
     )
 
     assert state.num_validators == expected

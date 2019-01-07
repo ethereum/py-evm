@@ -385,10 +385,7 @@ def ten_validators_state(empty_beacon_state, max_deposit, far_future_slot):
             )
             for pubkey in range(validator_count)
         ),
-        validator_balances=tuple(
-            max_deposit * GWEI_PER_ETH
-            for _ in range(validator_count)
-        )
+        validator_balances=(max_deposit * GWEI_PER_ETH,) * validator_count,
     )
 
 
@@ -482,9 +479,11 @@ def deposit_contract_tree_depth():
 def min_deposit():
     return SERENITY_CONFIG.MIN_DEPOSIT
 
+
 @pytest.fixture
 def max_deposit():
     return SERENITY_CONFIG.MAX_DEPOSIT
+
 
 @pytest.fixture
 def genesis_fork_version():

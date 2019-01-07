@@ -57,10 +57,7 @@ def test_validate_serenity_proposer_signature(
             mock_validator_record(proposer_pubkey, far_future_slot)
             for _ in range(10)
         ),
-        validator_balances=tuple(
-            max_deposit * GWEI_PER_ETH
-            for _ in range(10)
-        ),
+        validator_balances=(max_deposit * GWEI_PER_ETH,) * 10,
         shard_committees_at_slots=get_sample_shard_committees_at_slots(
             num_slot=128,
             num_shard_committee_per_slot=10,

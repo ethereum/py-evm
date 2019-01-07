@@ -36,10 +36,7 @@ def test_add_pending_validator(sample_beacon_state_params,
             ValidatorRecord(**sample_validator_record_params)
             for _ in range(validator_registry_len)
         ],
-        validator_balances=[
-            100
-            for _ in range(validator_registry_len)
-        ],
+        validator_balances=(100,) * validator_registry_len,
     )
     validator = ValidatorRecord(**sample_validator_record_params)
     amount = 5566
