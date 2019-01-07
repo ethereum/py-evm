@@ -3,8 +3,6 @@ import itertools
 import pytest
 import random
 
-import cytoolz
-
 from hypothesis import (
     given,
     strategies as st,
@@ -14,6 +12,7 @@ from eth_utils import (
     denoms,
     ValidationError,
 )
+from eth_utils.toolz import assoc
 
 from eth.constants import (
     ZERO_HASH32,
@@ -843,7 +842,7 @@ def _corrupt_signature(params, fork_data):
     )
     corrupt_signature = bls.sign(message, privkey, domain)
 
-    return cytoolz.assoc(params, "aggregate_signature", corrupt_signature)
+    return assoc(params, "aggregate_signature", corrupt_signature)
 
 
 def _corrupt_vote_count(params):
@@ -851,7 +850,7 @@ def _corrupt_vote_count(params):
     for i in itertools.count():
         if i not in params[key]:
             new_vote_count = params[key] + [i]
-            return cytoolz.assoc(
+            return assoc(
                 params,
                 key,
                 new_vote_count,
