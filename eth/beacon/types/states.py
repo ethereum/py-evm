@@ -184,6 +184,9 @@ class BeaconState(rlp.Serializable):
     def update_validator_registry(self,
                                   validator_index: ValidatorIndex,
                                   validator: ValidatorRecord) -> 'BeaconState':
+        """
+        Replace ``self.validator_registry[validator_index]`` with ``validator``.
+        """
         if validator_index >= self.num_validators or validator_index < 0:
             raise IndexError("Incorrect validator index")
 

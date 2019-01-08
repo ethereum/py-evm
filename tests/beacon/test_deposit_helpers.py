@@ -12,12 +12,6 @@ from eth.beacon.deposit_helpers import (
     process_deposit,
     validate_proof_of_possession,
 )
-from eth.beacon.enums import (
-    SignatureDomain,
-)
-from eth.beacon.helpers import (
-    get_domain,
-)
 from eth.beacon.types.states import BeaconState
 from eth.beacon.types.validator_records import ValidatorRecord
 
@@ -40,13 +34,13 @@ def test_add_pending_validator(sample_beacon_state_params,
     )
     validator = ValidatorRecord(**sample_validator_record_params)
     amount = 5566
-    state, index = add_pending_validator(
+    state = add_pending_validator(
         state,
         validator,
         amount,
     )
-    assert index == validator_registry_len
-    assert state.validator_registry[index] == validator
+
+    assert state.validator_registry[-1] == validator
 
 
 @pytest.mark.parametrize(
@@ -64,11 +58,6 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
     withdrawal_credentials = b'\x34' * 32
     custody_commitment = b'\x12' * 32
     randao_commitment = b'\x56' * 32
-    domain = get_domain(
-        state.fork_data,
-        state.slot,
-        SignatureDomain.DOMAIN_DEPOSIT,
-    )
 
     deposit_input = make_deposit_input(
         pubkey=pubkey,
@@ -77,7 +66,12 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
         custody_commitment=custody_commitment,
     )
     if expected is True:
-        proof_of_possession = sign_proof_of_possession(deposit_input, privkey, domain)
+        proof_of_possession = sign_proof_of_possession(
+            deposit_input,
+            privkey,
+            state.fork_data,
+            state.slot,
+        )
 
         validate_proof_of_possession(
             state=state,
@@ -116,11 +110,6 @@ def test_process_deposit(sample_beacon_state_params,
     withdrawal_credentials = b'\x34' * 32
     custody_commitment = b'\x11' * 32
     randao_commitment = b'\x56' * 32
-    domain = get_domain(
-        state.fork_data,
-        state.slot,
-        SignatureDomain.DOMAIN_DEPOSIT,
-    )
 
     deposit_input = make_deposit_input(
         pubkey=pubkey_1,
@@ -128,7 +117,13 @@ def test_process_deposit(sample_beacon_state_params,
         randao_commitment=randao_commitment,
         custody_commitment=custody_commitment,
     )
-    proof_of_possession = sign_proof_of_possession(deposit_input, privkey_1, domain)
+    proof_of_possession = sign_proof_of_possession(
+        deposit_input,
+        privkey_1,
+        state.fork_data,
+        state.slot,
+    )
+
     # Add the first validator
     result_state = process_deposit(
         state=state,
@@ -159,7 +154,12 @@ def test_process_deposit(sample_beacon_state_params,
         randao_commitment=randao_commitment,
         custody_commitment=custody_commitment,
     )
-    proof_of_possession = sign_proof_of_possession(deposit_input, privkey_2, domain)
+    proof_of_possession = sign_proof_of_possession(
+        deposit_input,
+        privkey_2,
+        state.fork_data,
+        state.slot,
+    )
     result_state = process_deposit(
         state=result_state,
         pubkey=pubkey_2,

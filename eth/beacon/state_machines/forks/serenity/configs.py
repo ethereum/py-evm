@@ -29,13 +29,12 @@ SERENITY_CONFIG = BeaconConfig(
     # Initial values
     GENESIS_FORK_VERSION=0,
     GENESIS_SLOT=SlotNumber(0),
-    FAR_FUTURE_SLOT=SlotNumber(2**63),
+    FAR_FUTURE_SLOT=SlotNumber(2**64 - 1),
     BLS_WITHDRAWAL_PREFIX_BYTE=b'\x00',
     # Time parameters
     SLOT_DURATION=Second(6),  # seconds
     MIN_ATTESTATION_INCLUSION_DELAY=2**2,  # (= 4) slots
     EPOCH_LENGTH=2**6,  # (= 64) slots
-    MIN_VALIDATOR_REGISTRY_CHANGE_INTERVAL=2**8,  # (= 256) slots
     SEED_LOOKAHEAD=2**6,  # (= 64) slots
     ENTRY_EXIT_DELAY=2**8,  # (= 256) slots
     POW_RECEIPT_ROOT_VOTING_PERIOD=2**10,  # (= 1,024) slots

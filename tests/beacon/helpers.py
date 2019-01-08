@@ -8,6 +8,12 @@ from eth.constants import (
 from eth.beacon.constants import (
     EMPTY_SIGNATURE,
 )
+from eth.beacon.enums import (
+    SignatureDomain,
+)
+from eth.beacon.helpers import (
+    get_domain,
+)
 from eth.beacon.types.deposit_input import DepositInput
 from eth.beacon.types.validator_records import (
     ValidatorRecord,
@@ -52,7 +58,12 @@ def get_pseudo_chain(length, genesis_block):
         yield block
 
 
-def sign_proof_of_possession(deposit_input, privkey, domain):
+def sign_proof_of_possession(deposit_input, privkey, fork_data, slot):
+    domain = get_domain(
+        fork_data,
+        slot,
+        SignatureDomain.DOMAIN_DEPOSIT,
+    )
     return bls.sign(deposit_input.root, privkey, domain)
 
 

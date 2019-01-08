@@ -4,6 +4,9 @@ import rlp
 from eth.constants import (
     ZERO_HASH32,
 )
+from eth_utils import (
+    to_tuple,
+)
 
 import eth._utils.bls as bls
 from eth.beacon._utils.hash import hash_eth2
@@ -515,11 +518,6 @@ def epoch_length():
 
 
 @pytest.fixture
-def min_validator_registry_change_interval():
-    return SERENITY_CONFIG.MIN_VALIDATOR_REGISTRY_CHANGE_INTERVAL
-
-
-@pytest.fixture
 def seed_lookahead():
     return SERENITY_CONFIG.SEED_LOOKAHEAD
 
@@ -641,15 +639,14 @@ def initial_validators(init_validator_pubkeys,
     )
 
 
+@to_tuple
 @pytest.fixture
 def activated_genesis_validators(initial_validators, genesis_slot):
     """
     Active
     """
-    validators = tuple()
     for validator in initial_validators:
-        validators += (validator.copy(activation_slot=genesis_slot),)
-    return validators
+        yield validator.copy(activation_slot=genesis_slot)
 
 
 @pytest.fixture

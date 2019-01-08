@@ -155,13 +155,13 @@ def get_shard_committees_at_slot(state: 'BeaconState',
 
 
 def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
-                                 slot: SlotNumber) -> Tuple[int, ...]:
+                                 slot: SlotNumber) -> Tuple[ValidatorIndex, ...]:
     """
     Get indices of active validators from ``validators``.
     """
     return tuple(
-        i for i, v in enumerate(validators)
-        if v.is_active(slot)
+        ValidatorIndex(index) for index, validator in enumerate(validators)
+        if validator.is_active(slot)
     )
 
 

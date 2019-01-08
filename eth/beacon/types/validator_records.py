@@ -79,7 +79,8 @@ class ValidatorRecord(rlp.Serializable):
 
     def is_active(self, slot: int) -> bool:
         """
-        Return ``True`` if the validator is active.
+        Return ``True`` if the validator is active.Return ``True``
+        if the validator is active during the slot, ``slot``.
         """
         return self.activation_slot <= slot < self.exit_slot
 

@@ -42,7 +42,6 @@ BeaconConfig = NamedTuple(
         ('SLOT_DURATION', Second),
         ('MIN_ATTESTATION_INCLUSION_DELAY', int),
         ('EPOCH_LENGTH', int),
-        ('MIN_VALIDATOR_REGISTRY_CHANGE_INTERVAL', int),
         ('SEED_LOOKAHEAD', int),
         ('ENTRY_EXIT_DELAY', int),
         ('POW_RECEIPT_ROOT_VOTING_PERIOD', int),

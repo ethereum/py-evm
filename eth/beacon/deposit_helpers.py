@@ -1,7 +1,3 @@
-from typing import (
-    Tuple,
-)
-
 from eth_typing import (
     Hash32,
 )
@@ -66,19 +62,16 @@ def validate_proof_of_possession(state: BeaconState,
 
 def add_pending_validator(state: BeaconState,
                           validator: ValidatorRecord,
-                          amount: Gwei) -> Tuple[BeaconState, int]:
+                          amount: Gwei) -> BeaconState:
     """
     Add a validator to ``state``.
     """
-    validator_registry = state.validator_registry + (validator,)
     state = state.copy(
-        validator_registry=validator_registry,
-        validator_balances=state.validator_balances + (amount, )
+        validator_registry=state.validator_registry + (validator,),
+        validator_balances=state.validator_balances + (amount, ),
     )
 
-    index = len(state.validator_registry) - 1
-
-    return state, index
+    return state
 
 
 def process_deposit(*,
@@ -114,7 +107,7 @@ def process_deposit(*,
 
         # Note: In phase 2 registry indices that has been withdrawn for a long time
         # will be recycled.
-        state, index = add_pending_validator(
+        state = add_pending_validator(
             state,
             validator,
             amount,

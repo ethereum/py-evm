@@ -478,7 +478,7 @@ def test_get_active_validator_indices(sample_validator_record_params, far_future
     assert len(active_validator_indices) == 3
 
     validators[0] = validators[0].copy(
-        activation_slot=2,  # activation_slot < current_slot
+        activation_slot=current_slot + 1,  # activation_slot > current_slot
     )
     active_validator_indices = get_active_validator_indices(validators, current_slot)
     assert len(active_validator_indices) == 2
@@ -853,7 +853,7 @@ def test_verify_slashable_vote_data_signature(num_validators,
                                               sample_fork_data_params):
     state = BeaconState(**sample_beacon_state_params).copy(
         validator_registry=activated_genesis_validators,
-        validator_balances=activated_genesis_validators,
+        validator_balances=genesis_balances,
         fork_data=ForkData(**sample_fork_data_params),
     )
 
