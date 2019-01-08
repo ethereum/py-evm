@@ -105,6 +105,10 @@ def clamp(inclusive_lower_bound: int,
 def integer_squareroot(value: int) -> int:
     """
     Return the integer square root of ``value``.
+
+    Uses Python's decimal module to compute the square root of ``value`` with
+    a precision of 128-bits. The value 128 is chosen since the largest square
+    root of a 256-bit integer is a 128-bit integer.
     """
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(
@@ -120,7 +124,5 @@ def integer_squareroot(value: int) -> int:
         )
 
     with decimal.localcontext() as ctx:
-        # Set precision to 128, since the largest square root of a
-        # 256-bit integer is a 128-bit integer.
         ctx.prec = 128
         return int(decimal.Decimal(value).sqrt())
