@@ -17,7 +17,7 @@ from eth._utils.padding import (
     zpad_right,
 )
 from eth._utils.merkle import (
-    calc_merkle_root,
+    get_merkle_root_from_items,
 )
 
 from eth.constants import (
@@ -44,7 +44,7 @@ def iterate_chunks(collation_body: bytes) -> Iterator[Hash32]:
 def calc_chunk_root(collation_body: bytes) -> Hash32:
     check_body_size(collation_body)
     chunks = list(iterate_chunks(collation_body))
-    return calc_merkle_root(chunks)
+    return get_merkle_root_from_items(chunks)
 
 
 def check_body_size(body: bytes) -> bytes:

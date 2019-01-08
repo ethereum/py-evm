@@ -115,7 +115,7 @@ def calc_merkle_tree(items: Sequence[Union[bytes, bytearray]]) -> MerkleTree:
     return calc_merkle_tree_from_leaves(leaves)
 
 
-def calc_merkle_root(items: Sequence[Union[bytes, bytearray]]) -> Hash32:
+def get_merkle_root_from_items(items: Sequence[Union[bytes, bytearray]]) -> Hash32:
     """
     Calculate the Merkle root corresponding to a list of items.
     """

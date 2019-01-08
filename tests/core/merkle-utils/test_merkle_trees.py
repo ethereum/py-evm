@@ -9,7 +9,7 @@ from eth.beacon._utils.hash import (
 )
 
 from eth._utils.merkle import (
-    calc_merkle_root,
+    get_merkle_root_from_items,
     calc_merkle_tree,
     get_root,
     get_merkle_proof,
@@ -65,13 +65,13 @@ def test_merkle_tree_calculation(leaves, tree):
     calculated_tree = calc_merkle_tree(leaves)
     assert calculated_tree == tree
     assert get_root(tree) == tree[0][0]
-    assert calc_merkle_root(leaves) == get_root(tree)
+    assert get_merkle_root_from_items(leaves) == get_root(tree)
 
 
 @pytest.mark.parametrize("leave_number", [0, 3, 5, 6, 7, 9])
 def test_invalid_merkle_root_calculation(leave_number):
     with pytest.raises(ValueError):
-        calc_merkle_root((b"",) * leave_number)
+        get_merkle_root_from_items((b"",) * leave_number)
 
 
 @pytest.mark.parametrize("leaves,index,proof", [
