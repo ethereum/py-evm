@@ -41,13 +41,13 @@ def is_ipython_available() -> bool:
 BASE_PLUGINS: Tuple[BasePlugin, ...] = (
     AttachPlugin(use_ipython=is_ipython_available()),
     FixUncleanShutdownPlugin(),
+    JsonRpcServerPlugin(),
     PeerDiscoveryPlugin(),
 )
 
 
 ETH1_NODE_PLUGINS: Tuple[BasePlugin, ...] = (
     EthstatsPlugin(),
-    JsonRpcServerPlugin(),
     LightPeerChainBridgePlugin(),
     TxPlugin(),
 )
