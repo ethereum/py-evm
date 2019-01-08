@@ -23,6 +23,29 @@ from eth.beacon.constants import TWO_POWER_64
 def get_epoch_boundary_attesting_balances(
         state: BeaconState,
         config: BeaconConfig) -> Tuple[Gwei, Gwei]:
+    """
+    previous_epoch_boundary_attesting_balance:
+        SELECT sum(v.balance)
+        FROM Validator as v
+        RIGHT JOIN Attestations as a
+        ON v.index = a.participant
+        WHERE
+            a.slot between `now` and `2 epoch ago` AND
+            a.justified_slot = previous_justified_slot AND
+            a.epoch_boundary_root = `2 epoch ago`
+        GROUP BY v.index
+
+    current_epoch_boundary_attesting_balance:
+        SELECT sum(v.balance)
+        FROM Validator as v
+        RIGHT JOIN Attestations as a
+        ON v.index = a.participant
+        WHERE
+            a.slot between `now` and `1 epoch ago` AND
+            a.justified_slot = justified_slot AND
+            a.epoch_boundary_root = `1 epoch ago`
+        GROUP BY v.index
+    """
 
     EPOCH_LENGTH: int = config.EPOCH_LENGTH
     MAX_DEPOSIT: Ether = config.MAX_DEPOSIT
