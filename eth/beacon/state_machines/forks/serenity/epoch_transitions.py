@@ -47,8 +47,9 @@ def get_epoch_boundary_attesting_balances(
         GROUP BY v.index
     """
 
-    EPOCH_LENGTH: int = config.EPOCH_LENGTH
-    MAX_DEPOSIT: Ether = config.MAX_DEPOSIT
+    EPOCH_LENGTH = config.EPOCH_LENGTH
+    MAX_DEPOSIT = config.MAX_DEPOSIT
+    LATEST_BLOCK_ROOTS_LENGTH = config.LATEST_BLOCK_ROOTS_LENGTH
 
     current_epoch_attestations = tuple(
         attestation
@@ -68,9 +69,9 @@ def get_epoch_boundary_attesting_balances(
     )
 
     previous_epoch_boundary_root = get_block_root(
-        state.latest_block_roots,
-        state.slot,
-        state.slot - 2 * EPOCH_LENGTH)
+        state,
+        state.slot - 2 * EPOCH_LENGTH,
+        LATEST_BLOCK_ROOTS_LENGTH)
     previous_epoch_boundary_attestations = tuple(
         attestation
         for attestation in previous_epoch_justified_attestations
@@ -98,9 +99,9 @@ def get_epoch_boundary_attesting_balances(
     )
 
     current_epoch_boundary_root = get_block_root(
-        state.latest_block_roots,
-        state.slot,
-        state.slot - EPOCH_LENGTH)
+        state,
+        state.slot - EPOCH_LENGTH,
+        LATEST_BLOCK_ROOTS_LENGTH)
 
     current_epoch_boundary_attestations = tuple(
         attestation
