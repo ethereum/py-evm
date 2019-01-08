@@ -5,6 +5,7 @@ from typing import (
 from eth.beacon.typing import (
     Ether,
     Gwei,
+    SlotNumber,
 )
 from eth.beacon.types.validator_records import ValidatorRecord
 from eth.beacon.types.states import BeaconState
@@ -22,8 +23,9 @@ from eth.beacon.constants import TWO_POWER_64
 def get_epoch_boundary_attesting_balances(
         state: BeaconState,
         config: BeaconConfig) -> Tuple[Gwei, Gwei]:
-    EPOCH_LENGTH = config.EPOCH_LENGTH
-    MAX_DEPOSITS = config.MAX_DEPOSITS
+
+    EPOCH_LENGTH: int = config.EPOCH_LENGTH
+    MAX_DEPOSIT: Ether = config.MAX_DEPOSIT
 
     current_epoch_attestations = tuple(
         attestation
@@ -68,7 +70,7 @@ def get_epoch_boundary_attesting_balances(
         else frozenset.union(*sets_of_previous_epoch_boundary_participants)
     )
     previous_epoch_boundary_attesting_balance = sum(
-        get_effective_balance(state, index, MAX_DEPOSITS)
+        get_effective_balance(state, index, MAX_DEPOSIT)
         for index in previous_epoch_boundary_attester_indices
     )
 
@@ -102,7 +104,7 @@ def get_epoch_boundary_attesting_balances(
     )
 
     current_epoch_boundary_attesting_balance = sum(
-        get_effective_balance(state, index, MAX_DEPOSITS)
+        get_effective_balance(state, index, MAX_DEPOSIT)
         for index in current_epoch_boundary_attester_indices
     )
     return previous_epoch_boundary_attesting_balance, current_epoch_boundary_attesting_balance
@@ -111,17 +113,17 @@ def get_epoch_boundary_attesting_balances(
 def get_total_balance(
         validator_registry: Sequence[ValidatorRecord],
         validator_balances: Sequence[Gwei],
-        max_deposits: Ether) -> Gwei:
+        max_deposit: Ether) -> Gwei:
 
     active_validator_indices = get_active_validator_indices(validator_registry)
 
-    return total_balance(active_validator_indices, validator_balances, max_deposits)
+    return total_balance(active_validator_indices, validator_balances, max_deposit)
 
 
-def check_finalization(previous_justified_slot,
-                       slot,
-                       justification_bitfield,
-                       epoch_length)-> bool:
+def check_finalization(previous_justified_slot: SlotNumber,
+                       slot: SlotNumber,
+                       justification_bitfield: bytes,
+                       epoch_length: int)-> bool:
 
     # Suppose B1, B2, B3, B4 are consecutive blocks and
     # we are now processing the end of the cycle containing B4.
@@ -159,7 +161,7 @@ def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconSta
     total_balance = get_total_balance(
         state.validator_registry,
         state.validator_balances,
-        config.MAX_DEPOSITS,
+        config.MAX_DEPOSIT,
     )
     (
         previous_epoch_boundary_attesting_balance,
