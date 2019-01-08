@@ -14,6 +14,7 @@ from eth.beacon.helpers import (
     get_active_validator_indices,
     get_attestation_participants,
     get_block_root,
+    total_balance,
 )
 from eth.beacon.constants import TWO_POWER_64
 
@@ -114,13 +115,7 @@ def get_total_balance(
 
     active_validator_indices = get_active_validator_indices(validator_registry)
 
-    return sum(
-        get_effective_balance(
-            validator_balances,
-            index,
-            max_deposits)
-        for index in active_validator_indices
-    )
+    return total_balance(active_validator_indices, validator_balances, max_deposits)
 
 
 def check_finalization(previous_justified_slot,
