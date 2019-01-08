@@ -1,10 +1,10 @@
 from p2p.events import PeerCountRequest
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.nodes.events import NetworkIdRequest
-from trinity.rpc.modules import RPCModule
+from trinity.rpc.modules import Eth1RPCModule
 
 
-class Net(RPCModule):
+class Net(Eth1RPCModule):
 
     @property
     def name(self) -> str:

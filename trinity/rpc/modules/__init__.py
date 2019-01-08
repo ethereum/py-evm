@@ -1,6 +1,10 @@
 from .main import (  # noqa: F401
+    BaseRPCModule,
+    BeaconRPCModule,
+    ChainReplacementEvent,
+    Eth1RPCModule,
     initialize_modules,
-    RPCModule
+    RPCModule,
 )
 
 from .beacon import Beacon  # noqa: F401

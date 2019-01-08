@@ -3,40 +3,66 @@ from abc import (
     ABC,
 )
 from typing import (
+    Any,
+    Generic,
     Iterable,
     Type,
+    TypeVar,
+    TYPE_CHECKING,
 )
 
 from eth_utils import (
     to_tuple,
 )
 from lahja import (
+    BaseEvent,
     Endpoint
 )
 
-from trinity.chains.base import BaseAsyncChain
+if TYPE_CHECKING:
+    from trinity.chains.base import BaseAsyncChain  # noqa: F401
 
 
-class RPCModule(ABC):
-    _chain = None
+TChain = TypeVar('TChain')
 
-    def __init__(self, chain: BaseAsyncChain, event_bus: Endpoint) -> None:
-        self._chain = chain
-        self._event_bus = event_bus
+
+class ChainReplacementEvent(BaseEvent, Generic[TChain]):
+
+    def __init__(self, chain: TChain):
+        self.chain = chain
+
+
+class BaseRPCModule(ABC):
 
     @property
     @abstractmethod
     def name(self) -> str:
         pass
 
-    def set_chain(self, chain: BaseAsyncChain) -> None:
+
+class RPCModule(BaseRPCModule, Generic[TChain]):
+
+    def __init__(self, chain: TChain, event_bus: Endpoint) -> None:
+        self._chain = chain
+        self._event_bus = event_bus
+
+        self._event_bus.subscribe(
+            ChainReplacementEvent,
+            lambda ev: self.set_chain(ev.chain)
+        )
+
+    def set_chain(self, chain: TChain) -> None:
         self._chain = chain
 
 
+Eth1RPCModule = RPCModule['BaseAsyncChain']
+BeaconRPCModule = RPCModule[Any]
+
+
 @to_tuple
-def initialize_modules(modules: Iterable[Type[RPCModule]],
-                       chain: BaseAsyncChain,
-                       event_bus: Endpoint) -> Iterable[RPCModule]:
+def initialize_modules(modules: Iterable[Type[RPCModule[TChain]]],
+                       chain: TChain,
+                       event_bus: Endpoint) -> Iterable[RPCModule[TChain]]:
 
     for module in modules:
         yield module(chain, event_bus)

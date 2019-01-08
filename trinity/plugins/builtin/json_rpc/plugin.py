@@ -27,9 +27,10 @@ from trinity.rpc.main import (
 )
 from trinity.rpc.modules import (
     BEACON_RPC_MODULES,
+    BeaconRPCModule,
     ETH1_RPC_MODULES,
     initialize_modules,
-    RPCModule,
+    Eth1RPCModule,
 )
 from trinity.rpc.ipc import (
     IPCServer,
@@ -56,7 +57,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
             help="Disables the JSON-RPC Server",
         )
 
-    def setup_eth1_modules(self, trinity_config: TrinityConfig) -> Tuple[RPCModule, ...]:
+    def setup_eth1_modules(self, trinity_config: TrinityConfig) -> Tuple[Eth1RPCModule, ...]:
         db_manager = create_db_manager(trinity_config.database_ipc_path)
         db_manager.connect()
 
@@ -77,7 +78,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
 
         return initialize_modules(ETH1_RPC_MODULES, chain, self.event_bus)
 
-    def setup_beacon_modules(self, trinity_config: TrinityConfig) -> Tuple[RPCModule, ...]:
+    def setup_beacon_modules(self, trinity_config: TrinityConfig) -> Tuple[BeaconRPCModule, ...]:
 
         return initialize_modules(BEACON_RPC_MODULES, None, self.event_bus)
 

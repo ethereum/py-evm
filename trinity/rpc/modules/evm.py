@@ -1,8 +1,12 @@
 from typing import (
     Any
 )
+
 from eth_utils import (
     encode_hex,
+)
+from lahja import (
+    BroadcastConfig,
 )
 
 from eth.chains.base import (
@@ -21,11 +25,12 @@ from trinity.rpc.format import (
     format_params,
 )
 from trinity.rpc.modules import (
-    RPCModule,
+    ChainReplacementEvent,
+    Eth1RPCModule,
 )
 
 
-class EVM(RPCModule):
+class EVM(Eth1RPCModule):
 
     @property
     def name(self) -> str:
@@ -38,7 +43,14 @@ class EVM(RPCModule):
         which is then replaced inside :class:`~trinity.rpc.main.RPCServer`
         for all future calls.
         '''
-        return new_chain_from_fixture(chain_info, type(self._chain))
+        chain = new_chain_from_fixture(chain_info, type(self._chain))
+
+        self._event_bus.broadcast(
+            ChainReplacementEvent(chain),
+            BroadcastConfig(internal=True)
+        )
+
+        return chain
 
     @format_params(normalize_block)
     async def applyBlockFixture(self, block_info: Any) -> str:

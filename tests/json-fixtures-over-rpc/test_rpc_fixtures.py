@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from pathlib import Path
@@ -398,12 +399,14 @@ class MainnetFullChain(FullChain):
 
 
 @pytest.mark.asyncio
-async def test_rpc_against_fixtures(chain, ipc_server, chain_fixture, fixture_data):
+async def test_rpc_against_fixtures(chain, event_bus, ipc_server, chain_fixture, fixture_data):
     rpc = RPCServer(
-        initialize_modules(ETH1_RPC_MODULES, MainnetFullChain(None), None)
+        initialize_modules(ETH1_RPC_MODULES, MainnetFullChain(None), event_bus)
     )
 
     setup_result, setup_error = await call_rpc(rpc, 'evm_resetToGenesisFixture', [chain_fixture])
+    # We need to advance the event loop for modules to be able to pickup the new chain
+    await asyncio.sleep(0)
     assert setup_error is None and setup_result is True, "cannot load chain for {0}".format(fixture_data)  # noqa: E501
 
     await validate_accounts(rpc, chain_fixture['pre'])

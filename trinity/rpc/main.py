@@ -16,9 +16,8 @@ from lahja import (
     Endpoint
 )
 
-from trinity.chains.base import BaseAsyncChain
 from trinity.rpc.modules import (
-    RPCModule,
+    BaseRPCModule,
 )
 
 REQUIRED_REQUEST_KEYS = {
@@ -63,9 +62,9 @@ class RPCServer:
     chain = None
 
     def __init__(self,
-                 modules: Sequence[RPCModule],
+                 modules: Sequence[BaseRPCModule],
                  event_bus: Endpoint=None) -> None:
-        self.modules: Dict[str, RPCModule] = {}
+        self.modules: Dict[str, BaseRPCModule] = {}
 
         for module in modules:
             name = module.name.lower()
@@ -114,7 +113,7 @@ class RPCServer:
             result = await method(*params)
 
             if request['method'] == 'evm_resetToGenesisFixture':
-                self.chain, result = result, True
+                result = True
 
         except NotImplementedError as exc:
             error = "Method not implemented: %r %s" % (request['method'], exc)
@@ -136,13 +135,3 @@ class RPCServer:
         '''
         result, error = await self._get_result(request)
         return generate_response(request, result, error)
-
-    @property
-    def chain(self) -> BaseAsyncChain:
-        return self.__chain
-
-    @chain.setter
-    def chain(self, new_chain: BaseAsyncChain) -> None:
-        self.__chain = new_chain
-        for module in self.modules.values():
-            module.set_chain(new_chain)
