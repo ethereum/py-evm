@@ -43,9 +43,9 @@ class EVM(Eth1RPCModule):
         which is then replaced inside :class:`~trinity.rpc.main.RPCServer`
         for all future calls.
         '''
-        chain = new_chain_from_fixture(chain_info, type(self._chain))
+        chain = new_chain_from_fixture(chain_info, type(self.chain))
 
-        self._event_bus.broadcast(
+        self.event_bus.broadcast(
             ChainReplacementEvent(chain),
             BroadcastConfig(internal=True)
         )
@@ -59,5 +59,5 @@ class EVM(Eth1RPCModule):
         which is then replaced inside :class:`~trinity.rpc.main.RPCServer`
         for all future calls.
         '''
-        _, _, rlp_encoded = apply_fixture_block_to_chain(block_info, self._chain)
+        _, _, rlp_encoded = apply_fixture_block_to_chain(block_info, self.chain)
         return encode_hex(rlp_encoded)

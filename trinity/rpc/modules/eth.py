@@ -152,15 +152,15 @@ class Eth(Eth1RPCModule):
         return []
 
     async def blockNumber(self) -> str:
-        num = self._chain.get_canonical_head().block_number
+        num = self.chain.get_canonical_head().block_number
         return hex(num)
 
     @format_params(identity, to_int_if_hex)
     async def call(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
-        header = await get_header(self._chain, at_block)
-        validate_transaction_call_dict(txn_dict, self._chain.get_vm(header))
-        transaction = dict_to_spoof_transaction(self._chain, header, txn_dict)
-        result = self._chain.get_transaction_result(transaction, header)
+        header = await get_header(self.chain, at_block)
+        validate_transaction_call_dict(txn_dict, self.chain.get_vm(header))
+        transaction = dict_to_spoof_transaction(self.chain, header, txn_dict)
+        result = self.chain.get_transaction_result(transaction, header)
         return encode_hex(result)
 
     async def coinbase(self) -> str:
@@ -170,10 +170,10 @@ class Eth(Eth1RPCModule):
 
     @format_params(identity, to_int_if_hex)
     async def estimateGas(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
-        header = await get_header(self._chain, at_block)
-        validate_transaction_gas_estimation_dict(txn_dict, self._chain.get_vm(header))
-        transaction = dict_to_spoof_transaction(self._chain, header, txn_dict)
-        gas = self._chain.estimate_gas(transaction, header)
+        header = await get_header(self.chain, at_block)
+        validate_transaction_gas_estimation_dict(txn_dict, self.chain.get_vm(header))
+        transaction = dict_to_spoof_transaction(self.chain, header, txn_dict)
+        gas = self.chain.estimate_gas(transaction, header)
         return hex(gas)
 
     async def gasPrice(self) -> str:
@@ -181,7 +181,7 @@ class Eth(Eth1RPCModule):
 
     @format_params(decode_hex, to_int_if_hex)
     async def getBalance(self, address: Address, at_block: Union[str, int]) -> str:
-        account_db = await account_db_at_block(self._chain, at_block)
+        account_db = await account_db_at_block(self.chain, at_block)
         balance = account_db.get_balance(address)
 
         return hex(balance)
@@ -190,29 +190,29 @@ class Eth(Eth1RPCModule):
     async def getBlockByHash(self,
                              block_hash: Hash32,
                              include_transactions: bool) -> Dict[str, Union[str, List[str]]]:
-        block = await self._chain.coro_get_block_by_hash(block_hash)
-        return block_to_dict(block, self._chain, include_transactions)
+        block = await self.chain.coro_get_block_by_hash(block_hash)
+        return block_to_dict(block, self.chain, include_transactions)
 
     @format_params(to_int_if_hex, identity)
     async def getBlockByNumber(self,
                                at_block: Union[str, int],
                                include_transactions: bool) -> Dict[str, Union[str, List[str]]]:
-        block = await get_block_at_number(self._chain, at_block)
-        return block_to_dict(block, self._chain, include_transactions)
+        block = await get_block_at_number(self.chain, at_block)
+        return block_to_dict(block, self.chain, include_transactions)
 
     @format_params(decode_hex)
     async def getBlockTransactionCountByHash(self, block_hash: Hash32) -> str:
-        block = await self._chain.coro_get_block_by_hash(block_hash)
+        block = await self.chain.coro_get_block_by_hash(block_hash)
         return hex(len(block.transactions))
 
     @format_params(to_int_if_hex)
     async def getBlockTransactionCountByNumber(self, at_block: Union[str, int]) -> str:
-        block = await get_block_at_number(self._chain, at_block)
+        block = await get_block_at_number(self.chain, at_block)
         return hex(len(block.transactions))
 
     @format_params(decode_hex, to_int_if_hex)
     async def getCode(self, address: Address, at_block: Union[str, int]) -> str:
-        account_db = await account_db_at_block(self._chain, at_block)
+        account_db = await account_db_at_block(self.chain, at_block)
         code = account_db.get_code(address)
         return encode_hex(code)
 
@@ -221,7 +221,7 @@ class Eth(Eth1RPCModule):
         if not is_integer(position) or position < 0:
             raise TypeError("Position of storage must be a whole number, but was: %r" % position)
 
-        account_db = await account_db_at_block(self._chain, at_block)
+        account_db = await account_db_at_block(self.chain, at_block)
         stored_val = account_db.get_storage(address, position)
         return encode_hex(int_to_big_endian(stored_val))
 
@@ -229,7 +229,7 @@ class Eth(Eth1RPCModule):
     async def getTransactionByBlockHashAndIndex(self,
                                                 block_hash: Hash32,
                                                 index: int) -> Dict[str, str]:
-        block = await self._chain.coro_get_block_by_hash(block_hash)
+        block = await self.chain.coro_get_block_by_hash(block_hash)
         transaction = block.transactions[index]
         return transaction_to_dict(transaction)
 
@@ -237,29 +237,29 @@ class Eth(Eth1RPCModule):
     async def getTransactionByBlockNumberAndIndex(self,
                                                   at_block: Union[str, int],
                                                   index: int) -> Dict[str, str]:
-        block = await get_block_at_number(self._chain, at_block)
+        block = await get_block_at_number(self.chain, at_block)
         transaction = block.transactions[index]
         return transaction_to_dict(transaction)
 
     @format_params(decode_hex, to_int_if_hex)
     async def getTransactionCount(self, address: Address, at_block: Union[str, int]) -> str:
-        account_db = await account_db_at_block(self._chain, at_block)
+        account_db = await account_db_at_block(self.chain, at_block)
         nonce = account_db.get_nonce(address)
         return hex(nonce)
 
     @format_params(decode_hex)
     async def getUncleCountByBlockHash(self, block_hash: Hash32) -> str:
-        block = await self._chain.coro_get_block_by_hash(block_hash)
+        block = await self.chain.coro_get_block_by_hash(block_hash)
         return hex(len(block.uncles))
 
     @format_params(to_int_if_hex)
     async def getUncleCountByBlockNumber(self, at_block: Union[str, int]) -> str:
-        block = await get_block_at_number(self._chain, at_block)
+        block = await get_block_at_number(self.chain, at_block)
         return hex(len(block.uncles))
 
     @format_params(decode_hex, to_int_if_hex)
     async def getUncleByBlockHashAndIndex(self, block_hash: Hash32, index: int) -> Dict[str, str]:
-        block = await self._chain.coro_get_block_by_hash(block_hash)
+        block = await self.chain.coro_get_block_by_hash(block_hash)
         uncle = block.uncles[index]
         return header_to_dict(uncle)
 
@@ -267,7 +267,7 @@ class Eth(Eth1RPCModule):
     async def getUncleByBlockNumberAndIndex(self,
                                             at_block: Union[str, int],
                                             index: int) -> Dict[str, str]:
-        block = await get_block_at_number(self._chain, at_block)
+        block = await get_block_at_number(self.chain, at_block)
         uncle = block.uncles[index]
         return header_to_dict(uncle)
 
@@ -288,7 +288,7 @@ class Eth(Eth1RPCModule):
         highestBlock: BlockNumber
 
     async def syncing(self) -> Union[bool, SyncProgress]:
-        res = await self._event_bus.request(SyncingRequest(), TO_NETWORKING_BROADCAST_CONFIG)
+        res = await self.event_bus.request(SyncingRequest(), TO_NETWORKING_BROADCAST_CONFIG)
         if res.is_syncing:
             return {
                 "startingBlock": res.progress.starting_block,

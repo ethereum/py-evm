@@ -43,16 +43,16 @@ class BaseRPCModule(ABC):
 class RPCModule(BaseRPCModule, Generic[TChain]):
 
     def __init__(self, chain: TChain, event_bus: Endpoint) -> None:
-        self._chain = chain
-        self._event_bus = event_bus
+        self.chain = chain
+        self.event_bus = event_bus
 
-        self._event_bus.subscribe(
+        self.event_bus.subscribe(
             ChainReplacementEvent,
             lambda ev: self.set_chain(ev.chain)
         )
 
     def set_chain(self, chain: TChain) -> None:
-        self._chain = chain
+        self.chain = chain
 
 
 Eth1RPCModule = RPCModule['BaseAsyncChain']

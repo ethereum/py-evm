@@ -14,7 +14,7 @@ class Net(Eth1RPCModule):
         """
         Returns the current network ID.
         """
-        response = await self._event_bus.request(
+        response = await self.event_bus.request(
             NetworkIdRequest(),
             TO_NETWORKING_BROADCAST_CONFIG
         )
@@ -24,7 +24,7 @@ class Net(Eth1RPCModule):
         """
         Return the number of peers that are currently connected to the node
         """
-        response = await self._event_bus.request(
+        response = await self.event_bus.request(
             PeerCountRequest(),
             TO_NETWORKING_BROADCAST_CONFIG
         )
