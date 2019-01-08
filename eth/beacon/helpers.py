@@ -518,7 +518,7 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
 def total_balance(validator_indices: Sequence[ValidatorIndex],
                   validator_balances: Sequence[Gwei],
                   max_deposits: Ether) -> Gwei:
-    return sum(
+    return Gwei(sum(
         get_effective_balance(validator_balances, index, max_deposits)
         for index in validator_indices
-    )
+    ))

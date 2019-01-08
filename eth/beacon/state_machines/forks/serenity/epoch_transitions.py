@@ -93,10 +93,10 @@ def get_epoch_boundary_attesting_balances(
         if len(sets_of_previous_epoch_boundary_participants) == 0
         else frozenset.union(*sets_of_previous_epoch_boundary_participants)
     )
-    previous_epoch_boundary_attesting_balance = sum(
+    previous_epoch_boundary_attesting_balance = Gwei(sum(
         get_effective_balance(state, index, MAX_DEPOSIT)
         for index in previous_epoch_boundary_attester_indices
-    )
+    ))
 
     current_epoch_boundary_root = get_block_root(
         state,
@@ -127,10 +127,10 @@ def get_epoch_boundary_attesting_balances(
         else frozenset.union(*sets_of_current_epoch_boundary_participants)
     )
 
-    current_epoch_boundary_attesting_balance = sum(
+    current_epoch_boundary_attesting_balance = Gwei(sum(
         get_effective_balance(state, index, MAX_DEPOSIT)
         for index in current_epoch_boundary_attester_indices
-    )
+    ))
     return previous_epoch_boundary_attesting_balance, current_epoch_boundary_attesting_balance
 
 
@@ -146,7 +146,7 @@ def get_total_balance(
 
 def check_finalization(previous_justified_slot: SlotNumber,
                        slot: SlotNumber,
-                       justification_bitfield: bytes,
+                       justification_bitfield: int,
                        epoch_length: int)-> bool:
 
     # Suppose B1, B2, B3, B4 are consecutive blocks and
