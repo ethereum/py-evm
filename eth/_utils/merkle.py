@@ -7,7 +7,6 @@ not considered to be part of the tree.
 
 import math
 from typing import (
-    cast,
     Iterable,
     NewType,
     Sequence,
@@ -130,19 +129,10 @@ def calc_merkle_tree_from_leaves(leaves: Sequence[Hash32]) -> MerkleTree:
     if not n_layers.is_integer():
         raise ValueError("Number of leaves is not a power of two")
     n_layers = int(n_layers)
-    tree = cast(
-        MerkleTree,
-        tuple(
-            reversed(
-                tuple(
-                    take(
-                        n_layers,
-                        iterate(_hash_layer, leaves),
-                    )
-                )
-            )
-        )
-    )
+
+    reversed_tree = tuple(take(n_layers, iterate(_hash_layer, leaves)))
+    tree = MerkleTree(tuple(reversed(reversed_tree)))
+
     if len(tree[0]) != 1:
         raise Exception("Invariant: There must only be one root")
 
