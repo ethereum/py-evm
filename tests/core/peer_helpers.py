@@ -9,6 +9,7 @@ from p2p import ecies
 from p2p.tools.paragon.helpers import (
     get_directly_linked_peers_without_handshake as _get_directly_linked_peers_without_handshake,
     get_directly_linked_peers as _get_directly_linked_peers,
+    get_directly_linked_v4_and_v5_peers as _get_directly_linked_v4_and_v5_peers,
 )
 
 
@@ -118,6 +119,22 @@ async def get_directly_linked_peers(
     )
 
     return await _get_directly_linked_peers(
+        request, event_loop,
+        alice_factory=alice_factory,
+        bob_factory=bob_factory,
+    )
+
+
+async def get_directly_linked_v4_and_v5_peers(
+        request, event_loop,
+        alice_headerdb=None, bob_headerdb=None,
+        alice_peer_class=ETHPeer, bob_peer_class=None):
+    alice_factory, bob_factory = await _setup_alice_and_bob_factories(
+        alice_headerdb, bob_headerdb,
+        alice_peer_class, bob_peer_class,
+    )
+
+    return await _get_directly_linked_v4_and_v5_peers(
         request, event_loop,
         alice_factory=alice_factory,
         bob_factory=bob_factory,
