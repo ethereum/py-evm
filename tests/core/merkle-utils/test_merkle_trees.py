@@ -4,15 +4,16 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth_hash.auto import (
-    keccak,
+from eth.beacon._utils.hash import (
+    hash_eth2,
 )
 
 from eth._utils.merkle import (
-    calc_merkle_root,
+    get_merkle_root_from_items,
     calc_merkle_tree,
     get_root,
     get_merkle_proof,
+    get_merkle_root,
     verify_merkle_proof,
 )
 
@@ -21,41 +22,41 @@ from eth._utils.merkle import (
     (
         (b"single leaf",),
         (
-            (keccak(b"single leaf"),),
+            (hash_eth2(b"single leaf"),),
         ),
     ),
     (
         (b"left", b"right"),
         (
-            (keccak(keccak(b"left") + keccak(b"right")),),
-            (keccak(b"left"), keccak(b"right")),
+            (hash_eth2(hash_eth2(b"left") + hash_eth2(b"right")),),
+            (hash_eth2(b"left"), hash_eth2(b"right")),
         ),
     ),
     (
         (b"1", b"2", b"3", b"4"),
         (
             (
-                keccak(
-                    keccak(
-                        keccak(b"1") + keccak(b"2")
-                    ) + keccak(
-                        keccak(b"3") + keccak(b"4")
+                hash_eth2(
+                    hash_eth2(
+                        hash_eth2(b"1") + hash_eth2(b"2")
+                    ) + hash_eth2(
+                        hash_eth2(b"3") + hash_eth2(b"4")
                     )
                 ),
             ),
             (
-                keccak(
-                    keccak(b"1") + keccak(b"2")
+                hash_eth2(
+                    hash_eth2(b"1") + hash_eth2(b"2")
                 ),
-                keccak(
-                    keccak(b"3") + keccak(b"4")
+                hash_eth2(
+                    hash_eth2(b"3") + hash_eth2(b"4")
                 ),
             ),
             (
-                keccak(b"1"),
-                keccak(b"2"),
-                keccak(b"3"),
-                keccak(b"4"),
+                hash_eth2(b"1"),
+                hash_eth2(b"2"),
+                hash_eth2(b"3"),
+                hash_eth2(b"4"),
             ),
         ),
     ),
@@ -64,45 +65,45 @@ def test_merkle_tree_calculation(leaves, tree):
     calculated_tree = calc_merkle_tree(leaves)
     assert calculated_tree == tree
     assert get_root(tree) == tree[0][0]
-    assert calc_merkle_root(leaves) == get_root(tree)
+    assert get_merkle_root_from_items(leaves) == get_root(tree)
 
 
 @pytest.mark.parametrize("leave_number", [0, 3, 5, 6, 7, 9])
 def test_invalid_merkle_root_calculation(leave_number):
-    with pytest.raises(ValidationError):
-        calc_merkle_root((b"",) * leave_number)
+    with pytest.raises(ValueError):
+        get_merkle_root_from_items((b"",) * leave_number)
 
 
 @pytest.mark.parametrize("leaves,index,proof", [
     (
         (b"1", b"2"),
         0,
-        (keccak(b"2"),),
+        (hash_eth2(b"2"),),
     ),
     (
         (b"1", b"2"),
         1,
-        (keccak(b"1"),),
+        (hash_eth2(b"1"),),
     ),
     (
         (b"1", b"2", b"3", b"4"),
         0,
-        (keccak(b"2"), keccak(keccak(b"3") + keccak(b"4"))),
+        (hash_eth2(b"2"), hash_eth2(hash_eth2(b"3") + hash_eth2(b"4"))),
     ),
     (
         (b"1", b"2", b"3", b"4"),
         1,
-        (keccak(b"1"), keccak(keccak(b"3") + keccak(b"4"))),
+        (hash_eth2(b"1"), hash_eth2(hash_eth2(b"3") + hash_eth2(b"4"))),
     ),
     (
         (b"1", b"2", b"3", b"4"),
         2,
-        (keccak(b"4"), keccak(keccak(b"1") + keccak(b"2"))),
+        (hash_eth2(b"4"), hash_eth2(hash_eth2(b"1") + hash_eth2(b"2"))),
     ),
     (
         (b"1", b"2", b"3", b"4"),
         3,
-        (keccak(b"3"), keccak(keccak(b"1") + keccak(b"2"))),
+        (hash_eth2(b"3"), hash_eth2(hash_eth2(b"1") + hash_eth2(b"2"))),
     ),
 ])
 def test_merkle_proofs(leaves, index, proof):
@@ -142,3 +143,15 @@ def test_proof_generation_index_validation(leaves):
     for invalid_index in [-1, len(leaves)]:
         with pytest.raises(ValidationError):
             get_merkle_proof(tree, invalid_index)
+
+
+def test_get_merkle_root():
+    hash_0 = b"0" * 32
+    leaves = (hash_0,)
+    root = get_merkle_root(leaves)
+    assert root == hash_0
+
+    hash_1 = b"1" * 32
+    leaves = (hash_0, hash_1)
+    root = get_merkle_root(leaves)
+    assert root == hash_eth2(hash_0 + hash_1)
