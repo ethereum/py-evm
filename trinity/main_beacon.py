@@ -102,8 +102,6 @@ def trinity_boot(args: Namespace,
 
     plugin_manager.prepare(args, trinity_config, extra_kwargs)
 
-    kill_trinity_with_reason("No beacon support yet. SOON!")
-
     try:
         loop = asyncio.get_event_loop()
         loop.add_signal_handler(signal.SIGTERM, lambda: kill_trinity_with_reason("SIGTERM"))
