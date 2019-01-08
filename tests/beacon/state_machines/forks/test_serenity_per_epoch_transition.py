@@ -2,7 +2,6 @@ import pytest
 
 from eth.beacon.state_machines.forks.serenity.epoch_transitions import process_justification
 from eth.beacon.types.states import BeaconState
-from eth.beacon.types.crosslink_records import CrosslinkRecord
 from eth.constants import (
     ZERO_HASH32,
 )
