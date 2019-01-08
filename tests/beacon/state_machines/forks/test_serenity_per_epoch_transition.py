@@ -56,7 +56,7 @@ def test_justification_without_validators(
         (
             # The 2nd epoch: enough previous and current attestations justify slot 64
             10, 10, 15, 128,
-            0, 0, 0b01, 0,
+            0, 0, 0b1, 0,
             0, 64, 0b11, 0,
         ),
         (
@@ -95,9 +95,9 @@ def test_justification_without_validators(
         (
             # The 7th epoch:
             # still suffering from network delay
-            0, 0, 20, 448,
+            15, 0, 20, 448,
             256, 256, 0b111110, 128,
-            256, 256, 0b1111100, 128,
+            256, 320, 0b1111110, 128,
         ),
     ),
 )
