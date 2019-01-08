@@ -1,5 +1,4 @@
 from typing import (
-    Any,
     Iterable,
     Sequence,
     Tuple,
@@ -63,47 +62,50 @@ if TYPE_CHECKING:
     from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
-def _get_element_from_recent_list(
-        target_list: Sequence[Any],
-        target_slot: SlotNumber,
-        slot_relative_position: SlotNumber) -> Any:
-    """
-    Return the element from ``target_list`` by the ``target_slot`` number,
-    where the the element should be at ``target_slot - slot_relative_position``th
-    element of the given ``target_list``.
-    """
-    target_list_length = len(target_list)
-
-    if target_slot < slot_relative_position:
-        raise ValueError(
-            "target_slot (%s) should be greater than or equal to slot_relative_position (%s)" %
-            (target_slot, slot_relative_position)
-        )
-
-    if target_slot >= slot_relative_position + target_list_length:
-        raise ValueError(
-            "target_slot (%s) should be less than "
-            "slot_relative_position (%s) + target_list_length (%s)" %
-            (target_slot, slot_relative_position, target_list_length)
-        )
-    return target_list[target_slot - slot_relative_position]
-
-
 #
 # Get block root
 #
-def get_block_root(
+def _get_block_root(
         latest_block_roots: Sequence[Hash32],
-        current_slot: SlotNumber,
-        slot: SlotNumber) -> Hash32:
+        state_slot: SlotNumber,
+        slot: SlotNumber,
+        latest_block_roots_length: int) -> Hash32:
     """
-    Returns the block root at a recent ``slot``.
+    Return the block root at a recent ``slot``.
     """
-    slot_relative_position = SlotNumber(current_slot - len(latest_block_roots))
-    return _get_element_from_recent_list(
-        latest_block_roots,
+    if state_slot > slot + latest_block_roots_length:
+        raise ValidationError(
+            "state.slot ({}) should be less than or equal to "
+            "(slot + latest_block_roots_length) ({}), "
+            "where slot={}, latest_block_roots_length={}".format(
+                state_slot,
+                slot + latest_block_roots_length,
+                slot,
+                latest_block_roots_length,
+            )
+        )
+    if slot >= state_slot:
+        raise ValidationError(
+            "slot ({}) should be less than state.slot ({})".format(
+                slot,
+                state_slot,
+            )
+        )
+    return latest_block_roots[slot % latest_block_roots_length]
+
+
+def get_block_root(
+        state: 'BeaconState',
+        slot: SlotNumber,
+        latest_block_roots_length: int) -> Hash32:
+    """
+    Return the block root at a recent ``slot``.
+    """
+    return _get_block_root(
+        state.latest_block_roots,
+        state.slot,
         slot,
-        slot_relative_position,
+        latest_block_roots_length,
     )
 
 
@@ -116,21 +118,29 @@ def _get_shard_committees_at_slot(
         shard_committees_at_slots: Sequence[Sequence[ShardCommittee]],
         slot: SlotNumber,
         epoch_length: int) -> Iterable[ShardCommittee]:
-    if len(shard_committees_at_slots) != epoch_length * 2:
-        raise ValueError(
-            "Length of shard_committees_at_slots != epoch_length * 2"
-            "\texpected: %s, found: %s" % (
-                epoch_length * 2, len(shard_committees_at_slots)
+
+    earliest_slot_in_array = state_slot - (state_slot % epoch_length) - epoch_length
+
+    if earliest_slot_in_array > slot:
+        raise ValidationError(
+            "earliest_slot_in_array ({}) should be less than or equal to slot ({})".format(
+                earliest_slot_in_array,
+                slot,
+            )
+        )
+    if slot >= earliest_slot_in_array + epoch_length * 2:
+        raise ValidationError(
+            "slot ({}) should be less than "
+            "(earliest_slot_in_array + epoch_length * 2) ({}), "
+            "where earliest_slot_in_array={}, epoch_length={}".format(
+                slot,
+                earliest_slot_in_array + epoch_length * 2,
+                earliest_slot_in_array,
+                epoch_length,
             )
         )
 
-    slot_relative_position = SlotNumber(state_slot - epoch_length)
-
-    yield from _get_element_from_recent_list(
-        shard_committees_at_slots,
-        slot,
-        slot_relative_position,
-    )
+    return shard_committees_at_slots[slot - earliest_slot_in_array]
 
 
 def get_shard_committees_at_slot(state: 'BeaconState',

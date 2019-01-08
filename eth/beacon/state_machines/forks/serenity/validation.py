@@ -5,7 +5,6 @@ from eth_utils import (
     ValidationError,
 )
 import rlp
-from typing import Type
 
 from eth.constants import (
     ZERO_HASH32,
@@ -69,10 +68,11 @@ def validate_serenity_proposer_signature(state: BeaconState,
 #
 # Attestation validation
 #
-def validate_serenity_attestation(state: Type[BeaconState],
+def validate_serenity_attestation(state: BeaconState,
                                   attestation: Attestation,
                                   epoch_length: int,
-                                  min_attestation_inclusion_delay: int) -> None:
+                                  min_attestation_inclusion_delay: int,
+                                  latest_block_roots_length: int) -> None:
     """
     Validate the given ``attestation``.
     Raise ``ValidationError`` if it's invalid.
@@ -96,9 +96,9 @@ def validate_serenity_attestation(state: Type[BeaconState],
     validate_serenity_attestation_justified_block_root(
         attestation.data,
         justified_block_root=get_block_root(
-            state.latest_block_roots,
-            current_slot=state.slot,
+            state=state,
             slot=attestation.data.justified_slot,
+            latest_block_roots_length=latest_block_roots_length,
         ),
     )
 
@@ -237,7 +237,7 @@ def validate_serenity_attestation_shard_block_root(attestation_data: Attestation
         )
 
 
-def validate_serenity_attestation_aggregate_signature(state: Type[BeaconState],
+def validate_serenity_attestation_aggregate_signature(state: BeaconState,
                                                       attestation: Attestation,
                                                       epoch_length: int) -> None:
     """
