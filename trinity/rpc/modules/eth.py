@@ -1,3 +1,5 @@
+import os
+
 from cytoolz import (
     identity,
 )
@@ -22,6 +24,7 @@ from eth_utils import (
     encode_hex,
     int_to_big_endian,
     is_integer,
+    to_wei,
 )
 
 from eth.constants import (
@@ -160,8 +163,10 @@ class Eth(RPCModule):
         result = self._chain.get_transaction_result(transaction, header)
         return encode_hex(result)
 
-    async def coinbase(self) -> Hash32:
-        raise NotImplementedError()
+    async def coinbase(self) -> str:
+        # Trinity doesn't support mining yet and hence coinbase_address is default (ZERO_ADDRESS)
+        coinbase_address = ZERO_ADDRESS
+        return encode_hex(coinbase_address)
 
     @format_params(identity, to_int_if_hex)
     async def estimateGas(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
@@ -171,8 +176,8 @@ class Eth(RPCModule):
         gas = self._chain.estimate_gas(transaction, header)
         return hex(gas)
 
-    async def gasPrice(self) -> int:
-        raise NotImplementedError()
+    async def gasPrice(self) -> str:
+        return hex(int(os.environ.get('TRINITY_GAS_PRICE', to_wei(1, 'gwei'))))
 
     @format_params(decode_hex, to_int_if_hex)
     async def getBalance(self, address: Address, at_block: Union[str, int]) -> str:
@@ -267,7 +272,9 @@ class Eth(RPCModule):
         return header_to_dict(uncle)
 
     async def hashrate(self) -> str:
-        raise NotImplementedError()
+        # Trinity doesn't support mining yet and hence hashrate is default (0)
+        hashrate = 0
+        return hex(hashrate)
 
     async def mining(self) -> bool:
         return False
