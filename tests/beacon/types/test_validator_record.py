@@ -1,5 +1,8 @@
 import pytest
 
+from eth.beacon.constants import (
+    FAR_FUTURE_SLOT,
+)
 from eth.beacon.types.validator_records import (
     ValidatorRecord,
 )
@@ -34,26 +37,25 @@ def test_is_active(sample_validator_record_params,
     assert validator.is_active(slot) == expected
 
 
-def test_get_pending_validator(far_future_slot):
+def test_create_pending_validator():
     pubkey = 123
     withdrawal_credentials = b'\x11' * 32
     randao_commitment = b'\x22' * 32
     custody_commitment = b'\x33' * 32
 
-    validator = ValidatorRecord.get_pending_validator(
+    validator = ValidatorRecord.create_pending_validator(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
         custody_commitment=custody_commitment,
-        far_future_slot=far_future_slot,
     )
 
     assert validator.pubkey == pubkey
     assert validator.withdrawal_credentials == withdrawal_credentials
     assert validator.randao_commitment == randao_commitment
     assert validator.randao_layers == 0
-    assert validator.activation_slot == far_future_slot
-    assert validator.exit_slot == far_future_slot
-    assert validator.withdrawal_slot == far_future_slot
-    assert validator.penalized_slot == far_future_slot
+    assert validator.activation_slot == FAR_FUTURE_SLOT
+    assert validator.exit_slot == FAR_FUTURE_SLOT
+    assert validator.withdrawal_slot == FAR_FUTURE_SLOT
+    assert validator.penalized_slot == FAR_FUTURE_SLOT
     assert validator.exit_count == 0

@@ -7,6 +7,7 @@ from eth.constants import (
 )
 from eth.beacon.constants import (
     EMPTY_SIGNATURE,
+    FAR_FUTURE_SLOT,
 )
 from eth.beacon.enums import (
     SignatureDomain,
@@ -21,7 +22,6 @@ from eth.beacon.types.validator_records import (
 
 
 def mock_validator_record(pubkey,
-                          far_future_slot,
                           withdrawal_credentials=ZERO_HASH32,
                           randao_commitment=ZERO_HASH32,
                           status_flags=0,
@@ -31,10 +31,10 @@ def mock_validator_record(pubkey,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
         randao_layers=0,
-        activation_slot=0 if is_active else far_future_slot,
-        exit_slot=far_future_slot,
-        withdrawal_slot=far_future_slot,
-        penalized_slot=far_future_slot,
+        activation_slot=0 if is_active else FAR_FUTURE_SLOT,
+        exit_slot=FAR_FUTURE_SLOT,
+        withdrawal_slot=FAR_FUTURE_SLOT,
+        penalized_slot=FAR_FUTURE_SLOT,
         exit_count=0,
         status_flags=status_flags,
         custody_commitment=b'\x55' * 32,

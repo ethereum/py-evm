@@ -29,7 +29,6 @@ SERENITY_CONFIG = BeaconConfig(
     # Initial values
     GENESIS_FORK_VERSION=0,
     GENESIS_SLOT=SlotNumber(0),
-    FAR_FUTURE_SLOT=SlotNumber(2**64 - 1),
     BLS_WITHDRAWAL_PREFIX_BYTE=b'\x00',
     # Time parameters
     SLOT_DURATION=Second(6),  # seconds

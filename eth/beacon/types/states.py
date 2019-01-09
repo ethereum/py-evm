@@ -201,6 +201,9 @@ class BeaconState(rlp.Serializable):
     def update_validator_balance(self,
                                  validator_index: ValidatorIndex,
                                  balance: Gwei) -> 'BeaconState':
+        """
+        Update the balance of validator of the given ``validator_index``.
+        """
         if validator_index >= self.num_validators or validator_index < 0:
             raise IndexError("Incorrect validator index")
 
@@ -216,6 +219,9 @@ class BeaconState(rlp.Serializable):
                          validator_index: ValidatorIndex,
                          validator: ValidatorRecord,
                          balance: Gwei) -> 'BeaconState':
+        """
+        Update the ``ValidatorRecord`` and balance of validator of the given ``validator_index``.
+        """
         state = self.update_validator_registry(validator_index, validator)
         state = state.update_validator_balance(validator_index, balance)
         return state

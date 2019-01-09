@@ -36,7 +36,6 @@ BeaconConfig = NamedTuple(
         # Initial values
         ('GENESIS_FORK_VERSION', int),
         ('GENESIS_SLOT', SlotNumber),
-        ('FAR_FUTURE_SLOT', SlotNumber),
         ('BLS_WITHDRAWAL_PREFIX_BYTE', bytes),
         # Time parameters
         ('SLOT_DURATION', Second),

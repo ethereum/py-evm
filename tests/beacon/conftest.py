@@ -17,6 +17,7 @@ from eth.beacon.aggregation import (
     aggregate_votes,
 )
 from eth.beacon.constants import (
+    FAR_FUTURE_SLOT,
     GWEI_PER_ETH,
 )
 from eth.beacon.enums import (
@@ -306,16 +307,16 @@ def sample_casper_slashing_params(sample_slashable_vote_data_params):
 
 
 @pytest.fixture
-def sample_validator_record_params(far_future_slot):
+def sample_validator_record_params():
     return {
         'pubkey': 123,
         'withdrawal_credentials': b'\x01' * 32,
         'randao_commitment': b'\x01' * 32,
         'randao_layers': 1,
-        'activation_slot': far_future_slot,
-        'exit_slot': far_future_slot,
-        'withdrawal_slot': far_future_slot,
-        'penalized_slot': far_future_slot,
+        'activation_slot': FAR_FUTURE_SLOT,
+        'exit_slot': FAR_FUTURE_SLOT,
+        'withdrawal_slot': FAR_FUTURE_SLOT,
+        'penalized_slot': FAR_FUTURE_SLOT,
         'exit_count': 0,
         'status_flags': 0,
         'custody_commitment': ZERO_HASH32,
@@ -371,13 +372,12 @@ def empty_beacon_state(latest_block_roots_length,
 
 
 @pytest.fixture()
-def ten_validators_state(empty_beacon_state, max_deposit, far_future_slot):
+def ten_validators_state(empty_beacon_state, max_deposit):
     validator_count = 10
     return empty_beacon_state.copy(
         validator_registry=tuple(
             mock_validator_record(
                 pubkey=pubkey,
-                far_future_slot=far_future_slot,
                 is_active=True,
             )
             for pubkey in range(validator_count)
@@ -490,11 +490,6 @@ def genesis_fork_version():
 @pytest.fixture
 def genesis_slot():
     return SERENITY_CONFIG.GENESIS_SLOT
-
-
-@pytest.fixture
-def far_future_slot():
-    return SERENITY_CONFIG.FAR_FUTURE_SLOT
 
 
 @pytest.fixture
@@ -621,15 +616,13 @@ def genesis_state(sample_beacon_state_params,
 @pytest.fixture
 def initial_validators(init_validator_pubkeys,
                        init_randao,
-                       max_deposit,
-                       far_future_slot):
+                       max_deposit):
     """
     Inactive
     """
     return tuple(
         mock_validator_record(
             pubkey=pubkey,
-            far_future_slot=far_future_slot,
             withdrawal_credentials=ZERO_HASH32,
             randao_commitment=init_randao,
             status_flags=0,

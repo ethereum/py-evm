@@ -20,7 +20,6 @@ from eth.beacon.helpers import (
     get_domain,
 )
 from eth.beacon.typing import (
-    SlotNumber,
     BLSPubkey,
     BLSSignature,
     ValidatorIndex,
@@ -81,8 +80,7 @@ def process_deposit(*,
                     proof_of_possession: BLSSignature,
                     withdrawal_credentials: Hash32,
                     randao_commitment: Hash32,
-                    custody_commitment: Hash32,
-                    far_future_slot: SlotNumber) -> BeaconState:
+                    custody_commitment: Hash32) -> BeaconState:
     """
     Process a deposit from Ethereum 1.0.
     """
@@ -97,12 +95,11 @@ def process_deposit(*,
 
     validator_pubkeys = tuple(v.pubkey for v in state.validator_registry)
     if pubkey not in validator_pubkeys:
-        validator = ValidatorRecord.get_pending_validator(
+        validator = ValidatorRecord.create_pending_validator(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             custody_commitment=custody_commitment,
-            far_future_slot=far_future_slot,
         )
 
         # Note: In phase 2 registry indices that has been withdrawn for a long time

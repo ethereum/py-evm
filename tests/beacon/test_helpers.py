@@ -1,7 +1,8 @@
 import copy
+import random
+
 import itertools
 import pytest
-import random
 
 from hypothesis import (
     given,
@@ -18,6 +19,7 @@ from eth.constants import (
 )
 from eth.beacon.constants import (
     GWEI_PER_ETH,
+    FAR_FUTURE_SLOT,
 )
 from eth.beacon.enums import (
     SignatureDomain,
@@ -462,7 +464,7 @@ def test_get_beacon_proposer_index(
             )
 
 
-def test_get_active_validator_indices(sample_validator_record_params, far_future_slot):
+def test_get_active_validator_indices(sample_validator_record_params):
     current_slot = 1
     # 3 validators are ACTIVE
     validators = [
@@ -470,7 +472,7 @@ def test_get_active_validator_indices(sample_validator_record_params, far_future
             **sample_validator_record_params,
         ).copy(
             activation_slot=0,
-            exit_slot=far_future_slot,
+            exit_slot=FAR_FUTURE_SLOT,
         )
         for i in range(3)
     ]

@@ -8,6 +8,9 @@ from eth.rlp.sedes import (
     uint384,
     hash32,
 )
+from eth.beacon.constants import (
+    FAR_FUTURE_SLOT,
+)
 from eth.beacon.typing import (
     SlotNumber,
     BLSPubkey,
@@ -79,18 +82,16 @@ class ValidatorRecord(rlp.Serializable):
 
     def is_active(self, slot: int) -> bool:
         """
-        Return ``True`` if the validator is active.Return ``True``
-        if the validator is active during the slot, ``slot``.
+        Return ``True`` if the validator is active during the slot, ``slot``.
         """
         return self.activation_slot <= slot < self.exit_slot
 
     @classmethod
-    def get_pending_validator(cls,
-                              pubkey: BLSPubkey,
-                              withdrawal_credentials: Hash32,
-                              randao_commitment: Hash32,
-                              custody_commitment: Hash32,
-                              far_future_slot: SlotNumber) -> 'ValidatorRecord':
+    def create_pending_validator(cls,
+                                 pubkey: BLSPubkey,
+                                 withdrawal_credentials: Hash32,
+                                 randao_commitment: Hash32,
+                                 custody_commitment: Hash32) -> 'ValidatorRecord':
         """
         Return a new pending ``ValidatorRecord`` with the given fields.
         """
@@ -99,10 +100,10 @@ class ValidatorRecord(rlp.Serializable):
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             randao_layers=0,
-            activation_slot=far_future_slot,
-            exit_slot=far_future_slot,
-            withdrawal_slot=far_future_slot,
-            penalized_slot=far_future_slot,
+            activation_slot=FAR_FUTURE_SLOT,
+            exit_slot=FAR_FUTURE_SLOT,
+            withdrawal_slot=FAR_FUTURE_SLOT,
+            penalized_slot=FAR_FUTURE_SLOT,
             exit_count=0,
             status_flags=0,
             custody_commitment=custody_commitment,
