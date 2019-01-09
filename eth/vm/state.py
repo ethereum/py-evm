@@ -225,17 +225,20 @@ class BaseState(Configurable, ABC):
     #
     # Computation
     #
+    @classmethod
+    def get_computation_class(cls) -> 'BaseComputation':
+        if cls.computation_class is None:
+            raise AttributeError("No `computation_class` has been set for this State")
+        else:
+            return cls.computation_class
+
     def get_computation(self,
                         message: Message,
                         transaction_context: 'BaseTransactionContext') -> 'BaseComputation':
         """
         Return a computation instance for the given `message` and `transaction_context`
         """
-        if self.computation_class is None:
-            raise AttributeError("No `computation_class` has been set for this State")
-        else:
-            computation = self.computation_class(self, message, transaction_context, self.tracer)
-        return computation
+        return self.get_computation_class()(self, message, transaction_context, self.tracer)
 
     #
     # Transaction context

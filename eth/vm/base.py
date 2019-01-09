@@ -470,7 +470,7 @@ class VM(BaseVM):
 
         # Execute it in the VM
         with self.state.trace(tracer):
-            return self.state.get_computation(message, transaction_context).apply_computation(
+            return self.state.get_computation_class().apply_computation(
                 self.state,
                 message,
                 transaction_context,
