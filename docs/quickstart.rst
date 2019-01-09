@@ -1,1 +1,1 @@
-.. include:: guides/trinity/quickstart.rst
+.. include:: guides/quickstart.rst

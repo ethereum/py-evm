@@ -16,7 +16,6 @@ Table of contents
    :maxdepth: 1
    :caption: Fundamentals
 
-   cookbooks/index
    guides/index
    api/index
 

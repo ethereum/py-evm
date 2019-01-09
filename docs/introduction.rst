@@ -51,14 +51,14 @@ Trinity is a refernece implementation on top of Py-EVM that aims to:
 
   Trinity is currently in **public alpha** and can connect and sync to the main ethereum network.
   While it isn't meant for production use yet, we encourage the adventurous to try it out.
-  Follow along the :doc:`Trinity Quickstart </guides/trinity/quickstart>` to get things going.
+  Follow along the :doc:`Quickstart </guides/quickstart>` to get things going.
 
 Further reading
 ---------------
 
 Here are a couple more useful links to check out.
 
-* :doc:`Trinity Quickstart </guides/trinity/quickstart>`
+* :doc:`Quickstart </guides/quickstart>`
 * `Source Code on GitHub <https://github.com/ethereum/py-evm>`_
 * `Public Gitter Chat <https://gitter.im/ethereum/py-evm>`_
 * :doc:`Get involved </contributing>`

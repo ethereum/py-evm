@@ -174,7 +174,7 @@ which is the most commonly used plugin category.
 
 Every plugin needs to overwrite ``name`` so voilà, here's our first plugin!
 
-.. literalinclude:: ../../../trinity-external-plugins/examples/peer_count_reporter/peer_count_reporter_plugin/plugin.py
+.. literalinclude:: ../../trinity-external-plugins/examples/peer_count_reporter/peer_count_reporter_plugin/plugin.py
    :language: python
    :pyobject: PeerCountReporterPlugin
    :end-before: def configure_parser
@@ -196,7 +196,7 @@ command line arguments in many different ways.
 
 For example, here we are adding a boolean flag ``--report-peer-count`` to Trinity.
 
-.. literalinclude:: ../../../trinity-external-plugins/examples/peer_count_reporter/peer_count_reporter_plugin/plugin.py
+.. literalinclude:: ../../trinity-external-plugins/examples/peer_count_reporter/peer_count_reporter_plugin/plugin.py
    :language: python
    :pyobject: PeerCountReporterPlugin.configure_parser
 
@@ -236,14 +236,14 @@ While it is absolutely possible to put this logic right into the plugin, the pre
 subclass :class:`~p2p.service.BaseService` and implement the core logic in such a standalone
 service.
 
-.. literalinclude:: ../../../trinity-external-plugins/examples/peer_count_reporter/peer_count_reporter_plugin/plugin.py
+.. literalinclude:: ../../trinity-external-plugins/examples/peer_count_reporter/peer_count_reporter_plugin/plugin.py
    :language: python
    :pyobject: PeerCountReporter
 
 Then, the implementation of :meth:`~trinity.extensibility.plugin.BaseIsolatedPlugin.do_start` is
 only concerned about running the service on a fresh event loop.
 
-.. literalinclude:: ../../../trinity-external-plugins/examples/peer_count_reporter/peer_count_reporter_plugin/plugin.py
+.. literalinclude:: ../../trinity-external-plugins/examples/peer_count_reporter/peer_count_reporter_plugin/plugin.py
    :language: python
    :pyobject: PeerCountReporterPlugin.do_start
 
@@ -270,7 +270,7 @@ Hence, to actually start a plugin, the plugin needs to invoke the
 ``READY`` state. Let's assume a simple case in which we simply want to start the plugin if Trinity
 is started with the ``--report-peer-count`` flag.
 
-.. literalinclude:: ../../../trinity-external-plugins/examples/peer_count_reporter/peer_count_reporter_plugin/plugin.py
+.. literalinclude:: ../../trinity-external-plugins/examples/peer_count_reporter/peer_count_reporter_plugin/plugin.py
    :language: python
    :pyobject: PeerCountReporterPlugin.on_ready
 
@@ -325,7 +325,7 @@ In this guide, we won't go into details about how to create Python packages as t
 Once we have a ``setup.py`` file, all we have to do is to expose our plugin under
 ``trinity.plugins`` via the ``entry_points`` section.
 
-.. literalinclude:: ../../../trinity-external-plugins/examples/peer_count_reporter/setup.py
+.. literalinclude:: ../../trinity-external-plugins/examples/peer_count_reporter/setup.py
    :language: python
 
 Check out the `official documentation on entry points <https://packaging.python.org/guides/creating-and-discovering-plugins/#using-package-metadata>`_

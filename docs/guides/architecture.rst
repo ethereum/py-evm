@@ -18,7 +18,7 @@ The three main layers from top to bottom are:
 
 They can be visualized as seen in the following graphic:
 
-.. image:: ../../images/trinity_layers.png
+.. image:: ../images/trinity_layers.png
    :scale: 75 %
    :alt: Layers of Trinity
    :align: center
@@ -78,7 +78,7 @@ than IO bound.
 
 On startup, Trinity spawns three main processes that we'll briefly explain here.
 
-.. image:: ../../images/trinity_processes.png
+.. image:: ../images/trinity_processes.png
    :scale: 75 %
    :alt: Layers of Trinity
    :align: center
@@ -122,11 +122,11 @@ things from the database.
 The networking process also hosts an instance of the
 :class:`~trinity.extensibility.plugin_manager.PluginManager` to run plugins that need to deeply
 integrate with the networking process (Further reading:
-:doc:`Writing Plugins</guides/trinity/writing_plugins>`).
+:doc:`Writing Plugins</guides/writing_plugins>`).
 
 Plugin Processes
 ----------------
 
 Apart from running these three core processes, there may be additional processes for plugins that
 run in isolated processes. Isolated plugins are explained in depth in the
-:doc:`Writing Plugins</guides/trinity/writing_plugins>` guide.
+:doc:`Writing Plugins</guides/writing_plugins>` guide.
