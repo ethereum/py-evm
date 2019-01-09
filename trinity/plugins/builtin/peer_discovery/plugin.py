@@ -23,6 +23,7 @@ from p2p.discovery import (
     DiscoveryByTopicProtocol,
     DiscoveryProtocol,
     DiscoveryService,
+    NoopDiscoveryService,
     PreferredNodeDiscoveryProtocol,
 )
 from p2p.kademlia import (
@@ -91,8 +92,12 @@ class DiscoveryBootstrapService(BaseService):
     Bootstrap discovery to provide a parent ``CancellationToken``
     """
 
-    def __init__(self, event_bus: Endpoint, trinity_config: TrinityConfig) -> None:
+    def __init__(self,
+                 disable_discovery: bool,
+                 event_bus: Endpoint,
+                 trinity_config: TrinityConfig) -> None:
         super().__init__()
+        self.is_discovery_disabled = disable_discovery
         self.event_bus = event_bus
         self.trinity_config = trinity_config
 
@@ -120,12 +125,18 @@ class DiscoveryBootstrapService(BaseService):
                 self.cancel_token,
             )
 
-        discovery_service = DiscoveryService(
-            discovery_protocol,
-            self.trinity_config.port,
-            self.event_bus,
-            self.cancel_token,
-        )
+        if self.is_discovery_disabled:
+            discovery_service: BaseService = NoopDiscoveryService(
+                self.event_bus,
+                self.cancel_token,
+            )
+        else:
+            discovery_service = DiscoveryService(
+                discovery_protocol,
+                self.trinity_config.port,
+                self.event_bus,
+                self.cancel_token,
+            )
 
         await discovery_service.run()
 
@@ -140,8 +151,7 @@ class PeerDiscoveryPlugin(BaseIsolatedPlugin):
         return "Peer Discovery"
 
     def on_ready(self) -> None:
-        if not self.context.args.disable_discovery:
-            self.start()
+        self.start()
 
     def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         arg_parser.add_argument(
@@ -152,7 +162,11 @@ class PeerDiscoveryPlugin(BaseIsolatedPlugin):
 
     def do_start(self) -> None:
         loop = asyncio.get_event_loop()
-        discovery_bootstrap = DiscoveryBootstrapService(self.event_bus, self.context.trinity_config)
+        discovery_bootstrap = DiscoveryBootstrapService(
+            self.context.args.disable_discovery,
+            self.event_bus,
+            self.context.trinity_config
+        )
         asyncio.ensure_future(exit_with_service_and_endpoint(discovery_bootstrap, self.event_bus))
         asyncio.ensure_future(discovery_bootstrap.run())
         loop.run_forever()
