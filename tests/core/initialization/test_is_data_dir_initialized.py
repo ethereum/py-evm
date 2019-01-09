@@ -36,13 +36,6 @@ def logfile_path(trinity_config, logfile_dir):
 
 
 @pytest.fixture
-def database_dir(trinity_config, data_dir):
-    os.makedirs(trinity_config.database_dir, exist_ok=True)
-    assert os.path.exists(trinity_config.database_dir)
-    return trinity_config.database_dir
-
-
-@pytest.fixture
 def ipc_dir(trinity_config):
     os.makedirs(trinity_config.ipc_dir, exist_ok=True)
     assert os.path.exists(trinity_config.ipc_dir)
@@ -68,17 +61,12 @@ def test_not_initialized_without_data_dir(trinity_config):
     assert not is_data_dir_initialized(trinity_config)
 
 
-def test_not_initialized_without_database_dir(trinity_config, data_dir):
-    assert not os.path.exists(trinity_config.database_dir)
-    assert not is_data_dir_initialized(trinity_config)
-
-
-def test_not_initialized_without_nodekey_file(trinity_config, data_dir, database_dir):
+def test_not_initialized_without_nodekey_file(trinity_config, data_dir):
     assert not os.path.exists(trinity_config.nodekey_path)
     assert not is_data_dir_initialized(trinity_config)
 
 
-def test_not_initialized_without_logfile_dir(trinity_config, data_dir, database_dir, nodekey):
+def test_not_initialized_without_logfile_dir(trinity_config, data_dir, nodekey):
     assert not os.path.exists(trinity_config.logfile_path.parent)
     assert not is_data_dir_initialized(trinity_config)
 
@@ -86,7 +74,6 @@ def test_not_initialized_without_logfile_dir(trinity_config, data_dir, database_
 def test_not_initialized_without_logfile_path(
         trinity_config,
         data_dir,
-        database_dir,
         nodekey,
         logfile_dir):
     assert not os.path.exists(trinity_config.logfile_path)
@@ -96,7 +83,6 @@ def test_not_initialized_without_logfile_path(
 def test_not_initialized_without_ipc_dir(
         trinity_config,
         data_dir,
-        database_dir,
         nodekey,
         logfile_dir,
         logfile_path):
@@ -107,7 +93,6 @@ def test_not_initialized_without_ipc_dir(
 def test_not_initialized_without_pid_dir(
         trinity_config,
         data_dir,
-        database_dir,
         nodekey,
         logfile_dir,
         logfile_path,
@@ -119,7 +104,6 @@ def test_not_initialized_without_pid_dir(
 def test_full_initialized_data_dir(
         trinity_config,
         data_dir,
-        database_dir,
         nodekey,
         logfile_dir,
         logfile_path,
@@ -135,7 +119,6 @@ def test_full_initialized_data_dir_with_custom_nodekey():
     trinity_config = TrinityConfig(network_id=1, nodekey=NODEKEY)
 
     os.makedirs(trinity_config.data_dir, exist_ok=True)
-    os.makedirs(trinity_config.database_dir, exist_ok=True)
     os.makedirs(trinity_config.logfile_path, exist_ok=True)
     os.makedirs(trinity_config.ipc_dir, exist_ok=True)
     os.makedirs(trinity_config.pid_dir, exist_ok=True)

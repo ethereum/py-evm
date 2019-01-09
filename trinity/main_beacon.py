@@ -1,4 +1,4 @@
-from argparse import ArgumentParser, Namespace
+from argparse import Namespace
 import asyncio
 import logging
 import signal
@@ -12,12 +12,9 @@ from lahja import (
     Endpoint,
 )
 
-from eth.db.backends.level import LevelDB
-
 from trinity.bootstrap import (
     kill_trinity_gracefully,
     main_entry,
-    run_database_process,
 )
 from trinity.config import (
     TrinityConfig,
@@ -34,13 +31,6 @@ from trinity.extensibility import (
 )
 from trinity.plugins.registry import (
     BASE_PLUGINS,
-)
-from trinity._utils.ipc import (
-    wait_for_ipc,
-    kill_process_gracefully,
-)
-from trinity._utils.mp import (
-    ctx,
 )
 
 
@@ -62,33 +52,10 @@ def trinity_boot(args: Namespace,
 
     event_bus.start()
 
-    # First initialize the database process.
-    database_server_process = ctx.Process(
-        name="DB",
-        target=run_database_process,
-        args=(
-            trinity_config,
-            LevelDB,
-        ),
-        kwargs=extra_kwargs,
-    )
-
-    # start the processes
-    database_server_process.start()
-    logger.info("Started DB server process (pid=%d)", database_server_process.pid)
-
-    # networking process needs the IPC socket file provided by the database process
-    try:
-        wait_for_ipc(trinity_config.database_ipc_path)
-    except TimeoutError as e:
-        logger.error("Timeout waiting for database to start.  Exiting...")
-        kill_process_gracefully(database_server_process, logger)
-        ArgumentParser().error(message="Timed out waiting for database start")
-
     def kill_trinity_with_reason(reason: str) -> None:
         kill_trinity_gracefully(
             logger,
-            (database_server_process,),
+            (),
             plugin_manager,
             main_endpoint,
             event_bus,

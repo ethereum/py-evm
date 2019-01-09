@@ -2,7 +2,6 @@ from argparse import ArgumentParser, Namespace
 import logging
 import multiprocessing
 import os
-import signal
 from typing import (
     Any,
     Callable,
@@ -16,9 +15,6 @@ from lahja import (
     Endpoint,
 )
 
-from eth.db.backends.base import BaseDB
-
-from trinity.db.manager import get_chaindb_manager
 from trinity.exceptions import (
     AmbigiousFileSystem,
     MissingPath,
@@ -54,13 +50,9 @@ from trinity._utils.logging import (
     setup_log_levels,
     setup_trinity_stderr_logging,
     setup_trinity_file_and_queue_logging,
-    with_queued_logging,
 )
 from trinity._utils.mp import (
     ctx,
-)
-from trinity._utils.profiling import (
-    setup_cprofiler,
 )
 from trinity._utils.version import (
     construct_trinity_client_identifier,
@@ -227,27 +219,6 @@ def display_launch_logs(trinity_config: TrinityConfig) -> None:
     logger.info("Started main process (pid=%d)", os.getpid())
     logger.info(construct_trinity_client_identifier())
     logger.info("Trinity DEBUG log file is created at %s", str(trinity_config.logfile_path))
-
-
-@setup_cprofiler('run_database_process')
-@with_queued_logging
-def run_database_process(trinity_config: TrinityConfig, db_class: Type[BaseDB]) -> None:
-    with trinity_config.process_id_file('database'):
-        base_db = db_class(db_path=trinity_config.database_dir)
-
-        manager = get_chaindb_manager(trinity_config, base_db)
-        server = manager.get_server()  # type: ignore
-
-        def _sigint_handler(*args: Any) -> None:
-            server.stop_event.set()
-
-        signal.signal(signal.SIGINT, _sigint_handler)
-
-        try:
-            server.serve_forever()
-        except SystemExit:
-            server.stop_event.set()
-            raise
 
 
 def kill_trinity_gracefully(logger: logging.Logger,

@@ -6,6 +6,7 @@ from eth.exceptions import CanonicalHeadNotFound
 from p2p import ecies
 
 from trinity.config import (
+    Eth1AppConfig,
     ChainConfig,
     TrinityConfig,
 )
@@ -24,9 +25,6 @@ def is_data_dir_initialized(trinity_config: TrinityConfig) -> bool:
     otherwise return ``False``
     """
     if not os.path.exists(trinity_config.data_dir):
-        return False
-
-    if not os.path.exists(trinity_config.database_dir):
         return False
 
     if not os.path.exists(trinity_config.pid_dir):
@@ -94,7 +92,6 @@ def initialize_data_dir(trinity_config: TrinityConfig) -> None:
         )
 
     # Initialize chain, pid and ipc directories
-    os.makedirs(trinity_config.database_dir, exist_ok=True)
     os.makedirs(trinity_config.pid_dir, exist_ok=True)
     os.makedirs(trinity_config.ipc_dir, exist_ok=True)
 
@@ -112,3 +109,8 @@ def initialize_database(chain_config: ChainConfig,
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
         chain_config.initialize_chain(base_db)
+
+
+def ensure_eth1_dirs(app_config: Eth1AppConfig) -> None:
+    if not app_config.database_dir.exists():
+        app_config.database_dir.mkdir(parents=True, exist_ok=True)

@@ -71,7 +71,7 @@ def get_protocol(trinity_config: TrinityConfig) -> Type[Protocol]:
         return BCCProtocol
     else:
         eth1_config = trinity_config.get_app_config(Eth1AppConfig)
-        if eth1_config.is_light_mode:
+        if eth1_config.uses_light_db:
             return LESProtocolV2
         else:
             return ETHProtocol

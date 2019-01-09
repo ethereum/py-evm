@@ -6,6 +6,7 @@ from typing import (
     Any,
     Dict,
     Iterable,
+    Type,
 )
 
 from lahja import (
@@ -13,6 +14,7 @@ from lahja import (
     Endpoint,
 )
 
+from eth.db.backends.base import BaseDB
 from eth.db.backends.level import LevelDB
 
 from p2p.service import BaseService
@@ -20,7 +22,6 @@ from p2p.service import BaseService
 from trinity.bootstrap import (
     kill_trinity_gracefully,
     main_entry,
-    run_database_process,
     setup_plugins,
 )
 from trinity.config import (
@@ -31,6 +32,9 @@ from trinity.constants import (
     APP_IDENTIFIER_ETH1,
     NETWORKING_EVENTBUS_ENDPOINT,
 )
+from trinity.db.manager import (
+    get_chaindb_manager,
+)
 from trinity.events import (
     ShutdownRequest
 )
@@ -38,6 +42,9 @@ from trinity.extensibility import (
     BasePlugin,
     PluginManager,
     SharedProcessScope,
+)
+from trinity.initialization import (
+    ensure_eth1_dirs,
 )
 from trinity.plugins.registry import (
     BASE_PLUGINS,
@@ -81,6 +88,8 @@ def trinity_boot(args: Namespace,
     # start the listener thread to handle logs produced by other processes in
     # the local logger.
     listener.start()
+
+    ensure_eth1_dirs(trinity_config.get_app_config(Eth1AppConfig))
 
     networking_endpoint = event_bus.create_endpoint(NETWORKING_EVENTBUS_ENDPOINT)
     event_bus.start()
@@ -162,6 +171,29 @@ def launch_node(args: Namespace, trinity_config: TrinityConfig, endpoint: Endpoi
         asyncio.ensure_future(node.run(), loop=loop)
         loop.run_forever()
         loop.close()
+
+
+@setup_cprofiler('run_database_process')
+@with_queued_logging
+def run_database_process(trinity_config: TrinityConfig, db_class: Type[BaseDB]) -> None:
+    with trinity_config.process_id_file('database'):
+        app_config = trinity_config.get_app_config(Eth1AppConfig)
+
+        base_db = db_class(db_path=app_config.database_dir)
+
+        manager = get_chaindb_manager(trinity_config, base_db)
+        server = manager.get_server()  # type: ignore
+
+        def _sigint_handler(*args: Any) -> None:
+            server.stop_event.set()
+
+        signal.signal(signal.SIGINT, _sigint_handler)
+
+        try:
+            server.serve_forever()
+        except SystemExit:
+            server.stop_event.set()
+            raise
 
 
 async def handle_networking_exit(service: BaseService,

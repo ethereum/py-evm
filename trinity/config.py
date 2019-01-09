@@ -370,20 +370,6 @@ class TrinityConfig:
         self._data_dir = Path(value).resolve()
 
     @property
-    def database_dir(self) -> Path:
-        """
-        Path where the chain database will be stored.
-
-        This is resolved relative to the ``data_dir``
-        """
-        if self.sync_mode == SYNC_FULL:
-            return self.with_app_suffix(self.data_dir / DATABASE_DIR_NAME) / "full"
-        elif self.sync_mode == SYNC_LIGHT:
-            return self.with_app_suffix(self.data_dir / DATABASE_DIR_NAME) / "light"
-        else:
-            raise ValueError(f"Unknown sync mode: {self.sync_mode}")
-
-    @property
     def database_ipc_path(self) -> Path:
         """
         Path for the database IPC socket connection.
@@ -536,12 +522,25 @@ class Eth1AppConfig(BaseAppConfig):
         return cls(trinity_config)
 
     @property
-    def is_light_mode(self) -> bool:
+    def database_dir(self) -> Path:
+        """
+        Path where the chain database will be stored.
+
+        This is resolved relative to the ``data_dir``
+        """
+        path = self.trinity_config.data_dir / DATABASE_DIR_NAME
+        if self.uses_light_db:
+            return self.trinity_config.with_app_suffix(path) / "light"
+        else:
+            return self.trinity_config.with_app_suffix(path) / "full"
+
+    @property
+    def uses_light_db(self) -> bool:
         return self.trinity_config.sync_mode == SYNC_LIGHT
 
     @property
-    def is_full_mode(self) -> bool:
-        return self.trinity_config.sync_mode == SYNC_FULL
+    def uses_full_db(self) -> bool:
+        return not self.uses_light_db
 
     @property
     def node_class(self) -> Type['Node']:
@@ -551,12 +550,13 @@ class Eth1AppConfig(BaseAppConfig):
         from trinity.nodes.full import FullNode
         from trinity.nodes.light import LightNode
 
-        if self.is_full_mode:
+        if self.uses_full_db:
             return FullNode
-        elif self.is_light_mode:
+        elif self.uses_light_db:
             return LightNode
         else:
             raise NotImplementedError("Only full and light sync modes are supported")
+
 
 
 class BeaconAppConfig(BaseAppConfig):

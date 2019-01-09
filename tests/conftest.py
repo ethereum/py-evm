@@ -27,11 +27,19 @@ from lahja import (
     EventBus,
 )
 
+from trinity.config import (
+    Eth1AppConfig,
+    TrinityConfig,
+)
 from trinity.constants import (
     NETWORKING_EVENTBUS_ENDPOINT,
 )
 from trinity.chains.coro import (
     AsyncChainMixin,
+)
+from trinity.initialization import (
+    ensure_eth1_dirs,
+    initialize_data_dir,
 )
 from trinity.rpc.main import (
     RPCServer,
@@ -114,6 +122,20 @@ async def event_bus(event_loop):
 def jsonrpc_ipc_pipe_path():
     with tempfile.TemporaryDirectory() as temp_dir:
         yield Path(temp_dir) / '{0}.ipc'.format(uuid.uuid4())
+
+
+@pytest.fixture
+def trinity_config():
+    _trinity_config = TrinityConfig(network_id=1)
+    initialize_data_dir(_trinity_config)
+    return _trinity_config
+
+
+@pytest.fixture
+def eth1_app_config(trinity_config):
+    eth1_app_config = Eth1AppConfig(trinity_config, None)
+    ensure_eth1_dirs(eth1_app_config)
+    return eth1_app_config
 
 
 @pytest.fixture

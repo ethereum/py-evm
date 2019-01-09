@@ -65,11 +65,11 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
 
         chain: BaseAsyncChain
 
-        if eth1_app_config.is_light_mode:
+        if eth1_app_config.uses_light_db:
             header_db = db_manager.get_headerdb()  # type: ignore
             event_bus_light_peer_chain = EventBusLightPeerChain(self.context.event_bus)
             chain = chain_config.light_chain_class(header_db, peer_chain=event_bus_light_peer_chain)
-        elif eth1_app_config.is_full_mode:
+        elif eth1_app_config.uses_full_db:
             db = db_manager.get_db()  # type: ignore
             chain = chain_config.full_chain_class(db)
         else:

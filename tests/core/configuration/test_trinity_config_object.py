@@ -18,7 +18,6 @@ from trinity._utils.chains import (
 from trinity.config import (
     TrinityConfig,
     BeaconAppConfig,
-    DATABASE_DIR_NAME,
 )
 from trinity.constants import (
     IPC_DIR,
@@ -49,7 +48,6 @@ def test_trinity_config_app_identifier(xdg_trinity_root, app_identifier, expecte
     assert trinity_config.jsonrpc_ipc_path == data_dir / (IPC_DIR + expected_suffix) / JSONRPC_SOCKET_FILENAME  # noqa: E501
     assert trinity_config.database_ipc_path == data_dir / (IPC_DIR + expected_suffix) / DATABASE_SOCKET_FILENAME  # noqa: E501
     assert trinity_config.pid_dir == data_dir / (PID_DIR + expected_suffix)
-    assert trinity_config.database_dir == data_dir / (DATABASE_DIR_NAME + expected_suffix) / "full"
     assert trinity_config.nodekey_path == get_nodekey_path(data_dir)
 
 
@@ -59,7 +57,6 @@ def test_trinity_config_computed_properties(xdg_trinity_root):
 
     assert trinity_config.network_id == 1
     assert trinity_config.data_dir == data_dir
-    assert trinity_config.database_dir == data_dir / DATABASE_DIR_NAME / "full"
     assert trinity_config.nodekey_path == get_nodekey_path(data_dir)
 
 
@@ -72,7 +69,6 @@ def test_trinity_config_computed_properties_custom_xdg(tmpdir, xdg_trinity_root)
 
     assert trinity_config.network_id == 1
     assert trinity_config.data_dir == data_dir
-    assert trinity_config.database_dir == data_dir / DATABASE_DIR_NAME / "full"
     assert trinity_config.nodekey_path == get_nodekey_path(data_dir)
 
 
