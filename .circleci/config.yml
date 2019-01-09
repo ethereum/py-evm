@@ -1,6 +1,6 @@
 version: 2.0
 
-# heavily inspired by: 
+# heavily inspired by:
 # https://raw.githubusercontent.com/pinax/pinax-wiki/6bd2a99ab6f702e300d708532a6d1d9aa638b9f8/.circleci/config.yml
 
 common: &common
@@ -133,6 +133,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-benchmark
+  py36-stack-benchmark:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-stack-benchmark
   py36-native-blockchain-byzantium:
     <<: *common
     docker:
@@ -237,6 +243,7 @@ workflows:
       - py36-native-blockchain-transition
       - py36-vm
       - py36-benchmark
+      - py36-stack-benchmark
       - py36-core
       - py36-transactions
       - py36-database
