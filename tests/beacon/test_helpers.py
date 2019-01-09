@@ -797,10 +797,8 @@ def _get_indices_and_signatures(num_validators, message, privkeys, fork_data, sl
     return (indices, signatures)
 
 
-def _correct_slashable_vote_data_params(params, validators, messages, privkeys, fork_data):
+def _correct_slashable_vote_data_params(num_validators, params, messages, privkeys, fork_data):
     valid_params = copy.deepcopy(params)
-
-    num_validators = len(validators)
 
     key = "custody_bit_0_indices"
     (poc_0_indices, poc_0_signatures) = _get_indices_and_signatures(
@@ -865,7 +863,16 @@ def _create_slashable_vote_data_messages(params):
     return votes.messages
 
 
-def test_verify_slashable_vote_data_signature(privkeys,
+@pytest.mark.parametrize(
+    (
+        'num_validators',
+    ),
+    [
+        (40,),
+    ]
+)
+def test_verify_slashable_vote_data_signature(num_validators,
+                                              privkeys,
                                               sample_beacon_state_params,
                                               genesis_validators,
                                               sample_slashable_vote_data_params,
@@ -888,8 +895,8 @@ def test_verify_slashable_vote_data_signature(privkeys,
 
     fork_data = ForkData(**sample_fork_data_params)
     valid_params = _correct_slashable_vote_data_params(
+        num_validators,
         sample_slashable_vote_data_params,
-        genesis_validators,
         messages,
         privkeys,
         fork_data,
@@ -913,6 +920,14 @@ def _run_verify_slashable_vote(params, state, max_casper_votes, should_succeed):
 
 @pytest.mark.parametrize(
     (
+        'num_validators',
+    ),
+    [
+        (40,),
+    ]
+)
+@pytest.mark.parametrize(
+    (
         'param_mapper',
         'should_succeed',
         'needs_fork_data',
@@ -926,7 +941,8 @@ def _run_verify_slashable_vote(params, state, max_casper_votes, should_succeed):
         ), False, True),
     ],
 )
-def test_verify_slashable_vote_data(param_mapper,
+def test_verify_slashable_vote_data(num_validators,
+                                    param_mapper,
                                     should_succeed,
                                     needs_fork_data,
                                     privkeys,
@@ -953,8 +969,8 @@ def test_verify_slashable_vote_data(param_mapper,
 
     fork_data = ForkData(**sample_fork_data_params)
     params = _correct_slashable_vote_data_params(
+        num_validators,
         sample_slashable_vote_data_params,
-        genesis_validators,
         messages,
         privkeys,
         fork_data,
