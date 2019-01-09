@@ -69,7 +69,6 @@ from p2p.service import (
 from trinity.db.header import BaseAsyncHeaderDB
 from trinity.protocol.les.peer import LESPeer, LESPeerPool
 from trinity.rlp.block_body import BlockBody
-from trinity._utils.les import gen_request_id
 
 
 class BaseLightPeerChain(ABC):
@@ -167,8 +166,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     async def coro_get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
-        request_id = gen_request_id()
-        peer.sub_proto.send_get_block_bodies([block_hash], request_id)
+        request_id = peer.sub_proto.send_get_block_bodies([block_hash])
         reply = await self._wait_for_reply(request_id)
         if not reply['bodies']:
             raise BlockNotFound(f"Peer {peer} has no block with hash {block_hash}")
@@ -181,8 +179,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     async def coro_get_receipts(self, block_hash: Hash32) -> List[Receipt]:
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
-        request_id = gen_request_id()
-        peer.sub_proto.send_get_receipts(block_hash, request_id)
+        request_id = peer.sub_proto.send_get_receipts(block_hash)
         reply = await self._wait_for_reply(request_id)
         if not reply['receipts']:
             raise BlockNotFound(f"No block with hash {block_hash} found")
@@ -254,8 +251,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
             account's code hash
         """
         # request contract code
-        request_id = gen_request_id()
-        peer.sub_proto.send_get_contract_code(block_hash, keccak(address), request_id)
+        request_id = peer.sub_proto.send_get_contract_code(block_hash, keccak(address))
         reply = await self._wait_for_reply(request_id)
 
         if not reply['codes']:
@@ -370,8 +366,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
                          account_key: bytes,
                          key: bytes,
                          from_level: int = 0) -> List[bytes]:
-        request_id = gen_request_id()
-        peer.sub_proto.send_get_proof(block_hash, account_key, key, from_level, request_id)
+        request_id = peer.sub_proto.send_get_proof(block_hash, account_key, key, from_level)
         reply = await self._wait_for_reply(request_id)
         return reply['proof']
 

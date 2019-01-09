@@ -95,9 +95,8 @@ def _main() -> None:
             peer.sub_proto.send_get_receipts(hashes)
         else:
             peer = cast(LESPeer, peer)
-            request_id = 1
-            peer.sub_proto.send_get_block_bodies(list(hashes), request_id + 1)
-            peer.sub_proto.send_get_receipts(hashes[0], request_id + 2)
+            peer.sub_proto.send_get_block_bodies(list(hashes))
+            peer.sub_proto.send_get_receipts(hashes[0])
 
     sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:
