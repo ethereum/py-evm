@@ -1,14 +1,10 @@
-Cookbooks
-=========
+Cookbook
+========
 
-The Cookbooks are collections of simple recipes that demonstrate good practices to accomplish
+The Cookbook is a collection of simple recipes that demonstrate good practices to accomplish
 common tasks. The examples are usually short answers to simple "How do I..." questions that go
 beyond simple API descriptions but also don't need a full guide to become clear.
 
-.. _evm_cookbook:
-
-EVM Cookbook
-~~~~~~~~~~~~
 
 .. _evm_cookbook_recipe_using_the_chain_object:
 
@@ -125,5 +121,5 @@ that would allow us to incrementally build a block. However, we can import the
   >>> from eth.chains.base import MiningChain
 
 Please check out the :doc:`Understanding the mining process
-</guides/eth/understanding_the_mining_process>` guide for a full example that demonstrates how 
+</guides/understanding_the_mining_process>` guide for a full example that demonstrates how 
 to use the :class:`~eth.chains.chain.MiningChain`.
