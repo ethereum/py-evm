@@ -39,6 +39,13 @@ class TransactionNotFound(PyEVMError):
     pass
 
 
+class ReceiptNotFound(PyEVMError):
+    """
+    Raised when the Receipt with the given receipt index does not exist.
+    """
+    pass
+
+
 class ParentNotFound(HeaderNotFound):
     """
     Raised when the parent of a given block does not exist.
