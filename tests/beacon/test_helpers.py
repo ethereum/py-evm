@@ -893,18 +893,17 @@ def test_verify_slashable_vote_data_signature(num_validators,
     # touch disjoint subsets of the provided params
     messages = _create_slashable_vote_data_messages(sample_slashable_vote_data_params)
 
-    fork_data = ForkData(**sample_fork_data_params)
     valid_params = _correct_slashable_vote_data_params(
         num_validators,
         sample_slashable_vote_data_params,
         messages,
         privkeys,
-        fork_data,
+        state.fork_data,
     )
     valid_votes = SlashableVoteData(**valid_params)
     assert verify_slashable_vote_data_signature(state, valid_votes)
 
-    invalid_params = _corrupt_signature(valid_params, fork_data)
+    invalid_params = _corrupt_signature(valid_params, state.fork_data)
     invalid_votes = SlashableVoteData(**invalid_params)
     assert not verify_slashable_vote_data_signature(state, invalid_votes)
 
@@ -967,16 +966,15 @@ def test_verify_slashable_vote_data(num_validators,
     # touch disjoint subsets of the provided params
     messages = _create_slashable_vote_data_messages(sample_slashable_vote_data_params)
 
-    fork_data = ForkData(**sample_fork_data_params)
     params = _correct_slashable_vote_data_params(
         num_validators,
         sample_slashable_vote_data_params,
         messages,
         privkeys,
-        fork_data,
+        state.fork_data,
     )
     if needs_fork_data:
-        params = param_mapper(params, fork_data)
+        params = param_mapper(params, state.fork_data)
     else:
         params = param_mapper(params)
     _run_verify_slashable_vote(params, state, max_casper_votes, should_succeed)
