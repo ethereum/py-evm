@@ -36,7 +36,7 @@ def test_demo(base_db,
               config,
               privkeys,
               pubkeys):
-    chaindb = BeaconChainDB(base_db, SerenityBeaconBlock)
+    chaindb = BeaconChainDB(base_db)
     state = genesis_state
     block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
         slot=state.slot + 2,
@@ -68,11 +68,11 @@ def test_demo(base_db,
     )
 
     # Store in chaindb
-    chaindb.persist_block(block)
+    chaindb.persist_block(block, SerenityBeaconBlock)
     chaindb.persist_state(state)
 
     # Get state machine instance
-    sm = fixture_sm_class(chaindb, block.root)
+    sm = fixture_sm_class(chaindb, block.root, SerenityBeaconBlock)
     result_state, _ = sm.import_block(block)
 
     assert state.slot == 0

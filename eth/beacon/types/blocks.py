@@ -173,7 +173,7 @@ class BeaconBlock(BaseBeaconBlock):
         """
         Returns the block denoted by the given block header.
         """
-        block = chaindb.get_block_by_root(root)
+        block = chaindb.get_block_by_root(root, cls)
         body = cls.block_body_class(
             proposer_slashings=block.body.proposer_slashings,
             casper_slashings=block.body.casper_slashings,
