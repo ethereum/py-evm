@@ -870,8 +870,17 @@ def test_verify_slashable_vote_data_signature(privkeys,
                                               genesis_validators,
                                               sample_slashable_vote_data_params,
                                               sample_fork_data_params):
-    sample_beacon_state_params["validator_registry"] = genesis_validators
-    state = BeaconState(**sample_beacon_state_params)
+    beacon_state_params_with_genesis_validators = assoc(
+        sample_beacon_state_params,
+        "validator_registry",
+        genesis_validators,
+    )
+    beacon_state_params_with_fork_data = assoc(
+        beacon_state_params_with_genesis_validators,
+        "fork_data",
+        ForkData(**sample_fork_data_params),
+    )
+    state = BeaconState(**beacon_state_params_with_fork_data)
 
     # NOTE: we can do this before "correcting" the params as they
     # touch disjoint subsets of the provided params
@@ -926,8 +935,17 @@ def test_verify_slashable_vote_data(param_mapper,
                                     sample_slashable_vote_data_params,
                                     sample_fork_data_params,
                                     max_casper_votes):
-    sample_beacon_state_params["validator_registry"] = genesis_validators
-    state = BeaconState(**sample_beacon_state_params)
+    beacon_state_params_with_genesis_validators = assoc(
+        sample_beacon_state_params,
+        "validator_registry",
+        genesis_validators,
+    )
+    beacon_state_params_with_fork_data = assoc(
+        beacon_state_params_with_genesis_validators,
+        "fork_data",
+        ForkData(**sample_fork_data_params),
+    )
+    state = BeaconState(**beacon_state_params_with_fork_data)
 
     # NOTE: we can do this before "correcting" the params as they
     # touch disjoint subsets of the provided params
