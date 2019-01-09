@@ -71,7 +71,8 @@ def get_epoch_boundary_attesting_balances(
     previous_epoch_boundary_root = get_block_root(
         state,
         state.slot - 2 * EPOCH_LENGTH,
-        LATEST_BLOCK_ROOTS_LENGTH)
+        LATEST_BLOCK_ROOTS_LENGTH,
+    )
     previous_epoch_boundary_attestations = tuple(
         attestation
         for attestation in previous_epoch_justified_attestations
@@ -89,7 +90,7 @@ def get_epoch_boundary_attesting_balances(
         for attestation in previous_epoch_boundary_attestations
     )
     previous_epoch_boundary_attester_indices = (
-        tuple()
+        frozenset()
         if len(sets_of_previous_epoch_boundary_participants) == 0
         else frozenset.union(*sets_of_previous_epoch_boundary_participants)
     )
@@ -101,7 +102,8 @@ def get_epoch_boundary_attesting_balances(
     current_epoch_boundary_root = get_block_root(
         state,
         state.slot - EPOCH_LENGTH,
-        LATEST_BLOCK_ROOTS_LENGTH)
+        LATEST_BLOCK_ROOTS_LENGTH,
+    )
 
     current_epoch_boundary_attestations = tuple(
         attestation
@@ -122,7 +124,7 @@ def get_epoch_boundary_attesting_balances(
     )
 
     current_epoch_boundary_attester_indices = (
-        tuple()
+        frozenset()
         if len(sets_of_current_epoch_boundary_participants) == 0
         else frozenset.union(*sets_of_current_epoch_boundary_participants)
     )
