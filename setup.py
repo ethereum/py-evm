@@ -6,17 +6,16 @@ from setuptools import setup, find_packages
 deps = {
     'eth': [
         "cryptography>=2.0.3,<3.0.0",
-        "cytoolz>=0.9.0,<1.0.0",
-        "eth-bloom>=1.0.0,<2.0.0",
-        "eth-keys>=0.2.0b3,<1.0.0",
+        "eth-bloom>=1.0.2,<2.0.0",
+        "eth-keys>=0.2.1,<1.0.0",
         "eth-typing>=2.0.0,<3.0.0",
-        "eth-utils>=1.3.0b0,<2.0.0",
+        "eth-utils>=1.3.0,<2.0.0",
         "lru-dict>=1.1.6",
         "mypy_extensions>=0.4.1,<1.0.0",
         "py-ecc>=1.4.7,<2.0.0",
         "pyethash>=0.1.27,<1.0.0",
-        "rlp>=1.0.3,<2.0.0",
-        "trie>=1.3.5,<2.0.0",
+        "rlp>=1.1.0,<2.0.0",
+        "trie>=1.3.8,<2.0.0",
     ],
     # The eth-extra sections is for libraries that the evm does not
     # explicitly need to function and hence should not depend on.
