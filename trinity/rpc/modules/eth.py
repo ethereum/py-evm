@@ -56,7 +56,7 @@ from trinity.rpc.format import (
     transaction_to_dict,
 )
 from trinity.rpc.modules import (
-    Eth1RPCModule,
+    Eth1ChainRPCModule,
 )
 from trinity.sync.common.events import (
     SyncingRequest,
@@ -136,7 +136,7 @@ def dict_to_spoof_transaction(
     return SpoofTransaction(unsigned, from_=sender)
 
 
-class Eth(Eth1RPCModule):
+class Eth(Eth1ChainRPCModule):
     '''
     All the methods defined by JSON-RPC API, starting with "eth_"...
 

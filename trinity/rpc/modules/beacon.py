@@ -1,7 +1,7 @@
-from trinity.rpc.modules import BeaconRPCModule
+from trinity.rpc.modules import BeaconChainRPCModule
 
 
-class Beacon(BeaconRPCModule):
+class Beacon(BeaconChainRPCModule):
 
     @property
     def name(self) -> str:

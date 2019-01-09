@@ -5,15 +5,10 @@ from abc import (
 from typing import (
     Any,
     Generic,
-    Iterable,
-    Type,
     TypeVar,
     TYPE_CHECKING,
 )
 
-from eth_utils import (
-    to_tuple,
-)
 from lahja import (
     BaseEvent,
     Endpoint
@@ -40,7 +35,7 @@ class BaseRPCModule(ABC):
         pass
 
 
-class RPCModule(BaseRPCModule, Generic[TChain]):
+class ChainBasedRPCModule(BaseRPCModule, Generic[TChain]):
 
     def __init__(self, chain: TChain, event_bus: Endpoint) -> None:
         self.chain = chain
@@ -48,21 +43,12 @@ class RPCModule(BaseRPCModule, Generic[TChain]):
 
         self.event_bus.subscribe(
             ChainReplacementEvent,
-            lambda ev: self.set_chain(ev.chain)
+            lambda ev: self.on_chain_replacement(ev.chain)
         )
 
-    def set_chain(self, chain: TChain) -> None:
+    def on_chain_replacement(self, chain: TChain) -> None:
         self.chain = chain
 
 
-Eth1RPCModule = RPCModule['BaseAsyncChain']
-BeaconRPCModule = RPCModule[Any]
-
-
-@to_tuple
-def initialize_modules(modules: Iterable[Type[RPCModule[TChain]]],
-                       chain: TChain,
-                       event_bus: Endpoint) -> Iterable[RPCModule[TChain]]:
-
-    for module in modules:
-        yield module(chain, event_bus)
+Eth1ChainRPCModule = ChainBasedRPCModule['BaseAsyncChain']
+BeaconChainRPCModule = ChainBasedRPCModule[Any]

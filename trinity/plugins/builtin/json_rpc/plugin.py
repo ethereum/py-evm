@@ -26,11 +26,10 @@ from trinity.rpc.main import (
     RPCServer,
 )
 from trinity.rpc.modules import (
-    BEACON_RPC_MODULES,
-    BeaconRPCModule,
-    ETH1_RPC_MODULES,
-    initialize_modules,
-    Eth1RPCModule,
+    BeaconChainRPCModule,
+    initialize_beacon_modules,
+    initialize_eth1_modules,
+    Eth1ChainRPCModule,
 )
 from trinity.rpc.ipc import (
     IPCServer,
@@ -57,7 +56,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
             help="Disables the JSON-RPC Server",
         )
 
-    def setup_eth1_modules(self, trinity_config: TrinityConfig) -> Tuple[Eth1RPCModule, ...]:
+    def setup_eth1_modules(self, trinity_config: TrinityConfig) -> Tuple[Eth1ChainRPCModule, ...]:
         db_manager = create_db_manager(trinity_config.database_ipc_path)
         db_manager.connect()
 
@@ -76,11 +75,11 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
         else:
             raise NotImplementedError(f"Unsupported mode: {trinity_config.sync_mode}")
 
-        return initialize_modules(ETH1_RPC_MODULES, chain, self.event_bus)
+        return initialize_eth1_modules(chain, self.event_bus)
 
-    def setup_beacon_modules(self, trinity_config: TrinityConfig) -> Tuple[BeaconRPCModule, ...]:
+    def setup_beacon_modules(self) -> Tuple[BeaconChainRPCModule, ...]:
 
-        return initialize_modules(BEACON_RPC_MODULES, None, self.event_bus)
+        return initialize_beacon_modules(None, self.event_bus)
 
     def do_start(self) -> None:
 
@@ -89,7 +88,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
         if trinity_config.has_app_config(Eth1AppConfig):
             modules = self.setup_eth1_modules(trinity_config)
         elif trinity_config.has_app_config(BeaconAppConfig):
-            modules = self.setup_beacon_modules(trinity_config)
+            modules = self.setup_beacon_modules()
         else:
             raise Exception("Unsupported Node Type")
 

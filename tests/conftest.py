@@ -37,8 +37,7 @@ from trinity.rpc.main import (
     RPCServer,
 )
 from trinity.rpc.modules import (
-    ETH1_RPC_MODULES,
-    initialize_modules,
+    initialize_eth1_modules,
 )
 from trinity.rpc.ipc import (
     IPCServer,
@@ -262,7 +261,7 @@ async def ipc_server(
     the course of all tests. It yields the IPC server only for monkeypatching purposes
     '''
     rpc = RPCServer(
-        initialize_modules(ETH1_RPC_MODULES, chain_with_block_validation, event_bus)
+        initialize_eth1_modules(chain_with_block_validation, event_bus)
     )
     ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path, loop=event_loop)
 

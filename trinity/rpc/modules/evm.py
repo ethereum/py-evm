@@ -26,11 +26,11 @@ from trinity.rpc.format import (
 )
 from trinity.rpc.modules import (
     ChainReplacementEvent,
-    Eth1RPCModule,
+    Eth1ChainRPCModule,
 )
 
 
-class EVM(Eth1RPCModule):
+class EVM(Eth1ChainRPCModule):
 
     @property
     def name(self) -> str:

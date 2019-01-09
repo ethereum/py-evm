@@ -40,8 +40,7 @@ from trinity.rpc.format import (
     remove_leading_zeros,
 )
 from trinity.rpc.modules import (
-    ETH1_RPC_MODULES,
-    initialize_modules,
+    initialize_eth1_modules,
 )
 
 
@@ -401,7 +400,7 @@ class MainnetFullChain(FullChain):
 @pytest.mark.asyncio
 async def test_rpc_against_fixtures(chain, event_bus, ipc_server, chain_fixture, fixture_data):
     rpc = RPCServer(
-        initialize_modules(ETH1_RPC_MODULES, MainnetFullChain(None), event_bus)
+        initialize_eth1_modules(MainnetFullChain(None), event_bus)
     )
 
     setup_result, setup_error = await call_rpc(rpc, 'evm_resetToGenesisFixture', [chain_fixture])

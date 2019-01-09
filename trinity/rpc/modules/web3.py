@@ -4,11 +4,11 @@ from eth_utils import decode_hex, encode_hex
 from trinity._utils.version import construct_trinity_client_identifier
 
 from trinity.rpc.modules import (
-    Eth1RPCModule
+    BaseRPCModule
 )
 
 
-class Web3(Eth1RPCModule):
+class Web3(BaseRPCModule):
 
     @property
     def name(self) -> str:
