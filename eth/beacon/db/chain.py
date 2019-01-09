@@ -7,6 +7,7 @@ from typing import (
     Type,
 )
 from cytoolz import (
+    concat,
     first,
     sliding_window,
 )
@@ -290,60 +291,78 @@ class BeaconChainDB(BaseBeaconChainDB):
             return self._persist_block_chain(db, blocks, self.block_class)
 
     @classmethod
+    def _set_block_scores_to_db(
+            cls,
+            db: BaseDB,
+            block: BaseBeaconBlock
+    ) -> None:
+        # TODO: It's a stub before we implement fork choice rule
+        score = block.slot
+
+        db.set(
+            SchemaV1.make_block_root_to_score_lookup_key(block.root),
+            rlp.encode(score, sedes=rlp.sedes.big_endian_int),
+        )
+
+    @classmethod
     def _persist_block_chain(
             cls,
             db: BaseDB,
             blocks: Iterable[BaseBeaconBlock],
             block_class: Type[BaseBeaconBlock]
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
+        blocks_iterator = iter(blocks)
+
         try:
-            first_block = first(blocks)
+            first_block = first(blocks_iterator)
         except StopIteration:
             return tuple(), tuple()
+
+        is_genesis = first_block.parent_root == GENESIS_PARENT_HASH
+        if not is_genesis and not cls._block_exists(db, first_block.parent_root):
+            raise ParentNotFound(
+                "Cannot persist block ({}) with unknown parent ({})".format(
+                    encode_hex(first_block.root), encode_hex(first_block.parent_root)))
+
+        if is_genesis:
+            score = 0
         else:
-            for parent, child in sliding_window(2, blocks):
-                if parent.root != child.parent_root:
-                    raise ValidationError(
-                        "Non-contiguous chain. Expected {} to have {} as parent but was {}".format(
-                            encode_hex(child.root),
-                            encode_hex(parent.root),
-                            encode_hex(child.parent_root),
-                        )
+            score = cls._get_score(db, first_block.parent_root)
+
+        curr_block_head = first_block
+        db.set(
+            curr_block_head.root,
+            rlp.encode(curr_block_head),
+        )
+        cls._set_block_scores_to_db(db, curr_block_head)
+
+        orig_blocks_seq = concat([(first_block,), blocks_iterator])
+
+        for parent, child in sliding_window(2, orig_blocks_seq):
+            if parent.root != child.parent_root:
+                raise ValidationError(
+                    "Non-contiguous chain. Expected {} to have {} as parent but was {}".format(
+                        encode_hex(child.root),
+                        encode_hex(parent.root),
+                        encode_hex(child.parent_root),
                     )
+                )
 
-            is_genesis = first_block.parent_root == GENESIS_PARENT_HASH
-            if not is_genesis and not cls._block_exists(db, first_block.parent_root):
-                raise ParentNotFound(
-                    "Cannot persist block ({}) with unknown parent ({})".format(
-                        encode_hex(first_block.root), encode_hex(first_block.parent_root)))
-
-            if is_genesis:
-                score = 0
-            else:
-                score = cls._get_score(db, first_block.parent_root)
-
-        for block in blocks:
+            curr_block_head = child
             db.set(
-                block.root,
-                rlp.encode(block),
+                curr_block_head.root,
+                rlp.encode(curr_block_head),
             )
-
-            # TODO: It's a stub before we implement fork choice rule
-            score = block.slot
-
-            db.set(
-                SchemaV1.make_block_root_to_score_lookup_key(block.root),
-                rlp.encode(score, sedes=rlp.sedes.big_endian_int),
-            )
+            cls._set_block_scores_to_db(db, curr_block_head)
 
         try:
             previous_canonical_head = cls._get_canonical_head(db, block_class).root
             head_score = cls._get_score(db, previous_canonical_head)
         except CanonicalHeadNotFound:
-            return cls._set_as_canonical_chain_head(db, block.root, block_class)
+            return cls._set_as_canonical_chain_head(db, curr_block_head.root, block_class)
 
         if score > head_score:
-            return cls._set_as_canonical_chain_head(db, block.root, block_class)
+            return cls._set_as_canonical_chain_head(db, curr_block_head.root, block_class)
         else:
             return tuple(), tuple()
 
