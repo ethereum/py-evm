@@ -1,7 +1,7 @@
 Understanding the mining process
 ================================
 
-From the :ref:`EVM Cookbook<evm_cookbook>` we can already learn how to
+From the :doc:`Cookbook </cookbook/index>` we can already learn how to
 use the :class:`~eth.chains.base.Chain` class to create a single
 blockchain as a combination of different virtual machines for different spans
 of blocks.
@@ -90,7 +90,7 @@ error tells us precisely that the ``mix_hash`` of our block does not match the e
 Let's lookup how :func:`~eth.consensus.pow.check_pow` is implemented.
 
 
-.. literalinclude:: ../../../eth/consensus/pow.py
+.. literalinclude:: ../../eth/consensus/pow.py
    :language: python
    :pyobject: check_pow
 
