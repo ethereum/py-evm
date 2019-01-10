@@ -1,6 +1,6 @@
 from p2p.peer import BasePeerContext
 
-from eth.beacon.db.chain import BaseBeaconChainDB
+from eth2.beacon.db.chain import BaseBeaconChainDB
 
 
 class BeaconContext(BasePeerContext):

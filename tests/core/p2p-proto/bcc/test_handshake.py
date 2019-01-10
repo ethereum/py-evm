@@ -4,6 +4,10 @@ import asyncio
 
 from p2p.exceptions import HandshakeFailure
 
+from eth2.beacon.types.blocks import (
+    BeaconBlock,
+)
+
 from trinity.protocol.bcc.proto import BCCProtocol
 from trinity.protocol.bcc.commands import (
     Status,
@@ -28,16 +32,16 @@ async def test_directly_linked_peers(request, event_loop):
     assert isinstance(alice.sub_proto, BCCProtocol)
     assert isinstance(bob.sub_proto, BCCProtocol)
 
-    assert alice.head_hash == bob.context.chain_db.get_canonical_head().hash
-    assert bob.head_hash == alice.context.chain_db.get_canonical_head().hash
+    assert alice.head_hash == bob.context.chain_db.get_canonical_head(BeaconBlock).hash
+    assert bob.head_hash == alice.context.chain_db.get_canonical_head(BeaconBlock).hash
 
 
 @pytest.mark.asyncio
 async def test_unidirectional_handshake(request, event_loop):
     alice, bob = await get_directly_linked_peers_without_handshake()
     alice_chain_db = alice.context.chain_db
-    alice_genesis_hash = alice_chain_db.get_canonical_block_by_slot(0).hash
-    alice_head_hash = alice_chain_db.get_canonical_head().hash
+    alice_genesis_hash = alice_chain_db.get_canonical_block_by_slot(0, BeaconBlock).hash
+    alice_head_hash = alice_chain_db.get_canonical_head(BeaconBlock).hash
 
     await asyncio.gather(alice.do_p2p_handshake(), bob.do_p2p_handshake())
 

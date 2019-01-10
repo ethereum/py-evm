@@ -20,8 +20,8 @@ from trinity.rlp.sedes import (
     HashOrNumber,
 )
 
-from eth.beacon.types.blocks import BaseBeaconBlock
-from eth.beacon.types.attestations import Attestation
+from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.types.attestations import Attestation
 
 
 class Status(Command):
@@ -50,7 +50,7 @@ class GetBeaconBlocks(Command):
 
 class BeaconBlocks(Command):
     _cmd_id = 2
-    structure = sedes.CountableList(BaseBeaconBlock)
+    structure = sedes.CountableList(BeaconBlock)
 
 
 class AttestationRecords(Command):

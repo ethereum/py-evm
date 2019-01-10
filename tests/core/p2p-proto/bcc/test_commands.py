@@ -1,9 +1,9 @@
 import pytest
 
 
-from eth.beacon.types.attestations import Attestation
-from eth.beacon.types.attestation_data import AttestationData
-from eth.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.types.attestations import Attestation
+from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.blocks import BeaconBlock
 
 from eth.constants import (
     ZERO_HASH32,
@@ -44,7 +44,7 @@ async def test_send_single_block(request, event_loop):
     msg_buffer = MsgBuffer()
     bob.add_subscriber(msg_buffer)
 
-    block = BaseBeaconBlock(
+    block = BeaconBlock(
         slot=1,
         parent_root=ZERO_HASH32,
         state_root=ZERO_HASH32,
@@ -67,7 +67,7 @@ async def test_send_multiple_blocks(request, event_loop):
     bob.add_subscriber(msg_buffer)
 
     blocks = tuple(
-        BaseBeaconBlock(
+        BeaconBlock(
             slot=slot,
             parent_root=ZERO_HASH32,
             state_root=ZERO_HASH32,
