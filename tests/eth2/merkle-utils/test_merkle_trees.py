@@ -8,7 +8,7 @@ from eth.beacon._utils.hash import (
     hash_eth2,
 )
 
-from eth._utils.merkle import (
+from eth2._utils.merkle import (
     get_merkle_root_from_items,
     calc_merkle_tree,
     get_root,
