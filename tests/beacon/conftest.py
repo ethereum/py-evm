@@ -8,7 +8,7 @@ from eth_utils import (
     to_tuple,
 )
 
-import eth._utils.bls as bls
+import eth2._utils.bls as bls
 from eth.beacon._utils.hash import hash_eth2
 from eth._utils.bitfield import (
     get_empty_bitfield,

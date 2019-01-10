@@ -10,7 +10,7 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
-from eth._utils import bls as bls
+from eth2._utils import bls as bls
 from eth.beacon._utils.hash import (
     hash_eth2,
 )

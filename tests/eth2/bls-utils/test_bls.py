@@ -1,6 +1,6 @@
 import pytest
 
-from eth._utils.bls import (
+from eth2._utils.bls import (
     G1,
     G2,
     hash_to_G2,

@@ -19,7 +19,7 @@ from eth._utils.bitfield import (
     get_bitfield_length,
     has_voted,
 )
-import eth._utils.bls as bls
+import eth2._utils.bls as bls
 from eth._utils.numeric import (
     clamp,
 )

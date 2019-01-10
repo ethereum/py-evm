@@ -1,7 +1,7 @@
 import pytest
 
 
-from eth._utils import bls as bls
+from eth2._utils import bls as bls
 from eth.beacon.db.chain import BeaconChainDB
 from eth.beacon.enums import (
     SignatureDomain,

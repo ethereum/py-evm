@@ -5,7 +5,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth._utils import bls
+from eth2._utils import bls
 
 from eth.beacon.constants import (
     EMPTY_SIGNATURE,

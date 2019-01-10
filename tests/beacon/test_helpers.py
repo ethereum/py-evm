@@ -54,7 +54,7 @@ from eth.beacon.helpers import (
     is_double_vote,
     is_surround_vote,
 )
-import eth._utils.bls as bls
+import eth2._utils.bls as bls
 
 from tests.beacon.helpers import (
     get_pseudo_chain,

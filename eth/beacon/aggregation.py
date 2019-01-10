@@ -6,7 +6,7 @@ from cytoolz import (
     pipe
 )
 
-from eth._utils import bls
+from eth2._utils import bls
 from eth._utils.bitfield import (
     set_voted,
 )

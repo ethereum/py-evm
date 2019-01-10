@@ -1,6 +1,6 @@
 from eth_utils import to_tuple
 
-from eth._utils import bls
+from eth2._utils import bls
 
 from eth.constants import (
     ZERO_HASH32,
