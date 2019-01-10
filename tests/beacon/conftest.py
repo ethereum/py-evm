@@ -10,7 +10,7 @@ from eth_utils import (
 
 import eth2._utils.bls as bls
 from eth.beacon._utils.hash import hash_eth2
-from eth._utils.bitfield import (
+from eth2._utils.bitfield import (
     get_empty_bitfield,
 )
 from eth.beacon.aggregation import (

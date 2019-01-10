@@ -6,7 +6,7 @@ from hypothesis import (
 )
 import pytest
 
-from eth._utils.bitfield import (
+from eth2._utils.bitfield import (
     has_voted,
     set_voted,
     get_bitfield_length,

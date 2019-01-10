@@ -6,7 +6,7 @@ from hypothesis import (
 )
 
 from eth2._utils import bls
-from eth._utils.bitfield import (
+from eth2._utils.bitfield import (
     get_empty_bitfield,
     has_voted,
 )

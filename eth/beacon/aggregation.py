@@ -7,7 +7,7 @@ from cytoolz import (
 )
 
 from eth2._utils import bls
-from eth._utils.bitfield import (
+from eth2._utils.bitfield import (
     set_voted,
 )
 from eth.beacon.enums import SignatureDomain
