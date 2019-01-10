@@ -20,19 +20,23 @@ from eth._utils.merkle import (
     get_merkle_root_from_items,
 )
 
-from eth.constants import (
-    CHUNK_SIZE,
-    CHUNK_DATA_SIZE,
-    COLLATION_SIZE,
-    MAX_BLOB_SIZE,
-)
-
 from typing import (
     cast,
 )
 from eth_typing import (
     Hash32,
 )
+
+
+#
+# Blobs and Chunks constants
+#
+CHUNK_SIZE = 32
+CHUNK_DATA_SIZE = CHUNK_SIZE - 1  # size of chunk excluding the indicator byte
+COLLATION_SIZE = 2**17
+assert COLLATION_SIZE % CHUNK_SIZE == 0
+# size of a blob filling a full collation
+MAX_BLOB_SIZE = COLLATION_SIZE // CHUNK_SIZE * CHUNK_DATA_SIZE
 
 
 def iterate_chunks(collation_body: bytes) -> Iterator[Hash32]:
