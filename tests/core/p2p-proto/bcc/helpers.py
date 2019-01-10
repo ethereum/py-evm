@@ -10,9 +10,9 @@ from eth_utils.toolz import (
 )
 
 from eth.db.atomic import AtomicDB
-from eth.beacon.db.chain import BeaconChainDB
-from eth.beacon.types.blocks import (
-    BaseBeaconBlock,
+from eth2.beacon.db.chain import BeaconChainDB
+from eth2.beacon.types.blocks import (
+    BeaconBlock,
     BeaconBlockBody,
 )
 from eth.constants import (
@@ -37,6 +37,9 @@ def empty_body():
         proposer_slashings=(),
         casper_slashings=(),
         attestations=(),
+        custody_reseeds=(),
+        custody_challenges=(),
+        custody_responses=(),
         deposits=(),
         exits=(),
     )
@@ -57,7 +60,7 @@ def create_test_block(parent=None, **kwargs):
         kwargs["parent_root"] = parent.root
         kwargs["slot"] = parent.slot + 1
 
-    return BaseBeaconBlock(**merge(defaults, kwargs))
+    return BeaconBlock(**merge(defaults, kwargs))
 
 
 @to_tuple
@@ -79,7 +82,7 @@ def get_fresh_chain_db():
     genesis_block = create_test_block(slot=0)
 
     chain_db = BeaconChainDB(db)
-    chain_db.persist_block(genesis_block)
+    chain_db.persist_block(genesis_block, BeaconBlock)
 
     return chain_db
 

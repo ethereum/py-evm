@@ -1,4 +1,4 @@
-from eth.beacon.db.chain import BaseBeaconChainDB
+from eth2.beacon.db.chain import BaseBeaconChainDB
 
 from p2p.peer import (
     BasePeer,
@@ -33,6 +33,10 @@ from eth_typing import (
     Hash32,
 )
 
+from eth2.beacon.types.blocks import (
+    BeaconBlock,
+)
+
 
 class BCCPeer(BasePeer):
 
@@ -44,8 +48,9 @@ class BCCPeer(BasePeer):
     head_hash: Hash32 = None
 
     async def send_sub_proto_handshake(self) -> None:
-        genesis = self.chain_db.get_canonical_block_by_slot(0)
-        head = self.chain_db.get_canonical_head()
+        # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under per BeaconStateMachine fork
+        genesis = self.chain_db.get_canonical_block_by_slot(0, BeaconBlock)
+        head = self.chain_db.get_canonical_head(BeaconBlock)
         self.sub_proto.send_handshake(genesis.hash, head.hash)
 
     async def process_sub_proto_handshake(self, cmd: Command, msg: _DecodedMsgType) -> None:
@@ -60,8 +65,8 @@ class BCCPeer(BasePeer):
                 f"{self} network ({msg['network_id']}) does not match ours "
                 f"({self.network_id}), disconnecting"
             )
-
-        genesis_block = self.chain_db.get_canonical_block_by_slot(0)
+        # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under per BeaconStateMachine fork
+        genesis_block = self.chain_db.get_canonical_block_by_slot(0, BeaconBlock)
         if msg['genesis_hash'] != genesis_block.hash:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(

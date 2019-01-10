@@ -5,6 +5,11 @@ import asyncio
 from p2p.peer import (
     MsgBuffer,
 )
+
+from eth2.beacon.types.blocks import (
+    BeaconBlock,
+)
+
 from trinity.protocol.bcc.servers import BCCRequestServer
 from trinity.protocol.bcc.commands import (
     BeaconBlocks,
@@ -48,7 +53,7 @@ async def test_get_single_block_by_slot(request, event_loop):
     response = await response_buffer.msg_queue.get()
 
     assert isinstance(response.command, BeaconBlocks)
-    assert response.payload == (chain_db.get_block_by_root(block_root),)
+    assert response.payload == (chain_db.get_block_by_root(block_root, BeaconBlock),)
 
 
 @pytest.mark.asyncio
@@ -60,7 +65,7 @@ async def test_get_single_block_by_root(request, event_loop):
     response = await response_buffer.msg_queue.get()
 
     assert isinstance(response.command, BeaconBlocks)
-    assert response.payload == (chain_db.get_canonical_block_by_slot(0),)
+    assert response.payload == (chain_db.get_canonical_block_by_slot(0, BeaconBlock),)
 
 
 @pytest.mark.asyncio
@@ -102,11 +107,14 @@ async def test_get_unknown_block_by_root(request, event_loop):
 @pytest.mark.asyncio
 async def test_get_canonical_block_range_by_slot(request, event_loop):
     chain_db = get_fresh_chain_db()
-    base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0))
+    base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0, BeaconBlock))
+    print('base_branch', base_branch)
+
     non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
+
     canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
     for branch in [base_branch, non_canonical_branch, canonical_branch]:
-        chain_db.persist_block_chain(branch)
+        chain_db.persist_block_chain(branch, BeaconBlock)
 
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
@@ -122,11 +130,11 @@ async def test_get_canonical_block_range_by_slot(request, event_loop):
 @pytest.mark.asyncio
 async def test_get_canonical_block_range_by_root(request, event_loop):
     chain_db = get_fresh_chain_db()
-    base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0))
+    base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0, BeaconBlock))
     non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
     canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
     for branch in [base_branch, non_canonical_branch, canonical_branch]:
-        chain_db.persist_block_chain(branch)
+        chain_db.persist_block_chain(branch, BeaconBlock)
 
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
@@ -142,11 +150,11 @@ async def test_get_canonical_block_range_by_root(request, event_loop):
 @pytest.mark.asyncio
 async def test_get_incomplete_canonical_block_range(request, event_loop):
     chain_db = get_fresh_chain_db()
-    base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0))
+    base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0, BeaconBlock))
     non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
     canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
     for branch in [base_branch, non_canonical_branch, canonical_branch]:
-        chain_db.persist_block_chain(branch)
+        chain_db.persist_block_chain(branch, BeaconBlock)
 
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
@@ -162,11 +170,11 @@ async def test_get_incomplete_canonical_block_range(request, event_loop):
 @pytest.mark.asyncio
 async def test_get_non_canonical_branch(request, event_loop):
     chain_db = get_fresh_chain_db()
-    base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0))
+    base_branch = create_branch(3, root=chain_db.get_canonical_block_by_slot(0, BeaconBlock))
     non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
     canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
     for branch in [base_branch, non_canonical_branch, canonical_branch]:
-        chain_db.persist_block_chain(branch)
+        chain_db.persist_block_chain(branch, BeaconBlock)
 
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 

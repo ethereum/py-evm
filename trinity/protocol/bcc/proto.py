@@ -1,7 +1,7 @@
 from p2p.protocol import Protocol
 
-from eth.beacon.types.blocks import BaseBeaconBlock
-from eth.beacon.types.attestations import Attestation
+from eth2.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.types.attestations import Attestation
 
 from trinity.protocol.bcc.commands import (
     Status,

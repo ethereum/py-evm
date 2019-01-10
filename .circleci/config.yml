@@ -178,6 +178,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-rpc-state-quadratic
+  py36-eth2:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-eth2
 
   py37-core:
     <<: *common
@@ -197,6 +203,12 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-p2p
+  py37-eth2:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-eth2
 
 workflows:
   version: 2
@@ -206,6 +218,7 @@ workflows:
 
       - py37-core
       - py37-p2p
+      - py37-eth2
 
       - py36-rpc-state-byzantium
       - py36-rpc-state-constantinople
@@ -218,6 +231,7 @@ workflows:
 
       - py36-core
       - py36-p2p
+      - py37-eth2
 
       - py36-integration
       - py36-lightchain_integration

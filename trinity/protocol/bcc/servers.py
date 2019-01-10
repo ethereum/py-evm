@@ -26,8 +26,12 @@ from p2p.peer import BasePeer
 from p2p.protocol import Command
 
 from eth.exceptions import BlockNotFound
-from eth.beacon.db.chain import BaseBeaconChainDB
-from eth.beacon.types.blocks import BaseBeaconBlock
+
+from eth2.beacon.db.chain import BaseBeaconChainDB
+from eth2.beacon.types.blocks import (
+    BaseBeaconBlock,
+    BeaconBlock,
+)
 
 from trinity.protocol.common.servers import BaseRequestServer
 from trinity.protocol.bcc.commands import (
@@ -70,9 +74,13 @@ class BCCRequestServer(BaseRequestServer):
 
         try:
             if isinstance(block_slot_or_root, int):
-                start_block = self.db.get_canonical_block_by_slot(block_slot_or_root)
+                # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under
+                # per BeaconStateMachine fork
+                start_block = self.db.get_canonical_block_by_slot(block_slot_or_root, BeaconBlock)
             elif isinstance(block_slot_or_root, bytes):
-                start_block = self.db.get_block_by_root(Hash32(block_slot_or_root))
+                # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under
+                # per BeaconStateMachine fork
+                start_block = self.db.get_block_by_root(Hash32(block_slot_or_root), BeaconBlock)
             else:
                 raise TypeError(
                     f"Invariant: unexpected type for 'block_slot_or_root': "
@@ -109,7 +117,9 @@ class BCCRequestServer(BaseRequestServer):
         yield start_block
 
         blocks_generator = cons(start_block, (
-            self.db.get_canonical_block_by_slot(slot)
+            # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under
+            # per BeaconStateMachine fork
+            self.db.get_canonical_block_by_slot(slot, BeaconBlock)
             for slot in itertools.count(start_block.slot + 1)
         ))
         max_blocks_generator = take(max_blocks, blocks_generator)
