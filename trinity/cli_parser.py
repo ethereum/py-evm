@@ -138,7 +138,7 @@ subparser = parser.add_subparsers(dest='subcommand')
 #
 # Argument Groups
 #
-trinity_parser = parser.add_argument_group('sync mode')
+trinity_parser = parser.add_argument_group('core')
 logging_parser = parser.add_argument_group('logging')
 network_parser = parser.add_argument_group('network')
 syncing_parser = parser.add_argument_group('sync mode')
