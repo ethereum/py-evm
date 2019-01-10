@@ -1,9 +1,9 @@
 import pytest
 
-from eth.beacon.constants import (
+from eth2.beacon.constants import (
     FAR_FUTURE_SLOT,
 )
-from eth.beacon.types.validator_records import (
+from eth2.beacon.types.validator_records import (
     ValidatorRecord,
 )
 

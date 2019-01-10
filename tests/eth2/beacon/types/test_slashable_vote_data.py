@@ -1,7 +1,7 @@
-from eth.beacon.types.attestation_data_and_custody_bits import (
+from eth2.beacon.types.attestation_data_and_custody_bits import (
     AttestationDataAndCustodyBit,
 )
-from eth.beacon.types.slashable_vote_data import (
+from eth2.beacon.types.slashable_vote_data import (
     SlashableVoteData,
 )
 

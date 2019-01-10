@@ -10,8 +10,8 @@ from eth2._utils import bls
 from eth2._utils.bitfield import (
     set_voted,
 )
-from eth.beacon.enums import SignatureDomain
-from eth.beacon.typing import (
+from eth2.beacon.enums import SignatureDomain
+from eth2.beacon.typing import (
     BLSPubkey,
     BLSSignature,
     Bitfield,

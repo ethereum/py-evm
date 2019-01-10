@@ -8,10 +8,10 @@ from eth.rlp.sedes import (
     uint384,
     hash32,
 )
-from eth.beacon.constants import (
+from eth2.beacon.constants import (
     FAR_FUTURE_SLOT,
 )
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     SlotNumber,
     BLSPubkey,
 )

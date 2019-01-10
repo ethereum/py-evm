@@ -2,20 +2,20 @@ import pytest
 
 import rlp
 
-from eth.beacon.constants import (
+from eth2.beacon.constants import (
     GWEI_PER_ETH,
 )
-from eth.beacon.types.states import (
+from eth2.beacon.types.states import (
     BeaconState,
 )
-from eth.beacon.types.crosslink_records import (
+from eth2.beacon.types.crosslink_records import (
     CrosslinkRecord,
 )
-from eth.beacon._utils.hash import (
+from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 
-from tests.beacon.helpers import (
+from tests.eth2.beacon.helpers import (
     mock_validator_record,
 )
 

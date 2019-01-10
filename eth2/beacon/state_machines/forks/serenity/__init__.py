@@ -1,10 +1,10 @@
 from typing import Type  # noqa: F401
 
-from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
-from eth.beacon.types.states import BeaconState  # noqa: F401
+from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
+from eth2.beacon.types.states import BeaconState  # noqa: F401
 
-from eth.beacon.state_machines.base import BeaconStateMachine
-from eth.beacon.state_machines.state_transitions import BaseStateTransition  # noqa: F401
+from eth2.beacon.state_machines.base import BeaconStateMachine
+from eth2.beacon.state_machines.state_transitions import BaseStateTransition  # noqa: F401
 
 from .configs import SERENITY_CONFIG
 from .blocks import SerenityBeaconBlock

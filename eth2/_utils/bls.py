@@ -31,9 +31,9 @@ from py_ecc.optimized_bls12_381 import (  # NOQA
     curve_order,
     final_exponentiate
 )
-from eth.beacon._utils.hash import hash_eth2
+from eth2.beacon._utils.hash import hash_eth2
 
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     BLSPubkey,
     BLSSignature,
 )

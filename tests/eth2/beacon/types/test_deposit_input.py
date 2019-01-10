@@ -1,4 +1,4 @@
-from eth.beacon.types.deposit_input import DepositInput
+from eth2.beacon.types.deposit_input import DepositInput
 
 
 def test_defaults(sample_deposit_input_params):

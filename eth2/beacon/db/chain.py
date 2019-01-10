@@ -39,16 +39,16 @@ from eth.validation import (
     validate_word,
 )
 
-from eth.beacon.types.states import BeaconState  # noqa: F401
-from eth.beacon.types.blocks import (  # noqa: F401
+from eth2.beacon.types.states import BeaconState  # noqa: F401
+from eth2.beacon.types.blocks import (  # noqa: F401
     BaseBeaconBlock,
     BeaconBlock,
 )
-from eth.beacon.validation import (
+from eth2.beacon.validation import (
     validate_slot,
 )
 
-from eth.beacon.db.schema import SchemaV1
+from eth2.beacon.db.schema import SchemaV1
 
 
 class BaseBeaconChainDB(ABC):

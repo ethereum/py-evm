@@ -1,4 +1,4 @@
-from eth.beacon.types.validator_registry_delta_block import (
+from eth2.beacon.types.validator_registry_delta_block import (
     ValidatorRegistryDeltaBlock,
 )
 

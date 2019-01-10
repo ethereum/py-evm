@@ -4,7 +4,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.beacon._utils.hash import (
+from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 

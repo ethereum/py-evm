@@ -1,4 +1,4 @@
-from eth.beacon.types.attestation_data_and_custody_bits import (
+from eth2.beacon.types.attestation_data_and_custody_bits import (
     AttestationDataAndCustodyBit,
 )
 

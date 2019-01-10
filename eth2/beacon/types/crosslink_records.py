@@ -8,7 +8,7 @@ from eth.rlp.sedes import (
     hash32,
 )
 
-from eth.beacon.typing import SlotNumber
+from eth2.beacon.typing import SlotNumber
 
 
 class CrosslinkRecord(rlp.Serializable):

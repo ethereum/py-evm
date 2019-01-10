@@ -23,24 +23,24 @@ import eth2._utils.bls as bls
 from eth._utils.numeric import (
     clamp,
 )
-from eth.beacon._utils.random import (
+from eth2.beacon._utils.random import (
     shuffle,
     split,
 )
 
-from eth.beacon.block_committees_info import (
+from eth2.beacon.block_committees_info import (
     BlockCommitteesInfo,
 )
-from eth.beacon.constants import (
+from eth2.beacon.constants import (
     GWEI_PER_ETH,
 )
-from eth.beacon.enums import (
+from eth2.beacon.enums import (
     SignatureDomain,
 )
-from eth.beacon.types.shard_committees import (
+from eth2.beacon.types.shard_committees import (
     ShardCommittee,
 )
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     Bitfield,
     BLSPubkey,
     Ether,
@@ -51,12 +51,12 @@ from eth.beacon.typing import (
 )
 
 if TYPE_CHECKING:
-    from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
-    from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
-    from eth.beacon.types.states import BeaconState  # noqa: F401
-    from eth.beacon.types.fork_data import ForkData  # noqa: F401
-    from eth.beacon.types.slashable_vote_data import SlashableVoteData  # noqa: F401
-    from eth.beacon.types.validator_records import ValidatorRecord  # noqa: F401
+    from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
+    from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
+    from eth2.beacon.types.states import BeaconState  # noqa: F401
+    from eth2.beacon.types.fork_data import ForkData  # noqa: F401
+    from eth2.beacon.types.slashable_vote_data import SlashableVoteData  # noqa: F401
+    from eth2.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
 #

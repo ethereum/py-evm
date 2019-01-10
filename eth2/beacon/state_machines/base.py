@@ -15,9 +15,9 @@ from eth._utils.datatypes import (
     Configurable,
 )
 
-from eth.beacon.db.chain import BaseBeaconChainDB
-from eth.beacon.types.blocks import BaseBeaconBlock
-from eth.beacon.types.states import BeaconState
+from eth2.beacon.db.chain import BaseBeaconChainDB
+from eth2.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.types.states import BeaconState
 
 
 from .state_transitions import (
@@ -85,7 +85,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     @classmethod
     def get_block_class(cls) -> Type[BaseBeaconBlock]:
         """
-        Return the :class:`~eth.beacon.types.blocks.BeaconBlock` class that this
+        Return the :class:`~eth2.beacon.types.blocks.BeaconBlock` class that this
         StateMachine uses for blocks.
         """
         if cls.block_class is None:
@@ -96,7 +96,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     @classmethod
     def get_state_class(cls) -> Type[BeaconState]:
         """
-        Return the :class:`~eth.beacon.types.states.BeaconState` class that this
+        Return the :class:`~eth2.beacon.types.states.BeaconState` class that this
         StateMachine uses for BeaconState.
         """
         if cls.state_class is None:
@@ -107,7 +107,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     @classmethod
     def get_state_transiton_class(cls) -> Type[BaseStateTransition]:
         """
-        Return the :class:`~eth.beacon.state_machines.state_transitions.BaseStateTransition`
+        Return the :class:`~eth2.beacon.state_machines.state_transitions.BaseStateTransition`
         class that this StateTransition uses for StateTransition.
         """
         if cls.state_transition_class is None:

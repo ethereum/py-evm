@@ -10,7 +10,7 @@ from cytoolz.curried import reduce
 from itertools import (
     zip_longest,
 )
-from eth.beacon.typing import Bitfield
+from eth2.beacon.typing import Bitfield
 
 
 @curry

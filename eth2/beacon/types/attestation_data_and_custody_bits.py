@@ -6,7 +6,7 @@ from eth_typing import (
     Hash32,
 )
 
-from eth.beacon._utils.hash import (
+from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 

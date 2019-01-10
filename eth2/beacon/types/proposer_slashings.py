@@ -7,11 +7,11 @@ from eth.rlp.sedes import (
     uint384,
 )
 from .proposal_signed_data import ProposalSignedData
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     BLSSignature,
     ValidatorIndex,
 )
-from eth.beacon.constants import EMPTY_SIGNATURE
+from eth2.beacon.constants import EMPTY_SIGNATURE
 
 
 class ProposerSlashing(rlp.Serializable):

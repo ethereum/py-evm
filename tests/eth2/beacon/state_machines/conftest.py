@@ -1,7 +1,7 @@
 import pytest
 
-from eth.beacon.state_machines.configs import BeaconConfig
-from eth.beacon.state_machines.forks.serenity import (
+from eth2.beacon.state_machines.configs import BeaconConfig
+from eth2.beacon.state_machines.forks.serenity import (
     SerenityStateMachine,
 )
 

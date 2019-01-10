@@ -3,13 +3,13 @@ from eth_typing import (
 )
 import rlp
 
-from eth.beacon._utils.hash import hash_eth2
+from eth2.beacon._utils.hash import hash_eth2
 
 from eth.rlp.sedes import (
     uint64,
     hash32,
 )
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     SlotNumber,
     ShardNumber,
 )

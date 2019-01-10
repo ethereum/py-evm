@@ -7,19 +7,19 @@ from eth_utils import (
 
 from eth2._utils import bls
 
-from eth.beacon.constants import (
+from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
 )
-from eth.beacon.enums import (
+from eth2.beacon.enums import (
     SignatureDomain,
 )
-from eth.beacon.types.deposit_input import DepositInput
-from eth.beacon.types.states import BeaconState
-from eth.beacon.types.validator_records import ValidatorRecord
-from eth.beacon.helpers import (
+from eth2.beacon.types.deposit_input import DepositInput
+from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.validator_records import ValidatorRecord
+from eth2.beacon.helpers import (
     get_domain,
 )
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     BLSPubkey,
     BLSSignature,
     ValidatorIndex,

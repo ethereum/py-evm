@@ -2,19 +2,19 @@ import pytest
 
 
 from eth2._utils import bls as bls
-from eth.beacon.db.chain import BeaconChainDB
-from eth.beacon.enums import (
+from eth2.beacon.db.chain import BeaconChainDB
+from eth2.beacon.enums import (
     SignatureDomain,
 )
-from eth.beacon.helpers import (
+from eth2.beacon.helpers import (
     get_beacon_proposer_index,
 )
-from eth.beacon.state_machines.forks.serenity.blocks import (
+from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
 
 
-from eth.beacon.types.proposal_signed_data import ProposalSignedData
+from eth2.beacon.types.proposal_signed_data import ProposalSignedData
 
 
 @pytest.mark.parametrize(

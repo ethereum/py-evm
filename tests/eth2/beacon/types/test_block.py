@@ -1,7 +1,7 @@
-from eth.beacon.state_machines.forks.serenity.blocks import (
+from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
-from eth.beacon.types.attestations import (
+from eth2.beacon.types.attestations import (
     Attestation,
 )
 

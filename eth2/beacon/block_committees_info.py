@@ -5,7 +5,7 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    from eth.beacon.types.shard_committees import ShardCommittee  # noqa: F401
+    from eth2.beacon.types.shard_committees import ShardCommittee  # noqa: F401
 
 
 BlockCommitteesInfo = NamedTuple(

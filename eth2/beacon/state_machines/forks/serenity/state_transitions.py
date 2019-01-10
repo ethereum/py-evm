@@ -2,11 +2,11 @@ from eth_typing import (
     Hash32,
 )
 
-from eth.beacon.types.blocks import BaseBeaconBlock
-from eth.beacon.types.states import BeaconState
+from eth2.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.types.states import BeaconState
 
-from eth.beacon.state_machines.configs import BeaconConfig
-from eth.beacon.state_machines.state_transitions import BaseStateTransition
+from eth2.beacon.state_machines.configs import BeaconConfig
+from eth2.beacon.state_machines.state_transitions import BaseStateTransition
 
 from .operations import (
     process_attestations,

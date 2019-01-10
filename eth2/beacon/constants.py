@@ -1,4 +1,4 @@
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     BLSSignature,
     SlotNumber,
 )

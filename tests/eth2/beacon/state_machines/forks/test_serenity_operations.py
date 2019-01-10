@@ -8,17 +8,17 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
-from eth.beacon.helpers import (
+from eth2.beacon.helpers import (
     get_block_root,
     get_shard_committees_at_slot,
 )
 
-from eth.beacon.types.attestation_data import AttestationData
-from eth.beacon.state_machines.forks.serenity.blocks import (
+from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
     SerenityBeaconBlockBody,
 )
-from eth.beacon.state_machines.forks.serenity.operations import (
+from eth2.beacon.state_machines.forks.serenity.operations import (
     process_attestations,
 )
 

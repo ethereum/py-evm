@@ -20,10 +20,10 @@ from eth.rlp.sedes import (
     uint64,
     hash32,
 )
-from eth.beacon._utils.hash import (
+from eth2.beacon._utils.hash import (
     hash_eth2,
 )
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     SlotNumber,
     Bitfield,
     Timestamp,

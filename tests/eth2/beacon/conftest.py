@@ -9,45 +9,45 @@ from eth_utils import (
 )
 
 import eth2._utils.bls as bls
-from eth.beacon._utils.hash import hash_eth2
+from eth2.beacon._utils.hash import hash_eth2
 from eth2._utils.bitfield import (
     get_empty_bitfield,
 )
-from eth.beacon.aggregation import (
+from eth2.beacon.aggregation import (
     aggregate_votes,
 )
-from eth.beacon.constants import (
+from eth2.beacon.constants import (
     FAR_FUTURE_SLOT,
     GWEI_PER_ETH,
 )
-from eth.beacon.enums import (
+from eth2.beacon.enums import (
     SignatureDomain,
 )
-from eth.beacon.helpers import (
+from eth2.beacon.helpers import (
     get_domain,
 )
 
-from eth.beacon.helpers import (
+from eth2.beacon.helpers import (
     get_shuffling,
 )
-from eth.beacon.types.attestation_data import AttestationData
-from eth.beacon.types.attestations import Attestation
-from eth.beacon.types.states import BeaconState
-from eth.beacon.types.crosslink_records import CrosslinkRecord
-from eth.beacon.types.deposit_data import DepositData
-from eth.beacon.types.deposit_input import DepositInput
-from eth.beacon.types.proposal_signed_data import ProposalSignedData
-from eth.beacon.types.slashable_vote_data import SlashableVoteData
+from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.attestations import Attestation
+from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.deposit_data import DepositData
+from eth2.beacon.types.deposit_input import DepositInput
+from eth2.beacon.types.proposal_signed_data import ProposalSignedData
+from eth2.beacon.types.slashable_vote_data import SlashableVoteData
 
-from eth.beacon.types.blocks import (
+from eth2.beacon.types.blocks import (
     BeaconBlockBody,
 )
-from eth.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
-from eth.beacon.types.fork_data import (
+from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
+from eth2.beacon.types.fork_data import (
     ForkData,
 )
 
-from tests.beacon.helpers import (
+from tests.eth2.beacon.helpers import (
     mock_validator_record,
 )
 

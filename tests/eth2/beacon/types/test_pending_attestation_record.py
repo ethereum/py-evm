@@ -1,4 +1,4 @@
-from eth.beacon.types.pending_attestation_records import (
+from eth2.beacon.types.pending_attestation_records import (
     PendingAttestationRecord,
 )
 

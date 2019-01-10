@@ -1,4 +1,4 @@
-from eth.beacon.types.fork_data import (
+from eth2.beacon.types.fork_data import (
     ForkData,
 )
 

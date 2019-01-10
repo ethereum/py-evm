@@ -14,21 +14,21 @@ from eth.exceptions import (
     BlockNotFound,
     ParentNotFound,
 )
-from eth.beacon._utils.hash import (
+from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 from eth._utils.rlp import (
     validate_rlp_equal,
 )
 
-from eth.beacon.db.chain import (
+from eth2.beacon.db.chain import (
     BeaconChainDB,
 )
-from eth.beacon.db.schema import SchemaV1
-from eth.beacon.state_machines.forks.serenity.blocks import (
+from eth2.beacon.db.schema import SchemaV1
+from eth2.beacon.state_machines.forks.serenity.blocks import (
     BeaconBlock,
 )
-from eth.beacon.types.states import BeaconState
+from eth2.beacon.types.states import BeaconState
 
 
 @pytest.fixture

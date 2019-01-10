@@ -17,25 +17,25 @@ from eth_utils.toolz import assoc
 from eth.constants import (
     ZERO_HASH32,
 )
-from eth.beacon.constants import (
+from eth2.beacon.constants import (
     GWEI_PER_ETH,
     FAR_FUTURE_SLOT,
 )
-from eth.beacon.enums import (
+from eth2.beacon.enums import (
     SignatureDomain,
 )
-from eth.beacon.state_machines.forks.serenity.blocks import (
+from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
-from eth.beacon.types.attestation_data import (
+from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
-from eth.beacon.types.fork_data import ForkData
-from eth.beacon.types.shard_committees import ShardCommittee
-from eth.beacon.types.slashable_vote_data import SlashableVoteData
-from eth.beacon.types.states import BeaconState
-from eth.beacon.types.validator_records import ValidatorRecord
-from eth.beacon.helpers import (
+from eth2.beacon.types.fork_data import ForkData
+from eth2.beacon.types.shard_committees import ShardCommittee
+from eth2.beacon.types.slashable_vote_data import SlashableVoteData
+from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.validator_records import ValidatorRecord
+from eth2.beacon.helpers import (
     _get_block_root,
     _get_shard_committees_at_slot,
     get_active_validator_indices,
@@ -56,7 +56,7 @@ from eth.beacon.helpers import (
 )
 import eth2._utils.bls as bls
 
-from tests.beacon.helpers import (
+from tests.eth2.beacon.helpers import (
     get_pseudo_chain,
 )
 
@@ -353,7 +353,7 @@ def test_get_block_committees_info(monkeypatch,
                                    parent_block_number,
                                    result_proposer_index,
                                    epoch_length):
-    from eth.beacon import helpers
+    from eth2.beacon import helpers
 
     def mock_get_shard_committees_at_slot(state,
                                           slot,
@@ -430,7 +430,7 @@ def test_get_beacon_proposer_index(
         success,
         sample_state):
 
-    from eth.beacon import helpers
+    from eth2.beacon import helpers
 
     def mock_get_shard_committees_at_slot(state,
                                           slot,
@@ -533,7 +533,7 @@ def test_get_attestation_participants(
         participation_bitfield,
         expected,
         sample_state):
-    from eth.beacon import helpers
+    from eth2.beacon import helpers
 
     def mock_get_shard_committees_at_slot(state,
                                           slot,

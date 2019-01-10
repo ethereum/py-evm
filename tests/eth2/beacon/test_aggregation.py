@@ -10,7 +10,7 @@ from eth2._utils.bitfield import (
     get_empty_bitfield,
     has_voted,
 )
-from eth.beacon.aggregation import (
+from eth2.beacon.aggregation import (
     aggregate_votes,
     verify_votes,
 )

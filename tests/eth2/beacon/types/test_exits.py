@@ -1,5 +1,5 @@
 
-from eth.beacon.types.exits import (
+from eth2.beacon.types.exits import (
     Exit,
 )
 

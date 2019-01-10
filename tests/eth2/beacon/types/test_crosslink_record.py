@@ -1,4 +1,4 @@
-from eth.beacon.types.crosslink_records import (
+from eth2.beacon.types.crosslink_records import (
     CrosslinkRecord,
 )
 

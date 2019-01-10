@@ -13,11 +13,11 @@ from .attestation_data import (
     AttestationData,
 )
 
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     Bitfield,
     BLSSignature,
 )
-from eth.beacon.constants import EMPTY_SIGNATURE
+from eth2.beacon.constants import EMPTY_SIGNATURE
 
 
 class Attestation(rlp.Serializable):

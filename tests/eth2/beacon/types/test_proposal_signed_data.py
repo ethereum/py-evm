@@ -1,4 +1,4 @@
-from eth.beacon.types.proposal_signed_data import (
+from eth2.beacon.types.proposal_signed_data import (
     ProposalSignedData,
 )
 

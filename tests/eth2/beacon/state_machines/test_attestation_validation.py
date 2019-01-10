@@ -13,7 +13,7 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
-from eth.beacon.state_machines.forks.serenity.validation import (
+from eth2.beacon.state_machines.forks.serenity.validation import (
     validate_serenity_attestation_aggregate_signature,
     validate_serenity_attestation_latest_crosslink_root,
     validate_serenity_attestation_justified_block_root,
@@ -21,7 +21,7 @@ from eth.beacon.state_machines.forks.serenity.validation import (
     validate_serenity_attestation_shard_block_root,
     validate_serenity_attestation_slot,
 )
-from eth.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.attestation_data import AttestationData
 
 
 @pytest.mark.parametrize(

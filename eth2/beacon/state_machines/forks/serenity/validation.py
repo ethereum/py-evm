@@ -11,25 +11,25 @@ from eth.constants import (
 )
 
 from eth2._utils import bls as bls
-from eth.beacon._utils.hash import (
+from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 
-from eth.beacon.enums import (
+from eth2.beacon.enums import (
     SignatureDomain,
 )
-from eth.beacon.helpers import (
+from eth2.beacon.helpers import (
     get_attestation_participants,
     get_beacon_proposer_index,
     get_block_root,
     get_domain,
 )
-from eth.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
-from eth.beacon.types.states import BeaconState  # noqa: F401
-from eth.beacon.types.attestations import Attestation  # noqa: F401
-from eth.beacon.types.attestation_data import AttestationData  # noqa: F401
-from eth.beacon.types.proposal_signed_data import ProposalSignedData
-from eth.beacon.typing import (
+from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
+from eth2.beacon.types.states import BeaconState  # noqa: F401
+from eth2.beacon.types.attestations import Attestation  # noqa: F401
+from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
+from eth2.beacon.types.proposal_signed_data import ProposalSignedData
+from eth2.beacon.typing import (
     ShardNumber,
 )
 

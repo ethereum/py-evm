@@ -1,4 +1,4 @@
-from eth.beacon.types.candidate_pow_receipt_root_records import (
+from eth2.beacon.types.candidate_pow_receipt_root_records import (
     CandidatePoWReceiptRootRecord,
 )
 

@@ -10,12 +10,12 @@ from eth.rlp.sedes import (
     hash32,
     uint384,
 )
-from eth.beacon._utils.hash import hash_eth2
-from eth.beacon.typing import (
+from eth2.beacon._utils.hash import hash_eth2
+from eth2.beacon.typing import (
     BLSPubkey,
     BLSSignature,
 )
-from eth.beacon.constants import EMPTY_SIGNATURE
+from eth2.beacon.constants import EMPTY_SIGNATURE
 
 
 class DepositInput(rlp.Serializable):

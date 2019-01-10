@@ -6,24 +6,24 @@ from eth_utils import (
 
 from eth2._utils import bls
 
-from eth.beacon.constants import (
+from eth2.beacon.constants import (
     GWEI_PER_ETH,
 )
-from eth.beacon.enums import (
+from eth2.beacon.enums import (
     SignatureDomain,
 )
-from eth.beacon.types.blocks import BeaconBlock
-from eth.beacon.types.proposal_signed_data import (
+from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.types.proposal_signed_data import (
     ProposalSignedData,
 )
-from eth.beacon.types.states import BeaconState
+from eth2.beacon.types.states import BeaconState
 
-from eth.beacon.state_machines.forks.serenity.validation import (
+from eth2.beacon.state_machines.forks.serenity.validation import (
     validate_serenity_proposer_signature,
 )
 
-from tests.beacon.helpers import mock_validator_record
-from tests.beacon.test_helpers import (
+from tests.eth2.beacon.helpers import mock_validator_record
+from tests.eth2.beacon.test_helpers import (
     get_sample_shard_committees_at_slots,
 )
 

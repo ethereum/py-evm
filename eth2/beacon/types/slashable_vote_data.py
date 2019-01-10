@@ -9,16 +9,16 @@ from typing import (
 from eth_typing import (
     Hash32,
 )
-from eth.beacon._utils.hash import hash_eth2
+from eth2.beacon._utils.hash import hash_eth2
 from eth.rlp.sedes import (
     uint24,
     uint384,
 )
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     BLSSignature,
     ValidatorIndex,
 )
-from eth.beacon.constants import EMPTY_SIGNATURE
+from eth2.beacon.constants import EMPTY_SIGNATURE
 
 from .attestation_data import AttestationData
 from .attestation_data_and_custody_bits import AttestationDataAndCustodyBit

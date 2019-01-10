@@ -7,12 +7,12 @@ from eth.rlp.sedes import (
     uint64,
     uint384,
 )
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     BLSSignature,
     SlotNumber,
     ValidatorIndex,
 )
-from eth.beacon.constants import EMPTY_SIGNATURE
+from eth2.beacon.constants import EMPTY_SIGNATURE
 
 
 class Exit(rlp.Serializable):

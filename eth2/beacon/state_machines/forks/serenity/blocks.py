@@ -1,4 +1,4 @@
-from eth.beacon.types.blocks import (
+from eth2.beacon.types.blocks import (
     BeaconBlock,
     BeaconBlockBody,
 )

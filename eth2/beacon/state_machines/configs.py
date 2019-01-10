@@ -5,7 +5,7 @@ from typing import (
 from eth.typing import (
     Address,
 )
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     SlotNumber,
     ShardNumber,
     Ether,

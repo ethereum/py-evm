@@ -11,7 +11,7 @@ from eth.rlp.sedes import (
     uint24,
     uint64,
 )
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     ShardNumber,
     ValidatorIndex,
 )

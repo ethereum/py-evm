@@ -1,7 +1,7 @@
-from eth.beacon.types.blocks import BaseBeaconBlock
-from eth.beacon.types.pending_attestation_records import PendingAttestationRecord
-from eth.beacon.types.states import BeaconState
-from eth.beacon.state_machines.configs import BeaconConfig
+from eth2.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
+from eth2.beacon.types.states import BeaconState
+from eth2.beacon.state_machines.configs import BeaconConfig
 
 from .validation import (
     validate_serenity_attestation,

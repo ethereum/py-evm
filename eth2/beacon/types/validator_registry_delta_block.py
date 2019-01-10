@@ -3,16 +3,16 @@ from eth_typing import (
 )
 import rlp
 
-from eth.beacon._utils.hash import (
+from eth2.beacon._utils.hash import (
     hash_eth2,
 )
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     BLSPubkey,
     SlotNumber,
     ValidatorIndex,
 )
 
-from eth.beacon.enums import (
+from eth2.beacon.enums import (
     ValidatorRegistryDeltaFlag,
 )
 

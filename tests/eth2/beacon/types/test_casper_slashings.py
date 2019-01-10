@@ -1,4 +1,4 @@
-from eth.beacon.types.casper_slashings import CasperSlashing
+from eth2.beacon.types.casper_slashings import CasperSlashing
 
 
 def test_defaults(sample_casper_slashing_params):

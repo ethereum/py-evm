@@ -1,5 +1,5 @@
 
-from eth.beacon.types.proposer_slashings import (
+from eth2.beacon.types.proposer_slashings import (
     ProposerSlashing,
 )
 

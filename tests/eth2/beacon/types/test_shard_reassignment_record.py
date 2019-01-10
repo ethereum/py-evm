@@ -1,4 +1,4 @@
-from eth.beacon.types.shard_reassignment_records import (
+from eth2.beacon.types.shard_reassignment_records import (
     ShardReassignmentRecord,
 )
 

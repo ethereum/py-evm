@@ -1,8 +1,8 @@
 from eth.constants import (
     ZERO_ADDRESS,
 )
-from eth.beacon.state_machines.configs import BeaconConfig
-from eth.beacon.typing import (
+from eth2.beacon.state_machines.configs import BeaconConfig
+from eth2.beacon.typing import (
     SlotNumber,
     ShardNumber,
     Ether,

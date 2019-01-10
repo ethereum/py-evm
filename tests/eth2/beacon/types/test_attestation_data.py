@@ -1,4 +1,4 @@
-from eth.beacon.types.attestation_data import (
+from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
 

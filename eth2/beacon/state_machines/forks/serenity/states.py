@@ -1,4 +1,4 @@
-from eth.beacon.types.states import BeaconState
+from eth2.beacon.types.states import BeaconState
 
 
 class SerenityBeaconState(BeaconState):

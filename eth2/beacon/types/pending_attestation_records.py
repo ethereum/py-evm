@@ -6,7 +6,7 @@ from rlp.sedes import (
 from eth.rlp.sedes import (
     uint64,
 )
-from eth.beacon.typing import (
+from eth2.beacon.typing import (
     SlotNumber,
     Bitfield,
 )

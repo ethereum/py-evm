@@ -1,4 +1,4 @@
-from eth.beacon.types.shard_committees import (
+from eth2.beacon.types.shard_committees import (
     ShardCommittee,
 )
 

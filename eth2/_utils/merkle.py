@@ -20,7 +20,7 @@ from cytoolz import (
     reduce,
     take,
 )
-from eth.beacon._utils.hash import (
+from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 from eth_typing import (

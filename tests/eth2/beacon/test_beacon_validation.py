@@ -4,7 +4,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.beacon.validation import (
+from eth2.beacon.validation import (
     validate_slot,
 )
 

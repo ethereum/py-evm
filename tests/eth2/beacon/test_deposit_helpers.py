@@ -4,18 +4,18 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.beacon.constants import (
+from eth2.beacon.constants import (
     GWEI_PER_ETH,
 )
-from eth.beacon.deposit_helpers import (
+from eth2.beacon.deposit_helpers import (
     add_pending_validator,
     process_deposit,
     validate_proof_of_possession,
 )
-from eth.beacon.types.states import BeaconState
-from eth.beacon.types.validator_records import ValidatorRecord
+from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.validator_records import ValidatorRecord
 
-from tests.beacon.helpers import (
+from tests.eth2.beacon.helpers import (
     make_deposit_input,
     sign_proof_of_possession,
 )
