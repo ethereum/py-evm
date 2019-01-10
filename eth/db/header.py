@@ -4,7 +4,7 @@ from typing import Iterable, Tuple
 
 import rlp
 
-from cytoolz import (
+from eth_utils.toolz import (
     concat,
     first,
     sliding_window,

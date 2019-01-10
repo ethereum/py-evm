@@ -10,7 +10,7 @@ from typing import (
     Type,
 )
 
-from cytoolz import first
+from eth_utils.toolz import first
 
 from eth_utils import (
     to_normalized_address,

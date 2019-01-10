@@ -1,6 +1,6 @@
 import copy
 
-from cytoolz import merge
+from eth_utils.toolz import merge
 
 from eth import constants
 from eth.vm import mnemonics

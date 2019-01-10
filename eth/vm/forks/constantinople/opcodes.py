@@ -1,5 +1,5 @@
 import copy
-from cytoolz import (
+from eth_utils.toolz import (
     merge
 )
 

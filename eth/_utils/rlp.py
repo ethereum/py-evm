@@ -7,7 +7,7 @@ from typing import (
     Tuple,
 )
 
-from cytoolz import (
+from eth_utils.toolz import (
     curry,
 )
 

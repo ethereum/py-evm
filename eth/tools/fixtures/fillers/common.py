@@ -12,7 +12,7 @@ from typing import (  # noqa: F401
     List,
     Sequence,
 )
-from cytoolz import (
+from eth_utils.toolz import (
     assoc,
     assoc_in,
     curry,

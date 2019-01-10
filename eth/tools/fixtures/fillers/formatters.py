@@ -4,7 +4,8 @@ from eth_utils.curried import (
     to_checksum_address,
     to_hex,
 )
-import cytoolz.curried
+
+from eth_utils.toolz import curried
 import eth_utils.curried
 
 
@@ -19,7 +20,7 @@ environment_formatter = eth_utils.curried.apply_formatters_to_dict({
 
 
 storage_item_formatter = apply_formatters_to_sequence([to_hex, to_hex])
-storage_formatter = cytoolz.curried.itemmap(storage_item_formatter)
+storage_formatter = curried.itemmap(storage_item_formatter)
 
 
 account_state_formatter = eth_utils.curried.apply_formatters_to_dict({
@@ -31,7 +32,7 @@ account_state_formatter = eth_utils.curried.apply_formatters_to_dict({
 
 
 state_item_formatter = apply_formatters_to_sequence([to_checksum_address, account_state_formatter])
-state_formatter = cytoolz.curried.itemmap(state_item_formatter)
+state_formatter = curried.itemmap(state_item_formatter)
 
 
 transaction_group_formatter = eth_utils.curried.apply_formatters_to_dict({
@@ -71,7 +72,7 @@ test_formatter = eth_utils.curried.apply_formatters_to_dict({
     "expect": expect_formatter,
     "exec": execution_formatter,
 })
-filler_formatter = cytoolz.curried.valmap(test_formatter)
+filler_formatter = curried.valmap(test_formatter)
 
 
 state_post_formatter = eth_utils.curried.apply_formatters_to_dict({
@@ -79,7 +80,7 @@ state_post_formatter = eth_utils.curried.apply_formatters_to_dict({
 })
 
 
-filled_state_test_formatter = cytoolz.curried.valmap(eth_utils.curried.apply_formatters_to_dict({
+filled_state_test_formatter = curried.valmap(eth_utils.curried.apply_formatters_to_dict({
     "env": environment_formatter,
     "pre": state_formatter,
     "transaction": transaction_group_formatter,
@@ -94,7 +95,7 @@ call_create_item_formatter = eth_utils.curried.apply_formatters_to_dict({
 })
 call_creates_formatter = eth_utils.curried.apply_formatter_to_array(call_create_item_formatter)
 
-filled_vm_test_formatter = cytoolz.curried.valmap(eth_utils.curried.apply_formatters_to_dict({
+filled_vm_test_formatter = curried.valmap(eth_utils.curried.apply_formatters_to_dict({
     "env": environment_formatter,
     "pre": state_formatter,
     "exec": execution_formatter,

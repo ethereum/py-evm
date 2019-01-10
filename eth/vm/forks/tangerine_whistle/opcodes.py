@@ -1,6 +1,6 @@
 import copy
 
-from cytoolz import merge
+from eth_utils.toolz import merge
 
 from eth.vm.forks.tangerine_whistle import constants
 from eth.constants import GAS_CREATE

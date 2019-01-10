@@ -19,18 +19,11 @@ from eth_typing import (
 from eth_utils import (
     ValidationError,
 )
+from eth_utils.toolz import dicttoolz
 
-from cytoolz.dicttoolz import (
-    valfilter,
-)
-from cytoolz.functoolz import (
-    partial,
-    pipe,
-)
-from cytoolz.itertoolz import (
-    isdistinct,
-    frequencies,
-)
+from eth_utils.toolz import functoolz
+
+from eth_utils.toolz import itertoolz
 
 from eth.constants import (
     GAS_LIMIT_ADJUSTMENT_FACTOR,
@@ -213,11 +206,13 @@ validate_lt_secpk1n2 = functools.partial(validate_lte, maximum=SECPK1_N // 2 - 1
 
 
 def validate_unique(values: Iterable[Any], title: str="Value") -> None:
-    if not isdistinct(values):
-        duplicates = pipe(
+    if not itertoolz.isdistinct(values):
+        duplicates = functoolz.pipe(
             values,
-            frequencies,  # get the frequencies
-            partial(valfilter, lambda v: v > 1),  # filter to ones that occure > 1
+            itertoolz.frequencies,  # get the frequencies
+
+            # filter to ones that occure > 1
+            functoolz.partial(dicttoolz.valfilter, lambda v: v > 1),
             sorted,  # sort them
             tuple,  # cast them to an immutiable form
         )

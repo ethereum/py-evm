@@ -3,7 +3,7 @@ from typing import (
     Dict,
 )
 
-from cytoolz import (
+from eth_utils.toolz import (
     assoc_in,
     merge,
 )

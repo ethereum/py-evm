@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from cytoolz import pipe
+from eth_utils.toolz import pipe
 
 from eth import constants
 from eth.chains.base import Chain

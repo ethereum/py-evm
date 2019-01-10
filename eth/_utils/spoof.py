@@ -4,7 +4,7 @@ from typing import (
     Union,
 )
 
-from cytoolz import (
+from eth_utils.toolz import (
     merge,
 )
 

@@ -2,7 +2,7 @@ import collections
 from typing import cast, Dict, Union  # noqa: F401
 import uuid
 
-from cytoolz import (
+from eth_utils.toolz import (
     first,
     merge,
     last,

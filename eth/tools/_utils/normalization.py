@@ -15,7 +15,7 @@ from typing import (
     Union,
 )
 
-from cytoolz import (
+from eth_utils.toolz import (
     assoc_in,
     compose,
     concat,
@@ -23,7 +23,7 @@ from cytoolz import (
     identity,
     merge,
 )
-import cytoolz.curried
+from eth_utils.toolz import curried
 
 from eth_typing import (
     Address,
@@ -232,14 +232,14 @@ def state_definition_to_dict(state_definition: GeneralState) -> AccountState:
 
 
 normalize_storage = compose(
-    cytoolz.curried.keymap(normalize_int),
-    cytoolz.curried.valmap(normalize_int),
+    curried.keymap(normalize_int),
+    curried.valmap(normalize_int),
 )
 
 
 normalize_state = compose(
-    cytoolz.curried.keymap(to_canonical_address),
-    cytoolz.curried.valmap(dict_normalizer({
+    curried.keymap(to_canonical_address),
+    curried.valmap(dict_normalizer({
         "balance": normalize_int,
         "code": normalize_bytes,
         "nonce": normalize_int,

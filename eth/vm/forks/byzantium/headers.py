@@ -2,7 +2,7 @@ from typing import (
     Any,
     Callable,
 )
-from cytoolz import (
+from eth_utils.toolz import (
     curry,
 )
 from eth.constants import (

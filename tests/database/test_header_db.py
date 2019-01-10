@@ -3,7 +3,7 @@ import random
 
 import pytest
 
-from cytoolz import accumulate
+from eth_utils.toolz import accumulate
 
 from eth_utils import (
     to_tuple,
