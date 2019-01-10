@@ -1,4 +1,8 @@
-from eth.beacon.typing import BLSSignature
+from eth.beacon.typing import (
+    BLSSignature,
+    SlotNumber,
+)
+
 
 #
 # shuffle function
@@ -14,3 +18,5 @@ RAND_BYTES = 3
 RAND_MAX = 2 ** (RAND_BYTES * 8) - 1
 
 EMPTY_SIGNATURE = BLSSignature((0, 0))
+GWEI_PER_ETH = 10**9
+FAR_FUTURE_SLOT = SlotNumber(2**64 - 1)

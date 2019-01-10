@@ -3,24 +3,18 @@ from eth_typing import (
 )
 import rlp
 
-from eth.beacon.enums import (
-    ValidatorStatusCode,
-)
 from eth.rlp.sedes import (
     uint64,
     uint384,
     hash32,
 )
+from eth.beacon.constants import (
+    FAR_FUTURE_SLOT,
+)
 from eth.beacon.typing import (
     SlotNumber,
     BLSPubkey,
 )
-
-
-VALIDATOR_RECORD_ACTIVE_STATUSES = {
-    ValidatorStatusCode.ACTIVE,
-    ValidatorStatusCode.ACTIVE_PENDING_EXIT,
-}
 
 
 class ValidatorRecord(rlp.Serializable):
@@ -36,16 +30,23 @@ class ValidatorRecord(rlp.Serializable):
         ('randao_commitment', hash32),
         # Slot the proposer has skipped (ie. layers of RANDAO expected)
         ('randao_layers', uint64),
-        # Status code
-        ('status', uint64),
-        # Slot when validator last changed status (or 0)
-        ('latest_status_change_slot', uint64),
-        # Sequence number when validator exited (or 0)
+        # Slot when validator activated
+        ('activation_slot', uint64),
+        # Slot when validator exited
+        ('exit_slot', uint64),
+        # Slot when validator withdrew
+        ('withdrawal_slot', uint64),
+        # Slot when validator was penalized
+        ('penalized_slot', uint64),
+        # Exit counter when validator exited
         ('exit_count', uint64),
+        # Status flags
+        ('status_flags', uint64),
         # Proof of custody commitment
         ('custody_commitment', hash32),
-        # Slot the proof of custody seed was last changed
+        # Slot of latest custody reseed
         ('latest_custody_reseed_slot', uint64),
+        # Slot of second-latest custody reseed
         ('penultimate_custody_reseed_slot', uint64),
     ]
 
@@ -54,9 +55,12 @@ class ValidatorRecord(rlp.Serializable):
                  withdrawal_credentials: Hash32,
                  randao_commitment: Hash32,
                  randao_layers: int,
-                 status: ValidatorStatusCode,
-                 latest_status_change_slot: SlotNumber,
+                 activation_slot: SlotNumber,
+                 exit_slot: SlotNumber,
+                 withdrawal_slot: SlotNumber,
+                 penalized_slot: SlotNumber,
                  exit_count: int,
+                 status_flags: int,
                  custody_commitment: Hash32,
                  latest_custody_reseed_slot: SlotNumber,
                  penultimate_custody_reseed_slot: SlotNumber) -> None:
@@ -65,28 +69,29 @@ class ValidatorRecord(rlp.Serializable):
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             randao_layers=randao_layers,
-            status=status,
-            latest_status_change_slot=latest_status_change_slot,
+            activation_slot=activation_slot,
+            exit_slot=exit_slot,
+            withdrawal_slot=withdrawal_slot,
+            penalized_slot=penalized_slot,
             exit_count=exit_count,
+            status_flags=status_flags,
             custody_commitment=custody_commitment,
             latest_custody_reseed_slot=latest_custody_reseed_slot,
             penultimate_custody_reseed_slot=penultimate_custody_reseed_slot,
         )
 
-    @property
-    def is_active(self) -> bool:
+    def is_active(self, slot: int) -> bool:
         """
-        Returns ``True`` if the validator is active.
+        Return ``True`` if the validator is active during the slot, ``slot``.
         """
-        return self.status in VALIDATOR_RECORD_ACTIVE_STATUSES
+        return self.activation_slot <= slot < self.exit_slot
 
     @classmethod
-    def get_pending_validator(cls,
-                              pubkey: BLSPubkey,
-                              withdrawal_credentials: Hash32,
-                              randao_commitment: Hash32,
-                              latest_status_change_slot: SlotNumber,
-                              custody_commitment: Hash32) -> 'ValidatorRecord':
+    def create_pending_validator(cls,
+                                 pubkey: BLSPubkey,
+                                 withdrawal_credentials: Hash32,
+                                 randao_commitment: Hash32,
+                                 custody_commitment: Hash32) -> 'ValidatorRecord':
         """
         Return a new pending ``ValidatorRecord`` with the given fields.
         """
@@ -95,9 +100,12 @@ class ValidatorRecord(rlp.Serializable):
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             randao_layers=0,
-            status=ValidatorStatusCode.PENDING_ACTIVATION,
-            latest_status_change_slot=latest_status_change_slot,
+            activation_slot=FAR_FUTURE_SLOT,
+            exit_slot=FAR_FUTURE_SLOT,
+            withdrawal_slot=FAR_FUTURE_SLOT,
+            penalized_slot=FAR_FUTURE_SLOT,
             exit_count=0,
+            status_flags=0,
             custody_commitment=custody_commitment,
             latest_custody_reseed_slot=SlotNumber(0),
             penultimate_custody_reseed_slot=SlotNumber(0),

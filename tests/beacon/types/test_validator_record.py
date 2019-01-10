@@ -1,7 +1,7 @@
 import pytest
 
-from eth.beacon.enums import (
-    ValidatorStatusCode,
+from eth.beacon.constants import (
+    FAR_FUTURE_SLOT,
 )
 from eth.beacon.types.validator_records import (
     ValidatorRecord,
@@ -15,46 +15,47 @@ def test_defaults(sample_validator_record_params):
 
 
 @pytest.mark.parametrize(
-    'status,expected',
+    'activation_slot,exit_slot,slot,expected',
     [
-        (ValidatorStatusCode.PENDING_ACTIVATION, False),
-        (ValidatorStatusCode.ACTIVE, True),
-        (ValidatorStatusCode.ACTIVE_PENDING_EXIT, True),
-        (ValidatorStatusCode.EXITED_WITHOUT_PENALTY, False),
-        (ValidatorStatusCode.EXITED_WITH_PENALTY, False),
+        (0, 1, 0, True),
+        (1, 1, 1, False),
+        (0, 1, 1, False),
+        (0, 1, 2, False),
     ],
 )
 def test_is_active(sample_validator_record_params,
-                   status,
+                   activation_slot,
+                   exit_slot,
+                   slot,
                    expected):
     validator_record_params = {
         **sample_validator_record_params,
-        'status': status
+        'activation_slot': activation_slot,
+        'exit_slot': exit_slot,
     }
     validator = ValidatorRecord(**validator_record_params)
-    assert validator.is_active == expected
+    assert validator.is_active(slot) == expected
 
 
-def test_get_pending_validator():
+def test_create_pending_validator():
     pubkey = 123
     withdrawal_credentials = b'\x11' * 32
     randao_commitment = b'\x22' * 32
-    latest_status_change_slot = 10
     custody_commitment = b'\x33' * 32
 
-    validator = ValidatorRecord.get_pending_validator(
+    validator = ValidatorRecord.create_pending_validator(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
-        latest_status_change_slot=latest_status_change_slot,
         custody_commitment=custody_commitment,
     )
 
     assert validator.pubkey == pubkey
     assert validator.withdrawal_credentials == withdrawal_credentials
     assert validator.randao_commitment == randao_commitment
-    assert validator.latest_status_change_slot == latest_status_change_slot
-
-    assert validator.status == ValidatorStatusCode.PENDING_ACTIVATION
     assert validator.randao_layers == 0
+    assert validator.activation_slot == FAR_FUTURE_SLOT
+    assert validator.exit_slot == FAR_FUTURE_SLOT
+    assert validator.withdrawal_slot == FAR_FUTURE_SLOT
+    assert validator.penalized_slot == FAR_FUTURE_SLOT
     assert validator.exit_count == 0

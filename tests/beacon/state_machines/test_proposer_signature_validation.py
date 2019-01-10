@@ -6,6 +6,9 @@ from eth_utils import (
 
 from eth._utils import bls
 
+from eth.beacon.constants import (
+    GWEI_PER_ETH,
+)
 from eth.beacon.enums import (
     SignatureDomain,
 )
@@ -45,13 +48,15 @@ def test_validate_serenity_proposer_signature(
         sample_beacon_state_params,
         sample_shard_committee_params,
         beacon_chain_shard_number,
-        epoch_length):
+        epoch_length,
+        max_deposit):
 
     state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=[
+        validator_registry=tuple(
             mock_validator_record(proposer_pubkey)
             for _ in range(10)
-        ],
+        ),
+        validator_balances=(max_deposit * GWEI_PER_ETH,) * 10,
         shard_committees_at_slots=get_sample_shard_committees_at_slots(
             num_slot=128,
             num_shard_committee_per_slot=10,
