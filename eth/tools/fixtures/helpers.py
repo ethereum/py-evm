@@ -24,6 +24,9 @@ from eth.rlp.blocks import (
 from eth.chains.base import (
     BaseChain,
 )
+from eth.chains.mainnet import (
+    MainnetDAOValidatorVM,
+)
 from eth.db.account import (
     BaseAccountDB,
 )
@@ -141,7 +144,7 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
             (5, TangerineWhistleVM),
         )
     elif network == 'HomesteadToDaoAt5':
-        HomesteadVM = BaseHomesteadVM.configure(
+        HomesteadVM = MainnetDAOValidatorVM.configure(
             support_dao_fork=True,
             _dao_fork_block_number=5,
         )
@@ -152,6 +155,11 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
         return (
             (0, SpuriousDragonVM),
             (5, ByzantiumVM),
+        )
+    elif network == 'ByzantiumToConstantinopleAt5':
+        return (
+            (0, ByzantiumVM),
+            (5, ConstantinopleVM),
         )
     else:
         raise ValueError("Network {0} does not match any known VM rules".format(network))

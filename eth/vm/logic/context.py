@@ -151,7 +151,7 @@ def extcodehash(computation: BaseComputation) -> None:
     account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     account_db = computation.state.account_db
 
-    if not account_db.account_exists(account):
+    if account_db.account_is_empty(account):
         computation.stack_push(constants.NULL_BYTE)
     else:
         computation.stack_push(account_db.get_code_hash(account))
