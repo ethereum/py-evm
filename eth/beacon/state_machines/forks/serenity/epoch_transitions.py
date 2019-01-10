@@ -1,11 +1,13 @@
 from typing import (
     Tuple,
     Sequence,
+    Iterable,
 )
 from eth.beacon.typing import (
     Ether,
     Gwei,
     SlotNumber,
+    ValidatorIndex,
 )
 from eth.beacon.types.validator_records import ValidatorRecord
 from eth.beacon.types.states import BeaconState
@@ -90,7 +92,7 @@ def get_epoch_boundary_attesting_balances(
         for attestation in previous_epoch_boundary_attestations
     )
 
-    previous_epoch_boundary_attester_indices = frozenset().union(
+    previous_epoch_boundary_attester_indices: Iterable[ValidatorIndex] = frozenset().union(
         *sets_of_previous_epoch_boundary_participants,
     )
 
@@ -123,7 +125,7 @@ def get_epoch_boundary_attesting_balances(
         for attestation in current_epoch_boundary_attestations
     )
 
-    current_epoch_boundary_attester_indices = frozenset().union(
+    current_epoch_boundary_attester_indices: Iterable[ValidatorIndex] = frozenset().union(
         *sets_of_current_epoch_boundary_participants,
     )
 
