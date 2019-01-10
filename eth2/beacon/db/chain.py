@@ -302,7 +302,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             cls,
             db: BaseDB,
             block: BaseBeaconBlock
-    ) -> None:
+    ) -> int:
         # TODO: It's a stub before we implement fork choice rule
         score = block.slot
 
@@ -310,6 +310,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             SchemaV1.make_block_root_to_score_lookup_key(block.root),
             rlp.encode(score, sedes=rlp.sedes.big_endian_int),
         )
+        return score
 
     @classmethod
     def _persist_block_chain(
@@ -360,7 +361,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                 curr_block_head.root,
                 rlp.encode(curr_block_head),
             )
-            cls._set_block_scores_to_db(db, curr_block_head)
+            score = cls._set_block_scores_to_db(db, curr_block_head)
 
         try:
             previous_canonical_head = cls._get_canonical_head(db, block_class).root
