@@ -127,6 +127,7 @@ def test_justification(
 
     def mock_get_total_balance(validator_registry,
                                validator_balances,
+                               slot,
                                max_deposits):
         return total_balance
 

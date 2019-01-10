@@ -139,9 +139,10 @@ def get_epoch_boundary_attesting_balances(
 def get_total_balance(
         validator_registry: Sequence[ValidatorRecord],
         validator_balances: Sequence[Gwei],
+        slot: SlotNumber,
         max_deposit: Ether) -> Gwei:
 
-    active_validator_indices = get_active_validator_indices(validator_registry)
+    active_validator_indices = get_active_validator_indices(validator_registry, slot)
 
     return total_balance(active_validator_indices, validator_balances, max_deposit)
 
@@ -187,6 +188,7 @@ def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconSta
     total_balance = get_total_balance(
         state.validator_registry,
         state.validator_balances,
+        state.slot,
         config.MAX_DEPOSIT,
     )
     (
