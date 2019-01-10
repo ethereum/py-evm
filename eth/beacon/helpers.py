@@ -193,7 +193,7 @@ def get_shuffling(*,
                   slot: SlotNumber,
                   epoch_length: int,
                   target_committee_size: int,
-                  shard_count: int) -> Iterable[Iterable[ShardCommittee]]:
+                  shard_count: int) -> Iterable[Tuple[ShardCommittee]]:
     """
     Return shuffled ``shard_committee_for_slots`` (``[[ShardCommittee]]``) of
     the given active ``validators`` using ``seed`` as entropy.
