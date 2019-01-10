@@ -5,11 +5,16 @@ from typing import (
     Any,
     Dict,
 )
+
+from eth_utils import encode_hex
+from eth_utils.toolz import merge
+
+from eth.db.chain import ChainDB
+from eth.db.backends.level import LevelDB
+
 from trinity._utils.log_messages import (
     create_missing_ipc_error_message,
 )
-
-from eth_utils.toolz import merge
 
 
 DEFAULT_BANNER: str = (
@@ -18,6 +23,13 @@ DEFAULT_BANNER: str = (
     "An instance of Web3 connected to the running chain is available as the "
     "`w3` variable\n"
     "The exposed `rpc` function allows raw RPC API calls (e.g. rpc('net_listening'))\n"
+)
+
+DB_SHELL_BANNER: str = (
+    "Trinity DB Shell\n"
+    "---------------\n"
+    "An instance of `ChainDB` connected to the database is available as the "
+    "`chaindb` variable\n"
 )
 
 
@@ -53,7 +65,7 @@ def python_shell(namespace: Dict[str, Any], banner: str) -> Any:
 def console(ipc_path: Path,
             use_ipython: bool=True,
             env: Dict[str, Any]=None,
-            banner: str=DEFAULT_BANNER) -> Any:
+            banner: str=DEFAULT_BANNER) -> None:
     """
     Method that starts the chain, setups the trinity CLI and register the
     cleanup function.
@@ -76,6 +88,24 @@ def console(ipc_path: Path,
 
     namespace = merge({'w3': w3, 'rpc': rpc}, env)
 
+    shell(use_ipython, namespace, banner)
+
+
+def db_shell(use_ipython: bool, database_dir: Path) -> None:
+
+    chaindb = ChainDB(LevelDB(database_dir))
+    head = chaindb.get_canonical_head()
+
+    greeter = f"""
+    Head: #{head.block_number}
+    Hash: {head.hex_hash}
+    State Root: {encode_hex(head.state_root)}
+    """
+
+    shell(use_ipython, {'chaindb': chaindb}, DB_SHELL_BANNER + greeter)
+
+
+def shell(use_ipython: bool, namespace: Dict[str, Any], banner: str) -> None:
     if use_ipython:
         ipython_shell(namespace, banner)()
     else:

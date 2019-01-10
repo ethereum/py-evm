@@ -11,7 +11,8 @@ from trinity.extensibility import (
     BasePlugin,
 )
 from trinity.plugins.builtin.attach.plugin import (
-    AttachPlugin
+    DbShellPlugin,
+    AttachPlugin,
 )
 from trinity.plugins.builtin.sync_mode_parser.plugin import (
     SyncModeParserPlugin,
@@ -55,6 +56,7 @@ BASE_PLUGINS: Tuple[BasePlugin, ...] = (
 
 
 ETH1_NODE_PLUGINS: Tuple[BasePlugin, ...] = (
+    DbShellPlugin(use_ipython=is_ipython_available()),
     EthstatsPlugin(),
     LightPeerChainBridgePlugin(),
     TxPlugin(),
