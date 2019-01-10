@@ -9,7 +9,7 @@ from typing import (
     Type,
 )
 
-from cytoolz import (
+from eth_utils.toolz import (
     curry,
     merge,
     pipe,

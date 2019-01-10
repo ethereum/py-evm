@@ -1,6 +1,6 @@
 import sys
 
-from cytoolz import curry
+from eth_utils.toolz import curry
 
 import pytest
 

@@ -7,7 +7,7 @@ from typing import (
     Iterable,
 )
 
-from cytoolz import (
+from eth_utils.toolz import (
     curry,
     identity,
 )
