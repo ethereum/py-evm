@@ -89,11 +89,11 @@ def get_epoch_boundary_attesting_balances(
         ))
         for attestation in previous_epoch_boundary_attestations
     )
-    previous_epoch_boundary_attester_indices = (
-        frozenset()
-        if len(sets_of_previous_epoch_boundary_participants) == 0
-        else frozenset.union(*sets_of_previous_epoch_boundary_participants)
+
+    previous_epoch_boundary_attester_indices = frozenset().union(
+        *sets_of_previous_epoch_boundary_participants,
     )
+
     previous_epoch_boundary_attesting_balance = Gwei(sum(
         get_effective_balance(state, index, MAX_DEPOSIT)
         for index in previous_epoch_boundary_attester_indices
@@ -123,10 +123,8 @@ def get_epoch_boundary_attesting_balances(
         for attestation in current_epoch_boundary_attestations
     )
 
-    current_epoch_boundary_attester_indices = (
-        frozenset()
-        if len(sets_of_current_epoch_boundary_participants) == 0
-        else frozenset.union(*sets_of_current_epoch_boundary_participants)
+    current_epoch_boundary_attester_indices = frozenset().union(
+        *sets_of_current_epoch_boundary_participants,
     )
 
     current_epoch_boundary_attesting_balance = Gwei(sum(
