@@ -4,7 +4,7 @@ import os
 import pytest
 import time
 
-from cytoolz import (
+from eth_utils.toolz import (
     assoc,
 )
 from eth_utils import (

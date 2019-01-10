@@ -8,7 +8,7 @@ from typing import (
     Tuple,
 )
 
-from cytoolz import curry
+from eth_utils.toolz import curry
 
 from cancel_token import (
     CancelToken,

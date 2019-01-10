@@ -5,7 +5,7 @@ from typing import (
     TYPE_CHECKING
 )
 
-from cytoolz import assoc
+from eth_utils.toolz import assoc
 
 import rlp
 from rlp import sedes

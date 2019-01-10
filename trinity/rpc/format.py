@@ -6,7 +6,7 @@ from typing import (
     List,
     Union,
 )
-from cytoolz import (
+from eth_utils.toolz import (
     compose,
     merge,
 )
