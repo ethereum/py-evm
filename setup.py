@@ -18,6 +18,15 @@ deps = {
         "rlp>=1.0.3,<2.0.0",
         "trie>=1.3.5,<2.0.0",
     ],
+    'eth2': [
+        "cytoolz>=0.9.0,<1.0.0",
+        "eth-typing>=2.0.0,<3.0.0",
+        "eth-utils>=1.3.0b0,<2.0.0",
+        "lru-dict>=1.1.6",
+        "mypy_extensions>=0.4.1,<1.0.0",
+        "py-ecc>=1.4.7,<2.0.0",
+        "rlp>=1.0.3,<2.0.0",
+    ],
     # The eth-extra sections is for libraries that the evm does not
     # explicitly need to function and hence should not depend on.
     # Installing these libraries may make the evm perform better than
@@ -74,6 +83,7 @@ deps = {
 deps['dev'] = (
     deps['dev'] +
     deps['eth'] +
+    deps['eth2'] +
     deps['eth-extra'] +
     deps['test'] +
     deps['doc'] +
@@ -93,7 +103,7 @@ setup(
     author_email='piper@pipermerriam.com',
     url='https://github.com/ethereum/py-evm',
     include_package_data=True,
-    py_modules=['eth'],
+    py_modules=['eth', 'eth2'],
     install_requires=install_requires,
     extras_require=deps,
     setup_requires=['setuptools-markdown'],
