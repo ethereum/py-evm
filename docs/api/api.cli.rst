@@ -36,7 +36,6 @@ Command Line Interface (CLI)
 
     sync mode:
     --sync-mode {full,light}
-    --light               Shortcut for `--sync-mode=light`
 
     chain:
     --data-dir DATA_DIR   The directory where chain data is stored

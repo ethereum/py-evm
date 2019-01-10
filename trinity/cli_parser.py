@@ -16,8 +16,6 @@ from trinity import __version__
 from trinity.constants import (
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
-    SYNC_FULL,
-    SYNC_LIGHT,
 )
 from trinity._utils.eip1085 import validate_raw_eip1085_genesis_config
 
@@ -141,7 +139,6 @@ subparser = parser.add_subparsers(dest='subcommand')
 trinity_parser = parser.add_argument_group('core')
 logging_parser = parser.add_argument_group('logging')
 network_parser = parser.add_argument_group('network')
-syncing_parser = parser.add_argument_group('sync mode')
 chain_parser = parser.add_argument_group('chain')
 debug_parser = parser.add_argument_group('debug')
 
@@ -239,24 +236,6 @@ network_parser.add_argument(
         "Maximum number of network peers"
     ),
     type=int,
-)
-
-
-#
-# Sync Mode
-#
-mode_parser = syncing_parser.add_mutually_exclusive_group()
-mode_parser.add_argument(
-    '--sync-mode',
-    choices={SYNC_LIGHT, SYNC_FULL},
-    default=SYNC_FULL,
-)
-mode_parser.add_argument(
-    '--light',  # TODO: consider --sync-mode like geth.
-    action='store_const',
-    const=SYNC_LIGHT,
-    dest='sync_mode',
-    help="Shortcut for `--sync-mode=light`",
 )
 
 

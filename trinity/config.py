@@ -43,7 +43,6 @@ from trinity.constants import (
     MAINNET_NETWORK_ID,
     PID_DIR,
     ROPSTEN_NETWORK_ID,
-    SYNC_FULL,
     SYNC_LIGHT,
 )
 from trinity._utils.chains import (
@@ -225,7 +224,6 @@ class TrinityConfig:
                  data_dir: str=None,
                  nodekey_path: str=None,
                  nodekey: PrivateKey=None,
-                 sync_mode: str=SYNC_FULL,
                  port: int=30303,
                  use_discv5: bool = False,
                  preferred_nodes: Tuple[KademliaNode, ...]=None,
@@ -233,7 +231,6 @@ class TrinityConfig:
         self.app_identifier = app_identifier
         self.network_id = network_id
         self.max_peers = max_peers
-        self.sync_mode = sync_mode
         self.port = port
         self.use_discv5 = use_discv5
         self._app_configs = {}
@@ -290,16 +287,6 @@ class TrinityConfig:
     @property
     def app_suffix(self) -> str:
         return "" if len(self.app_identifier) == 0 else f"-{self.app_identifier}"
-
-    @property
-    def sync_mode(self) -> str:
-        return self._sync_mode
-
-    @sync_mode.setter
-    def sync_mode(self, value: str) -> None:
-        if value not in {SYNC_FULL, SYNC_LIGHT}:
-            raise ValueError(f"Unknown sync mode: {value}")
-        self._sync_mode = value
 
     @property
     def logfile_path(self) -> Path:
@@ -515,11 +502,16 @@ class BaseAppConfig(ABC):
 
 class Eth1AppConfig(BaseAppConfig):
 
+    def __init__(self, trinity_config: TrinityConfig, sync_mode: str):
+        super().__init__(trinity_config)
+        self.trinity_config = trinity_config
+        self._sync_mode = sync_mode
+
     @classmethod
     def from_parser_args(cls,
                          args: argparse.Namespace,
                          trinity_config: TrinityConfig) -> 'BaseAppConfig':
-        return cls(trinity_config)
+        return cls(trinity_config, args.sync_mode)
 
     @property
     def database_dir(self) -> Path:
@@ -536,7 +528,7 @@ class Eth1AppConfig(BaseAppConfig):
 
     @property
     def uses_light_db(self) -> bool:
-        return self.trinity_config.sync_mode == SYNC_LIGHT
+        return self.sync_mode == SYNC_LIGHT
 
     @property
     def uses_full_db(self) -> bool:
@@ -557,6 +549,9 @@ class Eth1AppConfig(BaseAppConfig):
         else:
             raise NotImplementedError("Only full and light sync modes are supported")
 
+    @property
+    def sync_mode(self) -> str:
+        return self._sync_mode
 
 
 class BeaconAppConfig(BaseAppConfig):

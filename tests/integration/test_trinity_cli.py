@@ -79,8 +79,8 @@ async def test_txpool_full_boot(async_process_runner, command):
 @pytest.mark.parametrize(
     'command',
     (
-        ('trinity', '--light', '--tx-pool',),
-        ('trinity', '--light', '--ropsten', '--tx-pool',),
+        ('trinity', '--sync-mode=light', '--tx-pool',),
+        ('trinity', '--sync-mode=light', '--ropsten', '--tx-pool',),
     )
 )
 @pytest.mark.asyncio
@@ -96,8 +96,8 @@ async def test_txpool_deactivated(async_process_runner, command):
 @pytest.mark.parametrize(
     'command',
     (
-        ('trinity', '--light',),
-        ('trinity', '--light', '--ropsten',),
+        ('trinity', '--sync-mode=light',),
+        ('trinity', '--sync-mode=light', '--ropsten',),
     )
 )
 @pytest.mark.asyncio
@@ -145,11 +145,11 @@ async def test_web3(command, async_process_runner):
         # mainnet
         ('trinity',),
         ('trinity', '--tx-pool',),
-        ('trinity', '--light',),
+        ('trinity', '--sync-mode=light',),
         # ropsten
         ('trinity', '--ropsten',),
         ('trinity', '--ropsten', '--tx-pool',),
-        ('trinity', '--light', '--ropsten',),
+        ('trinity', '--sync-mode=light', '--ropsten',),
     )
 )
 @pytest.mark.asyncio

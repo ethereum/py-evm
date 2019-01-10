@@ -41,16 +41,13 @@ class LightPeerChainBridgePlugin(BaseAsyncStopPlugin):
         return "LightPeerChain Bridge"
 
     def on_ready(self) -> None:
-        if self.context.trinity_config.sync_mode != SYNC_LIGHT:
+        if self.context.args.sync_mode != SYNC_LIGHT:
             return
 
         self.event_bus.subscribe(
             ResourceAvailableEvent,
             self.handle_event
         )
-
-    def should_start(self) -> bool:
-        return self.chain is not None and self.context.trinity_config.sync_mode == SYNC_LIGHT
 
     def handle_event(self, event: ResourceAvailableEvent) -> None:
         if event.resource_type is BaseChain:

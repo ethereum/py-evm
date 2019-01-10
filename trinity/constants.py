@@ -29,7 +29,10 @@ PID_DIR = 'pids'
 
 # sync modes
 SYNC_FULL = 'full'
+SYNC_FAST = 'fast'
 SYNC_LIGHT = 'light'
+SYNC_MODES = {SYNC_FULL, SYNC_FAST, SYNC_LIGHT}
+DEFAULT_SYNC_MODE = SYNC_FAST
 
 # lahja endpoint names
 MAIN_EVENTBUS_ENDPOINT = 'main'

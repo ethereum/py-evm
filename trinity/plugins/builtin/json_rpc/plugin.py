@@ -73,7 +73,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
             db = db_manager.get_db()  # type: ignore
             chain = chain_config.full_chain_class(db)
         else:
-            raise NotImplementedError(f"Unsupported mode: {trinity_config.sync_mode}")
+            raise Exception(f"Unreachable code")
 
         return initialize_eth1_modules(chain, self.event_bus)
 

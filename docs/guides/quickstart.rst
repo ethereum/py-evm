@@ -166,7 +166,7 @@ Running as a light client
     serving LES.  Please consider running your own LES server to help improve
     the health of the network.
 
-Use the ``--light`` flag to instruct Trinity to run as a light node.
+Use the ``--sync-mode=light`` flag to instruct Trinity to run as a light node.
 
 
 Ropsten vs Mainnet
@@ -196,7 +196,7 @@ this node.
 
 
 Using ``--preferred-node`` is a good way to ensure Trinity running in
-``--light`` mode connects to known peers who serve LES.
+``sync-mode=light`` mode connects to known peers who serve LES.
 
 
 Retrieving Chain information via web3

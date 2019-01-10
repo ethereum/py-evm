@@ -42,9 +42,7 @@ from trinity.plugins.builtin.ethstats.ethstats_client import (
 class EthstatsService(BaseService):
     def __init__(
         self,
-
         context: PluginContext,
-
         server_url: str,
         server_secret: str,
         node_id: str,
@@ -163,7 +161,7 @@ class EthstatsService(BaseService):
 
         chain: BaseChain
 
-        if self.context.trinity_config.sync_mode == SYNC_LIGHT:
+        if self.context.args.sync_mode == SYNC_LIGHT:
             header_db = db_manager.get_headerdb()  # type: ignore
             chain = chain_config.light_chain_class(
                 header_db,

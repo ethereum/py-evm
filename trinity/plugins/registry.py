@@ -3,11 +3,18 @@ from typing import (
     Tuple,
 )
 
+from trinity.constants import (
+    DEFAULT_SYNC_MODE,
+    SYNC_MODES,
+)
 from trinity.extensibility import (
     BasePlugin,
 )
 from trinity.plugins.builtin.attach.plugin import (
     AttachPlugin
+)
+from trinity.plugins.builtin.sync_mode_parser.plugin import (
+    SyncModeParserPlugin,
 )
 from trinity.plugins.builtin.ethstats.plugin import (
     EthstatsPlugin,
@@ -40,6 +47,7 @@ def is_ipython_available() -> bool:
 
 BASE_PLUGINS: Tuple[BasePlugin, ...] = (
     AttachPlugin(use_ipython=is_ipython_available()),
+    SyncModeParserPlugin(SYNC_MODES, DEFAULT_SYNC_MODE),
     FixUncleanShutdownPlugin(),
     JsonRpcServerPlugin(),
     PeerDiscoveryPlugin(),
