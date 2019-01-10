@@ -202,12 +202,20 @@ def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconSta
     # Add two bits at the right of justification_bitfield. Cap it at 64 bits.
     justification_bitfield = (justification_bitfield * 2) % TWO_POWER_64
 
-    if 3 * previous_epoch_boundary_attesting_balance >= 2 * total_balance:
-        justification_bitfield |= 2
+    one_epoch_ago_justifiable = 3 * current_epoch_boundary_attesting_balance >= 2 * total_balance
+    two_epochs_ago_justifiable = 3 * previous_epoch_boundary_attesting_balance >= 2 * total_balance
+
+    if one_epoch_ago_justifiable:
+        justified_slot = state.slot - EPOCH_LENGTH
+    elif two_epochs_ago_justifiable:
         justified_slot = state.slot - 2 * EPOCH_LENGTH
-    if 3 * current_epoch_boundary_attesting_balance >= 2 * total_balance:
+
+    if two_epochs_ago_justifiable and one_epoch_ago_justifiable:
+        justification_bitfield |= 3
+    elif two_epochs_ago_justifiable and not one_epoch_ago_justifiable:
+        justification_bitfield |= 2
+    elif not two_epochs_ago_justifiable and one_epoch_ago_justifiable:
         justification_bitfield |= 1
-        justified_slot = state.slot - 1 * EPOCH_LENGTH
 
     should_finalize = check_finalization(
         previous_justified_slot,
