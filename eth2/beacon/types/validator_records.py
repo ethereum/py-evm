@@ -3,7 +3,7 @@ from eth_typing import (
 )
 import rlp
 
-from eth.rlp.sedes import (
+from eth2.beacon.sedes import (
     uint64,
     uint384,
     hash32,

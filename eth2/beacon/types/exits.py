@@ -2,7 +2,7 @@ import rlp
 from rlp.sedes import (
     CountableList,
 )
-from eth.rlp.sedes import (
+from eth2.beacon.sedes import (
     uint24,
     uint64,
     uint384,

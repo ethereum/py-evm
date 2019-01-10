@@ -24,7 +24,7 @@ from rlp.sedes import (
 from eth._utils.datatypes import (
     Configurable,
 )
-from eth.rlp.sedes import (
+from eth2.beacon.sedes import (
     hash32,
     uint64,
     uint384,

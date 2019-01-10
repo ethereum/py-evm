@@ -16,7 +16,7 @@ from eth2.beacon.enums import (
     ValidatorRegistryDeltaFlag,
 )
 
-from eth.rlp.sedes import (
+from eth2.beacon.sedes import (
     hash32,
     uint24,
     uint64,

@@ -5,7 +5,7 @@ import rlp
 
 from eth2.beacon._utils.hash import hash_eth2
 
-from eth.rlp.sedes import (
+from eth2.beacon.sedes import (
     uint64,
     hash32,
 )

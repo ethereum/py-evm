@@ -1,6 +1,6 @@
 
 import rlp
-from eth.rlp.sedes import uint64
+from eth2.beacon.sedes import uint64
 from .deposit_input import DepositInput
 from eth2.beacon.typing import (
     Timestamp,

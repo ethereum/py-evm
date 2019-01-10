@@ -1,6 +1,6 @@
 import rlp
 
-from eth.rlp.sedes import (
+from eth2.beacon.sedes import (
     uint64,
 )
 

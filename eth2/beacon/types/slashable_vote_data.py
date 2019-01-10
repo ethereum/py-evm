@@ -10,7 +10,7 @@ from eth_typing import (
     Hash32,
 )
 from eth2.beacon._utils.hash import hash_eth2
-from eth.rlp.sedes import (
+from eth2.beacon.sedes import (
     uint24,
     uint384,
 )

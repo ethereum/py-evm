@@ -3,7 +3,7 @@ from rlp.sedes import (
     binary,
 )
 
-from eth.rlp.sedes import (
+from eth2.beacon.sedes import (
     uint64,
 )
 from eth2.beacon.typing import (
