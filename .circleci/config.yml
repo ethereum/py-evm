@@ -199,12 +199,6 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-database
-  py36-beacon:
-    <<: *common
-    docker:
-      - image: circleci/python:3.6
-        environment:
-          TOXENV: py36-beacon
 
   py37-core:
     <<: *common
@@ -212,19 +206,12 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-core
-  py37-beacon:
-    <<: *common
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-beacon
 
 workflows:
   version: 2
   test:
     jobs:
       - py37-core
-      - py37-beacon
 
       - py36-docs
 
@@ -240,7 +227,6 @@ workflows:
       - py36-core
       - py36-transactions
       - py36-database
-      - py36-beacon
 
       - py35-native-blockchain-byzantium
       - py35-native-blockchain-constantinople
