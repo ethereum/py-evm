@@ -262,6 +262,5 @@ class BeaconBlock(BaseBeaconBlock):
             randao_reveal=block.randao_reveal,
             eth1_data=block.eth1_data,
             signature=block.signature,
-            # body=cls.block_body_class.cast_block_body(block.body),
             body=block.body,
         )

@@ -5,7 +5,6 @@ from typing import (
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlock,
-    BeaconBlockBody,
 )
 
 

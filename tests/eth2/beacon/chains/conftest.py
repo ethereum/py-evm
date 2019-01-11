@@ -89,8 +89,6 @@ def beacon_chain_without_block_validation(
     chain = klass.from_genesis(
         base_db,
         genesis_state,
-        fixture_sm_class.block_class.cast_block(
-            genesis_block,
-        ),
+        genesis_block,
     )
     return chain

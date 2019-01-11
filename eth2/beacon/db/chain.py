@@ -156,7 +156,8 @@ class BeaconChainDB(BaseBeaconChainDB):
             cls,
             db: 'BaseDB',
             block: BaseBeaconBlock,
-            block_class: Type[BaseBeaconBlock]) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
+            block_class: Type[BaseBeaconBlock]
+    ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         block_chain = (block, )
         new_canonical_blocks, old_canonical_blocks = cls._persist_block_chain(
             db,
