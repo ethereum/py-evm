@@ -173,17 +173,6 @@ GAS_MOD_EXP_QUADRATIC_DENOMINATOR = 20
 #
 MAX_PREV_HEADER_DEPTH = 256
 
-
-#
-# Blobs and Chunks
-#
-CHUNK_SIZE = 32
-CHUNK_DATA_SIZE = CHUNK_SIZE - 1  # size of chunk excluding the indicator byte
-COLLATION_SIZE = 2**17
-assert COLLATION_SIZE % CHUNK_SIZE == 0
-# size of a blob filling a full collation
-MAX_BLOB_SIZE = COLLATION_SIZE // CHUNK_SIZE * CHUNK_DATA_SIZE
-
 #
 # Call overrides
 #
