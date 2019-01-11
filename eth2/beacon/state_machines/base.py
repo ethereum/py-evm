@@ -3,6 +3,7 @@ from abc import (
     abstractmethod,
 )
 from typing import (
+    Any,
     Tuple,
     Type,
 )
@@ -40,6 +41,12 @@ class BaseBeaconStateMachine(Configurable, ABC):
     state_class = None  # type: Type[BeaconState]
     state_transition_class = None  # type: Type[BaseStateTransition]
 
+    @abstractmethod
+    def __init__(self,
+                 chaindb: BaseBeaconChainDB,
+                 block_root: Hash32) -> None:
+        pass
+
     @classmethod
     @abstractmethod
     def get_block_class(cls) -> Type[BaseBeaconBlock]:
@@ -65,6 +72,12 @@ class BaseBeaconStateMachine(Configurable, ABC):
     #
     @abstractmethod
     def import_block(self, block: BaseBeaconBlock) -> Tuple[BeaconState, BaseBeaconBlock]:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def create_block_from_parent(parent_block: BaseBeaconBlock,
+                                 **block_params: Any) -> BaseBeaconBlock:
         pass
 
 

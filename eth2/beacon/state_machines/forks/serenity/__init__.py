@@ -7,7 +7,10 @@ from eth2.beacon.state_machines.base import BeaconStateMachine
 from eth2.beacon.state_machines.state_transitions import BaseStateTransition  # noqa: F401
 
 from .configs import SERENITY_CONFIG
-from .blocks import SerenityBeaconBlock
+from .blocks import (
+    create_serenity_block_from_parent,
+    SerenityBeaconBlock,
+)
 from .states import SerenityBeaconState
 from .state_transitions import SerenityStateTransition
 
@@ -21,3 +24,6 @@ class SerenityStateMachine(BeaconStateMachine):
     state_class = SerenityBeaconState  # type: Type[BeaconState]
     state_transition_class = SerenityStateTransition  # type: Type[BaseStateTransition]
     config = SERENITY_CONFIG
+
+    # methods
+    create_block_from_parent = staticmethod(create_serenity_block_from_parent)   # type: ignore

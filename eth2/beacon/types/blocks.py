@@ -24,14 +24,17 @@ from rlp.sedes import (
 from eth._utils.datatypes import (
     Configurable,
 )
+from eth.constants import (
+    ZERO_HASH32,
+)
+
+from eth2.beacon._utils.hash import hash_eth2
+from eth2.beacon.constants import EMPTY_SIGNATURE
 from eth2.beacon.sedes import (
     hash32,
     uint64,
     uint384,
 )
-
-from eth2.beacon.constants import EMPTY_SIGNATURE
-from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.typing import (
     SlotNumber,
     BLSSignature,
@@ -52,7 +55,7 @@ if TYPE_CHECKING:
     from eth2.beacon.db.chain import BaseBeaconChainDB  # noqa: F401
 
 
-class BaseBeaconBlockBody(rlp.Serializable):
+class BeaconBlockBody(rlp.Serializable):
     fields = [
         ('proposer_slashings', CountableList(ProposerSlashing)),
         ('casper_slashings', CountableList(CasperSlashing)),
@@ -110,10 +113,22 @@ class BaseBeaconBlockBody(rlp.Serializable):
             self.exits == ()
         )
 
+    @classmethod
+    def cast_block_body(cls,
+                        body: 'BeaconBlockBody') -> 'BeaconBlockBody':
+        return cls(
+            proposer_slashings=body.proposer_slashings,
+            casper_slashings=body.casper_slashings,
+            attestations=body.attestations,
+            custody_reseeds=body.custody_reseeds,
+            custody_challenges=body.custody_challenges,
+            custody_responses=body.custody_responses,
+            deposits=body.deposits,
+            exits=body.exits,
+        )
+
 
 class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
-    block_body_class = BaseBeaconBlockBody
-
     fields = [
         #
         # Header
@@ -128,7 +143,7 @@ class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
         #
         # Body
         #
-        ('body', block_body_class),
+        ('body', BeaconBlockBody),
     ]
 
     def __init__(self,
@@ -137,7 +152,7 @@ class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
                  state_root: Hash32,
                  randao_reveal: Hash32,
                  eth1_data: Eth1Data,
-                 body: BaseBeaconBlockBody,
+                 body: BeaconBlockBody,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             slot=slot,
@@ -188,20 +203,14 @@ class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
         raise NotImplementedError("Must be implemented by subclasses")
 
 
-class BeaconBlockBody(BaseBeaconBlockBody):
-    pass
-
-
 class BeaconBlock(BaseBeaconBlock):
-    block_body_class = BeaconBlockBody
-
     @classmethod
     def from_root(cls, root: Hash32, chaindb: 'BaseBeaconChainDB') -> 'BeaconBlock':
         """
         Returns the block denoted by the given block header.
         """
         block = chaindb.get_block_by_root(root, cls)
-        body = cls.block_body_class(
+        body = BeaconBlockBody(
             proposer_slashings=block.body.proposer_slashings,
             casper_slashings=block.body.casper_slashings,
             attestations=block.body.attestations,
@@ -220,4 +229,39 @@ class BeaconBlock(BaseBeaconBlock):
             eth1_data=block.eth1_data,
             signature=block.signature,
             body=body,
+        )
+
+    @classmethod
+    def from_parent(cls,
+                    parent_block: 'BaseBeaconBlock',
+                    slot: SlotNumber=None) -> 'BaseBeaconBlock':
+        """
+        Initialize a new block with the `parent` block as the block's
+        parent hash.
+        """
+        if slot is None:
+            slot = parent_block.slot + 1
+
+        return cls(
+            slot=slot,
+            parent_root=parent_block.root,
+            state_root=parent_block.state_root,
+            randao_reveal=ZERO_HASH32,
+            eth1_data=parent_block.eth1_data,
+            signature=EMPTY_SIGNATURE,
+            body=cls.block_body_class.create_empty_block_body(),
+        )
+
+    @classmethod
+    def cast_block(cls,
+                   block: 'BaseBeaconBlock') -> 'BaseBeaconBlock':
+        return cls(
+            slot=block.slot,
+            parent_root=block.parent_root,
+            state_root=block.state_root,
+            randao_reveal=block.randao_reveal,
+            eth1_data=block.eth1_data,
+            signature=block.signature,
+            # body=cls.block_body_class.cast_block_body(block.body),
+            body=block.body,
         )

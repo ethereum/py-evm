@@ -54,6 +54,9 @@ from eth2.beacon.db.schema import SchemaV1
 class BaseBeaconChainDB(ABC):
     db = None  # type: BaseAtomicDB
 
+    def __init__(self, db: BaseAtomicDB) -> None:
+        pass
+
     #
     # Block API
     #
@@ -62,7 +65,7 @@ class BaseBeaconChainDB(ABC):
             self,
             block: BaseBeaconBlock,
             block_class: Type[BaseBeaconBlock]
-    ) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+    ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         pass
 
     @abstractmethod
@@ -141,7 +144,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             self,
             block: BaseBeaconBlock,
             block_class: Type[BaseBeaconBlock]
-    ) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+    ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         """
         Persist the given block.
         """
@@ -153,7 +156,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             cls,
             db: 'BaseDB',
             block: BaseBeaconBlock,
-            block_class: Type[BaseBeaconBlock]) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
+            block_class: Type[BaseBeaconBlock]) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         block_chain = (block, )
         new_canonical_blocks, old_canonical_blocks = cls._persist_block_chain(
             db,
@@ -346,6 +349,13 @@ class BeaconChainDB(BaseBeaconChainDB):
         except StopIteration:
             return tuple(), tuple()
 
+        no_canonical_head = False
+        try:
+            previous_canonical_head = cls._get_canonical_head(db, block_class).root
+            head_score = cls._get_score(db, previous_canonical_head)
+        except CanonicalHeadNotFound:
+            no_canonical_head = True
+
         is_genesis = first_block.parent_root == GENESIS_PARENT_HASH
         if not is_genesis and not cls._block_exists(db, first_block.parent_root):
             raise ParentNotFound(
@@ -360,7 +370,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                 first_block.hash,
             )
         else:
-            score = cls._get_score(db, first_block.parent_root)
+            score = first_block.slot
 
         curr_block_head = first_block
         db.set(
@@ -388,10 +398,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             )
             score = cls._set_block_scores_to_db(db, curr_block_head)
 
-        try:
-            previous_canonical_head = cls._get_canonical_head(db, block_class).root
-            head_score = cls._get_score(db, previous_canonical_head)
-        except CanonicalHeadNotFound:
+        if no_canonical_head:
             return cls._set_as_canonical_chain_head(db, curr_block_head.root, block_class)
 
         if score > head_score:

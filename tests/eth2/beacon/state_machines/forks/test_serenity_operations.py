@@ -14,9 +14,11 @@ from eth2.beacon.helpers import (
 )
 
 from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.blocks import (
+    BeaconBlockBody,
+)
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
-    SerenityBeaconBlockBody,
 )
 from eth2.beacon.state_machines.forks.serenity.operations import (
     process_attestations,
@@ -113,7 +115,7 @@ def test_process_attestations(genesis_state,
         )
         attestations = attestations[:-1] + (invalid_attestation,)
 
-    block_body = SerenityBeaconBlockBody(**sample_beacon_block_body_params).copy(
+    block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
         attestations=attestations,
     )
     block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
