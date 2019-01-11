@@ -27,7 +27,7 @@ from typing import (
 
 import sha3
 
-from cytoolz import groupby
+from eth_utils.toolz import groupby
 
 import rlp
 

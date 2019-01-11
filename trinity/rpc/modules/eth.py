@@ -1,6 +1,6 @@
 import os
 
-from cytoolz import (
+from eth_utils.toolz import (
     identity,
 )
 from typing import (

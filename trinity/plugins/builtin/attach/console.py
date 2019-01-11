@@ -9,7 +9,7 @@ from trinity._utils.log_messages import (
     create_missing_ipc_error_message,
 )
 
-from cytoolz import merge
+from eth_utils.toolz import merge
 
 
 DEFAULT_BANNER: str = (

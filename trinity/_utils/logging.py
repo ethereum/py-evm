@@ -22,7 +22,7 @@ from typing import (
     Callable,
 )
 
-from cytoolz import dissoc
+from eth_utils.toolz import dissoc
 
 from eth.tools.logging import (
     ExtendedDebugLogger,

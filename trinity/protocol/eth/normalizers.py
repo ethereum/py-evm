@@ -2,7 +2,7 @@ from typing import (
     Tuple,
 )
 
-from cytoolz import (
+from eth_utils.toolz import (
     compose,
 )
 from eth.db.trie import make_trie_root_and_nodes

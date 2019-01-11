@@ -16,7 +16,7 @@ from typing import (
     Type,
 )
 
-import cytoolz
+import eth_utils.toolz
 
 import rlp
 
@@ -301,19 +301,19 @@ class TrieNodeRequestTracker:
         self.missing: Dict[float, List[Hash32]] = {}
 
     def get_timed_out(self) -> List[Hash32]:
-        timed_out = cytoolz.valfilter(
+        timed_out = eth_utils.toolz.valfilter(
             lambda v: time.time() - v[0] > self.reply_timeout, self.active_requests)
         for peer, (_, node_keys) in timed_out.items():
             self.logger.debug(
                 "Timed out waiting for %d nodes from %s", len(node_keys), peer)
-        self.active_requests = cytoolz.dissoc(self.active_requests, *timed_out.keys())
-        return list(cytoolz.concat(node_keys for _, node_keys in timed_out.values()))
+        self.active_requests = eth_utils.toolz.dissoc(self.active_requests, *timed_out.keys())
+        return list(eth_utils.toolz.concat(node_keys for _, node_keys in timed_out.values()))
 
     def get_retriable_missing(self) -> List[Hash32]:
-        retriable = cytoolz.keyfilter(
+        retriable = eth_utils.toolz.keyfilter(
             lambda k: time.time() - k > self.reply_timeout, self.missing)
-        self.missing = cytoolz.dissoc(self.missing, *retriable.keys())
-        return list(cytoolz.concat(retriable.values()))
+        self.missing = eth_utils.toolz.dissoc(self.missing, *retriable.keys())
+        return list(eth_utils.toolz.concat(retriable.values()))
 
     def get_next_timeout(self) -> float:
         active_req_times = [req_time for (req_time, _) in self.active_requests.values()]
