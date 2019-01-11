@@ -245,7 +245,7 @@ workflows:
       - py36-core
       - py36-wheel-cli
       - py36-p2p
-      - py37-eth2
+      - py36-eth2
 
       - py36-integration
       - py36-lightchain_integration
