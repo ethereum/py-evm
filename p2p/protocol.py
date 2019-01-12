@@ -50,7 +50,7 @@ class Command:
 
     _logger: logging.Logger = None
 
-    def __init__(self, cmd_id_offset: int, snappy_support: bool=False) -> None:
+    def __init__(self, cmd_id_offset: int, snappy_support: bool) -> None:
         self.cmd_id_offset = cmd_id_offset
         self.cmd_id = cmd_id_offset + self._cmd_id
         self.snappy_support = snappy_support
@@ -175,7 +175,7 @@ class Protocol:
 
     _logger: logging.Logger = None
 
-    def __init__(self, peer: 'BasePeer', cmd_id_offset: int, snappy_support: bool=False) -> None:
+    def __init__(self, peer: 'BasePeer', cmd_id_offset: int, snappy_support: bool) -> None:
         self.peer = peer
         self.cmd_id_offset = cmd_id_offset
         self.snappy_support = snappy_support
