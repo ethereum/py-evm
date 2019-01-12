@@ -73,10 +73,6 @@ class BaseBeaconChain(Configurable, ABC):
     def get_chaindb_class(cls) -> Type[BaseBeaconChainDB]:
         pass
 
-    @classmethod
-    def get_sm_configuration(cls) -> Tuple[Tuple[int, Type['BaseBeaconStateMachine']], ...]:
-        return cls.sm_configuration
-
     #
     # Chain API
     #
@@ -101,18 +97,18 @@ class BaseBeaconChain(Configurable, ABC):
     @classmethod
     def get_sm_class(cls, block: BaseBeaconBlock) -> Type['BaseBeaconStateMachine']:
         """
-        Returns the StateMachine instance for the given block slot number.
+        Returns the ``StateMachine`` instance for the given block slot number.
         """
         return cls.get_sm_class_for_block_slot(block.slot)
 
     @abstractmethod
     def get_sm(self, block: BaseBeaconBlock) -> 'BaseBeaconStateMachine':
-        raise NotImplementedError("Chain classes must implement this method")
+        pass
 
     @classmethod
     def get_sm_class_for_block_slot(cls, slot: SlotNumber) -> Type['BaseBeaconStateMachine']:
         """
-        Return the StateMachine class for the given block slot number.
+        Return the ``StateMachine`` class for the given block slot number.
         """
         if cls.sm_configuration is None:
             raise AttributeError("Chain classes must define the StateMachines in sm_configuration")
@@ -171,12 +167,12 @@ class BaseBeaconChain(Configurable, ABC):
 
 class BeaconChain(BaseBeaconChain):
     """
-    A Chain is a combination of one or more StateMachine classes.  Each StateMachine is associated
-    with a range of blocks.  The Chain class acts as a wrapper around these other
+    A Chain is a combination of one or more ``StateMachine`` classes.  Each ``StateMachine``
+    is associated with a range of slots. The Chain class acts as a wrapper around these other
     StateMachine classes, delegating operations to the appropriate StateMachine depending on the
     current block slot number.
     """
-    logger = logging.getLogger("eth2.beacon.chains.chain.BeaconChain")
+    logger = logging.getLogger("eth2.beacon.chains.BeaconChain")
 
     chaindb_class = BeaconChainDB  # type: Type[BaseBeaconChainDB]
 
@@ -210,7 +206,7 @@ class BeaconChain(BaseBeaconChain):
                      genesis_state: BeaconState,
                      genesis_block: BaseBeaconBlock) -> 'BaseBeaconChain':
         """
-        Initialize the Chain from a genesis state.
+        Initialize the ``BeaconChain`` from a genesis state.
         """
         # mutation
         chaindb = cls.get_chaindb_class()(db=base_db)
@@ -222,7 +218,7 @@ class BeaconChain(BaseBeaconChain):
                            base_db: BaseAtomicDB,
                            genesis_block: BaseBeaconBlock) -> 'BaseBeaconChain':
         """
-        Initialize the chain from the genesis block.
+        Initialize the ``BeaconChain`` from the genesis block.
         """
         chaindb = cls.get_chaindb_class()(db=base_db)
         chaindb.persist_block(genesis_block, genesis_block.__class__)
@@ -233,7 +229,7 @@ class BeaconChain(BaseBeaconChain):
     #
     def get_sm(self, at_block: BaseBeaconBlock=None) -> 'BaseBeaconStateMachine':
         """
-        Return the StateMachine instance for the given block number.
+        Return the ``StateMachine`` instance for the given block number.
         """
         block = self.ensure_block(at_block)
         sm_class = self.get_sm_class_for_block_slot(block.slot)
@@ -246,7 +242,7 @@ class BeaconChain(BaseBeaconChain):
                                  parent_block: BaseBeaconBlock,
                                  **block_params: Any) -> BaseBeaconBlock:
         """
-        Passthrough helper to the StateMachine class of the block descending from the
+        Passthrough helper to the ``StateMachine`` class of the block descending from the
         given block.
         """
 
@@ -258,7 +254,7 @@ class BeaconChain(BaseBeaconChain):
         """
         Return the requested block as specified by block hash.
 
-        Raise BlockNotFound if there's no block with the given hash in the db.
+        Raise ``BlockNotFound`` if there's no block with the given hash in the db.
         """
         validate_word(block_root, title="Block Hash")
         # FIXME: hardcoded now
@@ -269,7 +265,7 @@ class BeaconChain(BaseBeaconChain):
         """
         Return the block at the canonical chain head.
 
-        Raise CanonicalHeadNotFound if there's no head defined for the canonical chain.
+        Raise ``CanonicalHeadNotFound`` if there's no head defined for the canonical chain.
         """
         # FIXME: hardcoded now
         block_class = BeaconBlock
@@ -279,7 +275,7 @@ class BeaconChain(BaseBeaconChain):
         """
         Return the score of the block with the given hash.
 
-        Raises BlockNotFound if there is no matching black hash.
+        Raises ``BlockNotFound`` if there is no matching black hash.
         """
         return self.chaindb.get_score(block_root)
 
@@ -304,7 +300,7 @@ class BeaconChain(BaseBeaconChain):
         """
         Return the block with the given number in the canonical chain.
 
-        Raise BlockNotFound if there's no block with the given number in the
+        Raise ``BlockNotFound`` if there's no block with the given number in the
         canonical chain.
         """
         validate_slot(slot)
@@ -314,7 +310,7 @@ class BeaconChain(BaseBeaconChain):
         """
         Return the block hash with the given number in the canonical chain.
 
-        Raise BlockNotFound if there's no block with the given number in the
+        Raise ``BlockNotFound`` if there's no block with the given number in the
         canonical chain.
         """
         return self.chaindb.get_canonical_block_root(slot)
