@@ -20,7 +20,7 @@ Recently, EF Research team is collaborating with Python team to implement [the E
         - [Networking](#networking)
         - [State Execution: Beacon State Machine v.s. Sharded State Engine v.s. EVM](#state-execution-beacon-state-machine-vs-sharded-state-engine-vs-evm)
         - [Chain: Beacon Chain v.s. Shard Chain v.s. Proof-of-Work (PoW) Chain](#chain-beacon-chain-vs-shard-chain-vs-proof-of-work-pow-chain)
-    - [`eth` module introduction](#eth-module-introduction)
+    - [`eth2` module introduction](#eth2-module-introduction)
         - [`BeaconChainDB`](#beaconchaindb)
         - [`BeaconStateMachine`](#beaconstatemachine)
         - [`BeaconChain`](#beaconchain)
@@ -66,9 +66,9 @@ From bottom to top:
 `Chain` object is the component that represents a blockchain in Py-EVM. Currently, Trinity provides different PoW chains like `Mainnet` and `Ropsten`; for beacon chain, we're developing a different class with beacon-chain-specific features; likewise for the shard chain.
 
 
-## `eth` module introduction
+## `eth2` module introduction
 
-The beacon chain implementation is based on the similar architecture of PoW chain. The main components includes:
+The beacon chain implementation is based on the similar architecture of PoW chain module ([`eth` module in Py-EVM repository](https://github.com/ethereum/py-evm/tree/master/eth)). The main components includes:
 
 
 ### `BeaconChainDB`
@@ -80,9 +80,9 @@ The database interface for storing block data in local storage.
 ### `BeaconStateMachine`
 The state machine interface for applying a new block. The principle is that the `BeaconState` object would have enough context to perform:
 
-$$
-\operatorname{state}_1 = \operatorname{state\_transition\_function} (\operatorname{state}_0, \operatorname{block}_1).
-$$
+```python
+state_1 = state_transition_function(state_0, block_1)
+```
 
 Py-EVM abstracts EVM with `BaseVM` that defines the interfaces, and implements subclasses for the different mainnet forks. For example, `FrontierVM` inherits `VM` and represents the VM for Frontier fork; beacon chain has the similar architecture as we implemented `SerenityStateMachine` as the first fork of beacon chain.
 
