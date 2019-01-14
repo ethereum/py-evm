@@ -39,6 +39,7 @@ from p2p.service import (
 from trinity.config import (
     BeaconAppConfig,
     Eth1AppConfig,
+    Eth1DbMode,
     TrinityConfig,
 )
 from trinity.db.manager import (
@@ -71,7 +72,7 @@ def get_protocol(trinity_config: TrinityConfig) -> Type[Protocol]:
         return BCCProtocol
     else:
         eth1_config = trinity_config.get_app_config(Eth1AppConfig)
-        if eth1_config.uses_light_db:
+        if eth1_config.database_mode is Eth1DbMode.LIGHT:
             return LESProtocolV2
         else:
             return ETHProtocol

@@ -4,6 +4,10 @@ from abc import (
 )
 import argparse
 from contextlib import contextmanager
+from enum import (
+    auto,
+    Enum,
+)
 import json
 from pathlib import Path
 from typing import (
@@ -500,6 +504,12 @@ class BaseAppConfig(ABC):
         pass
 
 
+class Eth1DbMode(Enum):
+
+    FULL = auto()
+    LIGHT = auto()
+
+
 class Eth1AppConfig(BaseAppConfig):
 
     def __init__(self, trinity_config: TrinityConfig, sync_mode: str):
@@ -521,18 +531,19 @@ class Eth1AppConfig(BaseAppConfig):
         This is resolved relative to the ``data_dir``
         """
         path = self.trinity_config.data_dir / DATABASE_DIR_NAME
-        if self.uses_light_db:
+        if self.database_mode is Eth1DbMode.LIGHT:
             return self.trinity_config.with_app_suffix(path) / "light"
-        else:
+        elif self.database_mode is Eth1DbMode.FULL:
             return self.trinity_config.with_app_suffix(path) / "full"
+        else:
+            raise Exception(f"Unsupported Database Mode: {self.database_mode}")
 
     @property
-    def uses_light_db(self) -> bool:
-        return self.sync_mode == SYNC_LIGHT
-
-    @property
-    def uses_full_db(self) -> bool:
-        return not self.uses_light_db
+    def database_mode(self) -> Eth1DbMode:
+        if self.sync_mode == SYNC_LIGHT:
+            return Eth1DbMode.LIGHT
+        else:
+            return Eth1DbMode.FULL
 
     @property
     def node_class(self) -> Type['Node']:
@@ -542,12 +553,12 @@ class Eth1AppConfig(BaseAppConfig):
         from trinity.nodes.full import FullNode
         from trinity.nodes.light import LightNode
 
-        if self.uses_full_db:
+        if self.database_mode is Eth1DbMode.FULL:
             return FullNode
-        elif self.uses_light_db:
+        elif self.database_mode is Eth1DbMode.LIGHT:
             return LightNode
         else:
-            raise NotImplementedError("Only full and light sync modes are supported")
+            raise NotImplementedError(f"Database mode {self.database_mode} not supported")
 
     @property
     def sync_mode(self) -> str:

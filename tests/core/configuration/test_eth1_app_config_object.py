@@ -2,6 +2,7 @@ import pytest
 
 from trinity.config import (
     Eth1AppConfig,
+    Eth1DbMode,
     TrinityConfig,
 )
 from trinity.nodes.full import (
@@ -47,5 +48,7 @@ def test_sync_mode_effect_on_db_and_node_type(sync_mode,
     eth1_app_config = Eth1AppConfig(trinity_config, sync_mode)
     assert eth1_app_config.sync_mode == sync_mode
     assert eth1_app_config.node_class == expected_node_class
-    assert eth1_app_config.uses_full_db is expected_full_db
-    assert eth1_app_config.uses_light_db is not expected_full_db
+    if expected_full_db:
+        assert eth1_app_config.database_mode is Eth1DbMode.FULL
+    else:
+        assert eth1_app_config.database_mode is Eth1DbMode.LIGHT

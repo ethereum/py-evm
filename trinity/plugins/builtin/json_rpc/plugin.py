@@ -9,6 +9,7 @@ from typing import (
 
 from trinity.config import (
     Eth1AppConfig,
+    Eth1DbMode,
     BeaconAppConfig,
     TrinityConfig
 )
@@ -65,15 +66,15 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
 
         chain: BaseAsyncChain
 
-        if eth1_app_config.uses_light_db:
+        if eth1_app_config.database_mode is Eth1DbMode.LIGHT:
             header_db = db_manager.get_headerdb()  # type: ignore
             event_bus_light_peer_chain = EventBusLightPeerChain(self.context.event_bus)
             chain = chain_config.light_chain_class(header_db, peer_chain=event_bus_light_peer_chain)
-        elif eth1_app_config.uses_full_db:
+        elif eth1_app_config.database_mode is Eth1DbMode.FULL:
             db = db_manager.get_db()  # type: ignore
             chain = chain_config.full_chain_class(db)
         else:
-            raise Exception(f"Unreachable code")
+            raise Exception(f"Unsupported Database Mode: {eth1_app_config.database_mode}")
 
         return initialize_eth1_modules(chain, self.event_bus)
 
