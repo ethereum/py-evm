@@ -1,6 +1,11 @@
 import pytest
 
+from eth_utils import (
+    ValidationError,
+)
+
 from eth2.beacon.constants import (
+    FAR_FUTURE_SLOT,
     GWEI_PER_ETH,
 )
 from eth2.beacon.enums import (
@@ -19,9 +24,69 @@ from eth2.beacon.validator_status_helpers import (
     initiate_validator_exit,
     prepare_validator_for_withdrawal,
     penalize_validator,
+    update_tuple_item,
 )
 
 
+from tests.eth2.beacon.helpers import (
+    mock_validator_record,
+)
+
+
+#
+# Helper
+#
+@pytest.mark.parametrize(
+    (
+        'tuple_data, index, new_value, expected'
+    ),
+    [
+        (
+            (1, ) * 10,
+            0,
+            -99,
+            (-99,) + (1, ) * 9,
+        ),
+        (
+            (1, ) * 10,
+            5,
+            -99,
+            (1, ) * 5 + (-99,) + (1, ) * 4,
+        ),
+        (
+            (1, ) * 10,
+            9,
+            -99,
+            (1, ) * 9 + (-99,),
+        ),
+        (
+            (1, ) * 10,
+            10,
+            -99,
+            ValidationError(),
+        )
+    ]
+)
+def test_update_tuple_item(tuple_data, index, new_value, expected):
+    if isinstance(expected, Exception):
+        with pytest.raises(ValidationError):
+            update_tuple_item(
+                tuple_data=tuple_data,
+                index=index,
+                new_value=new_value,
+            )
+    else:
+        result = update_tuple_item(
+            tuple_data=tuple_data,
+            index=index,
+            new_value=new_value,
+        )
+        assert result == expected
+
+
+#
+# State update
+#
 @pytest.mark.parametrize(
     (
         'genesis,'
@@ -31,9 +96,26 @@ from eth2.beacon.validator_status_helpers import (
         (False),
     ]
 )
-def test_activate_validator(ten_validators_state, genesis, genesis_slot, entry_exit_delay):
-    state = ten_validators_state
+def test_activate_validator(genesis,
+                            empty_beacon_state,
+                            genesis_slot,
+                            entry_exit_delay,
+                            max_deposit):
+    validator_count = 10
+    state = empty_beacon_state.copy(
+        validator_registry=tuple(
+            mock_validator_record(
+                pubkey=pubkey,
+                is_active=False,
+            )
+            for pubkey in range(validator_count)
+        ),
+        validator_balances=(max_deposit * GWEI_PER_ETH,) * validator_count,
+    )
     index = 1
+    # Check the validators in `ten_validators_state` should be activated
+    assert state.validator_registry[index].activation_slot == FAR_FUTURE_SLOT
+
     result_state = activate_validator(
         state=state,
         index=index,
@@ -63,6 +145,10 @@ def test_activate_validator(ten_validators_state, genesis, genesis_slot, entry_e
 def test_initiate_validator_exit(ten_validators_state):
     state = ten_validators_state
     index = 1
+    assert not (
+        state.validator_registry[index].status_flags &
+        ValidatorStatusFlags.INITIATED_EXIT
+    )
     old_validator_status_flags = state.validator_registry[index].status_flags
     result_state = initiate_validator_exit(
         state,
@@ -82,7 +168,6 @@ def test_initiate_validator_exit(ten_validators_state):
         'state_slot',
         'exit_slot',
         'validator_registry_exit_count',
-        'not_previous_exited'
     ),
     [
         (
@@ -91,8 +176,7 @@ def test_initiate_validator_exit(ten_validators_state):
             [4, 5, 6, 7],
             100,
             10,
-            0,
-            True,
+            2,
         ),
         (
             10,
@@ -100,8 +184,7 @@ def test_initiate_validator_exit(ten_validators_state):
             [4, 5, 6, 7],
             100,
             110,
-            0,
-            True,
+            2,
         ),
         (
             10,
@@ -109,8 +192,7 @@ def test_initiate_validator_exit(ten_validators_state):
             [4, 5, 6, 7],
             100,
             200,
-            0,
-            False,
+            2,
         ),
 
     ],
@@ -121,19 +203,15 @@ def test_exit_validator(num_validators,
                         state_slot,
                         exit_slot,
                         validator_registry_exit_count,
-                        not_previous_exited,
                         ten_validators_state):
     # Unchanged
-
-    validator_registry_exit_count = 2
-    state_slot = 100
     state = ten_validators_state.copy(
         slot=state_slot,
         validator_registry_exit_count=validator_registry_exit_count,
     )
     index = 1
 
-    # Set validator exit_slot
+    # Set validator `exit_slot` prior to running `exit_validator`
     validator = state.validator_registry[index].copy(
         exit_slot=exit_slot,
     )
@@ -146,8 +224,7 @@ def test_exit_validator(num_validators,
         index=index,
         entry_exit_delay=entry_exit_delay,
     )
-    if not_previous_exited:
-        assert validator.exit_slot <= state.slot + entry_exit_delay
+    if validator.exit_slot <= state.slot + entry_exit_delay:
         assert state == result_state
         return
     else:
@@ -207,6 +284,16 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
 
     state = ten_validators_state
     validator_index = 5
+    whistleblower_index = get_beacon_proposer_index(state, state.slot, epoch_length)
+    effective_balance = max_deposit * GWEI_PER_ETH
+
+    # Check the initial balance
+    assert (
+        state.validator_balances[validator_index] ==
+        state.validator_balances[whistleblower_index] ==
+        effective_balance
+    )
+
     state = _settle_penality_to_validator_and_whistleblower(
         state=state,
         validator_index=validator_index,
@@ -225,19 +312,14 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
     assert state.latest_penalized_exit_balances == latest_penalized_exit_balances
 
     # Check penality and reward
-    effective_balance = max_deposit * GWEI_PER_ETH
     whistleblower_reward = (
         effective_balance //
         whistleblower_reward_quotient
     )
-    whistleblower_index = get_beacon_proposer_index(state, state.slot, epoch_length)
-
-    assert (
-        (
-            state.validator_balances[whistleblower_index] -
-            state.validator_balances[validator_index]
-        ) == whistleblower_reward * 2
-    )
+    whistleblower_balance = state.validator_balances[whistleblower_index]
+    validator_balance = state.validator_balances[validator_index]
+    balance_difference = whistleblower_balance - validator_balance
+    assert balance_difference == whistleblower_reward * 2
 
 
 @pytest.mark.parametrize(

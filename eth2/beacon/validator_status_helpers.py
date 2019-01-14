@@ -4,6 +4,10 @@ from typing import (
     Sequence,
 )
 
+from eth_utils import (
+    ValidationError,
+)
+
 from eth2.beacon.enums import (
     ValidatorRegistryDeltaFlag,
     ValidatorStatusFlags,
@@ -25,11 +29,24 @@ from eth2.beacon.typing import (
 # Helper for updating tuple item
 #
 def update_tuple_item(tuple_data: Sequence[Any],
-                      index: ValidatorIndex,
+                      index: int,
                       new_value: Any) -> Iterable[Any]:
+    """
+    Update the ``index``th item of ``tuple_data`` to ``new_value``
+    """
     list_data = list(tuple_data)
-    list_data[index] = new_value
-    return tuple(list_data)
+
+    try:
+        list_data[index] = new_value
+    except IndexError:
+        raise ValidationError(
+            "the length of the given tuple_data is {}, the given index {} is out of index".format(
+                len(tuple_data),
+                index,
+            )
+        )
+    else:
+        return tuple(list_data)
 
 
 #
@@ -135,6 +152,10 @@ def _settle_penality_to_validator_and_whistleblower(
     Apply penality/reward to validator and whistleblower and update the meta data
 
     More intuitive pseudo-code:
+    current_epoch_penalization_index = (state.slot // EPOCH_LENGTH) % LATEST_PENALIZED_EXIT_LENGTH
+    state.latest_penalized_exit_balances[current_epoch_penalization_index] += (
+        get_effective_balance(state, index)
+    )
     whistleblower_index = get_beacon_proposer_index(state, state.slot)
     whistleblower_reward = get_effective_balance(state, index) // WHISTLEBLOWER_REWARD_QUOTIENT
     state.validator_balances[whistleblower_index] += whistleblower_reward
@@ -142,19 +163,19 @@ def _settle_penality_to_validator_and_whistleblower(
     validator.penalized_slot = state.slot
     """
     # Update `state.latest_penalized_exit_balances`
-    last_penalized_epoch = (state.slot // epoch_length) % latest_penalized_exit_length
+    current_epoch_penalization_index = (state.slot // epoch_length) % latest_penalized_exit_length
     effective_balance = get_effective_balance(
         state.validator_balances,
         validator_index,
         max_deposit,
     )
     penalized_exit_balance = (
-        state.latest_penalized_exit_balances[last_penalized_epoch] +
+        state.latest_penalized_exit_balances[current_epoch_penalization_index] +
         effective_balance
     )
     latest_penalized_exit_balances = update_tuple_item(
         tuple_data=state.latest_penalized_exit_balances,
-        index=last_penalized_epoch,
+        index=current_epoch_penalization_index,
         new_value=penalized_exit_balance,
     )
     state = state.copy(
@@ -193,6 +214,11 @@ def penalize_validator(state: BeaconState,
                        whistleblower_reward_quotient: int,
                        entry_exit_delay: int,
                        max_deposit: Ether) -> BeaconState:
+    """
+    Penalize the validator with the given ``index``.
+
+    Exit the validator, penalize the validator, and reward the whistleblower.
+    """
     state = exit_validator(state, index, entry_exit_delay)
     state = _settle_penality_to_validator_and_whistleblower(
         state=state,
@@ -206,6 +232,9 @@ def penalize_validator(state: BeaconState,
 
 
 def prepare_validator_for_withdrawal(state: BeaconState, index: ValidatorIndex) -> BeaconState:
+    """
+    Set the validator with the given ``index`` with ``WITHDRAWABLE`` flag.
+    """
     validator = state.validator_registry[index]
     validator = validator.copy(
         status_flags=validator.status_flags | ValidatorStatusFlags.WITHDRAWABLE
