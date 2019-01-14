@@ -1,6 +1,21 @@
 import pytest
 
+from py_ecc.optimized_bls12_381 import (
+    b2,
+    FQ2,
+    is_on_curve,
+)
+
+from eth_utils import (
+    big_endian_to_int,
+)
+
+from eth2.beacon._utils.hash import (
+    hash_eth2,
+)
+
 from eth2._utils.bls import (
+    _get_x_coordinate,
     G1,
     G2,
     hash_to_G2,
@@ -17,6 +32,33 @@ from eth2._utils.bls import (
     verify,
     verify_multiple,
 )
+
+
+@pytest.mark.parametrize(
+    'message,domain',
+    [
+        (b'hello', 0),
+        (b'hello', 1),
+        (b'foo', 0),
+    ]
+)
+def test_get_x_coordinate(message, domain):
+    x_coordinate = _get_x_coordinate(message, domain)
+    domain_in_bytes = domain.to_bytes(8, 'big')
+    assert x_coordinate == FQ2(
+        [
+            big_endian_to_int(hash_eth2(message + domain_in_bytes + b'\x01')),
+            big_endian_to_int(hash_eth2(message + domain_in_bytes + b'\x02')),
+        ]
+    )
+
+
+def test_hash_to_G2():
+    message = b'helloworld'
+
+    domain_1 = 1
+    result_1 = hash_to_G2(message, domain_1)
+    assert is_on_curve(result_1, b2)
 
 
 @pytest.mark.parametrize(

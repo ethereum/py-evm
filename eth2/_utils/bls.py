@@ -77,13 +77,19 @@ def modular_squareroot(value: int) -> FQP:
     return None
 
 
-def hash_to_G2(message: bytes, domain: int) -> Tuple[FQ2, FQ2, FQ2]:
+def _get_x_coordinate(message: bytes, domain: int) -> FQ2:
     domain_in_bytes = domain.to_bytes(8, 'big')
 
     # Initial candidate x coordinate
-    x_re = big_endian_to_int(hash_eth2(domain_in_bytes + b'\x01' + message))
-    x_im = big_endian_to_int(hash_eth2(domain_in_bytes + b'\x02' + message))
+    x_re = big_endian_to_int(hash_eth2(message + domain_in_bytes + b'\x01'))
+    x_im = big_endian_to_int(hash_eth2(message + domain_in_bytes + b'\x02'))
     x_coordinate = FQ2([x_re, x_im])  # x_re + x_im * i
+
+    return x_coordinate
+
+
+def hash_to_G2(message: bytes, domain: int) -> Tuple[FQ2, FQ2, FQ2]:
+    x_coordinate = _get_x_coordinate(message, domain)
 
     # Test candidate y coordinates until a one is found
     while 1:
