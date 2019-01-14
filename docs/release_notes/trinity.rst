@@ -3,6 +3,7 @@ Trinity
 
 Unreleased (latest source)
 
+- `#155 <https://github.com/ethereum/trinity/pull/155>`_: Feature: Disable syncing entirely with `--sync-mode none`
 - `#155 <https://github.com/ethereum/trinity/pull/155>`_: Feature: Allow running `--sync-mode full` directly
 - `#155 <https://github.com/ethereum/trinity/pull/155>`_: Feature: Allow plugins to extend `--sync-mode` with different strategies
 

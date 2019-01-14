@@ -72,6 +72,22 @@ class BaseSyncStrategy(ABC):
         pass
 
 
+class NoopSyncStrategy(BaseSyncStrategy):
+
+    @classmethod
+    def get_sync_mode(cls) -> str:
+        return 'none'
+
+    async def sync(self,
+                   logger: Logger,
+                   chain: BaseChain,
+                   db_manager: BaseManager,
+                   peer_pool: BaseChainPeerPool,
+                   cancel_token: CancelToken) -> None:
+
+        logger.info("Node running without sync (--sync-mode=%s)", self.get_sync_mode())
+
+
 class FullSyncStrategy(BaseSyncStrategy):
 
     @classmethod

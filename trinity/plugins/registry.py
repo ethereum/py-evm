@@ -26,6 +26,7 @@ from trinity.plugins.builtin.syncer.plugin import (
     FastThenFullSyncStrategy,
     FullSyncStrategy,
     LightSyncStrategy,
+    NoopSyncStrategy,
     SyncerPlugin,
 )
 from trinity.plugins.builtin.tx_pool.plugin import (
@@ -60,7 +61,8 @@ ETH1_NODE_PLUGINS: Tuple[BasePlugin, ...] = (
     SyncerPlugin((
         FastThenFullSyncStrategy(),
         FullSyncStrategy(),
-        LightSyncStrategy()
+        LightSyncStrategy(),
+        NoopSyncStrategy(),
     ), FastThenFullSyncStrategy),
     TxPlugin(),
 )
