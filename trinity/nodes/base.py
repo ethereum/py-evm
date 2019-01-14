@@ -21,7 +21,7 @@ from trinity.db.eth1.header import (
     BaseAsyncHeaderDB,
 )
 from trinity.db.eth1.manager import (
-    create_db_consumer_manager
+    create_db_consumer_manager,
 )
 from trinity.config import (
     ChainConfig,
@@ -134,6 +134,16 @@ class Node(BaseService):
             ResourceAvailableEvent(
                 resource=self.get_chain(),
                 resource_type=BaseChain
+            ),
+            BroadcastConfig(internal=True),
+        )
+
+        # Broadcasting the DbManager internally, ensures plugins that run in the networking process
+        # can reuse the existing connection instead of creating additional new connections
+        self.event_bus.broadcast(
+            ResourceAvailableEvent(
+                resource=self.db_manager,
+                resource_type=BaseManager
             ),
             BroadcastConfig(internal=True),
         )

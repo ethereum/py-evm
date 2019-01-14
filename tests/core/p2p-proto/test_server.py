@@ -60,9 +60,6 @@ class ParagonServer(BaseServer):
             token=self.cancel_token,
         )
 
-    def _make_syncer(self):
-        return
-
     def _make_request_server(self):
         return
 

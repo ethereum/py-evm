@@ -62,8 +62,6 @@ from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.eth.servers import ETHRequestServer
 from trinity.protocol.les.peer import LESPeerPool
 from trinity.protocol.les.servers import LightRequestServer
-from trinity.sync.full.service import FullNodeSyncer
-from trinity.sync.light.chain import LightChainSyncer
 
 DIAL_IN_OUT_RATIO = 0.75
 
@@ -123,10 +121,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         pass
 
     @abstractmethod
-    def _make_syncer(self) -> BaseService:
-        pass
-
-    @abstractmethod
     def _make_request_server(self) -> BaseRequestServer:
         pass
 
@@ -166,8 +160,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         # UPNP service is still experimental and not essential, so we don't use run_daemon() for
         # it as that means if it crashes we'd be terminated as well.
         self.run_child_service(self.upnp_service)
-        self.syncer = self._make_syncer()
-        await self.syncer.run()
+        await self.cancel_token.wait()
 
     async def _cleanup(self) -> None:
         self.logger.info("Closing server...")
@@ -296,15 +289,6 @@ class FullServer(BaseServer[ETHPeerPool]):
             event_bus=self.event_bus
         )
 
-    def _make_syncer(self) -> FullNodeSyncer:
-        return FullNodeSyncer(
-            self.chain,
-            self.chaindb,
-            self.base_db,
-            self.peer_pool,
-            token=self.cancel_token,
-        )
-
     def _make_request_server(self) -> ETHRequestServer:
         return ETHRequestServer(
             self.chaindb,
@@ -326,14 +310,6 @@ class LightServer(BaseServer[LESPeerPool]):
             context=context,
             token=self.cancel_token,
             event_bus=self.event_bus
-        )
-
-    def _make_syncer(self) -> LightChainSyncer:
-        return LightChainSyncer(
-            self.chain,
-            self.headerdb,
-            self.peer_pool,
-            self.cancel_token,
         )
 
     def _make_request_server(self) -> LightRequestServer:

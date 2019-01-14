@@ -3,19 +3,12 @@ from typing import (
     Tuple,
 )
 
-from trinity.constants import (
-    DEFAULT_SYNC_MODE,
-    SYNC_MODES,
-)
 from trinity.extensibility import (
     BasePlugin,
 )
 from trinity.plugins.builtin.attach.plugin import (
     DbShellPlugin,
     AttachPlugin,
-)
-from trinity.plugins.builtin.sync_mode_parser.plugin import (
-    SyncModeParserPlugin,
 )
 from trinity.plugins.builtin.ethstats.plugin import (
     EthstatsPlugin,
@@ -28,6 +21,11 @@ from trinity.plugins.builtin.json_rpc.plugin import (
 )
 from trinity.plugins.builtin.peer_discovery.plugin import (
     PeerDiscoveryPlugin,
+)
+from trinity.plugins.builtin.syncer.plugin import (
+    FastThenFullSyncStrategy,
+    LightSyncStrategy,
+    SyncerPlugin,
 )
 from trinity.plugins.builtin.tx_pool.plugin import (
     TxPlugin,
@@ -48,7 +46,6 @@ def is_ipython_available() -> bool:
 
 BASE_PLUGINS: Tuple[BasePlugin, ...] = (
     AttachPlugin(use_ipython=is_ipython_available()),
-    SyncModeParserPlugin(SYNC_MODES, DEFAULT_SYNC_MODE),
     FixUncleanShutdownPlugin(),
     JsonRpcServerPlugin(),
     PeerDiscoveryPlugin(),
@@ -59,6 +56,10 @@ ETH1_NODE_PLUGINS: Tuple[BasePlugin, ...] = (
     DbShellPlugin(use_ipython=is_ipython_available()),
     EthstatsPlugin(),
     LightPeerChainBridgePlugin(),
+    SyncerPlugin((
+        FastThenFullSyncStrategy(),
+        LightSyncStrategy()
+    ), FastThenFullSyncStrategy),
     TxPlugin(),
 )
 

@@ -1,6 +1,10 @@
 Trinity 
 =======
 
+Unreleased (latest source)
+
+- `#155 <https://github.com/ethereum/trinity/pull/155>`_: Feature: Allow plugins to extend `--sync-mode` with different strategies
+
 0.1.0-alpha.20
 --------------
 
