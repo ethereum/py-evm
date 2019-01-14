@@ -617,7 +617,8 @@ def genesis_state(sample_beacon_state_params,
                   target_committee_size,
                   genesis_slot,
                   shard_count,
-                  latest_block_roots_length):
+                  latest_block_roots_length,
+                  latest_randao_mixes_length):
     initial_shuffling = get_shuffling(
         seed=ZERO_HASH32,
         validators=activated_genesis_validators,
@@ -638,6 +639,10 @@ def genesis_state(sample_beacon_state_params,
                 shard_block_root=ZERO_HASH32,
             )
             for _ in range(shard_count)
+        ),
+        latest_randao_mixes=tuple(
+            ZERO_HASH32
+            for _ in range(latest_randao_mixes_length)
         )
     )
 
