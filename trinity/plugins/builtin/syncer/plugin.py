@@ -30,6 +30,7 @@ from eth_utils import (
 
 from trinity.constants import (
     SYNC_FAST,
+    SYNC_FULL,
     SYNC_LIGHT,
 )
 from trinity.extensibility.events import (
@@ -46,7 +47,8 @@ from trinity.protocol.les.peer import (
     LESPeerPool,
 )
 from trinity.sync.full.service import (
-    FullNodeSyncer,
+    FastThenFullChainSyncer,
+    FullChainSyncer,
 )
 from trinity.sync.light.chain import (
     LightChainSyncer,
@@ -70,6 +72,30 @@ class BaseSyncStrategy(ABC):
         pass
 
 
+class FullSyncStrategy(BaseSyncStrategy):
+
+    @classmethod
+    def get_sync_mode(cls) -> str:
+        return SYNC_FULL
+
+    async def sync(self,
+                   logger: Logger,
+                   chain: BaseChain,
+                   db_manager: BaseManager,
+                   peer_pool: BaseChainPeerPool,
+                   cancel_token: CancelToken) -> None:
+
+        syncer = FullChainSyncer(
+            chain,
+            db_manager.get_chaindb(),  # type: ignore
+            db_manager.get_db(),  # type: ignore
+            cast(ETHPeerPool, peer_pool),
+            cancel_token,
+        )
+
+        await syncer.run()
+
+
 class FastThenFullSyncStrategy(BaseSyncStrategy):
 
     @classmethod
@@ -83,7 +109,7 @@ class FastThenFullSyncStrategy(BaseSyncStrategy):
                    peer_pool: BaseChainPeerPool,
                    cancel_token: CancelToken) -> None:
 
-        syncer = FullNodeSyncer(
+        syncer = FastThenFullChainSyncer(
             chain,
             db_manager.get_chaindb(),  # type: ignore
             db_manager.get_db(),  # type: ignore

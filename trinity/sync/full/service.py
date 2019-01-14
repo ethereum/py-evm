@@ -4,6 +4,7 @@ import time
 from cancel_token import CancelToken
 
 from eth.constants import BLANK_ROOT_HASH
+from eth.rlp.headers import BlockHeader
 
 from p2p.service import BaseService
 
@@ -17,11 +18,64 @@ from .constants import FAST_SYNC_CUTOFF
 from .state import StateDownloader
 
 
-class FullNodeSyncer(BaseService):
-    chain: BaseAsyncChain = None
-    chaindb: BaseAsyncChainDB = None
-    base_db: BaseAsyncDB = None
-    peer_pool: ETHPeerPool = None
+async def ensure_state_then_sync_full(logger: logging.Logger,
+                                      head: BlockHeader,
+                                      base_db: BaseAsyncDB,
+                                      chaindb: BaseAsyncChainDB,
+                                      chain: BaseAsyncChain,
+                                      peer_pool: ETHPeerPool,
+                                      cancel_token: CancelToken) -> None:
+    # Ensure we have the state for our current head.
+    if head.state_root != BLANK_ROOT_HASH and head.state_root not in base_db:
+        logger.info(
+            "Missing state for current head %s, downloading it", head)
+        downloader = StateDownloader(chaindb, base_db, head.state_root, peer_pool, cancel_token)
+        await downloader.run()
+        # remove the reference so the memory can be reclaimed
+        del downloader
+
+    if cancel_token.triggered:
+        return
+
+    # Now, loop forever, fetching missing blocks and applying them.
+    logger.info("Starting regular sync; current head: %s", head)
+    regular_syncer = RegularChainSyncer(
+        chain, chaindb, peer_pool, cancel_token)
+    await regular_syncer.run()
+
+
+class FullChainSyncer(BaseService):
+
+    def __init__(self,
+                 chain: BaseAsyncChain,
+                 chaindb: BaseAsyncChainDB,
+                 base_db: BaseAsyncDB,
+                 peer_pool: ETHPeerPool,
+                 token: CancelToken = None) -> None:
+        super().__init__(token)
+        self.chain = chain
+        self.chaindb = chaindb
+        self.base_db = base_db
+        self.peer_pool = peer_pool
+
+    async def _run(self) -> None:
+        head = await self.wait(self.chaindb.coro_get_canonical_head())
+
+        if self.cancel_token.triggered:
+            return
+
+        await ensure_state_then_sync_full(
+            self.logger,
+            head,
+            self.base_db,
+            self.chaindb,
+            self.chain,
+            self.peer_pool,
+            self.cancel_token
+        )
+
+
+class FastThenFullChainSyncer(BaseService):
 
     def __init__(self,
                  chain: BaseAsyncChain,
@@ -68,24 +122,15 @@ class FullNodeSyncer(BaseService):
         if self.cancel_token.triggered:
             return
 
-        # Ensure we have the state for our current head.
-        if head.state_root != BLANK_ROOT_HASH and head.state_root not in self.base_db:
-            self.logger.info(
-                "Missing state for current head %s, downloading it", head)
-            downloader = StateDownloader(
-                self.chaindb, self.base_db, head.state_root, self.peer_pool, self.cancel_token)
-            await downloader.run()
-            # remove the reference so the memory can be reclaimed
-            del downloader
-
-        if self.cancel_token.triggered:
-            return
-
-        # Now, loop forever, fetching missing blocks and applying them.
-        self.logger.info("Starting regular sync; current head: %s", head)
-        regular_syncer = RegularChainSyncer(
-            self.chain, self.chaindb, self.peer_pool, self.cancel_token)
-        await regular_syncer.run()
+        await ensure_state_then_sync_full(
+            self.logger,
+            head,
+            self.base_db,
+            self.chaindb,
+            self.chain,
+            self.peer_pool,
+            self.cancel_token
+        )
 
 
 def _test() -> None:
@@ -127,7 +172,7 @@ def _test() -> None:
 
     loop = asyncio.get_event_loop()
 
-    syncer = FullNodeSyncer(chain, chaindb, chaindb.db, peer_pool)
+    syncer = FastThenFullChainSyncer(chain, chaindb, chaindb.db, peer_pool)
 
     sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:

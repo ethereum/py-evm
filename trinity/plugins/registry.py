@@ -24,6 +24,7 @@ from trinity.plugins.builtin.peer_discovery.plugin import (
 )
 from trinity.plugins.builtin.syncer.plugin import (
     FastThenFullSyncStrategy,
+    FullSyncStrategy,
     LightSyncStrategy,
     SyncerPlugin,
 )
@@ -58,6 +59,7 @@ ETH1_NODE_PLUGINS: Tuple[BasePlugin, ...] = (
     LightPeerChainBridgePlugin(),
     SyncerPlugin((
         FastThenFullSyncStrategy(),
+        FullSyncStrategy(),
         LightSyncStrategy()
     ), FastThenFullSyncStrategy),
     TxPlugin(),
