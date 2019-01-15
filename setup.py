@@ -94,7 +94,7 @@ install_requires = deps['trinity'] + deps['p2p']
 setup(
     name='trinity',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
-    version='0.1.0-alpha.20',
+    version='0.1.0-alpha.22',
     description='The Trinity client for the Ethereum network',
     long_description_markdown_filename='README.md',
     author='Ethereum Foundation',
