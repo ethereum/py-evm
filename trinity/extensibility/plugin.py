@@ -23,18 +23,14 @@ from typing import (
 )
 
 from lahja import (
-    BroadcastConfig,
     Endpoint,
 )
 
 from trinity.config import (
     TrinityConfig
 )
-from trinity.constants import (
-    MAIN_EVENTBUS_ENDPOINT
-)
 from trinity.events import (
-    ShutdownRequest,
+    request_shutdown,
 )
 from trinity.extensibility.events import (
     BaseEvent,
@@ -96,10 +92,7 @@ class PluginContext:
         :class:`~lahja.eventbus.EventBus`. The actual shutdown routine is executed and coordinated
         by the main application process who listens for this event.
         """
-        self.event_bus.broadcast(
-            ShutdownRequest(reason),
-            BroadcastConfig(filter_endpoint=MAIN_EVENTBUS_ENDPOINT)
-        )
+        request_shutdown(self.event_bus, reason)
 
     @property
     def args(self) -> Namespace:

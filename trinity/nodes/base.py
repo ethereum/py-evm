@@ -27,6 +27,9 @@ from trinity.config import (
     ChainConfig,
     TrinityConfig,
 )
+from trinity.events import (
+    request_shutdown,
+)
 from trinity.extensibility.events import (
     ResourceAvailableEvent
 )
@@ -142,3 +145,6 @@ class Node(BaseService):
         self.run_daemon_task(self.handle_network_id_requests())
         self.run_daemon(self.get_p2p_server())
         await self.cancellation()
+
+    async def _cleanup(self) -> None:
+        request_shutdown(self.event_bus, "Node finished unexpectedly")
