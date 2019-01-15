@@ -50,7 +50,7 @@ class BaseRequestServer(BaseService, PeerSubscriber):
     async def _run(self) -> None:
         self.run_daemon_task(self._handle_msg_loop())
         with self.subscribe(self._peer_pool):
-            await self.events.cancelled.wait()
+            await self.cancellation()
 
     async def _handle_msg_loop(self) -> None:
         while self.is_operational:

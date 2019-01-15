@@ -305,6 +305,12 @@ class BaseService(ABC, CancellableMixin):
     def is_running(self) -> bool:
         return self._run_lock.locked()
 
+    async def cancellation(self) -> None:
+        """
+        Pause until this service is cancelled
+        """
+        await self.wait(self.events.cancelled.wait())
+
     async def threadsafe_cancel(self) -> None:
         """
         Cancel service in another thread. Block until service is cleaned up.

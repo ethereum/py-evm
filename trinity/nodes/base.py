@@ -140,4 +140,5 @@ class Node(BaseService):
         await self.event_bus.wait_for_connection()
         self.notify_resource_available()
         self.run_daemon_task(self.handle_network_id_requests())
-        await self.get_p2p_server().run()
+        self.run_daemon(self.get_p2p_server())
+        await self.cancellation()
