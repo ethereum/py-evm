@@ -95,10 +95,10 @@ class P2PProtocol(Protocol):
     _commands = [Hello, Ping, Pong, Disconnect]
     cmd_length = 16
 
-    def __init__(self, peer: 'BasePeer') -> None:
+    def __init__(self, peer: 'BasePeer', snappy_support: bool) -> None:
         # For the base protocol the cmd_id_offset is always 0.
         # For the base protocol snappy compression should be disabled
-        super().__init__(peer, cmd_id_offset=0, snappy_support=False)
+        super().__init__(peer, cmd_id_offset=0, snappy_support=snappy_support)
 
     def send_handshake(self) -> None:
         # TODO: move import out once this is in the trinity codebase

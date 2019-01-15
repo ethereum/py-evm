@@ -54,7 +54,7 @@ async def test_les_handshake():
     )
 )
 def test_sub_protocol_selection(snappy_support):
-    peer = ProtoMatchingPeer([LESProtocol, LESProtocolV2])
+    peer = ProtoMatchingPeer([LESProtocol, LESProtocolV2], snappy_support)
 
     proto = peer.select_sub_protocol([
         (LESProtocol.name, LESProtocol.version),
@@ -102,6 +102,6 @@ class LESProtocolV3(LESProtocol):
 
 class ProtoMatchingPeer(LESPeer):
 
-    def __init__(self, supported_sub_protocols):
+    def __init__(self, supported_sub_protocols, snappy_support):
         self._supported_sub_protocols = supported_sub_protocols
-        self.base_protocol = P2PProtocol(self)
+        self.base_protocol = P2PProtocol(self, snappy_support)
