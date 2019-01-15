@@ -56,7 +56,7 @@ class Node(BaseService):
         self.event_bus = event_bus
 
     async def handle_network_id_requests(self) -> None:
-        async for req in self.event_bus.stream(NetworkIdRequest):
+        async for req in self.wait_iter(self.event_bus.stream(NetworkIdRequest)):
             # We are listening for all `NetworkIdRequest` events but we ensure to only send a
             # `NetworkIdResponse` to the callsite that made the request.  We do that by
             # retrieving a `BroadcastConfig` from the request via the

@@ -821,7 +821,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             self.run_task(self.connect_to_nodes(from_uris([command.node])))
 
     async def handle_peer_count_requests(self) -> None:
-        async for req in self.event_bus.stream(PeerCountRequest):
+        async for req in self.wait_iter(self.event_bus.stream(PeerCountRequest)):
                 # We are listening for all `PeerCountRequest` events but we ensure to only send a
                 # `PeerCountResponse` to the callsite that made the request.  We do that by
                 # retrieving a `BroadcastConfig` from the request via the
