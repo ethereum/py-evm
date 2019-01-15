@@ -511,6 +511,9 @@ class VM(BaseVM):
         receipts_tuple = tuple(receipts)
         computations_tuple = tuple(computations)
 
+        self.state.account_db.persist()
+        result_header = result_header.copy(state_root=self.state.state_root)
+
         return result_header, receipts_tuple, computations_tuple
 
     #

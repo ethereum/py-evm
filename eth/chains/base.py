@@ -894,7 +894,7 @@ class MiningChain(Chain):
         Applies the transaction to the current tip block.
 
         WARNING: Receipt and Transaction trie generation is computationally
-        heavy and incurs significant perferomance overhead.
+        heavy and incurs significant performance overhead.
         """
         vm = self.get_vm(self.header)
         base_block = vm.block
@@ -903,6 +903,7 @@ class MiningChain(Chain):
 
         # since we are building the block locally, we have to persist all the incremental state
         vm.state.account_db.persist()
+        new_header = new_header.copy(state_root=vm.state.state_root)
 
         transactions = base_block.transactions + (transaction, )
         receipts = base_block.get_receipts(self.chaindb) + (receipt, )
