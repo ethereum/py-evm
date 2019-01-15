@@ -45,7 +45,6 @@ from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
 )
 from eth2.beacon.types.blocks import (
-    BeaconBlock,
     BeaconBlockBody,
 )
 from eth2.beacon.types.fork_data import (

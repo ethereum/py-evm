@@ -4,6 +4,7 @@ from eth2.beacon.types.blocks import (
     BeaconBlock,
 )
 
+
 @pytest.fixture
 def chain(beacon_chain_without_block_validation):
     return beacon_chain_without_block_validation
