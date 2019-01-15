@@ -21,7 +21,7 @@ deps = {
         "eth-utils>=1.3.0,<2",
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.5",
-        "py-evm==0.2.0a38",
+        "py-evm==0.2.0a40",
         "web3==4.4.1",
         "lahja==0.10.2",
         "termcolor>=1.1.0,<2.0.0",
