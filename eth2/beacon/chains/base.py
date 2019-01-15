@@ -45,7 +45,6 @@ from eth2.beacon.exceptions import (
 from eth2.beacon.state_machines.base import BaseBeaconStateMachine  # noqa: F401
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
-    BeaconBlock,
 )
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
@@ -122,6 +121,10 @@ class BaseBeaconChain(Configurable, ABC):
     #
     # Block API
     #
+    @abstractmethod
+    def get_block_class(self, block_root: Hash32) -> Type[BaseBeaconBlock]:
+        pass
+
     @abstractmethod
     def create_block_from_parent(self,
                                  parent_block: BaseBeaconBlock,
@@ -238,6 +241,12 @@ class BeaconChain(BaseBeaconChain):
     #
     # Block API
     #
+    def get_block_class(self, block_root: Hash32) -> Type[BaseBeaconBlock]:
+        slot = self.chaindb.get_slot_by_root(block_root)
+        sm_class = self.get_sm_class_for_block_slot(slot)
+        block_class = sm_class.block_class
+        return block_class
+
     def create_block_from_parent(self,
                                  parent_block: BaseBeaconBlock,
                                  **block_params: Any) -> BaseBeaconBlock:
@@ -257,8 +266,8 @@ class BeaconChain(BaseBeaconChain):
         Raise ``BlockNotFound`` if there's no block with the given hash in the db.
         """
         validate_word(block_root, title="Block Hash")
-        # FIXME: hardcoded now
-        block_class = BeaconBlock
+
+        block_class = self.get_block_class(block_root)
         return self.chaindb.get_block_by_root(block_root, block_class)
 
     def get_canonical_head(self) -> BaseBeaconBlock:
@@ -267,9 +276,10 @@ class BeaconChain(BaseBeaconChain):
 
         Raise ``CanonicalHeadNotFound`` if there's no head defined for the canonical chain.
         """
-        # FIXME: hardcoded now
-        block_class = BeaconBlock
-        return self.chaindb.get_canonical_head(block_class)
+        block_root = self.chaindb.get_canonical_head_root()
+
+        block_class = self.get_block_class(block_root)
+        return self.chaindb.get_block_by_root(block_root, block_class)
 
     def get_score(self, block_root: Hash32) -> int:
         """

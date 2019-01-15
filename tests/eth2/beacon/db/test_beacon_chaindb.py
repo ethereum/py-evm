@@ -134,6 +134,10 @@ def test_chaindb_get_finalized_head(chaindb, block):
 
 def test_chaindb_get_canonical_head(chaindb, block):
     chaindb.persist_block(block, block.__class__)
+
+    canonical_head_root = chaindb.get_canonical_head_root()
+    assert canonical_head_root == block.root
+
     result_block = chaindb.get_canonical_head(block.__class__)
     assert result_block == block
 
@@ -152,3 +156,10 @@ def test_chaindb_get_canonical_head(chaindb, block):
     chaindb.persist_block(block_3, block_3.__class__)
     result_block = chaindb.get_canonical_head(block.__class__)
     assert result_block == block_3
+
+
+def test_get_slot_by_root(chaindb, block):
+    chaindb.persist_block(block, block.__class__)
+    block_slot = block.slot
+    result_slot = chaindb.get_slot_by_root(block.root)
+    assert result_slot == block_slot
