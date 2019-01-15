@@ -1,5 +1,8 @@
 SUPPORTED_RLPX_VERSION = 4
 
+# The p2p protocol version from which Snappy Compression is Enabled
+SNAPPY_PROTOCOL_VERSION = 5
+
 # Overhead added by ECIES encryption
 ENCRYPT_OVERHEAD_LENGTH = 113
 

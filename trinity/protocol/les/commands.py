@@ -233,8 +233,8 @@ class ContractCodes(Command):
 class StatusV2(Status):
     _cmd_id = 0
 
-    def __init__(self, cmd_id_offset: int) -> None:
-        super().__init__(cmd_id_offset)
+    def __init__(self, cmd_id_offset: int, snappy_support: bool) -> None:
+        super().__init__(cmd_id_offset, snappy_support)
         self.items_sedes['announceType'] = sedes.big_endian_int
 
 

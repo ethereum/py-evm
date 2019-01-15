@@ -13,6 +13,8 @@ from typing import (
     Union,
 )
 
+import snappy
+
 import rlp
 from rlp import sedes
 
@@ -48,9 +50,10 @@ class Command:
 
     _logger: logging.Logger = None
 
-    def __init__(self, cmd_id_offset: int) -> None:
+    def __init__(self, cmd_id_offset: int, snappy_support: bool) -> None:
         self.cmd_id_offset = cmd_id_offset
         self.cmd_id = cmd_id_offset + self._cmd_id
+        self.snappy_support = snappy_support
 
     @property
     def logger(self) -> logging.Logger:
@@ -105,12 +108,32 @@ class Command:
         packet_type = get_devp2p_cmd_id(data)
         if packet_type != self.cmd_id:
             raise MalformedMessage(f"Wrong packet type: {packet_type}, expected {self.cmd_id}")
-        return self.decode_payload(data[1:])
+
+        compressed_payload = data[1:]
+        encoded_payload = self.decompress_payload(compressed_payload)
+
+        return self.decode_payload(encoded_payload)
+
+    def decompress_payload(self, raw_payload: bytes) -> bytes:
+        # Do the Snappy Decompression only if Snappy Compression is supported by the protocol
+        if self.snappy_support:
+            return snappy.decompress(raw_payload)
+        else:
+            return raw_payload
+
+    def compress_payload(self, raw_payload: bytes) -> bytes:
+        # Do the Snappy Compression only if Snappy Compression is supported by the protocol
+        if self.snappy_support:
+            return snappy.compress(raw_payload)
+        else:
+            return raw_payload
 
     def encode(self, data: PayloadType) -> Tuple[bytes, bytes]:
-        payload = self.encode_payload(data)
+        encoded_payload = self.encode_payload(data)
+        compressed_payload = self.compress_payload(encoded_payload)
+
         enc_cmd_id = rlp.encode(self.cmd_id, sedes=rlp.sedes.big_endian_int)
-        frame_size = len(enc_cmd_id) + len(payload)
+        frame_size = len(enc_cmd_id) + len(compressed_payload)
         if frame_size.bit_length() > 24:
             raise ValueError("Frame size has to fit in a 3-byte integer")
 
@@ -123,7 +146,7 @@ class Command:
         header += zero_header
         header = _pad_to_16_byte_boundary(header)
 
-        body = _pad_to_16_byte_boundary(enc_cmd_id + payload)
+        body = _pad_to_16_byte_boundary(enc_cmd_id + compressed_payload)
         return header, body
 
 
@@ -152,12 +175,13 @@ class Protocol:
 
     _logger: logging.Logger = None
 
-    def __init__(self, peer: 'BasePeer', cmd_id_offset: int) -> None:
+    def __init__(self, peer: 'BasePeer', cmd_id_offset: int, snappy_support: bool) -> None:
         self.peer = peer
         self.cmd_id_offset = cmd_id_offset
-        self.commands = [cmd_class(cmd_id_offset) for cmd_class in self._commands]
-        self.cmd_by_type = {cmd_class: cmd_class(cmd_id_offset) for cmd_class in self._commands}
-        self.cmd_by_id = dict((cmd.cmd_id, cmd) for cmd in self.commands)
+        self.snappy_support = snappy_support
+        self.commands = [cmd_class(cmd_id_offset, snappy_support) for cmd_class in self._commands]
+        self.cmd_by_type = {type(cmd): cmd for cmd in self.commands}
+        self.cmd_by_id = {cmd.cmd_id: cmd for cmd in self.commands}
 
     @property
     def logger(self) -> logging.Logger:

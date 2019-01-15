@@ -35,6 +35,14 @@ class Hello(Command):
         ('remote_pubkey', sedes.binary)
     ]
 
+    def decompress_payload(self, raw_payload: bytes) -> bytes:
+        # The `Hello` command doesn't support snappy compression
+        return raw_payload
+
+    def compress_payload(self, raw_payload: bytes) -> bytes:
+        # The `Hello` command doesn't support snappy compression
+        return raw_payload
+
 
 @enum.unique
 class DisconnectReason(enum.Enum):
@@ -83,13 +91,14 @@ class Pong(Command):
 
 class P2PProtocol(Protocol):
     name = 'p2p'
-    version = 4
+    version = 5
     _commands = [Hello, Ping, Pong, Disconnect]
     cmd_length = 16
 
     def __init__(self, peer: 'BasePeer') -> None:
         # For the base protocol the cmd_id_offset is always 0.
-        super().__init__(peer, cmd_id_offset=0)
+        # For the base protocol snappy compression should be disabled
+        super().__init__(peer, cmd_id_offset=0, snappy_support=False)
 
     def send_handshake(self) -> None:
         # TODO: move import out once this is in the trinity codebase
@@ -99,13 +108,16 @@ class P2PProtocol(Protocol):
                     capabilities=self.peer.capabilities,
                     listen_port=self.peer.listen_port,
                     remote_pubkey=self.peer.privkey.public_key.to_bytes())
-        header, body = Hello(self.cmd_id_offset).encode(data)
+        header, body = Hello(self.cmd_id_offset, self.snappy_support).encode(data)
         self.send(header, body)
 
     def send_disconnect(self, reason: DisconnectReason) -> None:
-        header, body = Disconnect(self.cmd_id_offset).encode(dict(reason=reason))
+        header, body = Disconnect(
+            self.cmd_id_offset,
+            self.snappy_support
+        ).encode(dict(reason=reason))
         self.send(header, body)
 
     def send_pong(self) -> None:
-        header, body = Pong(self.cmd_id_offset).encode({})
+        header, body = Pong(self.cmd_id_offset, self.snappy_support).encode({})
         self.send(header, body)

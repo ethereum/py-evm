@@ -25,7 +25,7 @@ class ParagonProtocol(Protocol):
     # Broadcast
     #
     def send_broadcast_data(self, data: bytes) -> None:
-        cmd = BroadcastData(self.cmd_id_offset)
+        cmd = BroadcastData(self.cmd_id_offset, self.snappy_support)
         header, body = cmd.encode({'data': data})
         self.send(header, body)
 
@@ -33,11 +33,11 @@ class ParagonProtocol(Protocol):
     # Sum
     #
     def send_get_sum(self, value_a: int, value_b: int) -> None:
-        cmd = GetSum(self.cmd_id_offset)
+        cmd = GetSum(self.cmd_id_offset, self.snappy_support)
         header, body = cmd.encode({'a': value_a, 'b': value_b})
         self.send(header, body)
 
     def send_sum(self, result: int) -> None:
-        cmd = GetSum(self.cmd_id_offset)
+        cmd = GetSum(self.cmd_id_offset, self.snappy_support)
         header, body = cmd.encode({'result': result})
         self.send(header, body)

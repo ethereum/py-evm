@@ -66,7 +66,7 @@ class LESProtocol(Protocol):
             # TODO: Uncomment once we start relaying transactions.
             # 'txRelay': None,
         }
-        cmd = Status(self.cmd_id_offset)
+        cmd = Status(self.cmd_id_offset, self.snappy_support)
         self.send(*cmd.encode(resp))
         self.logger.debug("Sending LES/Status msg: %s", resp)
 
@@ -81,7 +81,7 @@ class LESProtocol(Protocol):
             'request_id': request_id,
             'block_hashes': block_hashes,
         }
-        header, body = GetBlockBodies(self.cmd_id_offset).encode(data)
+        header, body = GetBlockBodies(self.cmd_id_offset, self.snappy_support).encode(data)
         self.send(header, body)
 
         return request_id
@@ -101,7 +101,7 @@ class LESProtocol(Protocol):
         """
         if request_id is None:
             request_id = gen_request_id()
-        cmd = GetBlockHeaders(self.cmd_id_offset)
+        cmd = GetBlockHeaders(self.cmd_id_offset, self.snappy_support)
         data = {
             'request_id': request_id,
             'query': GetBlockHeadersQuery(
@@ -125,7 +125,7 @@ class LESProtocol(Protocol):
             'headers': headers,
             'buffer_value': buffer_value,
         }
-        header, body = BlockHeaders(self.cmd_id_offset).encode(data)
+        header, body = BlockHeaders(self.cmd_id_offset, self.snappy_support).encode(data)
         self.send(header, body)
 
         return request_id
@@ -137,7 +137,7 @@ class LESProtocol(Protocol):
             'request_id': request_id,
             'block_hashes': [block_hash],
         }
-        header, body = GetReceipts(self.cmd_id_offset).encode(data)
+        header, body = GetReceipts(self.cmd_id_offset, self.snappy_support).encode(data)
         self.send(header, body)
 
         return request_id
@@ -150,7 +150,7 @@ class LESProtocol(Protocol):
             'request_id': request_id,
             'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
         }
-        header, body = GetProofs(self.cmd_id_offset).encode(data)
+        header, body = GetProofs(self.cmd_id_offset, self.snappy_support).encode(data)
         self.send(header, body)
 
         return request_id
@@ -162,7 +162,7 @@ class LESProtocol(Protocol):
             'request_id': request_id,
             'code_requests': [ContractCodeRequest(block_hash, key)],
         }
-        header, body = GetContractCodes(self.cmd_id_offset).encode(data)
+        header, body = GetContractCodes(self.cmd_id_offset, self.snappy_support).encode(data)
         self.send(header, body)
 
         return request_id
@@ -187,7 +187,7 @@ class LESProtocolV2(LESProtocol):
             'serveChainSince': 0,
             'txRelay': None,
         }
-        cmd = StatusV2(self.cmd_id_offset)
+        cmd = StatusV2(self.cmd_id_offset, self.snappy_support)
         self.logger.debug("Sending LES/Status msg: %s", resp)
         self.send(*cmd.encode(resp))
 
@@ -203,7 +203,7 @@ class LESProtocolV2(LESProtocol):
             'request_id': request_id,
             'proof_requests': [ProofRequest(block_hash, account_key, key, from_level)],
         }
-        header, body = GetProofsV2(self.cmd_id_offset).encode(data)
+        header, body = GetProofsV2(self.cmd_id_offset, self.snappy_support).encode(data)
         self.send(header, body)
 
         return request_id

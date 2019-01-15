@@ -29,6 +29,13 @@ we need to install the ``python3-pip`` package through the following command.
 .. note::
   .. include:: /fragments/virtualenv_explainer.rst
 
+Trinity uses Snappy Compression and hence needs the Snappy Library to be pre-installed on the system.
+It can be installed through the following command.
+
+.. code:: sh
+
+  apt-get install libsnappy-dev
+
 Finally, we can install the ``trinity`` package via pip.
 
 .. code:: sh
@@ -47,7 +54,13 @@ First, install LevelDB and the latest Python 3 with brew:
 .. note::
   .. include:: /fragments/virtualenv_explainer.rst
 
-Then, install the ``trinity`` package via pip:
+Now, install Snappy Library with brew as follows:
+
+.. code:: sh
+
+  brew install snappy
+
+Finally, install the ``trinity`` package via pip:
 
 .. code:: sh
 
@@ -116,13 +129,13 @@ to help us getting that bug fixed.
 
 .. code:: sh
 
-      INFO  05-29 01:57:02        main  
-    ______     _       _ __       
+      INFO  05-29 01:57:02        main
+    ______     _       _ __
   /_  __/____(_)___  (_) /___  __
     / / / ___/ / __ \/ / __/ / / /
-  / / / /  / / / / / / /_/ /_/ / 
-  /_/ /_/  /_/_/ /_/_/\__/\__, /  
-                        /____/   
+  / / / /  / / / / / / /_/ /_/ /
+  /_/ /_/  /_/_/ /_/_/\__/\__, /
+                        /____/
       INFO  05-29 01:57:02        main  Trinity/0.1.0a4/linux/cpython3.6.5
       INFO  05-29 01:57:02        main  network: 1
       INFO  05-29 01:57:02         ipc  IPC started at: /root/.local/share/trinity/mainnet/jsonrpc.ipc
@@ -146,7 +159,7 @@ Once Trinity successfully connected to other peers we should see it starting to 
 Running as a light client
 -------------------------
 
-.. warning:: 
+.. warning::
 
     It may take a **very** long time for Trinity to find an LES node with open
     slots.  This is not a bug with trinity, but rather a shortage of nodes
@@ -206,7 +219,7 @@ latest block by calling ``w3.eth.getBlock('latest')``.
 .. code:: sh
 
   In [9]: w3.eth.getBlock('latest')
-  Out[9]: 
+  Out[9]:
   AttributeDict({'difficulty': 743444339302,
   'extraData': HexBytes('0x476574682f4c5649562f76312e302e302f6c696e75782f676f312e342e32'),
   'gasLimit': 5000,
@@ -246,5 +259,3 @@ For a list of JSON-RPC endpoints which are expected to work, see this issue: htt
   - It is expected to have bugs and is not meant to be used in production
   - Things may be ridiculously slow or not work at all
   - Only a subset of JSON-RPC API calls are currently supported
-
-
