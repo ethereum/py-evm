@@ -1005,7 +1005,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
     async def connect_to_nodes(self, nodes: Iterator[Node]) -> None:
         for node in nodes:
-            if self.is_full:
+            if self.is_full or not self.is_operational:
                 return
 
             # TODO: Consider changing connect() to raise an exception instead of returning None,
