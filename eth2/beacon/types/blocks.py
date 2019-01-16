@@ -83,6 +83,32 @@ class BaseBeaconBlockBody(rlp.Serializable):
             exits=exits,
         )
 
+    @classmethod
+    def create_empty_body(cls) -> 'BeaconBlockBody':
+        return cls(
+            proposer_slashings=(),
+            casper_slashings=(),
+            attestations=(),
+            custody_reseeds=(),
+            custody_challenges=(),
+            custody_responses=(),
+            deposits=(),
+            exits=(),
+        )
+
+    @property
+    def is_empty(self) -> bool:
+        return (
+            self.proposer_slashings == () and
+            self.casper_slashings == () and
+            self.attestations == () and
+            self.custody_reseeds == () and
+            self.custody_challenges == () and
+            self.custody_responses == () and
+            self.deposits == () and
+            self.exits == ()
+        )
+
 
 class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
     block_body_class = BaseBeaconBlockBody
