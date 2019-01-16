@@ -113,7 +113,7 @@ def test_activate_validator(genesis,
         validator_balances=(max_deposit * GWEI_PER_ETH,) * validator_count,
     )
     index = 1
-    # Check the validators in `ten_validators_state` should be activated
+    # Check that the `index`th validator in `state` is inactivated
     assert state.validator_registry[index].activation_slot == FAR_FUTURE_SLOT
 
     result_state = activate_validator(
