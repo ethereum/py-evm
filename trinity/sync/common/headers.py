@@ -43,7 +43,7 @@ from p2p.protocol import Command
 from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
-from trinity.db.header import AsyncHeaderDB
+from trinity.db.header import BaseAsyncHeaderDB
 from trinity.protocol.common.commands import (
     BaseBlockHeaders,
 )
@@ -77,7 +77,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
 
     def __init__(self,
                  chain: BaseAsyncChain,
-                 db: AsyncHeaderDB,
+                 db: BaseAsyncHeaderDB,
                  peer: TChainPeer,
                  token: CancelToken) -> None:
         super().__init__(token=token)
@@ -708,7 +708,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
 
     def __init__(self,
                  chain: BaseAsyncChain,
-                 db: AsyncHeaderDB,
+                 db: BaseAsyncHeaderDB,
                  peer_pool: BaseChainPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)

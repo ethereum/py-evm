@@ -36,7 +36,7 @@ from p2p.service import (
 )
 
 from trinity.chains.base import BaseAsyncChain
-from trinity.db.header import AsyncHeaderDB
+from trinity.db.header import BaseAsyncHeaderDB
 from trinity.protocol.common.peer import (
     BaseChainPeer,
 )
@@ -55,7 +55,7 @@ class PeerHeaderSyncer(BaseService):
 
     def __init__(self,
                  chain: BaseAsyncChain,
-                 db: AsyncHeaderDB,
+                 db: BaseAsyncHeaderDB,
                  peer: BaseChainPeer,
                  token: CancelToken = None) -> None:
         super().__init__(token)

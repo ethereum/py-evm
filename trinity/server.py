@@ -54,7 +54,7 @@ from trinity.chains.base import BaseAsyncChain
 from trinity.constants import DEFAULT_PREFERRED_NODES
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
-from trinity.db.header import AsyncHeaderDB
+from trinity.db.header import BaseAsyncHeaderDB
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.common.peer import BaseChainPeerPool
 from trinity.protocol.common.servers import BaseRequestServer
@@ -81,7 +81,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
                  port: int,
                  chain: BaseAsyncChain,
                  chaindb: AsyncChainDB,
-                 headerdb: AsyncHeaderDB,
+                 headerdb: BaseAsyncHeaderDB,
                  base_db: AsyncBaseDB,
                  network_id: int,
                  max_peers: int = DEFAULT_MAX_PEERS,

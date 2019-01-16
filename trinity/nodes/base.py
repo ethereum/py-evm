@@ -18,7 +18,7 @@ from p2p.service import (
 
 from trinity.chains.full import FullChain
 from trinity.db.header import (
-    AsyncHeaderDB,
+    BaseAsyncHeaderDB,
 )
 from trinity.db.manager import (
     create_db_manager
@@ -108,7 +108,7 @@ class Node(BaseService):
         return self._db_manager
 
     @property
-    def headerdb(self) -> AsyncHeaderDB:
+    def headerdb(self) -> BaseAsyncHeaderDB:
         return self._headerdb
 
     def notify_resource_available(self) -> None:

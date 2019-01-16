@@ -14,9 +14,11 @@ from eth_typing import (
     BlockNumber,
 )
 
+from eth.db.backends.base import (
+    BaseAtomicDB,
+)
 from eth.db.header import (
     BaseHeaderDB,
-    HeaderDB,
 )
 from eth.rlp.headers import BlockHeader
 
@@ -27,9 +29,9 @@ from trinity._utils.mp import (
 
 
 class BaseAsyncHeaderDB(BaseHeaderDB):
-    #
-    # Canonical Chain API
-    #
+    """
+    Abstract base class extends the abstract ``BaseHeaderDB`` with async APIs.
+    """
     @abstractmethod
     async def coro_get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
         raise NotImplementedError("ChainDB classes must implement this method")
@@ -67,34 +69,15 @@ class BaseAsyncHeaderDB(BaseHeaderDB):
         raise NotImplementedError("ChainDB classes must implement this method")
 
 
-class AsyncHeaderDB(HeaderDB, BaseAsyncHeaderDB):
-    async def coro_get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
-        raise NotImplementedError("ChainDB classes must implement this method")
+class AsyncHeaderDBPreProxy(BaseAsyncHeaderDB):
+    """
+    Proxy implementation of ``BaseAsyncHeaderDB`` that does not derive from
+    ``BaseProxy`` for the purpose of improved testability.
+    """
 
-    async def coro_get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeader:  # noqa: E501
-        raise NotImplementedError("ChainDB classes must implement this method")
+    def __init__(self, db: BaseAtomicDB) -> None:
+        pass
 
-    async def coro_get_canonical_head(self) -> BlockHeader:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    async def coro_get_score(self, block_hash: Hash32) -> int:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    async def coro_header_exists(self, block_hash: Hash32) -> bool:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    async def coro_persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    async def coro_persist_header_chain(self,
-                                        headers: Iterable[BlockHeader]) -> Tuple[BlockHeader, ...]:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-
-class AsyncHeaderDBProxy(BaseProxy, BaseAsyncHeaderDB, BaseHeaderDB):
     coro_get_block_header_by_hash = async_method('get_block_header_by_hash')
     coro_get_canonical_block_hash = async_method('get_canonical_block_hash')
     coro_get_canonical_block_header_by_number = async_method('get_canonical_block_header_by_number')
@@ -114,3 +97,10 @@ class AsyncHeaderDBProxy(BaseProxy, BaseAsyncHeaderDB, BaseHeaderDB):
     get_canonical_block_hash = sync_method('get_canonical_block_hash')
     persist_header = sync_method('persist_header')
     persist_header_chain = sync_method('persist_header_chain')
+
+
+class AsyncHeaderDBProxy(BaseProxy, AsyncHeaderDBPreProxy):
+    """
+    Turn ``AsyncHeaderDBPreProxy`` into an actual proxy by deriving from ``BaseProxy``
+    """
+    pass

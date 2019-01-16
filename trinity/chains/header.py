@@ -1,16 +1,11 @@
 from abc import abstractmethod
-from typing import Tuple, Type
+from typing import Tuple
 
 from eth.chains.header import (
     BaseHeaderChain,
     HeaderChain,
 )
 from eth.rlp.headers import BlockHeader
-
-from trinity.db.header import (
-    AsyncHeaderDB,
-    BaseAsyncHeaderDB,
-)
 
 
 class BaseAsyncHeaderChain(BaseHeaderChain):
@@ -24,7 +19,6 @@ class BaseAsyncHeaderChain(BaseHeaderChain):
 
 
 class AsyncHeaderChain(HeaderChain, BaseAsyncHeaderChain):
-    _headerdb_class: Type[BaseAsyncHeaderDB] = AsyncHeaderDB
 
     async def coro_get_canonical_head(self) -> BlockHeader:
         raise NotImplementedError("Chain classes must implement this method")

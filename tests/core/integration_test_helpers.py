@@ -21,11 +21,12 @@ from eth.tools.builder.chain import (
     enable_pow_mining,
     genesis,
 )
+from eth.db.header import HeaderDB
 from eth.vm.forks.byzantium import ByzantiumVM
 
 from trinity.db.base import AsyncBaseDB
 from trinity.db.chain import AsyncChainDB
-from trinity.db.header import AsyncHeaderDB
+from trinity.db.header import BaseAsyncHeaderDB
 
 ZIPPED_FIXTURES_PATH = Path(__file__).parent.parent / 'integration' / 'fixtures'
 
@@ -65,7 +66,7 @@ class FakeAsyncLevelDB(LevelDB, AsyncBaseDB):
     coro_exists = async_passthrough('exists')
 
 
-class FakeAsyncHeaderDB(AsyncHeaderDB):
+class FakeAsyncHeaderDB(BaseAsyncHeaderDB, HeaderDB):
     coro_get_canonical_block_hash = async_passthrough('get_canonical_block_hash')
     coro_get_canonical_block_header_by_number = async_passthrough('get_canonical_block_header_by_number')  # noqa: E501
     coro_get_canonical_head = async_passthrough('get_canonical_head')

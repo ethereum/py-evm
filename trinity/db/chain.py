@@ -14,19 +14,19 @@ from typing import (
 from eth_typing import Hash32
 
 from eth.db.chain import ChainDB
+from eth.db.header import HeaderDB
 from eth.rlp.blocks import BaseBlock
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
 
-from trinity.db.header import AsyncHeaderDB
 from trinity._utils.mp import (
     async_method,
     sync_method,
 )
 
 
-class AsyncChainDB(ChainDB, AsyncHeaderDB):
+class AsyncChainDB(ChainDB, HeaderDB):
     async def coro_get(self, key: bytes) -> bytes:
         raise NotImplementedError()
 

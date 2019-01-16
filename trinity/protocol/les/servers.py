@@ -14,7 +14,7 @@ from p2p.protocol import (
     _DecodedMsgType,
 )
 
-from trinity.db.header import AsyncHeaderDB
+from trinity.db.header import BaseAsyncHeaderDB
 from trinity.protocol.common.servers import BaseRequestServer, BasePeerRequestHandler
 from trinity.protocol.les import commands
 from trinity.protocol.les.peer import LESPeer, LESPeerPool
@@ -50,7 +50,7 @@ class LightRequestServer(BaseRequestServer):
 
     def __init__(
             self,
-            db: AsyncHeaderDB,
+            db: BaseAsyncHeaderDB,
             peer_pool: LESPeerPool,
             token: CancelToken = None) -> None:
         super().__init__(peer_pool, token)

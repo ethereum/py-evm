@@ -4,13 +4,13 @@ from multiprocessing.managers import (
 import pathlib
 
 from eth.db.backends.base import BaseAtomicDB
+from eth.db.header import HeaderDB
 
 from trinity.config import TrinityConfig
 from trinity.db.base import DBProxy
 from trinity.db.chain import AsyncChainDB, ChainDBProxy
 from trinity.db.header import (
-    AsyncHeaderDB,
-    AsyncHeaderDBProxy,
+    AsyncHeaderDBProxy
 )
 from trinity.initialization import (
     is_database_initialized,
@@ -26,7 +26,7 @@ def get_chaindb_manager(trinity_config: TrinityConfig, base_db: BaseAtomicDB) ->
     if not is_database_initialized(chaindb):
         initialize_database(chain_config, chaindb, base_db)
 
-    headerdb = AsyncHeaderDB(base_db)
+    headerdb = HeaderDB(base_db)
 
     class DBManager(BaseManager):
         pass
