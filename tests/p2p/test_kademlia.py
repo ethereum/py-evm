@@ -116,6 +116,30 @@ def test_kbucket_add():
     assert bucket.head == node2
 
 
+def test_kbucket_remove():
+    bucket = kademlia.KBucket(0, 100)
+    bucket.k = 25
+
+    nodes = [random_node() for _ in range(bucket.k)]
+    for node in nodes:
+        bucket.add(node)
+    assert len(bucket) == bucket.k
+
+    replacement_count = 10
+    replacement_nodes = [random_node() for _ in range(replacement_count)]
+    for replacement_node in replacement_nodes:
+        bucket.add(replacement_node)
+    assert len(bucket) == bucket.k
+
+    for node in nodes:
+        bucket.remove_node(node)
+    assert len(bucket) == replacement_count
+
+    for replacement_node in replacement_nodes:
+        bucket.remove_node(replacement_node)
+    assert len(bucket) == 0
+
+
 def test_kbucket_split():
     bucket = kademlia.KBucket(0, 100)
     for i in range(1, bucket.k + 1):
