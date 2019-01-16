@@ -11,6 +11,7 @@ from eth.db.atomic import AtomicDB
 from eth.db.chain import ChainDB
 
 from p2p.auth import HandshakeInitiator, _handshake
+from p2p.events import ConnectToNodeCommand
 from p2p.kademlia import (
     Node,
     Address,
@@ -22,6 +23,7 @@ from p2p.tools.paragon import (
     ParagonPeerPool,
 )
 
+from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.server import BaseServer
 
 from tests.p2p.auth_constants import eip8_values
@@ -161,3 +163,28 @@ async def test_peer_pool_connect(monkeypatch, event_loop, server):
 
     # Stop our peer to make sure its pending asyncio tasks are cancelled.
     await list(initiator_peer_pool.connected_nodes.values())[0].cancel()
+
+
+@pytest.mark.asyncio
+async def test_peer_pool_answers_connect_commands(event_loop, event_bus, server):
+    # This is the PeerPool which will accept our message and try to connect to {server}
+    initiator_peer_pool = ParagonPeerPool(
+        privkey=INITIATOR_PRIVKEY,
+        context=ParagonContext(),
+        event_bus=event_bus,
+    )
+    asyncio.ensure_future(initiator_peer_pool.run(), loop=event_loop)
+    await initiator_peer_pool.events.started.wait()
+
+    assert len(server.peer_pool.connected_nodes) == 0
+
+    event_bus.broadcast(
+        ConnectToNodeCommand(RECEIVER_REMOTE.uri()),
+        TO_NETWORKING_BROADCAST_CONFIG
+    )
+
+    await asyncio.sleep(0.5)
+
+    assert len(server.peer_pool.connected_nodes) == 1
+
+    await initiator_peer_pool.cancel()

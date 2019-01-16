@@ -22,6 +22,7 @@ from .main import (  # noqa: F401
     ChainBasedRPCModule,
 )
 
+from .admin import Admin
 from .beacon import Beacon  # noqa: F401
 from .eth import Eth  # noqa: F401
 from .evm import EVM  # noqa: F401
@@ -35,6 +36,7 @@ def initialize_eth1_modules(chain: BaseAsyncChain, event_bus: Endpoint) -> Itera
     yield EVM(chain, event_bus)
     yield Net(event_bus)
     yield Web3()
+    yield Admin(event_bus)
 
 
 @to_tuple

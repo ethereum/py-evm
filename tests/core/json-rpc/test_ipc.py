@@ -17,6 +17,7 @@ from eth_utils import (
 from p2p.events import (
     PeerCountRequest,
     PeerCountResponse,
+    ConnectToNodeCommand,
 )
 from trinity.nodes.events import (
     NetworkIdRequest,
@@ -526,3 +527,72 @@ async def test_eth_over_ipc(
         event_loop
     )
     assert result == expected
+
+
+GOOD_KEY = (
+    '717ad99b1e67a93cd77806c9273d9195807da1db38ecfc535aa207598a4bd599'
+    '645599a0d11f72c1107ba4fb44ab133b0188a2f0b47ff16ba12b0a5ec0350202'
+)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'request_msg, expected',
+    (
+        (
+            build_request('admin_addPeer', ['enode://none@[::]:30303']),
+            {
+                'jsonrpc': '2.0',
+                'id': 3, 'error':
+                'public key must be a 128-character hex string'
+            },
+        ),
+        (
+            build_request('admin_addPeer', [f'enode://{GOOD_KEY}@[::]:30303']),
+            {
+                'jsonrpc': '2.0',
+                'id': 3, 'error':
+                'A concrete IP address must be specified'
+            },
+        ),
+    ),
+    ids=["Validation occurs", "Validation checks for ip address"],
+)
+async def test_admin_addPeer_error_messages(
+        jsonrpc_ipc_pipe_path,
+        request_msg,
+        event_loop,
+        expected,
+        ipc_server):
+
+    result = await get_ipc_response(
+        jsonrpc_ipc_pipe_path,
+        request_msg,
+        event_loop
+    )
+    assert result == expected
+
+
+@pytest.mark.asyncio
+async def test_admin_addPeer_fires_message(
+        jsonrpc_ipc_pipe_path,
+        event_loop,
+        event_bus,
+        ipc_server):
+
+    future = asyncio.ensure_future(
+        event_bus.wait_for(ConnectToNodeCommand), loop=event_loop
+    )
+
+    enode = f'enode://{GOOD_KEY}@10.0.0.1:30303'
+    request = build_request('admin_addPeer', [enode])
+
+    result = await get_ipc_response(
+        jsonrpc_ipc_pipe_path,
+        request,
+        event_loop
+    )
+    assert result == {'id': 3, 'jsonrpc': '2.0', 'result': None}
+
+    event = await asyncio.wait_for(future, timeout=0.1, loop=event_loop)
+    assert event.node == enode

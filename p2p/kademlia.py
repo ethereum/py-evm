@@ -20,6 +20,7 @@ from urllib import parse as urlparse
 from eth_utils import (
     big_endian_to_int,
     decode_hex,
+    remove_0x_prefix,
 )
 
 from eth_keys import (
@@ -28,6 +29,8 @@ from eth_keys import (
 )
 
 from eth_hash.auto import keccak
+
+from trinity._utils.validation import validate_enode_uri
 
 k_b = 8  # 8 bits per hop
 
@@ -101,12 +104,15 @@ class Node:
 
     @classmethod
     def from_uri(cls, uri: str) -> 'Node':
+        validate_enode_uri(uri)  # Be no more permissive than the validation
         parsed = urlparse.urlparse(uri)
         pubkey = keys.PublicKey(decode_hex(parsed.username))
         return cls(pubkey, Address(parsed.hostname, parsed.port))
 
     def uri(self) -> str:
-        return f'enode://{self.pubkey.to_hex()}@{self.address.ip}:{self.address.tcp_port}'
+        hexstring = self.pubkey.to_hex()
+        hexstring = remove_0x_prefix(hexstring)
+        return f'enode://{hexstring}@{self.address.ip}:{self.address.tcp_port}'
 
     def __str__(self) -> str:
         return '<Node(%s@%s)>' % (self.pubkey.to_hex()[:6], self.address.ip)

@@ -50,3 +50,9 @@ class PeerCountRequest(BaseRequestResponseEvent[PeerCountResponse]):
     @staticmethod
     def expected_response_type() -> Type[PeerCountResponse]:
         return PeerCountResponse
+
+
+class ConnectToNodeCommand(BaseEvent):
+
+    def __init__(self, node: str) -> None:
+        self.node = node
