@@ -32,19 +32,6 @@ from p2p.tools.paragon.helpers import (
 )
 
 
-def empty_body():
-    return BeaconBlockBody(
-        proposer_slashings=(),
-        casper_slashings=(),
-        attestations=(),
-        custody_reseeds=(),
-        custody_challenges=(),
-        custody_responses=(),
-        deposits=(),
-        exits=(),
-    )
-
-
 def create_test_block(parent=None, **kwargs):
     defaults = {
         "slot": 0,
@@ -53,7 +40,7 @@ def create_test_block(parent=None, **kwargs):
         "randao_reveal": ZERO_HASH32,
         "candidate_pow_receipt_root": ZERO_HASH32,
         "signature": (0, 0),
-        "body": empty_body()
+        "body": BeaconBlockBody.create_empty_body()
     }
 
     if parent is not None:
