@@ -73,7 +73,7 @@ From bottom to top:
 ## Python modules for Serenity developement
 
 - **`eth2`**: Ethereum 2.0/Serenity, beacon chain protocol codebase
-    - Located in [`ethereum/trinity`](https://github.com/ethereum/trinity/) temporarily for accerlating development.
+    - Located in [`ethereum/trinity`](https://github.com/ethereum/trinity/) temporarily for accelerating development.
 - **`trinity`**: Python Ethereum client implementation
     - [`ethereum/trinity`](https://github.com/ethereum/trinity/)
 - **`ssz`**: SimpleSerialize implementation
