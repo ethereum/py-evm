@@ -59,7 +59,6 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
 
     def setup_eth1_modules(self, trinity_config: TrinityConfig) -> Tuple[Eth1ChainRPCModule, ...]:
         db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
-        db_manager.connect()
 
         eth1_app_config = trinity_config.get_app_config(Eth1AppConfig)
         chain_config = trinity_config.get_chain_config()

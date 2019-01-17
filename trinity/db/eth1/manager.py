@@ -53,7 +53,7 @@ def create_db_server_manager(trinity_config: TrinityConfig,
     return manager
 
 
-def create_db_consumer_manager(ipc_path: pathlib.Path) -> BaseManager:
+def create_db_consumer_manager(ipc_path: pathlib.Path, connect: bool=True) -> BaseManager:
     """
     We're still using 'str' here on param ipc_path because an issue with
     multi-processing not being able to interpret 'Path' objects correctly
@@ -66,4 +66,6 @@ def create_db_consumer_manager(ipc_path: pathlib.Path) -> BaseManager:
     DBManager.register('get_headerdb', proxytype=AsyncHeaderDBProxy)
 
     manager = DBManager(address=str(ipc_path))  # type: ignore
+    if connect:
+        manager.connect()
     return manager

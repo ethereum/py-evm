@@ -155,7 +155,6 @@ class EthstatsService(BaseService):
 
     def get_chain(self) -> BaseChain:
         db_manager = create_db_consumer_manager(self.context.trinity_config.database_ipc_path)
-        db_manager.connect()
 
         chain_config = self.context.trinity_config.get_chain_config()
 
