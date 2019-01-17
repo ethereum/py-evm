@@ -1,6 +1,7 @@
 import enum
 from typing import (
     cast,
+    Any,
     Dict,
     TYPE_CHECKING
 )
@@ -112,10 +113,11 @@ class P2PProtocol(Protocol):
         self.send(header, body)
 
     def send_disconnect(self, reason: DisconnectReason) -> None:
+        msg: Dict[str, Any] = {"reason": reason}
         header, body = Disconnect(
             self.cmd_id_offset,
             self.snappy_support
-        ).encode(dict(reason=reason))
+        ).encode(msg)
         self.send(header, body)
 
     def send_pong(self) -> None:

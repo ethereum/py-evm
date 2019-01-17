@@ -64,9 +64,12 @@ def create_test_block(parent=None, **kwargs):
 
 
 @to_tuple
-def create_branch(length, root, **start_kwargs):
+def create_branch(length, root=None, **start_kwargs):
     if length == 0:
         return
+
+    if root is None:
+        root = create_test_block(slot=0)
 
     parent = create_test_block(parent=root, **start_kwargs)
     yield parent
@@ -77,25 +80,24 @@ def create_branch(length, root, **start_kwargs):
         parent = child
 
 
-def get_fresh_chain_db():
+def get_chain_db(blocks=()):
     db = AtomicDB()
-    genesis_block = create_test_block(slot=0)
-
     chain_db = BeaconChainDB(db)
-    chain_db.persist_block(genesis_block, BeaconBlock)
-
+    chain_db.persist_block_chain(blocks, BeaconBlock)
     return chain_db
 
 
-async def _setup_alice_and_bob_factories(alice_chain_db=None, bob_chain_db=None):
+def get_genesis_chain_db():
+    genesis = create_test_block(slot=0)
+    return get_chain_db((genesis,))
+
+
+async def _setup_alice_and_bob_factories(alice_chain_db, bob_chain_db):
     cancel_token = CancelToken('trinity.get_directly_linked_peers_without_handshake')
 
     #
     # Alice
     #
-    if alice_chain_db is None:
-        alice_chain_db = get_fresh_chain_db()
-
     alice_context = BeaconContext(
         chain_db=alice_chain_db,
         network_id=1,
@@ -110,9 +112,6 @@ async def _setup_alice_and_bob_factories(alice_chain_db=None, bob_chain_db=None)
     #
     # Bob
     #
-    if bob_chain_db is None:
-        bob_chain_db = get_fresh_chain_db()
-
     bob_context = BeaconContext(
         chain_db=bob_chain_db,
         network_id=1,
@@ -127,7 +126,7 @@ async def _setup_alice_and_bob_factories(alice_chain_db=None, bob_chain_db=None)
     return alice_factory, bob_factory
 
 
-async def get_directly_linked_peers_without_handshake(alice_chain_db=None, bob_chain_db=None):
+async def get_directly_linked_peers_without_handshake(alice_chain_db, bob_chain_db):
     alice_factory, bob_factory = await _setup_alice_and_bob_factories(alice_chain_db, bob_chain_db)
 
     return await _get_directly_linked_peers_without_handshake(
@@ -136,7 +135,7 @@ async def get_directly_linked_peers_without_handshake(alice_chain_db=None, bob_c
     )
 
 
-async def get_directly_linked_peers(request, event_loop, alice_chain_db=None, bob_chain_db=None):
+async def get_directly_linked_peers(request, event_loop, alice_chain_db, bob_chain_db):
     alice_factory, bob_factory = await _setup_alice_and_bob_factories(
         alice_chain_db,
         bob_chain_db,
@@ -150,8 +149,16 @@ async def get_directly_linked_peers(request, event_loop, alice_chain_db=None, bo
     )
 
 
-async def get_directly_linked_peers_in_peer_pools(request, event_loop, chain_db=None):
-    alice, bob = await get_directly_linked_peers(request, event_loop, bob_chain_db=chain_db)
+async def get_directly_linked_peers_in_peer_pools(request,
+                                                  event_loop,
+                                                  alice_chain_db,
+                                                  bob_chain_db):
+    alice, bob = await get_directly_linked_peers(
+        request,
+        event_loop,
+        alice_chain_db=alice_chain_db,
+        bob_chain_db=bob_chain_db,
+    )
     alice_peer_pool = BCCPeerPool(alice.privkey, alice.context)
     bob_peer_pool = BCCPeerPool(bob.privkey, bob.context)
 
