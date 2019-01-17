@@ -16,7 +16,7 @@ from eth.db.chain import (
 )
 
 from trinity.db.eth1.manager import (
-    get_chaindb_manager,
+    create_db_server_manager,
 )
 from trinity.config import (
     TrinityConfig,
@@ -54,7 +54,7 @@ def database_server_ipc_path():
         )
         initialize_data_dir(trinity_config)
 
-        manager = get_chaindb_manager(trinity_config, core_db)
+        manager = create_db_server_manager(trinity_config, core_db)
         chaindb_server_process = multiprocessing.Process(
             target=serve_chaindb,
             args=(manager,),

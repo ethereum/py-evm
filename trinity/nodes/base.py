@@ -21,7 +21,7 @@ from trinity.db.eth1.header import (
     BaseAsyncHeaderDB,
 )
 from trinity.db.eth1.manager import (
-    create_db_manager
+    create_db_consumer_manager
 )
 from trinity.config import (
     ChainConfig,
@@ -49,7 +49,7 @@ class Node(BaseService):
     def __init__(self, event_bus: Endpoint, trinity_config: TrinityConfig) -> None:
         super().__init__()
         self.trinity_config = trinity_config
-        self._db_manager = create_db_manager(trinity_config.database_ipc_path)
+        self._db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
         self._db_manager.connect()
         self._headerdb = self._db_manager.get_headerdb()  # type: ignore
 

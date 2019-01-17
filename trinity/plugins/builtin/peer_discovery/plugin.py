@@ -43,7 +43,7 @@ from trinity.config import (
     TrinityConfig,
 )
 from trinity.db.eth1.manager import (
-    create_db_manager
+    create_db_consumer_manager
 )
 from trinity.extensibility import (
     BaseIsolatedPlugin,
@@ -79,7 +79,7 @@ def get_protocol(trinity_config: TrinityConfig) -> Type[Protocol]:
 
 
 def get_discv5_topic(trinity_config: TrinityConfig, protocol: Type[Protocol]) -> bytes:
-    db_manager = create_db_manager(trinity_config.database_ipc_path)
+    db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
     db_manager.connect()
 
     header_db = db_manager.get_headerdb()  # type: ignore

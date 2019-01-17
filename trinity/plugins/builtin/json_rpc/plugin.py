@@ -15,7 +15,7 @@ from trinity.config import (
 )
 from trinity.chains.base import BaseAsyncChain
 from trinity.db.eth1.manager import (
-    create_db_manager
+    create_db_consumer_manager
 )
 from trinity.extensibility import (
     BaseIsolatedPlugin,
@@ -58,7 +58,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
         )
 
     def setup_eth1_modules(self, trinity_config: TrinityConfig) -> Tuple[Eth1ChainRPCModule, ...]:
-        db_manager = create_db_manager(trinity_config.database_ipc_path)
+        db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
         db_manager.connect()
 
         eth1_app_config = trinity_config.get_app_config(Eth1AppConfig)

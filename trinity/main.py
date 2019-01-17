@@ -33,7 +33,7 @@ from trinity.constants import (
     NETWORKING_EVENTBUS_ENDPOINT,
 )
 from trinity.db.eth1.manager import (
-    get_chaindb_manager,
+    create_db_server_manager,
 )
 from trinity.events import (
     ShutdownRequest
@@ -181,7 +181,7 @@ def run_database_process(trinity_config: TrinityConfig, db_class: Type[BaseDB]) 
 
         base_db = db_class(db_path=app_config.database_dir)
 
-        manager = get_chaindb_manager(trinity_config, base_db)
+        manager = create_db_server_manager(trinity_config, base_db)
         server = manager.get_server()  # type: ignore
 
         def _sigint_handler(*args: Any) -> None:

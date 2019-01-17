@@ -22,7 +22,7 @@ from trinity.constants import (
     TO_NETWORKING_BROADCAST_CONFIG,
 )
 from trinity.db.eth1.manager import (
-    create_db_manager,
+    create_db_consumer_manager,
 )
 from trinity.plugins.builtin.light_peer_chain_bridge.light_peer_chain_bridge import (
     EventBusLightPeerChain,
@@ -154,7 +154,7 @@ class EthstatsService(BaseService):
         }
 
     def get_chain(self) -> BaseChain:
-        db_manager = create_db_manager(self.context.trinity_config.database_ipc_path)
+        db_manager = create_db_consumer_manager(self.context.trinity_config.database_ipc_path)
         db_manager.connect()
 
         chain_config = self.context.trinity_config.get_chain_config()

@@ -20,7 +20,8 @@ from trinity.initialization import (
 from trinity._utils.mp import TracebackRecorder
 
 
-def get_chaindb_manager(trinity_config: TrinityConfig, base_db: BaseAtomicDB) -> BaseManager:
+def create_db_server_manager(trinity_config: TrinityConfig,
+                             base_db: BaseAtomicDB) -> BaseManager:
 
     chain_config = trinity_config.get_chain_config()
     chaindb = ChainDB(base_db)
@@ -52,7 +53,7 @@ def get_chaindb_manager(trinity_config: TrinityConfig, base_db: BaseAtomicDB) ->
     return manager
 
 
-def create_db_manager(ipc_path: pathlib.Path) -> BaseManager:
+def create_db_consumer_manager(ipc_path: pathlib.Path) -> BaseManager:
     """
     We're still using 'str' here on param ipc_path because an issue with
     multi-processing not being able to interpret 'Path' objects correctly
