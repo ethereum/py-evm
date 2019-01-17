@@ -9,8 +9,8 @@ from eth.db.header import HeaderDB
 
 from trinity.config import TrinityConfig
 from trinity.db.base import AsyncDBProxy
-from trinity.db.chain import AsyncChainDBProxy
-from trinity.db.header import (
+from trinity.db.eth1.chain import AsyncChainDBProxy
+from trinity.db.eth1.header import (
     AsyncHeaderDBProxy
 )
 from trinity.initialization import (
@@ -21,6 +21,7 @@ from trinity._utils.mp import TracebackRecorder
 
 
 def get_chaindb_manager(trinity_config: TrinityConfig, base_db: BaseAtomicDB) -> BaseManager:
+
     chain_config = trinity_config.get_chain_config()
     chaindb = ChainDB(base_db)
 

@@ -36,7 +36,7 @@ from p2p.service import (
 )
 
 from trinity.chains.base import BaseAsyncChain
-from trinity.db.header import BaseAsyncHeaderDB
+from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.peer import (
     BaseChainPeer,
 )

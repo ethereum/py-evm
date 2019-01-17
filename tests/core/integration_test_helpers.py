@@ -26,8 +26,8 @@ from eth.db.header import HeaderDB
 from eth.vm.forks.byzantium import ByzantiumVM
 
 from trinity.db.base import BaseAsyncDB
-from trinity.db.chain import BaseAsyncChainDB
-from trinity.db.header import BaseAsyncHeaderDB
+from trinity.db.eth1.chain import BaseAsyncChainDB
+from trinity.db.eth1.header import BaseAsyncHeaderDB
 
 ZIPPED_FIXTURES_PATH = Path(__file__).parent.parent / 'integration' / 'fixtures'
 

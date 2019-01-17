@@ -9,7 +9,7 @@ from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
 from trinity.db.base import BaseAsyncDB
-from trinity.db.chain import BaseAsyncChainDB
+from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.protocol.eth.peer import ETHPeerPool
 
 from .chain import FastChainSyncer, RegularChainSyncer

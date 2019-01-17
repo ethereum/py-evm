@@ -15,7 +15,7 @@ from eth.db.chain import (
     ChainDB,
 )
 
-from trinity.db.manager import (
+from trinity.db.eth1.manager import (
     get_chaindb_manager,
 )
 from trinity.config import (
@@ -25,7 +25,7 @@ from trinity.initialization import (
     initialize_data_dir,
 )
 from trinity.constants import ROPSTEN_NETWORK_ID
-from trinity.db.chain import AsyncChainDBProxy
+from trinity.db.eth1.chain import AsyncChainDBProxy
 from trinity.db.base import AsyncDBProxy
 from trinity._utils.ipc import (
     wait_for_ipc,

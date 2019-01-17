@@ -17,10 +17,10 @@ from p2p.service import (
 )
 
 from trinity.chains.full import FullChain
-from trinity.db.header import (
+from trinity.db.eth1.header import (
     BaseAsyncHeaderDB,
 )
-from trinity.db.manager import (
+from trinity.db.eth1.manager import (
     create_db_manager
 )
 from trinity.config import (

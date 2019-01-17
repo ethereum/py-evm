@@ -24,7 +24,7 @@ from p2p.protocol import (
 )
 from p2p.service import BaseService
 
-from trinity.db.header import BaseAsyncHeaderDB
+from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.peer import BasePeerPool
 from trinity.protocol.common.requests import BaseHeaderRequest
 from trinity._utils.logging import HasExtendedDebugLogger

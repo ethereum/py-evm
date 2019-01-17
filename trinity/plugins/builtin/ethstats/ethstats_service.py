@@ -21,7 +21,7 @@ from trinity.constants import (
     SYNC_LIGHT,
     TO_NETWORKING_BROADCAST_CONFIG,
 )
-from trinity.db.manager import (
+from trinity.db.eth1.manager import (
     create_db_manager,
 )
 from trinity.plugins.builtin.light_peer_chain_bridge.light_peer_chain_bridge import (

@@ -43,7 +43,7 @@ from p2p.protocol import Command
 from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
-from trinity.db.header import BaseAsyncHeaderDB
+from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.commands import (
     BaseBlockHeaders,
 )

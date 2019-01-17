@@ -42,7 +42,7 @@ from trinity.config import (
     Eth1DbMode,
     TrinityConfig,
 )
-from trinity.db.manager import (
+from trinity.db.eth1.manager import (
     create_db_manager
 )
 from trinity.extensibility import (

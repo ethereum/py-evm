@@ -53,8 +53,8 @@ from p2p.service import BaseService
 from trinity.chains.base import BaseAsyncChain
 from trinity.constants import DEFAULT_PREFERRED_NODES
 from trinity.db.base import BaseAsyncDB
-from trinity.db.chain import BaseAsyncChainDB
-from trinity.db.header import BaseAsyncHeaderDB
+from trinity.db.eth1.chain import BaseAsyncChainDB
+from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.common.peer import BaseChainPeerPool
 from trinity.protocol.common.servers import BaseRequestServer

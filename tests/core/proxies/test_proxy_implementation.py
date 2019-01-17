@@ -1,10 +1,10 @@
 from trinity.db.base import (
     AsyncDBPreProxy,
 )
-from trinity.db.chain import (
+from trinity.db.eth1.chain import (
     AsyncChainDBPreProxy,
 )
-from trinity.db.header import (
+from trinity.db.eth1.header import (
     AsyncHeaderDBPreProxy,
 )
 

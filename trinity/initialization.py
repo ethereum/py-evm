@@ -10,7 +10,7 @@ from trinity.config import (
     ChainConfig,
     TrinityConfig,
 )
-from trinity.db.chain import BaseAsyncChainDB
+from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.exceptions import (
     MissingPath,
 )

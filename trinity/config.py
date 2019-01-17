@@ -572,3 +572,13 @@ class BeaconAppConfig(BaseAppConfig):
                          args: argparse.Namespace,
                          trinity_config: TrinityConfig) -> 'BaseAppConfig':
         return cls(trinity_config)
+
+    @property
+    def database_dir(self) -> Path:
+        """
+        Path where the chain database will be stored.
+
+        This is resolved relative to the ``data_dir``
+        """
+        path = self.trinity_config.data_dir / DATABASE_DIR_NAME
+        return self.trinity_config.with_app_suffix(path) / "full"

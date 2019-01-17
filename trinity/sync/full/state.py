@@ -50,7 +50,7 @@ from p2p.exceptions import (
 from p2p.peer import BasePeer, PeerSubscriber
 
 from trinity.db.base import BaseAsyncDB
-from trinity.db.chain import BaseAsyncChainDB
+from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.exceptions import (
     AlreadyWaiting,
     SyncRequestAlreadyProcessed,

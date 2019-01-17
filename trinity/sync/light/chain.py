@@ -4,7 +4,7 @@ from cancel_token import CancelToken
 from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
-from trinity.db.header import BaseAsyncHeaderDB
+from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.les.peer import LESPeerPool
 from trinity.protocol.les.sync import LightHeaderChainSyncer
 from trinity._utils.timer import Timer

@@ -44,7 +44,7 @@ from p2p.protocol import Command
 from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
-from trinity.db.chain import BaseAsyncChainDB
+from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.protocol.eth.monitors import ETHChainTipMonitor
 from trinity.protocol.eth import commands
 from trinity.protocol.eth.constants import (

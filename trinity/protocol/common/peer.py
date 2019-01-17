@@ -28,7 +28,7 @@ from p2p.peer import (
     BasePeerPool,
 )
 
-from trinity.db.header import BaseAsyncHeaderDB
+from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.handlers import BaseChainExchangeHandler
 
 from .boot import DAOCheckBootManager

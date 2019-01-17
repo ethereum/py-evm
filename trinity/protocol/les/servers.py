@@ -14,7 +14,7 @@ from p2p.protocol import (
     _DecodedMsgType,
 )
 
-from trinity.db.header import BaseAsyncHeaderDB
+from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.servers import BaseRequestServer, BasePeerRequestHandler
 from trinity.protocol.les import commands
 from trinity.protocol.les.peer import LESPeer, LESPeerPool

@@ -28,7 +28,7 @@ from p2p.protocol import (
     Command,
 )
 
-from trinity.db.chain import BaseAsyncChainDB
+from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.protocol.common.servers import BaseRequestServer, BasePeerRequestHandler
 from trinity.protocol.eth import commands
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool

@@ -66,7 +66,7 @@ from p2p.service import (
     service_timeout,
 )
 
-from trinity.db.header import BaseAsyncHeaderDB
+from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.les.peer import LESPeer, LESPeerPool
 from trinity.rlp.block_body import BlockBody
 

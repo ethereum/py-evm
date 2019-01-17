@@ -32,7 +32,7 @@ from trinity.constants import (
     APP_IDENTIFIER_ETH1,
     NETWORKING_EVENTBUS_ENDPOINT,
 )
-from trinity.db.manager import (
+from trinity.db.eth1.manager import (
     get_chaindb_manager,
 )
 from trinity.events import (

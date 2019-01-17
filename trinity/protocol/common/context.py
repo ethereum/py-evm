@@ -7,7 +7,7 @@ from eth.vm.base import BaseVM
 
 from p2p.peer import BasePeerContext
 
-from trinity.db.header import BaseAsyncHeaderDB
+from trinity.db.eth1.header import BaseAsyncHeaderDB
 
 
 class ChainContext(BasePeerContext):
