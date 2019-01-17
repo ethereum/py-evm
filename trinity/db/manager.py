@@ -8,7 +8,7 @@ from eth.db.backends.base import BaseAtomicDB
 from eth.db.header import HeaderDB
 
 from trinity.config import TrinityConfig
-from trinity.db.base import DBProxy
+from trinity.db.base import AsyncDBProxy
 from trinity.db.chain import AsyncChainDBProxy
 from trinity.db.header import (
     AsyncHeaderDBProxy
@@ -33,7 +33,7 @@ def get_chaindb_manager(trinity_config: TrinityConfig, base_db: BaseAtomicDB) ->
         pass
 
     DBManager.register(
-        'get_db', callable=lambda: TracebackRecorder(base_db), proxytype=DBProxy)
+        'get_db', callable=lambda: TracebackRecorder(base_db), proxytype=AsyncDBProxy)
 
     DBManager.register(
         'get_chaindb',
@@ -59,7 +59,7 @@ def create_db_manager(ipc_path: pathlib.Path) -> BaseManager:
     class DBManager(BaseManager):
         pass
 
-    DBManager.register('get_db', proxytype=DBProxy)
+    DBManager.register('get_db', proxytype=AsyncDBProxy)
     DBManager.register('get_chaindb', proxytype=AsyncChainDBProxy)
     DBManager.register('get_headerdb', proxytype=AsyncHeaderDBProxy)
 

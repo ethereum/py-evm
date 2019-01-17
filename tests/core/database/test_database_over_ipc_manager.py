@@ -26,7 +26,7 @@ from trinity.initialization import (
 )
 from trinity.constants import ROPSTEN_NETWORK_ID
 from trinity.db.chain import AsyncChainDBProxy
-from trinity.db.base import DBProxy
+from trinity.db.base import AsyncDBProxy
 from trinity._utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
@@ -74,7 +74,7 @@ def manager(database_server_ipc_path):
     class DBManager(BaseManager):
         pass
 
-    DBManager.register('get_db', proxytype=DBProxy)
+    DBManager.register('get_db', proxytype=AsyncDBProxy)
     DBManager.register('get_chaindb', proxytype=AsyncChainDBProxy)
 
     _manager = DBManager(address=str(database_server_ipc_path))

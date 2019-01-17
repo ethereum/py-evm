@@ -1,5 +1,8 @@
+from trinity.db.base import (
+    AsyncDBPreProxy,
+)
 from trinity.db.chain import (
-    AsyncChainDBPreProxy
+    AsyncChainDBPreProxy,
 )
 from trinity.db.header import (
     AsyncHeaderDBPreProxy,
@@ -11,3 +14,4 @@ def test_can_instantiate_proxy():
     # that the proxy derives from it's abstract base classes
     assert AsyncHeaderDBPreProxy(None) is not None
     assert AsyncChainDBPreProxy(None) is not None
+    assert AsyncDBPreProxy() is not None

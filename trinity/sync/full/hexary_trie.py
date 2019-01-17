@@ -30,7 +30,7 @@ from trie.utils.nodes import (
     is_blank_node,
 )
 
-from trinity.db.base import AsyncBaseDB
+from trinity.db.base import BaseAsyncDB
 from trinity.exceptions import SyncRequestAlreadyProcessed
 
 
@@ -115,7 +115,7 @@ class HexaryTrieSync:
 
     def __init__(self,
                  root_hash: Hash32,
-                 db: AsyncBaseDB,
+                 db: BaseAsyncDB,
                  nodes_cache: BaseDB,
                  logger: ExtendedDebugLogger) -> None:
         # Nodes that haven't been requested yet.

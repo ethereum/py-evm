@@ -49,7 +49,7 @@ from p2p.exceptions import (
 )
 from p2p.peer import BasePeer, PeerSubscriber
 
-from trinity.db.base import AsyncBaseDB
+from trinity.db.base import BaseAsyncDB
 from trinity.db.chain import BaseAsyncChainDB
 from trinity.exceptions import (
     AlreadyWaiting,
@@ -76,7 +76,7 @@ class StateDownloader(BaseService, PeerSubscriber):
 
     def __init__(self,
                  chaindb: BaseAsyncChainDB,
-                 account_db: AsyncBaseDB,
+                 account_db: BaseAsyncDB,
                  root_hash: Hash32,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:

@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from contextlib import contextmanager
 from typing import (
     Generator,
@@ -14,7 +15,26 @@ from eth.db.atomic import AtomicDBWriteBatch
 from trinity._utils.mp import async_method
 
 
-class DBProxy(BaseProxy):
+class BaseAsyncDB(BaseDB):
+    """
+    Abstract base class extends the ``BaseDB`` with async APIs.
+    """
+
+    @abstractmethod
+    async def coro_set(self, key: bytes, value: bytes) -> None:
+        pass
+
+    @abstractmethod
+    async def coro_exists(self, key: bytes) -> bool:
+        pass
+
+
+class AsyncDBPreProxy(BaseAsyncDB):
+    """
+    Proxy implementation of ``BaseAsyncDB`` that does not derive from
+    ``BaseProxy`` for the purpose of improved testability.
+    """
+
     _exposed_ = (
         '__contains__',
         '__delitem__',
@@ -28,6 +48,10 @@ class DBProxy(BaseProxy):
         'get',
         'set',
     )
+
+    def __init__(self) -> None:
+        pass
+
     coro_set = async_method('set')
     coro_exists = async_method('exists')
 
@@ -61,10 +85,8 @@ class DBProxy(BaseProxy):
             yield readable_batch
 
 
-class AsyncBaseDB(BaseDB):
-
-    async def coro_set(self, key: bytes, value: bytes) -> None:
-        raise NotImplementedError()
-
-    async def coro_exists(self, key: bytes) -> bool:
-        raise NotImplementedError()
+class AsyncDBProxy(BaseProxy, AsyncDBPreProxy):
+    """
+    Turn ``AsyncDBProxy`` into an actual proxy by deriving from ``BaseProxy``
+    """
+    pass

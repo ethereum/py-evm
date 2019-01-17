@@ -52,7 +52,7 @@ from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
 from trinity.constants import DEFAULT_PREFERRED_NODES
-from trinity.db.base import AsyncBaseDB
+from trinity.db.base import BaseAsyncDB
 from trinity.db.chain import BaseAsyncChainDB
 from trinity.db.header import BaseAsyncHeaderDB
 from trinity.protocol.common.context import ChainContext
@@ -82,7 +82,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
                  chain: BaseAsyncChain,
                  chaindb: BaseAsyncChainDB,
                  headerdb: BaseAsyncHeaderDB,
-                 base_db: AsyncBaseDB,
+                 base_db: BaseAsyncDB,
                  network_id: int,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  bootstrap_nodes: Tuple[Node, ...] = None,

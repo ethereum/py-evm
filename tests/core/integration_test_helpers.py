@@ -25,7 +25,7 @@ from eth.tools.builder.chain import (
 from eth.db.header import HeaderDB
 from eth.vm.forks.byzantium import ByzantiumVM
 
-from trinity.db.base import AsyncBaseDB
+from trinity.db.base import BaseAsyncDB
 from trinity.db.chain import BaseAsyncChainDB
 from trinity.db.header import BaseAsyncHeaderDB
 
@@ -52,17 +52,17 @@ def async_passthrough(base_name):
     return passthrough_method
 
 
-class FakeAsyncAtomicDB(AtomicDB, AsyncBaseDB):
+class FakeAsyncAtomicDB(AtomicDB, BaseAsyncDB):
     coro_set = async_passthrough('set')
     coro_exists = async_passthrough('exists')
 
 
-class FakeAsyncMemoryDB(MemoryDB, AsyncBaseDB):
+class FakeAsyncMemoryDB(MemoryDB, BaseAsyncDB):
     coro_set = async_passthrough('set')
     coro_exists = async_passthrough('exists')
 
 
-class FakeAsyncLevelDB(LevelDB, AsyncBaseDB):
+class FakeAsyncLevelDB(LevelDB, BaseAsyncDB):
     coro_set = async_passthrough('set')
     coro_exists = async_passthrough('exists')
 
