@@ -28,10 +28,10 @@ class Deposit(rlp.Serializable):
     """
 
     fields = [
-        # Receipt Merkle branch
-        ('merkle_branch', CountableList(hash32)),
-        # Merkle tree index
-        ('merkle_tree_index', uint64),
+        # Merkle branch in the deposit tree
+        ('branch', CountableList(hash32)),
+        # Index in the deposit tree
+        ('index', uint64),
         # Deposit data
         ('deposit_data', DepositData),
     ]
@@ -41,7 +41,7 @@ class Deposit(rlp.Serializable):
                  merkle_tree_index: int,
                  deposit_data: DepositData)-> None:
         super().__init__(
-            merkle_branch,
-            merkle_tree_index,
-            deposit_data,
+            branch=merkle_branch,
+            index=merkle_tree_index,
+            deposit_data=deposit_data,
         )

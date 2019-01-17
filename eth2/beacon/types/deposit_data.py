@@ -15,20 +15,21 @@ class DepositData(rlp.Serializable):
     Note: using RLP until we have standardized serialization format.
     """
     fields = [
-        ('deposit_input', DepositInput),
         # Amount in Gwei
         ('amount', uint64),
         # Timestamp from deposit contract
         ('timestamp', uint64),
+        # Deposit input
+        ('deposit_input', DepositInput),
     ]
 
     def __init__(self,
-                 deposit_input: DepositInput,
                  amount: Gwei,
-                 timestamp: Timestamp) -> None:
+                 timestamp: Timestamp,
+                 deposit_input: DepositInput) -> None:
 
         super().__init__(
-            deposit_input,
             amount,
             timestamp,
+            deposit_input,
         )
