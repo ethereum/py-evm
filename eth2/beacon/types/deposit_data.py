@@ -1,4 +1,3 @@
-
 import rlp
 from eth2.beacon.sedes import uint64
 from .deposit_input import DepositInput
