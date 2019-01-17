@@ -58,12 +58,6 @@ from eth._utils.padding import (
 from .hash_trie import HashTrie
 
 
-# Use lru-dict instead of functools.lru_cache because the latter doesn't let us invalidate a single
-# entry, so we'd have to invalidate the whole cache in _set_account() and that turns out to be too
-# expensive.
-account_cache = LRU(2048)
-
-
 class BaseAccountDB(ABC):
 
     @abstractmethod
@@ -226,6 +220,7 @@ class AccountDB(BaseAccountDB):
         self._trie = HashTrie(HexaryTrie(self._batchtrie, state_root, prune=True))
         self._trie_cache = CacheDB(self._trie)
         self._journaltrie = JournalDB(self._trie_cache)
+        self._account_cache = LRU(2048)
 
     @property
     def state_root(self) -> Hash32:
@@ -358,12 +353,12 @@ class AccountDB(BaseAccountDB):
 
     def delete_account(self, address: Address) -> None:
         validate_canonical_address(address, title="Storage Address")
-
+        if address in self._account_cache:
+            del self._account_cache[address]
         del self._journaltrie[address]
 
     def account_exists(self, address: Address) -> bool:
         validate_canonical_address(address, title="Storage Address")
-
         return self._journaltrie.get(address, b'') != b''
 
     def touch_account(self, address: Address) -> None:
@@ -379,14 +374,19 @@ class AccountDB(BaseAccountDB):
     # Internal
     #
     def _get_account(self, address: Address, from_journal: bool=True) -> Account:
+        if from_journal and address in self._account_cache:
+            return self._account_cache[address]
         rlp_account = (self._journaltrie if from_journal else self._trie_cache).get(address, b'')
         if rlp_account:
             account = rlp.decode(rlp_account, sedes=Account)
         else:
             account = Account()
+        if from_journal:
+            self._account_cache[address] = account
         return account
 
     def _set_account(self, address: Address, account: Account) -> None:
+        self._account_cache[address] = account
         rlp_account = rlp.encode(account, sedes=Account)
         self._journaltrie[address] = rlp_account
 
@@ -400,6 +400,7 @@ class AccountDB(BaseAccountDB):
         db_changeset, trie_changeset = changeset
         self._journaldb.discard(db_changeset)
         self._journaltrie.discard(trie_changeset)
+        self._account_cache.clear()
 
     def commit(self, changeset: Tuple[UUID, UUID]) -> None:
         db_changeset, trie_changeset = changeset
