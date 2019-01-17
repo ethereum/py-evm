@@ -9,10 +9,11 @@ from eth2.beacon.typing import (
 
 class DepositData(rlp.Serializable):
     """
-    ``DepositData`` corresponds to the data broadcast from the Ethereum 1.0 deposit
-    contract after a successful call to the `deposit` function.
+    :class:`~eth2.beacon.types.deposit_data.DepositData` corresponds to the data broadcast from the
+    Ethereum 1.0 deposit contract after a successful call to the
+    ``deposit`` function on that contract.
 
-    Note: using RLP until we have standardized serialization format.
+    .. note:: using RLP until we have standardized serialization format.
     """
     fields = [
         # Amount in Gwei

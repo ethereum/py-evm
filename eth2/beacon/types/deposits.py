@@ -20,11 +20,12 @@ from .deposit_data import DepositData
 
 class Deposit(rlp.Serializable):
     """
-    A ``Deposit`` contains the data represented by an instance of ``DepositData``,
-    along with a Merkle proof (``branch`` and ``index``) that can be used to verify
-    inclusion in the canonical deposit tree.
+    A :class:`~eth2.beacon.types.deposits.Deposit` contains the data represented by an instance
+    of :class:`~eth2.beacon.types.deposit_data.DepositData`, along with a Merkle proof (``branch``
+    and ``index``) that can be used to verify inclusion in the
+    canonical deposit tree.
 
-    Note: using RLP until we have standardized serialization format.
+    .. note:: using RLP until we have standardized serialization format.
     """
 
     fields = [
