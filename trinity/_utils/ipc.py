@@ -8,7 +8,7 @@ import time
 from typing import Callable, Iterable
 
 
-def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=10) -> None:
+def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=30) -> None:
     """
     Waits up to ``timeout`` seconds for the IPC socket file to appear at path
     ``ipc_path``, or raises a :exc:`TimeoutError` otherwise.
