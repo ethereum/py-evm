@@ -9,7 +9,7 @@ from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
 from trinity.db.base import AsyncBaseDB
-from trinity.db.chain import AsyncChainDB
+from trinity.db.chain import BaseAsyncChainDB
 from trinity.protocol.eth.peer import ETHPeerPool
 
 from .chain import FastChainSyncer, RegularChainSyncer
@@ -19,13 +19,13 @@ from .state import StateDownloader
 
 class FullNodeSyncer(BaseService):
     chain: BaseAsyncChain = None
-    chaindb: AsyncChainDB = None
+    chaindb: BaseAsyncChainDB = None
     base_db: AsyncBaseDB = None
     peer_pool: ETHPeerPool = None
 
     def __init__(self,
                  chain: BaseAsyncChain,
-                 chaindb: AsyncChainDB,
+                 chaindb: BaseAsyncChainDB,
                  base_db: AsyncBaseDB,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:

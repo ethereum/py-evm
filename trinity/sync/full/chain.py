@@ -44,7 +44,7 @@ from p2p.protocol import Command
 from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
-from trinity.db.chain import AsyncChainDB
+from trinity.db.chain import BaseAsyncChainDB
 from trinity.protocol.eth.monitors import ETHChainTipMonitor
 from trinity.protocol.eth import commands
 from trinity.protocol.eth.constants import (
@@ -101,7 +101,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
 
     def __init__(self,
                  chain: BaseAsyncChain,
-                 db: AsyncChainDB,
+                 db: BaseAsyncChainDB,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token=token)
@@ -292,7 +292,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
 class FastChainSyncer(BaseService):
     def __init__(self,
                  chain: BaseAsyncChain,
-                 db: AsyncChainDB,
+                 db: BaseAsyncChainDB,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token=token)
@@ -392,7 +392,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
     """
     def __init__(self,
                  chain: BaseAsyncChain,
-                 db: AsyncChainDB,
+                 db: BaseAsyncChainDB,
                  peer_pool: ETHPeerPool,
                  header_syncer: HeaderSyncerAPI,
                  token: CancelToken = None) -> None:
@@ -771,7 +771,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
 class RegularChainSyncer(BaseService):
     def __init__(self,
                  chain: BaseAsyncChain,
-                 db: AsyncChainDB,
+                 db: BaseAsyncChainDB,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token=token)
@@ -803,7 +803,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
     """
     def __init__(self,
                  chain: BaseAsyncChain,
-                 db: AsyncChainDB,
+                 db: BaseAsyncChainDB,
                  peer_pool: ETHPeerPool,
                  header_syncer: HeaderSyncerAPI,
                  token: CancelToken = None) -> None:

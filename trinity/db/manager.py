@@ -3,12 +3,13 @@ from multiprocessing.managers import (
 )
 import pathlib
 
+from eth.db.chain import ChainDB
 from eth.db.backends.base import BaseAtomicDB
 from eth.db.header import HeaderDB
 
 from trinity.config import TrinityConfig
 from trinity.db.base import DBProxy
-from trinity.db.chain import AsyncChainDB, ChainDBProxy
+from trinity.db.chain import AsyncChainDBProxy
 from trinity.db.header import (
     AsyncHeaderDBProxy
 )
@@ -21,7 +22,7 @@ from trinity._utils.mp import TracebackRecorder
 
 def get_chaindb_manager(trinity_config: TrinityConfig, base_db: BaseAtomicDB) -> BaseManager:
     chain_config = trinity_config.get_chain_config()
-    chaindb = AsyncChainDB(base_db)
+    chaindb = ChainDB(base_db)
 
     if not is_database_initialized(chaindb):
         initialize_database(chain_config, chaindb, base_db)
@@ -37,7 +38,7 @@ def get_chaindb_manager(trinity_config: TrinityConfig, base_db: BaseAtomicDB) ->
     DBManager.register(
         'get_chaindb',
         callable=lambda: TracebackRecorder(chaindb),
-        proxytype=ChainDBProxy,
+        proxytype=AsyncChainDBProxy,
     )
 
     DBManager.register(
@@ -59,7 +60,7 @@ def create_db_manager(ipc_path: pathlib.Path) -> BaseManager:
         pass
 
     DBManager.register('get_db', proxytype=DBProxy)
-    DBManager.register('get_chaindb', proxytype=ChainDBProxy)
+    DBManager.register('get_chaindb', proxytype=AsyncChainDBProxy)
     DBManager.register('get_headerdb', proxytype=AsyncHeaderDBProxy)
 
     manager = DBManager(address=str(ipc_path))  # type: ignore

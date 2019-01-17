@@ -28,7 +28,7 @@ from p2p.protocol import (
     Command,
 )
 
-from trinity.db.chain import AsyncChainDB
+from trinity.db.chain import BaseAsyncChainDB
 from trinity.protocol.common.servers import BaseRequestServer, BasePeerRequestHandler
 from trinity.protocol.eth import commands
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
@@ -46,9 +46,9 @@ from trinity.rlp.block_body import BlockBody
 
 
 class ETHPeerRequestHandler(BasePeerRequestHandler):
-    def __init__(self, db: AsyncChainDB, token: CancelToken) -> None:
+    def __init__(self, db: BaseAsyncChainDB, token: CancelToken) -> None:
         super().__init__(db, token)
-        self.db: AsyncChainDB = db
+        self.db: BaseAsyncChainDB = db
 
     async def handle_get_block_headers(
             self,
@@ -146,7 +146,7 @@ class ETHRequestServer(BaseRequestServer):
 
     def __init__(
             self,
-            db: AsyncChainDB,
+            db: BaseAsyncChainDB,
             peer_pool: ETHPeerPool,
             token: CancelToken = None) -> None:
         super().__init__(peer_pool, token)

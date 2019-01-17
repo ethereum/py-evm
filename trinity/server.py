@@ -53,7 +53,7 @@ from p2p.service import BaseService
 from trinity.chains.base import BaseAsyncChain
 from trinity.constants import DEFAULT_PREFERRED_NODES
 from trinity.db.base import AsyncBaseDB
-from trinity.db.chain import AsyncChainDB
+from trinity.db.chain import BaseAsyncChainDB
 from trinity.db.header import BaseAsyncHeaderDB
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.common.peer import BaseChainPeerPool
@@ -80,7 +80,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
                  privkey: datatypes.PrivateKey,
                  port: int,
                  chain: BaseAsyncChain,
-                 chaindb: AsyncChainDB,
+                 chaindb: BaseAsyncChainDB,
                  headerdb: BaseAsyncHeaderDB,
                  base_db: AsyncBaseDB,
                  network_id: int,

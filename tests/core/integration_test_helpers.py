@@ -15,6 +15,7 @@ from eth.chains.base import (
 from eth.db.backends.level import LevelDB
 from eth.db.backends.memory import MemoryDB
 from eth.db.atomic import AtomicDB
+from eth.db.chain import ChainDB
 from eth.tools.builder.chain import (
     build,
     byzantium_at,
@@ -25,7 +26,7 @@ from eth.db.header import HeaderDB
 from eth.vm.forks.byzantium import ByzantiumVM
 
 from trinity.db.base import AsyncBaseDB
-from trinity.db.chain import AsyncChainDB
+from trinity.db.chain import BaseAsyncChainDB
 from trinity.db.header import BaseAsyncHeaderDB
 
 ZIPPED_FIXTURES_PATH = Path(__file__).parent.parent / 'integration' / 'fixtures'
@@ -77,7 +78,7 @@ class FakeAsyncHeaderDB(BaseAsyncHeaderDB, HeaderDB):
     coro_persist_header_chain = async_passthrough('persist_header_chain')
 
 
-class FakeAsyncChainDB(FakeAsyncHeaderDB, AsyncChainDB):
+class FakeAsyncChainDB(BaseAsyncChainDB, FakeAsyncHeaderDB, ChainDB):
     coro_persist_block = async_passthrough('persist_block')
     coro_persist_uncles = async_passthrough('persist_uncles')
     coro_persist_trie_data_dict = async_passthrough('persist_trie_data_dict')
