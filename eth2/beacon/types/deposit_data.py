@@ -10,8 +10,8 @@ from eth2.beacon.typing import (
 class DepositData(rlp.Serializable):
     """
     :class:`~eth2.beacon.types.deposit_data.DepositData` corresponds to the data broadcast from the
-    Ethereum 1.0 deposit contract after a successful call to the
-    ``deposit`` function on that contract.
+    Ethereum 1.0 deposit contract after a successful call to the ``deposit`` function on that
+    contract.
 
     .. note:: using RLP until we have standardized serialization format.
     """

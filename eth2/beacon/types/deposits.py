@@ -22,8 +22,7 @@ class Deposit(rlp.Serializable):
     """
     A :class:`~eth2.beacon.types.deposits.Deposit` contains the data represented by an instance
     of :class:`~eth2.beacon.types.deposit_data.DepositData`, along with a Merkle proof (``branch``
-    and ``index``) that can be used to verify inclusion in the
-    canonical deposit tree.
+    and ``index``) that can be used to verify inclusion in the canonical deposit tree.
 
     .. note:: using RLP until we have standardized serialization format.
     """
