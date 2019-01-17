@@ -37,11 +37,11 @@ class Deposit(rlp.Serializable):
     ]
 
     def __init__(self,
-                 merkle_branch: Sequence[Hash32],
-                 merkle_tree_index: int,
+                 branch: Sequence[Hash32],
+                 index: int,
                  deposit_data: DepositData)-> None:
         super().__init__(
-            branch=merkle_branch,
-            index=merkle_tree_index,
-            deposit_data=deposit_data,
+            branch,
+            index,
+            deposit_data,
         )

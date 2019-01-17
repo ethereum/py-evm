@@ -217,8 +217,8 @@ def sample_deposit_data_params(sample_deposit_input_params):
 @pytest.fixture
 def sample_deposit_params(sample_deposit_data_params):
     return {
-        'merkle_branch': (),
-        'merkle_tree_index': 5,
+        'branch': (),
+        'index': 5,
         'deposit_data': DepositData(**sample_deposit_data_params)
     }
 
