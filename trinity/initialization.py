@@ -6,6 +6,7 @@ from eth.exceptions import CanonicalHeadNotFound
 from p2p import ecies
 
 from trinity.config import (
+    BeaconAppConfig,
     Eth1AppConfig,
     ChainConfig,
     TrinityConfig,
@@ -24,6 +25,7 @@ def is_data_dir_initialized(trinity_config: TrinityConfig) -> bool:
     Return ``True`` if the data directory and all expected sub directories exist,
     otherwise return ``False``
     """
+
     if not os.path.exists(trinity_config.data_dir):
         return False
 
@@ -112,5 +114,10 @@ def initialize_database(chain_config: ChainConfig,
 
 
 def ensure_eth1_dirs(app_config: Eth1AppConfig) -> None:
+    if not app_config.database_dir.exists():
+        app_config.database_dir.mkdir(parents=True, exist_ok=True)
+
+
+def ensure_beacon_dirs(app_config: BeaconAppConfig) -> None:
     if not app_config.database_dir.exists():
         app_config.database_dir.mkdir(parents=True, exist_ok=True)

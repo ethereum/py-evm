@@ -64,6 +64,9 @@ from trinity._utils.mp import (
 from trinity._utils.profiling import (
     setup_cprofiler,
 )
+from trinity._utils.proxy import (
+    serve_until_sigint,
+)
 from trinity._utils.shutdown import (
     exit_signal_with_service,
 )
@@ -182,18 +185,7 @@ def run_database_process(trinity_config: TrinityConfig, db_class: Type[BaseDB]) 
         base_db = db_class(db_path=app_config.database_dir)
 
         manager = create_db_server_manager(trinity_config, base_db)
-        server = manager.get_server()  # type: ignore
-
-        def _sigint_handler(*args: Any) -> None:
-            server.stop_event.set()
-
-        signal.signal(signal.SIGINT, _sigint_handler)
-
-        try:
-            server.serve_forever()
-        except SystemExit:
-            server.stop_event.set()
-            raise
+        serve_until_sigint(manager)
 
 
 async def handle_networking_exit(service: BaseService,
