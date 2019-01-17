@@ -154,6 +154,8 @@ async def test_peer_pool_connect(monkeypatch, event_loop, server):
         context=ParagonContext(),
     )
     nodes = [RECEIVER_REMOTE]
+    asyncio.ensure_future(initiator_peer_pool.run(), loop=event_loop)
+    await initiator_peer_pool.events.started.wait()
     await initiator_peer_pool.connect_to_nodes(nodes)
     # Give the receiver_server a chance to ack the handshake.
     await asyncio.sleep(0.2)
@@ -163,6 +165,7 @@ async def test_peer_pool_connect(monkeypatch, event_loop, server):
 
     # Stop our peer to make sure its pending asyncio tasks are cancelled.
     await list(initiator_peer_pool.connected_nodes.values())[0].cancel()
+    await initiator_peer_pool.cancel()
 
 
 @pytest.mark.asyncio
@@ -186,5 +189,4 @@ async def test_peer_pool_answers_connect_commands(event_loop, event_bus, server)
     await asyncio.sleep(0.5)
 
     assert len(server.peer_pool.connected_nodes) == 1
-
     await initiator_peer_pool.cancel()

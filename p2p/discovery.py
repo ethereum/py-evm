@@ -1003,7 +1003,7 @@ class DiscoveryService(BaseService):
         self._lookup_running = asyncio.Lock()
 
     async def handle_get_peer_candidates_requests(self) -> None:
-        async for event in self._event_bus.stream(PeerCandidatesRequest):
+        async for event in self.wait_iter(self._event_bus.stream(PeerCandidatesRequest)):
 
             self.run_task(self.maybe_lookup_random_node())
 
@@ -1016,7 +1016,7 @@ class DiscoveryService(BaseService):
             )
 
     async def handle_get_random_bootnode_requests(self) -> None:
-        async for event in self._event_bus.stream(RandomBootnodeRequest):
+        async for event in self.wait_iter(self._event_bus.stream(RandomBootnodeRequest)):
 
             nodes = tuple(to_uris(self.proto.get_random_bootnode()))
 

@@ -305,6 +305,10 @@ class FastChainSyncer(BaseService):
             self.cancel_token,
         )
 
+    @property
+    def is_complete(self) -> bool:
+        return self._body_syncer.is_complete
+
     async def _run(self) -> None:
         self.run_daemon(self._header_syncer)
         await self._body_syncer.run()
@@ -416,6 +420,8 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
             # make sure that a block is not persisted until the parent block is persisted
             dependency_extractor=attrgetter('parent_hash'),
         )
+        # Track whether the fast chain syncer completed its goal
+        self.is_complete = False
 
     async def _run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
@@ -539,9 +545,13 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
             target_hash = self._header_syncer.get_target_header_hash()
 
             if target_hash in [header.hash for header in completed_headers]:
-                # simply exit the service when reaching the target hash
-                self.cancel_nowait()
+                # exit the service when reaching the target hash
+                self._mark_complete()
                 break
+
+    def _mark_complete(self) -> None:
+        self.is_complete = True
+        self.cancel_nowait()
 
     async def _persist_blocks(self, headers: Tuple[BlockHeader, ...]) -> None:
         """

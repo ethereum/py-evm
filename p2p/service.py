@@ -165,7 +165,7 @@ class BaseService(ABC, CancellableMixin):
                         awaitable,
                         self,
                     )
-                    self.cancel_token.trigger()
+                    self.cancel_nowait()
         self.run_task(_run_daemon_task_wrapper())
 
     def run_child_service(self, child_service: 'BaseService') -> None:
@@ -217,7 +217,7 @@ class BaseService(ABC, CancellableMixin):
                         service,
                         self,
                     )
-                    self.cancel_token.trigger()
+                    self.cancel_nowait()
 
         self.run_task(_run_daemon_wrapper())
 
@@ -305,6 +305,12 @@ class BaseService(ABC, CancellableMixin):
     def is_running(self) -> bool:
         return self._run_lock.locked()
 
+    async def cancellation(self) -> None:
+        """
+        Pause until this service is cancelled
+        """
+        await self.wait(self.events.cancelled.wait())
+
     async def threadsafe_cancel(self) -> None:
         """
         Cancel service in another thread. Block until service is cleaned up.
@@ -327,7 +333,7 @@ class BaseService(ABC, CancellableMixin):
 
         Should return or raise OperationCancelled when the CancelToken is triggered.
         """
-        raise NotImplementedError()
+        pass
 
     async def _cleanup(self) -> None:
         """Clean up any resources held by this service.

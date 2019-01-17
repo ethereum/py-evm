@@ -56,7 +56,7 @@ class Node(BaseService):
         self.event_bus = event_bus
 
     async def handle_network_id_requests(self) -> None:
-        async for req in self.event_bus.stream(NetworkIdRequest):
+        async for req in self.wait_iter(self.event_bus.stream(NetworkIdRequest)):
             # We are listening for all `NetworkIdRequest` events but we ensure to only send a
             # `NetworkIdResponse` to the callsite that made the request.  We do that by
             # retrieving a `BroadcastConfig` from the request via the
@@ -140,4 +140,5 @@ class Node(BaseService):
         await self.event_bus.wait_for_connection()
         self.notify_resource_available()
         self.run_daemon_task(self.handle_network_id_requests())
-        await self.get_p2p_server().run()
+        self.run_daemon(self.get_p2p_server())
+        await self.cancellation()

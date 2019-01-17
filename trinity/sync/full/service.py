@@ -56,6 +56,12 @@ class FullNodeSyncer(BaseService):
             self.logger.info(
                 "Finished fast fast-sync; previous head: %s, current head: %s", previous_head, head
             )
+
+            if not fast_syncer.is_complete:
+                self.logger.warning("Fast syncer completed abnormally. Exiting...")
+                self.cancel_nowait()
+                return
+
             # remove the reference so the memory can be reclaimed
             del fast_syncer
 

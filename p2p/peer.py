@@ -821,7 +821,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             self.run_task(self.connect_to_nodes(from_uris([command.node])))
 
     async def handle_peer_count_requests(self) -> None:
-        async for req in self.event_bus.stream(PeerCountRequest):
+        async for req in self.wait_iter(self.event_bus.stream(PeerCountRequest)):
                 # We are listening for all `PeerCountRequest` events but we ensure to only send a
                 # `PeerCountResponse` to the callsite that made the request.  We do that by
                 # retrieving a `BroadcastConfig` from the request via the
@@ -1005,7 +1005,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
     async def connect_to_nodes(self, nodes: Iterator[Node]) -> None:
         for node in nodes:
-            if self.is_full:
+            if self.is_full or not self.is_operational:
                 return
 
             # TODO: Consider changing connect() to raise an exception instead of returning None,
