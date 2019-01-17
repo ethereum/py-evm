@@ -20,6 +20,10 @@ from .deposit_data import DepositData
 
 class Deposit(rlp.Serializable):
     """
+    A ``Deposit`` contains the data represented by an instance of ``DepositData``,
+    along with a Merkle proof (``branch`` and ``index``) that can be used to verify
+    inclusion in the canonical deposit tree.
+
     Note: using RLP until we have standardized serialization format.
     """
 

@@ -9,7 +9,10 @@ from eth2.beacon.typing import (
 
 class DepositData(rlp.Serializable):
     """
-    Not in spec, this is for fields in Deposit
+    ``DepositData`` corresponds to the data broadcast from the Ethereum 1.0 deposit
+    contract after a successful call to the `deposit` function.
+
+    Note: using RLP until we have standardized serialization format.
     """
     fields = [
         ('deposit_input', DepositInput),
