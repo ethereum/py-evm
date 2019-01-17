@@ -29,6 +29,7 @@ from eth2.beacon.types.blocks import (
 )
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.deposits import Deposit
+from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.fork_data import ForkData
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
@@ -50,7 +51,7 @@ def get_genesis_block(startup_state_root: Hash32, genesis_slot: SlotNumber) -> B
         parent_root=ZERO_HASH32,
         state_root=startup_state_root,
         randao_reveal=ZERO_HASH32,
-        candidate_pow_receipt_root=ZERO_HASH32,
+        eth1_data=Eth1Data.create_empty_data(),
         signature=EMPTY_SIGNATURE,
         body=BeaconBlockBody.create_empty_body(),
     )
@@ -59,7 +60,7 @@ def get_genesis_block(startup_state_root: Hash32, genesis_slot: SlotNumber) -> B
 def get_initial_beacon_state(*,
                              initial_validator_deposits: Sequence[Deposit],
                              genesis_time: Timestamp,
-                             processed_pow_receipt_root: Hash32,
+                             latest_eth1_data: Eth1Data,
                              genesis_slot: SlotNumber,
                              genesis_fork_version: int,
                              shard_count: int,
@@ -92,12 +93,17 @@ def get_initial_beacon_state(*,
         latest_vdf_outputs=tuple(
             ZERO_HASH32 for _ in range(latest_randao_mixes_length // epoch_length)
         ),
+        # TODO Remove `shard_committees_at_slots`, `persistent_committees`
+        # `persistent_committee_reassignments`
         shard_committees_at_slots=(),
         persistent_committees=(),
         persistent_committee_reassignments=(),
         # TODO: add `previous_epoch_start_shard`, `current_epoch_start_shard`
         # `previous_epoch_calculation_slot`, `current_epoch_calculation_slot`
         # `previous_epoch_randao_mix`, `current_epoch_randao_mix`
+
+        # Custody challenges
+        custody_challenges=(),
 
         # Finality
         previous_justified_slot=genesis_slot,
@@ -118,12 +124,9 @@ def get_initial_beacon_state(*,
         latest_attestations=(),
         batched_block_roots=(),
 
-        # PoW receipt root
-        # TODO: either (i) `processed_pow_receipt_root` => `latest_deposit_root`,
-        # `candidate_pow_receipt_roots` => `deposit_root_votes` or (ii) change to
-        # use PoW chain block root
-        processed_pow_receipt_root=processed_pow_receipt_root,
-        candidate_pow_receipt_roots=(),
+        # Ethereum 1.0 chain data
+        latest_eth1_data=latest_eth1_data,
+        eth1_data_votes=(),
     )
 
     # Process initial deposits

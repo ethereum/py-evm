@@ -62,9 +62,15 @@ class BeaconState(rlp.Serializable):
         # Randomness and committees
         ('latest_randao_mixes', CountableList(hash32)),
         ('latest_vdf_outputs', CountableList(hash32)),
+    
+        # TODO Remove `shard_committees_at_slots`, `persistent_committees`
+        # `persistent_committee_reassignments`
         ('crosslink_committees_at_slots', CountableList(CountableList((CrosslinkCommittee)))),
         ('persistent_committees', CountableList(CountableList(uint24))),
         ('persistent_committee_reassignments', CountableList(ShardReassignmentRecord)),
+        # TODO: add `previous_epoch_start_shard`, `current_epoch_start_shard`
+        # `previous_epoch_calculation_slot`, `current_epoch_calculation_slot`
+        # `previous_epoch_randao_mix`, `current_epoch_randao_mix`
 
         # Custody challenges
         ('custody_challenges', CountableList(CustodyChallenge)),
