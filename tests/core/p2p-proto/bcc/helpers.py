@@ -9,14 +9,18 @@ from eth_utils.toolz import (
     merge,
 )
 
+from eth.constants import (
+    ZERO_HASH32,
+)
 from eth.db.atomic import AtomicDB
+
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.types.blocks import (
     BeaconBlock,
     BeaconBlockBody,
 )
-from eth.constants import (
-    ZERO_HASH32,
+from eth2.beacon.types.eth1_data import (
+    Eth1Data,
 )
 
 from trinity.protocol.bcc.context import BeaconContext
@@ -38,7 +42,7 @@ def create_test_block(parent=None, **kwargs):
         "parent_root": ZERO_HASH32,
         "state_root": ZERO_HASH32,  # note: not the actual genesis state root
         "randao_reveal": ZERO_HASH32,
-        "candidate_pow_receipt_root": ZERO_HASH32,
+        "eth1_data": Eth1Data.create_empty_data(),
         "signature": (0, 0),
         "body": BeaconBlockBody.create_empty_body()
     }

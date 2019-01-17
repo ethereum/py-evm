@@ -36,6 +36,7 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.deposit_input import DepositInput
+from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.proposal_signed_data import ProposalSignedData
 from eth2.beacon.types.slashable_vote_data import SlashableVoteData
 
@@ -135,20 +136,21 @@ def sample_beacon_block_body_params():
 
 
 @pytest.fixture
-def sample_beacon_block_params(sample_beacon_block_body_params):
+def sample_beacon_block_params(sample_beacon_block_body_params,
+                               sample_eth1_data_params):
     return {
         'slot': 10,
         'parent_root': ZERO_HASH32,
         'state_root': b'\x55' * 32,
         'randao_reveal': b'\x55' * 32,
-        'candidate_pow_receipt_root': b'\x55' * 32,
+        'eth1_data': Eth1Data(**sample_eth1_data_params),
         'signature': (0, 0),
         'body': BeaconBlockBody(**sample_beacon_block_body_params)
     }
 
 
 @pytest.fixture
-def sample_beacon_state_params(sample_fork_data_params):
+def sample_beacon_state_params(sample_fork_data_params, sample_eth1_data_params):
     return {
         'slot': 0,
         'genesis_time': 0,
@@ -173,16 +175,24 @@ def sample_beacon_state_params(sample_fork_data_params):
         'latest_penalized_exit_balances': (),
         'latest_attestations': (),
         'batched_block_roots': (),
-        'processed_pow_receipt_root': b'\x55' * 32,
-        'candidate_pow_receipt_roots': (),
+        'latest_eth1_data': Eth1Data(**sample_eth1_data_params),
+        'eth1_data_votes': (),
     }
 
 
 @pytest.fixture
-def sample_candidate_pow_receipt_root_record_params():
+def sample_eth1_data_params():
     return {
-        'candidate_pow_receipt_root': b'\x43' * 32,
-        'votes': 10,
+        'deposit_root': b'\x43' * 32,
+        'block_hash': b'\x46' * 32,
+    }
+
+
+@pytest.fixture
+def sample_eth1_data_vote_params(sample_eth1_data_params):
+    return {
+        'eth1_data': Eth1Data(**sample_eth1_data_params),
+        'vote_count': 10,
     }
 
 
@@ -338,7 +348,8 @@ def sample_validator_registry_delta_block_params():
 
 @pytest.fixture
 def empty_beacon_state(latest_block_roots_length,
-                       latest_penalized_exit_length):
+                       latest_penalized_exit_length,
+                       sample_eth1_data_params):
     return BeaconState(
         slot=0,
         genesis_time=0,
@@ -350,8 +361,8 @@ def empty_beacon_state(latest_block_roots_length,
         validator_registry=(),
         validator_balances=(),
         validator_registry_latest_change_slot=10,
-        validator_registry_exit_count=10,
-        validator_registry_delta_chain_tip=b'\x55' * 32,
+        validator_registry_exit_count=0,
+        validator_registry_delta_chain_tip=ZERO_HASH32,
         latest_randao_mixes=(),
         latest_vdf_outputs=(),
         crosslink_committees_at_slots=(),
@@ -366,8 +377,8 @@ def empty_beacon_state(latest_block_roots_length,
         latest_penalized_exit_balances=(0,) * latest_penalized_exit_length,
         latest_attestations=(),
         batched_block_roots=(),
-        processed_pow_receipt_root=b'\x55' * 32,
-        candidate_pow_receipt_roots=(),
+        latest_eth1_data=Eth1Data(**sample_eth1_data_params),
+        eth1_data_votes=(),
     )
 
 
@@ -523,8 +534,8 @@ def entry_exit_delay():
 
 
 @pytest.fixture
-def pow_receipt_root_voting_period():
-    return SERENITY_CONFIG.POW_RECEIPT_ROOT_VOTING_PERIOD
+def eth1_data_voting_period():
+    return SERENITY_CONFIG.ETH1_DATA_VOTING_PERIOD
 
 
 @pytest.fixture

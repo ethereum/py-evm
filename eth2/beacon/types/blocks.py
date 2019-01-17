@@ -44,6 +44,7 @@ from .custody_reseeds import CustodyReseed
 from .custody_responses import CustodyResponse
 from .casper_slashings import CasperSlashing
 from .deposits import Deposit
+from .eth1_data import Eth1Data
 from .exits import Exit
 from .proposer_slashings import ProposerSlashing
 
@@ -121,7 +122,7 @@ class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
         ('parent_root', hash32),
         ('state_root', hash32),
         ('randao_reveal', hash32),
-        ('candidate_pow_receipt_root', hash32),
+        ('eth1_data', Eth1Data),
         ('signature', CountableList(uint384)),
 
         #
@@ -135,7 +136,7 @@ class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
                  parent_root: Hash32,
                  state_root: Hash32,
                  randao_reveal: Hash32,
-                 candidate_pow_receipt_root: Hash32,
+                 eth1_data: Eth1Data,
                  body: BaseBeaconBlockBody,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
@@ -143,7 +144,7 @@ class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
             parent_root=parent_root,
             state_root=state_root,
             randao_reveal=randao_reveal,
-            candidate_pow_receipt_root=candidate_pow_receipt_root,
+            eth1_data=eth1_data,
             signature=signature,
             body=body,
         )
@@ -216,7 +217,7 @@ class BeaconBlock(BaseBeaconBlock):
             parent_root=block.parent_root,
             state_root=block.state_root,
             randao_reveal=block.randao_reveal,
-            candidate_pow_receipt_root=block.candidate_pow_receipt_root,
+            eth1_data=block.eth1_data,
             signature=block.signature,
             body=body,
         )

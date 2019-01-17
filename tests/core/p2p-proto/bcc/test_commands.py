@@ -12,6 +12,8 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
+from eth2.beacon.types.eth1_data import Eth1Data
+
 from p2p.peer import (
     MsgBuffer,
 )
@@ -66,7 +68,7 @@ async def test_send_single_block(request, event_loop):
         parent_root=ZERO_HASH32,
         state_root=ZERO_HASH32,
         randao_reveal=ZERO_HASH32,
-        candidate_pow_receipt_root=ZERO_HASH32,
+        eth1_data=Eth1Data.create_empty_data(),
         signature=(0, 0),
         body=BeaconBlockBody.create_empty_body(),
     )
@@ -91,7 +93,7 @@ async def test_send_multiple_blocks(request, event_loop):
             parent_root=ZERO_HASH32,
             state_root=ZERO_HASH32,
             randao_reveal=ZERO_HASH32,
-            candidate_pow_receipt_root=ZERO_HASH32,
+            eth1_data=Eth1Data.create_empty_data(),
             signature=(0, 0),
             body=BeaconBlockBody.create_empty_body(),
         )
