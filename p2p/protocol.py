@@ -34,7 +34,11 @@ from p2p._utils import get_devp2p_cmd_id
 if TYPE_CHECKING:
     from p2p.peer import BasePeer  # noqa: F401
 
-TypedDictPayload = TypedDict("TypedDictPayload", {})
+
+class TypedDictPayload(TypedDict):
+    pass
+
+
 PayloadType = Union[
     Dict[str, Any],
     List[rlp.Serializable],

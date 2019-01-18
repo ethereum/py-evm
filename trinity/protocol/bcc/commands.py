@@ -29,21 +29,19 @@ from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.attestations import Attestation
 
 
-RequestMessage = TypedDict("RequestMessage", {
-    "request_id": int,
-})
+class RequestMessage(TypedDict):
+    request_id: int
 
 
-ResponseMessage = TypedDict("ResponseMessage", {
-    "request_id": int,
-})
+class ResponseMessage(TypedDict):
+    request_id: int
 
-StatusMessage = TypedDict("StatusMessage", {
-    'protocol_version': int,
-    'network_id': int,
-    'genesis_hash': Hash32,
-    'head_slot': SlotNumber,
-})
+
+class StatusMessage(TypedDict):
+    protocol_version: int
+    network_id: int
+    genesis_hash: Hash32
+    head_slot: SlotNumber
 
 
 class Status(Command):
@@ -71,10 +69,9 @@ class GetBeaconBlocks(Command):
     ]
 
 
-BeaconBlocksMessage = TypedDict("BeaconBlocksMessage", {
-    'request_id': int,
-    'blocks': Tuple[BeaconBlock, ...],
-})
+class BeaconBlocksMessage(TypedDict):
+    request_id: int
+    blocks: Tuple[BeaconBlock, ...]
 
 
 class BeaconBlocks(Command):
