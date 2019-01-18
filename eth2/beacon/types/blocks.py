@@ -204,13 +204,15 @@ class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
 
 
 class BeaconBlock(BaseBeaconBlock):
+    block_body_class = BeaconBlockBody
+
     @classmethod
     def from_root(cls, root: Hash32, chaindb: 'BaseBeaconChainDB') -> 'BeaconBlock':
         """
         Returns the block denoted by the given block header.
         """
         block = chaindb.get_block_by_root(root, cls)
-        body = BeaconBlockBody(
+        body = cls.block_body_class(
             proposer_slashings=block.body.proposer_slashings,
             casper_slashings=block.body.casper_slashings,
             attestations=block.body.attestations,

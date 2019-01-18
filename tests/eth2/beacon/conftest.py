@@ -44,6 +44,9 @@ from eth2.beacon.types.slashable_vote_data import SlashableVoteData
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
 )
+from eth2.beacon.helpers import (
+    get_beacon_proposer_index,
+)
 from eth2.beacon.types.blocks import (
     BeaconBlockBody,
 )
@@ -816,3 +819,44 @@ def create_mock_signed_attestation(privkeys):
         )
 
     return create_mock_signed_attestation
+
+
+@pytest.fixture
+def create_mock_block(privkeys, pubkeys):
+    def create_mock_block(state, block_class, parent_block, config, slot=None):
+        if slot is None:
+            slot = state.slot
+
+        block = block_class.from_parent(
+            parent_block=parent_block,
+            slot=slot,
+        )
+
+        # Sign block
+        beacon_proposer_index = get_beacon_proposer_index(
+            state,
+            block.slot,
+            config.EPOCH_LENGTH,
+        )
+        index_in_privkeys = pubkeys.index(
+            state.validator_registry[beacon_proposer_index].pubkey
+        )
+        beacon_proposer_privkey = privkeys[index_in_privkeys]
+        empty_signature_block_root = block.block_without_signature_root
+        proposal_root = ProposalSignedData(
+            block.slot,
+            config.BEACON_CHAIN_SHARD_NUMBER,
+            empty_signature_block_root,
+        ).root
+
+        block = block.copy(
+            state_root=state.root,
+            signature=bls.sign(
+                message=proposal_root,
+                privkey=beacon_proposer_privkey,
+                domain=SignatureDomain.DOMAIN_PROPOSAL,
+            ),
+        )
+        return block
+
+    return create_mock_block

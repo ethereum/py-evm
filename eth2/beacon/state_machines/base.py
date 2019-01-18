@@ -84,10 +84,13 @@ class BaseBeaconStateMachine(Configurable, ABC):
 class BeaconStateMachine(BaseBeaconStateMachine):
     def __init__(self,
                  chaindb: BaseBeaconChainDB,
-                 block_root: Hash32,
-                 block_class: Type[BaseBeaconBlock]) -> None:
+                 block: BaseBeaconBlock,
+                 parent_block_class: Type[BaseBeaconBlock]) -> None:
         self.chaindb = chaindb
-        self.block = self.chaindb.get_block_by_root(block_root, block_class)
+        self.block = self.get_block_class().from_parent(
+            parent_block=self.chaindb.get_block_by_root(block.parent_root, parent_block_class),
+            slot=block.slot,
+        )
 
     @property
     def state(self) -> BeaconState:

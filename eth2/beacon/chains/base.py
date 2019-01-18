@@ -236,7 +236,12 @@ class BeaconChain(BaseBeaconChain):
         """
         block = self.ensure_block(at_block)
         sm_class = self.get_sm_class_for_block_slot(block.slot)
-        return sm_class(chaindb=self.chaindb, block_root=block.root)
+        parent_block_class = self.get_block_class(block.parent_root)
+        return sm_class(
+            chaindb=self.chaindb,
+            block=block,
+            parent_block_class=parent_block_class,
+        )
 
     #
     # Block API
@@ -339,14 +344,14 @@ class BeaconChain(BaseBeaconChain):
         """
 
         try:
-            parent_block = self.get_block_by_root(block.parent_hash)
+            parent_block = self.get_block_by_root(block.parent_root)
         except BlockNotFound:
             raise ValidationError(
                 "Attempt to import block #{}.  Cannot import block {} before importing "
                 "its parent block at {}".format(
                     block.slot,
                     block.hash,
-                    block.parent_hash,
+                    block.parent_root,
                 )
             )
         base_block_for_import = self.create_block_from_parent(parent_block)
@@ -354,7 +359,8 @@ class BeaconChain(BaseBeaconChain):
             base_block_for_import
         ).import_block(block)
 
-        # TODO: deal with state
+        # TODO: Now it just persit all state. Should design how to clean up the old state.
+        self.chaindb.persist_state(state)
 
         # Validate the imported block.
         if perform_validation:
