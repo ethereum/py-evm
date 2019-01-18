@@ -199,6 +199,9 @@ class KBucket(Sized):
         if node not in self:
             return
         self.nodes.remove(node)
+        if self.replacement_cache:
+            replacement_node = self.replacement_cache.pop()
+            self.nodes.append(replacement_node)
 
     def in_range(self, node: Node) -> bool:
         return self.start <= node.id <= self.end
