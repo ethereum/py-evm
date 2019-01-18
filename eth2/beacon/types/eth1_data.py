@@ -24,7 +24,7 @@ class Eth1Data(rlp.Serializable):
 
     def __init__(self,
                  deposit_root: Hash32,
-                 block_hash: int) -> None:
+                 block_hash: Hash32) -> None:
         super().__init__(
             deposit_root=deposit_root,
             block_hash=block_hash,
