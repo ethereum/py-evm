@@ -21,7 +21,7 @@ deps = {
         "eth-utils>=1.3.0,<2",
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.5",
-        "py-evm==0.2.0a38",
+        "py-evm==0.2.0a40",
         "web3==4.4.1",
         "lahja==0.10.2",
         "termcolor>=1.1.0,<2.0.0",
@@ -94,7 +94,7 @@ install_requires = deps['trinity'] + deps['p2p']
 setup(
     name='trinity',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
-    version='0.1.0-alpha.20',
+    version='0.1.0-alpha.22',
     description='The Trinity client for the Ethereum network',
     long_description_markdown_filename='README.md',
     author='Ethereum Foundation',
