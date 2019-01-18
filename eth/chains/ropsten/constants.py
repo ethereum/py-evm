@@ -40,3 +40,9 @@ BYZANTIUM_ROPSTEN_BLOCK = BlockNumber(1700000)
 # Constantinople
 #
 CONSTANTINOPLE_ROPSTEN_BLOCK = BlockNumber(4230000)
+
+
+#
+# Petersburg
+#
+PETERSBURG_ROPSTEN_BLOCK = BlockNumber(4939394)

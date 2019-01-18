@@ -1,6 +1,12 @@
 Release notes
 =============
 
+Unreleased (latest source)
+--------------------------
+
+- `#1719 <https://github.com/ethereum/py-evm/pull/1719>`_: Implement and activate Petersburg fork (aka Constantinople fixed)
+
+
 0.2.0-alpha.40
 --------------
 

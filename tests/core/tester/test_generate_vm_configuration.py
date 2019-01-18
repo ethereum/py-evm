@@ -16,6 +16,7 @@ class Forks(enum.Enum):
     SpuriousDragon = 3
     Byzantium = 4
     Constantinople = 5
+    Petersburg = 6
 
 
 class CustomFrontierVM(FrontierVM):
@@ -28,7 +29,7 @@ class CustomFrontierVM(FrontierVM):
         (
             tuple(),
             {},
-            ((0, Forks.Constantinople),),
+            ((0, Forks.Petersburg),),
         ),
         (
             ((0, 'tangerine-whistle'), (1, 'spurious-dragon')),
@@ -109,6 +110,23 @@ class CustomFrontierVM(FrontierVM):
                 (3, Forks.Byzantium),
             ),
         ),
+        (
+            (
+                (0, 'frontier'),
+                (1, 'homestead'),
+                (2, 'tangerine-whistle'),
+                (3, 'byzantium'),
+                (5, 'petersburg')
+            ),
+            {},
+            (
+                (0, Forks.Frontier),
+                (1, Forks.Homestead),
+                (2, Forks.TangerineWhistle),
+                (3, Forks.Byzantium),
+                (5, Forks.Petersburg),
+            ),
+        ),
     ),
 )
 def test_generate_vm_configuration(args, kwargs, expected):
@@ -142,6 +160,8 @@ def test_generate_vm_configuration(args, kwargs, expected):
             assert 'Byzantium' in left_vm.__name__
         elif right_vm == Forks.Constantinople:
             assert 'Constantinople' in left_vm.__name__
+        elif right_vm == Forks.Petersburg:
+            assert 'Petersburg' in left_vm.__name__
         elif right_vm == Forks.Custom:
             assert 'CustomFrontier' in left_vm.__name__
         else:
