@@ -123,21 +123,25 @@ def test_kbucket_remove():
     nodes = [random_node() for _ in range(bucket.k)]
     for node in nodes:
         bucket.add(node)
-    assert len(bucket) == bucket.k
+    assert bucket.nodes == nodes
+    assert bucket.replacement_cache == []
 
     replacement_count = 10
     replacement_nodes = [random_node() for _ in range(replacement_count)]
     for replacement_node in replacement_nodes:
         bucket.add(replacement_node)
-    assert len(bucket) == bucket.k
+    assert bucket.nodes == nodes
+    assert bucket.replacement_cache == replacement_nodes
 
     for node in nodes:
         bucket.remove_node(node)
-    assert len(bucket) == replacement_count
+    assert bucket.nodes == list(reversed(replacement_nodes))
+    assert bucket.replacement_cache == []
 
     for replacement_node in replacement_nodes:
         bucket.remove_node(replacement_node)
-    assert len(bucket) == 0
+    assert bucket.nodes == []
+    assert bucket.replacement_cache == []
 
 
 def test_kbucket_split():
