@@ -34,10 +34,9 @@ class Status(Command):
     ]
 
 
-GetBeaconBlocksMessage = TypedDict("GetBeaconBlocksMessage", {
-    "block_slot_or_root": Union[int, Hash32],
-    "max_blocks": int,
-})
+class GetBeaconBlocksMessage(TypedDict):
+    block_slot_or_root: Union[int, Hash32]
+    max_blocks: int
 
 
 class GetBeaconBlocks(Command):
