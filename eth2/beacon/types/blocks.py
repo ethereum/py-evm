@@ -258,8 +258,8 @@ class BeaconBlock(BaseBeaconBlock):
         )
 
     @classmethod
-    def cast_block(cls,
-                   block: 'BaseBeaconBlock') -> 'BaseBeaconBlock':
+    def convert_block(cls,
+                      block: 'BaseBeaconBlock') -> 'BeaconBlock':
         return cls(
             slot=block.slot,
             parent_root=block.parent_root,

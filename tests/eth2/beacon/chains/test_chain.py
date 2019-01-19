@@ -121,7 +121,7 @@ def test_from_genesis(base_db,
     )
 
     assert type(genesis_block) == SerenityBeaconBlock
-    block = BeaconBlock.cast_block(genesis_block)
+    block = BeaconBlock.convert_block(genesis_block)
     assert type(block) == BeaconBlock
 
     with pytest.raises(BlockClassError):

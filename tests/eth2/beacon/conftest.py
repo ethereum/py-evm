@@ -830,6 +830,7 @@ def create_mock_block(privkeys, pubkeys):
         if slot is None:
             slot = state.slot
 
+        # Prepare block
         block = block_class.from_parent(
             parent_block=parent_block,
             block_params=FromBlockParams(slot=slot),
@@ -841,10 +842,14 @@ def create_mock_block(privkeys, pubkeys):
             block.slot,
             config.EPOCH_LENGTH,
         )
+
+        # Get privkey
         index_in_privkeys = pubkeys.index(
             state.validator_registry[beacon_proposer_index].pubkey
         )
         beacon_proposer_privkey = privkeys[index_in_privkeys]
+
+        # Sign the block
         empty_signature_block_root = block.block_without_signature_root
         proposal_root = ProposalSignedData(
             block.slot,
@@ -852,6 +857,7 @@ def create_mock_block(privkeys, pubkeys):
             empty_signature_block_root,
         ).root
 
+        # Finally
         block = block.copy(
             state_root=state.root,
             signature=bls.sign(
