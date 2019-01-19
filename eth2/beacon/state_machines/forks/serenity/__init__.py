@@ -1,5 +1,9 @@
 from typing import Type  # noqa: F401
 
+from eth2.beacon.typing import (
+    FromBlockParams,
+)
+
 from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
 from eth2.beacon.types.states import BeaconState  # noqa: F401
 
@@ -26,4 +30,7 @@ class SerenityStateMachine(BeaconStateMachine):
     config = SERENITY_CONFIG
 
     # methods
-    create_block_from_parent = staticmethod(create_serenity_block_from_parent)   # type: ignore
+    @staticmethod
+    def create_block_from_parent(parent_block: BaseBeaconBlock,
+                                 block_params: FromBlockParams) -> BaseBeaconBlock:
+        return create_serenity_block_from_parent(parent_block, block_params)

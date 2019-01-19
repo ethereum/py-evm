@@ -3,8 +3,15 @@ from eth.exceptions import (
 )
 
 
-class SMNotFound(PyEVMError):
+class StateMachineNotFound(PyEVMError):
     """
-    Raise when no StateMachine is available for the provided block slot number.
+    Raised when no ``StateMachine`` is available for the provided block slot number.
+    """
+    pass
+
+
+class BlockClassError(PyEVMError):
+    """
+    Raised when the given ``block`` doesn't match the block class version
     """
     pass

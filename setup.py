@@ -28,6 +28,7 @@ deps = {
         "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",
         "websockets==5.0.1",
         "jsonschema==2.6.0",
+        "mypy_extensions>=0.4.1,<1.0.0",
     ],
     'test': [
         "hypothesis==3.69.5",
@@ -71,10 +72,9 @@ deps = {
         "eth-typing>=2.0.0,<3.0.0",
         "eth-utils>=1.3.0b0,<2.0.0",
         "lru-dict>=1.1.6",
-        "mypy_extensions>=0.4.1,<1.0.0",
         "py-ecc>=1.4.7,<2.0.0",
         "rlp>=1.1.0,<2.0.0",
-        "py-evm>=0.2.0a38",
+        "py-evm==0.2.0a38",
     ],
 }
 

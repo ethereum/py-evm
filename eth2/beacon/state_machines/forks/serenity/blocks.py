@@ -1,5 +1,5 @@
-from typing import (
-    Any,
+from eth2.beacon.typing import (
+    FromBlockParams,
 )
 
 from eth2.beacon.types.blocks import (
@@ -13,7 +13,7 @@ class SerenityBeaconBlock(BeaconBlock):
 
 
 def create_serenity_block_from_parent(parent_block: BaseBeaconBlock,
-                                      **block_params: Any) -> BaseBeaconBlock:
-    block = SerenityBeaconBlock.from_parent(parent_block=parent_block, **block_params)
+                                      block_params: FromBlockParams) -> BaseBeaconBlock:
+    block = SerenityBeaconBlock.from_parent(parent_block, block_params)
 
     return block

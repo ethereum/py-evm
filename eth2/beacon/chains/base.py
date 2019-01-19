@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 from abc import (
     ABC,
     abstractmethod
 )
 from typing import (
-    Any,
     Tuple,
     Type,
 )
@@ -40,7 +37,8 @@ from eth2.beacon.db.chain import (  # noqa: F401
     BeaconChainDB,
 )
 from eth2.beacon.exceptions import (
-    SMNotFound,
+    BlockClassError,
+    StateMachineNotFound,
 )
 from eth2.beacon.state_machines.base import BaseBeaconStateMachine  # noqa: F401
 from eth2.beacon.types.blocks import (
@@ -48,6 +46,7 @@ from eth2.beacon.types.blocks import (
 )
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
+    FromBlockParams,
     SlotNumber,
 )
 from eth2.beacon.validation import (
@@ -94,29 +93,22 @@ class BaseBeaconChain(Configurable, ABC):
     # State Machine API
     #
     @classmethod
-    def get_sm_class(cls, block: BaseBeaconBlock) -> Type['BaseBeaconStateMachine']:
-        """
-        Returns the ``StateMachine`` instance for the given block slot number.
-        """
-        return cls.get_sm_class_for_block_slot(block.slot)
+    @abstractmethod
+    def get_state_machine_class(
+            cls,
+            block: BaseBeaconBlock) -> Type['BaseBeaconStateMachine']:
+        pass
 
     @abstractmethod
-    def get_sm(self, block: BaseBeaconBlock) -> 'BaseBeaconStateMachine':
+    def get_state_machine(self, at_block: BaseBeaconBlock=None) -> 'BaseBeaconStateMachine':
         pass
 
     @classmethod
-    def get_sm_class_for_block_slot(cls, slot: SlotNumber) -> Type['BaseBeaconStateMachine']:
-        """
-        Return the ``StateMachine`` class for the given block slot number.
-        """
-        if cls.sm_configuration is None:
-            raise AttributeError("Chain classes must define the StateMachines in sm_configuration")
-
-        validate_slot(slot)
-        for start_slot, sm_class in reversed(cls.sm_configuration):
-            if slot >= start_slot:
-                return sm_class
-        raise SMNotFound("No StateMachine available for block slot: #{0}".format(slot))
+    @abstractmethod
+    def get_state_machine_class_for_block_slot(
+            cls,
+            slot: SlotNumber) -> Type['BaseBeaconStateMachine']:
+        pass
 
     #
     # Block API
@@ -128,7 +120,7 @@ class BaseBeaconChain(Configurable, ABC):
     @abstractmethod
     def create_block_from_parent(self,
                                  parent_block: BaseBeaconBlock,
-                                 **block_params: Any) -> BaseBeaconBlock:
+                                 block_params: FromBlockParams) -> BaseBeaconBlock:
         pass
 
     @abstractmethod
@@ -211,7 +203,15 @@ class BeaconChain(BaseBeaconChain):
         """
         Initialize the ``BeaconChain`` from a genesis state.
         """
-        # mutation
+        sm_class = cls.get_state_machine_class_for_block_slot(genesis_block.slot)
+        if type(genesis_block) != sm_class.block_class:
+            raise BlockClassError(
+                "Given genesis block class: {}, StateMachine.block_class: {}".format(
+                    type(genesis_block),
+                    sm_class.block_class
+                )
+            )
+
         chaindb = cls.get_chaindb_class()(db=base_db)
         chaindb.persist_state(genesis_state)
         return cls.from_genesis_block(base_db, genesis_block)
@@ -230,12 +230,35 @@ class BeaconChain(BaseBeaconChain):
     #
     # StateMachine API
     #
-    def get_sm(self, at_block: BaseBeaconBlock=None) -> 'BaseBeaconStateMachine':
+    @classmethod
+    def get_state_machine_class(cls, block: BaseBeaconBlock) -> Type['BaseBeaconStateMachine']:
+        """
+        Returns the ``StateMachine`` instance for the given block slot number.
+        """
+        return cls.get_state_machine_class_for_block_slot(block.slot)
+
+    @classmethod
+    def get_state_machine_class_for_block_slot(
+            cls,
+            slot: SlotNumber) -> Type['BaseBeaconStateMachine']:
+        """
+        Return the ``StateMachine`` class for the given block slot number.
+        """
+        if cls.sm_configuration is None:
+            raise AttributeError("Chain classes must define the StateMachines in sm_configuration")
+
+        validate_slot(slot)
+        for start_slot, sm_class in reversed(cls.sm_configuration):
+            if slot >= start_slot:
+                return sm_class
+        raise StateMachineNotFound("No StateMachine available for block slot: #{0}".format(slot))
+
+    def get_state_machine(self, at_block: BaseBeaconBlock=None) -> 'BaseBeaconStateMachine':
         """
         Return the ``StateMachine`` instance for the given block number.
         """
         block = self.ensure_block(at_block)
-        sm_class = self.get_sm_class_for_block_slot(block.slot)
+        sm_class = self.get_state_machine_class_for_block_slot(block.slot)
         parent_block_class = self.get_block_class(block.parent_root)
         return sm_class(
             chaindb=self.chaindb,
@@ -248,21 +271,21 @@ class BeaconChain(BaseBeaconChain):
     #
     def get_block_class(self, block_root: Hash32) -> Type[BaseBeaconBlock]:
         slot = self.chaindb.get_slot_by_root(block_root)
-        sm_class = self.get_sm_class_for_block_slot(slot)
+        sm_class = self.get_state_machine_class_for_block_slot(slot)
         block_class = sm_class.block_class
         return block_class
 
     def create_block_from_parent(self,
                                  parent_block: BaseBeaconBlock,
-                                 **block_params: Any) -> BaseBeaconBlock:
+                                 block_params: FromBlockParams) -> BaseBeaconBlock:
         """
         Passthrough helper to the ``StateMachine`` class of the block descending from the
         given block.
         """
 
-        return self.get_sm_class_for_block_slot(
+        return self.get_state_machine_class_for_block_slot(
             slot=parent_block.slot + 1,
-        ).create_block_from_parent(parent_block, **block_params)
+        ).create_block_from_parent(parent_block, block_params)
 
     def get_block_by_root(self, block_root: Hash32) -> BaseBeaconBlock:
         """
@@ -290,7 +313,7 @@ class BeaconChain(BaseBeaconChain):
         """
         Return the score of the block with the given hash.
 
-        Raises ``BlockNotFound`` if there is no matching black hash.
+        Raise ``BlockNotFound`` if there is no matching black hash.
         """
         return self.chaindb.get_score(block_root)
 
@@ -301,7 +324,7 @@ class BeaconChain(BaseBeaconChain):
         """
         if block is None:
             head = self.get_canonical_head()
-            return self.create_block_from_parent(head)
+            return self.create_block_from_parent(head, FromBlockParams(slot=None))
         else:
             return block
 
@@ -309,7 +332,7 @@ class BeaconChain(BaseBeaconChain):
         """
         Return the current TIP block.
         """
-        return self.get_sm().block
+        return self.get_state_machine().block
 
     def get_canonical_block_by_slot(self, slot: SlotNumber) -> BaseBeaconBlock:
         """
@@ -354,8 +377,11 @@ class BeaconChain(BaseBeaconChain):
                     block.parent_root,
                 )
             )
-        base_block_for_import = self.create_block_from_parent(parent_block)
-        state, imported_block = self.get_sm(
+        base_block_for_import = self.create_block_from_parent(
+            parent_block,
+            FromBlockParams(slot=None)
+        )
+        state, imported_block = self.get_state_machine(
             base_block_for_import
         ).import_block(block)
 

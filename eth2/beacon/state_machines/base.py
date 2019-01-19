@@ -3,7 +3,6 @@ from abc import (
     abstractmethod,
 )
 from typing import (
-    Any,
     Tuple,
     Type,
 )
@@ -19,7 +18,9 @@ from eth._utils.datatypes import (
 from eth2.beacon.db.chain import BaseBeaconChainDB
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
-
+from eth2.beacon.typing import (
+    FromBlockParams,
+)
 
 from .state_transitions import (
     BaseStateTransition,
@@ -77,7 +78,7 @@ class BaseBeaconStateMachine(Configurable, ABC):
     @staticmethod
     @abstractmethod
     def create_block_from_parent(parent_block: BaseBeaconBlock,
-                                 **block_params: Any) -> BaseBeaconBlock:
+                                 block_params: FromBlockParams) -> BaseBeaconBlock:
         pass
 
 
@@ -89,7 +90,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         self.chaindb = chaindb
         self.block = self.get_block_class().from_parent(
             parent_block=self.chaindb.get_block_by_root(block.parent_root, parent_block_class),
-            slot=block.slot,
+            block_params=FromBlockParams(slot=block.slot),
         )
 
     @property

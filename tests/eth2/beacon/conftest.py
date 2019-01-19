@@ -53,6 +53,9 @@ from eth2.beacon.types.blocks import (
 from eth2.beacon.types.fork_data import (
     ForkData,
 )
+from eth2.beacon.typing import (
+    FromBlockParams,
+)
 from eth2.beacon.state_machines.configs import BeaconConfig
 from eth2.beacon.state_machines.forks.serenity import (
     SerenityStateMachine,
@@ -780,10 +783,10 @@ def fixture_sm_class(config):
 #
 @pytest.fixture
 def create_mock_signed_attestation(privkeys):
-    def create_mock_signed_attestation(state,
-                                       crosslink_committee,
-                                       voting_committee_indices,
-                                       attestation_data):
+    def _create_mock_signed_attestation(state,
+                                        crosslink_committee,
+                                        voting_committee_indices,
+                                        attestation_data):
         message = hash_eth2(
             rlp.encode(attestation_data) +
             (0).to_bytes(1, "big")
@@ -818,18 +821,18 @@ def create_mock_signed_attestation(privkeys):
             aggregate_signature=aggregate_signature,
         )
 
-    return create_mock_signed_attestation
+    return _create_mock_signed_attestation
 
 
 @pytest.fixture
 def create_mock_block(privkeys, pubkeys):
-    def create_mock_block(state, block_class, parent_block, config, slot=None):
+    def _create_mock_block(state, block_class, parent_block, config, slot=None):
         if slot is None:
             slot = state.slot
 
         block = block_class.from_parent(
             parent_block=parent_block,
-            slot=slot,
+            block_params=FromBlockParams(slot=slot),
         )
 
         # Sign block
@@ -859,4 +862,4 @@ def create_mock_block(privkeys, pubkeys):
         )
         return block
 
-    return create_mock_block
+    return _create_mock_block

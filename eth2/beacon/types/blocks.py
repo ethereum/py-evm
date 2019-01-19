@@ -36,8 +36,9 @@ from eth2.beacon.sedes import (
     uint384,
 )
 from eth2.beacon.typing import (
-    SlotNumber,
     BLSSignature,
+    SlotNumber,
+    FromBlockParams,
 )
 
 
@@ -236,13 +237,15 @@ class BeaconBlock(BaseBeaconBlock):
     @classmethod
     def from_parent(cls,
                     parent_block: 'BaseBeaconBlock',
-                    slot: SlotNumber=None) -> 'BaseBeaconBlock':
+                    block_params: FromBlockParams) -> 'BaseBeaconBlock':
         """
         Initialize a new block with the `parent` block as the block's
         parent hash.
         """
-        if slot is None:
+        if block_params['slot'] is None:
             slot = parent_block.slot + 1
+        else:
+            slot = block_params['slot']
 
         return cls(
             slot=slot,
@@ -251,7 +254,7 @@ class BeaconBlock(BaseBeaconBlock):
             randao_reveal=ZERO_HASH32,
             eth1_data=parent_block.eth1_data,
             signature=EMPTY_SIGNATURE,
-            body=cls.block_body_class.create_empty_block_body(),
+            body=cls.block_body_class.create_empty_body(),
         )
 
     @classmethod

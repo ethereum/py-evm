@@ -57,6 +57,7 @@ from eth2.beacon.db.schema import SchemaV1
 class BaseBeaconChainDB(ABC):
     db = None  # type: BaseAtomicDB
 
+    @abstractmethod
     def __init__(self, db: BaseAtomicDB) -> None:
         pass
 

@@ -114,7 +114,7 @@ The `Chain` represents a single blockchain. One chain might fork by the block nu
 
 ![](https://storage.googleapis.com/ethereum-hackmd/upload_46c3b4a92edeaa18d66f5e2e367f1276.png)
 
-In `BeaconChain` initialization, a `BeaconChainDB` will be set in `BeaconChain`. While processing each block, it will initialize a `BeaconStateMachine` object via `get_sm()` function, and use this particular `BeaconStateMachine` to apply state transition of the given block.
+In `BeaconChain` initialization, a `BeaconChainDB` will be set in `BeaconChain`. While processing each block, it will initialize a `BeaconStateMachine` object via `get_state_machine()` function, and use this particular `BeaconStateMachine` to apply state transition of the given block.
 
 ## Contribution guideline
 
