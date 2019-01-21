@@ -3,11 +3,16 @@ import pytest
 
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
-from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.types.blocks import (
+    BeaconBlock,
+    BeaconBlockBody,
+)
 
 from eth.constants import (
     ZERO_HASH32,
 )
+
+from eth2.beacon.types.eth1_data import Eth1Data
 
 from p2p.peer import (
     MsgBuffer,
@@ -21,7 +26,6 @@ from trinity.protocol.bcc.commands import (
 
 from .helpers import (
     get_directly_linked_peers,
-    empty_body,
     get_genesis_chain_db,
 )
 
@@ -64,9 +68,9 @@ async def test_send_single_block(request, event_loop):
         parent_root=ZERO_HASH32,
         state_root=ZERO_HASH32,
         randao_reveal=ZERO_HASH32,
-        candidate_pow_receipt_root=ZERO_HASH32,
+        eth1_data=Eth1Data.create_empty_data(),
         signature=(0, 0),
-        body=empty_body(),
+        body=BeaconBlockBody.create_empty_body(),
     )
     alice.sub_proto.send_blocks((block,), request_id=request_id)
 
@@ -89,9 +93,9 @@ async def test_send_multiple_blocks(request, event_loop):
             parent_root=ZERO_HASH32,
             state_root=ZERO_HASH32,
             randao_reveal=ZERO_HASH32,
-            candidate_pow_receipt_root=ZERO_HASH32,
+            eth1_data=Eth1Data.create_empty_data(),
             signature=(0, 0),
-            body=empty_body(),
+            body=BeaconBlockBody.create_empty_body(),
         )
         for slot in range(3)
     )

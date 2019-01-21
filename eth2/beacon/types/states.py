@@ -31,12 +31,13 @@ from eth2.beacon.typing import (
     ValidatorIndex,
 )
 
-from .pending_attestation_records import PendingAttestationRecord
-from .candidate_pow_receipt_root_records import CandidatePoWReceiptRootRecord
+from .eth1_data import Eth1Data
+from .eth1_data_vote import Eth1DataVote
 from .custody_challenges import CustodyChallenge
 from .crosslink_committees import CrosslinkCommittee
 from .crosslink_records import CrosslinkRecord
 from .fork_data import ForkData
+from .pending_attestation_records import PendingAttestationRecord
 from .shard_reassignment_records import ShardReassignmentRecord
 from .validator_records import ValidatorRecord
 
@@ -61,9 +62,14 @@ class BeaconState(rlp.Serializable):
         # Randomness and committees
         ('latest_randao_mixes', CountableList(hash32)),
         ('latest_vdf_outputs', CountableList(hash32)),
+        # TODO Remove `crosslink_committees_at_slots`, `persistent_committees`
+        # `persistent_committee_reassignments`
         ('crosslink_committees_at_slots', CountableList(CountableList((CrosslinkCommittee)))),
         ('persistent_committees', CountableList(CountableList(uint24))),
         ('persistent_committee_reassignments', CountableList(ShardReassignmentRecord)),
+        # TODO: add `previous_epoch_start_shard`, `current_epoch_start_shard`
+        # `previous_epoch_calculation_slot`, `current_epoch_calculation_slot`
+        # `previous_epoch_randao_mix`, `current_epoch_randao_mix`
 
         # Custody challenges
         ('custody_challenges', CountableList(CustodyChallenge)),
@@ -83,8 +89,8 @@ class BeaconState(rlp.Serializable):
         ('batched_block_roots', CountableList(Hash32)),  # allow for a log-sized Merkle proof from any block to any historical block root"  # noqa: E501
 
         # PoW receipt root
-        ('processed_pow_receipt_root', hash32),
-        ('candidate_pow_receipt_roots', CountableList(CandidatePoWReceiptRootRecord)),
+        ('latest_eth1_data', Eth1Data),
+        ('eth1_data_votes', CountableList(Eth1DataVote)),
     ]
 
     def __init__(
@@ -99,7 +105,7 @@ class BeaconState(rlp.Serializable):
             justified_slot: SlotNumber,
             justification_bitfield: Bitfield,
             finalized_slot: SlotNumber,
-            processed_pow_receipt_root: Hash32,
+            latest_eth1_data: Eth1Data,
             validator_registry: Sequence[ValidatorRecord]=(),
             validator_balances: Sequence[Gwei]=(),
             latest_randao_mixes: Sequence[Hash32]=(),
@@ -113,7 +119,7 @@ class BeaconState(rlp.Serializable):
             latest_penalized_exit_balances: Sequence[Gwei]=(),
             batched_block_roots: Sequence[Hash32]=(),
             latest_attestations: Sequence[PendingAttestationRecord]=(),
-            candidate_pow_receipt_roots: Sequence[CandidatePoWReceiptRootRecord]=()
+            eth1_data_votes: Sequence[Eth1DataVote]=()
     ) -> None:
         if len(validator_registry) != len(validator_balances):
             raise ValueError(
@@ -150,8 +156,8 @@ class BeaconState(rlp.Serializable):
             latest_attestations=latest_attestations,
             batched_block_roots=batched_block_roots,
             # PoW receipt root
-            processed_pow_receipt_root=processed_pow_receipt_root,
-            candidate_pow_receipt_roots=candidate_pow_receipt_roots,
+            latest_eth1_data=latest_eth1_data,
+            eth1_data_votes=eth1_data_votes,
         )
 
     def __repr__(self) -> str:
