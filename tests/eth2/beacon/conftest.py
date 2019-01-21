@@ -160,7 +160,7 @@ def sample_beacon_state_params(sample_fork_data_params):
         'validator_registry_delta_chain_tip': b'\x55' * 32,
         'latest_randao_mixes': (),
         'latest_vdf_outputs': (),
-        'shard_committees_at_slots': (),
+        'crosslink_committees_at_slots': (),
         'persistent_committees': (),
         'persistent_committee_reassignments': (),
         'custody_challenges': (),
@@ -270,7 +270,7 @@ def sample_recent_proposer_record_params():
 
 
 @pytest.fixture
-def sample_shard_committee_params():
+def sample_crosslink_committee_params():
     return {
         'shard': 10,
         'committee': (1, 3, 5),
@@ -354,7 +354,7 @@ def empty_beacon_state(latest_block_roots_length,
         validator_registry_delta_chain_tip=b'\x55' * 32,
         latest_randao_mixes=(),
         latest_vdf_outputs=(),
-        shard_committees_at_slots=(),
+        crosslink_committees_at_slots=(),
         persistent_committees=(),
         persistent_committee_reassignments=(),
         previous_justified_slot=0,
@@ -601,7 +601,7 @@ def genesis_state(sample_beacon_state_params,
     return BeaconState(**sample_beacon_state_params).copy(
         validator_registry=activated_genesis_validators,
         validator_balances=genesis_balances,
-        shard_committees_at_slots=initial_shuffling + initial_shuffling,
+        crosslink_committees_at_slots=initial_shuffling + initial_shuffling,
         latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
         latest_crosslinks=tuple(
             CrosslinkRecord(
@@ -656,7 +656,7 @@ def genesis_balances(init_validator_pubkeys, max_deposit):
 @pytest.fixture
 def create_mock_signed_attestation(privkeys):
     def create_mock_signed_attestation(state,
-                                       shard_committee,
+                                       crosslink_committee,
                                        voting_committee_indices,
                                        attestation_data):
         message = hash_eth2(
@@ -667,7 +667,7 @@ def create_mock_signed_attestation(privkeys):
         signatures = [
             bls.sign(
                 message,
-                privkeys[shard_committee.committee[committee_index]],
+                privkeys[crosslink_committee.committee[committee_index]],
                 domain=get_domain(
                     fork_data=state.fork_data,
                     slot=attestation_data.slot,
@@ -679,7 +679,7 @@ def create_mock_signed_attestation(privkeys):
 
         # aggregate signatures and construct participant bitfield
         participation_bitfield, aggregate_signature = aggregate_votes(
-            bitfield=get_empty_bitfield(len(shard_committee.committee)),
+            bitfield=get_empty_bitfield(len(crosslink_committee.committee)),
             sigs=(),
             voting_sigs=signatures,
             voting_committee_indices=voting_committee_indices,

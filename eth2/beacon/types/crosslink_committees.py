@@ -17,7 +17,7 @@ from eth2.beacon.typing import (
 )
 
 
-class ShardCommittee(rlp.Serializable):
+class CrosslinkCommittee(rlp.Serializable):
     """
     Note: using RLP until we have standardized serialization format.
     """
