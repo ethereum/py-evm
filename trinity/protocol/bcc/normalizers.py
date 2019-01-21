@@ -2,7 +2,7 @@ from typing import (
     Tuple,
 )
 
-from eth.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.types.blocks import BaseBeaconBlock
 
 from trinity.protocol.common.normalizers import BaseNormalizer
 

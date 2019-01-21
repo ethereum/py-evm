@@ -104,7 +104,7 @@ Py-EVM abstracts EVM with `BaseVM` that defines the interfaces, and implements s
 ![](https://storage.googleapis.com/ethereum-hackmd/upload_14a701ef308508cd7f837eeca56ed251.png)
 
 
-The in-protocol data structures are defined in `eth.beacon.types`. If the data fields might be different from the future forks, we can implement a new subclass in the future.
+The in-protocol data structures are defined in `eth2.beacon.types`. If the data fields might be different from the future forks, we can implement a new subclass in the future.
 
 ![](https://storage.googleapis.com/ethereum-hackmd/upload_be262ea6aac671174463882ed3f11420.png)
 
