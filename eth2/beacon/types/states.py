@@ -34,9 +34,9 @@ from eth2.beacon.typing import (
 from .pending_attestation_records import PendingAttestationRecord
 from .candidate_pow_receipt_root_records import CandidatePoWReceiptRootRecord
 from .custody_challenges import CustodyChallenge
+from .crosslink_committees import CrosslinkCommittee
 from .crosslink_records import CrosslinkRecord
 from .fork_data import ForkData
-from .crosslink_committees import CrosslinkCommittee
 from .shard_reassignment_records import ShardReassignmentRecord
 from .validator_records import ValidatorRecord
 

@@ -141,8 +141,8 @@ def _get_crosslink_committees_at_slot(
 
 
 def get_crosslink_committees_at_slot(state: 'BeaconState',
-                                 slot: SlotNumber,
-                                 epoch_length: int) -> Tuple[CrosslinkCommittee]:
+                                     slot: SlotNumber,
+                                     epoch_length: int) -> Tuple[CrosslinkCommittee]:
     """
     Return the ``CrosslinkCommittee`` for the ``slot``.
     """
