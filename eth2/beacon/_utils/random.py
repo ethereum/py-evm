@@ -1,6 +1,5 @@
 
 from typing import (
-    Any,
     Iterable,
     Sequence,
     Tuple,
@@ -27,8 +26,8 @@ TItem = TypeVar('TItem')
 
 
 @to_tuple
-def shuffle(values: Sequence[Any],
-            seed: Hash32) -> Iterable[Any]:
+def shuffle(values: Sequence[TItem],
+            seed: Hash32) -> Iterable[TItem]:
     """
     Returns the shuffled ``values`` with seed as entropy.
     Mainly for shuffling active validators in-protocol.
@@ -86,7 +85,7 @@ def shuffle(values: Sequence[Any],
     return output
 
 
-def split(values: Sequence[TItem], split_count: int) -> Tuple[Any, ...]:
+def split(values: Sequence[TItem], split_count: int) -> Tuple[Iterable[TItem], ...]:
     """
     Returns the split ``values`` in ``split_count`` pieces in protocol.
     Spec: https://github.com/ethereum/eth2.0-specs/blob/70cef14a08de70e7bd0455d75cf380eb69694bfb/specs/core/0_beacon-chain.md#helper-functions  # noqa: E501

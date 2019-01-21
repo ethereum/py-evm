@@ -147,7 +147,9 @@ def _settle_penality_to_validator_and_whistleblower(
         latest_penalized_exit_length: int,
         whistleblower_reward_quotient: int,
         epoch_length: int,
-        max_deposit: Ether) -> BeaconState:
+        max_deposit: Ether,
+        target_committee_size: int,
+        shard_count: int) -> BeaconState:
     """
     Apply penality/reward to validator and whistleblower and update the meta data
 
@@ -187,7 +189,13 @@ def _settle_penality_to_validator_and_whistleblower(
         effective_balance //
         whistleblower_reward_quotient
     )
-    whistleblower_index = get_beacon_proposer_index(state, state.slot, epoch_length)
+    whistleblower_index = get_beacon_proposer_index(
+        state,
+        state.slot,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
+    )
     state = state.update_validator_balance(
         whistleblower_index,
         state.validator_balances[whistleblower_index] + whistleblower_reward,
@@ -213,7 +221,9 @@ def penalize_validator(state: BeaconState,
                        latest_penalized_exit_length: int,
                        whistleblower_reward_quotient: int,
                        entry_exit_delay: int,
-                       max_deposit: Ether) -> BeaconState:
+                       max_deposit: Ether,
+                       target_committee_size: int,
+                       shard_count: int) -> BeaconState:
     """
     Penalize the validator with the given ``index``.
 
@@ -227,6 +237,8 @@ def penalize_validator(state: BeaconState,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         epoch_length=epoch_length,
         max_deposit=max_deposit,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
     )
     return state
 

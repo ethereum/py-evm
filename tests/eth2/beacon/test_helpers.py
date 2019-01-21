@@ -12,7 +12,10 @@ from hypothesis import (
 from eth_utils import (
     ValidationError,
 )
-from eth_utils.toolz import assoc
+from eth_utils.toolz import (
+    assoc,
+    isdistinct,
+)
 
 from eth.constants import (
     ZERO_HASH32,
@@ -31,22 +34,24 @@ from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
 from eth2.beacon.types.fork_data import ForkData
-from eth2.beacon.types.crosslink_committees import CrosslinkCommittee
 from eth2.beacon.types.slashable_vote_data import SlashableVoteData
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
 from eth2.beacon.helpers import (
     _get_block_root,
-    _get_crosslink_committees_at_slot,
+    _get_shuffling_and_slot_start_shard,
     get_active_validator_indices,
     get_attestation_participants,
     get_beacon_proposer_index,
-    get_effective_balance,
+    get_committee_count_per_slot,
+    get_crosslink_committees_at_slot,
+    get_current_epoch_committee_count_per_slot,
     get_domain,
+    get_effective_balance,
     get_fork_version,
-    get_shuffling,
-    get_block_committees_info,
+    get_previous_epoch_committee_count_per_slot,
     get_pubkey_for_indices,
+    get_shuffling,
     generate_aggregate_pubkeys,
     verify_vote_count,
     verify_slashable_vote_data_signature,
@@ -58,6 +63,7 @@ import eth2._utils.bls as bls
 
 from tests.eth2.beacon.helpers import (
     get_pseudo_chain,
+    mock_validator_record,
 )
 
 
@@ -69,21 +75,6 @@ def sample_block(sample_beacon_block_params):
 @pytest.fixture()
 def sample_state(sample_beacon_state_params):
     return BeaconState(**sample_beacon_state_params)
-
-
-def get_sample_crosslink_committees_at_slots(num_slot,
-                                             num_crosslink_committee_per_slot,
-                                             sample_crosslink_committee_params):
-
-    return tuple(
-        [
-            [
-                CrosslinkCommittee(**sample_crosslink_committee_params)
-                for _ in range(num_crosslink_committee_per_slot)
-            ]
-            for _ in range(num_slot)
-        ]
-    )
 
 
 def generate_mock_latest_block_roots(
@@ -153,106 +144,36 @@ def test_get_block_root(current_slot,
 
 
 #
-# Get crosslinks_committees or indices
+# Shuffling
 #
 @pytest.mark.parametrize(
     (
-        'num_validators,'
+        'active_validator_count,'
         'epoch_length,'
-        'state_slot,'
-        'num_slot,'
-        'num_crosslink_committee_per_slot,'
-        'slot,'
-        'success'
+        'target_committee_size,'
+        'shard_count,'
+        'expected_committee_count'
     ),
     [
-        (
-            100,
-            64,
-            0,
-            128,
-            10,
-            0,
-            True,
-        ),
-        (
-            100,
-            64,
-            64,
-            128,
-            10,
-            64,
-            True,
-        ),
-        (
-            100,
-            64,
-            1,
-            128,
-            10,
-            1,
-            True,
-        ),
-        # slot is too small
-        (
-            100,
-            64,
-            128,
-            128,
-            10,
-            0,
-            False,
-        ),
-        # slot is too large
-        (
-            100,
-            64,
-            0,
-            128,
-            10,
-            64,
-            False,
-        ),
+        (1000, 20, 10, 50, 2),  # SHARD_COUNT // EPOCH_LENGTH
+        (1000, 20, 10, 100, 5),  # active_validator_count // EPOCH_LENGTH // TARGET_COMMITTEE_SIZE
+        (20, 10, 3, 10, 1),  # 1
+        (20, 10, 3, 5, 1),  # 1
     ],
 )
-def test_get_crosslink_committees_at_slot(
-        num_validators,
-        epoch_length,
-        state_slot,
-        num_slot,
-        num_crosslink_committee_per_slot,
-        slot,
-        success,
-        sample_crosslink_committee_params):
-
-    crosslink_committees_at_slots = get_sample_crosslink_committees_at_slots(
-        num_slot,
-        num_crosslink_committee_per_slot,
-        sample_crosslink_committee_params
+def test_get_committee_count_per_slot(active_validator_count,
+                                      epoch_length,
+                                      target_committee_size,
+                                      shard_count,
+                                      expected_committee_count):
+    assert expected_committee_count == get_committee_count_per_slot(
+        active_validator_count=active_validator_count,
+        shard_count=shard_count,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
     )
 
-    if success:
-        crosslink_committees = _get_crosslink_committees_at_slot(
-            state_slot=state_slot,
-            crosslink_committees_at_slots=crosslink_committees_at_slots,
-            slot=slot,
-            epoch_length=epoch_length,
-        )
-        assert len(crosslink_committees) > 0
-        assert len(crosslink_committees[0].committee) > 0
-    else:
-        with pytest.raises(ValidationError):
-            _get_crosslink_committees_at_slot(
-                state_slot=state_slot,
-                crosslink_committees_at_slots=crosslink_committees_at_slots,
-                slot=slot,
-                epoch_length=epoch_length,
-            )
 
-
-#
-# Shuffling
-#
 @pytest.mark.parametrize(
     (
         'num_validators,'
@@ -278,7 +199,6 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
     shuffling = get_shuffling(
         seed=b'\x35' * 32,
         validators=activated_genesis_validators,
-        crosslinking_start_shard=0,
         slot=slot,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
@@ -286,116 +206,217 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
     )
 
     assert len(shuffling) == epoch_length
-    validators = set()
-    shards = set()
-    for slot_indices in shuffling:
-        for crosslink_committee in slot_indices:
-            shards.add(crosslink_committee.shard)
-            for validator_index in crosslink_committee.committee:
-                validators.add(validator_index)
-
-    assert len(activated_genesis_validators) > 0
-    assert len(validators) == len(activated_genesis_validators)
+    assert len(shuffling) > 0
+    for committee in shuffling:
+        assert len(committee) <= target_committee_size
+        assert len(committee) > 0
+    validator_indices = tuple(
+        itertools.chain(
+            [
+                validator_index
+                for committee in shuffling
+                for validator_index in committee
+            ]
+        )
+    )
+    assert isdistinct(validator_indices)
+    activated_genesis_validator_indices = tuple(
+        index
+        for index in range(len(activated_genesis_validators))
+    )
+    assert sorted(validator_indices) == sorted(activated_genesis_validator_indices)
 
 
 @pytest.mark.parametrize(
     (
-        'num_validators,'
         'epoch_length,'
         'target_committee_size,'
-        'shard_count'
+        'shard_count,'
+        'len_active_validators,'
+        'previous_epoch_calculation_slot, current_epoch_calculation_slot,'
+        'get_epoch_committee_count_per_slot,'
+        'delayed_activation_slot'
     ),
     [
-        (1000, 20, 10, 100),
-        (100, 50, 10, 10),
-        (20, 10, 3, 10),
+        (
+            1, 1, 2, 2,
+            5, 10,
+            get_previous_epoch_committee_count_per_slot,
+            5 + 1,
+        ),
+        (
+            1, 1, 2, 10,
+            5, 10,
+            get_previous_epoch_committee_count_per_slot,
+            5 + 1,
+        ),
+        (
+            1, 1, 2, 2,
+            5, 10,
+            get_current_epoch_committee_count_per_slot,
+            10 + 1,
+        ),
+        (
+            1, 1, 2, 10,
+            5, 10,
+            get_current_epoch_committee_count_per_slot,
+            10 + 1,
+        ),
     ],
 )
-def test_get_shuffling_handles_shard_wrap(activated_genesis_validators,
+def test_get_epoch_committee_count_per_slot(monkeypatch,
+                                            ten_validators_state,
+                                            epoch_length,
+                                            target_committee_size,
+                                            shard_count,
+                                            len_active_validators,
+                                            previous_epoch_calculation_slot,
+                                            current_epoch_calculation_slot,
+                                            get_epoch_committee_count_per_slot,
+                                            delayed_activation_slot):
+    from eth2.beacon import helpers
+
+    def mock_get_committee_count_per_slot(active_validator_count,
+                                          shard_count,
                                           epoch_length,
-                                          target_committee_size,
-                                          shard_count):
-    shuffling = get_shuffling(
-        seed=b'\x35' * 32,
-        validators=activated_genesis_validators,
-        crosslinking_start_shard=shard_count - 1,
+                                          target_committee_size):
+        return active_validator_count // epoch_length // shard_count
+
+    monkeypatch.setattr(
+        helpers,
+        'get_committee_count_per_slot',
+        mock_get_committee_count_per_slot
+    )
+
+    state = ten_validators_state.copy(
         slot=0,
+        previous_epoch_calculation_slot=previous_epoch_calculation_slot,
+        current_epoch_calculation_slot=current_epoch_calculation_slot,
+    )
+    for index in range(len(state.validator_registry)):
+        if index < len_active_validators:
+            validator = state.validator_registry[index].copy(
+                activation_slot=0,
+            )
+            state = state.update_validator_registry(
+                index,
+                validator,
+            )
+        else:
+            validator = state.validator_registry[index].copy(
+                activation_slot=delayed_activation_slot,
+            )
+            state = state.update_validator_registry(
+                index,
+                validator,
+            )
+
+    result_committee_count = get_epoch_committee_count_per_slot(
+        state=state,
+        shard_count=shard_count,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+    )
+    expected_committee_count = len_active_validators // epoch_length // shard_count
+
+    assert result_committee_count == expected_committee_count
+
+
+@pytest.mark.parametrize(
+    (
+        'offset,committees_per_slot, randao_mix,'
+        'validators,'
+        'epoch_calculation_slot, epoch_start_shard,'
+        'epoch_length, target_committee_size, shard_count,'
+    ),
+    [
+        (
+            5, 10, b'\x56' * 32,
+            tuple(
+                mock_validator_record(5)
+                for _ in range(10)
+            ),
+            10, 5,
+            20, 5, 100,
+        )
+    ]
+)
+def test_get_shuffling_and_slot_start_shard(offset,
+                                            committees_per_slot,
+                                            randao_mix,
+                                            validators,
+                                            epoch_calculation_slot,
+                                            epoch_start_shard,
+                                            epoch_length,
+                                            target_committee_size,
+                                            shard_count):
+    shuffling, slot_start_shard = _get_shuffling_and_slot_start_shard(
+        offset=offset,
+        committees_per_slot=committees_per_slot,
+        randao_mix=randao_mix,
+        validators=validators,
+        epoch_calculation_slot=epoch_calculation_slot,
+        epoch_start_shard=epoch_start_shard,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
+    validator_indices_from_shuffling = list(
+        itertools.chain(
+            [
+                validator_index
+                for committee in shuffling
+                for validator_index in committee
+            ]
+        )
+    )
+    assert isdistinct(validator_indices_from_shuffling)
+    validator_indices = [index for index in range(len(validators))]
+    assert sorted(validator_indices_from_shuffling) == sorted(validator_indices)
 
-    # shard assignments should wrap around to 0 rather than continuing to SHARD_COUNT
-    for slot_indices in shuffling:
-        for crosslink_committee in slot_indices:
-            assert crosslink_committee.shard < shard_count
+    assert slot_start_shard == (
+        epoch_start_shard +
+        committees_per_slot * offset
+    ) % shard_count
+
+
+@pytest.mark.parametrize(
+    (
+        'slot,'
+        'epoch_length,'
+        'target_committee_size,'
+        'shard_count,'
+    ),
+    [
+        (5, 10, 10, 10)
+    ]
+)
+def test_get_crosslink_committees_at_slot(
+        ten_validators_state,
+        slot,
+        epoch_length,
+        target_committee_size,
+        shard_count):
+
+    state = ten_validators_state
+
+    crosslink_committees_at_slot = get_crosslink_committees_at_slot(
+        state=state,
+        slot=slot,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
+    )
+    assert len(crosslink_committees_at_slot) > 0
+    for crosslink_committee in crosslink_committees_at_slot:
+        committee, shard = crosslink_committee
+        assert len(committee) > 0
+        assert shard < shard_count
 
 
 #
 # Get proposer postition
 #
-@pytest.mark.parametrize(
-    (
-        'num_validators,committee,parent_block_number,result_proposer_index'
-    ),
-    [
-        (100, [4, 5, 6, 7], 0, 4),
-        (100, [4, 5, 6, 7], 2, 6),
-        (100, [4, 5, 6, 7], 11, 7),
-        (100, [], 1, ValidationError()),
-    ],
-)
-def test_get_block_committees_info(monkeypatch,
-                                   sample_block,
-                                   sample_state,
-                                   num_validators,
-                                   committee,
-                                   parent_block_number,
-                                   result_proposer_index,
-                                   epoch_length):
-    from eth2.beacon import helpers
-
-    def mock_get_crosslink_committees_at_slot(state,
-                                              slot,
-                                              epoch_length):
-        return (
-            CrosslinkCommittee(
-                shard=1,
-                committee=committee,
-                total_validator_count=num_validators,
-            ),
-        )
-
-    monkeypatch.setattr(
-        helpers,
-        'get_crosslink_committees_at_slot',
-        mock_get_crosslink_committees_at_slot
-    )
-
-    parent_block = sample_block
-    parent_block = sample_block.copy(
-        slot=parent_block_number,
-    )
-
-    if isinstance(result_proposer_index, Exception):
-        with pytest.raises(ValidationError):
-            get_block_committees_info(
-                parent_block,
-                sample_state,
-                epoch_length,
-            )
-    else:
-        block_committees_info = get_block_committees_info(
-            parent_block,
-            sample_state,
-            epoch_length,
-        )
-        assert (
-            block_committees_info.proposer_index ==
-            result_proposer_index
-        )
-
-
 @pytest.mark.parametrize(
     (
         'num_validators,'
@@ -428,19 +449,19 @@ def test_get_beacon_proposer_index(
         committee,
         slot,
         success,
-        sample_state):
+        sample_state,
+        target_committee_size,
+        shard_count):
 
     from eth2.beacon import helpers
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              epoch_length):
+                                              epoch_length,
+                                              target_committee_size,
+                                              shard_count):
         return (
-            CrosslinkCommittee(
-                shard=1,
-                committee=committee,
-                total_validator_count=num_validators,
-            ),
+            (committee, 1,),
         )
 
     monkeypatch.setattr(
@@ -452,7 +473,9 @@ def test_get_beacon_proposer_index(
         proposer_index = get_beacon_proposer_index(
             sample_state,
             slot,
-            epoch_length
+            epoch_length,
+            target_committee_size,
+            shard_count,
         )
         assert proposer_index == committee[slot % len(committee)]
     else:
@@ -460,7 +483,9 @@ def test_get_beacon_proposer_index(
             get_beacon_proposer_index(
                 sample_state,
                 slot,
-                epoch_length
+                epoch_length,
+                target_committee_size,
+                shard_count,
             )
 
 
@@ -491,7 +516,7 @@ def test_get_active_validator_indices(sample_validator_record_params):
         'num_validators,'
         'epoch_length,'
         'committee,'
-        'participation_bitfield,'
+        'aggregation_bitfield,'
         'expected'
     ),
     [
@@ -530,20 +555,23 @@ def test_get_attestation_participants(
         num_validators,
         epoch_length,
         committee,
-        participation_bitfield,
+        aggregation_bitfield,
         expected,
-        sample_state):
+        sample_state,
+        target_committee_size,
+        shard_count,
+        sample_attestation_data_params):
+    shard = 1
+
     from eth2.beacon import helpers
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              epoch_length):
+                                              epoch_length,
+                                              target_committee_size,
+                                              shard_count):
         return (
-            CrosslinkCommittee(
-                shard=0,
-                committee=committee,
-                total_validator_count=num_validators,
-            ),
+            (committee, shard,),
         )
 
     monkeypatch.setattr(
@@ -552,22 +580,28 @@ def test_get_attestation_participants(
         mock_get_crosslink_committees_at_slot
     )
 
+    attestation_data = AttestationData(**sample_attestation_data_params).copy(
+        slot=0,
+        shard=shard,
+    )
     if isinstance(expected, Exception):
         with pytest.raises(ValidationError):
             get_attestation_participants(
                 state=sample_state,
-                slot=0,
-                shard=0,
-                participation_bitfield=participation_bitfield,
+                attestation_data=attestation_data,
+                aggregation_bitfield=aggregation_bitfield,
                 epoch_length=epoch_length,
+                target_committee_size=target_committee_size,
+                shard_count=shard_count,
             )
     else:
         result = get_attestation_participants(
             state=sample_state,
-            slot=0,
-            shard=0,
-            participation_bitfield=participation_bitfield,
+            attestation_data=attestation_data,
+            aggregation_bitfield=aggregation_bitfield,
             epoch_length=epoch_length,
+            target_committee_size=target_committee_size,
+            shard_count=shard_count,
         )
 
         assert result == expected

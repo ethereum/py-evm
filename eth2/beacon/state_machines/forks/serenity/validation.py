@@ -40,7 +40,9 @@ from eth2.beacon.typing import (
 def validate_serenity_proposer_signature(state: BeaconState,
                                          block: BaseBeaconBlock,
                                          beacon_chain_shard_number: ShardNumber,
-                                         epoch_length: int) -> None:
+                                         epoch_length: int,
+                                         target_committee_size: int,
+                                         shard_count: int) -> None:
     block_without_signature_root = block.block_without_signature_root
 
     # TODO: Replace this root with tree hash root
@@ -51,7 +53,13 @@ def validate_serenity_proposer_signature(state: BeaconState,
     ).root
 
     # Get the public key of proposer
-    beacon_proposer_index = get_beacon_proposer_index(state, state.slot, epoch_length)
+    beacon_proposer_index = get_beacon_proposer_index(
+        state,
+        state.slot,
+        epoch_length,
+        target_committee_size,
+        shard_count,
+    )
     proposer_pubkey = state.validator_registry[beacon_proposer_index].pubkey
 
     is_valid_signature = bls.verify(
@@ -72,7 +80,9 @@ def validate_serenity_attestation(state: BeaconState,
                                   attestation: Attestation,
                                   epoch_length: int,
                                   min_attestation_inclusion_delay: int,
-                                  latest_block_roots_length: int) -> None:
+                                  latest_block_roots_length: int,
+                                  target_committee_size: int,
+                                  shard_count: int) -> None:
     """
     Validate the given ``attestation``.
     Raise ``ValidationError`` if it's invalid.
@@ -113,6 +123,8 @@ def validate_serenity_attestation(state: BeaconState,
         state,
         attestation,
         epoch_length,
+        target_committee_size,
+        shard_count,
     )
 
 
@@ -239,7 +251,9 @@ def validate_serenity_attestation_shard_block_root(attestation_data: Attestation
 
 def validate_serenity_attestation_aggregate_signature(state: BeaconState,
                                                       attestation: Attestation,
-                                                      epoch_length: int) -> None:
+                                                      epoch_length: int,
+                                                      target_committee_size: int,
+                                                      shard_count: int) -> None:
     """
     Validate ``aggregate_signature`` field of ``attestation``.
     Raise ``ValidationError`` if it's invalid.
@@ -250,10 +264,11 @@ def validate_serenity_attestation_aggregate_signature(state: BeaconState,
     """
     participant_indices = get_attestation_participants(
         state=state,
-        slot=attestation.data.slot,
-        shard=attestation.data.shard,
-        participation_bitfield=attestation.participation_bitfield,
+        attestation_data=attestation.data,
+        aggregation_bitfield=attestation.participation_bitfield,
         epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
     )
 
     pubkeys = tuple(

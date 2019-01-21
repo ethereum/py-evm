@@ -23,16 +23,16 @@ from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.typing import (
+    Gwei,
+    ShardNumber,
     SlotNumber,
     Timestamp,
-    Gwei,
     ValidatorIndex,
 )
 
 from .eth1_data import Eth1Data
 from .eth1_data_vote import Eth1DataVote
 from .custody_challenges import CustodyChallenge
-from .crosslink_committees import CrosslinkCommittee
 from .crosslink_records import CrosslinkRecord
 from .fork_data import ForkData
 from .pending_attestation_records import PendingAttestationRecord
@@ -60,14 +60,16 @@ class BeaconState(rlp.Serializable):
         # Randomness and committees
         ('latest_randao_mixes', CountableList(hash32)),
         ('latest_vdf_outputs', CountableList(hash32)),
-        # TODO Remove `crosslink_committees_at_slots`, `persistent_committees`
-        # `persistent_committee_reassignments`
-        ('crosslink_committees_at_slots', CountableList(CountableList((CrosslinkCommittee)))),
+
+        # TODO Remove `persistent_committee_reassignments`
         ('persistent_committees', CountableList(CountableList(uint24))),
         ('persistent_committee_reassignments', CountableList(ShardReassignmentRecord)),
-        # TODO: add `previous_epoch_start_shard`, `current_epoch_start_shard`
-        # `previous_epoch_calculation_slot`, `current_epoch_calculation_slot`
-        # `previous_epoch_randao_mix`, `current_epoch_randao_mix`
+        ('previous_epoch_start_shard', uint64),
+        ('current_epoch_start_shard', uint64),
+        ('previous_epoch_calculation_slot', uint64),
+        ('current_epoch_calculation_slot', uint64),
+        ('previous_epoch_randao_mix', hash32),
+        ('current_epoch_randao_mix', hash32),
 
         # Custody challenges
         ('custody_challenges', CountableList(CustodyChallenge)),
@@ -101,6 +103,12 @@ class BeaconState(rlp.Serializable):
             validator_registry_latest_change_slot: SlotNumber,
             validator_registry_exit_count: int,
             validator_registry_delta_chain_tip: Hash32,
+            previous_epoch_start_shard: ShardNumber,
+            current_epoch_start_shard: ShardNumber,
+            previous_epoch_calculation_slot: SlotNumber,
+            current_epoch_calculation_slot: SlotNumber,
+            previous_epoch_randao_mix: Hash32,
+            current_epoch_randao_mix: Hash32,
             previous_justified_slot: SlotNumber,
             justified_slot: SlotNumber,
             justification_bitfield: int,
@@ -110,7 +118,6 @@ class BeaconState(rlp.Serializable):
             validator_balances: Sequence[Gwei]=(),
             latest_randao_mixes: Sequence[Hash32]=(),
             latest_vdf_outputs: Sequence[Hash32]=(),
-            crosslink_committees_at_slots: Sequence[Sequence[CrosslinkCommittee]]=(),
             persistent_committees: Sequence[Sequence[ValidatorIndex]]=(),
             persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=(),
             custody_challenges: Sequence[CustodyChallenge]=(),
@@ -139,9 +146,14 @@ class BeaconState(rlp.Serializable):
             # Randomness and committees
             latest_randao_mixes=latest_randao_mixes,
             latest_vdf_outputs=latest_vdf_outputs,
-            crosslink_committees_at_slots=crosslink_committees_at_slots,
             persistent_committees=persistent_committees,
             persistent_committee_reassignments=persistent_committee_reassignments,
+            previous_epoch_start_shard=previous_epoch_start_shard,
+            current_epoch_start_shard=current_epoch_start_shard,
+            previous_epoch_calculation_slot=previous_epoch_calculation_slot,
+            current_epoch_calculation_slot=current_epoch_calculation_slot,
+            previous_epoch_randao_mix=previous_epoch_randao_mix,
+            current_epoch_randao_mix=current_epoch_randao_mix,
             # Proof of Custody
             custody_challenges=custody_challenges,
             # Finality

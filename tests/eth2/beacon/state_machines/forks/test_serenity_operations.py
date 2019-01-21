@@ -32,21 +32,23 @@ def create_mock_signed_attestations_at_slot(config,
     def create_mock_signed_attestations_at_slot(state,
                                                 attestation_slot):
         attestations = []
-        shard_and_committees_at_slot = get_crosslink_committees_at_slot(
+        crosslink_committees_at_slot = get_crosslink_committees_at_slot(
             state,
             slot=attestation_slot,
             epoch_length=config.EPOCH_LENGTH,
+            target_committee_size=config.TARGET_COMMITTEE_SIZE,
+            shard_count=config.SHARD_COUNT,
         )
-        for crosslink_committee in shard_and_committees_at_slot:
+        for crosslink_committee in crosslink_committees_at_slot:
+            committee, shard = crosslink_committee
             # have 0th committee member sign
             voting_committee_indices = [0]
-            latest_crosslink_root = state.latest_crosslinks[
-                crosslink_committee.shard].shard_block_root
+            latest_crosslink_root = state.latest_crosslinks[shard].shard_block_root
 
-            assert len(crosslink_committee.committee) > 0
+            assert len(committee) > 0
             attestation_data = AttestationData(**sample_attestation_data_params).copy(
                 slot=attestation_slot,
-                shard=crosslink_committee.shard,
+                shard=shard,
                 justified_slot=state.previous_justified_slot,
                 justified_block_root=get_block_root(
                     state,

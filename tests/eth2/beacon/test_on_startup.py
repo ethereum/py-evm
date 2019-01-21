@@ -44,6 +44,7 @@ def test_get_initial_beacon_state(
         pubkeys,
         genesis_slot,
         genesis_fork_version,
+        genesis_start_shard,
         shard_count,
         latest_block_roots_length,
         epoch_length,
@@ -104,6 +105,7 @@ def test_get_initial_beacon_state(
         latest_eth1_data=latest_eth1_data,
         genesis_slot=genesis_slot,
         genesis_fork_version=genesis_fork_version,
+        genesis_start_shard=genesis_start_shard,
         shard_count=shard_count,
         latest_block_roots_length=latest_block_roots_length,
         epoch_length=epoch_length,
@@ -135,6 +137,12 @@ def test_get_initial_beacon_state(
     # TODO: shard_committees_at_slots will be removed
     assert len(state.persistent_committees) == 0
     assert len(state.persistent_committee_reassignments) == 0
+    assert state.previous_epoch_start_shard == genesis_start_shard
+    assert state.current_epoch_start_shard == genesis_start_shard
+    assert state.previous_epoch_calculation_slot == genesis_slot
+    assert state.current_epoch_calculation_slot == genesis_slot
+    assert state.previous_epoch_randao_mix == ZERO_HASH32
+    assert state.current_epoch_randao_mix == ZERO_HASH32
 
     # Custody challenges
     assert len(state.custody_challenges) == 0

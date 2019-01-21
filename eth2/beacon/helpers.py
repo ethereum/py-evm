@@ -20,25 +20,18 @@ from eth2._utils.bitfield import (
     has_voted,
 )
 import eth2._utils.bls as bls
-from eth._utils.numeric import (
-    clamp,
+from eth2._utils.numeric import (
+    bitwise_xor,
 )
 from eth2.beacon._utils.random import (
     shuffle,
     split,
-)
-
-from eth2.beacon.block_committees_info import (
-    BlockCommitteesInfo,
 )
 from eth2.beacon.constants import (
     GWEI_PER_ETH,
 )
 from eth2.beacon.enums import (
     SignatureDomain,
-)
-from eth2.beacon.types.crosslink_committees import (
-    CrosslinkCommittee,
 )
 from eth2.beacon.typing import (
     Bitfield,
@@ -48,6 +41,9 @@ from eth2.beacon.typing import (
     ShardNumber,
     SlotNumber,
     ValidatorIndex,
+)
+from eth2.beacon.validation import (
+    validate_slot_for_state_slot,
 )
 
 if TYPE_CHECKING:
@@ -106,61 +102,13 @@ def get_block_root(
     )
 
 
-#
-# Get crosslinks_committees or indices
-#
-@to_tuple
-def _get_crosslink_committees_at_slot(
-        state_slot: SlotNumber,
-        crosslink_committees_at_slots: Sequence[Sequence[CrosslinkCommittee]],
-        slot: SlotNumber,
-        epoch_length: int) -> Iterable[CrosslinkCommittee]:
-
-    earliest_slot_in_array = state_slot - (state_slot % epoch_length) - epoch_length
-
-    if earliest_slot_in_array > slot:
-        raise ValidationError(
-            "earliest_slot_in_array ({}) should be less than or equal to slot ({})".format(
-                earliest_slot_in_array,
-                slot,
-            )
-        )
-    if slot >= earliest_slot_in_array + epoch_length * 2:
-        raise ValidationError(
-            "slot ({}) should be less than "
-            "(earliest_slot_in_array + epoch_length * 2) ({}), "
-            "where earliest_slot_in_array={}, epoch_length={}".format(
-                slot,
-                earliest_slot_in_array + epoch_length * 2,
-                earliest_slot_in_array,
-                epoch_length,
-            )
-        )
-
-    return crosslink_committees_at_slots[slot - earliest_slot_in_array]
-
-
-def get_crosslink_committees_at_slot(state: 'BeaconState',
-                                     slot: SlotNumber,
-                                     epoch_length: int) -> Tuple[CrosslinkCommittee]:
-    """
-    Return the ``CrosslinkCommittee`` for the ``slot``.
-    """
-    return _get_crosslink_committees_at_slot(
-        state_slot=state.slot,
-        crosslink_committees_at_slots=state.crosslink_committees_at_slots,
-        slot=slot,
-        epoch_length=epoch_length,
-    )
-
-
 def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
                                  slot: SlotNumber) -> Tuple[ValidatorIndex, ...]:
     """
     Get indices of active validators from ``validators``.
     """
     return tuple(
-        ValidatorIndex(index) for index, validator in enumerate(validators)
+        ValidatorIndex(index)for index, validator in enumerate(validators)
         if validator.is_active(slot)
     )
 
@@ -168,212 +116,285 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
 #
 # Shuffling
 #
-@to_tuple
-def _get_crosslinks_committees_for_shard_indices(
-        shard_indices: Sequence[Sequence[ValidatorIndex]],
-        start_shard: ShardNumber,
-        total_validator_count: int,
-        shard_count: int) -> Iterable[CrosslinkCommittee]:
-    """
-    Return filled [CrosslinkCommittee] tuple.
-    """
-    for index, indices in enumerate(shard_indices):
-        yield CrosslinkCommittee(
-            shard=ShardNumber((start_shard + index) % shard_count),
-            committee=indices,
-            total_validator_count=total_validator_count,
+def get_committee_count_per_slot(active_validator_count: int,
+                                 shard_count: int,
+                                 epoch_length: int,
+                                 target_committee_size: int) -> int:
+    return max(
+        1,
+        min(
+            shard_count // epoch_length,
+            active_validator_count // epoch_length // target_committee_size,
         )
+    )
 
 
-@to_tuple
 def get_shuffling(*,
                   seed: Hash32,
                   validators: Sequence['ValidatorRecord'],
-                  crosslinking_start_shard: ShardNumber,
                   slot: SlotNumber,
                   epoch_length: int,
                   target_committee_size: int,
-                  shard_count: int) -> Iterable[Tuple[CrosslinkCommittee]]:
+                  shard_count: int) -> Tuple[Iterable[ValidatorIndex], ...]:
     """
-    Return shuffled ``crosslink_committee_for_slots`` (``[[CrosslinkCommittee]]``) of
-    the given active ``validators`` using ``seed`` as entropy.
+    Shuffle ``validators`` into crosslink committees seeded by ``seed`` and ``slot``.
+    Return a list of ``EPOCH_LENGTH * committees_per_slot`` committees where each
+    committee is itself a list of validator indices.
 
-    Two-dimensional:
-    The first layer is ``slot`` number
-        ``crosslink_committee_for_slots[slot] -> [CrosslinkCommittee]``
-    The second layer is ``shard_indices`` number
-        ``crosslink_committee_for_slots[slot][shard_indices] -> CrosslinkCommittee``
-
-    Example:
-        validators:
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-        After shuffling:
-            [6, 0, 2, 12, 14, 8, 10, 4, 9, 1, 5, 13, 15, 7, 3, 11]
-        Split by slot:
-            [
-                [6, 0, 2, 12, 14], [8, 10, 4, 9, 1], [5, 13, 15, 7, 3, 11]
-            ]
-        Split by shard:
-            [
-                [6, 0], [2, 12, 14], [8, 10], [4, 9, 1], [5, 13, 15] ,[7, 3, 11]
-            ]
-        Fill to output:
-            [
-                # slot 0
-                [
-                    CrosslinkCommittee(shard_id=0, committee=[6, 0]),
-                    CrosslinkCommittee(shard_id=1, committee=[2, 12, 14]),
-                ],
-                # slot 1
-                [
-                    CrosslinkCommittee(shard_id=2, committee=[8, 10]),
-                    CrosslinkCommittee(shard_id=3, committee=[4, 9, 1]),
-                ],
-                # slot 2
-                [
-                    CrosslinkCommittee(shard_id=4, committee=[5, 13, 15]),
-                    CrosslinkCommittee(shard_id=5, committee=[7, 3, 11]),
-                ],
-            ]
+    If ``get_shuffling(seed, validators, slot)`` returns some value ``x``, it should return
+    the same value ``x`` for the same seed and slot and possible future modifications of
+    validators forever in phase 0, and until the ~1 year deletion delay in phase 2 and in the
+    future.
     """
-    active_validators = get_active_validator_indices(validators, slot)
-    active_validators_size = len(active_validators)
-    committees_per_slot = clamp(
-        1,
-        shard_count // epoch_length,
-        active_validators_size // epoch_length // target_committee_size,
+    # Normalizes slot to start of epoch boundary
+    slot = SlotNumber(slot - slot % epoch_length)
+
+    active_validator_indices = get_active_validator_indices(validators, slot)
+
+    committees_per_slot = get_committee_count_per_slot(
+        len(active_validator_indices),
+        shard_count,
+        epoch_length,
+        target_committee_size,
     )
-    # Shuffle with seed
-    shuffled_active_validator_indices = shuffle(active_validators, seed)
 
-    # Split the shuffled list into epoch_length pieces
-    validators_per_slot = split(shuffled_active_validator_indices, epoch_length)
-    for index, slot_indices in enumerate(validators_per_slot):
-        # Split the shuffled list into committees_per_slot pieces
-        shard_indices = split(slot_indices, committees_per_slot)
-        start_shard = crosslinking_start_shard + index * committees_per_slot
-        yield _get_crosslinks_committees_for_shard_indices(
-            shard_indices,
-            start_shard,
-            active_validators_size,
-            shard_count,
+    # Shuffle
+    seed = bitwise_xor(seed, Hash32(slot.to_bytes(32, byteorder="big")))
+    shuffled_active_validator_indices = shuffle(active_validator_indices, seed)
+
+    # Split the shuffled list into epoch_length * committees_per_slot pieces
+    return tuple(
+        split(
+            shuffled_active_validator_indices,
+            committees_per_slot * epoch_length,
+        )
+    )
+
+
+def get_previous_epoch_committee_count_per_slot(state: 'BeaconState',
+                                                shard_count: int,
+                                                epoch_length: int,
+                                                target_committee_size: int) -> int:
+    previous_active_validators = get_active_validator_indices(
+        state.validator_registry,
+        state.previous_epoch_calculation_slot,
+    )
+
+    return get_committee_count_per_slot(
+        active_validator_count=len(previous_active_validators),
+        shard_count=shard_count,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+    )
+
+
+def get_current_epoch_committee_count_per_slot(state: 'BeaconState',
+                                               shard_count: int,
+                                               epoch_length: int,
+                                               target_committee_size: int) -> int:
+    current_active_validators = get_active_validator_indices(
+        state.validator_registry,
+        state.current_epoch_calculation_slot,
+    )
+    return get_committee_count_per_slot(
+        active_validator_count=len(current_active_validators),
+        shard_count=shard_count,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+    )
+
+
+def _get_shuffling_and_slot_start_shard(
+        offset: int,
+        committees_per_slot: int,
+        randao_mix: Hash32,
+        validators: 'ValidatorRecord',
+        epoch_calculation_slot: SlotNumber,
+        epoch_start_shard: ShardNumber,
+        epoch_length: int,
+        target_committee_size: int,
+        shard_count: int) -> Tuple[Tuple[Iterable[ValidatorIndex], ...], ShardNumber]:
+
+    shuffling = get_shuffling(
+        seed=randao_mix,
+        validators=validators,
+        slot=epoch_calculation_slot,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
+    )
+    slot_start_shard = (
+        epoch_start_shard +
+        committees_per_slot * offset
+    ) % shard_count
+
+    return (shuffling, ShardNumber(slot_start_shard))
+
+
+@to_tuple
+def get_crosslink_committees_at_slot(
+        state: 'BeaconState',
+        slot: SlotNumber,
+        epoch_length: int,
+        target_committee_size: int,
+        shard_count: int) -> Iterable[Tuple[Iterable[ValidatorIndex], ShardNumber]]:
+    """
+    Return the ``CrosslinkCommittee`` for the ``slot``.
+    """
+    validate_slot_for_state_slot(
+        state_slot=state.slot,
+        slot=slot,
+        epoch_length=epoch_length,
+    )
+
+    state_epoch_slot = state.slot - (state.slot % epoch_length)
+    offset = slot % epoch_length
+
+    if slot < state_epoch_slot:
+        committees_per_slot = get_previous_epoch_committee_count_per_slot(
+            state,
+            shard_count=shard_count,
+            epoch_length=epoch_length,
+            target_committee_size=target_committee_size,
+        )
+        shuffling, slot_start_shard = _get_shuffling_and_slot_start_shard(
+            offset=offset,
+            committees_per_slot=committees_per_slot,
+            randao_mix=state.previous_epoch_randao_mix,
+            validators=state.validator,
+            epoch_calculation_slot=state.previous_epoch_calculation_slot,
+            epoch_start_shard=state.previous_epoch_start_shard,
+            epoch_length=epoch_length,
+            target_committee_size=target_committee_size,
+            shard_count=shard_count,
+        )
+    else:
+        committees_per_slot = get_current_epoch_committee_count_per_slot(
+            state,
+            shard_count=shard_count,
+            epoch_length=epoch_length,
+            target_committee_size=target_committee_size,
+        )
+        shuffling, slot_start_shard = _get_shuffling_and_slot_start_shard(
+            offset=offset,
+            committees_per_slot=committees_per_slot,
+            randao_mix=state.current_epoch_randao_mix,
+            validators=state.validator_registry,
+            epoch_calculation_slot=state.current_epoch_calculation_slot,
+            epoch_start_shard=state.current_epoch_start_shard,
+            epoch_length=epoch_length,
+            target_committee_size=target_committee_size,
+            shard_count=shard_count,
+        )
+
+    for i in range(committees_per_slot):
+        index = committees_per_slot * offset + i
+        committee = shuffling[index]
+        yield (
+            committee,
+            ShardNumber((slot_start_shard + i) % shard_count),
         )
 
 
 #
 # Get proposer position
 #
-def get_block_committees_info(parent_block: 'BaseBeaconBlock',
-                              state: 'BeaconState',
-                              epoch_length: int) -> BlockCommitteesInfo:
-    crosslinks_committees = get_crosslink_committees_at_slot(
-        state,
-        parent_block.slot,
-        epoch_length,
-    )
-    """
-    Return the block committees and proposer info with BlockCommitteesInfo pack.
-    """
-    # `proposer_index_in_committee` th attester in `crosslink_committee`
-    # is the proposer of the parent block.
-    try:
-        crosslink_committee = crosslinks_committees[0]
-    except IndexError:
-        raise ValidationError("crosslinks_committees should not be empty.")
-
-    proposer_committee_size = len(crosslink_committee.committee)
-    if proposer_committee_size <= 0:
-        raise ValidationError(
-            "The first committee should not be empty"
-        )
-
-    proposer_index_in_committee = (
-        parent_block.slot %
-        proposer_committee_size
-    )
-
-    proposer_index = crosslink_committee.committee[proposer_index_in_committee]
-
-    return BlockCommitteesInfo(
-        proposer_index=proposer_index,
-        proposer_shard=crosslink_committee.shard,
-        proposer_committee_size=proposer_committee_size,
-        crosslinks_committees=crosslinks_committees,
-    )
-
 
 def get_beacon_proposer_index(state: 'BeaconState',
                               slot: SlotNumber,
-                              epoch_length: int) -> ValidatorIndex:
+                              epoch_length: int,
+                              target_committee_size: int,
+                              shard_count: int) -> ValidatorIndex:
     """
     Return the beacon proposer index for the ``slot``.
     """
-    crosslink_committees = get_crosslink_committees_at_slot(
-        state,
-        slot,
-        epoch_length,
+    crosslink_committees_at_slot = get_crosslink_committees_at_slot(
+        state=state,
+        slot=slot,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
     )
     try:
-        first_crosslink_committee = crosslink_committees[0]
+        first_crosslink_committee = crosslink_committees_at_slot[0]
     except IndexError:
         raise ValidationError("crosslink_committees should not be empty.")
 
-    proposer_committee_size = len(first_crosslink_committee.committee)
-
-    if proposer_committee_size <= 0:
+    first_committee, _ = first_crosslink_committee
+    if len(first_committee) <= 0:
         raise ValidationError(
             "The first committee should not be empty"
         )
 
-    return first_crosslink_committee.committee[slot % len(first_crosslink_committee.committee)]
+    return first_committee[slot % len(first_committee)]
 
 
 #
 # Bitfields
 #
 @to_tuple
+def _get_committees_for_shard(
+        crosslink_committees: Sequence[Tuple[Sequence[ValidatorIndex], ShardNumber]],
+        shard: ShardNumber) -> Iterable[Iterable[ValidatorIndex]]:
+    for committee, committee_shard in crosslink_committees:
+        if committee_shard == shard:
+            yield committee
+
+
+@to_tuple
 def get_attestation_participants(state: 'BeaconState',
-                                 slot: SlotNumber,
-                                 shard: ShardNumber,
-                                 participation_bitfield: Bitfield,
-                                 epoch_length: int) -> Iterable[ValidatorIndex]:
+                                 attestation_data: 'AttestationData',
+                                 aggregation_bitfield: Bitfield,
+                                 epoch_length: int,
+                                 target_committee_size: int,
+                                 shard_count: int) -> Iterable[ValidatorIndex]:
     """
     Return the participants' indices at the ``slot`` of shard ``shard``
     from ``participation_bitfield``.
     """
-    # Find the relevant committee
-    # Filter by slot
-    crosslink_committees_at_slot = get_crosslink_committees_at_slot(
-        state,
-        slot,
-        epoch_length,
+    # Find the committee in the list with the desired shard
+    crosslink_committees = get_crosslink_committees_at_slot(
+        state=state,
+        slot=attestation_data.slot,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
     )
+
+    if attestation_data.shard not in [shard for _, shard in crosslink_committees]:
+        raise ValidationError(
+            "attestation_data.shard ({}) is not in crosslink_committees".format(
+                attestation_data.shard,
+            )
+        )
     # Filter by shard
-    crosslink_committees = tuple(
-        [
-            crosslink_committee
-            for crosslink_committee in crosslink_committees_at_slot
-            if crosslink_committee.shard == shard
-        ]
+    committees_for_shard = _get_committees_for_shard(
+        crosslink_committees,
+        attestation_data.shard,
     )
 
     try:
-        crosslink_committee = crosslink_committees[0]
+        committee = committees_for_shard[0]
     except IndexError:
-        raise ValidationError("crosslink_committees should not be empty.")
+        raise ValidationError(
+            "committees_for_shard (shard: {}) should not be empty.".format(
+                attestation_data.shard,
+            )
+        )
 
-    if len(participation_bitfield) != get_bitfield_length(len(crosslink_committee.committee)):
+    committee_size = len(committee)
+    if len(aggregation_bitfield) != get_bitfield_length(committee_size):
         raise ValidationError(
             'Invalid bitfield length,'
             "\texpected: %s, found: %s" % (
-                get_bitfield_length(len(crosslink_committee.committee)),
-                len(participation_bitfield),
+                get_bitfield_length(committee_size),
+                len(attestation_data),
             )
         )
 
     # Find the participating attesters in the committee
-    for bitfield_index, validator_index in enumerate(crosslink_committee.committee):
-        if has_voted(participation_bitfield, bitfield_index):
+    for bitfield_index, validator_index in enumerate(committee):
+        if has_voted(aggregation_bitfield, bitfield_index):
             yield validator_index
 
 

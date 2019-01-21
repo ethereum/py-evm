@@ -23,21 +23,18 @@ from eth2.beacon.state_machines.forks.serenity.validation import (
 )
 
 from tests.eth2.beacon.helpers import mock_validator_record
-from tests.eth2.beacon.test_helpers import (
-    get_sample_crosslink_committees_at_slots,
-)
 
 
 @pytest.mark.parametrize(
+    'epoch_length, shard_count,'
     'proposer_privkey, proposer_pubkey, is_valid_signature',
     (
-        (0, bls.privtopub(0), True),
-        (0, bls.privtopub(0) + 1, False),
-        (0, 123, False),
-
-        (123, bls.privtopub(123), True),
-        (123, bls.privtopub(123) + 1, False),
-        (123, 123, False),
+        (5, 2, 0, bls.privtopub(0), True, ),
+        (5, 2, 0, bls.privtopub(0) + 1, False),
+        (5, 2, 0, 123, False),
+        (5, 2, 123, bls.privtopub(123), True),
+        (5, 2, 123, bls.privtopub(123) + 1, False),
+        (5, 2, 123, 123, False),
     )
 )
 def test_validate_serenity_proposer_signature(
@@ -46,10 +43,11 @@ def test_validate_serenity_proposer_signature(
         is_valid_signature,
         sample_beacon_block_params,
         sample_beacon_state_params,
-        sample_crosslink_committee_params,
         beacon_chain_shard_number,
         epoch_length,
-        max_deposit):
+        max_deposit,
+        target_committee_size,
+        shard_count):
 
     state = BeaconState(**sample_beacon_state_params).copy(
         validator_registry=tuple(
@@ -57,11 +55,6 @@ def test_validate_serenity_proposer_signature(
             for _ in range(10)
         ),
         validator_balances=(max_deposit * GWEI_PER_ETH,) * 10,
-        crosslink_committees_at_slots=get_sample_crosslink_committees_at_slots(
-            num_slot=128,
-            num_crosslink_committee_per_slot=10,
-            sample_crosslink_committee_params=sample_crosslink_committee_params,
-        ),
     )
 
     default_block = BeaconBlock(**sample_beacon_block_params)
@@ -87,6 +80,8 @@ def test_validate_serenity_proposer_signature(
             proposed_block,
             beacon_chain_shard_number,
             epoch_length,
+            target_committee_size,
+            shard_count,
         )
     else:
         with pytest.raises(ValidationError):
@@ -95,4 +90,6 @@ def test_validate_serenity_proposer_signature(
                 proposed_block,
                 beacon_chain_shard_number,
                 epoch_length,
+                target_committee_size,
+                shard_count
             )

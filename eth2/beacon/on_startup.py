@@ -35,6 +35,7 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     Ether,
     Gwei,
+    ShardNumber,
     SlotNumber,
     Timestamp,
     ValidatorIndex,
@@ -62,6 +63,7 @@ def get_initial_beacon_state(*,
                              latest_eth1_data: Eth1Data,
                              genesis_slot: SlotNumber,
                              genesis_fork_version: int,
+                             genesis_start_shard: ShardNumber,
                              shard_count: int,
                              latest_block_roots_length: int,
                              epoch_length: int,
@@ -92,14 +94,15 @@ def get_initial_beacon_state(*,
         latest_vdf_outputs=tuple(
             ZERO_HASH32 for _ in range(latest_randao_mixes_length // epoch_length)
         ),
-        # TODO Remove `crosslink_committees_at_slots`, `persistent_committees`
-        # `persistent_committee_reassignments`
-        crosslink_committees_at_slots=(),
+        # TODO Remove `persistent_committees`, `persistent_committee_reassignments`
         persistent_committees=(),
         persistent_committee_reassignments=(),
-        # TODO: add `previous_epoch_start_shard`, `current_epoch_start_shard`
-        # `previous_epoch_calculation_slot`, `current_epoch_calculation_slot`
-        # `previous_epoch_randao_mix`, `current_epoch_randao_mix`
+        previous_epoch_start_shard=genesis_start_shard,
+        current_epoch_start_shard=genesis_start_shard,
+        previous_epoch_calculation_slot=genesis_slot,
+        current_epoch_calculation_slot=genesis_slot,
+        previous_epoch_randao_mix=ZERO_HASH32,
+        current_epoch_randao_mix=ZERO_HASH32,
 
         # Custody challenges
         custody_challenges=(),

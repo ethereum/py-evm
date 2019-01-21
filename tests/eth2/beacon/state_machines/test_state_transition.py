@@ -79,7 +79,13 @@ def test_per_slot_transition(base_db,
 
     # Validator Registry
     # Tweaking the slot, so that we get the correct proposer index
-    beacon_proposer_index = get_beacon_proposer_index(state, state.slot + 1, st.config.EPOCH_LENGTH)
+    beacon_proposer_index = get_beacon_proposer_index(
+        state,
+        state.slot + 1,
+        st.config.EPOCH_LENGTH,
+        st.config.TARGET_COMMITTEE_SIZE,
+        st.config.SHARD_COUNT,
+    )
     for validator_index, validator_record in enumerate(updated_state.validator_registry):
         if validator_index != beacon_proposer_index:
             # Validator Record shouldn't change if not proposer

@@ -27,9 +27,6 @@ from eth2.beacon.helpers import (
     get_domain,
 )
 
-from eth2.beacon.helpers import (
-    get_shuffling,
-)
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.states import BeaconState
@@ -180,9 +177,14 @@ def sample_beacon_state_params(sample_fork_data_params, sample_eth1_data_params)
         'validator_registry_delta_chain_tip': b'\x55' * 32,
         'latest_randao_mixes': (),
         'latest_vdf_outputs': (),
-        'crosslink_committees_at_slots': (),
         'persistent_committees': (),
         'persistent_committee_reassignments': (),
+        'previous_epoch_start_shard': 1,
+        'current_epoch_start_shard': 2,
+        'previous_epoch_calculation_slot': 5,
+        'current_epoch_calculation_slot': 10,
+        'previous_epoch_randao_mix': b'\x77' * 32,
+        'current_epoch_randao_mix': b'\x88' * 32,
         'custody_challenges': (),
         'previous_justified_slot': 0,
         'justified_slot': 0,
@@ -298,15 +300,6 @@ def sample_recent_proposer_record_params():
 
 
 @pytest.fixture
-def sample_crosslink_committee_params():
-    return {
-        'shard': 10,
-        'committee': (1, 3, 5),
-        'total_validator_count': 100
-    }
-
-
-@pytest.fixture
 def sample_shard_reassignment_record():
     return {
         'validator_index': 10,
@@ -367,7 +360,9 @@ def sample_validator_registry_delta_block_params():
 @pytest.fixture
 def empty_beacon_state(latest_block_roots_length,
                        latest_penalized_exit_length,
-                       sample_eth1_data_params):
+                       sample_eth1_data_params,
+                       genesis_slot,
+                       genesis_start_shard):
     return BeaconState(
         slot=0,
         genesis_time=0,
@@ -383,9 +378,14 @@ def empty_beacon_state(latest_block_roots_length,
         validator_registry_delta_chain_tip=ZERO_HASH32,
         latest_randao_mixes=(),
         latest_vdf_outputs=(),
-        crosslink_committees_at_slots=(),
         persistent_committees=(),
         persistent_committee_reassignments=(),
+        previous_epoch_start_shard=genesis_start_shard,
+        current_epoch_start_shard=genesis_start_shard,
+        previous_epoch_calculation_slot=genesis_slot,
+        current_epoch_calculation_slot=genesis_slot,
+        previous_epoch_randao_mix=ZERO_HASH32,
+        current_epoch_randao_mix=ZERO_HASH32,
         previous_justified_slot=0,
         justified_slot=0,
         justification_bitfield=0,
@@ -522,6 +522,11 @@ def genesis_slot():
 
 
 @pytest.fixture
+def genesis_start_shard():
+    return SERENITY_CONFIG.GENESIS_START_SHARD
+
+
+@pytest.fixture
 def bls_withdrawal_prefix_byte():
     return SERENITY_CONFIG.BLS_WITHDRAWAL_PREFIX_BYTE
 
@@ -610,7 +615,7 @@ def max_exits():
 # genesis
 #
 @pytest.fixture
-def genesis_state(sample_beacon_state_params,
+def genesis_state(empty_beacon_state,
                   activated_genesis_validators,
                   genesis_balances,
                   epoch_length,
@@ -619,19 +624,9 @@ def genesis_state(sample_beacon_state_params,
                   shard_count,
                   latest_block_roots_length,
                   latest_randao_mixes_length):
-    initial_shuffling = get_shuffling(
-        seed=ZERO_HASH32,
-        validators=activated_genesis_validators,
-        crosslinking_start_shard=0,
-        slot=genesis_slot,
-        epoch_length=epoch_length,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count
-    )
-    return BeaconState(**sample_beacon_state_params).copy(
+    return empty_beacon_state.copy(
         validator_registry=activated_genesis_validators,
         validator_balances=genesis_balances,
-        crosslink_committees_at_slots=initial_shuffling + initial_shuffling,
         latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
         latest_crosslinks=tuple(
             CrosslinkRecord(
@@ -718,6 +713,7 @@ def config(
         max_deposit,
         genesis_fork_version,
         genesis_slot,
+        genesis_start_shard,
         bls_withdrawal_prefix_byte,
         slot_duration,
         min_attestation_inclusion_delay,
@@ -752,6 +748,7 @@ def config(
         MAX_DEPOSIT=max_deposit,
         GENESIS_FORK_VERSION=genesis_fork_version,
         GENESIS_SLOT=genesis_slot,
+        GENESIS_START_SHARD=genesis_start_shard,
         BLS_WITHDRAWAL_PREFIX_BYTE=bls_withdrawal_prefix_byte,
         SLOT_DURATION=slot_duration,
         MIN_ATTESTATION_INCLUSION_DELAY=min_attestation_inclusion_delay,
@@ -792,6 +789,7 @@ def create_mock_signed_attestation(privkeys):
                                         crosslink_committee,
                                         voting_committee_indices,
                                         attestation_data):
+        committee, shard = crosslink_committee
         message = hash_eth2(
             rlp.encode(attestation_data) +
             (0).to_bytes(1, "big")
@@ -800,7 +798,7 @@ def create_mock_signed_attestation(privkeys):
         signatures = [
             bls.sign(
                 message,
-                privkeys[crosslink_committee.committee[committee_index]],
+                privkeys[committee[committee_index]],
                 domain=get_domain(
                     fork_data=state.fork_data,
                     slot=attestation_data.slot,
@@ -812,7 +810,7 @@ def create_mock_signed_attestation(privkeys):
 
         # aggregate signatures and construct participant bitfield
         participation_bitfield, aggregate_signature = aggregate_votes(
-            bitfield=get_empty_bitfield(len(crosslink_committee.committee)),
+            bitfield=get_empty_bitfield(len(committee)),
             sigs=(),
             voting_sigs=signatures,
             voting_committee_indices=voting_committee_indices,
@@ -846,6 +844,8 @@ def create_mock_block(privkeys, pubkeys):
             state,
             block.slot,
             config.EPOCH_LENGTH,
+            config.TARGET_COMMITTEE_SIZE,
+            config.SHARD_COUNT,
         )
 
         # Get privkey

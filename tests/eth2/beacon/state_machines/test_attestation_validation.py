@@ -12,7 +12,9 @@ from eth_utils import (
 from eth.constants import (
     ZERO_HASH32,
 )
-
+from eth2.beacon.helpers import (
+    get_crosslink_committees_at_slot,
+)
 from eth2.beacon.state_machines.forks.serenity.validation import (
     validate_serenity_attestation_aggregate_signature,
     validate_serenity_attestation_latest_crosslink_root,
@@ -243,22 +245,33 @@ def test_validate_serenity_attestation_aggregate_signature(genesis_state,
                                                            random,
                                                            sample_attestation_data_params,
                                                            create_mock_signed_attestation,
-                                                           is_valid):
+                                                           is_valid,
+                                                           target_committee_size,
+                                                           shard_count,):
     state = genesis_state
 
     # choose committee
     slot = 0
-    crosslink_committee = state.crosslink_committees_at_slots[slot][0]
-    committee_size = len(crosslink_committee.committee)
+    # crosslink_committee = state.crosslink_committees_at_slots[slot][0]
+    crosslink_committee = get_crosslink_committees_at_slot(
+        state=state,
+        slot=slot,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
+    )[0]
+    committee, shard = crosslink_committee
+    committee_size = len(committee)
+    assert committee_size > 0
 
     # randomly select 3/4 participants from committee
-    votes_count = len(crosslink_committee.committee) * 3 // 4
+    votes_count = len(committee) * 3 // 4
     voting_committee_indices = random.sample(range(committee_size), votes_count)
     assert len(voting_committee_indices) > 0
 
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
         slot=slot,
-        shard=crosslink_committee.shard,
+        shard=shard,
     )
 
     attestation = create_mock_signed_attestation(
@@ -273,6 +286,8 @@ def test_validate_serenity_attestation_aggregate_signature(genesis_state,
             state,
             attestation,
             epoch_length,
+            target_committee_size,
+            shard_count,
         )
     else:
         # mess up signature
@@ -287,4 +302,6 @@ def test_validate_serenity_attestation_aggregate_signature(genesis_state,
                 state,
                 attestation,
                 epoch_length,
+                target_committee_size,
+                shard_count,
             )

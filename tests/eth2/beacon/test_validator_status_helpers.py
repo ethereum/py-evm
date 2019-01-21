@@ -15,7 +15,6 @@ from eth2.beacon.enums import (
 from eth2.beacon.helpers import (
     get_beacon_proposer_index,
 )
-from eth2.beacon.types.crosslink_committees import CrosslinkCommittee
 from eth2.beacon.types.validator_registry_delta_block import ValidatorRegistryDeltaBlock
 from eth2.beacon.validator_status_helpers import (
     _settle_penality_to_validator_and_whistleblower,
@@ -262,18 +261,18 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
                                                         latest_penalized_exit_length,
                                                         whistleblower_reward_quotient,
                                                         epoch_length,
-                                                        max_deposit):
+                                                        max_deposit,
+                                                        target_committee_size,
+                                                        shard_count):
     from eth2.beacon import helpers
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              epoch_length):
+                                              epoch_length,
+                                              target_committee_size,
+                                              shard_count):
         return (
-            CrosslinkCommittee(
-                shard=0,
-                committee=committee,
-                total_validator_count=num_validators,
-            ),
+            (committee, 1,),
         )
 
     monkeypatch.setattr(
@@ -284,7 +283,13 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
 
     state = ten_validators_state
     validator_index = 5
-    whistleblower_index = get_beacon_proposer_index(state, state.slot, epoch_length)
+    whistleblower_index = get_beacon_proposer_index(
+        state,
+        state.slot,
+        epoch_length,
+        target_committee_size,
+        shard_count,
+    )
     effective_balance = max_deposit * GWEI_PER_ETH
 
     # Check the initial balance
@@ -301,6 +306,8 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         epoch_length=epoch_length,
         max_deposit=max_deposit,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
     )
 
     # Check `state.latest_penalized_exit_balances`
@@ -338,18 +345,18 @@ def test_penalize_validator(monkeypatch,
                             latest_penalized_exit_length,
                             whistleblower_reward_quotient,
                             entry_exit_delay,
-                            max_deposit):
+                            max_deposit,
+                            target_committee_size,
+                            shard_count):
     from eth2.beacon import helpers
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              epoch_length):
+                                              epoch_length,
+                                              target_committee_size,
+                                              shard_count):
         return (
-            CrosslinkCommittee(
-                shard=0,
-                committee=committee,
-                total_validator_count=num_validators,
-            ),
+            (committee, 1,),
         )
 
     monkeypatch.setattr(
@@ -369,6 +376,8 @@ def test_penalize_validator(monkeypatch,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         entry_exit_delay=entry_exit_delay,
         max_deposit=max_deposit,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
     )
 
     # Just check if `prepare_validator_for_withdrawal` applied these two functions
@@ -380,6 +389,8 @@ def test_penalize_validator(monkeypatch,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         epoch_length=epoch_length,
         max_deposit=max_deposit,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
     )
 
     assert result_state == expected_state

@@ -42,13 +42,21 @@ class SerenityStateTransition(BaseStateTransition):
         LATEST_RANDAO_MIXES_LENGTH = self.config.LATEST_RANDAO_MIXES_LENGTH
         LATEST_BLOCK_ROOTS_LENGTH = self.config.LATEST_BLOCK_ROOTS_LENGTH
         EPOCH_LENGTH = self.config.EPOCH_LENGTH
+        TARGET_COMMITTEE_SIZE = self.config.TARGET_COMMITTEE_SIZE
+        SHARD_COUNT = self.config.SHARD_COUNT
 
         state = state.copy(
             slot=state.slot + 1
         )
 
         updated_validator_registry = list(state.validator_registry)
-        beacon_proposer_index = get_beacon_proposer_index(state, state.slot, EPOCH_LENGTH)
+        beacon_proposer_index = get_beacon_proposer_index(
+            state,
+            state.slot,
+            EPOCH_LENGTH,
+            TARGET_COMMITTEE_SIZE,
+            SHARD_COUNT,
+        )
         old_validator_record = updated_validator_registry[beacon_proposer_index]
         updated_validator_record = old_validator_record.copy(
             randao_layers=old_validator_record.randao_layers + 1,
@@ -84,6 +92,8 @@ class SerenityStateTransition(BaseStateTransition):
             block,
             beacon_chain_shard_number=self.config.BEACON_CHAIN_SHARD_NUMBER,
             epoch_length=self.config.EPOCH_LENGTH,
+            target_committee_size=self.config.TARGET_COMMITTEE_SIZE,
+            shard_count=self.config.SHARD_COUNT
         )
 
         state = process_attestations(state, block, self.config)
