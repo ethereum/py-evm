@@ -242,10 +242,10 @@ class BeaconBlock(BaseBeaconBlock):
         Initialize a new block with the `parent` block as the block's
         parent hash.
         """
-        if block_params['slot'] is None:
+        if block_params.slot is None:
             slot = parent_block.slot + 1
         else:
-            slot = block_params['slot']
+            slot = block_params.slot
 
         return cls(
             slot=slot,

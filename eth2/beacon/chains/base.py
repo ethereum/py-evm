@@ -82,13 +82,6 @@ class BaseBeaconChain(Configurable, ABC):
                      genesis_block: BaseBeaconBlock) -> 'BaseBeaconChain':
         pass
 
-    @classmethod
-    @abstractmethod
-    def from_genesis_block(cls,
-                           base_db: BaseAtomicDB,
-                           genesis_block: BaseBeaconBlock) -> 'BaseBeaconChain':
-        pass
-
     #
     # State Machine API
     #
@@ -214,12 +207,12 @@ class BeaconChain(BaseBeaconChain):
 
         chaindb = cls.get_chaindb_class()(db=base_db)
         chaindb.persist_state(genesis_state)
-        return cls.from_genesis_block(base_db, genesis_block)
+        return cls._from_genesis_block(base_db, genesis_block)
 
     @classmethod
-    def from_genesis_block(cls,
-                           base_db: BaseAtomicDB,
-                           genesis_block: BaseBeaconBlock) -> 'BaseBeaconChain':
+    def _from_genesis_block(cls,
+                            base_db: BaseAtomicDB,
+                            genesis_block: BaseBeaconBlock) -> 'BaseBeaconChain':
         """
         Initialize the ``BeaconChain`` from the genesis block.
         """
@@ -282,9 +275,8 @@ class BeaconChain(BaseBeaconChain):
         Passthrough helper to the ``StateMachine`` class of the block descending from the
         given block.
         """
-
         return self.get_state_machine_class_for_block_slot(
-            slot=parent_block.slot + 1,
+            slot=parent_block.slot + 1 if block_params.slot is None else block_params.slot,
         ).create_block_from_parent(parent_block, block_params)
 
     def get_block_by_root(self, block_root: Hash32) -> BaseBeaconBlock:
@@ -319,12 +311,12 @@ class BeaconChain(BaseBeaconChain):
 
     def ensure_block(self, block: BaseBeaconBlock=None) -> BaseBeaconBlock:
         """
-        Return ``block`` if it is not ``None``, otherwise return a new child of
+        Return ``block`` if it is not ``None``, otherwise return the block
         of the canonical head.
         """
         if block is None:
             head = self.get_canonical_head()
-            return self.create_block_from_parent(head, FromBlockParams(slot=None))
+            return self.create_block_from_parent(head, FromBlockParams())
         else:
             return block
 
@@ -356,7 +348,7 @@ class BeaconChain(BaseBeaconChain):
     def import_block(
             self,
             block: BaseBeaconBlock,
-            perform_validation: bool=True,
+            perform_validation: bool=True
     ) -> Tuple[BaseBeaconBlock, Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         """
         Import a complete block and returns a 3-tuple
@@ -379,7 +371,7 @@ class BeaconChain(BaseBeaconChain):
             )
         base_block_for_import = self.create_block_from_parent(
             parent_block,
-            FromBlockParams(slot=None),
+            FromBlockParams(),
         )
         state, imported_block = self.get_state_machine(
             base_block_for_import,

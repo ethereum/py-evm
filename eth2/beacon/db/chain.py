@@ -394,12 +394,13 @@ class BeaconChainDB(BaseBeaconChainDB):
         except StopIteration:
             return tuple(), tuple()
 
-        no_canonical_head = False
         try:
             previous_canonical_head = cls._get_canonical_head(db, block_class).root
             head_score = cls._get_score(db, previous_canonical_head)
         except CanonicalHeadNotFound:
             no_canonical_head = True
+        else:
+            no_canonical_head = False
 
         is_genesis = first_block.parent_root == GENESIS_PARENT_HASH
         if not is_genesis and not cls._block_exists(db, first_block.parent_root):

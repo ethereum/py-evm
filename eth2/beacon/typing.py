@@ -1,7 +1,7 @@
-from typing import NewType, Tuple
-
-from mypy_extensions import (
-    TypedDict,
+from typing import (
+    NamedTuple,
+    NewType,
+    Tuple,
 )
 
 
@@ -23,6 +23,5 @@ Timestamp = NewType('Timestamp', int)
 Second = NewType('Second', int)
 
 
-# TypedDict
-class FromBlockParams(TypedDict):
-    slot: SlotNumber
+class FromBlockParams(NamedTuple):
+    slot: SlotNumber = None
