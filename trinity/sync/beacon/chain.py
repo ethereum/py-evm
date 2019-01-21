@@ -173,5 +173,6 @@ class BeaconChainSyncer(BaseService):
 
         canonical_parent = self.chain_db.get_canonical_block_by_slot(parent_slot, BeaconBlock)
         if canonical_parent.hash != parent_root:
-            self.logger.info(f"Peer has different block finalized at slot #{parent_slot}")
-            raise ValidationError()
+            message = f"Peer has different block finalized at slot #{parent_slot}"
+            self.logger.info(message)
+            raise ValidationError(message)
