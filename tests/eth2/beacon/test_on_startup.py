@@ -134,7 +134,7 @@ def test_get_initial_beacon_state(
     assert len(state.latest_randao_mixes) == latest_randao_mixes_length
     assert len(state.latest_vdf_outputs) == latest_randao_mixes_length // epoch_length
 
-    # TODO: shard_committees_at_slots will be removed
+    # TODO: `persistent_committees`, `persistent_committee_reassignments` will be removed
     assert len(state.persistent_committees) == 0
     assert len(state.persistent_committee_reassignments) == 0
     assert state.previous_epoch_start_shard == genesis_start_shard

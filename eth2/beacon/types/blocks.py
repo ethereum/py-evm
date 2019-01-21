@@ -210,7 +210,7 @@ class BeaconBlock(BaseBeaconBlock):
     @classmethod
     def from_root(cls, root: Hash32, chaindb: 'BaseBeaconChainDB') -> 'BeaconBlock':
         """
-        Returns the block denoted by the given block header.
+        Return the block denoted by the given block header.
         """
         block = chaindb.get_block_by_root(root, cls)
         body = cls.block_body_class(

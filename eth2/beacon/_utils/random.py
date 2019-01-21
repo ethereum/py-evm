@@ -29,7 +29,7 @@ TItem = TypeVar('TItem')
 def shuffle(values: Sequence[TItem],
             seed: Hash32) -> Iterable[TItem]:
     """
-    Returns the shuffled ``values`` with seed as entropy.
+    Return the shuffled ``values`` with seed as entropy.
     Mainly for shuffling active validators in-protocol.
 
     Spec: https://github.com/ethereum/eth2.0-specs/blob/70cef14a08de70e7bd0455d75cf380eb69694bfb/specs/core/0_beacon-chain.md#helper-functions  # noqa: E501
@@ -87,7 +87,7 @@ def shuffle(values: Sequence[TItem],
 
 def split(values: Sequence[TItem], split_count: int) -> Tuple[Iterable[TItem], ...]:
     """
-    Returns the split ``values`` in ``split_count`` pieces in protocol.
+    Return the split ``values`` in ``split_count`` pieces in protocol.
     Spec: https://github.com/ethereum/eth2.0-specs/blob/70cef14a08de70e7bd0455d75cf380eb69694bfb/specs/core/0_beacon-chain.md#helper-functions  # noqa: E501
     """
     list_length = len(values)

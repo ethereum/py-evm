@@ -507,7 +507,7 @@ def is_double_vote(attestation_data_1: 'AttestationData',
     """
     Assumes ``attestation_data_1`` is distinct from ``attestation_data_2``.
 
-    Returns True if the provided ``AttestationData`` are slashable
+    Return True if the provided ``AttestationData`` are slashable
     due to a 'double vote'.
     """
     return attestation_data_1.slot == attestation_data_2.slot
@@ -518,7 +518,7 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
     """
     Assumes ``attestation_data_1`` is distinct from ``attestation_data_2``.
 
-    Returns True if the provided ``AttestationData`` are slashable
+    Return True if the provided ``AttestationData`` are slashable
     due to a 'surround vote'.
 
     Note: parameter order matters as this function only checks
