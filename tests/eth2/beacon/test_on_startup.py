@@ -67,11 +67,11 @@ def test_get_initial_beacon_state(
 
     initial_validator_deposits = (
         Deposit(
-            merkle_branch=(
+            branch=(
                 b'\x11' * 32
                 for j in range(10)
             ),
-            merkle_tree_index=i,
+            index=i,
             deposit_data=DepositData(
                 deposit_input=DepositInput(
                     pubkey=pubkeys[i],
