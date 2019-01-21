@@ -1,4 +1,19 @@
+from typing import (
+    cast,
+)
+
+from eth_utils import (
+    encode_hex,
+)
+
 from eth2.beacon.db.chain import BaseBeaconChainDB
+from eth2.beacon.types.blocks import (
+    BeaconBlock,
+)
+
+from eth2.beacon.typing import (
+    SlotNumber,
+)
 
 from p2p.peer import (
     BasePeer,
@@ -12,29 +27,15 @@ from p2p.protocol import (
 from p2p.exceptions import HandshakeFailure
 from p2p.p2p_proto import DisconnectReason
 
+from trinity.protocol.bcc.handlers import BCCExchangeHandler
+
 from trinity.protocol.bcc.proto import BCCProtocol
 from trinity.protocol.bcc.commands import (
     Status,
+    StatusMessage,
 )
 from trinity.protocol.bcc.context import (
     BeaconContext,
-)
-
-from eth_utils import (
-    encode_hex,
-)
-
-from typing import (
-    cast,
-    Any,
-    Dict,
-)
-from eth_typing import (
-    Hash32,
-)
-
-from eth2.beacon.types.blocks import (
-    BeaconBlock,
 )
 
 
@@ -43,22 +44,24 @@ class BCCPeer(BasePeer):
     _supported_sub_protocols = [BCCProtocol]
     sub_proto: BCCProtocol = None
 
+    _requests: BCCExchangeHandler = None
+
     context: BeaconContext
 
-    head_hash: Hash32 = None
+    head_slot: SlotNumber = None
 
     async def send_sub_proto_handshake(self) -> None:
         # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under per BeaconStateMachine fork
         genesis = self.chain_db.get_canonical_block_by_slot(0, BeaconBlock)
-        head = self.chain_db.get_canonical_head(BeaconBlock)
-        self.sub_proto.send_handshake(genesis.hash, head.hash)
+        head_slot = self.chain_db.get_canonical_head(BeaconBlock).slot
+        self.sub_proto.send_handshake(genesis.hash, head_slot)
 
     async def process_sub_proto_handshake(self, cmd: Command, msg: _DecodedMsgType) -> None:
         if not isinstance(cmd, Status):
             await self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure(f"Expected a BCC Status msg, got {cmd}, disconnecting")
 
-        msg = cast(Dict[str, Any], msg)
+        msg = cast(StatusMessage, msg)
         if msg['network_id'] != self.network_id:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
@@ -74,7 +77,7 @@ class BCCPeer(BasePeer):
                 f"match ours ({encode_hex(genesis_block.hash)}), disconnecting"
             )
 
-        self.head_hash = msg['best_hash']
+        self.head_slot = msg['head_slot']
 
     @property
     def network_id(self) -> int:
@@ -83,6 +86,12 @@ class BCCPeer(BasePeer):
     @property
     def chain_db(self) -> BaseBeaconChainDB:
         return self.context.chain_db
+
+    @property
+    def requests(self) -> BCCExchangeHandler:
+        if self._requests is None:
+            self._requests = BCCExchangeHandler(self)
+        return self._requests
 
 
 class BCCPeerFactory(BasePeerFactory):
