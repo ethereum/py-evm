@@ -252,7 +252,6 @@ def test_validate_serenity_attestation_aggregate_signature(genesis_state,
 
     # choose committee
     slot = 0
-    # crosslink_committee = state.crosslink_committees_at_slots[slot][0]
     crosslink_committee = get_crosslink_committees_at_slot(
         state=state,
         slot=slot,

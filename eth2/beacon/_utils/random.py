@@ -29,7 +29,7 @@ TItem = TypeVar('TItem')
 def shuffle(values: Sequence[TItem],
             seed: Hash32) -> Iterable[TItem]:
     """
-    Return the shuffled ``values`` with seed as entropy.
+    Return the shuffled ``values`` with ``seed`` as entropy.
     Mainly for shuffling active validators in-protocol.
 
     Spec: https://github.com/ethereum/eth2.0-specs/blob/70cef14a08de70e7bd0455d75cf380eb69694bfb/specs/core/0_beacon-chain.md#helper-functions  # noqa: E501
