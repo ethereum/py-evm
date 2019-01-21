@@ -10,7 +10,7 @@ from eth.constants import (
 
 from eth2.beacon.helpers import (
     get_block_root,
-    get_shard_committees_at_slot,
+    get_crosslink_committees_at_slot,
 )
 
 from eth2.beacon.types.attestation_data import AttestationData
@@ -30,20 +30,20 @@ def create_mock_signed_attestations_at_slot(config,
     def create_mock_signed_attestations_at_slot(state,
                                                 attestation_slot):
         attestations = []
-        shard_and_committees_at_slot = get_shard_committees_at_slot(
+        shard_and_committees_at_slot = get_crosslink_committees_at_slot(
             state,
             slot=attestation_slot,
             epoch_length=config.EPOCH_LENGTH,
         )
-        for shard_committee in shard_and_committees_at_slot:
+        for crosslink_committee in shard_and_committees_at_slot:
             # have 0th committee member sign
             voting_committee_indices = [0]
-            latest_crosslink_root = state.latest_crosslinks[shard_committee.shard].shard_block_root
+            latest_crosslink_root = state.latest_crosslinks[crosslink_committee.shard].shard_block_root
 
-            assert len(shard_committee.committee) > 0
+            assert len(crosslink_committee.committee) > 0
             attestation_data = AttestationData(**sample_attestation_data_params).copy(
                 slot=attestation_slot,
-                shard=shard_committee.shard,
+                shard=crosslink_committee.shard,
                 justified_slot=state.previous_justified_slot,
                 justified_block_root=get_block_root(
                     state,
@@ -57,7 +57,7 @@ def create_mock_signed_attestations_at_slot(config,
             attestations.append(
                 create_mock_signed_attestation(
                     state,
-                    shard_committee,
+                    crosslink_committee,
                     voting_committee_indices,
                     attestation_data,
                 )

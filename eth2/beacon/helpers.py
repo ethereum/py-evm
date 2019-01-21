@@ -37,7 +37,7 @@ from eth2.beacon.constants import (
 from eth2.beacon.enums import (
     SignatureDomain,
 )
-from eth2.beacon.types.shard_committees import (
+from eth2.beacon.types.crosslink_committees import (
     ShardCommittee,
 )
 from eth2.beacon.typing import (
@@ -107,12 +107,12 @@ def get_block_root(
 
 
 #
-# Get shards_committees or indices
+# Get crosslinks_committees or indices
 #
 @to_tuple
-def _get_shard_committees_at_slot(
+def _get_crosslink_committees_at_slot(
         state_slot: SlotNumber,
-        shard_committees_at_slots: Sequence[Sequence[ShardCommittee]],
+        crosslink_committees_at_slots: Sequence[Sequence[ShardCommittee]],
         slot: SlotNumber,
         epoch_length: int) -> Iterable[ShardCommittee]:
 
@@ -137,18 +137,18 @@ def _get_shard_committees_at_slot(
             )
         )
 
-    return shard_committees_at_slots[slot - earliest_slot_in_array]
+    return crosslink_committees_at_slots[slot - earliest_slot_in_array]
 
 
-def get_shard_committees_at_slot(state: 'BeaconState',
+def get_crosslink_committees_at_slot(state: 'BeaconState',
                                  slot: SlotNumber,
                                  epoch_length: int) -> Tuple[ShardCommittee]:
     """
     Return the ``ShardCommittee`` for the ``slot``.
     """
-    return _get_shard_committees_at_slot(
+    return _get_crosslink_committees_at_slot(
         state_slot=state.slot,
-        shard_committees_at_slots=state.shard_committees_at_slots,
+        crosslink_committees_at_slots=state.crosslink_committees_at_slots,
         slot=slot,
         epoch_length=epoch_length,
     )
@@ -169,7 +169,7 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
 # Shuffling
 #
 @to_tuple
-def _get_shards_committees_for_shard_indices(
+def _get_crosslinks_committees_for_shard_indices(
         shard_indices: Sequence[Sequence[ValidatorIndex]],
         start_shard: ShardNumber,
         total_validator_count: int,
@@ -195,14 +195,14 @@ def get_shuffling(*,
                   target_committee_size: int,
                   shard_count: int) -> Iterable[Tuple[ShardCommittee]]:
     """
-    Return shuffled ``shard_committee_for_slots`` (``[[ShardCommittee]]``) of
+    Return shuffled ``crosslink_committee_for_slots`` (``[[ShardCommittee]]``) of
     the given active ``validators`` using ``seed`` as entropy.
 
     Two-dimensional:
     The first layer is ``slot`` number
-        ``shard_committee_for_slots[slot] -> [ShardCommittee]``
+        ``crosslink_committee_for_slots[slot] -> [ShardCommittee]``
     The second layer is ``shard_indices`` number
-        ``shard_committee_for_slots[slot][shard_indices] -> ShardCommittee``
+        ``crosslink_committee_for_slots[slot][shard_indices] -> ShardCommittee``
 
     Example:
         validators:
@@ -252,7 +252,7 @@ def get_shuffling(*,
         # Split the shuffled list into committees_per_slot pieces
         shard_indices = split(slot_indices, committees_per_slot)
         start_shard = crosslinking_start_shard + index * committees_per_slot
-        yield _get_shards_committees_for_shard_indices(
+        yield _get_crosslinks_committees_for_shard_indices(
             shard_indices,
             start_shard,
             active_validators_size,
@@ -266,7 +266,7 @@ def get_shuffling(*,
 def get_block_committees_info(parent_block: 'BaseBeaconBlock',
                               state: 'BeaconState',
                               epoch_length: int) -> BlockCommitteesInfo:
-    shards_committees = get_shard_committees_at_slot(
+    crosslinks_committees = get_crosslink_committees_at_slot(
         state,
         parent_block.slot,
         epoch_length,
@@ -274,14 +274,14 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
     """
     Return the block committees and proposer info with BlockCommitteesInfo pack.
     """
-    # `proposer_index_in_committee` th attester in `shard_committee`
+    # `proposer_index_in_committee` th attester in `crosslink_committee`
     # is the proposer of the parent block.
     try:
-        shard_committee = shards_committees[0]
+        crosslink_committee = crosslinks_committees[0]
     except IndexError:
-        raise ValidationError("shards_committees should not be empty.")
+        raise ValidationError("crosslinks_committees should not be empty.")
 
-    proposer_committee_size = len(shard_committee.committee)
+    proposer_committee_size = len(crosslink_committee.committee)
     if proposer_committee_size <= 0:
         raise ValidationError(
             "The first committee should not be empty"
@@ -292,13 +292,13 @@ def get_block_committees_info(parent_block: 'BaseBeaconBlock',
         proposer_committee_size
     )
 
-    proposer_index = shard_committee.committee[proposer_index_in_committee]
+    proposer_index = crosslink_committee.committee[proposer_index_in_committee]
 
     return BlockCommitteesInfo(
         proposer_index=proposer_index,
-        proposer_shard=shard_committee.shard,
+        proposer_shard=crosslink_committee.shard,
         proposer_committee_size=proposer_committee_size,
-        shards_committees=shards_committees,
+        crosslinks_committees=crosslinks_committees,
     )
 
 
@@ -308,24 +308,24 @@ def get_beacon_proposer_index(state: 'BeaconState',
     """
     Return the beacon proposer index for the ``slot``.
     """
-    shard_committees = get_shard_committees_at_slot(
+    crosslink_committees = get_crosslink_committees_at_slot(
         state,
         slot,
         epoch_length,
     )
     try:
-        first_shard_committee = shard_committees[0]
+        first_crosslink_committee = crosslink_committees[0]
     except IndexError:
-        raise ValidationError("shard_committees should not be empty.")
+        raise ValidationError("crosslink_committees should not be empty.")
 
-    proposer_committee_size = len(first_shard_committee.committee)
+    proposer_committee_size = len(first_crosslink_committee.committee)
 
     if proposer_committee_size <= 0:
         raise ValidationError(
             "The first committee should not be empty"
         )
 
-    return first_shard_committee.committee[slot % len(first_shard_committee.committee)]
+    return first_crosslink_committee.committee[slot % len(first_crosslink_committee.committee)]
 
 
 #
@@ -343,36 +343,36 @@ def get_attestation_participants(state: 'BeaconState',
     """
     # Find the relevant committee
     # Filter by slot
-    shard_committees_at_slot = get_shard_committees_at_slot(
+    crosslink_committees_at_slot = get_crosslink_committees_at_slot(
         state,
         slot,
         epoch_length,
     )
     # Filter by shard
-    shard_committees = tuple(
+    crosslink_committees = tuple(
         [
-            shard_committee
-            for shard_committee in shard_committees_at_slot
-            if shard_committee.shard == shard
+            crosslink_committee
+            for crosslink_committee in crosslink_committees_at_slot
+            if crosslink_committee.shard == shard
         ]
     )
 
     try:
-        shard_committee = shard_committees[0]
+        crosslink_committee = crosslink_committees[0]
     except IndexError:
-        raise ValidationError("shard_committees should not be empty.")
+        raise ValidationError("crosslink_committees should not be empty.")
 
-    if len(participation_bitfield) != get_bitfield_length(len(shard_committee.committee)):
+    if len(participation_bitfield) != get_bitfield_length(len(crosslink_committee.committee)):
         raise ValidationError(
             'Invalid bitfield length,'
             "\texpected: %s, found: %s" % (
-                get_bitfield_length(len(shard_committee.committee)),
+                get_bitfield_length(len(crosslink_committee.committee)),
                 len(participation_bitfield),
             )
         )
 
     # Find the participating attesters in the committee
-    for bitfield_index, validator_index in enumerate(shard_committee.committee):
+    for bitfield_index, validator_index in enumerate(crosslink_committee.committee):
         if has_voted(participation_bitfield, bitfield_index):
             yield validator_index
 

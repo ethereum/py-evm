@@ -5,7 +5,7 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    from eth2.beacon.types.shard_committees import ShardCommittee  # noqa: F401
+    from eth2.beacon.types.crosslink_committees import ShardCommittee  # noqa: F401
 
 
 BlockCommitteesInfo = NamedTuple(
@@ -14,6 +14,6 @@ BlockCommitteesInfo = NamedTuple(
         ('proposer_index', int),
         ('proposer_shard', int),
         ('proposer_committee_size', int),
-        ('shards_committees', Tuple['ShardCommittee'])
+        ('crosslinks_committees', Tuple['ShardCommittee'])
     )
 )

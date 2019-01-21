@@ -15,7 +15,7 @@ from eth2.beacon.enums import (
 from eth2.beacon.helpers import (
     get_beacon_proposer_index,
 )
-from eth2.beacon.types.shard_committees import ShardCommittee
+from eth2.beacon.types.crosslink_committees import ShardCommittee
 from eth2.beacon.types.validator_registry_delta_block import ValidatorRegistryDeltaBlock
 from eth2.beacon.validator_status_helpers import (
     _settle_penality_to_validator_and_whistleblower,
@@ -265,7 +265,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
                                                         max_deposit):
     from eth2.beacon import helpers
 
-    def mock_get_shard_committees_at_slot(state,
+    def mock_get_crosslink_committees_at_slot(state,
                                           slot,
                                           epoch_length):
         return (
@@ -278,8 +278,8 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
 
     monkeypatch.setattr(
         helpers,
-        'get_shard_committees_at_slot',
-        mock_get_shard_committees_at_slot
+        'get_crosslink_committees_at_slot',
+        mock_get_crosslink_committees_at_slot
     )
 
     state = ten_validators_state
@@ -341,7 +341,7 @@ def test_penalize_validator(monkeypatch,
                             max_deposit):
     from eth2.beacon import helpers
 
-    def mock_get_shard_committees_at_slot(state,
+    def mock_get_crosslink_committees_at_slot(state,
                                           slot,
                                           epoch_length):
         return (
@@ -354,8 +354,8 @@ def test_penalize_validator(monkeypatch,
 
     monkeypatch.setattr(
         helpers,
-        'get_shard_committees_at_slot',
-        mock_get_shard_committees_at_slot
+        'get_crosslink_committees_at_slot',
+        mock_get_crosslink_committees_at_slot
     )
 
     state = ten_validators_state

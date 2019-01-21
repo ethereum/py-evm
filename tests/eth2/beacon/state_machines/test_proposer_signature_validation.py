@@ -24,7 +24,7 @@ from eth2.beacon.state_machines.forks.serenity.validation import (
 
 from tests.eth2.beacon.helpers import mock_validator_record
 from tests.eth2.beacon.test_helpers import (
-    get_sample_shard_committees_at_slots,
+    get_sample_crosslink_committees_at_slots,
 )
 
 
@@ -46,7 +46,7 @@ def test_validate_serenity_proposer_signature(
         is_valid_signature,
         sample_beacon_block_params,
         sample_beacon_state_params,
-        sample_shard_committee_params,
+        sample_crosslink_committee_params,
         beacon_chain_shard_number,
         epoch_length,
         max_deposit):
@@ -57,10 +57,10 @@ def test_validate_serenity_proposer_signature(
             for _ in range(10)
         ),
         validator_balances=(max_deposit * GWEI_PER_ETH,) * 10,
-        shard_committees_at_slots=get_sample_shard_committees_at_slots(
+        crosslink_committees_at_slots=get_sample_crosslink_committees_at_slots(
             num_slot=128,
-            num_shard_committee_per_slot=10,
-            sample_shard_committee_params=sample_shard_committee_params,
+            num_crosslink_committee_per_slot=10,
+            sample_crosslink_committee_params=sample_crosslink_committee_params,
         ),
     )
 

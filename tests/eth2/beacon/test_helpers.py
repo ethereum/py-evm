@@ -31,13 +31,13 @@ from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
 from eth2.beacon.types.fork_data import ForkData
-from eth2.beacon.types.shard_committees import ShardCommittee
+from eth2.beacon.types.crosslink_committees import ShardCommittee
 from eth2.beacon.types.slashable_vote_data import SlashableVoteData
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
 from eth2.beacon.helpers import (
     _get_block_root,
-    _get_shard_committees_at_slot,
+    _get_crosslink_committees_at_slot,
     get_active_validator_indices,
     get_attestation_participants,
     get_beacon_proposer_index,
@@ -71,15 +71,15 @@ def sample_state(sample_beacon_state_params):
     return BeaconState(**sample_beacon_state_params)
 
 
-def get_sample_shard_committees_at_slots(num_slot,
-                                         num_shard_committee_per_slot,
-                                         sample_shard_committee_params):
+def get_sample_crosslink_committees_at_slots(num_slot,
+                                         num_crosslink_committee_per_slot,
+                                         sample_crosslink_committee_params):
 
     return tuple(
         [
             [
-                ShardCommittee(**sample_shard_committee_params)
-                for _ in range(num_shard_committee_per_slot)
+                ShardCommittee(**sample_crosslink_committee_params)
+                for _ in range(num_crosslink_committee_per_slot)
             ]
             for _ in range(num_slot)
         ]
@@ -153,7 +153,7 @@ def test_get_block_root(current_slot,
 
 
 #
-# Get shards_committees or indices
+# Get crosslinks_committees or indices
 #
 @pytest.mark.parametrize(
     (
@@ -161,7 +161,7 @@ def test_get_block_root(current_slot,
         'epoch_length,'
         'state_slot,'
         'num_slot,'
-        'num_shard_committee_per_slot,'
+        'num_crosslink_committee_per_slot,'
         'slot,'
         'success'
     ),
@@ -215,36 +215,36 @@ def test_get_block_root(current_slot,
         ),
     ],
 )
-def test_get_shard_committees_at_slot(
+def test_get_crosslink_committees_at_slot(
         num_validators,
         epoch_length,
         state_slot,
         num_slot,
-        num_shard_committee_per_slot,
+        num_crosslink_committee_per_slot,
         slot,
         success,
-        sample_shard_committee_params):
+        sample_crosslink_committee_params):
 
-    shard_committees_at_slots = get_sample_shard_committees_at_slots(
+    crosslink_committees_at_slots = get_sample_crosslink_committees_at_slots(
         num_slot,
-        num_shard_committee_per_slot,
-        sample_shard_committee_params
+        num_crosslink_committee_per_slot,
+        sample_crosslink_committee_params
     )
 
     if success:
-        shard_committees = _get_shard_committees_at_slot(
+        crosslink_committees = _get_crosslink_committees_at_slot(
             state_slot=state_slot,
-            shard_committees_at_slots=shard_committees_at_slots,
+            crosslink_committees_at_slots=crosslink_committees_at_slots,
             slot=slot,
             epoch_length=epoch_length,
         )
-        assert len(shard_committees) > 0
-        assert len(shard_committees[0].committee) > 0
+        assert len(crosslink_committees) > 0
+        assert len(crosslink_committees[0].committee) > 0
     else:
         with pytest.raises(ValidationError):
-            _get_shard_committees_at_slot(
+            _get_crosslink_committees_at_slot(
                 state_slot=state_slot,
-                shard_committees_at_slots=shard_committees_at_slots,
+                crosslink_committees_at_slots=crosslink_committees_at_slots,
                 slot=slot,
                 epoch_length=epoch_length,
             )
@@ -289,9 +289,9 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
     validators = set()
     shards = set()
     for slot_indices in shuffling:
-        for shard_committee in slot_indices:
-            shards.add(shard_committee.shard)
-            for validator_index in shard_committee.committee:
+        for crosslink_committee in slot_indices:
+            shards.add(crosslink_committee.shard)
+            for validator_index in crosslink_committee.committee:
                 validators.add(validator_index)
 
     assert len(activated_genesis_validators) > 0
@@ -327,8 +327,8 @@ def test_get_shuffling_handles_shard_wrap(activated_genesis_validators,
 
     # shard assignments should wrap around to 0 rather than continuing to SHARD_COUNT
     for slot_indices in shuffling:
-        for shard_committee in slot_indices:
-            assert shard_committee.shard < shard_count
+        for crosslink_committee in slot_indices:
+            assert crosslink_committee.shard < shard_count
 
 
 #
@@ -355,7 +355,7 @@ def test_get_block_committees_info(monkeypatch,
                                    epoch_length):
     from eth2.beacon import helpers
 
-    def mock_get_shard_committees_at_slot(state,
+    def mock_get_crosslink_committees_at_slot(state,
                                           slot,
                                           epoch_length):
         return (
@@ -368,8 +368,8 @@ def test_get_block_committees_info(monkeypatch,
 
     monkeypatch.setattr(
         helpers,
-        'get_shard_committees_at_slot',
-        mock_get_shard_committees_at_slot
+        'get_crosslink_committees_at_slot',
+        mock_get_crosslink_committees_at_slot
     )
 
     parent_block = sample_block
@@ -432,7 +432,7 @@ def test_get_beacon_proposer_index(
 
     from eth2.beacon import helpers
 
-    def mock_get_shard_committees_at_slot(state,
+    def mock_get_crosslink_committees_at_slot(state,
                                           slot,
                                           epoch_length):
         return (
@@ -445,8 +445,8 @@ def test_get_beacon_proposer_index(
 
     monkeypatch.setattr(
         helpers,
-        'get_shard_committees_at_slot',
-        mock_get_shard_committees_at_slot
+        'get_crosslink_committees_at_slot',
+        mock_get_crosslink_committees_at_slot
     )
     if success:
         proposer_index = get_beacon_proposer_index(
@@ -535,7 +535,7 @@ def test_get_attestation_participants(
         sample_state):
     from eth2.beacon import helpers
 
-    def mock_get_shard_committees_at_slot(state,
+    def mock_get_crosslink_committees_at_slot(state,
                                           slot,
                                           epoch_length):
         return (
@@ -548,8 +548,8 @@ def test_get_attestation_participants(
 
     monkeypatch.setattr(
         helpers,
-        'get_shard_committees_at_slot',
-        mock_get_shard_committees_at_slot
+        'get_crosslink_committees_at_slot',
+        mock_get_crosslink_committees_at_slot
     )
 
     if isinstance(expected, Exception):

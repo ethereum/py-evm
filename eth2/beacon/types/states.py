@@ -36,7 +36,7 @@ from .candidate_pow_receipt_root_records import CandidatePoWReceiptRootRecord
 from .custody_challenges import CustodyChallenge
 from .crosslink_records import CrosslinkRecord
 from .fork_data import ForkData
-from .shard_committees import ShardCommittee
+from .crosslink_committees import ShardCommittee
 from .shard_reassignment_records import ShardReassignmentRecord
 from .validator_records import ValidatorRecord
 
@@ -61,7 +61,7 @@ class BeaconState(rlp.Serializable):
         # Randomness and committees
         ('latest_randao_mixes', CountableList(hash32)),
         ('latest_vdf_outputs', CountableList(hash32)),
-        ('shard_committees_at_slots', CountableList(CountableList((ShardCommittee)))),
+        ('crosslink_committees_at_slots', CountableList(CountableList((ShardCommittee)))),
         ('persistent_committees', CountableList(CountableList(uint24))),
         ('persistent_committee_reassignments', CountableList(ShardReassignmentRecord)),
 
@@ -104,7 +104,7 @@ class BeaconState(rlp.Serializable):
             validator_balances: Sequence[Gwei]=(),
             latest_randao_mixes: Sequence[Hash32]=(),
             latest_vdf_outputs: Sequence[Hash32]=(),
-            shard_committees_at_slots: Sequence[Sequence[ShardCommittee]]=(),
+            crosslink_committees_at_slots: Sequence[Sequence[ShardCommittee]]=(),
             persistent_committees: Sequence[Sequence[ValidatorIndex]]=(),
             persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=(),
             custody_challenges: Sequence[CustodyChallenge]=(),
@@ -133,7 +133,7 @@ class BeaconState(rlp.Serializable):
             # Randomness and committees
             latest_randao_mixes=latest_randao_mixes,
             latest_vdf_outputs=latest_vdf_outputs,
-            shard_committees_at_slots=shard_committees_at_slots,
+            crosslink_committees_at_slots=crosslink_committees_at_slots,
             persistent_committees=persistent_committees,
             persistent_committee_reassignments=persistent_committee_reassignments,
             # Proof of Custody
