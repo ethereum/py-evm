@@ -319,7 +319,7 @@ class BeaconChain(BaseBeaconChain):
 
     def ensure_block(self, block: BaseBeaconBlock=None) -> BaseBeaconBlock:
         """
-        Return ``block`` if it is not ``None``, otherwise return the block
+        Return ``block`` if it is not ``None``, otherwise return a new child of
         of the canonical head.
         """
         if block is None:
@@ -356,7 +356,7 @@ class BeaconChain(BaseBeaconChain):
     def import_block(
             self,
             block: BaseBeaconBlock,
-            perform_validation: bool=True
+            perform_validation: bool=True,
     ) -> Tuple[BaseBeaconBlock, Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         """
         Import a complete block and returns a 3-tuple
@@ -379,10 +379,10 @@ class BeaconChain(BaseBeaconChain):
             )
         base_block_for_import = self.create_block_from_parent(
             parent_block,
-            FromBlockParams(slot=None)
+            FromBlockParams(slot=None),
         )
         state, imported_block = self.get_state_machine(
-            base_block_for_import
+            base_block_for_import,
         ).import_block(block)
 
         # TODO: Now it just persit all state. Should design how to clean up the old state.
