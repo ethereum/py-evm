@@ -38,7 +38,8 @@ def create_mock_signed_attestations_at_slot(config,
         for crosslink_committee in shard_and_committees_at_slot:
             # have 0th committee member sign
             voting_committee_indices = [0]
-            latest_crosslink_root = state.latest_crosslinks[crosslink_committee.shard].shard_block_root
+            latest_crosslink_root = state.latest_crosslinks[
+                crosslink_committee.shard].shard_block_root
 
             assert len(crosslink_committee.committee) > 0
             attestation_data = AttestationData(**sample_attestation_data_params).copy(

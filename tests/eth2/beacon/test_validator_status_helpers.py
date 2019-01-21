@@ -266,8 +266,8 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
     from eth2.beacon import helpers
 
     def mock_get_crosslink_committees_at_slot(state,
-                                          slot,
-                                          epoch_length):
+                                              slot,
+                                              epoch_length):
         return (
             CrosslinkCommittee(
                 shard=0,
@@ -342,8 +342,8 @@ def test_penalize_validator(monkeypatch,
     from eth2.beacon import helpers
 
     def mock_get_crosslink_committees_at_slot(state,
-                                          slot,
-                                          epoch_length):
+                                              slot,
+                                              epoch_length):
         return (
             CrosslinkCommittee(
                 shard=0,

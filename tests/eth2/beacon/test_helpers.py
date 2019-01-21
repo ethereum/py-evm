@@ -72,8 +72,8 @@ def sample_state(sample_beacon_state_params):
 
 
 def get_sample_crosslink_committees_at_slots(num_slot,
-                                         num_crosslink_committee_per_slot,
-                                         sample_crosslink_committee_params):
+                                             num_crosslink_committee_per_slot,
+                                             sample_crosslink_committee_params):
 
     return tuple(
         [
@@ -356,8 +356,8 @@ def test_get_block_committees_info(monkeypatch,
     from eth2.beacon import helpers
 
     def mock_get_crosslink_committees_at_slot(state,
-                                          slot,
-                                          epoch_length):
+                                              slot,
+                                              epoch_length):
         return (
             CrosslinkCommittee(
                 shard=1,
@@ -433,8 +433,8 @@ def test_get_beacon_proposer_index(
     from eth2.beacon import helpers
 
     def mock_get_crosslink_committees_at_slot(state,
-                                          slot,
-                                          epoch_length):
+                                              slot,
+                                              epoch_length):
         return (
             CrosslinkCommittee(
                 shard=1,
@@ -536,8 +536,8 @@ def test_get_attestation_participants(
     from eth2.beacon import helpers
 
     def mock_get_crosslink_committees_at_slot(state,
-                                          slot,
-                                          epoch_length):
+                                              slot,
+                                              epoch_length):
         return (
             CrosslinkCommittee(
                 shard=0,
