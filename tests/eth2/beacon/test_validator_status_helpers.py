@@ -15,7 +15,7 @@ from eth2.beacon.enums import (
 from eth2.beacon.helpers import (
     get_beacon_proposer_index,
 )
-from eth2.beacon.types.crosslink_committees import ShardCommittee
+from eth2.beacon.types.crosslink_committees import CrosslinkCommittee
 from eth2.beacon.types.validator_registry_delta_block import ValidatorRegistryDeltaBlock
 from eth2.beacon.validator_status_helpers import (
     _settle_penality_to_validator_and_whistleblower,
@@ -269,7 +269,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
                                           slot,
                                           epoch_length):
         return (
-            ShardCommittee(
+            CrosslinkCommittee(
                 shard=0,
                 committee=committee,
                 total_validator_count=num_validators,
@@ -345,7 +345,7 @@ def test_penalize_validator(monkeypatch,
                                           slot,
                                           epoch_length):
         return (
-            ShardCommittee(
+            CrosslinkCommittee(
                 shard=0,
                 committee=committee,
                 total_validator_count=num_validators,

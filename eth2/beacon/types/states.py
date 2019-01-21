@@ -36,7 +36,7 @@ from .candidate_pow_receipt_root_records import CandidatePoWReceiptRootRecord
 from .custody_challenges import CustodyChallenge
 from .crosslink_records import CrosslinkRecord
 from .fork_data import ForkData
-from .crosslink_committees import ShardCommittee
+from .crosslink_committees import CrosslinkCommittee
 from .shard_reassignment_records import ShardReassignmentRecord
 from .validator_records import ValidatorRecord
 
@@ -61,7 +61,7 @@ class BeaconState(rlp.Serializable):
         # Randomness and committees
         ('latest_randao_mixes', CountableList(hash32)),
         ('latest_vdf_outputs', CountableList(hash32)),
-        ('crosslink_committees_at_slots', CountableList(CountableList((ShardCommittee)))),
+        ('crosslink_committees_at_slots', CountableList(CountableList((CrosslinkCommittee)))),
         ('persistent_committees', CountableList(CountableList(uint24))),
         ('persistent_committee_reassignments', CountableList(ShardReassignmentRecord)),
 
@@ -104,7 +104,7 @@ class BeaconState(rlp.Serializable):
             validator_balances: Sequence[Gwei]=(),
             latest_randao_mixes: Sequence[Hash32]=(),
             latest_vdf_outputs: Sequence[Hash32]=(),
-            crosslink_committees_at_slots: Sequence[Sequence[ShardCommittee]]=(),
+            crosslink_committees_at_slots: Sequence[Sequence[CrosslinkCommittee]]=(),
             persistent_committees: Sequence[Sequence[ValidatorIndex]]=(),
             persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=(),
             custody_challenges: Sequence[CustodyChallenge]=(),

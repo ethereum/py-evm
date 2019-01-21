@@ -31,7 +31,7 @@ from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
 from eth2.beacon.types.fork_data import ForkData
-from eth2.beacon.types.crosslink_committees import ShardCommittee
+from eth2.beacon.types.crosslink_committees import CrosslinkCommittee
 from eth2.beacon.types.slashable_vote_data import SlashableVoteData
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
@@ -78,7 +78,7 @@ def get_sample_crosslink_committees_at_slots(num_slot,
     return tuple(
         [
             [
-                ShardCommittee(**sample_crosslink_committee_params)
+                CrosslinkCommittee(**sample_crosslink_committee_params)
                 for _ in range(num_crosslink_committee_per_slot)
             ]
             for _ in range(num_slot)
@@ -359,7 +359,7 @@ def test_get_block_committees_info(monkeypatch,
                                           slot,
                                           epoch_length):
         return (
-            ShardCommittee(
+            CrosslinkCommittee(
                 shard=1,
                 committee=committee,
                 total_validator_count=num_validators,
@@ -436,7 +436,7 @@ def test_get_beacon_proposer_index(
                                           slot,
                                           epoch_length):
         return (
-            ShardCommittee(
+            CrosslinkCommittee(
                 shard=1,
                 committee=committee,
                 total_validator_count=num_validators,
@@ -539,7 +539,7 @@ def test_get_attestation_participants(
                                           slot,
                                           epoch_length):
         return (
-            ShardCommittee(
+            CrosslinkCommittee(
                 shard=0,
                 committee=committee,
                 total_validator_count=num_validators,

@@ -38,7 +38,7 @@ from eth2.beacon.enums import (
     SignatureDomain,
 )
 from eth2.beacon.types.crosslink_committees import (
-    ShardCommittee,
+    CrosslinkCommittee,
 )
 from eth2.beacon.typing import (
     Bitfield,
@@ -112,9 +112,9 @@ def get_block_root(
 @to_tuple
 def _get_crosslink_committees_at_slot(
         state_slot: SlotNumber,
-        crosslink_committees_at_slots: Sequence[Sequence[ShardCommittee]],
+        crosslink_committees_at_slots: Sequence[Sequence[CrosslinkCommittee]],
         slot: SlotNumber,
-        epoch_length: int) -> Iterable[ShardCommittee]:
+        epoch_length: int) -> Iterable[CrosslinkCommittee]:
 
     earliest_slot_in_array = state_slot - (state_slot % epoch_length) - epoch_length
 
@@ -142,9 +142,9 @@ def _get_crosslink_committees_at_slot(
 
 def get_crosslink_committees_at_slot(state: 'BeaconState',
                                  slot: SlotNumber,
-                                 epoch_length: int) -> Tuple[ShardCommittee]:
+                                 epoch_length: int) -> Tuple[CrosslinkCommittee]:
     """
-    Return the ``ShardCommittee`` for the ``slot``.
+    Return the ``CrosslinkCommittee`` for the ``slot``.
     """
     return _get_crosslink_committees_at_slot(
         state_slot=state.slot,
@@ -173,12 +173,12 @@ def _get_crosslinks_committees_for_shard_indices(
         shard_indices: Sequence[Sequence[ValidatorIndex]],
         start_shard: ShardNumber,
         total_validator_count: int,
-        shard_count: int) -> Iterable[ShardCommittee]:
+        shard_count: int) -> Iterable[CrosslinkCommittee]:
     """
-    Return filled [ShardCommittee] tuple.
+    Return filled [CrosslinkCommittee] tuple.
     """
     for index, indices in enumerate(shard_indices):
-        yield ShardCommittee(
+        yield CrosslinkCommittee(
             shard=ShardNumber((start_shard + index) % shard_count),
             committee=indices,
             total_validator_count=total_validator_count,
@@ -193,16 +193,16 @@ def get_shuffling(*,
                   slot: SlotNumber,
                   epoch_length: int,
                   target_committee_size: int,
-                  shard_count: int) -> Iterable[Tuple[ShardCommittee]]:
+                  shard_count: int) -> Iterable[Tuple[CrosslinkCommittee]]:
     """
-    Return shuffled ``crosslink_committee_for_slots`` (``[[ShardCommittee]]``) of
+    Return shuffled ``crosslink_committee_for_slots`` (``[[CrosslinkCommittee]]``) of
     the given active ``validators`` using ``seed`` as entropy.
 
     Two-dimensional:
     The first layer is ``slot`` number
-        ``crosslink_committee_for_slots[slot] -> [ShardCommittee]``
+        ``crosslink_committee_for_slots[slot] -> [CrosslinkCommittee]``
     The second layer is ``shard_indices`` number
-        ``crosslink_committee_for_slots[slot][shard_indices] -> ShardCommittee``
+        ``crosslink_committee_for_slots[slot][shard_indices] -> CrosslinkCommittee``
 
     Example:
         validators:
@@ -221,18 +221,18 @@ def get_shuffling(*,
             [
                 # slot 0
                 [
-                    ShardCommittee(shard_id=0, committee=[6, 0]),
-                    ShardCommittee(shard_id=1, committee=[2, 12, 14]),
+                    CrosslinkCommittee(shard_id=0, committee=[6, 0]),
+                    CrosslinkCommittee(shard_id=1, committee=[2, 12, 14]),
                 ],
                 # slot 1
                 [
-                    ShardCommittee(shard_id=2, committee=[8, 10]),
-                    ShardCommittee(shard_id=3, committee=[4, 9, 1]),
+                    CrosslinkCommittee(shard_id=2, committee=[8, 10]),
+                    CrosslinkCommittee(shard_id=3, committee=[4, 9, 1]),
                 ],
                 # slot 2
                 [
-                    ShardCommittee(shard_id=4, committee=[5, 13, 15]),
-                    ShardCommittee(shard_id=5, committee=[7, 3, 11]),
+                    CrosslinkCommittee(shard_id=4, committee=[5, 13, 15]),
+                    CrosslinkCommittee(shard_id=5, committee=[7, 3, 11]),
                 ],
             ]
     """
