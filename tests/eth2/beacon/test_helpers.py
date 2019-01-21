@@ -877,6 +877,30 @@ def test_verify_slashable_vote_data_signature(num_validators,
     invalid_votes = SlashableVoteData(**invalid_params)
     assert not verify_slashable_vote_data_signature(state, invalid_votes)
 
+    # Test that slashable data is still valid after fork
+    # Slashable data slot = 10, fork slot = 15, current slot = 20
+    past_fork_data_params = {
+        'pre_fork_version': 0,
+        'post_fork_version': 1,
+        'fork_slot': 15,
+    }
+    future_state = state.copy(
+        fork_data=ForkData(**past_fork_data_params),
+        # TODO: Need to follow proper state transition rule instead of directly setting
+        # slot number.
+        slot=20,
+    )
+
+    valid_params = _correct_slashable_vote_data_params(
+        num_validators,
+        sample_slashable_vote_data_params,
+        messages,
+        privkeys,
+        future_state.fork_data,
+    )
+    valid_votes = SlashableVoteData(**valid_params)
+    assert verify_slashable_vote_data_signature(future_state, valid_votes)
+
 
 def _run_verify_slashable_vote(params, state, max_casper_votes, should_succeed):
     votes = SlashableVoteData(**params)
