@@ -33,6 +33,9 @@ from trinity.constants import (
     SYNC_FULL,
     SYNC_LIGHT,
 )
+from trinity.events import (
+    request_shutdown,
+)
 from trinity.extensibility.events import (
     ResourceAvailableEvent,
 )
@@ -57,6 +60,14 @@ from trinity.sync.light.chain import (
 
 class BaseSyncStrategy(ABC):
 
+    @property
+    def shutdown_node_on_halt(self) -> bool:
+        """
+        Return ``False`` if the `sync` is allowed to complete without causing
+        the node to fully shut down.
+        """
+        return True
+
     @classmethod
     @abstractmethod
     def get_sync_mode(cls) -> str:
@@ -73,6 +84,10 @@ class BaseSyncStrategy(ABC):
 
 
 class NoopSyncStrategy(BaseSyncStrategy):
+
+    @property
+    def shutdown_node_on_halt(self) -> bool:
+        return False
 
     @classmethod
     def get_sync_mode(cls) -> str:
@@ -230,12 +245,17 @@ class SyncerPlugin(BaseAsyncStopPlugin):
             self.start()
 
     def do_start(self) -> None:
-        asyncio.ensure_future(
-            self.active_strategy.sync(
-                self.logger,
-                self.chain,
-                self.db_manager,
-                self.peer_pool,
-                self.cancel_token
-            )
+        asyncio.ensure_future(self.handle_sync())
+
+    async def handle_sync(self) -> None:
+        await self.active_strategy.sync(
+            self.logger,
+            self.chain,
+            self.db_manager,
+            self.peer_pool,
+            self.cancel_token
         )
+
+        if self.active_strategy.shutdown_node_on_halt:
+            self.logger.error("Sync ended unexpectedly. Shutting down trinity")
+            request_shutdown(self.event_bus, "Sync ended unexpectedly")
