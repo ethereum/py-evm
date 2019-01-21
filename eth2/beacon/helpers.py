@@ -457,7 +457,7 @@ def verify_slashable_vote_data_signature(state: 'BeaconState',
 
     signature = vote_data.aggregate_signature
 
-    domain = get_domain(state.fork_data, state.slot, SignatureDomain.DOMAIN_ATTESTATION)
+    domain = get_domain(state.fork_data, vote_data.data.slot, SignatureDomain.DOMAIN_ATTESTATION)
 
     return bls.verify_multiple(
         pubkeys=pubkeys,
