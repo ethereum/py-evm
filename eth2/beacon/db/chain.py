@@ -84,6 +84,10 @@ class BaseBeaconChainDB(ABC):
         pass
 
     @abstractmethod
+    def get_finalized_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+        pass
+
+    @abstractmethod
     def get_block_by_root(self,
                           block_root: Hash32,
                           block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
@@ -243,6 +247,22 @@ class BeaconChainDB(BaseBeaconChainDB):
             raise CanonicalHeadNotFound("No canonical head set for this chain")
         return cls._get_block_by_root(db, Hash32(canonical_head_root), block_class)
 
+    def get_finalized_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+        """
+        Return the finalized head.
+        """
+        return self._get_finalized_head(self.db, block_class)
+
+    @classmethod
+    def _get_finalized_head(cls,
+                            db: BaseDB,
+                            block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+        try:
+            finalized_head_root = db[SchemaV1.make_finalized_head_root_lookup_key()]
+        except KeyError:
+            raise CanonicalHeadNotFound("No finalized head set for this chain")
+        return cls._get_block_by_root(db, Hash32(finalized_head_root), block_class)
+
     def get_block_by_root(self,
                           block_root: Hash32,
                           block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
@@ -334,6 +354,11 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         if is_genesis:
             score = 0
+            # TODO: this should probably be done as part of the fork choice rule processing
+            db.set(
+                SchemaV1.make_finalized_head_root_lookup_key(),
+                first_block.hash,
+            )
         else:
             score = cls._get_score(db, first_block.parent_root)
 
