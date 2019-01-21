@@ -130,3 +130,36 @@ def test_chaindb_get_finalized_head(chaindb, block):
     genesis = block.copy(parent_root=GENESIS_PARENT_HASH)
     chaindb.persist_block(genesis, BeaconBlock)
     assert chaindb.get_finalized_head(BeaconBlock) == genesis
+
+
+def test_chaindb_get_canonical_head(chaindb, block):
+    chaindb.persist_block(block, block.__class__)
+
+    canonical_head_root = chaindb.get_canonical_head_root()
+    assert canonical_head_root == block.root
+
+    result_block = chaindb.get_canonical_head(block.__class__)
+    assert result_block == block
+
+    block_2 = block.copy(
+        slot=block.slot + 1,
+        parent_root=block.root,
+    )
+    chaindb.persist_block(block_2, block_2.__class__)
+    result_block = chaindb.get_canonical_head(block.__class__)
+    assert result_block == block_2
+
+    block_3 = block.copy(
+        slot=block_2.slot + 1,
+        parent_root=block_2.root,
+    )
+    chaindb.persist_block(block_3, block_3.__class__)
+    result_block = chaindb.get_canonical_head(block.__class__)
+    assert result_block == block_3
+
+
+def test_get_slot_by_root(chaindb, block):
+    chaindb.persist_block(block, block.__class__)
+    block_slot = block.slot
+    result_slot = chaindb.get_slot_by_root(block.root)
+    assert result_slot == block_slot

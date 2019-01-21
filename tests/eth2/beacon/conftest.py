@@ -40,13 +40,31 @@ from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.proposal_signed_data import ProposalSignedData
 from eth2.beacon.types.slashable_vote_data import SlashableVoteData
 
+
+from eth2.beacon.constants import (
+    EMPTY_SIGNATURE,
+)
+from eth2.beacon.helpers import (
+    get_beacon_proposer_index,
+)
 from eth2.beacon.types.blocks import (
     BeaconBlockBody,
 )
-from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 from eth2.beacon.types.fork_data import (
     ForkData,
 )
+from eth2.beacon.typing import (
+    FromBlockParams,
+)
+from eth2.beacon.state_machines.configs import BeaconConfig
+from eth2.beacon.state_machines.forks.serenity import (
+    SerenityStateMachine,
+)
+from eth2.beacon.state_machines.forks.serenity.blocks import (
+    SerenityBeaconBlock,
+)
+from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
+
 
 from tests.eth2.beacon.helpers import (
     mock_validator_record,
@@ -625,6 +643,19 @@ def genesis_state(sample_beacon_state_params,
 
 
 @pytest.fixture
+def genesis_block(genesis_state, genesis_slot):
+    return SerenityBeaconBlock(
+        slot=genesis_slot,
+        parent_root=ZERO_HASH32,
+        state_root=genesis_state.root,
+        randao_reveal=ZERO_HASH32,
+        eth1_data=Eth1Data.create_empty_data(),
+        signature=EMPTY_SIGNATURE,
+        body=BeaconBlockBody.create_empty_body(),
+    )
+
+
+@pytest.fixture
 def initial_validators(init_validator_pubkeys,
                        init_randao,
                        max_deposit):
@@ -662,14 +693,100 @@ def genesis_balances(init_validator_pubkeys, max_deposit):
 
 
 #
+# StateMachine
+#
+
+@pytest.fixture
+def config(
+        shard_count,
+        target_committee_size,
+        ejection_balance,
+        max_balance_churn_quotient,
+        beacon_chain_shard_number,
+        max_casper_votes,
+        latest_block_roots_length,
+        latest_randao_mixes_length,
+        latest_penalized_exit_length,
+        deposit_contract_address,
+        deposit_contract_tree_depth,
+        min_deposit,
+        max_deposit,
+        genesis_fork_version,
+        genesis_slot,
+        bls_withdrawal_prefix_byte,
+        slot_duration,
+        min_attestation_inclusion_delay,
+        epoch_length,
+        seed_lookahead,
+        entry_exit_delay,
+        eth1_data_voting_period,
+        min_validator_withdrawal_time,
+        base_reward_quotient,
+        whistleblower_reward_quotient,
+        includer_reward_quotient,
+        inactivity_penalty_quotient,
+        max_proposer_slashings,
+        max_casper_slashings,
+        max_attestations,
+        max_deposits,
+        max_exits
+):
+    return BeaconConfig(
+        SHARD_COUNT=shard_count,
+        TARGET_COMMITTEE_SIZE=target_committee_size,
+        EJECTION_BALANCE=ejection_balance,
+        MAX_BALANCE_CHURN_QUOTIENT=max_balance_churn_quotient,
+        BEACON_CHAIN_SHARD_NUMBER=beacon_chain_shard_number,
+        MAX_CASPER_VOTES=max_casper_votes,
+        LATEST_BLOCK_ROOTS_LENGTH=latest_block_roots_length,
+        LATEST_RANDAO_MIXES_LENGTH=latest_randao_mixes_length,
+        LATEST_PENALIZED_EXIT_LENGTH=latest_penalized_exit_length,
+        DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,
+        DEPOSIT_CONTRACT_TREE_DEPTH=deposit_contract_tree_depth,
+        MIN_DEPOSIT=min_deposit,
+        MAX_DEPOSIT=max_deposit,
+        GENESIS_FORK_VERSION=genesis_fork_version,
+        GENESIS_SLOT=genesis_slot,
+        BLS_WITHDRAWAL_PREFIX_BYTE=bls_withdrawal_prefix_byte,
+        SLOT_DURATION=slot_duration,
+        MIN_ATTESTATION_INCLUSION_DELAY=min_attestation_inclusion_delay,
+        EPOCH_LENGTH=epoch_length,
+        SEED_LOOKAHEAD=seed_lookahead,
+        ENTRY_EXIT_DELAY=entry_exit_delay,
+        ETH1_DATA_VOTING_PERIOD=eth1_data_voting_period,
+        MIN_VALIDATOR_WITHDRAWAL_TIME=min_validator_withdrawal_time,
+        BASE_REWARD_QUOTIENT=base_reward_quotient,
+        WHISTLEBLOWER_REWARD_QUOTIENT=whistleblower_reward_quotient,
+        INCLUDER_REWARD_QUOTIENT=includer_reward_quotient,
+        INACTIVITY_PENALTY_QUOTIENT=inactivity_penalty_quotient,
+        MAX_PROPOSER_SLASHINGS=max_proposer_slashings,
+        MAX_CASPER_SLASHINGS=max_casper_slashings,
+        MAX_ATTESTATIONS=max_attestations,
+        MAX_DEPOSITS=max_deposits,
+        MAX_EXITS=max_exits,
+    )
+
+
+#
+# State machine
+#
+@pytest.fixture
+def fixture_sm_class(config):
+    return SerenityStateMachine.configure(
+        __name__='SerenityStateMachineForTesting',
+        config=config,
+    )
+
+
+#
 # Create mock consensus objects
 #
 @pytest.fixture
 def create_mock_signed_attestation(privkeys):
-    def create_mock_signed_attestation(state,
-                                       crosslink_committee,
-                                       voting_committee_indices,
-                                       attestation_data):
+    def _create_mock_signed_attestation(state,
+                                        crosslink_committee,
+                                        voting_committee_indices,
+                                        attestation_data):
         message = hash_eth2(
             rlp.encode(attestation_data) +
             (0).to_bytes(1, "big")
@@ -704,4 +821,51 @@ def create_mock_signed_attestation(privkeys):
             aggregate_signature=aggregate_signature,
         )
 
-    return create_mock_signed_attestation
+    return _create_mock_signed_attestation
+
+
+@pytest.fixture
+def create_mock_block(privkeys, pubkeys):
+    def _create_mock_block(state, block_class, parent_block, config, slot=None):
+        if slot is None:
+            slot = state.slot
+
+        # Prepare block
+        block = block_class.from_parent(
+            parent_block=parent_block,
+            block_params=FromBlockParams(slot=slot),
+        )
+
+        # Sign block
+        beacon_proposer_index = get_beacon_proposer_index(
+            state,
+            block.slot,
+            config.EPOCH_LENGTH,
+        )
+
+        # Get privkey
+        index_in_privkeys = pubkeys.index(
+            state.validator_registry[beacon_proposer_index].pubkey
+        )
+        beacon_proposer_privkey = privkeys[index_in_privkeys]
+
+        # Sign the block
+        empty_signature_block_root = block.block_without_signature_root
+        proposal_root = ProposalSignedData(
+            block.slot,
+            config.BEACON_CHAIN_SHARD_NUMBER,
+            empty_signature_block_root,
+        ).root
+
+        # Finally
+        block = block.copy(
+            state_root=state.root,
+            signature=bls.sign(
+                message=proposal_root,
+                privkey=beacon_proposer_privkey,
+                domain=SignatureDomain.DOMAIN_PROPOSAL,
+            ),
+        )
+        return block
+
+    return _create_mock_block

@@ -18,7 +18,9 @@ from eth._utils.datatypes import (
 from eth2.beacon.db.chain import BaseBeaconChainDB
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
-
+from eth2.beacon.typing import (
+    FromBlockParams,
+)
 
 from .state_transitions import (
     BaseStateTransition,
@@ -39,6 +41,12 @@ class BaseBeaconStateMachine(Configurable, ABC):
     block_class = None  # type: Type[BaseBeaconBlock]
     state_class = None  # type: Type[BeaconState]
     state_transition_class = None  # type: Type[BaseStateTransition]
+
+    @abstractmethod
+    def __init__(self,
+                 chaindb: BaseBeaconChainDB,
+                 block_root: Hash32) -> None:
+        pass
 
     @classmethod
     @abstractmethod
@@ -67,14 +75,23 @@ class BaseBeaconStateMachine(Configurable, ABC):
     def import_block(self, block: BaseBeaconBlock) -> Tuple[BeaconState, BaseBeaconBlock]:
         pass
 
+    @staticmethod
+    @abstractmethod
+    def create_block_from_parent(parent_block: BaseBeaconBlock,
+                                 block_params: FromBlockParams) -> BaseBeaconBlock:
+        pass
+
 
 class BeaconStateMachine(BaseBeaconStateMachine):
     def __init__(self,
                  chaindb: BaseBeaconChainDB,
-                 block_root: Hash32,
-                 block_class: Type[BaseBeaconBlock]) -> None:
+                 block: BaseBeaconBlock,
+                 parent_block_class: Type[BaseBeaconBlock]) -> None:
         self.chaindb = chaindb
-        self.block = self.chaindb.get_block_by_root(block_root, block_class)
+        self.block = self.get_block_class().from_parent(
+            parent_block=self.chaindb.get_block_by_root(block.parent_root, parent_block_class),
+            block_params=FromBlockParams(slot=block.slot),
+        )
 
     @property
     def state(self) -> BeaconState:

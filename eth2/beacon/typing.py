@@ -1,4 +1,9 @@
-from typing import NewType, Tuple
+from typing import (
+    NamedTuple,
+    NewType,
+    Tuple,
+)
+
 
 SlotNumber = NewType('SlotNumber', int)  # uint64
 ShardNumber = NewType('ShardNumber', int)  # uint64
@@ -11,9 +16,12 @@ Bitfield = NewType('Bitfield', bytes)  # uint64
 ValidatorIndex = NewType('ValidatorIndex', int)  # uint24
 CommitteeIndex = NewType('CommitteeIndex', int)
 
-
 Ether = NewType('Ether', int)  # uint64
 Gwei = NewType('Gwei', int)  # uint64
 
 Timestamp = NewType('Timestamp', int)
 Second = NewType('Second', int)
+
+
+class FromBlockParams(NamedTuple):
+    slot: SlotNumber = None
