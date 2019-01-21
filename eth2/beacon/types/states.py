@@ -62,8 +62,7 @@ class BeaconState(rlp.Serializable):
         # Randomness and committees
         ('latest_randao_mixes', CountableList(hash32)),
         ('latest_vdf_outputs', CountableList(hash32)),
-    
-        # TODO Remove `shard_committees_at_slots`, `persistent_committees`
+        # TODO Remove `crosslink_committees_at_slots`, `persistent_committees`
         # `persistent_committee_reassignments`
         ('crosslink_committees_at_slots', CountableList(CountableList((CrosslinkCommittee)))),
         ('persistent_committees', CountableList(CountableList(uint24))),
