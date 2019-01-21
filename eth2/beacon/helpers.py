@@ -15,6 +15,10 @@ from eth_typing import (
     Hash32,
 )
 
+from eth._utils.numeric import (
+    clamp,
+)
+
 from eth2._utils.bitfield import (
     get_bitfield_length,
     has_voted,
@@ -120,12 +124,10 @@ def get_committee_count_per_slot(active_validator_count: int,
                                  shard_count: int,
                                  epoch_length: int,
                                  target_committee_size: int) -> int:
-    return max(
+    return clamp(
         1,
-        min(
-            shard_count // epoch_length,
-            active_validator_count // epoch_length // target_committee_size,
-        )
+        shard_count // epoch_length,
+        active_validator_count // epoch_length // target_committee_size,
     )
 
 
@@ -239,7 +241,7 @@ def get_crosslink_committees_at_slot(
         target_committee_size: int,
         shard_count: int) -> Iterable[Tuple[Iterable[ValidatorIndex], ShardNumber]]:
     """
-    Return the ``CrosslinkCommittee`` for the ``slot``.
+    Return the list of ``(committee, shard)`` tuples for the ``slot``.
     """
     validate_slot_for_state_slot(
         state_slot=state.slot,
@@ -287,12 +289,11 @@ def get_crosslink_committees_at_slot(
             shard_count=shard_count,
         )
 
-    for i in range(committees_per_slot):
-        index = committees_per_slot * offset + i
-        committee = shuffling[index]
+    for index in range(committees_per_slot):
+        committee = shuffling[committees_per_slot * offset + index]
         yield (
             committee,
-            ShardNumber((slot_start_shard + i) % shard_count),
+            ShardNumber((slot_start_shard + index) % shard_count),
         )
 
 
@@ -329,16 +330,13 @@ def get_beacon_proposer_index(state: 'BeaconState',
     return first_committee[slot % len(first_committee)]
 
 
-#
-# Bitfields
-#
-@to_tuple
-def _get_committees_for_shard(
+def _get_committee_for_shard(
         crosslink_committees: Sequence[Tuple[Sequence[ValidatorIndex], ShardNumber]],
-        shard: ShardNumber) -> Iterable[Iterable[ValidatorIndex]]:
+        shard: ShardNumber) -> Iterable[ValidatorIndex]:
     for committee, committee_shard in crosslink_committees:
         if committee_shard == shard:
-            yield committee
+            return committee
+    return None
 
 
 @to_tuple
@@ -349,8 +347,7 @@ def get_attestation_participants(state: 'BeaconState',
                                  target_committee_size: int,
                                  shard_count: int) -> Iterable[ValidatorIndex]:
     """
-    Return the participants' indices at the ``slot`` of shard ``shard``
-    from ``participation_bitfield``.
+    Return the participant indices at for the ``attestation_data`` and ``aggregation_bitfield``.
     """
     # Find the committee in the list with the desired shard
     crosslink_committees = get_crosslink_committees_at_slot(
@@ -361,23 +358,21 @@ def get_attestation_participants(state: 'BeaconState',
         shard_count=shard_count,
     )
 
-    if attestation_data.shard not in [shard for _, shard in crosslink_committees]:
+    if attestation_data.shard not in set([shard for _, shard in crosslink_committees]):
         raise ValidationError(
             "attestation_data.shard ({}) is not in crosslink_committees".format(
                 attestation_data.shard,
             )
         )
-    # Filter by shard
-    committees_for_shard = _get_committees_for_shard(
-        crosslink_committees,
-        attestation_data.shard,
-    )
 
     try:
-        committee = committees_for_shard[0]
+        # Filter by shard
+        committee = tuple(
+            _get_committee_for_shard(crosslink_committees, attestation_data.shard)
+        )
     except IndexError:
         raise ValidationError(
-            "committees_for_shard (shard: {}) should not be empty.".format(
+            "committee for shard={} should not be empty.".format(
                 attestation_data.shard,
             )
         )
@@ -386,7 +381,7 @@ def get_attestation_participants(state: 'BeaconState',
     if len(aggregation_bitfield) != get_bitfield_length(committee_size):
         raise ValidationError(
             'Invalid bitfield length,'
-            "\texpected: %s, found: %s" % (
+            "\texpected: {}, found: {}".format(
                 get_bitfield_length(committee_size),
                 len(attestation_data),
             )

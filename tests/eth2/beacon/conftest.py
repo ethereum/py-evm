@@ -784,12 +784,12 @@ def fixture_sm_class(config):
 # Create mock consensus objects
 #
 @pytest.fixture
-def create_mock_signed_attestation(privkeys):
+def create_mock_signed_attestation(keymap):
     def _create_mock_signed_attestation(state,
                                         crosslink_committee,
                                         voting_committee_indices,
                                         attestation_data):
-        committee, shard = crosslink_committee
+        committee, _ = crosslink_committee
         message = hash_eth2(
             rlp.encode(attestation_data) +
             (0).to_bytes(1, "big")
@@ -797,8 +797,12 @@ def create_mock_signed_attestation(privkeys):
         # participants sign message
         signatures = [
             bls.sign(
-                message,
-                privkeys[committee[committee_index]],
+                message=message,
+                privkey=keymap[
+                    state.validator_registry[
+                        committee[committee_index]
+                    ].pubkey
+                ],
                 domain=get_domain(
                     fork_data=state.fork_data,
                     slot=attestation_data.slot,

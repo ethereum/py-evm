@@ -33,6 +33,7 @@ def validate_slot_for_state_slot(
                 slot + epoch_length,
             )
         )
+
     if slot >= state_epoch_slot + epoch_length:
         raise ValidationError(
             "slot ({}) should be less than "
