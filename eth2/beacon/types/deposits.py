@@ -20,24 +20,28 @@ from .deposit_data import DepositData
 
 class Deposit(rlp.Serializable):
     """
-    Note: using RLP until we have standardized serialization format.
+    A :class:`~eth2.beacon.types.deposits.Deposit` contains the data represented by an instance
+    of :class:`~eth2.beacon.types.deposit_data.DepositData`, along with a Merkle proof (``branch``
+    and ``index``) that can be used to verify inclusion in the canonical deposit tree.
+
+    .. note:: using RLP until we have standardized serialization format.
     """
 
     fields = [
-        # Receipt Merkle branch
-        ('merkle_branch', CountableList(hash32)),
-        # Merkle tree index
-        ('merkle_tree_index', uint64),
+        # Merkle branch in the deposit tree
+        ('branch', CountableList(hash32)),
+        # Index in the deposit tree
+        ('index', uint64),
         # Deposit data
         ('deposit_data', DepositData),
     ]
 
     def __init__(self,
-                 merkle_branch: Sequence[Hash32],
-                 merkle_tree_index: int,
+                 branch: Sequence[Hash32],
+                 index: int,
                  deposit_data: DepositData)-> None:
         super().__init__(
-            merkle_branch,
-            merkle_tree_index,
+            branch,
+            index,
             deposit_data,
         )
