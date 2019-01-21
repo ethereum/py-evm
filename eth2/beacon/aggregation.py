@@ -29,14 +29,14 @@ def verify_votes(
 
     vote: (committee_index, sig, public_key)
     """
-    sigs_with_committe_info = tuple(
+    sigs_with_committee_info = tuple(
         (sig, committee_index)
         for (committee_index, sig, public_key)
         in votes
         if bls.verify(message, public_key, sig, domain)
     )
     try:
-        sigs, committee_indices = zip(*sigs_with_committe_info)
+        sigs, committee_indices = zip(*sigs_with_committee_info)
     except ValueError:
         sigs = tuple()
         committee_indices = tuple()
