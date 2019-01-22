@@ -75,6 +75,9 @@ class BeaconState(rlp.Serializable):
         # Finality
         ('previous_justified_slot', uint64),
         ('justified_slot', uint64),
+
+        # Note: justification_bitfield is meant to be defined as an integer type,
+        # so its bit operation in Python and is easier to specify and implement.
         ('justification_bitfield', uint64),
         ('finalized_slot', uint64),
 
