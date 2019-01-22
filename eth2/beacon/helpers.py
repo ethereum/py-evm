@@ -206,33 +206,6 @@ def get_current_epoch_committee_count_per_slot(state: 'BeaconState',
     )
 
 
-def _get_shuffling_and_slot_start_shard(
-        offset: int,
-        committees_per_slot: int,
-        randao_mix: Hash32,
-        validators: 'ValidatorRecord',
-        epoch_calculation_slot: SlotNumber,
-        epoch_start_shard: ShardNumber,
-        epoch_length: int,
-        target_committee_size: int,
-        shard_count: int) -> Tuple[Tuple[Iterable[ValidatorIndex], ...], ShardNumber]:
-
-    shuffling = get_shuffling(
-        seed=randao_mix,
-        validators=validators,
-        slot=epoch_calculation_slot,
-        epoch_length=epoch_length,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
-    )
-    slot_start_shard = (
-        epoch_start_shard +
-        committees_per_slot * offset
-    ) % shard_count
-
-    return (shuffling, ShardNumber(slot_start_shard))
-
-
 @to_tuple
 def get_crosslink_committees_at_slot(
         state: 'BeaconState',
@@ -259,17 +232,10 @@ def get_crosslink_committees_at_slot(
             epoch_length=epoch_length,
             target_committee_size=target_committee_size,
         )
-        shuffling, slot_start_shard = _get_shuffling_and_slot_start_shard(
-            offset=offset,
-            committees_per_slot=committees_per_slot,
-            randao_mix=state.previous_epoch_randao_mix,
-            validators=state.validator,
-            epoch_calculation_slot=state.previous_epoch_calculation_slot,
-            epoch_start_shard=state.previous_epoch_start_shard,
-            epoch_length=epoch_length,
-            target_committee_size=target_committee_size,
-            shard_count=shard_count,
-        )
+
+        seed = state.previous_epoch_randao_mix
+        shuffling_slot = state.previous_epoch_calculation_slot
+        shuffling_start_shard = state.previous_epoch_start_shard
     else:
         committees_per_slot = get_current_epoch_committee_count_per_slot(
             state,
@@ -277,17 +243,23 @@ def get_crosslink_committees_at_slot(
             epoch_length=epoch_length,
             target_committee_size=target_committee_size,
         )
-        shuffling, slot_start_shard = _get_shuffling_and_slot_start_shard(
-            offset=offset,
-            committees_per_slot=committees_per_slot,
-            randao_mix=state.current_epoch_randao_mix,
-            validators=state.validator_registry,
-            epoch_calculation_slot=state.current_epoch_calculation_slot,
-            epoch_start_shard=state.current_epoch_start_shard,
-            epoch_length=epoch_length,
-            target_committee_size=target_committee_size,
-            shard_count=shard_count,
-        )
+        seed = state.current_epoch_randao_mix
+        shuffling_slot = state.current_epoch_calculation_slot
+        shuffling_start_shard = state.current_epoch_start_shard
+
+    offset = slot % epoch_length
+    shuffling = get_shuffling(
+        seed=seed,
+        validators=state.validator_registry,
+        slot=shuffling_slot,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
+    )
+    slot_start_shard = (
+        shuffling_start_shard +
+        committees_per_slot * offset
+    ) % shard_count
 
     for index in range(committees_per_slot):
         committee = shuffling[committees_per_slot * offset + index]

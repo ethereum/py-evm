@@ -39,7 +39,6 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
 from eth2.beacon.helpers import (
     _get_block_root,
-    _get_shuffling_and_slot_start_shard,
     get_active_validator_indices,
     get_attestation_participants,
     get_beacon_proposer_index,
@@ -63,7 +62,6 @@ import eth2._utils.bls as bls
 
 from tests.eth2.beacon.helpers import (
     get_pseudo_chain,
-    mock_validator_record,
 )
 
 
@@ -324,81 +322,29 @@ def test_get_epoch_committee_count_per_slot(monkeypatch,
 
 @pytest.mark.parametrize(
     (
-        'offset,committees_per_slot, randao_mix,'
-        'validators,'
-        'epoch_calculation_slot, epoch_start_shard,'
-        'epoch_length, target_committee_size, shard_count,'
-    ),
-    [
-        (
-            5, 10, b'\x56' * 32,
-            tuple(
-                mock_validator_record(5)
-                for _ in range(10)
-            ),
-            10, 5,
-            20, 5, 100,
-        )
-    ]
-)
-def test_get_shuffling_and_slot_start_shard(offset,
-                                            committees_per_slot,
-                                            randao_mix,
-                                            validators,
-                                            epoch_calculation_slot,
-                                            epoch_start_shard,
-                                            epoch_length,
-                                            target_committee_size,
-                                            shard_count):
-    shuffling, slot_start_shard = _get_shuffling_and_slot_start_shard(
-        offset=offset,
-        committees_per_slot=committees_per_slot,
-        randao_mix=randao_mix,
-        validators=validators,
-        epoch_calculation_slot=epoch_calculation_slot,
-        epoch_start_shard=epoch_start_shard,
-        epoch_length=epoch_length,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
-    )
-    validator_indices_from_shuffling = list(
-        itertools.chain(
-            [
-                validator_index
-                for committee in shuffling
-                for validator_index in committee
-            ]
-        )
-    )
-    assert isdistinct(validator_indices_from_shuffling)
-    validator_indices = [index for index in range(len(validators))]
-    assert sorted(validator_indices_from_shuffling) == sorted(validator_indices)
-
-    assert slot_start_shard == (
-        epoch_start_shard +
-        committees_per_slot * offset
-    ) % shard_count
-
-
-@pytest.mark.parametrize(
-    (
+        'state_epoch_slot,'
         'slot,'
         'epoch_length,'
         'target_committee_size,'
         'shard_count,'
     ),
     [
-        (5, 10, 10, 10)
-    ]
+        (10, 5, 10, 10, 10),  # slot < state_epoch_slot
+        (10, 10, 10, 10, 10),  # slot >= state_epoch_slot
+        (10, 11, 10, 10, 10),  # slot >= state_epoch_slot
+    ],
 )
 def test_get_crosslink_committees_at_slot(
         ten_validators_state,
+        state_epoch_slot,
         slot,
         epoch_length,
         target_committee_size,
         shard_count):
 
-    state = ten_validators_state
+    state = ten_validators_state.copy(
+        slot=state_epoch_slot,
+    )
 
     crosslink_committees_at_slot = get_crosslink_committees_at_slot(
         state=state,
