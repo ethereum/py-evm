@@ -17,7 +17,6 @@ from eth2.beacon.on_startup import (
     get_initial_beacon_state,
 )
 from eth2.beacon.typing import (
-    Bitfield,
     Gwei,
 )
 
@@ -143,9 +142,7 @@ def test_get_initial_beacon_state(
     # Finality
     assert state.previous_justified_slot == genesis_slot
     assert state.justified_slot == genesis_slot
-
-    # TODO: check if `justification_bitfield` will be in bytes or int.
-    assert state.justification_bitfield == Bitfield(b'\x00')
+    assert state.justification_bitfield == 0
     assert state.finalized_slot == genesis_slot
 
     # Recent state

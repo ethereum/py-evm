@@ -11,7 +11,6 @@ from eth_utils import (
 
 import rlp
 from rlp.sedes import (
-    binary,
     CountableList,
 )
 
@@ -25,7 +24,6 @@ from eth2.beacon._utils.hash import (
 )
 from eth2.beacon.typing import (
     SlotNumber,
-    Bitfield,
     Timestamp,
     Gwei,
     ValidatorIndex,
@@ -77,8 +75,7 @@ class BeaconState(rlp.Serializable):
         # Finality
         ('previous_justified_slot', uint64),
         ('justified_slot', uint64),
-        # TODO: check if justification_bitfield is bytes or int
-        ('justification_bitfield', binary),
+        ('justification_bitfield', uint64),
         ('finalized_slot', uint64),
 
         # Recent state
@@ -103,7 +100,7 @@ class BeaconState(rlp.Serializable):
             validator_registry_delta_chain_tip: Hash32,
             previous_justified_slot: SlotNumber,
             justified_slot: SlotNumber,
-            justification_bitfield: Bitfield,
+            justification_bitfield: int,
             finalized_slot: SlotNumber,
             latest_eth1_data: Eth1Data,
             validator_registry: Sequence[ValidatorRecord]=(),
