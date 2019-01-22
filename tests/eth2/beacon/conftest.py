@@ -832,7 +832,7 @@ def create_mock_signed_attestation(keymap):
 
 
 @pytest.fixture
-def create_mock_block(privkeys, pubkeys):
+def create_mock_block(keymap):
     def _create_mock_block(state, block_class, parent_block, config, slot=None):
         if slot is None:
             slot = state.slot
@@ -853,10 +853,9 @@ def create_mock_block(privkeys, pubkeys):
         )
 
         # Get privkey
-        index_in_privkeys = pubkeys.index(
+        beacon_proposer_privkey = keymap[
             state.validator_registry[beacon_proposer_index].pubkey
-        )
-        beacon_proposer_privkey = privkeys[index_in_privkeys]
+        ]
 
         # Sign the block
         empty_signature_block_root = block.block_without_signature_root
@@ -872,7 +871,7 @@ def create_mock_block(privkeys, pubkeys):
             signature=bls.sign(
                 message=proposal_root,
                 privkey=beacon_proposer_privkey,
-                domain=SignatureDomain.DOMAIN_PROPOSAL,
+                domain=get_domain(state.fork_data, state.slot, SignatureDomain.DOMAIN_PROPOSAL),
             ),
         )
         return block
