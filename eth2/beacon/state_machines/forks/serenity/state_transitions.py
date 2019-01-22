@@ -62,8 +62,8 @@ class SerenityStateTransition(BaseStateTransition):
         updated_latest_randao_mixes[state.slot % LATEST_RANDAO_MIXES_LENGTH] = previous_randao_mix
 
         updated_latest_block_roots = list(state.latest_block_roots)
-        updated_latest_block_roots[
-            (state.slot - 1) % LATEST_BLOCK_ROOTS_LENGTH] = previous_block_root
+        previous_block_root_index = (state.slot - 1) % LATEST_BLOCK_ROOTS_LENGTH
+        updated_latest_block_roots[previous_block_root_index] = previous_block_root
 
         updated_batched_block_roots = state.batched_block_roots
         if state.slot % LATEST_BLOCK_ROOTS_LENGTH == 0:
