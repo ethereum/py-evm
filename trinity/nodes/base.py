@@ -11,7 +11,7 @@ from lahja import (
 
 from eth.chains.base import BaseChain
 
-from p2p.peer import BasePeerPool
+from p2p.peer_pool import BasePeerPool
 from p2p.service import (
     BaseService,
 )

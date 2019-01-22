@@ -25,6 +25,8 @@ from p2p.kademlia import Node
 from p2p.peer import (
     BasePeer,
     BasePeerFactory,
+)
+from p2p.peer_pool import (
     BasePeerPool,
 )
 

@@ -1,8 +1,10 @@
 from p2p.peer import (
     BasePeer,
     BasePeerContext,
-    BasePeerPool,
     BasePeerFactory,
+)
+from p2p.peer_pool import (
+    BasePeerPool,
 )
 from p2p.protocol import (
     Command,

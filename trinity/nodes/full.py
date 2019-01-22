@@ -2,7 +2,7 @@ from typing import Type
 
 from lahja import Endpoint
 
-from p2p.peer import BasePeerPool
+from p2p.peer_pool import BasePeerPool
 
 from trinity.chains.full import FullChain
 from trinity.config import TrinityConfig

@@ -10,7 +10,7 @@ from eth_utils import (
 
 from lahja import Endpoint
 
-from p2p.peer import BasePeerPool
+from p2p.peer_pool import BasePeerPool
 
 from trinity.chains.light import (
     LightDispatchChain,

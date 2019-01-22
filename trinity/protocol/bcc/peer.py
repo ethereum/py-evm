@@ -18,6 +18,8 @@ from eth2.beacon.typing import (
 from p2p.peer import (
     BasePeer,
     BasePeerFactory,
+)
+from p2p.peer_pool import (
     BasePeerPool,
 )
 from p2p.protocol import (
