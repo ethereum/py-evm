@@ -877,30 +877,6 @@ def test_verify_slashable_vote_data_signature(num_validators,
     invalid_votes = SlashableVoteData(**invalid_params)
     assert not verify_slashable_vote_data_signature(state, invalid_votes)
 
-    # Test that slashable data is still valid after fork
-    # Slashable data slot = 10, fork slot = 15, current slot = 20
-    past_fork_data_params = {
-        'pre_fork_version': 0,
-        'post_fork_version': 1,
-        'fork_slot': 15,
-    }
-    future_state = state.copy(
-        fork_data=ForkData(**past_fork_data_params),
-        # TODO: Need to follow proper state transition rule instead of directly setting
-        # slot number.
-        slot=20,
-    )
-
-    valid_params = _correct_slashable_vote_data_params(
-        num_validators,
-        sample_slashable_vote_data_params,
-        messages,
-        privkeys,
-        future_state.fork_data,
-    )
-    valid_votes = SlashableVoteData(**valid_params)
-    assert verify_slashable_vote_data_signature(future_state, valid_votes)
-
 
 def _run_verify_slashable_vote(params, state, max_casper_votes, should_succeed):
     votes = SlashableVoteData(**params)
@@ -967,6 +943,49 @@ def test_verify_slashable_vote_data(num_validators,
     else:
         params = param_mapper(params)
     _run_verify_slashable_vote(params, state, max_casper_votes, should_succeed)
+
+
+@pytest.mark.parametrize(
+    (
+        'num_validators',
+    ),
+    [
+        (40,),
+    ]
+)
+def test_verify_slashable_vote_data_after_fork(num_validators,
+                                               privkeys,
+                                               sample_beacon_state_params,
+                                               activated_genesis_validators,
+                                               genesis_balances,
+                                               sample_slashable_vote_data_params,
+                                               sample_fork_data_params,
+                                               max_casper_votes):
+    # Test that slashable data is still valid after fork
+    # Slashable data slot = 10, fork slot = 15, current slot = 20
+    past_fork_data_params = {
+        'pre_fork_version': 0,
+        'post_fork_version': 1,
+        'fork_slot': 15,
+    }
+
+    state = BeaconState(**sample_beacon_state_params).copy(
+        validator_registry=activated_genesis_validators,
+        validator_balances=genesis_balances,
+        fork_data=ForkData(**past_fork_data_params),
+        slot=20,
+    )
+
+    messages = _create_slashable_vote_data_messages(sample_slashable_vote_data_params)
+
+    valid_params = _correct_slashable_vote_data_params(
+        num_validators,
+        sample_slashable_vote_data_params,
+        messages,
+        privkeys,
+        state.fork_data,
+    )
+    _run_verify_slashable_vote(valid_params, state, max_casper_votes, True)
 
 
 def test_is_double_vote(sample_attestation_data_params):
