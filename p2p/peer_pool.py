@@ -93,7 +93,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         self.event_bus = event_bus
 
     async def accept_connect_commands(self) -> None:
-        async for command in self.event_bus.stream(ConnectToNodeCommand):
+        async for command in self.wait_iter(self.event_bus.stream(ConnectToNodeCommand)):
             self.logger.debug('Received request to connect to %s', command.node)
             self.run_task(self.connect_to_nodes(from_uris([command.node])))
 
