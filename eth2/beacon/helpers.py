@@ -15,10 +15,6 @@ from eth_typing import (
     Hash32,
 )
 
-from eth._utils.numeric import (
-    clamp,
-)
-
 from eth2._utils.bitfield import (
     get_bitfield_length,
     has_voted,
@@ -124,10 +120,12 @@ def get_committee_count_per_slot(active_validator_count: int,
                                  shard_count: int,
                                  epoch_length: int,
                                  target_committee_size: int) -> int:
-    return clamp(
+    return max(
         1,
-        shard_count // epoch_length,
-        active_validator_count // epoch_length // target_committee_size,
+        min(
+            shard_count // epoch_length,
+            active_validator_count // epoch_length // target_committee_size,
+        )
     )
 
 

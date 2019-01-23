@@ -157,6 +157,7 @@ def test_get_block_root(current_slot,
         (1000, 20, 10, 100, 5),  # active_validator_count // EPOCH_LENGTH // TARGET_COMMITTEE_SIZE
         (20, 10, 3, 10, 1),  # 1
         (20, 10, 3, 5, 1),  # 1
+        (40, 5, 2, 2, 1),  # 1
     ],
 )
 def test_get_committee_count_per_slot(active_validator_count,
