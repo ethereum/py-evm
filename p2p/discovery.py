@@ -781,7 +781,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             if received_echo != echo:
                 self.logger.warning(
                     "Unexpected topic_nodes from %s, expected echo %s, got %s",
-                    encode_hex(echo), encode_hex(received_echo))
+                    remote, encode_hex(echo), encode_hex(received_echo))
                 return
 
             nodes.extend(response)
