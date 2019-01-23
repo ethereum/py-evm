@@ -38,11 +38,11 @@ class EVM(Eth1ChainRPCModule):
 
     @format_params(normalize_blockchain_fixtures)
     async def resetToGenesisFixture(self, chain_info: Any) -> BaseChain:
-        '''
+        """
         This method is a special case. It returns a new chain object
         which is then replaced inside :class:`~trinity.rpc.main.RPCServer`
         for all future calls.
-        '''
+        """
         chain = new_chain_from_fixture(chain_info, type(self.chain))
 
         self.event_bus.broadcast(
@@ -54,10 +54,10 @@ class EVM(Eth1ChainRPCModule):
 
     @format_params(normalize_block)
     async def applyBlockFixture(self, block_info: Any) -> str:
-        '''
+        """
         This method is a special case. It returns a new chain object
         which is then replaced inside :class:`~trinity.rpc.main.RPCServer`
         for all future calls.
-        '''
+        """
         _, _, rlp_encoded = apply_fixture_block_to_chain(block_info, self.chain)
         return encode_hex(rlp_encoded)

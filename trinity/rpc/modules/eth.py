@@ -137,11 +137,11 @@ def dict_to_spoof_transaction(
 
 
 class Eth(Eth1ChainRPCModule):
-    '''
+    """
     All the methods defined by JSON-RPC API, starting with "eth_"...
 
     Any attribute without an underscore is publicly accessible.
-    '''
+    """
 
     @property
     def name(self) -> str:

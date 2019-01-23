@@ -44,7 +44,7 @@ k_max_node_id = 2 ** k_id_size - 1
 
 
 def int_to_big_endian4(integer: int) -> bytes:
-    ''' 4 bytes big endian integer'''
+    """ 4 bytes big endian integer"""
     return struct.pack('>I', integer)
 
 

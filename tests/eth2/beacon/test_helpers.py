@@ -697,9 +697,9 @@ def test_get_pubkey_for_indices(activated_genesis_validators, data):
 
 
 def _list_and_index(data, max_size=None, elements=st.integers()):
-    '''
+    """
     Hypothesis helper function cribbed from their docs on @composite
-    '''
+    """
     xs = data.draw(st.lists(elements, max_size=max_size))
     i = data.draw(st.integers(min_value=0, max_value=max(len(xs) - 1, 0)))
     return (xs, i)
