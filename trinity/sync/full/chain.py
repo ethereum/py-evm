@@ -60,7 +60,6 @@ from trinity.sync.common.constants import (
 from trinity.sync.common.headers import HeaderSyncerAPI
 from trinity.sync.common.peers import WaitingPeers
 from trinity._utils.datastructures import (
-    DuplicateTasks,
     MissingDependency,
     OrderedTaskPreparation,
     TaskQueue,
@@ -449,13 +448,10 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         """
         async for headers in self.wait_iter(self._header_syncer.new_sync_headers()):
             try:
-                self._block_persist_tracker.register_tasks(headers)
-            except DuplicateTasks as exc:
+                # We might end up with duplicates that can be safely ignored.
                 # Likely scenario: switched which peer downloads headers, and the new peer isn't
                 # aware of some of the in-progress headers
-                self.logger.debug("Duplicate headers during fast sync %r, skipping", exc.duplicates)
-                non_duplicates = tuple(header for header in headers if header not in exc.duplicates)
-                self._block_persist_tracker.register_tasks(non_duplicates)
+                self._block_persist_tracker.register_tasks(headers, ignore_duplicates=True)
             except MissingDependency:
                 # The parent of this header is not registered as a dependency yet.
                 # Some reasons this might happen, in rough descending order of likelihood:
