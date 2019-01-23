@@ -140,17 +140,17 @@ def compress_G2(pt: Tuple[FQP, FQP, FQP]) -> BLSSignature:
             "The given point is not on the twisted curve over FQ**2"
         )
     x, y = normalize(pt)
-    int_1 = int(x.coeffs[0] + 2**383 * (y.coeffs[0] % 2))
-    int_2 = int(x.coeffs[1])
-    G2_point_bytes96 = int_1.to_bytes(48, "big") + int_2.to_bytes(48, "big")
+    z1_int = int(x.coeffs[0] + 2**383 * (y.coeffs[0] % 2))
+    z2_int = int(x.coeffs[1])
+    G2_point_bytes96 = z1_int.to_bytes(48, "big") + z2_int.to_bytes(48, "big")
     return BLSSignature(G2_point_bytes96)
 
 
 def decompress_G2(signature: BLSSignature) -> Tuple[FQP, FQP, FQP]:
-    p_0, p_1 = big_endian_to_int(signature[:48]), big_endian_to_int(signature[48:])
-    x1 = p_0 % 2**383
-    y1_mod_2 = p_0 // 2**383
-    x2 = p_1
+    z1, z2 = big_endian_to_int(signature[:48]), big_endian_to_int(signature[48:])
+    x1 = z1 % 2**383
+    y1_mod_2 = z1 // 2**383
+    x2 = z2
     x = FQ2([x1, x2])
     if x == FQ2([0, 0]):
         return FQ2([1, 0]), FQ2([1, 0]), FQ2([0, 0])
