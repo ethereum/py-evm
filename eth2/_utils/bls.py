@@ -60,7 +60,7 @@ def FQP_point_to_FQ2_point(pt: Tuple[FQP, FQP, FQP]) -> Tuple[FQ2, FQ2, FQ2]:
     )
 
 
-def modular_squareroot(value: int) -> FQP:
+def modular_squareroot(value: FQ2) -> FQP:
     """
     ``modular_squareroot(x)`` returns the value ``y`` such that ``y**2 % q == x``,
     and None if this is not possible. In cases where there are two solutions,
@@ -155,6 +155,8 @@ def decompress_G2(signature: BLSSignature) -> Tuple[FQP, FQP, FQP]:
     if x == FQ2([0, 0]):
         return FQ2([1, 0]), FQ2([1, 0]), FQ2([0, 0])
     y = modular_squareroot(x**3 + b2)
+    if y is None:
+        raise ValueError("Failed to find a modular squareroot")
     if y.coeffs[0] % 2 != y1_mod_2:
         y = FQ2((y * -1).coeffs)
     if not is_on_curve((x, y, FQ2([1, 0])), b2):
