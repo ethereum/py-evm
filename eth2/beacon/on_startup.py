@@ -33,7 +33,6 @@ from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.fork_data import ForkData
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
-    Bitfield,
     Ether,
     Gwei,
     SlotNumber,
@@ -108,7 +107,7 @@ def get_initial_beacon_state(*,
         # Finality
         previous_justified_slot=genesis_slot,
         justified_slot=genesis_slot,
-        justification_bitfield=Bitfield(b'\x00'),
+        justification_bitfield=0,
         finalized_slot=genesis_slot,
 
         # Recent state

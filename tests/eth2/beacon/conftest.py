@@ -186,7 +186,7 @@ def sample_beacon_state_params(sample_fork_data_params, sample_eth1_data_params)
         'custody_challenges': (),
         'previous_justified_slot': 0,
         'justified_slot': 0,
-        'justification_bitfield': b'\x00',
+        'justification_bitfield': 0,
         'finalized_slot': 0,
         'latest_crosslinks': (),
         'latest_block_roots': (),
