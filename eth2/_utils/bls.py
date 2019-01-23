@@ -108,12 +108,14 @@ def hash_to_G2(message: bytes, domain: int) -> Tuple[FQ2, FQ2, FQ2]:
 #
 # G1
 #
-def compress_G1(pt: Tuple[FQ, FQ, FQ]) -> int:
+def compress_G1(pt: Tuple[FQ, FQ, FQ]) -> BLSPubkey:
     x, y = normalize(pt)
-    return x.n + 2**383 * (y.n % 2)
+    G1_point_bytes48 = (x.n + 2**383 * (y.n % 2)).to_bytes(48, 'big')
+    return BLSPubkey(G1_point_bytes48)
 
 
-def decompress_G1(pt: int) -> Tuple[FQ, FQ, FQ]:
+def decompress_G1(pubkey: BLSPubkey) -> Tuple[FQ, FQ, FQ]:
+    pt = big_endian_to_int(pubkey)
     if pt == 0:
         return (FQ(1), FQ(1), FQ(0))
     x = pt % 2**383
@@ -132,22 +134,23 @@ def decompress_G1(pt: int) -> Tuple[FQ, FQ, FQ]:
 #
 # G2
 #
-def compress_G2(pt: Tuple[FQP, FQP, FQP]) -> Tuple[int, int]:
+def compress_G2(pt: Tuple[FQP, FQP, FQP]) -> BLSSignature:
     if not is_on_curve(pt, b2):
         raise ValueError(
             "The given point is not on the twisted curve over FQ**2"
         )
     x, y = normalize(pt)
-    return (
-        int(x.coeffs[0] + 2**383 * (y.coeffs[0] % 2)),
-        int(x.coeffs[1])
-    )
+    int_1 = int(x.coeffs[0] + 2**383 * (y.coeffs[0] % 2))
+    int_2 = int(x.coeffs[1])
+    G2_point_bytes96 = int_1.to_bytes(48, "big") + int_2.to_bytes(48, "big")
+    return BLSSignature(G2_point_bytes96)
 
 
-def decompress_G2(p: Tuple[int, int]) -> Tuple[FQP, FQP, FQP]:
-    x1 = p[0] % 2**383
-    y1_mod_2 = p[0] // 2**383
-    x2 = p[1]
+def decompress_G2(signature: BLSSignature) -> Tuple[FQP, FQP, FQP]:
+    p_0, p_1 = big_endian_to_int(signature[:48]), big_endian_to_int(signature[48:])
+    x1 = p_0 % 2**383
+    y1_mod_2 = p_0 // 2**383
+    x2 = p_1
     x = FQ2([x1, x2])
     if x == FQ2([0, 0]):
         return FQ2([1, 0]), FQ2([1, 0]), FQ2([0, 0])
@@ -167,17 +170,16 @@ def decompress_G2(p: Tuple[int, int]) -> Tuple[FQP, FQP, FQP]:
 def sign(message: bytes,
          privkey: int,
          domain: int) -> BLSSignature:
-    return BLSSignature(
-        compress_G2(
-            multiply(
-                hash_to_G2(message, domain),
-                privkey
-            )
-        ))
+    return compress_G2(
+        multiply(
+            hash_to_G2(message, domain),
+            privkey
+        )
+    )
 
 
 def privtopub(k: int) -> BLSPubkey:
-    return BLSPubkey(compress_G1(multiply(G1, k)))
+    return compress_G1(multiply(G1, k))
 
 
 def verify(message: bytes, pubkey: BLSPubkey, signature: BLSSignature, domain: int) -> bool:
@@ -203,14 +205,14 @@ def aggregate_signatures(signatures: Sequence[BLSSignature]) -> BLSSignature:
     o = Z2
     for s in signatures:
         o = FQP_point_to_FQ2_point(add(o, decompress_G2(s)))
-    return BLSSignature(compress_G2(o))
+    return compress_G2(o)
 
 
 def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkey:
     o = Z1
     for p in pubkeys:
         o = add(o, decompress_G1(p))
-    return BLSPubkey(compress_G1(o))
+    return compress_G1(o)
 
 
 def verify_multiple(pubkeys: Sequence[BLSPubkey],
