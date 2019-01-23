@@ -1,13 +1,7 @@
 import rlp
 from rlp.sedes import (
     binary,
-    CountableList,
 )
-
-from eth2.beacon.sedes import (
-    uint384,
-)
-
 
 from .attestation_data import (
     AttestationData,
@@ -31,7 +25,7 @@ class Attestation(rlp.Serializable):
         # Proof of custody bitfield
         ('custody_bitfield', binary),
         # BLS aggregate signature
-        ('aggregate_signature', CountableList(uint384)),
+        ('aggregate_signature', binary),
     ]
 
     def __init__(self,

@@ -1,10 +1,9 @@
 import rlp
 from rlp.sedes import (
-    CountableList,
+    binary,
 )
 from eth2.beacon.sedes import (
     uint24,
-    uint384,
 )
 from .proposal_signed_data import ProposalSignedData
 from eth2.beacon.typing import (
@@ -21,11 +20,11 @@ class ProposerSlashing(rlp.Serializable):
         # First proposal data
         ('proposal_data_1', ProposalSignedData),
         # First proposal signature
-        ('proposal_signature_1', CountableList(uint384)),
+        ('proposal_signature_1', binary),
         # Second proposal data
         ('proposal_data_2', ProposalSignedData),
         # Second proposal signature
-        ('proposal_signature_2', CountableList(uint384)),
+        ('proposal_signature_2', binary),
     ]
 
     def __init__(self,

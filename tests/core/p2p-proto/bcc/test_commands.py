@@ -29,6 +29,8 @@ from .helpers import (
     get_genesis_chain_db,
 )
 
+from eth2.beacon.constants import EMPTY_SIGNATURE
+
 
 async def get_command_setup(request, event_loop):
     alice, bob = await get_directly_linked_peers(
@@ -69,7 +71,7 @@ async def test_send_single_block(request, event_loop):
         state_root=ZERO_HASH32,
         randao_reveal=ZERO_HASH32,
         eth1_data=Eth1Data.create_empty_data(),
-        signature=(0, 0),
+        signature=EMPTY_SIGNATURE,
         body=BeaconBlockBody.create_empty_body(),
     )
     alice.sub_proto.send_blocks((block,), request_id=request_id)
@@ -94,7 +96,7 @@ async def test_send_multiple_blocks(request, event_loop):
             state_root=ZERO_HASH32,
             randao_reveal=ZERO_HASH32,
             eth1_data=Eth1Data.create_empty_data(),
-            signature=(0, 0),
+            signature=EMPTY_SIGNATURE,
             body=BeaconBlockBody.create_empty_body(),
         )
         for slot in range(3)

@@ -104,10 +104,10 @@ def test_activate_validator(genesis,
     state = empty_beacon_state.copy(
         validator_registry=tuple(
             mock_validator_record(
-                pubkey=pubkey,
+                pubkey=index.to_bytes(48, 'big'),
                 is_active=False,
             )
-            for pubkey in range(validator_count)
+            for index in range(validator_count)
         ),
         validator_balances=(max_deposit * GWEI_PER_ETH,) * validator_count,
     )

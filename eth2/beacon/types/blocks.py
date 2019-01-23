@@ -18,6 +18,7 @@ from eth_utils import (
 import rlp
 from rlp.sedes import (
     CountableList,
+    binary,
 )
 
 
@@ -33,7 +34,6 @@ from eth2.beacon.constants import EMPTY_SIGNATURE
 from eth2.beacon.sedes import (
     hash32,
     uint64,
-    uint384,
 )
 from eth2.beacon.typing import (
     BLSSignature,
@@ -139,7 +139,7 @@ class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
         ('state_root', hash32),
         ('randao_reveal', hash32),
         ('eth1_data', Eth1Data),
-        ('signature', CountableList(uint384)),
+        ('signature', binary),
 
         #
         # Body

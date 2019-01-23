@@ -1,5 +1,5 @@
 import pytest
-
+import rlp
 from eth2.beacon.types.attestations import (
     Attestation,
 )
@@ -8,7 +8,7 @@ from eth2.beacon.types.attestations import (
 @pytest.mark.parametrize(
     'param,default_value',
     [
-        ('aggregate_signature', (0, 0)),
+        ('aggregate_signature', b'\x00' * 96),
     ]
 )
 def test_defaults(param, default_value, sample_attestation_params):
@@ -16,3 +16,4 @@ def test_defaults(param, default_value, sample_attestation_params):
     attestation = Attestation(**sample_attestation_params)
 
     assert getattr(attestation, param) == default_value
+    assert rlp.encode(attestation)

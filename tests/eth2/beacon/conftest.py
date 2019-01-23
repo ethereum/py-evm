@@ -98,9 +98,9 @@ def sample_proposer_slashing_params(sample_proposal_signed_data_params):
     return {
         'proposer_index': 1,
         'proposal_data_1': proposal_data,
-        'proposal_signature_1': (1, 2, 3),
+        'proposal_signature_1': EMPTY_SIGNATURE,
         'proposal_data_2': proposal_data,
-        'proposal_signature_2': (4, 5, 6),
+        'proposal_signature_2': EMPTY_SIGNATURE,
     }
 
 
@@ -159,7 +159,7 @@ def sample_beacon_block_params(sample_beacon_block_body_params,
         'state_root': b'\x55' * 32,
         'randao_reveal': b'\x55' * 32,
         'eth1_data': Eth1Data(**sample_eth1_data_params),
-        'signature': (0, 0),
+        'signature': EMPTY_SIGNATURE,
         'body': BeaconBlockBody(**sample_beacon_block_body_params)
     }
 
@@ -258,7 +258,7 @@ def sample_exit_params():
     return {
         'slot': 123,
         'validator_index': 15,
-        'signature': (0, 0),
+        'signature': EMPTY_SIGNATURE,
     }
 
 
@@ -314,7 +314,7 @@ def sample_slashable_vote_data_params(sample_attestation_data_params):
         'custody_bit_0_indices': (10, 11, 12, 15, 28),
         'custody_bit_1_indices': (7, 8, 100, 131, 249),
         'data': AttestationData(**sample_attestation_data_params),
-        'aggregate_signature': (1, 2, 3, 4, 5),
+        'aggregate_signature': EMPTY_SIGNATURE,
     }
 
 
@@ -406,10 +406,10 @@ def ten_validators_state(empty_beacon_state, max_deposit):
     return empty_beacon_state.copy(
         validator_registry=tuple(
             mock_validator_record(
-                pubkey=pubkey,
+                pubkey=index.to_bytes(48, "big"),
                 is_active=True,
             )
-            for pubkey in range(validator_count)
+            for index in range(validator_count)
         ),
         validator_balances=(max_deposit * GWEI_PER_ETH,) * validator_count,
     )

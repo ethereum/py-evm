@@ -1,11 +1,10 @@
 import rlp
 from rlp.sedes import (
-    CountableList,
+    binary,
 )
 from eth2.beacon.sedes import (
     uint24,
     uint64,
-    uint384,
 )
 from eth2.beacon.typing import (
     BLSSignature,
@@ -25,7 +24,7 @@ class Exit(rlp.Serializable):
         # Index of the exiting validator
         ('validator_index', uint24),
         # Validator signature
-        ('signature', CountableList(uint384)),
+        ('signature', binary),
     ]
 
     def __init__(self,

@@ -1,5 +1,6 @@
 import rlp
 from rlp.sedes import (
+    binary,
     CountableList,
 )
 from typing import (
@@ -12,7 +13,6 @@ from eth_typing import (
 from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.sedes import (
     uint24,
-    uint384,
 )
 from eth2.beacon.typing import (
     BLSSignature,
@@ -36,7 +36,7 @@ class SlashableVoteData(rlp.Serializable):
         # Attestation data
         ('data', AttestationData),
         # Aggregate signature
-        ('aggregate_signature', CountableList(uint384)),
+        ('aggregate_signature', binary),
     ]
 
     def __init__(self,
