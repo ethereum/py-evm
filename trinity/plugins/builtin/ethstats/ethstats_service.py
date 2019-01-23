@@ -47,6 +47,7 @@ class EthstatsService(BaseService):
         server_secret: str,
         node_id: str,
         node_contact: str,
+        stats_interval: int,
     ) -> None:
         super().__init__()
 
@@ -56,6 +57,7 @@ class EthstatsService(BaseService):
         self.server_secret = server_secret
         self.node_id = node_id
         self.node_contact = node_contact
+        self.stats_interval = stats_interval
 
         self.chain = self.get_chain()
 
@@ -104,7 +106,7 @@ class EthstatsService(BaseService):
             await client.send_stats(await self.get_node_stats())
             await client.send_block(self.get_node_block())
 
-            await self.sleep(5)
+            await self.sleep(self.stats_interval)
 
     def get_node_info(self) -> EthstatsData:
         '''Getter for data that should be sent once, on start-up.'''
@@ -141,7 +143,7 @@ class EthstatsService(BaseService):
                     PeerCountRequest(),
                     TO_NETWORKING_BROADCAST_CONFIG,
                 ),
-                timeout=0.5
+                timeout=1
             )).peer_count
         except TimeoutError:
             self.logger.warning("Timeout: PeerPool did not answer PeerCountRequest")

@@ -31,6 +31,7 @@ DEFAULT_SERVERS_URLS = {
 class EthstatsPlugin(BaseIsolatedPlugin):
     server_url: str
     server_secret: str
+    stats_interval: int
     node_id: str
     node_contact: str
 
@@ -70,6 +71,11 @@ class EthstatsPlugin(BaseIsolatedPlugin):
             help='Node contact information for stats server',
             default=os.environ.get('ETHSTATS_NODE_CONTACT', ''),
         )
+        ethstats_parser.add_argument(
+            '--ethstats-interval',
+            help='The interval at which data is reported back',
+            default=10,
+        )
 
     def on_ready(self) -> None:
         args = self.context.args
@@ -100,6 +106,7 @@ class EthstatsPlugin(BaseIsolatedPlugin):
 
         self.node_id = args.ethstats_node_id
         self.node_contact = args.ethstats_node_contact
+        self.stats_interval = args.ethstats_interval
 
         self.start()
 
@@ -110,6 +117,7 @@ class EthstatsPlugin(BaseIsolatedPlugin):
             self.server_secret,
             self.node_id,
             self.node_contact,
+            self.stats_interval,
         )
 
         loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
