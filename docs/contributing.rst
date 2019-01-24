@@ -86,7 +86,15 @@ submission.
 GitHub's documentation for working on pull requests is `available here <https://help.github.com/articles/about-pull-requests/>`_.
 
 Once you've made a pull request take a look at the Circle CI build status in the
-GitHub interface and make sure all tests are passing. In general pull requests that do not pass the CI build yet won't get reviewed unless explicitly requested.
+GitHub interface and make sure all tests are passing. In general pull requests that
+do not pass the CI build yet won't get reviewed unless explicitly requested.
+
+If the pull request introduces changes that should be reflected in the release notes,
+please add a line to the *Unreleased (from source)* section of the
+`release_notes file<https://github.com/ethereum/trinity/blob/master/docs/release_notes/trinity.rst>_`
+
+If possible, the change to the release notes file should be included in the commit that introduces the
+feature or bugfix.
 
 Releasing
 ~~~~~~~~~

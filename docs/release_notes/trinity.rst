@@ -2,6 +2,7 @@ Trinity
 =======
 
 Unreleased (latest source)
+--------------------------
 
 - `#155 <https://github.com/ethereum/trinity/pull/155>`_: Feature: Disable syncing entirely with `--sync-mode none`
 - `#155 <https://github.com/ethereum/trinity/pull/155>`_: Feature: Allow running `--sync-mode full` directly
