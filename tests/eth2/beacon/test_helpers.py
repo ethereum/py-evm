@@ -6,6 +6,7 @@ import pytest
 
 from hypothesis import (
     given,
+    settings,
     strategies as st,
 )
 
@@ -33,6 +34,9 @@ from eth2.beacon.enums import (
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
+from eth2.beacon.types.attestations import (
+    Attestation,
+)
 from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
@@ -49,6 +53,8 @@ from eth2.beacon.helpers import (
     get_committee_count_per_slot,
     get_crosslink_committees_at_slot,
     get_current_epoch_committee_count_per_slot,
+    get_current_epoch_attestations,
+    get_previous_epoch_attestations,
     get_domain,
     get_effective_balance,
     get_entry_exit_effect_slot,
@@ -557,6 +563,55 @@ def test_get_attestation_participants(
         )
 
         assert result == expected
+
+
+@settings(max_examples=1)
+@given(random=st.randoms())
+def test_get_current_and_previous_epoch_attestations(random,
+                                                     sample_state,
+                                                     epoch_length,
+                                                     sample_attestation_data_params,
+                                                     sample_attestation_params):
+    num_previous_epoch_attestation, num_current_epoch_attestation = random.sample(
+        range(epoch_length),
+        2
+    )
+    previous_epoch_attestion_slots = random.sample(
+        range(epoch_length),
+        num_previous_epoch_attestation
+    )
+    current_epoch_attestion_slots = random.sample(
+        range(epoch_length, epoch_length * 2),
+        num_current_epoch_attestation
+    )
+
+    previous_epoch_attestations = []
+    for slot in previous_epoch_attestion_slots:
+        previous_epoch_attestations.append(
+            Attestation(**sample_attestation_params).copy(
+                data=AttestationData(**sample_attestation_data_params).copy(
+                    slot=slot,
+                )
+            )
+        )
+    current_epoch_attestations = []
+    for slot in current_epoch_attestion_slots:
+        current_epoch_attestations.append(
+            Attestation(**sample_attestation_params).copy(
+                data=AttestationData(**sample_attestation_data_params).copy(
+                    slot=(slot),
+                )
+            )
+        )
+
+    state = sample_state.copy(
+        slot=(epoch_length * 2),
+        latest_attestations=(previous_epoch_attestations + current_epoch_attestations),
+    )
+    assert set(previous_epoch_attestations) == set(
+        get_previous_epoch_attestations(state, epoch_length))
+    assert set(current_epoch_attestations) == set(
+        get_current_epoch_attestations(state, epoch_length))
 
 
 @pytest.mark.parametrize(

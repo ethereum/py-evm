@@ -33,6 +33,9 @@ from eth2.beacon._utils.random import (
 from eth2.beacon.enums import (
     SignatureDomain,
 )
+from eth2.beacon.types.pending_attestation_records import (
+    PendingAttestationRecord,
+)
 from eth2.beacon.typing import (
     Bitfield,
     BLSPubkey,
@@ -416,6 +419,26 @@ def get_attestation_participants(state: 'BeaconState',
 #
 # Misc
 #
+@to_tuple
+def get_current_epoch_attestations(
+        state: 'BeaconState',
+        epoch_length: int) -> Sequence[PendingAttestationRecord]:
+    return [
+        a for a in state.latest_attestations
+        if state.slot - epoch_length <= a.data.slot < state.slot
+    ]
+
+
+@to_tuple
+def get_previous_epoch_attestations(
+        state: 'BeaconState',
+        epoch_length: int) -> Sequence[PendingAttestationRecord]:
+    return [
+        a for a in state.latest_attestations
+        if state.slot - 2 * epoch_length <= a.data.slot < state.slot - epoch_length
+    ]
+
+
 def get_effective_balance(
         validator_balances: Sequence[Gwei],
         index: ValidatorIndex,
