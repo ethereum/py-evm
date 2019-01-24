@@ -210,9 +210,9 @@ def apply_fixture_block_to_chain(
         block_fixture: Dict[str, Any],
         chain: BaseChain,
         perform_validation: bool=True) -> Tuple[BaseBlock, BaseBlock, BaseBlock]:
-    '''
+    """
     :return: (premined_block, mined_block, rlp_encoded_mined_block)
-    '''
+    """
     # The block to import may be in a different block-class-range than the
     # chain's current one, so we use the block number specified in the
     # fixture to look up the correct block class.

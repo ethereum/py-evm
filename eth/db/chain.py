@@ -221,11 +221,11 @@ class ChainDB(HeaderDB, BaseChainDB):
     def persist_block(self,
                       block: 'BaseBlock'
                       ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
-        '''
+        """
         Persist the given block's header and uncles.
 
         Assumes all block transactions have been persisted already.
-        '''
+        """
         with self.db.atomic_batch() as db:
             return self._persist_block(db, block)
 
@@ -397,9 +397,9 @@ class ChainDB(HeaderDB, BaseChainDB):
 
     @staticmethod
     def _get_block_transaction_data(db: BaseDB, transaction_root: Hash32) -> Iterable[Hash32]:
-        '''
+        """
         Returns iterable of the encoded transactions for the given block header
-        '''
+        """
         transaction_db = HexaryTrie(db, root_hash=transaction_root)
         for transaction_idx in itertools.count():
             transaction_key = rlp.encode(transaction_idx)
