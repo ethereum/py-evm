@@ -25,7 +25,23 @@ from eth_utils import (
     encode_hex,
     to_tuple,
 )
+
+from lahja import (
+    BroadcastConfig,
+)
+
 import ssz
+
+from p2p import protocol
+from p2p.kademlia import (
+    Node,
+)
+from p2p.peer import (
+    BasePeer,
+)
+from p2p.protocol import (
+    Command,
+)
 
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
@@ -46,23 +62,22 @@ from eth2.beacon.typing import (
 from eth2.configs import (
     CommitteeConfig,
 )
-from p2p import (
-    protocol,
-)
-from p2p.peer import (
-    BasePeer,
-)
-from p2p.protocol import (
-    Command,
-)
+
 from trinity._utils.les import (
     gen_request_id,
 )
 from trinity._utils.shellart import (
     bold_red,
 )
+from trinity.endpoint import (
+    TrinityEventBusEndpoint
+)
 from trinity.db.beacon.chain import (
     BaseAsyncBeaconChainDB,
+)
+from trinity.protocol.common.servers import (
+    BaseRequestServer,
+    BaseIsolatedRequestServer,
 )
 from trinity.protocol.bcc.commands import (
     Attestations,
@@ -74,39 +89,48 @@ from trinity.protocol.bcc.commands import (
     NewBeaconBlock,
     NewBeaconBlockMessage,
 )
+from trinity.protocol.bcc.events import (
+    GetBeaconBlocksEvent,
+)
 from trinity.protocol.bcc.peer import (
+    BCCProxyPeer,
     BCCPeer,
     BCCPeerPool,
 )
-from trinity.protocol.common.servers import (
-    BaseRequestServer,
-)
 
 
-class BCCRequestServer(BaseRequestServer):
+class BCCRequestServer(BaseIsolatedRequestServer):
     subscription_msg_types: FrozenSet[Type[Command]] = frozenset({
         GetBeaconBlocks,
     })
 
     def __init__(self,
+                 event_bus: TrinityEventBusEndpoint,
+                 broadcast_config: BroadcastConfig,
                  db: BaseAsyncBeaconChainDB,
-                 peer_pool: BCCPeerPool,
                  token: CancelToken = None) -> None:
-        super().__init__(peer_pool, token)
+        super().__init__(
+            event_bus,
+            broadcast_config,
+            (GetBeaconBlocksEvent,),
+            token,
+        )
         self.db = db
 
-    async def _handle_msg(self, base_peer: BasePeer, cmd: Command,
+    async def _handle_msg(self,
+                          remote: Node,
+                          cmd: Command,
                           msg: protocol._DecodedMsgType) -> None:
-        peer = cast(BCCPeer, base_peer)
-        self.logger.debug("cmd %s", cmd)
+
+        self.logger.debug("cmd %s" % cmd)
         if isinstance(cmd, GetBeaconBlocks):
-            await self._handle_get_beacon_blocks(peer, cast(GetBeaconBlocksMessage, msg))
+            await self._handle_get_beacon_blocks(remote, cast(GetBeaconBlocksMessage, msg))
         else:
             raise Exception(f"Invariant: Only subscribed to {self.subscription_msg_types}")
 
-    async def _handle_get_beacon_blocks(self, peer: BCCPeer, msg: GetBeaconBlocksMessage) -> None:
-        if not peer.is_operational:
-            return
+    async def _handle_get_beacon_blocks(self, remote: Node, msg: GetBeaconBlocksMessage) -> None:
+
+        peer = BCCProxyPeer.from_node(remote, self.event_bus, self.broadcast_config)
 
         request_id = msg["request_id"]
         max_blocks = msg["max_blocks"]

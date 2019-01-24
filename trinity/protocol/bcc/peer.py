@@ -17,6 +17,9 @@ from eth2.beacon.types.blocks import (
 from eth2.beacon.typing import (
     Slot,
 )
+from lahja import (
+    BroadcastConfig,
+)
 
 from p2p.peer import (
     BasePeer,
@@ -28,20 +31,49 @@ from p2p.peer_pool import (
 from p2p.protocol import (
     Command,
     _DecodedMsgType,
+    PayloadType,
 )
 from p2p.exceptions import HandshakeFailure
+from p2p.kademlia import Node
 from p2p.p2p_proto import DisconnectReason
 
+from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.bcc.handlers import BCCExchangeHandler
 
-from trinity.protocol.bcc.proto import BCCProtocol
+from trinity.protocol.bcc.proto import BCCProtocol, ProxyBCCProtocol
 from trinity.protocol.bcc.commands import (
+    GetBeaconBlocks,
     Status,
     StatusMessage,
 )
 from trinity.protocol.bcc.context import (
     BeaconContext,
 )
+from trinity.protocol.common.peer_pool_event_bus import (
+    PeerPoolEventServer,
+)
+from .events import (
+    GetBeaconBlocksEvent,
+    SendBeaconBlocksEvent,
+)
+
+
+class BCCProxyPeer:
+    """
+    A ``BCCPeer`` that can be used from any process instead of the actual peer pool peer.
+    Any action performed on the ``BCCProxyPeer`` is delegated to the actual peer in the pool.
+    This does not yet mimic all APIs of the real peer.
+    """
+
+    def __init__(self, sub_proto: ProxyBCCProtocol):
+        self.sub_proto = sub_proto
+
+    @classmethod
+    def from_node(cls,
+                  remote: Node,
+                  event_bus: TrinityEventBusEndpoint,
+                  broadcast_config: BroadcastConfig) -> 'BCCProxyPeer':
+        return cls(ProxyBCCProtocol(remote, event_bus, broadcast_config))
 
 
 class BCCPeer(BasePeer):
@@ -112,3 +144,30 @@ class BCCPeerFactory(BasePeerFactory):
 
 class BCCPeerPool(BasePeerPool):
     peer_factory_class = BCCPeerFactory
+
+
+class BCCPeerPoolEventServer(PeerPoolEventServer[BCCPeer]):
+    """
+    BCC protocol specific ``PeerPoolEventServer``. See ``PeerPoolEventServer`` for more info.
+    """
+
+    subscription_msg_types = frozenset({GetBeaconBlocks})
+
+    async def _run(self) -> None:
+
+        self.run_daemon_event(
+            SendBeaconBlocksEvent,
+            lambda peer, ev: peer.sub_proto.send_blocks(ev.blocks, ev.request_id)
+        )
+
+        await super()._run()
+
+    async def handle_native_peer_message(self,
+                                         remote: Node,
+                                         cmd: Command,
+                                         msg: PayloadType) -> None:
+
+        if isinstance(cmd, GetBeaconBlocks):
+            await self.event_bus.broadcast(GetBeaconBlocksEvent(remote, cmd, msg))
+        else:
+            raise Exception(f"Command {cmd} is not broadcasted")

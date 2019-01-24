@@ -4,6 +4,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
+from async_generator import (
+    asynccontextmanager,
+)
 from cancel_token import OperationCancelled
 from eth_keys import keys
 from eth_utils import decode_hex
@@ -25,12 +28,16 @@ from eth.tools.builder.chain import (
 from eth.db.header import HeaderDB
 from eth.vm.forks.byzantium import ByzantiumVM
 
+from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.db.base import BaseAsyncDB
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 
 from trinity.protocol.common.peer_pool_event_bus import (
-    PeerPoolEventServer,
+    DefaultPeerPoolEventServer,
+)
+from trinity.protocol.eth.servers import (
+    ETHRequestServer,
 )
 
 ZIPPED_FIXTURES_PATH = Path(__file__).parent.parent / 'integration' / 'fixtures'
@@ -174,16 +181,36 @@ def load_fixture_db(db_fixture, db_class=LevelDB):
         yield db_class(Path(tmpdir) / db_fixture.value)
 
 
-async def make_peer_pool_answer_event_bus_requests(event_bus, peer_pool, handler_type=None):
+@asynccontextmanager
+async def run_peer_pool_event_server(event_bus, peer_pool, handler_type=None):
 
-    handler_type = PeerPoolEventServer if handler_type is None else handler_type
+    handler_type = DefaultPeerPoolEventServer if handler_type is None else handler_type
 
-    peer_pool_event_bus_request_handler = handler_type(
+    event_server = handler_type(
         event_bus,
         peer_pool,
         peer_pool.cancel_token
     )
-    asyncio.ensure_future(peer_pool_event_bus_request_handler.run())
-    # Give event subscriptions a moment to propagate
-    await asyncio.sleep(0.01)
-    await peer_pool_event_bus_request_handler.events.started.wait()
+    asyncio.ensure_future(event_server.run())
+
+    await event_server.events.started.wait()
+    try:
+        yield event_server
+    finally:
+        await event_server.cancel()
+
+
+@asynccontextmanager
+async def run_request_server(event_bus, chaindb, server_type=None):
+    server_type = ETHRequestServer if server_type is None else server_type
+    request_server = server_type(
+        event_bus,
+        TO_NETWORKING_BROADCAST_CONFIG,
+        chaindb,
+    )
+    asyncio.ensure_future(request_server.run())
+    await request_server.events.started.wait()
+    try:
+        yield request_server
+    finally:
+        await request_server.cancel()

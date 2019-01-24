@@ -56,18 +56,14 @@ from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.common.peer import BasePeerPool
 from trinity.protocol.common.peer_pool_event_bus import (
+    DefaultPeerPoolEventServer,
     PeerPoolEventServer,
-    DefaultPeerPoolEventBusRequestHandler,
 )
-from trinity.protocol.common.servers import BaseRequestServer
-from trinity.protocol.eth.peer import ETHPeerPool
-from trinity.protocol.eth.servers import ETHRequestServer
-from trinity.protocol.les.peer import LESPeerPool
-from trinity.protocol.les.servers import LightRequestServer
+from trinity.protocol.eth.peer import ETHPeerPool, ETHPeerPoolEventServer
+from trinity.protocol.les.peer import LESPeerPool, LESPeerPoolEventServer
 from trinity.protocol.bcc.context import BeaconContext
-from trinity.protocol.bcc.peer import BCCPeerPool
+from trinity.protocol.bcc.peer import BCCPeerPool, BCCPeerPoolEventServer
 from trinity.protocol.bcc.servers import (
-    BCCRequestServer,
     BCCReceiveServer,
 )
 
@@ -81,6 +77,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
     """Server listening for incoming connections"""
     _tcp_listener = None
     peer_pool: TPeerPool
+    event_server_class: Type[PeerPoolEventServer[Any]] = DefaultPeerPoolEventServer
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
@@ -119,27 +116,13 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         # child services
         self.upnp_service = UPnPService(port, token=self.cancel_token)
         self.peer_pool = self._make_peer_pool()
-        self._peer_pool_request_handler = self._make_peer_pool_request_handler(self.peer_pool)
-        self.request_server = self._make_request_server()
+        self.event_server = self.event_server_class(event_bus, self.peer_pool, self.cancel_token)
 
         if not bootstrap_nodes:
             self.logger.warning("Running with no bootstrap nodes")
 
     @abstractmethod
     def _make_peer_pool(self) -> TPeerPool:
-        pass
-
-    def _make_peer_pool_request_handler(
-            self,
-            peer_pool: TPeerPool) -> PeerPoolEventServer[Any]:
-        return DefaultPeerPoolEventBusRequestHandler(
-            self.event_bus,
-            peer_pool,
-            self.cancel_token
-        )
-
-    @abstractmethod
-    def _make_request_server(self) -> BaseRequestServer:
         pass
 
     async def _start_tcp_listener(self) -> None:
@@ -173,8 +156,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         self.logger.info('peers: max_peers=%s', self.max_peers)
 
         self.run_daemon(self.peer_pool)
-        self.run_daemon(self._peer_pool_request_handler)
-        self.run_daemon(self.request_server)
+        self.run_daemon(self.event_server)
 
         # UPNP service is still experimental and not essential, so we don't use run_daemon() for
         # it as that means if it crashes we'd be terminated as well.
@@ -317,6 +299,9 @@ class BaseServer(BaseService, Generic[TPeerPool]):
 
 
 class FullServer(BaseServer[ETHPeerPool]):
+
+    event_server_class = ETHPeerPoolEventServer
+
     def _make_peer_pool(self) -> ETHPeerPool:
         context = ChainContext(
             headerdb=self.headerdb,
@@ -331,15 +316,11 @@ class FullServer(BaseServer[ETHPeerPool]):
             event_bus=self.event_bus
         )
 
-    def _make_request_server(self) -> ETHRequestServer:
-        return ETHRequestServer(
-            self.chaindb,
-            self.peer_pool,
-            token=self.cancel_token,
-        )
-
 
 class LightServer(BaseServer[LESPeerPool]):
+
+    event_server_class = LESPeerPoolEventServer
+
     def _make_peer_pool(self) -> LESPeerPool:
         context = ChainContext(
             headerdb=self.headerdb,
@@ -354,15 +335,10 @@ class LightServer(BaseServer[LESPeerPool]):
             event_bus=self.event_bus
         )
 
-    def _make_request_server(self) -> LightRequestServer:
-        return LightRequestServer(
-            self.headerdb,
-            self.peer_pool,
-            token=self.cancel_token,
-        )
-
 
 class BCCServer(BaseServer[BCCPeerPool]):
+
+    event_server_class = BCCPeerPoolEventServer
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
@@ -412,8 +388,7 @@ class BCCServer(BaseServer[BCCPeerPool]):
         self.logger.info('peers: max_peers=%s', self.max_peers)
 
         self.run_daemon(self.peer_pool)
-        self.run_daemon(self._peer_pool_request_handler)
-        self.run_daemon(self.request_server)
+        self.run_daemon(self.event_server)
         self.run_daemon(self.receive_server)
 
         # UPNP service is still experimental and not essential, so we don't use run_daemon() for
@@ -432,13 +407,6 @@ class BCCServer(BaseServer[BCCPeerPool]):
             context=context,
             token=self.cancel_token,
             event_bus=self.event_bus
-        )
-
-    def _make_request_server(self) -> BCCRequestServer:
-        return BCCRequestServer(
-            db=cast(BaseAsyncBeaconChainDB, self.chaindb),
-            peer_pool=self.peer_pool,
-            token=self.cancel_token,
         )
 
     def _make_receive_server(self) -> BCCReceiveServer:

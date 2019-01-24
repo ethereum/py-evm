@@ -13,10 +13,17 @@ from eth_typing import (
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransactionFields
+from lahja import (
+    BroadcastConfig,
+)
+from p2p.kademlia import (
+    Node,
+)
 from p2p.protocol import (
     Protocol,
 )
 
+from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.common.peer import ChainInfo
 from trinity.rlp.block_body import BlockBody
 
@@ -33,6 +40,12 @@ from .commands import (
     Receipts,
     Status,
     Transactions,
+)
+from .events import (
+    SendBlockBodiesEvent,
+    SendBlockHeadersEvent,
+    SendNodeDataEvent,
+    SendReceiptsEvent,
 )
 
 from trinity._utils.logging import HasExtendedDebugLogger
@@ -147,3 +160,77 @@ class ETHProtocol(HasExtendedDebugLogger, Protocol):
         cmd = Transactions(self.cmd_id_offset, self.snappy_support)
         header, body = cmd.encode(transactions)
         self.transport.send(header, body)
+
+
+class ProxyETHProtocol:
+    """
+    An ``ETHProtocol`` that can be used outside of the process that runs the peer pool. Any
+    action performed on this class is delegated to the process that runs the peer pool.
+    """
+
+    def __init__(self,
+                 remote: Node,
+                 event_bus: TrinityEventBusEndpoint,
+                 broadcast_config: BroadcastConfig):
+        self.remote = remote
+        self._event_bus = event_bus
+        self._broadcast_config = broadcast_config
+
+    #
+    # Node Data
+    #
+    def send_get_node_data(self, node_hashes: Tuple[Hash32, ...]) -> None:
+        raise NotImplementedError("Not yet implemented")
+
+    def send_node_data(self, nodes: Tuple[bytes, ...]) -> None:
+        self._event_bus.broadcast_nowait(
+            SendNodeDataEvent(self.remote, nodes),
+            self._broadcast_config,
+        )
+
+    #
+    # Block Headers
+    #
+    def send_get_block_headers(
+            self,
+            block_number_or_hash: Union[BlockNumber, Hash32],
+            max_headers: int,
+            skip: int,
+            reverse: bool) -> None:
+        raise NotImplementedError("Not yet implemented")
+
+    def send_block_headers(self, headers: Tuple[BlockHeader, ...]) -> None:
+        self._event_bus.broadcast_nowait(
+            SendBlockHeadersEvent(self.remote, headers),
+            self._broadcast_config,
+        )
+
+    #
+    # Block Bodies
+    #
+    def send_get_block_bodies(self, block_hashes: Tuple[Hash32, ...]) -> None:
+        raise NotImplementedError("Not yet implemented")
+
+    def send_block_bodies(self, blocks: List[BlockBody]) -> None:
+        self._event_bus.broadcast_nowait(
+            SendBlockBodiesEvent(self.remote, blocks),
+            self._broadcast_config,
+        )
+
+    #
+    # Receipts
+    #
+    def send_get_receipts(self, block_hashes: Tuple[Hash32, ...]) -> None:
+        raise NotImplementedError("Not yet implemented")
+
+    def send_receipts(self, receipts: List[List[Receipt]]) -> None:
+        self._event_bus.broadcast_nowait(
+            SendReceiptsEvent(self.remote, receipts),
+            self._broadcast_config,
+        )
+
+    #
+    # Transactions
+    #
+    def send_transactions(self, transactions: List[BaseTransactionFields]) -> None:
+        raise NotImplementedError("Not yet implemented")

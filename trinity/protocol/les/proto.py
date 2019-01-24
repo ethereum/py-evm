@@ -12,10 +12,17 @@ from eth_typing import (
 
 from eth.rlp.headers import BlockHeader
 
+from lahja import (
+    BroadcastConfig,
+)
+from p2p.kademlia import (
+    Node,
+)
 from p2p.protocol import (
     Protocol,
 )
 
+from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.common.peer import ChainInfo
 from trinity._utils.les import gen_request_id
 
@@ -38,6 +45,9 @@ from .commands import (
     ProofRequest,
     ContractCodeRequest,
     ContractCodes,
+)
+from .events import (
+    SendBlockHeadersEvent,
 )
 from . import constants
 
@@ -221,3 +231,55 @@ class LESProtocolV2(LESProtocol):
         self.transport.send(header, body)
 
         return request_id
+
+
+class ProxyLESProtocol:
+    """
+    An ``LESProtocol`` that can be used outside of the process that runs the peer pool. Any
+    action performed on this class is delegated to the process that runs the peer pool.
+    """
+    def __init__(self,
+                 remote: Node,
+                 event_bus: TrinityEventBusEndpoint,
+                 broadcast_config: BroadcastConfig):
+        self.remote = remote
+        self._event_bus = event_bus
+        self._broadcast_config = broadcast_config
+
+    def send_handshake(self, chain_info: ChainInfo) -> None:
+        raise NotImplementedError("API not implemented")
+
+    def send_get_block_bodies(self, block_hashes: List[bytes], request_id: int=None) -> int:
+        raise NotImplementedError("API not implemented")
+
+    def send_get_block_headers(
+            self,
+            block_number_or_hash: Union[BlockNumber, Hash32],
+            max_headers: int,
+            skip: int,
+            reverse: bool,
+            request_id: int=None) -> int:
+        raise NotImplementedError("API not implemented")
+
+    def send_block_headers(self,
+                           headers: Tuple[BlockHeader, ...],
+                           buffer_value: int,
+                           request_id: int=None) -> int:
+
+        req_id = request_id if not None else gen_request_id()
+
+        self._event_bus.broadcast_nowait(
+            SendBlockHeadersEvent(self.remote, headers, buffer_value, req_id),
+            self._broadcast_config,
+        )
+        return req_id
+
+    def send_get_receipts(self, block_hash: bytes, request_id: int=None) -> int:
+        raise NotImplementedError("API not implemented")
+
+    def send_get_proof(self, block_hash: bytes, account_key: bytes, key: bytes, from_level: int,
+                       request_id: int=None) -> int:
+        raise NotImplementedError("API not implemented")
+
+    def send_get_contract_code(self, block_hash: bytes, key: bytes, request_id: int=None) -> int:
+        raise NotImplementedError("API not implemented")

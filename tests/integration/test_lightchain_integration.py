@@ -27,7 +27,6 @@ from p2p.kademlia import Node
 from trinity.constants import ROPSTEN_NETWORK_ID
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.les.peer import LESPeerPool
-from trinity.protocol.les.servers import LightRequestServer
 from trinity.sync.light.chain import LightChainSyncer
 from trinity.sync.light.service import LightPeerChain
 from trinity._utils.ipc import (
@@ -177,12 +176,10 @@ async def test_lightchain_integration(
     syncer = LightChainSyncer(chain, chaindb, peer_pool)
     syncer.min_peers_to_sync = 1
     peer_chain = LightPeerChain(headerdb, peer_pool)
-    server_request_handler = LightRequestServer(headerdb, peer_pool)
 
     asyncio.ensure_future(peer_pool.run())
     asyncio.ensure_future(connect_to_peers_loop(peer_pool, tuple([remote])))
     asyncio.ensure_future(peer_chain.run())
-    asyncio.ensure_future(server_request_handler.run())
     asyncio.ensure_future(syncer.run())
     await asyncio.sleep(0)  # Yield control to give the LightChainSyncer a chance to start
 
@@ -190,7 +187,6 @@ async def test_lightchain_integration(
         event_loop.run_until_complete(peer_pool.cancel())
         event_loop.run_until_complete(peer_chain.cancel())
         event_loop.run_until_complete(syncer.cancel())
-        event_loop.run_until_complete(server_request_handler.cancel())
 
     request.addfinalizer(finalizer)
 

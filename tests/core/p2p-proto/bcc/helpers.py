@@ -170,15 +170,19 @@ async def get_directly_linked_peers(request, event_loop, alice_chain_db, bob_cha
 async def get_directly_linked_peers_in_peer_pools(request,
                                                   event_loop,
                                                   alice_chain_db,
-                                                  bob_chain_db):
+                                                  bob_chain_db,
+                                                  alice_peer_pool_event_bus=None,
+                                                  bob_peer_pool_event_bus=None):
     alice, bob = await get_directly_linked_peers(
         request,
         event_loop,
         alice_chain_db=alice_chain_db,
         bob_chain_db=bob_chain_db,
     )
-    alice_peer_pool = BCCPeerPool(alice.transport._private_key, alice.context)
-    bob_peer_pool = BCCPeerPool(bob.transport._private_key, bob.context)
+    alice_peer_pool = BCCPeerPool(
+        alice.transport._private_key, alice.context, event_bus=alice_peer_pool_event_bus)
+    bob_peer_pool = BCCPeerPool(
+        bob.transport._private_key, bob.context, event_bus=bob_peer_pool_event_bus)
 
     asyncio.ensure_future(alice_peer_pool.run())
     asyncio.ensure_future(bob_peer_pool.run())

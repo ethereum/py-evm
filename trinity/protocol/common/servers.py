@@ -1,7 +1,9 @@
 from abc import abstractmethod
 from typing import (
     AsyncIterator,
+    Iterable,
     Tuple,
+    Type,
 )
 
 from cancel_token import CancelToken, OperationCancelled
@@ -13,16 +15,25 @@ from eth_typing import (
     BlockNumber,
 )
 from eth.rlp.headers import BlockHeader
+from lahja import (
+    BroadcastConfig,
+)
 from p2p import protocol
 from p2p.cancellable import CancellableMixin
-from p2p.peer import BasePeer, PeerSubscriber
+from p2p.kademlia import Node
+from p2p.peer import (
+    BasePeer,
+    PeerSubscriber,
+)
 from p2p.protocol import (
     Command,
     _DecodedMsgType,
 )
 from p2p.service import BaseService
 
+from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.db.eth1.header import BaseAsyncHeaderDB
+from trinity.protocol.common.events import PeerPoolMessageEvent
 from trinity.protocol.common.peer import BasePeerPool
 from trinity.protocol.common.requests import BaseHeaderRequest
 from trinity._utils.logging import HasExtendedDebugLogger
@@ -74,6 +85,57 @@ class BaseRequestServer(BaseService, PeerSubscriber):
         """
         Identify the command, and react appropriately.
         """
+        pass
+
+
+class BaseIsolatedRequestServer(BaseService):
+    """
+    Monitor commands from peers, to identify inbound requests that should receive a response.
+    Handle those inbound requests by querying our local database and replying.
+    """
+
+    def __init__(
+            self,
+            event_bus: TrinityEventBusEndpoint,
+            broadcast_config: BroadcastConfig,
+            subscribed_events: Iterable[Type[PeerPoolMessageEvent]],
+            token: CancelToken = None) -> None:
+        super().__init__(token)
+        self.event_bus = event_bus
+        self.broadcast_config = broadcast_config
+        self._subscribed_events = subscribed_events
+
+    async def _run(self) -> None:
+
+        for event_type in self._subscribed_events:
+            self.run_daemon_task(self.handle_stream(event_type))
+
+        await self.cancellation()
+
+    async def handle_stream(self, event_type: Type[PeerPoolMessageEvent]) -> None:
+        while self.is_operational:
+            async for event in self.wait_iter(self.event_bus.stream(event_type)):
+                self.run_task(self._quiet_handle_msg(event.remote, event.cmd, event.msg))
+
+    async def _quiet_handle_msg(
+            self,
+            remote: Node,
+            cmd: protocol.Command,
+            msg: protocol._DecodedMsgType) -> None:
+        try:
+            await self._handle_msg(remote, cmd, msg)
+        except OperationCancelled:
+            # Silently swallow OperationCancelled exceptions because otherwise they'll be caught
+            # by the except below and treated as unexpected.
+            pass
+        except Exception:
+            self.logger.exception("Unexpected error when processing msg from %s", remote)
+
+    @abstractmethod
+    async def _handle_msg(self,
+                          remote: Node,
+                          cmd: Command,
+                          msg: protocol._DecodedMsgType) -> None:
         pass
 
 

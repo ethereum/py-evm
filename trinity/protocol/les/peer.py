@@ -12,15 +12,25 @@ from eth_typing import (
 )
 
 from eth_utils import encode_hex
+from lahja import (
+    BroadcastConfig,
+)
 from p2p.exceptions import (
     HandshakeFailure,
+)
+from p2p.kademlia import (
+    Node,
 )
 from p2p.p2p_proto import DisconnectReason
 from p2p.protocol import (
     Command,
     _DecodedMsgType,
+    PayloadType,
 )
 
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
+)
 from trinity.exceptions import (
     WrongNetworkFailure,
     WrongGenesisFailure,
@@ -30,18 +40,27 @@ from trinity.protocol.common.peer import (
     BaseChainPeerFactory,
     BaseChainPeerPool,
 )
+from trinity.protocol.common.peer_pool_event_bus import (
+    PeerPoolEventServer,
+)
 
 from .commands import (
     Announce,
+    GetBlockHeaders,
     Status,
     StatusV2,
 )
 from .constants import (
     MAX_HEADERS_FETCH,
 )
+from .events import (
+    GetBlockHeadersEvent,
+    SendBlockHeadersEvent,
+)
 from .proto import (
     LESProtocol,
     LESProtocolV2,
+    ProxyLESProtocol,
 )
 from .handlers import LESExchangeHandler
 
@@ -113,8 +132,52 @@ class LESPeer(BaseChainPeer):
             raise HandshakeFailure(f"{self} doesn't serve headers, disconnecting")
 
 
+class LESProxyPeer:
+    """
+    A ``LESPeer`` that can be used from any process instead of the actual peer pool peer.
+    Any action performed on the ``BCCProxyPeer`` is delegated to the actual peer in the pool.
+    This does not yet mimic all APIs of the real peer.
+    """
+
+    def __init__(self, sub_proto: ProxyLESProtocol):
+        self.sub_proto = sub_proto
+
+    @classmethod
+    def from_node(cls,
+                  remote: Node,
+                  event_bus: TrinityEventBusEndpoint,
+                  broadcast_config: BroadcastConfig) -> 'LESProxyPeer':
+        return cls(ProxyLESProtocol(remote, event_bus, broadcast_config))
+
+
 class LESPeerFactory(BaseChainPeerFactory):
     peer_class = LESPeer
+
+
+class LESPeerPoolEventServer(PeerPoolEventServer[LESPeer]):
+    """
+    LES protocol specific ``PeerPoolEventServer``. See ``PeerPoolEventServer`` for more info.
+    """
+
+    subscription_msg_types = frozenset({GetBlockHeaders})
+
+    async def _run(self) -> None:
+
+        self.run_daemon_event(
+            SendBlockHeadersEvent,
+            lambda peer, ev: peer.sub_proto.send_block_headers(ev.headers, ev.buffer_value, ev.request_id)  # noqa: E501
+        )
+
+        await super()._run()
+
+    async def handle_native_peer_message(self,
+                                         remote: Node,
+                                         cmd: Command,
+                                         msg: PayloadType) -> None:
+        if isinstance(cmd, GetBlockHeaders):
+            await self.event_bus.broadcast(GetBlockHeadersEvent(remote, cmd, msg))
+        else:
+            raise Exception(f"Command {cmd} is not broadcasted")
 
 
 class LESPeerPool(BaseChainPeerPool):

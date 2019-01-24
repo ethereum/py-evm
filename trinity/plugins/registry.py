@@ -26,6 +26,9 @@ from trinity.plugins.builtin.network_db.plugin import (
 from trinity.plugins.builtin.peer_discovery.plugin import (
     PeerDiscoveryPlugin,
 )
+from trinity.plugins.builtin.request_server.plugin import (
+    RequestServerPlugin,
+)
 from trinity.plugins.builtin.syncer.plugin import (
     SyncerPlugin,
 )
@@ -46,6 +49,7 @@ BASE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
     JsonRpcServerPlugin,
     NetworkDBPlugin,
     PeerDiscoveryPlugin,
+    RequestServerPlugin,
     BeaconNodePlugin,
 )
 

@@ -19,7 +19,6 @@ from p2p.tools.paragon import (
     ParagonContext,
     ParagonPeer,
     ParagonPeerPool,
-    ParagonPeerPoolEventServer,
 )
 from p2p.transport import Transport
 
@@ -30,7 +29,7 @@ from trinity.server import BaseServer
 from tests.p2p.auth_constants import eip8_values
 from tests.core.integration_test_helpers import (
     FakeAsyncHeaderDB,
-    make_peer_pool_answer_event_bus_requests,
+    run_peer_pool_event_server,
 )
 
 
@@ -55,9 +54,6 @@ class ParagonServer(BaseServer):
             token=self.cancel_token,
             event_bus=self.event_bus,
         )
-
-    def _make_request_server(self):
-        return
 
 
 def get_server(privkey, address, event_bus):
@@ -173,21 +169,21 @@ async def test_peer_pool_answers_connect_commands(event_loop, event_bus, server)
     )
     asyncio.ensure_future(initiator_peer_pool.run(), loop=event_loop)
     await initiator_peer_pool.events.started.wait()
-    await make_peer_pool_answer_event_bus_requests(
+    async with run_peer_pool_event_server(
         event_bus,
         initiator_peer_pool,
-        handler_type=ParagonPeerPoolEventServer
-    )
+    ):
 
-    assert len(server.peer_pool.connected_nodes) == 0
+        assert len(server.peer_pool.connected_nodes) == 0
 
-    await event_bus.wait_until_any_connection_subscribed_to(ConnectToNodeCommand)
-    await event_bus.broadcast(
-        ConnectToNodeCommand(RECEIVER_REMOTE),
-        TO_NETWORKING_BROADCAST_CONFIG
-    )
+        await event_bus.wait_until_any_connection_subscribed_to(ConnectToNodeCommand)
+        await event_bus.broadcast(
+            ConnectToNodeCommand(RECEIVER_REMOTE),
+            TO_NETWORKING_BROADCAST_CONFIG
+        )
 
-    await asyncio.sleep(0.5)
+        await asyncio.sleep(0.5)
 
-    assert len(server.peer_pool.connected_nodes) == 1
-    await initiator_peer_pool.cancel()
+        assert len(server.peer_pool.connected_nodes) == 1
+
+        await initiator_peer_pool.cancel()

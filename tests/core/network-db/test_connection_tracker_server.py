@@ -8,6 +8,7 @@ from p2p.tools.factories import NodeFactory
 from trinity.constants import (
     NETWORKING_EVENTBUS_ENDPOINT,
 )
+from trinity.plugins.builtin.network_db.connection.events import ShouldConnectToPeerRequest
 from trinity.plugins.builtin.network_db.connection.server import ConnectionTrackerServer
 from trinity.plugins.builtin.network_db.connection.tracker import (
     ConnectionTrackerClient,
@@ -33,7 +34,7 @@ async def test_connection_tracker_server_and_client(event_loop, event_bus):
     bus_tracker = ConnectionTrackerClient(event_bus, config=config)
 
     # Give `bus_tracker` a moment to setup subscriptions
-    await asyncio.sleep(0.01)
+    await event_bus.wait_until_all_connections_subscribed_to(ShouldConnectToPeerRequest)
     # ensure we can read from the tracker over the event bus
     assert await bus_tracker.should_connect_to(remote_a) is False
 

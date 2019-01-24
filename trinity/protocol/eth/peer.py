@@ -6,15 +6,25 @@ from typing import (
 )
 
 from eth_utils import encode_hex
+from lahja import (
+    BroadcastConfig,
+)
 from p2p.exceptions import (
     HandshakeFailure,
+)
+from p2p.kademlia import (
+    Node,
 )
 from p2p.p2p_proto import DisconnectReason
 from p2p.protocol import (
     Command,
     _DecodedMsgType,
+    PayloadType,
 )
 
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
+)
 from trinity.exceptions import (
     WrongNetworkFailure,
     WrongGenesisFailure,
@@ -24,13 +34,32 @@ from trinity.protocol.common.peer import (
     BaseChainPeerFactory,
     BaseChainPeerPool,
 )
+from trinity.protocol.common.peer_pool_event_bus import (
+    PeerPoolEventServer,
+)
 
 from .commands import (
+    GetBlockHeaders,
+    GetBlockBodies,
+    GetReceipts,
+    GetNodeData,
     NewBlock,
+    NewBlockHashes,
     Status,
+    Transactions,
 )
 from .constants import MAX_HEADERS_FETCH
-from .proto import ETHProtocol
+from .events import (
+    GetBlockHeadersEvent,
+    GetBlockBodiesEvent,
+    GetReceiptsEvent,
+    GetNodeDataEvent,
+    SendBlockBodiesEvent,
+    SendBlockHeadersEvent,
+    SendNodeDataEvent,
+    SendReceiptsEvent,
+)
+from .proto import ETHProtocol, ProxyETHProtocol
 from .handlers import ETHExchangeHandler
 
 
@@ -96,8 +125,79 @@ class ETHPeer(BaseChainPeer):
             )
 
 
+class ETHProxyPeer:
+    """
+    A ``ETHPeer`` that can be used from any process instead of the actual peer pool peer.
+    Any action performed on the ``BCCProxyPeer`` is delegated to the actual peer in the pool.
+    This does not yet mimic all APIs of the real peer.
+    """
+
+    def __init__(self, sub_proto: ProxyETHProtocol):
+        self.sub_proto = sub_proto
+
+    @classmethod
+    def from_node(cls,
+                  remote: Node,
+                  event_bus: TrinityEventBusEndpoint,
+                  broadcast_config: BroadcastConfig) -> 'ETHProxyPeer':
+        return cls(ProxyETHProtocol(remote, event_bus, broadcast_config))
+
+
 class ETHPeerFactory(BaseChainPeerFactory):
     peer_class = ETHPeer
+
+
+class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
+    """
+    ETH protocol specific ``PeerPoolEventServer``. See ``PeerPoolEventServer`` for more info.
+    """
+
+    subscription_msg_types = frozenset({
+        GetBlockHeaders,
+        GetBlockBodies,
+        GetReceipts,
+        GetNodeData,
+        # TODO: all of the following are here to quiet warning logging output
+        # until the messages are properly handled.
+        Transactions,
+        NewBlockHashes,
+    })
+
+    async def _run(self) -> None:
+
+        self.run_daemon_event(
+            SendBlockHeadersEvent, lambda peer, ev: peer.sub_proto.send_block_headers(ev.headers))
+        self.run_daemon_event(
+            SendBlockBodiesEvent, lambda peer, ev: peer.sub_proto.send_block_bodies(ev.blocks))
+        self.run_daemon_event(
+            SendNodeDataEvent, lambda peer, ev: peer.sub_proto.send_node_data(ev.nodes))
+        self.run_daemon_event(
+            SendReceiptsEvent, lambda peer, ev: peer.sub_proto.send_receipts(ev.receipts))
+
+        await super()._run()
+
+    async def handle_native_peer_message(self,
+                                         remote: Node,
+                                         cmd: Command,
+                                         msg: PayloadType) -> None:
+
+        ignored_commands = (
+            Transactions,
+            NewBlockHashes,
+        )
+
+        if isinstance(cmd, ignored_commands):
+            pass
+        elif isinstance(cmd, GetBlockHeaders):
+            await self.event_bus.broadcast(GetBlockHeadersEvent(remote, cmd, msg))
+        elif isinstance(cmd, GetBlockBodies):
+            await self.event_bus.broadcast(GetBlockBodiesEvent(remote, cmd, msg))
+        elif isinstance(cmd, GetReceipts):
+            await self.event_bus.broadcast(GetReceiptsEvent(remote, cmd, msg))
+        elif isinstance(cmd, GetNodeData):
+            await self.event_bus.broadcast(GetNodeDataEvent(remote, cmd, msg))
+        else:
+            raise Exception(f"Command {cmd} is not broadcasted")
 
 
 class ETHPeerPool(BaseChainPeerPool):
