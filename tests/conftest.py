@@ -278,10 +278,10 @@ async def ipc_server(
         jsonrpc_ipc_pipe_path,
         event_loop,
         chain_with_block_validation):
-    '''
+    """
     This fixture runs a single RPC server over IPC over
     the course of all tests. It yields the IPC server only for monkeypatching purposes
-    '''
+    """
     rpc = RPCServer(
         initialize_eth1_modules(chain_with_block_validation, event_bus)
     )

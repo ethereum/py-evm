@@ -31,9 +31,9 @@ async def connection_handler(execute_rpc: Callable[[Any], Any],
                              cancel_token: CancelToken,
                              reader: asyncio.StreamReader,
                              writer: asyncio.StreamWriter) -> None:
-    '''
+    """
     Catch fatal errors, log them, and close the connection
-    '''
+    """
     logger = logging.getLogger('trinity.rpc.ipc')
 
     try:

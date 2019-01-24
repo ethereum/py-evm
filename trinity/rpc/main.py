@@ -51,14 +51,14 @@ def generate_response(request: Dict[str, Any], result: Any, error: Union[Excepti
 
 
 class RPCServer:
-    '''
+    """
     This "server" accepts json strings requests and returns the appropriate json string response,
     meeting the protocol for JSON-RPC defined here: https://github.com/ethereum/wiki/wiki/JSON-RPC
 
     The key entry point for all requests is :meth:`RPCServer.request`, which
     then proxies to the appropriate method. For example, see
     :meth:`RPCServer.eth_getBlockByHash`.
-    '''
+    """
     chain = None
 
     def __init__(self,
@@ -98,10 +98,10 @@ class RPCServer:
     async def _get_result(self,
                           request: Dict[str, Any],
                           debug: bool=False) -> Tuple[Any, Union[Exception, str]]:
-        '''
+        """
         :returns: (result, error) - result is None if error is provided. Error must be
             convertable to string with ``str(error)``.
-        '''
+        """
         try:
             validate_request(request)
 
@@ -130,8 +130,8 @@ class RPCServer:
             return result, None
 
     async def execute(self, request: Dict[str, Any]) -> str:
-        '''
+        """
         The key entry point for all incoming requests
-        '''
+        """
         result, error = await self._get_result(request)
         return generate_response(request, result, error)
