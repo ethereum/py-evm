@@ -398,8 +398,7 @@ class ChainDB(HeaderDB, BaseChainDB):
 
     def get_receipt_by_index(self,
                              block_number: BlockNumber,
-                             receipt_index: int,
-                             receipt_class: Type[Receipt]) -> Receipt:
+                             receipt_index: int) -> Receipt:
         """
         Returns the Receipt of the transaction at specified index
         for the block header obtained by the specified block number
@@ -413,7 +412,7 @@ class ChainDB(HeaderDB, BaseChainDB):
         receipt_key = rlp.encode(receipt_index)
         if receipt_key in receipt_db:
             receipt_data = receipt_db[receipt_key]
-            return rlp.decode(receipt_data, sedes=receipt_class)
+            return rlp.decode(receipt_data, sedes=Receipt)
         else:
             raise ReceiptNotFound(
                 "Receipt with index {} not found in block".format(receipt_index))

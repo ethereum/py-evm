@@ -12,6 +12,9 @@ from eth_hash.auto import keccak
 from eth.constants import (
     BLANK_ROOT_HASH,
 )
+from eth.chains.base import (
+    MiningChain,
+)
 from eth.db.chain import (
     ChainDB,
 )
@@ -19,6 +22,7 @@ from eth.db.schema import SchemaV1
 from eth.exceptions import (
     HeaderNotFound,
     ParentNotFound,
+    ReceiptNotFound,
 )
 from eth.rlp.headers import (
     BlockHeader,
@@ -26,11 +30,18 @@ from eth.rlp.headers import (
 from eth.tools.rlp import (
     assert_headers_eq,
 )
+from eth._utils.address import (
+    force_bytes_to_address,
+)
 from eth.vm.forks.frontier.blocks import (
     FrontierBlock,
 )
 from eth.vm.forks.homestead.blocks import (
     HomesteadBlock,
+)
+
+from tests.core.helpers import (
+    new_transaction,
 )
 
 
@@ -62,6 +73,14 @@ def header(request):
 @pytest.fixture(params=[FrontierBlock, HomesteadBlock])
 def block(request, header):
     return request.param(header)
+
+
+@pytest.fixture
+def chain(chain_without_block_validation):
+    if not isinstance(chain_without_block_validation, MiningChain):
+        pytest.skip("these tests require a mining chain implementation")
+    else:
+        return chain_without_block_validation
 
 
 def test_chaindb_add_block_number_to_hash_lookup(chaindb, block):
@@ -129,3 +148,50 @@ def test_chaindb_get_canonical_block_hash(chaindb, block):
     chaindb.persist_block(block)
     block_hash = chaindb.get_canonical_block_hash(block.number)
     assert block_hash == block.hash
+
+
+def test_chaindb_get_receipt_by_index(
+        chain,
+        funded_address,
+        funded_address_private_key):
+    NUMBER_BLOCKS_IN_CHAIN = 5
+    TRANSACTIONS_IN_BLOCK = 10
+    REQUIRED_BLOCK_NUMBER = 2
+    REQUIRED_RECEIPT_INDEX = 3
+
+    for block_number in range(NUMBER_BLOCKS_IN_CHAIN):
+        for tx_index in range(TRANSACTIONS_IN_BLOCK):
+            tx = new_transaction(
+                chain.get_vm(),
+                from_=funded_address,
+                to=force_bytes_to_address(b'\x10\x10'),
+                private_key=funded_address_private_key,
+            )
+            new_block, tx_receipt, computation = chain.apply_transaction(tx)
+            assert computation.is_success
+
+            if (block_number + 1) == REQUIRED_BLOCK_NUMBER and tx_index == REQUIRED_RECEIPT_INDEX:
+                actual_receipt = tx_receipt
+
+        chain.mine_block()
+
+    # Check that the receipt retrieved is indeed the actual one
+    chaindb_retrieved_receipt = chain.chaindb.get_receipt_by_index(
+        REQUIRED_BLOCK_NUMBER,
+        REQUIRED_RECEIPT_INDEX,
+    )
+    assert chaindb_retrieved_receipt == actual_receipt
+
+    # Raise error if block number is not found
+    with pytest.raises(ReceiptNotFound):
+        chain.chaindb.get_receipt_by_index(
+            NUMBER_BLOCKS_IN_CHAIN + 1,
+            REQUIRED_RECEIPT_INDEX,
+        )
+
+    # Raise error if receipt index is out of range
+    with pytest.raises(ReceiptNotFound):
+        chain.chaindb.get_receipt_by_index(
+            NUMBER_BLOCKS_IN_CHAIN,
+            TRANSACTIONS_IN_BLOCK + 1,
+        )
