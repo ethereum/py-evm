@@ -2,6 +2,14 @@ import sys
 import pexpect
 import pytest
 
+from eth_utils import (
+    encode_hex,
+)
+from eth.constants import (
+    GENESIS_BLOCK_NUMBER,
+    GENESIS_PARENT_HASH,
+)
+
 from trinity.tools.async_process_runner import AsyncProcessRunner
 from trinity._utils.async_iter import (
     contains_all
@@ -133,6 +141,10 @@ async def test_web3(command, async_process_runner):
         attached_trinity.expect("'1'")
         attached_trinity.sendline("w3")
         attached_trinity.expect("web3.main.Web3")
+        attached_trinity.sendline("w3.eth.getBlock('latest').blockNumber")
+        attached_trinity.expect(str(GENESIS_BLOCK_NUMBER))
+        attached_trinity.sendline("w3.eth.getBlock('latest').parentHash")
+        attached_trinity.expect(encode_hex(GENESIS_PARENT_HASH))
     except pexpect.TIMEOUT:
         raise Exception("Trinity attach timeout")
     finally:
