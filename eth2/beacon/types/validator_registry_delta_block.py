@@ -2,6 +2,9 @@ from eth_typing import (
     Hash32,
 )
 import rlp
+from rlp.sedes import (
+    binary,
+)
 
 from eth2.beacon._utils.hash import (
     hash_eth2,
@@ -20,7 +23,6 @@ from eth2.beacon.sedes import (
     hash32,
     uint24,
     uint64,
-    uint384,
 )
 
 
@@ -31,7 +33,7 @@ class ValidatorRegistryDeltaBlock(rlp.Serializable):
     fields = [
         ('latest_registry_delta_root', hash32),
         ('validator_index', uint24),
-        ('pubkey', uint384),
+        ('pubkey', binary),
         ('slot', uint64),
         ('flag', uint64),
     ]

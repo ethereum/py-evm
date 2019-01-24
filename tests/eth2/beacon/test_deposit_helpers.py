@@ -82,7 +82,7 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
             custody_commitment=custody_commitment,
         )
     else:
-        proof_of_possession = b'\x11' * 32
+        proof_of_possession = b'\x11' * 96
         with pytest.raises(ValidationError):
             validate_proof_of_possession(
                 state=state,

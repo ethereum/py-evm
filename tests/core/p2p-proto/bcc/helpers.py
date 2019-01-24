@@ -34,6 +34,9 @@ from p2p.tools.paragon.helpers import (
     get_directly_linked_peers_without_handshake as _get_directly_linked_peers_without_handshake,
     get_directly_linked_peers as _get_directly_linked_peers,
 )
+from eth2.beacon.constants import (
+    EMPTY_SIGNATURE,
+)
 
 
 def create_test_block(parent=None, **kwargs):
@@ -43,7 +46,7 @@ def create_test_block(parent=None, **kwargs):
         "state_root": ZERO_HASH32,  # note: not the actual genesis state root
         "randao_reveal": ZERO_HASH32,
         "eth1_data": Eth1Data.create_empty_data(),
-        "signature": (0, 0),
+        "signature": EMPTY_SIGNATURE,
         "body": BeaconBlockBody.create_empty_body()
     }
 

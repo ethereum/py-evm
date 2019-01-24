@@ -30,11 +30,11 @@ from tests.eth2.beacon.helpers import mock_validator_record
     'proposer_privkey, proposer_pubkey, is_valid_signature',
     (
         (5, 2, 0, bls.privtopub(0), True, ),
-        (5, 2, 0, bls.privtopub(0) + 1, False),
-        (5, 2, 0, 123, False),
+        (5, 2, 0, bls.privtopub(0)[1:] + b'\x01', False),
+        (5, 2, 0, b'\x01\x23', False),
         (5, 2, 123, bls.privtopub(123), True),
-        (5, 2, 123, bls.privtopub(123) + 1, False),
-        (5, 2, 123, 123, False),
+        (5, 2, 123, bls.privtopub(123)[1:] + b'\x01', False),
+        (5, 2, 123, b'\x01\x23', False),
     )
 )
 def test_validate_serenity_proposer_signature(

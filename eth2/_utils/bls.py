@@ -60,7 +60,7 @@ def FQP_point_to_FQ2_point(pt: Tuple[FQP, FQP, FQP]) -> Tuple[FQ2, FQ2, FQ2]:
     )
 
 
-def modular_squareroot(value: int) -> FQP:
+def modular_squareroot(value: FQ2) -> FQP:
     """
     ``modular_squareroot(x)`` returns the value ``y`` such that ``y**2 % q == x``,
     and None if this is not possible. In cases where there are two solutions,
@@ -129,9 +129,18 @@ def decompress_G1(pt: int) -> Tuple[FQ, FQ, FQ]:
     return (FQ(x), FQ(y), FQ(1))
 
 
+def G1_to_pubkey(pt: int) -> BLSPubkey:
+    return BLSPubkey(pt.to_bytes(48, "big"))
+
+
+def pubkey_to_G1(pubkey: BLSPubkey) -> int:
+    return big_endian_to_int(pubkey)
+
 #
 # G2
 #
+
+
 def compress_G2(pt: Tuple[FQP, FQP, FQP]) -> Tuple[int, int]:
     if not is_on_curve(pt, b2):
         raise ValueError(
@@ -152,6 +161,8 @@ def decompress_G2(p: Tuple[int, int]) -> Tuple[FQP, FQP, FQP]:
     if x == FQ2([0, 0]):
         return FQ2([1, 0]), FQ2([1, 0]), FQ2([0, 0])
     y = modular_squareroot(x**3 + b2)
+    if y is None:
+        raise ValueError("Failed to find a modular squareroot")
     if y.coeffs[0] % 2 != y1_mod_2:
         y = FQ2((y * -1).coeffs)
     if not is_on_curve((x, y, FQ2([1, 0])), b2):
@@ -161,13 +172,26 @@ def decompress_G2(p: Tuple[int, int]) -> Tuple[FQP, FQP, FQP]:
     return x, y, FQ2([1, 0])
 
 
+def G2_to_signature(pt: Tuple[int, int])-> BLSSignature:
+    return BLSSignature(
+        pt[0].to_bytes(48, "big") +
+        pt[1].to_bytes(48, "big")
+    )
+
+
+def signature_to_G2(signature: BLSSignature) -> Tuple[int, int]:
+    return (big_endian_to_int(signature[:48]), big_endian_to_int(signature[48:]))
+
+
 #
 # APIs
 #
+
+
 def sign(message: bytes,
          privkey: int,
          domain: int) -> BLSSignature:
-    return BLSSignature(
+    return G2_to_signature(
         compress_G2(
             multiply(
                 hash_to_G2(message, domain),
@@ -177,20 +201,20 @@ def sign(message: bytes,
 
 
 def privtopub(k: int) -> BLSPubkey:
-    return BLSPubkey(compress_G1(multiply(G1, k)))
+    return G1_to_pubkey(compress_G1(multiply(G1, k)))
 
 
 def verify(message: bytes, pubkey: BLSPubkey, signature: BLSSignature, domain: int) -> bool:
     try:
         final_exponentiation = final_exponentiate(
             pairing(
-                FQP_point_to_FQ2_point(decompress_G2(signature)),
+                FQP_point_to_FQ2_point(decompress_G2(signature_to_G2(signature))),
                 G1,
                 final_exponentiate=False,
             ) *
             pairing(
                 FQP_point_to_FQ2_point(hash_to_G2(message, domain)),
-                neg(decompress_G1(pubkey)),
+                neg(decompress_G1(pubkey_to_G1(pubkey))),
                 final_exponentiate=False,
             )
         )
@@ -202,15 +226,15 @@ def verify(message: bytes, pubkey: BLSPubkey, signature: BLSSignature, domain: i
 def aggregate_signatures(signatures: Sequence[BLSSignature]) -> BLSSignature:
     o = Z2
     for s in signatures:
-        o = FQP_point_to_FQ2_point(add(o, decompress_G2(s)))
-    return BLSSignature(compress_G2(o))
+        o = FQP_point_to_FQ2_point(add(o, decompress_G2(signature_to_G2(s))))
+    return G2_to_signature(compress_G2(o))
 
 
 def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkey:
     o = Z1
     for p in pubkeys:
-        o = add(o, decompress_G1(p))
-    return BLSPubkey(compress_G1(o))
+        o = add(o, decompress_G1(pubkey_to_G1(p)))
+    return G1_to_pubkey(compress_G1(o))
 
 
 def verify_multiple(pubkeys: Sequence[BLSPubkey],
@@ -233,10 +257,10 @@ def verify_multiple(pubkeys: Sequence[BLSPubkey],
             group_pub = Z1
             for i in range(len_msgs):
                 if messages[i] == m_pubs:
-                    group_pub = add(group_pub, decompress_G1(pubkeys[i]))
+                    group_pub = add(group_pub, decompress_G1(pubkey_to_G1(pubkeys[i])))
 
             o *= pairing(hash_to_G2(m_pubs, domain), group_pub, final_exponentiate=False)
-        o *= pairing(decompress_G2(signature), neg(G1), final_exponentiate=False)
+        o *= pairing(decompress_G2(signature_to_G2(signature)), neg(G1), final_exponentiate=False)
 
         final_exponentiation = final_exponentiate(o)
         return final_exponentiation == FQ12.one()

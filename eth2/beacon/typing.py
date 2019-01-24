@@ -1,14 +1,13 @@
 from typing import (
     NamedTuple,
     NewType,
-    Tuple,
 )
 
 
 SlotNumber = NewType('SlotNumber', int)  # uint64
 ShardNumber = NewType('ShardNumber', int)  # uint64
-BLSPubkey = NewType('BLSPubkey', int)  # uint384
-BLSSignature = NewType('BLSSignature', Tuple[int, int])  # Tuple[uint384, uint384]
+BLSPubkey = NewType('BLSPubkey', bytes)  # bytes48
+BLSSignature = NewType('BLSSignature', bytes)  # bytes96
 
 Bitfield = NewType('Bitfield', bytes)  # uint64
 

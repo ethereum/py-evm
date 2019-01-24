@@ -2,10 +2,12 @@ from eth_typing import (
     Hash32,
 )
 import rlp
+from rlp.sedes import (
+    binary,
+)
 
 from eth2.beacon.sedes import (
     uint64,
-    uint384,
     hash32,
 )
 from eth2.beacon.constants import (
@@ -23,7 +25,7 @@ class ValidatorRecord(rlp.Serializable):
     """
     fields = [
         # BLS public key
-        ('pubkey', uint384),
+        ('pubkey', binary),
         # Withdrawal credentials
         ('withdrawal_credentials', hash32),
         # RANDAO commitment

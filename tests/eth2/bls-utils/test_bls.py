@@ -23,6 +23,7 @@ from eth2._utils.bls import (
     compress_G2,
     decompress_G1,
     decompress_G2,
+    signature_to_G2,
     normalize,
     multiply,
     sign,
@@ -59,6 +60,11 @@ def test_hash_to_G2():
     domain_1 = 1
     result_1 = hash_to_G2(message, domain_1)
     assert is_on_curve(result_1, b2)
+
+
+def test_decompress_G2_with_no_modular_square_root_found():
+    with pytest.raises(ValueError, match="Failed to find a modular squareroot"):
+        decompress_G2(signature_to_G2(b'\x11' * 96))
 
 
 @pytest.mark.parametrize(

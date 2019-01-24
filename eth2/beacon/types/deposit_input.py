@@ -3,12 +3,11 @@ from eth_typing import (
 )
 import rlp
 from rlp.sedes import (
-    CountableList,
+    binary,
 )
 
 from eth2.beacon.sedes import (
     hash32,
-    uint384,
 )
 from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.typing import (
@@ -24,7 +23,7 @@ class DepositInput(rlp.Serializable):
     """
     fields = [
         # BLS pubkey
-        ('pubkey', uint384),
+        ('pubkey', binary),
         # Withdrawal credentials
         ('withdrawal_credentials', hash32),
         # Initial RANDAO commitment
@@ -32,7 +31,7 @@ class DepositInput(rlp.Serializable):
         # Initial proof of custody commitment
         ('custody_commitment', hash32),
         # BLS proof of possession (a BLS signature)
-        ('proof_of_possession', CountableList(uint384)),
+        ('proof_of_possession', binary),
     ]
 
     def __init__(self,
