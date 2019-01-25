@@ -8,11 +8,16 @@ from typing import (
 import functools
 
 from eth_utils import (
+    big_endian_to_int,
     to_tuple,
     ValidationError,
 )
 from eth_typing import (
     Hash32,
+)
+
+from eth.constants import (
+    ZERO_HASH32,
 )
 
 from eth2._utils.bitfield import (
@@ -33,6 +38,7 @@ from eth2.beacon._utils.random import (
 from eth2.beacon.enums import (
     SignatureDomain,
 )
+from eth2.beacon.state_machines.configs import BeaconConfig
 from eth2.beacon.types.pending_attestation_records import (
     PendingAttestationRecord,
 )
@@ -466,6 +472,42 @@ def get_previous_epoch_attestations(
         a for a in state.latest_attestations
         if state.slot - 2 * epoch_length <= a.data.slot < state.slot - epoch_length
     ]
+
+
+def get_winning_root(
+        state: 'BeaconState',
+        config: BeaconConfig,
+        attestations: Sequence[PendingAttestationRecord],
+        shard: ShardNumber) -> Hash32:
+    winning_root = ZERO_HASH32
+    winning_root_balance = 0
+    visited_shard_block_root = []
+    for a in attestations:
+        if a.data.shard_block_root in visited_shard_block_root:
+            continue
+        else:
+            root_balance = sum(
+                [
+                    get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT)
+                    for i in get_attesting_validator_indices(
+                        state,
+                        config.EPOCH_LENGTH,
+                        attestations,
+                        config.TARGET_COMMITTEE_SIZE,
+                        config.SHARD_COUNT,
+                        shard,
+                        a.data.shard_block_root)
+                ]
+            )
+            if root_balance > winning_root_balance:
+                winning_root = a.data.shard_block_root
+                winning_root_balance = root_balance
+            elif (root_balance == winning_root_balance > 0 and
+                    big_endian_to_int(a.data.shard_block_root) < big_endian_to_int(winning_root)):
+                winning_root = a.data.shard_block_root
+
+            visited_shard_block_root.append(a.data.shard_block_root)
+    return winning_root
 
 
 def get_effective_balance(

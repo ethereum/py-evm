@@ -60,6 +60,7 @@ from eth2.beacon.helpers import (
     get_current_epoch_committee_count_per_slot,
     get_current_epoch_attestations,
     get_previous_epoch_attestations,
+    get_winning_root,
     get_domain,
     get_effective_balance,
     get_entry_exit_effect_slot,
@@ -634,7 +635,7 @@ def test_get_attesting_validator_indices(
         participation_bitfield_2 = set_voted(participation_bitfield_2, i_2)
         not_participation_bitfield_1 = set_voted(not_participation_bitfield_1, not_i_1)
 
-    # `attestions` contains attestation to different block root with different set of participants
+    # `attestions` contains attestation to different block root by different set of participants
     attestations = [
         # Attestation to `shard_block_root_1` by `attestation_participants_1`
         Attestation(**sample_attestation_params).copy(
@@ -671,7 +672,8 @@ def test_get_attesting_validator_indices(
         shard,
         shard_block_root_1,
     )
-    # Check that result is the union of `attestation_participants_1` and `attestation_participants_2`
+    # Check that result is the union of two participants set
+    # `attestation_participants_1` and `attestation_participants_2`
     assert set(shard_block_root_1_attesting_validator) == set(
         attestation_participants_1 + attestation_participants_2)
     assert len(shard_block_root_1_attesting_validator) == len(
@@ -738,6 +740,106 @@ def test_get_current_and_previous_epoch_attestations(random,
         get_previous_epoch_attestations(state, epoch_length))
     assert set(current_epoch_attestations) == set(
         get_current_epoch_attestations(state, epoch_length))
+
+
+@pytest.mark.parametrize(
+    (
+        'target_committee_size,'
+        'block_root_1_participants,'
+        'block_root_2_participants,'
+        'winning_root_index'
+    ),
+    [
+        (
+            16,
+            (1, 3),
+            (2, 4, 6, 8),
+            2
+        ),
+        (
+            16,
+            # vote tie; lower root value is favored
+            (1, 3, 5, 7),
+            (2, 4, 6, 8),
+            1
+        ),
+        (
+            16,
+            # no votes; ZERO_HASH32 is returned
+            (),
+            (),
+            0
+        ),
+    ]
+)
+def test_get_winning_root(
+        monkeypatch,
+        ten_validators_state,
+        config,
+        target_committee_size,
+        block_root_1_participants,
+        block_root_2_participants,
+        winning_root_index,
+        sample_attestation_data_params,
+        sample_attestation_params):
+    shard = 1
+    committee = tuple([i for i in range(target_committee_size)])
+
+    from eth2.beacon import helpers
+
+    def mock_get_crosslink_committees_at_slot(state,
+                                              slot,
+                                              epoch_length,
+                                              target_committee_size,
+                                              shard_count):
+        return (
+            (committee, shard,),
+        )
+
+    monkeypatch.setattr(
+        helpers,
+        'get_crosslink_committees_at_slot',
+        mock_get_crosslink_committees_at_slot
+    )
+
+    competing_block_roots = [
+        ZERO_HASH32,
+        # `shard_block_root_1` is more favorable than `shard_block_root_2`
+        # during a vote tie since its value is lower.
+        hash_eth2(b'shard_block_root_1'),
+        hash_eth2(b'shard_block_root_2')
+    ]
+
+    # Generate bitfield of each participants set
+    root_1_participants_bitfield = get_empty_bitfield(target_committee_size)
+    root_2_participants_bitfield = get_empty_bitfield(target_committee_size)
+    for i in block_root_1_participants:
+        root_1_participants_bitfield = set_voted(root_1_participants_bitfield, i)
+    for i in block_root_2_participants:
+        root_2_participants_bitfield = set_voted(root_2_participants_bitfield, i)
+
+    # `attestions` contains attestation to different block root by different set of participants
+    attestations = [
+        # Attestation to `shard_block_root_1` by `attestation_participants_1`
+        Attestation(**sample_attestation_params).copy(
+            data=AttestationData(**sample_attestation_data_params).copy(
+                shard=shard,
+                shard_block_root=competing_block_roots[1],
+            ),
+            participation_bitfield=root_1_participants_bitfield
+        ),
+        # Attestation to `shard_block_root_2` by `attestation_participants_2`
+        Attestation(**sample_attestation_params).copy(
+            data=AttestationData(**sample_attestation_data_params).copy(
+                shard=shard,
+                shard_block_root=competing_block_roots[2],
+            ),
+            participation_bitfield=root_2_participants_bitfield
+        ),
+    ]
+
+    assert competing_block_roots[winning_root_index] == get_winning_root(
+        ten_validators_state, config, attestations, shard)
 
 
 @pytest.mark.parametrize(
