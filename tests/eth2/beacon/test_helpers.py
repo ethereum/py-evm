@@ -13,6 +13,10 @@ from hypothesis import (
 from eth_utils import (
     ValidationError,
 )
+from eth2._utils.bitfield import (
+    set_voted,
+    get_empty_bitfield,
+)
 from eth_utils.toolz import (
     assoc,
     isdistinct,
@@ -48,6 +52,7 @@ from eth2.beacon.helpers import (
     _get_block_root,
     generate_seed,
     get_active_validator_indices,
+    get_attesting_validator_indices,
     get_attestation_participants,
     get_beacon_proposer_index,
     get_committee_count_per_slot,
@@ -563,6 +568,127 @@ def test_get_attestation_participants(
         )
 
         assert result == expected
+
+
+@settings(max_examples=1)
+@given(random=st.randoms())
+@pytest.mark.parametrize(
+    (
+        'target_committee_size,'
+        'shard_count'
+    ),
+    [
+        (
+            16,
+            32,
+        ),
+    ]
+)
+def test_get_attesting_validator_indices(
+        random,
+        monkeypatch,
+        epoch_length,
+        sample_state,
+        target_committee_size,
+        shard_count,
+        sample_attestation_data_params,
+        sample_attestation_params):
+    shard = 1
+    committee = tuple([i for i in range(target_committee_size)])
+
+    from eth2.beacon import helpers
+
+    def mock_get_crosslink_committees_at_slot(state,
+                                              slot,
+                                              epoch_length,
+                                              target_committee_size,
+                                              shard_count):
+        return (
+            (committee, shard,),
+        )
+
+    monkeypatch.setattr(
+        helpers,
+        'get_crosslink_committees_at_slot',
+        mock_get_crosslink_committees_at_slot
+    )
+
+    # Validators attesting to two shard block roots
+    shard_block_root_1 = hash_eth2(b'shard_block_root_1')
+    shard_block_root_2 = hash_eth2(b'shard_block_root_2')
+
+    # Random sampling half the committee.
+    # `attestation_participants_1` and `attestation_participants_2` are expected to have
+    # overlapping participants.
+    attestation_participants_1 = random.sample(committee, target_committee_size // 2)
+    attestation_participants_2 = random.sample(committee, target_committee_size // 2)
+    not_attestation_participants_1 = [i for i in committee if i not in attestation_participants_1]
+
+    # Generate bitfield of each participants set
+    participation_bitfield_1 = get_empty_bitfield(target_committee_size)
+    participation_bitfield_2 = get_empty_bitfield(target_committee_size)
+    not_participation_bitfield_1 = get_empty_bitfield(target_committee_size)
+    for i_1, i_2, not_i_1 in zip(
+            attestation_participants_1, attestation_participants_2, not_attestation_participants_1):
+        participation_bitfield_1 = set_voted(participation_bitfield_1, i_1)
+        participation_bitfield_2 = set_voted(participation_bitfield_2, i_2)
+        not_participation_bitfield_1 = set_voted(not_participation_bitfield_1, not_i_1)
+
+    # `attestions` contains attestation to different block root with different set of participants
+    attestations = [
+        # Attestation to `shard_block_root_1` by `attestation_participants_1`
+        Attestation(**sample_attestation_params).copy(
+            data=AttestationData(**sample_attestation_data_params).copy(
+                shard=shard,
+                shard_block_root=shard_block_root_1,
+            ),
+            participation_bitfield=participation_bitfield_1
+        ),
+        # Attestation to `shard_block_root_1` by `attestation_participants_2`
+        Attestation(**sample_attestation_params).copy(
+            data=AttestationData(**sample_attestation_data_params).copy(
+                shard=shard,
+                shard_block_root=shard_block_root_1,
+            ),
+            participation_bitfield=participation_bitfield_2
+        ),
+        # Attestation to `shard_block_root_2` by `not_attestation_participants_1`
+        Attestation(**sample_attestation_params).copy(
+            data=AttestationData(**sample_attestation_data_params).copy(
+                shard=shard,
+                shard_block_root=shard_block_root_2,
+            ),
+            participation_bitfield=not_participation_bitfield_1
+        ),
+    ]
+
+    shard_block_root_1_attesting_validator = get_attesting_validator_indices(
+        sample_state,
+        epoch_length,
+        attestations,
+        target_committee_size,
+        shard_count,
+        shard,
+        shard_block_root_1,
+    )
+    # Check that result is the union of `attestation_participants_1` and `attestation_participants_2`
+    assert set(shard_block_root_1_attesting_validator) == set(
+        attestation_participants_1 + attestation_participants_2)
+    assert len(shard_block_root_1_attesting_validator) == len(
+        set(attestation_participants_1 + attestation_participants_2))
+
+    shard_block_root_2_attesting_validator = get_attesting_validator_indices(
+        sample_state,
+        epoch_length,
+        attestations,
+        target_committee_size,
+        shard_count,
+        shard,
+        shard_block_root_2,
+    )
+    # Check that result is the `not_attestation_participants_1` set
+    assert set(shard_block_root_2_attesting_validator) == set(not_attestation_participants_1)
+    assert len(shard_block_root_2_attesting_validator) == len(not_attestation_participants_1)
 
 
 @settings(max_examples=1)

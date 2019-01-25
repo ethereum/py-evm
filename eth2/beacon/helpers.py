@@ -416,6 +416,35 @@ def get_attestation_participants(state: 'BeaconState',
             yield validator_index
 
 
+@to_tuple
+def get_attesting_validator_indices(
+        state: 'BeaconState',
+        epoch_length: int,
+        attestations: Sequence[PendingAttestationRecord],
+        target_committee_size: int,
+        shard_count: int,
+        shard: ShardNumber,
+        shard_block_root: Hash32) -> Iterable[ValidatorIndex]:
+    """
+    Loop through ``attestations`` and check if ``shard``/``shard_block_root`` in the attestation
+    matches the given ``shard``/``shard_block_root``.
+    If the attestation matches, get the index of the participating validators.
+    Finally, return the union of the indexes.
+    """
+    indexes_tuple = ()
+    for a in attestations:
+        if a.data.shard == shard and a.data.shard_block_root == shard_block_root:
+            indexes_tuple += get_attestation_participants(
+                state,
+                a.data,
+                a.participation_bitfield,
+                epoch_length,
+                target_committee_size,
+                shard_count,
+            )
+    return set(indexes_tuple)
+
+
 #
 # Misc
 #
