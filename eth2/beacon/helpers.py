@@ -1,5 +1,6 @@
 from typing import (
     Iterable,
+    List,
     Sequence,
     Tuple,
     TYPE_CHECKING,
@@ -481,7 +482,7 @@ def get_winning_root(
         shard: ShardNumber) -> Hash32:
     winning_root = ZERO_HASH32
     winning_root_balance = 0
-    visited_shard_block_root = []
+    visited_shard_block_root: List[Hash32] = []
     for a in attestations:
         if a.data.shard_block_root in visited_shard_block_root:
             continue
