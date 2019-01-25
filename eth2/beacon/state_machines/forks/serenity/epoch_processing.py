@@ -14,10 +14,79 @@ from eth2.beacon._utils.hash import (
 from eth2.beacon import helpers
 from eth2.beacon.helpers import (
     get_active_validator_indices,
+    get_attesting_validator_indices,
+    get_crosslink_committees_at_slot,
     get_current_epoch_committee_count_per_slot,
+    get_current_epoch_attestations,
+    get_effective_balance,
+    get_previous_epoch_attestations,
+    get_randao_mix,
+    get_winning_root,
 )
+from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.state_machines.configs import BeaconConfig
+
+
+#
+# Crosslinks
+#
+def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
+    """
+    Implements 'per-epoch-processing.crosslinks' portion of Phase 0 spec:
+    https://github.com/ethereum/eth2.0-specs/blob/master/specs/core/0_beacon-chain.md#crosslinks
+
+    For the shard to be crosslinked during each slots of the past two epochs, find the shard block
+    root with the most stake attestted to.
+    If enough(>= 2/3 total stake) attesting stake, update the crosslink record of that shard.
+    Return resulting ``state``
+    """
+    latest_crosslinks = state.latest_crosslinks.copy()
+    current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
+    prev_epoch_attestations = get_previous_epoch_attestations(state, config.EPOCH_LENGTH)
+    for slot in range(state.slot - 2 * config.EPOCH_LENGTH, state.slot):
+        crosslink_committees_at_slot = get_crosslink_committees_at_slot(
+            state,
+            slot,
+            config.EPOCH_LENGTH,
+        )
+        for crosslink_committee, shard in crosslink_committees_at_slot:
+            winning_root = get_winning_root(
+                state,
+                config,
+                current_epoch_attestations + prev_epoch_attestations,
+                shard,
+            )
+            attesting_validators_indices = get_attesting_validator_indices(
+                state,
+                config.EPOCH_LENGTH,
+                current_epoch_attestations + prev_epoch_attestations,
+                config.TARGET_COMMITTEE_SIZE,
+                config.SHARD_COUNT,
+                shard,
+                winning_root,
+            )
+            total_attesting_balance = sum(
+                [
+                    get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT)
+                    for i in attesting_validators_indices
+                ]
+            )
+            total_balance = sum(
+                [
+                    get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT)
+                    for i in crosslink_committee
+                ]
+            )
+            if 3 * total_attesting_balance >= 2 * total_balance:
+                latest_crosslinks[shard] = CrosslinkRecord(
+                    slot=state.slot,
+                    shard_block_root=winning_root,
+                )
+    state = state.copy(
+        latest_crosslinks=latest_crosslinks,
+    )
+    return state
 
 
 #
