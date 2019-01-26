@@ -41,7 +41,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
     If enough(>= 2/3 total stake) attesting stake, update the crosslink record of that shard.
     Return resulting ``state``
     """
-    latest_crosslinks = state.latest_crosslinks.copy()
+    latest_crosslinks = state.latest_crosslinks
     current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
     prev_epoch_attestations = get_previous_epoch_attestations(state, config.EPOCH_LENGTH)
     for slot in range(state.slot - 2 * config.EPOCH_LENGTH, state.slot):
@@ -81,9 +81,13 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                 ]
             )
             if 3 * total_attesting_balance >= 2 * total_balance:
-                latest_crosslinks[shard] = CrosslinkRecord(
-                    slot=state.slot,
-                    shard_block_root=winning_root,
+                latest_crosslinks = update_tuple_item(
+                    latest_crosslinks,
+                    shard,
+                    CrosslinkRecord(
+                        slot=state.slot,
+                        shard_block_root=winning_root,
+                    )
                 )
     state = state.copy(
         latest_crosslinks=latest_crosslinks,
