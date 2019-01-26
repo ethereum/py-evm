@@ -413,7 +413,7 @@ def get_attestation_participants(state: 'BeaconState',
             'Invalid bitfield length,'
             "\texpected: {}, found: {}".format(
                 get_bitfield_length(committee_size),
-                len(attestation_data),
+                len(aggregation_bitfield),
             )
         )
 
