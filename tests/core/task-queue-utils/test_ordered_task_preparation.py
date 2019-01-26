@@ -1,5 +1,7 @@
 import asyncio
 from enum import Enum, auto
+import time
+from typing import NamedTuple
 
 from eth_utils import (
     ValidationError,
@@ -285,3 +287,268 @@ async def test_finished_dependency_midstream():
     ti.finish_prereq(TwoPrereqs.Prereq2, (6, ))
     ready = await wait(ti.ready_tasks())
     assert ready == (6, )
+
+
+def test_dangled_pruning():
+    # make a number task depend on the mod10, so 4 and 14 both depend on task 3
+    ti = OrderedTaskPreparation(
+        NoPrerequisites,
+        identity,
+        lambda x: (x % 10) - 1,
+        max_depth=2,
+        accept_dangling_tasks=True,
+    )
+    ti.set_finished_dependency(3)
+    ti.register_tasks((5, 6))
+
+    # No obvious way to check which tasks are pruned when accepting dangling tasks,
+    # so use an internal API until a better option is found:
+    # Nothing should be pruned yet
+    assert 3 in ti._tasks
+
+    ti.register_tasks((4, ))
+
+    # 3 should be pruned now
+    assert 3 not in ti._tasks
+    assert 4 in ti._tasks
+
+    ti.register_tasks((7, ))
+
+    # 4 should be pruned now
+    assert 4 not in ti._tasks
+
+
+class TaskID(NamedTuple):
+    idx: int
+    fork: int  # noqa: E701 -- flake8 3.5.0 seems confused by py3.6+ NamedTuple syntax
+
+
+class Task(NamedTuple):
+    idx: int
+    fork: int  # noqa: E701 -- flake8 3.5.0 seems confused by py3.6+ NamedTuple syntax
+    parent_fork: int
+
+
+def task_id(task):
+    return TaskID(task.idx, task.fork)
+
+
+def fork_prereq(task):
+    # allow tasks to fork for a few in a row
+    return TaskID(task.idx - 1, task.parent_fork)
+
+
+def test_forked_pruning():
+    ti = OrderedTaskPreparation(
+        NoPrerequisites,
+        task_id,
+        fork_prereq,
+        max_depth=2,
+    )
+    ti.set_finished_dependency(Task(0, 0, 0))
+    ti.register_tasks((
+        Task(1, 0, 0),
+        Task(2, 0, 0),
+        Task(2, 1, 0),
+    ))
+    ti.register_tasks((
+        Task(3, 0, 0),
+        Task(3, 1, 1),
+    ))
+    ti.register_tasks((
+        Task(4, 0, 0),
+        Task(4, 1, 1),
+    ))
+    ti.register_tasks((
+        Task(5, 0, 0),
+        Task(6, 0, 0),
+        Task(7, 0, 0),
+        Task(8, 0, 0),
+        Task(9, 0, 0),
+        Task(10, 0, 0),
+    ))
+    ti.register_tasks((
+        Task(5, 1, 1),
+    ))
+
+    assert TaskID(1, 0) not in ti._tasks
+    assert TaskID(2, 0) not in ti._tasks
+    assert TaskID(3, 0) not in ti._tasks
+    assert TaskID(4, 0) not in ti._tasks
+    assert TaskID(5, 0) not in ti._tasks
+    assert TaskID(2, 1) not in ti._tasks
+    assert TaskID(10, 0) in ti._tasks
+
+
+def test_forked_pruning_dangling():
+    ti = OrderedTaskPreparation(
+        OnePrereq,
+        task_id,
+        fork_prereq,
+        max_depth=2,
+        accept_dangling_tasks=True,
+    )
+    ti.set_finished_dependency(Task(0, 0, 0))
+    ti.register_tasks((
+        Task(2, 0, 0),
+        Task(2, 1, 0),
+    ))
+    ti.finish_prereq(OnePrereq.one, (
+        Task(2, 0, 0),
+        Task(2, 1, 0),
+    ))
+
+    ti.register_tasks((
+        Task(3, 0, 0),
+        Task(3, 1, 1),
+    ))
+    ti.finish_prereq(OnePrereq.one, (
+        Task(3, 0, 0),
+        Task(3, 1, 1),
+    ))
+
+    ti.register_tasks((
+        Task(4, 0, 0),
+        Task(4, 1, 1),
+    ))
+    ti.finish_prereq(OnePrereq.one, (
+        Task(4, 0, 0),
+        Task(4, 1, 1),
+    ))
+
+    ti.register_tasks((
+        Task(5, 0, 0),
+        Task(6, 0, 0),
+        Task(7, 0, 0),
+        Task(8, 0, 0),
+        Task(9, 0, 0),
+        Task(10, 0, 0),
+    ))
+    ti.finish_prereq(OnePrereq.one, (
+        Task(5, 0, 0),
+        Task(6, 0, 0),
+        Task(7, 0, 0),
+        Task(8, 0, 0),
+        Task(9, 0, 0),
+        Task(10, 0, 0),
+    ))
+
+    ti.register_tasks((
+        Task(5, 1, 1),
+    ))
+    ti.finish_prereq(OnePrereq.one, (
+        Task(5, 1, 1),
+    ))
+
+    ti.register_tasks((
+        Task(1, 0, 0),
+    ))
+    ti.finish_prereq(OnePrereq.one, (
+        Task(1, 0, 0),
+    ))
+
+    ti.register_tasks((
+        Task(11, 0, 0),
+        Task(12, 0, 0),
+        Task(13, 0, 0),
+        Task(14, 0, 0),
+        Task(15, 0, 0),
+        Task(16, 0, 0),
+        Task(17, 0, 0),
+        Task(18, 0, 0),
+        Task(19, 0, 0),
+        Task(20, 0, 0),
+        Task(6, 1, 1),
+        Task(7, 1, 1),
+        Task(8, 1, 1),
+        Task(9, 1, 1),
+    ))
+    ti.finish_prereq(OnePrereq.one, (
+        Task(11, 0, 0),
+        Task(12, 0, 0),
+        Task(13, 0, 0),
+        Task(14, 0, 0),
+        Task(15, 0, 0),
+        Task(16, 0, 0),
+        Task(17, 0, 0),
+        Task(18, 0, 0),
+        Task(19, 0, 0),
+        Task(20, 0, 0),
+        Task(6, 1, 1),
+        Task(7, 1, 1),
+        Task(8, 1, 1),
+        Task(9, 1, 1),
+    ))
+
+    assert TaskID(6, 1) not in ti._tasks
+    assert TaskID(7, 1) in ti._tasks
+    assert TaskID(17, 0) not in ti._tasks
+    assert TaskID(18, 0) in ti._tasks
+
+
+def test_re_fork_at_prune_boundary():
+    def task_id(task):
+        return TaskID(task.idx, task.fork)
+
+    def fork_prereq(task):
+        # allow tasks to fork for a few in a row
+        return TaskID(task.idx - 1, task.parent_fork)
+
+    ti = OrderedTaskPreparation(
+        NoPrerequisites,
+        task_id,
+        fork_prereq,
+        max_depth=2,
+    )
+    ti.set_finished_dependency(Task(0, 0, 0))
+    ti.register_tasks((
+        Task(1, 0, 0),
+        Task(2, 0, 0),
+        Task(2, 1, 0),
+    ))
+    ti.register_tasks((
+        Task(3, 0, 0),
+        Task(3, 1, 1),
+    ))
+    ti.register_tasks((
+        Task(4, 0, 0),
+        Task(4, 1, 1),
+        Task(4, 2, 1),
+    ))
+    ti.register_tasks((
+        Task(5, 0, 0),
+        Task(6, 0, 0),
+        Task(7, 0, 0),
+        Task(8, 0, 0),
+        Task(9, 0, 0),
+        Task(10, 0, 0),
+    ))
+    ti.register_tasks((
+        Task(5, 1, 1),
+        Task(5, 2, 2),
+        Task(5, 3, 2),
+    ))
+    ti.register_tasks((
+        Task(6, 3, 3),
+        Task(7, 3, 3),
+        Task(8, 3, 3),
+        Task(9, 3, 3),
+    ))
+
+
+def test_pruning_speed():
+    length = 10000
+    ti = OrderedTaskPreparation(
+        NoPrerequisites,
+        identity,
+        lambda x: x - 1,
+        max_depth=length,
+    )
+    ti.set_finished_dependency(-1)
+    ti.register_tasks(range(length))
+    assert -1 in ti._tasks
+    start = time.perf_counter()
+    ti.register_tasks((length, ))
+    duration = time.perf_counter() - start
+    assert -1 not in ti._tasks
+    assert duration < 0.0005

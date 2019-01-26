@@ -12,14 +12,11 @@ from functools import (
 )
 from itertools import (
     count,
-    repeat,
 )
-from operator import attrgetter
 from typing import (
     Any,
     Callable,
     Dict,
-    Generator,
     Generic,
     Iterable,
     Set,
@@ -33,15 +30,7 @@ from eth_utils import (
     to_tuple,
 )
 from eth_utils.toolz import (
-    compose,
-    concat,
-    curry,
-    do,
     identity,
-    iterate,
-    mapcat,
-    nth,
-    pipe,
 )
 
 from eth.typing import (
@@ -51,6 +40,9 @@ from eth.typing import (
 from trinity._utils.queues import (
     queue_get_batch,
     queue_get_nowait,
+)
+from trinity._utils.tree_root import (
+    RootTracker,
 )
 
 TPrerequisite = TypeVar('TPrerequisite', bound=Enum)
@@ -436,9 +428,12 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
     _dependency_of: StaticMethod[Callable[[TTask], TTaskID]]
 
     # by default, how long should the integrator wait before pruning?
-    _default_max_depth = 10000  # not sure how to pick a good default here
+    _default_max_depth = 10  # not sure how to pick a good default here
 
     _prereq_tracker: Type[BaseTaskPrerequisites[TTask, TPrerequisite]]
+
+    # track roots
+    _roots: RootTracker[TTaskID]
 
     NoPrerequisites = NoPrerequisites
     """
@@ -457,7 +452,6 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
         self._prereq_tracker = BaseTaskPrerequisites.from_enum(prerequisites)
         self._id_of = id_extractor
         self._dependency_of = dependency_extractor
-        self._oldest_depth = 0
         self._accept_dangling_tasks = accept_dangling_tasks
 
         # how long to wait before pruning
@@ -488,6 +482,8 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
         # Declared finished with set_finished_dependency()
         self._declared_finished: Set[TTaskID] = set()
 
+        self._roots = RootTracker()
+
     def set_finished_dependency(self, finished_task: TTask) -> None:
         """
         Mark this task as already finished. This is a bootstrapping method. In general,
@@ -511,6 +507,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
             )
         self._tasks[task_id] = completed
         self._declared_finished.add(task_id)
+        self._roots.add(task_id, self._dependency_of(finished_task))
         # note that this task is intentionally *not* added to self._unready
 
     def register_tasks(self, tasks: Tuple[TTask, ...], ignore_duplicates: bool = False) -> None:
@@ -551,6 +548,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
                 self._tasks[task_id] = prereq_tracker
                 self._unready.add(task_id)
                 self._dependencies[dependency_id].add(task_id)
+                self._roots.add(task_id, dependency_id)
 
                 if prereq_tracker.is_complete and self._is_ready(prereq_tracker.task):
                     # this is possible for tasks with 0 prerequisites (useful for pure ordering)
@@ -593,16 +591,29 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
         else:
             return False
 
-    def _mark_complete(self, task_id: TTaskID) -> None:
+    @to_tuple
+    def _mark_complete_task_tree(self, task_id: TTaskID) -> Iterable[TTaskID]:
         qualified_tasks = tuple([task_id])
         while qualified_tasks:
-            qualified_tasks = tuple(concat(
-                self._mark_one_task_complete(task_id)
-                for task_id in qualified_tasks
-            ))
+            next_layer_tasks: Tuple[TTaskID, ...] = tuple()
+            for completed_task in qualified_tasks:
+                child_tasks = self._mark_one_task_complete(completed_task)
+                if not child_tasks:
+                    yield completed_task
+                else:
+                    next_layer_tasks = next_layer_tasks + child_tasks
+            qualified_tasks = tuple(next_layer_tasks)
+
+    def _mark_complete(self, task_id: TTaskID) -> None:
+        new_completed_leaves = self._mark_complete_task_tree(task_id)
+        for prune_from_leaf in new_completed_leaves:
+            # Attempt pruning at least twice (to eventually catch up after forks)
+            # re-running is okay, because pruning limits the prune depth
+            self._prune_finished(prune_from_leaf)
+            self._prune_finished(prune_from_leaf)
 
     @to_tuple
-    def _mark_one_task_complete(self, task_id: TTaskID) -> Generator[TTaskID, None, None]:
+    def _mark_one_task_complete(self, task_id: TTaskID) -> Iterable[TTaskID]:
         """
         Called when this task is completed and its dependency is complete, for the first time
 
@@ -616,9 +627,6 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
         # note that this task has been made ready
         self._unready.remove(task_id)
 
-        # prune any completed tasks that are too old
-        self._prune_finished(task_id)
-
         # resolve tasks that depend on this task
         for depending_task_id in self._dependencies[task_id]:
             # we already know that this task is ready, so we only need to check completion
@@ -627,65 +635,20 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
 
     def _prune_finished(self, task_id: TTaskID) -> None:
         """
-        This prunes any data starting more than _max_depth in history.
+        This prunes the oldest data, if it starts more than _max_depth in history.
         It is called when the task becomes ready.
         """
-        try:
-            oldest_id = self._find_oldest_unpruned_task_id(task_id)
-        except ValidationError:
-            # No tasks are old enough to prune, can end immediately
+        root_task_id, depth = self._roots.get_root(task_id)
+        num_to_prune = depth - self._max_depth
+        if num_to_prune <= 0:
             return
+        else:
+            self._prune(root_task_id)
 
-        root_id, depth = self._find_root(oldest_id)
-        unpruned = self._prune_forward(root_id, depth)
-        if oldest_id not in unpruned:
-            raise ValidationError(
-                f"Expected {oldest_id} to be in {unpruned!r}, something went wrong during pruning."
-            )
-
-    def _validate_has_task(self, task_id: TTaskID) -> None:
-        if task_id not in self._tasks:
-            raise ValidationError(f"No task {task_id} is present")
-
-    def _find_oldest_unpruned_task_id(self, finished_task_id: TTaskID) -> TTaskID:
-        get_dependency_of_id = compose(
-            curry(do)(self._validate_has_task),
-            self._dependency_of,
-            attrgetter('task'),
-            self._tasks.get,
-        )
-        ancestors = iterate(get_dependency_of_id, finished_task_id)
-        return nth(self._max_depth, ancestors)
-
-    def _find_root(self, task_id: TTaskID) -> Tuple[TTaskID, int]:
-        """
-        return the oldest root, and the depth to it from the seed task
-        """
-        root_candidate = task_id
-        get_dependency_of_id = compose(self._dependency_of, attrgetter('task'), self._tasks.get)
-        # We'll use the maximum saved history (_max_depth) to cap how long the stale cache
-        # of history might get, when pruning. Increasing the cap should not be a problem, if needed.
-        for depth in range(0, self._max_depth):
-            dependency = get_dependency_of_id(root_candidate)
-            if dependency not in self._tasks:
-                return root_candidate, depth
-            else:
-                root_candidate = dependency
-        raise ValidationError(
-            f"Stale task history too long ({depth}) before pruning. {dependency} is still in cache."
-        )
-
-    def _prune_forward(self, root_id: TTaskID, depth: int) -> Tuple[TTaskID]:
-        """
-        Prune all forks forward from the root
-        """
-        def prune_parent(prune_task_id: TTaskID) -> Set[TTaskID]:
-            children = self._dependencies.pop(prune_task_id, set())
-            del self._tasks[prune_task_id]
-            if prune_task_id in self._declared_finished:
-                self._declared_finished.remove(prune_task_id)
-            return children
-
-        prune_parent_list = compose(tuple, curry(mapcat)(prune_parent))
-        prune_trunk = repeat(prune_parent_list, depth)
-        return pipe((root_id, ), *prune_trunk)
+    def _prune(self, prune_task_id: TTaskID) -> None:
+        # _roots.prune() has validation in it, so if there is a problem, we should skip the rest
+        self._roots.prune(prune_task_id)
+        del self._dependencies[prune_task_id]
+        del self._tasks[prune_task_id]
+        if prune_task_id in self._declared_finished:
+            self._declared_finished.remove(prune_task_id)
