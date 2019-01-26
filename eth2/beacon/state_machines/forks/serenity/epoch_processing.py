@@ -19,7 +19,6 @@ from eth2.beacon.helpers import (
     get_current_epoch_committee_count_per_slot,
     get_current_epoch_attestations,
     get_effective_balance,
-    get_previous_epoch_attestations,
     get_randao_mix,
     get_winning_root,
 )
@@ -43,8 +42,10 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
     """
     latest_crosslinks = state.latest_crosslinks
     current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
-    prev_epoch_attestations = get_previous_epoch_attestations(state, config.EPOCH_LENGTH)
-    for slot in range(state.slot - 2 * config.EPOCH_LENGTH, state.slot):
+    # TODO: STUB, in spec it was
+    # `for slot in range(state.slot - 2 * config.EPOCH_LENGTH, state.slot):``
+    # waiting for ethereum/eth2.0-specs#492 to update the spec
+    for slot in range(state.slot - 1 * config.EPOCH_LENGTH, state.slot):
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
             state,
             slot,
@@ -57,7 +58,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
             # to going over irrelevent attestations over and over again.
             to_this_shard_attestations = [
                 a
-                for a in (current_epoch_attestations + prev_epoch_attestations)
+                for a in current_epoch_attestations
                 if a.data.shard == shard
             ]
             winning_root = get_winning_root(state, config, to_this_shard_attestations, shard)
