@@ -51,16 +51,18 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
             config.EPOCH_LENGTH,
         )
         for crosslink_committee, shard in crosslink_committees_at_slot:
-            winning_root = get_winning_root(
-                state,
-                config,
-                current_epoch_attestations + prev_epoch_attestations,
-                shard,
-            )
+            # Filter out attestations not attesting to this shard so we don't need
+            # to going over irrelevent attestations over and over again.
+            to_this_shard_attestations = [
+                a
+                for a in (current_epoch_attestations + prev_epoch_attestations)
+                if a.data.shard == shard
+            ]
+            winning_root = get_winning_root(state, config, to_this_shard_attestations, shard)
             attesting_validators_indices = get_attesting_validator_indices(
                 state,
                 config.EPOCH_LENGTH,
-                current_epoch_attestations + prev_epoch_attestations,
+                to_this_shard_attestations,
                 config.TARGET_COMMITTEE_SIZE,
                 config.SHARD_COUNT,
                 shard,
