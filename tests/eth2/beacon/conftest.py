@@ -358,6 +358,21 @@ def ten_validators_state(filled_beacon_state, max_deposit_amount):
     )
 
 
+@pytest.fixture()
+def hundred_validators_state(empty_beacon_state, max_deposit):
+    validator_count = 100
+    return empty_beacon_state.copy(
+        validator_registry=tuple(
+            mock_validator_record(
+                pubkey=index.to_bytes(48, "big"),
+                is_active=True,
+            )
+            for index in range(validator_count)
+        ),
+        validator_balances=(max_deposit * GWEI_PER_ETH,) * validator_count,
+    )
+
+
 #
 # Temporary default values
 #
