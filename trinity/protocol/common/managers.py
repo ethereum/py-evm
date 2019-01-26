@@ -25,6 +25,7 @@ from p2p.protocol import (
     TRequestPayload,
 )
 from p2p.service import BaseService
+from p2p._utils import ensure_global_asyncio_executor
 
 from trinity.exceptions import AlreadyWaiting
 
@@ -284,7 +285,13 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
                 payload_validator(payload)
 
                 if normalizer.is_normalization_slow:
-                    result = await stream._run_in_executor(normalizer.normalize_result, payload)
+                    result = await stream._run_in_executor(
+                        # We just retrieve the global executor that was created when the
+                        # Node launches. The node manages the lifecycle of the executor.
+                        ensure_global_asyncio_executor(),
+                        normalizer.normalize_result,
+                        payload
+                    )
                 else:
                     result = normalizer.normalize_result(payload)
 

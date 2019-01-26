@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import asyncio
+from concurrent.futures import Executor
 import functools
 import logging
 from typing import (
@@ -20,7 +21,6 @@ from eth_utils import (
 from eth.tools.logging import ExtendedDebugLogger
 
 from p2p.cancellable import CancellableMixin
-from p2p._utils import get_asyncio_executor
 
 
 class ServiceEvents:
@@ -63,8 +63,6 @@ class BaseService(ABC, CancellableMixin):
             self.cancel_token = base_token
         else:
             self.cancel_token = base_token.chain(token)
-
-        self._executor = get_asyncio_executor()
 
     @property
     def logger(self) -> ExtendedDebugLogger:
@@ -230,9 +228,12 @@ class BaseService(ABC, CancellableMixin):
 
         self.run_task(_call_later_wrapped())
 
-    async def _run_in_executor(self, callback: Callable[..., Any], *args: Any) -> Any:
+    async def _run_in_executor(self,
+                               executor: Executor,
+                               callback: Callable[..., Any], *args: Any) -> Any:
+
         loop = self.get_event_loop()
-        return await self.wait(loop.run_in_executor(self._executor, callback, *args))
+        return await self.wait(loop.run_in_executor(executor, callback, *args))
 
     async def cleanup(self) -> None:
         """

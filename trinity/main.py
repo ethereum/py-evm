@@ -18,6 +18,7 @@ from eth.db.backends.base import BaseDB
 from eth.db.backends.level import LevelDB
 
 from p2p.service import BaseService
+from p2p._utils import ensure_global_asyncio_executor
 
 from trinity.bootstrap import (
     kill_trinity_gracefully,
@@ -163,6 +164,9 @@ def launch_node(args: Namespace, trinity_config: TrinityConfig, endpoint: Endpoi
 
         NodeClass = trinity_config.get_app_config(Eth1AppConfig).node_class
         node = NodeClass(endpoint, trinity_config)
+        # The `networking` process creates a process pool executor to offload cpu intensive
+        # tasks. We should revisit that when we move the sync in its own process
+        ensure_global_asyncio_executor()
         loop = node.get_event_loop()
 
         endpoint.connect_no_wait(loop)
@@ -195,3 +199,5 @@ async def handle_networking_exit(service: BaseService,
     async with exit_signal_with_service(service):
         await plugin_manager.shutdown()
         endpoint.stop()
+        # Retrieve and shutdown the global executor that was created at startup
+        ensure_global_asyncio_executor().shutdown(wait=True)

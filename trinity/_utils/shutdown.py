@@ -32,7 +32,6 @@ async def exit_signal_with_service(service_to_exit: BaseService) -> AsyncGenerat
     async with exit_signal(loop):
         await service_to_exit.cancel()
         yield
-        service_to_exit._executor.shutdown(wait=True)
 
 
 @asynccontextmanager

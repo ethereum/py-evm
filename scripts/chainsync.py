@@ -133,11 +133,7 @@ def _test() -> None:
 def _run_test(profile: bool) -> None:
     import cProfile, pstats  # noqa
 
-    async def mock_run_in_executor(self, callback, *args):  # type: ignore
-        return callback(*args)
-
     if profile:
-        BaseHeaderChainSyncer._run_in_executor = mock_run_in_executor  # type: ignore
         cProfile.run('_test()', 'stats')
         pstats.Stats('stats').strip_dirs().sort_stats('cumulative').print_stats(50)
     else:

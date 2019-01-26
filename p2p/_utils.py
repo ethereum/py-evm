@@ -44,7 +44,7 @@ CPU_EMPTY_VALUES = {None, 0}
 _executor: Executor = None
 
 
-def get_asyncio_executor(cpu_count: int=None) -> Executor:
+def ensure_global_asyncio_executor(cpu_count: int=None) -> Executor:
     """
     Returns a global `ProcessPoolExecutor` instance.
 
