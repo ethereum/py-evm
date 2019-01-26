@@ -49,6 +49,8 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
             state,
             slot,
             config.EPOCH_LENGTH,
+            config.TARGET_COMMITTEE_SIZE,
+            config.SHARD_COUNT,
         )
         for crosslink_committee, shard in crosslink_committees_at_slot:
             # Filter out attestations not attesting to this shard so we don't need
