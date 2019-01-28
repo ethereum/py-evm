@@ -2,21 +2,23 @@ from eth_typing import (
     Hash32,
 )
 
+from eth2._utils.merkle import get_merkle_root
 from eth2.beacon.helpers import get_beacon_proposer_index
-
 from eth2.beacon.state_machines.configs import BeaconConfig
 from eth2.beacon.state_machines.state_transitions import BaseStateTransition
-
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
 
-from eth2._utils.merkle import get_merkle_root
-
-from .operations import (
+from .epoch_processing import (
+    process_final_updates,
+    process_validator_registry,
+)
+from .operation_processing import (
     process_attestations,
 )
-from .validation import (
-    validate_serenity_proposer_signature,
+from .block_validation import (
+    validate_block_slot,
+    validate_proposer_signature,
 )
 
 
@@ -32,7 +34,7 @@ class SerenityStateTransition(BaseStateTransition):
             if state.slot == block.slot:
                 state = self.per_block_transition(state, block)
             if state.slot % self.config.EPOCH_LENGTH == 0:
-                state = self.per_epoch_transition(state)
+                state = self.per_epoch_transition(state, block)
 
         return state
 
@@ -86,8 +88,9 @@ class SerenityStateTransition(BaseStateTransition):
         return state
 
     def per_block_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
-        # TODO
-        validate_serenity_proposer_signature(
+        # TODO: finish per-block processing logic as the spec
+        validate_block_slot(state, block)
+        validate_proposer_signature(
             state,
             block,
             beacon_chain_shard_number=self.config.BEACON_CHAIN_SHARD_NUMBER,
@@ -95,11 +98,26 @@ class SerenityStateTransition(BaseStateTransition):
             target_committee_size=self.config.TARGET_COMMITTEE_SIZE,
             shard_count=self.config.SHARD_COUNT
         )
+        # TODO: state = process_randao(state, block, self.config)
+        # TODO: state = process_eth1_data(state, block, self.config)
 
+        # Operations
+        # TODO: state = process_proposer_slashings(state, block, self.config)
+        # TODO: state = process_casper_slashings(state, block, self.config)
         state = process_attestations(state, block, self.config)
+        # TODO: state = process_deposits(state, block, self.config)
+        # TODO: state = process_exits(state, block, self.config)
+        # TODO: validate_custody(state, block, self.config)
 
         return state
 
-    def per_epoch_transition(self, state: BeaconState) -> BeaconState:
-        # TODO
+    def per_epoch_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
+        # TODO: state = process_et1_data_votes(state, self.config)
+        # TODO: state = process_justification(state, self.config)
+        # TODO: state = process_crosslinks(state, self.config)
+        # TODO: state = process_rewards_and_penalties(state, self.config)
+        # TODO: state = process_ejections(state, self.config)
+        state = process_validator_registry(state, self.config)
+        state = process_final_updates(state, self.config)
+
         return state

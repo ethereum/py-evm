@@ -1,12 +1,10 @@
 from typing import (
     Sequence,
+    Type,
 )
 
 from eth_typing import (
     Hash32,
-)
-from eth_utils import (
-    denoms,
 )
 
 from eth.constants import (
@@ -15,6 +13,7 @@ from eth.constants import (
 
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
+    GWEI_PER_ETH,
 )
 from eth2.beacon.deposit_helpers import (
     process_deposit,
@@ -24,13 +23,12 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
-    BeaconBlock,
     BeaconBlockBody,
 )
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.eth1_data import Eth1Data
-from eth2.beacon.types.fork_data import ForkData
+from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     Ether,
@@ -45,8 +43,10 @@ from eth2.beacon.validator_status_helpers import (
 )
 
 
-def get_genesis_block(startup_state_root: Hash32, genesis_slot: SlotNumber) -> BaseBeaconBlock:
-    return BeaconBlock(
+def get_genesis_block(startup_state_root: Hash32,
+                      genesis_slot: SlotNumber,
+                      block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+    return block_class(
         slot=genesis_slot,
         parent_root=ZERO_HASH32,
         state_root=startup_state_root,
@@ -76,16 +76,16 @@ def get_initial_beacon_state(*,
         # Misc
         slot=genesis_slot,
         genesis_time=genesis_time,
-        fork_data=ForkData(
-            pre_fork_version=genesis_fork_version,
-            post_fork_version=genesis_fork_version,
-            fork_slot=genesis_slot,
+        fork=Fork(
+            previous_version=genesis_fork_version,
+            current_version=genesis_fork_version,
+            slot=genesis_slot,
         ),
 
         # Validator registry
         validator_registry=(),
         validator_balances=(),
-        validator_registry_latest_change_slot=genesis_slot,
+        validator_registry_update_slot=genesis_slot,
         validator_registry_exit_count=0,
         validator_registry_delta_chain_tip=ZERO_HASH32,
 
@@ -119,7 +119,7 @@ def get_initial_beacon_state(*,
             for _ in range(shard_count)
         ]),
         latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
-        latest_penalized_exit_balances=tuple(
+        latest_penalized_balances=tuple(
             Gwei(0)
             for _ in range(latest_penalized_exit_length)
         ),
@@ -149,7 +149,7 @@ def get_initial_beacon_state(*,
             state.validator_balances,
             validator_index,
             max_deposit,
-        ) >= max_deposit * denoms.gwei
+        ) >= max_deposit * GWEI_PER_ETH
         if is_enough_effective_balance:
             state = activate_validator(
                 state,

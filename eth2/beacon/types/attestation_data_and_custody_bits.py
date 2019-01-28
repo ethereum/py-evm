@@ -48,3 +48,11 @@ class AttestationDataAndCustodyBit(rlp.Serializable):
         # Alias of `hash`.
         # Using flat hash, will likely use SSZ tree hash.
         return self.hash
+
+    @classmethod
+    def create_attestation_message(cls,
+                                   data: AttestationData) -> Hash32:
+        return cls(
+            data=data,
+            custody_bit=False,
+        ).root

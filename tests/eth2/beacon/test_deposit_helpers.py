@@ -14,9 +14,9 @@ from eth2.beacon.deposit_helpers import (
 )
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
+from eth2.beacon.types.deposit_input import DepositInput
 
-from tests.eth2.beacon.helpers import (
-    make_deposit_input,
+from eth2.beacon.tools.builder.validator import (
     sign_proof_of_possession,
 )
 
@@ -59,7 +59,7 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
     custody_commitment = b'\x12' * 32
     randao_commitment = b'\x56' * 32
 
-    deposit_input = make_deposit_input(
+    deposit_input = DepositInput(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
@@ -69,7 +69,7 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
         proof_of_possession = sign_proof_of_possession(
             deposit_input,
             privkey,
-            state.fork_data,
+            state.fork,
             state.slot,
         )
 
@@ -110,7 +110,7 @@ def test_process_deposit(sample_beacon_state_params,
     custody_commitment = b'\x11' * 32
     randao_commitment = b'\x56' * 32
 
-    deposit_input = make_deposit_input(
+    deposit_input = DepositInput(
         pubkey=pubkey_1,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
@@ -119,7 +119,7 @@ def test_process_deposit(sample_beacon_state_params,
     proof_of_possession = sign_proof_of_possession(
         deposit_input,
         privkey_1,
-        state.fork_data,
+        state.fork,
         state.slot,
     )
 
@@ -146,7 +146,7 @@ def test_process_deposit(sample_beacon_state_params,
     # Add the second validator
     privkey_2 = privkeys[1]
     pubkey_2 = pubkeys[1]
-    deposit_input = make_deposit_input(
+    deposit_input = DepositInput(
         pubkey=pubkey_2,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
@@ -155,7 +155,7 @@ def test_process_deposit(sample_beacon_state_params,
     proof_of_possession = sign_proof_of_possession(
         deposit_input,
         privkey_2,
-        state.fork_data,
+        state.fork,
         state.slot,
     )
     result_state = process_deposit(

@@ -4,16 +4,12 @@ from eth_typing import (
 from eth_utils import (
     ValidationError,
 )
-import rlp
 
 from eth.constants import (
     ZERO_HASH32,
 )
 
 from eth2._utils import bls as bls
-from eth2.beacon._utils.hash import (
-    hash_eth2,
-)
 
 from eth2.beacon.enums import (
     SignatureDomain,
@@ -24,6 +20,7 @@ from eth2.beacon.helpers import (
     get_block_root,
     get_domain,
 )
+from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
 from eth2.beacon.types.states import BeaconState  # noqa: F401
 from eth2.beacon.types.attestations import Attestation  # noqa: F401
@@ -35,14 +32,25 @@ from eth2.beacon.typing import (
 
 
 #
+# Slot validatation
+#
+def validate_block_slot(state: BeaconState,
+                        block: BaseBeaconBlock) -> None:
+    if block.slot != state.slot:
+        raise ValidationError(
+            f"block.slot ({block.slot}) is not equal to state.slot ({state.slot})"
+        )
+
+
+#
 # Proposer signature validation
 #
-def validate_serenity_proposer_signature(state: BeaconState,
-                                         block: BaseBeaconBlock,
-                                         beacon_chain_shard_number: ShardNumber,
-                                         epoch_length: int,
-                                         target_committee_size: int,
-                                         shard_count: int) -> None:
+def validate_proposer_signature(state: BeaconState,
+                                block: BaseBeaconBlock,
+                                beacon_chain_shard_number: ShardNumber,
+                                epoch_length: int,
+                                target_committee_size: int,
+                                shard_count: int) -> None:
     block_without_signature_root = block.block_without_signature_root
 
     # TODO: Replace this root with tree hash root
@@ -61,41 +69,46 @@ def validate_serenity_proposer_signature(state: BeaconState,
         shard_count,
     )
     proposer_pubkey = state.validator_registry[beacon_proposer_index].pubkey
+    domain = get_domain(state.fork, state.slot, SignatureDomain.DOMAIN_PROPOSAL)
 
     is_valid_signature = bls.verify(
         pubkey=proposer_pubkey,
         message=proposal_root,
         signature=block.signature,
-        domain=get_domain(state.fork_data, state.slot, SignatureDomain.DOMAIN_PROPOSAL),
+        domain=domain,
     )
 
     if not is_valid_signature:
-        raise ValidationError("Invalid Proposer Signature on block")
+        raise ValidationError(
+            f"Invalid Proposer Signature on block, beacon_proposer_index={beacon_proposer_index}, "
+            f"pubkey={proposer_pubkey}, message={proposal_root},"
+            f"block.signature={block.signature}, domain={domain}"
+        )
 
 
 #
 # Attestation validation
 #
-def validate_serenity_attestation(state: BeaconState,
-                                  attestation: Attestation,
-                                  epoch_length: int,
-                                  min_attestation_inclusion_delay: int,
-                                  latest_block_roots_length: int,
-                                  target_committee_size: int,
-                                  shard_count: int) -> None:
+def validate_attestation(state: BeaconState,
+                         attestation: Attestation,
+                         epoch_length: int,
+                         min_attestation_inclusion_delay: int,
+                         latest_block_roots_length: int,
+                         target_committee_size: int,
+                         shard_count: int) -> None:
     """
     Validate the given ``attestation``.
     Raise ``ValidationError`` if it's invalid.
     """
 
-    validate_serenity_attestation_slot(
+    validate_attestation_slot(
         attestation.data,
         state.slot,
         epoch_length,
         min_attestation_inclusion_delay,
     )
 
-    validate_serenity_attestation_justified_slot(
+    validate_attestation_justified_slot(
         attestation.data,
         state.slot,
         state.previous_justified_slot,
@@ -103,7 +116,7 @@ def validate_serenity_attestation(state: BeaconState,
         epoch_length,
     )
 
-    validate_serenity_attestation_justified_block_root(
+    validate_attestation_justified_block_root(
         attestation.data,
         justified_block_root=get_block_root(
             state=state,
@@ -112,14 +125,14 @@ def validate_serenity_attestation(state: BeaconState,
         ),
     )
 
-    validate_serenity_attestation_latest_crosslink_root(
+    validate_attestation_latest_crosslink_root(
         attestation.data,
         latest_crosslink_root=state.latest_crosslinks[attestation.data.shard].shard_block_root,
     )
 
-    validate_serenity_attestation_shard_block_root(attestation.data)
+    validate_attestation_shard_block_root(attestation.data)
 
-    validate_serenity_attestation_aggregate_signature(
+    validate_attestation_aggregate_signature(
         state,
         attestation,
         epoch_length,
@@ -128,10 +141,10 @@ def validate_serenity_attestation(state: BeaconState,
     )
 
 
-def validate_serenity_attestation_slot(attestation_data: AttestationData,
-                                       current_slot: int,
-                                       epoch_length: int,
-                                       min_attestation_inclusion_delay: int) -> None:
+def validate_attestation_slot(attestation_data: AttestationData,
+                              current_slot: int,
+                              epoch_length: int,
+                              min_attestation_inclusion_delay: int) -> None:
     """
     Validate ``slot`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
@@ -160,11 +173,11 @@ def validate_serenity_attestation_slot(attestation_data: AttestationData,
         )
 
 
-def validate_serenity_attestation_justified_slot(attestation_data: AttestationData,
-                                                 current_slot: int,
-                                                 previous_justified_slot: int,
-                                                 justified_slot: int,
-                                                 epoch_length: int) -> None:
+def validate_attestation_justified_slot(attestation_data: AttestationData,
+                                        current_slot: int,
+                                        previous_justified_slot: int,
+                                        justified_slot: int,
+                                        epoch_length: int) -> None:
     """
     Validate ``justified_slot`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
@@ -187,8 +200,8 @@ def validate_serenity_attestation_justified_slot(attestation_data: AttestationDa
             )
 
 
-def validate_serenity_attestation_justified_block_root(attestation_data: AttestationData,
-                                                       justified_block_root: Hash32) -> None:
+def validate_attestation_justified_block_root(attestation_data: AttestationData,
+                                              justified_block_root: Hash32) -> None:
     """
     Validate ``justified_block_root`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
@@ -206,8 +219,8 @@ def validate_serenity_attestation_justified_block_root(attestation_data: Attesta
         )
 
 
-def validate_serenity_attestation_latest_crosslink_root(attestation_data: AttestationData,
-                                                        latest_crosslink_root: Hash32) -> None:
+def validate_attestation_latest_crosslink_root(attestation_data: AttestationData,
+                                               latest_crosslink_root: Hash32) -> None:
     """
     Validate that either the attestation ``latest_crosslink_root`` or ``shard_block_root``
     field of ``attestation_data`` is the provided ``latest_crosslink_root``.
@@ -230,7 +243,7 @@ def validate_serenity_attestation_latest_crosslink_root(attestation_data: Attest
         )
 
 
-def validate_serenity_attestation_shard_block_root(attestation_data: AttestationData) -> None:
+def validate_attestation_shard_block_root(attestation_data: AttestationData) -> None:
     """
     Validate ``shard_block_root`` field of `attestation_data`.
     Raise ``ValidationError`` if it's invalid.
@@ -249,11 +262,11 @@ def validate_serenity_attestation_shard_block_root(attestation_data: Attestation
         )
 
 
-def validate_serenity_attestation_aggregate_signature(state: BeaconState,
-                                                      attestation: Attestation,
-                                                      epoch_length: int,
-                                                      target_committee_size: int,
-                                                      shard_count: int) -> None:
+def validate_attestation_aggregate_signature(state: BeaconState,
+                                             attestation: Attestation,
+                                             epoch_length: int,
+                                             target_committee_size: int,
+                                             shard_count: int) -> None:
     """
     Validate ``aggregate_signature`` field of ``attestation``.
     Raise ``ValidationError`` if it's invalid.
@@ -265,37 +278,38 @@ def validate_serenity_attestation_aggregate_signature(state: BeaconState,
     participant_indices = get_attestation_participants(
         state=state,
         attestation_data=attestation.data,
-        aggregation_bitfield=attestation.participation_bitfield,
+        aggregation_bitfield=attestation.aggregation_bitfield,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
-
     pubkeys = tuple(
         state.validator_registry[validator_index].pubkey
         for validator_index in participant_indices
     )
     group_public_key = bls.aggregate_pubkeys(pubkeys)
-
     # TODO: change to tree hashing when we have SSZ
-    # TODO: Replace with AttestationAndCustodyBit data structure
-    message = hash_eth2(
-        rlp.encode(attestation.data) +
-        (0).to_bytes(1, "big")
+    message = AttestationDataAndCustodyBit.create_attestation_message(attestation.data)
+    domain = get_domain(
+        fork=state.fork,
+        slot=attestation.data.slot,
+        domain_type=SignatureDomain.DOMAIN_ATTESTATION,
     )
 
     is_valid_signature = bls.verify(
         message=message,
         pubkey=group_public_key,
         signature=attestation.aggregate_signature,
-        domain=get_domain(
-            fork_data=state.fork_data,
-            slot=attestation.data.slot,
-            domain_type=SignatureDomain.DOMAIN_ATTESTATION,
-        ),
-
+        domain=domain,
     )
+
     if not is_valid_signature:
         raise ValidationError(
-            "Attestation ``aggregate_signature`` is invalid."
+            "Attestation aggregate_signature is invalid. "
+            "message={}, participant_indices={} "
+            "domain={}".format(
+                message,
+                participant_indices,
+                domain,
+            )
         )

@@ -50,7 +50,7 @@ if TYPE_CHECKING:
     from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth2.beacon.types.states import BeaconState  # noqa: F401
-    from eth2.beacon.types.fork_data import ForkData  # noqa: F401
+    from eth2.beacon.types.fork import Fork  # noqa: F401
     from eth2.beacon.types.slashable_vote_data import SlashableVoteData  # noqa: F401
     from eth2.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
@@ -102,13 +102,25 @@ def get_block_root(
     )
 
 
+def get_randao_mix(state: 'BeaconState',
+                   slot: SlotNumber,
+                   latest_randao_mixes_length: int) -> Hash32:
+    """
+    Return the randao mix at a recent ``slot``.
+    """
+    assert state.slot < slot + latest_randao_mixes_length
+    assert slot <= state.slot
+    return state.latest_randao_mixes[slot % latest_randao_mixes_length]
+
+
 def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
                                  slot: SlotNumber) -> Tuple[ValidatorIndex, ...]:
     """
     Get indices of active validators from ``validators``.
     """
     return tuple(
-        ValidatorIndex(index)for index, validator in enumerate(validators)
+        ValidatorIndex(index)
+        for index, validator in enumerate(validators)
         if validator.is_active(slot)
     )
 
@@ -377,18 +389,18 @@ def get_effective_balance(
     return min(validator_balances[index], Gwei(max_deposit * GWEI_PER_ETH))
 
 
-def get_fork_version(fork_data: 'ForkData',
+def get_fork_version(fork: 'Fork',
                      slot: SlotNumber) -> int:
     """
-    Return the current ``fork_version`` from the given ``fork_data`` and ``slot``.
+    Return the current ``fork_version`` from the given ``fork`` and ``slot``.
     """
-    if slot < fork_data.fork_slot:
-        return fork_data.pre_fork_version
+    if slot < fork.slot:
+        return fork.previous_version
     else:
-        return fork_data.post_fork_version
+        return fork.current_version
 
 
-def get_domain(fork_data: 'ForkData',
+def get_domain(fork: 'Fork',
                slot: SlotNumber,
                domain_type: SignatureDomain) -> int:
     """
@@ -396,7 +408,7 @@ def get_domain(fork_data: 'ForkData',
     """
     # 2 ** 32 = 4294967296
     return get_fork_version(
-        fork_data,
+        fork,
         slot,
     ) * 4294967296 + domain_type
 
@@ -443,7 +455,7 @@ def verify_slashable_vote_data_signature(state: 'BeaconState',
 
     signature = vote_data.aggregate_signature
 
-    domain = get_domain(state.fork_data, vote_data.data.slot, SignatureDomain.DOMAIN_ATTESTATION)
+    domain = get_domain(state.fork, vote_data.data.slot, SignatureDomain.DOMAIN_ATTESTATION)
 
     return bls.verify_multiple(
         pubkeys=pubkeys,

@@ -14,6 +14,10 @@ from rlp.sedes import (
     CountableList,
 )
 
+from eth.constants import (
+    ZERO_HASH32,
+)
+
 from eth2.beacon.sedes import (
     uint24,
     uint64,
@@ -34,7 +38,7 @@ from .eth1_data import Eth1Data
 from .eth1_data_vote import Eth1DataVote
 from .custody_challenges import CustodyChallenge
 from .crosslink_records import CrosslinkRecord
-from .fork_data import ForkData
+from .forks import Fork
 from .pending_attestation_records import PendingAttestationRecord
 from .shard_reassignment_records import ShardReassignmentRecord
 from .validator_records import ValidatorRecord
@@ -48,12 +52,12 @@ class BeaconState(rlp.Serializable):
         # Misc
         ('slot', uint64),
         ('genesis_time', uint64),
-        ('fork_data', ForkData),  # For versioning hard forks
+        ('fork', Fork),  # For versioning hard forks
 
         # Validator registry
         ('validator_registry', CountableList(ValidatorRecord)),
         ('validator_balances', CountableList(uint64)),
-        ('validator_registry_latest_change_slot', uint64),
+        ('validator_registry_update_slot', uint64),
         ('validator_registry_exit_count', uint64),
         ('validator_registry_delta_chain_tip', hash32),  # For light clients to easily track delta
 
@@ -86,48 +90,55 @@ class BeaconState(rlp.Serializable):
         # Recent state
         ('latest_crosslinks', CountableList(CrosslinkRecord)),
         ('latest_block_roots', CountableList(hash32)),  # Needed to process attestations, older to newer  # noqa: E501
-        ('latest_penalized_exit_balances', CountableList(uint64)),  # Balances penalized at every withdrawal period  # noqa: E501
+        ('latest_penalized_balances', CountableList(uint64)),  # Balances penalized at every withdrawal period  # noqa: E501
         ('latest_attestations', CountableList(PendingAttestationRecord)),
         ('batched_block_roots', CountableList(Hash32)),  # allow for a log-sized Merkle proof from any block to any historical block root"  # noqa: E501
 
-        # PoW receipt root
+        # Ethereum 1.0 chain
         ('latest_eth1_data', Eth1Data),
         ('eth1_data_votes', CountableList(Eth1DataVote)),
     ]
 
     def __init__(
             self,
+            *,
+            # Misc
             slot: SlotNumber,
             genesis_time: Timestamp,
-            fork_data: ForkData,
-            validator_registry_latest_change_slot: SlotNumber,
+            fork: Fork,
+            # Validator registry
+            validator_registry: Sequence[ValidatorRecord],
+            validator_balances: Sequence[Gwei],
+            validator_registry_update_slot: SlotNumber,
             validator_registry_exit_count: int,
             validator_registry_delta_chain_tip: Hash32,
+            # Randomness and committees
+            latest_randao_mixes: Sequence[Hash32],
+            latest_vdf_outputs: Sequence[Hash32],
+            persistent_committees: Sequence[Sequence[ValidatorIndex]],
+            persistent_committee_reassignments: Sequence[ShardReassignmentRecord],
             previous_epoch_start_shard: ShardNumber,
             current_epoch_start_shard: ShardNumber,
             previous_epoch_calculation_slot: SlotNumber,
             current_epoch_calculation_slot: SlotNumber,
             previous_epoch_randao_mix: Hash32,
             current_epoch_randao_mix: Hash32,
+            # Custody challenges
+            custody_challenges: Sequence[CustodyChallenge],
+            # Finality
             previous_justified_slot: SlotNumber,
             justified_slot: SlotNumber,
             justification_bitfield: int,
             finalized_slot: SlotNumber,
+            # Recent state
+            latest_crosslinks: Sequence[CrosslinkRecord],
+            latest_block_roots: Sequence[Hash32],
+            latest_penalized_balances: Sequence[Gwei],
+            batched_block_roots: Sequence[Hash32],
+            latest_attestations: Sequence[PendingAttestationRecord],
+            # Ethereum 1.0 chain
             latest_eth1_data: Eth1Data,
-            validator_registry: Sequence[ValidatorRecord]=(),
-            validator_balances: Sequence[Gwei]=(),
-            latest_randao_mixes: Sequence[Hash32]=(),
-            latest_vdf_outputs: Sequence[Hash32]=(),
-            persistent_committees: Sequence[Sequence[ValidatorIndex]]=(),
-            persistent_committee_reassignments: Sequence[ShardReassignmentRecord]=(),
-            custody_challenges: Sequence[CustodyChallenge]=(),
-            latest_crosslinks: Sequence[CrosslinkRecord]=(),
-            latest_block_roots: Sequence[Hash32]=(),
-            latest_penalized_exit_balances: Sequence[Gwei]=(),
-            batched_block_roots: Sequence[Hash32]=(),
-            latest_attestations: Sequence[PendingAttestationRecord]=(),
-            eth1_data_votes: Sequence[Eth1DataVote]=()
-    ) -> None:
+            eth1_data_votes: Sequence[Eth1DataVote]) -> None:
         if len(validator_registry) != len(validator_balances):
             raise ValueError(
                 "The length of validator_registry and validator_balances should be the same."
@@ -136,11 +147,11 @@ class BeaconState(rlp.Serializable):
             # Misc
             slot=slot,
             genesis_time=genesis_time,
-            fork_data=fork_data,
+            fork=fork,
             # Validator registry
             validator_registry=validator_registry,
             validator_balances=validator_balances,
-            validator_registry_latest_change_slot=validator_registry_latest_change_slot,
+            validator_registry_update_slot=validator_registry_update_slot,
             validator_registry_exit_count=validator_registry_exit_count,
             validator_registry_delta_chain_tip=validator_registry_delta_chain_tip,
             # Randomness and committees
@@ -164,10 +175,10 @@ class BeaconState(rlp.Serializable):
             # Recent state
             latest_crosslinks=latest_crosslinks,
             latest_block_roots=latest_block_roots,
-            latest_penalized_exit_balances=latest_penalized_exit_balances,
+            latest_penalized_balances=latest_penalized_balances,
             latest_attestations=latest_attestations,
             batched_block_roots=batched_block_roots,
-            # PoW receipt root
+            # Ethereum 1.0 chain
             latest_eth1_data=latest_eth1_data,
             eth1_data_votes=eth1_data_votes,
         )
@@ -198,6 +209,76 @@ class BeaconState(rlp.Serializable):
     @property
     def num_crosslinks(self) -> int:
         return len(self.latest_crosslinks)
+
+    @classmethod
+    def create_filled_state(cls,
+                            *,
+                            genesis_start_shard: ShardNumber,
+                            genesis_slot: SlotNumber,
+                            shard_count: int,
+                            latest_block_roots_length: int,
+                            latest_randao_mixes_length: int,
+                            latest_penalized_exit_length: int,
+                            activated_genesis_validators: Sequence[ValidatorRecord]=(),
+                            genesis_balances: Sequence[Gwei]=()) -> 'BeaconState':
+        return cls(
+            # Misc
+            slot=genesis_slot,
+            genesis_time=Timestamp(0),
+            fork=Fork(
+                previous_version=0,
+                current_version=0,
+                slot=genesis_slot,
+            ),
+
+            # Validator registry
+            validator_registry=activated_genesis_validators,
+            validator_balances=genesis_balances,
+            validator_registry_update_slot=genesis_slot,
+            validator_registry_exit_count=0,
+            validator_registry_delta_chain_tip=ZERO_HASH32,
+
+            # Randomness and committees
+            latest_randao_mixes=tuple(
+                ZERO_HASH32
+                for _ in range(latest_randao_mixes_length)
+            ),
+            latest_vdf_outputs=(),
+            persistent_committees=(),
+            persistent_committee_reassignments=(),
+            previous_epoch_start_shard=genesis_start_shard,
+            current_epoch_start_shard=genesis_start_shard,
+            previous_epoch_calculation_slot=genesis_slot,
+            current_epoch_calculation_slot=genesis_slot,
+            previous_epoch_randao_mix=ZERO_HASH32,
+            current_epoch_randao_mix=ZERO_HASH32,
+
+            # Custody challenges
+            custody_challenges=(),
+
+            # Finality
+            previous_justified_slot=genesis_slot,
+            justified_slot=genesis_slot,
+            justification_bitfield=genesis_slot,
+            finalized_slot=genesis_slot,
+
+            # Recent state
+            latest_crosslinks=tuple(
+                CrosslinkRecord(
+                    slot=genesis_slot,
+                    shard_block_root=ZERO_HASH32,
+                )
+                for _ in range(shard_count)
+            ),
+            latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
+            latest_penalized_balances=(Gwei(0),) * latest_penalized_exit_length,
+            latest_attestations=(),
+            batched_block_roots=(),
+
+            # Ethereum 1.0 chain data
+            latest_eth1_data=Eth1Data.create_empty_data(),
+            eth1_data_votes=(),
+        )
 
     def update_validator_registry(self,
                                   validator_index: ValidatorIndex,

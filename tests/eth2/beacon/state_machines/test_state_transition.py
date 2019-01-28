@@ -5,6 +5,9 @@ from eth2.beacon.helpers import get_beacon_proposer_index
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
+from eth2.beacon.tools.builder.proposer import (
+    create_mock_block,
+)
 
 from eth2._utils.merkle import get_merkle_root
 
@@ -43,8 +46,8 @@ def test_per_slot_transition(base_db,
                              genesis_state,
                              fixture_sm_class,
                              config,
-                             create_mock_block,
-                             state_slot):
+                             state_slot,
+                             keymap):
     chaindb = BeaconChainDB(base_db)
     chaindb.persist_block(genesis_block, SerenityBeaconBlock)
     chaindb.persist_state(genesis_state)
@@ -53,9 +56,10 @@ def test_per_slot_transition(base_db,
 
     block = create_mock_block(
         state=state,
+        config=config,
         block_class=SerenityBeaconBlock,
         parent_block=genesis_block,
-        config=config,
+        keymap=keymap,
         slot=state_slot,
     )
 
@@ -86,7 +90,7 @@ def test_per_slot_transition(base_db,
         st.config.TARGET_COMMITTEE_SIZE,
         st.config.SHARD_COUNT,
     )
-    for validator_index, validator_record in enumerate(updated_state.validator_registry):
+    for validator_index, _ in enumerate(updated_state.validator_registry):
         if validator_index != beacon_proposer_index:
             # Validator Record shouldn't change if not proposer
             assert (

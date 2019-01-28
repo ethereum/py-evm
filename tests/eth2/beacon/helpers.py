@@ -1,21 +1,11 @@
 from eth_utils import to_tuple
 
-from eth2._utils import bls
-
 from eth.constants import (
     ZERO_HASH32,
 )
 from eth2.beacon.constants import (
-    EMPTY_SIGNATURE,
     FAR_FUTURE_SLOT,
 )
-from eth2.beacon.enums import (
-    SignatureDomain,
-)
-from eth2.beacon.helpers import (
-    get_domain,
-)
-from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.validator_records import (
     ValidatorRecord,
 )
@@ -56,22 +46,3 @@ def get_pseudo_chain(length, genesis_block):
             parent_root=block.root
         )
         yield block
-
-
-def sign_proof_of_possession(deposit_input, privkey, fork_data, slot):
-    domain = get_domain(
-        fork_data,
-        slot,
-        SignatureDomain.DOMAIN_DEPOSIT,
-    )
-    return bls.sign(deposit_input.root, privkey, domain)
-
-
-def make_deposit_input(pubkey, withdrawal_credentials, randao_commitment, custody_commitment):
-    return DepositInput(
-        pubkey=pubkey,
-        withdrawal_credentials=withdrawal_credentials,
-        randao_commitment=randao_commitment,
-        custody_commitment=custody_commitment,
-        proof_of_possession=EMPTY_SIGNATURE,
-    )

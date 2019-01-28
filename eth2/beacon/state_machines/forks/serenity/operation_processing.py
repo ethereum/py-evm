@@ -3,8 +3,8 @@ from eth2.beacon.types.pending_attestation_records import PendingAttestationReco
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.state_machines.configs import BeaconConfig
 
-from .validation import (
-    validate_serenity_attestation,
+from .block_validation import (
+    validate_attestation,
 )
 
 
@@ -21,7 +21,7 @@ def process_attestations(state: BeaconState,
     Return resulting ``state``.
     """
     for attestation in block.body.attestations:
-        validate_serenity_attestation(
+        validate_attestation(
             state,
             attestation,
             config.EPOCH_LENGTH,
@@ -35,7 +35,7 @@ def process_attestations(state: BeaconState,
     additional_pending_attestations = tuple(
         PendingAttestationRecord(
             data=attestation.data,
-            participation_bitfield=attestation.participation_bitfield,
+            aggregation_bitfield=attestation.aggregation_bitfield,
             custody_bitfield=attestation.custody_bitfield,
             slot_included=state.slot,
         )

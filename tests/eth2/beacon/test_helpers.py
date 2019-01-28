@@ -33,7 +33,7 @@ from eth2.beacon.state_machines.forks.serenity.blocks import (
 from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
-from eth2.beacon.types.fork_data import ForkData
+from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.slashable_vote_data import SlashableVoteData
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
@@ -586,9 +586,9 @@ def test_get_effective_balance(balance, max_deposit, expected, sample_validator_
 
 @pytest.mark.parametrize(
     (
-        'pre_fork_version,'
-        'post_fork_version,'
-        'fork_slot,'
+        'previous_version,'
+        'current_version,'
+        'slot,'
         'current_slot,'
         'expected'
     ),
@@ -600,27 +600,27 @@ def test_get_effective_balance(balance, max_deposit, expected, sample_validator_
         (0, 1, 10, 20, 1),
     ]
 )
-def test_get_fork_version(pre_fork_version,
-                          post_fork_version,
-                          fork_slot,
+def test_get_fork_version(previous_version,
+                          current_version,
+                          slot,
                           current_slot,
                           expected):
-    fork_data = ForkData(
-        pre_fork_version=pre_fork_version,
-        post_fork_version=post_fork_version,
-        fork_slot=fork_slot,
+    fork = Fork(
+        previous_version=previous_version,
+        current_version=current_version,
+        slot=slot,
     )
     assert expected == get_fork_version(
-        fork_data,
+        fork,
         current_slot,
     )
 
 
 @pytest.mark.parametrize(
     (
-        'pre_fork_version,'
-        'post_fork_version,'
-        'fork_slot,'
+        'previous_version,'
+        'current_version,'
+        'slot,'
         'current_slot,'
         'domain_type,'
         'expected'
@@ -631,19 +631,19 @@ def test_get_fork_version(pre_fork_version,
         (1, 2, 10, 20, 12, 2 * 2 ** 32 + 12),
     ]
 )
-def test_get_domain(pre_fork_version,
-                    post_fork_version,
-                    fork_slot,
+def test_get_domain(previous_version,
+                    current_version,
+                    slot,
                     current_slot,
                     domain_type,
                     expected):
-    fork_data = ForkData(
-        pre_fork_version=pre_fork_version,
-        post_fork_version=post_fork_version,
-        fork_slot=fork_slot,
+    fork = Fork(
+        previous_version=previous_version,
+        current_version=current_version,
+        slot=slot,
     )
     assert expected == get_domain(
-        fork_data=fork_data,
+        fork=fork,
         slot=current_slot,
         domain_type=domain_type,
     )
@@ -736,14 +736,14 @@ def test_verify_vote_count(max_casper_votes, sample_slashable_vote_data_params, 
     assert verify_vote_count(votes, max_casper_votes)
 
 
-def _get_indices_and_signatures(num_validators, message, privkeys, fork_data, slot):
+def _get_indices_and_signatures(num_validators, message, privkeys, fork, slot):
     num_indices = 5
     assert num_validators >= num_indices
     indices = random.sample(range(num_validators), num_indices)
     privkeys = [privkeys[i] for i in indices]
     domain_type = SignatureDomain.DOMAIN_ATTESTATION
     domain = get_domain(
-        fork_data=fork_data,
+        fork=fork,
         slot=slot,
         domain_type=domain_type,
     )
@@ -753,7 +753,7 @@ def _get_indices_and_signatures(num_validators, message, privkeys, fork_data, sl
     return (indices, signatures)
 
 
-def _correct_slashable_vote_data_params(num_validators, params, messages, privkeys, fork_data):
+def _correct_slashable_vote_data_params(num_validators, params, messages, privkeys, fork):
     valid_params = copy.deepcopy(params)
 
     key = "custody_bit_0_indices"
@@ -761,7 +761,7 @@ def _correct_slashable_vote_data_params(num_validators, params, messages, privke
         num_validators,
         messages[0],
         privkeys,
-        fork_data,
+        fork,
         params["data"].slot,
     )
     valid_params[key] = poc_0_indices
@@ -772,7 +772,7 @@ def _correct_slashable_vote_data_params(num_validators, params, messages, privke
         num_validators,
         messages[1],
         privkeys,
-        fork_data,
+        fork,
         params["data"].slot,
     )
     valid_params[key] = poc_1_indices
@@ -785,12 +785,12 @@ def _correct_slashable_vote_data_params(num_validators, params, messages, privke
     return valid_params
 
 
-def _corrupt_signature(params, fork_data):
+def _corrupt_signature(params, fork):
     message = bytes.fromhex("deadbeefcafe")
     privkey = 42
     domain_type = SignatureDomain.DOMAIN_ATTESTATION
     domain = get_domain(
-        fork_data=fork_data,
+        fork=fork,
         slot=params["data"].slot,
         domain_type=domain_type,
     )
@@ -833,11 +833,11 @@ def test_verify_slashable_vote_data_signature(num_validators,
                                               activated_genesis_validators,
                                               genesis_balances,
                                               sample_slashable_vote_data_params,
-                                              sample_fork_data_params):
+                                              sample_fork_params):
     state = BeaconState(**sample_beacon_state_params).copy(
         validator_registry=activated_genesis_validators,
         validator_balances=genesis_balances,
-        fork_data=ForkData(**sample_fork_data_params),
+        fork=Fork(**sample_fork_params),
     )
 
     # NOTE: we can do this before "correcting" the params as they
@@ -849,12 +849,12 @@ def test_verify_slashable_vote_data_signature(num_validators,
         sample_slashable_vote_data_params,
         messages,
         privkeys,
-        state.fork_data,
+        state.fork,
     )
     valid_votes = SlashableVoteData(**valid_params)
     assert verify_slashable_vote_data_signature(state, valid_votes)
 
-    invalid_params = _corrupt_signature(valid_params, state.fork_data)
+    invalid_params = _corrupt_signature(valid_params, state.fork)
     invalid_votes = SlashableVoteData(**invalid_params)
     assert not verify_slashable_vote_data_signature(state, invalid_votes)
 
@@ -880,32 +880,32 @@ def _run_verify_slashable_vote(params, state, max_casper_votes, should_succeed):
     (
         'param_mapper',
         'should_succeed',
-        'needs_fork_data',
+        'needs_fork',
     ),
     [
         (lambda params: params, True, False),
         (_corrupt_vote_count, False, False),
         (_corrupt_signature, False, True),
-        (lambda params, fork_data: _corrupt_vote_count(
-            _corrupt_signature(params, fork_data)
+        (lambda params, fork: _corrupt_vote_count(
+            _corrupt_signature(params, fork)
         ), False, True),
     ],
 )
 def test_verify_slashable_vote_data(num_validators,
                                     param_mapper,
                                     should_succeed,
-                                    needs_fork_data,
+                                    needs_fork,
                                     privkeys,
                                     sample_beacon_state_params,
                                     activated_genesis_validators,
                                     genesis_balances,
                                     sample_slashable_vote_data_params,
-                                    sample_fork_data_params,
+                                    sample_fork_params,
                                     max_casper_votes):
     state = BeaconState(**sample_beacon_state_params).copy(
         validator_registry=activated_genesis_validators,
         validator_balances=genesis_balances,
-        fork_data=ForkData(**sample_fork_data_params),
+        fork=Fork(**sample_fork_params),
     )
 
     # NOTE: we can do this before "correcting" the params as they
@@ -917,10 +917,10 @@ def test_verify_slashable_vote_data(num_validators,
         sample_slashable_vote_data_params,
         messages,
         privkeys,
-        state.fork_data,
+        state.fork,
     )
-    if needs_fork_data:
-        params = param_mapper(params, state.fork_data)
+    if needs_fork:
+        params = param_mapper(params, state.fork)
     else:
         params = param_mapper(params)
     _run_verify_slashable_vote(params, state, max_casper_votes, should_succeed)
@@ -940,20 +940,20 @@ def test_verify_slashable_vote_data_after_fork(num_validators,
                                                activated_genesis_validators,
                                                genesis_balances,
                                                sample_slashable_vote_data_params,
-                                               sample_fork_data_params,
+                                               sample_fork_params,
                                                max_casper_votes):
     # Test that slashable data is still valid after fork
     # Slashable data slot = 10, fork slot = 15, current slot = 20
-    past_fork_data_params = {
-        'pre_fork_version': 0,
-        'post_fork_version': 1,
-        'fork_slot': 15,
+    past_fork_params = {
+        'previous_version': 0,
+        'current_version': 1,
+        'slot': 15,
     }
 
     state = BeaconState(**sample_beacon_state_params).copy(
         validator_registry=activated_genesis_validators,
         validator_balances=genesis_balances,
-        fork_data=ForkData(**past_fork_data_params),
+        fork=Fork(**past_fork_params),
         slot=20,
     )
 
@@ -964,7 +964,7 @@ def test_verify_slashable_vote_data_after_fork(num_validators,
         sample_slashable_vote_data_params,
         messages,
         privkeys,
-        state.fork_data,
+        state.fork,
     )
     _run_verify_slashable_vote(valid_params, state, max_casper_votes, True)
 

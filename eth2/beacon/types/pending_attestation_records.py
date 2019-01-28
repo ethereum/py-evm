@@ -24,7 +24,7 @@ class PendingAttestationRecord(rlp.Serializable):
         # Signed data
         ('data', AttestationData),
         # Attester participation bitfield
-        ('participation_bitfield', binary),
+        ('aggregation_bitfield', binary),
         # Custody bitfield
         ('custody_bitfield', binary),
         # Slot the attestation was included
@@ -33,12 +33,12 @@ class PendingAttestationRecord(rlp.Serializable):
 
     def __init__(self,
                  data: AttestationData,
-                 participation_bitfield: Bitfield,
+                 aggregation_bitfield: Bitfield,
                  custody_bitfield: Bitfield,
                  slot_included: SlotNumber) -> None:
         super().__init__(
             data=data,
-            participation_bitfield=participation_bitfield,
+            aggregation_bitfield=aggregation_bitfield,
             custody_bitfield=custody_bitfield,
             slot_included=slot_included,
         )

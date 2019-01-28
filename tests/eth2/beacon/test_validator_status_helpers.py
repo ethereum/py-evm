@@ -1,9 +1,5 @@
 import pytest
 
-from eth_utils import (
-    ValidationError,
-)
-
 from eth2.beacon.constants import (
     FAR_FUTURE_SLOT,
     GWEI_PER_ETH,
@@ -23,64 +19,12 @@ from eth2.beacon.validator_status_helpers import (
     initiate_validator_exit,
     prepare_validator_for_withdrawal,
     penalize_validator,
-    update_tuple_item,
 )
 
 
 from tests.eth2.beacon.helpers import (
     mock_validator_record,
 )
-
-
-#
-# Helper
-#
-@pytest.mark.parametrize(
-    (
-        'tuple_data, index, new_value, expected'
-    ),
-    [
-        (
-            (1, ) * 10,
-            0,
-            -99,
-            (-99,) + (1, ) * 9,
-        ),
-        (
-            (1, ) * 10,
-            5,
-            -99,
-            (1, ) * 5 + (-99,) + (1, ) * 4,
-        ),
-        (
-            (1, ) * 10,
-            9,
-            -99,
-            (1, ) * 9 + (-99,),
-        ),
-        (
-            (1, ) * 10,
-            10,
-            -99,
-            ValidationError(),
-        )
-    ]
-)
-def test_update_tuple_item(tuple_data, index, new_value, expected):
-    if isinstance(expected, Exception):
-        with pytest.raises(ValidationError):
-            update_tuple_item(
-                tuple_data=tuple_data,
-                index=index,
-                new_value=new_value,
-            )
-    else:
-        result = update_tuple_item(
-            tuple_data=tuple_data,
-            index=index,
-            new_value=new_value,
-        )
-        assert result == expected
 
 
 #
@@ -96,12 +40,12 @@ def test_update_tuple_item(tuple_data, index, new_value, expected):
     ]
 )
 def test_activate_validator(genesis,
-                            empty_beacon_state,
+                            filled_beacon_state,
                             genesis_slot,
                             entry_exit_delay,
                             max_deposit):
     validator_count = 10
-    state = empty_beacon_state.copy(
+    state = filled_beacon_state.copy(
         validator_registry=tuple(
             mock_validator_record(
                 pubkey=index.to_bytes(48, 'big'),
@@ -310,13 +254,13 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
         shard_count=shard_count,
     )
 
-    # Check `state.latest_penalized_exit_balances`
-    latest_penalized_exit_balances_list = list(state.latest_penalized_exit_balances)
+    # Check `state.latest_penalized_balances`
+    latest_penalized_balances_list = list(state.latest_penalized_balances)
     last_penalized_epoch = (state.slot // epoch_length) % latest_penalized_exit_length
-    latest_penalized_exit_balances_list[last_penalized_epoch] = max_deposit * GWEI_PER_ETH
-    latest_penalized_exit_balances = tuple(latest_penalized_exit_balances_list)
+    latest_penalized_balances_list[last_penalized_epoch] = max_deposit * GWEI_PER_ETH
+    latest_penalized_balances = tuple(latest_penalized_balances_list)
 
-    assert state.latest_penalized_exit_balances == latest_penalized_exit_balances
+    assert state.latest_penalized_balances == latest_penalized_balances
 
     # Check penality and reward
     whistleblower_reward = (

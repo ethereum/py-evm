@@ -21,7 +21,7 @@ class Attestation(rlp.Serializable):
     fields = [
         ('data', AttestationData),
         # Attester participation bitfield
-        ('participation_bitfield', binary),
+        ('aggregation_bitfield', binary),
         # Proof of custody bitfield
         ('custody_bitfield', binary),
         # BLS aggregate signature
@@ -30,12 +30,12 @@ class Attestation(rlp.Serializable):
 
     def __init__(self,
                  data: AttestationData,
-                 participation_bitfield: Bitfield,
+                 aggregation_bitfield: Bitfield,
                  custody_bitfield: Bitfield,
                  aggregate_signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             data,
-            participation_bitfield,
+            aggregation_bitfield,
             custody_bitfield,
             aggregate_signature,
         )

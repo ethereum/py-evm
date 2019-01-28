@@ -12,6 +12,9 @@ from eth2.beacon.exceptions import (
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
+from eth2.beacon.tools.builder.proposer import (
+    create_mock_block,
+)
 from eth2.beacon.types.blocks import (
     BeaconBlock,
 )
@@ -68,10 +71,10 @@ def test_canonical_chain(valid_chain):
     ]
 )
 def test_import_blocks(valid_chain,
-                       create_mock_block,
                        genesis_block,
                        genesis_state,
-                       config):
+                       config,
+                       keymap):
     state = genesis_state
     blocks = tuple()
 
@@ -79,9 +82,10 @@ def test_import_blocks(valid_chain,
     for i in range(3):
         block = create_mock_block(
             state=state,
+            config=config,
             block_class=genesis_block.__class__,
             parent_block=genesis_block,
-            config=config,
+            keymap=keymap,
             slot=state.slot + 2,
         )
 

@@ -47,7 +47,7 @@ def validate_proof_of_possession(state: BeaconState,
         message=deposit_input.root,
         signature=proof_of_possession,
         domain=get_domain(
-            state.fork_data,
+            state.fork,
             state.slot,
             SignatureDomain.DOMAIN_DEPOSIT,
         ),

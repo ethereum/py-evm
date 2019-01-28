@@ -15,3 +15,11 @@ class BlockClassError(PyEVMError):
     Raised when the given ``block`` doesn't match the block class version
     """
     pass
+
+
+class ProposerIndexError(PyEVMError):
+    """
+    Raised when the given ``validator_index`` doesn't match the ``validator_index``
+    of proposer of the given ``slot``
+    """
+    pass
