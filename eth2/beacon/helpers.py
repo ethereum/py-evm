@@ -507,7 +507,7 @@ def get_winning_root(
         epoch_length: int,
         max_deposit: Ether,
         target_committee_size: int,
-        shard_count: int) -> Hash32:
+        shard_count: int) -> Tuple[Hash32, int]:
     winning_root = None
     winning_root_balance = 0
     visited_shard_block_root: List[Hash32] = []
@@ -536,7 +536,7 @@ def get_winning_root(
             visited_shard_block_root.append(a.data.shard_block_root)
     if winning_root is None:
         raise NoWinningRootError
-    return winning_root
+    return (winning_root, root_balance)
 
 
 #

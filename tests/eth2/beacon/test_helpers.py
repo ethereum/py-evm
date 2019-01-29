@@ -840,7 +840,7 @@ def test_get_winning_root(
     ]
 
     try:
-        winning_root = get_winning_root(
+        winning_root, attesting_balance = get_winning_root(
             state=ten_validators_state,
             shard=shard,
             attestations=attestations,
@@ -849,6 +849,20 @@ def test_get_winning_root(
             target_committee_size=config.TARGET_COMMITTEE_SIZE,
             shard_count=config.SHARD_COUNT,
         )
+        attesting_validators_indices = get_attesting_validator_indices(
+            state=ten_validators_state,
+            attestations=attestations,
+            shard=shard,
+            shard_block_root=winning_root,
+            epoch_length=config.EPOCH_LENGTH,
+            target_committee_size=config.TARGET_COMMITTEE_SIZE,
+            shard_count=config.SHARD_COUNT,
+        )
+        total_attesting_balance = sum(
+            get_effective_balance(ten_validators_state.validator_balances, i, config.MAX_DEPOSIT)
+            for i in attesting_validators_indices
+        )
+        assert attesting_balance == total_attesting_balance
     except NoWinningRootError:
         assert competing_block_roots[winning_root_index] is None
     else:

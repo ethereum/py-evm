@@ -16,7 +16,6 @@ from eth2._utils.tuple import (
 from eth2.beacon.exceptions import NoWinningRootError
 from eth2.beacon.helpers import (
     get_active_validator_indices,
-    get_attesting_validator_indices,
     get_crosslink_committees_at_slot,
     get_current_epoch_committee_count_per_slot,
     get_current_epoch_attestations,
@@ -71,7 +70,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
         )
         for crosslink_committee, shard in crosslink_committees_at_slot:
             try:
-                winning_root = get_winning_root(
+                winning_root, total_attesting_balance = get_winning_root(
                     state=state,
                     shard=shard,
                     # Use `_get_attestations_by_shard` to filter out attestations
@@ -82,19 +81,6 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                     max_deposit=config.MAX_DEPOSIT,
                     target_committee_size=config.TARGET_COMMITTEE_SIZE,
                     shard_count=config.SHARD_COUNT,
-                )
-                attesting_validators_indices = get_attesting_validator_indices(
-                    state=state,
-                    attestations=_get_attestations_by_shard(current_epoch_attestations, shard),
-                    shard=shard,
-                    shard_block_root=winning_root,
-                    epoch_length=config.EPOCH_LENGTH,
-                    target_committee_size=config.TARGET_COMMITTEE_SIZE,
-                    shard_count=config.SHARD_COUNT,
-                )
-                total_attesting_balance = sum(
-                    get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT)
-                    for i in attesting_validators_indices
                 )
                 total_balance = sum(
                     get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT)
