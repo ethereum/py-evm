@@ -23,3 +23,10 @@ class ProposerIndexError(PyEVMError):
     of proposer of the given ``slot``
     """
     pass
+
+
+class NoWinningRootError(Exception):
+    """
+    Raised when no shard block root is attested to among the attestations provided.
+    """
+    pass

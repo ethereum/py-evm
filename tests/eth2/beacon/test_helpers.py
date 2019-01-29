@@ -32,6 +32,7 @@ from eth2.beacon.constants import (
     GWEI_PER_ETH,
     FAR_FUTURE_SLOT,
 )
+from eth2.beacon.exceptions import NoWinningRootError
 from eth2.beacon.enums import (
     SignatureDomain,
 )
@@ -765,7 +766,7 @@ def test_get_current_and_previous_epoch_attestations(random,
         ),
         (
             16,
-            # no votes; ZERO_HASH32 is returned
+            # no votes; no winning root
             (),
             (),
             0
@@ -803,7 +804,7 @@ def test_get_winning_root(
     )
 
     competing_block_roots = [
-        ZERO_HASH32,
+        None,
         # `shard_block_root_1` is more favorable than `shard_block_root_2`
         # during a vote tie since its value is lower.
         hash_eth2(b'shard_block_root_1'),
@@ -838,15 +839,20 @@ def test_get_winning_root(
         ),
     ]
 
-    assert competing_block_roots[winning_root_index] == get_winning_root(
-        state=ten_validators_state,
-        shard=shard,
-        attestations=attestations,
-        epoch_length=config.EPOCH_LENGTH,
-        max_deposit=config.MAX_DEPOSIT,
-        target_committee_size=target_committee_size,
-        shard_count=config.SHARD_COUNT,
-    )
+    try:
+        winning_root = get_winning_root(
+            state=ten_validators_state,
+            shard=shard,
+            attestations=attestations,
+            epoch_length=config.EPOCH_LENGTH,
+            max_deposit=config.MAX_DEPOSIT,
+            target_committee_size=config.TARGET_COMMITTEE_SIZE,
+            shard_count=config.SHARD_COUNT,
+        )
+    except NoWinningRootError:
+        assert competing_block_roots[winning_root_index] is None
+    else:
+        assert competing_block_roots[winning_root_index] == winning_root
 
 
 @pytest.mark.parametrize(

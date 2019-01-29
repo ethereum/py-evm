@@ -18,10 +18,6 @@ from eth_typing import (
     Hash32,
 )
 
-from eth.constants import (
-    ZERO_HASH32,
-)
-
 from eth2._utils.bitfield import (
     get_bitfield_length,
     has_voted,
@@ -37,6 +33,7 @@ from eth2.beacon._utils.random import (
     shuffle,
     split,
 )
+from eth2.beacon.exceptions import NoWinningRootError
 from eth2.beacon.enums import (
     SignatureDomain,
 )
@@ -411,10 +408,7 @@ def get_attestation_participants(state: 'BeaconState',
     if len(aggregation_bitfield) != get_bitfield_length(committee_size):
         raise ValidationError(
             'Invalid bitfield length,'
-            "\texpected: {}, found: {}".format(
-                get_bitfield_length(committee_size),
-                len(aggregation_bitfield),
-            )
+            "\texpected: {get_bitfield_length(committee_size)}, found: {len(aggregation_bitfield)}"
         )
 
     # Find the participating attesters in the committee
@@ -481,6 +475,30 @@ def get_attesting_validator_indices(
             )
 
 
+def get_total_attesting_balance(
+        *,
+        state: 'BeaconState',
+        shard: ShardNumber,
+        shard_block_root: Hash32,
+        attestations: Sequence[PendingAttestationRecord],
+        epoch_length: int,
+        max_deposit: Ether,
+        target_committee_size: int,
+        shard_count: int) -> int:
+    return sum(
+        get_effective_balance(state.validator_balances, i, max_deposit)
+        for i in get_attesting_validator_indices(
+            state=state,
+            attestations=attestations,
+            shard=shard,
+            shard_block_root=shard_block_root,
+            epoch_length=epoch_length,
+            target_committee_size=target_committee_size,
+            shard_count=shard_count,
+        )
+    )
+
+
 def get_winning_root(
         *,
         state: 'BeaconState',
@@ -490,24 +508,23 @@ def get_winning_root(
         max_deposit: Ether,
         target_committee_size: int,
         shard_count: int) -> Hash32:
-    winning_root = ZERO_HASH32
+    winning_root = None
     winning_root_balance = 0
     visited_shard_block_root: List[Hash32] = []
     for a in attestations:
         if a.data.shard_block_root in visited_shard_block_root:
+            # Already get the balance of this block root
             continue
         else:
-            root_balance = sum(
-                get_effective_balance(state.validator_balances, i, max_deposit)
-                for i in get_attesting_validator_indices(
-                    state=state,
-                    attestations=attestations,
-                    shard=shard,
-                    shard_block_root=a.data.shard_block_root,
-                    epoch_length=epoch_length,
-                    target_committee_size=target_committee_size,
-                    shard_count=shard_count,
-                )
+            root_balance = get_total_attesting_balance(
+                state=state,
+                shard=shard,
+                shard_block_root=a.data.shard_block_root,
+                attestations=attestations,
+                epoch_length=epoch_length,
+                max_deposit=max_deposit,
+                target_committee_size=target_committee_size,
+                shard_count=shard_count,
             )
             if root_balance > winning_root_balance:
                 winning_root = a.data.shard_block_root
@@ -517,6 +534,8 @@ def get_winning_root(
                 winning_root = a.data.shard_block_root
 
             visited_shard_block_root.append(a.data.shard_block_root)
+    if winning_root is None:
+        raise NoWinningRootError
     return winning_root
 
 
