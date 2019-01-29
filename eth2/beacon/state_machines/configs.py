@@ -24,6 +24,7 @@ BeaconConfig = NamedTuple(
         ('BEACON_CHAIN_SHARD_NUMBER', ShardNumber),
         ('MAX_CASPER_VOTES', int),
         ('LATEST_BLOCK_ROOTS_LENGTH', int),
+        ('LATEST_INDEX_ROOTS_LENGTH', int),
         ('LATEST_RANDAO_MIXES_LENGTH', int),
         ('LATEST_PENALIZED_EXIT_LENGTH', int),
         # EMPTY_SIGNATURE is defined in constants.py

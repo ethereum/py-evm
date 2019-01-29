@@ -2,15 +2,14 @@ from eth2._utils.tuple import (
     update_tuple_item,
 )
 from eth2.beacon.enums import (
-    ValidatorRegistryDeltaFlag,
     ValidatorStatusFlags,
 )
 from eth2.beacon.helpers import (
+    get_entry_exit_effect_slot,
     get_beacon_proposer_index,
     get_effective_balance,
 )
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.validator_registry_delta_block import ValidatorRegistryDeltaBlock
 from eth2.beacon.typing import (
     Ether,
     SlotNumber,
@@ -23,32 +22,23 @@ from eth2.beacon.typing import (
 #
 def activate_validator(state: BeaconState,
                        index: ValidatorIndex,
-                       genesis: bool,
+                       is_genesis: bool,
                        genesis_slot: SlotNumber,
+                       epoch_length: int,
                        entry_exit_delay: int) -> BeaconState:
     """
     Activate the validator with the given ``index``.
     Return the updated state (immutable).
     """
     # Update validator.activation_slot
-    validator = state.validator_registry[index]
-    validator = validator.copy(
-        activation_slot=genesis_slot if genesis else (state.slot + entry_exit_delay)
+    validator = state.validator_registry[index].copy(
+        activation_slot=genesis_slot if is_genesis else get_entry_exit_effect_slot(
+            state.slot,
+            epoch_length,
+            entry_exit_delay,
+        )
     )
     state = state.update_validator_registry(index, validator)
-
-    # Update state.validator_registry_delta_chain_tip
-    # TODO: use tree hashing
-    new_validator_registry_delta_chain_tip = ValidatorRegistryDeltaBlock(
-        latest_registry_delta_root=state.validator_registry_delta_chain_tip,
-        validator_index=index,
-        pubkey=validator.pubkey,
-        slot=validator.activation_slot,
-        flag=ValidatorRegistryDeltaFlag.ACTIVATION,
-    ).root
-    state = state.copy(
-        validator_registry_delta_chain_tip=new_validator_registry_delta_chain_tip,
-    )
 
     return state
 
@@ -70,6 +60,7 @@ def initiate_validator_exit(state: BeaconState,
 
 def exit_validator(state: BeaconState,
                    index: ValidatorIndex,
+                   epoch_length: int,
                    entry_exit_delay: int) -> BeaconState:
     """
     Exit the validator with the given ``index``.
@@ -77,8 +68,14 @@ def exit_validator(state: BeaconState,
     """
     validator = state.validator_registry[index]
 
+    entry_exit_effect_slot = get_entry_exit_effect_slot(
+        state.slot,
+        epoch_length,
+        entry_exit_delay,
+    )
+
     # The following updates only occur if not previous exited
-    if validator.exit_slot <= state.slot + entry_exit_delay:
+    if validator.exit_slot <= entry_exit_effect_slot:
         return state
 
     # Update state.validator_registry_exit_count
@@ -92,19 +89,6 @@ def exit_validator(state: BeaconState,
         exit_count=state.validator_registry_exit_count,
     )
     state = state.update_validator_registry(index, validator)
-
-    # Update state.validator_registry_delta_chain_tip
-    # TODO: use tree hashing
-    new_validator_registry_delta_chain_tip = ValidatorRegistryDeltaBlock(
-        latest_registry_delta_root=state.validator_registry_delta_chain_tip,
-        validator_index=index,
-        pubkey=validator.pubkey,
-        slot=validator.exit_slot,
-        flag=ValidatorRegistryDeltaFlag.EXIT,
-    ).root
-    state = state.copy(
-        validator_registry_delta_chain_tip=new_validator_registry_delta_chain_tip,
-    )
 
     return state
 
@@ -198,7 +182,7 @@ def penalize_validator(state: BeaconState,
 
     Exit the validator, penalize the validator, and reward the whistleblower.
     """
-    state = exit_validator(state, index, entry_exit_delay)
+    state = exit_validator(state, index, epoch_length, entry_exit_delay)
     state = _settle_penality_to_validator_and_whistleblower(
         state=state,
         validator_index=index,

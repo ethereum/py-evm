@@ -66,8 +66,8 @@ def get_initial_beacon_state(*,
                              genesis_start_shard: ShardNumber,
                              shard_count: int,
                              latest_block_roots_length: int,
+                             latest_index_roots_length: int,
                              epoch_length: int,
-                             target_committee_size: int,
                              max_deposit: Ether,
                              latest_penalized_exit_length: int,
                              latest_randao_mixes_length: int,
@@ -87,7 +87,6 @@ def get_initial_beacon_state(*,
         validator_balances=(),
         validator_registry_update_slot=genesis_slot,
         validator_registry_exit_count=0,
-        validator_registry_delta_chain_tip=ZERO_HASH32,
 
         # Randomness and committees
         latest_randao_mixes=tuple(ZERO_HASH32 for _ in range(latest_randao_mixes_length)),
@@ -101,8 +100,8 @@ def get_initial_beacon_state(*,
         current_epoch_start_shard=genesis_start_shard,
         previous_epoch_calculation_slot=genesis_slot,
         current_epoch_calculation_slot=genesis_slot,
-        previous_epoch_randao_mix=ZERO_HASH32,
-        current_epoch_randao_mix=ZERO_HASH32,
+        previous_epoch_seed=ZERO_HASH32,
+        current_epoch_seed=ZERO_HASH32,
 
         # Custody challenges
         custody_challenges=(),
@@ -119,6 +118,7 @@ def get_initial_beacon_state(*,
             for _ in range(shard_count)
         ]),
         latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
+        latest_index_roots=tuple(ZERO_HASH32 for _ in range(latest_index_roots_length)),
         latest_penalized_balances=tuple(
             Gwei(0)
             for _ in range(latest_penalized_exit_length)
@@ -154,8 +154,9 @@ def get_initial_beacon_state(*,
             state = activate_validator(
                 state,
                 validator_index,
-                genesis=True,
+                is_genesis=True,
                 genesis_slot=genesis_slot,
+                epoch_length=epoch_length,
                 entry_exit_delay=entry_exit_delay,
             )
 

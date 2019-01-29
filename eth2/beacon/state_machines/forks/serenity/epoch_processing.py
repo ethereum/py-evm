@@ -8,16 +8,20 @@ from eth2._utils.numeric import (
 from eth2._utils.tuple import (
     update_tuple_item,
 )
+from eth2.beacon._utils.hash import (
+    hash_eth2,
+)
+from eth2.beacon import helpers
 from eth2.beacon.helpers import (
+    get_active_validator_indices,
     get_current_epoch_committee_count_per_slot,
-    get_randao_mix,
 )
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.state_machines.configs import BeaconConfig
 
 
 #
-# Validator Registry
+# Validator registry and shuffling seed data
 #
 def _check_if_update_validator_registry(state: BeaconState,
                                         config: BeaconConfig) -> Tuple[bool, int]:
@@ -48,13 +52,47 @@ def update_validator_registry(state: BeaconState) -> BeaconState:
     return state
 
 
+def _update_latest_index_roots(state: BeaconState,
+                               config: BeaconConfig) -> BeaconState:
+    """
+    Return the BeaconState with updated `latest_index_roots`.
+    """
+    next_epoch = state.next_epoch(config.EPOCH_LENGTH)
+
+    # TODO: chanege to hash_tree_root
+    active_validator_indices = get_active_validator_indices(
+        state.validator_registry,
+        # TODO: change to `per-epoch` version
+        state.slot,
+    )
+    index_root = hash_eth2(
+        b''.join(
+            [
+                index.to_bytes(32, 'big')
+                for index in active_validator_indices
+            ]
+        )
+    )
+
+    latest_index_roots = update_tuple_item(
+        state.latest_index_roots,
+        next_epoch % config.LATEST_INDEX_ROOTS_LENGTH,
+        index_root,
+    )
+
+    return state.copy(
+        latest_index_roots=latest_index_roots,
+    )
+
+
 def process_validator_registry(state: BeaconState,
                                config: BeaconConfig) -> BeaconState:
     state = state.copy(
         previous_epoch_calculation_slot=state.current_epoch_calculation_slot,
         previous_epoch_start_shard=state.current_epoch_start_shard,
-        previous_epoch_randao_mix=state.current_epoch_randao_mix,
+        previous_epoch_seed=state.current_epoch_seed,
     )
+    state = _update_latest_index_roots(state, config)
 
     need_to_update, num_shards_in_committees = _check_if_update_validator_registry(state, config)
 
@@ -71,12 +109,19 @@ def process_validator_registry(state: BeaconState,
                 state.current_epoch_start_shard + num_shards_in_committees
             ) % config.SHARD_COUNT,
         )
+
+        # The `helpers.generate_seed` function is only present to provide an entry point
+        # for mocking this out in tests.
+        current_epoch_seed = helpers.generate_seed(
+            state=state,
+            slot=state.current_epoch_calculation_slot,
+            epoch_length=config.EPOCH_LENGTH,
+            seed_lookahead=config.SEED_LOOKAHEAD,
+            latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
+            latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
+        )
         state = state.copy(
-            current_epoch_randao_mix=get_randao_mix(
-                state,
-                state.current_epoch_calculation_slot - config.SEED_LOOKAHEAD,
-                config.LATEST_RANDAO_MIXES_LENGTH,
-            ),
+            current_epoch_seed=current_epoch_seed,
         )
     else:
         epochs_since_last_registry_change = (
@@ -88,13 +133,22 @@ def process_validator_registry(state: BeaconState,
             state = state.copy(
                 current_epoch_calculation_slot=state.slot,
             )
-            state = state.copy(
-                current_epoch_randao_mix=get_randao_mix(
-                    state,
-                    state.current_epoch_calculation_slot - config.SEED_LOOKAHEAD,
-                    config.LATEST_RANDAO_MIXES_LENGTH,
-                ),
+
+            # The `helpers.generate_seed` function is only present to provide an entry point
+            # for mocking this out in tests.
+            current_epoch_seed = helpers.generate_seed(
+                state=state,
+                slot=state.current_epoch_calculation_slot,
+                epoch_length=config.EPOCH_LENGTH,
+                seed_lookahead=config.SEED_LOOKAHEAD,
+                latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
+                latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
             )
+            state = state.copy(
+                current_epoch_seed=current_epoch_seed,
+            )
+        else:
+            pass
 
     return state
 

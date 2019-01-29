@@ -59,7 +59,6 @@ class BeaconState(rlp.Serializable):
         ('validator_balances', CountableList(uint64)),
         ('validator_registry_update_slot', uint64),
         ('validator_registry_exit_count', uint64),
-        ('validator_registry_delta_chain_tip', hash32),  # For light clients to easily track delta
 
         # Randomness and committees
         ('latest_randao_mixes', CountableList(hash32)),
@@ -72,8 +71,8 @@ class BeaconState(rlp.Serializable):
         ('current_epoch_start_shard', uint64),
         ('previous_epoch_calculation_slot', uint64),
         ('current_epoch_calculation_slot', uint64),
-        ('previous_epoch_randao_mix', hash32),
-        ('current_epoch_randao_mix', hash32),
+        ('previous_epoch_seed', hash32),
+        ('current_epoch_seed', hash32),
 
         # Custody challenges
         ('custody_challenges', CountableList(CustodyChallenge)),
@@ -90,6 +89,7 @@ class BeaconState(rlp.Serializable):
         # Recent state
         ('latest_crosslinks', CountableList(CrosslinkRecord)),
         ('latest_block_roots', CountableList(hash32)),  # Needed to process attestations, older to newer  # noqa: E501
+        ('latest_index_roots', CountableList(hash32)),
         ('latest_penalized_balances', CountableList(uint64)),  # Balances penalized at every withdrawal period  # noqa: E501
         ('latest_attestations', CountableList(PendingAttestationRecord)),
         ('batched_block_roots', CountableList(Hash32)),  # allow for a log-sized Merkle proof from any block to any historical block root"  # noqa: E501
@@ -111,7 +111,6 @@ class BeaconState(rlp.Serializable):
             validator_balances: Sequence[Gwei],
             validator_registry_update_slot: SlotNumber,
             validator_registry_exit_count: int,
-            validator_registry_delta_chain_tip: Hash32,
             # Randomness and committees
             latest_randao_mixes: Sequence[Hash32],
             latest_vdf_outputs: Sequence[Hash32],
@@ -121,8 +120,8 @@ class BeaconState(rlp.Serializable):
             current_epoch_start_shard: ShardNumber,
             previous_epoch_calculation_slot: SlotNumber,
             current_epoch_calculation_slot: SlotNumber,
-            previous_epoch_randao_mix: Hash32,
-            current_epoch_randao_mix: Hash32,
+            previous_epoch_seed: Hash32,
+            current_epoch_seed: Hash32,
             # Custody challenges
             custody_challenges: Sequence[CustodyChallenge],
             # Finality
@@ -133,6 +132,7 @@ class BeaconState(rlp.Serializable):
             # Recent state
             latest_crosslinks: Sequence[CrosslinkRecord],
             latest_block_roots: Sequence[Hash32],
+            latest_index_roots: Sequence[Hash32],
             latest_penalized_balances: Sequence[Gwei],
             batched_block_roots: Sequence[Hash32],
             latest_attestations: Sequence[PendingAttestationRecord],
@@ -153,7 +153,6 @@ class BeaconState(rlp.Serializable):
             validator_balances=validator_balances,
             validator_registry_update_slot=validator_registry_update_slot,
             validator_registry_exit_count=validator_registry_exit_count,
-            validator_registry_delta_chain_tip=validator_registry_delta_chain_tip,
             # Randomness and committees
             latest_randao_mixes=latest_randao_mixes,
             latest_vdf_outputs=latest_vdf_outputs,
@@ -163,8 +162,8 @@ class BeaconState(rlp.Serializable):
             current_epoch_start_shard=current_epoch_start_shard,
             previous_epoch_calculation_slot=previous_epoch_calculation_slot,
             current_epoch_calculation_slot=current_epoch_calculation_slot,
-            previous_epoch_randao_mix=previous_epoch_randao_mix,
-            current_epoch_randao_mix=current_epoch_randao_mix,
+            previous_epoch_seed=previous_epoch_seed,
+            current_epoch_seed=current_epoch_seed,
             # Proof of Custody
             custody_challenges=custody_challenges,
             # Finality
@@ -175,6 +174,7 @@ class BeaconState(rlp.Serializable):
             # Recent state
             latest_crosslinks=latest_crosslinks,
             latest_block_roots=latest_block_roots,
+            latest_index_roots=latest_index_roots,
             latest_penalized_balances=latest_penalized_balances,
             latest_attestations=latest_attestations,
             batched_block_roots=batched_block_roots,
@@ -217,6 +217,7 @@ class BeaconState(rlp.Serializable):
                             genesis_slot: SlotNumber,
                             shard_count: int,
                             latest_block_roots_length: int,
+                            latest_index_roots_length: int,
                             latest_randao_mixes_length: int,
                             latest_penalized_exit_length: int,
                             activated_genesis_validators: Sequence[ValidatorRecord]=(),
@@ -236,7 +237,6 @@ class BeaconState(rlp.Serializable):
             validator_balances=genesis_balances,
             validator_registry_update_slot=genesis_slot,
             validator_registry_exit_count=0,
-            validator_registry_delta_chain_tip=ZERO_HASH32,
 
             # Randomness and committees
             latest_randao_mixes=tuple(
@@ -250,8 +250,8 @@ class BeaconState(rlp.Serializable):
             current_epoch_start_shard=genesis_start_shard,
             previous_epoch_calculation_slot=genesis_slot,
             current_epoch_calculation_slot=genesis_slot,
-            previous_epoch_randao_mix=ZERO_HASH32,
-            current_epoch_randao_mix=ZERO_HASH32,
+            previous_epoch_seed=ZERO_HASH32,
+            current_epoch_seed=ZERO_HASH32,
 
             # Custody challenges
             custody_challenges=(),
@@ -271,6 +271,7 @@ class BeaconState(rlp.Serializable):
                 for _ in range(shard_count)
             ),
             latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
+            latest_index_roots=tuple(ZERO_HASH32 for _ in range(latest_index_roots_length)),
             latest_penalized_balances=(Gwei(0),) * latest_penalized_exit_length,
             latest_attestations=(),
             batched_block_roots=(),
@@ -324,3 +325,13 @@ class BeaconState(rlp.Serializable):
         state = self.update_validator_registry(validator_index, validator)
         state = state.update_validator_balance(validator_index, balance)
         return state
+
+    def current_epoch(self, epoch_length: int) -> int:
+        return self.slot // epoch_length
+
+    def previous_epoch(self, epoch_length: int, genesis_epoch: int) -> int:
+        current_epoch = self.current_epoch(epoch_length)
+        return current_epoch - 1 if current_epoch > genesis_epoch else current_epoch
+
+    def next_epoch(self, epoch_length: int) -> int:
+        return self.current_epoch(epoch_length) + 1

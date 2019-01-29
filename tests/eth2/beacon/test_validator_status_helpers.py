@@ -5,13 +5,12 @@ from eth2.beacon.constants import (
     GWEI_PER_ETH,
 )
 from eth2.beacon.enums import (
-    ValidatorRegistryDeltaFlag,
     ValidatorStatusFlags,
 )
 from eth2.beacon.helpers import (
     get_beacon_proposer_index,
+    get_entry_exit_effect_slot,
 )
-from eth2.beacon.types.validator_registry_delta_block import ValidatorRegistryDeltaBlock
 from eth2.beacon.validator_status_helpers import (
     _settle_penality_to_validator_and_whistleblower,
     activate_validator,
@@ -32,16 +31,17 @@ from tests.eth2.beacon.helpers import (
 #
 @pytest.mark.parametrize(
     (
-        'genesis,'
+        'is_genesis,'
     ),
     [
         (True),
         (False),
     ]
 )
-def test_activate_validator(genesis,
+def test_activate_validator(is_genesis,
                             filled_beacon_state,
                             genesis_slot,
+                            epoch_length,
                             entry_exit_delay,
                             max_deposit):
     validator_count = 10
@@ -62,27 +62,20 @@ def test_activate_validator(genesis,
     result_state = activate_validator(
         state=state,
         index=index,
-        genesis=genesis,
+        is_genesis=is_genesis,
         genesis_slot=genesis_slot,
+        epoch_length=epoch_length,
         entry_exit_delay=entry_exit_delay,
     )
-    result_validator = result_state.validator_registry[index]
 
-    new_validator_registry_delta_chain_tip = ValidatorRegistryDeltaBlock(
-        latest_registry_delta_root=state.validator_registry_delta_chain_tip,
-        validator_index=index,
-        pubkey=result_validator.pubkey,
-        slot=result_validator.activation_slot,
-        flag=ValidatorRegistryDeltaFlag.ACTIVATION,
-    ).root
-
-    assert (
-        result_state.validator_registry_delta_chain_tip == new_validator_registry_delta_chain_tip
-    )
-    if genesis:
-        state.validator_registry[index].activation_slot == genesis_slot
+    if is_genesis:
+        assert result_state.validator_registry[index].activation_slot == genesis_slot
     else:
-        state.validator_registry[index].activation_slot == state.slot + entry_exit_delay
+        assert result_state.validator_registry[index].activation_slot == get_entry_exit_effect_slot(
+            state.slot,
+            epoch_length,
+            entry_exit_delay,
+        )
 
 
 def test_initiate_validator_exit(ten_validators_state):
@@ -146,7 +139,8 @@ def test_exit_validator(num_validators,
                         state_slot,
                         exit_slot,
                         validator_registry_exit_count,
-                        ten_validators_state):
+                        ten_validators_state,
+                        epoch_length):
     # Unchanged
     state = ten_validators_state.copy(
         slot=state_slot,
@@ -165,6 +159,7 @@ def test_exit_validator(num_validators,
     result_state = exit_validator(
         state=state,
         index=index,
+        epoch_length=epoch_length,
         entry_exit_delay=entry_exit_delay,
     )
     if validator.exit_slot <= state.slot + entry_exit_delay:
@@ -176,18 +171,6 @@ def test_exit_validator(num_validators,
         assert result_state.validator_registry_exit_count == validator_registry_exit_count + 1
         assert result_validator.exit_slot == state.slot + entry_exit_delay
         assert result_validator.exit_count == result_state.validator_registry_exit_count
-
-        new_validator_registry_delta_chain_tip = ValidatorRegistryDeltaBlock(
-            latest_registry_delta_root=state.validator_registry_delta_chain_tip,
-            validator_index=index,
-            pubkey=result_validator.pubkey,
-            slot=result_validator.exit_slot,
-            flag=ValidatorRegistryDeltaFlag.EXIT,
-        ).root
-        assert (
-            result_state.validator_registry_delta_chain_tip ==
-            new_validator_registry_delta_chain_tip
-        )
 
 
 @pytest.mark.parametrize(
@@ -325,7 +308,7 @@ def test_penalize_validator(monkeypatch,
     )
 
     # Just check if `prepare_validator_for_withdrawal` applied these two functions
-    expected_state = exit_validator(state, index, entry_exit_delay)
+    expected_state = exit_validator(state, index, epoch_length, entry_exit_delay)
     expected_state = _settle_penality_to_validator_and_whistleblower(
         state=expected_state,
         validator_index=index,

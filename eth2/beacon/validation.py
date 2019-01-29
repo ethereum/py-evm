@@ -27,21 +27,28 @@ def validate_slot_for_state_slot(
 
     if state_epoch_slot > slot + epoch_length:
         raise ValidationError(
-            "state_epoch_slot ({}) should be less than or equal to slot + "
-            "epoch_length ({})".format(
-                state_epoch_slot,
-                slot + epoch_length,
-            )
+            f"state_epoch_slot ({state_epoch_slot}) should be less than or equal to "
+            f"slot ({slot}) + epoch_length ({epoch_length})"
         )
 
     if slot >= state_epoch_slot + epoch_length:
         raise ValidationError(
-            "slot ({}) should be less than "
-            "state_epoch_slot + epoch_length ({}), "
-            "where state_epoch_slot={}, epoch_length={}".format(
-                slot,
-                state_epoch_slot + epoch_length,
-                state_epoch_slot,
-                epoch_length,
-            )
+            f"slot ({slot}) should be less than "
+            f"state_epoch_slot + epoch_length ({state_epoch_slot + epoch_length}), "
+            f"where state_epoch_slot={state_epoch_slot}, epoch_length={epoch_length}"
+        )
+
+
+def validate_epoch_for_active_index_root(state_epoch: int,
+                                         given_epoch: int,
+                                         latest_index_roots_length: int) -> None:
+    if state_epoch >= given_epoch + latest_index_roots_length:
+        raise ValidationError(
+            f"start_epoch ({state_epoch}) should be less than (given_epoch {given_epoch} + "
+            f"LATEST_INDEX_ROOTS_LENGTH ({latest_index_roots_length}))"
+        )
+
+    if given_epoch > state_epoch:
+        raise ValidationError(
+            f"given_epoch ({given_epoch}) should be less than or equal to given_epoch {state_epoch}"
         )

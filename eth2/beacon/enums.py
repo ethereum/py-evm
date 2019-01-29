@@ -6,11 +6,6 @@ class ValidatorStatusFlags(IntEnum):
     WITHDRAWABLE = 2
 
 
-class ValidatorRegistryDeltaFlag(IntEnum):
-    ACTIVATION = 0
-    EXIT = 1
-
-
 class SignatureDomain(IntEnum):
     DOMAIN_DEPOSIT = 0
     DOMAIN_ATTESTATION = 1

@@ -153,7 +153,6 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'validator_balances': (),
         'validator_registry_update_slot': 10,
         'validator_registry_exit_count': 10,
-        'validator_registry_delta_chain_tip': b'\x55' * 32,
         'latest_randao_mixes': (),
         'latest_vdf_outputs': (),
         'persistent_committees': (),
@@ -162,8 +161,8 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'current_epoch_start_shard': 2,
         'previous_epoch_calculation_slot': 5,
         'current_epoch_calculation_slot': 10,
-        'previous_epoch_randao_mix': b'\x77' * 32,
-        'current_epoch_randao_mix': b'\x88' * 32,
+        'previous_epoch_seed': b'\x77' * 32,
+        'current_epoch_seed': b'\x88' * 32,
         'custody_challenges': (),
         'previous_justified_slot': 0,
         'justified_slot': 0,
@@ -171,6 +170,7 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'finalized_slot': 0,
         'latest_crosslinks': (),
         'latest_block_roots': (),
+        'latest_index_roots': (),
         'latest_penalized_balances': (),
         'latest_attestations': (),
         'batched_block_roots': (),
@@ -326,21 +326,11 @@ def sample_validator_record_params():
 
 
 @pytest.fixture
-def sample_validator_registry_delta_block_params():
-    return {
-        'latest_registry_delta_root': b'\x01' * 32,
-        'validator_index': 1,
-        'pubkey': 123,
-        'slot': 0,
-        'flag': 1,
-    }
-
-
-@pytest.fixture
 def filled_beacon_state(genesis_slot,
                         genesis_start_shard,
                         shard_count,
                         latest_block_roots_length,
+                        latest_index_roots_length,
                         latest_randao_mixes_length,
                         latest_penalized_exit_length):
     return BeaconState.create_filled_state(
@@ -348,6 +338,7 @@ def filled_beacon_state(genesis_slot,
         genesis_slot=genesis_slot,
         shard_count=shard_count,
         latest_block_roots_length=latest_block_roots_length,
+        latest_index_roots_length=latest_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
         latest_penalized_exit_length=latest_penalized_exit_length,
     )
@@ -432,6 +423,11 @@ def max_casper_votes():
 @pytest.fixture
 def latest_block_roots_length():
     return SERENITY_CONFIG.LATEST_BLOCK_ROOTS_LENGTH
+
+
+@pytest.fixture
+def latest_index_roots_length():
+    return SERENITY_CONFIG.LATEST_INDEX_ROOTS_LENGTH
 
 
 @pytest.fixture
@@ -656,6 +652,7 @@ def config(
         beacon_chain_shard_number,
         max_casper_votes,
         latest_block_roots_length,
+        latest_index_roots_length,
         latest_randao_mixes_length,
         latest_penalized_exit_length,
         deposit_contract_address,
@@ -691,6 +688,7 @@ def config(
         BEACON_CHAIN_SHARD_NUMBER=beacon_chain_shard_number,
         MAX_CASPER_VOTES=max_casper_votes,
         LATEST_BLOCK_ROOTS_LENGTH=latest_block_roots_length,
+        LATEST_INDEX_ROOTS_LENGTH=latest_index_roots_length,
         LATEST_RANDAO_MIXES_LENGTH=latest_randao_mixes_length,
         LATEST_PENALIZED_EXIT_LENGTH=latest_penalized_exit_length,
         DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,

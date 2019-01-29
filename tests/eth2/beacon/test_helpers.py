@@ -20,6 +20,9 @@ from eth_utils.toolz import (
 from eth.constants import (
     ZERO_HASH32,
 )
+from eth2.beacon._utils.hash import (
+    hash_eth2,
+)
 from eth2.beacon.constants import (
     GWEI_PER_ETH,
     FAR_FUTURE_SLOT,
@@ -39,6 +42,7 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
 from eth2.beacon.helpers import (
     _get_block_root,
+    generate_seed,
     get_active_validator_indices,
     get_attestation_participants,
     get_beacon_proposer_index,
@@ -47,6 +51,7 @@ from eth2.beacon.helpers import (
     get_current_epoch_committee_count_per_slot,
     get_domain,
     get_effective_balance,
+    get_entry_exit_effect_slot,
     get_fork_version,
     get_previous_epoch_committee_count_per_slot,
     get_pubkey_for_indices,
@@ -1030,3 +1035,93 @@ def test_is_surround_vote(sample_attestation_data_params,
     attestation_data_2 = AttestationData(**attestation_data_2_params)
 
     assert is_surround_vote(attestation_data_1, attestation_data_2) == expected
+
+
+@pytest.mark.parametrize(
+    (
+        'slot,'
+        'epoch_length,'
+        'entry_exit_delay,'
+        'expected_entry_exit_effect_slot'
+    ),
+    # result = (slot - slot % EPOCH_LENGTH) + EPOCH_LENGTH + ENTRY_EXIT_DELAY
+    [
+        (64, 64, 128, (64 - 64 % 64) + 64 + 128),
+        (128, 64, 128, (128 - 128 % 64) + 64 + 128),
+    ],
+)
+def test_get_entry_exit_effect_slot(slot,
+                                    epoch_length,
+                                    entry_exit_delay,
+                                    expected_entry_exit_effect_slot):
+    # TODO: update to epoch version
+    entry_exit_effect_slot = get_entry_exit_effect_slot(
+        slot,
+        epoch_length,
+        entry_exit_delay,
+    )
+    assert entry_exit_effect_slot == expected_entry_exit_effect_slot
+
+
+def test_generate_seed(monkeypatch,
+                       genesis_state,
+                       epoch_length,
+                       seed_lookahead,
+                       latest_index_roots_length,
+                       latest_randao_mixes_length):
+    from eth2.beacon import helpers
+
+    def mock_get_randao_mix(state,
+                            slot,
+                            latest_randao_mixes_length):
+        return hash_eth2(
+            state.root +
+            abs(slot).to_bytes(32, byteorder='big') +
+            latest_randao_mixes_length.to_bytes(32, byteorder='big')
+        )
+
+    def mock_get_active_index_root(state,
+                                   slot,
+                                   epoch_length,
+                                   latest_index_roots_length):
+        return hash_eth2(
+            state.root +
+            abs(slot).to_bytes(32, byteorder='big') +
+            epoch_length.to_bytes(32, byteorder='big') +
+            latest_index_roots_length.to_bytes(32, byteorder='big')
+        )
+
+    monkeypatch.setattr(
+        helpers,
+        'get_randao_mix',
+        mock_get_randao_mix
+    )
+    monkeypatch.setattr(
+        helpers,
+        'get_active_index_root',
+        mock_get_active_index_root
+    )
+
+    state = genesis_state
+    slot = 10
+
+    seed = generate_seed(
+        state=state,
+        slot=slot,
+        epoch_length=epoch_length,
+        seed_lookahead=seed_lookahead,
+        latest_index_roots_length=latest_index_roots_length,
+        latest_randao_mixes_length=latest_randao_mixes_length,
+    )
+    assert seed == hash_eth2(
+        mock_get_randao_mix(
+            state,
+            slot - seed_lookahead,
+            latest_randao_mixes_length=latest_randao_mixes_length,
+        ) + mock_get_active_index_root(
+            state,
+            slot,
+            epoch_length=epoch_length,
+            latest_index_roots_length=latest_index_roots_length,
+        )
+    )

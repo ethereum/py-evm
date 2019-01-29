@@ -19,6 +19,7 @@ SERENITY_CONFIG = BeaconConfig(
     BEACON_CHAIN_SHARD_NUMBER=ShardNumber(2**64 - 1),
     MAX_CASPER_VOTES=2**10,  # (= 1,024) votes
     LATEST_BLOCK_ROOTS_LENGTH=2**13,  # (= 8,192) block roots
+    LATEST_INDEX_ROOTS_LENGTH=2**13,  # (= 8,192) index roots
     LATEST_RANDAO_MIXES_LENGTH=2**13,  # (= 8,192) randao mixes
     LATEST_PENALIZED_EXIT_LENGTH=2**13,  # (= 8,192) randao mixes
     # Deposit contract

@@ -23,6 +23,9 @@ import eth2._utils.bls as bls
 from eth2._utils.numeric import (
     bitwise_xor,
 )
+from eth2.beacon._utils.hash import (
+    hash_eth2,
+)
 from eth2.beacon._utils.random import (
     shuffle,
     split,
@@ -43,6 +46,7 @@ from eth2.beacon.typing import (
     ValidatorIndex,
 )
 from eth2.beacon.validation import (
+    validate_epoch_for_active_index_root,
     validate_slot_for_state_slot,
 )
 
@@ -108,6 +112,7 @@ def get_randao_mix(state: 'BeaconState',
     """
     Return the randao mix at a recent ``slot``.
     """
+    # TODO: update to epoch version
     assert state.slot < slot + latest_randao_mixes_length
     assert slot <= state.slot
     return state.latest_randao_mixes[slot % latest_randao_mixes_length]
@@ -243,7 +248,7 @@ def get_crosslink_committees_at_slot(
             target_committee_size=target_committee_size,
         )
 
-        seed = state.previous_epoch_randao_mix
+        seed = state.previous_epoch_seed
         shuffling_slot = state.previous_epoch_calculation_slot
         shuffling_start_shard = state.previous_epoch_start_shard
     else:
@@ -253,7 +258,7 @@ def get_crosslink_committees_at_slot(
             epoch_length=epoch_length,
             target_committee_size=target_committee_size,
         )
-        seed = state.current_epoch_randao_mix
+        seed = state.current_epoch_seed
         shuffling_slot = state.current_epoch_calculation_slot
         shuffling_start_shard = state.current_epoch_start_shard
 
@@ -279,9 +284,46 @@ def get_crosslink_committees_at_slot(
         )
 
 
-#
-# Get proposer position
-#
+def get_active_index_root(state: 'BeaconState',
+                          slot: SlotNumber,
+                          epoch_length: int,
+                          latest_index_roots_length: int) -> Hash32:
+    """
+    Return the index root at a recent ``slot``.
+    """
+    state_epoch = state.slot // epoch_length
+    given_epoch = slot // epoch_length
+
+    validate_epoch_for_active_index_root(state_epoch, given_epoch, latest_index_roots_length)
+
+    return state.latest_index_roots[given_epoch % latest_index_roots_length]
+
+
+def generate_seed(state: 'BeaconState',
+                  slot: SlotNumber,
+                  epoch_length: int,
+                  seed_lookahead: int,
+                  latest_index_roots_length: int,
+                  latest_randao_mixes_length: int) -> Hash32:
+    """
+    Generate a seed for the given ``slot``.
+
+    TODO: it's slot version, will be changed to epoch version.
+    """
+    randao_mix = get_randao_mix(
+        state,
+        SlotNumber(slot - seed_lookahead),
+        latest_randao_mixes_length=latest_randao_mixes_length,
+    )
+    active_index_root = get_active_index_root(
+        state,
+        slot,
+        epoch_length=epoch_length,
+        latest_index_roots_length=latest_index_roots_length,
+    )
+
+    return hash_eth2(randao_mix + active_index_root)
+
 
 def get_beacon_proposer_index(state: 'BeaconState',
                               slot: SlotNumber,
@@ -506,3 +548,14 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
         (attestation_data_2.justified_slot + 1 == attestation_data_2.slot) and
         (attestation_data_2.slot < attestation_data_1.slot)
     )
+
+
+def get_entry_exit_effect_slot(slot: SlotNumber,
+                               epoch_length: int,
+                               entry_exit_delay: int) -> SlotNumber:
+    """
+    An entry or exit triggered in the slot given by the input takes effect at
+    the slot given by the output.
+    """
+    # TODO: update to epoch version
+    return SlotNumber((slot - slot % epoch_length) + epoch_length + entry_exit_delay)

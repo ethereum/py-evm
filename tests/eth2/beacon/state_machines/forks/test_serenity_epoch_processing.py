@@ -10,13 +10,18 @@ from eth.constants import (
 from eth2._utils.tuple import (
     update_tuple_item,
 )
+from eth2.beacon._utils.hash import (
+    hash_eth2,
+)
 from eth2.beacon.helpers import (
+    get_active_validator_indices,
     get_current_epoch_committee_count_per_slot,
 )
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _check_if_update_validator_registry,
+    _update_latest_index_roots,
     process_final_updates,
     process_validator_registry,
 )
@@ -96,15 +101,56 @@ def test_check_if_update_validator_registry(genesis_state,
 
 @pytest.mark.parametrize(
     (
+        'epoch_length,'
+        'latest_index_roots_length,'
+        'state_slot,'
+    ),
+    [
+        (4, 16, 4),
+        (4, 16, 64),
+    ]
+)
+def test_update_latest_index_roots(genesis_state,
+                                   config,
+                                   state_slot,
+                                   epoch_length,
+                                   latest_index_roots_length):
+    state = genesis_state.copy(
+        slot=state_slot,
+    )
+
+    result_state = _update_latest_index_roots(state, config)
+
+    # TODO: chanege to hash_tree_root
+    index_root = hash_eth2(
+        b''.join(
+            [
+                index.to_bytes(32, 'big')
+                for index in get_active_validator_indices(
+                    state.validator_registry,
+                    # TODO: change to `per-epoch` version
+                    state.slot,
+                )
+            ]
+        )
+    )
+
+    assert result_state.latest_index_roots[
+        state.next_epoch(epoch_length) % latest_index_roots_length
+    ] == index_root
+
+
+@pytest.mark.parametrize(
+    (
         'num_validators, epoch_length, target_committee_size, shard_count,'
         'latest_randao_mixes_length, seed_lookahead, state_slot,'
         'need_to_update,'
         'num_shards_in_committees,'
         'validator_registry_update_slot,'
+        'epochs_since_last_registry_change_is_power_of_two,'
         'current_epoch_calculation_slot,'
         'latest_randao_mixes,'
         'expected_current_epoch_calculation_slot,'
-        'expected_current_epoch_randao_mix,'
     ),
     [
         (
@@ -112,22 +158,22 @@ def test_check_if_update_validator_registry(genesis_state,
             2**10, 4, 20,
             False,
             10,
-            16,  # (state.slot - state.validator_registry_update_slot) EPOCH_LENGTH is power of two
+            16,
+            True,  # (state.slot - state.validator_registry_update_slot) // EPOCH_LENGTH is power of two # noqa: E501
             0,
             [int_to_bytes32(i) for i in range(2**10)],
             20,  # expected current_epoch_calculation_slot is state.slot
-            int_to_bytes32((20 - 4) % 2**10),  # latest_randao_mixes[(result_state.current_epoch_calculation_slot - SEED_LOOKAHEAD) % LATEST_RANDAO_MIXES_LENGTH]  # noqa: E501
         ),
         (
             40, 4, 2, 2,
             2**10, 4, 20,
             False,
             10,
-            8,  # (state.slot - state.validator_registry_update_slot) EPOCH_LENGTH != power of two
+            8,
+            False,  # (state.slot - state.validator_registry_update_slot) // EPOCH_LENGTH != power of two  # noqa: E501
             0,
             [int_to_bytes32(i) for i in range(2**10)],
             0,  # expected current_epoch_calculation_slot is state.slot
-            int_to_bytes32(0),
         ),
     ]
 )
@@ -137,11 +183,12 @@ def test_process_validator_registry(monkeypatch,
                                     need_to_update,
                                     num_shards_in_committees,
                                     validator_registry_update_slot,
+                                    epochs_since_last_registry_change_is_power_of_two,
                                     current_epoch_calculation_slot,
                                     latest_randao_mixes,
                                     expected_current_epoch_calculation_slot,
-                                    expected_current_epoch_randao_mix,
                                     config):
+    # Mock check_if_update_validator_registry
     from eth2.beacon.state_machines.forks.serenity import epoch_processing
 
     def mock_check_if_update_validator_registry(state, config):
@@ -153,6 +200,23 @@ def test_process_validator_registry(monkeypatch,
         mock_check_if_update_validator_registry
     )
 
+    # Mock generate_seed
+    new_seed = b'\x88' * 32
+
+    def mock_generate_seed(state,
+                           slot,
+                           epoch_length,
+                           seed_lookahead,
+                           latest_index_roots_length,
+                           latest_randao_mixes_length):
+        return new_seed
+
+    monkeypatch.setattr(
+        'eth2.beacon.helpers.generate_seed',
+        mock_generate_seed
+    )
+
+    # Set state
     state = genesis_state.copy(
         slot=state_slot,
         validator_registry_update_slot=validator_registry_update_slot,
@@ -164,17 +228,24 @@ def test_process_validator_registry(monkeypatch,
 
     assert result_state.previous_epoch_calculation_slot == state.current_epoch_start_shard
     assert result_state.previous_epoch_start_shard == state.current_epoch_start_shard
-    assert result_state.previous_epoch_randao_mix == state.current_epoch_randao_mix
+    assert result_state.previous_epoch_seed == state.current_epoch_seed
 
     if need_to_update:
         assert result_state.current_epoch_calculation_slot == state_slot
+        assert result_state.current_epoch_seed == new_seed
         # TODO: Add test for validator registry updates
     else:
         assert (
             result_state.current_epoch_calculation_slot ==
             expected_current_epoch_calculation_slot
         )
-        assert result_state.current_epoch_randao_mix == expected_current_epoch_randao_mix
+        # state.current_epoch_start_shard is left unchanged.
+        assert result_state.current_epoch_start_shard == state.current_epoch_start_shard
+
+        if epochs_since_last_registry_change_is_power_of_two:
+            assert result_state.current_epoch_seed == new_seed
+        else:
+            assert result_state.current_epoch_seed != new_seed
 
 
 @pytest.mark.parametrize(
