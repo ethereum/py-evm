@@ -629,11 +629,11 @@ def test_get_attesting_validator_indices(
     aggregation_bitfield_1 = get_empty_bitfield(target_committee_size)
     aggregation_bitfield_2 = get_empty_bitfield(target_committee_size)
     not_aggregation_bitfield_1 = get_empty_bitfield(target_committee_size)
-    for i_1, i_2, not_i_1 in zip(
+    for committee_index_1, committee_index_2, committee_index_3 in zip(
             attestation_participants_1, attestation_participants_2, not_attestation_participants_1):
-        aggregation_bitfield_1 = set_voted(aggregation_bitfield_1, i_1)
-        aggregation_bitfield_2 = set_voted(aggregation_bitfield_2, i_2)
-        not_aggregation_bitfield_1 = set_voted(not_aggregation_bitfield_1, not_i_1)
+        aggregation_bitfield_1 = set_voted(aggregation_bitfield_1, committee_index_1)
+        aggregation_bitfield_2 = set_voted(aggregation_bitfield_2, committee_index_2)
+        not_aggregation_bitfield_1 = set_voted(not_aggregation_bitfield_1, committee_index_3)
 
     # `attestions` contains attestation to different block root by different set of participants
     attestations = [
@@ -664,13 +664,13 @@ def test_get_attesting_validator_indices(
     ]
 
     shard_block_root_1_attesting_validator = get_attesting_validator_indices(
-        sample_state,
-        epoch_length,
-        attestations,
-        target_committee_size,
-        shard_count,
-        shard,
-        shard_block_root_1,
+        state=sample_state,
+        attestations=attestations,
+        shard=shard,
+        shard_block_root=shard_block_root_1,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
     )
     # Check that result is the union of two participants set
     # `attestation_participants_1` and `attestation_participants_2`
@@ -680,13 +680,13 @@ def test_get_attesting_validator_indices(
         set(attestation_participants_1 + attestation_participants_2))
 
     shard_block_root_2_attesting_validator = get_attesting_validator_indices(
-        sample_state,
-        epoch_length,
-        attestations,
-        target_committee_size,
-        shard_count,
-        shard,
-        shard_block_root_2,
+        state=sample_state,
+        attestations=attestations,
+        shard=shard,
+        shard_block_root=shard_block_root_2,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
     )
     # Check that result is the `not_attestation_participants_1` set
     assert set(shard_block_root_2_attesting_validator) == set(not_attestation_participants_1)
@@ -702,15 +702,15 @@ def test_get_current_and_previous_epoch_attestations(random,
                                                      sample_attestation_params):
     num_previous_epoch_attestation, num_current_epoch_attestation = random.sample(
         range(epoch_length),
-        2
+        2,
     )
     previous_epoch_attestion_slots = random.sample(
         range(epoch_length),
-        num_previous_epoch_attestation
+        num_previous_epoch_attestation,
     )
     current_epoch_attestion_slots = random.sample(
         range(epoch_length, epoch_length * 2),
-        num_current_epoch_attestation
+        num_current_epoch_attestation,
     )
 
     previous_epoch_attestations = []
@@ -719,7 +719,7 @@ def test_get_current_and_previous_epoch_attestations(random,
             Attestation(**sample_attestation_params).copy(
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=slot,
-                )
+                ),
             )
         )
     current_epoch_attestations = []
@@ -727,8 +727,8 @@ def test_get_current_and_previous_epoch_attestations(random,
         current_epoch_attestations.append(
             Attestation(**sample_attestation_params).copy(
                 data=AttestationData(**sample_attestation_data_params).copy(
-                    slot=(slot),
-                )
+                    slot=slot,
+                ),
             )
         )
 
@@ -839,7 +839,14 @@ def test_get_winning_root(
     ]
 
     assert competing_block_roots[winning_root_index] == get_winning_root(
-        ten_validators_state, config, attestations, shard)
+        state=ten_validators_state,
+        shard=shard,
+        attestations=attestations,
+        epoch_length=config.EPOCH_LENGTH,
+        max_deposit=config.MAX_DEPOSIT,
+        target_committee_size=target_committee_size,
+        shard_count=config.SHARD_COUNT,
+    )
 
 
 @pytest.mark.parametrize(

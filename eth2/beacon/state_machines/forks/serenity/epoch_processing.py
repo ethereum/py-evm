@@ -1,6 +1,10 @@
 from typing import (
+    Iterable,
+    Sequence,
     Tuple,
 )
+
+from eth_utils import to_tuple
 
 from eth2._utils.numeric import (
     is_power_of_two,
@@ -22,17 +26,28 @@ from eth2.beacon.helpers import (
     get_randao_mix,
     get_winning_root,
 )
+from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.typing import ShardNumber
 from eth2.beacon.state_machines.configs import BeaconConfig
 
 
 #
 # Crosslinks
 #
+@to_tuple
+def _get_attestations_by_shard(
+        attestations: Sequence[Attestation],
+        shard: ShardNumber) -> Iterable[Attestation]:
+    for attestation in attestations:
+        if attestation.data.shard == shard:
+            yield attestation
+
+
 def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
     """
-    Implements 'per-epoch-processing.crosslinks' portion of Phase 0 spec:
+    Implement 'per-epoch-processing.crosslinks' portion of Phase 0 spec:
     https://github.com/ethereum/eth2.0-specs/blob/master/specs/core/0_beacon-chain.md#crosslinks
 
     For the shard to be crosslinked during each slots of the past two epochs, find the shard block
@@ -54,34 +69,33 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
             config.SHARD_COUNT,
         )
         for crosslink_committee, shard in crosslink_committees_at_slot:
-            # Filter out attestations not attesting to this shard so we don't need
-            # to going over irrelevent attestations over and over again.
-            to_this_shard_attestations = [
-                a
-                for a in current_epoch_attestations
-                if a.data.shard == shard
-            ]
-            winning_root = get_winning_root(state, config, to_this_shard_attestations, shard)
+            # Use `_get_attestations_by_shard` to filter out attestations not attesting to
+            # this shard so we don't need to going over irrelevent attestations over and over again.
+            winning_root = get_winning_root(
+                state=state,
+                shard=shard,
+                attestations=_get_attestations_by_shard(current_epoch_attestations, shard),
+                epoch_length=config.EPOCH_LENGTH,
+                max_deposit=config.MAX_DEPOSIT,
+                target_committee_size=config.TARGET_COMMITTEE_SIZE,
+                shard_count=config.SHARD_COUNT,
+            )
             attesting_validators_indices = get_attesting_validator_indices(
-                state,
-                config.EPOCH_LENGTH,
-                to_this_shard_attestations,
-                config.TARGET_COMMITTEE_SIZE,
-                config.SHARD_COUNT,
-                shard,
-                winning_root,
+                state=state,
+                attestations=_get_attestations_by_shard(current_epoch_attestations, shard),
+                shard=shard,
+                shard_block_root=winning_root,
+                epoch_length=config.EPOCH_LENGTH,
+                target_committee_size=config.TARGET_COMMITTEE_SIZE,
+                shard_count=config.SHARD_COUNT,
             )
             total_attesting_balance = sum(
-                [
-                    get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT)
-                    for i in attesting_validators_indices
-                ]
+                get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT)
+                for i in attesting_validators_indices
             )
             total_balance = sum(
-                [
-                    get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT)
-                    for i in crosslink_committee
-                ]
+                get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT)
+                for i in crosslink_committee
             )
             if 3 * total_attesting_balance >= 2 * total_balance:
                 latest_crosslinks = update_tuple_item(

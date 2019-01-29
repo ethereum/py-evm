@@ -11,6 +11,7 @@ import functools
 from eth_utils import (
     big_endian_to_int,
     to_tuple,
+    to_set,
     ValidationError,
 )
 from eth_typing import (
@@ -39,7 +40,6 @@ from eth2.beacon._utils.random import (
 from eth2.beacon.enums import (
     SignatureDomain,
 )
-from eth2.beacon.state_machines.configs import BeaconConfig
 from eth2.beacon.types.pending_attestation_records import (
     PendingAttestationRecord,
 )
@@ -423,25 +423,55 @@ def get_attestation_participants(state: 'BeaconState',
             yield validator_index
 
 
+#
+# Per-epoch processing helpers
+#
 @to_tuple
-def get_attesting_validator_indices(
+def get_current_epoch_attestations(
         state: 'BeaconState',
-        epoch_length: int,
+        epoch_length: int) -> Iterable[PendingAttestationRecord]:
+    """
+    Note that this function should only be called at epoch boundaries as
+    it's computed based on current slot number.
+    """
+    for attestation in state.latest_attestations:
+        if state.slot - epoch_length <= attestation.data.slot < state.slot:
+            yield attestation
+
+
+@to_tuple
+def get_previous_epoch_attestations(
+        state: 'BeaconState',
+        epoch_length: int) -> Iterable[PendingAttestationRecord]:
+    """
+    Note that this function should only be called at epoch boundaries as
+    it's computed based on current slot number.
+    """
+    for attestation in state.latest_attestations:
+        if state.slot - 2 * epoch_length <= attestation.data.slot < state.slot - epoch_length:
+            yield attestation
+
+
+@to_tuple
+@to_set
+def get_attesting_validator_indices(
+        *,
+        state: 'BeaconState',
         attestations: Sequence[PendingAttestationRecord],
-        target_committee_size: int,
-        shard_count: int,
         shard: ShardNumber,
-        shard_block_root: Hash32) -> Iterable[ValidatorIndex]:
+        shard_block_root: Hash32,
+        epoch_length: int,
+        target_committee_size: int,
+        shard_count: int) -> Iterable[ValidatorIndex]:
     """
     Loop through ``attestations`` and check if ``shard``/``shard_block_root`` in the attestation
     matches the given ``shard``/``shard_block_root``.
     If the attestation matches, get the index of the participating validators.
-    Finally, return the union of the indexes.
+    Finally, return the union of the indices.
     """
-    indexes_tuple = ()
     for a in attestations:
         if a.data.shard == shard and a.data.shard_block_root == shard_block_root:
-            indexes_tuple += get_attestation_participants(
+            yield from get_attestation_participants(
                 state,
                 a.data,
                 a.aggregation_bitfield,
@@ -449,37 +479,17 @@ def get_attesting_validator_indices(
                 target_committee_size,
                 shard_count,
             )
-    return set(indexes_tuple)
-
-
-#
-# Misc
-#
-@to_tuple
-def get_current_epoch_attestations(
-        state: 'BeaconState',
-        epoch_length: int) -> Sequence[PendingAttestationRecord]:
-    return [
-        a for a in state.latest_attestations
-        if state.slot - epoch_length <= a.data.slot < state.slot
-    ]
-
-
-@to_tuple
-def get_previous_epoch_attestations(
-        state: 'BeaconState',
-        epoch_length: int) -> Sequence[PendingAttestationRecord]:
-    return [
-        a for a in state.latest_attestations
-        if state.slot - 2 * epoch_length <= a.data.slot < state.slot - epoch_length
-    ]
 
 
 def get_winning_root(
+        *,
         state: 'BeaconState',
-        config: BeaconConfig,
+        shard: ShardNumber,
         attestations: Sequence[PendingAttestationRecord],
-        shard: ShardNumber) -> Hash32:
+        epoch_length: int,
+        max_deposit: Ether,
+        target_committee_size: int,
+        shard_count: int) -> Hash32:
     winning_root = ZERO_HASH32
     winning_root_balance = 0
     visited_shard_block_root: List[Hash32] = []
@@ -488,17 +498,16 @@ def get_winning_root(
             continue
         else:
             root_balance = sum(
-                [
-                    get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT)
-                    for i in get_attesting_validator_indices(
-                        state,
-                        config.EPOCH_LENGTH,
-                        attestations,
-                        config.TARGET_COMMITTEE_SIZE,
-                        config.SHARD_COUNT,
-                        shard,
-                        a.data.shard_block_root)
-                ]
+                get_effective_balance(state.validator_balances, i, max_deposit)
+                for i in get_attesting_validator_indices(
+                    state=state,
+                    attestations=attestations,
+                    shard=shard,
+                    shard_block_root=a.data.shard_block_root,
+                    epoch_length=epoch_length,
+                    target_committee_size=target_committee_size,
+                    shard_count=shard_count,
+                )
             )
             if root_balance > winning_root_balance:
                 winning_root = a.data.shard_block_root
@@ -511,6 +520,9 @@ def get_winning_root(
     return winning_root
 
 
+#
+# Misc
+#
 def get_effective_balance(
         validator_balances: Sequence[Gwei],
         index: ValidatorIndex,
