@@ -444,7 +444,7 @@ def get_attesting_validator_indices(
             indexes_tuple += get_attestation_participants(
                 state,
                 a.data,
-                a.participation_bitfield,
+                a.aggregation_bitfield,
                 epoch_length,
                 target_committee_size,
                 shard_count,

@@ -23,7 +23,7 @@ class PendingAttestationRecord(rlp.Serializable):
     fields = [
         # Signed data
         ('data', AttestationData),
-        # Attester participation bitfield
+        # Attester aggregation bitfield
         ('aggregation_bitfield', binary),
         # Custody bitfield
         ('custody_bitfield', binary),

@@ -395,10 +395,10 @@ def test_process_crosslinks(
                 else:
                     attesting_validators = random.sample(committee, (2 * len(committee) // 3 - 1))
                 # Generate the bitfield
-                participation_bitfield = get_empty_bitfield(len(committee))
+                aggregation_bitfield = get_empty_bitfield(len(committee))
                 for v_index in attesting_validators:
-                    participation_bitfield = set_voted(
-                        participation_bitfield, committee.index(v_index))
+                    aggregation_bitfield = set_voted(
+                        aggregation_bitfield, committee.index(v_index))
                 # Generate the attestation
                 cur_epoch_attestations.append(
                     Attestation(**sample_attestation_params).copy(
@@ -407,7 +407,7 @@ def test_process_crosslinks(
                             shard=shard,
                             shard_block_root=shard_block_root,
                         ),
-                        participation_bitfield=participation_bitfield,
+                        aggregation_bitfield=aggregation_bitfield,
                     )
                 )
 

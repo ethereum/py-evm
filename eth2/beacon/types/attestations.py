@@ -20,7 +20,7 @@ class Attestation(rlp.Serializable):
     """
     fields = [
         ('data', AttestationData),
-        # Attester participation bitfield
+        # Attester aggregation bitfield
         ('aggregation_bitfield', binary),
         # Proof of custody bitfield
         ('custody_bitfield', binary),

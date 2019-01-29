@@ -626,14 +626,14 @@ def test_get_attesting_validator_indices(
     not_attestation_participants_1 = [i for i in committee if i not in attestation_participants_1]
 
     # Generate bitfield of each participants set
-    participation_bitfield_1 = get_empty_bitfield(target_committee_size)
-    participation_bitfield_2 = get_empty_bitfield(target_committee_size)
-    not_participation_bitfield_1 = get_empty_bitfield(target_committee_size)
+    aggregation_bitfield_1 = get_empty_bitfield(target_committee_size)
+    aggregation_bitfield_2 = get_empty_bitfield(target_committee_size)
+    not_aggregation_bitfield_1 = get_empty_bitfield(target_committee_size)
     for i_1, i_2, not_i_1 in zip(
             attestation_participants_1, attestation_participants_2, not_attestation_participants_1):
-        participation_bitfield_1 = set_voted(participation_bitfield_1, i_1)
-        participation_bitfield_2 = set_voted(participation_bitfield_2, i_2)
-        not_participation_bitfield_1 = set_voted(not_participation_bitfield_1, not_i_1)
+        aggregation_bitfield_1 = set_voted(aggregation_bitfield_1, i_1)
+        aggregation_bitfield_2 = set_voted(aggregation_bitfield_2, i_2)
+        not_aggregation_bitfield_1 = set_voted(not_aggregation_bitfield_1, not_i_1)
 
     # `attestions` contains attestation to different block root by different set of participants
     attestations = [
@@ -643,7 +643,7 @@ def test_get_attesting_validator_indices(
                 shard=shard,
                 shard_block_root=shard_block_root_1,
             ),
-            participation_bitfield=participation_bitfield_1
+            aggregation_bitfield=aggregation_bitfield_1
         ),
         # Attestation to `shard_block_root_1` by `attestation_participants_2`
         Attestation(**sample_attestation_params).copy(
@@ -651,7 +651,7 @@ def test_get_attesting_validator_indices(
                 shard=shard,
                 shard_block_root=shard_block_root_1,
             ),
-            participation_bitfield=participation_bitfield_2
+            aggregation_bitfield=aggregation_bitfield_2
         ),
         # Attestation to `shard_block_root_2` by `not_attestation_participants_1`
         Attestation(**sample_attestation_params).copy(
@@ -659,7 +659,7 @@ def test_get_attesting_validator_indices(
                 shard=shard,
                 shard_block_root=shard_block_root_2,
             ),
-            participation_bitfield=not_participation_bitfield_1
+            aggregation_bitfield=not_aggregation_bitfield_1
         ),
     ]
 
@@ -826,7 +826,7 @@ def test_get_winning_root(
                 shard=shard,
                 shard_block_root=competing_block_roots[1],
             ),
-            participation_bitfield=root_1_participants_bitfield
+            aggregation_bitfield=root_1_participants_bitfield
         ),
         # Attestation to `shard_block_root_2` by `attestation_participants_2`
         Attestation(**sample_attestation_params).copy(
@@ -834,7 +834,7 @@ def test_get_winning_root(
                 shard=shard,
                 shard_block_root=competing_block_roots[2],
             ),
-            participation_bitfield=root_2_participants_bitfield
+            aggregation_bitfield=root_2_participants_bitfield
         ),
     ]
 
