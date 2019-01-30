@@ -20,7 +20,6 @@ from eth2.beacon.helpers import (
     get_current_epoch_committee_count_per_slot,
     get_current_epoch_attestations,
     get_effective_balance,
-    get_randao_mix,
     get_winning_root,
 )
 from eth2.beacon.typing import ShardNumber
@@ -37,7 +36,7 @@ from eth2.beacon.state_machines.configs import BeaconConfig
 # Crosslinks
 #
 @to_tuple
-def _get_attestations_by_shard(
+def _filter_attestations_by_shard(
         attestations: Sequence[Attestation],
         shard: ShardNumber) -> Iterable[Attestation]:
     for attestation in attestations:
@@ -73,10 +72,10 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                 winning_root, total_attesting_balance = get_winning_root(
                     state=state,
                     shard=shard,
-                    # Use `_get_attestations_by_shard` to filter out attestations
+                    # Use `_filter_attestations_by_shard` to filter out attestations
                     # not attesting to this shard so we don't need to going over
                     # irrelevent attestations over and over again.
-                    attestations=_get_attestations_by_shard(current_epoch_attestations, shard),
+                    attestations=_filter_attestations_by_shard(current_epoch_attestations, shard),
                     epoch_length=config.EPOCH_LENGTH,
                     max_deposit=config.MAX_DEPOSIT,
                     target_committee_size=config.TARGET_COMMITTEE_SIZE,

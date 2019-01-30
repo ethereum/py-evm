@@ -1,9 +1,9 @@
 from typing import (
     Iterable,
-    List,
     Sequence,
     Tuple,
     TYPE_CHECKING,
+    Set,
 )
 
 import functools
@@ -510,7 +510,7 @@ def get_winning_root(
         shard_count: int) -> Tuple[Hash32, int]:
     winning_root = None
     winning_root_balance = 0
-    visited_shard_block_root: List[Hash32] = []
+    visited_shard_block_root: Set[Hash32] = set()
     for a in attestations:
         if a.data.shard_block_root in visited_shard_block_root:
             # Already get the balance of this block root
@@ -529,11 +529,13 @@ def get_winning_root(
             if root_balance > winning_root_balance:
                 winning_root = a.data.shard_block_root
                 winning_root_balance = root_balance
-            elif (root_balance == winning_root_balance > 0 and
-                    big_endian_to_int(a.data.shard_block_root) < big_endian_to_int(winning_root)):
-                winning_root = a.data.shard_block_root
+            elif root_balance == winning_root_balance and winning_root_balance > 0:
+                competing_root_as_int = big_endian_to_int(a.data.shard_block_root)
+                winning_root_as_int = big_endian_to_int(winning_root)
+                if competing_root_as_int < winning_root_as_int:
+                    winning_root = a.data.shard_block_root
+            visited_shard_block_root.add(a.data.shard_block_root)
 
-            visited_shard_block_root.append(a.data.shard_block_root)
     if winning_root is None:
         raise NoWinningRootError
     return (winning_root, root_balance)
