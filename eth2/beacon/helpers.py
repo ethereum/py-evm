@@ -407,8 +407,8 @@ def get_attestation_participants(state: 'BeaconState',
     committee_size = len(committee)
     if len(aggregation_bitfield) != get_bitfield_length(committee_size):
         raise ValidationError(
-            'Invalid bitfield length,'
-            "\texpected: {get_bitfield_length(committee_size)}, found: {len(aggregation_bitfield)}"
+            f"Invalid bitfield length,"
+            f"\texpected: {get_bitfield_length(committee_size)}, found: {len(aggregation_bitfield)}"
         )
 
     # Find the participating attesters in the committee
