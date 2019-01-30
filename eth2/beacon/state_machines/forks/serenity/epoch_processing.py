@@ -81,6 +81,10 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                     target_committee_size=config.TARGET_COMMITTEE_SIZE,
                     shard_count=config.SHARD_COUNT,
                 )
+            except NoWinningRootError:
+                # No winning shard block root found for this shard.
+                pass
+            else:
                 total_balance = sum(
                     get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT)
                     for i in crosslink_committee
@@ -97,9 +101,6 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                 else:
                     # Don't update the crosslink of this shard
                     pass
-            except NoWinningRootError:
-                # No winning shard block root found for this shard.
-                pass
     state = state.copy(
         latest_crosslinks=latest_crosslinks,
     )

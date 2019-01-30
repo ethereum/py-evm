@@ -484,17 +484,19 @@ def get_total_attesting_balance(
         epoch_length: int,
         max_deposit: Ether,
         target_committee_size: int,
-        shard_count: int) -> int:
-    return sum(
-        get_effective_balance(state.validator_balances, i, max_deposit)
-        for i in get_attesting_validator_indices(
-            state=state,
-            attestations=attestations,
-            shard=shard,
-            shard_block_root=shard_block_root,
-            epoch_length=epoch_length,
-            target_committee_size=target_committee_size,
-            shard_count=shard_count,
+        shard_count: int) -> Gwei:
+    return Gwei(
+        sum(
+            get_effective_balance(state.validator_balances, i, max_deposit)
+            for i in get_attesting_validator_indices(
+                state=state,
+                attestations=attestations,
+                shard=shard,
+                shard_block_root=shard_block_root,
+                epoch_length=epoch_length,
+                target_committee_size=target_committee_size,
+                shard_count=shard_count,
+            )
         )
     )
 
@@ -507,16 +509,16 @@ def get_winning_root(
         epoch_length: int,
         max_deposit: Ether,
         target_committee_size: int,
-        shard_count: int) -> Tuple[Hash32, int]:
+        shard_count: int) -> Tuple[Hash32, Gwei]:
     winning_root = None
-    winning_root_balance = 0
+    winning_root_balance: Gwei = Gwei(0)
     visited_shard_block_root: Set[Hash32] = set()
     for a in attestations:
         if a.data.shard_block_root in visited_shard_block_root:
             # Already get the balance of this block root
             continue
         else:
-            root_balance = get_total_attesting_balance(
+            total_attesting_balance = get_total_attesting_balance(
                 state=state,
                 shard=shard,
                 shard_block_root=a.data.shard_block_root,
@@ -526,10 +528,10 @@ def get_winning_root(
                 target_committee_size=target_committee_size,
                 shard_count=shard_count,
             )
-            if root_balance > winning_root_balance:
+            if total_attesting_balance > winning_root_balance:
                 winning_root = a.data.shard_block_root
-                winning_root_balance = root_balance
-            elif root_balance == winning_root_balance and winning_root_balance > 0:
+                winning_root_balance = total_attesting_balance
+            elif total_attesting_balance == winning_root_balance and winning_root_balance > 0:
                 competing_root_as_int = big_endian_to_int(a.data.shard_block_root)
                 winning_root_as_int = big_endian_to_int(winning_root)
                 if competing_root_as_int < winning_root_as_int:
@@ -538,7 +540,7 @@ def get_winning_root(
 
     if winning_root is None:
         raise NoWinningRootError
-    return (winning_root, root_balance)
+    return (winning_root, winning_root_balance)
 
 
 #
