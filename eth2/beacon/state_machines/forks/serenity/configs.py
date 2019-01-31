@@ -1,12 +1,15 @@
 from eth.constants import (
     ZERO_ADDRESS,
 )
+from eth2.beacon.constants import (
+    GWEI_PER_ETH,
+)
 from eth2.beacon.state_machines.configs import BeaconConfig
 from eth2.beacon.typing import (
-    SlotNumber,
-    ShardNumber,
-    Ether,
+    Gwei,
     Second,
+    ShardNumber,
+    SlotNumber,
 )
 
 
@@ -14,7 +17,7 @@ SERENITY_CONFIG = BeaconConfig(
     # Misc
     SHARD_COUNT=2**10,  # (= 1,024) shards
     TARGET_COMMITTEE_SIZE=2**7,  # (= 128) validators
-    EJECTION_BALANCE=Ether(2**4),  # (= 16) ETH
+    EJECTION_BALANCE=Gwei(2**4 * GWEI_PER_ETH),  # (= 16,000,000,000) Gwei
     MAX_BALANCE_CHURN_QUOTIENT=2**5,  # (= 32)
     BEACON_CHAIN_SHARD_NUMBER=ShardNumber(2**64 - 1),
     MAX_INDICES_PER_SLASHABLE_VOTE=2**12,  # (= 4,096) votes
@@ -25,8 +28,8 @@ SERENITY_CONFIG = BeaconConfig(
     # Deposit contract
     DEPOSIT_CONTRACT_ADDRESS=ZERO_ADDRESS,  # TBD
     DEPOSIT_CONTRACT_TREE_DEPTH=2**5,  # (= 32)
-    MIN_DEPOSIT=Ether(2**0),  # (= 1) ETH
-    MAX_DEPOSIT=Ether(2**5),  # (= 32) ETH
+    MIN_DEPOSIT_AMOUNT=Gwei(2**0 * GWEI_PER_ETH),  # (= 1,000,000,000) Gwei
+    MAX_DEPOSIT_AMOUNT=Gwei(2**5 * GWEI_PER_ETH),  # (= 32,000,000,00) Gwei
     # Initial values
     GENESIS_FORK_VERSION=0,
     GENESIS_SLOT=SlotNumber(0),

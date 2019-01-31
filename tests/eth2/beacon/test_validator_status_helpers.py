@@ -2,7 +2,6 @@ import pytest
 
 from eth2.beacon.constants import (
     FAR_FUTURE_SLOT,
-    GWEI_PER_ETH,
 )
 from eth2.beacon.enums import (
     ValidatorStatusFlags,
@@ -43,7 +42,7 @@ def test_activate_validator(is_genesis,
                             genesis_slot,
                             epoch_length,
                             entry_exit_delay,
-                            max_deposit):
+                            max_deposit_amount):
     validator_count = 10
     state = filled_beacon_state.copy(
         validator_registry=tuple(
@@ -53,7 +52,7 @@ def test_activate_validator(is_genesis,
             )
             for index in range(validator_count)
         ),
-        validator_balances=(max_deposit * GWEI_PER_ETH,) * validator_count,
+        validator_balances=(max_deposit_amount,) * validator_count,
     )
     index = 1
     # Check that the `index`th validator in `state` is inactivated
@@ -188,7 +187,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
                                                         latest_penalized_exit_length,
                                                         whistleblower_reward_quotient,
                                                         epoch_length,
-                                                        max_deposit,
+                                                        max_deposit_amount,
                                                         target_committee_size,
                                                         shard_count):
     from eth2.beacon import helpers
@@ -217,7 +216,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
         target_committee_size,
         shard_count,
     )
-    effective_balance = max_deposit * GWEI_PER_ETH
+    effective_balance = max_deposit_amount
 
     # Check the initial balance
     assert (
@@ -232,7 +231,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
         latest_penalized_exit_length=latest_penalized_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         epoch_length=epoch_length,
-        max_deposit=max_deposit,
+        max_deposit_amount=max_deposit_amount,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
@@ -240,7 +239,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
     # Check `state.latest_penalized_balances`
     latest_penalized_balances_list = list(state.latest_penalized_balances)
     last_penalized_epoch = (state.slot // epoch_length) % latest_penalized_exit_length
-    latest_penalized_balances_list[last_penalized_epoch] = max_deposit * GWEI_PER_ETH
+    latest_penalized_balances_list[last_penalized_epoch] = max_deposit_amount
     latest_penalized_balances = tuple(latest_penalized_balances_list)
 
     assert state.latest_penalized_balances == latest_penalized_balances
@@ -272,7 +271,7 @@ def test_penalize_validator(monkeypatch,
                             latest_penalized_exit_length,
                             whistleblower_reward_quotient,
                             entry_exit_delay,
-                            max_deposit,
+                            max_deposit_amount,
                             target_committee_size,
                             shard_count):
     from eth2.beacon import helpers
@@ -302,7 +301,7 @@ def test_penalize_validator(monkeypatch,
         latest_penalized_exit_length=latest_penalized_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         entry_exit_delay=entry_exit_delay,
-        max_deposit=max_deposit,
+        max_deposit_amount=max_deposit_amount,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
@@ -315,7 +314,7 @@ def test_penalize_validator(monkeypatch,
         latest_penalized_exit_length=latest_penalized_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         epoch_length=epoch_length,
-        max_deposit=max_deposit,
+        max_deposit_amount=max_deposit_amount,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
     )

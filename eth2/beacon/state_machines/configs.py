@@ -6,10 +6,10 @@ from eth.typing import (
     Address,
 )
 from eth2.beacon.typing import (
-    SlotNumber,
-    ShardNumber,
-    Ether,
+    Gwei,
     Second,
+    ShardNumber,
+    SlotNumber,
 )
 
 
@@ -19,7 +19,7 @@ BeaconConfig = NamedTuple(
         # Misc
         ('SHARD_COUNT', int),
         ('TARGET_COMMITTEE_SIZE', int),
-        ('EJECTION_BALANCE', Ether),
+        ('EJECTION_BALANCE', Gwei),
         ('MAX_BALANCE_CHURN_QUOTIENT', int),
         ('BEACON_CHAIN_SHARD_NUMBER', ShardNumber),
         ('MAX_INDICES_PER_SLASHABLE_VOTE', int),
@@ -31,8 +31,8 @@ BeaconConfig = NamedTuple(
         # Deposit contract
         ('DEPOSIT_CONTRACT_ADDRESS', Address),
         ('DEPOSIT_CONTRACT_TREE_DEPTH', int),
-        ('MIN_DEPOSIT', Ether),
-        ('MAX_DEPOSIT', Ether),
+        ('MIN_DEPOSIT_AMOUNT', Gwei),
+        ('MAX_DEPOSIT_AMOUNT', Gwei),
         # ZERO_HASH (ZERO_HASH32) is defined in constants.py
         # Initial values
         ('GENESIS_FORK_VERSION', int),

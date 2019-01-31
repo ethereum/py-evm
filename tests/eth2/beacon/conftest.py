@@ -12,7 +12,6 @@ from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
     FAR_FUTURE_SLOT,
-    GWEI_PER_ETH,
 )
 
 from eth2.beacon.types.attestation_data import AttestationData
@@ -345,7 +344,7 @@ def filled_beacon_state(genesis_slot,
 
 
 @pytest.fixture()
-def ten_validators_state(filled_beacon_state, max_deposit):
+def ten_validators_state(filled_beacon_state, max_deposit_amount):
     validator_count = 10
     return filled_beacon_state.copy(
         validator_registry=tuple(
@@ -355,7 +354,7 @@ def ten_validators_state(filled_beacon_state, max_deposit):
             )
             for index in range(validator_count)
         ),
-        validator_balances=(max_deposit * GWEI_PER_ETH,) * validator_count,
+        validator_balances=(max_deposit_amount,) * validator_count,
     )
 
 
@@ -451,13 +450,13 @@ def deposit_contract_tree_depth():
 
 
 @pytest.fixture
-def min_deposit():
-    return SERENITY_CONFIG.MIN_DEPOSIT
+def min_deposit_amount():
+    return SERENITY_CONFIG.MIN_DEPOSIT_AMOUNT
 
 
 @pytest.fixture
-def max_deposit():
-    return SERENITY_CONFIG.MAX_DEPOSIT
+def max_deposit_amount():
+    return SERENITY_CONFIG.MAX_DEPOSIT_AMOUNT
 
 
 @pytest.fixture
@@ -605,7 +604,7 @@ def genesis_block(genesis_state, genesis_slot):
 @pytest.fixture
 def initial_validators(init_validator_pubkeys,
                        init_randao,
-                       max_deposit):
+                       max_deposit_amount):
     """
     Inactive
     """
@@ -632,9 +631,9 @@ def activated_genesis_validators(initial_validators, genesis_slot):
 
 
 @pytest.fixture
-def genesis_balances(init_validator_pubkeys, max_deposit):
+def genesis_balances(init_validator_pubkeys, max_deposit_amount):
     return tuple(
-        max_deposit * GWEI_PER_ETH
+        max_deposit_amount
         for _ in init_validator_pubkeys
     )
 
@@ -657,8 +656,8 @@ def config(
         latest_penalized_exit_length,
         deposit_contract_address,
         deposit_contract_tree_depth,
-        min_deposit,
-        max_deposit,
+        min_deposit_amount,
+        max_deposit_amount,
         genesis_fork_version,
         genesis_slot,
         genesis_start_shard,
@@ -693,8 +692,8 @@ def config(
         LATEST_PENALIZED_EXIT_LENGTH=latest_penalized_exit_length,
         DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,
         DEPOSIT_CONTRACT_TREE_DEPTH=deposit_contract_tree_depth,
-        MIN_DEPOSIT=min_deposit,
-        MAX_DEPOSIT=max_deposit,
+        MIN_DEPOSIT_AMOUNT=min_deposit_amount,
+        MAX_DEPOSIT_AMOUNT=max_deposit_amount,
         GENESIS_FORK_VERSION=genesis_fork_version,
         GENESIS_SLOT=genesis_slot,
         GENESIS_START_SHARD=genesis_start_shard,
