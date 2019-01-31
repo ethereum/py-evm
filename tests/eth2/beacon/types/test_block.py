@@ -30,7 +30,7 @@ def test_update_attestations(sample_attestation_params, sample_beacon_block_para
 def test_block_body_empty(sample_attestation_params):
     block_body = BeaconBlockBody.create_empty_body()
     assert block_body.proposer_slashings == ()
-    assert block_body.casper_slashings == ()
+    assert block_body.attester_slashings == ()
     assert block_body.attestations == ()
     assert block_body.custody_reseeds == ()
     assert block_body.custody_challenges == ()

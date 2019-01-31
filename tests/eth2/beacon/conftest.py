@@ -21,7 +21,7 @@ from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.proposal_signed_data import ProposalSignedData
-from eth2.beacon.types.slashable_vote_data import SlashableVoteData
+from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
 
 from eth2.beacon.on_startup import (
@@ -119,7 +119,7 @@ def sample_attestation_data_and_custody_bit_params(sample_attestation_data_param
 def sample_beacon_block_body_params():
     return {
         'proposer_slashings': (),
-        'casper_slashings': (),
+        'attester_slashings': (),
         'attestations': (),
         'custody_reseeds': (),
         'custody_challenges': (),
@@ -288,7 +288,7 @@ def sample_shard_reassignment_record():
 
 
 @pytest.fixture
-def sample_slashable_vote_data_params(sample_attestation_data_params):
+def sample_slashable_attestation_params(sample_attestation_data_params):
     return {
         'custody_bit_0_indices': (10, 11, 12, 15, 28),
         'custody_bit_1_indices': (7, 8, 100, 131, 249),
@@ -298,11 +298,11 @@ def sample_slashable_vote_data_params(sample_attestation_data_params):
 
 
 @pytest.fixture
-def sample_casper_slashing_params(sample_slashable_vote_data_params):
-    vote_data = SlashableVoteData(**sample_slashable_vote_data_params)
+def sample_attester_slashing_params(sample_slashable_attestation_params):
+    slashable_attestation = SlashableAttestation(**sample_slashable_attestation_params)
     return {
-        'slashable_vote_data_1': vote_data,
-        'slashable_vote_data_2': vote_data,
+        'slashable_attestation_1': slashable_attestation,
+        'slashable_attestation_2': slashable_attestation,
     }
 
 
@@ -416,8 +416,8 @@ def beacon_chain_shard_number():
 
 
 @pytest.fixture
-def max_casper_votes():
-    return SERENITY_CONFIG.MAX_CASPER_VOTES
+def max_indices_per_slashable_vote():
+    return SERENITY_CONFIG.MAX_INDICES_PER_SLASHABLE_VOTE
 
 
 @pytest.fixture
@@ -541,8 +541,8 @@ def max_proposer_slashings():
 
 
 @pytest.fixture
-def max_casper_slashings():
-    return SERENITY_CONFIG.MAX_CASPER_SLASHINGS
+def max_attester_slashings():
+    return SERENITY_CONFIG.MAX_ATTESTER_SLASHINGS
 
 
 @pytest.fixture
@@ -650,7 +650,7 @@ def config(
         ejection_balance,
         max_balance_churn_quotient,
         beacon_chain_shard_number,
-        max_casper_votes,
+        max_indices_per_slashable_vote,
         latest_block_roots_length,
         latest_index_roots_length,
         latest_randao_mixes_length,
@@ -675,7 +675,7 @@ def config(
         includer_reward_quotient,
         inactivity_penalty_quotient,
         max_proposer_slashings,
-        max_casper_slashings,
+        max_attester_slashings,
         max_attestations,
         max_deposits,
         max_exits
@@ -686,7 +686,7 @@ def config(
         EJECTION_BALANCE=ejection_balance,
         MAX_BALANCE_CHURN_QUOTIENT=max_balance_churn_quotient,
         BEACON_CHAIN_SHARD_NUMBER=beacon_chain_shard_number,
-        MAX_CASPER_VOTES=max_casper_votes,
+        MAX_INDICES_PER_SLASHABLE_VOTE=max_indices_per_slashable_vote,
         LATEST_BLOCK_ROOTS_LENGTH=latest_block_roots_length,
         LATEST_INDEX_ROOTS_LENGTH=latest_index_roots_length,
         LATEST_RANDAO_MIXES_LENGTH=latest_randao_mixes_length,
@@ -711,7 +711,7 @@ def config(
         INCLUDER_REWARD_QUOTIENT=includer_reward_quotient,
         INACTIVITY_PENALTY_QUOTIENT=inactivity_penalty_quotient,
         MAX_PROPOSER_SLASHINGS=max_proposer_slashings,
-        MAX_CASPER_SLASHINGS=max_casper_slashings,
+        MAX_ATTESTER_SLASHINGS=max_attester_slashings,
         MAX_ATTESTATIONS=max_attestations,
         MAX_DEPOSITS=max_deposits,
         MAX_EXITS=max_exits,

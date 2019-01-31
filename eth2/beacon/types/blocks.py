@@ -46,7 +46,7 @@ from .attestations import Attestation
 from .custody_challenges import CustodyChallenge
 from .custody_reseeds import CustodyReseed
 from .custody_responses import CustodyResponse
-from .casper_slashings import CasperSlashing
+from .attester_slashings import AttesterSlashing
 from .deposits import Deposit
 from .eth1_data import Eth1Data
 from .exits import Exit
@@ -59,7 +59,7 @@ if TYPE_CHECKING:
 class BeaconBlockBody(rlp.Serializable):
     fields = [
         ('proposer_slashings', CountableList(ProposerSlashing)),
-        ('casper_slashings', CountableList(CasperSlashing)),
+        ('attester_slashings', CountableList(AttesterSlashing)),
         ('attestations', CountableList(Attestation)),
         ('custody_reseeds', CountableList(CustodyReseed)),
         ('custody_challenges', CountableList(CustodyChallenge)),
@@ -70,7 +70,7 @@ class BeaconBlockBody(rlp.Serializable):
 
     def __init__(self,
                  proposer_slashings: Sequence[ProposerSlashing],
-                 casper_slashings: Sequence[CasperSlashing],
+                 attester_slashings: Sequence[AttesterSlashing],
                  attestations: Sequence[Attestation],
                  custody_reseeds: Sequence[CustodyReseed],
                  custody_challenges: Sequence[CustodyResponse],
@@ -79,7 +79,7 @@ class BeaconBlockBody(rlp.Serializable):
                  exits: Sequence[Exit])-> None:
         super().__init__(
             proposer_slashings=proposer_slashings,
-            casper_slashings=casper_slashings,
+            attester_slashings=attester_slashings,
             attestations=attestations,
             custody_reseeds=custody_reseeds,
             custody_challenges=custody_challenges,
@@ -92,7 +92,7 @@ class BeaconBlockBody(rlp.Serializable):
     def create_empty_body(cls) -> 'BeaconBlockBody':
         return cls(
             proposer_slashings=(),
-            casper_slashings=(),
+            attester_slashings=(),
             attestations=(),
             custody_reseeds=(),
             custody_challenges=(),
@@ -105,7 +105,7 @@ class BeaconBlockBody(rlp.Serializable):
     def is_empty(self) -> bool:
         return (
             self.proposer_slashings == () and
-            self.casper_slashings == () and
+            self.attester_slashings == () and
             self.attestations == () and
             self.custody_reseeds == () and
             self.custody_challenges == () and
@@ -119,7 +119,7 @@ class BeaconBlockBody(rlp.Serializable):
                         body: 'BeaconBlockBody') -> 'BeaconBlockBody':
         return cls(
             proposer_slashings=body.proposer_slashings,
-            casper_slashings=body.casper_slashings,
+            attester_slashings=body.attester_slashings,
             attestations=body.attestations,
             custody_reseeds=body.custody_reseeds,
             custody_challenges=body.custody_challenges,
@@ -215,7 +215,7 @@ class BeaconBlock(BaseBeaconBlock):
         block = chaindb.get_block_by_root(root, cls)
         body = cls.block_body_class(
             proposer_slashings=block.body.proposer_slashings,
-            casper_slashings=block.body.casper_slashings,
+            attester_slashings=block.body.attester_slashings,
             attestations=block.body.attestations,
             custody_reseeds=block.body.custody_reseeds,
             custody_challenges=block.body.custody_challenges,

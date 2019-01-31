@@ -103,7 +103,7 @@ class SerenityStateTransition(BaseStateTransition):
 
         # Operations
         # TODO: state = process_proposer_slashings(state, block, self.config)
-        # TODO: state = process_casper_slashings(state, block, self.config)
+        # TODO: state = process_attester_slashings(state, block, self.config)
         state = process_attestations(state, block, self.config)
         # TODO: state = process_deposits(state, block, self.config)
         # TODO: state = process_exits(state, block, self.config)

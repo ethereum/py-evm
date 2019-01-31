@@ -22,7 +22,7 @@ BeaconConfig = NamedTuple(
         ('EJECTION_BALANCE', Ether),
         ('MAX_BALANCE_CHURN_QUOTIENT', int),
         ('BEACON_CHAIN_SHARD_NUMBER', ShardNumber),
-        ('MAX_CASPER_VOTES', int),
+        ('MAX_INDICES_PER_SLASHABLE_VOTE', int),
         ('LATEST_BLOCK_ROOTS_LENGTH', int),
         ('LATEST_INDEX_ROOTS_LENGTH', int),
         ('LATEST_RANDAO_MIXES_LENGTH', int),
@@ -54,7 +54,7 @@ BeaconConfig = NamedTuple(
         ('INACTIVITY_PENALTY_QUOTIENT', int),
         # Max operations per block
         ('MAX_PROPOSER_SLASHINGS', int),
-        ('MAX_CASPER_SLASHINGS', int),
+        ('MAX_ATTESTER_SLASHINGS', int),
         ('MAX_ATTESTATIONS', int),
         ('MAX_DEPOSITS', int),
         ('MAX_EXITS', int),
