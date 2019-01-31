@@ -77,7 +77,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                     # irrelevent attestations over and over again.
                     attestations=_filter_attestations_by_shard(current_epoch_attestations, shard),
                     epoch_length=config.EPOCH_LENGTH,
-                    max_deposit=config.MAX_DEPOSIT,
+                    max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
                     target_committee_size=config.TARGET_COMMITTEE_SIZE,
                     shard_count=config.SHARD_COUNT,
                 )
@@ -86,7 +86,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                 pass
             else:
                 total_balance = sum(
-                    get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT)
+                    get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
                     for i in crosslink_committee
                 )
                 if 3 * total_attesting_balance >= 2 * total_balance:

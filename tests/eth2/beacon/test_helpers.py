@@ -845,7 +845,7 @@ def test_get_winning_root(
             shard=shard,
             attestations=attestations,
             epoch_length=config.EPOCH_LENGTH,
-            max_deposit=config.MAX_DEPOSIT,
+            max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
             target_committee_size=config.TARGET_COMMITTEE_SIZE,
             shard_count=config.SHARD_COUNT,
         )
@@ -859,7 +859,11 @@ def test_get_winning_root(
             shard_count=config.SHARD_COUNT,
         )
         total_attesting_balance = sum(
-            get_effective_balance(ten_validators_state.validator_balances, i, config.MAX_DEPOSIT)
+            get_effective_balance(
+                ten_validators_state.validator_balances,
+                i,
+                config.MAX_DEPOSIT_AMOUNT
+            )
             for i in attesting_validators_indices
         )
         assert attesting_balance == total_attesting_balance

@@ -359,7 +359,7 @@ def ten_validators_state(filled_beacon_state, max_deposit_amount):
 
 
 @pytest.fixture()
-def hundred_validators_state(filled_beacon_state, max_deposit):
+def hundred_validators_state(filled_beacon_state, max_deposit_amount):
     validator_count = 100
     return filled_beacon_state.copy(
         validator_registry=tuple(
@@ -369,7 +369,7 @@ def hundred_validators_state(filled_beacon_state, max_deposit):
             )
             for index in range(validator_count)
         ),
-        validator_balances=(max_deposit * GWEI_PER_ETH,) * validator_count,
+        validator_balances=(max_deposit_amount,) * validator_count,
     )
 
 

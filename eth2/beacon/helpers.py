@@ -482,12 +482,12 @@ def get_total_attesting_balance(
         shard_block_root: Hash32,
         attestations: Sequence[PendingAttestationRecord],
         epoch_length: int,
-        max_deposit: Ether,
+        max_deposit_amount: Gwei,
         target_committee_size: int,
         shard_count: int) -> Gwei:
     return Gwei(
         sum(
-            get_effective_balance(state.validator_balances, i, max_deposit)
+            get_effective_balance(state.validator_balances, i, max_deposit_amount)
             for i in get_attesting_validator_indices(
                 state=state,
                 attestations=attestations,
@@ -507,7 +507,7 @@ def get_winning_root(
         shard: ShardNumber,
         attestations: Sequence[PendingAttestationRecord],
         epoch_length: int,
-        max_deposit: Ether,
+        max_deposit_amount: Gwei,
         target_committee_size: int,
         shard_count: int) -> Tuple[Hash32, Gwei]:
     winning_root = None
@@ -524,7 +524,7 @@ def get_winning_root(
                 shard_block_root=a.data.shard_block_root,
                 attestations=attestations,
                 epoch_length=epoch_length,
-                max_deposit=max_deposit,
+                max_deposit_amount=max_deposit_amount,
                 target_committee_size=target_committee_size,
                 shard_count=shard_count,
             )
