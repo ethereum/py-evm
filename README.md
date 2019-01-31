@@ -17,7 +17,7 @@ as well as emerging support for the upcoming Ethereum 2.0 / Serenity spec.
 
 - provide a reference implementation of an Ethereum 2.0 / Serenity beacon node (pre-alpha)
 
-- provide a reference implementation of an Ethereum 2.0 / Sereneity validator node (pre-alpha)
+- provide a reference implementation of an Ethereum 2.0 / Serenity validator node (pre-alpha)
 
 
 ## Quickstart
