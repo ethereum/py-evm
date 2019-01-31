@@ -9,14 +9,14 @@ from eth.chains.tester import (
 
 
 class Forks(enum.Enum):
-    Custom = -1
-    Frontier = 0
-    Homestead = 1
-    TangerineWhistle = 2
-    SpuriousDragon = 3
-    Byzantium = 4
-    Constantinople = 5
-    Petersburg = 6
+    Custom = 'CustomFrontier'
+    Frontier = 'Frontier'
+    Homestead = 'Homestead'
+    TangerineWhistle = 'TangerineWhistle'
+    SpuriousDragon = 'SpuriousDragon'
+    Byzantium = 'Byzantium'
+    Constantinople = 'Constantinople'
+    Petersburg = 'Petersburg'
 
 
 class CustomFrontierVM(FrontierVM):
@@ -139,10 +139,9 @@ def test_generate_vm_configuration(args, kwargs, expected):
 
         assert left_block == right_block
 
-        if right_vm == Forks.Frontier:
-            assert 'Frontier' in left_vm.__name__
-        elif right_vm == Forks.Homestead:
-            assert 'Homestead' in left_vm.__name__
+        assert right_vm.value in left_vm.__name__
+
+        if right_vm == Forks.Homestead:
             dao_start_block = kwargs.get('dao_start_block')
             if dao_start_block is False:
                 assert left_vm.support_dao_fork is False
@@ -152,17 +151,3 @@ def test_generate_vm_configuration(args, kwargs, expected):
             else:
                 assert left_vm.support_dao_fork is True
                 assert left_vm.get_dao_fork_block_number() == dao_start_block
-        elif right_vm == Forks.TangerineWhistle:
-            assert 'TangerineWhistle' in left_vm.__name__
-        elif right_vm == Forks.SpuriousDragon:
-            assert 'SpuriousDragon' in left_vm.__name__
-        elif right_vm == Forks.Byzantium:
-            assert 'Byzantium' in left_vm.__name__
-        elif right_vm == Forks.Constantinople:
-            assert 'Constantinople' in left_vm.__name__
-        elif right_vm == Forks.Petersburg:
-            assert 'Petersburg' in left_vm.__name__
-        elif right_vm == Forks.Custom:
-            assert 'CustomFrontier' in left_vm.__name__
-        else:
-            assert False, "Invariant"
