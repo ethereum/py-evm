@@ -11,6 +11,7 @@ from hypothesis import (
 )
 
 from eth_utils import (
+    big_endian_to_int,
     ValidationError,
 )
 from eth2._utils.bitfield import (
@@ -743,44 +744,42 @@ def test_get_current_and_previous_epoch_attestations(random,
         get_current_epoch_attestations(state, epoch_length))
 
 
+@settings(max_examples=10)
+@given(random=st.randoms())
 @pytest.mark.parametrize(
     (
         'target_committee_size,'
         'block_root_1_participants,'
         'block_root_2_participants,'
-        'winning_root_index'
     ),
     [
         (
             16,
             (1, 3),
-            (2, 4, 6, 8),
-            2
+            (2, 4, 6, 8)
         ),
         (
             16,
             # vote tie; lower root value is favored
             (1, 3, 5, 7),
-            (2, 4, 6, 8),
-            1
+            (2, 4, 6, 8)
         ),
         (
             16,
             # no votes; no winning root
             (),
-            (),
-            0
+            ()
         ),
     ]
 )
 def test_get_winning_root(
+        random,
         monkeypatch,
         ten_validators_state,
         config,
         target_committee_size,
         block_root_1_participants,
         block_root_2_participants,
-        winning_root_index,
         sample_attestation_data_params,
         sample_attestation_params):
     shard = 1
@@ -804,11 +803,12 @@ def test_get_winning_root(
     )
 
     competing_block_roots = [
-        None,
         # `shard_block_root_1` is more favorable than `shard_block_root_2`
         # during a vote tie since its value is lower.
-        hash_eth2(b'shard_block_root_1'),
-        hash_eth2(b'shard_block_root_2')
+        # hash_eth2(b'shard_block_root_1'),
+        # hash_eth2(b'shard_block_root_2')
+        hash_eth2(bytearray(random.getrandbits(8) for _ in range(10))),
+        hash_eth2(bytearray(random.getrandbits(8) for _ in range(10)))
     ]
 
     # Generate bitfield of each participants set
@@ -825,7 +825,7 @@ def test_get_winning_root(
         Attestation(**sample_attestation_params).copy(
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
-                shard_block_root=competing_block_roots[1],
+                shard_block_root=competing_block_roots[0],
             ),
             aggregation_bitfield=root_1_participants_bitfield
         ),
@@ -833,7 +833,7 @@ def test_get_winning_root(
         Attestation(**sample_attestation_params).copy(
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
-                shard_block_root=competing_block_roots[2],
+                shard_block_root=competing_block_roots[1],
             ),
             aggregation_bitfield=root_2_participants_bitfield
         ),
@@ -868,9 +868,19 @@ def test_get_winning_root(
         )
         assert attesting_balance == total_attesting_balance
     except NoWinningRootError:
-        assert competing_block_roots[winning_root_index] is None
+        assert len(block_root_1_participants) == 0 and len(block_root_2_participants) == 0
     else:
-        assert competing_block_roots[winning_root_index] == winning_root
+        if len(block_root_1_participants) == len(block_root_2_participants):
+            root_1_as_int = big_endian_to_int(competing_block_roots[0])
+            root_2_as_int = big_endian_to_int(competing_block_roots[1])
+            if root_1_as_int < root_2_as_int:
+                assert winning_root == competing_block_roots[0]
+            else:
+                assert winning_root == competing_block_roots[1]
+        elif len(block_root_1_participants) < len(block_root_2_participants):
+            assert winning_root == competing_block_roots[1]
+        else:
+            assert winning_root == competing_block_roots[0]
 
 
 @pytest.mark.parametrize(

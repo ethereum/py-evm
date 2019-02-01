@@ -9,7 +9,6 @@ from typing import (
 import functools
 
 from eth_utils import (
-    big_endian_to_int,
     to_tuple,
     to_set,
     ValidationError,
@@ -512,31 +511,29 @@ def get_winning_root(
         shard_count: int) -> Tuple[Hash32, Gwei]:
     winning_root = None
     winning_root_balance: Gwei = Gwei(0)
-    visited_shard_block_root: Set[Hash32] = set()
-    for a in attestations:
-        if a.data.shard_block_root in visited_shard_block_root:
-            # Already get the balance of this block root
-            continue
-        else:
-            total_attesting_balance = get_total_attesting_balance(
-                state=state,
-                shard=shard,
-                shard_block_root=a.data.shard_block_root,
-                attestations=attestations,
-                epoch_length=epoch_length,
-                max_deposit_amount=max_deposit_amount,
-                target_committee_size=target_committee_size,
-                shard_count=shard_count,
-            )
-            if total_attesting_balance > winning_root_balance:
-                winning_root = a.data.shard_block_root
-                winning_root_balance = total_attesting_balance
-            elif total_attesting_balance == winning_root_balance and winning_root_balance > 0:
-                competing_root_as_int = big_endian_to_int(a.data.shard_block_root)
-                winning_root_as_int = big_endian_to_int(winning_root)
-                if competing_root_as_int < winning_root_as_int:
-                    winning_root = a.data.shard_block_root
-            visited_shard_block_root.add(a.data.shard_block_root)
+    shard_block_roots = set(
+        [
+            a.data.shard_block_root for a in attestations
+            if a.data.shard == shard
+        ]
+    )
+    for shard_block_root in shard_block_roots:
+        total_attesting_balance = get_total_attesting_balance(
+            state=state,
+            shard=shard,
+            shard_block_root=shard_block_root,
+            attestations=attestations,
+            epoch_length=epoch_length,
+            max_deposit_amount=max_deposit_amount,
+            target_committee_size=target_committee_size,
+            shard_count=shard_count,
+        )
+        if total_attesting_balance > winning_root_balance:
+            winning_root = shard_block_root
+            winning_root_balance = total_attesting_balance
+        elif total_attesting_balance == winning_root_balance and winning_root_balance > 0:
+            if shard_block_root < winning_root:
+                winning_root = shard_block_root
 
     if winning_root is None:
         raise NoWinningRootError
