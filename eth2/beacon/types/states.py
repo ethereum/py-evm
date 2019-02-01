@@ -18,15 +18,17 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
+from eth2.beacon._utils.hash import (
+    hash_eth2,
+)
+from eth2.beacon.helpers import slot_to_epoch
 from eth2.beacon.sedes import (
     uint24,
     uint64,
     hash32,
 )
-from eth2.beacon._utils.hash import (
-    hash_eth2,
-)
 from eth2.beacon.typing import (
+    EpochNumber,
     Gwei,
     ShardNumber,
     SlotNumber,
@@ -326,12 +328,12 @@ class BeaconState(rlp.Serializable):
         state = state.update_validator_balance(validator_index, balance)
         return state
 
-    def current_epoch(self, epoch_length: int) -> int:
-        return self.slot // epoch_length
+    def current_epoch(self, epoch_length: int) -> EpochNumber:
+        return slot_to_epoch(self.slot, epoch_length)
 
-    def previous_epoch(self, epoch_length: int, genesis_epoch: int) -> int:
-        current_epoch = self.current_epoch(epoch_length)
-        return current_epoch - 1 if current_epoch > genesis_epoch else current_epoch
+    def previous_epoch(self, epoch_length: int, genesis_epoch: int) -> EpochNumber:
+        current_epoch: EpochNumber = self.current_epoch(epoch_length)
+        return EpochNumber(current_epoch - 1) if current_epoch > genesis_epoch else current_epoch
 
-    def next_epoch(self, epoch_length: int) -> int:
-        return self.current_epoch(epoch_length) + 1
+    def next_epoch(self, epoch_length: int) -> EpochNumber:
+        return EpochNumber(self.current_epoch(epoch_length) + 1)

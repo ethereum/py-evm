@@ -41,6 +41,7 @@ from eth2.beacon.types.pending_attestation_records import (
 from eth2.beacon.typing import (
     Bitfield,
     BLSPubkey,
+    EpochNumber,
     Gwei,
     ShardNumber,
     SlotNumber,
@@ -542,6 +543,14 @@ def get_winning_root(
 #
 # Misc
 #
+def slot_to_epoch(slot: SlotNumber, epoch_length: int) -> EpochNumber:
+    return EpochNumber(slot // epoch_length)
+
+
+def get_epoch_start_slot(epoch: EpochNumber, epoch_length: int) -> SlotNumber:
+    return SlotNumber(epoch * epoch_length)
+
+
 def get_effective_balance(
         validator_balances: Sequence[Gwei],
         index: ValidatorIndex,
