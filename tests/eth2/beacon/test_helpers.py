@@ -803,10 +803,6 @@ def test_get_winning_root(
     )
 
     competing_block_roots = [
-        # `shard_block_root_1` is more favorable than `shard_block_root_2`
-        # during a vote tie since its value is lower.
-        # hash_eth2(b'shard_block_root_1'),
-        # hash_eth2(b'shard_block_root_2')
         hash_eth2(bytearray(random.getrandbits(8) for _ in range(10))),
         hash_eth2(bytearray(random.getrandbits(8) for _ in range(10)))
     ]
