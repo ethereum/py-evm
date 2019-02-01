@@ -77,8 +77,8 @@ def test_activate_validator(is_genesis,
         )
 
 
-def test_initiate_validator_exit(ten_validators_state):
-    state = ten_validators_state
+def test_initiate_validator_exit(n_validators_state):
+    state = n_validators_state
     index = 1
     assert not (
         state.validator_registry[index].status_flags &
@@ -138,10 +138,10 @@ def test_exit_validator(num_validators,
                         state_slot,
                         exit_slot,
                         validator_registry_exit_count,
-                        ten_validators_state,
+                        n_validators_state,
                         epoch_length):
     # Unchanged
-    state = ten_validators_state.copy(
+    state = n_validators_state.copy(
         slot=state_slot,
         validator_registry_exit_count=validator_registry_exit_count,
     )
@@ -183,7 +183,7 @@ def test_exit_validator(num_validators,
 def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
                                                         num_validators,
                                                         committee,
-                                                        ten_validators_state,
+                                                        n_validators_state,
                                                         latest_penalized_exit_length,
                                                         whistleblower_reward_quotient,
                                                         epoch_length,
@@ -207,7 +207,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
         mock_get_crosslink_committees_at_slot
     )
 
-    state = ten_validators_state
+    state = n_validators_state
     validator_index = 5
     whistleblower_index = get_beacon_proposer_index(
         state,
@@ -266,7 +266,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
 def test_penalize_validator(monkeypatch,
                             num_validators,
                             committee,
-                            ten_validators_state,
+                            n_validators_state,
                             epoch_length,
                             latest_penalized_exit_length,
                             whistleblower_reward_quotient,
@@ -291,7 +291,7 @@ def test_penalize_validator(monkeypatch,
         mock_get_crosslink_committees_at_slot
     )
 
-    state = ten_validators_state
+    state = n_validators_state
     index = 1
 
     result_state = penalize_validator(
@@ -322,8 +322,8 @@ def test_penalize_validator(monkeypatch,
     assert result_state == expected_state
 
 
-def test_prepare_validator_for_withdrawal(ten_validators_state):
-    state = ten_validators_state
+def test_prepare_validator_for_withdrawal(n_validators_state):
+    state = n_validators_state
     index = 1
     old_validator_status_flags = state.validator_registry[index].status_flags
     result_state = prepare_validator_for_withdrawal(

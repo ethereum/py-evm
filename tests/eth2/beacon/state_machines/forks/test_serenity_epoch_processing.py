@@ -331,19 +331,22 @@ def test_process_final_updates(genesis_state,
 @given(random=st.randoms())
 @pytest.mark.parametrize(
     (
+        'n,'
         'epoch_length,'
         'target_committee_size,'
         'shard_count,'
-        'succes_crosslink_in_cur_epoch,'
+        'success_crosslink_in_cur_epoch,'
     ),
     [
         (
+            100,
             10,
             9,
             10,
             False,
         ),
         (
+            100,
             10,
             9,
             10,
@@ -353,12 +356,12 @@ def test_process_final_updates(genesis_state,
 )
 def test_process_crosslinks(
         random,
-        hundred_validators_state,
+        n_validators_state,
         config,
         epoch_length,
         target_committee_size,
         shard_count,
-        succes_crosslink_in_cur_epoch,
+        success_crosslink_in_cur_epoch,
         sample_attestation_data_params,
         sample_attestation_params):
     shard = 1
@@ -369,7 +372,7 @@ def test_process_crosslinks(
         CrosslinkRecord(slot=config.GENESIS_SLOT, shard_block_root=ZERO_HASH32)
         for _ in range(shard_count)
     ])
-    state = hundred_validators_state.copy(
+    state = n_validators_state.copy(
         slot=current_slot,
         latest_crosslinks=initial_crosslinks,
     )
@@ -388,9 +391,9 @@ def test_process_crosslinks(
         ):
             if _shard == shard:
                 # Sample validators attesting to this shard.
-                # Number of attesting validators sampled depends on `succes_crosslink_in_cur_epoch`,
-                # If True, have >2/3 committee attest
-                if succes_crosslink_in_cur_epoch:
+                # Number of attesting validators sampled depends on `success_crosslink_in_cur_epoch`
+                # if True, have >2/3 committee attest
+                if success_crosslink_in_cur_epoch:
                     attesting_validators = random.sample(committee, (2 * len(committee) // 3 + 1))
                 else:
                     attesting_validators = random.sample(committee, (2 * len(committee) // 3 - 1))
@@ -419,7 +422,7 @@ def test_process_crosslinks(
 
     new_state = process_crosslinks(state, config)
     crosslink_record = new_state.latest_crosslinks[shard]
-    if succes_crosslink_in_cur_epoch:
+    if success_crosslink_in_cur_epoch:
         attestation = cur_epoch_attestations[0]
         assert (crosslink_record.slot == current_slot and
                 crosslink_record.shard_block_root == attestation.data.shard_block_root)

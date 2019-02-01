@@ -49,8 +49,8 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
     Implement 'per-epoch-processing.crosslinks' portion of Phase 0 spec:
     https://github.com/ethereum/eth2.0-specs/blob/master/specs/core/0_beacon-chain.md#crosslinks
 
-    For the shard to be crosslinked during each slots of the past two epochs, find the shard block
-    root with the most stake attestted to.
+    For each shard from the past two epochs, find the shard block
+    root that has been attested to by the most stake.
     If enough(>= 2/3 total stake) attesting stake, update the crosslink record of that shard.
     Return resulting ``state``
     """
@@ -96,7 +96,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                         CrosslinkRecord(
                             slot=state.slot,
                             shard_block_root=winning_root,
-                        )
+                        ),
                     )
                 else:
                     # Don't update the crosslink of this shard

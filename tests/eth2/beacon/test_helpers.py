@@ -283,7 +283,7 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
     ],
 )
 def test_get_epoch_committee_count_per_slot(monkeypatch,
-                                            ten_validators_state,
+                                            n_validators_state,
                                             epoch_length,
                                             target_committee_size,
                                             shard_count,
@@ -306,7 +306,7 @@ def test_get_epoch_committee_count_per_slot(monkeypatch,
         mock_get_committee_count_per_slot
     )
 
-    state = ten_validators_state.copy(
+    state = n_validators_state.copy(
         slot=0,
         previous_epoch_calculation_slot=previous_epoch_calculation_slot,
         current_epoch_calculation_slot=current_epoch_calculation_slot,
@@ -355,14 +355,14 @@ def test_get_epoch_committee_count_per_slot(monkeypatch,
     ],
 )
 def test_get_crosslink_committees_at_slot(
-        ten_validators_state,
+        n_validators_state,
         state_epoch_slot,
         slot,
         epoch_length,
         target_committee_size,
         shard_count):
 
-    state = ten_validators_state.copy(
+    state = n_validators_state.copy(
         slot=state_epoch_slot,
     )
 
@@ -775,7 +775,7 @@ def test_get_current_and_previous_epoch_attestations(random,
 def test_get_winning_root(
         random,
         monkeypatch,
-        ten_validators_state,
+        n_validators_state,
         config,
         target_committee_size,
         block_root_1_participants,
@@ -841,7 +841,7 @@ def test_get_winning_root(
 
     try:
         winning_root, attesting_balance = get_winning_root(
-            state=ten_validators_state,
+            state=n_validators_state,
             shard=shard,
             attestations=attestations,
             epoch_length=config.EPOCH_LENGTH,
@@ -850,7 +850,7 @@ def test_get_winning_root(
             shard_count=config.SHARD_COUNT,
         )
         attesting_validators_indices = get_attesting_validator_indices(
-            state=ten_validators_state,
+            state=n_validators_state,
             attestations=attestations,
             shard=shard,
             shard_block_root=winning_root,
@@ -860,7 +860,7 @@ def test_get_winning_root(
         )
         total_attesting_balance = sum(
             get_effective_balance(
-                ten_validators_state.validator_balances,
+                n_validators_state.validator_balances,
                 i,
                 config.MAX_DEPOSIT_AMOUNT
             )
