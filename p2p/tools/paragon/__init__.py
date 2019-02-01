@@ -8,9 +8,11 @@ from .proto import (  # noqa: F401
 )
 from .peer import (  # noqa: F401
     ParagonContext,
+    ParagonMockPeerPoolWithConnectedPeers,
     ParagonPeer,
     ParagonPeerFactory,
     ParagonPeerPool,
+    ParagonPeerPoolEventServer,
 )
 from .helpers import (  # noqa: F401
     get_directly_connected_streams,

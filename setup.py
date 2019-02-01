@@ -29,6 +29,7 @@ deps = {
         "websockets==5.0.1",
         "jsonschema==2.6.0",
         "mypy_extensions>=0.4.1,<1.0.0",
+        "typing_extensions>=3.7.2,<4.0.0",
     ],
     'test': [
         "hypothesis==3.69.5",

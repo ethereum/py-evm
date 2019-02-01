@@ -1,7 +1,8 @@
-from p2p.events import PeerCountRequest
+
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.nodes.events import NetworkIdRequest
+from trinity.protocol.common.events import PeerCountRequest
 from trinity.rpc.modules import BaseRPCModule
 
 

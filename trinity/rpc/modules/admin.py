@@ -1,8 +1,6 @@
-
-from p2p.events import ConnectToNodeCommand
-
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.endpoint import TrinityEventBusEndpoint
+from trinity.protocol.common.events import ConnectToNodeCommand
 from trinity.rpc.modules import BaseRPCModule
 from trinity._utils.validation import validate_enode_uri
 

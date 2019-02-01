@@ -14,14 +14,14 @@ from eth_utils import (
     to_hex,
 )
 
-from p2p.events import (
-    PeerCountRequest,
-    PeerCountResponse,
-    ConnectToNodeCommand,
-)
 from trinity.nodes.events import (
     NetworkIdRequest,
     NetworkIdResponse,
+)
+from trinity.protocol.common.events import (
+    ConnectToNodeCommand,
+    PeerCountRequest,
+    PeerCountResponse,
 )
 from trinity.sync.common.events import (
     SyncingRequest,

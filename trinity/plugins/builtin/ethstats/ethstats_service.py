@@ -5,9 +5,6 @@ import websockets
 from eth.chains.base import (
     BaseChain,
 )
-from p2p.events import (
-    PeerCountRequest,
-)
 from p2p.service import (
     BaseService,
 )
@@ -36,6 +33,9 @@ from trinity.plugins.builtin.ethstats.ethstats_client import (
     EthstatsMessage,
     EthstatsData,
     timestamp_ms,
+)
+from trinity.protocol.common.events import (
+    PeerCountRequest,
 )
 
 

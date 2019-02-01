@@ -11,7 +11,6 @@ from eth.db.atomic import AtomicDB
 from eth.db.chain import ChainDB
 
 from p2p.auth import HandshakeInitiator, _handshake
-from p2p.events import ConnectToNodeCommand
 from p2p.kademlia import (
     Node,
     Address,
@@ -21,13 +20,18 @@ from p2p.tools.paragon import (
     ParagonContext,
     ParagonPeer,
     ParagonPeerPool,
+    ParagonPeerPoolEventServer,
 )
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
+from trinity.protocol.common.events import ConnectToNodeCommand
 from trinity.server import BaseServer
 
 from tests.p2p.auth_constants import eip8_values
-from tests.core.integration_test_helpers import FakeAsyncHeaderDB
+from tests.core.integration_test_helpers import (
+    FakeAsyncHeaderDB,
+    make_peer_pool_answer_event_bus_requests,
+)
 
 
 def get_open_port():
@@ -58,13 +62,14 @@ class ParagonServer(BaseServer):
             privkey=self.privkey,
             context=ParagonContext(),
             token=self.cancel_token,
+            event_bus=self.event_bus,
         )
 
     def _make_request_server(self):
         return
 
 
-def get_server(privkey, address):
+def get_server(privkey, address, event_bus):
     base_db = AtomicDB()
     headerdb = FakeAsyncHeaderDB(base_db)
     chaindb = ChainDB(base_db)
@@ -78,13 +83,14 @@ def get_server(privkey, address):
         headerdb=headerdb,
         base_db=base_db,
         network_id=NETWORK_ID,
+        event_bus=event_bus,
     )
     return server
 
 
 @pytest.fixture
-async def server():
-    server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS)
+async def server(event_bus):
+    server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, event_bus)
     await asyncio.wait_for(server._start_tcp_listener(), timeout=1)
     try:
         yield server
@@ -175,6 +181,11 @@ async def test_peer_pool_answers_connect_commands(event_loop, event_bus, server)
     )
     asyncio.ensure_future(initiator_peer_pool.run(), loop=event_loop)
     await initiator_peer_pool.events.started.wait()
+    await make_peer_pool_answer_event_bus_requests(
+        event_bus,
+        initiator_peer_pool,
+        handler_type=ParagonPeerPoolEventServer
+    )
 
     assert len(server.peer_pool.connected_nodes) == 0
 

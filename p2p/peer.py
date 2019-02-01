@@ -23,6 +23,7 @@ from typing import (
     Type,
     TYPE_CHECKING,
 )
+import typing_extensions
 
 import sha3
 
@@ -163,6 +164,32 @@ class BasePeerBootManager(BaseService):
 
 class BasePeerContext:
     pass
+
+
+class IdentifiablePeer(typing_extensions.Protocol):
+    """
+    A protocol used to identify a peer based on the presence of an ``uri`` property. The
+    peer pool uses this to lookup and match DTO peers against the actual real peer instance.
+    The ``BaseDTOPeer`` qualifies for this protocol but usage of the ``BaseDTOPeer`` isn't
+    strictly needed. E.g. one might implement a different DTO class that derives from
+    ``NamedTuple`` which is fine as long as it defines an ``uri`` property.
+    """
+
+    @property
+    @abstractmethod
+    def uri(self) -> str:
+        pass
+
+
+class BaseDTOPeer:
+    """
+    A peer solely meant as a Data Transfer Object (DTO) to travel across process boundaries.
+    It's a shallow, pickleable representation of a peer that carries enough information to
+    make the peer identifiable within the actual pool of real peers.
+    """
+
+    def __init__(self, uri: str):
+        self.uri = uri
 
 
 class BasePeer(BaseService):

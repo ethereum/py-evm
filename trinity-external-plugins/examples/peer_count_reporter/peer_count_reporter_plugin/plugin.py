@@ -4,11 +4,11 @@
 from argparse import ArgumentParser, _SubParsersAction
 import asyncio
 
-from p2p.events import PeerCountRequest
 from p2p.service import BaseService
 from lahja import Endpoint
 from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.extensibility import BaseIsolatedPlugin
+from trinity.protocol.common.events import PeerCountRequest
 from trinity._utils.shutdown import exit_with_service_and_endpoint
 
 
