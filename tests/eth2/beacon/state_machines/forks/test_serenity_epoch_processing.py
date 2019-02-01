@@ -379,7 +379,7 @@ def test_process_crosslinks(
 
     # Generate current epoch attestations
     cur_epoch_attestations = []
-    for slot_in_cur_epoch in range(state.slot - config.EPOCH_LENGTH + 1, state.slot + 1):
+    for slot_in_cur_epoch in range(state.slot - config.EPOCH_LENGTH, state.slot):
         if len(cur_epoch_attestations) > 0:
             break
         for committee, _shard in get_crosslink_committees_at_slot(

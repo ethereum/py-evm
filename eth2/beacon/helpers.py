@@ -3,7 +3,6 @@ from typing import (
     Sequence,
     Tuple,
     TYPE_CHECKING,
-    Set,
 )
 
 import functools
