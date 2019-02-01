@@ -1,3 +1,7 @@
+from eth.constants import (
+    ZERO_HASH32,
+)
+
 from eth2.beacon.typing import (
     BLSSignature,
     SlotNumber,
@@ -20,3 +24,5 @@ RAND_MAX = 2 ** (RAND_BYTES * 8) - 1
 EMPTY_SIGNATURE = BLSSignature(b'\x00' * 96)
 GWEI_PER_ETH = 10**9
 FAR_FUTURE_SLOT = SlotNumber(2**64 - 1)
+
+GENESIS_PARENT_ROOT = ZERO_HASH32

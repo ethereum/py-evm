@@ -47,17 +47,23 @@ def test_demo(base_db,
     chaindb.persist_state(genesis_state)
 
     state = genesis_state
+    block = genesis_block
 
     current_slot = 1
     chain_length = 3 * config.EPOCH_LENGTH
     attestations = ()
+    blocks = (block,)
     for current_slot in range(chain_length):
         # two epochs
         block = create_mock_block(
             state=state,
             config=config,
+            state_machine=fixture_sm_class(
+                chaindb,
+                blocks[-1],
+            ),
             block_class=SerenityBeaconBlock,
-            parent_block=genesis_block,
+            parent_block=block,
             keymap=keymap,
             slot=current_slot,
             attestations=attestations,
@@ -71,19 +77,14 @@ def test_demo(base_db,
         # Get state machine instance
         sm = fixture_sm_class(
             chaindb,
-            block,
-            parent_block_class=SerenityBeaconBlock,
+            blocks[-1],
         )
         state, _ = sm.import_block(block)
-
-        # TODO: move to chain level?
-        block = block.copy(
-            state_root=state.root,
-        )
 
         chaindb.persist_state(state)
         chaindb.persist_block(block, SerenityBeaconBlock)
 
+        blocks += (block,)
         if current_slot > config.MIN_ATTESTATION_INCLUSION_DELAY:
             attestation_slot = current_slot - config.MIN_ATTESTATION_INCLUSION_DELAY
             attestations = create_mock_signed_attestations_at_slot(

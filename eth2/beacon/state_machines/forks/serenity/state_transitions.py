@@ -28,11 +28,14 @@ class SerenityStateTransition(BaseStateTransition):
     def __init__(self, config: BeaconConfig):
         self.config = config
 
-    def apply_state_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
+    def apply_state_transition(self,
+                               state: BeaconState,
+                               block: BaseBeaconBlock,
+                               check_proposer_signature: bool=False) -> BeaconState:
         while state.slot != block.slot:
             state = self.per_slot_transition(state, block.parent_root)
             if state.slot == block.slot:
-                state = self.per_block_transition(state, block)
+                state = self.per_block_transition(state, block, check_proposer_signature)
             if state.slot % self.config.EPOCH_LENGTH == 0:
                 state = self.per_epoch_transition(state, block)
 
@@ -87,17 +90,21 @@ class SerenityStateTransition(BaseStateTransition):
         )
         return state
 
-    def per_block_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
+    def per_block_transition(self,
+                             state: BeaconState,
+                             block: BaseBeaconBlock,
+                             check_proposer_signature: bool=False) -> BeaconState:
         # TODO: finish per-block processing logic as the spec
         validate_block_slot(state, block)
-        validate_proposer_signature(
-            state,
-            block,
-            beacon_chain_shard_number=self.config.BEACON_CHAIN_SHARD_NUMBER,
-            epoch_length=self.config.EPOCH_LENGTH,
-            target_committee_size=self.config.TARGET_COMMITTEE_SIZE,
-            shard_count=self.config.SHARD_COUNT
-        )
+        if not check_proposer_signature:
+            validate_proposer_signature(
+                state,
+                block,
+                beacon_chain_shard_number=self.config.BEACON_CHAIN_SHARD_NUMBER,
+                epoch_length=self.config.EPOCH_LENGTH,
+                target_committee_size=self.config.TARGET_COMMITTEE_SIZE,
+                shard_count=self.config.SHARD_COUNT
+            )
         # TODO: state = process_randao(state, block, self.config)
         # TODO: state = process_eth1_data(state, block, self.config)
 

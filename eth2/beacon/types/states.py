@@ -92,7 +92,7 @@ class BeaconState(rlp.Serializable):
         ('latest_index_roots', CountableList(hash32)),
         ('latest_penalized_balances', CountableList(uint64)),  # Balances penalized at every withdrawal period  # noqa: E501
         ('latest_attestations', CountableList(PendingAttestationRecord)),
-        ('batched_block_roots', CountableList(Hash32)),  # allow for a log-sized Merkle proof from any block to any historical block root"  # noqa: E501
+        ('batched_block_roots', CountableList(hash32)),  # allow for a log-sized Merkle proof from any block to any historical block root"  # noqa: E501
 
         # Ethereum 1.0 chain
         ('latest_eth1_data', Eth1Data),

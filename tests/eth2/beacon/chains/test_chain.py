@@ -67,7 +67,7 @@ def test_canonical_chain(valid_chain):
         'num_validators,epoch_length,target_committee_size,shard_count'
     ),
     [
-        (100, 20, 10, 10),
+        (100, 16, 10, 10),
     ]
 )
 def test_import_blocks(valid_chain,
@@ -76,20 +76,22 @@ def test_import_blocks(valid_chain,
                        config,
                        keymap):
     state = genesis_state
-    blocks = tuple()
-
+    blocks = (genesis_block,)
     valid_chain_2 = copy.deepcopy(valid_chain)
     for i in range(3):
         block = create_mock_block(
             state=state,
             config=config,
+            state_machine=valid_chain.get_state_machine(blocks[-1]),
             block_class=genesis_block.__class__,
-            parent_block=genesis_block,
+            parent_block=blocks[-1],
             keymap=keymap,
             slot=state.slot + 2,
         )
 
         valid_chain.import_block(block)
+        assert valid_chain.get_canonical_head() == block
+
         state = valid_chain.get_state_machine(block).state
 
         assert block == valid_chain.get_canonical_block_by_slot(
@@ -102,10 +104,11 @@ def test_import_blocks(valid_chain,
 
     assert valid_chain.get_canonical_head() != valid_chain_2.get_canonical_head()
 
-    for block in blocks:
+    for block in blocks[1:]:
         valid_chain_2.import_block(block)
 
     assert valid_chain.get_canonical_head() == valid_chain_2.get_canonical_head()
+    assert valid_chain.get_state_machine(blocks[-1]).state.slot != 0
     assert (
         valid_chain.get_state_machine(blocks[-1]).state ==
         valid_chain_2.get_state_machine(blocks[-1]).state

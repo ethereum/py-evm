@@ -252,11 +252,10 @@ class BeaconChain(BaseBeaconChain):
         """
         block = self.ensure_block(at_block)
         sm_class = self.get_state_machine_class_for_block_slot(block.slot)
-        parent_block_class = self.get_block_class(block.parent_root)
+
         return sm_class(
             chaindb=self.chaindb,
             block=block,
-            parent_block_class=parent_block_class,
         )
 
     #
@@ -373,9 +372,7 @@ class BeaconChain(BaseBeaconChain):
             parent_block,
             FromBlockParams(),
         )
-        state, imported_block = self.get_state_machine(
-            base_block_for_import,
-        ).import_block(block)
+        state, imported_block = self.get_state_machine(base_block_for_import).import_block(block)
 
         # TODO: Now it just persit all state. Should design how to clean up the old state.
         self.chaindb.persist_state(state)

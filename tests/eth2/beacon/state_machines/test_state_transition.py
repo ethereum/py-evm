@@ -25,20 +25,19 @@ from eth2._utils.merkle import get_merkle_root
     [
         (10, 10, 1, 2, 2, 2, 8192),
         # state.slot == LATEST_BLOCK_ROOTS_LENGTH
-        (6, 6, 1, 2, 2, 5, 5),
+        (6, 6, 1, 2, 2, 8, 8),
         # state.slot > LATEST_BLOCK_ROOTS_LENGTH
-        (7, 7, 1, 2, 2, 6, 5),
+        (7, 7, 1, 2, 2, 9, 8),
         # state.slot < LATEST_BLOCK_ROOTS_LENGTH
-        (7, 7, 1, 2, 2, 3, 5),
+        (7, 7, 1, 2, 2, 7, 8),
         # state.slot % LATEST_BLOCK_ROOTS_LENGTH = 0
-        (11, 11, 1, 2, 2, 10, 5),
-        (16, 16, 1, 2, 2, 15, 5),
+        (11, 11, 1, 2, 2, 16, 8),
+        (16, 16, 1, 2, 2, 32, 8),
         # updated_state.slot == LATEST_BLOCK_ROOTS_LENGTH
-        (6, 6, 1, 2, 2, 4, 5),
+        (6, 6, 1, 2, 2, 7, 8),
         # updated_state.slot % LATEST_BLOCK_ROOTS_LENGTH = 0
-        (6, 6, 1, 2, 2, 5, 5),
-        (11, 11, 1, 2, 2, 9, 5),
-        (16, 16, 1, 2, 2, 14, 5),
+        (11, 11, 1, 2, 2, 15, 8),
+        (16, 16, 1, 2, 2, 31, 8),
     ]
 )
 def test_per_slot_transition(base_db,
@@ -54,9 +53,14 @@ def test_per_slot_transition(base_db,
 
     state = genesis_state
 
+    # Create a block
     block = create_mock_block(
         state=state,
         config=config,
+        state_machine=fixture_sm_class(
+            chaindb,
+            genesis_block,
+        ),
         block_class=SerenityBeaconBlock,
         parent_block=genesis_block,
         keymap=keymap,
@@ -70,7 +74,6 @@ def test_per_slot_transition(base_db,
     sm = fixture_sm_class(
         chaindb,
         block,
-        parent_block_class=SerenityBeaconBlock,
     )
 
     # Get state transition instance

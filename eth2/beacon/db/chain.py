@@ -577,8 +577,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         try:
             state_rlp = db[state_root]
         except KeyError:
-            raise StateRootNotFound("No state with root {0} found".format(
-                encode_hex(state_rlp)))
+            raise StateRootNotFound(f"No state with root {encode_hex(state_root)} found")
         return _decode_state(state_rlp)
 
     def persist_state(self,

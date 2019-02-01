@@ -23,7 +23,10 @@ class BaseStateTransition(Configurable, ABC):
         self.config = config
 
     @abstractmethod
-    def apply_state_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
+    def apply_state_transition(self,
+                               state: BeaconState,
+                               block: BaseBeaconBlock,
+                               check_proposer_signature: bool=False) -> BeaconState:
         pass
 
     @abstractmethod
@@ -33,7 +36,10 @@ class BaseStateTransition(Configurable, ABC):
         pass
 
     @abstractmethod
-    def per_block_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
+    def per_block_transition(self,
+                             state: BeaconState,
+                             block: BaseBeaconBlock,
+                             check_proposer_signature: bool=False) -> BeaconState:
         pass
 
     @abstractmethod
