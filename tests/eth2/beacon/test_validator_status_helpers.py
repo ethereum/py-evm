@@ -1,7 +1,7 @@
 import pytest
 
 from eth2.beacon.constants import (
-    FAR_FUTURE_SLOT,
+    FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.enums import (
     ValidatorStatusFlags,
@@ -57,7 +57,7 @@ def test_activate_validator(is_genesis,
     )
     index = 1
     # Check that the `index`th validator in `state` is inactivated
-    assert state.validator_registry[index].activation_slot == FAR_FUTURE_SLOT
+    assert state.validator_registry[index].activation_slot == FAR_FUTURE_EPOCH
 
     result_state = activate_validator(
         state=state,

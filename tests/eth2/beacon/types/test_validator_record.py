@@ -1,7 +1,7 @@
 import pytest
 
 from eth2.beacon.constants import (
-    FAR_FUTURE_SLOT,
+    FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.types.validator_records import (
     ValidatorRecord,
@@ -54,8 +54,8 @@ def test_create_pending_validator():
     assert validator.withdrawal_credentials == withdrawal_credentials
     assert validator.randao_commitment == randao_commitment
     assert validator.randao_layers == 0
-    assert validator.activation_slot == FAR_FUTURE_SLOT
-    assert validator.exit_slot == FAR_FUTURE_SLOT
-    assert validator.withdrawal_slot == FAR_FUTURE_SLOT
-    assert validator.penalized_slot == FAR_FUTURE_SLOT
+    assert validator.activation_slot == FAR_FUTURE_EPOCH
+    assert validator.exit_slot == FAR_FUTURE_EPOCH
+    assert validator.withdrawal_slot == FAR_FUTURE_EPOCH
+    assert validator.penalized_slot == FAR_FUTURE_EPOCH
     assert validator.exit_count == 0

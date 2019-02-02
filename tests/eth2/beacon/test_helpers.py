@@ -31,7 +31,7 @@ from eth2.beacon._utils.hash import (
 )
 from eth2.beacon.constants import (
     GWEI_PER_ETH,
-    FAR_FUTURE_SLOT,
+    FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.exceptions import NoWinningRootError
 from eth2.beacon.enums import (
@@ -464,7 +464,7 @@ def test_get_active_validator_indices(sample_validator_record_params):
             **sample_validator_record_params,
         ).copy(
             activation_slot=0,
-            exit_slot=FAR_FUTURE_SLOT,
+            exit_slot=FAR_FUTURE_EPOCH,
         )
         for i in range(3)
     ]
@@ -1367,7 +1367,7 @@ def test_is_surround_vote(sample_attestation_data_params,
 
 
 def test_get_entry_exit_effect_epoch(entry_exit_delay):
-    epoch = random.randint(0, FAR_FUTURE_SLOT)
+    epoch = random.randint(0, FAR_FUTURE_EPOCH)
     entry_exit_effect_epoch = get_entry_exit_effect_epoch(
         epoch,
         entry_exit_delay,

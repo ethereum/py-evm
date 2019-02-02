@@ -11,7 +11,7 @@ import eth2._utils.bls as bls
 from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
-    FAR_FUTURE_SLOT,
+    FAR_FUTURE_EPOCH,
 )
 
 from eth2.beacon.types.attestation_data import AttestationData
@@ -312,10 +312,10 @@ def sample_validator_record_params():
         'withdrawal_credentials': b'\x01' * 32,
         'randao_commitment': b'\x01' * 32,
         'randao_layers': 1,
-        'activation_slot': FAR_FUTURE_SLOT,
-        'exit_slot': FAR_FUTURE_SLOT,
-        'withdrawal_slot': FAR_FUTURE_SLOT,
-        'penalized_slot': FAR_FUTURE_SLOT,
+        'activation_slot': FAR_FUTURE_EPOCH,
+        'exit_slot': FAR_FUTURE_EPOCH,
+        'withdrawal_slot': FAR_FUTURE_EPOCH,
+        'penalized_slot': FAR_FUTURE_EPOCH,
         'exit_count': 0,
         'status_flags': 0,
         'custody_commitment': ZERO_HASH32,
@@ -472,6 +472,11 @@ def genesis_fork_version():
 @pytest.fixture
 def genesis_slot():
     return SERENITY_CONFIG.GENESIS_SLOT
+
+
+@pytest.fixture
+def genesis_epoch():
+    return SERENITY_CONFIG.GENESIS_EPOCH
 
 
 @pytest.fixture
@@ -665,6 +670,7 @@ def config(
         max_deposit_amount,
         genesis_fork_version,
         genesis_slot,
+        genesis_epoch,
         genesis_start_shard,
         bls_withdrawal_prefix_byte,
         slot_duration,
@@ -701,6 +707,7 @@ def config(
         MAX_DEPOSIT_AMOUNT=max_deposit_amount,
         GENESIS_FORK_VERSION=genesis_fork_version,
         GENESIS_SLOT=genesis_slot,
+        GENESIS_EPOCH=genesis_epoch,
         GENESIS_START_SHARD=genesis_start_shard,
         BLS_WITHDRAWAL_PREFIX_BYTE=bls_withdrawal_prefix_byte,
         SLOT_DURATION=slot_duration,

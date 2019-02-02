@@ -11,7 +11,7 @@ from eth2.beacon.sedes import (
     hash32,
 )
 from eth2.beacon.constants import (
-    FAR_FUTURE_SLOT,
+    FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.typing import (
     SlotNumber,
@@ -102,10 +102,10 @@ class ValidatorRecord(rlp.Serializable):
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             randao_layers=0,
-            activation_slot=FAR_FUTURE_SLOT,
-            exit_slot=FAR_FUTURE_SLOT,
-            withdrawal_slot=FAR_FUTURE_SLOT,
-            penalized_slot=FAR_FUTURE_SLOT,
+            activation_slot=FAR_FUTURE_EPOCH,
+            exit_slot=FAR_FUTURE_EPOCH,
+            withdrawal_slot=FAR_FUTURE_EPOCH,
+            penalized_slot=FAR_FUTURE_EPOCH,
             exit_count=0,
             status_flags=0,
             custody_commitment=custody_commitment,

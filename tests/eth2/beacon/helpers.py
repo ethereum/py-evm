@@ -4,7 +4,7 @@ from eth.constants import (
     ZERO_HASH32,
 )
 from eth2.beacon.constants import (
-    FAR_FUTURE_SLOT,
+    FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.types.validator_records import (
     ValidatorRecord,
@@ -21,10 +21,10 @@ def mock_validator_record(pubkey,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
         randao_layers=0,
-        activation_slot=0 if is_active else FAR_FUTURE_SLOT,
-        exit_slot=FAR_FUTURE_SLOT,
-        withdrawal_slot=FAR_FUTURE_SLOT,
-        penalized_slot=FAR_FUTURE_SLOT,
+        activation_slot=0 if is_active else FAR_FUTURE_EPOCH,
+        exit_slot=FAR_FUTURE_EPOCH,
+        withdrawal_slot=FAR_FUTURE_EPOCH,
+        penalized_slot=FAR_FUTURE_EPOCH,
         exit_count=0,
         status_flags=status_flags,
         custody_commitment=b'\x55' * 32,
