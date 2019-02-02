@@ -8,7 +8,8 @@ from eth2.beacon.enums import (
 )
 from eth2.beacon.helpers import (
     get_beacon_proposer_index,
-    get_entry_exit_effect_slot,
+    get_entry_exit_effect_epoch,
+    slot_to_epoch,
 )
 from eth2.beacon.validator_status_helpers import (
     _settle_penality_to_validator_and_whistleblower,
@@ -70,9 +71,8 @@ def test_activate_validator(is_genesis,
     if is_genesis:
         assert result_state.validator_registry[index].activation_slot == genesis_slot
     else:
-        assert result_state.validator_registry[index].activation_slot == get_entry_exit_effect_slot(
-            state.slot,
-            epoch_length,
+        assert result_state.validator_registry[index].activation_slot == get_entry_exit_effect_epoch(
+            slot_to_epoch(state.slot, epoch_length),
             entry_exit_delay,
         )
 

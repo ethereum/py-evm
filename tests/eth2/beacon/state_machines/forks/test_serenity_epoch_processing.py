@@ -24,7 +24,7 @@ from eth2._utils.bitfield import (
 from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_crosslink_committees_at_slot,
-    get_current_epoch_committee_count_per_slot,
+    get_current_epoch_committee_count,
 )
 from eth2.beacon._utils.hash import (
     hash_eth2,
@@ -102,12 +102,12 @@ def test_check_if_update_validator_registry(genesis_state,
 
     assert need_to_update == expected_need_to_update
     if expected_need_to_update:
-        expected_num_shards_in_committees = get_current_epoch_committee_count_per_slot(
+        expected_num_shards_in_committees = get_current_epoch_committee_count(
             state,
             shard_count=config.SHARD_COUNT,
             epoch_length=config.EPOCH_LENGTH,
             target_committee_size=config.TARGET_COMMITTEE_SIZE,
-        ) * config.EPOCH_LENGTH
+        )
         assert num_shards_in_committees == expected_num_shards_in_committees
     else:
         assert num_shards_in_committees == 0

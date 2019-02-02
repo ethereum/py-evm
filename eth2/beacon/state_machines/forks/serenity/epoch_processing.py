@@ -17,7 +17,7 @@ from eth2.beacon.exceptions import NoWinningRootError
 from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_crosslink_committees_at_slot,
-    get_current_epoch_committee_count_per_slot,
+    get_current_epoch_committee_count,
     get_current_epoch_attestations,
     get_effective_balance,
     get_winning_root,
@@ -115,7 +115,7 @@ def _check_if_update_validator_registry(state: BeaconState,
     if state.finalized_slot <= state.validator_registry_update_slot:
         return False, 0
 
-    num_shards_in_committees = get_current_epoch_committee_count_per_slot(
+    num_shards_in_committees = get_current_epoch_committee_count(
         state,
         shard_count=config.SHARD_COUNT,
         epoch_length=config.EPOCH_LENGTH,

@@ -57,17 +57,17 @@ from eth2.beacon.helpers import (
     get_attesting_validator_indices,
     get_attestation_participants,
     get_beacon_proposer_index,
-    get_committee_count_per_slot,
+    get_epoch_committee_count,
     get_crosslink_committees_at_slot,
-    get_current_epoch_committee_count_per_slot,
+    get_current_epoch_committee_count,
     get_current_epoch_attestations,
     get_previous_epoch_attestations,
     get_winning_root,
     get_domain,
     get_effective_balance,
-    get_entry_exit_effect_slot,
+    get_entry_exit_effect_epoch,
     get_fork_version,
-    get_previous_epoch_committee_count_per_slot,
+    get_previous_epoch_committee_count,
     get_pubkey_for_indices,
     get_shuffling,
     generate_aggregate_pubkeys,
@@ -172,19 +172,20 @@ def test_get_block_root(current_slot,
         'expected_committee_count'
     ),
     [
-        (1000, 20, 10, 50, 2),  # SHARD_COUNT // EPOCH_LENGTH
-        (1000, 20, 10, 100, 5),  # active_validator_count // EPOCH_LENGTH // TARGET_COMMITTEE_SIZE
-        (20, 10, 3, 10, 1),  # 1
-        (20, 10, 3, 5, 1),  # 1
-        (40, 5, 2, 2, 1),  # 1
+        (1000, 20, 10, 50, 40),  # SHARD_COUNT // EPOCH_LENGTH
+        (500, 20, 10, 100, 100),  # active_validator_count // EPOCH_LENGTH // TARGET_COMMITTEE_SIZE
+        (20, 10, 3, 10, 10),  # 1
+        (20, 10, 3, 5, 10),  # 1
+        (40, 5, 10, 2, 10),  # 1
     ],
 )
-def test_get_committee_count_per_slot(active_validator_count,
-                                      epoch_length,
-                                      target_committee_size,
-                                      shard_count,
-                                      expected_committee_count):
-    assert expected_committee_count == get_committee_count_per_slot(
+def test_get_epoch_committee_count(
+        active_validator_count,
+        epoch_length,
+        target_committee_size,
+        shard_count,
+        expected_committee_count):
+    assert expected_committee_count == get_epoch_committee_count(
         active_validator_count=active_validator_count,
         shard_count=shard_count,
         epoch_length=epoch_length,
@@ -247,63 +248,63 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
 
 @pytest.mark.parametrize(
     (
-        'epoch_length,'
-        'target_committee_size,'
-        'shard_count,'
-        'len_active_validators,'
+        'n, target_committee_size, shard_count, len_active_validators,'
         'previous_epoch_calculation_slot, current_epoch_calculation_slot,'
-        'get_epoch_committee_count_per_slot,'
+        'get_prev_or_cur_epoch_committee_count,'
         'delayed_activation_slot'
     ),
     [
         (
-            1, 1, 2, 2,
+            100, 10, 20, 20,
             5, 10,
-            get_previous_epoch_committee_count_per_slot,
+            get_previous_epoch_committee_count,
             5 + 1,
         ),
         (
-            1, 1, 2, 10,
+            100, 10, 20, 100,
             5, 10,
-            get_previous_epoch_committee_count_per_slot,
+            get_previous_epoch_committee_count,
             5 + 1,
         ),
         (
-            1, 1, 2, 2,
+            100, 10, 20, 20,
             5, 10,
-            get_current_epoch_committee_count_per_slot,
+            get_current_epoch_committee_count,
             10 + 1,
         ),
         (
-            1, 1, 2, 10,
+            100, 10, 20, 100,
             5, 10,
-            get_current_epoch_committee_count_per_slot,
+            get_current_epoch_committee_count,
             10 + 1,
         ),
     ],
 )
-def test_get_epoch_committee_count_per_slot(monkeypatch,
-                                            n_validators_state,
-                                            epoch_length,
-                                            target_committee_size,
-                                            shard_count,
-                                            len_active_validators,
-                                            previous_epoch_calculation_slot,
-                                            current_epoch_calculation_slot,
-                                            get_epoch_committee_count_per_slot,
-                                            delayed_activation_slot):
+def test_get_prev_or_cur_epoch_committee_count(
+        monkeypatch,
+        n_validators_state,
+        epoch_length,
+        n,
+        target_committee_size,
+        shard_count,
+        len_active_validators,
+        previous_epoch_calculation_slot,
+        current_epoch_calculation_slot,
+        get_prev_or_cur_epoch_committee_count,
+        delayed_activation_slot):
     from eth2.beacon import helpers
 
-    def mock_get_committee_count_per_slot(active_validator_count,
-                                          shard_count,
-                                          epoch_length,
-                                          target_committee_size):
-        return active_validator_count // epoch_length // shard_count
+    def mock_get_epoch_committee_count(
+            active_validator_count,
+            shard_count,
+            epoch_length,
+            target_committee_size):
+        return active_validator_count // shard_count
 
     monkeypatch.setattr(
         helpers,
-        'get_committee_count_per_slot',
-        mock_get_committee_count_per_slot
+        'get_epoch_committee_count',
+        mock_get_epoch_committee_count
     )
 
     state = n_validators_state.copy(
@@ -329,13 +330,13 @@ def test_get_epoch_committee_count_per_slot(monkeypatch,
                 validator,
             )
 
-    result_committee_count = get_epoch_committee_count_per_slot(
+    result_committee_count = get_prev_or_cur_epoch_committee_count(
         state=state,
         shard_count=shard_count,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
     )
-    expected_committee_count = len_active_validators // epoch_length // shard_count
+    expected_committee_count = len_active_validators // shard_count
 
     assert result_committee_count == expected_committee_count
 
@@ -1365,30 +1366,13 @@ def test_is_surround_vote(sample_attestation_data_params,
     assert is_surround_vote(attestation_data_1, attestation_data_2) == expected
 
 
-@pytest.mark.parametrize(
-    (
-        'slot,'
-        'epoch_length,'
-        'entry_exit_delay,'
-        'expected_entry_exit_effect_slot'
-    ),
-    # result = (slot - slot % EPOCH_LENGTH) + EPOCH_LENGTH + ENTRY_EXIT_DELAY
-    [
-        (64, 64, 128, (64 - 64 % 64) + 64 + 128),
-        (128, 64, 128, (128 - 128 % 64) + 64 + 128),
-    ],
-)
-def test_get_entry_exit_effect_slot(slot,
-                                    epoch_length,
-                                    entry_exit_delay,
-                                    expected_entry_exit_effect_slot):
-    # TODO: update to epoch version
-    entry_exit_effect_slot = get_entry_exit_effect_slot(
-        slot,
-        epoch_length,
+def test_get_entry_exit_effect_epoch(entry_exit_delay):
+    epoch = random.randint(0, FAR_FUTURE_SLOT)
+    entry_exit_effect_epoch = get_entry_exit_effect_epoch(
+        epoch,
         entry_exit_delay,
     )
-    assert entry_exit_effect_slot == expected_entry_exit_effect_slot
+    assert entry_exit_effect_epoch == (epoch + 1 + entry_exit_delay)
 
 
 def test_generate_seed(monkeypatch,

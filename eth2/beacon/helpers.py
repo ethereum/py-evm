@@ -135,17 +135,18 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
 #
 # Shuffling
 #
-def get_committee_count_per_slot(active_validator_count: int,
-                                 shard_count: int,
-                                 epoch_length: int,
-                                 target_committee_size: int) -> int:
+def get_epoch_committee_count(
+        active_validator_count: int,
+        shard_count: int,
+        epoch_length: int,
+        target_committee_size: int) -> int:
     return max(
         1,
         min(
             shard_count // epoch_length,
             active_validator_count // epoch_length // target_committee_size,
         )
-    )
+    ) * epoch_length
 
 
 def get_shuffling(*,
@@ -170,7 +171,7 @@ def get_shuffling(*,
 
     active_validator_indices = get_active_validator_indices(validators, slot)
 
-    committees_per_slot = get_committee_count_per_slot(
+    committees_per_slot = get_epoch_committee_count(
         len(active_validator_indices),
         shard_count,
         epoch_length,
@@ -190,16 +191,16 @@ def get_shuffling(*,
     )
 
 
-def get_previous_epoch_committee_count_per_slot(state: 'BeaconState',
-                                                shard_count: int,
-                                                epoch_length: int,
-                                                target_committee_size: int) -> int:
+def get_previous_epoch_committee_count(
+        state: 'BeaconState',
+        shard_count: int,
+        epoch_length: int,
+        target_committee_size: int) -> int:
     previous_active_validators = get_active_validator_indices(
         state.validator_registry,
         state.previous_epoch_calculation_slot,
     )
-
-    return get_committee_count_per_slot(
+    return get_epoch_committee_count(
         active_validator_count=len(previous_active_validators),
         shard_count=shard_count,
         epoch_length=epoch_length,
@@ -207,15 +208,16 @@ def get_previous_epoch_committee_count_per_slot(state: 'BeaconState',
     )
 
 
-def get_current_epoch_committee_count_per_slot(state: 'BeaconState',
-                                               shard_count: int,
-                                               epoch_length: int,
-                                               target_committee_size: int) -> int:
+def get_current_epoch_committee_count(
+        state: 'BeaconState',
+        shard_count: int,
+        epoch_length: int,
+        target_committee_size: int) -> int:
     current_active_validators = get_active_validator_indices(
         state.validator_registry,
         state.current_epoch_calculation_slot,
     )
-    return get_committee_count_per_slot(
+    return get_epoch_committee_count(
         active_validator_count=len(current_active_validators),
         shard_count=shard_count,
         epoch_length=epoch_length,
@@ -243,7 +245,7 @@ def get_crosslink_committees_at_slot(
     offset = slot % epoch_length
 
     if slot < state_epoch_slot:
-        committees_per_slot = get_previous_epoch_committee_count_per_slot(
+        committees_per_slot = get_previous_epoch_committee_count(
             state,
             shard_count=shard_count,
             epoch_length=epoch_length,
@@ -254,7 +256,7 @@ def get_crosslink_committees_at_slot(
         shuffling_slot = state.previous_epoch_calculation_slot
         shuffling_start_shard = state.previous_epoch_start_shard
     else:
-        committees_per_slot = get_current_epoch_committee_count_per_slot(
+        committees_per_slot = get_current_epoch_committee_count(
             state,
             shard_count=shard_count,
             epoch_length=epoch_length,
@@ -687,12 +689,11 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
     )
 
 
-def get_entry_exit_effect_slot(slot: SlotNumber,
-                               epoch_length: int,
-                               entry_exit_delay: int) -> SlotNumber:
+def get_entry_exit_effect_epoch(
+        epoch: EpochNumber,
+        entry_exit_delay: int) -> EpochNumber:
     """
-    An entry or exit triggered in the slot given by the input takes effect at
-    the slot given by the output.
+    An entry or exit triggered in the ``epoch`` given by the input takes effect at
+    the epoch given by the output.
     """
-    # TODO: update to epoch version
-    return SlotNumber((slot - slot % epoch_length) + epoch_length + entry_exit_delay)
+    return EpochNumber(epoch + 1 + entry_exit_delay)
