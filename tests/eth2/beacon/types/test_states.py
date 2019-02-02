@@ -83,11 +83,11 @@ def test_hash(sample_beacon_state_params):
         (100, 5566, 100),
     ]
 )
-def test_update_validator(ten_validators_state,
+def test_update_validator(n_validators_state,
                           validator_index,
                           new_pubkey,
                           new_balance):
-    state = ten_validators_state
+    state = n_validators_state
     validator = mock_validator_record(new_pubkey)
 
     if validator_index < state.num_validators:

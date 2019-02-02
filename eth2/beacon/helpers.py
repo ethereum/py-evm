@@ -9,6 +9,7 @@ import functools
 
 from eth_utils import (
     to_tuple,
+    to_set,
     ValidationError,
 )
 from eth_typing import (
@@ -30,8 +31,12 @@ from eth2.beacon._utils.random import (
     shuffle,
     split,
 )
+from eth2.beacon.exceptions import NoWinningRootError
 from eth2.beacon.enums import (
     SignatureDomain,
+)
+from eth2.beacon.types.pending_attestation_records import (
+    PendingAttestationRecord,
 )
 from eth2.beacon.typing import (
     Bitfield,
@@ -400,17 +405,138 @@ def get_attestation_participants(state: 'BeaconState',
     committee_size = len(committee)
     if len(aggregation_bitfield) != get_bitfield_length(committee_size):
         raise ValidationError(
-            'Invalid bitfield length,'
-            "\texpected: {}, found: {}".format(
-                get_bitfield_length(committee_size),
-                len(attestation_data),
-            )
+            f"Invalid bitfield length,"
+            f"\texpected: {get_bitfield_length(committee_size)}, found: {len(aggregation_bitfield)}"
         )
 
     # Find the participating attesters in the committee
     for bitfield_index, validator_index in enumerate(committee):
         if has_voted(aggregation_bitfield, bitfield_index):
             yield validator_index
+
+
+#
+# Per-epoch processing helpers
+#
+@to_tuple
+def get_current_epoch_attestations(
+        state: 'BeaconState',
+        epoch_length: int) -> Iterable[PendingAttestationRecord]:
+    """
+    Note that this function should only be called at epoch boundaries as
+    it's computed based on current slot number.
+    """
+    for attestation in state.latest_attestations:
+        if state.slot - epoch_length <= attestation.data.slot < state.slot:
+            yield attestation
+
+
+@to_tuple
+def get_previous_epoch_attestations(
+        state: 'BeaconState',
+        epoch_length: int) -> Iterable[PendingAttestationRecord]:
+    """
+    Note that this function should only be called at epoch boundaries as
+    it's computed based on current slot number.
+    """
+    for attestation in state.latest_attestations:
+        if state.slot - 2 * epoch_length <= attestation.data.slot < state.slot - epoch_length:
+            yield attestation
+
+
+@to_tuple
+@to_set
+def get_attesting_validator_indices(
+        *,
+        state: 'BeaconState',
+        attestations: Sequence[PendingAttestationRecord],
+        shard: ShardNumber,
+        shard_block_root: Hash32,
+        epoch_length: int,
+        target_committee_size: int,
+        shard_count: int) -> Iterable[ValidatorIndex]:
+    """
+    Loop through ``attestations`` and check if ``shard``/``shard_block_root`` in the attestation
+    matches the given ``shard``/``shard_block_root``.
+    If the attestation matches, get the index of the participating validators.
+    Finally, return the union of the indices.
+    """
+    for a in attestations:
+        if a.data.shard == shard and a.data.shard_block_root == shard_block_root:
+            yield from get_attestation_participants(
+                state,
+                a.data,
+                a.aggregation_bitfield,
+                epoch_length,
+                target_committee_size,
+                shard_count,
+            )
+
+
+def get_total_attesting_balance(
+        *,
+        state: 'BeaconState',
+        shard: ShardNumber,
+        shard_block_root: Hash32,
+        attestations: Sequence[PendingAttestationRecord],
+        epoch_length: int,
+        max_deposit_amount: Gwei,
+        target_committee_size: int,
+        shard_count: int) -> Gwei:
+    return Gwei(
+        sum(
+            get_effective_balance(state.validator_balances, i, max_deposit_amount)
+            for i in get_attesting_validator_indices(
+                state=state,
+                attestations=attestations,
+                shard=shard,
+                shard_block_root=shard_block_root,
+                epoch_length=epoch_length,
+                target_committee_size=target_committee_size,
+                shard_count=shard_count,
+            )
+        )
+    )
+
+
+def get_winning_root(
+        *,
+        state: 'BeaconState',
+        shard: ShardNumber,
+        attestations: Sequence[PendingAttestationRecord],
+        epoch_length: int,
+        max_deposit_amount: Gwei,
+        target_committee_size: int,
+        shard_count: int) -> Tuple[Hash32, Gwei]:
+    winning_root = None
+    winning_root_balance: Gwei = Gwei(0)
+    shard_block_roots = set(
+        [
+            a.data.shard_block_root for a in attestations
+            if a.data.shard == shard
+        ]
+    )
+    for shard_block_root in shard_block_roots:
+        total_attesting_balance = get_total_attesting_balance(
+            state=state,
+            shard=shard,
+            shard_block_root=shard_block_root,
+            attestations=attestations,
+            epoch_length=epoch_length,
+            max_deposit_amount=max_deposit_amount,
+            target_committee_size=target_committee_size,
+            shard_count=shard_count,
+        )
+        if total_attesting_balance > winning_root_balance:
+            winning_root = shard_block_root
+            winning_root_balance = total_attesting_balance
+        elif total_attesting_balance == winning_root_balance and winning_root_balance > 0:
+            if shard_block_root < winning_root:
+                winning_root = shard_block_root
+
+    if winning_root is None:
+        raise NoWinningRootError
+    return (winning_root, winning_root_balance)
 
 
 #

@@ -1,23 +1,110 @@
 from typing import (
+    Iterable,
+    Sequence,
     Tuple,
 )
 
+from eth_utils import to_tuple
+
+from eth2.beacon import helpers
 from eth2._utils.numeric import (
     is_power_of_two,
 )
 from eth2._utils.tuple import (
     update_tuple_item,
 )
+from eth2.beacon.exceptions import NoWinningRootError
+from eth2.beacon.helpers import (
+    get_active_validator_indices,
+    get_crosslink_committees_at_slot,
+    get_current_epoch_committee_count_per_slot,
+    get_current_epoch_attestations,
+    get_effective_balance,
+    get_winning_root,
+)
+from eth2.beacon.typing import ShardNumber
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
-from eth2.beacon import helpers
-from eth2.beacon.helpers import (
-    get_active_validator_indices,
-    get_current_epoch_committee_count_per_slot,
-)
+from eth2.beacon.types.attestations import Attestation
+from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.state_machines.configs import BeaconConfig
+
+
+#
+# Crosslinks
+#
+@to_tuple
+def _filter_attestations_by_shard(
+        attestations: Sequence[Attestation],
+        shard: ShardNumber) -> Iterable[Attestation]:
+    for attestation in attestations:
+        if attestation.data.shard == shard:
+            yield attestation
+
+
+def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
+    """
+    Implement 'per-epoch-processing.crosslinks' portion of Phase 0 spec:
+    https://github.com/ethereum/eth2.0-specs/blob/master/specs/core/0_beacon-chain.md#crosslinks
+
+    For each shard from the past two epochs, find the shard block
+    root that has been attested to by the most stake.
+    If enough(>= 2/3 total stake) attesting stake, update the crosslink record of that shard.
+    Return resulting ``state``
+    """
+    latest_crosslinks = state.latest_crosslinks
+    current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
+    # TODO: STUB, in spec it was
+    # `for slot in range(state.slot - 2 * config.EPOCH_LENGTH, state.slot):``
+    # waiting for ethereum/eth2.0-specs#492 to update the spec
+    for slot in range(state.slot - 1 * config.EPOCH_LENGTH, state.slot):
+        crosslink_committees_at_slot = get_crosslink_committees_at_slot(
+            state,
+            slot,
+            config.EPOCH_LENGTH,
+            config.TARGET_COMMITTEE_SIZE,
+            config.SHARD_COUNT,
+        )
+        for crosslink_committee, shard in crosslink_committees_at_slot:
+            try:
+                winning_root, total_attesting_balance = get_winning_root(
+                    state=state,
+                    shard=shard,
+                    # Use `_filter_attestations_by_shard` to filter out attestations
+                    # not attesting to this shard so we don't need to going over
+                    # irrelevent attestations over and over again.
+                    attestations=_filter_attestations_by_shard(current_epoch_attestations, shard),
+                    epoch_length=config.EPOCH_LENGTH,
+                    max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+                    target_committee_size=config.TARGET_COMMITTEE_SIZE,
+                    shard_count=config.SHARD_COUNT,
+                )
+            except NoWinningRootError:
+                # No winning shard block root found for this shard.
+                pass
+            else:
+                total_balance = sum(
+                    get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
+                    for i in crosslink_committee
+                )
+                if 3 * total_attesting_balance >= 2 * total_balance:
+                    latest_crosslinks = update_tuple_item(
+                        latest_crosslinks,
+                        shard,
+                        CrosslinkRecord(
+                            slot=state.slot,
+                            shard_block_root=winning_root,
+                        ),
+                    )
+                else:
+                    # Don't update the crosslink of this shard
+                    pass
+    state = state.copy(
+        latest_crosslinks=latest_crosslinks,
+    )
+    return state
 
 
 #

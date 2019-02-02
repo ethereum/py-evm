@@ -344,8 +344,13 @@ def filled_beacon_state(genesis_slot,
 
 
 @pytest.fixture()
-def ten_validators_state(filled_beacon_state, max_deposit_amount):
-    validator_count = 10
+def n():
+    return 10
+
+
+@pytest.fixture()
+def n_validators_state(filled_beacon_state, max_deposit_amount, n):
+    validator_count = n
     return filled_beacon_state.copy(
         validator_registry=tuple(
             mock_validator_record(
