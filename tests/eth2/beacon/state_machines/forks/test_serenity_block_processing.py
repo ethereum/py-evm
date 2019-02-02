@@ -42,4 +42,3 @@ def test_process_eth1_data(original_votes,
         for vote in updated_state.eth1_data_votes
     )
     assert updated_votes == expected_votes
-
