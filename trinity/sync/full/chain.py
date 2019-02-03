@@ -120,7 +120,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
 
     async def _run(self) -> None:
         with self.subscribe(self._peer_pool):
-            await self.events.cancelled.wait()
+            await self.cancellation()
 
     async def _assign_body_download_to_peers(self) -> None:
         """

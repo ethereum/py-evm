@@ -78,7 +78,7 @@ class BaseChainTipMonitor(BaseService, PeerSubscriber):
     async def _run(self) -> None:
         self.run_daemon_task(self._handle_msg_loop())
         with self.subscribe(self._peer_pool):
-            await self.wait(self.events.cancelled.wait())
+            await self.cancellation()
 
     @contextmanager
     def _subscriber(self) -> Iterator[asyncio.Event]:
