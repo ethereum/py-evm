@@ -76,7 +76,7 @@ def validate_proposer_signature(state: BeaconState,
     proposer_pubkey = state.validator_registry[beacon_proposer_index].pubkey
     domain = get_domain(
         state.fork,
-        slot_to_epoch(state.slot, epoch_length),
+        state.current_epoch(epoch_length),
         SignatureDomain.DOMAIN_PROPOSAL
     )
 

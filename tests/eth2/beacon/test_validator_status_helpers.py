@@ -9,7 +9,6 @@ from eth2.beacon.enums import (
 from eth2.beacon.helpers import (
     get_beacon_proposer_index,
     get_entry_exit_effect_epoch,
-    slot_to_epoch,
 )
 from eth2.beacon.validator_status_helpers import (
     _settle_penality_to_validator_and_whistleblower,
@@ -41,7 +40,6 @@ from tests.eth2.beacon.helpers import (
 def test_activate_validator(is_genesis,
                             filled_beacon_state,
                             genesis_epoch,
-                            genesis_slot,
                             epoch_length,
                             entry_exit_delay,
                             max_deposit_amount):
@@ -64,7 +62,7 @@ def test_activate_validator(is_genesis,
         state=state,
         index=index,
         is_genesis=is_genesis,
-        genesis_slot=genesis_slot,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         entry_exit_delay=entry_exit_delay,
     )
@@ -75,7 +73,7 @@ def test_activate_validator(is_genesis,
         assert (
             result_state.validator_registry[index].activation_epoch ==
             get_entry_exit_effect_epoch(
-                slot_to_epoch(state.slot, epoch_length),
+                state.current_epoch(epoch_length),
                 entry_exit_delay,
             )
         )
@@ -165,14 +163,14 @@ def test_exit_validator(num_validators,
         epoch_length=epoch_length,
         entry_exit_delay=entry_exit_delay,
     )
-    if validator.exit_epoch <= state.slot + entry_exit_delay:
+    if validator.exit_epoch <= state.current_epoch(epoch_length) + entry_exit_delay:
         assert state == result_state
         return
     else:
-        assert validator.exit_epoch > state.slot + entry_exit_delay
+        assert validator.exit_epoch > state.current_epoch(epoch_length) + entry_exit_delay
         result_validator = result_state.validator_registry[index]
         assert result_state.validator_registry_exit_count == validator_registry_exit_count + 1
-        assert result_validator.exit_epoch == state.slot + entry_exit_delay
+        assert result_validator.exit_epoch == state.current_epoch(epoch_length) + entry_exit_delay
         assert result_validator.exit_count == result_state.validator_registry_exit_count
 
 
@@ -246,7 +244,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
 
     # Check `state.latest_penalized_balances`
     latest_penalized_balances_list = list(state.latest_penalized_balances)
-    last_penalized_epoch = (state.slot // epoch_length) % latest_penalized_exit_length
+    last_penalized_epoch = state.current_epoch(epoch_length) % latest_penalized_exit_length
     latest_penalized_balances_list[last_penalized_epoch] = max_deposit_amount
     latest_penalized_balances = tuple(latest_penalized_balances_list)
 

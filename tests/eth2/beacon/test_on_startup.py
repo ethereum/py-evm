@@ -57,6 +57,7 @@ def test_get_initial_beacon_state(
         genesis_fork_version,
         genesis_start_shard,
         shard_count,
+        seed_lookahead,
         latest_block_roots_length,
         latest_index_roots_length,
         epoch_length,
@@ -120,6 +121,7 @@ def test_get_initial_beacon_state(
         genesis_fork_version=genesis_fork_version,
         genesis_start_shard=genesis_start_shard,
         shard_count=shard_count,
+        seed_lookahead=seed_lookahead,
         latest_block_roots_length=latest_block_roots_length,
         latest_index_roots_length=latest_index_roots_length,
         epoch_length=epoch_length,
@@ -154,7 +156,6 @@ def test_get_initial_beacon_state(
     assert state.previous_calculation_epoch == genesis_epoch
     assert state.current_calculation_epoch == genesis_epoch
     assert state.previous_epoch_seed == ZERO_HASH32
-    assert state.current_epoch_seed == ZERO_HASH32
 
     # Custody challenges
     assert len(state.custody_challenges) == 0

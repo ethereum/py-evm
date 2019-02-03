@@ -16,9 +16,7 @@ from eth2.beacon.enums import (
 from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
-from eth2.beacon.helpers import (
-    get_domain,
-)
+from eth2.beacon.helpers import get_domain
 from eth2.beacon.typing import (
     BLSPubkey,
     BLSSignature,
@@ -32,7 +30,8 @@ def validate_proof_of_possession(state: BeaconState,
                                  proof_of_possession: BLSSignature,
                                  withdrawal_credentials: Hash32,
                                  randao_commitment: Hash32,
-                                 custody_commitment: Hash32) -> None:
+                                 custody_commitment: Hash32,
+                                 epoch_length: int) -> None:
     deposit_input = DepositInput(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
@@ -48,7 +47,7 @@ def validate_proof_of_possession(state: BeaconState,
         signature=proof_of_possession,
         domain=get_domain(
             state.fork,
-            state.slot,
+            state.current_epoch(epoch_length),
             SignatureDomain.DOMAIN_DEPOSIT,
         ),
     )
@@ -80,7 +79,8 @@ def process_deposit(*,
                     proof_of_possession: BLSSignature,
                     withdrawal_credentials: Hash32,
                     randao_commitment: Hash32,
-                    custody_commitment: Hash32) -> BeaconState:
+                    custody_commitment: Hash32,
+                    epoch_length: int) -> BeaconState:
     """
     Process a deposit from Ethereum 1.0.
     """
@@ -91,6 +91,7 @@ def process_deposit(*,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
         custody_commitment=custody_commitment,
+        epoch_length=epoch_length,
     )
 
     validator_pubkeys = tuple(v.pubkey for v in state.validator_registry)

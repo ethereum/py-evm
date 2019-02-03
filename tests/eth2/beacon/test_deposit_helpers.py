@@ -83,6 +83,7 @@ def test_validate_proof_of_possession(
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             custody_commitment=custody_commitment,
+            epoch_length=epoch_length,
         )
     else:
         proof_of_possession = b'\x11' * 96
@@ -94,6 +95,7 @@ def test_validate_proof_of_possession(
                 withdrawal_credentials=withdrawal_credentials,
                 randao_commitment=randao_commitment,
                 custody_commitment=custody_commitment,
+                epoch_length=epoch_length,
             )
 
 
@@ -137,6 +139,7 @@ def test_process_deposit(epoch_length,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
         custody_commitment=custody_commitment,
+        epoch_length=epoch_length,
     )
 
     assert len(result_state.validator_registry) == 1
@@ -172,6 +175,7 @@ def test_process_deposit(epoch_length,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
         custody_commitment=custody_commitment,
+        epoch_length=epoch_length,
     )
     assert len(result_state.validator_registry) == 2
     assert result_state.validator_registry[1].pubkey == pubkey_2

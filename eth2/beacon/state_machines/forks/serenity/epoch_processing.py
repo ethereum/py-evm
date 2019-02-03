@@ -21,7 +21,6 @@ from eth2.beacon.helpers import (
     get_current_epoch_attestations,
     get_effective_balance,
     get_winning_root,
-    slot_to_epoch,
 )
 from eth2.beacon.typing import ShardNumber
 from eth2.beacon._utils.hash import (
@@ -97,7 +96,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                         latest_crosslinks,
                         shard,
                         CrosslinkRecord(
-                            epoch=slot_to_epoch(state.slot, config.EPOCH_LENGTH),
+                            epoch=state.current_epoch(config.EPOCH_LENGTH),
                             shard_block_root=winning_root,
                         ),
                     )
@@ -152,7 +151,7 @@ def _update_latest_index_roots(state: BeaconState,
     # TODO: chanege to hash_tree_root
     active_validator_indices = get_active_validator_indices(
         state.validator_registry,
-        slot_to_epoch(state.slot, config.EPOCH_LENGTH),
+        state.current_epoch(config.EPOCH_LENGTH),
     )
     index_root = hash_eth2(
         b''.join(
@@ -191,7 +190,7 @@ def process_validator_registry(state: BeaconState,
         # Update step-by-step since updated `state.current_calculation_epoch`
         # is used to calculate other value). Follow the spec tightly now.
         state = state.copy(
-            current_calculation_epoch=slot_to_epoch(state.slot, config.EPOCH_LENGTH),
+            current_calculation_epoch=state.current_epoch(config.EPOCH_LENGTH),
         )
         state = state.copy(
             current_epoch_start_shard=(
@@ -214,13 +213,13 @@ def process_validator_registry(state: BeaconState,
         )
     else:
         epochs_since_last_registry_change = (
-            slot_to_epoch(state.slot, config.EPOCH_LENGTH) - state.validator_registry_update_epoch
+            state.current_epoch(config.EPOCH_LENGTH) - state.validator_registry_update_epoch
         )
         if is_power_of_two(epochs_since_last_registry_change):
             # Update step-by-step since updated `state.current_calculation_epoch`
             # is used to calculate other value). Follow the spec tightly now.
             state = state.copy(
-                current_calculation_epoch=slot_to_epoch(state.slot, config.EPOCH_LENGTH),
+                current_calculation_epoch=state.current_epoch(config.EPOCH_LENGTH),
             )
 
             # The `helpers.generate_seed` function is only present to provide an entry point

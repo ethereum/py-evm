@@ -11,6 +11,7 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
+from eth2._utils.tuple import update_tuple_item
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
 )
@@ -18,6 +19,8 @@ from eth2.beacon.deposit_helpers import (
     process_deposit,
 )
 from eth2.beacon.helpers import (
+    generate_seed,
+    get_active_validator_indices,
     get_effective_balance,
 )
 from eth2.beacon.types.blocks import (
@@ -29,6 +32,7 @@ from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.typing import (
     EpochNumber,
     Gwei,
@@ -65,6 +69,7 @@ def get_initial_beacon_state(*,
                              genesis_fork_version: int,
                              genesis_start_shard: ShardNumber,
                              shard_count: int,
+                             seed_lookahead: int,
                              latest_block_roots_length: int,
                              latest_index_roots_length: int,
                              epoch_length: int,
@@ -141,8 +146,10 @@ def get_initial_beacon_state(*,
             withdrawal_credentials=deposit.deposit_data.deposit_input.withdrawal_credentials,
             randao_commitment=deposit.deposit_data.deposit_input.randao_commitment,
             custody_commitment=deposit.deposit_data.deposit_input.custody_commitment,
+            epoch_length=epoch_length,
         )
 
+    # Process initial activations
     for validator_index, _ in enumerate(state.validator_registry):
         validator_index = ValidatorIndex(validator_index)
         is_enough_effective_balance = get_effective_balance(
@@ -152,12 +159,46 @@ def get_initial_beacon_state(*,
         ) >= max_deposit_amount
         if is_enough_effective_balance:
             state = activate_validator(
-                state,
-                validator_index,
+                state=state,
+                index=validator_index,
                 is_genesis=True,
-                genesis_slot=genesis_slot,
+                genesis_epoch=genesis_epoch,
                 epoch_length=epoch_length,
                 entry_exit_delay=entry_exit_delay,
             )
+
+    # TODO: chanege to hash_tree_root
+    active_validator_indices = get_active_validator_indices(
+        state.validator_registry,
+        genesis_epoch,
+    )
+    index_root = hash_eth2(
+        b''.join(
+            [
+                index.to_bytes(32, 'big')
+                for index in active_validator_indices
+            ]
+        )
+    )
+    latest_index_roots = update_tuple_item(
+        state.latest_index_roots,
+        genesis_epoch % latest_index_roots_length,
+        index_root,
+    )
+    state = state.copy(
+        latest_index_roots=latest_index_roots,
+    )
+
+    current_epoch_seed = generate_seed(
+        state=state,
+        epoch=genesis_epoch,
+        epoch_length=epoch_length,
+        seed_lookahead=seed_lookahead,
+        latest_index_roots_length=latest_index_roots_length,
+        latest_randao_mixes_length=latest_randao_mixes_length,
+    )
+    state = state.copy(
+        current_epoch_seed=current_epoch_seed,
+    )
 
     return state
