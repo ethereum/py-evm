@@ -645,19 +645,23 @@ class PeerMessage(NamedTuple):
 
 
 class PeerSubscriber(ABC):
+    """
+    Use the :class:`~p2p.peer.PeerSubscriber` class to subscribe to messages from all or specific
+    peers.
+    """
     _msg_queue: 'asyncio.Queue[PeerMessage]' = None
 
     @property
     @abstractmethod
     def subscription_msg_types(self) -> FrozenSet[Type[protocol.Command]]:
         """
-        The `p2p.protocol.Command` types that this class subscribes to.  Any
+        The :class:`p2p.protocol.Command` types that this class subscribes to. Any
         command which is not in this set will not be passed to this subscriber.
 
-        The base command class `p2p.protocol.Command` can be used to enable
+        The base command class :class:`p2p.protocol.Command` can be used to enable
         **all** command types.
 
-        .. note: This API only applies to sub-protocol commands.  Base protocol
+        .. note: This API only applies to sub-protocol commands. Base protocol
         commands are handled exclusively at the peer level and cannot be
         consumed with this API.
         """
@@ -672,13 +676,17 @@ class PeerSubscriber(ABC):
     @property
     @abstractmethod
     def msg_queue_maxsize(self) -> int:
+        """
+        The max size of messages the underlying :meth:`msg_queue` can keep before it starts
+        discarding new messages. Implementers need to overwrite this to specify the maximum size.
+        """
         pass
 
     def register_peer(self, peer: BasePeer) -> None:
         """
-        Notify about each registered peer in the :class:`~p2p.peer.PeerPool`. Is called upon
-        subscription for each :class:`~p2p.peer.BasePeer` that exists in the pool at that time and
-        then for each :class:`~p2p.peer.BasePeer` that joins the pool later on.
+        Notify about each registered peer in the :class:`~p2p.peer_pool.BasePeerPool`. Is called
+        upon subscription for each :class:`~p2p.peer.BasePeer` that exists in the pool at that time
+        and then for each :class:`~p2p.peer.BasePeer` that joins the pool later on.
 
         A :class:`~p2p.peer.PeerSubscriber` that wants to act upon peer registration needs to
         overwrite this method to provide an implementation.
@@ -686,20 +694,35 @@ class PeerSubscriber(ABC):
         pass
 
     def deregister_peer(self, peer: BasePeer) -> None:
-        """Called when a peer is removed from the pool."""
+        """
+        Notify about each :class:`~p2p.peer.BasePeer` that is removed from the
+        :class:`~p2p.peer_pool.BasePeerPool`.
+
+        A :class:`~p2p.peer.PeerSubscriber` that wants to act upon peer deregistration needs to
+        overwrite this method to provide an implementation.
+        """
         pass
 
     @property
     def msg_queue(self) -> 'asyncio.Queue[PeerMessage]':
+        """
+        Return the ``asyncio.Queue[PeerMessage]`` that this subscriber uses to receive messages.
+        """
         if self._msg_queue is None:
             self._msg_queue = asyncio.Queue(maxsize=self.msg_queue_maxsize)
         return self._msg_queue
 
     @property
     def queue_size(self) -> int:
+        """
+        Return the size of the :meth:`msg_queue`.
+        """
         return self.msg_queue.qsize()
 
     def add_msg(self, msg: PeerMessage) -> bool:
+        """
+        Add a :class:`~p2p.peer.PeerMessage` to the subscriber.
+        """
         peer, cmd, _ = msg
 
         if not self.is_subscription_command(type(cmd)):
@@ -726,6 +749,18 @@ class PeerSubscriber(ABC):
 
     @contextlib.contextmanager
     def subscribe(self, peer_pool: 'BasePeerPool') -> Iterator[None]:
+        """
+        Subscribe to all messages of the given :class:`~p2p.peer_pool.BasePeerPool`.
+        Implementors need to call this API to start receiving messages from the pool.
+
+        ::
+            async def _run(self) -> None:
+                with self.subscribe(self._peer_pool):
+                    await self.cancellation()
+
+        Once subscribed, messages can be consumed from the :meth:`msg_queue`.
+        """
+
         peer_pool.subscribe(self)
         try:
             yield
@@ -734,6 +769,15 @@ class PeerSubscriber(ABC):
 
     @contextlib.contextmanager
     def subscribe_peer(self, peer: BasePeer) -> Iterator[None]:
+        """
+        Subscribe to all messages of the given :class:`~p2p.peer.BasePeer`.
+        Implementors need to call this API to start receiving messages from the peer.
+
+        This API is similar to the :meth:`msg_queue` except that it only subscribes to the messages
+        of a single peer.
+
+        Once subscribed, messages can be consumed from the :meth:`msg_queue`.
+        """
         peer.add_subscriber(self)
         try:
             yield
