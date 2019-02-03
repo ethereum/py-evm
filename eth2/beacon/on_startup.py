@@ -30,6 +30,7 @@ from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
+    EpochNumber,
     Gwei,
     ShardNumber,
     SlotNumber,
@@ -60,6 +61,7 @@ def get_initial_beacon_state(*,
                              genesis_time: Timestamp,
                              latest_eth1_data: Eth1Data,
                              genesis_slot: SlotNumber,
+                             genesis_epoch: EpochNumber,
                              genesis_fork_version: int,
                              genesis_start_shard: ShardNumber,
                              shard_count: int,
@@ -77,13 +79,13 @@ def get_initial_beacon_state(*,
         fork=Fork(
             previous_version=genesis_fork_version,
             current_version=genesis_fork_version,
-            slot=genesis_slot,
+            epoch=genesis_epoch,
         ),
 
         # Validator registry
         validator_registry=(),
         validator_balances=(),
-        validator_registry_update_slot=genesis_slot,
+        validator_registry_update_epoch=genesis_epoch,
         validator_registry_exit_count=0,
 
         # Randomness and committees
@@ -96,8 +98,8 @@ def get_initial_beacon_state(*,
         persistent_committee_reassignments=(),
         previous_epoch_start_shard=genesis_start_shard,
         current_epoch_start_shard=genesis_start_shard,
-        previous_epoch_calculation_slot=genesis_slot,
-        current_epoch_calculation_slot=genesis_slot,
+        previous_calculation_epoch=genesis_epoch,
+        current_calculation_epoch=genesis_epoch,
         previous_epoch_seed=ZERO_HASH32,
         current_epoch_seed=ZERO_HASH32,
 
@@ -105,14 +107,14 @@ def get_initial_beacon_state(*,
         custody_challenges=(),
 
         # Finality
-        previous_justified_slot=genesis_slot,
-        justified_slot=genesis_slot,
+        previous_justified_epoch=genesis_epoch,
+        justified_epoch=genesis_epoch,
         justification_bitfield=0,
-        finalized_slot=genesis_slot,
+        finalized_epoch=genesis_epoch,
 
         # Recent state
         latest_crosslinks=tuple([
-            CrosslinkRecord(slot=genesis_slot, shard_block_root=ZERO_HASH32)
+            CrosslinkRecord(epoch=genesis_epoch, shard_block_root=ZERO_HASH32)
             for _ in range(shard_count)
         ]),
         latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),

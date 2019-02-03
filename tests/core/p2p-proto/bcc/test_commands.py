@@ -166,7 +166,7 @@ async def test_send_single_attestation(request, event_loop):
             epoch_boundary_root=ZERO_HASH32,
             shard_block_root=ZERO_HASH32,
             latest_crosslink_root=ZERO_HASH32,
-            justified_slot=0,
+            justified_epoch=0,
             justified_block_root=ZERO_HASH32,
         ),
         aggregation_bitfield=b"\x00\x00\x00",
@@ -187,13 +187,13 @@ async def test_send_multiple_attestations(request, event_loop):
     attestations = tuple(
         Attestation(
             data=AttestationData(
-                slot=0,
+                epoch=0,
                 shard=shard,
                 beacon_block_root=ZERO_HASH32,
                 epoch_boundary_root=ZERO_HASH32,
                 shard_block_root=ZERO_HASH32,
                 latest_crosslink_root=ZERO_HASH32,
-                justified_slot=0,
+                justified_epoch=0,
                 justified_block_root=ZERO_HASH32,
             ),
             aggregation_bitfield=b"\x00\x00\x00",

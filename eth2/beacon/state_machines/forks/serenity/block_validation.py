@@ -27,7 +27,9 @@ from eth2.beacon.types.attestations import Attestation  # noqa: F401
 from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
 from eth2.beacon.types.proposal_signed_data import ProposalSignedData
 from eth2.beacon.typing import (
+    EpochNumber,
     ShardNumber,
+    SlotNumber,
 )
 
 
@@ -111,8 +113,8 @@ def validate_attestation(state: BeaconState,
     validate_attestation_justified_slot(
         attestation.data,
         state.slot,
-        state.previous_justified_slot,
-        state.justified_slot,
+        state.previous_justified_epoch,
+        state.justified_epoch,
         epoch_length,
     )
 
@@ -120,7 +122,7 @@ def validate_attestation(state: BeaconState,
         attestation.data,
         justified_block_root=get_block_root(
             state=state,
-            slot=attestation.data.justified_slot,
+            slot=attestation.data.justified_epoch,
             latest_block_roots_length=latest_block_roots_length,
         ),
     )
@@ -142,7 +144,7 @@ def validate_attestation(state: BeaconState,
 
 
 def validate_attestation_slot(attestation_data: AttestationData,
-                              current_slot: int,
+                              current_slot: SlotNumber,
                               epoch_length: int,
                               min_attestation_inclusion_delay: int) -> None:
     """
@@ -174,29 +176,29 @@ def validate_attestation_slot(attestation_data: AttestationData,
 
 
 def validate_attestation_justified_slot(attestation_data: AttestationData,
-                                        current_slot: int,
-                                        previous_justified_slot: int,
-                                        justified_slot: int,
+                                        current_slot: SlotNumber,
+                                        previous_justified_epoch: EpochNumber,
+                                        justified_epoch: EpochNumber,
                                         epoch_length: int) -> None:
     """
-    Validate ``justified_slot`` field of ``attestation_data``.
+    Validate ``justified_epoch`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
     """
     if attestation_data.slot >= current_slot - (current_slot % epoch_length):
-        if attestation_data.justified_slot != justified_slot:
+        if attestation_data.justified_epoch != justified_epoch:
             raise ValidationError(
                 "Attestation ``slot`` is after recent epoch transition but attestation"
-                "``justified_slot`` is not targeting the ``justified_slot``:\n"
+                "``justified_epoch`` is not targeting the ``justified_epoch``:\n"
                 "\tFound: %s, Expected %s" %
-                (attestation_data.justified_slot, justified_slot)
+                (attestation_data.justified_epoch, justified_epoch)
             )
     else:
-        if attestation_data.justified_slot != previous_justified_slot:
+        if attestation_data.justified_epoch != previous_justified_epoch:
             raise ValidationError(
                 "Attestation ``slot`` is before recent epoch transition but attestation"
-                "``justified_slot`` is not targeting the ``previous_justified_slot:\n"
+                "``justified_epoch`` is not targeting the ``previous_justified_epoch:\n"
                 "\tFound: %s, Expected %s" %
-                (attestation_data.justified_slot, previous_justified_slot)
+                (attestation_data.justified_epoch, previous_justified_epoch)
             )
 
 
@@ -209,12 +211,12 @@ def validate_attestation_justified_block_root(attestation_data: AttestationData,
     if attestation_data.justified_block_root != justified_block_root:
         raise ValidationError(
             "Attestation ``justified_block_root`` is not equal to the "
-            "``justified_block_root`` at the ``justified_slot``:\n"
+            "``justified_block_root`` at the ``justified_epoch``:\n"
             "\tFound: %s, Expected %s at slot %s" %
             (
                 attestation_data.justified_block_root,
                 justified_block_root,
-                attestation_data.justified_slot,
+                attestation_data.justified_epoch,
             )
         )
 

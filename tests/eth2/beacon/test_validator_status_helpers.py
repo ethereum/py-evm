@@ -40,6 +40,7 @@ from tests.eth2.beacon.helpers import (
 )
 def test_activate_validator(is_genesis,
                             filled_beacon_state,
+                            genesis_epoch,
                             genesis_slot,
                             epoch_length,
                             entry_exit_delay,
@@ -57,7 +58,7 @@ def test_activate_validator(is_genesis,
     )
     index = 1
     # Check that the `index`th validator in `state` is inactivated
-    assert state.validator_registry[index].activation_slot == FAR_FUTURE_EPOCH
+    assert state.validator_registry[index].activation_epoch == FAR_FUTURE_EPOCH
 
     result_state = activate_validator(
         state=state,
@@ -69,9 +70,9 @@ def test_activate_validator(is_genesis,
     )
 
     if is_genesis:
-        assert result_state.validator_registry[index].activation_slot == genesis_slot
+        assert result_state.validator_registry[index].activation_epoch == genesis_epoch
     else:
-        assert result_state.validator_registry[index].activation_slot == get_entry_exit_effect_epoch(
+        assert result_state.validator_registry[index].activation_epoch == get_entry_exit_effect_epoch(
             slot_to_epoch(state.slot, epoch_length),
             entry_exit_delay,
         )
@@ -101,7 +102,7 @@ def test_initiate_validator_exit(n_validators_state):
         'entry_exit_delay',
         'committee',
         'state_slot',
-        'exit_slot',
+        'exit_epoch',
         'validator_registry_exit_count',
     ),
     [
@@ -136,7 +137,7 @@ def test_exit_validator(num_validators,
                         entry_exit_delay,
                         committee,
                         state_slot,
-                        exit_slot,
+                        exit_epoch,
                         validator_registry_exit_count,
                         n_validators_state,
                         epoch_length):
@@ -147,9 +148,9 @@ def test_exit_validator(num_validators,
     )
     index = 1
 
-    # Set validator `exit_slot` prior to running `exit_validator`
+    # Set validator `exit_epoch` prior to running `exit_validator`
     validator = state.validator_registry[index].copy(
-        exit_slot=exit_slot,
+        exit_epoch=exit_epoch,
     )
     state = state.update_validator_registry(
         validator_index=index,
@@ -161,14 +162,14 @@ def test_exit_validator(num_validators,
         epoch_length=epoch_length,
         entry_exit_delay=entry_exit_delay,
     )
-    if validator.exit_slot <= state.slot + entry_exit_delay:
+    if validator.exit_epoch <= state.slot + entry_exit_delay:
         assert state == result_state
         return
     else:
-        assert validator.exit_slot > state.slot + entry_exit_delay
+        assert validator.exit_epoch > state.slot + entry_exit_delay
         result_validator = result_state.validator_registry[index]
         assert result_state.validator_registry_exit_count == validator_registry_exit_count + 1
-        assert result_validator.exit_slot == state.slot + entry_exit_delay
+        assert result_validator.exit_epoch == state.slot + entry_exit_delay
         assert result_validator.exit_count == result_state.validator_registry_exit_count
 
 

@@ -31,6 +31,8 @@ from eth2.beacon.helpers import (
     get_block_root,
     get_crosslink_committees_at_slot,
     get_domain,
+    get_epoch_start_slot,
+    slot_to_epoch,
 )
 from eth2.beacon.state_machines.configs import BeaconConfig
 from eth2.beacon.types.attestations import Attestation
@@ -233,10 +235,10 @@ def create_mock_signed_attestations_at_slot(
             epoch_boundary_root=ZERO_HASH32,
             shard_block_root=ZERO_HASH32,
             latest_crosslink_root=latest_crosslink_root,
-            justified_slot=state.previous_justified_slot,
+            justified_epoch=state.previous_justified_epoch,
             justified_block_root=get_block_root(
                 state,
-                state.previous_justified_slot,
+                get_epoch_start_slot(state.previous_justified_epoch, config.EPOCH_LENGTH),
                 config.LATEST_BLOCK_ROOTS_LENGTH,
             ),
         )

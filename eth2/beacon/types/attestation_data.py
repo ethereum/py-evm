@@ -9,6 +9,7 @@ from eth2.beacon.sedes import (
 )
 
 from eth2.beacon.typing import (
+    EpochNumber,
     SlotNumber,
     ShardNumber,
 )
@@ -31,8 +32,8 @@ class AttestationData(rlp.Serializable):
         ('shard_block_root', hash32),
         # Last crosslink hash
         ('latest_crosslink_root', hash32),
-        # Slot of the last justified beacon block
-        ('justified_slot', uint64),
+        # epoch of the last justified beacon block
+        ('justified_epoch', uint64),
         # Hash of the last justified beacon block
         ('justified_block_root', hash32),
     ]
@@ -44,7 +45,7 @@ class AttestationData(rlp.Serializable):
                  epoch_boundary_root: Hash32,
                  shard_block_root: Hash32,
                  latest_crosslink_root: Hash32,
-                 justified_slot: SlotNumber,
+                 justified_epoch: EpochNumber,
                  justified_block_root: Hash32) -> None:
         super().__init__(
             slot,
@@ -53,6 +54,6 @@ class AttestationData(rlp.Serializable):
             epoch_boundary_root,
             shard_block_root,
             latest_crosslink_root,
-            justified_slot,
+            justified_epoch,
             justified_block_root,
         )

@@ -8,7 +8,7 @@ from eth2.beacon.sedes import (
     hash32,
 )
 
-from eth2.beacon.typing import SlotNumber
+from eth2.beacon.typing import EpochNumber
 
 
 class CrosslinkRecord(rlp.Serializable):
@@ -16,17 +16,17 @@ class CrosslinkRecord(rlp.Serializable):
     Note: using RLP until we have standardized serialization format.
     """
     fields = [
-        # Slot during which crosslink was added
-        ('slot', uint64),
+        # Epoch during which crosslink was added
+        ('epoch', uint64),
         # Shard chain block root
         ('shard_block_root', hash32),
     ]
 
     def __init__(self,
-                 slot: SlotNumber,
+                 epoch: EpochNumber,
                  shard_block_root: Hash32) -> None:
 
         super().__init__(
-            slot=slot,
+            epoch=epoch,
             shard_block_root=shard_block_root,
         )

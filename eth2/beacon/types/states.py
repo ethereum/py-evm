@@ -59,7 +59,7 @@ class BeaconState(rlp.Serializable):
         # Validator registry
         ('validator_registry', CountableList(ValidatorRecord)),
         ('validator_balances', CountableList(uint64)),
-        ('validator_registry_update_slot', uint64),
+        ('validator_registry_update_epoch', uint64),
         ('validator_registry_exit_count', uint64),
 
         # Randomness and committees
@@ -71,8 +71,8 @@ class BeaconState(rlp.Serializable):
         ('persistent_committee_reassignments', CountableList(ShardReassignmentRecord)),
         ('previous_epoch_start_shard', uint64),
         ('current_epoch_start_shard', uint64),
-        ('previous_epoch_calculation_slot', uint64),
-        ('current_epoch_calculation_slot', uint64),
+        ('previous_calculation_epoch', uint64),
+        ('current_calculation_epoch', uint64),
         ('previous_epoch_seed', hash32),
         ('current_epoch_seed', hash32),
 
@@ -80,13 +80,13 @@ class BeaconState(rlp.Serializable):
         ('custody_challenges', CountableList(CustodyChallenge)),
 
         # Finality
-        ('previous_justified_slot', uint64),
-        ('justified_slot', uint64),
+        ('previous_justified_epoch', uint64),
+        ('justified_epoch', uint64),
 
         # Note: justification_bitfield is meant to be defined as an integer type,
         # so its bit operation in Python and is easier to specify and implement.
         ('justification_bitfield', uint64),
-        ('finalized_slot', uint64),
+        ('finalized_epoch', uint64),
 
         # Recent state
         ('latest_crosslinks', CountableList(CrosslinkRecord)),
@@ -111,7 +111,7 @@ class BeaconState(rlp.Serializable):
             # Validator registry
             validator_registry: Sequence[ValidatorRecord],
             validator_balances: Sequence[Gwei],
-            validator_registry_update_slot: SlotNumber,
+            validator_registry_update_epoch: EpochNumber,
             validator_registry_exit_count: int,
             # Randomness and committees
             latest_randao_mixes: Sequence[Hash32],
@@ -120,17 +120,17 @@ class BeaconState(rlp.Serializable):
             persistent_committee_reassignments: Sequence[ShardReassignmentRecord],
             previous_epoch_start_shard: ShardNumber,
             current_epoch_start_shard: ShardNumber,
-            previous_epoch_calculation_slot: SlotNumber,
-            current_epoch_calculation_slot: SlotNumber,
+            previous_calculation_epoch: EpochNumber,
+            current_calculation_epoch: EpochNumber,
             previous_epoch_seed: Hash32,
             current_epoch_seed: Hash32,
             # Custody challenges
             custody_challenges: Sequence[CustodyChallenge],
             # Finality
-            previous_justified_slot: SlotNumber,
-            justified_slot: SlotNumber,
+            previous_justified_epoch: EpochNumber,
+            justified_epoch: EpochNumber,
             justification_bitfield: int,
-            finalized_slot: SlotNumber,
+            finalized_epoch: EpochNumber,
             # Recent state
             latest_crosslinks: Sequence[CrosslinkRecord],
             latest_block_roots: Sequence[Hash32],
@@ -153,7 +153,7 @@ class BeaconState(rlp.Serializable):
             # Validator registry
             validator_registry=validator_registry,
             validator_balances=validator_balances,
-            validator_registry_update_slot=validator_registry_update_slot,
+            validator_registry_update_epoch=validator_registry_update_epoch,
             validator_registry_exit_count=validator_registry_exit_count,
             # Randomness and committees
             latest_randao_mixes=latest_randao_mixes,
@@ -162,17 +162,17 @@ class BeaconState(rlp.Serializable):
             persistent_committee_reassignments=persistent_committee_reassignments,
             previous_epoch_start_shard=previous_epoch_start_shard,
             current_epoch_start_shard=current_epoch_start_shard,
-            previous_epoch_calculation_slot=previous_epoch_calculation_slot,
-            current_epoch_calculation_slot=current_epoch_calculation_slot,
+            previous_calculation_epoch=previous_calculation_epoch,
+            current_calculation_epoch=current_calculation_epoch,
             previous_epoch_seed=previous_epoch_seed,
             current_epoch_seed=current_epoch_seed,
             # Proof of Custody
             custody_challenges=custody_challenges,
             # Finality
-            previous_justified_slot=previous_justified_slot,
-            justified_slot=justified_slot,
+            previous_justified_epoch=previous_justified_epoch,
+            justified_epoch=justified_epoch,
             justification_bitfield=justification_bitfield,
-            finalized_slot=finalized_slot,
+            finalized_epoch=finalized_epoch,
             # Recent state
             latest_crosslinks=latest_crosslinks,
             latest_block_roots=latest_block_roots,
@@ -215,6 +215,7 @@ class BeaconState(rlp.Serializable):
     @classmethod
     def create_filled_state(cls,
                             *,
+                            genesis_epoch: EpochNumber,
                             genesis_start_shard: ShardNumber,
                             genesis_slot: SlotNumber,
                             shard_count: int,
@@ -231,13 +232,13 @@ class BeaconState(rlp.Serializable):
             fork=Fork(
                 previous_version=0,
                 current_version=0,
-                slot=genesis_slot,
+                epoch=genesis_epoch,
             ),
 
             # Validator registry
             validator_registry=activated_genesis_validators,
             validator_balances=genesis_balances,
-            validator_registry_update_slot=genesis_slot,
+            validator_registry_update_epoch=genesis_epoch,
             validator_registry_exit_count=0,
 
             # Randomness and committees
@@ -250,8 +251,8 @@ class BeaconState(rlp.Serializable):
             persistent_committee_reassignments=(),
             previous_epoch_start_shard=genesis_start_shard,
             current_epoch_start_shard=genesis_start_shard,
-            previous_epoch_calculation_slot=genesis_slot,
-            current_epoch_calculation_slot=genesis_slot,
+            previous_calculation_epoch=genesis_epoch,
+            current_calculation_epoch=genesis_epoch,
             previous_epoch_seed=ZERO_HASH32,
             current_epoch_seed=ZERO_HASH32,
 
@@ -259,15 +260,15 @@ class BeaconState(rlp.Serializable):
             custody_challenges=(),
 
             # Finality
-            previous_justified_slot=genesis_slot,
-            justified_slot=genesis_slot,
+            previous_justified_epoch=genesis_epoch,
+            justified_epoch=genesis_epoch,
             justification_bitfield=genesis_slot,
-            finalized_slot=genesis_slot,
+            finalized_epoch=genesis_epoch,
 
             # Recent state
             latest_crosslinks=tuple(
                 CrosslinkRecord(
-                    slot=genesis_slot,
+                    epoch=genesis_epoch,
                     shard_block_root=ZERO_HASH32,
                 )
                 for _ in range(shard_count)

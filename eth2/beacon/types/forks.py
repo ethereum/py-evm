@@ -5,7 +5,7 @@ from eth2.beacon.sedes import (
 )
 
 from eth2.beacon.typing import (
-    SlotNumber,
+    EpochNumber,
 )
 
 
@@ -18,16 +18,16 @@ class Fork(rlp.Serializable):
         ('previous_version', uint64),
         # Current fork version
         ('current_version', uint64),
-        # Fork slot number
-        ('slot', uint64)
+        # Fork epoch number
+        ('epoch', uint64)
     ]
 
     def __init__(self,
                  previous_version: int,
                  current_version: int,
-                 slot: SlotNumber) -> None:
+                 epoch: EpochNumber) -> None:
         super().__init__(
             previous_version=previous_version,
             current_version=current_version,
-            slot=slot,
+            epoch=epoch,
         )

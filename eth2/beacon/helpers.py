@@ -198,7 +198,7 @@ def get_previous_epoch_committee_count(
         target_committee_size: int) -> int:
     previous_active_validators = get_active_validator_indices(
         state.validator_registry,
-        state.previous_epoch_calculation_slot,
+        state.previous_calculation_epoch,
     )
     return get_epoch_committee_count(
         active_validator_count=len(previous_active_validators),
@@ -215,7 +215,7 @@ def get_current_epoch_committee_count(
         target_committee_size: int) -> int:
     current_active_validators = get_active_validator_indices(
         state.validator_registry,
-        state.current_epoch_calculation_slot,
+        state.current_calculation_epoch,
     )
     return get_epoch_committee_count(
         active_validator_count=len(current_active_validators),
@@ -253,7 +253,7 @@ def get_crosslink_committees_at_slot(
         )
 
         seed = state.previous_epoch_seed
-        shuffling_slot = state.previous_epoch_calculation_slot
+        shuffling_slot = state.previous_calculation_epoch
         shuffling_start_shard = state.previous_epoch_start_shard
     else:
         committees_per_slot = get_current_epoch_committee_count(
@@ -263,7 +263,7 @@ def get_crosslink_committees_at_slot(
             target_committee_size=target_committee_size,
         )
         seed = state.current_epoch_seed
-        shuffling_slot = state.current_epoch_calculation_slot
+        shuffling_slot = state.current_calculation_epoch
         shuffling_start_shard = state.current_epoch_start_shard
 
     offset = slot % epoch_length
@@ -683,8 +683,8 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
     that ``attestation_data_1`` surrounds ``attestation_data_2``.
     """
     return (
-        (attestation_data_1.justified_slot < attestation_data_2.justified_slot) and
-        (attestation_data_2.justified_slot + 1 == attestation_data_2.slot) and
+        (attestation_data_1.justified_epoch < attestation_data_2.justified_epoch) and
+        (attestation_data_2.justified_epoch + 1 == attestation_data_2.slot) and
         (attestation_data_2.slot < attestation_data_1.slot)
     )
 

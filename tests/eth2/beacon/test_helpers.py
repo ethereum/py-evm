@@ -249,9 +249,9 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
 @pytest.mark.parametrize(
     (
         'n, target_committee_size, shard_count, len_active_validators,'
-        'previous_epoch_calculation_slot, current_epoch_calculation_slot,'
+        'previous_calculation_epoch, current_calculation_epoch,'
         'get_prev_or_cur_epoch_committee_count,'
-        'delayed_activation_slot'
+        'delayed_activation_epoch'
     ),
     [
         (
@@ -288,10 +288,10 @@ def test_get_prev_or_cur_epoch_committee_count(
         target_committee_size,
         shard_count,
         len_active_validators,
-        previous_epoch_calculation_slot,
-        current_epoch_calculation_slot,
+        previous_calculation_epoch,
+        current_calculation_epoch,
         get_prev_or_cur_epoch_committee_count,
-        delayed_activation_slot):
+        delayed_activation_epoch):
     from eth2.beacon import helpers
 
     def mock_get_epoch_committee_count(
@@ -309,13 +309,13 @@ def test_get_prev_or_cur_epoch_committee_count(
 
     state = n_validators_state.copy(
         slot=0,
-        previous_epoch_calculation_slot=previous_epoch_calculation_slot,
-        current_epoch_calculation_slot=current_epoch_calculation_slot,
+        previous_calculation_epoch=previous_calculation_epoch,
+        current_calculation_epoch=current_calculation_epoch,
     )
     for index in range(len(state.validator_registry)):
         if index < len_active_validators:
             validator = state.validator_registry[index].copy(
-                activation_slot=0,
+                activation_epoch=0,
             )
             state = state.update_validator_registry(
                 index,
@@ -323,7 +323,7 @@ def test_get_prev_or_cur_epoch_committee_count(
             )
         else:
             validator = state.validator_registry[index].copy(
-                activation_slot=delayed_activation_slot,
+                activation_epoch=delayed_activation_epoch,
             )
             state = state.update_validator_registry(
                 index,
@@ -457,24 +457,24 @@ def test_get_beacon_proposer_index(
 
 
 def test_get_active_validator_indices(sample_validator_record_params):
-    current_slot = 1
+    current_epoch = 1
     # 3 validators are ACTIVE
     validators = [
         ValidatorRecord(
             **sample_validator_record_params,
         ).copy(
-            activation_slot=0,
-            exit_slot=FAR_FUTURE_EPOCH,
+            activation_epoch=0,
+            exit_epoch=FAR_FUTURE_EPOCH,
         )
         for i in range(3)
     ]
-    active_validator_indices = get_active_validator_indices(validators, current_slot)
+    active_validator_indices = get_active_validator_indices(validators, current_epoch)
     assert len(active_validator_indices) == 3
 
     validators[0] = validators[0].copy(
-        activation_slot=current_slot + 1,  # activation_slot > current_slot
+        activation_epoch=current_epoch + 1,  # activation_epoch > current_epoch
     )
-    active_validator_indices = get_active_validator_indices(validators, current_slot)
+    active_validator_indices = get_active_validator_indices(validators, current_epoch)
     assert len(active_validator_indices) == 2
 
 
@@ -917,7 +917,7 @@ def test_get_effective_balance(balance,
     (
         'previous_version,'
         'current_version,'
-        'slot,'
+        'epoch,'
         'current_slot,'
         'expected'
     ),
@@ -931,13 +931,13 @@ def test_get_effective_balance(balance,
 )
 def test_get_fork_version(previous_version,
                           current_version,
-                          slot,
+                          epoch,
                           current_slot,
                           expected):
     fork = Fork(
         previous_version=previous_version,
         current_version=current_version,
-        slot=slot,
+        epoch=epoch,
     )
     assert expected == get_fork_version(
         fork,
@@ -949,7 +949,7 @@ def test_get_fork_version(previous_version,
     (
         'previous_version,'
         'current_version,'
-        'slot,'
+        'epoch,'
         'current_slot,'
         'domain_type,'
         'expected'
@@ -962,14 +962,14 @@ def test_get_fork_version(previous_version,
 )
 def test_get_domain(previous_version,
                     current_version,
-                    slot,
+                    epoch,
                     current_slot,
                     domain_type,
                     expected):
     fork = Fork(
         previous_version=previous_version,
         current_version=current_version,
-        slot=slot,
+        epoch=epoch,
     )
     assert expected == get_domain(
         fork=fork,
@@ -1281,7 +1281,7 @@ def test_verify_slashable_attestation_after_fork(
     past_fork_params = {
         'previous_version': 0,
         'current_version': 1,
-        'slot': 15,
+        'epoch': 15,
     }
 
     state = BeaconState(**sample_beacon_state_params).copy(
@@ -1329,37 +1329,37 @@ def test_is_double_vote(sample_attestation_data_params):
 
 @pytest.mark.parametrize(
     (
-        'attestation_1_slot,'
-        'attestation_1_justified_slot,'
-        'attestation_2_slot,'
-        'attestation_2_justified_slot,'
+        'attestation_1_epoch,'
+        'attestation_1_justified_epoch,'
+        'attestation_2_epoch,'
+        'attestation_2_justified_epoch,'
         'expected'
     ),
     [
         (0, 0, 0, 0, False),
-        (4, 3, 3, 2, False),  # not (attestation_1_justified_slot < attestation_2_justified_slot
-        (4, 0, 3, 1, False),  # not (attestation_2_justified_slot + 1 == attestation_2_slot)
-        (4, 0, 4, 3, False),  # not (attestation_2_slot < attestation_1_slot)
+        (4, 3, 3, 2, False),  # not (attestation_1_justified_epoch < attestation_2_justified_epoch
+        (4, 0, 3, 1, False),  # not (attestation_2_justified_epoch + 1 == attestation_2_epoch)
+        (4, 0, 4, 3, False),  # not (attestation_2_epoch < attestation_1_epoch)
         (4, 0, 3, 2, True),
     ],
 )
 def test_is_surround_vote(sample_attestation_data_params,
-                          attestation_1_slot,
-                          attestation_1_justified_slot,
-                          attestation_2_slot,
-                          attestation_2_justified_slot,
+                          attestation_1_epoch,
+                          attestation_1_justified_epoch,
+                          attestation_2_epoch,
+                          attestation_2_justified_epoch,
                           expected):
     attestation_data_1_params = {
         **sample_attestation_data_params,
-        'slot': attestation_1_slot,
-        'justified_slot': attestation_1_justified_slot,
+        'epoch': attestation_1_epoch,
+        'justified_epoch': attestation_1_justified_epoch,
     }
     attestation_data_1 = AttestationData(**attestation_data_1_params)
 
     attestation_data_2_params = {
         **sample_attestation_data_params,
-        'slot': attestation_2_slot,
-        'justified_slot': attestation_2_justified_slot,
+        'epoch': attestation_2_epoch,
+        'justified_epoch': attestation_2_justified_epoch,
     }
     attestation_data_2 = AttestationData(**attestation_data_2_params)
 

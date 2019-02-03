@@ -21,6 +21,7 @@ from eth2.beacon.helpers import (
     get_current_epoch_attestations,
     get_effective_balance,
     get_winning_root,
+    slot_to_epoch,
 )
 from eth2.beacon.typing import ShardNumber
 from eth2.beacon._utils.hash import (
@@ -94,7 +95,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                         latest_crosslinks,
                         shard,
                         CrosslinkRecord(
-                            slot=state.slot,
+                            epoch=slot_to_epoch(state.slot, config.EPOCH_LENGTH),
                             shard_block_root=winning_root,
                         ),
                     )
@@ -112,7 +113,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
 #
 def _check_if_update_validator_registry(state: BeaconState,
                                         config: BeaconConfig) -> Tuple[bool, int]:
-    if state.finalized_slot <= state.validator_registry_update_slot:
+    if state.finalized_epoch <= state.validator_registry_update_epoch:
         return False, 0
 
     num_shards_in_committees = get_current_epoch_committee_count(
@@ -128,7 +129,7 @@ def _check_if_update_validator_registry(state: BeaconState,
         for i in range(num_shards_in_committees)
     )
     for shard in shards:
-        if state.latest_crosslinks[shard].slot <= state.validator_registry_update_slot:
+        if state.latest_crosslinks[shard].epoch <= state.validator_registry_update_epoch:
             return False, 0
 
     return True, num_shards_in_committees
@@ -175,7 +176,7 @@ def _update_latest_index_roots(state: BeaconState,
 def process_validator_registry(state: BeaconState,
                                config: BeaconConfig) -> BeaconState:
     state = state.copy(
-        previous_epoch_calculation_slot=state.current_epoch_calculation_slot,
+        previous_calculation_epoch=state.current_calculation_epoch,
         previous_epoch_start_shard=state.current_epoch_start_shard,
         previous_epoch_seed=state.current_epoch_seed,
     )
@@ -186,10 +187,10 @@ def process_validator_registry(state: BeaconState,
     if need_to_update:
         state = update_validator_registry(state)
 
-        # Update step-by-step since updated `state.current_epoch_calculation_slot`
+        # Update step-by-step since updated `state.current_calculation_epoch`
         # is used to calculate other value). Follow the spec tightly now.
         state = state.copy(
-            current_epoch_calculation_slot=state.slot,
+            current_calculation_epoch=slot_to_epoch(state.slot, config.EPOCH_LENGTH),
         )
         state = state.copy(
             current_epoch_start_shard=(
@@ -201,7 +202,7 @@ def process_validator_registry(state: BeaconState,
         # for mocking this out in tests.
         current_epoch_seed = helpers.generate_seed(
             state=state,
-            slot=state.current_epoch_calculation_slot,
+            slot=state.current_calculation_epoch,
             epoch_length=config.EPOCH_LENGTH,
             seed_lookahead=config.SEED_LOOKAHEAD,
             latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
@@ -212,20 +213,20 @@ def process_validator_registry(state: BeaconState,
         )
     else:
         epochs_since_last_registry_change = (
-            state.slot - state.validator_registry_update_slot
-        ) // config.EPOCH_LENGTH
+            slot_to_epoch(state.slot, config.EPOCH_LENGTH) - state.validator_registry_update_epoch
+        )
         if is_power_of_two(epochs_since_last_registry_change):
-            # Update step-by-step since updated `state.current_epoch_calculation_slot`
+            # Update step-by-step since updated `state.current_calculation_epoch`
             # is used to calculate other value). Follow the spec tightly now.
             state = state.copy(
-                current_epoch_calculation_slot=state.slot,
+                current_calculation_epoch=slot_to_epoch(state.slot, config.EPOCH_LENGTH),
             )
 
             # The `helpers.generate_seed` function is only present to provide an entry point
             # for mocking this out in tests.
             current_epoch_seed = helpers.generate_seed(
                 state=state,
-                slot=state.current_epoch_calculation_slot,
+                slot=state.current_calculation_epoch,
                 epoch_length=config.EPOCH_LENGTH,
                 seed_lookahead=config.SEED_LOOKAHEAD,
                 latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,

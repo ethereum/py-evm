@@ -78,18 +78,18 @@ def test_validate_attestation_slot(sample_attestation_data_params,
         'attestation_slot,'
         'attestation_justified_slot,'
         'current_slot,'
-        'previous_justified_slot,'
-        'justified_slot,'
+        'previous_justified_epoch,'
+        'justified_epoch,'
         'epoch_length,'
         'is_valid,'
     ),
     [
         (13, 5, 14, 0, 5, 5, True),
-        (13, 0, 14, 0, 5, 5, False),  # targeting previous_justified_slot, should be targeting justified_slot # noqa: E501
-        (13, 20, 14, 0, 5, 5, False),  # targeting future slot, should be targeting justified_slot
+        (13, 0, 14, 0, 5, 5, False),  # targeting previous_justified_epoch, should be targeting justified_epoch # noqa: E501
+        (13, 20, 14, 0, 5, 5, False),  # targeting future slot, should be targeting justified_epoch
         (29, 10, 30, 10, 20, 10, True),
-        (29, 20, 30, 10, 20, 10, False),  # targeting justified_slot, should be targeting previous_justified_slot # noqa: E501
-        (29, 36, 30, 10, 20, 10, False),  # targeting future slot,  should be targeting previous_justified_slot # noqa: E501
+        (29, 20, 30, 10, 20, 10, False),  # targeting justified_epoch, should be targeting previous_justified_epoch # noqa: E501
+        (29, 36, 30, 10, 20, 10, False),  # targeting future slot,  should be targeting previous_justified_epoch # noqa: E501
         (10, 10, 10, 10, 10, 10, True),
     ]
 )
@@ -97,21 +97,21 @@ def test_validate_attestation_justified_slot(sample_attestation_data_params,
                                              attestation_slot,
                                              attestation_justified_slot,
                                              current_slot,
-                                             previous_justified_slot,
-                                             justified_slot,
+                                             previous_justified_epoch,
+                                             justified_epoch,
                                              epoch_length,
                                              is_valid):
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
         slot=attestation_slot,
-        justified_slot=attestation_justified_slot,
+        justified_epoch=attestation_justified_slot,
     )
 
     if is_valid:
         validate_attestation_justified_slot(
             attestation_data,
             current_slot,
-            previous_justified_slot,
-            justified_slot,
+            previous_justified_epoch,
+            justified_epoch,
             epoch_length,
         )
     else:
@@ -119,8 +119,8 @@ def test_validate_attestation_justified_slot(sample_attestation_data_params,
             validate_attestation_justified_slot(
                 attestation_data,
                 current_slot,
-                previous_justified_slot,
-                justified_slot,
+                previous_justified_epoch,
+                justified_epoch,
                 epoch_length,
             )
 
