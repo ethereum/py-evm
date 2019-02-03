@@ -83,11 +83,11 @@ class ValidatorRecord(rlp.Serializable):
             penultimate_custody_reseed_slot=penultimate_custody_reseed_slot,
         )
 
-    def is_active(self, slot: int) -> bool:
+    def is_active(self, epoch: EpochNumber) -> bool:
         """
-        Return ``True`` if the validator is active during the slot, ``slot``.
+        Return ``True`` if the validator is active during the epoch, ``epoch``.
         """
-        return self.activation_epoch <= slot < self.exit_epoch
+        return self.activation_epoch <= epoch < self.exit_epoch
 
     @classmethod
     def create_pending_validator(cls,

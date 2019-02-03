@@ -89,6 +89,7 @@ def test_per_slot_transition(base_db,
     beacon_proposer_index = get_beacon_proposer_index(
         state,
         state.slot + 1,
+        st.config.GENESIS_EPOCH,
         st.config.EPOCH_LENGTH,
         st.config.TARGET_COMMITTEE_SIZE,
         st.config.SHARD_COUNT,

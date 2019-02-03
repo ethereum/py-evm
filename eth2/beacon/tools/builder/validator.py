@@ -218,6 +218,7 @@ def create_mock_signed_attestations_at_slot(
             slot=state.slot + 1,
         ),
         slot=attestation_slot,
+        genesis_epoch=config.GENESIS_EPOCH,
         epoch_length=config.EPOCH_LENGTH,
         target_committee_size=config.TARGET_COMMITTEE_SIZE,
         shard_count=config.SHARD_COUNT,

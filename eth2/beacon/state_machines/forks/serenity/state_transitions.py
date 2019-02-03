@@ -47,6 +47,7 @@ class SerenityStateTransition(BaseStateTransition):
                             previous_block_root: Hash32) -> BeaconState:
         LATEST_RANDAO_MIXES_LENGTH = self.config.LATEST_RANDAO_MIXES_LENGTH
         LATEST_BLOCK_ROOTS_LENGTH = self.config.LATEST_BLOCK_ROOTS_LENGTH
+        GENESIS_EPOCH = self.config.GENESIS_EPOCH
         EPOCH_LENGTH = self.config.EPOCH_LENGTH
         TARGET_COMMITTEE_SIZE = self.config.TARGET_COMMITTEE_SIZE
         SHARD_COUNT = self.config.SHARD_COUNT
@@ -59,6 +60,7 @@ class SerenityStateTransition(BaseStateTransition):
         beacon_proposer_index = get_beacon_proposer_index(
             state,
             state.slot,
+            GENESIS_EPOCH,
             EPOCH_LENGTH,
             TARGET_COMMITTEE_SIZE,
             SHARD_COUNT,
@@ -102,6 +104,7 @@ class SerenityStateTransition(BaseStateTransition):
                 state,
                 block,
                 beacon_chain_shard_number=self.config.BEACON_CHAIN_SHARD_NUMBER,
+                genesis_epoch=self.config.GENESIS_EPOCH,
                 epoch_length=self.config.EPOCH_LENGTH,
                 target_committee_size=self.config.TARGET_COMMITTEE_SIZE,
                 shard_count=self.config.SHARD_COUNT

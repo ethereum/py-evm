@@ -12,6 +12,7 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
+    EpochNumber,
     Gwei,
     SlotNumber,
     ValidatorIndex,
@@ -100,6 +101,7 @@ def _settle_penality_to_validator_and_whistleblower(
         validator_index: ValidatorIndex,
         latest_penalized_exit_length: int,
         whistleblower_reward_quotient: int,
+        genesis_epoch: EpochNumber,
         epoch_length: int,
         max_deposit_amount: Gwei,
         target_committee_size: int,
@@ -146,6 +148,7 @@ def _settle_penality_to_validator_and_whistleblower(
     whistleblower_index = get_beacon_proposer_index(
         state,
         state.slot,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
@@ -171,6 +174,7 @@ def _settle_penality_to_validator_and_whistleblower(
 
 def penalize_validator(state: BeaconState,
                        index: ValidatorIndex,
+                       genesis_epoch: EpochNumber,
                        epoch_length: int,
                        latest_penalized_exit_length: int,
                        whistleblower_reward_quotient: int,
@@ -189,6 +193,7 @@ def penalize_validator(state: BeaconState,
         validator_index=index,
         latest_penalized_exit_length=latest_penalized_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         max_deposit_amount=max_deposit_amount,
         target_committee_size=target_committee_size,

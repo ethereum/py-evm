@@ -144,7 +144,7 @@ def test_update_latest_index_roots(genesis_state,
                 for index in get_active_validator_indices(
                     state.validator_registry,
                     # TODO: change to `per-epoch` version
-                    state.slot,
+                    slot_to_epoch(state.slot),
                 )
             ]
         )
@@ -387,6 +387,7 @@ def test_process_crosslinks(
         for committee, _shard in get_crosslink_committees_at_slot(
             state,
             slot_in_cur_epoch,
+            config.GENESIS_EPOCH,
             config.EPOCH_LENGTH,
             target_committee_size,
             shard_count,

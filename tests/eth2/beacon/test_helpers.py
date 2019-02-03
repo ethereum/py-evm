@@ -199,26 +199,26 @@ def test_get_epoch_committee_count(
         'epoch_length,'
         'target_committee_size,'
         'shard_count,'
-        'slot'
+        'epoch'
     ),
     [
         (1000, 20, 10, 100, 0),
-        (1000, 20, 10, 100, 5),
-        (1000, 20, 10, 100, 30),
+        (1000, 20, 10, 100, 0),
+        (1000, 20, 10, 100, 1),
         (20, 10, 3, 10, 0),  # active_validators_size < epoch_length * target_committee_size
-        (20, 10, 3, 10, 5),
-        (20, 10, 3, 10, 30),
+        (20, 10, 3, 10, 0),
+        (20, 10, 3, 10, 1),
     ],
 )
 def test_get_shuffling_is_complete(activated_genesis_validators,
                                    epoch_length,
                                    target_committee_size,
                                    shard_count,
-                                   slot):
+                                   epoch):
     shuffling = get_shuffling(
         seed=b'\x35' * 32,
         validators=activated_genesis_validators,
-        slot=slot,
+        epoch=epoch,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
@@ -343,33 +343,40 @@ def test_get_prev_or_cur_epoch_committee_count(
 
 @pytest.mark.parametrize(
     (
-        'state_epoch_slot,'
+        'current_slot,'
         'slot,'
         'epoch_length,'
         'target_committee_size,'
         'shard_count,'
     ),
     [
-        (10, 5, 10, 10, 10),  # slot < state_epoch_slot
-        (10, 10, 10, 10, 10),  # slot >= state_epoch_slot
-        (10, 11, 10, 10, 10),  # slot >= state_epoch_slot
+        # genesis_epoch == previous_epoch == slot_to_epoch(slot) == current_epoch
+        (0, 5, 10, 10, 10),
+        # genesis_epoch == previous_epoch == slot_to_epoch(slot) < current_epoch
+        (10, 5, 10, 10, 10),
+        # genesis_epoch < previous_epoch == slot_to_epoch(slot) < current_epoch
+        (20, 11, 10, 10, 10),
+        # genesis_epoch == previous_epoch < slot_to_epoch(slot) == current_epoch
+        (10, 11, 10, 10, 10),
     ],
 )
 def test_get_crosslink_committees_at_slot(
         n_validators_state,
-        state_epoch_slot,
+        current_slot,
         slot,
         epoch_length,
         target_committee_size,
-        shard_count):
+        shard_count,
+        genesis_epoch):
 
     state = n_validators_state.copy(
-        slot=state_epoch_slot,
+        slot=current_slot,
     )
 
     crosslink_committees_at_slot = get_crosslink_committees_at_slot(
         state=state,
         slot=slot,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
@@ -417,6 +424,7 @@ def test_get_beacon_proposer_index(
         slot,
         success,
         sample_state,
+        genesis_epoch,
         target_committee_size,
         shard_count):
 
@@ -424,6 +432,7 @@ def test_get_beacon_proposer_index(
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
+                                              genesis_epoch,
                                               epoch_length,
                                               target_committee_size,
                                               shard_count):
@@ -440,6 +449,7 @@ def test_get_beacon_proposer_index(
         proposer_index = get_beacon_proposer_index(
             sample_state,
             slot,
+            genesis_epoch,
             epoch_length,
             target_committee_size,
             shard_count,
@@ -450,6 +460,7 @@ def test_get_beacon_proposer_index(
             get_beacon_proposer_index(
                 sample_state,
                 slot,
+                genesis_epoch,
                 epoch_length,
                 target_committee_size,
                 shard_count,
@@ -476,6 +487,12 @@ def test_get_active_validator_indices(sample_validator_record_params):
     )
     active_validator_indices = get_active_validator_indices(validators, current_epoch)
     assert len(active_validator_indices) == 2
+
+    validators[1] = validators[1].copy(
+        exit_epoch=current_epoch,  # current_epoch == exit_epoch
+    )
+    active_validator_indices = get_active_validator_indices(validators, current_epoch)
+    assert len(active_validator_indices) == 1
 
 
 @pytest.mark.parametrize(
@@ -525,6 +542,7 @@ def test_get_attestation_participants(
         aggregation_bitfield,
         expected,
         sample_state,
+        genesis_epoch,
         target_committee_size,
         shard_count,
         sample_attestation_data_params):
@@ -534,6 +552,7 @@ def test_get_attestation_participants(
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
+                                              genesis_epoch,
                                               epoch_length,
                                               target_committee_size,
                                               shard_count):
@@ -557,6 +576,7 @@ def test_get_attestation_participants(
                 state=sample_state,
                 attestation_data=attestation_data,
                 aggregation_bitfield=aggregation_bitfield,
+                genesis_epoch=genesis_epoch,
                 epoch_length=epoch_length,
                 target_committee_size=target_committee_size,
                 shard_count=shard_count,
@@ -566,6 +586,7 @@ def test_get_attestation_participants(
             state=sample_state,
             attestation_data=attestation_data,
             aggregation_bitfield=aggregation_bitfield,
+            genesis_epoch=genesis_epoch,
             epoch_length=epoch_length,
             target_committee_size=target_committee_size,
             shard_count=shard_count,
@@ -591,10 +612,11 @@ def test_get_attestation_participants(
 def test_get_attesting_validator_indices(
         random,
         monkeypatch,
-        epoch_length,
-        sample_state,
         target_committee_size,
         shard_count,
+        genesis_epoch,
+        epoch_length,
+        sample_state,
         sample_attestation_data_params,
         sample_attestation_params):
     shard = 1
@@ -604,6 +626,7 @@ def test_get_attesting_validator_indices(
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
+                                              genesis_epoch,
                                               epoch_length,
                                               target_committee_size,
                                               shard_count):
@@ -671,6 +694,7 @@ def test_get_attesting_validator_indices(
         attestations=attestations,
         shard=shard,
         shard_block_root=shard_block_root_1,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
@@ -687,6 +711,7 @@ def test_get_attesting_validator_indices(
         attestations=attestations,
         shard=shard,
         shard_block_root=shard_block_root_2,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
@@ -776,11 +801,11 @@ def test_get_current_and_previous_epoch_attestations(random,
 def test_get_winning_root(
         random,
         monkeypatch,
-        n_validators_state,
-        config,
         target_committee_size,
         block_root_1_participants,
         block_root_2_participants,
+        config,
+        n_validators_state,
         sample_attestation_data_params,
         sample_attestation_params):
     shard = 1
@@ -790,6 +815,7 @@ def test_get_winning_root(
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
+                                              genesis_epoch,
                                               epoch_length,
                                               target_committee_size,
                                               shard_count):
@@ -841,6 +867,7 @@ def test_get_winning_root(
             state=n_validators_state,
             shard=shard,
             attestations=attestations,
+            genesis_epoch=config.GENESIS_EPOCH,
             epoch_length=config.EPOCH_LENGTH,
             max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
             target_committee_size=config.TARGET_COMMITTEE_SIZE,
@@ -851,6 +878,7 @@ def test_get_winning_root(
             attestations=attestations,
             shard=shard,
             shard_block_root=winning_root,
+            genesis_epoch=config.GENESIS_EPOCH,
             epoch_length=config.EPOCH_LENGTH,
             target_committee_size=config.TARGET_COMMITTEE_SIZE,
             shard_count=config.SHARD_COUNT,

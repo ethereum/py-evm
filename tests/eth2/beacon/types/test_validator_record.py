@@ -15,7 +15,7 @@ def test_defaults(sample_validator_record_params):
 
 
 @pytest.mark.parametrize(
-    'activation_epoch,exit_epoch,slot,expected',
+    'activation_epoch,exit_epoch,epoch,expected',
     [
         (0, 1, 0, True),
         (1, 1, 1, False),
@@ -26,7 +26,7 @@ def test_defaults(sample_validator_record_params):
 def test_is_active(sample_validator_record_params,
                    activation_epoch,
                    exit_epoch,
-                   slot,
+                   epoch,
                    expected):
     validator_record_params = {
         **sample_validator_record_params,
@@ -34,7 +34,7 @@ def test_is_active(sample_validator_record_params,
         'exit_epoch': exit_epoch,
     }
     validator = ValidatorRecord(**validator_record_params)
-    assert validator.is_active(slot) == expected
+    assert validator.is_active(epoch) == expected
 
 
 def test_create_pending_validator():

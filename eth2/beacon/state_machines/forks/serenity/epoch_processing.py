@@ -64,6 +64,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
             state,
             slot,
+            config.GENESIS_EPOCH,
             config.EPOCH_LENGTH,
             config.TARGET_COMMITTEE_SIZE,
             config.SHARD_COUNT,
@@ -77,6 +78,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                     # not attesting to this shard so we don't need to going over
                     # irrelevent attestations over and over again.
                     attestations=_filter_attestations_by_shard(current_epoch_attestations, shard),
+                    genesis_epoch=config.GENESIS_EPOCH,
                     epoch_length=config.EPOCH_LENGTH,
                     max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
                     target_committee_size=config.TARGET_COMMITTEE_SIZE,
@@ -150,8 +152,7 @@ def _update_latest_index_roots(state: BeaconState,
     # TODO: chanege to hash_tree_root
     active_validator_indices = get_active_validator_indices(
         state.validator_registry,
-        # TODO: change to `per-epoch` version
-        state.slot,
+        slot_to_epoch(state.slot, config.EPOCH_LENGTH),
     )
     index_root = hash_eth2(
         b''.join(

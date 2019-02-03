@@ -9,6 +9,7 @@ from eth.validation import (
 )
 
 from eth2.beacon.typing import (
+    EpochNumber,
     SlotNumber,
 )
 
@@ -19,23 +20,22 @@ def validate_slot(slot: int, title: str="Slot") -> None:
     validate_lte(slot, 2**64 - 1, title)
 
 
-def validate_slot_for_state_slot(
-        state_slot: SlotNumber,
-        slot: SlotNumber,
+def validate_epoch_for_current_epoch(
+        current_epoch: EpochNumber,
+        epoch: EpochNumber,
+        genesis_epoch: EpochNumber,
         epoch_length: int) -> None:
-    state_epoch_slot = state_slot - (state_slot % epoch_length)
+    previous_epoch = current_epoch - 1 if current_epoch > genesis_epoch else current_epoch
+    next_epoch = current_epoch + 1
 
-    if state_epoch_slot > slot + epoch_length:
+    if epoch < previous_epoch:
         raise ValidationError(
-            f"state_epoch_slot ({state_epoch_slot}) should be less than or equal to "
-            f"slot ({slot}) + epoch_length ({epoch_length})"
+            f"previous_epoch ({previous_epoch}) should be less than or equal to epoch ({epoch})"
         )
 
-    if slot >= state_epoch_slot + epoch_length:
+    if epoch >= next_epoch:
         raise ValidationError(
-            f"slot ({slot}) should be less than "
-            f"state_epoch_slot + epoch_length ({state_epoch_slot + epoch_length}), "
-            f"where state_epoch_slot={state_epoch_slot}, epoch_length={epoch_length}"
+            f"epoch ({epoch}) should be less than next_epoch ({next_epoch})"
         )
 
 

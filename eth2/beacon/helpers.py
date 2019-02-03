@@ -49,7 +49,7 @@ from eth2.beacon.typing import (
 )
 from eth2.beacon.validation import (
     validate_epoch_for_active_index_root,
-    validate_slot_for_state_slot,
+    validate_epoch_for_current_epoch,
 )
 
 if TYPE_CHECKING:
@@ -121,14 +121,14 @@ def get_randao_mix(state: 'BeaconState',
 
 
 def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
-                                 slot: SlotNumber) -> Tuple[ValidatorIndex, ...]:
+                                 epoch: EpochNumber) -> Tuple[ValidatorIndex, ...]:
     """
     Get indices of active validators from ``validators``.
     """
     return tuple(
         ValidatorIndex(index)
         for index, validator in enumerate(validators)
-        if validator.is_active(slot)
+        if validator.is_active(epoch)
     )
 
 
@@ -152,26 +152,23 @@ def get_epoch_committee_count(
 def get_shuffling(*,
                   seed: Hash32,
                   validators: Sequence['ValidatorRecord'],
-                  slot: SlotNumber,
+                  epoch: EpochNumber,
                   epoch_length: int,
                   target_committee_size: int,
                   shard_count: int) -> Tuple[Iterable[ValidatorIndex], ...]:
     """
-    Shuffle ``validators`` into crosslink committees seeded by ``seed`` and ``slot``.
-    Return a list of ``EPOCH_LENGTH * committees_per_slot`` committees where each
+    Shuffle ``validators`` into crosslink committees seeded by ``seed`` and ``epoch``.
+    Return a list of ``committee_per_epoch`` committees where each
     committee is itself a list of validator indices.
 
-    If ``get_shuffling(seed, validators, slot)`` returns some value ``x``, it should return
-    the same value ``x`` for the same seed and slot and possible future modifications of
-    validators forever in phase 0, and until the ~1 year deletion delay in phase 2 and in the
+    If ``get_shuffling(seed, validators, epoch)`` returns some value ``x``, it should return
+    the same value ``x`` for the same ``seed`` and ``epoch`` and possible future modifications of
+    ``validators`` forever in phase 0, and until the ~1 year deletion delay in phase 2 and in the
     future.
     """
-    # Normalizes slot to start of epoch boundary
-    slot = SlotNumber(slot - slot % epoch_length)
+    active_validator_indices = get_active_validator_indices(validators, epoch)
 
-    active_validator_indices = get_active_validator_indices(validators, slot)
-
-    committees_per_slot = get_epoch_committee_count(
+    committees_per_epoch = get_epoch_committee_count(
         len(active_validator_indices),
         shard_count,
         epoch_length,
@@ -179,14 +176,14 @@ def get_shuffling(*,
     )
 
     # Shuffle
-    seed = bitwise_xor(seed, Hash32(slot.to_bytes(32, byteorder="big")))
+    seed = bitwise_xor(seed, Hash32(epoch.to_bytes(32, byteorder="big")))
     shuffled_active_validator_indices = shuffle(active_validator_indices, seed)
 
-    # Split the shuffled list into epoch_length * committees_per_slot pieces
+    # Split the shuffled list into committees_per_epoch pieces
     return tuple(
         split(
             shuffled_active_validator_indices,
-            committees_per_slot * epoch_length,
+            committees_per_epoch,
         )
     )
 
@@ -229,52 +226,55 @@ def get_current_epoch_committee_count(
 def get_crosslink_committees_at_slot(
         state: 'BeaconState',
         slot: SlotNumber,
+        genesis_epoch: EpochNumber,
         epoch_length: int,
         target_committee_size: int,
         shard_count: int) -> Iterable[Tuple[Iterable[ValidatorIndex], ShardNumber]]:
     """
     Return the list of ``(committee, shard)`` tuples for the ``slot``.
     """
-    validate_slot_for_state_slot(
-        state_slot=state.slot,
-        slot=slot,
+
+    epoch = slot_to_epoch(slot, epoch_length)
+    current_epoch = state.current_epoch(epoch_length)
+
+    validate_epoch_for_current_epoch(
+        current_epoch=current_epoch,
+        epoch=epoch,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
     )
 
-    state_epoch_slot = state.slot - (state.slot % epoch_length)
-    offset = slot % epoch_length
-
-    if slot < state_epoch_slot:
-        committees_per_slot = get_previous_epoch_committee_count(
-            state,
+    if epoch < current_epoch:
+        committees_per_epoch = get_previous_epoch_committee_count(
+            state=state,
             shard_count=shard_count,
             epoch_length=epoch_length,
             target_committee_size=target_committee_size,
         )
-
         seed = state.previous_epoch_seed
-        shuffling_slot = state.previous_calculation_epoch
+        shuffling_epoch = state.previous_calculation_epoch
         shuffling_start_shard = state.previous_epoch_start_shard
     else:
-        committees_per_slot = get_current_epoch_committee_count(
-            state,
+        committees_per_epoch = get_current_epoch_committee_count(
+            state=state,
             shard_count=shard_count,
             epoch_length=epoch_length,
             target_committee_size=target_committee_size,
         )
         seed = state.current_epoch_seed
-        shuffling_slot = state.current_calculation_epoch
+        shuffling_epoch = state.current_calculation_epoch
         shuffling_start_shard = state.current_epoch_start_shard
 
-    offset = slot % epoch_length
     shuffling = get_shuffling(
         seed=seed,
         validators=state.validator_registry,
-        slot=shuffling_slot,
+        epoch=shuffling_epoch,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
+    offset = slot % epoch_length
+    committees_per_slot = committees_per_epoch // epoch_length
     slot_start_shard = (
         shuffling_start_shard +
         committees_per_slot * offset
@@ -331,6 +331,7 @@ def generate_seed(state: 'BeaconState',
 
 def get_beacon_proposer_index(state: 'BeaconState',
                               slot: SlotNumber,
+                              genesis_epoch: EpochNumber,
                               epoch_length: int,
                               target_committee_size: int,
                               shard_count: int) -> ValidatorIndex:
@@ -340,6 +341,7 @@ def get_beacon_proposer_index(state: 'BeaconState',
     crosslink_committees_at_slot = get_crosslink_committees_at_slot(
         state=state,
         slot=slot,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
@@ -371,6 +373,7 @@ def _get_committee_for_shard(
 def get_attestation_participants(state: 'BeaconState',
                                  attestation_data: 'AttestationData',
                                  aggregation_bitfield: Bitfield,
+                                 genesis_epoch: EpochNumber,
                                  epoch_length: int,
                                  target_committee_size: int,
                                  shard_count: int) -> Iterable[ValidatorIndex]:
@@ -381,6 +384,7 @@ def get_attestation_participants(state: 'BeaconState',
     crosslink_committees = get_crosslink_committees_at_slot(
         state=state,
         slot=attestation_data.slot,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
@@ -455,6 +459,7 @@ def get_attesting_validator_indices(
         attestations: Sequence[PendingAttestationRecord],
         shard: ShardNumber,
         shard_block_root: Hash32,
+        genesis_epoch: EpochNumber,
         epoch_length: int,
         target_committee_size: int,
         shard_count: int) -> Iterable[ValidatorIndex]:
@@ -470,6 +475,7 @@ def get_attesting_validator_indices(
                 state,
                 a.data,
                 a.aggregation_bitfield,
+                genesis_epoch,
                 epoch_length,
                 target_committee_size,
                 shard_count,
@@ -482,6 +488,7 @@ def get_total_attesting_balance(
         shard: ShardNumber,
         shard_block_root: Hash32,
         attestations: Sequence[PendingAttestationRecord],
+        genesis_epoch: EpochNumber,
         epoch_length: int,
         max_deposit_amount: Gwei,
         target_committee_size: int,
@@ -494,6 +501,7 @@ def get_total_attesting_balance(
                 attestations=attestations,
                 shard=shard,
                 shard_block_root=shard_block_root,
+                genesis_epoch=genesis_epoch,
                 epoch_length=epoch_length,
                 target_committee_size=target_committee_size,
                 shard_count=shard_count,
@@ -507,6 +515,7 @@ def get_winning_root(
         state: 'BeaconState',
         shard: ShardNumber,
         attestations: Sequence[PendingAttestationRecord],
+        genesis_epoch: EpochNumber,
         epoch_length: int,
         max_deposit_amount: Gwei,
         target_committee_size: int,
@@ -525,6 +534,7 @@ def get_winning_root(
             shard=shard,
             shard_block_root=shard_block_root,
             attestations=attestations,
+            genesis_epoch=genesis_epoch,
             epoch_length=epoch_length,
             max_deposit_amount=max_deposit_amount,
             target_committee_size=target_committee_size,
