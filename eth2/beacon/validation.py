@@ -10,7 +10,6 @@ from eth.validation import (
 
 from eth2.beacon.typing import (
     EpochNumber,
-    SlotNumber,
 )
 
 
@@ -22,33 +21,49 @@ def validate_slot(slot: int, title: str="Slot") -> None:
 
 def validate_epoch_for_current_epoch(
         current_epoch: EpochNumber,
-        epoch: EpochNumber,
+        given_epoch: EpochNumber,
         genesis_epoch: EpochNumber,
         epoch_length: int) -> None:
     previous_epoch = current_epoch - 1 if current_epoch > genesis_epoch else current_epoch
     next_epoch = current_epoch + 1
 
-    if epoch < previous_epoch:
+    if given_epoch < previous_epoch:
         raise ValidationError(
-            f"previous_epoch ({previous_epoch}) should be less than or equal to epoch ({epoch})"
+            f"previous_epoch ({previous_epoch}) should be less than "
+            f"or equal to given_epoch ({given_epoch})"
         )
 
-    if epoch >= next_epoch:
+    if given_epoch >= next_epoch:
         raise ValidationError(
-            f"epoch ({epoch}) should be less than next_epoch ({next_epoch})"
+            f"given_epoch ({given_epoch}) should be less than next_epoch ({next_epoch})"
         )
 
 
-def validate_epoch_for_active_index_root(state_epoch: int,
-                                         given_epoch: int,
+def validate_epoch_for_active_randao_mix(state_epoch: EpochNumber,
+                                         given_epoch: EpochNumber,
+                                         latest_randao_mixes_length: int) -> None:
+    if state_epoch >= given_epoch + latest_randao_mixes_length:
+        raise ValidationError(
+            f"state_epoch ({state_epoch}) should be less than (given_epoch {given_epoch} + "
+            f"LATEST_RANDAO_MIXED_LENGTH ({latest_randao_mixes_length}))"
+        )
+
+    if given_epoch > state_epoch:
+        raise ValidationError(
+            f"given_epoch ({given_epoch}) should be less than or equal to state_epoch {state_epoch}"
+        )
+
+
+def validate_epoch_for_active_index_root(state_epoch: EpochNumber,
+                                         given_epoch: EpochNumber,
                                          latest_index_roots_length: int) -> None:
     if state_epoch >= given_epoch + latest_index_roots_length:
         raise ValidationError(
-            f"start_epoch ({state_epoch}) should be less than (given_epoch {given_epoch} + "
+            f"state_epoch ({state_epoch}) should be less than (given_epoch {given_epoch} + "
             f"LATEST_INDEX_ROOTS_LENGTH ({latest_index_roots_length}))"
         )
 
     if given_epoch > state_epoch:
         raise ValidationError(
-            f"given_epoch ({given_epoch}) should be less than or equal to given_epoch {state_epoch}"
+            f"given_epoch ({given_epoch}) should be less than or equal to state_epoch {state_epoch}"
         )

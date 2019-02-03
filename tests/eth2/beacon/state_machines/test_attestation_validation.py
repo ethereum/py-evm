@@ -283,12 +283,14 @@ def test_validate_attestation_aggregate_signature(genesis_state,
         committee,
         votes_count,
         keymap,
+        epoch_length,
     )
 
     if is_valid:
         validate_attestation_aggregate_signature(
             state,
             attestation,
+            genesis_epoch,
             epoch_length,
             target_committee_size,
             shard_count,
@@ -305,6 +307,7 @@ def test_validate_attestation_aggregate_signature(genesis_state,
             validate_attestation_aggregate_signature(
                 state,
                 attestation,
+                genesis_epoch,
                 epoch_length,
                 target_committee_size,
                 shard_count,

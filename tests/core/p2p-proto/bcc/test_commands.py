@@ -187,7 +187,7 @@ async def test_send_multiple_attestations(request, event_loop):
     attestations = tuple(
         Attestation(
             data=AttestationData(
-                epoch=0,
+                slot=0,
                 shard=shard,
                 beacon_block_root=ZERO_HASH32,
                 epoch_boundary_root=ZERO_HASH32,

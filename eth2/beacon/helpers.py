@@ -49,6 +49,7 @@ from eth2.beacon.typing import (
 )
 from eth2.beacon.validation import (
     validate_epoch_for_active_index_root,
+    validate_epoch_for_active_randao_mix,
     validate_epoch_for_current_epoch,
 )
 
@@ -109,15 +110,19 @@ def get_block_root(
 
 
 def get_randao_mix(state: 'BeaconState',
-                   slot: SlotNumber,
+                   epoch: EpochNumber,
+                   epoch_length: int,
                    latest_randao_mixes_length: int) -> Hash32:
     """
-    Return the randao mix at a recent ``slot``.
+    Return the randao mix at a recent ``epoch``.
     """
-    # TODO: update to epoch version
-    assert state.slot < slot + latest_randao_mixes_length
-    assert slot <= state.slot
-    return state.latest_randao_mixes[slot % latest_randao_mixes_length]
+    validate_epoch_for_active_randao_mix(
+        state.current_epoch(epoch_length),
+        epoch,
+        latest_randao_mixes_length,
+    )
+
+    return state.latest_randao_mixes[epoch % latest_randao_mixes_length]
 
 
 def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
@@ -239,7 +244,7 @@ def get_crosslink_committees_at_slot(
 
     validate_epoch_for_current_epoch(
         current_epoch=current_epoch,
-        epoch=epoch,
+        given_epoch=epoch,
         genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
     )
@@ -289,39 +294,39 @@ def get_crosslink_committees_at_slot(
 
 
 def get_active_index_root(state: 'BeaconState',
-                          slot: SlotNumber,
+                          epoch: EpochNumber,
                           epoch_length: int,
                           latest_index_roots_length: int) -> Hash32:
     """
-    Return the index root at a recent ``slot``.
+    Return the index root at a recent ``epoch``.
     """
-    state_epoch = state.slot // epoch_length
-    given_epoch = slot // epoch_length
+    validate_epoch_for_active_index_root(
+        state.current_epoch(epoch_length),
+        epoch,
+        latest_index_roots_length,
+    )
 
-    validate_epoch_for_active_index_root(state_epoch, given_epoch, latest_index_roots_length)
-
-    return state.latest_index_roots[given_epoch % latest_index_roots_length]
+    return state.latest_index_roots[epoch % latest_index_roots_length]
 
 
 def generate_seed(state: 'BeaconState',
-                  slot: SlotNumber,
+                  epoch: EpochNumber,
                   epoch_length: int,
                   seed_lookahead: int,
                   latest_index_roots_length: int,
                   latest_randao_mixes_length: int) -> Hash32:
     """
-    Generate a seed for the given ``slot``.
-
-    TODO: it's slot version, will be changed to epoch version.
+    Generate a seed for the given ``epoch``.
     """
     randao_mix = get_randao_mix(
-        state,
-        SlotNumber(slot - seed_lookahead),
+        state=state,
+        epoch=(epoch - seed_lookahead),
+        epoch_length=epoch_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
     )
     active_index_root = get_active_index_root(
-        state,
-        slot,
+        state=state,
+        epoch=epoch,
         epoch_length=epoch_length,
         latest_index_roots_length=latest_index_roots_length,
     )
@@ -575,18 +580,18 @@ def get_effective_balance(
 
 
 def get_fork_version(fork: 'Fork',
-                     slot: SlotNumber) -> int:
+                     epoch: EpochNumber) -> int:
     """
-    Return the current ``fork_version`` from the given ``fork`` and ``slot``.
+    Return the current ``fork_version`` from the given ``fork`` and ``epoch``.
     """
-    if slot < fork.slot:
+    if epoch < fork.epoch:
         return fork.previous_version
     else:
         return fork.current_version
 
 
 def get_domain(fork: 'Fork',
-               slot: SlotNumber,
+               epoch: EpochNumber,
                domain_type: SignatureDomain) -> int:
     """
     Return the domain number of the current fork and ``domain_type``.
@@ -594,7 +599,7 @@ def get_domain(fork: 'Fork',
     # 2 ** 32 = 4294967296
     return get_fork_version(
         fork,
-        slot,
+        epoch,
     ) * 4294967296 + domain_type
 
 
@@ -632,7 +637,8 @@ def verify_vote_count(slashable_attestation: 'SlashableAttestation',
 
 
 def verify_slashable_attestation_signature(state: 'BeaconState',
-                                           slashable_attestation: 'SlashableAttestation') -> bool:
+                                           slashable_attestation: 'SlashableAttestation',
+                                           epoch_length: int) -> bool:
     """
     Ensure we have a valid aggregate signature for the ``slashable_attestation``.
     """
@@ -644,7 +650,7 @@ def verify_slashable_attestation_signature(state: 'BeaconState',
 
     domain = get_domain(
         state.fork,
-        slashable_attestation.data.slot,
+        slot_to_epoch(slashable_attestation.data.slot, epoch_length),
         SignatureDomain.DOMAIN_ATTESTATION,
     )
 
@@ -658,7 +664,8 @@ def verify_slashable_attestation_signature(state: 'BeaconState',
 
 def verify_slashable_attestation(state: 'BeaconState',
                                  slashable_attestation: 'SlashableAttestation',
-                                 max_indices_per_slashable_vote: int) -> bool:
+                                 max_indices_per_slashable_vote: int,
+                                 epoch_length: int) -> bool:
     """
     Ensure that the ``slashable_attestation`` is properly assembled and contains the signature
     we expect from the validators we expect. Otherwise, return False as
@@ -666,23 +673,28 @@ def verify_slashable_attestation(state: 'BeaconState',
     """
     return (
         verify_vote_count(slashable_attestation, max_indices_per_slashable_vote) and
-        verify_slashable_attestation_signature(state, slashable_attestation)
+        verify_slashable_attestation_signature(state, slashable_attestation, epoch_length)
     )
 
 
 def is_double_vote(attestation_data_1: 'AttestationData',
-                   attestation_data_2: 'AttestationData') -> bool:
+                   attestation_data_2: 'AttestationData',
+                   epoch_length: int) -> bool:
     """
     Assumes ``attestation_data_1`` is distinct from ``attestation_data_2``.
 
     Return True if the provided ``AttestationData`` are slashable
     due to a 'double vote'.
     """
-    return attestation_data_1.slot == attestation_data_2.slot
+    return (
+        slot_to_epoch(attestation_data_1.slot, epoch_length) ==
+        slot_to_epoch(attestation_data_2.slot, epoch_length)
+    )
 
 
 def is_surround_vote(attestation_data_1: 'AttestationData',
-                     attestation_data_2: 'AttestationData') -> bool:
+                     attestation_data_2: 'AttestationData',
+                     epoch_length: int) -> bool:
     """
     Assumes ``attestation_data_1`` is distinct from ``attestation_data_2``.
 
@@ -692,10 +704,14 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
     Note: parameter order matters as this function only checks
     that ``attestation_data_1`` surrounds ``attestation_data_2``.
     """
+    source_epoch_1 = attestation_data_1.justified_epoch
+    source_epoch_2 = attestation_data_2.justified_epoch
+    target_epoch_1 = slot_to_epoch(attestation_data_1.slot, epoch_length)
+    target_epoch_2 = slot_to_epoch(attestation_data_2.slot, epoch_length)
     return (
-        (attestation_data_1.justified_epoch < attestation_data_2.justified_epoch) and
-        (attestation_data_2.justified_epoch + 1 == attestation_data_2.slot) and
-        (attestation_data_2.slot < attestation_data_1.slot)
+        (source_epoch_1 < source_epoch_2) and
+        (source_epoch_2 + 1 == target_epoch_2) and
+        (target_epoch_2 < target_epoch_1)
     )
 
 

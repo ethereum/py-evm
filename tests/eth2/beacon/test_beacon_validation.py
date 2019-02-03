@@ -55,11 +55,16 @@ def test_validate_slot(slot, is_valid):
         ),
     ]
 )
-def test_validate_epoch_for_current_epoch(current_epoch, epoch, epoch_length, success, genesis_epoch):
+def test_validate_epoch_for_current_epoch(
+        current_epoch,
+        epoch,
+        epoch_length,
+        success,
+        genesis_epoch):
     if success:
         validate_epoch_for_current_epoch(
             current_epoch=current_epoch,
-            epoch=epoch,
+            given_epoch=epoch,
             genesis_epoch=genesis_epoch,
             epoch_length=epoch_length
         )
@@ -67,7 +72,7 @@ def test_validate_epoch_for_current_epoch(current_epoch, epoch, epoch_length, su
         with pytest.raises(ValidationError):
             validate_epoch_for_current_epoch(
                 current_epoch=current_epoch,
-                epoch=epoch,
+                given_epoch=epoch,
                 genesis_epoch=genesis_epoch,
                 epoch_length=epoch_length
             )

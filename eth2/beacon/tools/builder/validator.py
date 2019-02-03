@@ -107,10 +107,11 @@ def aggregate_votes(
 def sign_proof_of_possession(deposit_input: DepositInput,
                              privkey: int,
                              fork: Fork,
-                             slot: SlotNumber) -> BLSSignature:
+                             slot: SlotNumber,
+                             epoch_length: int) -> BLSSignature:
     domain = get_domain(
         fork,
-        slot,
+        slot_to_epoch(slot, epoch_length),
         SignatureDomain.DOMAIN_DEPOSIT,
     )
     return bls.sign(
@@ -123,10 +124,11 @@ def sign_proof_of_possession(deposit_input: DepositInput,
 def sign_attestation(message: bytes,
                      privkey: int,
                      fork: Fork,
-                     slot: SlotNumber) -> BLSSignature:
+                     slot: SlotNumber,
+                     epoch_length: int) -> BLSSignature:
     domain = get_domain(
         fork,
-        slot,
+        slot_to_epoch(slot, epoch_length),
         SignatureDomain.DOMAIN_ATTESTATION,
     )
     return bls.sign(
@@ -161,7 +163,8 @@ def create_mock_signed_attestation(state: BeaconState,
                                    attestation_data: AttestationData,
                                    committee: Sequence[ValidatorIndex],
                                    num_voted_attesters: int,
-                                   keymap: Dict[BLSPubkey, int]) -> Attestation:
+                                   keymap: Dict[BLSPubkey, int],
+                                   epoch_length: int) -> Attestation:
     """
     Create a mocking attestation of the given ``attestation_data`` slot with ``keymap``.
     """
@@ -182,6 +185,7 @@ def create_mock_signed_attestation(state: BeaconState,
             ],
             fork=state.fork,
             slot=attestation_data.slot,
+            epoch_length=epoch_length,
         )
         for committee_index in voting_committee_indices
     ]
@@ -250,4 +254,5 @@ def create_mock_signed_attestations_at_slot(
             committee,
             num_voted_attesters,
             keymap,
+            config.EPOCH_LENGTH,
         )

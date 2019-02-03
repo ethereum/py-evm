@@ -65,7 +65,7 @@ def test_validate_block_slot(sample_beacon_state_params,
 )
 def test_validate_proposer_signature(
         epoch_length,
-        shard_count
+        shard_count,
         proposer_privkey,
         proposer_pubkey,
         is_valid_signature,

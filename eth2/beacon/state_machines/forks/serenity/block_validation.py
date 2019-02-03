@@ -19,6 +19,7 @@ from eth2.beacon.helpers import (
     get_beacon_proposer_index,
     get_block_root,
     get_domain,
+    slot_to_epoch,
 )
 from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
@@ -73,7 +74,11 @@ def validate_proposer_signature(state: BeaconState,
         shard_count,
     )
     proposer_pubkey = state.validator_registry[beacon_proposer_index].pubkey
-    domain = get_domain(state.fork, state.slot, SignatureDomain.DOMAIN_PROPOSAL)
+    domain = get_domain(
+        state.fork,
+        slot_to_epoch(state.slot, epoch_length),
+        SignatureDomain.DOMAIN_PROPOSAL
+    )
 
     is_valid_signature = bls.verify(
         pubkey=proposer_pubkey,
@@ -95,6 +100,7 @@ def validate_proposer_signature(state: BeaconState,
 #
 def validate_attestation(state: BeaconState,
                          attestation: Attestation,
+                         genesis_epoch: EpochNumber,
                          epoch_length: int,
                          min_attestation_inclusion_delay: int,
                          latest_block_roots_length: int,
@@ -139,6 +145,7 @@ def validate_attestation(state: BeaconState,
     validate_attestation_aggregate_signature(
         state,
         attestation,
+        genesis_epoch,
         epoch_length,
         target_committee_size,
         shard_count,
@@ -298,7 +305,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     message = AttestationDataAndCustodyBit.create_attestation_message(attestation.data)
     domain = get_domain(
         fork=state.fork,
-        slot=attestation.data.slot,
+        epoch=slot_to_epoch(attestation.data.slot, epoch_length),
         domain_type=SignatureDomain.DOMAIN_ATTESTATION,
     )
 

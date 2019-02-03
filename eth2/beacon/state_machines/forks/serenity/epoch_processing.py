@@ -203,7 +203,7 @@ def process_validator_registry(state: BeaconState,
         # for mocking this out in tests.
         current_epoch_seed = helpers.generate_seed(
             state=state,
-            slot=state.current_calculation_epoch,
+            epoch=state.current_calculation_epoch,
             epoch_length=config.EPOCH_LENGTH,
             seed_lookahead=config.SEED_LOOKAHEAD,
             latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
@@ -227,7 +227,7 @@ def process_validator_registry(state: BeaconState,
             # for mocking this out in tests.
             current_epoch_seed = helpers.generate_seed(
                 state=state,
-                slot=state.current_calculation_epoch,
+                epoch=state.current_calculation_epoch,
                 epoch_length=config.EPOCH_LENGTH,
                 seed_lookahead=config.SEED_LOOKAHEAD,
                 latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,

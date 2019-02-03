@@ -52,6 +52,7 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
 from eth2.beacon.helpers import (
     _get_block_root,
+    generate_aggregate_pubkeys,
     generate_seed,
     get_active_validator_indices,
     get_attesting_validator_indices,
@@ -61,21 +62,21 @@ from eth2.beacon.helpers import (
     get_crosslink_committees_at_slot,
     get_current_epoch_committee_count,
     get_current_epoch_attestations,
-    get_previous_epoch_attestations,
-    get_winning_root,
     get_domain,
     get_effective_balance,
     get_entry_exit_effect_epoch,
     get_fork_version,
+    get_previous_epoch_attestations,
     get_previous_epoch_committee_count,
     get_pubkey_for_indices,
+    get_winning_root,
     get_shuffling,
-    generate_aggregate_pubkeys,
+    is_double_vote,
+    is_surround_vote,
+    slot_to_epoch,
     verify_vote_count,
     verify_slashable_attestation_signature,
     verify_slashable_attestation,
-    is_double_vote,
-    is_surround_vote,
 )
 import eth2._utils.bls as bls
 
@@ -946,7 +947,7 @@ def test_get_effective_balance(balance,
         'previous_version,'
         'current_version,'
         'epoch,'
-        'current_slot,'
+        'current_epoch,'
         'expected'
     ),
     [
@@ -960,7 +961,7 @@ def test_get_effective_balance(balance,
 def test_get_fork_version(previous_version,
                           current_version,
                           epoch,
-                          current_slot,
+                          current_epoch,
                           expected):
     fork = Fork(
         previous_version=previous_version,
@@ -969,7 +970,7 @@ def test_get_fork_version(previous_version,
     )
     assert expected == get_fork_version(
         fork,
-        current_slot,
+        current_epoch,
     )
 
 
@@ -978,7 +979,7 @@ def test_get_fork_version(previous_version,
         'previous_version,'
         'current_version,'
         'epoch,'
-        'current_slot,'
+        'current_epoch,'
         'domain_type,'
         'expected'
     ),
@@ -991,7 +992,7 @@ def test_get_fork_version(previous_version,
 def test_get_domain(previous_version,
                     current_version,
                     epoch,
-                    current_slot,
+                    current_epoch,
                     domain_type,
                     expected):
     fork = Fork(
@@ -1001,7 +1002,7 @@ def test_get_domain(previous_version,
     )
     assert expected == get_domain(
         fork=fork,
-        slot=current_slot,
+        epoch=current_epoch,
         domain_type=domain_type,
     )
 
@@ -1095,7 +1096,7 @@ def test_verify_vote_count(max_indices_per_slashable_vote,
     assert verify_vote_count(votes, max_indices_per_slashable_vote)
 
 
-def _get_indices_and_signatures(num_validators, message, privkeys, fork, slot):
+def _get_indices_and_signatures(num_validators, message, privkeys, fork, epoch):
     num_indices = 5
     assert num_validators >= num_indices
     indices = random.sample(range(num_validators), num_indices)
@@ -1103,7 +1104,7 @@ def _get_indices_and_signatures(num_validators, message, privkeys, fork, slot):
     domain_type = SignatureDomain.DOMAIN_ATTESTATION
     domain = get_domain(
         fork=fork,
-        slot=slot,
+        epoch=epoch,
         domain_type=domain_type,
     )
     signatures = tuple(
@@ -1112,7 +1113,13 @@ def _get_indices_and_signatures(num_validators, message, privkeys, fork, slot):
     return (indices, signatures)
 
 
-def _correct_slashable_attestation_params(num_validators, params, messages, privkeys, fork):
+def _correct_slashable_attestation_params(
+        epoch_length,
+        num_validators,
+        params,
+        messages,
+        privkeys,
+        fork):
     valid_params = copy.deepcopy(params)
 
     key = "custody_bit_0_indices"
@@ -1121,7 +1128,7 @@ def _correct_slashable_attestation_params(num_validators, params, messages, priv
         messages[0],
         privkeys,
         fork,
-        params["data"].slot,
+        slot_to_epoch(params["data"].slot, epoch_length),
     )
     valid_params[key] = poc_0_indices
 
@@ -1132,7 +1139,7 @@ def _correct_slashable_attestation_params(num_validators, params, messages, priv
         messages[1],
         privkeys,
         fork,
-        params["data"].slot,
+        slot_to_epoch(params["data"].slot, epoch_length),
     )
     valid_params[key] = poc_1_indices
 
@@ -1144,13 +1151,13 @@ def _correct_slashable_attestation_params(num_validators, params, messages, priv
     return valid_params
 
 
-def _corrupt_signature(params, fork):
+def _corrupt_signature(epoch_length, params, fork):
     message = bytes.fromhex("deadbeefcafe")
     privkey = 42
     domain_type = SignatureDomain.DOMAIN_ATTESTATION
     domain = get_domain(
         fork=fork,
-        slot=params["data"].slot,
+        epoch=slot_to_epoch(params["data"].slot, epoch_length),
         domain_type=domain_type,
     )
     corrupt_signature = bls.sign(message, privkey, domain)
@@ -1187,6 +1194,7 @@ def _create_slashable_attestation_messages(params):
     ]
 )
 def test_verify_slashable_attestation_signature(
+        epoch_length,
         num_validators,
         privkeys,
         sample_beacon_state_params,
@@ -1205,6 +1213,7 @@ def test_verify_slashable_attestation_signature(
     messages = _create_slashable_attestation_messages(sample_slashable_attestation_params)
 
     valid_params = _correct_slashable_attestation_params(
+        epoch_length,
         num_validators,
         sample_slashable_attestation_params,
         messages,
@@ -1212,16 +1221,26 @@ def test_verify_slashable_attestation_signature(
         state.fork,
     )
     valid_votes = SlashableAttestation(**valid_params)
-    assert verify_slashable_attestation_signature(state, valid_votes)
+    assert verify_slashable_attestation_signature(state, valid_votes, epoch_length)
 
-    invalid_params = _corrupt_signature(valid_params, state.fork)
+    invalid_params = _corrupt_signature(epoch_length, valid_params, state.fork)
     invalid_votes = SlashableAttestation(**invalid_params)
-    assert not verify_slashable_attestation_signature(state, invalid_votes)
+    assert not verify_slashable_attestation_signature(state, invalid_votes, epoch_length)
 
 
-def _run_verify_slashable_vote(params, state, max_indices_per_slashable_vote, should_succeed):
+def _run_verify_slashable_vote(
+        epoch_length,
+        params,
+        state,
+        max_indices_per_slashable_vote,
+        should_succeed):
     votes = SlashableAttestation(**params)
-    result = verify_slashable_attestation(state, votes, max_indices_per_slashable_vote)
+    result = verify_slashable_attestation(
+        state,
+        votes,
+        max_indices_per_slashable_vote,
+        epoch_length,
+    )
     if should_succeed:
         assert result
     else:
@@ -1246,12 +1265,13 @@ def _run_verify_slashable_vote(params, state, max_indices_per_slashable_vote, sh
         (lambda params: params, True, False),
         (_corrupt_vote_count, False, False),
         (_corrupt_signature, False, True),
-        (lambda params, fork: _corrupt_vote_count(
-            _corrupt_signature(params, fork)
+        (lambda epoch_length, params, fork: _corrupt_vote_count(
+            _corrupt_signature(epoch_length, params, fork)
         ), False, True),
     ],
 )
 def test_verify_slashable_attestation(
+        epoch_length,
         num_validators,
         param_mapper,
         should_succeed,
@@ -1274,6 +1294,7 @@ def test_verify_slashable_attestation(
     messages = _create_slashable_attestation_messages(sample_slashable_attestation_params)
 
     params = _correct_slashable_attestation_params(
+        epoch_length,
         num_validators,
         sample_slashable_attestation_params,
         messages,
@@ -1281,10 +1302,16 @@ def test_verify_slashable_attestation(
         state.fork,
     )
     if needs_fork:
-        params = param_mapper(params, state.fork)
+        params = param_mapper(epoch_length, params, state.fork)
     else:
         params = param_mapper(params)
-    _run_verify_slashable_vote(params, state, max_indices_per_slashable_vote, should_succeed)
+    _run_verify_slashable_vote(
+        epoch_length,
+        params,
+        state,
+        max_indices_per_slashable_vote,
+        should_succeed,
+    )
 
 
 @pytest.mark.parametrize(
@@ -1296,6 +1323,7 @@ def test_verify_slashable_attestation(
     ]
 )
 def test_verify_slashable_attestation_after_fork(
+        epoch_length,
         num_validators,
         privkeys,
         sample_beacon_state_params,
@@ -1322,16 +1350,23 @@ def test_verify_slashable_attestation_after_fork(
     messages = _create_slashable_attestation_messages(sample_slashable_attestation_params)
 
     valid_params = _correct_slashable_attestation_params(
+        epoch_length,
         num_validators,
         sample_slashable_attestation_params,
         messages,
         privkeys,
         state.fork,
     )
-    _run_verify_slashable_vote(valid_params, state, max_indices_per_slashable_vote, True)
+    _run_verify_slashable_vote(
+        epoch_length,
+        valid_params,
+        state,
+        max_indices_per_slashable_vote,
+        True,
+    )
 
 
-def test_is_double_vote(sample_attestation_data_params):
+def test_is_double_vote(sample_attestation_data_params, epoch_length):
     attestation_data_1_params = {
         **sample_attestation_data_params,
         'slot': 12345,
@@ -1344,7 +1379,7 @@ def test_is_double_vote(sample_attestation_data_params):
     }
     attestation_data_2 = AttestationData(**attestation_data_2_params)
 
-    assert is_double_vote(attestation_data_1, attestation_data_2)
+    assert is_double_vote(attestation_data_1, attestation_data_2, epoch_length)
 
     attestation_data_3_params = {
         **sample_attestation_data_params,
@@ -1352,46 +1387,51 @@ def test_is_double_vote(sample_attestation_data_params):
     }
     attestation_data_3 = AttestationData(**attestation_data_3_params)
 
-    assert not is_double_vote(attestation_data_1, attestation_data_3)
+    assert not is_double_vote(attestation_data_1, attestation_data_3, epoch_length)
 
 
 @pytest.mark.parametrize(
     (
-        'attestation_1_epoch,'
+        'epoch_length,'
+        'attestation_1_slot,'
         'attestation_1_justified_epoch,'
-        'attestation_2_epoch,'
+        'attestation_2_slot,'
         'attestation_2_justified_epoch,'
         'expected'
     ),
     [
-        (0, 0, 0, 0, False),
-        (4, 3, 3, 2, False),  # not (attestation_1_justified_epoch < attestation_2_justified_epoch
-        (4, 0, 3, 1, False),  # not (attestation_2_justified_epoch + 1 == attestation_2_epoch)
-        (4, 0, 4, 3, False),  # not (attestation_2_epoch < attestation_1_epoch)
-        (4, 0, 3, 2, True),
+        (1, 0, 0, 0, 0, False),
+        # not (attestation_1_justified_epoch < attestation_2_justified_epoch
+        (1, 4, 3, 3, 2, False),
+        # not (attestation_2_justified_epoch + 1 == attestation_2_slot)
+        (1, 4, 0, 3, 1, False),
+        # not (slot_to_epoch(attestation_2_slot) < slot_to_epoch(attestation_1_slot))
+        (1, 4, 0, 4, 3, False),
+        (1, 4, 0, 3, 2, True),
     ],
 )
 def test_is_surround_vote(sample_attestation_data_params,
-                          attestation_1_epoch,
+                          epoch_length,
+                          attestation_1_slot,
                           attestation_1_justified_epoch,
-                          attestation_2_epoch,
+                          attestation_2_slot,
                           attestation_2_justified_epoch,
                           expected):
     attestation_data_1_params = {
         **sample_attestation_data_params,
-        'epoch': attestation_1_epoch,
+        'slot': attestation_1_slot,
         'justified_epoch': attestation_1_justified_epoch,
     }
     attestation_data_1 = AttestationData(**attestation_data_1_params)
 
     attestation_data_2_params = {
         **sample_attestation_data_params,
-        'epoch': attestation_2_epoch,
+        'slot': attestation_2_slot,
         'justified_epoch': attestation_2_justified_epoch,
     }
     attestation_data_2 = AttestationData(**attestation_data_2_params)
 
-    assert is_surround_vote(attestation_data_1, attestation_data_2) == expected
+    assert is_surround_vote(attestation_data_1, attestation_data_2, epoch_length) == expected
 
 
 def test_get_entry_exit_effect_epoch(entry_exit_delay):
@@ -1412,21 +1452,22 @@ def test_generate_seed(monkeypatch,
     from eth2.beacon import helpers
 
     def mock_get_randao_mix(state,
-                            slot,
+                            epoch,
+                            epoch_length,
                             latest_randao_mixes_length):
         return hash_eth2(
             state.root +
-            abs(slot).to_bytes(32, byteorder='big') +
+            abs(epoch).to_bytes(32, byteorder='big') +
             latest_randao_mixes_length.to_bytes(32, byteorder='big')
         )
 
     def mock_get_active_index_root(state,
-                                   slot,
+                                   epoch,
                                    epoch_length,
                                    latest_index_roots_length):
         return hash_eth2(
             state.root +
-            abs(slot).to_bytes(32, byteorder='big') +
+            abs(epoch).to_bytes(32, byteorder='big') +
             epoch_length.to_bytes(32, byteorder='big') +
             latest_index_roots_length.to_bytes(32, byteorder='big')
         )
@@ -1443,11 +1484,11 @@ def test_generate_seed(monkeypatch,
     )
 
     state = genesis_state
-    slot = 10
+    epoch = 1
 
     seed = generate_seed(
         state=state,
-        slot=slot,
+        epoch=epoch,
         epoch_length=epoch_length,
         seed_lookahead=seed_lookahead,
         latest_index_roots_length=latest_index_roots_length,
@@ -1455,12 +1496,13 @@ def test_generate_seed(monkeypatch,
     )
     assert seed == hash_eth2(
         mock_get_randao_mix(
-            state,
-            slot - seed_lookahead,
+            state=state,
+            epoch=(epoch - seed_lookahead),
+            epoch_length=epoch_length,
             latest_randao_mixes_length=latest_randao_mixes_length,
         ) + mock_get_active_index_root(
-            state,
-            slot,
+            state=state,
+            epoch=epoch,
             epoch_length=epoch_length,
             latest_index_roots_length=latest_index_roots_length,
         )

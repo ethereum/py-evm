@@ -99,6 +99,7 @@ def test_get_initial_beacon_state(
                         privkey=privkeys[i],
                         fork=fork,
                         slot=genesis_slot,
+                        epoch_length=epoch_length,
                     ),
                 ),
                 amount=max_deposit_amount,

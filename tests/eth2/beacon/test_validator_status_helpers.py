@@ -72,9 +72,12 @@ def test_activate_validator(is_genesis,
     if is_genesis:
         assert result_state.validator_registry[index].activation_epoch == genesis_epoch
     else:
-        assert result_state.validator_registry[index].activation_epoch == get_entry_exit_effect_epoch(
-            slot_to_epoch(state.slot, epoch_length),
-            entry_exit_delay,
+        assert (
+            result_state.validator_registry[index].activation_epoch ==
+            get_entry_exit_effect_epoch(
+                slot_to_epoch(state.slot, epoch_length),
+                entry_exit_delay,
+            )
         )
 
 

@@ -24,6 +24,7 @@ def process_attestations(state: BeaconState,
         validate_attestation(
             state,
             attestation,
+            config.GENESIS_EPOCH,
             config.EPOCH_LENGTH,
             config.MIN_ATTESTATION_INCLUSION_DELAY,
             config.LATEST_BLOCK_ROOTS_LENGTH,

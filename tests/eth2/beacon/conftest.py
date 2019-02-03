@@ -245,7 +245,7 @@ def sample_fork_params():
     return {
         'previous_version': 0,
         'current_version': 0,
-        'slot': 2**64 - 1,
+        'epoch': 2**64 - 1,
     }
 
 

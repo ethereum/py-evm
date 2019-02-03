@@ -220,7 +220,7 @@ def test_process_validator_registry(monkeypatch,
     new_seed = b'\x88' * 32
 
     def mock_generate_seed(state,
-                           slot,
+                           epoch,
                            epoch_length,
                            seed_lookahead,
                            latest_index_roots_length,

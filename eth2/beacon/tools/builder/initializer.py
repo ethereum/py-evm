@@ -70,6 +70,7 @@ def create_mock_initial_validator_deposits(
                         privkey=keymap[pubkeys[i]],
                         fork=fork,
                         slot=config.GENESIS_SLOT,
+                        epoch_length=config.EPOCH_LENGTH,
                     ),
                 ),
                 amount=config.MAX_DEPOSIT_AMOUNT,
