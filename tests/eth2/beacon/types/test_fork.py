@@ -9,5 +9,5 @@ def test_defaults(sample_fork_params):
     fork = Fork(**sample_fork_params)
     assert fork.previous_version == sample_fork_params['previous_version']
     assert fork.current_version == sample_fork_params['current_version']
-    assert fork.slot == sample_fork_params['slot']
+    assert fork.epoch == sample_fork_params['epoch']
     assert rlp.encode(fork)

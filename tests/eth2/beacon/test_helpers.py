@@ -174,10 +174,10 @@ def test_get_block_root(current_slot,
     ),
     [
         (1000, 20, 10, 50, 40),  # SHARD_COUNT // EPOCH_LENGTH
-        (500, 20, 10, 100, 100),  # active_validator_count // EPOCH_LENGTH // TARGET_COMMITTEE_SIZE
+        (500, 20, 10, 100, 40),  # active_validator_count // EPOCH_LENGTH // TARGET_COMMITTEE_SIZE
         (20, 10, 3, 10, 10),  # 1
         (20, 10, 3, 5, 10),  # 1
-        (40, 5, 10, 2, 10),  # 1
+        (40, 5, 10, 2, 5),  # 1
     ],
 )
 def test_get_epoch_committee_count(

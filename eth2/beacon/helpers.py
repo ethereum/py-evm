@@ -320,7 +320,7 @@ def generate_seed(state: 'BeaconState',
     """
     randao_mix = get_randao_mix(
         state=state,
-        epoch=(epoch - seed_lookahead),
+        epoch=EpochNumber(epoch - seed_lookahead),
         epoch_length=epoch_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
     )

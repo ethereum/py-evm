@@ -35,31 +35,31 @@ def test_validate_slot(slot, is_valid):
 
 @pytest.mark.parametrize(
     (
-        'current_epoch, epoch, epoch_length, success'
+        'current_epoch, epoch, success'
     ),
     [
         (
-            0, 0, 64, True,
+            0, 0, True,
         ),
         (
-            64 * 2, 64, 64, True,
+            1, 0, True,
         ),
         (
-            64 * 2, 64 - 1, 64, False,  # epoch is too small
+            2, 0, False,  # epoch < previous_epoch
         ),
         (
-            64 * 2, 64 * 3 - 1, 64, True,
+            2, 2, True,
         ),
         (
-            64 * 2, 64 * 3, 64, False,  # epoch is too large
+            2, 3, False,  # next_epoch == epoch
         ),
     ]
 )
 def test_validate_epoch_for_current_epoch(
         current_epoch,
         epoch,
-        epoch_length,
         success,
+        epoch_length,
         genesis_epoch):
     if success:
         validate_epoch_for_current_epoch(

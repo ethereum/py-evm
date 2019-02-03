@@ -34,7 +34,7 @@ SERENITY_CONFIG = BeaconConfig(
     # Initial values
     GENESIS_FORK_VERSION=0,
     GENESIS_SLOT=SlotNumber(0),
-    GENESIS_EPOCH=slot_to_epoch(0, 2**6),  # GENESIS_EPOCH=slot_to_epoch(GENESIS_SLOT, EPOCH_LENGTH)
+    GENESIS_EPOCH=slot_to_epoch(SlotNumber(0), 2**6),  # GENESIS_EPOCH=slot_to_epoch(GENESIS_SLOT)
     GENESIS_START_SHARD=ShardNumber(0),
     BLS_WITHDRAWAL_PREFIX_BYTE=b'\x00',
     # Time parameters
