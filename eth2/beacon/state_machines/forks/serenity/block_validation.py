@@ -15,6 +15,7 @@ from eth2.beacon.enums import (
     SignatureDomain,
 )
 from eth2.beacon.helpers import (
+    get_epoch_start_slot,
     get_attestation_participants,
     get_beacon_proposer_index,
     get_block_root,
@@ -118,9 +119,9 @@ def validate_attestation(state: BeaconState,
         min_attestation_inclusion_delay,
     )
 
-    validate_attestation_justified_slot(
+    validate_attestation_justified_epoch(
         attestation.data,
-        state.slot,
+        state.current_epoch(epoch_length),
         state.previous_justified_epoch,
         state.justified_epoch,
         epoch_length,
@@ -184,16 +185,16 @@ def validate_attestation_slot(attestation_data: AttestationData,
         )
 
 
-def validate_attestation_justified_slot(attestation_data: AttestationData,
-                                        current_slot: SlotNumber,
-                                        previous_justified_epoch: EpochNumber,
-                                        justified_epoch: EpochNumber,
-                                        epoch_length: int) -> None:
+def validate_attestation_justified_epoch(attestation_data: AttestationData,
+                                         current_epoch: EpochNumber,
+                                         previous_justified_epoch: EpochNumber,
+                                         justified_epoch: EpochNumber,
+                                         epoch_length: int) -> None:
     """
     Validate ``justified_epoch`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
     """
-    if attestation_data.slot >= current_slot - (current_slot % epoch_length):
+    if attestation_data.slot >= get_epoch_start_slot(current_epoch, epoch_length):
         if attestation_data.justified_epoch != justified_epoch:
             raise ValidationError(
                 "Attestation ``slot`` is after recent epoch transition but attestation"
