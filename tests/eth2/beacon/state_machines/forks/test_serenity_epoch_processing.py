@@ -341,14 +341,14 @@ def test_process_final_updates(genesis_state,
     ),
     [
         (
-            100,
+            90,
             10,
             9,
             10,
             False,
         ),
         (
-            100,
+            90,
             10,
             9,
             10,
@@ -368,10 +368,10 @@ def test_process_crosslinks(
         sample_attestation_params):
     shard = 1
     shard_block_root = hash_eth2(b'shard_block_root')
-    current_slot = config.EPOCH_LENGTH * 2
+    current_slot = config.EPOCH_LENGTH * 2 - 1
 
     initial_crosslinks = tuple([
-        CrosslinkRecord(slot=config.GENESIS_SLOT, shard_block_root=ZERO_HASH32)
+        CrosslinkRecord(epoch=config.GENESIS_EPOCH, shard_block_root=ZERO_HASH32)
         for _ in range(shard_count)
     ])
     state = n_validators_state.copy(
@@ -420,15 +420,16 @@ def test_process_crosslinks(
     state = state.copy(
         latest_attestations=cur_epoch_attestations,
     )
-    assert (state.latest_crosslinks[shard].slot == config.GENESIS_SLOT and
+    assert (state.latest_crosslinks[shard].epoch == config.GENESIS_EPOCH and
             state.latest_crosslinks[shard].shard_block_root == ZERO_HASH32)
 
     new_state = process_crosslinks(state, config)
     crosslink_record = new_state.latest_crosslinks[shard]
     if success_crosslink_in_cur_epoch:
         attestation = cur_epoch_attestations[0]
-        assert (crosslink_record.slot == current_slot and
-                crosslink_record.shard_block_root == attestation.data.shard_block_root)
+        assert (crosslink_record.epoch == slot_to_epoch(current_slot, epoch_length) and
+                crosslink_record.shard_block_root == attestation.data.shard_block_root and
+                attestation.data.shard_block_root == shard_block_root)
     else:
-        assert (crosslink_record.slot == config.GENESIS_SLOT and
+        assert (crosslink_record.epoch == config.GENESIS_EPOCH and
                 crosslink_record.shard_block_root == ZERO_HASH32)

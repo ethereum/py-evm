@@ -20,6 +20,8 @@ from eth2.beacon.helpers import (
     get_current_epoch_committee_count,
     get_current_epoch_attestations,
     get_effective_balance,
+    get_epoch_start_slot,
+    get_previous_epoch_attestations,
     get_winning_root,
 )
 from eth2.beacon.typing import ShardNumber
@@ -55,11 +57,21 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
     Return resulting ``state``
     """
     latest_crosslinks = state.latest_crosslinks
+    previous_epoch_attestations = get_previous_epoch_attestations(
+        state,
+        config.EPOCH_LENGTH,
+        config.GENESIS_EPOCH,
+    )
     current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
-    # TODO: STUB, in spec it was
-    # `for slot in range(state.slot - 2 * config.EPOCH_LENGTH, state.slot):``
-    # waiting for ethereum/eth2.0-specs#492 to update the spec
-    for slot in range(state.slot - 1 * config.EPOCH_LENGTH, state.slot):
+    prev_epoch_start_slot = get_epoch_start_slot(
+        state.previous_epoch(config.EPOCH_LENGTH, config.GENESIS_EPOCH),
+        config.EPOCH_LENGTH,
+    )
+    next_epoch_start_slot = get_epoch_start_slot(
+        state.next_epoch(config.EPOCH_LENGTH),
+        config.EPOCH_LENGTH,
+    )
+    for slot in range(prev_epoch_start_slot, next_epoch_start_slot):
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
             state,
             slot,
@@ -76,7 +88,10 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                     # Use `_filter_attestations_by_shard` to filter out attestations
                     # not attesting to this shard so we don't need to going over
                     # irrelevent attestations over and over again.
-                    attestations=_filter_attestations_by_shard(current_epoch_attestations, shard),
+                    attestations=_filter_attestations_by_shard(
+                        previous_epoch_attestations + current_epoch_attestations,
+                        shard,
+                    ),
                     genesis_epoch=config.GENESIS_EPOCH,
                     epoch_length=config.EPOCH_LENGTH,
                     max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,

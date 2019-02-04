@@ -37,7 +37,7 @@ class SerenityStateTransition(BaseStateTransition):
             state = self.per_slot_transition(state, block.parent_root)
             if state.slot == block.slot:
                 state = self.per_block_transition(state, block, check_proposer_signature)
-            if state.slot % self.config.EPOCH_LENGTH == 0:
+            if (state.slot + 1) % self.config.EPOCH_LENGTH == 0:
                 state = self.per_epoch_transition(state, block)
 
         return state
