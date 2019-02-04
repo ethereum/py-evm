@@ -131,7 +131,7 @@ def validate_attestation(state: BeaconState,
         attestation.data,
         justified_block_root=get_block_root(
             state=state,
-            slot=attestation.data.justified_epoch,
+            slot=get_epoch_start_slot(attestation.data.justified_epoch, epoch_length),
             latest_block_roots_length=latest_block_roots_length,
         ),
     )

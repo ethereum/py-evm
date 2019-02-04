@@ -166,10 +166,11 @@ def get_shuffling(*,
     Return a list of ``committee_per_epoch`` committees where each
     committee is itself a list of validator indices.
 
-    If ``get_shuffling(seed, validators, epoch)`` returns some value ``x``, it should return
-    the same value ``x`` for the same ``seed`` and ``epoch`` and possible future modifications of
-    ``validators`` forever in phase 0, and until the ~1 year deletion delay in phase 2 and in the
-    future.
+    If ``get_shuffling(seed, validators, epoch)`` returns some value ``x`` for some
+    ``epoch <= get_current_epoch(state) + ENTRY_EXIT_DELAY``, it should return the
+    same value ``x`` for the same ``seed`` and ``epoch`` and possible future modifications
+    of ``validators`` forever in phase 0, and until the ~1 year deletion delay in phase 2
+    and in the future.
     """
     active_validator_indices = get_active_validator_indices(validators, epoch)
 
@@ -249,6 +250,7 @@ def get_crosslink_committees_at_slot(
         epoch_length=epoch_length,
     )
 
+    # TODO: need to update according to https://github.com/ethereum/eth2.0-specs/pull/520
     if epoch < current_epoch:
         committees_per_epoch = get_previous_epoch_committee_count(
             state=state,

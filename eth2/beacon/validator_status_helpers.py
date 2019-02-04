@@ -67,13 +67,13 @@ def exit_validator(state: BeaconState,
     """
     validator = state.validator_registry[index]
 
-    entry_exit_effect_slot = get_entry_exit_effect_epoch(
+    entry_exit_effect_epoch = get_entry_exit_effect_epoch(
         state.current_epoch(epoch_length),
         entry_exit_delay,
     )
 
     # The following updates only occur if not previous exited
-    if validator.exit_epoch <= entry_exit_effect_slot:
+    if validator.exit_epoch <= entry_exit_effect_epoch:
         return state
 
     # Update state.validator_registry_exit_count
