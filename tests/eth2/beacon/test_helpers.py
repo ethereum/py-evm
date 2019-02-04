@@ -1448,6 +1448,7 @@ def test_generate_seed(monkeypatch,
                        genesis_state,
                        epoch_length,
                        seed_lookahead,
+                       entry_exit_delay,
                        latest_index_roots_length,
                        latest_randao_mixes_length):
     from eth2.beacon import helpers
@@ -1465,6 +1466,7 @@ def test_generate_seed(monkeypatch,
     def mock_get_active_index_root(state,
                                    epoch,
                                    epoch_length,
+                                   entry_exit_delay,
                                    latest_index_roots_length):
         return hash_eth2(
             state.root +
@@ -1492,6 +1494,7 @@ def test_generate_seed(monkeypatch,
         epoch=epoch,
         epoch_length=epoch_length,
         seed_lookahead=seed_lookahead,
+        entry_exit_delay=entry_exit_delay,
         latest_index_roots_length=latest_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
     )
@@ -1505,6 +1508,7 @@ def test_generate_seed(monkeypatch,
             state=state,
             epoch=epoch,
             epoch_length=epoch_length,
+            entry_exit_delay=entry_exit_delay,
             latest_index_roots_length=latest_index_roots_length,
         )
     )

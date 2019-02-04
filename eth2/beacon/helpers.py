@@ -296,6 +296,7 @@ def get_crosslink_committees_at_slot(
 def get_active_index_root(state: 'BeaconState',
                           epoch: EpochNumber,
                           epoch_length: int,
+                          entry_exit_delay: int,
                           latest_index_roots_length: int) -> Hash32:
     """
     Return the index root at a recent ``epoch``.
@@ -303,6 +304,7 @@ def get_active_index_root(state: 'BeaconState',
     validate_epoch_for_active_index_root(
         state.current_epoch(epoch_length),
         epoch,
+        entry_exit_delay,
         latest_index_roots_length,
     )
 
@@ -313,6 +315,7 @@ def generate_seed(state: 'BeaconState',
                   epoch: EpochNumber,
                   epoch_length: int,
                   seed_lookahead: int,
+                  entry_exit_delay: int,
                   latest_index_roots_length: int,
                   latest_randao_mixes_length: int) -> Hash32:
     """
@@ -328,6 +331,7 @@ def generate_seed(state: 'BeaconState',
         state=state,
         epoch=epoch,
         epoch_length=epoch_length,
+        entry_exit_delay=entry_exit_delay,
         latest_index_roots_length=latest_index_roots_length,
     )
 

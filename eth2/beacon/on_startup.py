@@ -194,6 +194,7 @@ def get_initial_beacon_state(*,
         epoch=genesis_epoch,
         epoch_length=epoch_length,
         seed_lookahead=seed_lookahead,
+        entry_exit_delay=entry_exit_delay,
         latest_index_roots_length=latest_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
     )

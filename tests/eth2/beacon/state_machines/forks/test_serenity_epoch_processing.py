@@ -204,6 +204,7 @@ def test_process_validator_registry(monkeypatch,
                                     current_calculation_epoch,
                                     latest_randao_mixes,
                                     expected_current_calculation_epoch,
+                                    entry_exit_delay,
                                     config):
     # Mock check_if_update_validator_registry
     from eth2.beacon.state_machines.forks.serenity import epoch_processing
@@ -224,6 +225,7 @@ def test_process_validator_registry(monkeypatch,
                            epoch,
                            epoch_length,
                            seed_lookahead,
+                           entry_exit_delay,
                            latest_index_roots_length,
                            latest_randao_mixes_length):
         return new_seed
