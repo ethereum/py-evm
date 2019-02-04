@@ -22,7 +22,9 @@ from eth2.beacon.helpers import (
     get_effective_balance,
     get_epoch_start_slot,
     get_previous_epoch_attestations,
+    get_randao_mix,
     get_winning_root,
+    slot_to_epoch,
 )
 from eth2.beacon.typing import ShardNumber
 from eth2.beacon._utils.hash import (
@@ -137,7 +139,7 @@ def _check_if_update_validator_registry(state: BeaconState,
         shard_count=config.SHARD_COUNT,
         epoch_length=config.EPOCH_LENGTH,
         target_committee_size=config.TARGET_COMMITTEE_SIZE,
-    ) * config.EPOCH_LENGTH
+    )
 
     # Get every shard in the current committees
     shards = set(
@@ -166,7 +168,7 @@ def _update_latest_index_roots(state: BeaconState,
     # TODO: chanege to hash_tree_root
     active_validator_indices = get_active_validator_indices(
         state.validator_registry,
-        state.current_epoch(config.EPOCH_LENGTH),
+        next_epoch,
     )
     index_root = hash_eth2(
         b''.join(
@@ -205,7 +207,7 @@ def process_validator_registry(state: BeaconState,
         # Update step-by-step since updated `state.current_calculation_epoch`
         # is used to calculate other value). Follow the spec tightly now.
         state = state.copy(
-            current_calculation_epoch=state.current_epoch(config.EPOCH_LENGTH),
+            current_calculation_epoch=state.next_epoch(config.EPOCH_LENGTH),
         )
         state = state.copy(
             current_epoch_start_shard=(
@@ -234,7 +236,7 @@ def process_validator_registry(state: BeaconState,
             # Update step-by-step since updated `state.current_calculation_epoch`
             # is used to calculate other value). Follow the spec tightly now.
             state = state.copy(
-                current_calculation_epoch=state.current_epoch(config.EPOCH_LENGTH),
+                current_calculation_epoch=state.next_epoch(config.EPOCH_LENGTH),
             )
 
             # The `helpers.generate_seed` function is only present to provide an entry point
@@ -261,9 +263,10 @@ def process_validator_registry(state: BeaconState,
 #
 def process_final_updates(state: BeaconState,
                           config: BeaconConfig) -> BeaconState:
-    epoch = state.slot // config.EPOCH_LENGTH
-    current_index = (epoch + 1) % config.LATEST_PENALIZED_EXIT_LENGTH
-    previous_index = epoch % config.LATEST_PENALIZED_EXIT_LENGTH
+    current_epoch = state.current_epoch(config.EPOCH_LENGTH)
+    next_epoch = state.next_epoch(config.EPOCH_LENGTH)
+    previous_index = current_epoch % config.LATEST_PENALIZED_EXIT_LENGTH
+    current_index = next_epoch % config.LATEST_PENALIZED_EXIT_LENGTH
 
     state = state.copy(
         latest_penalized_balances=update_tuple_item(
@@ -271,12 +274,23 @@ def process_final_updates(state: BeaconState,
             current_index,
             state.latest_penalized_balances[previous_index],
         ),
+        latest_randao_mixes=update_tuple_item(
+            state.latest_randao_mixes,
+            current_index,
+            get_randao_mix(
+                state=state,
+                epoch=current_epoch,
+                epoch_length=config.EPOCH_LENGTH,
+                latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
+            ),
+        ),
     )
 
-    epoch_start = state.slot - config.EPOCH_LENGTH
     latest_attestations = tuple(
         filter(
-            lambda attestation: attestation.data.slot >= epoch_start,
+            lambda attestation: (
+                slot_to_epoch(attestation.data.slot, config.EPOCH_LENGTH) >= current_epoch
+            ),
             state.latest_attestations
         )
     )
