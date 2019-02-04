@@ -726,6 +726,7 @@ def test_get_attesting_validator_indices(
 @given(random=st.randoms())
 def test_get_current_and_previous_epoch_attestations(random,
                                                      sample_state,
+                                                     genesis_epoch,
                                                      epoch_length,
                                                      sample_attestation_data_params,
                                                      sample_attestation_params):
@@ -762,11 +763,11 @@ def test_get_current_and_previous_epoch_attestations(random,
         )
 
     state = sample_state.copy(
-        slot=(epoch_length * 2),
+        slot=(epoch_length * 2 - 1),
         latest_attestations=(previous_epoch_attestations + current_epoch_attestations),
     )
     assert set(previous_epoch_attestations) == set(
-        get_previous_epoch_attestations(state, epoch_length))
+        get_previous_epoch_attestations(state, epoch_length, genesis_epoch))
     assert set(current_epoch_attestations) == set(
         get_current_epoch_attestations(state, epoch_length))
 

@@ -434,25 +434,19 @@ def get_attestation_participants(state: 'BeaconState',
 def get_current_epoch_attestations(
         state: 'BeaconState',
         epoch_length: int) -> Iterable[PendingAttestationRecord]:
-    """
-    Note that this function should only be called at epoch boundaries as
-    it's computed based on current slot number.
-    """
     for attestation in state.latest_attestations:
-        if state.slot - epoch_length <= attestation.data.slot < state.slot:
+        if state.current_epoch(epoch_length) == slot_to_epoch(attestation.data.slot, epoch_length):
             yield attestation
 
 
 @to_tuple
 def get_previous_epoch_attestations(
         state: 'BeaconState',
-        epoch_length: int) -> Iterable[PendingAttestationRecord]:
-    """
-    Note that this function should only be called at epoch boundaries as
-    it's computed based on current slot number.
-    """
+        epoch_length: int,
+        genesis_epoch: EpochNumber) -> Iterable[PendingAttestationRecord]:
     for attestation in state.latest_attestations:
-        if state.slot - 2 * epoch_length <= attestation.data.slot < state.slot - epoch_length:
+        if (state.previous_epoch(epoch_length, genesis_epoch) ==
+                slot_to_epoch(attestation.data.slot, epoch_length)):
             yield attestation
 
 
