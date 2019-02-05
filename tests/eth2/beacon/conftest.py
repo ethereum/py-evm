@@ -11,7 +11,7 @@ import eth2._utils.bls as bls
 from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
-    FAR_FUTURE_SLOT,
+    FAR_FUTURE_EPOCH,
 )
 
 from eth2.beacon.types.attestation_data import AttestationData
@@ -101,7 +101,7 @@ def sample_attestation_data_params():
         'epoch_boundary_root': b'\x22' * 32,
         'shard_block_root': b'\x33' * 32,
         'latest_crosslink_root': b'\x44' * 32,
-        'justified_slot': 5,
+        'justified_epoch': 0,
         'justified_block_root': b'\x55' * 32,
     }
 
@@ -150,7 +150,7 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'fork': Fork(**sample_fork_params),
         'validator_registry': (),
         'validator_balances': (),
-        'validator_registry_update_slot': 10,
+        'validator_registry_update_epoch': 0,
         'validator_registry_exit_count': 10,
         'latest_randao_mixes': (),
         'latest_vdf_outputs': (),
@@ -158,15 +158,15 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'persistent_committee_reassignments': (),
         'previous_epoch_start_shard': 1,
         'current_epoch_start_shard': 2,
-        'previous_epoch_calculation_slot': 5,
-        'current_epoch_calculation_slot': 10,
+        'previous_calculation_epoch': 0,
+        'current_calculation_epoch': 0,
         'previous_epoch_seed': b'\x77' * 32,
         'current_epoch_seed': b'\x88' * 32,
         'custody_challenges': (),
-        'previous_justified_slot': 0,
-        'justified_slot': 0,
+        'previous_justified_epoch': 0,
+        'justified_epoch': 0,
         'justification_bitfield': 0,
-        'finalized_slot': 0,
+        'finalized_epoch': 0,
         'latest_crosslinks': (),
         'latest_block_roots': (),
         'latest_index_roots': (),
@@ -197,7 +197,7 @@ def sample_eth1_data_vote_params(sample_eth1_data_params):
 @pytest.fixture
 def sample_crosslink_record_params():
     return {
-        'slot': 0,
+        'epoch': 0,
         'shard_block_root': b'\x43' * 32,
     }
 
@@ -234,7 +234,7 @@ def sample_deposit_params(sample_deposit_data_params):
 @pytest.fixture
 def sample_exit_params():
     return {
-        'slot': 123,
+        'epoch': 123,
         'validator_index': 15,
         'signature': EMPTY_SIGNATURE,
     }
@@ -245,7 +245,7 @@ def sample_fork_params():
     return {
         'previous_version': 0,
         'current_version': 0,
-        'slot': 2**64 - 1,
+        'epoch': 2**64 - 1,
     }
 
 
@@ -312,10 +312,10 @@ def sample_validator_record_params():
         'withdrawal_credentials': b'\x01' * 32,
         'randao_commitment': b'\x01' * 32,
         'randao_layers': 1,
-        'activation_slot': FAR_FUTURE_SLOT,
-        'exit_slot': FAR_FUTURE_SLOT,
-        'withdrawal_slot': FAR_FUTURE_SLOT,
-        'penalized_slot': FAR_FUTURE_SLOT,
+        'activation_epoch': FAR_FUTURE_EPOCH,
+        'exit_epoch': FAR_FUTURE_EPOCH,
+        'withdrawal_epoch': FAR_FUTURE_EPOCH,
+        'penalized_epoch': FAR_FUTURE_EPOCH,
         'exit_count': 0,
         'status_flags': 0,
         'custody_commitment': ZERO_HASH32,
@@ -325,7 +325,8 @@ def sample_validator_record_params():
 
 
 @pytest.fixture
-def filled_beacon_state(genesis_slot,
+def filled_beacon_state(genesis_epoch,
+                        genesis_slot,
                         genesis_start_shard,
                         shard_count,
                         latest_block_roots_length,
@@ -333,6 +334,7 @@ def filled_beacon_state(genesis_slot,
                         latest_randao_mixes_length,
                         latest_penalized_exit_length):
     return BeaconState.create_filled_state(
+        genesis_epoch=genesis_epoch,
         genesis_start_shard=genesis_start_shard,
         genesis_slot=genesis_slot,
         shard_count=shard_count,
@@ -475,6 +477,11 @@ def genesis_slot():
 
 
 @pytest.fixture
+def genesis_epoch():
+    return SERENITY_CONFIG.GENESIS_EPOCH
+
+
+@pytest.fixture
 def genesis_start_shard():
     return SERENITY_CONFIG.GENESIS_START_SHARD
 
@@ -573,7 +580,7 @@ def genesis_state(filled_beacon_state,
                   genesis_balances,
                   epoch_length,
                   target_committee_size,
-                  genesis_slot,
+                  genesis_epoch,
                   shard_count,
                   latest_block_roots_length,
                   latest_penalized_exit_length,
@@ -585,7 +592,7 @@ def genesis_state(filled_beacon_state,
         latest_penalized_balances=(0,) * latest_penalized_exit_length,
         latest_crosslinks=tuple(
             CrosslinkRecord(
-                slot=genesis_slot,
+                epoch=genesis_epoch,
                 shard_block_root=ZERO_HASH32,
             )
             for _ in range(shard_count)
@@ -627,12 +634,12 @@ def initial_validators(init_validator_pubkeys,
 
 @to_tuple
 @pytest.fixture
-def activated_genesis_validators(initial_validators, genesis_slot):
+def activated_genesis_validators(initial_validators, genesis_epoch):
     """
     Active
     """
     for validator in initial_validators:
-        yield validator.copy(activation_slot=genesis_slot)
+        yield validator.copy(activation_epoch=genesis_epoch)
 
 
 @pytest.fixture
@@ -665,6 +672,7 @@ def config(
         max_deposit_amount,
         genesis_fork_version,
         genesis_slot,
+        genesis_epoch,
         genesis_start_shard,
         bls_withdrawal_prefix_byte,
         slot_duration,
@@ -701,6 +709,7 @@ def config(
         MAX_DEPOSIT_AMOUNT=max_deposit_amount,
         GENESIS_FORK_VERSION=genesis_fork_version,
         GENESIS_SLOT=genesis_slot,
+        GENESIS_EPOCH=genesis_epoch,
         GENESIS_START_SHARD=genesis_start_shard,
         BLS_WITHDRAWAL_PREFIX_BYTE=bls_withdrawal_prefix_byte,
         SLOT_DURATION=slot_duration,

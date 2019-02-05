@@ -52,10 +52,12 @@ def test_get_initial_beacon_state(
         privkeys,
         pubkeys,
         num_validators,
+        genesis_epoch,
         genesis_slot,
         genesis_fork_version,
         genesis_start_shard,
         shard_count,
+        seed_lookahead,
         latest_block_roots_length,
         latest_index_roots_length,
         epoch_length,
@@ -70,7 +72,7 @@ def test_get_initial_beacon_state(
     fork = Fork(
         previous_version=genesis_fork_version,
         current_version=genesis_fork_version,
-        slot=genesis_slot,
+        epoch=genesis_epoch,
     )
 
     validator_count = 5
@@ -98,6 +100,7 @@ def test_get_initial_beacon_state(
                         privkey=privkeys[i],
                         fork=fork,
                         slot=genesis_slot,
+                        epoch_length=epoch_length,
                     ),
                 ),
                 amount=max_deposit_amount,
@@ -113,10 +116,12 @@ def test_get_initial_beacon_state(
         initial_validator_deposits=initial_validator_deposits,
         genesis_time=genesis_time,
         latest_eth1_data=latest_eth1_data,
+        genesis_epoch=genesis_epoch,
         genesis_slot=genesis_slot,
         genesis_fork_version=genesis_fork_version,
         genesis_start_shard=genesis_start_shard,
         shard_count=shard_count,
+        seed_lookahead=seed_lookahead,
         latest_block_roots_length=latest_block_roots_length,
         latest_index_roots_length=latest_index_roots_length,
         epoch_length=epoch_length,
@@ -131,12 +136,12 @@ def test_get_initial_beacon_state(
     assert state.genesis_time == genesis_time
     assert state.fork.previous_version == genesis_fork_version
     assert state.fork.current_version == genesis_fork_version
-    assert state.fork.slot == genesis_slot
+    assert state.fork.epoch == genesis_epoch
 
     # Validator registry
     assert len(state.validator_registry) == validator_count
     assert len(state.validator_balances) == validator_count
-    assert state.validator_registry_update_slot == genesis_slot
+    assert state.validator_registry_update_epoch == genesis_epoch
     assert state.validator_registry_exit_count == 0
 
     # Randomness and committees
@@ -148,24 +153,23 @@ def test_get_initial_beacon_state(
     assert len(state.persistent_committee_reassignments) == 0
     assert state.previous_epoch_start_shard == genesis_start_shard
     assert state.current_epoch_start_shard == genesis_start_shard
-    assert state.previous_epoch_calculation_slot == genesis_slot
-    assert state.current_epoch_calculation_slot == genesis_slot
+    assert state.previous_calculation_epoch == genesis_epoch
+    assert state.current_calculation_epoch == genesis_epoch
     assert state.previous_epoch_seed == ZERO_HASH32
-    assert state.current_epoch_seed == ZERO_HASH32
 
     # Custody challenges
     assert len(state.custody_challenges) == 0
 
     # Finality
-    assert state.previous_justified_slot == genesis_slot
-    assert state.justified_slot == genesis_slot
+    assert state.previous_justified_epoch == genesis_epoch
+    assert state.justified_epoch == genesis_epoch
     assert state.justification_bitfield == 0
-    assert state.finalized_slot == genesis_slot
+    assert state.finalized_epoch == genesis_epoch
 
     # Recent state
     assert len(state.latest_crosslinks) == shard_count
     assert state.latest_crosslinks[0] == CrosslinkRecord(
-        slot=genesis_slot,
+        epoch=genesis_epoch,
         shard_block_root=ZERO_HASH32,
     )
     assert len(state.latest_block_roots) == latest_block_roots_length
@@ -180,4 +184,4 @@ def test_get_initial_beacon_state(
     assert state.latest_eth1_data == latest_eth1_data
     assert len(state.eth1_data_votes) == 0
 
-    assert state.validator_registry[0].is_active(genesis_slot)
+    assert state.validator_registry[0].is_active(genesis_epoch)

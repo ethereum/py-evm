@@ -18,6 +18,7 @@ from eth2.beacon.exceptions import (
 from eth2.beacon.helpers import (
     get_beacon_proposer_index,
     get_domain,
+    slot_to_epoch,
 )
 
 from eth2.beacon.state_machines.base import (
@@ -50,6 +51,7 @@ def validate_proposer_index(state: BeaconState,
             slot=slot,
         ),
         slot,
+        config.GENESIS_EPOCH,
         config.EPOCH_LENGTH,
         config.TARGET_COMMITTEE_SIZE,
         config.SHARD_COUNT,
@@ -109,7 +111,7 @@ def create_block_on_state(
     ).root
     domain = get_domain(
         state.fork,
-        slot,
+        slot_to_epoch(slot, config.EPOCH_LENGTH),
         SignatureDomain.DOMAIN_PROPOSAL,
     )
     block = block.copy(
@@ -142,6 +144,7 @@ def create_mock_block(*,
             slot=slot,
         ),
         slot,
+        config.GENESIS_EPOCH,
         config.EPOCH_LENGTH,
         config.TARGET_COMMITTEE_SIZE,
         config.SHARD_COUNT,

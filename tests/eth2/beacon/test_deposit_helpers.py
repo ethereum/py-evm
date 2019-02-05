@@ -47,7 +47,12 @@ def test_add_pending_validator(sample_beacon_state_params,
         (ValidationError),
     ),
 )
-def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privkeys, expected):
+def test_validate_proof_of_possession(
+        epoch_length,
+        sample_beacon_state_params,
+        pubkeys,
+        privkeys,
+        expected):
     state = BeaconState(**sample_beacon_state_params)
 
     privkey = privkeys[0]
@@ -68,6 +73,7 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
             privkey,
             state.fork,
             state.slot,
+            epoch_length,
         )
 
         validate_proof_of_possession(
@@ -77,6 +83,7 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             custody_commitment=custody_commitment,
+            epoch_length=epoch_length,
         )
     else:
         proof_of_possession = b'\x11' * 96
@@ -88,10 +95,12 @@ def test_validate_proof_of_possession(sample_beacon_state_params, pubkeys, privk
                 withdrawal_credentials=withdrawal_credentials,
                 randao_commitment=randao_commitment,
                 custody_commitment=custody_commitment,
+                epoch_length=epoch_length,
             )
 
 
-def test_process_deposit(sample_beacon_state_params,
+def test_process_deposit(epoch_length,
+                         sample_beacon_state_params,
                          privkeys,
                          pubkeys,
                          max_deposit_amount):
@@ -118,6 +127,7 @@ def test_process_deposit(sample_beacon_state_params,
         privkey_1,
         state.fork,
         state.slot,
+        epoch_length,
     )
 
     # Add the first validator
@@ -129,6 +139,7 @@ def test_process_deposit(sample_beacon_state_params,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
         custody_commitment=custody_commitment,
+        epoch_length=epoch_length,
     )
 
     assert len(result_state.validator_registry) == 1
@@ -154,6 +165,7 @@ def test_process_deposit(sample_beacon_state_params,
         privkey_2,
         state.fork,
         state.slot,
+        epoch_length,
     )
     result_state = process_deposit(
         state=result_state,
@@ -163,6 +175,7 @@ def test_process_deposit(sample_beacon_state_params,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
         custody_commitment=custody_commitment,
+        epoch_length=epoch_length,
     )
     assert len(result_state.validator_registry) == 2
     assert result_state.validator_registry[1].pubkey == pubkey_2

@@ -1,14 +1,14 @@
 import pytest
 
 from eth2.beacon.constants import (
-    FAR_FUTURE_SLOT,
+    FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.enums import (
     ValidatorStatusFlags,
 )
 from eth2.beacon.helpers import (
     get_beacon_proposer_index,
-    get_entry_exit_effect_slot,
+    get_entry_exit_effect_epoch,
 )
 from eth2.beacon.validator_status_helpers import (
     _settle_penality_to_validator_and_whistleblower,
@@ -39,7 +39,7 @@ from tests.eth2.beacon.helpers import (
 )
 def test_activate_validator(is_genesis,
                             filled_beacon_state,
-                            genesis_slot,
+                            genesis_epoch,
                             epoch_length,
                             entry_exit_delay,
                             max_deposit_amount):
@@ -56,24 +56,26 @@ def test_activate_validator(is_genesis,
     )
     index = 1
     # Check that the `index`th validator in `state` is inactivated
-    assert state.validator_registry[index].activation_slot == FAR_FUTURE_SLOT
+    assert state.validator_registry[index].activation_epoch == FAR_FUTURE_EPOCH
 
     result_state = activate_validator(
         state=state,
         index=index,
         is_genesis=is_genesis,
-        genesis_slot=genesis_slot,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         entry_exit_delay=entry_exit_delay,
     )
 
     if is_genesis:
-        assert result_state.validator_registry[index].activation_slot == genesis_slot
+        assert result_state.validator_registry[index].activation_epoch == genesis_epoch
     else:
-        assert result_state.validator_registry[index].activation_slot == get_entry_exit_effect_slot(
-            state.slot,
-            epoch_length,
-            entry_exit_delay,
+        assert (
+            result_state.validator_registry[index].activation_epoch ==
+            get_entry_exit_effect_epoch(
+                state.current_epoch(epoch_length),
+                entry_exit_delay,
+            )
         )
 
 
@@ -101,7 +103,7 @@ def test_initiate_validator_exit(n_validators_state):
         'entry_exit_delay',
         'committee',
         'state_slot',
-        'exit_slot',
+        'exit_epoch',
         'validator_registry_exit_count',
     ),
     [
@@ -136,7 +138,7 @@ def test_exit_validator(num_validators,
                         entry_exit_delay,
                         committee,
                         state_slot,
-                        exit_slot,
+                        exit_epoch,
                         validator_registry_exit_count,
                         n_validators_state,
                         epoch_length):
@@ -147,9 +149,9 @@ def test_exit_validator(num_validators,
     )
     index = 1
 
-    # Set validator `exit_slot` prior to running `exit_validator`
+    # Set validator `exit_epoch` prior to running `exit_validator`
     validator = state.validator_registry[index].copy(
-        exit_slot=exit_slot,
+        exit_epoch=exit_epoch,
     )
     state = state.update_validator_registry(
         validator_index=index,
@@ -161,14 +163,14 @@ def test_exit_validator(num_validators,
         epoch_length=epoch_length,
         entry_exit_delay=entry_exit_delay,
     )
-    if validator.exit_slot <= state.slot + entry_exit_delay:
+    if validator.exit_epoch <= state.current_epoch(epoch_length) + entry_exit_delay:
         assert state == result_state
         return
     else:
-        assert validator.exit_slot > state.slot + entry_exit_delay
+        assert validator.exit_epoch > state.current_epoch(epoch_length) + entry_exit_delay
         result_validator = result_state.validator_registry[index]
         assert result_state.validator_registry_exit_count == validator_registry_exit_count + 1
-        assert result_validator.exit_slot == state.slot + entry_exit_delay
+        assert result_validator.exit_epoch == state.current_epoch(epoch_length) + entry_exit_delay
         assert result_validator.exit_count == result_state.validator_registry_exit_count
 
 
@@ -186,6 +188,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
                                                         n_validators_state,
                                                         latest_penalized_exit_length,
                                                         whistleblower_reward_quotient,
+                                                        genesis_epoch,
                                                         epoch_length,
                                                         max_deposit_amount,
                                                         target_committee_size,
@@ -194,6 +197,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
+                                              genesis_epoch,
                                               epoch_length,
                                               target_committee_size,
                                               shard_count):
@@ -212,6 +216,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
     whistleblower_index = get_beacon_proposer_index(
         state,
         state.slot,
+        genesis_epoch,
         epoch_length,
         target_committee_size,
         shard_count,
@@ -230,6 +235,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
         validator_index=validator_index,
         latest_penalized_exit_length=latest_penalized_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         max_deposit_amount=max_deposit_amount,
         target_committee_size=target_committee_size,
@@ -238,7 +244,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
 
     # Check `state.latest_penalized_balances`
     latest_penalized_balances_list = list(state.latest_penalized_balances)
-    last_penalized_epoch = (state.slot // epoch_length) % latest_penalized_exit_length
+    last_penalized_epoch = state.current_epoch(epoch_length) % latest_penalized_exit_length
     latest_penalized_balances_list[last_penalized_epoch] = max_deposit_amount
     latest_penalized_balances = tuple(latest_penalized_balances_list)
 
@@ -267,6 +273,7 @@ def test_penalize_validator(monkeypatch,
                             num_validators,
                             committee,
                             n_validators_state,
+                            genesis_epoch,
                             epoch_length,
                             latest_penalized_exit_length,
                             whistleblower_reward_quotient,
@@ -278,6 +285,7 @@ def test_penalize_validator(monkeypatch,
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
+                                              genesis_epoch,
                                               epoch_length,
                                               target_committee_size,
                                               shard_count):
@@ -297,6 +305,7 @@ def test_penalize_validator(monkeypatch,
     result_state = penalize_validator(
         state=state,
         index=index,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         latest_penalized_exit_length=latest_penalized_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
@@ -313,6 +322,7 @@ def test_penalize_validator(monkeypatch,
         validator_index=index,
         latest_penalized_exit_length=latest_penalized_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         max_deposit_amount=max_deposit_amount,
         target_committee_size=target_committee_size,

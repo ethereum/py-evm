@@ -4,13 +4,14 @@ from eth.constants import (
 from eth2.beacon.constants import (
     GWEI_PER_ETH,
 )
-from eth2.beacon.state_machines.configs import BeaconConfig
+from eth2.beacon.helpers import slot_to_epoch
 from eth2.beacon.typing import (
     Gwei,
     Second,
     ShardNumber,
     SlotNumber,
 )
+from eth2.beacon.state_machines.configs import BeaconConfig
 
 
 SERENITY_CONFIG = BeaconConfig(
@@ -21,10 +22,10 @@ SERENITY_CONFIG = BeaconConfig(
     MAX_BALANCE_CHURN_QUOTIENT=2**5,  # (= 32)
     BEACON_CHAIN_SHARD_NUMBER=ShardNumber(2**64 - 1),
     MAX_INDICES_PER_SLASHABLE_VOTE=2**12,  # (= 4,096) votes
-    LATEST_BLOCK_ROOTS_LENGTH=2**13,  # (= 8,192) block roots
-    LATEST_INDEX_ROOTS_LENGTH=2**13,  # (= 8,192) index roots
-    LATEST_RANDAO_MIXES_LENGTH=2**13,  # (= 8,192) randao mixes
-    LATEST_PENALIZED_EXIT_LENGTH=2**13,  # (= 8,192) randao mixes
+    LATEST_BLOCK_ROOTS_LENGTH=2**13,  # (= 8,192) slots
+    LATEST_INDEX_ROOTS_LENGTH=2**13,  # (= 8,192) epochs
+    LATEST_RANDAO_MIXES_LENGTH=2**13,  # (= 8,192) epochs
+    LATEST_PENALIZED_EXIT_LENGTH=2**13,  # (= 8,192) epochs
     # Deposit contract
     DEPOSIT_CONTRACT_ADDRESS=ZERO_ADDRESS,  # TBD
     DEPOSIT_CONTRACT_TREE_DEPTH=2**5,  # (= 32)
@@ -33,16 +34,17 @@ SERENITY_CONFIG = BeaconConfig(
     # Initial values
     GENESIS_FORK_VERSION=0,
     GENESIS_SLOT=SlotNumber(0),
+    GENESIS_EPOCH=slot_to_epoch(SlotNumber(0), 2**6),  # GENESIS_EPOCH=slot_to_epoch(GENESIS_SLOT)
     GENESIS_START_SHARD=ShardNumber(0),
     BLS_WITHDRAWAL_PREFIX_BYTE=b'\x00',
     # Time parameters
     SLOT_DURATION=Second(6),  # seconds
     MIN_ATTESTATION_INCLUSION_DELAY=2**2,  # (= 4) slots
     EPOCH_LENGTH=2**6,  # (= 64) slots
-    SEED_LOOKAHEAD=2**6,  # (= 64) slots
-    ENTRY_EXIT_DELAY=2**8,  # (= 256) slots
-    ETH1_DATA_VOTING_PERIOD=2**10,  # (= 1,024) slots
-    MIN_VALIDATOR_WITHDRAWAL_TIME=2**14,  # (= 16,384) slots
+    SEED_LOOKAHEAD=2**0,  # (= 1) epochs
+    ENTRY_EXIT_DELAY=2**2,  # (= 4) epochs
+    ETH1_DATA_VOTING_PERIOD=2**4,  # (= 16) epochs
+    MIN_VALIDATOR_WITHDRAWAL_TIME=2**8,  # (= 256) epochs
     # Reward and penalty quotients
     BASE_REWARD_QUOTIENT=2**10,  # (= 1,024)
     WHISTLEBLOWER_REWARD_QUOTIENT=2**9,  # (= 512)

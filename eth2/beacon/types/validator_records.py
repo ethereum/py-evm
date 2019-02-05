@@ -11,11 +11,12 @@ from eth2.beacon.sedes import (
     hash32,
 )
 from eth2.beacon.constants import (
-    FAR_FUTURE_SLOT,
+    FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.typing import (
-    SlotNumber,
+    EpochNumber,
     BLSPubkey,
+    SlotNumber,
 )
 
 
@@ -32,14 +33,14 @@ class ValidatorRecord(rlp.Serializable):
         ('randao_commitment', hash32),
         # Slot the proposer has skipped (ie. layers of RANDAO expected)
         ('randao_layers', uint64),
-        # Slot when validator activated
-        ('activation_slot', uint64),
-        # Slot when validator exited
-        ('exit_slot', uint64),
-        # Slot when validator withdrew
-        ('withdrawal_slot', uint64),
-        # Slot when validator was penalized
-        ('penalized_slot', uint64),
+        # Epoch when validator activated
+        ('activation_epoch', uint64),
+        # Epoch when validator exited
+        ('exit_epoch', uint64),
+        # Epoch when validator withdrew
+        ('withdrawal_epoch', uint64),
+        # Epoch when validator was penalized
+        ('penalized_epoch', uint64),
         # Exit counter when validator exited
         ('exit_count', uint64),
         # Status flags
@@ -57,10 +58,10 @@ class ValidatorRecord(rlp.Serializable):
                  withdrawal_credentials: Hash32,
                  randao_commitment: Hash32,
                  randao_layers: int,
-                 activation_slot: SlotNumber,
-                 exit_slot: SlotNumber,
-                 withdrawal_slot: SlotNumber,
-                 penalized_slot: SlotNumber,
+                 activation_epoch: EpochNumber,
+                 exit_epoch: EpochNumber,
+                 withdrawal_epoch: EpochNumber,
+                 penalized_epoch: EpochNumber,
                  exit_count: int,
                  status_flags: int,
                  custody_commitment: Hash32,
@@ -71,10 +72,10 @@ class ValidatorRecord(rlp.Serializable):
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             randao_layers=randao_layers,
-            activation_slot=activation_slot,
-            exit_slot=exit_slot,
-            withdrawal_slot=withdrawal_slot,
-            penalized_slot=penalized_slot,
+            activation_epoch=activation_epoch,
+            exit_epoch=exit_epoch,
+            withdrawal_epoch=withdrawal_epoch,
+            penalized_epoch=penalized_epoch,
             exit_count=exit_count,
             status_flags=status_flags,
             custody_commitment=custody_commitment,
@@ -82,11 +83,11 @@ class ValidatorRecord(rlp.Serializable):
             penultimate_custody_reseed_slot=penultimate_custody_reseed_slot,
         )
 
-    def is_active(self, slot: int) -> bool:
+    def is_active(self, epoch: EpochNumber) -> bool:
         """
-        Return ``True`` if the validator is active during the slot, ``slot``.
+        Return ``True`` if the validator is active during the epoch, ``epoch``.
         """
-        return self.activation_slot <= slot < self.exit_slot
+        return self.activation_epoch <= epoch < self.exit_epoch
 
     @classmethod
     def create_pending_validator(cls,
@@ -102,10 +103,10 @@ class ValidatorRecord(rlp.Serializable):
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
             randao_layers=0,
-            activation_slot=FAR_FUTURE_SLOT,
-            exit_slot=FAR_FUTURE_SLOT,
-            withdrawal_slot=FAR_FUTURE_SLOT,
-            penalized_slot=FAR_FUTURE_SLOT,
+            activation_epoch=FAR_FUTURE_EPOCH,
+            exit_epoch=FAR_FUTURE_EPOCH,
+            withdrawal_epoch=FAR_FUTURE_EPOCH,
+            penalized_epoch=FAR_FUTURE_EPOCH,
             exit_count=0,
             status_flags=0,
             custody_commitment=custody_commitment,

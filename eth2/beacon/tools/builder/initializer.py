@@ -44,7 +44,7 @@ def create_mock_initial_validator_deposits(
     fork = Fork(
         previous_version=config.GENESIS_FORK_VERSION,
         current_version=config.GENESIS_FORK_VERSION,
-        slot=config.GENESIS_SLOT,
+        epoch=config.GENESIS_EPOCH,
     )
 
     initial_validator_deposits = tuple(
@@ -70,6 +70,7 @@ def create_mock_initial_validator_deposits(
                         privkey=keymap[pubkeys[i]],
                         fork=fork,
                         slot=config.GENESIS_SLOT,
+                        epoch_length=config.EPOCH_LENGTH,
                     ),
                 ),
                 amount=config.MAX_DEPOSIT_AMOUNT,
@@ -105,9 +106,11 @@ def create_mock_genesis(
         genesis_time=genesis_time,
         latest_eth1_data=latest_eth1_data,
         genesis_slot=config.GENESIS_SLOT,
+        genesis_epoch=config.GENESIS_EPOCH,
         genesis_fork_version=config.GENESIS_FORK_VERSION,
         genesis_start_shard=config.GENESIS_START_SHARD,
         shard_count=config.SHARD_COUNT,
+        seed_lookahead=config.SEED_LOOKAHEAD,
         latest_block_roots_length=config.LATEST_BLOCK_ROOTS_LENGTH,
         latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
         epoch_length=config.EPOCH_LENGTH,

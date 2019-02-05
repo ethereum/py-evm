@@ -30,6 +30,7 @@ from .helpers import (
 )
 
 from eth2.beacon.constants import EMPTY_SIGNATURE
+from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
 
 async def get_command_setup(request, event_loop):
@@ -166,7 +167,7 @@ async def test_send_single_attestation(request, event_loop):
             epoch_boundary_root=ZERO_HASH32,
             shard_block_root=ZERO_HASH32,
             latest_crosslink_root=ZERO_HASH32,
-            justified_slot=0,
+            justified_epoch=SERENITY_CONFIG.GENESIS_EPOCH,
             justified_block_root=ZERO_HASH32,
         ),
         aggregation_bitfield=b"\x00\x00\x00",
@@ -193,7 +194,7 @@ async def test_send_multiple_attestations(request, event_loop):
                 epoch_boundary_root=ZERO_HASH32,
                 shard_block_root=ZERO_HASH32,
                 latest_crosslink_root=ZERO_HASH32,
-                justified_slot=0,
+                justified_epoch=SERENITY_CONFIG.GENESIS_EPOCH,
                 justified_block_root=ZERO_HASH32,
             ),
             aggregation_bitfield=b"\x00\x00\x00",

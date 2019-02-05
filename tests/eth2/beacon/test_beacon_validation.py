@@ -6,7 +6,7 @@ from eth_utils import (
 
 from eth2.beacon.validation import (
     validate_slot,
-    validate_slot_for_state_slot,
+    validate_epoch_for_current_epoch,
 )
 
 
@@ -35,37 +35,44 @@ def test_validate_slot(slot, is_valid):
 
 @pytest.mark.parametrize(
     (
-        'state_slot, slot, epoch_length, success'
+        'current_epoch, epoch, success'
     ),
     [
         (
-            0, 0, 64, True,
+            0, 0, True,
         ),
         (
-            64 * 2, 64, 64, True,
+            1, 0, True,
         ),
         (
-            64 * 2, 64 - 1, 64, False,  # slot is too small
+            2, 0, False,  # epoch < previous_epoch
         ),
         (
-            64 * 2, 64 * 3 - 1, 64, True,
+            2, 2, True,
         ),
         (
-            64 * 2, 64 * 3, 64, False,  # slot is too large
+            2, 3, False,  # next_epoch == epoch
         ),
     ]
 )
-def test_validate_slot_for_state_slot(state_slot, slot, epoch_length, success):
+def test_validate_epoch_for_current_epoch(
+        current_epoch,
+        epoch,
+        success,
+        epoch_length,
+        genesis_epoch):
     if success:
-        validate_slot_for_state_slot(
-            state_slot=state_slot,
-            slot=slot,
+        validate_epoch_for_current_epoch(
+            current_epoch=current_epoch,
+            given_epoch=epoch,
+            genesis_epoch=genesis_epoch,
             epoch_length=epoch_length
         )
     else:
         with pytest.raises(ValidationError):
-            validate_slot_for_state_slot(
-                state_slot=state_slot,
-                slot=slot,
+            validate_epoch_for_current_epoch(
+                current_epoch=current_epoch,
+                given_epoch=epoch,
+                genesis_epoch=genesis_epoch,
                 epoch_length=epoch_length
             )

@@ -6,6 +6,7 @@ from eth.typing import (
     Address,
 )
 from eth2.beacon.typing import (
+    EpochNumber,
     Gwei,
     Second,
     ShardNumber,
@@ -37,6 +38,7 @@ BeaconConfig = NamedTuple(
         # Initial values
         ('GENESIS_FORK_VERSION', int),
         ('GENESIS_SLOT', SlotNumber),
+        ('GENESIS_EPOCH', EpochNumber),
         ('GENESIS_START_SHARD', ShardNumber),
         ('BLS_WITHDRAWAL_PREFIX_BYTE', bytes),
         # Time parameters

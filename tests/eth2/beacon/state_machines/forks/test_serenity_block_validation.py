@@ -64,16 +64,17 @@ def test_validate_block_slot(sample_beacon_state_params,
     )
 )
 def test_validate_proposer_signature(
+        epoch_length,
+        shard_count,
         proposer_privkey,
         proposer_pubkey,
         is_valid_signature,
         sample_beacon_block_params,
         sample_beacon_state_params,
         beacon_chain_shard_number,
-        epoch_length,
-        max_deposit_amount,
+        genesis_epoch,
         target_committee_size,
-        shard_count):
+        max_deposit_amount):
 
     state = BeaconState(**sample_beacon_state_params).copy(
         validator_registry=tuple(
@@ -105,6 +106,7 @@ def test_validate_proposer_signature(
             state,
             proposed_block,
             beacon_chain_shard_number,
+            genesis_epoch,
             epoch_length,
             target_committee_size,
             shard_count,
@@ -115,6 +117,7 @@ def test_validate_proposer_signature(
                 state,
                 proposed_block,
                 beacon_chain_shard_number,
+                genesis_epoch,
                 epoch_length,
                 target_committee_size,
                 shard_count

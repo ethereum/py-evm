@@ -19,7 +19,7 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation_aggregate_signature,
     validate_attestation_latest_crosslink_root,
     validate_attestation_justified_block_root,
-    validate_attestation_justified_slot,
+    validate_attestation_justified_epoch,
     validate_attestation_shard_block_root,
     validate_attestation_slot,
 )
@@ -76,51 +76,52 @@ def test_validate_attestation_slot(sample_attestation_data_params,
 @pytest.mark.parametrize(
     (
         'attestation_slot,'
-        'attestation_justified_slot,'
-        'current_slot,'
-        'previous_justified_slot,'
-        'justified_slot,'
+        'attestation_justified_epoch,'
+        'current_epoch,'
+        'previous_justified_epoch,'
+        'justified_epoch,'
         'epoch_length,'
         'is_valid,'
     ),
     [
-        (13, 5, 14, 0, 5, 5, True),
-        (13, 0, 14, 0, 5, 5, False),  # targeting previous_justified_slot, should be targeting justified_slot # noqa: E501
-        (13, 20, 14, 0, 5, 5, False),  # targeting future slot, should be targeting justified_slot
-        (29, 10, 30, 10, 20, 10, True),
-        (29, 20, 30, 10, 20, 10, False),  # targeting justified_slot, should be targeting previous_justified_slot # noqa: E501
-        (29, 36, 30, 10, 20, 10, False),  # targeting future slot,  should be targeting previous_justified_slot # noqa: E501
-        (10, 10, 10, 10, 10, 10, True),
+        (13, 1, 2, 0, 1, 5, True),
+        (13, 0, 2, 0, 1, 5, False),  # targeting previous_justified_epoch, should be targeting justified_epoch # noqa: E501
+        (13, 4, 2, 0, 1, 5, False),  # targeting future epoch, should be targeting justified_epoch
+        (29, 1, 3, 1, 2, 10, True),
+        (29, 2, 3, 1, 2, 10, False),  # targeting justified_epoch, should be targeting previous_justified_epoch # noqa: E501
+        (29, 3, 3, 1, 2, 10, False),  # targeting future epoch, should be targeting previous_justified_epoch # noqa: E501
+        (10, 1, 1, 1, 1, 10, True),
     ]
 )
-def test_validate_attestation_justified_slot(sample_attestation_data_params,
-                                             attestation_slot,
-                                             attestation_justified_slot,
-                                             current_slot,
-                                             previous_justified_slot,
-                                             justified_slot,
-                                             epoch_length,
-                                             is_valid):
+def test_validate_attestation_justified_epoch(
+        sample_attestation_data_params,
+        attestation_slot,
+        attestation_justified_epoch,
+        current_epoch,
+        previous_justified_epoch,
+        justified_epoch,
+        epoch_length,
+        is_valid):
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
         slot=attestation_slot,
-        justified_slot=attestation_justified_slot,
+        justified_epoch=attestation_justified_epoch,
     )
 
     if is_valid:
-        validate_attestation_justified_slot(
+        validate_attestation_justified_epoch(
             attestation_data,
-            current_slot,
-            previous_justified_slot,
-            justified_slot,
+            current_epoch,
+            previous_justified_epoch,
+            justified_epoch,
             epoch_length,
         )
     else:
         with pytest.raises(ValidationError):
-            validate_attestation_justified_slot(
+            validate_attestation_justified_epoch(
                 attestation_data,
-                current_slot,
-                previous_justified_slot,
-                justified_slot,
+                current_epoch,
+                previous_justified_epoch,
+                justified_epoch,
                 epoch_length,
             )
 
@@ -248,6 +249,7 @@ def test_validate_attestation_aggregate_signature(genesis_state,
                                                   random,
                                                   sample_attestation_data_params,
                                                   is_valid,
+                                                  genesis_epoch,
                                                   target_committee_size,
                                                   shard_count,
                                                   keymap):
@@ -258,6 +260,7 @@ def test_validate_attestation_aggregate_signature(genesis_state,
     crosslink_committee = get_crosslink_committees_at_slot(
         state=state,
         slot=slot,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
@@ -281,12 +284,14 @@ def test_validate_attestation_aggregate_signature(genesis_state,
         committee,
         votes_count,
         keymap,
+        epoch_length,
     )
 
     if is_valid:
         validate_attestation_aggregate_signature(
             state,
             attestation,
+            genesis_epoch,
             epoch_length,
             target_committee_size,
             shard_count,
@@ -303,6 +308,7 @@ def test_validate_attestation_aggregate_signature(genesis_state,
             validate_attestation_aggregate_signature(
                 state,
                 attestation,
+                genesis_epoch,
                 epoch_length,
                 target_committee_size,
                 shard_count,

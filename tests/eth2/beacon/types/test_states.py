@@ -20,7 +20,7 @@ from tests.eth2.beacon.helpers import (
 def test_defaults(sample_beacon_state_params):
     state = BeaconState(**sample_beacon_state_params)
     assert state.validator_registry == sample_beacon_state_params['validator_registry']
-    assert state.validator_registry_update_slot == sample_beacon_state_params['validator_registry_update_slot']  # noqa: E501
+    assert state.validator_registry_update_epoch == sample_beacon_state_params['validator_registry_update_epoch']  # noqa: E501
     assert rlp.encode(state)
 
 

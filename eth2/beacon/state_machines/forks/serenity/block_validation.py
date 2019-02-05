@@ -15,10 +15,12 @@ from eth2.beacon.enums import (
     SignatureDomain,
 )
 from eth2.beacon.helpers import (
+    get_epoch_start_slot,
     get_attestation_participants,
     get_beacon_proposer_index,
     get_block_root,
     get_domain,
+    slot_to_epoch,
 )
 from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
@@ -27,7 +29,9 @@ from eth2.beacon.types.attestations import Attestation  # noqa: F401
 from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
 from eth2.beacon.types.proposal_signed_data import ProposalSignedData
 from eth2.beacon.typing import (
+    EpochNumber,
     ShardNumber,
+    SlotNumber,
 )
 
 
@@ -48,6 +52,7 @@ def validate_block_slot(state: BeaconState,
 def validate_proposer_signature(state: BeaconState,
                                 block: BaseBeaconBlock,
                                 beacon_chain_shard_number: ShardNumber,
+                                genesis_epoch: EpochNumber,
                                 epoch_length: int,
                                 target_committee_size: int,
                                 shard_count: int) -> None:
@@ -64,12 +69,17 @@ def validate_proposer_signature(state: BeaconState,
     beacon_proposer_index = get_beacon_proposer_index(
         state,
         state.slot,
+        genesis_epoch,
         epoch_length,
         target_committee_size,
         shard_count,
     )
     proposer_pubkey = state.validator_registry[beacon_proposer_index].pubkey
-    domain = get_domain(state.fork, state.slot, SignatureDomain.DOMAIN_PROPOSAL)
+    domain = get_domain(
+        state.fork,
+        state.current_epoch(epoch_length),
+        SignatureDomain.DOMAIN_PROPOSAL
+    )
 
     is_valid_signature = bls.verify(
         pubkey=proposer_pubkey,
@@ -91,6 +101,7 @@ def validate_proposer_signature(state: BeaconState,
 #
 def validate_attestation(state: BeaconState,
                          attestation: Attestation,
+                         genesis_epoch: EpochNumber,
                          epoch_length: int,
                          min_attestation_inclusion_delay: int,
                          latest_block_roots_length: int,
@@ -108,11 +119,11 @@ def validate_attestation(state: BeaconState,
         min_attestation_inclusion_delay,
     )
 
-    validate_attestation_justified_slot(
+    validate_attestation_justified_epoch(
         attestation.data,
-        state.slot,
-        state.previous_justified_slot,
-        state.justified_slot,
+        state.current_epoch(epoch_length),
+        state.previous_justified_epoch,
+        state.justified_epoch,
         epoch_length,
     )
 
@@ -120,7 +131,7 @@ def validate_attestation(state: BeaconState,
         attestation.data,
         justified_block_root=get_block_root(
             state=state,
-            slot=attestation.data.justified_slot,
+            slot=get_epoch_start_slot(attestation.data.justified_epoch, epoch_length),
             latest_block_roots_length=latest_block_roots_length,
         ),
     )
@@ -135,6 +146,7 @@ def validate_attestation(state: BeaconState,
     validate_attestation_aggregate_signature(
         state,
         attestation,
+        genesis_epoch,
         epoch_length,
         target_committee_size,
         shard_count,
@@ -142,7 +154,7 @@ def validate_attestation(state: BeaconState,
 
 
 def validate_attestation_slot(attestation_data: AttestationData,
-                              current_slot: int,
+                              current_slot: SlotNumber,
                               epoch_length: int,
                               min_attestation_inclusion_delay: int) -> None:
     """
@@ -173,30 +185,30 @@ def validate_attestation_slot(attestation_data: AttestationData,
         )
 
 
-def validate_attestation_justified_slot(attestation_data: AttestationData,
-                                        current_slot: int,
-                                        previous_justified_slot: int,
-                                        justified_slot: int,
-                                        epoch_length: int) -> None:
+def validate_attestation_justified_epoch(attestation_data: AttestationData,
+                                         current_epoch: EpochNumber,
+                                         previous_justified_epoch: EpochNumber,
+                                         justified_epoch: EpochNumber,
+                                         epoch_length: int) -> None:
     """
-    Validate ``justified_slot`` field of ``attestation_data``.
+    Validate ``justified_epoch`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
     """
-    if attestation_data.slot >= current_slot - (current_slot % epoch_length):
-        if attestation_data.justified_slot != justified_slot:
+    if attestation_data.slot >= get_epoch_start_slot(current_epoch, epoch_length):
+        if attestation_data.justified_epoch != justified_epoch:
             raise ValidationError(
                 "Attestation ``slot`` is after recent epoch transition but attestation"
-                "``justified_slot`` is not targeting the ``justified_slot``:\n"
+                "``justified_epoch`` is not targeting the ``justified_epoch``:\n"
                 "\tFound: %s, Expected %s" %
-                (attestation_data.justified_slot, justified_slot)
+                (attestation_data.justified_epoch, justified_epoch)
             )
     else:
-        if attestation_data.justified_slot != previous_justified_slot:
+        if attestation_data.justified_epoch != previous_justified_epoch:
             raise ValidationError(
                 "Attestation ``slot`` is before recent epoch transition but attestation"
-                "``justified_slot`` is not targeting the ``previous_justified_slot:\n"
+                "``justified_epoch`` is not targeting the ``previous_justified_epoch:\n"
                 "\tFound: %s, Expected %s" %
-                (attestation_data.justified_slot, previous_justified_slot)
+                (attestation_data.justified_epoch, previous_justified_epoch)
             )
 
 
@@ -209,12 +221,12 @@ def validate_attestation_justified_block_root(attestation_data: AttestationData,
     if attestation_data.justified_block_root != justified_block_root:
         raise ValidationError(
             "Attestation ``justified_block_root`` is not equal to the "
-            "``justified_block_root`` at the ``justified_slot``:\n"
+            "``justified_block_root`` at the ``justified_epoch``:\n"
             "\tFound: %s, Expected %s at slot %s" %
             (
                 attestation_data.justified_block_root,
                 justified_block_root,
-                attestation_data.justified_slot,
+                attestation_data.justified_epoch,
             )
         )
 
@@ -264,6 +276,7 @@ def validate_attestation_shard_block_root(attestation_data: AttestationData) -> 
 
 def validate_attestation_aggregate_signature(state: BeaconState,
                                              attestation: Attestation,
+                                             genesis_epoch: EpochNumber,
                                              epoch_length: int,
                                              target_committee_size: int,
                                              shard_count: int) -> None:
@@ -279,6 +292,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
         state=state,
         attestation_data=attestation.data,
         aggregation_bitfield=attestation.aggregation_bitfield,
+        genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
@@ -292,7 +306,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     message = AttestationDataAndCustodyBit.create_attestation_message(attestation.data)
     domain = get_domain(
         fork=state.fork,
-        slot=attestation.data.slot,
+        epoch=slot_to_epoch(attestation.data.slot, epoch_length),
         domain_type=SignatureDomain.DOMAIN_ATTESTATION,
     )
 

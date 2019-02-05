@@ -5,5 +5,5 @@ from eth2.beacon.types.crosslink_records import (
 
 def test_defaults(sample_crosslink_record_params):
     crosslink = CrosslinkRecord(**sample_crosslink_record_params)
-    assert crosslink.slot == sample_crosslink_record_params['slot']
+    assert crosslink.epoch == sample_crosslink_record_params['epoch']
     assert crosslink.shard_block_root == sample_crosslink_record_params['shard_block_root']

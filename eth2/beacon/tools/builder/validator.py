@@ -31,6 +31,8 @@ from eth2.beacon.helpers import (
     get_block_root,
     get_crosslink_committees_at_slot,
     get_domain,
+    get_epoch_start_slot,
+    slot_to_epoch,
 )
 from eth2.beacon.state_machines.configs import BeaconConfig
 from eth2.beacon.types.attestations import Attestation
@@ -105,10 +107,11 @@ def aggregate_votes(
 def sign_proof_of_possession(deposit_input: DepositInput,
                              privkey: int,
                              fork: Fork,
-                             slot: SlotNumber) -> BLSSignature:
+                             slot: SlotNumber,
+                             epoch_length: int) -> BLSSignature:
     domain = get_domain(
         fork,
-        slot,
+        slot_to_epoch(slot, epoch_length),
         SignatureDomain.DOMAIN_DEPOSIT,
     )
     return bls.sign(
@@ -121,10 +124,11 @@ def sign_proof_of_possession(deposit_input: DepositInput,
 def sign_attestation(message: bytes,
                      privkey: int,
                      fork: Fork,
-                     slot: SlotNumber) -> BLSSignature:
+                     slot: SlotNumber,
+                     epoch_length: int) -> BLSSignature:
     domain = get_domain(
         fork,
-        slot,
+        slot_to_epoch(slot, epoch_length),
         SignatureDomain.DOMAIN_ATTESTATION,
     )
     return bls.sign(
@@ -159,7 +163,8 @@ def create_mock_signed_attestation(state: BeaconState,
                                    attestation_data: AttestationData,
                                    committee: Sequence[ValidatorIndex],
                                    num_voted_attesters: int,
-                                   keymap: Dict[BLSPubkey, int]) -> Attestation:
+                                   keymap: Dict[BLSPubkey, int],
+                                   epoch_length: int) -> Attestation:
     """
     Create a mocking attestation of the given ``attestation_data`` slot with ``keymap``.
     """
@@ -180,6 +185,7 @@ def create_mock_signed_attestation(state: BeaconState,
             ],
             fork=state.fork,
             slot=attestation_data.slot,
+            epoch_length=epoch_length,
         )
         for committee_index in voting_committee_indices
     ]
@@ -216,6 +222,7 @@ def create_mock_signed_attestations_at_slot(
             slot=state.slot + 1,
         ),
         slot=attestation_slot,
+        genesis_epoch=config.GENESIS_EPOCH,
         epoch_length=config.EPOCH_LENGTH,
         target_committee_size=config.TARGET_COMMITTEE_SIZE,
         shard_count=config.SHARD_COUNT,
@@ -233,10 +240,10 @@ def create_mock_signed_attestations_at_slot(
             epoch_boundary_root=ZERO_HASH32,
             shard_block_root=ZERO_HASH32,
             latest_crosslink_root=latest_crosslink_root,
-            justified_slot=state.previous_justified_slot,
+            justified_epoch=state.previous_justified_epoch,
             justified_block_root=get_block_root(
                 state,
-                state.previous_justified_slot,
+                get_epoch_start_slot(state.previous_justified_epoch, config.EPOCH_LENGTH),
                 config.LATEST_BLOCK_ROOTS_LENGTH,
             ),
         )
@@ -247,4 +254,5 @@ def create_mock_signed_attestations_at_slot(
             committee,
             num_voted_attesters,
             keymap,
+            config.EPOCH_LENGTH,
         )

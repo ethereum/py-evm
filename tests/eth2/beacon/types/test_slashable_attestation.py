@@ -31,7 +31,7 @@ def test_hash(sample_slashable_attestation_params):
     # Given that this value will change soon (cf. ssz tree hash), we just
     # do this to get the test passing for now and will need to update later
     # if we expect the hash computation is not working correctly
-    hash_hex = "7e4b4cf3ac47988865d693a29b6aa5a825f27e065cf21a80af5e077ea102e297"
+    hash_hex = "0748b74fa43b72cb0afa29b803113d6ca921d98ec6feffecb9962af47d477d2a"
 
     assert slashable_attestation.hash == bytes.fromhex(hash_hex)
 

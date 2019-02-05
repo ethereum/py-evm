@@ -1,7 +1,7 @@
 import pytest
 
 from eth2.beacon.constants import (
-    FAR_FUTURE_SLOT,
+    FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.types.validator_records import (
     ValidatorRecord,
@@ -15,7 +15,7 @@ def test_defaults(sample_validator_record_params):
 
 
 @pytest.mark.parametrize(
-    'activation_slot,exit_slot,slot,expected',
+    'activation_epoch,exit_epoch,epoch,expected',
     [
         (0, 1, 0, True),
         (1, 1, 1, False),
@@ -24,17 +24,17 @@ def test_defaults(sample_validator_record_params):
     ],
 )
 def test_is_active(sample_validator_record_params,
-                   activation_slot,
-                   exit_slot,
-                   slot,
+                   activation_epoch,
+                   exit_epoch,
+                   epoch,
                    expected):
     validator_record_params = {
         **sample_validator_record_params,
-        'activation_slot': activation_slot,
-        'exit_slot': exit_slot,
+        'activation_epoch': activation_epoch,
+        'exit_epoch': exit_epoch,
     }
     validator = ValidatorRecord(**validator_record_params)
-    assert validator.is_active(slot) == expected
+    assert validator.is_active(epoch) == expected
 
 
 def test_create_pending_validator():
@@ -54,8 +54,8 @@ def test_create_pending_validator():
     assert validator.withdrawal_credentials == withdrawal_credentials
     assert validator.randao_commitment == randao_commitment
     assert validator.randao_layers == 0
-    assert validator.activation_slot == FAR_FUTURE_SLOT
-    assert validator.exit_slot == FAR_FUTURE_SLOT
-    assert validator.withdrawal_slot == FAR_FUTURE_SLOT
-    assert validator.penalized_slot == FAR_FUTURE_SLOT
+    assert validator.activation_epoch == FAR_FUTURE_EPOCH
+    assert validator.exit_epoch == FAR_FUTURE_EPOCH
+    assert validator.withdrawal_epoch == FAR_FUTURE_EPOCH
+    assert validator.penalized_epoch == FAR_FUTURE_EPOCH
     assert validator.exit_count == 0

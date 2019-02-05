@@ -24,7 +24,9 @@ from eth2._utils.bitfield import (
 from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_crosslink_committees_at_slot,
-    get_current_epoch_committee_count_per_slot,
+    get_current_epoch_committee_count,
+    get_randao_mix,
+    slot_to_epoch,
 )
 from eth2.beacon._utils.hash import (
     hash_eth2,
@@ -44,47 +46,47 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
 @pytest.mark.parametrize(
     (
         'num_validators, epoch_length, target_committee_size, shard_count, state_slot,'
-        'validator_registry_update_slot,'
-        'finalized_slot,'
+        'validator_registry_update_epoch,'
+        'finalized_epoch,'
         'has_crosslink,'
-        'crosslink_slot,'
+        'crosslink_epoch,'
         'expected_need_to_update,'
     ),
     [
-        # state.finalized_slot <= state.validator_registry_update_slot
+        # state.finalized_epoch <= state.validator_registry_update_epoch
         (
             40, 4, 2, 2, 16,
             4, 4, False, 0, False
         ),
-        # state.latest_crosslinks[shard].slot <= state.validator_registry_update_slot
+        # state.latest_crosslinks[shard].epoch <= state.validator_registry_update_epoch
         (
             40, 4, 2, 2, 16,
-            4, 8, True, 0, False,
+            4, 8, True, 4, False,
         ),
-        # state.finalized_slot > state.validator_registry_update_slot and
-        # state.latest_crosslinks[shard].slot > state.validator_registry_update_slot
+        # state.finalized_epoch > state.validator_registry_update_epoch and
+        # state.latest_crosslinks[shard].epoch > state.validator_registry_update_epoch
         (
             40, 4, 2, 2, 16,
-            4, 8, True, 8, True,
+            4, 8, True, 6, True,
         ),
     ]
 )
 def test_check_if_update_validator_registry(genesis_state,
                                             state_slot,
-                                            validator_registry_update_slot,
-                                            finalized_slot,
+                                            validator_registry_update_epoch,
+                                            finalized_epoch,
                                             has_crosslink,
-                                            crosslink_slot,
+                                            crosslink_epoch,
                                             expected_need_to_update,
                                             config):
     state = genesis_state.copy(
         slot=state_slot,
-        finalized_slot=finalized_slot,
-        validator_registry_update_slot=validator_registry_update_slot,
+        finalized_epoch=finalized_epoch,
+        validator_registry_update_epoch=validator_registry_update_epoch,
     )
     if has_crosslink:
         crosslink = CrosslinkRecord(
-            slot=crosslink_slot,
+            epoch=crosslink_epoch,
             shard_block_root=ZERO_HASH32,
         )
         latest_crosslinks = state.latest_crosslinks
@@ -102,12 +104,12 @@ def test_check_if_update_validator_registry(genesis_state,
 
     assert need_to_update == expected_need_to_update
     if expected_need_to_update:
-        expected_num_shards_in_committees = get_current_epoch_committee_count_per_slot(
+        expected_num_shards_in_committees = get_current_epoch_committee_count(
             state,
             shard_count=config.SHARD_COUNT,
             epoch_length=config.EPOCH_LENGTH,
             target_committee_size=config.TARGET_COMMITTEE_SIZE,
-        ) * config.EPOCH_LENGTH
+        )
         assert num_shards_in_committees == expected_num_shards_in_committees
     else:
         assert num_shards_in_committees == 0
@@ -143,7 +145,7 @@ def test_update_latest_index_roots(genesis_state,
                 for index in get_active_validator_indices(
                     state.validator_registry,
                     # TODO: change to `per-epoch` version
-                    state.slot,
+                    slot_to_epoch(state.slot, epoch_length),
                 )
             ]
         )
@@ -160,47 +162,49 @@ def test_update_latest_index_roots(genesis_state,
         'latest_randao_mixes_length, seed_lookahead, state_slot,'
         'need_to_update,'
         'num_shards_in_committees,'
-        'validator_registry_update_slot,'
+        'validator_registry_update_epoch,'
         'epochs_since_last_registry_change_is_power_of_two,'
-        'current_epoch_calculation_slot,'
+        'current_calculation_epoch,'
         'latest_randao_mixes,'
-        'expected_current_epoch_calculation_slot,'
+        'expected_current_calculation_epoch,'
     ),
     [
         (
             40, 4, 2, 2,
-            2**10, 4, 20,
+            2**10, 4, 19,
             False,
             10,
-            16,
-            True,  # (state.slot - state.validator_registry_update_slot) // EPOCH_LENGTH is power of two # noqa: E501
+            2,
+            True,  # (state.current_epoch - state.validator_registry_update_epoch) is power of two
             0,
             [int_to_bytes32(i) for i in range(2**10)],
-            20,  # expected current_epoch_calculation_slot is state.slot
+            5,  # expected current_calculation_epoch is state.next_epoch
         ),
         (
             40, 4, 2, 2,
-            2**10, 4, 20,
+            2**10, 4, 19,
             False,
             10,
-            8,
-            False,  # (state.slot - state.validator_registry_update_slot) // EPOCH_LENGTH != power of two  # noqa: E501
+            1,
+            False,  # (state.current_epoch - state.validator_registry_update_epoch) != power of two
             0,
             [int_to_bytes32(i) for i in range(2**10)],
-            0,  # expected current_epoch_calculation_slot is state.slot
+            0,  # expected_current_calculation_epoch is current_calculation_epoch because it will not be updated  # noqa: E501
         ),
     ]
 )
 def test_process_validator_registry(monkeypatch,
                                     genesis_state,
+                                    epoch_length,
                                     state_slot,
                                     need_to_update,
                                     num_shards_in_committees,
-                                    validator_registry_update_slot,
+                                    validator_registry_update_epoch,
                                     epochs_since_last_registry_change_is_power_of_two,
-                                    current_epoch_calculation_slot,
+                                    current_calculation_epoch,
                                     latest_randao_mixes,
-                                    expected_current_epoch_calculation_slot,
+                                    expected_current_calculation_epoch,
+                                    entry_exit_delay,
                                     config):
     # Mock check_if_update_validator_registry
     from eth2.beacon.state_machines.forks.serenity import epoch_processing
@@ -218,9 +222,10 @@ def test_process_validator_registry(monkeypatch,
     new_seed = b'\x88' * 32
 
     def mock_generate_seed(state,
-                           slot,
+                           epoch,
                            epoch_length,
                            seed_lookahead,
+                           entry_exit_delay,
                            latest_index_roots_length,
                            latest_randao_mixes_length):
         return new_seed
@@ -233,25 +238,25 @@ def test_process_validator_registry(monkeypatch,
     # Set state
     state = genesis_state.copy(
         slot=state_slot,
-        validator_registry_update_slot=validator_registry_update_slot,
-        current_epoch_calculation_slot=current_epoch_calculation_slot,
+        validator_registry_update_epoch=validator_registry_update_epoch,
+        current_calculation_epoch=current_calculation_epoch,
         latest_randao_mixes=latest_randao_mixes,
     )
 
     result_state = process_validator_registry(state, config)
 
-    assert result_state.previous_epoch_calculation_slot == state.current_epoch_start_shard
+    assert result_state.previous_calculation_epoch == state.current_calculation_epoch
     assert result_state.previous_epoch_start_shard == state.current_epoch_start_shard
     assert result_state.previous_epoch_seed == state.current_epoch_seed
 
     if need_to_update:
-        assert result_state.current_epoch_calculation_slot == state_slot
+        assert result_state.current_calculation_epoch == slot_to_epoch(state_slot, epoch_length)
         assert result_state.current_epoch_seed == new_seed
         # TODO: Add test for validator registry updates
     else:
         assert (
-            result_state.current_epoch_calculation_slot ==
-            expected_current_epoch_calculation_slot
+            result_state.current_calculation_epoch ==
+            expected_current_calculation_epoch
         )
         # state.current_epoch_start_shard is left unchanged.
         assert result_state.current_epoch_start_shard == state.current_epoch_start_shard
@@ -272,9 +277,9 @@ def test_process_validator_registry(monkeypatch,
         'epoch_length'
     ),
     [
-        (10, 4, 4, 2, 2, 4),  # attestation.data.slot >= state.slot - config.EPOCH_LENGTH, -> expected_result_len_latest_attestations = len_latest_attestations  # noqa: E501
-        (10, 8, 4, 2, 2, 4),  # attestation.data.slot >= state.slot - config.EPOCH_LENGTH, -> expected_result_len_latest_attestations = len_latest_attestations  # noqa: E501
-        (10, 16, 4, 2, 0, 4),  # attestation.data.slot < state.slot - config.EPOCH_LENGTH, -> expected_result_len_latest_attestations = 0  # noqa: E501
+        (10, 4, 4, 2, 2, 4),  # slot_to_epoch(attestation.data.slot) >= state.current_epoch, -> expected_result_len_latest_attestations = len_latest_attestations  # noqa: E501
+        (10, 4, 8, 2, 2, 4),  # slot_to_epoch(attestation.data.slot) >= state.current_epoch, -> expected_result_len_latest_attestations = len_latest_attestations  # noqa: E501
+        (10, 16, 8, 2, 0, 4),  # slot_to_epoch(attestation.data.slot) < state.current_epoch, -> expected_result_len_latest_attestations = 0  # noqa: E501
     ]
 )
 def test_process_final_updates(genesis_state,
@@ -287,9 +292,8 @@ def test_process_final_updates(genesis_state,
     state = genesis_state.copy(
         slot=state_slot,
     )
-    epoch = state.slot // config.EPOCH_LENGTH
-    current_index = (epoch + 1) % config.LATEST_PENALIZED_EXIT_LENGTH
-    previous_index = epoch % config.LATEST_PENALIZED_EXIT_LENGTH
+    current_index = state.next_epoch(config.EPOCH_LENGTH) % config.LATEST_PENALIZED_EXIT_LENGTH
+    previous_index = state.current_epoch(config.EPOCH_LENGTH) % config.LATEST_PENALIZED_EXIT_LENGTH
 
     # Assume `len_latest_attestations` attestations in state.latest_attestations
     # with attestation.data.slot = attestation_slot
@@ -318,8 +322,17 @@ def test_process_final_updates(genesis_state,
     result_state = process_final_updates(state, config)
 
     assert (
-        result_state.latest_penalized_balances[current_index] ==
-        penalized_balance_of_previous_epoch
+        (
+            result_state.latest_penalized_balances[current_index] ==
+            penalized_balance_of_previous_epoch
+        ) and (
+            result_state.latest_randao_mixes[current_index] == get_randao_mix(
+                state=state,
+                epoch=state.current_epoch(config.EPOCH_LENGTH),
+                epoch_length=config.EPOCH_LENGTH,
+                latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
+            )
+        )
     )
 
     assert len(result_state.latest_attestations) == expected_result_len_latest_attestations
@@ -339,14 +352,14 @@ def test_process_final_updates(genesis_state,
     ),
     [
         (
-            100,
+            90,
             10,
             9,
             10,
             False,
         ),
         (
-            100,
+            90,
             10,
             9,
             10,
@@ -366,10 +379,10 @@ def test_process_crosslinks(
         sample_attestation_params):
     shard = 1
     shard_block_root = hash_eth2(b'shard_block_root')
-    current_slot = config.EPOCH_LENGTH * 2
+    current_slot = config.EPOCH_LENGTH * 2 - 1
 
     initial_crosslinks = tuple([
-        CrosslinkRecord(slot=config.GENESIS_SLOT, shard_block_root=ZERO_HASH32)
+        CrosslinkRecord(epoch=config.GENESIS_EPOCH, shard_block_root=ZERO_HASH32)
         for _ in range(shard_count)
     ])
     state = n_validators_state.copy(
@@ -385,6 +398,7 @@ def test_process_crosslinks(
         for committee, _shard in get_crosslink_committees_at_slot(
             state,
             slot_in_cur_epoch,
+            config.GENESIS_EPOCH,
             config.EPOCH_LENGTH,
             target_committee_size,
             shard_count,
@@ -417,15 +431,16 @@ def test_process_crosslinks(
     state = state.copy(
         latest_attestations=cur_epoch_attestations,
     )
-    assert (state.latest_crosslinks[shard].slot == config.GENESIS_SLOT and
+    assert (state.latest_crosslinks[shard].epoch == config.GENESIS_EPOCH and
             state.latest_crosslinks[shard].shard_block_root == ZERO_HASH32)
 
     new_state = process_crosslinks(state, config)
     crosslink_record = new_state.latest_crosslinks[shard]
     if success_crosslink_in_cur_epoch:
         attestation = cur_epoch_attestations[0]
-        assert (crosslink_record.slot == current_slot and
-                crosslink_record.shard_block_root == attestation.data.shard_block_root)
+        assert (crosslink_record.epoch == slot_to_epoch(current_slot, epoch_length) and
+                crosslink_record.shard_block_root == attestation.data.shard_block_root and
+                attestation.data.shard_block_root == shard_block_root)
     else:
-        assert (crosslink_record.slot == config.GENESIS_SLOT and
+        assert (crosslink_record.epoch == config.GENESIS_EPOCH and
                 crosslink_record.shard_block_root == ZERO_HASH32)
