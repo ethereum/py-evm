@@ -450,9 +450,9 @@ def get_previous_epoch_attestations(
         state: 'BeaconState',
         epoch_length: int,
         genesis_epoch: EpochNumber) -> Iterable[PendingAttestationRecord]:
+    previous_epoch = state.previous_epoch(epoch_length, genesis_epoch)
     for attestation in state.latest_attestations:
-        if (state.previous_epoch(epoch_length, genesis_epoch) ==
-                slot_to_epoch(attestation.data.slot, epoch_length)):
+        if previous_epoch == slot_to_epoch(attestation.data.slot, epoch_length):
             yield attestation
 
 

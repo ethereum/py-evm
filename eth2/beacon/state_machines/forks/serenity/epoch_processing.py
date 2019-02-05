@@ -267,13 +267,12 @@ def process_final_updates(state: BeaconState,
                           config: BeaconConfig) -> BeaconState:
     current_epoch = state.current_epoch(config.EPOCH_LENGTH)
     next_epoch = state.next_epoch(config.EPOCH_LENGTH)
-    previous_index = current_epoch % config.LATEST_PENALIZED_EXIT_LENGTH
 
     state = state.copy(
         latest_penalized_balances=update_tuple_item(
             state.latest_penalized_balances,
             next_epoch % config.LATEST_PENALIZED_EXIT_LENGTH,
-            state.latest_penalized_balances[previous_index],
+            state.latest_penalized_balances[current_epoch % config.LATEST_PENALIZED_EXIT_LENGTH],
         ),
         latest_randao_mixes=update_tuple_item(
             state.latest_randao_mixes,
