@@ -7,11 +7,12 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    Tuple,
     Type,
 )
 
 from lahja import (
-    EventBus,
+    ConnectionConfig,
     Endpoint,
 )
 
@@ -36,6 +37,10 @@ from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT,
     ROPSTEN_NETWORK_ID,
 )
+from trinity.events import (
+    EventBusConnected,
+    AvailableEndpointsUpdated,
+)
 from trinity.extensibility import (
     BasePlugin,
     BaseManagerProcessScope,
@@ -50,9 +55,6 @@ from trinity._utils.logging import (
     setup_log_levels,
     setup_trinity_stderr_logging,
     setup_trinity_file_and_queue_logging,
-)
-from trinity._utils.mp import (
-    ctx,
 )
 from trinity._utils.version import (
     construct_trinity_client_identifier,
@@ -93,7 +95,6 @@ BootFn = Callable[[
     Dict[str, Any],
     PluginManager,
     logging.handlers.QueueListener,
-    EventBus,
     Endpoint,
     logging.Logger
 ], None]
@@ -103,12 +104,11 @@ def main_entry(trinity_boot: BootFn,
                app_identifier: str,
                plugins: Iterable[BasePlugin],
                sub_configs: Iterable[Type[BaseAppConfig]]) -> None:
-    event_bus = EventBus(ctx)
-    main_endpoint = event_bus.create_endpoint(MAIN_EVENTBUS_ENDPOINT)
-    main_endpoint.connect_no_wait()
+
+    main_endpoint = Endpoint()
 
     plugin_manager = setup_plugins(
-        MainAndIsolatedProcessScope(event_bus, main_endpoint),
+        MainAndIsolatedProcessScope(main_endpoint),
         plugins
     )
     plugin_manager.amend_argparser_config(parser, subparser)
@@ -143,6 +143,30 @@ def main_entry(trinity_boot: BootFn,
 
     if args.log_levels:
         setup_log_levels(args.log_levels)
+
+    connected_endpoints: Tuple[ConnectionConfig, ...] = tuple()
+
+    def handle_new_endpoints(ev: EventBusConnected) -> None:
+        # In a perfect world, we should only reach this code once for every endpoint.
+        # However, we check `is_connected_to` here as a safe guard because theoretically
+        # it could happen that a (buggy, malicious) plugin raises the `EventBusConnected`
+        # event multiple times which would then raise an exception if we are already connected
+        # to that endpoint.
+        if not main_endpoint.is_connected_to(ev.connection_config.name):
+            stderr_logger.info(
+                "EventBus of main process connecting to EventBus %s", ev.connection_config.name
+            )
+            main_endpoint.connect_to_endpoints_blocking(ev.connection_config)
+
+        nonlocal connected_endpoints
+        connected_endpoints = connected_endpoints + (ev.connection_config,)
+        stderr_logger.debug("New EventBus Endpoint connected %s", ev.connection_config.name)
+        # Broadcast available endpoints to all connected endpoints, giving them
+        # a chance to cross connect
+        main_endpoint.broadcast(AvailableEndpointsUpdated(connected_endpoints))
+        stderr_logger.debug("Connected EventBus Endpoints %s", connected_endpoints)
+
+    main_endpoint.subscribe(EventBusConnected, handle_new_endpoints)
 
     try:
         trinity_config = TrinityConfig.from_parser_args(args, app_identifier, sub_configs)
@@ -194,13 +218,23 @@ def main_entry(trinity_boot: BootFn,
     if hasattr(args, 'func'):
         args.func(args, trinity_config)
     else:
+        # We postpone EventBus connection until here because we don't want one in cases where
+        # a plugin just redefines the `trinity` command such as `trinity fix-unclean-shutdown`
+        main_connection_config = ConnectionConfig.from_name(
+            MAIN_EVENTBUS_ENDPOINT,
+            trinity_config.ipc_dir
+        )
+        main_endpoint.start_serving_nowait(main_connection_config)
+
+        # We listen on events such as `ShutdownRequested` which may or may not originate on
+        # the `main_endpoint` which is why we connect to our own endpoint here
+        main_endpoint.connect_to_endpoints_blocking(main_connection_config)
         trinity_boot(
             args,
             trinity_config,
             extra_kwargs,
             plugin_manager,
             listener,
-            event_bus,
             main_endpoint,
             stderr_logger,
         )
@@ -225,7 +259,6 @@ def kill_trinity_gracefully(logger: logging.Logger,
                             processes: Iterable[multiprocessing.Process],
                             plugin_manager: PluginManager,
                             main_endpoint: Endpoint,
-                            event_bus: EventBus,
                             reason: str=None) -> None:
     # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
     # foreground *process group*, so both our networking and database processes will terminate
@@ -242,7 +275,6 @@ def kill_trinity_gracefully(logger: logging.Logger,
     logger.info('Shutting down Trinity %s', hint)
     plugin_manager.shutdown_blocking()
     main_endpoint.stop()
-    event_bus.stop()
     for process in processes:
         # Our sub-processes will have received a SIGINT already (see comment above), so here we
         # wait 2s for them to finish cleanly, and if they fail we kill them for real.

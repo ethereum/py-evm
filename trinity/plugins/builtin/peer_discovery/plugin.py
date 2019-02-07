@@ -150,7 +150,7 @@ class PeerDiscoveryPlugin(BaseIsolatedPlugin):
     def name(self) -> str:
         return "Discovery"
 
-    def on_ready(self) -> None:
+    def on_ready(self, manager_eventbus: Endpoint) -> None:
         self.start()
 
     def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:

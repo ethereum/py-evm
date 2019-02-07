@@ -5,7 +5,7 @@ from trinity.exceptions import (
 
 class EventBusNotReady(BaseTrinityError):
     """
-    Raised when a plugin tried to access an :class:`~lahja.eventbus.EventBus` before the plugin
+    Raised when a plugin tried to access the event bus before the plugin
     had received its :meth:`~trinity.extensibility.plugin.BasePlugin.on_ready` call.
     """
     pass

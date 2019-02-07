@@ -27,11 +27,11 @@ from trinity.config import (
     ChainConfig,
     TrinityConfig,
 )
-from trinity.events import (
-    request_shutdown,
-)
 from trinity.extensibility.events import (
     ResourceAvailableEvent
+)
+from trinity._utils.lahja_helper import (
+    request_shutdown,
 )
 from .events import (
     NetworkIdRequest,
@@ -149,7 +149,7 @@ class Node(BaseService):
         )
 
     async def _run(self) -> None:
-        await self.event_bus.wait_for_connection()
+        await self.event_bus.wait_until_serving()
         self.notify_resource_available()
         self.run_daemon_task(self.handle_network_id_requests())
         self.run_daemon(self.get_p2p_server())

@@ -49,7 +49,7 @@ class PeerCountReporterPlugin(BaseIsolatedPlugin):
             help="Report peer count to console",
         )
 
-    def on_ready(self) -> None:
+    def on_ready(self, manager_eventbus: Endpoint) -> None:
         if self.context.args.report_peer_count:
             self.start()
 

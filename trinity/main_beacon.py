@@ -12,7 +12,6 @@ from typing import (
 )
 
 from lahja import (
-    EventBus,
     Endpoint,
 )
 
@@ -76,7 +75,6 @@ def trinity_boot(args: Namespace,
                  extra_kwargs: Dict[str, Any],
                  plugin_manager: PluginManager,
                  listener: logging.handlers.QueueListener,
-                 event_bus: EventBus,
                  main_endpoint: Endpoint,
                  logger: logging.Logger) -> None:
     # start the listener thread to handle logs produced by other processes in
@@ -84,8 +82,6 @@ def trinity_boot(args: Namespace,
     listener.start()
 
     ensure_beacon_dirs(trinity_config.get_app_config(BeaconAppConfig))
-
-    event_bus.start()
 
     # First initialize the database process.
     database_server_process = ctx.Process(
@@ -115,7 +111,6 @@ def trinity_boot(args: Namespace,
             (),
             plugin_manager,
             main_endpoint,
-            event_bus,
             reason=reason
         )
 

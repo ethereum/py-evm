@@ -10,7 +10,8 @@ from typing import (
 )
 
 from lahja import (
-    EventBus,
+    ConnectionConfig,
+    BroadcastConfig,
     Endpoint,
 )
 
@@ -31,13 +32,16 @@ from trinity.config import (
 )
 from trinity.constants import (
     APP_IDENTIFIER_ETH1,
+    MAIN_EVENTBUS_ENDPOINT,
     NETWORKING_EVENTBUS_ENDPOINT,
 )
 from trinity.db.eth1.manager import (
     create_db_server_manager,
 )
 from trinity.events import (
-    ShutdownRequest
+    EventBusConnected,
+    AvailableEndpointsUpdated,
+    ShutdownRequest,
 )
 from trinity.extensibility import (
     BasePlugin,
@@ -55,6 +59,9 @@ from trinity.plugins.registry import (
 from trinity._utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
+)
+from trinity._utils.lahja_helper import (
+    connect_to_other_endpoints,
 )
 from trinity._utils.logging import (
     with_queued_logging,
@@ -86,7 +93,6 @@ def trinity_boot(args: Namespace,
                  extra_kwargs: Dict[str, Any],
                  plugin_manager: PluginManager,
                  listener: logging.handlers.QueueListener,
-                 event_bus: EventBus,
                  main_endpoint: Endpoint,
                  logger: logging.Logger) -> None:
     # start the listener thread to handle logs produced by other processes in
@@ -94,9 +100,6 @@ def trinity_boot(args: Namespace,
     listener.start()
 
     ensure_eth1_dirs(trinity_config.get_app_config(Eth1AppConfig))
-
-    networking_endpoint = event_bus.create_endpoint(NETWORKING_EVENTBUS_ENDPOINT)
-    event_bus.start()
 
     # First initialize the database process.
     database_server_process = ctx.Process(
@@ -112,7 +115,7 @@ def trinity_boot(args: Namespace,
     networking_process = ctx.Process(
         name="networking",
         target=launch_node,
-        args=(args, trinity_config, networking_endpoint,),
+        args=(args, trinity_config,),
         kwargs=extra_kwargs,
     )
 
@@ -137,7 +140,6 @@ def trinity_boot(args: Namespace,
             (database_server_process, networking_process),
             plugin_manager,
             main_endpoint,
-            event_bus,
             reason=reason
         )
 
@@ -159,9 +161,10 @@ def trinity_boot(args: Namespace,
 
 @setup_cprofiler('launch_node')
 @with_queued_logging
-def launch_node(args: Namespace, trinity_config: TrinityConfig, endpoint: Endpoint) -> None:
+def launch_node(args: Namespace, trinity_config: TrinityConfig) -> None:
     with trinity_config.process_id_file('networking'):
 
+        endpoint = Endpoint()
         NodeClass = trinity_config.get_app_config(Eth1AppConfig).node_class
         node = NodeClass(endpoint, trinity_config)
         # The `networking` process creates a process pool executor to offload cpu intensive
@@ -169,7 +172,26 @@ def launch_node(args: Namespace, trinity_config: TrinityConfig, endpoint: Endpoi
         ensure_global_asyncio_executor()
         loop = node.get_event_loop()
 
-        endpoint.connect_no_wait(loop)
+        networking_connection_config = ConnectionConfig.from_name(
+            NETWORKING_EVENTBUS_ENDPOINT,
+            trinity_config.ipc_dir
+        )
+        endpoint.start_serving_nowait(
+            networking_connection_config,
+            loop,
+        )
+        logger = logging.getLogger("trinity.main.launch_node")
+        endpoint.subscribe(AvailableEndpointsUpdated, connect_to_other_endpoints(logger, endpoint))
+        endpoint.connect_to_endpoints_blocking(
+            ConnectionConfig.from_name(MAIN_EVENTBUS_ENDPOINT, trinity_config.ipc_dir),
+            # Plugins that run within the networking process broadcast and receive on the
+            # the same endpoint
+            networking_connection_config,
+        )
+        endpoint.broadcast(
+            EventBusConnected(networking_connection_config),
+            BroadcastConfig(filter_endpoint=MAIN_EVENTBUS_ENDPOINT)
+        )
         # This is a second PluginManager instance governing plugins in a shared process.
         plugin_manager = setup_plugins(SharedProcessScope(endpoint), get_all_plugins())
         plugin_manager.prepare(args, trinity_config)

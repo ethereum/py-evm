@@ -300,7 +300,7 @@ For instance, a plugin may be interested to perform some action every time that 
 to our node. These kind of events get exposed on the EventBus and hence allow a wide range of
 plugins to make use of them.
 
-For an event to be usable across processes it needs to be pickable and in general should be a
+For an event to be usable across processes it needs to be pickleable and in general should be a
 shallow Data Transfer Object (`DTO <https://en.wikipedia.org/wiki/Data_transfer_object>`_)
 
 Every plugin has access to the event bus via its

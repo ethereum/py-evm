@@ -23,14 +23,20 @@ from typing import (
 )
 
 from lahja import (
+    ConnectionConfig,
+    BroadcastConfig,
     Endpoint,
 )
 
 from trinity.config import (
     TrinityConfig
 )
+from trinity.constants import (
+    MAIN_EVENTBUS_ENDPOINT,
+)
 from trinity.events import (
-    request_shutdown,
+    EventBusConnected,
+    AvailableEndpointsUpdated,
 )
 from trinity.extensibility.events import (
     BaseEvent,
@@ -42,6 +48,9 @@ from trinity.extensibility.exceptions import (
 )
 from trinity._utils.mp import (
     ctx,
+)
+from trinity._utils.lahja_helper import (
+    connect_to_other_endpoints,
 )
 from trinity._utils.logging import (
     setup_queue_logging,
@@ -72,7 +81,7 @@ class PluginContext:
     The :class:`~trinity.extensibility.plugin.PluginContext` holds valuable contextual information
     and APIs to be used by a plugin. This includes the parsed arguments that were used to launch
     ``Trinity`` as well as an :class:`~lahja.endpoint.Endpoint` that the plugin can use to connect
-    to the central :class:`~lahja.eventbus.EventBus`.
+    to the event bus.
 
     The :class:`~trinity.extensibility.plugin.PluginContext` is set during startup and is
     guaranteed to exist by the time that a plugin receives its
@@ -86,14 +95,6 @@ class PluginContext:
         # Leaving boot_kwargs as an undocumented public member as it will most likely go away
         self.boot_kwargs: Dict[str, Any] = boot_info.boot_kwargs
 
-    def shutdown_host(self, reason: str) -> None:
-        """
-        Shutdown ``Trinity`` by broadcasting a :class:`~trinity.events.ShutdownRequest` on the
-        :class:`~lahja.eventbus.EventBus`. The actual shutdown routine is executed and coordinated
-        by the main application process who listens for this event.
-        """
-        request_shutdown(self.event_bus, reason)
-
     @property
     def args(self) -> Namespace:
         """
@@ -105,7 +106,7 @@ class PluginContext:
     def event_bus(self) -> Endpoint:
         """
         Return the :class:`~lahja.endpoint.Endpoint` that the plugin uses to connect to the
-        central :class:`~lahja.eventbus.EventBus`
+        event bus
         """
         return self._event_bus
 
@@ -149,7 +150,7 @@ class BasePlugin(ABC):
     def event_bus(self) -> Endpoint:
         """
         Get the :class:`~lahja.endpoint.Endpoint` that this plugin uses to connect to the
-        :class:`~lahja.eventbus.EventBus`
+        event bus
         """
         if self.context is None:
             raise EventBusNotReady("Tried accessing ``event_bus`` before ``ready`` was called")
@@ -176,19 +177,25 @@ class BasePlugin(ABC):
         """
         self.context = context
 
-    def ready(self) -> None:
+    def ready(self, manager_eventbus: Endpoint) -> None:
         """
         Set the ``status`` to ``PluginStatus.READY`` and delegate to
         :meth:`~trinity.extensibility.plugin.BasePlugin.on_ready`
         """
         self._status = PluginStatus.READY
-        self.on_ready()
+        self.on_ready(manager_eventbus)
 
-    def on_ready(self) -> None:
+    def on_ready(self, manager_eventbus: Endpoint) -> None:
         """
         Notify the plugin that it is ready to bootstrap itself. Plugins can rely
         on the :class:`~trinity.extensibility.plugin.PluginContext` to be set
         after this method has been called.
+        The ``manager_eventbus`` refers to the instance of the
+        :class:`~lahja.endpoint.Endpoint` that the
+        :class:`~trinity.extensibility.plugin_manager.PluginManager` uses which may or may not
+        be the same :class:`~lahja.endpoint.Endpoint` as the plugin uses depending on the type
+        of the plugin. The plugin should use this :class:`~lahja.endpoint.Endpoint` instance to
+        listen for events *before* the plugin has started.
         """
         pass
 
@@ -203,7 +210,7 @@ class BasePlugin(ABC):
         """
         Delegate to :meth:`~trinity.extensibility.plugin.BasePlugin.do_start` and set ``running``
         to ``True``. Broadcast a :class:`~trinity.extensibility.events.PluginStartedEvent` on the
-        :class:`~lahja.eventbus.EventBus` and hence allow other plugins to act accordingly.
+        event bus and hence allow other plugins to act accordingly.
         """
 
         if self._status in INVALID_START_STATUS:
@@ -295,10 +302,30 @@ class BaseIsolatedPlugin(BasePlugin):
         log_queue = self.context.boot_kwargs['log_queue']
         level = self.context.boot_kwargs.get('log_level', logging.INFO)
         setup_queue_logging(log_queue, level)
-        self.event_bus.connect_no_wait()
+        connection_config = ConnectionConfig.from_name(
+            self.normalized_name, self.context.trinity_config.ipc_dir
+        )
+        self.event_bus.start_serving_nowait(connection_config)
+        self.event_bus.connect_to_endpoints_blocking(
+            ConnectionConfig.from_name(MAIN_EVENTBUS_ENDPOINT, self.context.trinity_config.ipc_dir)
+        )
+        # This makes the `main` process aware of this Endpoint which will then propagate the info
+        # so that every other Endpoint can connect directly to the plugin Endpoint
+        self.event_bus.broadcast(
+            EventBusConnected(connection_config),
+            BroadcastConfig(filter_endpoint=MAIN_EVENTBUS_ENDPOINT)
+        )
         self.event_bus.broadcast(
             PluginStartedEvent(type(self))
         )
+
+        # Whenever new EventBus Endpoints come up the `main` process broadcasts this event
+        # and we connect to every Endpoint directly
+        self.event_bus.subscribe(
+            AvailableEndpointsUpdated,
+            connect_to_other_endpoints(self.logger, self.event_bus)
+        )
+
         with self.context.trinity_config.process_id_file(self.normalized_name):
             self.do_start()
 

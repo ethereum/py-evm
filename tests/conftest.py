@@ -24,7 +24,8 @@ from eth.db.atomic import AtomicDB
 from eth.vm.forks.spurious_dragon import SpuriousDragonVM
 
 from lahja import (
-    EventBus,
+    ConnectionConfig,
+    Endpoint,
 )
 
 from trinity.config import (
@@ -125,15 +126,19 @@ def async_process_runner(event_loop):
 
 @pytest.fixture(scope='module')
 async def event_bus(event_loop):
-    bus = EventBus()
-    endpoint = bus.create_endpoint(NETWORKING_EVENTBUS_ENDPOINT)
-    bus.start(event_loop)
-    await endpoint.connect(event_loop)
+    endpoint = Endpoint()
+    # Tests run concurrently, therefore we need unique IPC paths
+    ipc_path = Path(f"networking-{uuid.uuid4()}.ipc")
+    networking_connection_config = ConnectionConfig(
+        name=NETWORKING_EVENTBUS_ENDPOINT,
+        path=ipc_path
+    )
+    await endpoint.start_serving(networking_connection_config, event_loop)
+    await endpoint.connect_to_endpoints(networking_connection_config)
     try:
         yield endpoint
     finally:
         endpoint.stop()
-        bus.stop()
 
 
 @pytest.fixture(scope='session')

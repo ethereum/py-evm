@@ -6,6 +6,7 @@ Unreleased (latest source)
 
 - `#270 <https://github.com/ethereum/trinity/pull/270>`_: Performance: Persist information on peers between runs
 - `#268 <https://github.com/ethereum/trinity/pull/268>`_: Maintenance: Add more bootnodes, use all the Geth and Parity bootnodes
+- `#263 <https://github.com/ethereum/trinity/pull/263>`_: Performance: Upgrade to lahja 0.11.0 and get rid of EventBus coordinator process
 - `#227 <https://github.com/ethereum/trinity/pull/227>`_: Bugfix: Do not accidentially create many processes that sit idle
 - `#227 <https://github.com/ethereum/trinity/pull/227>`_: Tests: Cover APIs that also hit the database in `trinity attach` tests
 - `#155 <https://github.com/ethereum/trinity/pull/155>`_: Feature: Disable syncing entirely with `--sync-mode none`

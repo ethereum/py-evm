@@ -21,7 +21,6 @@ from typing import (
 
 from lahja import (
     Endpoint,
-    EventBus,
 )
 
 from trinity.config import (
@@ -74,8 +73,7 @@ class BaseManagerProcessScope(ABC):
 
 class MainAndIsolatedProcessScope(BaseManagerProcessScope):
 
-    def __init__(self, event_bus: EventBus, main_proc_endpoint: Endpoint) -> None:
-        self.event_bus = event_bus
+    def __init__(self, main_proc_endpoint: Endpoint) -> None:
         self.endpoint = main_proc_endpoint
 
     def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
@@ -89,19 +87,19 @@ class MainAndIsolatedProcessScope(BaseManagerProcessScope):
     def create_plugin_context(self,
                               plugin: BasePlugin,
                               boot_info: TrinityBootInfo) -> None:
+        """
+        Create a :class:`~trinity.extensibility.plugin.PluginContext` that creates a new
+        :class:`~lahja.endpoint.Endpoint` dedicated to the isolated plugin that runs in its own
+        process. The :class:`~lahja.endpoint.Endpoint` enable application wide event-driven
+        communication even across process boundaries.
+        """
 
-        """
-        Create a :class:`~trinity.extensibility.plugin.PluginContext` that holds a reference to a
-        dedicated new :class:`~lahja.endpoint.Endpoint` to enable plugins which run in their own
-        isolated processes to connect to the central :class:`~lahja.endpoint.EventBus` that Trinity
-        uses to enable application wide event-driven communication even across process boundaries.
-        """
         if isinstance(plugin, BaseIsolatedPlugin):
-            # Isolated plugins get an entirely new endpoint to be passed into that new process
-            plugin.set_context(PluginContext(
-                self.event_bus.create_endpoint(plugin.name),
-                boot_info,
-            ))
+            # Isolated plugins use their own Endpoint that lives in the new process. It is only
+            # created here for API symmetry. Endpoints are pickleable *before* they are connected,
+            # which means, this Endpoint will be pickled and transferred into the new process
+            # together with the rest of the `PluginContext`.
+            plugin.set_context(PluginContext(Endpoint(), boot_info,))
 
 
 class SharedProcessScope(BaseManagerProcessScope):
@@ -122,9 +120,8 @@ class SharedProcessScope(BaseManagerProcessScope):
         """
         Create a :class:`~trinity.extensibility.plugin.PluginContext` that uses the
         :class:`~lahja.endpoint.Endpoint` of the
-        :class:`~trinity.extensibility.plugin_manager.PluginManager` to communicate with the
-        central :class:`~lahja.endpoint.EventBus` that Trinity uses to enable application wide,
-        event-driven communication even across process boundaries.
+        :class:`~trinity.extensibility.plugin_manager.PluginManager` as the event bus that
+        enables application wide, event-driven communication even across process boundaries.
         """
         # Plugins that run in a shared process all share the endpoint of the plugin manager
         plugin.set_context(PluginContext(self.endpoint, boot_info))
@@ -161,7 +158,7 @@ class PluginManager:
         """
         Return the :class:`~lahja.endpoint.Endpoint` that the
         :class:`~trinity.extensibility.plugin_manager.PluginManager` instance uses to connect to
-        the central :class:`~lahja.eventbus.EventBus`.
+        the event bus.
         """
         return self._scope.endpoint
 
@@ -202,7 +199,7 @@ class PluginManager:
                 plugin,
                 TrinityBootInfo(args, trinity_config, boot_kwargs)
             )
-            plugin.ready()
+            plugin.ready(self.event_bus_endpoint)
 
     def shutdown_blocking(self) -> None:
         """

@@ -7,6 +7,10 @@ from typing import (
     Tuple
 )
 
+from lahja import (
+    Endpoint,
+)
+
 from trinity.config import (
     Eth1AppConfig,
     Eth1DbMode,
@@ -46,7 +50,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
     def name(self) -> str:
         return "JSON-RPC API"
 
-    def on_ready(self) -> None:
+    def on_ready(self, manager_eventbus: Endpoint) -> None:
         if not self.context.args.disable_rpc:
             self.start()
 

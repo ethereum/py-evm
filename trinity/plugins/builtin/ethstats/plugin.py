@@ -7,12 +7,19 @@ from argparse import (
     _SubParsersAction,
 )
 
+from lahja import (
+    Endpoint,
+)
+
 from trinity.constants import (
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
 )
 from trinity.extensibility import (
     BaseIsolatedPlugin,
+)
+from trinity._utils.lahja_helper import (
+    request_shutdown,
 )
 from trinity._utils.shutdown import (
     exit_with_service_and_endpoint,
@@ -77,7 +84,7 @@ class EthstatsPlugin(BaseIsolatedPlugin):
             default=10,
         )
 
-    def on_ready(self) -> None:
+    def on_ready(self, manager_eventbus: Endpoint) -> None:
         args = self.context.args
 
         if not args.ethstats:
@@ -87,14 +94,14 @@ class EthstatsPlugin(BaseIsolatedPlugin):
             self.logger.error(
                 'You must provide ethstats server url using the `--ethstats-server-url`'
             )
-            self.context.shutdown_host("Missing EthStats Server URL")
+            request_shutdown(manager_eventbus, "Missing EthStats Server URL")
             return
 
         if not args.ethstats_server_secret:
             self.logger.error(
                 'You must provide ethstats server secret using `--ethstats-server-secret`'
             )
-            self.context.shutdown_host("Missing EthStats Server Secret")
+            request_shutdown(manager_eventbus, "Missing EthStats Server Secret")
             return
 
         if (args.ethstats_server_url):
