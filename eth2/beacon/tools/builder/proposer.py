@@ -12,11 +12,13 @@ from eth2._utils import bls
 from eth2.beacon.enums import (
     SignatureDomain,
 )
+from eth2.beacon.committee_helpers import (
+    get_beacon_proposer_index,
+)
 from eth2.beacon.exceptions import (
     ProposerIndexError,
 )
 from eth2.beacon.helpers import (
-    get_beacon_proposer_index,
     get_domain,
     slot_to_epoch,
 )

@@ -11,13 +11,15 @@ from eth.constants import (
 
 from eth2._utils import bls as bls
 
+from eth2.beacon.committee_helpers import (
+    get_beacon_proposer_index,
+    get_attestation_participants,
+)
 from eth2.beacon.enums import (
     SignatureDomain,
 )
 from eth2.beacon.helpers import (
     get_epoch_start_slot,
-    get_attestation_participants,
-    get_beacon_proposer_index,
     get_block_root,
     get_domain,
     slot_to_epoch,

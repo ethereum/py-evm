@@ -21,10 +21,12 @@ from eth2._utils.bitfield import (
     set_voted,
     get_empty_bitfield,
 )
-from eth2.beacon.helpers import (
-    get_active_validator_indices,
+from eth2.beacon.committee_helpers import (
     get_crosslink_committees_at_slot,
     get_current_epoch_committee_count,
+)
+from eth2.beacon.helpers import (
+    get_active_validator_indices,
     get_randao_mix,
     slot_to_epoch,
 )

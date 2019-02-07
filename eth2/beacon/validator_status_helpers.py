@@ -1,12 +1,14 @@
 from eth2._utils.tuple import (
     update_tuple_item,
 )
+from eth2.beacon.committee_helpers import (
+    get_beacon_proposer_index,
+)
 from eth2.beacon.enums import (
     ValidatorStatusFlags,
 )
 from eth2.beacon.helpers import (
     get_entry_exit_effect_epoch,
-    get_beacon_proposer_index,
     get_effective_balance,
 )
 from eth2.beacon.types.states import BeaconState

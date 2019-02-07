@@ -27,9 +27,11 @@ from eth2._utils import bls
 from eth2.beacon.enums import (
     SignatureDomain,
 )
+from eth2.beacon.committee_helpers import (
+    get_crosslink_committees_at_slot,
+)
 from eth2.beacon.helpers import (
     get_block_root,
-    get_crosslink_committees_at_slot,
     get_domain,
     get_epoch_start_slot,
     slot_to_epoch,

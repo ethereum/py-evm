@@ -3,11 +3,13 @@ import pytest
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
+from eth2.beacon.committee_helpers import (
+    get_beacon_proposer_index,
+)
 from eth2.beacon.enums import (
     ValidatorStatusFlags,
 )
 from eth2.beacon.helpers import (
-    get_beacon_proposer_index,
     get_entry_exit_effect_epoch,
 )
 from eth2.beacon.validator_status_helpers import (
@@ -193,7 +195,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
                                                         max_deposit_amount,
                                                         target_committee_size,
                                                         shard_count):
-    from eth2.beacon import helpers
+    from eth2.beacon import committee_helpers
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
@@ -206,7 +208,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
         )
 
     monkeypatch.setattr(
-        helpers,
+        committee_helpers,
         'get_crosslink_committees_at_slot',
         mock_get_crosslink_committees_at_slot
     )
@@ -281,7 +283,7 @@ def test_penalize_validator(monkeypatch,
                             max_deposit_amount,
                             target_committee_size,
                             shard_count):
-    from eth2.beacon import helpers
+    from eth2.beacon import committee_helpers
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
@@ -294,7 +296,7 @@ def test_penalize_validator(monkeypatch,
         )
 
     monkeypatch.setattr(
-        helpers,
+        committee_helpers,
         'get_crosslink_committees_at_slot',
         mock_get_crosslink_committees_at_slot
     )

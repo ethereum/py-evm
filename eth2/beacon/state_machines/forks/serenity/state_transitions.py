@@ -3,7 +3,9 @@ from eth_typing import (
 )
 
 from eth2._utils.merkle import get_merkle_root
-from eth2.beacon.helpers import get_beacon_proposer_index
+from eth2.beacon.committee_helpers import (
+    get_beacon_proposer_index,
+)
 from eth2.beacon.state_machines.configs import BeaconConfig
 from eth2.beacon.state_machines.state_transitions import BaseStateTransition
 from eth2.beacon.types.blocks import BaseBeaconBlock

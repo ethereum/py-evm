@@ -1,7 +1,9 @@
 import pytest
 
 from eth2.beacon.db.chain import BeaconChainDB
-from eth2.beacon.helpers import get_beacon_proposer_index
+from eth2.beacon.committee_helpers import (
+    get_beacon_proposer_index,
+)
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )

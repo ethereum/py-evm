@@ -12,7 +12,7 @@ from eth_utils import (
 from eth.constants import (
     ZERO_HASH32,
 )
-from eth2.beacon.helpers import (
+from eth2.beacon.committee_helpers import (
     get_crosslink_committees_at_slot,
 )
 from eth2.beacon.state_machines.forks.serenity.block_validation import (

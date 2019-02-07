@@ -13,17 +13,23 @@ from eth2._utils.numeric import (
 from eth2._utils.tuple import (
     update_tuple_item,
 )
-from eth2.beacon.exceptions import NoWinningRootError
-from eth2.beacon.helpers import (
-    get_active_validator_indices,
+from eth2.beacon.exceptions import (
+    NoWinningRootError,
+)
+from eth2.beacon.committee_helpers import (
     get_crosslink_committees_at_slot,
     get_current_epoch_committee_count,
+)
+from eth2.beacon.epoch_processing_helpers import (
     get_current_epoch_attestations,
+    get_previous_epoch_attestations,
+    get_winning_root,
+)
+from eth2.beacon.helpers import (
+    get_active_validator_indices,
     get_effective_balance,
     get_epoch_start_slot,
-    get_previous_epoch_attestations,
     get_randao_mix,
-    get_winning_root,
     slot_to_epoch,
 )
 from eth2.beacon.typing import ShardNumber

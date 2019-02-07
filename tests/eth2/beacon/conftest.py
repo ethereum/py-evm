@@ -304,6 +304,16 @@ def sample_validator_record_params():
     }
 
 
+@pytest.fixture()
+def sample_block(sample_beacon_block_params):
+    return SerenityBeaconBlock(**sample_beacon_block_params)
+
+
+@pytest.fixture()
+def sample_state(sample_beacon_state_params):
+    return BeaconState(**sample_beacon_state_params)
+
+
 @pytest.fixture
 def filled_beacon_state(genesis_epoch,
                         genesis_slot,
