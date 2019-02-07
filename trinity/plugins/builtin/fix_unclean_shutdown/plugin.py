@@ -56,26 +56,14 @@ class FixUncleanShutdownPlugin(BaseMainProcessPlugin):
                     'pidfile %s was gone after killing process id %d' % (pidfile, process_id)
                 )
 
-        db_ipc = trinity_config.database_ipc_path
-        try:
-            db_ipc.unlink()
-            self.logger.info(
-                'Removed a dangling IPC socket file for database connections at %s', db_ipc
-            )
-        except FileNotFoundError:
-            self.logger.debug(
-                'The IPC socket file for database connections at %s was already gone', db_ipc
-            )
-
-        jsonrpc_ipc = trinity_config.jsonrpc_ipc_path
-        try:
-            jsonrpc_ipc.unlink()
-            self.logger.info(
-                'Removed a dangling IPC socket file for JSON-RPC connections at %s',
-                jsonrpc_ipc,
-            )
-        except FileNotFoundError:
-            self.logger.debug(
-                'The IPC socket file for JSON-RPC connections at %s was already gone',
-                jsonrpc_ipc,
-            )
+        ipcfiles = tuple(trinity_config.ipc_dir.glob('*.ipc'))
+        for ipcfile in ipcfiles:
+            try:
+                ipcfile.unlink()
+                self.logger.info(
+                    'Removed dangling IPC socket file  %s' % (ipcfile)
+                )
+            except FileNotFoundError:
+                self.logger.debug(
+                    'ipcfile %s was already gone' % (ipcfile)
+                )
