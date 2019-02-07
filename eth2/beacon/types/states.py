@@ -23,7 +23,6 @@ from eth2.beacon._utils.hash import (
 )
 from eth2.beacon.helpers import slot_to_epoch
 from eth2.beacon.sedes import (
-    uint24,
     uint64,
     hash32,
 )
@@ -38,11 +37,9 @@ from eth2.beacon.typing import (
 
 from .eth1_data import Eth1Data
 from .eth1_data_vote import Eth1DataVote
-from .custody_challenges import CustodyChallenge
 from .crosslink_records import CrosslinkRecord
 from .forks import Fork
 from .pending_attestation_records import PendingAttestationRecord
-from .shard_reassignment_records import ShardReassignmentRecord
 from .validator_records import ValidatorRecord
 
 
@@ -64,20 +61,12 @@ class BeaconState(rlp.Serializable):
 
         # Randomness and committees
         ('latest_randao_mixes', CountableList(hash32)),
-        ('latest_vdf_outputs', CountableList(hash32)),
-
-        # TODO Remove `persistent_committee_reassignments`
-        ('persistent_committees', CountableList(CountableList(uint24))),
-        ('persistent_committee_reassignments', CountableList(ShardReassignmentRecord)),
         ('previous_epoch_start_shard', uint64),
         ('current_epoch_start_shard', uint64),
         ('previous_calculation_epoch', uint64),
         ('current_calculation_epoch', uint64),
         ('previous_epoch_seed', hash32),
         ('current_epoch_seed', hash32),
-
-        # Custody challenges
-        ('custody_challenges', CountableList(CustodyChallenge)),
 
         # Finality
         ('previous_justified_epoch', uint64),
@@ -115,17 +104,12 @@ class BeaconState(rlp.Serializable):
             validator_registry_exit_count: int,
             # Randomness and committees
             latest_randao_mixes: Sequence[Hash32],
-            latest_vdf_outputs: Sequence[Hash32],
-            persistent_committees: Sequence[Sequence[ValidatorIndex]],
-            persistent_committee_reassignments: Sequence[ShardReassignmentRecord],
             previous_epoch_start_shard: ShardNumber,
             current_epoch_start_shard: ShardNumber,
             previous_calculation_epoch: EpochNumber,
             current_calculation_epoch: EpochNumber,
             previous_epoch_seed: Hash32,
             current_epoch_seed: Hash32,
-            # Custody challenges
-            custody_challenges: Sequence[CustodyChallenge],
             # Finality
             previous_justified_epoch: EpochNumber,
             justified_epoch: EpochNumber,
@@ -157,17 +141,12 @@ class BeaconState(rlp.Serializable):
             validator_registry_exit_count=validator_registry_exit_count,
             # Randomness and committees
             latest_randao_mixes=latest_randao_mixes,
-            latest_vdf_outputs=latest_vdf_outputs,
-            persistent_committees=persistent_committees,
-            persistent_committee_reassignments=persistent_committee_reassignments,
             previous_epoch_start_shard=previous_epoch_start_shard,
             current_epoch_start_shard=current_epoch_start_shard,
             previous_calculation_epoch=previous_calculation_epoch,
             current_calculation_epoch=current_calculation_epoch,
             previous_epoch_seed=previous_epoch_seed,
             current_epoch_seed=current_epoch_seed,
-            # Proof of Custody
-            custody_challenges=custody_challenges,
             # Finality
             previous_justified_epoch=previous_justified_epoch,
             justified_epoch=justified_epoch,
@@ -246,18 +225,12 @@ class BeaconState(rlp.Serializable):
                 ZERO_HASH32
                 for _ in range(latest_randao_mixes_length)
             ),
-            latest_vdf_outputs=(),
-            persistent_committees=(),
-            persistent_committee_reassignments=(),
             previous_epoch_start_shard=genesis_start_shard,
             current_epoch_start_shard=genesis_start_shard,
             previous_calculation_epoch=genesis_epoch,
             current_calculation_epoch=genesis_epoch,
             previous_epoch_seed=ZERO_HASH32,
             current_epoch_seed=ZERO_HASH32,
-
-            # Custody challenges
-            custody_challenges=(),
 
             # Finality
             previous_justified_epoch=genesis_epoch,

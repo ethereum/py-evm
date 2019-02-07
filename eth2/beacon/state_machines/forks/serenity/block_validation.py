@@ -291,7 +291,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     participant_indices = get_attestation_participants(
         state=state,
         attestation_data=attestation.data,
-        aggregation_bitfield=attestation.aggregation_bitfield,
+        bitfield=attestation.aggregation_bitfield,
         genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,

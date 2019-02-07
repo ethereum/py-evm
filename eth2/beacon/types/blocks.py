@@ -43,9 +43,6 @@ from eth2.beacon.typing import (
 
 
 from .attestations import Attestation
-from .custody_challenges import CustodyChallenge
-from .custody_reseeds import CustodyReseed
-from .custody_responses import CustodyResponse
 from .attester_slashings import AttesterSlashing
 from .deposits import Deposit
 from .eth1_data import Eth1Data
@@ -61,9 +58,6 @@ class BeaconBlockBody(rlp.Serializable):
         ('proposer_slashings', CountableList(ProposerSlashing)),
         ('attester_slashings', CountableList(AttesterSlashing)),
         ('attestations', CountableList(Attestation)),
-        ('custody_reseeds', CountableList(CustodyReseed)),
-        ('custody_challenges', CountableList(CustodyChallenge)),
-        ('custody_responses', CountableList(CustodyResponse)),
         ('deposits', CountableList(Deposit)),
         ('exits', CountableList(Exit)),
     ]
@@ -72,18 +66,12 @@ class BeaconBlockBody(rlp.Serializable):
                  proposer_slashings: Sequence[ProposerSlashing],
                  attester_slashings: Sequence[AttesterSlashing],
                  attestations: Sequence[Attestation],
-                 custody_reseeds: Sequence[CustodyReseed],
-                 custody_challenges: Sequence[CustodyResponse],
-                 custody_responses: Sequence[CustodyResponse],
                  deposits: Sequence[Deposit],
                  exits: Sequence[Exit])-> None:
         super().__init__(
             proposer_slashings=proposer_slashings,
             attester_slashings=attester_slashings,
             attestations=attestations,
-            custody_reseeds=custody_reseeds,
-            custody_challenges=custody_challenges,
-            custody_responses=custody_responses,
             deposits=deposits,
             exits=exits,
         )
@@ -94,9 +82,6 @@ class BeaconBlockBody(rlp.Serializable):
             proposer_slashings=(),
             attester_slashings=(),
             attestations=(),
-            custody_reseeds=(),
-            custody_challenges=(),
-            custody_responses=(),
             deposits=(),
             exits=(),
         )
@@ -107,9 +92,6 @@ class BeaconBlockBody(rlp.Serializable):
             self.proposer_slashings == () and
             self.attester_slashings == () and
             self.attestations == () and
-            self.custody_reseeds == () and
-            self.custody_challenges == () and
-            self.custody_responses == () and
             self.deposits == () and
             self.exits == ()
         )
@@ -121,9 +103,6 @@ class BeaconBlockBody(rlp.Serializable):
             proposer_slashings=body.proposer_slashings,
             attester_slashings=body.attester_slashings,
             attestations=body.attestations,
-            custody_reseeds=body.custody_reseeds,
-            custody_challenges=body.custody_challenges,
-            custody_responses=body.custody_responses,
             deposits=body.deposits,
             exits=body.exits,
         )
@@ -217,9 +196,6 @@ class BeaconBlock(BaseBeaconBlock):
             proposer_slashings=block.body.proposer_slashings,
             attester_slashings=block.body.attester_slashings,
             attestations=block.body.attestations,
-            custody_reseeds=block.body.custody_reseeds,
-            custody_challenges=block.body.custody_challenges,
-            custody_responses=block.body.custody_responses,
             deposits=block.body.deposits,
             exits=block.body.exits,
         )

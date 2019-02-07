@@ -30,13 +30,11 @@ def validate_proof_of_possession(state: BeaconState,
                                  proof_of_possession: BLSSignature,
                                  withdrawal_credentials: Hash32,
                                  randao_commitment: Hash32,
-                                 custody_commitment: Hash32,
                                  epoch_length: int) -> None:
     deposit_input = DepositInput(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
-        custody_commitment=custody_commitment,
         proof_of_possession=EMPTY_SIGNATURE,
     )
 
@@ -79,7 +77,6 @@ def process_deposit(*,
                     proof_of_possession: BLSSignature,
                     withdrawal_credentials: Hash32,
                     randao_commitment: Hash32,
-                    custody_commitment: Hash32,
                     epoch_length: int) -> BeaconState:
     """
     Process a deposit from Ethereum 1.0.
@@ -90,7 +87,6 @@ def process_deposit(*,
         proof_of_possession=proof_of_possession,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
-        custody_commitment=custody_commitment,
         epoch_length=epoch_length,
     )
 
@@ -100,7 +96,6 @@ def process_deposit(*,
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
-            custody_commitment=custody_commitment,
         )
 
         # Note: In phase 2 registry indices that has been withdrawn for a long time

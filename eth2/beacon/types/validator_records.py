@@ -14,9 +14,8 @@ from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.typing import (
-    EpochNumber,
     BLSPubkey,
-    SlotNumber,
+    EpochNumber,
 )
 
 
@@ -45,12 +44,6 @@ class ValidatorRecord(rlp.Serializable):
         ('exit_count', uint64),
         # Status flags
         ('status_flags', uint64),
-        # Proof of custody commitment
-        ('custody_commitment', hash32),
-        # Slot of latest custody reseed
-        ('latest_custody_reseed_slot', uint64),
-        # Slot of second-latest custody reseed
-        ('penultimate_custody_reseed_slot', uint64),
     ]
 
     def __init__(self,
@@ -63,10 +56,7 @@ class ValidatorRecord(rlp.Serializable):
                  withdrawal_epoch: EpochNumber,
                  penalized_epoch: EpochNumber,
                  exit_count: int,
-                 status_flags: int,
-                 custody_commitment: Hash32,
-                 latest_custody_reseed_slot: SlotNumber,
-                 penultimate_custody_reseed_slot: SlotNumber) -> None:
+                 status_flags: int) -> None:
         super().__init__(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
@@ -78,9 +68,6 @@ class ValidatorRecord(rlp.Serializable):
             penalized_epoch=penalized_epoch,
             exit_count=exit_count,
             status_flags=status_flags,
-            custody_commitment=custody_commitment,
-            latest_custody_reseed_slot=latest_custody_reseed_slot,
-            penultimate_custody_reseed_slot=penultimate_custody_reseed_slot,
         )
 
     def is_active(self, epoch: EpochNumber) -> bool:
@@ -93,8 +80,7 @@ class ValidatorRecord(rlp.Serializable):
     def create_pending_validator(cls,
                                  pubkey: BLSPubkey,
                                  withdrawal_credentials: Hash32,
-                                 randao_commitment: Hash32,
-                                 custody_commitment: Hash32) -> 'ValidatorRecord':
+                                 randao_commitment: Hash32) -> 'ValidatorRecord':
         """
         Return a new pending ``ValidatorRecord`` with the given fields.
         """
@@ -109,7 +95,4 @@ class ValidatorRecord(rlp.Serializable):
             penalized_epoch=FAR_FUTURE_EPOCH,
             exit_count=0,
             status_flags=0,
-            custody_commitment=custody_commitment,
-            latest_custody_reseed_slot=SlotNumber(0),
-            penultimate_custody_reseed_slot=SlotNumber(0),
         )

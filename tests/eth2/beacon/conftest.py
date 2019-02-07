@@ -120,9 +120,6 @@ def sample_beacon_block_body_params():
         'proposer_slashings': (),
         'attester_slashings': (),
         'attestations': (),
-        'custody_reseeds': (),
-        'custody_challenges': (),
-        'custody_responses': (),
         'deposits': (),
         'exits': (),
     }
@@ -153,16 +150,12 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'validator_registry_update_epoch': 0,
         'validator_registry_exit_count': 10,
         'latest_randao_mixes': (),
-        'latest_vdf_outputs': (),
-        'persistent_committees': (),
-        'persistent_committee_reassignments': (),
         'previous_epoch_start_shard': 1,
         'current_epoch_start_shard': 2,
         'previous_calculation_epoch': 0,
         'current_calculation_epoch': 0,
         'previous_epoch_seed': b'\x77' * 32,
         'current_epoch_seed': b'\x88' * 32,
-        'custody_challenges': (),
         'previous_justified_epoch': 0,
         'justified_epoch': 0,
         'justification_bitfield': 0,
@@ -208,7 +201,6 @@ def sample_deposit_input_params():
         'pubkey': 123,
         'withdrawal_credentials': b'\11' * 32,
         'randao_commitment': b'\11' * 32,
-        'custody_commitment': ZERO_HASH32,
         'proof_of_possession': (0, 0),
     }
 
@@ -278,20 +270,11 @@ def sample_recent_proposer_record_params():
 
 
 @pytest.fixture
-def sample_shard_reassignment_record():
-    return {
-        'validator_index': 10,
-        'shard': 11,
-        'slot': 12,
-    }
-
-
-@pytest.fixture
 def sample_slashable_attestation_params(sample_attestation_data_params):
     return {
-        'custody_bit_0_indices': (10, 11, 12, 15, 28),
-        'custody_bit_1_indices': (7, 8, 100, 131, 249),
+        'validator_indices': (10, 11, 12, 15, 28),
         'data': AttestationData(**sample_attestation_data_params),
+        'custody_bitfield': b'\00' * 4,
         'aggregate_signature': EMPTY_SIGNATURE,
     }
 
@@ -318,9 +301,6 @@ def sample_validator_record_params():
         'penalized_epoch': FAR_FUTURE_EPOCH,
         'exit_count': 0,
         'status_flags': 0,
-        'custody_commitment': ZERO_HASH32,
-        'latest_custody_reseed_slot': 0,
-        'penultimate_custody_reseed_slot': 0,
     }
 
 

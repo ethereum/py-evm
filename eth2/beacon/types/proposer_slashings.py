@@ -3,7 +3,7 @@ from rlp.sedes import (
     binary,
 )
 from eth2.beacon.sedes import (
-    uint24,
+    uint64,
 )
 from .proposal_signed_data import ProposalSignedData
 from eth2.beacon.typing import (
@@ -16,7 +16,7 @@ from eth2.beacon.constants import EMPTY_SIGNATURE
 class ProposerSlashing(rlp.Serializable):
     fields = [
         # Proposer index
-        ('proposer_index', uint24),
+        ('proposer_index', uint64),
         # First proposal data
         ('proposal_data_1', ProposalSignedData),
         # First proposal signature

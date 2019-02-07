@@ -41,13 +41,11 @@ def test_create_pending_validator():
     pubkey = 123
     withdrawal_credentials = b'\x11' * 32
     randao_commitment = b'\x22' * 32
-    custody_commitment = b'\x33' * 32
 
     validator = ValidatorRecord.create_pending_validator(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
-        custody_commitment=custody_commitment,
     )
 
     assert validator.pubkey == pubkey

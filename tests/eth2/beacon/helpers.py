@@ -28,9 +28,6 @@ def mock_validator_record(pubkey,
         penalized_epoch=FAR_FUTURE_EPOCH,
         exit_count=0,
         status_flags=status_flags,
-        custody_commitment=b'\x55' * 32,
-        latest_custody_reseed_slot=0,
-        penultimate_custody_reseed_slot=0,
     )
 
 

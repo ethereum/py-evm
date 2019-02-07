@@ -10,7 +10,6 @@ from eth2.beacon.types.blocks import (
 def test_defaults(sample_beacon_block_params):
     block = BeaconBlock(**sample_beacon_block_params)
     assert block.slot == sample_beacon_block_params['slot']
-    assert len(block.body.custody_challenges) == 0
 
 
 def test_update_attestations(sample_attestation_params, sample_beacon_block_params):
@@ -32,9 +31,6 @@ def test_block_body_empty(sample_attestation_params):
     assert block_body.proposer_slashings == ()
     assert block_body.attester_slashings == ()
     assert block_body.attestations == ()
-    assert block_body.custody_reseeds == ()
-    assert block_body.custody_challenges == ()
-    assert block_body.custody_responses == ()
     assert block_body.deposits == ()
     assert block_body.exits == ()
 

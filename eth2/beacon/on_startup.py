@@ -95,21 +95,12 @@ def get_initial_beacon_state(*,
 
         # Randomness and committees
         latest_randao_mixes=tuple(ZERO_HASH32 for _ in range(latest_randao_mixes_length)),
-        latest_vdf_outputs=tuple(
-            ZERO_HASH32 for _ in range(latest_randao_mixes_length // epoch_length)
-        ),
-        # TODO Remove `persistent_committees`, `persistent_committee_reassignments`
-        persistent_committees=(),
-        persistent_committee_reassignments=(),
         previous_epoch_start_shard=genesis_start_shard,
         current_epoch_start_shard=genesis_start_shard,
         previous_calculation_epoch=genesis_epoch,
         current_calculation_epoch=genesis_epoch,
         previous_epoch_seed=ZERO_HASH32,
         current_epoch_seed=ZERO_HASH32,
-
-        # Custody challenges
-        custody_challenges=(),
 
         # Finality
         previous_justified_epoch=genesis_epoch,
@@ -145,7 +136,6 @@ def get_initial_beacon_state(*,
             proof_of_possession=deposit.deposit_data.deposit_input.proof_of_possession,
             withdrawal_credentials=deposit.deposit_data.deposit_input.withdrawal_credentials,
             randao_commitment=deposit.deposit_data.deposit_input.randao_commitment,
-            custody_commitment=deposit.deposit_data.deposit_input.custody_commitment,
             epoch_length=epoch_length,
         )
 

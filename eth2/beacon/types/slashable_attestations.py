@@ -1,18 +1,22 @@
+from typing import (
+    Sequence,
+    Tuple,
+)
+
 import rlp
 from rlp.sedes import (
     binary,
     CountableList,
 )
-from typing import (
-    Sequence,
-    Tuple,
-)
 from eth_typing import (
     Hash32,
 )
+from eth2._utils.bitfield import (
+    has_voted,
+)
 from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.sedes import (
-    uint24,
+    uint64,
 )
 from eth2.beacon.typing import (
     BLSSignature,
@@ -29,25 +33,25 @@ class SlashableAttestation(rlp.Serializable):
     Note: using RLP until we have standardized serialization format.
     """
     fields = [
-        # Validator indices with custody bit equal to 0
-        ('custody_bit_0_indices', CountableList(uint24)),
-        # Validator indices with custody bit equal to 1
-        ('custody_bit_1_indices', CountableList(uint24)),
+        # Validator indices
+        ('validator_indices', CountableList(uint64)),
         # Attestation data
         ('data', AttestationData),
+        # Custody bitfield
+        ('custody_bitfield', binary),
         # Aggregate signature
         ('aggregate_signature', binary),
     ]
 
     def __init__(self,
-                 custody_bit_0_indices: Sequence[ValidatorIndex],
-                 custody_bit_1_indices: Sequence[ValidatorIndex],
+                 validator_indices: Sequence[ValidatorIndex],
                  data: AttestationData,
+                 custody_bitfield: bytes,
                  aggregate_signature: BLSSignature = EMPTY_SIGNATURE) -> None:
         super().__init__(
-            custody_bit_0_indices,
-            custody_bit_1_indices,
+            validator_indices,
             data,
+            custody_bitfield,
             aggregate_signature,
         )
 
@@ -65,15 +69,28 @@ class SlashableAttestation(rlp.Serializable):
         # Using flat hash, will likely use SSZ tree hash.
         return self.hash
 
-    _vote_count = None
+    @property
+    def is_custody_bitfield_empty(self) -> bool:
+        return self.custody_bitfield == b'\x00' * len(self.custody_bitfield)
 
     @property
-    def vote_count(self) -> int:
-        if self._vote_count is None:
-            count_zero_indices = len(self.custody_bit_0_indices)
-            count_one_indices = len(self.custody_bit_1_indices)
-            self._vote_count = count_zero_indices + count_one_indices
-        return self._vote_count
+    def is_validator_indices_ascending(self) -> bool:
+        for i in range(len(self.validator_indices) - 1):
+            if self.validator_indices[i] >= self.validator_indices[i + 1]:
+                return False
+        return True
+
+    @property
+    def custody_bit_indices(self) -> Tuple[Tuple[ValidatorIndex, ...], Tuple[ValidatorIndex, ...]]:
+        custody_bit_0_indices = ()  # type: Tuple[ValidatorIndex, ...]
+        custody_bit_1_indices = ()  # type: Tuple[ValidatorIndex, ...]
+        for i, validator_index in enumerate(self.validator_indices):
+            if not has_voted(self.custody_bitfield, i):
+                custody_bit_0_indices += (validator_index,)
+            else:
+                custody_bit_1_indices += (validator_index,)
+
+        return (custody_bit_0_indices, custody_bit_1_indices)
 
     @property
     def messages(self) -> Tuple[Hash32, Hash32]:

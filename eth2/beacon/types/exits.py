@@ -3,7 +3,6 @@ from rlp.sedes import (
     binary,
 )
 from eth2.beacon.sedes import (
-    uint24,
     uint64,
 )
 from eth2.beacon.typing import (
@@ -22,7 +21,7 @@ class Exit(rlp.Serializable):
         # Minimum epoch for processing exit
         ('epoch', uint64),
         # Index of the exiting validator
-        ('validator_index', uint24),
+        ('validator_index', uint64),
         # Validator signature
         ('signature', binary),
     ]

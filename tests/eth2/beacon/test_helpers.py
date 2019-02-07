@@ -14,10 +14,7 @@ from eth_utils import (
     big_endian_to_int,
     ValidationError,
 )
-from eth2._utils.bitfield import (
-    set_voted,
-    get_empty_bitfield,
-)
+
 from eth_utils.toolz import (
     assoc,
     isdistinct,
@@ -25,6 +22,11 @@ from eth_utils.toolz import (
 
 from eth.constants import (
     ZERO_HASH32,
+)
+
+from eth2._utils.bitfield import (
+    get_empty_bitfield,
+    set_voted,
 )
 from eth2.beacon._utils.hash import (
     hash_eth2,
@@ -74,9 +76,8 @@ from eth2.beacon.helpers import (
     is_double_vote,
     is_surround_vote,
     slot_to_epoch,
-    verify_vote_count,
+    validate_slashable_attestation,
     verify_slashable_attestation_signature,
-    verify_slashable_attestation,
 )
 import eth2._utils.bls as bls
 
@@ -576,7 +577,7 @@ def test_get_attestation_participants(
             get_attestation_participants(
                 state=sample_state,
                 attestation_data=attestation_data,
-                aggregation_bitfield=aggregation_bitfield,
+                bitfield=aggregation_bitfield,
                 genesis_epoch=genesis_epoch,
                 epoch_length=epoch_length,
                 target_committee_size=target_committee_size,
@@ -586,7 +587,7 @@ def test_get_attestation_participants(
         result = get_attestation_participants(
             state=sample_state,
             attestation_data=attestation_data,
-            aggregation_bitfield=aggregation_bitfield,
+            bitfield=aggregation_bitfield,
             genesis_epoch=genesis_epoch,
             epoch_length=epoch_length,
             target_committee_size=target_committee_size,
@@ -1040,7 +1041,7 @@ def _list_and_index(data, max_size=None, elements=st.integers()):
     """
     Hypothesis helper function cribbed from their docs on @composite
     """
-    xs = data.draw(st.lists(elements, max_size=max_size))
+    xs = data.draw(st.lists(elements, max_size=max_size, unique=True))
     i = data.draw(st.integers(min_value=0, max_value=max(len(xs) - 1, 0)))
     return (xs, i)
 
@@ -1050,24 +1051,31 @@ def test_generate_aggregate_pubkeys(activated_genesis_validators,
                                     sample_slashable_attestation_params,
                                     data):
     max_value_for_list = len(activated_genesis_validators) - 1
-    (indices, some_index) = _list_and_index(
+    (validator_indices, some_index) = _list_and_index(
         data,
         elements=st.integers(
             min_value=0,
             max_value=max_value_for_list,
         )
     )
-    custody_bit_0_indices = indices[:some_index]
-    custody_bit_1_indices = indices[some_index:]
 
-    key = "custody_bit_0_indices"
-    sample_slashable_attestation_params[key] = custody_bit_0_indices
-    key = "custody_bit_1_indices"
-    sample_slashable_attestation_params[key] = custody_bit_1_indices
+    key = "validator_indices"
+    sample_slashable_attestation_params[key] = validator_indices
 
-    votes = SlashableAttestation(**sample_slashable_attestation_params)
+    custody_bitfield = get_empty_bitfield(len(validator_indices))
+    for index in range(some_index):
+        custody_bitfield = set_voted(custody_bitfield, index)
 
-    keys = generate_aggregate_pubkeys(activated_genesis_validators, votes)
+    key = "custody_bitfield"
+    sample_slashable_attestation_params[key] = custody_bitfield
+
+    slashable_attestation = SlashableAttestation(**sample_slashable_attestation_params)
+    custody_bit_0_indices, custody_bit_1_indices = slashable_attestation.custody_bit_indices
+    assert len(
+        set(custody_bit_0_indices).intersection(set(custody_bit_1_indices))
+    ) == 0
+
+    keys = generate_aggregate_pubkeys(activated_genesis_validators, slashable_attestation)
     assert len(keys) == 2
 
     (poc_0_key, poc_1_key) = keys
@@ -1079,28 +1087,12 @@ def test_generate_aggregate_pubkeys(activated_genesis_validators,
     assert bls.aggregate_pubkeys(poc_1_keys) == poc_1_key
 
 
-@given(st.data())
-def test_verify_vote_count(max_indices_per_slashable_vote,
-                           sample_slashable_attestation_params,
-                           data):
-    (indices, some_index) = _list_and_index(data, max_size=max_indices_per_slashable_vote)
-    custody_bit_0_indices = indices[:some_index]
-    custody_bit_1_indices = indices[some_index:]
-
-    key = "custody_bit_0_indices"
-    sample_slashable_attestation_params[key] = custody_bit_0_indices
-    key = "custody_bit_1_indices"
-    sample_slashable_attestation_params[key] = custody_bit_1_indices
-
-    votes = SlashableAttestation(**sample_slashable_attestation_params)
-
-    assert verify_vote_count(votes, max_indices_per_slashable_vote)
-
-
 def _get_indices_and_signatures(num_validators, message, privkeys, fork, epoch):
     num_indices = 5
     assert num_validators >= num_indices
     indices = random.sample(range(num_validators), num_indices)
+    indices.sort()
+
     privkeys = [privkeys[i] for i in indices]
     domain_type = SignatureDomain.DOMAIN_ATTESTATION
     domain = get_domain(
@@ -1123,33 +1115,52 @@ def _correct_slashable_attestation_params(
         fork):
     valid_params = copy.deepcopy(params)
 
-    key = "custody_bit_0_indices"
-    (poc_0_indices, poc_0_signatures) = _get_indices_and_signatures(
-        num_validators,
-        messages[0],
-        privkeys,
-        fork,
-        slot_to_epoch(params["data"].slot, epoch_length),
-    )
-    valid_params[key] = poc_0_indices
-
-    key = "custody_bit_1_indices"
-    # NOTE: does not guarantee non-empty intersection
-    (poc_1_indices, poc_1_signatures) = _get_indices_and_signatures(
+    (validator_indices, signatures) = _get_indices_and_signatures(
         num_validators,
         messages[1],
         privkeys,
         fork,
         slot_to_epoch(params["data"].slot, epoch_length),
     )
-    valid_params[key] = poc_1_indices
 
-    signatures = poc_0_signatures + poc_1_signatures
+    valid_params["validator_indices"] = validator_indices
+    valid_params["custody_bitfield"] = get_empty_bitfield(len(validator_indices))
+
     aggregate_signature = bls.aggregate_signatures(signatures)
 
     valid_params["aggregate_signature"] = aggregate_signature
 
     return valid_params
+
+
+def _corrupt_custody_bitfield_not_empty(params):
+    validator_indices_length = len(params["validator_indices"])
+    corrupt_custody_bitfield = get_empty_bitfield(validator_indices_length)
+    corrupt_custody_bitfield = set_voted(corrupt_custody_bitfield, 0)
+    return assoc(params, "custody_bitfield", corrupt_custody_bitfield)
+
+
+def _corrupt_validator_indices(params):
+    corrupt_validator_indices = (
+        params["validator_indices"][1],
+        params["validator_indices"][0],
+    ) + tuple(params["validator_indices"][2:])
+
+    return assoc(params, "validator_indices", corrupt_validator_indices)
+
+
+def _corrupt_custody_bitfield_invalid(params):
+    validator_indices_length = len(params["validator_indices"])
+    corrupt_custody_bitfield = get_empty_bitfield(validator_indices_length + 8)
+    return assoc(params, "custody_bitfield", corrupt_custody_bitfield)
+
+
+def _corrupt_validator_indices_max(max_indices_per_slashable_vote, params):
+    corrupt_validator_indices = [
+        i
+        for i in range(max_indices_per_slashable_vote + 1)
+    ]
+    return assoc(params, "validator_indices", corrupt_validator_indices)
 
 
 def _corrupt_signature(epoch_length, params, fork):
@@ -1164,20 +1175,6 @@ def _corrupt_signature(epoch_length, params, fork):
     corrupt_signature = bls.sign(message, privkey, domain)
 
     return assoc(params, "aggregate_signature", corrupt_signature)
-
-
-def _corrupt_vote_count(params):
-    key = "custody_bit_0_indices"
-    for i in itertools.count():
-        if i not in params[key]:
-            new_vote_count = params[key] + [i]
-            return assoc(
-                params,
-                key,
-                new_vote_count,
-            )
-    else:
-        raise Exception("Unreachable code path")
 
 
 def _create_slashable_attestation_messages(params):
@@ -1236,16 +1233,16 @@ def _run_verify_slashable_vote(
         max_indices_per_slashable_vote,
         should_succeed):
     votes = SlashableAttestation(**params)
-    result = verify_slashable_attestation(
-        state,
-        votes,
-        max_indices_per_slashable_vote,
-        epoch_length,
-    )
     if should_succeed:
-        assert result
+        validate_slashable_attestation(state, votes, max_indices_per_slashable_vote, epoch_length)
     else:
-        assert not result
+        with pytest.raises(ValidationError):
+            validate_slashable_attestation(
+                state,
+                votes,
+                max_indices_per_slashable_vote,
+                epoch_length,
+            )
 
 
 @pytest.mark.parametrize(
@@ -1261,22 +1258,24 @@ def _run_verify_slashable_vote(
         'param_mapper',
         'should_succeed',
         'needs_fork',
+        'is_testing_max_length',
     ),
     [
-        (lambda params: params, True, False),
-        (_corrupt_vote_count, False, False),
-        (_corrupt_signature, False, True),
-        (lambda epoch_length, params, fork: _corrupt_vote_count(
-            _corrupt_signature(epoch_length, params, fork)
-        ), False, True),
+        (lambda params: params, True, False, False),
+        (_corrupt_custody_bitfield_not_empty, False, False, False),
+        (_corrupt_validator_indices, False, False, False),
+        (_corrupt_custody_bitfield_invalid, False, False, False),
+        (_corrupt_validator_indices_max, False, False, True),
+        (_corrupt_signature, False, True, False),
     ],
 )
-def test_verify_slashable_attestation(
+def test_validate_slashable_attestation(
         epoch_length,
         num_validators,
         param_mapper,
         should_succeed,
         needs_fork,
+        is_testing_max_length,
         privkeys,
         sample_beacon_state_params,
         activated_genesis_validators,
@@ -1304,6 +1303,9 @@ def test_verify_slashable_attestation(
     )
     if needs_fork:
         params = param_mapper(epoch_length, params, state.fork)
+    elif is_testing_max_length:
+        params = param_mapper(max_indices_per_slashable_vote, params)
+
     else:
         params = param_mapper(params)
     _run_verify_slashable_vote(

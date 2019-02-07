@@ -68,7 +68,6 @@ def test_get_initial_beacon_state(
         sample_eth1_data_params):
     withdrawal_credentials = b'\x22' * 32
     randao_commitment = b'\x33' * 32
-    custody_commitment = b'\x44' * 32
     fork = Fork(
         previous_version=genesis_fork_version,
         current_version=genesis_fork_version,
@@ -89,13 +88,11 @@ def test_get_initial_beacon_state(
                     pubkey=pubkeys[i],
                     withdrawal_credentials=withdrawal_credentials,
                     randao_commitment=randao_commitment,
-                    custody_commitment=custody_commitment,
                     proof_of_possession=sign_proof_of_possession(
                         deposit_input=DepositInput(
                             pubkey=pubkeys[i],
                             withdrawal_credentials=withdrawal_credentials,
                             randao_commitment=randao_commitment,
-                            custody_commitment=custody_commitment,
                         ),
                         privkey=privkeys[i],
                         fork=fork,
@@ -146,19 +143,11 @@ def test_get_initial_beacon_state(
 
     # Randomness and committees
     assert len(state.latest_randao_mixes) == latest_randao_mixes_length
-    assert len(state.latest_vdf_outputs) == latest_randao_mixes_length // epoch_length
-
-    # TODO: `persistent_committees`, `persistent_committee_reassignments` will be removed
-    assert len(state.persistent_committees) == 0
-    assert len(state.persistent_committee_reassignments) == 0
     assert state.previous_epoch_start_shard == genesis_start_shard
     assert state.current_epoch_start_shard == genesis_start_shard
     assert state.previous_calculation_epoch == genesis_epoch
     assert state.current_calculation_epoch == genesis_epoch
     assert state.previous_epoch_seed == ZERO_HASH32
-
-    # Custody challenges
-    assert len(state.custody_challenges) == 0
 
     # Finality
     assert state.previous_justified_epoch == genesis_epoch

@@ -28,8 +28,6 @@ class DepositInput(rlp.Serializable):
         ('withdrawal_credentials', hash32),
         # Initial RANDAO commitment
         ('randao_commitment', hash32),
-        # Initial proof of custody commitment
-        ('custody_commitment', hash32),
         # BLS proof of possession (a BLS signature)
         ('proof_of_possession', binary),
     ]
@@ -38,13 +36,11 @@ class DepositInput(rlp.Serializable):
                  pubkey: BLSPubkey,
                  withdrawal_credentials: Hash32,
                  randao_commitment: Hash32,
-                 custody_commitment: Hash32,
                  proof_of_possession: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
-            custody_commitment=custody_commitment,
             proof_of_possession=proof_of_possession,
         )
 

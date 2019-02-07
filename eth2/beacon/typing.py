@@ -13,7 +13,7 @@ BLSSignature = NewType('BLSSignature', bytes)  # bytes96
 Bitfield = NewType('Bitfield', bytes)  # uint64
 
 
-ValidatorIndex = NewType('ValidatorIndex', int)  # uint24
+ValidatorIndex = NewType('ValidatorIndex', int)  # uint64
 CommitteeIndex = NewType('CommitteeIndex', int)
 
 Gwei = NewType('Gwei', int)  # uint64

@@ -58,14 +58,12 @@ def test_validate_proof_of_possession(
     privkey = privkeys[0]
     pubkey = pubkeys[0]
     withdrawal_credentials = b'\x34' * 32
-    custody_commitment = b'\x12' * 32
     randao_commitment = b'\x56' * 32
 
     deposit_input = DepositInput(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
-        custody_commitment=custody_commitment,
     )
     if expected is True:
         proof_of_possession = sign_proof_of_possession(
@@ -82,7 +80,6 @@ def test_validate_proof_of_possession(
             proof_of_possession=proof_of_possession,
             withdrawal_credentials=withdrawal_credentials,
             randao_commitment=randao_commitment,
-            custody_commitment=custody_commitment,
             epoch_length=epoch_length,
         )
     else:
@@ -94,7 +91,6 @@ def test_validate_proof_of_possession(
                 proof_of_possession=proof_of_possession,
                 withdrawal_credentials=withdrawal_credentials,
                 randao_commitment=randao_commitment,
-                custody_commitment=custody_commitment,
                 epoch_length=epoch_length,
             )
 
@@ -113,14 +109,12 @@ def test_process_deposit(epoch_length,
     pubkey_1 = pubkeys[0]
     amount = max_deposit_amount
     withdrawal_credentials = b'\x34' * 32
-    custody_commitment = b'\x11' * 32
     randao_commitment = b'\x56' * 32
 
     deposit_input = DepositInput(
         pubkey=pubkey_1,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
-        custody_commitment=custody_commitment,
     )
     proof_of_possession = sign_proof_of_possession(
         deposit_input,
@@ -138,7 +132,6 @@ def test_process_deposit(epoch_length,
         proof_of_possession=proof_of_possession,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
-        custody_commitment=custody_commitment,
         epoch_length=epoch_length,
     )
 
@@ -158,7 +151,6 @@ def test_process_deposit(epoch_length,
         pubkey=pubkey_2,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
-        custody_commitment=custody_commitment,
     )
     proof_of_possession = sign_proof_of_possession(
         deposit_input,
@@ -174,7 +166,6 @@ def test_process_deposit(epoch_length,
         proof_of_possession=proof_of_possession,
         withdrawal_credentials=withdrawal_credentials,
         randao_commitment=randao_commitment,
-        custody_commitment=custody_commitment,
         epoch_length=epoch_length,
     )
     assert len(result_state.validator_registry) == 2
