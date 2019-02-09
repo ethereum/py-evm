@@ -72,7 +72,7 @@ def get_previous_epoch_attestations(
 
 @to_tuple
 @to_set
-def get_attesting_validator_indices(
+def get_shard_block_root_attester_indices(
         *,
         state: 'BeaconState',
         attestations: Sequence[PendingAttestationRecord],
@@ -95,7 +95,7 @@ def get_attesting_validator_indices(
             )
 
 
-def get_total_attesting_balance(
+def get_shard_block_root_total_attesting_balance(
         *,
         state: 'BeaconState',
         shard: Shard,
@@ -103,7 +103,7 @@ def get_total_attesting_balance(
         attestations: Sequence[PendingAttestationRecord],
         max_deposit_amount: Gwei,
         committee_config: CommitteeConfig) -> Gwei:
-    validator_indices = get_attesting_validator_indices(
+    validator_indices = get_shard_block_root_attester_indices(
         state=state,
         attestations=attestations,
         shard=shard,
@@ -133,7 +133,7 @@ def get_winning_root(
         ]
     )
     for shard_block_root in shard_block_roots:
-        total_attesting_balance = get_total_attesting_balance(
+        total_attesting_balance = get_shard_block_root_total_attesting_balance(
             state=state,
             shard=shard,
             shard_block_root=shard_block_root,

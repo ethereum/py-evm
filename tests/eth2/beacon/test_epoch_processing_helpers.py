@@ -22,7 +22,7 @@ from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.epoch_processing_helpers import (
-    get_attesting_validator_indices,
+    get_shard_block_root_attester_indices,
     get_current_epoch_attestations,
     get_previous_epoch_attestations,
     get_winning_root,
@@ -79,7 +79,7 @@ def get_aggregation_bitfield(attestation_participants, target_committee_size):
         ),
     ]
 )
-def test_get_attesting_validator_indices(
+def test_get_shard_block_root_attester_indices(
         random,
         monkeypatch,
         target_committee_size,
@@ -157,7 +157,7 @@ def test_get_attesting_validator_indices(
         ),
     ]
 
-    shard_block_root_1_attesting_validator = get_attesting_validator_indices(
+    shard_block_root_1_attesting_validator = get_shard_block_root_attester_indices(
         state=sample_state,
         attestations=attestations,
         shard=shard,
@@ -171,7 +171,7 @@ def test_get_attesting_validator_indices(
     assert len(shard_block_root_1_attesting_validator) == len(
         set(attestation_participants_1 + attestation_participants_2))
 
-    shard_block_root_2_attesting_validator = get_attesting_validator_indices(
+    shard_block_root_2_attesting_validator = get_shard_block_root_attester_indices(
         state=sample_state,
         attestations=attestations,
         shard=shard,
@@ -332,7 +332,7 @@ def test_get_winning_root(
             max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
             committee_config=committee_config,
         )
-        attesting_validators_indices = get_attesting_validator_indices(
+        attesting_validators_indices = get_shard_block_root_attester_indices(
             state=n_validators_state,
             attestations=attestations,
             shard=shard,
