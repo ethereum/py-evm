@@ -25,6 +25,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_shard_block_root_attester_indices,
     get_current_epoch_attestations,
     get_previous_epoch_attestations,
+    get_previous_epoch_justified_attestations,
     get_winning_root,
     get_epoch_boundary_attester_indices,
     get_epoch_boundary_attesting_balances,
@@ -32,6 +33,7 @@ from eth2.beacon.epoch_processing_helpers import (
 from eth2.beacon.exceptions import NoWinningRootError
 from eth2.beacon.helpers import (
     get_effective_balance,
+    get_epoch_start_slot,
 )
 from eth2.beacon.types.attestations import (
     Attestation,
@@ -231,6 +233,75 @@ def test_get_current_and_previous_epoch_attestations(random,
         get_previous_epoch_attestations(state, slots_per_epoch, genesis_epoch))
     assert set(current_epoch_attestations) == set(
         get_current_epoch_attestations(state, slots_per_epoch))
+
+
+@settings(max_examples=1)
+@given(random=st.randoms())
+def test_get_previous_epoch_justified_attestations(
+        random,
+        sample_state,
+        genesis_epoch,
+        epoch_length,
+        sample_attestation_data_params,
+        sample_attestation_params):
+    current_epoch = 10
+    previous_justified_epoch = 6
+
+    num_previous_epoch_attestation = num_current_epoch_attestation = 10
+    num_prev_epoch_justified_attestation, num_cur_epoch_justified_attestation = random.sample(
+        range(num_previous_epoch_attestation),
+        2,
+    )
+
+    previous_epoch_attestations = []
+    for i in range(num_previous_epoch_attestation):
+        if i < num_prev_epoch_justified_attestation:
+            previous_epoch_attestations.append(
+                Attestation(**sample_attestation_params).copy(
+                    data=AttestationData(**sample_attestation_data_params).copy(
+                        slot=get_epoch_start_slot(current_epoch - 1, epoch_length),
+                        justified_epoch=previous_justified_epoch,
+                    ),
+                )
+            )
+        else:
+            previous_epoch_attestations.append(
+                Attestation(**sample_attestation_params).copy(
+                    data=AttestationData(**sample_attestation_data_params).copy(
+                        slot=get_epoch_start_slot(current_epoch - 1, epoch_length),
+                    ),
+                )
+            )
+    current_epoch_attestations = []
+    for i in range(num_current_epoch_attestation):
+        if i < num_cur_epoch_justified_attestation:
+            current_epoch_attestations.append(
+                Attestation(**sample_attestation_params).copy(
+                    data=AttestationData(**sample_attestation_data_params).copy(
+                        slot=get_epoch_start_slot(current_epoch, epoch_length),
+                        justified_epoch=previous_justified_epoch,
+                    ),
+                )
+            )
+        else:
+            current_epoch_attestations.append(
+                Attestation(**sample_attestation_params).copy(
+                    data=AttestationData(**sample_attestation_data_params).copy(
+                        slot=get_epoch_start_slot(current_epoch, epoch_length),
+                    ),
+                )
+            )
+
+    state = sample_state.copy(
+        slot=get_epoch_start_slot(current_epoch + 1, epoch_length) - 1,
+        latest_attestations=(previous_epoch_attestations + current_epoch_attestations),
+        previous_justified_epoch=previous_justified_epoch,
+    )
+
+    prev_epoch_justified_attestations = previous_epoch_attestations[:num_prev_epoch_justified_attestation]  # noqa: E501
+    cur_epoch_justified_attestations = current_epoch_attestations[:num_cur_epoch_justified_attestation]  # noqa: E501
+    assert set(prev_epoch_justified_attestations + cur_epoch_justified_attestations) == set(
+        get_previous_epoch_justified_attestations(state, epoch_length, genesis_epoch))
 
 
 @settings(max_examples=10)
