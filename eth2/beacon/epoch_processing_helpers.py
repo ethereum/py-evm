@@ -1,3 +1,4 @@
+import math
 from typing import (
     Iterable,
     Sequence,
@@ -240,3 +241,18 @@ def get_epoch_boundary_attesting_balances(
         config.MAX_DEPOSIT_AMOUNT,
     )
     return previous_epoch_boundary_attesting_balance, current_epoch_boundary_attesting_balance
+def get_base_reward(
+        *,
+        state: 'BeaconState',
+        index: ValidatorIndex,
+        previous_total_balance: Gwei,
+        base_reward_quotient: int,
+        max_deposit_amount: Gwei) -> Gwei:
+    _base_reward_quotient = int(math.sqrt(previous_total_balance)) // base_reward_quotient
+    return Gwei(
+        get_effective_balance(
+            state.validator_balances,
+            index,
+            max_deposit_amount
+        ) // _base_reward_quotient // 5
+    )
