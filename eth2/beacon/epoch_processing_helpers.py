@@ -26,10 +26,11 @@ from eth2.beacon.exceptions import (
     NoWinningRootError,
 )
 from eth2.beacon.helpers import (
-    get_epoch_start_slot,
-    slot_to_epoch,
     get_block_root,
+    get_epoch_start_slot,
+    get_effective_balance,
     get_total_balance,
+    slot_to_epoch,
 )
 from eth2.beacon.typing import (
     Epoch,
@@ -84,6 +85,27 @@ def get_previous_epoch_justified_attestations(
     current_epoch_attestations = get_current_epoch_attestations(state, epoch_length)
     for attestation in (previous_epoch_attestations + current_epoch_attestations):
         if attestation.data.justified_epoch == state.previous_justified_epoch:
+            yield attestation
+
+
+@to_tuple
+def get_previous_epoch_head_attestations(
+        state: 'BeaconState',
+        epoch_length: int,
+        genesis_epoch: EpochNumber,
+        latest_block_roots_length: int) -> Iterable[PendingAttestationRecord]:
+    previous_epoch_attestations = get_previous_epoch_attestations(
+        state,
+        epoch_length,
+        genesis_epoch,
+    )
+    for attestation in previous_epoch_attestations:
+        beacon_block_root = get_block_root(
+            state,
+            attestation.data.slot,
+            latest_block_roots_length,
+        )
+        if attestation.data.beacon_block_root == beacon_block_root:
             yield attestation
 
 

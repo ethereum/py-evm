@@ -25,6 +25,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_shard_block_root_attester_indices,
     get_current_epoch_attestations,
     get_previous_epoch_attestations,
+    get_previous_epoch_head_attestations,
     get_previous_epoch_justified_attestations,
     get_winning_root,
     get_epoch_boundary_attester_indices,
@@ -302,6 +303,85 @@ def test_get_previous_epoch_justified_attestations(
     cur_epoch_justified_attestations = current_epoch_attestations[:num_cur_epoch_justified_attestation]  # noqa: E501
     assert set(prev_epoch_justified_attestations + cur_epoch_justified_attestations) == set(
         get_previous_epoch_justified_attestations(state, epoch_length, genesis_epoch))
+
+
+@settings(max_examples=1)
+@given(random=st.randoms())
+@pytest.mark.parametrize(
+    (
+        'epoch_length,latest_block_roots_length,'
+    ),
+    [
+        (10, 100),
+    ]
+)
+def test_get_previous_epoch_head_attestations(
+        random,
+        sample_state,
+        genesis_epoch,
+        epoch_length,
+        latest_block_roots_length,
+        sample_attestation_data_params,
+        sample_attestation_params):
+    previous_epoch = 9
+    current_epoch = previous_epoch + 1
+    current_slot = get_epoch_start_slot(current_epoch + 1, epoch_length) - 1
+    latest_block_roots = [
+        hash_eth2(b'block_root' + i.to_bytes(1, 'big'))
+        for i in range(latest_block_roots_length)
+    ]
+
+    num_previous_epoch_attestation = random.sample(range(epoch_length), 1)[0]
+    previous_epoch_attestion_slots = random.sample(
+        range(
+            get_epoch_start_slot(previous_epoch, epoch_length),
+            get_epoch_start_slot(current_epoch, epoch_length),
+        ),
+        num_previous_epoch_attestation,
+    )
+    num_previous_epoch_head_attestation = random.sample(range(num_previous_epoch_attestation), 1)[0]
+    previous_epoch_head_attestion_slots = random.sample(
+        previous_epoch_attestion_slots,
+        num_previous_epoch_head_attestation,
+    )
+    previous_epoch_not_head_attestion_slots = set(previous_epoch_attestion_slots).difference(
+        set(previous_epoch_head_attestion_slots)
+    )
+
+    previous_epoch_head_attestations = []
+    for slot in previous_epoch_head_attestion_slots:
+        previous_epoch_head_attestations.append(
+            Attestation(**sample_attestation_params).copy(
+                data=AttestationData(**sample_attestation_data_params).copy(
+                    slot=slot,
+                    beacon_block_root=latest_block_roots[slot % latest_block_roots_length],
+                ),
+            )
+        )
+    previous_epoch_not_head_attestations = []
+    for slot in previous_epoch_not_head_attestion_slots:
+        previous_epoch_not_head_attestations.append(
+            Attestation(**sample_attestation_params).copy(
+                data=AttestationData(**sample_attestation_data_params).copy(
+                    slot=slot,
+                ),
+            )
+        )
+
+    latest_attestations = previous_epoch_head_attestations + previous_epoch_not_head_attestations
+    state = sample_state.copy(
+        slot=current_slot,
+        latest_block_roots=latest_block_roots,
+        latest_attestations=latest_attestations,
+    )
+
+    result = get_previous_epoch_head_attestations(
+        state,
+        epoch_length,
+        genesis_epoch,
+        latest_block_roots_length,
+    )
+    assert set(previous_epoch_head_attestations) == set(result)
 
 
 @settings(max_examples=10)
