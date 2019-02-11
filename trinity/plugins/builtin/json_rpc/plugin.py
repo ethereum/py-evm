@@ -44,7 +44,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
 
     @property
     def name(self) -> str:
-        return "JSON-RPC Server"
+        return "JSON-RPC API"
 
     def on_ready(self) -> None:
         if not self.context.args.disable_rpc:

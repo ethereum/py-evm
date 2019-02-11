@@ -76,12 +76,12 @@ def xdg_trinity_root(monkeypatch, tmpdir):
     """
     Ensure proper test isolation as well as protecting the real directories.
     """
-    trinity_root_dir = str(tmpdir.mkdir('trinity'))
+    trinity_root_dir = str(tmpdir.mkdir('t'))
 
     # The default path that pytest generates are too long to be allowed as
     # IPC Paths (hard UNIX rule). We are shorten them from something like:
     # /tmp/pytest-of-<username>/pytest-88/<test-name>_command1_0/trinity
-    # to /tmp/pyt-<username>/88/<test-name>_command1_0/trinity
+    # to /tmp/pyt-<username>/88/<test-name>_command1_0/t
 
     fragment1 = 'pytest-of'
     fragment2 = 'pytest-'

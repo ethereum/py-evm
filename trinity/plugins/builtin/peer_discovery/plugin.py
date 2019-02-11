@@ -148,7 +148,7 @@ class PeerDiscoveryPlugin(BaseIsolatedPlugin):
 
     @property
     def name(self) -> str:
-        return "Peer Discovery"
+        return "Discovery"
 
     def on_ready(self) -> None:
         self.start()
