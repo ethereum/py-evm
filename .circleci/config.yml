@@ -1,6 +1,6 @@
 version: 2.0
 
-# heavily inspired by: 
+# heavily inspired by:
 # https://raw.githubusercontent.com/pinax/pinax-wiki/6bd2a99ab6f702e300d708532a6d1d9aa638b9f8/.circleci/config.yml
 
 common: &common
@@ -172,6 +172,12 @@ jobs:
         environment:
           TOXENV: py36-lightchain_integration
           GETH_VERSION: v1.8.1
+  py36-long_run_integration:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-long_run_integration
   py36-p2p:
     <<: *common
     docker:
@@ -255,6 +261,7 @@ workflows:
 
       - py36-integration
       - py36-lightchain_integration
+      - py36-long_run_integration
 
       - py36-lint
       - py37-lint
