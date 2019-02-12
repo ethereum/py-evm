@@ -133,7 +133,6 @@ def test_initiate_validator_exit(n_validators_state):
             200,
             2,
         ),
-
     ],
 )
 def test_exit_validator(num_validators,
