@@ -1,5 +1,6 @@
 import math
 from typing import (
+    Dict,
     Iterable,
     Sequence,
     Tuple,
@@ -36,6 +37,7 @@ from eth2.beacon.typing import (
     Epoch,
     Gwei,
     Shard,
+    Slot,
     ValidatorIndex,
 )
 
@@ -278,3 +280,34 @@ def get_base_reward(
             max_deposit_amount
         ) // _base_reward_quotient // 5
     )
+
+
+def get_inclusion_info_map(
+        *,
+        state: 'BeaconState',
+        attestations: Sequence[PendingAttestationRecord],
+        genesis_epoch: EpochNumber,
+        epoch_length: int,
+        target_committee_size: int,
+        shard_count: int) -> Tuple[Dict[ValidatorIndex, Slot], Dict[ValidatorIndex, int]]:
+    inclusion_slot_map: Dict[ValidatorIndex, Slot] = {}
+    inclusion_distance_map: Dict[ValidatorIndex, int] = {}
+    for attestation in attestations:
+        participant_indices = get_attestation_participants(
+            state,
+            attestation.data,
+            attestation.aggregation_bitfield,
+            genesis_epoch,
+            epoch_length,
+            target_committee_size,
+            shard_count,
+        )
+        for index in participant_indices:
+            inclusion_slot = inclusion_slot_map.get(index)
+            if inclusion_slot is None:
+                inclusion_slot_map[index] = attestation.slot_included
+                inclusion_distance_map[index] = attestation.slot_included - attestation.data.slot
+            elif attestation.slot_included < inclusion_slot:
+                inclusion_slot_map[index] = attestation.slot_included
+                inclusion_distance_map[index] = attestation.slot_included - attestation.data.slot
+    return (inclusion_slot_map, inclusion_distance_map)
