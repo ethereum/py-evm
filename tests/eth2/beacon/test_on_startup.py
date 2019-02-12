@@ -139,7 +139,6 @@ def test_get_initial_beacon_state(
     assert len(state.validator_registry) == validator_count
     assert len(state.validator_balances) == validator_count
     assert state.validator_registry_update_epoch == genesis_epoch
-    assert state.validator_registry_exit_count == 0
 
     # Randomness and committees
     assert len(state.latest_randao_mixes) == latest_randao_mixes_length

@@ -26,7 +26,6 @@ def mock_validator_record(pubkey,
         exit_epoch=FAR_FUTURE_EPOCH,
         withdrawal_epoch=FAR_FUTURE_EPOCH,
         penalized_epoch=FAR_FUTURE_EPOCH,
-        exit_count=0,
         status_flags=status_flags,
     )
 

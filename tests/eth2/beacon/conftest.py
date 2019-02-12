@@ -148,7 +148,6 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'validator_registry': (),
         'validator_balances': (),
         'validator_registry_update_epoch': 0,
-        'validator_registry_exit_count': 10,
         'latest_randao_mixes': (),
         'previous_epoch_start_shard': 1,
         'current_epoch_start_shard': 2,
@@ -299,7 +298,6 @@ def sample_validator_record_params():
         'exit_epoch': FAR_FUTURE_EPOCH,
         'withdrawal_epoch': FAR_FUTURE_EPOCH,
         'penalized_epoch': FAR_FUTURE_EPOCH,
-        'exit_count': 0,
         'status_flags': 0,
     }
 
