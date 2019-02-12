@@ -57,7 +57,6 @@ class BeaconState(rlp.Serializable):
         ('validator_registry', CountableList(ValidatorRecord)),
         ('validator_balances', CountableList(uint64)),
         ('validator_registry_update_epoch', uint64),
-        ('validator_registry_exit_count', uint64),
 
         # Randomness and committees
         ('latest_randao_mixes', CountableList(hash32)),
@@ -101,7 +100,6 @@ class BeaconState(rlp.Serializable):
             validator_registry: Sequence[ValidatorRecord],
             validator_balances: Sequence[Gwei],
             validator_registry_update_epoch: EpochNumber,
-            validator_registry_exit_count: int,
             # Randomness and committees
             latest_randao_mixes: Sequence[Hash32],
             previous_epoch_start_shard: ShardNumber,
@@ -138,7 +136,6 @@ class BeaconState(rlp.Serializable):
             validator_registry=validator_registry,
             validator_balances=validator_balances,
             validator_registry_update_epoch=validator_registry_update_epoch,
-            validator_registry_exit_count=validator_registry_exit_count,
             # Randomness and committees
             latest_randao_mixes=latest_randao_mixes,
             previous_epoch_start_shard=previous_epoch_start_shard,
@@ -218,7 +215,6 @@ class BeaconState(rlp.Serializable):
             validator_registry=activated_genesis_validators,
             validator_balances=genesis_balances,
             validator_registry_update_epoch=genesis_epoch,
-            validator_registry_exit_count=0,
 
             # Randomness and committees
             latest_randao_mixes=tuple(

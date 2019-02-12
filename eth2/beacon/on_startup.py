@@ -91,7 +91,6 @@ def get_initial_beacon_state(*,
         validator_registry=(),
         validator_balances=(),
         validator_registry_update_epoch=genesis_epoch,
-        validator_registry_exit_count=0,
 
         # Randomness and committees
         latest_randao_mixes=tuple(ZERO_HASH32 for _ in range(latest_randao_mixes_length)),

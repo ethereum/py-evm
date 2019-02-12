@@ -106,7 +106,6 @@ def test_initiate_validator_exit(n_validators_state):
         'committee',
         'state_slot',
         'exit_epoch',
-        'validator_registry_exit_count',
     ),
     [
         (
@@ -115,7 +114,6 @@ def test_initiate_validator_exit(n_validators_state):
             [4, 5, 6, 7],
             100,
             10,
-            2,
         ),
         (
             10,
@@ -123,7 +121,6 @@ def test_initiate_validator_exit(n_validators_state):
             [4, 5, 6, 7],
             100,
             110,
-            2,
         ),
         (
             10,
@@ -131,9 +128,7 @@ def test_initiate_validator_exit(n_validators_state):
             [4, 5, 6, 7],
             100,
             200,
-            2,
         ),
-
     ],
 )
 def test_exit_validator(num_validators,
@@ -141,13 +136,11 @@ def test_exit_validator(num_validators,
                         committee,
                         state_slot,
                         exit_epoch,
-                        validator_registry_exit_count,
                         n_validators_state,
                         epoch_length):
     # Unchanged
     state = n_validators_state.copy(
         slot=state_slot,
-        validator_registry_exit_count=validator_registry_exit_count,
     )
     index = 1
 
@@ -171,9 +164,7 @@ def test_exit_validator(num_validators,
     else:
         assert validator.exit_epoch > state.current_epoch(epoch_length) + entry_exit_delay
         result_validator = result_state.validator_registry[index]
-        assert result_state.validator_registry_exit_count == validator_registry_exit_count + 1
         assert result_validator.exit_epoch == state.current_epoch(epoch_length) + entry_exit_delay
-        assert result_validator.exit_count == result_state.validator_registry_exit_count
 
 
 @pytest.mark.parametrize(

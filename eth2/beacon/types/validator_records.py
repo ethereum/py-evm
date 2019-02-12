@@ -40,8 +40,6 @@ class ValidatorRecord(rlp.Serializable):
         ('withdrawal_epoch', uint64),
         # Epoch when validator was penalized
         ('penalized_epoch', uint64),
-        # Exit counter when validator exited
-        ('exit_count', uint64),
         # Status flags
         ('status_flags', uint64),
     ]
@@ -55,7 +53,6 @@ class ValidatorRecord(rlp.Serializable):
                  exit_epoch: EpochNumber,
                  withdrawal_epoch: EpochNumber,
                  penalized_epoch: EpochNumber,
-                 exit_count: int,
                  status_flags: int) -> None:
         super().__init__(
             pubkey=pubkey,
@@ -66,7 +63,6 @@ class ValidatorRecord(rlp.Serializable):
             exit_epoch=exit_epoch,
             withdrawal_epoch=withdrawal_epoch,
             penalized_epoch=penalized_epoch,
-            exit_count=exit_count,
             status_flags=status_flags,
         )
 
@@ -93,6 +89,5 @@ class ValidatorRecord(rlp.Serializable):
             exit_epoch=FAR_FUTURE_EPOCH,
             withdrawal_epoch=FAR_FUTURE_EPOCH,
             penalized_epoch=FAR_FUTURE_EPOCH,
-            exit_count=0,
             status_flags=0,
         )
