@@ -30,6 +30,7 @@ from eth2.beacon.configs import (
 )
 from eth2.beacon.helpers import (
     get_active_validator_indices,
+    get_epoch_start_slot,
     get_randao_mix,
     slot_to_epoch,
 )
@@ -39,11 +40,13 @@ from eth2.beacon._utils.hash import (
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _check_if_update_validator_registry,
     _update_latest_active_index_roots,
     process_crosslinks,
     process_final_updates,
+    process_rewards_and_penalties,
     process_validator_registry,
     _current_previous_epochs_justifiable,
     _get_finalized_epoch,
@@ -637,3 +640,147 @@ def test_process_crosslinks(
     else:
         assert (crosslink_record.epoch == config.GENESIS_EPOCH and
                 crosslink_record.shard_block_root == ZERO_HASH32)
+
+
+@settings(max_examples=1)
+@given(random=st.randoms())
+@pytest.mark.parametrize(
+    (
+        'n,'
+        'epoch_length,'
+        'target_committee_size,'
+        'shard_count,'
+        'finalized_epoch,current_slot,'
+        'previous_justified_epoch,'
+        'latest_block_roots_length,'
+    ),
+    [
+        (
+            50,
+            10,
+            5,
+            10,
+            4, 79,  # epochs_since_finality <= 4
+            5,
+            100,
+        ),
+        (
+            50,
+            10,
+            5,
+            10,
+            3, 79,  # epochs_since_finality > 4
+            5,
+            100,
+        ),
+    ]
+)
+def test_process_rewards_and_penalties(
+        random,
+        n_validators_state,
+        config,
+        genesis_epoch,
+        epoch_length,
+        target_committee_size,
+        shard_count,
+        finalized_epoch,
+        current_slot,
+        previous_justified_epoch,
+        latest_block_roots_length,
+        min_attestation_inclusion_delay,
+        sample_attestation_data_params,
+        sample_pending_attestation_record_params):
+    import random
+    previous_epoch = current_slot // epoch_length - 1
+    latest_block_roots = [
+        hash_eth2(b'block_root' + i.to_bytes(1, 'big'))
+        for i in range(latest_block_roots_length)
+    ]
+    state = n_validators_state.copy(
+        slot=current_slot,
+        previous_justified_epoch=previous_justified_epoch,
+        finalized_epoch=finalized_epoch,
+        latest_block_roots=latest_block_roots,
+    )
+
+    prev_epoch_start_slot = get_epoch_start_slot(previous_epoch, epoch_length)
+    prev_epoch_crosslink_committees = [
+        get_crosslink_committees_at_slot(
+            state,
+            slot,
+            genesis_epoch,
+            epoch_length,
+            target_committee_size,
+            shard_count,
+        )[0] for slot in range(prev_epoch_start_slot, prev_epoch_start_slot + epoch_length)
+    ]
+
+    # Fully voted bitfield
+    participants_bitfield = get_empty_bitfield(target_committee_size)
+    for i in range(target_committee_size):
+        participants_bitfield = set_voted(participants_bitfield, i)
+    # Have attestion on every slot of previous epoch
+    prev_epoch_attestations = []
+    for i in range(epoch_length):
+        _, shard = prev_epoch_crosslink_committees[i]
+        data_slot = i + previous_epoch * epoch_length
+        prev_epoch_attestations.append(
+            PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+                data=AttestationData(**sample_attestation_data_params).copy(
+                    slot=data_slot,
+                    shard=shard,
+                ),
+                aggregation_bitfield=participants_bitfield,
+                slot_included=(data_slot + min_attestation_inclusion_delay),
+            )
+        )
+
+    # Randomly pick from previous epoch attestations and turn them
+    # into previous epoch 'justified' attestation
+    num_previous_epoch_justified_attestation = epoch_length // 2
+    previous_epoch_justified_attestion_slots = random.sample(
+        range(epoch_length),
+        num_previous_epoch_justified_attestation,
+    )
+    for slot in previous_epoch_justified_attestion_slots:
+        prev_epoch_attestations[slot] = prev_epoch_attestations[slot].copy(
+            data=prev_epoch_attestations[slot].data.copy(
+                justified_epoch=previous_justified_epoch,
+            ),
+        )
+
+    # Randomly pick from previous epoch attestations and turn them
+    # into previous epoch 'boundary' attestation
+    num_previous_epoch_boundary_attestation = epoch_length // 2
+    previous_epoch_boundary_attestion_slots = random.sample(
+        range(epoch_length),
+        num_previous_epoch_boundary_attestation,
+    )
+    for slot in previous_epoch_boundary_attestion_slots:
+        prev_epoch_attestations[slot] = prev_epoch_attestations[slot].copy(
+            data=prev_epoch_attestations[slot].data.copy(
+                epoch_boundary_root=latest_block_roots[
+                    prev_epoch_start_slot % latest_block_roots_length],
+            ),
+        )
+
+    # Randomly pick from previous epoch attestations and turn them
+    # into previous epoch 'head' attestation
+    num_previous_epoch_head_attestation = epoch_length // 2
+    previous_epoch_head_attestion_slots = random.sample(
+        range(epoch_length),
+        num_previous_epoch_head_attestation,
+    )
+    for slot in previous_epoch_head_attestion_slots:
+        prev_epoch_attestations[slot] = prev_epoch_attestations[slot].copy(
+            data=prev_epoch_attestations[slot].data.copy(
+                beacon_block_root=latest_block_roots[
+                    prev_epoch_attestations[slot].data.slot % latest_block_roots_length],
+            ),
+        )
+
+    state = state.copy(
+        latest_attestations=prev_epoch_attestations,
+    )
+    # TODO: Verify validators' balance
+    new_state = process_rewards_and_penalties(state, config)

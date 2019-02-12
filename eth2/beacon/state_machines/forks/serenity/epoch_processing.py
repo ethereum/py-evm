@@ -4,6 +4,8 @@ from typing import (
     Tuple,
 )
 
+import functools
+
 from eth_utils import to_tuple
 
 from eth2.beacon import helpers
@@ -17,6 +19,8 @@ from eth2.beacon.exceptions import (
     NoWinningRootError,
 )
 from eth2.beacon.committee_helpers import (
+    get_attestation_participants,
+    get_beacon_proposer_index,
     get_crosslink_committees_at_slot,
     get_current_epoch_committee_count,
 )
@@ -25,14 +29,19 @@ from eth2.beacon.configs import (
     CommitteeConfig,
 )
 from eth2.beacon.epoch_processing_helpers import (
+    get_base_reward,
     get_current_epoch_attestations,
+    get_inclusion_info_map,
     get_previous_epoch_attestations,
+    get_previous_epoch_head_attestations,
+    get_previous_epoch_justified_attestations,
     get_winning_root,
     get_total_balance,
     get_epoch_boundary_attesting_balances,
 )
 from eth2.beacon.helpers import (
     get_active_validator_indices,
+    get_block_root,
     get_effective_balance,
     get_epoch_start_slot,
     get_randao_mix,
@@ -46,6 +55,7 @@ from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     Epoch,
+    Gwei,
     Shard,
 )
 
@@ -260,6 +270,383 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
     state = state.copy(
         latest_crosslinks=latest_crosslinks,
     )
+    return state
+
+
+def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> BeaconState:
+    prev_epoch_active_validator_indices = set(
+        get_active_validator_indices(
+            state.validator_registry,
+            state.previous_epoch(config.EPOCH_LENGTH, config.GENESIS_EPOCH)
+        )
+    )
+    previous_total_balance: Gwei = Gwei(
+        sum(
+            get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
+            for i in prev_epoch_active_validator_indices
+        )
+    )
+
+    # 1. Process rewards and penalties for justification and finalization
+    previous_epoch_attestations = get_previous_epoch_attestations(
+        state,
+        config.EPOCH_LENGTH,
+        config.GENESIS_EPOCH,
+    )
+    try:
+        previous_epoch_attester_indices = set(
+            functools.reduce(
+                lambda tuple_a, tuple_b: tuple_a + tuple_b,
+                [
+                    get_attestation_participants(
+                        state,
+                        a.data,
+                        a.aggregation_bitfield,
+                        config.GENESIS_EPOCH,
+                        config.EPOCH_LENGTH,
+                        config.TARGET_COMMITTEE_SIZE,
+                        config.SHARD_COUNT,
+                    )
+                    for a in previous_epoch_attestations
+                ]
+            )
+        )
+    except TypeError:
+        previous_epoch_attester_indices = set()
+
+    previous_epoch_justified_attestations = get_previous_epoch_justified_attestations(
+        state,
+        config.EPOCH_LENGTH,
+        config.GENESIS_EPOCH,
+    )
+    try:
+        previous_epoch_justified_attester_indices = set(
+            functools.reduce(
+                lambda tuple_a, tuple_b: tuple_a + tuple_b,
+                [
+                    get_attestation_participants(
+                        state,
+                        a.data,
+                        a.aggregation_bitfield,
+                        config.GENESIS_EPOCH,
+                        config.EPOCH_LENGTH,
+                        config.TARGET_COMMITTEE_SIZE,
+                        config.SHARD_COUNT,
+                    )
+                    for a in previous_epoch_justified_attestations
+                ]
+            )
+        )
+    except TypeError:
+        previous_epoch_justified_attester_indices = set()
+
+    previous_epoch_boundary_attestations = [
+        a
+        for a in previous_epoch_justified_attestations
+        if a.data.epoch_boundary_root == get_block_root(
+            state,
+            get_epoch_start_slot(
+                state.previous_epoch(config.EPOCH_LENGTH, config.GENESIS_EPOCH),
+                config.EPOCH_LENGTH,
+            ),
+            config.LATEST_BLOCK_ROOTS_LENGTH,
+        )
+    ]
+    try:
+        previous_epoch_boundary_attester_indices = set(
+            functools.reduce(
+                lambda tuple_a, tuple_b: tuple_a + tuple_b,
+                [
+                    get_attestation_participants(
+                        state,
+                        a.data,
+                        a.aggregation_bitfield,
+                        config.GENESIS_EPOCH,
+                        config.EPOCH_LENGTH,
+                        config.TARGET_COMMITTEE_SIZE,
+                        config.SHARD_COUNT,
+                    )
+                    for a in previous_epoch_boundary_attestations
+                ]
+            )
+        )
+    except TypeError:
+        previous_epoch_boundary_attester_indices = set()
+
+    previous_epoch_head_attestations = get_previous_epoch_head_attestations(
+        state,
+        config.EPOCH_LENGTH,
+        config.GENESIS_EPOCH,
+        config.LATEST_BLOCK_ROOTS_LENGTH,
+    )
+    try:
+        previous_epoch_head_attester_indices = set(
+            functools.reduce(
+                lambda tuple_a, tuple_b: tuple_a + tuple_b,
+                [
+                    get_attestation_participants(
+                        state,
+                        a.data,
+                        a.aggregation_bitfield,
+                        config.GENESIS_EPOCH,
+                        config.EPOCH_LENGTH,
+                        config.TARGET_COMMITTEE_SIZE,
+                        config.SHARD_COUNT,
+                    )
+                    for a in previous_epoch_head_attestations
+                ]
+            )
+        )
+    except TypeError:
+        previous_epoch_head_attester_indices = set()
+
+    inclusion_slot_map, inclusion_distance_map = get_inclusion_info_map(
+        state=state,
+        attestations=previous_epoch_attestations,
+        genesis_epoch=config.GENESIS_EPOCH,
+        epoch_length=config.EPOCH_LENGTH,
+        target_committee_size=config.TARGET_COMMITTEE_SIZE,
+        shard_count=config.SHARD_COUNT,
+    )
+    epochs_since_finality = state.next_epoch(config.EPOCH_LENGTH) - state.finalized_epoch
+    if epochs_since_finality <= 4:
+        # 1.1 Expected FFG source:
+        previous_epoch_justified_attesting_balance = sum(
+            get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
+            for i in previous_epoch_justified_attester_indices
+        )
+        # Reward validators in `previous_epoch_justified_attester_indices`
+        for index in previous_epoch_justified_attester_indices:
+            reward = get_base_reward(
+                state=state,
+                index=index,
+                previous_total_balance=previous_total_balance,
+                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            ) * previous_epoch_justified_attesting_balance // previous_total_balance
+            state = state.update_validator_balance(
+                index,
+                state.validator_balances[index] + reward,
+            )
+        # Punish active validators not in `previous_epoch_justified_attester_indices`
+        excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
+            set(previous_epoch_justified_attester_indices))
+        for index in excluded_active_validators_indices:
+            penalty = get_base_reward(
+                state=state,
+                index=index,
+                previous_total_balance=previous_total_balance,
+                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            )
+            state = state.update_validator_balance(
+                index,
+                max(state.validator_balances[index] - penalty, 0),
+            )
+
+        # 1.2 Expected FFG target:
+        previous_epoch_boundary_attesting_balance = sum(
+            get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
+            for i in previous_epoch_boundary_attester_indices
+        )
+        # Reward validators in `previous_epoch_boundary_attester_indices`
+        for index in previous_epoch_boundary_attester_indices:
+            reward = get_base_reward(
+                state=state,
+                index=index,
+                previous_total_balance=previous_total_balance,
+                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            ) * previous_epoch_boundary_attesting_balance // previous_total_balance
+            state = state.update_validator_balance(
+                index,
+                state.validator_balances[index] + reward,
+            )
+        # Punish active validators not in `previous_epoch_boundary_attester_indices`
+        excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
+            set(previous_epoch_boundary_attester_indices))
+        for index in excluded_active_validators_indices:
+            penalty = get_base_reward(
+                state=state,
+                index=index,
+                previous_total_balance=previous_total_balance,
+                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            )
+            state = state.update_validator_balance(
+                index,
+                max(state.validator_balances[index] - penalty, 0),
+            )
+
+        # 1.3 Expected beacon chain head:
+        previous_epoch_head_attesting_balance = sum(
+            get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
+            for i in previous_epoch_head_attester_indices
+        )
+        # Reward validators in `previous_epoch_head_attester_indices`
+        for index in previous_epoch_head_attester_indices:
+            reward = get_base_reward(
+                state=state,
+                index=index,
+                previous_total_balance=previous_total_balance,
+                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            ) * previous_epoch_head_attesting_balance // previous_total_balance
+            state = state.update_validator_balance(
+                index,
+                state.validator_balances[index] + reward,
+            )
+        # Punish active validators not in `previous_epoch_head_attester_indices`
+        excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
+            set(previous_epoch_head_attester_indices))
+        for index in excluded_active_validators_indices:
+            penalty = get_base_reward(
+                state=state,
+                index=index,
+                previous_total_balance=previous_total_balance,
+                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            )
+            state = state.update_validator_balance(
+                index,
+                max(state.validator_balances[index] - penalty, 0),
+            )
+
+        # 1.4 Inclusion distance:
+        # Reward validators in `previous_epoch_attester_indices`
+        for index in previous_epoch_attester_indices:
+            reward = get_base_reward(
+                state=state,
+                index=index,
+                previous_total_balance=previous_total_balance,
+                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            ) * config.MIN_ATTESTATION_INCLUSION_DELAY // inclusion_distance_map[index]
+            state = state.update_validator_balance(
+                index,
+                state.validator_balances[index] + reward,
+            )
+    # epochs_since_finality > 4
+    else:
+        # Punish active validators not in `previous_epoch_justified_attester_indices`
+        excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
+            set(previous_epoch_justified_attester_indices))
+        for index in excluded_active_validators_indices:
+            inactivity_penalty = get_base_reward(
+                state=state,
+                index=index,
+                previous_total_balance=previous_total_balance,
+                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            ) + (
+                get_effective_balance(state.validator_balances, index, config.MAX_DEPOSIT_AMOUNT) *
+                epochs_since_finality // config.INACTIVITY_PENALTY_QUOTIENT // 2
+            )
+            state = state.update_validator_balance(
+                index,
+                max(state.validator_balances[index] - inactivity_penalty, 0),
+            )
+
+        # Punish active validators not in `previous_epoch_boundary_attester_indices`
+        excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
+            set(previous_epoch_boundary_attester_indices))
+        for index in excluded_active_validators_indices:
+            inactivity_penalty = get_base_reward(
+                state=state,
+                index=index,
+                previous_total_balance=previous_total_balance,
+                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            ) + (
+                get_effective_balance(state.validator_balances, index, config.MAX_DEPOSIT_AMOUNT) *
+                epochs_since_finality // config.INACTIVITY_PENALTY_QUOTIENT // 2
+            )
+            state = state.update_validator_balance(
+                index,
+                max(state.validator_balances[index] - inactivity_penalty, 0),
+            )
+
+        # Punish active validators not in `previous_epoch_head_attester_indices`
+        excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
+            set(previous_epoch_head_attester_indices))
+        for index in excluded_active_validators_indices:
+            penalty = get_base_reward(
+                state=state,
+                index=index,
+                previous_total_balance=previous_total_balance,
+                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            )
+            state = state.update_validator_balance(
+                index,
+                max(state.validator_balances[index] - penalty, 0),
+            )
+
+        # Punish active validators
+        for index in prev_epoch_active_validator_indices:
+            penalized_epoch = state.validator_registry[index].penalized_epoch
+            if penalized_epoch <= state.current_epoch(config.EPOCH_LENGTH):
+                base_reward = get_base_reward(
+                    state=state,
+                    index=index,
+                    previous_total_balance=previous_total_balance,
+                    base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                    max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+                )
+                inactivity_penalty = base_reward + (
+                    get_effective_balance(
+                        state.validator_balances,
+                        index,
+                        config.MAX_DEPOSIT_AMOUNT
+                    ) * epochs_since_finality // config.INACTIVITY_PENALTY_QUOTIENT // 2
+                )
+                penalty = 2 * inactivity_penalty + base_reward
+                state = state.update_validator_balance(
+                    index,
+                    max(state.validator_balances[index] - penalty, 0),
+                )
+
+        # Punish validators in `previous_epoch_attester_indices`
+        for index in previous_epoch_attester_indices:
+            base_reward = get_base_reward(
+                state=state,
+                index=index,
+                previous_total_balance=previous_total_balance,
+                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            )
+            penalty = Gwei(
+                base_reward -
+                base_reward * config.MIN_ATTESTATION_INCLUSION_DELAY // inclusion_distance_map[index]  # noqa: E501
+            )
+            state = state.update_validator_balance(
+                index,
+                max(state.validator_balances[index] - penalty, 0),
+            )
+
+    # 2. Process rewards and penalties for attestation inclusion
+    for index in previous_epoch_attester_indices:
+        proposer_index = get_beacon_proposer_index(
+            state,
+            inclusion_slot_map[index],
+            config.GENESIS_EPOCH,
+            config.EPOCH_LENGTH,
+            config.TARGET_COMMITTEE_SIZE,
+            config.SHARD_COUNT,
+        )
+        reward = get_base_reward(
+            state=state,
+            index=index,
+            previous_total_balance=previous_total_balance,
+            base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+            max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+        ) // config.INCLUDER_REWARD_QUOTIENT
+        state = state.update_validator_balance(
+            proposer_index,
+            state.validator_balances[proposer_index] + reward,
+        )
+    # 3. Process rewards and penalties for crosslinks
+
     return state
 
 
