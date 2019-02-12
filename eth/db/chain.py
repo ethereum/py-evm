@@ -126,6 +126,12 @@ class BaseChainDB(BaseHeaderDB):
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
+    def get_receipt_by_index(self,
+                             block_number: BlockNumber,
+                             receipt_index: int) -> Receipt:
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    @abstractmethod
     def get_receipts(self,
                      header: BlockHeader,
                      receipt_class: Type[Receipt]) -> Iterable[Receipt]:
