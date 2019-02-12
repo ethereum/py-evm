@@ -40,7 +40,7 @@ from eth2.beacon.types.attestation_data import AttestationData
     [
         (0, 5, 5, 1, True),
         (0, 5, 5, 5, True),
-        (0, 5, 5, 6, False),  # attestation_slot + in_attestation_inclusion_delay > current_slot
+        (0, 5, 5, 6, False),  # attestation_slot + min_attestation_inclusion_delay > current_slot
         (7, 5, 10, 1, False),  # attestation_slot > current_slot
         (10, 20, 10, 2, True),
         (9, 20, 10, 2, False),  # attestation_slot + EPOCH_LENGTH < current_slot
