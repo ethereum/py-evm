@@ -272,6 +272,10 @@ class BaseChain(Configurable, ABC):
     def get_canonical_transaction(self, transaction_hash: Hash32) -> BaseTransaction:
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
+    def get_transaction_receipt(self, transaction_hash: Hash32) -> Receipt:
+        raise NotImplementedError("Chain classes must implement this method")
+
     #
     # Execution API
     #
@@ -652,6 +656,17 @@ class Chain(BaseChain):
             value=value,
             data=data,
         )
+
+    def get_transaction_receipt(self, transaction_hash: Hash32) -> Receipt:
+        transaction_block_number, transaction_index = self.chaindb.get_transaction_index(
+            transaction_hash,
+        )
+        receipt = self.chaindb.get_receipt_by_index(
+            block_number=transaction_block_number,
+            receipt_index=transaction_index,
+        )
+
+        return receipt
 
     #
     # Execution API
