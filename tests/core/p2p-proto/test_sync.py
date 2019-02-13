@@ -43,22 +43,10 @@ async def test_fast_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
     client = FastChainSyncer(ByzantiumTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
-    server = RegularChainSyncer(
-        ByzantiumTestChain(chaindb_20.db),
-        chaindb_20,
-        server_peer_pool,
-    )
-    asyncio.ensure_future(server.run())
     server_request_handler = ETHRequestServer(FakeAsyncChainDB(chaindb_20.db), server_peer_pool)
     asyncio.ensure_future(server_request_handler.run())
     server_peer.logger.info("%s is serving 20 blocks", server_peer)
     client_peer.logger.info("%s is syncing up 20", client_peer)
-
-    def finalizer():
-        event_loop.run_until_complete(server.cancel())
-        # Yield control so that server.run() returns, otherwise asyncio will complain.
-        event_loop.run_until_complete(asyncio.sleep(0.1))
-    request.addfinalizer(finalizer)
 
     # FastChainSyncer.run() will return as soon as it's caught up with the peer.
     await asyncio.wait_for(client.run(), timeout=2)
@@ -83,24 +71,12 @@ async def test_skeleton_syncer(request, event_loop, chaindb_fresh, chaindb_1000)
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
     client = FastChainSyncer(ByzantiumTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
-    server = RegularChainSyncer(
-        ByzantiumTestChain(chaindb_1000.db),
-        chaindb_1000,
-        server_peer_pool,
-    )
-    asyncio.ensure_future(server.run())
+
     server_request_handler = ETHRequestServer(FakeAsyncChainDB(chaindb_1000.db), server_peer_pool)
     asyncio.ensure_future(server_request_handler.run())
     client_peer.logger.info("%s is serving 1000 blocks", client_peer)
     server_peer.logger.info("%s is syncing up 1000 blocks", server_peer)
 
-    def finalizer():
-        event_loop.run_until_complete(server.cancel())
-        # Yield control so that server.run() returns, otherwise asyncio will complain.
-        event_loop.run_until_complete(asyncio.sleep(0.1))
-    request.addfinalizer(finalizer)
-
-    # FastChainSyncer.run() will return as soon as it's caught up with the peer.
     await asyncio.wait_for(client.run(), timeout=20)
 
     head = chaindb_fresh.get_canonical_head()
@@ -125,23 +101,14 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
         chaindb_fresh,
         MockPeerPoolWithConnectedPeers([client_peer]))
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
-    server = RegularChainSyncer(
-        ByzantiumTestChain(chaindb_20.db),
-        chaindb_20,
-        server_peer_pool,
-    )
-    asyncio.ensure_future(server.run())
+
     server_request_handler = ETHRequestServer(FakeAsyncChainDB(chaindb_20.db), server_peer_pool)
     asyncio.ensure_future(server_request_handler.run())
     server_peer.logger.info("%s is serving 20 blocks", server_peer)
     client_peer.logger.info("%s is syncing up 20", client_peer)
 
     def finalizer():
-        event_loop.run_until_complete(asyncio.gather(
-            client.cancel(),
-            server.cancel(),
-            loop=event_loop,
-        ))
+        event_loop.run_until_complete(client.cancel())
         # Yield control so that client/server.run() returns, otherwise asyncio will complain.
         event_loop.run_until_complete(asyncio.sleep(0.1))
     request.addfinalizer(finalizer)
@@ -165,23 +132,14 @@ async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
         chaindb_fresh,
         MockPeerPoolWithConnectedPeers([client_peer]))
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
-    server = LightChainSyncer(
-        ByzantiumTestChain(chaindb_20.db),
-        chaindb_20,
-        server_peer_pool,
-    )
-    asyncio.ensure_future(server.run())
+
     server_request_handler = LightRequestServer(FakeAsyncHeaderDB(chaindb_20.db), server_peer_pool)
     asyncio.ensure_future(server_request_handler.run())
     server_peer.logger.info("%s is serving 20 blocks", server_peer)
     client_peer.logger.info("%s is syncing up 20", client_peer)
 
     def finalizer():
-        event_loop.run_until_complete(asyncio.gather(
-            client.cancel(),
-            server.cancel(),
-            loop=event_loop,
-        ))
+        event_loop.run_until_complete(client.cancel())
         # Yield control so that client/server.run() returns, otherwise asyncio will complain.
         event_loop.run_until_complete(asyncio.sleep(0.1))
     request.addfinalizer(finalizer)
