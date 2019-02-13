@@ -160,7 +160,10 @@ def _get_mock_message_and_voting_committee_indices(
     """
     Get ``message`` and voting indices of the given ``committee``.
     """
-    message = AttestationDataAndCustodyBit.create_attestation_message(attestation_data)
+    message = AttestationDataAndCustodyBit(
+        data=attestation_data,
+        custody_bit=False
+    ).root
 
     committee_size = len(committee)
     assert num_voted_attesters <= committee_size

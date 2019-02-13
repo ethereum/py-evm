@@ -9,11 +9,15 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
-from eth2._utils import bls as bls
+from eth2._utils import (
+    bls,
+    bitfield,
+)
 
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
-    get_attestation_participants,
+    get_crosslink_committee_for_attestation,
+    get_members_from_bitfield,
 )
 from eth2.beacon.configs import (
     CommitteeConfig,
@@ -22,6 +26,7 @@ from eth2.beacon.enums import (
     SignatureDomain,
 )
 from eth2.beacon.helpers import (
+    generate_aggregate_pubkeys_from_indices,
     get_epoch_start_slot,
     get_block_root,
     get_domain,
@@ -37,6 +42,7 @@ from eth2.beacon.types.forks import Fork
 from eth2.beacon.typing import (
     BLSPubkey,
     BLSSignature,
+    Bitfield,
     EpochNumber,
     ShardNumber,
     SlotNumber,
@@ -279,6 +285,26 @@ def validate_attestation_shard_block_root(attestation_data: AttestationData) -> 
         )
 
 
+def _validate_custody_bitfield_from_aggregation_bitfield(committee_size: int,
+                                                         aggregation_bitfield: Bitfield,
+                                                         custody_bitfield: Bitfield):
+    """
+    Ensure that every unset bit in the ``aggregation_bitfield`` is also unset
+    in the ``custody_bitfield`` to ensure a canonical representation of information
+    between the two sources of data.
+
+    Raise ``ValidationError`` if there is a mismatch.
+    """
+    for i in range(committee_size):
+        if not bitfield.has_voted(aggregation_bitfield, i):
+            if bitfield.has_voted(custody_bitfield, i):
+                raise ValidationError(
+                    "Invalid attestation bitfields:\n"
+                    f"\tExpected index {i} to not have custody data because "
+                    "they did not participate in this attestation."
+                )
+
+
 def validate_attestation_aggregate_signature(state: BeaconState,
                                              attestation: Attestation,
                                              committee_config: CommitteeConfig) -> None:
@@ -290,28 +316,73 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     All proof of custody bits are assumed to be 0 within the signed data.
     This will change to reflect real proof of custody bits in the Phase 1.
     """
-    participant_indices = get_attestation_participants(
+    # NOTE: to be removed in phase 1.
+    empty_custody_bitfield = bitfield.get_empty_bitfield(len(attestation.custody_bitfield))
+    if attestation.custody_bitfield != empty_custody_bitfield:
+        raise ValidationError(
+            "Attestation custody bitfield is not empty.\n"
+            "\tFound: %s, Expected %s" %
+            (
+                attestation.custody_bitfield,
+                empty_custody_bitfield,
+            )
+        )
+
+    empty_aggregation_bitfield = bitfield.get_empty_bitfield(len(attestation.aggregation_bitfield))
+    if attestation.aggregation_bitfield == empty_aggregation_bitfield:
+        raise ValidationError(
+            "Attestation aggregation bitfield is empty.\n"
+            "\tFound: %s, Expected some bits set." %
+            (
+                attestation.aggregation_bitfield,
+            )
+        )
+
+    committee = get_crosslink_committee_for_attestation(
         state=state,
         attestation_data=attestation.data,
+<<<<<<< HEAD
         bitfield=attestation.aggregation_bitfield,
         committee_config=committee_config,
+=======
+        genesis_epoch=genesis_epoch,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
+>>>>>>> Update attestation aggregate signature validation
     )
-    pubkeys = tuple(
-        state.validator_registry[validator_index].pubkey
-        for validator_index in participant_indices
+
+    _validate_custody_bitfield_from_aggregation_bitfield(
+        len(committee),
+        attestation.aggregation_bitfield,
+        attestation.custody_bitfield,
     )
-    group_public_key = bls.aggregate_pubkeys(pubkeys)
-    # TODO: change to tree hashing when we have SSZ
-    message = AttestationDataAndCustodyBit.create_attestation_message(attestation.data)
+
+    participants = get_members_from_bitfield(committee, attestation.aggregation_bitfield)
+    custody_bit_1_participants = get_members_from_bitfield(committee, attestation.custody_bitfield)
+    custody_bit_0_participants = (i for i in participants if i not in custody_bit_1_participants)
+
+    pubkeys = generate_aggregate_pubkeys_from_indices(
+        state.validator_registry,
+        custody_bit_0_participants,
+        custody_bit_1_participants,
+    )
+
+    # TODO: change to tree hashing (hash_tree_root) when we have SSZ
+    messages = (
+        AttestationDataAndCustodyBit(data=attestation.data, custody_bit=False).root,
+        AttestationDataAndCustodyBit(data=attestation.data, custody_bit=True).root,
+    )
+
     domain = get_domain(
         fork=state.fork,
         epoch=slot_to_epoch(attestation.data.slot, committee_config.EPOCH_LENGTH),
         domain_type=SignatureDomain.DOMAIN_ATTESTATION,
     )
 
-    is_valid_signature = bls.verify(
-        message=message,
-        pubkey=group_public_key,
+    is_valid_signature = bls.verify_multiple(
+        pubkeys=pubkeys,
+        messages=messages,
         signature=attestation.aggregate_signature,
         domain=domain,
     )
@@ -319,10 +390,11 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     if not is_valid_signature:
         raise ValidationError(
             "Attestation aggregate_signature is invalid. "
-            "message={}, participant_indices={} "
+            "messages={}, custody_bit_0_participants={}, custody_bit_1_participants={} "
             "domain={}".format(
-                message,
-                participant_indices,
+                messages,
+                custody_bit_0_participants,
+                custody_bit_1_participants,
                 domain,
             )
         )
