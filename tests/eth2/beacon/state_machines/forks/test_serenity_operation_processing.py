@@ -18,6 +18,44 @@ from eth2.beacon.tools.builder.validator import (
 )
 
 
+def test_process_max_attestations(genesis_state,
+                                  sample_beacon_block_params,
+                                  sample_beacon_block_body_params,
+                                  config,
+                                  keymap):
+    attestation_slot = 0
+    current_slot = attestation_slot + config.MIN_ATTESTATION_INCLUSION_DELAY
+    state = genesis_state.copy(
+        slot=current_slot,
+    )
+
+    attestations = create_mock_signed_attestations_at_slot(
+        state,
+        config,
+        attestation_slot,
+        keymap,
+        1.0,
+    )
+
+    attestations_count = len(attestations)
+    assert attestations_count > 0
+
+    block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
+        attestations=attestations * (attestations_count // config.MAX_ATTESTATIONS + 1),
+    )
+    block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
+        slot=current_slot,
+        body=block_body,
+    )
+
+    with pytest.raises(ValidationError):
+        process_attestations(
+            state,
+            block,
+            config,
+        )
+
+
 @pytest.mark.parametrize(
     (
         'num_validators,'
