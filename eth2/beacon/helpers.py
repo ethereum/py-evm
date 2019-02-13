@@ -227,6 +227,16 @@ def get_pubkey_for_indices(validators: Sequence['ValidatorRecord'],
 
 
 @to_tuple
+def generate_aggregate_pubkeys_from_indices(
+        validators: Sequence['ValidatorRecord'],
+        *indices: Sequence[Sequence['ValidatorIndex']]) -> BLSPubkey:
+    get_pubkeys = functools.partial(get_pubkey_for_indices, validators)
+    return map(
+        bls.aggregate_pubkeys,
+        map(get_pubkeys, indices),
+    )
+
+
 def generate_aggregate_pubkeys(
         validators: Sequence['ValidatorRecord'],
         slashable_attestation: 'SlashableAttestation') -> Iterable[BLSPubkey]:
@@ -235,11 +245,7 @@ def generate_aggregate_pubkeys(
     the proof-of-custody indices found in the ``slashable_attestation``.
     """
     all_indices = slashable_attestation.custody_bit_indices
-    get_pubkeys = functools.partial(get_pubkey_for_indices, validators)
-    return map(
-        bls.aggregate_pubkeys,
-        map(get_pubkeys, all_indices),
-    )
+    return generate_aggregate_pubkeys_from_indices(validators, *all_indices)
 
 
 def verify_slashable_attestation_signature(state: 'BeaconState',
