@@ -163,26 +163,31 @@ def validate_attestation_slot(attestation_data: AttestationData,
     Validate ``slot`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
     """
-    if attestation_data.slot + min_attestation_inclusion_delay > current_slot:
+    if attestation_data.slot > current_slot - min_attestation_inclusion_delay:
         raise ValidationError(
-            "Attestation slot plus min inclusion delay is too high:\n"
-            "\tFound: %s (%s + %s), Needed less than or equal to %s" %
+            "Attestation slot is greater than the ``current_slot`` less the "
+            "``min_attestation_inclusion_delay``:\n"
+            "\tFound: %s, Needed less than or equal to %s (%s - %s)" %
             (
-                attestation_data.slot + min_attestation_inclusion_delay,
                 attestation_data.slot,
-                min_attestation_inclusion_delay,
+                current_slot - min_attestation_inclusion_delay,
                 current_slot,
+                min_attestation_inclusion_delay,
             )
         )
-    if attestation_data.slot + epoch_length < current_slot:
+    if current_slot - min_attestation_inclusion_delay >= attestation_data.slot + epoch_length:
         raise ValidationError(
-            "Attestation slot plus epoch length is too low:\n"
-            "\tFound: %s (%s + %s), Needed greater than or equal to: %s" %
+            "Attestation slot plus epoch length is too low; "
+            "must equal or exceed the ``current_slot`` less the "
+            "``min_attestation_inclusion_delay``:\n"
+            "\tFound: %s (%s + %s), Needed greater than or equal to: %s (%s - %s)" %
             (
                 attestation_data.slot + epoch_length,
                 attestation_data.slot,
                 epoch_length,
+                current_slot - min_attestation_inclusion_delay,
                 current_slot,
+                min_attestation_inclusion_delay,
             )
         )
 

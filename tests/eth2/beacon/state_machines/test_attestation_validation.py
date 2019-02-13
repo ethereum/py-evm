@@ -38,12 +38,12 @@ from eth2.beacon.types.attestation_data import AttestationData
         'is_valid,'
     ),
     [
-        (0, 5, 5, 1, True),
-        (0, 5, 5, 5, True),
-        (0, 5, 5, 6, False),  # attestation_slot + in_attestation_inclusion_delay > current_slot
+        (0, 5, 5, 1, True),  # in bounds at lower end
+        (0, 5, 5, 5, True),  # in bounds at high end
+        (0, 5, 5, 6, False),  # attestation_slot + min_attestation_inclusion_delay > current_slot
         (7, 5, 10, 1, False),  # attestation_slot > current_slot
-        (10, 20, 10, 2, True),
-        (9, 20, 10, 2, False),  # attestation_slot + EPOCH_LENGTH < current_slot
+        (10, 20, 10, 2, True),  # in bounds at lower end
+        (7, 20, 10, 2, False),  # attestation_slot + EPOCH_LENGTH < current_slot - inclusion_delay
     ]
 )
 def test_validate_attestation_slot(sample_attestation_data_params,
