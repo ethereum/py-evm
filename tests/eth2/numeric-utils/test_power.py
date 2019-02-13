@@ -1,3 +1,5 @@
+import math
+
 from hypothesis import (
     given,
     strategies as st,
@@ -22,7 +24,19 @@ def slow_is_power_of_two(value):
     return num == value
 
 
+def fast_is_power_of_two(value: int) -> bool:
+    """
+    Check if ``value`` is a power of two integer.
+    """
+    if value == 0:
+        return False
+    else:
+        return 2**int(math.log2(value)) == value
+
+
 @given(st.integers(0, 2**256))
 def test_is_power_of_two(value):
-    expected = slow_is_power_of_two(value)
-    assert expected == is_power_of_two(value)
+    slow_expected = slow_is_power_of_two(value)
+    fast_expected = fast_is_power_of_two(value)
+    assert slow_expected == fast_expected
+    assert fast_expected == is_power_of_two(value)

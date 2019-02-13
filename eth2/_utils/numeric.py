@@ -1,5 +1,3 @@
-import math
-
 from eth_typing import (
     Hash32,
 )
@@ -21,4 +19,4 @@ def is_power_of_two(value: int) -> bool:
     if value == 0:
         return False
     else:
-        return 2**int(math.log2(value)) == value
+        return bool(value and not (value & (value - 1)))
