@@ -317,7 +317,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     This will change to reflect real proof of custody bits in the Phase 1.
     """
     # NOTE: to be removed in phase 1.
-    empty_custody_bitfield = bitfield.get_empty_bitfield(len(attestation.custody_bitfield))
+    empty_custody_bitfield = b'\x00' * len(attestation.custody_bitfield)
     if attestation.custody_bitfield != empty_custody_bitfield:
         raise ValidationError(
             "Attestation custody bitfield is not empty.\n"
@@ -328,7 +328,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
             )
         )
 
-    empty_aggregation_bitfield = bitfield.get_empty_bitfield(len(attestation.aggregation_bitfield))
+    empty_aggregation_bitfield = b'\x00' * len(attestation.aggregation_bitfield)
     if attestation.aggregation_bitfield == empty_aggregation_bitfield:
         raise ValidationError(
             "Attestation aggregation bitfield is empty.\n"
