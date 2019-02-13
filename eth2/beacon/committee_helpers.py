@@ -302,16 +302,59 @@ def get_beacon_proposer_index(state: 'BeaconState',
     return first_committee[slot % len(first_committee)]
 
 
-def _get_committee_for_shard(
-        crosslink_committees: Sequence[Tuple[Sequence[ValidatorIndex], ShardNumber]],
-        shard: ShardNumber) -> Iterable[ValidatorIndex]:
-    for committee, committee_shard in crosslink_committees:
-        if committee_shard == shard:
-            return committee
-    return None
+@to_tuple
+def get_crosslink_committee_for_attestation(
+        state: 'BeaconState',
+        attestation_data: 'AttestationData',
+        committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
+    """
+    Returns the specific crosslink committee concerning the given ``attestation_data``.
+    In particular, the (slot, shard) coordinate in the ``attestation_data`` selects one committee
+    from all committees expected to attest at the slot.
+
+    Raises `ValidationError` in the case that this attestation references a shard that
+    is not covered in the specified slot.
+    """
+    crosslink_committees = get_crosslink_committees_at_slot(
+        state=state,
+        slot=attestation_data.slot,
+        committee_config=committee_config,
+    )
+
+    try:
+        return next(
+            committee for (
+                committee,
+                shard,
+            ) in crosslink_committees if shard == attestation_data.shard
+        )
+    except StopIteration:
+        raise ValidationError(
+            "attestation_data.shard ({}) is not in crosslink_committees".format(
+                attestation_data.shard,
+            )
+        )
 
 
 @to_tuple
+def get_members_from_bitfield(committee: Iterable[ValidatorIndex],
+                              bitfield: Bitfield) -> Iterable[ValidatorIndex]:
+    """
+    Returns all indices in ``committee`` if they "voted" according to the
+    ``bitfield``.
+
+    Raises ``ValidationError`` if the ``bitfield`` does not conform to some
+    basic checks around length and zero-padding based on the ``committee``
+    length.
+    """
+    validate_bitfield(bitfield, len(committee))
+
+    # Extract committee members if the corresponding bit is set in the bitfield
+    for bitfield_index, validator_index in enumerate(committee):
+        if has_voted(bitfield, bitfield_index):
+            yield validator_index
+
+
 def get_attestation_participants(state: 'BeaconState',
                                  attestation_data: 'AttestationData',
                                  bitfield: Bitfield,
@@ -319,35 +362,10 @@ def get_attestation_participants(state: 'BeaconState',
     """
     Return the participant indices at for the ``attestation_data`` and ``bitfield``.
     """
-    # Find the committee in the list with the desired shard
-    crosslink_committees = get_crosslink_committees_at_slot(
-        state=state,
-        slot=attestation_data.slot,
-        committee_config=committee_config,
+    committee = get_crosslink_committee_for_attestation(
+        state,
+        attestation_data,
+        committee_config,
     )
 
-    if attestation_data.shard not in set([shard for _, shard in crosslink_committees]):
-        raise ValidationError(
-            "attestation_data.shard ({}) is not in crosslink_committees".format(
-                attestation_data.shard,
-            )
-        )
-
-    try:
-        # Filter by shard
-        committee = tuple(
-            _get_committee_for_shard(crosslink_committees, attestation_data.shard)
-        )
-    except IndexError:
-        raise ValidationError(
-            "committee for shard={} should not be empty.".format(
-                attestation_data.shard,
-            )
-        )
-
-    validate_bitfield(bitfield, len(committee))
-
-    # Find the participating attesters in the committee
-    for bitfield_index, validator_index in enumerate(committee):
-        if has_voted(bitfield, bitfield_index):
-            yield validator_index
+    return get_members_from_bitfield(committee, bitfield)
