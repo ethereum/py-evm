@@ -287,7 +287,7 @@ def validate_attestation_shard_block_root(attestation_data: AttestationData) -> 
 
 def _validate_custody_bitfield_from_aggregation_bitfield(committee_size: int,
                                                          aggregation_bitfield: Bitfield,
-                                                         custody_bitfield: Bitfield):
+                                                         custody_bitfield: Bitfield) -> None:
     """
     Ensure that every unset bit in the ``aggregation_bitfield`` is also unset
     in the ``custody_bitfield`` to ensure a canonical representation of information

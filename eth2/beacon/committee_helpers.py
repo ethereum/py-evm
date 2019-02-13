@@ -337,7 +337,7 @@ def get_crosslink_committee_for_attestation(
 
 
 @to_tuple
-def get_members_from_bitfield(committee: Iterable[ValidatorIndex],
+def get_members_from_bitfield(committee: Sequence[ValidatorIndex],
                               bitfield: Bitfield) -> Iterable[ValidatorIndex]:
     """
     Returns all indices in ``committee`` if they "voted" according to the

@@ -229,7 +229,7 @@ def get_pubkey_for_indices(validators: Sequence['ValidatorRecord'],
 @to_tuple
 def generate_aggregate_pubkeys_from_indices(
         validators: Sequence['ValidatorRecord'],
-        *indices: Sequence[Sequence['ValidatorIndex']]) -> BLSPubkey:
+        *indices: Sequence[Sequence['ValidatorIndex']]) -> Iterable[BLSPubkey]:
     get_pubkeys = functools.partial(get_pubkey_for_indices, validators)
     return map(
         bls.aggregate_pubkeys,
@@ -239,7 +239,7 @@ def generate_aggregate_pubkeys_from_indices(
 
 def generate_aggregate_pubkeys(
         validators: Sequence['ValidatorRecord'],
-        slashable_attestation: 'SlashableAttestation') -> Iterable[BLSPubkey]:
+        slashable_attestation: 'SlashableAttestation') -> Sequence[BLSPubkey]:
     """
     Compute the aggregate pubkey we expect based on
     the proof-of-custody indices found in the ``slashable_attestation``.
