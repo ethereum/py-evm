@@ -35,6 +35,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_previous_epoch_attestations,
     get_previous_epoch_head_attestations,
     get_previous_epoch_justified_attestations,
+    get_shard_block_root_attester_indices,
     get_winning_root,
     get_total_balance,
     get_epoch_boundary_attesting_balances,
@@ -57,6 +58,7 @@ from eth2.beacon.typing import (
     Epoch,
     Gwei,
     Shard,
+    ValidatorIndex,
 )
 
 
@@ -646,6 +648,84 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             state.validator_balances[proposer_index] + reward,
         )
     # 3. Process rewards and penalties for crosslinks
+    prev_epoch_start_slot = get_epoch_start_slot(
+        state.previous_epoch(config.EPOCH_LENGTH, config.GENESIS_EPOCH),
+        config.EPOCH_LENGTH,
+    )
+    cur_epoch_start_slot = get_epoch_start_slot(
+        state.current_epoch(config.EPOCH_LENGTH),
+        config.EPOCH_LENGTH,
+    )
+    current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
+    for slot in range(prev_epoch_start_slot, cur_epoch_start_slot):
+        crosslink_committees_at_slot = get_crosslink_committees_at_slot(
+            state,
+            slot,
+            config.GENESIS_EPOCH,
+            config.EPOCH_LENGTH,
+            config.TARGET_COMMITTEE_SIZE,
+            config.SHARD_COUNT,
+        )
+        for crosslink_committee, shard in crosslink_committees_at_slot:
+            filtered_attestations = _filter_attestations_by_shard(
+                previous_epoch_attestations + current_epoch_attestations,
+                shard,
+            )
+            try:
+                winning_root, total_attesting_balance = get_winning_root(
+                    state=state,
+                    shard=shard,
+                    attestations=filtered_attestations,
+                    genesis_epoch=config.GENESIS_EPOCH,
+                    epoch_length=config.EPOCH_LENGTH,
+                    max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+                    target_committee_size=config.TARGET_COMMITTEE_SIZE,
+                    shard_count=config.SHARD_COUNT,
+                )
+            except NoWinningRootError:
+                # No winning shard block root found for this shard.
+                # Hence no one is counted as attesting validator.
+                attesting_validator_indices: Iterable[ValidatorIndex] = set()
+            else:
+                attesting_validator_indices = get_shard_block_root_attester_indices(
+                    state=state,
+                    attestations=filtered_attestations,
+                    shard=shard,
+                    shard_block_root=winning_root,
+                    genesis_epoch=config.GENESIS_EPOCH,
+                    epoch_length=config.EPOCH_LENGTH,
+                    target_committee_size=config.TARGET_COMMITTEE_SIZE,
+                    shard_count=config.SHARD_COUNT,
+                )
+
+            total_balance = sum(
+                get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
+                for i in crosslink_committee
+            )
+            for index in attesting_validator_indices:
+                reward = get_base_reward(
+                    state=state,
+                    index=index,
+                    previous_total_balance=previous_total_balance,
+                    base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                    max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+                ) * total_attesting_balance // total_balance
+                state = state.update_validator_balance(
+                    index,
+                    state.validator_balances[index] + reward,
+                )
+            for index in set(crosslink_committee).difference(attesting_validator_indices):
+                penalty = get_base_reward(
+                    state=state,
+                    index=index,
+                    previous_total_balance=previous_total_balance,
+                    base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                    max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+                )
+                state = state.update_validator_balance(
+                    index,
+                    max(state.validator_balances[index] - penalty, 0),
+                )
 
     return state
 
