@@ -53,6 +53,7 @@ from p2p.exceptions import (
     NoMatchingPeerCapabilities,
     PeerConnectionLost,
     RemoteDisconnected,
+    TooManyPeersFailure,
     UnexpectedMessage,
     UnknownProtocolCommand,
     UnreachablePeer,
@@ -293,6 +294,8 @@ class BasePeer(BaseService):
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
             # Peers sometimes send a disconnect msg before they send the sub-proto handshake.
+            if msg['reason'] == DisconnectReason.too_many_peers.value:
+                raise TooManyPeersFailure(f'{self} disconnected from us before handshake')
             raise HandshakeFailure(
                 f"{self} disconnected before completing sub-proto handshake: {msg['reason_name']}"
             )
@@ -316,6 +319,8 @@ class BasePeer(BaseService):
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
             # Peers sometimes send a disconnect msg before they send the initial P2P handshake.
+            if msg['reason'] == DisconnectReason.too_many_peers.value:
+                raise TooManyPeersFailure(f'{self} disconnected from us before handshake')
             raise HandshakeFailure(
                 f"{self} disconnected before completing sub-proto handshake: {msg['reason_name']}"
             )

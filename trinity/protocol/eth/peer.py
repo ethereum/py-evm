@@ -7,7 +7,11 @@ from typing import (
 
 from eth_utils import encode_hex
 
-from p2p.exceptions import HandshakeFailure
+from p2p.exceptions import (
+    HandshakeFailure,
+    WrongNetworkFailure,
+    WrongGenesisFailure,
+)
 from p2p.p2p_proto import DisconnectReason
 from p2p.protocol import (
     Command,
@@ -70,14 +74,14 @@ class ETHPeer(BaseChainPeer):
         msg = cast(Dict[str, Any], msg)
         if msg['network_id'] != self.network_id:
             await self.disconnect(DisconnectReason.useless_peer)
-            raise HandshakeFailure(
+            raise WrongNetworkFailure(
                 f"{self} network ({msg['network_id']}) does not match ours "
                 f"({self.network_id}), disconnecting"
             )
         genesis = await self.genesis
         if msg['genesis_hash'] != genesis.hash:
             await self.disconnect(DisconnectReason.useless_peer)
-            raise HandshakeFailure(
+            raise WrongGenesisFailure(
                 f"{self} genesis ({encode_hex(msg['genesis_hash'])}) does not "
                 f"match ours ({genesis.hex_hash}), disconnecting"
             )

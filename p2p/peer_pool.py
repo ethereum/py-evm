@@ -60,6 +60,10 @@ from p2p.peer import (
     PeerMessage,
     PeerSubscriber,
 )
+from p2p.persistence import (
+    BasePeerInfo,
+    NoopPeerInfo,
+)
 from p2p.p2p_proto import (
     DisconnectReason,
 )
@@ -79,10 +83,13 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                  privkey: datatypes.PrivateKey,
                  context: BasePeerContext,
                  max_peers: int = DEFAULT_MAX_PEERS,
+                 peer_info: BasePeerInfo = NoopPeerInfo(),
                  token: CancelToken = None,
                  event_bus: Endpoint = None
                  ) -> None:
         super().__init__(token)
+
+        self.peer_info = peer_info
 
         self.privkey = privkey
         self.max_peers = max_peers
@@ -246,8 +253,9 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         if remote in self.connected_nodes:
             self.logger.debug("Skipping %s; already connected to it", remote)
             return None
+        if not self.peer_info.should_connect_to(remote):
+            return None
         expected_exceptions = (
-            HandshakeFailure,
             PeerConnectionLost,
             TimeoutError,
             UnreachablePeer,
@@ -274,6 +282,9 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             self.logger.error('Got malformed response from %r during handshake', remote)
             # dump the full stacktrace in the debug logs
             self.logger.debug('Got malformed response from %r', remote, exc_info=True)
+        except HandshakeFailure as e:
+            self.logger.debug("Could not complete handshake with %r: %s", remote, repr(e))
+            self.peer_info.record_failure(remote, e)
         except expected_exceptions as e:
             self.logger.debug("Could not complete handshake with %r: %s", remote, repr(e))
         except Exception:

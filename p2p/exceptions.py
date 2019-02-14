@@ -31,6 +31,27 @@ class HandshakeFailure(BaseP2PError):
     pass
 
 
+class WrongNetworkFailure(HandshakeFailure):
+    """
+    Disconnected from the peer because it's on a different network than we're on
+    """
+    pass
+
+
+class WrongGenesisFailure(HandshakeFailure):
+    """
+    Disconnected from the peer because it has a different genesis than we do
+    """
+    pass
+
+
+class TooManyPeersFailure(HandshakeFailure):
+    """
+    The remote disconnected from us because it has too many peers
+    """
+    pass
+
+
 class MalformedMessage(BaseP2PError):
     """
     Raised when a p2p command is received with a malformed message
@@ -165,5 +186,12 @@ class AlreadyWaitingDiscoveryResponse(BaseP2PError):
 class UnableToGetDiscV5Ticket(BaseP2PError):
     """
     Raised when we're unable to get a discv5 ticket from a remote peer.
+    """
+    pass
+
+
+class BadDatabaseError(BaseP2PError):
+    """
+    The local database wasn't in quite the format we were expecting
     """
     pass
