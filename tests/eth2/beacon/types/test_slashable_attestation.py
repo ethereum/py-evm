@@ -49,27 +49,8 @@ def test_root(sample_slashable_attestation_params):
 
 @pytest.mark.parametrize(
     (
-        'custody_bitfield',
-        'is_custody_bitfield_empty'
-    ),
-    [
-        (b'\x00\x00', True),
-        (b'\x00\x01', False),
-    ],
-)
-def test_is_custody_bitfield_empty(sample_slashable_attestation_params,
-                                   custody_bitfield,
-                                   is_custody_bitfield_empty):
-    slashable_attestation = SlashableAttestation(**sample_slashable_attestation_params).copy(
-        custody_bitfield=custody_bitfield,
-    )
-    assert slashable_attestation.is_custody_bitfield_empty == is_custody_bitfield_empty
-
-
-@pytest.mark.parametrize(
-    (
         'validator_indices',
-        'is_validator_indices_ascending'
+        'are_validator_indices_ascending'
     ),
     [
         ((0, 1, 2), True),
@@ -79,11 +60,11 @@ def test_is_custody_bitfield_empty(sample_slashable_attestation_params,
 def test_is_validator_indices_ascending(
         sample_slashable_attestation_params,
         validator_indices,
-        is_validator_indices_ascending):
+        are_validator_indices_ascending):
     slashable_attestation = SlashableAttestation(**sample_slashable_attestation_params).copy(
         validator_indices=validator_indices,
     )
-    assert slashable_attestation.is_validator_indices_ascending == is_validator_indices_ascending
+    assert slashable_attestation.are_validator_indices_ascending == are_validator_indices_ascending
 
 
 @pytest.mark.parametrize(
