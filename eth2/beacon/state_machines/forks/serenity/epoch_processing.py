@@ -410,6 +410,18 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         target_committee_size=config.TARGET_COMMITTEE_SIZE,
         shard_count=config.SHARD_COUNT,
     )
+
+    base_reward_map = {
+        index: get_base_reward(
+            state=state,
+            index=index,
+            previous_total_balance=previous_total_balance,
+            base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+            max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+        )
+        for index in prev_epoch_active_validator_indices
+    }
+
     epochs_since_finality = state.next_epoch(config.EPOCH_LENGTH) - state.finalized_epoch
     if epochs_since_finality <= 4:
         # 1.1 Expected FFG source:
@@ -419,13 +431,11 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         )
         # Reward validators in `previous_epoch_justified_attester_indices`
         for index in previous_epoch_justified_attester_indices:
-            reward = get_base_reward(
-                state=state,
-                index=index,
-                previous_total_balance=previous_total_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            ) * previous_epoch_justified_attesting_balance // previous_total_balance
+            reward = (
+                base_reward_map[index] *
+                previous_epoch_justified_attesting_balance //
+                previous_total_balance
+            )
             state = state.update_validator_balance(
                 index,
                 state.validator_balances[index] + reward,
@@ -434,13 +444,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
             set(previous_epoch_justified_attester_indices))
         for index in excluded_active_validators_indices:
-            penalty = get_base_reward(
-                state=state,
-                index=index,
-                previous_total_balance=previous_total_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            )
+            penalty = base_reward_map[index]
             state = state.update_validator_balance(
                 index,
                 max(state.validator_balances[index] - penalty, 0),
@@ -453,13 +457,11 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         )
         # Reward validators in `previous_epoch_boundary_attester_indices`
         for index in previous_epoch_boundary_attester_indices:
-            reward = get_base_reward(
-                state=state,
-                index=index,
-                previous_total_balance=previous_total_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            ) * previous_epoch_boundary_attesting_balance // previous_total_balance
+            reward = (
+                base_reward_map[index] *
+                previous_epoch_boundary_attesting_balance //
+                previous_total_balance
+            )
             state = state.update_validator_balance(
                 index,
                 state.validator_balances[index] + reward,
@@ -468,13 +470,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
             set(previous_epoch_boundary_attester_indices))
         for index in excluded_active_validators_indices:
-            penalty = get_base_reward(
-                state=state,
-                index=index,
-                previous_total_balance=previous_total_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            )
+            penalty = base_reward_map[index]
             state = state.update_validator_balance(
                 index,
                 max(state.validator_balances[index] - penalty, 0),
@@ -487,13 +483,11 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         )
         # Reward validators in `previous_epoch_head_attester_indices`
         for index in previous_epoch_head_attester_indices:
-            reward = get_base_reward(
-                state=state,
-                index=index,
-                previous_total_balance=previous_total_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            ) * previous_epoch_head_attesting_balance // previous_total_balance
+            reward = (
+                base_reward_map[index] *
+                previous_epoch_head_attesting_balance //
+                previous_total_balance
+            )
             state = state.update_validator_balance(
                 index,
                 state.validator_balances[index] + reward,
@@ -502,13 +496,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
             set(previous_epoch_head_attester_indices))
         for index in excluded_active_validators_indices:
-            penalty = get_base_reward(
-                state=state,
-                index=index,
-                previous_total_balance=previous_total_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            )
+            penalty = base_reward_map[index]
             state = state.update_validator_balance(
                 index,
                 max(state.validator_balances[index] - penalty, 0),
@@ -517,13 +505,11 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         # 1.4 Inclusion distance:
         # Reward validators in `previous_epoch_attester_indices`
         for index in previous_epoch_attester_indices:
-            reward = get_base_reward(
-                state=state,
-                index=index,
-                previous_total_balance=previous_total_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            ) * config.MIN_ATTESTATION_INCLUSION_DELAY // inclusion_distance_map[index]
+            reward = (
+                base_reward_map[index] *
+                config.MIN_ATTESTATION_INCLUSION_DELAY //
+                inclusion_distance_map[index]
+            )
             state = state.update_validator_balance(
                 index,
                 state.validator_balances[index] + reward,
@@ -534,13 +520,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
             set(previous_epoch_justified_attester_indices))
         for index in excluded_active_validators_indices:
-            inactivity_penalty = get_base_reward(
-                state=state,
-                index=index,
-                previous_total_balance=previous_total_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            ) + (
+            inactivity_penalty = base_reward_map[index] + (
                 get_effective_balance(state.validator_balances, index, config.MAX_DEPOSIT_AMOUNT) *
                 epochs_since_finality // config.INACTIVITY_PENALTY_QUOTIENT // 2
             )
@@ -553,13 +533,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
             set(previous_epoch_boundary_attester_indices))
         for index in excluded_active_validators_indices:
-            inactivity_penalty = get_base_reward(
-                state=state,
-                index=index,
-                previous_total_balance=previous_total_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            ) + (
+            inactivity_penalty = base_reward_map[index] + (
                 get_effective_balance(state.validator_balances, index, config.MAX_DEPOSIT_AMOUNT) *
                 epochs_since_finality // config.INACTIVITY_PENALTY_QUOTIENT // 2
             )
@@ -572,29 +546,17 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
             set(previous_epoch_head_attester_indices))
         for index in excluded_active_validators_indices:
-            penalty = get_base_reward(
-                state=state,
-                index=index,
-                previous_total_balance=previous_total_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            )
+            penalty = base_reward_map[index]
             state = state.update_validator_balance(
                 index,
                 max(state.validator_balances[index] - penalty, 0),
             )
 
-        # Punish active validators
+        # Punish penalized active validators
         for index in prev_epoch_active_validator_indices:
             penalized_epoch = state.validator_registry[index].penalized_epoch
             if penalized_epoch <= state.current_epoch(config.EPOCH_LENGTH):
-                base_reward = get_base_reward(
-                    state=state,
-                    index=index,
-                    previous_total_balance=previous_total_balance,
-                    base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                    max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-                )
+                base_reward = base_reward_map[index]
                 inactivity_penalty = base_reward + (
                     get_effective_balance(
                         state.validator_balances,
@@ -610,13 +572,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
 
         # Punish validators in `previous_epoch_attester_indices`
         for index in previous_epoch_attester_indices:
-            base_reward = get_base_reward(
-                state=state,
-                index=index,
-                previous_total_balance=previous_total_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            )
+            base_reward = base_reward_map[index]
             penalty = Gwei(
                 base_reward -
                 base_reward * config.MIN_ATTESTATION_INCLUSION_DELAY // inclusion_distance_map[index]  # noqa: E501
@@ -636,17 +592,12 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             config.TARGET_COMMITTEE_SIZE,
             config.SHARD_COUNT,
         )
-        reward = get_base_reward(
-            state=state,
-            index=index,
-            previous_total_balance=previous_total_balance,
-            base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-            max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-        ) // config.INCLUDER_REWARD_QUOTIENT
+        reward = base_reward_map[index] // config.INCLUDER_REWARD_QUOTIENT
         state = state.update_validator_balance(
             proposer_index,
             state.validator_balances[proposer_index] + reward,
         )
+
     # 3. Process rewards and penalties for crosslinks
     prev_epoch_start_slot = get_epoch_start_slot(
         state.previous_epoch(config.EPOCH_LENGTH, config.GENESIS_EPOCH),
@@ -697,31 +648,18 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                     target_committee_size=config.TARGET_COMMITTEE_SIZE,
                     shard_count=config.SHARD_COUNT,
                 )
-
             total_balance = sum(
                 get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
                 for i in crosslink_committee
             )
             for index in attesting_validator_indices:
-                reward = get_base_reward(
-                    state=state,
-                    index=index,
-                    previous_total_balance=previous_total_balance,
-                    base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                    max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-                ) * total_attesting_balance // total_balance
+                reward = base_reward_map[index] * total_attesting_balance // total_balance
                 state = state.update_validator_balance(
                     index,
                     state.validator_balances[index] + reward,
                 )
             for index in set(crosslink_committee).difference(attesting_validator_indices):
-                penalty = get_base_reward(
-                    state=state,
-                    index=index,
-                    previous_total_balance=previous_total_balance,
-                    base_reward_quotient=config.BASE_REWARD_QUOTIENT,
-                    max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-                )
+                penalty = base_reward_map[index]
                 state = state.update_validator_balance(
                     index,
                     max(state.validator_balances[index] - penalty, 0),
