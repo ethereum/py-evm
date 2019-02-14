@@ -411,6 +411,14 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         shard_count=config.SHARD_COUNT,
     )
 
+    effective_balance_map = {
+        index: get_effective_balance(
+            state.validator_balances,
+            index,
+            config.MAX_DEPOSIT_AMOUNT,
+        )
+        for index in prev_epoch_active_validator_indices
+    }
     base_reward_map = {
         index: get_base_reward(
             state=state,
@@ -426,7 +434,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     if epochs_since_finality <= 4:
         # 1.1 Expected FFG source:
         previous_epoch_justified_attesting_balance = sum(
-            get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
+            effective_balance_map[i]
             for i in previous_epoch_justified_attester_indices
         )
         # Reward validators in `previous_epoch_justified_attester_indices`
@@ -452,7 +460,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
 
         # 1.2 Expected FFG target:
         previous_epoch_boundary_attesting_balance = sum(
-            get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
+            effective_balance_map[i]
             for i in previous_epoch_boundary_attester_indices
         )
         # Reward validators in `previous_epoch_boundary_attester_indices`
@@ -478,7 +486,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
 
         # 1.3 Expected beacon chain head:
         previous_epoch_head_attesting_balance = sum(
-            get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
+            effective_balance_map[i]
             for i in previous_epoch_head_attester_indices
         )
         # Reward validators in `previous_epoch_head_attester_indices`
@@ -521,7 +529,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             set(previous_epoch_justified_attester_indices))
         for index in excluded_active_validators_indices:
             inactivity_penalty = base_reward_map[index] + (
-                get_effective_balance(state.validator_balances, index, config.MAX_DEPOSIT_AMOUNT) *
+                effective_balance_map[index] *
                 epochs_since_finality // config.INACTIVITY_PENALTY_QUOTIENT // 2
             )
             state = state.update_validator_balance(
@@ -534,7 +542,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             set(previous_epoch_boundary_attester_indices))
         for index in excluded_active_validators_indices:
             inactivity_penalty = base_reward_map[index] + (
-                get_effective_balance(state.validator_balances, index, config.MAX_DEPOSIT_AMOUNT) *
+                effective_balance_map[index] *
                 epochs_since_finality // config.INACTIVITY_PENALTY_QUOTIENT // 2
             )
             state = state.update_validator_balance(
@@ -558,11 +566,9 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             if penalized_epoch <= state.current_epoch(config.EPOCH_LENGTH):
                 base_reward = base_reward_map[index]
                 inactivity_penalty = base_reward + (
-                    get_effective_balance(
-                        state.validator_balances,
-                        index,
-                        config.MAX_DEPOSIT_AMOUNT
-                    ) * epochs_since_finality // config.INACTIVITY_PENALTY_QUOTIENT // 2
+                    effective_balance_map[index] *
+                    epochs_since_finality //
+                    config.INACTIVITY_PENALTY_QUOTIENT // 2
                 )
                 penalty = 2 * inactivity_penalty + base_reward
                 state = state.update_validator_balance(
@@ -649,7 +655,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                     shard_count=config.SHARD_COUNT,
                 )
             total_balance = sum(
-                get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
+                effective_balance_map[i]
                 for i in crosslink_committee
             )
             for index in attesting_validator_indices:
