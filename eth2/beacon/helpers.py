@@ -150,8 +150,9 @@ def generate_seed(state: 'BeaconState',
         entry_exit_delay=entry_exit_delay,
         latest_index_roots_length=latest_index_roots_length,
     )
+    epoch_as_bytes = epoch.to_bytes(32, byteorder="little")
 
-    return hash_eth2(randao_mix + active_index_root)
+    return hash_eth2(randao_mix + active_index_root + epoch_as_bytes)
 
 
 def get_active_index_root(state: 'BeaconState',

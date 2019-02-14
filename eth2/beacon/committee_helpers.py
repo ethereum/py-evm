@@ -16,9 +16,6 @@ from eth_typing import (
 from eth2._utils.bitfield import (
     has_voted,
 )
-from eth2._utils.numeric import (
-    bitwise_xor,
-)
 from eth2.beacon._utils.random import (
     shuffle,
     split,
@@ -88,7 +85,6 @@ def get_shuffling(*,
     )
 
     # Shuffle
-    seed = bitwise_xor(seed, Hash32(epoch.to_bytes(32, byteorder="big")))
     shuffled_active_validator_indices = shuffle(active_validator_indices, seed)
 
     # Split the shuffled list into committees_per_epoch pieces
