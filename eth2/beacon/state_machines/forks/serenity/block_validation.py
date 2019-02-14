@@ -285,6 +285,32 @@ def validate_attestation_shard_block_root(attestation_data: AttestationData) -> 
         )
 
 
+def _validate_custody_bitfield(attestation: Attestation) -> None:
+    # NOTE: to be removed in phase 1.
+    empty_custody_bitfield = b'\x00' * len(attestation.custody_bitfield)
+    if attestation.custody_bitfield != empty_custody_bitfield:
+        raise ValidationError(
+            "Attestation custody bitfield is not empty.\n"
+            "\tFound: %s, Expected %s" %
+            (
+                attestation.custody_bitfield,
+                empty_custody_bitfield,
+            )
+        )
+
+
+def _validate_aggregation_bitfield(attestation: Attestation) -> None:
+    empty_aggregation_bitfield = b'\x00' * len(attestation.aggregation_bitfield)
+    if attestation.aggregation_bitfield == empty_aggregation_bitfield:
+        raise ValidationError(
+            "Attestation aggregation bitfield is empty.\n"
+            "\tFound: %s, Expected some bits set." %
+            (
+                attestation.aggregation_bitfield,
+            )
+        )
+
+
 def _validate_custody_bitfield_from_aggregation_bitfield(committee_size: int,
                                                          aggregation_bitfield: Bitfield,
                                                          custody_bitfield: Bitfield) -> None:
@@ -316,27 +342,9 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     All proof of custody bits are assumed to be 0 within the signed data.
     This will change to reflect real proof of custody bits in the Phase 1.
     """
-    # NOTE: to be removed in phase 1.
-    empty_custody_bitfield = b'\x00' * len(attestation.custody_bitfield)
-    if attestation.custody_bitfield != empty_custody_bitfield:
-        raise ValidationError(
-            "Attestation custody bitfield is not empty.\n"
-            "\tFound: %s, Expected %s" %
-            (
-                attestation.custody_bitfield,
-                empty_custody_bitfield,
-            )
-        )
+    _validate_custody_bitfield(attestation)
 
-    empty_aggregation_bitfield = b'\x00' * len(attestation.aggregation_bitfield)
-    if attestation.aggregation_bitfield == empty_aggregation_bitfield:
-        raise ValidationError(
-            "Attestation aggregation bitfield is empty.\n"
-            "\tFound: %s, Expected some bits set." %
-            (
-                attestation.aggregation_bitfield,
-            )
-        )
+    _validate_aggregation_bitfield(attestation)
 
     committee = get_crosslink_committee_for_attestation(
         state=state,
