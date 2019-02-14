@@ -239,7 +239,7 @@ def generate_aggregate_pubkeys_from_indices(
 
 def generate_aggregate_pubkeys(
         validators: Sequence['ValidatorRecord'],
-        slashable_attestation: 'SlashableAttestation') -> Sequence[BLSPubkey]:
+        slashable_attestation: 'SlashableAttestation') -> Tuple[BLSPubkey]:
     """
     Compute the aggregate pubkey we expect based on
     the proof-of-custody indices found in the ``slashable_attestation``.
