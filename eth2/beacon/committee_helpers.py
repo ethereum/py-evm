@@ -308,11 +308,11 @@ def get_crosslink_committee_for_attestation(
         attestation_data: 'AttestationData',
         committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     """
-    Returns the specific crosslink committee concerning the given ``attestation_data``.
+    Return the specific crosslink committee concerning the given ``attestation_data``.
     In particular, the (slot, shard) coordinate in the ``attestation_data`` selects one committee
     from all committees expected to attest at the slot.
 
-    Raises `ValidationError` in the case that this attestation references a shard that
+    Raise `ValidationError` in the case that this attestation references a shard that
     is not covered in the specified slot.
     """
     crosslink_committees = get_crosslink_committees_at_slot(
@@ -340,10 +340,10 @@ def get_crosslink_committee_for_attestation(
 def get_members_from_bitfield(committee: Sequence[ValidatorIndex],
                               bitfield: Bitfield) -> Iterable[ValidatorIndex]:
     """
-    Returns all indices in ``committee`` if they "voted" according to the
+    Return all indices in ``committee`` if they "voted" according to the
     ``bitfield``.
 
-    Raises ``ValidationError`` if the ``bitfield`` does not conform to some
+    Raise ``ValidationError`` if the ``bitfield`` does not conform to some
     basic checks around length and zero-padding based on the ``committee``
     length.
     """
