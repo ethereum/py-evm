@@ -1,7 +1,15 @@
+import functools
+from typing import (
+    Iterable,
+    Sequence,
+    TYPE_CHECKING,
+)
+
 from eth_typing import (
     Hash32
 )
 from eth_utils import (
+    to_tuple,
     ValidationError,
 )
 
@@ -26,7 +34,6 @@ from eth2.beacon.enums import (
     SignatureDomain,
 )
 from eth2.beacon.helpers import (
-    generate_aggregate_pubkeys_from_indices,
     get_epoch_start_slot,
     get_block_root,
     get_domain,
@@ -34,19 +41,28 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
+from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState  # noqa: F401
 from eth2.beacon.types.attestations import Attestation  # noqa: F401
 from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
 from eth2.beacon.types.proposal_signed_data import ProposalSignedData
-from eth2.beacon.types.forks import Fork
+from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
 from eth2.beacon.typing import (
     BLSPubkey,
     BLSSignature,
     Bitfield,
+    BLSPubkey,
     EpochNumber,
     ShardNumber,
     SlotNumber,
+    ValidatorIndex,
 )
+from eth2.beacon.validation import (
+    validate_bitfield,
+)
+
+if TYPE_CHECKING:
+    from eth2.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
 #
@@ -285,22 +301,40 @@ def validate_attestation_shard_block_root(attestation_data: AttestationData) -> 
         )
 
 
-def _validate_custody_bitfield(attestation: Attestation) -> None:
+@to_tuple
+def get_pubkey_for_indices(validators: Sequence['ValidatorRecord'],
+                           indices: Sequence[ValidatorIndex]) -> Iterable[BLSPubkey]:
+    for index in indices:
+        yield validators[index].pubkey
+
+
+@to_tuple
+def generate_aggregate_pubkeys_from_indices(
+        validators: Sequence['ValidatorRecord'],
+        *indices: Sequence[Sequence['ValidatorIndex']]) -> Iterable[BLSPubkey]:
+    get_pubkeys = functools.partial(get_pubkey_for_indices, validators)
+    return map(
+        bls.aggregate_pubkeys,
+        map(get_pubkeys, indices),
+    )
+
+
+def _validate_custody_bitfield(custody_bitfield: Bitfield) -> None:
     # NOTE: to be removed in phase 1.
-    empty_custody_bitfield = b'\x00' * len(attestation.custody_bitfield)
-    if attestation.custody_bitfield != empty_custody_bitfield:
+    empty_custody_bitfield = b'\x00' * len(custody_bitfield)
+    if custody_bitfield != empty_custody_bitfield:
         raise ValidationError(
             "Attestation custody bitfield is not empty.\n"
-            f"\tFound: {attestation.custody_bitfield}, Expected {empty_custody_bitfield}"
+            f"\tFound: {custody_bitfield}, Expected {empty_custody_bitfield}"
         )
 
 
-def _validate_aggregation_bitfield(attestation: Attestation) -> None:
-    empty_aggregation_bitfield = b'\x00' * len(attestation.aggregation_bitfield)
-    if attestation.aggregation_bitfield == empty_aggregation_bitfield:
+def _validate_aggregation_bitfield(aggregation_bitfield: Bitfield) -> None:
+    empty_aggregation_bitfield = b'\x00' * len(aggregation_bitfield)
+    if aggregation_bitfield == empty_aggregation_bitfield:
         raise ValidationError(
             "Attestation aggregation bitfield is empty.\n"
-            f"\tFound: {attestation.aggregation_bitfield}, Expected some bits set."
+            f"\tFound: {aggregation_bitfield}, Expected some bits set."
         )
 
 
@@ -335,22 +369,15 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     All proof of custody bits are assumed to be 0 within the signed data.
     This will change to reflect real proof of custody bits in the Phase 1.
     """
-    _validate_custody_bitfield(attestation)
+    _validate_custody_bitfield(attestation.custody_bitfield)
 
-    _validate_aggregation_bitfield(attestation)
+    _validate_aggregation_bitfield(attestation.aggregation_bitfield)
 
     committee = get_crosslink_committee_for_attestation(
         state=state,
         attestation_data=attestation.data,
-<<<<<<< HEAD
         bitfield=attestation.aggregation_bitfield,
         committee_config=committee_config,
-=======
-        genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
->>>>>>> Update attestation aggregate signature validation
     )
 
     _validate_custody_bitfield_from_aggregation_bitfield(
@@ -420,4 +447,76 @@ def validate_randao_reveal(randao_reveal: BLSSignature,
             f"RANDAO reveal is invalid. "
             f"reveal={randao_reveal}, proposer_pubkey={proposer_pubkey}, message={message}, "
             f"domain={domain}"
+
+
+#
+# Slashable attestation validation
+#
+def verify_slashable_attestation_signature(state: 'BeaconState',
+                                           slashable_attestation: 'SlashableAttestation',
+                                           epoch_length: int) -> bool:
+    """
+    Ensure we have a valid aggregate signature for the ``slashable_attestation``.
+    """
+    all_indices = slashable_attestation.custody_bit_indices
+
+    pubkeys = generate_aggregate_pubkeys_from_indices(state.validator_registry, *all_indices)
+
+    messages = slashable_attestation.messages
+
+    signature = slashable_attestation.aggregate_signature
+
+    domain = get_domain(
+        state.fork,
+        slot_to_epoch(slashable_attestation.data.slot, epoch_length),
+        SignatureDomain.DOMAIN_ATTESTATION,
+    )
+
+    return bls.verify_multiple(
+        pubkeys=pubkeys,
+        messages=messages,
+        signature=signature,
+        domain=domain,
+    )
+
+
+def validate_slashable_attestation(state: 'BeaconState',
+                                   slashable_attestation: 'SlashableAttestation',
+                                   max_indices_per_slashable_vote: int,
+                                   epoch_length: int) -> None:
+    """
+    Verify validity of ``slashable_attestation`` fields.
+    Ensure that the ``slashable_attestation`` is properly assembled and contains the signature
+    we expect from the validators we expect. Otherwise, return False as
+    the ``slashable_attestation`` is invalid.
+    """
+    _validate_custody_bitfield(slashable_attestation.custody_bitfield)
+
+    if len(slashable_attestation.validator_indices) == 0:
+        raise ValidationError(
+            "`slashable_attestation.validator_indices` is empty."
+        )
+
+    if not slashable_attestation.are_validator_indices_ascending:
+        raise ValidationError(
+            "`slashable_attestation.validator_indices` "
+            f"({slashable_attestation.validator_indices}) "
+            "is not ordered in ascending."
+        )
+
+    validate_bitfield(
+        slashable_attestation.custody_bitfield,
+        len(slashable_attestation.validator_indices),
+    )
+
+    if len(slashable_attestation.validator_indices) > max_indices_per_slashable_vote:
+        raise ValidationError(
+            f"`len(slashable_attestation.validator_indices)` "
+            f"({len(slashable_attestation.validator_indices)}) greater than"
+            f"MAX_INDICES_PER_SLASHABLE_VOTE ({max_indices_per_slashable_vote})"
+        )
+
+    if not verify_slashable_attestation_signature(state, slashable_attestation, epoch_length):
+        raise ValidationError(
+            f"slashable_attestation.signature error"
         )
