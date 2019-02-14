@@ -276,6 +276,8 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
 
 
 def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> BeaconState:
+    # Compute previous epoch active validator indices and the total balance they account for
+    # for later use.
     prev_epoch_active_validator_indices = set(
         get_active_validator_indices(
             state.validator_registry,
@@ -290,12 +292,14 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     )
 
     # 1. Process rewards and penalties for justification and finalization
+    # Compute previous epoch attester indices and the total balance they account for
+    # for later use.
     previous_epoch_attestations = get_previous_epoch_attestations(
         state,
         config.EPOCH_LENGTH,
         config.GENESIS_EPOCH,
     )
-    try:
+    if len(previous_epoch_attestations) > 0:
         previous_epoch_attester_indices = set(
             functools.reduce(
                 lambda tuple_a, tuple_b: tuple_a + tuple_b,
@@ -313,15 +317,17 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                 ]
             )
         )
-    except TypeError:
+    else:
         previous_epoch_attester_indices = set()
 
+    # Compute previous justified epoch attester indices and the total balance they account for
+    # for later use.
     previous_epoch_justified_attestations = get_previous_epoch_justified_attestations(
         state,
         config.EPOCH_LENGTH,
         config.GENESIS_EPOCH,
     )
-    try:
+    if len(previous_epoch_attestations) > 0:
         previous_epoch_justified_attester_indices = set(
             functools.reduce(
                 lambda tuple_a, tuple_b: tuple_a + tuple_b,
@@ -339,9 +345,11 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                 ]
             )
         )
-    except TypeError:
+    else:
         previous_epoch_justified_attester_indices = set()
 
+    # Compute previous epoch boundary attester indices and the total balance they account for
+    # for later use.
     previous_epoch_boundary_attestations = [
         a
         for a in previous_epoch_justified_attestations
@@ -354,7 +362,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             config.LATEST_BLOCK_ROOTS_LENGTH,
         )
     ]
-    try:
+    if len(previous_epoch_attestations) > 0:
         previous_epoch_boundary_attester_indices = set(
             functools.reduce(
                 lambda tuple_a, tuple_b: tuple_a + tuple_b,
@@ -372,16 +380,18 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                 ]
             )
         )
-    except TypeError:
+    else:
         previous_epoch_boundary_attester_indices = set()
 
+    # Compute previous epoch head attester indices and the total balance they account for
+    # for later use.
     previous_epoch_head_attestations = get_previous_epoch_head_attestations(
         state,
         config.EPOCH_LENGTH,
         config.GENESIS_EPOCH,
         config.LATEST_BLOCK_ROOTS_LENGTH,
     )
-    try:
+    if len(previous_epoch_attestations) > 0:
         previous_epoch_head_attester_indices = set(
             functools.reduce(
                 lambda tuple_a, tuple_b: tuple_a + tuple_b,
@@ -399,9 +409,10 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                 ]
             )
         )
-    except TypeError:
+    else:
         previous_epoch_head_attester_indices = set()
 
+    # Compute inclusion slot/distance of previous attestations for later use.
     inclusion_slot_map, inclusion_distance_map = get_inclusion_info_map(
         state=state,
         attestations=previous_epoch_attestations,
@@ -411,6 +422,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         shard_count=config.SHARD_COUNT,
     )
 
+    # Compute effective balance of each previous epoch active validator for later use
     effective_balance_map = {
         index: get_effective_balance(
             state.validator_balances,
@@ -419,6 +431,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         )
         for index in prev_epoch_active_validator_indices
     }
+    # Compute base reward of each previous epoch active validator for later use
     base_reward_map = {
         index: get_base_reward(
             state=state,
@@ -427,6 +440,12 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             base_reward_quotient=config.BASE_REWARD_QUOTIENT,
             max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
         )
+        for index in prev_epoch_active_validator_indices
+    }
+
+    # Initialize the reward (validator) received map
+    reward_received_map = {
+        index: 0
         for index in prev_epoch_active_validator_indices
     }
 
@@ -444,19 +463,13 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                 previous_epoch_justified_attesting_balance //
                 previous_total_balance
             )
-            state = state.update_validator_balance(
-                index,
-                state.validator_balances[index] + reward,
-            )
+            reward_received_map[index] += reward
         # Punish active validators not in `previous_epoch_justified_attester_indices`
         excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
             set(previous_epoch_justified_attester_indices))
         for index in excluded_active_validators_indices:
             penalty = base_reward_map[index]
-            state = state.update_validator_balance(
-                index,
-                max(state.validator_balances[index] - penalty, 0),
-            )
+            reward_received_map[index] -= penalty
 
         # 1.2 Expected FFG target:
         previous_epoch_boundary_attesting_balance = sum(
@@ -470,19 +483,13 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                 previous_epoch_boundary_attesting_balance //
                 previous_total_balance
             )
-            state = state.update_validator_balance(
-                index,
-                state.validator_balances[index] + reward,
-            )
+            reward_received_map[index] += reward
         # Punish active validators not in `previous_epoch_boundary_attester_indices`
         excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
             set(previous_epoch_boundary_attester_indices))
         for index in excluded_active_validators_indices:
             penalty = base_reward_map[index]
-            state = state.update_validator_balance(
-                index,
-                max(state.validator_balances[index] - penalty, 0),
-            )
+            reward_received_map[index] -= penalty
 
         # 1.3 Expected beacon chain head:
         previous_epoch_head_attesting_balance = sum(
@@ -496,19 +503,13 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                 previous_epoch_head_attesting_balance //
                 previous_total_balance
             )
-            state = state.update_validator_balance(
-                index,
-                state.validator_balances[index] + reward,
-            )
+            reward_received_map[index] += reward
         # Punish active validators not in `previous_epoch_head_attester_indices`
         excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
             set(previous_epoch_head_attester_indices))
         for index in excluded_active_validators_indices:
             penalty = base_reward_map[index]
-            state = state.update_validator_balance(
-                index,
-                max(state.validator_balances[index] - penalty, 0),
-            )
+            reward_received_map[index] -= penalty
 
         # 1.4 Inclusion distance:
         # Reward validators in `previous_epoch_attester_indices`
@@ -518,10 +519,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                 config.MIN_ATTESTATION_INCLUSION_DELAY //
                 inclusion_distance_map[index]
             )
-            state = state.update_validator_balance(
-                index,
-                state.validator_balances[index] + reward,
-            )
+            reward_received_map[index] += reward
     # epochs_since_finality > 4
     else:
         # Punish active validators not in `previous_epoch_justified_attester_indices`
@@ -532,10 +530,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                 effective_balance_map[index] *
                 epochs_since_finality // config.INACTIVITY_PENALTY_QUOTIENT // 2
             )
-            state = state.update_validator_balance(
-                index,
-                max(state.validator_balances[index] - inactivity_penalty, 0),
-            )
+            reward_received_map[index] -= inactivity_penalty
 
         # Punish active validators not in `previous_epoch_boundary_attester_indices`
         excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
@@ -545,20 +540,14 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                 effective_balance_map[index] *
                 epochs_since_finality // config.INACTIVITY_PENALTY_QUOTIENT // 2
             )
-            state = state.update_validator_balance(
-                index,
-                max(state.validator_balances[index] - inactivity_penalty, 0),
-            )
+            reward_received_map[index] -= inactivity_penalty
 
         # Punish active validators not in `previous_epoch_head_attester_indices`
         excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
             set(previous_epoch_head_attester_indices))
         for index in excluded_active_validators_indices:
             penalty = base_reward_map[index]
-            state = state.update_validator_balance(
-                index,
-                max(state.validator_balances[index] - penalty, 0),
-            )
+            reward_received_map[index] -= penalty
 
         # Punish penalized active validators
         for index in prev_epoch_active_validator_indices:
@@ -571,10 +560,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                     config.INACTIVITY_PENALTY_QUOTIENT // 2
                 )
                 penalty = 2 * inactivity_penalty + base_reward
-                state = state.update_validator_balance(
-                    index,
-                    max(state.validator_balances[index] - penalty, 0),
-                )
+                reward_received_map[index] -= penalty
 
         # Punish validators in `previous_epoch_attester_indices`
         for index in previous_epoch_attester_indices:
@@ -583,10 +569,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
                 base_reward -
                 base_reward * config.MIN_ATTESTATION_INCLUSION_DELAY // inclusion_distance_map[index]  # noqa: E501
             )
-            state = state.update_validator_balance(
-                index,
-                max(state.validator_balances[index] - penalty, 0),
-            )
+            reward_received_map[index] -= penalty
 
     # 2. Process rewards and penalties for attestation inclusion
     for index in previous_epoch_attester_indices:
@@ -599,10 +582,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             config.SHARD_COUNT,
         )
         reward = base_reward_map[index] // config.INCLUDER_REWARD_QUOTIENT
-        state = state.update_validator_balance(
-            proposer_index,
-            state.validator_balances[proposer_index] + reward,
-        )
+        reward_received_map[proposer_index] += reward
 
     # 3. Process rewards and penalties for crosslinks
     prev_epoch_start_slot = get_epoch_start_slot(
@@ -613,6 +593,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         state.current_epoch(config.EPOCH_LENGTH),
         config.EPOCH_LENGTH,
     )
+    # Also need current epoch attestations to compute the winning root.
     current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
     for slot in range(prev_epoch_start_slot, cur_epoch_start_slot):
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
@@ -660,16 +641,18 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             )
             for index in attesting_validator_indices:
                 reward = base_reward_map[index] * total_attesting_balance // total_balance
-                state = state.update_validator_balance(
-                    index,
-                    state.validator_balances[index] + reward,
-                )
+                reward_received_map[index] += reward
             for index in set(crosslink_committee).difference(attesting_validator_indices):
                 penalty = base_reward_map[index]
-                state = state.update_validator_balance(
-                    index,
-                    max(state.validator_balances[index] - penalty, 0),
-                )
+                reward_received_map[index] -= penalty
+
+    # Apply the overall rewards/penalties
+    for index in prev_epoch_active_validator_indices:
+        state = state.update_validator_balance(
+            index,
+            # Prevent validator balance under flow
+            max(state.validator_balances[index] + reward_received_map[index], 0),
+        )
 
     return state
 
