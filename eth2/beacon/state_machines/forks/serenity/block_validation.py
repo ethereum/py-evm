@@ -291,11 +291,7 @@ def _validate_custody_bitfield(attestation: Attestation) -> None:
     if attestation.custody_bitfield != empty_custody_bitfield:
         raise ValidationError(
             "Attestation custody bitfield is not empty.\n"
-            "\tFound: %s, Expected %s" %
-            (
-                attestation.custody_bitfield,
-                empty_custody_bitfield,
-            )
+            f"\tFound: {attestation.custody_bitfield}, Expected {empty_custody_bitfield}"
         )
 
 
@@ -304,10 +300,7 @@ def _validate_aggregation_bitfield(attestation: Attestation) -> None:
     if attestation.aggregation_bitfield == empty_aggregation_bitfield:
         raise ValidationError(
             "Attestation aggregation bitfield is empty.\n"
-            "\tFound: %s, Expected some bits set." %
-            (
-                attestation.aggregation_bitfield,
-            )
+            f"\tFound: {attestation.aggregation_bitfield}, Expected some bits set."
         )
 
 
