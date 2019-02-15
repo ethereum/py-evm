@@ -277,7 +277,7 @@ def get_base_reward(
         get_effective_balance(
             state.validator_balances,
             index,
-            max_deposit_amount
+            max_deposit_amount,
         ) // _base_reward_quotient // 5
     )
 
