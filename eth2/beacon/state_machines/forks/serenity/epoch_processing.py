@@ -6,8 +6,6 @@ from typing import (
     Tuple,
 )
 
-import functools
-
 from eth_utils import to_tuple
 
 from eth2.beacon import helpers
@@ -21,7 +19,7 @@ from eth2.beacon.exceptions import (
     NoWinningRootError,
 )
 from eth2.beacon.committee_helpers import (
-    get_attestation_participants,
+    get_attester_indices_from_attesttion,
     get_beacon_proposer_index,
     get_crosslink_committees_at_slot,
     get_current_epoch_committee_count,
@@ -37,7 +35,6 @@ from eth2.beacon.epoch_processing_helpers import (
     get_previous_epoch_attestations,
     get_previous_epoch_head_attestations,
     get_previous_epoch_justified_attestations,
-    get_shard_block_root_attester_indices,
     get_winning_root,
     get_total_balance,
     get_epoch_boundary_attesting_balances,
@@ -482,15 +479,14 @@ def _process_rewards_and_penalties_for_crosslinks(
                 # Hence no one is counted as attesting validator.
                 attesting_validator_indices: Iterable[ValidatorIndex] = set()
             else:
-                attesting_validator_indices = get_shard_block_root_attester_indices(
+                attesting_validator_indices = get_attester_indices_from_attesttion(
                     state=state,
-                    attestations=filtered_attestations,
-                    shard=shard,
-                    shard_block_root=winning_root,
-                    genesis_epoch=config.GENESIS_EPOCH,
-                    epoch_length=config.EPOCH_LENGTH,
-                    target_committee_size=config.TARGET_COMMITTEE_SIZE,
-                    shard_count=config.SHARD_COUNT,
+                    config=config,
+                    attestations=[
+                        a
+                        for a in filtered_attestations
+                        if a.data.shard == shard and a.data.shard_block_root == winning_root
+                    ],
                 )
             total_balance = sum(
                 effective_balance_map[i]
@@ -527,26 +523,11 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         config.EPOCH_LENGTH,
         config.GENESIS_EPOCH,
     )
-    if len(previous_epoch_attestations) > 0:
-        previous_epoch_attester_indices = set(
-            functools.reduce(
-                lambda tuple_a, tuple_b: tuple_a + tuple_b,
-                [
-                    get_attestation_participants(
-                        state,
-                        a.data,
-                        a.aggregation_bitfield,
-                        config.GENESIS_EPOCH,
-                        config.EPOCH_LENGTH,
-                        config.TARGET_COMMITTEE_SIZE,
-                        config.SHARD_COUNT,
-                    )
-                    for a in previous_epoch_attestations
-                ]
-            )
-        )
-    else:
-        previous_epoch_attester_indices = set()
+    previous_epoch_attester_indices = get_attester_indices_from_attesttion(
+        state=state,
+        config=config,
+        attestations=previous_epoch_attestations,
+    )
 
     # Compute previous justified epoch attester indices and the total balance they account for
     # for later use.
@@ -555,26 +536,11 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         config.EPOCH_LENGTH,
         config.GENESIS_EPOCH,
     )
-    if len(previous_epoch_justified_attestations) > 0:
-        previous_epoch_justified_attester_indices = set(
-            functools.reduce(
-                lambda tuple_a, tuple_b: tuple_a + tuple_b,
-                [
-                    get_attestation_participants(
-                        state,
-                        a.data,
-                        a.aggregation_bitfield,
-                        config.GENESIS_EPOCH,
-                        config.EPOCH_LENGTH,
-                        config.TARGET_COMMITTEE_SIZE,
-                        config.SHARD_COUNT,
-                    )
-                    for a in previous_epoch_justified_attestations
-                ]
-            )
-        )
-    else:
-        previous_epoch_justified_attester_indices = set()
+    previous_epoch_justified_attester_indices = get_attester_indices_from_attesttion(
+        state=state,
+        config=config,
+        attestations=previous_epoch_justified_attestations,
+    )
 
     # Compute previous epoch boundary attester indices and the total balance they account for
     # for later use.
@@ -590,26 +556,11 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             config.LATEST_BLOCK_ROOTS_LENGTH,
         )
     ]
-    if len(previous_epoch_boundary_attestations) > 0:
-        previous_epoch_boundary_attester_indices = set(
-            functools.reduce(
-                lambda tuple_a, tuple_b: tuple_a + tuple_b,
-                [
-                    get_attestation_participants(
-                        state,
-                        a.data,
-                        a.aggregation_bitfield,
-                        config.GENESIS_EPOCH,
-                        config.EPOCH_LENGTH,
-                        config.TARGET_COMMITTEE_SIZE,
-                        config.SHARD_COUNT,
-                    )
-                    for a in previous_epoch_boundary_attestations
-                ]
-            )
-        )
-    else:
-        previous_epoch_boundary_attester_indices = set()
+    previous_epoch_boundary_attester_indices = get_attester_indices_from_attesttion(
+        state=state,
+        config=config,
+        attestations=previous_epoch_boundary_attestations,
+    )
 
     # Compute previous epoch head attester indices and the total balance they account for
     # for later use.
@@ -619,26 +570,11 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         config.GENESIS_EPOCH,
         config.LATEST_BLOCK_ROOTS_LENGTH,
     )
-    if len(previous_epoch_head_attestations) > 0:
-        previous_epoch_head_attester_indices = set(
-            functools.reduce(
-                lambda tuple_a, tuple_b: tuple_a + tuple_b,
-                [
-                    get_attestation_participants(
-                        state,
-                        a.data,
-                        a.aggregation_bitfield,
-                        config.GENESIS_EPOCH,
-                        config.EPOCH_LENGTH,
-                        config.TARGET_COMMITTEE_SIZE,
-                        config.SHARD_COUNT,
-                    )
-                    for a in previous_epoch_head_attestations
-                ]
-            )
-        )
-    else:
-        previous_epoch_head_attester_indices = set()
+    previous_epoch_head_attester_indices = get_attester_indices_from_attesttion(
+        state=state,
+        config=config,
+        attestations=previous_epoch_head_attestations,
+    )
 
     # Compute inclusion slot/distance of previous attestations for later use.
     inclusion_slot_map, inclusion_distance_map = get_inclusion_info_map(
