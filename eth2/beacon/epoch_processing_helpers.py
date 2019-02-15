@@ -11,13 +11,13 @@ from eth_typing import (
 )
 
 from eth_utils import (
-    to_set,
     to_tuple,
 )
 
 from eth2._utils.numeric import integer_squareroot
 from eth2.beacon.committee_helpers import (
     get_attestation_participants,
+    get_attester_indices_from_attesttion,
 )
 from eth2.beacon.configs import (
     CommitteeConfig,
@@ -44,6 +44,7 @@ from eth2.beacon.types.pending_attestation_records import (
     PendingAttestationRecord,
 )
 if TYPE_CHECKING:
+    from eth2.beacon.state_machines.configs import BeaconConfig  # noqa: F401
     from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth2.beacon.types.states import BeaconState  # noqa: F401
@@ -110,53 +111,6 @@ def get_previous_epoch_head_attestations(
             yield attestation
 
 
-@to_tuple
-@to_set
-def get_shard_block_root_attester_indices(
-        *,
-        state: 'BeaconState',
-        attestations: Sequence[PendingAttestationRecord],
-        shard: Shard,
-        shard_block_root: Hash32,
-        committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
-    """
-    Loop through ``attestations`` and check if ``shard``/``shard_block_root`` in the attestation
-    matches the given ``shard``/``shard_block_root``.
-    If the attestation matches, get the index of the participating validators.
-    Finally, return the union of the indices.
-    """
-    for a in attestations:
-        if a.data.shard == shard and a.data.shard_block_root == shard_block_root:
-            yield from get_attestation_participants(
-                state,
-                a.data,
-                a.aggregation_bitfield,
-                committee_config,
-            )
-
-
-def get_shard_block_root_total_attesting_balance(
-        *,
-        state: 'BeaconState',
-        shard: Shard,
-        shard_block_root: Hash32,
-        attestations: Sequence[PendingAttestationRecord],
-        max_deposit_amount: Gwei,
-        committee_config: CommitteeConfig) -> Gwei:
-    validator_indices = get_shard_block_root_attester_indices(
-        state=state,
-        attestations=attestations,
-        shard=shard,
-        shard_block_root=shard_block_root,
-        committee_config=committee_config,
-    )
-    return get_total_balance(
-        state.validator_balances,
-        validator_indices,
-        max_deposit_amount,
-    )
-
-
 def get_winning_root(
         *,
         state: 'BeaconState',
@@ -173,13 +127,20 @@ def get_winning_root(
         ]
     )
     for shard_block_root in shard_block_roots:
-        total_attesting_balance = get_shard_block_root_total_attesting_balance(
+        attesting_validator_indices = get_attester_indices_from_attesttion(
             state=state,
-            shard=shard,
-            shard_block_root=shard_block_root,
-            attestations=attestations,
-            max_deposit_amount=max_deposit_amount,
+            attestations=[
+                a
+                for a in attestations
+                if a.data.shard == shard and a.data.shard_block_root == shard_block_root
+            ],
             committee_config=committee_config,
+        )
+        total_attesting_balance = Gwei(
+            sum(
+                get_effective_balance(state.validator_balances, i, max_deposit_amount)
+                for i in attesting_validator_indices
+            )
         )
         if total_attesting_balance > winning_root_balance:
             winning_root = shard_block_root
@@ -285,10 +246,7 @@ def get_inclusion_info_map(
         *,
         state: 'BeaconState',
         attestations: Sequence[PendingAttestationRecord],
-        genesis_epoch: EpochNumber,
-        epoch_length: int,
-        target_committee_size: int,
-        shard_count: int) -> Tuple[Dict[ValidatorIndex, Slot], Dict[ValidatorIndex, int]]:
+        committee_config: CommitteeConfig) -> Tuple[Dict[ValidatorIndex, Slot], Dict[ValidatorIndex, int]]:  # noqa: E501
     """
     Return two maps. One with ``ValidatorIndex`` -> ``inclusion_slot`` and the other with
     ``ValidatorIndex`` -> ``inclusion_distance``.
@@ -303,10 +261,7 @@ def get_inclusion_info_map(
             state,
             attestation.data,
             attestation.aggregation_bitfield,
-            genesis_epoch,
-            epoch_length,
-            target_committee_size,
-            shard_count,
+            committee_config,
         )
         for index in participant_indices:
             inclusion_slot = inclusion_slot_map.get(index)

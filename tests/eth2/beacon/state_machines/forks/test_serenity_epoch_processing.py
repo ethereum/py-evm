@@ -718,10 +718,7 @@ def test_process_rewards_and_penalties(
         get_crosslink_committees_at_slot(
             state,
             slot,
-            genesis_epoch,
-            epoch_length,
-            target_committee_size,
-            shard_count,
+            CommitteeConfig(config),
         )[0] for slot in range(prev_epoch_start_slot, prev_epoch_start_slot + epoch_length)
     ]
 
@@ -842,10 +839,7 @@ def test_process_rewards_and_penalties(
     inclusion_slot_map, inclusion_distance_map = get_inclusion_info_map(
         state=state,
         attestations=prev_epoch_attestations,
-        genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=CommitteeConfig(config),
     )
 
     active_validators = set(
@@ -1049,10 +1043,7 @@ def test_process_rewards_and_penalties(
         proposer_index = get_beacon_proposer_index(
             state,
             inclusion_slot_map[index],
-            genesis_epoch,
-            epoch_length,
-            target_committee_size,
-            shard_count,
+            CommitteeConfig(config),
         )
         reward = get_base_reward(
             state=state,

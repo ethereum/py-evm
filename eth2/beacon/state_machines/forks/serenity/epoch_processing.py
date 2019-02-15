@@ -423,10 +423,7 @@ def _process_rewards_and_penalties_for_attestation_inclusion(
         proposer_index = get_beacon_proposer_index(
             state,
             inclusion_slot_map[index],
-            config.GENESIS_EPOCH,
-            config.EPOCH_LENGTH,
-            config.TARGET_COMMITTEE_SIZE,
-            config.SHARD_COUNT,
+            CommitteeConfig(config),
         )
         reward = base_reward_map[index] // config.INCLUDER_REWARD_QUOTIENT
         reward_received_map[proposer_index] = Gwei(reward_received_map[proposer_index] + reward)
@@ -453,10 +450,7 @@ def _process_rewards_and_penalties_for_crosslinks(
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
             state,
             slot,
-            config.GENESIS_EPOCH,
-            config.EPOCH_LENGTH,
-            config.TARGET_COMMITTEE_SIZE,
-            config.SHARD_COUNT,
+            CommitteeConfig(config),
         )
         for crosslink_committee, shard in crosslink_committees_at_slot:
             filtered_attestations = _filter_attestations_by_shard(
@@ -468,11 +462,8 @@ def _process_rewards_and_penalties_for_crosslinks(
                     state=state,
                     shard=shard,
                     attestations=filtered_attestations,
-                    genesis_epoch=config.GENESIS_EPOCH,
-                    epoch_length=config.EPOCH_LENGTH,
                     max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-                    target_committee_size=config.TARGET_COMMITTEE_SIZE,
-                    shard_count=config.SHARD_COUNT,
+                    committee_config=CommitteeConfig(config),
                 )
             except NoWinningRootError:
                 # No winning shard block root found for this shard.
@@ -481,7 +472,7 @@ def _process_rewards_and_penalties_for_crosslinks(
             else:
                 attesting_validator_indices = get_attester_indices_from_attesttion(
                     state=state,
-                    config=config,
+                    committee_config=CommitteeConfig(config),
                     attestations=[
                         a
                         for a in filtered_attestations
@@ -525,7 +516,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     )
     previous_epoch_attester_indices = get_attester_indices_from_attesttion(
         state=state,
-        config=config,
+        committee_config=CommitteeConfig(config),
         attestations=previous_epoch_attestations,
     )
 
@@ -538,7 +529,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     )
     previous_epoch_justified_attester_indices = get_attester_indices_from_attesttion(
         state=state,
-        config=config,
+        committee_config=CommitteeConfig(config),
         attestations=previous_epoch_justified_attestations,
     )
 
@@ -558,7 +549,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     ]
     previous_epoch_boundary_attester_indices = get_attester_indices_from_attesttion(
         state=state,
-        config=config,
+        committee_config=CommitteeConfig(config),
         attestations=previous_epoch_boundary_attestations,
     )
 
@@ -572,7 +563,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     )
     previous_epoch_head_attester_indices = get_attester_indices_from_attesttion(
         state=state,
-        config=config,
+        committee_config=CommitteeConfig(config),
         attestations=previous_epoch_head_attestations,
     )
 
@@ -580,10 +571,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     inclusion_slot_map, inclusion_distance_map = get_inclusion_info_map(
         state=state,
         attestations=previous_epoch_attestations,
-        genesis_epoch=config.GENESIS_EPOCH,
-        epoch_length=config.EPOCH_LENGTH,
-        target_committee_size=config.TARGET_COMMITTEE_SIZE,
-        shard_count=config.SHARD_COUNT,
+        committee_config=CommitteeConfig(config),
     )
 
     # Compute effective balance of each previous epoch active validator for later use

@@ -50,7 +50,6 @@ if TYPE_CHECKING:
     from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth2.beacon.types.states import BeaconState  # noqa: F401
     from eth2.beacon.types.validator_records import ValidatorRecord  # noqa: F401
-    from eth2.beacon.state_machines.configs import BeaconConfig  # noqa: F401
 
 
 def get_epoch_committee_count(
@@ -378,15 +377,12 @@ def get_attestation_participants(state: 'BeaconState',
 def get_attester_indices_from_attesttion(
         *,
         state: 'BeaconState',
-        config: 'BeaconConfig',
+        committee_config: CommitteeConfig,
         attestations: Iterable['Attestation']) -> Iterable[ValidatorIndex]:
     for a in attestations:
         yield from get_attestation_participants(
             state,
             a.data,
             a.aggregation_bitfield,
-            config.GENESIS_EPOCH,
-            config.EPOCH_LENGTH,
-            config.TARGET_COMMITTEE_SIZE,
-            config.SHARD_COUNT,
+            committee_config,
         )
