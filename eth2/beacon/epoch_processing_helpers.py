@@ -16,7 +16,7 @@ from eth_utils import (
     to_tuple,
 )
 
-
+from eth2._utils.numeric import integer_squareroot
 from eth2.beacon.committee_helpers import (
     get_attestation_participants,
 )
@@ -272,7 +272,7 @@ def get_base_reward(
         previous_total_balance: Gwei,
         base_reward_quotient: int,
         max_deposit_amount: Gwei) -> Gwei:
-    _base_reward_quotient = int(math.sqrt(previous_total_balance)) // base_reward_quotient
+    _base_reward_quotient = integer_squareroot(previous_total_balance) // base_reward_quotient
     return Gwei(
         get_effective_balance(
             state.validator_balances,
