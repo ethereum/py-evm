@@ -290,6 +290,13 @@ def get_inclusion_info_map(
         epoch_length: int,
         target_committee_size: int,
         shard_count: int) -> Tuple[Dict[ValidatorIndex, Slot], Dict[ValidatorIndex, int]]:
+    """
+    Return two maps. One with ``ValidatorIndex`` -> ``inclusion_slot`` and the other with
+    ``ValidatorIndex`` -> ``inclusion_distance``.
+
+    ``attestation.inclusion_slot`` is the slot during which the pending attestation is included.
+    ``inclusion_distance = attestation.inclusion_slot - attestation.data.slot``
+    """
     inclusion_slot_map: Dict[ValidatorIndex, Slot] = {}
     inclusion_distance_map: Dict[ValidatorIndex, int] = {}
     for attestation in attestations:

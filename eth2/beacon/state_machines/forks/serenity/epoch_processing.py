@@ -220,7 +220,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
         config.GENESIS_EPOCH,
     )
     current_epoch_attestations = get_current_epoch_attestations(state, config.SLOTS_PER_EPOCH)
-    prev_epoch_start_slot = get_epoch_start_slot(
+    previous_epoch_start_slot = get_epoch_start_slot(
         state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
         config.SLOTS_PER_EPOCH,
     )
@@ -228,7 +228,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
         state.next_epoch(config.SLOTS_PER_EPOCH),
         config.SLOTS_PER_EPOCH,
     )
-    for slot in range(prev_epoch_start_slot, next_epoch_start_slot):
+    for slot in range(previous_epoch_start_slot, next_epoch_start_slot):
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
             state,
             slot,
@@ -585,17 +585,17 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         reward_received_map[proposer_index] += reward
 
     # 3. Process rewards and penalties for crosslinks
-    prev_epoch_start_slot = get_epoch_start_slot(
+    previous_epoch_start_slot = get_epoch_start_slot(
         state.previous_epoch(config.EPOCH_LENGTH, config.GENESIS_EPOCH),
         config.EPOCH_LENGTH,
     )
-    cur_epoch_start_slot = get_epoch_start_slot(
+    current_epoch_start_slot = get_epoch_start_slot(
         state.current_epoch(config.EPOCH_LENGTH),
         config.EPOCH_LENGTH,
     )
     # Also need current epoch attestations to compute the winning root.
     current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
-    for slot in range(prev_epoch_start_slot, cur_epoch_start_slot):
+    for slot in range(previous_epoch_start_slot, current_epoch_start_slot):
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
             state,
             slot,
