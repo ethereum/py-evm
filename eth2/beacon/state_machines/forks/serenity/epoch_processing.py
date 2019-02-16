@@ -423,7 +423,7 @@ def _process_rewards_and_penalties_for_attestation_inclusion(
             inclusion_slot_map[index],
             CommitteeConfig(config),
         )
-        reward = base_reward_map[index] // config.INCLUDER_REWARD_QUOTIENT
+        reward = base_reward_map[index] // config.ATTESTATION_INCLUSION_REWARD_QUOTIENT
         reward_received_map[proposer_index] = Gwei(reward_received_map[proposer_index] + reward)
 
 

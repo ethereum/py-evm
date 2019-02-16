@@ -1029,7 +1029,7 @@ def test_process_rewards_and_penalties(
             previous_total_balance=total_active_balance,
             base_reward_quotient=config.BASE_REWARD_QUOTIENT,
             max_deposit_amount=max_deposit_amount,
-        ) // config.INCLUDER_REWARD_QUOTIENT
+        ) // config.ATTESTATION_INCLUSION_REWARD_QUOTIENT
         reward_received_map[proposer_index] = reward_received_map[proposer_index] + reward
 
     # Rewards/penalties for attesting/not attesting crosslink committee
