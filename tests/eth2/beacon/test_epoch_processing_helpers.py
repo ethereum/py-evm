@@ -21,9 +21,11 @@ from eth2._utils.bitfield import (
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
+
 from eth2.beacon.committee_helpers import (
     get_attester_indices_from_attesttion,
 )
+from eth2.beacon.configs import CommitteeConfig
 from eth2.beacon.epoch_processing_helpers import (
     get_current_epoch_attestations,
     get_inclusion_info_map,
@@ -556,87 +558,87 @@ def test_get_epoch_boundary_attesting_balances(
 
 
 @pytest.mark.parametrize(
-	    (
-	        'n,'
-	        'epoch_length,'
-	        'target_committee_size,'
-	        'attestation_1_inclusion_slot,attestation_1_data_slot,'
-	        'attestation_2_inclusion_slot,attestation_2_data_slot,'
-	        'expected_inclusion_slot,expected_inclusion_distance,'
-	    ),
-	    [
-	        (
-	            50,
-	            10,
-	            5,
-	            18, 12,
-	            15, 11,
-	            15, 4,  # 15 is the smaller inclusion_slot, inclusion_distance is 15-11 = 4
-	        ),
-	    ]
-	)
-	def test_get_inclusion_info_map(
-	        monkeypatch,
-	        n,
-	        n_validators_state,
-	        config,
-	        epoch_length,
-	        target_committee_size,
-	        shard_count,
-	        attestation_1_inclusion_slot,
-	        attestation_1_data_slot,
-	        attestation_2_inclusion_slot,
-	        attestation_2_data_slot,
-	        expected_inclusion_slot,
-	        expected_inclusion_distance,
-	        sample_attestation_data_params,
-	        sample_pending_attestation_record_params):
-	    participating_validator_index = 1
-	    committee = (1, 2, 3)
-	    shard = 1
-	    from eth2.beacon import committee_helpers
-	
-	    def mock_get_crosslink_committees_at_slot(state,
-	                                              slot,
-	                                              committee_config):
-	        return (
-	            (committee, shard,),
-	        )
-	
-	    monkeypatch.setattr(
-	        committee_helpers,
-	        'get_crosslink_committees_at_slot',
-	        mock_get_crosslink_committees_at_slot
-	    )
-	
-	    aggregation_bitfield = get_empty_bitfield(target_committee_size)
-	    aggregation_bitfield = set_voted(
-	        aggregation_bitfield,
-	        committee.index(participating_validator_index)
-	    )
-	    previous_epoch_attestations = [
-	        PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
-	            data=AttestationData(**sample_attestation_data_params).copy(
-	                slot=attestation_1_data_slot,
-	                shard=shard,
-	            ),
-	            aggregation_bitfield=aggregation_bitfield,
-	            slot_included=attestation_1_inclusion_slot,
-	        ),
-	        PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
-	            data=AttestationData(**sample_attestation_data_params).copy(
-	                slot=attestation_2_data_slot,
-	                shard=shard,
-	            ),
-	            aggregation_bitfield=aggregation_bitfield,
-	            slot_included=attestation_2_inclusion_slot,
-	        ),
-	    ]
-	
-	    result = get_inclusion_info_map(
-	        state=n_validators_state,
-	        attestations=previous_epoch_attestations,
-	        committee_config=CommitteeConfig(config),
-	    )
-	    assert result[0][participating_validator_index] == expected_inclusion_slot
-	    assert result[1][participating_validator_index] == expected_inclusion_distance
+    (
+        'n,'
+        'epoch_length,'
+        'target_committee_size,'
+        'attestation_1_inclusion_slot,attestation_1_data_slot,'
+        'attestation_2_inclusion_slot,attestation_2_data_slot,'
+        'expected_inclusion_slot,expected_inclusion_distance,'
+    ),
+    [
+        (
+            50,
+            10,
+            5,
+            18, 12,
+            15, 11,
+            15, 4,  # 15 is the smaller inclusion_slot, inclusion_distance is 15-11 = 4
+        ),
+    ]
+)
+def test_get_inclusion_info_map(
+        monkeypatch,
+        n,
+        n_validators_state,
+        config,
+        epoch_length,
+        target_committee_size,
+        shard_count,
+        attestation_1_inclusion_slot,
+        attestation_1_data_slot,
+        attestation_2_inclusion_slot,
+        attestation_2_data_slot,
+        expected_inclusion_slot,
+        expected_inclusion_distance,
+        sample_attestation_data_params,
+        sample_pending_attestation_record_params):
+    participating_validator_index = 1
+    committee = (1, 2, 3)
+    shard = 1
+    from eth2.beacon import committee_helpers
+
+    def mock_get_crosslink_committees_at_slot(state,
+                                                slot,
+                                                committee_config):
+        return (
+            (committee, shard,),
+        )
+
+    monkeypatch.setattr(
+        committee_helpers,
+        'get_crosslink_committees_at_slot',
+        mock_get_crosslink_committees_at_slot
+    )
+
+    aggregation_bitfield = get_empty_bitfield(target_committee_size)
+    aggregation_bitfield = set_voted(
+        aggregation_bitfield,
+        committee.index(participating_validator_index)
+    )
+    previous_epoch_attestations = [
+        PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+            data=AttestationData(**sample_attestation_data_params).copy(
+                slot=attestation_1_data_slot,
+                shard=shard,
+            ),
+            aggregation_bitfield=aggregation_bitfield,
+            slot_included=attestation_1_inclusion_slot,
+        ),
+        PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+            data=AttestationData(**sample_attestation_data_params).copy(
+                slot=attestation_2_data_slot,
+                shard=shard,
+            ),
+            aggregation_bitfield=aggregation_bitfield,
+            slot_included=attestation_2_inclusion_slot,
+        ),
+    ]
+
+    result = get_inclusion_info_map(
+        state=n_validators_state,
+        attestations=previous_epoch_attestations,
+        committee_config=CommitteeConfig(config),
+    )
+    assert result[0][participating_validator_index] == expected_inclusion_slot
+    assert result[1][participating_validator_index] == expected_inclusion_distance
