@@ -747,24 +747,11 @@ def test_process_rewards_and_penalties(
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=data_slot,
                     shard=shard,
+                    justified_epoch=previous_justified_epoch,
                 ),
                 aggregation_bitfield=participants_bitfield,
                 slot_included=(data_slot + min_attestation_inclusion_delay),
             )
-        )
-
-    # Randomly pick from previous epoch attestations and turn them
-    # into previous epoch 'justified' attestation
-    num_previous_epoch_justified_attestation = epoch_length // 2
-    previous_epoch_justified_attestion_slots = random.sample(
-        range(epoch_length),
-        num_previous_epoch_justified_attestation,
-    )
-    for slot in previous_epoch_justified_attestion_slots:
-        prev_epoch_attestations[slot] = prev_epoch_attestations[slot].copy(
-            data=prev_epoch_attestations[slot].data.copy(
-                justified_epoch=previous_justified_epoch,
-            ),
         )
 
     # Randomly pick from previous epoch attestations and turn them
@@ -806,13 +793,10 @@ def test_process_rewards_and_penalties(
 
     # Verify validators' balance
     import functools
-    epoch_justified_attesting_validators = set(
+    attesting_validators = set(
         functools.reduce(
-            lambda tuple_a, tuple_b: tuple_a + tuple_b,
-            [
-                each_slot_attestion_validators_list[slot]
-                for slot in previous_epoch_justified_attestion_slots
-            ]
+            lambda a, b: a + b,
+            each_slot_attestion_validators_list,
         )
     )
 
@@ -824,7 +808,7 @@ def test_process_rewards_and_penalties(
                 for slot in previous_epoch_boundary_attestion_slots
             ]
         )
-    ).intersection(epoch_justified_attesting_validators)
+    ).intersection(attesting_validators)
 
     epoch_head_attesting_validators = set(
         functools.reduce(
@@ -847,12 +831,6 @@ def test_process_rewards_and_penalties(
             i for i in range(len(state.validator_registry))
         ]
     )
-    attesting_validators = set(
-        functools.reduce(
-            lambda a, b: a + b,
-            each_slot_attestion_validators_list,
-        )
-    )
 
     validator_balance = max_deposit_amount
     total_active_balance = len(active_validators) * validator_balance
@@ -868,9 +846,9 @@ def test_process_rewards_and_penalties(
     if epochs_since_finality <= 4:
         # Rewards/penalties for justified epoch
         total_justified_attesting_balance = (
-            len(epoch_justified_attesting_validators) * validator_balance
+            len(attesting_validators) * validator_balance
         )
-        for index in epoch_justified_attesting_validators:
+        for index in attesting_validators:
             reward = get_base_reward(
                 state=state,
                 index=index,
@@ -880,7 +858,7 @@ def test_process_rewards_and_penalties(
             ) * total_justified_attesting_balance // total_active_balance
             reward_received_map[index] += reward
         excluded_active_validators_indices = active_validators.difference(
-            epoch_justified_attesting_validators)
+            attesting_validators)
         for index in excluded_active_validators_indices:
             penalty = get_base_reward(
                 state=state,
@@ -957,9 +935,9 @@ def test_process_rewards_and_penalties(
             reward_received_map[index] += reward
     # epochs_since_finality > 4
     else:
-        # Penalties for active validators not in justified attesting validators
+        # Penalties for active validators not in attesting validators
         excluded_active_validators_indices = active_validators.difference(
-            set(epoch_justified_attesting_validators))
+            set(attesting_validators))
         for index in excluded_active_validators_indices:
             inactivity_penalty = get_base_reward(
                 state=state,

@@ -75,22 +75,6 @@ def get_previous_epoch_attestations(
 
 
 @to_tuple
-def get_previous_epoch_justified_attestations(
-        state: 'BeaconState',
-        epoch_length: int,
-        genesis_epoch: EpochNumber) -> Iterable[PendingAttestationRecord]:
-    previous_epoch_attestations = get_previous_epoch_attestations(
-        state,
-        epoch_length,
-        genesis_epoch,
-    )
-    current_epoch_attestations = get_current_epoch_attestations(state, epoch_length)
-    for attestation in (previous_epoch_attestations + current_epoch_attestations):
-        if attestation.data.justified_epoch == state.previous_justified_epoch:
-            yield attestation
-
-
-@to_tuple
 def get_previous_epoch_head_attestations(
         state: 'BeaconState',
         epoch_length: int,
