@@ -20,6 +20,10 @@ from eth2.beacon.committee_helpers import (
     get_crosslink_committees_at_slot,
     get_current_epoch_committee_count,
 )
+from eth2.beacon.configs import (
+    BeaconConfig,
+    CommitteeConfig,
+)
 from eth2.beacon.epoch_processing_helpers import (
     get_current_epoch_attestations,
     get_previous_epoch_attestations,
@@ -39,7 +43,9 @@ from eth2.beacon._utils.hash import (
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.state_machines.configs import BeaconConfig
+from eth2.beacon.typing import (
+    EpochNumber,
+)
 
 
 #
@@ -83,10 +89,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
             state,
             slot,
-            config.GENESIS_EPOCH,
-            config.EPOCH_LENGTH,
-            config.TARGET_COMMITTEE_SIZE,
-            config.SHARD_COUNT,
+            CommitteeConfig(config),
         )
         for crosslink_committee, shard in crosslink_committees_at_slot:
             try:
@@ -100,11 +103,8 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                         previous_epoch_attestations + current_epoch_attestations,
                         shard,
                     ),
-                    genesis_epoch=config.GENESIS_EPOCH,
-                    epoch_length=config.EPOCH_LENGTH,
                     max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-                    target_committee_size=config.TARGET_COMMITTEE_SIZE,
-                    shard_count=config.SHARD_COUNT,
+                    committee_config=CommitteeConfig(config),
                 )
             except NoWinningRootError:
                 # No winning shard block root found for this shard.
@@ -164,38 +164,6 @@ def update_validator_registry(state: BeaconState) -> BeaconState:
     return state
 
 
-def _update_latest_index_roots(state: BeaconState,
-                               config: BeaconConfig) -> BeaconState:
-    """
-    Return the BeaconState with updated `latest_index_roots`.
-    """
-    next_epoch = state.next_epoch(config.EPOCH_LENGTH)
-
-    # TODO: chanege to hash_tree_root
-    active_validator_indices = get_active_validator_indices(
-        state.validator_registry,
-        next_epoch,
-    )
-    index_root = hash_eth2(
-        b''.join(
-            [
-                index.to_bytes(32, 'big')
-                for index in active_validator_indices
-            ]
-        )
-    )
-
-    latest_index_roots = update_tuple_item(
-        state.latest_index_roots,
-        next_epoch % config.LATEST_INDEX_ROOTS_LENGTH,
-        index_root,
-    )
-
-    return state.copy(
-        latest_index_roots=latest_index_roots,
-    )
-
-
 def process_validator_registry(state: BeaconState,
                                config: BeaconConfig) -> BeaconState:
     state = state.copy(
@@ -203,7 +171,6 @@ def process_validator_registry(state: BeaconState,
         previous_epoch_start_shard=state.current_epoch_start_shard,
         previous_epoch_seed=state.current_epoch_seed,
     )
-    state = _update_latest_index_roots(state, config)
 
     need_to_update, num_shards_in_committees = _check_if_update_validator_registry(state, config)
 
@@ -269,10 +236,47 @@ def process_validator_registry(state: BeaconState,
 #
 # Final updates
 #
+def _update_latest_index_roots(state: BeaconState,
+                               committee_config: CommitteeConfig) -> BeaconState:
+    """
+    Return the BeaconState with updated `latest_index_roots`.
+    """
+    next_epoch = state.next_epoch(committee_config.EPOCH_LENGTH)
+
+    # TODO: chanege to hash_tree_root
+    active_validator_indices = get_active_validator_indices(
+        state.validator_registry,
+        EpochNumber(next_epoch + committee_config.ENTRY_EXIT_DELAY),
+    )
+    index_root = hash_eth2(
+        b''.join(
+            [
+                index.to_bytes(32, 'big')
+                for index in active_validator_indices
+            ]
+        )
+    )
+
+    latest_index_roots = update_tuple_item(
+        state.latest_index_roots,
+        (
+            (next_epoch + committee_config.ENTRY_EXIT_DELAY) %
+            committee_config.LATEST_INDEX_ROOTS_LENGTH
+        ),
+        index_root,
+    )
+
+    return state.copy(
+        latest_index_roots=latest_index_roots,
+    )
+
+
 def process_final_updates(state: BeaconState,
                           config: BeaconConfig) -> BeaconState:
     current_epoch = state.current_epoch(config.EPOCH_LENGTH)
     next_epoch = state.next_epoch(config.EPOCH_LENGTH)
+
+    state = _update_latest_index_roots(state, CommitteeConfig(config))
 
     state = state.copy(
         latest_penalized_balances=update_tuple_item(

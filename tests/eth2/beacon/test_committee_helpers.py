@@ -14,8 +14,12 @@ from eth2.beacon.committee_helpers import (
     get_current_epoch_committee_count,
     get_crosslink_committees_at_slot,
     get_epoch_committee_count,
-    get_shuffling,
+    get_next_epoch_committee_count,
     get_previous_epoch_committee_count,
+    get_shuffling,
+)
+from eth2.beacon.helpers import (
+    slot_to_epoch,
 )
 from eth2.beacon.types.attestation_data import (
     AttestationData,
@@ -50,6 +54,65 @@ def test_get_epoch_committee_count(
         epoch_length=epoch_length,
         target_committee_size=target_committee_size,
     )
+
+
+@pytest.mark.parametrize(
+    (
+        'n,'
+        'epoch_length,'
+        'target_committee_size,'
+        'shard_count,'
+        'expected_committee_count'
+    ),
+    [
+        (64, 2, 2, 1024, 32),
+    ]
+)
+def test_get_next_epoch_committee_count(n_validators_state,
+                                        shard_count,
+                                        epoch_length,
+                                        target_committee_size,
+                                        expected_committee_count):
+    state = n_validators_state
+
+    current_epoch_committee_count = get_current_epoch_committee_count(
+        state,
+        shard_count,
+        epoch_length,
+        target_committee_size,
+    )
+    next_epoch_committee_count = get_next_epoch_committee_count(
+        state,
+        shard_count,
+        epoch_length,
+        target_committee_size,
+    )
+    assert current_epoch_committee_count == expected_committee_count
+    assert next_epoch_committee_count == expected_committee_count
+
+    # Exit all validators
+    for index, validator in enumerate(state.validator_registry):
+        state = state.update_validator_registry(
+            validator_index=index,
+            validator=validator.copy(
+                exit_epoch=state.current_epoch(epoch_length) + 1,
+            ),
+        )
+
+    current_epoch_committee_count = get_current_epoch_committee_count(
+        state,
+        shard_count,
+        epoch_length,
+        target_committee_size,
+    )
+    next_epoch_committee_count = get_next_epoch_committee_count(
+        state,
+        shard_count,
+        epoch_length,
+        target_committee_size,
+    )
+    assert current_epoch_committee_count == expected_committee_count
+    assert next_epoch_committee_count == epoch_length
 
 
 @pytest.mark.parametrize(
@@ -202,49 +265,141 @@ def test_get_prev_or_cur_epoch_committee_count(
 
 @pytest.mark.parametrize(
     (
+        'n,'
         'current_slot,'
         'slot,'
         'epoch_length,'
         'target_committee_size,'
         'shard_count,'
+        'registry_change,'
+
+        'should_reseed,'
+        'previous_calculation_epoch,'
+        'current_calculation_epoch,'
+        'shuffling_epoch,'
     ),
     [
         # genesis_epoch == previous_epoch == slot_to_epoch(slot) == current_epoch
-        (0, 5, 10, 10, 10),
+        (10, 0, 5, 10, 2, 3, False, False, 0, 0, 0),
         # genesis_epoch == previous_epoch == slot_to_epoch(slot) < current_epoch
-        (10, 5, 10, 10, 10),
+        (10, 10, 5, 10, 2, 3, False, False, 0, 1, 0),
         # genesis_epoch < previous_epoch == slot_to_epoch(slot) < current_epoch
-        (20, 11, 10, 10, 10),
+        (10, 20, 11, 10, 2, 3, False, False, 1, 2, 1),
         # genesis_epoch == previous_epoch < slot_to_epoch(slot) == current_epoch
-        (10, 11, 10, 10, 10),
+        (10, 10, 11, 10, 2, 3, False, False, 0, 1, 1,),
+        # genesis_epoch == previous_epoch < slot_to_epoch(slot) == next_epoch
+        (100, 4, 9, 4, 2, 3, False, False, 0, 1, 2),
+        # genesis_epoch == previous_epoch < slot_to_epoch(slot) == next_epoch
+        (100, 4, 9, 4, 2, 3, True, False, 0, 1, 2),
+        # genesis_epoch == previous_epoch < slot_to_epoch(slot) == next_epoch, need_reseed
+        # epochs_since_last_registry_update > 1 and is_power_of_two(epochs_since_last_registry_update)  # noqa: E501
+        (100, 8, 13, 4, 2, 3, False, True, 1, 2, 3),
     ],
 )
 def test_get_crosslink_committees_at_slot(
+        monkeypatch,
         n_validators_state,
         current_slot,
         slot,
         epoch_length,
         target_committee_size,
         shard_count,
-        genesis_epoch):
+        genesis_epoch,
+        committee_config,
+        registry_change,
+        should_reseed,
+        previous_calculation_epoch,
+        current_calculation_epoch,
+        shuffling_epoch):
+    # Mock generate_seed
+    new_seed = b'\x88' * 32
+
+    def mock_generate_seed(state,
+                           epoch,
+                           epoch_length,
+                           seed_lookahead,
+                           entry_exit_delay,
+                           latest_index_roots_length,
+                           latest_randao_mixes_length):
+        return new_seed
+
+    monkeypatch.setattr(
+        'eth2.beacon.helpers.generate_seed',
+        mock_generate_seed
+    )
 
     state = n_validators_state.copy(
         slot=current_slot,
+        previous_calculation_epoch=previous_calculation_epoch,
+        current_calculation_epoch=current_calculation_epoch,
+        previous_epoch_seed=b'\x11' * 32,
+        current_epoch_seed=b'\x22' * 32,
     )
 
     crosslink_committees_at_slot = get_crosslink_committees_at_slot(
         state=state,
         slot=slot,
-        genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=committee_config,
+        registry_change=registry_change,
     )
     assert len(crosslink_committees_at_slot) > 0
     for crosslink_committee in crosslink_committees_at_slot:
         committee, shard = crosslink_committee
         assert len(committee) > 0
         assert shard < shard_count
+
+    #
+    # Check shuffling_start_shard
+    #
+    offset = slot % epoch_length
+
+    result_slot_start_shard = crosslink_committees_at_slot[0][1]
+    current_committees_per_epoch = get_current_epoch_committee_count(
+        state=state,
+        shard_count=shard_count,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+    )
+    committees_per_slot = current_committees_per_epoch // epoch_length
+
+    if registry_change:
+        shuffling_start_shard = (
+            state.current_epoch_start_shard + current_committees_per_epoch
+        ) % shard_count
+    else:
+        shuffling_start_shard = state.current_epoch_start_shard
+        assert result_slot_start_shard == (
+            shuffling_start_shard +
+            committees_per_slot * offset
+        ) % shard_count
+
+    #
+    # Check seed
+    #
+    epoch = slot_to_epoch(slot, epoch_length)
+    current_epoch = state.current_epoch(epoch_length)
+    previous_epoch = state.previous_epoch(epoch_length, genesis_epoch)
+    next_epoch = current_epoch + 1
+
+    if epoch == previous_epoch:
+        seed = state.previous_epoch_seed
+    elif epoch == current_epoch:
+        seed = state.current_epoch_seed
+    elif epoch == next_epoch:
+        if registry_change or should_reseed:
+            seed = new_seed
+        else:
+            seed = state.current_epoch_seed
+
+    shuffling = get_shuffling(
+        seed=seed,
+        validators=state.validator_registry,
+        epoch=shuffling_epoch,
+        epoch_length=epoch_length,
+        target_committee_size=target_committee_size,
+        shard_count=shard_count,
+    )
+    assert shuffling[committees_per_slot * offset] == crosslink_committees_at_slot[0][0]
 
 
 @pytest.mark.parametrize(
@@ -282,16 +437,14 @@ def test_get_beacon_proposer_index(
         sample_state,
         genesis_epoch,
         target_committee_size,
-        shard_count):
+        shard_count,
+        committee_config):
 
     from eth2.beacon import committee_helpers
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              genesis_epoch,
-                                              epoch_length,
-                                              target_committee_size,
-                                              shard_count):
+                                              committee_config):
         return (
             (committee, 1,),
         )
@@ -305,10 +458,7 @@ def test_get_beacon_proposer_index(
         proposer_index = get_beacon_proposer_index(
             sample_state,
             slot,
-            genesis_epoch,
-            epoch_length,
-            target_committee_size,
-            shard_count,
+            committee_config,
         )
         assert proposer_index == committee[slot % len(committee)]
     else:
@@ -316,10 +466,7 @@ def test_get_beacon_proposer_index(
             get_beacon_proposer_index(
                 sample_state,
                 slot,
-                genesis_epoch,
-                epoch_length,
-                target_committee_size,
-                shard_count,
+                committee_config,
             )
 
 
@@ -373,6 +520,7 @@ def test_get_attestation_participants(
         genesis_epoch,
         target_committee_size,
         shard_count,
+        committee_config,
         sample_attestation_data_params):
     shard = 1
 
@@ -380,10 +528,7 @@ def test_get_attestation_participants(
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              genesis_epoch,
-                                              epoch_length,
-                                              target_committee_size,
-                                              shard_count):
+                                              committee_config):
         return (
             (committee, shard,),
         )
@@ -404,20 +549,14 @@ def test_get_attestation_participants(
                 state=sample_state,
                 attestation_data=attestation_data,
                 bitfield=aggregation_bitfield,
-                genesis_epoch=genesis_epoch,
-                epoch_length=epoch_length,
-                target_committee_size=target_committee_size,
-                shard_count=shard_count,
+                committee_config=committee_config,
             )
     else:
         result = get_attestation_participants(
             state=sample_state,
             attestation_data=attestation_data,
             bitfield=aggregation_bitfield,
-            genesis_epoch=genesis_epoch,
-            epoch_length=epoch_length,
-            target_committee_size=target_committee_size,
-            shard_count=shard_count,
+            committee_config=committee_config,
         )
 
         assert result == expected

@@ -27,8 +27,7 @@ def validate_slot(slot: int, title: str="Slot") -> None:
 def validate_epoch_for_current_epoch(
         current_epoch: EpochNumber,
         given_epoch: EpochNumber,
-        genesis_epoch: EpochNumber,
-        epoch_length: int) -> None:
+        genesis_epoch: EpochNumber) -> None:
     previous_epoch = current_epoch - 1 if current_epoch > genesis_epoch else current_epoch
     next_epoch = current_epoch + 1
 
@@ -38,7 +37,7 @@ def validate_epoch_for_current_epoch(
             f"or equal to given_epoch ({given_epoch})"
         )
 
-    if given_epoch >= next_epoch:
+    if given_epoch > next_epoch:
         raise ValidationError(
             f"given_epoch ({given_epoch}) should be less than next_epoch ({next_epoch})"
         )

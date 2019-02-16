@@ -1,6 +1,8 @@
 from eth.constants import (
     ZERO_ADDRESS,
 )
+
+from eth2.beacon.configs import BeaconConfig
 from eth2.beacon.constants import (
     GWEI_PER_ETH,
 )
@@ -11,7 +13,6 @@ from eth2.beacon.typing import (
     ShardNumber,
     SlotNumber,
 )
-from eth2.beacon.state_machines.configs import BeaconConfig
 
 
 SERENITY_CONFIG = BeaconConfig(

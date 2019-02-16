@@ -15,6 +15,10 @@ from eth2.beacon.enums import (
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
 )
+from eth2.beacon.configs import (
+    BeaconConfig,
+    CommitteeConfig,
+)
 from eth2.beacon.exceptions import (
     ProposerIndexError,
 )
@@ -26,7 +30,6 @@ from eth2.beacon.helpers import (
 from eth2.beacon.state_machines.base import (
     BaseBeaconStateMachine,
 )
-from eth2.beacon.state_machines.configs import BeaconConfig
 
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import (
@@ -53,10 +56,7 @@ def validate_proposer_index(state: BeaconState,
             slot=slot,
         ),
         slot,
-        config.GENESIS_EPOCH,
-        config.EPOCH_LENGTH,
-        config.TARGET_COMMITTEE_SIZE,
-        config.SHARD_COUNT,
+        CommitteeConfig(config),
     )
 
     if validator_index != beacon_proposer_index:
@@ -146,10 +146,7 @@ def create_mock_block(*,
             slot=slot,
         ),
         slot,
-        config.GENESIS_EPOCH,
-        config.EPOCH_LENGTH,
-        config.TARGET_COMMITTEE_SIZE,
-        config.SHARD_COUNT,
+        CommitteeConfig(config),
     )
     proposer_pubkey = state.validator_registry[proposer_index].pubkey
     proposer_privkey = keymap[proposer_pubkey]

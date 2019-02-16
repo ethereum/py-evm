@@ -6,6 +6,9 @@ from eth_utils import (
 
 from eth2._utils import bls
 
+from eth2.beacon.configs import (
+    CommitteeConfig,
+)
 from eth2.beacon.enums import (
     SignatureDomain,
 )
@@ -74,7 +77,8 @@ def test_validate_proposer_signature(
         beacon_chain_shard_number,
         genesis_epoch,
         target_committee_size,
-        max_deposit_amount):
+        max_deposit_amount,
+        config):
 
     state = BeaconState(**sample_beacon_state_params).copy(
         validator_registry=tuple(
@@ -106,10 +110,7 @@ def test_validate_proposer_signature(
             state,
             proposed_block,
             beacon_chain_shard_number,
-            genesis_epoch,
-            epoch_length,
-            target_committee_size,
-            shard_count,
+            CommitteeConfig(config),
         )
     else:
         with pytest.raises(ValidationError):
@@ -117,8 +118,5 @@ def test_validate_proposer_signature(
                 state,
                 proposed_block,
                 beacon_chain_shard_number,
-                genesis_epoch,
-                epoch_length,
-                target_committee_size,
-                shard_count
+                CommitteeConfig(config),
             )

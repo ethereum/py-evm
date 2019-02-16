@@ -30,13 +30,19 @@ from eth2.beacon.enums import (
 from eth2.beacon.committee_helpers import (
     get_crosslink_committees_at_slot,
 )
+from eth2.beacon.configs import (
+    BeaconConfig,
+    CommitteeConfig,
+)
+from eth2.beacon.exceptions import (
+    NoCommitteeAssignment,
+)
 from eth2.beacon.helpers import (
     get_block_root,
     get_domain,
     get_epoch_start_slot,
     slot_to_epoch,
 )
-from eth2.beacon.state_machines.configs import BeaconConfig
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import (
@@ -52,6 +58,10 @@ from eth2.beacon.typing import (
     CommitteeIndex,
     SlotNumber,
     ValidatorIndex,
+)
+
+from .committee_assignment import (
+    CommitteeAssignment,
 )
 
 
@@ -223,11 +233,8 @@ def create_mock_signed_attestations_at_slot(
         state.copy(
             slot=state.slot + 1,
         ),
-        slot=attestation_slot,
-        genesis_epoch=config.GENESIS_EPOCH,
-        epoch_length=config.EPOCH_LENGTH,
-        target_committee_size=config.TARGET_COMMITTEE_SIZE,
-        shard_count=config.SHARD_COUNT,
+        attestation_slot,
+        CommitteeConfig(config),
     )
     for crosslink_committee in crosslink_committees_at_slot:
         committee, shard = crosslink_committee
@@ -258,3 +265,46 @@ def create_mock_signed_attestations_at_slot(
             keymap,
             config.EPOCH_LENGTH,
         )
+
+
+def get_next_epoch_committee_assignment(
+        state: BeaconState,
+        config: BeaconConfig,
+        validator_index: ValidatorIndex,
+        registry_change: bool
+) -> CommitteeAssignment:
+    """
+    Return the ``CommitteeAssignment`` in the next epoch for ``validator_index``
+    and ``registry_change``.
+    ``CommitteeAssignment.committee`` is the tuple array of validators in the committee
+    ``CommitteeAssignment.shard`` is the shard to which the committee is assigned
+    ``CommitteeAssignment.slot`` is the slot at which the committee is assigned
+    ``CommitteeAssignment.is_proposer`` is a bool signalling if the validator is expected to
+        propose a beacon block at the assigned slot.
+    """
+    current_epoch = state.current_epoch(config.EPOCH_LENGTH)
+    next_epoch = current_epoch + 1
+    next_epoch_start_slot = get_epoch_start_slot(next_epoch, config.EPOCH_LENGTH)
+    for slot in range(next_epoch_start_slot, next_epoch_start_slot + config.EPOCH_LENGTH):
+        crosslink_committees = get_crosslink_committees_at_slot(
+            state,
+            slot,
+            CommitteeConfig(config),
+            registry_change=registry_change,
+        )
+        selected_committees = [
+            committee
+            for committee in crosslink_committees
+            if validator_index in committee[0]
+        ]
+        if len(selected_committees) > 0:
+            validators = selected_committees[0][0]
+            shard = selected_committees[0][1]
+            first_committee_at_slot = crosslink_committees[0][0]  # List[ValidatorIndex]
+            is_proposer = first_committee_at_slot[
+                slot % len(first_committee_at_slot)
+            ] == validator_index
+
+            return CommitteeAssignment(validators, shard, slot, is_proposer)
+
+    raise NoCommitteeAssignment

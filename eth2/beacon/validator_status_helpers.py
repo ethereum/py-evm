@@ -4,6 +4,9 @@ from eth2._utils.tuple import (
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
 )
+from eth2.beacon.configs import (
+    CommitteeConfig,
+)
 from eth2.beacon.enums import (
     ValidatorStatusFlags,
 )
@@ -92,11 +95,8 @@ def _settle_penality_to_validator_and_whistleblower(
         validator_index: ValidatorIndex,
         latest_penalized_exit_length: int,
         whistleblower_reward_quotient: int,
-        genesis_epoch: EpochNumber,
-        epoch_length: int,
         max_deposit_amount: Gwei,
-        target_committee_size: int,
-        shard_count: int) -> BeaconState:
+        committee_config: CommitteeConfig) -> BeaconState:
     """
     Apply penality/reward to validator and whistleblower and update the meta data
 
@@ -111,6 +111,8 @@ def _settle_penality_to_validator_and_whistleblower(
     state.validator_balances[index] -= whistleblower_reward
     validator.penalized_epoch = slot_to_epoch(state.slot)
     """
+    epoch_length = committee_config.EPOCH_LENGTH
+
     # Update `state.latest_penalized_balances`
     current_epoch_penalization_index = state.current_epoch(
         epoch_length) % latest_penalized_exit_length
@@ -140,10 +142,7 @@ def _settle_penality_to_validator_and_whistleblower(
     whistleblower_index = get_beacon_proposer_index(
         state,
         state.slot,
-        genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config,
     )
     state = state.update_validator_balance(
         whistleblower_index,
@@ -166,30 +165,25 @@ def _settle_penality_to_validator_and_whistleblower(
 
 def penalize_validator(state: BeaconState,
                        index: ValidatorIndex,
-                       genesis_epoch: EpochNumber,
-                       epoch_length: int,
                        latest_penalized_exit_length: int,
                        whistleblower_reward_quotient: int,
-                       entry_exit_delay: int,
                        max_deposit_amount: Gwei,
-                       target_committee_size: int,
-                       shard_count: int) -> BeaconState:
+                       committee_config: CommitteeConfig) -> BeaconState:
     """
     Penalize the validator with the given ``index``.
 
     Exit the validator, penalize the validator, and reward the whistleblower.
     """
+    epoch_length = committee_config.EPOCH_LENGTH
+    entry_exit_delay = committee_config.ENTRY_EXIT_DELAY
     state = exit_validator(state, index, epoch_length, entry_exit_delay)
     state = _settle_penality_to_validator_and_whistleblower(
         state=state,
         validator_index=index,
         latest_penalized_exit_length=latest_penalized_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
-        genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
         max_deposit_amount=max_deposit_amount,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=committee_config,
     )
     return state
 

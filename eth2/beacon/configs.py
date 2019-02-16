@@ -62,3 +62,18 @@ BeaconConfig = NamedTuple(
         ('MAX_EXITS', int),
     )
 )
+
+
+class CommitteeConfig:
+    def __init__(self, config: BeaconConfig):
+        # Basic
+        self.GENESIS_EPOCH = config.GENESIS_EPOCH
+        self.SHARD_COUNT = config.SHARD_COUNT
+        self.EPOCH_LENGTH = config.EPOCH_LENGTH
+        self.TARGET_COMMITTEE_SIZE = config.TARGET_COMMITTEE_SIZE
+
+        # For seed
+        self.SEED_LOOKAHEAD = config.SEED_LOOKAHEAD
+        self.ENTRY_EXIT_DELAY = config.ENTRY_EXIT_DELAY
+        self.LATEST_INDEX_ROOTS_LENGTH = config.LATEST_INDEX_ROOTS_LENGTH
+        self.LATEST_RANDAO_MIXES_LENGTH = config.LATEST_RANDAO_MIXES_LENGTH

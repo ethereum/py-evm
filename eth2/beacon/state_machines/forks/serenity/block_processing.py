@@ -4,11 +4,10 @@ from eth_utils.toolz import (
 
 from eth2._utils.tuple import update_tuple_item
 
+from eth2.beacon.configs import BeaconConfig
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
-
-from eth2.beacon.state_machines.configs import BeaconConfig
 
 
 def process_eth1_data(state: BeaconState,

@@ -62,7 +62,10 @@ def test_validate_slot(slot, is_valid):
             2, 2, True,
         ),
         (
-            2, 3, False,  # next_epoch == epoch
+            2, 3, True,  # next_epoch == epoch
+        ),
+        (
+            2, 4, False,  # next_epoch < epoch
         ),
     ]
 )
@@ -77,7 +80,6 @@ def test_validate_epoch_for_current_epoch(
             current_epoch=current_epoch,
             given_epoch=epoch,
             genesis_epoch=genesis_epoch,
-            epoch_length=epoch_length
         )
     else:
         with pytest.raises(ValidationError):
@@ -85,7 +87,6 @@ def test_validate_epoch_for_current_epoch(
                 current_epoch=current_epoch,
                 given_epoch=epoch,
                 genesis_epoch=genesis_epoch,
-                epoch_length=epoch_length
             )
 
 

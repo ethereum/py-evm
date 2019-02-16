@@ -5,13 +5,11 @@ from typing import (
     Type,
 )
 
+from eth2.beacon.configs import BeaconConfig
 from eth2.beacon.on_startup import (
     get_genesis_block,
     get_initial_beacon_state,
 )
-
-from eth2.beacon.state_machines.configs import BeaconConfig
-
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
 )

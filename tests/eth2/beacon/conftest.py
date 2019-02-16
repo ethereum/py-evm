@@ -9,11 +9,14 @@ from eth_utils import (
 
 import eth2._utils.bls as bls
 from eth2.beacon._utils.hash import hash_eth2
+from eth2.beacon.configs import (
+    BeaconConfig,
+    CommitteeConfig,
+)
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
     FAR_FUTURE_EPOCH,
 )
-
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.deposit_data import DepositData
@@ -32,7 +35,6 @@ from eth2.beacon.types.blocks import (
 from eth2.beacon.types.forks import (
     Fork,
 )
-from eth2.beacon.state_machines.configs import BeaconConfig
 from eth2.beacon.state_machines.forks.serenity import (
     SerenityStateMachine,
 )
@@ -728,3 +730,11 @@ def fixture_sm_class(config):
         __name__='SerenityStateMachineForTesting',
         config=config,
     )
+
+
+#
+# CommitteeConfig
+#
+@pytest.fixture
+def committee_config(config):
+    return CommitteeConfig(config)

@@ -15,6 +15,9 @@ from eth._utils.datatypes import (
     Configurable,
 )
 
+from eth2.beacon.configs import (  # noqa: F401
+    BeaconConfig,
+)
 from eth2.beacon.db.chain import BaseBeaconChainDB
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
@@ -24,9 +27,6 @@ from eth2.beacon.typing import (
 
 from .state_transitions import (
     BaseStateTransition,
-)
-from .configs import (  # noqa: F401
-    BeaconConfig,
 )
 
 

@@ -25,6 +25,9 @@ from eth2.beacon.committee_helpers import (
     get_crosslink_committees_at_slot,
     get_current_epoch_committee_count,
 )
+from eth2.beacon.configs import (
+    CommitteeConfig,
+)
 from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_randao_mix,
@@ -129,15 +132,16 @@ def test_check_if_update_validator_registry(genesis_state,
     ]
 )
 def test_update_latest_index_roots(genesis_state,
-                                   config,
+                                   committee_config,
                                    state_slot,
                                    epoch_length,
-                                   latest_index_roots_length):
+                                   latest_index_roots_length,
+                                   entry_exit_delay):
     state = genesis_state.copy(
         slot=state_slot,
     )
 
-    result_state = _update_latest_index_roots(state, config)
+    result_state = _update_latest_index_roots(state, committee_config)
 
     # TODO: chanege to hash_tree_root
     index_root = hash_eth2(
@@ -154,7 +158,7 @@ def test_update_latest_index_roots(genesis_state,
     )
 
     assert result_state.latest_index_roots[
-        state.next_epoch(epoch_length) % latest_index_roots_length
+        (state.next_epoch(epoch_length) + entry_exit_delay) % latest_index_roots_length
     ] == index_root
 
 
@@ -400,10 +404,7 @@ def test_process_crosslinks(
         for committee, _shard in get_crosslink_committees_at_slot(
             state,
             slot_in_cur_epoch,
-            config.GENESIS_EPOCH,
-            config.EPOCH_LENGTH,
-            target_committee_size,
-            shard_count,
+            CommitteeConfig(config),
         ):
             if _shard == shard:
                 # Sample validators attesting to this shard.

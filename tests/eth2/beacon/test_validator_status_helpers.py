@@ -181,19 +181,13 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
                                                         n_validators_state,
                                                         latest_penalized_exit_length,
                                                         whistleblower_reward_quotient,
-                                                        genesis_epoch,
-                                                        epoch_length,
                                                         max_deposit_amount,
-                                                        target_committee_size,
-                                                        shard_count):
+                                                        committee_config):
     from eth2.beacon import committee_helpers
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              genesis_epoch,
-                                              epoch_length,
-                                              target_committee_size,
-                                              shard_count):
+                                              committee_config):
         return (
             (committee, 1,),
         )
@@ -209,10 +203,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
     whistleblower_index = get_beacon_proposer_index(
         state,
         state.slot,
-        genesis_epoch,
-        epoch_length,
-        target_committee_size,
-        shard_count,
+        committee_config,
     )
     effective_balance = max_deposit_amount
 
@@ -228,16 +219,15 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
         validator_index=validator_index,
         latest_penalized_exit_length=latest_penalized_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
-        genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
         max_deposit_amount=max_deposit_amount,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=committee_config,
     )
 
     # Check `state.latest_penalized_balances`
     latest_penalized_balances_list = list(state.latest_penalized_balances)
-    last_penalized_epoch = state.current_epoch(epoch_length) % latest_penalized_exit_length
+    last_penalized_epoch = (
+        state.current_epoch(committee_config.EPOCH_LENGTH) % latest_penalized_exit_length
+    )
     latest_penalized_balances_list[last_penalized_epoch] = max_deposit_amount
     latest_penalized_balances = tuple(latest_penalized_balances_list)
 
@@ -273,15 +263,13 @@ def test_penalize_validator(monkeypatch,
                             entry_exit_delay,
                             max_deposit_amount,
                             target_committee_size,
-                            shard_count):
+                            shard_count,
+                            committee_config):
     from eth2.beacon import committee_helpers
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              genesis_epoch,
-                                              epoch_length,
-                                              target_committee_size,
-                                              shard_count):
+                                              committee_config):
         return (
             (committee, 1,),
         )
@@ -298,14 +286,10 @@ def test_penalize_validator(monkeypatch,
     result_state = penalize_validator(
         state=state,
         index=index,
-        genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
         latest_penalized_exit_length=latest_penalized_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
-        entry_exit_delay=entry_exit_delay,
         max_deposit_amount=max_deposit_amount,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=committee_config,
     )
 
     # Just check if `prepare_validator_for_withdrawal` applied these two functions
@@ -315,11 +299,8 @@ def test_penalize_validator(monkeypatch,
         validator_index=index,
         latest_penalized_exit_length=latest_penalized_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
-        genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
         max_deposit_amount=max_deposit_amount,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=committee_config,
     )
 
     assert result_state == expected_state

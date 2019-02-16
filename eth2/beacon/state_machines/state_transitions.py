@@ -10,10 +10,9 @@ from eth._utils.datatypes import (
     Configurable,
 )
 
+from eth2.beacon.configs import BeaconConfig
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
-
-from eth2.beacon.state_machines.configs import BeaconConfig
 
 
 class BaseStateTransition(Configurable, ABC):

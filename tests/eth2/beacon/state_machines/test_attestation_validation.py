@@ -249,10 +249,10 @@ def test_validate_attestation_aggregate_signature(genesis_state,
                                                   random,
                                                   sample_attestation_data_params,
                                                   is_valid,
-                                                  genesis_epoch,
                                                   target_committee_size,
                                                   shard_count,
-                                                  keymap):
+                                                  keymap,
+                                                  committee_config):
     state = genesis_state
 
     # choose committee
@@ -260,10 +260,7 @@ def test_validate_attestation_aggregate_signature(genesis_state,
     crosslink_committee = get_crosslink_committees_at_slot(
         state=state,
         slot=slot,
-        genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=committee_config,
     )[0]
     committee, shard = crosslink_committee
     committee_size = len(committee)
@@ -291,10 +288,7 @@ def test_validate_attestation_aggregate_signature(genesis_state,
         validate_attestation_aggregate_signature(
             state,
             attestation,
-            genesis_epoch,
-            epoch_length,
-            target_committee_size,
-            shard_count,
+            committee_config,
         )
     else:
         # mess up signature
@@ -308,8 +302,5 @@ def test_validate_attestation_aggregate_signature(genesis_state,
             validate_attestation_aggregate_signature(
                 state,
                 attestation,
-                genesis_epoch,
-                epoch_length,
-                target_committee_size,
-                shard_count,
+                committee_config,
             )

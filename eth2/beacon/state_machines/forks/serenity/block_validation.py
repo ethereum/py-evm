@@ -15,6 +15,9 @@ from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
     get_attestation_participants,
 )
+from eth2.beacon.configs import (
+    CommitteeConfig,
+)
 from eth2.beacon.enums import (
     SignatureDomain,
 )
@@ -54,10 +57,7 @@ def validate_block_slot(state: BeaconState,
 def validate_proposer_signature(state: BeaconState,
                                 block: BaseBeaconBlock,
                                 beacon_chain_shard_number: ShardNumber,
-                                genesis_epoch: EpochNumber,
-                                epoch_length: int,
-                                target_committee_size: int,
-                                shard_count: int) -> None:
+                                committee_config: CommitteeConfig) -> None:
     block_without_signature_root = block.block_without_signature_root
 
     # TODO: Replace this root with tree hash root
@@ -71,15 +71,12 @@ def validate_proposer_signature(state: BeaconState,
     beacon_proposer_index = get_beacon_proposer_index(
         state,
         state.slot,
-        genesis_epoch,
-        epoch_length,
-        target_committee_size,
-        shard_count,
+        committee_config,
     )
     proposer_pubkey = state.validator_registry[beacon_proposer_index].pubkey
     domain = get_domain(
         state.fork,
-        state.current_epoch(epoch_length),
+        state.current_epoch(committee_config.EPOCH_LENGTH),
         SignatureDomain.DOMAIN_PROPOSAL
     )
 
@@ -103,16 +100,14 @@ def validate_proposer_signature(state: BeaconState,
 #
 def validate_attestation(state: BeaconState,
                          attestation: Attestation,
-                         genesis_epoch: EpochNumber,
-                         epoch_length: int,
                          min_attestation_inclusion_delay: int,
                          latest_block_roots_length: int,
-                         target_committee_size: int,
-                         shard_count: int) -> None:
+                         committee_config: CommitteeConfig) -> None:
     """
     Validate the given ``attestation``.
     Raise ``ValidationError`` if it's invalid.
     """
+    epoch_length = committee_config.EPOCH_LENGTH
 
     validate_attestation_slot(
         attestation.data,
@@ -133,7 +128,10 @@ def validate_attestation(state: BeaconState,
         attestation.data,
         justified_block_root=get_block_root(
             state=state,
-            slot=get_epoch_start_slot(attestation.data.justified_epoch, epoch_length),
+            slot=get_epoch_start_slot(
+                attestation.data.justified_epoch,
+                epoch_length,
+            ),
             latest_block_roots_length=latest_block_roots_length,
         ),
     )
@@ -148,10 +146,7 @@ def validate_attestation(state: BeaconState,
     validate_attestation_aggregate_signature(
         state,
         attestation,
-        genesis_epoch,
-        epoch_length,
-        target_committee_size,
-        shard_count,
+        committee_config,
     )
 
 
@@ -283,10 +278,7 @@ def validate_attestation_shard_block_root(attestation_data: AttestationData) -> 
 
 def validate_attestation_aggregate_signature(state: BeaconState,
                                              attestation: Attestation,
-                                             genesis_epoch: EpochNumber,
-                                             epoch_length: int,
-                                             target_committee_size: int,
-                                             shard_count: int) -> None:
+                                             committee_config: CommitteeConfig) -> None:
     """
     Validate ``aggregate_signature`` field of ``attestation``.
     Raise ``ValidationError`` if it's invalid.
@@ -299,10 +291,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
         state=state,
         attestation_data=attestation.data,
         bitfield=attestation.aggregation_bitfield,
-        genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=committee_config,
     )
     pubkeys = tuple(
         state.validator_registry[validator_index].pubkey
@@ -313,7 +302,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     message = AttestationDataAndCustodyBit.create_attestation_message(attestation.data)
     domain = get_domain(
         fork=state.fork,
-        epoch=slot_to_epoch(attestation.data.slot, epoch_length),
+        epoch=slot_to_epoch(attestation.data.slot, committee_config.EPOCH_LENGTH),
         domain_type=SignatureDomain.DOMAIN_ATTESTATION,
     )
 

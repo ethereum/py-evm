@@ -55,7 +55,7 @@ def test_get_attesting_validator_indices(
         target_committee_size,
         shard_count,
         genesis_epoch,
-        epoch_length,
+        committee_config,
         sample_state,
         sample_attestation_data_params,
         sample_attestation_params):
@@ -66,10 +66,7 @@ def test_get_attesting_validator_indices(
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              genesis_epoch,
-                                              epoch_length,
-                                              target_committee_size,
-                                              shard_count):
+                                              committee_config):
         return (
             (committee, shard,),
         )
@@ -134,10 +131,7 @@ def test_get_attesting_validator_indices(
         attestations=attestations,
         shard=shard,
         shard_block_root=shard_block_root_1,
-        genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=committee_config,
     )
     # Check that result is the union of two participants set
     # `attestation_participants_1` and `attestation_participants_2`
@@ -151,10 +145,7 @@ def test_get_attesting_validator_indices(
         attestations=attestations,
         shard=shard,
         shard_block_root=shard_block_root_2,
-        genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=committee_config,
     )
     # Check that result is the `not_attestation_participants_1` set
     assert set(shard_block_root_2_attesting_validator) == set(not_attestation_participants_1)
@@ -246,6 +237,7 @@ def test_get_winning_root(
         block_root_1_participants,
         block_root_2_participants,
         config,
+        committee_config,
         n_validators_state,
         sample_attestation_data_params,
         sample_attestation_params):
@@ -256,10 +248,7 @@ def test_get_winning_root(
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              genesis_epoch,
-                                              epoch_length,
-                                              target_committee_size,
-                                              shard_count):
+                                              committee_config):
         return (
             (committee, shard,),
         )
@@ -308,21 +297,15 @@ def test_get_winning_root(
             state=n_validators_state,
             shard=shard,
             attestations=attestations,
-            genesis_epoch=config.GENESIS_EPOCH,
-            epoch_length=config.EPOCH_LENGTH,
             max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            target_committee_size=config.TARGET_COMMITTEE_SIZE,
-            shard_count=config.SHARD_COUNT,
+            committee_config=committee_config,
         )
         attesting_validators_indices = get_attesting_validator_indices(
             state=n_validators_state,
             attestations=attestations,
             shard=shard,
             shard_block_root=winning_root,
-            genesis_epoch=config.GENESIS_EPOCH,
-            epoch_length=config.EPOCH_LENGTH,
-            target_committee_size=config.TARGET_COMMITTEE_SIZE,
-            shard_count=config.SHARD_COUNT,
+            committee_config=committee_config,
         )
         total_attesting_balance = sum(
             get_effective_balance(

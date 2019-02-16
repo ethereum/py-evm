@@ -14,8 +14,12 @@ from eth_utils import (
     to_tuple,
 )
 
+
 from eth2.beacon.committee_helpers import (
     get_attestation_participants,
+)
+from eth2.beacon.configs import (
+    CommitteeConfig,
 )
 from eth2.beacon.exceptions import (
     NoWinningRootError,
@@ -70,10 +74,7 @@ def get_attesting_validator_indices(
         attestations: Sequence[PendingAttestationRecord],
         shard: ShardNumber,
         shard_block_root: Hash32,
-        genesis_epoch: EpochNumber,
-        epoch_length: int,
-        target_committee_size: int,
-        shard_count: int) -> Iterable[ValidatorIndex]:
+        committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     """
     Loop through ``attestations`` and check if ``shard``/``shard_block_root`` in the attestation
     matches the given ``shard``/``shard_block_root``.
@@ -86,10 +87,7 @@ def get_attesting_validator_indices(
                 state,
                 a.data,
                 a.aggregation_bitfield,
-                genesis_epoch,
-                epoch_length,
-                target_committee_size,
-                shard_count,
+                committee_config,
             )
 
 
@@ -99,11 +97,8 @@ def get_total_attesting_balance(
         shard: ShardNumber,
         shard_block_root: Hash32,
         attestations: Sequence[PendingAttestationRecord],
-        genesis_epoch: EpochNumber,
-        epoch_length: int,
         max_deposit_amount: Gwei,
-        target_committee_size: int,
-        shard_count: int) -> Gwei:
+        committee_config: CommitteeConfig) -> Gwei:
     return Gwei(
         sum(
             get_effective_balance(state.validator_balances, i, max_deposit_amount)
@@ -112,10 +107,7 @@ def get_total_attesting_balance(
                 attestations=attestations,
                 shard=shard,
                 shard_block_root=shard_block_root,
-                genesis_epoch=genesis_epoch,
-                epoch_length=epoch_length,
-                target_committee_size=target_committee_size,
-                shard_count=shard_count,
+                committee_config=committee_config,
             )
         )
     )
@@ -126,11 +118,8 @@ def get_winning_root(
         state: 'BeaconState',
         shard: ShardNumber,
         attestations: Sequence[PendingAttestationRecord],
-        genesis_epoch: EpochNumber,
-        epoch_length: int,
         max_deposit_amount: Gwei,
-        target_committee_size: int,
-        shard_count: int) -> Tuple[Hash32, Gwei]:
+        committee_config: CommitteeConfig) -> Tuple[Hash32, Gwei]:
     winning_root = None
     winning_root_balance: Gwei = Gwei(0)
     shard_block_roots = set(
@@ -145,11 +134,8 @@ def get_winning_root(
             shard=shard,
             shard_block_root=shard_block_root,
             attestations=attestations,
-            genesis_epoch=genesis_epoch,
-            epoch_length=epoch_length,
             max_deposit_amount=max_deposit_amount,
-            target_committee_size=target_committee_size,
-            shard_count=shard_count,
+            committee_config=committee_config,
         )
         if total_attesting_balance > winning_root_balance:
             winning_root = shard_block_root
