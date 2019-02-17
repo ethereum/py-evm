@@ -7,7 +7,6 @@ not considered to be part of the tree.
 
 from typing import (
     Sequence,
-    Tuple,
     Union,
 )
 
