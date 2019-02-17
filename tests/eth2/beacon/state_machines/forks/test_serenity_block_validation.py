@@ -17,10 +17,16 @@ from eth2.beacon.types.proposal_signed_data import (
     ProposalSignedData,
 )
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.forks import Fork
+
+from eth2.beacon.helpers import (
+    get_domain,
+)
 
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_block_slot,
     validate_proposer_signature,
+    validate_randao_reveal,
 )
 
 from tests.eth2.beacon.helpers import mock_validator_record
@@ -120,3 +126,46 @@ def test_validate_proposer_signature(
                 beacon_chain_shard_number,
                 CommitteeConfig(config),
             )
+
+
+@pytest.mark.parametrize(
+    ["is_valid", "epoch", "expected_epoch", "proposer_key_index", "expected_proposer_key_index"],
+    (
+        (True, 0, 0, 0, 0),
+        (True, 1, 1, 1, 1),
+        (False, 0, 1, 0, 0),
+        (False, 0, 0, 0, 1),
+    )
+)
+def test_randao_reveal_validation(is_valid,
+                                  epoch,
+                                  expected_epoch,
+                                  proposer_key_index,
+                                  expected_proposer_key_index,
+                                  privkeys,
+                                  pubkeys,
+                                  sample_fork_params,
+                                  config):
+    message = epoch.to_bytes(32, byteorder="big")
+    slot = epoch * config.EPOCH_LENGTH
+    fork = Fork(**sample_fork_params)
+    domain = get_domain(fork, slot, SignatureDomain.DOMAIN_RANDAO)
+
+    proposer_privkey = privkeys[proposer_key_index]
+    randao_reveal = bls.sign(message, proposer_privkey, domain)
+
+    expected_proposer_pubkey = pubkeys[expected_proposer_key_index]
+
+    try:
+        validate_randao_reveal(
+            randao_reveal=randao_reveal,
+            proposer_pubkey=expected_proposer_pubkey,
+            epoch=expected_epoch,
+            fork=fork,
+        )
+    except ValidationError:
+        if is_valid:
+            raise
+    else:
+        if not is_valid:
+            pytest.fail("Did not raise")

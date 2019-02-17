@@ -5,8 +5,8 @@ from typing import (
 
 
 SlotNumber = NewType('SlotNumber', int)  # uint64
-ShardNumber = NewType('ShardNumber', int)  # uint64
 EpochNumber = NewType('EpochNumber', int)  # uint64
+ShardNumber = NewType('ShardNumber', int)  # uint64
 BLSPubkey = NewType('BLSPubkey', bytes)  # bytes48
 BLSSignature = NewType('BLSSignature', bytes)  # bytes96
 
