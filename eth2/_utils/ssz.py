@@ -2,7 +2,6 @@ from typing import (
     Iterable,
     Optional,
     Tuple,
-    TypeVar,
 )
 
 import ssz
