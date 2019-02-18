@@ -18,7 +18,6 @@ from eth_utils import (
 import ssz
 from ssz.sedes import (
     List,
-    bytes_sedes,
     bytes32,
     bytes96,
     uint64,
@@ -115,7 +114,7 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
         ('state_root', bytes32),
         ('randao_reveal', bytes96),
         ('eth1_data', Eth1Data),
-        ('signature', bytes_sedes),
+        ('signature', bytes96),
 
         #
         # Body
