@@ -17,7 +17,7 @@ from eth2.beacon.types.forks import Fork
 
 from eth2.beacon.on_startup import (
     get_genesis_block,
-    get_initial_beacon_state,
+    get_genesis_beacon_state,
 )
 from eth2.beacon.tools.builder.validator import (
     sign_proof_of_possession,
@@ -34,7 +34,7 @@ def test_get_genesis_block():
     assert genesis_block.slot == genesis_slot
     assert genesis_block.parent_root == ZERO_HASH32
     assert genesis_block.state_root == startup_state_root
-    assert genesis_block.randao_reveal == ZERO_HASH32
+    assert genesis_block.randao_reveal == EMPTY_SIGNATURE
     assert genesis_block.eth1_data == Eth1Data.create_empty_data()
     assert genesis_block.signature == EMPTY_SIGNATURE
     assert genesis_block.body.is_empty
@@ -48,7 +48,7 @@ def test_get_genesis_block():
         (10)
     ]
 )
-def test_get_initial_beacon_state(
+def test_get_genesis_beacon_state(
         privkeys,
         pubkeys,
         num_validators,
@@ -67,7 +67,6 @@ def test_get_initial_beacon_state(
         entry_exit_delay,
         sample_eth1_data_params):
     withdrawal_credentials = b'\x22' * 32
-    randao_commitment = b'\x33' * 32
     fork = Fork(
         previous_version=genesis_fork_version,
         current_version=genesis_fork_version,
@@ -76,7 +75,7 @@ def test_get_initial_beacon_state(
 
     validator_count = 5
 
-    initial_validator_deposits = (
+    genesis_validator_deposits = tuple(
         Deposit(
             branch=(
                 b'\x11' * 32
@@ -87,12 +86,10 @@ def test_get_initial_beacon_state(
                 deposit_input=DepositInput(
                     pubkey=pubkeys[i],
                     withdrawal_credentials=withdrawal_credentials,
-                    randao_commitment=randao_commitment,
                     proof_of_possession=sign_proof_of_possession(
                         deposit_input=DepositInput(
                             pubkey=pubkeys[i],
                             withdrawal_credentials=withdrawal_credentials,
-                            randao_commitment=randao_commitment,
                         ),
                         privkey=privkeys[i],
                         fork=fork,
@@ -109,8 +106,8 @@ def test_get_initial_beacon_state(
     genesis_time = 10
     latest_eth1_data = Eth1Data(**sample_eth1_data_params)
 
-    state = get_initial_beacon_state(
-        initial_validator_deposits=initial_validator_deposits,
+    state = get_genesis_beacon_state(
+        genesis_validator_deposits=genesis_validator_deposits,
         genesis_time=genesis_time,
         latest_eth1_data=latest_eth1_data,
         genesis_epoch=genesis_epoch,
@@ -171,5 +168,6 @@ def test_get_initial_beacon_state(
     # Ethereum 1.0 chain data
     assert state.latest_eth1_data == latest_eth1_data
     assert len(state.eth1_data_votes) == 0
+    assert state.deposit_index == len(genesis_validator_deposits)
 
     assert state.validator_registry[0].is_active(genesis_epoch)

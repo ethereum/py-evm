@@ -3,9 +3,6 @@ from eth_typing import (
 )
 
 from eth2._utils.merkle import get_merkle_root
-from eth2.beacon.committee_helpers import (
-    get_beacon_proposer_index,
-)
 from eth2.beacon.configs import (
     BeaconConfig,
     CommitteeConfig,
@@ -57,29 +54,17 @@ class SerenityStateTransition(BaseStateTransition):
             slot=state.slot + 1
         )
 
-        # Update proposer.randao_layers
-        updated_validator_registry = list(state.validator_registry)
-        beacon_proposer_index = get_beacon_proposer_index(
-            state,
-            state.slot,
-            CommitteeConfig(self.config),
-        )
-        old_validator_record = updated_validator_registry[beacon_proposer_index]
-        updated_validator_record = old_validator_record.copy(
-            randao_layers=old_validator_record.randao_layers + 1,
-        )
-        updated_validator_registry[beacon_proposer_index] = updated_validator_record
-
+        # Update state.latest_block_roots
         updated_latest_block_roots = list(state.latest_block_roots)
         previous_block_root_index = (state.slot - 1) % LATEST_BLOCK_ROOTS_LENGTH
         updated_latest_block_roots[previous_block_root_index] = previous_block_root
 
+        # Update state.batched_block_roots
         updated_batched_block_roots = state.batched_block_roots
         if state.slot % LATEST_BLOCK_ROOTS_LENGTH == 0:
             updated_batched_block_roots += (get_merkle_root(updated_latest_block_roots),)
 
         state = state.copy(
-            validator_registry=tuple(updated_validator_registry),
             latest_block_roots=tuple(updated_latest_block_roots),
             batched_block_roots=updated_batched_block_roots,
         )

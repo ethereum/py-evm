@@ -1,12 +1,6 @@
 import pytest
 
 from eth2.beacon.db.chain import BeaconChainDB
-from eth2.beacon.committee_helpers import (
-    get_beacon_proposer_index,
-)
-from eth2.beacon.configs import (
-    CommitteeConfig,
-)
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
@@ -88,34 +82,6 @@ def test_per_slot_transition(base_db,
 
     # Ensure that slot gets increased by 1
     assert updated_state.slot == state.slot + 1
-
-    # Validator Registry
-    # Tweaking the slot, so that we get the correct proposer index
-    beacon_proposer_index = get_beacon_proposer_index(
-        state,
-        state.slot + 1,
-        CommitteeConfig(st.config),
-    )
-    for validator_index, _ in enumerate(updated_state.validator_registry):
-        if validator_index != beacon_proposer_index:
-            # Validator Record shouldn't change if not proposer
-            assert (
-                updated_state.validator_registry[validator_index] ==
-                state.validator_registry[validator_index]
-            )
-        else:
-            # randao layers of proposer's record should increase by 1
-            assert (
-                updated_state.validator_registry[validator_index].randao_layers ==
-                state.validator_registry[validator_index].randao_layers + 1
-            )
-
-    # latest_randao_mixes
-    assert (
-        updated_state.latest_randao_mixes[
-            updated_state.slot % st.config.LATEST_RANDAO_MIXES_LENGTH
-        ] == state.latest_randao_mixes[(state.slot) % st.config.LATEST_RANDAO_MIXES_LENGTH]
-    )
 
     # latest_block_roots
     latest_block_roots_index = (updated_state.slot - 1) % st.config.LATEST_BLOCK_ROOTS_LENGTH

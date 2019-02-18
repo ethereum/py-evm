@@ -52,15 +52,15 @@ def get_genesis_block(startup_state_root: Hash32,
         slot=genesis_slot,
         parent_root=ZERO_HASH32,
         state_root=startup_state_root,
-        randao_reveal=ZERO_HASH32,
+        randao_reveal=EMPTY_SIGNATURE,
         eth1_data=Eth1Data.create_empty_data(),
         signature=EMPTY_SIGNATURE,
         body=BeaconBlockBody.create_empty_body(),
     )
 
 
-def get_initial_beacon_state(*,
-                             initial_validator_deposits: Sequence[Deposit],
+def get_genesis_beacon_state(*,
+                             genesis_validator_deposits: Sequence[Deposit],
                              genesis_time: Timestamp,
                              latest_eth1_data: Eth1Data,
                              genesis_slot: SlotNumber,
@@ -119,17 +119,17 @@ def get_initial_beacon_state(*,
         # Ethereum 1.0 chain data
         latest_eth1_data=latest_eth1_data,
         eth1_data_votes=(),
+        deposit_index=len(genesis_validator_deposits),
     )
 
     # Process initial deposits
-    for deposit in initial_validator_deposits:
+    for deposit in genesis_validator_deposits:
         state = process_deposit(
             state=state,
             pubkey=deposit.deposit_data.deposit_input.pubkey,
             amount=deposit.deposit_data.amount,
             proof_of_possession=deposit.deposit_data.deposit_input.proof_of_possession,
             withdrawal_credentials=deposit.deposit_data.deposit_input.withdrawal_credentials,
-            randao_commitment=deposit.deposit_data.deposit_input.randao_commitment,
             epoch_length=epoch_length,
         )
 

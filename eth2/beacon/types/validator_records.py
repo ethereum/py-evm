@@ -28,10 +28,6 @@ class ValidatorRecord(rlp.Serializable):
         ('pubkey', binary),
         # Withdrawal credentials
         ('withdrawal_credentials', hash32),
-        # RANDAO commitment
-        ('randao_commitment', hash32),
-        # Slot the proposer has skipped (ie. layers of RANDAO expected)
-        ('randao_layers', uint64),
         # Epoch when validator activated
         ('activation_epoch', uint64),
         # Epoch when validator exited
@@ -47,8 +43,6 @@ class ValidatorRecord(rlp.Serializable):
     def __init__(self,
                  pubkey: BLSPubkey,
                  withdrawal_credentials: Hash32,
-                 randao_commitment: Hash32,
-                 randao_layers: int,
                  activation_epoch: EpochNumber,
                  exit_epoch: EpochNumber,
                  withdrawal_epoch: EpochNumber,
@@ -57,8 +51,6 @@ class ValidatorRecord(rlp.Serializable):
         super().__init__(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
-            randao_commitment=randao_commitment,
-            randao_layers=randao_layers,
             activation_epoch=activation_epoch,
             exit_epoch=exit_epoch,
             withdrawal_epoch=withdrawal_epoch,
@@ -75,16 +67,13 @@ class ValidatorRecord(rlp.Serializable):
     @classmethod
     def create_pending_validator(cls,
                                  pubkey: BLSPubkey,
-                                 withdrawal_credentials: Hash32,
-                                 randao_commitment: Hash32) -> 'ValidatorRecord':
+                                 withdrawal_credentials: Hash32) -> 'ValidatorRecord':
         """
         Return a new pending ``ValidatorRecord`` with the given fields.
         """
         return cls(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
-            randao_commitment=randao_commitment,
-            randao_layers=0,
             activation_epoch=FAR_FUTURE_EPOCH,
             exit_epoch=FAR_FUTURE_EPOCH,
             withdrawal_epoch=FAR_FUTURE_EPOCH,

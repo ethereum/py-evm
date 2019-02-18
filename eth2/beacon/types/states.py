@@ -87,6 +87,7 @@ class BeaconState(rlp.Serializable):
         # Ethereum 1.0 chain
         ('latest_eth1_data', Eth1Data),
         ('eth1_data_votes', CountableList(Eth1DataVote)),
+        ('deposit_index', uint64),
     ]
 
     def __init__(
@@ -122,7 +123,8 @@ class BeaconState(rlp.Serializable):
             latest_attestations: Sequence[PendingAttestationRecord],
             # Ethereum 1.0 chain
             latest_eth1_data: Eth1Data,
-            eth1_data_votes: Sequence[Eth1DataVote]) -> None:
+            eth1_data_votes: Sequence[Eth1DataVote],
+            deposit_index: int) -> None:
         if len(validator_registry) != len(validator_balances):
             raise ValueError(
                 "The length of validator_registry and validator_balances should be the same."
@@ -159,6 +161,7 @@ class BeaconState(rlp.Serializable):
             # Ethereum 1.0 chain
             latest_eth1_data=latest_eth1_data,
             eth1_data_votes=eth1_data_votes,
+            deposit_index=deposit_index,
         )
 
     def __repr__(self) -> str:
@@ -244,6 +247,7 @@ class BeaconState(rlp.Serializable):
             # Ethereum 1.0 chain data
             latest_eth1_data=Eth1Data.create_empty_data(),
             eth1_data_votes=(),
+            deposit_index=len(activated_genesis_validators),
         )
 
     def update_validator_registry(self,

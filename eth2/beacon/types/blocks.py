@@ -25,9 +25,6 @@ from rlp.sedes import (
 from eth._utils.datatypes import (
     Configurable,
 )
-from eth.constants import (
-    ZERO_HASH32,
-)
 
 from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.constants import EMPTY_SIGNATURE
@@ -116,7 +113,7 @@ class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
         ('slot', uint64),
         ('parent_root', hash32),
         ('state_root', hash32),
-        ('randao_reveal', hash32),
+        ('randao_reveal', binary),  # TODO: should be bytes96 once we transition to SSZ
         ('eth1_data', Eth1Data),
         ('signature', binary),
 
@@ -130,7 +127,7 @@ class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
                  slot: SlotNumber,
                  parent_root: Hash32,
                  state_root: Hash32,
-                 randao_reveal: Hash32,
+                 randao_reveal: BLSSignature,
                  eth1_data: Eth1Data,
                  body: BeaconBlockBody,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
@@ -227,7 +224,7 @@ class BeaconBlock(BaseBeaconBlock):
             slot=slot,
             parent_root=parent_block.root,
             state_root=parent_block.state_root,
-            randao_reveal=ZERO_HASH32,
+            randao_reveal=EMPTY_SIGNATURE,
             eth1_data=parent_block.eth1_data,
             signature=EMPTY_SIGNATURE,
             body=cls.block_body_class.create_empty_body(),

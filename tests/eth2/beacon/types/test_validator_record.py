@@ -40,18 +40,14 @@ def test_is_active(sample_validator_record_params,
 def test_create_pending_validator():
     pubkey = 123
     withdrawal_credentials = b'\x11' * 32
-    randao_commitment = b'\x22' * 32
 
     validator = ValidatorRecord.create_pending_validator(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
-        randao_commitment=randao_commitment,
     )
 
     assert validator.pubkey == pubkey
     assert validator.withdrawal_credentials == withdrawal_credentials
-    assert validator.randao_commitment == randao_commitment
-    assert validator.randao_layers == 0
     assert validator.activation_epoch == FAR_FUTURE_EPOCH
     assert validator.exit_epoch == FAR_FUTURE_EPOCH
     assert validator.withdrawal_epoch == FAR_FUTURE_EPOCH
