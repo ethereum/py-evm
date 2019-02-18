@@ -91,7 +91,7 @@ deps['dev'] = (
 )
 
 
-install_requires = deps['trinity'] + deps['p2p']
+install_requires = deps['trinity'] + deps['p2p'] + deps['eth2']
 
 setup(
     name='trinity',
