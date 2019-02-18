@@ -1,11 +1,11 @@
 from eth_typing import (
     Hash32,
 )
-import rlp
 
-from eth2.beacon.sedes import (
+import ssz
+from ssz.sedes import (
     uint64,
-    hash32,
+    bytes32,
 )
 
 from eth2.beacon.typing import (
@@ -15,27 +15,25 @@ from eth2.beacon.typing import (
 )
 
 
-class AttestationData(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class AttestationData(ssz.Serializable):
+
     fields = [
         # Slot number
         ('slot', uint64),
         # Shard number
         ('shard', uint64),
         # Hash of the signed beacon block
-        ('beacon_block_root', hash32),
+        ('beacon_block_root', bytes32),
         # Hash of the ancestor at the epoch boundary
-        ('epoch_boundary_root', hash32),
+        ('epoch_boundary_root', bytes32),
         # Shard block root being attested to
-        ('shard_block_root', hash32),
+        ('shard_block_root', bytes32),
         # Last crosslink hash
-        ('latest_crosslink_root', hash32),
+        ('latest_crosslink_root', bytes32),
         # epoch of the last justified beacon block
         ('justified_epoch', uint64),
         # Hash of the last justified beacon block
-        ('justified_block_root', hash32),
+        ('justified_block_root', bytes32),
     ]
 
     def __init__(self,

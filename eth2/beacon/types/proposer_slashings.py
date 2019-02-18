@@ -1,10 +1,9 @@
-import rlp
-from rlp.sedes import (
-    binary,
-)
-from eth2.beacon.sedes import (
+import ssz
+from ssz.sedes import (
+    bytes_sedes,
     uint64,
 )
+
 from .proposal_signed_data import ProposalSignedData
 from eth2.beacon.typing import (
     BLSSignature,
@@ -13,18 +12,19 @@ from eth2.beacon.typing import (
 from eth2.beacon.constants import EMPTY_SIGNATURE
 
 
-class ProposerSlashing(rlp.Serializable):
+class ProposerSlashing(ssz.Serializable):
+
     fields = [
         # Proposer index
         ('proposer_index', uint64),
         # First proposal data
         ('proposal_data_1', ProposalSignedData),
         # First proposal signature
-        ('proposal_signature_1', binary),
+        ('proposal_signature_1', bytes_sedes),
         # Second proposal data
         ('proposal_data_2', ProposalSignedData),
         # Second proposal signature
-        ('proposal_signature_2', binary),
+        ('proposal_signature_2', bytes_sedes),
     ]
 
     def __init__(self,

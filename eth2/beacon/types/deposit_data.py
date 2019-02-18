@@ -1,5 +1,8 @@
-import rlp
-from eth2.beacon.sedes import uint64
+import ssz
+from ssz.sedes import (
+    uint64,
+)
+
 from .deposit_input import DepositInput
 from eth2.beacon.typing import (
     Timestamp,
@@ -7,13 +10,11 @@ from eth2.beacon.typing import (
 )
 
 
-class DepositData(rlp.Serializable):
+class DepositData(ssz.Serializable):
     """
     :class:`~eth2.beacon.types.deposit_data.DepositData` corresponds to the data broadcast from the
     Ethereum 1.0 deposit contract after a successful call to the ``deposit`` function on that
     contract.
-
-    .. note:: using RLP until we have standardized serialization format.
     """
     fields = [
         # Amount in Gwei

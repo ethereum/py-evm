@@ -1,15 +1,13 @@
 from eth_typing import (
     Hash32,
 )
-import rlp
-from rlp.sedes import (
-    binary,
+import ssz
+from ssz.sedes import (
+    bytes_sedes,
+    bytes32,
+    uint64,
 )
 
-from eth2.beacon.sedes import (
-    uint64,
-    hash32,
-)
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
@@ -19,15 +17,13 @@ from eth2.beacon.typing import (
 )
 
 
-class ValidatorRecord(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class ValidatorRecord(ssz.Serializable):
+
     fields = [
         # BLS public key
-        ('pubkey', binary),
+        ('pubkey', bytes_sedes),
         # Withdrawal credentials
-        ('withdrawal_credentials', hash32),
+        ('withdrawal_credentials', bytes32),
         # Epoch when validator activated
         ('activation_epoch', uint64),
         # Epoch when validator exited

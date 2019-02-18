@@ -1,11 +1,9 @@
-import rlp
+import ssz
 from .slashable_attestations import SlashableAttestation
 
 
-class AttesterSlashing(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class AttesterSlashing(ssz.Serializable):
+
     fields = [
         # First slashable attestation
         ('slashable_attestation_1', SlashableAttestation),

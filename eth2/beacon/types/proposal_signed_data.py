@@ -1,31 +1,30 @@
 from eth_typing import (
     Hash32,
 )
-import rlp
+
+import ssz
+from ssz.sedes import (
+    bytes32,
+    uint64,
+)
 
 from eth2.beacon._utils.hash import hash_eth2
 
-from eth2.beacon.sedes import (
-    uint64,
-    hash32,
-)
 from eth2.beacon.typing import (
     SlotNumber,
     ShardNumber,
 )
 
 
-class ProposalSignedData(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class ProposalSignedData(ssz.Serializable):
+
     fields = [
         # Slot number
         ('slot', uint64),
         # Shard number (or `2**64 - 1` for beacon chain)
         ('shard', uint64),
         # block root
-        ('block_root', hash32),
+        ('block_root', bytes32),
     ]
 
     def __init__(self,

@@ -15,10 +15,13 @@ from eth_utils import (
     encode_hex,
 )
 
-import rlp
-from rlp.sedes import (
-    CountableList,
-    binary,
+import ssz
+from ssz.sedes import (
+    List,
+    bytes_sedes,
+    bytes32,
+    bytes96,
+    uint64,
 )
 
 
@@ -28,10 +31,6 @@ from eth._utils.datatypes import (
 
 from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.constants import EMPTY_SIGNATURE
-from eth2.beacon.sedes import (
-    hash32,
-    uint64,
-)
 from eth2.beacon.typing import (
     BLSSignature,
     SlotNumber,
@@ -50,13 +49,14 @@ if TYPE_CHECKING:
     from eth2.beacon.db.chain import BaseBeaconChainDB  # noqa: F401
 
 
-class BeaconBlockBody(rlp.Serializable):
+class BeaconBlockBody(ssz.Serializable):
+
     fields = [
-        ('proposer_slashings', CountableList(ProposerSlashing)),
-        ('attester_slashings', CountableList(AttesterSlashing)),
-        ('attestations', CountableList(Attestation)),
-        ('deposits', CountableList(Deposit)),
-        ('exits', CountableList(Exit)),
+        ('proposer_slashings', List(ProposerSlashing)),
+        ('attester_slashings', List(AttesterSlashing)),
+        ('attestations', List(Attestation)),
+        ('deposits', List(Deposit)),
+        ('exits', List(Exit)),
     ]
 
     def __init__(self,
@@ -105,17 +105,17 @@ class BeaconBlockBody(rlp.Serializable):
         )
 
 
-class BaseBeaconBlock(rlp.Serializable, Configurable, ABC):
+class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
     fields = [
         #
         # Header
         #
         ('slot', uint64),
-        ('parent_root', hash32),
-        ('state_root', hash32),
-        ('randao_reveal', binary),  # TODO: should be bytes96 once we transition to SSZ
+        ('parent_root', bytes32),
+        ('state_root', bytes32),
+        ('randao_reveal', bytes96),
         ('eth1_data', Eth1Data),
-        ('signature', binary),
+        ('signature', bytes_sedes),
 
         #
         # Body

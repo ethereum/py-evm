@@ -9,9 +9,11 @@ from eth_utils import (
     encode_hex,
 )
 
-import rlp
-from rlp.sedes import (
-    CountableList,
+import ssz
+from ssz.sedes import (
+    List,
+    bytes32,
+    uint64,
 )
 
 from eth.constants import (
@@ -22,10 +24,6 @@ from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.helpers import slot_to_epoch
-from eth2.beacon.sedes import (
-    uint64,
-    hash32,
-)
 from eth2.beacon.typing import (
     EpochNumber,
     Gwei,
@@ -43,10 +41,8 @@ from .pending_attestation_records import PendingAttestationRecord
 from .validator_records import ValidatorRecord
 
 
-class BeaconState(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class BeaconState(ssz.Serializable):
+
     fields = [
         # Misc
         ('slot', uint64),
@@ -54,18 +50,18 @@ class BeaconState(rlp.Serializable):
         ('fork', Fork),  # For versioning hard forks
 
         # Validator registry
-        ('validator_registry', CountableList(ValidatorRecord)),
-        ('validator_balances', CountableList(uint64)),
+        ('validator_registry', List(ValidatorRecord)),
+        ('validator_balances', List(uint64)),
         ('validator_registry_update_epoch', uint64),
 
         # Randomness and committees
-        ('latest_randao_mixes', CountableList(hash32)),
+        ('latest_randao_mixes', List(bytes32)),
         ('previous_epoch_start_shard', uint64),
         ('current_epoch_start_shard', uint64),
         ('previous_calculation_epoch', uint64),
         ('current_calculation_epoch', uint64),
-        ('previous_epoch_seed', hash32),
-        ('current_epoch_seed', hash32),
+        ('previous_epoch_seed', bytes32),
+        ('current_epoch_seed', bytes32),
 
         # Finality
         ('previous_justified_epoch', uint64),
@@ -77,16 +73,16 @@ class BeaconState(rlp.Serializable):
         ('finalized_epoch', uint64),
 
         # Recent state
-        ('latest_crosslinks', CountableList(CrosslinkRecord)),
-        ('latest_block_roots', CountableList(hash32)),  # Needed to process attestations, older to newer  # noqa: E501
-        ('latest_index_roots', CountableList(hash32)),
-        ('latest_penalized_balances', CountableList(uint64)),  # Balances penalized at every withdrawal period  # noqa: E501
-        ('latest_attestations', CountableList(PendingAttestationRecord)),
-        ('batched_block_roots', CountableList(hash32)),  # allow for a log-sized Merkle proof from any block to any historical block root"  # noqa: E501
+        ('latest_crosslinks', List(CrosslinkRecord)),
+        ('latest_block_roots', List(bytes32)),  # Needed to process attestations, older to newer  # noqa: E501
+        ('latest_index_roots', List(bytes32)),
+        ('latest_penalized_balances', List(uint64)),  # Balances penalized at every withdrawal period  # noqa: E501
+        ('latest_attestations', List(PendingAttestationRecord)),
+        ('batched_block_roots', List(bytes32)),  # allow for a log-sized Merkle proof from any block to any historical block root"  # noqa: E501
 
         # Ethereum 1.0 chain
         ('latest_eth1_data', Eth1Data),
-        ('eth1_data_votes', CountableList(Eth1DataVote)),
+        ('eth1_data_votes', List(Eth1DataVote)),
         ('deposit_index', uint64),
     ]
 

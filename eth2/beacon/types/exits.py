@@ -1,10 +1,9 @@
-import rlp
-from rlp.sedes import (
-    binary,
-)
-from eth2.beacon.sedes import (
+import ssz
+from ssz.sedes import (
+    bytes_sedes,
     uint64,
 )
+
 from eth2.beacon.typing import (
     BLSSignature,
     EpochNumber,
@@ -13,17 +12,15 @@ from eth2.beacon.typing import (
 from eth2.beacon.constants import EMPTY_SIGNATURE
 
 
-class Exit(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class Exit(ssz.Serializable):
+
     fields = [
         # Minimum epoch for processing exit
         ('epoch', uint64),
         # Index of the exiting validator
         ('validator_index', uint64),
         # Validator signature
-        ('signature', binary),
+        ('signature', bytes_sedes),
     ]
 
     def __init__(self,

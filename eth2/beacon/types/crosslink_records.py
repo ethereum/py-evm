@@ -1,25 +1,23 @@
 from eth_typing import (
     Hash32,
 )
-import rlp
 
-from eth2.beacon.sedes import (
+import ssz
+from ssz.sedes import (
     uint64,
-    hash32,
+    bytes32,
 )
 
 from eth2.beacon.typing import EpochNumber
 
 
-class CrosslinkRecord(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class CrosslinkRecord(ssz.Serializable):
+
     fields = [
         # Epoch during which crosslink was added
         ('epoch', uint64),
         # Shard chain block root
-        ('shard_block_root', hash32),
+        ('shard_block_root', bytes32),
     ]
 
     def __init__(self,

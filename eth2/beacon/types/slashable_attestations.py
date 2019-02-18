@@ -3,11 +3,13 @@ from typing import (
     Tuple,
 )
 
-import rlp
-from rlp.sedes import (
-    binary,
-    CountableList,
+import ssz
+from ssz.sedes import (
+    List,
+    bytes_sedes,
+    uint64,
 )
+
 from eth_typing import (
     Hash32,
 )
@@ -15,9 +17,6 @@ from eth2._utils.bitfield import (
     has_voted,
 )
 from eth2.beacon._utils.hash import hash_eth2
-from eth2.beacon.sedes import (
-    uint64,
-)
 from eth2.beacon.typing import (
     BLSSignature,
     ValidatorIndex,
@@ -28,19 +27,17 @@ from .attestation_data import AttestationData
 from .attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 
 
-class SlashableAttestation(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class SlashableAttestation(ssz.Serializable):
+
     fields = [
         # Validator indices
-        ('validator_indices', CountableList(uint64)),
+        ('validator_indices', List(uint64)),
         # Attestation data
         ('data', AttestationData),
         # Custody bitfield
-        ('custody_bitfield', binary),
+        ('custody_bitfield', bytes_sedes),
         # Aggregate signature
-        ('aggregate_signature', binary),
+        ('aggregate_signature', bytes_sedes),
     ]
 
     def __init__(self,

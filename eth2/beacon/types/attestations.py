@@ -1,6 +1,6 @@
-import rlp
-from rlp.sedes import (
-    binary,
+import ssz
+from ssz.sedes import (
+    bytes_sedes,
 )
 
 from .attestation_data import (
@@ -14,18 +14,16 @@ from eth2.beacon.typing import (
 from eth2.beacon.constants import EMPTY_SIGNATURE
 
 
-class Attestation(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class Attestation(ssz.Serializable):
+
     fields = [
         ('data', AttestationData),
         # Attester aggregation bitfield
-        ('aggregation_bitfield', binary),
+        ('aggregation_bitfield', bytes_sedes),
         # Proof of custody bitfield
-        ('custody_bitfield', binary),
+        ('custody_bitfield', bytes_sedes),
         # BLS aggregate signature
-        ('aggregate_signature', binary),
+        ('aggregate_signature', bytes_sedes),
     ]
 
     def __init__(self,
