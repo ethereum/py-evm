@@ -5,6 +5,7 @@ import ssz
 from ssz.sedes import (
     bytes_sedes,
     bytes32,
+    bytes96,
 )
 
 from eth2.beacon._utils.hash import hash_eth2
@@ -23,7 +24,7 @@ class DepositInput(ssz.Serializable):
         # Withdrawal credentials
         ('withdrawal_credentials', bytes32),
         # BLS proof of possession (a BLS signature)
-        ('proof_of_possession', bytes_sedes),
+        ('proof_of_possession', bytes96),
     ]
 
     def __init__(self,

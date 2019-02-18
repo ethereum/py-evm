@@ -1,6 +1,7 @@
 import ssz
 from ssz.sedes import (
     bytes_sedes,
+    bytes96,
 )
 
 from .attestation_data import (
@@ -23,7 +24,7 @@ class Attestation(ssz.Serializable):
         # Proof of custody bitfield
         ('custody_bitfield', bytes_sedes),
         # BLS aggregate signature
-        ('aggregate_signature', bytes_sedes),
+        ('aggregate_signature', bytes96),
     ]
 
     def __init__(self,

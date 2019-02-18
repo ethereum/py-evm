@@ -7,6 +7,7 @@ import ssz
 from ssz.sedes import (
     List,
     bytes_sedes,
+    bytes96,
     uint64,
 )
 
@@ -37,7 +38,7 @@ class SlashableAttestation(ssz.Serializable):
         # Custody bitfield
         ('custody_bitfield', bytes_sedes),
         # Aggregate signature
-        ('aggregate_signature', bytes_sedes),
+        ('aggregate_signature', bytes96),
     ]
 
     def __init__(self,
