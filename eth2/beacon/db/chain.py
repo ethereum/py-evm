@@ -12,7 +12,7 @@ from cytoolz import (
     sliding_window,
 )
 
-import rlp
+import ssz
 from eth_typing import (
     Hash32,
 )
@@ -209,7 +209,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                 "No canonical block for block slot #{0}".format(slot)
             )
         else:
-            return rlp.decode(encoded_key, sedes=rlp.sedes.binary)
+            return ssz.decode(encoded_key, sedes=ssz.sedes.bytes_sedes)
 
     def get_canonical_block_by_slot(self,
                                     slot: int,
@@ -307,11 +307,11 @@ class BeaconChainDB(BaseBeaconChainDB):
         """
         validate_word(block_root, title="block root")
         try:
-            block_rlp = db[block_root]
+            block_ssz = db[block_root]
         except KeyError:
             raise BlockNotFound("No block with root {0} found".format(
                 encode_hex(block_root)))
-        return _decode_block(block_rlp, block_class)
+        return _decode_block(block_ssz, block_class)
 
     def get_slot_by_root(self,
                          block_root: Hash32) -> SlotNumber:
@@ -331,7 +331,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         except KeyError:
             raise BlockNotFound("No block with root {0} found".format(
                 encode_hex(block_root)))
-        return SlotNumber(rlp.decode(encoded_slot, sedes=rlp.sedes.big_endian_int))
+        return SlotNumber(ssz.decode(encoded_slot, sedes=ssz.sedes.uint64))
 
     def get_score(self, block_root: Hash32) -> int:
         return self._get_score(self.db, block_root)
@@ -343,7 +343,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         except KeyError:
             raise BlockNotFound("No block with hash {0} found".format(
                 encode_hex(block_root)))
-        return rlp.decode(encoded_score, sedes=rlp.sedes.big_endian_int)
+        return ssz.decode(encoded_score, sedes=ssz.sedes.uint64)
 
     def block_exists(self, block_root: Hash32) -> bool:
         return self._block_exists(self.db, block_root)
@@ -376,7 +376,7 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         db.set(
             SchemaV1.make_block_root_to_score_lookup_key(block.root),
-            rlp.encode(score, sedes=rlp.sedes.big_endian_int),
+            ssz.encode(score, sedes=ssz.sedes.uint64),
         )
         return score
 
@@ -421,7 +421,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         curr_block_head = first_block
         db.set(
             curr_block_head.root,
-            rlp.encode(curr_block_head),
+            ssz.encode(curr_block_head),
         )
         cls._add_block_root_to_slot_lookup(db, curr_block_head)
         cls._set_block_scores_to_db(db, curr_block_head)
@@ -441,7 +441,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             curr_block_head = child
             db.set(
                 curr_block_head.root,
-                rlp.encode(curr_block_head),
+                ssz.encode(curr_block_head),
             )
             cls._add_block_root_to_slot_lookup(db, curr_block_head)
             score = cls._set_block_scores_to_db(db, curr_block_head)
@@ -543,7 +543,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         )
         db.set(
             block_slot_to_root_key,
-            rlp.encode(block.root, sedes=rlp.sedes.binary),
+            ssz.encode(block.root, sedes=ssz.sedes.bytes_sedes),
         )
 
     @staticmethod
@@ -557,7 +557,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         )
         db.set(
             block_root_to_slot_key,
-            rlp.encode(block.slot, sedes=rlp.sedes.big_endian_int),
+            ssz.encode(block.slot, sedes=ssz.sedes.uint64),
         )
 
     #
@@ -575,10 +575,10 @@ class BeaconChainDB(BaseBeaconChainDB):
         """
         # TODO: validate_state_root
         try:
-            state_rlp = db[state_root]
+            state_ssz = db[state_root]
         except KeyError:
             raise StateRootNotFound(f"No state with root {encode_hex(state_root)} found")
-        return _decode_state(state_rlp)
+        return _decode_state(state_ssz)
 
     def persist_state(self,
                       state: BeaconState) -> None:
@@ -593,7 +593,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                        state: BeaconState) -> None:
         db.set(
             state.root,
-            rlp.encode(state),
+            ssz.encode(state),
         )
 
     #
@@ -613,15 +613,15 @@ class BeaconChainDB(BaseBeaconChainDB):
 
 
 # When performing a chain sync (either fast or regular modes), we'll very often need to look
-# up recent blocks to validate the chain, and decoding their RLP representation is
+# up recent blocks to validate the chain, and decoding their SSZ representation is
 # relatively expensive so we cache that here, but use a small cache because we *should* only
 # be looking up recent blocks.
 @functools.lru_cache(128)
-def _decode_block(block_rlp: bytes, sedes: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-    return rlp.decode(block_rlp, sedes=sedes)
+def _decode_block(block_ssz: bytes, sedes: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+    return ssz.decode(block_ssz, sedes=sedes)
 
 
 @functools.lru_cache(128)
-def _decode_state(state_rlp: bytes) -> BeaconState:
+def _decode_state(state_ssz: bytes) -> BeaconState:
     # TODO: forkable BeaconState fields?
-    return rlp.decode(state_rlp, sedes=BeaconState)
+    return ssz.decode(state_ssz, sedes=BeaconState)
