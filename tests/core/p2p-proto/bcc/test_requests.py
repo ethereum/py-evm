@@ -2,6 +2,8 @@ import pytest
 
 import asyncio
 
+import ssz
+
 from p2p.peer import (
     MsgBuffer,
 )
@@ -59,7 +61,7 @@ async def test_get_single_block_by_slot(request, event_loop):
     assert isinstance(response.command, BeaconBlocks)
     assert response.payload == {
         "request_id": 5,
-        "blocks": (block,),
+        "encoded_blocks": (ssz.encode(block),),
     }
 
 
@@ -75,7 +77,7 @@ async def test_get_single_block_by_root(request, event_loop):
     assert isinstance(response.command, BeaconBlocks)
     assert response.payload == {
         "request_id": 5,
-        "blocks": (block,),
+        "encoded_blocks": (ssz.encode(block),),
     }
 
 
@@ -91,7 +93,7 @@ async def test_get_no_blocks(request, event_loop):
     assert isinstance(response.command, BeaconBlocks)
     assert response.payload == {
         "request_id": 5,
-        "blocks": (),
+        "encoded_blocks": (),
     }
 
 
@@ -107,7 +109,7 @@ async def test_get_unknown_block_by_slot(request, event_loop):
     assert isinstance(response.command, BeaconBlocks)
     assert response.payload == {
         "request_id": 5,
-        "blocks": (),
+        "encoded_blocks": (),
     }
 
 
@@ -123,7 +125,7 @@ async def test_get_unknown_block_by_root(request, event_loop):
     assert isinstance(response.command, BeaconBlocks)
     assert response.payload == {
         "request_id": 5,
-        "blocks": (),
+        "encoded_blocks": (),
     }
 
 
@@ -147,7 +149,7 @@ async def test_get_canonical_block_range_by_slot(request, event_loop):
 
     assert isinstance(response.command, BeaconBlocks)
     assert response.payload["request_id"] == 5
-    blocks = response.payload["blocks"]
+    blocks = tuple(ssz.decode(block, BeaconBlock) for block in response.payload["encoded_blocks"])
     assert len(blocks) == 4
     assert [block.slot for block in blocks] == [2, 3, 4, 5]
     assert blocks == base_branch[1:] + canonical_branch[:2]
@@ -172,7 +174,7 @@ async def test_get_canonical_block_range_by_root(request, event_loop):
 
     assert isinstance(response.command, BeaconBlocks)
     assert response.payload["request_id"] == 5
-    blocks = response.payload["blocks"]
+    blocks = tuple(ssz.decode(block, BeaconBlock) for block in response.payload["encoded_blocks"])
     assert len(blocks) == 4
     assert [block.slot for block in blocks] == [2, 3, 4, 5]
     assert blocks == base_branch[1:] + canonical_branch[:2]
@@ -197,7 +199,7 @@ async def test_get_incomplete_canonical_block_range(request, event_loop):
 
     assert isinstance(response.command, BeaconBlocks)
     assert response.payload["request_id"] == 5
-    blocks = response.payload["blocks"]
+    blocks = tuple(ssz.decode(block, BeaconBlock) for block in response.payload["encoded_blocks"])
     assert len(blocks) == 5
     assert [block.slot for block in blocks] == [3, 4, 5, 6, 7]
     assert blocks == base_branch[-1:] + canonical_branch
@@ -222,7 +224,7 @@ async def test_get_non_canonical_branch(request, event_loop):
 
     assert isinstance(response.command, BeaconBlocks)
     assert response.payload["request_id"] == 5
-    blocks = response.payload["blocks"]
+    blocks = tuple(ssz.decode(block, BeaconBlock) for block in response.payload["encoded_blocks"])
     assert len(blocks) == 1
     assert blocks[0].slot == 5
     assert blocks[0] == non_canonical_branch[1]

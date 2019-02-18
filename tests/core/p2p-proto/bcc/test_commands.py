@@ -1,5 +1,6 @@
 import pytest
 
+import ssz
 
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
@@ -57,7 +58,7 @@ async def test_send_no_blocks(request, event_loop):
     assert isinstance(message.command, BeaconBlocks)
     assert message.payload == {
         "request_id": request_id,
-        "blocks": (),
+        "encoded_blocks": (),
     }
 
 
@@ -81,7 +82,7 @@ async def test_send_single_block(request, event_loop):
     assert isinstance(message.command, BeaconBlocks)
     assert message.payload == {
         "request_id": request_id,
-        "blocks": (block,),
+        "encoded_blocks": (ssz.encode(block),),
     }
 
 
@@ -108,7 +109,7 @@ async def test_send_multiple_blocks(request, event_loop):
     assert isinstance(message.command, BeaconBlocks)
     assert message.payload == {
         "request_id": request_id,
-        "blocks": blocks,
+        "encoded_blocks": tuple(ssz.encode(block) for block in blocks),
     }
 
 
@@ -178,7 +179,7 @@ async def test_send_single_attestation(request, event_loop):
 
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, AttestationRecords)
-    assert message.payload == (attestation,)
+    assert message.payload == (ssz.encode(attestation),)
 
 
 @pytest.mark.asyncio
@@ -206,4 +207,4 @@ async def test_send_multiple_attestations(request, event_loop):
 
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, AttestationRecords)
-    assert message.payload == attestations
+    assert message.payload == tuple(ssz.encode(attestation) for attestation in attestations)

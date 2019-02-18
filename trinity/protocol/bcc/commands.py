@@ -78,10 +78,10 @@ class BeaconBlocks(Command):
     _cmd_id = 2
     structure = [
         ('request_id', sedes.big_endian_int),
-        ('blocks', sedes.CountableList(BeaconBlock)),
+        ('encoded_blocks', sedes.CountableList(sedes.binary)),
     ]
 
 
 class AttestationRecords(Command):
     _cmd_id = 3
-    structure = sedes.CountableList(Attestation)
+    structure = sedes.CountableList(sedes.binary)
