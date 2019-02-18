@@ -26,7 +26,6 @@ from trinity.rlp.sedes import (
 )
 
 from eth2.beacon.types.blocks import BeaconBlock
-from eth2.beacon.types.attestations import Attestation
 
 
 class RequestMessage(TypedDict):
