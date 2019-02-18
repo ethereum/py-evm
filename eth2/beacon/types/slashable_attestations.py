@@ -57,7 +57,7 @@ class SlashableAttestation(ssz.Serializable):
     @property
     def hash(self) -> Hash32:
         if self._hash is None:
-            self._hash = hash_eth2(rlp.encode(self.data))
+            self._hash = hash_eth2(ssz.encode(self.data))
         return self._hash
 
     @property
