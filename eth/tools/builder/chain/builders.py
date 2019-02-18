@@ -290,11 +290,15 @@ class NoVMSealValidationMixin:
 @to_tuple
 def _mix_in_disable_seal_validation(vm_configuration: VMConfiguration) -> Iterable[VMFork]:
     for fork_block, vm_class in vm_configuration:
-        vm_class_without_seal_validation = type(
-            vm_class.__name__,
-            (NoVMSealValidationMixin, vm_class),
-            {},
-        )
+        if issubclass(vm_class, NoVMSealValidationMixin):
+            # Seal validation already disabled, hence nothing to change
+            vm_class_without_seal_validation = vm_class
+        else:
+            vm_class_without_seal_validation = type(
+                vm_class.__name__,
+                (NoVMSealValidationMixin, vm_class),
+                {},
+            )
         yield fork_block, vm_class_without_seal_validation
 
 
@@ -312,11 +316,15 @@ def disable_pow_check(chain_class: Type[BaseChain]) -> Type[BaseChain]:
     if not chain_class.vm_configuration:
         raise ValidationError("Chain class has no vm_configuration")
 
-    chain_class_without_seal_validation = type(
-        chain_class.__name__,
-        (NoChainSealValidationMixin, chain_class),
-        {},
-    )
+    if issubclass(chain_class, NoChainSealValidationMixin):
+        # Seal validation already disabled, hence nothing to change
+        chain_class_without_seal_validation = chain_class
+    else:
+        chain_class_without_seal_validation = type(
+            chain_class.__name__,
+            (chain_class, NoChainSealValidationMixin),
+            {},
+        )
     return chain_class_without_seal_validation.configure(  # type: ignore
         vm_configuration=_mix_in_disable_seal_validation(
             chain_class_without_seal_validation.vm_configuration  # type: ignore
