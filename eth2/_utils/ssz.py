@@ -15,13 +15,12 @@ from eth_utils.toolz import (
     curry,
 )
 
-
-TSerializable = TypeVar("TSerializable", bound=ssz.Serializable)
+from eth2.beacon.types.blocks import BaseBeaconBlock
 
 
 @to_tuple
-def diff_ssz_object(left: TSerializable,
-                    right: TSerializable) -> Optional[Iterable[Tuple[str, str, str]]]:
+def diff_ssz_object(left: BaseBeaconBlock,
+                    right: BaseBeaconBlock) -> Optional[Iterable[Tuple[str, str, str]]]:
     if left != right:
         ssz_type = type(left)
 
@@ -54,8 +53,8 @@ def diff_ssz_object(left: TSerializable,
 
 
 @curry
-def validate_ssz_equal(obj_a: TSerializable,
-                       obj_b: TSerializable,
+def validate_ssz_equal(obj_a: BaseBeaconBlock,
+                       obj_b: BaseBeaconBlock,
                        obj_a_name: str=None,
                        obj_b_name: str=None) -> None:
     if obj_a == obj_b:
