@@ -1,6 +1,6 @@
 import pytest
 
-import rlp
+import ssz
 
 from eth2.beacon.types.states import (
     BeaconState,
@@ -21,7 +21,7 @@ def test_defaults(sample_beacon_state_params):
     state = BeaconState(**sample_beacon_state_params)
     assert state.validator_registry == sample_beacon_state_params['validator_registry']
     assert state.validator_registry_update_epoch == sample_beacon_state_params['validator_registry_update_epoch']  # noqa: E501
-    assert rlp.encode(state)
+    assert ssz.encode(state)
 
 
 def test_validator_registry_and_balances_length(sample_beacon_state_params):
@@ -73,7 +73,7 @@ def test_num_crosslink_records(expected,
 
 def test_hash(sample_beacon_state_params):
     state = BeaconState(**sample_beacon_state_params)
-    assert state.root == hash_eth2(rlp.encode(state))
+    assert state.root == hash_eth2(ssz.encode(state))
 
 
 @pytest.mark.parametrize(

@@ -1,4 +1,5 @@
-import rlp
+import ssz
+
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 
 
@@ -14,4 +15,4 @@ def test_defaults(sample_attester_slashing_params):
         sample_attester_slashing_params['slashable_attestation_2'].custody_bitfield
     )
 
-    assert rlp.encode(attester_slashing)
+    assert ssz.encode(attester_slashing)
