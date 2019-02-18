@@ -71,7 +71,7 @@ class GetBeaconBlocks(Command):
 
 class BeaconBlocksMessage(TypedDict):
     request_id: int
-    blocks: Tuple[BeaconBlock, ...]
+    encoded_blocks: Tuple[BeaconBlock, ...]
 
 
 class BeaconBlocks(Command):
