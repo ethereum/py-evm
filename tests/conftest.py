@@ -1,5 +1,3 @@
-# from eth._utils.logging import DEBUG2_LEVEL_NUM
-
 import pytest
 
 from eth_utils import (
@@ -31,7 +29,7 @@ from eth.vm.forks import (
 import datetime
 import logging
 import os
-from eth.tools.logging import TRACE_LEVEL_NUM
+from eth.tools.logging import DEBUG2_LEVEL_NUM
 
 @pytest.yield_fixture(autouse=True)
 def _file_logging(request):
