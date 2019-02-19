@@ -286,7 +286,8 @@ def _process_rewards_and_penalties_for_finality(
         inclusion_distance_map: Dict[ValidatorIndex, int],
         effective_balance_map: Dict[ValidatorIndex, Gwei],
         base_reward_map: Dict[ValidatorIndex, Gwei],
-        reward_received_map: Dict[ValidatorIndex, Gwei]) -> None:
+        old_reward_received_map: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
+    reward_received_map = old_reward_received_map.copy()
     epochs_since_finality = state.next_epoch(config.EPOCH_LENGTH) - state.finalized_epoch
     if epochs_since_finality <= 4:
         # 1.1 Expected FFG source:
@@ -408,6 +409,7 @@ def _process_rewards_and_penalties_for_finality(
                 base_reward * config.MIN_ATTESTATION_INCLUSION_DELAY // inclusion_distance_map[index]  # noqa: E501
             )
             reward_received_map[index] = Gwei(reward_received_map[index] - penalty)
+    return reward_received_map
 
 
 def _process_rewards_and_penalties_for_attestation_inclusion(
@@ -416,7 +418,8 @@ def _process_rewards_and_penalties_for_attestation_inclusion(
         previous_epoch_attester_indices: Iterable[ValidatorIndex],
         inclusion_slot_map: Dict[ValidatorIndex, SlotNumber],
         base_reward_map: Dict[ValidatorIndex, Gwei],
-        reward_received_map: Dict[ValidatorIndex, Gwei]) -> None:
+        old_reward_received_map: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
+    reward_received_map = old_reward_received_map.copy()
     for index in previous_epoch_attester_indices:
         proposer_index = get_beacon_proposer_index(
             state,
@@ -425,6 +428,7 @@ def _process_rewards_and_penalties_for_attestation_inclusion(
         )
         reward = base_reward_map[index] // config.ATTESTATION_INCLUSION_REWARD_QUOTIENT
         reward_received_map[proposer_index] = Gwei(reward_received_map[proposer_index] + reward)
+    return reward_received_map
 
 
 def _process_rewards_and_penalties_for_crosslinks(
@@ -433,7 +437,8 @@ def _process_rewards_and_penalties_for_crosslinks(
         previous_epoch_attestations: Iterable[PendingAttestationRecord],
         effective_balance_map: Dict[ValidatorIndex, Gwei],
         base_reward_map: Dict[ValidatorIndex, Gwei],
-        reward_received_map: Dict[ValidatorIndex, Gwei]) -> None:
+        old_reward_received_map: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
+    reward_received_map = old_reward_received_map.copy()
     previous_epoch_start_slot = get_epoch_start_slot(
         state.previous_epoch(config.EPOCH_LENGTH, config.GENESIS_EPOCH),
         config.EPOCH_LENGTH,
@@ -487,6 +492,7 @@ def _process_rewards_and_penalties_for_crosslinks(
             for index in set(crosslink_committee).difference(attesting_validator_indices):
                 penalty = base_reward_map[index]
                 reward_received_map[index] = Gwei(reward_received_map[index] - penalty)
+    return reward_received_map
 
 
 def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> BeaconState:
@@ -587,7 +593,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     }
 
     # 1. Process rewards and penalties for justification and finalization
-    _process_rewards_and_penalties_for_finality(
+    reward_received_map = _process_rewards_and_penalties_for_finality(
         state,
         config,
         prev_epoch_active_validator_indices,
@@ -602,7 +608,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     )
 
     # 2. Process rewards and penalties for attestation inclusion
-    _process_rewards_and_penalties_for_attestation_inclusion(
+    reward_received_map = _process_rewards_and_penalties_for_attestation_inclusion(
         state,
         config,
         previous_epoch_attester_indices,
@@ -612,7 +618,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     )
 
     # 3. Process rewards and penalties for crosslinks
-    _process_rewards_and_penalties_for_crosslinks(
+    reward_received_map = _process_rewards_and_penalties_for_crosslinks(
         state,
         config,
         previous_epoch_attestations,
