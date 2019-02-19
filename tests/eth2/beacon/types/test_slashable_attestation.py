@@ -1,6 +1,6 @@
 import pytest
 
-import rlp
+import ssz
 
 from eth2.beacon.types.attestation_data_and_custody_bits import (
     AttestationDataAndCustodyBit,
@@ -22,7 +22,7 @@ def test_defaults(sample_slashable_attestation_params):
         slashable_attestation.aggregate_signature ==
         sample_slashable_attestation_params['aggregate_signature']
     )
-    assert rlp.encode(slashable_attestation)
+    assert ssz.encode(slashable_attestation)
 
 
 def test_hash(sample_slashable_attestation_params):
@@ -33,7 +33,7 @@ def test_hash(sample_slashable_attestation_params):
     # Given that this value will change soon (cf. ssz tree hash), we just
     # do this to get the test passing for now and will need to update later
     # if we expect the hash computation is not working correctly
-    hash_hex = "0748b74fa43b72cb0afa29b803113d6ca921d98ec6feffecb9962af47d477d2a"
+    hash_hex = "8cba2c190eae977ba16cbcc7ef1b95b32384fd12e86292ca8a91cc320eaeac9c"
 
     assert slashable_attestation.hash == bytes.fromhex(hash_hex)
 

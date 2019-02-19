@@ -1,25 +1,24 @@
 from eth_typing import (
     Hash32,
 )
-import rlp
+
+import ssz
+from ssz.sedes import (
+    bytes32,
+)
 
 from eth.constants import (
     ZERO_HASH32,
 )
-from eth2.beacon.sedes import (
-    hash32,
-)
 
 
-class Eth1Data(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class Eth1Data(ssz.Serializable):
+
     fields = [
         # Root of the deposit tree
-        ('deposit_root', hash32),
+        ('deposit_root', bytes32),
         # Ethereum 1.0 chain block hash
-        ('block_hash', hash32),
+        ('block_hash', bytes32),
     ]
 
     def __init__(self,

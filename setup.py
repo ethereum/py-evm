@@ -74,7 +74,8 @@ deps = {
         "lru-dict>=1.1.6",
         "py-ecc>=1.4.7,<2.0.0",
         "rlp>=1.1.0,<2.0.0",
-        "py-evm==0.2.0a38",
+        "py-evm==0.2.0a40",
+        "ssz==0.1.0a2",
     ],
 }
 
@@ -90,7 +91,7 @@ deps['dev'] = (
 )
 
 
-install_requires = deps['trinity'] + deps['p2p']
+install_requires = deps['trinity'] + deps['p2p'] + deps['eth2']
 
 setup(
     name='trinity',

@@ -4,10 +4,6 @@ from typing import (
     Type,
 )
 
-from eth.constants import (
-    ZERO_HASH32,
-)
-
 from eth2._utils import bls
 from eth2.beacon.enums import (
     SignatureDomain,
@@ -18,6 +14,9 @@ from eth2.beacon.committee_helpers import (
 from eth2.beacon.configs import (
     BeaconConfig,
     CommitteeConfig,
+)
+from eth2.beacon.constants import (
+    EMPTY_SIGNATURE,
 )
 from eth2.beacon.exceptions import (
     ProposerIndexError,
@@ -89,7 +88,7 @@ def create_block_on_state(
     )
 
     # TODO: Add more operations
-    randao_reveal = ZERO_HASH32
+    randao_reveal = EMPTY_SIGNATURE
     eth1_data = Eth1Data.create_empty_data()
     body = BeaconBlockBody.create_empty_body().copy(
         attestations=attestations,

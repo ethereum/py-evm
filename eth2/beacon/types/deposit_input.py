@@ -1,14 +1,13 @@
 from eth_typing import (
     Hash32,
 )
-import rlp
-from rlp.sedes import (
-    binary,
+import ssz
+from ssz.sedes import (
+    bytes32,
+    bytes48,
+    bytes96,
 )
 
-from eth2.beacon.sedes import (
-    hash32,
-)
 from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.typing import (
     BLSPubkey,
@@ -17,17 +16,15 @@ from eth2.beacon.typing import (
 from eth2.beacon.constants import EMPTY_SIGNATURE
 
 
-class DepositInput(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class DepositInput(ssz.Serializable):
+
     fields = [
         # BLS pubkey
-        ('pubkey', binary),
+        ('pubkey', bytes48),
         # Withdrawal credentials
-        ('withdrawal_credentials', hash32),
+        ('withdrawal_credentials', bytes32),
         # BLS proof of possession (a BLS signature)
-        ('proof_of_possession', binary),
+        ('proof_of_possession', bytes96),
     ]
 
     def __init__(self,
@@ -45,5 +42,5 @@ class DepositInput(rlp.Serializable):
     @property
     def root(self) -> Hash32:
         if self._root is None:
-            self._root = hash_eth2(rlp.encode(self))
+            self._root = hash_eth2(ssz.encode(self))
         return self._root

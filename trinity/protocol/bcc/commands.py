@@ -26,7 +26,6 @@ from trinity.rlp.sedes import (
 )
 
 from eth2.beacon.types.blocks import BeaconBlock
-from eth2.beacon.types.attestations import Attestation
 
 
 class RequestMessage(TypedDict):
@@ -71,17 +70,17 @@ class GetBeaconBlocks(Command):
 
 class BeaconBlocksMessage(TypedDict):
     request_id: int
-    blocks: Tuple[BeaconBlock, ...]
+    encoded_blocks: Tuple[BeaconBlock, ...]
 
 
 class BeaconBlocks(Command):
     _cmd_id = 2
     structure = [
         ('request_id', sedes.big_endian_int),
-        ('blocks', sedes.CountableList(BeaconBlock)),
+        ('encoded_blocks', sedes.CountableList(sedes.binary)),
     ]
 
 
 class AttestationRecords(Command):
     _cmd_id = 3
-    structure = sedes.CountableList(Attestation)
+    structure = sedes.CountableList(sedes.binary)

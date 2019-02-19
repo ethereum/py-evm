@@ -5,7 +5,7 @@ from hypothesis import (
     strategies as st,
 )
 
-import rlp
+import ssz
 
 from eth.constants import (
     GENESIS_PARENT_HASH,
@@ -17,8 +17,8 @@ from eth.exceptions import (
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
-from eth._utils.rlp import (
-    validate_rlp_equal,
+from eth2._utils.ssz import (
+    validate_ssz_equal,
 )
 
 from eth2.beacon.db.chain import (
@@ -90,7 +90,7 @@ def test_chaindb_get_score(chaindb, sample_beacon_block_params):
     chaindb.persist_block(genesis, genesis.__class__)
 
     genesis_score_key = SchemaV1.make_block_root_to_score_lookup_key(genesis.root)
-    genesis_score = rlp.decode(chaindb.db.get(genesis_score_key), sedes=rlp.sedes.big_endian_int)
+    genesis_score = ssz.decode(chaindb.db.get(genesis_score_key), sedes=ssz.sedes.uint64)
     assert genesis_score == 0
     assert chaindb.get_score(genesis.root) == 0
 
@@ -101,7 +101,7 @@ def test_chaindb_get_score(chaindb, sample_beacon_block_params):
     chaindb.persist_block(block1, block1.__class__)
 
     block1_score_key = SchemaV1.make_block_root_to_score_lookup_key(block1.root)
-    block1_score = rlp.decode(chaindb.db.get(block1_score_key), sedes=rlp.sedes.big_endian_int)
+    block1_score = ssz.decode(chaindb.db.get(block1_score_key), sedes=ssz.sedes.uint64)
     assert block1_score == 1
     assert chaindb.get_score(block1.root) == 1
 
@@ -109,7 +109,7 @@ def test_chaindb_get_score(chaindb, sample_beacon_block_params):
 def test_chaindb_get_block_by_root(chaindb, block):
     chaindb.persist_block(block, block.__class__)
     result_block = chaindb.get_block_by_root(block.root, block.__class__)
-    validate_rlp_equal(result_block, block)
+    validate_ssz_equal(result_block, block)
 
 
 def test_chaindb_get_canonical_block_root(chaindb, block):

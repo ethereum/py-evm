@@ -1,16 +1,13 @@
-import rlp
-
-from eth2.beacon.sedes import (
+import ssz
+from ssz.sedes import (
     uint64,
 )
 
 from .eth1_data import Eth1Data
 
 
-class Eth1DataVote(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class Eth1DataVote(ssz.Serializable):
+
     fields = [
         # Data being voted for
         ('eth1_data', Eth1Data),

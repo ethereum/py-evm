@@ -28,7 +28,7 @@ from eth.validation import (
 from eth._utils.datatypes import (
     Configurable,
 )
-from eth._utils.rlp import (
+from eth2._utils.ssz import (
     validate_imported_block_unchanged,
 )
 

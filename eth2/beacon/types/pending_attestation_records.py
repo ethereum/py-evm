@@ -1,11 +1,9 @@
-import rlp
-from rlp.sedes import (
-    binary,
-)
-
-from eth2.beacon.sedes import (
+import ssz
+from ssz.sedes import (
+    bytes_sedes,
     uint64,
 )
+
 from eth2.beacon.typing import (
     SlotNumber,
     Bitfield,
@@ -16,17 +14,15 @@ from .attestation_data import (
 )
 
 
-class PendingAttestationRecord(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class PendingAttestationRecord(ssz.Serializable):
+
     fields = [
         # Signed data
         ('data', AttestationData),
         # Attester aggregation bitfield
-        ('aggregation_bitfield', binary),
+        ('aggregation_bitfield', bytes_sedes),
         # Custody bitfield
-        ('custody_bitfield', binary),
+        ('custody_bitfield', bytes_sedes),
         # Slot the attestation was included
         ('slot_included', uint64),
     ]

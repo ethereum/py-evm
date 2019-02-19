@@ -1,6 +1,5 @@
-import rlp
-
-from eth2.beacon.sedes import (
+import ssz
+from ssz.sedes import (
     uint64,
 )
 
@@ -9,10 +8,8 @@ from eth2.beacon.typing import (
 )
 
 
-class Fork(rlp.Serializable):
-    """
-    Note: using RLP until we have standardized serialization format.
-    """
+class Fork(ssz.Serializable):
+
     fields = [
         # Previous fork version
         ('previous_version', uint64),

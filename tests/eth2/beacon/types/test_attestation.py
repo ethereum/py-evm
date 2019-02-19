@@ -1,5 +1,7 @@
 import pytest
-import rlp
+
+import ssz
+
 from eth2.beacon.types.attestations import (
     Attestation,
 )
@@ -16,4 +18,4 @@ def test_defaults(param, default_value, sample_attestation_params):
     attestation = Attestation(**sample_attestation_params)
 
     assert getattr(attestation, param) == default_value
-    assert rlp.encode(attestation)
+    assert ssz.encode(attestation)

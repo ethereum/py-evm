@@ -1,4 +1,5 @@
-import rlp
+import ssz
+
 from eth2.beacon.types.proposer_slashings import (
     ProposerSlashing,
 )
@@ -11,4 +12,4 @@ def test_defaults(sample_proposer_slashing_params):
     assert slashing.proposal_signature_1 == sample_proposer_slashing_params['proposal_signature_1']
     assert slashing.proposal_data_2 == sample_proposer_slashing_params['proposal_data_2']
     assert slashing.proposal_signature_2 == sample_proposer_slashing_params['proposal_signature_2']
-    assert rlp.encode(slashing)
+    assert ssz.encode(slashing)

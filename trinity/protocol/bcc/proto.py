@@ -8,6 +8,8 @@ from eth_typing import (
     Hash32,
 )
 
+import ssz
+
 from p2p.protocol import Protocol
 
 from eth2.beacon.types.blocks import BaseBeaconBlock
@@ -68,11 +70,11 @@ class BCCProtocol(HasExtendedDebugLogger, Protocol):
         cmd = BeaconBlocks(self.cmd_id_offset, self.snappy_support)
         header, body = cmd.encode(BeaconBlocksMessage(
             request_id=request_id,
-            blocks=blocks,
+            encoded_blocks=tuple(ssz.encode(block) for block in blocks),
         ))
         self.send(header, body)
 
     def send_attestation_records(self, attestations: Tuple[Attestation, ...]) -> None:
         cmd = AttestationRecords(self.cmd_id_offset, self.snappy_support)
-        header, body = cmd.encode(attestations)
+        header, body = cmd.encode(tuple(ssz.encode(attestation) for attestation in attestations))
         self.send(header, body)
