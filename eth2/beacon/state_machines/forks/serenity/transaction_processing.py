@@ -46,7 +46,7 @@ def process_attestations(state: BeaconState,
                          block: BaseBeaconBlock,
                          config: BeaconConfig) -> BeaconState:
     """
-    Implements 'per-block-processing.operations.attestations' portion of Phase 0 spec:
+    Implements 'per-block-processing.transactions.attestations' portion of Phase 0 spec:
     https://github.com/ethereum/eth2.0-specs/blob/master/specs/core/0_beacon-chain.md#attestations-1
 
     Validate the ``attestations`` contained within the ``block`` in the context of ``state``.

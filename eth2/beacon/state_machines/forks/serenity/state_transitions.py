@@ -20,7 +20,7 @@ from .epoch_processing import (
     process_final_updates,
     process_validator_registry,
 )
-from .operation_processing import (
+from .transaction_processing import (
     process_attestations,
     process_proposer_slashings,
 )

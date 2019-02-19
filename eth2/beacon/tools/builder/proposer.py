@@ -85,7 +85,7 @@ def create_block_on_state(
         block_params=FromBlockParams(slot=slot),
     )
 
-    # TODO: Add more operations
+    # TODO: Add more transactions
     randao_reveal = EMPTY_SIGNATURE
     eth1_data = Eth1Data.create_empty_data()
     body = BeaconBlockBody.create_empty_body().copy(

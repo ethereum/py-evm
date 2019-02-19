@@ -90,7 +90,7 @@ class SlashableAttestation(ssz.Serializable):
     def messages(self) -> Tuple[Hash32, Hash32]:
         """
         Build the messages that validators are expected to sign for an
-        ``AttesterSlashing`` operation.
+        ``AttesterSlashing`` transaction.
         """
         # TODO: change to hash_tree_root when we have SSZ tree hashing
         return (

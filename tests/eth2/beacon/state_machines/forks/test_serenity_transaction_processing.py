@@ -10,7 +10,7 @@ from eth2.beacon.types.blocks import (
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
-from eth2.beacon.state_machines.forks.serenity.operation_processing import (
+from eth2.beacon.state_machines.forks.serenity.transaction_processing import (
     process_attestations,
     process_proposer_slashings,
 )

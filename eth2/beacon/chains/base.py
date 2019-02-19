@@ -157,7 +157,7 @@ class BeaconChain(BaseBeaconChain):
     """
     A Chain is a combination of one or more ``StateMachine`` classes.  Each ``StateMachine``
     is associated with a range of slots. The Chain class acts as a wrapper around these other
-    StateMachine classes, delegating operations to the appropriate StateMachine depending on the
+    StateMachine classes, delegating transactions to the appropriate StateMachine depending on the
     current block slot number.
     """
     logger = logging.getLogger("eth2.beacon.chains.BeaconChain")
