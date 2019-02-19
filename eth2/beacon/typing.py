@@ -4,9 +4,9 @@ from typing import (
 )
 
 
-SlotNumber = NewType('SlotNumber', int)  # uint64
-EpochNumber = NewType('EpochNumber', int)  # uint64
-ShardNumber = NewType('ShardNumber', int)  # uint64
+Slot = NewType('Slot', int)  # uint64
+Epoch = NewType('Epoch', int)  # uint64
+Shard = NewType('Shard', int)  # uint64
 BLSPubkey = NewType('BLSPubkey', bytes)  # bytes48
 BLSSignature = NewType('BLSSignature', bytes)  # bytes96
 
@@ -23,4 +23,4 @@ Second = NewType('Second', int)
 
 
 class FromBlockParams(NamedTuple):
-    slot: SlotNumber = None
+    slot: Slot = None

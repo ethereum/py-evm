@@ -11,8 +11,8 @@ from ssz.sedes import (
 from eth2.beacon._utils.hash import hash_eth2
 
 from eth2.beacon.typing import (
-    SlotNumber,
-    ShardNumber,
+    Slot,
+    Shard,
 )
 
 
@@ -28,8 +28,8 @@ class ProposalSignedData(ssz.Serializable):
     ]
 
     def __init__(self,
-                 slot: SlotNumber,
-                 shard: ShardNumber,
+                 slot: Slot,
+                 shard: Shard,
                  block_root: Hash32) -> None:
         super().__init__(
             slot,

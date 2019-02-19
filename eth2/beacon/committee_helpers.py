@@ -34,9 +34,9 @@ from eth2.beacon.helpers import (
 
 from eth2.beacon.typing import (
     Bitfield,
-    EpochNumber,
-    ShardNumber,
-    SlotNumber,
+    Epoch,
+    Shard,
+    Slot,
     ValidatorIndex,
 )
 from eth2.beacon.validation import (
@@ -67,7 +67,7 @@ def get_epoch_committee_count(
 def get_shuffling(*,
                   seed: Hash32,
                   validators: Sequence['ValidatorRecord'],
-                  epoch: EpochNumber,
+                  epoch: Epoch,
                   epoch_length: int,
                   target_committee_size: int,
                   shard_count: int) -> Tuple[Iterable[ValidatorIndex], ...]:
@@ -157,9 +157,9 @@ def get_next_epoch_committee_count(
 @to_tuple
 def get_crosslink_committees_at_slot(
         state: 'BeaconState',
-        slot: SlotNumber,
+        slot: Slot,
         committee_config: CommitteeConfig,
-        registry_change: bool=False) -> Iterable[Tuple[Iterable[ValidatorIndex], ShardNumber]]:
+        registry_change: bool=False) -> Iterable[Tuple[Iterable[ValidatorIndex], Shard]]:
     """
     Return the list of ``(committee, shard)`` tuples for the ``slot``.
     """
@@ -273,12 +273,12 @@ def get_crosslink_committees_at_slot(
         committee = shuffling[committees_per_slot * offset + index]
         yield (
             committee,
-            ShardNumber((slot_start_shard + index) % shard_count),
+            Shard((slot_start_shard + index) % shard_count),
         )
 
 
 def get_beacon_proposer_index(state: 'BeaconState',
-                              slot: SlotNumber,
+                              slot: Slot,
                               committee_config: CommitteeConfig) -> ValidatorIndex:
     """
     Return the beacon proposer index for the ``slot``.

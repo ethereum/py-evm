@@ -32,7 +32,7 @@ from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.constants import EMPTY_SIGNATURE
 from eth2.beacon.typing import (
     BLSSignature,
-    SlotNumber,
+    Slot,
     FromBlockParams,
 )
 
@@ -123,7 +123,7 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
     ]
 
     def __init__(self,
-                 slot: SlotNumber,
+                 slot: Slot,
                  parent_root: Hash32,
                  state_root: Hash32,
                  randao_reveal: BLSSignature,

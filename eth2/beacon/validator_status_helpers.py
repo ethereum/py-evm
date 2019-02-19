@@ -21,7 +21,7 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
-    EpochNumber,
+    Epoch,
     Gwei,
     SlotNumber,
     ValidatorIndex,
@@ -34,7 +34,7 @@ from eth2.beacon.typing import (
 def activate_validator(state: BeaconState,
                        index: ValidatorIndex,
                        is_genesis: bool,
-                       genesis_epoch: EpochNumber,
+                       genesis_epoch: Epoch,
                        epoch_length: int,
                        entry_exit_delay: int) -> BeaconState:
     """

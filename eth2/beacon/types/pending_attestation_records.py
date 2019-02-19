@@ -5,7 +5,7 @@ from ssz.sedes import (
 )
 
 from eth2.beacon.typing import (
-    SlotNumber,
+    Slot,
     Bitfield,
 )
 
@@ -31,7 +31,7 @@ class PendingAttestationRecord(ssz.Serializable):
                  data: AttestationData,
                  aggregation_bitfield: Bitfield,
                  custody_bitfield: Bitfield,
-                 slot_included: SlotNumber) -> None:
+                 slot_included: Slot) -> None:
         super().__init__(
             data=data,
             aggregation_bitfield=aggregation_bitfield,

@@ -6,7 +6,7 @@ from ssz.sedes import (
 
 from eth2.beacon.typing import (
     BLSSignature,
-    EpochNumber,
+    Epoch,
     ValidatorIndex,
 )
 from eth2.beacon.constants import EMPTY_SIGNATURE
@@ -24,7 +24,7 @@ class VoluntaryExit(ssz.Serializable):
     ]
 
     def __init__(self,
-                 epoch: EpochNumber,
+                 epoch: Epoch,
                  validator_index: ValidatorIndex,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(

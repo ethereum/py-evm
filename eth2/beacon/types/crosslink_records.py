@@ -8,7 +8,7 @@ from ssz.sedes import (
     bytes32,
 )
 
-from eth2.beacon.typing import EpochNumber
+from eth2.beacon.typing import Epoch
 
 
 class CrosslinkRecord(ssz.Serializable):
@@ -21,7 +21,7 @@ class CrosslinkRecord(ssz.Serializable):
     ]
 
     def __init__(self,
-                 epoch: EpochNumber,
+                 epoch: Epoch,
                  shard_block_root: Hash32) -> None:
 
         super().__init__(

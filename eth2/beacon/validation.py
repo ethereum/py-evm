@@ -14,7 +14,7 @@ from eth2._utils.bitfield import (
 )
 
 from eth2.beacon.typing import (
-    EpochNumber,
+    Epoch,
 )
 
 
@@ -25,9 +25,9 @@ def validate_slot(slot: int, title: str="Slot") -> None:
 
 
 def validate_epoch_for_current_epoch(
-        current_epoch: EpochNumber,
-        given_epoch: EpochNumber,
-        genesis_epoch: EpochNumber) -> None:
+        current_epoch: Epoch,
+        given_epoch: Epoch,
+        genesis_epoch: Epoch) -> None:
     previous_epoch = current_epoch - 1 if current_epoch > genesis_epoch else current_epoch
     next_epoch = current_epoch + 1
 
@@ -43,8 +43,8 @@ def validate_epoch_for_current_epoch(
         )
 
 
-def validate_epoch_for_active_randao_mix(state_epoch: EpochNumber,
-                                         given_epoch: EpochNumber,
+def validate_epoch_for_active_randao_mix(state_epoch: Epoch,
+                                         given_epoch: Epoch,
                                          latest_randao_mixes_length: int) -> None:
     if state_epoch >= given_epoch + latest_randao_mixes_length:
         raise ValidationError(
@@ -58,8 +58,8 @@ def validate_epoch_for_active_randao_mix(state_epoch: EpochNumber,
         )
 
 
-def validate_epoch_for_active_index_root(state_epoch: EpochNumber,
-                                         given_epoch: EpochNumber,
+def validate_epoch_for_active_index_root(state_epoch: Epoch,
+                                         given_epoch: Epoch,
                                          entry_exit_delay: int,
                                          latest_index_roots_length: int) -> None:
     if state_epoch >= given_epoch + latest_index_roots_length - entry_exit_delay:

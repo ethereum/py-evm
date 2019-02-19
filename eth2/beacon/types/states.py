@@ -25,10 +25,10 @@ from eth2.beacon._utils.hash import (
 )
 from eth2.beacon.helpers import slot_to_epoch
 from eth2.beacon.typing import (
-    EpochNumber,
+    Epoch,
     Gwei,
-    ShardNumber,
-    SlotNumber,
+    Shard,
+    Slot,
     Timestamp,
     ValidatorIndex,
 )
@@ -90,26 +90,26 @@ class BeaconState(ssz.Serializable):
             self,
             *,
             # Misc
-            slot: SlotNumber,
+            slot: Slot,
             genesis_time: Timestamp,
             fork: Fork,
             # Validator registry
             validator_registry: Sequence[ValidatorRecord],
             validator_balances: Sequence[Gwei],
-            validator_registry_update_epoch: EpochNumber,
+            validator_registry_update_epoch: Epoch,
             # Randomness and committees
             latest_randao_mixes: Sequence[Hash32],
-            previous_epoch_start_shard: ShardNumber,
-            current_epoch_start_shard: ShardNumber,
-            previous_calculation_epoch: EpochNumber,
-            current_calculation_epoch: EpochNumber,
+            previous_epoch_start_shard: Shard,
+            current_epoch_start_shard: Shard,
+            previous_calculation_epoch: Epoch,
+            current_calculation_epoch: Epoch,
             previous_epoch_seed: Hash32,
             current_epoch_seed: Hash32,
             # Finality
-            previous_justified_epoch: EpochNumber,
-            justified_epoch: EpochNumber,
+            previous_justified_epoch: Epoch,
+            justified_epoch: Epoch,
             justification_bitfield: int,
-            finalized_epoch: EpochNumber,
+            finalized_epoch: Epoch,
             # Recent state
             latest_crosslinks: Sequence[CrosslinkRecord],
             latest_block_roots: Sequence[Hash32],
@@ -190,9 +190,9 @@ class BeaconState(ssz.Serializable):
     @classmethod
     def create_filled_state(cls,
                             *,
-                            genesis_epoch: EpochNumber,
-                            genesis_start_shard: ShardNumber,
-                            genesis_slot: SlotNumber,
+                            genesis_epoch: Epoch,
+                            genesis_start_shard: Shard,
+                            genesis_slot: Slot,
                             shard_count: int,
                             latest_block_roots_length: int,
                             latest_index_roots_length: int,
@@ -291,15 +291,15 @@ class BeaconState(ssz.Serializable):
         state = state.update_validator_balance(validator_index, balance)
         return state
 
-    def current_epoch(self, epoch_length: int) -> EpochNumber:
+    def current_epoch(self, epoch_length: int) -> Epoch:
         return slot_to_epoch(self.slot, epoch_length)
 
-    def previous_epoch(self, epoch_length: int, genesis_epoch: int) -> EpochNumber:
-        current_epoch: EpochNumber = self.current_epoch(epoch_length)
+    def previous_epoch(self, epoch_length: int, genesis_epoch: int) -> Epoch:
+        current_epoch: Epoch = self.current_epoch(epoch_length)
         if current_epoch == genesis_epoch:
             return current_epoch
         else:
-            return EpochNumber(current_epoch - 1)
+            return Epoch(current_epoch - 1)
 
-    def next_epoch(self, epoch_length: int) -> EpochNumber:
-        return EpochNumber(self.current_epoch(epoch_length) + 1)
+    def next_epoch(self, epoch_length: int) -> Epoch:
+        return Epoch(self.current_epoch(epoch_length) + 1)

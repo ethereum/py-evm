@@ -33,10 +33,10 @@ from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.typing import (
-    EpochNumber,
+    Epoch,
     Gwei,
-    ShardNumber,
-    SlotNumber,
+    Shard,
+    Slot,
     Timestamp,
     ValidatorIndex,
 )
@@ -46,7 +46,7 @@ from eth2.beacon.validator_status_helpers import (
 
 
 def get_genesis_block(startup_state_root: Hash32,
-                      genesis_slot: SlotNumber,
+                      genesis_slot: Slot,
                       block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
     return block_class(
         slot=genesis_slot,
@@ -63,10 +63,10 @@ def get_genesis_beacon_state(*,
                              genesis_validator_deposits: Sequence[Deposit],
                              genesis_time: Timestamp,
                              latest_eth1_data: Eth1Data,
-                             genesis_slot: SlotNumber,
-                             genesis_epoch: EpochNumber,
+                             genesis_slot: Slot,
+                             genesis_epoch: Epoch,
                              genesis_fork_version: int,
-                             genesis_start_shard: ShardNumber,
+                             genesis_start_shard: Shard,
                              shard_count: int,
                              seed_lookahead: int,
                              latest_block_roots_length: int,

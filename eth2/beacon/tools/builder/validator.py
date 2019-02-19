@@ -61,7 +61,7 @@ from eth2.beacon.typing import (
     BLSSignature,
     Bitfield,
     CommitteeIndex,
-    SlotNumber,
+    Slot,
     ValidatorIndex,
 )
 
@@ -124,7 +124,7 @@ def aggregate_votes(
 def sign_proof_of_possession(deposit_input: DepositInput,
                              privkey: int,
                              fork: Fork,
-                             slot: SlotNumber,
+                             slot: Slot,
                              epoch_length: int) -> BLSSignature:
     domain = get_domain(
         fork,
@@ -142,7 +142,7 @@ def sign_transaction(*,
                      message: bytes,
                      privkey: int,
                      fork: Fork,
-                     slot: SlotNumber,
+                     slot: Slot,
                      signature_domain: SignatureDomain,
                      epoch_length: int) -> BLSSignature:
     domain = get_domain(
@@ -298,7 +298,7 @@ def create_mock_signed_attestation(state: BeaconState,
 def create_mock_signed_attestations_at_slot(
         state: BeaconState,
         config: BeaconConfig,
-        attestation_slot: SlotNumber,
+        attestation_slot: Slot,
         keymap: Dict[BLSPubkey, int],
         voted_attesters_ratio: float=1.0) -> Iterable[Attestation]:
     """

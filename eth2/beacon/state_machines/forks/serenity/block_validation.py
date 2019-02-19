@@ -52,9 +52,9 @@ from eth2.beacon.typing import (
     Bitfield,
     BLSPubkey,
     BLSSignature,
-    EpochNumber,
-    ShardNumber,
-    SlotNumber,
+    Epoch,
+    Shard,
+    Slot,
     ValidatorIndex,
 )
 from eth2.beacon.validation import (
@@ -81,7 +81,7 @@ def validate_block_slot(state: BeaconState,
 #
 def validate_proposer_signature(state: BeaconState,
                                 block: BaseBeaconBlock,
-                                beacon_chain_shard_number: ShardNumber,
+                                beacon_chain_shard_number: Shard,
                                 committee_config: CommitteeConfig) -> None:
     block_without_signature_root = block.block_without_signature_root
 
@@ -275,7 +275,7 @@ def validate_attestation(state: BeaconState,
 
 
 def validate_attestation_slot(attestation_data: AttestationData,
-                              current_slot: SlotNumber,
+                              current_slot: Slot,
                               epoch_length: int,
                               min_attestation_inclusion_delay: int) -> None:
     """
@@ -312,9 +312,9 @@ def validate_attestation_slot(attestation_data: AttestationData,
 
 
 def validate_attestation_justified_epoch(attestation_data: AttestationData,
-                                         current_epoch: EpochNumber,
-                                         previous_justified_epoch: EpochNumber,
-                                         justified_epoch: EpochNumber,
+                                         current_epoch: Epoch,
+                                         previous_justified_epoch: Epoch,
+                                         justified_epoch: Epoch,
                                          epoch_length: int) -> None:
     """
     Validate ``justified_epoch`` field of ``attestation_data``.
@@ -528,7 +528,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
 
 def validate_randao_reveal(randao_reveal: BLSSignature,
                            proposer_pubkey: BLSPubkey,
-                           epoch: EpochNumber,
+                           epoch: Epoch,
                            fork: Fork) -> None:
     message = epoch.to_bytes(32, byteorder="big")
     domain = get_domain(fork, epoch, SignatureDomain.DOMAIN_RANDAO)

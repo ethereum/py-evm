@@ -38,16 +38,16 @@ from eth2.beacon.helpers import (
     get_randao_mix,
     slot_to_epoch,
 )
-from eth2.beacon.typing import (
-    EpochNumber,
-    ShardNumber,
-)
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.typing import (
+    Epoch,
+    Shard,
+)
 
 
 #
@@ -56,8 +56,8 @@ from eth2.beacon.types.states import BeaconState
 
 def _current_previous_epochs_justifiable(
         state: BeaconState,
-        current_epoch: EpochNumber,
-        previous_epoch: EpochNumber,
+        current_epoch: Epoch,
+        previous_epoch: Epoch,
         config: BeaconConfig) -> Tuple[bool, bool]:
     """
     Determine if epoch boundary attesting balance is greater than 2/3 of current_total_balance
@@ -99,10 +99,10 @@ def _current_previous_epochs_justifiable(
 
 def _get_finalized_epoch(
         justification_bitfield: int,
-        previous_justified_epoch: EpochNumber,
-        justified_epoch: EpochNumber,
-        finalized_epoch: EpochNumber,
-        previous_epoch: EpochNumber) -> Tuple[EpochNumber, int]:
+        previous_justified_epoch: Epoch,
+        justified_epoch: Epoch,
+        finalized_epoch: Epoch,
+        previous_epoch: Epoch) -> Tuple[Epoch, int]:
 
     rule_1 = (
         (justification_bitfield >> 1) % 8 == 0b111 and
@@ -185,7 +185,7 @@ def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconSta
 @to_tuple
 def _filter_attestations_by_shard(
         attestations: Sequence[Attestation],
-        shard: ShardNumber) -> Iterable[Attestation]:
+        shard: Shard) -> Iterable[Attestation]:
     for attestation in attestations:
         if attestation.data.shard == shard:
             yield attestation
@@ -377,7 +377,7 @@ def _update_latest_index_roots(state: BeaconState,
     # TODO: chanege to hash_tree_root
     active_validator_indices = get_active_validator_indices(
         state.validator_registry,
-        EpochNumber(next_epoch + committee_config.ENTRY_EXIT_DELAY),
+        Epoch(next_epoch + committee_config.ENTRY_EXIT_DELAY),
     )
     index_root = hash_eth2(
         b''.join(

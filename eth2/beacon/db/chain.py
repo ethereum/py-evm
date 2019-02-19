@@ -40,7 +40,7 @@ from eth.validation import (
 )
 
 from eth2.beacon.typing import (
-    SlotNumber,
+    Slot,
 )
 from eth2.beacon.types.states import BeaconState  # noqa: F401
 from eth2.beacon.types.blocks import (  # noqa: F401
@@ -106,7 +106,7 @@ class BaseBeaconChainDB(ABC):
 
     @abstractmethod
     def get_slot_by_root(self,
-                         block_root: Hash32) -> SlotNumber:
+                         block_root: Hash32) -> Slot:
         pass
 
     @abstractmethod
@@ -314,7 +314,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         return _decode_block(block_ssz, block_class)
 
     def get_slot_by_root(self,
-                         block_root: Hash32) -> SlotNumber:
+                         block_root: Hash32) -> Slot:
         """
         Return the requested block header as specified by block root.
 
@@ -324,14 +324,14 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     @staticmethod
     def _get_slot_by_root(db: BaseDB,
-                          block_root: Hash32) -> SlotNumber:
+                          block_root: Hash32) -> Slot:
         validate_word(block_root, title="block root")
         try:
             encoded_slot = db[SchemaV1.make_block_root_to_slot_lookup_key(block_root)]
         except KeyError:
             raise BlockNotFound("No block with root {0} found".format(
                 encode_hex(block_root)))
-        return SlotNumber(ssz.decode(encoded_slot, sedes=ssz.sedes.uint64))
+        return Slot(ssz.decode(encoded_slot, sedes=ssz.sedes.uint64))
 
     def get_score(self, block_root: Hash32) -> int:
         return self._get_score(self.db, block_root)

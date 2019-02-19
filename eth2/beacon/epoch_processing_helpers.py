@@ -31,9 +31,9 @@ from eth2.beacon.helpers import (
     get_total_balance,
 )
 from eth2.beacon.typing import (
-    EpochNumber,
+    Epoch,
     Gwei,
-    ShardNumber,
+    Shard,
     ValidatorIndex,
 )
 
@@ -62,7 +62,7 @@ def get_current_epoch_attestations(
 def get_previous_epoch_attestations(
         state: 'BeaconState',
         epoch_length: int,
-        genesis_epoch: EpochNumber) -> Iterable[PendingAttestationRecord]:
+        genesis_epoch: Epoch) -> Iterable[PendingAttestationRecord]:
     previous_epoch = state.previous_epoch(epoch_length, genesis_epoch)
     for attestation in state.latest_attestations:
         if previous_epoch == slot_to_epoch(attestation.data.slot, epoch_length):
@@ -75,7 +75,7 @@ def get_attesting_validator_indices(
         *,
         state: 'BeaconState',
         attestations: Sequence[PendingAttestationRecord],
-        shard: ShardNumber,
+        shard: Shard,
         shard_block_root: Hash32,
         committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     """
@@ -97,7 +97,7 @@ def get_attesting_validator_indices(
 def get_total_attesting_balance(
         *,
         state: 'BeaconState',
-        shard: ShardNumber,
+        shard: Shard,
         shard_block_root: Hash32,
         attestations: Sequence[PendingAttestationRecord],
         max_deposit_amount: Gwei,
@@ -119,7 +119,7 @@ def get_total_attesting_balance(
 def get_winning_root(
         *,
         state: 'BeaconState',
-        shard: ShardNumber,
+        shard: Shard,
         attestations: Sequence[PendingAttestationRecord],
         max_deposit_amount: Gwei,
         committee_config: CommitteeConfig) -> Tuple[Hash32, Gwei]:

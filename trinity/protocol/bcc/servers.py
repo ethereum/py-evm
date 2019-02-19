@@ -33,7 +33,7 @@ from eth2.beacon.types.blocks import (
     BeaconBlock,
 )
 from eth2.beacon.typing import (
-    SlotNumber,
+    Slot,
 )
 
 from trinity.protocol.common.servers import BaseRequestServer
@@ -81,7 +81,7 @@ class BCCRequestServer(BaseRequestServer):
                 # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under
                 # per BeaconStateMachine fork
                 start_block = self.db.get_canonical_block_by_slot(
-                    SlotNumber(block_slot_or_root),
+                    Slot(block_slot_or_root),
                     BeaconBlock,
                 )
             elif isinstance(block_slot_or_root, bytes):

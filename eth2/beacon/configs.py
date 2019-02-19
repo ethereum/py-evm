@@ -6,11 +6,11 @@ from eth.typing import (
     Address,
 )
 from eth2.beacon.typing import (
-    EpochNumber,
+    Epoch,
     Gwei,
     Second,
-    ShardNumber,
-    SlotNumber,
+    Shard,
+    Slot,
 )
 
 
@@ -22,7 +22,7 @@ BeaconConfig = NamedTuple(
         ('TARGET_COMMITTEE_SIZE', int),
         ('EJECTION_BALANCE', Gwei),
         ('MAX_BALANCE_CHURN_QUOTIENT', int),
-        ('BEACON_CHAIN_SHARD_NUMBER', ShardNumber),
+        ('BEACON_CHAIN_SHARD_NUMBER', Shard),
         ('MAX_INDICES_PER_SLASHABLE_VOTE', int),
         ('LATEST_BLOCK_ROOTS_LENGTH', int),
         ('LATEST_INDEX_ROOTS_LENGTH', int),
@@ -37,9 +37,9 @@ BeaconConfig = NamedTuple(
         # ZERO_HASH (ZERO_HASH32) is defined in constants.py
         # Initial values
         ('GENESIS_FORK_VERSION', int),
-        ('GENESIS_SLOT', SlotNumber),
-        ('GENESIS_EPOCH', EpochNumber),
-        ('GENESIS_START_SHARD', ShardNumber),
+        ('GENESIS_SLOT', Slot),
+        ('GENESIS_EPOCH', Epoch),
+        ('GENESIS_START_SHARD', Shard),
         ('BLS_WITHDRAWAL_PREFIX_BYTE', bytes),
         # Time parameters
         ('SLOT_DURATION', Second),

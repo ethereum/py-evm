@@ -9,9 +9,9 @@ from ssz.sedes import (
 )
 
 from eth2.beacon.typing import (
-    EpochNumber,
-    SlotNumber,
-    ShardNumber,
+    Epoch,
+    Slot,
+    Shard,
 )
 
 
@@ -37,13 +37,13 @@ class AttestationData(ssz.Serializable):
     ]
 
     def __init__(self,
-                 slot: SlotNumber,
-                 shard: ShardNumber,
+                 slot: Slot,
+                 shard: Shard,
                  beacon_block_root: Hash32,
                  epoch_boundary_root: Hash32,
                  shard_block_root: Hash32,
                  latest_crosslink_root: Hash32,
-                 justified_epoch: EpochNumber,
+                 justified_epoch: Epoch,
                  justified_block_root: Hash32) -> None:
         super().__init__(
             slot,

@@ -19,9 +19,9 @@ from eth2.beacon.enums import (
     SignatureDomain,
 )
 from eth2.beacon.typing import (
-    EpochNumber,
+    Epoch,
     Gwei,
-    SlotNumber,
+    Slot,
     ValidatorIndex,
 )
 from eth2.beacon.validation import (
@@ -40,18 +40,18 @@ if TYPE_CHECKING:
 #
 # Time unit convertion
 #
-def slot_to_epoch(slot: SlotNumber, epoch_length: int) -> EpochNumber:
-    return EpochNumber(slot // epoch_length)
+def slot_to_epoch(slot: Slot, epoch_length: int) -> Epoch:
+    return Epoch(slot // epoch_length)
 
 
-def get_epoch_start_slot(epoch: EpochNumber, epoch_length: int) -> SlotNumber:
-    return SlotNumber(epoch * epoch_length)
+def get_epoch_start_slot(epoch: Epoch, epoch_length: int) -> Slot:
+    return Slot(epoch * epoch_length)
 
 
 def _get_block_root(
         latest_block_roots: Sequence[Hash32],
-        state_slot: SlotNumber,
-        slot: SlotNumber,
+        state_slot: Slot,
+        slot: Slot,
         latest_block_roots_length: int) -> Hash32:
     """
     Return the block root at a recent ``slot``.
@@ -79,7 +79,7 @@ def _get_block_root(
 
 def get_block_root(
         state: 'BeaconState',
-        slot: SlotNumber,
+        slot: Slot,
         latest_block_roots_length: int) -> Hash32:
     """
     Return the block root at a recent ``slot``.
@@ -93,7 +93,7 @@ def get_block_root(
 
 
 def get_randao_mix(state: 'BeaconState',
-                   epoch: EpochNumber,
+                   epoch: Epoch,
                    epoch_length: int,
                    latest_randao_mixes_length: int) -> Hash32:
     """
@@ -109,7 +109,7 @@ def get_randao_mix(state: 'BeaconState',
 
 
 def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
-                                 epoch: EpochNumber) -> Tuple[ValidatorIndex, ...]:
+                                 epoch: Epoch) -> Tuple[ValidatorIndex, ...]:
     """
     Get indices of active validators from ``validators``.
     """
@@ -121,7 +121,7 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
 
 
 def generate_seed(state: 'BeaconState',
-                  epoch: EpochNumber,
+                  epoch: Epoch,
                   epoch_length: int,
                   seed_lookahead: int,
                   entry_exit_delay: int,
@@ -132,7 +132,7 @@ def generate_seed(state: 'BeaconState',
     """
     randao_mix = get_randao_mix(
         state=state,
-        epoch=EpochNumber(epoch - seed_lookahead),
+        epoch=Epoch(epoch - seed_lookahead),
         epoch_length=epoch_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
     )
@@ -149,7 +149,7 @@ def generate_seed(state: 'BeaconState',
 
 
 def get_active_index_root(state: 'BeaconState',
-                          epoch: EpochNumber,
+                          epoch: Epoch,
                           epoch_length: int,
                           entry_exit_delay: int,
                           latest_index_roots_length: int) -> Hash32:
@@ -190,7 +190,7 @@ def get_total_balance(validator_balances: Sequence[Gwei],
 
 
 def get_fork_version(fork: 'Fork',
-                     epoch: EpochNumber) -> int:
+                     epoch: Epoch) -> int:
     """
     Return the current ``fork_version`` from the given ``fork`` and ``epoch``.
     """
@@ -201,7 +201,7 @@ def get_fork_version(fork: 'Fork',
 
 
 def get_domain(fork: 'Fork',
-               epoch: EpochNumber,
+               epoch: Epoch,
                domain_type: SignatureDomain) -> int:
     """
     Return the domain number of the current fork and ``domain_type``.
@@ -248,10 +248,10 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
 
 
 def get_entry_exit_effect_epoch(
-        epoch: EpochNumber,
-        entry_exit_delay: int) -> EpochNumber:
+        epoch: Epoch,
+        entry_exit_delay: int) -> Epoch:
     """
     An entry or exit triggered in the ``epoch`` given by the input takes effect at
     the epoch given by the output.
     """
-    return EpochNumber(epoch + 1 + entry_exit_delay)
+    return Epoch(epoch + 1 + entry_exit_delay)
