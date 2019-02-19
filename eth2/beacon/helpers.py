@@ -123,7 +123,7 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
 def generate_seed(state: 'BeaconState',
                   epoch: Epoch,
                   epoch_length: int,
-                  seed_lookahead: int,
+                  min_seed_lookahead: int,
                   entry_exit_delay: int,
                   latest_index_roots_length: int,
                   latest_randao_mixes_length: int) -> Hash32:
@@ -132,7 +132,7 @@ def generate_seed(state: 'BeaconState',
     """
     randao_mix = get_randao_mix(
         state=state,
-        epoch=Epoch(epoch - seed_lookahead),
+        epoch=Epoch(epoch - min_seed_lookahead),
         epoch_length=epoch_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
     )

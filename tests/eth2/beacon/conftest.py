@@ -495,8 +495,8 @@ def epoch_length():
 
 
 @pytest.fixture
-def seed_lookahead():
-    return SERENITY_CONFIG.SEED_LOOKAHEAD
+def min_seed_lookahead():
+    return SERENITY_CONFIG.MIN_SEED_LOOKAHEAD
 
 
 @pytest.fixture
@@ -666,7 +666,7 @@ def config(
         slot_duration,
         min_attestation_inclusion_delay,
         epoch_length,
-        seed_lookahead,
+        min_seed_lookahead,
         entry_exit_delay,
         eth1_data_voting_period,
         min_validator_withdrawability_delay,
@@ -703,7 +703,7 @@ def config(
         SLOT_DURATION=slot_duration,
         MIN_ATTESTATION_INCLUSION_DELAY=min_attestation_inclusion_delay,
         EPOCH_LENGTH=epoch_length,
-        SEED_LOOKAHEAD=seed_lookahead,
+        MIN_SEED_LOOKAHEAD=min_seed_lookahead,
         ENTRY_EXIT_DELAY=entry_exit_delay,
         ETH1_DATA_VOTING_PERIOD=eth1_data_voting_period,
         MIN_VALIDATOR_WITHDRAWABILITY_DELAY=min_validator_withdrawability_delay,

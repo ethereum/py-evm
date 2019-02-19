@@ -168,7 +168,7 @@ def get_crosslink_committees_at_slot(
     epoch_length = committee_config.EPOCH_LENGTH
     target_committee_size = committee_config.TARGET_COMMITTEE_SIZE
 
-    seed_lookahead = committee_config.SEED_LOOKAHEAD
+    min_seed_lookahead = committee_config.MIN_SEED_LOOKAHEAD
     entry_exit_delay = committee_config.ENTRY_EXIT_DELAY
     latest_index_roots_length = committee_config.LATEST_INDEX_ROOTS_LENGTH
     latest_randao_mixes_length = committee_config.LATEST_RANDAO_MIXES_LENGTH
@@ -230,7 +230,7 @@ def get_crosslink_committees_at_slot(
                 state=state,
                 epoch=next_epoch,
                 epoch_length=epoch_length,
-                seed_lookahead=seed_lookahead,
+                min_seed_lookahead=min_seed_lookahead,
                 entry_exit_delay=entry_exit_delay,
                 latest_index_roots_length=latest_index_roots_length,
                 latest_randao_mixes_length=latest_randao_mixes_length,
@@ -244,7 +244,7 @@ def get_crosslink_committees_at_slot(
                 state=state,
                 epoch=next_epoch,
                 epoch_length=epoch_length,
-                seed_lookahead=seed_lookahead,
+                min_seed_lookahead=min_seed_lookahead,
                 entry_exit_delay=entry_exit_delay,
                 latest_index_roots_length=latest_index_roots_length,
                 latest_randao_mixes_length=latest_randao_mixes_length,

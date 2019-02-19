@@ -102,7 +102,7 @@ def create_mock_genesis(
         genesis_fork_version=config.GENESIS_FORK_VERSION,
         genesis_start_shard=config.GENESIS_START_SHARD,
         shard_count=config.SHARD_COUNT,
-        seed_lookahead=config.SEED_LOOKAHEAD,
+        min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
         latest_block_roots_length=config.LATEST_BLOCK_ROOTS_LENGTH,
         latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
         epoch_length=config.EPOCH_LENGTH,

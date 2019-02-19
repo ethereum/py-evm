@@ -354,7 +354,7 @@ def test_get_entry_exit_effect_epoch(entry_exit_delay):
 def test_generate_seed(monkeypatch,
                        genesis_state,
                        epoch_length,
-                       seed_lookahead,
+                       min_seed_lookahead,
                        entry_exit_delay,
                        latest_index_roots_length,
                        latest_randao_mixes_length):
@@ -402,7 +402,7 @@ def test_generate_seed(monkeypatch,
         state=state,
         epoch=epoch,
         epoch_length=epoch_length,
-        seed_lookahead=seed_lookahead,
+        min_seed_lookahead=min_seed_lookahead,
         entry_exit_delay=entry_exit_delay,
         latest_index_roots_length=latest_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
@@ -410,7 +410,7 @@ def test_generate_seed(monkeypatch,
     assert seed == hash_eth2(
         mock_get_randao_mix(
             state=state,
-            epoch=(epoch - seed_lookahead),
+            epoch=(epoch - min_seed_lookahead),
             epoch_length=epoch_length,
             latest_randao_mixes_length=latest_randao_mixes_length,
         ) + mock_get_active_index_root(

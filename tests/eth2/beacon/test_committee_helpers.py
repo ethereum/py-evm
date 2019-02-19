@@ -317,7 +317,7 @@ def test_get_crosslink_committees_at_slot(
     def mock_generate_seed(state,
                            epoch,
                            epoch_length,
-                           seed_lookahead,
+                           min_seed_lookahead,
                            entry_exit_delay,
                            latest_index_roots_length,
                            latest_randao_mixes_length):

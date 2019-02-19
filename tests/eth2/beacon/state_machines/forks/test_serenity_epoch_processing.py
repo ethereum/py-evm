@@ -354,7 +354,7 @@ def test_update_latest_index_roots(genesis_state,
 @pytest.mark.parametrize(
     (
         'num_validators, epoch_length, target_committee_size, shard_count,'
-        'latest_randao_mixes_length, seed_lookahead, state_slot,'
+        'latest_randao_mixes_length, min_seed_lookahead, state_slot,'
         'need_to_update,'
         'num_shards_in_committees,'
         'validator_registry_update_epoch,'
@@ -419,7 +419,7 @@ def test_process_validator_registry(monkeypatch,
     def mock_generate_seed(state,
                            epoch,
                            epoch_length,
-                           seed_lookahead,
+                           min_seed_lookahead,
                            entry_exit_delay,
                            latest_index_roots_length,
                            latest_randao_mixes_length):
