@@ -76,7 +76,7 @@ class BeaconState(ssz.Serializable):
         ('latest_crosslinks', List(CrosslinkRecord)),
         ('latest_block_roots', List(bytes32)),  # Needed to process attestations, older to newer  # noqa: E501
         ('latest_index_roots', List(bytes32)),
-        ('latest_penalized_balances', List(uint64)),  # Balances penalized at every withdrawal period  # noqa: E501
+        ('latest_slashed_balances', List(uint64)),  # Balances slashed at every withdrawal period  # noqa: E501
         ('latest_attestations', List(PendingAttestationRecord)),
         ('batched_block_roots', List(bytes32)),  # allow for a log-sized Merkle proof from any block to any historical block root"  # noqa: E501
 
@@ -114,7 +114,7 @@ class BeaconState(ssz.Serializable):
             latest_crosslinks: Sequence[CrosslinkRecord],
             latest_block_roots: Sequence[Hash32],
             latest_index_roots: Sequence[Hash32],
-            latest_penalized_balances: Sequence[Gwei],
+            latest_slashed_balances: Sequence[Gwei],
             batched_block_roots: Sequence[Hash32],
             latest_attestations: Sequence[PendingAttestationRecord],
             # Ethereum 1.0 chain
@@ -151,7 +151,7 @@ class BeaconState(ssz.Serializable):
             latest_crosslinks=latest_crosslinks,
             latest_block_roots=latest_block_roots,
             latest_index_roots=latest_index_roots,
-            latest_penalized_balances=latest_penalized_balances,
+            latest_slashed_balances=latest_slashed_balances,
             latest_attestations=latest_attestations,
             batched_block_roots=batched_block_roots,
             # Ethereum 1.0 chain
@@ -197,7 +197,7 @@ class BeaconState(ssz.Serializable):
                             latest_block_roots_length: int,
                             latest_index_roots_length: int,
                             latest_randao_mixes_length: int,
-                            latest_penalized_exit_length: int,
+                            latest_slashed_exit_length: int,
                             activated_genesis_validators: Sequence[ValidatorRecord]=(),
                             genesis_balances: Sequence[Gwei]=()) -> 'BeaconState':
         return cls(
@@ -236,7 +236,7 @@ class BeaconState(ssz.Serializable):
             ),
             latest_block_roots=(ZERO_HASH32,) * latest_block_roots_length,
             latest_index_roots=(ZERO_HASH32,) * latest_index_roots_length,
-            latest_penalized_balances=(Gwei(0),) * latest_penalized_exit_length,
+            latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
             latest_attestations=(),
             batched_block_roots=(),
 

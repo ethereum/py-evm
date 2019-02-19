@@ -410,14 +410,14 @@ def process_final_updates(state: BeaconState,
     state = _update_latest_index_roots(state, CommitteeConfig(config))
 
     state = state.copy(
-        latest_penalized_balances=update_tuple_item(
-            state.latest_penalized_balances,
-            next_epoch % config.LATEST_PENALIZED_EXIT_LENGTH,
-            state.latest_penalized_balances[current_epoch % config.LATEST_PENALIZED_EXIT_LENGTH],
+        latest_slashed_balances=update_tuple_item(
+            state.latest_slashed_balances,
+            next_epoch % config.LATEST_SLASHED_EXIT_LENGTH,
+            state.latest_slashed_balances[current_epoch % config.LATEST_SLASHED_EXIT_LENGTH],
         ),
         latest_randao_mixes=update_tuple_item(
             state.latest_randao_mixes,
-            next_epoch % config.LATEST_PENALIZED_EXIT_LENGTH,
+            next_epoch % config.LATEST_SLASHED_EXIT_LENGTH,
             get_randao_mix(
                 state=state,
                 epoch=current_epoch,

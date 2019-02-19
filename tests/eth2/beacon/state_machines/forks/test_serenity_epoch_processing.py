@@ -487,8 +487,8 @@ def test_process_final_updates(genesis_state,
     state = genesis_state.copy(
         slot=state_slot,
     )
-    current_index = state.next_epoch(config.EPOCH_LENGTH) % config.LATEST_PENALIZED_EXIT_LENGTH
-    previous_index = state.current_epoch(config.EPOCH_LENGTH) % config.LATEST_PENALIZED_EXIT_LENGTH
+    current_index = state.next_epoch(config.EPOCH_LENGTH) % config.LATEST_SLASHED_EXIT_LENGTH
+    previous_index = state.current_epoch(config.EPOCH_LENGTH) % config.LATEST_SLASHED_EXIT_LENGTH
 
     # Assume `len_latest_attestations` attestations in state.latest_attestations
     # with attestation.data.slot = attestation_slot
@@ -502,15 +502,15 @@ def test_process_final_updates(genesis_state,
         for i in range(len_latest_attestations)
     ]
 
-    # Fill latest_penalized_balances
-    penalized_balance_of_previous_epoch = 100
-    latest_penalized_balances = update_tuple_item(
-        state.latest_penalized_balances,
+    # Fill latest_slashed_balances
+    slashed_balance_of_previous_epoch = 100
+    latest_slashed_balances = update_tuple_item(
+        state.latest_slashed_balances,
         previous_index,
-        penalized_balance_of_previous_epoch,
+        slashed_balance_of_previous_epoch,
     )
     state = state.copy(
-        latest_penalized_balances=latest_penalized_balances,
+        latest_slashed_balances=latest_slashed_balances,
         latest_attestations=latest_attestations,
     )
 
@@ -518,8 +518,8 @@ def test_process_final_updates(genesis_state,
 
     assert (
         (
-            result_state.latest_penalized_balances[current_index] ==
-            penalized_balance_of_previous_epoch
+            result_state.latest_slashed_balances[current_index] ==
+            slashed_balance_of_previous_epoch
         ) and (
             result_state.latest_randao_mixes[current_index] == get_randao_mix(
                 state=state,

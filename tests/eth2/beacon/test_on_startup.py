@@ -62,7 +62,7 @@ def test_get_genesis_beacon_state(
         latest_index_roots_length,
         epoch_length,
         max_deposit_amount,
-        latest_penalized_exit_length,
+        latest_slashed_exit_length,
         latest_randao_mixes_length,
         entry_exit_delay,
         sample_eth1_data_params):
@@ -120,7 +120,7 @@ def test_get_genesis_beacon_state(
         latest_index_roots_length=latest_index_roots_length,
         epoch_length=epoch_length,
         max_deposit_amount=max_deposit_amount,
-        latest_penalized_exit_length=latest_penalized_exit_length,
+        latest_slashed_exit_length=latest_slashed_exit_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
         entry_exit_delay=entry_exit_delay,
     )
@@ -159,8 +159,8 @@ def test_get_genesis_beacon_state(
     )
     assert len(state.latest_block_roots) == latest_block_roots_length
     assert state.latest_block_roots[0] == ZERO_HASH32
-    assert len(state.latest_penalized_balances) == latest_penalized_exit_length
-    assert state.latest_penalized_balances[0] == Gwei(0)
+    assert len(state.latest_slashed_balances) == latest_slashed_exit_length
+    assert state.latest_slashed_balances[0] == Gwei(0)
 
     assert len(state.latest_attestations) == 0
     assert len(state.batched_block_roots) == 0

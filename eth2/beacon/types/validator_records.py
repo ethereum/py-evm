@@ -30,7 +30,7 @@ class ValidatorRecord(ssz.Serializable):
         ('exit_epoch', uint64),
         # Epoch when validator withdrew
         ('withdrawal_epoch', uint64),
-        # Epoch when validator was penalized
+        # Epoch when validator was slashed
         ('slashed_epoch', uint64),
         # Status flags
         ('status_flags', uint64),

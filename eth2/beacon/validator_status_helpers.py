@@ -99,7 +99,7 @@ def _settle_penality_to_validator_and_whistleblower(
         *,
         state: BeaconState,
         validator_index: ValidatorIndex,
-        latest_penalized_exit_length: int,
+        latest_slashed_exit_length: int,
         whistleblower_reward_quotient: int,
         max_deposit_amount: Gwei,
         committee_config: CommitteeConfig) -> BeaconState:
@@ -107,8 +107,8 @@ def _settle_penality_to_validator_and_whistleblower(
     Apply penality/reward to validator and whistleblower and update the meta data
 
     More intuitive pseudo-code:
-    current_epoch_penalization_index = (state.slot // EPOCH_LENGTH) % LATEST_PENALIZED_EXIT_LENGTH
-    state.latest_penalized_balances[current_epoch_penalization_index] += (
+    current_epoch_penalization_index = (state.slot // EPOCH_LENGTH) % LATEST_SLASHED_EXIT_LENGTH
+    state.latest_slashed_balances[current_epoch_penalization_index] += (
         get_effective_balance(state, index)
     )
     whistleblower_index = get_beacon_proposer_index(state, state.slot)
@@ -119,25 +119,25 @@ def _settle_penality_to_validator_and_whistleblower(
     """
     epoch_length = committee_config.EPOCH_LENGTH
 
-    # Update `state.latest_penalized_balances`
+    # Update `state.latest_slashed_balances`
     current_epoch_penalization_index = state.current_epoch(
-        epoch_length) % latest_penalized_exit_length
+        epoch_length) % latest_slashed_exit_length
     effective_balance = get_effective_balance(
         state.validator_balances,
         validator_index,
         max_deposit_amount,
     )
-    penalized_exit_balance = (
-        state.latest_penalized_balances[current_epoch_penalization_index] +
+    slashed_exit_balance = (
+        state.latest_slashed_balances[current_epoch_penalization_index] +
         effective_balance
     )
-    latest_penalized_balances = update_tuple_item(
-        tuple_data=state.latest_penalized_balances,
+    latest_slashed_balances = update_tuple_item(
+        tuple_data=state.latest_slashed_balances,
         index=current_epoch_penalization_index,
-        new_value=penalized_exit_balance,
+        new_value=slashed_exit_balance,
     )
     state = state.copy(
-        latest_penalized_balances=latest_penalized_balances,
+        latest_slashed_balances=latest_slashed_balances,
     )
 
     # Update whistleblower's balance
@@ -172,7 +172,7 @@ def _settle_penality_to_validator_and_whistleblower(
 def slash_validator(*,
                     state: BeaconState,
                     index: ValidatorIndex,
-                    latest_penalized_exit_length: int,
+                    latest_slashed_exit_length: int,
                     whistleblower_reward_quotient: int,
                     max_deposit_amount: Gwei,
                     committee_config: CommitteeConfig) -> BeaconState:
@@ -193,7 +193,7 @@ def slash_validator(*,
     state = _settle_penality_to_validator_and_whistleblower(
         state=state,
         validator_index=index,
-        latest_penalized_exit_length=latest_penalized_exit_length,
+        latest_slashed_exit_length=latest_slashed_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         max_deposit_amount=max_deposit_amount,
         committee_config=committee_config,
@@ -203,7 +203,7 @@ def slash_validator(*,
     current_epoch = state.current_epoch(epoch_length)
     validator = validator.copy(
         slashed_epoch=current_epoch,
-        withdrawal_epoch=current_epoch + latest_penalized_exit_length,
+        withdrawal_epoch=current_epoch + latest_slashed_exit_length,
     )
     state.update_validator_registry(index, validator)
 

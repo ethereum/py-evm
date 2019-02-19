@@ -164,7 +164,7 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'latest_crosslinks': (),
         'latest_block_roots': (),
         'latest_index_roots': (),
-        'latest_penalized_balances': (),
+        'latest_slashed_balances': (),
         'latest_attestations': (),
         'batched_block_roots': (),
         'latest_eth1_data': Eth1Data(**sample_eth1_data_params),
@@ -320,7 +320,7 @@ def filled_beacon_state(genesis_epoch,
                         latest_block_roots_length,
                         latest_index_roots_length,
                         latest_randao_mixes_length,
-                        latest_penalized_exit_length):
+                        latest_slashed_exit_length):
     return BeaconState.create_filled_state(
         genesis_epoch=genesis_epoch,
         genesis_start_shard=genesis_start_shard,
@@ -329,7 +329,7 @@ def filled_beacon_state(genesis_epoch,
         latest_block_roots_length=latest_block_roots_length,
         latest_index_roots_length=latest_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
-        latest_penalized_exit_length=latest_penalized_exit_length,
+        latest_slashed_exit_length=latest_slashed_exit_length,
     )
 
 
@@ -430,8 +430,8 @@ def latest_randao_mixes_length():
 
 
 @pytest.fixture
-def latest_penalized_exit_length():
-    return SERENITY_CONFIG.LATEST_PENALIZED_EXIT_LENGTH
+def latest_slashed_exit_length():
+    return SERENITY_CONFIG.LATEST_SLASHED_EXIT_LENGTH
 
 
 @pytest.fixture
@@ -571,13 +571,13 @@ def genesis_state(filled_beacon_state,
                   genesis_epoch,
                   shard_count,
                   latest_block_roots_length,
-                  latest_penalized_exit_length,
+                  latest_slashed_exit_length,
                   latest_randao_mixes_length):
     return filled_beacon_state.copy(
         validator_registry=activated_genesis_validators,
         validator_balances=genesis_balances,
         latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
-        latest_penalized_balances=(0,) * latest_penalized_exit_length,
+        latest_slashed_balances=(0,) * latest_slashed_exit_length,
         latest_crosslinks=tuple(
             CrosslinkRecord(
                 epoch=genesis_epoch,
@@ -653,7 +653,7 @@ def config(
         latest_block_roots_length,
         latest_index_roots_length,
         latest_randao_mixes_length,
-        latest_penalized_exit_length,
+        latest_slashed_exit_length,
         deposit_contract_address,
         deposit_contract_tree_depth,
         min_deposit_amount,
@@ -690,7 +690,7 @@ def config(
         LATEST_BLOCK_ROOTS_LENGTH=latest_block_roots_length,
         LATEST_INDEX_ROOTS_LENGTH=latest_index_roots_length,
         LATEST_RANDAO_MIXES_LENGTH=latest_randao_mixes_length,
-        LATEST_PENALIZED_EXIT_LENGTH=latest_penalized_exit_length,
+        LATEST_SLASHED_EXIT_LENGTH=latest_slashed_exit_length,
         DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,
         DEPOSIT_CONTRACT_TREE_DEPTH=deposit_contract_tree_depth,
         MIN_DEPOSIT_AMOUNT=min_deposit_amount,

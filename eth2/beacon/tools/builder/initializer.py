@@ -107,7 +107,7 @@ def create_mock_genesis(
         latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
         epoch_length=config.EPOCH_LENGTH,
         max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-        latest_penalized_exit_length=config.LATEST_PENALIZED_EXIT_LENGTH,
+        latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,
         latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
         entry_exit_delay=config.ENTRY_EXIT_DELAY,
     )

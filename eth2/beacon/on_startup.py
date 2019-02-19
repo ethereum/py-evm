@@ -73,7 +73,7 @@ def get_genesis_beacon_state(*,
                              latest_index_roots_length: int,
                              epoch_length: int,
                              max_deposit_amount: Gwei,
-                             latest_penalized_exit_length: int,
+                             latest_slashed_exit_length: int,
                              latest_randao_mixes_length: int,
                              entry_exit_delay: int) -> BeaconState:
     state = BeaconState(
@@ -112,7 +112,7 @@ def get_genesis_beacon_state(*,
         ),
         latest_block_roots=(ZERO_HASH32,) * latest_block_roots_length,
         latest_index_roots=(ZERO_HASH32,) * latest_index_roots_length,
-        latest_penalized_balances=(Gwei(0),) * latest_penalized_exit_length,
+        latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
         latest_attestations=(),
         batched_block_roots=(),
 
