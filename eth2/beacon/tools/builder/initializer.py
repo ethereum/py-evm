@@ -109,7 +109,7 @@ def create_mock_genesis(
         max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
         latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,
         latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
-        entry_exit_delay=config.ENTRY_EXIT_DELAY,
+        activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
     )
 
     block = get_genesis_block(

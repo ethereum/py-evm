@@ -64,7 +64,7 @@ def test_get_genesis_beacon_state(
         max_deposit_amount,
         latest_slashed_exit_length,
         latest_randao_mixes_length,
-        entry_exit_delay,
+        activation_exit_delay,
         sample_eth1_data_params):
     withdrawal_credentials = b'\x22' * 32
     fork = Fork(
@@ -122,7 +122,7 @@ def test_get_genesis_beacon_state(
         max_deposit_amount=max_deposit_amount,
         latest_slashed_exit_length=latest_slashed_exit_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
-        entry_exit_delay=entry_exit_delay,
+        activation_exit_delay=activation_exit_delay,
     )
 
     # Misc

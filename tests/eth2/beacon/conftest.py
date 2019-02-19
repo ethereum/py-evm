@@ -500,8 +500,8 @@ def min_seed_lookahead():
 
 
 @pytest.fixture
-def entry_exit_delay():
-    return SERENITY_CONFIG.ENTRY_EXIT_DELAY
+def activation_exit_delay():
+    return SERENITY_CONFIG.ACTIVATION_EXIT_DELAY
 
 
 @pytest.fixture
@@ -667,7 +667,7 @@ def config(
         min_attestation_inclusion_delay,
         epoch_length,
         min_seed_lookahead,
-        entry_exit_delay,
+        activation_exit_delay,
         eth1_data_voting_period,
         min_validator_withdrawability_delay,
         base_reward_quotient,
@@ -704,7 +704,7 @@ def config(
         MIN_ATTESTATION_INCLUSION_DELAY=min_attestation_inclusion_delay,
         EPOCH_LENGTH=epoch_length,
         MIN_SEED_LOOKAHEAD=min_seed_lookahead,
-        ENTRY_EXIT_DELAY=entry_exit_delay,
+        ACTIVATION_EXIT_DELAY=activation_exit_delay,
         ETH1_DATA_VOTING_PERIOD=eth1_data_voting_period,
         MIN_VALIDATOR_WITHDRAWABILITY_DELAY=min_validator_withdrawability_delay,
         BASE_REWARD_QUOTIENT=base_reward_quotient,

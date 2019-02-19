@@ -326,7 +326,7 @@ def process_validator_registry(state: BeaconState,
             epoch=state.current_calculation_epoch,
             epoch_length=config.EPOCH_LENGTH,
             min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
-            entry_exit_delay=config.ENTRY_EXIT_DELAY,
+            activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
             latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
             latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
         )
@@ -351,7 +351,7 @@ def process_validator_registry(state: BeaconState,
                 epoch=state.current_calculation_epoch,
                 epoch_length=config.EPOCH_LENGTH,
                 min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
-                entry_exit_delay=config.ENTRY_EXIT_DELAY,
+                activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
                 latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
                 latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
             )
@@ -377,7 +377,7 @@ def _update_latest_index_roots(state: BeaconState,
     # TODO: chanege to hash_tree_root
     active_validator_indices = get_active_validator_indices(
         state.validator_registry,
-        Epoch(next_epoch + committee_config.ENTRY_EXIT_DELAY),
+        Epoch(next_epoch + committee_config.ACTIVATION_EXIT_DELAY),
     )
     index_root = hash_eth2(
         b''.join(
@@ -391,7 +391,7 @@ def _update_latest_index_roots(state: BeaconState,
     latest_index_roots = update_tuple_item(
         state.latest_index_roots,
         (
-            (next_epoch + committee_config.ENTRY_EXIT_DELAY) %
+            (next_epoch + committee_config.ACTIVATION_EXIT_DELAY) %
             committee_config.LATEST_INDEX_ROOTS_LENGTH
         ),
         index_root,

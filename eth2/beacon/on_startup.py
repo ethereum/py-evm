@@ -75,7 +75,7 @@ def get_genesis_beacon_state(*,
                              max_deposit_amount: Gwei,
                              latest_slashed_exit_length: int,
                              latest_randao_mixes_length: int,
-                             entry_exit_delay: int) -> BeaconState:
+                             activation_exit_delay: int) -> BeaconState:
     state = BeaconState(
         # Misc
         slot=genesis_slot,
@@ -148,7 +148,7 @@ def get_genesis_beacon_state(*,
                 is_genesis=True,
                 genesis_epoch=genesis_epoch,
                 epoch_length=epoch_length,
-                entry_exit_delay=entry_exit_delay,
+                activation_exit_delay=activation_exit_delay,
             )
 
     # TODO: chanege to hash_tree_root
@@ -174,7 +174,7 @@ def get_genesis_beacon_state(*,
         epoch=genesis_epoch,
         epoch_length=epoch_length,
         min_seed_lookahead=min_seed_lookahead,
-        entry_exit_delay=entry_exit_delay,
+        activation_exit_delay=activation_exit_delay,
         latest_index_roots_length=latest_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
     )

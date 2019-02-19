@@ -36,7 +36,7 @@ def activate_validator(state: BeaconState,
                        is_genesis: bool,
                        genesis_epoch: Epoch,
                        epoch_length: int,
-                       entry_exit_delay: int) -> BeaconState:
+                       activation_exit_delay: int) -> BeaconState:
     """
     Activate the validator with the given ``index``.
     Return the updated state (immutable).
@@ -45,7 +45,7 @@ def activate_validator(state: BeaconState,
     validator = state.validator_registry[index].copy(
         activation_epoch=genesis_epoch if is_genesis else get_entry_exit_effect_epoch(
             state.current_epoch(epoch_length),
-            entry_exit_delay,
+            activation_exit_delay,
         )
     )
     state = state.update_validator_registry(index, validator)
@@ -71,7 +71,7 @@ def initiate_validator_exit(state: BeaconState,
 def exit_validator(state: BeaconState,
                    index: ValidatorIndex,
                    epoch_length: int,
-                   entry_exit_delay: int) -> BeaconState:
+                   activation_exit_delay: int) -> BeaconState:
     """
     Exit the validator with the given ``index``.
     Return the updated state (immutable).
@@ -80,7 +80,7 @@ def exit_validator(state: BeaconState,
 
     entry_exit_effect_epoch = get_entry_exit_effect_epoch(
         state.current_epoch(epoch_length),
-        entry_exit_delay,
+        activation_exit_delay,
     )
 
     # The following updates only occur if not previous exited
@@ -88,7 +88,7 @@ def exit_validator(state: BeaconState,
         return state
 
     validator = validator.copy(
-        exit_epoch=state.current_epoch(epoch_length) + entry_exit_delay,
+        exit_epoch=state.current_epoch(epoch_length) + activation_exit_delay,
     )
     state = state.update_validator_registry(index, validator)
 
@@ -182,14 +182,14 @@ def slash_validator(*,
     Exit the validator, penalize the validator, and reward the whistleblower.
     """
     epoch_length = committee_config.EPOCH_LENGTH
-    entry_exit_delay = committee_config.ENTRY_EXIT_DELAY
+    activation_exit_delay = committee_config.ACTIVATION_EXIT_DELAY
 
     validator = state.validator_registry[index]
 
     # [TO BE REMOVED IN PHASE 2]
     _validate_withdrawal_epoch(state.slot, validator.withdrawal_epoch, epoch_length)
 
-    state = exit_validator(state, index, epoch_length, entry_exit_delay)
+    state = exit_validator(state, index, epoch_length, activation_exit_delay)
     state = _settle_penality_to_validator_and_whistleblower(
         state=state,
         validator_index=index,

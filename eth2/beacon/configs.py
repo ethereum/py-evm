@@ -46,7 +46,7 @@ BeaconConfig = NamedTuple(
         ('MIN_ATTESTATION_INCLUSION_DELAY', int),
         ('EPOCH_LENGTH', int),
         ('MIN_SEED_LOOKAHEAD', int),
-        ('ENTRY_EXIT_DELAY', int),
+        ('ACTIVATION_EXIT_DELAY', int),
         ('ETH1_DATA_VOTING_PERIOD', int),
         ('MIN_VALIDATOR_WITHDRAWABILITY_DELAY', int),
         # Reward and penalty quotients
@@ -74,6 +74,6 @@ class CommitteeConfig:
 
         # For seed
         self.MIN_SEED_LOOKAHEAD = config.MIN_SEED_LOOKAHEAD
-        self.ENTRY_EXIT_DELAY = config.ENTRY_EXIT_DELAY
+        self.ACTIVATION_EXIT_DELAY = config.ACTIVATION_EXIT_DELAY
         self.LATEST_INDEX_ROOTS_LENGTH = config.LATEST_INDEX_ROOTS_LENGTH
         self.LATEST_RANDAO_MIXES_LENGTH = config.LATEST_RANDAO_MIXES_LENGTH

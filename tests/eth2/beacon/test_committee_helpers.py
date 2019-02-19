@@ -318,7 +318,7 @@ def test_get_crosslink_committees_at_slot(
                            epoch,
                            epoch_length,
                            min_seed_lookahead,
-                           entry_exit_delay,
+                           activation_exit_delay,
                            latest_index_roots_length,
                            latest_randao_mixes_length):
         return new_seed

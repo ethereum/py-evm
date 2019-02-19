@@ -124,7 +124,7 @@ def generate_seed(state: 'BeaconState',
                   epoch: Epoch,
                   epoch_length: int,
                   min_seed_lookahead: int,
-                  entry_exit_delay: int,
+                  activation_exit_delay: int,
                   latest_index_roots_length: int,
                   latest_randao_mixes_length: int) -> Hash32:
     """
@@ -140,7 +140,7 @@ def generate_seed(state: 'BeaconState',
         state=state,
         epoch=epoch,
         epoch_length=epoch_length,
-        entry_exit_delay=entry_exit_delay,
+        activation_exit_delay=activation_exit_delay,
         latest_index_roots_length=latest_index_roots_length,
     )
     epoch_as_bytes = epoch.to_bytes(32, byteorder="little")
@@ -151,7 +151,7 @@ def generate_seed(state: 'BeaconState',
 def get_active_index_root(state: 'BeaconState',
                           epoch: Epoch,
                           epoch_length: int,
-                          entry_exit_delay: int,
+                          activation_exit_delay: int,
                           latest_index_roots_length: int) -> Hash32:
     """
     Return the index root at a recent ``epoch``.
@@ -159,7 +159,7 @@ def get_active_index_root(state: 'BeaconState',
     validate_epoch_for_active_index_root(
         state.current_epoch(epoch_length),
         epoch,
-        entry_exit_delay,
+        activation_exit_delay,
         latest_index_roots_length,
     )
 
@@ -249,9 +249,9 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
 
 def get_entry_exit_effect_epoch(
         epoch: Epoch,
-        entry_exit_delay: int) -> Epoch:
+        activation_exit_delay: int) -> Epoch:
     """
     An entry or exit triggered in the ``epoch`` given by the input takes effect at
     the epoch given by the output.
     """
-    return Epoch(epoch + 1 + entry_exit_delay)
+    return Epoch(epoch + 1 + activation_exit_delay)

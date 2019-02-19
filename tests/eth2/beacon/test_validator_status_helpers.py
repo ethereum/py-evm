@@ -48,7 +48,7 @@ def test_activate_validator(is_genesis,
                             filled_beacon_state,
                             genesis_epoch,
                             epoch_length,
-                            entry_exit_delay,
+                            activation_exit_delay,
                             max_deposit_amount):
     validator_count = 10
     state = filled_beacon_state.copy(
@@ -71,7 +71,7 @@ def test_activate_validator(is_genesis,
         is_genesis=is_genesis,
         genesis_epoch=genesis_epoch,
         epoch_length=epoch_length,
-        entry_exit_delay=entry_exit_delay,
+        activation_exit_delay=activation_exit_delay,
     )
 
     if is_genesis:
@@ -81,7 +81,7 @@ def test_activate_validator(is_genesis,
             result_state.validator_registry[index].activation_epoch ==
             get_entry_exit_effect_epoch(
                 state.current_epoch(epoch_length),
-                entry_exit_delay,
+                activation_exit_delay,
             )
         )
 
@@ -107,7 +107,7 @@ def test_initiate_validator_exit(n_validators_state):
 @pytest.mark.parametrize(
     (
         'num_validators',
-        'entry_exit_delay',
+        'activation_exit_delay',
         'committee',
         'state_slot',
         'exit_epoch',
@@ -137,7 +137,7 @@ def test_initiate_validator_exit(n_validators_state):
     ],
 )
 def test_exit_validator(num_validators,
-                        entry_exit_delay,
+                        activation_exit_delay,
                         committee,
                         state_slot,
                         exit_epoch,
@@ -161,15 +161,15 @@ def test_exit_validator(num_validators,
         state=state,
         index=index,
         epoch_length=epoch_length,
-        entry_exit_delay=entry_exit_delay,
+        activation_exit_delay=activation_exit_delay,
     )
-    if validator.exit_epoch <= state.current_epoch(epoch_length) + entry_exit_delay:
+    if validator.exit_epoch <= state.current_epoch(epoch_length) + activation_exit_delay:
         assert state == result_state
         return
     else:
-        assert validator.exit_epoch > state.current_epoch(epoch_length) + entry_exit_delay
+        assert validator.exit_epoch > state.current_epoch(epoch_length) + activation_exit_delay
         result_validator = result_state.validator_registry[index]
-        assert result_validator.exit_epoch == state.current_epoch(epoch_length) + entry_exit_delay
+        assert result_validator.exit_epoch == state.current_epoch(epoch_length) + activation_exit_delay
 
 
 @pytest.mark.parametrize(
@@ -265,7 +265,7 @@ def test_slash_validator(monkeypatch,
                          epoch_length,
                          latest_slashed_exit_length,
                          whistleblower_reward_quotient,
-                         entry_exit_delay,
+                         activation_exit_delay,
                          max_deposit_amount,
                          target_committee_size,
                          shard_count,
@@ -298,7 +298,7 @@ def test_slash_validator(monkeypatch,
     )
 
     # Just check if `prepare_validator_for_withdrawal` applied these two functions
-    expected_state = exit_validator(state, index, epoch_length, entry_exit_delay)
+    expected_state = exit_validator(state, index, epoch_length, activation_exit_delay)
     expected_state = _settle_penality_to_validator_and_whistleblower(
         state=expected_state,
         validator_index=index,
