@@ -18,6 +18,7 @@ from .epoch_processing import (
     process_justification,
     process_crosslinks,
     process_final_updates,
+    process_rewards_and_penalties,
     process_validator_registry,
 )
 from .operation_processing import (
@@ -105,7 +106,7 @@ class SerenityStateTransition(BaseStateTransition):
         # TODO: state = process_et1_data_votes(state, self.config)
         state = process_justification(state, self.config)
         state = process_crosslinks(state, self.config)
-        # TODO: state = process_rewards_and_penalties(state, self.config)
+        state = process_rewards_and_penalties(state, self.config)
         # TODO: state = process_ejections(state, self.config)
         state = process_validator_registry(state, self.config)
         state = process_final_updates(state, self.config)
