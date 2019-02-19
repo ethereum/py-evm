@@ -1,6 +1,6 @@
 import ssz
 from ssz.sedes import (
-    bytes_sedes,
+    bytes96,
     uint64,
 )
 
@@ -20,7 +20,7 @@ class Exit(ssz.Serializable):
         # Index of the exiting validator
         ('validator_index', uint64),
         # Validator signature
-        ('signature', bytes_sedes),
+        ('signature', bytes96),
     ]
 
     def __init__(self,
