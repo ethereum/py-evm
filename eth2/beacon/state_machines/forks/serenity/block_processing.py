@@ -29,8 +29,7 @@ from eth2.beacon.committee_helpers import (
 
 
 def process_eth1_data(state: BeaconState,
-                      block: BaseBeaconBlock,
-                      config: BeaconConfig) -> BeaconState:
+                      block: BaseBeaconBlock) -> BeaconState:
     try:
         vote_index, original_vote = first(
             (index, eth1_data_vote)

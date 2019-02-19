@@ -132,8 +132,7 @@ def test_process_eth1_data(original_votes,
                            block_data,
                            expected_votes,
                            sample_beacon_state_params,
-                           sample_beacon_block_params,
-                           config):
+                           sample_beacon_block_params):
     eth1_data_votes = tuple(
         Eth1DataVote(data, vote_count)
         for data, vote_count in original_votes
@@ -146,7 +145,7 @@ def test_process_eth1_data(original_votes,
         eth1_data=block_data,
     )
 
-    updated_state = process_eth1_data(state, block, config)
+    updated_state = process_eth1_data(state, block)
     updated_votes = tuple(
         (vote.eth1_data, vote.vote_count)
         for vote in updated_state.eth1_data_votes

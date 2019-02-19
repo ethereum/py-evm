@@ -11,6 +11,9 @@ from eth2.beacon.state_machines.state_transitions import BaseStateTransition
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
 
+from .block_processing import (
+    process_eth1_data,
+)
 from .epoch_processing import (
     process_crosslinks,
     process_final_updates,
@@ -84,7 +87,7 @@ class SerenityStateTransition(BaseStateTransition):
                 committee_config=CommitteeConfig(self.config),
             )
         # TODO: state = process_randao(state, block, self.config)
-        # TODO: state = process_eth1_data(state, block, self.config)
+        state = process_eth1_data(state, block)
 
         # Operations
         # TODO: state = process_proposer_slashings(state, block, self.config)
