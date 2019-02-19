@@ -23,3 +23,10 @@ def test_laziness():
     repeated_use = CachedIterable(crash_after_first_val())
     assert first(repeated_use) == 1
     assert first(repeated_use) == 1
+
+
+def test_cached_generator_iterable():
+    input_vals = [2]
+    repeated_use = CachedIterable(input_vals)
+    assert list(repeated_use) == input_vals
+    assert list(repeated_use) == input_vals

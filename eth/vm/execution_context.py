@@ -7,6 +7,8 @@ from eth_typing import (
     Hash32,
 )
 
+from eth._utils.generator import CachedIterable
+
 
 class ExecutionContext:
     _coinbase = None
@@ -30,7 +32,7 @@ class ExecutionContext:
         self._block_number = block_number
         self._difficulty = difficulty
         self._gas_limit = gas_limit
-        self._prev_hashes = prev_hashes
+        self._prev_hashes = CachedIterable(prev_hashes)
 
     @property
     def coinbase(self) -> Address:
