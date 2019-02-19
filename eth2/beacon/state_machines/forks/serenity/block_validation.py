@@ -375,7 +375,6 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     committee = get_crosslink_committee_for_attestation(
         state=state,
         attestation_data=attestation.data,
-        bitfield=attestation.aggregation_bitfield,
         committee_config=committee_config,
     )
 
