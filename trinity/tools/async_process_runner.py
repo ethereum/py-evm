@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import signal
 from typing import (
@@ -13,6 +14,7 @@ class AsyncProcessRunner():
 
     def __init__(self, debug_fn: Callable[[bytes], None] = None) -> None:
         self.debug_fn = debug_fn
+        self.logger = logging.getLogger("trinity.tools.async_process_runner.AsyncProcessRunner")
 
     @classmethod
     async def create_and_run(cls,
@@ -64,4 +66,7 @@ class AsyncProcessRunner():
         raise TimeoutError(f'Killed process after {timeout_sec} seconds')
 
     def kill(self) -> None:
-        os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+        try:
+            os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+        except ProcessLookupError:
+            self.logger.info("Process %s has already disappeared", self.proc.pid)
