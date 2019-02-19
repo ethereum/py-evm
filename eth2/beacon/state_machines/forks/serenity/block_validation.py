@@ -48,10 +48,9 @@ from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
 from eth2.beacon.types.proposal_signed_data import ProposalSignedData
 from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
 from eth2.beacon.typing import (
-    BLSPubkey,
-    BLSSignature,
     Bitfield,
     BLSPubkey,
+    BLSSignature,
     EpochNumber,
     ShardNumber,
     SlotNumber,
@@ -447,6 +446,7 @@ def validate_randao_reveal(randao_reveal: BLSSignature,
             f"RANDAO reveal is invalid. "
             f"reveal={randao_reveal}, proposer_pubkey={proposer_pubkey}, message={message}, "
             f"domain={domain}"
+        )
 
 
 #

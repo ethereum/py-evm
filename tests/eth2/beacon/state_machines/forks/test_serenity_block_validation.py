@@ -2,16 +2,13 @@ import copy
 import random
 
 import pytest
-
 from hypothesis import (
     given,
     strategies as st,
 )
-
 from eth_utils import (
     ValidationError,
 )
-
 from eth_utils.toolz import (
     assoc,
 )
@@ -31,19 +28,6 @@ from eth2.beacon.helpers import (
     get_domain,
     slot_to_epoch,
 )
-from eth2.beacon.types.blocks import BeaconBlock
-from eth2.beacon.types.proposal_signed_data import (
-    ProposalSignedData,
-)
-from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.slashable_attestations import SlashableAttestation
-from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.forks import Fork
-
-from eth2.beacon.helpers import (
-    get_domain,
-)
-
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     generate_aggregate_pubkeys_from_indices,
     get_pubkey_for_indices,
@@ -53,6 +37,13 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_slashable_attestation,
     verify_slashable_attestation_signature,
 )
+from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.types.proposal_signed_data import (
+    ProposalSignedData,
+)
+from eth2.beacon.types.forks import Fork
+from eth2.beacon.types.slashable_attestations import SlashableAttestation
+from eth2.beacon.types.states import BeaconState
 
 from tests.eth2.beacon.helpers import mock_validator_record
 
@@ -557,4 +548,3 @@ def test_verify_slashable_attestation_after_fork(
         max_indices_per_slashable_vote,
         True,
     )
->>>>>>> Refactor tests to cover refactor of aggregate signature validation
