@@ -52,7 +52,7 @@ BeaconConfig = NamedTuple(
         # Reward and penalty quotients
         ('BASE_REWARD_QUOTIENT', int),
         ('WHISTLEBLOWER_REWARD_QUOTIENT', int),
-        ('INCLUDER_REWARD_QUOTIENT', int),
+        ('ATTESTATION_INCLUSION_REWARD_QUOTIENT', int),
         ('INACTIVITY_PENALTY_QUOTIENT', int),
         # Max transactions per block
         ('MAX_PROPOSER_SLASHINGS', int),

@@ -525,8 +525,8 @@ def whistleblower_reward_quotient():
 
 
 @pytest.fixture
-def includer_reward_quotient():
-    return SERENITY_CONFIG.INCLUDER_REWARD_QUOTIENT
+def attestation_inclusion_reward_quotient():
+    return SERENITY_CONFIG.ATTESTATION_INCLUSION_REWARD_QUOTIENT
 
 
 @pytest.fixture
@@ -672,7 +672,7 @@ def config(
         min_validator_withdrawability_delay,
         base_reward_quotient,
         whistleblower_reward_quotient,
-        includer_reward_quotient,
+        attestation_inclusion_reward_quotient,
         inactivity_penalty_quotient,
         max_proposer_slashings,
         max_attester_slashings,
@@ -709,7 +709,7 @@ def config(
         MIN_VALIDATOR_WITHDRAWABILITY_DELAY=min_validator_withdrawability_delay,
         BASE_REWARD_QUOTIENT=base_reward_quotient,
         WHISTLEBLOWER_REWARD_QUOTIENT=whistleblower_reward_quotient,
-        INCLUDER_REWARD_QUOTIENT=includer_reward_quotient,
+        ATTESTATION_INCLUSION_REWARD_QUOTIENT=attestation_inclusion_reward_quotient,
         INACTIVITY_PENALTY_QUOTIENT=inactivity_penalty_quotient,
         MAX_PROPOSER_SLASHINGS=max_proposer_slashings,
         MAX_ATTESTER_SLASHINGS=max_attester_slashings,
