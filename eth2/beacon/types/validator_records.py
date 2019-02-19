@@ -3,8 +3,8 @@ from eth_typing import (
 )
 import ssz
 from ssz.sedes import (
-    bytes_sedes,
     bytes32,
+    bytes48,
     uint64,
 )
 
@@ -21,7 +21,7 @@ class ValidatorRecord(ssz.Serializable):
 
     fields = [
         # BLS public key
-        ('pubkey', bytes_sedes),
+        ('pubkey', bytes48),
         # Withdrawal credentials
         ('withdrawal_credentials', bytes32),
         # Epoch when validator activated

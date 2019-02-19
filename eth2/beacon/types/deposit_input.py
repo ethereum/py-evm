@@ -3,8 +3,8 @@ from eth_typing import (
 )
 import ssz
 from ssz.sedes import (
-    bytes_sedes,
     bytes32,
+    bytes48,
     bytes96,
 )
 
@@ -20,7 +20,7 @@ class DepositInput(ssz.Serializable):
 
     fields = [
         # BLS pubkey
-        ('pubkey', bytes_sedes),
+        ('pubkey', bytes48),
         # Withdrawal credentials
         ('withdrawal_credentials', bytes32),
         # BLS proof of possession (a BLS signature)
