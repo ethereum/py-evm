@@ -24,7 +24,7 @@ SERENITY_CONFIG = BeaconConfig(
     BEACON_CHAIN_SHARD_NUMBER=Shard(2**64 - 1),
     MAX_INDICES_PER_SLASHABLE_VOTE=2**12,  # (= 4,096) votes
     LATEST_BLOCK_ROOTS_LENGTH=2**13,  # (= 8,192) slots
-    LATEST_INDEX_ROOTS_LENGTH=2**13,  # (= 8,192) epochs
+    LATEST_ACTIVE_INDEX_ROOTS_LENGTH=2**13,  # (= 8,192) epochs
     LATEST_RANDAO_MIXES_LENGTH=2**13,  # (= 8,192) epochs
     LATEST_SLASHED_EXIT_LENGTH=2**13,  # (= 8,192) epochs
     # Deposit contract

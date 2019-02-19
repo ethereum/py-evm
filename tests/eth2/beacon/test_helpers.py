@@ -356,7 +356,7 @@ def test_generate_seed(monkeypatch,
                        epoch_length,
                        min_seed_lookahead,
                        activation_exit_delay,
-                       latest_index_roots_length,
+                       latest_active_index_roots_length,
                        latest_randao_mixes_length):
     from eth2.beacon import helpers
 
@@ -374,12 +374,12 @@ def test_generate_seed(monkeypatch,
                                    epoch,
                                    epoch_length,
                                    activation_exit_delay,
-                                   latest_index_roots_length):
+                                   latest_active_index_roots_length):
         return hash_eth2(
             state.root +
             epoch.to_bytes(32, byteorder='little') +
             epoch_length.to_bytes(32, byteorder='little') +
-            latest_index_roots_length.to_bytes(32, byteorder='little')
+            latest_active_index_roots_length.to_bytes(32, byteorder='little')
         )
 
     monkeypatch.setattr(
@@ -404,7 +404,7 @@ def test_generate_seed(monkeypatch,
         epoch_length=epoch_length,
         min_seed_lookahead=min_seed_lookahead,
         activation_exit_delay=activation_exit_delay,
-        latest_index_roots_length=latest_index_roots_length,
+        latest_active_index_roots_length=latest_active_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
     )
     assert seed == hash_eth2(
@@ -418,6 +418,6 @@ def test_generate_seed(monkeypatch,
             epoch=epoch,
             epoch_length=epoch_length,
             activation_exit_delay=activation_exit_delay,
-            latest_index_roots_length=latest_index_roots_length,
+            latest_active_index_roots_length=latest_active_index_roots_length,
         ) + epoch_as_bytes
     )

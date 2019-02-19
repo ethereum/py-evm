@@ -70,7 +70,7 @@ def get_genesis_beacon_state(*,
                              shard_count: int,
                              min_seed_lookahead: int,
                              latest_block_roots_length: int,
-                             latest_index_roots_length: int,
+                             latest_active_index_roots_length: int,
                              epoch_length: int,
                              max_deposit_amount: Gwei,
                              latest_slashed_exit_length: int,
@@ -111,7 +111,7 @@ def get_genesis_beacon_state(*,
             (CrosslinkRecord(epoch=genesis_epoch, shard_block_root=ZERO_HASH32),) * shard_count
         ),
         latest_block_roots=(ZERO_HASH32,) * latest_block_roots_length,
-        latest_index_roots=(ZERO_HASH32,) * latest_index_roots_length,
+        latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
         latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
         latest_attestations=(),
         batched_block_roots=(),
@@ -164,9 +164,9 @@ def get_genesis_beacon_state(*,
             ]
         )
     )
-    latest_index_roots = (genesis_active_index_root,) * latest_index_roots_length
+    latest_active_index_roots = (genesis_active_index_root,) * latest_active_index_roots_length
     state = state.copy(
-        latest_index_roots=latest_index_roots,
+        latest_active_index_roots=latest_active_index_roots,
     )
 
     current_epoch_seed = generate_seed(
@@ -175,7 +175,7 @@ def get_genesis_beacon_state(*,
         epoch_length=epoch_length,
         min_seed_lookahead=min_seed_lookahead,
         activation_exit_delay=activation_exit_delay,
-        latest_index_roots_length=latest_index_roots_length,
+        latest_active_index_roots_length=latest_active_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
     )
     state = state.copy(

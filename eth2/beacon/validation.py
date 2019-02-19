@@ -61,11 +61,11 @@ def validate_epoch_for_active_randao_mix(state_epoch: Epoch,
 def validate_epoch_for_active_index_root(state_epoch: Epoch,
                                          given_epoch: Epoch,
                                          activation_exit_delay: int,
-                                         latest_index_roots_length: int) -> None:
-    if state_epoch >= given_epoch + latest_index_roots_length - activation_exit_delay:
+                                         latest_active_index_roots_length: int) -> None:
+    if state_epoch >= given_epoch + latest_active_index_roots_length - activation_exit_delay:
         raise ValidationError(
             f"state_epoch ({state_epoch}) should be less than (given_epoch {given_epoch} + "
-            f"LATEST_INDEX_ROOTS_LENGTH ({latest_index_roots_length}))"
+            f"LATEST_ACTIVE_INDEX_ROOTS_LENGTH ({latest_active_index_roots_length}))"
         )
 
     if given_epoch > state_epoch + activation_exit_delay:

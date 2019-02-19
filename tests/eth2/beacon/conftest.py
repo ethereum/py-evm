@@ -163,7 +163,7 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'finalized_epoch': 0,
         'latest_crosslinks': (),
         'latest_block_roots': (),
-        'latest_index_roots': (),
+        'latest_active_index_roots': (),
         'latest_slashed_balances': (),
         'latest_attestations': (),
         'batched_block_roots': (),
@@ -318,7 +318,7 @@ def filled_beacon_state(genesis_epoch,
                         genesis_start_shard,
                         shard_count,
                         latest_block_roots_length,
-                        latest_index_roots_length,
+                        latest_active_index_roots_length,
                         latest_randao_mixes_length,
                         latest_slashed_exit_length):
     return BeaconState.create_filled_state(
@@ -327,7 +327,7 @@ def filled_beacon_state(genesis_epoch,
         genesis_slot=genesis_slot,
         shard_count=shard_count,
         latest_block_roots_length=latest_block_roots_length,
-        latest_index_roots_length=latest_index_roots_length,
+        latest_active_index_roots_length=latest_active_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
         latest_slashed_exit_length=latest_slashed_exit_length,
     )
@@ -420,8 +420,8 @@ def latest_block_roots_length():
 
 
 @pytest.fixture
-def latest_index_roots_length():
-    return SERENITY_CONFIG.LATEST_INDEX_ROOTS_LENGTH
+def latest_active_index_roots_length():
+    return SERENITY_CONFIG.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
 
 
 @pytest.fixture
@@ -651,7 +651,7 @@ def config(
         beacon_chain_shard_number,
         max_indices_per_slashable_vote,
         latest_block_roots_length,
-        latest_index_roots_length,
+        latest_active_index_roots_length,
         latest_randao_mixes_length,
         latest_slashed_exit_length,
         deposit_contract_address,
@@ -688,7 +688,7 @@ def config(
         BEACON_CHAIN_SHARD_NUMBER=beacon_chain_shard_number,
         MAX_INDICES_PER_SLASHABLE_VOTE=max_indices_per_slashable_vote,
         LATEST_BLOCK_ROOTS_LENGTH=latest_block_roots_length,
-        LATEST_INDEX_ROOTS_LENGTH=latest_index_roots_length,
+        LATEST_ACTIVE_INDEX_ROOTS_LENGTH=latest_active_index_roots_length,
         LATEST_RANDAO_MIXES_LENGTH=latest_randao_mixes_length,
         LATEST_SLASHED_EXIT_LENGTH=latest_slashed_exit_length,
         DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,

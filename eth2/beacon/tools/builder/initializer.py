@@ -104,7 +104,7 @@ def create_mock_genesis(
         shard_count=config.SHARD_COUNT,
         min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
         latest_block_roots_length=config.LATEST_BLOCK_ROOTS_LENGTH,
-        latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
+        latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
         epoch_length=config.EPOCH_LENGTH,
         max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
         latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,

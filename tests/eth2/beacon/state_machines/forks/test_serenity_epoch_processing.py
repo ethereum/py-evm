@@ -41,7 +41,7 @@ from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _check_if_update_validator_registry,
-    _update_latest_index_roots,
+    _update_latest_active_index_roots,
     process_crosslinks,
     process_final_updates,
     process_validator_registry,
@@ -312,7 +312,7 @@ def test_check_if_update_validator_registry(genesis_state,
 @pytest.mark.parametrize(
     (
         'epoch_length,'
-        'latest_index_roots_length,'
+        'latest_active_index_roots_length,'
         'state_slot,'
     ),
     [
@@ -320,17 +320,17 @@ def test_check_if_update_validator_registry(genesis_state,
         (4, 16, 64),
     ]
 )
-def test_update_latest_index_roots(genesis_state,
-                                   committee_config,
-                                   state_slot,
-                                   epoch_length,
-                                   latest_index_roots_length,
-                                   activation_exit_delay):
+def test_update_latest_active_index_roots(genesis_state,
+                                          committee_config,
+                                          state_slot,
+                                          epoch_length,
+                                          latest_active_index_roots_length,
+                                          activation_exit_delay):
     state = genesis_state.copy(
         slot=state_slot,
     )
 
-    result_state = _update_latest_index_roots(state, committee_config)
+    result_state = _update_latest_active_index_roots(state, committee_config)
 
     # TODO: chanege to hash_tree_root
     index_root = hash_eth2(
@@ -346,8 +346,10 @@ def test_update_latest_index_roots(genesis_state,
         )
     )
 
-    assert result_state.latest_index_roots[
-        (state.next_epoch(epoch_length) + activation_exit_delay) % latest_index_roots_length
+    assert result_state.latest_active_index_roots[
+        (
+            state.next_epoch(epoch_length) + activation_exit_delay
+        ) % latest_active_index_roots_length
     ] == index_root
 
 
@@ -421,7 +423,7 @@ def test_process_validator_registry(monkeypatch,
                            epoch_length,
                            min_seed_lookahead,
                            activation_exit_delay,
-                           latest_index_roots_length,
+                           latest_active_index_roots_length,
                            latest_randao_mixes_length):
         return new_seed
 

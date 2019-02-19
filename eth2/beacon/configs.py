@@ -25,7 +25,7 @@ BeaconConfig = NamedTuple(
         ('BEACON_CHAIN_SHARD_NUMBER', Shard),
         ('MAX_INDICES_PER_SLASHABLE_VOTE', int),
         ('LATEST_BLOCK_ROOTS_LENGTH', int),
-        ('LATEST_INDEX_ROOTS_LENGTH', int),
+        ('LATEST_ACTIVE_INDEX_ROOTS_LENGTH', int),
         ('LATEST_RANDAO_MIXES_LENGTH', int),
         ('LATEST_SLASHED_EXIT_LENGTH', int),
         # EMPTY_SIGNATURE is defined in constants.py
@@ -75,5 +75,5 @@ class CommitteeConfig:
         # For seed
         self.MIN_SEED_LOOKAHEAD = config.MIN_SEED_LOOKAHEAD
         self.ACTIVATION_EXIT_DELAY = config.ACTIVATION_EXIT_DELAY
-        self.LATEST_INDEX_ROOTS_LENGTH = config.LATEST_INDEX_ROOTS_LENGTH
+        self.LATEST_ACTIVE_INDEX_ROOTS_LENGTH = config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
         self.LATEST_RANDAO_MIXES_LENGTH = config.LATEST_RANDAO_MIXES_LENGTH

@@ -125,7 +125,7 @@ def generate_seed(state: 'BeaconState',
                   epoch_length: int,
                   min_seed_lookahead: int,
                   activation_exit_delay: int,
-                  latest_index_roots_length: int,
+                  latest_active_index_roots_length: int,
                   latest_randao_mixes_length: int) -> Hash32:
     """
     Generate a seed for the given ``epoch``.
@@ -141,7 +141,7 @@ def generate_seed(state: 'BeaconState',
         epoch=epoch,
         epoch_length=epoch_length,
         activation_exit_delay=activation_exit_delay,
-        latest_index_roots_length=latest_index_roots_length,
+        latest_active_index_roots_length=latest_active_index_roots_length,
     )
     epoch_as_bytes = epoch.to_bytes(32, byteorder="little")
 
@@ -152,7 +152,7 @@ def get_active_index_root(state: 'BeaconState',
                           epoch: Epoch,
                           epoch_length: int,
                           activation_exit_delay: int,
-                          latest_index_roots_length: int) -> Hash32:
+                          latest_active_index_roots_length: int) -> Hash32:
     """
     Return the index root at a recent ``epoch``.
     """
@@ -160,10 +160,10 @@ def get_active_index_root(state: 'BeaconState',
         state.current_epoch(epoch_length),
         epoch,
         activation_exit_delay,
-        latest_index_roots_length,
+        latest_active_index_roots_length,
     )
 
-    return state.latest_index_roots[epoch % latest_index_roots_length]
+    return state.latest_active_index_roots[epoch % latest_active_index_roots_length]
 
 
 def get_effective_balance(

@@ -170,7 +170,7 @@ def get_crosslink_committees_at_slot(
 
     min_seed_lookahead = committee_config.MIN_SEED_LOOKAHEAD
     activation_exit_delay = committee_config.ACTIVATION_EXIT_DELAY
-    latest_index_roots_length = committee_config.LATEST_INDEX_ROOTS_LENGTH
+    latest_active_index_roots_length = committee_config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
     latest_randao_mixes_length = committee_config.LATEST_RANDAO_MIXES_LENGTH
 
     epoch = slot_to_epoch(slot, epoch_length)
@@ -232,7 +232,7 @@ def get_crosslink_committees_at_slot(
                 epoch_length=epoch_length,
                 min_seed_lookahead=min_seed_lookahead,
                 activation_exit_delay=activation_exit_delay,
-                latest_index_roots_length=latest_index_roots_length,
+                latest_active_index_roots_length=latest_active_index_roots_length,
                 latest_randao_mixes_length=latest_randao_mixes_length,
             )
             shuffling_start_shard = (
@@ -246,7 +246,7 @@ def get_crosslink_committees_at_slot(
                 epoch_length=epoch_length,
                 min_seed_lookahead=min_seed_lookahead,
                 activation_exit_delay=activation_exit_delay,
-                latest_index_roots_length=latest_index_roots_length,
+                latest_active_index_roots_length=latest_active_index_roots_length,
                 latest_randao_mixes_length=latest_randao_mixes_length,
             )
             shuffling_start_shard = state.current_epoch_start_shard

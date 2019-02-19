@@ -327,7 +327,7 @@ def process_validator_registry(state: BeaconState,
             epoch_length=config.EPOCH_LENGTH,
             min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
             activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
-            latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
+            latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
             latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
         )
         state = state.copy(
@@ -352,7 +352,7 @@ def process_validator_registry(state: BeaconState,
                 epoch_length=config.EPOCH_LENGTH,
                 min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
                 activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
-                latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
+                latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
                 latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
             )
             state = state.copy(
@@ -367,10 +367,10 @@ def process_validator_registry(state: BeaconState,
 #
 # Final updates
 #
-def _update_latest_index_roots(state: BeaconState,
-                               committee_config: CommitteeConfig) -> BeaconState:
+def _update_latest_active_index_roots(state: BeaconState,
+                                      committee_config: CommitteeConfig) -> BeaconState:
     """
-    Return the BeaconState with updated `latest_index_roots`.
+    Return the BeaconState with updated `latest_active_index_roots`.
     """
     next_epoch = state.next_epoch(committee_config.EPOCH_LENGTH)
 
@@ -388,17 +388,17 @@ def _update_latest_index_roots(state: BeaconState,
         )
     )
 
-    latest_index_roots = update_tuple_item(
-        state.latest_index_roots,
+    latest_active_index_roots = update_tuple_item(
+        state.latest_active_index_roots,
         (
             (next_epoch + committee_config.ACTIVATION_EXIT_DELAY) %
-            committee_config.LATEST_INDEX_ROOTS_LENGTH
+            committee_config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
         ),
         index_root,
     )
 
     return state.copy(
-        latest_index_roots=latest_index_roots,
+        latest_active_index_roots=latest_active_index_roots,
     )
 
 
@@ -407,7 +407,7 @@ def process_final_updates(state: BeaconState,
     current_epoch = state.current_epoch(config.EPOCH_LENGTH)
     next_epoch = state.next_epoch(config.EPOCH_LENGTH)
 
-    state = _update_latest_index_roots(state, CommitteeConfig(config))
+    state = _update_latest_active_index_roots(state, CommitteeConfig(config))
 
     state = state.copy(
         latest_slashed_balances=update_tuple_item(
