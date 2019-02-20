@@ -35,7 +35,7 @@ BeaconConfig = NamedTuple(
         ('MIN_DEPOSIT_AMOUNT', Gwei),
         ('MAX_DEPOSIT_AMOUNT', Gwei),
         # ZERO_HASH (ZERO_HASH32) is defined in constants.py
-        # Initial values
+        # Genesis values
         ('GENESIS_FORK_VERSION', int),
         ('GENESIS_SLOT', Slot),
         ('GENESIS_EPOCH', Epoch),

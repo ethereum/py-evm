@@ -26,7 +26,7 @@ from eth2.beacon.types.proposal_signed_data import ProposalSignedData
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
 
-from eth2.beacon.on_startup import (
+from eth2.beacon.on_genesis import (
     get_genesis_block,
 )
 from eth2.beacon.types.blocks import (
@@ -602,7 +602,7 @@ def genesis_block(genesis_state, genesis_slot):
 
 
 @pytest.fixture
-def initial_validators(init_validator_pubkeys,
+def genesis_validators(init_validator_pubkeys,
                        init_randao,
                        max_deposit_amount):
     """
@@ -622,11 +622,11 @@ def initial_validators(init_validator_pubkeys,
 
 @to_tuple
 @pytest.fixture
-def activated_genesis_validators(initial_validators, genesis_epoch):
+def activated_genesis_validators(genesis_validators, genesis_epoch):
     """
     Active
     """
-    for validator in initial_validators:
+    for validator in genesis_validators:
         yield validator.copy(activation_epoch=genesis_epoch)
 
 

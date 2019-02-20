@@ -577,13 +577,13 @@ def test_process_crosslinks(
     shard_block_root = hash_eth2(b'shard_block_root')
     current_slot = config.SLOTS_PER_EPOCH * 2 - 1
 
-    initial_crosslinks = tuple([
+    genesis_crosslinks = tuple([
         CrosslinkRecord(epoch=config.GENESIS_EPOCH, shard_block_root=ZERO_HASH32)
         for _ in range(shard_count)
     ])
     state = n_validators_state.copy(
         slot=current_slot,
-        latest_crosslinks=initial_crosslinks,
+        latest_crosslinks=genesis_crosslinks,
     )
 
     # Generate current epoch attestations

@@ -15,7 +15,7 @@ from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
 
-from eth2.beacon.on_startup import (
+from eth2.beacon.on_genesis import (
     get_genesis_block,
     get_genesis_beacon_state,
 )
@@ -28,12 +28,12 @@ from eth2.beacon.typing import (
 
 
 def test_get_genesis_block():
-    startup_state_root = b'\x10' * 32
+    genesis_state_root = b'\x10' * 32
     genesis_slot = 10
-    genesis_block = get_genesis_block(startup_state_root, genesis_slot, BeaconBlock)
+    genesis_block = get_genesis_block(genesis_state_root, genesis_slot, BeaconBlock)
     assert genesis_block.slot == genesis_slot
     assert genesis_block.parent_root == ZERO_HASH32
-    assert genesis_block.state_root == startup_state_root
+    assert genesis_block.state_root == genesis_state_root
     assert genesis_block.randao_reveal == EMPTY_SIGNATURE
     assert genesis_block.eth1_data == Eth1Data.create_empty_data()
     assert genesis_block.signature == EMPTY_SIGNATURE

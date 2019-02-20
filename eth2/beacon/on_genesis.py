@@ -45,13 +45,13 @@ from eth2.beacon.validator_status_helpers import (
 )
 
 
-def get_genesis_block(startup_state_root: Hash32,
+def get_genesis_block(genesis_state_root: Hash32,
                       genesis_slot: Slot,
                       block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
     return block_class(
         slot=genesis_slot,
         parent_root=ZERO_HASH32,
-        state_root=startup_state_root,
+        state_root=genesis_state_root,
         randao_reveal=EMPTY_SIGNATURE,
         eth1_data=Eth1Data.create_empty_data(),
         signature=EMPTY_SIGNATURE,
@@ -122,7 +122,7 @@ def get_genesis_beacon_state(*,
         deposit_index=len(genesis_validator_deposits),
     )
 
-    # Process initial deposits
+    # Process genesis deposits
     for deposit in genesis_validator_deposits:
         state = process_deposit(
             state=state,
@@ -133,7 +133,7 @@ def get_genesis_beacon_state(*,
             slots_per_epoch=slots_per_epoch,
         )
 
-    # Process initial activations
+    # Process genesis activations
     for validator_index, _ in enumerate(state.validator_registry):
         validator_index = ValidatorIndex(validator_index)
         is_enough_effective_balance = get_effective_balance(

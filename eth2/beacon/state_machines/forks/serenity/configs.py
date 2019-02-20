@@ -32,7 +32,7 @@ SERENITY_CONFIG = BeaconConfig(
     DEPOSIT_CONTRACT_TREE_DEPTH=2**5,  # (= 32)
     MIN_DEPOSIT_AMOUNT=Gwei(2**0 * GWEI_PER_ETH),  # (= 1,000,000,000) Gwei
     MAX_DEPOSIT_AMOUNT=Gwei(2**5 * GWEI_PER_ETH),  # (= 32,000,000,00) Gwei
-    # Initial values
+    # Genesis values
     GENESIS_FORK_VERSION=0,
     GENESIS_SLOT=Slot(0),
     GENESIS_EPOCH=slot_to_epoch(Slot(0), 2**6),  # GENESIS_EPOCH=slot_to_epoch(GENESIS_SLOT)

@@ -6,7 +6,7 @@ from typing import (
 )
 
 from eth2.beacon.configs import BeaconConfig
-from eth2.beacon.on_startup import (
+from eth2.beacon.on_genesis import (
     get_genesis_block,
     get_genesis_beacon_state,
 )
@@ -113,7 +113,7 @@ def create_mock_genesis(
     )
 
     block = get_genesis_block(
-        startup_state_root=state.root,
+        genesis_state_root=state.root,
         genesis_slot=config.GENESIS_SLOT,
         block_class=genesis_block_class,
     )
