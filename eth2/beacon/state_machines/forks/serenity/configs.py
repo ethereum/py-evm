@@ -51,7 +51,7 @@ SERENITY_CONFIG = BeaconConfig(
     WHISTLEBLOWER_REWARD_QUOTIENT=2**9,  # (= 512)
     ATTESTATION_INCLUSION_REWARD_QUOTIENT=2**3,  # (= 8)
     INACTIVITY_PENALTY_QUOTIENT=2**24,  # (= 16,777,216)
-    # Max transactions per block
+    # Max operations per block
     MAX_PROPOSER_SLASHINGS=2**4,  # (= 16)
     MAX_ATTESTER_SLASHINGS=2**0,  # (= 1)
     MAX_ATTESTATIONS=2**7,  # (= 128)
