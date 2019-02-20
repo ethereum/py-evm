@@ -61,6 +61,7 @@ from eth2.beacon.typing import (
     BLSSignature,
     Bitfield,
     CommitteeIndex,
+    Epoch,
     Slot,
     ValidatorIndex,
 )
@@ -299,6 +300,7 @@ def create_mock_signed_attestations_at_slot(
         state: BeaconState,
         config: BeaconConfig,
         attestation_slot: Slot,
+        justified_epoch: EpochNumber,
         keymap: Dict[BLSPubkey, int],
         voted_attesters_ratio: float=1.0) -> Iterable[Attestation]:
     """
@@ -311,6 +313,19 @@ def create_mock_signed_attestations_at_slot(
         attestation_slot,
         CommitteeConfig(config),
     )
+    beacon_block_root = get_block_root(
+        state,
+        attestation_slot,
+        config.LATEST_BLOCK_ROOTS_LENGTH,
+    )
+    epoch_boundary_root = get_block_root(
+        state,
+        get_epoch_start_slot(
+            max(slot_to_epoch(attestation_slot, config.EPOCH_LENGTH), 0),
+            config.EPOCH_LENGTH,
+        ),
+        config.LATEST_BLOCK_ROOTS_LENGTH,
+    )
     for crosslink_committee in crosslink_committees_at_slot:
         committee, shard = crosslink_committee
 
@@ -320,14 +335,14 @@ def create_mock_signed_attestations_at_slot(
         attestation_data = AttestationData(
             slot=attestation_slot,
             shard=shard,
-            beacon_block_root=ZERO_HASH32,
-            epoch_boundary_root=ZERO_HASH32,
+            beacon_block_root=beacon_block_root,
+            epoch_boundary_root=epoch_boundary_root,
             shard_block_root=ZERO_HASH32,
             latest_crosslink_root=latest_crosslink_root,
-            justified_epoch=state.previous_justified_epoch,
+            justified_epoch=justified_epoch,
             justified_block_root=get_block_root(
                 state,
-                get_epoch_start_slot(state.previous_justified_epoch, config.SLOTS_PER_EPOCH),
+                get_epoch_start_slot(justified_epoch, config.SLOTS_PER_EPOCH),
                 config.LATEST_BLOCK_ROOTS_LENGTH,
             ),
         )
