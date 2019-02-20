@@ -59,7 +59,7 @@ class BeaconState(ssz.Serializable):
         ('previous_shuffling_start_shard', uint64),
         ('current_shuffling_start_shard', uint64),
         ('previous_shuffling_epoch', uint64),
-        ('current_calculation_epoch', uint64),
+        ('current_shuffling_epoch', uint64),
         ('previous_epoch_seed', bytes32),
         ('current_epoch_seed', bytes32),
 
@@ -102,7 +102,7 @@ class BeaconState(ssz.Serializable):
             previous_shuffling_start_shard: Shard,
             current_shuffling_start_shard: Shard,
             previous_shuffling_epoch: Epoch,
-            current_calculation_epoch: Epoch,
+            current_shuffling_epoch: Epoch,
             previous_epoch_seed: Hash32,
             current_epoch_seed: Hash32,
             # Finality
@@ -139,7 +139,7 @@ class BeaconState(ssz.Serializable):
             previous_shuffling_start_shard=previous_shuffling_start_shard,
             current_shuffling_start_shard=current_shuffling_start_shard,
             previous_shuffling_epoch=previous_shuffling_epoch,
-            current_calculation_epoch=current_calculation_epoch,
+            current_shuffling_epoch=current_shuffling_epoch,
             previous_epoch_seed=previous_epoch_seed,
             current_epoch_seed=current_epoch_seed,
             # Finality
@@ -220,7 +220,7 @@ class BeaconState(ssz.Serializable):
             previous_shuffling_start_shard=genesis_start_shard,
             current_shuffling_start_shard=genesis_start_shard,
             previous_shuffling_epoch=genesis_epoch,
-            current_calculation_epoch=genesis_epoch,
+            current_shuffling_epoch=genesis_epoch,
             previous_epoch_seed=ZERO_HASH32,
             current_epoch_seed=ZERO_HASH32,
 

@@ -298,7 +298,7 @@ def update_validator_registry(state: BeaconState) -> BeaconState:
 def process_validator_registry(state: BeaconState,
                                config: BeaconConfig) -> BeaconState:
     state = state.copy(
-        previous_shuffling_epoch=state.current_calculation_epoch,
+        previous_shuffling_epoch=state.current_shuffling_epoch,
         previous_shuffling_start_shard=state.current_shuffling_start_shard,
         previous_epoch_seed=state.current_epoch_seed,
     )
@@ -308,10 +308,10 @@ def process_validator_registry(state: BeaconState,
     if need_to_update:
         state = update_validator_registry(state)
 
-        # Update step-by-step since updated `state.current_calculation_epoch`
+        # Update step-by-step since updated `state.current_shuffling_epoch`
         # is used to calculate other value). Follow the spec tightly now.
         state = state.copy(
-            current_calculation_epoch=state.next_epoch(config.EPOCH_LENGTH),
+            current_shuffling_epoch=state.next_epoch(config.EPOCH_LENGTH),
         )
         state = state.copy(
             current_shuffling_start_shard=(
@@ -323,7 +323,7 @@ def process_validator_registry(state: BeaconState,
         # for mocking this out in tests.
         current_epoch_seed = helpers.generate_seed(
             state=state,
-            epoch=state.current_calculation_epoch,
+            epoch=state.current_shuffling_epoch,
             epoch_length=config.EPOCH_LENGTH,
             min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
             activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
@@ -338,17 +338,17 @@ def process_validator_registry(state: BeaconState,
             state.current_epoch(config.EPOCH_LENGTH) - state.validator_registry_update_epoch
         )
         if is_power_of_two(epochs_since_last_registry_change):
-            # Update step-by-step since updated `state.current_calculation_epoch`
+            # Update step-by-step since updated `state.current_shuffling_epoch`
             # is used to calculate other value). Follow the spec tightly now.
             state = state.copy(
-                current_calculation_epoch=state.next_epoch(config.EPOCH_LENGTH),
+                current_shuffling_epoch=state.next_epoch(config.EPOCH_LENGTH),
             )
 
             # The `helpers.generate_seed` function is only present to provide an entry point
             # for mocking this out in tests.
             current_epoch_seed = helpers.generate_seed(
                 state=state,
-                epoch=state.current_calculation_epoch,
+                epoch=state.current_shuffling_epoch,
                 epoch_length=config.EPOCH_LENGTH,
                 min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
                 activation_exit_delay=config.ACTIVATION_EXIT_DELAY,

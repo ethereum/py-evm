@@ -127,7 +127,7 @@ def get_current_epoch_committee_count(
         target_committee_size: int) -> int:
     current_active_validators = get_active_validator_indices(
         state.validator_registry,
-        state.current_calculation_epoch,
+        state.current_shuffling_epoch,
     )
     return get_epoch_committee_count(
         active_validator_count=len(current_active_validators),
@@ -144,7 +144,7 @@ def get_next_epoch_committee_count(
         target_committee_size: int) -> int:
     next_active_validators = get_active_validator_indices(
         state.validator_registry,
-        state.current_calculation_epoch + 1,
+        state.current_shuffling_epoch + 1,
     )
     return get_epoch_committee_count(
         active_validator_count=len(next_active_validators),
@@ -202,7 +202,7 @@ def get_crosslink_committees_at_slot(
             target_committee_size=target_committee_size,
         )
         seed = state.current_epoch_seed
-        shuffling_epoch = state.current_calculation_epoch
+        shuffling_epoch = state.current_shuffling_epoch
         shuffling_start_shard = state.current_shuffling_start_shard
     elif epoch == next_epoch:
         current_committees_per_epoch = get_current_epoch_committee_count(

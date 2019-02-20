@@ -171,7 +171,7 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
 @pytest.mark.parametrize(
     (
         'n, target_committee_size, shard_count, len_active_validators,'
-        'previous_shuffling_epoch, current_calculation_epoch,'
+        'previous_shuffling_epoch, current_shuffling_epoch,'
         'get_prev_or_cur_epoch_committee_count,'
         'delayed_activation_epoch'
     ),
@@ -211,7 +211,7 @@ def test_get_prev_or_cur_epoch_committee_count(
         shard_count,
         len_active_validators,
         previous_shuffling_epoch,
-        current_calculation_epoch,
+        current_shuffling_epoch,
         get_prev_or_cur_epoch_committee_count,
         delayed_activation_epoch):
     from eth2.beacon import committee_helpers
@@ -232,7 +232,7 @@ def test_get_prev_or_cur_epoch_committee_count(
     state = n_validators_state.copy(
         slot=0,
         previous_shuffling_epoch=previous_shuffling_epoch,
-        current_calculation_epoch=current_calculation_epoch,
+        current_shuffling_epoch=current_shuffling_epoch,
     )
     for index in range(len(state.validator_registry)):
         if index < len_active_validators:
@@ -275,7 +275,7 @@ def test_get_prev_or_cur_epoch_committee_count(
 
         'should_reseed,'
         'previous_shuffling_epoch,'
-        'current_calculation_epoch,'
+        'current_shuffling_epoch,'
         'shuffling_epoch,'
     ),
     [
@@ -309,7 +309,7 @@ def test_get_crosslink_committees_at_slot(
         registry_change,
         should_reseed,
         previous_shuffling_epoch,
-        current_calculation_epoch,
+        current_shuffling_epoch,
         shuffling_epoch):
     # Mock generate_seed
     new_seed = b'\x88' * 32
@@ -331,7 +331,7 @@ def test_get_crosslink_committees_at_slot(
     state = n_validators_state.copy(
         slot=current_slot,
         previous_shuffling_epoch=previous_shuffling_epoch,
-        current_calculation_epoch=current_calculation_epoch,
+        current_shuffling_epoch=current_shuffling_epoch,
         previous_epoch_seed=b'\x11' * 32,
         current_epoch_seed=b'\x22' * 32,
     )

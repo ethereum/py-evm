@@ -142,7 +142,7 @@ def test_get_genesis_beacon_state(
     assert state.previous_shuffling_start_shard == genesis_start_shard
     assert state.current_shuffling_start_shard == genesis_start_shard
     assert state.previous_shuffling_epoch == genesis_epoch
-    assert state.current_calculation_epoch == genesis_epoch
+    assert state.current_shuffling_epoch == genesis_epoch
     assert state.previous_epoch_seed == ZERO_HASH32
 
     # Finality

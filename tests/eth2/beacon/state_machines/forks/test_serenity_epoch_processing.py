@@ -361,9 +361,9 @@ def test_update_latest_active_index_roots(genesis_state,
         'num_shards_in_committees,'
         'validator_registry_update_epoch,'
         'epochs_since_last_registry_change_is_power_of_two,'
-        'current_calculation_epoch,'
+        'current_shuffling_epoch,'
         'latest_randao_mixes,'
-        'expected_current_calculation_epoch,'
+        'expected_current_shuffling_epoch,'
     ),
     [
         (
@@ -375,7 +375,7 @@ def test_update_latest_active_index_roots(genesis_state,
             True,  # (state.current_epoch - state.validator_registry_update_epoch) is power of two
             0,
             [int_to_bytes32(i) for i in range(2**10)],
-            5,  # expected current_calculation_epoch is state.next_epoch
+            5,  # expected current_shuffling_epoch is state.next_epoch
         ),
         (
             40, 4, 2, 2,
@@ -386,7 +386,7 @@ def test_update_latest_active_index_roots(genesis_state,
             False,  # (state.current_epoch - state.validator_registry_update_epoch) != power of two
             0,
             [int_to_bytes32(i) for i in range(2**10)],
-            0,  # expected_current_calculation_epoch is current_calculation_epoch because it will not be updated  # noqa: E501
+            0,  # expected_current_shuffling_epoch is current_shuffling_epoch because it will not be updated  # noqa: E501
         ),
     ]
 )
@@ -398,9 +398,9 @@ def test_process_validator_registry(monkeypatch,
                                     num_shards_in_committees,
                                     validator_registry_update_epoch,
                                     epochs_since_last_registry_change_is_power_of_two,
-                                    current_calculation_epoch,
+                                    current_shuffling_epoch,
                                     latest_randao_mixes,
-                                    expected_current_calculation_epoch,
+                                    expected_current_shuffling_epoch,
                                     activation_exit_delay,
                                     config):
     # Mock check_if_update_validator_registry
@@ -436,24 +436,24 @@ def test_process_validator_registry(monkeypatch,
     state = genesis_state.copy(
         slot=state_slot,
         validator_registry_update_epoch=validator_registry_update_epoch,
-        current_calculation_epoch=current_calculation_epoch,
+        current_shuffling_epoch=current_shuffling_epoch,
         latest_randao_mixes=latest_randao_mixes,
     )
 
     result_state = process_validator_registry(state, config)
 
-    assert result_state.previous_shuffling_epoch == state.current_calculation_epoch
+    assert result_state.previous_shuffling_epoch == state.current_shuffling_epoch
     assert result_state.previous_shuffling_start_shard == state.current_shuffling_start_shard
     assert result_state.previous_epoch_seed == state.current_epoch_seed
 
     if need_to_update:
-        assert result_state.current_calculation_epoch == slot_to_epoch(state_slot, epoch_length)
+        assert result_state.current_shuffling_epoch == slot_to_epoch(state_slot, epoch_length)
         assert result_state.current_epoch_seed == new_seed
         # TODO: Add test for validator registry updates
     else:
         assert (
-            result_state.current_calculation_epoch ==
-            expected_current_calculation_epoch
+            result_state.current_shuffling_epoch ==
+            expected_current_shuffling_epoch
         )
         # state.current_shuffling_start_shard is left unchanged.
         assert result_state.current_shuffling_start_shard == state.current_shuffling_start_shard

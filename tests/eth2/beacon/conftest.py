@@ -154,7 +154,7 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'previous_shuffling_start_shard': 1,
         'current_shuffling_start_shard': 2,
         'previous_shuffling_epoch': 0,
-        'current_calculation_epoch': 0,
+        'current_shuffling_epoch': 0,
         'previous_epoch_seed': b'\x77' * 32,
         'current_epoch_seed': b'\x88' * 32,
         'previous_justified_epoch': 0,
