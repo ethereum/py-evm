@@ -26,6 +26,7 @@ from eth.vm.forks import (
     SpuriousDragonVM,
     ByzantiumVM,
     ConstantinopleVM,
+    PetersburgVM,
 )
 
 
@@ -199,6 +200,16 @@ def test_get_transaction_result(
         ),
         (
             ConstantinopleVM,
+            'useLotsOfGas()',
+            OutOfGas,
+        ),
+        (
+            PetersburgVM,
+            'doRevert()',
+            Revert,
+        ),
+        (
+            PetersburgVM,
             'useLotsOfGas()',
             OutOfGas,
         ),

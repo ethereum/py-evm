@@ -70,6 +70,7 @@ from eth.vm.forks import (
     SpuriousDragonVM,
     ByzantiumVM,
     ConstantinopleVM,
+    PetersburgVM,
 )
 
 
@@ -225,7 +226,7 @@ tangerine_whistle_at = fork_at(TangerineWhistleVM)
 spurious_dragon_at = fork_at(SpuriousDragonVM)
 byzantium_at = fork_at(ByzantiumVM)
 constantinople_at = fork_at(ConstantinopleVM)
-
+petersburg_at = fork_at(PetersburgVM)
 
 GENESIS_DEFAULTS = (
     ('difficulty', 1),
