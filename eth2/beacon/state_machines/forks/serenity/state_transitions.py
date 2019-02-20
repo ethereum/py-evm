@@ -15,6 +15,7 @@ from .block_processing import (
     process_eth1_data,
 )
 from .epoch_processing import (
+    process_justification,
     process_crosslinks,
     process_final_updates,
     process_validator_registry,
@@ -101,7 +102,7 @@ class SerenityStateTransition(BaseStateTransition):
 
     def per_epoch_transition(self, state: BeaconState, block: BaseBeaconBlock) -> BeaconState:
         # TODO: state = process_et1_data_votes(state, self.config)
-        # TODO: state = process_justification(state, self.config)
+        state = process_justification(state, self.config)
         state = process_crosslinks(state, self.config)
         # TODO: state = process_rewards_and_penalties(state, self.config)
         # TODO: state = process_ejections(state, self.config)

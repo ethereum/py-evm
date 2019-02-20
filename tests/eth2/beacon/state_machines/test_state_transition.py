@@ -30,13 +30,13 @@ from eth2._utils.merkle import get_merkle_root
         # state.slot < LATEST_BLOCK_ROOTS_LENGTH
         (7, 7, 1, 2, 2, 7, 8),
         # state.slot % LATEST_BLOCK_ROOTS_LENGTH = 0
-        (11, 11, 1, 2, 2, 16, 8),
-        (16, 16, 1, 2, 2, 32, 8),
+        (11, 4, 1, 2, 2, 16, 8),
+        (16, 4, 1, 2, 2, 32, 8),
         # updated_state.slot == LATEST_BLOCK_ROOTS_LENGTH
-        (6, 6, 1, 2, 2, 7, 8),
+        (6, 4, 1, 2, 2, 7, 8),
         # updated_state.slot % LATEST_BLOCK_ROOTS_LENGTH = 0
-        (11, 11, 1, 2, 2, 15, 8),
-        (16, 16, 1, 2, 2, 31, 8),
+        (11, 4, 1, 2, 2, 15, 8),
+        (16, 4, 1, 2, 2, 31, 8),
     ]
 )
 def test_per_slot_transition(base_db,

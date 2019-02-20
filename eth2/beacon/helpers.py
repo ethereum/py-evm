@@ -183,6 +183,18 @@ def get_effective_balance(
     return min(validator_balances[index], max_deposit_amount)
 
 
+def get_total_balance(validator_balances: Sequence[Gwei],
+                      validator_indices: Sequence[ValidatorIndex],
+                      max_deposit_amount: Gwei) -> Gwei:
+    """
+    Return the combined effective balance of an array of validators.
+    """
+    return Gwei(sum(
+        get_effective_balance(validator_balances, index, max_deposit_amount)
+        for index in validator_indices
+    ))
+
+
 def get_fork_version(fork: 'Fork',
                      epoch: EpochNumber) -> int:
     """
@@ -333,11 +345,7 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
     source_epoch_2 = attestation_data_2.justified_epoch
     target_epoch_1 = slot_to_epoch(attestation_data_1.slot, epoch_length)
     target_epoch_2 = slot_to_epoch(attestation_data_2.slot, epoch_length)
-    return (
-        (source_epoch_1 < source_epoch_2) and
-        (source_epoch_2 + 1 == target_epoch_2) and
-        (target_epoch_2 < target_epoch_1)
-    )
+    return source_epoch_1 < source_epoch_2 and target_epoch_2 < target_epoch_1
 
 
 def get_entry_exit_effect_epoch(

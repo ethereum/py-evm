@@ -144,7 +144,7 @@ def sample_beacon_block_params(sample_beacon_block_body_params,
 @pytest.fixture
 def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
     return {
-        'slot': 0,
+        'slot': 100,
         'genesis_time': 0,
         'fork': Fork(**sample_fork_params),
         'validator_registry': (),

@@ -25,8 +25,10 @@ from eth2.beacon.exceptions import (
     NoWinningRootError,
 )
 from eth2.beacon.helpers import (
-    get_effective_balance,
+    get_epoch_start_slot,
     slot_to_epoch,
+    get_block_root,
+    get_total_balance,
 )
 from eth2.beacon.typing import (
     EpochNumber,
@@ -44,6 +46,7 @@ if TYPE_CHECKING:
     from eth2.beacon.types.states import BeaconState  # noqa: F401
     from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
     from eth2.beacon.types.validator_records import ValidatorRecord  # noqa: F401
+    from eth2.beacon.state_machines.configs import BeaconConfig  # noqa: F401
 
 
 @to_tuple
@@ -99,17 +102,17 @@ def get_total_attesting_balance(
         attestations: Sequence[PendingAttestationRecord],
         max_deposit_amount: Gwei,
         committee_config: CommitteeConfig) -> Gwei:
-    return Gwei(
-        sum(
-            get_effective_balance(state.validator_balances, i, max_deposit_amount)
-            for i in get_attesting_validator_indices(
-                state=state,
-                attestations=attestations,
-                shard=shard,
-                shard_block_root=shard_block_root,
-                committee_config=committee_config,
-            )
-        )
+    validator_indices = get_attesting_validator_indices(
+        state=state,
+        attestations=attestations,
+        shard=shard,
+        shard_block_root=shard_block_root,
+        committee_config=committee_config,
+    )
+    return get_total_balance(
+        state.validator_balances,
+        validator_indices,
+        max_deposit_amount,
     )
 
 
@@ -147,3 +150,76 @@ def get_winning_root(
     if winning_root is None:
         raise NoWinningRootError
     return (winning_root, winning_root_balance)
+
+
+@to_tuple
+@to_set
+def get_epoch_boundary_attester_indices(
+        state: 'BeaconState',
+        attestations: Sequence[PendingAttestationRecord],
+        epoch: EpochNumber,
+        root: Hash32,
+        committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
+    for a in attestations:
+        if a.data.justified_epoch == epoch and a.data.epoch_boundary_root == root:
+            yield from get_attestation_participants(
+                state,
+                a.data,
+                a.aggregation_bitfield,
+                committee_config,
+            )
+
+
+def get_epoch_boundary_attesting_balances(
+        current_epoch: EpochNumber,
+        previous_epoch: EpochNumber,
+        state: 'BeaconState',
+        config: 'BeaconConfig') -> Tuple[Gwei, Gwei]:
+
+    current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
+    previous_epoch_attestations = get_previous_epoch_attestations(
+        state,
+        config.EPOCH_LENGTH,
+        config.GENESIS_EPOCH,
+    )
+
+    previous_epoch_boundary_root = get_block_root(
+        state,
+        get_epoch_start_slot(previous_epoch, config.EPOCH_LENGTH),
+        config.LATEST_BLOCK_ROOTS_LENGTH,
+    )
+
+    previous_epoch_boundary_attester_indices = get_epoch_boundary_attester_indices(
+        state,
+        current_epoch_attestations + previous_epoch_attestations,
+        state.previous_justified_epoch,
+        previous_epoch_boundary_root,
+        CommitteeConfig(config),
+    )
+
+    previous_epoch_boundary_attesting_balance = get_total_balance(
+        state.validator_balances,
+        previous_epoch_boundary_attester_indices,
+        config.MAX_DEPOSIT_AMOUNT,
+    )
+
+    current_epoch_boundary_root = get_block_root(
+        state,
+        get_epoch_start_slot(current_epoch, config.EPOCH_LENGTH),
+        config.LATEST_BLOCK_ROOTS_LENGTH,
+    )
+
+    current_epoch_boundary_attester_indices = get_epoch_boundary_attester_indices(
+        state,
+        current_epoch_attestations,
+        state.justified_epoch,
+        current_epoch_boundary_root,
+        CommitteeConfig(config),
+    )
+
+    current_epoch_boundary_attesting_balance = get_total_balance(
+        state.validator_balances,
+        current_epoch_boundary_attester_indices,
+        config.MAX_DEPOSIT_AMOUNT,
+    )
+    return previous_epoch_boundary_attesting_balance, current_epoch_boundary_attesting_balance
