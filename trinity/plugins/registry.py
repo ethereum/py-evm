@@ -29,6 +29,7 @@ from trinity.plugins.builtin.syncer.plugin import (
     NoopSyncStrategy,
     SyncerPlugin,
 )
+from trinity.plugins.eth2.beacon.plugin import BeaconNodePlugin
 from trinity.plugins.builtin.tx_pool.plugin import (
     TxPlugin,
 )
@@ -51,6 +52,7 @@ BASE_PLUGINS: Tuple[BasePlugin, ...] = (
     FixUncleanShutdownPlugin(),
     JsonRpcServerPlugin(),
     PeerDiscoveryPlugin(),
+    BeaconNodePlugin(),
 )
 
 

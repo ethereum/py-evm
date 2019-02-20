@@ -44,6 +44,7 @@ from tests.core.integration_test_helpers import (
 from eth.db.backends.base import (
     BaseAtomicDB,
 )
+from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
 
 
 class FakeAsyncBeaconChainDB(BaseAsyncBeaconChainDB, BeaconChainDB):
@@ -69,7 +70,7 @@ class FakeAsyncBeaconChainDB(BaseAsyncBeaconChainDB, BeaconChainDB):
 
 def create_test_block(parent=None, **kwargs):
     defaults = {
-        "slot": 0,
+        "slot": SERENITY_CONFIG.GENESIS_SLOT,
         "parent_root": ZERO_HASH32,
         "state_root": ZERO_HASH32,  # note: not the actual genesis state root
         "randao_reveal": EMPTY_SIGNATURE,
@@ -91,7 +92,7 @@ def create_branch(length, root=None, **start_kwargs):
         return
 
     if root is None:
-        root = create_test_block(slot=0)
+        root = create_test_block()
 
     parent = create_test_block(parent=root, **start_kwargs)
     yield parent
@@ -110,7 +111,7 @@ async def get_chain_db(blocks=()):
 
 
 async def get_genesis_chain_db():
-    genesis = create_test_block(slot=0)
+    genesis = create_test_block()
     return await get_chain_db((genesis,))
 
 

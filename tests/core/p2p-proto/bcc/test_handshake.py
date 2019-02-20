@@ -18,6 +18,7 @@ from .helpers import (
     get_directly_linked_peers_without_handshake,
     get_genesis_chain_db,
 )
+from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
 
 @pytest.mark.asyncio
@@ -54,7 +55,10 @@ async def test_unidirectional_handshake():
         bob_chain_db=await get_genesis_chain_db(),
     )
     alice_chain_db = alice.context.chain_db
-    alice_genesis = await alice_chain_db.coro_get_canonical_block_by_slot(0, BeaconBlock)
+    alice_genesis = await alice_chain_db.coro_get_canonical_block_by_slot(
+        SERENITY_CONFIG.GENESIS_SLOT,
+        BeaconBlock,
+    )
     alice_genesis_hash = alice_genesis.hash
     alice_head = await alice_chain_db.coro_get_canonical_head(BeaconBlock)
     alice_head_slot = alice_head.slot

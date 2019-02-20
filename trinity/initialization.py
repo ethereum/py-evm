@@ -1,4 +1,5 @@
 import os
+from typing import Type
 
 from eth.db.backends.base import BaseAtomicDB
 from eth.db.chain import BaseChainDB
@@ -8,10 +9,16 @@ from p2p import ecies
 
 from trinity.config import (
     BeaconAppConfig,
+    BeaconChainConfig,
     Eth1AppConfig,
     ChainConfig,
     TrinityConfig,
 )
+
+from eth2.beacon.types.blocks import (
+    BaseBeaconBlock,
+)
+from eth2.beacon.db.chain import BaseBeaconChainDB
 from trinity.exceptions import (
     MissingPath,
 )
@@ -55,6 +62,17 @@ def is_data_dir_initialized(trinity_config: TrinityConfig) -> bool:
 def is_database_initialized(chaindb: BaseChainDB) -> bool:
     try:
         chaindb.get_canonical_head()
+    except CanonicalHeadNotFound:
+        # empty chain database
+        return False
+    else:
+        return True
+
+
+def is_beacon_database_initialized(chaindb: BaseBeaconChainDB,
+                                   block_class: Type[BaseBeaconBlock]) -> bool:
+    try:
+        chaindb.get_canonical_head(block_class)
     except CanonicalHeadNotFound:
         # empty chain database
         return False
@@ -109,6 +127,16 @@ def initialize_database(chain_config: ChainConfig,
                         base_db: BaseAtomicDB) -> None:
     try:
         chaindb.get_canonical_head()
+    except CanonicalHeadNotFound:
+        chain_config.initialize_chain(base_db)
+
+
+def initialize_beacon_database(chain_config: BeaconChainConfig,
+                               chaindb: BaseBeaconChainDB,
+                               base_db: BaseAtomicDB,
+                               block_class: Type[BaseBeaconBlock]) -> None:
+    try:
+        chaindb.get_canonical_head(block_class)
     except CanonicalHeadNotFound:
         chain_config.initialize_chain(base_db)
 

@@ -1,8 +1,10 @@
+from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
 from abc import abstractmethod
 import asyncio
 import logging
 import secrets
 from typing import (
+    cast,
     Generic,
     Sequence,
     Tuple,
@@ -47,18 +49,22 @@ from trinity.constants import DEFAULT_PREFERRED_NODES
 from trinity.db.base import BaseAsyncDB
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
+from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.common.context import ChainContext
-from trinity.protocol.common.peer import BaseChainPeerPool
+from trinity.protocol.common.peer import BasePeerPool
 from trinity.protocol.common.servers import BaseRequestServer
 from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.eth.servers import ETHRequestServer
 from trinity.protocol.les.peer import LESPeerPool
 from trinity.protocol.les.servers import LightRequestServer
+from trinity.protocol.bcc.context import BeaconContext
+from trinity.protocol.bcc.peer import BCCPeerPool
+from trinity.protocol.bcc.servers import BCCRequestServer
 
 DIAL_IN_OUT_RATIO = 0.75
 
-TPeerPool = TypeVar('TPeerPool', bound=BaseChainPeerPool)
+TPeerPool = TypeVar('TPeerPool', bound=BasePeerPool)
 T_VM_CONFIGURATION = Tuple[Tuple[BlockNumber, Type[BaseVM]], ...]
 
 
@@ -312,6 +318,29 @@ class LightServer(BaseServer[LESPeerPool]):
         return LightRequestServer(
             self.headerdb,
             self.peer_pool,
+            token=self.cancel_token,
+        )
+
+
+class BCCServer(BaseServer[BCCPeerPool]):
+    def _make_peer_pool(self) -> BCCPeerPool:
+        context = BeaconContext(
+            chain_db=cast(BaseAsyncBeaconChainDB, self.chaindb),
+            network_id=self.network_id,
+            genesis_slot=SERENITY_CONFIG.GENESIS_SLOT,
+        )
+        return BCCPeerPool(
+            privkey=self.privkey,
+            max_peers=self.max_peers,
+            context=context,
+            token=self.cancel_token,
+            event_bus=self.event_bus
+        )
+
+    def _make_request_server(self) -> BCCRequestServer:
+        return BCCRequestServer(
+            db=cast(BaseAsyncBeaconChainDB, self.chaindb),
+            peer_pool=self.peer_pool,
             token=self.cancel_token,
         )
 

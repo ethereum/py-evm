@@ -6,19 +6,31 @@ import pathlib
 from eth2.beacon.db.chain import BeaconChainDB
 from eth.db.backends.base import BaseAtomicDB
 
-from trinity.config import TrinityConfig
+from trinity.config import (
+    BeaconAppConfig,
+    TrinityConfig,
+)
 from trinity.db.base import AsyncDBProxy
 from trinity.db.beacon.chain import AsyncBeaconChainDBProxy
 
 from trinity._utils.mp import TracebackRecorder
+from trinity.initialization import (
+    is_beacon_database_initialized,
+    initialize_beacon_database,
+)
+from eth2.beacon.types.blocks import (
+    BeaconBlock,
+)
 
 
 def create_db_server_manager(trinity_config: TrinityConfig,
                              base_db: BaseAtomicDB) -> BaseManager:
-
+    app_config = trinity_config.get_app_config(BeaconAppConfig)
+    chain_config = app_config.get_chain_config()
     chaindb = BeaconChainDB(base_db)
 
-    # TODO: handle initialization
+    if not is_beacon_database_initialized(chaindb, BeaconBlock):
+        initialize_beacon_database(chain_config, chaindb, base_db, BeaconBlock)
 
     class DBManager(BaseManager):
         pass
