@@ -127,7 +127,7 @@ def test_process_proposer_slashings(genesis_state,
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'min_attestation_inclusion_delay,'
         'target_committee_size,'
         'shard_count,'

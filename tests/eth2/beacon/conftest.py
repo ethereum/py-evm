@@ -490,8 +490,8 @@ def min_attestation_inclusion_delay():
 
 
 @pytest.fixture
-def epoch_length():
-    return SERENITY_CONFIG.EPOCH_LENGTH
+def slots_per_epoch():
+    return SERENITY_CONFIG.SLOTS_PER_EPOCH
 
 
 @pytest.fixture
@@ -566,7 +566,7 @@ def max_voluntary_exits():
 def genesis_state(filled_beacon_state,
                   activated_genesis_validators,
                   genesis_balances,
-                  epoch_length,
+                  slots_per_epoch,
                   target_committee_size,
                   genesis_epoch,
                   shard_count,
@@ -665,7 +665,7 @@ def config(
         bls_withdrawal_prefix_byte,
         seconds_per_slot,
         min_attestation_inclusion_delay,
-        epoch_length,
+        slots_per_epoch,
         min_seed_lookahead,
         activation_exit_delay,
         epochs_per_eth1_voting_period,
@@ -702,7 +702,7 @@ def config(
         BLS_WITHDRAWAL_PREFIX_BYTE=bls_withdrawal_prefix_byte,
         SECONDS_PER_SLOT=seconds_per_slot,
         MIN_ATTESTATION_INCLUSION_DELAY=min_attestation_inclusion_delay,
-        EPOCH_LENGTH=epoch_length,
+        SLOTS_PER_EPOCH=slots_per_epoch,
         MIN_SEED_LOOKAHEAD=min_seed_lookahead,
         ACTIVATION_EXIT_DELAY=activation_exit_delay,
         EPOCHS_PER_ETH1_VOTING_PERIOD=epochs_per_eth1_voting_period,

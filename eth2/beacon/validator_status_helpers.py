@@ -35,7 +35,7 @@ def activate_validator(state: BeaconState,
                        index: ValidatorIndex,
                        is_genesis: bool,
                        genesis_epoch: Epoch,
-                       epoch_length: int,
+                       slots_per_epoch: int,
                        activation_exit_delay: int) -> BeaconState:
     """
     Activate the validator with the given ``index``.
@@ -44,7 +44,7 @@ def activate_validator(state: BeaconState,
     # Update validator.activation_epoch
     validator = state.validator_registry[index].copy(
         activation_epoch=genesis_epoch if is_genesis else get_entry_exit_effect_epoch(
-            state.current_epoch(epoch_length),
+            state.current_epoch(slots_per_epoch),
             activation_exit_delay,
         )
     )
@@ -70,7 +70,7 @@ def initiate_validator_exit(state: BeaconState,
 
 def exit_validator(state: BeaconState,
                    index: ValidatorIndex,
-                   epoch_length: int,
+                   slots_per_epoch: int,
                    activation_exit_delay: int) -> BeaconState:
     """
     Exit the validator with the given ``index``.
@@ -79,7 +79,7 @@ def exit_validator(state: BeaconState,
     validator = state.validator_registry[index]
 
     entry_exit_effect_epoch = get_entry_exit_effect_epoch(
-        state.current_epoch(epoch_length),
+        state.current_epoch(slots_per_epoch),
         activation_exit_delay,
     )
 
@@ -88,7 +88,7 @@ def exit_validator(state: BeaconState,
         return state
 
     validator = validator.copy(
-        exit_epoch=state.current_epoch(epoch_length) + activation_exit_delay,
+        exit_epoch=state.current_epoch(slots_per_epoch) + activation_exit_delay,
     )
     state = state.update_validator_registry(index, validator)
 
@@ -107,7 +107,7 @@ def _settle_penality_to_validator_and_whistleblower(
     Apply penality/reward to validator and whistleblower and update the meta data
 
     More intuitive pseudo-code:
-    current_epoch_penalization_index = (state.slot // EPOCH_LENGTH) % LATEST_SLASHED_EXIT_LENGTH
+    current_epoch_penalization_index = (state.slot // SLOTS_PER_EPOCH) % LATEST_SLASHED_EXIT_LENGTH
     state.latest_slashed_balances[current_epoch_penalization_index] += (
         get_effective_balance(state, index)
     )
@@ -117,11 +117,11 @@ def _settle_penality_to_validator_and_whistleblower(
     state.validator_balances[index] -= whistleblower_reward
     validator.slashed_epoch = slot_to_epoch(state.slot)
     """
-    epoch_length = committee_config.EPOCH_LENGTH
+    slots_per_epoch = committee_config.SLOTS_PER_EPOCH
 
     # Update `state.latest_slashed_balances`
     current_epoch_penalization_index = state.current_epoch(
-        epoch_length) % latest_slashed_exit_length
+        slots_per_epoch) % latest_slashed_exit_length
     effective_balance = get_effective_balance(
         state.validator_balances,
         validator_index,
@@ -158,7 +158,7 @@ def _settle_penality_to_validator_and_whistleblower(
     # Update validator's balance and `slashed_epoch` field
     validator = state.validator_registry[validator_index]
     validator = validator.copy(
-        slashed_epoch=state.current_epoch(epoch_length),
+        slashed_epoch=state.current_epoch(slots_per_epoch),
     )
     state = state.update_validator(
         validator_index,
@@ -181,15 +181,15 @@ def slash_validator(*,
 
     Exit the validator, penalize the validator, and reward the whistleblower.
     """
-    epoch_length = committee_config.EPOCH_LENGTH
+    slots_per_epoch = committee_config.SLOTS_PER_EPOCH
     activation_exit_delay = committee_config.ACTIVATION_EXIT_DELAY
 
     validator = state.validator_registry[index]
 
     # [TO BE REMOVED IN PHASE 2]
-    _validate_withdrawal_epoch(state.slot, validator.withdrawal_epoch, epoch_length)
+    _validate_withdrawal_epoch(state.slot, validator.withdrawal_epoch, slots_per_epoch)
 
-    state = exit_validator(state, index, epoch_length, activation_exit_delay)
+    state = exit_validator(state, index, slots_per_epoch, activation_exit_delay)
     state = _settle_penality_to_validator_and_whistleblower(
         state=state,
         validator_index=index,
@@ -200,7 +200,7 @@ def slash_validator(*,
     )
 
     # Update validator
-    current_epoch = state.current_epoch(epoch_length)
+    current_epoch = state.current_epoch(slots_per_epoch)
     validator = validator.copy(
         slashed_epoch=current_epoch,
         withdrawal_epoch=current_epoch + latest_slashed_exit_length,

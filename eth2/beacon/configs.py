@@ -44,7 +44,7 @@ BeaconConfig = NamedTuple(
         # Time parameters
         ('SECONDS_PER_SLOT', Second),
         ('MIN_ATTESTATION_INCLUSION_DELAY', int),
-        ('EPOCH_LENGTH', int),
+        ('SLOTS_PER_EPOCH', int),
         ('MIN_SEED_LOOKAHEAD', int),
         ('ACTIVATION_EXIT_DELAY', int),
         ('EPOCHS_PER_ETH1_VOTING_PERIOD', int),
@@ -69,7 +69,7 @@ class CommitteeConfig:
         # Basic
         self.GENESIS_EPOCH = config.GENESIS_EPOCH
         self.SHARD_COUNT = config.SHARD_COUNT
-        self.EPOCH_LENGTH = config.EPOCH_LENGTH
+        self.SLOTS_PER_EPOCH = config.SLOTS_PER_EPOCH
         self.TARGET_COMMITTEE_SIZE = config.TARGET_COMMITTEE_SIZE
 
         # For seed

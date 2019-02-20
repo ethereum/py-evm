@@ -77,7 +77,7 @@ def test_validate_block_slot(sample_beacon_state_params,
 
 
 @pytest.mark.parametrize(
-    'epoch_length, shard_count,'
+    'slots_per_epoch, shard_count,'
     'proposer_privkey, proposer_pubkey, is_valid_signature',
     (
         (5, 2, 0, bls.privtopub(0), True, ),
@@ -89,7 +89,7 @@ def test_validate_block_slot(sample_beacon_state_params,
     )
 )
 def test_validate_proposer_signature(
-        epoch_length,
+        slots_per_epoch,
         shard_count,
         proposer_privkey,
         proposer_pubkey,
@@ -163,7 +163,7 @@ def test_randao_reveal_validation(is_valid,
                                   sample_fork_params,
                                   config):
     message = epoch.to_bytes(32, byteorder="big")
-    slot = epoch * config.EPOCH_LENGTH
+    slot = epoch * config.SLOTS_PER_EPOCH
     fork = Fork(**sample_fork_params)
     domain = get_domain(fork, slot, SignatureDomain.DOMAIN_RANDAO)
 

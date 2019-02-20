@@ -73,7 +73,7 @@ def test_validate_epoch_for_current_epoch(
         current_epoch,
         epoch,
         success,
-        epoch_length,
+        slots_per_epoch,
         genesis_epoch):
     if success:
         validate_epoch_for_current_epoch(

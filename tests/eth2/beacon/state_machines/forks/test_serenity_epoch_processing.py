@@ -239,7 +239,7 @@ def test_process_justification(monkeypatch,
 
 @pytest.mark.parametrize(
     (
-        'num_validators, epoch_length, target_committee_size, shard_count, state_slot,'
+        'num_validators, slots_per_epoch, target_committee_size, shard_count, state_slot,'
         'validator_registry_update_epoch,'
         'finalized_epoch,'
         'has_crosslink,'
@@ -301,7 +301,7 @@ def test_check_if_update_validator_registry(genesis_state,
         expected_num_shards_in_committees = get_current_epoch_committee_count(
             state,
             shard_count=config.SHARD_COUNT,
-            epoch_length=config.EPOCH_LENGTH,
+            slots_per_epoch=config.SLOTS_PER_EPOCH,
             target_committee_size=config.TARGET_COMMITTEE_SIZE,
         )
         assert num_shards_in_committees == expected_num_shards_in_committees
@@ -311,7 +311,7 @@ def test_check_if_update_validator_registry(genesis_state,
 
 @pytest.mark.parametrize(
     (
-        'epoch_length,'
+        'slots_per_epoch,'
         'latest_active_index_roots_length,'
         'state_slot,'
     ),
@@ -323,7 +323,7 @@ def test_check_if_update_validator_registry(genesis_state,
 def test_update_latest_active_index_roots(genesis_state,
                                           committee_config,
                                           state_slot,
-                                          epoch_length,
+                                          slots_per_epoch,
                                           latest_active_index_roots_length,
                                           activation_exit_delay):
     state = genesis_state.copy(
@@ -340,22 +340,21 @@ def test_update_latest_active_index_roots(genesis_state,
                 for index in get_active_validator_indices(
                     state.validator_registry,
                     # TODO: change to `per-epoch` version
-                    slot_to_epoch(state.slot, epoch_length),
+                    slot_to_epoch(state.slot, slots_per_epoch),
                 )
             ]
         )
     )
 
+    target_epoch = state.next_epoch(slots_per_epoch) + activation_exit_delay
     assert result_state.latest_active_index_roots[
-        (
-            state.next_epoch(epoch_length) + activation_exit_delay
-        ) % latest_active_index_roots_length
+        target_epoch % latest_active_index_roots_length
     ] == index_root
 
 
 @pytest.mark.parametrize(
     (
-        'num_validators, epoch_length, target_committee_size, shard_count,'
+        'num_validators, slots_per_epoch, target_committee_size, shard_count,'
         'latest_randao_mixes_length, min_seed_lookahead, state_slot,'
         'need_to_update,'
         'num_shards_in_committees,'
@@ -392,7 +391,7 @@ def test_update_latest_active_index_roots(genesis_state,
 )
 def test_process_validator_registry(monkeypatch,
                                     genesis_state,
-                                    epoch_length,
+                                    slots_per_epoch,
                                     state_slot,
                                     need_to_update,
                                     num_shards_in_committees,
@@ -420,7 +419,7 @@ def test_process_validator_registry(monkeypatch,
 
     def mock_generate_seed(state,
                            epoch,
-                           epoch_length,
+                           slots_per_epoch,
                            min_seed_lookahead,
                            activation_exit_delay,
                            latest_active_index_roots_length,
@@ -447,7 +446,7 @@ def test_process_validator_registry(monkeypatch,
     assert result_state.previous_shuffling_seed == state.current_shuffling_seed
 
     if need_to_update:
-        assert result_state.current_shuffling_epoch == slot_to_epoch(state_slot, epoch_length)
+        assert result_state.current_shuffling_epoch == slot_to_epoch(state_slot, slots_per_epoch)
         assert result_state.current_shuffling_seed == new_seed
         # TODO: Add test for validator registry updates
     else:
@@ -471,7 +470,7 @@ def test_process_validator_registry(monkeypatch,
         'attestation_slot,'
         'len_latest_attestations,'
         'expected_result_len_latest_attestations,'
-        'epoch_length'
+        'slots_per_epoch'
     ),
     [
         (10, 4, 4, 2, 2, 4),  # slot_to_epoch(attestation.data.slot) >= state.current_epoch, -> expected_result_len_latest_attestations = len_latest_attestations  # noqa: E501
@@ -489,8 +488,8 @@ def test_process_final_updates(genesis_state,
     state = genesis_state.copy(
         slot=state_slot,
     )
-    current_index = state.next_epoch(config.EPOCH_LENGTH) % config.LATEST_SLASHED_EXIT_LENGTH
-    previous_index = state.current_epoch(config.EPOCH_LENGTH) % config.LATEST_SLASHED_EXIT_LENGTH
+    current_index = state.next_epoch(config.SLOTS_PER_EPOCH) % config.LATEST_SLASHED_EXIT_LENGTH
+    previous_index = state.current_epoch(config.SLOTS_PER_EPOCH) % config.LATEST_SLASHED_EXIT_LENGTH
 
     # Assume `len_latest_attestations` attestations in state.latest_attestations
     # with attestation.data.slot = attestation_slot
@@ -525,8 +524,8 @@ def test_process_final_updates(genesis_state,
         ) and (
             result_state.latest_randao_mixes[current_index] == get_randao_mix(
                 state=state,
-                epoch=state.current_epoch(config.EPOCH_LENGTH),
-                epoch_length=config.EPOCH_LENGTH,
+                epoch=state.current_epoch(config.SLOTS_PER_EPOCH),
+                slots_per_epoch=config.SLOTS_PER_EPOCH,
                 latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
             )
         )
@@ -534,7 +533,7 @@ def test_process_final_updates(genesis_state,
 
     assert len(result_state.latest_attestations) == expected_result_len_latest_attestations
     for attestation in result_state.latest_attestations:
-        assert attestation.data.slot >= state_slot - config.EPOCH_LENGTH
+        assert attestation.data.slot >= state_slot - config.SLOTS_PER_EPOCH
 
 
 @settings(max_examples=1)
@@ -542,7 +541,7 @@ def test_process_final_updates(genesis_state,
 @pytest.mark.parametrize(
     (
         'n,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
         'success_crosslink_in_cur_epoch,'
@@ -568,7 +567,7 @@ def test_process_crosslinks(
         random,
         n_validators_state,
         config,
-        epoch_length,
+        slots_per_epoch,
         target_committee_size,
         shard_count,
         success_crosslink_in_cur_epoch,
@@ -576,7 +575,7 @@ def test_process_crosslinks(
         sample_attestation_params):
     shard = 1
     shard_block_root = hash_eth2(b'shard_block_root')
-    current_slot = config.EPOCH_LENGTH * 2 - 1
+    current_slot = config.SLOTS_PER_EPOCH * 2 - 1
 
     initial_crosslinks = tuple([
         CrosslinkRecord(epoch=config.GENESIS_EPOCH, shard_block_root=ZERO_HASH32)
@@ -589,7 +588,7 @@ def test_process_crosslinks(
 
     # Generate current epoch attestations
     cur_epoch_attestations = []
-    for slot_in_cur_epoch in range(state.slot - config.EPOCH_LENGTH, state.slot):
+    for slot_in_cur_epoch in range(state.slot - config.SLOTS_PER_EPOCH, state.slot):
         if len(cur_epoch_attestations) > 0:
             break
         for committee, _shard in get_crosslink_committees_at_slot(
@@ -632,7 +631,7 @@ def test_process_crosslinks(
     crosslink_record = new_state.latest_crosslinks[shard]
     if success_crosslink_in_cur_epoch:
         attestation = cur_epoch_attestations[0]
-        assert (crosslink_record.epoch == slot_to_epoch(current_slot, epoch_length) and
+        assert (crosslink_record.epoch == slot_to_epoch(current_slot, slots_per_epoch) and
                 crosslink_record.shard_block_root == attestation.data.shard_block_root and
                 attestation.data.shard_block_root == shard_block_root)
     else:

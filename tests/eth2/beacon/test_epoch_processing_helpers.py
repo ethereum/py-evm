@@ -188,19 +188,19 @@ def test_get_attesting_validator_indices(
 def test_get_current_and_previous_epoch_attestations(random,
                                                      sample_state,
                                                      genesis_epoch,
-                                                     epoch_length,
+                                                     slots_per_epoch,
                                                      sample_attestation_data_params,
                                                      sample_attestation_params):
     num_previous_epoch_attestation, num_current_epoch_attestation = random.sample(
-        range(epoch_length),
+        range(slots_per_epoch),
         2,
     )
     previous_epoch_attestion_slots = random.sample(
-        range(epoch_length),
+        range(slots_per_epoch),
         num_previous_epoch_attestation,
     )
     current_epoch_attestion_slots = random.sample(
-        range(epoch_length, epoch_length * 2),
+        range(slots_per_epoch, slots_per_epoch * 2),
         num_current_epoch_attestation,
     )
 
@@ -224,13 +224,13 @@ def test_get_current_and_previous_epoch_attestations(random,
         )
 
     state = sample_state.copy(
-        slot=(epoch_length * 2 - 1),
+        slot=(slots_per_epoch * 2 - 1),
         latest_attestations=(previous_epoch_attestations + current_epoch_attestations),
     )
     assert set(previous_epoch_attestations) == set(
-        get_previous_epoch_attestations(state, epoch_length, genesis_epoch))
+        get_previous_epoch_attestations(state, slots_per_epoch, genesis_epoch))
     assert set(current_epoch_attestations) == set(
-        get_current_epoch_attestations(state, epoch_length))
+        get_current_epoch_attestations(state, slots_per_epoch))
 
 
 @settings(max_examples=10)

@@ -53,22 +53,22 @@ if TYPE_CHECKING:
 def get_epoch_committee_count(
         active_validator_count: int,
         shard_count: int,
-        epoch_length: int,
+        slots_per_epoch: int,
         target_committee_size: int) -> int:
     return max(
         1,
         min(
-            shard_count // epoch_length,
-            active_validator_count // epoch_length // target_committee_size,
+            shard_count // slots_per_epoch,
+            active_validator_count // slots_per_epoch // target_committee_size,
         )
-    ) * epoch_length
+    ) * slots_per_epoch
 
 
 def get_shuffling(*,
                   seed: Hash32,
                   validators: Sequence['ValidatorRecord'],
                   epoch: Epoch,
-                  epoch_length: int,
+                  slots_per_epoch: int,
                   target_committee_size: int,
                   shard_count: int) -> Tuple[Iterable[ValidatorIndex], ...]:
     """
@@ -87,7 +87,7 @@ def get_shuffling(*,
     committees_per_epoch = get_epoch_committee_count(
         len(active_validator_indices),
         shard_count,
-        epoch_length,
+        slots_per_epoch,
         target_committee_size,
     )
 
@@ -106,7 +106,7 @@ def get_shuffling(*,
 def get_previous_epoch_committee_count(
         state: 'BeaconState',
         shard_count: int,
-        epoch_length: int,
+        slots_per_epoch: int,
         target_committee_size: int) -> int:
     previous_active_validators = get_active_validator_indices(
         state.validator_registry,
@@ -115,7 +115,7 @@ def get_previous_epoch_committee_count(
     return get_epoch_committee_count(
         active_validator_count=len(previous_active_validators),
         shard_count=shard_count,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
         target_committee_size=target_committee_size,
     )
 
@@ -123,7 +123,7 @@ def get_previous_epoch_committee_count(
 def get_current_epoch_committee_count(
         state: 'BeaconState',
         shard_count: int,
-        epoch_length: int,
+        slots_per_epoch: int,
         target_committee_size: int) -> int:
     current_active_validators = get_active_validator_indices(
         state.validator_registry,
@@ -132,7 +132,7 @@ def get_current_epoch_committee_count(
     return get_epoch_committee_count(
         active_validator_count=len(current_active_validators),
         shard_count=shard_count,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
         target_committee_size=target_committee_size,
     )
 
@@ -140,7 +140,7 @@ def get_current_epoch_committee_count(
 def get_next_epoch_committee_count(
         state: 'BeaconState',
         shard_count: int,
-        epoch_length: int,
+        slots_per_epoch: int,
         target_committee_size: int) -> int:
     next_active_validators = get_active_validator_indices(
         state.validator_registry,
@@ -149,7 +149,7 @@ def get_next_epoch_committee_count(
     return get_epoch_committee_count(
         active_validator_count=len(next_active_validators),
         shard_count=shard_count,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
         target_committee_size=target_committee_size,
     )
 
@@ -165,7 +165,7 @@ def get_crosslink_committees_at_slot(
     """
     genesis_epoch = committee_config.GENESIS_EPOCH
     shard_count = committee_config.SHARD_COUNT
-    epoch_length = committee_config.EPOCH_LENGTH
+    slots_per_epoch = committee_config.SLOTS_PER_EPOCH
     target_committee_size = committee_config.TARGET_COMMITTEE_SIZE
 
     min_seed_lookahead = committee_config.MIN_SEED_LOOKAHEAD
@@ -173,10 +173,10 @@ def get_crosslink_committees_at_slot(
     latest_active_index_roots_length = committee_config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
     latest_randao_mixes_length = committee_config.LATEST_RANDAO_MIXES_LENGTH
 
-    epoch = slot_to_epoch(slot, epoch_length)
-    current_epoch = state.current_epoch(epoch_length)
-    previous_epoch = state.previous_epoch(epoch_length, genesis_epoch)
-    next_epoch = state.next_epoch(epoch_length)
+    epoch = slot_to_epoch(slot, slots_per_epoch)
+    current_epoch = state.current_epoch(slots_per_epoch)
+    previous_epoch = state.previous_epoch(slots_per_epoch, genesis_epoch)
+    next_epoch = state.next_epoch(slots_per_epoch)
 
     validate_epoch_for_current_epoch(
         current_epoch=current_epoch,
@@ -188,7 +188,7 @@ def get_crosslink_committees_at_slot(
         committees_per_epoch = get_previous_epoch_committee_count(
             state=state,
             shard_count=shard_count,
-            epoch_length=epoch_length,
+            slots_per_epoch=slots_per_epoch,
             target_committee_size=target_committee_size,
         )
         seed = state.previous_shuffling_seed
@@ -198,7 +198,7 @@ def get_crosslink_committees_at_slot(
         committees_per_epoch = get_current_epoch_committee_count(
             state=state,
             shard_count=shard_count,
-            epoch_length=epoch_length,
+            slots_per_epoch=slots_per_epoch,
             target_committee_size=target_committee_size,
         )
         seed = state.current_shuffling_seed
@@ -208,13 +208,13 @@ def get_crosslink_committees_at_slot(
         current_committees_per_epoch = get_current_epoch_committee_count(
             state=state,
             shard_count=shard_count,
-            epoch_length=epoch_length,
+            slots_per_epoch=slots_per_epoch,
             target_committee_size=target_committee_size,
         )
         committees_per_epoch = get_next_epoch_committee_count(
             state=state,
             shard_count=shard_count,
-            epoch_length=epoch_length,
+            slots_per_epoch=slots_per_epoch,
             target_committee_size=target_committee_size,
         )
         shuffling_epoch = next_epoch
@@ -229,7 +229,7 @@ def get_crosslink_committees_at_slot(
             seed = helpers.generate_seed(
                 state=state,
                 epoch=next_epoch,
-                epoch_length=epoch_length,
+                slots_per_epoch=slots_per_epoch,
                 min_seed_lookahead=min_seed_lookahead,
                 activation_exit_delay=activation_exit_delay,
                 latest_active_index_roots_length=latest_active_index_roots_length,
@@ -243,7 +243,7 @@ def get_crosslink_committees_at_slot(
             seed = helpers.generate_seed(
                 state=state,
                 epoch=next_epoch,
-                epoch_length=epoch_length,
+                slots_per_epoch=slots_per_epoch,
                 min_seed_lookahead=min_seed_lookahead,
                 activation_exit_delay=activation_exit_delay,
                 latest_active_index_roots_length=latest_active_index_roots_length,
@@ -258,12 +258,12 @@ def get_crosslink_committees_at_slot(
         seed=seed,
         validators=state.validator_registry,
         epoch=shuffling_epoch,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
-    offset = slot % epoch_length
-    committees_per_slot = committees_per_epoch // epoch_length
+    offset = slot % slots_per_epoch
+    committees_per_slot = committees_per_epoch // slots_per_epoch
     slot_start_shard = (
         shuffling_start_shard +
         committees_per_slot * offset

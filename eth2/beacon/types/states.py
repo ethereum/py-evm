@@ -291,15 +291,15 @@ class BeaconState(ssz.Serializable):
         state = state.update_validator_balance(validator_index, balance)
         return state
 
-    def current_epoch(self, epoch_length: int) -> Epoch:
-        return slot_to_epoch(self.slot, epoch_length)
+    def current_epoch(self, slots_per_epoch: int) -> Epoch:
+        return slot_to_epoch(self.slot, slots_per_epoch)
 
-    def previous_epoch(self, epoch_length: int, genesis_epoch: int) -> Epoch:
-        current_epoch: Epoch = self.current_epoch(epoch_length)
+    def previous_epoch(self, slots_per_epoch: int, genesis_epoch: int) -> Epoch:
+        current_epoch: Epoch = self.current_epoch(slots_per_epoch)
         if current_epoch == genesis_epoch:
             return current_epoch
         else:
             return Epoch(current_epoch - 1)
 
-    def next_epoch(self, epoch_length: int) -> Epoch:
-        return Epoch(self.current_epoch(epoch_length) + 1)
+    def next_epoch(self, slots_per_epoch: int) -> Epoch:
+        return Epoch(self.current_epoch(slots_per_epoch) + 1)

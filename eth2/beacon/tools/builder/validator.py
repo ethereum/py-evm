@@ -125,10 +125,10 @@ def sign_proof_of_possession(deposit_input: DepositInput,
                              privkey: int,
                              fork: Fork,
                              slot: Slot,
-                             epoch_length: int) -> BLSSignature:
+                             slots_per_epoch: int) -> BLSSignature:
     domain = get_domain(
         fork,
-        slot_to_epoch(slot, epoch_length),
+        slot_to_epoch(slot, slots_per_epoch),
         SignatureDomain.DOMAIN_DEPOSIT,
     )
     return bls.sign(
@@ -144,10 +144,10 @@ def sign_transaction(*,
                      fork: Fork,
                      slot: Slot,
                      signature_domain: SignatureDomain,
-                     epoch_length: int) -> BLSSignature:
+                     slots_per_epoch: int) -> BLSSignature:
     domain = get_domain(
         fork,
-        slot_to_epoch(slot, epoch_length),
+        slot_to_epoch(slot, slots_per_epoch),
         signature_domain,
     )
     return bls.sign(
@@ -250,7 +250,7 @@ def create_mock_signed_attestation(state: BeaconState,
                                    committee: Sequence[ValidatorIndex],
                                    num_voted_attesters: int,
                                    keymap: Dict[BLSPubkey, int],
-                                   epoch_length: int) -> Attestation:
+                                   slots_per_epoch: int) -> Attestation:
     """
     Create a mocking attestation of the given ``attestation_data`` slot with ``keymap``.
     """
@@ -272,7 +272,7 @@ def create_mock_signed_attestation(state: BeaconState,
             fork=state.fork,
             slot=attestation_data.slot,
             signature_domain=SignatureDomain.DOMAIN_ATTESTATION,
-            epoch_length=epoch_length,
+            slots_per_epoch=slots_per_epoch,
         )
         for committee_index in voting_committee_indices
     ]
@@ -327,7 +327,7 @@ def create_mock_signed_attestations_at_slot(
             justified_epoch=state.previous_justified_epoch,
             justified_block_root=get_block_root(
                 state,
-                get_epoch_start_slot(state.previous_justified_epoch, config.EPOCH_LENGTH),
+                get_epoch_start_slot(state.previous_justified_epoch, config.SLOTS_PER_EPOCH),
                 config.LATEST_BLOCK_ROOTS_LENGTH,
             ),
         )
@@ -338,7 +338,7 @@ def create_mock_signed_attestations_at_slot(
             committee,
             num_voted_attesters,
             keymap,
-            config.EPOCH_LENGTH,
+            config.SLOTS_PER_EPOCH,
         )
 
 
@@ -367,10 +367,10 @@ def get_next_epoch_committee_assignment(
     ``CommitteeAssignment.is_proposer`` is a bool signalling if the validator is expected to
         propose a beacon block at the assigned slot.
     """
-    current_epoch = state.current_epoch(config.EPOCH_LENGTH)
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     next_epoch = current_epoch + 1
-    next_epoch_start_slot = get_epoch_start_slot(next_epoch, config.EPOCH_LENGTH)
-    for slot in range(next_epoch_start_slot, next_epoch_start_slot + config.EPOCH_LENGTH):
+    next_epoch_start_slot = get_epoch_start_slot(next_epoch, config.SLOTS_PER_EPOCH)
+    for slot in range(next_epoch_start_slot, next_epoch_start_slot + config.SLOTS_PER_EPOCH):
         crosslink_committees = get_crosslink_committees_at_slot(
             state,
             slot,

@@ -204,17 +204,17 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
     latest_crosslinks = state.latest_crosslinks
     previous_epoch_attestations = get_previous_epoch_attestations(
         state,
-        config.EPOCH_LENGTH,
+        config.SLOTS_PER_EPOCH,
         config.GENESIS_EPOCH,
     )
-    current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
+    current_epoch_attestations = get_current_epoch_attestations(state, config.SLOTS_PER_EPOCH)
     prev_epoch_start_slot = get_epoch_start_slot(
-        state.previous_epoch(config.EPOCH_LENGTH, config.GENESIS_EPOCH),
-        config.EPOCH_LENGTH,
+        state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
+        config.SLOTS_PER_EPOCH,
     )
     next_epoch_start_slot = get_epoch_start_slot(
-        state.next_epoch(config.EPOCH_LENGTH),
-        config.EPOCH_LENGTH,
+        state.next_epoch(config.SLOTS_PER_EPOCH),
+        config.SLOTS_PER_EPOCH,
     )
     for slot in range(prev_epoch_start_slot, next_epoch_start_slot):
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
@@ -250,7 +250,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                         latest_crosslinks,
                         shard,
                         CrosslinkRecord(
-                            epoch=state.current_epoch(config.EPOCH_LENGTH),
+                            epoch=state.current_epoch(config.SLOTS_PER_EPOCH),
                             shard_block_root=winning_root,
                         ),
                     )
@@ -274,7 +274,7 @@ def _check_if_update_validator_registry(state: BeaconState,
     num_shards_in_committees = get_current_epoch_committee_count(
         state,
         shard_count=config.SHARD_COUNT,
-        epoch_length=config.EPOCH_LENGTH,
+        slots_per_epoch=config.SLOTS_PER_EPOCH,
         target_committee_size=config.TARGET_COMMITTEE_SIZE,
     )
 
@@ -311,7 +311,7 @@ def process_validator_registry(state: BeaconState,
         # Update step-by-step since updated `state.current_shuffling_epoch`
         # is used to calculate other value). Follow the spec tightly now.
         state = state.copy(
-            current_shuffling_epoch=state.next_epoch(config.EPOCH_LENGTH),
+            current_shuffling_epoch=state.next_epoch(config.SLOTS_PER_EPOCH),
         )
         state = state.copy(
             current_shuffling_start_shard=(
@@ -324,7 +324,7 @@ def process_validator_registry(state: BeaconState,
         current_shuffling_seed = helpers.generate_seed(
             state=state,
             epoch=state.current_shuffling_epoch,
-            epoch_length=config.EPOCH_LENGTH,
+            slots_per_epoch=config.SLOTS_PER_EPOCH,
             min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
             activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
             latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
@@ -335,13 +335,13 @@ def process_validator_registry(state: BeaconState,
         )
     else:
         epochs_since_last_registry_change = (
-            state.current_epoch(config.EPOCH_LENGTH) - state.validator_registry_update_epoch
+            state.current_epoch(config.SLOTS_PER_EPOCH) - state.validator_registry_update_epoch
         )
         if is_power_of_two(epochs_since_last_registry_change):
             # Update step-by-step since updated `state.current_shuffling_epoch`
             # is used to calculate other value). Follow the spec tightly now.
             state = state.copy(
-                current_shuffling_epoch=state.next_epoch(config.EPOCH_LENGTH),
+                current_shuffling_epoch=state.next_epoch(config.SLOTS_PER_EPOCH),
             )
 
             # The `helpers.generate_seed` function is only present to provide an entry point
@@ -349,7 +349,7 @@ def process_validator_registry(state: BeaconState,
             current_shuffling_seed = helpers.generate_seed(
                 state=state,
                 epoch=state.current_shuffling_epoch,
-                epoch_length=config.EPOCH_LENGTH,
+                slots_per_epoch=config.SLOTS_PER_EPOCH,
                 min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
                 activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
                 latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
@@ -372,7 +372,7 @@ def _update_latest_active_index_roots(state: BeaconState,
     """
     Return the BeaconState with updated `latest_active_index_roots`.
     """
-    next_epoch = state.next_epoch(committee_config.EPOCH_LENGTH)
+    next_epoch = state.next_epoch(committee_config.SLOTS_PER_EPOCH)
 
     # TODO: chanege to hash_tree_root
     active_validator_indices = get_active_validator_indices(
@@ -404,8 +404,8 @@ def _update_latest_active_index_roots(state: BeaconState,
 
 def process_final_updates(state: BeaconState,
                           config: BeaconConfig) -> BeaconState:
-    current_epoch = state.current_epoch(config.EPOCH_LENGTH)
-    next_epoch = state.next_epoch(config.EPOCH_LENGTH)
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
 
     state = _update_latest_active_index_roots(state, CommitteeConfig(config))
 
@@ -421,7 +421,7 @@ def process_final_updates(state: BeaconState,
             get_randao_mix(
                 state=state,
                 epoch=current_epoch,
-                epoch_length=config.EPOCH_LENGTH,
+                slots_per_epoch=config.SLOTS_PER_EPOCH,
                 latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
             ),
         ),
@@ -430,7 +430,7 @@ def process_final_updates(state: BeaconState,
     latest_attestations = tuple(
         filter(
             lambda attestation: (
-                slot_to_epoch(attestation.data.slot, config.EPOCH_LENGTH) >= current_epoch
+                slot_to_epoch(attestation.data.slot, config.SLOTS_PER_EPOCH) >= current_epoch
             ),
             state.latest_attestations
         )

@@ -45,11 +45,11 @@ from tests.eth2.beacon.helpers import (
 def generate_mock_latest_block_roots(
         genesis_block,
         current_slot,
-        epoch_length,
+        slots_per_epoch,
         latest_block_roots_length):
     assert current_slot < latest_block_roots_length
 
-    chain_length = (current_slot // epoch_length + 1) * epoch_length
+    chain_length = (current_slot // slots_per_epoch + 1) * slots_per_epoch
     blocks = get_pseudo_chain(chain_length, genesis_block)
     latest_block_roots = [
         block.hash
@@ -80,13 +80,13 @@ def generate_mock_latest_block_roots(
 def test_get_block_root(current_slot,
                         target_slot,
                         success,
-                        epoch_length,
+                        slots_per_epoch,
                         latest_block_roots_length,
                         sample_block):
     blocks, latest_block_roots = generate_mock_latest_block_roots(
         sample_block,
         current_slot,
-        epoch_length,
+        slots_per_epoch,
         latest_block_roots_length,
     )
 
@@ -276,7 +276,7 @@ def test_get_domain(previous_version,
     )
 
 
-def test_is_double_vote(sample_attestation_data_params, epoch_length):
+def test_is_double_vote(sample_attestation_data_params, slots_per_epoch):
     attestation_data_1_params = {
         **sample_attestation_data_params,
         'slot': 12345,
@@ -289,7 +289,7 @@ def test_is_double_vote(sample_attestation_data_params, epoch_length):
     }
     attestation_data_2 = AttestationData(**attestation_data_2_params)
 
-    assert is_double_vote(attestation_data_1, attestation_data_2, epoch_length)
+    assert is_double_vote(attestation_data_1, attestation_data_2, slots_per_epoch)
 
     attestation_data_3_params = {
         **sample_attestation_data_params,
@@ -297,12 +297,12 @@ def test_is_double_vote(sample_attestation_data_params, epoch_length):
     }
     attestation_data_3 = AttestationData(**attestation_data_3_params)
 
-    assert not is_double_vote(attestation_data_1, attestation_data_3, epoch_length)
+    assert not is_double_vote(attestation_data_1, attestation_data_3, slots_per_epoch)
 
 
 @pytest.mark.parametrize(
     (
-        'epoch_length,'
+        'slots_per_epoch,'
         'attestation_1_slot,'
         'attestation_1_justified_epoch,'
         'attestation_2_slot,'
@@ -319,7 +319,7 @@ def test_is_double_vote(sample_attestation_data_params, epoch_length):
     ],
 )
 def test_is_surround_vote(sample_attestation_data_params,
-                          epoch_length,
+                          slots_per_epoch,
                           attestation_1_slot,
                           attestation_1_justified_epoch,
                           attestation_2_slot,
@@ -339,7 +339,7 @@ def test_is_surround_vote(sample_attestation_data_params,
     }
     attestation_data_2 = AttestationData(**attestation_data_2_params)
 
-    assert is_surround_vote(attestation_data_1, attestation_data_2, epoch_length) == expected
+    assert is_surround_vote(attestation_data_1, attestation_data_2, slots_per_epoch) == expected
 
 
 def test_get_entry_exit_effect_epoch(activation_exit_delay):
@@ -353,7 +353,7 @@ def test_get_entry_exit_effect_epoch(activation_exit_delay):
 
 def test_generate_seed(monkeypatch,
                        genesis_state,
-                       epoch_length,
+                       slots_per_epoch,
                        min_seed_lookahead,
                        activation_exit_delay,
                        latest_active_index_roots_length,
@@ -362,7 +362,7 @@ def test_generate_seed(monkeypatch,
 
     def mock_get_randao_mix(state,
                             epoch,
-                            epoch_length,
+                            slots_per_epoch,
                             latest_randao_mixes_length):
         return hash_eth2(
             state.root +
@@ -372,13 +372,13 @@ def test_generate_seed(monkeypatch,
 
     def mock_get_active_index_root(state,
                                    epoch,
-                                   epoch_length,
+                                   slots_per_epoch,
                                    activation_exit_delay,
                                    latest_active_index_roots_length):
         return hash_eth2(
             state.root +
             epoch.to_bytes(32, byteorder='little') +
-            epoch_length.to_bytes(32, byteorder='little') +
+            slots_per_epoch.to_bytes(32, byteorder='little') +
             latest_active_index_roots_length.to_bytes(32, byteorder='little')
         )
 
@@ -401,7 +401,7 @@ def test_generate_seed(monkeypatch,
     seed = generate_seed(
         state=state,
         epoch=epoch,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
         min_seed_lookahead=min_seed_lookahead,
         activation_exit_delay=activation_exit_delay,
         latest_active_index_roots_length=latest_active_index_roots_length,
@@ -411,12 +411,12 @@ def test_generate_seed(monkeypatch,
         mock_get_randao_mix(
             state=state,
             epoch=(epoch - min_seed_lookahead),
-            epoch_length=epoch_length,
+            slots_per_epoch=slots_per_epoch,
             latest_randao_mixes_length=latest_randao_mixes_length,
         ) + mock_get_active_index_root(
             state=state,
             epoch=epoch,
-            epoch_length=epoch_length,
+            slots_per_epoch=slots_per_epoch,
             activation_exit_delay=activation_exit_delay,
             latest_active_index_roots_length=latest_active_index_roots_length,
         ) + epoch_as_bytes

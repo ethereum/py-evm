@@ -29,7 +29,7 @@ def validate_proof_of_possession(state: BeaconState,
                                  pubkey: BLSPubkey,
                                  proof_of_possession: BLSSignature,
                                  withdrawal_credentials: Hash32,
-                                 epoch_length: int) -> None:
+                                 slots_per_epoch: int) -> None:
     deposit_input = DepositInput(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
@@ -43,7 +43,7 @@ def validate_proof_of_possession(state: BeaconState,
         signature=proof_of_possession,
         domain=get_domain(
             state.fork,
-            state.current_epoch(epoch_length),
+            state.current_epoch(slots_per_epoch),
             SignatureDomain.DOMAIN_DEPOSIT,
         ),
     )
@@ -74,7 +74,7 @@ def process_deposit(*,
                     amount: Gwei,
                     proof_of_possession: BLSSignature,
                     withdrawal_credentials: Hash32,
-                    epoch_length: int) -> BeaconState:
+                    slots_per_epoch: int) -> BeaconState:
     """
     Process a deposit from Ethereum 1.0.
     """
@@ -83,7 +83,7 @@ def process_deposit(*,
         pubkey=pubkey,
         proof_of_possession=proof_of_possession,
         withdrawal_credentials=withdrawal_credentials,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
     )
 
     validator_pubkeys = tuple(v.pubkey for v in state.validator_registry)

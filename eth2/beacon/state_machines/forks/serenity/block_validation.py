@@ -101,7 +101,7 @@ def validate_proposer_signature(state: BeaconState,
     proposer_pubkey = state.validator_registry[beacon_proposer_index].pubkey
     domain = get_domain(
         state.fork,
-        state.current_epoch(committee_config.EPOCH_LENGTH),
+        state.current_epoch(committee_config.SLOTS_PER_EPOCH),
         SignatureDomain.DOMAIN_PROPOSAL
     )
 
@@ -231,21 +231,21 @@ def validate_attestation(state: BeaconState,
     Validate the given ``attestation``.
     Raise ``ValidationError`` if it's invalid.
     """
-    epoch_length = committee_config.EPOCH_LENGTH
+    slots_per_epoch = committee_config.SLOTS_PER_EPOCH
 
     validate_attestation_slot(
         attestation.data,
         state.slot,
-        epoch_length,
+        slots_per_epoch,
         min_attestation_inclusion_delay,
     )
 
     validate_attestation_justified_epoch(
         attestation.data,
-        state.current_epoch(epoch_length),
+        state.current_epoch(slots_per_epoch),
         state.previous_justified_epoch,
         state.justified_epoch,
-        epoch_length,
+        slots_per_epoch,
     )
 
     validate_attestation_justified_block_root(
@@ -254,7 +254,7 @@ def validate_attestation(state: BeaconState,
             state=state,
             slot=get_epoch_start_slot(
                 attestation.data.justified_epoch,
-                epoch_length,
+                slots_per_epoch,
             ),
             latest_block_roots_length=latest_block_roots_length,
         ),
@@ -276,7 +276,7 @@ def validate_attestation(state: BeaconState,
 
 def validate_attestation_slot(attestation_data: AttestationData,
                               current_slot: Slot,
-                              epoch_length: int,
+                              slots_per_epoch: int,
                               min_attestation_inclusion_delay: int) -> None:
     """
     Validate ``slot`` field of ``attestation_data``.
@@ -294,16 +294,16 @@ def validate_attestation_slot(attestation_data: AttestationData,
                 min_attestation_inclusion_delay,
             )
         )
-    if current_slot - min_attestation_inclusion_delay >= attestation_data.slot + epoch_length:
+    if current_slot - min_attestation_inclusion_delay >= attestation_data.slot + slots_per_epoch:
         raise ValidationError(
             "Attestation slot plus epoch length is too low; "
             "must equal or exceed the ``current_slot`` less the "
             "``min_attestation_inclusion_delay``:\n"
             "\tFound: %s (%s + %s), Needed greater than or equal to: %s (%s - %s)" %
             (
-                attestation_data.slot + epoch_length,
+                attestation_data.slot + slots_per_epoch,
                 attestation_data.slot,
-                epoch_length,
+                slots_per_epoch,
                 current_slot - min_attestation_inclusion_delay,
                 current_slot,
                 min_attestation_inclusion_delay,
@@ -315,12 +315,12 @@ def validate_attestation_justified_epoch(attestation_data: AttestationData,
                                          current_epoch: Epoch,
                                          previous_justified_epoch: Epoch,
                                          justified_epoch: Epoch,
-                                         epoch_length: int) -> None:
+                                         slots_per_epoch: int) -> None:
     """
     Validate ``justified_epoch`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
     """
-    if attestation_data.slot >= get_epoch_start_slot(current_epoch, epoch_length):
+    if attestation_data.slot >= get_epoch_start_slot(current_epoch, slots_per_epoch):
         if attestation_data.justified_epoch != justified_epoch:
             raise ValidationError(
                 "Attestation ``slot`` is after recent epoch transition but attestation"
@@ -502,7 +502,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
 
     domain = get_domain(
         fork=state.fork,
-        epoch=slot_to_epoch(attestation.data.slot, committee_config.EPOCH_LENGTH),
+        epoch=slot_to_epoch(attestation.data.slot, committee_config.SLOTS_PER_EPOCH),
         domain_type=SignatureDomain.DOMAIN_ATTESTATION,
     )
 

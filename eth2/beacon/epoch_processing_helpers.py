@@ -52,20 +52,21 @@ if TYPE_CHECKING:
 @to_tuple
 def get_current_epoch_attestations(
         state: 'BeaconState',
-        epoch_length: int) -> Iterable[PendingAttestationRecord]:
+        slots_per_epoch: int) -> Iterable[PendingAttestationRecord]:
+    current_epoch = state.current_epoch(slots_per_epoch)
     for attestation in state.latest_attestations:
-        if state.current_epoch(epoch_length) == slot_to_epoch(attestation.data.slot, epoch_length):
+        if current_epoch == slot_to_epoch(attestation.data.slot, slots_per_epoch):
             yield attestation
 
 
 @to_tuple
 def get_previous_epoch_attestations(
         state: 'BeaconState',
-        epoch_length: int,
+        slots_per_epoch: int,
         genesis_epoch: Epoch) -> Iterable[PendingAttestationRecord]:
-    previous_epoch = state.previous_epoch(epoch_length, genesis_epoch)
+    previous_epoch = state.previous_epoch(slots_per_epoch, genesis_epoch)
     for attestation in state.latest_attestations:
-        if previous_epoch == slot_to_epoch(attestation.data.slot, epoch_length):
+        if previous_epoch == slot_to_epoch(attestation.data.slot, slots_per_epoch):
             yield attestation
 
 

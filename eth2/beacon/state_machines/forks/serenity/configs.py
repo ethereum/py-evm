@@ -41,7 +41,7 @@ SERENITY_CONFIG = BeaconConfig(
     # Time parameters
     SECONDS_PER_SLOT=Second(6),  # seconds
     MIN_ATTESTATION_INCLUSION_DELAY=2**2,  # (= 4) slots
-    EPOCH_LENGTH=2**6,  # (= 64) slots
+    SLOTS_PER_EPOCH=2**6,  # (= 64) slots
     MIN_SEED_LOOKAHEAD=2**0,  # (= 1) epochs
     ACTIVATION_EXIT_DELAY=2**2,  # (= 4) epochs
     EPOCHS_PER_ETH1_VOTING_PERIOD=2**4,  # (= 16) epochs
