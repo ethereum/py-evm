@@ -253,9 +253,10 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                 # No winning shard block root found for this shard.
                 pass
             else:
-                total_balance = sum(
-                    get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
-                    for i in crosslink_committee
+                total_balance = get_total_balance(
+                    state.validator_balances,
+                    crosslink_committee,
+                    config.MAX_DEPOSIT_AMOUNT,
                 )
                 if 3 * total_attesting_balance >= 2 * total_balance:
                     latest_crosslinks = update_tuple_item(
@@ -390,8 +391,8 @@ def _process_rewards_and_penalties_for_finality(
 
         # Punish penalized active validators
         for index in prev_epoch_active_validator_indices:
-            penalized_epoch = state.validator_registry[index].penalized_epoch
-            if penalized_epoch <= state.current_epoch(config.EPOCH_LENGTH):
+            slashed_epoch = state.validator_registry[index].slashed_epoch
+            if slashed_epoch <= state.current_epoch(config.EPOCH_LENGTH):
                 base_reward = base_reward_map[index]
                 inactivity_penalty = base_reward + (
                     effective_balance_map[index] *
@@ -504,11 +505,10 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             state.previous_epoch(config.EPOCH_LENGTH, config.GENESIS_EPOCH)
         )
     )
-    previous_total_balance: Gwei = Gwei(
-        sum(
-            get_effective_balance(state.validator_balances, i, config.MAX_DEPOSIT_AMOUNT)
-            for i in prev_epoch_active_validator_indices
-        )
+    previous_total_balance: Gwei = get_total_balance(
+        state.validator_balances,
+        tuple(prev_epoch_active_validator_indices),
+        config.MAX_DEPOSIT_AMOUNT,
     )
 
     # Compute previous epoch attester indices and the total balance they account for

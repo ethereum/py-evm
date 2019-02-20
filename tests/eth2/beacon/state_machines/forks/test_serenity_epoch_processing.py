@@ -759,7 +759,7 @@ def test_process_rewards_and_penalties_for_finality(
     validator_registry = n_validators_state.validator_registry
     for index in penalized_validator_indices:
         validator_record = validator_registry[index].copy(
-            penalized_epoch=slot_to_epoch(current_slot, epoch_length),
+            slashed_epoch=slot_to_epoch(current_slot, epoch_length),
         )
         validator_registry = update_tuple_item(validator_registry, index, validator_record)
     state = n_validators_state.copy(

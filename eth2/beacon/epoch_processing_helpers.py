@@ -12,6 +12,7 @@ from eth_typing import (
 
 from eth_utils import (
     to_tuple,
+    to_set,
 )
 
 from eth2._utils.numeric import integer_squareroot
@@ -44,7 +45,6 @@ from eth2.beacon.types.pending_attestation_records import (
     PendingAttestationRecord,
 )
 if TYPE_CHECKING:
-    from eth2.beacon.state_machines.configs import BeaconConfig  # noqa: F401
     from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth2.beacon.types.states import BeaconState  # noqa: F401
@@ -120,11 +120,10 @@ def get_winning_root(
             ],
             committee_config=committee_config,
         )
-        total_attesting_balance = Gwei(
-            sum(
-                get_effective_balance(state.validator_balances, i, max_deposit_amount)
-                for i in attesting_validator_indices
-            )
+        total_attesting_balance = get_total_balance(
+            state.validator_balances,
+            attesting_validator_indices,
+            max_deposit_amount,
         )
         if total_attesting_balance > winning_root_balance:
             winning_root = shard_block_root
@@ -209,6 +208,8 @@ def get_epoch_boundary_attesting_balances(
         config.MAX_DEPOSIT_AMOUNT,
     )
     return previous_epoch_boundary_attesting_balance, current_epoch_boundary_attesting_balance
+
+
 def get_base_reward(
         *,
         state: 'BeaconState',

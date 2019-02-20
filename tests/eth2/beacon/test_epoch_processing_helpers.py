@@ -28,16 +28,16 @@ from eth2.beacon.committee_helpers import (
 from eth2.beacon.configs import CommitteeConfig
 from eth2.beacon.epoch_processing_helpers import (
     get_current_epoch_attestations,
+    get_epoch_boundary_attester_indices,
+    get_epoch_boundary_attesting_balances,
     get_inclusion_info_map,
     get_previous_epoch_attestations,
     get_previous_epoch_head_attestations,
+    get_total_balance,
     get_winning_root,
-    get_epoch_boundary_attester_indices,
-    get_epoch_boundary_attesting_balances,
 )
 from eth2.beacon.exceptions import NoWinningRootError
 from eth2.beacon.helpers import (
-    get_effective_balance,
     get_epoch_start_slot,
 )
 from eth2.beacon.types.attestations import (
@@ -310,13 +310,10 @@ def test_get_winning_root(
             ],
             committee_config=committee_config,
         )
-        total_attesting_balance = sum(
-            get_effective_balance(
-                n_validators_state.validator_balances,
-                i,
-                config.MAX_DEPOSIT_AMOUNT
-            )
-            for i in attesting_validators_indices
+        total_attesting_balance = get_total_balance(
+            n_validators_state.validator_balances,
+            attesting_validators_indices,
+            config.MAX_DEPOSIT_AMOUNT,
         )
         assert attesting_balance == total_attesting_balance
     except NoWinningRootError:
@@ -599,8 +596,8 @@ def test_get_inclusion_info_map(
     from eth2.beacon import committee_helpers
 
     def mock_get_crosslink_committees_at_slot(state,
-                                                slot,
-                                                committee_config):
+                                              slot,
+                                              committee_config):
         return (
             (committee, shard,),
         )
