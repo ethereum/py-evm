@@ -43,6 +43,7 @@ from eth.vm.base import (
     BaseVM,
 )
 from eth.vm.forks import (
+    PetersburgVM,
     ConstantinopleVM,
     ByzantiumVM,
     TangerineWhistleVM,
@@ -130,6 +131,10 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
     elif network == 'Constantinople':
         return (
             (0, ConstantinopleVM),
+        )
+    elif network == 'ConstantinopleFix':
+        return (
+            (0, PetersburgVM),
         )
     elif network == 'FrontierToHomesteadAt5':
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)

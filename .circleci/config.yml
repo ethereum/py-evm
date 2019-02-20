@@ -84,6 +84,12 @@ jobs:
       - image: circleci/python:3.5
         environment:
           TOXENV: py35-native-blockchain-homestead
+  py35-native-blockchain-petersburg:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment:
+          TOXENV: py35-native-blockchain-petersburg
   py35-native-blockchain-tangerine_whistle:
     <<: *common
     docker:
@@ -157,6 +163,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-native-blockchain-homestead
+  py36-native-blockchain-petersburg:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-native-blockchain-petersburg
   py36-native-blockchain-tangerine_whistle:
     <<: *common
     docker:
@@ -219,6 +231,7 @@ workflows:
       - py36-native-blockchain-constantinople
       - py36-native-blockchain-frontier
       - py36-native-blockchain-homestead
+      - py36-native-blockchain-petersburg
       - py36-native-blockchain-tangerine_whistle
       - py36-native-blockchain-spurious_dragon
       - py36-native-blockchain-transition
@@ -232,6 +245,7 @@ workflows:
       - py35-native-blockchain-constantinople
       - py35-native-blockchain-frontier
       - py35-native-blockchain-homestead
+      - py35-native-blockchain-petersburg
       - py35-native-blockchain-tangerine_whistle
       - py35-native-blockchain-spurious_dragon
       - py35-native-blockchain-transition
