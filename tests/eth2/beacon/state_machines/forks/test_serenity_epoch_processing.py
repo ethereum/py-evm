@@ -8,6 +8,7 @@ from hypothesis import (
 
 from eth._utils.numeric import (
     int_to_bytes32,
+    integer_squareroot
 )
 
 from eth.constants import (
@@ -1007,12 +1008,14 @@ def test_process_rewards_and_penalties_for_crosslinks(
     validator_balance = max_deposit_amount
     total_active_balance = len(active_validators) * validator_balance
 
+    _base_reward_quotient = (
+        integer_squareroot(total_active_balance) // config.BASE_REWARD_QUOTIENT
+    )
     base_reward_map = {
         index: get_base_reward(
             state=state,
             index=index,
-            previous_total_balance=total_active_balance,
-            base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+            base_reward_quotient=_base_reward_quotient,
             max_deposit_amount=max_deposit_amount,
         )
         for index in active_validators
@@ -1041,12 +1044,14 @@ def test_process_rewards_and_penalties_for_crosslinks(
         attesting_validators = each_slot_attestion_validators_list[i]
         total_attesting_balance = len(attesting_validators) * validator_balance
         total_committee_balance = len(crosslink_committee) * validator_balance
+        _base_reward_quotient = (
+            integer_squareroot(total_active_balance) // config.BASE_REWARD_QUOTIENT
+        )
         for index in attesting_validators:
             reward = get_base_reward(
                 state=state,
                 index=index,
-                previous_total_balance=total_active_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                base_reward_quotient=_base_reward_quotient,
                 max_deposit_amount=max_deposit_amount,
             ) * total_attesting_balance // total_committee_balance
             expected_reward_received_map[index] += reward
@@ -1054,8 +1059,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
             penalty = get_base_reward(
                 state=state,
                 index=index,
-                previous_total_balance=total_active_balance,
-                base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+                base_reward_quotient=_base_reward_quotient,
                 max_deposit_amount=max_deposit_amount,
             )
             expected_reward_received_map[index] -= penalty

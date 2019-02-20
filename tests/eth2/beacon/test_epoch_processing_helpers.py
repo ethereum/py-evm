@@ -274,7 +274,7 @@ def test_get_winning_root(
         target_committee_size,
     )
     # `attestions` contains attestation to different block root by different set of participants
-    attestations = [
+    attestations = (
         # Attestation to `shard_block_root_1` by `attestation_participants_1`
         Attestation(**sample_attestation_params).copy(
             data=AttestationData(**sample_attestation_data_params).copy(
@@ -291,7 +291,7 @@ def test_get_winning_root(
             ),
             aggregation_bitfield=root_2_participants_bitfield
         ),
-    ]
+    )
 
     try:
         winning_root, attesting_balance = get_winning_root(
@@ -303,11 +303,11 @@ def test_get_winning_root(
         )
         attesting_validators_indices = get_attester_indices_from_attesttion(
             state=n_validators_state,
-            attestations=[
+            attestations=(
                 a
                 for a in attestations
                 if a.data.shard == shard and a.data.shard_block_root == winning_root
-            ],
+            ),
             committee_config=committee_config,
         )
         total_attesting_balance = get_total_balance(

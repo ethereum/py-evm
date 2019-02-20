@@ -15,7 +15,6 @@ from eth_utils import (
     to_set,
 )
 
-from eth2._utils.numeric import integer_squareroot
 from eth2.beacon.committee_helpers import (
     get_attestation_participants,
     get_attester_indices_from_attesttion,
@@ -214,16 +213,14 @@ def get_base_reward(
         *,
         state: 'BeaconState',
         index: ValidatorIndex,
-        previous_total_balance: Gwei,
         base_reward_quotient: int,
         max_deposit_amount: Gwei) -> Gwei:
-    _base_reward_quotient = integer_squareroot(previous_total_balance) // base_reward_quotient
     return Gwei(
         get_effective_balance(
             state.validator_balances,
             index,
             max_deposit_amount,
-        ) // _base_reward_quotient // 5
+        ) // base_reward_quotient // 5
     )
 
 
@@ -249,11 +246,11 @@ def get_inclusion_info_map(
             committee_config,
         )
         for index in participant_indices:
-            inclusion_slot = inclusion_slot_map.get(index)
-            if inclusion_slot is None:
-                inclusion_slot_map[index] = attestation.slot_included
-                inclusion_distance_map[index] = attestation.slot_included - attestation.data.slot
-            elif attestation.slot_included < inclusion_slot:
+            should_update_inclusion_data = (
+                index not in inclusion_slot_map or
+                attestation.slot_included < inclusion_slot_map[index]
+            )
+            if should_update_inclusion_data:
                 inclusion_slot_map[index] = attestation.slot_included
                 inclusion_distance_map[index] = attestation.slot_included - attestation.data.slot
     return (inclusion_slot_map, inclusion_distance_map)
