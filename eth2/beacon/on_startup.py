@@ -98,7 +98,7 @@ def get_genesis_beacon_state(*,
         previous_shuffling_epoch=genesis_epoch,
         current_shuffling_epoch=genesis_epoch,
         previous_shuffling_seed=ZERO_HASH32,
-        current_epoch_seed=ZERO_HASH32,
+        current_shuffling_seed=ZERO_HASH32,
 
         # Finality
         previous_justified_epoch=genesis_epoch,
@@ -169,7 +169,7 @@ def get_genesis_beacon_state(*,
         latest_active_index_roots=latest_active_index_roots,
     )
 
-    current_epoch_seed = generate_seed(
+    current_shuffling_seed = generate_seed(
         state=state,
         epoch=genesis_epoch,
         epoch_length=epoch_length,
@@ -179,7 +179,7 @@ def get_genesis_beacon_state(*,
         latest_randao_mixes_length=latest_randao_mixes_length,
     )
     state = state.copy(
-        current_epoch_seed=current_epoch_seed,
+        current_shuffling_seed=current_shuffling_seed,
     )
 
     return state

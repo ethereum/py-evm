@@ -300,7 +300,7 @@ def process_validator_registry(state: BeaconState,
     state = state.copy(
         previous_shuffling_epoch=state.current_shuffling_epoch,
         previous_shuffling_start_shard=state.current_shuffling_start_shard,
-        previous_shuffling_seed=state.current_epoch_seed,
+        previous_shuffling_seed=state.current_shuffling_seed,
     )
 
     need_to_update, num_shards_in_committees = _check_if_update_validator_registry(state, config)
@@ -321,7 +321,7 @@ def process_validator_registry(state: BeaconState,
 
         # The `helpers.generate_seed` function is only present to provide an entry point
         # for mocking this out in tests.
-        current_epoch_seed = helpers.generate_seed(
+        current_shuffling_seed = helpers.generate_seed(
             state=state,
             epoch=state.current_shuffling_epoch,
             epoch_length=config.EPOCH_LENGTH,
@@ -331,7 +331,7 @@ def process_validator_registry(state: BeaconState,
             latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
         )
         state = state.copy(
-            current_epoch_seed=current_epoch_seed,
+            current_shuffling_seed=current_shuffling_seed,
         )
     else:
         epochs_since_last_registry_change = (
@@ -346,7 +346,7 @@ def process_validator_registry(state: BeaconState,
 
             # The `helpers.generate_seed` function is only present to provide an entry point
             # for mocking this out in tests.
-            current_epoch_seed = helpers.generate_seed(
+            current_shuffling_seed = helpers.generate_seed(
                 state=state,
                 epoch=state.current_shuffling_epoch,
                 epoch_length=config.EPOCH_LENGTH,
@@ -356,7 +356,7 @@ def process_validator_registry(state: BeaconState,
                 latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
             )
             state = state.copy(
-                current_epoch_seed=current_epoch_seed,
+                current_shuffling_seed=current_shuffling_seed,
             )
         else:
             pass

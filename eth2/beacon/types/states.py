@@ -61,7 +61,7 @@ class BeaconState(ssz.Serializable):
         ('previous_shuffling_epoch', uint64),
         ('current_shuffling_epoch', uint64),
         ('previous_shuffling_seed', bytes32),
-        ('current_epoch_seed', bytes32),
+        ('current_shuffling_seed', bytes32),
 
         # Finality
         ('previous_justified_epoch', uint64),
@@ -104,7 +104,7 @@ class BeaconState(ssz.Serializable):
             previous_shuffling_epoch: Epoch,
             current_shuffling_epoch: Epoch,
             previous_shuffling_seed: Hash32,
-            current_epoch_seed: Hash32,
+            current_shuffling_seed: Hash32,
             # Finality
             previous_justified_epoch: Epoch,
             justified_epoch: Epoch,
@@ -141,7 +141,7 @@ class BeaconState(ssz.Serializable):
             previous_shuffling_epoch=previous_shuffling_epoch,
             current_shuffling_epoch=current_shuffling_epoch,
             previous_shuffling_seed=previous_shuffling_seed,
-            current_epoch_seed=current_epoch_seed,
+            current_shuffling_seed=current_shuffling_seed,
             # Finality
             previous_justified_epoch=previous_justified_epoch,
             justified_epoch=justified_epoch,
@@ -222,7 +222,7 @@ class BeaconState(ssz.Serializable):
             previous_shuffling_epoch=genesis_epoch,
             current_shuffling_epoch=genesis_epoch,
             previous_shuffling_seed=ZERO_HASH32,
-            current_epoch_seed=ZERO_HASH32,
+            current_shuffling_seed=ZERO_HASH32,
 
             # Finality
             previous_justified_epoch=genesis_epoch,

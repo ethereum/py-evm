@@ -201,7 +201,7 @@ def get_crosslink_committees_at_slot(
             epoch_length=epoch_length,
             target_committee_size=target_committee_size,
         )
-        seed = state.current_epoch_seed
+        seed = state.current_shuffling_seed
         shuffling_epoch = state.current_shuffling_epoch
         shuffling_start_shard = state.current_shuffling_start_shard
     elif epoch == next_epoch:
@@ -251,7 +251,7 @@ def get_crosslink_committees_at_slot(
             )
             shuffling_start_shard = state.current_shuffling_start_shard
         else:
-            seed = state.current_epoch_seed
+            seed = state.current_shuffling_seed
             shuffling_start_shard = state.current_shuffling_start_shard
 
     shuffling = get_shuffling(
