@@ -297,7 +297,7 @@ def sample_validator_record_params():
         'activation_epoch': FAR_FUTURE_EPOCH,
         'exit_epoch': FAR_FUTURE_EPOCH,
         'withdrawal_epoch': FAR_FUTURE_EPOCH,
-        'penalized_epoch': FAR_FUTURE_EPOCH,
+        'slashed_epoch': FAR_FUTURE_EPOCH,
         'status_flags': 0,
     }
 
@@ -510,8 +510,8 @@ def eth1_data_voting_period():
 
 
 @pytest.fixture
-def min_validator_withdrawal_time():
-    return SERENITY_CONFIG.MIN_VALIDATOR_WITHDRAWAL_TIME
+def min_validator_withdrawability_delay():
+    return SERENITY_CONFIG.MIN_VALIDATOR_WITHDRAWABILITY_DELAY
 
 
 @pytest.fixture
@@ -669,7 +669,7 @@ def config(
         seed_lookahead,
         entry_exit_delay,
         eth1_data_voting_period,
-        min_validator_withdrawal_time,
+        min_validator_withdrawability_delay,
         base_reward_quotient,
         whistleblower_reward_quotient,
         includer_reward_quotient,
@@ -706,7 +706,7 @@ def config(
         SEED_LOOKAHEAD=seed_lookahead,
         ENTRY_EXIT_DELAY=entry_exit_delay,
         ETH1_DATA_VOTING_PERIOD=eth1_data_voting_period,
-        MIN_VALIDATOR_WITHDRAWAL_TIME=min_validator_withdrawal_time,
+        MIN_VALIDATOR_WITHDRAWABILITY_DELAY=min_validator_withdrawability_delay,
         BASE_REWARD_QUOTIENT=base_reward_quotient,
         WHISTLEBLOWER_REWARD_QUOTIENT=whistleblower_reward_quotient,
         INCLUDER_REWARD_QUOTIENT=includer_reward_quotient,

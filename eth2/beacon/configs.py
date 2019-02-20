@@ -48,7 +48,7 @@ BeaconConfig = NamedTuple(
         ('SEED_LOOKAHEAD', int),
         ('ENTRY_EXIT_DELAY', int),
         ('ETH1_DATA_VOTING_PERIOD', int),
-        ('MIN_VALIDATOR_WITHDRAWAL_TIME', int),
+        ('MIN_VALIDATOR_WITHDRAWABILITY_DELAY', int),
         # Reward and penalty quotients
         ('BASE_REWARD_QUOTIENT', int),
         ('WHISTLEBLOWER_REWARD_QUOTIENT', int),

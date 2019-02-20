@@ -51,4 +51,4 @@ def test_create_pending_validator():
     assert validator.activation_epoch == FAR_FUTURE_EPOCH
     assert validator.exit_epoch == FAR_FUTURE_EPOCH
     assert validator.withdrawal_epoch == FAR_FUTURE_EPOCH
-    assert validator.penalized_epoch == FAR_FUTURE_EPOCH
+    assert validator.slashed_epoch == FAR_FUTURE_EPOCH

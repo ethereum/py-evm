@@ -23,7 +23,7 @@ def mock_validator_record(pubkey,
         activation_epoch=SERENITY_CONFIG.GENESIS_EPOCH if is_active else FAR_FUTURE_EPOCH,
         exit_epoch=FAR_FUTURE_EPOCH,
         withdrawal_epoch=FAR_FUTURE_EPOCH,
-        penalized_epoch=FAR_FUTURE_EPOCH,
+        slashed_epoch=FAR_FUTURE_EPOCH,
         status_flags=status_flags,
     )
 

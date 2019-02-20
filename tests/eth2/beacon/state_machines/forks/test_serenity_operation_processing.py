@@ -12,9 +12,11 @@ from eth2.beacon.state_machines.forks.serenity.blocks import (
 )
 from eth2.beacon.state_machines.forks.serenity.operation_processing import (
     process_attestations,
+    process_proposer_slashings,
 )
 from eth2.beacon.tools.builder.validator import (
     create_mock_signed_attestations_at_slot,
+    create_mock_proposer_slashing_at_block,
 )
 
 
@@ -54,6 +56,72 @@ def test_process_max_attestations(genesis_state,
             block,
             config,
         )
+
+
+@pytest.mark.parametrize(
+    (
+        'num_validators',
+        'epoch_length',
+        'target_committee_size',
+        'shard_count',
+        'block_root_1',
+        'block_root_2',
+        'success'
+    ),
+    [
+        (10, 2, 2, 2, b'\x11' * 32, b'\x22' * 32, True),
+        (10, 2, 2, 2, b'\x11' * 32, b'\x11' * 32, False),
+    ]
+)
+def test_process_proposer_slashings(genesis_state,
+                                    sample_beacon_block_params,
+                                    sample_beacon_block_body_params,
+                                    config,
+                                    keymap,
+                                    block_root_1,
+                                    block_root_2,
+                                    success):
+    current_slot = 1
+    state = genesis_state.copy(
+        slot=current_slot,
+    )
+
+    proposer_index = 0
+    proposer_slashing = create_mock_proposer_slashing_at_block(
+        state,
+        config,
+        keymap,
+        block_root_1=block_root_1,
+        block_root_2=block_root_2,
+        proposer_index=proposer_index,
+    )
+    proposer_slashings = (proposer_slashing,)
+
+    block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
+        proposer_slashings=proposer_slashings,
+    )
+    block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
+        slot=current_slot,
+        body=block_body,
+    )
+
+    if success:
+        new_state = process_proposer_slashings(
+            state,
+            block,
+            config,
+        )
+        # Check if slashed
+        assert (
+            new_state.validator_balances[proposer_index] < state.validator_balances[proposer_index]
+        )
+    else:
+        with pytest.raises(ValidationError):
+            process_proposer_slashings(
+                state,
+                block,
+                config,
+            )
 
 
 @pytest.mark.parametrize(

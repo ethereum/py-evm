@@ -22,6 +22,7 @@ from .epoch_processing import (
 )
 from .operation_processing import (
     process_attestations,
+    process_proposer_slashings,
 )
 from .block_validation import (
     validate_block_slot,
@@ -91,7 +92,7 @@ class SerenityStateTransition(BaseStateTransition):
         state = process_eth1_data(state, block)
 
         # Operations
-        # TODO: state = process_proposer_slashings(state, block, self.config)
+        state = process_proposer_slashings(state, block, self.config)
         # TODO: state = process_attester_slashings(state, block, self.config)
         state = process_attestations(state, block, self.config)
         # TODO: state = process_deposits(state, block, self.config)

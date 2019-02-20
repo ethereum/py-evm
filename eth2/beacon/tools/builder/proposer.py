@@ -4,7 +4,6 @@ from typing import (
     Type,
 )
 
-from eth2._utils import bls
 from eth2.beacon.enums import (
     SignatureDomain,
 )
@@ -21,11 +20,6 @@ from eth2.beacon.constants import (
 from eth2.beacon.exceptions import (
     ProposerIndexError,
 )
-from eth2.beacon.helpers import (
-    get_domain,
-    slot_to_epoch,
-)
-
 from eth2.beacon.state_machines.base import (
     BaseBeaconStateMachine,
 )
@@ -43,6 +37,10 @@ from eth2.beacon.typing import (
     FromBlockParams,
     SlotNumber,
     ValidatorIndex,
+)
+
+from eth2.beacon.tools.builder.validator import (
+    sign_transaction,
 )
 
 
@@ -110,17 +108,18 @@ def create_block_on_state(
         config.BEACON_CHAIN_SHARD_NUMBER,
         empty_signature_block_root,
     ).root
-    domain = get_domain(
-        state.fork,
-        slot_to_epoch(slot, config.EPOCH_LENGTH),
-        SignatureDomain.DOMAIN_PROPOSAL,
+
+    signature = sign_transaction(
+        message=proposal_root,
+        privkey=privkey,
+        fork=state.fork,
+        slot=slot,
+        signature_domain=SignatureDomain.DOMAIN_PROPOSAL,
+        epoch_length=config.EPOCH_LENGTH,
     )
+
     block = block.copy(
-        signature=bls.sign(
-            message=proposal_root,
-            privkey=privkey,
-            domain=domain,
-        ),
+        signature=signature,
     )
 
     return block
