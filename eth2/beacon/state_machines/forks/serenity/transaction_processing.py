@@ -33,7 +33,7 @@ def process_proposer_slashings(state: BeaconState,
         state = slash_validator(
             state=state,
             index=proposer_slashing.proposer_index,
-            latest_penalized_exit_length=config.LATEST_PENALIZED_EXIT_LENGTH,
+            latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,
             whistleblower_reward_quotient=config.WHISTLEBLOWER_REWARD_QUOTIENT,
             max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
             committee_config=CommitteeConfig(config),
