@@ -23,7 +23,7 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     Epoch,
     Gwei,
-    SlotNumber,
+    Slot,
     ValidatorIndex,
 )
 
@@ -212,7 +212,7 @@ def slash_validator(*,
 
 def prepare_validator_for_withdrawal(state: BeaconState,
                                      index: ValidatorIndex,
-                                     epoch_length: int,
+                                     slots_per_epoch: int,
                                      min_validator_withdrawability_delay: int) -> BeaconState:
     """
     Set the validator with the given ``index`` with ``WITHDRAWABLE`` flag.
@@ -220,7 +220,7 @@ def prepare_validator_for_withdrawal(state: BeaconState,
     validator = state.validator_registry[index]
     validator = validator.copy(
         status_flags=validator.status_flags | ValidatorStatusFlags.WITHDRAWABLE,
-        withdrawal_epoch=state.current_epoch(epoch_length) + min_validator_withdrawability_delay
+        withdrawal_epoch=state.current_epoch(slots_per_epoch) + min_validator_withdrawability_delay
     )
     state = state.update_validator_registry(index, validator)
 
@@ -230,11 +230,11 @@ def prepare_validator_for_withdrawal(state: BeaconState,
 #
 # Validation
 #
-def _validate_withdrawal_epoch(state_slot: SlotNumber,
-                               validator_withdrawal_epoch: EpochNumber,
-                               epoch_length: int) -> None:
+def _validate_withdrawal_epoch(state_slot: Slot,
+                               validator_withdrawal_epoch: Epoch,
+                               slots_per_epoch: int) -> None:
     # TODO: change to `validate_withdrawable_epoch`
-    if state_slot >= get_epoch_start_slot(validator_withdrawal_epoch, epoch_length):
+    if state_slot >= get_epoch_start_slot(validator_withdrawal_epoch, slots_per_epoch):
         raise ValidationError(
             f"state.slot ({state_slot}) should be less than "
             f"validator.withdrawal_epoch ({validator_withdrawal_epoch})"

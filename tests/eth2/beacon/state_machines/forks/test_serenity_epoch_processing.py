@@ -209,7 +209,7 @@ def test_process_justification(monkeypatch,
             justification_bitfield_after,
             finalized_epoch_after,
         ) = states[i + 1][-4:]
-        slot = (current_epoch + 1) * config.EPOCH_LENGTH - 1
+        slot = (current_epoch + 1) * config.SLOTS_PER_EPOCH - 1
 
         def mock_current_previous_epochs_justifiable(current_epoch, previous_epoch, state, config):
             return current_epoch_justifiable, previous_epoch_justifiable

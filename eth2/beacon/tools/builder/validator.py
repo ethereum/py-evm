@@ -169,7 +169,7 @@ def sign_transaction(*,
 def create_proposal_data_and_signature(state: BeaconState,
                                        block_root: Hash32,
                                        privkey: int,
-                                       epoch_length: int,
+                                       slots_per_epoch: int,
                                        beacon_chain_shard_number: int):
     proposal_data = ProposalSignedData(
         state.slot,
@@ -182,7 +182,7 @@ def create_proposal_data_and_signature(state: BeaconState,
         fork=state.fork,
         slot=proposal_data.slot,
         signature_domain=SignatureDomain.DOMAIN_PROPOSAL,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
     )
     return proposal_data, proposal_signature
 
@@ -193,14 +193,14 @@ def create_mock_proposer_slashing_at_block(state: BeaconState,
                                            block_root_1: Hash32,
                                            block_root_2: Hash32,
                                            proposer_index: ValidatorIndex):
-    epoch_length = config.EPOCH_LENGTH
+    slots_per_epoch = config.SLOTS_PER_EPOCH
     beacon_chain_shard_number = config.BEACON_CHAIN_SHARD_NUMBER
 
     proposal_data_1, proposal_signature_1 = create_proposal_data_and_signature(
         state,
         block_root_1,
         keymap[state.validator_registry[proposer_index].pubkey],
-        epoch_length,
+        slots_per_epoch,
         beacon_chain_shard_number,
     )
 
@@ -208,7 +208,7 @@ def create_mock_proposer_slashing_at_block(state: BeaconState,
         state,
         block_root_2,
         keymap[state.validator_registry[proposer_index].pubkey],
-        epoch_length,
+        slots_per_epoch,
         beacon_chain_shard_number,
     )
 

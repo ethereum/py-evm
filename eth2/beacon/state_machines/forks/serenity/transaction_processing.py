@@ -28,7 +28,7 @@ def process_proposer_slashings(state: BeaconState,
         )
 
     for proposer_slashing in block.body.proposer_slashings:
-        validate_proposer_slashing(state, proposer_slashing, config.EPOCH_LENGTH)
+        validate_proposer_slashing(state, proposer_slashing, config.SLOTS_PER_EPOCH)
 
         state = slash_validator(
             state=state,

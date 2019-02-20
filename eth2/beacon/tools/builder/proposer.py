@@ -115,7 +115,7 @@ def create_block_on_state(
         fork=state.fork,
         slot=slot,
         signature_domain=SignatureDomain.DOMAIN_PROPOSAL,
-        epoch_length=config.SLOTS_PER_EPOCH,
+        slots_per_epoch=config.SLOTS_PER_EPOCH,
     )
 
     block = block.copy(

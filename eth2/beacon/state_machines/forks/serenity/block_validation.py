@@ -125,7 +125,7 @@ def validate_proposer_signature(state: BeaconState,
 #
 def validate_proposer_slashing(state: BeaconState,
                                proposer_slashing: ProposerSlashing,
-                               epoch_length: int) -> None:
+                               slots_per_epoch: int) -> None:
     """
     Validate the given ``proposer_slashing``.
     Raise ``ValidationError`` if it's invalid.
@@ -140,7 +140,7 @@ def validate_proposer_slashing(state: BeaconState,
 
     validate_proposer_slashing_slashed_epoch(
         proposer.slashed_epoch,
-        state.current_epoch(epoch_length),
+        state.current_epoch(slots_per_epoch),
     )
 
     validate_proposal_signature(
@@ -148,7 +148,7 @@ def validate_proposer_slashing(state: BeaconState,
         proposal_signature=proposer_slashing.proposal_signature_1,
         pubkey=proposer.pubkey,
         fork=state.fork,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
     )
 
     validate_proposal_signature(
@@ -156,7 +156,7 @@ def validate_proposer_slashing(state: BeaconState,
         proposal_signature=proposer_slashing.proposal_signature_2,
         pubkey=proposer.pubkey,
         fork=state.fork,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
     )
 
 
@@ -187,8 +187,8 @@ def validate_proposer_slashing_block_root(proposer_slashing: ProposerSlashing) -
         )
 
 
-def validate_proposer_slashing_slashed_epoch(proposer_slashed_epoch: EpochNumber,
-                                             state_current_epoch: EpochNumber) -> None:
+def validate_proposer_slashing_slashed_epoch(proposer_slashed_epoch: Epoch,
+                                             state_current_epoch: Epoch) -> None:
     if proposer_slashed_epoch <= state_current_epoch:
         raise ValidationError(
             f"proposer.slashed_epoch ({proposer_slashed_epoch}) "
@@ -200,14 +200,14 @@ def validate_proposal_signature(proposal_signed_data: ProposalSignedData,
                                 proposal_signature: BLSSignature,
                                 pubkey: BLSPubkey,
                                 fork: Fork,
-                                epoch_length: int) -> None:
+                                slots_per_epoch: int) -> None:
     proposal_signature_is_valid = bls.verify(
         pubkey=pubkey,
         message=proposal_signed_data.root,  # TODO: use hash_tree_root
         signature=proposal_signature,
         domain=get_domain(
             fork,
-            slot_to_epoch(proposal_signed_data.slot, epoch_length),
+            slot_to_epoch(proposal_signed_data.slot, slots_per_epoch),
             SignatureDomain.DOMAIN_PROPOSAL,
         )
     )
@@ -553,7 +553,7 @@ def validate_randao_reveal(randao_reveal: BLSSignature,
 #
 def verify_slashable_attestation_signature(state: 'BeaconState',
                                            slashable_attestation: 'SlashableAttestation',
-                                           epoch_length: int) -> bool:
+                                           slots_per_epoch: int) -> bool:
     """
     Ensure we have a valid aggregate signature for the ``slashable_attestation``.
     """
@@ -567,7 +567,7 @@ def verify_slashable_attestation_signature(state: 'BeaconState',
 
     domain = get_domain(
         state.fork,
-        slot_to_epoch(slashable_attestation.data.slot, epoch_length),
+        slot_to_epoch(slashable_attestation.data.slot, slots_per_epoch),
         SignatureDomain.DOMAIN_ATTESTATION,
     )
 
@@ -582,7 +582,7 @@ def verify_slashable_attestation_signature(state: 'BeaconState',
 def validate_slashable_attestation(state: 'BeaconState',
                                    slashable_attestation: 'SlashableAttestation',
                                    max_indices_per_slashable_vote: int,
-                                   epoch_length: int) -> None:
+                                   slots_per_epoch: int) -> None:
     """
     Verify validity of ``slashable_attestation`` fields.
     Ensure that the ``slashable_attestation`` is properly assembled and contains the signature
@@ -615,7 +615,7 @@ def validate_slashable_attestation(state: 'BeaconState',
             f"MAX_INDICES_PER_SLASHABLE_VOTE ({max_indices_per_slashable_vote})"
         )
 
-    if not verify_slashable_attestation_signature(state, slashable_attestation, epoch_length):
+    if not verify_slashable_attestation_signature(state, slashable_attestation, slots_per_epoch):
         raise ValidationError(
             f"slashable_attestation.signature error"
         )

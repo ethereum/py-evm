@@ -308,7 +308,7 @@ def test_slash_validator(monkeypatch,
         max_deposit_amount=max_deposit_amount,
         committee_config=committee_config,
     )
-    current_epoch = state.current_epoch(epoch_length)
+    current_epoch = state.current_epoch(slots_per_epoch)
     validator = state.validator_registry[index].copy(
         slashed_epoch=current_epoch,
         withdrawal_epoch=current_epoch + latest_slashed_exit_length,
@@ -319,7 +319,7 @@ def test_slash_validator(monkeypatch,
 
 
 def test_prepare_validator_for_withdrawal(n_validators_state,
-                                          epoch_length,
+                                          slots_per_epoch,
                                           min_validator_withdrawability_delay):
     state = n_validators_state
     index = 1
@@ -327,7 +327,7 @@ def test_prepare_validator_for_withdrawal(n_validators_state,
     result_state = prepare_validator_for_withdrawal(
         state,
         index,
-        epoch_length,
+        slots_per_epoch,
         min_validator_withdrawability_delay,
     )
 
@@ -336,13 +336,13 @@ def test_prepare_validator_for_withdrawal(n_validators_state,
         old_validator_status_flags | ValidatorStatusFlags.WITHDRAWABLE
     )
     assert result_validator.withdrawal_epoch == (
-        state.current_epoch(epoch_length) + min_validator_withdrawability_delay
+        state.current_epoch(slots_per_epoch) + min_validator_withdrawability_delay
     )
 
 
 @pytest.mark.parametrize(
     (
-        'epoch_length',
+        'slots_per_epoch',
         'state_slot',
         'validate_withdrawal_epoch',
         'success'
@@ -354,9 +354,9 @@ def test_prepare_validator_for_withdrawal(n_validators_state,
         (4, 8, 3, True),
     ]
 )
-def test_validate_withdrawal_epoch(epoch_length, state_slot, validate_withdrawal_epoch, success):
+def test_validate_withdrawal_epoch(slots_per_epoch, state_slot, validate_withdrawal_epoch, success):
     if success:
-        _validate_withdrawal_epoch(state_slot, validate_withdrawal_epoch, epoch_length)
+        _validate_withdrawal_epoch(state_slot, validate_withdrawal_epoch, slots_per_epoch)
     else:
         with pytest.raises(ValidationError):
-            _validate_withdrawal_epoch(state_slot, validate_withdrawal_epoch, epoch_length)
+            _validate_withdrawal_epoch(state_slot, validate_withdrawal_epoch, slots_per_epoch)

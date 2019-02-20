@@ -158,7 +158,7 @@ def get_winning_root(
 def get_epoch_boundary_attester_indices(
         state: 'BeaconState',
         attestations: Sequence[PendingAttestationRecord],
-        epoch: EpochNumber,
+        epoch: Epoch,
         root: Hash32,
         committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     for a in attestations:
@@ -172,21 +172,21 @@ def get_epoch_boundary_attester_indices(
 
 
 def get_epoch_boundary_attesting_balances(
-        current_epoch: EpochNumber,
-        previous_epoch: EpochNumber,
+        current_epoch: Epoch,
+        previous_epoch: Epoch,
         state: 'BeaconState',
         config: 'BeaconConfig') -> Tuple[Gwei, Gwei]:
 
-    current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
+    current_epoch_attestations = get_current_epoch_attestations(state, config.SLOTS_PER_EPOCH)
     previous_epoch_attestations = get_previous_epoch_attestations(
         state,
-        config.EPOCH_LENGTH,
+        config.SLOTS_PER_EPOCH,
         config.GENESIS_EPOCH,
     )
 
     previous_epoch_boundary_root = get_block_root(
         state,
-        get_epoch_start_slot(previous_epoch, config.EPOCH_LENGTH),
+        get_epoch_start_slot(previous_epoch, config.SLOTS_PER_EPOCH),
         config.LATEST_BLOCK_ROOTS_LENGTH,
     )
 
@@ -206,7 +206,7 @@ def get_epoch_boundary_attesting_balances(
 
     current_epoch_boundary_root = get_block_root(
         state,
-        get_epoch_start_slot(current_epoch, config.EPOCH_LENGTH),
+        get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
         config.LATEST_BLOCK_ROOTS_LENGTH,
     )
 

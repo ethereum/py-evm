@@ -33,7 +33,7 @@ def get_valid_proposer_slashing(state,
 
 def test_validate_proposer_slashing_valid(genesis_state,
                                           keymap,
-                                          epoch_length,
+                                          slots_per_epoch,
                                           config):
     state = genesis_state
     valid_proposer_slashing = get_valid_proposer_slashing(
@@ -41,7 +41,7 @@ def test_validate_proposer_slashing_valid(genesis_state,
         keymap,
         config,
     )
-    validate_proposer_slashing(state, valid_proposer_slashing, epoch_length)
+    validate_proposer_slashing(state, valid_proposer_slashing, slots_per_epoch)
 
 
 def test_validate_proposer_slashing_slot(genesis_state,
@@ -128,7 +128,7 @@ def test_validate_proposer_slashing_block_root(genesis_state,
         (1, 2, False),
     ],
 )
-def test_validate_proposer_slashing_slashed_epoch(epoch_length,
+def test_validate_proposer_slashing_slashed_epoch(slots_per_epoch,
                                                   genesis_state,
                                                   beacon_chain_shard_number,
                                                   keymap,
@@ -143,7 +143,7 @@ def test_validate_proposer_slashing_slashed_epoch(epoch_length,
             validate_proposer_slashing_slashed_epoch(proposer_slashed_epoch, state_current_epoch)
 
 
-def test_validate_proposal_signature(epoch_length,
+def test_validate_proposal_signature(slots_per_epoch,
                                      genesis_state,
                                      keymap,
                                      config):
@@ -162,7 +162,7 @@ def test_validate_proposal_signature(epoch_length,
         proposal_signature=valid_proposer_slashing.proposal_signature_1,
         pubkey=proposer.pubkey,
         fork=state.fork,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
     )
 
     # Invalid
@@ -174,5 +174,5 @@ def test_validate_proposal_signature(epoch_length,
             proposal_signature=valid_proposer_slashing.proposal_signature_1,
             pubkey=wrong_proposer.pubkey,
             fork=state.fork,
-            epoch_length=epoch_length,
+            slots_per_epoch=slots_per_epoch,
         )

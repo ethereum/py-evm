@@ -288,7 +288,7 @@ def _get_indices_and_signatures(num_validators, message, privkeys, fork, epoch):
 
 
 def _correct_slashable_attestation_params(
-        epoch_length,
+        slots_per_epoch,
         num_validators,
         params,
         messages,
@@ -301,7 +301,7 @@ def _correct_slashable_attestation_params(
         messages[1],
         privkeys,
         fork,
-        slot_to_epoch(params["data"].slot, epoch_length),
+        slot_to_epoch(params["data"].slot, slots_per_epoch),
     )
 
     valid_params["validator_indices"] = validator_indices
@@ -344,13 +344,13 @@ def _corrupt_validator_indices_max(max_indices_per_slashable_vote, params):
     return assoc(params, "validator_indices", corrupt_validator_indices)
 
 
-def _corrupt_signature(epoch_length, params, fork):
+def _corrupt_signature(slots_per_epoch, params, fork):
     message = bytes.fromhex("deadbeefcafe")
     privkey = 42
     domain_type = SignatureDomain.DOMAIN_ATTESTATION
     domain = get_domain(
         fork=fork,
-        epoch=slot_to_epoch(params["data"].slot, epoch_length),
+        epoch=slot_to_epoch(params["data"].slot, slots_per_epoch),
         domain_type=domain_type,
     )
     corrupt_signature = bls.sign(message, privkey, domain)
@@ -373,7 +373,7 @@ def _create_slashable_attestation_messages(params):
     ]
 )
 def test_verify_slashable_attestation_signature(
-        epoch_length,
+        slots_per_epoch,
         num_validators,
         privkeys,
         sample_beacon_state_params,
@@ -392,7 +392,7 @@ def test_verify_slashable_attestation_signature(
     messages = _create_slashable_attestation_messages(sample_slashable_attestation_params)
 
     valid_params = _correct_slashable_attestation_params(
-        epoch_length,
+        slots_per_epoch,
         num_validators,
         sample_slashable_attestation_params,
         messages,
@@ -400,29 +400,34 @@ def test_verify_slashable_attestation_signature(
         state.fork,
     )
     valid_votes = SlashableAttestation(**valid_params)
-    assert verify_slashable_attestation_signature(state, valid_votes, epoch_length)
+    assert verify_slashable_attestation_signature(state, valid_votes, slots_per_epoch)
 
-    invalid_params = _corrupt_signature(epoch_length, valid_params, state.fork)
+    invalid_params = _corrupt_signature(slots_per_epoch, valid_params, state.fork)
     invalid_votes = SlashableAttestation(**invalid_params)
-    assert not verify_slashable_attestation_signature(state, invalid_votes, epoch_length)
+    assert not verify_slashable_attestation_signature(state, invalid_votes, slots_per_epoch)
 
 
 def _run_verify_slashable_vote(
-        epoch_length,
+        slots_per_epoch,
         params,
         state,
         max_indices_per_slashable_vote,
         should_succeed):
     votes = SlashableAttestation(**params)
     if should_succeed:
-        validate_slashable_attestation(state, votes, max_indices_per_slashable_vote, epoch_length)
+        validate_slashable_attestation(
+            state,
+            votes,
+            max_indices_per_slashable_vote,
+            slots_per_epoch,
+        )
     else:
         with pytest.raises(ValidationError):
             validate_slashable_attestation(
                 state,
                 votes,
                 max_indices_per_slashable_vote,
-                epoch_length,
+                slots_per_epoch,
             )
 
 
@@ -451,7 +456,7 @@ def _run_verify_slashable_vote(
     ],
 )
 def test_validate_slashable_attestation(
-        epoch_length,
+        slots_per_epoch,
         num_validators,
         param_mapper,
         should_succeed,
@@ -475,7 +480,7 @@ def test_validate_slashable_attestation(
     messages = _create_slashable_attestation_messages(sample_slashable_attestation_params)
 
     params = _correct_slashable_attestation_params(
-        epoch_length,
+        slots_per_epoch,
         num_validators,
         sample_slashable_attestation_params,
         messages,
@@ -483,14 +488,14 @@ def test_validate_slashable_attestation(
         state.fork,
     )
     if needs_fork:
-        params = param_mapper(epoch_length, params, state.fork)
+        params = param_mapper(slots_per_epoch, params, state.fork)
     elif is_testing_max_length:
         params = param_mapper(max_indices_per_slashable_vote, params)
 
     else:
         params = param_mapper(params)
     _run_verify_slashable_vote(
-        epoch_length,
+        slots_per_epoch,
         params,
         state,
         max_indices_per_slashable_vote,
@@ -507,7 +512,7 @@ def test_validate_slashable_attestation(
     ]
 )
 def test_verify_slashable_attestation_after_fork(
-        epoch_length,
+        slots_per_epoch,
         num_validators,
         privkeys,
         sample_beacon_state_params,
@@ -534,7 +539,7 @@ def test_verify_slashable_attestation_after_fork(
     messages = _create_slashable_attestation_messages(sample_slashable_attestation_params)
 
     valid_params = _correct_slashable_attestation_params(
-        epoch_length,
+        slots_per_epoch,
         num_validators,
         sample_slashable_attestation_params,
         messages,
@@ -542,7 +547,7 @@ def test_verify_slashable_attestation_after_fork(
         state.fork,
     )
     _run_verify_slashable_vote(
-        epoch_length,
+        slots_per_epoch,
         valid_params,
         state,
         max_indices_per_slashable_vote,
