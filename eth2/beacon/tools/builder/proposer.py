@@ -35,7 +35,7 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     BLSPubkey,
     FromBlockParams,
-    SlotNumber,
+    Slot,
     ValidatorIndex,
 )
 
@@ -46,7 +46,7 @@ from eth2.beacon.tools.builder.validator import (
 
 def validate_proposer_index(state: BeaconState,
                             config: BeaconConfig,
-                            slot: SlotNumber,
+                            slot: Slot,
                             validator_index: ValidatorIndex):
     beacon_proposer_index = get_beacon_proposer_index(
         state.copy(
@@ -67,7 +67,7 @@ def create_block_on_state(
         state_machine: BaseBeaconStateMachine,
         block_class: BaseBeaconBlock,
         parent_block: BaseBeaconBlock,
-        slot: SlotNumber,
+        slot: Slot,
         validator_index: ValidatorIndex,
         privkey: int,
         attestations: Sequence[Attestation],
@@ -115,7 +115,7 @@ def create_block_on_state(
         fork=state.fork,
         slot=slot,
         signature_domain=SignatureDomain.DOMAIN_PROPOSAL,
-        epoch_length=config.EPOCH_LENGTH,
+        slots_per_epoch=config.SLOTS_PER_EPOCH,
     )
 
     block = block.copy(
@@ -132,7 +132,7 @@ def create_mock_block(*,
                       block_class: Type[BaseBeaconBlock],
                       parent_block: BaseBeaconBlock,
                       keymap: Dict[BLSPubkey, int],
-                      slot: SlotNumber=None,
+                      slot: Slot=None,
                       attestations: Sequence[Attestation]=()) -> BaseBeaconBlock:
     """
     Create a mocking block with the given block parameters and ``keymap``.

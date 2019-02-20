@@ -33,23 +33,29 @@ from eth2.beacon.types.attestation_data import AttestationData
     (
         'attestation_slot,'
         'current_slot,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'min_attestation_inclusion_delay,'
         'is_valid,'
     ),
     [
-        (0, 5, 5, 1, True),  # in bounds at lower end
-        (0, 5, 5, 5, True),  # in bounds at high end
-        (0, 5, 5, 6, False),  # attestation_slot + min_attestation_inclusion_delay > current_slot
-        (7, 5, 10, 1, False),  # attestation_slot > current_slot
-        (10, 20, 10, 2, True),  # in bounds at lower end
-        (7, 20, 10, 2, False),  # attestation_slot + EPOCH_LENGTH < current_slot - inclusion_delay
+        # in bounds at lower end
+        (0, 5, 5, 1, True),
+        # in bounds at high end
+        (0, 5, 5, 5, True),
+        # attestation_slot + min_attestation_inclusion_delay > current_slot
+        (0, 5, 5, 6, False),
+        # attestation_slot > current_slot
+        (7, 5, 10, 1, False),
+        # in bounds at lower end
+        (10, 20, 10, 2, True),
+        # attestation_slot + SLOTS_PER_EPOCH < current_slot - inclusion_delay
+        (7, 20, 10, 2, False),
     ]
 )
 def test_validate_attestation_slot(sample_attestation_data_params,
                                    attestation_slot,
                                    current_slot,
-                                   epoch_length,
+                                   slots_per_epoch,
                                    min_attestation_inclusion_delay,
                                    is_valid):
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
@@ -60,7 +66,7 @@ def test_validate_attestation_slot(sample_attestation_data_params,
         validate_attestation_slot(
             attestation_data,
             current_slot,
-            epoch_length,
+            slots_per_epoch,
             min_attestation_inclusion_delay,
         )
     else:
@@ -68,7 +74,7 @@ def test_validate_attestation_slot(sample_attestation_data_params,
             validate_attestation_slot(
                 attestation_data,
                 current_slot,
-                epoch_length,
+                slots_per_epoch,
                 min_attestation_inclusion_delay,
             )
 
@@ -80,7 +86,7 @@ def test_validate_attestation_slot(sample_attestation_data_params,
         'current_epoch,'
         'previous_justified_epoch,'
         'justified_epoch,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'is_valid,'
     ),
     [
@@ -100,7 +106,7 @@ def test_validate_attestation_justified_epoch(
         current_epoch,
         previous_justified_epoch,
         justified_epoch,
-        epoch_length,
+        slots_per_epoch,
         is_valid):
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
         slot=attestation_slot,
@@ -113,7 +119,7 @@ def test_validate_attestation_justified_epoch(
             current_epoch,
             previous_justified_epoch,
             justified_epoch,
-            epoch_length,
+            slots_per_epoch,
         )
     else:
         with pytest.raises(ValidationError):
@@ -122,7 +128,7 @@ def test_validate_attestation_justified_epoch(
                 current_epoch,
                 previous_justified_epoch,
                 justified_epoch,
-                epoch_length,
+                slots_per_epoch,
             )
 
 
@@ -232,7 +238,7 @@ def test_validate_attestation_shard_block_root(sample_attestation_data_params,
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
         'is_valid,'
@@ -245,7 +251,7 @@ def test_validate_attestation_shard_block_root(sample_attestation_data_params,
     ],
 )
 def test_validate_attestation_aggregate_signature(genesis_state,
-                                                  epoch_length,
+                                                  slots_per_epoch,
                                                   random,
                                                   sample_attestation_data_params,
                                                   is_valid,
@@ -281,7 +287,7 @@ def test_validate_attestation_aggregate_signature(genesis_state,
         committee,
         votes_count,
         keymap,
-        epoch_length,
+        slots_per_epoch,
     )
 
     if is_valid:

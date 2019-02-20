@@ -61,7 +61,7 @@ from eth2.beacon.typing import (
     BLSSignature,
     Bitfield,
     CommitteeIndex,
-    SlotNumber,
+    Slot,
     ValidatorIndex,
 )
 
@@ -124,11 +124,11 @@ def aggregate_votes(
 def sign_proof_of_possession(deposit_input: DepositInput,
                              privkey: int,
                              fork: Fork,
-                             slot: SlotNumber,
-                             epoch_length: int) -> BLSSignature:
+                             slot: Slot,
+                             slots_per_epoch: int) -> BLSSignature:
     domain = get_domain(
         fork,
-        slot_to_epoch(slot, epoch_length),
+        slot_to_epoch(slot, slots_per_epoch),
         SignatureDomain.DOMAIN_DEPOSIT,
     )
     return bls.sign(
@@ -142,12 +142,12 @@ def sign_transaction(*,
                      message: bytes,
                      privkey: int,
                      fork: Fork,
-                     slot: SlotNumber,
+                     slot: Slot,
                      signature_domain: SignatureDomain,
-                     epoch_length: int) -> BLSSignature:
+                     slots_per_epoch: int) -> BLSSignature:
     domain = get_domain(
         fork,
-        slot_to_epoch(slot, epoch_length),
+        slot_to_epoch(slot, slots_per_epoch),
         signature_domain,
     )
     return bls.sign(
@@ -169,7 +169,7 @@ def sign_transaction(*,
 def create_proposal_data_and_signature(state: BeaconState,
                                        block_root: Hash32,
                                        privkey: int,
-                                       epoch_length: int,
+                                       slots_per_epoch: int,
                                        beacon_chain_shard_number: int):
     proposal_data = ProposalSignedData(
         state.slot,
@@ -182,7 +182,7 @@ def create_proposal_data_and_signature(state: BeaconState,
         fork=state.fork,
         slot=proposal_data.slot,
         signature_domain=SignatureDomain.DOMAIN_PROPOSAL,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
     )
     return proposal_data, proposal_signature
 
@@ -193,14 +193,14 @@ def create_mock_proposer_slashing_at_block(state: BeaconState,
                                            block_root_1: Hash32,
                                            block_root_2: Hash32,
                                            proposer_index: ValidatorIndex):
-    epoch_length = config.EPOCH_LENGTH
+    slots_per_epoch = config.SLOTS_PER_EPOCH
     beacon_chain_shard_number = config.BEACON_CHAIN_SHARD_NUMBER
 
     proposal_data_1, proposal_signature_1 = create_proposal_data_and_signature(
         state,
         block_root_1,
         keymap[state.validator_registry[proposer_index].pubkey],
-        epoch_length,
+        slots_per_epoch,
         beacon_chain_shard_number,
     )
 
@@ -208,7 +208,7 @@ def create_mock_proposer_slashing_at_block(state: BeaconState,
         state,
         block_root_2,
         keymap[state.validator_registry[proposer_index].pubkey],
-        epoch_length,
+        slots_per_epoch,
         beacon_chain_shard_number,
     )
 
@@ -250,7 +250,7 @@ def create_mock_signed_attestation(state: BeaconState,
                                    committee: Sequence[ValidatorIndex],
                                    num_voted_attesters: int,
                                    keymap: Dict[BLSPubkey, int],
-                                   epoch_length: int) -> Attestation:
+                                   slots_per_epoch: int) -> Attestation:
     """
     Create a mocking attestation of the given ``attestation_data`` slot with ``keymap``.
     """
@@ -272,7 +272,7 @@ def create_mock_signed_attestation(state: BeaconState,
             fork=state.fork,
             slot=attestation_data.slot,
             signature_domain=SignatureDomain.DOMAIN_ATTESTATION,
-            epoch_length=epoch_length,
+            slots_per_epoch=slots_per_epoch,
         )
         for committee_index in voting_committee_indices
     ]
@@ -298,7 +298,7 @@ def create_mock_signed_attestation(state: BeaconState,
 def create_mock_signed_attestations_at_slot(
         state: BeaconState,
         config: BeaconConfig,
-        attestation_slot: SlotNumber,
+        attestation_slot: Slot,
         keymap: Dict[BLSPubkey, int],
         voted_attesters_ratio: float=1.0) -> Iterable[Attestation]:
     """
@@ -327,7 +327,7 @@ def create_mock_signed_attestations_at_slot(
             justified_epoch=state.previous_justified_epoch,
             justified_block_root=get_block_root(
                 state,
-                get_epoch_start_slot(state.previous_justified_epoch, config.EPOCH_LENGTH),
+                get_epoch_start_slot(state.previous_justified_epoch, config.SLOTS_PER_EPOCH),
                 config.LATEST_BLOCK_ROOTS_LENGTH,
             ),
         )
@@ -338,7 +338,7 @@ def create_mock_signed_attestations_at_slot(
             committee,
             num_voted_attesters,
             keymap,
-            config.EPOCH_LENGTH,
+            config.SLOTS_PER_EPOCH,
         )
 
 
@@ -367,10 +367,10 @@ def get_next_epoch_committee_assignment(
     ``CommitteeAssignment.is_proposer`` is a bool signalling if the validator is expected to
         propose a beacon block at the assigned slot.
     """
-    current_epoch = state.current_epoch(config.EPOCH_LENGTH)
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     next_epoch = current_epoch + 1
-    next_epoch_start_slot = get_epoch_start_slot(next_epoch, config.EPOCH_LENGTH)
-    for slot in range(next_epoch_start_slot, next_epoch_start_slot + config.EPOCH_LENGTH):
+    next_epoch_start_slot = get_epoch_start_slot(next_epoch, config.SLOTS_PER_EPOCH)
+    for slot in range(next_epoch_start_slot, next_epoch_start_slot + config.SLOTS_PER_EPOCH):
         crosslink_committees = get_crosslink_committees_at_slot(
             state,
             slot,

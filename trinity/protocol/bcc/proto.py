@@ -15,7 +15,7 @@ from p2p.protocol import Protocol
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.typing import (
-    SlotNumber,
+    Slot,
 )
 
 from trinity.protocol.bcc.commands import (
@@ -43,7 +43,7 @@ class BCCProtocol(HasExtendedDebugLogger, Protocol):
 
     peer: "BCCPeer"
 
-    def send_handshake(self, genesis_hash: Hash32, head_slot: SlotNumber) -> None:
+    def send_handshake(self, genesis_hash: Hash32, head_slot: Slot) -> None:
         resp = StatusMessage(
             protocol_version=self.version,
             network_id=self.peer.network_id,
@@ -55,7 +55,7 @@ class BCCProtocol(HasExtendedDebugLogger, Protocol):
         self.send(*cmd.encode(resp))
 
     def send_get_blocks(self,
-                        block_slot_or_root: Union[SlotNumber, Hash32],
+                        block_slot_or_root: Union[Slot, Hash32],
                         max_blocks: int,
                         request_id: int) -> None:
         cmd = GetBeaconBlocks(self.cmd_id_offset, self.snappy_support)

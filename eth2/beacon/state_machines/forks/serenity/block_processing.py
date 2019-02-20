@@ -65,7 +65,7 @@ def process_randao(state: BeaconState,
     )
     proposer = state.validator_registry[proposer_index]
 
-    epoch = state.current_epoch(config.EPOCH_LENGTH)
+    epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
 
     validate_randao_reveal(
         randao_reveal=block.randao_reveal,
@@ -79,7 +79,7 @@ def process_randao(state: BeaconState,
         get_randao_mix(
             state=state,
             epoch=epoch,
-            epoch_length=config.EPOCH_LENGTH,
+            slots_per_epoch=config.SLOTS_PER_EPOCH,
             latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
         ),
         hash_eth2(block.randao_reveal),

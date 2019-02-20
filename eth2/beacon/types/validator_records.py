@@ -13,7 +13,7 @@ from eth2.beacon.constants import (
 )
 from eth2.beacon.typing import (
     BLSPubkey,
-    EpochNumber,
+    Epoch,
 )
 
 
@@ -30,7 +30,7 @@ class ValidatorRecord(ssz.Serializable):
         ('exit_epoch', uint64),
         # Epoch when validator withdrew
         ('withdrawal_epoch', uint64),
-        # Epoch when validator was penalized
+        # Epoch when validator was slashed
         ('slashed_epoch', uint64),
         # Status flags
         ('status_flags', uint64),
@@ -39,10 +39,10 @@ class ValidatorRecord(ssz.Serializable):
     def __init__(self,
                  pubkey: BLSPubkey,
                  withdrawal_credentials: Hash32,
-                 activation_epoch: EpochNumber,
-                 exit_epoch: EpochNumber,
-                 withdrawal_epoch: EpochNumber,
-                 slashed_epoch: EpochNumber,
+                 activation_epoch: Epoch,
+                 exit_epoch: Epoch,
+                 withdrawal_epoch: Epoch,
+                 slashed_epoch: Epoch,
                  status_flags: int) -> None:
         super().__init__(
             pubkey=pubkey,
@@ -54,7 +54,7 @@ class ValidatorRecord(ssz.Serializable):
             status_flags=status_flags,
         )
 
-    def is_active(self, epoch: EpochNumber) -> bool:
+    def is_active(self, epoch: Epoch) -> bool:
         """
         Return ``True`` if the validator is active during the epoch, ``epoch``.
         """

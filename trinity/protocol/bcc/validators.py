@@ -17,7 +17,7 @@ from eth_utils.toolz import (
 
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.typing import (
-    SlotNumber,
+    Slot,
 )
 
 from trinity.protocol.common.validators import BaseValidator
@@ -30,7 +30,7 @@ from trinity.protocol.bcc.commands import (
 
 class BeaconBlocksValidator(BaseValidator[Tuple[BaseBeaconBlock, ...]]):
 
-    def __init__(self, block_slot_or_hash: Union[SlotNumber, Hash32], max_blocks: int) -> None:
+    def __init__(self, block_slot_or_hash: Union[Slot, Hash32], max_blocks: int) -> None:
         self.block_slot_or_hash = block_slot_or_hash
         self.max_blocks = max_blocks
 

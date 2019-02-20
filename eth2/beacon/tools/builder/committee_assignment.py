@@ -4,8 +4,8 @@ from typing import (
 )
 
 from eth2.beacon.typing import (
-    ShardNumber,
-    SlotNumber,
+    Shard,
+    Slot,
     ValidatorIndex,
 )
 
@@ -14,8 +14,8 @@ CommitteeAssignment = NamedTuple(
     'CommitteeAssignment',
     (
         ('committee', Tuple[ValidatorIndex, ...]),
-        ('shard', ShardNumber),
-        ('slot', SlotNumber),
+        ('shard', Shard),
+        ('slot', Slot),
         ('is_proposer', bool)
     )
 )

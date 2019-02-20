@@ -26,7 +26,7 @@ from eth2.beacon.types.proposal_signed_data import ProposalSignedData
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
 
-from eth2.beacon.on_startup import (
+from eth2.beacon.on_genesis import (
     get_genesis_block,
 )
 from eth2.beacon.types.blocks import (
@@ -123,7 +123,7 @@ def sample_beacon_block_body_params():
         'attester_slashings': (),
         'attestations': (),
         'deposits': (),
-        'exits': (),
+        'voluntary_exits': (),
     }
 
 
@@ -151,20 +151,20 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'validator_balances': (),
         'validator_registry_update_epoch': 0,
         'latest_randao_mixes': (),
-        'previous_epoch_start_shard': 1,
-        'current_epoch_start_shard': 2,
-        'previous_calculation_epoch': 0,
-        'current_calculation_epoch': 0,
-        'previous_epoch_seed': b'\x77' * 32,
-        'current_epoch_seed': b'\x88' * 32,
+        'previous_shuffling_start_shard': 1,
+        'current_shuffling_start_shard': 2,
+        'previous_shuffling_epoch': 0,
+        'current_shuffling_epoch': 0,
+        'previous_shuffling_seed': b'\x77' * 32,
+        'current_shuffling_seed': b'\x88' * 32,
         'previous_justified_epoch': 0,
         'justified_epoch': 0,
         'justification_bitfield': 0,
         'finalized_epoch': 0,
         'latest_crosslinks': (),
         'latest_block_roots': (),
-        'latest_index_roots': (),
-        'latest_penalized_balances': (),
+        'latest_active_index_roots': (),
+        'latest_slashed_balances': (),
         'latest_attestations': (),
         'batched_block_roots': (),
         'latest_eth1_data': Eth1Data(**sample_eth1_data_params),
@@ -225,7 +225,7 @@ def sample_deposit_params(sample_deposit_data_params):
 
 
 @pytest.fixture
-def sample_exit_params():
+def sample_voluntary_exit_params():
     return {
         'epoch': 123,
         'validator_index': 15,
@@ -318,18 +318,18 @@ def filled_beacon_state(genesis_epoch,
                         genesis_start_shard,
                         shard_count,
                         latest_block_roots_length,
-                        latest_index_roots_length,
+                        latest_active_index_roots_length,
                         latest_randao_mixes_length,
-                        latest_penalized_exit_length):
+                        latest_slashed_exit_length):
     return BeaconState.create_filled_state(
         genesis_epoch=genesis_epoch,
         genesis_start_shard=genesis_start_shard,
         genesis_slot=genesis_slot,
         shard_count=shard_count,
         latest_block_roots_length=latest_block_roots_length,
-        latest_index_roots_length=latest_index_roots_length,
+        latest_active_index_roots_length=latest_active_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
-        latest_penalized_exit_length=latest_penalized_exit_length,
+        latest_slashed_exit_length=latest_slashed_exit_length,
     )
 
 
@@ -420,8 +420,8 @@ def latest_block_roots_length():
 
 
 @pytest.fixture
-def latest_index_roots_length():
-    return SERENITY_CONFIG.LATEST_INDEX_ROOTS_LENGTH
+def latest_active_index_roots_length():
+    return SERENITY_CONFIG.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
 
 
 @pytest.fixture
@@ -430,8 +430,8 @@ def latest_randao_mixes_length():
 
 
 @pytest.fixture
-def latest_penalized_exit_length():
-    return SERENITY_CONFIG.LATEST_PENALIZED_EXIT_LENGTH
+def latest_slashed_exit_length():
+    return SERENITY_CONFIG.LATEST_SLASHED_EXIT_LENGTH
 
 
 @pytest.fixture
@@ -480,8 +480,8 @@ def bls_withdrawal_prefix_byte():
 
 
 @pytest.fixture
-def slot_duration():
-    return SERENITY_CONFIG.SLOT_DURATION
+def seconds_per_slot():
+    return SERENITY_CONFIG.SECONDS_PER_SLOT
 
 
 @pytest.fixture
@@ -490,23 +490,23 @@ def min_attestation_inclusion_delay():
 
 
 @pytest.fixture
-def epoch_length():
-    return SERENITY_CONFIG.EPOCH_LENGTH
+def slots_per_epoch():
+    return SERENITY_CONFIG.SLOTS_PER_EPOCH
 
 
 @pytest.fixture
-def seed_lookahead():
-    return SERENITY_CONFIG.SEED_LOOKAHEAD
+def min_seed_lookahead():
+    return SERENITY_CONFIG.MIN_SEED_LOOKAHEAD
 
 
 @pytest.fixture
-def entry_exit_delay():
-    return SERENITY_CONFIG.ENTRY_EXIT_DELAY
+def activation_exit_delay():
+    return SERENITY_CONFIG.ACTIVATION_EXIT_DELAY
 
 
 @pytest.fixture
-def eth1_data_voting_period():
-    return SERENITY_CONFIG.ETH1_DATA_VOTING_PERIOD
+def epochs_per_eth1_voting_period():
+    return SERENITY_CONFIG.EPOCHS_PER_ETH1_VOTING_PERIOD
 
 
 @pytest.fixture
@@ -525,8 +525,8 @@ def whistleblower_reward_quotient():
 
 
 @pytest.fixture
-def includer_reward_quotient():
-    return SERENITY_CONFIG.INCLUDER_REWARD_QUOTIENT
+def attestation_inclusion_reward_quotient():
+    return SERENITY_CONFIG.ATTESTATION_INCLUSION_REWARD_QUOTIENT
 
 
 @pytest.fixture
@@ -555,8 +555,8 @@ def max_deposits():
 
 
 @pytest.fixture
-def max_exits():
-    return SERENITY_CONFIG.MAX_EXITS
+def max_voluntary_exits():
+    return SERENITY_CONFIG.MAX_VOLUNTARY_EXITS
 
 
 #
@@ -566,18 +566,18 @@ def max_exits():
 def genesis_state(filled_beacon_state,
                   activated_genesis_validators,
                   genesis_balances,
-                  epoch_length,
+                  slots_per_epoch,
                   target_committee_size,
                   genesis_epoch,
                   shard_count,
                   latest_block_roots_length,
-                  latest_penalized_exit_length,
+                  latest_slashed_exit_length,
                   latest_randao_mixes_length):
     return filled_beacon_state.copy(
         validator_registry=activated_genesis_validators,
         validator_balances=genesis_balances,
         latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
-        latest_penalized_balances=(0,) * latest_penalized_exit_length,
+        latest_slashed_balances=(0,) * latest_slashed_exit_length,
         latest_crosslinks=tuple(
             CrosslinkRecord(
                 epoch=genesis_epoch,
@@ -602,7 +602,7 @@ def genesis_block(genesis_state, genesis_slot):
 
 
 @pytest.fixture
-def initial_validators(init_validator_pubkeys,
+def genesis_validators(init_validator_pubkeys,
                        init_randao,
                        max_deposit_amount):
     """
@@ -622,11 +622,11 @@ def initial_validators(init_validator_pubkeys,
 
 @to_tuple
 @pytest.fixture
-def activated_genesis_validators(initial_validators, genesis_epoch):
+def activated_genesis_validators(genesis_validators, genesis_epoch):
     """
     Active
     """
-    for validator in initial_validators:
+    for validator in genesis_validators:
         yield validator.copy(activation_epoch=genesis_epoch)
 
 
@@ -651,9 +651,9 @@ def config(
         beacon_chain_shard_number,
         max_indices_per_slashable_vote,
         latest_block_roots_length,
-        latest_index_roots_length,
+        latest_active_index_roots_length,
         latest_randao_mixes_length,
-        latest_penalized_exit_length,
+        latest_slashed_exit_length,
         deposit_contract_address,
         deposit_contract_tree_depth,
         min_deposit_amount,
@@ -663,22 +663,22 @@ def config(
         genesis_epoch,
         genesis_start_shard,
         bls_withdrawal_prefix_byte,
-        slot_duration,
+        seconds_per_slot,
         min_attestation_inclusion_delay,
-        epoch_length,
-        seed_lookahead,
-        entry_exit_delay,
-        eth1_data_voting_period,
+        slots_per_epoch,
+        min_seed_lookahead,
+        activation_exit_delay,
+        epochs_per_eth1_voting_period,
         min_validator_withdrawability_delay,
         base_reward_quotient,
         whistleblower_reward_quotient,
-        includer_reward_quotient,
+        attestation_inclusion_reward_quotient,
         inactivity_penalty_quotient,
         max_proposer_slashings,
         max_attester_slashings,
         max_attestations,
         max_deposits,
-        max_exits
+        max_voluntary_exits
 ):
     return BeaconConfig(
         SHARD_COUNT=shard_count,
@@ -688,9 +688,9 @@ def config(
         BEACON_CHAIN_SHARD_NUMBER=beacon_chain_shard_number,
         MAX_INDICES_PER_SLASHABLE_VOTE=max_indices_per_slashable_vote,
         LATEST_BLOCK_ROOTS_LENGTH=latest_block_roots_length,
-        LATEST_INDEX_ROOTS_LENGTH=latest_index_roots_length,
+        LATEST_ACTIVE_INDEX_ROOTS_LENGTH=latest_active_index_roots_length,
         LATEST_RANDAO_MIXES_LENGTH=latest_randao_mixes_length,
-        LATEST_PENALIZED_EXIT_LENGTH=latest_penalized_exit_length,
+        LATEST_SLASHED_EXIT_LENGTH=latest_slashed_exit_length,
         DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,
         DEPOSIT_CONTRACT_TREE_DEPTH=deposit_contract_tree_depth,
         MIN_DEPOSIT_AMOUNT=min_deposit_amount,
@@ -700,22 +700,22 @@ def config(
         GENESIS_EPOCH=genesis_epoch,
         GENESIS_START_SHARD=genesis_start_shard,
         BLS_WITHDRAWAL_PREFIX_BYTE=bls_withdrawal_prefix_byte,
-        SLOT_DURATION=slot_duration,
+        SECONDS_PER_SLOT=seconds_per_slot,
         MIN_ATTESTATION_INCLUSION_DELAY=min_attestation_inclusion_delay,
-        EPOCH_LENGTH=epoch_length,
-        SEED_LOOKAHEAD=seed_lookahead,
-        ENTRY_EXIT_DELAY=entry_exit_delay,
-        ETH1_DATA_VOTING_PERIOD=eth1_data_voting_period,
+        SLOTS_PER_EPOCH=slots_per_epoch,
+        MIN_SEED_LOOKAHEAD=min_seed_lookahead,
+        ACTIVATION_EXIT_DELAY=activation_exit_delay,
+        EPOCHS_PER_ETH1_VOTING_PERIOD=epochs_per_eth1_voting_period,
         MIN_VALIDATOR_WITHDRAWABILITY_DELAY=min_validator_withdrawability_delay,
         BASE_REWARD_QUOTIENT=base_reward_quotient,
         WHISTLEBLOWER_REWARD_QUOTIENT=whistleblower_reward_quotient,
-        INCLUDER_REWARD_QUOTIENT=includer_reward_quotient,
+        ATTESTATION_INCLUSION_REWARD_QUOTIENT=attestation_inclusion_reward_quotient,
         INACTIVITY_PENALTY_QUOTIENT=inactivity_penalty_quotient,
         MAX_PROPOSER_SLASHINGS=max_proposer_slashings,
         MAX_ATTESTER_SLASHINGS=max_attester_slashings,
         MAX_ATTESTATIONS=max_attestations,
         MAX_DEPOSITS=max_deposits,
-        MAX_EXITS=max_exits,
+        MAX_VOLUNTARY_EXITS=max_voluntary_exits,
     )
 
 

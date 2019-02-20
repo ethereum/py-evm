@@ -32,7 +32,7 @@ from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.constants import EMPTY_SIGNATURE
 from eth2.beacon.typing import (
     BLSSignature,
-    SlotNumber,
+    Slot,
     FromBlockParams,
 )
 
@@ -41,7 +41,7 @@ from .attestations import Attestation
 from .attester_slashings import AttesterSlashing
 from .deposits import Deposit
 from .eth1_data import Eth1Data
-from .exits import Exit
+from .voluntary_exits import VoluntaryExit
 from .proposer_slashings import ProposerSlashing
 
 if TYPE_CHECKING:
@@ -55,7 +55,7 @@ class BeaconBlockBody(ssz.Serializable):
         ('attester_slashings', List(AttesterSlashing)),
         ('attestations', List(Attestation)),
         ('deposits', List(Deposit)),
-        ('exits', List(Exit)),
+        ('voluntary_exits', List(VoluntaryExit)),
     ]
 
     def __init__(self,
@@ -63,13 +63,13 @@ class BeaconBlockBody(ssz.Serializable):
                  attester_slashings: Sequence[AttesterSlashing],
                  attestations: Sequence[Attestation],
                  deposits: Sequence[Deposit],
-                 exits: Sequence[Exit])-> None:
+                 voluntary_exits: Sequence[VoluntaryExit])-> None:
         super().__init__(
             proposer_slashings=proposer_slashings,
             attester_slashings=attester_slashings,
             attestations=attestations,
             deposits=deposits,
-            exits=exits,
+            voluntary_exits=voluntary_exits,
         )
 
     @classmethod
@@ -79,7 +79,7 @@ class BeaconBlockBody(ssz.Serializable):
             attester_slashings=(),
             attestations=(),
             deposits=(),
-            exits=(),
+            voluntary_exits=(),
         )
 
     @property
@@ -89,7 +89,7 @@ class BeaconBlockBody(ssz.Serializable):
             self.attester_slashings == () and
             self.attestations == () and
             self.deposits == () and
-            self.exits == ()
+            self.voluntary_exits == ()
         )
 
     @classmethod
@@ -100,7 +100,7 @@ class BeaconBlockBody(ssz.Serializable):
             attester_slashings=body.attester_slashings,
             attestations=body.attestations,
             deposits=body.deposits,
-            exits=body.exits,
+            voluntary_exits=body.voluntary_exits,
         )
 
 
@@ -123,7 +123,7 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
     ]
 
     def __init__(self,
-                 slot: SlotNumber,
+                 slot: Slot,
                  parent_root: Hash32,
                  state_root: Hash32,
                  randao_reveal: BLSSignature,
@@ -193,7 +193,7 @@ class BeaconBlock(BaseBeaconBlock):
             attester_slashings=block.body.attester_slashings,
             attestations=block.body.attestations,
             deposits=block.body.deposits,
-            exits=block.body.exits,
+            voluntary_exits=block.body.voluntary_exits,
         )
 
         return cls(

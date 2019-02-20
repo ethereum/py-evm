@@ -84,7 +84,7 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
         'registry_change,'
@@ -95,7 +95,7 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
     ]
 )
 def test_get_next_epoch_committee_assignment(genesis_state,
-                                             epoch_length,
+                                             slots_per_epoch,
                                              shard_count,
                                              config,
                                              num_validators,
@@ -107,7 +107,10 @@ def test_get_next_epoch_committee_assignment(genesis_state,
         for _ in range(shard_count)
     ]
     slots = []
-    next_epoch_start = get_epoch_start_slot(state.current_epoch(epoch_length) + 1, epoch_length)
+    next_epoch_start = get_epoch_start_slot(
+        state.current_epoch(slots_per_epoch) + 1,
+        slots_per_epoch
+    )
 
     for validator_index in range(num_validators):
         assignment = get_next_epoch_committee_assignment(
@@ -117,21 +120,21 @@ def test_get_next_epoch_committee_assignment(genesis_state,
             registry_change,
         )
         assert assignment.slot >= next_epoch_start
-        assert assignment.slot < next_epoch_start + epoch_length
+        assert assignment.slot < next_epoch_start + slots_per_epoch
         if assignment.is_proposer:
             proposer_count += 1
 
         shard_validator_count[assignment.shard] += 1
         slots.append(assignment.slot)
 
-    assert proposer_count == epoch_length
+    assert proposer_count == slots_per_epoch
     assert sum(shard_validator_count) == num_validators
 
 
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
     ),

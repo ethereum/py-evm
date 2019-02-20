@@ -33,10 +33,10 @@ from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.typing import (
-    EpochNumber,
+    Epoch,
     Gwei,
-    ShardNumber,
-    SlotNumber,
+    Shard,
+    Slot,
     Timestamp,
     ValidatorIndex,
 )
@@ -45,13 +45,13 @@ from eth2.beacon.validator_status_helpers import (
 )
 
 
-def get_genesis_block(startup_state_root: Hash32,
-                      genesis_slot: SlotNumber,
+def get_genesis_block(genesis_state_root: Hash32,
+                      genesis_slot: Slot,
                       block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
     return block_class(
         slot=genesis_slot,
         parent_root=ZERO_HASH32,
-        state_root=startup_state_root,
+        state_root=genesis_state_root,
         randao_reveal=EMPTY_SIGNATURE,
         eth1_data=Eth1Data.create_empty_data(),
         signature=EMPTY_SIGNATURE,
@@ -63,19 +63,19 @@ def get_genesis_beacon_state(*,
                              genesis_validator_deposits: Sequence[Deposit],
                              genesis_time: Timestamp,
                              latest_eth1_data: Eth1Data,
-                             genesis_slot: SlotNumber,
-                             genesis_epoch: EpochNumber,
+                             genesis_slot: Slot,
+                             genesis_epoch: Epoch,
                              genesis_fork_version: int,
-                             genesis_start_shard: ShardNumber,
+                             genesis_start_shard: Shard,
                              shard_count: int,
-                             seed_lookahead: int,
+                             min_seed_lookahead: int,
                              latest_block_roots_length: int,
-                             latest_index_roots_length: int,
-                             epoch_length: int,
+                             latest_active_index_roots_length: int,
+                             slots_per_epoch: int,
                              max_deposit_amount: Gwei,
-                             latest_penalized_exit_length: int,
+                             latest_slashed_exit_length: int,
                              latest_randao_mixes_length: int,
-                             entry_exit_delay: int) -> BeaconState:
+                             activation_exit_delay: int) -> BeaconState:
     state = BeaconState(
         # Misc
         slot=genesis_slot,
@@ -93,12 +93,12 @@ def get_genesis_beacon_state(*,
 
         # Randomness and committees
         latest_randao_mixes=(ZERO_HASH32,) * latest_randao_mixes_length,
-        previous_epoch_start_shard=genesis_start_shard,
-        current_epoch_start_shard=genesis_start_shard,
-        previous_calculation_epoch=genesis_epoch,
-        current_calculation_epoch=genesis_epoch,
-        previous_epoch_seed=ZERO_HASH32,
-        current_epoch_seed=ZERO_HASH32,
+        previous_shuffling_start_shard=genesis_start_shard,
+        current_shuffling_start_shard=genesis_start_shard,
+        previous_shuffling_epoch=genesis_epoch,
+        current_shuffling_epoch=genesis_epoch,
+        previous_shuffling_seed=ZERO_HASH32,
+        current_shuffling_seed=ZERO_HASH32,
 
         # Finality
         previous_justified_epoch=genesis_epoch,
@@ -111,8 +111,8 @@ def get_genesis_beacon_state(*,
             (CrosslinkRecord(epoch=genesis_epoch, shard_block_root=ZERO_HASH32),) * shard_count
         ),
         latest_block_roots=(ZERO_HASH32,) * latest_block_roots_length,
-        latest_index_roots=(ZERO_HASH32,) * latest_index_roots_length,
-        latest_penalized_balances=(Gwei(0),) * latest_penalized_exit_length,
+        latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
+        latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
         latest_attestations=(),
         batched_block_roots=(),
 
@@ -122,7 +122,7 @@ def get_genesis_beacon_state(*,
         deposit_index=len(genesis_validator_deposits),
     )
 
-    # Process initial deposits
+    # Process genesis deposits
     for deposit in genesis_validator_deposits:
         state = process_deposit(
             state=state,
@@ -130,10 +130,10 @@ def get_genesis_beacon_state(*,
             amount=deposit.deposit_data.amount,
             proof_of_possession=deposit.deposit_data.deposit_input.proof_of_possession,
             withdrawal_credentials=deposit.deposit_data.deposit_input.withdrawal_credentials,
-            epoch_length=epoch_length,
+            slots_per_epoch=slots_per_epoch,
         )
 
-    # Process initial activations
+    # Process genesis activations
     for validator_index, _ in enumerate(state.validator_registry):
         validator_index = ValidatorIndex(validator_index)
         is_enough_effective_balance = get_effective_balance(
@@ -147,8 +147,8 @@ def get_genesis_beacon_state(*,
                 index=validator_index,
                 is_genesis=True,
                 genesis_epoch=genesis_epoch,
-                epoch_length=epoch_length,
-                entry_exit_delay=entry_exit_delay,
+                slots_per_epoch=slots_per_epoch,
+                activation_exit_delay=activation_exit_delay,
             )
 
     # TODO: chanege to hash_tree_root
@@ -164,22 +164,22 @@ def get_genesis_beacon_state(*,
             ]
         )
     )
-    latest_index_roots = (genesis_active_index_root,) * latest_index_roots_length
+    latest_active_index_roots = (genesis_active_index_root,) * latest_active_index_roots_length
     state = state.copy(
-        latest_index_roots=latest_index_roots,
+        latest_active_index_roots=latest_active_index_roots,
     )
 
-    current_epoch_seed = generate_seed(
+    current_shuffling_seed = generate_seed(
         state=state,
         epoch=genesis_epoch,
-        epoch_length=epoch_length,
-        seed_lookahead=seed_lookahead,
-        entry_exit_delay=entry_exit_delay,
-        latest_index_roots_length=latest_index_roots_length,
+        slots_per_epoch=slots_per_epoch,
+        min_seed_lookahead=min_seed_lookahead,
+        activation_exit_delay=activation_exit_delay,
+        latest_active_index_roots_length=latest_active_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
     )
     state = state.copy(
-        current_epoch_seed=current_epoch_seed,
+        current_shuffling_seed=current_shuffling_seed,
     )
 
     return state

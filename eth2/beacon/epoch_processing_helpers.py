@@ -31,9 +31,9 @@ from eth2.beacon.helpers import (
     get_total_balance,
 )
 from eth2.beacon.typing import (
-    EpochNumber,
+    Epoch,
     Gwei,
-    ShardNumber,
+    Shard,
     ValidatorIndex,
 )
 
@@ -52,20 +52,21 @@ if TYPE_CHECKING:
 @to_tuple
 def get_current_epoch_attestations(
         state: 'BeaconState',
-        epoch_length: int) -> Iterable[PendingAttestationRecord]:
+        slots_per_epoch: int) -> Iterable[PendingAttestationRecord]:
+    current_epoch = state.current_epoch(slots_per_epoch)
     for attestation in state.latest_attestations:
-        if state.current_epoch(epoch_length) == slot_to_epoch(attestation.data.slot, epoch_length):
+        if current_epoch == slot_to_epoch(attestation.data.slot, slots_per_epoch):
             yield attestation
 
 
 @to_tuple
 def get_previous_epoch_attestations(
         state: 'BeaconState',
-        epoch_length: int,
-        genesis_epoch: EpochNumber) -> Iterable[PendingAttestationRecord]:
-    previous_epoch = state.previous_epoch(epoch_length, genesis_epoch)
+        slots_per_epoch: int,
+        genesis_epoch: Epoch) -> Iterable[PendingAttestationRecord]:
+    previous_epoch = state.previous_epoch(slots_per_epoch, genesis_epoch)
     for attestation in state.latest_attestations:
-        if previous_epoch == slot_to_epoch(attestation.data.slot, epoch_length):
+        if previous_epoch == slot_to_epoch(attestation.data.slot, slots_per_epoch):
             yield attestation
 
 
@@ -75,7 +76,7 @@ def get_attesting_validator_indices(
         *,
         state: 'BeaconState',
         attestations: Sequence[PendingAttestationRecord],
-        shard: ShardNumber,
+        shard: Shard,
         shard_block_root: Hash32,
         committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     """
@@ -97,7 +98,7 @@ def get_attesting_validator_indices(
 def get_total_attesting_balance(
         *,
         state: 'BeaconState',
-        shard: ShardNumber,
+        shard: Shard,
         shard_block_root: Hash32,
         attestations: Sequence[PendingAttestationRecord],
         max_deposit_amount: Gwei,
@@ -119,7 +120,7 @@ def get_total_attesting_balance(
 def get_winning_root(
         *,
         state: 'BeaconState',
-        shard: ShardNumber,
+        shard: Shard,
         attestations: Sequence[PendingAttestationRecord],
         max_deposit_amount: Gwei,
         committee_config: CommitteeConfig) -> Tuple[Hash32, Gwei]:
@@ -157,7 +158,7 @@ def get_winning_root(
 def get_epoch_boundary_attester_indices(
         state: 'BeaconState',
         attestations: Sequence[PendingAttestationRecord],
-        epoch: EpochNumber,
+        epoch: Epoch,
         root: Hash32,
         committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     for a in attestations:
@@ -171,21 +172,21 @@ def get_epoch_boundary_attester_indices(
 
 
 def get_epoch_boundary_attesting_balances(
-        current_epoch: EpochNumber,
-        previous_epoch: EpochNumber,
+        current_epoch: Epoch,
+        previous_epoch: Epoch,
         state: 'BeaconState',
         config: 'BeaconConfig') -> Tuple[Gwei, Gwei]:
 
-    current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
+    current_epoch_attestations = get_current_epoch_attestations(state, config.SLOTS_PER_EPOCH)
     previous_epoch_attestations = get_previous_epoch_attestations(
         state,
-        config.EPOCH_LENGTH,
+        config.SLOTS_PER_EPOCH,
         config.GENESIS_EPOCH,
     )
 
     previous_epoch_boundary_root = get_block_root(
         state,
-        get_epoch_start_slot(previous_epoch, config.EPOCH_LENGTH),
+        get_epoch_start_slot(previous_epoch, config.SLOTS_PER_EPOCH),
         config.LATEST_BLOCK_ROOTS_LENGTH,
     )
 
@@ -205,7 +206,7 @@ def get_epoch_boundary_attesting_balances(
 
     current_epoch_boundary_root = get_block_root(
         state,
-        get_epoch_start_slot(current_epoch, config.EPOCH_LENGTH),
+        get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
         config.LATEST_BLOCK_ROOTS_LENGTH,
     )
 

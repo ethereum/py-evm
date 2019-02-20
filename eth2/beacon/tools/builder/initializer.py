@@ -6,7 +6,7 @@ from typing import (
 )
 
 from eth2.beacon.configs import BeaconConfig
-from eth2.beacon.on_startup import (
+from eth2.beacon.on_genesis import (
     get_genesis_block,
     get_genesis_beacon_state,
 )
@@ -62,7 +62,7 @@ def create_mock_genesis_validator_deposits(
                         privkey=keymap[pubkeys[i]],
                         fork=fork,
                         slot=config.GENESIS_SLOT,
-                        epoch_length=config.EPOCH_LENGTH,
+                        slots_per_epoch=config.SLOTS_PER_EPOCH,
                     ),
                 ),
                 amount=config.MAX_DEPOSIT_AMOUNT,
@@ -102,18 +102,18 @@ def create_mock_genesis(
         genesis_fork_version=config.GENESIS_FORK_VERSION,
         genesis_start_shard=config.GENESIS_START_SHARD,
         shard_count=config.SHARD_COUNT,
-        seed_lookahead=config.SEED_LOOKAHEAD,
+        min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
         latest_block_roots_length=config.LATEST_BLOCK_ROOTS_LENGTH,
-        latest_index_roots_length=config.LATEST_INDEX_ROOTS_LENGTH,
-        epoch_length=config.EPOCH_LENGTH,
+        latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
+        slots_per_epoch=config.SLOTS_PER_EPOCH,
         max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-        latest_penalized_exit_length=config.LATEST_PENALIZED_EXIT_LENGTH,
+        latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,
         latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
-        entry_exit_delay=config.ENTRY_EXIT_DELAY,
+        activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
     )
 
     block = get_genesis_block(
-        startup_state_root=state.root,
+        genesis_state_root=state.root,
         genesis_slot=config.GENESIS_SLOT,
         block_class=genesis_block_class,
     )

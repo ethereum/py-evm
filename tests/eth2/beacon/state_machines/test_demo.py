@@ -18,7 +18,7 @@ from eth2.beacon.tools.builder.validator import (
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'min_attestation_inclusion_delay,'
         'target_committee_size,'
         'shard_count'
@@ -50,7 +50,7 @@ def test_demo(base_db,
     block = genesis_block
 
     current_slot = 1
-    chain_length = 3 * config.EPOCH_LENGTH
+    chain_length = 3 * config.SLOTS_PER_EPOCH
     attestations = ()
     blocks = (block,)
     for current_slot in range(chain_length):

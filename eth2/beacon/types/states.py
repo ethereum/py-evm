@@ -25,10 +25,10 @@ from eth2.beacon._utils.hash import (
 )
 from eth2.beacon.helpers import slot_to_epoch
 from eth2.beacon.typing import (
-    EpochNumber,
+    Epoch,
     Gwei,
-    ShardNumber,
-    SlotNumber,
+    Shard,
+    Slot,
     Timestamp,
     ValidatorIndex,
 )
@@ -56,27 +56,27 @@ class BeaconState(ssz.Serializable):
 
         # Randomness and committees
         ('latest_randao_mixes', List(bytes32)),
-        ('previous_epoch_start_shard', uint64),
-        ('current_epoch_start_shard', uint64),
-        ('previous_calculation_epoch', uint64),
-        ('current_calculation_epoch', uint64),
-        ('previous_epoch_seed', bytes32),
-        ('current_epoch_seed', bytes32),
+        ('previous_shuffling_start_shard', uint64),
+        ('current_shuffling_start_shard', uint64),
+        ('previous_shuffling_epoch', uint64),
+        ('current_shuffling_epoch', uint64),
+        ('previous_shuffling_seed', bytes32),
+        ('current_shuffling_seed', bytes32),
 
         # Finality
         ('previous_justified_epoch', uint64),
         ('justified_epoch', uint64),
 
         # Note: justification_bitfield is meant to be defined as an integer type,
-        # so its bit operation in Python and is easier to specify and implement.
+        # so its bit operation is in Python and is easier to specify and implement.
         ('justification_bitfield', uint64),
         ('finalized_epoch', uint64),
 
         # Recent state
         ('latest_crosslinks', List(CrosslinkRecord)),
         ('latest_block_roots', List(bytes32)),  # Needed to process attestations, older to newer  # noqa: E501
-        ('latest_index_roots', List(bytes32)),
-        ('latest_penalized_balances', List(uint64)),  # Balances penalized at every withdrawal period  # noqa: E501
+        ('latest_active_index_roots', List(bytes32)),
+        ('latest_slashed_balances', List(uint64)),  # Balances slashed at every withdrawal period  # noqa: E501
         ('latest_attestations', List(PendingAttestationRecord)),
         ('batched_block_roots', List(bytes32)),  # allow for a log-sized Merkle proof from any block to any historical block root"  # noqa: E501
 
@@ -90,31 +90,31 @@ class BeaconState(ssz.Serializable):
             self,
             *,
             # Misc
-            slot: SlotNumber,
+            slot: Slot,
             genesis_time: Timestamp,
             fork: Fork,
             # Validator registry
             validator_registry: Sequence[ValidatorRecord],
             validator_balances: Sequence[Gwei],
-            validator_registry_update_epoch: EpochNumber,
+            validator_registry_update_epoch: Epoch,
             # Randomness and committees
             latest_randao_mixes: Sequence[Hash32],
-            previous_epoch_start_shard: ShardNumber,
-            current_epoch_start_shard: ShardNumber,
-            previous_calculation_epoch: EpochNumber,
-            current_calculation_epoch: EpochNumber,
-            previous_epoch_seed: Hash32,
-            current_epoch_seed: Hash32,
+            previous_shuffling_start_shard: Shard,
+            current_shuffling_start_shard: Shard,
+            previous_shuffling_epoch: Epoch,
+            current_shuffling_epoch: Epoch,
+            previous_shuffling_seed: Hash32,
+            current_shuffling_seed: Hash32,
             # Finality
-            previous_justified_epoch: EpochNumber,
-            justified_epoch: EpochNumber,
+            previous_justified_epoch: Epoch,
+            justified_epoch: Epoch,
             justification_bitfield: int,
-            finalized_epoch: EpochNumber,
+            finalized_epoch: Epoch,
             # Recent state
             latest_crosslinks: Sequence[CrosslinkRecord],
             latest_block_roots: Sequence[Hash32],
-            latest_index_roots: Sequence[Hash32],
-            latest_penalized_balances: Sequence[Gwei],
+            latest_active_index_roots: Sequence[Hash32],
+            latest_slashed_balances: Sequence[Gwei],
             batched_block_roots: Sequence[Hash32],
             latest_attestations: Sequence[PendingAttestationRecord],
             # Ethereum 1.0 chain
@@ -136,12 +136,12 @@ class BeaconState(ssz.Serializable):
             validator_registry_update_epoch=validator_registry_update_epoch,
             # Randomness and committees
             latest_randao_mixes=latest_randao_mixes,
-            previous_epoch_start_shard=previous_epoch_start_shard,
-            current_epoch_start_shard=current_epoch_start_shard,
-            previous_calculation_epoch=previous_calculation_epoch,
-            current_calculation_epoch=current_calculation_epoch,
-            previous_epoch_seed=previous_epoch_seed,
-            current_epoch_seed=current_epoch_seed,
+            previous_shuffling_start_shard=previous_shuffling_start_shard,
+            current_shuffling_start_shard=current_shuffling_start_shard,
+            previous_shuffling_epoch=previous_shuffling_epoch,
+            current_shuffling_epoch=current_shuffling_epoch,
+            previous_shuffling_seed=previous_shuffling_seed,
+            current_shuffling_seed=current_shuffling_seed,
             # Finality
             previous_justified_epoch=previous_justified_epoch,
             justified_epoch=justified_epoch,
@@ -150,8 +150,8 @@ class BeaconState(ssz.Serializable):
             # Recent state
             latest_crosslinks=latest_crosslinks,
             latest_block_roots=latest_block_roots,
-            latest_index_roots=latest_index_roots,
-            latest_penalized_balances=latest_penalized_balances,
+            latest_active_index_roots=latest_active_index_roots,
+            latest_slashed_balances=latest_slashed_balances,
             latest_attestations=latest_attestations,
             batched_block_roots=batched_block_roots,
             # Ethereum 1.0 chain
@@ -190,14 +190,14 @@ class BeaconState(ssz.Serializable):
     @classmethod
     def create_filled_state(cls,
                             *,
-                            genesis_epoch: EpochNumber,
-                            genesis_start_shard: ShardNumber,
-                            genesis_slot: SlotNumber,
+                            genesis_epoch: Epoch,
+                            genesis_start_shard: Shard,
+                            genesis_slot: Slot,
                             shard_count: int,
                             latest_block_roots_length: int,
-                            latest_index_roots_length: int,
+                            latest_active_index_roots_length: int,
                             latest_randao_mixes_length: int,
-                            latest_penalized_exit_length: int,
+                            latest_slashed_exit_length: int,
                             activated_genesis_validators: Sequence[ValidatorRecord]=(),
                             genesis_balances: Sequence[Gwei]=()) -> 'BeaconState':
         return cls(
@@ -217,12 +217,12 @@ class BeaconState(ssz.Serializable):
 
             # Randomness and committees
             latest_randao_mixes=(ZERO_HASH32,) * latest_randao_mixes_length,
-            previous_epoch_start_shard=genesis_start_shard,
-            current_epoch_start_shard=genesis_start_shard,
-            previous_calculation_epoch=genesis_epoch,
-            current_calculation_epoch=genesis_epoch,
-            previous_epoch_seed=ZERO_HASH32,
-            current_epoch_seed=ZERO_HASH32,
+            previous_shuffling_start_shard=genesis_start_shard,
+            current_shuffling_start_shard=genesis_start_shard,
+            previous_shuffling_epoch=genesis_epoch,
+            current_shuffling_epoch=genesis_epoch,
+            previous_shuffling_seed=ZERO_HASH32,
+            current_shuffling_seed=ZERO_HASH32,
 
             # Finality
             previous_justified_epoch=genesis_epoch,
@@ -235,8 +235,8 @@ class BeaconState(ssz.Serializable):
                 (CrosslinkRecord(epoch=genesis_epoch, shard_block_root=ZERO_HASH32),) * shard_count
             ),
             latest_block_roots=(ZERO_HASH32,) * latest_block_roots_length,
-            latest_index_roots=(ZERO_HASH32,) * latest_index_roots_length,
-            latest_penalized_balances=(Gwei(0),) * latest_penalized_exit_length,
+            latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
+            latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
             latest_attestations=(),
             batched_block_roots=(),
 
@@ -291,15 +291,15 @@ class BeaconState(ssz.Serializable):
         state = state.update_validator_balance(validator_index, balance)
         return state
 
-    def current_epoch(self, epoch_length: int) -> EpochNumber:
-        return slot_to_epoch(self.slot, epoch_length)
+    def current_epoch(self, slots_per_epoch: int) -> Epoch:
+        return slot_to_epoch(self.slot, slots_per_epoch)
 
-    def previous_epoch(self, epoch_length: int, genesis_epoch: int) -> EpochNumber:
-        current_epoch: EpochNumber = self.current_epoch(epoch_length)
+    def previous_epoch(self, slots_per_epoch: int, genesis_epoch: int) -> Epoch:
+        current_epoch: Epoch = self.current_epoch(slots_per_epoch)
         if current_epoch == genesis_epoch:
             return current_epoch
         else:
-            return EpochNumber(current_epoch - 1)
+            return Epoch(current_epoch - 1)
 
-    def next_epoch(self, epoch_length: int) -> EpochNumber:
-        return EpochNumber(self.current_epoch(epoch_length) + 1)
+    def next_epoch(self, slots_per_epoch: int) -> Epoch:
+        return Epoch(self.current_epoch(slots_per_epoch) + 1)

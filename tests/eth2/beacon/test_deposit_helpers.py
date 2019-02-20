@@ -48,7 +48,7 @@ def test_add_pending_validator(sample_beacon_state_params,
     ),
 )
 def test_validate_proof_of_possession(
-        epoch_length,
+        slots_per_epoch,
         sample_beacon_state_params,
         pubkeys,
         privkeys,
@@ -69,7 +69,7 @@ def test_validate_proof_of_possession(
             privkey,
             state.fork,
             state.slot,
-            epoch_length,
+            slots_per_epoch,
         )
 
         validate_proof_of_possession(
@@ -77,7 +77,7 @@ def test_validate_proof_of_possession(
             pubkey=pubkey,
             proof_of_possession=proof_of_possession,
             withdrawal_credentials=withdrawal_credentials,
-            epoch_length=epoch_length,
+            slots_per_epoch=slots_per_epoch,
         )
     else:
         proof_of_possession = b'\x11' * 96
@@ -87,11 +87,11 @@ def test_validate_proof_of_possession(
                 pubkey=pubkey,
                 proof_of_possession=proof_of_possession,
                 withdrawal_credentials=withdrawal_credentials,
-                epoch_length=epoch_length,
+                slots_per_epoch=slots_per_epoch,
             )
 
 
-def test_process_deposit(epoch_length,
+def test_process_deposit(slots_per_epoch,
                          sample_beacon_state_params,
                          privkeys,
                          pubkeys,
@@ -115,7 +115,7 @@ def test_process_deposit(epoch_length,
         privkey_1,
         state.fork,
         state.slot,
-        epoch_length,
+        slots_per_epoch,
     )
 
     # Add the first validator
@@ -125,7 +125,7 @@ def test_process_deposit(epoch_length,
         amount=amount,
         proof_of_possession=proof_of_possession,
         withdrawal_credentials=withdrawal_credentials,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
     )
 
     assert len(result_state.validator_registry) == 1
@@ -148,7 +148,7 @@ def test_process_deposit(epoch_length,
         privkey_2,
         state.fork,
         state.slot,
-        epoch_length,
+        slots_per_epoch,
     )
     result_state = process_deposit(
         state=result_state,
@@ -156,7 +156,7 @@ def test_process_deposit(epoch_length,
         amount=amount,
         proof_of_possession=proof_of_possession,
         withdrawal_credentials=withdrawal_credentials,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
     )
     assert len(result_state.validator_registry) == 2
     assert result_state.validator_registry[1].pubkey == pubkey_2

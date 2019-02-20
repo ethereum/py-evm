@@ -29,29 +29,34 @@ from eth2.beacon.types.attestation_data import (
 @pytest.mark.parametrize(
     (
         'active_validator_count,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
         'expected_committee_count'
     ),
     [
-        (1000, 20, 10, 50, 40),  # SHARD_COUNT // EPOCH_LENGTH
-        (500, 20, 10, 100, 40),  # active_validator_count // EPOCH_LENGTH // TARGET_COMMITTEE_SIZE
-        (20, 10, 3, 10, 10),  # 1
-        (20, 10, 3, 5, 10),  # 1
-        (40, 5, 10, 2, 5),  # 1
+        # SHARD_COUNT // SLOTS_PER_EPOCH
+        (1000, 20, 10, 50, 40),
+        # active_validator_count // SLOTS_PER_EPOCH // TARGET_COMMITTEE_SIZE
+        (500, 20, 10, 100, 40),
+        # 1
+        (20, 10, 3, 10, 10),
+        # 1
+        (20, 10, 3, 5, 10),
+        # 1
+        (40, 5, 10, 2, 5),
     ],
 )
 def test_get_epoch_committee_count(
         active_validator_count,
-        epoch_length,
+        slots_per_epoch,
         target_committee_size,
         shard_count,
         expected_committee_count):
     assert expected_committee_count == get_epoch_committee_count(
         active_validator_count=active_validator_count,
         shard_count=shard_count,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
         target_committee_size=target_committee_size,
     )
 
@@ -59,7 +64,7 @@ def test_get_epoch_committee_count(
 @pytest.mark.parametrize(
     (
         'n,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
         'expected_committee_count'
@@ -70,7 +75,7 @@ def test_get_epoch_committee_count(
 )
 def test_get_next_epoch_committee_count(n_validators_state,
                                         shard_count,
-                                        epoch_length,
+                                        slots_per_epoch,
                                         target_committee_size,
                                         expected_committee_count):
     state = n_validators_state
@@ -78,13 +83,13 @@ def test_get_next_epoch_committee_count(n_validators_state,
     current_epoch_committee_count = get_current_epoch_committee_count(
         state,
         shard_count,
-        epoch_length,
+        slots_per_epoch,
         target_committee_size,
     )
     next_epoch_committee_count = get_next_epoch_committee_count(
         state,
         shard_count,
-        epoch_length,
+        slots_per_epoch,
         target_committee_size,
     )
     assert current_epoch_committee_count == expected_committee_count
@@ -95,30 +100,30 @@ def test_get_next_epoch_committee_count(n_validators_state,
         state = state.update_validator_registry(
             validator_index=index,
             validator=validator.copy(
-                exit_epoch=state.current_epoch(epoch_length) + 1,
+                exit_epoch=state.current_epoch(slots_per_epoch) + 1,
             ),
         )
 
     current_epoch_committee_count = get_current_epoch_committee_count(
         state,
         shard_count,
-        epoch_length,
+        slots_per_epoch,
         target_committee_size,
     )
     next_epoch_committee_count = get_next_epoch_committee_count(
         state,
         shard_count,
-        epoch_length,
+        slots_per_epoch,
         target_committee_size,
     )
     assert current_epoch_committee_count == expected_committee_count
-    assert next_epoch_committee_count == epoch_length
+    assert next_epoch_committee_count == slots_per_epoch
 
 
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
         'epoch'
@@ -127,13 +132,13 @@ def test_get_next_epoch_committee_count(n_validators_state,
         (1000, 20, 10, 100, 0),
         (1000, 20, 10, 100, 0),
         (1000, 20, 10, 100, 1),
-        (20, 10, 3, 10, 0),  # active_validators_size < epoch_length * target_committee_size
+        (20, 10, 3, 10, 0),  # active_validators_size < slots_per_epoch * target_committee_size
         (20, 10, 3, 10, 0),
         (20, 10, 3, 10, 1),
     ],
 )
 def test_get_shuffling_is_complete(activated_genesis_validators,
-                                   epoch_length,
+                                   slots_per_epoch,
                                    target_committee_size,
                                    shard_count,
                                    epoch):
@@ -141,12 +146,12 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
         seed=b'\x35' * 32,
         validators=activated_genesis_validators,
         epoch=epoch,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
 
-    assert len(shuffling) == epoch_length
+    assert len(shuffling) == slots_per_epoch
     assert len(shuffling) > 0
     for committee in shuffling:
         assert len(committee) <= target_committee_size
@@ -171,7 +176,7 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
 @pytest.mark.parametrize(
     (
         'n, target_committee_size, shard_count, len_active_validators,'
-        'previous_calculation_epoch, current_calculation_epoch,'
+        'previous_shuffling_epoch, current_shuffling_epoch,'
         'get_prev_or_cur_epoch_committee_count,'
         'delayed_activation_epoch'
     ),
@@ -205,13 +210,13 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
 def test_get_prev_or_cur_epoch_committee_count(
         monkeypatch,
         n_validators_state,
-        epoch_length,
+        slots_per_epoch,
         n,
         target_committee_size,
         shard_count,
         len_active_validators,
-        previous_calculation_epoch,
-        current_calculation_epoch,
+        previous_shuffling_epoch,
+        current_shuffling_epoch,
         get_prev_or_cur_epoch_committee_count,
         delayed_activation_epoch):
     from eth2.beacon import committee_helpers
@@ -219,7 +224,7 @@ def test_get_prev_or_cur_epoch_committee_count(
     def mock_get_epoch_committee_count(
             active_validator_count,
             shard_count,
-            epoch_length,
+            slots_per_epoch,
             target_committee_size):
         return active_validator_count // shard_count
 
@@ -231,8 +236,8 @@ def test_get_prev_or_cur_epoch_committee_count(
 
     state = n_validators_state.copy(
         slot=0,
-        previous_calculation_epoch=previous_calculation_epoch,
-        current_calculation_epoch=current_calculation_epoch,
+        previous_shuffling_epoch=previous_shuffling_epoch,
+        current_shuffling_epoch=current_shuffling_epoch,
     )
     for index in range(len(state.validator_registry)):
         if index < len_active_validators:
@@ -255,7 +260,7 @@ def test_get_prev_or_cur_epoch_committee_count(
     result_committee_count = get_prev_or_cur_epoch_committee_count(
         state=state,
         shard_count=shard_count,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
         target_committee_size=target_committee_size,
     )
     expected_committee_count = len_active_validators // shard_count
@@ -268,14 +273,14 @@ def test_get_prev_or_cur_epoch_committee_count(
         'n,'
         'current_slot,'
         'slot,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
         'registry_change,'
 
         'should_reseed,'
-        'previous_calculation_epoch,'
-        'current_calculation_epoch,'
+        'previous_shuffling_epoch,'
+        'current_shuffling_epoch,'
         'shuffling_epoch,'
     ),
     [
@@ -301,25 +306,25 @@ def test_get_crosslink_committees_at_slot(
         n_validators_state,
         current_slot,
         slot,
-        epoch_length,
+        slots_per_epoch,
         target_committee_size,
         shard_count,
         genesis_epoch,
         committee_config,
         registry_change,
         should_reseed,
-        previous_calculation_epoch,
-        current_calculation_epoch,
+        previous_shuffling_epoch,
+        current_shuffling_epoch,
         shuffling_epoch):
     # Mock generate_seed
     new_seed = b'\x88' * 32
 
     def mock_generate_seed(state,
                            epoch,
-                           epoch_length,
-                           seed_lookahead,
-                           entry_exit_delay,
-                           latest_index_roots_length,
+                           slots_per_epoch,
+                           min_seed_lookahead,
+                           activation_exit_delay,
+                           latest_active_index_roots_length,
                            latest_randao_mixes_length):
         return new_seed
 
@@ -330,10 +335,10 @@ def test_get_crosslink_committees_at_slot(
 
     state = n_validators_state.copy(
         slot=current_slot,
-        previous_calculation_epoch=previous_calculation_epoch,
-        current_calculation_epoch=current_calculation_epoch,
-        previous_epoch_seed=b'\x11' * 32,
-        current_epoch_seed=b'\x22' * 32,
+        previous_shuffling_epoch=previous_shuffling_epoch,
+        current_shuffling_epoch=current_shuffling_epoch,
+        previous_shuffling_seed=b'\x11' * 32,
+        current_shuffling_seed=b'\x22' * 32,
     )
 
     crosslink_committees_at_slot = get_crosslink_committees_at_slot(
@@ -351,23 +356,23 @@ def test_get_crosslink_committees_at_slot(
     #
     # Check shuffling_start_shard
     #
-    offset = slot % epoch_length
+    offset = slot % slots_per_epoch
 
     result_slot_start_shard = crosslink_committees_at_slot[0][1]
     current_committees_per_epoch = get_current_epoch_committee_count(
         state=state,
         shard_count=shard_count,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
         target_committee_size=target_committee_size,
     )
-    committees_per_slot = current_committees_per_epoch // epoch_length
+    committees_per_slot = current_committees_per_epoch // slots_per_epoch
 
     if registry_change:
         shuffling_start_shard = (
-            state.current_epoch_start_shard + current_committees_per_epoch
+            state.current_shuffling_start_shard + current_committees_per_epoch
         ) % shard_count
     else:
-        shuffling_start_shard = state.current_epoch_start_shard
+        shuffling_start_shard = state.current_shuffling_start_shard
         assert result_slot_start_shard == (
             shuffling_start_shard +
             committees_per_slot * offset
@@ -376,26 +381,26 @@ def test_get_crosslink_committees_at_slot(
     #
     # Check seed
     #
-    epoch = slot_to_epoch(slot, epoch_length)
-    current_epoch = state.current_epoch(epoch_length)
-    previous_epoch = state.previous_epoch(epoch_length, genesis_epoch)
+    epoch = slot_to_epoch(slot, slots_per_epoch)
+    current_epoch = state.current_epoch(slots_per_epoch)
+    previous_epoch = state.previous_epoch(slots_per_epoch, genesis_epoch)
     next_epoch = current_epoch + 1
 
     if epoch == previous_epoch:
-        seed = state.previous_epoch_seed
+        seed = state.previous_shuffling_seed
     elif epoch == current_epoch:
-        seed = state.current_epoch_seed
+        seed = state.current_shuffling_seed
     elif epoch == next_epoch:
         if registry_change or should_reseed:
             seed = new_seed
         else:
-            seed = state.current_epoch_seed
+            seed = state.current_shuffling_seed
 
     shuffling = get_shuffling(
         seed=seed,
         validators=state.validator_registry,
         epoch=shuffling_epoch,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
@@ -405,7 +410,7 @@ def test_get_crosslink_committees_at_slot(
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'committee,'
         'slot,'
         'success,'
@@ -430,7 +435,7 @@ def test_get_crosslink_committees_at_slot(
 def test_get_beacon_proposer_index(
         monkeypatch,
         num_validators,
-        epoch_length,
+        slots_per_epoch,
         committee,
         slot,
         success,
@@ -473,7 +478,7 @@ def test_get_beacon_proposer_index(
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'committee,'
         'aggregation_bitfield,'
         'expected'
@@ -512,7 +517,7 @@ def test_get_beacon_proposer_index(
 def test_get_attestation_participants(
         monkeypatch,
         num_validators,
-        epoch_length,
+        slots_per_epoch,
         committee,
         aggregation_bitfield,
         expected,

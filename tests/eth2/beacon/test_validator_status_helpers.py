@@ -47,8 +47,8 @@ from tests.eth2.beacon.helpers import (
 def test_activate_validator(is_genesis,
                             filled_beacon_state,
                             genesis_epoch,
-                            epoch_length,
-                            entry_exit_delay,
+                            slots_per_epoch,
+                            activation_exit_delay,
                             max_deposit_amount):
     validator_count = 10
     state = filled_beacon_state.copy(
@@ -70,8 +70,8 @@ def test_activate_validator(is_genesis,
         index=index,
         is_genesis=is_genesis,
         genesis_epoch=genesis_epoch,
-        epoch_length=epoch_length,
-        entry_exit_delay=entry_exit_delay,
+        slots_per_epoch=slots_per_epoch,
+        activation_exit_delay=activation_exit_delay,
     )
 
     if is_genesis:
@@ -80,8 +80,8 @@ def test_activate_validator(is_genesis,
         assert (
             result_state.validator_registry[index].activation_epoch ==
             get_entry_exit_effect_epoch(
-                state.current_epoch(epoch_length),
-                entry_exit_delay,
+                state.current_epoch(slots_per_epoch),
+                activation_exit_delay,
             )
         )
 
@@ -107,7 +107,7 @@ def test_initiate_validator_exit(n_validators_state):
 @pytest.mark.parametrize(
     (
         'num_validators',
-        'entry_exit_delay',
+        'activation_exit_delay',
         'committee',
         'state_slot',
         'exit_epoch',
@@ -137,12 +137,12 @@ def test_initiate_validator_exit(n_validators_state):
     ],
 )
 def test_exit_validator(num_validators,
-                        entry_exit_delay,
+                        activation_exit_delay,
                         committee,
                         state_slot,
                         exit_epoch,
                         n_validators_state,
-                        epoch_length):
+                        slots_per_epoch):
     # Unchanged
     state = n_validators_state.copy(
         slot=state_slot,
@@ -160,16 +160,17 @@ def test_exit_validator(num_validators,
     result_state = exit_validator(
         state=state,
         index=index,
-        epoch_length=epoch_length,
-        entry_exit_delay=entry_exit_delay,
+        slots_per_epoch=slots_per_epoch,
+        activation_exit_delay=activation_exit_delay,
     )
-    if validator.exit_epoch <= state.current_epoch(epoch_length) + entry_exit_delay:
+    if validator.exit_epoch <= state.current_epoch(slots_per_epoch) + activation_exit_delay:
         assert state == result_state
         return
     else:
-        assert validator.exit_epoch > state.current_epoch(epoch_length) + entry_exit_delay
+        assert validator.exit_epoch > state.current_epoch(slots_per_epoch) + activation_exit_delay
         result_validator = result_state.validator_registry[index]
-        assert result_validator.exit_epoch == state.current_epoch(epoch_length) + entry_exit_delay
+        current_epoch = state.current_epoch(slots_per_epoch)
+        assert result_validator.exit_epoch == current_epoch + activation_exit_delay
 
 
 @pytest.mark.parametrize(
@@ -184,7 +185,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
                                                         num_validators,
                                                         committee,
                                                         n_validators_state,
-                                                        latest_penalized_exit_length,
+                                                        latest_slashed_exit_length,
                                                         whistleblower_reward_quotient,
                                                         max_deposit_amount,
                                                         committee_config):
@@ -222,21 +223,21 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
     state = _settle_penality_to_validator_and_whistleblower(
         state=state,
         validator_index=validator_index,
-        latest_penalized_exit_length=latest_penalized_exit_length,
+        latest_slashed_exit_length=latest_slashed_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         max_deposit_amount=max_deposit_amount,
         committee_config=committee_config,
     )
 
-    # Check `state.latest_penalized_balances`
-    latest_penalized_balances_list = list(state.latest_penalized_balances)
-    last_penalized_epoch = (
-        state.current_epoch(committee_config.EPOCH_LENGTH) % latest_penalized_exit_length
+    # Check `state.latest_slashed_balances`
+    latest_slashed_balances_list = list(state.latest_slashed_balances)
+    last_slashed_epoch = (
+        state.current_epoch(committee_config.SLOTS_PER_EPOCH) % latest_slashed_exit_length
     )
-    latest_penalized_balances_list[last_penalized_epoch] = max_deposit_amount
-    latest_penalized_balances = tuple(latest_penalized_balances_list)
+    latest_slashed_balances_list[last_slashed_epoch] = max_deposit_amount
+    latest_slashed_balances = tuple(latest_slashed_balances_list)
 
-    assert state.latest_penalized_balances == latest_penalized_balances
+    assert state.latest_slashed_balances == latest_slashed_balances
 
     # Check penality and reward
     whistleblower_reward = (
@@ -262,10 +263,10 @@ def test_slash_validator(monkeypatch,
                          committee,
                          n_validators_state,
                          genesis_epoch,
-                         epoch_length,
-                         latest_penalized_exit_length,
+                         slots_per_epoch,
+                         latest_slashed_exit_length,
                          whistleblower_reward_quotient,
-                         entry_exit_delay,
+                         activation_exit_delay,
                          max_deposit_amount,
                          target_committee_size,
                          shard_count,
@@ -291,26 +292,26 @@ def test_slash_validator(monkeypatch,
     result_state = slash_validator(
         state=state,
         index=index,
-        latest_penalized_exit_length=latest_penalized_exit_length,
+        latest_slashed_exit_length=latest_slashed_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         max_deposit_amount=max_deposit_amount,
         committee_config=committee_config,
     )
 
     # Just check if `prepare_validator_for_withdrawal` applied these two functions
-    expected_state = exit_validator(state, index, epoch_length, entry_exit_delay)
+    expected_state = exit_validator(state, index, slots_per_epoch, activation_exit_delay)
     expected_state = _settle_penality_to_validator_and_whistleblower(
         state=expected_state,
         validator_index=index,
-        latest_penalized_exit_length=latest_penalized_exit_length,
+        latest_slashed_exit_length=latest_slashed_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         max_deposit_amount=max_deposit_amount,
         committee_config=committee_config,
     )
-    current_epoch = state.current_epoch(epoch_length)
+    current_epoch = state.current_epoch(slots_per_epoch)
     validator = state.validator_registry[index].copy(
         slashed_epoch=current_epoch,
-        withdrawal_epoch=current_epoch + latest_penalized_exit_length,
+        withdrawal_epoch=current_epoch + latest_slashed_exit_length,
     )
     expected_state.update_validator_registry(index, validator)
 
@@ -318,7 +319,7 @@ def test_slash_validator(monkeypatch,
 
 
 def test_prepare_validator_for_withdrawal(n_validators_state,
-                                          epoch_length,
+                                          slots_per_epoch,
                                           min_validator_withdrawability_delay):
     state = n_validators_state
     index = 1
@@ -326,7 +327,7 @@ def test_prepare_validator_for_withdrawal(n_validators_state,
     result_state = prepare_validator_for_withdrawal(
         state,
         index,
-        epoch_length,
+        slots_per_epoch,
         min_validator_withdrawability_delay,
     )
 
@@ -335,13 +336,13 @@ def test_prepare_validator_for_withdrawal(n_validators_state,
         old_validator_status_flags | ValidatorStatusFlags.WITHDRAWABLE
     )
     assert result_validator.withdrawal_epoch == (
-        state.current_epoch(epoch_length) + min_validator_withdrawability_delay
+        state.current_epoch(slots_per_epoch) + min_validator_withdrawability_delay
     )
 
 
 @pytest.mark.parametrize(
     (
-        'epoch_length',
+        'slots_per_epoch',
         'state_slot',
         'validate_withdrawal_epoch',
         'success'
@@ -353,9 +354,9 @@ def test_prepare_validator_for_withdrawal(n_validators_state,
         (4, 8, 3, True),
     ]
 )
-def test_validate_withdrawal_epoch(epoch_length, state_slot, validate_withdrawal_epoch, success):
+def test_validate_withdrawal_epoch(slots_per_epoch, state_slot, validate_withdrawal_epoch, success):
     if success:
-        _validate_withdrawal_epoch(state_slot, validate_withdrawal_epoch, epoch_length)
+        _validate_withdrawal_epoch(state_slot, validate_withdrawal_epoch, slots_per_epoch)
     else:
         with pytest.raises(ValidationError):
-            _validate_withdrawal_epoch(state_slot, validate_withdrawal_epoch, epoch_length)
+            _validate_withdrawal_epoch(state_slot, validate_withdrawal_epoch, slots_per_epoch)

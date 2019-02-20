@@ -12,7 +12,7 @@ from eth2.beacon.types.blocks import (
 )
 
 from eth2.beacon.typing import (
-    SlotNumber,
+    Slot,
 )
 
 from p2p.peer import (
@@ -50,7 +50,7 @@ class BCCPeer(BasePeer):
 
     context: BeaconContext
 
-    head_slot: SlotNumber = None
+    head_slot: Slot = None
 
     async def send_sub_proto_handshake(self) -> None:
         # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under per BeaconStateMachine fork

@@ -21,9 +21,9 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
-    EpochNumber,
+    Epoch,
     Gwei,
-    SlotNumber,
+    Slot,
     ValidatorIndex,
 )
 
@@ -34,9 +34,9 @@ from eth2.beacon.typing import (
 def activate_validator(state: BeaconState,
                        index: ValidatorIndex,
                        is_genesis: bool,
-                       genesis_epoch: EpochNumber,
-                       epoch_length: int,
-                       entry_exit_delay: int) -> BeaconState:
+                       genesis_epoch: Epoch,
+                       slots_per_epoch: int,
+                       activation_exit_delay: int) -> BeaconState:
     """
     Activate the validator with the given ``index``.
     Return the updated state (immutable).
@@ -44,8 +44,8 @@ def activate_validator(state: BeaconState,
     # Update validator.activation_epoch
     validator = state.validator_registry[index].copy(
         activation_epoch=genesis_epoch if is_genesis else get_entry_exit_effect_epoch(
-            state.current_epoch(epoch_length),
-            entry_exit_delay,
+            state.current_epoch(slots_per_epoch),
+            activation_exit_delay,
         )
     )
     state = state.update_validator_registry(index, validator)
@@ -70,8 +70,8 @@ def initiate_validator_exit(state: BeaconState,
 
 def exit_validator(state: BeaconState,
                    index: ValidatorIndex,
-                   epoch_length: int,
-                   entry_exit_delay: int) -> BeaconState:
+                   slots_per_epoch: int,
+                   activation_exit_delay: int) -> BeaconState:
     """
     Exit the validator with the given ``index``.
     Return the updated state (immutable).
@@ -79,8 +79,8 @@ def exit_validator(state: BeaconState,
     validator = state.validator_registry[index]
 
     entry_exit_effect_epoch = get_entry_exit_effect_epoch(
-        state.current_epoch(epoch_length),
-        entry_exit_delay,
+        state.current_epoch(slots_per_epoch),
+        activation_exit_delay,
     )
 
     # The following updates only occur if not previous exited
@@ -88,7 +88,7 @@ def exit_validator(state: BeaconState,
         return state
 
     validator = validator.copy(
-        exit_epoch=state.current_epoch(epoch_length) + entry_exit_delay,
+        exit_epoch=state.current_epoch(slots_per_epoch) + activation_exit_delay,
     )
     state = state.update_validator_registry(index, validator)
 
@@ -99,7 +99,7 @@ def _settle_penality_to_validator_and_whistleblower(
         *,
         state: BeaconState,
         validator_index: ValidatorIndex,
-        latest_penalized_exit_length: int,
+        latest_slashed_exit_length: int,
         whistleblower_reward_quotient: int,
         max_deposit_amount: Gwei,
         committee_config: CommitteeConfig) -> BeaconState:
@@ -107,8 +107,8 @@ def _settle_penality_to_validator_and_whistleblower(
     Apply penality/reward to validator and whistleblower and update the meta data
 
     More intuitive pseudo-code:
-    current_epoch_penalization_index = (state.slot // EPOCH_LENGTH) % LATEST_PENALIZED_EXIT_LENGTH
-    state.latest_penalized_balances[current_epoch_penalization_index] += (
+    current_epoch_penalization_index = (state.slot // SLOTS_PER_EPOCH) % LATEST_SLASHED_EXIT_LENGTH
+    state.latest_slashed_balances[current_epoch_penalization_index] += (
         get_effective_balance(state, index)
     )
     whistleblower_index = get_beacon_proposer_index(state, state.slot)
@@ -117,27 +117,27 @@ def _settle_penality_to_validator_and_whistleblower(
     state.validator_balances[index] -= whistleblower_reward
     validator.slashed_epoch = slot_to_epoch(state.slot)
     """
-    epoch_length = committee_config.EPOCH_LENGTH
+    slots_per_epoch = committee_config.SLOTS_PER_EPOCH
 
-    # Update `state.latest_penalized_balances`
+    # Update `state.latest_slashed_balances`
     current_epoch_penalization_index = state.current_epoch(
-        epoch_length) % latest_penalized_exit_length
+        slots_per_epoch) % latest_slashed_exit_length
     effective_balance = get_effective_balance(
         state.validator_balances,
         validator_index,
         max_deposit_amount,
     )
-    penalized_exit_balance = (
-        state.latest_penalized_balances[current_epoch_penalization_index] +
+    slashed_exit_balance = (
+        state.latest_slashed_balances[current_epoch_penalization_index] +
         effective_balance
     )
-    latest_penalized_balances = update_tuple_item(
-        tuple_data=state.latest_penalized_balances,
+    latest_slashed_balances = update_tuple_item(
+        tuple_data=state.latest_slashed_balances,
         index=current_epoch_penalization_index,
-        new_value=penalized_exit_balance,
+        new_value=slashed_exit_balance,
     )
     state = state.copy(
-        latest_penalized_balances=latest_penalized_balances,
+        latest_slashed_balances=latest_slashed_balances,
     )
 
     # Update whistleblower's balance
@@ -158,7 +158,7 @@ def _settle_penality_to_validator_and_whistleblower(
     # Update validator's balance and `slashed_epoch` field
     validator = state.validator_registry[validator_index]
     validator = validator.copy(
-        slashed_epoch=state.current_epoch(epoch_length),
+        slashed_epoch=state.current_epoch(slots_per_epoch),
     )
     state = state.update_validator(
         validator_index,
@@ -172,7 +172,7 @@ def _settle_penality_to_validator_and_whistleblower(
 def slash_validator(*,
                     state: BeaconState,
                     index: ValidatorIndex,
-                    latest_penalized_exit_length: int,
+                    latest_slashed_exit_length: int,
                     whistleblower_reward_quotient: int,
                     max_deposit_amount: Gwei,
                     committee_config: CommitteeConfig) -> BeaconState:
@@ -181,29 +181,29 @@ def slash_validator(*,
 
     Exit the validator, penalize the validator, and reward the whistleblower.
     """
-    epoch_length = committee_config.EPOCH_LENGTH
-    entry_exit_delay = committee_config.ENTRY_EXIT_DELAY
+    slots_per_epoch = committee_config.SLOTS_PER_EPOCH
+    activation_exit_delay = committee_config.ACTIVATION_EXIT_DELAY
 
     validator = state.validator_registry[index]
 
     # [TO BE REMOVED IN PHASE 2]
-    _validate_withdrawal_epoch(state.slot, validator.withdrawal_epoch, epoch_length)
+    _validate_withdrawal_epoch(state.slot, validator.withdrawal_epoch, slots_per_epoch)
 
-    state = exit_validator(state, index, epoch_length, entry_exit_delay)
+    state = exit_validator(state, index, slots_per_epoch, activation_exit_delay)
     state = _settle_penality_to_validator_and_whistleblower(
         state=state,
         validator_index=index,
-        latest_penalized_exit_length=latest_penalized_exit_length,
+        latest_slashed_exit_length=latest_slashed_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         max_deposit_amount=max_deposit_amount,
         committee_config=committee_config,
     )
 
     # Update validator
-    current_epoch = state.current_epoch(epoch_length)
+    current_epoch = state.current_epoch(slots_per_epoch)
     validator = validator.copy(
         slashed_epoch=current_epoch,
-        withdrawal_epoch=current_epoch + latest_penalized_exit_length,
+        withdrawal_epoch=current_epoch + latest_slashed_exit_length,
     )
     state.update_validator_registry(index, validator)
 
@@ -212,7 +212,7 @@ def slash_validator(*,
 
 def prepare_validator_for_withdrawal(state: BeaconState,
                                      index: ValidatorIndex,
-                                     epoch_length: int,
+                                     slots_per_epoch: int,
                                      min_validator_withdrawability_delay: int) -> BeaconState:
     """
     Set the validator with the given ``index`` with ``WITHDRAWABLE`` flag.
@@ -220,7 +220,7 @@ def prepare_validator_for_withdrawal(state: BeaconState,
     validator = state.validator_registry[index]
     validator = validator.copy(
         status_flags=validator.status_flags | ValidatorStatusFlags.WITHDRAWABLE,
-        withdrawal_epoch=state.current_epoch(epoch_length) + min_validator_withdrawability_delay
+        withdrawal_epoch=state.current_epoch(slots_per_epoch) + min_validator_withdrawability_delay
     )
     state = state.update_validator_registry(index, validator)
 
@@ -230,11 +230,11 @@ def prepare_validator_for_withdrawal(state: BeaconState,
 #
 # Validation
 #
-def _validate_withdrawal_epoch(state_slot: SlotNumber,
-                               validator_withdrawal_epoch: EpochNumber,
-                               epoch_length: int) -> None:
+def _validate_withdrawal_epoch(state_slot: Slot,
+                               validator_withdrawal_epoch: Epoch,
+                               slots_per_epoch: int) -> None:
     # TODO: change to `validate_withdrawable_epoch`
-    if state_slot >= get_epoch_start_slot(validator_withdrawal_epoch, epoch_length):
+    if state_slot >= get_epoch_start_slot(validator_withdrawal_epoch, slots_per_epoch):
         raise ValidationError(
             f"state.slot ({state_slot}) should be less than "
             f"validator.withdrawal_epoch ({validator_withdrawal_epoch})"

@@ -4,7 +4,7 @@ from ssz.sedes import (
 )
 
 from eth2.beacon.typing import (
-    EpochNumber,
+    Epoch,
 )
 
 
@@ -22,7 +22,7 @@ class Fork(ssz.Serializable):
     def __init__(self,
                  previous_version: int,
                  current_version: int,
-                 epoch: EpochNumber) -> None:
+                 epoch: Epoch) -> None:
         super().__init__(
             previous_version=previous_version,
             current_version=current_version,

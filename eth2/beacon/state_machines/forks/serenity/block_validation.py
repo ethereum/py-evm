@@ -52,9 +52,9 @@ from eth2.beacon.typing import (
     Bitfield,
     BLSPubkey,
     BLSSignature,
-    EpochNumber,
-    ShardNumber,
-    SlotNumber,
+    Epoch,
+    Shard,
+    Slot,
     ValidatorIndex,
 )
 from eth2.beacon.validation import (
@@ -81,7 +81,7 @@ def validate_block_slot(state: BeaconState,
 #
 def validate_proposer_signature(state: BeaconState,
                                 block: BaseBeaconBlock,
-                                beacon_chain_shard_number: ShardNumber,
+                                beacon_chain_shard_number: Shard,
                                 committee_config: CommitteeConfig) -> None:
     block_without_signature_root = block.block_without_signature_root
 
@@ -101,7 +101,7 @@ def validate_proposer_signature(state: BeaconState,
     proposer_pubkey = state.validator_registry[beacon_proposer_index].pubkey
     domain = get_domain(
         state.fork,
-        state.current_epoch(committee_config.EPOCH_LENGTH),
+        state.current_epoch(committee_config.SLOTS_PER_EPOCH),
         SignatureDomain.DOMAIN_PROPOSAL
     )
 
@@ -125,7 +125,7 @@ def validate_proposer_signature(state: BeaconState,
 #
 def validate_proposer_slashing(state: BeaconState,
                                proposer_slashing: ProposerSlashing,
-                               epoch_length: int) -> None:
+                               slots_per_epoch: int) -> None:
     """
     Validate the given ``proposer_slashing``.
     Raise ``ValidationError`` if it's invalid.
@@ -140,7 +140,7 @@ def validate_proposer_slashing(state: BeaconState,
 
     validate_proposer_slashing_slashed_epoch(
         proposer.slashed_epoch,
-        state.current_epoch(epoch_length),
+        state.current_epoch(slots_per_epoch),
     )
 
     validate_proposal_signature(
@@ -148,7 +148,7 @@ def validate_proposer_slashing(state: BeaconState,
         proposal_signature=proposer_slashing.proposal_signature_1,
         pubkey=proposer.pubkey,
         fork=state.fork,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
     )
 
     validate_proposal_signature(
@@ -156,7 +156,7 @@ def validate_proposer_slashing(state: BeaconState,
         proposal_signature=proposer_slashing.proposal_signature_2,
         pubkey=proposer.pubkey,
         fork=state.fork,
-        epoch_length=epoch_length,
+        slots_per_epoch=slots_per_epoch,
     )
 
 
@@ -187,8 +187,8 @@ def validate_proposer_slashing_block_root(proposer_slashing: ProposerSlashing) -
         )
 
 
-def validate_proposer_slashing_slashed_epoch(proposer_slashed_epoch: EpochNumber,
-                                             state_current_epoch: EpochNumber) -> None:
+def validate_proposer_slashing_slashed_epoch(proposer_slashed_epoch: Epoch,
+                                             state_current_epoch: Epoch) -> None:
     if proposer_slashed_epoch <= state_current_epoch:
         raise ValidationError(
             f"proposer.slashed_epoch ({proposer_slashed_epoch}) "
@@ -200,14 +200,14 @@ def validate_proposal_signature(proposal_signed_data: ProposalSignedData,
                                 proposal_signature: BLSSignature,
                                 pubkey: BLSPubkey,
                                 fork: Fork,
-                                epoch_length: int) -> None:
+                                slots_per_epoch: int) -> None:
     proposal_signature_is_valid = bls.verify(
         pubkey=pubkey,
         message=proposal_signed_data.root,  # TODO: use hash_tree_root
         signature=proposal_signature,
         domain=get_domain(
             fork,
-            slot_to_epoch(proposal_signed_data.slot, epoch_length),
+            slot_to_epoch(proposal_signed_data.slot, slots_per_epoch),
             SignatureDomain.DOMAIN_PROPOSAL,
         )
     )
@@ -231,21 +231,21 @@ def validate_attestation(state: BeaconState,
     Validate the given ``attestation``.
     Raise ``ValidationError`` if it's invalid.
     """
-    epoch_length = committee_config.EPOCH_LENGTH
+    slots_per_epoch = committee_config.SLOTS_PER_EPOCH
 
     validate_attestation_slot(
         attestation.data,
         state.slot,
-        epoch_length,
+        slots_per_epoch,
         min_attestation_inclusion_delay,
     )
 
     validate_attestation_justified_epoch(
         attestation.data,
-        state.current_epoch(epoch_length),
+        state.current_epoch(slots_per_epoch),
         state.previous_justified_epoch,
         state.justified_epoch,
-        epoch_length,
+        slots_per_epoch,
     )
 
     validate_attestation_justified_block_root(
@@ -254,7 +254,7 @@ def validate_attestation(state: BeaconState,
             state=state,
             slot=get_epoch_start_slot(
                 attestation.data.justified_epoch,
-                epoch_length,
+                slots_per_epoch,
             ),
             latest_block_roots_length=latest_block_roots_length,
         ),
@@ -275,8 +275,8 @@ def validate_attestation(state: BeaconState,
 
 
 def validate_attestation_slot(attestation_data: AttestationData,
-                              current_slot: SlotNumber,
-                              epoch_length: int,
+                              current_slot: Slot,
+                              slots_per_epoch: int,
                               min_attestation_inclusion_delay: int) -> None:
     """
     Validate ``slot`` field of ``attestation_data``.
@@ -294,16 +294,16 @@ def validate_attestation_slot(attestation_data: AttestationData,
                 min_attestation_inclusion_delay,
             )
         )
-    if current_slot - min_attestation_inclusion_delay >= attestation_data.slot + epoch_length:
+    if current_slot - min_attestation_inclusion_delay >= attestation_data.slot + slots_per_epoch:
         raise ValidationError(
             "Attestation slot plus epoch length is too low; "
             "must equal or exceed the ``current_slot`` less the "
             "``min_attestation_inclusion_delay``:\n"
             "\tFound: %s (%s + %s), Needed greater than or equal to: %s (%s - %s)" %
             (
-                attestation_data.slot + epoch_length,
+                attestation_data.slot + slots_per_epoch,
                 attestation_data.slot,
-                epoch_length,
+                slots_per_epoch,
                 current_slot - min_attestation_inclusion_delay,
                 current_slot,
                 min_attestation_inclusion_delay,
@@ -312,15 +312,15 @@ def validate_attestation_slot(attestation_data: AttestationData,
 
 
 def validate_attestation_justified_epoch(attestation_data: AttestationData,
-                                         current_epoch: EpochNumber,
-                                         previous_justified_epoch: EpochNumber,
-                                         justified_epoch: EpochNumber,
-                                         epoch_length: int) -> None:
+                                         current_epoch: Epoch,
+                                         previous_justified_epoch: Epoch,
+                                         justified_epoch: Epoch,
+                                         slots_per_epoch: int) -> None:
     """
     Validate ``justified_epoch`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
     """
-    if attestation_data.slot >= get_epoch_start_slot(current_epoch, epoch_length):
+    if attestation_data.slot >= get_epoch_start_slot(current_epoch, slots_per_epoch):
         if attestation_data.justified_epoch != justified_epoch:
             raise ValidationError(
                 "Attestation ``slot`` is after recent epoch transition but attestation"
@@ -502,7 +502,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
 
     domain = get_domain(
         fork=state.fork,
-        epoch=slot_to_epoch(attestation.data.slot, committee_config.EPOCH_LENGTH),
+        epoch=slot_to_epoch(attestation.data.slot, committee_config.SLOTS_PER_EPOCH),
         domain_type=SignatureDomain.DOMAIN_ATTESTATION,
     )
 
@@ -528,7 +528,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
 
 def validate_randao_reveal(randao_reveal: BLSSignature,
                            proposer_pubkey: BLSPubkey,
-                           epoch: EpochNumber,
+                           epoch: Epoch,
                            fork: Fork) -> None:
     message = epoch.to_bytes(32, byteorder="big")
     domain = get_domain(fork, epoch, SignatureDomain.DOMAIN_RANDAO)
@@ -553,7 +553,7 @@ def validate_randao_reveal(randao_reveal: BLSSignature,
 #
 def verify_slashable_attestation_signature(state: 'BeaconState',
                                            slashable_attestation: 'SlashableAttestation',
-                                           epoch_length: int) -> bool:
+                                           slots_per_epoch: int) -> bool:
     """
     Ensure we have a valid aggregate signature for the ``slashable_attestation``.
     """
@@ -567,7 +567,7 @@ def verify_slashable_attestation_signature(state: 'BeaconState',
 
     domain = get_domain(
         state.fork,
-        slot_to_epoch(slashable_attestation.data.slot, epoch_length),
+        slot_to_epoch(slashable_attestation.data.slot, slots_per_epoch),
         SignatureDomain.DOMAIN_ATTESTATION,
     )
 
@@ -582,7 +582,7 @@ def verify_slashable_attestation_signature(state: 'BeaconState',
 def validate_slashable_attestation(state: 'BeaconState',
                                    slashable_attestation: 'SlashableAttestation',
                                    max_indices_per_slashable_vote: int,
-                                   epoch_length: int) -> None:
+                                   slots_per_epoch: int) -> None:
     """
     Verify validity of ``slashable_attestation`` fields.
     Ensure that the ``slashable_attestation`` is properly assembled and contains the signature
@@ -615,7 +615,7 @@ def validate_slashable_attestation(state: 'BeaconState',
             f"MAX_INDICES_PER_SLASHABLE_VOTE ({max_indices_per_slashable_vote})"
         )
 
-    if not verify_slashable_attestation_signature(state, slashable_attestation, epoch_length):
+    if not verify_slashable_attestation_signature(state, slashable_attestation, slots_per_epoch):
         raise ValidationError(
             f"slashable_attestation.signature error"
         )

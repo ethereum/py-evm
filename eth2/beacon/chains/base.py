@@ -47,7 +47,7 @@ from eth2.beacon.types.blocks import (
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     FromBlockParams,
-    SlotNumber,
+    Slot,
 )
 from eth2.beacon.validation import (
     validate_slot,
@@ -100,7 +100,7 @@ class BaseBeaconChain(Configurable, ABC):
     @abstractmethod
     def get_state_machine_class_for_block_slot(
             cls,
-            slot: SlotNumber) -> Type['BaseBeaconStateMachine']:
+            slot: Slot) -> Type['BaseBeaconStateMachine']:
         pass
 
     #
@@ -137,11 +137,11 @@ class BaseBeaconChain(Configurable, ABC):
         pass
 
     @abstractmethod
-    def get_canonical_block_by_slot(self, slot: SlotNumber) -> BaseBeaconBlock:
+    def get_canonical_block_by_slot(self, slot: Slot) -> BaseBeaconBlock:
         pass
 
     @abstractmethod
-    def get_canonical_block_root(self, slot: SlotNumber) -> Hash32:
+    def get_canonical_block_root(self, slot: Slot) -> Hash32:
         pass
 
     @abstractmethod
@@ -233,7 +233,7 @@ class BeaconChain(BaseBeaconChain):
     @classmethod
     def get_state_machine_class_for_block_slot(
             cls,
-            slot: SlotNumber) -> Type['BaseBeaconStateMachine']:
+            slot: Slot) -> Type['BaseBeaconStateMachine']:
         """
         Return the ``StateMachine`` class for the given block slot number.
         """
@@ -325,7 +325,7 @@ class BeaconChain(BaseBeaconChain):
         """
         return self.get_state_machine().block
 
-    def get_canonical_block_by_slot(self, slot: SlotNumber) -> BaseBeaconBlock:
+    def get_canonical_block_by_slot(self, slot: Slot) -> BaseBeaconBlock:
         """
         Return the block with the given number in the canonical chain.
 
@@ -335,7 +335,7 @@ class BeaconChain(BaseBeaconChain):
         validate_slot(slot)
         return self.get_block_by_root(self.chaindb.get_canonical_block_root(slot))
 
-    def get_canonical_block_root(self, slot: SlotNumber) -> Hash32:
+    def get_canonical_block_root(self, slot: Slot) -> Hash32:
         """
         Return the block hash with the given number in the canonical chain.
 

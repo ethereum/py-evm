@@ -14,7 +14,7 @@ from eth_typing import (
 )
 
 from eth2.beacon.typing import (
-    SlotNumber,
+    Slot,
 )
 
 from p2p.protocol import (
@@ -40,7 +40,7 @@ class StatusMessage(TypedDict):
     protocol_version: int
     network_id: int
     genesis_hash: Hash32
-    head_slot: SlotNumber
+    head_slot: Slot
 
 
 class Status(Command):

@@ -32,7 +32,7 @@ def valid_chain(beacon_chain_with_block_validation):
 
 @pytest.mark.parametrize(
     (
-        'num_validators,epoch_length,target_committee_size,shard_count'
+        'num_validators,slots_per_epoch,target_committee_size,shard_count'
     ),
     [
         (100, 20, 10, 10),
@@ -64,7 +64,7 @@ def test_canonical_chain(valid_chain):
 
 @pytest.mark.parametrize(
     (
-        'num_validators,epoch_length,target_committee_size,shard_count'
+        'num_validators,slots_per_epoch,target_committee_size,shard_count'
     ),
     [
         (100, 16, 10, 10),
