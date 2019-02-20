@@ -1,3 +1,5 @@
+from eth_utils import ValidationError
+
 from eth2.beacon.configs import (
     BeaconConfig,
     CommitteeConfig,
@@ -23,6 +25,13 @@ def process_attestations(state: BeaconState,
     Otherwise, append an ``PendingAttestationRecords`` for each to ``latest_attestations``.
     Return resulting ``state``.
     """
+    if len(block.body.attestations) > config.MAX_ATTESTATIONS:
+        raise ValidationError(
+            f"The block ({block}) has too many attestations:\n"
+            f"\tFound {len(block.body.attestations)} attestations, "
+            f"maximum: {config.MAX_ATTESTATIONS}"
+        )
+
     for attestation in block.body.attestations:
         validate_attestation(
             state,

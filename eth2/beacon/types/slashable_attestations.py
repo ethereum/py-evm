@@ -68,11 +68,7 @@ class SlashableAttestation(ssz.Serializable):
         return self.hash
 
     @property
-    def is_custody_bitfield_empty(self) -> bool:
-        return self.custody_bitfield == b'\x00' * len(self.custody_bitfield)
-
-    @property
-    def is_validator_indices_ascending(self) -> bool:
+    def are_validator_indices_ascending(self) -> bool:
         for i in range(len(self.validator_indices) - 1):
             if self.validator_indices[i] >= self.validator_indices[i + 1]:
                 return False

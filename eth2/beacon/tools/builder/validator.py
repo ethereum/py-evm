@@ -160,7 +160,10 @@ def _get_mock_message_and_voting_committee_indices(
     """
     Get ``message`` and voting indices of the given ``committee``.
     """
-    message = AttestationDataAndCustodyBit.create_attestation_message(attestation_data)
+    message = AttestationDataAndCustodyBit(
+        data=attestation_data,
+        custody_bit=False
+    ).root
 
     committee_size = len(committee)
     assert num_voted_attesters <= committee_size
@@ -214,7 +217,7 @@ def create_mock_signed_attestation(state: BeaconState,
     return Attestation(
         data=attestation_data,
         aggregation_bitfield=aggregation_bitfield,
-        custody_bitfield=b'',
+        custody_bitfield=b'\x00' * len(aggregation_bitfield),
         aggregate_signature=aggregate_signature,
     )
 

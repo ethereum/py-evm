@@ -1,21 +1,17 @@
 from typing import (
-    Iterable,
     Sequence,
     Tuple,
     TYPE_CHECKING,
 )
 
-import functools
 
 from eth_utils import (
-    to_tuple,
     ValidationError,
 )
 from eth_typing import (
     Hash32,
 )
 
-import eth2._utils.bls as bls
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
@@ -23,14 +19,12 @@ from eth2.beacon.enums import (
     SignatureDomain,
 )
 from eth2.beacon.typing import (
-    BLSPubkey,
     EpochNumber,
     Gwei,
     SlotNumber,
     ValidatorIndex,
 )
 from eth2.beacon.validation import (
-    validate_bitfield,
     validate_epoch_for_active_index_root,
     validate_epoch_for_active_randao_mix,
 )
@@ -217,101 +211,6 @@ def get_domain(fork: 'Fork',
         fork,
         epoch,
     ) * 4294967296 + domain_type
-
-
-@to_tuple
-def get_pubkey_for_indices(validators: Sequence['ValidatorRecord'],
-                           indices: Sequence[ValidatorIndex]) -> Iterable[BLSPubkey]:
-    for index in indices:
-        yield validators[index].pubkey
-
-
-@to_tuple
-def generate_aggregate_pubkeys(
-        validators: Sequence['ValidatorRecord'],
-        slashable_attestation: 'SlashableAttestation') -> Iterable[BLSPubkey]:
-    """
-    Compute the aggregate pubkey we expect based on
-    the proof-of-custody indices found in the ``slashable_attestation``.
-    """
-    all_indices = slashable_attestation.custody_bit_indices
-    get_pubkeys = functools.partial(get_pubkey_for_indices, validators)
-    return map(
-        bls.aggregate_pubkeys,
-        map(get_pubkeys, all_indices),
-    )
-
-
-def verify_slashable_attestation_signature(state: 'BeaconState',
-                                           slashable_attestation: 'SlashableAttestation',
-                                           epoch_length: int) -> bool:
-    """
-    Ensure we have a valid aggregate signature for the ``slashable_attestation``.
-    """
-    pubkeys = generate_aggregate_pubkeys(state.validator_registry, slashable_attestation)
-
-    messages = slashable_attestation.messages
-
-    signature = slashable_attestation.aggregate_signature
-
-    domain = get_domain(
-        state.fork,
-        slot_to_epoch(slashable_attestation.data.slot, epoch_length),
-        SignatureDomain.DOMAIN_ATTESTATION,
-    )
-
-    return bls.verify_multiple(
-        pubkeys=pubkeys,
-        messages=messages,
-        signature=signature,
-        domain=domain,
-    )
-
-
-def validate_slashable_attestation(state: 'BeaconState',
-                                   slashable_attestation: 'SlashableAttestation',
-                                   max_indices_per_slashable_vote: int,
-                                   epoch_length: int) -> None:
-    """
-    Verify validity of ``slashable_attestation`` fields.
-    Ensure that the ``slashable_attestation`` is properly assembled and contains the signature
-    we expect from the validators we expect. Otherwise, return False as
-    the ``slashable_attestation`` is invalid.
-    """
-    # [TO BE REMOVED IN PHASE 1]
-    if not slashable_attestation.is_custody_bitfield_empty:
-        raise ValidationError(
-            "`slashable_attestation.custody_bitfield` is not empty."
-        )
-
-    if len(slashable_attestation.validator_indices) == 0:
-        raise ValidationError(
-            "`slashable_attestation.validator_indices` is empty."
-        )
-
-    if not slashable_attestation.is_validator_indices_ascending:
-        raise ValidationError(
-            "`slashable_attestation.validator_indices` "
-            f"({slashable_attestation.validator_indices}) "
-            "is not ordered in ascending."
-        )
-
-    validate_bitfield(
-        slashable_attestation.custody_bitfield,
-        len(slashable_attestation.validator_indices),
-    )
-
-    if len(slashable_attestation.validator_indices) > max_indices_per_slashable_vote:
-        raise ValidationError(
-            f"`len(slashable_attestation.validator_indices)` "
-            f"({len(slashable_attestation.validator_indices)}) greater than"
-            f"MAX_INDICES_PER_SLASHABLE_VOTE ({max_indices_per_slashable_vote})"
-        )
-
-    if not verify_slashable_attestation_signature(state, slashable_attestation, epoch_length):
-        raise ValidationError(
-            f"slashable_attestation.signature error"
-        )
 
 
 def is_double_vote(attestation_data_1: 'AttestationData',
