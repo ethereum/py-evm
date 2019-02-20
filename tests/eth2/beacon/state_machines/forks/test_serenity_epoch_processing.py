@@ -443,7 +443,7 @@ def test_process_validator_registry(monkeypatch,
     result_state = process_validator_registry(state, config)
 
     assert result_state.previous_calculation_epoch == state.current_calculation_epoch
-    assert result_state.previous_epoch_start_shard == state.current_epoch_start_shard
+    assert result_state.previous_shuffling_start_shard == state.current_epoch_start_shard
     assert result_state.previous_epoch_seed == state.current_epoch_seed
 
     if need_to_update:

@@ -93,7 +93,7 @@ def get_genesis_beacon_state(*,
 
         # Randomness and committees
         latest_randao_mixes=(ZERO_HASH32,) * latest_randao_mixes_length,
-        previous_epoch_start_shard=genesis_start_shard,
+        previous_shuffling_start_shard=genesis_start_shard,
         current_epoch_start_shard=genesis_start_shard,
         previous_calculation_epoch=genesis_epoch,
         current_calculation_epoch=genesis_epoch,

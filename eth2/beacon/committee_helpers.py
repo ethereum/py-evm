@@ -193,7 +193,7 @@ def get_crosslink_committees_at_slot(
         )
         seed = state.previous_epoch_seed
         shuffling_epoch = state.previous_calculation_epoch
-        shuffling_start_shard = state.previous_epoch_start_shard
+        shuffling_start_shard = state.previous_shuffling_start_shard
     elif epoch == current_epoch:
         committees_per_epoch = get_current_epoch_committee_count(
             state=state,

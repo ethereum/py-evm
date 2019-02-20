@@ -56,7 +56,7 @@ class BeaconState(ssz.Serializable):
 
         # Randomness and committees
         ('latest_randao_mixes', List(bytes32)),
-        ('previous_epoch_start_shard', uint64),
+        ('previous_shuffling_start_shard', uint64),
         ('current_epoch_start_shard', uint64),
         ('previous_calculation_epoch', uint64),
         ('current_calculation_epoch', uint64),
@@ -99,7 +99,7 @@ class BeaconState(ssz.Serializable):
             validator_registry_update_epoch: Epoch,
             # Randomness and committees
             latest_randao_mixes: Sequence[Hash32],
-            previous_epoch_start_shard: Shard,
+            previous_shuffling_start_shard: Shard,
             current_epoch_start_shard: Shard,
             previous_calculation_epoch: Epoch,
             current_calculation_epoch: Epoch,
@@ -136,7 +136,7 @@ class BeaconState(ssz.Serializable):
             validator_registry_update_epoch=validator_registry_update_epoch,
             # Randomness and committees
             latest_randao_mixes=latest_randao_mixes,
-            previous_epoch_start_shard=previous_epoch_start_shard,
+            previous_shuffling_start_shard=previous_shuffling_start_shard,
             current_epoch_start_shard=current_epoch_start_shard,
             previous_calculation_epoch=previous_calculation_epoch,
             current_calculation_epoch=current_calculation_epoch,
@@ -217,7 +217,7 @@ class BeaconState(ssz.Serializable):
 
             # Randomness and committees
             latest_randao_mixes=(ZERO_HASH32,) * latest_randao_mixes_length,
-            previous_epoch_start_shard=genesis_start_shard,
+            previous_shuffling_start_shard=genesis_start_shard,
             current_epoch_start_shard=genesis_start_shard,
             previous_calculation_epoch=genesis_epoch,
             current_calculation_epoch=genesis_epoch,

@@ -139,7 +139,7 @@ def test_get_genesis_beacon_state(
 
     # Randomness and committees
     assert len(state.latest_randao_mixes) == latest_randao_mixes_length
-    assert state.previous_epoch_start_shard == genesis_start_shard
+    assert state.previous_shuffling_start_shard == genesis_start_shard
     assert state.current_epoch_start_shard == genesis_start_shard
     assert state.previous_calculation_epoch == genesis_epoch
     assert state.current_calculation_epoch == genesis_epoch
