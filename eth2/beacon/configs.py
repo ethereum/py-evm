@@ -27,7 +27,7 @@ BeaconConfig = NamedTuple(
         ('LATEST_BLOCK_ROOTS_LENGTH', int),
         ('LATEST_INDEX_ROOTS_LENGTH', int),
         ('LATEST_RANDAO_MIXES_LENGTH', int),
-        ('LATEST_PENALIZED_EXIT_LENGTH', int),
+        ('LATEST_SLASHED_EXIT_LENGTH', int),
         # EMPTY_SIGNATURE is defined in constants.py
         # Deposit contract
         ('DEPOSIT_CONTRACT_ADDRESS', Address),
