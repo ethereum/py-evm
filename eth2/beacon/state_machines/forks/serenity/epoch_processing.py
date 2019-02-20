@@ -298,7 +298,7 @@ def update_validator_registry(state: BeaconState) -> BeaconState:
 def process_validator_registry(state: BeaconState,
                                config: BeaconConfig) -> BeaconState:
     state = state.copy(
-        previous_calculation_epoch=state.current_calculation_epoch,
+        previous_shuffling_epoch=state.current_calculation_epoch,
         previous_shuffling_start_shard=state.current_shuffling_start_shard,
         previous_epoch_seed=state.current_epoch_seed,
     )
