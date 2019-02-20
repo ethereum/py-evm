@@ -97,7 +97,7 @@ def get_genesis_beacon_state(*,
         current_shuffling_start_shard=genesis_start_shard,
         previous_shuffling_epoch=genesis_epoch,
         current_shuffling_epoch=genesis_epoch,
-        previous_epoch_seed=ZERO_HASH32,
+        previous_shuffling_seed=ZERO_HASH32,
         current_epoch_seed=ZERO_HASH32,
 
         # Finality

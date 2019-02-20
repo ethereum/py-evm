@@ -300,7 +300,7 @@ def process_validator_registry(state: BeaconState,
     state = state.copy(
         previous_shuffling_epoch=state.current_shuffling_epoch,
         previous_shuffling_start_shard=state.current_shuffling_start_shard,
-        previous_epoch_seed=state.current_epoch_seed,
+        previous_shuffling_seed=state.current_epoch_seed,
     )
 
     need_to_update, num_shards_in_committees = _check_if_update_validator_registry(state, config)

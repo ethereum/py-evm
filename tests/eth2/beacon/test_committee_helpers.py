@@ -332,7 +332,7 @@ def test_get_crosslink_committees_at_slot(
         slot=current_slot,
         previous_shuffling_epoch=previous_shuffling_epoch,
         current_shuffling_epoch=current_shuffling_epoch,
-        previous_epoch_seed=b'\x11' * 32,
+        previous_shuffling_seed=b'\x11' * 32,
         current_epoch_seed=b'\x22' * 32,
     )
 
@@ -382,7 +382,7 @@ def test_get_crosslink_committees_at_slot(
     next_epoch = current_epoch + 1
 
     if epoch == previous_epoch:
-        seed = state.previous_epoch_seed
+        seed = state.previous_shuffling_seed
     elif epoch == current_epoch:
         seed = state.current_epoch_seed
     elif epoch == next_epoch:

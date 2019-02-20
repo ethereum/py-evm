@@ -444,7 +444,7 @@ def test_process_validator_registry(monkeypatch,
 
     assert result_state.previous_shuffling_epoch == state.current_shuffling_epoch
     assert result_state.previous_shuffling_start_shard == state.current_shuffling_start_shard
-    assert result_state.previous_epoch_seed == state.current_epoch_seed
+    assert result_state.previous_shuffling_seed == state.current_epoch_seed
 
     if need_to_update:
         assert result_state.current_shuffling_epoch == slot_to_epoch(state_slot, epoch_length)
