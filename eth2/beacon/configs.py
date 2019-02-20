@@ -42,7 +42,7 @@ BeaconConfig = NamedTuple(
         ('GENESIS_START_SHARD', Shard),
         ('BLS_WITHDRAWAL_PREFIX_BYTE', bytes),
         # Time parameters
-        ('SLOT_DURATION', Second),
+        ('SECONDS_PER_SLOT', Second),
         ('MIN_ATTESTATION_INCLUSION_DELAY', int),
         ('EPOCH_LENGTH', int),
         ('MIN_SEED_LOOKAHEAD', int),

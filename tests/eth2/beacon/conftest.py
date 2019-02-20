@@ -480,8 +480,8 @@ def bls_withdrawal_prefix_byte():
 
 
 @pytest.fixture
-def slot_duration():
-    return SERENITY_CONFIG.SLOT_DURATION
+def seconds_per_slot():
+    return SERENITY_CONFIG.SECONDS_PER_SLOT
 
 
 @pytest.fixture
@@ -663,7 +663,7 @@ def config(
         genesis_epoch,
         genesis_start_shard,
         bls_withdrawal_prefix_byte,
-        slot_duration,
+        seconds_per_slot,
         min_attestation_inclusion_delay,
         epoch_length,
         min_seed_lookahead,
@@ -700,7 +700,7 @@ def config(
         GENESIS_EPOCH=genesis_epoch,
         GENESIS_START_SHARD=genesis_start_shard,
         BLS_WITHDRAWAL_PREFIX_BYTE=bls_withdrawal_prefix_byte,
-        SLOT_DURATION=slot_duration,
+        SECONDS_PER_SLOT=seconds_per_slot,
         MIN_ATTESTATION_INCLUSION_DELAY=min_attestation_inclusion_delay,
         EPOCH_LENGTH=epoch_length,
         MIN_SEED_LOOKAHEAD=min_seed_lookahead,

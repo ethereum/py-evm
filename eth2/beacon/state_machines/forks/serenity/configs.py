@@ -39,7 +39,7 @@ SERENITY_CONFIG = BeaconConfig(
     GENESIS_START_SHARD=Shard(0),
     BLS_WITHDRAWAL_PREFIX_BYTE=b'\x00',
     # Time parameters
-    SLOT_DURATION=Second(6),  # seconds
+    SECONDS_PER_SLOT=Second(6),  # seconds
     MIN_ATTESTATION_INCLUSION_DELAY=2**2,  # (= 4) slots
     EPOCH_LENGTH=2**6,  # (= 64) slots
     MIN_SEED_LOOKAHEAD=2**0,  # (= 1) epochs
