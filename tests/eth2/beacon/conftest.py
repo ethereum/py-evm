@@ -505,8 +505,8 @@ def activation_exit_delay():
 
 
 @pytest.fixture
-def eth1_data_voting_period():
-    return SERENITY_CONFIG.ETH1_DATA_VOTING_PERIOD
+def epochs_per_eth1_voting_period():
+    return SERENITY_CONFIG.EPOCHS_PER_ETH1_VOTING_PERIOD
 
 
 @pytest.fixture
@@ -668,7 +668,7 @@ def config(
         epoch_length,
         min_seed_lookahead,
         activation_exit_delay,
-        eth1_data_voting_period,
+        epochs_per_eth1_voting_period,
         min_validator_withdrawability_delay,
         base_reward_quotient,
         whistleblower_reward_quotient,
@@ -705,7 +705,7 @@ def config(
         EPOCH_LENGTH=epoch_length,
         MIN_SEED_LOOKAHEAD=min_seed_lookahead,
         ACTIVATION_EXIT_DELAY=activation_exit_delay,
-        ETH1_DATA_VOTING_PERIOD=eth1_data_voting_period,
+        EPOCHS_PER_ETH1_VOTING_PERIOD=epochs_per_eth1_voting_period,
         MIN_VALIDATOR_WITHDRAWABILITY_DELAY=min_validator_withdrawability_delay,
         BASE_REWARD_QUOTIENT=base_reward_quotient,
         WHISTLEBLOWER_REWARD_QUOTIENT=whistleblower_reward_quotient,
