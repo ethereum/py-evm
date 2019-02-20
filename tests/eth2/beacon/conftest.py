@@ -152,7 +152,7 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'validator_registry_update_epoch': 0,
         'latest_randao_mixes': (),
         'previous_shuffling_start_shard': 1,
-        'current_epoch_start_shard': 2,
+        'current_shuffling_start_shard': 2,
         'previous_calculation_epoch': 0,
         'current_calculation_epoch': 0,
         'previous_epoch_seed': b'\x77' * 32,

@@ -364,10 +364,10 @@ def test_get_crosslink_committees_at_slot(
 
     if registry_change:
         shuffling_start_shard = (
-            state.current_epoch_start_shard + current_committees_per_epoch
+            state.current_shuffling_start_shard + current_committees_per_epoch
         ) % shard_count
     else:
-        shuffling_start_shard = state.current_epoch_start_shard
+        shuffling_start_shard = state.current_shuffling_start_shard
         assert result_slot_start_shard == (
             shuffling_start_shard +
             committees_per_slot * offset

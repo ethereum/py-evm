@@ -280,7 +280,7 @@ def _check_if_update_validator_registry(state: BeaconState,
 
     # Get every shard in the current committees
     shards = set(
-        (state.current_epoch_start_shard + i) % config.SHARD_COUNT
+        (state.current_shuffling_start_shard + i) % config.SHARD_COUNT
         for i in range(num_shards_in_committees)
     )
     for shard in shards:
@@ -299,7 +299,7 @@ def process_validator_registry(state: BeaconState,
                                config: BeaconConfig) -> BeaconState:
     state = state.copy(
         previous_calculation_epoch=state.current_calculation_epoch,
-        previous_shuffling_start_shard=state.current_epoch_start_shard,
+        previous_shuffling_start_shard=state.current_shuffling_start_shard,
         previous_epoch_seed=state.current_epoch_seed,
     )
 
@@ -314,8 +314,8 @@ def process_validator_registry(state: BeaconState,
             current_calculation_epoch=state.next_epoch(config.EPOCH_LENGTH),
         )
         state = state.copy(
-            current_epoch_start_shard=(
-                state.current_epoch_start_shard + num_shards_in_committees
+            current_shuffling_start_shard=(
+                state.current_shuffling_start_shard + num_shards_in_committees
             ) % config.SHARD_COUNT,
         )
 
