@@ -19,6 +19,7 @@ from eth_typing import (
     Address,
     Hash32,
 )
+from eth_utils.toolz import nth
 
 from eth.constants import (
     BLANK_ROOT_HASH,
@@ -201,12 +202,16 @@ class BaseState(Configurable, ABC):
         is_ancestor_depth_out_of_range = (
             ancestor_depth >= MAX_PREV_HEADER_DEPTH or
             ancestor_depth < 0 or
-            ancestor_depth >= len(self.execution_context.prev_hashes)
+            block_number < 0
         )
         if is_ancestor_depth_out_of_range:
             return Hash32(b'')
-        ancestor_hash = self.execution_context.prev_hashes[ancestor_depth]
-        return ancestor_hash
+
+        try:
+            return nth(ancestor_depth, self.execution_context.prev_hashes)
+        except StopIteration:
+            # Ancestor with specified depth not present
+            return Hash32(b'')
 
     #
     # Computation
