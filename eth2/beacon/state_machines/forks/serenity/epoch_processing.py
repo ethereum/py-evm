@@ -35,7 +35,7 @@ from eth2.beacon.configs import (
 from eth2.beacon.epoch_processing_helpers import (
     get_base_reward,
     get_current_epoch_attestations,
-    get_inclusion_info,
+    get_inclusion_infos,
     get_previous_epoch_attestations,
     get_previous_epoch_head_attestations,
     get_winning_root,
@@ -53,6 +53,7 @@ from eth2.beacon.helpers import (
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
+from eth2.beacon.datastructures.inclusion_info import InclusionInfo
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
@@ -61,7 +62,6 @@ from eth2.beacon.typing import (
     Epoch,
     Gwei,
     Shard,
-    Slot,
     ValidatorIndex,
 )
 
@@ -300,7 +300,7 @@ def _process_rewards_and_penalties_for_finality(
         previous_epoch_attester_indices: Iterable[ValidatorIndex],
         previous_epoch_boundary_attester_indices: Iterable[ValidatorIndex],
         previous_epoch_head_attester_indices: Iterable[ValidatorIndex],
-        inclusion_distances: Dict[ValidatorIndex, int],
+        inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
         effective_balances: Dict[ValidatorIndex, Gwei],
         base_rewards: Dict[ValidatorIndex, Gwei],
         old_rewards_received: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
@@ -377,7 +377,7 @@ def _process_rewards_and_penalties_for_finality(
             reward = Gwei(
                 base_rewards[index] *
                 config.MIN_ATTESTATION_INCLUSION_DELAY //
-                inclusion_distances[index]
+                inclusion_infos[index].inclusion_distance
             )
             rewards = _update_rewards_or_penalies(index, reward, rewards)
     # epochs_since_finality > 4
@@ -427,7 +427,7 @@ def _process_rewards_and_penalties_for_finality(
             base_reward = base_rewards[index]
             penalty = Gwei(
                 base_reward -
-                base_reward * config.MIN_ATTESTATION_INCLUSION_DELAY // inclusion_distances[index]  # noqa: E501
+                base_reward * config.MIN_ATTESTATION_INCLUSION_DELAY // inclusion_infos[index].inclusion_distance  # noqa: E501
             )
             penalties = _update_rewards_or_penalies(index, penalty, penalties)
 
@@ -445,14 +445,14 @@ def _process_rewards_and_penalties_for_attestation_inclusion(
         state: BeaconState,
         config: BeaconConfig,
         previous_epoch_attester_indices: Iterable[ValidatorIndex],
-        inclusion_slots: Dict[ValidatorIndex, Slot],
+        inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
         base_rewards: Dict[ValidatorIndex, Gwei],
         old_rewards_received: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
     rewards_received = old_rewards_received.copy()
     for index in previous_epoch_attester_indices:
         proposer_index = get_beacon_proposer_index(
             state,
-            inclusion_slots[index],
+            inclusion_infos[index].inclusion_slot,
             CommitteeConfig(config),
         )
         reward = base_rewards[index] // config.ATTESTATION_INCLUSION_REWARD_QUOTIENT
@@ -587,7 +587,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     )
 
     # Compute inclusion slot/distance of previous attestations for later use.
-    inclusion_slots, inclusion_distances = get_inclusion_info(
+    inclusion_infos = get_inclusion_infos(
         state=state,
         attestations=previous_epoch_attestations,
         committee_config=CommitteeConfig(config),
@@ -631,7 +631,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         previous_epoch_attester_indices,
         previous_epoch_boundary_attester_indices,
         previous_epoch_head_attester_indices,
-        inclusion_distances,
+        inclusion_infos,
         effective_balances,
         base_rewards,
         rewards_received,
@@ -642,7 +642,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         state,
         config,
         previous_epoch_attester_indices,
-        inclusion_slots,
+        inclusion_infos,
         base_rewards,
         rewards_received_after_finality,
     )

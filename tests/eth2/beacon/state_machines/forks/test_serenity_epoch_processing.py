@@ -42,6 +42,7 @@ from eth2.beacon.epoch_processing_helpers import (
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
+from eth2.beacon.datastructures.inclusion_info import InclusionInfo
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
@@ -770,6 +771,15 @@ def test_process_rewards_and_penalties_for_finality(
     )
     previous_total_balance = len(prev_epoch_active_validator_indices) * effective_balance
 
+    attestation_slot = current_slot - slots_per_epoch
+    inclusion_infos = {
+        index: InclusionInfo(
+            attestation_slot + inclusion_distances[index],
+            attestation_slot,
+        )
+        for index in previous_epoch_attester_indices
+    }
+
     effective_balances = {
         index: effective_balance
         for index in prev_epoch_active_validator_indices
@@ -793,7 +803,7 @@ def test_process_rewards_and_penalties_for_finality(
         previous_epoch_attester_indices,
         previous_epoch_boundary_attester_indices,
         previous_epoch_head_attester_indices,
-        inclusion_distances,
+        inclusion_infos,
         effective_balances,
         base_rewards,
         rewards_received,
@@ -881,6 +891,14 @@ def test_process_rewards_and_penalties_for_attestation_inclusion(
     state = n_validators_state.copy(
         slot=current_slot,
     )
+    inclusion_infos = {
+        index: InclusionInfo(
+            inclusion_slots[index],
+            inclusion_slots[index] - config.MIN_ATTESTATION_INCLUSION_DELAY,
+        )
+        for index in previous_epoch_attester_indices
+    }
+
     base_rewards = {
         index: base_reward
         for index in previous_epoch_attester_indices
@@ -896,7 +914,7 @@ def test_process_rewards_and_penalties_for_attestation_inclusion(
         state,
         config,
         previous_epoch_attester_indices,
-        inclusion_slots,
+        inclusion_infos,
         base_rewards,
         rewards_received,
     )
