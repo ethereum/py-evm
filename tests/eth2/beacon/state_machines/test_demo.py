@@ -1,8 +1,5 @@
 import pytest
 
-from eth2.beacon.configs import CommitteeConfig
-from eth2.beacon.committee_helpers import get_beacon_proposer_index
-
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
@@ -24,10 +21,10 @@ from eth2.beacon.tools.builder.validator import (
         'slots_per_epoch,'
         'min_attestation_inclusion_delay,'
         'target_committee_size,'
-        'shard_count,'
+        'shard_count'
     ),
     [
-        (20, 4, 2, 5, 4)
+        (20, 4, 2, 2, 2)
     ]
 )
 def test_demo(base_db,
@@ -52,7 +49,8 @@ def test_demo(base_db,
     state = genesis_state
     block = genesis_block
 
-    chain_length = 5 * config.SLOTS_PER_EPOCH
+    current_slot = 1
+    chain_length = 3 * config.SLOTS_PER_EPOCH
     attestations = ()
     blocks = (block,)
     for current_slot in range(chain_length):
@@ -76,15 +74,6 @@ def test_demo(base_db,
             )
         )
 
-        proposer_index = get_beacon_proposer_index(
-            state.copy(
-                slot=current_slot,
-            ),
-            current_slot,
-            CommitteeConfig(config),
-        )
-        proposer_balance = state.validator_balances[proposer_index]
-
         # Get state machine instance
         sm = fixture_sm_class(
             chaindb,
@@ -92,35 +81,16 @@ def test_demo(base_db,
         )
         state, _ = sm.import_block(block)
 
-        # Check if proposer balance is increased after epoch transition
-        is_first_epoch = state.current_epoch(config.SLOTS_PER_EPOCH) == 0
-        is_end_of_epoch = (current_slot + 1) % config.SLOTS_PER_EPOCH == 0
-        if not is_first_epoch and is_end_of_epoch:
-            proposer_balance_after_epoch_processing = state.validator_balances[proposer_index]
-            assert proposer_balance_after_epoch_processing > proposer_balance
-
         chaindb.persist_state(state)
         chaindb.persist_block(block, SerenityBeaconBlock)
 
         blocks += (block,)
-        if current_slot >= config.MIN_ATTESTATION_INCLUSION_DELAY:
+        if current_slot > config.MIN_ATTESTATION_INCLUSION_DELAY:
             attestation_slot = current_slot - config.MIN_ATTESTATION_INCLUSION_DELAY
-            attestation_slot_epoch = attestation_slot // config.SLOTS_PER_EPOCH
-            is_attestation_in_prev_epoch = (
-                attestation_slot_epoch < state.current_epoch(config.SLOTS_PER_EPOCH)
-            )
-            # epoch transition will change `justified_epoch` so if epoch transition took place,
-            # `attestation.data.justified_epoch` should be set to `state.previous_justified_epoch`
-            is_state_after_epoch_processing = (current_slot + 1) % config.SLOTS_PER_EPOCH == 0
-            if is_attestation_in_prev_epoch or is_state_after_epoch_processing:
-                justified_epoch = state.previous_justified_epoch
-            else:
-                justified_epoch = state.justified_epoch
             attestations = create_mock_signed_attestations_at_slot(
                 state,
                 config,
                 attestation_slot,
-                justified_epoch,
                 keymap,
                 1.0,
             )
