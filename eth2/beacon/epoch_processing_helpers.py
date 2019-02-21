@@ -224,7 +224,7 @@ def get_base_reward(
     )
 
 
-def get_inclusion_info_map(
+def get_inclusion_info(
         *,
         state: 'BeaconState',
         attestations: Sequence[PendingAttestationRecord],
@@ -236,8 +236,8 @@ def get_inclusion_info_map(
     ``attestation.inclusion_slot`` is the slot during which the pending attestation is included.
     ``inclusion_distance = attestation.inclusion_slot - attestation.data.slot``
     """
-    inclusion_slot_map: Dict[ValidatorIndex, Slot] = {}
-    inclusion_distance_map: Dict[ValidatorIndex, int] = {}
+    inclusion_slots: Dict[ValidatorIndex, Slot] = {}
+    inclusion_distances: Dict[ValidatorIndex, int] = {}
     for attestation in attestations:
         participant_indices = get_attestation_participants(
             state,
@@ -247,10 +247,10 @@ def get_inclusion_info_map(
         )
         for index in participant_indices:
             should_update_inclusion_data = (
-                index not in inclusion_slot_map or
-                attestation.slot_included < inclusion_slot_map[index]
+                index not in inclusion_slots or
+                attestation.slot_included < inclusion_slots[index]
             )
             if should_update_inclusion_data:
-                inclusion_slot_map[index] = attestation.slot_included
-                inclusion_distance_map[index] = attestation.slot_included - attestation.data.slot
-    return (inclusion_slot_map, inclusion_distance_map)
+                inclusion_slots[index] = attestation.slot_included
+                inclusion_distances[index] = attestation.slot_included - attestation.data.slot
+    return (inclusion_slots, inclusion_distances)

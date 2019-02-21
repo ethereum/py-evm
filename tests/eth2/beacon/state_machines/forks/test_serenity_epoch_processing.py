@@ -663,9 +663,9 @@ def test_process_crosslinks(
         'previous_epoch_attester_indices,'
         'previous_epoch_boundary_attester_indices,'
         'previous_epoch_head_attester_indices,'
-        'inclusion_distance_map,'
+        'inclusion_distances,'
         'effective_balance,base_reward,'
-        'expected_reward_received_map'
+        'expected_rewards_received'
     ),
     [
         (
@@ -753,10 +753,10 @@ def test_process_rewards_and_penalties_for_finality(
         previous_epoch_attester_indices,
         previous_epoch_boundary_attester_indices,
         previous_epoch_head_attester_indices,
-        inclusion_distance_map,
+        inclusion_distances,
         effective_balance,
         base_reward,
-        expected_reward_received_map):
+        expected_rewards_received):
     validator_registry = n_validators_state.validator_registry
     for index in penalized_validator_indices:
         validator_record = validator_registry[index].copy(
@@ -770,22 +770,22 @@ def test_process_rewards_and_penalties_for_finality(
     )
     previous_total_balance = len(prev_epoch_active_validator_indices) * effective_balance
 
-    effective_balance_map = {
+    effective_balances = {
         index: effective_balance
         for index in prev_epoch_active_validator_indices
     }
 
-    base_reward_map = {
+    base_rewards = {
         index: base_reward
         for index in prev_epoch_active_validator_indices
     }
 
-    reward_received_map = {
+    rewards_received = {
         index: 0
         for index in range(len(state.validator_registry))
     }
 
-    reward_received_map = _process_rewards_and_penalties_for_finality(
+    rewards_received = _process_rewards_and_penalties_for_finality(
         state,
         config,
         prev_epoch_active_validator_indices,
@@ -793,14 +793,14 @@ def test_process_rewards_and_penalties_for_finality(
         previous_epoch_attester_indices,
         previous_epoch_boundary_attester_indices,
         previous_epoch_head_attester_indices,
-        inclusion_distance_map,
-        effective_balance_map,
-        base_reward_map,
-        reward_received_map,
+        inclusion_distances,
+        effective_balances,
+        base_rewards,
+        rewards_received,
     )
 
-    for index, reward_received in reward_received_map.items():
-        assert reward_received == expected_reward_received_map[index]
+    for index, reward_received in rewards_received.items():
+        assert reward_received == expected_rewards_received[index]
 
 
 @pytest.mark.parametrize(
@@ -812,9 +812,9 @@ def test_process_rewards_and_penalties_for_finality(
         'attestation_inclusion_reward_quotient,'
         'current_slot,'
         'previous_epoch_attester_indices,'
-        'inclusion_slot_map,'
+        'inclusion_slots,'
         'base_reward,'
-        'expected_reward_received_map'
+        'expected_rewards_received'
     ),
     [
         (
@@ -875,34 +875,34 @@ def test_process_rewards_and_penalties_for_attestation_inclusion(
         attestation_inclusion_reward_quotient,
         current_slot,
         previous_epoch_attester_indices,
-        inclusion_slot_map,
+        inclusion_slots,
         base_reward,
-        expected_reward_received_map):
+        expected_rewards_received):
     state = n_validators_state.copy(
         slot=current_slot,
     )
-    base_reward_map = {
+    base_rewards = {
         index: base_reward
         for index in previous_epoch_attester_indices
     }
 
-    reward_received_map = {
+    rewards_received = {
         index: 0
         for index in range(len(n_validators_state.validator_registry))
     }
 
     # Process the rewards and penalties for attestation inclusion
-    reward_received_map = _process_rewards_and_penalties_for_attestation_inclusion(
+    rewards_received = _process_rewards_and_penalties_for_attestation_inclusion(
         state,
         config,
         previous_epoch_attester_indices,
-        inclusion_slot_map,
-        base_reward_map,
-        reward_received_map,
+        inclusion_slots,
+        base_rewards,
+        rewards_received,
     )
 
-    for index, reward_received in reward_received_map.items():
-        assert reward_received == expected_reward_received_map[index]
+    for index, reward_received in rewards_received.items():
+        assert reward_received == expected_rewards_received[index]
 
 
 @settings(max_examples=1)
@@ -996,7 +996,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
         ]
     )
 
-    effective_balance_map = {
+    effective_balances = {
         index: get_effective_balance(
             state.validator_balances,
             index,
@@ -1011,7 +1011,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
     _base_reward_quotient = (
         integer_squareroot(total_active_balance) // config.BASE_REWARD_QUOTIENT
     )
-    base_reward_map = {
+    base_rewards = {
         index: get_base_reward(
             state=state,
             index=index,
@@ -1021,21 +1021,21 @@ def test_process_rewards_and_penalties_for_crosslinks(
         for index in active_validators
     }
 
-    reward_received_map = {
+    rewards_received = {
         index: 0
         for index in range(len(state.validator_registry))
     }
 
-    reward_received_map = _process_rewards_and_penalties_for_crosslinks(
+    rewards_received = _process_rewards_and_penalties_for_crosslinks(
         state,
         config,
         tuple(previous_epoch_attestations),
-        effective_balance_map,
-        base_reward_map,
-        reward_received_map,
+        effective_balances,
+        base_rewards,
+        rewards_received,
     )
 
-    expected_reward_received_map = {
+    expected_rewards_received = {
         index: 0
         for index in range(len(state.validator_registry))
     }
@@ -1054,7 +1054,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
                 base_reward_quotient=_base_reward_quotient,
                 max_deposit_amount=max_deposit_amount,
             ) * total_attesting_balance // total_committee_balance
-            expected_reward_received_map[index] += reward
+            expected_rewards_received[index] += reward
         for index in set(crosslink_committee).difference(attesting_validators):
             penalty = get_base_reward(
                 state=state,
@@ -1062,8 +1062,8 @@ def test_process_rewards_and_penalties_for_crosslinks(
                 base_reward_quotient=_base_reward_quotient,
                 max_deposit_amount=max_deposit_amount,
             )
-            expected_reward_received_map[index] -= penalty
+            expected_rewards_received[index] -= penalty
 
     # Check the rewards/penalties match
-    for index, reward_received in reward_received_map.items():
-        assert reward_received_map[index] == expected_reward_received_map[index]
+    for index, reward_received in rewards_received.items():
+        assert rewards_received[index] == expected_rewards_received[index]

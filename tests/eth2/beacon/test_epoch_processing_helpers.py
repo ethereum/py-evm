@@ -30,7 +30,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_current_epoch_attestations,
     get_epoch_boundary_attester_indices,
     get_epoch_boundary_attesting_balances,
-    get_inclusion_info_map,
+    get_inclusion_info,
     get_previous_epoch_attestations,
     get_previous_epoch_head_attestations,
     get_total_balance,
@@ -574,7 +574,7 @@ def test_get_epoch_boundary_attesting_balances(
         ),
     ]
 )
-def test_get_inclusion_info_map(
+def test_get_inclusion_info(
         monkeypatch,
         n,
         n_validators_state,
@@ -632,7 +632,7 @@ def test_get_inclusion_info_map(
         ),
     ]
 
-    result = get_inclusion_info_map(
+    result = get_inclusion_info(
         state=n_validators_state,
         attestations=previous_epoch_attestations,
         committee_config=CommitteeConfig(config),
