@@ -76,12 +76,28 @@ def test_demo(base_db,
             )
         )
 
+        proposer_index = get_beacon_proposer_index(
+            state.copy(
+                slot=current_slot,
+            ),
+            current_slot,
+            CommitteeConfig(config),
+        )
+        proposer_balance = state.validator_balances[proposer_index]
+
         # Get state machine instance
         sm = fixture_sm_class(
             chaindb,
             blocks[-1],
         )
         state, _ = sm.import_block(block)
+
+        # Check if proposer balance is increased after epoch transition
+        is_first_epoch = state.current_epoch(config.EPOCH_LENGTH) == 0
+        is_end_of_epoch = (current_slot + 1) % config.EPOCH_LENGTH == 0
+        if not is_first_epoch and is_end_of_epoch:
+            proposer_balance_after_epoch_processing = state.validator_balances[proposer_index]
+            assert proposer_balance_after_epoch_processing > proposer_balance
 
         chaindb.persist_state(state)
         chaindb.persist_block(block, SerenityBeaconBlock)
