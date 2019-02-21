@@ -76,12 +76,12 @@ def get_previous_epoch_attestations(
 @to_tuple
 def get_previous_epoch_head_attestations(
         state: 'BeaconState',
-        epoch_length: int,
-        genesis_epoch: EpochNumber,
+        slots_per_epoch: int,
+        genesis_epoch: Epoch,
         latest_block_roots_length: int) -> Iterable[PendingAttestationRecord]:
     previous_epoch_attestations = get_previous_epoch_attestations(
         state,
-        epoch_length,
+        slots_per_epoch,
         genesis_epoch,
     )
     for attestation in previous_epoch_attestations:

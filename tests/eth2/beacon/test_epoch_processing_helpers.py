@@ -127,7 +127,7 @@ def test_get_current_and_previous_epoch_attestations(random,
 @given(random=st.randoms())
 @pytest.mark.parametrize(
     (
-        'epoch_length,latest_block_roots_length,'
+        'slots_per_epoch,latest_block_roots_length,'
     ),
     [
         (10, 100),
@@ -137,23 +137,23 @@ def test_get_previous_epoch_head_attestations(
         random,
         sample_state,
         genesis_epoch,
-        epoch_length,
+        slots_per_epoch,
         latest_block_roots_length,
         sample_attestation_data_params,
         sample_attestation_params):
     previous_epoch = 9
     current_epoch = previous_epoch + 1
-    current_slot = get_epoch_start_slot(current_epoch + 1, epoch_length) - 1
+    current_slot = get_epoch_start_slot(current_epoch + 1, slots_per_epoch) - 1
     latest_block_roots = [
         hash_eth2(b'block_root' + i.to_bytes(1, 'big'))
         for i in range(latest_block_roots_length)
     ]
 
-    num_previous_epoch_attestation = random.sample(range(epoch_length), 1)[0]
+    num_previous_epoch_attestation = random.sample(range(slots_per_epoch), 1)[0]
     previous_epoch_attestion_slots = random.sample(
         range(
-            get_epoch_start_slot(previous_epoch, epoch_length),
-            get_epoch_start_slot(current_epoch, epoch_length),
+            get_epoch_start_slot(previous_epoch, slots_per_epoch),
+            get_epoch_start_slot(current_epoch, slots_per_epoch),
         ),
         num_previous_epoch_attestation,
     )
@@ -195,7 +195,7 @@ def test_get_previous_epoch_head_attestations(
 
     result = get_previous_epoch_head_attestations(
         state,
-        epoch_length,
+        slots_per_epoch,
         genesis_epoch,
         latest_block_roots_length,
     )
@@ -557,7 +557,7 @@ def test_get_epoch_boundary_attesting_balances(
 @pytest.mark.parametrize(
     (
         'n,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'target_committee_size,'
         'attestation_1_inclusion_slot,attestation_1_data_slot,'
         'attestation_2_inclusion_slot,attestation_2_data_slot,'
@@ -579,7 +579,7 @@ def test_get_inclusion_info(
         n,
         n_validators_state,
         config,
-        epoch_length,
+        slots_per_epoch,
         target_committee_size,
         shard_count,
         attestation_1_inclusion_slot,

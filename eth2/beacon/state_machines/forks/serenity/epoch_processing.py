@@ -309,7 +309,7 @@ def _process_rewards_and_penalties_for_finality(
         for index in old_rewards_received
     }
     penalties = rewards.copy()
-    epochs_since_finality = state.next_epoch(config.EPOCH_LENGTH) - state.finalized_epoch
+    epochs_since_finality = state.next_epoch(config.SLOTS_PER_EPOCH) - state.finalized_epoch
     if epochs_since_finality <= 4:
         # 1.1 Expected FFG source:
         previous_epoch_attesting_balance = sum(
@@ -412,7 +412,7 @@ def _process_rewards_and_penalties_for_finality(
         # Punish penalized active validators
         for index in prev_epoch_active_validator_indices:
             slashed_epoch = state.validator_registry[index].slashed_epoch
-            if slashed_epoch <= state.current_epoch(config.EPOCH_LENGTH):
+            if slashed_epoch <= state.current_epoch(config.SLOTS_PER_EPOCH):
                 base_reward = base_rewards[index]
                 inactivity_penalty = base_reward + (
                     effective_balances[index] *
@@ -445,14 +445,14 @@ def _process_rewards_and_penalties_for_attestation_inclusion(
         state: BeaconState,
         config: BeaconConfig,
         previous_epoch_attester_indices: Iterable[ValidatorIndex],
-        inclusion_slot: Dict[ValidatorIndex, SlotNumber],
+        inclusion_slots: Dict[ValidatorIndex, Slot],
         base_rewards: Dict[ValidatorIndex, Gwei],
         old_rewards_received: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
     rewards_received = old_rewards_received.copy()
     for index in previous_epoch_attester_indices:
         proposer_index = get_beacon_proposer_index(
             state,
-            inclusion_slot[index],
+            inclusion_slots[index],
             CommitteeConfig(config),
         )
         reward = base_rewards[index] // config.ATTESTATION_INCLUSION_REWARD_QUOTIENT
@@ -469,15 +469,15 @@ def _process_rewards_and_penalties_for_crosslinks(
         old_rewards_received: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
     rewards_received = old_rewards_received.copy()
     previous_epoch_start_slot = get_epoch_start_slot(
-        state.previous_epoch(config.EPOCH_LENGTH, config.GENESIS_EPOCH),
-        config.EPOCH_LENGTH,
+        state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
+        config.SLOTS_PER_EPOCH,
     )
     current_epoch_start_slot = get_epoch_start_slot(
-        state.current_epoch(config.EPOCH_LENGTH),
-        config.EPOCH_LENGTH,
+        state.current_epoch(config.SLOTS_PER_EPOCH),
+        config.SLOTS_PER_EPOCH,
     )
     # Also need current epoch attestations to compute the winning root.
-    current_epoch_attestations = get_current_epoch_attestations(state, config.EPOCH_LENGTH)
+    current_epoch_attestations = get_current_epoch_attestations(state, config.SLOTS_PER_EPOCH)
     for slot in range(previous_epoch_start_slot, current_epoch_start_slot):
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
             state,
@@ -530,7 +530,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     prev_epoch_active_validator_indices = set(
         get_active_validator_indices(
             state.validator_registry,
-            state.previous_epoch(config.EPOCH_LENGTH, config.GENESIS_EPOCH)
+            state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
         )
     )
     previous_total_balance: Gwei = get_total_balance(
@@ -543,7 +543,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     # for later use.
     previous_epoch_attestations = get_previous_epoch_attestations(
         state,
-        config.EPOCH_LENGTH,
+        config.SLOTS_PER_EPOCH,
         config.GENESIS_EPOCH,
     )
     previous_epoch_attester_indices = get_attester_indices_from_attesttion(
@@ -560,8 +560,8 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         if a.data.epoch_boundary_root == get_block_root(
             state,
             get_epoch_start_slot(
-                state.previous_epoch(config.EPOCH_LENGTH, config.GENESIS_EPOCH),
-                config.EPOCH_LENGTH,
+                state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
+                config.SLOTS_PER_EPOCH,
             ),
             config.LATEST_BLOCK_ROOTS_LENGTH,
         )
@@ -576,7 +576,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     # for later use.
     previous_epoch_head_attestations = get_previous_epoch_head_attestations(
         state,
-        config.EPOCH_LENGTH,
+        config.SLOTS_PER_EPOCH,
         config.GENESIS_EPOCH,
         config.LATEST_BLOCK_ROOTS_LENGTH,
     )
@@ -587,7 +587,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     )
 
     # Compute inclusion slot/distance of previous attestations for later use.
-    inclusion_slot, inclusion_distances = get_inclusion_info(
+    inclusion_slots, inclusion_distances = get_inclusion_info(
         state=state,
         attestations=previous_epoch_attestations,
         committee_config=CommitteeConfig(config),
@@ -642,7 +642,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         state,
         config,
         previous_epoch_attester_indices,
-        inclusion_slot,
+        inclusion_slots,
         base_rewards,
         rewards_received_after_finality,
     )

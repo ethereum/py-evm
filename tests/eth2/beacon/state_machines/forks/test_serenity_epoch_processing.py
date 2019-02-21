@@ -652,7 +652,7 @@ def test_process_crosslinks(
 @pytest.mark.parametrize(
     (
         'n,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
         'min_attestation_inclusion_delay,'
@@ -741,7 +741,7 @@ def test_process_crosslinks(
 def test_process_rewards_and_penalties_for_finality(
         n_validators_state,
         config,
-        epoch_length,
+        slots_per_epoch,
         target_committee_size,
         shard_count,
         min_attestation_inclusion_delay,
@@ -760,7 +760,7 @@ def test_process_rewards_and_penalties_for_finality(
     validator_registry = n_validators_state.validator_registry
     for index in penalized_validator_indices:
         validator_record = validator_registry[index].copy(
-            slashed_epoch=slot_to_epoch(current_slot, epoch_length),
+            slashed_epoch=slot_to_epoch(current_slot, slots_per_epoch),
         )
         validator_registry = update_tuple_item(validator_registry, index, validator_record)
     state = n_validators_state.copy(
@@ -806,7 +806,7 @@ def test_process_rewards_and_penalties_for_finality(
 @pytest.mark.parametrize(
     (
         'n,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
         'attestation_inclusion_reward_quotient,'
@@ -869,7 +869,7 @@ def test_process_rewards_and_penalties_for_finality(
 def test_process_rewards_and_penalties_for_attestation_inclusion(
         n_validators_state,
         config,
-        epoch_length,
+        slots_per_epoch,
         target_committee_size,
         shard_count,
         attestation_inclusion_reward_quotient,
@@ -910,7 +910,7 @@ def test_process_rewards_and_penalties_for_attestation_inclusion(
 @pytest.mark.parametrize(
     (
         'n,'
-        'epoch_length,'
+        'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
         'current_slot,'
@@ -939,7 +939,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
         random,
         n_validators_state,
         config,
-        epoch_length,
+        slots_per_epoch,
         target_committee_size,
         shard_count,
         current_slot,
@@ -948,25 +948,25 @@ def test_process_rewards_and_penalties_for_crosslinks(
         min_attestation_inclusion_delay,
         sample_attestation_data_params,
         sample_pending_attestation_record_params):
-    previous_epoch = current_slot // epoch_length - 1
+    previous_epoch = current_slot // slots_per_epoch - 1
     state = n_validators_state.copy(
         slot=current_slot,
     )
     # Compute previous epoch committees
-    prev_epoch_start_slot = get_epoch_start_slot(previous_epoch, epoch_length)
+    prev_epoch_start_slot = get_epoch_start_slot(previous_epoch, slots_per_epoch)
     prev_epoch_crosslink_committees = [
         get_crosslink_committees_at_slot(
             state,
             slot,
             CommitteeConfig(config),
-        )[0] for slot in range(prev_epoch_start_slot, prev_epoch_start_slot + epoch_length)
+        )[0] for slot in range(prev_epoch_start_slot, prev_epoch_start_slot + slots_per_epoch)
     ]
 
     # Record which validators attest during each slot for reward collation.
     each_slot_attestion_validators_list = []
 
     previous_epoch_attestations = []
-    for i in range(epoch_length):
+    for i in range(slots_per_epoch):
         committee, shard = prev_epoch_crosslink_committees[i]
         # Randomly sample `num_attesting_validators` validators
         # from the committee to attest in this slot.
@@ -978,7 +978,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
         participants_bitfield = get_empty_bitfield(target_committee_size)
         for index in shard_block_root_attesting_validators:
             participants_bitfield = set_voted(participants_bitfield, committee.index(index))
-        data_slot = i + previous_epoch * epoch_length
+        data_slot = i + previous_epoch * slots_per_epoch
         previous_epoch_attestations.append(
             PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
                 data=AttestationData(**sample_attestation_data_params).copy(
@@ -1039,7 +1039,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
         index: 0
         for index in range(len(state.validator_registry))
     }
-    for i in range(epoch_length):
+    for i in range(slots_per_epoch):
         crosslink_committee, shard = prev_epoch_crosslink_committees[i]
         attesting_validators = each_slot_attestion_validators_list[i]
         total_attesting_balance = len(attesting_validators) * validator_balance

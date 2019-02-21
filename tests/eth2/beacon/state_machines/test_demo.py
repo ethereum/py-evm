@@ -93,8 +93,8 @@ def test_demo(base_db,
         state, _ = sm.import_block(block)
 
         # Check if proposer balance is increased after epoch transition
-        is_first_epoch = state.current_epoch(config.EPOCH_LENGTH) == 0
-        is_end_of_epoch = (current_slot + 1) % config.EPOCH_LENGTH == 0
+        is_first_epoch = state.current_epoch(config.SLOTS_PER_EPOCH) == 0
+        is_end_of_epoch = (current_slot + 1) % config.SLOTS_PER_EPOCH == 0
         if not is_first_epoch and is_end_of_epoch:
             proposer_balance_after_epoch_processing = state.validator_balances[proposer_index]
             assert proposer_balance_after_epoch_processing > proposer_balance
@@ -105,12 +105,13 @@ def test_demo(base_db,
         blocks += (block,)
         if current_slot >= config.MIN_ATTESTATION_INCLUSION_DELAY:
             attestation_slot = current_slot - config.MIN_ATTESTATION_INCLUSION_DELAY
+            attestation_slot_epoch = attestation_slot // config.SLOTS_PER_EPOCH
             is_attestation_in_prev_epoch = (
-                attestation_slot // config.EPOCH_LENGTH < state.current_epoch(config.EPOCH_LENGTH)
+                attestation_slot_epoch < state.current_epoch(config.SLOTS_PER_EPOCH)
             )
             # epoch transition will change `justified_epoch` so if epoch transition took place,
             # `attestation.data.justified_epoch` should be set to `state.previous_justified_epoch`
-            is_state_after_epoch_processing = (current_slot + 1) % config.EPOCH_LENGTH == 0
+            is_state_after_epoch_processing = (current_slot + 1) % config.SLOTS_PER_EPOCH == 0
             if is_attestation_in_prev_epoch or is_state_after_epoch_processing:
                 justified_epoch = state.previous_justified_epoch
             else:

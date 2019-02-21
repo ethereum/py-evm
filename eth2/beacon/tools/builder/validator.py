@@ -300,7 +300,7 @@ def create_mock_signed_attestations_at_slot(
         state: BeaconState,
         config: BeaconConfig,
         attestation_slot: Slot,
-        justified_epoch: EpochNumber,
+        justified_epoch: Epoch,
         keymap: Dict[BLSPubkey, int],
         voted_attesters_ratio: float=1.0) -> Iterable[Attestation]:
     """
@@ -321,8 +321,8 @@ def create_mock_signed_attestations_at_slot(
     epoch_boundary_root = get_block_root(
         state,
         get_epoch_start_slot(
-            max(slot_to_epoch(attestation_slot, config.EPOCH_LENGTH), 0),
-            config.EPOCH_LENGTH,
+            max(slot_to_epoch(attestation_slot, config.SLOTS_PER_EPOCH), 0),
+            config.SLOTS_PER_EPOCH,
         ),
         config.LATEST_BLOCK_ROOTS_LENGTH,
     )
