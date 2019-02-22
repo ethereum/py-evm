@@ -6,6 +6,11 @@ from typing import (
     Tuple,
 )
 
+from cytoolz import (
+    curry,
+    pipe,
+)
+
 from eth_utils import (
     to_dict,
     to_tuple,
@@ -314,7 +319,9 @@ def _apply_rewards_and_penalties(
     return rewards_received, penalties_received
 
 
+@curry
 def _process_rewards_and_penalties_for_finality(
+        old_rewards_received: Dict[ValidatorIndex, Gwei],
         state: BeaconState,
         config: BeaconConfig,
         prev_epoch_active_validator_indices: Set[ValidatorIndex],
@@ -324,8 +331,7 @@ def _process_rewards_and_penalties_for_finality(
         previous_epoch_head_attester_indices: Iterable[ValidatorIndex],
         inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
         effective_balances: Dict[ValidatorIndex, Gwei],
-        base_rewards: Dict[ValidatorIndex, Gwei],
-        old_rewards_received: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
+        base_rewards: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
     rewards_received = {
         index: Gwei(0)
         for index in old_rewards_received
@@ -548,13 +554,14 @@ def _process_rewards_and_penalties_for_finality(
     return historical_rewards_received
 
 
+@curry
 def _process_rewards_and_penalties_for_attestation_inclusion(
+        old_rewards_received: Dict[ValidatorIndex, Gwei],
         state: BeaconState,
         config: BeaconConfig,
         previous_epoch_attester_indices: Iterable[ValidatorIndex],
         inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
-        base_rewards: Dict[ValidatorIndex, Gwei],
-        old_rewards_received: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
+        base_rewards: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
     rewards_received = old_rewards_received.copy()
     for index in previous_epoch_attester_indices:
         proposer_index = get_beacon_proposer_index(
@@ -567,13 +574,14 @@ def _process_rewards_and_penalties_for_attestation_inclusion(
     return rewards_received
 
 
+@curry
 def _process_rewards_and_penalties_for_crosslinks(
+        old_rewards_received: Dict[ValidatorIndex, Gwei],
         state: BeaconState,
         config: BeaconConfig,
         previous_epoch_attestations: Iterable[PendingAttestationRecord],
         effective_balances: Dict[ValidatorIndex, Gwei],
-        base_rewards: Dict[ValidatorIndex, Gwei],
-        old_rewards_received: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
+        base_rewards: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
     rewards_received = old_rewards_received.copy()
     previous_epoch_start_slot = get_epoch_start_slot(
         state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
@@ -730,38 +738,34 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     }
 
     # 1. Process rewards and penalties for justification and finalization
-    rewards_received_after_finality = _process_rewards_and_penalties_for_finality(
-        state,
-        config,
-        prev_epoch_active_validator_indices,
-        previous_total_balance,
-        previous_epoch_attester_indices,
-        previous_epoch_boundary_attester_indices,
-        previous_epoch_head_attester_indices,
-        inclusion_infos,
-        effective_balances,
-        base_rewards,
+    rewards_received = pipe(
         rewards_received,
-    )
-
-    # 2. Process rewards and penalties for attestation inclusion
-    rewards_received_after_inclusion = _process_rewards_and_penalties_for_attestation_inclusion(
-        state,
-        config,
-        previous_epoch_attester_indices,
-        inclusion_infos,
-        base_rewards,
-        rewards_received_after_finality,
-    )
-
-    # 3. Process rewards and penalties for crosslinks
-    rewards_received_after_crosslinks = _process_rewards_and_penalties_for_crosslinks(
-        state,
-        config,
-        previous_epoch_attestations,
-        effective_balances,
-        base_rewards,
-        rewards_received_after_inclusion,
+        _process_rewards_and_penalties_for_finality(
+            state=state,
+            config=config,
+            prev_epoch_active_validator_indices=prev_epoch_active_validator_indices,
+            previous_total_balance=previous_total_balance,
+            previous_epoch_attester_indices=previous_epoch_attester_indices,
+            previous_epoch_boundary_attester_indices=previous_epoch_boundary_attester_indices,
+            previous_epoch_head_attester_indices=previous_epoch_head_attester_indices,
+            inclusion_infos=inclusion_infos,
+            effective_balances=effective_balances,
+            base_rewards=base_rewards,
+        ),
+        _process_rewards_and_penalties_for_attestation_inclusion(
+            state=state,
+            config=config,
+            previous_epoch_attester_indices=previous_epoch_attester_indices,
+            inclusion_infos=inclusion_infos,
+            base_rewards=base_rewards,
+        ),
+        _process_rewards_and_penalties_for_crosslinks(
+            state=state,
+            config=config,
+            previous_epoch_attestations=previous_epoch_attestations,
+            effective_balances=effective_balances,
+            base_rewards=base_rewards,
+        )
     )
 
     # Apply the overall rewards/penalties
@@ -769,7 +773,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         state = state.update_validator_balance(
             index,
             # Prevent validator balance under flow
-            max(state.validator_balances[index] + rewards_received_after_crosslinks[index], 0),
+            max(state.validator_balances[index] + rewards_received[index], 0),
         )
 
     return state

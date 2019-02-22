@@ -796,6 +796,7 @@ def test_process_rewards_and_penalties_for_finality(
     }
 
     rewards_received = _process_rewards_and_penalties_for_finality(
+        rewards_received,
         state,
         config,
         prev_epoch_active_validator_indices,
@@ -806,7 +807,6 @@ def test_process_rewards_and_penalties_for_finality(
         inclusion_infos,
         effective_balances,
         base_rewards,
-        rewards_received,
     )
 
     for index, reward_received in rewards_received.items():
@@ -911,12 +911,12 @@ def test_process_rewards_and_penalties_for_attestation_inclusion(
 
     # Process the rewards and penalties for attestation inclusion
     rewards_received = _process_rewards_and_penalties_for_attestation_inclusion(
+        rewards_received,
         state,
         config,
         previous_epoch_attester_indices,
         inclusion_infos,
         base_rewards,
-        rewards_received,
     )
 
     for index, reward_received in rewards_received.items():
@@ -1045,12 +1045,12 @@ def test_process_rewards_and_penalties_for_crosslinks(
     }
 
     rewards_received = _process_rewards_and_penalties_for_crosslinks(
+        rewards_received,
         state,
         config,
         tuple(previous_epoch_attestations),
         effective_balances,
         base_rewards,
-        rewards_received,
     )
 
     expected_rewards_received = {
