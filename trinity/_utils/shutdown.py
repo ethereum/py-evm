@@ -7,16 +7,17 @@ from typing import (
     AsyncGenerator,
 )
 
-from lahja import (
-    Endpoint,
-)
-
 from p2p.service import (
     BaseService,
 )
 
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
+)
 
-async def exit_with_service_and_endpoint(service_to_exit: BaseService, endpoint: Endpoint) -> None:
+
+async def exit_with_service_and_endpoint(service_to_exit: BaseService,
+                                         endpoint: TrinityEventBusEndpoint) -> None:
     async with exit_signal_with_service(service_to_exit):
         endpoint.stop()
 

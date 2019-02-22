@@ -27,14 +27,14 @@ from eth_utils import (
     to_tuple,
     ValidationError,
 )
-from lahja import (
-    Endpoint,
-)
 
 from trinity.constants import (
     SYNC_FAST,
     SYNC_FULL,
     SYNC_LIGHT,
+)
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
 )
 from trinity.extensibility.events import (
     ResourceAvailableEvent,
@@ -55,9 +55,6 @@ from trinity.sync.full.service import (
 )
 from trinity.sync.light.chain import (
     LightChainSyncer,
-)
-from trinity._utils.lahja_helper import (
-    request_shutdown,
 )
 
 
@@ -221,7 +218,7 @@ class SyncerPlugin(BaseAsyncStopPlugin):
         for strategy in self.strategies:
             yield type(strategy)
 
-    def on_ready(self, manager_eventbus: Endpoint) -> None:
+    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
         for strategy in self.strategies:
             if strategy.get_sync_mode().lower() == self.context.args.sync_mode.lower():
                 if self.active_strategy is not None:
@@ -265,4 +262,4 @@ class SyncerPlugin(BaseAsyncStopPlugin):
 
         if self.active_strategy.shutdown_node_on_halt:
             self.logger.error("Sync ended unexpectedly. Shutting down trinity")
-            request_shutdown(self.event_bus, "Sync ended unexpectedly")
+            self.event_bus.request_shutdown("Sync ended unexpectedly")

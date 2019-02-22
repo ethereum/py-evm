@@ -11,8 +11,6 @@ from typing import (
 
 from lahja import (
     ConnectionConfig,
-    BroadcastConfig,
-    Endpoint,
 )
 
 from eth.db.backends.base import BaseDB
@@ -38,9 +36,11 @@ from trinity.constants import (
 from trinity.db.eth1.manager import (
     create_db_server_manager,
 )
+from trinity.endpoint import (
+    TrinityMainEventBusEndpoint,
+    TrinityEventBusEndpoint,
+)
 from trinity.events import (
-    EventBusConnected,
-    AvailableEndpointsUpdated,
     ShutdownRequest,
 )
 from trinity.extensibility import (
@@ -59,9 +59,6 @@ from trinity.plugins.registry import (
 from trinity._utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
-)
-from trinity._utils.lahja_helper import (
-    connect_to_other_endpoints,
 )
 from trinity._utils.logging import (
     with_queued_logging,
@@ -93,7 +90,7 @@ def trinity_boot(args: Namespace,
                  extra_kwargs: Dict[str, Any],
                  plugin_manager: PluginManager,
                  listener: logging.handlers.QueueListener,
-                 main_endpoint: Endpoint,
+                 main_endpoint: TrinityMainEventBusEndpoint,
                  logger: logging.Logger) -> None:
     # start the listener thread to handle logs produced by other processes in
     # the local logger.
@@ -164,7 +161,7 @@ def trinity_boot(args: Namespace,
 def launch_node(args: Namespace, trinity_config: TrinityConfig) -> None:
     with trinity_config.process_id_file('networking'):
 
-        endpoint = Endpoint()
+        endpoint = TrinityEventBusEndpoint()
         NodeClass = trinity_config.get_app_config(Eth1AppConfig).node_class
         node = NodeClass(endpoint, trinity_config)
         # The `networking` process creates a process pool executor to offload cpu intensive
@@ -180,18 +177,14 @@ def launch_node(args: Namespace, trinity_config: TrinityConfig) -> None:
             networking_connection_config,
             loop,
         )
-        logger = logging.getLogger("trinity.main.launch_node")
-        endpoint.subscribe(AvailableEndpointsUpdated, connect_to_other_endpoints(logger, endpoint))
+        endpoint.auto_connect_new_announced_endpoints()
         endpoint.connect_to_endpoints_blocking(
             ConnectionConfig.from_name(MAIN_EVENTBUS_ENDPOINT, trinity_config.ipc_dir),
             # Plugins that run within the networking process broadcast and receive on the
             # the same endpoint
             networking_connection_config,
         )
-        endpoint.broadcast(
-            EventBusConnected(networking_connection_config),
-            BroadcastConfig(filter_endpoint=MAIN_EVENTBUS_ENDPOINT)
-        )
+        endpoint.announce_endpoint()
         # This is a second PluginManager instance governing plugins in a shared process.
         plugin_manager = setup_plugins(SharedProcessScope(endpoint), get_all_plugins())
         plugin_manager.prepare(args, trinity_config)
@@ -216,7 +209,7 @@ def run_database_process(trinity_config: TrinityConfig, db_class: Type[BaseDB]) 
 
 async def handle_networking_exit(service: BaseService,
                                  plugin_manager: PluginManager,
-                                 endpoint: Endpoint) -> None:
+                                 endpoint: TrinityEventBusEndpoint) -> None:
 
     async with exit_signal_with_service(service):
         await plugin_manager.shutdown()

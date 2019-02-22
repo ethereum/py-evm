@@ -5,7 +5,6 @@ from multiprocessing.managers import (
 )
 
 from lahja import (
-    Endpoint,
     BroadcastConfig,
 )
 
@@ -27,12 +26,13 @@ from trinity.config import (
     ChainConfig,
     TrinityConfig,
 )
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
+)
 from trinity.extensibility.events import (
     ResourceAvailableEvent
 )
-from trinity._utils.lahja_helper import (
-    request_shutdown,
-)
+
 from .events import (
     NetworkIdRequest,
     NetworkIdResponse,
@@ -46,7 +46,7 @@ class Node(BaseService):
     """
     _full_chain: FullChain = None
 
-    def __init__(self, event_bus: Endpoint, trinity_config: TrinityConfig) -> None:
+    def __init__(self, event_bus: TrinityEventBusEndpoint, trinity_config: TrinityConfig) -> None:
         super().__init__()
         self.trinity_config = trinity_config
         self._db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
@@ -156,4 +156,4 @@ class Node(BaseService):
         await self.cancellation()
 
     async def _cleanup(self) -> None:
-        request_shutdown(self.event_bus, "Node finished unexpectedly")
+        self.event_bus.request_shutdown("Node finished unexpectedly")

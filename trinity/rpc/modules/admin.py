@@ -1,14 +1,15 @@
-from lahja import Endpoint
 
 from p2p.events import ConnectToNodeCommand
+
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
+from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.rpc.modules import BaseRPCModule
 from trinity._utils.validation import validate_enode_uri
 
 
 class Admin(BaseRPCModule):
 
-    def __init__(self, event_bus: Endpoint) -> None:
+    def __init__(self, event_bus: TrinityEventBusEndpoint) -> None:
         self.event_bus = event_bus
 
     @property

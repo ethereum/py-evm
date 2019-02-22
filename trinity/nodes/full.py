@@ -1,12 +1,11 @@
 from typing import Type
 
-from lahja import Endpoint
-
 from p2p.peer_pool import BasePeerPool
 from p2p.persistence import SQLitePeerInfo
 
 from trinity.chains.full import FullChain
 from trinity.config import TrinityConfig, Eth1AppConfig
+from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.server import FullServer
 
 from .base import Node
@@ -16,7 +15,7 @@ class FullNode(Node):
     _chain: FullChain = None
     _p2p_server: FullServer = None
 
-    def __init__(self, event_bus: Endpoint, trinity_config: TrinityConfig) -> None:
+    def __init__(self, event_bus: TrinityEventBusEndpoint, trinity_config: TrinityConfig) -> None:
         super().__init__(event_bus, trinity_config)
         self._bootstrap_nodes = trinity_config.bootstrap_nodes
         self._preferred_nodes = trinity_config.preferred_nodes

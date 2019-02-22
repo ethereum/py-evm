@@ -8,6 +8,7 @@ from trinity.extensibility.plugin import (  # noqa: F401
     BasePlugin,
     DebugPlugin,
     PluginContext,
+    PluginStatus,
     TrinityBootInfo,
 )
 from trinity.extensibility.plugin_manager import (  # noqa: F401

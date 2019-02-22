@@ -6,12 +6,12 @@ from typing import (
 from eth.chains.base import (
     BaseChain
 )
-from lahja import (
-    Endpoint,
-)
 
 from trinity.constants import (
     SYNC_LIGHT
+)
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
 )
 from trinity.extensibility import (
     BaseAsyncStopPlugin,
@@ -43,7 +43,7 @@ class LightPeerChainBridgePlugin(BaseAsyncStopPlugin):
     def name(self) -> str:
         return "LightPeerChain Bridge"
 
-    def on_ready(self, manager_eventbus: Endpoint) -> None:
+    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
         if self.context.args.sync_mode != SYNC_LIGHT:
             return
 

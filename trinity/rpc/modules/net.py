@@ -1,14 +1,13 @@
-from lahja import Endpoint
-
 from p2p.events import PeerCountRequest
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
+from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.nodes.events import NetworkIdRequest
 from trinity.rpc.modules import BaseRPCModule
 
 
 class Net(BaseRPCModule):
 
-    def __init__(self, event_bus: Endpoint):
+    def __init__(self, event_bus: TrinityEventBusEndpoint):
         self.event_bus = event_bus
 
     @property

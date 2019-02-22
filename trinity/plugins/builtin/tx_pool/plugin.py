@@ -15,14 +15,14 @@ from eth.chains.mainnet import (
 from eth.chains.ropsten import (
     BYZANTIUM_ROPSTEN_BLOCK,
 )
-from lahja import (
-    Endpoint,
-)
 
 from trinity.constants import (
     SYNC_LIGHT,
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
+)
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
 )
 from trinity.extensibility import (
     BaseAsyncStopPlugin,
@@ -37,9 +37,6 @@ from trinity.plugins.builtin.tx_pool.validators import (
     DefaultTransactionValidator
 )
 from trinity.protocol.eth.peer import ETHPeerPool
-from trinity._utils.lahja_helper import (
-    request_shutdown,
-)
 
 
 class TxPlugin(BaseAsyncStopPlugin):
@@ -60,7 +57,7 @@ class TxPlugin(BaseAsyncStopPlugin):
             help="Enables the Transaction Pool (experimental)",
         )
 
-    def on_ready(self, manager_eventbus: Endpoint) -> None:
+    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
 
         light_mode = self.context.args.sync_mode == SYNC_LIGHT
         self.is_enabled = self.context.args.tx_pool and not light_mode
@@ -70,7 +67,7 @@ class TxPlugin(BaseAsyncStopPlugin):
         if unsupported:
             unsupported_msg = "Transaction pool not available in light mode"
             self.logger.error(unsupported_msg)
-            request_shutdown(manager_eventbus, unsupported_msg)
+            manager_eventbus.request_shutdown(unsupported_msg)
 
         self.event_bus.subscribe(ResourceAvailableEvent, self.handle_event)
 

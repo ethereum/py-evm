@@ -25,7 +25,6 @@ from eth.vm.forks.spurious_dragon import SpuriousDragonVM
 
 from lahja import (
     ConnectionConfig,
-    Endpoint,
 )
 
 from trinity.config import (
@@ -37,6 +36,9 @@ from trinity.constants import (
 )
 from trinity.chains.coro import (
     AsyncChainMixin,
+)
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
 )
 from trinity.initialization import (
     ensure_eth1_dirs,
@@ -126,7 +128,7 @@ def async_process_runner(event_loop):
 
 @pytest.fixture(scope='module')
 async def event_bus(event_loop):
-    endpoint = Endpoint()
+    endpoint = TrinityEventBusEndpoint()
     # Tests run concurrently, therefore we need unique IPC paths
     ipc_path = Path(f"networking-{uuid.uuid4()}.ipc")
     networking_connection_config = ConnectionConfig(

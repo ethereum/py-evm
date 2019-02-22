@@ -7,13 +7,11 @@ from typing import (
     Callable,
     Dict,
     Iterable,
-    Tuple,
     Type,
 )
 
 from lahja import (
     ConnectionConfig,
-    Endpoint,
 )
 
 from trinity.exceptions import (
@@ -37,9 +35,8 @@ from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT,
     ROPSTEN_NETWORK_ID,
 )
-from trinity.events import (
-    EventBusConnected,
-    AvailableEndpointsUpdated,
+from trinity.endpoint import (
+    TrinityMainEventBusEndpoint,
 )
 from trinity.extensibility import (
     BasePlugin,
@@ -95,7 +92,7 @@ BootFn = Callable[[
     Dict[str, Any],
     PluginManager,
     logging.handlers.QueueListener,
-    Endpoint,
+    TrinityMainEventBusEndpoint,
     logging.Logger
 ], None]
 
@@ -105,7 +102,7 @@ def main_entry(trinity_boot: BootFn,
                plugins: Iterable[BasePlugin],
                sub_configs: Iterable[Type[BaseAppConfig]]) -> None:
 
-    main_endpoint = Endpoint()
+    main_endpoint = TrinityMainEventBusEndpoint()
 
     plugin_manager = setup_plugins(
         MainAndIsolatedProcessScope(main_endpoint),
@@ -144,30 +141,7 @@ def main_entry(trinity_boot: BootFn,
     if args.log_levels:
         setup_log_levels(args.log_levels)
 
-    connected_endpoints: Tuple[ConnectionConfig, ...] = tuple()
-
-    def handle_new_endpoints(ev: EventBusConnected) -> None:
-        # In a perfect world, we should only reach this code once for every endpoint.
-        # However, we check `is_connected_to` here as a safe guard because theoretically
-        # it could happen that a (buggy, malicious) plugin raises the `EventBusConnected`
-        # event multiple times which would then raise an exception if we are already connected
-        # to that endpoint.
-        if not main_endpoint.is_connected_to(ev.connection_config.name):
-            stderr_logger.info(
-                "EventBus of main process connecting to EventBus %s", ev.connection_config.name
-            )
-            main_endpoint.connect_to_endpoints_blocking(ev.connection_config)
-
-        nonlocal connected_endpoints
-        connected_endpoints = connected_endpoints + (ev.connection_config,)
-        stderr_logger.debug("New EventBus Endpoint connected %s", ev.connection_config.name)
-        # Broadcast available endpoints to all connected endpoints, giving them
-        # a chance to cross connect
-        main_endpoint.broadcast(AvailableEndpointsUpdated(connected_endpoints))
-        stderr_logger.debug("Connected EventBus Endpoints %s", connected_endpoints)
-
-    main_endpoint.subscribe(EventBusConnected, handle_new_endpoints)
-
+    main_endpoint.track_and_propagate_available_endpoints(stderr_logger)
     try:
         trinity_config = TrinityConfig.from_parser_args(args, app_identifier, sub_configs)
     except AmbigiousFileSystem:
@@ -258,7 +232,7 @@ def display_launch_logs(trinity_config: TrinityConfig) -> None:
 def kill_trinity_gracefully(logger: logging.Logger,
                             processes: Iterable[multiprocessing.Process],
                             plugin_manager: PluginManager,
-                            main_endpoint: Endpoint,
+                            main_endpoint: TrinityMainEventBusEndpoint,
                             reason: str=None) -> None:
     # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
     # foreground *process group*, so both our networking and database processes will terminate

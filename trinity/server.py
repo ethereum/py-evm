@@ -11,19 +11,10 @@ from typing import (
 )
 
 from eth_keys import datatypes
-
 from eth_utils import big_endian_to_int
-
 from cancel_token import CancelToken, OperationCancelled
-
-from lahja import (
-    Endpoint
-)
-
 from eth_typing import BlockNumber
-
 from eth.vm.base import BaseVM
-
 from p2p.auth import (
     decode_authentication,
     HandshakeResponder,
@@ -56,6 +47,7 @@ from trinity.constants import DEFAULT_PREFERRED_NODES
 from trinity.db.base import BaseAsyncDB
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
+from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.common.peer import BaseChainPeerPool
 from trinity.protocol.common.servers import BaseRequestServer
@@ -87,7 +79,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
                  max_peers: int = DEFAULT_MAX_PEERS,
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
-                 event_bus: Endpoint = None,
+                 event_bus: TrinityEventBusEndpoint = None,
                  token: CancelToken = None,
                  ) -> None:
         super().__init__(token)

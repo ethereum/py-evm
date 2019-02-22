@@ -10,14 +10,9 @@ from typing import (
 from eth_typing import (
     BlockNumber,
 )
-from lahja import (
-    Endpoint,
-)
-
 from eth.constants import (
     GENESIS_BLOCK_NUMBER
 )
-
 from p2p.discovery import (
     get_v5_topic,
     DiscoveryByTopicProtocol,
@@ -44,6 +39,9 @@ from trinity.config import (
 )
 from trinity.db.eth1.manager import (
     create_db_consumer_manager
+)
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
 )
 from trinity.extensibility import (
     BaseIsolatedPlugin,
@@ -94,7 +92,7 @@ class DiscoveryBootstrapService(BaseService):
 
     def __init__(self,
                  disable_discovery: bool,
-                 event_bus: Endpoint,
+                 event_bus: TrinityEventBusEndpoint,
                  trinity_config: TrinityConfig) -> None:
         super().__init__()
         self.is_discovery_disabled = disable_discovery
@@ -150,7 +148,7 @@ class PeerDiscoveryPlugin(BaseIsolatedPlugin):
     def name(self) -> str:
         return "Discovery"
 
-    def on_ready(self, manager_eventbus: Endpoint) -> None:
+    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
         self.start()
 
     def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:

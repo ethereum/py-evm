@@ -11,10 +11,6 @@ from typing import (
     Type,
 )
 
-from lahja import (
-    Endpoint,
-)
-
 from eth.db.backends.base import (
     BaseDB,
 )
@@ -35,6 +31,9 @@ from trinity.constants import (
 )
 from trinity.db.beacon.manager import (
     create_db_server_manager,
+)
+from trinity.endpoint import (
+    TrinityMainEventBusEndpoint,
 )
 from trinity.events import (
     ShutdownRequest
@@ -75,7 +74,7 @@ def trinity_boot(args: Namespace,
                  extra_kwargs: Dict[str, Any],
                  plugin_manager: PluginManager,
                  listener: logging.handlers.QueueListener,
-                 main_endpoint: Endpoint,
+                 main_endpoint: TrinityMainEventBusEndpoint,
                  logger: logging.Logger) -> None:
     # start the listener thread to handle logs produced by other processes in
     # the local logger.

@@ -24,8 +24,6 @@ from typing import (
 
 from lahja import (
     ConnectionConfig,
-    BroadcastConfig,
-    Endpoint,
 )
 
 from trinity.config import (
@@ -34,9 +32,8 @@ from trinity.config import (
 from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT,
 )
-from trinity.events import (
-    EventBusConnected,
-    AvailableEndpointsUpdated,
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
 )
 from trinity.extensibility.events import (
     BaseEvent,
@@ -48,9 +45,6 @@ from trinity.extensibility.exceptions import (
 )
 from trinity._utils.mp import (
     ctx,
-)
-from trinity._utils.lahja_helper import (
-    connect_to_other_endpoints,
 )
 from trinity._utils.logging import (
     setup_queue_logging,
@@ -88,7 +82,7 @@ class PluginContext:
     :meth:`~trinity.extensibility.plugin.BasePlugin.on_ready` call.
     """
 
-    def __init__(self, endpoint: Endpoint, boot_info: TrinityBootInfo) -> None:
+    def __init__(self, endpoint: TrinityEventBusEndpoint, boot_info: TrinityBootInfo) -> None:
         self._event_bus = endpoint
         self._args: Namespace = boot_info.args
         self._trinity_config: TrinityConfig = boot_info.trinity_config
@@ -103,7 +97,7 @@ class PluginContext:
         return self._args
 
     @property
-    def event_bus(self) -> Endpoint:
+    def event_bus(self) -> TrinityEventBusEndpoint:
         """
         Return the :class:`~lahja.endpoint.Endpoint` that the plugin uses to connect to the
         event bus
@@ -147,7 +141,7 @@ class BasePlugin(ABC):
         return logging.getLogger(f'trinity.extensibility.plugin.BasePlugin#{self.name}')
 
     @property
-    def event_bus(self) -> Endpoint:
+    def event_bus(self) -> TrinityEventBusEndpoint:
         """
         Get the :class:`~lahja.endpoint.Endpoint` that this plugin uses to connect to the
         event bus
@@ -177,7 +171,7 @@ class BasePlugin(ABC):
         """
         self.context = context
 
-    def ready(self, manager_eventbus: Endpoint) -> None:
+    def ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
         """
         Set the ``status`` to ``PluginStatus.READY`` and delegate to
         :meth:`~trinity.extensibility.plugin.BasePlugin.on_ready`
@@ -185,7 +179,7 @@ class BasePlugin(ABC):
         self._status = PluginStatus.READY
         self.on_ready(manager_eventbus)
 
-    def on_ready(self, manager_eventbus: Endpoint) -> None:
+    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
         """
         Notify the plugin that it is ready to bootstrap itself. Plugins can rely
         on the :class:`~trinity.extensibility.plugin.PluginContext` to be set
@@ -311,20 +305,14 @@ class BaseIsolatedPlugin(BasePlugin):
         )
         # This makes the `main` process aware of this Endpoint which will then propagate the info
         # so that every other Endpoint can connect directly to the plugin Endpoint
-        self.event_bus.broadcast(
-            EventBusConnected(connection_config),
-            BroadcastConfig(filter_endpoint=MAIN_EVENTBUS_ENDPOINT)
-        )
+        self.event_bus.announce_endpoint()
         self.event_bus.broadcast(
             PluginStartedEvent(type(self))
         )
 
         # Whenever new EventBus Endpoints come up the `main` process broadcasts this event
         # and we connect to every Endpoint directly
-        self.event_bus.subscribe(
-            AvailableEndpointsUpdated,
-            connect_to_other_endpoints(self.logger, self.event_bus)
-        )
+        self.event_bus.auto_connect_new_announced_endpoints()
 
         with self.context.trinity_config.process_id_file(self.normalized_name):
             self.do_start()

@@ -7,12 +7,10 @@ from typing import (
 from cancel_token import (
     CancelToken,
 )
-
 from eth_typing import (
     Address,
     Hash32,
 )
-
 from eth.rlp.accounts import (
     Account,
 )
@@ -22,19 +20,19 @@ from eth.rlp.headers import (
 from eth.rlp.receipts import (
     Receipt,
 )
-
 from lahja import (
     BaseEvent,
     BaseRequestResponseEvent,
-    Endpoint,
 )
-
 from p2p.service import (
     BaseService,
 )
 
 from trinity.constants import (
     TO_NETWORKING_BROADCAST_CONFIG,
+)
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
 )
 from trinity._utils.async_errors import (
     await_and_wrap_errors,
@@ -147,7 +145,7 @@ class LightPeerChainEventBusHandler(BaseService):
 
     def __init__(self,
                  chain: BaseLightPeerChain,
-                 event_bus: Endpoint,
+                 event_bus: TrinityEventBusEndpoint,
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
@@ -228,7 +226,7 @@ class EventBusLightPeerChain(BaseLightPeerChain):
     be used from within any process.
     """
 
-    def __init__(self, event_bus: Endpoint) -> None:
+    def __init__(self, event_bus: TrinityEventBusEndpoint) -> None:
         self.event_bus = event_bus
 
     async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:

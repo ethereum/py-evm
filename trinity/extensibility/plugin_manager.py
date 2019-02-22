@@ -19,12 +19,12 @@ from typing import (
     Union,
 )
 
-from lahja import (
-    Endpoint,
-)
-
 from trinity.config import (
     TrinityConfig
+)
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
+    TrinityMainEventBusEndpoint,
 )
 from trinity.extensibility.exceptions import (
     UnsuitableShutdownError,
@@ -51,7 +51,7 @@ class BaseManagerProcessScope(ABC):
     :class:`~trinity.extensibility.plugin.PluginContext` is created.
     """
 
-    endpoint: Endpoint
+    endpoint: TrinityEventBusEndpoint
 
     @abstractmethod
     def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
@@ -73,7 +73,7 @@ class BaseManagerProcessScope(ABC):
 
 class MainAndIsolatedProcessScope(BaseManagerProcessScope):
 
-    def __init__(self, main_proc_endpoint: Endpoint) -> None:
+    def __init__(self, main_proc_endpoint: TrinityMainEventBusEndpoint) -> None:
         self.endpoint = main_proc_endpoint
 
     def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
@@ -99,12 +99,12 @@ class MainAndIsolatedProcessScope(BaseManagerProcessScope):
             # created here for API symmetry. Endpoints are pickleable *before* they are connected,
             # which means, this Endpoint will be pickled and transferred into the new process
             # together with the rest of the `PluginContext`.
-            plugin.set_context(PluginContext(Endpoint(), boot_info,))
+            plugin.set_context(PluginContext(TrinityEventBusEndpoint(), boot_info,))
 
 
 class SharedProcessScope(BaseManagerProcessScope):
 
-    def __init__(self, shared_proc_endpoint: Endpoint) -> None:
+    def __init__(self, shared_proc_endpoint: TrinityEventBusEndpoint) -> None:
         self.endpoint = shared_proc_endpoint
 
     def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
@@ -154,7 +154,7 @@ class PluginManager:
         self._logger = logging.getLogger("trinity.extensibility.plugin_manager.PluginManager")
 
     @property
-    def event_bus_endpoint(self) -> Endpoint:
+    def event_bus_endpoint(self) -> TrinityEventBusEndpoint:
         """
         Return the :class:`~lahja.endpoint.Endpoint` that the
         :class:`~trinity.extensibility.plugin_manager.PluginManager` instance uses to connect to

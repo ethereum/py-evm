@@ -11,7 +11,10 @@ from typing import (
 
 from lahja import (
     BaseEvent,
-    Endpoint
+)
+
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
 )
 
 if TYPE_CHECKING:
@@ -37,7 +40,7 @@ class BaseRPCModule(ABC):
 
 class ChainBasedRPCModule(BaseRPCModule, Generic[TChain]):
 
-    def __init__(self, chain: TChain, event_bus: Endpoint) -> None:
+    def __init__(self, chain: TChain, event_bus: TrinityEventBusEndpoint) -> None:
         self.chain = chain
         self.event_bus = event_bus
 
