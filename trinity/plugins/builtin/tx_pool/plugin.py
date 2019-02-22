@@ -76,6 +76,9 @@ class TxPlugin(BaseAsyncStopPlugin):
 
     def handle_event(self, event: ResourceAvailableEvent) -> None:
 
+        if self.running:
+            return
+
         if event.resource_type is ETHPeerPool:
             self.peer_pool, self.cancel_token = event.resource
         elif event.resource_type is BaseChain:

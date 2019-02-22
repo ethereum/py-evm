@@ -237,6 +237,10 @@ class SyncerPlugin(BaseAsyncStopPlugin):
         self.event_bus.subscribe(ResourceAvailableEvent, self.handle_event)
 
     def handle_event(self, event: ResourceAvailableEvent) -> None:
+
+        if self.running:
+            return
+
         if issubclass(event.resource_type, BaseChainPeerPool):
             self.peer_pool, self.cancel_token = event.resource
         elif event.resource_type is BaseManager:
