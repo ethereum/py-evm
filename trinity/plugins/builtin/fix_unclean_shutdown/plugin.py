@@ -13,6 +13,7 @@ from trinity.extensibility import (
 )
 from trinity._utils.ipc import (
     kill_process_id_gracefully,
+    remove_dangling_ipc_files,
 )
 
 
@@ -56,14 +57,4 @@ class FixUncleanShutdownPlugin(BaseMainProcessPlugin):
                     'pidfile %s was gone after killing process id %d' % (pidfile, process_id)
                 )
 
-        ipcfiles = tuple(trinity_config.ipc_dir.glob('*.ipc'))
-        for ipcfile in ipcfiles:
-            try:
-                ipcfile.unlink()
-                self.logger.info(
-                    'Removed dangling IPC socket file  %s' % (ipcfile)
-                )
-            except FileNotFoundError:
-                self.logger.debug(
-                    'ipcfile %s was already gone' % (ipcfile)
-                )
+        remove_dangling_ipc_files(self.logger, trinity_config.ipc_dir)

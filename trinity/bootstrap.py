@@ -46,6 +46,7 @@ from trinity.extensibility import (
 )
 from trinity._utils.ipc import (
     kill_process_gracefully,
+    remove_dangling_ipc_files,
 )
 from trinity._utils.logging import (
     enable_warnings_by_default,
@@ -229,7 +230,8 @@ def display_launch_logs(trinity_config: TrinityConfig) -> None:
     logger.info("Trinity DEBUG log file is created at %s", str(trinity_config.logfile_path))
 
 
-def kill_trinity_gracefully(logger: logging.Logger,
+def kill_trinity_gracefully(trinity_config: TrinityConfig,
+                            logger: logging.Logger,
                             processes: Iterable[multiprocessing.Process],
                             plugin_manager: PluginManager,
                             main_endpoint: TrinityMainEventBusEndpoint,
@@ -256,5 +258,7 @@ def kill_trinity_gracefully(logger: logging.Logger,
         if process.is_alive():
             kill_process_gracefully(process, logger)
         logger.info('%s process (pid=%d) terminated', process.name, process.pid)
+
+    remove_dangling_ipc_files(logger, trinity_config.ipc_dir, except_file=main_endpoint.ipc_path)
 
     ArgumentParser().exit(message=f"Trinity shutdown complete {hint}\n")

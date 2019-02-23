@@ -23,6 +23,26 @@ def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=30) -> None:
     raise TimeoutError("IPC socket file has not appeared in %d seconds!" % timeout)
 
 
+def remove_dangling_ipc_files(logger: Logger,
+                              ipc_dir: pathlib.Path,
+                              except_file: pathlib.Path = None) -> None:
+
+    if not ipc_dir.is_dir():
+        raise Exception(f"The `ipc_dir` must be a directory but is {ipc_dir}")
+
+    ipcfiles = tuple(ipc_dir.glob('*.ipc'))
+    for ipcfile in ipcfiles:
+
+        if ipcfile == except_file:
+            continue
+
+        try:
+            ipcfile.unlink()
+            logger.warning('Removed dangling IPC socket file  %s', ipcfile)
+        except FileNotFoundError:
+            logger.debug('ipcfile %s was already gone', ipcfile)
+
+
 DEFAULT_SIGINT_TIMEOUT = 10
 DEFAULT_SIGTERM_TIMEOUT = 5
 

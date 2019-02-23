@@ -106,6 +106,7 @@ def trinity_boot(args: Namespace,
 
     def kill_trinity_with_reason(reason: str) -> None:
         kill_trinity_gracefully(
+            trinity_config,
             logger,
             (),
             plugin_manager,
