@@ -375,7 +375,8 @@ def _process_rewards_and_penalties_for_finality(
         # Reward validators in `previous_epoch_attester_indices`
         # # Punish active validators not in `previous_epoch_attester_indices`
         excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
-            previous_epoch_attester_indices)
+            previous_epoch_attester_indices,
+        )
         rewards = {
             index: Gwei(
                 base_rewards[index] *
@@ -407,7 +408,8 @@ def _process_rewards_and_penalties_for_finality(
         # Reward validators in `previous_epoch_boundary_attester_indices`
         # Punish active validators not in `previous_epoch_boundary_attester_indices`
         excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
-            previous_epoch_boundary_attester_indices)
+            previous_epoch_boundary_attester_indices,
+        )
         rewards = {
             index: Gwei(
                 base_rewards[index] *
@@ -439,7 +441,8 @@ def _process_rewards_and_penalties_for_finality(
         # Reward validators in `previous_epoch_head_attester_indices`
         # Punish active validators not in `previous_epoch_head_attester_indices`
         excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
-            previous_epoch_head_attester_indices)
+            previous_epoch_head_attester_indices,
+        )
         rewards = {
             index: Gwei(
                 base_rewards[index] *
@@ -486,7 +489,8 @@ def _process_rewards_and_penalties_for_finality(
     else:
         # Punish active validators not in `previous_epoch_attester_indices`
         excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
-            previous_epoch_attester_indices)
+            previous_epoch_attester_indices,
+        )
         inactivity_penalties = {
             index: base_rewards[index] + (
                 effective_balances[index] *
@@ -505,7 +509,8 @@ def _process_rewards_and_penalties_for_finality(
 
         # Punish active validators not in `previous_epoch_boundary_attester_indices`
         excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
-            previous_epoch_boundary_attester_indices)
+            previous_epoch_boundary_attester_indices,
+        )
         inactivity_penalties = {
             index: base_rewards[index] + (
                 effective_balances[index] *
@@ -524,7 +529,8 @@ def _process_rewards_and_penalties_for_finality(
 
         # Punish active validators not in `previous_epoch_head_attester_indices`
         excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
-            previous_epoch_head_attester_indices)
+            previous_epoch_head_attester_indices,
+        )
         penalties = {
             index: base_rewards[index]
             for index in excluded_active_validators_indices
