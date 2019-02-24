@@ -659,6 +659,20 @@ def test_process_crosslinks(
         'shard_count,'
         'min_attestation_inclusion_delay,'
         'inactivity_penalty_quotient,'
+    ),
+    [
+        (
+            10,
+            2,
+            5,
+            2,
+            4,
+            10,
+        )
+    ]
+)
+@pytest.mark.parametrize(
+    (
         'finalized_epoch,current_slot,'
         'penalized_validator_indices,'
         'previous_epoch_active_validator_indices,'
@@ -670,12 +684,6 @@ def test_process_crosslinks(
     ),
     [
         (
-            10,
-            2,
-            5,
-            2,
-            4,
-            10,
             4, 15,  # epochs_since_finality <= 4
             {6, 7},
             {0, 1, 2, 3, 4, 5, 6, 7},
@@ -703,12 +711,6 @@ def test_process_crosslinks(
             }
         ),
         (
-            10,
-            2,
-            5,
-            2,
-            4,
-            10,
             3, 15,  # epochs_since_finality > 4
             {6, 7},
             {0, 1, 2, 3, 4, 5, 6, 7},
@@ -836,7 +838,6 @@ def test_process_rewards_and_penalties_for_finality(
     )
 
     rewards_received = _process_rewards_and_penalties_for_finality(
-        rewards_received,
         state,
         config,
         previous_epoch_active_validator_indices,
@@ -846,6 +847,7 @@ def test_process_rewards_and_penalties_for_finality(
         inclusion_infos,
         effective_balances,
         base_rewards,
+        rewards_received,
     )
 
     for index, reward_received in rewards_received.items():
@@ -950,12 +952,12 @@ def test_process_rewards_and_penalties_for_attestation_inclusion(
 
     # Process the rewards and penalties for attestation inclusion
     rewards_received = _process_rewards_and_penalties_for_attestation_inclusion(
-        rewards_received,
         state,
         config,
         previous_epoch_attester_indices,
         inclusion_infos,
         base_rewards,
+        rewards_received,
     )
 
     for index, reward_received in rewards_received.items():
@@ -1084,12 +1086,12 @@ def test_process_rewards_and_penalties_for_crosslinks(
     }
 
     rewards_received = _process_rewards_and_penalties_for_crosslinks(
-        rewards_received,
         state,
         config,
         tuple(previous_epoch_attestations),
         effective_balances,
         base_rewards,
+        rewards_received,
     )
 
     expected_rewards_received = {

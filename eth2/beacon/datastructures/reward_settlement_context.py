@@ -10,7 +10,7 @@ from eth2.beacon.typing import (
 )
 
 
-class RewardsSettlementContext(NamedTuple):
+class RewardSettlementContext(NamedTuple):
     rewards_received: Dict[ValidatorIndex, Gwei]
     penalties_received: Dict[ValidatorIndex, Gwei]
     rewards: Dict[ValidatorIndex, Gwei] = dict()
