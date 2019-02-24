@@ -184,17 +184,7 @@ def get_crosslink_committees_at_slot(
         genesis_epoch=genesis_epoch,
     )
 
-    if epoch == previous_epoch:
-        committees_per_epoch = get_previous_epoch_committee_count(
-            state=state,
-            shard_count=shard_count,
-            slots_per_epoch=slots_per_epoch,
-            target_committee_size=target_committee_size,
-        )
-        seed = state.previous_shuffling_seed
-        shuffling_epoch = state.previous_shuffling_epoch
-        shuffling_start_shard = state.previous_shuffling_start_shard
-    elif epoch == current_epoch:
+    if epoch == current_epoch:
         committees_per_epoch = get_current_epoch_committee_count(
             state=state,
             shard_count=shard_count,
@@ -204,6 +194,16 @@ def get_crosslink_committees_at_slot(
         seed = state.current_shuffling_seed
         shuffling_epoch = state.current_shuffling_epoch
         shuffling_start_shard = state.current_shuffling_start_shard
+    elif epoch == previous_epoch:
+        committees_per_epoch = get_previous_epoch_committee_count(
+            state=state,
+            shard_count=shard_count,
+            slots_per_epoch=slots_per_epoch,
+            target_committee_size=target_committee_size,
+        )
+        seed = state.previous_shuffling_seed
+        shuffling_epoch = state.previous_shuffling_epoch
+        shuffling_start_shard = state.previous_shuffling_start_shard
     elif epoch == next_epoch:
         current_committees_per_epoch = get_current_epoch_committee_count(
             state=state,

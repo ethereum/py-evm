@@ -320,7 +320,7 @@ def validate_attestation_justified_epoch(attestation_data: AttestationData,
     Validate ``justified_epoch`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
     """
-    if attestation_data.slot >= get_epoch_start_slot(current_epoch, slots_per_epoch):
+    if slot_to_epoch(attestation_data.slot + 1, slots_per_epoch) >= current_epoch:
         if attestation_data.justified_epoch != justified_epoch:
             raise ValidationError(
                 "Attestation ``slot`` is after recent epoch transition but attestation"

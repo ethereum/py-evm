@@ -24,7 +24,7 @@ from eth2.beacon.tools.builder.validator import (
         'shard_count'
     ),
     [
-        (20, 4, 2, 2, 2)
+        (40, 8, 2, 3, 2)
     ]
 )
 def test_demo(base_db,
@@ -49,12 +49,17 @@ def test_demo(base_db,
     state = genesis_state
     block = genesis_block
 
-    current_slot = 1
     chain_length = 3 * config.SLOTS_PER_EPOCH
-    attestations = ()
     blocks = (block,)
-    for current_slot in range(chain_length):
-        # two epochs
+
+    attestations_map = {}  # Dict[Slot, Sequence[Attestation]]
+
+    for current_slot in range(1, chain_length):
+        if current_slot > config.MIN_ATTESTATION_INCLUSION_DELAY:
+            attestations = attestations_map[current_slot - config.MIN_ATTESTATION_INCLUSION_DELAY]
+        else:
+            attestations = ()
+
         block = create_mock_block(
             state=state,
             config=config,
@@ -85,17 +90,22 @@ def test_demo(base_db,
         chaindb.persist_block(block, SerenityBeaconBlock)
 
         blocks += (block,)
-        if current_slot > config.MIN_ATTESTATION_INCLUSION_DELAY:
-            attestation_slot = current_slot - config.MIN_ATTESTATION_INCLUSION_DELAY
-            attestations = create_mock_signed_attestations_at_slot(
-                state,
-                config,
-                attestation_slot,
-                keymap,
-                1.0,
-            )
-        else:
-            attestations = ()
+
+        # Mock attestations
+        attestation_slot = current_slot
+        attestations = create_mock_signed_attestations_at_slot(
+            state=state,
+            config=config,
+            attestation_slot=attestation_slot,
+            beacon_block_root=block.root,
+            keymap=keymap,
+            voted_attesters_ratio=1.0,
+        )
+        attestations_map[attestation_slot] = attestations
 
     assert state.slot == chain_length - 1
     assert isinstance(sm.block, SerenityBeaconBlock)
+
+    # Justification assertions
+    assert state.justified_epoch == 2
+    assert state.finalized_epoch == 1

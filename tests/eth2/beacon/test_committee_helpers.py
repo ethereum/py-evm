@@ -386,10 +386,10 @@ def test_get_crosslink_committees_at_slot(
     previous_epoch = state.previous_epoch(slots_per_epoch, genesis_epoch)
     next_epoch = current_epoch + 1
 
-    if epoch == previous_epoch:
-        seed = state.previous_shuffling_seed
-    elif epoch == current_epoch:
+    if epoch == current_epoch:
         seed = state.current_shuffling_seed
+    elif epoch == previous_epoch:
+        seed = state.previous_shuffling_seed
     elif epoch == next_epoch:
         if registry_change or should_reseed:
             seed = new_seed

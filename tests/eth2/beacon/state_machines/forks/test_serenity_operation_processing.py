@@ -21,6 +21,7 @@ from eth2.beacon.tools.builder.validator import (
 
 
 def test_process_max_attestations(genesis_state,
+                                  genesis_block,
                                   sample_beacon_block_params,
                                   sample_beacon_block_body_params,
                                   config,
@@ -32,11 +33,12 @@ def test_process_max_attestations(genesis_state,
     )
 
     attestations = create_mock_signed_attestations_at_slot(
-        state,
-        config,
-        attestation_slot,
-        keymap,
-        1.0,
+        state=state,
+        config=config,
+        attestation_slot=attestation_slot,
+        beacon_block_root=genesis_block.root,
+        keymap=keymap,
+        voted_attesters_ratio=1.0,
     )
 
     attestations_count = len(attestations)
@@ -140,6 +142,7 @@ def test_process_proposer_slashings(genesis_state,
     ]
 )
 def test_process_attestations(genesis_state,
+                              genesis_block,
                               sample_beacon_block_params,
                               sample_beacon_block_body_params,
                               config,
@@ -153,11 +156,12 @@ def test_process_attestations(genesis_state,
     )
 
     attestations = create_mock_signed_attestations_at_slot(
-        state,
-        config,
-        attestation_slot,
-        keymap,
-        1.0,
+        state=state,
+        config=config,
+        attestation_slot=attestation_slot,
+        beacon_block_root=genesis_block.root,
+        keymap=keymap,
+        voted_attesters_ratio=1.0,
     )
 
     assert len(attestations) > 0

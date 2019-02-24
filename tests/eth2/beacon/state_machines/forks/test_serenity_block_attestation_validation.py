@@ -90,13 +90,12 @@ def test_validate_attestation_slot(sample_attestation_data_params,
         'is_valid,'
     ),
     [
-        (13, 1, 2, 0, 1, 5, True),
-        (13, 0, 2, 0, 1, 5, False),  # targeting previous_justified_epoch, should be targeting justified_epoch # noqa: E501
-        (13, 4, 2, 0, 1, 5, False),  # targeting future epoch, should be targeting justified_epoch
-        (29, 1, 3, 1, 2, 10, True),
-        (29, 2, 3, 1, 2, 10, False),  # targeting justified_epoch, should be targeting previous_justified_epoch # noqa: E501
-        (29, 3, 3, 1, 2, 10, False),  # targeting future epoch, should be targeting previous_justified_epoch # noqa: E501
-        (10, 1, 1, 1, 1, 10, True),
+        # slot_to_epoch(attestation_data.slot + 1, slots_per_epoch) >= current_epoch
+        (23, 2, 3, 1, 2, 8, True),  # attestation_data.justified_epoch == justified_epoch
+        (23, 1, 3, 1, 2, 8, False),  # attestation_data.justified_epoch != justified_epoch
+        # slot_to_epoch(attestation_data.slot + 1, slots_per_epoch) < current_epoch
+        (22, 1, 3, 1, 2, 8, True),  # attestation_data.justified_epoch == previous_justified_epoch
+        (22, 2, 3, 1, 2, 8, False),  # attestation_data.justified_epoch != previous_justified_epoch
     ]
 )
 def test_validate_attestation_justified_epoch(

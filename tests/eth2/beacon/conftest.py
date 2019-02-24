@@ -8,7 +8,6 @@ from eth_utils import (
 )
 
 import eth2._utils.bls as bls
-from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.configs import (
     BeaconConfig,
     CommitteeConfig,
@@ -54,7 +53,13 @@ DEFAULT_NUM_VALIDATORS = 40
 
 @pytest.fixture(scope="session")
 def privkeys():
-    return [int.from_bytes(hash_eth2(str(i).encode('utf-8'))[:4], 'big') for i in range(100)]
+    """
+    Rationales:
+    1. Making the privkeys be small integers to make multiplying easier for tests.
+    2. Using ``2**i`` instead of ``i``:
+        If using ``i``, the combinations of privkeys would not lead to unique pubkeys.
+    """
+    return [2 ** i for i in range(100)]
 
 
 @pytest.fixture(scope="session")
