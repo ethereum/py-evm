@@ -69,6 +69,7 @@ from eth2.beacon.typing import (
     Epoch,
     Gwei,
     Shard,
+    SignedGwei,
     ValidatorIndex,
 )
 
@@ -329,7 +330,7 @@ def _process_rewards_and_penalties_for_finality(
         inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
         effective_balances: Dict[ValidatorIndex, Gwei],
         base_rewards: Dict[ValidatorIndex, Gwei],
-        old_rewards_received: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
+        old_rewards_received: Dict[ValidatorIndex, SignedGwei]) -> Dict[ValidatorIndex, SignedGwei]:
     previous_epoch_boundary_attestations = (
         a
         for a in previous_epoch_attestations
@@ -601,7 +602,7 @@ def _process_rewards_and_penalties_for_attestation_inclusion(
         previous_epoch_attester_indices: Set[ValidatorIndex],
         inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
         base_rewards: Dict[ValidatorIndex, Gwei],
-        old_rewards_received: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
+        old_rewards_received: Dict[ValidatorIndex, SignedGwei]) -> Dict[ValidatorIndex, SignedGwei]:
     rewards_received = old_rewards_received.copy()
     for index in previous_epoch_attester_indices:
         proposer_index = get_beacon_proposer_index(
@@ -610,7 +611,7 @@ def _process_rewards_and_penalties_for_attestation_inclusion(
             CommitteeConfig(config),
         )
         reward = base_rewards[index] // config.ATTESTATION_INCLUSION_REWARD_QUOTIENT
-        rewards_received[proposer_index] = Gwei(rewards_received[proposer_index] + reward)
+        rewards_received[proposer_index] = SignedGwei(rewards_received[proposer_index] + reward)
     return rewards_received
 
 
@@ -621,7 +622,7 @@ def _process_rewards_and_penalties_for_crosslinks(
         previous_epoch_attestations: Iterable[PendingAttestationRecord],
         effective_balances: Dict[ValidatorIndex, Gwei],
         base_rewards: Dict[ValidatorIndex, Gwei],
-        old_rewards_received: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
+        old_rewards_received: Dict[ValidatorIndex, SignedGwei]) -> Dict[ValidatorIndex, SignedGwei]:
     rewards_received = old_rewards_received.copy()
     previous_epoch_start_slot = get_epoch_start_slot(
         state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
@@ -672,10 +673,10 @@ def _process_rewards_and_penalties_for_crosslinks(
             )
             for index in attesting_validator_indices:
                 reward = base_rewards[index] * total_attesting_balance // total_balance
-                rewards_received[index] = Gwei(rewards_received[index] + reward)
+                rewards_received[index] = SignedGwei(rewards_received[index] + reward)
             for index in set(crosslink_committee).difference(attesting_validator_indices):
                 penalty = base_rewards[index]
-                rewards_received[index] = Gwei(rewards_received[index] - penalty)
+                rewards_received[index] = SignedGwei(rewards_received[index] - penalty)
     return rewards_received
 
 
@@ -739,7 +740,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
 
     # Initialize the reward (validator) received map
     rewards_received = {
-        index: Gwei(0)
+        index: SignedGwei(0)
         for index in previous_epoch_active_validator_indices
     }
 
