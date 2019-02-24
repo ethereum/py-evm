@@ -2,6 +2,7 @@ from typing import (
     Dict,
     Iterable,
     Sequence,
+    Set,
     Tuple,
     TYPE_CHECKING,
 )
@@ -207,6 +208,17 @@ def get_epoch_boundary_attesting_balances(
         config.MAX_DEPOSIT_AMOUNT,
     )
     return previous_epoch_boundary_attesting_balance, current_epoch_boundary_attesting_balance
+
+
+def get_total_balance_from_effective_balances(
+        effective_balances: Dict[ValidatorIndex, Gwei],
+        validator_indices: Set[ValidatorIndex]) -> Gwei:
+    return Gwei(
+        sum(
+            effective_balances[index]
+            for index in validator_indices
+        )
+    )
 
 
 def get_base_reward(

@@ -45,6 +45,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_previous_epoch_head_attestations,
     get_winning_root,
     get_total_balance,
+    get_total_balance_from_effective_balances,
     get_epoch_boundary_attesting_balances,
 )
 from eth2.beacon.helpers import (
@@ -367,9 +368,9 @@ def _process_rewards_and_penalties_for_finality(
     epochs_since_finality = state.next_epoch(config.SLOTS_PER_EPOCH) - state.finalized_epoch
     if epochs_since_finality <= 4:
         # 1.1 Expected FFG source:
-        previous_epoch_attesting_balance = sum(
-            effective_balances[i]
-            for i in previous_epoch_attester_indices
+        previous_epoch_attesting_balance = get_total_balance_from_effective_balances(
+            effective_balances,
+            previous_epoch_attester_indices,
         )
         # Reward validators in `previous_epoch_attester_indices`
         # # Punish active validators not in `previous_epoch_attester_indices`
@@ -399,9 +400,9 @@ def _process_rewards_and_penalties_for_finality(
         )
 
         # 1.2 Expected FFG target:
-        previous_epoch_boundary_attesting_balance = sum(
-            effective_balances[i]
-            for i in previous_epoch_boundary_attester_indices
+        previous_epoch_boundary_attesting_balance = get_total_balance_from_effective_balances(
+            effective_balances,
+            previous_epoch_boundary_attester_indices,
         )
         # Reward validators in `previous_epoch_boundary_attester_indices`
         # Punish active validators not in `previous_epoch_boundary_attester_indices`
@@ -431,9 +432,9 @@ def _process_rewards_and_penalties_for_finality(
         )
 
         # 1.3 Expected beacon chain head:
-        previous_epoch_head_attesting_balance = sum(
-            effective_balances[i]
-            for i in previous_epoch_head_attester_indices
+        previous_epoch_head_attesting_balance = get_total_balance_from_effective_balances(
+            effective_balances,
+            previous_epoch_head_attester_indices,
         )
         # Reward validators in `previous_epoch_head_attester_indices`
         # Punish active validators not in `previous_epoch_head_attester_indices`
@@ -659,9 +660,9 @@ def _process_rewards_and_penalties_for_crosslinks(
                     ),
                     committee_config=CommitteeConfig(config),
                 )
-            total_balance = sum(
-                effective_balances[i]
-                for i in crosslink_committee
+            total_balance = get_total_balance_from_effective_balances(
+                effective_balances,
+                crosslink_committee,
             )
             for index in attesting_validator_indices:
                 reward = base_rewards[index] * total_attesting_balance // total_balance
