@@ -250,7 +250,6 @@ def kill_trinity_gracefully(trinity_config: TrinityConfig,
     hint = f"({reason})" if reason else f""
     logger.info('Shutting down Trinity %s', hint)
     plugin_manager.shutdown_blocking()
-    main_endpoint.stop()
     for process in processes:
         # Our sub-processes will have received a SIGINT already (see comment above), so here we
         # wait 2s for them to finish cleanly, and if they fail we kill them for real.
@@ -259,6 +258,7 @@ def kill_trinity_gracefully(trinity_config: TrinityConfig,
             kill_process_gracefully(process, logger)
         logger.info('%s process (pid=%d) terminated', process.name, process.pid)
 
+    main_endpoint.stop()
     remove_dangling_ipc_files(logger, trinity_config.ipc_dir, except_file=main_endpoint.ipc_path)
 
     ArgumentParser().exit(message=f"Trinity shutdown complete {hint}\n")
