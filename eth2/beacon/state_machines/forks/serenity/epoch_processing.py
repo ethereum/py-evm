@@ -324,14 +324,43 @@ def _process_rewards_and_penalties_for_finality(
         old_rewards_received: Dict[ValidatorIndex, Gwei],
         state: BeaconState,
         config: BeaconConfig,
-        prev_epoch_active_validator_indices: Set[ValidatorIndex],
+        previous_epoch_active_validator_indices: Set[ValidatorIndex],
         previous_total_balance: Gwei,
-        previous_epoch_attester_indices: Iterable[ValidatorIndex],
-        previous_epoch_boundary_attester_indices: Iterable[ValidatorIndex],
-        previous_epoch_head_attester_indices: Iterable[ValidatorIndex],
+        previous_epoch_attestations: Sequence[Attestation],
+        previous_epoch_attester_indices: Set[ValidatorIndex],
         inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
         effective_balances: Dict[ValidatorIndex, Gwei],
         base_rewards: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
+    previous_epoch_boundary_attestations = (
+        a
+        for a in previous_epoch_attestations
+        if a.data.epoch_boundary_root == get_block_root(
+            state,
+            get_epoch_start_slot(
+                state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
+                config.SLOTS_PER_EPOCH,
+            ),
+            config.LATEST_BLOCK_ROOTS_LENGTH,
+        )
+    )
+    previous_epoch_boundary_attester_indices = get_attester_indices_from_attesttion(
+        state=state,
+        attestations=previous_epoch_boundary_attestations,
+        committee_config=CommitteeConfig(config),
+    )
+
+    previous_epoch_head_attestations = get_previous_epoch_head_attestations(
+        state,
+        config.SLOTS_PER_EPOCH,
+        config.GENESIS_EPOCH,
+        config.LATEST_BLOCK_ROOTS_LENGTH,
+    )
+    previous_epoch_head_attester_indices = get_attester_indices_from_attesttion(
+        state=state,
+        attestations=previous_epoch_head_attestations,
+        committee_config=CommitteeConfig(config),
+    )
+
     rewards_received = {
         index: Gwei(0)
         for index in old_rewards_received
@@ -346,7 +375,7 @@ def _process_rewards_and_penalties_for_finality(
         )
         # Reward validators in `previous_epoch_attester_indices`
         # # Punish active validators not in `previous_epoch_attester_indices`
-        excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
+        excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
             previous_epoch_attester_indices)
         rewards = {
             index: Gwei(
@@ -376,7 +405,7 @@ def _process_rewards_and_penalties_for_finality(
         )
         # Reward validators in `previous_epoch_boundary_attester_indices`
         # Punish active validators not in `previous_epoch_boundary_attester_indices`
-        excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
+        excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
             previous_epoch_boundary_attester_indices)
         rewards = {
             index: Gwei(
@@ -406,7 +435,7 @@ def _process_rewards_and_penalties_for_finality(
         )
         # Reward validators in `previous_epoch_head_attester_indices`
         # Punish active validators not in `previous_epoch_head_attester_indices`
-        excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
+        excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
             previous_epoch_head_attester_indices)
         rewards = {
             index: Gwei(
@@ -451,7 +480,7 @@ def _process_rewards_and_penalties_for_finality(
     # epochs_since_finality > 4
     else:
         # Punish active validators not in `previous_epoch_attester_indices`
-        excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
+        excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
             previous_epoch_attester_indices)
         inactivity_penalties = {
             index: base_rewards[index] + (
@@ -470,7 +499,7 @@ def _process_rewards_and_penalties_for_finality(
         )
 
         # Punish active validators not in `previous_epoch_boundary_attester_indices`
-        excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
+        excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
             previous_epoch_boundary_attester_indices)
         inactivity_penalties = {
             index: base_rewards[index] + (
@@ -489,7 +518,7 @@ def _process_rewards_and_penalties_for_finality(
         )
 
         # Punish active validators not in `previous_epoch_head_attester_indices`
-        excluded_active_validators_indices = prev_epoch_active_validator_indices.difference(
+        excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
             previous_epoch_head_attester_indices)
         penalties = {
             index: base_rewards[index]
@@ -512,7 +541,7 @@ def _process_rewards_and_penalties_for_finality(
                 epochs_since_finality //
                 config.INACTIVITY_PENALTY_QUOTIENT // 2
             )
-            for index in prev_epoch_active_validator_indices
+            for index in previous_epoch_active_validator_indices
             if state.validator_registry[index].slashed_epoch <= current_epoch
         }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
@@ -559,7 +588,7 @@ def _process_rewards_and_penalties_for_attestation_inclusion(
         old_rewards_received: Dict[ValidatorIndex, Gwei],
         state: BeaconState,
         config: BeaconConfig,
-        previous_epoch_attester_indices: Iterable[ValidatorIndex],
+        previous_epoch_attester_indices: Set[ValidatorIndex],
         inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
         base_rewards: Dict[ValidatorIndex, Gwei]) -> Dict[ValidatorIndex, Gwei]:
     rewards_received = old_rewards_received.copy()
@@ -619,12 +648,12 @@ def _process_rewards_and_penalties_for_crosslinks(
             else:
                 attesting_validator_indices = get_attester_indices_from_attesttion(
                     state=state,
-                    committee_config=CommitteeConfig(config),
                     attestations=(
                         a
                         for a in filtered_attestations
                         if a.data.shard == shard and a.data.shard_block_root == winning_root
                     ),
+                    committee_config=CommitteeConfig(config),
                 )
             total_balance = sum(
                 effective_balances[i]
@@ -642,7 +671,7 @@ def _process_rewards_and_penalties_for_crosslinks(
 def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> BeaconState:
     # Compute previous epoch active validator indices and the total balance they account for
     # for later use.
-    prev_epoch_active_validator_indices = set(
+    previous_epoch_active_validator_indices = set(
         get_active_validator_indices(
             state.validator_registry,
             state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
@@ -650,7 +679,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     )
     previous_total_balance: Gwei = get_total_balance(
         state.validator_balances,
-        tuple(prev_epoch_active_validator_indices),
+        tuple(previous_epoch_active_validator_indices),
         config.MAX_DEPOSIT_AMOUNT,
     )
 
@@ -663,42 +692,8 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     )
     previous_epoch_attester_indices = get_attester_indices_from_attesttion(
         state=state,
-        committee_config=CommitteeConfig(config),
         attestations=previous_epoch_attestations,
-    )
-
-    # Compute previous epoch boundary attester indices and the total balance they account for
-    # for later use.
-    previous_epoch_boundary_attestations = [
-        a
-        for a in previous_epoch_attestations
-        if a.data.epoch_boundary_root == get_block_root(
-            state,
-            get_epoch_start_slot(
-                state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
-                config.SLOTS_PER_EPOCH,
-            ),
-            config.LATEST_BLOCK_ROOTS_LENGTH,
-        )
-    ]
-    previous_epoch_boundary_attester_indices = get_attester_indices_from_attesttion(
-        state=state,
         committee_config=CommitteeConfig(config),
-        attestations=previous_epoch_boundary_attestations,
-    )
-
-    # Compute previous epoch head attester indices and the total balance they account for
-    # for later use.
-    previous_epoch_head_attestations = get_previous_epoch_head_attestations(
-        state,
-        config.SLOTS_PER_EPOCH,
-        config.GENESIS_EPOCH,
-        config.LATEST_BLOCK_ROOTS_LENGTH,
-    )
-    previous_epoch_head_attester_indices = get_attester_indices_from_attesttion(
-        state=state,
-        committee_config=CommitteeConfig(config),
-        attestations=previous_epoch_head_attestations,
     )
 
     # Compute inclusion slot/distance of previous attestations for later use.
@@ -715,7 +710,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             index,
             config.MAX_DEPOSIT_AMOUNT,
         )
-        for index in prev_epoch_active_validator_indices
+        for index in previous_epoch_active_validator_indices
     }
     # Compute base reward of each previous epoch active validator for later use
     _base_reward_quotient = (
@@ -728,13 +723,13 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             base_reward_quotient=_base_reward_quotient,
             max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
         )
-        for index in prev_epoch_active_validator_indices
+        for index in previous_epoch_active_validator_indices
     }
 
     # Initialize the reward (validator) received map
     rewards_received = {
         index: Gwei(0)
-        for index in prev_epoch_active_validator_indices
+        for index in previous_epoch_active_validator_indices
     }
 
     # 1. Process rewards and penalties for justification and finalization
@@ -743,11 +738,10 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         _process_rewards_and_penalties_for_finality(
             state=state,
             config=config,
-            prev_epoch_active_validator_indices=prev_epoch_active_validator_indices,
+            previous_epoch_active_validator_indices=previous_epoch_active_validator_indices,
             previous_total_balance=previous_total_balance,
+            previous_epoch_attestations=previous_epoch_attestations,
             previous_epoch_attester_indices=previous_epoch_attester_indices,
-            previous_epoch_boundary_attester_indices=previous_epoch_boundary_attester_indices,
-            previous_epoch_head_attester_indices=previous_epoch_head_attester_indices,
             inclusion_infos=inclusion_infos,
             effective_balances=effective_balances,
             base_rewards=base_rewards,
@@ -769,7 +763,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     )
 
     # Apply the overall rewards/penalties
-    for index in prev_epoch_active_validator_indices:
+    for index in previous_epoch_active_validator_indices:
         state = state.update_validator_balance(
             index,
             # Prevent validator balance under flow

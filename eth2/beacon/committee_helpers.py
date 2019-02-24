@@ -377,8 +377,8 @@ def get_attestation_participants(state: 'BeaconState',
 def get_attester_indices_from_attesttion(
         *,
         state: 'BeaconState',
-        committee_config: CommitteeConfig,
-        attestations: Iterable['Attestation']) -> Iterable[ValidatorIndex]:
+        attestations: Iterable['Attestation'],
+        committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     for a in attestations:
         yield from get_attestation_participants(
             state,

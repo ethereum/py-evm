@@ -31,6 +31,7 @@ from eth2.beacon.configs import (
 )
 from eth2.beacon.helpers import (
     get_active_validator_indices,
+    get_block_root,
     get_epoch_start_slot,
     get_randao_mix,
     slot_to_epoch,
@@ -660,10 +661,9 @@ def test_process_crosslinks(
         'inactivity_penalty_quotient,'
         'finalized_epoch,current_slot,'
         'penalized_validator_indices,'
-        'prev_epoch_active_validator_indices,'
+        'previous_epoch_active_validator_indices,'
         'previous_epoch_attester_indices,'
-        'previous_epoch_boundary_attester_indices,'
-        'previous_epoch_head_attester_indices,'
+        'previous_epoch_boundary_head_attester_indices,'
         'inclusion_distances,'
         'effective_balance,base_reward,'
         'expected_rewards_received'
@@ -681,7 +681,6 @@ def test_process_crosslinks(
             {0, 1, 2, 3, 4, 5, 6, 7},
             {2, 3, 4, 5, 6},
             {2, 3, 4},
-            {4, 5, 6},
             {
                 2: 4,
                 3: 4,
@@ -693,11 +692,11 @@ def test_process_crosslinks(
             {
                 0: -300,  # -3 * 100
                 1: -300,  # -3 * 100
-                2: 99,  # 100 * 5 // 8 + 100 * 3 // 8 - 100 + 100 * 4 // 4
-                3: 99,  # 100 * 5 // 8 + 100 * 3 // 8 - 100 + 100 * 4 // 4
+                2: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 4 // 4
+                3: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 4 // 4
                 4: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 4 // 4
-                5: 79,  # 100 * 5 // 8 - 100 + 100 * 3 // 8 + 100 * 4 // 5
-                6: 65,  # 100 * 5 // 5 - 100 + 100 * 3 // 8 + 100 * 4 // 6
+                5: -58,  # 100 * 5 // 8 - 100 - 100 + 100 * 4 // 5
+                6: -72,  # 100 * 5 // 5 - 100 - 100 + 100 * 4 // 6
                 7: -300,  # -3 * 100
                 8: 0,  # not active
                 9: 0,  # not active
@@ -715,7 +714,6 @@ def test_process_crosslinks(
             {0, 1, 2, 3, 4, 5, 6, 7},
             {2, 3, 4, 5, 6},
             {2, 3, 4},
-            {4, 5, 6},
             {
                 2: 4,
                 3: 4,
@@ -727,11 +725,11 @@ def test_process_crosslinks(
             {
                 0: -800,  # -2 * (100 + 1000 * 5 // 10 // 2) - 100 - (100 - 100 * 4 // 4)
                 1: -800,  # -2 * (100 + 1000 * 5 // 10 // 2) - 100 - (100 - 100 * 4 // 4)
-                2: -100,  # -100 - (100 - 100 * 4 // 4)
-                3: -100,  # -100 - (100 - 100 * 4 // 4)
+                2: 0,  # -(100 - 100 * 4 // 4)
+                3: 0,  # -(100 - 100 * 4 // 4)
                 4: 0,  # -(100 - 100 * 4 // 4)
-                5: -370,  # -(100 + 1000 * 5 // 10 // 2) - (100 - 100 * 4 // 5)
-                6: -1184,  # -(100 + 1000 * 5 // 10 // 2) - (2 * (100 + 1000 * 5 // 10 // 2) + 100) - (100 - 100 * 4 // 6)  # noqa: E501
+                5: -470,  # -(100 * 2 + 1000 * 5 // 10 // 2) - (100 - 100 * 4 // 5)
+                6: -1284,  # -(100 * 2 + 1000 * 5 // 10 // 2) - (2 * (100 + 1000 * 5 // 10 // 2) + 100) - (100 - 100 * 4 // 6)  # noqa: E501
                 7: -1600,  # -2 * (100 + 1000 * 5 // 10 // 2) - 100 - (2 * (100 + 1000 * 5 // 10 // 2) + 100) - (100 - 100 * 4 // 4)  # noqa: E501
                 8: 0,  # not active
                 9: 0,  # not active
@@ -750,14 +748,15 @@ def test_process_rewards_and_penalties_for_finality(
         finalized_epoch,
         current_slot,
         penalized_validator_indices,
-        prev_epoch_active_validator_indices,
+        previous_epoch_active_validator_indices,
         previous_epoch_attester_indices,
-        previous_epoch_boundary_attester_indices,
-        previous_epoch_head_attester_indices,
+        previous_epoch_boundary_head_attester_indices,
         inclusion_distances,
         effective_balance,
         base_reward,
-        expected_rewards_received):
+        expected_rewards_received,
+        sample_pending_attestation_record_params,
+        sample_attestation_data_params):
     validator_registry = n_validators_state.validator_registry
     for index in penalized_validator_indices:
         validator_record = validator_registry[index].copy(
@@ -769,7 +768,7 @@ def test_process_rewards_and_penalties_for_finality(
         finalized_epoch=finalized_epoch,
         validator_registry=validator_registry,
     )
-    previous_total_balance = len(prev_epoch_active_validator_indices) * effective_balance
+    previous_total_balance = len(previous_epoch_active_validator_indices) * effective_balance
 
     attestation_slot = current_slot - slots_per_epoch
     inclusion_infos = {
@@ -782,12 +781,12 @@ def test_process_rewards_and_penalties_for_finality(
 
     effective_balances = {
         index: effective_balance
-        for index in prev_epoch_active_validator_indices
+        for index in previous_epoch_active_validator_indices
     }
 
     base_rewards = {
         index: base_reward
-        for index in prev_epoch_active_validator_indices
+        for index in previous_epoch_active_validator_indices
     }
 
     rewards_received = {
@@ -795,15 +794,55 @@ def test_process_rewards_and_penalties_for_finality(
         for index in range(len(state.validator_registry))
     }
 
+    prev_epoch_start_slot = get_epoch_start_slot(
+        state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH), slots_per_epoch,
+    )
+    prev_epoch_crosslink_committees = [
+        get_crosslink_committees_at_slot(
+            state,
+            slot,
+            CommitteeConfig(config),
+        )[0] for slot in range(prev_epoch_start_slot, prev_epoch_start_slot + slots_per_epoch)
+    ]
+
+    prev_epoch_attestations = []
+    for i in range(slots_per_epoch):
+        committee, shard = prev_epoch_crosslink_committees[i]
+        participants_bitfield = get_empty_bitfield(target_committee_size)
+        for index in previous_epoch_boundary_head_attester_indices:
+            if index in committee:
+                participants_bitfield = set_voted(participants_bitfield, committee.index(index))
+        prev_epoch_attestations.append(
+            PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+                data=AttestationData(**sample_attestation_data_params).copy(
+                    slot=(prev_epoch_start_slot + i),
+                    shard=shard,
+                    epoch_boundary_root=get_block_root(
+                        state,
+                        prev_epoch_start_slot,
+                        config.LATEST_BLOCK_ROOTS_LENGTH,
+                    ),
+                    beacon_block_root=get_block_root(
+                        state,
+                        (prev_epoch_start_slot + i),
+                        config.LATEST_BLOCK_ROOTS_LENGTH,
+                    ),
+                ),
+                aggregation_bitfield=participants_bitfield,
+            )
+        )
+    state = state.copy(
+        latest_attestations=prev_epoch_attestations,
+    )
+
     rewards_received = _process_rewards_and_penalties_for_finality(
         rewards_received,
         state,
         config,
-        prev_epoch_active_validator_indices,
+        previous_epoch_active_validator_indices,
         previous_total_balance,
+        prev_epoch_attestations,
         previous_epoch_attester_indices,
-        previous_epoch_boundary_attester_indices,
-        previous_epoch_head_attester_indices,
         inclusion_infos,
         effective_balances,
         base_rewards,
