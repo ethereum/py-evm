@@ -59,6 +59,7 @@ from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.datastructures.inclusion_info import InclusionInfo
+from eth2.beacon.datastructures.rewards_settlement_context import RewardsSettlementContext
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
@@ -298,22 +299,19 @@ def _update_rewards_or_penalies(
 
 
 def _apply_rewards_and_penalties(
-        rewards: Dict[ValidatorIndex, Gwei],
-        indices_to_reward: Iterable[ValidatorIndex],
-        penalties: Dict[ValidatorIndex, Gwei],
-        indices_to_penalize: Iterable[ValidatorIndex],
-        rewards_received: Dict[ValidatorIndex, Gwei],
-        penalties_received: Dict[ValidatorIndex, Gwei]) -> Tuple[Dict[ValidatorIndex, Gwei], Dict[ValidatorIndex, Gwei]]:  # noqa: E501
-    for index in indices_to_reward:
+        rewards_settlement_context: RewardsSettlementContext) -> Tuple[Dict[ValidatorIndex, Gwei], Dict[ValidatorIndex, Gwei]]:  # noqa: E501
+    rewards_received = rewards_settlement_context.rewards_received
+    penalties_received = rewards_settlement_context.penalties_received
+    for index in rewards_settlement_context.indices_to_reward:
         rewards_received = _update_rewards_or_penalies(
             index,
-            rewards[index],
+            rewards_settlement_context.rewards[index],
             rewards_received,
         )
-    for index in indices_to_penalize:
+    for index in rewards_settlement_context.indices_to_penalize:
         penalties_received = _update_rewards_or_penalies(
             index,
-            penalties[index],
+            rewards_settlement_context.penalties[index],
             penalties_received,
         )
     return rewards_received, penalties_received
@@ -390,12 +388,14 @@ def _process_rewards_and_penalties_for_finality(
             for index in excluded_active_validators_indices
         }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
-            rewards,
-            previous_epoch_attester_indices,
-            penalties,
-            excluded_active_validators_indices,
-            rewards_received,
-            penalties_received,
+            RewardsSettlementContext(
+                rewards=rewards,
+                indices_to_reward=previous_epoch_attester_indices,
+                penalties=penalties,
+                indices_to_penalize=excluded_active_validators_indices,
+                rewards_received=rewards_received,
+                penalties_received=penalties_received,
+            ),
         )
 
         # 1.2 Expected FFG target:
@@ -420,12 +420,14 @@ def _process_rewards_and_penalties_for_finality(
             for index in excluded_active_validators_indices
         }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
-            rewards,
-            previous_epoch_boundary_attester_indices,
-            penalties,
-            excluded_active_validators_indices,
-            rewards_received,
-            penalties_received,
+            RewardsSettlementContext(
+                rewards=rewards,
+                indices_to_reward=previous_epoch_boundary_attester_indices,
+                penalties=penalties,
+                indices_to_penalize=excluded_active_validators_indices,
+                rewards_received=rewards_received,
+                penalties_received=penalties_received,
+            ),
         )
 
         # 1.3 Expected beacon chain head:
@@ -450,12 +452,14 @@ def _process_rewards_and_penalties_for_finality(
             for index in excluded_active_validators_indices
         }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
-            rewards,
-            previous_epoch_head_attester_indices,
-            penalties,
-            excluded_active_validators_indices,
-            rewards_received,
-            penalties_received,
+            RewardsSettlementContext(
+                rewards=rewards,
+                indices_to_reward=previous_epoch_head_attester_indices,
+                penalties=penalties,
+                indices_to_penalize=excluded_active_validators_indices,
+                rewards_received=rewards_received,
+                penalties_received=penalties_received,
+            ),
         )
 
         # 1.4 Inclusion distance:
@@ -469,12 +473,12 @@ def _process_rewards_and_penalties_for_finality(
             for index in previous_epoch_attester_indices
         }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
-            rewards,
-            previous_epoch_attester_indices,
-            dict(),
-            set(),
-            rewards_received,
-            penalties_received,
+            RewardsSettlementContext(
+                rewards=rewards,
+                indices_to_reward=previous_epoch_attester_indices,
+                rewards_received=rewards_received,
+                penalties_received=penalties_received,
+            ),
         )
 
     # epochs_since_finality > 4
@@ -490,12 +494,12 @@ def _process_rewards_and_penalties_for_finality(
             for index in excluded_active_validators_indices
         }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
-            dict(),
-            set(),
-            inactivity_penalties,
-            excluded_active_validators_indices,
-            rewards_received,
-            penalties_received,
+            RewardsSettlementContext(
+                penalties=inactivity_penalties,
+                indices_to_penalize=excluded_active_validators_indices,
+                rewards_received=rewards_received,
+                penalties_received=penalties_received,
+            ),
         )
 
         # Punish active validators not in `previous_epoch_boundary_attester_indices`
@@ -509,12 +513,12 @@ def _process_rewards_and_penalties_for_finality(
             for index in excluded_active_validators_indices
         }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
-            dict(),
-            set(),
-            inactivity_penalties,
-            excluded_active_validators_indices,
-            rewards_received,
-            penalties_received,
+            RewardsSettlementContext(
+                penalties=inactivity_penalties,
+                indices_to_penalize=excluded_active_validators_indices,
+                rewards_received=rewards_received,
+                penalties_received=penalties_received,
+            ),
         )
 
         # Punish active validators not in `previous_epoch_head_attester_indices`
@@ -525,12 +529,12 @@ def _process_rewards_and_penalties_for_finality(
             for index in excluded_active_validators_indices
         }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
-            dict(),
-            set(),
-            penalties,
-            excluded_active_validators_indices,
-            rewards_received,
-            penalties_received,
+            RewardsSettlementContext(
+                penalties=penalties,
+                indices_to_penalize=excluded_active_validators_indices,
+                rewards_received=rewards_received,
+                penalties_received=penalties_received,
+            ),
         )
 
         # Punish penalized active validators
@@ -545,12 +549,12 @@ def _process_rewards_and_penalties_for_finality(
             if state.validator_registry[index].slashed_epoch <= current_epoch
         }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
-            dict(),
-            set(),
-            penalties,
-            {index for index in penalties},
-            rewards_received,
-            penalties_received,
+            RewardsSettlementContext(
+                penalties=penalties,
+                indices_to_penalize={index for index in penalties},
+                rewards_received=rewards_received,
+                penalties_received=penalties_received,
+            ),
         )
 
         # Punish validators in `previous_epoch_attester_indices`
@@ -565,12 +569,12 @@ def _process_rewards_and_penalties_for_finality(
             for index in previous_epoch_attester_indices
         }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
-            dict(),
-            set(),
-            penalties,
-            previous_epoch_attester_indices,
-            rewards_received,
-            penalties_received,
+            RewardsSettlementContext(
+                penalties=penalties,
+                indices_to_penalize=previous_epoch_attester_indices,
+                rewards_received=rewards_received,
+                penalties_received=penalties_received,
+            ),
         )
 
     historical_rewards_received = old_rewards_received.copy()
