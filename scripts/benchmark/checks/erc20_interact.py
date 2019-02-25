@@ -122,7 +122,7 @@ class BaseERC20Benchmark(BaseBenchmark):
                    chain: MiningChain,
                    block_number: int,
                    num_tx: int) -> BaseBlock:
-        for i in range(1, num_tx + 1):
+        for _ in range(1, num_tx + 1):
             self._apply_transaction(chain)
         return chain.mine_block()
 

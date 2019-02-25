@@ -59,7 +59,7 @@ def expand_fixtures_forks(all_fixtures):
     """
     for fixture_path, fixture_key in all_fixtures:
         fixture = load_fixture(fixture_path, fixture_key)
-        for fixture_fork, fork_states in fixture.items():
+        for fixture_fork, _ in fixture.items():
             if fixture_fork not in FIXTURE_FORK_SKIPS:
                 yield fixture_path, fixture_key, fixture_fork
 

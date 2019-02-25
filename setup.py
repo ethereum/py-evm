@@ -40,6 +40,7 @@ deps = {
     ],
     'lint': [
         "flake8==3.5.0",
+        "flake8-bugbear==18.8.0",
         "mypy==0.641",
     ],
     'benchmark': [

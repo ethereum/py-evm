@@ -55,7 +55,7 @@ def test_push_does_not_allow_stack_to_exceed_1024_items(stack):
 
 def test_dup_does_not_allow_stack_to_exceed_1024_items(stack):
     stack.push(1)
-    for num in range(1023):
+    for _ in range(1023):
         stack.dup(1)
     assert len(stack.values) == 1024
     with pytest.raises(FullStack):

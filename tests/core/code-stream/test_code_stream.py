@@ -23,9 +23,9 @@ def test_code_stream_rejects_invalid_code_byte_values(code_bytes):
 
 def test_next_returns_the_correct_next_opcode():
     code_stream = CodeStream(b'\x01\x02\x30')
-    assert code_stream.next() == opcode_values.ADD
+    assert next(code_stream) == opcode_values.ADD
     assert next(code_stream) == opcode_values.MUL
-    assert code_stream.next() == opcode_values.ADDRESS
+    assert next(code_stream) == opcode_values.ADDRESS
 
 
 def test_peek_returns_next_opcode_without_changing_code_stream_location():
@@ -33,7 +33,7 @@ def test_peek_returns_next_opcode_without_changing_code_stream_location():
     assert code_stream.pc == 0
     assert code_stream.peek() == opcode_values.ADD
     assert code_stream.pc == 0
-    assert code_stream.next() == opcode_values.ADD
+    assert next(code_stream) == opcode_values.ADD
     assert code_stream.pc == 1
     assert code_stream.peek() == opcode_values.MUL
     assert code_stream.pc == 1
@@ -41,9 +41,9 @@ def test_peek_returns_next_opcode_without_changing_code_stream_location():
 
 def test_STOP_opcode_is_returned_when_bytecode_end_is_reached():
     code_stream = CodeStream(b'\x01\x02')
-    code_stream.next()
-    code_stream.next()
-    assert code_stream.next() == opcode_values.STOP
+    next(code_stream)
+    next(code_stream)
+    assert next(code_stream) == opcode_values.STOP
 
 
 def test_seek_reverts_to_original_stream_position_when_context_exits():
@@ -51,7 +51,7 @@ def test_seek_reverts_to_original_stream_position_when_context_exits():
     assert code_stream.pc == 0
     with code_stream.seek(1):
         assert code_stream.pc == 1
-        assert code_stream.next() == opcode_values.MUL
+        assert next(code_stream) == opcode_values.MUL
     assert code_stream.pc == 0
     assert code_stream.peek() == opcode_values.ADD
 
