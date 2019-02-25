@@ -7,6 +7,7 @@ from typing import (
 
 from eth_utils import (
     to_tuple,
+    to_set,
     ValidationError,
 )
 from eth_typing import (
@@ -45,6 +46,7 @@ from eth2.beacon.validation import (
 )
 
 if TYPE_CHECKING:
+    from eth2.beacon.types.attestations import Attestation  # noqa: F401
     from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth2.beacon.types.states import BeaconState  # noqa: F401
     from eth2.beacon.types.validator_records import ValidatorRecord  # noqa: F401
@@ -369,3 +371,18 @@ def get_attestation_participants(state: 'BeaconState',
     )
 
     return get_members_from_bitfield(committee, bitfield)
+
+
+@to_set
+def get_attester_indices_from_attesttion(
+        *,
+        state: 'BeaconState',
+        attestations: Iterable['Attestation'],
+        committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
+    for a in attestations:
+        yield from get_attestation_participants(
+            state,
+            a.data,
+            a.aggregation_bitfield,
+            committee_config,
+        )
