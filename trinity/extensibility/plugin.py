@@ -290,7 +290,7 @@ class BaseIsolatedPlugin(BasePlugin):
         )
 
         self._process.start()
-        self.logger.info("Plugin started: %s", self.name)
+        self.logger.info("Plugin started: %s (pid=%d)", self.name, self._process.pid)
 
     def _prepare_start(self) -> None:
         log_queue = self.context.boot_kwargs['log_queue']
