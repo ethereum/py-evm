@@ -1,4 +1,3 @@
-import logging
 from typing import (
     Tuple,
 )
@@ -41,7 +40,7 @@ class TrinityEventBusEndpoint(Endpoint):
             elif self.is_connected_to(connection_config.name):
                 continue
             else:
-                self._logger.info(
+                self.logger.info(
                     "EventBus Endpoint %s connecting to other Endpoint %s",
                     self.name,
                     connection_config.name
@@ -73,11 +72,10 @@ class TrinityMainEventBusEndpoint(TrinityEventBusEndpoint):
 
     available_endpoints: Tuple[ConnectionConfig, ...]
 
-    def track_and_propagate_available_endpoints(self, logger: logging.Logger) -> None:
+    def track_and_propagate_available_endpoints(self) -> None:
         """
         Track new announced endpoints and propagate them across all other existing endpoints.
         """
-
         self.available_endpoints = tuple()
 
         def handle_new_endpoints(ev: EventBusConnected) -> None:
@@ -87,16 +85,16 @@ class TrinityMainEventBusEndpoint(TrinityEventBusEndpoint):
             # event multiple times which would then raise an exception if we are already connected
             # to that endpoint.
             if not self.is_connected_to(ev.connection_config.name):
-                logger.info(
+                self.logger.info(
                     "EventBus of main process connecting to EventBus %s", ev.connection_config.name
                 )
                 self.connect_to_endpoints_blocking(ev.connection_config)
 
             self.available_endpoints = self.available_endpoints + (ev.connection_config,)
-            logger.debug("New EventBus Endpoint connected %s", ev.connection_config.name)
+            self.logger.debug("New EventBus Endpoint connected %s", ev.connection_config.name)
             # Broadcast available endpoints to all connected endpoints, giving them
             # a chance to cross connect
             self.broadcast(AvailableEndpointsUpdated(self.available_endpoints))
-            logger.debug("Connected EventBus Endpoints %s", self.available_endpoints)
+            self.logger.debug("Connected EventBus Endpoints %s", self.available_endpoints)
 
         self.subscribe(EventBusConnected, handle_new_endpoints)

@@ -142,7 +142,7 @@ def main_entry(trinity_boot: BootFn,
     if args.log_levels:
         setup_log_levels(args.log_levels)
 
-    main_endpoint.track_and_propagate_available_endpoints(stderr_logger)
+    main_endpoint.track_and_propagate_available_endpoints()
     try:
         trinity_config = TrinityConfig.from_parser_args(args, app_identifier, sub_configs)
     except AmbigiousFileSystem:
