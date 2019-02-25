@@ -38,12 +38,12 @@ class CodeStream(object):
         return self
 
     def __next__(self) -> int:
-        return self.next()
+        return self._next()
 
     def __getitem__(self, i: int) -> int:
         return self._raw_code_bytes[i]
 
-    def next(self) -> int:
+    def _next(self) -> int:
         next_opcode_as_byte = self.read(1)
 
         if next_opcode_as_byte:

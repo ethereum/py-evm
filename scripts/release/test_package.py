@@ -22,7 +22,7 @@ def find_wheel(project_path):
     return wheels[0]
 
 
-def install_wheel(venv_path, wheel_path, extras=tuple()):
+def install_wheel(venv_path, wheel_path, extras=()):
     if extras:
         extra_suffix = f"[{','.join(extras)}]"
     else:

@@ -174,7 +174,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         self.vm_state.account_db.delta_balance(self.vm_state.coinbase, transaction_fee)
 
         # Process Self Destructs
-        for account, beneficiary in computation.get_accounts_for_deletion():
+        for account, _ in computation.get_accounts_for_deletion():
             # TODO: need to figure out how we prevent multiple selfdestructs from
             # the same account and if this is the right place to put this.
             self.vm_state.logger.debug2('DELETING ACCOUNT: %s', encode_hex(account))

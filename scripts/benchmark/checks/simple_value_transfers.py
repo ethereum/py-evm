@@ -107,7 +107,7 @@ class SimpleValueTransferBenchmark(BaseBenchmark):
         return total_gas_used, total_num_tx
 
     def mine_block(self, chain: MiningChain, block_number: int, num_tx: int) -> BaseBlock:
-        for i in range(1, num_tx + 1):
+        for _ in range(1, num_tx + 1):
             self.apply_transaction(chain)
 
         return chain.mine_block()
