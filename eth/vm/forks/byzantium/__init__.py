@@ -5,7 +5,9 @@ from typing import (  # noqa: F401
 from eth_utils.toolz import (
     curry,
 )
-
+from eth_bloom import (
+    BloomFilter,
+)
 from eth_utils import (
     encode_hex,
     ValidationError,
@@ -40,20 +42,6 @@ from .headers import (
 from .state import ByzantiumState
 
 
-def make_byzantium_receipt(base_header: BlockHeader,
-                           transaction: BaseTransaction,
-                           computation: BaseComputation,
-                           state: BaseState) -> Receipt:
-    frontier_receipt = make_frontier_receipt(base_header, transaction, computation, state)
-
-    if computation.is_error:
-        status_code = EIP658_TRANSACTION_STATUS_CODE_FAILURE
-    else:
-        status_code = EIP658_TRANSACTION_STATUS_CODE_SUCCESS
-
-    return frontier_receipt.copy(state_root=status_code)
-
-
 @curry
 def get_uncle_reward(block_reward: int, block_number: int, uncle: BaseBlock) -> int:
     block_number_delta = block_number - uncle.block_number
@@ -79,7 +67,6 @@ class ByzantiumVM(SpuriousDragonVM):
     create_header_from_parent = staticmethod(create_byzantium_header_from_parent)   # type: ignore
     compute_difficulty = staticmethod(compute_byzantium_difficulty)     # type: ignore
     configure_header = configure_byzantium_header
-    make_receipt = staticmethod(make_byzantium_receipt)     # type: ignore
     # Separated into two steps due to mypy bug of staticmethod.
     # https://github.com/python/mypy/issues/5530
     get_uncle_reward = get_uncle_reward(EIP649_BLOCK_REWARD)
@@ -101,3 +88,28 @@ class ByzantiumVM(SpuriousDragonVM):
     @staticmethod
     def get_block_reward() -> int:
         return EIP649_BLOCK_REWARD
+
+    def add_receipt_to_header(self, old_header: BlockHeader, receipt: Receipt) -> BlockHeader:
+        # Skip merkelizing the account data and persisting it to disk on every transaction.
+        # Starting in Byzantium, this is no longer necessary, because the state root isn't
+        # in the receipt anymore.
+        return old_header.copy(
+            bloom=int(BloomFilter(old_header.bloom) | receipt.bloom),
+            gas_used=receipt.gas_used,
+        )
+
+    @staticmethod
+    def make_receipt(
+            base_header: BlockHeader,
+            transaction: BaseTransaction,
+            computation: BaseComputation,
+            state: BaseState) -> Receipt:
+
+        receipt_without_state_root = make_frontier_receipt(base_header, transaction, computation)
+
+        if computation.is_error:
+            status_code = EIP658_TRANSACTION_STATUS_CODE_FAILURE
+        else:
+            status_code = EIP658_TRANSACTION_STATUS_CODE_SUCCESS
+
+        return receipt_without_state_root.copy(state_root=status_code)

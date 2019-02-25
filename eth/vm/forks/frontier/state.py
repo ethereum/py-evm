@@ -6,21 +6,16 @@ from eth_utils import (
     encode_hex,
 )
 
-from eth.constants import (
-    CREATE_CONTRACT_ADDRESS,
-    BLANK_ROOT_HASH,
-)
+from eth.constants import CREATE_CONTRACT_ADDRESS
 from eth.db.account import (
     AccountDB,
 )
 from eth.exceptions import (
     ContractCreationCollision,
-    StateRootNotFound,
 )
 
 from eth.typing import (
     BaseOrSpoofTransaction,
-    Tuple,
 )
 from eth._utils.address import (
     generate_contract_address,
@@ -204,11 +199,3 @@ class FrontierState(BaseState):
     def execute_transaction(self, transaction: BaseOrSpoofTransaction) -> BaseComputation:
         executor = self.get_transaction_executor()
         return executor(transaction)
-
-    def apply_transaction(self, transaction: BaseOrSpoofTransaction) -> \
-            Tuple[bytes, 'BaseComputation']:
-        if self.state_root != BLANK_ROOT_HASH and not self.account_db.has_root(self.state_root):
-            raise StateRootNotFound(self.state_root)
-        computation = self.execute_transaction(transaction)
-        state_root = self.account_db.make_state_root()
-        return state_root, computation

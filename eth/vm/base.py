@@ -16,9 +16,6 @@ from typing import (
 )
 from typing import Set  # noqa: F401
 
-from eth_bloom import (
-    BloomFilter,
-)
 from eth_hash.auto import keccak
 from eth_typing import (
     Address,
@@ -111,7 +108,7 @@ class BaseVM(Configurable, ABC):
     def apply_transaction(self,
                           header: BlockHeader,
                           transaction: BaseTransaction
-                          ) -> Tuple[BlockHeader, Receipt, BaseComputation]:
+                          ) -> Tuple[Receipt, BaseComputation]:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
@@ -186,6 +183,15 @@ class BaseVM(Configurable, ABC):
     #
     # Headers
     #
+    @abstractmethod
+    def add_receipt_to_header(self, old_header: BlockHeader, receipt: Receipt) -> BlockHeader:
+        """
+        Apply the receipt to the old header, and return the resulting header. This may have
+        storage-related side-effects. For example, pre-Byzantium, the state root hash
+        is included in the receipt, and so must be stored into the database.
+        """
+        pass
+
     @classmethod
     @abstractmethod
     def compute_difficulty(cls, parent_header: BlockHeader, timestamp: int) -> int:
@@ -408,7 +414,7 @@ class VM(BaseVM):
     def apply_transaction(self,
                           header: BlockHeader,
                           transaction: BaseTransaction
-                          ) -> Tuple[BlockHeader, Receipt, BaseComputation]:
+                          ) -> Tuple[Receipt, BaseComputation]:
         """
         Apply the transaction to the current block. This is a wrapper around
         :func:`~eth.vm.state.State.apply_transaction` with some extra orchestration logic.
@@ -417,17 +423,11 @@ class VM(BaseVM):
         :param transaction: to apply
         """
         self.validate_transaction_against_header(header, transaction)
-        state_root, computation = self.state.apply_transaction(transaction)
+        computation = self.state.apply_transaction(transaction)
         receipt = self.make_receipt(header, transaction, computation, self.state)
         self.validate_receipt(receipt)
 
-        new_header = header.copy(
-            bloom=int(BloomFilter(header.bloom) | receipt.bloom),
-            gas_used=receipt.gas_used,
-            state_root=state_root,
-        )
-
-        return new_header, receipt, computation
+        return receipt, computation
 
     def execute_bytecode(self,
                          origin: Address,
@@ -499,20 +499,17 @@ class VM(BaseVM):
         result_header = base_header
 
         for transaction in transactions:
-            result_header, receipt, computation = self.apply_transaction(
+            receipt, computation = self.apply_transaction(
                 previous_header,
                 transaction,
             )
-
+            result_header = self.add_receipt_to_header(previous_header, receipt)
             previous_header = result_header
             receipts.append(receipt)
             computations.append(computation)
 
         receipts_tuple = tuple(receipts)
         computations_tuple = tuple(computations)
-
-        self.state.account_db.persist()
-        result_header = result_header.copy(state_root=self.state.state_root)
 
         return result_header, receipts_tuple, computations_tuple
 

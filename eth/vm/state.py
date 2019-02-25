@@ -22,14 +22,17 @@ from eth_typing import (
 from eth_utils.toolz import nth
 
 from eth.constants import (
+    BLANK_ROOT_HASH,
     MAX_PREV_HEADER_DEPTH,
 )
 from eth.db.account import (  # noqa: F401
     BaseAccountDB,
+    AccountDB,
 )
 from eth.db.backends.base import (
     BaseDB,
 )
+from eth.exceptions import StateRootNotFound
 from eth.tools.logging import (
     ExtendedDebugLogger,
 )
@@ -241,16 +244,19 @@ class BaseState(Configurable, ABC):
     #
     # Execution
     #
-    @abstractmethod
-    def apply_transaction(self, transaction: BaseOrSpoofTransaction) -> \
-            Tuple[bytes, 'BaseComputation']:
+    def apply_transaction(
+            self,
+            transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
         """
         Apply transaction to the vm state
 
         :param transaction: the transaction to apply
-        :return: the new state root (before Constantinople), and the computation
+        :return: the computation
         """
-        raise NotImplementedError()
+        if self.state_root != BLANK_ROOT_HASH and not self.account_db.has_root(self.state_root):
+            raise StateRootNotFound(self.state_root)
+        else:
+            return self.execute_transaction(transaction)
 
     def get_transaction_executor(self) -> 'BaseTransactionExecutor':
         return self.transaction_executor(self)

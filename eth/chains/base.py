@@ -899,11 +899,12 @@ class MiningChain(Chain):
         vm = self.get_vm(self.header)
         base_block = vm.block
 
-        new_header, receipt, computation = vm.apply_transaction(base_block.header, transaction)
+        receipt, computation = vm.apply_transaction(base_block.header, transaction)
+        header_with_receipt = vm.add_receipt_to_header(base_block.header, receipt)
 
         # since we are building the block locally, we have to persist all the incremental state
         vm.state.account_db.persist()
-        new_header = new_header.copy(state_root=vm.state.state_root)
+        new_header = header_with_receipt.copy(state_root=vm.state.state_root)
 
         transactions = base_block.transactions + (transaction, )
         receipts = base_block.get_receipts(self.chaindb) + (receipt, )
