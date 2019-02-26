@@ -16,6 +16,7 @@ from eth_typing import (
 )
 from eth_utils import (
     to_tuple,
+    ValidationError,
 )
 
 from eth.constants import (
@@ -61,6 +62,7 @@ from eth2.beacon.typing import (
     BLSSignature,
     Bitfield,
     CommitteeIndex,
+    Epoch,
     Slot,
     ValidatorIndex,
 )
@@ -374,14 +376,15 @@ def create_mock_signed_attestations_at_slot(
 #
 # Lookahead
 #
-def get_next_epoch_committee_assignment(
+def get_committee_assignment(
         state: BeaconState,
         config: BeaconConfig,
+        epoch: Epoch,
         validator_index: ValidatorIndex,
-        registry_change: bool
+        registry_change: bool=False
 ) -> CommitteeAssignment:
     """
-    Return the ``CommitteeAssignment`` in the next epoch for ``validator_index``
+    Return the ``CommitteeAssignment`` in the ``epoch`` for ``validator_index``
     and ``registry_change``.
     ``CommitteeAssignment.committee`` is the tuple array of validators in the committee
     ``CommitteeAssignment.shard`` is the shard to which the committee is assigned
@@ -390,9 +393,22 @@ def get_next_epoch_committee_assignment(
         propose a beacon block at the assigned slot.
     """
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
     next_epoch = current_epoch + 1
-    next_epoch_start_slot = get_epoch_start_slot(next_epoch, config.SLOTS_PER_EPOCH)
-    for slot in range(next_epoch_start_slot, next_epoch_start_slot + config.SLOTS_PER_EPOCH):
+
+    if previous_epoch > epoch:
+        raise ValidationError(
+            f"The given epoch ({epoch}) is less than previous epoch ({previous_epoch})"
+        )
+
+    if epoch > next_epoch:
+        raise ValidationError(
+            f"The given epoch ({epoch}) is greater than next epoch ({previous_epoch})"
+        )
+
+    epoch_start_slot = get_epoch_start_slot(epoch, config.SLOTS_PER_EPOCH)
+
+    for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
         crosslink_committees = get_crosslink_committees_at_slot(
             state,
             slot,

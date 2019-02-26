@@ -19,7 +19,7 @@ from eth2.beacon.helpers import (
 
 from eth2.beacon.tools.builder.validator import (
     aggregate_votes,
-    get_next_epoch_committee_assignment,
+    get_committee_assignment,
     verify_votes,
 )
 
@@ -83,44 +83,61 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
 
 @pytest.mark.parametrize(
     (
+        'registry_change'
+    ),
+    [
+        (True),
+        (False),
+    ]
+
+)
+@pytest.mark.parametrize(
+    (
         'num_validators,'
         'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
-        'registry_change,'
+        'state_epoch,'
+        'epoch,'
     ),
     [
-        (40, 16, 1, 2, True),
-        (40, 16, 1, 2, False),
+        (40, 16, 1, 2, 0, 0),  # genesis
+        (40, 16, 1, 2, 1, 1),  # current epoch
+        (40, 16, 1, 2, 1, 0),  # previous epoch
+        (40, 16, 1, 2, 1, 2),  # next epoch
     ]
 )
-def test_get_next_epoch_committee_assignment(genesis_state,
-                                             slots_per_epoch,
-                                             shard_count,
-                                             config,
-                                             num_validators,
-                                             registry_change):
-    state = genesis_state
+def test_get_committee_assignment(genesis_state,
+                                  slots_per_epoch,
+                                  shard_count,
+                                  config,
+                                  num_validators,
+                                  state_epoch,
+                                  epoch,
+                                  registry_change):
+    state_slot = get_epoch_start_slot(state_epoch, slots_per_epoch)
+    state = genesis_state.copy(
+        slot=state_slot,
+    )
     proposer_count = 0
     shard_validator_count = [
         0
         for _ in range(shard_count)
     ]
     slots = []
-    next_epoch_start = get_epoch_start_slot(
-        state.current_epoch(slots_per_epoch) + 1,
-        slots_per_epoch
-    )
+
+    epoch_start_slot = get_epoch_start_slot(epoch, slots_per_epoch)
 
     for validator_index in range(num_validators):
-        assignment = get_next_epoch_committee_assignment(
+        assignment = get_committee_assignment(
             state,
             config,
+            epoch,
             validator_index,
             registry_change,
         )
-        assert assignment.slot >= next_epoch_start
-        assert assignment.slot < next_epoch_start + slots_per_epoch
+        assert assignment.slot >= epoch_start_slot
+        assert assignment.slot < epoch_start_slot + slots_per_epoch
         if assignment.is_proposer:
             proposer_count += 1
 
@@ -142,11 +159,13 @@ def test_get_next_epoch_committee_assignment(genesis_state,
         (40, 16, 1, 2),
     ]
 )
-def test_get_next_epoch_committee_assignment_no_assignment(genesis_state,
-                                                           genesis_epoch,
-                                                           config):
+def test_get_committee_assignment_no_assignment(genesis_state,
+                                                genesis_epoch,
+                                                slots_per_epoch,
+                                                config):
     state = genesis_state
     validator_index = 1
+    current_epoch = state.current_epoch(slots_per_epoch)
     state = state.update_validator_registry(
         validator_index,
         validator=state.validator_registry[validator_index].copy(
@@ -155,4 +174,4 @@ def test_get_next_epoch_committee_assignment_no_assignment(genesis_state,
     )
 
     with pytest.raises(NoCommitteeAssignment):
-        get_next_epoch_committee_assignment(state, config, validator_index, True)
+        get_committee_assignment(state, config, current_epoch, validator_index, True)
