@@ -468,7 +468,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             self.logger.debug("Could not find any header at #%d: %s", block_num, exc)
             local_header = None
 
-        # Header just preceeding this one may or may not be in the database. Either way log an error
+        # Canonical header at same number may or may not be in the database. Either way log an error
         self.logger.debug(
             "%s returned starting header %s, which is not in our DB. "
             "Instead at #%d, our is header %s",

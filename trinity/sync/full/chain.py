@@ -33,6 +33,7 @@ from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_UNCLE_HASH,
 )
+from eth.exceptions import HeaderNotFound
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
@@ -461,9 +462,13 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
 
                 # If the parent header doesn't exist yet, this is a legit bug instead of a fork,
                 # let the HeaderNotFound exception bubble up
-                parent_header = await self.wait(
-                    self.db.coro_get_block_header_by_hash(headers[0].parent_hash)
-                )
+                try:
+                    parent_header = await self.wait(
+                        self.db.coro_get_block_header_by_hash(headers[0].parent_hash)
+                    )
+                except HeaderNotFound:
+                    await self._log_header_link_failure(headers[0])
+                    raise
 
                 # This appears to be a fork, since the parent header is persisted,
                 self.logger.info(
@@ -488,6 +493,37 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
                 self._block_body_tasks.add(new_body_tasks),
                 self._receipt_tasks.add(new_receipt_tasks),
             ))
+
+    async def _log_header_link_failure(self, first_header: BlockHeader) -> None:
+        self.logger.info("Unable to find parent in our database for %r", first_header)
+        block_num = first_header.block_number
+        try:
+            local_header = await self.db.coro_get_canonical_block_header_by_number(block_num)
+        except HeaderNotFound as exc:
+            self.logger.debug("Could not find canonical header at #%d: %s", block_num, exc)
+            local_header = None
+
+        try:
+            local_parent = await self.db.coro_get_canonical_block_header_by_number(block_num - 1)
+        except HeaderNotFound as exc:
+            self.logger.debug("Could not find canonical header parent at #%d: %s", block_num, exc)
+            local_parent = None
+
+        try:
+            canonical_tip = await self.db.coro_get_canonical_head()
+        except HeaderNotFound as exc:
+            self.logger.debug("Could not find canonical tip: %s", exc)
+            canonical_tip = None
+
+        self.logger.debug(
+            "Header syncer returned header %s, which is not in our DB. "
+            "Instead at #%d, our header is %s, whose parent is %s, with canonical tip %s",
+            first_header,
+            block_num,
+            local_header,
+            local_parent,
+            canonical_tip,
+        )
 
     async def _display_stats(self) -> None:
         while self.is_operational:
@@ -532,7 +568,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         its target hash. If so, shut down this service.
         """
         while self.is_operational:
-            # jhis tracker waits for all prerequisites to be complete, and returns headers in
+            # this tracker waits for all prerequisites to be complete, and returns headers in
             # order, so that each header's parent is already persisted.
             completed_headers = await self.wait(self._block_persist_tracker.ready_tasks())
 
