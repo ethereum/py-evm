@@ -4,6 +4,7 @@ import inspect
 import logging
 from typing import (
     Any,
+    AsyncGenerator,
     Awaitable,
     Callable,
     Dict,
@@ -104,7 +105,8 @@ class Client:
         await handler(stream_info, reader, writer)
 
     @staticmethod
-    async def _write_pb(writer: asyncio.StreamWriter, data_pb) -> None:
+    # TODO: typing for pb
+    async def _write_pb(writer: asyncio.StreamWriter, data_pb: Any) -> None:
         data_bytes = serialize(data_pb)
         writer.write(data_bytes)
         await writer.drain()
@@ -128,8 +130,8 @@ class Client:
             )
 
     async def close(self) -> None:
-        self.listener.close()  # type: ignore
-        await self.listener.wait_closed()  # type: ignore
+        self.listener.close()
+        await self.listener.wait_closed()
         self.listener = None
 
     async def open_connection(self) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
@@ -196,7 +198,7 @@ class Client:
         writer.close()
         raise_if_failed(resp)
 
-        peers = tuple(PeerInfo.from_pb(pinfo) for pinfo in resp.peers)  # type: ignore
+        peers = tuple(PeerInfo.from_pb(pinfo) for pinfo in resp.peers)
         return peers
 
     async def disconnect(self, peer_id: PeerID) -> None:
@@ -217,7 +219,8 @@ class Client:
     async def stream_open(
             self,
             peer_id: PeerID,
-            protocols: Tuple[str, ...]) -> Tuple[StreamInfo, asyncio.StreamReader, asyncio.StreamWriter]:
+            protocols: Tuple[str, ...]) -> Tuple[
+            StreamInfo, asyncio.StreamReader, asyncio.StreamWriter]:
         reader, writer = await self.open_connection()
 
         stream_open_req = p2pd_pb.StreamOpenRequest(
@@ -269,11 +272,21 @@ class Client:
 
     # DHT operations
 
+    # TODO: type hints for `p2pd_pb.DHTResponse`
+    @staticmethod
+    async def _read_dht_stream(reader: asyncio.StreamReader) -> AsyncGenerator[Any, None]:
+        while True:
+            dht_resp = p2pd_pb.DHTResponse()
+            await read_pbmsg_safe(reader, dht_resp)
+            if dht_resp.type == dht_resp.END:
+                break
+            yield dht_resp
+
     # TODO: type hints for `p2pd_pb.DHTRequest` and `p2pd_pb.DHTResponse`
-    async def _do_dht(self, dht_req):
+    async def _do_dht(self, dht_req: Any) -> Tuple[Any, ...]:
         reader, writer = await self.open_connection()
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.DHT,
+            type=p2pd_pb.Request.DHT,  # type: ignore
             dht=dht_req,
         )
         await self._write_pb(writer, req)
@@ -286,19 +299,13 @@ class Client:
         except AttributeError as e:
             raise ControlFailure(f"resp should contains dht: resp={resp}, e={e}")
 
-        if dht_resp.type == dht_resp.VALUE:  # type: ignore
-            return [dht_resp]
+        if dht_resp.type == dht_resp.VALUE:
+            return (dht_resp,)
 
-        if dht_resp.type != dht_resp.BEGIN:  # type: ignore
+        if dht_resp.type != dht_resp.BEGIN:
             raise ControlFailure(f"Type should be BEGIN instead of {dht_resp.type}")
         # BEGIN/END stream
-        resps = []
-        while True:
-            dht_resp = p2pd_pb.DHTResponse()
-            await read_pbmsg_safe(reader, dht_resp)
-            if dht_resp.type == dht_resp.END:  # type: ignore
-                break
-            resps.append(dht_resp)
+        resps = tuple([i async for i in self._read_dht_stream(reader)])
         writer.close()
         return resps
 
@@ -385,7 +392,7 @@ class Client:
             raise ControlFailure(f"should only get one response, resps={resps}")
         try:
             # TODO: parse the public key with another class?
-            public_key_pb_bytes = resps[0].value  # type: ignore
+            public_key_pb_bytes = resps[0].value
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains `value`: resps={resps}, e={e}"
@@ -544,7 +551,7 @@ class Client:
         writer.close()
         raise_if_failed(resp)
 
-        topics = tuple(resp.pubsub.topics)  # type: ignore
+        topics = tuple(resp.pubsub.topics)
         return topics
 
     # FIXME: name conflicts: `list_topic_peers` is originally `list_peers` in pubsub
@@ -566,8 +573,10 @@ class Client:
         writer.close()
         raise_if_failed(resp)
 
-        peers = tuple(PeerID(peer_id_bytes) for peer_id_bytes in resp.pubsub.peerIDs)  # type: ignore
-        return peers
+        return tuple(
+            PeerID(peer_id_bytes)
+            for peer_id_bytes in resp.pubsub.peerIDs
+        )
 
     async def publish(self, topic: str, data: bytes) -> None:
         """PUBSUB PUBLISH

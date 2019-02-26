@@ -3,12 +3,17 @@ from io import (
     BytesIO,
 )
 from typing import (
+    Any,
     Awaitable,
     Callable,
+    TypeVar,
 )
 
 
-def write_varint(writer: asyncio.StreamWriter, integer: int):
+Writer = TypeVar("Writer", BytesIO, asyncio.StreamWriter)
+
+
+def write_varint(writer: Writer, integer: int) -> None:
     # TODO: handle negative integers
     if integer < 0:
         raise ValueError(f"Negative integer: {integer}")
@@ -51,14 +56,15 @@ async def read_varint(
     return result
 
 
-# TODO: pbmsg
-async def read_pbmsg_safe(s, pb_msg):
+# TODO: pb_msg should be typed more accurately
+async def read_pbmsg_safe(s: asyncio.StreamReader, pb_msg: Any) -> None:
     len_msg_bytes = await read_varint(s, read_byte)
     msg_bytes = await s.readexactly(len_msg_bytes)
     pb_msg.ParseFromString(msg_bytes)
 
 
-def serialize(pb_msg):
+# TODO: pb_msg should be typed more accurately
+def serialize(pb_msg: Any) -> bytes:
     size = pb_msg.ByteSize()
     s = BytesIO()
     write_varint(s, size)
