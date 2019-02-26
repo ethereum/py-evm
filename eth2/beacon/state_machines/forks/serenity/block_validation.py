@@ -611,7 +611,7 @@ def validate_slashable_attestation(state: 'BeaconState',
     if len(slashable_attestation.validator_indices) > max_indices_per_slashable_vote:
         raise ValidationError(
             f"`len(slashable_attestation.validator_indices)` "
-            f"({len(slashable_attestation.validator_indices)}) greater than"
+            f"({len(slashable_attestation.validator_indices)}) greater than "
             f"MAX_INDICES_PER_SLASHABLE_VOTE ({max_indices_per_slashable_vote})"
         )
 
