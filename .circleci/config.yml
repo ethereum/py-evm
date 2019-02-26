@@ -104,6 +104,9 @@ p2pd_steps: &p2pd_steps
         keys:
           - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
     - run:
+        name: install libsnappy-dev
+        command: sudo apt install -y libsnappy-dev
+    - run:
         name: install deps
         command: pip install --user tox codecov
     - run:
