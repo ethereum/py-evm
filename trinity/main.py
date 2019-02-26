@@ -135,7 +135,7 @@ def trinity_boot(args: Namespace,
         kill_trinity_gracefully(
             trinity_config,
             logger,
-            (database_server_process, networking_process),
+            (networking_process, database_server_process),
             plugin_manager,
             main_endpoint,
             reason=reason
