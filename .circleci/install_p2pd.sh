@@ -19,6 +19,5 @@ if [ ! -e "$P2PD_BINARY" ]; then
     make bin
     mkdir -p $P2PD_DIR
     cp `which p2pd` $P2PD_BINARY
-    cd -
 fi
 sudo ln -s $P2PD_BINARY /usr/local/bin/p2pd
