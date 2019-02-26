@@ -98,7 +98,7 @@ p2pd_steps: &p2pd_steps
         command: ./.circleci/install_p2pd.sh
     - save_cache:
         paths:
-          - $HOME/.p2pd
+          - ~/.p2pd
         key: cache-v1-{{ arch }}-p2pd-{{ checksum "./.circleci/install_p2pd.sh" }}
     - restore_cache:
         keys:
