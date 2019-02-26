@@ -7,7 +7,6 @@ from typing import (
     Awaitable,
     Callable,
     Dict,
-    List,
     Optional,
     Tuple,
 )
@@ -54,22 +53,19 @@ _supported_conn_protocols = (
 
 
 def parse_conn_protocol(maddr: Multiaddr) -> int:
-    proto_codes = set([
+    proto_codes = set(
         proto.code
         for proto in maddr.protocols()
-    ])
-    supported_proto_codes = set(_supported_conn_protocols)
-    proto_cand = proto_codes.intersection(supported_proto_codes)
+    )
+    proto_cand = proto_codes.intersection(_supported_conn_protocols)
     if len(proto_cand) != 1:
-        supported_protos = [
+        supported_protos = (
             protocols.protocol_with_code(proto)
-            for proto in supported_proto_codes
-        ]
+            for proto in _supported_conn_protocols
+        )
         raise ValueError(
-            "connection protocol should be only one protocol out of {}, maddr={}".format(
-                supported_protos,
-                maddr,
-            )
+            f"connection protocol should be only one protocol out of {supported_protos}"
+            ", maddr={maddr}"
         )
     return tuple(proto_cand)[0]
 
@@ -107,7 +103,8 @@ class Client:
             raise DispatchFailure(e)
         await handler(stream_info, reader, writer)
 
-    async def _write_pb(self, writer: asyncio.StreamWriter, data_pb) -> None:
+    @staticmethod
+    async def _write_pb(writer: asyncio.StreamWriter, data_pb) -> None:
         data_bytes = serialize(data_pb)
         writer.write(data_bytes)
         await writer.drain()
@@ -127,9 +124,7 @@ class Client:
             self.listener = await asyncio.start_server(self._dispatcher, host=host, port=port)
         else:
             raise ValueError(
-                "protocol not supported: protocol={}".format(
-                    protocols.protocol_with_code(proto_code)
-                )
+                f"protocol not supported: protocol={protocols.protocol_with_code(proto_code)}"
             )
 
     async def close(self) -> None:
@@ -148,12 +143,10 @@ class Client:
             return await asyncio.open_connection(host=host, port=port)
         else:
             raise ValueError(
-                "protocol not supported: protocol={}".format(
-                    protocols.protocol_with_code(proto_code)
-                )
+                f"protocol not supported: protocol={protocols.protocol_with_code(proto_code)}"
             )
 
-    async def identify(self) -> Tuple[PeerID, List[Multiaddr]]:
+    async def identify(self) -> Tuple[PeerID, Tuple[Multiaddr, ...]]:
         reader, writer = await self.open_connection()
         req = p2pd_pb.Request(type=p2pd_pb.Request.IDENTIFY)  # type: ignore
         await self._write_pb(writer, req)
@@ -165,15 +158,15 @@ class Client:
         peer_id_bytes = resp.identify.id
         maddrs_bytes = resp.identify.addrs
 
-        maddrs = []
-        for maddr_bytes in maddrs_bytes:
-            maddr = Multiaddr(binascii.hexlify(maddr_bytes))
-            maddrs.append(maddr)
+        maddrs = tuple(
+            Multiaddr(binascii.hexlify(maddr_bytes))
+            for maddr_bytes in maddrs_bytes
+        )
         peer_id = PeerID(peer_id_bytes)
 
         return peer_id, maddrs
 
-    async def connect(self, peer_id: PeerID, maddrs: List[Multiaddr]) -> None:
+    async def connect(self, peer_id: PeerID, maddrs: Tuple[Multiaddr, ...]) -> None:
         reader, writer = await self.open_connection()
 
         maddrs_bytes = [binascii.unhexlify(i.to_bytes()) for i in maddrs]
@@ -192,7 +185,7 @@ class Client:
         writer.close()
         raise_if_failed(resp)
 
-    async def list_peers(self) -> List[PeerInfo]:
+    async def list_peers(self) -> Tuple[PeerInfo, ...]:
         req = p2pd_pb.Request(
             type=p2pd_pb.Request.LIST_PEERS,  # type: ignore
         )
@@ -203,8 +196,8 @@ class Client:
         writer.close()
         raise_if_failed(resp)
 
-        pinfos = [PeerInfo.from_pb(pinfo) for pinfo in resp.peers]  # type: ignore
-        return pinfos
+        peers = tuple(PeerInfo.from_pb(pinfo) for pinfo in resp.peers)  # type: ignore
+        return peers
 
     async def disconnect(self, peer_id: PeerID) -> None:
         disconnect_req = p2pd_pb.DisconnectRequest(
@@ -224,7 +217,7 @@ class Client:
     async def stream_open(
             self,
             peer_id: PeerID,
-            protocols: List[str]) -> Tuple[StreamInfo, asyncio.StreamReader, asyncio.StreamWriter]:
+            protocols: Tuple[str, ...]) -> Tuple[StreamInfo, asyncio.StreamReader, asyncio.StreamWriter]:
         reader, writer = await self.open_connection()
 
         stream_open_req = p2pd_pb.StreamOpenRequest(
@@ -253,10 +246,7 @@ class Client:
         handler_sig = inspect.signature(handler_cb).parameters
         if len(handler_sig) != 3:
             raise ControlFailure(
-                "signature of the callback handler {} is wrong: {}".format(
-                    handler_cb,
-                    handler_sig,
-                )
+                f"signature of the callback handler {handler_cb} is wrong: {handler_sig}"
             )
         listen_path_maddr_bytes = binascii.unhexlify(self.listen_maddr.to_bytes())
         stream_handler_req = p2pd_pb.StreamHandlerRequest(
@@ -329,7 +319,7 @@ class Client:
             raise ControlFailure(f"dht_resp should contains peer info: dht_resp={dht_resp}, e={e}")
         return PeerInfo.from_pb(pinfo)
 
-    async def find_peers_connected_to_peer(self, peer_id: PeerID) -> List[PeerInfo]:
+    async def find_peers_connected_to_peer(self, peer_id: PeerID) -> Tuple[PeerInfo, ...]:
         """FIND_PEERS_CONNECTED_TO_PEER
         """
         dht_req = p2pd_pb.DHTRequest(
@@ -340,14 +330,14 @@ class Client:
 
         # TODO: maybe change these checks to a validator pattern
         try:
-            pinfos = [PeerInfo.from_pb(dht_resp.peer) for dht_resp in resps]
+            pinfos = tuple(PeerInfo.from_pb(dht_resp.peer) for dht_resp in resps)
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains peer info: resps={resps}, e={e}"
             )
         return pinfos
 
-    async def find_providers(self, content_id_bytes: bytes, count: int) -> List[PeerInfo]:
+    async def find_providers(self, content_id_bytes: bytes, count: int) -> Tuple[PeerInfo, ...]:
         """FIND_PROVIDERS
         """
         # TODO: should have another class ContendID
@@ -359,14 +349,14 @@ class Client:
         resps = await self._do_dht(dht_req)
         # TODO: maybe change these checks to a validator pattern
         try:
-            pinfos = [PeerInfo.from_pb(dht_resp.peer) for dht_resp in resps]
+            pinfos = tuple(PeerInfo.from_pb(dht_resp.peer) for dht_resp in resps)
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains peer info: resps={resps}, e={e}"
             )
         return pinfos
 
-    async def get_closest_peers(self, key: bytes) -> List[PeerID]:
+    async def get_closest_peers(self, key: bytes) -> Tuple[PeerID, ...]:
         """GET_CLOSEST_PEERS
         """
         dht_req = p2pd_pb.DHTRequest(
@@ -375,7 +365,7 @@ class Client:
         )
         resps = await self._do_dht(dht_req)
         try:
-            peer_ids = [PeerID(dht_resp.value) for dht_resp in resps]
+            peer_ids = tuple(PeerID(dht_resp.value) for dht_resp in resps)
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains `value`: resps={resps}, e={e}"
@@ -423,7 +413,7 @@ class Client:
             )
         return value
 
-    async def search_value(self, key: bytes) -> List[bytes]:
+    async def search_value(self, key: bytes) -> Tuple[bytes, ...]:
         """SEARCH_VALUE
         """
         dht_req = p2pd_pb.DHTRequest(
@@ -433,7 +423,7 @@ class Client:
         resps = await self._do_dht(dht_req)
         try:
             # TODO: parse the public key with another class?
-            values = [resp.value for resp in resps]
+            values = tuple(resp.value for resp in resps)
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains `value`: resps={resps}, e={e}"
@@ -537,7 +527,7 @@ class Client:
 
     # PubSub
 
-    async def get_topics(self) -> List[str]:
+    async def get_topics(self) -> Tuple[str, ...]:
         """PUBSUB GET_TOPICS
         """
         pubsub_req = p2pd_pb.PSRequest(
@@ -554,10 +544,11 @@ class Client:
         writer.close()
         raise_if_failed(resp)
 
-        return resp.pubsub.topics  # type: ignore
+        topics = tuple(resp.pubsub.topics)  # type: ignore
+        return topics
 
     # FIXME: name conflicts: `list_topic_peers` is originally `list_peers` in pubsub
-    async def list_topic_peers(self, topic: str) -> List[PeerID]:
+    async def list_topic_peers(self, topic: str) -> Tuple[PeerID, ...]:
         """PUBSUB LIST_PEERS
         """
         pubsub_req = p2pd_pb.PSRequest(
@@ -575,7 +566,7 @@ class Client:
         writer.close()
         raise_if_failed(resp)
 
-        peers = [PeerID(peer_id_bytes) for peer_id_bytes in resp.pubsub.peerIDs]  # type: ignore
+        peers = tuple(PeerID(peer_id_bytes) for peer_id_bytes in resp.pubsub.peerIDs)  # type: ignore
         return peers
 
     async def publish(self, topic: str, data: bytes) -> None:

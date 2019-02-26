@@ -27,7 +27,7 @@ class PeerID:
         return not (self == other)
 
     def __repr__(self):
-        return "<PeerID {}>".format(self.to_string()[2:10])
+        return f"<PeerID {self.to_string()[2:10]}>"
 
     def to_bytes(self) -> bytes:
         return self._bytes
@@ -36,7 +36,7 @@ class PeerID:
         return base58.b58encode(self._bytes).decode()
 
     @classmethod
-    def from_string(cls, peer_id_string: str) -> 'PeerID':
+    def from_base58(cls, peer_id_string: str) -> 'PeerID':
         peer_id_bytes = base58.b58decode(peer_id_string)
         pid = PeerID(peer_id_bytes)
         return pid
@@ -53,11 +53,7 @@ class StreamInfo:
         self.proto = proto
 
     def __repr__(self) -> str:
-        return "<StreamInfo peer_id={} addr={} proto={}>".format(
-            self.peer_id,
-            self.addr,
-            self.proto,
-        )
+        return f"<StreamInfo peer_id={self.peer_id} addr={self.addr} proto={self.proto}>"
 
     # TODO: pb typing
     def to_pb(self):
@@ -88,10 +84,7 @@ class PeerInfo:
         self.addrs = addrs
 
     def __repr__(self) -> str:
-        return "<PeerInfo peer_id={} addrs={}>".format(
-            self.peer_id,
-            self.addrs,
-        )
+        return f"<PeerInfo peer_id={self.peer_id} addrs={self.addrs}>"
 
     # TODO: pb typing
     @classmethod

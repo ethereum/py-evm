@@ -1,8 +1,10 @@
 import asyncio
-from collections import namedtuple
 import os
 import subprocess
 import time
+from typing import (
+    NamedTuple,
+)
 
 import pytest
 
@@ -31,12 +33,10 @@ import libp2p.p2pclient.pb.p2pd_pb2 as p2pd_pb
 
 NUM_P2PDS = 4
 
-DaemonPair = namedtuple('DaemonPair', ['daemon', 'client'])
-
 
 @pytest.fixture(scope="module")
 def peer_id_random():
-    return PeerID.from_string("QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNK1")
+    return PeerID.from_base58("QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNK1")
 
 
 @pytest.fixture
@@ -59,9 +59,8 @@ class Daemon:
         self._run()
 
     def _start_logging(self):
-        self.log_filename = '/tmp/log_p2pd{}.txt'.format(
-            str(self.control_maddr).replace('/', '_').replace('.', '_')
-        )
+        name_control_maddr = str(self.control_maddr).replace('/', '_').replace('.', '_')
+        self.log_filename = f'/tmp/log_p2pd{name_control_maddr}.txt'
         self.f_log = open(self.log_filename, 'wb')
 
     def _run(self):
@@ -120,6 +119,11 @@ class Daemon:
         self.proc_daemon.wait()
         self.f_log.close()
         self.is_closed = True
+
+
+class DaemonPair(NamedTuple):
+    daemon: Daemon
+    client: Client
 
 
 class ConnectionFailure(Exception):
@@ -325,7 +329,7 @@ async def test_client_stream_open_success(p2pds):
     # test case: normal
     stream_info, _, writer = await c0.stream_open(
         peer_id_1,
-        [proto],
+        (proto,),
     )
     assert stream_info.peer_id == peer_id_1
     assert stream_info.addr in maddrs_1
@@ -336,7 +340,7 @@ async def test_client_stream_open_success(p2pds):
     # test case: open with multiple protocols
     stream_info, _, writer = await c0.stream_open(
         peer_id_1,
-        [proto, "another_protocol"],
+        (proto, "another_protocol"),
     )
     assert stream_info.peer_id == peer_id_1
     assert stream_info.addr in maddrs_1
@@ -356,7 +360,10 @@ async def test_client_stream_open_failure(p2pds):
 
     # test case: `stream_open` to a peer who didn't register the protocol
     with pytest.raises(ControlFailure):
-        await c0.stream_open(peer_id_1, [proto])
+        await c0.stream_open(
+            peer_id_1,
+            (proto,),
+        )
 
     # test case: `stream_open` to a peer for a non-registered protocol
     async def handle_proto(stream_info, reader, writer):
@@ -366,7 +373,7 @@ async def test_client_stream_open_failure(p2pds):
     with pytest.raises(ControlFailure):
         await c0.stream_open(
             peer_id_1,
-            ["another_protocol"],
+            ("another_protocol",),
         )
 
 
@@ -405,7 +412,7 @@ async def test_client_stream_handler_success(p2pds):
     # test case: test the stream handler `handle_proto`
     _, _, writer = await c0.stream_open(
         peer_id_1,
-        [proto],
+        (proto,),
     )
     # wait until the handler function starts blocking waiting for the data
     await event_proto.wait()
@@ -439,7 +446,7 @@ async def test_client_stream_handler_success(p2pds):
 
     _, _, another_writer = await c0.stream_open(
         peer_id_1,
-        [another_proto],
+        (another_proto,),
     )
     await event_another_proto.wait()
 
@@ -468,7 +475,7 @@ async def test_client_stream_handler_success(p2pds):
 
     await c0.stream_open(
         peer_id_1,
-        [another_proto],
+        (another_proto,),
     )
     # ensure the overriding handler is called when the protocol is opened a stream
     await event_third.wait()
@@ -489,7 +496,7 @@ async def test_client_stream_handler_failure(p2pds):
 
     await c1.stream_handler("another_protocol", handle_proto_correct_params)
     with pytest.raises(ControlFailure):
-        await c0.stream_open(peer_id_1, [proto])
+        await c0.stream_open(peer_id_1, (proto,))
 
     # test case: registered a handler with the wrong signature(parameters)
     async def handle_proto_wrong_params(stream_info, reader):

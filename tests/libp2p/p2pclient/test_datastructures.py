@@ -11,11 +11,11 @@ def test_peer_id():
     assert peer_id.to_bytes() == peer_id_bytes
     assert peer_id.to_string() == peer_id_string
     # test initialized with string
-    peer_id_2 = PeerID.from_string(peer_id_string)
+    peer_id_2 = PeerID.from_base58(peer_id_string)
     assert peer_id_2.to_bytes() == peer_id_bytes
     assert peer_id_2.to_string() == peer_id_string
     # test equal
     assert peer_id == peer_id_2
     # test not equal
-    peer_id_3 = PeerID.from_string("QmbmfNDEth7Ucvjuxiw3SP3E4PoJzbk7g4Ge6ZDigbCsNp")
+    peer_id_3 = PeerID.from_base58("QmbmfNDEth7Ucvjuxiw3SP3E4PoJzbk7g4Ge6ZDigbCsNp")
     assert peer_id != peer_id_3
