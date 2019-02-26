@@ -104,9 +104,6 @@ p2pd_steps: &p2pd_steps
         keys:
           - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
     - run:
-        name: install libsnappy-dev
-        command: sudo apt install -y libsnappy-dev
-    - run:
         name: install deps
         command: pip install --user tox codecov
     - run:
@@ -237,7 +234,7 @@ jobs:
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36
+          TOXENV: py36-libp2p
     <<: *p2pd_steps
   py36-wheel-cli:
     <<: *common
@@ -274,7 +271,7 @@ jobs:
     docker:
       - image: circleci/python:3.7
         environment:
-          TOXENV: py37
+          TOXENV: py37-libp2p
     <<: *p2pd_steps
   py37-wheel-cli:
     <<: *common
