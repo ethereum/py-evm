@@ -72,7 +72,7 @@ geth_steps: &geth_steps
             sudo apt-get install -y build-essential;
             python -m geth.install $GETH_VERSION;
           fi
-          sudo ln -s /home/circleci/.py-geth/geth-$GETH_VERSION/bin/geth /usr/local/bin/geth
+          sudo ln -s $GETH_BINARY /usr/local/bin/geth
           geth version
     - run:
         name: run tox
@@ -87,45 +87,19 @@ geth_steps: &geth_steps
           - ~/.py-geth
         key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
-p2pd_env: &p2pd_env
-  LIBP2P_DAEMON_VERSION: de7ca07
-  GOPACKAGE: go1.11.5.linux-amd64.tar.gz
-  LIBP2P_DAEMON_REPO: github.com/libp2p/go-libp2p-daemon
-
 p2pd_steps: &p2pd_steps
   steps:
     - checkout
-    - run:
-        name: generate a temporary file, just to get the checksum from LIBP2P_DAEMON_VERSION
-        command: echo "$LIBP2P_DAEMON_VERSION" > p2pd-version.txt
     - restore_cache:
         keys:
-          - cache-v1-{{ arch }}-p2pd-{{ checksum "p2pd-version.txt" }}
+          - cache-v1-{{ arch }}-p2pd-{{ checksum "./.circleci/install_p2pd.sh" }}
     - run:
         name: build libp2p daemon
-        command: |
-          P2PD_DIR=$HOME/.p2pd
-          P2PD_BINARY=$P2PD_DIR/p2pd-$LIBP2P_DAEMON_VERSION
-          if [ ! -e "$P2PD_BINARY" ]; then
-            wget https://dl.google.com/go/$GOPACKAGE
-            sudo tar -C /usr/local -xzf $GOPACKAGE
-            export GOPATH=$HOME/go
-            export GOROOT=/usr/local/go
-            export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
-            go version
-            go get $LIBP2P_DAEMON_REPO
-            cd $GOPATH/src/$LIBP2P_DAEMON_REPO
-            git checkout $LIBP2P_DAEMON_VERSION
-            make bin
-            mkdir -p $P2PD_DIR
-            cp `which p2pd` $P2PD_BINARY
-            cd -
-          fi
-          sudo ln -s $P2PD_BINARY /usr/local/bin/p2pd
+        command: ./.circleci/install_p2pd.sh
     - save_cache:
         paths:
-          - ~/.p2pd
-        key: cache-v1-{{ arch }}-p2pd-{{ checksum "p2pd-version.txt" }}
+          - $HOME/.p2pd
+        key: cache-v1-{{ arch }}-p2pd-{{ checksum "./.circleci/install_p2pd.sh" }}
     - restore_cache:
         keys:
           - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
@@ -261,7 +235,6 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36
-          <<: *p2pd_env
     <<: *p2pd_steps
   py36-wheel-cli:
     <<: *common
@@ -299,7 +272,6 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37
-          <<: *p2pd_env
     <<: *p2pd_steps
   py37-wheel-cli:
     <<: *common
