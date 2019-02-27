@@ -5,6 +5,9 @@ from typing import (  # noqa: F401
     Union,
 )
 
+from eth_typing import (
+    Hash32,
+)
 from eth_utils import (
     big_endian_to_int,
     ValidationError,
@@ -77,19 +80,19 @@ def modular_squareroot(value: FQ2) -> FQP:
     return None
 
 
-def _get_x_coordinate(message: bytes, domain: int) -> FQ2:
+def _get_x_coordinate(message_hash: Hash32, domain: int) -> FQ2:
     domain_in_bytes = domain.to_bytes(8, 'big')
 
     # Initial candidate x coordinate
-    x_re = big_endian_to_int(hash_eth2(message + domain_in_bytes + b'\x01'))
-    x_im = big_endian_to_int(hash_eth2(message + domain_in_bytes + b'\x02'))
+    x_re = big_endian_to_int(hash_eth2(message_hash + domain_in_bytes + b'\x01'))
+    x_im = big_endian_to_int(hash_eth2(message_hash + domain_in_bytes + b'\x02'))
     x_coordinate = FQ2([x_re, x_im])  # x_re + x_im * i
 
     return x_coordinate
 
 
-def hash_to_G2(message: bytes, domain: int) -> Tuple[FQ2, FQ2, FQ2]:
-    x_coordinate = _get_x_coordinate(message, domain)
+def hash_to_G2(message_hash: Hash32, domain: int) -> Tuple[FQ2, FQ2, FQ2]:
+    x_coordinate = _get_x_coordinate(message_hash, domain)
 
     # Test candidate y coordinates until a one is found
     while 1:
@@ -188,13 +191,13 @@ def signature_to_G2(signature: BLSSignature) -> Tuple[int, int]:
 #
 
 
-def sign(message: bytes,
+def sign(message_hash: Hash32,
          privkey: int,
          domain: int) -> BLSSignature:
     return G2_to_signature(
         compress_G2(
             multiply(
-                hash_to_G2(message, domain),
+                hash_to_G2(message_hash, domain),
                 privkey
             )
         ))
@@ -204,7 +207,7 @@ def privtopub(k: int) -> BLSPubkey:
     return G1_to_pubkey(compress_G1(multiply(G1, k)))
 
 
-def verify(message: bytes, pubkey: BLSPubkey, signature: BLSSignature, domain: int) -> bool:
+def verify(message_hash: Hash32, pubkey: BLSPubkey, signature: BLSSignature, domain: int) -> bool:
     try:
         final_exponentiation = final_exponentiate(
             pairing(
@@ -213,7 +216,7 @@ def verify(message: bytes, pubkey: BLSPubkey, signature: BLSSignature, domain: i
                 final_exponentiate=False,
             ) *
             pairing(
-                FQP_point_to_FQ2_point(hash_to_G2(message, domain)),
+                FQP_point_to_FQ2_point(hash_to_G2(message_hash, domain)),
                 neg(decompress_G1(pubkey_to_G1(pubkey))),
                 final_exponentiate=False,
             )
@@ -238,25 +241,25 @@ def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkey:
 
 
 def verify_multiple(pubkeys: Sequence[BLSPubkey],
-                    messages: Sequence[bytes],
+                    message_hashes: Sequence[Hash32],
                     signature: BLSSignature,
                     domain: int) -> bool:
-    len_msgs = len(messages)
+    len_msgs = len(message_hashes)
 
     if len(pubkeys) != len_msgs:
         raise ValidationError(
-            "len(pubkeys) (%s) should be equal to len(messages) (%s)" % (
+            "len(pubkeys) (%s) should be equal to len(message_hashes) (%s)" % (
                 len(pubkeys), len_msgs
             )
         )
 
     try:
         o = FQ12([1] + [0] * 11)
-        for m_pubs in set(messages):
+        for m_pubs in set(message_hashes):
             # aggregate the pubs
             group_pub = Z1
             for i in range(len_msgs):
-                if messages[i] == m_pubs:
+                if message_hashes[i] == m_pubs:
                     group_pub = add(group_pub, decompress_G1(pubkey_to_G1(pubkeys[i])))
 
             o *= pairing(hash_to_G2(m_pubs, domain), group_pub, final_exponentiate=False)

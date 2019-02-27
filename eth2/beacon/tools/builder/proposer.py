@@ -110,7 +110,7 @@ def create_block_on_state(
     ).root
 
     signature = sign_transaction(
-        message=proposal_root,
+        message_hash=proposal_root,
         privkey=privkey,
         fork=state.fork,
         slot=slot,

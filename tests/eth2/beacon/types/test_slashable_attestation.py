@@ -93,7 +93,7 @@ def test_custody_bit_indices(
 def test_messages(sample_slashable_attestation_params):
     slashable_attestation = SlashableAttestation(**sample_slashable_attestation_params)
 
-    assert slashable_attestation.messages == (
+    assert slashable_attestation.message_hashes == (
         AttestationDataAndCustodyBit(slashable_attestation.data, False).root,
         AttestationDataAndCustodyBit(slashable_attestation.data, True).root,
     )

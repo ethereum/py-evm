@@ -121,7 +121,7 @@ def test_validate_proposer_signature(
 
     proposed_block = BeaconBlock(**sample_beacon_block_params).copy(
         signature=bls.sign(
-            message=proposal_root,
+            message_hash=proposal_root,
             privkey=proposer_privkey,
             domain=SignatureDomain.DOMAIN_PROPOSAL,
         ),
@@ -162,13 +162,17 @@ def test_randao_reveal_validation(is_valid,
                                   pubkeys,
                                   sample_fork_params,
                                   config):
-    message = epoch.to_bytes(32, byteorder="big")
+    message_hash = epoch.to_bytes(32, byteorder="big")
     slot = epoch * config.SLOTS_PER_EPOCH
     fork = Fork(**sample_fork_params)
     domain = get_domain(fork, slot, SignatureDomain.DOMAIN_RANDAO)
 
     proposer_privkey = privkeys[proposer_key_index]
-    randao_reveal = bls.sign(message, proposer_privkey, domain)
+    randao_reveal = bls.sign(
+        message_hash=message_hash,
+        privkey=proposer_privkey,
+        domain=domain,
+    )
 
     expected_proposer_pubkey = pubkeys[expected_proposer_key_index]
 
@@ -268,7 +272,7 @@ def test_generate_aggregate_pubkeys(activated_genesis_validators,
     assert bls.aggregate_pubkeys(poc_1_keys) == poc_1_key
 
 
-def _get_indices_and_signatures(num_validators, message, privkeys, fork, epoch):
+def _get_indices_and_signatures(num_validators, message_hash, privkeys, fork, epoch):
     num_indices = 5
     assert num_validators >= num_indices
     indices = random.sample(range(num_validators), num_indices)
@@ -282,7 +286,7 @@ def _get_indices_and_signatures(num_validators, message, privkeys, fork, epoch):
         domain_type=domain_type,
     )
     signatures = tuple(
-        map(lambda key: bls.sign(message, key, domain), privkeys)
+        map(lambda key: bls.sign(message_hash, key, domain), privkeys)
     )
     return (indices, signatures)
 
@@ -291,14 +295,14 @@ def _correct_slashable_attestation_params(
         slots_per_epoch,
         num_validators,
         params,
-        messages,
+        message_hashes,
         privkeys,
         fork):
     valid_params = copy.deepcopy(params)
 
     (validator_indices, signatures) = _get_indices_and_signatures(
         num_validators,
-        messages[1],
+        message_hashes[1],
         privkeys,
         fork,
         slot_to_epoch(params["data"].slot, slots_per_epoch),
@@ -345,7 +349,7 @@ def _corrupt_validator_indices_max(max_indices_per_slashable_vote, params):
 
 
 def _corrupt_signature(slots_per_epoch, params, fork):
-    message = bytes.fromhex("deadbeefcafe")
+    message_hash = b'\x12' * 32
     privkey = 42
     domain_type = SignatureDomain.DOMAIN_ATTESTATION
     domain = get_domain(
@@ -353,7 +357,7 @@ def _corrupt_signature(slots_per_epoch, params, fork):
         epoch=slot_to_epoch(params["data"].slot, slots_per_epoch),
         domain_type=domain_type,
     )
-    corrupt_signature = bls.sign(message, privkey, domain)
+    corrupt_signature = bls.sign(message_hash, privkey, domain)
 
     return assoc(params, "aggregate_signature", corrupt_signature)
 
@@ -361,7 +365,7 @@ def _corrupt_signature(slots_per_epoch, params, fork):
 def _create_slashable_attestation_messages(params):
     # TODO update when we move to `ssz` tree hash
     votes = SlashableAttestation(**params)
-    return votes.messages
+    return votes.message_hashes
 
 
 @pytest.mark.parametrize(
@@ -389,13 +393,13 @@ def test_verify_slashable_attestation_signature(
 
     # NOTE: we can do this before "correcting" the params as they
     # touch disjoint subsets of the provided params
-    messages = _create_slashable_attestation_messages(sample_slashable_attestation_params)
+    message_hashes = _create_slashable_attestation_messages(sample_slashable_attestation_params)
 
     valid_params = _correct_slashable_attestation_params(
         slots_per_epoch,
         num_validators,
         sample_slashable_attestation_params,
-        messages,
+        message_hashes,
         privkeys,
         state.fork,
     )
@@ -477,13 +481,13 @@ def test_validate_slashable_attestation(
 
     # NOTE: we can do this before "correcting" the params as they
     # touch disjoint subsets of the provided params
-    messages = _create_slashable_attestation_messages(sample_slashable_attestation_params)
+    message_hashes = _create_slashable_attestation_messages(sample_slashable_attestation_params)
 
     params = _correct_slashable_attestation_params(
         slots_per_epoch,
         num_validators,
         sample_slashable_attestation_params,
-        messages,
+        message_hashes,
         privkeys,
         state.fork,
     )
@@ -536,13 +540,13 @@ def test_verify_slashable_attestation_after_fork(
         slot=20,
     )
 
-    messages = _create_slashable_attestation_messages(sample_slashable_attestation_params)
+    message_hashes = _create_slashable_attestation_messages(sample_slashable_attestation_params)
 
     valid_params = _correct_slashable_attestation_params(
         slots_per_epoch,
         num_validators,
         sample_slashable_attestation_params,
-        messages,
+        message_hashes,
         privkeys,
         state.fork,
     )

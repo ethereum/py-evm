@@ -39,7 +39,7 @@ def validate_proof_of_possession(state: BeaconState,
     is_valid_signature = bls.verify(
         pubkey=pubkey,
         # TODO: change to hash_tree_root(deposit_input) when we have SSZ tree hashing
-        message=deposit_input.root,
+        message_hash=deposit_input.root,
         signature=proof_of_possession,
         domain=get_domain(
             state.fork,

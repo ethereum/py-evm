@@ -36,29 +36,29 @@ from eth2._utils.bls import (
 
 
 @pytest.mark.parametrize(
-    'message,domain',
+    'message_hash,domain',
     [
-        (b'hello', 0),
-        (b'hello', 1),
-        (b'foo', 0),
+        (b'\x12' * 32, 0),
+        (b'\x12' * 32, 1),
+        (b'\x34' * 32, 0),
     ]
 )
-def test_get_x_coordinate(message, domain):
-    x_coordinate = _get_x_coordinate(message, domain)
+def test_get_x_coordinate(message_hash, domain):
+    x_coordinate = _get_x_coordinate(message_hash, domain)
     domain_in_bytes = domain.to_bytes(8, 'big')
     assert x_coordinate == FQ2(
         [
-            big_endian_to_int(hash_eth2(message + domain_in_bytes + b'\x01')),
-            big_endian_to_int(hash_eth2(message + domain_in_bytes + b'\x02')),
+            big_endian_to_int(hash_eth2(message_hash + domain_in_bytes + b'\x01')),
+            big_endian_to_int(hash_eth2(message_hash + domain_in_bytes + b'\x02')),
         ]
     )
 
 
 def test_hash_to_G2():
-    message = b'helloworld'
+    message_hash = b'\x12' * 32
 
     domain_1 = 1
-    result_1 = hash_to_G2(message, domain_1)
+    result_1 = hash_to_G2(message_hash, domain_1)
     assert is_on_curve(result_1, b2)
 
 
@@ -97,8 +97,8 @@ def test_bls_core(privkey):
 @pytest.mark.parametrize(
     'msg, privkeys',
     [
-        (b'cow', [1, 5, 124, 735, 127409812145, 90768492698215092512159, 0]),
-        (b'dog', [42, 666, 1274099945, 4389392949595]),
+        (b'\x12' * 32, [1, 5, 124, 735, 127409812145, 90768492698215092512159, 0]),
+        (b'\x34' * 32, [42, 666, 1274099945, 4389392949595]),
     ]
 )
 def test_signature_aggregation(msg, privkeys):
@@ -111,11 +111,17 @@ def test_signature_aggregation(msg, privkeys):
 
 
 @pytest.mark.parametrize(
-    'msg_1, msg_2, privkeys_1, privkeys_2',
+    'msg_1, msg_2',
     [
-        (b'cow', b'wow', tuple(range(10)), tuple(range(10))),
-        (b'cow', b'wow', (0, 1, 2, 3), (4, 5, 6, 7)),
-        (b'cow', b'wow', (0, 1, 2, 3), (2, 3, 4, 5)),
+        (b'\x12' * 32, b'\x34' * 32)
+    ]
+)
+@pytest.mark.parametrize(
+    'privkeys_1, privkeys_2',
+    [
+        (tuple(range(10)), tuple(range(10))),
+        ((0, 1, 2, 3), (4, 5, 6, 7)),
+        ((0, 1, 2, 3), (2, 3, 4, 5)),
     ]
 )
 def test_multi_aggregation(msg_1, msg_2, privkeys_1, privkeys_2):
@@ -131,13 +137,13 @@ def test_multi_aggregation(msg_1, msg_2, privkeys_1, privkeys_2):
     aggsig_2 = aggregate_signatures(sigs_2)
     aggpub_2 = aggregate_pubkeys(pubs_2)
 
-    msgs = [msg_1, msg_2]
+    message_hashes = [msg_1, msg_2]
     pubs = [aggpub_1, aggpub_2]
     aggsig = aggregate_signatures([aggsig_1, aggsig_2])
 
     assert verify_multiple(
         pubkeys=pubs,
-        messages=msgs,
+        message_hashes=message_hashes,
         signature=aggsig,
         domain=domain,
     )

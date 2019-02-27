@@ -107,7 +107,7 @@ def validate_proposer_signature(state: BeaconState,
 
     is_valid_signature = bls.verify(
         pubkey=proposer_pubkey,
-        message=proposal_root,
+        message_hash=proposal_root,
         signature=block.signature,
         domain=domain,
     )
@@ -115,7 +115,7 @@ def validate_proposer_signature(state: BeaconState,
     if not is_valid_signature:
         raise ValidationError(
             f"Invalid Proposer Signature on block, beacon_proposer_index={beacon_proposer_index}, "
-            f"pubkey={proposer_pubkey}, message={proposal_root},"
+            f"pubkey={proposer_pubkey}, message_hash={proposal_root},"
             f"block.signature={block.signature}, domain={domain}"
         )
 
@@ -196,7 +196,7 @@ def validate_proposal_signature(proposal_signed_data: ProposalSignedData,
                                 slots_per_epoch: int) -> None:
     proposal_signature_is_valid = bls.verify(
         pubkey=pubkey,
-        message=proposal_signed_data.root,  # TODO: use hash_tree_root
+        message_hash=proposal_signed_data.root,  # TODO: use hash_tree_root
         signature=proposal_signature,
         domain=get_domain(
             fork,
@@ -207,7 +207,7 @@ def validate_proposal_signature(proposal_signed_data: ProposalSignedData,
     if not proposal_signature_is_valid:
         raise ValidationError(
             "Proposal signature is invalid: "
-            f"proposer pubkey: {pubkey}, message: {proposal_signed_data.root}, "
+            f"proposer pubkey: {pubkey}, message_hash: {proposal_signed_data.root}, "
             f"signature: {proposal_signature}"
         )
 
@@ -488,7 +488,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     )
 
     # TODO: change to tree hashing (hash_tree_root) when we have SSZ
-    messages = (
+    message_hashes = (
         AttestationDataAndCustodyBit(data=attestation.data, custody_bit=False).root,
         AttestationDataAndCustodyBit(data=attestation.data, custody_bit=True).root,
     )
@@ -501,7 +501,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
 
     is_valid_signature = bls.verify_multiple(
         pubkeys=pubkeys,
-        messages=messages,
+        message_hashes=message_hashes,
         signature=attestation.aggregate_signature,
         domain=domain,
     )
@@ -509,9 +509,9 @@ def validate_attestation_aggregate_signature(state: BeaconState,
     if not is_valid_signature:
         raise ValidationError(
             "Attestation aggregate_signature is invalid. "
-            "messages={}, custody_bit_0_participants={}, custody_bit_1_participants={} "
+            "message_hashes={}, custody_bit_0_participants={}, custody_bit_1_participants={} "
             "domain={}".format(
-                messages,
+                message_hashes,
                 custody_bit_0_participants,
                 custody_bit_1_participants,
                 domain,
@@ -523,12 +523,12 @@ def validate_randao_reveal(randao_reveal: BLSSignature,
                            proposer_pubkey: BLSPubkey,
                            epoch: Epoch,
                            fork: Fork) -> None:
-    message = epoch.to_bytes(32, byteorder="big")
+    message_hash = Hash32(epoch.to_bytes(32, byteorder="big"))
     domain = get_domain(fork, epoch, SignatureDomain.DOMAIN_RANDAO)
 
     is_randao_reveal_valid = bls.verify(
         pubkey=proposer_pubkey,
-        message=message,
+        message_hash=message_hash,
         signature=randao_reveal,
         domain=domain,
     )
@@ -536,8 +536,8 @@ def validate_randao_reveal(randao_reveal: BLSSignature,
     if not is_randao_reveal_valid:
         raise ValidationError(
             f"RANDAO reveal is invalid. "
-            f"reveal={randao_reveal}, proposer_pubkey={proposer_pubkey}, message={message}, "
-            f"domain={domain}"
+            f"reveal={randao_reveal}, proposer_pubkey={proposer_pubkey}, "
+            f"message_hash={message_hash}, domain={domain}"
         )
 
 
@@ -554,7 +554,7 @@ def verify_slashable_attestation_signature(state: 'BeaconState',
 
     pubkeys = generate_aggregate_pubkeys_from_indices(state.validator_registry, *all_indices)
 
-    messages = slashable_attestation.messages
+    message_hashes = slashable_attestation.message_hashes
 
     signature = slashable_attestation.aggregate_signature
 
@@ -566,7 +566,7 @@ def verify_slashable_attestation_signature(state: 'BeaconState',
 
     return bls.verify_multiple(
         pubkeys=pubkeys,
-        messages=messages,
+        message_hashes=message_hashes,
         signature=signature,
         domain=domain,
     )

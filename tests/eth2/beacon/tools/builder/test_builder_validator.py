@@ -42,20 +42,20 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
     domain = 0
 
     random_votes = random.sample(range(bit_count), votes_count)
-    message = b'hello'
+    message_hash = b'\x12' * 32
 
     # Get votes: (committee_index, sig, public_key)
     votes = [
         (
             committee_index,
-            bls.sign(message, privkeys[committee_index], domain),
+            bls.sign(message_hash, privkeys[committee_index], domain),
             pubkeys[committee_index],
         )
         for committee_index in random_votes
     ]
 
     # Verify
-    sigs, committee_indices = verify_votes(message, votes, domain)
+    sigs, committee_indices = verify_votes(message_hash, votes, domain)
 
     # Aggregate the votes
     bitfield, sigs = aggregate_votes(
@@ -78,7 +78,7 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
     assert len(voted_index) == len(votes)
 
     aggregated_pubs = bls.aggregate_pubkeys(pubs)
-    assert bls.verify(message, aggregated_pubs, sigs, domain)
+    assert bls.verify(message_hash, aggregated_pubs, sigs, domain)
 
 
 @pytest.mark.parametrize(

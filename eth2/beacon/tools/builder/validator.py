@@ -77,7 +77,7 @@ from .committee_assignment import (
 # Aggregation
 #
 def verify_votes(
-        message: bytes,
+        message_hash: Hash32,
         votes: Iterable[Tuple[CommitteeIndex, BLSSignature, BLSPubkey]],
         domain: SignatureDomain
 ) -> Tuple[Tuple[BLSSignature, ...], Tuple[CommitteeIndex, ...]]:
@@ -86,9 +86,14 @@ def verify_votes(
     """
     sigs_with_committee_info = tuple(
         (sig, committee_index)
-        for (committee_index, sig, public_key)
+        for (committee_index, sig, pubkey)
         in votes
-        if bls.verify(message, public_key, sig, domain)
+        if bls.verify(
+            message_hash=message_hash,
+            pubkey=pubkey,
+            signature=sig,
+            domain=domain,
+        )
     )
     try:
         sigs, committee_indices = zip(*sigs_with_committee_info)
@@ -135,14 +140,14 @@ def sign_proof_of_possession(deposit_input: DepositInput,
         SignatureDomain.DOMAIN_DEPOSIT,
     )
     return bls.sign(
-        message=deposit_input.root,
+        message_hash=deposit_input.root,
         privkey=privkey,
         domain=domain,
     )
 
 
 def sign_transaction(*,
-                     message: bytes,
+                     message_hash: Hash32,
                      privkey: int,
                      fork: Fork,
                      slot: Slot,
@@ -154,7 +159,7 @@ def sign_transaction(*,
         signature_domain,
     )
     return bls.sign(
-        message=message,
+        message_hash=message_hash,
         privkey=privkey,
         domain=domain,
     )
@@ -181,7 +186,7 @@ def create_proposal_data_and_signature(
         block_root,
     )
     proposal_signature = sign_transaction(
-        message=proposal_data.root,
+        message_hash=proposal_data.root,
         privkey=privkey,
         fork=state.fork,
         slot=proposal_data.slot,
@@ -233,9 +238,9 @@ def _get_mock_message_and_voting_committee_indices(
         committee: Sequence[ValidatorIndex],
         num_voted_attesters: int) -> Tuple[Hash32, Tuple[CommitteeIndex, ...]]:
     """
-    Get ``message`` and voting indices of the given ``committee``.
+    Get ``message_hash`` and voting indices of the given ``committee``.
     """
-    message = AttestationDataAndCustodyBit(
+    message_hash = AttestationDataAndCustodyBit(
         data=attestation_data,
         custody_bit=False
     ).root
@@ -248,7 +253,7 @@ def _get_mock_message_and_voting_committee_indices(
         CommitteeIndex(i) for i in random.sample(range(committee_size), num_voted_attesters)
     )
 
-    return message, voting_committee_indices
+    return message_hash, voting_committee_indices
 
 
 def create_mock_signed_attestation(state: BeaconState,
@@ -260,7 +265,7 @@ def create_mock_signed_attestation(state: BeaconState,
     """
     Create a mocking attestation of the given ``attestation_data`` slot with ``keymap``.
     """
-    message, voting_committee_indices = _get_mock_message_and_voting_committee_indices(
+    message_hash, voting_committee_indices = _get_mock_message_and_voting_committee_indices(
         attestation_data,
         committee,
         num_voted_attesters,
@@ -269,7 +274,7 @@ def create_mock_signed_attestation(state: BeaconState,
     # Use privkeys to sign the attestation
     signatures = [
         sign_transaction(
-            message=message,
+            message_hash=message_hash,
             privkey=keymap[
                 state.validator_registry[
                     committee[committee_index]

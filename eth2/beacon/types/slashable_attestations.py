@@ -87,9 +87,9 @@ class SlashableAttestation(ssz.Serializable):
         return (custody_bit_0_indices, custody_bit_1_indices)
 
     @property
-    def messages(self) -> Tuple[Hash32, Hash32]:
+    def message_hashes(self) -> Tuple[Hash32, Hash32]:
         """
-        Build the messages that validators are expected to sign for an
+        Build the message_hashes that validators are expected to sign for an
         ``AttesterSlashing`` operation.
         """
         # TODO: change to hash_tree_root when we have SSZ tree hashing
