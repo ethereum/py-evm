@@ -801,7 +801,7 @@ def _check_if_update_validator_registry(state: BeaconState,
     if state.finalized_epoch <= state.validator_registry_update_epoch:
         return False, 0
 
-    num_shards_in_committees = get_current_epoch_committee_count(
+    current_epoch_committee_count = get_current_epoch_committee_count(
         state,
         shard_count=config.SHARD_COUNT,
         slots_per_epoch=config.SLOTS_PER_EPOCH,
@@ -811,13 +811,13 @@ def _check_if_update_validator_registry(state: BeaconState,
     # Get every shard in the current committees
     shards = set(
         (state.current_shuffling_start_shard + i) % config.SHARD_COUNT
-        for i in range(num_shards_in_committees)
+        for i in range(current_epoch_committee_count)
     )
     for shard in shards:
         if state.latest_crosslinks[shard].epoch <= state.validator_registry_update_epoch:
             return False, 0
 
-    return True, num_shards_in_committees
+    return True, current_epoch_committee_count
 
 
 def _update_shuffling_epoch(state: BeaconState, slots_per_epoch: int) -> BeaconState:
@@ -830,7 +830,7 @@ def _update_shuffling_epoch(state: BeaconState, slots_per_epoch: int) -> BeaconS
 
 
 def _update_shuffling_start_shard(state: BeaconState,
-                                  num_shards_in_committees: int,
+                                  current_epoch_committee_count: int,
                                   shard_count: int) -> BeaconState:
     """
     Updates the ``current_shuffling_start_shard`` to the current value in
@@ -838,7 +838,7 @@ def _update_shuffling_start_shard(state: BeaconState,
     """
     return state.copy(
         current_shuffling_start_shard=(
-            state.current_shuffling_start_shard + num_shards_in_committees
+            state.current_shuffling_start_shard + current_epoch_committee_count
         ) % shard_count,
     )
 
@@ -934,12 +934,12 @@ def process_validator_registry(state: BeaconState,
                                config: BeaconConfig) -> BeaconState:
     state = _update_previous_shuffling_data(state)
 
-    need_to_update, num_shards_in_committees = _check_if_update_validator_registry(state, config)
+    need_to_update, current_epoch_committee_count = _check_if_update_validator_registry(state, config)
 
     if need_to_update:
         # this next function call returns a closure, linter didn't like a bare lambda
         validator_registry_transition = _process_validator_registry_with_update(
-            num_shards_in_committees,
+            current_epoch_committee_count,
         )
     else:
         validator_registry_transition = _process_validator_registry_without_update
