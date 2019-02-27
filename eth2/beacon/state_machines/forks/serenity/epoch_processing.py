@@ -934,7 +934,10 @@ def process_validator_registry(state: BeaconState,
                                config: BeaconConfig) -> BeaconState:
     state = _update_previous_shuffling_data(state)
 
-    need_to_update, current_epoch_committee_count = _check_if_update_validator_registry(state, config)
+    need_to_update, current_epoch_committee_count = _check_if_update_validator_registry(
+        state,
+        config
+    )
 
     if need_to_update:
         # this next function call returns a closure, linter didn't like a bare lambda
