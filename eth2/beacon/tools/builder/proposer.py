@@ -47,7 +47,7 @@ from eth2.beacon.tools.builder.validator import (
 def validate_proposer_index(state: BeaconState,
                             config: BeaconConfig,
                             slot: Slot,
-                            validator_index: ValidatorIndex):
+                            validator_index: ValidatorIndex) -> None:
     beacon_proposer_index = get_beacon_proposer_index(
         state.copy(
             slot=slot,
@@ -65,7 +65,7 @@ def create_block_on_state(
         state: BeaconState,
         config: BeaconConfig,
         state_machine: BaseBeaconStateMachine,
-        block_class: BaseBeaconBlock,
+        block_class: Type[BaseBeaconBlock],
         parent_block: BaseBeaconBlock,
         slot: Slot,
         validator_index: ValidatorIndex,

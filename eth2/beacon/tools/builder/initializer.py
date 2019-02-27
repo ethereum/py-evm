@@ -5,6 +5,10 @@ from typing import (
     Type,
 )
 
+from eth_typing import (
+    Hash32,
+)
+
 from eth2.beacon.configs import BeaconConfig
 from eth2.beacon.on_genesis import (
     get_genesis_block,
@@ -35,8 +39,8 @@ def create_mock_genesis_validator_deposits(
         pubkeys: Sequence[BLSPubkey],
         keymap: Dict[BLSPubkey, int]) -> Tuple[Deposit, ...]:
     # Mock data
-    withdrawal_credentials = b'\x22' * 32
-    deposit_timestamp = 0
+    withdrawal_credentials = Hash32(b'\x22' * 32)
+    deposit_timestamp = Timestamp(0)
     fork = Fork(
         previous_version=config.GENESIS_FORK_VERSION,
         current_version=config.GENESIS_FORK_VERSION,
@@ -45,8 +49,8 @@ def create_mock_genesis_validator_deposits(
 
     genesis_validator_deposits = tuple(
         Deposit(
-            branch=(
-                b'\x11' * 32
+            branch=tuple(
+                Hash32(b'\x11' * 32)
                 for j in range(10)
             ),
             index=i,
@@ -80,7 +84,7 @@ def create_mock_genesis(
         config: BeaconConfig,
         keymap: Dict[BLSPubkey, int],
         genesis_block_class: Type[BaseBeaconBlock],
-        genesis_time: Timestamp=0) -> Tuple[BeaconState, BaseBeaconBlock]:
+        genesis_time: Timestamp=Timestamp(0)) -> Tuple[BeaconState, BaseBeaconBlock]:
     latest_eth1_data = Eth1Data.create_empty_data()
 
     assert num_validators <= len(keymap)

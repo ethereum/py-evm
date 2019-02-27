@@ -63,6 +63,7 @@ from eth2.beacon.typing import (
     Bitfield,
     CommitteeIndex,
     Epoch,
+    Shard,
     Slot,
     ValidatorIndex,
 )
@@ -168,11 +169,12 @@ def sign_transaction(*,
 #
 # ProposerSlashing
 #
-def create_proposal_data_and_signature(state: BeaconState,
-                                       block_root: Hash32,
-                                       privkey: int,
-                                       slots_per_epoch: int,
-                                       beacon_chain_shard_number: int):
+def create_proposal_data_and_signature(
+        state: BeaconState,
+        block_root: Hash32,
+        privkey: int,
+        slots_per_epoch: int,
+        beacon_chain_shard_number: Shard)-> Tuple[ProposalSignedData, BLSSignature]:
     proposal_data = ProposalSignedData(
         state.slot,
         beacon_chain_shard_number,
@@ -194,7 +196,7 @@ def create_mock_proposer_slashing_at_block(state: BeaconState,
                                            keymap: Dict[BLSPubkey, int],
                                            block_root_1: Hash32,
                                            block_root_2: Hash32,
-                                           proposer_index: ValidatorIndex):
+                                           proposer_index: ValidatorIndex)-> ProposerSlashing:
     slots_per_epoch = config.SLOTS_PER_EPOCH
     beacon_chain_shard_number = config.BEACON_CHAIN_SHARD_NUMBER
 
@@ -229,7 +231,7 @@ def create_mock_proposer_slashing_at_block(state: BeaconState,
 def _get_mock_message_and_voting_committee_indices(
         attestation_data: AttestationData,
         committee: Sequence[ValidatorIndex],
-        num_voted_attesters: int) -> Tuple[bytes, Tuple[CommitteeIndex]]:
+        num_voted_attesters: int) -> Tuple[Hash32, Tuple[CommitteeIndex, ...]]:
     """
     Get ``message`` and voting indices of the given ``committee``.
     """
@@ -242,7 +244,9 @@ def _get_mock_message_and_voting_committee_indices(
     assert num_voted_attesters <= committee_size
 
     # Index in committee
-    voting_committee_indices = tuple(random.sample(range(committee_size), num_voted_attesters))
+    voting_committee_indices = tuple(
+        CommitteeIndex(i) for i in random.sample(range(committee_size), num_voted_attesters)
+    )
 
     return message, voting_committee_indices
 
@@ -291,7 +295,7 @@ def create_mock_signed_attestation(state: BeaconState,
     return Attestation(
         data=attestation_data,
         aggregation_bitfield=aggregation_bitfield,
-        custody_bitfield=b'\x00' * len(aggregation_bitfield),
+        custody_bitfield=Bitfield(b'\x00' * len(aggregation_bitfield)),
         aggregate_signature=aggregate_signature,
     )
 
@@ -428,6 +432,6 @@ def get_committee_assignment(
                 slot % len(first_committee_at_slot)
             ] == validator_index
 
-            return CommitteeAssignment(validators, shard, slot, is_proposer)
+            return CommitteeAssignment(validators, shard, Slot(slot), is_proposer)
 
     raise NoCommitteeAssignment
