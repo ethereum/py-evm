@@ -98,7 +98,7 @@ class SerenityStateTransition(BaseStateTransition):
         state = process_attestations(state, block, self.config)
         # TODO: state = process_deposits(state, block, self.config)
         # TODO: state = process_voluntary_exits(state, block, self.config)
-        # TODO: validate_custody(state, block, self.config)
+        # TODO: state = process_transfers(state, block, self.config)
 
         return state
 
