@@ -4,8 +4,6 @@ from io import (
 )
 from typing import (
     Any,
-    Awaitable,
-    Callable,
     TypeVar,
 )
 
@@ -13,12 +11,17 @@ from typing import (
 Writer = TypeVar("Writer", BytesIO, asyncio.StreamWriter)
 
 
-def write_varint(writer: Writer, integer: int) -> None:
-    # TODO: handle negative integers
+DEFAULT_MAX_BITS: int = 64
+
+
+def write_unsigned_varint(writer: Writer, integer: int, max_bits: int = DEFAULT_MAX_BITS) -> None:
+    max_int: int = 1 << max_bits
     if integer < 0:
-        raise ValueError(f"Negative integer: {integer}")
+        raise ValueError(f"negative integer: {integer}")
+    if integer >= max_int:
+        raise ValueError(f"integer too large: {integer}")
     while True:
-        value = integer & 0x7f
+        value: int = integer & 0x7f
         integer >>= 7
         if integer != 0:
             value |= 0x80
@@ -29,36 +32,28 @@ def write_varint(writer: Writer, integer: int) -> None:
 
 
 # TODO: pb typing
-async def read_byte(reader: asyncio.StreamReader) -> int:
-    data = await reader.readexactly(1)
-    return data[0]
-
-
-# TODO: pb typing
-async def read_varint(
+async def read_unsigned_varint(
         reader: asyncio.StreamReader,
-        read_byte: Callable[[asyncio.StreamReader], Awaitable[int]]) -> int:
+        max_bits: int = DEFAULT_MAX_BITS) -> int:
+    max_int: int = 1 << max_bits
     iteration: int = 0
-    chunk_bits: int = 7
     result: int = 0
     has_next: bool = True
     while has_next:
-        c = await read_byte(reader)
+        data = await reader.readexactly(1)
+        c = data[0]
         value = (c & 0x7f)
-        result |= (value << (iteration * chunk_bits))
+        result |= (value << (iteration * 7))
         has_next = ((c & 0x80) != 0)
         iteration += 1
-        # valid `iteration` should be <= 10.
-        # if `iteration` == 10, then there should be only 1 bit useful in the `value`
-        # in the last iteration, assuming the max size of the number is 64 bits
-        if iteration > 10 or ((iteration == 10) and (value > 1)):
-            raise OverflowError("Varint overflowed")
+        if result >= max_int:
+            raise ValueError(f"varint overflowed: {result}")
     return result
 
 
 # TODO: pb_msg should be typed more accurately
 async def read_pbmsg_safe(s: asyncio.StreamReader, pb_msg: Any) -> None:
-    len_msg_bytes = await read_varint(s, read_byte)
+    len_msg_bytes = await read_unsigned_varint(s)
     msg_bytes = await s.readexactly(len_msg_bytes)
     pb_msg.ParseFromString(msg_bytes)
 
@@ -67,6 +62,6 @@ async def read_pbmsg_safe(s: asyncio.StreamReader, pb_msg: Any) -> None:
 def serialize(pb_msg: Any) -> bytes:
     size = pb_msg.ByteSize()
     s = BytesIO()
-    write_varint(s, size)
+    write_unsigned_varint(s, size)
     size_prefix = s.getvalue()
     return size_prefix + pb_msg.SerializeToString()
