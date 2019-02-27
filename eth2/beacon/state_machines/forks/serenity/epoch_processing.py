@@ -876,27 +876,28 @@ def update_validator_registry(state: BeaconState) -> BeaconState:
 StateUpdaterForConfig = Callable[[BeaconState, BeaconConfig], BeaconState]
 
 
-def _process_validator_registry_with_update(num_shards_in_committees: int) -> StateUpdaterForConfig:
-    def _inner(state: BeaconState, config: BeaconConfig) -> BeaconState:
-        state = update_validator_registry(state)
+@curry
+def _process_validator_registry_with_update(current_epoch_committee_count: int,
+                                            state: BeaconState,
+                                            config: BeaconConfig) -> StateUpdaterForConfig:
+    state = update_validator_registry(state)
 
-        # Update step-by-step since updated `state.current_shuffling_epoch`
-        # is used to calculate other value). Follow the spec tightly now.
-        state = _update_shuffling_epoch(state, config.SLOTS_PER_EPOCH)
+    # Update step-by-step since updated `state.current_shuffling_epoch`
+    # is used to calculate other value). Follow the spec tightly now.
+    state = _update_shuffling_epoch(state, config.SLOTS_PER_EPOCH)
 
-        state = _update_shuffling_start_shard(state, num_shards_in_committees, config.SHARD_COUNT)
+    state = _update_shuffling_start_shard(state, current_epoch_committee_count, config.SHARD_COUNT)
 
-        state = _update_shuffling_seed(
-            state,
-            config.SLOTS_PER_EPOCH,
-            config.MIN_SEED_LOOKAHEAD,
-            config.ACTIVATION_EXIT_DELAY,
-            config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
-            config.LATEST_RANDAO_MIXES_LENGTH,
-        )
+    state = _update_shuffling_seed(
+        state,
+        config.SLOTS_PER_EPOCH,
+        config.MIN_SEED_LOOKAHEAD,
+        config.ACTIVATION_EXIT_DELAY,
+        config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
+        config.LATEST_RANDAO_MIXES_LENGTH,
+    )
 
-        return state
-    return _inner
+    return state
 
 
 def _process_validator_registry_without_update(state: BeaconState,
