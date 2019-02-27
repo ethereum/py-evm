@@ -31,6 +31,7 @@ from eth_utils import (
 )
 from eth_utils.toolz import (
     identity,
+    mapcat,
 )
 
 from eth.typing import (
@@ -415,6 +416,8 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
     The memory needs of this class would naively be unbounded. Any newly
     registered task might depend on any other task in history. To prevent
     unbounded memory usage, old tasks are pruned after a configurable depth.
+    Pruning is triggered when `ready_tasks()` is called, starting from the
+    tail of the *previous* ready_tasks() result.
 
     Vocab:
 
@@ -483,6 +486,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
         self._declared_finished: Set[TTaskID] = set()
 
         self._roots = RootTracker()
+        self._last_yielded_tasks: Tuple[TTask, ...] = tuple()
 
     def set_finished_dependency(self, finished_task: TTask) -> None:
         """
@@ -578,7 +582,15 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
         Return the next batch of tasks that are ready to process. If none are ready,
         hang until at least one task becomes ready.
         """
-        return await queue_get_batch(self._ready_tasks)
+        for completed_task in self._last_yielded_tasks:
+            task_id = self._id_of(completed_task)
+            # Attempt pruning at least twice (to eventually catch up after forks)
+            # re-running is okay, because pruning limits the prune depth
+            self._prune_finished(task_id)
+            self._prune_finished(task_id)
+
+        self._last_yielded_tasks = await queue_get_batch(self._ready_tasks)
+        return self._last_yielded_tasks
 
     def _is_ready(self, task: TTask) -> bool:
         dependency = self._dependency_of(task)
@@ -591,26 +603,13 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
         else:
             return False
 
-    @to_tuple
-    def _mark_complete_task_tree(self, task_id: TTaskID) -> Iterable[TTaskID]:
+    def _mark_complete(self, task_id: TTaskID) -> None:
         qualified_tasks = tuple([task_id])
         while qualified_tasks:
-            next_layer_tasks: Tuple[TTaskID, ...] = tuple()
-            for completed_task in qualified_tasks:
-                child_tasks = self._mark_one_task_complete(completed_task)
-                if not child_tasks:
-                    yield completed_task
-                else:
-                    next_layer_tasks = next_layer_tasks + child_tasks
-            qualified_tasks = tuple(next_layer_tasks)
-
-    def _mark_complete(self, task_id: TTaskID) -> None:
-        new_completed_leaves = self._mark_complete_task_tree(task_id)
-        for prune_from_leaf in new_completed_leaves:
-            # Attempt pruning at least twice (to eventually catch up after forks)
-            # re-running is okay, because pruning limits the prune depth
-            self._prune_finished(prune_from_leaf)
-            self._prune_finished(prune_from_leaf)
+            qualified_tasks = tuple(mapcat(
+                self._mark_one_task_complete,
+                qualified_tasks,
+            ))
 
     @to_tuple
     def _mark_one_task_complete(self, task_id: TTaskID) -> Iterable[TTaskID]:
@@ -636,7 +635,24 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
     def _prune_finished(self, task_id: TTaskID) -> None:
         """
         This prunes the oldest data, if it starts more than _max_depth in history.
-        It is called when the task becomes ready.
+        It is called when the task has been consumed by the caller via
+        `ready_tasks()` and completed. The workflow looks something like:
+
+        :return: True if a node was pruned
+
+        ::
+
+            otp = OrderedTaskPreparation(...)
+            otp.register_tasks(range(3))
+            otp.finish_prereq(OnlyPrereq, (0, 1))
+            assert await otp.ready_tasks() == (0, 1)
+
+            # Do some processing on ready tasks (0, 1) ...
+            # Complete processing on ready tasks (0, 1)
+
+            await otp.ready_tasks()
+            # ^ when this is called, pruning is triggered from
+            # the tip of task 1 (whether or not task 2 is ready)
         """
         root_task_id, depth = self._roots.get_root(task_id)
         num_to_prune = depth - self._max_depth

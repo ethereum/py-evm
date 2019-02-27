@@ -15,7 +15,7 @@ from trinity._utils.datastructures import (
     OrderedTaskPreparation,
 )
 
-DEFAULT_TIMEOUT = 0.05
+DEFAULT_TIMEOUT = 0.01
 
 
 async def wait(coro, timeout=DEFAULT_TIMEOUT):
@@ -33,6 +33,15 @@ class OnePrereq(Enum):
 class TwoPrereqs(Enum):
     Prereq1 = auto()
     Prereq2 = auto()
+
+
+async def assert_nothing_ready(otp):
+    try:
+        finished = await wait(otp.ready_tasks())
+    except asyncio.TimeoutError:
+        pass
+    else:
+        assert False, f"No tasks should be ready, but got {finished!r}"
 
 
 @pytest.mark.asyncio
@@ -71,8 +80,16 @@ async def test_pruning():
     # make a number task depend on the mod10, so 4 and 14 both depend on task 3
     ti = OrderedTaskPreparation(OnePrereq, identity, lambda x: (x % 10) - 1, max_depth=2)
     ti.set_finished_dependency(3)
-    ti.register_tasks((4, 5, 6))
+    ti.register_tasks((4, 5, 6, 7, 8))
     ti.finish_prereq(OnePrereq.one, (4, 5, 6))
+
+    # trigger pruning by requesting the ready tasks through 6, then "finishing" them
+    # by requesting the next batch of ready tasks (7)
+    completed = await wait(ti.ready_tasks())
+    assert completed == (4, 5, 6)
+    ti.finish_prereq(OnePrereq.one, (7, ))
+    completed = await wait(ti.ready_tasks())
+    assert completed == (7, )
 
     # it's fine to prepare a task that depends up to two back in history
     # this depends on 5
@@ -85,9 +102,11 @@ async def test_pruning():
         # this depends on 3
         ti.register_tasks((14, ))
 
-    # test the same concept, but after pruning more than just the starting task...
-    ti.register_tasks((7, ))
-    ti.finish_prereq(OnePrereq.one, (7, ))
+    # test the same concept, but after pruning tasks that weren't the starting tasks
+    # trigger pruning from the head at 7 by completing the one *after* 7
+    ti.finish_prereq(OnePrereq.one, (8, ))
+    completed = await wait(ti.ready_tasks())
+    assert completed == (8, )
 
     ti.register_tasks((26, ))
     ti.register_tasks((27, ))
@@ -98,12 +117,7 @@ async def test_pruning():
 @pytest.mark.asyncio
 async def test_wait_forever():
     ti = OrderedTaskPreparation(OnePrereq, identity, lambda x: x - 1)
-    try:
-        finished = await wait(ti.ready_tasks())
-    except asyncio.TimeoutError:
-        pass
-    else:
-        assert False, f"No steps should complete, but got {finished!r}"
+    await assert_nothing_ready(ti)
 
 
 def test_finish_same_task_twice():
@@ -226,12 +240,7 @@ async def test_register_out_of_order():
     ti.register_tasks((4, 5))
     ti.finish_prereq(OnePrereq.one, (4, 5))
 
-    try:
-        finished = await wait(ti.ready_tasks())
-    except asyncio.TimeoutError:
-        pass
-    else:
-        assert False, f"No steps should be ready, but got {finished!r}"
+    await assert_nothing_ready(ti)
 
     ti.register_tasks((2, 3))
     ti.finish_prereq(OnePrereq.one, (2, 3))
@@ -250,12 +259,7 @@ async def test_no_prereq_tasks_out_of_order():
     ti.set_finished_dependency(1)
     ti.register_tasks((4, 5))
 
-    try:
-        finished = await wait(ti.ready_tasks())
-    except asyncio.TimeoutError:
-        pass
-    else:
-        assert False, f"No steps should be ready, but got {finished!r}"
+    await assert_nothing_ready(ti)
 
     ti.register_tasks((2, 3))
 
@@ -289,7 +293,8 @@ async def test_finished_dependency_midstream():
     assert ready == (6, )
 
 
-def test_dangled_pruning():
+@pytest.mark.asyncio
+async def test_dangled_pruning():
     # make a number task depend on the mod10, so 4 and 14 both depend on task 3
     ti = OrderedTaskPreparation(
         NoPrerequisites,
@@ -299,20 +304,31 @@ def test_dangled_pruning():
         accept_dangling_tasks=True,
     )
     ti.set_finished_dependency(3)
-    ti.register_tasks((5, 6))
+    ti.register_tasks((4, 5, 6))
+    finished = await ti.ready_tasks()
+    assert finished == (4, 5, 6)
 
     # No obvious way to check which tasks are pruned when accepting dangling tasks,
     # so use an internal API until a better option is found:
-    # Nothing should be pruned yet
+    # Nothing should be pruned yet, because caller is still "acting" on (4, 5, 6)
     assert 3 in ti._tasks
 
-    ti.register_tasks((4, ))
+    # caller indicates that she is done working on (4, 5, 6) by calling ready_tasks() again
+    await assert_nothing_ready(ti)
 
     # 3 should be pruned now
     assert 3 not in ti._tasks
     assert 4 in ti._tasks
 
     ti.register_tasks((7, ))
+    finished = await ti.ready_tasks()
+    assert finished == (7, )
+
+    # 4 still shouldn't be pruned, because caller is "acting" on 7
+    assert 4 in ti._tasks
+
+    # caller indicates that she is done working on (7, ) by calling ready_tasks() again
+    await assert_nothing_ready(ti)
 
     # 4 should be pruned now
     assert 4 not in ti._tasks
@@ -338,7 +354,8 @@ def fork_prereq(task):
     return TaskID(task.idx - 1, task.parent_fork)
 
 
-def test_forked_pruning():
+@pytest.mark.asyncio
+async def test_forked_pruning():
     ti = OrderedTaskPreparation(
         NoPrerequisites,
         task_id,
@@ -371,6 +388,15 @@ def test_forked_pruning():
         Task(5, 1, 1),
     ))
 
+    finished = await ti.ready_tasks()
+    assert len(finished) == 14
+
+    # nothing should be pruned, because caller is still "acting" on all tasks
+    assert TaskID(1, 0) in ti._tasks
+
+    # caller indicates that she is done working on tasks by calling ready_tasks() again
+    await assert_nothing_ready(ti)
+
     assert TaskID(1, 0) not in ti._tasks
     assert TaskID(2, 0) not in ti._tasks
     assert TaskID(3, 0) not in ti._tasks
@@ -380,7 +406,8 @@ def test_forked_pruning():
     assert TaskID(10, 0) in ti._tasks
 
 
-def test_forked_pruning_dangling():
+@pytest.mark.asyncio
+async def test_forked_pruning_dangling():
     ti = OrderedTaskPreparation(
         OnePrereq,
         task_id,
@@ -443,6 +470,10 @@ def test_forked_pruning_dangling():
     ti.register_tasks((
         Task(1, 0, 0),
     ))
+
+    # nothing is ready, because the prereq on the first task is incomplete
+    await assert_nothing_ready(ti)
+
     ti.finish_prereq(OnePrereq.one, (
         Task(1, 0, 0),
     ))
@@ -480,6 +511,16 @@ def test_forked_pruning_dangling():
         Task(9, 1, 1),
     ))
 
+    finished = await ti.ready_tasks()
+    assert len(finished) == 28
+
+    # nothing should be pruned, because caller is still "acting" on all tasks
+    assert TaskID(1, 0) in ti._tasks
+
+    # caller indicates that she is done working on tasks by calling ready_tasks() again
+    await assert_nothing_ready(ti)
+
+    # find the tips of the chains that have and have not been pruned
     assert TaskID(6, 1) not in ti._tasks
     assert TaskID(7, 1) in ti._tasks
     assert TaskID(17, 0) not in ti._tasks
@@ -536,7 +577,8 @@ def test_re_fork_at_prune_boundary():
     ))
 
 
-def test_pruning_speed():
+@pytest.mark.asyncio
+async def test_pruning_speed():
     length = 10000
     ti = OrderedTaskPreparation(
         NoPrerequisites,
@@ -546,9 +588,58 @@ def test_pruning_speed():
     )
     ti.set_finished_dependency(-1)
     ti.register_tasks(range(length))
+
+    finished = await ti.ready_tasks()
+    assert len(finished) == length
+
+    await assert_nothing_ready(ti)
+    # nothing should be pruned, because the max depth hasn't been reached
     assert -1 in ti._tasks
-    start = time.perf_counter()
+
     ti.register_tasks((length, ))
-    duration = time.perf_counter() - start
+    finished = await ti.ready_tasks()
+    assert finished == (length, )
+    # nothing should be pruned, because caller is still "acting" on task 10000
+
+    # give ready_tasks something to respond with at next call, so we don't wait for the timeout
+    ti.register_tasks((length + 1, ))
+
+    # start timer to measure pruning speed
+    start = time.perf_counter()
+
+    # caller indicates that she is done working on task 10000 by calling ready_tasks() again
+    finished = await ti.ready_tasks()
+    assert finished == (length + 1, )
+
+    # make sure pruning actually happened
     assert -1 not in ti._tasks
-    assert duration < 0.0005
+    # but not too much pruning
+    assert 0 in ti._tasks
+
+    # make sure pruning was fast enough
+    duration = time.perf_counter() - start
+    assert duration < 0.0001
+
+
+@pytest.mark.asyncio
+async def test_wait_to_prune_until_yielded():
+    """
+    We need to be able to mark dependencies as finished, after task completion
+    """
+    ti = OrderedTaskPreparation(NoPrerequisites, identity, lambda x: x - 1, max_depth=2)
+    ti.set_finished_dependency(-1)
+    ti.register_tasks(range(10))
+    # the old tasks aren't pruned yet, so duplicates with known parents are fine
+    ti.register_tasks((3, ), ignore_duplicates=True)
+    ready = await wait(ti.ready_tasks())
+    assert ready == tuple(range(10))
+
+    # old tasks STILL aren't pruned, until we indicate that we are finished processing
+    # them by calling ready_tasks on the *next* batch
+    ti.register_tasks((10, ))
+    ready = await wait(ti.ready_tasks())
+    assert ready == (10, )
+
+    # now old tasks are pruned
+    with pytest.raises(MissingDependency):
+        ti.register_tasks((3, ), ignore_duplicates=True)
