@@ -1,4 +1,5 @@
 from typing import (
+    Callable,
     Dict,
     Iterable,
     Sequence,
@@ -829,9 +830,12 @@ def _update_shuffling_epoch(state: BeaconState, slots_per_epoch: int) -> BeaconS
     )
 
 
-def _update_shuffling_start_shard(state: BeaconState, num_shards_in_committees: int, shard_count: int) -> BeaconState:
+def _update_shuffling_start_shard(state: BeaconState,
+                                  num_shards_in_committees: int,
+                                  shard_count: int) -> BeaconState:
     """
-    Updates the ``current_shuffling_start_shard`` to the current value in the ``state`` incremented by the number of shards we touched in the current epoch.
+    Updates the ``current_shuffling_start_shard`` to the current value in
+    the ``state`` incremented by the number of shards we touched in the current epoch.
     """
     return state.copy(
         current_shuffling_start_shard=(
@@ -854,11 +858,11 @@ def _update_shuffling_seed(state: BeaconState,
     current_shuffling_seed = helpers.generate_seed(
         state=state,
         epoch=state.current_shuffling_epoch,
-        slots_per_epoch=config.SLOTS_PER_EPOCH,
-        min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
-        activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
-        latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
-        latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
+        slots_per_epoch=slots_per_epoch,
+        min_seed_lookahead=min_seed_lookahead,
+        activation_exit_delay=activation_exit_delay,
+        latest_active_index_roots_length=latest_active_index_roots_length,
+        latest_randao_mixes_length=latest_randao_mixes_length,
     )
     return state.copy(
         current_shuffling_seed=current_shuffling_seed,
@@ -870,27 +874,30 @@ def update_validator_registry(state: BeaconState) -> BeaconState:
     return state
 
 
-def _process_validator_registry_with_update(state: BeaconState,
-                                            num_shards_in_committees: int,
-                                            config: BeaconConfig) -> BeaconState:
-    state = update_validator_registry(state)
+StateUpdaterForConfig = Callable[[BeaconState, BeaconConfig], BeaconState]
 
-    # Update step-by-step since updated `state.current_shuffling_epoch`
-    # is used to calculate other value). Follow the spec tightly now.
-    state = _update_shuffling_epoch(state, config.SLOTS_PER_EPOCH)
 
-    state = _update_shuffling_start_shard(state, num_shards_in_committees, config.SHARD_COUNT)
+def _process_validator_registry_with_update(num_shards_in_committees: int) -> StateUpdaterForConfig:
+    def _inner(state: BeaconState, config: BeaconConfig) -> BeaconState:
+        state = update_validator_registry(state)
 
-    state = _update_shuffling_seed(
-        state,
-        config.SLOTS_PER_EPOCH,
-        config.MIN_SEED_LOOKAHEAD,
-        config.ACTIVATION_EXIT_DELAY,
-        config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
-        config.LATEST_RANDAO_MIXES_LENGTH,
-    )
+        # Update step-by-step since updated `state.current_shuffling_epoch`
+        # is used to calculate other value). Follow the spec tightly now.
+        state = _update_shuffling_epoch(state, config.SLOTS_PER_EPOCH)
 
-    return state
+        state = _update_shuffling_start_shard(state, num_shards_in_committees, config.SHARD_COUNT)
+
+        state = _update_shuffling_seed(
+            state,
+            config.SLOTS_PER_EPOCH,
+            config.MIN_SEED_LOOKAHEAD,
+            config.ACTIVATION_EXIT_DELAY,
+            config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
+            config.LATEST_RANDAO_MIXES_LENGTH,
+        )
+
+        return state
+    return _inner
 
 
 def _process_validator_registry_without_update(state: BeaconState,
@@ -930,13 +937,12 @@ def process_validator_registry(state: BeaconState,
     need_to_update, num_shards_in_committees = _check_if_update_validator_registry(state, config)
 
     if need_to_update:
-        validator_registry_transition = lambda state, config: _process_validator_registry_with_update(
-            state,
+        # this next function call returns a closure, linter didn't like a bare lambda
+        validator_registry_transition = _process_validator_registry_with_update(
             num_shards_in_committees,
-            config,
         )
     else:
-        validator_registry_transition =  _process_validator_registry_without_update
+        validator_registry_transition = _process_validator_registry_without_update
 
     state = validator_registry_transition(state, config)
 
