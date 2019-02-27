@@ -347,14 +347,14 @@ def create_mock_signed_attestations_at_slot(
         committee, shard = crosslink_committee
 
         num_voted_attesters = int(len(committee) * voted_attesters_ratio)
-        latest_crosslink_root = state.latest_crosslinks[shard].shard_block_root
+        latest_crosslink_root = state.latest_crosslinks[shard].crosslink_data_root
 
         attestation_data = AttestationData(
             slot=attestation_slot,
             shard=shard,
             beacon_block_root=beacon_block_root,
             epoch_boundary_root=epoch_boundary_root,
-            shard_block_root=ZERO_HASH32,
+            crosslink_data_root=ZERO_HASH32,
             latest_crosslink_root=latest_crosslink_root,
             justified_epoch=state.justified_epoch,
             justified_block_root=justified_block_root,

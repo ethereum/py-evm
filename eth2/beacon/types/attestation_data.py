@@ -27,7 +27,7 @@ class AttestationData(ssz.Serializable):
         # Hash of the ancestor at the epoch boundary
         ('epoch_boundary_root', bytes32),
         # Shard block root being attested to
-        ('shard_block_root', bytes32),
+        ('crosslink_data_root', bytes32),
         # Last crosslink hash
         ('latest_crosslink_root', bytes32),
         # epoch of the last justified beacon block
@@ -41,7 +41,7 @@ class AttestationData(ssz.Serializable):
                  shard: Shard,
                  beacon_block_root: Hash32,
                  epoch_boundary_root: Hash32,
-                 shard_block_root: Hash32,
+                 crosslink_data_root: Hash32,
                  latest_crosslink_root: Hash32,
                  justified_epoch: Epoch,
                  justified_block_root: Hash32) -> None:
@@ -50,7 +50,7 @@ class AttestationData(ssz.Serializable):
             shard,
             beacon_block_root,
             epoch_boundary_root,
-            shard_block_root,
+            crosslink_data_root,
             latest_crosslink_root,
             justified_epoch,
             justified_block_root,

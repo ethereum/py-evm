@@ -20,7 +20,7 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation_latest_crosslink_root,
     validate_attestation_justified_block_root,
     validate_attestation_justified_epoch,
-    validate_attestation_shard_block_root,
+    validate_attestation_crosslink_data_root,
     validate_attestation_slot,
 )
 from eth2.beacon.tools.builder.validator import (
@@ -166,7 +166,7 @@ def test_validate_attestation_justified_block_root(sample_attestation_data_param
 @pytest.mark.parametrize(
     (
         'attestation_latest_crosslink_root,'
-        'attestation_shard_block_root,'
+        'attestation_crosslink_data_root,'
         'latest_crosslink_root,'
         'is_valid,'
     ),
@@ -180,14 +180,14 @@ def test_validate_attestation_justified_block_root(sample_attestation_data_param
 )
 def test_validate_attestation_latest_crosslink_root(sample_attestation_data_params,
                                                     attestation_latest_crosslink_root,
-                                                    attestation_shard_block_root,
+                                                    attestation_crosslink_data_root,
                                                     latest_crosslink_root,
                                                     is_valid):
     sample_attestation_data_params['latest_crosslink_root'] = attestation_latest_crosslink_root
-    sample_attestation_data_params['shard_block_root'] = attestation_shard_block_root
+    sample_attestation_data_params['crosslink_data_root'] = attestation_crosslink_data_root
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
         latest_crosslink_root=attestation_latest_crosslink_root,
-        shard_block_root=attestation_shard_block_root,
+        crosslink_data_root=attestation_crosslink_data_root,
     )
 
     if is_valid:
@@ -205,7 +205,7 @@ def test_validate_attestation_latest_crosslink_root(sample_attestation_data_para
 
 @pytest.mark.parametrize(
     (
-        'attestation_shard_block_root,'
+        'attestation_crosslink_data_root,'
         'is_valid,'
     ),
     [
@@ -214,20 +214,20 @@ def test_validate_attestation_latest_crosslink_root(sample_attestation_data_para
         (b'\x66' * 32, False),
     ]
 )
-def test_validate_attestation_shard_block_root(sample_attestation_data_params,
-                                               attestation_shard_block_root,
-                                               is_valid):
+def test_validate_attestation_crosslink_data_root(sample_attestation_data_params,
+                                                  attestation_crosslink_data_root,
+                                                  is_valid):
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
-        shard_block_root=attestation_shard_block_root,
+        crosslink_data_root=attestation_crosslink_data_root,
     )
 
     if is_valid:
-        validate_attestation_shard_block_root(
+        validate_attestation_crosslink_data_root(
             attestation_data,
         )
     else:
         with pytest.raises(ValidationError):
-            validate_attestation_shard_block_root(
+            validate_attestation_crosslink_data_root(
                 attestation_data,
             )
 

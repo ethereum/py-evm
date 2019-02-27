@@ -106,7 +106,7 @@ def sample_attestation_data_params():
         'shard': 12,
         'beacon_block_root': b'\x11' * 32,
         'epoch_boundary_root': b'\x22' * 32,
-        'shard_block_root': b'\x33' * 32,
+        'crosslink_data_root': b'\x33' * 32,
         'latest_crosslink_root': b'\x44' * 32,
         'justified_epoch': 0,
         'justified_block_root': b'\x55' * 32,
@@ -198,7 +198,7 @@ def sample_eth1_data_vote_params(sample_eth1_data_params):
 def sample_crosslink_record_params():
     return {
         'epoch': 0,
-        'shard_block_root': b'\x43' * 32,
+        'crosslink_data_root': b'\x43' * 32,
     }
 
 
@@ -586,7 +586,7 @@ def genesis_state(filled_beacon_state,
         latest_crosslinks=tuple(
             CrosslinkRecord(
                 epoch=genesis_epoch,
-                shard_block_root=ZERO_HASH32,
+                crosslink_data_root=ZERO_HASH32,
             )
             for _ in range(shard_count)
         ),

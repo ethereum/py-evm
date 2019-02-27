@@ -17,14 +17,14 @@ class CrosslinkRecord(ssz.Serializable):
         # Epoch during which crosslink was added
         ('epoch', uint64),
         # Shard chain block root
-        ('shard_block_root', bytes32),
+        ('crosslink_data_root', bytes32),
     ]
 
     def __init__(self,
                  epoch: Epoch,
-                 shard_block_root: Hash32) -> None:
+                 crosslink_data_root: Hash32) -> None:
 
         super().__init__(
             epoch=epoch,
-            shard_block_root=shard_block_root,
+            crosslink_data_root=crosslink_data_root,
         )

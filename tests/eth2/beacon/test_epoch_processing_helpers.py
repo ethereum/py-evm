@@ -275,19 +275,19 @@ def test_get_winning_root(
     )
     # `attestions` contains attestation to different block root by different set of participants
     attestations = (
-        # Attestation to `shard_block_root_1` by `attestation_participants_1`
+        # Attestation to `crosslink_data_root_1` by `attestation_participants_1`
         Attestation(**sample_attestation_params).copy(
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
-                shard_block_root=competing_block_roots[0],
+                crosslink_data_root=competing_block_roots[0],
             ),
             aggregation_bitfield=root_1_participants_bitfield
         ),
-        # Attestation to `shard_block_root_2` by `attestation_participants_2`
+        # Attestation to `crosslink_data_root_2` by `attestation_participants_2`
         Attestation(**sample_attestation_params).copy(
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
-                shard_block_root=competing_block_roots[1],
+                crosslink_data_root=competing_block_roots[1],
             ),
             aggregation_bitfield=root_2_participants_bitfield
         ),
@@ -306,7 +306,7 @@ def test_get_winning_root(
             attestations=(
                 a
                 for a in attestations
-                if a.data.shard == shard and a.data.shard_block_root == winning_root
+                if a.data.shard == shard and a.data.crosslink_data_root == winning_root
             ),
             committee_config=committee_config,
         )

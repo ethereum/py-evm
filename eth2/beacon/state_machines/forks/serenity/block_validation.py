@@ -262,10 +262,10 @@ def validate_attestation(state: BeaconState,
 
     validate_attestation_latest_crosslink_root(
         attestation.data,
-        latest_crosslink_root=state.latest_crosslinks[attestation.data.shard].shard_block_root,
+        latest_crosslink_root=state.latest_crosslinks[attestation.data.shard].crosslink_data_root,
     )
 
-    validate_attestation_shard_block_root(attestation.data)
+    validate_attestation_crosslink_data_root(attestation.data)
 
     validate_attestation_aggregate_signature(
         state,
@@ -360,41 +360,41 @@ def validate_attestation_justified_block_root(attestation_data: AttestationData,
 def validate_attestation_latest_crosslink_root(attestation_data: AttestationData,
                                                latest_crosslink_root: Hash32) -> None:
     """
-    Validate that either the attestation ``latest_crosslink_root`` or ``shard_block_root``
+    Validate that either the attestation ``latest_crosslink_root`` or ``crosslink_data_root``
     field of ``attestation_data`` is the provided ``latest_crosslink_root``.
     Raise ``ValidationError`` if it's invalid.
     """
-    acceptable_shard_block_roots = {
+    acceptable_crosslink_data_roots = {
         attestation_data.latest_crosslink_root,
-        attestation_data.shard_block_root,
+        attestation_data.crosslink_data_root,
     }
-    if latest_crosslink_root not in acceptable_shard_block_roots:
+    if latest_crosslink_root not in acceptable_crosslink_data_roots:
         raise ValidationError(
             "Neither the attestation ``latest_crosslink_root`` nor the attestation "
-            "``shard_block_root`` are equal to the ``latest_crosslink_root``.\n"
+            "``crosslink_data_root`` are equal to the ``latest_crosslink_root``.\n"
             "\tFound: %s and %s, Expected %s" %
             (
                 attestation_data.latest_crosslink_root,
-                attestation_data.shard_block_root,
+                attestation_data.crosslink_data_root,
                 latest_crosslink_root,
             )
         )
 
 
-def validate_attestation_shard_block_root(attestation_data: AttestationData) -> None:
+def validate_attestation_crosslink_data_root(attestation_data: AttestationData) -> None:
     """
-    Validate ``shard_block_root`` field of `attestation_data`.
+    Validate ``crosslink_data_root`` field of `attestation_data`.
     Raise ``ValidationError`` if it's invalid.
 
-    Note: This is the Phase 0 version of ``shard_block_root`` validation.
+    Note: This is the Phase 0 version of ``crosslink_data_root`` validation.
     This is a built-in stub and will be changed in phase 1.
     """
-    if attestation_data.shard_block_root != ZERO_HASH32:
+    if attestation_data.crosslink_data_root != ZERO_HASH32:
         raise ValidationError(
-            "Attestation ``shard_block_root`` is not ZERO_HASH32.\n"
+            "Attestation ``crosslink_data_root`` is not ZERO_HASH32.\n"
             "\tFound: %s, Expected %s" %
             (
-                attestation_data.shard_block_root,
+                attestation_data.crosslink_data_root,
                 ZERO_HASH32,
             )
         )

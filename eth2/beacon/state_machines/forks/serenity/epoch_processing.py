@@ -276,7 +276,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                         shard,
                         CrosslinkRecord(
                             epoch=state.current_epoch(config.SLOTS_PER_EPOCH),
-                            shard_block_root=winning_root,
+                            crosslink_data_root=winning_root,
                         ),
                     )
                 else:
@@ -663,7 +663,7 @@ def _process_rewards_and_penalties_for_crosslinks(
                     attestations=(
                         a
                         for a in filtered_attestations
-                        if a.data.shard == shard and a.data.shard_block_root == winning_root
+                        if a.data.shard == shard and a.data.crosslink_data_root == winning_root
                     ),
                     committee_config=CommitteeConfig(config),
                 )

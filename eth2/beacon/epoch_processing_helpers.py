@@ -104,19 +104,19 @@ def get_winning_root(
         committee_config: CommitteeConfig) -> Tuple[Hash32, Gwei]:
     winning_root = None
     winning_root_balance: Gwei = Gwei(0)
-    shard_block_roots = set(
+    crosslink_data_roots = set(
         [
-            a.data.shard_block_root for a in attestations
+            a.data.crosslink_data_root for a in attestations
             if a.data.shard == shard
         ]
     )
-    for shard_block_root in shard_block_roots:
+    for crosslink_data_root in crosslink_data_roots:
         attesting_validator_indices = get_attester_indices_from_attesttion(
             state=state,
             attestations=[
                 a
                 for a in attestations
-                if a.data.shard == shard and a.data.shard_block_root == shard_block_root
+                if a.data.shard == shard and a.data.crosslink_data_root == crosslink_data_root
             ],
             committee_config=committee_config,
         )
@@ -126,11 +126,11 @@ def get_winning_root(
             max_deposit_amount,
         )
         if total_attesting_balance > winning_root_balance:
-            winning_root = shard_block_root
+            winning_root = crosslink_data_root
             winning_root_balance = total_attesting_balance
         elif total_attesting_balance == winning_root_balance and winning_root_balance > 0:
-            if shard_block_root < winning_root:
-                winning_root = shard_block_root
+            if crosslink_data_root < winning_root:
+                winning_root = crosslink_data_root
 
     if winning_root is None:
         raise NoWinningRootError
