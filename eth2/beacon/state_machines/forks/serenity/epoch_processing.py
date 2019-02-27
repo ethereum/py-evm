@@ -940,6 +940,10 @@ def process_validator_registry(state: BeaconState,
 
     state = validator_registry_transition(state, config)
 
+    # TODO: state = process_slashings(state, config)
+
+    # TODO: state = process_exit_queue(state, config)
+
     return state
 
 
