@@ -14,17 +14,15 @@ from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
 def mock_validator_record(pubkey,
                           withdrawal_credentials=ZERO_HASH32,
-                          randao_commitment=ZERO_HASH32,
-                          status_flags=0,
                           is_active=True):
     return ValidatorRecord(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
         activation_epoch=SERENITY_CONFIG.GENESIS_EPOCH if is_active else FAR_FUTURE_EPOCH,
         exit_epoch=FAR_FUTURE_EPOCH,
-        withdrawal_epoch=FAR_FUTURE_EPOCH,
-        slashed_epoch=FAR_FUTURE_EPOCH,
-        status_flags=status_flags,
+        withdrawable_epoch=FAR_FUTURE_EPOCH,
+        initiated_exit=False,
+        slashed=False,
     )
 
 

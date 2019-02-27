@@ -7,7 +7,7 @@ from eth_utils import (
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_proposer_slashing,
     validate_proposer_slashing_block_root,
-    validate_proposer_slashing_slashed_epoch,
+    validate_proposer_slashing_is_slashed,
     validate_proposer_slashing_slot,
     validate_proposer_slashing_shard,
     validate_proposal_signature,
@@ -120,27 +120,25 @@ def test_validate_proposer_slashing_block_root(genesis_state,
 
 @pytest.mark.parametrize(
     (
-        'proposer_slashed_epoch', 'state_current_epoch', 'success'
+        'slashed', 'success'
     ),
     [
-        (2, 1, True),
-        (1, 1, False),
-        (1, 2, False),
+        (False, True),
+        (True, False),
     ],
 )
-def test_validate_proposer_slashing_slashed_epoch(slots_per_epoch,
-                                                  genesis_state,
-                                                  beacon_chain_shard_number,
-                                                  keymap,
-                                                  proposer_slashed_epoch,
-                                                  state_current_epoch,
-                                                  success):
+def test_validate_proposer_slashing_is_slashed(slots_per_epoch,
+                                               genesis_state,
+                                               beacon_chain_shard_number,
+                                               keymap,
+                                               slashed,
+                                               success):
     # Invalid
     if success:
-        validate_proposer_slashing_slashed_epoch(proposer_slashed_epoch, state_current_epoch)
+        validate_proposer_slashing_is_slashed(slashed)
     else:
         with pytest.raises(ValidationError):
-            validate_proposer_slashing_slashed_epoch(proposer_slashed_epoch, state_current_epoch)
+            validate_proposer_slashing_is_slashed(slashed)
 
 
 def test_validate_proposal_signature(slots_per_epoch,

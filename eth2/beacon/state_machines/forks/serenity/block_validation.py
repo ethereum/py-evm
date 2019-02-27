@@ -138,10 +138,7 @@ def validate_proposer_slashing(state: BeaconState,
 
     validate_proposer_slashing_block_root(proposer_slashing)
 
-    validate_proposer_slashing_slashed_epoch(
-        proposer.slashed_epoch,
-        state.current_epoch(slots_per_epoch),
-    )
+    validate_proposer_slashing_is_slashed(proposer.slashed)
 
     validate_proposal_signature(
         proposal_signed_data=proposer_slashing.proposal_data_1,
@@ -187,13 +184,9 @@ def validate_proposer_slashing_block_root(proposer_slashing: ProposerSlashing) -
         )
 
 
-def validate_proposer_slashing_slashed_epoch(proposer_slashed_epoch: Epoch,
-                                             state_current_epoch: Epoch) -> None:
-    if proposer_slashed_epoch <= state_current_epoch:
-        raise ValidationError(
-            f"proposer.slashed_epoch ({proposer_slashed_epoch}) "
-            f"should be greater than current epoch ({state_current_epoch})"
-        )
+def validate_proposer_slashing_is_slashed(slashed: bool) -> None:
+    if slashed:
+        raise ValidationError(f"proposer.slashed is True")
 
 
 def validate_proposal_signature(proposal_signed_data: ProposalSignedData,

@@ -546,7 +546,6 @@ def _process_rewards_and_penalties_for_finality(
         )
 
         # Punish penalized active validators
-        current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
         penalties = {
             index: 3 * base_rewards[index] + 2 * (
                 effective_balances[index] *
@@ -554,7 +553,7 @@ def _process_rewards_and_penalties_for_finality(
                 config.INACTIVITY_PENALTY_QUOTIENT // 2
             )
             for index in previous_epoch_active_validator_indices
-            if state.validator_registry[index].slashed_epoch <= current_epoch
+            if state.validator_registry[index].slashed is True
         }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
             RewardSettlementContext(

@@ -10,15 +10,13 @@ from eth2.beacon.constants import (
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
 )
-from eth2.beacon.enums import (
-    ValidatorStatusFlags,
-)
+
 from eth2.beacon.helpers import (
-    get_entry_exit_effect_epoch,
+    get_delayed_activation_exit_epoch,
 )
 from eth2.beacon.validator_status_helpers import (
     _settle_penality_to_validator_and_whistleblower,
-    _validate_withdrawal_epoch,
+    _validate_withdrawable_epoch,
     activate_validator,
     exit_validator,
     initiate_validator_exit,
@@ -79,7 +77,7 @@ def test_activate_validator(is_genesis,
     else:
         assert (
             result_state.validator_registry[index].activation_epoch ==
-            get_entry_exit_effect_epoch(
+            get_delayed_activation_exit_epoch(
                 state.current_epoch(slots_per_epoch),
                 activation_exit_delay,
             )
@@ -89,19 +87,13 @@ def test_activate_validator(is_genesis,
 def test_initiate_validator_exit(n_validators_state):
     state = n_validators_state
     index = 1
-    assert not (
-        state.validator_registry[index].status_flags &
-        ValidatorStatusFlags.INITIATED_EXIT
-    )
-    old_validator_status_flags = state.validator_registry[index].status_flags
+    assert state.validator_registry[index].initiated_exit is False
+
     result_state = initiate_validator_exit(
         state,
         index,
     )
-
-    assert result_state.validator_registry[index].status_flags == (
-        old_validator_status_flags | ValidatorStatusFlags.INITIATED_EXIT
-    )
+    assert result_state.validator_registry[index].initiated_exit is True
 
 
 @pytest.mark.parametrize(
@@ -169,8 +161,10 @@ def test_exit_validator(num_validators,
     else:
         assert validator.exit_epoch > state.current_epoch(slots_per_epoch) + activation_exit_delay
         result_validator = result_state.validator_registry[index]
-        current_epoch = state.current_epoch(slots_per_epoch)
-        assert result_validator.exit_epoch == current_epoch + activation_exit_delay
+        assert result_validator.exit_epoch == get_delayed_activation_exit_epoch(
+            state.current_epoch(slots_per_epoch),
+            activation_exit_delay,
+        )
 
 
 @pytest.mark.parametrize(
@@ -310,8 +304,8 @@ def test_slash_validator(monkeypatch,
     )
     current_epoch = state.current_epoch(slots_per_epoch)
     validator = state.validator_registry[index].copy(
-        slashed_epoch=current_epoch,
-        withdrawal_epoch=current_epoch + latest_slashed_exit_length,
+        slashed=False,
+        withdrawable_epoch=current_epoch + latest_slashed_exit_length,
     )
     expected_state.update_validator_registry(index, validator)
 
@@ -323,7 +317,6 @@ def test_prepare_validator_for_withdrawal(n_validators_state,
                                           min_validator_withdrawability_delay):
     state = n_validators_state
     index = 1
-    old_validator_status_flags = state.validator_registry[index].status_flags
     result_state = prepare_validator_for_withdrawal(
         state,
         index,
@@ -332,10 +325,7 @@ def test_prepare_validator_for_withdrawal(n_validators_state,
     )
 
     result_validator = result_state.validator_registry[index]
-    assert result_validator.status_flags == (
-        old_validator_status_flags | ValidatorStatusFlags.WITHDRAWABLE
-    )
-    assert result_validator.withdrawal_epoch == (
+    assert result_validator.withdrawable_epoch == (
         state.current_epoch(slots_per_epoch) + min_validator_withdrawability_delay
     )
 
@@ -344,7 +334,7 @@ def test_prepare_validator_for_withdrawal(n_validators_state,
     (
         'slots_per_epoch',
         'state_slot',
-        'validate_withdrawal_epoch',
+        'validate_withdrawable_epoch',
         'success'
     ),
     [
@@ -354,9 +344,12 @@ def test_prepare_validator_for_withdrawal(n_validators_state,
         (4, 8, 3, True),
     ]
 )
-def test_validate_withdrawal_epoch(slots_per_epoch, state_slot, validate_withdrawal_epoch, success):
+def test_validate_withdrawable_epoch(slots_per_epoch,
+                                     state_slot,
+                                     validate_withdrawable_epoch,
+                                     success):
     if success:
-        _validate_withdrawal_epoch(state_slot, validate_withdrawal_epoch, slots_per_epoch)
+        _validate_withdrawable_epoch(state_slot, validate_withdrawable_epoch, slots_per_epoch)
     else:
         with pytest.raises(ValidationError):
-            _validate_withdrawal_epoch(state_slot, validate_withdrawal_epoch, slots_per_epoch)
+            _validate_withdrawable_epoch(state_slot, validate_withdrawable_epoch, slots_per_epoch)

@@ -1,11 +1,6 @@
 from enum import IntEnum
 
 
-class ValidatorStatusFlags(IntEnum):
-    INITIATED_EXIT = 1
-    WITHDRAWABLE = 2
-
-
 class SignatureDomain(IntEnum):
     DOMAIN_DEPOSIT = 0
     DOMAIN_ATTESTATION = 1

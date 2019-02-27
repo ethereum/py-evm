@@ -30,7 +30,7 @@ from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_domain,
     get_effective_balance,
-    get_entry_exit_effect_epoch,
+    get_delayed_activation_exit_epoch,
     get_fork_version,
     get_total_balance,
     is_double_vote,
@@ -342,9 +342,9 @@ def test_is_surround_vote(sample_attestation_data_params,
     assert is_surround_vote(attestation_data_1, attestation_data_2, slots_per_epoch) == expected
 
 
-def test_get_entry_exit_effect_epoch(activation_exit_delay):
+def test_get_delayed_activation_exit_epoch(activation_exit_delay):
     epoch = random.randint(0, FAR_FUTURE_EPOCH)
-    entry_exit_effect_epoch = get_entry_exit_effect_epoch(
+    entry_exit_effect_epoch = get_delayed_activation_exit_epoch(
         epoch,
         activation_exit_delay,
     )
