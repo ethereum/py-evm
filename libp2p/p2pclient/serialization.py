@@ -3,10 +3,12 @@ from io import (
     BytesIO,
 )
 from typing import (
-    Any,
     TypeVar,
 )
 
+from google.protobuf.message import (
+    Message as PBMessage,
+)
 
 Writer = TypeVar("Writer", BytesIO, asyncio.StreamWriter)
 
@@ -31,7 +33,6 @@ def write_unsigned_varint(writer: Writer, integer: int, max_bits: int = DEFAULT_
             break
 
 
-# TODO: pb typing
 async def read_unsigned_varint(
         reader: asyncio.StreamReader,
         max_bits: int = DEFAULT_MAX_BITS) -> int:
@@ -51,17 +52,16 @@ async def read_unsigned_varint(
     return result
 
 
-# TODO: pb_msg should be typed more accurately
-async def read_pbmsg_safe(s: asyncio.StreamReader, pb_msg: Any) -> None:
+async def read_pbmsg_safe(s: asyncio.StreamReader, pb_msg: PBMessage) -> None:
     len_msg_bytes = await read_unsigned_varint(s)
     msg_bytes = await s.readexactly(len_msg_bytes)
     pb_msg.ParseFromString(msg_bytes)
 
 
-# TODO: pb_msg should be typed more accurately
-def serialize(pb_msg: Any) -> bytes:
+def serialize(pb_msg: PBMessage) -> bytes:
     size = pb_msg.ByteSize()
     s = BytesIO()
     write_unsigned_varint(s, size)
     size_prefix = s.getvalue()
-    return size_prefix + pb_msg.SerializeToString()
+    msg_bytes: bytes = pb_msg.SerializeToString()
+    return size_prefix + msg_bytes

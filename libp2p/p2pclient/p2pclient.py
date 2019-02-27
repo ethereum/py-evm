@@ -3,7 +3,6 @@ import binascii
 import inspect
 import logging
 from typing import (
-    Any,
     AsyncGenerator,
     Awaitable,
     Callable,
@@ -12,6 +11,9 @@ from typing import (
     Tuple,
 )
 
+from google.protobuf.message import (
+    Message as PBMessage,
+)
 from multiaddr import (
     Multiaddr,
     protocols,
@@ -105,8 +107,9 @@ class Client:
         await handler(stream_info, reader, writer)
 
     @staticmethod
-    # TODO: typing for pb
-    async def _write_pb(writer: asyncio.StreamWriter, data_pb: Any) -> None:
+    async def _write_pb(
+            writer: asyncio.StreamWriter,
+            data_pb: PBMessage) -> None:
         data_bytes = serialize(data_pb)
         writer.write(data_bytes)
         await writer.drain()
@@ -114,8 +117,6 @@ class Client:
     async def listen(self) -> None:
         if self.listener is not None:
             raise ControlFailure("Listener is already listening")
-        # TODO: `start_unix_server` finishes right after awaited, without more coroutine spawn
-        #       Then what is serving for the incoming requests?
         proto_code = parse_conn_protocol(self.listen_maddr)
         if proto_code == protocols.P_UNIX:
             listen_path = self.listen_maddr.value_for_protocol(protocols.P_UNIX)
@@ -274,7 +275,8 @@ class Client:
 
     # TODO: type hints for `p2pd_pb.DHTResponse`
     @staticmethod
-    async def _read_dht_stream(reader: asyncio.StreamReader) -> AsyncGenerator[Any, None]:
+    async def _read_dht_stream(reader: asyncio.StreamReader) -> AsyncGenerator[
+            PBMessage, None]:
         while True:
             dht_resp = p2pd_pb.DHTResponse()
             await read_pbmsg_safe(reader, dht_resp)
@@ -283,7 +285,8 @@ class Client:
             yield dht_resp
 
     # TODO: type hints for `p2pd_pb.DHTRequest` and `p2pd_pb.DHTResponse`
-    async def _do_dht(self, dht_req: Any) -> Tuple[Any, ...]:
+    async def _do_dht(self, dht_req: PBMessage) -> Tuple[
+            PBMessage, ...]:
         reader, writer = await self.open_connection()
         req = p2pd_pb.Request(
             type=p2pd_pb.Request.DHT,  # type: ignore
@@ -321,7 +324,7 @@ class Client:
             raise ControlFailure(f"should only get one response from `find_peer`, resps={resps}")
         dht_resp = resps[0]
         try:
-            pinfo = dht_resp.peer
+            pinfo = dht_resp.peer  # type: ignore
         except AttributeError as e:
             raise ControlFailure(f"dht_resp should contains peer info: dht_resp={dht_resp}, e={e}")
         return PeerInfo.from_pb(pinfo)
@@ -337,7 +340,10 @@ class Client:
 
         # TODO: maybe change these checks to a validator pattern
         try:
-            pinfos = tuple(PeerInfo.from_pb(dht_resp.peer) for dht_resp in resps)
+            pinfos = tuple(
+                PeerInfo.from_pb(dht_resp.peer)  # type: ignore
+                for dht_resp in resps
+            )
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains peer info: resps={resps}, e={e}"
@@ -356,7 +362,10 @@ class Client:
         resps = await self._do_dht(dht_req)
         # TODO: maybe change these checks to a validator pattern
         try:
-            pinfos = tuple(PeerInfo.from_pb(dht_resp.peer) for dht_resp in resps)
+            pinfos = tuple(
+                PeerInfo.from_pb(dht_resp.peer)  # type: ignore
+                for dht_resp in resps
+            )
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains peer info: resps={resps}, e={e}"
@@ -372,7 +381,10 @@ class Client:
         )
         resps = await self._do_dht(dht_req)
         try:
-            peer_ids = tuple(PeerID(dht_resp.value) for dht_resp in resps)
+            peer_ids = tuple(
+                PeerID(dht_resp.value)  # type: ignore
+                for dht_resp in resps
+            )
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains `value`: resps={resps}, e={e}"
@@ -380,7 +392,7 @@ class Client:
         return peer_ids
 
     # TODO: typing for `crypto_pb.PublicKey`
-    async def get_public_key(self, peer_id: PeerID) -> Any:
+    async def get_public_key(self, peer_id: PeerID) -> PBMessage:
         """GET_PUBLIC_KEY
         """
         dht_req = p2pd_pb.DHTRequest(
@@ -392,7 +404,7 @@ class Client:
             raise ControlFailure(f"should only get one response, resps={resps}")
         try:
             # TODO: parse the public key with another class?
-            public_key_pb_bytes = resps[0].value
+            public_key_pb_bytes = resps[0].value  # type: ignore
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains `value`: resps={resps}, e={e}"
@@ -412,8 +424,7 @@ class Client:
         if len(resps) != 1:
             raise ControlFailure(f"should only get one response, resps={resps}")
         try:
-            # TODO: parse the public key with another class?
-            value = resps[0].value
+            value = resps[0].value  # type: ignore
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains `value`: resps={resps}, e={e}"
@@ -429,8 +440,7 @@ class Client:
         )
         resps = await self._do_dht(dht_req)
         try:
-            # TODO: parse the public key with another class?
-            values = tuple(resp.value for resp in resps)
+            values = tuple(resp.value for resp in resps)  # type: ignore
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains `value`: resps={resps}, e={e}"
