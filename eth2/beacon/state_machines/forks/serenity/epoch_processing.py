@@ -902,14 +902,14 @@ def _process_validator_registry_with_update(current_epoch_committee_count: int,
 
 def _process_validator_registry_without_update(state: BeaconState,
                                                config: BeaconConfig) -> BeaconState:
-    epochs_since_last_registry_change = (
+    epochs_since_last_registry_update = (
         state.current_epoch(config.SLOTS_PER_EPOCH) - state.validator_registry_update_epoch
     )
 
-    if epochs_since_last_registry_change <= 1:
+    if epochs_since_last_registry_update <= 1:
         return state
 
-    if is_power_of_two(epochs_since_last_registry_change):
+    if is_power_of_two(epochs_since_last_registry_update):
         # Update step-by-step since updated `state.current_shuffling_epoch`
         # is used to calculate other value). Follow the spec tightly now.
         state = _update_shuffling_epoch(state, config.SLOTS_PER_EPOCH)
