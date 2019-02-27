@@ -1,4 +1,5 @@
 from typing import (
+    Callable,
     Dict,
     Iterable,
     Sequence,
@@ -6,14 +7,13 @@ from typing import (
     Tuple,
 )
 
-from cytoolz import (
-    curry,
-    pipe,
-)
-
 from eth_utils import (
     to_dict,
     to_tuple,
+)
+from eth_utils.toolz import (
+    curry,
+    pipe,
 )
 
 from eth2.beacon import helpers
@@ -787,12 +787,20 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
 #
 # Validator registry and shuffling seed data
 #
+def _update_previous_shuffling_data(state: BeaconState) -> BeaconState:
+    return state.copy(
+        previous_shuffling_epoch=state.current_shuffling_epoch,
+        previous_shuffling_start_shard=state.current_shuffling_start_shard,
+        previous_shuffling_seed=state.current_shuffling_seed,
+    )
+
+
 def _check_if_update_validator_registry(state: BeaconState,
                                         config: BeaconConfig) -> Tuple[bool, int]:
     if state.finalized_epoch <= state.validator_registry_update_epoch:
         return False, 0
 
-    num_shards_in_committees = get_current_epoch_committee_count(
+    current_epoch_committee_count = get_current_epoch_committee_count(
         state,
         shard_count=config.SHARD_COUNT,
         slots_per_epoch=config.SLOTS_PER_EPOCH,
@@ -802,13 +810,61 @@ def _check_if_update_validator_registry(state: BeaconState,
     # Get every shard in the current committees
     shards = set(
         (state.current_shuffling_start_shard + i) % config.SHARD_COUNT
-        for i in range(num_shards_in_committees)
+        for i in range(current_epoch_committee_count)
     )
     for shard in shards:
         if state.latest_crosslinks[shard].epoch <= state.validator_registry_update_epoch:
             return False, 0
 
-    return True, num_shards_in_committees
+    return True, current_epoch_committee_count
+
+
+def _update_shuffling_epoch(state: BeaconState, slots_per_epoch: int) -> BeaconState:
+    """
+    Updates the ``current_shuffling_epoch`` to the ``state``'s next epoch.
+    """
+    return state.copy(
+        current_shuffling_epoch=state.next_epoch(slots_per_epoch),
+    )
+
+
+def _update_shuffling_start_shard(state: BeaconState,
+                                  current_epoch_committee_count: int,
+                                  shard_count: int) -> BeaconState:
+    """
+    Updates the ``current_shuffling_start_shard`` to the current value in
+    the ``state`` incremented by the number of shards we touched in the current epoch.
+    """
+    return state.copy(
+        current_shuffling_start_shard=(
+            state.current_shuffling_start_shard + current_epoch_committee_count
+        ) % shard_count,
+    )
+
+
+def _update_shuffling_seed(state: BeaconState,
+                           slots_per_epoch: int,
+                           min_seed_lookahead: int,
+                           activation_exit_delay: int,
+                           latest_active_index_roots_length: int,
+                           latest_randao_mixes_length: int) -> BeaconState:
+    """
+    Updates the ``current_shuffling_seed`` in the ``state`` given the current state data.
+    """
+    # The `helpers.generate_seed` function is only present to provide an entry point
+    # for mocking this out in tests.
+    current_shuffling_seed = helpers.generate_seed(
+        state=state,
+        epoch=state.current_shuffling_epoch,
+        slots_per_epoch=slots_per_epoch,
+        min_seed_lookahead=min_seed_lookahead,
+        activation_exit_delay=activation_exit_delay,
+        latest_active_index_roots_length=latest_active_index_roots_length,
+        latest_randao_mixes_length=latest_randao_mixes_length,
+    )
+    return state.copy(
+        current_shuffling_seed=current_shuffling_seed,
+    )
 
 
 def update_validator_registry(state: BeaconState) -> BeaconState:
@@ -816,71 +872,85 @@ def update_validator_registry(state: BeaconState) -> BeaconState:
     return state
 
 
-def process_validator_registry(state: BeaconState,
-                               config: BeaconConfig) -> BeaconState:
-    state = state.copy(
-        previous_shuffling_epoch=state.current_shuffling_epoch,
-        previous_shuffling_start_shard=state.current_shuffling_start_shard,
-        previous_shuffling_seed=state.current_shuffling_seed,
+StateUpdaterForConfig = Callable[[BeaconState, BeaconConfig], BeaconState]
+
+
+@curry
+def _process_validator_registry_with_update(current_epoch_committee_count: int,
+                                            state: BeaconState,
+                                            config: BeaconConfig) -> StateUpdaterForConfig:
+    state = update_validator_registry(state)
+
+    # Update step-by-step since updated `state.current_shuffling_epoch`
+    # is used to calculate other value). Follow the spec tightly now.
+    state = _update_shuffling_epoch(state, config.SLOTS_PER_EPOCH)
+
+    state = _update_shuffling_start_shard(state, current_epoch_committee_count, config.SHARD_COUNT)
+
+    state = _update_shuffling_seed(
+        state,
+        config.SLOTS_PER_EPOCH,
+        config.MIN_SEED_LOOKAHEAD,
+        config.ACTIVATION_EXIT_DELAY,
+        config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
+        config.LATEST_RANDAO_MIXES_LENGTH,
     )
 
-    need_to_update, num_shards_in_committees = _check_if_update_validator_registry(state, config)
+    return state
 
-    if need_to_update:
-        state = update_validator_registry(state)
 
+def _process_validator_registry_without_update(state: BeaconState,
+                                               config: BeaconConfig) -> BeaconState:
+    epochs_since_last_registry_update = (
+        state.current_epoch(config.SLOTS_PER_EPOCH) - state.validator_registry_update_epoch
+    )
+
+    if epochs_since_last_registry_update <= 1:
+        return state
+
+    if is_power_of_two(epochs_since_last_registry_update):
         # Update step-by-step since updated `state.current_shuffling_epoch`
         # is used to calculate other value). Follow the spec tightly now.
-        state = state.copy(
-            current_shuffling_epoch=state.next_epoch(config.SLOTS_PER_EPOCH),
-        )
-        state = state.copy(
-            current_shuffling_start_shard=(
-                state.current_shuffling_start_shard + num_shards_in_committees
-            ) % config.SHARD_COUNT,
+        state = _update_shuffling_epoch(state, config.SLOTS_PER_EPOCH)
+
+        # NOTE: We do NOT update the "start shard" as we have not
+        # produced a full set of new crosslinks; validators should have a chance to
+        # complete this goal in future epochs.
+
+        state = _update_shuffling_seed(
+            state,
+            config.SLOTS_PER_EPOCH,
+            config.MIN_SEED_LOOKAHEAD,
+            config.ACTIVATION_EXIT_DELAY,
+            config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
+            config.LATEST_RANDAO_MIXES_LENGTH,
         )
 
-        # The `helpers.generate_seed` function is only present to provide an entry point
-        # for mocking this out in tests.
-        current_shuffling_seed = helpers.generate_seed(
-            state=state,
-            epoch=state.current_shuffling_epoch,
-            slots_per_epoch=config.SLOTS_PER_EPOCH,
-            min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
-            activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
-            latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
-            latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
-        )
-        state = state.copy(
-            current_shuffling_seed=current_shuffling_seed,
+    return state
+
+
+def process_validator_registry(state: BeaconState,
+                               config: BeaconConfig) -> BeaconState:
+    state = _update_previous_shuffling_data(state)
+
+    need_to_update, current_epoch_committee_count = _check_if_update_validator_registry(
+        state,
+        config
+    )
+
+    if need_to_update:
+        # this next function call returns a closure, linter didn't like a bare lambda
+        validator_registry_transition = _process_validator_registry_with_update(
+            current_epoch_committee_count,
         )
     else:
-        epochs_since_last_registry_change = (
-            state.current_epoch(config.SLOTS_PER_EPOCH) - state.validator_registry_update_epoch
-        )
-        if is_power_of_two(epochs_since_last_registry_change):
-            # Update step-by-step since updated `state.current_shuffling_epoch`
-            # is used to calculate other value). Follow the spec tightly now.
-            state = state.copy(
-                current_shuffling_epoch=state.next_epoch(config.SLOTS_PER_EPOCH),
-            )
+        validator_registry_transition = _process_validator_registry_without_update
 
-            # The `helpers.generate_seed` function is only present to provide an entry point
-            # for mocking this out in tests.
-            current_shuffling_seed = helpers.generate_seed(
-                state=state,
-                epoch=state.current_shuffling_epoch,
-                slots_per_epoch=config.SLOTS_PER_EPOCH,
-                min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
-                activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
-                latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
-                latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
-            )
-            state = state.copy(
-                current_shuffling_seed=current_shuffling_seed,
-            )
-        else:
-            pass
+    state = validator_registry_transition(state, config)
+
+    # TODO: state = process_slashings(state, config)
+
+    # TODO: state = process_exit_queue(state, config)
 
     return state
 
