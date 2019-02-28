@@ -577,7 +577,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
             if task_completion.is_complete and self._is_ready(task):
                 self._mark_complete(task_id)
 
-    async def ready_tasks(self) -> Tuple[TTask, ...]:
+    async def ready_tasks(self, max_results: int = None) -> Tuple[TTask, ...]:
         """
         Return the next batch of tasks that are ready to process. If none are ready,
         hang until at least one task becomes ready.
@@ -589,7 +589,7 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
             self._prune_finished(task_id)
             self._prune_finished(task_id)
 
-        self._last_yielded_tasks = await queue_get_batch(self._ready_tasks)
+        self._last_yielded_tasks = await queue_get_batch(self._ready_tasks, max_results)
         return self._last_yielded_tasks
 
     def _is_ready(self, task: TTask) -> bool:
