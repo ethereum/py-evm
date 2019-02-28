@@ -744,11 +744,13 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         newly_completed_headers = tuple(concat(completed_header_groups))
 
         self.logger.debug(
-            "Got receipts for %d/%d headers from %s, with %d trivial headers",
+            "Got receipts for %d/%d headers from %s, %d trivial, from request for %r..%r",
             len(newly_completed_headers),
             len(all_headers) - len(trivial_headers),
             peer,
             len(trivial_headers),
+            all_headers[0],
+            all_headers[-1],
         )
         return newly_completed_headers + trivial_headers
 

@@ -163,7 +163,11 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                 ]
                 await asyncio.gather(*validate_pair_coros, loop=self.get_event_loop())
             except ValidationError as e:
-                self.logger.warning("Received invalid headers from %s, disconnecting: %s", peer, e)
+                self.logger.warning(
+                    "Received an invalid header pair from %s, disconnecting: %s",
+                    peer,
+                    e,
+                )
                 raise
 
             # select and validate a single random gap, to test that skeleton peer has meat headers
@@ -669,7 +673,13 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
                     SEAL_CHECK_RANDOM_SAMPLE_RATE,
                 ))
             except ValidationError as e:
-                self.logger.warning("Received invalid headers from %s, disconnecting: %s", peer, e)
+                self.logger.warning(
+                    "Received invalid header segment from %s against known parent %s, "
+                    "disconnecting: %s",
+                    peer,
+                    parent_header,
+                    e,
+                )
                 await peer.disconnect(DisconnectReason.subprotocol_error)
                 return tuple()
             else:
