@@ -72,6 +72,11 @@
           "type": "string",
           "pattern": "^0x([0-9a-fA-F])+$"
         },
+        "petersburgForkBlock": {
+          "title": "Block number for the Petersburg (aka ConstantinopleFix) fork",
+          "type": "string",
+          "pattern": "^0x([0-9a-fA-F])+$"
+        },
         "chainId": {
           "title": "The EIP155 chain ID",
           "type": "string",
