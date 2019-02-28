@@ -592,6 +592,9 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
         self._last_yielded_tasks = await queue_get_batch(self._ready_tasks, max_results)
         return self._last_yielded_tasks
 
+    def has_ready_tasks(self) -> bool:
+        return not self._ready_tasks.empty()
+
     def _is_ready(self, task: TTask) -> bool:
         dependency = self._dependency_of(task)
         if dependency in self._declared_finished:
