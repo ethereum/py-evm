@@ -744,12 +744,23 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
         self._meat = HeaderMeatSyncer(chain, peer_pool, self._stitcher, token)
         self._last_target_header_hash: Hash32 = None
 
+        # Track if there is capacity for syncing more headers
+        self._buffer_capacity = asyncio.Event()
+        self._buffer_capacity.set()  # start with capacity
+
     async def new_sync_headers(
             self,
             max_batch_size: int = None) -> AsyncIterator[Tuple[BlockHeader, ...]]:
 
         while self.is_operational:
             next_header_batch = await self.wait(self._stitcher.ready_tasks(max_batch_size))
+            if self._stitcher.has_ready_tasks():
+                # Even after clearing out a big batch, there is no available capacity, so
+                # pause any coroutines that might wait for capacity
+                self._buffer_capacity.clear()
+            else:
+                # There is available capacity, let any waiting coroutines continue
+                self._buffer_capacity.set()
             yield cast(Tuple[BlockHeader, ...], next_header_batch)
 
     def get_target_header_hash(self) -> Hash32:
@@ -865,6 +876,9 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
                     skeleton_syncer.peer,
                 ))
             previous_segment = segment
+
+            # Don't race ahead if the consumer is lagging
+            await self._buffer_capacity.wait()
 
     async def _validate_peer_is_ahead(self, peer: BaseChainPeer) -> None:
         head = await self.wait(self._db.coro_get_canonical_head())
