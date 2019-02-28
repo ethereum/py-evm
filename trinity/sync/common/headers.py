@@ -163,7 +163,11 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                 ]
                 await asyncio.gather(*validate_pair_coros, loop=self.get_event_loop())
             except ValidationError as e:
-                self.logger.warning("Received invalid headers from %s, disconnecting: %s", peer, e)
+                self.logger.warning(
+                    "Received an invalid header pair from %s, disconnecting: %s",
+                    peer,
+                    e,
+                )
                 raise
 
             # select and validate a single random gap, to test that skeleton peer has meat headers
@@ -468,7 +472,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             self.logger.debug("Could not find any header at #%d: %s", block_num, exc)
             local_header = None
 
-        # Header just preceeding this one may or may not be in the database. Either way log an error
+        # Canonical header at same number may or may not be in the database. Either way log an error
         self.logger.debug(
             "%s returned starting header %s, which is not in our DB. "
             "Instead at #%d, our is header %s",
@@ -481,7 +485,9 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
 
 class HeaderSyncerAPI(ABC):
     @abstractmethod
-    async def new_sync_headers(self) -> AsyncIterator[Tuple[BlockHeader, ...]]:
+    async def new_sync_headers(
+            self,
+            max_batch_size: int = None) -> AsyncIterator[Tuple[BlockHeader, ...]]:
         # hack to get python & mypy to recognize that this is an async generator
         if False:
             yield
@@ -669,7 +675,13 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
                     SEAL_CHECK_RANDOM_SAMPLE_RATE,
                 ))
             except ValidationError as e:
-                self.logger.warning("Received invalid headers from %s, disconnecting: %s", peer, e)
+                self.logger.warning(
+                    "Received invalid header segment from %s against known parent %s, "
+                    "disconnecting: %s",
+                    peer,
+                    parent_header,
+                    e,
+                )
                 await peer.disconnect(DisconnectReason.subprotocol_error)
                 return tuple()
             else:
@@ -732,9 +744,23 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
         self._meat = HeaderMeatSyncer(chain, peer_pool, self._stitcher, token)
         self._last_target_header_hash: Hash32 = None
 
-    async def new_sync_headers(self) -> AsyncIterator[Tuple[BlockHeader, ...]]:
+        # Track if there is capacity for syncing more headers
+        self._buffer_capacity = asyncio.Event()
+        self._buffer_capacity.set()  # start with capacity
+
+    async def new_sync_headers(
+            self,
+            max_batch_size: int = None) -> AsyncIterator[Tuple[BlockHeader, ...]]:
+
         while self.is_operational:
-            next_header_batch = await self.wait(self._stitcher.ready_tasks())
+            next_header_batch = await self.wait(self._stitcher.ready_tasks(max_batch_size))
+            if self._stitcher.has_ready_tasks():
+                # Even after clearing out a big batch, there is no available capacity, so
+                # pause any coroutines that might wait for capacity
+                self._buffer_capacity.clear()
+            else:
+                # There is available capacity, let any waiting coroutines continue
+                self._buffer_capacity.set()
             yield cast(Tuple[BlockHeader, ...], next_header_batch)
 
     def get_target_header_hash(self) -> Hash32:
@@ -850,6 +876,9 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
                     skeleton_syncer.peer,
                 ))
             previous_segment = segment
+
+            # Don't race ahead if the consumer is lagging
+            await self._buffer_capacity.wait()
 
     async def _validate_peer_is_ahead(self, peer: BaseChainPeer) -> None:
         head = await self.wait(self._db.coro_get_canonical_head())

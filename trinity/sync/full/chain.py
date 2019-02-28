@@ -33,6 +33,7 @@ from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_UNCLE_HASH,
 )
+from eth.exceptions import HeaderNotFound
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
@@ -59,6 +60,9 @@ from trinity.sync.common.constants import (
 )
 from trinity.sync.common.headers import HeaderSyncerAPI
 from trinity.sync.common.peers import WaitingPeers
+from trinity.sync.full.constants import (
+    HEADER_QUEUE_SIZE_TARGET,
+)
 from trinity._utils.datastructures import (
     MissingDependency,
     OrderedTaskPreparation,
@@ -422,6 +426,10 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         # Track whether the fast chain syncer completed its goal
         self.is_complete = False
 
+        # Track if there is capacity for more block persistance
+        self._db_buffer_capacity = asyncio.Event()
+        self._db_buffer_capacity.set()  # start with capacity
+
     async def _run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
         self.tracker = ChainSyncPerformanceTracker(head)
@@ -446,7 +454,8 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         Watch for new headers to be added to the queue, and add the prerequisite
         tasks as they become available.
         """
-        async for headers in self.wait_iter(self._header_syncer.new_sync_headers()):
+        get_headers_coro = self._header_syncer.new_sync_headers(HEADER_QUEUE_SIZE_TARGET)
+        async for headers in self.wait_iter(get_headers_coro):
             try:
                 # We might end up with duplicates that can be safely ignored.
                 # Likely scenario: switched which peer downloads headers, and the new peer isn't
@@ -456,14 +465,18 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
                 # The parent of this header is not registered as a dependency yet.
                 # Some reasons this might happen, in rough descending order of likelihood:
                 #   - a normal fork: the canonical head isn't the parent of the first header synced
-                #   - a bug: the DB has inconsistent state, say saved headers but not block bodies
                 #   - a bug: headers were queued out of order in new_sync_headers
+                #   - a bug: old headers were pruned out of the tracker, but not in DB yet
 
                 # If the parent header doesn't exist yet, this is a legit bug instead of a fork,
                 # let the HeaderNotFound exception bubble up
-                parent_header = await self.wait(
-                    self.db.coro_get_block_header_by_hash(headers[0].parent_hash)
-                )
+                try:
+                    parent_header = await self.wait(
+                        self.db.coro_get_block_header_by_hash(headers[0].parent_hash)
+                    )
+                except HeaderNotFound:
+                    await self._log_header_link_failure(headers[0])
+                    raise
 
                 # This appears to be a fork, since the parent header is persisted,
                 self.logger.info(
@@ -488,6 +501,39 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
                 self._block_body_tasks.add(new_body_tasks),
                 self._receipt_tasks.add(new_receipt_tasks),
             ))
+            # Don't race ahead of the database, by blocking when the persistance queue is too long
+            await self._db_buffer_capacity.wait()
+
+    async def _log_header_link_failure(self, first_header: BlockHeader) -> None:
+        self.logger.info("Unable to find parent in our database for %r", first_header)
+        block_num = first_header.block_number
+        try:
+            local_header = await self.db.coro_get_canonical_block_header_by_number(block_num)
+        except HeaderNotFound as exc:
+            self.logger.debug("Could not find canonical header at #%d: %s", block_num, exc)
+            local_header = None
+
+        try:
+            local_parent = await self.db.coro_get_canonical_block_header_by_number(block_num - 1)
+        except HeaderNotFound as exc:
+            self.logger.debug("Could not find canonical header parent at #%d: %s", block_num, exc)
+            local_parent = None
+
+        try:
+            canonical_tip = await self.db.coro_get_canonical_head()
+        except HeaderNotFound as exc:
+            self.logger.debug("Could not find canonical tip: %s", exc)
+            canonical_tip = None
+
+        self.logger.debug(
+            "Header syncer returned header %s, which is not in our DB. "
+            "Instead at #%d, our header is %s, whose parent is %s, with canonical tip %s",
+            first_header,
+            block_num,
+            local_header,
+            local_parent,
+            canonical_tip,
+        )
 
     async def _display_stats(self) -> None:
         while self.is_operational:
@@ -532,9 +578,18 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         its target hash. If so, shut down this service.
         """
         while self.is_operational:
-            # jhis tracker waits for all prerequisites to be complete, and returns headers in
+            # This tracker waits for all prerequisites to be complete, and returns headers in
             # order, so that each header's parent is already persisted.
-            completed_headers = await self.wait(self._block_persist_tracker.ready_tasks())
+            get_completed_coro = self._block_persist_tracker.ready_tasks(HEADER_QUEUE_SIZE_TARGET)
+            completed_headers = await self.wait(get_completed_coro)
+
+            if self._block_persist_tracker.has_ready_tasks():
+                # Even after clearing out a big batch, there is no available capacity, so
+                # pause any coroutines that might wait for capacity
+                self._db_buffer_capacity.clear()
+            else:
+                # There is available capacity, let any waiting coroutines continue
+                self._db_buffer_capacity.set()
 
             await self.wait(self._persist_blocks(completed_headers))
 
@@ -708,11 +763,13 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         newly_completed_headers = tuple(concat(completed_header_groups))
 
         self.logger.debug(
-            "Got receipts for %d/%d headers from %s, with %d trivial headers",
+            "Got receipts for %d/%d headers from %s, %d trivial, from request for %r..%r",
             len(newly_completed_headers),
             len(all_headers) - len(trivial_headers),
             peer,
             len(trivial_headers),
+            all_headers[0],
+            all_headers[-1],
         )
         return newly_completed_headers + trivial_headers
 

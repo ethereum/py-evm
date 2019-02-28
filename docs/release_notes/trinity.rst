@@ -12,6 +12,8 @@ Unreleased (latest source)
 - `#155 <https://github.com/ethereum/trinity/pull/155>`_: Feature: Disable syncing entirely with `--sync-mode none`
 - `#155 <https://github.com/ethereum/trinity/pull/155>`_: Feature: Allow running `--sync-mode full` directly
 - `#155 <https://github.com/ethereum/trinity/pull/155>`_: Feature: Allow plugins to extend `--sync-mode` with different strategies
+- `#236 <https://github.com/ethereum/trinity/pull/236>`_: Performance: Quicker pruning of in-memory headers, was a leading asyncio bottleneck
+- `#236 <https://github.com/ethereum/trinity/pull/236>`_: Bugfix: Several reliability improvements during sync
 
 0.1.0-alpha.20
 --------------
