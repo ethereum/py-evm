@@ -498,13 +498,6 @@ async def test_client_stream_handler_failure(p2pds):
     with pytest.raises(ControlFailure):
         await c0.stream_open(peer_id_1, (proto,))
 
-    # test case: registered a handler with the wrong signature(parameters)
-    async def handle_proto_wrong_params(stream_info, reader):
-        pass
-
-    with pytest.raises(ControlFailure):
-        await c1.stream_handler(proto, handle_proto_wrong_params)
-
 
 @pytest.mark.asyncio
 async def test_client_find_peer_success(p2pds):

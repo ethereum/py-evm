@@ -1,6 +1,5 @@
 import asyncio
 import binascii
-import inspect
 import logging
 from typing import (
     AsyncGenerator,
@@ -246,12 +245,6 @@ class Client:
     async def stream_handler(self, proto: str, handler_cb: StreamHandler) -> None:
         reader, writer = await self.open_connection()
 
-        # FIXME: should introduce type annotation to solve this elegantly
-        handler_sig = inspect.signature(handler_cb).parameters
-        if len(handler_sig) != 3:
-            raise ControlFailure(
-                f"signature of the callback handler {handler_cb} is wrong: {handler_sig}"
-            )
         listen_path_maddr_bytes = binascii.unhexlify(self.listen_maddr.to_bytes())
         stream_handler_req = p2pd_pb.StreamHandlerRequest(
             addr=listen_path_maddr_bytes,
