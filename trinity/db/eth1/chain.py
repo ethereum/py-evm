@@ -98,6 +98,7 @@ class AsyncChainDBPreProxy(BaseAsyncChainDB):
     get_block_transaction_hashes = sync_method('get_block_transaction_hashes')
     get_block_uncles = sync_method('get_block_uncles')
     get_canonical_head = sync_method('get_canonical_head')
+    get_receipt_by_index = sync_method('get_receipt_by_index')
     get_receipts = sync_method('get_receipts')
     get_score = sync_method('get_score')
     get_transaction_by_index = sync_method('get_transaction_by_index')
