@@ -40,7 +40,7 @@ class SerenityStateTransition(BaseStateTransition):
     def apply_state_transition(self,
                                state: BeaconState,
                                block: BaseBeaconBlock,
-                               check_proposer_signature: bool=False) -> BeaconState:
+                               check_proposer_signature: bool=True) -> BeaconState:
         while state.slot != block.slot:
             state = self.per_slot_transition(state, block.parent_root)
             if state.slot == block.slot:
@@ -79,10 +79,10 @@ class SerenityStateTransition(BaseStateTransition):
     def per_block_transition(self,
                              state: BeaconState,
                              block: BaseBeaconBlock,
-                             check_proposer_signature: bool=False) -> BeaconState:
+                             check_proposer_signature: bool=True) -> BeaconState:
         # TODO: finish per-block processing logic as the spec
         validate_block_slot(state, block)
-        if not check_proposer_signature:
+        if check_proposer_signature:
             validate_proposer_signature(
                 state,
                 block,
