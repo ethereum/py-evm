@@ -6,7 +6,7 @@ Unreleased (latest source)
 
 None
 
-0.2.0-alpha.41
+0.2.0-alpha.42
 --------------------------
 
 Released 2019-02-28
