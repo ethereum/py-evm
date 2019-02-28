@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import asyncio
-from concurrent.futures import Executor
+import concurrent
 import functools
 import logging
 from typing import (
@@ -229,11 +229,15 @@ class BaseService(ABC, CancellableMixin):
         self.run_task(_call_later_wrapped())
 
     async def _run_in_executor(self,
-                               executor: Executor,
+                               executor: concurrent.futures.Executor,
                                callback: Callable[..., Any], *args: Any) -> Any:
 
         loop = self.get_event_loop()
-        return await self.wait(loop.run_in_executor(executor, callback, *args))
+        try:
+            return await self.wait(loop.run_in_executor(executor, callback, *args))
+        except concurrent.futures.process.BrokenProcessPool:
+            self.logger.exception("Fatal error. Process pool died. Cancelling operations.")
+            await self.cancel()
 
     async def cleanup(self) -> None:
         """

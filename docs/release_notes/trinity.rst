@@ -4,7 +4,7 @@ Trinity
 Unreleased (latest source)
 --------------------------
 
-None
+- `#336 <https://github.com/ethereum/trinity/pull/336>`_: Bugfix: Ensure Trinity shuts down if the process pool dies (fatal error)
 
 0.1.0-alpha.23
 --------------------------
