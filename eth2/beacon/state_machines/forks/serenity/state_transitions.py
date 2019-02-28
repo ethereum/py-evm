@@ -2,7 +2,6 @@ from eth_typing import (
     Hash32,
 )
 
-from eth2._utils.merkle import get_merkle_root
 from eth2.beacon.configs import (
     BeaconConfig,
     CommitteeConfig,
@@ -14,6 +13,10 @@ from eth2.beacon.types.states import BeaconState
 from .block_processing import (
     process_eth1_data,
 )
+from .block_validation import (
+    validate_block_slot,
+    validate_proposer_signature,
+)
 from .epoch_processing import (
     process_justification,
     process_crosslinks,
@@ -23,11 +26,11 @@ from .epoch_processing import (
 )
 from .operation_processing import (
     process_attestations,
+    process_attester_slashings,
     process_proposer_slashings,
 )
-from .block_validation import (
-    validate_block_slot,
-    validate_proposer_signature,
+from .slot_processing import (
+    process_slot_transition,
 )
 
 
@@ -53,35 +56,14 @@ class SerenityStateTransition(BaseStateTransition):
     def per_slot_transition(self,
                             state: BeaconState,
                             previous_block_root: Hash32) -> BeaconState:
-        LATEST_BLOCK_ROOTS_LENGTH = self.config.LATEST_BLOCK_ROOTS_LENGTH
-
-        # Update state.slot
-        state = state.copy(
-            slot=state.slot + 1
-        )
-
-        # Update state.latest_block_roots
-        updated_latest_block_roots = list(state.latest_block_roots)
-        previous_block_root_index = (state.slot - 1) % LATEST_BLOCK_ROOTS_LENGTH
-        updated_latest_block_roots[previous_block_root_index] = previous_block_root
-
-        # Update state.batched_block_roots
-        updated_batched_block_roots = state.batched_block_roots
-        if state.slot % LATEST_BLOCK_ROOTS_LENGTH == 0:
-            updated_batched_block_roots += (get_merkle_root(updated_latest_block_roots),)
-
-        state = state.copy(
-            latest_block_roots=tuple(updated_latest_block_roots),
-            batched_block_roots=updated_batched_block_roots,
-        )
-        return state
+        return process_slot_transition(state, self.config, previous_block_root)
 
     def per_block_transition(self,
                              state: BeaconState,
                              block: BaseBeaconBlock,
                              check_proposer_signature: bool=True) -> BeaconState:
-        # TODO: finish per-block processing logic as the spec
         validate_block_slot(state, block)
+
         if check_proposer_signature:
             validate_proposer_signature(
                 state,
@@ -89,12 +71,13 @@ class SerenityStateTransition(BaseStateTransition):
                 beacon_chain_shard_number=self.config.BEACON_CHAIN_SHARD_NUMBER,
                 committee_config=CommitteeConfig(self.config),
             )
+
         # TODO: state = process_randao(state, block, self.config)
         state = process_eth1_data(state, block)
 
         # Operations
         state = process_proposer_slashings(state, block, self.config)
-        # TODO: state = process_attester_slashings(state, block, self.config)
+        state = process_attester_slashings(state, block, self.config)
         state = process_attestations(state, block, self.config)
         # TODO: state = process_deposits(state, block, self.config)
         # TODO: state = process_voluntary_exits(state, block, self.config)

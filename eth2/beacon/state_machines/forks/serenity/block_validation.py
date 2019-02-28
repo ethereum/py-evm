@@ -1,7 +1,8 @@
 import functools
-from typing import (
+from typing import (  # noqa: F401
     Iterable,
     Sequence,
+    Tuple,
     TYPE_CHECKING,
 )
 
@@ -37,11 +38,14 @@ from eth2.beacon.helpers import (
     get_epoch_start_slot,
     get_block_root,
     get_domain,
+    is_double_vote,
+    is_surround_vote,
     slot_to_epoch,
 )
 from eth2.beacon.types.attestations import Attestation  # noqa: F401
 from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
 from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
+from eth2.beacon.types.attester_slashings import AttesterSlashing  # noqa: F401
 from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
 from eth2.beacon.types.forks import Fork  # noqa: F401
 from eth2.beacon.types.proposal_signed_data import ProposalSignedData
@@ -209,6 +213,78 @@ def validate_proposal_signature(proposal_signed_data: ProposalSignedData,
             "Proposal signature is invalid: "
             f"proposer pubkey: {pubkey}, message_hash: {proposal_signed_data.root}, "
             f"signature: {proposal_signature}"
+        )
+
+
+#
+# Attester slashing validation
+#
+def validate_attester_slashing(state: BeaconState,
+                               attester_slashing: AttesterSlashing,
+                               max_indices_per_slashable_vote: int,
+                               slots_per_epoch: int) -> None:
+    slashable_attestation_1 = attester_slashing.slashable_attestation_1
+    slashable_attestation_2 = attester_slashing.slashable_attestation_2
+
+    validate_attester_slashing_different_data(slashable_attestation_1, slashable_attestation_2)
+
+    validate_attester_slashing_slashing_conditions(
+        slashable_attestation_1,
+        slashable_attestation_2,
+        slots_per_epoch,
+    )
+
+    validate_slashable_attestation(
+        state,
+        slashable_attestation_1,
+        max_indices_per_slashable_vote,
+        slots_per_epoch,
+    )
+
+    validate_slashable_attestation(
+        state,
+        slashable_attestation_2,
+        max_indices_per_slashable_vote,
+        slots_per_epoch,
+    )
+
+
+def validate_attester_slashing_different_data(
+        slashable_attestation_1: SlashableAttestation,
+        slashable_attestation_2: SlashableAttestation) -> None:
+    if slashable_attestation_1.data == slashable_attestation_2.data:
+        raise ValidationError(
+            "slashable_attestation_1.data "
+            f"({slashable_attestation_1.data}) "
+            "should not be equal to slashable_attestation_2.data "
+            f"({slashable_attestation_2.data})"
+        )
+
+
+def validate_attester_slashing_slashing_conditions(
+        slashable_attestation_1: SlashableAttestation,
+        slashable_attestation_2: SlashableAttestation,
+        slots_per_epoch: int) -> None:
+    is_double_vote_slashing = is_double_vote(
+        slashable_attestation_1.data,
+        slashable_attestation_2.data,
+        slots_per_epoch,
+    )
+    is_surround_vote_slashing = is_surround_vote(
+        slashable_attestation_1.data,
+        slashable_attestation_2.data,
+        slots_per_epoch,
+    )
+    if not (is_double_vote_slashing or is_surround_vote_slashing):
+        raise ValidationError(
+            "The `AttesterSlashing` object doesn't meet `is_double_vote` or `is_surround_vote`"
+        )
+
+
+def validate_slashable_indices(slashable_indices: Sequence[ValidatorIndex]) -> None:
+    if len(slashable_indices) < 1:
+        raise ValidationError(
+            "len(slashable_indices) should be greater or equal to 1"
         )
 
 
@@ -412,7 +488,7 @@ def generate_aggregate_pubkeys_from_indices(
 
 
 def _validate_custody_bitfield(custody_bitfield: Bitfield) -> None:
-    # NOTE: to be removed in phase 1.
+    # TODO: to be removed in phase 1.
     empty_custody_bitfield = b'\x00' * len(custody_bitfield)
     if custody_bitfield != empty_custody_bitfield:
         raise ValidationError(
@@ -551,10 +627,11 @@ def verify_slashable_attestation_signature(state: 'BeaconState',
     Ensure we have a valid aggregate signature for the ``slashable_attestation``.
     """
     all_indices = slashable_attestation.custody_bit_indices
-
-    pubkeys = generate_aggregate_pubkeys_from_indices(state.validator_registry, *all_indices)
-
-    message_hashes = slashable_attestation.message_hashes
+    pubkeys: Tuple[BLSPubkey, ...] = generate_aggregate_pubkeys_from_indices(
+        state.validator_registry,
+        *all_indices,
+    )
+    message_hashes: Tuple[Hash32, ...] = slashable_attestation.message_hashes
 
     signature = slashable_attestation.aggregate_signature
 
@@ -563,6 +640,13 @@ def verify_slashable_attestation_signature(state: 'BeaconState',
         slot_to_epoch(slashable_attestation.data.slot, slots_per_epoch),
         SignatureDomain.DOMAIN_ATTESTATION,
     )
+
+    # No custody bit 1 indice votes in phase 0, so we only need to process custody bit 0
+    # for efficiency.
+    # TODO: to be removed in phase 1.
+    if len(all_indices[1]) == 0:
+        pubkeys = pubkeys[:1]
+        message_hashes = message_hashes[:1]
 
     return bls.verify_multiple(
         pubkeys=pubkeys,

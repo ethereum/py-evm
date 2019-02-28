@@ -13,8 +13,10 @@ from eth2.beacon.state_machines.forks.serenity.blocks import (
 from eth2.beacon.state_machines.forks.serenity.operation_processing import (
     process_attestations,
     process_proposer_slashings,
+    process_attester_slashings,
 )
 from eth2.beacon.tools.builder.validator import (
+    create_mock_attester_slashing_is_double_vote,
     create_mock_signed_attestations_at_slot,
     create_mock_proposer_slashing_at_block,
 )
@@ -120,6 +122,87 @@ def test_process_proposer_slashings(genesis_state,
     else:
         with pytest.raises(ValidationError):
             process_proposer_slashings(
+                state,
+                block,
+                config,
+            )
+
+
+@pytest.mark.parametrize(
+    (
+        'num_validators',
+        'slots_per_epoch',
+        'target_committee_size',
+        'shard_count',
+        'min_attestation_inclusion_delay',
+    ),
+    [
+        (100, 2, 2, 2, 1),
+    ]
+)
+@pytest.mark.parametrize(
+    ('success'),
+    [
+        # (True),
+        (False),
+    ]
+)
+def test_process_attester_slashings(genesis_state,
+                                    sample_beacon_block_params,
+                                    sample_beacon_block_body_params,
+                                    config,
+                                    keymap,
+                                    min_attestation_inclusion_delay,
+                                    success):
+    attesting_state = genesis_state.copy(
+        slot=genesis_state.slot + config.SLOTS_PER_EPOCH,
+    )
+    valid_attester_slashing = create_mock_attester_slashing_is_double_vote(
+        attesting_state,
+        config,
+        keymap,
+        attestation_epoch=0,
+    )
+    state = attesting_state.copy(
+        slot=attesting_state.slot + min_attestation_inclusion_delay,
+    )
+
+    if success:
+        block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
+            attester_slashings=(valid_attester_slashing,),
+        )
+        block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
+            slot=state.slot,
+            body=block_body,
+        )
+
+        attester_index = valid_attester_slashing.slashable_attestation_1.validator_indices[0]
+
+        new_state = process_attester_slashings(
+            state,
+            block,
+            config,
+        )
+        # Check if slashed
+        assert (
+            new_state.validator_balances[attester_index] < state.validator_balances[attester_index]
+        )
+    else:
+        invalid_attester_slashing = valid_attester_slashing.copy(
+            slashable_attestation_2=valid_attester_slashing.slashable_attestation_2.copy(
+                data=valid_attester_slashing.slashable_attestation_1.data,
+            )
+        )
+        block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
+            attester_slashings=(invalid_attester_slashing,),
+        )
+        block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
+            slot=state.slot,
+            body=block_body,
+        )
+
+        with pytest.raises(ValidationError):
+            process_attester_slashings(
                 state,
                 block,
                 config,

@@ -184,7 +184,7 @@ def slash_validator(*,
 
     validator = state.validator_registry[index]
 
-    # [TO BE REMOVED IN PHASE 2]
+    # TODO: [TO BE REMOVED IN PHASE 2]
     _validate_withdrawable_epoch(state.slot, validator.withdrawable_epoch, slots_per_epoch)
 
     state = exit_validator(state, index, slots_per_epoch, activation_exit_delay)
