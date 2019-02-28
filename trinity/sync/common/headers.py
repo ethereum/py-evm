@@ -485,7 +485,9 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
 
 class HeaderSyncerAPI(ABC):
     @abstractmethod
-    async def new_sync_headers(self) -> AsyncIterator[Tuple[BlockHeader, ...]]:
+    async def new_sync_headers(
+            self,
+            max_batch_size: int = None) -> AsyncIterator[Tuple[BlockHeader, ...]]:
         # hack to get python & mypy to recognize that this is an async generator
         if False:
             yield
@@ -742,9 +744,12 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
         self._meat = HeaderMeatSyncer(chain, peer_pool, self._stitcher, token)
         self._last_target_header_hash: Hash32 = None
 
-    async def new_sync_headers(self) -> AsyncIterator[Tuple[BlockHeader, ...]]:
+    async def new_sync_headers(
+            self,
+            max_batch_size: int = None) -> AsyncIterator[Tuple[BlockHeader, ...]]:
+
         while self.is_operational:
-            next_header_batch = await self.wait(self._stitcher.ready_tasks())
+            next_header_batch = await self.wait(self._stitcher.ready_tasks(max_batch_size))
             yield cast(Tuple[BlockHeader, ...], next_header_batch)
 
     def get_target_header_hash(self) -> Hash32:
