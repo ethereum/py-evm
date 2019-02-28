@@ -4,7 +4,16 @@ Release notes
 Unreleased (latest source)
 --------------------------
 
+None
+
+0.2.0-alpha.41
+--------------------------
+
+Released 2019-02-28
+
 - `#1719 <https://github.com/ethereum/py-evm/pull/1719>`_: Implement and activate Petersburg fork (aka Constantinople fixed)
+- `#1718 <https://github.com/ethereum/py-evm/pull/1718>`_: Performance: faster account lookups in EVM
+- `#1670 <https://github.com/ethereum/py-evm/pull/1670>`_: Performance: lazily look up ancestor block hashes, and cache result, so looking up parent hash in EVM is faster than grand^100 parent
 
 
 0.2.0-alpha.40
