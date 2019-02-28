@@ -4,6 +4,14 @@ Trinity
 Unreleased (latest source)
 --------------------------
 
+None
+
+0.1.0-alpha.23
+--------------------------
+
+Released 2019-02-28
+
+- `#337 <https://github.com/ethereum/trinity/pull/337>`_: Feature: Support for ConstantinopleV2 aka Petersburg aka ConstantinopleFix
 - `#270 <https://github.com/ethereum/trinity/pull/270>`_: Performance: Persist information on peers between runs
 - `#268 <https://github.com/ethereum/trinity/pull/268>`_: Maintenance: Add more bootnodes, use all the Geth and Parity bootnodes
 - `#263 <https://github.com/ethereum/trinity/pull/263>`_: Performance: Upgrade to lahja 0.11.0 and get rid of EventBus coordinator process
@@ -14,6 +22,13 @@ Unreleased (latest source)
 - `#155 <https://github.com/ethereum/trinity/pull/155>`_: Feature: Allow plugins to extend `--sync-mode` with different strategies
 - `#236 <https://github.com/ethereum/trinity/pull/236>`_: Performance: Quicker pruning of in-memory headers, was a leading asyncio bottleneck
 - `#236 <https://github.com/ethereum/trinity/pull/236>`_: Bugfix: Several reliability improvements during sync
+
+0.1.0-alpha.22
+--------------
+
+Released Jan 15, 2019
+
+- `#176 <https://github.com/ethereum/trinity/pull/176>`_: Delay Constantinople upgrade
 
 0.1.0-alpha.20
 --------------
