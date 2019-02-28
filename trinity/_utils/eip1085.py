@@ -49,6 +49,7 @@ from eth.vm.forks import (
     SpuriousDragonVM,
     ByzantiumVM,
     ConstantinopleVM,
+    PetersburgVM,
 )
 
 
@@ -143,6 +144,8 @@ def _extract_vm_config(vm_config: Dict[str, str]) -> Iterable[VMFork]:
         yield to_int(hexstr=vm_config['byzantiumForkBlock']), ByzantiumVM
     if 'constantinopleForkBlock' in vm_config.keys():
         yield to_int(hexstr=vm_config['constantinopleForkBlock']), ConstantinopleVM
+    if 'petersburgForkBlock' in vm_config.keys():
+        yield to_int(hexstr=vm_config['petersburgForkBlock']), PetersburgVM
 
 
 @to_tuple
@@ -164,6 +167,7 @@ ALL_VMS = (
     SpuriousDragonVM,
     ByzantiumVM,
     ConstantinopleVM,
+    PetersburgVM,
 )
 ALL_VMS_BY_FORK = {
     vm_class.fork: vm_class

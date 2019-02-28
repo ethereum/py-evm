@@ -203,6 +203,9 @@ class LightDispatchChain(BaseAsyncChain):
     def get_canonical_transaction(self, transaction_hash: Hash32) -> BaseTransaction:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
+    def get_transaction_receipt(self, transaction_hash: Hash32) -> Receipt:
+        raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
+
     #
     # Execution API
     #
