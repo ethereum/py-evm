@@ -511,7 +511,13 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
             )
         self._tasks[task_id] = completed
         self._declared_finished.add(task_id)
-        self._roots.add(task_id, self._dependency_of(finished_task))
+
+        dependency_id = self._dependency_of(finished_task)
+        self._roots.add(task_id, dependency_id)
+        if dependency_id in self._tasks:
+            # set a finished dependency that has a parent already entered. Mark this as a dependency
+            self._dependencies[dependency_id].add(task_id)
+
         # note that this task is intentionally *not* added to self._unready
 
     def register_tasks(self, tasks: Tuple[TTask, ...], ignore_duplicates: bool = False) -> None:
