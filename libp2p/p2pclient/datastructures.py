@@ -10,7 +10,7 @@ from multiaddr import (
     Multiaddr,
 )
 
-from .pb import p2pd_pb2 as pb
+from .pb import p2pd_pb2
 
 
 class PeerID:
@@ -55,18 +55,16 @@ class StreamInfo:
     def __repr__(self) -> str:
         return f"<StreamInfo peer_id={self.peer_id} addr={self.addr} proto={self.proto}>"
 
-    # TODO: typing for pb
-    def to_pb(self) -> Any:
-        pb_msg = pb.StreamInfo(
+    def to_pb(self) -> p2pd_pb2.StreamInfo:
+        pb_msg = p2pd_pb2.StreamInfo(
             peer=self.peer_id.to_bytes(),
             addr=binascii.unhexlify(self.addr.to_bytes()),
             proto=self.proto,
         )
         return pb_msg
 
-    # TODO: typing for pb
     @classmethod
-    def from_pb(cls, pb_msg: Any) -> 'StreamInfo':
+    def from_pb(cls, pb_msg: p2pd_pb2.StreamInfo) -> 'StreamInfo':
         stream_info = cls(
             peer_id=PeerID(pb_msg.peer),
             addr=Multiaddr(binascii.hexlify(pb_msg.addr)),
@@ -86,9 +84,8 @@ class PeerInfo:
     def __repr__(self) -> str:
         return f"<PeerInfo peer_id={self.peer_id} addrs={self.addrs}>"
 
-    # TODO: pb typing
     @classmethod
-    def from_pb(cls, peer_info_pb: Any) -> 'PeerInfo':
+    def from_pb(cls, peer_info_pb: p2pd_pb2.PeerInfo) -> 'PeerInfo':
         peer_id = PeerID(peer_info_pb.id)
         addrs = [Multiaddr(binascii.hexlify(addr)) for addr in peer_info_pb.addrs]
         return cls(peer_id, addrs)

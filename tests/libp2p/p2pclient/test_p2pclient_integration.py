@@ -157,7 +157,6 @@ async def _make_p2pd_pair(control_maddr, listen_maddr, enable_connmgr):
     p2pd = Daemon(control_maddr, enable_connmgr)
     # wait for daemon ready
     await p2pd.wait_until_ready()
-    # TODO: probably remove the sleep and make sure the daemon is correctly spun up
     p2pc = Client(control_maddr, listen_maddr)
     await p2pc.listen()
     return DaemonPair(p2pd, p2pc)

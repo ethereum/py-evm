@@ -150,7 +150,7 @@ class Client:
 
     async def identify(self) -> Tuple[PeerID, Tuple[Multiaddr, ...]]:
         reader, writer = await self.open_connection()
-        req = p2pd_pb.Request(type=p2pd_pb.Request.IDENTIFY)  # type: ignore
+        req = p2pd_pb.Request(type=p2pd_pb.Request.IDENTIFY)
         await self._write_pb(writer, req)
 
         resp = p2pd_pb.Response()
@@ -177,7 +177,7 @@ class Client:
             addrs=maddrs_bytes,
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.CONNECT,  # type: ignore
+            type=p2pd_pb.Request.CONNECT,
             connect=connect_req,
         )
         await self._write_pb(writer, req)
@@ -189,7 +189,7 @@ class Client:
 
     async def list_peers(self) -> Tuple[PeerInfo, ...]:
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.LIST_PEERS,  # type: ignore
+            type=p2pd_pb.Request.LIST_PEERS,
         )
         reader, writer = await self.open_connection()
         await self._write_pb(writer, req)
@@ -206,7 +206,7 @@ class Client:
             peer=peer_id.to_bytes(),
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.DISCONNECT,  # type: ignore
+            type=p2pd_pb.Request.DISCONNECT,
             disconnect=disconnect_req,
         )
         reader, writer = await self.open_connection()
@@ -228,7 +228,7 @@ class Client:
             proto=protocols,
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.STREAM_OPEN,  # type: ignore
+            type=p2pd_pb.Request.STREAM_OPEN,
             streamOpen=stream_open_req,
         )
         await self._write_pb(writer, req)
@@ -251,7 +251,7 @@ class Client:
             proto=[proto],
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.STREAM_HANDLER,  # type: ignore
+            type=p2pd_pb.Request.STREAM_HANDLER,
             streamHandler=stream_handler_req,
         )
         await self._write_pb(writer, req)
@@ -266,10 +266,9 @@ class Client:
 
     # DHT operations
 
-    # TODO: type hints for `p2pd_pb.DHTResponse`
     @staticmethod
     async def _read_dht_stream(reader: asyncio.StreamReader) -> AsyncGenerator[
-            PBMessage, None]:
+            p2pd_pb.DHTResponse, None]:
         while True:
             dht_resp = p2pd_pb.DHTResponse()
             await read_pbmsg_safe(reader, dht_resp)
@@ -277,12 +276,11 @@ class Client:
                 break
             yield dht_resp
 
-    # TODO: type hints for `p2pd_pb.DHTRequest` and `p2pd_pb.DHTResponse`
-    async def _do_dht(self, dht_req: PBMessage) -> Tuple[
-            PBMessage, ...]:
+    async def _do_dht(self, dht_req: p2pd_pb.DHTRequest) -> Tuple[
+            p2pd_pb.DHTResponse, ...]:
         reader, writer = await self.open_connection()
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.DHT,  # type: ignore
+            type=p2pd_pb.Request.DHT,
             dht=dht_req,
         )
         await self._write_pb(writer, req)
@@ -309,7 +307,7 @@ class Client:
         """FIND_PEER
         """
         dht_req = p2pd_pb.DHTRequest(
-            type=p2pd_pb.DHTRequest.FIND_PEER,  # type: ignore
+            type=p2pd_pb.DHTRequest.FIND_PEER,
             peer=peer_id.to_bytes(),
         )
         resps = await self._do_dht(dht_req)
@@ -317,7 +315,7 @@ class Client:
             raise ControlFailure(f"should only get one response from `find_peer`, resps={resps}")
         dht_resp = resps[0]
         try:
-            pinfo = dht_resp.peer  # type: ignore
+            pinfo = dht_resp.peer
         except AttributeError as e:
             raise ControlFailure(f"dht_resp should contains peer info: dht_resp={dht_resp}, e={e}")
         return PeerInfo.from_pb(pinfo)
@@ -326,7 +324,7 @@ class Client:
         """FIND_PEERS_CONNECTED_TO_PEER
         """
         dht_req = p2pd_pb.DHTRequest(
-            type=p2pd_pb.DHTRequest.FIND_PEERS_CONNECTED_TO_PEER,  # type: ignore
+            type=p2pd_pb.DHTRequest.FIND_PEERS_CONNECTED_TO_PEER,
             peer=peer_id.to_bytes(),
         )
         resps = await self._do_dht(dht_req)
@@ -334,7 +332,7 @@ class Client:
         # TODO: maybe change these checks to a validator pattern
         try:
             pinfos = tuple(
-                PeerInfo.from_pb(dht_resp.peer)  # type: ignore
+                PeerInfo.from_pb(dht_resp.peer)
                 for dht_resp in resps
             )
         except AttributeError as e:
@@ -348,7 +346,7 @@ class Client:
         """
         # TODO: should have another class ContendID
         dht_req = p2pd_pb.DHTRequest(
-            type=p2pd_pb.DHTRequest.FIND_PROVIDERS,  # type: ignore
+            type=p2pd_pb.DHTRequest.FIND_PROVIDERS,
             cid=content_id_bytes,
             count=count,
         )
@@ -356,7 +354,7 @@ class Client:
         # TODO: maybe change these checks to a validator pattern
         try:
             pinfos = tuple(
-                PeerInfo.from_pb(dht_resp.peer)  # type: ignore
+                PeerInfo.from_pb(dht_resp.peer)
                 for dht_resp in resps
             )
         except AttributeError as e:
@@ -369,13 +367,13 @@ class Client:
         """GET_CLOSEST_PEERS
         """
         dht_req = p2pd_pb.DHTRequest(
-            type=p2pd_pb.DHTRequest.GET_CLOSEST_PEERS,  # type: ignore
+            type=p2pd_pb.DHTRequest.GET_CLOSEST_PEERS,
             key=key,
         )
         resps = await self._do_dht(dht_req)
         try:
             peer_ids = tuple(
-                PeerID(dht_resp.value)  # type: ignore
+                PeerID(dht_resp.value)
                 for dht_resp in resps
             )
         except AttributeError as e:
@@ -384,12 +382,11 @@ class Client:
             )
         return peer_ids
 
-    # TODO: typing for `crypto_pb.PublicKey`
-    async def get_public_key(self, peer_id: PeerID) -> PBMessage:
+    async def get_public_key(self, peer_id: PeerID) -> crypto_pb.PublicKey:
         """GET_PUBLIC_KEY
         """
         dht_req = p2pd_pb.DHTRequest(
-            type=p2pd_pb.DHTRequest.GET_PUBLIC_KEY,  # type: ignore
+            type=p2pd_pb.DHTRequest.GET_PUBLIC_KEY,
             peer=peer_id.to_bytes(),
         )
         resps = await self._do_dht(dht_req)
@@ -397,7 +394,7 @@ class Client:
             raise ControlFailure(f"should only get one response, resps={resps}")
         try:
             # TODO: parse the public key with another class?
-            public_key_pb_bytes = resps[0].value  # type: ignore
+            public_key_pb_bytes = resps[0].value
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains `value`: resps={resps}, e={e}"
@@ -410,14 +407,14 @@ class Client:
         """GET_VALUE
         """
         dht_req = p2pd_pb.DHTRequest(
-            type=p2pd_pb.DHTRequest.GET_VALUE,  # type: ignore
+            type=p2pd_pb.DHTRequest.GET_VALUE,
             key=key,
         )
         resps = await self._do_dht(dht_req)
         if len(resps) != 1:
             raise ControlFailure(f"should only get one response, resps={resps}")
         try:
-            value = resps[0].value  # type: ignore
+            value = resps[0].value
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains `value`: resps={resps}, e={e}"
@@ -428,12 +425,12 @@ class Client:
         """SEARCH_VALUE
         """
         dht_req = p2pd_pb.DHTRequest(
-            type=p2pd_pb.DHTRequest.SEARCH_VALUE,  # type: ignore
+            type=p2pd_pb.DHTRequest.SEARCH_VALUE,
             key=key,
         )
         resps = await self._do_dht(dht_req)
         try:
-            values = tuple(resp.value for resp in resps)  # type: ignore
+            values = tuple(resp.value for resp in resps)
         except AttributeError as e:
             raise ControlFailure(
                 f"dht_resp should contains `value`: resps={resps}, e={e}"
@@ -444,12 +441,12 @@ class Client:
         """PUT_VALUE
         """
         dht_req = p2pd_pb.DHTRequest(
-            type=p2pd_pb.DHTRequest.PUT_VALUE,  # type: ignore
+            type=p2pd_pb.DHTRequest.PUT_VALUE,
             key=key,
             value=value,
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.DHT,  # type: ignore
+            type=p2pd_pb.Request.DHT,
             dht=dht_req,
         )
         reader, writer = await self.open_connection()
@@ -463,11 +460,11 @@ class Client:
         """PROVIDE
         """
         dht_req = p2pd_pb.DHTRequest(
-            type=p2pd_pb.DHTRequest.PROVIDE,  # type: ignore
+            type=p2pd_pb.DHTRequest.PROVIDE,
             cid=cid,
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.DHT,  # type: ignore
+            type=p2pd_pb.Request.DHT,
             dht=dht_req,
         )
         reader, writer = await self.open_connection()
@@ -483,13 +480,13 @@ class Client:
         """TAG_PEER
         """
         connmgr_req = p2pd_pb.ConnManagerRequest(
-            type=p2pd_pb.ConnManagerRequest.TAG_PEER,  # type: ignore
+            type=p2pd_pb.ConnManagerRequest.TAG_PEER,
             peer=peer_id.to_bytes(),
             tag=tag,
             weight=weight,
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.CONNMANAGER,  # type: ignore
+            type=p2pd_pb.Request.CONNMANAGER,
             connManager=connmgr_req,
         )
         reader, writer = await self.open_connection()
@@ -503,12 +500,12 @@ class Client:
         """UNTAG_PEER
         """
         connmgr_req = p2pd_pb.ConnManagerRequest(
-            type=p2pd_pb.ConnManagerRequest.UNTAG_PEER,  # type: ignore
+            type=p2pd_pb.ConnManagerRequest.UNTAG_PEER,
             peer=peer_id.to_bytes(),
             tag=tag,
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.CONNMANAGER,  # type: ignore
+            type=p2pd_pb.Request.CONNMANAGER,
             connManager=connmgr_req,
         )
         reader, writer = await self.open_connection()
@@ -522,10 +519,10 @@ class Client:
         """TRIM
         """
         connmgr_req = p2pd_pb.ConnManagerRequest(
-            type=p2pd_pb.ConnManagerRequest.TRIM,  # type: ignore
+            type=p2pd_pb.ConnManagerRequest.TRIM,
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.CONNMANAGER,  # type: ignore
+            type=p2pd_pb.Request.CONNMANAGER,
             connManager=connmgr_req,
         )
         reader, writer = await self.open_connection()
@@ -541,10 +538,10 @@ class Client:
         """PUBSUB GET_TOPICS
         """
         pubsub_req = p2pd_pb.PSRequest(
-            type=p2pd_pb.PSRequest.GET_TOPICS,  # type: ignore
+            type=p2pd_pb.PSRequest.GET_TOPICS,
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.PUBSUB,  # type: ignore
+            type=p2pd_pb.Request.PUBSUB,
             pubsub=pubsub_req,
         )
         reader, writer = await self.open_connection()
@@ -562,11 +559,11 @@ class Client:
         """PUBSUB LIST_PEERS
         """
         pubsub_req = p2pd_pb.PSRequest(
-            type=p2pd_pb.PSRequest.LIST_PEERS,  # type: ignore
+            type=p2pd_pb.PSRequest.LIST_PEERS,
             topic=topic,
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.PUBSUB,  # type: ignore
+            type=p2pd_pb.Request.PUBSUB,
             pubsub=pubsub_req,
         )
         reader, writer = await self.open_connection()
@@ -585,12 +582,12 @@ class Client:
         """PUBSUB PUBLISH
         """
         pubsub_req = p2pd_pb.PSRequest(
-            type=p2pd_pb.PSRequest.PUBLISH,  # type: ignore
+            type=p2pd_pb.PSRequest.PUBLISH,
             topic=topic,
             data=data,
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.PUBSUB,  # type: ignore
+            type=p2pd_pb.Request.PUBSUB,
             pubsub=pubsub_req,
         )
         reader, writer = await self.open_connection()
@@ -604,11 +601,11 @@ class Client:
         """PUBSUB SUBSCRIBE
         """
         pubsub_req = p2pd_pb.PSRequest(
-            type=p2pd_pb.PSRequest.SUBSCRIBE,  # type: ignore
+            type=p2pd_pb.PSRequest.SUBSCRIBE,
             topic=topic,
         )
         req = p2pd_pb.Request(
-            type=p2pd_pb.Request.PUBSUB,  # type: ignore
+            type=p2pd_pb.Request.PUBSUB,
             pubsub=pubsub_req,
         )
         reader, writer = await self.open_connection()
