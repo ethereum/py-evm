@@ -85,9 +85,9 @@ def sample_proposer_slashing_params(sample_proposal_params):
     proposal_data = Proposal(**sample_proposal_params)
     return {
         'proposer_index': 1,
-        'proposal_data_1': proposal_data,
+        'proposal_1': proposal_data,
         'proposal_signature_1': EMPTY_SIGNATURE,
-        'proposal_data_2': proposal_data,
+        'proposal_2': proposal_data,
         'proposal_signature_2': EMPTY_SIGNATURE,
     }
 

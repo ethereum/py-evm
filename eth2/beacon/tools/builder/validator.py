@@ -213,7 +213,7 @@ def create_mock_proposer_slashing_at_block(
     slots_per_epoch = config.SLOTS_PER_EPOCH
     beacon_chain_shard_number = config.BEACON_CHAIN_SHARD_NUMBER
 
-    proposal_data_1, proposal_signature_1 = create_proposal_data_and_signature(
+    proposal_1, proposal_signature_1 = create_proposal_data_and_signature(
         state,
         block_root_1,
         keymap[state.validator_registry[proposer_index].pubkey],
@@ -221,7 +221,7 @@ def create_mock_proposer_slashing_at_block(
         beacon_chain_shard_number,
     )
 
-    proposal_data_2, proposal_signature_2 = create_proposal_data_and_signature(
+    proposal_2, proposal_signature_2 = create_proposal_data_and_signature(
         state,
         block_root_2,
         keymap[state.validator_registry[proposer_index].pubkey],
@@ -231,8 +231,8 @@ def create_mock_proposer_slashing_at_block(
 
     return ProposerSlashing(
         proposer_index=proposer_index,
-        proposal_data_1=proposal_data_1,
-        proposal_data_2=proposal_data_2,
+        proposal_1=proposal_1,
+        proposal_2=proposal_2,
         proposal_signature_1=proposal_signature_1,
         proposal_signature_2=proposal_signature_2,
     )

@@ -148,7 +148,7 @@ def validate_proposer_slashing(state: BeaconState,
     validate_proposer_slashing_is_slashed(proposer.slashed)
 
     validate_proposal_signature(
-        proposal=proposer_slashing.proposal_data_1,
+        proposal=proposer_slashing.proposal_1,
         proposal_signature=proposer_slashing.proposal_signature_1,
         pubkey=proposer.pubkey,
         fork=state.fork,
@@ -156,7 +156,7 @@ def validate_proposer_slashing(state: BeaconState,
     )
 
     validate_proposal_signature(
-        proposal=proposer_slashing.proposal_data_2,
+        proposal=proposer_slashing.proposal_2,
         proposal_signature=proposer_slashing.proposal_signature_2,
         pubkey=proposer.pubkey,
         fork=state.fork,
@@ -165,29 +165,29 @@ def validate_proposer_slashing(state: BeaconState,
 
 
 def validate_proposer_slashing_slot(proposer_slashing: ProposerSlashing) -> None:
-    if proposer_slashing.proposal_data_1.slot != proposer_slashing.proposal_data_2.slot:
+    if proposer_slashing.proposal_1.slot != proposer_slashing.proposal_2.slot:
         raise ValidationError(
-            f"proposer_slashing.proposal_data_1.slot ({proposer_slashing.proposal_data_1.slot}) !="
-            f" proposer_slashing.proposal_data_2.slot ({proposer_slashing.proposal_data_2.slot})"
+            f"proposer_slashing.proposal_1.slot ({proposer_slashing.proposal_1.slot}) !="
+            f" proposer_slashing.proposal_2.slot ({proposer_slashing.proposal_2.slot})"
         )
 
 
 def validate_proposer_slashing_shard(proposer_slashing: ProposerSlashing) -> None:
-    if proposer_slashing.proposal_data_1.shard != proposer_slashing.proposal_data_2.shard:
+    if proposer_slashing.proposal_1.shard != proposer_slashing.proposal_2.shard:
         raise ValidationError(
-            f"proposer_slashing.proposal_data_1.shard ({proposer_slashing.proposal_data_1.shard}) "
-            f"!= proposer_slashing.proposal_data_2.shard"
-            f" ({proposer_slashing.proposal_data_2.shard})"
+            f"proposer_slashing.proposal_1.shard ({proposer_slashing.proposal_1.shard}) "
+            f"!= proposer_slashing.proposal_2.shard"
+            f" ({proposer_slashing.proposal_2.shard})"
         )
 
 
 def validate_proposer_slashing_block_root(proposer_slashing: ProposerSlashing) -> None:
-    if proposer_slashing.proposal_data_1.block_root == proposer_slashing.proposal_data_2.block_root:
+    if proposer_slashing.proposal_1.block_root == proposer_slashing.proposal_2.block_root:
         raise ValidationError(
-            "proposer_slashing.proposal_data_1.block_root "
-            f"({proposer_slashing.proposal_data_1.block_root}) "
-            "should not be equal to proposer_slashing.proposal_data_2.block_root "
-            f"({proposer_slashing.proposal_data_2.block_root})"
+            "proposer_slashing.proposal_1.block_root "
+            f"({proposer_slashing.proposal_1.block_root}) "
+            "should not be equal to proposer_slashing.proposal_2.block_root "
+            f"({proposer_slashing.proposal_2.block_root})"
         )
 
 
