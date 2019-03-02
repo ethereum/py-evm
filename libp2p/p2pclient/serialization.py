@@ -6,9 +6,6 @@ from typing import (
     TypeVar,
 )
 
-from google.protobuf.message import (
-    Message as PBMessage,
-)
 
 Writer = TypeVar("Writer", BytesIO, asyncio.StreamWriter)
 
@@ -50,18 +47,3 @@ async def read_unsigned_varint(
         if result >= max_int:
             raise ValueError(f"varint overflowed: {result}")
     return result
-
-
-async def read_pbmsg_safe(s: asyncio.StreamReader, pb_msg: PBMessage) -> None:
-    len_msg_bytes = await read_unsigned_varint(s)
-    msg_bytes = await s.readexactly(len_msg_bytes)
-    pb_msg.ParseFromString(msg_bytes)
-
-
-def serialize(pb_msg: PBMessage) -> bytes:
-    size = pb_msg.ByteSize()
-    s = BytesIO()
-    write_unsigned_varint(s, size)
-    size_prefix = s.getvalue()
-    msg_bytes: bytes = pb_msg.SerializeToString()
-    return size_prefix + msg_bytes

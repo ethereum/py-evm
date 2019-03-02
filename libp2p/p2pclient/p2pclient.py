@@ -6,7 +6,6 @@ from typing import (
     Awaitable,
     Callable,
     Dict,
-    Optional,
     Tuple,
 )
 
@@ -30,8 +29,8 @@ from .exceptions import (
     DispatchFailure,
 )
 from .serialization import (
-    read_pbmsg_safe,
-    serialize,
+    read_unsigned_varint,
+    write_unsigned_varint,
 )
 from .utils import (
     raise_if_failed,
@@ -72,24 +71,57 @@ def parse_conn_protocol(maddr: Multiaddr) -> int:
     return tuple(proto_cand)[0]
 
 
+async def write_pbmsg(writer: asyncio.StreamWriter, pbmsg: PBMessage) -> None:
+    size = pbmsg.ByteSize()
+    write_unsigned_varint(writer, size)
+    msg_bytes: bytes = pbmsg.SerializeToString()
+    writer.write(msg_bytes)
+    await writer.drain()
+
+
+async def read_pbmsg_safe(reader: asyncio.StreamReader, pbmsg: PBMessage) -> None:
+    len_msg_bytes = await read_unsigned_varint(reader)
+    msg_bytes = await reader.readexactly(len_msg_bytes)
+    pbmsg.ParseFromString(msg_bytes)
+
+
 class Client:
     control_maddr: Multiaddr
-    listen_maddr: Multiaddr
-    listener: Optional[asyncio.AbstractServer] = None
-    handlers: Dict[str, StreamHandler]
-
     logger = logging.getLogger('p2pclient.Client')
 
-    def __init__(
-            self,
-            _control_maddr: Multiaddr = None,
-            _listen_maddr: Multiaddr = None) -> None:
-        if _control_maddr is None:
-            _control_maddr = Multiaddr(config.control_maddr_str)
-        if _listen_maddr is None:
-            _listen_maddr = Multiaddr(config.listen_maddr_str)
-        self.control_maddr = _control_maddr
-        self.listen_maddr = _listen_maddr
+    def __init__(self, control_maddr: Multiaddr = None) -> None:
+        if control_maddr is None:
+            control_maddr = Multiaddr(config.control_maddr_str)
+        self.control_maddr = control_maddr
+
+    async def open_connection(self) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+        proto_code = parse_conn_protocol(self.control_maddr)
+        if proto_code == protocols.P_UNIX:
+            control_path = self.control_maddr.value_for_protocol(protocols.P_UNIX)
+            self.logger.debug("Client %s opens connection to %s", self, self.control_maddr)
+            return await asyncio.open_unix_connection(control_path)
+        elif proto_code == protocols.P_IP4:
+            host = self.control_maddr.value_for_protocol(protocols.P_IP4)
+            port = int(self.control_maddr.value_for_protocol(protocols.P_TCP))
+            return await asyncio.open_connection(host=host, port=port)
+        else:
+            raise ValueError(
+                f"protocol not supported: protocol={protocols.protocol_with_code(proto_code)}"
+            )
+
+
+class ControlClient:
+    listen_maddr: Multiaddr
+    client: Client
+    handlers: Dict[str, StreamHandler]
+    listener: asyncio.AbstractServer = None
+    logger = logging.getLogger('p2pclient.Control')
+
+    def __init__(self, listen_maddr: Multiaddr, client: Client) -> None:
+        if listen_maddr is None:
+            listen_maddr = Multiaddr(config.listen_maddr_str)
+        self.listen_maddr = listen_maddr
+        self.client = client
         self.handlers = {}
 
     async def _dispatcher(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -104,14 +136,6 @@ class Client:
             writer.close()
             raise DispatchFailure(e)
         await handler(stream_info, reader, writer)
-
-    @staticmethod
-    async def _write_pb(
-            writer: asyncio.StreamWriter,
-            data_pb: PBMessage) -> None:
-        data_bytes = serialize(data_pb)
-        writer.write(data_bytes)
-        await writer.drain()
 
     async def listen(self) -> None:
         if self.listener is not None:
@@ -128,30 +152,18 @@ class Client:
             raise ValueError(
                 f"protocol not supported: protocol={protocols.protocol_with_code(proto_code)}"
             )
+        self.logger.info("Client %s starts listening to %s", self, self.listen_maddr)
 
     async def close(self) -> None:
         self.listener.close()
         await self.listener.wait_closed()
         self.listener = None
-
-    async def open_connection(self) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        proto_code = parse_conn_protocol(self.control_maddr)
-        if proto_code == protocols.P_UNIX:
-            control_path = self.control_maddr.value_for_protocol(protocols.P_UNIX)
-            return await asyncio.open_unix_connection(control_path)
-        elif proto_code == protocols.P_IP4:
-            host = self.control_maddr.value_for_protocol(protocols.P_IP4)
-            port = int(self.control_maddr.value_for_protocol(protocols.P_TCP))
-            return await asyncio.open_connection(host=host, port=port)
-        else:
-            raise ValueError(
-                f"protocol not supported: protocol={protocols.protocol_with_code(proto_code)}"
-            )
+        self.logger.info("Client %s closed", self)
 
     async def identify(self) -> Tuple[PeerID, Tuple[Multiaddr, ...]]:
-        reader, writer = await self.open_connection()
+        reader, writer = await self.client.open_connection()
         req = p2pd_pb.Request(type=p2pd_pb.Request.IDENTIFY)
-        await self._write_pb(writer, req)
+        await write_pbmsg(writer, req)
 
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
@@ -169,7 +181,7 @@ class Client:
         return peer_id, maddrs
 
     async def connect(self, peer_id: PeerID, maddrs: Tuple[Multiaddr, ...]) -> None:
-        reader, writer = await self.open_connection()
+        reader, writer = await self.client.open_connection()
 
         maddrs_bytes = [binascii.unhexlify(i.to_bytes()) for i in maddrs]
         connect_req = p2pd_pb.ConnectRequest(
@@ -180,7 +192,7 @@ class Client:
             type=p2pd_pb.Request.CONNECT,
             connect=connect_req,
         )
-        await self._write_pb(writer, req)
+        await write_pbmsg(writer, req)
 
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
@@ -191,8 +203,8 @@ class Client:
         req = p2pd_pb.Request(
             type=p2pd_pb.Request.LIST_PEERS,
         )
-        reader, writer = await self.open_connection()
-        await self._write_pb(writer, req)
+        reader, writer = await self.client.open_connection()
+        await write_pbmsg(writer, req)
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
         writer.close()
@@ -209,8 +221,8 @@ class Client:
             type=p2pd_pb.Request.DISCONNECT,
             disconnect=disconnect_req,
         )
-        reader, writer = await self.open_connection()
-        await self._write_pb(writer, req)
+        reader, writer = await self.client.open_connection()
+        await write_pbmsg(writer, req)
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
         writer.close()
@@ -221,7 +233,7 @@ class Client:
             peer_id: PeerID,
             protocols: Tuple[str, ...]) -> Tuple[
             StreamInfo, asyncio.StreamReader, asyncio.StreamWriter]:
-        reader, writer = await self.open_connection()
+        reader, writer = await self.client.open_connection()
 
         stream_open_req = p2pd_pb.StreamOpenRequest(
             peer=peer_id.to_bytes(),
@@ -231,7 +243,7 @@ class Client:
             type=p2pd_pb.Request.STREAM_OPEN,
             streamOpen=stream_open_req,
         )
-        await self._write_pb(writer, req)
+        await write_pbmsg(writer, req)
 
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
@@ -243,7 +255,7 @@ class Client:
         return stream_info, reader, writer
 
     async def stream_handler(self, proto: str, handler_cb: StreamHandler) -> None:
-        reader, writer = await self.open_connection()
+        reader, writer = await self.client.open_connection()
 
         listen_path_maddr_bytes = binascii.unhexlify(self.listen_maddr.to_bytes())
         stream_handler_req = p2pd_pb.StreamHandlerRequest(
@@ -254,7 +266,7 @@ class Client:
             type=p2pd_pb.Request.STREAM_HANDLER,
             streamHandler=stream_handler_req,
         )
-        await self._write_pb(writer, req)
+        await write_pbmsg(writer, req)
 
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
@@ -264,7 +276,12 @@ class Client:
         # if success, add the handler to the dict
         self.handlers[proto] = handler_cb
 
-    # DHT operations
+
+class DHTClient:
+    client: Client
+
+    def __init__(self, client: Client) -> None:
+        self.client = client
 
     @staticmethod
     async def _read_dht_stream(reader: asyncio.StreamReader) -> AsyncGenerator[
@@ -278,12 +295,12 @@ class Client:
 
     async def _do_dht(self, dht_req: p2pd_pb.DHTRequest) -> Tuple[
             p2pd_pb.DHTResponse, ...]:
-        reader, writer = await self.open_connection()
+        reader, writer = await self.client.open_connection()
         req = p2pd_pb.Request(
             type=p2pd_pb.Request.DHT,
             dht=dht_req,
         )
-        await self._write_pb(writer, req)
+        await write_pbmsg(writer, req)
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
         raise_if_failed(resp)
@@ -328,8 +345,6 @@ class Client:
             peer=peer_id.to_bytes(),
         )
         resps = await self._do_dht(dht_req)
-
-        # TODO: maybe change these checks to a validator pattern
         try:
             pinfos = tuple(
                 PeerInfo.from_pb(dht_resp.peer)
@@ -351,7 +366,6 @@ class Client:
             count=count,
         )
         resps = await self._do_dht(dht_req)
-        # TODO: maybe change these checks to a validator pattern
         try:
             pinfos = tuple(
                 PeerInfo.from_pb(dht_resp.peer)
@@ -449,8 +463,8 @@ class Client:
             type=p2pd_pb.Request.DHT,
             dht=dht_req,
         )
-        reader, writer = await self.open_connection()
-        await self._write_pb(writer, req)
+        reader, writer = await self.client.open_connection()
+        await write_pbmsg(writer, req)
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
         writer.close()
@@ -467,14 +481,19 @@ class Client:
             type=p2pd_pb.Request.DHT,
             dht=dht_req,
         )
-        reader, writer = await self.open_connection()
-        await self._write_pb(writer, req)
+        reader, writer = await self.client.open_connection()
+        await write_pbmsg(writer, req)
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
         writer.close()
         raise_if_failed(resp)
 
-    # connection manager
+
+class ConnectionManagerClient:
+    client: Client
+
+    def __init__(self, client: Client) -> None:
+        self.client = client
 
     async def tag_peer(self, peer_id: PeerID, tag: str, weight: int) -> None:
         """TAG_PEER
@@ -489,8 +508,8 @@ class Client:
             type=p2pd_pb.Request.CONNMANAGER,
             connManager=connmgr_req,
         )
-        reader, writer = await self.open_connection()
-        await self._write_pb(writer, req)
+        reader, writer = await self.client.open_connection()
+        await write_pbmsg(writer, req)
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
         writer.close()
@@ -508,8 +527,8 @@ class Client:
             type=p2pd_pb.Request.CONNMANAGER,
             connManager=connmgr_req,
         )
-        reader, writer = await self.open_connection()
-        await self._write_pb(writer, req)
+        reader, writer = await self.client.open_connection()
+        await write_pbmsg(writer, req)
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
         writer.close()
@@ -525,14 +544,19 @@ class Client:
             type=p2pd_pb.Request.CONNMANAGER,
             connManager=connmgr_req,
         )
-        reader, writer = await self.open_connection()
-        await self._write_pb(writer, req)
+        reader, writer = await self.client.open_connection()
+        await write_pbmsg(writer, req)
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
         writer.close()
         raise_if_failed(resp)
 
-    # PubSub
+
+class PubSubClient:
+    client: Client
+
+    def __init__(self, client: Client) -> None:
+        self.client = client
 
     async def get_topics(self) -> Tuple[str, ...]:
         """PUBSUB GET_TOPICS
@@ -544,8 +568,8 @@ class Client:
             type=p2pd_pb.Request.PUBSUB,
             pubsub=pubsub_req,
         )
-        reader, writer = await self.open_connection()
-        await self._write_pb(writer, req)
+        reader, writer = await self.client.open_connection()
+        await write_pbmsg(writer, req)
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
         writer.close()
@@ -554,8 +578,7 @@ class Client:
         topics = tuple(resp.pubsub.topics)
         return topics
 
-    # FIXME: name conflicts: `list_topic_peers` is originally `list_peers` in pubsub
-    async def list_topic_peers(self, topic: str) -> Tuple[PeerID, ...]:
+    async def list_peers(self, topic: str) -> Tuple[PeerID, ...]:
         """PUBSUB LIST_PEERS
         """
         pubsub_req = p2pd_pb.PSRequest(
@@ -566,8 +589,8 @@ class Client:
             type=p2pd_pb.Request.PUBSUB,
             pubsub=pubsub_req,
         )
-        reader, writer = await self.open_connection()
-        await self._write_pb(writer, req)
+        reader, writer = await self.client.open_connection()
+        await write_pbmsg(writer, req)
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
         writer.close()
@@ -590,8 +613,8 @@ class Client:
             type=p2pd_pb.Request.PUBSUB,
             pubsub=pubsub_req,
         )
-        reader, writer = await self.open_connection()
-        await self._write_pb(writer, req)
+        reader, writer = await self.client.open_connection()
+        await write_pbmsg(writer, req)
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
         writer.close()
@@ -608,8 +631,8 @@ class Client:
             type=p2pd_pb.Request.PUBSUB,
             pubsub=pubsub_req,
         )
-        reader, writer = await self.open_connection()
-        await self._write_pb(writer, req)
+        reader, writer = await self.client.open_connection()
+        await write_pbmsg(writer, req)
         resp = p2pd_pb.Response()
         await read_pbmsg_safe(reader, resp)
         raise_if_failed(resp)
