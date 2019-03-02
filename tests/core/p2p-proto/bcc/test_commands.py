@@ -2,18 +2,18 @@ import pytest
 
 import ssz
 
+from eth.constants import (
+    ZERO_HASH32,
+)
+
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.blocks import (
     BeaconBlock,
     BeaconBlockBody,
 )
-
-from eth.constants import (
-    ZERO_HASH32,
-)
-
 from eth2.beacon.types.eth1_data import Eth1Data
+from eth2.beacon.types.crosslink_records import CrosslinkRecord
 
 from p2p.peer import (
     MsgBuffer,
@@ -167,7 +167,7 @@ async def test_send_single_attestation(request, event_loop):
             beacon_block_root=ZERO_HASH32,
             epoch_boundary_root=ZERO_HASH32,
             crosslink_data_root=ZERO_HASH32,
-            latest_crosslink_root=ZERO_HASH32,
+            latest_crosslink=CrosslinkRecord(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
             justified_epoch=SERENITY_CONFIG.GENESIS_EPOCH,
             justified_block_root=ZERO_HASH32,
         ),
@@ -194,7 +194,7 @@ async def test_send_multiple_attestations(request, event_loop):
                 beacon_block_root=ZERO_HASH32,
                 epoch_boundary_root=ZERO_HASH32,
                 crosslink_data_root=ZERO_HASH32,
-                latest_crosslink_root=ZERO_HASH32,
+                latest_crosslink=CrosslinkRecord(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
                 justified_epoch=SERENITY_CONFIG.GENESIS_EPOCH,
                 justified_block_root=ZERO_HASH32,
             ),

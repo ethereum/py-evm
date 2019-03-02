@@ -47,6 +47,7 @@ from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
 from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 from eth2.beacon.types.attester_slashings import AttesterSlashing  # noqa: F401
 from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
+from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.forks import Fork  # noqa: F401
 from eth2.beacon.types.proposal_signed_data import ProposalSignedData
 from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
@@ -330,8 +331,9 @@ def validate_attestation(state: BeaconState,
     )
 
     validate_attestation_latest_crosslink_root(
-        attestation.data,
-        latest_crosslink_root=state.latest_crosslinks[attestation.data.shard].crosslink_data_root,
+        attestation_data=attestation.data,
+        state_latest_crosslink=state.latest_crosslinks[attestation.data.shard],
+        slots_per_epoch=slots_per_epoch,
     )
 
     validate_attestation_crosslink_data_root(attestation.data)
@@ -427,26 +429,31 @@ def validate_attestation_justified_block_root(attestation_data: AttestationData,
 
 
 def validate_attestation_latest_crosslink_root(attestation_data: AttestationData,
-                                               latest_crosslink_root: Hash32) -> None:
+                                               state_latest_crosslink: CrosslinkRecord,
+                                               slots_per_epoch: int) -> None:
     """
-    Validate that either the attestation ``latest_crosslink_root`` or ``crosslink_data_root``
-    field of ``attestation_data`` is the provided ``latest_crosslink_root``.
+    Validate that either the attestation ``latest_crosslink`` or ``crosslink_data_root``
+    field of ``attestation_data`` is the provided ``latest_crosslink``.
     Raise ``ValidationError`` if it's invalid.
     """
-    acceptable_crosslink_data_roots = {
-        attestation_data.latest_crosslink_root,
-        attestation_data.crosslink_data_root,
+    attestation_creating_crosslink = CrosslinkRecord(
+        epoch=slot_to_epoch(attestation_data.slot, slots_per_epoch),
+        crosslink_data_root=attestation_data.crosslink_data_root,
+    )
+    acceptable_crosslink_data = {
+        # Case 1: Latest crosslink matches the one in the state
+        attestation_data.latest_crosslink,
+        # Case 2: State has already been updated, state's latest crosslink matches the crosslink
+        # the attestation is trying to create
+        attestation_creating_crosslink,
     }
-    if latest_crosslink_root not in acceptable_crosslink_data_roots:
+    if state_latest_crosslink not in acceptable_crosslink_data:
         raise ValidationError(
-            "Neither the attestation ``latest_crosslink_root`` nor the attestation "
-            "``crosslink_data_root`` are equal to the ``latest_crosslink_root``.\n"
-            "\tFound: %s and %s, Expected %s" %
-            (
-                attestation_data.latest_crosslink_root,
-                attestation_data.crosslink_data_root,
-                latest_crosslink_root,
-            )
+            f"State's latests crosslink ({state_latest_crosslink}) doesn't match "
+            " case 1: the `attestation_data.latest_crosslink` "
+            f"({attestation_data.latest_crosslink.root}) or "
+            "`case 2: the crosslink the attestation is trying to create "
+            f"({attestation_creating_crosslink})"
         )
 
 

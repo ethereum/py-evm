@@ -27,6 +27,7 @@ from eth2.beacon.tools.builder.validator import (
     create_mock_signed_attestation,
 )
 from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.crosslink_records import CrosslinkRecord
 
 
 @pytest.mark.parametrize(
@@ -138,8 +139,8 @@ def test_validate_attestation_justified_epoch(
         'is_valid,'
     ),
     [
-        (b'\x42' * 32, b'\x35' * 32, False),  # attestation.justified_block_root != justified_block_root # noqa: E501
-        (b'\x42' * 32, b'\x42' * 32, True),
+        (b'\x33' * 32, b'\x22' * 32, False),  # attestation.justified_block_root != justified_block_root # noqa: E501
+        (b'\x33' * 32, b'\x33' * 32, True),
     ]
 )
 def test_validate_attestation_justified_block_root(sample_attestation_data_params,
@@ -165,41 +166,69 @@ def test_validate_attestation_justified_block_root(sample_attestation_data_param
 
 @pytest.mark.parametrize(
     (
-        'attestation_latest_crosslink_root,'
+        'attestation_latest_crosslink,'
         'attestation_crosslink_data_root,'
-        'latest_crosslink_root,'
+        'state_latest_crosslink,'
         'is_valid,'
     ),
     [
-        (b'\x66' * 32, b'\x42' * 32, b'\x35' * 32, False),
-        (b'\x42' * 32, b'\x42' * 32, b'\x66' * 32, False),
-        (b'\x66' * 32, b'\x42' * 32, b'\x42' * 32, True),
-        (b'\x42' * 32, b'\x35' * 32, b'\x42' * 32, True),
-        (b'\x42' * 32, b'\x42' * 32, b'\x42' * 32, True),
+        (
+            CrosslinkRecord(0, b'\x11' * 32),
+            b'\x33' * 32,
+            CrosslinkRecord(0, b'\x22' * 32),
+            False,
+        ),
+        (
+            CrosslinkRecord(0, b'\x33' * 32),
+            b'\x33' * 32,
+            CrosslinkRecord(0, b'\x11' * 32),
+            False,
+        ),
+        (
+            CrosslinkRecord(0, b'\x11' * 32),
+            b'\x33' * 32,
+            CrosslinkRecord(0, b'\x33' * 32),
+            True,
+        ),
+        (
+            CrosslinkRecord(0, b'\x33' * 32),
+            b'\x22' * 32,
+            CrosslinkRecord(0, b'\x33' * 32),
+            True,
+        ),
+        (
+            CrosslinkRecord(0, b'\x33' * 32),
+            b'\x33' * 32,
+            CrosslinkRecord(0, b'\x33' * 32),
+            True,
+        ),
     ]
 )
-def test_validate_attestation_latest_crosslink_root(sample_attestation_data_params,
-                                                    attestation_latest_crosslink_root,
-                                                    attestation_crosslink_data_root,
-                                                    latest_crosslink_root,
-                                                    is_valid):
-    sample_attestation_data_params['latest_crosslink_root'] = attestation_latest_crosslink_root
+def test_validate_attestation_latest_crosslink(sample_attestation_data_params,
+                                               attestation_latest_crosslink,
+                                               attestation_crosslink_data_root,
+                                               state_latest_crosslink,
+                                               slots_per_epoch,
+                                               is_valid):
+    sample_attestation_data_params['latest_crosslink'] = attestation_latest_crosslink
     sample_attestation_data_params['crosslink_data_root'] = attestation_crosslink_data_root
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
-        latest_crosslink_root=attestation_latest_crosslink_root,
+        latest_crosslink=attestation_latest_crosslink,
         crosslink_data_root=attestation_crosslink_data_root,
     )
 
     if is_valid:
         validate_attestation_latest_crosslink_root(
             attestation_data,
-            latest_crosslink_root,
+            state_latest_crosslink,
+            slots_per_epoch=slots_per_epoch,
         )
     else:
         with pytest.raises(ValidationError):
             validate_attestation_latest_crosslink_root(
                 attestation_data,
-                latest_crosslink_root,
+                state_latest_crosslink,
+                slots_per_epoch=slots_per_epoch,
             )
 
 
@@ -210,8 +239,8 @@ def test_validate_attestation_latest_crosslink_root(sample_attestation_data_para
     ),
     [
         (ZERO_HASH32, True),
-        (b'\x35' * 32, False),
-        (b'\x66' * 32, False),
+        (b'\x22' * 32, False),
+        (b'\x11' * 32, False),
     ]
 )
 def test_validate_attestation_crosslink_data_root(sample_attestation_data_params,

@@ -263,7 +263,7 @@ def create_mock_slashable_attestation(state: BeaconState,
         get_epoch_start_slot(state.justified_epoch, config.SLOTS_PER_EPOCH),
         config.LATEST_BLOCK_ROOTS_LENGTH,
     )
-    latest_crosslink_root = state.latest_crosslinks[shard].crosslink_data_root
+    latest_crosslink = state.latest_crosslinks[shard]
 
     attestation_data = attestation_data = AttestationData(
         slot=attestation_slot,
@@ -271,7 +271,7 @@ def create_mock_slashable_attestation(state: BeaconState,
         beacon_block_root=beacon_block_root,
         epoch_boundary_root=epoch_boundary_root,
         crosslink_data_root=ZERO_HASH32,
-        latest_crosslink_root=latest_crosslink_root,
+        latest_crosslink=latest_crosslink,
         justified_epoch=state.justified_epoch,
         justified_block_root=justified_block_root,
     )
@@ -493,7 +493,7 @@ def create_mock_signed_attestations_at_slot(
         committee, shard = crosslink_committee
 
         num_voted_attesters = int(len(committee) * voted_attesters_ratio)
-        latest_crosslink_root = state.latest_crosslinks[shard].crosslink_data_root
+        latest_crosslink = state.latest_crosslinks[shard]
 
         attestation_data = AttestationData(
             slot=attestation_slot,
@@ -501,7 +501,7 @@ def create_mock_signed_attestations_at_slot(
             beacon_block_root=beacon_block_root,
             epoch_boundary_root=epoch_boundary_root,
             crosslink_data_root=ZERO_HASH32,
-            latest_crosslink_root=latest_crosslink_root,
+            latest_crosslink=latest_crosslink,
             justified_epoch=state.justified_epoch,
             justified_block_root=justified_block_root,
         )

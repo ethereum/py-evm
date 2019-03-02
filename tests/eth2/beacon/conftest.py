@@ -100,14 +100,14 @@ def sample_attestation_params(sample_attestation_data_params):
 
 
 @pytest.fixture
-def sample_attestation_data_params():
+def sample_attestation_data_params(sample_crosslink_record_params):
     return {
         'slot': 10,
         'shard': 12,
         'beacon_block_root': b'\x11' * 32,
         'epoch_boundary_root': b'\x22' * 32,
         'crosslink_data_root': b'\x33' * 32,
-        'latest_crosslink_root': b'\x44' * 32,
+        'latest_crosslink': CrosslinkRecord(**sample_crosslink_record_params),
         'justified_epoch': 0,
         'justified_block_root': b'\x55' * 32,
     }
