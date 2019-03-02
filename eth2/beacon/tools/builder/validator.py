@@ -55,7 +55,7 @@ from eth2.beacon.types.attestation_data_and_custody_bits import (
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.proposal_signed_data import ProposalSignedData
+from eth2.beacon.types.proposal import Proposal
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
@@ -176,8 +176,8 @@ def create_proposal_data_and_signature(
         block_root: Hash32,
         privkey: int,
         slots_per_epoch: int,
-        beacon_chain_shard_number: Shard)-> Tuple[ProposalSignedData, BLSSignature]:
-    proposal_data = ProposalSignedData(
+        beacon_chain_shard_number: Shard)-> Tuple[Proposal, BLSSignature]:
+    proposal_data = Proposal(
         state.slot,
         beacon_chain_shard_number,
         block_root,

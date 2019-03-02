@@ -156,7 +156,7 @@ def test_validate_proposal_signature(slots_per_epoch,
 
     # Valid
     validate_proposal_signature(
-        proposal_signed_data=valid_proposer_slashing.proposal_data_1,
+        proposal=valid_proposer_slashing.proposal_data_1,
         proposal_signature=valid_proposer_slashing.proposal_signature_1,
         pubkey=proposer.pubkey,
         fork=state.fork,
@@ -168,7 +168,7 @@ def test_validate_proposal_signature(slots_per_epoch,
     wrong_proposer = state.validator_registry[wrong_proposer_index]
     with pytest.raises(ValidationError):
         validate_proposal_signature(
-            proposal_signed_data=valid_proposer_slashing.proposal_data_1,
+            proposal=valid_proposer_slashing.proposal_data_1,
             proposal_signature=valid_proposer_slashing.proposal_signature_1,
             pubkey=wrong_proposer.pubkey,
             fork=state.fork,

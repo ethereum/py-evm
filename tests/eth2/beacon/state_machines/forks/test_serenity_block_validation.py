@@ -38,8 +38,8 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import (
     verify_slashable_attestation_signature,
 )
 from eth2.beacon.types.blocks import BeaconBlock
-from eth2.beacon.types.proposal_signed_data import (
-    ProposalSignedData,
+from eth2.beacon.types.proposal import (
+    Proposal,
 )
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
@@ -113,7 +113,7 @@ def test_validate_proposer_signature(
     default_block = BeaconBlock(**sample_beacon_block_params)
     empty_signature_block_root = default_block.block_without_signature_root
 
-    proposal_root = ProposalSignedData(
+    proposal_root = Proposal(
         state.slot,
         beacon_chain_shard_number,
         empty_signature_block_root,

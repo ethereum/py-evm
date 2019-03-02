@@ -30,7 +30,7 @@ from eth2.beacon.types.blocks import (
     BeaconBlockBody,
 )
 from eth2.beacon.types.eth1_data import Eth1Data
-from eth2.beacon.types.proposal_signed_data import ProposalSignedData
+from eth2.beacon.types.proposal import Proposal
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     BLSPubkey,
@@ -103,7 +103,7 @@ def create_block_on_state(
 
     # Sign
     empty_signature_block_root = block.block_without_signature_root
-    proposal_root = ProposalSignedData(
+    proposal_root = Proposal(
         slot,
         config.BEACON_CHAIN_SHARD_NUMBER,
         empty_signature_block_root,

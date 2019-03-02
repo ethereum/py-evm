@@ -16,7 +16,7 @@ from eth2.beacon.typing import (
 )
 
 
-class ProposalSignedData(ssz.Serializable):
+class Proposal(ssz.Serializable):
 
     fields = [
         # Slot number

@@ -4,7 +4,7 @@ from ssz.sedes import (
     uint64,
 )
 
-from .proposal_signed_data import ProposalSignedData
+from .proposal import Proposal
 from eth2.beacon.typing import (
     BLSSignature,
     ValidatorIndex,
@@ -18,19 +18,19 @@ class ProposerSlashing(ssz.Serializable):
         # Proposer index
         ('proposer_index', uint64),
         # First proposal data
-        ('proposal_data_1', ProposalSignedData),
+        ('proposal_data_1', Proposal),
         # First proposal signature
         ('proposal_signature_1', bytes_sedes),
         # Second proposal data
-        ('proposal_data_2', ProposalSignedData),
+        ('proposal_data_2', Proposal),
         # Second proposal signature
         ('proposal_signature_2', bytes_sedes),
     ]
 
     def __init__(self,
                  proposer_index: ValidatorIndex,
-                 proposal_data_1: ProposalSignedData,
-                 proposal_data_2: ProposalSignedData,
+                 proposal_data_1: Proposal,
+                 proposal_data_2: Proposal,
                  # default arguments follow non-default arguments
                  proposal_signature_1: BLSSignature = EMPTY_SIGNATURE,
                  proposal_signature_2: BLSSignature = EMPTY_SIGNATURE) -> None:
