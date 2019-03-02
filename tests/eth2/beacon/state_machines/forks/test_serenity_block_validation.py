@@ -113,15 +113,15 @@ def test_validate_proposer_signature(
     default_block = BeaconBlock(**sample_beacon_block_params)
     empty_signature_block_root = default_block.block_without_signature_root
 
-    proposal_root = Proposal(
+    proposal_signed_root = Proposal(
         state.slot,
         beacon_chain_shard_number,
         empty_signature_block_root,
-    ).root
+    ).signed_root
 
     proposed_block = BeaconBlock(**sample_beacon_block_params).copy(
         signature=bls.sign(
-            message_hash=proposal_root,
+            message_hash=proposal_signed_root,
             privkey=proposer_privkey,
             domain=SignatureDomain.DOMAIN_PROPOSAL,
         ),

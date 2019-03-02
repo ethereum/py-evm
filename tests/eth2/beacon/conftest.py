@@ -86,9 +86,7 @@ def sample_proposer_slashing_params(sample_proposal_params):
     return {
         'proposer_index': 1,
         'proposal_1': proposal_data,
-        'proposal_signature_1': EMPTY_SIGNATURE,
         'proposal_2': proposal_data,
-        'proposal_signature_2': EMPTY_SIGNATURE,
     }
 
 
@@ -271,6 +269,7 @@ def sample_proposal_params():
         'slot': 10,
         'shard': 12,
         'block_root': b'\x43' * 32,
+        'signature': b'\x56' * 96,
     }
 
 

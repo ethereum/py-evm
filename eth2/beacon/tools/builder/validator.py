@@ -176,21 +176,22 @@ def create_proposal_data_and_signature(
         block_root: Hash32,
         privkey: int,
         slots_per_epoch: int,
-        beacon_chain_shard_number: Shard)-> Tuple[Proposal, BLSSignature]:
-    proposal_data = Proposal(
+        beacon_chain_shard_number: Shard)-> Proposal:
+    proposal = Proposal(
         state.slot,
         beacon_chain_shard_number,
         block_root,
     )
     proposal_signature = sign_transaction(
-        message_hash=proposal_data.root,
+        message_hash=proposal.signed_root,
         privkey=privkey,
         fork=state.fork,
-        slot=proposal_data.slot,
+        slot=proposal.slot,
         signature_domain=SignatureDomain.DOMAIN_PROPOSAL,
         slots_per_epoch=slots_per_epoch,
     )
-    return proposal_data, proposal_signature
+    proposal = proposal.copy(signature=proposal_signature)
+    return proposal
 
 
 #
@@ -213,7 +214,7 @@ def create_mock_proposer_slashing_at_block(
     slots_per_epoch = config.SLOTS_PER_EPOCH
     beacon_chain_shard_number = config.BEACON_CHAIN_SHARD_NUMBER
 
-    proposal_1, proposal_signature_1 = create_proposal_data_and_signature(
+    proposal_1 = create_proposal_data_and_signature(
         state,
         block_root_1,
         keymap[state.validator_registry[proposer_index].pubkey],
@@ -221,7 +222,7 @@ def create_mock_proposer_slashing_at_block(
         beacon_chain_shard_number,
     )
 
-    proposal_2, proposal_signature_2 = create_proposal_data_and_signature(
+    proposal_2 = create_proposal_data_and_signature(
         state,
         block_root_2,
         keymap[state.validator_registry[proposer_index].pubkey],
@@ -233,8 +234,6 @@ def create_mock_proposer_slashing_at_block(
         proposer_index=proposer_index,
         proposal_1=proposal_1,
         proposal_2=proposal_2,
-        proposal_signature_1=proposal_signature_1,
-        proposal_signature_2=proposal_signature_2,
     )
 
 

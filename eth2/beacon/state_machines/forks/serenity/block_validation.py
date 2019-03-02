@@ -92,12 +92,13 @@ def validate_proposer_signature(state: BeaconState,
                                 committee_config: CommitteeConfig) -> None:
     block_without_signature_root = block.block_without_signature_root
 
-    # TODO: Replace this root with tree hash root
-    proposal_root = Proposal(
+    # TODO: Replace this with signed_root
+    proposal = Proposal(
         state.slot,
         beacon_chain_shard_number,
         block_without_signature_root,
-    ).root
+        signature=block.signature,
+    )
 
     # Get the public key of proposer
     beacon_proposer_index = get_beacon_proposer_index(
@@ -114,15 +115,15 @@ def validate_proposer_signature(state: BeaconState,
 
     is_valid_signature = bls.verify(
         pubkey=proposer_pubkey,
-        message_hash=proposal_root,
-        signature=block.signature,
+        message_hash=proposal.signed_root,
+        signature=proposal.signature,
         domain=domain,
     )
 
     if not is_valid_signature:
         raise ValidationError(
             f"Invalid Proposer Signature on block, beacon_proposer_index={beacon_proposer_index}, "
-            f"pubkey={proposer_pubkey}, message_hash={proposal_root},"
+            f"pubkey={proposer_pubkey}, message_hash={proposal.signed_root}, "
             f"block.signature={block.signature}, domain={domain}"
         )
 
@@ -149,7 +150,6 @@ def validate_proposer_slashing(state: BeaconState,
 
     validate_proposal_signature(
         proposal=proposer_slashing.proposal_1,
-        proposal_signature=proposer_slashing.proposal_signature_1,
         pubkey=proposer.pubkey,
         fork=state.fork,
         slots_per_epoch=slots_per_epoch,
@@ -157,7 +157,6 @@ def validate_proposer_slashing(state: BeaconState,
 
     validate_proposal_signature(
         proposal=proposer_slashing.proposal_2,
-        proposal_signature=proposer_slashing.proposal_signature_2,
         pubkey=proposer.pubkey,
         fork=state.fork,
         slots_per_epoch=slots_per_epoch,
@@ -197,14 +196,13 @@ def validate_proposer_slashing_is_slashed(slashed: bool) -> None:
 
 
 def validate_proposal_signature(proposal: Proposal,
-                                proposal_signature: BLSSignature,
                                 pubkey: BLSPubkey,
                                 fork: Fork,
                                 slots_per_epoch: int) -> None:
     proposal_signature_is_valid = bls.verify(
         pubkey=pubkey,
-        message_hash=proposal.root,  # TODO: use hash_tree_root
-        signature=proposal_signature,
+        message_hash=proposal.signed_root,  # TODO: use signed_root
+        signature=proposal.signature,
         domain=get_domain(
             fork,
             slot_to_epoch(proposal.slot, slots_per_epoch),
@@ -215,7 +213,7 @@ def validate_proposal_signature(proposal: Proposal,
         raise ValidationError(
             "Proposal signature is invalid: "
             f"proposer pubkey: {pubkey}, message_hash: {proposal.root}, "
-            f"signature: {proposal_signature}"
+            f"signature: {proposal.signature}"
         )
 
 
