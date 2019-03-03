@@ -56,6 +56,9 @@ from eth2.beacon.helpers import (
     get_randao_mix,
     slot_to_epoch,
 )
+from eth2.beacon.validator_status_helpers import (
+    exit_validator,
+)
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
@@ -781,6 +784,30 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             max(state.validator_balances[index] + rewards_received[index], 0),
         )
 
+    return state
+
+
+#
+# Ejections
+#
+def process_ejections(state: BeaconState,
+                      config: BeaconConfig) -> BeaconState:
+    """
+    Iterate through the validator registry and eject active validators
+    with balance below ``EJECTION_BALANCE``.
+    """
+    active_validator_indices = get_active_validator_indices(
+        state.validator_registry,
+        state.current_epoch(config.SLOTS_PER_EPOCH),
+    )
+    for index in set(active_validator_indices):
+        if state.validator_balances[index] < config.EJECTION_BALANCE:
+            state = exit_validator(
+                state,
+                index,
+                slots_per_epoch=config.SLOTS_PER_EPOCH,
+                activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
+            )
     return state
 
 

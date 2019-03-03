@@ -29,10 +29,14 @@ from eth2.beacon.committee_helpers import (
 from eth2.beacon.configs import (
     CommitteeConfig,
 )
+from eth2.beacon.constants import (
+    FAR_FUTURE_EPOCH,
+)
 from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_block_root,
     get_epoch_start_slot,
+    get_delayed_activation_exit_epoch,
     get_randao_mix,
     slot_to_epoch,
 )
@@ -50,16 +54,17 @@ from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _check_if_update_validator_registry,
-    _update_latest_active_index_roots,
-    process_crosslinks,
-    process_final_updates,
+    _current_previous_epochs_justifiable,
+    _get_finalized_epoch,
     _process_rewards_and_penalties_for_attestation_inclusion,
     _process_rewards_and_penalties_for_crosslinks,
     _process_rewards_and_penalties_for_finality,
-    process_validator_registry,
-    _current_previous_epochs_justifiable,
-    _get_finalized_epoch,
+    _update_latest_active_index_roots,
+    process_crosslinks,
+    process_ejections,
+    process_final_updates,
     process_justification,
+    process_validator_registry,
 )
 
 from eth2.beacon.types.states import BeaconState
@@ -836,6 +841,41 @@ def test_process_rewards_and_penalties_for_crosslinks(
     # Check the rewards/penalties match
     for index, reward_received in rewards_received.items():
         assert rewards_received[index] == expected_rewards_received[index]
+
+
+#
+# Ejections
+#
+def test_process_ejections(genesis_state, config, activation_exit_delay):
+    current_epoch = 8
+    state = genesis_state.copy(
+        slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
+    )
+    delayed_activation_exit_epoch = get_delayed_activation_exit_epoch(
+        current_epoch,
+        activation_exit_delay,
+    )
+
+    ejecting_validator_index = 0
+    validator = state.validator_registry[ejecting_validator_index]
+    assert validator.is_active(current_epoch)
+    assert validator.exit_epoch > delayed_activation_exit_epoch
+
+    state = state.update_validator_balance(
+        validator_index=ejecting_validator_index,
+        balance=config.EJECTION_BALANCE - 1,
+    )
+    result_state = process_ejections(state, config)
+    result_validator = result_state.validator_registry[ejecting_validator_index]
+    assert result_validator.is_active(current_epoch)
+    assert result_validator.exit_epoch == delayed_activation_exit_epoch
+    # The ejecting validator will be inactive at the exit_epoch
+    assert not result_validator.is_active(result_validator.exit_epoch)
+    # Other validators are not ejected
+    assert (
+        result_state.validator_registry[ejecting_validator_index + 1].exit_epoch ==
+        FAR_FUTURE_EPOCH
+    )
 
 
 #

@@ -20,6 +20,7 @@ from .block_validation import (
 from .epoch_processing import (
     process_justification,
     process_crosslinks,
+    process_ejections,
     process_final_updates,
     process_rewards_and_penalties,
     process_validator_registry,
@@ -90,7 +91,7 @@ class SerenityStateTransition(BaseStateTransition):
         state = process_justification(state, self.config)
         state = process_crosslinks(state, self.config)
         state = process_rewards_and_penalties(state, self.config)
-        # TODO: state = process_ejections(state, self.config)
+        state = process_ejections(state, self.config)
         state = process_validator_registry(state, self.config)
         state = process_final_updates(state, self.config)
 
