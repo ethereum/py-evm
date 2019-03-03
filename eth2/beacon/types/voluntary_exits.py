@@ -1,9 +1,15 @@
+from eth_typing import (
+    Hash32,
+)
 import ssz
 from ssz.sedes import (
     bytes96,
     uint64,
 )
 
+from eth2.beacon._utils.hash import (
+    hash_eth2,
+)
 from eth2.beacon.typing import (
     BLSSignature,
     Epoch,
@@ -32,3 +38,12 @@ class VoluntaryExit(ssz.Serializable):
             validator_index,
             signature,
         )
+
+    _signed_root = None
+
+    @property
+    def signed_root(self) -> Hash32:
+        # Use SSZ built-in function
+        if self._signed_root is None:
+            self._signed_root = hash_eth2(ssz.encode(self.copy(signature=EMPTY_SIGNATURE)))
+        return self._signed_root

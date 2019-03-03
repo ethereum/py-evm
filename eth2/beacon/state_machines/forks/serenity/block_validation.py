@@ -35,8 +35,9 @@ from eth2.beacon.enums import (
     SignatureDomain,
 )
 from eth2.beacon.helpers import (
-    get_epoch_start_slot,
     get_block_root,
+    get_epoch_start_slot,
+    get_delayed_activation_exit_epoch,
     get_domain,
     is_double_vote,
     is_surround_vote,
@@ -53,6 +54,7 @@ from eth2.beacon.types.proposal_signed_data import ProposalSignedData
 from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState  # noqa: F401
+from eth2.beacon.types.voluntary_exits import VoluntaryExit  # noqa: F401
 from eth2.beacon.typing import (
     Bitfield,
     BLSPubkey,
@@ -702,4 +704,75 @@ def validate_slashable_attestation(state: 'BeaconState',
     if not verify_slashable_attestation_signature(state, slashable_attestation, slots_per_epoch):
         raise ValidationError(
             f"slashable_attestation.signature error"
+        )
+
+
+#
+# Voluntary Exit
+#
+def validate_voluntary_exit(state: 'BeaconState',
+                            voluntary_exit: 'VoluntaryExit',
+                            slots_per_epoch: int,
+                            activation_exit_delay: int) -> None:
+    validator = state.validator_registry[voluntary_exit.validator_index]
+    current_epoch = state.current_epoch(slots_per_epoch)
+
+    validate_voluntary_exit_validator_exit_epoch(
+        state,
+        validator,
+        current_epoch,
+        slots_per_epoch=slots_per_epoch,
+        activation_exit_delay=activation_exit_delay,
+    )
+
+    validate_voluntary_exit_epoch(voluntary_exit, current_epoch)
+
+    validate_voluntary_exit_signature(state, voluntary_exit, validator)
+
+
+def validate_voluntary_exit_validator_exit_epoch(state: 'BeaconState',
+                                                 validator: 'ValidatorRecord',
+                                                 current_epoch: Epoch,
+                                                 slots_per_epoch: int,
+                                                 activation_exit_delay: int) -> None:
+    current_epoch = state.current_epoch(slots_per_epoch)
+
+    # Verify the validator has not yet exited
+    delayed_activation_exit_epoch = get_delayed_activation_exit_epoch(
+        current_epoch,
+        activation_exit_delay,
+    )
+    if validator.exit_epoch <= delayed_activation_exit_epoch:
+        raise ValidationError(
+            f"validator.exit_epoch ({validator.exit_epoch}) should be greater than "
+            f"delayed_activation_exit_epoch ({delayed_activation_exit_epoch})"
+        )
+
+
+def validate_voluntary_exit_epoch(voluntary_exit: 'VoluntaryExit',
+                                  current_epoch: Epoch) -> None:
+    # Exits must specify an epoch when they become valid; they are not valid before then
+    if current_epoch < voluntary_exit.epoch:
+        raise ValidationError(
+            f"voluntary_exit.epoch ({voluntary_exit.epoch}) should be less than or equal to "
+            f"current epoch ({current_epoch})"
+        )
+
+
+def validate_voluntary_exit_signature(state: 'BeaconState',
+                                      voluntary_exit: 'VoluntaryExit',
+                                      validator: 'ValidatorRecord') -> None:
+    domain = get_domain(state.fork, voluntary_exit.epoch, SignatureDomain.DOMAIN_EXIT)
+    is_valid_signature = bls.verify(
+        pubkey=validator.pubkey,
+        message_hash=voluntary_exit.signed_root,
+        signature=voluntary_exit.signature,
+        domain=domain,
+    )
+
+    if not is_valid_signature:
+        raise ValidationError(
+            f"Invalid VoluntaryExit signature, validator_index={voluntary_exit.validator_index}, "
+            f"pubkey={validator.pubkey}, message_hash={voluntary_exit.signed_root},"
+            f"signature={voluntary_exit.signature}, domain={domain}"
         )

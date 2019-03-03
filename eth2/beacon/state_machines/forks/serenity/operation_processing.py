@@ -15,6 +15,7 @@ from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.validator_status_helpers import (
+    initiate_validator_exit,
     slash_validator,
 )
 from eth2.beacon.typing import (
@@ -26,6 +27,7 @@ from .block_validation import (
     validate_attester_slashing,
     validate_proposer_slashing,
     validate_slashable_indices,
+    validate_voluntary_exit,
 )
 
 
@@ -142,4 +144,27 @@ def process_attestations(state: BeaconState,
     state = state.copy(
         latest_attestations=state.latest_attestations + additional_pending_attestations,
     )
+    return state
+
+
+def process_voluntary_exits(state: BeaconState,
+                            block: BaseBeaconBlock,
+                            config: BeaconConfig) -> BeaconState:
+    if len(block.body.voluntary_exits) > config.MAX_VOLUNTARY_EXITS:
+        raise ValidationError(
+            f"The block ({block}) has too many voluntary exits:\n"
+            f"\tFound {len(block.body.voluntary_exits)} voluntary exits, "
+            f"maximum: {config.MAX_VOLUNTARY_EXITS}"
+        )
+
+    for voluntary_exit in block.body.voluntary_exits:
+        validate_voluntary_exit(
+            state,
+            voluntary_exit,
+            config.SLOTS_PER_EPOCH,
+            config.ACTIVATION_EXIT_DELAY,
+        )
+        # Run the exit
+        state = initiate_validator_exit(state, voluntary_exit.validator_index)
+
     return state

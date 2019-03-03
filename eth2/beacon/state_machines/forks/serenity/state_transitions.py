@@ -29,6 +29,7 @@ from .operation_processing import (
     process_attestations,
     process_attester_slashings,
     process_proposer_slashings,
+    process_voluntary_exits,
 )
 from .slot_processing import (
     process_slot_transition,
@@ -81,7 +82,7 @@ class SerenityStateTransition(BaseStateTransition):
         state = process_attester_slashings(state, block, self.config)
         state = process_attestations(state, block, self.config)
         # TODO: state = process_deposits(state, block, self.config)
-        # TODO: state = process_voluntary_exits(state, block, self.config)
+        state = process_voluntary_exits(state, block, self.config)
         # TODO: state = process_transfers(state, block, self.config)
 
         return state

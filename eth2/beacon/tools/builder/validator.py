@@ -59,6 +59,7 @@ from eth2.beacon.types.proposal_signed_data import ProposalSignedData
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.beacon.typing import (
     BLSPubkey,
     BLSSignature,
@@ -516,6 +517,31 @@ def create_mock_signed_attestations_at_slot(
             keymap,
             config.SLOTS_PER_EPOCH,
         )
+
+
+#
+# VoluntaryExit
+#
+def create_mock_voluntary_exit(state: BeaconState,
+                               config: BeaconConfig,
+                               keymap: Dict[BLSPubkey, int],
+                               validator_index: ValidatorIndex,
+                               exit_epoch: Epoch=None) -> VoluntaryExit:
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    voluntary_exit = VoluntaryExit(
+        epoch=state.current_epoch(config.SLOTS_PER_EPOCH) if exit_epoch is None else exit_epoch,
+        validator_index=validator_index,
+    )
+    return voluntary_exit.copy(
+        signature=sign_transaction(
+            message_hash=voluntary_exit.signed_root,
+            privkey=keymap[state.validator_registry[validator_index].pubkey],
+            fork=state.fork,
+            slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
+            signature_domain=SignatureDomain.DOMAIN_EXIT,
+            slots_per_epoch=config.SLOTS_PER_EPOCH,
+        )
+    )
 
 
 #

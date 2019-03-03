@@ -14,11 +14,13 @@ from eth2.beacon.state_machines.forks.serenity.operation_processing import (
     process_attestations,
     process_proposer_slashings,
     process_attester_slashings,
+    process_voluntary_exits,
 )
 from eth2.beacon.tools.builder.validator import (
     create_mock_attester_slashing_is_double_vote,
     create_mock_signed_attestations_at_slot,
     create_mock_proposer_slashing_at_block,
+    create_mock_voluntary_exit,
 )
 
 
@@ -278,6 +280,80 @@ def test_process_attestations(genesis_state,
     else:
         with pytest.raises(ValidationError):
             process_attestations(
+                state,
+                block,
+                config,
+            )
+
+
+@pytest.mark.parametrize(
+    (
+        'num_validators',
+        'slots_per_epoch',
+        'target_committee_size',
+        'activation_exit_delay',
+    ),
+    [
+        (40, 2, 2, 2),
+    ]
+)
+@pytest.mark.parametrize(
+    (
+        'success',
+    ),
+    [
+        (True,),
+        (False,),
+    ]
+)
+def test_process_voluntary_exits(genesis_state,
+                                 sample_beacon_block_params,
+                                 sample_beacon_block_body_params,
+                                 config,
+                                 keymap,
+                                 min_attestation_inclusion_delay,
+                                 success):
+    state = genesis_state
+    validator_index = 0
+    valid_voluntary_exit = create_mock_voluntary_exit(
+        state,
+        config,
+        keymap,
+        validator_index,
+    )
+
+    if success:
+        block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
+            voluntary_exits=(valid_voluntary_exit,),
+        )
+        block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
+            slot=state.slot,
+            body=block_body,
+        )
+
+        new_state = process_voluntary_exits(
+            state,
+            block,
+            config,
+        )
+        # Check if initiated exit
+        assert (
+            new_state.validator_registry[validator_index].initiated_exit
+        )
+    else:
+        invalid_voluntary_exit = valid_voluntary_exit.copy(
+            signature=b'\x12' * 96,  # Put wrong signature
+        )
+        block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
+            voluntary_exits=(invalid_voluntary_exit,),
+        )
+        block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
+            slot=state.slot,
+            body=block_body,
+        )
+
+        with pytest.raises(ValidationError):
+            process_voluntary_exits(
                 state,
                 block,
                 config,
