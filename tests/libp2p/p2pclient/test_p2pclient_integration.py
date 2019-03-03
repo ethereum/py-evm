@@ -219,14 +219,14 @@ async def _make_p2pd_pair(
     dhtc = None
     pubsubc = None
     if enable_control:
-        controlc = ControlClient(listen_maddr, client)
+        controlc = ControlClient(client=client, listen_maddr=listen_maddr)
         await controlc.listen()
     if enable_connmgr:
-        connmgrc = ConnectionManagerClient(client)
+        connmgrc = ConnectionManagerClient(client=client)
     if enable_dht:
-        dhtc = DHTClient(client)
+        dhtc = DHTClient(client=client)
     if enable_pubsub:
-        pubsubc = PubSubClient(client)
+        pubsubc = PubSubClient(client=client)
     return DaemonTuple(
         daemon=p2pd,
         client=client,
@@ -357,7 +357,7 @@ async def _connect_and_check(p2pd_tuple_0, p2pd_tuple_1):
         )
 
 
-async def connect_safe(p2pd_tuple_0, p2pd_tuple_1):
+async def try_connect_until_success(p2pd_tuple_0, p2pd_tuple_1):
     timeout = 30  # seconds
     t_start = time.time()
     while True:
@@ -378,8 +378,8 @@ async def connect_safe(p2pd_tuple_0, p2pd_tuple_1):
     (True,),
 )
 @pytest.mark.asyncio
-async def test_connect_safe(p2pds):
-    await connect_safe(p2pds[0], p2pds[1])
+async def test_try_connect_until_success(p2pds):
+    await try_connect_until_success(p2pds[0], p2pds[1])
 
 
 @pytest.mark.parametrize(
@@ -392,11 +392,11 @@ async def test_control_client_list_peers(p2pds):
     # test case: no peers
     assert len(await c0.list_peers()) == 0
     # test case: 1 peer
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
     assert len(await c0.list_peers()) == 1
     assert len(await c1.list_peers()) == 1
     # test case: one more peer
-    await connect_safe(p2pds[0], p2pds[2])
+    await try_connect_until_success(p2pds[0], p2pds[2])
     assert len(await c0.list_peers()) == 2
     assert len(await c1.list_peers()) == 1
     assert len(await c2.list_peers()) == 1
@@ -413,7 +413,7 @@ async def test_controle_client_disconnect(peer_id_random, p2pds):
     await c1.disconnect(peer_id_random)
     # test case: disconnect
     peer_id_0, _ = await c0.identify()
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
     assert len(await c0.list_peers()) == 1
     assert len(await c1.list_peers()) == 1
     await c1.disconnect(peer_id_0)
@@ -434,7 +434,7 @@ async def test_control_client_stream_open_success(p2pds):
     c0, c1 = p2pds[0].control, p2pds[1].control
 
     peer_id_1, maddrs_1 = await c1.identify()
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
 
     proto = "123"
 
@@ -475,7 +475,7 @@ async def test_control_client_stream_open_failure(p2pds):
     c0, c1 = p2pds[0].control, p2pds[1].control
 
     peer_id_1, _ = await c1.identify()
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
 
     proto = "123"
 
@@ -518,7 +518,7 @@ async def test_control_client_stream_handler_success(p2pds):
     c0, c1 = p2pds[0].control, p2pds[1].control
 
     peer_id_1, _ = await c1.identify()
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
 
     proto = "protocol123"
     bytes_to_send = b"yoyoyoyoyog"
@@ -615,7 +615,7 @@ async def test_control_client_stream_handler_failure(p2pds):
     c0, c1 = p2pds[0].control, p2pds[1].control
 
     peer_id_1, _ = await c1.identify()
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
 
     proto = "123"
 
@@ -637,8 +637,8 @@ async def test_control_client_stream_handler_failure(p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_find_peer_success(p2pds):
     peer_id_2, _ = await p2pds[2].control.identify()
-    await connect_safe(p2pds[0], p2pds[1])
-    await connect_safe(p2pds[1], p2pds[2])
+    await try_connect_until_success(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[1], p2pds[2])
     pinfo = await p2pds[0].dht.find_peer(peer_id_2)
     assert pinfo.peer_id == peer_id_2
     assert len(pinfo.addrs) != 0
@@ -653,7 +653,7 @@ async def test_dht_client_find_peer_success(p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_find_peer_failure(peer_id_random, p2pds):
     peer_id_2, _ = await p2pds[2].control.identify()
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
     # test case: `peer_id` not found
     with pytest.raises(ControlFailure):
         await p2pds[0].dht.find_peer(peer_id_random)
@@ -671,9 +671,9 @@ async def test_dht_client_find_peer_failure(peer_id_random, p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_find_peers_connected_to_peer_success(p2pds):
     peer_id_2, _ = await p2pds[2].control.identify()
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
     # test case: 0 <-> 1 <-> 2
-    await connect_safe(p2pds[1], p2pds[2])
+    await try_connect_until_success(p2pds[1], p2pds[2])
     pinfos_connecting_to_2 = await p2pds[0].dht.find_peers_connected_to_peer(peer_id_2)
     # TODO: need to confirm this behaviour. Why the result is the PeerInfo of `peer_id_2`?
     assert len(pinfos_connecting_to_2) == 1
@@ -688,7 +688,7 @@ async def test_dht_client_find_peers_connected_to_peer_success(p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_find_peers_connected_to_peer_failure(peer_id_random, p2pds):
     peer_id_2, _ = await p2pds[2].control.identify()
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
     # test case: request for random peer_id
     pinfos = await p2pds[0].dht.find_peers_connected_to_peer(peer_id_random)
     assert not pinfos
@@ -705,7 +705,7 @@ async def test_dht_client_find_peers_connected_to_peer_failure(peer_id_random, p
 )
 @pytest.mark.asyncio
 async def test_dht_client_find_providers(p2pds):
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
     # borrowed from https://github.com/ipfs/go-cid#parsing-string-input-from-users
     content_id_bytes = b'\x01r\x12 \xc0F\xc8\xechB\x17\xf0\x1b$\xb9\xecw\x11\xde\x11Cl\x8eF\xd8\x9a\xf1\xaeLa?\xb0\xaf\xe6K\x8b'  # noqa: E501
     pinfos = await p2pds[1].dht.find_providers(content_id_bytes, 100)
@@ -720,8 +720,8 @@ async def test_dht_client_find_providers(p2pds):
 )
 @pytest.mark.asyncio
 async def test_dht_client_get_closest_peers(p2pds):
-    await connect_safe(p2pds[0], p2pds[1])
-    await connect_safe(p2pds[1], p2pds[2])
+    await try_connect_until_success(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[1], p2pds[2])
     peer_ids_1 = await p2pds[1].dht.get_closest_peers(b"123")
     assert len(peer_ids_1) == 2
 
@@ -736,8 +736,8 @@ async def test_dht_client_get_closest_peers(p2pds):
 async def test_dht_client_get_public_key_success(peer_id_random, p2pds):
     peer_id_0, _ = await p2pds[0].control.identify()
     peer_id_1, _ = await p2pds[1].control.identify()
-    await connect_safe(p2pds[0], p2pds[1])
-    await connect_safe(p2pds[1], p2pds[2])
+    await try_connect_until_success(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[1], p2pds[2])
     await asyncio.sleep(0.2)
     pk0 = await p2pds[0].dht.get_public_key(peer_id_0)
     pk1 = await p2pds[0].dht.get_public_key(peer_id_1)
@@ -753,8 +753,8 @@ async def test_dht_client_get_public_key_success(peer_id_random, p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_get_public_key_failure(peer_id_random, p2pds):
     peer_id_2, _ = await p2pds[2].control.identify()
-    await connect_safe(p2pds[0], p2pds[1])
-    await connect_safe(p2pds[1], p2pds[2])
+    await try_connect_until_success(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[1], p2pds[2])
     # test case: failed to get the pubkey of the peer_id_random
     with pytest.raises(ControlFailure):
         await p2pds[0].dht.get_public_key(peer_id_random)
@@ -775,7 +775,7 @@ async def test_dht_client_get_value(p2pds):
     # test case: no peer in table
     with pytest.raises(ControlFailure):
         await p2pds[0].dht.get_value(key_not_existing)
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
     # test case: routing not found
     with pytest.raises(ControlFailure):
         await p2pds[0].dht.get_value(key_not_existing)
@@ -793,7 +793,7 @@ async def test_dht_client_search_value(p2pds):
     # test case: no peer in table
     with pytest.raises(ControlFailure):
         await p2pds[0].dht.search_value(key_not_existing)
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
     # test case: non-existing key
     pinfos = await p2pds[0].dht.search_value(key_not_existing)
     assert len(pinfos) == 0
@@ -808,7 +808,7 @@ async def test_dht_client_search_value(p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_put_value(p2pds):
     peer_id_0, _ = await p2pds[0].control.identify()
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
 
     # test case: valid key
     pk0 = await p2pds[0].dht.get_public_key(peer_id_0)
@@ -837,7 +837,7 @@ async def test_dht_client_put_value(p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_provide(p2pds):
     peer_id_0, _ = await p2pds[0].control.identify()
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
     # test case: no providers
     content_id_bytes = b'\x01r\x12 \xc0F\xc8\xechB\x17\xf0\x1b$\xb9\xecw\x11\xde\x11Cl\x8eF\xd8\x9a\xf1\xaeLa?\xb0\xaf\xe6K\x8b'  # noqa: E501
     pinfos_empty = await p2pds[1].dht.find_providers(content_id_bytes, 100)
@@ -895,12 +895,18 @@ async def test_connmgr_client_untag_peer(peer_id_random, p2pds):
 )
 @pytest.mark.asyncio
 async def test_connmgr_client_trim_automatically_by_connmgr(p2pds):
-    await connect_safe(p2pds[1], p2pds[0])
-    await connect_safe(p2pds[1], p2pds[2])
-    await connect_safe(p2pds[1], p2pds[3])
+    # test case: due to `connHi=2` and `connLo=1`, when `p2pds[1]` connecting to the third peer,
+    #            `p2pds[3]`, the connmgr of `p2pds[1]` will try to prune the connections, down to
+    #            `connLo=1`.
+    peer_id_0, maddrs_0 = await p2pds[0].control.identify()
+    peer_id_2, maddrs_2 = await p2pds[2].control.identify()
+    peer_id_3, maddrs_3 = await p2pds[3].control.identify()
+    await p2pds[1].control.connect(peer_id_0, maddrs_0)
+    await p2pds[1].control.connect(peer_id_2, maddrs_2)
+    await p2pds[1].control.connect(peer_id_3, maddrs_3)
     # sleep to wait for the goroutine `Connmgr.TrimOpenConns` invoked by `mNotifee.Connected`
     await asyncio.sleep(1)
-    assert len(await p2pds[1].control.list_peers()) == 2
+    assert len(await p2pds[1].control.list_peers()) == 1
 
 
 @pytest.mark.parametrize(
@@ -913,8 +919,8 @@ async def test_connmgr_client_trim_automatically_by_connmgr(p2pds):
 async def test_connmgr_client_trim(p2pds):
     peer_id_0, _ = await p2pds[0].control.identify()
     peer_id_2, _ = await p2pds[2].control.identify()
-    await connect_safe(p2pds[1], p2pds[0])
-    await connect_safe(p2pds[1], p2pds[2])
+    await try_connect_until_success(p2pds[1], p2pds[0])
+    await try_connect_until_success(p2pds[1], p2pds[2])
     assert len(await p2pds[1].control.list_peers()) == 2
     await p2pds[1].connmgr.tag_peer(peer_id_0, "123", 1)
     await p2pds[1].connmgr.tag_peer(peer_id_2, "123", 2)
@@ -970,7 +976,7 @@ async def test_pubsub_client_publish(p2pds):
 async def test_pubsub_client_subscribe(p2pds):
     peer_id_0, _ = await p2pds[0].control.identify()
     peer_id_1, _ = await p2pds[1].control.identify()
-    await connect_safe(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[0], p2pds[1])
     topic = "topic123"
     data = b"data"
     reader_0, writer_0 = await p2pds[0].pubsub.subscribe(topic)

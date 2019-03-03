@@ -117,7 +117,7 @@ class ControlClient:
     listener: asyncio.AbstractServer = None
     logger = logging.getLogger('p2pclient.Control')
 
-    def __init__(self, listen_maddr: Multiaddr, client: Client) -> None:
+    def __init__(self, client: Client, listen_maddr: Multiaddr = None) -> None:
         if listen_maddr is None:
             listen_maddr = Multiaddr(config.listen_maddr_str)
         self.listen_maddr = listen_maddr

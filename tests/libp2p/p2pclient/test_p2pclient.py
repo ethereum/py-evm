@@ -15,6 +15,7 @@ from libp2p.p2pclient import (
 )
 from libp2p.p2pclient.p2pclient import (
     Client,
+    ControlClient,
     parse_conn_protocol,
     read_pbmsg_safe,
     write_pbmsg,
@@ -60,24 +61,37 @@ def test_parse_conn_protocol_invalid(maddr_str):
 
 
 @pytest.mark.parametrize(
-    "control_maddr_str, listen_maddr_str",
+    "control_maddr_str",
     (
-        ("/unix/123", "/ip4/127.0.0.1/tcp/7777"),
-        ("/ip4/127.0.0.1/tcp/6666", "/ip4/127.0.0.1/tcp/7777"),
-        ("/ip4/127.0.0.1/tcp/6666", "/unix/123"),
-        ("/unix/456", "/unix/123"),
+        "/unix/123",
+        "/ip4/127.0.0.1/tcp/6666",
     ),
 )
-def test_client_ctor_control_listen_maddr(control_maddr_str, listen_maddr_str):
+def test_client_ctor_control_maddr(control_maddr_str):
     c = Client(Multiaddr(control_maddr_str))
     assert c.control_maddr == Multiaddr(control_maddr_str)
-    # assert c.listen_maddr == Multiaddr(listen_maddr_str)
 
 
-def test_client_ctor_default_control_listen_maddr():
+def test_client_ctor_default_control_maddr():
     c = Client()
     assert c.control_maddr == Multiaddr(config.control_maddr_str)
-    # assert c.listen_maddr == Multiaddr(config.listen_maddr_str)
+
+
+@pytest.mark.parametrize(
+    "listen_maddr_str",
+    (
+        "/unix/123",
+        "/ip4/127.0.0.1/tcp/6666",
+    ),
+)
+def test_control_client_ctor_listen_maddr(listen_maddr_str):
+    c = ControlClient(client=Client(), listen_maddr=Multiaddr(listen_maddr_str))
+    assert c.listen_maddr == Multiaddr(listen_maddr_str)
+
+
+def test_control_client_ctor_default_listen_maddr():
+    c = ControlClient(client=Client())
+    assert c.listen_maddr == Multiaddr(config.listen_maddr_str)
 
 
 @pytest.mark.parametrize(
@@ -129,7 +143,7 @@ async def test_read_pbmsg_safe_readexactly_fails():
     try:
         await asyncio.wait_for(event.wait(), timeout=5)
     except asyncio.TimeoutError:
-        assert False
+        assert False, "timeout before `handler_stream` is called"
     assert event.is_set()
 
     sock.close()
