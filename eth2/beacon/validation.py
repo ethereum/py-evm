@@ -24,22 +24,22 @@ def validate_slot(slot: int, title: str="Slot") -> None:
     validate_lte(slot, 2**64 - 1, title)
 
 
-def validate_epoch_for_current_epoch(
-        current_epoch: Epoch,
-        given_epoch: Epoch,
-        genesis_epoch: Epoch) -> None:
-    previous_epoch = current_epoch - 1 if current_epoch > genesis_epoch else current_epoch
-    next_epoch = current_epoch + 1
-
-    if given_epoch < previous_epoch:
+def validate_epoch_within_previous_and_next(
+        epoch: Epoch,
+        previous_epoch: Epoch,
+        next_epoch: Epoch) -> None:
+    """
+    Validate that ``previous_epoch <= epoch <= next_epoch``.
+    """
+    if epoch < previous_epoch:
         raise ValidationError(
             f"previous_epoch ({previous_epoch}) should be less than "
-            f"or equal to given_epoch ({given_epoch})"
+            f"or equal to given_epoch ({epoch})"
         )
 
-    if given_epoch > next_epoch:
+    if epoch > next_epoch:
         raise ValidationError(
-            f"given_epoch ({given_epoch}) should be less than next_epoch ({next_epoch})"
+            f"given_epoch ({epoch}) should be less than or equal to next_epoch ({next_epoch})"
         )
 
 

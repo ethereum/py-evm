@@ -42,7 +42,7 @@ from eth2.beacon.typing import (
 )
 from eth2.beacon.validation import (
     validate_bitfield,
-    validate_epoch_for_current_epoch,
+    validate_epoch_within_previous_and_next,
 )
 
 if TYPE_CHECKING:
@@ -180,11 +180,7 @@ def get_crosslink_committees_at_slot(
     previous_epoch = state.previous_epoch(slots_per_epoch, genesis_epoch)
     next_epoch = state.next_epoch(slots_per_epoch)
 
-    validate_epoch_for_current_epoch(
-        current_epoch=current_epoch,
-        given_epoch=epoch,
-        genesis_epoch=genesis_epoch,
-    )
+    validate_epoch_within_previous_and_next(epoch, previous_epoch, next_epoch)
 
     if epoch == current_epoch:
         committees_per_epoch = get_current_epoch_committee_count(
@@ -281,14 +277,26 @@ def get_crosslink_committees_at_slot(
 
 def get_beacon_proposer_index(state: 'BeaconState',
                               slot: Slot,
-                              committee_config: CommitteeConfig) -> ValidatorIndex:
+                              committee_config: CommitteeConfig,
+                              registry_change: bool=False) -> ValidatorIndex:
     """
     Return the beacon proposer index for the ``slot``.
     """
+    epoch = slot_to_epoch(slot, committee_config.SLOTS_PER_EPOCH)
+    current_epoch = state.current_epoch(committee_config.SLOTS_PER_EPOCH)
+    previous_epoch = state.previous_epoch(
+        committee_config.SLOTS_PER_EPOCH,
+        committee_config.GENESIS_EPOCH,
+    )
+    next_epoch = Epoch(current_epoch + 1)
+
+    validate_epoch_within_previous_and_next(epoch, previous_epoch, next_epoch)
+
     crosslink_committees_at_slot = get_crosslink_committees_at_slot(
         state=state,
         slot=slot,
         committee_config=committee_config,
+        registry_change=registry_change,
     )
     try:
         first_crosslink_committee = crosslink_committees_at_slot[0]

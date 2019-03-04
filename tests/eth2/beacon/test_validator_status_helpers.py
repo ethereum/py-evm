@@ -187,7 +187,8 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              committee_config):
+                                              committee_config,
+                                              registry_change=False):
         return (
             (committee, 1,),
         )
@@ -269,7 +270,8 @@ def test_slash_validator(monkeypatch,
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              committee_config):
+                                              committee_config,
+                                              registry_change=False):
         return (
             (committee, 1,),
         )

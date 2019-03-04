@@ -16,7 +16,6 @@ from eth_typing import (
 )
 from eth_utils import (
     to_tuple,
-    ValidationError,
 )
 
 from eth.constants import (
@@ -32,6 +31,7 @@ from eth2.beacon.enums import (
     SignatureDomain,
 )
 from eth2.beacon.committee_helpers import (
+    get_beacon_proposer_index,
     get_crosslink_committees_at_slot,
 )
 from eth2.beacon.configs import (
@@ -69,6 +69,9 @@ from eth2.beacon.typing import (
     Shard,
     Slot,
     ValidatorIndex,
+)
+from eth2.beacon.validation import (
+    validate_epoch_within_previous_and_next,
 )
 
 from .committee_assignment import (
@@ -572,25 +575,19 @@ def get_committee_assignment(
     """
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
-    next_epoch = current_epoch + 1
+    next_epoch = Epoch(current_epoch + 1)
 
-    if previous_epoch > epoch:
-        raise ValidationError(
-            f"The given epoch ({epoch}) is less than previous epoch ({previous_epoch})"
-        )
-
-    if epoch > next_epoch:
-        raise ValidationError(
-            f"The given epoch ({epoch}) is greater than next epoch ({previous_epoch})"
-        )
+    validate_epoch_within_previous_and_next(epoch, previous_epoch, next_epoch)
 
     epoch_start_slot = get_epoch_start_slot(epoch, config.SLOTS_PER_EPOCH)
+
+    committee_config = CommitteeConfig(config)
 
     for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
         crosslink_committees = get_crosslink_committees_at_slot(
             state,
             slot,
-            CommitteeConfig(config),
+            committee_config,
             registry_change=registry_change,
         )
         selected_committees = [
@@ -601,10 +598,12 @@ def get_committee_assignment(
         if len(selected_committees) > 0:
             validators = selected_committees[0][0]
             shard = selected_committees[0][1]
-            first_committee_at_slot = crosslink_committees[0][0]  # List[ValidatorIndex]
-            is_proposer = first_committee_at_slot[
-                slot % len(first_committee_at_slot)
-            ] == validator_index
+            is_proposer = validator_index == get_beacon_proposer_index(
+                state,
+                Slot(slot),
+                committee_config,
+                registry_change=registry_change,
+            )
 
             return CommitteeAssignment(validators, shard, Slot(slot), is_proposer)
 

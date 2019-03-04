@@ -409,6 +409,15 @@ def test_get_crosslink_committees_at_slot(
 
 @pytest.mark.parametrize(
     (
+        'registry_change'
+    ),
+    [
+        (True),
+        (False)
+    ]
+)
+@pytest.mark.parametrize(
+    (
         'num_validators,'
         'slots_per_epoch,'
         'committee,'
@@ -438,6 +447,7 @@ def test_get_beacon_proposer_index(
         slots_per_epoch,
         committee,
         slot,
+        registry_change,
         success,
         sample_state,
         genesis_epoch,
@@ -449,7 +459,8 @@ def test_get_beacon_proposer_index(
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              committee_config):
+                                              committee_config,
+                                              registry_change=False):
         return (
             (committee, 1,),
         )
@@ -464,6 +475,7 @@ def test_get_beacon_proposer_index(
             sample_state,
             slot,
             committee_config,
+            registry_change=registry_change,
         )
         assert proposer_index == committee[slot % len(committee)]
     else:
@@ -472,6 +484,7 @@ def test_get_beacon_proposer_index(
                 sample_state,
                 slot,
                 committee_config,
+                registry_change=registry_change,
             )
 
 
@@ -533,7 +546,8 @@ def test_get_attestation_participants(
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              committee_config):
+                                              committee_config,
+                                              registry_change=False):
         return (
             (committee, shard,),
         )

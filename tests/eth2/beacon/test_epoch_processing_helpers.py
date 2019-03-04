@@ -244,7 +244,8 @@ def test_get_winning_root(
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              committee_config):
+                                              committee_config,
+                                              registry_change=False):
         return (
             (committee, shard,),
         )
@@ -341,7 +342,8 @@ def test_get_epoch_boundary_attester_indices(monkeypatch,
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              committee_config):
+                                              committee_config,
+                                              registry_change=False):
         return (
             (committee, sample_attestation_data_params['shard'],),
         )
@@ -456,7 +458,8 @@ def test_get_epoch_boundary_attesting_balances(
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              committee_config):
+                                              committee_config,
+                                              registry_change=False):
         return (
             (committee, sample_attestation_data_params['shard'],),
         )
@@ -591,7 +594,8 @@ def test_get_inclusion_infos(
 
     def mock_get_crosslink_committees_at_slot(state,
                                               slot,
-                                              committee_config):
+                                              committee_config,
+                                              registry_change=False):
         return (
             (committee, shard,),
         )

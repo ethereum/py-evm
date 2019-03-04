@@ -17,7 +17,7 @@ from eth2._utils.bitfield import (
 from eth2.beacon.validation import (
     validate_bitfield,
     validate_slot,
-    validate_epoch_for_current_epoch,
+    validate_epoch_within_previous_and_next,
 )
 
 
@@ -46,47 +46,59 @@ def test_validate_slot(slot, is_valid):
 
 @pytest.mark.parametrize(
     (
-        'current_epoch, epoch, success'
+        'genesis_epoch'
+    ),
+    [
+        (0),
+    ]
+)
+@pytest.mark.parametrize(
+    (
+        'epoch',
+        'previous_epoch',
+        'next_epoch',
+        'success'
     ),
     [
         (
-            0, 0, True,
+            0, 0, 1, True,
         ),
         (
-            1, 0, True,
+            0, 0, 2, True,
         ),
         (
-            2, 0, False,  # epoch < previous_epoch
+            0, 1, 3, False,  # epoch < previous_epoch
         ),
         (
-            2, 2, True,
+            2, 1, 3, True,
         ),
         (
-            2, 3, True,  # next_epoch == epoch
+            3, 1, 3, True,  # next_epoch == epoch
         ),
         (
-            2, 4, False,  # next_epoch < epoch
+            4, 1, 3, False,  # next_epoch < epoch
         ),
     ]
 )
-def test_validate_epoch_for_current_epoch(
-        current_epoch,
+def test_validate_epoch_within_previous_and_next(
         epoch,
+        previous_epoch,
+        next_epoch,
         success,
         slots_per_epoch,
         genesis_epoch):
     if success:
-        validate_epoch_for_current_epoch(
-            current_epoch=current_epoch,
-            given_epoch=epoch,
-            genesis_epoch=genesis_epoch,
+        validate_epoch_within_previous_and_next(
+            epoch,
+            previous_epoch,
+            next_epoch,
         )
     else:
         with pytest.raises(ValidationError):
-            validate_epoch_for_current_epoch(
-                current_epoch=current_epoch,
-                given_epoch=epoch,
-                genesis_epoch=genesis_epoch,
+            validate_epoch_within_previous_and_next(
+                epoch,
+                previous_epoch,
+                next_epoch,
             )
 
 
