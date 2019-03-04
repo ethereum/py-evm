@@ -363,7 +363,7 @@ def n_validators_state(filled_beacon_state, max_deposit_amount, n):
     return filled_beacon_state.copy(
         validator_registry=tuple(
             mock_validator_record(
-                pubkey=index.to_bytes(48, "big"),
+                pubkey=index.to_bytes(48, "little"),
                 is_active=True,
             )
             for index in range(validator_count)

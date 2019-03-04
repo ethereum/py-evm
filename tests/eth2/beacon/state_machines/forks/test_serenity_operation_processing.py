@@ -4,6 +4,12 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth2.beacon.committee_helpers import (
+    get_beacon_proposer_index,
+)
+from eth2.beacon.configs import (
+    CommitteeConfig,
+)
 from eth2.beacon.types.blocks import (
     BeaconBlockBody,
 )
@@ -91,15 +97,19 @@ def test_process_proposer_slashings(genesis_state,
     state = genesis_state.copy(
         slot=current_slot,
     )
-
-    proposer_index = 0
+    whistleblower_index = get_beacon_proposer_index(
+        state,
+        state.slot,
+        CommitteeConfig(config),
+    )
+    slashing_proposer_index = (whistleblower_index + 1) % len(state.validator_registry)
     proposer_slashing = create_mock_proposer_slashing_at_block(
         state,
         config,
         keymap,
         block_root_1=block_root_1,
         block_root_2=block_root_2,
-        proposer_index=proposer_index,
+        proposer_index=slashing_proposer_index,
     )
     proposer_slashings = (proposer_slashing,)
 
@@ -119,7 +129,8 @@ def test_process_proposer_slashings(genesis_state,
         )
         # Check if slashed
         assert (
-            new_state.validator_balances[proposer_index] < state.validator_balances[proposer_index]
+            new_state.validator_balances[slashing_proposer_index] <
+            state.validator_balances[slashing_proposer_index]
         )
     else:
         with pytest.raises(ValidationError):

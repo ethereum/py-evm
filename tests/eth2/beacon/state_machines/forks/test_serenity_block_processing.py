@@ -63,7 +63,7 @@ def test_randao_processing(sample_beacon_block_params,
 
     epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     slot = epoch * config.SLOTS_PER_EPOCH
-    message_hash = epoch.to_bytes(32, byteorder="big")
+    message_hash = epoch.to_bytes(32, byteorder="little")
     fork = Fork(**sample_fork_params)
     domain = get_domain(fork, slot, SignatureDomain.DOMAIN_RANDAO)
     randao_reveal = bls.sign(message_hash, proposer_privkey, domain)
@@ -105,7 +105,7 @@ def test_randao_processing_validates_randao_reveal(sample_beacon_block_params,
 
     epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     slot = epoch * config.SLOTS_PER_EPOCH
-    message_hash = (epoch + 1).to_bytes(32, byteorder="big")
+    message_hash = (epoch + 1).to_bytes(32, byteorder="little")
     fork = Fork(**sample_fork_params)
     domain = get_domain(fork, slot, SignatureDomain.DOMAIN_RANDAO)
     randao_reveal = bls.sign(message_hash, proposer_privkey, domain)

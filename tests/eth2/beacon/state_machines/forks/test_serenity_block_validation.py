@@ -162,7 +162,7 @@ def test_randao_reveal_validation(is_valid,
                                   pubkeys,
                                   sample_fork_params,
                                   config):
-    message_hash = epoch.to_bytes(32, byteorder="big")
+    message_hash = epoch.to_bytes(32, byteorder="little")
     slot = epoch * config.SLOTS_PER_EPOCH
     fork = Fork(**sample_fork_params)
     domain = get_domain(fork, slot, SignatureDomain.DOMAIN_RANDAO)

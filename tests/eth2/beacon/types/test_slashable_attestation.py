@@ -61,8 +61,8 @@ def test_is_validator_indices_ascending(
         'custody_bit_indices'
     ),
     [
-        ((0, 1, 2), b'\x80', ((1, 2), (0,))),
-        ((0, 1, 2), b'\xC0', ((2,), (0, 1))),
+        ((0, 1, 2), b'\x01', ((1, 2), (0,))),
+        ((0, 1, 2), b'\x03', ((2,), (0, 1))),
     ],
 )
 def test_custody_bit_indices(

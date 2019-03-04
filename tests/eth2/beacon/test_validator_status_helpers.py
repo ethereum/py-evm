@@ -52,7 +52,7 @@ def test_activate_validator(is_genesis,
     state = filled_beacon_state.copy(
         validator_registry=tuple(
             mock_validator_record(
-                pubkey=index.to_bytes(48, 'big'),
+                pubkey=index.to_bytes(48, 'little'),
                 is_active=False,
             )
             for index in range(validator_count)

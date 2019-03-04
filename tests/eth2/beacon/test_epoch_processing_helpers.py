@@ -10,10 +10,6 @@ from hypothesis import (
     strategies as st,
 )
 
-from eth_utils import (
-    big_endian_to_int,
-)
-
 from eth2._utils.bitfield import (
     set_voted,
     get_empty_bitfield,
@@ -145,7 +141,7 @@ def test_get_previous_epoch_head_attestations(
     current_epoch = previous_epoch + 1
     current_slot = get_epoch_start_slot(current_epoch + 1, slots_per_epoch) - 1
     latest_block_roots = [
-        hash_eth2(b'block_root' + i.to_bytes(1, 'big'))
+        hash_eth2(b'block_root' + i.to_bytes(1, 'little'))
         for i in range(latest_block_roots_length)
     ]
 
@@ -320,9 +316,7 @@ def test_get_winning_root(
         assert len(block_root_1_participants) == 0 and len(block_root_2_participants) == 0
     else:
         if len(block_root_1_participants) == len(block_root_2_participants):
-            root_1_as_int = big_endian_to_int(competing_block_roots[0])
-            root_2_as_int = big_endian_to_int(competing_block_roots[1])
-            if root_1_as_int < root_2_as_int:
+            if competing_block_roots[0] < competing_block_roots[1]:
                 assert winning_root == competing_block_roots[0]
             else:
                 assert winning_root == competing_block_roots[1]

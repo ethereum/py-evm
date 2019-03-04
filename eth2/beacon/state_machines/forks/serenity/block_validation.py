@@ -608,7 +608,7 @@ def validate_randao_reveal(randao_reveal: BLSSignature,
                            proposer_pubkey: BLSPubkey,
                            epoch: Epoch,
                            fork: Fork) -> None:
-    message_hash = Hash32(epoch.to_bytes(32, byteorder="big"))
+    message_hash = Hash32(epoch.to_bytes(32, byteorder="little"))
     domain = get_domain(fork, epoch, SignatureDomain.DOMAIN_RANDAO)
 
     is_randao_reveal_valid = bls.verify(

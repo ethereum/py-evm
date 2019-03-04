@@ -43,12 +43,15 @@ def test_bitfield_single_votes():
     attesters = list(range(10))
     bitfield = get_empty_bitfield(len(attesters))
 
-    assert set_voted(bitfield, 0) == b'\x80\x00'
-    assert set_voted(bitfield, 1) == b'\x40\x00'
-    assert set_voted(bitfield, 2) == b'\x20\x00'
-    assert set_voted(bitfield, 7) == b'\x01\x00'
-    assert set_voted(bitfield, 8) == b'\x00\x80'
-    assert set_voted(bitfield, 9) == b'\x00\x40'
+    assert set_voted(bitfield, 0) == b'\x01\x00'
+    assert set_voted(bitfield, 1) == b'\x02\x00'
+    assert set_voted(bitfield, 2) == b'\x04\x00'
+    assert set_voted(bitfield, 4) == b'\x10\x00'
+    assert set_voted(bitfield, 5) == b'\x20\x00'
+    assert set_voted(bitfield, 6) == b'\x40\x00'
+    assert set_voted(bitfield, 7) == b'\x80\x00'
+    assert set_voted(bitfield, 8) == b'\x00\x01'
+    assert set_voted(bitfield, 9) == b'\x00\x02'
 
     for voter in attesters:
         bitfield = set_voted(b'\x00\x00', voter)
@@ -68,18 +71,23 @@ def test_bitfield_all_votes():
 
     for attester in attesters:
         assert has_voted(bitfield, attester)
-    assert bitfield == b'\xff\xc0'
+    assert bitfield == b'\xff\x03'
 
 
 def test_bitfield_some_votes():
     attesters = list(range(10))
-    voters = [0, 4, 5, 9]
+    voters = [
+        0,  # b'\x01\x00'
+        4,  # b'\x10\x00'
+        5,  # b'\x20\x00'
+        9,  # b'\x00\x02'
+    ]
 
     bitfield = get_empty_bitfield(len(attesters))
     for voter in voters:
         bitfield = set_voted(bitfield, voter)
 
-    assert bitfield == b'\x8c\x40'
+    assert bitfield == b'\x31\x02'
 
     for attester in attesters:
         if attester in voters:

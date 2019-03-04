@@ -59,9 +59,9 @@ def shuffle(values: Sequence[TItem],
             if remaining == 1:
                 break
 
-            # Read 3-bytes of `source` as a 24-bit big-endian integer.
+            # Read 3-bytes of `source` as a 24-bit little-endian integer.
             sample_from_source = int.from_bytes(
-                source[position:position + RAND_BYTES], 'big'
+                source[position:position + RAND_BYTES], 'little'
             )
 
             # Sample values greater than or equal to `sample_max` will cause

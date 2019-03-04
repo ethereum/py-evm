@@ -1000,7 +1000,7 @@ def _update_latest_active_index_roots(state: BeaconState,
     index_root = hash_eth2(
         b''.join(
             [
-                index.to_bytes(32, 'big')
+                index.to_bytes(32, 'little')
                 for index in active_validator_indices
             ]
         )
