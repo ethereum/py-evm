@@ -15,6 +15,9 @@ from eth.db.backends.level import LevelDB
 from trinity._utils.log_messages import (
     create_missing_ipc_error_message,
 )
+from trinity.config import (
+    TrinityConfig,
+)
 
 
 DEFAULT_BANNER: str = (
@@ -91,18 +94,35 @@ def console(ipc_path: Path,
     shell(use_ipython, namespace, banner)
 
 
-def db_shell(use_ipython: bool, database_dir: Path) -> None:
+def db_shell(use_ipython: bool, database_dir: Path, trinity_config: TrinityConfig) -> None:
 
-    chaindb = ChainDB(LevelDB(database_dir))
+    db = LevelDB(database_dir)
+    chaindb = ChainDB(db)
     head = chaindb.get_canonical_head()
+    chain_config = trinity_config.get_chain_config()
+    chain = chain_config.full_chain_class(db)
 
     greeter = f"""
     Head: #{head.block_number}
     Hash: {head.hex_hash}
     State Root: {encode_hex(head.state_root)}
+
+    Available Context Variables:
+      - `db`: base database object
+      - `chaindb`: `ChainDB` instance
+      - `trinity_config`: `TrinityConfig` instance
+      - `chain_config`: `Eth1AppConfig` instance
+      - `chain`: `Chain` instance
     """
 
-    shell(use_ipython, {'chaindb': chaindb}, DB_SHELL_BANNER + greeter)
+    namespace = {
+        'db': db,
+        'chaindb': chaindb,
+        'trinity_config': trinity_config,
+        'chain_config': chain_config,
+        'chain': chain,
+    }
+    shell(use_ipython, namespace, DB_SHELL_BANNER + greeter)
 
 
 def shell(use_ipython: bool, namespace: Dict[str, Any], banner: str) -> None:

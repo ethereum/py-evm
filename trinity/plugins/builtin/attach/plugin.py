@@ -69,6 +69,6 @@ class DbShellPlugin(BaseMainProcessPlugin):
 
         if trinity_config.has_app_config(Eth1AppConfig):
             config = trinity_config.get_app_config(Eth1AppConfig)
-            db_shell(self.use_ipython, config.database_dir)
+            db_shell(self.use_ipython, config.database_dir, trinity_config)
         else:
             self.logger.error("DB Shell does only support the Ethereum 1 node at this time")
