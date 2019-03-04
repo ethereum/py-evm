@@ -161,6 +161,7 @@ async def test_send_single_attestation(request, event_loop):
     alice, msg_buffer = await get_command_setup(request, event_loop)
 
     attestation = Attestation(
+        aggregation_bitfield=b"\x00\x00\x00",
         data=AttestationData(
             slot=0,
             shard=1,
@@ -171,7 +172,6 @@ async def test_send_single_attestation(request, event_loop):
             justified_epoch=SERENITY_CONFIG.GENESIS_EPOCH,
             justified_block_root=ZERO_HASH32,
         ),
-        aggregation_bitfield=b"\x00\x00\x00",
         custody_bitfield=b"\x00\x00\x00",
     )
 
@@ -188,6 +188,7 @@ async def test_send_multiple_attestations(request, event_loop):
 
     attestations = tuple(
         Attestation(
+            aggregation_bitfield=b"\x00\x00\x00",
             data=AttestationData(
                 slot=0,
                 shard=shard,
@@ -198,7 +199,6 @@ async def test_send_multiple_attestations(request, event_loop):
                 justified_epoch=SERENITY_CONFIG.GENESIS_EPOCH,
                 justified_block_root=ZERO_HASH32,
             ),
-            aggregation_bitfield=b"\x00\x00\x00",
             custody_bitfield=b"\x00\x00\x00",
         ) for shard in range(10)
     )

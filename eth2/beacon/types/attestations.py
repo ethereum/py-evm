@@ -18,9 +18,10 @@ from eth2.beacon.constants import EMPTY_SIGNATURE
 class Attestation(ssz.Serializable):
 
     fields = [
-        ('data', AttestationData),
         # Attester aggregation bitfield
         ('aggregation_bitfield', bytes_sedes),
+        # Attestation data
+        ('data', AttestationData),
         # Proof of custody bitfield
         ('custody_bitfield', bytes_sedes),
         # BLS aggregate signature
@@ -28,13 +29,13 @@ class Attestation(ssz.Serializable):
     ]
 
     def __init__(self,
-                 data: AttestationData,
                  aggregation_bitfield: Bitfield,
+                 data: AttestationData,
                  custody_bitfield: Bitfield,
                  aggregate_signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
-            data,
             aggregation_bitfield,
+            data,
             custody_bitfield,
             aggregate_signature,
         )

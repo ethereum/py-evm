@@ -92,8 +92,8 @@ def sample_proposer_slashing_params(sample_proposal_signed_data_params):
 @pytest.fixture
 def sample_attestation_params(sample_attestation_data_params):
     return {
-        'data': AttestationData(**sample_attestation_data_params),
         'aggregation_bitfield': b'\12' * 16,
+        'data': AttestationData(**sample_attestation_data_params),
         'custody_bitfield': b'\34' * 16,
         'aggregate_signature': [0, 0],
     }

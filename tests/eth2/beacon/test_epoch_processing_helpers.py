@@ -277,19 +277,19 @@ def test_get_winning_root(
     attestations = (
         # Attestation to `crosslink_data_root_1` by `attestation_participants_1`
         Attestation(**sample_attestation_params).copy(
+            aggregation_bitfield=root_1_participants_bitfield,
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
                 crosslink_data_root=competing_block_roots[0],
             ),
-            aggregation_bitfield=root_1_participants_bitfield
         ),
         # Attestation to `crosslink_data_root_2` by `attestation_participants_2`
         Attestation(**sample_attestation_params).copy(
+            aggregation_bitfield=root_2_participants_bitfield,
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
                 crosslink_data_root=competing_block_roots[1],
             ),
-            aggregation_bitfield=root_2_participants_bitfield
         ),
     )
 
@@ -384,27 +384,27 @@ def test_get_epoch_boundary_attester_indices(monkeypatch,
     attestations = [
         # Attestation to `block_root_1` by `attestation_participants_1`
         Attestation(**sample_attestation_params).copy(
+            aggregation_bitfield=aggregation_bitfield_1,
             data=AttestationData(**sample_attestation_data_params).copy(
                 justified_epoch=1,
                 epoch_boundary_root=block_root_1,
             ),
-            aggregation_bitfield=aggregation_bitfield_1
         ),
         # Attestation to `block_root_1` by `attestation_participants_2`
         Attestation(**sample_attestation_params).copy(
+            aggregation_bitfield=aggregation_bitfield_2,
             data=AttestationData(**sample_attestation_data_params).copy(
                 justified_epoch=1,
                 epoch_boundary_root=block_root_1,
             ),
-            aggregation_bitfield=aggregation_bitfield_2
         ),
         # Attestation to `block_root_2` by `not_attestation_participants_1`
         Attestation(**sample_attestation_params).copy(
+            aggregation_bitfield=not_aggregation_bitfield_1,
             data=AttestationData(**sample_attestation_data_params).copy(
                 justified_epoch=2,
                 epoch_boundary_root=block_root_2,
             ),
-            aggregation_bitfield=not_aggregation_bitfield_1
         ),
     ]
 
@@ -496,40 +496,40 @@ def test_get_epoch_boundary_attesting_balances(
 
     current_epoch_attestations = (
         Attestation(**sample_attestation_params).copy(
+            aggregation_bitfield=aggregation_bitfield_1,
             data=AttestationData(**sample_attestation_data_params).copy(
                 slot=194,
                 justified_epoch=2,
                 epoch_boundary_root=current_epoch_boundary_root,
             ),
-            aggregation_bitfield=aggregation_bitfield_1
         ),
         Attestation(**sample_attestation_params).copy(
+            aggregation_bitfield=aggregation_bitfield_2,
             data=AttestationData(**sample_attestation_data_params).copy(
                 slot=193,
                 justified_epoch=2,
                 epoch_boundary_root=current_epoch_boundary_root,
             ),
-            aggregation_bitfield=aggregation_bitfield_2
         ),
 
     )
 
     previous_epoch_attestations = (
         Attestation(**sample_attestation_params).copy(
+            aggregation_bitfield=aggregation_bitfield_1,
             data=AttestationData(**sample_attestation_data_params).copy(
                 slot=129,
                 justified_epoch=previous_justified_epoch,
                 epoch_boundary_root=previous_epoch_boundary_root,
             ),
-            aggregation_bitfield=aggregation_bitfield_1
         ),
         Attestation(**sample_attestation_params).copy(
+            aggregation_bitfield=aggregation_bitfield_2,
             data=AttestationData(**sample_attestation_data_params).copy(
                 slot=130,
                 justified_epoch=previous_justified_epoch,
                 epoch_boundary_root=previous_epoch_boundary_root,
             ),
-            aggregation_bitfield=aggregation_bitfield_2
         ),
     )
 

@@ -336,12 +336,12 @@ def test_process_crosslinks(
                 # Generate the attestation
                 cur_epoch_attestations.append(
                     Attestation(**sample_attestation_params).copy(
+                        aggregation_bitfield=aggregation_bitfield,
                         data=AttestationData(**sample_attestation_data_params).copy(
                             slot=slot_in_cur_epoch,
                             shard=shard,
                             crosslink_data_root=crosslink_data_root,
                         ),
-                        aggregation_bitfield=aggregation_bitfield,
                     )
                 )
 
