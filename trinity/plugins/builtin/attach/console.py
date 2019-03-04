@@ -111,7 +111,7 @@ def db_shell(use_ipython: bool, database_dir: Path, trinity_config: TrinityConfi
       - `db`: base database object
       - `chaindb`: `ChainDB` instance
       - `trinity_config`: `TrinityConfig` instance
-      - `chain_config`: `Eth1AppConfig` instance
+      - `chain_config`: `ChainConfig` instance
       - `chain`: `Chain` instance
     """
 
