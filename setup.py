@@ -49,6 +49,8 @@ deps = {
     ],
     'doc': [
         "py-evm>=0.2.0-alpha.14",
+        # We need to have pysha for autodoc to be able to extract API docs
+        "pysha3>=1.0.0,<2.0.0",
         "pytest~=3.2",
         # Sphinx pined to `<1.8.0`: https://github.com/sphinx-doc/sphinx/issues/3494
         "Sphinx>=1.5.5,<1.8.0",
