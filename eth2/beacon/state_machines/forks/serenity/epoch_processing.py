@@ -910,9 +910,9 @@ def _process_validator_registry_with_update(current_epoch_committee_count: int,
 
     # Update step-by-step since updated `state.current_shuffling_epoch`
     # is used to calculate other value). Follow the spec tightly now.
-    state = _update_shuffling_epoch(state, config.SLOTS_PER_EPOCH)
-
     state = _update_shuffling_start_shard(state, current_epoch_committee_count, config.SHARD_COUNT)
+
+    state = _update_shuffling_epoch(state, config.SLOTS_PER_EPOCH)
 
     state = _update_shuffling_seed(
         state,

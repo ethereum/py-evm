@@ -276,27 +276,40 @@ def test_get_prev_or_cur_epoch_committee_count(
         'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
-        'registry_change,'
 
+        'registry_change,'
         'should_reseed,'
+
         'previous_shuffling_epoch,'
         'current_shuffling_epoch,'
         'shuffling_epoch,'
     ),
     [
-        # genesis_epoch == previous_epoch == slot_to_epoch(slot) == current_epoch
+        #
+        # epoch == current_epoch
+        #
+        # (1) genesis_epoch == previous_epoch == slot_to_epoch(slot) == current_epoch
         (10, 0, 5, 10, 2, 3, False, False, 0, 0, 0),
-        # genesis_epoch == previous_epoch == slot_to_epoch(slot) < current_epoch
-        (10, 10, 5, 10, 2, 3, False, False, 0, 1, 0),
-        # genesis_epoch < previous_epoch == slot_to_epoch(slot) < current_epoch
-        (10, 20, 11, 10, 2, 3, False, False, 1, 2, 1),
-        # genesis_epoch == previous_epoch < slot_to_epoch(slot) == current_epoch
+        # (2) genesis_epoch == previous_epoch < slot_to_epoch(slot) == current_epoch
         (10, 10, 11, 10, 2, 3, False, False, 0, 1, 1,),
-        # genesis_epoch == previous_epoch < slot_to_epoch(slot) == next_epoch
+
+        #
+        # epoch == previous_epoch
+        #
+        # (1) genesis_epoch == previous_epoch == slot_to_epoch(slot) < current_epoch
+        (10, 10, 5, 10, 2, 3, False, False, 0, 1, 0),
+        # (2) genesis_epoch < previous_epoch == slot_to_epoch(slot) < current_epoch
+        (10, 20, 11, 10, 2, 3, False, False, 1, 2, 1),
+
+
+        #
+        # epoch == next_epoch
+        #
+        # (1) genesis_epoch == previous_epoch < slot_to_epoch(slot) == next_epoch
         (100, 4, 9, 4, 2, 3, False, False, 0, 1, 2),
-        # genesis_epoch == previous_epoch < slot_to_epoch(slot) == next_epoch
+        # (2) genesis_epoch == previous_epoch < slot_to_epoch(slot) == next_epoch, registry_change
         (100, 4, 9, 4, 2, 3, True, False, 0, 1, 2),
-        # genesis_epoch == previous_epoch < slot_to_epoch(slot) == next_epoch, need_reseed
+        # (3) genesis_epoch == previous_epoch < slot_to_epoch(slot) == next_epoch, need_reseed
         # epochs_since_last_registry_update > 1 and is_power_of_two(epochs_since_last_registry_update)  # noqa: E501
         (100, 8, 13, 4, 2, 3, False, True, 1, 2, 3),
     ],
@@ -359,24 +372,36 @@ def test_get_crosslink_committees_at_slot(
     offset = slot % slots_per_epoch
 
     result_slot_start_shard = crosslink_committees_at_slot[0][1]
+
     current_committees_per_epoch = get_current_epoch_committee_count(
         state=state,
         shard_count=shard_count,
         slots_per_epoch=slots_per_epoch,
         target_committee_size=target_committee_size,
     )
-    committees_per_slot = current_committees_per_epoch // slots_per_epoch
 
     if registry_change:
+        committees_per_epoch = current_committees_per_epoch
         shuffling_start_shard = (
             state.current_shuffling_start_shard + current_committees_per_epoch
         ) % shard_count
-    else:
+    elif should_reseed:
+        committees_per_epoch = get_next_epoch_committee_count(
+            state=state,
+            shard_count=shard_count,
+            slots_per_epoch=slots_per_epoch,
+            target_committee_size=target_committee_size,
+        )
         shuffling_start_shard = state.current_shuffling_start_shard
-        assert result_slot_start_shard == (
-            shuffling_start_shard +
-            committees_per_slot * offset
-        ) % shard_count
+    else:
+        committees_per_epoch = current_committees_per_epoch
+        shuffling_start_shard = state.current_shuffling_start_shard
+
+    committees_per_slot = committees_per_epoch // slots_per_epoch
+    assert result_slot_start_shard == (
+        shuffling_start_shard +
+        committees_per_slot * offset
+    ) % shard_count
 
     #
     # Check seed

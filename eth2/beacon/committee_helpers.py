@@ -32,7 +32,9 @@ from eth2.beacon.helpers import (
     get_active_validator_indices,
     slot_to_epoch,
 )
-
+from eth2.beacon.datastructures.shuffling_context import (
+    ShufflingContext,
+)
 from eth2.beacon.typing import (
     Bitfield,
     Epoch,
@@ -156,6 +158,118 @@ def get_next_epoch_committee_count(
     )
 
 
+#
+# Helpers for get_crosslink_committees_at_slot
+#
+
+def _get_shuffling_context_is_current_epoch(
+        state: 'BeaconState',
+        committee_config: CommitteeConfig) -> ShufflingContext:
+    return ShufflingContext(
+        committees_per_epoch=get_current_epoch_committee_count(
+            state=state,
+            shard_count=committee_config.SHARD_COUNT,
+            slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
+            target_committee_size=committee_config.TARGET_COMMITTEE_SIZE,
+        ),
+        seed=state.current_shuffling_seed,
+        shuffling_epoch=state.current_shuffling_epoch,
+        shuffling_start_shard=state.current_shuffling_start_shard,
+    )
+
+
+def _get_shuffling_context_is_previous_epoch(
+        state: 'BeaconState',
+        committee_config: CommitteeConfig) -> ShufflingContext:
+    return ShufflingContext(
+        committees_per_epoch=get_previous_epoch_committee_count(
+            state=state,
+            shard_count=committee_config.SHARD_COUNT,
+            slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
+            target_committee_size=committee_config.TARGET_COMMITTEE_SIZE,
+        ),
+        seed=state.previous_shuffling_seed,
+        shuffling_epoch=state.previous_shuffling_epoch,
+        shuffling_start_shard=state.previous_shuffling_start_shard,
+    )
+
+
+def _get_shuffling_contextis_next_epoch_registry_change(
+        state: 'BeaconState',
+        next_epoch: Epoch,
+        committee_config: CommitteeConfig) -> ShufflingContext:
+    current_committees_per_epoch = get_current_epoch_committee_count(
+        state=state,
+        shard_count=committee_config.SHARD_COUNT,
+        slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
+        target_committee_size=committee_config.TARGET_COMMITTEE_SIZE,
+    )
+    return ShufflingContext(
+        committees_per_epoch=get_next_epoch_committee_count(
+            state=state,
+            shard_count=committee_config.SHARD_COUNT,
+            slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
+            target_committee_size=committee_config.TARGET_COMMITTEE_SIZE,
+        ),
+        seed=helpers.generate_seed(
+            state=state,
+            epoch=next_epoch,
+            slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
+            min_seed_lookahead=committee_config.MIN_SEED_LOOKAHEAD,
+            activation_exit_delay=committee_config.SLOTS_PER_EPOCH,
+            latest_active_index_roots_length=committee_config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
+            latest_randao_mixes_length=committee_config.LATEST_RANDAO_MIXES_LENGTH,
+        ),
+        shuffling_epoch=next_epoch,
+        # for mocking this out in tests.
+        shuffling_start_shard=(
+            state.current_shuffling_start_shard + current_committees_per_epoch
+        ) % committee_config.SHARD_COUNT,
+    )
+
+
+def _get_shuffling_contextis_next_epoch_should_reseed(
+        state: 'BeaconState',
+        next_epoch: Epoch,
+        committee_config: CommitteeConfig) -> ShufflingContext:
+    return ShufflingContext(
+        committees_per_epoch=get_next_epoch_committee_count(
+            state=state,
+            shard_count=committee_config.SHARD_COUNT,
+            slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
+            target_committee_size=committee_config.TARGET_COMMITTEE_SIZE,
+        ),
+        # for mocking this out in tests.
+        seed=helpers.generate_seed(
+            state=state,
+            epoch=next_epoch,
+            slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
+            min_seed_lookahead=committee_config.MIN_SEED_LOOKAHEAD,
+            activation_exit_delay=committee_config.SLOTS_PER_EPOCH,
+            latest_active_index_roots_length=committee_config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
+            latest_randao_mixes_length=committee_config.LATEST_RANDAO_MIXES_LENGTH,
+        ),
+        shuffling_epoch=next_epoch,
+        shuffling_start_shard=state.current_shuffling_start_shard,
+    )
+
+
+def _get_shuffling_contextis_next_epoch_no_registry_change_no_reseed(
+        state: 'BeaconState',
+        committee_config: CommitteeConfig) -> ShufflingContext:
+    return ShufflingContext(
+        committees_per_epoch=get_current_epoch_committee_count(
+            state=state,
+            shard_count=committee_config.SHARD_COUNT,
+            slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
+            target_committee_size=committee_config.TARGET_COMMITTEE_SIZE,
+        ),
+        seed=state.current_shuffling_seed,
+        shuffling_epoch=state.current_shuffling_epoch,
+        shuffling_start_shard=state.current_shuffling_start_shard,
+    )
+
+
 @to_tuple
 def get_crosslink_committees_at_slot(
         state: 'BeaconState',
@@ -170,11 +284,6 @@ def get_crosslink_committees_at_slot(
     slots_per_epoch = committee_config.SLOTS_PER_EPOCH
     target_committee_size = committee_config.TARGET_COMMITTEE_SIZE
 
-    min_seed_lookahead = committee_config.MIN_SEED_LOOKAHEAD
-    activation_exit_delay = committee_config.ACTIVATION_EXIT_DELAY
-    latest_active_index_roots_length = committee_config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
-    latest_randao_mixes_length = committee_config.LATEST_RANDAO_MIXES_LENGTH
-
     epoch = slot_to_epoch(slot, slots_per_epoch)
     current_epoch = state.current_epoch(slots_per_epoch)
     previous_epoch = state.previous_epoch(slots_per_epoch, genesis_epoch)
@@ -183,39 +292,10 @@ def get_crosslink_committees_at_slot(
     validate_epoch_within_previous_and_next(epoch, previous_epoch, next_epoch)
 
     if epoch == current_epoch:
-        committees_per_epoch = get_current_epoch_committee_count(
-            state=state,
-            shard_count=shard_count,
-            slots_per_epoch=slots_per_epoch,
-            target_committee_size=target_committee_size,
-        )
-        seed = state.current_shuffling_seed
-        shuffling_epoch = state.current_shuffling_epoch
-        shuffling_start_shard = state.current_shuffling_start_shard
+        shuffling_context = _get_shuffling_context_is_current_epoch(state, committee_config)
     elif epoch == previous_epoch:
-        committees_per_epoch = get_previous_epoch_committee_count(
-            state=state,
-            shard_count=shard_count,
-            slots_per_epoch=slots_per_epoch,
-            target_committee_size=target_committee_size,
-        )
-        seed = state.previous_shuffling_seed
-        shuffling_epoch = state.previous_shuffling_epoch
-        shuffling_start_shard = state.previous_shuffling_start_shard
+        shuffling_context = _get_shuffling_context_is_previous_epoch(state, committee_config)
     elif epoch == next_epoch:
-        current_committees_per_epoch = get_current_epoch_committee_count(
-            state=state,
-            shard_count=shard_count,
-            slots_per_epoch=slots_per_epoch,
-            target_committee_size=target_committee_size,
-        )
-        committees_per_epoch = get_next_epoch_committee_count(
-            state=state,
-            shard_count=shard_count,
-            slots_per_epoch=slots_per_epoch,
-            target_committee_size=target_committee_size,
-        )
-        shuffling_epoch = next_epoch
         epochs_since_last_registry_update = current_epoch - state.validator_registry_update_epoch
         should_reseed = (
             epochs_since_last_registry_update > 1 and
@@ -223,47 +303,35 @@ def get_crosslink_committees_at_slot(
         )
 
         if registry_change:
-            # for mocking this out in tests.
-            seed = helpers.generate_seed(
-                state=state,
-                epoch=next_epoch,
-                slots_per_epoch=slots_per_epoch,
-                min_seed_lookahead=min_seed_lookahead,
-                activation_exit_delay=activation_exit_delay,
-                latest_active_index_roots_length=latest_active_index_roots_length,
-                latest_randao_mixes_length=latest_randao_mixes_length,
+            shuffling_context = _get_shuffling_contextis_next_epoch_registry_change(
+                state,
+                next_epoch,
+                committee_config,
             )
-            shuffling_start_shard = (
-                state.current_shuffling_start_shard + current_committees_per_epoch
-            ) % shard_count
         elif should_reseed:
-            # for mocking this out in tests.
-            seed = helpers.generate_seed(
-                state=state,
-                epoch=next_epoch,
-                slots_per_epoch=slots_per_epoch,
-                min_seed_lookahead=min_seed_lookahead,
-                activation_exit_delay=activation_exit_delay,
-                latest_active_index_roots_length=latest_active_index_roots_length,
-                latest_randao_mixes_length=latest_randao_mixes_length,
+            shuffling_context = _get_shuffling_contextis_next_epoch_should_reseed(
+                state,
+                next_epoch,
+                committee_config,
             )
-            shuffling_start_shard = state.current_shuffling_start_shard
         else:
-            seed = state.current_shuffling_seed
-            shuffling_start_shard = state.current_shuffling_start_shard
+            shuffling_context = _get_shuffling_contextis_next_epoch_no_registry_change_no_reseed(
+                state,
+                committee_config,
+            )
 
     shuffling = get_shuffling(
-        seed=seed,
+        seed=shuffling_context.seed,
         validators=state.validator_registry,
-        epoch=shuffling_epoch,
+        epoch=shuffling_context.shuffling_epoch,
         slots_per_epoch=slots_per_epoch,
         target_committee_size=target_committee_size,
         shard_count=shard_count,
     )
     offset = slot % slots_per_epoch
-    committees_per_slot = committees_per_epoch // slots_per_epoch
+    committees_per_slot = shuffling_context.committees_per_epoch // slots_per_epoch
     slot_start_shard = (
-        shuffling_start_shard +
+        shuffling_context.shuffling_start_shard +
         committees_per_slot * offset
     ) % shard_count
 
