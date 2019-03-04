@@ -33,6 +33,7 @@ def test_block_body_empty(sample_attestation_params):
     assert block_body.attestations == ()
     assert block_body.deposits == ()
     assert block_body.voluntary_exits == ()
+    assert block_body.transfers == ()
 
     assert block_body.is_empty
 

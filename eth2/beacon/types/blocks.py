@@ -41,6 +41,7 @@ from .attestations import Attestation
 from .attester_slashings import AttesterSlashing
 from .deposits import Deposit
 from .eth1_data import Eth1Data
+from .transfers import Transfer
 from .voluntary_exits import VoluntaryExit
 from .proposer_slashings import ProposerSlashing
 
@@ -56,6 +57,7 @@ class BeaconBlockBody(ssz.Serializable):
         ('attestations', List(Attestation)),
         ('deposits', List(Deposit)),
         ('voluntary_exits', List(VoluntaryExit)),
+        ('transfers', List(Transfer)),
     ]
 
     def __init__(self,
@@ -63,13 +65,15 @@ class BeaconBlockBody(ssz.Serializable):
                  attester_slashings: Sequence[AttesterSlashing],
                  attestations: Sequence[Attestation],
                  deposits: Sequence[Deposit],
-                 voluntary_exits: Sequence[VoluntaryExit])-> None:
+                 voluntary_exits: Sequence[VoluntaryExit],
+                 transfers: Sequence[Transfer])-> None:
         super().__init__(
             proposer_slashings=proposer_slashings,
             attester_slashings=attester_slashings,
             attestations=attestations,
             deposits=deposits,
             voluntary_exits=voluntary_exits,
+            transfers=transfers,
         )
 
     @classmethod
@@ -80,6 +84,7 @@ class BeaconBlockBody(ssz.Serializable):
             attestations=(),
             deposits=(),
             voluntary_exits=(),
+            transfers=(),
         )
 
     @property
@@ -89,7 +94,8 @@ class BeaconBlockBody(ssz.Serializable):
             self.attester_slashings == () and
             self.attestations == () and
             self.deposits == () and
-            self.voluntary_exits == ()
+            self.voluntary_exits == () and
+            self.transfers == ()
         )
 
     @classmethod
@@ -101,6 +107,7 @@ class BeaconBlockBody(ssz.Serializable):
             attestations=body.attestations,
             deposits=body.deposits,
             voluntary_exits=body.voluntary_exits,
+            transfers=body.transfers,
         )
 
 
@@ -194,6 +201,7 @@ class BeaconBlock(BaseBeaconBlock):
             attestations=block.body.attestations,
             deposits=block.body.deposits,
             voluntary_exits=block.body.voluntary_exits,
+            transfers=block.body.transfer,
         )
 
         return cls(

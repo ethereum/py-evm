@@ -60,6 +60,7 @@ BeaconConfig = NamedTuple(
         ('MAX_ATTESTATIONS', int),
         ('MAX_DEPOSITS', int),
         ('MAX_VOLUNTARY_EXITS', int),
+        ('MAX_TRANSFERS', int),
     )
 )
 

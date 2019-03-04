@@ -57,4 +57,5 @@ SERENITY_CONFIG = BeaconConfig(
     MAX_ATTESTATIONS=2**7,  # (= 128)
     MAX_DEPOSITS=2**4,  # (= 16)
     MAX_VOLUNTARY_EXITS=2**4,  # (= 16)
+    MAX_TRANSFERS=2**4,  # (= 16)
 )
