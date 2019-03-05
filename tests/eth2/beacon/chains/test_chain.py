@@ -62,6 +62,7 @@ def test_canonical_chain(valid_chain):
     assert result_block == block
 
 
+@pytest.mark.long
 @pytest.mark.parametrize(
     (
         'num_validators,slots_per_epoch,target_committee_size,shard_count'

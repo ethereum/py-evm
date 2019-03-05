@@ -15,6 +15,7 @@ from eth2.beacon.tools.builder.validator import (
 )
 
 
+@pytest.mark.long
 @pytest.mark.parametrize(
     (
         'num_validators,'

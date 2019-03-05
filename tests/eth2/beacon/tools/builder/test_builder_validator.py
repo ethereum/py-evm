@@ -24,6 +24,7 @@ from eth2.beacon.tools.builder.validator import (
 )
 
 
+@pytest.mark.slow
 @settings(max_examples=1)
 @given(random=st.randoms())
 @pytest.mark.parametrize(
