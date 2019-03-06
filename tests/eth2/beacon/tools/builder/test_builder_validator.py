@@ -100,12 +100,13 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
         'shard_count,'
         'state_epoch,'
         'epoch,'
+        'genesis_slot,'
     ),
     [
-        (40, 16, 1, 2, 0, 0),  # genesis
-        (40, 16, 1, 2, 1, 1),  # current epoch
-        (40, 16, 1, 2, 1, 0),  # previous epoch
-        (40, 16, 1, 2, 1, 2),  # next epoch
+        (40, 16, 1, 2, 0, 0, 0),  # genesis
+        (40, 16, 1, 2, 1, 1, 0),  # current epoch
+        (40, 16, 1, 2, 1, 0, 0),  # previous epoch
+        (40, 16, 1, 2, 1, 2, 0),  # next epoch
     ]
 )
 def test_get_committee_assignment(genesis_state,

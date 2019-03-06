@@ -104,7 +104,7 @@ def test_validate_proposer_signature(
 
     state = BeaconState(**sample_beacon_state_params).copy(
         validator_registry=tuple(
-            mock_validator_record(proposer_pubkey)
+            mock_validator_record(proposer_pubkey, config)
             for _ in range(10)
         ),
         validator_balances=(max_deposit_amount,) * 10,

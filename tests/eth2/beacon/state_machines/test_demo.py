@@ -32,6 +32,8 @@ def test_demo(base_db,
               num_validators,
               config,
               keymap,
+              genesis_slot,
+              genesis_epoch,
               fixture_sm_class):
     chaindb = BeaconChainDB(base_db)
 
@@ -42,7 +44,7 @@ def test_demo(base_db,
         genesis_block_class=SerenityBeaconBlock,
     )
     for i in range(num_validators):
-        assert genesis_state.validator_registry[i].is_active(0)
+        assert genesis_state.validator_registry[i].is_active(genesis_slot)
 
     chaindb.persist_block(genesis_block, SerenityBeaconBlock)
     chaindb.persist_state(genesis_state)
@@ -55,8 +57,8 @@ def test_demo(base_db,
 
     attestations_map = {}  # Dict[Slot, Sequence[Attestation]]
 
-    for current_slot in range(1, chain_length):
-        if current_slot > config.MIN_ATTESTATION_INCLUSION_DELAY:
+    for current_slot in range(genesis_slot + 1, genesis_slot + chain_length):
+        if current_slot > genesis_slot + config.MIN_ATTESTATION_INCLUSION_DELAY:
             attestations = attestations_map[current_slot - config.MIN_ATTESTATION_INCLUSION_DELAY]
         else:
             attestations = ()
@@ -104,9 +106,9 @@ def test_demo(base_db,
         )
         attestations_map[attestation_slot] = attestations
 
-    assert state.slot == chain_length - 1
+    assert state.slot == chain_length - 1 + genesis_slot
     assert isinstance(sm.block, SerenityBeaconBlock)
 
     # Justification assertions
-    assert state.justified_epoch == 2
-    assert state.finalized_epoch == 1
+    assert state.justified_epoch == 2 + genesis_epoch
+    assert state.finalized_epoch == 1 + genesis_epoch

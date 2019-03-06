@@ -13,6 +13,14 @@ from eth2._utils.merkle import get_merkle_root
 
 @pytest.mark.parametrize(
     (
+        'genesis_slot,'
+    ),
+    [
+        (0),
+    ]
+)
+@pytest.mark.parametrize(
+    (
         'num_validators,'
         'slots_per_epoch,'
         'min_attestation_inclusion_delay,'

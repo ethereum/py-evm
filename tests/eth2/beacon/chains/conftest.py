@@ -26,7 +26,7 @@ def _beacon_chain_with_block_validation(
     klass = chain_cls.configure(
         __name__='TestChain',
         sm_configuration=(
-            (0, fixture_sm_class),
+            (genesis_state.slot, fixture_sm_class),
         ),
         chain_id=5566,
     )

@@ -3,22 +3,23 @@ from eth_utils import to_tuple
 from eth.constants import (
     ZERO_HASH32,
 )
+from eth2.beacon.configs import BeaconConfig
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.types.validator_records import (
     ValidatorRecord,
 )
-from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
 
 def mock_validator_record(pubkey,
+                          config: BeaconConfig,
                           withdrawal_credentials=ZERO_HASH32,
                           is_active=True):
     return ValidatorRecord(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
-        activation_epoch=SERENITY_CONFIG.GENESIS_EPOCH if is_active else FAR_FUTURE_EPOCH,
+        activation_epoch=config.GENESIS_EPOCH if is_active else FAR_FUTURE_EPOCH,
         exit_epoch=FAR_FUTURE_EPOCH,
         withdrawable_epoch=FAR_FUTURE_EPOCH,
         initiated_exit=False,

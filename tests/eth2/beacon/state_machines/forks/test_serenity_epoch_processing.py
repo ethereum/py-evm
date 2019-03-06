@@ -174,6 +174,14 @@ def test_justification_without_mock(sample_beacon_state_params,
 
 
 @pytest.mark.parametrize(
+    (
+        "genesis_slot,"
+    ),
+    [
+        (0),
+    ]
+)
+@pytest.mark.parametrize(
     # Each state contains epoch, current_epoch_justifiable, previous_epoch_justifiable,
     # previous_justified_epoch, justified_epoch, justification_bitfield, and finalized_epoch.
     # Specify the last epoch processed state at the end of the items.
@@ -268,6 +276,7 @@ def test_process_justification(monkeypatch,
         'target_committee_size,'
         'shard_count,'
         'success_crosslink_in_cur_epoch,'
+        'genesis_slot,'
     ),
     [
         (
@@ -276,6 +285,7 @@ def test_process_justification(monkeypatch,
             9,
             10,
             False,
+            0,
         ),
         (
             90,
@@ -283,6 +293,7 @@ def test_process_justification(monkeypatch,
             9,
             10,
             True,
+            0,
         ),
     ]
 )
@@ -373,6 +384,7 @@ def test_process_crosslinks(
         'shard_count,'
         'min_attestation_inclusion_delay,'
         'inactivity_penalty_quotient,'
+        'genesis_slot,'
     ),
     [
         (
@@ -382,6 +394,7 @@ def test_process_crosslinks(
             2,
             4,
             10,
+            0,
         )
     ]
 )
@@ -571,6 +584,7 @@ def test_process_rewards_and_penalties_for_finality(
 @pytest.mark.parametrize(
     (
         'n,'
+        'genesis_slot,'
         'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
@@ -584,6 +598,7 @@ def test_process_rewards_and_penalties_for_finality(
     [
         (
             20,
+            0,
             10,
             2,
             10,
@@ -687,7 +702,8 @@ def test_process_rewards_and_penalties_for_attestation_inclusion(
         'target_committee_size,'
         'shard_count,'
         'current_slot,'
-        'num_attesting_validators'
+        'num_attesting_validators,'
+        'genesis_slot,'
     ),
     [
         (
@@ -697,6 +713,7 @@ def test_process_rewards_and_penalties_for_attestation_inclusion(
             10,
             100,
             3,
+            0,
         ),
         (
             50,
@@ -705,6 +722,7 @@ def test_process_rewards_and_penalties_for_attestation_inclusion(
             10,
             100,
             4,
+            0,
         ),
     ]
 )
@@ -845,6 +863,14 @@ def test_process_rewards_and_penalties_for_crosslinks(
 #
 # Ejections
 #
+@pytest.mark.parametrize(
+    (
+        'genesis_slot,'
+    ),
+    [
+        (0),
+    ]
+)
 def test_process_ejections(genesis_state, config, activation_exit_delay):
     current_epoch = 8
     state = genesis_state.copy(
