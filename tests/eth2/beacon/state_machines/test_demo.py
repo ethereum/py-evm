@@ -32,9 +32,9 @@ def test_demo(base_db,
               num_validators,
               config,
               keymap,
-              genesis_slot,
-              genesis_epoch,
               fixture_sm_class):
+    genesis_slot = config.GENESIS_SLOT
+    genesis_epoch = config.GENESIS_EPOCH
     chaindb = BeaconChainDB(base_db)
 
     genesis_state, genesis_block = create_mock_genesis(

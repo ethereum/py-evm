@@ -35,9 +35,8 @@ def test_process_max_attestations(genesis_state,
                                   sample_beacon_block_params,
                                   sample_beacon_block_body_params,
                                   config,
-                                  keymap,
-                                  genesis_slot):
-    attestation_slot = genesis_slot
+                                  keymap):
+    attestation_slot = config.GENESIS_SLOT
     current_slot = attestation_slot + config.MIN_ATTESTATION_INCLUSION_DELAY
     state = genesis_state.copy(
         slot=current_slot,
@@ -93,9 +92,8 @@ def test_process_proposer_slashings(genesis_state,
                                     keymap,
                                     block_root_1,
                                     block_root_2,
-                                    success,
-                                    genesis_slot):
-    current_slot = genesis_slot + 1
+                                    success):
+    current_slot = config.GENESIS_SLOT + 1
     state = genesis_state.copy(
         slot=current_slot,
     )
