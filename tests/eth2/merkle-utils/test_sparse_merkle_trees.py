@@ -10,6 +10,9 @@ from eth2._utils.merkle_sparse import (
     get_root,
     verify_merkle_proof,
 )
+from eth2.beacon._utils.hash import (
+    hash_eth2,
+)
 
 
 @pytest.mark.parametrize("items,expected_root", [
@@ -36,15 +39,15 @@ def test_merkle_root_and_proofs(items, expected_root):
     for index in range(len(items)):
         item = items[index]
         proof = get_merkle_proof(tree, index)
-        assert verify_merkle_proof(expected_root, item, index, proof)
+        assert verify_merkle_proof(expected_root, hash_eth2(item), index, proof)
 
-        assert not verify_merkle_proof(b"\x32" * 32, item, index, proof)
-        assert not verify_merkle_proof(expected_root, b"\x32" * 32, index, proof)
+        assert not verify_merkle_proof(b"\x32" * 32, hash_eth2(item), index, proof)
+        assert not verify_merkle_proof(expected_root, hash_eth2(b"\x32" * 32), index, proof)
         if len(items) > 1:
-            assert not verify_merkle_proof(expected_root, item, (index + 1) % len(items), proof)
+            assert not verify_merkle_proof(expected_root, hash_eth2(item), (index + 1) % len(items), proof)
         for replaced_index in range(len(proof)):
             altered_proof = proof[:replaced_index] + (b"\x32" * 32,) + proof[replaced_index + 1:]
-            assert not verify_merkle_proof(expected_root, item, index, altered_proof)
+            assert not verify_merkle_proof(expected_root, hash_eth2(item), index, altered_proof)
 
 
 @pytest.mark.parametrize("items", [

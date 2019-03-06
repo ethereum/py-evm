@@ -33,7 +33,6 @@ from .merkle_normal import (  # noqa: F401
     get_root,
     MerkleTree,
     MerkleProof,
-    verify_merkle_proof,
 )
 
 
@@ -57,6 +56,24 @@ def get_merkle_proof(tree: MerkleTree, item_index: int) -> Iterable[Hash32]:
         for layer, proof_index
         in zip(reversed(tree), proof_indices)
     )
+
+
+def verify_merkle_proof(root: Hash32,
+                        leaf: Hash32,
+                        index: int,
+                        proof: MerkleProof) -> bool:
+    """
+    Verify that the given ``item`` is on the merkle branch ``proof``
+    starting with the given ``root``.
+    """
+    assert len(proof) == TreeHeight
+    value = leaf
+    for i in range(TreeHeight):
+        if index // (2**i) % 2:
+            value = hash_eth2(proof[i] + value)
+        else:
+            value = hash_eth2(value + proof[i])
+    return value == root
 
 
 def calc_merkle_tree(items: Sequence[Union[bytes, bytearray]]) -> MerkleTree:
