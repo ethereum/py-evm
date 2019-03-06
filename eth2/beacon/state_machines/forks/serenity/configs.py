@@ -14,6 +14,9 @@ from eth2.beacon.typing import (
     Slot,
 )
 
+GENESIS_SLOT = Slot(2**32)
+SLOTS_PER_EPOCH = 2**6
+
 
 SERENITY_CONFIG = BeaconConfig(
     # Misc
@@ -34,14 +37,14 @@ SERENITY_CONFIG = BeaconConfig(
     MAX_DEPOSIT_AMOUNT=Gwei(2**5 * GWEI_PER_ETH),  # (= 32,000,000,00) Gwei
     # Genesis values
     GENESIS_FORK_VERSION=0,
-    GENESIS_SLOT=Slot(0),
-    GENESIS_EPOCH=slot_to_epoch(Slot(0), 2**6),  # GENESIS_EPOCH=slot_to_epoch(GENESIS_SLOT)
+    GENESIS_SLOT=GENESIS_SLOT,
+    GENESIS_EPOCH=slot_to_epoch(GENESIS_SLOT, SLOTS_PER_EPOCH),
     GENESIS_START_SHARD=Shard(0),
     BLS_WITHDRAWAL_PREFIX_BYTE=b'\x00',
     # Time parameters
     SECONDS_PER_SLOT=Second(6),  # seconds
     MIN_ATTESTATION_INCLUSION_DELAY=2**2,  # (= 4) slots
-    SLOTS_PER_EPOCH=2**6,  # (= 64) slots
+    SLOTS_PER_EPOCH=SLOTS_PER_EPOCH,  # (= 64) slots
     MIN_SEED_LOOKAHEAD=2**0,  # (= 1) epochs
     ACTIVATION_EXIT_DELAY=2**2,  # (= 4) epochs
     EPOCHS_PER_ETH1_VOTING_PERIOD=2**4,  # (= 16) epochs
