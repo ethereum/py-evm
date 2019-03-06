@@ -48,7 +48,6 @@ def revert(computation: BaseComputation) -> None:
 def selfdestruct(computation: BaseComputation) -> None:
     beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     _selfdestruct(computation, beneficiary)
-    raise Halt('SELFDESTRUCT')
 
 
 def selfdestruct_eip150(computation: BaseComputation) -> None:
