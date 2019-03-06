@@ -16,6 +16,9 @@ from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
     FAR_FUTURE_EPOCH,
 )
+from eth2.beacon.helpers import (
+    slot_to_epoch,
+)
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.deposit_data import DepositData
@@ -135,9 +138,10 @@ def sample_beacon_block_body_params():
 
 @pytest.fixture
 def sample_beacon_block_params(sample_beacon_block_body_params,
-                               sample_eth1_data_params):
+                               sample_eth1_data_params,
+                               genesis_slot):
     return {
-        'slot': 10,
+        'slot': genesis_slot + 10,
         'parent_root': ZERO_HASH32,
         'state_root': b'\x55' * 32,
         'randao_reveal': EMPTY_SIGNATURE,
@@ -148,9 +152,12 @@ def sample_beacon_block_params(sample_beacon_block_body_params,
 
 
 @pytest.fixture
-def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
+def sample_beacon_state_params(genesis_slot,
+                               genesis_epoch,
+                               sample_fork_params,
+                               sample_eth1_data_params):
     return {
-        'slot': 100,
+        'slot': genesis_slot + 100,
         'genesis_time': 0,
         'fork': Fork(**sample_fork_params),
         'validator_registry': (),
@@ -159,8 +166,8 @@ def sample_beacon_state_params(sample_fork_params, sample_eth1_data_params):
         'latest_randao_mixes': (),
         'previous_shuffling_start_shard': 1,
         'current_shuffling_start_shard': 2,
-        'previous_shuffling_epoch': 0,
-        'current_shuffling_epoch': 0,
+        'previous_shuffling_epoch': genesis_epoch,
+        'current_shuffling_epoch': genesis_epoch,
         'previous_shuffling_seed': b'\x77' * 32,
         'current_shuffling_seed': b'\x88' * 32,
         'previous_justified_epoch': 0,
@@ -358,12 +365,13 @@ def n():
 
 
 @pytest.fixture()
-def n_validators_state(filled_beacon_state, max_deposit_amount, n):
+def n_validators_state(filled_beacon_state, max_deposit_amount, n, config):
     validator_count = n
     return filled_beacon_state.copy(
         validator_registry=tuple(
             mock_validator_record(
                 pubkey=index.to_bytes(48, "little"),
+                config=config,
                 is_active=True,
             )
             for index in range(validator_count)
@@ -484,8 +492,8 @@ def genesis_slot():
 
 
 @pytest.fixture
-def genesis_epoch():
-    return SERENITY_CONFIG.GENESIS_EPOCH
+def genesis_epoch(genesis_slot, slots_per_epoch):
+    return slot_to_epoch(genesis_slot, slots_per_epoch)
 
 
 @pytest.fixture
@@ -628,13 +636,15 @@ def genesis_block(genesis_state, genesis_slot):
 @pytest.fixture
 def genesis_validators(init_validator_pubkeys,
                        init_randao,
-                       max_deposit_amount):
+                       max_deposit_amount,
+                       config):
     """
     Inactive
     """
     return tuple(
         mock_validator_record(
             pubkey=pubkey,
+            config=config,
             withdrawal_credentials=ZERO_HASH32,
             is_active=False,
         )

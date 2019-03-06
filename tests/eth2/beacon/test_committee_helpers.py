@@ -77,7 +77,8 @@ def test_get_next_epoch_committee_count(n_validators_state,
                                         shard_count,
                                         slots_per_epoch,
                                         target_committee_size,
-                                        expected_committee_count):
+                                        expected_committee_count,
+                                        config):
     state = n_validators_state
 
     current_epoch_committee_count = get_current_epoch_committee_count(
@@ -96,11 +97,12 @@ def test_get_next_epoch_committee_count(n_validators_state,
     assert next_epoch_committee_count == expected_committee_count
 
     # Exit all validators
+    exit_epoch = state.current_epoch(slots_per_epoch) + 1
     for index, validator in enumerate(state.validator_registry):
         state = state.update_validator_registry(
             validator_index=index,
             validator=validator.copy(
-                exit_epoch=state.current_epoch(slots_per_epoch) + 1,
+                exit_epoch=exit_epoch,
             ),
         )
 
@@ -120,6 +122,14 @@ def test_get_next_epoch_committee_count(n_validators_state,
     assert next_epoch_committee_count == slots_per_epoch
 
 
+@pytest.mark.parametrize(
+    (
+        'genesis_slot,'
+    ),
+    [
+        (0),
+    ],
+)
 @pytest.mark.parametrize(
     (
         'num_validators,'
@@ -270,6 +280,15 @@ def test_get_prev_or_cur_epoch_committee_count(
 
 @pytest.mark.parametrize(
     (
+        'genesis_slot,'
+        'genesis_epoch,'
+    ),
+    [
+        (0, 0),
+    ],
+)
+@pytest.mark.parametrize(
+    (
         'n,'
         'current_slot,'
         'slot,'
@@ -316,6 +335,7 @@ def test_get_prev_or_cur_epoch_committee_count(
 )
 def test_get_crosslink_committees_at_slot(
         monkeypatch,
+        genesis_slot,
         n_validators_state,
         current_slot,
         slot,
@@ -440,6 +460,15 @@ def test_get_crosslink_committees_at_slot(
         (True),
         (False)
     ]
+)
+@pytest.mark.parametrize(
+    (
+        'genesis_slot,'
+        'genesis_epoch,'
+    ),
+    [
+        (0, 0),
+    ],
 )
 @pytest.mark.parametrize(
     (

@@ -24,12 +24,12 @@ def test_defaults(sample_beacon_state_params):
     assert ssz.encode(state)
 
 
-def test_validator_registry_and_balances_length(sample_beacon_state_params):
+def test_validator_registry_and_balances_length(sample_beacon_state_params, config):
     # When len(BeaconState.validator_registry) != len(BeaconState.validtor_balances)
     with pytest.raises(ValueError):
         BeaconState(**sample_beacon_state_params).copy(
             validator_registry=tuple(
-                mock_validator_record(pubkey)
+                mock_validator_record(pubkey, config)
                 for pubkey in range(10)
             ),
         )
@@ -40,11 +40,13 @@ def test_validator_registry_and_balances_length(sample_beacon_state_params):
 )
 def test_num_validators(expected,
                         max_deposit_amount,
-                        filled_beacon_state):
+                        filled_beacon_state,
+                        config):
     state = filled_beacon_state.copy(
         validator_registry=tuple(
             mock_validator_record(
                 pubkey,
+                config,
             )
             for pubkey in range(expected)
         ),
@@ -86,9 +88,9 @@ def test_hash(sample_beacon_state_params):
 def test_update_validator(n_validators_state,
                           validator_index,
                           new_pubkey,
-                          new_balance):
+                          new_balance, config):
     state = n_validators_state
-    validator = mock_validator_record(new_pubkey)
+    validator = mock_validator_record(new_pubkey, config)
 
     if validator_index < state.num_validators:
         result_state = state.update_validator(

@@ -50,7 +50,7 @@ def test_randao_processing(sample_beacon_block_params,
     proposer_pubkey, proposer_privkey = first(keymap.items())
     state = SerenityBeaconState(**sample_beacon_state_params).copy(
         validator_registry=tuple(
-            mock_validator_record(proposer_pubkey)
+            mock_validator_record(proposer_pubkey, config)
             for _ in range(config.TARGET_COMMITTEE_SIZE)
         ),
         validator_balances=(config.MAX_DEPOSIT_AMOUNT,) * config.TARGET_COMMITTEE_SIZE,
@@ -92,7 +92,7 @@ def test_randao_processing_validates_randao_reveal(sample_beacon_block_params,
     proposer_pubkey, proposer_privkey = first(keymap.items())
     state = SerenityBeaconState(**sample_beacon_state_params).copy(
         validator_registry=tuple(
-            mock_validator_record(proposer_pubkey)
+            mock_validator_record(proposer_pubkey, config)
             for _ in range(config.TARGET_COMMITTEE_SIZE)
         ),
         validator_balances=(config.MAX_DEPOSIT_AMOUNT,) * config.TARGET_COMMITTEE_SIZE,

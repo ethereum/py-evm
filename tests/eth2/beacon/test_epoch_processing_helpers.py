@@ -71,6 +71,14 @@ def get_aggregation_bitfield(attestation_participants, target_committee_size):
 
 @settings(max_examples=1)
 @given(random=st.randoms())
+@pytest.mark.parametrize(
+    (
+        'genesis_slot,'
+    ),
+    [
+        (0),
+    ]
+)
 def test_get_current_and_previous_epoch_attestations(random,
                                                      sample_state,
                                                      genesis_epoch,
@@ -123,10 +131,10 @@ def test_get_current_and_previous_epoch_attestations(random,
 @given(random=st.randoms())
 @pytest.mark.parametrize(
     (
-        'slots_per_epoch,latest_block_roots_length,'
+        'slots_per_epoch,latest_block_roots_length,genesis_slot'
     ),
     [
-        (10, 100),
+        (10, 100, 0),
     ]
 )
 def test_get_previous_epoch_head_attestations(
@@ -433,8 +441,16 @@ def test_get_epoch_boundary_attester_indices(monkeypatch,
 @settings(max_examples=1)
 @given(random=st.randoms())
 @pytest.mark.parametrize(
-    "n,",
-    (16,),
+    (
+        'n,'
+        'genesis_slot,'
+    ),
+    [
+        (
+            16,
+            0,
+        ),
+    ]
 )
 def test_get_epoch_boundary_attesting_balances(
     monkeypatch,

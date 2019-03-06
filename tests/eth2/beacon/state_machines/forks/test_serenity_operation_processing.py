@@ -36,7 +36,7 @@ def test_process_max_attestations(genesis_state,
                                   sample_beacon_block_body_params,
                                   config,
                                   keymap):
-    attestation_slot = 0
+    attestation_slot = config.GENESIS_SLOT
     current_slot = attestation_slot + config.MIN_ATTESTATION_INCLUSION_DELAY
     state = genesis_state.copy(
         slot=current_slot,
@@ -93,7 +93,7 @@ def test_process_proposer_slashings(genesis_state,
                                     block_root_1,
                                     block_root_2,
                                     success):
-    current_slot = 1
+    current_slot = config.GENESIS_SLOT + 1
     state = genesis_state.copy(
         slot=current_slot,
     )
@@ -230,11 +230,12 @@ def test_process_attester_slashings(genesis_state,
         'target_committee_size,'
         'shard_count,'
         'success,'
+        'genesis_slot,'
     ),
     [
-        (10, 2, 1, 2, 2, True),
-        (10, 2, 1, 2, 2, False),
-        (40, 4, 2, 3, 5, True),
+        (10, 2, 1, 2, 2, True, 0),
+        (10, 2, 1, 2, 2, False, 0),
+        (40, 4, 2, 3, 5, True, 0),
     ]
 )
 def test_process_attestations(genesis_state,
