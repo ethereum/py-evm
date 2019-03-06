@@ -6,6 +6,8 @@ from typing import (
     Awaitable,
     Callable,
     Dict,
+    Iterable,
+    Sequence,
     Tuple,
 )
 
@@ -115,7 +117,7 @@ class ControlClient:
     client: Client
     handlers: Dict[str, StreamHandler]
     listener: asyncio.AbstractServer = None
-    logger = logging.getLogger('p2pclient.Control')
+    logger = logging.getLogger('p2pclient.ControlClient')
 
     def __init__(self, client: Client, listen_maddr: Multiaddr = None) -> None:
         if listen_maddr is None:
@@ -180,7 +182,7 @@ class ControlClient:
 
         return peer_id, maddrs
 
-    async def connect(self, peer_id: PeerID, maddrs: Tuple[Multiaddr, ...]) -> None:
+    async def connect(self, peer_id: PeerID, maddrs: Iterable[Multiaddr]) -> None:
         reader, writer = await self.client.open_connection()
 
         maddrs_bytes = [binascii.unhexlify(i.to_bytes()) for i in maddrs]
@@ -231,13 +233,13 @@ class ControlClient:
     async def stream_open(
             self,
             peer_id: PeerID,
-            protocols: Tuple[str, ...]) -> Tuple[
+            protocols: Sequence[str]) -> Tuple[
             StreamInfo, asyncio.StreamReader, asyncio.StreamWriter]:
         reader, writer = await self.client.open_connection()
 
         stream_open_req = p2pd_pb.StreamOpenRequest(
             peer=peer_id.to_bytes(),
-            proto=protocols,
+            proto=list(protocols),
         )
         req = p2pd_pb.Request(
             type=p2pd_pb.Request.STREAM_OPEN,

@@ -1164,6 +1164,18 @@ PSMessage = _reflection.GeneratedProtocolMessageType('PSMessage', (_message.Mess
   __module__ = 'p2pd_pb2'
   # @@protoc_insertion_point(class_scope:p2pd.pb.PSMessage)
   ))
+
+# NOTE: brutally inject the attribute `from_field` to `PSMessage`, to access `from`.
+@property
+def from_field(self) -> bytes:
+  return getattr(self, 'from')
+
+@from_field.setter
+def from_field(self, address: bytes):
+  setattr(self, 'from', address)
+
+setattr(PSMessage, 'from_field', from_field)
+
 _sym_db.RegisterMessage(PSMessage)
 
 PSResponse = _reflection.GeneratedProtocolMessageType('PSResponse', (_message.Message,), dict(

@@ -416,9 +416,8 @@ class PSRequest(google___protobuf___message___Message):
     def ClearField(self, field_name: typing_extensions___Literal[u"data",u"topic",u"type"]) -> None: ...
 
 class PSMessage(google___protobuf___message___Message):
-    # TODO: comment out the field `from` for now, since it conflicts with the keyword `from`.
-    #       Need to confirm if this induces errors, to avoid further problems.
-    # from = ... # type: bytes
+    # NOTE: changed `from` to `from_field`, to avoid conflicting with the keyword `from` in Python
+    from_field = ... # type: bytes
     data = ... # type: bytes
     seqno = ... # type: bytes
     topicIDs = ... # type: google___protobuf___internal___containers___RepeatedScalarFieldContainer[typing___Text]
@@ -426,9 +425,8 @@ class PSMessage(google___protobuf___message___Message):
     key = ... # type: bytes
 
     def __init__(self,
-        # TODO: comment out the field `from` for now, since it conflicts with the keyword `from`.
-        #       Need to confirm if this induces errors, to avoid further problems.
-        # from : typing___Optional[bytes] = None,
+        # NOTE: changed `from` to `from_field`, to avoid conflicting with the keyword `from` in Python
+        from_field : typing___Optional[bytes] = None,
         data : typing___Optional[bytes] = None,
         seqno : typing___Optional[bytes] = None,
         topicIDs : typing___Optional[typing___Iterable[typing___Text]] = None,

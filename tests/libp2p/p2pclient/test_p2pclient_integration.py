@@ -977,6 +977,7 @@ async def test_pubsub_client_subscribe(p2pds):
     peer_id_0, _ = await p2pds[0].control.identify()
     peer_id_1, _ = await p2pds[1].control.identify()
     await try_connect_until_success(p2pds[0], p2pds[1])
+    await try_connect_until_success(p2pds[1], p2pds[2])
     topic = "topic123"
     data = b"data"
     reader_0, writer_0 = await p2pds[0].pubsub.subscribe(topic)
@@ -1008,6 +1009,23 @@ async def test_pubsub_client_subscribe(p2pds):
     pubsub_msg_1_1 = p2pd_pb.PSMessage()
     await read_pbmsg_safe(reader_1, pubsub_msg_1_1)
     assert pubsub_msg_1_1.data == another_data_1
+    # test case: subscribe to multiple topics
+    another_topic = "topic456"
+    reader_0_another, writer_0_another = await p2pds[0].pubsub.subscribe(another_topic)
+    reader_1_another, writer_1_another = await p2pds[1].pubsub.subscribe(another_topic)
+    await p2pds[0].pubsub.publish(another_topic, another_data_0)
+    pubsub_msg_1_another = p2pd_pb.PSMessage()
+    await read_pbmsg_safe(reader_1_another, pubsub_msg_1_another)
+    assert pubsub_msg_1_another.data == another_data_0
+    # test case: test `from_field`
+    assert PeerID(pubsub_msg_1_1.from_field) == peer_id_0
+    # test case: test `from_field`, when it is sent through 1 hop(p2pds[1])
+    reader_2, writer_2 = await p2pds[2].pubsub.subscribe(topic)
+    another_data_2 = b"another_data_2"
+    await p2pds[0].pubsub.publish(topic, another_data_2)
+    pubsub_msg_2_0 = p2pd_pb.PSMessage()
+    await read_pbmsg_safe(reader_2, pubsub_msg_2_0)
+    assert PeerID(pubsub_msg_2_0.from_field) == peer_id_0
     # test case: unsubscribe by closing the stream
     writer_0.close()
     await reader_0.read() == b""
