@@ -26,7 +26,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from .merkle_normal import (  # noqa: F401
+from .common import (  # noqa: F401
     _calc_parent_hash,
     _hash_layer,
     get_branch_indices,

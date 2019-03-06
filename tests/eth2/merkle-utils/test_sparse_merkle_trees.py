@@ -4,7 +4,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth2._utils.merkle_sparse import (
+from eth2._utils.merkle.sparse import (
     calc_merkle_tree,
     get_merkle_proof,
     get_root,
@@ -44,7 +44,12 @@ def test_merkle_root_and_proofs(items, expected_root):
         assert not verify_merkle_proof(b"\x32" * 32, hash_eth2(item), index, proof)
         assert not verify_merkle_proof(expected_root, hash_eth2(b"\x32" * 32), index, proof)
         if len(items) > 1:
-            assert not verify_merkle_proof(expected_root, hash_eth2(item), (index + 1) % len(items), proof)
+            assert not verify_merkle_proof(
+                expected_root,
+                hash_eth2(item),
+                (index + 1) % len(items),
+                proof
+            )
         for replaced_index in range(len(proof)):
             altered_proof = proof[:replaced_index] + (b"\x32" * 32,) + proof[replaced_index + 1:]
             assert not verify_merkle_proof(expected_root, hash_eth2(item), index, altered_proof)
