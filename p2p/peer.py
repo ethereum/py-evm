@@ -194,6 +194,9 @@ class BasePeer(BaseService):
         # The private key this peer uses for identification and encryption.
         self.privkey = privkey
 
+        # The self-identifying string that the remote names itself.
+        self.client_version_string = ''
+
         # Networking reader and writer objects for communication
         self.reader = connection.reader
         self.writer = connection.writer
@@ -480,6 +483,15 @@ class BasePeer(BaseService):
         if not isinstance(cmd, Hello):
             await self.disconnect(DisconnectReason.bad_protocol)
             raise HandshakeFailure(f"Expected a Hello msg, got {cmd}, disconnecting")
+
+        # limit number of chars to be displayed, and try to keep printable ones only
+        # MAGIC 256: arbitrary, "should be enough for everybody"
+        original_version = msg['client_version_string']
+        client_version_string = original_version[:256] + ('...' if original_version[256:] else '')
+        if client_version_string.isprintable():
+            self.client_version_string = client_version_string.strip()
+        else:
+            self.client_version_string = repr(client_version_string)
 
         # Check whether to support Snappy Compression or not
         # based on other peer's p2p protocol version

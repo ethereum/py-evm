@@ -346,6 +346,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                     "%s: uptime=%s, received_msgs=%d, most_received=%s(%d)",
                     peer, peer.uptime, peer.received_msgs_count,
                     most_received_type, count)
+                self.logger.debug("client_version_string='%s'", peer.client_version_string)
                 for line in peer.get_extra_stats():
                     self.logger.debug("    %s", line)
             self.logger.debug("== End peer details == ")
