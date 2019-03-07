@@ -94,6 +94,6 @@ class SlashableAttestation(ssz.Serializable):
         """
         # TODO: change to hash_tree_root when we have SSZ tree hashing
         return (
-            AttestationDataAndCustodyBit(self.data, False).root,
-            AttestationDataAndCustodyBit(self.data, True).root,
+            AttestationDataAndCustodyBit(data=self.data, custody_bit=False).root,
+            AttestationDataAndCustodyBit(data=self.data, custody_bit=True).root,
         )

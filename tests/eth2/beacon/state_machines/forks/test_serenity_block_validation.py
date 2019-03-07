@@ -302,7 +302,7 @@ def _correct_slashable_attestation_params(
 
     (validator_indices, signatures) = _get_indices_and_signatures(
         num_validators,
-        message_hashes[1],
+        message_hashes[0],  # custody bit is False
         privkeys,
         fork,
         slot_to_epoch(params["data"].slot, slots_per_epoch),
