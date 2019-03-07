@@ -78,7 +78,7 @@ def test_out_of_order_line(insertion_order):
 
 
 @given(st.lists(st.integers(min_value=0, max_value=9)))
-def test_prune_reinsert_root_tracking(element_flipping):
+def test_prune_reinsert_root_tracking_linear(element_flipping):
     tracker = RootTracker()
 
     present = set()
@@ -105,15 +105,47 @@ def test_prune_reinsert_root_tracking(element_flipping):
 FULL_BINARY_TREE = [(layer, column) for layer in [0, 1, 2, 3] for column in range(2**layer)]
 
 
+def binary_parent(node):
+    return (node[0] - 1, node[1] // 2)
+
+
+# only use the first 3 layers of the tree
+@given(st.lists(
+    st.integers(min_value=0, max_value=6),
+    min_size=3,
+))
+#@settings(max_examples=20000)
+def test_prune_reinsert_root_tracking_binary_tree(element_flipping):
+    tracker = RootTracker()
+
+    present = set()
+    for node_id in element_flipping:
+        node = FULL_BINARY_TREE[node_id]
+        if node in present:
+            prune_root_id, _ = tracker.get_root(node)
+            tracker.prune(prune_root_id)
+            present.remove(prune_root_id)
+        else:
+            tracker.add(node, binary_parent(node))
+            present.add(node)
+
+        # validate all the present nodes have valid roots
+        for test_node in present:
+            root_node, depth = tracker.get_root(test_node)
+
+            # make sure parent is *not* present
+            assert binary_parent(root_node) not in present
+
+            # make sure depth is correct
+            assert depth == test_node[0] - root_node[0]
+
+
 @given(st.permutations(FULL_BINARY_TREE))
 def test_full_branching(insertion_order):
     """Test full binary tree, in random order"""
-    def parent(node):
-        return (node[0] - 1, node[1] // 2)
-
     tracker = RootTracker()
     for node in insertion_order:
-        tracker.add(node, parent(node))
+        tracker.add(node, binary_parent(node))
 
     # prune all the way to the leaf of (3, 0)
     for num_prunings in range(3):
@@ -136,22 +168,19 @@ def subset_and_order(draw):
 def test_sparse_branching(test_data):
     nodes_to_insert, prune_order = test_data
 
-    def parent(node):
-        return (node[0] - 1, node[1] // 2)
-
     def get_expected_root(node, present_nodes):
         expected_depth = 0
         expected_root = node
-        parent_node = parent(node)
+        parent_node = binary_parent(node)
         while parent_node in present_nodes:
             expected_depth += 1
             expected_root = parent_node
-            parent_node = parent(parent_node)
+            parent_node = binary_parent(parent_node)
         return expected_root, expected_depth
 
     tracker = RootTracker()
     for node in nodes_to_insert:
-        tracker.add(node, parent(node))
+        tracker.add(node, binary_parent(node))
 
     # verify parent and depth of partially-built tree
     for node in nodes_to_insert:
