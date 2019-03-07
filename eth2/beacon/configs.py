@@ -54,6 +54,7 @@ BeaconConfig = NamedTuple(
         ('WHISTLEBLOWER_REWARD_QUOTIENT', int),
         ('ATTESTATION_INCLUSION_REWARD_QUOTIENT', int),
         ('INACTIVITY_PENALTY_QUOTIENT', int),
+        ('MIN_PENALTY_QUOTIENT', int),
         # Max operations per block
         ('MAX_PROPOSER_SLASHINGS', int),
         ('MAX_ATTESTER_SLASHINGS', int),

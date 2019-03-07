@@ -562,6 +562,11 @@ def inactivity_penalty_quotient():
 
 
 @pytest.fixture
+def min_penalty_quotient():
+    return SERENITY_CONFIG.MIN_PENALTY_QUOTIENT
+
+
+@pytest.fixture
 def max_proposer_slashings():
     return SERENITY_CONFIG.MAX_PROPOSER_SLASHINGS
 
@@ -706,6 +711,7 @@ def config(
         whistleblower_reward_quotient,
         attestation_inclusion_reward_quotient,
         inactivity_penalty_quotient,
+        min_penalty_quotient,
         max_proposer_slashings,
         max_attester_slashings,
         max_attestations,
@@ -744,6 +750,7 @@ def config(
         WHISTLEBLOWER_REWARD_QUOTIENT=whistleblower_reward_quotient,
         ATTESTATION_INCLUSION_REWARD_QUOTIENT=attestation_inclusion_reward_quotient,
         INACTIVITY_PENALTY_QUOTIENT=inactivity_penalty_quotient,
+        MIN_PENALTY_QUOTIENT=min_penalty_quotient,
         MAX_PROPOSER_SLASHINGS=max_proposer_slashings,
         MAX_ATTESTER_SLASHINGS=max_attester_slashings,
         MAX_ATTESTATIONS=max_attestations,

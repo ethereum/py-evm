@@ -1085,7 +1085,7 @@ def process_validator_registry(state: BeaconState,
 
     state = validator_registry_transition(state, config)
 
-    # TODO: state = process_slashings(state, config)
+    state = process_slashings(state, config)
 
     # TODO: state = process_exit_queue(state, config)
 
@@ -1128,6 +1128,78 @@ def _update_latest_active_index_roots(state: BeaconState,
     return state.copy(
         latest_active_index_roots=latest_active_index_roots,
     )
+
+
+def _compute_total_penalties(state: BeaconState,
+                             config: BeaconConfig,
+                             current_epoch: Epoch) -> Gwei:
+    epoch_index = current_epoch % config.LATEST_SLASHED_EXIT_LENGTH
+    start_index_in_latest_slashed_balances = (
+        (epoch_index + 1) % config.LATEST_SLASHED_EXIT_LENGTH
+    )
+    total_at_start = state.latest_slashed_balances[start_index_in_latest_slashed_balances]
+    total_at_end = state.latest_slashed_balances[epoch_index]
+    return Gwei(total_at_end - total_at_start)
+
+
+def _compute_individual_penalty(state: BeaconState,
+                                config: BeaconConfig,
+                                validator_index: ValidatorIndex,
+                                total_penalties: Gwei,
+                                total_balance: Gwei) -> Gwei:
+    effective_balance = get_effective_balance(
+        state.validator_balances,
+        validator_index,
+        config.MAX_DEPOSIT_AMOUNT,
+    )
+    return Gwei(
+        max(
+            effective_balance * min(total_penalties * 3, total_balance) // total_balance,
+            effective_balance // config.MIN_PENALTY_QUOTIENT,
+        )
+    )
+
+
+def process_slashings(state: BeaconState,
+                      config: BeaconConfig) -> BeaconState:
+    """
+    Process the slashings.
+    """
+    latest_slashed_exit_length = config.LATEST_SLASHED_EXIT_LENGTH
+    max_deposit_amount = config.MAX_DEPOSIT_AMOUNT
+
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    active_validator_indices = get_active_validator_indices(state.validator_registry, current_epoch)
+    total_balance = Gwei(
+        sum(
+            get_effective_balance(state.validator_balances, i, max_deposit_amount)
+            for i in active_validator_indices
+        )
+    )
+    total_penalties = _compute_total_penalties(
+        state,
+        config,
+        current_epoch,
+    )
+
+    for validator_index, validator in enumerate(state.validator_registry):
+        validator_index = ValidatorIndex(validator_index)
+        is_halfway_to_withdrawable_epoch = (
+            current_epoch == validator.withdrawable_epoch - latest_slashed_exit_length // 2
+        )
+        if validator.slashed and is_halfway_to_withdrawable_epoch:
+            penalty = _compute_individual_penalty(
+                state=state,
+                config=config,
+                validator_index=validator_index,
+                total_penalties=total_penalties,
+                total_balance=total_balance,
+            )
+            state = state.update_validator_balance(
+                validator_index=validator_index,
+                balance=state.validator_balances[validator_index] - penalty,
+            )
+    return state
 
 
 def process_final_updates(state: BeaconState,
