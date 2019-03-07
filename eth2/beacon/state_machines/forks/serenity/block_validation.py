@@ -310,6 +310,7 @@ def validate_attestation(state: BeaconState,
         state.slot,
         slots_per_epoch,
         min_attestation_inclusion_delay,
+        committee_config.GENESIS_SLOT,
     )
 
     validate_attestation_justified_epoch(
@@ -348,39 +349,37 @@ def validate_attestation(state: BeaconState,
 
 
 def validate_attestation_slot(attestation_data: AttestationData,
-                              current_slot: Slot,
+                              state_slot: Slot,
                               slots_per_epoch: int,
-                              min_attestation_inclusion_delay: int) -> None:
+                              min_attestation_inclusion_delay: int,
+                              genesis_slot: Slot) -> None:
     """
     Validate ``slot`` field of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
     """
-    if attestation_data.slot > current_slot - min_attestation_inclusion_delay:
+    if attestation_data.slot < genesis_slot:
         raise ValidationError(
-            "Attestation slot is greater than the ``current_slot`` less the "
-            "``min_attestation_inclusion_delay``:\n"
-            "\tFound: %s, Needed less than or equal to %s (%s - %s)" %
-            (
-                attestation_data.slot,
-                current_slot - min_attestation_inclusion_delay,
-                current_slot,
-                min_attestation_inclusion_delay,
-            )
+            "Can't submit attestations that are too far in history (or in prehistory):\n"
+            f"\tFound attestation slot: {attestation_data.slot}, "
+            f"needed greater than or equal to `GENESIS_SLOT` ({genesis_slot})"
         )
-    if current_slot - min_attestation_inclusion_delay >= attestation_data.slot + slots_per_epoch:
+
+    if state_slot >= attestation_data.slot + slots_per_epoch:
         raise ValidationError(
-            "Attestation slot plus epoch length is too low; "
-            "must equal or exceed the ``current_slot`` less the "
-            "``min_attestation_inclusion_delay``:\n"
-            "\tFound: %s (%s + %s), Needed greater than or equal to: %s (%s - %s)" %
-            (
-                attestation_data.slot + slots_per_epoch,
-                attestation_data.slot,
-                slots_per_epoch,
-                current_slot - min_attestation_inclusion_delay,
-                current_slot,
-                min_attestation_inclusion_delay,
-            )
+            "Attestation slot plus `SLOTS_PER_EPOCH` is too low; "
+            "must exceed the current state:\n"
+            f"\tFound: {attestation_data.slot + slots_per_epoch} "
+            f"({attestation_data.slot} + {slots_per_epoch}), "
+            f"Needed greater than: {state_slot}"
+        )
+
+    if attestation_data.slot + min_attestation_inclusion_delay > state_slot:
+        raise ValidationError(
+            "Can't submit attestations too quickly; attestation slot is greater than "
+            f"current state slot ({state_slot} minus "
+            f"MIN_ATTESTATION_INCLUSION_DELAY ({min_attestation_inclusion_delay}).\n"
+            f"\tFound: {attestation_data.slot}, Needed less than or equal to "
+            f"({state_slot} - {min_attestation_inclusion_delay})"
         )
 
 

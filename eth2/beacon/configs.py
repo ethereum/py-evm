@@ -69,6 +69,7 @@ BeaconConfig = NamedTuple(
 class CommitteeConfig:
     def __init__(self, config: BeaconConfig):
         # Basic
+        self.GENESIS_SLOT = config.GENESIS_SLOT
         self.GENESIS_EPOCH = config.GENESIS_EPOCH
         self.SHARD_COUNT = config.SHARD_COUNT
         self.SLOTS_PER_EPOCH = config.SLOTS_PER_EPOCH
