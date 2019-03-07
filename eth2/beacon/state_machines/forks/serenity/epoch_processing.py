@@ -93,6 +93,7 @@ from eth2.beacon.typing import (
 def _is_majority_vote(config: BeaconConfig, vote: Eth1DataVote) -> bool:
     return vote.vote_count * 2 > config.EPOCHS_PER_ETH1_VOTING_PERIOD * config.SLOTS_PER_EPOCH
 
+
 def _update_eth1_vote_if_exists(state: BeaconState, config: BeaconConfig) -> BeaconState:
     """
     This function searches the 'pending' Eth1 data votes in ``state`` to find one Eth1 data vote
