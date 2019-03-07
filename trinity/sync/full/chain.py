@@ -539,11 +539,12 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         while self.is_operational:
             await self.sleep(5)
             self.logger.debug(
-                "(in progress, queued, max size) of bodies, receipts: %r",
+                "(in progress, queued, max size) of bodies, receipts: %r. Write capacity? %s",
                 [(q.num_in_progress(), len(q), q._maxsize) for q in (
                     self._block_body_tasks,
                     self._receipt_tasks,
                 )],
+                "yes" if self._db_buffer_capacity.is_set() else "no",
             )
 
             stats = self.tracker.report()

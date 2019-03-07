@@ -335,10 +335,9 @@ class RootTracker(Generic[TNodeID]):
             if len(self._tree.children_of(parent_id)) > 1:
                 node_root = TreeRoot(node_id)
                 node_root.extend(parent_root, 0)
-                original_depth = self._original_depth_to_root[parent_id] + 1
             else:
                 node_root = parent_root
-                original_depth = self._original_depth_to_root[parent_id] + 1
+            original_depth = self._original_depth_to_root[parent_id] + 1
         else:
             node_root = TreeRoot(node_id)
             original_depth = 0
