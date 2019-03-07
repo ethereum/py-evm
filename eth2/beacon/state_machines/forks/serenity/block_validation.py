@@ -212,7 +212,7 @@ def validate_proposal_signature(proposal: Proposal,
     if not proposal_signature_is_valid:
         raise ValidationError(
             "Proposal signature is invalid: "
-            f"proposer pubkey: {pubkey}, message_hash: {proposal.root}, "
+            f"proposer pubkey: {pubkey}, message_hash: {proposal.signed_root}, "
             f"signature: {proposal.signature}"
         )
 
