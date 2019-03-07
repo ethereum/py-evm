@@ -476,7 +476,9 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
                     )
                 except HeaderNotFound:
                     await self._log_header_link_failure(headers[0])
-                    raise
+                    await self._header_syncer.clear_buffer()
+                    # wait for new headers to come back in from a restarted skeleton sync
+                    continue
 
                 # This appears to be a fork, since the parent header is persisted,
                 self.logger.info(
