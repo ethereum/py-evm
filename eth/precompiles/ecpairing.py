@@ -7,6 +7,11 @@ from eth_utils.toolz import (
 from py_ecc import (
     optimized_bn128 as bn128,
 )
+from py_ecc.fields import (
+    optimized_bn128_FQ2 as FQ2,
+    optimized_bn128_FQ12 as FQ12,
+    optimized_bls12_381_FQP as FQP,
+)
 
 from eth_utils import (
     big_endian_to_int,
@@ -25,7 +30,6 @@ from eth.typing import (
 
 from eth._utils.bn128 import (
     validate_point,
-    FQP_point_to_FQ2_point,
 )
 from eth._utils.padding import (
     pad32,
@@ -37,7 +41,6 @@ from eth.vm.computation import (
 
 
 ZERO = bn128.Z2
-EXPONENT = bn128.FQ12.one()
 
 
 def ecpairing(computation: BaseComputation) -> BaseComputation:
@@ -65,21 +68,21 @@ def ecpairing(computation: BaseComputation) -> BaseComputation:
 
 
 def _ecpairing(data: BytesOrView) -> bool:
-    exponent = bn128.FQ12.one()
+    exponent = FQ12.one()
 
     processing_pipeline = (
         _process_point(data[start_idx:start_idx + 192])
         for start_idx
         in range(0, len(data), 192)
     )
-    exponent = pipe(bn128.FQ12.one(), *processing_pipeline)
+    exponent = pipe(FQ12.one(), *processing_pipeline)
 
-    result = bn128.final_exponentiate(exponent) == bn128.FQ12.one()
+    result = bn128.final_exponentiate(exponent) == FQ12.one()
     return result
 
 
 @curry
-def _process_point(data_buffer: bytes, exponent: int) -> bn128.FQP:
+def _process_point(data_buffer: bytes, exponent: int) -> FQP:
     x1, y1, x2_i, x2_r, y2_i, y2_r = _extract_point(data_buffer)
     p1 = validate_point(x1, y1)
 
@@ -87,19 +90,19 @@ def _process_point(data_buffer: bytes, exponent: int) -> bn128.FQP:
         if v >= bn128.field_modulus:
             raise ValidationError("value greater than field modulus")
 
-    fq2_x = bn128.FQ2([x2_r, x2_i])
-    fq2_y = bn128.FQ2([y2_r, y2_i])
+    fq2_x = FQ2([x2_r, x2_i])
+    fq2_y = FQ2([y2_r, y2_i])
 
     p2 = ZERO
-    if (fq2_x, fq2_y) != (bn128.FQ2.zero(), bn128.FQ2.zero()):
-        p2 = (fq2_x, fq2_y, bn128.FQ2.one())
+    if (fq2_x, fq2_y) != (FQ2.zero(), FQ2.zero()):
+        p2 = (fq2_x, fq2_y, FQ2.one())
         if not bn128.is_on_curve(p2, bn128.b2):
             raise ValidationError("point is not on curve")
 
-    if bn128.multiply(p2, bn128.curve_order)[-1] != bn128.FQ2.zero():
+    if bn128.multiply(p2, bn128.curve_order)[-1] != FQ2.zero():
         raise ValidationError("TODO: what case is this?????")
 
-    return exponent * bn128.pairing(FQP_point_to_FQ2_point(p2), p1, final_exponentiate=False)
+    return exponent * bn128.pairing(p2, p1, final_exponentiate=False)
 
 
 def _extract_point(data_slice: bytes) -> Tuple[int, int, int, int, int, int]:
