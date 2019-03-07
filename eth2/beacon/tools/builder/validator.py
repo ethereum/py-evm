@@ -12,6 +12,8 @@ from cytoolz import (
 )
 
 from eth_typing import (
+    BLSPubkey,
+    BLSSignature,
     Hash32,
 )
 from eth_utils import (
@@ -26,7 +28,7 @@ from eth2._utils.bitfield import (
     get_empty_bitfield,
     set_voted,
 )
-from eth2._utils import bls
+from py_ecc import bls
 from eth2.beacon.enums import (
     SignatureDomain,
 )
@@ -61,8 +63,6 @@ from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.beacon.typing import (
-    BLSPubkey,
-    BLSSignature,
     Bitfield,
     CommitteeIndex,
     Epoch,

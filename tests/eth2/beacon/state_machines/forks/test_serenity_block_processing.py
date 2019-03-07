@@ -10,7 +10,7 @@ from eth_utils.toolz import (
     first,
 )
 
-from eth2._utils import bls
+from py_ecc import bls
 
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote

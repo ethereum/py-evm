@@ -3,6 +3,10 @@ from typing import (
     Sequence,
     Type,
 )
+from eth_typing import (
+    BLSPubkey,
+    BLSSignature,
+)
 
 from eth_typing import Hash32
 
@@ -36,8 +40,6 @@ from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.proposal import Proposal
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
-    BLSPubkey,
-    BLSSignature,
     FromBlockParams,
     Slot,
     ValidatorIndex,

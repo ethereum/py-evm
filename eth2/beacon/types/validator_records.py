@@ -1,4 +1,5 @@
 from eth_typing import (
+    BLSPubkey,
     Hash32,
 )
 import ssz
@@ -13,7 +14,6 @@ from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.typing import (
-    BLSPubkey,
     Epoch,
 )
 

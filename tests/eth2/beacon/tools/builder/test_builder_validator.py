@@ -5,7 +5,7 @@ from hypothesis import (
     strategies as st,
 )
 
-from eth2._utils import bls
+from py_ecc import bls
 from eth2._utils.bitfield import (
     get_empty_bitfield,
     has_voted,

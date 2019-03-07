@@ -6,6 +6,7 @@ from typing import (
 )
 
 from eth_typing import (
+    BLSPubkey,
     Hash32,
 )
 
@@ -24,7 +25,6 @@ from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
-    BLSPubkey,
     Timestamp,
 )
 
