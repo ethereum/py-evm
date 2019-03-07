@@ -36,9 +36,9 @@ from .common import (  # noqa: F401
 )
 
 
-TreeHeight = 32
+TreeDepth = 32
 EmptyNodeHashes = tuple(
-    take(TreeHeight, iterate(lambda node_hash: hash_eth2(node_hash + node_hash), b'\x00' * 32))
+    take(TreeDepth, iterate(lambda node_hash: hash_eth2(node_hash + node_hash), b'\x00' * 32))
 )
 
 
@@ -66,9 +66,9 @@ def verify_merkle_proof(root: Hash32,
     Verify that the given ``item`` is on the merkle branch ``proof``
     starting with the given ``root``.
     """
-    assert len(proof) == TreeHeight
+    assert len(proof) == TreeDepth
     value = leaf
-    for i in range(TreeHeight):
+    for i in range(TreeDepth):
         if index // (2**i) % 2:
             value = hash_eth2(proof[i] + value)
         else:
@@ -96,7 +96,7 @@ def calc_merkle_tree_from_leaves(leaves: Sequence[Hash32]) -> MerkleTree:
         raise ValueError("No leaves given")
     tree = tuple()  # type: ignore
     tree = (leaves,) + tree
-    for i in range(TreeHeight):
+    for i in range(TreeDepth):
         if len(tree[0]) % 2 == 1:
             tree = update_tuple_item(tree, 0, tree[0] + (EmptyNodeHashes[i],))
         tree = (_hash_layer(tree[0]),) + tree
