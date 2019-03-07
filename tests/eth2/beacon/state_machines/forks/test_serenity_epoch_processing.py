@@ -30,6 +30,7 @@ from eth2.beacon.configs import (
 )
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
+    GWEI_PER_ETH,
 )
 from eth2.beacon.helpers import (
     get_active_validator_indices,
@@ -64,10 +65,11 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     process_final_updates,
     process_justification,
     process_validator_registry,
+    update_validator_registry,
 )
 
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.constants import GWEI_PER_ETH
+from eth2.beacon.types.validator_records import ValidatorRecord
 
 
 #
@@ -976,6 +978,60 @@ def test_check_if_update_validator_registry(genesis_state,
         assert num_shards_in_committees == expected_num_shards_in_committees
     else:
         assert num_shards_in_committees == 0
+
+
+@pytest.mark.parametrize(
+    (
+        'n',
+        'slots_per_epoch',
+        'target_committee_size',
+        'shard_count',
+    ),
+    [
+        (
+            10,
+            10,
+            9,
+            10,
+        ),
+    ]
+)
+def test_update_validator_registry(n,
+                                   n_validators_state,
+                                   config,
+                                   slots_per_epoch):
+    validator_registry = list(n_validators_state.validator_registry)
+    activating_index = n
+    exiting_index = 0
+
+    activating_validator = ValidatorRecord.create_pending_validator(
+        pubkey=b'\x10' * 48,
+        withdrawal_credentials=b'\x11' * 32,
+    )
+
+    exiting_validator = n_validators_state.validator_registry[exiting_index].copy(
+        exit_epoch=FAR_FUTURE_EPOCH,
+        initiated_exit=True,
+    )
+
+    validator_registry[exiting_index] = exiting_validator
+    validator_registry.append(activating_validator)
+    state = n_validators_state.copy(
+        validator_registry=validator_registry,
+        validator_balances=n_validators_state.validator_balances + (config.MAX_DEPOSIT_AMOUNT,),
+    )
+
+    state = update_validator_registry(state, config)
+
+    entry_exit_effect_epoch = get_delayed_activation_exit_epoch(
+        state.current_epoch(slots_per_epoch),
+        config.ACTIVATION_EXIT_DELAY,
+    )
+
+    # Check if the activating_validator is activated
+    assert state.validator_registry[activating_index].activation_epoch == entry_exit_effect_epoch
+    # Check if the activating_validator is exited
+    assert state.validator_registry[exiting_index].exit_epoch == entry_exit_effect_epoch
 
 
 @pytest.mark.parametrize(
