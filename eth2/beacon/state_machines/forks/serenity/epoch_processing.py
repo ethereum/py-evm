@@ -15,6 +15,7 @@ from eth_utils import (
 from eth_utils.toolz import (
     curry,
     pipe,
+    first,
 )
 
 from eth2.beacon import helpers
@@ -72,6 +73,7 @@ from eth2.beacon.datastructures.inclusion_info import InclusionInfo
 from eth2.beacon.datastructures.reward_settlement_context import RewardSettlementContext
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.eth1_data_vote import Eth1DataVote
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
@@ -81,6 +83,47 @@ from eth2.beacon.typing import (
     SignedGwei,
     ValidatorIndex,
 )
+
+
+#
+# Eth1 data votes
+#
+
+@curry
+def _is_majority_vote(config: BeaconConfig, vote: Eth1DataVote) -> bool:
+    return vote.vote_count * 2 > config.EPOCHS_PER_ETH1_VOTING_PERIOD * config.SLOTS_PER_EPOCH
+
+def _update_eth1_vote_if_exists(state: BeaconState, config: BeaconConfig) -> BeaconState:
+    """
+    This function searches the 'pending' Eth1 data votes in ``state`` to find one Eth1 data vote
+    containing majority support.
+
+    If such a vote is found, update the ``state`` entry for the latest vote.
+    Regardless of the existence of such a vote, clear the 'pending' storage.
+    """
+
+    latest_eth1_data = state.latest_eth1_data
+
+    try:
+        majority_vote = first(
+            filter(_is_majority_vote(config), state.eth1_data_votes)
+        )
+        latest_eth1_data = majority_vote.eth1_data
+    except StopIteration:
+        pass
+
+    return state.copy(
+        latest_eth1_data=latest_eth1_data,
+        eth1_data_votes=(),
+    )
+
+
+def process_eth1_data_votes(state: BeaconState, config: BeaconConfig) -> BeaconState:
+    next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
+    should_process = next_epoch % config.EPOCHS_PER_ETH1_VOTING_PERIOD == 0
+    if should_process:
+        return _update_eth1_vote_if_exists(state, config)
+    return state
 
 
 #
