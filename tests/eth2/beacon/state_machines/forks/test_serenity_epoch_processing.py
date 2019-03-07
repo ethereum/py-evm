@@ -65,6 +65,7 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     process_crosslinks,
     process_ejections,
     process_exit_queue,
+    process_eth1_data_votes,
     process_final_updates,
     process_justification,
     process_slashings,
@@ -74,6 +75,42 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
 
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
+
+
+#
+# Eth1 data votes
+#
+def test_only_process_eth1_data_votes_per_period(sample_beacon_state_params,
+                                                 config):
+    slots_per_epoch = config.SLOTS_PER_EPOCH
+    epochs_per_voting_period = config.EPOCHS_PER_ETH1_VOTING_PERIOD
+    number_of_epochs_to_sample = 3
+
+    # NOTE: we process if the _next_ epoch is on a voting period, so subtract 1 here
+    # NOTE: we also avoid the epoch 0 so change range bounds
+    epochs_to_process_votes = [
+        (epochs_per_voting_period * epoch) - 1 for epoch in range(1, number_of_epochs_to_sample + 1)
+    ]
+    state = BeaconState(**sample_beacon_state_params)
+
+    last_epoch_to_process_votes = epochs_to_process_votes[-1]
+    # NOTE: we arbitrarily pick two after; if this fails here, think about how to
+    # change so we avoid including another voting period
+    some_epochs_after_last_target = last_epoch_to_process_votes + 2
+    assert some_epochs_after_last_target % epochs_per_voting_period != 0
+
+    for epoch in range(some_epochs_after_last_target):
+        slot = get_epoch_start_slot(epoch, slots_per_epoch)
+        state = state.copy(slot=slot)
+        updated_state = process_eth1_data_votes(state, config)
+        if epoch in epochs_to_process_votes:
+            # we should get back a different state object
+            assert id(state) != id(updated_state)
+            # in particular, with no eth1 data votes
+            assert not updated_state.eth1_data_votes
+        else:
+            # we get back the same state (by value)
+            assert state == updated_state
 
 
 #
