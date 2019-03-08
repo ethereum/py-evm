@@ -62,6 +62,7 @@ from trinity.sync.common.headers import HeaderSyncerAPI
 from trinity.sync.common.peers import WaitingPeers
 from trinity.sync.full.constants import (
     HEADER_QUEUE_SIZE_TARGET,
+    BLOCK_QUEUE_SIZE_TARGET,
 )
 from trinity._utils.datastructures import (
     MissingDependency,
@@ -82,7 +83,7 @@ BlockBodyBundle = Tuple[
 ]
 
 # How big should the pending request queue get, as a multiple of the largest request size
-REQUEST_BUFFER_MULTIPLIER = 8
+REQUEST_BUFFER_MULTIPLIER = 16
 
 
 class BaseBodyChainSyncer(BaseService, PeerSubscriber):
@@ -583,7 +584,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         while self.is_operational:
             # This tracker waits for all prerequisites to be complete, and returns headers in
             # order, so that each header's parent is already persisted.
-            get_completed_coro = self._block_persist_tracker.ready_tasks(HEADER_QUEUE_SIZE_TARGET)
+            get_completed_coro = self._block_persist_tracker.ready_tasks(BLOCK_QUEUE_SIZE_TARGET)
             completed_headers = await self.wait(get_completed_coro)
 
             if self._block_persist_tracker.has_ready_tasks():
