@@ -24,7 +24,7 @@ from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.eth1_data import Eth1Data
-from eth2.beacon.types.proposal_signed_data import ProposalSignedData
+from eth2.beacon.types.proposal import Proposal
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
 
@@ -81,14 +81,12 @@ def pubkeys(keymap):
 
 
 @pytest.fixture
-def sample_proposer_slashing_params(sample_proposal_signed_data_params):
-    proposal_data = ProposalSignedData(**sample_proposal_signed_data_params)
+def sample_proposer_slashing_params(sample_proposal_params):
+    proposal_data = Proposal(**sample_proposal_params)
     return {
         'proposer_index': 1,
-        'proposal_data_1': proposal_data,
-        'proposal_signature_1': EMPTY_SIGNATURE,
-        'proposal_data_2': proposal_data,
-        'proposal_signature_2': EMPTY_SIGNATURE,
+        'proposal_1': proposal_data,
+        'proposal_2': proposal_data,
     }
 
 
@@ -266,11 +264,12 @@ def sample_pending_attestation_record_params(sample_attestation_data_params):
 
 
 @pytest.fixture
-def sample_proposal_signed_data_params():
+def sample_proposal_params():
     return {
         'slot': 10,
         'shard': 12,
         'block_root': b'\x43' * 32,
+        'signature': b'\x56' * 96,
     }
 
 

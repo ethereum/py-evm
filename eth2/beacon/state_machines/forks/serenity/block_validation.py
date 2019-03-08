@@ -50,7 +50,7 @@ from eth2.beacon.types.attester_slashings import AttesterSlashing  # noqa: F401
 from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.forks import Fork  # noqa: F401
-from eth2.beacon.types.proposal_signed_data import ProposalSignedData
+from eth2.beacon.types.proposal import Proposal
 from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState  # noqa: F401
@@ -92,12 +92,13 @@ def validate_proposer_signature(state: BeaconState,
                                 committee_config: CommitteeConfig) -> None:
     block_without_signature_root = block.block_without_signature_root
 
-    # TODO: Replace this root with tree hash root
-    proposal_root = ProposalSignedData(
+    # TODO: Replace this with signed_root
+    proposal = Proposal(
         state.slot,
         beacon_chain_shard_number,
         block_without_signature_root,
-    ).root
+        signature=block.signature,
+    )
 
     # Get the public key of proposer
     beacon_proposer_index = get_beacon_proposer_index(
@@ -114,15 +115,15 @@ def validate_proposer_signature(state: BeaconState,
 
     is_valid_signature = bls.verify(
         pubkey=proposer_pubkey,
-        message_hash=proposal_root,
-        signature=block.signature,
+        message_hash=proposal.signed_root,
+        signature=proposal.signature,
         domain=domain,
     )
 
     if not is_valid_signature:
         raise ValidationError(
             f"Invalid Proposer Signature on block, beacon_proposer_index={beacon_proposer_index}, "
-            f"pubkey={proposer_pubkey}, message_hash={proposal_root},"
+            f"pubkey={proposer_pubkey}, message_hash={proposal.signed_root}, "
             f"block.signature={block.signature}, domain={domain}"
         )
 
@@ -148,16 +149,14 @@ def validate_proposer_slashing(state: BeaconState,
     validate_proposer_slashing_is_slashed(proposer.slashed)
 
     validate_proposal_signature(
-        proposal_signed_data=proposer_slashing.proposal_data_1,
-        proposal_signature=proposer_slashing.proposal_signature_1,
+        proposal=proposer_slashing.proposal_1,
         pubkey=proposer.pubkey,
         fork=state.fork,
         slots_per_epoch=slots_per_epoch,
     )
 
     validate_proposal_signature(
-        proposal_signed_data=proposer_slashing.proposal_data_2,
-        proposal_signature=proposer_slashing.proposal_signature_2,
+        proposal=proposer_slashing.proposal_2,
         pubkey=proposer.pubkey,
         fork=state.fork,
         slots_per_epoch=slots_per_epoch,
@@ -165,29 +164,29 @@ def validate_proposer_slashing(state: BeaconState,
 
 
 def validate_proposer_slashing_slot(proposer_slashing: ProposerSlashing) -> None:
-    if proposer_slashing.proposal_data_1.slot != proposer_slashing.proposal_data_2.slot:
+    if proposer_slashing.proposal_1.slot != proposer_slashing.proposal_2.slot:
         raise ValidationError(
-            f"proposer_slashing.proposal_data_1.slot ({proposer_slashing.proposal_data_1.slot}) !="
-            f" proposer_slashing.proposal_data_2.slot ({proposer_slashing.proposal_data_2.slot})"
+            f"proposer_slashing.proposal_1.slot ({proposer_slashing.proposal_1.slot}) !="
+            f" proposer_slashing.proposal_2.slot ({proposer_slashing.proposal_2.slot})"
         )
 
 
 def validate_proposer_slashing_shard(proposer_slashing: ProposerSlashing) -> None:
-    if proposer_slashing.proposal_data_1.shard != proposer_slashing.proposal_data_2.shard:
+    if proposer_slashing.proposal_1.shard != proposer_slashing.proposal_2.shard:
         raise ValidationError(
-            f"proposer_slashing.proposal_data_1.shard ({proposer_slashing.proposal_data_1.shard}) "
-            f"!= proposer_slashing.proposal_data_2.shard"
-            f" ({proposer_slashing.proposal_data_2.shard})"
+            f"proposer_slashing.proposal_1.shard ({proposer_slashing.proposal_1.shard}) "
+            f"!= proposer_slashing.proposal_2.shard"
+            f" ({proposer_slashing.proposal_2.shard})"
         )
 
 
 def validate_proposer_slashing_block_root(proposer_slashing: ProposerSlashing) -> None:
-    if proposer_slashing.proposal_data_1.block_root == proposer_slashing.proposal_data_2.block_root:
+    if proposer_slashing.proposal_1.block_root == proposer_slashing.proposal_2.block_root:
         raise ValidationError(
-            "proposer_slashing.proposal_data_1.block_root "
-            f"({proposer_slashing.proposal_data_1.block_root}) "
-            "should not be equal to proposer_slashing.proposal_data_2.block_root "
-            f"({proposer_slashing.proposal_data_2.block_root})"
+            "proposer_slashing.proposal_1.block_root "
+            f"({proposer_slashing.proposal_1.block_root}) "
+            "should not be equal to proposer_slashing.proposal_2.block_root "
+            f"({proposer_slashing.proposal_2.block_root})"
         )
 
 
@@ -196,26 +195,25 @@ def validate_proposer_slashing_is_slashed(slashed: bool) -> None:
         raise ValidationError(f"proposer.slashed is True")
 
 
-def validate_proposal_signature(proposal_signed_data: ProposalSignedData,
-                                proposal_signature: BLSSignature,
+def validate_proposal_signature(proposal: Proposal,
                                 pubkey: BLSPubkey,
                                 fork: Fork,
                                 slots_per_epoch: int) -> None:
     proposal_signature_is_valid = bls.verify(
         pubkey=pubkey,
-        message_hash=proposal_signed_data.root,  # TODO: use hash_tree_root
-        signature=proposal_signature,
+        message_hash=proposal.signed_root,  # TODO: use signed_root
+        signature=proposal.signature,
         domain=get_domain(
             fork,
-            slot_to_epoch(proposal_signed_data.slot, slots_per_epoch),
+            slot_to_epoch(proposal.slot, slots_per_epoch),
             SignatureDomain.DOMAIN_PROPOSAL,
         )
     )
     if not proposal_signature_is_valid:
         raise ValidationError(
             "Proposal signature is invalid: "
-            f"proposer pubkey: {pubkey}, message_hash: {proposal_signed_data.root}, "
-            f"signature: {proposal_signature}"
+            f"proposer pubkey: {pubkey}, message_hash: {proposal.signed_root}, "
+            f"signature: {proposal.signature}"
         )
 
 

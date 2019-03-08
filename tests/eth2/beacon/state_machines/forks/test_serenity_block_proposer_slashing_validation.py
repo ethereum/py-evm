@@ -56,11 +56,11 @@ def test_validate_proposer_slashing_slot(genesis_state,
     # Valid
     validate_proposer_slashing_slot(valid_proposer_slashing)
 
-    proposal_data_1 = valid_proposer_slashing.proposal_data_1.copy(
-        slot=valid_proposer_slashing.proposal_data_2.slot + 1
+    proposal_1 = valid_proposer_slashing.proposal_1.copy(
+        slot=valid_proposer_slashing.proposal_2.slot + 1
     )
     invalid_proposer_slashing = valid_proposer_slashing.copy(
-        proposal_data_1=proposal_data_1,
+        proposal_1=proposal_1,
     )
 
     # Invalid
@@ -81,11 +81,11 @@ def test_validate_proposer_slashing_shard(genesis_state,
     # Valid
     validate_proposer_slashing_shard(valid_proposer_slashing)
 
-    proposal_data_1 = valid_proposer_slashing.proposal_data_1.copy(
-        shard=valid_proposer_slashing.proposal_data_2.shard + 1
+    proposal_1 = valid_proposer_slashing.proposal_1.copy(
+        shard=valid_proposer_slashing.proposal_2.shard + 1
     )
     invalid_proposer_slashing = valid_proposer_slashing.copy(
-        proposal_data_1=proposal_data_1,
+        proposal_1=proposal_1,
     )
 
     # Invalid
@@ -106,11 +106,11 @@ def test_validate_proposer_slashing_block_root(genesis_state,
     # Valid
     validate_proposer_slashing_block_root(valid_proposer_slashing)
 
-    proposal_data_1 = valid_proposer_slashing.proposal_data_1.copy(
-        block_root=valid_proposer_slashing.proposal_data_2.block_root
+    proposal_1 = valid_proposer_slashing.proposal_1.copy(
+        block_root=valid_proposer_slashing.proposal_2.block_root
     )
     invalid_proposer_slashing = valid_proposer_slashing.copy(
-        proposal_data_1=proposal_data_1,
+        proposal_1=proposal_1,
     )
 
     # Invalid
@@ -156,8 +156,7 @@ def test_validate_proposal_signature(slots_per_epoch,
 
     # Valid
     validate_proposal_signature(
-        proposal_signed_data=valid_proposer_slashing.proposal_data_1,
-        proposal_signature=valid_proposer_slashing.proposal_signature_1,
+        proposal=valid_proposer_slashing.proposal_1,
         pubkey=proposer.pubkey,
         fork=state.fork,
         slots_per_epoch=slots_per_epoch,
@@ -168,8 +167,7 @@ def test_validate_proposal_signature(slots_per_epoch,
     wrong_proposer = state.validator_registry[wrong_proposer_index]
     with pytest.raises(ValidationError):
         validate_proposal_signature(
-            proposal_signed_data=valid_proposer_slashing.proposal_data_1,
-            proposal_signature=valid_proposer_slashing.proposal_signature_1,
+            proposal=valid_proposer_slashing.proposal_1,
             pubkey=wrong_proposer.pubkey,
             fork=state.fork,
             slots_per_epoch=slots_per_epoch,
