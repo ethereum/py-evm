@@ -24,6 +24,9 @@ BeaconConfig = NamedTuple(
         ('MAX_BALANCE_CHURN_QUOTIENT', int),
         ('BEACON_CHAIN_SHARD_NUMBER', Shard),
         ('MAX_INDICES_PER_SLASHABLE_VOTE', int),
+        ('MAX_EXIT_DEQUEUES_PER_EPOCH', int),
+        ('SHUFFLE_ROUND_COUNT', int),
+        # State list lengths
         ('LATEST_BLOCK_ROOTS_LENGTH', int),
         ('LATEST_ACTIVE_INDEX_ROOTS_LENGTH', int),
         ('LATEST_RANDAO_MIXES_LENGTH', int),
@@ -74,6 +77,7 @@ class CommitteeConfig:
         self.SHARD_COUNT = config.SHARD_COUNT
         self.SLOTS_PER_EPOCH = config.SLOTS_PER_EPOCH
         self.TARGET_COMMITTEE_SIZE = config.TARGET_COMMITTEE_SIZE
+        self.SHUFFLE_ROUND_COUNT = config.SHUFFLE_ROUND_COUNT
 
         # For seed
         self.MIN_SEED_LOOKAHEAD = config.MIN_SEED_LOOKAHEAD

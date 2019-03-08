@@ -11,78 +11,107 @@ from eth_typing import (
 )
 from eth_utils import (
     to_tuple,
+    ValidationError,
 )
 
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.constants import (
-    RAND_BYTES,
-    RAND_MAX,
+    POWER_OF_TWO_NUMBERS,
+    MAX_LIST_SIZE,
 )
 
 
 TItem = TypeVar('TItem')
 
 
-@to_tuple
-def shuffle(values: Sequence[TItem],
-            seed: Hash32) -> Iterable[TItem]:
+def get_permuted_index(index: int,
+                       list_size: int,
+                       seed: Hash32,
+                       shuffle_round_count: int) -> int:
     """
-    Return the shuffled ``values`` with ``seed`` as entropy.
-    Mainly for shuffling active validators in-protocol.
+    Return `p(index)` in a pseudorandom permutation `p` of `0...list_size-1`
+    with ``seed`` as entropy.
 
-    Spec: https://github.com/ethereum/eth2.0-specs/blob/70cef14a08de70e7bd0455d75cf380eb69694bfb/specs/core/0_beacon-chain.md#helper-functions  # noqa: E501
+    Utilizes 'swap or not' shuffling found in
+    https://link.springer.com/content/pdf/10.1007%2F978-3-642-32009-5_1.pdf
+    See the 'generalized domain' algorithm on page 3.
     """
-    values_count = len(values)
-
-    # The range of the RNG places an upper-bound on the size of the list that
-    # may be shuffled. It is a logic error to supply an oversized list.
-    if values_count >= RAND_MAX:
-        raise ValueError(
-            "values_count (%s) should less than RAND_MAX (%s)." %
-            (values_count, RAND_MAX)
+    if index >= list_size:
+        raise ValidationError(
+            f"The given `index` ({index}) should be less than `list_size` ({list_size}"
         )
 
-    output = [x for x in values]
-    source = seed
-    index = 0
-    while index < values_count - 1:
-        # Re-hash the `source` to obtain a new pattern of bytes.
-        source = hash_eth2(source)
+    if list_size > MAX_LIST_SIZE:
+        raise ValidationError(
+            f"The given `list_size` ({list_size}) should be equal to or less than "
+            f"`MAX_LIST_SIZE` ({MAX_LIST_SIZE}"
+        )
 
-        # Iterate through the `source` bytes in 3-byte chunks.
-        for position in range(0, 32 - (32 % RAND_BYTES), RAND_BYTES):
-            # Determine the number of indices remaining in `values` and exit
-            # once the last index is reached.
-            remaining = values_count - index
-            if remaining == 1:
-                break
+    new_index = index
+    for round in range(shuffle_round_count):
+        pivot = int.from_bytes(
+            hash_eth2(seed + round.to_bytes(1, 'little'))[0:8],
+            'little',
+        ) % list_size
 
-            # Read 3-bytes of `source` as a 24-bit little-endian integer.
-            sample_from_source = int.from_bytes(
-                source[position:position + RAND_BYTES], 'little'
-            )
+        flip = (pivot - new_index) % list_size
+        hash_pos = max(new_index, flip)
+        h = hash_eth2(seed + round.to_bytes(1, 'little') + (hash_pos // 256).to_bytes(4, 'little'))
+        byte = h[(hash_pos % 256) // 8]
+        bit = (byte >> (hash_pos % 8)) % 2
+        new_index = flip if bit else new_index
 
-            # Sample values greater than or equal to `sample_max` will cause
-            # modulo bias when mapped into the `remaining` range.
-            sample_max = RAND_MAX - RAND_MAX % remaining
+    return new_index
 
-            # Perform a swap if the consumed entropy will not cause modulo bias.
-            if sample_from_source < sample_max:
-                # Select a replacement index for the current index.
-                replacement_position = (sample_from_source % remaining) + index
-                # Swap the current index with the replacement index.
-                (output[index], output[replacement_position]) = (
-                    output[replacement_position],
-                    output[index]
-                )
-                index += 1
+
+@to_tuple
+def shuffle(values: Sequence[TItem],
+            seed: Hash32,
+            shuffle_round_count: int=90) -> Iterable[TItem]:
+    """
+    Return shuffled indices in a pseudorandom permutation `0...list_size-1` with
+    ``seed`` as entropy.
+
+    Utilizes 'swap or not' shuffling found in
+    https://link.springer.com/content/pdf/10.1007%2F978-3-642-32009-5_1.pdf
+    See the 'generalized domain' algorithm on page 3.
+    """
+    list_size = len(values)
+
+    if list_size > MAX_LIST_SIZE:
+        raise ValidationError(
+            f"The `list_size` ({list_size}) should be equal to or less than "
+            f"`MAX_LIST_SIZE` ({MAX_LIST_SIZE}"
+        )
+
+    indices = list(range(list_size))
+    for round in range(shuffle_round_count):
+        hash_bytes = b''.join(
+            [
+                hash_eth2(seed + round.to_bytes(1, 'little') + i.to_bytes(4, 'little'))
+                for i in range((list_size + 255) // 256)
+            ]
+        )
+
+        pivot = int.from_bytes(
+            hash_eth2(seed + round.to_bytes(1, 'little'))[:8],
+            'little',
+        ) % list_size
+        for i in range(list_size):
+            flip = (pivot - indices[i]) % list_size
+            hash_position = indices[i] if indices[i] > flip else flip
+            byte = hash_bytes[hash_position // 8]
+            mask = POWER_OF_TWO_NUMBERS[hash_position % 8]
+            if byte & mask:
+                indices[i] = flip
             else:
-                # The sample causes modulo bias. A new sample should be read.
+                # not swap
                 pass
 
-    return output
+    for i in indices:
+        yield values[i]
 
 
 def split(values: Sequence[TItem], split_count: int) -> Tuple[Iterable[TItem], ...]:

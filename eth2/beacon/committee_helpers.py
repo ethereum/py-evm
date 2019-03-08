@@ -72,9 +72,7 @@ def get_shuffling(*,
                   seed: Hash32,
                   validators: Sequence['ValidatorRecord'],
                   epoch: Epoch,
-                  slots_per_epoch: int,
-                  target_committee_size: int,
-                  shard_count: int) -> Tuple[Iterable[ValidatorIndex], ...]:
+                  committee_config: CommitteeConfig) -> Tuple[Iterable[ValidatorIndex], ...]:
     """
     Shuffle ``validators`` into crosslink committees seeded by ``seed`` and ``epoch``.
     Return a list of ``committee_per_epoch`` committees where each
@@ -86,6 +84,11 @@ def get_shuffling(*,
     of ``validators`` forever in phase 0, and until the ~1 year deletion delay in phase 2
     and in the future.
     """
+    slots_per_epoch = committee_config.SLOTS_PER_EPOCH
+    target_committee_size = committee_config.TARGET_COMMITTEE_SIZE
+    shard_count = committee_config.SHARD_COUNT
+    shuffle_round_count = committee_config.SHUFFLE_ROUND_COUNT
+
     active_validator_indices = get_active_validator_indices(validators, epoch)
 
     committees_per_epoch = get_epoch_committee_count(
@@ -96,7 +99,11 @@ def get_shuffling(*,
     )
 
     # Shuffle
-    shuffled_active_validator_indices = shuffle(active_validator_indices, seed)
+    shuffled_active_validator_indices = shuffle(
+        active_validator_indices,
+        seed,
+        shuffle_round_count=shuffle_round_count,
+    )
 
     # Split the shuffled list into committees_per_epoch pieces
     return tuple(
@@ -282,7 +289,6 @@ def get_crosslink_committees_at_slot(
     genesis_epoch = committee_config.GENESIS_EPOCH
     shard_count = committee_config.SHARD_COUNT
     slots_per_epoch = committee_config.SLOTS_PER_EPOCH
-    target_committee_size = committee_config.TARGET_COMMITTEE_SIZE
 
     epoch = slot_to_epoch(slot, slots_per_epoch)
     current_epoch = state.current_epoch(slots_per_epoch)
@@ -324,9 +330,7 @@ def get_crosslink_committees_at_slot(
         seed=shuffling_context.seed,
         validators=state.validator_registry,
         epoch=shuffling_context.shuffling_epoch,
-        slots_per_epoch=slots_per_epoch,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=committee_config,
     )
     offset = slot % slots_per_epoch
     committees_per_slot = shuffling_context.committees_per_epoch // slots_per_epoch

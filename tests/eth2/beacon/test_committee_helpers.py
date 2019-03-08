@@ -150,15 +150,13 @@ def test_get_next_epoch_committee_count(n_validators_state,
 def test_get_shuffling_is_complete(activated_genesis_validators,
                                    slots_per_epoch,
                                    target_committee_size,
-                                   shard_count,
+                                   committee_config,
                                    epoch):
     shuffling = get_shuffling(
         seed=b'\x35' * 32,
         validators=activated_genesis_validators,
         epoch=epoch,
-        slots_per_epoch=slots_per_epoch,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=committee_config,
     )
 
     assert len(shuffling) == slots_per_epoch
@@ -445,9 +443,7 @@ def test_get_crosslink_committees_at_slot(
         seed=seed,
         validators=state.validator_registry,
         epoch=shuffling_epoch,
-        slots_per_epoch=slots_per_epoch,
-        target_committee_size=target_committee_size,
-        shard_count=shard_count,
+        committee_config=committee_config,
     )
     assert shuffling[committees_per_slot * offset] == crosslink_committees_at_slot[0][0]
 

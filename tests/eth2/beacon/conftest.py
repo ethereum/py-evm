@@ -441,6 +441,16 @@ def max_indices_per_slashable_vote():
 
 
 @pytest.fixture
+def max_exit_dequeues_per_epoch():
+    return SERENITY_CONFIG.MAX_EXIT_DEQUEUES_PER_EPOCH
+
+
+@pytest.fixture
+def shuffle_round_count():
+    return SERENITY_CONFIG.SHUFFLE_ROUND_COUNT
+
+
+@pytest.fixture
 def latest_block_roots_length():
     return SERENITY_CONFIG.LATEST_BLOCK_ROOTS_LENGTH
 
@@ -686,6 +696,8 @@ def config(
         max_balance_churn_quotient,
         beacon_chain_shard_number,
         max_indices_per_slashable_vote,
+        max_exit_dequeues_per_epoch,
+        shuffle_round_count,
         latest_block_roots_length,
         latest_active_index_roots_length,
         latest_randao_mixes_length,
@@ -725,6 +737,8 @@ def config(
         MAX_BALANCE_CHURN_QUOTIENT=max_balance_churn_quotient,
         BEACON_CHAIN_SHARD_NUMBER=beacon_chain_shard_number,
         MAX_INDICES_PER_SLASHABLE_VOTE=max_indices_per_slashable_vote,
+        MAX_EXIT_DEQUEUES_PER_EPOCH=max_exit_dequeues_per_epoch,
+        SHUFFLE_ROUND_COUNT=shuffle_round_count,
         LATEST_BLOCK_ROOTS_LENGTH=latest_block_roots_length,
         LATEST_ACTIVE_INDEX_ROOTS_LENGTH=latest_active_index_roots_length,
         LATEST_RANDAO_MIXES_LENGTH=latest_randao_mixes_length,

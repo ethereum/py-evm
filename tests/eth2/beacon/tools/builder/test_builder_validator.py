@@ -168,12 +168,14 @@ def test_get_committee_assignment_no_assignment(genesis_state,
     state = genesis_state
     validator_index = 1
     current_epoch = state.current_epoch(slots_per_epoch)
+    validator = state.validator_registry[validator_index].copy(
+        exit_epoch=genesis_epoch,
+    )
     state = state.update_validator_registry(
         validator_index,
-        validator=state.validator_registry[validator_index].copy(
-            exit_epoch=genesis_epoch,
-        )
+        validator=validator,
     )
+    assert not validator.is_active(current_epoch)
 
     with pytest.raises(NoCommitteeAssignment):
         get_committee_assignment(state, config, current_epoch, validator_index, True)

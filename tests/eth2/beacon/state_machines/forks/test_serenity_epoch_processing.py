@@ -609,19 +609,20 @@ def test_process_rewards_and_penalties_for_finality(
             10,
             4,
             40,
-            {2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 15, 16, 17},
+            {2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17},
             {
                 2: 31,  # proposer index for inclusion slot 31: 6
                 3: 31,
-                4: 32,  # proposer index for inclusion slot 32: 12
+                4: 32,  # proposer index for inclusion slot 32: 16
                 5: 32,
                 6: 32,
+                7: 32,
                 9: 35,  # proposer index for inclusion slot 35: 19
                 10: 35,
                 11: 35,
                 12: 35,
                 13: 35,
-                15: 38,  # proposer index for inclusion slot 38: 8
+                15: 38,  # proposer index for inclusion slot 38: 15
                 16: 38,
                 17: 38,
             },
@@ -635,15 +636,15 @@ def test_process_rewards_and_penalties_for_finality(
                 5: 0,
                 6: 50,  # 2 * (100 // 4)
                 7: 0,
-                8: 75,  # 3 * (100 // 4)
+                8: 0,
                 9: 0,
                 10: 0,
                 11: 0,
-                12: 75,  # 3 * (100 // 4)
+                12: 0,
                 13: 0,
                 14: 0,
-                15: 0,
-                16: 0,
+                15: 75,  # 3 * (100 // 4)
+                16: 100,  # 4 * (100 // 4)
                 17: 0,
                 18: 0,
                 19: 125,  # 5 * (100 // 4)
