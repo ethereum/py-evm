@@ -456,7 +456,10 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         tasks as they become available.
         """
         get_headers_coro = self._header_syncer.new_sync_headers(HEADER_QUEUE_SIZE_TARGET)
+
+        # Track the highest registered block header by number, purely for stats/logging
         highest_block_num = -1
+
         async for headers in self.wait_iter(get_headers_coro):
             try:
                 # We might end up with duplicates that can be safely ignored.
@@ -477,9 +480,12 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
                         self.db.coro_get_block_header_by_hash(headers[0].parent_hash)
                     )
                 except HeaderNotFound:
-                    await self._log_header_link_failure(headers[0], highest_block_num)
+                    await self._log_missing_parent(headers[0], highest_block_num)
+
+                    # Nowhere to go from here, reset and try again
                     await self._header_syncer.clear_buffer()
-                    # wait for new headers to come back in from a restarted skeleton sync
+
+                    # Don't try to process `headers`, wait for new ones to come in
                     continue
 
                 # This appears to be a fork, since the parent header is persisted,
@@ -510,7 +516,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
 
             highest_block_num = max(headers[-1].block_number, highest_block_num)
 
-    async def _log_header_link_failure(self, first_header: BlockHeader, highest_block_num) -> None:
+    async def _log_missing_parent(self, first_header: BlockHeader, highest_block_num: int) -> None:
         self.logger.warning("Parent missing for header %r, restarting header sync", first_header)
         block_num = first_header.block_number
         try:

@@ -114,7 +114,6 @@ def binary_parent(node):
     st.integers(min_value=0, max_value=6),
     min_size=3,
 ))
-#@settings(max_examples=20000)
 def test_prune_reinsert_root_tracking_binary_tree(element_flipping):
     tracker = RootTracker()
 

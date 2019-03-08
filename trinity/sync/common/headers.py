@@ -493,6 +493,17 @@ class HeaderSyncerAPI(ABC):
             yield
 
     @abstractmethod
+    async def clear_buffer(self) -> None:
+        """
+        Whatever headers have been received until now, dump them all and restart.
+        This is a last resort, to be used only when a consumer seems to receive
+        headers out of other and decides they have no other option besides reset.
+
+        It wastes a lot of previously completed work.
+        """
+        pass
+
+    @abstractmethod
     def get_target_header_hash(self) -> Hash32:
         pass
 
