@@ -493,6 +493,17 @@ class HeaderSyncerAPI(ABC):
             yield
 
     @abstractmethod
+    async def clear_buffer(self) -> None:
+        """
+        Whatever headers have been received until now, dump them all and restart.
+        This is a last resort, to be used only when a consumer seems to receive
+        headers out of other and decides they have no other option besides reset.
+
+        It wastes a lot of previously completed work.
+        """
+        pass
+
+    @abstractmethod
     def get_target_header_hash(self) -> Hash32:
         pass
 
@@ -728,7 +739,20 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
         self._chain = chain
         self._peer_pool = peer_pool
         self._tip_monitor = self.tip_monitor_class(peer_pool, token=self.cancel_token)
+        self._last_target_header_hash: Hash32 = None
         self._skeleton: SkeletonSyncer[TChainPeer] = None
+
+        # Track if there is capacity for syncing more headers
+        self._buffer_capacity = asyncio.Event()
+
+        self._reset_buffer()
+
+    async def clear_buffer(self) -> None:
+        if self._skeleton is not None:
+            await self._skeleton.cancel()
+        self._reset_buffer()
+
+    def _reset_buffer(self) -> None:
         # stitch together headers as they come in
         self._stitcher = OrderedTaskPreparation(
             # we don't have to do any prep work on the headers, just linearize them, so empty enum
@@ -741,12 +765,15 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
         )
         # When downloading the headers into the gaps left by the syncer, they must be linearized
         # by the stitcher
-        self._meat = HeaderMeatSyncer(chain, peer_pool, self._stitcher, token)
-        self._last_target_header_hash: Hash32 = None
+        self._meat = HeaderMeatSyncer(
+            self._chain,
+            self._peer_pool,
+            self._stitcher,
+            self.cancel_token,
+        )
 
-        # Track if there is capacity for syncing more headers
-        self._buffer_capacity = asyncio.Event()
-        self._buffer_capacity.set()  # start with capacity
+        # Queue has reset, so always start with capacity
+        self._buffer_capacity.set()
 
     async def new_sync_headers(
             self,

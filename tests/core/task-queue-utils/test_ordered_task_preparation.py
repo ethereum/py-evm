@@ -115,6 +115,28 @@ async def test_pruning():
 
 
 @pytest.mark.asyncio
+async def test_pruning_consecutive_finished_deps():
+    ti = OrderedTaskPreparation(NoPrerequisites, identity, lambda x: x - 1, max_depth=2)
+    ti.set_finished_dependency(3)
+    ti.set_finished_dependency(4)
+    ti.register_tasks((5, 6))
+
+    assert 3 in ti._tasks
+    assert 4 in ti._tasks
+
+    # trigger pruning by requesting the ready tasks through 6, then "finishing" them
+    # by requesting the next batch of ready tasks (7)
+    completed = await wait(ti.ready_tasks())
+    assert completed == (5, 6)
+    ti.register_tasks((7, ))
+    completed = await wait(ti.ready_tasks())
+    assert completed == (7, )
+
+    assert 3 not in ti._tasks
+    assert 4 in ti._tasks
+
+
+@pytest.mark.asyncio
 async def test_wait_forever():
     ti = OrderedTaskPreparation(OnePrereq, identity, lambda x: x - 1)
     await assert_nothing_ready(ti)

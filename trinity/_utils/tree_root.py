@@ -323,14 +323,21 @@ class RootTracker(Generic[TNodeID]):
 
     def _get_new_root(self, node_id: TNodeID, parent_id: TNodeID) -> Tuple[TreeRoot[TNodeID], int]:
         if self._tree.has_parent(node_id):
-            parent_root = self._roots[parent_id]
+            try:
+                parent_root = self._roots[parent_id]
+            except KeyError as e:
+                tree_parent = self._tree.parent_of(node_id)
+                raise ValidationError(
+                    f"When adding node {node_id} with parent {parent_id}, The tree says that "
+                    f"parent {tree_parent} is present, but the parent is missing from roots."
+                ) from e
+
             if len(self._tree.children_of(parent_id)) > 1:
                 node_root = TreeRoot(node_id)
                 node_root.extend(parent_root, 0)
-                original_depth = self._original_depth_to_root[parent_id] + 1
             else:
                 node_root = parent_root
-                original_depth = self._original_depth_to_root[parent_id] + 1
+            original_depth = self._original_depth_to_root[parent_id] + 1
         else:
             node_root = TreeRoot(node_id)
             original_depth = 0
