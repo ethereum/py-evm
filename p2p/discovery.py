@@ -403,7 +403,14 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         self.transport = cast(asyncio.DatagramTransport, transport)
 
     async def bootstrap(self) -> None:
-        self.logger.info("boostrapping with %s", self.bootstrap_nodes)
+        for node in self.bootstrap_nodes:
+            uri = node.uri()
+            pubkey, _, uri_tail = uri.partition('@')
+            pubkey_head = pubkey[:16]
+            pubkey_tail = pubkey[-8:]
+            self.logger.debug("full-bootnode: %s", uri)
+            self.logger.info("bootnode: %s...%s@%s", pubkey_head, pubkey_tail, uri_tail)
+
         try:
             bonded = await asyncio.gather(*(
                 self.bond(n)
