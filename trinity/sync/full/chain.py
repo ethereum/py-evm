@@ -456,6 +456,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         tasks as they become available.
         """
         get_headers_coro = self._header_syncer.new_sync_headers(HEADER_QUEUE_SIZE_TARGET)
+        highest_block_num = -1
         async for headers in self.wait_iter(get_headers_coro):
             try:
                 # We might end up with duplicates that can be safely ignored.
@@ -476,7 +477,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
                         self.db.coro_get_block_header_by_hash(headers[0].parent_hash)
                     )
                 except HeaderNotFound:
-                    await self._log_header_link_failure(headers[0])
+                    await self._log_header_link_failure(headers[0], highest_block_num)
                     await self._header_syncer.clear_buffer()
                     # wait for new headers to come back in from a restarted skeleton sync
                     continue
@@ -507,8 +508,10 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
             # Don't race ahead of the database, by blocking when the persistance queue is too long
             await self._db_buffer_capacity.wait()
 
-    async def _log_header_link_failure(self, first_header: BlockHeader) -> None:
-        self.logger.info("Unable to find parent in our database for %r", first_header)
+            highest_block_num = max(headers[-1].block_number, highest_block_num)
+
+    async def _log_header_link_failure(self, first_header: BlockHeader, highest_block_num) -> None:
+        self.logger.warning("Parent missing for header %r, restarting header sync", first_header)
         block_num = first_header.block_number
         try:
             local_header = await self.db.coro_get_canonical_block_header_by_number(block_num)
@@ -530,12 +533,14 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
 
         self.logger.debug(
             "Header syncer returned header %s, which is not in our DB. "
-            "Instead at #%d, our header is %s, whose parent is %s, with canonical tip %s",
+            "Instead at #%d, our header is %s, whose parent is %s, with canonical tip %s. ",
+            "The highest received header is %d.",
             first_header,
             block_num,
             local_header,
             local_parent,
             canonical_tip,
+            highest_block_num,
         )
 
     async def _display_stats(self) -> None:
