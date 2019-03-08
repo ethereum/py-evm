@@ -10,6 +10,8 @@ from hypothesis import (
     strategies as st,
 )
 
+from eth.constants import ZERO_HASH32
+
 from eth2._utils.bitfield import (
     set_voted,
     get_empty_bitfield,
@@ -40,6 +42,7 @@ from eth2.beacon.types.attestations import (
 from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
+from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 
 
@@ -220,7 +223,7 @@ def test_get_previous_epoch_head_attestations(
         ),
         (
             16,
-            # vote tie; lower root value is favored
+            # vote tie; higher root value is favored
             (1, 3, 5, 7),
             (2, 4, 6, 8)
         ),
@@ -284,6 +287,10 @@ def test_get_winning_root(
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
                 crosslink_data_root=competing_block_roots[0],
+                latest_crosslink=CrosslinkRecord(
+                    epoch=config.GENESIS_EPOCH,
+                    crosslink_data_root=ZERO_HASH32,
+                ),
             ),
         ),
         # Attestation to `crosslink_data_root_2` by `attestation_participants_2`
@@ -292,6 +299,10 @@ def test_get_winning_root(
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
                 crosslink_data_root=competing_block_roots[1],
+                latest_crosslink=CrosslinkRecord(
+                    epoch=config.GENESIS_EPOCH,
+                    crosslink_data_root=ZERO_HASH32,
+                ),
             ),
         ),
     )
@@ -299,7 +310,6 @@ def test_get_winning_root(
     try:
         winning_root, attesting_balance = get_winning_root(
             state=n_validators_state,
-            shard=shard,
             attestations=attestations,
             max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
             committee_config=committee_config,
@@ -323,7 +333,7 @@ def test_get_winning_root(
         assert len(block_root_1_participants) == 0 and len(block_root_2_participants) == 0
     else:
         if len(block_root_1_participants) == len(block_root_2_participants):
-            if competing_block_roots[0] < competing_block_roots[1]:
+            if competing_block_roots[0] > competing_block_roots[1]:
                 assert winning_root == competing_block_roots[0]
             else:
                 assert winning_root == competing_block_roots[1]

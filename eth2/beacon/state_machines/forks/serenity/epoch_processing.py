@@ -37,6 +37,7 @@ from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
     get_crosslink_committees_at_slot,
     get_current_epoch_committee_count,
+    slot_to_epoch,
 )
 from eth2.beacon.configs import (
     BeaconConfig,
@@ -263,6 +264,20 @@ def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconSta
 # Crosslinks
 #
 @to_tuple
+def _filter_attestations_by_latest_crosslinks(
+        attestations: Sequence[Attestation],
+        latest_crosslink: CrosslinkRecord) -> Iterable[Attestation]:
+    for attestation in attestations:
+        # if attestation.data.latest_crosslink == latest_crosslink:
+        epoch_matched = attestation.data.latest_crosslink.epoch == latest_crosslink.epoch
+        crosslink_data_root_matched = (
+            attestation.data.latest_crosslink.crosslink_data_root == latest_crosslink.crosslink_data_root
+        )
+        if (epoch_matched and crosslink_data_root_matched):
+            yield attestation
+
+
+@to_tuple
 def _filter_attestations_by_shard(
         attestations: Sequence[Attestation],
         shard: Shard) -> Iterable[Attestation]:
@@ -300,13 +315,15 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
             try:
                 winning_root, total_attesting_balance = get_winning_root(
                     state=state,
-                    shard=shard,
                     # Use `_filter_attestations_by_shard` to filter out attestations
                     # not attesting to this shard so we don't need to going over
                     # irrelevent attestations over and over again.
-                    attestations=_filter_attestations_by_shard(
-                        state.previous_epoch_attestations + state.current_epoch_attestations,
-                        shard,
+                    attestations=_filter_attestations_by_latest_crosslinks(
+                        _filter_attestations_by_shard(
+                            state.previous_epoch_attestations + state.current_epoch_attestations,
+                            shard,
+                        ),
+                        state.latest_crosslinks[shard],
                     ),
                     max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
                     committee_config=CommitteeConfig(config),
@@ -689,14 +706,16 @@ def _process_rewards_and_penalties_for_crosslinks(
             CommitteeConfig(config),
         )
         for crosslink_committee, shard in crosslink_committees_at_slot:
-            filtered_attestations = _filter_attestations_by_shard(
-                previous_epoch_attestations + state.current_epoch_attestations,
-                shard,
+            filtered_attestations = _filter_attestations_by_latest_crosslinks(
+                _filter_attestations_by_shard(
+                    previous_epoch_attestations + state.current_epoch_attestations,
+                    shard,
+                ),
+                state.latest_crosslinks[shard],
             )
             try:
                 winning_root, total_attesting_balance = get_winning_root(
                     state=state,
-                    shard=shard,
                     attestations=filtered_attestations,
                     max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
                     committee_config=CommitteeConfig(config),

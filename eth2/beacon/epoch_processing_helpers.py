@@ -71,7 +71,6 @@ def get_previous_epoch_head_attestations(
 def get_winning_root(
         *,
         state: 'BeaconState',
-        shard: Shard,
         attestations: Sequence[PendingAttestationRecord],
         max_deposit_amount: Gwei,
         committee_config: CommitteeConfig) -> Tuple[Hash32, Gwei]:
@@ -80,7 +79,6 @@ def get_winning_root(
     crosslink_data_roots = set(
         [
             a.data.crosslink_data_root for a in attestations
-            if a.data.shard == shard
         ]
     )
     for crosslink_data_root in crosslink_data_roots:
@@ -89,7 +87,7 @@ def get_winning_root(
             attestations=[
                 a
                 for a in attestations
-                if a.data.shard == shard and a.data.crosslink_data_root == crosslink_data_root
+                if a.data.crosslink_data_root == crosslink_data_root
             ],
             committee_config=committee_config,
         )
@@ -102,7 +100,7 @@ def get_winning_root(
             winning_root = crosslink_data_root
             winning_root_balance = total_attesting_balance
         elif total_attesting_balance == winning_root_balance and winning_root_balance > 0:
-            if crosslink_data_root < winning_root:
+            if crosslink_data_root > winning_root:
                 winning_root = crosslink_data_root
 
     if winning_root is None:
