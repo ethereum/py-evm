@@ -26,11 +26,13 @@ from eth_utils.toolz import (
 )
 from lahja import (
     Endpoint,
+    BroadcastConfig,
 )
 
 from p2p.constants import (
     DEFAULT_MAX_PEERS,
     DEFAULT_PEER_BOOT_TIMEOUT,
+    DISCOVERY_EVENTBUS_ENDPOINT,
     DISOVERY_INTERVAL,
     REQUEST_PEER_CANDIDATE_TIMEOUT,
 )
@@ -70,6 +72,9 @@ from p2p.p2p_proto import (
 from p2p.service import (
     BaseService,
 )
+
+
+TO_DISCOVERY_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=DISCOVERY_EVENTBUS_ENDPOINT)
 
 
 class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
@@ -120,9 +125,10 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             if available_peer_slots > 0:
                 try:
                     response = await self.wait(
-                        # TODO: This should use a BroadcastConfig to send the request to discovery
-                        # only as soon as we have cut a new Lahja release.
-                        self.event_bus.request(PeerCandidatesRequest(available_peer_slots)),
+                        self.event_bus.request(
+                            PeerCandidatesRequest(available_peer_slots),
+                            TO_DISCOVERY_BROADCAST_CONFIG,
+                        ),
                         timeout=REQUEST_PEER_CANDIDATE_TIMEOUT
                     )
                 except TimeoutError:
@@ -135,9 +141,10 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 if not len(self):
                     try:
                         response = await self.wait(
-                            # TODO: This should use a BroadcastConfig to send the request to
-                            # discovery only as soon as we have cut a new Lahja release.
-                            self.event_bus.request(RandomBootnodeRequest()),
+                            self.event_bus.request(
+                                RandomBootnodeRequest(),
+                                TO_DISCOVERY_BROADCAST_CONFIG
+                            ),
                             timeout=REQUEST_PEER_CANDIDATE_TIMEOUT
                         )
                     except TimeoutError:

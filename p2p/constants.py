@@ -112,6 +112,8 @@ SEAL_CHECK_RANDOM_SAMPLE_RATE = 48
 # aborting the connection attempt.
 DEFAULT_PEER_BOOT_TIMEOUT = 20
 
+# Name of the endpoint that the discovery uses to connect to the eventbus
+DISCOVERY_EVENTBUS_ENDPOINT = 'discovery'
 # Interval at which peer pool is checked for potential new candidates
 DISOVERY_INTERVAL = 2
 # Timeout used when fetching peer candidates from discovery

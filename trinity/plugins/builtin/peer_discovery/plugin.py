@@ -13,6 +13,9 @@ from eth_typing import (
 from eth.constants import (
     GENESIS_BLOCK_NUMBER
 )
+from p2p.constants import (
+    DISCOVERY_EVENTBUS_ENDPOINT,
+)
 from p2p.discovery import (
     get_v5_topic,
     DiscoveryByTopicProtocol,
@@ -147,6 +150,10 @@ class PeerDiscoveryPlugin(BaseIsolatedPlugin):
     @property
     def name(self) -> str:
         return "Discovery"
+
+    @property
+    def normalized_name(self) -> str:
+        return DISCOVERY_EVENTBUS_ENDPOINT
 
     def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
         self.start()

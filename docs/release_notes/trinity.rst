@@ -4,6 +4,7 @@ Trinity
 Unreleased (latest source)
 --------------------------
 
+- `#386 <https://github.com/ethereum/trinity/pull/386>`_: Slightly reduce eventbus traffic that the peer pool causes
 - `#336 <https://github.com/ethereum/trinity/pull/336>`_: Bugfix: Ensure Trinity shuts down if the process pool dies (fatal error)
 
 0.1.0-alpha.23
