@@ -23,11 +23,9 @@ from eth2.beacon.committee_helpers import (
 )
 from eth2.beacon.configs import CommitteeConfig
 from eth2.beacon.epoch_processing_helpers import (
-    get_current_epoch_attestations,
     get_epoch_boundary_attester_indices,
     get_epoch_boundary_attesting_balances,
     get_inclusion_infos,
-    get_previous_epoch_attestations,
     get_previous_epoch_head_attestations,
     get_total_balance,
     get_winning_root,
@@ -119,12 +117,11 @@ def test_get_current_and_previous_epoch_attestations(random,
 
     state = sample_state.copy(
         slot=(slots_per_epoch * 2 - 1),
-        latest_attestations=(previous_epoch_attestations + current_epoch_attestations),
+        previous_epoch_attestations=previous_epoch_attestations,
+        current_epoch_attestations=current_epoch_attestations,
     )
-    assert set(previous_epoch_attestations) == set(
-        get_previous_epoch_attestations(state, slots_per_epoch, genesis_epoch))
-    assert set(current_epoch_attestations) == set(
-        get_current_epoch_attestations(state, slots_per_epoch))
+    assert set(previous_epoch_attestations) == set(state.previous_epoch_attestations)
+    assert set(current_epoch_attestations) == set(state.current_epoch_attestations)
 
 
 @settings(max_examples=1)
@@ -190,11 +187,12 @@ def test_get_previous_epoch_head_attestations(
             )
         )
 
-    latest_attestations = previous_epoch_head_attestations + previous_epoch_not_head_attestations
     state = sample_state.copy(
         slot=current_slot,
         latest_block_roots=latest_block_roots,
-        latest_attestations=latest_attestations,
+        previous_epoch_attestations=(
+            previous_epoch_head_attestations + previous_epoch_not_head_attestations
+        ),
     )
 
     result = get_previous_epoch_head_attestations(
@@ -550,7 +548,8 @@ def test_get_epoch_boundary_attesting_balances(
         slot=slot,
         justified_epoch=justified_epoch,
         previous_justified_epoch=previous_justified_epoch,
-        latest_attestations=current_epoch_attestations + previous_epoch_attestations,
+        previous_epoch_attestations=previous_epoch_attestations,
+        current_epoch_attestations=current_epoch_attestations,
         latest_block_roots=tuple(latest_block_roots),
     )
     (

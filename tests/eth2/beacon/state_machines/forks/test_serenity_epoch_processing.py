@@ -485,7 +485,7 @@ def test_process_crosslinks(
                 )
 
     state = state.copy(
-        latest_attestations=cur_epoch_attestations,
+        current_epoch_attestations=cur_epoch_attestations,
     )
     assert (state.latest_crosslinks[shard].epoch == config.GENESIS_EPOCH and
             state.latest_crosslinks[shard].crosslink_data_root == ZERO_HASH32)
@@ -690,7 +690,7 @@ def test_process_rewards_and_penalties_for_finality(
             )
         )
     state = state.copy(
-        latest_attestations=prev_epoch_attestations,
+        previous_epoch_attestations=prev_epoch_attestations,
     )
 
     rewards_received = _process_rewards_and_penalties_for_finality(
@@ -1621,41 +1621,41 @@ def test_update_latest_active_index_roots(genesis_state,
 @pytest.mark.parametrize(
     (
         'num_validators,'
-        'state_slot,'
-        'attestation_slot,'
-        'len_latest_attestations,'
-        'expected_result_len_latest_attestations,'
         'slots_per_epoch'
     ),
     [
-        (10, 4, 4, 2, 2, 4),  # slot_to_epoch(attestation.data.slot) >= state.current_epoch, -> expected_result_len_latest_attestations = len_latest_attestations  # noqa: E501
-        (10, 4, 8, 2, 2, 4),  # slot_to_epoch(attestation.data.slot) >= state.current_epoch, -> expected_result_len_latest_attestations = len_latest_attestations  # noqa: E501
-        (10, 16, 8, 2, 0, 4),  # slot_to_epoch(attestation.data.slot) < state.current_epoch, -> expected_result_len_latest_attestations = 0  # noqa: E501
+        (10, 4),
     ]
 )
 def test_process_final_updates(genesis_state,
-                               state_slot,
-                               attestation_slot,
-                               len_latest_attestations,
-                               expected_result_len_latest_attestations,
                                config,
                                sample_attestation_params):
+    current_slot = 10
     state = genesis_state.copy(
-        slot=state_slot,
+        slot=current_slot,
     )
     current_index = state.next_epoch(config.SLOTS_PER_EPOCH) % config.LATEST_SLASHED_EXIT_LENGTH
     previous_index = state.current_epoch(config.SLOTS_PER_EPOCH) % config.LATEST_SLASHED_EXIT_LENGTH
 
-    # Assume `len_latest_attestations` attestations in state.latest_attestations
-    # with attestation.data.slot = attestation_slot
     attestation = Attestation(**sample_attestation_params)
-    latest_attestations = [
+    previous_epoch_attestation_slot = current_slot - config.SLOTS_PER_EPOCH
+    num_previous_epoch_attestations = 2
+    previous_epoch_attestations = [
         attestation.copy(
             data=attestation.data.copy(
-                slot=attestation_slot
+                slot=previous_epoch_attestation_slot
             )
         )
-        for i in range(len_latest_attestations)
+        for _ in range(num_previous_epoch_attestations)
+    ]
+    num_current_epoch_attestations = 3
+    current_epoch_attestations = [
+        attestation.copy(
+            data=attestation.data.copy(
+                slot=current_slot
+            )
+        )
+        for _ in range(num_current_epoch_attestations)
     ]
 
     # Fill latest_slashed_balances
@@ -1667,7 +1667,8 @@ def test_process_final_updates(genesis_state,
     )
     state = state.copy(
         latest_slashed_balances=latest_slashed_balances,
-        latest_attestations=latest_attestations,
+        previous_epoch_attestations=previous_epoch_attestations,
+        current_epoch_attestations=current_epoch_attestations,
     )
 
     result_state = process_final_updates(state, config)
@@ -1686,6 +1687,6 @@ def test_process_final_updates(genesis_state,
         )
     )
 
-    assert len(result_state.latest_attestations) == expected_result_len_latest_attestations
-    for attestation in result_state.latest_attestations:
-        assert attestation.data.slot >= state_slot - config.SLOTS_PER_EPOCH
+    for attestation in result_state.previous_epoch_attestations:
+        assert attestation.data.slot == current_slot
+    assert len(result_state.current_epoch_attestations) == 0

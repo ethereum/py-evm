@@ -44,9 +44,7 @@ from eth2.beacon.configs import (
 )
 from eth2.beacon.epoch_processing_helpers import (
     get_base_reward,
-    get_current_epoch_attestations,
     get_inclusion_infos,
-    get_previous_epoch_attestations,
     get_previous_epoch_head_attestations,
     get_winning_root,
     get_total_balance,
@@ -59,7 +57,6 @@ from eth2.beacon.helpers import (
     get_effective_balance,
     get_epoch_start_slot,
     get_randao_mix,
-    slot_to_epoch,
 )
 from eth2.beacon.validator_status_helpers import (
     activate_validator,
@@ -285,12 +282,6 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
     Return resulting ``state``
     """
     latest_crosslinks = state.latest_crosslinks
-    previous_epoch_attestations = get_previous_epoch_attestations(
-        state,
-        config.SLOTS_PER_EPOCH,
-        config.GENESIS_EPOCH,
-    )
-    current_epoch_attestations = get_current_epoch_attestations(state, config.SLOTS_PER_EPOCH)
     previous_epoch_start_slot = get_epoch_start_slot(
         state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
         config.SLOTS_PER_EPOCH,
@@ -314,7 +305,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                     # not attesting to this shard so we don't need to going over
                     # irrelevent attestations over and over again.
                     attestations=_filter_attestations_by_shard(
-                        previous_epoch_attestations + current_epoch_attestations,
+                        state.previous_epoch_attestations + state.current_epoch_attestations,
                         shard,
                     ),
                     max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
@@ -691,7 +682,6 @@ def _process_rewards_and_penalties_for_crosslinks(
         config.SLOTS_PER_EPOCH,
     )
     # Also need current epoch attestations to compute the winning root.
-    current_epoch_attestations = get_current_epoch_attestations(state, config.SLOTS_PER_EPOCH)
     for slot in range(previous_epoch_start_slot, current_epoch_start_slot):
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
             state,
@@ -700,7 +690,7 @@ def _process_rewards_and_penalties_for_crosslinks(
         )
         for crosslink_committee, shard in crosslink_committees_at_slot:
             filtered_attestations = _filter_attestations_by_shard(
-                previous_epoch_attestations + current_epoch_attestations,
+                previous_epoch_attestations + state.current_epoch_attestations,
                 shard,
             )
             try:
@@ -755,11 +745,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
 
     # Compute previous epoch attester indices and the total balance they account for
     # for later use.
-    previous_epoch_attestations = get_previous_epoch_attestations(
-        state,
-        config.SLOTS_PER_EPOCH,
-        config.GENESIS_EPOCH,
-    )
+    previous_epoch_attestations = state.previous_epoch_attestations
     previous_epoch_attester_indices = get_attester_indices_from_attesttion(
         state=state,
         attestations=previous_epoch_attestations,
@@ -1318,16 +1304,10 @@ def process_final_updates(state: BeaconState,
         ),
     )
 
-    latest_attestations = tuple(
-        filter(
-            lambda attestation: (
-                slot_to_epoch(attestation.data.slot, config.SLOTS_PER_EPOCH) >= current_epoch
-            ),
-            state.latest_attestations
-        )
-    )
+    # Rotate current/previous epoch attestations
     state = state.copy(
-        latest_attestations=latest_attestations,
+        previous_epoch_attestations=state.current_epoch_attestations,
+        current_epoch_attestations=(),
     )
 
     return state

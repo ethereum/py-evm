@@ -146,6 +146,8 @@ def test_get_genesis_beacon_state(
     assert state.previous_shuffling_seed == ZERO_HASH32
 
     # Finality
+    assert len(state.previous_epoch_attestations) == 0
+    assert len(state.current_epoch_attestations) == 0
     assert state.previous_justified_epoch == genesis_epoch
     assert state.justified_epoch == genesis_epoch
     assert state.justification_bitfield == 0
@@ -162,7 +164,6 @@ def test_get_genesis_beacon_state(
     assert len(state.latest_slashed_balances) == latest_slashed_exit_length
     assert state.latest_slashed_balances[0] == Gwei(0)
 
-    assert len(state.latest_attestations) == 0
     assert len(state.batched_block_roots) == 0
 
     # Ethereum 1.0 chain data

@@ -288,7 +288,7 @@ def test_process_attestations(genesis_state,
             config,
         )
 
-        assert len(new_state.latest_attestations) == len(attestations)
+        assert len(new_state.current_epoch_attestations) == len(attestations)
     else:
         with pytest.raises(ValidationError):
             process_attestations(
