@@ -88,10 +88,16 @@ from eth2.beacon.typing import (
 #
 # Eth1 data votes
 #
+def _majority_threshold(config: BeaconConfig) -> int:
+    """
+    Return the value constituting the majority threshold for an Eth1 data vote.
+    """
+    return config.EPOCHS_PER_ETH1_VOTING_PERIOD * config.SLOTS_PER_EPOCH
+
 
 @curry
 def _is_majority_vote(config: BeaconConfig, vote: Eth1DataVote) -> bool:
-    return vote.vote_count * 2 > config.EPOCHS_PER_ETH1_VOTING_PERIOD * config.SLOTS_PER_EPOCH
+    return vote.vote_count * 2 > _majority_threshold(config)
 
 
 def _update_eth1_vote_if_exists(state: BeaconState, config: BeaconConfig) -> BeaconState:
