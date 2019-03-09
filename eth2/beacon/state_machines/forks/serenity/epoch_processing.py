@@ -550,6 +550,28 @@ def _process_rewards_and_penalties_for_finality(
 
     # epochs_since_finality > 4
     else:
+        # Punish active validators in `previous_epoch_attester_indices`
+        attesting_active_validators_indices = previous_epoch_active_validator_indices.intersection(
+            previous_epoch_attester_indices,
+        )
+        penalties = {
+            index: Gwei(
+                base_rewards[index] - (
+                    base_rewards[index] *
+                    config.MIN_ATTESTATION_INCLUSION_DELAY //
+                    inclusion_infos[index].inclusion_distance
+                )
+            )
+            for index in attesting_active_validators_indices
+        }
+        rewards_received, penalties_received = _apply_rewards_and_penalties(
+            RewardSettlementContext(
+                penalties=penalties,
+                indices_to_penalize=attesting_active_validators_indices,
+                rewards_received=rewards_received,
+                penalties_received=penalties_received,
+            ),
+        )
         # Punish active validators not in `previous_epoch_attester_indices`
         excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
             previous_epoch_attester_indices,
@@ -621,26 +643,6 @@ def _process_rewards_and_penalties_for_finality(
             RewardSettlementContext(
                 penalties=penalties,
                 indices_to_penalize={index for index in penalties},
-                rewards_received=rewards_received,
-                penalties_received=penalties_received,
-            ),
-        )
-
-        # Punish validators in `previous_epoch_attester_indices`
-        penalties = {
-            index: Gwei(
-                base_rewards[index] - (
-                    base_rewards[index] *
-                    config.MIN_ATTESTATION_INCLUSION_DELAY //
-                    inclusion_infos[index].inclusion_distance
-                )
-            )
-            for index in previous_epoch_attester_indices
-        }
-        rewards_received, penalties_received = _apply_rewards_and_penalties(
-            RewardSettlementContext(
-                penalties=penalties,
-                indices_to_penalize=previous_epoch_attester_indices,
                 rewards_received=rewards_received,
                 penalties_received=penalties_received,
             ),
