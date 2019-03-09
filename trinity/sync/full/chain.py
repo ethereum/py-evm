@@ -466,7 +466,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
                 # Likely scenario: switched which peer downloads headers, and the new peer isn't
                 # aware of some of the in-progress headers
                 self._block_persist_tracker.register_tasks(headers, ignore_duplicates=True)
-            except MissingDependency:
+            except MissingDependency as missing_exc:
                 # The parent of this header is not registered as a dependency yet.
                 # Some reasons this might happen, in rough descending order of likelihood:
                 #   - a normal fork: the canonical head isn't the parent of the first header synced
@@ -480,10 +480,13 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
                         self.db.coro_get_block_header_by_hash(headers[0].parent_hash)
                     )
                 except HeaderNotFound:
-                    await self._log_missing_parent(headers[0], highest_block_num)
+                    await self._log_missing_parent(headers[0], highest_block_num, missing_exc)
 
                     # Nowhere to go from here, reset and try again
                     await self._header_syncer.clear_buffer()
+
+                    # Give time for queue to flush out
+                    await self.sleep(60)
 
                     # Don't try to process `headers`, wait for new ones to come in
                     continue
@@ -516,7 +519,11 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
 
             highest_block_num = max(headers[-1].block_number, highest_block_num)
 
-    async def _log_missing_parent(self, first_header: BlockHeader, highest_block_num: int) -> None:
+    async def _log_missing_parent(
+            self,
+            first_header: BlockHeader,
+            highest_block_num: int,
+            missing_exc: Exception) -> None:
         self.logger.warning("Parent missing for header %r, restarting header sync", first_header)
         block_num = first_header.block_number
         try:
@@ -538,15 +545,16 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
             canonical_tip = None
 
         self.logger.debug(
-            "Header syncer returned header %s, which is not in our DB. "
-            "Instead at #%d, our header is %s, whose parent is %s, with canonical tip %s. ",
-            "The highest received header is %d.",
+            "Header syncer returned header %s, which has no parent in our DB. "
+            "Instead at #%d, our header is %s, whose parent is %s, with canonical tip %s. "
+            "The highest received header is %d. Triggered by missing dependency: %s",
             first_header,
             block_num,
             local_header,
             local_parent,
             canonical_tip,
             highest_block_num,
+            missing_exc,
         )
 
     async def _display_stats(self) -> None:
