@@ -268,12 +268,7 @@ def _filter_attestations_by_latest_crosslinks(
         attestations: Sequence[Attestation],
         latest_crosslink: CrosslinkRecord) -> Iterable[Attestation]:
     for attestation in attestations:
-        # if attestation.data.latest_crosslink == latest_crosslink:
-        epoch_matched = attestation.data.latest_crosslink.epoch == latest_crosslink.epoch
-        crosslink_data_root_matched = (
-            attestation.data.latest_crosslink.crosslink_data_root == latest_crosslink.crosslink_data_root
-        )
-        if (epoch_matched and crosslink_data_root_matched):
+        if attestation.data.latest_crosslink == latest_crosslink:
             yield attestation
 
 
@@ -342,7 +337,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                         latest_crosslinks,
                         shard,
                         CrosslinkRecord(
-                            epoch=state.current_epoch(config.SLOTS_PER_EPOCH),
+                            epoch=slot_to_epoch(slot, config.SLOTS_PER_EPOCH),
                             crosslink_data_root=winning_root,
                         ),
                     )
@@ -730,7 +725,7 @@ def _process_rewards_and_penalties_for_crosslinks(
                     attestations=(
                         a
                         for a in filtered_attestations
-                        if a.data.shard == shard and a.data.crosslink_data_root == winning_root
+                        if a.data.crosslink_data_root == winning_root
                     ),
                     committee_config=CommitteeConfig(config),
                 )

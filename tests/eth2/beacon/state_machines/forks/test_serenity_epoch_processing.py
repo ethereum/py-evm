@@ -404,7 +404,6 @@ def test_process_justification(monkeypatch,
         'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
-        'success_crosslink_in_cur_epoch,'
         'genesis_slot,'
     ),
     [
@@ -413,16 +412,27 @@ def test_process_justification(monkeypatch,
             10,
             9,
             10,
-            False,
             0,
         ),
+    ]
+)
+@pytest.mark.parametrize(
+    (
+        'success_crosslink_in_previous_epoch,'
+        'success_crosslink_in_current_epoch,'
+    ),
+    [
         (
-            90,
-            10,
-            9,
-            10,
+            False,
+            False,
+        ),
+        (
             True,
-            0,
+            False,
+        ),
+        (
+            False,
+            True,
         ),
     ]
 )
@@ -433,11 +443,13 @@ def test_process_crosslinks(
         slots_per_epoch,
         target_committee_size,
         shard_count,
-        success_crosslink_in_cur_epoch,
+        success_crosslink_in_previous_epoch,
+        success_crosslink_in_current_epoch,
         sample_attestation_data_params,
         sample_attestation_params):
     shard = 1
-    crosslink_data_root = hash_eth2(b'crosslink_data_root')
+    previous_epoch_crosslink_data_root = hash_eth2(b'previous_epoch_crosslink_data_root')
+    current_epoch_crosslink_data_root = hash_eth2(b'current_epoch_crosslink_data_root')
     current_slot = config.SLOTS_PER_EPOCH * 2 - 1
 
     genesis_crosslinks = tuple([
@@ -449,21 +461,25 @@ def test_process_crosslinks(
         latest_crosslinks=genesis_crosslinks,
     )
 
-    # Generate current epoch attestations
-    cur_epoch_attestations = []
-    for slot_in_cur_epoch in range(state.slot - config.SLOTS_PER_EPOCH, state.slot):
-        if len(cur_epoch_attestations) > 0:
+    # Generate previous epoch attestations
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    previous_epoch = current_epoch - 1
+    previous_epoch_start_slot = get_epoch_start_slot(previous_epoch, config.SLOTS_PER_EPOCH)
+    current_epoch_start_slot = get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH)
+    previous_epoch_attestations = []
+    for slot_in_previous_epoch in range(previous_epoch_start_slot, current_epoch_start_slot):
+        if len(previous_epoch_attestations) > 0:
             break
         for committee, _shard in get_crosslink_committees_at_slot(
             state,
-            slot_in_cur_epoch,
+            slot_in_previous_epoch,
             CommitteeConfig(config),
         ):
             if _shard == shard:
                 # Sample validators attesting to this shard.
-                # Number of attesting validators sampled depends on `success_crosslink_in_cur_epoch`
+                # Number of attesting validators sampled depends on `success_crosslink_in_previous_epoch`
                 # if True, have >2/3 committee attest
-                if success_crosslink_in_cur_epoch:
+                if success_crosslink_in_previous_epoch:
                     attesting_validators = random.sample(committee, (2 * len(committee) // 3 + 1))
                 else:
                     attesting_validators = random.sample(committee, (2 * len(committee) // 3 - 1))
@@ -473,30 +489,80 @@ def test_process_crosslinks(
                     aggregation_bitfield = set_voted(
                         aggregation_bitfield, committee.index(v_index))
                 # Generate the attestation
-                cur_epoch_attestations.append(
+                previous_epoch_attestations.append(
                     Attestation(**sample_attestation_params).copy(
                         aggregation_bitfield=aggregation_bitfield,
                         data=AttestationData(**sample_attestation_data_params).copy(
-                            slot=slot_in_cur_epoch,
+                            slot=slot_in_previous_epoch,
                             shard=shard,
-                            crosslink_data_root=crosslink_data_root,
+                            crosslink_data_root=previous_epoch_crosslink_data_root,
+                            latest_crosslink=CrosslinkRecord(
+                                epoch=config.GENESIS_EPOCH,
+                                crosslink_data_root=ZERO_HASH32,
+                            ),
+                        ),
+                    )
+                )
+
+    # Generate current epoch attestations
+    next_epoch_start_slot = current_epoch_start_slot + config.SLOTS_PER_EPOCH
+    current_epoch_attestations = []
+    for slot_in_current_epoch in range(current_epoch_start_slot, next_epoch_start_slot):
+        if len(current_epoch_attestations) > 0:
+            break
+        for committee, _shard in get_crosslink_committees_at_slot(
+            state,
+            slot_in_current_epoch,
+            CommitteeConfig(config),
+        ):
+            if _shard == shard:
+                # Sample validators attesting to this shard.
+                # Number of attesting validators sampled depends on `success_crosslink_in_current_epoch`
+                # if True, have >2/3 committee attest
+                if success_crosslink_in_current_epoch:
+                    attesting_validators = random.sample(committee, (2 * len(committee) // 3 + 1))
+                else:
+                    attesting_validators = random.sample(committee, (2 * len(committee) // 3 - 1))
+                # Generate the bitfield
+                aggregation_bitfield = get_empty_bitfield(len(committee))
+                for v_index in attesting_validators:
+                    aggregation_bitfield = set_voted(
+                        aggregation_bitfield, committee.index(v_index))
+                # Generate the attestation
+                current_epoch_attestations.append(
+                    Attestation(**sample_attestation_params).copy(
+                        aggregation_bitfield=aggregation_bitfield,
+                        data=AttestationData(**sample_attestation_data_params).copy(
+                            slot=slot_in_current_epoch,
+                            shard=shard,
+                            crosslink_data_root=current_epoch_crosslink_data_root,
+                            latest_crosslink=CrosslinkRecord(
+                                epoch=config.GENESIS_EPOCH,
+                                crosslink_data_root=ZERO_HASH32,
+                            ),
                         ),
                     )
                 )
 
     state = state.copy(
-        current_epoch_attestations=cur_epoch_attestations,
+        previous_epoch_attestations=previous_epoch_attestations,
+        current_epoch_attestations=current_epoch_attestations,
     )
     assert (state.latest_crosslinks[shard].epoch == config.GENESIS_EPOCH and
             state.latest_crosslinks[shard].crosslink_data_root == ZERO_HASH32)
 
     new_state = process_crosslinks(state, config)
     crosslink_record = new_state.latest_crosslinks[shard]
-    if success_crosslink_in_cur_epoch:
-        attestation = cur_epoch_attestations[0]
-        assert (crosslink_record.epoch == slot_to_epoch(current_slot, slots_per_epoch) and
+    if success_crosslink_in_current_epoch:
+        attestation = current_epoch_attestations[0]
+        assert (crosslink_record.epoch == current_epoch and
                 crosslink_record.crosslink_data_root == attestation.data.crosslink_data_root and
-                attestation.data.crosslink_data_root == crosslink_data_root)
+                attestation.data.crosslink_data_root == current_epoch_crosslink_data_root)
+    elif success_crosslink_in_previous_epoch:
+        attestation = previous_epoch_attestations[0]
+        assert (crosslink_record.epoch == current_epoch and
+                crosslink_record.crosslink_data_root == attestation.data.crosslink_data_root and
+                attestation.data.crosslink_data_root == previous_epoch_crosslink_data_root)
     else:
         assert (crosslink_record.epoch == config.GENESIS_EPOCH and
                 crosslink_record.crosslink_data_root == ZERO_HASH32)
