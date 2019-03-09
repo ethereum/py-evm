@@ -64,6 +64,7 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _update_latest_active_index_roots,
     process_crosslinks,
     process_ejections,
+    process_exit_queue,
     process_final_updates,
     process_justification,
     process_slashings,
@@ -1286,6 +1287,144 @@ def test_process_slashings(genesis_state,
         result_state.validator_balances[slashing_validator_index]
     )
     assert penalty == expected_penalty
+
+
+@pytest.mark.parametrize(
+    (
+        'num_validators',
+        'slots_per_epoch',
+        'genesis_slot',
+        'current_epoch',
+    ),
+    [
+        (10, 4, 8, 8)
+    ]
+)
+@pytest.mark.parametrize(
+    (
+        'min_validator_withdrawability_delay',
+        'withdrawable_epoch',
+        'exit_epoch',
+        'is_eligible',
+    ),
+    [
+        # current_epoch == validator.exit_epoch + MIN_VALIDATOR_WITHDRAWABILITY_DELAY
+        (4, FAR_FUTURE_EPOCH, 4, True),
+        # withdrawable_epoch != FAR_FUTURE_EPOCH
+        (4, 8, 4, False),
+        # current_epoch < validator.exit_epoch + MIN_VALIDATOR_WITHDRAWABILITY_DELAY
+        (4, FAR_FUTURE_EPOCH, 5, False),
+    ]
+)
+def test_process_exit_queue_eligible(genesis_state,
+                                     config,
+                                     current_epoch,
+                                     min_validator_withdrawability_delay,
+                                     withdrawable_epoch,
+                                     exit_epoch,
+                                     is_eligible):
+    state = genesis_state.copy(
+        slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH)
+    )
+    validator_index = 0
+
+    # Set eligible validators
+    state = state.update_validator_registry(
+        validator_index,
+        state.validator_registry[validator_index].copy(
+            withdrawable_epoch=withdrawable_epoch,
+            exit_epoch=exit_epoch,
+        )
+    )
+
+    result_state = process_exit_queue(state, config)
+
+    if is_eligible:
+        # Check if they got prepared for withdrawal
+        assert (
+            result_state.validator_registry[validator_index].withdrawable_epoch ==
+            current_epoch + min_validator_withdrawability_delay
+        )
+    else:
+        assert (
+            result_state.validator_registry[validator_index].withdrawable_epoch ==
+            state.validator_registry[validator_index].withdrawable_epoch
+        )
+
+
+@pytest.mark.parametrize(
+    (
+        'num_validators',
+        'slots_per_epoch',
+        'genesis_slot',
+        'current_epoch',
+        'min_validator_withdrawability_delay'
+    ),
+    [
+        (10, 4, 4, 16, 4)
+    ]
+)
+@pytest.mark.parametrize(
+    (
+        'max_exit_dequeues_per_epoch',
+        'num_eligible_validators',
+        'validator_exit_epochs',
+    ),
+    [
+        # no  eligible validator
+        (4, 0, ()),
+        # max_exit_dequeues_per_epoch == num_eligible_validators
+        (4, 4, (4, 5, 6, 7)),
+        # max_exit_dequeues_per_epoch > num_eligible_validators
+        (5, 4, (4, 5, 6, 7)),
+        # max_exit_dequeues_per_epoch < num_eligible_validators
+        (3, 4, (4, 5, 6, 7)),
+        (3, 4, (7, 6, 5, 4)),
+    ]
+)
+def test_process_exit_queue(genesis_state,
+                            config,
+                            current_epoch,
+                            num_validators,
+                            max_exit_dequeues_per_epoch,
+                            min_validator_withdrawability_delay,
+                            num_eligible_validators,
+                            validator_exit_epochs):
+    state = genesis_state.copy(
+        slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH)
+    )
+
+    # Set eligible validators
+    assert num_eligible_validators <= num_validators
+    for i in range(num_eligible_validators):
+        state = state.update_validator_registry(
+            i,
+            state.validator_registry[i].copy(
+                exit_epoch=validator_exit_epochs[i],
+            )
+        )
+
+    result_state = process_exit_queue(state, config)
+
+    # Exit queue is sorted
+    sorted_indices = sorted(
+        range(num_eligible_validators),
+        key=lambda i: validator_exit_epochs[i],
+    )
+    filtered_indices = sorted_indices[:min(max_exit_dequeues_per_epoch, num_eligible_validators)]
+
+    for i in range(num_validators):
+        if i in set(filtered_indices):
+            # Check if they got prepared for withdrawal
+            assert (
+                result_state.validator_registry[i].withdrawable_epoch ==
+                current_epoch + min_validator_withdrawability_delay
+            )
+        else:
+            assert (
+                result_state.validator_registry[i].withdrawable_epoch ==
+                FAR_FUTURE_EPOCH
+            )
 
 
 #

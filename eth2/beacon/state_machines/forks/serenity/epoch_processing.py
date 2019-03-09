@@ -63,6 +63,7 @@ from eth2.beacon.helpers import (
 from eth2.beacon.validator_status_helpers import (
     activate_validator,
     exit_validator,
+    prepare_validator_for_withdrawal,
 )
 from eth2.beacon._utils.hash import (
     hash_eth2,
@@ -1087,14 +1088,11 @@ def process_validator_registry(state: BeaconState,
 
     state = process_slashings(state, config)
 
-    # TODO: state = process_exit_queue(state, config)
+    state = process_exit_queue(state, config)
 
     return state
 
 
-#
-# Final updates
-#
 def _update_latest_active_index_roots(state: BeaconState,
                                       committee_config: CommitteeConfig) -> BeaconState:
     """
@@ -1202,6 +1200,49 @@ def process_slashings(state: BeaconState,
     return state
 
 
+def process_exit_queue(state: BeaconState,
+                       config: BeaconConfig) -> BeaconState:
+    """
+    Process the exit queue.
+    """
+    def eligible(index: ValidatorIndex) -> bool:
+        validator = state.validator_registry[index]
+        # Filter out dequeued validators
+        if validator.withdrawable_epoch != FAR_FUTURE_EPOCH:
+            return False
+        # Dequeue if the minimum amount of time has passed
+        else:
+            return (
+                state.current_epoch(config.SLOTS_PER_EPOCH) >=
+                validator.exit_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY
+            )
+
+    eligible_indices = filter(
+        eligible,
+        tuple([ValidatorIndex(i) for i in range(len(state.validator_registry))])
+    )
+    # Sort in order of exit epoch, and validators that exit within the same epoch exit
+    # in order of validator index
+    sorted_indices = sorted(
+        eligible_indices,
+        key=lambda index: state.validator_registry[index].exit_epoch,
+    )
+    for dequeues, index in enumerate(sorted_indices):
+        if dequeues >= config.MAX_EXIT_DEQUEUES_PER_EPOCH:
+            break
+        state = prepare_validator_for_withdrawal(
+            state,
+            ValidatorIndex(index),
+            slots_per_epoch=config.SLOTS_PER_EPOCH,
+            min_validator_withdrawability_delay=config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY,
+        )
+
+    return state
+
+
+#
+# Final updates
+#
 def process_final_updates(state: BeaconState,
                           config: BeaconConfig) -> BeaconState:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
