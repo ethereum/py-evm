@@ -191,7 +191,7 @@ def get_base_reward(
         base_reward_quotient: int,
         max_deposit_amount: Gwei) -> Gwei:
     if base_reward_quotient == 0:
-        return 0
+        return Gwei(0)
     return Gwei(
         get_effective_balance(
             state.validator_balances,

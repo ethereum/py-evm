@@ -339,7 +339,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                         latest_crosslinks,
                         shard,
                         CrosslinkRecord(
-                            epoch=slot_to_epoch(slot, Slot(config.SLOTS_PER_EPOCH)),
+                            epoch=slot_to_epoch(Slot(slot), config.SLOTS_PER_EPOCH),
                             crosslink_data_root=winning_root,
                         ),
                     )
@@ -381,12 +381,6 @@ def _apply_rewards_and_penalties(
             penalties_received,
         )
     return rewards_received, penalties_received
-
-
-def _is_eligible_for_punishment(
-        validator: ValidatorRecord,
-        current_epoch: Epoch) -> bool:
-    return validator.slashed and validator.withdrawable_epoch > current_epoch
 
 
 @curry
@@ -639,6 +633,10 @@ def _process_rewards_and_penalties_for_finality(
 
         # Punish penalized active validators
         current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+
+        def _is_eligible_for_punishment(validator: ValidatorRecord) -> bool:
+            return validator.slashed and validator.withdrawable_epoch > current_epoch
+
         penalties = {
             ValidatorIndex(index): 3 * base_rewards[ValidatorIndex(index)] + 2 * (
                 effective_balances[ValidatorIndex(index)] *
@@ -648,7 +646,7 @@ def _process_rewards_and_penalties_for_finality(
             for index in range(len(state.validator_registry))
             if (
                 (index not in previous_epoch_active_validator_indices) and
-                _is_eligible_for_punishment(state.validator_registry[index], current_epoch)
+                _is_eligible_for_punishment(state.validator_registry[index])
             )
         }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
