@@ -477,8 +477,7 @@ def test_process_crosslinks(
         ):
             if _shard == shard:
                 # Sample validators attesting to this shard.
-                # Number of attesting validators sampled depends on `success_crosslink_in_previous_epoch`
-                # if True, have >2/3 committee attest
+                # if `success_crosslink_in_previous_epoch` is True, have >2/3 committee attest
                 if success_crosslink_in_previous_epoch:
                     attesting_validators = random.sample(committee, (2 * len(committee) // 3 + 1))
                 else:
@@ -517,8 +516,7 @@ def test_process_crosslinks(
         ):
             if _shard == shard:
                 # Sample validators attesting to this shard.
-                # Number of attesting validators sampled depends on `success_crosslink_in_current_epoch`
-                # if True, have >2/3 committee attest
+                # if `success_crosslink_in_current_epoch` is True, have >2/3 committee attest
                 if success_crosslink_in_current_epoch:
                     attesting_validators = random.sample(committee, (2 * len(committee) // 3 + 1))
                 else:
@@ -605,36 +603,36 @@ def test_process_crosslinks(
         'expected_rewards_received'
     ),
     [
-        (
-            4, 15,  # epochs_since_finality <= 4
-            {6, 7},
-            {0, 1, 2, 3, 4, 5, 6, 7},
-            {2, 3, 4, 5, 6},
-            {2, 3, 4},
-            {
-                2: 4,
-                3: 4,
-                4: 4,
-                5: 5,
-                6: 6,
-            },
-            1000, 100,
-            {
-                0: -300,  # -3 * 100
-                1: -300,  # -3 * 100
-                2: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 4 // 4
-                3: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 4 // 4
-                4: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 4 // 4
-                5: -58,  # 100 * 5 // 8 - 100 - 100 + 100 * 4 // 5
-                6: -72,  # 100 * 5 // 5 - 100 - 100 + 100 * 4 // 6
-                7: -300,  # -3 * 100
-                8: 0,  # not active
-                9: 0,  # not active
-            }
-        ),
+        # (
+        #     4, 15,  # epochs_since_finality <= 4
+        #     {8, 9},
+        #     {0, 1, 2, 3, 4, 5, 6, 7},
+        #     {2, 3, 4, 5, 6},
+        #     {2, 3, 4},
+        #     {
+        #         2: 4,
+        #         3: 4,
+        #         4: 4,
+        #         5: 5,
+        #         6: 6,
+        #     },
+        #     1000, 100,
+        #     {
+        #         0: -300,  # -3 * 100
+        #         1: -300,  # -3 * 100
+        #         2: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 4 // 4
+        #         3: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 4 // 4
+        #         4: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 4 // 4
+        #         5: -58,  # 100 * 5 // 8 - 100 - 100 + 100 * 4 // 5
+        #         6: -72,  # 100 * 5 // 5 - 100 - 100 + 100 * 4 // 6
+        #         7: -300,  # -3 * 100
+        #         8: 0,  # not active
+        #         9: 0,  # not active
+        #     }
+        # ),
         (
             3, 15,  # epochs_since_finality > 4
-            {6, 7},
+            {8, 9},
             {0, 1, 2, 3, 4, 5, 6, 7},
             {2, 3, 4, 5, 6},
             {2, 3, 4},
@@ -647,16 +645,16 @@ def test_process_crosslinks(
             },
             1000, 100,
             {
-                0: -800,  # -2 * (100 + 1000 * 5 // 10 // 2) - 100 - (100 - 100 * 4 // 4)
-                1: -800,  # -2 * (100 + 1000 * 5 // 10 // 2) - 100 - (100 - 100 * 4 // 4)
+                0: -800,  # -(100 - 100 * 4 // 4) - 2 * (100 + 1000 * 5 // 10 // 2) - 100
+                1: -800,  # -(100 - 100 * 4 // 4) - 2 * (100 + 1000 * 5 // 10 // 2) - 100
                 2: 0,  # -(100 - 100 * 4 // 4)
                 3: 0,  # -(100 - 100 * 4 // 4)
                 4: 0,  # -(100 - 100 * 4 // 4)
-                5: -470,  # -(100 * 2 + 1000 * 5 // 10 // 2) - (100 - 100 * 4 // 5)
-                6: -1284,  # -(100 * 2 + 1000 * 5 // 10 // 2) - (2 * (100 + 1000 * 5 // 10 // 2) + 100) - (100 - 100 * 4 // 6)  # noqa: E501
-                7: -1600,  # -2 * (100 + 1000 * 5 // 10 // 2) - 100 - (2 * (100 + 1000 * 5 // 10 // 2) + 100) - (100 - 100 * 4 // 4)  # noqa: E501
-                8: 0,  # not active
-                9: 0,  # not active
+                5: -470,  # -(100 - 100 * 4 // 5) - (100 * 2 + 1000 * 5 // 10 // 2)
+                6: -484,  # -(100 - 100 * 4 // 6) - (100 * 2 + 1000 * 5 // 10 // 2)
+                7: -800,  # -(100 - 100 * 4 // 4) - 2 * (100 + 1000 * 5 // 10 // 2) - 100
+                8: -800,  # -(2 * (100 + 1000 * 5 // 10 // 2) + 100)
+                9: -800,  # -(2 * (100 + 1000 * 5 // 10 // 2) + 100)
             }
         ),
     ]

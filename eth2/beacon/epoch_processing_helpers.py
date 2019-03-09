@@ -35,7 +35,6 @@ from eth2.beacon.helpers import (
 from eth2.beacon.typing import (
     Epoch,
     Gwei,
-    Shard,
     ValidatorIndex,
 )
 
