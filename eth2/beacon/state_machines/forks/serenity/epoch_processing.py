@@ -780,7 +780,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             index,
             config.MAX_DEPOSIT_AMOUNT,
         )
-        for index in previous_epoch_active_validator_indices
+        for index in range(len(state.validator_registry))
     }
     # Compute base reward of each previous epoch active validator for later use
     _base_reward_quotient = (
@@ -793,13 +793,13 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             base_reward_quotient=_base_reward_quotient,
             max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
         )
-        for index in previous_epoch_active_validator_indices
+        for index in range(len(state.validator_registry))
     }
 
     # Initialize the reward (validator) received map
     rewards_received = {
         index: SignedGwei(0)
-        for index in previous_epoch_active_validator_indices
+        for index in range(len(state.validator_registry))
     }
 
     # 1. Process rewards and penalties for justification and finalization
@@ -833,7 +833,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     )
 
     # Apply the overall rewards/penalties
-    for index in previous_epoch_active_validator_indices:
+    for index in range(len(state.validator_registry)):
         state = state.update_validator_balance(
             index,
             # Prevent validator balance under flow

@@ -705,12 +705,12 @@ def test_process_rewards_and_penalties_for_finality(
 
     effective_balances = {
         index: effective_balance
-        for index in previous_epoch_active_validator_indices
+        for index in range(len(state.validator_registry))
     }
 
     base_rewards = {
         index: base_reward
-        for index in previous_epoch_active_validator_indices
+        for index in range(len(state.validator_registry))
     }
 
     rewards_received = {
@@ -993,6 +993,10 @@ def test_process_rewards_and_penalties_for_crosslinks(
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=data_slot,
                     shard=shard,
+                    latest_crosslink=CrosslinkRecord(
+                        epoch=config.GENESIS_EPOCH,
+                        crosslink_data_root=ZERO_HASH32,
+                    ),
                 ),
                 aggregation_bitfield=participants_bitfield,
                 slot_included=(data_slot + min_attestation_inclusion_delay),
