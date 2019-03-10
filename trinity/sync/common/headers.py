@@ -6,8 +6,9 @@ from random import randrange
 from typing import (
     AsyncIterator,
     Callable,
-    Generic,
     FrozenSet,
+    Generic,
+    Iterable,
     Tuple,
     Type,
     cast,
@@ -722,6 +723,19 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
             raise
 
 
+def first_nonconsecutive_header(headers: Iterable[BlockHeader]) -> int:
+    """
+    :return: index of first child that does not match parent header, or a number
+        past the end if all are consecutive
+    """
+    for index, (parent, child) in enumerate(sliding_window(2, headers)):
+        if child.parent_hash != parent.hash:
+            return index + 1
+
+    # return an index off the end to indicate that all headers are consecutive
+    return index + 2
+
+
 class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
     """
     Generate a skeleton header, then use all peers to fill in the headers
@@ -780,7 +794,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
             max_batch_size: int = None) -> AsyncIterator[Tuple[BlockHeader, ...]]:
 
         while self.is_operational:
-            next_header_batch = await self.wait(self._stitcher.ready_tasks(max_batch_size))
+            headers = await self.wait(self._stitcher.ready_tasks(max_batch_size))
             if self._stitcher.has_ready_tasks():
                 # Even after clearing out a big batch, there is no available capacity, so
                 # pause any coroutines that might wait for capacity
@@ -788,7 +802,14 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
             else:
                 # There is available capacity, let any waiting coroutines continue
                 self._buffer_capacity.set()
-            yield cast(Tuple[BlockHeader, ...], next_header_batch)
+
+            while headers:
+                split_idx = first_nonconsecutive_header(headers)
+                consecutive_batch, headers = headers[:split_idx], headers[split_idx:]
+                if headers:
+                    # Note lack of capacity if the headers are non-consecutive
+                    self._buffer_capacity.clear()
+                yield cast(Tuple[BlockHeader, ...], consecutive_batch)
 
     def get_target_header_hash(self) -> Hash32:
         if not self._is_syncing_skeleton and self._last_target_header_hash is None:
