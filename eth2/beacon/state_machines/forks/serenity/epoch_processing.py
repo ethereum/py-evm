@@ -45,6 +45,7 @@ from eth2.beacon.configs import (
 )
 from eth2.beacon.epoch_processing_helpers import (
     get_base_reward,
+    get_inactivity_penalty,
     get_inclusion_infos,
     get_previous_epoch_head_attestations,
     get_winning_root,
@@ -552,6 +553,15 @@ def _process_rewards_and_penalties_for_finality(
 
     # epochs_since_finality > 4
     else:
+        inactivity_penalties = {
+            index: get_inactivity_penalty(
+                base_reward=base_rewards[index],
+                effective_balance=effective_balances[index],
+                epochs_since_finality=epochs_since_finality,
+                inactivity_penalty_quotient=config.INACTIVITY_PENALTY_QUOTIENT,
+            )
+            for index in previous_epoch_active_validator_indices
+        }
         # Punish active validators in `previous_epoch_attester_indices`
         attesting_active_validators_indices = previous_epoch_active_validator_indices.intersection(
             previous_epoch_attester_indices,
@@ -578,13 +588,6 @@ def _process_rewards_and_penalties_for_finality(
         excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
             previous_epoch_attester_indices,
         )
-        inactivity_penalties = {
-            index: base_rewards[index] + (
-                effective_balances[index] *
-                epochs_since_finality // config.INACTIVITY_PENALTY_QUOTIENT // 2
-            )
-            for index in excluded_active_validators_indices
-        }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
             RewardSettlementContext(
                 penalties=inactivity_penalties,
@@ -598,13 +601,6 @@ def _process_rewards_and_penalties_for_finality(
         excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
             previous_epoch_boundary_attester_indices,
         )
-        inactivity_penalties = {
-            index: base_rewards[index] + (
-                effective_balances[index] *
-                epochs_since_finality // config.INACTIVITY_PENALTY_QUOTIENT // 2
-            )
-            for index in excluded_active_validators_indices
-        }
         rewards_received, penalties_received = _apply_rewards_and_penalties(
             RewardSettlementContext(
                 penalties=inactivity_penalties,

@@ -201,6 +201,18 @@ def get_base_reward(
     )
 
 
+def get_inactivity_penalty(
+        *,
+        base_reward: Gwei,
+        effective_balance: Gwei,
+        epochs_since_finality: int,
+        inactivity_penalty_quotient: int) -> Gwei:
+    return Gwei(
+        base_reward +
+        effective_balance * epochs_since_finality // inactivity_penalty_quotient // 2
+    )
+
+
 def get_inclusion_infos(
         *,
         state: 'BeaconState',
