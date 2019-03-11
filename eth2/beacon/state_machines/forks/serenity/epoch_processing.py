@@ -598,9 +598,7 @@ def _process_rewards_and_penalties_for_crosslinks(
         state: BeaconState,
         config: BeaconConfig,
         effective_balances: Dict[ValidatorIndex, Gwei],
-        base_rewards: Dict[ValidatorIndex, Gwei],
-        old_rewards_received: Dict[ValidatorIndex, SignedGwei]) -> Dict[ValidatorIndex, SignedGwei]:
-    rewards_received = old_rewards_received.copy()
+        base_rewards: Dict[ValidatorIndex, Gwei]) -> Tuple[Dict[ValidatorIndex, SignedGwei], Dict[ValidatorIndex, SignedGwei]]:  # noqa: E501
     previous_epoch_start_slot = get_epoch_start_slot(
         state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
         config.SLOTS_PER_EPOCH,
@@ -609,6 +607,11 @@ def _process_rewards_and_penalties_for_crosslinks(
         state.current_epoch(config.SLOTS_PER_EPOCH),
         config.SLOTS_PER_EPOCH,
     )
+    rewards_received = {
+        index: Gwei(0)
+        for index in range(len(state.validator_registry))
+    }
+    penalties_received = rewards_received.copy()
     # Also need current epoch attestations to compute the winning root.
     for slot in range(previous_epoch_start_slot, current_epoch_start_slot):
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
@@ -633,12 +636,18 @@ def _process_rewards_and_penalties_for_crosslinks(
                 crosslink_committee,
             )
             for index in attesting_validator_indices:
-                reward = base_rewards[index] * total_attesting_balance // total_balance
-                rewards_received[index] = SignedGwei(rewards_received[index] + reward)
+                rewards_received = _update_rewards_or_penalies(
+                    index,
+                    base_rewards[index] * total_attesting_balance // total_balance,
+                    rewards_received,
+                )
             for index in set(crosslink_committee).difference(attesting_validator_indices):
-                penalty = base_rewards[index]
-                rewards_received[index] = SignedGwei(rewards_received[index] - penalty)
-    return rewards_received
+                penalties_received = _update_rewards_or_penalies(
+                    index,
+                    base_rewards[index],
+                    penalties_received,
+                )
+    return (rewards_received, penalties_received)
 
 
 def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> BeaconState:
@@ -695,32 +704,24 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         for index in range(len(state.validator_registry))
     }
 
-    # Initialize the reward (validator) received map
-    rewards_received = {
-        index: SignedGwei(0)
-        for index in range(len(state.validator_registry))
-    }
-
     # 1. Process rewards and penalties for justification and finalization
-    rewards_received = pipe(
-        rewards_received,
-        _process_rewards_and_penalties_for_finality(
-            state,
-            config,
-            previous_epoch_active_validator_indices,
-            previous_total_balance,
-            previous_epoch_attestations,
-            previous_epoch_attester_indices,
-            inclusion_infos,
-            effective_balances,
-            base_rewards,
-        ),
-        _process_rewards_and_penalties_for_crosslinks(
-            state,
-            config,
-            effective_balances,
-            base_rewards,
-        )
+    finality_rewards, finality_penalties = _process_rewards_and_penalties_for_finality(
+        state,
+        config,
+        previous_epoch_active_validator_indices,
+        previous_total_balance,
+        previous_epoch_attestations,
+        previous_epoch_attester_indices,
+        inclusion_infos,
+        effective_balances,
+        base_rewards,
+    )
+    # 2. Process rewards and penalties for crosslinks
+    crosslinks_rewards, crosslinks_penalties = _process_rewards_and_penalties_for_crosslinks(
+        state,
+        config,
+        effective_balances,
+        base_rewards,
     )
 
     # Apply the overall rewards/penalties
@@ -728,7 +729,16 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         state = state.update_validator_balance(
             ValidatorIndex(index),
             # Prevent validator balance under flow
-            max(state.validator_balances[index] + rewards_received[index], 0),
+            max(
+                (
+                    state.validator_balances[index] +
+                    finality_rewards[index] +
+                    crosslinks_rewards[index] -
+                    finality_penalties[index] -
+                    crosslinks_penalties[index]
+                ),
+                0,
+            ),
         )
 
     return state
