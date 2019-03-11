@@ -743,11 +743,6 @@ def test_process_rewards_and_penalties_for_finality(
         for index in range(len(state.validator_registry))
     }
 
-    rewards_received = {
-        index: 0
-        for index in range(len(state.validator_registry))
-    }
-
     prev_epoch_start_slot = get_epoch_start_slot(
         state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH), slots_per_epoch,
     )
@@ -789,7 +784,7 @@ def test_process_rewards_and_penalties_for_finality(
         previous_epoch_attestations=prev_epoch_attestations,
     )
 
-    rewards_received = _process_rewards_and_penalties_for_finality(
+    rewards_received, penalties_received = _process_rewards_and_penalties_for_finality(
         state,
         config,
         previous_epoch_active_validator_indices,
@@ -799,11 +794,12 @@ def test_process_rewards_and_penalties_for_finality(
         inclusion_infos,
         effective_balances,
         base_rewards,
-        rewards_received,
     )
 
-    for index, reward_received in rewards_received.items():
-        assert reward_received == expected_rewards_received[index]
+    for index in range(len(state.validator_registry)):
+        assert (
+            rewards_received[index] - penalties_received[index] == expected_rewards_received[index]
+        )
 
 
 @settings(max_examples=1)
@@ -932,17 +928,11 @@ def test_process_rewards_and_penalties_for_crosslinks(
         for index in active_validators
     }
 
-    rewards_received = {
-        index: 0
-        for index in range(len(state.validator_registry))
-    }
-
-    rewards_received = _process_rewards_and_penalties_for_crosslinks(
+    rewards_received, penalties_received = _process_rewards_and_penalties_for_crosslinks(
         state,
         config,
         effective_balances,
         base_rewards,
-        rewards_received,
     )
 
     expected_rewards_received = {
@@ -975,8 +965,10 @@ def test_process_rewards_and_penalties_for_crosslinks(
             expected_rewards_received[index] -= penalty
 
     # Check the rewards/penalties match
-    for index, _ in rewards_received.items():
-        assert rewards_received[index] == expected_rewards_received[index]
+    for index in range(len(state.validator_registry)):
+        assert (
+            rewards_received[index] - penalties_received[index] == expected_rewards_received[index]
+        )
 
 
 #
