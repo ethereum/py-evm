@@ -530,6 +530,31 @@ def _process_rewards_and_penalties_for_finality(
             ),
         )
 
+        # 1.5 Attestation inclusion
+        rewards = {
+            ValidatorIndex(index): Gwei(0)
+            for index in range(len(state.validator_registry))
+        }
+        for index in previous_epoch_attester_indices:
+            proposer_index = get_beacon_proposer_index(
+                state,
+                inclusion_infos[index].inclusion_slot,
+                CommitteeConfig(config),
+            )
+            rewards[proposer_index] = Gwei(
+                rewards[proposer_index] + (
+                    base_rewards[index] // config.ATTESTATION_INCLUSION_REWARD_QUOTIENT
+                )
+            )
+        rewards_received, penalties_received = _apply_rewards_and_penalties(
+            RewardSettlementContext(
+                rewards=rewards,
+                indices_to_reward=set(rewards.keys()),
+                rewards_received=rewards_received,
+                penalties_received=penalties_received,
+            ),
+        )
+
     # epochs_since_finality > 4
     else:
         inactivity_penalties = {
@@ -606,7 +631,7 @@ def _process_rewards_and_penalties_for_finality(
             ),
         )
 
-        # Punish penalized active validators
+        # Punish penalized inactive validators
         current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
 
         def _is_eligible_for_punishment(validator: ValidatorRecord) -> bool:
@@ -641,26 +666,6 @@ def _process_rewards_and_penalties_for_finality(
             historical_rewards_received,
         )
     return historical_rewards_received
-
-
-@curry
-def _process_rewards_and_penalties_for_attestation_inclusion(
-        state: BeaconState,
-        config: BeaconConfig,
-        previous_epoch_attester_indices: Set[ValidatorIndex],
-        inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
-        base_rewards: Dict[ValidatorIndex, Gwei],
-        old_rewards_received: Dict[ValidatorIndex, SignedGwei]) -> Dict[ValidatorIndex, SignedGwei]:
-    rewards_received = old_rewards_received.copy()
-    for index in previous_epoch_attester_indices:
-        proposer_index = get_beacon_proposer_index(
-            state,
-            inclusion_infos[index].inclusion_slot,
-            CommitteeConfig(config),
-        )
-        reward = base_rewards[index] // config.ATTESTATION_INCLUSION_REWARD_QUOTIENT
-        rewards_received[proposer_index] = SignedGwei(rewards_received[proposer_index] + reward)
-    return rewards_received
 
 
 @curry
@@ -783,13 +788,6 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
             previous_epoch_attester_indices,
             inclusion_infos,
             effective_balances,
-            base_rewards,
-        ),
-        _process_rewards_and_penalties_for_attestation_inclusion(
-            state,
-            config,
-            previous_epoch_attester_indices,
-            inclusion_infos,
             base_rewards,
         ),
         _process_rewards_and_penalties_for_crosslinks(

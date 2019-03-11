@@ -67,7 +67,6 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _get_finalized_epoch,
     _is_majority_vote,
     _majority_threshold,
-    _process_rewards_and_penalties_for_attestation_inclusion,
     _process_rewards_and_penalties_for_crosslinks,
     _process_rewards_and_penalties_for_finality,
     _update_eth1_vote_if_exists,
@@ -576,15 +575,17 @@ def test_process_crosslinks(
         'target_committee_size,'
         'shard_count,'
         'min_attestation_inclusion_delay,'
+        'attestation_inclusion_reward_quotient,'
         'inactivity_penalty_quotient,'
         'genesis_slot,'
     ),
     [
         (
-            10,
-            2,
+            15,
+            3,
             5,
-            2,
+            3,
+            1,
             4,
             10,
             0,
@@ -610,56 +611,67 @@ def test_process_crosslinks(
             {2, 3, 4, 5, 6},
             {2, 3, 4},
             {
-                2: 4,
-                3: 4,
-                4: 4,
-                5: 5,
-                6: 6,
+                2: 1,
+                3: 1,
+                4: 1,
+                5: 2,
+                6: 3,
             },
             1000, 100,
             {
                 0: -300,  # -3 * 100
-                1: -300,  # -3 * 100
-                2: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 4 // 4
-                3: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 4 // 4
-                4: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 4 // 4
-                5: -58,  # 100 * 5 // 8 - 100 - 100 + 100 * 4 // 5
-                6: -72,  # 100 * 5 // 5 - 100 - 100 + 100 * 4 // 6
+                1: -275,  # -3 * 100 + 1 * 100 // 4
+                2: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 1 // 1
+                3: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 1 // 1
+                4: 236,  # 100 * 5 // 8 + 100 * 3 // 8 + 100 * 3 // 8 + 100 * 1 // 1
+                5: -63,  # 100 * 5 // 8 - 100 - 100 + 100 * 1 // 2 + 1 * 100 // 4
+                6: -105,  # 100 * 5 // 8 - 100 - 100 + 100 * 1 // 3
                 7: -300,  # -3 * 100
-                8: 0,  # not active
-                9: 0,  # not active
+                8: 0,
+                9: 0,
+                10: 0,
+                11: 0,
+                12: 75,  # 3 * 100 // 4
+                13: 0,
+                14: 0,
             }
         ),
         (
-            3, 15,  # epochs_since_finality > 4
+            3, 23,  # epochs_since_finality > 4
             {8, 9},
             {0, 1, 2, 3, 4, 5, 6, 7},
             {2, 3, 4, 5, 6},
             {2, 3, 4},
             {
-                2: 4,
-                3: 4,
-                4: 4,
-                5: 5,
-                6: 6,
+                2: 1,
+                3: 1,
+                4: 1,
+                5: 2,
+                6: 3,
             },
             1000, 100,
             {
-                0: -800,  # -(100 - 100 * 4 // 4) - 2 * (100 + 1000 * 5 // 10 // 2) - 100
-                1: -800,  # -(100 - 100 * 4 // 4) - 2 * (100 + 1000 * 5 // 10 // 2) - 100
-                2: 0,  # -(100 - 100 * 4 // 4)
-                3: 0,  # -(100 - 100 * 4 // 4)
-                4: 0,  # -(100 - 100 * 4 // 4)
-                5: -470,  # -(100 - 100 * 4 // 5) - (100 * 2 + 1000 * 5 // 10 // 2)
-                6: -484,  # -(100 - 100 * 4 // 6) - (100 * 2 + 1000 * 5 // 10 // 2)
-                7: -800,  # -(100 - 100 * 4 // 4) - 2 * (100 + 1000 * 5 // 10 // 2) - 100
+                0: -800,  # 2 * (100 + 1000 * 5 // 10 // 2) - 100
+                1: -800,  # 2 * (100 + 1000 * 5 // 10 // 2) - 100
+                2: 0,  # -(100 - 100 * 1 // 1)
+                3: 0,  # -(100 - 100 * 1 // 1)
+                4: 0,  # -(100 - 100 * 1 // 1)
+                5: -500,  # -(100 - 100 * 1 // 2) - (100 * 2 + 1000 * 5 // 10 // 2)
+                6: -517,  # -(100 - 100 * 1 // 3) - (100 * 2 + 1000 * 5 // 10 // 2)
+                7: -800,  # 2 * (100 + 1000 * 5 // 10 // 2) - 100
                 8: -800,  # -(2 * (100 + 1000 * 5 // 10 // 2) + 100)
                 9: -800,  # -(2 * (100 + 1000 * 5 // 10 // 2) + 100)
+                10: 0,
+                11: 0,
+                12: 0,
+                13: 0,
+                14: 0,
             }
         ),
     ]
 )
 def test_process_rewards_and_penalties_for_finality(
+        monkeypatch,
         n_validators_state,
         config,
         slots_per_epoch,
@@ -679,6 +691,26 @@ def test_process_rewards_and_penalties_for_finality(
         expected_rewards_received,
         sample_pending_attestation_record_params,
         sample_attestation_data_params):
+    # Mock `get_beacon_proposer_index
+    from eth2.beacon.state_machines.forks.serenity import epoch_processing
+
+    def mock_get_beacon_proposer_index(state,
+                                       slot,
+                                       committee_config,
+                                       registry_change=False):
+        mock_proposer_for_slot = {
+            13: 12,
+            14: 5,
+            15: 1,
+        }
+        return mock_proposer_for_slot[slot]
+
+    monkeypatch.setattr(
+        epoch_processing,
+        'get_beacon_proposer_index',
+        mock_get_beacon_proposer_index
+    )
+
     validator_registry = n_validators_state.validator_registry
     for index in penalized_validator_indices:
         validator_record = validator_registry[index].copy(
@@ -766,141 +798,6 @@ def test_process_rewards_and_penalties_for_finality(
         previous_epoch_attester_indices,
         inclusion_infos,
         effective_balances,
-        base_rewards,
-        rewards_received,
-    )
-
-    for index, reward_received in rewards_received.items():
-        assert reward_received == expected_rewards_received[index]
-
-
-@pytest.mark.parametrize(
-    (
-        'n,'
-        'genesis_slot,'
-        'slots_per_epoch,'
-        'target_committee_size,'
-        'shard_count,'
-        'attestation_inclusion_reward_quotient,'
-        'current_slot,'
-        'previous_epoch_attester_indices,'
-        'inclusion_slots,'
-        'base_reward,'
-        'expected_rewards_received'
-    ),
-    [
-        (
-            20,
-            0,
-            10,
-            2,
-            10,
-            4,
-            40,
-            {2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17},
-            {
-                2: 31,  # proposer index for inclusion slot 31: 6
-                3: 31,
-                4: 32,  # proposer index for inclusion slot 32: 16
-                5: 32,
-                6: 32,
-                7: 32,
-                9: 35,  # proposer index for inclusion slot 35: 19
-                10: 35,
-                11: 35,
-                12: 35,
-                13: 35,
-                15: 38,  # proposer index for inclusion slot 38: 15
-                16: 38,
-                17: 38,
-            },
-            100,
-            {
-                0: 0,
-                1: 0,
-                2: 0,
-                3: 0,
-                4: 0,
-                5: 0,
-                6: 50,  # 2 * (100 // 4)
-                7: 0,
-                8: 0,
-                9: 0,
-                10: 0,
-                11: 0,
-                12: 0,
-                13: 0,
-                14: 0,
-                15: 75,  # 3 * (100 // 4)
-                16: 100,  # 4 * (100 // 4)
-                17: 0,
-                18: 0,
-                19: 125,  # 5 * (100 // 4)
-            }
-        ),
-    ]
-)
-def test_process_rewards_and_penalties_for_attestation_inclusion(
-        monkeypatch,
-        n_validators_state,
-        config,
-        slots_per_epoch,
-        target_committee_size,
-        shard_count,
-        attestation_inclusion_reward_quotient,
-        current_slot,
-        previous_epoch_attester_indices,
-        inclusion_slots,
-        base_reward,
-        expected_rewards_received):
-    # Mock `get_beacon_proposer_index
-    from eth2.beacon.state_machines.forks.serenity import epoch_processing
-
-    def mock_get_beacon_proposer_index(state,
-                                       slot,
-                                       committee_config,
-                                       registry_change=False):
-        mock_proposer_for_slot = {
-            31: 6,
-            32: 16,
-            35: 19,
-            38: 15,
-        }
-        return mock_proposer_for_slot[slot]
-
-    monkeypatch.setattr(
-        epoch_processing,
-        'get_beacon_proposer_index',
-        mock_get_beacon_proposer_index
-    )
-
-    state = n_validators_state.copy(
-        slot=current_slot,
-    )
-    inclusion_infos = {
-        index: InclusionInfo(
-            inclusion_slots[index],
-            inclusion_slots[index] - config.MIN_ATTESTATION_INCLUSION_DELAY,
-        )
-        for index in previous_epoch_attester_indices
-    }
-
-    base_rewards = {
-        index: base_reward
-        for index in previous_epoch_attester_indices
-    }
-
-    rewards_received = {
-        index: 0
-        for index in range(len(n_validators_state.validator_registry))
-    }
-
-    # Process the rewards and penalties for attestation inclusion
-    rewards_received = _process_rewards_and_penalties_for_attestation_inclusion(
-        state,
-        config,
-        previous_epoch_attester_indices,
-        inclusion_infos,
         base_rewards,
         rewards_received,
     )
