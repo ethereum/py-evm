@@ -111,8 +111,8 @@ def test_ensure_majority_votes(sample_eth1_data_vote_params, config):
             assert not _is_majority_vote(config, vote)
 
 
-def _random_bytes(size):
-    return bytes(random.getrandbits(8) for _ in range(size))
+def _some_bytes(seed):
+    return hash_eth2(b'some_hash' + seed.to_bytes(32, 'little'))
 
 
 @pytest.mark.parametrize(
@@ -142,8 +142,8 @@ def test_ensure_update_eth1_vote_if_exists(sample_beacon_state_params,
     data_votes = tuple(
         Eth1DataVote(
             eth1_data=Eth1Data(
-                deposit_root=_random_bytes(32),
-                block_hash=_random_bytes(32),
+                deposit_root=_some_bytes(offset),
+                block_hash=_some_bytes(offset),
             ),
             vote_count=threshold + offset,
         ) for offset in vote_offsets
