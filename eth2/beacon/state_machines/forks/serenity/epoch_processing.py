@@ -363,6 +363,170 @@ def _apply_rewards_and_penalties(
     return rewards_received, penalties_received
 
 
+def _compute_normal_justification_and_finalization_deltas(
+        state: BeaconState,
+        config: BeaconConfig,
+        previous_epoch_active_validator_indices: Set[ValidatorIndex],
+        previous_total_balance: Gwei,
+        previous_epoch_attester_indices: Set[ValidatorIndex],
+        previous_epoch_boundary_attester_indices: Set[ValidatorIndex],
+        previous_epoch_head_attester_indices: Set[ValidatorIndex],
+        inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
+        effective_balances: Dict[ValidatorIndex, Gwei],
+        base_rewards: Dict[ValidatorIndex, Gwei]) -> Tuple[Dict[ValidatorIndex, SignedGwei], Dict[ValidatorIndex, SignedGwei]]:  # noqa: E501
+    rewards_received = {
+        index: Gwei(0)
+        for index in range(len(state.validator_registry))
+    }
+    penalties_received = rewards_received.copy()
+    previous_epoch_attesting_balance = get_total_balance_from_effective_balances(
+        effective_balances,
+        previous_epoch_attester_indices,
+    )
+    previous_epoch_boundary_attesting_balance = get_total_balance_from_effective_balances(
+        effective_balances,
+        previous_epoch_boundary_attester_indices,
+    )
+    previous_epoch_head_attesting_balance = get_total_balance_from_effective_balances(
+        effective_balances,
+        previous_epoch_head_attester_indices,
+    )
+    for index in previous_epoch_active_validator_indices:
+        # Expected FFG source
+        if index in previous_epoch_attester_indices:
+            rewards_received = _update_rewards_or_penalies(
+                index,
+                base_rewards[index] * previous_epoch_attesting_balance // previous_total_balance,
+                rewards_received,
+            )
+            # Inclusion speed bonus
+            rewards_received = _update_rewards_or_penalies(
+                index,
+                base_rewards[index] * config.MIN_ATTESTATION_INCLUSION_DELAY // inclusion_infos[index].inclusion_distance,
+                rewards_received,
+            )
+        else:
+            penalties_received = _update_rewards_or_penalies(
+                index,
+                base_rewards[index],
+                penalties_received,
+            )
+        # Expected FFG target
+        if index in previous_epoch_boundary_attester_indices:
+            rewards_received = _update_rewards_or_penalies(
+                index,
+                base_rewards[index] * previous_epoch_boundary_attesting_balance // previous_total_balance,
+                rewards_received,
+            )
+        else:
+            penalties_received = _update_rewards_or_penalies(
+                index,
+                base_rewards[index],
+                penalties_received,
+            )
+        # Expected head
+        if index in previous_epoch_head_attester_indices:
+            rewards_received = _update_rewards_or_penalies(
+                index,
+                base_rewards[index] * previous_epoch_head_attesting_balance // previous_total_balance,
+                rewards_received,
+            )
+        else:
+            penalties_received = _update_rewards_or_penalies(
+                index,
+                base_rewards[index],
+                penalties_received,
+            )
+        # Proposer bonus
+        if index in previous_epoch_attester_indices:
+            proposer_index = get_beacon_proposer_index(
+                state,
+                inclusion_infos[index].inclusion_slot,
+                CommitteeConfig(config),
+            )
+            rewards_received = _update_rewards_or_penalies(
+                proposer_index,
+                base_rewards[index] // config.ATTESTATION_INCLUSION_REWARD_QUOTIENT,
+                rewards_received,
+            )
+    return (rewards_received, penalties_received)
+
+
+def _compute_inactivity_leak_deltas(
+        state: BeaconState,
+        config: BeaconConfig,
+        previous_epoch_active_validator_indices: Set[ValidatorIndex],
+        previous_epoch_attester_indices: Set[ValidatorIndex],
+        previous_epoch_boundary_attester_indices: Set[ValidatorIndex],
+        previous_epoch_head_attester_indices: Set[ValidatorIndex],
+        inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
+        effective_balances: Dict[ValidatorIndex, Gwei],
+        base_rewards: Dict[ValidatorIndex, Gwei],
+        epochs_since_finality: int) -> Tuple[Dict[ValidatorIndex, SignedGwei], Dict[ValidatorIndex, SignedGwei]]:  # noqa: E501
+    inactivity_penalties = {
+        index: get_inactivity_penalty(
+            base_reward=base_rewards[index],
+            effective_balance=effective_balances[index],
+            epochs_since_finality=epochs_since_finality,
+            inactivity_penalty_quotient=config.INACTIVITY_PENALTY_QUOTIENT,
+        )
+        for index in range(len(state.validator_registry))
+    }
+    rewards_received = {
+        index: Gwei(0)
+        for index in range(len(state.validator_registry))
+    }
+    penalties_received = rewards_received.copy()
+    for index in previous_epoch_active_validator_indices:
+        if index not in previous_epoch_attester_indices:
+            penalties_received = _update_rewards_or_penalies(
+                index,
+                inactivity_penalties[index],
+                penalties_received,
+            )
+        else:
+            # If a validator did attest, apply a small penalty
+            # for getting attestations included late
+            rewards_received = _update_rewards_or_penalies(
+                index,
+                base_rewards[index] // config.MIN_ATTESTATION_INCLUSION_DELAY // inclusion_infos[index].inclusion_distance,
+                rewards_received,
+            )
+            penalties_received = _update_rewards_or_penalies(
+                index,
+                base_rewards[index],
+                penalties_received,
+            )
+        if index not in previous_epoch_boundary_attester_indices:
+            penalties_received = _update_rewards_or_penalies(
+                index,
+                inactivity_penalties[index],
+                penalties_received,
+            )
+        if index not in previous_epoch_head_attester_indices:
+            penalties_received = _update_rewards_or_penalies(
+                index,
+                base_rewards[index],
+                penalties_received,
+            )
+
+    # Penalize slashed-but-inactive validators as though they were active but offline
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    for index in range(len(state.validator_registry)):
+        eligible = (
+            index not in previous_epoch_active_validator_indices and
+            state.validator_registry[index].slashed and
+            current_epoch < state.validator_registry[index].withdrawable_epoch
+        )
+        if eligible:
+            penalties_received = _update_rewards_or_penalies(
+                index,
+                2 * inactivity_penalties[index] + base_rewards[index],
+                penalties_received,
+            )
+    return (rewards_received, penalties_received)
+
+
 @curry
 def _process_rewards_and_penalties_for_finality(
         state: BeaconState,
@@ -373,19 +537,12 @@ def _process_rewards_and_penalties_for_finality(
         previous_epoch_attester_indices: Set[ValidatorIndex],
         inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
         effective_balances: Dict[ValidatorIndex, Gwei],
-        base_rewards: Dict[ValidatorIndex, Gwei],
-        old_rewards_received: Dict[ValidatorIndex, SignedGwei]) -> Dict[ValidatorIndex, SignedGwei]:
-    previous_epoch_boundary_attestations = (
-        a
-        for a in previous_epoch_attestations
-        if a.data.epoch_boundary_root == get_block_root(
-            state,
-            get_epoch_start_slot(
-                state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
-                config.SLOTS_PER_EPOCH,
-            ),
-            config.LATEST_BLOCK_ROOTS_LENGTH,
-        )
+        base_rewards: Dict[ValidatorIndex, Gwei]) -> Tuple[Dict[ValidatorIndex, SignedGwei], Dict[ValidatorIndex, SignedGwei]]:  # noqa: E501
+    previous_epoch_boundary_attestations = get_previous_epoch_boundary_attestations(
+        state,
+        config.SLOTS_PER_EPOCH,
+        config.GENESIS_EPOCH,
+        config.LATEST_BLOCK_ROOTS_LENGTH,
     )
     previous_epoch_boundary_attester_indices = get_attester_indices_from_attesttion(
         state=state,
@@ -405,267 +562,35 @@ def _process_rewards_and_penalties_for_finality(
         committee_config=CommitteeConfig(config),
     )
 
-    rewards_received = {
-        index: Gwei(0)
-        for index in old_rewards_received
-    }
-    penalties_received = rewards_received.copy()
     epochs_since_finality = state.next_epoch(config.SLOTS_PER_EPOCH) - state.finalized_epoch
     if epochs_since_finality <= 4:
-        # 1.1 Expected FFG source:
-        previous_epoch_attesting_balance = get_total_balance_from_effective_balances(
-            effective_balances,
+        return _compute_normal_justification_and_finalization_deltas(
+            state,
+            config,
+            previous_epoch_active_validator_indices,
+            previous_total_balance,
             previous_epoch_attester_indices,
-        )
-        # Reward validators in `previous_epoch_attester_indices`
-        # # Punish active validators not in `previous_epoch_attester_indices`
-        excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
-            previous_epoch_attester_indices,
-        )
-        rewards = {
-            index: Gwei(
-                base_rewards[index] *
-                previous_epoch_attesting_balance //
-                previous_total_balance
-            )
-            for index in previous_epoch_attester_indices
-        }
-        penalties = {
-            index: base_rewards[index]
-            for index in excluded_active_validators_indices
-        }
-        rewards_received, penalties_received = _apply_rewards_and_penalties(
-            RewardSettlementContext(
-                rewards=rewards,
-                indices_to_reward=previous_epoch_attester_indices,
-                penalties=penalties,
-                indices_to_penalize=excluded_active_validators_indices,
-                rewards_received=rewards_received,
-                penalties_received=penalties_received,
-            ),
-        )
-
-        # 1.2 Expected FFG target:
-        previous_epoch_boundary_attesting_balance = get_total_balance_from_effective_balances(
-            effective_balances,
             previous_epoch_boundary_attester_indices,
-        )
-        # Reward validators in `previous_epoch_boundary_attester_indices`
-        # Punish active validators not in `previous_epoch_boundary_attester_indices`
-        excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
-            previous_epoch_boundary_attester_indices,
-        )
-        rewards = {
-            index: Gwei(
-                base_rewards[index] *
-                previous_epoch_boundary_attesting_balance //
-                previous_total_balance
-            )
-            for index in previous_epoch_boundary_attester_indices
-        }
-        penalties = {
-            index: base_rewards[index]
-            for index in excluded_active_validators_indices
-        }
-        rewards_received, penalties_received = _apply_rewards_and_penalties(
-            RewardSettlementContext(
-                rewards=rewards,
-                indices_to_reward=previous_epoch_boundary_attester_indices,
-                penalties=penalties,
-                indices_to_penalize=excluded_active_validators_indices,
-                rewards_received=rewards_received,
-                penalties_received=penalties_received,
-            ),
-        )
-
-        # 1.3 Expected beacon chain head:
-        previous_epoch_head_attesting_balance = get_total_balance_from_effective_balances(
+            previous_epoch_head_attester_indices,
+            inclusion_infos,
             effective_balances,
-            previous_epoch_head_attester_indices,
-        )
-        # Reward validators in `previous_epoch_head_attester_indices`
-        # Punish active validators not in `previous_epoch_head_attester_indices`
-        excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
-            previous_epoch_head_attester_indices,
-        )
-        rewards = {
-            index: Gwei(
-                base_rewards[index] *
-                previous_epoch_head_attesting_balance //
-                previous_total_balance
-            )
-            for index in previous_epoch_head_attester_indices
-        }
-        penalties = {
-            index: base_rewards[index]
-            for index in excluded_active_validators_indices
-        }
-        rewards_received, penalties_received = _apply_rewards_and_penalties(
-            RewardSettlementContext(
-                rewards=rewards,
-                indices_to_reward=previous_epoch_head_attester_indices,
-                penalties=penalties,
-                indices_to_penalize=excluded_active_validators_indices,
-                rewards_received=rewards_received,
-                penalties_received=penalties_received,
-            ),
-        )
-
-        # 1.4 Inclusion distance:
-        # Reward validators in `previous_epoch_attester_indices`
-        rewards = {
-            index: Gwei(
-                base_rewards[index] *
-                config.MIN_ATTESTATION_INCLUSION_DELAY //
-                inclusion_infos[index].inclusion_distance
-            )
-            for index in previous_epoch_attester_indices
-        }
-        rewards_received, penalties_received = _apply_rewards_and_penalties(
-            RewardSettlementContext(
-                rewards=rewards,
-                indices_to_reward=previous_epoch_attester_indices,
-                rewards_received=rewards_received,
-                penalties_received=penalties_received,
-            ),
-        )
-
-        # 1.5 Attestation inclusion
-        rewards = {
-            ValidatorIndex(index): Gwei(0)
-            for index in range(len(state.validator_registry))
-        }
-        for index in previous_epoch_attester_indices:
-            proposer_index = get_beacon_proposer_index(
-                state,
-                inclusion_infos[index].inclusion_slot,
-                CommitteeConfig(config),
-            )
-            rewards[proposer_index] = Gwei(
-                rewards[proposer_index] + (
-                    base_rewards[index] // config.ATTESTATION_INCLUSION_REWARD_QUOTIENT
-                )
-            )
-        rewards_received, penalties_received = _apply_rewards_and_penalties(
-            RewardSettlementContext(
-                rewards=rewards,
-                indices_to_reward=set(rewards.keys()),
-                rewards_received=rewards_received,
-                penalties_received=penalties_received,
-            ),
+            base_rewards,
         )
 
     # epochs_since_finality > 4
     else:
-        inactivity_penalties = {
-            index: get_inactivity_penalty(
-                base_reward=base_rewards[index],
-                effective_balance=effective_balances[index],
-                epochs_since_finality=epochs_since_finality,
-                inactivity_penalty_quotient=config.INACTIVITY_PENALTY_QUOTIENT,
-            )
-            for index in previous_epoch_active_validator_indices
-        }
-        # Punish active validators in `previous_epoch_attester_indices`
-        attesting_active_validators_indices = previous_epoch_active_validator_indices.intersection(
+        return _compute_inactivity_leak_deltas(
+            state,
+            config,
+            previous_epoch_active_validator_indices,
             previous_epoch_attester_indices,
-        )
-        penalties = {
-            index: Gwei(
-                base_rewards[index] - (
-                    base_rewards[index] *
-                    config.MIN_ATTESTATION_INCLUSION_DELAY //
-                    inclusion_infos[index].inclusion_distance
-                )
-            )
-            for index in attesting_active_validators_indices
-        }
-        rewards_received, penalties_received = _apply_rewards_and_penalties(
-            RewardSettlementContext(
-                penalties=penalties,
-                indices_to_penalize=attesting_active_validators_indices,
-                rewards_received=rewards_received,
-                penalties_received=penalties_received,
-            ),
-        )
-        # Punish active validators not in `previous_epoch_attester_indices`
-        excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
-            previous_epoch_attester_indices,
-        )
-        rewards_received, penalties_received = _apply_rewards_and_penalties(
-            RewardSettlementContext(
-                penalties=inactivity_penalties,
-                indices_to_penalize=excluded_active_validators_indices,
-                rewards_received=rewards_received,
-                penalties_received=penalties_received,
-            ),
-        )
-
-        # Punish active validators not in `previous_epoch_boundary_attester_indices`
-        excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
             previous_epoch_boundary_attester_indices,
-        )
-        rewards_received, penalties_received = _apply_rewards_and_penalties(
-            RewardSettlementContext(
-                penalties=inactivity_penalties,
-                indices_to_penalize=excluded_active_validators_indices,
-                rewards_received=rewards_received,
-                penalties_received=penalties_received,
-            ),
-        )
-
-        # Punish active validators not in `previous_epoch_head_attester_indices`
-        excluded_active_validators_indices = previous_epoch_active_validator_indices.difference(
             previous_epoch_head_attester_indices,
+            inclusion_infos,
+            effective_balances,
+            base_rewards,
+            epochs_since_finality,
         )
-        penalties = {
-            index: base_rewards[index]
-            for index in excluded_active_validators_indices
-        }
-        rewards_received, penalties_received = _apply_rewards_and_penalties(
-            RewardSettlementContext(
-                penalties=penalties,
-                indices_to_penalize=excluded_active_validators_indices,
-                rewards_received=rewards_received,
-                penalties_received=penalties_received,
-            ),
-        )
-
-        # Punish penalized inactive validators
-        current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-
-        def _is_eligible_for_punishment(validator: ValidatorRecord) -> bool:
-            return validator.slashed and validator.withdrawable_epoch > current_epoch
-
-        penalties = {
-            ValidatorIndex(index): 3 * base_rewards[ValidatorIndex(index)] + 2 * (
-                effective_balances[ValidatorIndex(index)] *
-                epochs_since_finality //
-                config.INACTIVITY_PENALTY_QUOTIENT // 2
-            )
-            for index in range(len(state.validator_registry))
-            if (
-                (index not in previous_epoch_active_validator_indices) and
-                _is_eligible_for_punishment(state.validator_registry[index])
-            )
-        }
-        rewards_received, penalties_received = _apply_rewards_and_penalties(
-            RewardSettlementContext(
-                penalties=penalties,
-                indices_to_penalize={index for index in penalties},
-                rewards_received=rewards_received,
-                penalties_received=penalties_received,
-            ),
-        )
-
-    historical_rewards_received = old_rewards_received.copy()
-    for index in rewards_received:
-        historical_rewards_received = _update_rewards_or_penalies(
-            index,
-            rewards_received[index] - penalties_received[index],
-            historical_rewards_received,
-        )
-    return historical_rewards_received
 
 
 @curry
