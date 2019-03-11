@@ -70,6 +70,9 @@ from trinity._utils.datastructures import (
     TaskQueue,
 )
 from trinity._utils.ema import EMA
+from trinity._utils.headers import (
+    skip_headers_in_db,
+)
 from trinity._utils.humanize import humanize_elapsed, humanize_hash
 from trinity._utils.timer import Timer
 
@@ -466,40 +469,53 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
                 # Likely scenario: switched which peer downloads headers, and the new peer isn't
                 # aware of some of the in-progress headers
                 self._block_persist_tracker.register_tasks(headers, ignore_duplicates=True)
-            except MissingDependency:
+            except MissingDependency as missing_exc:
                 # The parent of this header is not registered as a dependency yet.
                 # Some reasons this might happen, in rough descending order of likelihood:
                 #   - a normal fork: the canonical head isn't the parent of the first header synced
                 #   - a bug: headers were queued out of order in new_sync_headers
                 #   - a bug: old headers were pruned out of the tracker, but not in DB yet
 
+                # Skip over all headers found in db, (could happen with a long backtrack)
+                new_headers = await skip_headers_in_db(headers, self.db, self)
+                if len(new_headers) < len(headers):
+                    self.logger.debug(
+                        "Fast sync skipping over already stored headers (%d) from %s..%s",
+                        len(headers),
+                        headers[0],
+                        headers[-1],
+                    )
+                    if not new_headers:
+                        # no new headers to process, wait for next batch to come in
+                        continue
+
                 # If the parent header doesn't exist yet, this is a legit bug instead of a fork,
                 # let the HeaderNotFound exception bubble up
                 try:
                     parent_header = await self.wait(
-                        self.db.coro_get_block_header_by_hash(headers[0].parent_hash)
+                        self.db.coro_get_block_header_by_hash(new_headers[0].parent_hash)
                     )
                 except HeaderNotFound:
-                    await self._log_missing_parent(headers[0], highest_block_num)
+                    await self._log_missing_parent(new_headers[0], highest_block_num, missing_exc)
 
-                    # Nowhere to go from here, reset and try again
-                    await self._header_syncer.clear_buffer()
-
-                    # Don't try to process `headers`, wait for new ones to come in
-                    continue
+                    # Nowhere to go from here, re-raise
+                    raise
 
                 # This appears to be a fork, since the parent header is persisted,
                 self.logger.info(
                     "Fork found while starting fast sync. Canonical head was %s, but the next "
                     "header %s, has parent %s. Importing fork in case it's the longest chain.",
                     await self.db.coro_get_canonical_head(),
-                    headers[0],
+                    new_headers[0],
                     parent_header,
                 )
                 # Set first header's parent as finished
                 self._block_persist_tracker.set_finished_dependency(parent_header)
                 # Re-register the header tasks, which will now succeed
-                self._block_persist_tracker.register_tasks(headers)
+                self._block_persist_tracker.register_tasks(new_headers, ignore_duplicates=True)
+                # Clobber the headers variable so that the follow-up work below is consistent with
+                # or without exceptions (ie~ only add headers not in DB to body/receipt queue)
+                headers = new_headers
 
             # Sometimes duplicates are added to the queue, when switching from one sync to another.
             # We can simply ignore them.
@@ -516,7 +532,11 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
 
             highest_block_num = max(headers[-1].block_number, highest_block_num)
 
-    async def _log_missing_parent(self, first_header: BlockHeader, highest_block_num: int) -> None:
+    async def _log_missing_parent(
+            self,
+            first_header: BlockHeader,
+            highest_block_num: int,
+            missing_exc: Exception) -> None:
         self.logger.warning("Parent missing for header %r, restarting header sync", first_header)
         block_num = first_header.block_number
         try:
@@ -538,15 +558,18 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
             canonical_tip = None
 
         self.logger.debug(
-            "Header syncer returned header %s, which is not in our DB. "
-            "Instead at #%d, our header is %s, whose parent is %s, with canonical tip %s. ",
-            "The highest received header is %d.",
+            (
+                "Header syncer returned header %s, which has no parent in our DB. "
+                "Instead at #%d, our header is %s, whose parent is %s, with canonical tip %s. "
+                "The highest received header is %d. Triggered by missing dependency: %s"
+            ),
             first_header,
             block_num,
             local_header,
             local_parent,
             canonical_tip,
             highest_block_num,
+            missing_exc,
         )
 
     async def _display_stats(self) -> None:

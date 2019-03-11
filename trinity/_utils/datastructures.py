@@ -552,7 +552,9 @@ class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
             if not self._accept_dangling_tasks and dependency_id not in self._tasks:
                 raise MissingDependency(
                     f"Cannot prepare task {prereq_tracker!r} with id {task_id} and "
-                    f"dependency {dependency_id} before preparing its dependency"
+                    f"dependency {dependency_id} before preparing its dependency "
+                    f"among tasks {task_meta_info!r}, from the original registration: "
+                    f"{tasks!r}."
                 )
             else:
                 self._tasks[task_id] = prereq_tracker

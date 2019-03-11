@@ -6,11 +6,11 @@ from random import randrange
 from typing import (
     AsyncIterator,
     Callable,
-    Generic,
     FrozenSet,
+    Generic,
+    Iterable,
     Tuple,
     Type,
-    cast,
 )
 
 from async_generator import (
@@ -61,6 +61,9 @@ from trinity._utils.datastructures import (
     DuplicateTasks,
     OrderedTaskPreparation,
     TaskQueue,
+)
+from trinity._utils.headers import (
+    skip_headers_in_db,
 )
 from trinity._utils.humanize import (
     humanize_hash,
@@ -277,11 +280,8 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             )
 
         # identify headers that are not already stored locally
-        new_headers = tuple(
-            # The inner list comprehension is needed because async_generators
-            # cannot be cast to a tuple.
-            [header async for header in self.wait_iter(self._get_missing_tail(launch_headers))]
-        )
+        new_headers = await skip_headers_in_db(launch_headers, self._db, self)
+
         if len(new_headers) == 0:
             self.logger.debug(
                 "Canonical head updated while finding new head from %s, returning old %s instead",
@@ -443,26 +443,6 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
         else:
             return headers
 
-    async def _get_missing_tail(
-            self,
-            headers: Tuple[BlockHeader, ...]) -> AsyncIterator[BlockHeader]:
-        """
-        We only want headers that are missing, so we iterate over the list
-        until we find the first missing header, after which we return all of
-        the remaining headers.
-        """
-        iter_headers = iter(headers)
-        for header in iter_headers:
-            is_present = await self.wait(self._db.coro_header_exists(header.hash))
-            if is_present:
-                self.logger.debug("Discarding header that we already have: %s", header)
-            else:
-                yield header
-                break
-
-        for header in iter_headers:
-            yield header
-
     async def _log_ancester_failure(self, peer: TChainPeer, first_header: BlockHeader) -> None:
         self.logger.info("Unable to find common ancestor betwen our chain and %s", peer)
         block_num = first_header.block_number
@@ -491,17 +471,6 @@ class HeaderSyncerAPI(ABC):
         # hack to get python & mypy to recognize that this is an async generator
         if False:
             yield
-
-    @abstractmethod
-    async def clear_buffer(self) -> None:
-        """
-        Whatever headers have been received until now, dump them all and restart.
-        This is a last resort, to be used only when a consumer seems to receive
-        headers out of other and decides they have no other option besides reset.
-
-        It wastes a lot of previously completed work.
-        """
-        pass
 
     @abstractmethod
     def get_target_header_hash(self) -> Hash32:
@@ -722,6 +691,19 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
             raise
 
 
+def first_nonconsecutive_header(headers: Iterable[BlockHeader]) -> int:
+    """
+    :return: index of first child that does not match parent header, or a number
+        past the end if all are consecutive
+    """
+    for index, (parent, child) in enumerate(sliding_window(2, headers)):
+        if child.parent_hash != parent.hash:
+            return index + 1
+
+    # return an index off the end to indicate that all headers are consecutive
+    return index + 2
+
+
 class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
     """
     Generate a skeleton header, then use all peers to fill in the headers
@@ -745,11 +727,6 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
         # Track if there is capacity for syncing more headers
         self._buffer_capacity = asyncio.Event()
 
-        self._reset_buffer()
-
-    async def clear_buffer(self) -> None:
-        if self._skeleton is not None:
-            await self._skeleton.cancel()
         self._reset_buffer()
 
     def _reset_buffer(self) -> None:
@@ -780,7 +757,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
             max_batch_size: int = None) -> AsyncIterator[Tuple[BlockHeader, ...]]:
 
         while self.is_operational:
-            next_header_batch = await self.wait(self._stitcher.ready_tasks(max_batch_size))
+            headers = await self.wait(self._stitcher.ready_tasks(max_batch_size))
             if self._stitcher.has_ready_tasks():
                 # Even after clearing out a big batch, there is no available capacity, so
                 # pause any coroutines that might wait for capacity
@@ -788,7 +765,14 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
             else:
                 # There is available capacity, let any waiting coroutines continue
                 self._buffer_capacity.set()
-            yield cast(Tuple[BlockHeader, ...], next_header_batch)
+
+            while headers:
+                split_idx = first_nonconsecutive_header(headers)
+                consecutive_batch, headers = headers[:split_idx], headers[split_idx:]
+                if headers:
+                    # Note lack of capacity if the headers are non-consecutive
+                    self._buffer_capacity.clear()
+                yield consecutive_batch
 
     def get_target_header_hash(self) -> Hash32:
         if not self._is_syncing_skeleton and self._last_target_header_hash is None:
