@@ -33,7 +33,7 @@ def mk_header_chain(length):
     if length == 1:
         return
 
-    for i in range(length - 1):
+    for _ in range(length - 1):
         header = BlockHeader(
             difficulty=100,
             block_number=parent.block_number + 1,

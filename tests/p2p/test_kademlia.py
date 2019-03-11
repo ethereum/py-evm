@@ -67,7 +67,7 @@ def test_routingtable_neighbours():
         assert table.add_node(random_node()) is None
         assert i == len(table) - 1
 
-    for i in range(100):
+    for _ in range(100):
         node = random_node()
         nearest_bucket = table.buckets_by_distance_to(node.id)[0]
         if not nearest_bucket.nodes:
@@ -80,7 +80,7 @@ def test_routingtable_neighbours():
 
 def test_routingtable_get_random_nodes():
     table = kademlia.RoutingTable(random_node())
-    for i in range(100):
+    for _ in range(100):
         assert table.add_node(random_node()) is None
 
     nodes = list(table.get_random_nodes(50))

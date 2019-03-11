@@ -79,12 +79,15 @@ def create_mock_genesis_validator_deposits(
     return genesis_validator_deposits
 
 
+ZERO_TIMESTAMP = Timestamp(0)
+
+
 def create_mock_genesis(
         num_validators: int,
         config: BeaconConfig,
         keymap: Dict[BLSPubkey, int],
         genesis_block_class: Type[BaseBeaconBlock],
-        genesis_time: Timestamp=Timestamp(0)) -> Tuple[BeaconState, BaseBeaconBlock]:
+        genesis_time: Timestamp=ZERO_TIMESTAMP) -> Tuple[BeaconState, BaseBeaconBlock]:
     latest_eth1_data = Eth1Data.create_empty_data()
 
     assert num_validators <= len(keymap)

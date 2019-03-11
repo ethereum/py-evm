@@ -219,10 +219,12 @@ def test_get_pubkey_for_indices(activated_genesis_validators, data):
         assert activated_genesis_validators[validator_index].pubkey == pubkey
 
 
-def _list_and_index(data, max_size=None, elements=st.integers()):
+def _list_and_index(data, max_size=None, elements=None):
     """
     Hypothesis helper function cribbed from their docs on @composite
     """
+    if elements is None:
+        elements = st.integers()
     xs = data.draw(st.lists(elements, max_size=max_size, unique=True))
     i = data.draw(st.integers(min_value=0, max_value=max(len(xs) - 1, 0)))
     return (xs, i)
