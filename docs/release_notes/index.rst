@@ -4,7 +4,7 @@ Release notes
 Unreleased (latest source)
 --------------------------
 
-None
+- `#1732 <https://github.com/ethereum/py-evm/pull/1732>`_: Bugfix: squashed an occasional "mix hash mismatch" while syncing
 
 0.2.0-alpha.42
 --------------------------
