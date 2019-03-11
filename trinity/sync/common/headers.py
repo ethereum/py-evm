@@ -11,7 +11,6 @@ from typing import (
     Iterable,
     Tuple,
     Type,
-    cast,
 )
 
 from async_generator import (
@@ -62,6 +61,9 @@ from trinity._utils.datastructures import (
     DuplicateTasks,
     OrderedTaskPreparation,
     TaskQueue,
+)
+from trinity._utils.headers import (
+    skip_headers_in_db,
 )
 from trinity._utils.humanize import (
     humanize_hash,
@@ -278,11 +280,8 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             )
 
         # identify headers that are not already stored locally
-        new_headers = tuple(
-            # The inner list comprehension is needed because async_generators
-            # cannot be cast to a tuple.
-            [header async for header in self.wait_iter(self._get_missing_tail(launch_headers))]
-        )
+        new_headers = await skip_headers_in_db(launch_headers, self._db, self)
+
         if len(new_headers) == 0:
             self.logger.debug(
                 "Canonical head updated while finding new head from %s, returning old %s instead",
@@ -444,26 +443,6 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
         else:
             return headers
 
-    async def _get_missing_tail(
-            self,
-            headers: Tuple[BlockHeader, ...]) -> AsyncIterator[BlockHeader]:
-        """
-        We only want headers that are missing, so we iterate over the list
-        until we find the first missing header, after which we return all of
-        the remaining headers.
-        """
-        iter_headers = iter(headers)
-        for header in iter_headers:
-            is_present = await self.wait(self._db.coro_header_exists(header.hash))
-            if is_present:
-                self.logger.debug("Discarding header that we already have: %s", header)
-            else:
-                yield header
-                break
-
-        for header in iter_headers:
-            yield header
-
     async def _log_ancester_failure(self, peer: TChainPeer, first_header: BlockHeader) -> None:
         self.logger.info("Unable to find common ancestor betwen our chain and %s", peer)
         block_num = first_header.block_number
@@ -492,17 +471,6 @@ class HeaderSyncerAPI(ABC):
         # hack to get python & mypy to recognize that this is an async generator
         if False:
             yield
-
-    @abstractmethod
-    async def clear_buffer(self) -> None:
-        """
-        Whatever headers have been received until now, dump them all and restart.
-        This is a last resort, to be used only when a consumer seems to receive
-        headers out of other and decides they have no other option besides reset.
-
-        It wastes a lot of previously completed work.
-        """
-        pass
 
     @abstractmethod
     def get_target_header_hash(self) -> Hash32:
@@ -761,11 +729,6 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
 
         self._reset_buffer()
 
-    async def clear_buffer(self) -> None:
-        if self._skeleton is not None:
-            await self._skeleton.cancel()
-        self._reset_buffer()
-
     def _reset_buffer(self) -> None:
         # stitch together headers as they come in
         self._stitcher = OrderedTaskPreparation(
@@ -809,7 +772,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
                 if headers:
                     # Note lack of capacity if the headers are non-consecutive
                     self._buffer_capacity.clear()
-                yield cast(Tuple[BlockHeader, ...], consecutive_batch)
+                yield consecutive_batch
 
     def get_target_header_hash(self) -> Hash32:
         if not self._is_syncing_skeleton and self._last_target_header_hash is None:
