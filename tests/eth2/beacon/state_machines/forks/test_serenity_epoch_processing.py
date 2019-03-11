@@ -1000,6 +1000,9 @@ def test_process_rewards_and_penalties_for_crosslinks(
                 slot_included=(data_slot + min_attestation_inclusion_delay),
             )
         )
+    state = state.copy(
+        previous_epoch_attestations=tuple(previous_epoch_attestations),
+    )
 
     active_validators = set(
         [
@@ -1040,7 +1043,6 @@ def test_process_rewards_and_penalties_for_crosslinks(
     rewards_received = _process_rewards_and_penalties_for_crosslinks(
         state,
         config,
-        tuple(previous_epoch_attestations),
         effective_balances,
         base_rewards,
         rewards_received,

@@ -66,7 +66,6 @@ class BeaconState(ssz.Serializable):
         # Finality
         ('previous_epoch_attestations', List(PendingAttestationRecord)),
         ('current_epoch_attestations', List(PendingAttestationRecord)),
-
         ('previous_justified_epoch', uint64),
         ('justified_epoch', uint64),
 

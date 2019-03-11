@@ -19,21 +19,16 @@ from eth2._utils.bitfield import (
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
-
-from eth2.beacon.committee_helpers import (
-    get_attester_indices_from_attesttion,
-)
 from eth2.beacon.configs import CommitteeConfig
 from eth2.beacon.epoch_processing_helpers import (
     get_epoch_boundary_attester_indices,
     get_epoch_boundary_attesting_balances,
     get_inclusion_infos,
     get_previous_epoch_head_attestations,
-    get_total_balance,
-    get_winning_root,
+    get_winning_root_and_participants,
 )
-from eth2.beacon.exceptions import NoWinningRootError
 from eth2.beacon.helpers import (
+    get_effective_balance,
     get_epoch_start_slot,
 )
 from eth2.beacon.types.attestations import (
@@ -235,7 +230,7 @@ def test_get_previous_epoch_head_attestations(
         ),
     ]
 )
-def test_get_winning_root(
+def test_get_winning_root_and_participants(
         random,
         monkeypatch,
         target_committee_size,
@@ -307,40 +302,40 @@ def test_get_winning_root(
         ),
     )
 
-    try:
-        winning_root, attesting_balance = get_winning_root(
-            state=n_validators_state,
-            attestations=attestations,
-            max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            committee_config=committee_config,
-        )
-        attesting_validators_indices = get_attester_indices_from_attesttion(
-            state=n_validators_state,
-            attestations=(
-                a
-                for a in attestations
-                if a.data.shard == shard and a.data.crosslink_data_root == winning_root
-            ),
-            committee_config=committee_config,
-        )
-        total_attesting_balance = get_total_balance(
-            n_validators_state.validator_balances,
-            attesting_validators_indices,
+    state = n_validators_state.copy(
+        previous_epoch_attestations=attestations,
+    )
+    effective_balances = {
+        index: get_effective_balance(
+            state.validator_balances,
+            index,
             config.MAX_DEPOSIT_AMOUNT,
         )
-        assert attesting_balance == total_attesting_balance
-    except NoWinningRootError:
+        for index in range(len(state.validator_registry))
+    }
+
+    winning_root, attesting_validator_indices = get_winning_root_and_participants(
+        state=state,
+        shard=shard,
+        effective_balances=effective_balances,
+        committee_config=committee_config,
+    )
+    if len(attesting_validator_indices) == 0:
         assert len(block_root_1_participants) == 0 and len(block_root_2_participants) == 0
     else:
         if len(block_root_1_participants) == len(block_root_2_participants):
             if competing_block_roots[0] > competing_block_roots[1]:
                 assert winning_root == competing_block_roots[0]
+                assert attesting_validator_indices == set(block_root_1_participants)
             else:
                 assert winning_root == competing_block_roots[1]
+                assert attesting_validator_indices == set(block_root_2_participants)
         elif len(block_root_1_participants) < len(block_root_2_participants):
             assert winning_root == competing_block_roots[1]
+            assert attesting_validator_indices == set(block_root_2_participants)
         else:
             assert winning_root == competing_block_roots[0]
+            assert attesting_validator_indices == set(block_root_1_participants)
 
 
 @settings(max_examples=1)

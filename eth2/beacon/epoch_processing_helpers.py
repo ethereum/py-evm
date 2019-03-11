@@ -16,15 +16,13 @@ from eth_utils import (
     to_set,
 )
 
+from eth.constants import ZERO_HASH32
 from eth2.beacon.committee_helpers import (
     get_attestation_participants,
     get_attester_indices_from_attesttion,
 )
 from eth2.beacon.configs import (
     CommitteeConfig,
-)
-from eth2.beacon.exceptions import (
-    NoWinningRootError,
 )
 from eth2.beacon.helpers import (
     get_block_root,
@@ -35,10 +33,12 @@ from eth2.beacon.helpers import (
 from eth2.beacon.typing import (
     Epoch,
     Gwei,
+    Shard,
     ValidatorIndex,
 )
 
 from eth2.beacon.datastructures.inclusion_info import InclusionInfo
+from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.pending_attestation_records import (
     PendingAttestationRecord,
 )
@@ -67,44 +67,69 @@ def get_previous_epoch_head_attestations(
             yield attestation
 
 
-def get_winning_root(
+@to_tuple
+def _filter_attestations_by_latest_crosslinks(
+        attestations: Iterable[PendingAttestationRecord],
+        latest_crosslink: CrosslinkRecord) -> Iterable[PendingAttestationRecord]:
+    for attestation in attestations:
+        if attestation.data.latest_crosslink == latest_crosslink:
+            yield attestation
+
+
+@to_tuple
+def _filter_attestations_by_shard(
+        attestations: Iterable[PendingAttestationRecord],
+        shard: Shard) -> Iterable[PendingAttestationRecord]:
+    for attestation in attestations:
+        if attestation.data.shard == shard:
+            yield attestation
+
+
+def get_winning_root_and_participants(
         *,
         state: 'BeaconState',
-        attestations: Sequence[PendingAttestationRecord],
-        max_deposit_amount: Gwei,
-        committee_config: CommitteeConfig) -> Tuple[Hash32, Gwei]:
-    winning_root = None
-    winning_root_balance: Gwei = Gwei(0)
-    crosslink_data_roots = set(
-        [
-            a.data.crosslink_data_root for a in attestations
-        ]
+        shard: Shard,
+        effective_balances: Dict[ValidatorIndex, Gwei],
+        committee_config: CommitteeConfig) -> Tuple[Hash32, Sequence[ValidatorIndex]]:
+    valid_attestations = _filter_attestations_by_latest_crosslinks(
+        _filter_attestations_by_shard(
+            state.current_epoch_attestations + state.previous_epoch_attestations,
+            shard,
+        ),
+        state.latest_crosslinks[shard],
     )
-    for crosslink_data_root in crosslink_data_roots:
-        attesting_validator_indices = get_attester_indices_from_attesttion(
-            state=state,
-            attestations=[
-                a
-                for a in attestations
-                if a.data.crosslink_data_root == crosslink_data_root
-            ],
-            committee_config=committee_config,
-        )
-        total_attesting_balance = get_total_balance(
-            state.validator_balances,
-            attesting_validator_indices,
-            max_deposit_amount,
-        )
-        if total_attesting_balance > winning_root_balance:
-            winning_root = crosslink_data_root
-            winning_root_balance = total_attesting_balance
-        elif total_attesting_balance == winning_root_balance and winning_root_balance > 0:
-            if crosslink_data_root > winning_root:
-                winning_root = crosslink_data_root
+    all_roots = set([a.data.crosslink_data_root for a in valid_attestations])
 
-    if winning_root is None:
-        raise NoWinningRootError
-    return (winning_root, winning_root_balance)
+    # handle when no attestations for shard available
+    if len(all_roots) == 0:
+        return (Hash32(ZERO_HASH32), tuple())
+
+    def get_attestations_for(root: Hash32) -> Iterable[PendingAttestationRecord]:
+        return [a for a in valid_attestations if a.data.crosslink_data_root == root]
+
+    # Winning crosslink root is the root with the most votes for it, ties broken in favor of
+    # lexicographically higher hash
+    winning_root = max(
+        all_roots,
+        key=lambda r: (
+            get_attesting_balance_from_attesttion(
+                state=state,
+                effective_balances=effective_balances,
+                attestations=get_attestations_for(r),
+                committee_config=committee_config,
+            ),
+            r,
+        ),
+    )
+
+    return (
+        winning_root,
+        get_attester_indices_from_attesttion(
+            state=state,
+            attestations=get_attestations_for(winning_root),
+            committee_config=committee_config,
+        ),
+    )
 
 
 @to_tuple
@@ -181,6 +206,22 @@ def get_total_balance_from_effective_balances(
             effective_balances[index]
             for index in validator_indices
         )
+    )
+
+
+def get_attesting_balance_from_attesttion(
+        *,
+        state: 'BeaconState',
+        effective_balances: Dict[ValidatorIndex, Gwei],
+        attestations: Iterable[PendingAttestationRecord],
+        committee_config: CommitteeConfig) -> Gwei:
+    return get_total_balance_from_effective_balances(
+        effective_balances,
+        get_attester_indices_from_attesttion(
+            state=state,
+            attestations=attestations,
+            committee_config=committee_config,
+        ),
     )
 
 

@@ -10,7 +10,6 @@ from typing import (
 
 from eth_utils import (
     to_dict,
-    to_tuple,
 )
 from eth_utils.toolz import (
     curry,
@@ -29,9 +28,6 @@ from eth2._utils.tuple import (
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
-from eth2.beacon.exceptions import (
-    NoWinningRootError,
-)
 from eth2.beacon.committee_helpers import (
     get_attester_indices_from_attesttion,
     get_beacon_proposer_index,
@@ -48,7 +44,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_inactivity_penalty,
     get_inclusion_infos,
     get_previous_epoch_head_attestations,
-    get_winning_root,
+    get_winning_root_and_participants,
     get_total_balance,
     get_total_balance_from_effective_balances,
     get_epoch_boundary_attesting_balances,
@@ -73,13 +69,11 @@ from eth2.beacon.datastructures.reward_settlement_context import RewardSettlemen
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
-from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
 from eth2.beacon.typing import (
     Epoch,
     Gwei,
-    Shard,
     SignedGwei,
     Slot,
     ValidatorIndex,
@@ -266,24 +260,6 @@ def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconSta
 #
 # Crosslinks
 #
-@to_tuple
-def _filter_attestations_by_latest_crosslinks(
-        attestations: Sequence[Attestation],
-        latest_crosslink: CrosslinkRecord) -> Iterable[Attestation]:
-    for attestation in attestations:
-        if attestation.data.latest_crosslink == latest_crosslink:
-            yield attestation
-
-
-@to_tuple
-def _filter_attestations_by_shard(
-        attestations: Sequence[Attestation],
-        shard: Shard) -> Iterable[Attestation]:
-    for attestation in attestations:
-        if attestation.data.shard == shard:
-            yield attestation
-
-
 def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
     """
     Implement 'per-epoch-processing.crosslinks' portion of Phase 0 spec:
@@ -295,6 +271,14 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
     Return resulting ``state``
     """
     latest_crosslinks = state.latest_crosslinks
+    effective_balances = {
+        ValidatorIndex(index): get_effective_balance(
+            state.validator_balances,
+            ValidatorIndex(index),
+            config.MAX_DEPOSIT_AMOUNT,
+        )
+        for index in range(len(state.validator_registry))
+    }
     previous_epoch_start_slot = get_epoch_start_slot(
         state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
         config.SLOTS_PER_EPOCH,
@@ -310,26 +294,21 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
             CommitteeConfig(config),
         )
         for crosslink_committee, shard in crosslink_committees_at_slot:
-            try:
-                winning_root, total_attesting_balance = get_winning_root(
-                    state=state,
-                    # Use `_filter_attestations_by_shard` to filter out attestations
-                    # not attesting to this shard so we don't need to going over
-                    # irrelevent attestations over and over again.
-                    attestations=_filter_attestations_by_latest_crosslinks(
-                        _filter_attestations_by_shard(
-                            state.previous_epoch_attestations + state.current_epoch_attestations,
-                            shard,
-                        ),
-                        state.latest_crosslinks[shard],
-                    ),
-                    max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-                    committee_config=CommitteeConfig(config),
-                )
-            except NoWinningRootError:
+            winning_root, attesting_validator_indices = get_winning_root_and_participants(
+                state=state,
+                shard=shard,
+                effective_balances=effective_balances,
+                committee_config=CommitteeConfig(config),
+            )
+            if len(attesting_validator_indices) == 0:
                 # No winning shard block root found for this shard.
                 pass
             else:
+                total_attesting_balance = get_total_balance(
+                    state.validator_balances,
+                    attesting_validator_indices,
+                    config.MAX_DEPOSIT_AMOUNT,
+                )
                 total_balance = get_total_balance(
                     state.validator_balances,
                     crosslink_committee,
@@ -688,7 +667,6 @@ def _process_rewards_and_penalties_for_attestation_inclusion(
 def _process_rewards_and_penalties_for_crosslinks(
         state: BeaconState,
         config: BeaconConfig,
-        previous_epoch_attestations: Iterable[PendingAttestationRecord],
         effective_balances: Dict[ValidatorIndex, Gwei],
         base_rewards: Dict[ValidatorIndex, Gwei],
         old_rewards_received: Dict[ValidatorIndex, SignedGwei]) -> Dict[ValidatorIndex, SignedGwei]:
@@ -709,34 +687,17 @@ def _process_rewards_and_penalties_for_crosslinks(
             CommitteeConfig(config),
         )
         for crosslink_committee, shard in crosslink_committees_at_slot:
-            filtered_attestations = _filter_attestations_by_latest_crosslinks(
-                _filter_attestations_by_shard(
-                    previous_epoch_attestations + state.current_epoch_attestations,
-                    shard,
-                ),
-                state.latest_crosslinks[shard],
+            winning_root, attesting_validator_indices = get_winning_root_and_participants(
+                state=state,
+                shard=shard,
+                effective_balances=effective_balances,
+                committee_config=CommitteeConfig(config),
             )
-            try:
-                winning_root, total_attesting_balance = get_winning_root(
-                    state=state,
-                    attestations=filtered_attestations,
-                    max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-                    committee_config=CommitteeConfig(config),
-                )
-            except NoWinningRootError:
-                # No winning shard block root found for this shard.
-                # Hence no one is counted as attesting validator.
-                attesting_validator_indices: Iterable[ValidatorIndex] = set()
-            else:
-                attesting_validator_indices = get_attester_indices_from_attesttion(
-                    state=state,
-                    attestations=(
-                        a
-                        for a in filtered_attestations
-                        if a.data.crosslink_data_root == winning_root
-                    ),
-                    committee_config=CommitteeConfig(config),
-                )
+            total_attesting_balance = get_total_balance(
+                state.validator_balances,
+                attesting_validator_indices,
+                config.MAX_DEPOSIT_AMOUNT,
+            )
             total_balance = get_total_balance_from_effective_balances(
                 effective_balances,
                 crosslink_committee,
@@ -834,7 +795,6 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         _process_rewards_and_penalties_for_crosslinks(
             state,
             config,
-            previous_epoch_attestations,
             effective_balances,
             base_rewards,
         )
