@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from typing import (  # noqa: F401
+    Dict,
     List,
     Tuple
 )
@@ -30,23 +31,30 @@ from eth.validation import (
 
 
 # Type annotation here is to ensure we don't accidentally use strings instead of bytes.
-cache_seeds = [b'\x00' * 32]  # type: List[bytes]
-cache_by_seed = OrderedDict()  # type: OrderedDict[bytes, bytearray]
+cache_by_epoch = OrderedDict()  # type: OrderedDict[int, bytearray]
 CACHE_MAX_ITEMS = 10
 
 
 def get_cache(block_number: int) -> bytes:
-    while len(cache_seeds) <= block_number // EPOCH_LENGTH:
-        cache_seeds.append(keccak(cache_seeds[-1]))
-    seed = cache_seeds[block_number // EPOCH_LENGTH]
-    if seed in cache_by_seed:
-        c = cache_by_seed.pop(seed)  # pop and append at end
-        cache_by_seed[seed] = c
+    epoch_index = block_number // EPOCH_LENGTH
+
+    # doing explicit caching, because functools.lru_cache is 70% slower in the tests
+
+    # Get the cache if already generated, marking it as recently used
+    if epoch_index in cache_by_epoch:
+        c = cache_by_epoch.pop(epoch_index)  # pop and append at end
+        cache_by_epoch[epoch_index] = c
         return c
-    c = mkcache_bytes(block_number)
-    cache_by_seed[seed] = c
-    if len(cache_by_seed) > CACHE_MAX_ITEMS:
-        cache_by_seed.popitem(last=False)  # remove last recently accessed
+
+    # Generate the cache if it was not already in memory
+    # Simulate requesting mkcache by block number: multiply index by epoch length
+    c = mkcache_bytes(epoch_index * EPOCH_LENGTH)
+    cache_by_epoch[epoch_index] = c
+
+    # Limit memory usage for cache
+    if len(cache_by_epoch) > CACHE_MAX_ITEMS:
+        cache_by_epoch.popitem(last=False)  # remove last recently accessed
+
     return c
 
 

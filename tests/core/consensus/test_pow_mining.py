@@ -3,9 +3,7 @@ import random
 import threading
 import time
 
-from eth_hash.auto import keccak
 from eth_utils import to_bytes
-from eth_utils.toolz import sliding_window
 import rlp
 
 from eth.chains.base import MiningChain
@@ -13,7 +11,6 @@ from eth.chains.mainnet import MAINNET_VMS
 from eth.consensus.pow import (
     CACHE_MAX_ITEMS,
     EPOCH_LENGTH,
-    cache_seeds,
     check_pow,
     get_cache,
 )
@@ -31,16 +28,6 @@ def _concurrently_run_to_completion(target, concurrency):
         t.start()
     for t in threads:
         t.join()
-
-
-def test_cache_generation():
-
-    def generate_caches():
-        get_cache(EPOCH_LENGTH * 100)
-
-    _concurrently_run_to_completion(generate_caches, 3)
-    for parent, child in sliding_window(2, cache_seeds.values()):
-        assert child == keccak(parent)
 
 
 def test_cache_turnover():
