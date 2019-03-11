@@ -558,9 +558,11 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
             canonical_tip = None
 
         self.logger.debug(
-            "Header syncer returned header %s, which has no parent in our DB. "
-            "Instead at #%d, our header is %s, whose parent is %s, with canonical tip %s. "
-            "The highest received header is %d. Triggered by missing dependency: %s",
+            (
+                "Header syncer returned header %s, which has no parent in our DB. "
+                "Instead at #%d, our header is %s, whose parent is %s, with canonical tip %s. "
+                "The highest received header is %d. Triggered by missing dependency: %s"
+            ),
             first_header,
             block_num,
             local_header,
