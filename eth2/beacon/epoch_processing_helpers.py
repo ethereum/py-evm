@@ -52,6 +52,25 @@ if TYPE_CHECKING:
 
 
 @to_tuple
+def get_previous_epoch_boundary_attestations(
+        state: 'BeaconState',
+        slots_per_epoch: int,
+        genesis_epoch: Epoch,
+        latest_block_roots_length: int) -> Iterable[PendingAttestationRecord]:
+    beacon_block_root = get_block_root(
+        state,
+        get_epoch_start_slot(
+            state.previous_epoch(slots_per_epoch, genesis_epoch),
+            slots_per_epoch,
+        ),
+        latest_block_roots_length,
+    )
+    for attestation in state.previous_epoch_attestations:
+        if attestation.data.beacon_block_root == beacon_block_root:
+            yield attestation
+
+
+@to_tuple
 def get_previous_epoch_head_attestations(
         state: 'BeaconState',
         slots_per_epoch: int,
