@@ -42,7 +42,9 @@ def wait_for(path):
     return False
 
 
-def build_request(method, params=[]):
+def build_request(method, params=None):
+    if params is None:
+        params = []
     request = {
         'jsonrpc': '2.0',
         'id': 3,

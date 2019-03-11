@@ -88,11 +88,14 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                  privkey: datatypes.PrivateKey,
                  context: BasePeerContext,
                  max_peers: int = DEFAULT_MAX_PEERS,
-                 peer_info: BasePeerInfo = NoopPeerInfo(),
+                 peer_info: BasePeerInfo = None,
                  token: CancelToken = None,
                  event_bus: Endpoint = None
                  ) -> None:
         super().__init__(token)
+
+        if peer_info is None:
+            peer_info = NoopPeerInfo()
 
         self.peer_info = peer_info
 

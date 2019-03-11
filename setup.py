@@ -25,7 +25,7 @@ deps = {
         "web3==4.4.1",
         "lahja==0.11.2",
         "termcolor>=1.1.0,<2.0.0",
-        "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",
+        "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",  # noqa: E501
         "websockets==5.0.1",
         "jsonschema==2.6.0",
         "mypy_extensions>=0.4.1,<1.0.0",
@@ -45,6 +45,7 @@ deps = {
     ],
     'lint': [
         "flake8==3.5.0",
+        "flake8-bugbear==18.8.0",
         "mypy==0.641",
     ],
     'doc': [
@@ -58,9 +59,11 @@ deps = {
         "bumpversion>=0.5.3,<1",
         "wheel",
         "setuptools>=36.2.0",
-        # Fixing this dependency due to: pytest 3.6.4 has requirement pluggy<0.8,>=0.5, but you'll have pluggy 0.8.0 which is incompatible.
+        # Fixing this dependency due to: pytest 3.6.4 has requirement
+        # pluggy<0.8,>=0.5, but you'll have pluggy 0.8.0 which is incompatible.
         "pluggy==0.7.1",
-        # Fixing this dependency due to: requests 2.20.1 has requirement idna<2.8,>=2.5, but you'll have idna 2.8 which is incompatible.
+        # Fixing this dependency due to: requests 2.20.1 has requirement
+        # idna<2.8,>=2.5, but you'll have idna 2.8 which is incompatible.
         "idna==2.7",
         # idna 2.7 is not supported by requests 2.18
         "requests>=2.20,<3",

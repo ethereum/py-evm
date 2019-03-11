@@ -68,7 +68,7 @@ def create_branch(length, root=None, **start_kwargs):
     parent = create_test_block(parent=root, **start_kwargs)
     yield parent
 
-    for slot in range(root.slot + 2, root.slot + length + 1):
+    for _ in range(root.slot + 2, root.slot + length + 1):
         child = create_test_block(parent)
         yield child
         parent = child

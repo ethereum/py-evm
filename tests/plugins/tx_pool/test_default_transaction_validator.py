@@ -57,7 +57,7 @@ def test_tx_class_resolution(initial_block_number,
     validator.get_appropriate_tx_class.cache_clear()
 
     # Check that the validator uses the correct tx class when we have reached the tip of the chain
-    for n in range(10):
+    for _ in range(10):
         chain.mine_block()
 
     assert validator.get_appropriate_tx_class() == expected_future_tx_class

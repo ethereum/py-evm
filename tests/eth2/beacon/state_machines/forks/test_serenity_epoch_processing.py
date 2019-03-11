@@ -863,7 +863,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
             expected_rewards_received[index] -= penalty
 
     # Check the rewards/penalties match
-    for index, reward_received in rewards_received.items():
+    for index, _ in rewards_received.items():
         assert rewards_received[index] == expected_rewards_received[index]
 
 

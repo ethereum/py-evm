@@ -79,7 +79,7 @@ def test_import_blocks(valid_chain,
     state = genesis_state
     blocks = (genesis_block,)
     valid_chain_2 = copy.deepcopy(valid_chain)
-    for i in range(3):
+    for _ in range(3):
         block = create_mock_block(
             state=state,
             config=config,
