@@ -110,6 +110,21 @@ class BeaconBlockBody(ssz.Serializable):
             transfers=body.transfers,
         )
 
+    _hash = None
+
+    @property
+    def hash(self) -> Hash32:
+        if self._hash is None:
+            self._hash = hash_eth2(ssz.encode(self))
+        return self._hash
+
+    @property
+    def root(self) -> Hash32:
+        # TODO use `hash_tree_root` in lieu of `hash` here
+        # Alias of `hash`.
+        # Using flat hash, might change to SSZ tree hash.
+        return self.hash
+
 
 class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
     fields = [
