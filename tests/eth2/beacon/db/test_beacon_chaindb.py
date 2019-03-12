@@ -39,7 +39,7 @@ def chaindb(base_db):
 @pytest.fixture(params=[0, 10, 999])
 def block(request, sample_beacon_block_params):
     return BeaconBlock(**sample_beacon_block_params).copy(
-        parent_root=GENESIS_PARENT_HASH,
+        previous_block_root=GENESIS_PARENT_HASH,
         slot=request.param,
     )
 
@@ -70,7 +70,7 @@ def test_chaindb_persist_block_and_slot_to_root(chaindb, block):
 
 @given(seed=st.binary(min_size=32, max_size=32))
 def test_chaindb_persist_block_and_unknown_parent(chaindb, block, seed):
-    n_block = block.copy(parent_root=hash_eth2(seed))
+    n_block = block.copy(previous_block_root=hash_eth2(seed))
     with pytest.raises(ParentNotFound):
         chaindb.persist_block(n_block, n_block.__class__)
 
@@ -84,7 +84,7 @@ def test_chaindb_persist_block_and_block_to_root(chaindb, block):
 
 def test_chaindb_get_score(chaindb, sample_beacon_block_params):
     genesis = BeaconBlock(**sample_beacon_block_params).copy(
-        parent_root=GENESIS_PARENT_HASH,
+        previous_block_root=GENESIS_PARENT_HASH,
         slot=0,
     )
     chaindb.persist_block(genesis, genesis.__class__)
@@ -95,7 +95,7 @@ def test_chaindb_get_score(chaindb, sample_beacon_block_params):
     assert chaindb.get_score(genesis.root) == 0
 
     block1 = BeaconBlock(**sample_beacon_block_params).copy(
-        parent_root=genesis.root,
+        previous_block_root=genesis.root,
         slot=1,
     )
     chaindb.persist_block(block1, block1.__class__)
@@ -127,7 +127,7 @@ def test_chaindb_state(chaindb, state):
 
 def test_chaindb_get_finalized_head(chaindb, block):
     # TODO: update when we support finalizing blocks that are not the genesis block
-    genesis = block.copy(parent_root=GENESIS_PARENT_HASH)
+    genesis = block.copy(previous_block_root=GENESIS_PARENT_HASH)
     chaindb.persist_block(genesis, BeaconBlock)
     assert chaindb.get_finalized_head(BeaconBlock) == genesis
 
@@ -143,7 +143,7 @@ def test_chaindb_get_canonical_head(chaindb, block):
 
     block_2 = block.copy(
         slot=block.slot + 1,
-        parent_root=block.root,
+        previous_block_root=block.root,
     )
     chaindb.persist_block(block_2, block_2.__class__)
     result_block = chaindb.get_canonical_head(block.__class__)
@@ -151,7 +151,7 @@ def test_chaindb_get_canonical_head(chaindb, block):
 
     block_3 = block.copy(
         slot=block_2.slot + 1,
-        parent_root=block_2.root,
+        previous_block_root=block_2.root,
     )
     chaindb.persist_block(block_3, block_3.__class__)
     result_block = chaindb.get_canonical_head(block.__class__)

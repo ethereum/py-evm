@@ -109,7 +109,7 @@ def create_block_on_state(
     if check_proposer_index:
         validate_proposer_index(state, config, slot, validator_index)
 
-    # Prepare block: slot and parent_root
+    # Prepare block: slot and previous_block_root
     block = block_class.from_parent(
         parent_block=parent_block,
         block_params=FromBlockParams(slot=slot),

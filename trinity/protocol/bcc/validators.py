@@ -78,7 +78,7 @@ class BeaconBlocksValidator(BaseValidator[Tuple[BaseBeaconBlock, ...]]):
         for parent, child in sliding_window(2, blocks):
             # check that the received blocks form a sequence of descendents connected by parent
             # hashes, starting with the oldest ancestor
-            if child.parent_root != parent.hash:
+            if child.previous_block_root != parent.hash:
                 raise ValidationError(
                     "Returned blocks are not a connected branch"
                 )

@@ -50,7 +50,7 @@ def get_genesis_block(genesis_state_root: Hash32,
                       block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
     return block_class(
         slot=genesis_slot,
-        parent_root=ZERO_HASH32,
+        previous_block_root=ZERO_HASH32,
         state_root=genesis_state_root,
         randao_reveal=EMPTY_SIGNATURE,
         eth1_data=Eth1Data.create_empty_data(),

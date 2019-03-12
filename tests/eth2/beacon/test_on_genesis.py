@@ -28,7 +28,7 @@ def test_get_genesis_block():
     genesis_slot = 10
     genesis_block = get_genesis_block(genesis_state_root, genesis_slot, BeaconBlock)
     assert genesis_block.slot == genesis_slot
-    assert genesis_block.parent_root == ZERO_HASH32
+    assert genesis_block.previous_block_root == ZERO_HASH32
     assert genesis_block.state_root == genesis_state_root
     assert genesis_block.randao_reveal == EMPTY_SIGNATURE
     assert genesis_block.eth1_data == Eth1Data.create_empty_data()

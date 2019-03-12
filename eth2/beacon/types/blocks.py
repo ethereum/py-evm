@@ -132,7 +132,7 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
         # Header
         #
         ('slot', uint64),
-        ('parent_root', bytes32),
+        ('previous_block_root', bytes32),
         ('state_root', bytes32),
         ('randao_reveal', bytes96),
         ('eth1_data', Eth1Data),
@@ -146,7 +146,7 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
 
     def __init__(self,
                  slot: Slot,
-                 parent_root: Hash32,
+                 previous_block_root: Hash32,
                  state_root: Hash32,
                  randao_reveal: BLSSignature,
                  eth1_data: Eth1Data,
@@ -154,7 +154,7 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             slot=slot,
-            parent_root=parent_root,
+            previous_block_root=previous_block_root,
             state_root=state_root,
             randao_reveal=randao_reveal,
             eth1_data=eth1_data,
@@ -221,7 +221,7 @@ class BeaconBlock(BaseBeaconBlock):
 
         return cls(
             slot=block.slot,
-            parent_root=block.parent_root,
+            previous_block_root=block.previous_block_root,
             state_root=block.state_root,
             randao_reveal=block.randao_reveal,
             eth1_data=block.eth1_data,
@@ -244,7 +244,7 @@ class BeaconBlock(BaseBeaconBlock):
 
         return cls(
             slot=slot,
-            parent_root=parent_block.root,
+            previous_block_root=parent_block.root,
             state_root=parent_block.state_root,
             randao_reveal=EMPTY_SIGNATURE,
             eth1_data=parent_block.eth1_data,
@@ -257,7 +257,7 @@ class BeaconBlock(BaseBeaconBlock):
                       block: 'BaseBeaconBlock') -> 'BeaconBlock':
         return cls(
             slot=block.slot,
-            parent_root=block.parent_root,
+            previous_block_root=block.previous_block_root,
             state_root=block.state_root,
             randao_reveal=block.randao_reveal,
             eth1_data=block.eth1_data,

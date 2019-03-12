@@ -402,11 +402,11 @@ class BeaconChainDB(BaseBeaconChainDB):
         else:
             no_canonical_head = False
 
-        is_genesis = first_block.parent_root == GENESIS_PARENT_HASH
-        if not is_genesis and not cls._block_exists(db, first_block.parent_root):
+        is_genesis = first_block.previous_block_root == GENESIS_PARENT_HASH
+        if not is_genesis and not cls._block_exists(db, first_block.previous_block_root):
             raise ParentNotFound(
                 "Cannot persist block ({}) with unknown parent ({})".format(
-                    encode_hex(first_block.root), encode_hex(first_block.parent_root)))
+                    encode_hex(first_block.root), encode_hex(first_block.previous_block_root)))
 
         if is_genesis:
             score = 0
@@ -429,12 +429,12 @@ class BeaconChainDB(BaseBeaconChainDB):
         orig_blocks_seq = concat([(first_block,), blocks_iterator])
 
         for parent, child in sliding_window(2, orig_blocks_seq):
-            if parent.root != child.parent_root:
+            if parent.root != child.previous_block_root:
                 raise ValidationError(
                     "Non-contiguous chain. Expected {} to have {} as parent but was {}".format(
                         encode_hex(child.root),
                         encode_hex(parent.root),
-                        encode_hex(child.parent_root),
+                        encode_hex(child.previous_block_root),
                     )
                 )
 
@@ -527,10 +527,10 @@ class BeaconChainDB(BaseBeaconChainDB):
             # Found a new ancestor
             yield block
 
-            if block.parent_root == GENESIS_PARENT_HASH:
+            if block.previous_block_root == GENESIS_PARENT_HASH:
                 break
             else:
-                block = cls._get_block_by_root(db, block.parent_root, block_class)
+                block = cls._get_block_by_root(db, block.previous_block_root, block_class)
 
     @staticmethod
     def _add_block_slot_to_root_lookup(db: BaseDB, block: BaseBeaconBlock) -> None:

@@ -140,7 +140,7 @@ def sample_beacon_block_params(sample_beacon_block_body_params,
                                genesis_slot):
     return {
         'slot': genesis_slot + 10,
-        'parent_root': ZERO_HASH32,
+        'previous_block_root': ZERO_HASH32,
         'state_root': b'\x55' * 32,
         'randao_reveal': EMPTY_SIGNATURE,
         'eth1_data': Eth1Data(**sample_eth1_data_params),
