@@ -7,7 +7,6 @@ not considered to be part of the tree.
 
 import math
 from typing import (
-    Iterable,
     Sequence,
     Union,
 )

@@ -1,9 +1,5 @@
 import pytest
 
-from eth_utils import (
-    ValidationError,
-)
-
 from eth2._utils.merkle.sparse import (
     calc_merkle_tree,
     get_merkle_proof,

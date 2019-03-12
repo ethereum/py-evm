@@ -6,7 +6,6 @@ not considered to be part of the tree.
 """
 
 from typing import (
-    Iterable,
     Sequence,
     Union,
 )
@@ -21,9 +20,6 @@ from eth2.beacon._utils.hash import (
 )
 from eth_typing import (
     Hash32,
-)
-from eth_utils import (
-    ValidationError,
 )
 
 from .common import (  # noqa: F401
@@ -80,7 +76,7 @@ def calc_merkle_tree_from_leaves(leaves: Sequence[Hash32]) -> MerkleTree:
     if len(leaves) == 0:
         raise ValueError("No leaves given")
     tree = tuple()  # type: ignore
-    tree = (leaves,) + tree
+    tree = (leaves,)
     for i in range(TreeDepth):
         if len(tree[0]) % 2 == 1:
             tree = update_tuple_item(tree, 0, tree[0] + (EmptyNodeHashes[i],))
