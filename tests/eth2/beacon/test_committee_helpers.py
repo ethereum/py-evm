@@ -1,5 +1,7 @@
-import pytest
+import time
+
 import itertools
+import pytest
 
 from eth_utils import (
     ValidationError,
@@ -179,6 +181,51 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
         for index in range(len(activated_genesis_validators))
     )
     assert sorted(validator_indices) == sorted(activated_genesis_validator_indices)
+
+
+@pytest.mark.parametrize(
+    (
+        'genesis_slot,'
+    ),
+    [
+        (0),
+    ],
+)
+@pytest.mark.parametrize(
+    (
+        'num_validators,'
+        'slots_per_epoch,'
+        'target_committee_size,'
+        'shard_count,'
+        'epoch'
+    ),
+    [
+        (1000, 20, 10, 100, 0),
+
+    ],
+)
+def test_get_shuffling_cache(activated_genesis_validators,
+                             committee_config,
+                             epoch):
+    start_time = time.time()
+    get_shuffling(
+        seed=b'\x55' * 32,
+        validators=activated_genesis_validators,
+        epoch=epoch,
+        committee_config=committee_config,
+    )
+    one_shuffle_time = time.time() - start_time
+
+    start_time = time.time()
+    for _ in range(100):
+        get_shuffling(
+            seed=b'\x66' * 32,
+            validators=activated_genesis_validators,
+            epoch=epoch,
+            committee_config=committee_config,
+        )
+    one_hundred_shuffles_time = time.time() - start_time
+    assert one_hundred_shuffles_time < one_shuffle_time * 2
 
 
 @pytest.mark.parametrize(
