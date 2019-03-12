@@ -69,7 +69,7 @@ def get_permuted_index(index: int,
 @to_tuple
 def shuffle(values: Sequence[TItem],
             seed: Hash32,
-            shuffle_round_count: int=90) -> Iterable[TItem]:
+            shuffle_round_count: int) -> Iterable[TItem]:
     """
     Return shuffled indices in a pseudorandom permutation `0...list_size-1` with
     ``seed`` as entropy.
