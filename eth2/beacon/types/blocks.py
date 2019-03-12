@@ -49,6 +49,32 @@ if TYPE_CHECKING:
     from eth2.beacon.db.chain import BaseBeaconChainDB  # noqa: F401
 
 
+class BeaconBlockHeader(ssz.Serializable):
+
+    fields = [
+        ('slot', uint64),
+        ('previous_block_root', bytes32),
+        ('state_root', bytes32),
+        ('block_body_root', bytes32),
+        ('signature', bytes96),
+    ]
+
+    def __init__(self,
+                 *,
+                 slot: uint64,
+                 previous_block_root: bytes32,
+                 state_root: bytes32,
+                 block_body_root: bytes32,
+                 signature: bytes32):
+        super().__init__(
+            slot=slot,
+            previous_block_root=previous_block_root,
+            state_root=state_root,
+            block_body_root=block_body_root,
+            signature=signature,
+        )
+
+
 class BeaconBlockBody(ssz.Serializable):
 
     fields = [

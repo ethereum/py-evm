@@ -34,6 +34,7 @@ from eth2.beacon.helpers import (
     get_effective_balance,
     get_delayed_activation_exit_epoch,
     get_fork_version,
+    get_temporary_block_header,
     get_total_balance,
     is_double_vote,
     is_surround_vote,
@@ -42,6 +43,19 @@ from eth2.beacon.helpers import (
 from tests.eth2.beacon.helpers import (
     get_pseudo_chain,
 )
+
+
+#
+# Header helpers
+#
+def test_get_temporary_block_header(sample_block):
+    header = get_temporary_block_header(sample_block)
+
+    assert header.slot == sample_block.slot
+    assert header.previous_block_root == sample_block.previous_block_root
+    assert header.state_root == ZERO_HASH32
+    assert header.block_body_root == sample_block.body.root
+    assert header.signature == sample_block.signature
 
 
 def generate_mock_latest_historical_roots(
