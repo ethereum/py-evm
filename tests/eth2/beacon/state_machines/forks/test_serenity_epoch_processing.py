@@ -1,5 +1,4 @@
 import pytest
-import random
 
 from hypothesis import (
     given,
