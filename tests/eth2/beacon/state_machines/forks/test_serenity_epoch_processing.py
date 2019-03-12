@@ -14,6 +14,11 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
+from eth_utils.toolz import (
+    assoc,
+    curry,
+)
+
 from eth2._utils.tuple import (
     update_tuple_item,
 )
@@ -50,6 +55,8 @@ from eth2.beacon._utils.hash import (
 from eth2.beacon.datastructures.inclusion_info import InclusionInfo
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.eth1_data import Eth1Data
+from eth2.beacon.types.eth1_data_vote import Eth1DataVote
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
@@ -58,13 +65,17 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _compute_total_penalties,
     _current_previous_epochs_justifiable,
     _get_finalized_epoch,
+    _is_majority_vote,
+    _majority_threshold,
     _process_rewards_and_penalties_for_attestation_inclusion,
     _process_rewards_and_penalties_for_crosslinks,
     _process_rewards_and_penalties_for_finality,
+    _update_eth1_vote_if_exists,
     _update_latest_active_index_roots,
     process_crosslinks,
     process_ejections,
     process_exit_queue,
+    process_eth1_data_votes,
     process_final_updates,
     process_justification,
     process_slashings,
@@ -74,6 +85,118 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
 
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
+
+
+#
+# Eth1 data votes
+#
+def test_majority_threshold(config):
+    threshold = config.EPOCHS_PER_ETH1_VOTING_PERIOD * config.SLOTS_PER_EPOCH
+    assert _majority_threshold(config) == threshold
+
+
+@curry
+def _mk_eth1_data_vote(params, vote_count):
+    return Eth1DataVote(**assoc(params, "vote_count", vote_count))
+
+
+def test_ensure_majority_votes(sample_eth1_data_vote_params, config):
+    threshold = _majority_threshold(config)
+    votes = map(_mk_eth1_data_vote(sample_eth1_data_vote_params), range(2 * threshold))
+    for vote in votes:
+        if vote.vote_count * 2 > threshold:
+            assert _is_majority_vote(config, vote)
+        else:
+            assert not _is_majority_vote(config, vote)
+
+
+def _some_bytes(seed):
+    return hash_eth2(b'some_hash' + abs(seed).to_bytes(32, 'little'))
+
+
+@pytest.mark.parametrize(
+    (
+        'vote_offsets'  # a tuple of offsets against the majority threshold
+    ),
+    (
+        # no eth1_data_votes
+        (),
+        # a minority of eth1_data_votes (single)
+        (-2,),
+        # a plurality of eth1_data_votes (multiple but not majority)
+        (-2, -2),
+        # almost a majority!
+        (0,),
+        # a majority of eth1_data_votes
+        (12,),
+        # NOTE: we are accepting more than one block per slot if
+        # there are multiple majorities so no need to test this
+    )
+)
+def test_ensure_update_eth1_vote_if_exists(sample_beacon_state_params,
+                                           config,
+                                           vote_offsets):
+    # one less than a majority is the majority divided by 2
+    threshold = _majority_threshold(config) / 2
+    data_votes = tuple(
+        Eth1DataVote(
+            eth1_data=Eth1Data(
+                deposit_root=_some_bytes(offset),
+                block_hash=_some_bytes(offset),
+            ),
+            vote_count=threshold + offset,
+        ) for offset in vote_offsets
+    )
+    params = assoc(sample_beacon_state_params, "eth1_data_votes", data_votes)
+    state = BeaconState(**params)
+
+    if data_votes:  # we should have non-empty votes for non-empty inputs
+        assert state.eth1_data_votes
+
+    updated_state = _update_eth1_vote_if_exists(state, config)
+
+    # we should *always* clear the pending set
+    assert not updated_state.eth1_data_votes
+
+    # we should update the 'latest' entry if we have a majority
+    for offset in vote_offsets:
+        if offset <= 0:
+            assert state.latest_eth1_data == updated_state.latest_eth1_data
+        else:
+            assert len(data_votes) == 1  # sanity check
+            assert updated_state.latest_eth1_data == data_votes[0].eth1_data
+
+
+def test_only_process_eth1_data_votes_per_period(sample_beacon_state_params, config):
+    slots_per_epoch = config.SLOTS_PER_EPOCH
+    epochs_per_voting_period = config.EPOCHS_PER_ETH1_VOTING_PERIOD
+    number_of_epochs_to_sample = 3
+
+    # NOTE: we process if the _next_ epoch is on a voting period, so subtract 1 here
+    # NOTE: we also avoid the epoch 0 so change range bounds
+    epochs_to_process_votes = [
+        (epochs_per_voting_period * epoch) - 1 for epoch in range(1, number_of_epochs_to_sample + 1)
+    ]
+    state = BeaconState(**sample_beacon_state_params)
+
+    last_epoch_to_process_votes = epochs_to_process_votes[-1]
+    # NOTE: we arbitrarily pick two after; if this fails here, think about how to
+    # change so we avoid including another voting period
+    some_epochs_after_last_target = last_epoch_to_process_votes + 2
+    assert some_epochs_after_last_target % epochs_per_voting_period != 0
+
+    for epoch in range(some_epochs_after_last_target):
+        slot = get_epoch_start_slot(epoch, slots_per_epoch)
+        state = state.copy(slot=slot)
+        updated_state = process_eth1_data_votes(state, config)
+        if epoch in epochs_to_process_votes:
+            # we should get back a different state object
+            assert id(state) != id(updated_state)
+            # in particular, with no eth1 data votes
+            assert not updated_state.eth1_data_votes
+        else:
+            # we get back the same state (by value)
+            assert state == updated_state
 
 
 #
