@@ -53,15 +53,3 @@ def test_merkle_root_and_proofs(items, expected_root):
         for replaced_index in range(len(proof)):
             altered_proof = proof[:replaced_index] + (b"\x32" * 32,) + proof[replaced_index + 1:]
             assert not verify_merkle_proof(expected_root, hash_eth2(item), index, altered_proof)
-
-
-@pytest.mark.parametrize("items", [
-    (b"1",),
-    (b"1", b"2"),
-    (b"1", b"2", b"3", b"4"),
-])
-def test_proof_generation_index_validation(items):
-    tree = calc_merkle_tree(items)
-    for invalid_index in [-1, len(items)]:
-        with pytest.raises(ValidationError):
-            get_merkle_proof(tree, invalid_index)

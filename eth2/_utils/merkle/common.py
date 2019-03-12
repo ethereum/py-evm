@@ -15,6 +15,9 @@ from eth2.beacon._utils.hash import (
 from eth_typing import (
     Hash32,
 )
+from eth_utils import (
+    ValidationError,
+)
 
 
 MerkleTree = NewType("MerkleTree", Sequence[Sequence[Hash32]])
@@ -49,4 +52,24 @@ def _hash_layer(layer: Sequence[Hash32]) -> Iterable[Hash32]:
     return tuple(
         _calc_parent_hash(left, right)
         for left, right in partition(2, layer)
+    )
+
+
+def get_merkle_proof(tree: MerkleTree, item_index: int) -> Iterable[Hash32]:
+    """
+    Read off the Merkle proof for an item from a Merkle tree.
+    """
+    if item_index < 0 or item_index >= len(tree[-1]):
+        raise ValidationError("Item index out of range")
+
+    # special case of tree consisting of only root
+    if len(tree) == 1:
+        return ()
+
+    branch_indices = get_branch_indices(item_index, len(tree))
+    proof_indices = [i ^ 1 for i in branch_indices][:-1]  # get sibling by flipping rightmost bit
+    return tuple(
+        layer[proof_index]
+        for layer, proof_index
+        in zip(reversed(tree), proof_indices)
     )

@@ -30,6 +30,7 @@ from .common import (  # noqa: F401
     _calc_parent_hash,
     _hash_layer,
     get_branch_indices,
+    get_merkle_proof,
     get_root,
     MerkleTree,
     MerkleProof,
@@ -40,22 +41,6 @@ TreeDepth = 32
 EmptyNodeHashes = tuple(
     take(TreeDepth, iterate(lambda node_hash: hash_eth2(node_hash + node_hash), b'\x00' * 32))
 )
-
-
-def get_merkle_proof(tree: MerkleTree, item_index: int) -> Iterable[Hash32]:
-    """
-    Read off the Merkle proof for an item from a Merkle tree.
-    """
-    if item_index < 0 or item_index >= len(tree[-1]) or tree[-1][item_index] == EmptyNodeHashes[0]:
-        raise ValidationError("Item index out of range")
-
-    branch_indices = get_branch_indices(item_index, len(tree))
-    proof_indices = [i ^ 1 for i in branch_indices][:-1]  # get sibling by flipping rightmost bit
-    return tuple(
-        layer[proof_index]
-        for layer, proof_index
-        in zip(reversed(tree), proof_indices)
-    )
 
 
 def verify_merkle_proof(root: Hash32,
