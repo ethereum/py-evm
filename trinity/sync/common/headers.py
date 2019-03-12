@@ -762,9 +762,6 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
                 # Even after clearing out a big batch, there is no available capacity, so
                 # pause any coroutines that might wait for capacity
                 self._buffer_capacity.clear()
-            else:
-                # There is available capacity, let any waiting coroutines continue
-                self._buffer_capacity.set()
 
             while headers:
                 split_idx = first_nonconsecutive_header(headers)
@@ -773,6 +770,10 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
                     # Note lack of capacity if the headers are non-consecutive
                     self._buffer_capacity.clear()
                 yield consecutive_batch
+
+            if not self._stitcher.has_ready_tasks():
+                # There is available capacity, let any waiting coroutines continue
+                self._buffer_capacity.set()
 
     def get_target_header_hash(self) -> Hash32:
         if not self._is_syncing_skeleton and self._last_target_header_hash is None:
