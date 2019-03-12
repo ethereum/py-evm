@@ -111,7 +111,7 @@ def test_ensure_majority_votes(sample_eth1_data_vote_params, config):
 
 
 def _some_bytes(seed):
-    return hash_eth2(b'some_hash' + seed.to_bytes(32, 'little'))
+    return hash_eth2(b'some_hash' + abs(seed).to_bytes(32, 'little'))
 
 
 @pytest.mark.parametrize(
