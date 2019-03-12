@@ -52,8 +52,6 @@ def get_genesis_block(genesis_state_root: Hash32,
         slot=genesis_slot,
         previous_block_root=ZERO_HASH32,
         state_root=genesis_state_root,
-        randao_reveal=EMPTY_SIGNATURE,
-        eth1_data=Eth1Data.create_empty_data(),
         signature=EMPTY_SIGNATURE,
         body=BeaconBlockBody.create_empty_body(),
     )

@@ -123,8 +123,10 @@ def sample_attestation_data_and_custody_bit_params(sample_attestation_data_param
 
 
 @pytest.fixture
-def sample_beacon_block_body_params():
+def sample_beacon_block_body_params(sample_eth1_data_params):
     return {
+        'randao_reveal': EMPTY_SIGNATURE,
+        'eth1_data': Eth1Data(**sample_eth1_data_params),
         'proposer_slashings': (),
         'attester_slashings': (),
         'attestations': (),
@@ -136,14 +138,11 @@ def sample_beacon_block_body_params():
 
 @pytest.fixture
 def sample_beacon_block_params(sample_beacon_block_body_params,
-                               sample_eth1_data_params,
                                genesis_slot):
     return {
         'slot': genesis_slot + 10,
         'previous_block_root': ZERO_HASH32,
         'state_root': b'\x55' * 32,
-        'randao_reveal': EMPTY_SIGNATURE,
-        'eth1_data': Eth1Data(**sample_eth1_data_params),
         'signature': EMPTY_SIGNATURE,
         'body': BeaconBlockBody(**sample_beacon_block_body_params)
     }

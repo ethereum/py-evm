@@ -119,12 +119,12 @@ def create_block_on_state(
     randao_reveal = _generate_randao_reveal(privkey, slot, state.fork, config)
     eth1_data = Eth1Data.create_empty_data()
     body = BeaconBlockBody.create_empty_body().copy(
+        randao_reveal=randao_reveal,
+        eth1_data=eth1_data,
         attestations=attestations,
     )
 
     block = block.copy(
-        randao_reveal=randao_reveal,
-        eth1_data=eth1_data,
         body=body,
     )
 

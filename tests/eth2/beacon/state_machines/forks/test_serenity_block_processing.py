@@ -15,7 +15,7 @@ from py_ecc import bls
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
 from eth2.beacon.enums import SignatureDomain
 
 from eth2.beacon.helpers import (
@@ -44,6 +44,7 @@ from tests.eth2.beacon.helpers import (
 
 
 def test_randao_processing(sample_beacon_block_params,
+                           sample_beacon_block_body_params,
                            sample_beacon_state_params,
                            keymap,
                            config):
@@ -71,8 +72,12 @@ def test_randao_processing(sample_beacon_block_params,
         config=config,
     )
 
-    block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
+    block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
         randao_reveal=randao_reveal,
+    )
+
+    block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
+        body=block_body,
     )
 
     new_state = process_randao(state, block, config)
@@ -88,6 +93,7 @@ def test_randao_processing(sample_beacon_block_params,
 
 
 def test_randao_processing_validates_randao_reveal(sample_beacon_block_params,
+                                                   sample_beacon_block_body_params,
                                                    sample_beacon_state_params,
                                                    sample_fork_params,
                                                    keymap,
@@ -113,8 +119,12 @@ def test_randao_processing_validates_randao_reveal(sample_beacon_block_params,
     domain = get_domain(fork, slot, SignatureDomain.DOMAIN_RANDAO)
     randao_reveal = bls.sign(message_hash, proposer_privkey, domain)
 
-    block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
+    block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
         randao_reveal=randao_reveal,
+    )
+
+    block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
+        body=block_body,
     )
 
     with pytest.raises(ValidationError):
@@ -135,7 +145,8 @@ def test_process_eth1_data(original_votes,
                            block_data,
                            expected_votes,
                            sample_beacon_state_params,
-                           sample_beacon_block_params):
+                           sample_beacon_block_params,
+                           sample_beacon_block_body_params):
     eth1_data_votes = tuple(
         Eth1DataVote(data, vote_count)
         for data, vote_count in original_votes
@@ -144,8 +155,12 @@ def test_process_eth1_data(original_votes,
         eth1_data_votes=eth1_data_votes,
     )
 
-    block = BeaconBlock(**sample_beacon_block_params).copy(
+    block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
         eth1_data=block_data,
+    )
+
+    block = BeaconBlock(**sample_beacon_block_params).copy(
+        body=block_body,
     )
 
     updated_state = process_eth1_data(state, block)

@@ -78,6 +78,8 @@ class BeaconBlockHeader(ssz.Serializable):
 class BeaconBlockBody(ssz.Serializable):
 
     fields = [
+        ('randao_reveal', bytes96),
+        ('eth1_data', Eth1Data),
         ('proposer_slashings', List(ProposerSlashing)),
         ('attester_slashings', List(AttesterSlashing)),
         ('attestations', List(Attestation)),
@@ -87,6 +89,9 @@ class BeaconBlockBody(ssz.Serializable):
     ]
 
     def __init__(self,
+                 *,
+                 randao_reveal: bytes96,
+                 eth1_data: Eth1Data,
                  proposer_slashings: Sequence[ProposerSlashing],
                  attester_slashings: Sequence[AttesterSlashing],
                  attestations: Sequence[Attestation],
@@ -94,6 +99,8 @@ class BeaconBlockBody(ssz.Serializable):
                  voluntary_exits: Sequence[VoluntaryExit],
                  transfers: Sequence[Transfer])-> None:
         super().__init__(
+            randao_reveal=randao_reveal,
+            eth1_data=eth1_data,
             proposer_slashings=proposer_slashings,
             attester_slashings=attester_slashings,
             attestations=attestations,
@@ -105,6 +112,8 @@ class BeaconBlockBody(ssz.Serializable):
     @classmethod
     def create_empty_body(cls) -> 'BeaconBlockBody':
         return cls(
+            randao_reveal=EMPTY_SIGNATURE,
+            eth1_data=Eth1Data.create_empty_data(),
             proposer_slashings=(),
             attester_slashings=(),
             attestations=(),
@@ -116,6 +125,8 @@ class BeaconBlockBody(ssz.Serializable):
     @property
     def is_empty(self) -> bool:
         return (
+            self.randao_reveal == EMPTY_SIGNATURE and
+            self.eth1_data == Eth1Data.create_empty_data() and
             self.proposer_slashings == () and
             self.attester_slashings == () and
             self.attestations == () and
@@ -128,6 +139,8 @@ class BeaconBlockBody(ssz.Serializable):
     def cast_block_body(cls,
                         body: 'BeaconBlockBody') -> 'BeaconBlockBody':
         return cls(
+            randao_reveal=body.randao_reveal,
+            eth1_data=body.eth1_data,
             proposer_slashings=body.proposer_slashings,
             attester_slashings=body.attester_slashings,
             attestations=body.attestations,
@@ -160,8 +173,6 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
         ('slot', uint64),
         ('previous_block_root', bytes32),
         ('state_root', bytes32),
-        ('randao_reveal', bytes96),
-        ('eth1_data', Eth1Data),
         ('signature', bytes96),
 
         #
@@ -171,19 +182,16 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
     ]
 
     def __init__(self,
+                 *,
                  slot: Slot,
                  previous_block_root: Hash32,
                  state_root: Hash32,
-                 randao_reveal: BLSSignature,
-                 eth1_data: Eth1Data,
                  body: BeaconBlockBody,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             slot=slot,
             previous_block_root=previous_block_root,
             state_root=state_root,
-            randao_reveal=randao_reveal,
-            eth1_data=eth1_data,
             signature=signature,
             body=body,
         )
@@ -237,6 +245,8 @@ class BeaconBlock(BaseBeaconBlock):
         """
         block = chaindb.get_block_by_root(root, cls)
         body = cls.block_body_class(
+            randao_reveal=block.body.randao_reveal,
+            eth1_data=block.body.eth1_data,
             proposer_slashings=block.body.proposer_slashings,
             attester_slashings=block.body.attester_slashings,
             attestations=block.body.attestations,
@@ -249,8 +259,6 @@ class BeaconBlock(BaseBeaconBlock):
             slot=block.slot,
             previous_block_root=block.previous_block_root,
             state_root=block.state_root,
-            randao_reveal=block.randao_reveal,
-            eth1_data=block.eth1_data,
             signature=block.signature,
             body=body,
         )
@@ -272,8 +280,6 @@ class BeaconBlock(BaseBeaconBlock):
             slot=slot,
             previous_block_root=parent_block.root,
             state_root=parent_block.state_root,
-            randao_reveal=EMPTY_SIGNATURE,
-            eth1_data=parent_block.eth1_data,
             signature=EMPTY_SIGNATURE,
             body=cls.block_body_class.create_empty_body(),
         )
@@ -285,8 +291,6 @@ class BeaconBlock(BaseBeaconBlock):
             slot=block.slot,
             previous_block_root=block.previous_block_root,
             state_root=block.state_root,
-            randao_reveal=block.randao_reveal,
-            eth1_data=block.eth1_data,
             signature=block.signature,
             body=block.body,
         )

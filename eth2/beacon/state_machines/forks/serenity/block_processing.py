@@ -34,11 +34,11 @@ def process_eth1_data(state: BeaconState,
         vote_index, original_vote = first(
             (index, eth1_data_vote)
             for index, eth1_data_vote in enumerate(state.eth1_data_votes)
-            if block.eth1_data == eth1_data_vote.eth1_data
+            if block.body.eth1_data == eth1_data_vote.eth1_data
         )
     except StopIteration:
         new_vote = Eth1DataVote(
-            eth1_data=block.eth1_data,
+            eth1_data=block.body.eth1_data,
             vote_count=1,
         )
         state = state.copy(
@@ -68,7 +68,7 @@ def process_randao(state: BeaconState,
     epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
 
     validate_randao_reveal(
-        randao_reveal=block.randao_reveal,
+        randao_reveal=block.body.randao_reveal,
         proposer_index=proposer_index,
         proposer_pubkey=proposer.pubkey,
         epoch=epoch,
@@ -83,7 +83,7 @@ def process_randao(state: BeaconState,
             slots_per_epoch=config.SLOTS_PER_EPOCH,
             latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
         ),
-        hash_eth2(block.randao_reveal),
+        hash_eth2(block.body.randao_reveal),
     )
 
     return state.copy(
