@@ -3,9 +3,6 @@ import random
 import threading
 import time
 
-from eth_utils import to_bytes
-import rlp
-
 from eth.chains.base import MiningChain
 from eth.chains.mainnet import MAINNET_VMS
 from eth.consensus.pow import (
@@ -14,12 +11,10 @@ from eth.consensus.pow import (
     check_pow,
     get_cache,
 )
-from eth.rlp.headers import BlockHeader
 from eth.tools.mining import POWMiningMixin
 from eth.tools.builder.chain import (
     genesis,
 )
-from tests.core.fixtures import ropsten_epoch_headers
 
 
 def _concurrently_run_to_completion(target, concurrency):
@@ -48,14 +43,10 @@ def test_cache_turnover():
     _concurrently_run_to_completion(lookup_random_caches, 5)
 
 
-def test_pow_across_epochs():
-    headers = [
-        BlockHeader.deserialize(rlp.decode(to_bytes(hexstr=encoded)))
-        for encoded in ropsten_epoch_headers
-    ]
+def test_pow_across_epochs(ropsten_epoch_headers):
 
     def check():
-        header = random.choice(headers)
+        header = random.choice(ropsten_epoch_headers)
         check_pow(
             header.block_number,
             header.mining_hash,
