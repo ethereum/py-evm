@@ -457,7 +457,7 @@ def get_attestation_participants(state: 'BeaconState',
 
 
 @to_set
-def get_attester_indices_from_attesttion(
+def get_attester_indices_from_attestations(
         *,
         state: 'BeaconState',
         attestations: Iterable['Attestation'],

@@ -19,7 +19,7 @@ from eth_utils import (
 from eth.constants import ZERO_HASH32
 from eth2.beacon.committee_helpers import (
     get_attestation_participants,
-    get_attester_indices_from_attesttion,
+    get_attester_indices_from_attestations,
 )
 from eth2.beacon.configs import (
     CommitteeConfig,
@@ -131,7 +131,7 @@ def get_winning_root_and_participants(
     winning_root = max(
         all_roots,
         key=lambda r: (
-            get_attesting_balance_from_attesttion(
+            get_attesting_balance_from_attestations(
                 state=state,
                 effective_balances=effective_balances,
                 attestations=get_attestations_for(r),
@@ -143,7 +143,7 @@ def get_winning_root_and_participants(
 
     return (
         winning_root,
-        get_attester_indices_from_attesttion(
+        get_attester_indices_from_attestations(
             state=state,
             attestations=get_attestations_for(winning_root),
             committee_config=committee_config,
@@ -228,7 +228,7 @@ def get_total_balance_from_effective_balances(
     )
 
 
-def get_attesting_balance_from_attesttion(
+def get_attesting_balance_from_attestations(
         *,
         state: 'BeaconState',
         effective_balances: Dict[ValidatorIndex, Gwei],
@@ -236,7 +236,7 @@ def get_attesting_balance_from_attesttion(
         committee_config: CommitteeConfig) -> Gwei:
     return get_total_balance_from_effective_balances(
         effective_balances,
-        get_attester_indices_from_attesttion(
+        get_attester_indices_from_attestations(
             state=state,
             attestations=attestations,
             committee_config=committee_config,

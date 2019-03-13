@@ -115,7 +115,7 @@ def process_attestations(state: BeaconState,
 
     Validate the ``attestations`` contained within the ``block`` in the context of ``state``.
     If any invalid, throw ``ValidationError``.
-    Otherwise, append an ``PendingAttestationRecords`` for each to ``previous_epoch_attestations``
+    Otherwise, append a ``PendingAttestationRecords`` for each to ``previous_epoch_attestations``
     or ``current_epoch_attestations``.
     Return resulting ``state``.
     """

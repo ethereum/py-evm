@@ -28,7 +28,7 @@ from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.committee_helpers import (
-    get_attester_indices_from_attesttion,
+    get_attester_indices_from_attestations,
     get_beacon_proposer_index,
     get_crosslink_committees_at_slot,
     get_current_epoch_committee_count,
@@ -298,7 +298,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
             )
             if len(attesting_validator_indices) == 0:
                 # No winning shard block root found for this shard.
-                pass
+                continue
             else:
                 total_attesting_balance = get_total_balance(
                     state.validator_balances,
@@ -533,7 +533,7 @@ def _process_rewards_and_penalties_for_finality(
         config.GENESIS_EPOCH,
         config.LATEST_BLOCK_ROOTS_LENGTH,
     )
-    previous_epoch_boundary_attester_indices = get_attester_indices_from_attesttion(
+    previous_epoch_boundary_attester_indices = get_attester_indices_from_attestations(
         state=state,
         attestations=previous_epoch_boundary_attestations,
         committee_config=CommitteeConfig(config),
@@ -545,7 +545,7 @@ def _process_rewards_and_penalties_for_finality(
         config.GENESIS_EPOCH,
         config.LATEST_BLOCK_ROOTS_LENGTH,
     )
-    previous_epoch_head_attester_indices = get_attester_indices_from_attesttion(
+    previous_epoch_head_attester_indices = get_attester_indices_from_attestations(
         state=state,
         attestations=previous_epoch_head_attestations,
         committee_config=CommitteeConfig(config),
@@ -601,7 +601,6 @@ def _process_rewards_and_penalties_for_crosslinks(
         for index in range(len(state.validator_registry))
     }
     penalties_received = rewards_received.copy()
-    # Also need current epoch attestations to compute the winning root.
     for slot in range(previous_epoch_start_slot, current_epoch_start_slot):
         crosslink_committees_at_slot = get_crosslink_committees_at_slot(
             state,
@@ -657,7 +656,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
     # Compute previous epoch attester indices and the total balance they account for
     # for later use.
     previous_epoch_attestations = state.previous_epoch_attestations
-    previous_epoch_attester_indices = get_attester_indices_from_attesttion(
+    previous_epoch_attester_indices = get_attester_indices_from_attestations(
         state=state,
         attestations=previous_epoch_attestations,
         committee_config=CommitteeConfig(config),
