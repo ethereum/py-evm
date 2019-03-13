@@ -18,7 +18,6 @@ from eth_utils.toolz import (
 
 from eth2.beacon import helpers
 from eth2._utils.numeric import (
-    integer_squareroot,
     is_power_of_two,
 )
 from eth2._utils.tuple import (
@@ -679,14 +678,12 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
         for index in range(len(state.validator_registry))
     }
     # Compute base reward of each previous epoch active validator for later use
-    _base_reward_quotient = (
-        integer_squareroot(previous_total_balance) // config.BASE_REWARD_QUOTIENT
-    )
     base_rewards = {
         ValidatorIndex(index): get_base_reward(
             state=state,
             index=ValidatorIndex(index),
-            base_reward_quotient=_base_reward_quotient,
+            base_reward_quotient=config.BASE_REWARD_QUOTIENT,
+            previous_total_balance=previous_total_balance,
             max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
         )
         for index in range(len(state.validator_registry))

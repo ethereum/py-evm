@@ -17,6 +17,7 @@ from eth_utils import (
 )
 
 from eth.constants import ZERO_HASH32
+from eth2._utils.numeric import integer_squareroot
 from eth2.beacon.committee_helpers import (
     get_attestation_participants,
     get_attester_indices_from_attestations,
@@ -249,15 +250,17 @@ def get_base_reward(
         state: 'BeaconState',
         index: ValidatorIndex,
         base_reward_quotient: int,
+        previous_total_balance: Gwei,
         max_deposit_amount: Gwei) -> Gwei:
-    if base_reward_quotient == 0:
-        return Gwei(0)
+    adjusted_quotient = (
+        integer_squareroot(previous_total_balance) // base_reward_quotient
+    )
     return Gwei(
         get_effective_balance(
             state.validator_balances,
             index,
             max_deposit_amount,
-        ) // base_reward_quotient // 5
+        ) // adjusted_quotient // 5
     )
 
 
