@@ -1,11 +1,15 @@
+from pathlib import Path
+
 import pytest
 
 from eth_utils import (
     decode_hex,
     to_canonical_address,
+    to_tuple,
     to_wei,
 )
 from eth_keys import keys
+import rlp
 
 from eth import constants
 from eth.chains.base import (
@@ -13,6 +17,7 @@ from eth.chains.base import (
     MiningChain,
 )
 from eth.db.atomic import AtomicDB
+from eth.rlp.headers import BlockHeader
 from eth.vm.forks import (
     FrontierVM,
     HomesteadVM,
@@ -225,3 +230,28 @@ def chain_without_block_validation(
 
 def pytest_addoption(parser):
     parser.addoption("--fork", type=str, required=False)
+
+
+@to_tuple
+def load_bytes_from_file(path):
+    # Using str(path) for python3.5 support of pathlib.Path
+    with open(str(path)) as f:
+        for line in f:
+            if line.startswith('#'):
+                continue
+            else:
+                yield decode_hex(line.strip())
+
+
+@to_tuple
+def deserialize_rlp_objects(serialized_objects, rlp_class):
+    for encoded in serialized_objects:
+        decoded = rlp.decode(encoded)
+        yield rlp_class.deserialize(decoded)
+
+
+@pytest.fixture
+def ropsten_epoch_headers():
+    rlp_path = Path(__file__).parent / 'rlp-fixtures' / 'ropston_epoch_headers.rlp'
+    encoded_headers = load_bytes_from_file(rlp_path)
+    return deserialize_rlp_objects(encoded_headers, BlockHeader)
