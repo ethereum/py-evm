@@ -159,3 +159,20 @@ async def test_does_not_throw(async_process_runner, command):
     # This is our last line of defence. This test basically observes the first
     # 20 seconds of the Trinity boot process and fails if Trinity logs any exceptions
     await run_command_and_detect_errors(async_process_runner, command, 20)
+
+
+@pytest.mark.parametrize(
+    'command, expected_to_contain_log',
+    (
+        (('trinity', '-l=DEBUG2'), True),
+        # We expect not to contain it because we set the p2p.discovery logger to only log errors
+        (('trinity', '-l=DEBUG2', '-l', 'p2p.discovery=ERROR'), False,)
+    )
+)
+@pytest.mark.asyncio
+async def test_logger(async_process_runner, command, expected_to_contain_log):
+    await async_process_runner.run(command, timeout_sec=20)
+    actually_contains_log = await contains_all(async_process_runner.stderr, {
+        "DiscoveryProtocol  >>> ping",
+    })
+    assert actually_contains_log == expected_to_contain_log

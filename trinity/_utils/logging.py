@@ -154,9 +154,10 @@ def with_queued_logging(fn: Callable[..., Any]) -> Callable[..., Any]:
             raise KeyError(f"The `log_queue` argument is required when calling `{fn.__name__}`")
         else:
             level = kwargs.get('log_level', logging.INFO)
+            levels = kwargs.get('log_levels', {})
             setup_queue_logging(log_queue, level)
-
-            inner_kwargs = dissoc(kwargs, 'log_queue', 'log_level')
+            setup_log_levels(levels)
+            inner_kwargs = dissoc(kwargs, 'log_queue', 'log_level', 'log_levels')
 
             return fn(*args, **inner_kwargs)
     return inner

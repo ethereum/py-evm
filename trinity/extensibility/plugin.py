@@ -47,6 +47,7 @@ from trinity._utils.mp import (
     ctx,
 )
 from trinity._utils.logging import (
+    setup_log_levels,
     setup_queue_logging,
 )
 from trinity._utils.os import (
@@ -296,6 +297,8 @@ class BaseIsolatedPlugin(BasePlugin):
         log_queue = self.context.boot_kwargs['log_queue']
         level = self.context.boot_kwargs.get('log_level', logging.INFO)
         setup_queue_logging(log_queue, level)
+        if self.context.args.log_levels:
+            setup_log_levels(self.context.args.log_levels)
         connection_config = ConnectionConfig.from_name(
             self.normalized_name, self.context.trinity_config.ipc_dir
         )

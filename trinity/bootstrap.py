@@ -185,6 +185,7 @@ def main_entry(trinity_boot: BootFn,
     extra_kwargs = {
         'log_queue': log_queue,
         'log_level': min_configured_log_level,
+        'log_levels': args.log_levels if args.log_levels else {},
         'profile': args.profile,
     }
 
