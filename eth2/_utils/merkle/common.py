@@ -1,7 +1,9 @@
 from typing import (
+    Callable,
     Iterable,
     NewType,
     Sequence,
+    Union,
 )
 
 from cytoolz import (
@@ -73,3 +75,11 @@ def get_merkle_proof(tree: MerkleTree, item_index: int) -> Iterable[Hash32]:
         for layer, proof_index
         in zip(reversed(tree), proof_indices)
     )
+
+
+def calc_merkel_tree_maker(
+        calc_merkle_tree_from_leaves: Callable[[Sequence[Union[bytes, bytearray]]], MerkleTree]) -> Callable[[Sequence[Hash32]], MerkleTree]:  # noqa: E501
+    def calc_merkle_tree(items: Sequence[Union[bytes, bytearray]]) -> MerkleTree:
+        leaves = tuple(hash_eth2(item) for item in items)
+        return calc_merkle_tree_from_leaves(leaves)
+    return calc_merkle_tree
