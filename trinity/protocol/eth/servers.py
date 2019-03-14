@@ -99,7 +99,7 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
                 header = await self.wait(self.db.coro_get_block_header_by_hash(block_hash))
             except HeaderNotFound:
                 self.logger.debug(
-                    "%s asked for a block we don't have: %s", peer, to_hex(block_hash)
+                    "%s asked for a block with a header we don't have: %s", peer, to_hex(block_hash)
                 )
                 continue
             try:
@@ -114,7 +114,13 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
                     exc,
                 )
                 continue
-            uncles = await self.wait(self.db.coro_get_block_uncles(header.uncles_hash))
+            try:
+                uncles = await self.wait(self.db.coro_get_block_uncles(header.uncles_hash))
+            except HeaderNotFound as exc:
+                self.logger.debug(
+                    "%s asked for a block with uncles we don't have: %s", peer, exc
+                )
+                continue
             bodies.append(BlockBody(transactions, uncles))
         self.logger.debug2("Replying to %s with %d block bodies", peer, len(bodies))
         peer.sub_proto.send_block_bodies(bodies)

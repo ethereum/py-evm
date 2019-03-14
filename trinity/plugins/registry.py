@@ -11,6 +11,9 @@ from trinity.plugins.builtin.attach.plugin import (
     DbShellPlugin,
     AttachPlugin,
 )
+from trinity.plugins.builtin.beam_exec.plugin import (
+    BeamChainExecutionPlugin,
+)
 from trinity.plugins.builtin.ethstats.plugin import (
     EthstatsPlugin,
 )
@@ -53,6 +56,7 @@ BASE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
     PeerDiscoveryPlugin,
     RequestServerPlugin,
     UpnpPlugin,
+    BeamChainExecutionPlugin,
 )
 
 BEACON_NODE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
