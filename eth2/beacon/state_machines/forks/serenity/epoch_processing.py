@@ -1175,7 +1175,8 @@ def _update_historical_roots(state: BeaconState,
                              next_epoch: Epoch,
                              config: BeaconConfig) -> BeaconState:
     updated_historical_roots = state.historical_roots
-    should_update_historical_roots = next_epoch % (config.SLOTS_PER_HISTORICAL_ROOT // config.SLOTS_PER_EPOCH) == 0
+    epochs_per_historical_root = config.SLOTS_PER_HISTORICAL_ROOT // config.SLOTS_PER_EPOCH
+    should_update_historical_roots = next_epoch % epochs_per_historical_root == 0
     if should_update_historical_roots:
         roots = state.latest_block_roots + state.latest_state_roots
         updated_historical_roots += (get_merkle_root(roots),)
