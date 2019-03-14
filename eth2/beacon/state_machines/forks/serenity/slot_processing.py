@@ -6,7 +6,6 @@ from eth_typing import (
     Hash32,
 )
 
-from eth2._utils.merkle.normal import get_merkle_root
 from eth2.beacon.configs import (
     BeaconConfig,
 )
@@ -46,11 +45,6 @@ def process_slot_transition(state: BeaconState,
     )
 
     # Update state.latest_block_roots
-
-    # Update state.historical_roots
-    updated_historical_roots = state.historical_roots
-    if state.slot % slots_per_historical_root == 0:
-        updated_historical_roots += (get_merkle_root(updated_latest_block_roots),)
     updated_latest_block_roots = _update_historical_root(
         state.latest_block_roots,
         state.slot - 1,
@@ -59,7 +53,6 @@ def process_slot_transition(state: BeaconState,
     )
 
     state = state.copy(
-        historical_roots=updated_historical_roots,
         latest_block_roots=updated_latest_block_roots,
         latest_state_roots=updated_latest_state_roots,
     )
