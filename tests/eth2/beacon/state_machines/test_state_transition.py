@@ -95,10 +95,10 @@ def test_per_slot_transition(base_db,
     latest_block_roots_index = (updated_state.slot - 1) % st.config.SLOTS_PER_HISTORICAL_ROOT
     assert updated_state.latest_block_roots[latest_block_roots_index] == block.parent_root
 
-    # batched_block_roots
+    # historical_roots
     if updated_state.slot % st.config.SLOTS_PER_HISTORICAL_ROOT == 0:
-        assert updated_state.batched_block_roots[-1] == get_merkle_root(
+        assert updated_state.historical_roots[-1] == get_merkle_root(
             updated_state.latest_block_roots
         )
     else:
-        assert updated_state.batched_block_roots == state.batched_block_roots
+        assert updated_state.historical_roots == state.historical_roots

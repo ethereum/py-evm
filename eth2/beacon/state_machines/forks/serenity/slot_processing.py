@@ -24,14 +24,14 @@ def process_slot_transition(state: BeaconState,
     previous_block_root_index = (state.slot - 1) % slots_per_historical_root
     updated_latest_block_roots[previous_block_root_index] = previous_block_root
 
-    # Update state.batched_block_roots
-    updated_batched_block_roots = state.batched_block_roots
+    # Update state.historical_roots
+    updated_historical_roots = state.historical_roots
     if state.slot % slots_per_historical_root == 0:
-        updated_batched_block_roots += (get_merkle_root(updated_latest_block_roots),)
+        updated_historical_roots += (get_merkle_root(updated_latest_block_roots),)
 
     state = state.copy(
         latest_block_roots=tuple(updated_latest_block_roots),
-        batched_block_roots=updated_batched_block_roots,
+        historical_roots=updated_historical_roots,
     )
 
     return state

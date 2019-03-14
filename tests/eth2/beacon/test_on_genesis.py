@@ -137,7 +137,7 @@ def test_get_genesis_beacon_state(
     assert len(state.latest_slashed_balances) == latest_slashed_exit_length
     assert state.latest_slashed_balances[0] == Gwei(0)
 
-    assert len(state.batched_block_roots) == 0
+    assert len(state.historical_roots) == 0
 
     # Ethereum 1.0 chain data
     assert state.latest_eth1_data == genesis_eth1_data
