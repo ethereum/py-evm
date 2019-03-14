@@ -179,6 +179,7 @@ def test_randao_reveal_validation(is_valid,
     try:
         validate_randao_reveal(
             randao_reveal=randao_reveal,
+            proposer_index=expected_proposer_key_index,
             proposer_pubkey=expected_proposer_pubkey,
             epoch=expected_epoch,
             fork=fork,

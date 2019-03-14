@@ -69,6 +69,7 @@ def process_randao(state: BeaconState,
 
     validate_randao_reveal(
         randao_reveal=block.randao_reveal,
+        proposer_index=proposer_index,
         proposer_pubkey=proposer.pubkey,
         epoch=epoch,
         fork=state.fork,

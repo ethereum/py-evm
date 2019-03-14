@@ -1308,7 +1308,7 @@ def process_final_updates(state: BeaconState,
         ),
         latest_randao_mixes=update_tuple_item(
             state.latest_randao_mixes,
-            next_epoch % config.LATEST_SLASHED_EXIT_LENGTH,
+            next_epoch % config.LATEST_RANDAO_MIXES_LENGTH,
             get_randao_mix(
                 state=state,
                 epoch=current_epoch,

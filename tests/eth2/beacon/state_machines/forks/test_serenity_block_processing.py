@@ -20,6 +20,7 @@ from eth2.beacon.enums import SignatureDomain
 
 from eth2.beacon.helpers import (
     get_domain,
+    get_epoch_start_slot,
 )
 
 from eth2.beacon.state_machines.forks.serenity.blocks import (
@@ -30,21 +31,20 @@ from eth2.beacon.state_machines.forks.serenity.states import (
 )
 
 from eth2.beacon.state_machines.forks.serenity.block_processing import (
+    process_eth1_data,
     process_randao,
+)
+from eth2.beacon.tools.builder.proposer import (
+    _generate_randao_reveal,
 )
 
 from tests.eth2.beacon.helpers import (
     mock_validator_record,
 )
 
-from eth2.beacon.state_machines.forks.serenity.block_processing import (
-    process_eth1_data,
-)
-
 
 def test_randao_processing(sample_beacon_block_params,
                            sample_beacon_state_params,
-                           sample_fork_params,
                            keymap,
                            config):
     proposer_pubkey, proposer_privkey = first(keymap.items())
@@ -62,11 +62,14 @@ def test_randao_processing(sample_beacon_block_params,
     )
 
     epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    slot = epoch * config.SLOTS_PER_EPOCH
-    message_hash = epoch.to_bytes(32, byteorder="little")
-    fork = Fork(**sample_fork_params)
-    domain = get_domain(fork, slot, SignatureDomain.DOMAIN_RANDAO)
-    randao_reveal = bls.sign(message_hash, proposer_privkey, domain)
+    slot = get_epoch_start_slot(epoch, config.SLOTS_PER_EPOCH)
+
+    randao_reveal = _generate_randao_reveal(
+        privkey=proposer_privkey,
+        slot=slot,
+        fork=state.fork,
+        config=config,
+    )
 
     block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
         randao_reveal=randao_reveal,

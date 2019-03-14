@@ -602,6 +602,7 @@ def validate_attestation_aggregate_signature(state: BeaconState,
 
 
 def validate_randao_reveal(randao_reveal: BLSSignature,
+                           proposer_index: ValidatorIndex,
                            proposer_pubkey: BLSPubkey,
                            epoch: Epoch,
                            fork: Fork) -> None:
@@ -618,8 +619,9 @@ def validate_randao_reveal(randao_reveal: BLSSignature,
     if not is_randao_reveal_valid:
         raise ValidationError(
             f"RANDAO reveal is invalid. "
-            f"reveal={randao_reveal}, proposer_pubkey={proposer_pubkey}, "
-            f"message_hash={message_hash}, domain={domain}"
+            f"proposer_index={proposer_index}, proposer_pubkey={proposer_pubkey}, "
+            f"reveal={randao_reveal}, "
+            f"message_hash={message_hash}, domain={domain}, epoch={epoch}"
         )
 
 

@@ -76,11 +76,6 @@ def test_demo(base_db,
             slot=current_slot,
             attestations=attestations,
         )
-        block = block.copy(
-            body=block.body.copy(
-                attestations=attestations,
-            )
-        )
 
         # Get state machine instance
         sm = fixture_sm_class(
