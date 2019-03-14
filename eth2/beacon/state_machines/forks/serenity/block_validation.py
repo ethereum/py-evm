@@ -48,10 +48,9 @@ from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 from eth2.beacon.types.attester_slashings import AttesterSlashing
-from eth2.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockHeader
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.proposal import Proposal
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
@@ -139,21 +138,19 @@ def validate_proposer_slashing(state: BeaconState,
 
     validate_proposer_slashing_epoch(proposer_slashing, slots_per_epoch)
 
-    validate_proposer_slashing_shard(proposer_slashing)
-
-    validate_proposer_slashing_block_root(proposer_slashing)
+    validate_proposer_slashing_headers(proposer_slashing)
 
     validate_proposer_slashing_is_slashed(proposer.slashed)
 
     validate_proposal_signature(
-        proposal=proposer_slashing.proposal_1,
+        proposal=proposer_slashing.header_1,
         pubkey=proposer.pubkey,
         fork=state.fork,
         slots_per_epoch=slots_per_epoch,
     )
 
     validate_proposal_signature(
-        proposal=proposer_slashing.proposal_2,
+        proposal=proposer_slashing.header_2,
         pubkey=proposer.pubkey,
         fork=state.fork,
         slots_per_epoch=slots_per_epoch,
@@ -172,22 +169,12 @@ def validate_proposer_slashing_epoch(proposer_slashing: ProposerSlashing,
         )
 
 
-def validate_proposer_slashing_shard(proposer_slashing: ProposerSlashing) -> None:
-    if proposer_slashing.proposal_1.shard != proposer_slashing.proposal_2.shard:
+def validate_proposer_slashing_headers(proposer_slashing: ProposerSlashing) -> None:
+    header_1 = proposer_slashing.header_1
+    header_2 = proposer_slashing.header_2
+    if header_1 != header_2:
         raise ValidationError(
-            f"proposer_slashing.proposal_1.shard ({proposer_slashing.proposal_1.shard}) "
-            f"!= proposer_slashing.proposal_2.shard"
-            f" ({proposer_slashing.proposal_2.shard})"
-        )
-
-
-def validate_proposer_slashing_block_root(proposer_slashing: ProposerSlashing) -> None:
-    if proposer_slashing.proposal_1.block_root == proposer_slashing.proposal_2.block_root:
-        raise ValidationError(
-            "proposer_slashing.proposal_1.block_root "
-            f"({proposer_slashing.proposal_1.block_root}) "
-            "should not be equal to proposer_slashing.proposal_2.block_root "
-            f"({proposer_slashing.proposal_2.block_root})"
+            f"proposer_slashing.header_1 ({header_1}) != proposer_slashing.header_2 ({header_2})"
         )
 
 
@@ -196,25 +183,25 @@ def validate_proposer_slashing_is_slashed(slashed: bool) -> None:
         raise ValidationError(f"proposer.slashed is True")
 
 
-def validate_proposal_signature(proposal: Proposal,
+def validate_proposal_signature(header: BeaconBlockHeader,
                                 pubkey: BLSPubkey,
                                 fork: Fork,
                                 slots_per_epoch: int) -> None:
     proposal_signature_is_valid = bls.verify(
         pubkey=pubkey,
-        message_hash=proposal.signed_root,  # TODO: use signed_root
-        signature=proposal.signature,
+        message_hash=header.signed_root,  # TODO: use signed_root
+        signature=header.signature,
         domain=get_domain(
             fork,
-            slot_to_epoch(proposal.slot, slots_per_epoch),
+            slot_to_epoch(header.slot, slots_per_epoch),
             SignatureDomain.DOMAIN_BEACON_BLOCK,
         )
     )
     if not proposal_signature_is_valid:
         raise ValidationError(
             "Proposal signature is invalid: "
-            f"proposer pubkey: {pubkey}, message_hash: {proposal.signed_root}, "
-            f"signature: {proposal.signature}"
+            f"proposer pubkey: {pubkey}, message_hash: {header.signed_root}, "
+            f"signature: {header.signature}"
         )
 
 

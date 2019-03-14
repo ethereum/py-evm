@@ -60,10 +60,10 @@ from eth2.beacon.types.attestation_data_and_custody_bits import (
     AttestationDataAndCustodyBit,
 )
 from eth2.beacon.types.attester_slashings import AttesterSlashing
+from eth2.beacon.types.blocks import BeaconBlockHeader
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.proposal import Proposal
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
@@ -182,27 +182,28 @@ def sign_transaction(*,
     )
 
 
-def create_proposal_data_and_signature(
+def create_block_header_with_signature(
         state: BeaconState,
-        block_root: Hash32,
+        block_body_root: Hash32,
         privkey: int,
         slots_per_epoch: int,
-        beacon_chain_shard_number: Shard)-> Proposal:
-    proposal = Proposal(
-        state.slot,
-        beacon_chain_shard_number,
-        block_root,
+        previous_block_root: Hash32=b'\x11' * 32,
+        state_root: Hash32=b'\x22' * 32)-> BeaconBlockHeader:
+    block_header = BeaconBlockHeader(
+        slot=state.slot,
+        previous_block_root=previous_block_root,
+        state_root=state_root,
+        block_body_root=block_body_root,
     )
-    proposal_signature = sign_transaction(
-        message_hash=proposal.signed_root,
+    block_header_signature = sign_transaction(
+        message_hash=block_header.signed_root,
         privkey=privkey,
         fork=state.fork,
-        slot=proposal.slot,
+        slot=block_header.slot,
         signature_domain=SignatureDomain.DOMAIN_BEACON_BLOCK,
         slots_per_epoch=slots_per_epoch,
     )
-    proposal = proposal.copy(signature=proposal_signature)
-    return proposal
+    return block_header.copy(signature=block_header_signature)
 
 
 #
@@ -222,29 +223,32 @@ def create_mock_proposer_slashing_at_block(
         block_root_1: Hash32,
         block_root_2: Hash32,
         proposer_index: ValidatorIndex) -> ProposerSlashing:
-    slots_per_epoch = config.SLOTS_PER_EPOCH
-    beacon_chain_shard_number = config.BEACON_CHAIN_SHARD_NUMBER
+    """
+    Return a `ProposerSlashing` derived from the given block roots.
 
-    proposal_1 = create_proposal_data_and_signature(
+    If the header roots do not match, the `ProposerSlashing` is valid.
+    If the header roots do match, the `ProposerSlashing` is not valid.
+    """
+    slots_per_epoch = config.SLOTS_PER_EPOCH
+
+    block_header_1 = create_block_header_with_signature(
         state,
         block_root_1,
         keymap[state.validator_registry[proposer_index].pubkey],
         slots_per_epoch,
-        beacon_chain_shard_number,
     )
 
-    proposal_2 = create_proposal_data_and_signature(
+    block_header_2 = create_block_header_with_signature(
         state,
         block_root_2,
         keymap[state.validator_registry[proposer_index].pubkey],
         slots_per_epoch,
-        beacon_chain_shard_number,
     )
 
     return ProposerSlashing(
         proposer_index=proposer_index,
-        proposal_1=proposal_1,
-        proposal_2=proposal_2,
+        header_1=block_header_1,
+        header_2=block_header_2,
     )
 
 

@@ -74,6 +74,15 @@ class BeaconBlockHeader(ssz.Serializable):
             signature=signature,
         )
 
+    _signed_root = None
+
+    @property
+    def signed_root(self) -> Hash32:
+        # TODO Use SSZ built-in function
+        if self._signed_root is None:
+            self._signed_root = hash_eth2(ssz.encode(self.copy(signature=EMPTY_SIGNATURE)))
+        return self._signed_root
+
 
 class BeaconBlockBody(ssz.Serializable):
 
@@ -170,6 +179,7 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
         #
         # Header
         #
+        # TODO just embed the header?
         ('slot', uint64),
         ('previous_block_root', bytes32),
         ('state_root', bytes32),

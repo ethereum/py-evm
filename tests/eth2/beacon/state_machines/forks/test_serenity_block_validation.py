@@ -37,10 +37,7 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_slashable_attestation,
     verify_slashable_attestation_signature,
 )
-from eth2.beacon.types.blocks import BeaconBlock
-from eth2.beacon.types.proposal import (
-    Proposal,
-)
+from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockHeader
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState

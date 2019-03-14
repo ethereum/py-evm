@@ -34,10 +34,10 @@ from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlockBody,
+    BeaconBlockHeader
 )
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.proposal import Proposal
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     FromBlockParams,
@@ -132,15 +132,15 @@ def create_block_on_state(
     state, block = state_machine.import_block(block, check_proposer_signature=False)
 
     # Sign
-    empty_signature_block_root = block.block_without_signature_root
-    proposal_root = Proposal(
-        slot,
-        config.BEACON_CHAIN_SHARD_NUMBER,
-        empty_signature_block_root,
-    ).root
+    block_header_root = BeaconBlockHeader(
+        slot=slot,
+        previous_block_root=parent_block.root,
+        state_root=state.root,
+        block_body_root=body.signed_root,
+    ).signed_root
 
     signature = sign_transaction(
-        message_hash=proposal_root,
+        message_hash=block_header_root,
         privkey=privkey,
         fork=state.fork,
         slot=slot,
