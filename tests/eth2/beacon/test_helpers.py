@@ -62,7 +62,7 @@ def generate_mock_latest_block_roots(
 
 
 #
-# Get block rootes
+# Get block roots
 #
 @pytest.mark.parametrize(
     (
