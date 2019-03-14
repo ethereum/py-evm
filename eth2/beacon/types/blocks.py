@@ -56,7 +56,7 @@ class BeaconBlockHeader(ssz.Serializable):
         ('previous_block_root', bytes32),
         ('state_root', bytes32),
         ('block_body_root', bytes32),
-        ('signature', bytes96),
+        ('signature', BLSSignature),
     ]
 
     def __init__(self,
@@ -65,7 +65,7 @@ class BeaconBlockHeader(ssz.Serializable):
                  previous_block_root: bytes32,
                  state_root: bytes32,
                  block_body_root: bytes32,
-                 signature: bytes32):
+                 signature: BLSSignature=EMPTY_SIGNATURE):
         super().__init__(
             slot=slot,
             previous_block_root=previous_block_root,
