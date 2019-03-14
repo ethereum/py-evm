@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
 from setuptools import setup, find_packages
 
 
@@ -11,7 +12,6 @@ deps = {
         "netifaces>=0.10.7<1",
         "pysha3>=1.0.0,<2.0.0",
         "upnpclient>=0.0.8,<1",
-        "python-snappy>=0.5.3",
     ],
     'trinity': [
         "async-generator==1.10",
@@ -82,6 +82,11 @@ deps = {
     ],
 }
 
+# NOTE: Snappy breaks RTD builds. Until we have a more mature solution
+# we conditionally add python-snappy based on the presence of an env var
+rtd_build_env = os.environ.get('READTHEDOCS', False)
+if not rtd_build_env:
+    deps['p2p'].append("python-snappy>=0.5.3")
 
 deps['dev'] = (
     deps['dev'] +
