@@ -187,7 +187,7 @@ def create_proposal_data_and_signature(
         privkey=privkey,
         fork=state.fork,
         slot=proposal.slot,
-        signature_domain=SignatureDomain.DOMAIN_PROPOSAL,
+        signature_domain=SignatureDomain.DOMAIN_BEACON_BLOCK,
         slots_per_epoch=slots_per_epoch,
     )
     proposal = proposal.copy(signature=proposal_signature)
@@ -540,7 +540,7 @@ def create_mock_voluntary_exit(state: BeaconState,
             privkey=keymap[state.validator_registry[validator_index].pubkey],
             fork=state.fork,
             slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
-            signature_domain=SignatureDomain.DOMAIN_EXIT,
+            signature_domain=SignatureDomain.DOMAIN_VOLUNTARY_EXIT,
             slots_per_epoch=config.SLOTS_PER_EPOCH,
         )
     )

@@ -144,7 +144,7 @@ def create_block_on_state(
         privkey=privkey,
         fork=state.fork,
         slot=slot,
-        signature_domain=SignatureDomain.DOMAIN_PROPOSAL,
+        signature_domain=SignatureDomain.DOMAIN_BEACON_BLOCK,
         slots_per_epoch=config.SLOTS_PER_EPOCH,
     )
 
