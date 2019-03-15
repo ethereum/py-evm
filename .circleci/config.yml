@@ -72,7 +72,7 @@ geth_steps: &geth_steps
             sudo apt-get install -y build-essential;
             python -m geth.install $GETH_VERSION;
           fi
-          sudo ln -s $GETH_BINARY /usr/local/bin/geth
+          sudo ln -s /home/circleci/.py-geth/geth-$GETH_VERSION/bin/geth /usr/local/bin/geth
           geth version
     - run:
         name: run tox
@@ -85,43 +85,6 @@ geth_steps: &geth_steps
           - ./eggs
           - ~/.ethash
           - ~/.py-geth
-        key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
-
-p2pd_steps: &p2pd_steps
-  steps:
-    - checkout
-    - restore_cache:
-        keys:
-          - cache-v1-{{ arch }}-p2pd-{{ checksum "./.circleci/install_p2pd.sh" }}
-    - run:
-        name: build libp2p daemon
-        command: ./.circleci/install_p2pd.sh
-    - save_cache:
-        paths:
-          - ~/.p2pd
-        key: cache-v1-{{ arch }}-p2pd-{{ checksum "./.circleci/install_p2pd.sh" }}
-    - restore_cache:
-        keys:
-          - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
-    - run:
-        name: install libsnappy-dev
-        command: sudo apt install -y libsnappy-dev
-    - run:
-        name: install deps
-        command: pip install --user tox codecov
-    - run:
-        name: run tests
-        command: |
-          command -v p2pd
-          ~/.local/bin/tox
-    - run:
-        name: update codecov
-        command: ~/.local/bin/codecov
-    - save_cache:
-        paths:
-          - .tox
-          - ~/.cache/pip
-          - ~/.local
         key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
 jobs:
@@ -233,12 +196,6 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-eth2
-  py36-libp2p:
-    docker:
-      - image: circleci/python:3.6
-        environment:
-          TOXENV: py36-libp2p
-    <<: *p2pd_steps
   py36-wheel-cli:
     <<: *common
     docker:
@@ -270,12 +227,6 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-eth2
-  py37-libp2p:
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          TOXENV: py37-libp2p
-    <<: *p2pd_steps
   py37-wheel-cli:
     <<: *common
     docker:
@@ -293,7 +244,6 @@ workflows:
       - py37-wheel-cli
       - py37-p2p
       - py37-eth2
-      - py37-libp2p
 
       - py36-rpc-state-byzantium
       - py36-rpc-state-constantinople
@@ -308,7 +258,6 @@ workflows:
       - py36-wheel-cli
       - py36-p2p
       - py36-eth2
-      - py36-libp2p
 
       - py36-integration
       - py36-lightchain_integration

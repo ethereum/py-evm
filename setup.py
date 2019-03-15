@@ -80,13 +80,6 @@ deps = {
         "py-evm==0.2.0a42",
         "ssz==0.1.0a2",
     ],
-    'libp2p': [
-        "base58>=1.0.3",
-        # use the forked multiaddr temporarily until the fixing changes are released
-        "multiaddr @ git+https://git@github.com/mhchia/py-multiaddr@feature/add-unix-proto",
-        "protobuf>=3.6.1",
-        "pymultihash>=0.8.2",
-    ],
 }
 
 
@@ -97,8 +90,7 @@ deps['dev'] = (
     deps['test'] +
     deps['doc'] +
     deps['lint'] +
-    deps['eth2'] +
-    deps['libp2p']
+    deps['eth2']
 )
 
 
