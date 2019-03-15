@@ -44,8 +44,7 @@ from trinity._utils.async_iter import (
 )
 @pytest.mark.asyncio
 async def test_full_boot(async_process_runner, command):
-    # UPNP discovery can delay things, we use a timeout longer than the discovery timeout
-    await async_process_runner.run(command, timeout_sec=20)
+    await async_process_runner.run(command, timeout_sec=30)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
@@ -63,8 +62,7 @@ async def test_full_boot(async_process_runner, command):
 )
 @pytest.mark.asyncio
 async def test_txpool_full_boot(async_process_runner, command):
-    # UPNP discovery can delay things, we use a timeout longer than the discovery timeout
-    await async_process_runner.run(command, timeout_sec=20)
+    await async_process_runner.run(command, timeout_sec=30)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
@@ -83,7 +81,7 @@ async def test_txpool_full_boot(async_process_runner, command):
 )
 @pytest.mark.asyncio
 async def test_txpool_deactivated(async_process_runner, command):
-    await async_process_runner.run(command, timeout_sec=20)
+    await async_process_runner.run(command, timeout_sec=30)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
@@ -100,8 +98,7 @@ async def test_txpool_deactivated(async_process_runner, command):
 )
 @pytest.mark.asyncio
 async def test_light_boot(async_process_runner, command):
-    # UPNP discovery can delay things, we use a timeout longer than the discovery timeout
-    await async_process_runner.run(command, timeout_sec=20)
+    await async_process_runner.run(command, timeout_sec=30)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
@@ -171,7 +168,7 @@ async def test_does_not_throw(async_process_runner, command):
 )
 @pytest.mark.asyncio
 async def test_logger(async_process_runner, command, expected_to_contain_log):
-    await async_process_runner.run(command, timeout_sec=20)
+    await async_process_runner.run(command, timeout_sec=30)
     actually_contains_log = await contains_all(async_process_runner.stderr, {
         "DiscoveryProtocol  >>> ping",
     })
