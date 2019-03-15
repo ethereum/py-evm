@@ -25,7 +25,6 @@ from eth_typing import (
 from .common import (  # noqa: F401
     _calc_parent_hash,
     _hash_layer,
-    calc_merkel_tree_maker,
     get_branch_indices,
     get_merkle_proof,
     get_root,
@@ -58,6 +57,14 @@ def verify_merkle_proof(root: Hash32,
     return value == root
 
 
+def calc_merkle_tree(items: Sequence[Union[bytes, bytearray]]) -> MerkleTree:
+    """
+    Calculate the Merkle tree corresponding to a list of items.
+    """
+    leaves = tuple(hash_eth2(item) for item in items)
+    return calc_merkle_tree_from_leaves(leaves)
+
+
 def get_merkle_root_from_items(items: Sequence[Union[bytes, bytearray]]) -> Hash32:
     """
     Calculate the Merkle root corresponding to a list of items.
@@ -74,9 +81,6 @@ def calc_merkle_tree_from_leaves(leaves: Sequence[Hash32]) -> MerkleTree:
             tree = update_tuple_item(tree, 0, tree[0] + (EmptyNodeHashes[i],))
         tree = (_hash_layer(tree[0]),) + tree
     return tree
-
-
-calc_merkle_tree = calc_merkel_tree_maker(calc_merkle_tree_from_leaves)
 
 
 def get_merkle_root(leaves: Sequence[Hash32]) -> Hash32:
