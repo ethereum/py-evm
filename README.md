@@ -4,8 +4,7 @@
 [![Documentation Status](https://readthedocs.org/projects/trinity-client/badge/?version=latest)](https://trinity-client.readthedocs.io/en/latest/?badge=latest)
 
 
-Trinity is a client for the Ethereum protocol including the existing 1.0 chain
-as well as emerging support for the upcoming Ethereum 2.0 / Serenity spec.
+Trinity is a client for the Ethereum protocol including the existing 1.0 chain as well as emerging support for the upcoming Ethereum 2.0 / Serenity spec. For the offical website, visit https://trinity.ethereum.org/
 
 ### Goals
 
