@@ -283,6 +283,13 @@ jobs:
         environment:
           TOXENV: py37-wheel-cli
 
+  docker-image-build-test:
+    machine: true
+    steps:
+      - checkout
+      - run: docker build -t ethereum/trinity:test-build .
+      - run: docker run ethereum/trinity:test-build --help
+
 workflows:
   version: 2
   test:
@@ -316,3 +323,5 @@ workflows:
 
       - py36-lint
       - py37-lint
+
+      - docker-image-build-test
