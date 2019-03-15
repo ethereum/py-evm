@@ -1,11 +1,13 @@
 from eth_typing import (
+    BLSPubkey,
+    BLSSignature,
     Hash32,
 )
 from eth_utils import (
     ValidationError,
 )
 
-from eth2._utils import bls
+from py_ecc import bls
 
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
@@ -18,8 +20,6 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validator_records import ValidatorRecord
 from eth2.beacon.helpers import get_domain
 from eth2.beacon.typing import (
-    BLSPubkey,
-    BLSSignature,
     ValidatorIndex,
     Gwei,
 )

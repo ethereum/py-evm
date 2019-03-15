@@ -10,9 +10,11 @@ from .attestation_data import (
 
 from eth2.beacon.typing import (
     Bitfield,
-    BLSSignature,
 )
 from eth2.beacon.constants import EMPTY_SIGNATURE
+from eth_typing import (
+    BLSSignature,
+)
 
 
 class Attestation(ssz.Serializable):

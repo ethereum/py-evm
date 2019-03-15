@@ -7,8 +7,6 @@ from typing import (
 Slot = NewType('Slot', int)  # uint64
 Epoch = NewType('Epoch', int)  # uint64
 Shard = NewType('Shard', int)  # uint64
-BLSPubkey = NewType('BLSPubkey', bytes)  # bytes48
-BLSSignature = NewType('BLSSignature', bytes)  # bytes96
 
 Bitfield = NewType('Bitfield', bytes)  # uint64
 

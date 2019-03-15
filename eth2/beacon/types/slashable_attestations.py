@@ -12,6 +12,7 @@ from ssz.sedes import (
 )
 
 from eth_typing import (
+    BLSSignature,
     Hash32,
 )
 from eth2._utils.bitfield import (
@@ -19,7 +20,6 @@ from eth2._utils.bitfield import (
 )
 from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.typing import (
-    BLSSignature,
     ValidatorIndex,
 )
 from eth2.beacon.constants import EMPTY_SIGNATURE

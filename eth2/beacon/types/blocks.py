@@ -9,6 +9,7 @@ from typing import (
 )
 
 from eth_typing import (
+    BLSSignature,
     Hash32,
 )
 from eth_utils import (
@@ -31,7 +32,6 @@ from eth._utils.datatypes import (
 from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.constants import EMPTY_SIGNATURE
 from eth2.beacon.typing import (
-    BLSSignature,
     Slot,
     FromBlockParams,
 )

@@ -1,4 +1,5 @@
 from eth_typing import (
+    BLSSignature,
     Hash32,
 )
 
@@ -15,7 +16,6 @@ from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
 )
 from eth2.beacon.typing import (
-    BLSSignature,
     Slot,
     Shard,
 )

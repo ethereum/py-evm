@@ -7,7 +7,7 @@ from eth_utils import (
     to_tuple,
 )
 
-import eth2._utils.bls as bls
+from py_ecc import bls
 from eth2.beacon.configs import (
     BeaconConfig,
     CommitteeConfig,

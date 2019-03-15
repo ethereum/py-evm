@@ -1,9 +1,10 @@
 from eth.constants import (
     ZERO_HASH32,
 )
-
-from eth2.beacon.typing import (
+from eth_typing import (
     BLSSignature,
+)
+from eth2.beacon.typing import (
     Epoch
 )
 

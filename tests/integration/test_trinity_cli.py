@@ -117,14 +117,14 @@ async def test_light_boot(async_process_runner, command):
 )
 @pytest.mark.asyncio
 async def test_web3(command, async_process_runner):
-    await async_process_runner.run(command, timeout_sec=20)
+    await async_process_runner.run(command, timeout_sec=30)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
         "IPC started at",
     })
 
-    attached_trinity = pexpect.spawn('trinity', ['attach'], logfile=sys.stdout)
+    attached_trinity = pexpect.spawn('trinity', ['attach'], logfile=sys.stdout, encoding="utf-8")
     try:
         attached_trinity.expect("An instance of Web3 connected to the running chain")
         attached_trinity.sendline("w3.net.version")

@@ -7,6 +7,8 @@ from typing import (  # noqa: F401
 )
 
 from eth_typing import (
+    BLSPubkey,
+    BLSSignature,
     Hash32
 )
 from eth_utils import (
@@ -18,8 +20,8 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
+from py_ecc import bls
 from eth2._utils import (
-    bls,
     bitfield,
 )
 
@@ -57,8 +59,6 @@ from eth2.beacon.types.states import BeaconState  # noqa: F401
 from eth2.beacon.types.voluntary_exits import VoluntaryExit  # noqa: F401
 from eth2.beacon.typing import (
     Bitfield,
-    BLSPubkey,
-    BLSSignature,
     Epoch,
     Shard,
     Slot,
