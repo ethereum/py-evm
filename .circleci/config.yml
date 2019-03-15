@@ -48,7 +48,7 @@ geth_steps: &geth_steps
     - checkout
     - restore_cache:
         keys:
-          - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+          - cache-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
     - run:
         name: install libsnappy-dev
         command: sudo apt install -y libsnappy-dev
@@ -59,12 +59,12 @@ geth_steps: &geth_steps
         name: build geth if missing
         command: |
           mkdir -p $HOME/.ethash
-          pip install --user py-geth>=1.10.1
+          pip install --user py-geth>=2.1.0
           export GOROOT=/usr/local/go
           export GETH_BINARY="$HOME/.py-geth/geth-$GETH_VERSION/bin/geth"
           if [ ! -e "$GETH_BINARY" ]; then
-            curl -O https://storage.googleapis.com/golang/go1.7.4.linux-amd64.tar.gz
-            tar xvf go1.7.4.linux-amd64.tar.gz
+            curl -O https://storage.googleapis.com/golang/go1.10.linux-amd64.tar.gz
+            tar xvf go1.10.linux-amd64.tar.gz
             sudo chown -R root:root ./go
             sudo mv go /usr/local
             sudo ln -s /usr/local/go/bin/go /usr/local/bin/go
@@ -85,7 +85,7 @@ geth_steps: &geth_steps
           - ./eggs
           - ~/.ethash
           - ~/.py-geth
-        key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+        key: cache-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
 jobs:
   py36-lint:
@@ -171,7 +171,7 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-lightchain_integration
-          GETH_VERSION: v1.8.1
+          GETH_VERSION: v1.8.22
   py36-long_run_integration:
     <<: *common
     docker:
