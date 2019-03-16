@@ -8,7 +8,7 @@ from eth2.beacon.tools.builder.proposer import (
     create_mock_block,
 )
 
-from eth2._utils.merkle import get_merkle_root
+from eth2._utils.merkle.normal import get_merkle_root
 
 
 @pytest.mark.parametrize(

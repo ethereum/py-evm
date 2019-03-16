@@ -16,7 +16,7 @@ from eth_utils import (
 from eth._utils.padding import (
     zpad_right,
 )
-from eth2._utils.merkle import (
+from eth2._utils.merkle.normal import (
     get_merkle_root_from_items,
 )
 

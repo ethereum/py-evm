@@ -2,7 +2,7 @@ from eth_typing import (
     Hash32,
 )
 
-from eth2._utils.merkle import get_merkle_root
+from eth2._utils.merkle.normal import get_merkle_root
 from eth2.beacon.configs import (
     BeaconConfig,
 )
