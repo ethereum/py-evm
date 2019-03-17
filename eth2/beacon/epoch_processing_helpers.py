@@ -72,7 +72,7 @@ def get_previous_epoch_boundary_attestations(
 
 
 @to_tuple
-def get_previous_epoch_head_attestations(
+def get_previous_epoch_matching_head_attestations(
         state: 'BeaconState',
         slots_per_epoch: int,
         genesis_epoch: Epoch,
@@ -89,7 +89,7 @@ def get_previous_epoch_head_attestations(
 
 @to_tuple
 def _filter_attestations_by_latest_crosslinks(
-        attestations: Iterable[PendingAttestationRecord],
+        attestations: Sequence[PendingAttestationRecord],
         latest_crosslink: CrosslinkRecord) -> Iterable[PendingAttestationRecord]:
     for attestation in attestations:
         if attestation.data.latest_crosslink == latest_crosslink:
@@ -98,7 +98,7 @@ def _filter_attestations_by_latest_crosslinks(
 
 @to_tuple
 def _filter_attestations_by_shard(
-        attestations: Iterable[PendingAttestationRecord],
+        attestations: Sequence[PendingAttestationRecord],
         shard: Shard) -> Iterable[PendingAttestationRecord]:
     for attestation in attestations:
         if attestation.data.shard == shard:
@@ -124,12 +124,12 @@ def get_winning_root_and_participants(
     if len(all_roots) == 0:
         return (Hash32(ZERO_HASH32), tuple())
 
-    def get_attestations_for(root: Hash32) -> Iterable[PendingAttestationRecord]:
+    def get_attestations_for(root: Hash32) -> Sequence[PendingAttestationRecord]:
         return [a for a in valid_attestations if a.data.crosslink_data_root == root]
 
     # Winning crosslink root is the root with the most votes for it, ties broken in favor of
     # lexicographically higher hash
-    winning_root = max(
+    winning_root: Hash32 = max(
         all_roots,
         key=lambda r: (
             get_attesting_balance_from_attestations(
@@ -233,7 +233,7 @@ def get_attesting_balance_from_attestations(
         *,
         state: 'BeaconState',
         effective_balances: Dict[ValidatorIndex, Gwei],
-        attestations: Iterable[PendingAttestationRecord],
+        attestations: Sequence[PendingAttestationRecord],
         committee_config: CommitteeConfig) -> Gwei:
     return get_total_balance_from_effective_balances(
         effective_balances,

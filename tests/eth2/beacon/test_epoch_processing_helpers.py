@@ -24,7 +24,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_epoch_boundary_attester_indices,
     get_epoch_boundary_attesting_balances,
     get_inclusion_infos,
-    get_previous_epoch_head_attestations,
+    get_previous_epoch_matching_head_attestations,
     get_winning_root_and_participants,
 )
 from eth2.beacon.helpers import (
@@ -132,7 +132,7 @@ def test_get_current_and_previous_epoch_attestations(random,
         (10, 100, 0),
     ]
 )
-def test_get_previous_epoch_head_attestations(
+def test_get_previous_epoch_matching_head_attestations(
         random,
         sample_state,
         genesis_epoch,
@@ -193,7 +193,7 @@ def test_get_previous_epoch_head_attestations(
         ),
     )
 
-    result = get_previous_epoch_head_attestations(
+    result = get_previous_epoch_matching_head_attestations(
         state,
         slots_per_epoch,
         genesis_epoch,

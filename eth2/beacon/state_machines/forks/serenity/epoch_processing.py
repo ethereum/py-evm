@@ -42,7 +42,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_inactivity_penalty,
     get_inclusion_infos,
     get_previous_epoch_boundary_attestations,
-    get_previous_epoch_head_attestations,
+    get_previous_epoch_matching_head_attestations,
     get_winning_root_and_participants,
     get_total_balance,
     get_total_balance_from_effective_balances,
@@ -538,7 +538,7 @@ def _process_rewards_and_penalties_for_finality(
         committee_config=CommitteeConfig(config),
     )
 
-    previous_epoch_head_attestations = get_previous_epoch_head_attestations(
+    previous_epoch_head_attestations = get_previous_epoch_matching_head_attestations(
         state,
         config.SLOTS_PER_EPOCH,
         config.GENESIS_EPOCH,
