@@ -244,6 +244,8 @@ def get_base_reward(
         base_reward_quotient: int,
         previous_total_balance: Gwei,
         max_deposit_amount: Gwei) -> Gwei:
+    if previous_total_balance == 0:
+        return Gwei(0)
     adjusted_quotient = (
         integer_squareroot(previous_total_balance) // base_reward_quotient
     )
