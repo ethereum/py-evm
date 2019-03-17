@@ -326,16 +326,16 @@ def test_get_winning_root_and_participants(
         if len(block_root_1_participants) == len(block_root_2_participants):
             if competing_block_roots[0] > competing_block_roots[1]:
                 assert winning_root == competing_block_roots[0]
-                assert attesting_validator_indices == set(block_root_1_participants)
+                assert set(attesting_validator_indices) == set(block_root_1_participants)
             else:
                 assert winning_root == competing_block_roots[1]
-                assert attesting_validator_indices == set(block_root_2_participants)
+                assert set(attesting_validator_indices) == set(block_root_2_participants)
         elif len(block_root_1_participants) < len(block_root_2_participants):
             assert winning_root == competing_block_roots[1]
-            assert attesting_validator_indices == set(block_root_2_participants)
+            assert set(attesting_validator_indices) == set(block_root_2_participants)
         else:
             assert winning_root == competing_block_roots[0]
-            assert attesting_validator_indices == set(block_root_1_participants)
+            assert set(attesting_validator_indices) == set(block_root_1_participants)
 
 
 @settings(max_examples=1)

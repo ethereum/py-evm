@@ -88,20 +88,14 @@ def get_previous_epoch_matching_head_attestations(
 
 
 @to_tuple
-def _filter_attestations_by_latest_crosslinks(
+def _filter_attestations_by_latest_crosslinks_and_shard(
         attestations: Sequence[PendingAttestationRecord],
-        latest_crosslink: CrosslinkRecord) -> Iterable[PendingAttestationRecord]:
-    for attestation in attestations:
-        if attestation.data.latest_crosslink == latest_crosslink:
-            yield attestation
-
-
-@to_tuple
-def _filter_attestations_by_shard(
-        attestations: Sequence[PendingAttestationRecord],
+        latest_crosslink: CrosslinkRecord,
         shard: Shard) -> Iterable[PendingAttestationRecord]:
     for attestation in attestations:
-        if attestation.data.shard == shard:
+        is_latest_crosslink_matched = attestation.data.latest_crosslink == latest_crosslink
+        is_shard_matched = attestation.data.shard == shard
+        if is_latest_crosslink_matched and is_shard_matched:
             yield attestation
 
 
@@ -111,12 +105,10 @@ def get_winning_root_and_participants(
         shard: Shard,
         effective_balances: Dict[ValidatorIndex, Gwei],
         committee_config: CommitteeConfig) -> Tuple[Hash32, Sequence[ValidatorIndex]]:
-    valid_attestations = _filter_attestations_by_latest_crosslinks(
-        _filter_attestations_by_shard(
-            state.current_epoch_attestations + state.previous_epoch_attestations,
-            shard,
-        ),
+    valid_attestations = _filter_attestations_by_latest_crosslinks_and_shard(
+        state.current_epoch_attestations + state.previous_epoch_attestations,
         state.latest_crosslinks[shard],
+        shard,
     )
     all_roots = set([a.data.crosslink_data_root for a in valid_attestations])
 
