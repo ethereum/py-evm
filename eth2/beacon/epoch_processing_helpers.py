@@ -104,7 +104,7 @@ def get_winning_root_and_participants(
         state: 'BeaconState',
         shard: Shard,
         effective_balances: Dict[ValidatorIndex, Gwei],
-        committee_config: CommitteeConfig) -> Tuple[Hash32, Sequence[ValidatorIndex]]:
+        committee_config: CommitteeConfig) -> Tuple[Hash32, Tuple[ValidatorIndex, ...]]:
     valid_attestations = _filter_attestations_by_latest_crosslinks_and_shard(
         state.current_epoch_attestations + state.previous_epoch_attestations,
         state.latest_crosslinks[shard],
