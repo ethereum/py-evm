@@ -777,6 +777,7 @@ def test_process_rewards_and_penalties_for_finality(
     ]
 )
 def test_process_rewards_and_penalties_for_attestation_inclusion(
+        monkeypatch,
         n_validators_state,
         config,
         slots_per_epoch,
@@ -788,6 +789,27 @@ def test_process_rewards_and_penalties_for_attestation_inclusion(
         inclusion_slots,
         base_reward,
         expected_rewards_received):
+    # Mock `get_beacon_proposer_index
+    from eth2.beacon.state_machines.forks.serenity import epoch_processing
+
+    def mock_get_beacon_proposer_index(state,
+                                       slot,
+                                       committee_config,
+                                       registry_change=False):
+        mock_proposer_for_slot = {
+            31: 6,
+            32: 16,
+            35: 19,
+            38: 15,
+        }
+        return mock_proposer_for_slot[slot]
+
+    monkeypatch.setattr(
+        epoch_processing,
+        'get_beacon_proposer_index',
+        mock_get_beacon_proposer_index
+    )
+
     state = n_validators_state.copy(
         slot=current_slot,
     )
