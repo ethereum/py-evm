@@ -81,7 +81,7 @@ def calc_merkle_tree_from_leaves(leaves: Sequence[Hash32]) -> MerkleTree:
             tree = update_tuple_item(  # type: ignore
                 tree,
                 0,
-                tuple(list(tree[0]) + [EmptyNodeHashes[i]]),
+                tuple(tree[0]) + tuple([EmptyNodeHashes[i]]),
             )
         tree = tuple((_hash_layer(tree[0]),) + tree)  # type: ignore
     return MerkleTree(tree)
