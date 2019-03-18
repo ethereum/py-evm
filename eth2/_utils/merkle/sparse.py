@@ -7,6 +7,7 @@ not considered to be part of the tree.
 
 from typing import (
     Sequence,
+    Tuple,
     Union,
 )
 
@@ -75,12 +76,16 @@ def get_merkle_root_from_items(items: Sequence[Union[bytes, bytearray]]) -> Hash
 def calc_merkle_tree_from_leaves(leaves: Sequence[Hash32]) -> MerkleTree:
     if len(leaves) == 0:
         raise ValueError("No leaves given")
-    tree = (leaves,)
+    tree: Tuple[Sequence[Hash32], ...] = (leaves,)
     for i in range(TreeDepth):
         if len(tree[0]) % 2 == 1:
-            tree = update_tuple_item(tree, 0, tree[0] + (EmptyNodeHashes[i],))
+            tree = update_tuple_item(
+                tree,
+                0,
+                tuple(tree[0]) + (EmptyNodeHashes[i],),
+            )
         tree = (_hash_layer(tree[0]),) + tree
-    return tree
+    return MerkleTree(tree)
 
 
 def get_merkle_root(leaves: Sequence[Hash32]) -> Hash32:

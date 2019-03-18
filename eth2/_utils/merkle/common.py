@@ -9,6 +9,9 @@ from cytoolz import (
     partition,
     take,
 )
+
+from eth_utils import to_tuple
+
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
@@ -31,11 +34,12 @@ def get_root(tree: MerkleTree) -> Hash32:
     return tree[0][0]
 
 
+@to_tuple
 def get_branch_indices(node_index: int, depth: int) -> Iterable[int]:
     """
     Get the indices of all ancestors up until the root for a node with a given depth.
     """
-    return tuple(take(depth, iterate(lambda index: index // 2, node_index)))
+    yield from take(depth, iterate(lambda index: index // 2, node_index))
 
 
 def _calc_parent_hash(left_node: Hash32, right_node: Hash32) -> Hash32:
@@ -45,16 +49,16 @@ def _calc_parent_hash(left_node: Hash32, right_node: Hash32) -> Hash32:
     return hash_eth2(left_node + right_node)
 
 
+@to_tuple
 def _hash_layer(layer: Sequence[Hash32]) -> Iterable[Hash32]:
     """
     Calculate the layer on top of another one.
     """
-    return tuple(
-        _calc_parent_hash(left, right)
-        for left, right in partition(2, layer)
-    )
+    for left, right in partition(2, layer):
+        yield _calc_parent_hash(left, right)
 
 
+@to_tuple
 def get_merkle_proof(tree: MerkleTree, item_index: int) -> Iterable[Hash32]:
     """
     Read off the Merkle proof for an item from a Merkle tree.
@@ -68,8 +72,5 @@ def get_merkle_proof(tree: MerkleTree, item_index: int) -> Iterable[Hash32]:
 
     branch_indices = get_branch_indices(item_index, len(tree))
     proof_indices = [i ^ 1 for i in branch_indices][:-1]  # get sibling by flipping rightmost bit
-    return tuple(
-        layer[proof_index]
-        for layer, proof_index
-        in zip(reversed(tree), proof_indices)
-    )
+    for layer, proof_index in zip(reversed(tree), proof_indices):
+        yield layer[proof_index]
