@@ -82,8 +82,6 @@ class ResponseCandidateStream(
         """
         outer_timeout = self.response_timeout if timeout is None else timeout
 
-        start_at = time.perf_counter()
-
         # The _lock ensures that we never have two concurrent requests to a
         # single peer for a single command pair in flight.
         try:
@@ -93,6 +91,8 @@ class ResponseCandidateStream(
                 f"Timed out waiting for {self.response_msg_name} request lock "
                 f"or peer: {self._peer}"
             )
+
+        start_at = time.perf_counter()
 
         if timeout is not None or tracker.total_msgs < 20:
             inner_timeout = outer_timeout
