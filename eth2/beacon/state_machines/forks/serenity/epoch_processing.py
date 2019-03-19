@@ -295,10 +295,7 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                 effective_balances=effective_balances,
                 committee_config=CommitteeConfig(config),
             )
-            if len(attesting_validator_indices) == 0:
-                # No winning shard block root found for this shard.
-                continue
-            else:
+            if len(attesting_validator_indices) > 0:
                 total_attesting_balance = get_total_balance(
                     state.validator_balances,
                     attesting_validator_indices,
@@ -318,9 +315,6 @@ def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
                             crosslink_data_root=winning_root,
                         ),
                     )
-                else:
-                    # Don't update the crosslink of this shard
-                    pass
     state = state.copy(
         latest_crosslinks=latest_crosslinks,
     )
