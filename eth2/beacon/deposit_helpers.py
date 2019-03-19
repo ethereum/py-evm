@@ -87,7 +87,7 @@ def process_deposit(*,
             withdrawal_credentials=withdrawal_credentials,
             slots_per_epoch=slots_per_epoch,
         )
-    
+
         validator = ValidatorRecord.create_pending_validator(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
