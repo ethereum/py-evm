@@ -46,11 +46,11 @@ from eth2.beacon.types.crosslink_records import CrosslinkRecord
         # in bounds at lower end
         (8, 2 + 8, True),
         # in bounds at high end
-        (8, 8 + 4 - 1, True),
+        (8, 8 + 4, True),
         # attestation_slot < genesis_slot
         (7, 2 + 8, False),
-        # state_slot >= attestation_data.slot + slots_per_epoch
-        (8, 8 + 4, False),
+        # state_slot > attestation_data.slot + slots_per_epoch
+        (8, 8 + 4 + 1, False),
         # attestation_data.slot + min_attestation_inclusion_delay > state_slot
         (8, 8 - 2, False),
     ]

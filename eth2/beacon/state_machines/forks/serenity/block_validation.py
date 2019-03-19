@@ -362,13 +362,12 @@ def validate_attestation_slot(attestation_data: AttestationData,
             f"needed greater than or equal to `GENESIS_SLOT` ({genesis_slot})"
         )
 
-    if state_slot >= attestation_data.slot + slots_per_epoch:
+    if state_slot > attestation_data.slot + slots_per_epoch:
         raise ValidationError(
-            "Attestation slot plus `SLOTS_PER_EPOCH` is too low; "
-            "must exceed the current state:\n"
+            "Attestation slot plus `SLOTS_PER_EPOCH` is too low\n"
             f"\tFound: {attestation_data.slot + slots_per_epoch} "
             f"({attestation_data.slot} + {slots_per_epoch}), "
-            f"Needed greater than: {state_slot}"
+            f"Needed greater than or equal to: {state_slot}"
         )
 
     if attestation_data.slot + min_attestation_inclusion_delay > state_slot:
