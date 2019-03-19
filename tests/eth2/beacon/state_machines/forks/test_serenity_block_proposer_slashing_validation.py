@@ -10,7 +10,7 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_proposer_slashing_epoch,
     validate_proposer_slashing_is_slashed,
     validate_proposer_slashing_shard,
-    validate_proposal_signature,
+    validate_block_header_signature,
 )
 from eth2.beacon.tools.builder.validator import (
     create_mock_proposer_slashing_at_block,
@@ -56,11 +56,11 @@ def test_validate_proposer_slashing_epoch(genesis_state,
     # Valid
     validate_proposer_slashing_epoch(valid_proposer_slashing, config.SLOTS_PER_EPOCH)
 
-    proposal_1 = valid_proposer_slashing.proposal_1.copy(
-        slot=valid_proposer_slashing.proposal_2.slot + config.SLOTS_PER_EPOCH
+    header_1 = valid_proposer_slashing.header_1.copy(
+        slot=valid_proposer_slashing.header_2.slot + 2 * config.SLOTS_PER_EPOCH
     )
     invalid_proposer_slashing = valid_proposer_slashing.copy(
-        proposal_1=proposal_1,
+        header_1=header_1,
     )
 
     # Invalid
@@ -81,11 +81,11 @@ def test_validate_proposer_slashing_shard(genesis_state,
     # Valid
     validate_proposer_slashing_shard(valid_proposer_slashing)
 
-    proposal_1 = valid_proposer_slashing.proposal_1.copy(
-        shard=valid_proposer_slashing.proposal_2.shard + 1
+    header_1 = valid_proposer_slashing.header_1.copy(
+        shard=valid_proposer_slashing.header_2.shard + 1
     )
     invalid_proposer_slashing = valid_proposer_slashing.copy(
-        proposal_1=proposal_1,
+        header_1=header_1,
     )
 
     # Invalid
@@ -106,11 +106,11 @@ def test_validate_proposer_slashing_block_root(genesis_state,
     # Valid
     validate_proposer_slashing_block_root(valid_proposer_slashing)
 
-    proposal_1 = valid_proposer_slashing.proposal_1.copy(
-        block_root=valid_proposer_slashing.proposal_2.block_root
+    header_1 = valid_proposer_slashing.header_1.copy(
+        block_root=valid_proposer_slashing.header_2.block_root
     )
     invalid_proposer_slashing = valid_proposer_slashing.copy(
-        proposal_1=proposal_1,
+        header_1=header_1,
     )
 
     # Invalid
@@ -141,10 +141,10 @@ def test_validate_proposer_slashing_is_slashed(slots_per_epoch,
             validate_proposer_slashing_is_slashed(slashed)
 
 
-def test_validate_proposal_signature(slots_per_epoch,
-                                     genesis_state,
-                                     keymap,
-                                     config):
+def test_validate_block_header_signature(slots_per_epoch,
+                                         genesis_state,
+                                         keymap,
+                                         config):
     state = genesis_state
     proposer_index = 0
     valid_proposer_slashing = get_valid_proposer_slashing(
@@ -155,8 +155,8 @@ def test_validate_proposal_signature(slots_per_epoch,
     proposer = state.validator_registry[proposer_index]
 
     # Valid
-    validate_proposal_signature(
-        proposal=valid_proposer_slashing.proposal_1,
+    validate_block_header_signature(
+        header=valid_proposer_slashing.header_1,
         pubkey=proposer.pubkey,
         fork=state.fork,
         slots_per_epoch=slots_per_epoch,
@@ -166,8 +166,8 @@ def test_validate_proposal_signature(slots_per_epoch,
     wrong_proposer_index = proposer_index + 1
     wrong_proposer = state.validator_registry[wrong_proposer_index]
     with pytest.raises(ValidationError):
-        validate_proposal_signature(
-            proposal=valid_proposer_slashing.proposal_1,
+        validate_block_header_signature(
+            header=valid_proposer_slashing.header_1,
             pubkey=wrong_proposer.pubkey,
             fork=state.fork,
             slots_per_epoch=slots_per_epoch,

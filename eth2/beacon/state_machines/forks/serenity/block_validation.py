@@ -142,15 +142,15 @@ def validate_proposer_slashing(state: BeaconState,
 
     validate_proposer_slashing_is_slashed(proposer.slashed)
 
-    validate_proposal_signature(
-        proposal=proposer_slashing.header_1,
+    validate_block_header_signature(
+        header=proposer_slashing.header_1,
         pubkey=proposer.pubkey,
         fork=state.fork,
         slots_per_epoch=slots_per_epoch,
     )
 
-    validate_proposal_signature(
-        proposal=proposer_slashing.header_2,
+    validate_block_header_signature(
+        header=proposer_slashing.header_2,
         pubkey=proposer.pubkey,
         fork=state.fork,
         slots_per_epoch=slots_per_epoch,
@@ -183,11 +183,11 @@ def validate_proposer_slashing_is_slashed(slashed: bool) -> None:
         raise ValidationError(f"proposer.slashed is True")
 
 
-def validate_proposal_signature(header: BeaconBlockHeader,
-                                pubkey: BLSPubkey,
-                                fork: Fork,
-                                slots_per_epoch: int) -> None:
-    proposal_signature_is_valid = bls.verify(
+def validate_block_header_signature(header: BeaconBlockHeader,
+                                    pubkey: BLSPubkey,
+                                    fork: Fork,
+                                    slots_per_epoch: int) -> None:
+    header_signature_is_valid = bls.verify(
         pubkey=pubkey,
         message_hash=header.signed_root,  # TODO: use signed_root
         signature=header.signature,
@@ -197,9 +197,9 @@ def validate_proposal_signature(header: BeaconBlockHeader,
             SignatureDomain.DOMAIN_BEACON_BLOCK,
         )
     )
-    if not proposal_signature_is_valid:
+    if not header_signature_is_valid:
         raise ValidationError(
-            "Proposal signature is invalid: "
+            "Header signature is invalid: "
             f"proposer pubkey: {pubkey}, message_hash: {header.signed_root}, "
             f"signature: {header.signature}"
         )
