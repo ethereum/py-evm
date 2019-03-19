@@ -86,15 +86,9 @@ def validate_proposer_signature(state: BeaconState,
                                 block: BaseBeaconBlock,
                                 beacon_chain_shard_number: Shard,
                                 committee_config: CommitteeConfig) -> None:
-    block_without_signature_root = block.block_without_signature_root
 
     # TODO: Replace this with signed_root
-    proposal = Proposal(
-        state.slot,
-        beacon_chain_shard_number,
-        block_without_signature_root,
-        signature=block.signature,
-    )
+    message_hash = block.header.signed_root
 
     # Get the public key of proposer
     beacon_proposer_index = get_beacon_proposer_index(
@@ -111,15 +105,15 @@ def validate_proposer_signature(state: BeaconState,
 
     is_valid_signature = bls.verify(
         pubkey=proposer_pubkey,
-        message_hash=proposal.signed_root,
-        signature=proposal.signature,
+        message_hash=message_hash,
+        signature=block.signature,
         domain=domain,
     )
 
     if not is_valid_signature:
         raise ValidationError(
             f"Invalid Proposer Signature on block, beacon_proposer_index={beacon_proposer_index}, "
-            f"pubkey={proposer_pubkey}, message_hash={proposal.signed_root}, "
+            f"pubkey={proposer_pubkey}, message_hash={message_hash}, "
             f"block.signature={block.signature}, domain={domain}"
         )
 
