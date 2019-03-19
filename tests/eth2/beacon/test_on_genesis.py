@@ -68,8 +68,8 @@ def test_get_genesis_beacon_state(
         sample_eth1_data_params):
     withdrawal_credentials = b'\x22' * 32
     fork = Fork(
-        previous_version=genesis_fork_version,
-        current_version=genesis_fork_version,
+        previous_version=genesis_fork_version.to_bytes(4, 'little'),
+        current_version=genesis_fork_version.to_bytes(4, 'little'),
         epoch=genesis_epoch,
     )
 
@@ -128,8 +128,8 @@ def test_get_genesis_beacon_state(
     # Misc
     assert state.slot == genesis_slot
     assert state.genesis_time == genesis_time
-    assert state.fork.previous_version == genesis_fork_version
-    assert state.fork.current_version == genesis_fork_version
+    assert state.fork.previous_version == genesis_fork_version.to_bytes(4, 'little')
+    assert state.fork.current_version == genesis_fork_version.to_bytes(4, 'little')
     assert state.fork.epoch == genesis_epoch
 
     # Validator registry

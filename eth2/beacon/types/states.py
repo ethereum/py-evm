@@ -205,8 +205,8 @@ class BeaconState(ssz.Serializable):
             slot=genesis_slot,
             genesis_time=Timestamp(0),
             fork=Fork(
-                previous_version=0,
-                current_version=0,
+                previous_version=(0).to_bytes(4, 'little'),
+                current_version=(0).to_bytes(4, 'little'),
                 epoch=genesis_epoch,
             ),
 

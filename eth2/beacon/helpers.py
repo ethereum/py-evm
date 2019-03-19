@@ -190,7 +190,7 @@ def get_total_balance(validator_balances: Sequence[Gwei],
 
 
 def get_fork_version(fork: 'Fork',
-                     epoch: Epoch) -> int:
+                     epoch: Epoch) -> bytes:
     """
     Return the current ``fork_version`` from the given ``fork`` and ``epoch``.
     """
@@ -206,11 +206,13 @@ def get_domain(fork: 'Fork',
     """
     Return the domain number of the current fork and ``domain_type``.
     """
-    # 2 ** 32 = 4294967296
-    return get_fork_version(
-        fork,
-        epoch,
-    ) * 4294967296 + domain_type
+    return int.from_bytes(
+        get_fork_version(
+            fork,
+            epoch,
+        ) + domain_type.to_bytes(4, 'little'),
+        'little'
+    )
 
 
 def is_double_vote(attestation_data_1: 'AttestationData',

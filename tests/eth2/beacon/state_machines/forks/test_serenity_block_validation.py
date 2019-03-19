@@ -97,7 +97,6 @@ def test_validate_proposer_signature(
         sample_beacon_block_params,
         sample_beacon_state_params,
         beacon_chain_shard_number,
-        genesis_epoch,
         target_committee_size,
         max_deposit_amount,
         config):
@@ -123,7 +122,15 @@ def test_validate_proposer_signature(
         signature=bls.sign(
             message_hash=proposal_signed_root,
             privkey=proposer_privkey,
-            domain=SignatureDomain.DOMAIN_PROPOSAL,
+            domain=get_domain(
+                Fork(
+                    config.GENESIS_FORK_VERSION.to_bytes(4, 'little'),
+                    config.GENESIS_FORK_VERSION.to_bytes(4, 'little'),
+                    config.GENESIS_EPOCH,
+                ),
+                slot_to_epoch(state.slot, slots_per_epoch),
+                SignatureDomain.DOMAIN_PROPOSAL,
+            ),
         ),
     )
 
@@ -531,8 +538,8 @@ def test_verify_slashable_attestation_after_fork(
     # Test that slashable data is still valid after fork
     # Slashable data slot = 10, fork slot = 15, current slot = 20
     past_fork_params = {
-        'previous_version': 0,
-        'current_version': 1,
+        'previous_version': (0).to_bytes(4, 'little'),
+        'current_version': (1).to_bytes(4, 'little'),
         'epoch': 15,
     }
 

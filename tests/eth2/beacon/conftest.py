@@ -247,9 +247,9 @@ def sample_voluntary_exit_params():
 @pytest.fixture
 def sample_fork_params():
     return {
-        'previous_version': 0,
-        'current_version': 0,
-        'epoch': 2**64 - 1,
+        'previous_version': (0).to_bytes(4, 'little'),
+        'current_version': (0).to_bytes(4, 'little'),
+        'epoch': 2**32,
     }
 
 

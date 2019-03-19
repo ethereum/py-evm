@@ -220,11 +220,11 @@ def test_get_total_balance(validator_balances,
         'expected'
     ),
     [
-        (0, 0, 0, 0, 0),
-        (0, 0, 0, 1, 0),
-        (0, 1, 20, 10, 0),
-        (0, 1, 20, 20, 1),
-        (0, 1, 10, 20, 1),
+        (b'\x00' * 4, b'\x00' * 4, 0, 0, b'\x00' * 4),
+        (b'\x00' * 4, b'\x00' * 4, 0, 1, b'\x00' * 4),
+        (b'\x00' * 4, b'\x11' * 4, 20, 10, b'\x00' * 4),
+        (b'\x00' * 4, b'\x11' * 4, 20, 20, b'\x11' * 4),
+        (b'\x00' * 4, b'\x11' * 4, 10, 20, b'\x11' * 4),
     ]
 )
 def test_get_fork_version(previous_version,
@@ -253,9 +253,22 @@ def test_get_fork_version(previous_version,
         'expected'
     ),
     [
-        (1, 2, 20, 10, 10, 1 * 2 ** 32 + 10),
-        (1, 2, 20, 20, 11, 2 * 2 ** 32 + 11),
-        (1, 2, 10, 20, 12, 2 * 2 ** 32 + 12),
+        (
+            b'\x11' * 4,
+            b'\x22' * 4,
+            4,
+            4,
+            1,
+            int.from_bytes(b'\x22' * 4 + b'\x01\x00\x00\x00', 'little'),
+        ),
+        (
+            b'\x11' * 4,
+            b'\x22' * 4,
+            4,
+            4 - 1,
+            1,
+            int.from_bytes(b'\x11' * 4 + b'\x01\x00\x00\x00', 'little'),
+        ),
     ]
 )
 def test_get_domain(previous_version,

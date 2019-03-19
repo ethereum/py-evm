@@ -1,5 +1,6 @@
 import ssz
 from ssz.sedes import (
+    BytesN,
     uint64,
 )
 
@@ -8,20 +9,23 @@ from eth2.beacon.typing import (
 )
 
 
+bytes4 = BytesN(4)
+
+
 class Fork(ssz.Serializable):
 
     fields = [
         # Previous fork version
-        ('previous_version', uint64),
+        ('previous_version', bytes4),
         # Current fork version
-        ('current_version', uint64),
+        ('current_version', bytes4),
         # Fork epoch number
         ('epoch', uint64)
     ]
 
     def __init__(self,
-                 previous_version: int,
-                 current_version: int,
+                 previous_version: bytes,
+                 current_version: bytes,
                  epoch: Epoch) -> None:
         super().__init__(
             previous_version=previous_version,

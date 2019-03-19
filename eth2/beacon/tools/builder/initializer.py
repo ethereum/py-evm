@@ -42,8 +42,8 @@ def create_mock_genesis_validator_deposits(
     withdrawal_credentials = Hash32(b'\x22' * 32)
     deposit_timestamp = Timestamp(0)
     fork = Fork(
-        previous_version=config.GENESIS_FORK_VERSION,
-        current_version=config.GENESIS_FORK_VERSION,
+        previous_version=config.GENESIS_FORK_VERSION.to_bytes(4, 'little'),
+        current_version=config.GENESIS_FORK_VERSION.to_bytes(4, 'little'),
         epoch=config.GENESIS_EPOCH,
     )
 

@@ -81,8 +81,8 @@ def get_genesis_beacon_state(*,
         slot=genesis_slot,
         genesis_time=genesis_time,
         fork=Fork(
-            previous_version=genesis_fork_version,
-            current_version=genesis_fork_version,
+            previous_version=genesis_fork_version.to_bytes(4, 'little'),
+            current_version=genesis_fork_version.to_bytes(4, 'little'),
             epoch=genesis_epoch,
         ),
 
