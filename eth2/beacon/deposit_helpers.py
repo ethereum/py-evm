@@ -78,16 +78,16 @@ def process_deposit(*,
     """
     Process a deposit from Ethereum 1.0.
     """
-    validate_proof_of_possession(
-        state=state,
-        pubkey=pubkey,
-        proof_of_possession=proof_of_possession,
-        withdrawal_credentials=withdrawal_credentials,
-        slots_per_epoch=slots_per_epoch,
-    )
-
     validator_pubkeys = tuple(v.pubkey for v in state.validator_registry)
     if pubkey not in validator_pubkeys:
+        validate_proof_of_possession(
+            state=state,
+            pubkey=pubkey,
+            proof_of_possession=proof_of_possession,
+            withdrawal_credentials=withdrawal_credentials,
+            slots_per_epoch=slots_per_epoch,
+        )
+    
         validator = ValidatorRecord.create_pending_validator(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
