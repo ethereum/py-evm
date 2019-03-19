@@ -8,7 +8,7 @@ from typing import (
     Callable,
     FrozenSet,
     Generic,
-    Iterable,
+    Sequence,
     Tuple,
     Type,
 )
@@ -691,7 +691,7 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
             raise
 
 
-def first_nonconsecutive_header(headers: Iterable[BlockHeader]) -> int:
+def first_nonconsecutive_header(headers: Sequence[BlockHeader]) -> int:
     """
     :return: index of first child that does not match parent header, or a number
         past the end if all are consecutive
@@ -701,7 +701,7 @@ def first_nonconsecutive_header(headers: Iterable[BlockHeader]) -> int:
             return index + 1
 
     # return an index off the end to indicate that all headers are consecutive
-    return index + 2
+    return len(headers)
 
 
 class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
