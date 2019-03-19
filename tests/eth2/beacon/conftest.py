@@ -551,6 +551,11 @@ def min_validator_withdrawability_delay():
 
 
 @pytest.fixture
+def persistent_committee_period():
+    return SERENITY_CONFIG.PERSISTENT_COMMITTEE_PERIOD
+
+
+@pytest.fixture
 def base_reward_quotient():
     return SERENITY_CONFIG.BASE_REWARD_QUOTIENT
 
@@ -718,6 +723,7 @@ def config(
         activation_exit_delay,
         epochs_per_eth1_voting_period,
         min_validator_withdrawability_delay,
+        persistent_committee_period,
         base_reward_quotient,
         whistleblower_reward_quotient,
         attestation_inclusion_reward_quotient,
@@ -759,6 +765,7 @@ def config(
         ACTIVATION_EXIT_DELAY=activation_exit_delay,
         EPOCHS_PER_ETH1_VOTING_PERIOD=epochs_per_eth1_voting_period,
         MIN_VALIDATOR_WITHDRAWABILITY_DELAY=min_validator_withdrawability_delay,
+        PERSISTENT_COMMITTEE_PERIOD=persistent_committee_period,
         BASE_REWARD_QUOTIENT=base_reward_quotient,
         WHISTLEBLOWER_REWARD_QUOTIENT=whistleblower_reward_quotient,
         ATTESTATION_INCLUSION_REWARD_QUOTIENT=attestation_inclusion_reward_quotient,

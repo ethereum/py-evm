@@ -162,7 +162,7 @@ def process_voluntary_exits(state: BeaconState,
             state,
             voluntary_exit,
             config.SLOTS_PER_EPOCH,
-            config.ACTIVATION_EXIT_DELAY,
+            config.PERSISTENT_COMMITTEE_PERIOD,
         )
         # Run the exit
         state = initiate_validator_exit(state, voluntary_exit.validator_index)

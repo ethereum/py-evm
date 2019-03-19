@@ -10,6 +10,9 @@ from eth2.beacon.committee_helpers import (
 from eth2.beacon.configs import (
     CommitteeConfig,
 )
+from eth2.beacon.helpers import (
+    get_epoch_start_slot,
+)
 from eth2.beacon.types.blocks import (
     BeaconBlockBody,
 )
@@ -323,10 +326,18 @@ def test_process_voluntary_exits(genesis_state,
                                  sample_beacon_block_body_params,
                                  config,
                                  keymap,
-                                 min_attestation_inclusion_delay,
                                  success):
-    state = genesis_state
+    state = genesis_state.copy(
+        slot=get_epoch_start_slot(
+            config.GENESIS_EPOCH + config.PERSISTENT_COMMITTEE_PERIOD,
+            config.SLOTS_PER_EPOCH,
+        ),
+    )
     validator_index = 0
+    validator = state.validator_registry[validator_index].copy(
+        activation_epoch=config.GENESIS_EPOCH,
+    )
+    state = state.update_validator_registry(validator_index, validator)
     valid_voluntary_exit = create_mock_voluntary_exit(
         state,
         config,

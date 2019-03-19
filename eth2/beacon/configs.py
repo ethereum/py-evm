@@ -52,6 +52,7 @@ BeaconConfig = NamedTuple(
         ('ACTIVATION_EXIT_DELAY', int),
         ('EPOCHS_PER_ETH1_VOTING_PERIOD', int),
         ('MIN_VALIDATOR_WITHDRAWABILITY_DELAY', int),
+        ('PERSISTENT_COMMITTEE_PERIOD', int),
         # Reward and penalty quotients
         ('BASE_REWARD_QUOTIENT', int),
         ('WHISTLEBLOWER_REWARD_QUOTIENT', int),

@@ -52,6 +52,7 @@ SERENITY_CONFIG = BeaconConfig(
     ACTIVATION_EXIT_DELAY=2**2,  # (= 4) epochs
     EPOCHS_PER_ETH1_VOTING_PERIOD=2**4,  # (= 16) epochs
     MIN_VALIDATOR_WITHDRAWABILITY_DELAY=2**8,  # (= 256) epochs
+    PERSISTENT_COMMITTEE_PERIOD=2**11,  # (= 2,048) epochs
     # Reward and penalty quotients
     BASE_REWARD_QUOTIENT=2**10,  # (= 1,024)
     WHISTLEBLOWER_REWARD_QUOTIENT=2**9,  # (= 512)

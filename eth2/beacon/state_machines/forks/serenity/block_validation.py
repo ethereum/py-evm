@@ -33,13 +33,15 @@ from eth2.beacon.committee_helpers import (
 from eth2.beacon.configs import (
     CommitteeConfig,
 )
+from eth2.beacon.constants import (
+    FAR_FUTURE_EPOCH,
+)
 from eth2.beacon.enums import (
     SignatureDomain,
 )
 from eth2.beacon.helpers import (
     get_block_root,
     get_epoch_start_slot,
-    get_delayed_activation_exit_epoch,
     get_domain,
     is_double_vote,
     is_surround_vote,
@@ -711,45 +713,47 @@ def validate_slashable_attestation(state: 'BeaconState',
 def validate_voluntary_exit(state: 'BeaconState',
                             voluntary_exit: 'VoluntaryExit',
                             slots_per_epoch: int,
-                            activation_exit_delay: int) -> None:
+                            persistent_committee_period: int) -> None:
     validator = state.validator_registry[voluntary_exit.validator_index]
     current_epoch = state.current_epoch(slots_per_epoch)
 
-    validate_voluntary_exit_validator_exit_epoch(
-        state,
-        validator,
-        current_epoch,
-        slots_per_epoch=slots_per_epoch,
-        activation_exit_delay=activation_exit_delay,
-    )
+    validate_voluntary_exit_validator_exit_epoch(validator)
+
+    validate_voluntary_exit_initiated_exit(validator)
 
     validate_voluntary_exit_epoch(voluntary_exit, current_epoch)
+
+    validate_voluntary_exit_persistent(validator, current_epoch, persistent_committee_period)
 
     validate_voluntary_exit_signature(state, voluntary_exit, validator)
 
 
-def validate_voluntary_exit_validator_exit_epoch(state: 'BeaconState',
-                                                 validator: 'ValidatorRecord',
-                                                 current_epoch: Epoch,
-                                                 slots_per_epoch: int,
-                                                 activation_exit_delay: int) -> None:
-    current_epoch = state.current_epoch(slots_per_epoch)
-
-    # Verify the validator has not yet exited
-    delayed_activation_exit_epoch = get_delayed_activation_exit_epoch(
-        current_epoch,
-        activation_exit_delay,
-    )
-    if validator.exit_epoch <= delayed_activation_exit_epoch:
+def validate_voluntary_exit_validator_exit_epoch(validator: 'ValidatorRecord') -> None:
+    """
+    Verify the validator has not yet exited.
+    """
+    if validator.exit_epoch != FAR_FUTURE_EPOCH:
         raise ValidationError(
-            f"validator.exit_epoch ({validator.exit_epoch}) should be greater than "
-            f"delayed_activation_exit_epoch ({delayed_activation_exit_epoch})"
+            f"validator.exit_epoch ({validator.exit_epoch}) should be equal to "
+            f"FAR_FUTURE_EPOCH ({FAR_FUTURE_EPOCH})"
+        )
+
+
+def validate_voluntary_exit_initiated_exit(validator: 'ValidatorRecord') -> None:
+    """
+    Verify the validator has not initiated an exit.
+    """
+    if validator.initiated_exit is True:
+        raise ValidationError(
+            f"validator.initiated_exit ({validator.initiated_exit}) should be False"
         )
 
 
 def validate_voluntary_exit_epoch(voluntary_exit: 'VoluntaryExit',
                                   current_epoch: Epoch) -> None:
-    # Exits must specify an epoch when they become valid; they are not valid before then
+    """
+    Exits must specify an epoch when they become valid; they are not valid before then.
+    """
     if current_epoch < voluntary_exit.epoch:
         raise ValidationError(
             f"voluntary_exit.epoch ({voluntary_exit.epoch}) should be less than or equal to "
@@ -757,9 +761,26 @@ def validate_voluntary_exit_epoch(voluntary_exit: 'VoluntaryExit',
         )
 
 
+def validate_voluntary_exit_persistent(validator: 'ValidatorRecord',
+                                       current_epoch: Epoch,
+                                       persistent_committee_period: int) -> None:
+    """
+    # Must have been in the validator set long enough
+    """
+    if current_epoch - validator.activation_epoch < persistent_committee_period:
+        raise ValidationError(
+            "current_epoch - validator.activation_epoch "
+            f"({current_epoch} - {validator.activation_epoch}) should be greater than or equal to "
+            f"PERSISTENT_COMMITTEE_PERIOD ({persistent_committee_period})"
+        )
+
+
 def validate_voluntary_exit_signature(state: 'BeaconState',
                                       voluntary_exit: 'VoluntaryExit',
                                       validator: 'ValidatorRecord') -> None:
+    """
+    Verify signature.
+    """
     domain = get_domain(state.fork, voluntary_exit.epoch, SignatureDomain.DOMAIN_EXIT)
     is_valid_signature = bls.verify(
         pubkey=validator.pubkey,
