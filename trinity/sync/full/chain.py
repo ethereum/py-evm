@@ -963,12 +963,16 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         )
         self._block_importer = block_importer
 
+        # Track if any headers have been received yet
+        self._got_first_header = asyncio.Event()
+
     async def _run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
         self._block_import_tracker.set_finished_dependency(head)
         self.run_daemon_task(self._launch_prerequisite_tasks())
         self.run_daemon_task(self._assign_body_download_to_peers())
         self.run_daemon_task(self._import_ready_blocks())
+        self.run_daemon_task(self._display_stats())
         await super()._run()
 
     def register_peer(self, peer: BasePeer) -> None:
@@ -1085,6 +1089,21 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
                 )
             else:
                 raise Exception("Invariant: unreachable code path")
+
+    async def _display_stats(self) -> None:
+        self.logger.debug("Regular sync waiting for first header to arrive")
+        await self.wait(self._got_first_header.wait())
+        self.logger.debug("Regular sync first header arrived")
+
+        while self.is_operational:
+            await self.sleep(5)
+            self.logger.debug(
+                "(in progress, queued, max size) of bodies, receipts: %r. Write capacity? %s",
+                [(q.num_in_progress(), len(q), q._maxsize) for q in (
+                    self._block_body_tasks,
+                )],
+                "yes" if self._db_buffer_capacity.is_set() else "no",
+            )
 
 
 def _is_body_empty(header: BlockHeader) -> bool:
