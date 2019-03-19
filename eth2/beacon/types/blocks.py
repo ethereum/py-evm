@@ -43,9 +43,9 @@ from .deposits import Deposit
 from .eth1_data import Eth1Data
 from .transfers import Transfer
 from .voluntary_exits import VoluntaryExit
-from .proposer_slashings import ProposerSlashing
 
 if TYPE_CHECKING:
+    from .proposer_slashings import ProposerSlashing  # noqa: F401
     from eth2.beacon.db.chain import BaseBeaconChainDB  # noqa: F401
 
 
@@ -89,7 +89,7 @@ class BeaconBlockBody(ssz.Serializable):
     fields = [
         ('randao_reveal', bytes96),
         ('eth1_data', Eth1Data),
-        ('proposer_slashings', List(ProposerSlashing)),
+        ('proposer_slashings', List('ProposerSlashing')),
         ('attester_slashings', List(AttesterSlashing)),
         ('attestations', List(Attestation)),
         ('deposits', List(Deposit)),
@@ -101,7 +101,7 @@ class BeaconBlockBody(ssz.Serializable):
                  *,
                  randao_reveal: bytes96,
                  eth1_data: Eth1Data,
-                 proposer_slashings: Sequence[ProposerSlashing],
+                 proposer_slashings: Sequence['ProposerSlashing'],
                  attester_slashings: Sequence[AttesterSlashing],
                  attestations: Sequence[Attestation],
                  deposits: Sequence[Deposit],
