@@ -61,9 +61,14 @@ from eth.tools.logging import ExtendedDebugLogger, DEBUG2_LEVEL_NUM
 
 from cancel_token import CancelToken, OperationCancelled
 
-from p2p.events import PeerCandidatesRequest, RandomBootnodeRequest
+from p2p.events import (
+    PeerCandidatesRequest,
+    RandomBootnodeRequest,
+    BaseRequestResponseEvent,
+    PeerCandidatesResponse,
+)
 from p2p.exceptions import AlreadyWaitingDiscoveryResponse, NoEligibleNodes, UnableToGetDiscV5Ticket
-from p2p.kademlia import to_uris
+from p2p.kademlia import to_uris, Node as KademliaNode
 from p2p import kademlia
 from p2p import protocol
 from p2p.service import BaseService
@@ -960,6 +965,54 @@ class DiscoveryByTopicProtocol(DiscoveryProtocol):
             seen_nodes.update(extra_nodes)
 
         return tuple(seen_nodes)
+
+
+class StaticDiscoveryService(BaseService):
+    """A 'discovery' service that only connects to the given nodes"""
+
+    def __init__(
+            self,
+            event_bus: Endpoint,
+            static_peers: Tuple[KademliaNode, ...],
+            token: CancelToken = None) -> None:
+        super().__init__(token)
+        self._event_bus = event_bus
+        self._static_peers = static_peers
+
+    async def handle_get_peer_candidates_requests(self) -> None:
+        async for event in self._event_bus.stream(PeerCandidatesRequest):
+            candidates = self._select_nodes(event.max_candidates)
+            self._broadcast_nodes(event, candidates)
+
+    async def handle_get_random_bootnode_requests(self) -> None:
+        async for event in self._event_bus.stream(RandomBootnodeRequest):
+            candidates = self._select_nodes(1)
+            self._broadcast_nodes(event, candidates)
+
+    def _select_nodes(self, max_nodes: int) -> Tuple[KademliaNode, ...]:
+        if max_nodes >= len(self._static_peers):
+            candidates = self._static_peers
+            self.logger.debug2("Replying with all static nodes: %r", candidates)
+        else:
+            candidates = tuple(random.sample(self._static_peers, max_nodes))
+            self.logger.debug2("Replying with subset of static nodes: %r", candidates)
+        return candidates
+
+    def _broadcast_nodes(
+            self,
+            event: BaseRequestResponseEvent[PeerCandidatesResponse],
+            nodes: Tuple[KademliaNode, ...]) -> None:
+        node_uris = tuple(to_uris(nodes))
+        self._event_bus.broadcast(
+            event.expected_response_type()(node_uris),
+            event.broadcast_config()
+        )
+
+    async def _run(self) -> None:
+        self.run_daemon_task(self.handle_get_peer_candidates_requests())
+        self.run_daemon_task(self.handle_get_random_bootnode_requests())
+
+        await self.cancel_token.wait()
 
 
 class NoopDiscoveryService(BaseService):
