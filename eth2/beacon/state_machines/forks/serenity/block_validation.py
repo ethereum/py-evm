@@ -142,7 +142,7 @@ def validate_proposer_slashing(state: BeaconState,
     """
     proposer = state.validator_registry[proposer_slashing.proposer_index]
 
-    validate_proposer_slashing_slot(proposer_slashing)
+    validate_proposer_slashing_epoch(proposer_slashing, slots_per_epoch)
 
     validate_proposer_slashing_shard(proposer_slashing)
 
@@ -165,11 +165,15 @@ def validate_proposer_slashing(state: BeaconState,
     )
 
 
-def validate_proposer_slashing_slot(proposer_slashing: ProposerSlashing) -> None:
-    if proposer_slashing.proposal_1.slot != proposer_slashing.proposal_2.slot:
+def validate_proposer_slashing_epoch(proposer_slashing: ProposerSlashing,
+                                     slots_per_epoch: int) -> None:
+    epoch_1 = slot_to_epoch(proposer_slashing.proposal_1.slot, slots_per_epoch)
+    epoch_2 = slot_to_epoch(proposer_slashing.proposal_2.slot, slots_per_epoch)
+
+    if epoch_1 != epoch_2:
         raise ValidationError(
-            f"proposer_slashing.proposal_1.slot ({proposer_slashing.proposal_1.slot}) !="
-            f" proposer_slashing.proposal_2.slot ({proposer_slashing.proposal_2.slot})"
+            f"Epoch of proposer_slashing.proposal_1 ({epoch_1}) !="
+            f" epoch of proposer_slashing.proposal_2 ({epoch_2})"
         )
 
 

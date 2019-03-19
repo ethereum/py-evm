@@ -7,8 +7,8 @@ from eth_utils import (
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_proposer_slashing,
     validate_proposer_slashing_block_root,
+    validate_proposer_slashing_epoch,
     validate_proposer_slashing_is_slashed,
-    validate_proposer_slashing_slot,
     validate_proposer_slashing_shard,
     validate_proposal_signature,
 )
@@ -44,9 +44,9 @@ def test_validate_proposer_slashing_valid(genesis_state,
     validate_proposer_slashing(state, valid_proposer_slashing, slots_per_epoch)
 
 
-def test_validate_proposer_slashing_slot(genesis_state,
-                                         keymap,
-                                         config):
+def test_validate_proposer_slashing_epoch(genesis_state,
+                                          keymap,
+                                          config):
     state = genesis_state
     valid_proposer_slashing = get_valid_proposer_slashing(
         state,
@@ -54,10 +54,10 @@ def test_validate_proposer_slashing_slot(genesis_state,
         config,
     )
     # Valid
-    validate_proposer_slashing_slot(valid_proposer_slashing)
+    validate_proposer_slashing_epoch(valid_proposer_slashing, config.SLOTS_PER_EPOCH)
 
     proposal_1 = valid_proposer_slashing.proposal_1.copy(
-        slot=valid_proposer_slashing.proposal_2.slot + 1
+        slot=valid_proposer_slashing.proposal_2.slot + config.SLOTS_PER_EPOCH
     )
     invalid_proposer_slashing = valid_proposer_slashing.copy(
         proposal_1=proposal_1,
@@ -65,7 +65,7 @@ def test_validate_proposer_slashing_slot(genesis_state,
 
     # Invalid
     with pytest.raises(ValidationError):
-        validate_proposer_slashing_slot(invalid_proposer_slashing)
+        validate_proposer_slashing_epoch(invalid_proposer_slashing, config.SLOTS_PER_EPOCH)
 
 
 def test_validate_proposer_slashing_shard(genesis_state,
