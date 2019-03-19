@@ -34,7 +34,7 @@ import libp2p.p2pclient.pb.p2pd_pb2 as p2pd_pb
 
 
 NUM_P2PDS = 4
-TIMEOUT_DURATION = 30 # seconds
+TIMEOUT_DURATION = 30  # seconds
 
 
 @pytest.fixture(scope="module")
