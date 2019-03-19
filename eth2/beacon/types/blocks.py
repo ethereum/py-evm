@@ -179,7 +179,6 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
         #
         # Header
         #
-        # TODO just embed the header?
         ('slot', uint64),
         ('previous_block_root', bytes32),
         ('state_root', bytes32),
