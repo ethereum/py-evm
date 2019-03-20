@@ -166,9 +166,9 @@ def validate_proposer_slashing_epoch(proposer_slashing: ProposerSlashing,
 def validate_proposer_slashing_headers(proposer_slashing: ProposerSlashing) -> None:
     header_1 = proposer_slashing.header_1
     header_2 = proposer_slashing.header_2
-    if header_1 != header_2:
+    if header_1 == header_2:
         raise ValidationError(
-            f"proposer_slashing.header_1 ({header_1}) != proposer_slashing.header_2 ({header_2})"
+            f"proposer_slashing.header_1 ({header_1}) == proposer_slashing.header_2 ({header_2})"
         )
 
 
