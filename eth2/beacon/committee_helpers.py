@@ -384,7 +384,7 @@ def get_beacon_proposer_index(state: 'BeaconState',
             "The first committee should not be empty"
         )
 
-    return first_committee[slot % len(first_committee)]
+    return first_committee[epoch % len(first_committee)]
 
 
 @to_tuple
