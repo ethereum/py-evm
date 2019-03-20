@@ -46,7 +46,7 @@ from eth2.beacon.validator_status_helpers import (
 )
 
 
-def get_empty_block(genesis_slot: slot,
+def get_empty_block(genesis_slot: Slot,
                     block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
     return block_class(
         slot=genesis_slot,
