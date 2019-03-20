@@ -197,12 +197,12 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
         ('slot', uint64),
         ('previous_block_root', bytes32),
         ('state_root', bytes32),
-        ('signature', bytes96),
 
         #
         # Body
         #
         ('body', BeaconBlockBody),
+        ('signature', bytes96),
     ]
 
     def __init__(self,
