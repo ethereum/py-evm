@@ -153,8 +153,8 @@ def validate_proposer_slashing(state: BeaconState,
 
 def validate_proposer_slashing_epoch(proposer_slashing: ProposerSlashing,
                                      slots_per_epoch: int) -> None:
-    epoch_1 = slot_to_epoch(proposer_slashing.proposal_1.slot, slots_per_epoch)
-    epoch_2 = slot_to_epoch(proposer_slashing.proposal_2.slot, slots_per_epoch)
+    epoch_1 = slot_to_epoch(proposer_slashing.header_1.slot, slots_per_epoch)
+    epoch_2 = slot_to_epoch(proposer_slashing.header_2.slot, slots_per_epoch)
 
     if epoch_1 != epoch_2:
         raise ValidationError(
