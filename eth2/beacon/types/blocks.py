@@ -74,6 +74,12 @@ class BeaconBlockHeader(ssz.Serializable):
             signature=signature,
         )
 
+    def __repr__(self) -> str:
+        return '<BlockHeader #{0} {1}>'.format(
+            self.slot,
+            encode_hex(self.root)[2:10],
+        )
+
     _signed_root = None
 
     @property
