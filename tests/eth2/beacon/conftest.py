@@ -149,10 +149,16 @@ def sample_beacon_block_params(sample_beacon_block_body_params,
 
 
 @pytest.fixture
+def sample_genesis_block_class():
+    return SerenityBeaconBlock
+
+
+@pytest.fixture
 def sample_beacon_state_params(genesis_slot,
                                genesis_epoch,
                                sample_fork_params,
-                               sample_eth1_data_params):
+                               sample_eth1_data_params,
+                               sample_block_header_params):
     return {
         'slot': genesis_slot + 100,
         'genesis_time': 0,
@@ -181,6 +187,7 @@ def sample_beacon_state_params(genesis_slot,
         'latest_state_roots': (),
         'latest_active_index_roots': (),
         'latest_slashed_balances': (),
+        'latest_block_header': BeaconBlockHeader(**sample_block_header_params),
         'historical_roots': (),
         'latest_eth1_data': Eth1Data(**sample_eth1_data_params),
         'eth1_data_votes': (),
@@ -360,6 +367,7 @@ def filled_beacon_state(genesis_epoch,
         latest_active_index_roots_length=latest_active_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
         latest_slashed_exit_length=latest_slashed_exit_length,
+        genesis_block_class=SerenityBeaconBlock,
     )
 
 
