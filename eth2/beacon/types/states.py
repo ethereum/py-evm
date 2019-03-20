@@ -33,6 +33,7 @@ from eth2.beacon.typing import (
     ValidatorIndex,
 )
 
+from .blocks import BeaconBlockHeader
 from .eth1_data import Eth1Data
 from .eth1_data_vote import Eth1DataVote
 from .crosslink_records import CrosslinkRecord
@@ -82,6 +83,7 @@ class BeaconState(ssz.Serializable):
         ('latest_state_roots', List(bytes32)),
         ('latest_active_index_roots', List(bytes32)),
         ('latest_slashed_balances', List(uint64)),  # Balances slashed at every withdrawal period  # noqa: E501
+        ('latest_block_header', BeaconBlockHeader),
         ('historical_roots', List(bytes32)),  # allow for a log-sized Merkle proof from any block to any historical block root"  # noqa: E501
 
         # Ethereum 1.0 chain
@@ -125,6 +127,7 @@ class BeaconState(ssz.Serializable):
             latest_state_roots: Sequence[Hash32],
             latest_active_index_roots: Sequence[Hash32],
             latest_slashed_balances: Sequence[Gwei],
+            latest_block_header: BeaconBlockHeader,
             historical_roots: Sequence[Hash32],
             # Ethereum 1.0 chain
             latest_eth1_data: Eth1Data,
@@ -167,6 +170,7 @@ class BeaconState(ssz.Serializable):
             latest_state_roots=latest_state_roots,
             latest_active_index_roots=latest_active_index_roots,
             latest_slashed_balances=latest_slashed_balances,
+            latest_block_header=latest_block_header,
             historical_roots=historical_roots,
             # Ethereum 1.0 chain
             latest_eth1_data=latest_eth1_data,
@@ -213,7 +217,8 @@ class BeaconState(ssz.Serializable):
                             latest_randao_mixes_length: int,
                             latest_slashed_exit_length: int,
                             activated_genesis_validators: Sequence[ValidatorRecord]=(),
-                            genesis_balances: Sequence[Gwei]=()) -> 'BeaconState':
+                            genesis_balances: Sequence[Gwei]=(),
+                            latest_block_header: BeaconBlockHeader) -> 'BeaconState':
         return cls(
             # Misc
             slot=genesis_slot,
@@ -262,6 +267,7 @@ class BeaconState(ssz.Serializable):
             latest_state_roots=(ZERO_HASH32,) * slots_per_historical_root,
             latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
             latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
+            latest_block_header=latest_block_header,
             historical_roots=(),
 
             # Ethereum 1.0 chain data

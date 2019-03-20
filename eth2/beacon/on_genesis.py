@@ -21,6 +21,7 @@ from eth2.beacon.helpers import (
     generate_seed,
     get_active_validator_indices,
     get_effective_balance,
+    get_temporary_block_header,
 )
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
@@ -81,7 +82,8 @@ def get_genesis_beacon_state(*,
                              latest_slashed_exit_length: int,
                              latest_randao_mixes_length: int,
                              activation_exit_delay: int,
-                             deposit_contract_tree_depth: int) -> BeaconState:
+                             deposit_contract_tree_depth: int,
+                             block_class: Type[BaseBeaconBlock]) -> BeaconState:
     state = BeaconState(
         # Misc
         slot=genesis_slot,
@@ -125,6 +127,12 @@ def get_genesis_beacon_state(*,
         latest_state_roots=(ZERO_HASH32,) * slots_per_historical_root,
         latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
         latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
+        latest_block_header=get_temporary_block_header(
+            get_empty_block(
+                genesis_slot,
+                block_class,
+            )
+        ),
         historical_roots=(),
 
         # Ethereum 1.0 chain data
