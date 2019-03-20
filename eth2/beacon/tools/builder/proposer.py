@@ -136,7 +136,7 @@ def create_block_on_state(
         slot=slot,
         previous_block_root=parent_block.root,
         state_root=state.root,
-        block_body_root=body.signed_root,
+        block_body_root=body.root,
     ).signed_root
 
     signature = sign_transaction(
