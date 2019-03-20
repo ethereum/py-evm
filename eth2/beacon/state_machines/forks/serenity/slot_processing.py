@@ -13,9 +13,6 @@ from eth_typing import (
 from eth2.configs import (
     Eth2Config,
 )
-from eth2.beacon.helpers import (
-    get_state_root
-)
 from eth2.beacon.typing import (
     Slot,
 )
