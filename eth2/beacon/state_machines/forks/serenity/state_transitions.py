@@ -29,6 +29,7 @@ from .operation_processing import (
 )
 from .slot_processing import (
     process_slot_transition,
+    process_cache_state,
 )
 
 
@@ -43,6 +44,7 @@ class SerenityStateTransition(BaseStateTransition):
                                block: BaseBeaconBlock,
                                check_proposer_signature: bool=True) -> BeaconState:
         while state.slot != block.slot:
+            state = self.cache_state(state)
             state = self.per_slot_transition(state)
             if state.slot == block.slot:
                 state = self.per_block_transition(state, block, check_proposer_signature)
@@ -65,13 +67,17 @@ class SerenityStateTransition(BaseStateTransition):
         # the requested slot
         target_slot = slot - 1
         for _ in range(state.slot, target_slot):
-            state = self.per_slot_transition(state)
+            state = self.cache_state(state)
             if (state.slot + 1) % self.config.SLOTS_PER_EPOCH == 0:
                 state = self.per_epoch_transition(state)
+            state = self.per_slot_transition(state)
         return state
 
+    def cache_state(self, state: BeaconState) -> BeaconState:
+        return process_cache_state(state, self.config)
+
     def per_slot_transition(self, state: BeaconState) -> BeaconState:
-        return process_slot_transition(state, self.config)
+        return process_slot_transition(state)
 
     def per_block_transition(self,
                              state: BeaconState,

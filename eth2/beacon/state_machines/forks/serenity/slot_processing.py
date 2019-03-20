@@ -31,7 +31,7 @@ def _update_historical_root(roots: Sequence[Hash32],
     return tuple(mutable_roots)
 
 
-def process_slot_transition(state: BeaconState, config: Eth2Config) -> BeaconState:
+def process_cache_state(state: BeaconState, config: Eth2Config) -> BeaconState:
     slots_per_historical_root = config.SLOTS_PER_HISTORICAL_ROOT
 
     # Update state.latest_state_roots
@@ -43,29 +43,20 @@ def process_slot_transition(state: BeaconState, config: Eth2Config) -> BeaconSta
         latest_state_root,
     )
 
-    # Update state.slot
-    state = state.copy(
-        slot=state.slot + 1
-    )
-
     if state.latest_block_header.state_root == ZERO_HASH32:
-        next_state_root = get_state_root(
-            state,
-            state.slot - 1,
-            config.SLOTS_PER_HISTORICAL_ROOT,
-        )
         latest_block_header = state.latest_block_header
         state = state.copy(
             latest_block_header=latest_block_header.copy(
-                state_root=next_state_root,
+                state_root=latest_state_root,
             ),
         )
 
     # Update state.latest_block_roots
     updated_latest_block_roots = _update_historical_root(
         state.latest_block_roots,
-        state.slot - 1,
+        state.slot,
         slots_per_historical_root,
+        # TODO make `signed_root`
         state.latest_block_header.root,
     )
 
@@ -75,3 +66,10 @@ def process_slot_transition(state: BeaconState, config: Eth2Config) -> BeaconSta
     )
 
     return state
+
+
+def process_slot_transition(state: BeaconState) -> BeaconState:
+    # Update state.slot
+    return state.copy(
+        slot=state.slot + 1
+    )

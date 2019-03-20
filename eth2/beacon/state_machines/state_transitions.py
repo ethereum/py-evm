@@ -42,6 +42,11 @@ class BaseStateTransition(Configurable, ABC):
         pass
 
     @abstractmethod
+    def cache_state(self,
+                    state: BeaconState) -> BeaconState:
+        pass
+
+    @abstractmethod
     def per_slot_transition(self,
                             state: BeaconState) -> BeaconState:
         pass
