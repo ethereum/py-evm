@@ -89,9 +89,18 @@ class BeaconBlockHeader(ssz.Serializable):
             self._signed_root = hash_eth2(ssz.encode(self.copy(signature=EMPTY_SIGNATURE)))
         return Hash32(self._signed_root)
 
+    _hash = None
+
+    @property
+    def hash(self) -> Hash32:
+        if self._hash is None:
+            self._hash = hash_eth2(ssz.encode(self))
+        return self._hash
+
     @property
     def root(self) -> Hash32:
         return ssz.hash_tree_root(self)
+
 
 class BeaconBlockBody(ssz.Serializable):
 
