@@ -71,8 +71,6 @@ async def test_send_single_block(request, event_loop):
         slot=1,
         previous_block_root=ZERO_HASH32,
         state_root=ZERO_HASH32,
-        randao_reveal=EMPTY_SIGNATURE,
-        eth1_data=Eth1Data.create_empty_data(),
         signature=EMPTY_SIGNATURE,
         body=BeaconBlockBody.create_empty_body(),
     )
