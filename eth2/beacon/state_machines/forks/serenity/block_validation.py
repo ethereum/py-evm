@@ -98,8 +98,8 @@ def validate_proposer_signature(state: BeaconState,
                                 beacon_chain_shard_number: Shard,
                                 committee_config: CommitteeConfig) -> None:
 
-    # TODO: Replace this with signed_root
-    message_hash = block.header.signed_root
+    # TODO: Replace this with real signed_root
+    message_hash = block.signed_root
 
     # Get the public key of proposer
     beacon_proposer_index = get_beacon_proposer_index(
