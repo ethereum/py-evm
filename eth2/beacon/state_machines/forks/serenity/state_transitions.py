@@ -1,10 +1,5 @@
-from eth_typing import (
-    Hash32,
-)
-
 from eth2.configs import (
     Eth2Config,
-    CommitteeConfig,
 )
 from eth2.beacon.state_machines.state_transitions import BaseStateTransition
 from eth2.beacon.types.blocks import BaseBeaconBlock
@@ -12,12 +7,9 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import Slot
 
 from .block_processing import (
+    process_block_header,
     process_eth1_data,
     process_randao,
-)
-from .block_validation import (
-    validate_block_slot,
-    validate_proposer_signature,
 )
 from .epoch_processing import (
     process_eth1_data_votes,
@@ -51,7 +43,7 @@ class SerenityStateTransition(BaseStateTransition):
                                block: BaseBeaconBlock,
                                check_proposer_signature: bool=True) -> BeaconState:
         while state.slot != block.slot:
-            state = self.per_slot_transition(state, block.previous_block_root)
+            state = self.per_slot_transition(state)
             if state.slot == block.slot:
                 state = self.per_block_transition(state, block, check_proposer_signature)
             if (state.slot + 1) % self.config.SLOTS_PER_EPOCH == 0:
@@ -61,8 +53,7 @@ class SerenityStateTransition(BaseStateTransition):
 
     def apply_state_transition_without_block(self,
                                              state: BeaconState,
-                                             slot: Slot,
-                                             parent_root: Hash32) -> BeaconState:
+                                             slot: Slot) -> BeaconState:
         """
         Advance the ``state`` to the beginning of the requested ``slot``.
         Return the resulting state at that slot assuming there are no intervening blocks.
@@ -74,30 +65,19 @@ class SerenityStateTransition(BaseStateTransition):
         # the requested slot
         target_slot = slot - 1
         for _ in range(state.slot, target_slot):
-            state = self.per_slot_transition(state, parent_root)
+            state = self.per_slot_transition(state)
             if (state.slot + 1) % self.config.SLOTS_PER_EPOCH == 0:
                 state = self.per_epoch_transition(state)
         return state
 
-    def per_slot_transition(self,
-                            state: BeaconState,
-                            previous_block_root: Hash32) -> BeaconState:
-        return process_slot_transition(state, self.config, previous_block_root)
+    def per_slot_transition(self, state: BeaconState) -> BeaconState:
+        return process_slot_transition(state, self.config)
 
     def per_block_transition(self,
                              state: BeaconState,
                              block: BaseBeaconBlock,
                              check_proposer_signature: bool=True) -> BeaconState:
-        validate_block_slot(state, block)
-
-        if check_proposer_signature:
-            validate_proposer_signature(
-                state,
-                block,
-                beacon_chain_shard_number=self.config.BEACON_CHAIN_SHARD_NUMBER,
-                committee_config=CommitteeConfig(self.config),
-            )
-
+        state = process_block_header(state, block, self.config, check_proposer_signature)
         state = process_randao(state, block, self.config)
         state = process_eth1_data(state, block)
 

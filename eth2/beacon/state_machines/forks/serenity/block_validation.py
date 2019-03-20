@@ -79,6 +79,17 @@ def validate_block_slot(state: BeaconState,
         )
 
 
+def validate_block_previous_root(state: BeaconState,
+                                 block: BaseBeaconBlock) -> None:
+    expected_root = state.latest_block_header.root
+    previous_root = block.previous_block_root
+    if previous_root != expected_root:
+        raise ValidationError(
+            f"block.previous_block_root ({previous_root}) is not equal to "
+            f"state.latest_block_header.root ({expected_root})"
+        )
+
+
 #
 # Proposer signature validation
 #

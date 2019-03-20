@@ -22,10 +22,39 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import (
 
 from eth2.beacon.helpers import (
     get_randao_mix,
+    get_temporary_block_header,
 )
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
 )
+
+from .block_validation import (
+    validate_block_slot,
+    validate_block_previous_root,
+    validate_proposer_signature,
+)
+
+
+def process_block_header(state: BeaconState,
+                         block: BaseBeaconBlock,
+                         config: BeaconConfig,
+                         check_proposer_signature: bool) -> BeaconState:
+    validate_block_slot(state, block)
+    validate_block_previous_root(state, block)
+
+    state = state.copy(
+        latest_block_header=get_temporary_block_header(block),
+    )
+
+    if check_proposer_signature:
+        validate_proposer_signature(
+            state,
+            block,
+            beacon_chain_shard_number=config.BEACON_CHAIN_SHARD_NUMBER,
+            committee_config=CommitteeConfig(config),
+        )
+
+    return state
 
 
 def process_eth1_data(state: BeaconState,
