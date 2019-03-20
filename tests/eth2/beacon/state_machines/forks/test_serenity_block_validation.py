@@ -106,11 +106,12 @@ def test_validate_proposer_signature(
         validator_balances=(max_deposit_amount,) * 10,
     )
 
-    block_without_signature = BeaconBlock(**sample_beacon_block_params)
+    block = BeaconBlock(**sample_beacon_block_params)
+    header = block.header
 
-    proposed_block = block_without_signature.copy(
+    proposed_block = block.copy(
         signature=bls.sign(
-            message_hash=block_without_signature.signed_root,
+            message_hash=header.signed_root,
             privkey=proposer_privkey,
             domain=get_domain(
                 Fork(
