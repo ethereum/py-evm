@@ -3,9 +3,6 @@ from abc import (
     abstractmethod,
 )
 
-from eth_typing import (
-    Hash32,
-)
 from eth._utils.datatypes import (
     Configurable,
 )
@@ -32,8 +29,7 @@ class BaseStateTransition(Configurable, ABC):
     @abstractmethod
     def apply_state_transition_without_block(self,
                                              state: BeaconState,
-                                             slot: Slot,
-                                             parent_root: Hash32) -> BeaconState:
+                                             slot: Slot) -> BeaconState:
         """
         Advance the ``state`` to the beginning of the requested ``slot``.
         Return the resulting state at that slot assuming there are no
@@ -41,15 +37,13 @@ class BaseStateTransition(Configurable, ABC):
         the future state of the chain, useful for generating RANDAO reveals or
         computing future committee assignments.
 
-        NOTE: Inserting blocks in intervening slots will (among other things) change the
-        ``parent_root``, invalidating the returned state.
+        NOTE: Inserting blocks in intervening slots will invalidate the returned state.
         """
         pass
 
     @abstractmethod
     def per_slot_transition(self,
-                            state: BeaconState,
-                            previous_block_root: Hash32) -> BeaconState:
+                            state: BeaconState) -> BeaconState:
         pass
 
     @abstractmethod

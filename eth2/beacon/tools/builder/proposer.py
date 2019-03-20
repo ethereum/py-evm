@@ -162,7 +162,7 @@ def _get_proposer_index(state_machine: BaseBeaconStateMachine,
                         config: Eth2Config) -> ValidatorIndex:
     # advance the state to the ``slot``.
     state_transition = state_machine.state_transition
-    state = state_transition.apply_state_transition_without_block(state, slot, previous_block_root)
+    state = state_transition.apply_state_transition_without_block(state, slot)
 
     proposer_index = get_beacon_proposer_index(
         state,
