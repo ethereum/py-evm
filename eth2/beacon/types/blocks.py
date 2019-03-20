@@ -56,7 +56,7 @@ class BeaconBlockHeader(ssz.Serializable):
         ('previous_block_root', bytes32),
         ('state_root', bytes32),
         ('block_body_root', bytes32),
-        ('signature', BLSSignature),
+        ('signature', bytes96),
     ]
 
     def __init__(self,
@@ -81,7 +81,7 @@ class BeaconBlockHeader(ssz.Serializable):
         # TODO Use SSZ built-in function
         if self._signed_root is None:
             self._signed_root = hash_eth2(ssz.encode(self.copy(signature=EMPTY_SIGNATURE)))
-        return self._signed_root
+        return Hash32(self._signed_root)
 
 
 class BeaconBlockBody(ssz.Serializable):
