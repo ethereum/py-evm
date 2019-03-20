@@ -50,14 +50,16 @@ def process_slot_transition(state: BeaconState, config: Eth2Config) -> BeaconSta
     )
 
     if state.latest_block_header.state_root == ZERO_HASH32:
-        latest_block_header = state.latest_block_header
-        latest_block_header.state_root = get_state_root(
+        next_state_root = get_state_root(
             state,
             state.slot - 1,
             config.SLOTS_PER_HISTORICAL_ROOT,
         )
+        latest_block_header = state.latest_block_header
         state = state.copy(
-            latest_block_header=latest_block_header,
+            latest_block_header=latest_block_header.copy(
+                state_root=next_state_root,
+            ),
         )
 
     # Update state.latest_block_roots
