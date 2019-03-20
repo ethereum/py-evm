@@ -6,9 +6,9 @@ from typing import (
 from eth_typing import (
     BLSPubkey,
     BLSSignature,
+    Hash32,
 )
 
-from eth_typing import Hash32
 
 from eth2.configs import (
     CommitteeConfig,
