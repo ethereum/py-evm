@@ -229,17 +229,9 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
     def num_attestations(self) -> int:
         return len(self.body.attestations)
 
-    @property
-    def block_without_signature_root(self) -> Hash32:
-        return self.copy(
-            signature=EMPTY_SIGNATURE
-        ).root
-
     _signed_root = None
 
     @property
-    # TODO: should supercede `block_without_signature_root`
-    # TODO,cont: unify these methods once we have settled on signing scheme
     def signed_root(self) -> Hash32:
         # TODO Use SSZ built-in function
         if self._signed_root is None:
