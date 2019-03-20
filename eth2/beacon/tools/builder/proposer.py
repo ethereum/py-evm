@@ -148,15 +148,18 @@ def create_block_on_state(
     return block
 
 
-def _get_proposer_index(state_machine: BaseBeaconStateMachine,
-                        state: BeaconState,
-                        slot: Slot,
-                        previous_block_root: Hash32,
-                        config: Eth2Config) -> ValidatorIndex:
+def advance_to_slot(state_machine: BaseBeaconStateMachine,
+                    state: BeaconState,
+                    slot: Slot) -> BeaconState:
     # advance the state to the ``slot``.
     state_transition = state_machine.state_transition
     state = state_transition.apply_state_transition_without_block(state, slot)
+    return state
 
+
+def _get_proposer_index(state: BeaconState,
+                        slot: Slot,
+                        config: Eth2Config) -> ValidatorIndex:
     proposer_index = get_beacon_proposer_index(
         state,
         slot,
@@ -179,12 +182,17 @@ def create_mock_block(*,
 
     Note that it doesn't return the correct ``state_root``.
     """
-    proposer_index = _get_proposer_index(state_machine, state, slot, parent_block.root, config)
+    future_state = advance_to_slot(state_machine, state, slot)
+    proposer_index = _get_proposer_index(
+        future_state,
+        slot,
+        config
+    )
     proposer_pubkey = state.validator_registry[proposer_index].pubkey
     proposer_privkey = keymap[proposer_pubkey]
 
     result_block = create_block_on_state(
-        state=state,
+        state=future_state,
         config=config,
         state_machine=state_machine,
         block_class=block_class,
