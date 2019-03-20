@@ -7,4 +7,4 @@ class SignatureDomain(IntEnum):
     DOMAIN_ATTESTATION = 2
     DOMAIN_DEPOSIT = 3
     DOMAIN_VOLUNTARY_EXIT = 4
-    DOMAIN_TRANSFER = 4
+    DOMAIN_TRANSFER = 5
