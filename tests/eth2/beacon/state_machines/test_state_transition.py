@@ -86,7 +86,10 @@ def test_per_slot_transition(base_db,
     # Get state transition instance
     st = sm.state_transition_class(sm.config)
 
-    updated_state = st.per_slot_transition(state, block.previous_block_root)
+    # NOTE: we want to run both functions, however they are run independently
+    # so we have two function calls
+    updated_state = st.cache_state(state)
+    updated_state = st.per_slot_transition(updated_state)
 
     # Ensure that slot gets increased by 1
     assert updated_state.slot == state.slot + 1
