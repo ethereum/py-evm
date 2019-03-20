@@ -45,15 +45,22 @@ from eth2.beacon.validator_status_helpers import (
 )
 
 
-def get_genesis_block(genesis_state_root: Hash32,
-                      genesis_slot: Slot,
-                      block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+def get_empty_block(genesis_slot: slot,
+                    block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
     return block_class(
         slot=genesis_slot,
         previous_block_root=ZERO_HASH32,
-        state_root=genesis_state_root,
-        signature=EMPTY_SIGNATURE,
+        state_root=ZERO_HASH32,
         body=BeaconBlockBody.create_empty_body(),
+        signature=EMPTY_SIGNATURE,
+    )
+
+
+def get_genesis_block(genesis_state_root: Hash32,
+                      genesis_slot: Slot,
+                      block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+    return get_empty_block(genesis_slot, block_class).copy(
+        state_root=genesis_state_root,
     )
 
 
