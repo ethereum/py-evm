@@ -60,7 +60,9 @@ def test_get_genesis_beacon_state(
         activation_exit_delay,
         config,
         keymap,
-        deposit_contract_tree_depth):
+        deposit_contract_tree_depth,
+        sample_eth1_data_params,
+        sample_genesis_block_class):
     validator_count = 5
 
     genesis_validator_deposits, deposit_root = create_mock_genesis_validator_deposits_and_root(
@@ -94,6 +96,7 @@ def test_get_genesis_beacon_state(
         latest_randao_mixes_length=latest_randao_mixes_length,
         activation_exit_delay=activation_exit_delay,
         deposit_contract_tree_depth=deposit_contract_tree_depth,
+        block_class=sample_genesis_block_class,
     )
 
     # Misc
