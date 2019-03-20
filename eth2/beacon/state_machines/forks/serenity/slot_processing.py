@@ -35,7 +35,6 @@ def process_slot_transition(state: BeaconState, config: Eth2Config) -> BeaconSta
     slots_per_historical_root = config.SLOTS_PER_HISTORICAL_ROOT
 
     # Update state.latest_state_roots
-    # TODO ensure this becomes the `hash_tree_root` of the `state`
     latest_state_root = state.root
     updated_latest_state_roots = _update_historical_root(
         state.latest_state_roots,
