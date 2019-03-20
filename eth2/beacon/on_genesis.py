@@ -11,9 +11,6 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
-from eth2.beacon.constants import (
-    EMPTY_SIGNATURE,
-)
 from eth2.beacon.deposit_helpers import (
     process_deposit,
 )
@@ -21,11 +18,11 @@ from eth2.beacon.helpers import (
     generate_seed,
     get_active_validator_indices,
     get_effective_balance,
+    get_empty_block,
     get_temporary_block_header,
 )
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
-    BeaconBlockBody,
 )
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.deposits import Deposit
@@ -44,17 +41,6 @@ from eth2.beacon.typing import (
 from eth2.beacon.validator_status_helpers import (
     activate_validator,
 )
-
-
-def get_empty_block(genesis_slot: Slot,
-                    block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-    return block_class(
-        slot=genesis_slot,
-        previous_block_root=ZERO_HASH32,
-        state_root=ZERO_HASH32,
-        body=BeaconBlockBody.create_empty_body(),
-        signature=EMPTY_SIGNATURE,
-    )
 
 
 def get_genesis_block(genesis_state_root: Hash32,

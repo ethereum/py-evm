@@ -2,6 +2,7 @@ from typing import (
     Sequence,
     Tuple,
     TYPE_CHECKING,
+    Type,
 )
 
 from eth.constants import (
@@ -18,10 +19,18 @@ from eth_typing import (
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
+from eth2.beacon.constants import (
+    EMPTY_SIGNATURE,
+)
 from eth2.beacon.enums import (
     SignatureDomain,
 )
-from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockHeader
+from eth2.beacon.types.blocks import (
+    BaseBeaconBlock,
+    BeaconBlock,
+    BeaconBlockHeader,
+    BeaconBlockBody
+)
 from eth2.beacon.typing import (
     Epoch,
     Gwei,
@@ -42,7 +51,7 @@ if TYPE_CHECKING:
 
 
 #
-# Header helpers
+# Header/block helpers
 #
 def get_temporary_block_header(block: BeaconBlock) -> BeaconBlockHeader:
     """
@@ -54,6 +63,17 @@ def get_temporary_block_header(block: BeaconBlock) -> BeaconBlockHeader:
         state_root=ZERO_HASH32,
         block_body_root=block.body.root,
         signature=block.signature,
+    )
+
+
+def get_empty_block(genesis_slot: Slot,
+                    block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+    return block_class(
+        slot=genesis_slot,
+        previous_block_root=ZERO_HASH32,
+        state_root=ZERO_HASH32,
+        body=BeaconBlockBody.create_empty_body(),
+        signature=EMPTY_SIGNATURE,
     )
 
 
