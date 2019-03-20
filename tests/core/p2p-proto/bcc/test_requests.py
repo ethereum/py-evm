@@ -59,7 +59,7 @@ async def test_get_single_block_by_slot(request, event_loop):
     chain_db = await get_chain_db((block,))
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
-    alice.sub_proto.send_get_blocks(block.hash, 1, request_id=5)
+    alice.sub_proto.send_get_blocks(block.root, 1, request_id=5)
     response = await response_buffer.msg_queue.get()
 
     assert isinstance(response.command, BeaconBlocks)

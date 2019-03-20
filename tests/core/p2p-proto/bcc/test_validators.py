@@ -26,10 +26,10 @@ TEST_BRANCH = create_branch(
     (10, 100, TEST_BRANCH),
 
 
-    (TEST_BRANCH[0].hash, 100, ()),
-    (TEST_BRANCH[0].hash, 100, TEST_BRANCH[:1]),
-    (TEST_BRANCH[0].hash, 100, TEST_BRANCH[:2]),
-    (TEST_BRANCH[0].hash, 100, TEST_BRANCH),
+    (TEST_BRANCH[0].root, 100, ()),
+    (TEST_BRANCH[0].root, 100, TEST_BRANCH[:1]),
+    (TEST_BRANCH[0].root, 100, TEST_BRANCH[:2]),
+    (TEST_BRANCH[0].root, 100, TEST_BRANCH),
 ])
 def test_valid_beacon_blocks_validation(block_slot_or_hash, max_blocks, result):
     validator = BeaconBlocksValidator(10, 100)
@@ -46,12 +46,12 @@ def test_valid_beacon_blocks_validation(block_slot_or_hash, max_blocks, result):
     (11, 100, TEST_BRANCH),
     (9, 100, TEST_BRANCH),
 
-    (TEST_BRANCH[0].hash, 100, TEST_BRANCH[1:]),
-    (TEST_BRANCH[0].hash, 100, TEST_BRANCH[::-1]),
-    (TEST_BRANCH[0].hash, 100, (TEST_BRANCH[0], TEST_BRANCH[2])),
-    (TEST_BRANCH[0].hash, 100, (TEST_BRANCH[0], TEST_BRANCH[2], TEST_BRANCH[1])),
-    (TEST_BRANCH[0].hash, 100, (TEST_BRANCH[0],) + TEST_BRANCH[1::-1]),
-    (TEST_BRANCH[0].hash, 99, TEST_BRANCH),
+    (TEST_BRANCH[0].root, 100, TEST_BRANCH[1:]),
+    (TEST_BRANCH[0].root, 100, TEST_BRANCH[::-1]),
+    (TEST_BRANCH[0].root, 100, (TEST_BRANCH[0], TEST_BRANCH[2])),
+    (TEST_BRANCH[0].root, 100, (TEST_BRANCH[0], TEST_BRANCH[2], TEST_BRANCH[1])),
+    (TEST_BRANCH[0].root, 100, (TEST_BRANCH[0],) + TEST_BRANCH[1::-1]),
+    (TEST_BRANCH[0].root, 99, TEST_BRANCH),
     (b"\x00" * 32, 100, TEST_BRANCH),
 ])
 def test_invalid_beacon_blocks_validation(block_slot_or_hash, max_blocks, result):

@@ -413,7 +413,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             # TODO: this should probably be done as part of the fork choice rule processing
             db.set(
                 SchemaV1.make_finalized_head_root_lookup_key(),
-                first_block.hash,
+                first_block.root,
             )
         else:
             score = first_block.slot

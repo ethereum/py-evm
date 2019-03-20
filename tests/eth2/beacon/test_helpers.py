@@ -68,7 +68,7 @@ def generate_mock_latest_historical_roots(
     chain_length = (current_slot // slots_per_epoch + 1) * slots_per_epoch
     blocks = get_pseudo_chain(chain_length, genesis_block)
     latest_block_roots = [
-        block.hash
+        block.root
         for block in blocks[:current_slot]
     ] + [
         ZERO_HASH32

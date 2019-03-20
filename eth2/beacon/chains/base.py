@@ -364,7 +364,7 @@ class BeaconChain(BaseBeaconChain):
                 "Attempt to import block #{}.  Cannot import block {} before importing "
                 "its parent block at {}".format(
                     block.slot,
-                    block.hash,
+                    block.root,
                     block.previous_block_root,
                 )
             )
@@ -387,9 +387,9 @@ class BeaconChain(BaseBeaconChain):
         ) = self.chaindb.persist_block(imported_block, imported_block.__class__)
 
         self.logger.debug(
-            'IMPORTED_BLOCK: slot %s | hash %s',
+            'IMPORTED_BLOCK: slot %s | root %s',
             imported_block.slot,
-            encode_hex(imported_block.hash),
+            encode_hex(imported_block.root),
         )
 
         return imported_block, new_canonical_blocks, old_canonical_blocks
