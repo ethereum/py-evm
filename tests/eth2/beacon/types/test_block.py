@@ -41,3 +41,10 @@ def test_block_body_empty(sample_attestation_params):
         attestations=(Attestation(**sample_attestation_params),),
     )
     assert not block_body.is_empty
+
+
+def test_block_root_and_block_header_root_equivalence(sample_block):
+    block = sample_block
+    header = block.header
+
+    assert block.root == header.root

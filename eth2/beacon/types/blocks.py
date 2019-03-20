@@ -83,6 +83,9 @@ class BeaconBlockHeader(ssz.Serializable):
             self._signed_root = hash_eth2(ssz.encode(self.copy(signature=EMPTY_SIGNATURE)))
         return Hash32(self._signed_root)
 
+    @property
+    def root(self) -> Hash32:
+        return ssz.hash_tree_root(self)
 
 class BeaconBlockBody(ssz.Serializable):
 
@@ -168,10 +171,7 @@ class BeaconBlockBody(ssz.Serializable):
 
     @property
     def root(self) -> Hash32:
-        # TODO use `hash_tree_root` in lieu of `hash` here
-        # Alias of `hash`.
-        # Using flat hash, might change to SSZ tree hash.
-        return self.hash
+        return ssz.hash_tree_root(self)
 
 
 class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
@@ -221,9 +221,7 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
 
     @property
     def root(self) -> Hash32:
-        # Alias of `hash`.
-        # Using flat hash, might change to SSZ tree hash.
-        return self.hash
+        return ssz.hash_tree_root(self)
 
     @property
     def num_attestations(self) -> int:
