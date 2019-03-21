@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import (
     AsyncIterator,
     Tuple,
@@ -19,6 +20,9 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
     ValidationError,
+)
+from eth.rlp.blocks import (
+    BaseBlock,
 )
 from eth.rlp.headers import (
     BlockHeader,
@@ -252,3 +256,21 @@ class PeerHeaderSyncer(BaseService):
 
         for header in iter_headers:
             yield header
+
+
+class BaseBlockImporter(ABC):
+    @abstractmethod
+    async def import_block(
+            self,
+            block: BaseBlock) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+        pass
+
+
+class SimpleBlockImporter(BaseBlockImporter):
+    def __init__(self, chain: BaseAsyncChain) -> None:
+        self._chain = chain
+
+    async def import_block(
+            self,
+            block: BaseBlock) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+        return await self._chain.coro_import_block(block, perform_validation=True)
