@@ -82,10 +82,11 @@ def manager(database_server_ipc_path):
     return _manager
 
 
-def test_chaindb_over_ipc_manager(manager):
+@pytest.mark.asyncio
+async def test_chaindb_over_ipc_manager(manager):
     chaindb = manager.get_chaindb()
 
-    header = chaindb.get_canonical_head()
+    header = await chaindb.coro_get_canonical_head()
 
     assert header == ROPSTEN_GENESIS_HEADER
 

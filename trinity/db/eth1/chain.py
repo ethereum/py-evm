@@ -15,21 +15,20 @@ from typing import (
 from eth_typing import Hash32
 
 from eth.db.backends.base import BaseAtomicDB
-from eth.db.chain import BaseChainDB
 from eth.rlp.blocks import BaseBlock
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
 
+from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity._utils.mp import (
     async_method,
-    sync_method,
 )
 
 
-class BaseAsyncChainDB(BaseChainDB):
+class BaseAsyncChainDB(BaseAsyncHeaderDB):
     """
-    Abstract base class extends the abstract ``BaseChainDB`` with async APIs.
+    Abstract base class for the async counterpart to ``BaseChainDB``.
     """
 
     @abstractmethod
@@ -88,29 +87,6 @@ class AsyncChainDBPreProxy(BaseAsyncChainDB):
     coro_get_block_transactions = async_method('get_block_transactions')
     coro_get_block_uncles = async_method('get_block_uncles')
     coro_get_receipts = async_method('get_receipts')
-
-    add_receipt = sync_method('add_receipt')
-    add_transaction = sync_method('add_transaction')
-    exists = sync_method('exists')
-    get = sync_method('get')
-    get_block_header_by_hash = sync_method('get_block_header_by_hash')
-    get_block_transactions = sync_method('get_block_transactions')
-    get_block_transaction_hashes = sync_method('get_block_transaction_hashes')
-    get_block_uncles = sync_method('get_block_uncles')
-    get_canonical_head = sync_method('get_canonical_head')
-    get_receipt_by_index = sync_method('get_receipt_by_index')
-    get_receipts = sync_method('get_receipts')
-    get_score = sync_method('get_score')
-    get_transaction_by_index = sync_method('get_transaction_by_index')
-    get_transaction_index = sync_method('get_transaction_index')
-    header_exists = sync_method('header_exists')
-    get_canonical_block_header_by_number = sync_method('get_canonical_block_header_by_number')
-    get_canonical_block_hash = sync_method('get_canonical_block_hash')
-    persist_block = sync_method('persist_block')
-    persist_header = sync_method('persist_header')
-    persist_header_chain = sync_method('persist_header_chain')
-    persist_uncles = sync_method('persist_uncles')
-    persist_trie_data_dict = sync_method('persist_trie_data_dict')
 
 
 class AsyncChainDBProxy(BaseProxy, AsyncChainDBPreProxy):

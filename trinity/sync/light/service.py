@@ -301,7 +301,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         head_number = peer.head_number
         if head_number - header.block_number > MAX_REORG_DEPTH:
             # The peer claims to be far ahead of the header we requested
-            if self.headerdb.get_canonical_block_hash(header.block_number) == block_hash:
+            if await self.headerdb.coro_get_canonical_block_hash(header.block_number) == block_hash:
                 # Our node believes that the header at the reference hash is canonical,
                 # so treat the peer as malicious
                 raise BadLESResponse(

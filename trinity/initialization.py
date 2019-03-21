@@ -1,6 +1,7 @@
 import os
 
 from eth.db.backends.base import BaseAtomicDB
+from eth.db.chain import BaseChainDB
 from eth.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
@@ -11,7 +12,6 @@ from trinity.config import (
     ChainConfig,
     TrinityConfig,
 )
-from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.exceptions import (
     MissingPath,
 )
@@ -52,7 +52,7 @@ def is_data_dir_initialized(trinity_config: TrinityConfig) -> bool:
     return True
 
 
-def is_database_initialized(chaindb: BaseAsyncChainDB) -> bool:
+def is_database_initialized(chaindb: BaseChainDB) -> bool:
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
@@ -105,7 +105,7 @@ def initialize_data_dir(trinity_config: TrinityConfig) -> None:
 
 
 def initialize_database(chain_config: ChainConfig,
-                        chaindb: BaseAsyncChainDB,
+                        chaindb: BaseChainDB,
                         base_db: BaseAtomicDB) -> None:
     try:
         chaindb.get_canonical_head()

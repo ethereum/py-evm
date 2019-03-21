@@ -17,9 +17,6 @@ from eth_typing import (
 from eth.db.backends.base import (
     BaseAtomicDB,
 )
-from eth.db.header import (
-    BaseHeaderDB,
-)
 from eth.rlp.headers import BlockHeader
 
 from trinity._utils.mp import (
@@ -28,9 +25,9 @@ from trinity._utils.mp import (
 )
 
 
-class BaseAsyncHeaderDB(BaseHeaderDB):
+class BaseAsyncHeaderDB:
     """
-    Abstract base class extends the abstract ``BaseHeaderDB`` with async APIs.
+    Abstract base class for the async counterpart to ``BaseHeaderDB``.
     """
     @abstractmethod
     async def coro_get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
