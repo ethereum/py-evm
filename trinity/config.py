@@ -267,6 +267,8 @@ class TrinityConfig:
                 self.bootstrap_nodes = tuple(
                     KademliaNode.from_uri(enode) for enode in ROPSTEN_BOOTNODES
                 )
+            else:
+                self.bootstrap_nodes = tuple()
         else:
             self.bootstrap_nodes = bootstrap_nodes
 

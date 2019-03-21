@@ -115,7 +115,7 @@
         },
         "extraData": {
           "type": "string",
-          "pattern": "^0x([0-9a-fA-F]{2}){32}$"
+          "pattern": "^0x([0-9a-fA-F]{2}){0,32}$"
         },
         "gasLimit": {
           "type": "string",
