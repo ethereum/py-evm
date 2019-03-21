@@ -261,7 +261,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         Returns None if the remote is unreachable, times out or is useless.
         """
         if remote in self.connected_nodes:
-            self.logger.debug("Skipping %s; already connected to it", remote)
+            self.logger.debug2("Skipping %s; already connected to it", remote)
             return None
         if not self.peer_info.should_connect_to(remote):
             return None
