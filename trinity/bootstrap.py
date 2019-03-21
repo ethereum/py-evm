@@ -112,10 +112,12 @@ def main_entry(trinity_boot: BootFn,
     plugin_manager.amend_argparser_config(parser, subparser)
     args = parser.parse_args()
 
-    if args.network_id not in PRECONFIGURED_NETWORKS:
+    if not args.genesis and args.network_id not in PRECONFIGURED_NETWORKS:
         raise NotImplementedError(
-            f"Unsupported network id: {args.network_id}.  Only the ropsten and mainnet "
-            "networks are supported."
+            f"Unsupported network id: {args.network_id}. To use a network besides "
+            "mainnet or ropsten, you must supply a genesis file with a flag, like "
+            "`--genesis path/to/genesis.json`, also you must specify a data "
+            "directory with `--data-dir path/to/data/directory`"
         )
 
     has_ambigous_logging_config = (
