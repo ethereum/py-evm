@@ -161,9 +161,11 @@ class ConnectionFailure(Exception):
     pass
 
 
-async def make_p2pd_pair_unix(serial_no, enable_control, enable_connmgr, enable_dht, enable_pubsub):
-    control_maddr = Multiaddr(f"/unix/tmp/test_p2pd_control_{serial_no}.sock")
-    listen_maddr = Multiaddr(f"/unix/tmp/test_p2pd_listen_{serial_no}.sock")
+async def make_p2pd_pair_unix(
+        id_generator, enable_control, enable_connmgr, enable_dht, enable_pubsub):
+    socket_id = id_generator()
+    control_maddr = Multiaddr(f"/unix/tmp/test_p2pd_control_{socket_id}.sock")
+    listen_maddr = Multiaddr(f"/unix/tmp/test_p2pd_listen_{socket_id}.sock")
     # remove the existing unix socket files if they are existing
     try:
         os.unlink(control_maddr.value_for_protocol(protocols.P_UNIX))
@@ -183,11 +185,10 @@ async def make_p2pd_pair_unix(serial_no, enable_control, enable_connmgr, enable_
     )
 
 
-async def make_p2pd_pair_ip4(serial_no, enable_control, enable_connmgr, enable_dht, enable_pubsub):
-    base_port = 35566
-    num_ports = 2
-    control_maddr = Multiaddr(f"/ip4/127.0.0.1/tcp/{base_port+(serial_no*num_ports)}")
-    listen_maddr = Multiaddr(f"/ip4/127.0.0.1/tcp/{base_port+(serial_no*num_ports)+1}")
+async def make_p2pd_pair_ip4(
+        id_generator, enable_control, enable_connmgr, enable_dht, enable_pubsub):
+    control_maddr = Multiaddr(f"/ip4/127.0.0.1/tcp/{id_generator()}")
+    listen_maddr = Multiaddr(f"/ip4/127.0.0.1/tcp/{id_generator()}")
     return await _make_p2pd_pair(
         control_maddr=control_maddr,
         listen_maddr=listen_maddr,
@@ -239,12 +240,18 @@ async def _make_p2pd_pair(
 
 
 @pytest.fixture(params=[make_p2pd_pair_ip4, make_p2pd_pair_unix])
-async def p2pds(request, enable_control, enable_connmgr, enable_dht, enable_pubsub):
+async def p2pds(
+        request,
+        enable_control,
+        enable_connmgr,
+        enable_dht,
+        enable_pubsub,
+        unused_tcp_port_factory):
     make_p2pd_pair = request.param
     pairs = tuple(
         asyncio.ensure_future(
             make_p2pd_pair(
-                serial_no=i,
+                id_generator=unused_tcp_port_factory,
                 enable_control=enable_control,
                 enable_connmgr=enable_connmgr,
                 enable_dht=enable_dht,
