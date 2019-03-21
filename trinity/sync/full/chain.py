@@ -7,6 +7,9 @@ from functools import (
 )
 from operator import attrgetter
 from typing import (
+    AsyncIterator,
+    Awaitable,
+    Callable,
     Dict,
     List,
     NamedTuple,
@@ -69,13 +72,14 @@ from trinity.sync.full.constants import (
     BLOCK_QUEUE_SIZE_TARGET,
 )
 from trinity._utils.datastructures import (
+    BaseOrderedTaskPreparation,
     MissingDependency,
     OrderedTaskPreparation,
     TaskQueue,
 )
 from trinity._utils.ema import EMA
 from trinity._utils.headers import (
-    skip_headers_in_db,
+    skip_complete_headers,
 )
 from trinity._utils.humanize import humanize_elapsed, humanize_hash
 from trinity._utils.timer import Timer
@@ -114,12 +118,15 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
                  chain: BaseAsyncChain,
                  db: BaseAsyncChainDB,
                  peer_pool: ETHPeerPool,
+                 header_syncer: HeaderSyncerAPI,
                  token: CancelToken = None) -> None:
         super().__init__(token=token)
         self.chain = chain
         self.db = db
         self._peer_pool = peer_pool
         self._pending_bodies = {}
+
+        self._header_syncer = header_syncer
 
         # queue up any idle peers, in order of how fast they return block bodies
         self._body_peers: WaitingPeers[ETHPeer] = WaitingPeers(commands.BlockBodies)
@@ -130,9 +137,96 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
         buffer_size = MAX_BODIES_FETCH * REQUEST_BUFFER_MULTIPLIER
         self._block_body_tasks = TaskQueue(buffer_size, attrgetter('block_number'))
 
+        # Track if there is capacity for more block importing
+        self._db_buffer_capacity = asyncio.Event()
+        self._db_buffer_capacity.set()  # start with capacity
+
+        # Track if any headers have been received yet
+        self._got_first_header = asyncio.Event()
+
     async def _run(self) -> None:
         with self.subscribe(self._peer_pool):
             await self.cancellation()
+
+    async def _sync_from_headers(
+            self,
+            task_integrator: BaseOrderedTaskPreparation[BlockHeader, Hash32],
+            completion_check: Callable[[BlockHeader], Awaitable[bool]],
+    ) -> AsyncIterator[Tuple[BlockHeader, ...]]:
+        """
+        Watch for new headers to be added to the queue, and add the prerequisite
+        tasks as they become available.
+        """
+        get_headers_coro = self._header_syncer.new_sync_headers(HEADER_QUEUE_SIZE_TARGET)
+
+        # Track the highest registered block header by number, purely for stats/logging
+        highest_block_num = -1
+
+        async for headers in self.wait_iter(get_headers_coro):
+            self._got_first_header.set()
+            try:
+                # We might end up with duplicates that can be safely ignored.
+                # Likely scenario: switched which peer downloads headers, and the new peer isn't
+                # aware of some of the in-progress headers
+                task_integrator.register_tasks(headers, ignore_duplicates=True)
+            except MissingDependency as missing_exc:
+                # The parent of this header is not registered as a dependency yet.
+                # Some reasons this might happen, in rough descending order of likelihood:
+                #   - a normal fork: the canonical head isn't the parent of the first header synced
+                #   - a bug: headers were queued out of order in new_sync_headers
+                #   - a bug: old headers were pruned out of the tracker, but not in DB yet
+
+                # Skip over all headers found in db, (could happen with a long backtrack)
+                new_headers = await self.wait(
+                    skip_complete_headers(headers, self.logger, completion_check)
+                )
+                if len(new_headers) < len(headers):
+                    self.logger.debug(
+                        "Sync skipping over already stored headers (%d) from %s..%s",
+                        len(headers),
+                        headers[0],
+                        headers[-1],
+                    )
+                    if not new_headers:
+                        # no new headers to process, wait for next batch to come in
+                        continue
+
+                # If the parent header doesn't exist yet, this is a legit bug instead of a fork,
+                # let the HeaderNotFound exception bubble up
+                try:
+                    parent_header = await self.wait(
+                        self.db.coro_get_block_header_by_hash(new_headers[0].parent_hash)
+                    )
+                except HeaderNotFound:
+                    await self._log_missing_parent(new_headers[0], highest_block_num, missing_exc)
+
+                    # Nowhere to go from here, re-raise
+                    raise
+
+                # This appears to be a fork, since the parent header is persisted,
+                self.logger.info(
+                    "Received a header before processing its parent during regular sync. "
+                    "Canonical head is %s, the received header "
+                    "is %s, with parent %s. This might be a fork, importing to determine if it is "
+                    "the longest chain",
+                    await self.db.coro_get_canonical_head(),
+                    new_headers[0],
+                    parent_header,
+                )
+                # Set first header's parent as finished
+                task_integrator.set_finished_dependency(parent_header)
+                # Re-register the header tasks, which will now succeed
+                task_integrator.register_tasks(new_headers, ignore_duplicates=True)
+                # Clobber the headers variable so that the follow-up work below is consistent with
+                # or without exceptions (ie~ only add headers not in DB to body/receipt queue)
+                headers = new_headers
+
+            yield headers
+
+            # Don't race ahead of the database, by blocking when the persistance queue is too long
+            await self._db_buffer_capacity.wait()
+
+            highest_block_num = max(headers[-1].block_number, highest_block_num)
 
     async def _assign_body_download_to_peers(self) -> None:
         """
@@ -299,6 +393,46 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
 
         return block_body_bundles
 
+    async def _log_missing_parent(
+            self,
+            first_header: BlockHeader,
+            highest_block_num: int,
+            missing_exc: Exception) -> None:
+        self.logger.warning("Parent missing for header %r, restarting header sync", first_header)
+        block_num = first_header.block_number
+        try:
+            local_header = await self.db.coro_get_canonical_block_header_by_number(block_num)
+        except HeaderNotFound as exc:
+            self.logger.debug("Could not find canonical header at #%d: %s", block_num, exc)
+            local_header = None
+
+        try:
+            local_parent = await self.db.coro_get_canonical_block_header_by_number(block_num - 1)
+        except HeaderNotFound as exc:
+            self.logger.debug("Could not find canonical header parent at #%d: %s", block_num, exc)
+            local_parent = None
+
+        try:
+            canonical_tip = await self.db.coro_get_canonical_head()
+        except HeaderNotFound as exc:
+            self.logger.debug("Could not find canonical tip: %s", exc)
+            canonical_tip = None
+
+        self.logger.debug(
+            (
+                "Header syncer returned header %s, which has no parent in our DB. "
+                "Instead at #%d, our header is %s, whose parent is %s, with canonical tip %s. "
+                "The highest received header is %d. Triggered by missing dependency: %s"
+            ),
+            first_header,
+            block_num,
+            local_header,
+            local_parent,
+            canonical_tip,
+            highest_block_num,
+            missing_exc,
+        )
+
 
 class FastChainSyncer(BaseService):
     def __init__(self,
@@ -411,12 +545,10 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
                  peer_pool: ETHPeerPool,
                  header_syncer: HeaderSyncerAPI,
                  token: CancelToken = None) -> None:
-        super().__init__(chain, db, peer_pool, token)
+        super().__init__(chain, db, peer_pool, header_syncer, token)
 
         # queue up any idle peers, in order of how fast they return receipts
         self._receipt_peers: WaitingPeers[ETHPeer] = WaitingPeers(commands.Receipts)
-
-        self._header_syncer = header_syncer
 
         # Track receipt download tasks
         # - arbitrarily allow several requests-worth of headers queued up
@@ -433,10 +565,6 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         )
         # Track whether the fast chain syncer completed its goal
         self.is_complete = False
-
-        # Track if there is capacity for more block persistance
-        self._db_buffer_capacity = asyncio.Event()
-        self._db_buffer_capacity.set()  # start with capacity
 
     async def _run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
@@ -457,69 +585,22 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         self._body_peers.put_nowait(peer)
         self._receipt_peers.put_nowait(peer)
 
+    async def _should_skip_header(self, header: BlockHeader) -> bool:
+        """
+        Should we skip trying to import this header?
+        Return True if the syncing of header appears to be complete.
+        This is fairly relaxed about the definition, preferring speed over slow precision.
+        """
+        return await self.db.coro_header_exists(header.hash)
+
     async def _launch_prerequisite_tasks(self) -> None:
         """
         Watch for new headers to be added to the queue, and add the prerequisite
         tasks as they become available.
         """
-        get_headers_coro = self._header_syncer.new_sync_headers(HEADER_QUEUE_SIZE_TARGET)
-
-        # Track the highest registered block header by number, purely for stats/logging
-        highest_block_num = -1
-
-        async for headers in self.wait_iter(get_headers_coro):
-            try:
-                # We might end up with duplicates that can be safely ignored.
-                # Likely scenario: switched which peer downloads headers, and the new peer isn't
-                # aware of some of the in-progress headers
-                self._block_persist_tracker.register_tasks(headers, ignore_duplicates=True)
-            except MissingDependency as missing_exc:
-                # The parent of this header is not registered as a dependency yet.
-                # Some reasons this might happen, in rough descending order of likelihood:
-                #   - a normal fork: the canonical head isn't the parent of the first header synced
-                #   - a bug: headers were queued out of order in new_sync_headers
-                #   - a bug: old headers were pruned out of the tracker, but not in DB yet
-
-                # Skip over all headers found in db, (could happen with a long backtrack)
-                new_headers = await skip_headers_in_db(headers, self.db, self)
-                if len(new_headers) < len(headers):
-                    self.logger.debug(
-                        "Fast sync skipping over already stored headers (%d) from %s..%s",
-                        len(headers),
-                        headers[0],
-                        headers[-1],
-                    )
-                    if not new_headers:
-                        # no new headers to process, wait for next batch to come in
-                        continue
-
-                # If the parent header doesn't exist yet, this is a legit bug instead of a fork,
-                # let the HeaderNotFound exception bubble up
-                try:
-                    parent_header = await self.wait(
-                        self.db.coro_get_block_header_by_hash(new_headers[0].parent_hash)
-                    )
-                except HeaderNotFound:
-                    await self._log_missing_parent(new_headers[0], highest_block_num, missing_exc)
-
-                    # Nowhere to go from here, re-raise
-                    raise
-
-                # This appears to be a fork, since the parent header is persisted,
-                self.logger.info(
-                    "Fork found while starting fast sync. Canonical head was %s, but the next "
-                    "header %s, has parent %s. Importing fork in case it's the longest chain.",
-                    await self.db.coro_get_canonical_head(),
-                    new_headers[0],
-                    parent_header,
-                )
-                # Set first header's parent as finished
-                self._block_persist_tracker.set_finished_dependency(parent_header)
-                # Re-register the header tasks, which will now succeed
-                self._block_persist_tracker.register_tasks(new_headers, ignore_duplicates=True)
-                # Clobber the headers variable so that the follow-up work below is consistent with
-                # or without exceptions (ie~ only add headers not in DB to body/receipt queue)
-                headers = new_headers
+        async for headers in self._sync_from_headers(
+                self._block_persist_tracker,
+                self._should_skip_header):
 
             # Sometimes duplicates are added to the queue, when switching from one sync to another.
             # We can simply ignore them.
@@ -531,50 +612,6 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
                 self._block_body_tasks.add(new_body_tasks),
                 self._receipt_tasks.add(new_receipt_tasks),
             ))
-            # Don't race ahead of the database, by blocking when the persistance queue is too long
-            await self._db_buffer_capacity.wait()
-
-            highest_block_num = max(headers[-1].block_number, highest_block_num)
-
-    async def _log_missing_parent(
-            self,
-            first_header: BlockHeader,
-            highest_block_num: int,
-            missing_exc: Exception) -> None:
-        self.logger.warning("Parent missing for header %r, restarting header sync", first_header)
-        block_num = first_header.block_number
-        try:
-            local_header = await self.db.coro_get_canonical_block_header_by_number(block_num)
-        except HeaderNotFound as exc:
-            self.logger.debug("Could not find canonical header at #%d: %s", block_num, exc)
-            local_header = None
-
-        try:
-            local_parent = await self.db.coro_get_canonical_block_header_by_number(block_num - 1)
-        except HeaderNotFound as exc:
-            self.logger.debug("Could not find canonical header parent at #%d: %s", block_num, exc)
-            local_parent = None
-
-        try:
-            canonical_tip = await self.db.coro_get_canonical_head()
-        except HeaderNotFound as exc:
-            self.logger.debug("Could not find canonical tip: %s", exc)
-            canonical_tip = None
-
-        self.logger.debug(
-            (
-                "Header syncer returned header %s, which has no parent in our DB. "
-                "Instead at #%d, our header is %s, whose parent is %s, with canonical tip %s. "
-                "The highest received header is %d. Triggered by missing dependency: %s"
-            ),
-            first_header,
-            block_num,
-            local_header,
-            local_parent,
-            canonical_tip,
-            highest_block_num,
-            missing_exc,
-        )
 
     async def _display_stats(self) -> None:
         while self.is_operational:
@@ -914,9 +951,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
                  header_syncer: HeaderSyncerAPI,
                  block_importer: BaseBlockImporter,
                  token: CancelToken = None) -> None:
-        super().__init__(chain, db, peer_pool, token)
-
-        self._header_syncer = header_syncer
+        super().__init__(chain, db, peer_pool, header_syncer, token)
 
         # track when block bodies are downloaded, so that blocks can be imported
         self._block_import_tracker = OrderedTaskPreparation(
@@ -940,14 +975,25 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         super().register_peer(peer)
         self._body_peers.put_nowait(cast(ETHPeer, peer))
 
+    async def _should_skip_header(self, header: BlockHeader) -> bool:
+        """
+        Should we skip trying to import this header?
+        Return True if the syncing of header appears to be complete.
+        This is fairly relaxed about the definition, preferring speed over slow precision.
+        """
+        return await self.db.coro_exists(header.state_root)
+
     async def _launch_prerequisite_tasks(self) -> None:
         """
         Watch for new headers to be added to the queue, and add the prerequisite
         tasks (downloading block bodies) as they become available.
         """
-        async for headers in self.wait_iter(self._header_syncer.new_sync_headers()):
-            self._block_import_tracker.register_tasks(headers)
+        async for headers in self._sync_from_headers(
+                self._block_import_tracker,
+                self.db.coro_header_exists):
 
+            # Sometimes duplicates are added to the queue, when switching from one sync to another.
+            # We can simply ignore them.
             new_headers = tuple(h for h in headers if h not in self._block_body_tasks)
 
             # if the output queue gets full, hang until there is room
@@ -967,11 +1013,20 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         """
         Wait for block bodies to be downloaded, then import the blocks.
         """
+        await self.wait(self._got_first_header.wait())
         while self.is_operational:
             timer = Timer()
 
             # wait for block bodies to become ready for execution
             completed_headers = await self.wait(self._block_import_tracker.ready_tasks())
+
+            if self._block_import_tracker.has_ready_tasks():
+                # Even after clearing out a big batch, there is no available capacity, so
+                # pause any coroutines that might wait for capacity
+                self._db_buffer_capacity.clear()
+            else:
+                # There is available capacity, let any waiting coroutines continue
+                self._db_buffer_capacity.set()
 
             await self._import_blocks(completed_headers)
 

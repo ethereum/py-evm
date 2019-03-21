@@ -368,7 +368,6 @@ class BaseOrderedTaskPreparation(ABC, Generic[TTask, TTaskID]):
         pass
 
 
-
 class OrderedTaskPreparation(
         BaseOrderedTaskPreparation[TTask, TTaskID],
         Generic[TTask, TTaskID, TPrerequisite]):
