@@ -55,6 +55,10 @@ from trinity.protocol.eth.constants import (
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 from trinity.protocol.eth.sync import ETHHeaderChainSyncer
 from trinity.rlp.block_body import BlockBody
+from trinity.sync.common.chain import (
+    BaseBlockImporter,
+    SimpleBlockImporter,
+)
 from trinity.sync.common.constants import (
     EMPTY_PEER_RESPONSE_PENALTY,
 )
@@ -882,6 +886,7 @@ class RegularChainSyncer(BaseService):
             db,
             peer_pool,
             self._header_syncer,
+            SimpleBlockImporter(chain),
             self.cancel_token,
         )
 
@@ -907,6 +912,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
                  db: BaseAsyncChainDB,
                  peer_pool: ETHPeerPool,
                  header_syncer: HeaderSyncerAPI,
+                 block_importer: BaseBlockImporter,
                  token: CancelToken = None) -> None:
         super().__init__(chain, db, peer_pool, token)
 
@@ -919,6 +925,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
             # make sure that a block is not imported until the parent block is imported
             dependency_extractor=attrgetter('parent_hash'),
         )
+        self._block_importer = block_importer
 
     async def _run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
@@ -999,7 +1006,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
             block = block_class(header, transactions, uncles)
             timer = Timer()
             _, new_canonical_blocks, old_canonical_blocks = await self.wait(
-                self.chain.coro_import_block(block, perform_validation=True)
+                self._block_importer.import_block(block)
             )
 
             if new_canonical_blocks == (block,):
