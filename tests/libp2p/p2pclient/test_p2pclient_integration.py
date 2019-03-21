@@ -1029,6 +1029,6 @@ async def test_pubsub_client_subscribe(p2pds):
     assert PeerID(pubsub_msg_2_0.from_field) == peer_id_0
     # test case: unsubscribe by closing the stream
     writer_0.close()
-    await asyncio.sleep(0.1)
+    await asyncio.sleep(0)
     assert topic not in await p2pds[0].pubsub.get_topics()
     assert peer_id_0 not in await p2pds[1].pubsub.list_peers(topic)
