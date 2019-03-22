@@ -116,20 +116,20 @@ class AsyncBeaconChainDBPreProxy(BaseAsyncBeaconChainDB):
     ``BaseProxy`` for the purpose of improved testability.
     """
 
-    coro_persist_block = async_method('coro_persist_block')
-    coro_get_canonical_block_root = async_method('coro_get_canonical_block_root')
-    coro_get_canonical_block_by_slot = async_method('coro_get_canonical_block_by_slot')
-    coro_get_canonical_block_root_by_slot = async_method('coro_get_canonical_block_root_by_slot')
-    coro_get_canonical_head = async_method('coro_get_canonical_head')
-    coro_get_finalized_head = async_method('coro_get_finalized_head')
-    coro_get_block_by_root = async_method('coro_get_block_by_root')
-    coro_get_score = async_method('coro_get_score')
-    coro_block_exists = async_method('coro_block_exists')
-    coro_persist_block_chain = async_method('coro_persist_block_chain')
-    coro_get_state_by_root = async_method('coro_get_state_by_root')
-    coro_persist_state = async_method('coro_persist_state')
-    coro_exists = async_method('coro_exists')
-    coro_get = async_method('coro_get')
+    coro_persist_block = async_method('persist_block')
+    coro_get_canonical_block_root = async_method('get_canonical_block_root')
+    coro_get_canonical_block_by_slot = async_method('get_canonical_block_by_slot')
+    coro_get_canonical_block_root_by_slot = async_method('get_canonical_block_root_by_slot')
+    coro_get_canonical_head = async_method('get_canonical_head')
+    coro_get_finalized_head = async_method('get_finalized_head')
+    coro_get_block_by_root = async_method('get_block_by_root')
+    coro_get_score = async_method('get_score')
+    coro_block_exists = async_method('block_exists')
+    coro_persist_block_chain = async_method('persist_block_chain')
+    coro_get_state_by_root = async_method('get_state_by_root')
+    coro_persist_state = async_method('persist_state')
+    coro_exists = async_method('exists')
+    coro_get = async_method('get')
 
 
 class AsyncBeaconChainDBProxy(BaseProxy, AsyncBeaconChainDBPreProxy):
