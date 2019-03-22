@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from asyncio import (
     AbstractEventLoop,
     Lock,
@@ -349,7 +350,27 @@ class NoPrerequisites(Enum):
     pass
 
 
-class OrderedTaskPreparation(Generic[TTask, TTaskID, TPrerequisite]):
+class BaseOrderedTaskPreparation(ABC, Generic[TTask, TTaskID]):
+    @abstractmethod
+    def set_finished_dependency(self, finished_task: TTask) -> None:
+        pass
+
+    @abstractmethod
+    def register_tasks(self, tasks: Tuple[TTask, ...], ignore_duplicates: bool = False) -> None:
+        pass
+
+    @abstractmethod
+    async def ready_tasks(self, max_results: int = None) -> Tuple[TTask, ...]:
+        pass
+
+    @abstractmethod
+    def has_ready_tasks(self) -> bool:
+        pass
+
+
+class OrderedTaskPreparation(
+        BaseOrderedTaskPreparation[TTask, TTaskID],
+        Generic[TTask, TTaskID, TPrerequisite]):
     """
     This class is useful when a series of tasks with prerequisites must be run
     sequentially. The prerequisites may be finished in any order, but the

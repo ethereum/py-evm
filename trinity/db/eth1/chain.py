@@ -32,6 +32,10 @@ class BaseAsyncChainDB(BaseAsyncHeaderDB):
     """
 
     @abstractmethod
+    async def coro_exists(self, key: bytes) -> bool:
+        pass
+
+    @abstractmethod
     async def coro_get(self, key: bytes) -> bytes:
         pass
 
@@ -73,6 +77,7 @@ class AsyncChainDBPreProxy(BaseAsyncChainDB):
     def __init__(self, db: BaseAtomicDB) -> None:
         pass
 
+    coro_exists = async_method('exists')
     coro_get = async_method('get')
     coro_get_block_header_by_hash = async_method('get_block_header_by_hash')
     coro_get_canonical_head = async_method('get_canonical_head')

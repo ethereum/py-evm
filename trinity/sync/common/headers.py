@@ -63,7 +63,7 @@ from trinity._utils.datastructures import (
     TaskQueue,
 )
 from trinity._utils.headers import (
-    skip_headers_in_db,
+    skip_complete_headers,
 )
 from trinity._utils.humanize import (
     humanize_hash,
@@ -255,6 +255,14 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                 # Return the newest one
                 return skeleton_launch_headers[-1]
 
+    async def _should_skip_header(self, header: BlockHeader) -> bool:
+        """
+        Should we skip trying to import this header?
+        Return True if the syncing of header appears to be complete.
+        This is fairly relaxed about the definition, preferring speed over slow precision.
+        """
+        return await self._db.coro_header_exists(header.hash)
+
     async def _find_launch_headers(self, peer: TChainPeer) -> Tuple[BlockHeader, ...]:
         """
         When getting started with a peer, find exactly where the headers start differing from the
@@ -280,7 +288,9 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             )
 
         # identify headers that are not already stored locally
-        new_headers = await skip_headers_in_db(launch_headers, self._db, self)
+        new_headers = await self.wait(
+            skip_complete_headers(launch_headers, self.logger, self._should_skip_header)
+        )
 
         if len(new_headers) == 0:
             self.logger.debug(
