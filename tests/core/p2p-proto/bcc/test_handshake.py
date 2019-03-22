@@ -23,8 +23,8 @@ from .helpers import (
 @pytest.mark.asyncio
 async def test_directly_linked_peers_without_handshake():
     alice, bob = await get_directly_linked_peers_without_handshake(
-        alice_chain_db=get_genesis_chain_db(),
-        bob_chain_db=get_genesis_chain_db(),
+        alice_chain_db=await get_genesis_chain_db(),
+        bob_chain_db=await get_genesis_chain_db(),
     )
     assert alice.sub_proto is None
     assert bob.sub_proto is None
@@ -35,8 +35,8 @@ async def test_directly_linked_peers(request, event_loop):
     alice, bob = await get_directly_linked_peers(
         request,
         event_loop,
-        alice_chain_db=get_genesis_chain_db(),
-        bob_chain_db=get_genesis_chain_db(),
+        alice_chain_db=await get_genesis_chain_db(),
+        bob_chain_db=await get_genesis_chain_db(),
     )
     assert isinstance(alice.sub_proto, BCCProtocol)
     assert isinstance(bob.sub_proto, BCCProtocol)
@@ -48,8 +48,8 @@ async def test_directly_linked_peers(request, event_loop):
 @pytest.mark.asyncio
 async def test_unidirectional_handshake():
     alice, bob = await get_directly_linked_peers_without_handshake(
-        alice_chain_db=get_genesis_chain_db(),
-        bob_chain_db=get_genesis_chain_db(),
+        alice_chain_db=await get_genesis_chain_db(),
+        bob_chain_db=await get_genesis_chain_db(),
     )
     alice_chain_db = alice.context.chain_db
     alice_genesis_hash = alice_chain_db.get_canonical_block_by_slot(0, BeaconBlock).hash
@@ -84,8 +84,8 @@ async def test_unidirectional_handshake():
 @pytest.mark.asyncio
 async def test_handshake_wrong_network_id():
     alice, bob = await get_directly_linked_peers_without_handshake(
-        alice_chain_db=get_genesis_chain_db(),
-        bob_chain_db=get_genesis_chain_db(),
+        alice_chain_db=await get_genesis_chain_db(),
+        bob_chain_db=await get_genesis_chain_db(),
     )
     alice.context.network_id += 1
     await asyncio.gather(alice.do_p2p_handshake(), bob.do_p2p_handshake())

@@ -21,7 +21,6 @@ from eth.rlp.headers import BlockHeader
 
 from trinity._utils.mp import (
     async_method,
-    sync_method,
 )
 
 

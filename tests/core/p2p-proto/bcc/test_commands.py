@@ -38,8 +38,8 @@ async def get_command_setup(request, event_loop):
     alice, bob = await get_directly_linked_peers(
         request,
         event_loop,
-        alice_chain_db=get_genesis_chain_db(),
-        bob_chain_db=get_genesis_chain_db(),
+        alice_chain_db=await get_genesis_chain_db(),
+        bob_chain_db=await get_genesis_chain_db(),
     )
     msg_buffer = MsgBuffer()
     bob.add_subscriber(msg_buffer)

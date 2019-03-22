@@ -42,19 +42,20 @@ async def get_sync_setup(request, event_loop, alice_chain_db, bob_chain_db):
 async def test_sync_from_genesis(request, event_loop):
     genesis = create_test_block(slot=0)
     bob_blocks = (genesis,) + create_branch(length=99, root=genesis)
-    alice_chain_db = get_chain_db((genesis,))
-    bob_chain_db = get_chain_db(bob_blocks)
+    alice_chain_db = await get_chain_db((genesis,))
+    bob_chain_db = await get_chain_db(bob_blocks)
 
     alice_syncer = await get_sync_setup(request, event_loop, alice_chain_db, bob_chain_db)
 
     await alice_syncer.events.finished.wait()
 
-    assert alice_chain_db.get_canonical_head(BeaconBlock).slot == 99
-    assert (alice_chain_db.get_canonical_head(BeaconBlock) ==
-            bob_chain_db.get_canonical_head(BeaconBlock))
+    alice_head = await alice_chain_db.coro_get_canonical_head(BeaconBlock)
+    bob_head = await bob_chain_db.coro_get_canonical_head(BeaconBlock)
+    assert alice_head.slot == 99
+    assert alice_head == bob_head
     for slot in range(100):
-        alice_block = alice_chain_db.get_canonical_block_by_slot(slot, BeaconBlock)
-        bob_block = bob_chain_db.get_canonical_block_by_slot(slot, BeaconBlock)
+        alice_block = await alice_chain_db.coro_get_canonical_block_by_slot(slot, BeaconBlock)
+        bob_block = await bob_chain_db.coro_get_canonical_block_by_slot(slot, BeaconBlock)
         assert alice_block == bob_block
 
 
@@ -63,19 +64,21 @@ async def test_sync_from_old_head(request, event_loop):
     genesis = create_test_block(slot=0)
     alice_blocks = (genesis,) + create_branch(length=49, root=genesis)
     bob_blocks = alice_blocks + create_branch(length=50, root=alice_blocks[-1])
-    alice_chain_db = get_chain_db(alice_blocks)
-    bob_chain_db = get_chain_db(bob_blocks)
+    alice_chain_db = await get_chain_db(alice_blocks)
+    bob_chain_db = await get_chain_db(bob_blocks)
 
     alice_syncer = await get_sync_setup(request, event_loop, alice_chain_db, bob_chain_db)
 
     await alice_syncer.events.finished.wait()
 
-    assert alice_chain_db.get_canonical_head(BeaconBlock).slot == 99
-    assert (alice_chain_db.get_canonical_head(BeaconBlock) ==
-            bob_chain_db.get_canonical_head(BeaconBlock))
+    alice_head = await alice_chain_db.coro_get_canonical_head(BeaconBlock)
+    bob_head = await bob_chain_db.coro_get_canonical_head(BeaconBlock)
+
+    assert alice_head.slot == 99
+    assert alice_head == bob_head
     for slot in range(100):
-        alice_block = alice_chain_db.get_canonical_block_by_slot(slot, BeaconBlock)
-        bob_block = bob_chain_db.get_canonical_block_by_slot(slot, BeaconBlock)
+        alice_block = await alice_chain_db.coro_get_canonical_block_by_slot(slot, BeaconBlock)
+        bob_block = await bob_chain_db.coro_get_canonical_block_by_slot(slot, BeaconBlock)
         assert alice_block == bob_block
 
 
@@ -84,19 +87,21 @@ async def test_reorg_sync(request, event_loop):
     genesis = create_test_block(slot=0)
     alice_blocks = (genesis,) + create_branch(length=49, root=genesis, state_root=b"\x11" * 32)
     bob_blocks = (genesis,) + create_branch(length=99, root=genesis, state_root=b"\x22" * 32)
-    alice_chain_db = get_chain_db(alice_blocks)
-    bob_chain_db = get_chain_db(bob_blocks)
+    alice_chain_db = await get_chain_db(alice_blocks)
+    bob_chain_db = await get_chain_db(bob_blocks)
 
     alice_syncer = await get_sync_setup(request, event_loop, alice_chain_db, bob_chain_db)
 
     await alice_syncer.events.finished.wait()
 
-    assert alice_chain_db.get_canonical_head(BeaconBlock).slot == 99
-    assert (alice_chain_db.get_canonical_head(BeaconBlock) ==
-            bob_chain_db.get_canonical_head(BeaconBlock))
+    alice_head = await alice_chain_db.coro_get_canonical_head(BeaconBlock)
+    bob_head = await bob_chain_db.coro_get_canonical_head(BeaconBlock)
+
+    assert alice_head.slot == 99
+    assert alice_head == bob_head
     for slot in range(100):
-        alice_block = alice_chain_db.get_canonical_block_by_slot(slot, BeaconBlock)
-        bob_block = bob_chain_db.get_canonical_block_by_slot(slot, BeaconBlock)
+        alice_block = await alice_chain_db.coro_get_canonical_block_by_slot(slot, BeaconBlock)
+        bob_block = await bob_chain_db.coro_get_canonical_block_by_slot(slot, BeaconBlock)
         assert alice_block == bob_block
 
 
@@ -105,15 +110,17 @@ async def test_sync_when_already_at_best_head(request, event_loop):
     genesis = create_test_block(slot=0)
     alice_blocks = (genesis,) + create_branch(length=99, root=genesis, state_root=b"\x11" * 32)
     bob_blocks = (genesis,) + create_branch(length=50, root=genesis, state_root=b"\x22" * 32)
-    alice_chain_db = get_chain_db(alice_blocks)
-    bob_chain_db = get_chain_db(bob_blocks)
+    alice_chain_db = await get_chain_db(alice_blocks)
+    bob_chain_db = await get_chain_db(bob_blocks)
 
     alice_syncer = await get_sync_setup(request, event_loop, alice_chain_db, bob_chain_db)
 
     await alice_syncer.events.finished.wait()
 
-    assert alice_chain_db.get_canonical_head(BeaconBlock).slot == 99
-    assert alice_chain_db.get_canonical_head(BeaconBlock) == alice_blocks[-1]
+    alice_head = await alice_chain_db.coro_get_canonical_head(BeaconBlock)
+
+    assert alice_head.slot == 99
+    assert alice_head == alice_blocks[-1]
     for slot in range(100):
-        alice_block = alice_chain_db.get_canonical_block_by_slot(slot, BeaconBlock)
+        alice_block = await alice_chain_db.coro_get_canonical_block_by_slot(slot, BeaconBlock)
         assert alice_block == alice_blocks[slot]
