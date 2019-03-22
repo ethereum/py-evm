@@ -49,7 +49,7 @@ full or light node directly.
 
 ## Quickstart
 
-[Get started in 5 minutes](https://py-evm.readthedocs.io/en/latest/quickstart.html)
+[Get started in 5 minutes](https://py-evm.readthedocs.io/en/latest/guides/quickstart.html)
 
 ## Documentation
 
