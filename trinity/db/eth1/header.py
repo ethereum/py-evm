@@ -85,16 +85,6 @@ class AsyncHeaderDBPreProxy(BaseAsyncHeaderDB):
     coro_persist_header = async_method('persist_header')
     coro_persist_header_chain = async_method('persist_header_chain')
 
-    get_block_header_by_hash = sync_method('get_block_header_by_hash')
-    get_canonical_block_hash = sync_method('get_canonical_block_hash')
-    get_canonical_block_header_by_number = sync_method('get_canonical_block_header_by_number')
-    get_canonical_head = sync_method('get_canonical_head')
-    get_score = sync_method('get_score')
-    header_exists = sync_method('header_exists')
-    get_canonical_block_hash = sync_method('get_canonical_block_hash')
-    persist_header = sync_method('persist_header')
-    persist_header_chain = sync_method('persist_header_chain')
-
 
 class AsyncHeaderDBProxy(BaseProxy, AsyncHeaderDBPreProxy):
     """
