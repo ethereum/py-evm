@@ -31,6 +31,10 @@ from eth.vm.state import (
     BaseState,
     BaseTransactionExecutor,
 )
+from eth.vm.tracing import (
+    BaseTracer,
+    NoopTracer,
+)
 
 
 from .computation import FrontierComputation
@@ -106,8 +110,12 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
     def build_computation(self,
                           message: Message,
-                          transaction: BaseOrSpoofTransaction) -> BaseComputation:
+                          transaction: BaseOrSpoofTransaction,
+                          tracer: BaseTracer=None) -> BaseComputation:
         """Apply the message to the VM."""
+        if tracer is None:
+            tracer = NoopTracer()
+
         transaction_context = self.vm_state.get_transaction_context(transaction)
         if message.is_create:
             is_collision = self.vm_state.account_db.account_has_code_or_nonce(
@@ -128,14 +136,16 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                     encode_hex(message.storage_address),
                 )
             else:
+                with self.vm_state.trace(tracer):
+                    computation = self.vm_state.get_computation(
+                        message,
+                        transaction_context,
+                    ).apply_create_message()
+        else:
+            with self.vm_state.trace(tracer):
                 computation = self.vm_state.get_computation(
                     message,
-                    transaction_context,
-                ).apply_create_message()
-        else:
-            computation = self.vm_state.get_computation(
-                message,
-                transaction_context).apply_message()
+                    transaction_context).apply_message()
 
         return computation
 

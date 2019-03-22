@@ -8,6 +8,7 @@ from typing import (  # noqa: F401
     cast,
     Callable,
     Iterator,
+    Optional,
     Tuple,
     Type,
     TYPE_CHECKING,
@@ -46,6 +47,7 @@ from eth.vm.execution_context import (
     ExecutionContext,
 )
 from eth.vm.message import Message
+from eth.vm.tracing import BaseTracer
 
 if TYPE_CHECKING:
     from eth.computation import (  # noqa: F401
@@ -86,6 +88,8 @@ class BaseState(Configurable, ABC):
     account_db_class = None  # type: Type[BaseAccountDB]
     transaction_executor = None  # type: Type[BaseTransactionExecutor]
 
+    tracer = None  # type: BaseTracer
+
     def __init__(self, db: BaseDB, execution_context: ExecutionContext, state_root: bytes) -> None:
         self._db = db
         self.execution_context = execution_context
@@ -100,9 +104,19 @@ class BaseState(Configurable, ABC):
         return cast(ExtendedDebugLogger, normal_logger)
 
     #
+    # Tracing
+    #
+    @contextlib.contextmanager
+    def trace(self, tracer: BaseTracer) -> Iterator[None]:
+        self.tracer = tracer
+        try:
+            yield
+        finally:
+            self.tracer = None
+
+    #
     # Block Object Properties (in opcodes)
     #
-
     @property
     def coinbase(self) -> Address:
         """
@@ -216,17 +230,20 @@ class BaseState(Configurable, ABC):
     #
     # Computation
     #
+    @classmethod
+    def get_computation_class(cls) -> 'BaseComputation':
+        if cls.computation_class is None:
+            raise AttributeError("No `computation_class` has been set for this State")
+        else:
+            return cls.computation_class
+
     def get_computation(self,
                         message: Message,
                         transaction_context: 'BaseTransactionContext') -> 'BaseComputation':
         """
         Return a computation instance for the given `message` and `transaction_context`
         """
-        if self.computation_class is None:
-            raise AttributeError("No `computation_class` has been set for this State")
-        else:
-            computation = self.computation_class(self, message, transaction_context)
-        return computation
+        return self.get_computation_class()(self, message, transaction_context, self.tracer)
 
     #
     # Transaction context
@@ -304,7 +321,7 @@ class BaseTransactionExecutor(ABC):
     def __call__(self, transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
         valid_transaction = self.validate_transaction(transaction)
         message = self.build_evm_message(valid_transaction)
-        computation = self.build_computation(message, valid_transaction)
+        computation = self.build_computation(message, valid_transaction, self.vm_state.tracer)
         finalized_computation = self.finalize_computation(valid_transaction, computation)
         return finalized_computation
 
@@ -319,7 +336,8 @@ class BaseTransactionExecutor(ABC):
     @abstractmethod
     def build_computation(self,
                           message: Message,
-                          transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
+                          transaction: BaseOrSpoofTransaction,
+                          tracer: BaseTracer) -> 'BaseComputation':
         raise NotImplementedError()
 
     @abstractmethod

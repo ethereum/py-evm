@@ -45,6 +45,9 @@ from eth.vm.message import (
 from eth.vm.transaction_context import (
     BaseTransactionContext,
 )
+from eth.vm.tracing import (
+    NoopTracer,
+)
 
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -157,6 +160,7 @@ def fixture_to_computation(fixture, code, vm):
         vm.state,
         message,
         transaction_context,
+        NoopTracer()
     )
 
 
@@ -212,6 +216,7 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         vm.state,
         message,
         transaction_context,
+        NoopTracer()
     )
     # Update state_root manually
     vm.block = vm.block.copy(

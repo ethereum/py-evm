@@ -1,6 +1,6 @@
 from abc import (
     ABC,
-    abstractmethod
+    abstractmethod,
 )
 import itertools
 import logging
@@ -10,6 +10,7 @@ from typing import (  # noqa: F401
     cast,
     Dict,
     List,
+    Optional,
     Tuple,
     Union,
 )
@@ -20,7 +21,6 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
 )
-
 from eth.constants import (
     GAS_MEMORY,
     GAS_MEMORY_QUADRATIC_DENOMINATOR,
@@ -46,33 +46,18 @@ from eth.validation import (
     validate_is_bytes,
     validate_uint256,
 )
-from eth.vm.code_stream import (
-    CodeStream,
+from eth.vm.code_stream import CodeStream
+from eth.vm.gas_meter import GasMeter
+from eth.vm.logic.invalid import InvalidOpcode
+from eth.vm.memory import Memory
+from eth.vm.message import Message
+from eth.vm.opcode import Opcode
+from eth.vm.stack import Stack
+from eth.vm.state import BaseState
+from eth.vm.tracing import (
+    BaseTracer,
 )
-from eth.vm.gas_meter import (
-    GasMeter,
-)
-from eth.vm.logic.invalid import (
-    InvalidOpcode,
-)
-from eth.vm.memory import (
-    Memory,
-)
-from eth.vm.message import (
-    Message,
-)
-from eth.vm.opcode import (  # noqa: F401
-    Opcode
-)
-from eth.vm.stack import (
-    Stack,
-)
-from eth.vm.state import (
-    BaseState,
-)
-from eth.vm.transaction_context import (
-    BaseTransactionContext
-)
+from eth.vm.transaction_context import BaseTransactionContext
 
 
 def memory_gas_cost(size_in_bytes: int) -> int:
@@ -125,7 +110,8 @@ class BaseComputation(Configurable, ABC):
     def __init__(self,
                  state: BaseState,
                  message: Message,
-                 transaction_context: BaseTransactionContext) -> None:
+                 transaction_context: BaseTransactionContext,
+                 tracer: BaseTracer) -> None:
 
         self.state = state
         self.msg = message
@@ -142,6 +128,8 @@ class BaseComputation(Configurable, ABC):
         code = message.code
         self.code = CodeStream(code)
 
+        self.tracer = tracer
+
     #
     # Convenience
     #
@@ -153,8 +141,30 @@ class BaseComputation(Configurable, ABC):
         return self.msg.sender == self.transaction_context.origin
 
     #
+    # Program Counter
+    #
+    def get_pc(self) -> int:
+        return max(0, self.code.pc - 1)
+
+    #
     # Error handling
     #
+    @property
+    def error(self) -> Optional[VMError]:
+        if self.is_error:
+            return self._error
+        else:
+            return None
+
+    @error.setter
+    def error(self, value: VMError) -> None:
+        if not isinstance(value, VMError):
+            raise TypeError(
+                "Computation.error can only be set to a VMError subclass.  Got: "
+                "{0}".format(value)
+            )
+        self._error = value
+
     @property
     def is_success(self) -> bool:
         """
@@ -175,15 +185,15 @@ class BaseComputation(Configurable, ABC):
 
         :raise VMError:
         """
-        if self._error is not None:
-            raise self._error
+        if self.is_error:
+            raise self.error
 
     @property
     def should_burn_gas(self) -> bool:
         """
         Return ``True`` if the remaining gas should be burned.
         """
-        return self.is_error and self._error.burns_gas
+        return self.is_error and self.error.burns_gas
 
     @property
     def should_return_gas(self) -> bool:
@@ -257,6 +267,9 @@ class BaseComputation(Configurable, ABC):
         Read and return ``size`` bytes from memory starting at ``start_position``.
         """
         return self._memory.read_bytes(start_position, size)
+
+    def dump_memory(self) -> bytes:
+        return self._memory.read_bytes(0, len(self._memory))
 
     #
     # Gas Consumption
@@ -341,6 +354,9 @@ class BaseComputation(Configurable, ABC):
         """
         return self._stack.dup(position)
 
+    def dump_stack(self) -> Tuple[int, ...]:
+        return tuple(self._stack)  # type: ignore
+
     #
     # Computation result
     #
@@ -402,12 +418,14 @@ class BaseComputation(Configurable, ABC):
                 self.state,
                 child_msg,
                 self.transaction_context,
+                self.tracer,
             ).apply_create_message()
         else:
             child_computation = self.__class__(
                 self.state,
                 child_msg,
                 self.transaction_context,
+                self.tracer,
             ).apply_message()
         return child_computation
 
@@ -511,7 +529,7 @@ class BaseComputation(Configurable, ABC):
                 "y" if self.msg.is_static else "n",
                 exc_value,
             )
-            self._error = exc_value
+            self.error = exc_value
             if self.should_burn_gas:
                 self.consume_gas(
                     self._gas_meter.gas_remaining,
@@ -559,11 +577,12 @@ class BaseComputation(Configurable, ABC):
     def apply_computation(cls,
                           state: BaseState,
                           message: Message,
-                          transaction_context: BaseTransactionContext) -> 'BaseComputation':
+                          transaction_context: BaseTransactionContext,
+                          tracer: BaseTracer) -> 'BaseComputation':
         """
         Perform the computation that would be triggered by the VM message.
         """
-        with cls(state, message, transaction_context) as computation:
+        with cls(state, message, transaction_context, tracer) as computation:
             # Early exit on pre-compiles
             if message.code_address in computation.precompiles:
                 computation.precompiles[message.code_address](computation)
@@ -571,18 +590,24 @@ class BaseComputation(Configurable, ABC):
 
             for opcode in computation.code:
                 opcode_fn = computation.get_opcode_fn(opcode)
+                pc = computation.get_pc()
 
                 computation.logger.debug2(
                     "OPCODE: 0x%x (%s) | pc: %s",
                     opcode,
                     opcode_fn.mnemonic,
-                    max(0, computation.code.pc - 1),
+                    pc,
                 )
 
                 try:
-                    opcode_fn(computation=computation)
+                    with computation.tracer.capture(computation, opcode_fn):
+                        opcode_fn(computation=computation)
                 except Halt:
                     break
+
+        # Allow the tracer to record final values.
+        computation.tracer.finalize(computation)
+
         return computation
 
     #
