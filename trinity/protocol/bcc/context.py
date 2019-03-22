@@ -1,10 +1,10 @@
 from p2p.peer import BasePeerContext
 
-from eth2.beacon.db.chain import BaseBeaconChainDB
+from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 
 
 class BeaconContext(BasePeerContext):
 
-    def __init__(self, chain_db: BaseBeaconChainDB, network_id: int) -> None:
+    def __init__(self, chain_db: BaseAsyncBeaconChainDB, network_id: int) -> None:
         self.chain_db = chain_db
         self.network_id = network_id

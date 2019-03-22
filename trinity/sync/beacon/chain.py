@@ -134,7 +134,7 @@ class BeaconChainSyncer(BaseService):
             last_block = batch[-1]
 
             try:
-                await self.chain_db.coro_persist_block_chain(batch, BeaconBlock)  # type:ignore
+                await self.chain_db.coro_persist_block_chain(batch, BeaconBlock)
             except ValidationError as exception:
                 self.logger.info(f"Received invalid batch from {self.sync_peer}: {exception}")
                 break

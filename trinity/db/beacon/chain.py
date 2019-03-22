@@ -30,7 +30,7 @@ class BaseAsyncBeaconChainDB:
     """
 
     @abstractmethod
-    def coro_persist_block(
+    async def coro_persist_block(
             self,
             block: BaseBeaconBlock,
             block_class: Type[BaseBeaconBlock]
@@ -42,43 +42,44 @@ class BaseAsyncBeaconChainDB:
     #
 
     @abstractmethod
-    def coro_get_canonical_block_root(self, slot: int) -> Hash32:
+    async def coro_get_canonical_block_root(self, slot: int) -> Hash32:
         pass
 
     @abstractmethod
-    def coro_get_canonical_block_by_slot(self,
-                                         slot: int,
-                                         block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+    async def coro_get_canonical_block_by_slot(
+            self,
+            slot: int,
+            block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         pass
 
     @abstractmethod
-    def coro_get_canonical_block_root_by_slot(self, slot: int) -> Hash32:
+    async def coro_get_canonical_block_root_by_slot(self, slot: int) -> Hash32:
         pass
 
     @abstractmethod
-    def coro_get_canonical_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+    async def coro_get_canonical_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         pass
 
     @abstractmethod
-    def coro_get_finalized_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+    async def coro_get_finalized_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         pass
 
     @abstractmethod
-    def coro_get_block_by_root(self,
-                               block_root: Hash32,
-                               block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+    async def coro_get_block_by_root(self,
+                                     block_root: Hash32,
+                                     block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         pass
 
     @abstractmethod
-    def coro_get_score(self, block_root: Hash32) -> int:
+    async def coro_get_score(self, block_root: Hash32) -> int:
         pass
 
     @abstractmethod
-    def coro_block_exists(self, block_root: Hash32) -> bool:
+    async def coro_block_exists(self, block_root: Hash32) -> bool:
         pass
 
     @abstractmethod
-    def coro_persist_block_chain(
+    async def coro_persist_block_chain(
             self,
             blocks: Iterable[BaseBeaconBlock],
             block_class: Type[BaseBeaconBlock]
@@ -89,23 +90,23 @@ class BaseAsyncBeaconChainDB:
     # Beacon State
     #
     @abstractmethod
-    def coro_get_state_by_root(self, state_root: Hash32) -> BeaconState:
+    async def coro_get_state_by_root(self, state_root: Hash32) -> BeaconState:
         pass
 
     @abstractmethod
-    def coro_persist_state(self,
-                           state: BeaconState) -> None:
+    async def coro_persist_state(self,
+                                 state: BeaconState) -> None:
         pass
 
     #
     # Raw Database API
     #
     @abstractmethod
-    def coro_exists(self, key: bytes) -> bool:
+    async def coro_exists(self, key: bytes) -> bool:
         pass
 
     @abstractmethod
-    def coro_get(self, key: bytes) -> bytes:
+    async def coro_get(self, key: bytes) -> bytes:
         pass
 
 

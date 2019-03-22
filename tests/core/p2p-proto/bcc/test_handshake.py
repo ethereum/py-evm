@@ -41,8 +41,10 @@ async def test_directly_linked_peers(request, event_loop):
     assert isinstance(alice.sub_proto, BCCProtocol)
     assert isinstance(bob.sub_proto, BCCProtocol)
 
-    assert alice.head_slot == bob.context.chain_db.get_canonical_head(BeaconBlock).slot
-    assert bob.head_slot == alice.context.chain_db.get_canonical_head(BeaconBlock).slot
+    alice_head = await alice.context.chain_db.coro_get_canonical_head(BeaconBlock)
+    bob_head = await bob.context.chain_db.coro_get_canonical_head(BeaconBlock)
+    assert alice.head_slot == bob_head.slot
+    assert bob.head_slot == alice_head.slot
 
 
 @pytest.mark.asyncio
@@ -52,8 +54,10 @@ async def test_unidirectional_handshake():
         bob_chain_db=await get_genesis_chain_db(),
     )
     alice_chain_db = alice.context.chain_db
-    alice_genesis_hash = alice_chain_db.get_canonical_block_by_slot(0, BeaconBlock).hash
-    alice_head_slot = alice_chain_db.get_canonical_head(BeaconBlock).slot
+    alice_genesis = await alice_chain_db.coro_get_canonical_block_by_slot(0, BeaconBlock)
+    alice_genesis_hash = alice_genesis.hash
+    alice_head = await alice_chain_db.coro_get_canonical_head(BeaconBlock)
+    alice_head_slot = alice_head.slot
 
     await asyncio.gather(alice.do_p2p_handshake(), bob.do_p2p_handshake())
 
