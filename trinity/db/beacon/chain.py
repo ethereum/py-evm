@@ -37,6 +37,10 @@ class BaseAsyncBeaconChainDB:
     ) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
         pass
 
+    #
+    # Canonical Chain API
+    #
+
     @abstractmethod
     def coro_get_canonical_block_root(self, slot: int) -> Hash32:
         pass
@@ -53,6 +57,10 @@ class BaseAsyncBeaconChainDB:
 
     @abstractmethod
     def coro_get_canonical_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+        pass
+
+    @abstractmethod
+    def coro_get_finalized_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         pass
 
     @abstractmethod
@@ -112,6 +120,7 @@ class AsyncBeaconChainDBPreProxy(BaseAsyncBeaconChainDB):
     coro_get_canonical_block_by_slot = async_method('coro_get_canonical_block_by_slot')
     coro_get_canonical_block_root_by_slot = async_method('coro_get_canonical_block_root_by_slot')
     coro_get_canonical_head = async_method('coro_get_canonical_head')
+    coro_get_finalized_head = async_method('coro_get_finalized_head')
     coro_get_block_by_root = async_method('coro_get_block_by_root')
     coro_get_score = async_method('coro_get_score')
     coro_block_exists = async_method('coro_block_exists')

@@ -27,7 +27,7 @@ from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlock,
 )
-from eth2.beacon.db.chain import BaseBeaconChainDB
+from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from eth2.beacon.typing import (
     Slot,
 )
@@ -47,7 +47,7 @@ class BeaconChainSyncer(BaseService):
     """Sync from our finalized head until their preliminary head."""
 
     def __init__(self,
-                 chain_db: BaseBeaconChainDB,
+                 chain_db: BaseAsyncBeaconChainDB,
                  peer_pool: BCCPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
@@ -68,7 +68,7 @@ class BeaconChainSyncer(BaseService):
                 raise Exception("Invariant: Cannot exceed max retries")
 
             try:
-                self.sync_peer = self.select_sync_peer()
+                self.sync_peer = await self.select_sync_peer()
             except ValidationError as exception:
                 self.logger.info(f"No suitable peers to sync with: {exception}")
                 if is_last_retry:
@@ -90,10 +90,10 @@ class BeaconChainSyncer(BaseService):
 
         await self.sync()
 
-        new_head = self.chain_db.get_canonical_head(BeaconBlock)
+        new_head = await self.chain_db.coro_get_canonical_head(BeaconBlock)
         self.logger.info(f"Sync with {self.sync_peer} finished, new head: {new_head}")
 
-    def select_sync_peer(self) -> BCCPeer:
+    async def select_sync_peer(self) -> BCCPeer:
         if len(self.peer_pool) == 0:
             raise ValidationError("Not connected to anyone")
 
@@ -102,28 +102,29 @@ class BeaconChainSyncer(BaseService):
         sorted_peers = sorted(peers, key=operator.attrgetter("head_slot"), reverse=True)
         best_peer = first(sorted_peers)
 
-        finalized_head_slot = self.chain_db.get_finalized_head(BeaconBlock).slot
-        if best_peer.head_slot <= finalized_head_slot:
+        finalized_head = await self.chain_db.coro_get_finalized_head(BeaconBlock)
+        if best_peer.head_slot <= finalized_head.slot:
             raise ValidationError("No peer that is ahead of us")
 
         return best_peer
 
     async def sync(self) -> None:
+        finalized_head = await self.chain_db.coro_get_finalized_head(BeaconBlock)
         self.logger.info(
             "Syncing with %s (their head slot: %d, our finalized slot: %d)",
             self.sync_peer,
             self.sync_peer.head_slot,
-            self.chain_db.get_finalized_head(BeaconBlock).slot,
+            finalized_head.slot,
         )
 
-        start_slot = self.chain_db.get_finalized_head(BeaconBlock).slot + 1
+        start_slot = finalized_head.slot + 1
         batches = self.request_batches(start_slot)
 
         last_block = None
         async for batch in batches:
             if last_block is None:
                 try:
-                    self.validate_first_batch(batch)
+                    await self.validate_first_batch(batch)
                 except ValidationError:
                     return
             else:
@@ -133,7 +134,7 @@ class BeaconChainSyncer(BaseService):
             last_block = batch[-1]
 
             try:
-                self.chain_db.persist_block_chain(batch, BeaconBlock)
+                await self.chain_db.coro_persist_block_chain(batch, BeaconBlock)  # type:ignore
             except ValidationError as exception:
                 self.logger.info(f"Received invalid batch from {self.sync_peer}: {exception}")
                 break
@@ -161,7 +162,7 @@ class BeaconChainSyncer(BaseService):
 
             slot = batch[-1].slot + 1
 
-    def validate_first_batch(self, batch: Tuple[BaseBeaconBlock, ...]) -> None:
+    async def validate_first_batch(self, batch: Tuple[BaseBeaconBlock, ...]) -> None:
         parent_root = batch[0].parent_root
         parent_slot = batch[0].slot - 1
 
@@ -171,7 +172,10 @@ class BeaconChainSyncer(BaseService):
                 "genesis block"
             )
 
-        canonical_parent = self.chain_db.get_canonical_block_by_slot(parent_slot, BeaconBlock)
+        canonical_parent = await self.chain_db.coro_get_canonical_block_by_slot(
+            parent_slot,
+            BeaconBlock,
+        )
         if canonical_parent.hash != parent_root:
             message = f"Peer has different block finalized at slot #{parent_slot}"
             self.logger.info(message)
