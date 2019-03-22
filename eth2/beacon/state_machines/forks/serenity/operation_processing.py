@@ -31,7 +31,6 @@ from eth2.beacon.deposit_helpers import (
 from .block_validation import (
     validate_attestation,
     validate_attester_slashing,
-    validate_deposit,
     validate_proposer_slashing,
     validate_slashable_indices,
     validate_voluntary_exit,
@@ -207,13 +206,13 @@ def process_deposits(state: BeaconState,
             f"\tFound {len(block.body.deposits)} deposits, "
             f"maximum: {config.MAX_DEPOSITS}"
         )
+
     for deposit in block.body.deposits:
-        validate_deposit(state, deposit, deposit_contract_tree_depth)
-        process_deposit(
+        state = process_deposit(
             state,
-            pubkey,
-            amount,
-            proof_of_possession,
-            withdrawal_credentials,
+            deposit,
             slots_per_epoch=config.SLOTS_PER_EPOCH,
+            deposit_contract_tree_depth=config.DEPOSIT_CONTRACT_TREE_DEPTH,
         )
+
+    return state

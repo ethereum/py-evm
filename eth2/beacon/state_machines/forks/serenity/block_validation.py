@@ -15,7 +15,6 @@ from eth_utils import (
     to_tuple,
     ValidationError,
 )
-import ssz
 
 from eth.constants import (
     ZERO_HASH32,
@@ -24,12 +23,6 @@ from eth.constants import (
 from py_ecc import bls
 from eth2._utils import (
     bitfield,
-)
-from eth2._utils.merkle import (
-    verify_merkle_branch,
-)
-from eth2.beacon._utils import (
-    hash_eth2,
 )
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
@@ -805,35 +798,4 @@ def validate_voluntary_exit_signature(state: 'BeaconState',
             f"Invalid VoluntaryExit signature, validator_index={voluntary_exit.validator_index}, "
             f"pubkey={validator.pubkey}, message_hash={voluntary_exit.signed_root},"
             f"signature={voluntary_exit.signature}, domain={domain}"
-        )
-
-
-#
-# Deposits
-#
-def validate_deposit(state: BeaconState,
-                     deposit: Deposit,
-                     deposit_contract_tree_depth: int):
-    if deposit.index != state.deposit_index:
-        raise ValidationError(
-            f"deposit.index ({deposit.index}) is not equal to "
-            f"state.deposit_index ({state.deposit_index})"
-        )
-
-    serialized_deposit_data = ssz.encode(deposit.deposit_data)
-    leaf = hash_eth2(serialized_deposit_data)
-    is_valid_branch = verify_merkle_branch(
-        leaf,
-        deposit.branch,
-        deposit_contract_tree_depth,
-        deposit.index,
-        state.latest_eth1_data.deposit_root,
-    )
-    if not is_valid_branch:
-        raise ValidationError(
-            f"deposit.branch ({deposit.branch}) is invalid against "
-            f"leaf={leaf}, "
-            f"deposit_contract_tree_depth={deposit_contract_tree_depth}, "
-            f"deposit.index={deposit.index} "
-            f"state.latest_eth1_data.deposit_root={state.latest_eth1_data.deposit_root}"
         )

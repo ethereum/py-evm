@@ -1,4 +1,5 @@
 import random
+import time
 
 from typing import (
     Dict,
@@ -55,6 +56,7 @@ from eth2.beacon.types.attestation_data_and_custody_bits import (
     AttestationDataAndCustodyBit,
 )
 from eth2.beacon.types.attester_slashings import AttesterSlashing
+from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.proposal import Proposal
@@ -68,6 +70,7 @@ from eth2.beacon.typing import (
     Epoch,
     Shard,
     Slot,
+    Timestamp,
     ValidatorIndex,
 )
 from eth2.beacon.validation import (
@@ -544,6 +547,81 @@ def create_mock_voluntary_exit(state: BeaconState,
             slots_per_epoch=config.SLOTS_PER_EPOCH,
         )
     )
+
+
+#
+# Deposit
+#
+def create_deposit_data(*,
+                        config: BeaconConfig,
+                        pubkey: BLSPubkey,
+                        privkey: int,
+                        withdrawal_credentials: Hash32,
+                        fork: Fork,
+                        deposit_timestamp: Timestamp) -> DepositData:
+    return DepositData(
+        deposit_input=DepositInput(
+            pubkey=pubkey,
+            withdrawal_credentials=withdrawal_credentials,
+            proof_of_possession=sign_proof_of_possession(
+                deposit_input=DepositInput(
+                    pubkey=pubkey,
+                    withdrawal_credentials=withdrawal_credentials,
+                ),
+                privkey=privkey,
+                fork=fork,
+                slot=config.GENESIS_SLOT,
+                slots_per_epoch=config.SLOTS_PER_EPOCH,
+            ),
+        ),
+        amount=config.MAX_DEPOSIT_AMOUNT,
+        timestamp=deposit_timestamp,
+    )
+
+
+def create_mock_deposit_data(*,
+                             config: BeaconConfig,
+                             pubkeys: Sequence[BLSPubkey],
+                             keymap: Dict[BLSPubkey, int],
+                             validator_index: ValidatorIndex,
+                             withdrawal_credentials: Hash32,
+                             fork: Fork,
+                             deposit_timestamp: Timestamp=Timestamp(0)) -> DepositData:
+    if deposit_timestamp is None:
+        deposit_timestamp = Timestamp(int(time.time()))
+
+    return create_deposit_data(
+        config=config,
+        pubkey=pubkeys[validator_index],
+        privkey=keymap[pubkeys[validator_index]],
+        withdrawal_credentials=withdrawal_credentials,
+        fork=fork,
+        deposit_timestamp=deposit_timestamp,
+    )
+
+
+# def create_mock_deposit(*,
+#                         config: BeaconConfig,
+#                         pubkeys: Sequence[BLSPubkey],
+#                         keymap: Dict[BLSPubkey, int],
+#                         validator_index: ValidatorIndex,
+#                         deposit_index: int,
+#                         withdrawal_credentials: Hash32,
+#                         fork: Fork,
+#                         proof: Sequence[Hash32]=None,
+#                         deposit_timestamp: Timestamp=0,
+#                         ):
+#     if branch is None:
+#         branch = tuple(
+#             Hash32(b'\x11' * 32)
+#             for j in range(32)
+#         )
+
+#     return Deposit(
+#         branch=branch,
+#         index=deposit_index,
+#         deposit_data=deposit_data,
+#     )
 
 
 #

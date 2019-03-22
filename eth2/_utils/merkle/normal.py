@@ -94,20 +94,3 @@ def get_merkle_root(leaves: Sequence[Hash32]) -> Hash32:
     Note: it has to be a full tree, i.e., `len(values)` is an exact power of 2.
     """
     return get_root(calc_merkle_tree_from_leaves(leaves))
-
-
-def verify_merkle_branch(leaf: Hash32,
-                         branch: Sequence[Hash32],
-                         depth: int,
-                         index: int,
-                         root: Hash32) -> bool:
-    """
-    Verify that the given ``leaf`` is on the merkle branch ``branch``.
-    """
-    value = leaf
-    for i in range(depth):
-        if index // (2**i) % 2:
-            value = hash_eth2(branch[i] + value)
-        else:
-            value = hash_eth2(value + branch[i])
-    return value == root

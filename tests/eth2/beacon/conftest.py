@@ -230,7 +230,7 @@ def sample_deposit_data_params(sample_deposit_input_params):
 @pytest.fixture
 def sample_deposit_params(sample_deposit_data_params):
     return {
-        'branch': (),
+        'proof': (),
         'index': 5,
         'deposit_data': DepositData(**sample_deposit_data_params)
     }
