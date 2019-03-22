@@ -5,8 +5,9 @@ only a single element, the leaves as many as there are data items in the tree. T
 not considered to be part of the tree.
 """
 
-from typing import (
+from typing import (  # noqa: F401
     Sequence,
+    Tuple,
     Union,
 )
 
