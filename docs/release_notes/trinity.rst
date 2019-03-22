@@ -10,6 +10,7 @@ Unreleased (latest source)
 - `#386 <https://github.com/ethereum/trinity/pull/386>`_: Slightly reduce eventbus traffic that the peer pool causes
 - `#336 <https://github.com/ethereum/trinity/pull/336>`_: Bugfix: Ensure Trinity shuts down if the process pool dies (fatal error)
 - `#347 <https://github.com/ethereum/trinity/pull/347>`_: Bugfix: Don't crash during sync pruning when switching peers
+- `#446 <https://github.com/ethereum/trinity/pull/446>`_: Bugfix(es): Several reliability improvements to regular sync
 - `#389 <https://github.com/ethereum/trinity/pull/389>`_: Bugfix: Always return contiguous headers from header syncer
 - `#389 <https://github.com/ethereum/trinity/pull/389>`_: Performance: When switching sync to a new lead peer, don't backtrack to importing old headers
 - `#556 <https://github.com/ethereum/trinity/pull/556>`_: Performance: Upgrade to lahja 0.13.0 which performs less inter-process communication
