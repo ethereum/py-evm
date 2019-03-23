@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import os
 import subprocess
 import time
@@ -62,6 +63,22 @@ def enable_pubsub():
     return False
 
 
+async def try_until_success(coro_func, timeout=TIMEOUT_DURATION):
+    """
+    Keep running ``coro_func`` until the time is out.
+    All arguments of ``coro_func`` should be filled, i.e. it should be called without arguments.
+    """
+    t_start = time.time()
+    while True:
+        result = await coro_func()
+        if result:
+            break
+        if (time.time() - t_start) > timeout:
+            # timeout
+            assert False, f"{coro_func} still failed after `timeout` seconds"
+        await asyncio.sleep(0.01)
+
+
 class Daemon:
     control_maddr = None
     proc_daemon = None
@@ -113,7 +130,6 @@ class Daemon:
         )
 
     async def wait_until_ready(self):
-        timeout = TIMEOUT_DURATION
         lines_head_pattern = (
             b'Control socket:',
             b'Peer ID:',
@@ -123,19 +139,17 @@ class Daemon:
             line: False
             for line in lines_head_pattern
         }
-        t_start = time.time()
+
         with open(self.log_filename, 'rb') as f_log_read:
-            while True:
-                is_finished = all([value for _, value in lines_head_occurred.items()])
-                if is_finished:
-                    break
-                if time.time() - t_start > timeout:
-                    raise Exception("daemon is not ready before timeout")
+            async def read_from_daemon_and_check():
                 line = f_log_read.readline()
                 for head_pattern in lines_head_occurred:
                     if line.startswith(head_pattern):
                         lines_head_occurred[head_pattern] = True
-                await asyncio.sleep(0.1)
+                return all([value for _, value in lines_head_occurred.items()])
+
+            await try_until_success(read_from_daemon_and_check)
+
         # sleep for a while in case that the daemon haven't been ready after emitting these lines
         await asyncio.sleep(0.1)
 
@@ -349,36 +363,24 @@ async def test_control_client_connect_failure(peer_id_random, p2pds):
         await c0.connect(peer_id_1, [Multiaddr("/ip4/127.0.0.1/udp/0")])
 
 
-async def _connect_and_check(p2pd_tuple_0, p2pd_tuple_1):
+async def _check_connection(p2pd_tuple_0, p2pd_tuple_1):
     peer_id_0, _ = await p2pd_tuple_0.control.identify()
-    peer_id_1, maddrs_1 = await p2pd_tuple_1.control.identify()
-    await p2pd_tuple_0.control.connect(peer_id_1, maddrs_1)
+    peer_id_1, _ = await p2pd_tuple_1.control.identify()
     peers_0 = [pinfo.peer_id for pinfo in await p2pd_tuple_0.control.list_peers()]
     peers_1 = [pinfo.peer_id for pinfo in await p2pd_tuple_1.control.list_peers()]
-    if peer_id_0 not in peers_1:
-        raise ConnectionFailure(
-            f"failed to connect: peer_id_0={peer_id_0} not in peers_1={peers_1}"
-        )
-    if peer_id_1 not in peers_0:
-        raise ConnectionFailure(
-            f"failed to connect: peer_id_1={peer_id_1} not in peers_0={peers_0}"
-        )
+    return (peer_id_0 in peers_1) and (peer_id_1 in peers_0)
 
 
-async def try_connect_until_success(p2pd_tuple_0, p2pd_tuple_1):
-    timeout = TIMEOUT_DURATION
-    t_start = time.time()
-    while True:
-        try:
-            await _connect_and_check(p2pd_tuple_0, p2pd_tuple_1)
-            # if the connection succeeds, jump out of this while loop immediately
-            break
-        except ConnectionFailure as e:
-            reason = str(e)
-        if (time.time() - t_start) > timeout:
-            # timeout
-            assert False, f"failed to connect peers: {reason}"
-        await asyncio.sleep(0.1)
+async def connect_safe(p2pd_tuple_0, p2pd_tuple_1):
+    peer_id_1, maddrs_1 = await p2pd_tuple_1.control.identify()
+    await p2pd_tuple_0.control.connect(peer_id_1, maddrs_1)
+    await try_until_success(
+        functools.partial(
+            _check_connection,
+            p2pd_tuple_0=p2pd_tuple_0,
+            p2pd_tuple_1=p2pd_tuple_1,
+        ),
+    )
 
 
 @pytest.mark.parametrize(
@@ -386,8 +388,8 @@ async def try_connect_until_success(p2pd_tuple_0, p2pd_tuple_1):
     (True,),
 )
 @pytest.mark.asyncio
-async def test_try_connect_until_success(p2pds):
-    await try_connect_until_success(p2pds[0], p2pds[1])
+async def test_connect_safe(p2pds):
+    await connect_safe(p2pds[0], p2pds[1])
 
 
 @pytest.mark.parametrize(
@@ -400,11 +402,11 @@ async def test_control_client_list_peers(p2pds):
     # test case: no peers
     assert len(await c0.list_peers()) == 0
     # test case: 1 peer
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
     assert len(await c0.list_peers()) == 1
     assert len(await c1.list_peers()) == 1
     # test case: one more peer
-    await try_connect_until_success(p2pds[0], p2pds[2])
+    await connect_safe(p2pds[0], p2pds[2])
     assert len(await c0.list_peers()) == 2
     assert len(await c1.list_peers()) == 1
     assert len(await c2.list_peers()) == 1
@@ -421,7 +423,7 @@ async def test_controle_client_disconnect(peer_id_random, p2pds):
     await c1.disconnect(peer_id_random)
     # test case: disconnect
     peer_id_0, _ = await c0.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
     assert len(await c0.list_peers()) == 1
     assert len(await c1.list_peers()) == 1
     await c1.disconnect(peer_id_0)
@@ -442,7 +444,7 @@ async def test_control_client_stream_open_success(p2pds):
     c0, c1 = p2pds[0].control, p2pds[1].control
 
     peer_id_1, maddrs_1 = await c1.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
 
     proto = "123"
 
@@ -483,7 +485,7 @@ async def test_control_client_stream_open_failure(p2pds):
     c0, c1 = p2pds[0].control, p2pds[1].control
 
     peer_id_1, _ = await c1.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
 
     proto = "123"
 
@@ -526,7 +528,7 @@ async def test_control_client_stream_handler_success(p2pds):
     c0, c1 = p2pds[0].control, p2pds[1].control
 
     peer_id_1, _ = await c1.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
 
     proto = "protocol123"
     bytes_to_send = b"yoyoyoyoyog"
@@ -623,7 +625,7 @@ async def test_control_client_stream_handler_failure(p2pds):
     c0, c1 = p2pds[0].control, p2pds[1].control
 
     peer_id_1, _ = await c1.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
 
     proto = "123"
 
@@ -645,8 +647,8 @@ async def test_control_client_stream_handler_failure(p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_find_peer_success(p2pds):
     peer_id_2, _ = await p2pds[2].control.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
-    await try_connect_until_success(p2pds[1], p2pds[2])
+    await connect_safe(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[1], p2pds[2])
     pinfo = await p2pds[0].dht.find_peer(peer_id_2)
     assert pinfo.peer_id == peer_id_2
     assert len(pinfo.addrs) != 0
@@ -661,7 +663,7 @@ async def test_dht_client_find_peer_success(p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_find_peer_failure(peer_id_random, p2pds):
     peer_id_2, _ = await p2pds[2].control.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
     # test case: `peer_id` not found
     with pytest.raises(ControlFailure):
         await p2pds[0].dht.find_peer(peer_id_random)
@@ -679,9 +681,9 @@ async def test_dht_client_find_peer_failure(peer_id_random, p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_find_peers_connected_to_peer_success(p2pds):
     peer_id_2, _ = await p2pds[2].control.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
     # test case: 0 <-> 1 <-> 2
-    await try_connect_until_success(p2pds[1], p2pds[2])
+    await connect_safe(p2pds[1], p2pds[2])
     pinfos_connecting_to_2 = await p2pds[0].dht.find_peers_connected_to_peer(peer_id_2)
     # TODO: need to confirm this behaviour. Why the result is the PeerInfo of `peer_id_2`?
     assert len(pinfos_connecting_to_2) == 1
@@ -696,7 +698,7 @@ async def test_dht_client_find_peers_connected_to_peer_success(p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_find_peers_connected_to_peer_failure(peer_id_random, p2pds):
     peer_id_2, _ = await p2pds[2].control.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
     # test case: request for random peer_id
     pinfos = await p2pds[0].dht.find_peers_connected_to_peer(peer_id_random)
     assert not pinfos
@@ -713,7 +715,7 @@ async def test_dht_client_find_peers_connected_to_peer_failure(peer_id_random, p
 )
 @pytest.mark.asyncio
 async def test_dht_client_find_providers(p2pds):
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
     # borrowed from https://github.com/ipfs/go-cid#parsing-string-input-from-users
     content_id_bytes = b'\x01r\x12 \xc0F\xc8\xechB\x17\xf0\x1b$\xb9\xecw\x11\xde\x11Cl\x8eF\xd8\x9a\xf1\xaeLa?\xb0\xaf\xe6K\x8b'  # noqa: E501
     pinfos = await p2pds[1].dht.find_providers(content_id_bytes, 100)
@@ -728,8 +730,8 @@ async def test_dht_client_find_providers(p2pds):
 )
 @pytest.mark.asyncio
 async def test_dht_client_get_closest_peers(p2pds):
-    await try_connect_until_success(p2pds[0], p2pds[1])
-    await try_connect_until_success(p2pds[1], p2pds[2])
+    await connect_safe(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[1], p2pds[2])
     peer_ids_1 = await p2pds[1].dht.get_closest_peers(b"123")
     assert len(peer_ids_1) == 2
 
@@ -744,8 +746,8 @@ async def test_dht_client_get_closest_peers(p2pds):
 async def test_dht_client_get_public_key_success(peer_id_random, p2pds):
     peer_id_0, _ = await p2pds[0].control.identify()
     peer_id_1, _ = await p2pds[1].control.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
-    await try_connect_until_success(p2pds[1], p2pds[2])
+    await connect_safe(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[1], p2pds[2])
     await asyncio.sleep(0.2)
     pk0 = await p2pds[0].dht.get_public_key(peer_id_0)
     pk1 = await p2pds[0].dht.get_public_key(peer_id_1)
@@ -761,8 +763,8 @@ async def test_dht_client_get_public_key_success(peer_id_random, p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_get_public_key_failure(peer_id_random, p2pds):
     peer_id_2, _ = await p2pds[2].control.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
-    await try_connect_until_success(p2pds[1], p2pds[2])
+    await connect_safe(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[1], p2pds[2])
     # test case: failed to get the pubkey of the peer_id_random
     with pytest.raises(ControlFailure):
         await p2pds[0].dht.get_public_key(peer_id_random)
@@ -783,7 +785,7 @@ async def test_dht_client_get_value(p2pds):
     # test case: no peer in table
     with pytest.raises(ControlFailure):
         await p2pds[0].dht.get_value(key_not_existing)
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
     # test case: routing not found
     with pytest.raises(ControlFailure):
         await p2pds[0].dht.get_value(key_not_existing)
@@ -801,7 +803,7 @@ async def test_dht_client_search_value(p2pds):
     # test case: no peer in table
     with pytest.raises(ControlFailure):
         await p2pds[0].dht.search_value(key_not_existing)
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
     # test case: non-existing key
     pinfos = await p2pds[0].dht.search_value(key_not_existing)
     assert len(pinfos) == 0
@@ -816,7 +818,7 @@ async def test_dht_client_search_value(p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_put_value(p2pds):
     peer_id_0, _ = await p2pds[0].control.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
 
     # test case: valid key
     pk0 = await p2pds[0].dht.get_public_key(peer_id_0)
@@ -845,7 +847,7 @@ async def test_dht_client_put_value(p2pds):
 @pytest.mark.asyncio
 async def test_dht_client_provide(p2pds):
     peer_id_0, _ = await p2pds[0].control.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[0], p2pds[1])
     # test case: no providers
     content_id_bytes = b'\x01r\x12 \xc0F\xc8\xechB\x17\xf0\x1b$\xb9\xecw\x11\xde\x11Cl\x8eF\xd8\x9a\xf1\xaeLa?\xb0\xaf\xe6K\x8b'  # noqa: E501
     pinfos_empty = await p2pds[1].dht.find_providers(content_id_bytes, 100)
@@ -927,8 +929,8 @@ async def test_connmgr_client_trim_automatically_by_connmgr(p2pds):
 async def test_connmgr_client_trim(p2pds):
     peer_id_0, _ = await p2pds[0].control.identify()
     peer_id_2, _ = await p2pds[2].control.identify()
-    await try_connect_until_success(p2pds[1], p2pds[0])
-    await try_connect_until_success(p2pds[1], p2pds[2])
+    await connect_safe(p2pds[1], p2pds[0])
+    await connect_safe(p2pds[1], p2pds[2])
     assert len(await p2pds[1].control.list_peers()) == 2
     await p2pds[1].connmgr.tag_peer(peer_id_0, "123", 1)
     await p2pds[1].connmgr.tag_peer(peer_id_2, "123", 2)
@@ -984,8 +986,8 @@ async def test_pubsub_client_publish(p2pds):
 async def test_pubsub_client_subscribe(p2pds):
     peer_id_0, _ = await p2pds[0].control.identify()
     peer_id_1, _ = await p2pds[1].control.identify()
-    await try_connect_until_success(p2pds[0], p2pds[1])
-    await try_connect_until_success(p2pds[1], p2pds[2])
+    await connect_safe(p2pds[0], p2pds[1])
+    await connect_safe(p2pds[1], p2pds[2])
     topic = "topic123"
     data = b"data"
     reader_0, writer_0 = await p2pds[0].pubsub.subscribe(topic)
@@ -1038,4 +1040,8 @@ async def test_pubsub_client_subscribe(p2pds):
     writer_0.close()
     await asyncio.sleep(0)
     assert topic not in await p2pds[0].pubsub.get_topics()
-    assert peer_id_0 not in await p2pds[1].pubsub.list_peers(topic)
+
+    async def check_peer_in_topic():
+        return (peer_id_0 not in await p2pds[1].pubsub.list_peers(topic))
+
+    await try_until_success(check_peer_in_topic, timeout=TIMEOUT_DURATION)
