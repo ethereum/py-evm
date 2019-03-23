@@ -97,7 +97,15 @@ def initialize_data_dir(trinity_config: TrinityConfig) -> None:
     # Logfile
     should_create_logdir = (
         not trinity_config.log_dir.exists() and
-        is_under_path(trinity_config.trinity_root_dir, trinity_config.log_dir)
+        (
+            # If we're in the default path, always create the log directory
+            is_under_path(trinity_config.trinity_root_dir, trinity_config.log_dir) or
+            (
+                # If we're in a custom path, create the log directory if the data dir is empty
+                is_under_path(trinity_config.data_dir, trinity_config.log_dir) and
+                not any(trinity_config.data_dir.iterdir())
+            )
+        )
     )
     if should_create_logdir:
         trinity_config.log_dir.mkdir(parents=True, exist_ok=True)
