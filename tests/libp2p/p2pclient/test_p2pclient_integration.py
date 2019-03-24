@@ -68,12 +68,12 @@ async def try_until_success(coro_func, timeout=TIMEOUT_DURATION):
     Keep running ``coro_func`` until the time is out.
     All arguments of ``coro_func`` should be filled, i.e. it should be called without arguments.
     """
-    t_start = time.time()
+    t_start = time.monotonic()
     while True:
         result = await coro_func()
         if result:
             break
-        if (time.time() - t_start) > timeout:
+        if (time.monotonic() - t_start) >= timeout:
             # timeout
             assert False, f"{coro_func} still failed after `timeout` seconds"
         await asyncio.sleep(0.01)
@@ -1041,7 +1041,7 @@ async def test_pubsub_client_subscribe(p2pds):
     await asyncio.sleep(0)
     assert topic not in await p2pds[0].pubsub.get_topics()
 
-    async def check_peer_in_topic():
+    async def is_peer_removed_from_topic():
         return (peer_id_0 not in await p2pds[1].pubsub.list_peers(topic))
 
-    await try_until_success(check_peer_in_topic, timeout=TIMEOUT_DURATION)
+    await try_until_success(is_peer_removed_from_topic)
