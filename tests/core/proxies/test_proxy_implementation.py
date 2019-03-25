@@ -7,6 +7,9 @@ from trinity.db.eth1.chain import (
 from trinity.db.eth1.header import (
     AsyncHeaderDBPreProxy,
 )
+from trinity.db.beacon.chain import (
+    AsyncBeaconChainDBPreProxy,
+)
 
 
 def test_can_instantiate_proxy():
@@ -15,3 +18,4 @@ def test_can_instantiate_proxy():
     assert AsyncHeaderDBPreProxy(None) is not None
     assert AsyncChainDBPreProxy(None) is not None
     assert AsyncDBPreProxy() is not None
+    assert AsyncBeaconChainDBPreProxy() is not None
