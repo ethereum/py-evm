@@ -88,7 +88,7 @@ class BeaconChainSyncer(BaseService):
             self.logger.info("Failed to find suitable sync peer in time")
             return
 
-        await self.sync()
+        await self.wait(self.sync())
 
         new_head = await self.chain_db.coro_get_canonical_head(BeaconBlock)
         self.logger.info(f"Sync with {self.sync_peer} finished, new head: {new_head}")
