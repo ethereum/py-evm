@@ -26,8 +26,8 @@ from .helpers import (
 
 
 async def get_request_server_setup(request, event_loop, chain_db):
-    genesis = chain_db.get_canonical_block_by_slot(0, BeaconBlock)
-    alice_chain_db = get_chain_db((genesis,))
+    genesis = await chain_db.coro_get_canonical_block_by_slot(0, BeaconBlock)
+    alice_chain_db = await get_chain_db((genesis,))
     alice, alice_peer_pool, bob, bob_peer_pool = await get_directly_linked_peers_in_peer_pools(
         request,
         event_loop,
@@ -52,7 +52,7 @@ async def get_request_server_setup(request, event_loop, chain_db):
 @pytest.mark.asyncio
 async def test_get_single_block_by_slot(request, event_loop):
     block = create_test_block(slot=0)
-    chain_db = get_chain_db((block,))
+    chain_db = await get_chain_db((block,))
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
     alice.sub_proto.send_get_blocks(block.hash, 1, request_id=5)
@@ -68,7 +68,7 @@ async def test_get_single_block_by_slot(request, event_loop):
 @pytest.mark.asyncio
 async def test_get_single_block_by_root(request, event_loop):
     block = create_test_block(slot=0)
-    chain_db = get_chain_db((block,))
+    chain_db = await get_chain_db((block,))
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
     alice.sub_proto.send_get_blocks(0, 1, request_id=5)
@@ -84,7 +84,7 @@ async def test_get_single_block_by_root(request, event_loop):
 @pytest.mark.asyncio
 async def test_get_no_blocks(request, event_loop):
     block = create_test_block(slot=0)
-    chain_db = get_chain_db((block,))
+    chain_db = await get_chain_db((block,))
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
     alice.sub_proto.send_get_blocks(0, 0, request_id=5)
@@ -100,7 +100,7 @@ async def test_get_no_blocks(request, event_loop):
 @pytest.mark.asyncio
 async def test_get_unknown_block_by_slot(request, event_loop):
     block = create_test_block(slot=0)
-    chain_db = get_chain_db((block,))
+    chain_db = await get_chain_db((block,))
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
     alice.sub_proto.send_get_blocks(100, 1, request_id=5)
@@ -116,7 +116,7 @@ async def test_get_unknown_block_by_slot(request, event_loop):
 @pytest.mark.asyncio
 async def test_get_unknown_block_by_root(request, event_loop):
     block = create_test_block(slot=0)
-    chain_db = get_chain_db((block,))
+    chain_db = await get_chain_db((block,))
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
     alice.sub_proto.send_get_blocks(b"\x00" * 32, 1, request_id=5)
@@ -131,7 +131,7 @@ async def test_get_unknown_block_by_root(request, event_loop):
 
 @pytest.mark.asyncio
 async def test_get_canonical_block_range_by_slot(request, event_loop):
-    chain_db = get_chain_db()
+    chain_db = await get_chain_db()
 
     genesis = create_test_block(slot=0)
     base_branch = create_branch(3, root=genesis)
@@ -140,7 +140,7 @@ async def test_get_canonical_block_range_by_slot(request, event_loop):
     canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
 
     for branch in [[genesis], base_branch, non_canonical_branch, canonical_branch]:
-        chain_db.persist_block_chain(branch, BeaconBlock)
+        await chain_db.coro_persist_block_chain(branch, BeaconBlock)
 
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
@@ -157,7 +157,7 @@ async def test_get_canonical_block_range_by_slot(request, event_loop):
 
 @pytest.mark.asyncio
 async def test_get_canonical_block_range_by_root(request, event_loop):
-    chain_db = get_chain_db()
+    chain_db = await get_chain_db()
 
     genesis = create_test_block(slot=0)
     base_branch = create_branch(3, root=genesis)
@@ -165,7 +165,7 @@ async def test_get_canonical_block_range_by_root(request, event_loop):
     canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
 
     for branch in [[genesis], base_branch, non_canonical_branch, canonical_branch]:
-        chain_db.persist_block_chain(branch, BeaconBlock)
+        await chain_db.coro_persist_block_chain(branch, BeaconBlock)
 
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
@@ -182,7 +182,7 @@ async def test_get_canonical_block_range_by_root(request, event_loop):
 
 @pytest.mark.asyncio
 async def test_get_incomplete_canonical_block_range(request, event_loop):
-    chain_db = get_chain_db()
+    chain_db = await get_chain_db()
 
     genesis = create_test_block(slot=0)
     base_branch = create_branch(3, root=genesis)
@@ -190,7 +190,7 @@ async def test_get_incomplete_canonical_block_range(request, event_loop):
     canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
 
     for branch in [[genesis], base_branch, non_canonical_branch, canonical_branch]:
-        chain_db.persist_block_chain(branch, BeaconBlock)
+        await chain_db.coro_persist_block_chain(branch, BeaconBlock)
 
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 
@@ -207,7 +207,7 @@ async def test_get_incomplete_canonical_block_range(request, event_loop):
 
 @pytest.mark.asyncio
 async def test_get_non_canonical_branch(request, event_loop):
-    chain_db = get_chain_db()
+    chain_db = await get_chain_db()
 
     genesis = create_test_block(slot=0)
     base_branch = create_branch(3, root=genesis)
@@ -215,7 +215,7 @@ async def test_get_non_canonical_branch(request, event_loop):
     canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
 
     for branch in [[genesis], base_branch, non_canonical_branch, canonical_branch]:
-        chain_db.persist_block_chain(branch, BeaconBlock)
+        await chain_db.coro_persist_block_chain(branch, BeaconBlock)
 
     alice, response_buffer = await get_request_server_setup(request, event_loop, chain_db)
 

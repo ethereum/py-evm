@@ -6,7 +6,7 @@ from eth_utils import (
     encode_hex,
 )
 
-from eth2.beacon.db.chain import BaseBeaconChainDB
+from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from eth2.beacon.types.blocks import (
     BeaconBlock,
 )
@@ -54,9 +54,9 @@ class BCCPeer(BasePeer):
 
     async def send_sub_proto_handshake(self) -> None:
         # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under per BeaconStateMachine fork
-        genesis = self.chain_db.get_canonical_block_by_slot(0, BeaconBlock)
-        head_slot = self.chain_db.get_canonical_head(BeaconBlock).slot
-        self.sub_proto.send_handshake(genesis.hash, head_slot)
+        genesis = await self.chain_db.coro_get_canonical_block_by_slot(0, BeaconBlock)
+        head = await self.chain_db.coro_get_canonical_head(BeaconBlock)
+        self.sub_proto.send_handshake(genesis.hash, head.slot)
 
     async def process_sub_proto_handshake(self, cmd: Command, msg: _DecodedMsgType) -> None:
         if not isinstance(cmd, Status):
@@ -71,7 +71,7 @@ class BCCPeer(BasePeer):
                 f"({self.network_id}), disconnecting"
             )
         # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under per BeaconStateMachine fork
-        genesis_block = self.chain_db.get_canonical_block_by_slot(0, BeaconBlock)
+        genesis_block = await self.chain_db.coro_get_canonical_block_by_slot(0, BeaconBlock)
         if msg['genesis_hash'] != genesis_block.hash:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
@@ -86,7 +86,7 @@ class BCCPeer(BasePeer):
         return self.context.network_id
 
     @property
-    def chain_db(self) -> BaseBeaconChainDB:
+    def chain_db(self) -> BaseAsyncBeaconChainDB:
         return self.context.chain_db
 
     @property

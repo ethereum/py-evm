@@ -15,6 +15,7 @@ from eth.constants import (
 from eth.db.atomic import AtomicDB
 
 from eth2.beacon.db.chain import BeaconChainDB
+from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from eth2.beacon.types.blocks import (
     BeaconBlock,
     BeaconBlockBody,
@@ -37,6 +38,33 @@ from p2p.tools.paragon.helpers import (
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
 )
+from tests.core.integration_test_helpers import (
+    async_passthrough,
+)
+from eth.db.backends.base import (
+    BaseAtomicDB,
+)
+
+
+class FakeAsyncBeaconChainDB(BaseAsyncBeaconChainDB, BeaconChainDB):
+
+    def __init__(self, db: BaseAtomicDB) -> None:
+        self.db = db
+
+    coro_persist_block = async_passthrough('persist_block')
+    coro_get_canonical_block_root = async_passthrough('get_canonical_block_root')
+    coro_get_canonical_block_by_slot = async_passthrough('get_canonical_block_by_slot')
+    coro_get_canonical_block_root_by_slot = async_passthrough('get_canonical_block_root_by_slot')
+    coro_get_canonical_head = async_passthrough('get_canonical_head')
+    coro_get_finalized_head = async_passthrough('get_finalized_head')
+    coro_get_block_by_root = async_passthrough('get_block_by_root')
+    coro_get_score = async_passthrough('get_score')
+    coro_block_exists = async_passthrough('block_exists')
+    coro_persist_block_chain = async_passthrough('persist_block_chain')
+    coro_get_state_by_root = async_passthrough('get_state_by_root')
+    coro_persist_state = async_passthrough('persist_state')
+    coro_exists = async_passthrough('exists')
+    coro_get = async_passthrough('get')
 
 
 def create_test_block(parent=None, **kwargs):
@@ -74,16 +102,16 @@ def create_branch(length, root=None, **start_kwargs):
         parent = child
 
 
-def get_chain_db(blocks=()):
+async def get_chain_db(blocks=()):
     db = AtomicDB()
-    chain_db = BeaconChainDB(db)
-    chain_db.persist_block_chain(blocks, BeaconBlock)
+    chain_db = FakeAsyncBeaconChainDB(db)
+    await chain_db.coro_persist_block_chain(blocks, BeaconBlock)
     return chain_db
 
 
-def get_genesis_chain_db():
+async def get_genesis_chain_db():
     genesis = create_test_block(slot=0)
-    return get_chain_db((genesis,))
+    return await get_chain_db((genesis,))
 
 
 async def _setup_alice_and_bob_factories(alice_chain_db, bob_chain_db):
