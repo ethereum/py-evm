@@ -140,7 +140,7 @@ def test_get_genesis_beacon_state(
     assert len(state.historical_roots) == 0
 
     # Ethereum 1.0 chain data
-    assert state.latest_eth1_data == genesis_eth1_data
+    assert state.latest_eth1_data == latest_eth1_data
     assert len(state.eth1_data_votes) == 0
     assert state.deposit_index == len(genesis_validator_deposits)
 
