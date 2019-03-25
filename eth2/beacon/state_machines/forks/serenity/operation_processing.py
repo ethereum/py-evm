@@ -134,7 +134,7 @@ def process_attestations(state: BeaconState,
             state,
             attestation,
             config.MIN_ATTESTATION_INCLUSION_DELAY,
-            config.LATEST_BLOCK_ROOTS_LENGTH,
+            config.SLOTS_PER_HISTORICAL_ROOT,
             CommitteeConfig(config),
         )
 

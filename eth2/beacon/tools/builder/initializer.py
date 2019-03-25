@@ -127,7 +127,7 @@ def create_mock_genesis(
         genesis_start_shard=config.GENESIS_START_SHARD,
         shard_count=config.SHARD_COUNT,
         min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
-        latest_block_roots_length=config.LATEST_BLOCK_ROOTS_LENGTH,
+        slots_per_historical_root=config.SLOTS_PER_HISTORICAL_ROOT,
         latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
         slots_per_epoch=config.SLOTS_PER_EPOCH,
         max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,

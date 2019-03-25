@@ -46,8 +46,8 @@ def generate_mock_latest_block_roots(
         genesis_block,
         current_slot,
         slots_per_epoch,
-        latest_block_roots_length):
-    assert current_slot < latest_block_roots_length
+        slots_per_historical_root):
+    assert current_slot < slots_per_historical_root
 
     chain_length = (current_slot // slots_per_epoch + 1) * slots_per_epoch
     blocks = get_pseudo_chain(chain_length, genesis_block)
@@ -56,7 +56,7 @@ def generate_mock_latest_block_roots(
         for block in blocks[:current_slot]
     ] + [
         ZERO_HASH32
-        for _ in range(latest_block_roots_length - current_slot)
+        for _ in range(slots_per_historical_root - current_slot)
     ]
     return blocks, latest_block_roots
 
@@ -81,13 +81,13 @@ def test_get_block_root(current_slot,
                         target_slot,
                         success,
                         slots_per_epoch,
-                        latest_block_roots_length,
+                        slots_per_historical_root,
                         sample_block):
     blocks, latest_block_roots = generate_mock_latest_block_roots(
         sample_block,
         current_slot,
         slots_per_epoch,
-        latest_block_roots_length,
+        slots_per_historical_root,
     )
 
     if success:
@@ -95,7 +95,7 @@ def test_get_block_root(current_slot,
             latest_block_roots,
             current_slot,
             target_slot,
-            latest_block_roots_length,
+            slots_per_historical_root,
         )
         assert block_root == blocks[target_slot].root
     else:
@@ -104,7 +104,7 @@ def test_get_block_root(current_slot,
                 latest_block_roots,
                 current_slot,
                 target_slot,
-                latest_block_roots_length,
+                slots_per_historical_root,
             )
 
 

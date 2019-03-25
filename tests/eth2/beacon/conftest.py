@@ -343,7 +343,7 @@ def filled_beacon_state(genesis_epoch,
                         genesis_slot,
                         genesis_start_shard,
                         shard_count,
-                        latest_block_roots_length,
+                        slots_per_historical_root,
                         latest_active_index_roots_length,
                         latest_randao_mixes_length,
                         latest_slashed_exit_length):
@@ -352,7 +352,7 @@ def filled_beacon_state(genesis_epoch,
         genesis_start_shard=genesis_start_shard,
         genesis_slot=genesis_slot,
         shard_count=shard_count,
-        latest_block_roots_length=latest_block_roots_length,
+        slots_per_historical_root=slots_per_historical_root,
         latest_active_index_roots_length=latest_active_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
         latest_slashed_exit_length=latest_slashed_exit_length,
@@ -452,8 +452,8 @@ def shuffle_round_count():
 
 
 @pytest.fixture
-def latest_block_roots_length():
-    return SERENITY_CONFIG.LATEST_BLOCK_ROOTS_LENGTH
+def slots_per_historical_root():
+    return SERENITY_CONFIG.SLOTS_PER_HISTORICAL_ROOT
 
 
 @pytest.fixture
@@ -622,13 +622,13 @@ def genesis_state(filled_beacon_state,
                   target_committee_size,
                   genesis_epoch,
                   shard_count,
-                  latest_block_roots_length,
+                  slots_per_historical_root,
                   latest_slashed_exit_length,
                   latest_randao_mixes_length):
     return filled_beacon_state.copy(
         validator_registry=activated_genesis_validators,
         validator_balances=genesis_balances,
-        latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
+        latest_block_roots=tuple(ZERO_HASH32 for _ in range(slots_per_historical_root)),
         latest_slashed_balances=(0,) * latest_slashed_exit_length,
         latest_crosslinks=tuple(
             CrosslinkRecord(
@@ -704,7 +704,7 @@ def config(
         max_indices_per_slashable_vote,
         max_exit_dequeues_per_epoch,
         shuffle_round_count,
-        latest_block_roots_length,
+        slots_per_historical_root,
         latest_active_index_roots_length,
         latest_randao_mixes_length,
         latest_slashed_exit_length,
@@ -746,7 +746,7 @@ def config(
         MAX_INDICES_PER_SLASHABLE_VOTE=max_indices_per_slashable_vote,
         MAX_EXIT_DEQUEUES_PER_EPOCH=max_exit_dequeues_per_epoch,
         SHUFFLE_ROUND_COUNT=shuffle_round_count,
-        LATEST_BLOCK_ROOTS_LENGTH=latest_block_roots_length,
+        SLOTS_PER_HISTORICAL_ROOT=slots_per_historical_root,
         LATEST_ACTIVE_INDEX_ROOTS_LENGTH=latest_active_index_roots_length,
         LATEST_RANDAO_MIXES_LENGTH=latest_randao_mixes_length,
         LATEST_SLASHED_EXIT_LENGTH=latest_slashed_exit_length,

@@ -197,7 +197,7 @@ class BeaconState(ssz.Serializable):
                             genesis_start_shard: Shard,
                             genesis_slot: Slot,
                             shard_count: int,
-                            latest_block_roots_length: int,
+                            slots_per_historical_root: int,
                             latest_active_index_roots_length: int,
                             latest_randao_mixes_length: int,
                             latest_slashed_exit_length: int,
@@ -244,7 +244,7 @@ class BeaconState(ssz.Serializable):
                     ),
                 ) * shard_count
             ),
-            latest_block_roots=(ZERO_HASH32,) * latest_block_roots_length,
+            latest_block_roots=(ZERO_HASH32,) * slots_per_historical_root,
             latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
             latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
             batched_block_roots=(),

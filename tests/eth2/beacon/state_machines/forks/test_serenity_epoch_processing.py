@@ -286,11 +286,11 @@ def test_get_finalized_epoch(justification_bitfield,
 
 
 def test_justification_without_mock(sample_beacon_state_params,
-                                    latest_block_roots_length,
+                                    slots_per_historical_root,
                                     config):
 
     state = BeaconState(**sample_beacon_state_params).copy(
-        latest_block_roots=tuple(ZERO_HASH32 for _ in range(latest_block_roots_length)),
+        latest_block_roots=tuple(ZERO_HASH32 for _ in range(slots_per_historical_root)),
         justification_bitfield=0b0,
     )
     state = process_justification(state, config)
@@ -765,12 +765,12 @@ def test_process_rewards_and_penalties_for_finality(
                     epoch_boundary_root=get_block_root(
                         state,
                         prev_epoch_start_slot,
-                        config.LATEST_BLOCK_ROOTS_LENGTH,
+                        config.SLOTS_PER_HISTORICAL_ROOT,
                     ),
                     beacon_block_root=get_block_root(
                         state,
                         (prev_epoch_start_slot + i),
-                        config.LATEST_BLOCK_ROOTS_LENGTH,
+                        config.SLOTS_PER_HISTORICAL_ROOT,
                     ),
                 ),
                 aggregation_bitfield=participants_bitfield,

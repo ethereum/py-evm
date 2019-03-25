@@ -12,7 +12,7 @@ from eth2.beacon.types.states import BeaconState
 def process_slot_transition(state: BeaconState,
                             config: BeaconConfig,
                             previous_block_root: Hash32) -> BeaconState:
-    latest_block_roots_length = config.LATEST_BLOCK_ROOTS_LENGTH
+    slots_per_historical_root = config.SLOTS_PER_HISTORICAL_ROOT
 
     # Update state.slot
     state = state.copy(
@@ -21,12 +21,12 @@ def process_slot_transition(state: BeaconState,
 
     # Update state.latest_block_roots
     updated_latest_block_roots = list(state.latest_block_roots)
-    previous_block_root_index = (state.slot - 1) % latest_block_roots_length
+    previous_block_root_index = (state.slot - 1) % slots_per_historical_root
     updated_latest_block_roots[previous_block_root_index] = previous_block_root
 
     # Update state.batched_block_roots
     updated_batched_block_roots = state.batched_block_roots
-    if state.slot % latest_block_roots_length == 0:
+    if state.slot % slots_per_historical_root == 0:
         updated_batched_block_roots += (get_merkle_root(updated_latest_block_roots),)
 
     state = state.copy(

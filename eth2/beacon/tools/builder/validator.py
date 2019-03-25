@@ -263,7 +263,7 @@ def create_mock_slashable_attestation(state: BeaconState,
     beacon_block_root = get_block_root(
         state,
         config.GENESIS_SLOT,
-        config.LATEST_BLOCK_ROOTS_LENGTH,
+        config.SLOTS_PER_HISTORICAL_ROOT,
     )
 
     # Get `epoch_boundary_root`
@@ -272,7 +272,7 @@ def create_mock_slashable_attestation(state: BeaconState,
     justified_block_root = get_block_root(
         state,
         get_epoch_start_slot(state.justified_epoch, config.SLOTS_PER_EPOCH),
-        config.LATEST_BLOCK_ROOTS_LENGTH,
+        config.SLOTS_PER_HISTORICAL_ROOT,
     )
     latest_crosslink = state.latest_crosslinks[shard]
 
@@ -392,7 +392,7 @@ def _get_epoch_boundary_root(state: BeaconState,
         return get_block_root(
             state,
             epoch_start_slot,
-            config.LATEST_BLOCK_ROOTS_LENGTH,
+            config.SLOTS_PER_HISTORICAL_ROOT,
         )
 
 
@@ -497,7 +497,7 @@ def create_mock_signed_attestations_at_slot(
     justified_block_root = get_block_root(
         state,
         get_epoch_start_slot(state.justified_epoch, slots_per_epoch),
-        config.LATEST_BLOCK_ROOTS_LENGTH,
+        config.SLOTS_PER_HISTORICAL_ROOT,
     )
 
     for crosslink_committee in crosslink_committees_at_slot:
