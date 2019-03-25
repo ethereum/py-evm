@@ -68,7 +68,7 @@ class BeaconChainSyncer(BaseService):
                 raise Exception("Invariant: Cannot exceed max retries")
 
             try:
-                self.sync_peer = await self.select_sync_peer()
+                self.sync_peer = await self.wait(self.select_sync_peer())
             except ValidationError as exception:
                 self.logger.info(f"No suitable peers to sync with: {exception}")
                 if is_last_retry:
