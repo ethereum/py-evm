@@ -205,7 +205,7 @@ async def test_get_incomplete_canonical_block_range(request, event_loop):
     assert response.payload["request_id"] == 5
     blocks = tuple(ssz.decode(block, BeaconBlock) for block in response.payload["encoded_blocks"])
     assert len(blocks) == 5
-    assert [block.slot for block in blocks] == [genesis.slot + s for s in (3, 4, 5, 6, 7)]
+    assert [block.slot for block in blocks] == [genesis.slot + s for s in [3, 4, 5, 6, 7]]
     assert blocks == base_branch[-1:] + canonical_branch
 
 
