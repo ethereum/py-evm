@@ -456,11 +456,12 @@ def get_attestation_participants(state: 'BeaconState',
     return get_members_from_bitfield(committee, bitfield)
 
 
+@to_tuple
 @to_set
-def get_attester_indices_from_attesttion(
+def get_attester_indices_from_attestations(
         *,
         state: 'BeaconState',
-        attestations: Iterable['Attestation'],
+        attestations: Sequence['Attestation'],
         committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     for a in attestations:
         yield from get_attestation_participants(

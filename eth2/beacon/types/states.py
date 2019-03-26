@@ -64,6 +64,8 @@ class BeaconState(ssz.Serializable):
         ('current_shuffling_seed', bytes32),
 
         # Finality
+        ('previous_epoch_attestations', List(PendingAttestationRecord)),
+        ('current_epoch_attestations', List(PendingAttestationRecord)),
         ('previous_justified_epoch', uint64),
         ('justified_epoch', uint64),
 
@@ -77,7 +79,6 @@ class BeaconState(ssz.Serializable):
         ('latest_block_roots', List(bytes32)),  # Needed to process attestations, older to newer  # noqa: E501
         ('latest_active_index_roots', List(bytes32)),
         ('latest_slashed_balances', List(uint64)),  # Balances slashed at every withdrawal period  # noqa: E501
-        ('latest_attestations', List(PendingAttestationRecord)),
         ('batched_block_roots', List(bytes32)),  # allow for a log-sized Merkle proof from any block to any historical block root"  # noqa: E501
 
         # Ethereum 1.0 chain
@@ -106,6 +107,8 @@ class BeaconState(ssz.Serializable):
             previous_shuffling_seed: Hash32,
             current_shuffling_seed: Hash32,
             # Finality
+            previous_epoch_attestations: Sequence[PendingAttestationRecord],
+            current_epoch_attestations: Sequence[PendingAttestationRecord],
             previous_justified_epoch: Epoch,
             justified_epoch: Epoch,
             justification_bitfield: int,
@@ -116,7 +119,6 @@ class BeaconState(ssz.Serializable):
             latest_active_index_roots: Sequence[Hash32],
             latest_slashed_balances: Sequence[Gwei],
             batched_block_roots: Sequence[Hash32],
-            latest_attestations: Sequence[PendingAttestationRecord],
             # Ethereum 1.0 chain
             latest_eth1_data: Eth1Data,
             eth1_data_votes: Sequence[Eth1DataVote],
@@ -143,6 +145,8 @@ class BeaconState(ssz.Serializable):
             previous_shuffling_seed=previous_shuffling_seed,
             current_shuffling_seed=current_shuffling_seed,
             # Finality
+            previous_epoch_attestations=previous_epoch_attestations,
+            current_epoch_attestations=current_epoch_attestations,
             previous_justified_epoch=previous_justified_epoch,
             justified_epoch=justified_epoch,
             justification_bitfield=justification_bitfield,
@@ -152,7 +156,6 @@ class BeaconState(ssz.Serializable):
             latest_block_roots=latest_block_roots,
             latest_active_index_roots=latest_active_index_roots,
             latest_slashed_balances=latest_slashed_balances,
-            latest_attestations=latest_attestations,
             batched_block_roots=batched_block_roots,
             # Ethereum 1.0 chain
             latest_eth1_data=latest_eth1_data,
@@ -225,6 +228,8 @@ class BeaconState(ssz.Serializable):
             current_shuffling_seed=ZERO_HASH32,
 
             # Finality
+            previous_epoch_attestations=(),
+            current_epoch_attestations=(),
             previous_justified_epoch=genesis_epoch,
             justified_epoch=genesis_epoch,
             justification_bitfield=genesis_slot,
@@ -242,7 +247,6 @@ class BeaconState(ssz.Serializable):
             latest_block_roots=(ZERO_HASH32,) * latest_block_roots_length,
             latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
             latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
-            latest_attestations=(),
             batched_block_roots=(),
 
             # Ethereum 1.0 chain data

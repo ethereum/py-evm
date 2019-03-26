@@ -15,7 +15,6 @@ ValidatorIndex = NewType('ValidatorIndex', int)  # uint64
 CommitteeIndex = NewType('CommitteeIndex', int)
 
 Gwei = NewType('Gwei', int)  # uint64
-SignedGwei = NewType('SignedGwei', int)  # uint64
 
 Timestamp = NewType('Timestamp', int)
 Second = NewType('Second', int)

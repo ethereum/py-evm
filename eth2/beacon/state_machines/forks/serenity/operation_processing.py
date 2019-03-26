@@ -10,10 +10,6 @@ from eth2.beacon.configs import (
     BeaconConfig,
     CommitteeConfig,
 )
-from eth2.beacon.types.attester_slashings import AttesterSlashing
-from eth2.beacon.types.blocks import BaseBeaconBlock
-from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
-from eth2.beacon.types.states import BeaconState
 from eth2.beacon.validator_status_helpers import (
     initiate_validator_exit,
     slash_validator,
@@ -21,6 +17,13 @@ from eth2.beacon.validator_status_helpers import (
 from eth2.beacon.typing import (
     ValidatorIndex,
 )
+from eth2.beacon.committee_helpers import (
+    slot_to_epoch,
+)
+from eth2.beacon.types.attester_slashings import AttesterSlashing
+from eth2.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
+from eth2.beacon.types.states import BeaconState
 
 from .block_validation import (
     validate_attestation,
@@ -112,7 +115,8 @@ def process_attestations(state: BeaconState,
 
     Validate the ``attestations`` contained within the ``block`` in the context of ``state``.
     If any invalid, throw ``ValidationError``.
-    Otherwise, append an ``PendingAttestationRecords`` for each to ``latest_attestations``.
+    Otherwise, append a ``PendingAttestationRecords`` for each to ``previous_epoch_attestations``
+    or ``current_epoch_attestations``.
     Return resulting ``state``.
     """
     if len(block.body.attestations) > config.MAX_ATTESTATIONS:
@@ -131,18 +135,38 @@ def process_attestations(state: BeaconState,
             CommitteeConfig(config),
         )
 
-    # update_latest_attestations
-    additional_pending_attestations = tuple(
-        PendingAttestationRecord(
-            data=attestation.data,
-            aggregation_bitfield=attestation.aggregation_bitfield,
-            custody_bitfield=attestation.custody_bitfield,
-            slot_included=state.slot,
-        )
-        for attestation in block.body.attestations
-    )
+    # update attestations
+    previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    new_previous_epoch_pending_attestations = []
+    new_current_epoch_pending_attestations = []
+    for attestation in block.body.attestations:
+        if slot_to_epoch(attestation.data.slot, config.SLOTS_PER_EPOCH) == current_epoch:
+            new_current_epoch_pending_attestations.append(
+                PendingAttestationRecord(
+                    data=attestation.data,
+                    aggregation_bitfield=attestation.aggregation_bitfield,
+                    custody_bitfield=attestation.custody_bitfield,
+                    slot_included=state.slot,
+                )
+            )
+        elif slot_to_epoch(attestation.data.slot, config.SLOTS_PER_EPOCH) == previous_epoch:
+            new_previous_epoch_pending_attestations.append(
+                PendingAttestationRecord(
+                    data=attestation.data,
+                    aggregation_bitfield=attestation.aggregation_bitfield,
+                    custody_bitfield=attestation.custody_bitfield,
+                    slot_included=state.slot,
+                )
+            )
+
     state = state.copy(
-        latest_attestations=state.latest_attestations + additional_pending_attestations,
+        previous_epoch_attestations=(
+            state.previous_epoch_attestations + tuple(new_previous_epoch_pending_attestations)
+        ),
+        current_epoch_attestations=(
+            state.current_epoch_attestations + tuple(new_current_epoch_pending_attestations)
+        ),
     )
     return state
 

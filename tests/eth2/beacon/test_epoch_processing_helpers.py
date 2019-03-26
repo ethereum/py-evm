@@ -10,6 +10,8 @@ from hypothesis import (
     strategies as st,
 )
 
+from eth.constants import ZERO_HASH32
+
 from eth2._utils.bitfield import (
     set_voted,
     get_empty_bitfield,
@@ -17,23 +19,16 @@ from eth2._utils.bitfield import (
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
-
-from eth2.beacon.committee_helpers import (
-    get_attester_indices_from_attesttion,
-)
 from eth2.beacon.configs import CommitteeConfig
 from eth2.beacon.epoch_processing_helpers import (
-    get_current_epoch_attestations,
     get_epoch_boundary_attester_indices,
     get_epoch_boundary_attesting_balances,
     get_inclusion_infos,
-    get_previous_epoch_attestations,
-    get_previous_epoch_head_attestations,
-    get_total_balance,
-    get_winning_root,
+    get_previous_epoch_matching_head_attestations,
+    get_winning_root_and_participants,
 )
-from eth2.beacon.exceptions import NoWinningRootError
 from eth2.beacon.helpers import (
+    get_effective_balance,
     get_epoch_start_slot,
 )
 from eth2.beacon.types.attestations import (
@@ -42,6 +37,7 @@ from eth2.beacon.types.attestations import (
 from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
+from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 
 
@@ -119,12 +115,11 @@ def test_get_current_and_previous_epoch_attestations(random,
 
     state = sample_state.copy(
         slot=(slots_per_epoch * 2 - 1),
-        latest_attestations=(previous_epoch_attestations + current_epoch_attestations),
+        previous_epoch_attestations=previous_epoch_attestations,
+        current_epoch_attestations=current_epoch_attestations,
     )
-    assert set(previous_epoch_attestations) == set(
-        get_previous_epoch_attestations(state, slots_per_epoch, genesis_epoch))
-    assert set(current_epoch_attestations) == set(
-        get_current_epoch_attestations(state, slots_per_epoch))
+    assert set(previous_epoch_attestations) == set(state.previous_epoch_attestations)
+    assert set(current_epoch_attestations) == set(state.current_epoch_attestations)
 
 
 @settings(max_examples=1)
@@ -137,7 +132,7 @@ def test_get_current_and_previous_epoch_attestations(random,
         (10, 100, 0),
     ]
 )
-def test_get_previous_epoch_head_attestations(
+def test_get_previous_epoch_matching_head_attestations(
         random,
         sample_state,
         genesis_epoch,
@@ -190,14 +185,15 @@ def test_get_previous_epoch_head_attestations(
             )
         )
 
-    latest_attestations = previous_epoch_head_attestations + previous_epoch_not_head_attestations
     state = sample_state.copy(
         slot=current_slot,
         latest_block_roots=latest_block_roots,
-        latest_attestations=latest_attestations,
+        previous_epoch_attestations=(
+            previous_epoch_head_attestations + previous_epoch_not_head_attestations
+        ),
     )
 
-    result = get_previous_epoch_head_attestations(
+    result = get_previous_epoch_matching_head_attestations(
         state,
         slots_per_epoch,
         genesis_epoch,
@@ -222,7 +218,7 @@ def test_get_previous_epoch_head_attestations(
         ),
         (
             16,
-            # vote tie; lower root value is favored
+            # vote tie; higher root value is favored
             (1, 3, 5, 7),
             (2, 4, 6, 8)
         ),
@@ -234,7 +230,7 @@ def test_get_previous_epoch_head_attestations(
         ),
     ]
 )
-def test_get_winning_root(
+def test_get_winning_root_and_participants(
         random,
         monkeypatch,
         target_committee_size,
@@ -286,6 +282,10 @@ def test_get_winning_root(
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
                 crosslink_data_root=competing_block_roots[0],
+                latest_crosslink=CrosslinkRecord(
+                    epoch=config.GENESIS_EPOCH,
+                    crosslink_data_root=ZERO_HASH32,
+                ),
             ),
         ),
         # Attestation to `crosslink_data_root_2` by `attestation_participants_2`
@@ -294,45 +294,48 @@ def test_get_winning_root(
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
                 crosslink_data_root=competing_block_roots[1],
+                latest_crosslink=CrosslinkRecord(
+                    epoch=config.GENESIS_EPOCH,
+                    crosslink_data_root=ZERO_HASH32,
+                ),
             ),
         ),
     )
 
-    try:
-        winning_root, attesting_balance = get_winning_root(
-            state=n_validators_state,
-            shard=shard,
-            attestations=attestations,
-            max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            committee_config=committee_config,
-        )
-        attesting_validators_indices = get_attester_indices_from_attesttion(
-            state=n_validators_state,
-            attestations=(
-                a
-                for a in attestations
-                if a.data.shard == shard and a.data.crosslink_data_root == winning_root
-            ),
-            committee_config=committee_config,
-        )
-        total_attesting_balance = get_total_balance(
-            n_validators_state.validator_balances,
-            attesting_validators_indices,
+    state = n_validators_state.copy(
+        previous_epoch_attestations=attestations,
+    )
+    effective_balances = {
+        index: get_effective_balance(
+            state.validator_balances,
+            index,
             config.MAX_DEPOSIT_AMOUNT,
         )
-        assert attesting_balance == total_attesting_balance
-    except NoWinningRootError:
+        for index in range(len(state.validator_registry))
+    }
+
+    winning_root, attesting_validator_indices = get_winning_root_and_participants(
+        state=state,
+        shard=shard,
+        effective_balances=effective_balances,
+        committee_config=committee_config,
+    )
+    if len(attesting_validator_indices) == 0:
         assert len(block_root_1_participants) == 0 and len(block_root_2_participants) == 0
     else:
         if len(block_root_1_participants) == len(block_root_2_participants):
-            if competing_block_roots[0] < competing_block_roots[1]:
+            if competing_block_roots[0] > competing_block_roots[1]:
                 assert winning_root == competing_block_roots[0]
+                assert set(attesting_validator_indices) == set(block_root_1_participants)
             else:
                 assert winning_root == competing_block_roots[1]
+                assert set(attesting_validator_indices) == set(block_root_2_participants)
         elif len(block_root_1_participants) < len(block_root_2_participants):
             assert winning_root == competing_block_roots[1]
+            assert set(attesting_validator_indices) == set(block_root_2_participants)
         else:
             assert winning_root == competing_block_roots[0]
+            assert set(attesting_validator_indices) == set(block_root_1_participants)
 
 
 @settings(max_examples=1)
@@ -550,7 +553,8 @@ def test_get_epoch_boundary_attesting_balances(
         slot=slot,
         justified_epoch=justified_epoch,
         previous_justified_epoch=previous_justified_epoch,
-        latest_attestations=current_epoch_attestations + previous_epoch_attestations,
+        previous_epoch_attestations=previous_epoch_attestations,
+        current_epoch_attestations=current_epoch_attestations,
         latest_block_roots=tuple(latest_block_roots),
     )
     (

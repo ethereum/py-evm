@@ -25,13 +25,6 @@ class ProposerIndexError(PyEVMError):
     pass
 
 
-class NoWinningRootError(PyEVMError):
-    """
-    Raised when no shard block root is attested to among the attestations provided.
-    """
-    pass
-
-
 class NoCommitteeAssignment(PyEVMError):
     """
     Raised when no potential crosslink committee assignment.
