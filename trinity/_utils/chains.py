@@ -137,8 +137,11 @@ def construct_trinity_config_params(
 
     if args.max_peers is not None:
         yield 'max_peers', args.max_peers
-    else:
+    # FIXME: This part of the code base should not know about `sync_mode`
+    elif "sync_mode" in args:
         yield 'max_peers', _default_max_peers(args.sync_mode)
+    else:
+        yield 'max_peers', DEFAULT_MAX_PEERS
 
     if args.port is not None:
         yield 'port', args.port

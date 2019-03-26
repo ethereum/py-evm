@@ -69,6 +69,21 @@ from trinity._utils.filesystem import (
 from trinity._utils.xdg import (
     get_xdg_trinity_root,
 )
+from eth2.beacon.typing import (
+    Timestamp,
+)
+from eth2.beacon.state_machines.forks.serenity import (
+    SERENITY_CONFIG,
+    SerenityStateMachine,
+)
+from eth2.beacon.on_genesis import (
+    get_genesis_block,
+    get_genesis_beacon_state,
+)
+from eth2.beacon.types.eth1_data import Eth1Data
+from eth2.beacon.state_machines.forks.serenity.blocks import (
+    SerenityBeaconBlock,
+)
 
 
 if TYPE_CHECKING:
@@ -76,6 +91,7 @@ if TYPE_CHECKING:
     from trinity.nodes.base import Node  # noqa: F401
     from trinity.chains.full import FullChain  # noqa: F401
     from trinity.chains.light import LightDispatchChain  # noqa: F401
+    from eth2.beacon.chains.base import BeaconChain  # noqa: F401
 
 DATABASE_DIR_NAME = 'chain'
 
@@ -572,12 +588,80 @@ class Eth1AppConfig(BaseAppConfig):
         return config.with_app_suffix(config.data_dir / "nodedb")
 
 
+class BeaconChainConfig:
+    def __init__(self,
+                 chain_name: str=None) -> None:
+        self._chain_name = chain_name
+        self.chain_id = 5566
+        self.network_id = 5567
+
+        self.sm_configuration = (
+            (SERENITY_CONFIG.GENESIS_SLOT, SerenityStateMachine),
+        )
+
+    @property
+    def chain_name(self) -> str:
+        if self._chain_name is None:
+            return "CustomBeaconChain"
+        else:
+            return self._chain_name
+
+    @property
+    def beacon_chain_class(self) -> Type['BeaconChain']:
+        from eth2.beacon.chains.base import BeaconChain  # noqa: F811
+        return BeaconChain.configure(
+            __name__=self.chain_name,
+            sm_configuration=self.sm_configuration,
+            chain_id=self.chain_id,
+        )
+
+    def initialize_chain(self,
+                         base_db: BaseAtomicDB) -> 'BeaconChain':
+        config = SERENITY_CONFIG
+        state = get_genesis_beacon_state(
+            genesis_validator_deposits=[],
+            genesis_time=Timestamp(0),
+            latest_eth1_data=Eth1Data.create_empty_data(),
+            genesis_slot=config.GENESIS_SLOT,
+            genesis_epoch=config.GENESIS_EPOCH,
+            genesis_fork_version=config.GENESIS_FORK_VERSION,
+            genesis_start_shard=config.GENESIS_START_SHARD,
+            shard_count=config.SHARD_COUNT,
+            min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
+            latest_block_roots_length=config.LATEST_BLOCK_ROOTS_LENGTH,
+            latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
+            slots_per_epoch=config.SLOTS_PER_EPOCH,
+            max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,
+            latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
+            activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
+        )
+        block = get_genesis_block(
+            genesis_state_root=state.root,
+            genesis_slot=config.GENESIS_SLOT,
+            block_class=SerenityBeaconBlock,
+        )
+        return cast('BeaconChain', self.beacon_chain_class.from_genesis(
+            base_db=base_db,
+            genesis_state=state,
+            genesis_block=block,
+        ))
+
+
 class BeaconAppConfig(BaseAppConfig):
 
     @classmethod
     def from_parser_args(cls,
                          args: argparse.Namespace,
                          trinity_config: TrinityConfig) -> 'BaseAppConfig':
+        if args is not None:
+            # This is quick and dirty way to get bootstrap_nodes
+            trinity_config.bootstrap_nodes = tuple(
+                KademliaNode.from_uri(enode) for enode in args.bootstrap_nodes.split(',')
+            ) if args.bootstrap_nodes is not None else tuple()
+            trinity_config.preferred_nodes = tuple(
+                KademliaNode.from_uri(enode) for enode in args.preferred_nodes.split(',')
+            ) if args.preferred_nodes is not None else tuple()
         return cls(trinity_config)
 
     @property
@@ -589,3 +673,6 @@ class BeaconAppConfig(BaseAppConfig):
         """
         path = self.trinity_config.data_dir / DATABASE_DIR_NAME
         return self.trinity_config.with_app_suffix(path) / "full"
+
+    def get_chain_config(self) -> BeaconChainConfig:
+        return BeaconChainConfig("TestnetChain")

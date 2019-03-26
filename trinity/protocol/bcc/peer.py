@@ -54,7 +54,10 @@ class BCCPeer(BasePeer):
 
     async def send_sub_proto_handshake(self) -> None:
         # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under per BeaconStateMachine fork
-        genesis = await self.chain_db.coro_get_canonical_block_by_slot(0, BeaconBlock)
+        genesis = await self.chain_db.coro_get_canonical_block_by_slot(
+            self.context.genesis_slot,
+            BeaconBlock,
+        )
         head = await self.chain_db.coro_get_canonical_head(BeaconBlock)
         self.sub_proto.send_handshake(genesis.hash, head.slot)
 
@@ -71,7 +74,10 @@ class BCCPeer(BasePeer):
                 f"({self.network_id}), disconnecting"
             )
         # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under per BeaconStateMachine fork
-        genesis_block = await self.chain_db.coro_get_canonical_block_by_slot(0, BeaconBlock)
+        genesis_block = await self.chain_db.coro_get_canonical_block_by_slot(
+            self.context.genesis_slot,
+            BeaconBlock,
+        )
         if msg['genesis_hash'] != genesis_block.hash:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
