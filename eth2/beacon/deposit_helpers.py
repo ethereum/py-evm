@@ -43,27 +43,42 @@ def add_pending_validator(state: BeaconState,
 def validate_deposit(state: BeaconState,
                      deposit: Deposit,
                      deposit_contract_tree_depth: int) -> None:
-    # Should equal 8 bytes for deposit_data.amount +
-    #              8 bytes for deposit_data.timestamp +
-    #              176 bytes for deposit_data.deposit_input
-    # It should match the deposit_data in the eth1.0 deposit contract
-    serialized_deposit_data = ssz.encode(deposit.deposit_data)
+    validate_deposit_order(state, deposit)
+    validate_deposit_proof(state, deposit, deposit_contract_tree_depth)
 
-    # Deposits must be processed in order
+
+def validate_deposit_order(state: BeaconState,
+                           deposit: Deposit) -> None:
+    """
+    Validate if deposits processed in order.
+    """
     if deposit.index != state.deposit_index:
         raise ValidationError(
             f"deposit.index ({deposit.index}) is not equal to "
             f"state.deposit_index ({state.deposit_index})"
         )
 
-    is_valid_branch = verify_merkle_branch(
+
+def validate_deposit_proof(state: BeaconState,
+                           deposit: Deposit,
+                           deposit_contract_tree_depth: int) -> None:
+    """
+    Validate if deposit branch proof is valid.
+    """
+    # Should equal 8 bytes for deposit_data.amount +
+    #              8 bytes for deposit_data.timestamp +
+    #              176 bytes for deposit_data.deposit_input
+    # It should match the deposit_data in the eth1.0 deposit contract
+    serialized_deposit_data = ssz.encode(deposit.deposit_data)
+
+    is_valid_proof = verify_merkle_branch(
         leaf=hash_eth2(serialized_deposit_data),
         proof=deposit.proof,
         depth=deposit_contract_tree_depth,
         index=deposit.index,
         root=state.latest_eth1_data.deposit_root,
     )
-    if not is_valid_branch:
+    if not is_valid_proof:
         raise ValidationError(
             f"deposit.proof ({deposit.proof}) is invalid against "
             f"leaf={hash_eth2(serialized_deposit_data)}, "

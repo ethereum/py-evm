@@ -82,7 +82,7 @@ def verify_merkle_branch(leaf: Hash32,
                          index: int,
                          root: Hash32) -> bool:
     """
-    Verify that the given ``leaf`` is on the merkle branch ``branch``.
+    Verify that the given ``leaf`` is on the merkle branch ``proof``.
     """
     value = leaf
     for i in range(depth):

@@ -68,6 +68,7 @@ from eth2.beacon.typing import (
     Bitfield,
     CommitteeIndex,
     Epoch,
+    Gwei,
     Shard,
     Slot,
     Timestamp,
@@ -558,7 +559,11 @@ def create_deposit_data(*,
                         privkey: int,
                         withdrawal_credentials: Hash32,
                         fork: Fork,
-                        deposit_timestamp: Timestamp) -> DepositData:
+                        deposit_timestamp: Timestamp,
+                        amount: Gwei=None) -> DepositData:
+    if amount is None:
+        amount = config.MAX_DEPOSIT_AMOUNT
+
     return DepositData(
         deposit_input=DepositInput(
             pubkey=pubkey,
@@ -574,9 +579,12 @@ def create_deposit_data(*,
                 slots_per_epoch=config.SLOTS_PER_EPOCH,
             ),
         ),
-        amount=config.MAX_DEPOSIT_AMOUNT,
+        amount=amount,
         timestamp=deposit_timestamp,
     )
+
+
+ZERO_TIMESTAMP = Timestamp(0)
 
 
 def create_mock_deposit_data(*,
@@ -586,7 +594,7 @@ def create_mock_deposit_data(*,
                              validator_index: ValidatorIndex,
                              withdrawal_credentials: Hash32,
                              fork: Fork,
-                             deposit_timestamp: Timestamp=Timestamp(0)) -> DepositData:
+                             deposit_timestamp: Timestamp=ZERO_TIMESTAMP) -> DepositData:
     if deposit_timestamp is None:
         deposit_timestamp = Timestamp(int(time.time()))
 
@@ -598,30 +606,6 @@ def create_mock_deposit_data(*,
         fork=fork,
         deposit_timestamp=deposit_timestamp,
     )
-
-
-# def create_mock_deposit(*,
-#                         config: BeaconConfig,
-#                         pubkeys: Sequence[BLSPubkey],
-#                         keymap: Dict[BLSPubkey, int],
-#                         validator_index: ValidatorIndex,
-#                         deposit_index: int,
-#                         withdrawal_credentials: Hash32,
-#                         fork: Fork,
-#                         proof: Sequence[Hash32]=None,
-#                         deposit_timestamp: Timestamp=0,
-#                         ):
-#     if branch is None:
-#         branch = tuple(
-#             Hash32(b'\x11' * 32)
-#             for j in range(32)
-#         )
-
-#     return Deposit(
-#         branch=branch,
-#         index=deposit_index,
-#         deposit_data=deposit_data,
-#     )
 
 
 #
