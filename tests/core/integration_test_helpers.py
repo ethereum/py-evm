@@ -104,6 +104,7 @@ class FakeAsyncRopstenChain(RopstenChain):
 
 class FakeAsyncMainnetChain(MainnetChain):
     chaindb_class = FakeAsyncChainDB
+    coro_get_canonical_head = async_passthrough('get_canonical_head')
     coro_import_block = coro_import_block
     coro_validate_chain = async_passthrough('validate_chain')
     coro_validate_receipt = async_passthrough('validate_receipt')
@@ -111,6 +112,7 @@ class FakeAsyncMainnetChain(MainnetChain):
 
 class FakeAsyncChain(MiningChain):
     coro_import_block = coro_import_block
+    coro_get_canonical_head = async_passthrough('get_canonical_head')
     coro_validate_chain = async_passthrough('validate_chain')
     coro_validate_receipt = async_passthrough('validate_receipt')
     chaindb_class = FakeAsyncChainDB

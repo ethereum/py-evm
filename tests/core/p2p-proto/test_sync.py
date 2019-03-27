@@ -2,10 +2,16 @@ import asyncio
 
 import pytest
 
+from p2p.service import BaseService
+
 from trinity.protocol.eth.servers import ETHRequestServer
+from trinity.protocol.eth.sync import ETHHeaderChainSyncer
 from trinity.protocol.les.peer import LESPeer
 from trinity.protocol.les.servers import LightRequestServer
-from trinity.sync.full.chain import FastChainSyncer, RegularChainSyncer
+from trinity.sync.common.chain import (
+    SimpleBlockImporter,
+)
+from trinity.sync.full.chain import FastChainSyncer, RegularChainSyncer, RegularChainBodySyncer
 from trinity.sync.full.state import StateDownloader
 from trinity.sync.light.chain import LightChainSyncer
 
@@ -120,6 +126,116 @@ async def test_regular_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     assert head.state_root in chaindb_fresh.db
 
 
+class FallbackTesting_RegularChainSyncer(BaseService):
+    class HeaderSyncer_OnlyOne:
+        def __init__(self, real_syncer):
+            self._real_syncer = real_syncer
+
+        async def new_sync_headers(self, max_batch_size):
+            async for headers in self._real_syncer.new_sync_headers(1):
+                yield headers
+                await self._real_syncer.sleep(1)
+                raise Exception("This should always get cancelled quickly, say within 1s")
+
+    class HeaderSyncer_PauseThenRest:
+        def __init__(self, real_syncer):
+            self._real_syncer = real_syncer
+            self._ready = asyncio.Event()
+            self._headers_requested = asyncio.Event()
+
+        async def new_sync_headers(self, max_batch_size):
+            self._headers_requested.set()
+            await self._ready.wait()
+            async for headers in self._real_syncer.new_sync_headers(max_batch_size):
+                yield headers
+
+        def unpause(self):
+            self._ready.set()
+
+        async def until_headers_requested(self):
+            await self._headers_requested.wait()
+
+    def __init__(self, chain, db, peer_pool, token=None) -> None:
+        super().__init__(token=token)
+        self._chain = chain
+        self._header_syncer = ETHHeaderChainSyncer(chain, db, peer_pool, self.cancel_token)
+        self._single_header_syncer = self.HeaderSyncer_OnlyOne(self._header_syncer)
+        self._paused_header_syncer = self.HeaderSyncer_PauseThenRest(self._header_syncer)
+        self._draining_syncer = RegularChainBodySyncer(
+            chain,
+            db,
+            peer_pool,
+            self._single_header_syncer,
+            SimpleBlockImporter(chain),
+            self.cancel_token,
+        )
+        self._body_syncer = RegularChainBodySyncer(
+            chain,
+            db,
+            peer_pool,
+            self._paused_header_syncer,
+            SimpleBlockImporter(chain),
+            self.cancel_token,
+        )
+
+    async def _run(self) -> None:
+        self.run_daemon(self._header_syncer)
+        starting_header = await self._chain.coro_get_canonical_head()
+
+        # want body_syncer to start early so that it thinks the genesis is the canonical head
+        self.run_child_service(self._body_syncer)
+        await self._paused_header_syncer.until_headers_requested()
+
+        # now drain out the first header and save it to db
+        self.run_child_service(self._draining_syncer)
+
+        # wait until first syncer saves to db, then cancel it
+        latest_header = starting_header
+        while starting_header == latest_header:
+            latest_header = await self._chain.coro_get_canonical_head()
+            await self.sleep(0.03)
+        await self._draining_syncer.cancel()
+
+        # now permit the next syncer to begin
+        self._paused_header_syncer.unpause()
+
+        # run regular sync until cancelled
+        await self.events.cancelled.wait()
+
+
+@pytest.mark.asyncio
+async def test_regular_syncer_fallback(request, event_loop, chaindb_fresh, chaindb_20):
+    """
+    Test the scenario where a header comes in that's not in memory (but is in the DB)
+    """
+    client_peer, server_peer = await get_directly_linked_peers(
+        request, event_loop,
+        alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
+        bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
+    client = FallbackTesting_RegularChainSyncer(
+        ByzantiumTestChain(chaindb_fresh.db),
+        chaindb_fresh,
+        MockPeerPoolWithConnectedPeers([client_peer]))
+    server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer])
+
+    server_request_handler = ETHRequestServer(FakeAsyncChainDB(chaindb_20.db), server_peer_pool)
+    asyncio.ensure_future(server_request_handler.run())
+    server_peer.logger.info("%s is serving 20 blocks", server_peer)
+    client_peer.logger.info("%s is syncing up 20", client_peer)
+
+    def finalizer():
+        event_loop.run_until_complete(client.cancel())
+        # Yield control so that client/server.run() returns, otherwise asyncio will complain.
+        event_loop.run_until_complete(asyncio.sleep(0.1))
+    request.addfinalizer(finalizer)
+
+    asyncio.ensure_future(client.run())
+
+    await wait_for_head(chaindb_fresh, chaindb_20.get_canonical_head())
+    head = chaindb_fresh.get_canonical_head()
+    assert head.state_root in chaindb_fresh.db
+
+
 @pytest.mark.asyncio
 async def test_light_syncer(request, event_loop, chaindb_fresh, chaindb_20):
     client_peer, server_peer = await get_directly_linked_peers(
@@ -180,12 +296,13 @@ def chaindb_fresh():
     return chain.chaindb
 
 
-async def wait_for_head(headerdb, header):
+async def wait_for_head(headerdb, header, timeout=None):
     # A full header sync may involve several round trips, so we must be willing to wait a little
     # bit for them.
-    HEADER_SYNC_TIMEOUT = 3
+    if timeout is None:
+        timeout = 3
 
     async def wait_loop():
         while headerdb.get_canonical_head() != header:
             await asyncio.sleep(0.1)
-    await asyncio.wait_for(wait_loop(), HEADER_SYNC_TIMEOUT)
+    await asyncio.wait_for(wait_loop(), timeout)

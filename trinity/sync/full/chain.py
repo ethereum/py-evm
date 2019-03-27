@@ -990,7 +990,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         """
         async for headers in self._sync_from_headers(
                 self._block_import_tracker,
-                self.db.coro_header_exists):
+                self._should_skip_header):
 
             # Sometimes duplicates are added to the queue, when switching from one sync to another.
             # We can simply ignore them.
