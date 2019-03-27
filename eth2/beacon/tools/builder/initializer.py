@@ -26,6 +26,9 @@ from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.configs import BeaconConfig
+from eth2.beacon.constants import (
+    ZERO_TIMESTAMP,
+)
 from eth2.beacon.on_genesis import (
     get_genesis_block,
     get_genesis_beacon_state,
@@ -90,9 +93,6 @@ def create_mock_genesis_validator_deposits_and_root(
     )
 
     return genesis_validator_deposits, root
-
-
-ZERO_TIMESTAMP = Timestamp(0)
 
 
 def create_mock_genesis(

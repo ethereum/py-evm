@@ -30,6 +30,10 @@ from eth2._utils.bitfield import (
     set_voted,
 )
 from py_ecc import bls
+
+from eth2.beacon.constants import (
+    ZERO_TIMESTAMP,
+)
 from eth2.beacon.enums import (
     SignatureDomain,
 )
@@ -582,9 +586,6 @@ def create_deposit_data(*,
         amount=amount,
         timestamp=deposit_timestamp,
     )
-
-
-ZERO_TIMESTAMP = Timestamp(0)
 
 
 def create_mock_deposit_data(*,
