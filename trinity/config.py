@@ -103,12 +103,6 @@ ROPSTEN_EIP1085_PATH = ASSETS_DIR / 'eip1085' / 'ropsten.json'
 PRECONFIGURED_NETWORKS = {MAINNET_NETWORK_ID, ROPSTEN_NETWORK_ID}
 
 
-privkeys = tuple(2 ** i for i in range(100))
-keymap = {}
-for k in privkeys:
-    keymap[bls.privtopub(k)] = k
-
-
 def _load_preconfigured_genesis_config(network_id: int) -> Dict[str, Any]:
     if network_id == MAINNET_NETWORK_ID:
         with MAINNET_EIP1085_PATH.open('r') as mainnet_genesis_file:
@@ -625,8 +619,15 @@ class BeaconChainConfig:
     def initialize_chain(self,
                          base_db: BaseAtomicDB) -> 'BeaconChain':
         config = SERENITY_CONFIG
+
+        # Only used for testing
+        num_validators = 10
+        privkeys = tuple(2 ** i for i in range(num_validators))
+        keymap = {}
+        for k in privkeys:
+            keymap[bls.privtopub(k)] = k
         state, block = create_mock_genesis(
-            num_validators=10,
+            num_validators=num_validators,
             config=config,
             keymap=keymap,
             genesis_block_class=SerenityBeaconBlock,
