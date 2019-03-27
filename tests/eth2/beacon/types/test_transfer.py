@@ -8,5 +8,5 @@ from eth2.beacon.types.transfers import (
 def test_defaults(sample_transfer_params):
     transfer = Transfer(**sample_transfer_params)
 
-    assert transfer.to_validator_index == sample_transfer_params['to_validator_index']
+    assert transfer.recipient == sample_transfer_params['recipient']
     assert ssz.encode(transfer)

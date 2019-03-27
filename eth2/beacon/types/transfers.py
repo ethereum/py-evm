@@ -23,9 +23,9 @@ from eth2.beacon.typing import (
 class Transfer(ssz.Serializable):
     fields = [
         # Sender index
-        ('from_validator_index', uint64),
+        ('sender', uint64),
         # Recipient index
-        ('to_validator_index', uint64),
+        ('recipient', uint64),
         # Amount in Gwei
         ('amount', uint64),
         # Fee in Gwei for block proposer
@@ -39,16 +39,16 @@ class Transfer(ssz.Serializable):
     ]
 
     def __init__(self,
-                 from_validator_index: ValidatorIndex,
-                 to_validator_index: ValidatorIndex,
+                 sender: ValidatorIndex,
+                 recipient: ValidatorIndex,
                  amount: Gwei,
                  fee: Gwei,
                  slot: Slot,
                  pubkey: BLSPubkey,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
-            from_validator_index=from_validator_index,
-            to_validator_index=to_validator_index,
+            sender=sender,
+            recipient=recipient,
             amount=amount,
             fee=fee,
             slot=slot,
