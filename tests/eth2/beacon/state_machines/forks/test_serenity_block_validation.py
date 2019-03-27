@@ -129,7 +129,7 @@ def test_validate_proposer_signature(
                     config.GENESIS_EPOCH,
                 ),
                 slot_to_epoch(state.slot, slots_per_epoch),
-                SignatureDomain.DOMAIN_PROPOSAL,
+                SignatureDomain.DOMAIN_BEACON_BLOCK,
             ),
         ),
     )

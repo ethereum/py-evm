@@ -112,7 +112,7 @@ def validate_proposer_signature(state: BeaconState,
     domain = get_domain(
         state.fork,
         state.current_epoch(committee_config.SLOTS_PER_EPOCH),
-        SignatureDomain.DOMAIN_PROPOSAL
+        SignatureDomain.DOMAIN_BEACON_BLOCK
     )
 
     is_valid_signature = bls.verify(
@@ -212,7 +212,7 @@ def validate_proposal_signature(proposal: Proposal,
         domain=get_domain(
             fork,
             slot_to_epoch(proposal.slot, slots_per_epoch),
-            SignatureDomain.DOMAIN_PROPOSAL,
+            SignatureDomain.DOMAIN_BEACON_BLOCK,
         )
     )
     if not proposal_signature_is_valid:
@@ -785,7 +785,7 @@ def validate_voluntary_exit_signature(state: 'BeaconState',
     """
     Verify signature.
     """
-    domain = get_domain(state.fork, voluntary_exit.epoch, SignatureDomain.DOMAIN_EXIT)
+    domain = get_domain(state.fork, voluntary_exit.epoch, SignatureDomain.DOMAIN_VOLUNTARY_EXIT)
     is_valid_signature = bls.verify(
         pubkey=validator.pubkey,
         message_hash=voluntary_exit.signed_root,
