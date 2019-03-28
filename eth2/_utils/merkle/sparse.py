@@ -5,10 +5,10 @@ only a single element, the leaves as many as there are data items in the tree. T
 not considered to be part of the tree.
 """
 
-from typing import (  # noqa: F401
+from typing import (
     Sequence,
-    Tuple,
     Union,
+    TYPE_CHECKING,
 )
 
 from cytoolz import (
@@ -33,6 +33,8 @@ from .common import (  # noqa: F401
     MerkleProof,
 )
 
+if TYPE_CHECKING:
+    from typing import Tuple  # noqa: F401
 
 TreeDepth = 32
 EmptyNodeHashes = tuple(

@@ -58,6 +58,7 @@ from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
+from eth2.beacon.types.validator_records import ValidatorRecord
 from eth2.beacon.typing import (
     Bitfield,
     Epoch,
@@ -68,9 +69,6 @@ from eth2.beacon.typing import (
 from eth2.beacon.validation import (
     validate_bitfield,
 )
-
-if TYPE_CHECKING:
-    from eth2.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
 #
