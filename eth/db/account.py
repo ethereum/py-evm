@@ -30,6 +30,7 @@ from trie import (
     exceptions as trie_exceptions,
 )
 
+
 from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
