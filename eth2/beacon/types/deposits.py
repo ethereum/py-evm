@@ -24,7 +24,7 @@ class Deposit(ssz.Serializable):
 
     fields = [
         # Merkle branch in the deposit tree
-        ('branch', List(bytes32)),
+        ('proof', List(bytes32)),
         # Index in the deposit tree
         ('index', uint64),
         # Deposit data
@@ -32,11 +32,11 @@ class Deposit(ssz.Serializable):
     ]
 
     def __init__(self,
-                 branch: Sequence[Hash32],
+                 proof: Sequence[Hash32],
                  index: int,
                  deposit_data: DepositData)-> None:
         super().__init__(
-            branch,
+            proof,
             index,
             deposit_data,
         )

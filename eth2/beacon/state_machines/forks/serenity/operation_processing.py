@@ -24,6 +24,9 @@ from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.deposit_helpers import (
+    process_deposit,
+)
 
 from .block_validation import (
     validate_attestation,
@@ -190,5 +193,26 @@ def process_voluntary_exits(state: BeaconState,
         )
         # Run the exit
         state = initiate_validator_exit(state, voluntary_exit.validator_index)
+
+    return state
+
+
+def process_deposits(state: BeaconState,
+                     block: BaseBeaconBlock,
+                     config: BeaconConfig) -> BeaconState:
+    if len(block.body.deposits) > config.MAX_DEPOSITS:
+        raise ValidationError(
+            f"The block ({block}) has too many deposits:\n"
+            f"\tFound {len(block.body.deposits)} deposits, "
+            f"maximum: {config.MAX_DEPOSITS}"
+        )
+
+    for deposit in block.body.deposits:
+        state = process_deposit(
+            state,
+            deposit,
+            slots_per_epoch=config.SLOTS_PER_EPOCH,
+            deposit_contract_tree_depth=config.DEPOSIT_CONTRACT_TREE_DEPTH,
+        )
 
     return state

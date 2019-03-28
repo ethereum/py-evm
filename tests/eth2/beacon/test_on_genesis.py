@@ -9,18 +9,14 @@ from eth2.beacon.constants import (
 )
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
-from eth2.beacon.types.deposits import Deposit
-from eth2.beacon.types.deposit_data import DepositData
-from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.eth1_data import Eth1Data
-from eth2.beacon.types.forks import Fork
 
 from eth2.beacon.on_genesis import (
     get_genesis_block,
     get_genesis_beacon_state,
 )
-from eth2.beacon.tools.builder.validator import (
-    sign_proof_of_possession,
+from eth2.beacon.tools.builder.initializer import (
+    create_mock_genesis_validator_deposits_and_root,
 )
 from eth2.beacon.typing import (
     Gwei,
@@ -49,9 +45,8 @@ def test_get_genesis_block():
     ]
 )
 def test_get_genesis_beacon_state(
-        privkeys,
-        pubkeys,
         num_validators,
+        pubkeys,
         genesis_epoch,
         genesis_slot,
         genesis_fork_version,
@@ -65,51 +60,28 @@ def test_get_genesis_beacon_state(
         latest_slashed_exit_length,
         latest_randao_mixes_length,
         activation_exit_delay,
-        sample_eth1_data_params):
-    withdrawal_credentials = b'\x22' * 32
-    fork = Fork(
-        previous_version=genesis_fork_version.to_bytes(4, 'little'),
-        current_version=genesis_fork_version.to_bytes(4, 'little'),
-        epoch=genesis_epoch,
-    )
-
+        config,
+        keymap,
+        deposit_contract_tree_depth):
     validator_count = 5
 
-    genesis_validator_deposits = tuple(
-        Deposit(
-            branch=(
-                b'\x11' * 32
-                for j in range(10)
-            ),
-            index=i,
-            deposit_data=DepositData(
-                deposit_input=DepositInput(
-                    pubkey=pubkeys[i],
-                    withdrawal_credentials=withdrawal_credentials,
-                    proof_of_possession=sign_proof_of_possession(
-                        deposit_input=DepositInput(
-                            pubkey=pubkeys[i],
-                            withdrawal_credentials=withdrawal_credentials,
-                        ),
-                        privkey=privkeys[i],
-                        fork=fork,
-                        slot=genesis_slot,
-                        slots_per_epoch=slots_per_epoch,
-                    ),
-                ),
-                amount=max_deposit_amount,
-                timestamp=0,
-            ),
-        )
-        for i in range(validator_count)
+    genesis_validator_deposits, deposit_root = create_mock_genesis_validator_deposits_and_root(
+        num_validators=validator_count,
+        config=config,
+        pubkeys=pubkeys,
+        keymap=keymap,
+    )
+
+    genesis_eth1_data = Eth1Data(
+        deposit_root=deposit_root,
+        block_hash=ZERO_HASH32,
     )
     genesis_time = 10
-    latest_eth1_data = Eth1Data(**sample_eth1_data_params)
 
     state = get_genesis_beacon_state(
         genesis_validator_deposits=genesis_validator_deposits,
         genesis_time=genesis_time,
-        latest_eth1_data=latest_eth1_data,
+        genesis_eth1_data=genesis_eth1_data,
         genesis_epoch=genesis_epoch,
         genesis_slot=genesis_slot,
         genesis_fork_version=genesis_fork_version,
@@ -123,6 +95,7 @@ def test_get_genesis_beacon_state(
         latest_slashed_exit_length=latest_slashed_exit_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
         activation_exit_delay=activation_exit_delay,
+        deposit_contract_tree_depth=deposit_contract_tree_depth,
     )
 
     # Misc
@@ -167,7 +140,7 @@ def test_get_genesis_beacon_state(
     assert len(state.batched_block_roots) == 0
 
     # Ethereum 1.0 chain data
-    assert state.latest_eth1_data == latest_eth1_data
+    assert state.latest_eth1_data == genesis_eth1_data
     assert len(state.eth1_data_votes) == 0
     assert state.deposit_index == len(genesis_validator_deposits)
 

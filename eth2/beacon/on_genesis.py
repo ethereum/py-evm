@@ -62,7 +62,7 @@ def get_genesis_block(genesis_state_root: Hash32,
 def get_genesis_beacon_state(*,
                              genesis_validator_deposits: Sequence[Deposit],
                              genesis_time: Timestamp,
-                             latest_eth1_data: Eth1Data,
+                             genesis_eth1_data: Eth1Data,
                              genesis_slot: Slot,
                              genesis_epoch: Epoch,
                              genesis_fork_version: int,
@@ -75,7 +75,8 @@ def get_genesis_beacon_state(*,
                              max_deposit_amount: Gwei,
                              latest_slashed_exit_length: int,
                              latest_randao_mixes_length: int,
-                             activation_exit_delay: int) -> BeaconState:
+                             activation_exit_delay: int,
+                             deposit_contract_tree_depth: int) -> BeaconState:
     state = BeaconState(
         # Misc
         slot=genesis_slot,
@@ -118,20 +119,18 @@ def get_genesis_beacon_state(*,
         batched_block_roots=(),
 
         # Ethereum 1.0 chain data
-        latest_eth1_data=latest_eth1_data,
+        latest_eth1_data=genesis_eth1_data,
         eth1_data_votes=(),
-        deposit_index=len(genesis_validator_deposits),
+        deposit_index=0,
     )
 
     # Process genesis deposits
     for deposit in genesis_validator_deposits:
         state = process_deposit(
             state=state,
-            pubkey=deposit.deposit_data.deposit_input.pubkey,
-            amount=deposit.deposit_data.amount,
-            proof_of_possession=deposit.deposit_data.deposit_input.proof_of_possession,
-            withdrawal_credentials=deposit.deposit_data.deposit_input.withdrawal_credentials,
+            deposit=deposit,
             slots_per_epoch=slots_per_epoch,
+            deposit_contract_tree_depth=deposit_contract_tree_depth,
         )
 
     # Process genesis activations

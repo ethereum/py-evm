@@ -32,6 +32,8 @@ from eth_keys.datatypes import PrivateKey
 from eth.db.backends.base import BaseAtomicDB
 from eth.typing import VMConfiguration
 
+from py_ecc import bls
+
 from p2p.kademlia import Node as KademliaNode
 from p2p.constants import (
     MAINNET_BOOTNODES,
@@ -69,18 +71,17 @@ from trinity._utils.filesystem import (
 from trinity._utils.xdg import (
     get_xdg_trinity_root,
 )
-from eth2.beacon.typing import (
-    Timestamp,
+
+from eth2.beacon.constants import (
+    ZERO_TIMESTAMP,
 )
 from eth2.beacon.state_machines.forks.serenity import (
     SERENITY_CONFIG,
     SerenityStateMachine,
 )
-from eth2.beacon.on_genesis import (
-    get_genesis_block,
-    get_genesis_beacon_state,
+from eth2.beacon.tools.builder.initializer import (
+    create_mock_genesis,
 )
-from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
@@ -618,28 +619,19 @@ class BeaconChainConfig:
     def initialize_chain(self,
                          base_db: BaseAtomicDB) -> 'BeaconChain':
         config = SERENITY_CONFIG
-        state = get_genesis_beacon_state(
-            genesis_validator_deposits=[],
-            genesis_time=Timestamp(0),
-            latest_eth1_data=Eth1Data.create_empty_data(),
-            genesis_slot=config.GENESIS_SLOT,
-            genesis_epoch=config.GENESIS_EPOCH,
-            genesis_fork_version=config.GENESIS_FORK_VERSION,
-            genesis_start_shard=config.GENESIS_START_SHARD,
-            shard_count=config.SHARD_COUNT,
-            min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
-            latest_block_roots_length=config.LATEST_BLOCK_ROOTS_LENGTH,
-            latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
-            slots_per_epoch=config.SLOTS_PER_EPOCH,
-            max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-            latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,
-            latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
-            activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
-        )
-        block = get_genesis_block(
-            genesis_state_root=state.root,
-            genesis_slot=config.GENESIS_SLOT,
-            block_class=SerenityBeaconBlock,
+
+        # Only used for testing
+        num_validators = 10
+        privkeys = tuple(2 ** i for i in range(num_validators))
+        keymap = {}
+        for k in privkeys:
+            keymap[bls.privtopub(k)] = k
+        state, block = create_mock_genesis(
+            num_validators=num_validators,
+            config=config,
+            keymap=keymap,
+            genesis_block_class=SerenityBeaconBlock,
+            genesis_time=ZERO_TIMESTAMP,
         )
         return cast('BeaconChain', self.beacon_chain_class.from_genesis(
             base_db=base_db,

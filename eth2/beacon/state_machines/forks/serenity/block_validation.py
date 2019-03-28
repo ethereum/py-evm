@@ -24,7 +24,6 @@ from py_ecc import bls
 from eth2._utils import (
     bitfield,
 )
-
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
     get_crosslink_committee_for_attestation,
@@ -47,18 +46,19 @@ from eth2.beacon.helpers import (
     is_surround_vote,
     slot_to_epoch,
 )
-from eth2.beacon.types.attestations import Attestation  # noqa: F401
-from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
+from eth2.beacon.types.attestations import Attestation
+from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
-from eth2.beacon.types.attester_slashings import AttesterSlashing  # noqa: F401
-from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
+from eth2.beacon.types.attester_slashings import AttesterSlashing
+from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
-from eth2.beacon.types.forks import Fork  # noqa: F401
+from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.proposal import Proposal
-from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
+from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
-from eth2.beacon.types.states import BeaconState  # noqa: F401
-from eth2.beacon.types.voluntary_exits import VoluntaryExit  # noqa: F401
+from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.voluntary_exits import VoluntaryExit
+from eth2.beacon.types.validator_records import ValidatorRecord
 from eth2.beacon.typing import (
     Bitfield,
     Epoch,
@@ -69,9 +69,6 @@ from eth2.beacon.typing import (
 from eth2.beacon.validation import (
     validate_bitfield,
 )
-
-if TYPE_CHECKING:
-    from eth2.beacon.types.validator_records import ValidatorRecord  # noqa: F401
 
 
 #
@@ -481,7 +478,7 @@ def validate_attestation_crosslink_data_root(attestation_data: AttestationData) 
 
 
 @to_tuple
-def get_pubkey_for_indices(validators: Sequence['ValidatorRecord'],
+def get_pubkey_for_indices(validators: Sequence[ValidatorRecord],
                            indices: Sequence[ValidatorIndex]) -> Iterable[BLSPubkey]:
     for index in indices:
         yield validators[index].pubkey
@@ -489,7 +486,7 @@ def get_pubkey_for_indices(validators: Sequence['ValidatorRecord'],
 
 @to_tuple
 def generate_aggregate_pubkeys_from_indices(
-        validators: Sequence['ValidatorRecord'],
+        validators: Sequence[ValidatorRecord],
         *indices: Sequence[Sequence['ValidatorIndex']]) -> Iterable[BLSPubkey]:
     get_pubkeys = functools.partial(get_pubkey_for_indices, validators)
     return map(
@@ -633,8 +630,8 @@ def validate_randao_reveal(randao_reveal: BLSSignature,
 #
 # Slashable attestation validation
 #
-def verify_slashable_attestation_signature(state: 'BeaconState',
-                                           slashable_attestation: 'SlashableAttestation',
+def verify_slashable_attestation_signature(state: BeaconState,
+                                           slashable_attestation: SlashableAttestation,
                                            slots_per_epoch: int) -> bool:
     """
     Ensure we have a valid aggregate signature for the ``slashable_attestation``.
@@ -669,8 +666,8 @@ def verify_slashable_attestation_signature(state: 'BeaconState',
     )
 
 
-def validate_slashable_attestation(state: 'BeaconState',
-                                   slashable_attestation: 'SlashableAttestation',
+def validate_slashable_attestation(state: BeaconState,
+                                   slashable_attestation: SlashableAttestation,
                                    max_indices_per_slashable_vote: int,
                                    slots_per_epoch: int) -> None:
     """
@@ -714,8 +711,8 @@ def validate_slashable_attestation(state: 'BeaconState',
 #
 # Voluntary Exit
 #
-def validate_voluntary_exit(state: 'BeaconState',
-                            voluntary_exit: 'VoluntaryExit',
+def validate_voluntary_exit(state: BeaconState,
+                            voluntary_exit: VoluntaryExit,
                             slots_per_epoch: int,
                             persistent_committee_period: int) -> None:
     validator = state.validator_registry[voluntary_exit.validator_index]
@@ -732,7 +729,7 @@ def validate_voluntary_exit(state: 'BeaconState',
     validate_voluntary_exit_signature(state, voluntary_exit, validator)
 
 
-def validate_voluntary_exit_validator_exit_epoch(validator: 'ValidatorRecord') -> None:
+def validate_voluntary_exit_validator_exit_epoch(validator: ValidatorRecord) -> None:
     """
     Verify the validator has not yet exited.
     """
@@ -743,7 +740,7 @@ def validate_voluntary_exit_validator_exit_epoch(validator: 'ValidatorRecord') -
         )
 
 
-def validate_voluntary_exit_initiated_exit(validator: 'ValidatorRecord') -> None:
+def validate_voluntary_exit_initiated_exit(validator: ValidatorRecord) -> None:
     """
     Verify the validator has not initiated an exit.
     """
@@ -753,7 +750,7 @@ def validate_voluntary_exit_initiated_exit(validator: 'ValidatorRecord') -> None
         )
 
 
-def validate_voluntary_exit_epoch(voluntary_exit: 'VoluntaryExit',
+def validate_voluntary_exit_epoch(voluntary_exit: VoluntaryExit,
                                   current_epoch: Epoch) -> None:
     """
     Exits must specify an epoch when they become valid; they are not valid before then.
@@ -765,7 +762,7 @@ def validate_voluntary_exit_epoch(voluntary_exit: 'VoluntaryExit',
         )
 
 
-def validate_voluntary_exit_persistent(validator: 'ValidatorRecord',
+def validate_voluntary_exit_persistent(validator: ValidatorRecord,
                                        current_epoch: Epoch,
                                        persistent_committee_period: int) -> None:
     """
@@ -779,9 +776,9 @@ def validate_voluntary_exit_persistent(validator: 'ValidatorRecord',
         )
 
 
-def validate_voluntary_exit_signature(state: 'BeaconState',
-                                      voluntary_exit: 'VoluntaryExit',
-                                      validator: 'ValidatorRecord') -> None:
+def validate_voluntary_exit_signature(state: BeaconState,
+                                      voluntary_exit: VoluntaryExit,
+                                      validator: ValidatorRecord) -> None:
     """
     Verify signature.
     """
