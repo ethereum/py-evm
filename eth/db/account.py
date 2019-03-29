@@ -560,6 +560,8 @@ class AccountDB(BaseAccountDB):
                         new_root.hex(),
                     )
                 )
+            else:
+                self.logger.debug2("Storage root 0x%s was successfully persisted", new_root.hex())
 
         # reset local storage trackers
         self._account_stores = {}
