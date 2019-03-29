@@ -212,7 +212,7 @@ def _get_finalized_epoch(
 def process_justification(state: BeaconState, config: Eth2Config) -> BeaconState:
 
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
+    previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH)
 
     current_epoch_justifiable, previous_epoch_justifiable = _current_previous_epochs_justifiable(
         state,
@@ -299,7 +299,7 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
         for index in range(len(state.validator_registry))
     }
     previous_epoch_start_slot = get_epoch_start_slot(
-        state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
+        state.previous_epoch(config.SLOTS_PER_EPOCH),
         config.SLOTS_PER_EPOCH,
     )
     next_epoch_start_slot = get_epoch_start_slot(
@@ -547,7 +547,6 @@ def _process_rewards_and_penalties_for_finality(
     previous_epoch_boundary_attestations = get_previous_epoch_boundary_attestations(
         state,
         config.SLOTS_PER_EPOCH,
-        config.GENESIS_EPOCH,
         config.SLOTS_PER_HISTORICAL_ROOT,
     )
     previous_epoch_boundary_attester_indices = get_attester_indices_from_attestations(
@@ -559,7 +558,6 @@ def _process_rewards_and_penalties_for_finality(
     previous_epoch_head_attestations = get_previous_epoch_matching_head_attestations(
         state,
         config.SLOTS_PER_EPOCH,
-        config.GENESIS_EPOCH,
         config.SLOTS_PER_HISTORICAL_ROOT,
     )
     previous_epoch_head_attester_indices = get_attester_indices_from_attestations(
@@ -606,7 +604,7 @@ def _process_rewards_and_penalties_for_crosslinks(
         effective_balances: Dict[ValidatorIndex, Gwei],
         base_rewards: Dict[ValidatorIndex, Gwei]) -> Tuple[Dict[ValidatorIndex, Gwei], Dict[ValidatorIndex, Gwei]]:  # noqa: E501
     previous_epoch_start_slot = get_epoch_start_slot(
-        state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH),
+        state.previous_epoch(config.SLOTS_PER_EPOCH),
         config.SLOTS_PER_EPOCH,
     )
     current_epoch_start_slot = get_epoch_start_slot(
@@ -661,7 +659,7 @@ def process_rewards_and_penalties(state: BeaconState, config: Eth2Config) -> Bea
     previous_epoch_active_validator_indices = set(
         get_active_validator_indices(
             state.validator_registry,
-            state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
+            state.previous_epoch(config.SLOTS_PER_EPOCH)
         )
     )
     previous_total_balance: Gwei = get_total_balance(

@@ -635,7 +635,7 @@ def get_committee_assignment(
         propose a beacon block at the assigned slot.
     """
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
+    previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH)
     next_epoch = Epoch(current_epoch + 1)
 
     validate_epoch_within_previous_and_next(epoch, previous_epoch, next_epoch)

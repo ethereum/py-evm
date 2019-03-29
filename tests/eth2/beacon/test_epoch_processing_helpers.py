@@ -77,7 +77,6 @@ def get_aggregation_bitfield(attestation_participants, target_committee_size):
 )
 def test_get_current_and_previous_epoch_attestations(random,
                                                      sample_state,
-                                                     genesis_epoch,
                                                      slots_per_epoch,
                                                      sample_attestation_data_params,
                                                      sample_attestation_params):
@@ -135,7 +134,6 @@ def test_get_current_and_previous_epoch_attestations(random,
 def test_get_previous_epoch_matching_head_attestations(
         random,
         sample_state,
-        genesis_epoch,
         slots_per_epoch,
         slots_per_historical_root,
         sample_attestation_data_params,
@@ -196,7 +194,6 @@ def test_get_previous_epoch_matching_head_attestations(
     result = get_previous_epoch_matching_head_attestations(
         state,
         slots_per_epoch,
-        genesis_epoch,
         slots_per_historical_root,
     )
     assert set(previous_epoch_head_attestations) == set(result)

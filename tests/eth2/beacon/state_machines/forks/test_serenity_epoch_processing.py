@@ -741,7 +741,7 @@ def test_process_rewards_and_penalties_for_finality(
     }
 
     prev_epoch_start_slot = get_epoch_start_slot(
-        state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH), slots_per_epoch,
+        state.previous_epoch(config.SLOTS_PER_EPOCH), slots_per_epoch,
     )
     prev_epoch_crosslink_committees = [
         get_crosslink_committees_at_slot(
