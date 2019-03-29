@@ -22,9 +22,10 @@ class BatchDB(BaseDB):
     wrapped_db = None  # type: BaseDB
     _track_diff = None  # type: DBDiffTracker
 
-    def __init__(self, wrapped_db: BaseDB) -> None:
+    def __init__(self, wrapped_db: BaseDB, read_through_deletes: bool = False) -> None:
         self.wrapped_db = wrapped_db
         self._track_diff = DBDiffTracker()
+        self._read_through_deletes = read_through_deletes
 
     def __enter__(self) -> 'BatchDB':
         return self
@@ -60,7 +61,7 @@ class BatchDB(BaseDB):
         try:
             value = self._track_diff[key]
         except DiffMissingError as missing:
-            if missing.is_deleted:
+            if missing.is_deleted and not self._read_through_deletes:
                 raise KeyError(key)
             else:
                 return self.wrapped_db[key]
