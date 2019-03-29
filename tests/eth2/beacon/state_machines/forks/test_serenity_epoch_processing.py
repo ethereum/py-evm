@@ -233,8 +233,25 @@ def test_current_previous_epochs_justifiable(
     def mock_get_total_balance(validators, epoch, max_deposit_amount):
         return total_balance
 
-    def mock_get_epoch_boundary_attesting_balances(current_epoch, previous_epoch, state, config):
-        return previous_epoch_boundary_attesting_balance, current_epoch_boundary_attesting_balance
+    def mock_get_epoch_boundary_attesting_balance(state, attestations, epoch, config):
+        if epoch == current_epoch:
+            return current_epoch_boundary_attesting_balance
+        elif epoch == previous_epoch:
+            return previous_epoch_boundary_attesting_balance
+        else:
+            raise Exception("ensure mock is matching on a specific epoch")
+
+    def mock_get_active_validator_indices(validator_registry, epoch):
+        """
+        Use this mock to ensure that `_is_epoch_justifiable` does not return early
+        This is a bit unfortunate as it leaks an implementation detail, but we are
+        already monkeypatching so we will see it through.
+        """
+        indices = tuple(range(3))
+        # The only constraint on this mock is that the following assertion holds
+        # We ensure the sustainability of this test by testing the invariant at runtime.
+        assert indices
+        return indices
 
     with monkeypatch.context() as m:
         m.setattr(
@@ -244,8 +261,13 @@ def test_current_previous_epochs_justifiable(
         )
         m.setattr(
             epoch_processing,
-            'get_epoch_boundary_attesting_balances',
-            mock_get_epoch_boundary_attesting_balances,
+            'get_epoch_boundary_attesting_balance',
+            mock_get_epoch_boundary_attesting_balance,
+        )
+        m.setattr(
+            epoch_processing,
+            'get_active_validator_indices',
+            mock_get_active_validator_indices,
         )
 
         assert _current_previous_epochs_justifiable(sample_state,
