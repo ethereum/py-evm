@@ -561,10 +561,7 @@ class VM(BaseVM):
         """
         packed_block = self.pack_block(self.block, *args, **kwargs)
 
-        if packed_block.number == 0:
-            final_block = packed_block
-        else:
-            final_block = self.finalize_block(packed_block)
+        final_block = self.finalize_block(packed_block)
 
         # Perform validation
         self.validate_block(final_block)
@@ -594,10 +591,7 @@ class VM(BaseVM):
     #
     # Finalization
     #
-    def finalize_block(self, block: BaseBlock) -> BaseBlock:
-        """
-        Perform any finalization steps like awarding the block mining reward.
-        """
+    def _assign_block_rewards(self, block: BaseBlock) -> None:
         block_reward = self.get_block_reward() + (
             len(block.uncles) * self.get_nephew_reward()
         )
@@ -617,9 +611,17 @@ class VM(BaseVM):
                 uncle_reward,
                 uncle.coinbase,
             )
+
+    def finalize_block(self, block: BaseBlock) -> BaseBlock:
+        """
+        Perform any finalization steps like awarding the block mining reward,
+        and persisting the final state root.
+        """
+        if block.number > 0:
+            self._assign_block_rewards(block)
+
         # We need to call `persist` here since the state db batches
         # all writes until we tell it to write to the underlying db
-        # TODO: Refactor to only use batching/journaling for tx processing
         self.state.account_db.persist()
 
         return block.copy(header=block.header.copy(state_root=self.state.state_root))
