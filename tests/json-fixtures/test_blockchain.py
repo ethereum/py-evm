@@ -254,7 +254,6 @@ def test_blockchain_fixtures(fixture_data, fixture):
     # 3 - diff resulting state with expected state
     # 4 - check that all previous blocks were valid
 
-    mined_blocks = list()
     for block_fixture in fixture['blocks']:
         should_be_good_block = 'blockHeader' in block_fixture
 
@@ -268,7 +267,8 @@ def test_blockchain_fixtures(fixture_data, fixture):
                 chain,
                 perform_validation=False  # we manually validate below
             )
-            mined_blocks.append((block, mined_block))
+            assert_mined_block_unchanged(block, mined_block)
+            chain.validate_block(block)
         else:
             try:
                 apply_fixture_block_to_chain(block_fixture, chain)
@@ -281,7 +281,3 @@ def test_blockchain_fixtures(fixture_data, fixture):
     latest_block_hash = chain.get_canonical_block_by_number(chain.get_block().number - 1).hash
     if latest_block_hash != fixture['lastblockhash']:
         verify_account_db(fixture['postState'], chain.get_vm().state.account_db)
-
-    for block, mined_block in mined_blocks:
-        assert_mined_block_unchanged(block, mined_block)
-        chain.validate_block(block)
