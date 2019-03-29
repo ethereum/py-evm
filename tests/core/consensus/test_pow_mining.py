@@ -33,14 +33,17 @@ def test_cache_turnover():
         expected[block_num] = c
 
     def lookup_random_caches():
-        for _ in range(50):
+        # the number of iterations should be enough to fill and
+        # rotate the cache, while different threads poke at it
+        for _ in range(num_caches):
             cache_id = random.randint(0, num_caches - 1)
             block_num = cache_id * EPOCH_LENGTH
             c = get_cache(block_num)
             assert c == expected[block_num]
             time.sleep(0.0005)
 
-    _concurrently_run_to_completion(lookup_random_caches, 5)
+    # need a few running threads to poke the cache at the same time
+    _concurrently_run_to_completion(lookup_random_caches, 3)
 
 
 def test_pow_across_epochs(ropsten_epoch_headers):
@@ -55,7 +58,9 @@ def test_pow_across_epochs(ropsten_epoch_headers):
             header.difficulty,
         )
 
-    _concurrently_run_to_completion(check, 100)
+    # run a few more threads than the maximum stored in the cache,
+    # to exercise the path of cache replacement in threaded context
+    _concurrently_run_to_completion(check, CACHE_MAX_ITEMS + 5)
 
 
 @pytest.mark.parametrize(
