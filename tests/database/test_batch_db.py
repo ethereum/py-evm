@@ -13,6 +13,11 @@ def batch_db(base_db):
     return BatchDB(base_db)
 
 
+@pytest.fixture
+def base2_db():
+    return MemoryDB()
+
+
 def test_batch_db_with_set_and_get(base_db, batch_db):
     with batch_db:
         batch_db.set(b'key-1', b'value-1')
@@ -104,3 +109,42 @@ def test_batch_db_with_exception_across_contexts(base_db, batch_db):
     assert batch_db[b'key-1'] == b'origin-1'
     assert base_db[b'key-2'] == b'value-2'
     assert batch_db[b'key-2'] == b'value-2'
+
+
+def test_batch_db_commit_to_new_target(base_db, batch_db, base2_db):
+    base_db[b'key-1'] = b'origin-1'
+    base_db[b'key-2'] = b'origin-2'
+
+    base2_db[b'key-1'] = b'origin-1'
+    base2_db[b'key-2'] = b'origin-2'
+
+    batch_db[b'key-1'] = b'value-1'
+    del batch_db[b'key-2']
+
+    batch_db.commit_to(base2_db, apply_deletes=True)
+
+    # after committing, length of pending changes should be 0
+    assert len(batch_db.diff()) == 0
+
+    # changes should be reflected in the target database, not the backing database
+    assert base2_db[b'key-1'] == b'value-1'
+    assert b'key-2' not in base2_db
+    assert base_db[b'key-1'] == b'origin-1'
+    assert base_db[b'key-2'] == b'origin-2'
+
+
+def test_batch_db_commit_to_new_target_without_deletes(base_db, batch_db, base2_db):
+    base_db[b'key-2'] = b'origin-2'
+
+    base2_db[b'key-2'] = b'origin-2'
+
+    del batch_db[b'key-2']
+
+    batch_db.commit_to(base2_db, apply_deletes=False)
+
+    # after committing, length of pending changes should be 0
+    assert len(batch_db.diff()) == 0
+
+    # changes should be reflected in the target database, not the backing database
+    assert base2_db[b'key-2'] == b'origin-2'
+    assert base_db[b'key-2'] == b'origin-2'
