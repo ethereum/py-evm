@@ -316,7 +316,7 @@ def test_justification_without_mock(sample_beacon_state_params,
         justification_bitfield=0b0,
     )
     state = process_justification(state, config)
-    assert state.justification_bitfield == 0b11
+    assert state.justification_bitfield == 0b0
 
 
 @pytest.mark.parametrize(
