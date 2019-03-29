@@ -128,8 +128,10 @@ def test_commit_merges_changeset_into_previous(journal_db):
     journal_db.set(b'1', b'test-a')
     assert journal_db.get(b'1') == b'test-a'
 
+    before_diff = journal_db.diff()
     journal_db.commit(changeset)
 
+    assert journal_db.diff() == before_diff
     assert len(journal_db.journal.journal_data) == 1
     assert journal_db.journal.has_changeset(changeset) is False
 
@@ -194,3 +196,23 @@ def test_returns_key_from_underlying_db_if_missing(journal_db, memory_db):
     assert memory_db.exists(b'1')
 
     assert journal_db.get(b'1') == b'test-a'
+
+
+def test_journal_db_diff_application_mimics_persist(journal_db, memory_db):
+    journal_db.record()
+    journal_db.set(b'1', b'val1')
+    journal_db.set(b'2', b'val2')
+    journal_db.set(b'3', b'val3')
+
+    journal_db.record()
+    journal_db.set(b'1', b'val1.1')
+    del journal_db[b'2']
+
+    diff = journal_db.diff()
+    journal_db.persist()
+
+    diff_test_db = MemoryDB()
+    diff.apply_to(diff_test_db)
+
+    assert memory_db == diff_test_db
+    assert len(memory_db) == len(diff_test_db)
