@@ -40,6 +40,7 @@ from eth2.beacon.committee_helpers import (
 )
 from eth2.beacon.epoch_processing_helpers import (
     get_base_reward,
+    get_epoch_boundary_attesting_balance,
     get_inactivity_penalty,
     get_inclusion_infos,
     get_previous_epoch_boundary_attestations,
@@ -47,7 +48,6 @@ from eth2.beacon.epoch_processing_helpers import (
     get_winning_root_and_participants,
     get_total_balance,
     get_total_balance_from_effective_balances,
-    get_epoch_boundary_attesting_balances,
 )
 from eth2.beacon.helpers import (
     get_active_validator_indices,
@@ -66,6 +66,7 @@ from eth2.beacon._utils.hash import (
 )
 from eth2.beacon.datastructures.inclusion_info import InclusionInfo
 from eth2.beacon.types.attestations import Attestation
+from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
 from eth2.beacon.types.states import BeaconState
@@ -129,6 +130,29 @@ def process_eth1_data_votes(state: BeaconState, config: Eth2Config) -> BeaconSta
 # Justification
 #
 
+def _is_epoch_justifiable(state: BeaconState,
+                          attestations: Sequence[PendingAttestationRecord],
+                          epoch: Epoch,
+                          config: BeaconConfig) -> bool:
+    active_validator_indices = get_active_validator_indices(
+        state.validator_registry,
+        epoch
+    )
+
+    if not active_validator_indices:
+        return False
+
+    total_balance = get_total_balance(
+        state.validator_balances,
+        active_validator_indices,
+        config.MAX_DEPOSIT_AMOUNT,
+    )
+
+    attesting_balance = get_epoch_boundary_attesting_balance(state, attestations, epoch, config)
+
+    return 3 * attesting_balance >= 2 * total_balance
+
+
 def _current_previous_epochs_justifiable(
         state: BeaconState,
         current_epoch: Epoch,
@@ -138,38 +162,10 @@ def _current_previous_epochs_justifiable(
     Determine if epoch boundary attesting balance is greater than 2/3 of current_total_balance
     for current and previous epochs.
     """
-
-    current_epoch_active_validator_indices = get_active_validator_indices(
-        state.validator_registry,
-        current_epoch,
+    return (
+        _is_epoch_justifiable(state, state.current_epoch_attestations, current_epoch, config),
+        _is_epoch_justifiable(state, state.previous_epoch_attestations, previous_epoch, config),
     )
-    previous_epoch_active_validator_indices = get_active_validator_indices(
-        state.validator_registry,
-        previous_epoch,
-    )
-    current_total_balance = get_total_balance(
-        state.validator_balances,
-        current_epoch_active_validator_indices,
-        config.MAX_DEPOSIT_AMOUNT,
-    )
-    previous_total_balance = get_total_balance(
-        state.validator_balances,
-        previous_epoch_active_validator_indices,
-        config.MAX_DEPOSIT_AMOUNT,
-    )
-
-    (
-        previous_epoch_boundary_attesting_balance,
-        current_epoch_boundary_attesting_balance
-    ) = get_epoch_boundary_attesting_balances(current_epoch, previous_epoch, state, config)
-
-    previous_epoch_justifiable = (
-        3 * previous_epoch_boundary_attesting_balance >= 2 * previous_total_balance
-    )
-    current_epoch_justifiable = (
-        3 * current_epoch_boundary_attesting_balance >= 2 * current_total_balance
-    )
-    return current_epoch_justifiable, previous_epoch_justifiable
 
 
 def _get_finalized_epoch(
