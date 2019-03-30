@@ -34,7 +34,6 @@ from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlockBody,
-    BeaconBlockHeader
 )
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
