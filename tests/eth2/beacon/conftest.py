@@ -8,8 +8,8 @@ from eth_utils import (
 )
 
 from py_ecc import bls
-from eth2.beacon.configs import (
-    BeaconConfig,
+from eth2.configs import (
+    Eth2Config,
     CommitteeConfig,
 )
 from eth2.beacon.constants import (
@@ -738,7 +738,7 @@ def config(
         max_voluntary_exits,
         max_transfers
 ):
-    return BeaconConfig(
+    return Eth2Config(
         SHARD_COUNT=shard_count,
         TARGET_COMMITTEE_SIZE=target_committee_size,
         EJECTION_BALANCE=ejection_balance,

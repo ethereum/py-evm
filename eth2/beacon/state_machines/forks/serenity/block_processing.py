@@ -8,8 +8,8 @@ from eth2._utils.numeric import (
 )
 from eth2.beacon._utils.hash import hash_eth2
 
-from eth2.beacon.configs import (
-    BeaconConfig,
+from eth2.configs import (
+    Eth2Config,
     CommitteeConfig,
 )
 from eth2.beacon.types.states import BeaconState
@@ -57,7 +57,7 @@ def process_eth1_data(state: BeaconState,
 
 def process_randao(state: BeaconState,
                    block: BaseBeaconBlock,
-                   config: BeaconConfig) -> BeaconState:
+                   config: Eth2Config) -> BeaconState:
     proposer_index = get_beacon_proposer_index(
         state=state,
         slot=state.slot,

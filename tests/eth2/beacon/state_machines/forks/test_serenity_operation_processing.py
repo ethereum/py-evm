@@ -4,11 +4,11 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth2.configs import (
+    CommitteeConfig,
+)
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
-)
-from eth2.beacon.configs import (
-    CommitteeConfig,
 )
 from eth2.beacon.helpers import (
     get_epoch_start_slot,

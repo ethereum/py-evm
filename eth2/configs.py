@@ -14,8 +14,8 @@ from eth2.beacon.typing import (
 )
 
 
-BeaconConfig = NamedTuple(
-    'BeaconConfig',
+Eth2Config = NamedTuple(
+    'Eth2Config',
     (
         # Misc
         ('SHARD_COUNT', int),
@@ -71,7 +71,7 @@ BeaconConfig = NamedTuple(
 
 
 class CommitteeConfig:
-    def __init__(self, config: BeaconConfig):
+    def __init__(self, config: Eth2Config):
         # Basic
         self.GENESIS_SLOT = config.GENESIS_SLOT
         self.GENESIS_EPOCH = config.GENESIS_EPOCH

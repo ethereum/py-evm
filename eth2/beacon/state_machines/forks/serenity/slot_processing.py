@@ -6,8 +6,8 @@ from eth_typing import (
     Hash32,
 )
 
-from eth2.beacon.configs import (
-    BeaconConfig,
+from eth2.configs import (
+    Eth2Config,
 )
 from eth2.beacon.typing import (
     Slot,
@@ -25,7 +25,7 @@ def _update_historical_root(roots: Sequence[Hash32],
 
 
 def process_slot_transition(state: BeaconState,
-                            config: BeaconConfig,
+                            config: Eth2Config,
                             previous_block_root: Hash32) -> BeaconState:
     slots_per_historical_root = config.SLOTS_PER_HISTORICAL_ROOT
 

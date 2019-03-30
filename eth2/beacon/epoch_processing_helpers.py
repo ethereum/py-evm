@@ -22,8 +22,9 @@ from eth2.beacon.committee_helpers import (
     get_attestation_participants,
     get_attester_indices_from_attestations,
 )
-from eth2.beacon.configs import (
+from eth2.configs import (
     CommitteeConfig,
+    Eth2Config,
 )
 from eth2.beacon.helpers import (
     get_block_root,
@@ -49,7 +50,6 @@ if TYPE_CHECKING:
     from eth2.beacon.types.states import BeaconState  # noqa: F401
     from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
     from eth2.beacon.types.validator_records import ValidatorRecord  # noqa: F401
-    from eth2.beacon.state_machines.configs import BeaconConfig  # noqa: F401
 
 
 @to_tuple
@@ -166,7 +166,7 @@ def get_epoch_boundary_attesting_balances(
         current_epoch: Epoch,
         previous_epoch: Epoch,
         state: 'BeaconState',
-        config: 'BeaconConfig') -> Tuple[Gwei, Gwei]:
+        config: Eth2Config) -> Tuple[Gwei, Gwei]:
 
     previous_epoch_boundary_root = get_block_root(
         state,

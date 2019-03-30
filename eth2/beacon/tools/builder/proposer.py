@@ -10,15 +10,15 @@ from eth_typing import (
 
 from eth_typing import Hash32
 
+from eth2.configs import (
+    CommitteeConfig,
+    Eth2Config,
+)
 from eth2.beacon.enums import (
     SignatureDomain,
 )
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
-)
-from eth2.beacon.configs import (
-    BeaconConfig,
-    CommitteeConfig,
 )
 from eth2.beacon.exceptions import (
     ProposerIndexError,
@@ -53,7 +53,7 @@ from eth2.beacon.tools.builder.validator import (
 def _generate_randao_reveal(privkey: int,
                             slot: Slot,
                             fork: Fork,
-                            config: BeaconConfig) -> BLSSignature:
+                            config: Eth2Config) -> BLSSignature:
     """
     Return the RANDAO reveal for the validator represented by ``privkey``.
     The current implementation requires a validator to provide the BLS signature
@@ -75,7 +75,7 @@ def _generate_randao_reveal(privkey: int,
 
 
 def validate_proposer_index(state: BeaconState,
-                            config: BeaconConfig,
+                            config: Eth2Config,
                             slot: Slot,
                             validator_index: ValidatorIndex) -> None:
     beacon_proposer_index = get_beacon_proposer_index(
@@ -93,7 +93,7 @@ def validate_proposer_index(state: BeaconState,
 def create_block_on_state(
         *,
         state: BeaconState,
-        config: BeaconConfig,
+        config: Eth2Config,
         state_machine: BaseBeaconStateMachine,
         block_class: Type[BaseBeaconBlock],
         parent_block: BaseBeaconBlock,
@@ -159,7 +159,7 @@ def _get_proposer_index(state_machine: BaseBeaconStateMachine,
                         state: BeaconState,
                         slot: Slot,
                         previous_block_root: Hash32,
-                        config: BeaconConfig) -> ValidatorIndex:
+                        config: Eth2Config) -> ValidatorIndex:
     # advance the state to the ``slot``.
     state_transition = state_machine.state_transition
     state = state_transition.apply_state_transition_without_block(state, slot, previous_block_root)
@@ -174,7 +174,7 @@ def _get_proposer_index(state_machine: BaseBeaconStateMachine,
 
 def create_mock_block(*,
                       state: BeaconState,
-                      config: BeaconConfig,
+                      config: Eth2Config,
                       state_machine: BaseBeaconStateMachine,
                       block_class: Type[BaseBeaconBlock],
                       parent_block: BaseBeaconBlock,

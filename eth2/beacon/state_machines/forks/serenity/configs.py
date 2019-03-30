@@ -2,7 +2,7 @@ from eth.constants import (
     ZERO_ADDRESS,
 )
 
-from eth2.beacon.configs import BeaconConfig
+from eth2.configs import Eth2Config
 from eth2.beacon.constants import (
     GWEI_PER_ETH,
 )
@@ -18,7 +18,7 @@ GENESIS_SLOT = Slot(2**32)
 SLOTS_PER_EPOCH = 2**6
 
 
-SERENITY_CONFIG = BeaconConfig(
+SERENITY_CONFIG = Eth2Config(
     # Misc
     SHARD_COUNT=2**10,  # (= 1,024) shards
     TARGET_COMMITTEE_SIZE=2**7,  # (= 128) validators

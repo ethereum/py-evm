@@ -31,6 +31,10 @@ from eth2._utils.bitfield import (
 )
 from py_ecc import bls
 
+from eth2.configs import (
+    CommitteeConfig,
+    Eth2Config,
+)
 from eth2.beacon.constants import (
     ZERO_TIMESTAMP,
 )
@@ -40,10 +44,6 @@ from eth2.beacon.enums import (
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
     get_crosslink_committees_at_slot,
-)
-from eth2.beacon.configs import (
-    BeaconConfig,
-    CommitteeConfig,
 )
 from eth2.beacon.exceptions import (
     NoCommitteeAssignment,
@@ -214,7 +214,7 @@ def create_proposal_data_and_signature(
 #
 def create_mock_proposer_slashing_at_block(
         state: BeaconState,
-        config: BeaconConfig,
+        config: Eth2Config,
         keymap: Dict[BLSPubkey, int],
         block_root_1: Hash32,
         block_root_2: Hash32,
@@ -249,7 +249,7 @@ def create_mock_proposer_slashing_at_block(
 # AttesterSlashing
 #
 def create_mock_slashable_attestation(state: BeaconState,
-                                      config: BeaconConfig,
+                                      config: Eth2Config,
                                       keymap: Dict[BLSPubkey, int],
                                       attestation_slot: Slot) -> SlashableAttestation:
     """
@@ -317,7 +317,7 @@ def create_mock_slashable_attestation(state: BeaconState,
 
 def create_mock_attester_slashing_is_double_vote(
         state: BeaconState,
-        config: BeaconConfig,
+        config: Eth2Config,
         keymap: Dict[BLSPubkey, int],
         attestation_epoch: Epoch) -> AttesterSlashing:
     attestation_slot_1 = get_epoch_start_slot(attestation_epoch, config.SLOTS_PER_EPOCH)
@@ -344,7 +344,7 @@ def create_mock_attester_slashing_is_double_vote(
 
 def create_mock_attester_slashing_is_surround_vote(
         state: BeaconState,
-        config: BeaconConfig,
+        config: Eth2Config,
         keymap: Dict[BLSPubkey, int],
         attestation_epoch: Epoch) -> AttesterSlashing:
     # target_epoch_2 < target_epoch_1
@@ -380,7 +380,7 @@ def create_mock_attester_slashing_is_surround_vote(
 # Attestation
 #
 def _get_epoch_boundary_root(state: BeaconState,
-                             config: BeaconConfig,
+                             config: Eth2Config,
                              beacon_block_root: Hash32) -> Hash32:
     epoch_start_slot = get_epoch_start_slot(
         slot_to_epoch(state.slot, config.SLOTS_PER_EPOCH),
@@ -471,7 +471,7 @@ def create_mock_signed_attestation(state: BeaconState,
 @to_tuple
 def create_mock_signed_attestations_at_slot(
         state: BeaconState,
-        config: BeaconConfig,
+        config: Eth2Config,
         attestation_slot: Slot,
         beacon_block_root: Hash32,
         keymap: Dict[BLSPubkey, int],
@@ -533,7 +533,7 @@ def create_mock_signed_attestations_at_slot(
 # VoluntaryExit
 #
 def create_mock_voluntary_exit(state: BeaconState,
-                               config: BeaconConfig,
+                               config: Eth2Config,
                                keymap: Dict[BLSPubkey, int],
                                validator_index: ValidatorIndex,
                                exit_epoch: Epoch=None) -> VoluntaryExit:
@@ -558,7 +558,7 @@ def create_mock_voluntary_exit(state: BeaconState,
 # Deposit
 #
 def create_deposit_data(*,
-                        config: BeaconConfig,
+                        config: Eth2Config,
                         pubkey: BLSPubkey,
                         privkey: int,
                         withdrawal_credentials: Hash32,
@@ -589,7 +589,7 @@ def create_deposit_data(*,
 
 
 def create_mock_deposit_data(*,
-                             config: BeaconConfig,
+                             config: Eth2Config,
                              pubkeys: Sequence[BLSPubkey],
                              keymap: Dict[BLSPubkey, int],
                              validator_index: ValidatorIndex,
@@ -621,7 +621,7 @@ def create_mock_deposit_data(*,
 #
 def get_committee_assignment(
         state: BeaconState,
-        config: BeaconConfig,
+        config: Eth2Config,
         epoch: Epoch,
         validator_index: ValidatorIndex,
         registry_change: bool=False

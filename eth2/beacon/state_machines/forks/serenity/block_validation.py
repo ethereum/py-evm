@@ -24,13 +24,13 @@ from py_ecc import bls
 from eth2._utils import (
     bitfield,
 )
+from eth2.configs import (
+    CommitteeConfig,
+)
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
     get_crosslink_committee_for_attestation,
     get_members_from_bitfield,
-)
-from eth2.beacon.configs import (
-    CommitteeConfig,
 )
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,

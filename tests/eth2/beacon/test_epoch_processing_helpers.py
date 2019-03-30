@@ -19,7 +19,7 @@ from eth2._utils.bitfield import (
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
-from eth2.beacon.configs import CommitteeConfig
+from eth2.configs import CommitteeConfig
 from eth2.beacon.epoch_processing_helpers import (
     get_epoch_boundary_attester_indices,
     get_epoch_boundary_attesting_balances,

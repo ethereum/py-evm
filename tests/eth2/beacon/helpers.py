@@ -3,7 +3,8 @@ from eth_utils import to_tuple
 from eth.constants import (
     ZERO_HASH32,
 )
-from eth2.beacon.configs import BeaconConfig
+
+from eth2.configs import Eth2Config
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
@@ -13,7 +14,7 @@ from eth2.beacon.types.validator_records import (
 
 
 def mock_validator_record(pubkey,
-                          config: BeaconConfig,
+                          config: Eth2Config,
                           withdrawal_credentials=ZERO_HASH32,
                           is_active=True):
     return ValidatorRecord(

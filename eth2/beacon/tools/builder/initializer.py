@@ -22,10 +22,10 @@ from eth2._utils.merkle.sparse import (
     calc_merkle_tree_from_leaves,
     get_merkle_root,
 )
+from eth2.configs import Eth2Config
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
-from eth2.beacon.configs import BeaconConfig
 from eth2.beacon.constants import (
     ZERO_TIMESTAMP,
 )
@@ -53,7 +53,7 @@ from eth2.beacon.tools.builder.validator import (
 
 def create_mock_genesis_validator_deposits_and_root(
         num_validators: int,
-        config: BeaconConfig,
+        config: Eth2Config,
         pubkeys: Sequence[BLSPubkey],
         keymap: Dict[BLSPubkey, int]) -> Tuple[Tuple[Deposit, ...], Hash32]:
     # Mock data
@@ -97,7 +97,7 @@ def create_mock_genesis_validator_deposits_and_root(
 
 def create_mock_genesis(
         num_validators: int,
-        config: BeaconConfig,
+        config: Eth2Config,
         keymap: Dict[BLSPubkey, int],
         genesis_block_class: Type[BaseBeaconBlock],
         genesis_time: Timestamp=ZERO_TIMESTAMP) -> Tuple[BeaconState, BaseBeaconBlock]:

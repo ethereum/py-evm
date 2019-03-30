@@ -24,6 +24,10 @@ from eth2._utils.numeric import (
 from eth2._utils.tuple import (
     update_tuple_item,
 )
+from eth2.configs import (
+    Eth2Config,
+    CommitteeConfig,
+)
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
@@ -33,10 +37,6 @@ from eth2.beacon.committee_helpers import (
     get_crosslink_committees_at_slot,
     get_current_epoch_committee_count,
     slot_to_epoch,
-)
-from eth2.beacon.configs import (
-    BeaconConfig,
-    CommitteeConfig,
 )
 from eth2.beacon.epoch_processing_helpers import (
     get_base_reward,
@@ -79,7 +79,7 @@ from eth2.beacon.typing import (
 #
 # Eth1 data votes
 #
-def _majority_threshold(config: BeaconConfig) -> int:
+def _majority_threshold(config: Eth2Config) -> int:
     """
     Return the value constituting the majority threshold for an Eth1 data vote.
     """
@@ -87,11 +87,11 @@ def _majority_threshold(config: BeaconConfig) -> int:
 
 
 @curry
-def _is_majority_vote(config: BeaconConfig, vote: Eth1DataVote) -> bool:
+def _is_majority_vote(config: Eth2Config, vote: Eth1DataVote) -> bool:
     return vote.vote_count * 2 > _majority_threshold(config)
 
 
-def _update_eth1_vote_if_exists(state: BeaconState, config: BeaconConfig) -> BeaconState:
+def _update_eth1_vote_if_exists(state: BeaconState, config: Eth2Config) -> BeaconState:
     """
     This function searches the 'pending' Eth1 data votes in ``state`` to find one Eth1 data vote
     containing majority support.
@@ -116,7 +116,7 @@ def _update_eth1_vote_if_exists(state: BeaconState, config: BeaconConfig) -> Bea
     )
 
 
-def process_eth1_data_votes(state: BeaconState, config: BeaconConfig) -> BeaconState:
+def process_eth1_data_votes(state: BeaconState, config: Eth2Config) -> BeaconState:
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
     should_process = next_epoch % config.EPOCHS_PER_ETH1_VOTING_PERIOD == 0
     if should_process:
@@ -132,7 +132,7 @@ def _current_previous_epochs_justifiable(
         state: BeaconState,
         current_epoch: Epoch,
         previous_epoch: Epoch,
-        config: BeaconConfig) -> Tuple[bool, bool]:
+        config: Eth2Config) -> Tuple[bool, bool]:
     """
     Determine if epoch boundary attesting balance is greater than 2/3 of current_total_balance
     for current and previous epochs.
@@ -208,7 +208,7 @@ def _get_finalized_epoch(
         return finalized_epoch, 0
 
 
-def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconState:
+def process_justification(state: BeaconState, config: Eth2Config) -> BeaconState:
 
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
@@ -256,7 +256,7 @@ def process_justification(state: BeaconState, config: BeaconConfig) -> BeaconSta
 #
 # Crosslinks
 #
-def process_crosslinks(state: BeaconState, config: BeaconConfig) -> BeaconState:
+def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
     """
     Implement 'per-epoch-processing.crosslinks' portion of Phase 0 spec:
     https://github.com/ethereum/eth2.0-specs/blob/master/specs/core/0_beacon-chain.md#crosslinks
@@ -336,7 +336,7 @@ def _update_rewards_or_penalies(
 
 def _compute_normal_justification_and_finalization_deltas(
         state: BeaconState,
-        config: BeaconConfig,
+        config: Eth2Config,
         previous_epoch_active_validator_indices: Set[ValidatorIndex],
         previous_total_balance: Gwei,
         previous_epoch_attester_indices: Set[ValidatorIndex],
@@ -434,7 +434,7 @@ def _compute_normal_justification_and_finalization_deltas(
 
 def _compute_inactivity_leak_deltas(
         state: BeaconState,
-        config: BeaconConfig,
+        config: Eth2Config,
         previous_epoch_active_validator_indices: Set[ValidatorIndex],
         previous_epoch_attester_indices: Set[ValidatorIndex],
         previous_epoch_boundary_attester_indices: Set[ValidatorIndex],
@@ -513,7 +513,7 @@ def _compute_inactivity_leak_deltas(
 @curry
 def _process_rewards_and_penalties_for_finality(
         state: BeaconState,
-        config: BeaconConfig,
+        config: Eth2Config,
         previous_epoch_active_validator_indices: Set[ValidatorIndex],
         previous_total_balance: Gwei,
         previous_epoch_attestations: Sequence[Attestation],
@@ -579,7 +579,7 @@ def _process_rewards_and_penalties_for_finality(
 @curry
 def _process_rewards_and_penalties_for_crosslinks(
         state: BeaconState,
-        config: BeaconConfig,
+        config: Eth2Config,
         effective_balances: Dict[ValidatorIndex, Gwei],
         base_rewards: Dict[ValidatorIndex, Gwei]) -> Tuple[Dict[ValidatorIndex, Gwei], Dict[ValidatorIndex, Gwei]]:  # noqa: E501
     previous_epoch_start_slot = get_epoch_start_slot(
@@ -632,7 +632,7 @@ def _process_rewards_and_penalties_for_crosslinks(
     return (rewards_received, penalties_received)
 
 
-def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> BeaconState:
+def process_rewards_and_penalties(state: BeaconState, config: Eth2Config) -> BeaconState:
     # Compute previous epoch active validator indices and the total balance they account for
     # for later use.
     previous_epoch_active_validator_indices = set(
@@ -728,7 +728,7 @@ def process_rewards_and_penalties(state: BeaconState, config: BeaconConfig) -> B
 # Ejections
 #
 def process_ejections(state: BeaconState,
-                      config: BeaconConfig) -> BeaconState:
+                      config: Eth2Config) -> BeaconState:
     """
     Iterate through the validator registry and eject active validators
     with balance below ``EJECTION_BALANCE``.
@@ -760,7 +760,7 @@ def _update_previous_shuffling_data(state: BeaconState) -> BeaconState:
 
 
 def _check_if_update_validator_registry(state: BeaconState,
-                                        config: BeaconConfig) -> Tuple[bool, int]:
+                                        config: Eth2Config) -> Tuple[bool, int]:
     if state.finalized_epoch <= state.validator_registry_update_epoch:
         return False, 0
 
@@ -845,7 +845,7 @@ def _is_ready_to_exit(state: BeaconState, index: ValidatorIndex) -> bool:
 
 
 def _churn_validators(state: BeaconState,
-                      config: BeaconConfig,
+                      config: Eth2Config,
                       check_should_churn_fn: Callable[..., Any],
                       churn_fn: Callable[..., Any],
                       max_balance_churn: int) -> BeaconState:
@@ -878,7 +878,7 @@ def _churn_validators(state: BeaconState,
     return state
 
 
-def update_validator_registry(state: BeaconState, config: BeaconConfig) -> BeaconState:
+def update_validator_registry(state: BeaconState, config: Eth2Config) -> BeaconState:
     """
     Update validator registry.
     """
@@ -941,13 +941,13 @@ def update_validator_registry(state: BeaconState, config: BeaconConfig) -> Beaco
     return state
 
 
-StateUpdaterForConfig = Callable[[BeaconState, BeaconConfig], BeaconState]
+StateUpdaterForConfig = Callable[[BeaconState, Eth2Config], BeaconState]
 
 
 @curry
 def _process_validator_registry_with_update(current_epoch_committee_count: int,
                                             state: BeaconState,
-                                            config: BeaconConfig) -> StateUpdaterForConfig:
+                                            config: Eth2Config) -> StateUpdaterForConfig:
     state = update_validator_registry(state, config)
 
     # Update step-by-step since updated `state.current_shuffling_epoch`
@@ -969,7 +969,7 @@ def _process_validator_registry_with_update(current_epoch_committee_count: int,
 
 
 def _process_validator_registry_without_update(state: BeaconState,
-                                               config: BeaconConfig) -> BeaconState:
+                                               config: Eth2Config) -> BeaconState:
     epochs_since_last_registry_update = (
         state.current_epoch(config.SLOTS_PER_EPOCH) - state.validator_registry_update_epoch
     )
@@ -999,7 +999,7 @@ def _process_validator_registry_without_update(state: BeaconState,
 
 
 def process_validator_registry(state: BeaconState,
-                               config: BeaconConfig) -> BeaconState:
+                               config: Eth2Config) -> BeaconState:
     state = _update_previous_shuffling_data(state)
 
     need_to_update, current_epoch_committee_count = _check_if_update_validator_registry(
@@ -1060,7 +1060,7 @@ def _update_latest_active_index_roots(state: BeaconState,
 
 
 def _compute_total_penalties(state: BeaconState,
-                             config: BeaconConfig,
+                             config: Eth2Config,
                              current_epoch: Epoch) -> Gwei:
     epoch_index = current_epoch % config.LATEST_SLASHED_EXIT_LENGTH
     start_index_in_latest_slashed_balances = (
@@ -1072,7 +1072,7 @@ def _compute_total_penalties(state: BeaconState,
 
 
 def _compute_individual_penalty(state: BeaconState,
-                                config: BeaconConfig,
+                                config: Eth2Config,
                                 validator_index: ValidatorIndex,
                                 total_penalties: Gwei,
                                 total_balance: Gwei) -> Gwei:
@@ -1090,7 +1090,7 @@ def _compute_individual_penalty(state: BeaconState,
 
 
 def process_slashings(state: BeaconState,
-                      config: BeaconConfig) -> BeaconState:
+                      config: Eth2Config) -> BeaconState:
     """
     Process the slashings.
     """
@@ -1132,7 +1132,7 @@ def process_slashings(state: BeaconState,
 
 
 def process_exit_queue(state: BeaconState,
-                       config: BeaconConfig) -> BeaconState:
+                       config: Eth2Config) -> BeaconState:
     """
     Process the exit queue.
     """
@@ -1173,7 +1173,7 @@ def process_exit_queue(state: BeaconState,
 
 def _update_historical_roots(state: BeaconState,
                              next_epoch: Epoch,
-                             config: BeaconConfig) -> BeaconState:
+                             config: Eth2Config) -> BeaconState:
     updated_historical_roots = state.historical_roots
     epochs_per_historical_root = config.SLOTS_PER_HISTORICAL_ROOT // config.SLOTS_PER_EPOCH
     should_update_historical_roots = next_epoch % epochs_per_historical_root == 0
@@ -1190,7 +1190,7 @@ def _update_historical_roots(state: BeaconState,
 # Final updates
 #
 def process_final_updates(state: BeaconState,
-                          config: BeaconConfig) -> BeaconState:
+                          config: Eth2Config) -> BeaconState:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
 

@@ -18,7 +18,7 @@ from eth2._utils.bitfield import (
     get_empty_bitfield,
     set_voted,
 )
-from eth2.beacon.configs import (
+from eth2.configs import (
     CommitteeConfig,
 )
 from eth2.beacon.enums import (

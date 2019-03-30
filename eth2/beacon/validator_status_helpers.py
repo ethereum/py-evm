@@ -5,11 +5,11 @@ from eth_utils import (
 from eth2._utils.tuple import (
     update_tuple_item,
 )
+from eth2.configs import (
+    CommitteeConfig,
+)
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
-)
-from eth2.beacon.configs import (
-    CommitteeConfig,
 )
 from eth2.beacon.helpers import (
     get_delayed_activation_exit_epoch,

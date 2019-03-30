@@ -6,8 +6,8 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth2.beacon.configs import (
-    BeaconConfig,
+from eth2.configs import (
+    Eth2Config,
     CommitteeConfig,
 )
 from eth2.beacon.validator_status_helpers import (
@@ -39,7 +39,7 @@ from .block_validation import (
 
 def process_proposer_slashings(state: BeaconState,
                                block: BaseBeaconBlock,
-                               config: BeaconConfig) -> BeaconState:
+                               config: Eth2Config) -> BeaconState:
     if len(block.body.proposer_slashings) > config.MAX_PROPOSER_SLASHINGS:
         raise ValidationError(
             f"The block ({block}) has too many proposer slashings:\n"
@@ -64,7 +64,7 @@ def process_proposer_slashings(state: BeaconState,
 
 @to_tuple
 def _get_slashable_indices(state: BeaconState,
-                           config: BeaconConfig,
+                           config: Eth2Config,
                            attester_slashing: AttesterSlashing) -> Iterable[ValidatorIndex]:
     for index in attester_slashing.slashable_attestation_1.validator_indices:
         should_be_slashed = (
@@ -77,7 +77,7 @@ def _get_slashable_indices(state: BeaconState,
 
 def process_attester_slashings(state: BeaconState,
                                block: BaseBeaconBlock,
-                               config: BeaconConfig) -> BeaconState:
+                               config: Eth2Config) -> BeaconState:
     if len(block.body.attester_slashings) > config.MAX_ATTESTER_SLASHINGS:
         raise ValidationError(
             f"The block ({block}) has too many attester slashings:\n"
@@ -111,7 +111,7 @@ def process_attester_slashings(state: BeaconState,
 
 def process_attestations(state: BeaconState,
                          block: BaseBeaconBlock,
-                         config: BeaconConfig) -> BeaconState:
+                         config: Eth2Config) -> BeaconState:
     """
     Implements 'per-block-processing.operations.attestations' portion of Phase 0 spec:
     https://github.com/ethereum/eth2.0-specs/blob/master/specs/core/0_beacon-chain.md#attestations-1
@@ -176,7 +176,7 @@ def process_attestations(state: BeaconState,
 
 def process_voluntary_exits(state: BeaconState,
                             block: BaseBeaconBlock,
-                            config: BeaconConfig) -> BeaconState:
+                            config: Eth2Config) -> BeaconState:
     if len(block.body.voluntary_exits) > config.MAX_VOLUNTARY_EXITS:
         raise ValidationError(
             f"The block ({block}) has too many voluntary exits:\n"
@@ -199,7 +199,7 @@ def process_voluntary_exits(state: BeaconState,
 
 def process_deposits(state: BeaconState,
                      block: BaseBeaconBlock,
-                     config: BeaconConfig) -> BeaconState:
+                     config: Eth2Config) -> BeaconState:
     if len(block.body.deposits) > config.MAX_DEPOSITS:
         raise ValidationError(
             f"The block ({block}) has too many deposits:\n"

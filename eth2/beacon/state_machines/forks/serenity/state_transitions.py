@@ -2,8 +2,8 @@ from eth_typing import (
     Hash32,
 )
 
-from eth2.beacon.configs import (
-    BeaconConfig,
+from eth2.configs import (
+    Eth2Config,
     CommitteeConfig,
 )
 from eth2.beacon.state_machines.state_transitions import BaseStateTransition
@@ -43,7 +43,7 @@ from .slot_processing import (
 class SerenityStateTransition(BaseStateTransition):
     config = None
 
-    def __init__(self, config: BeaconConfig):
+    def __init__(self, config: Eth2Config):
         self.config = config
 
     def apply_state_transition(self,

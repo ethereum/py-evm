@@ -15,8 +15,8 @@ from eth._utils.datatypes import (
     Configurable,
 )
 
-from eth2.beacon.configs import (  # noqa: F401
-    BeaconConfig,
+from eth2.configs import (  # noqa: F401
+    Eth2Config,
 )
 from eth2.beacon.db.chain import BaseBeaconChainDB
 from eth2.beacon.types.blocks import BaseBeaconBlock
@@ -33,7 +33,7 @@ from .state_transitions import (
 class BaseBeaconStateMachine(Configurable, ABC):
     fork = None  # type: str
     chaindb = None  # type: BaseBeaconChainDB
-    config = None  # type: BeaconConfig
+    config = None  # type: Eth2Config
 
     block = None  # type: BaseBeaconBlock
     _state = None  # type: BeaconState

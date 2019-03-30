@@ -21,12 +21,12 @@ from eth2._utils.bitfield import (
 from eth2._utils.numeric import (
     is_power_of_two,
 )
+from eth2.configs import (
+    CommitteeConfig,
+)
 from eth2.beacon._utils.random import (
     shuffle,
     split,
-)
-from eth2.beacon.configs import (
-    CommitteeConfig,
 )
 from eth2.beacon import helpers
 from eth2.beacon.helpers import (
