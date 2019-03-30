@@ -1,3 +1,12 @@
+"""
+This module contains classes representing Beacon chain blocks, headers and block bodies.
+
+These classes are written such that a unique identifier can be obtained by
+accessing the ``root`` property on any instance of one of the classes. Other related
+"roots" can be accessed via the more specific property name, like ``signed_root``
+or ``hash_tree_root`` as appropriate.
+"""
+
 from abc import (
     ABC,
     abstractmethod,
@@ -29,7 +38,6 @@ from eth._utils.datatypes import (
     Configurable,
 )
 
-from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.constants import EMPTY_SIGNATURE
 from eth2.beacon.typing import (
     Slot,
@@ -89,17 +97,11 @@ class BeaconBlockHeader(ssz.Serializable):
             self._signed_root = ssz.hash_tree_root(self.copy(signature=EMPTY_SIGNATURE))
         return Hash32(self._signed_root)
 
-    _hash = None
-
-    @property
-    def hash(self) -> Hash32:
-        if self._hash is None:
-            self._hash = hash_eth2(ssz.encode(self))
-        return self._hash
+    _root = None
 
     @property
     def root(self) -> Hash32:
-        return ssz.hash_tree_root(self)
+        return self.signed_root
 
 
 class BeaconBlockBody(ssz.Serializable):
@@ -176,17 +178,17 @@ class BeaconBlockBody(ssz.Serializable):
             transfers=body.transfers,
         )
 
-    _hash = None
+    _hash_tree_root = None
 
     @property
-    def hash(self) -> Hash32:
-        if self._hash is None:
-            self._hash = hash_eth2(ssz.encode(self))
-        return self._hash
+    def hash_tree_root(self) -> Hash32:
+        if self._hash_tree_root is None:
+            self._hash_tree_root = ssz.hash_tree_root(self)
+        return self._hash_tree_root
 
     @property
     def root(self) -> Hash32:
-        return ssz.hash_tree_root(self)
+        return self.hash_tree_root
 
 
 class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
@@ -202,6 +204,7 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
         # Body
         #
         ('body', BeaconBlockBody),
+
         ('signature', bytes96),
     ]
 
@@ -216,8 +219,8 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
             slot=slot,
             previous_block_root=previous_block_root,
             state_root=state_root,
-            signature=signature,
             body=body,
+            signature=signature,
         )
 
     def __repr__(self) -> str:
@@ -226,21 +229,14 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
             encode_hex(self.root)[2:10],
         )
 
-    _hash = None
+    _hash_tree_root = None
 
     @property
-    def hash(self) -> Hash32:
-        if self._hash is None:
-            self._hash = hash_eth2(ssz.encode(self))
-        return self._hash
-
-    @property
-    def root(self) -> Hash32:
-        return ssz.hash_tree_root(self)
-
-    @property
-    def num_attestations(self) -> int:
-        return len(self.body.attestations)
+    def hash_tree_root(self) -> Hash32:
+        # NOTE: this is used in the fork choice calculation
+        if self._hash_tree_root is None:
+            self._hash_tree_root = ssz.hash_tree_root(self)
+        return self._hash_tree_root
 
     _signed_root = None
 
@@ -250,6 +246,14 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
         if self._signed_root is None:
             self._signed_root = ssz.hash_tree_root(self.copy(signature=EMPTY_SIGNATURE))
         return Hash32(self._signed_root)
+
+    @property
+    def root(self) -> Hash32:
+        return self.signed_root
+
+    @property
+    def num_attestations(self) -> int:
+        return len(self.body.attestations)
 
     @property
     def header(self) -> BeaconBlockHeader:
