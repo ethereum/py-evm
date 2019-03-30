@@ -59,8 +59,8 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _check_if_update_validator_registry,
     _compute_individual_penalty,
     _compute_total_penalties,
-    _current_previous_epochs_justifiable,
     _get_finalized_epoch,
+    _is_epoch_justifiable,
     _is_majority_vote,
     _majority_threshold,
     _process_rewards_and_penalties_for_crosslinks,
@@ -217,7 +217,7 @@ def test_only_process_eth1_data_votes_per_period(sample_beacon_state_params, con
         ),
     )
 )
-def test_current_previous_epochs_justifiable(
+def test_is_epoch_justifiable(
         monkeypatch,
         sample_state,
         config,
@@ -270,10 +270,21 @@ def test_current_previous_epochs_justifiable(
             mock_get_active_validator_indices,
         )
 
-        assert _current_previous_epochs_justifiable(sample_state,
-                                                    current_epoch,
-                                                    previous_epoch,
-                                                    config) == expected
+        current_epoch_justifiable = _is_epoch_justifiable(
+            sample_state,
+            sample_state.current_epoch_attestations,
+            current_epoch,
+            config
+        )
+
+        previous_epoch_justifiable = _is_epoch_justifiable(
+            sample_state,
+            sample_state.previous_epoch_attestations,
+            previous_epoch,
+            config
+        )
+
+        assert (current_epoch_justifiable, previous_epoch_justifiable) == expected
 
 
 @pytest.mark.parametrize(
@@ -385,14 +396,17 @@ def test_process_justification(monkeypatch,
         ) = states[i + 1][-4:]
         slot = (current_epoch + 1) * config.SLOTS_PER_EPOCH - 1
 
-        def mock_current_previous_epochs_justifiable(current_epoch, previous_epoch, state, config):
-            return current_epoch_justifiable, previous_epoch_justifiable
+        def mock_is_epoch_justifiable(state, attestations, epoch, config):
+            if epoch == current_epoch:
+                return current_epoch_justifiable
+            else:
+                return previous_epoch_justifiable
 
         with monkeypatch.context() as m:
             m.setattr(
                 epoch_processing,
-                '_current_previous_epochs_justifiable',
-                mock_current_previous_epochs_justifiable,
+                '_is_epoch_justifiable',
+                mock_is_epoch_justifiable,
             )
 
             state = genesis_state.copy(

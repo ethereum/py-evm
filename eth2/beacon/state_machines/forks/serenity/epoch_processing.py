@@ -134,6 +134,10 @@ def _is_epoch_justifiable(state: BeaconState,
                           attestations: Sequence[PendingAttestationRecord],
                           epoch: Epoch,
                           config: Eth2Config) -> bool:
+    """
+    Determine if epoch boundary attesting balance is greater than 2/3 of total_balance
+    for the given ``epoch``.
+    """
     active_validator_indices = get_active_validator_indices(
         state.validator_registry,
         epoch
@@ -151,21 +155,6 @@ def _is_epoch_justifiable(state: BeaconState,
     attesting_balance = get_epoch_boundary_attesting_balance(state, attestations, epoch, config)
 
     return 3 * attesting_balance >= 2 * total_balance
-
-
-def _current_previous_epochs_justifiable(
-        state: BeaconState,
-        current_epoch: Epoch,
-        previous_epoch: Epoch,
-        config: Eth2Config) -> Tuple[bool, bool]:
-    """
-    Determine if epoch boundary attesting balance is greater than 2/3 of current_total_balance
-    for current and previous epochs.
-    """
-    return (
-        _is_epoch_justifiable(state, state.current_epoch_attestations, current_epoch, config),
-        _is_epoch_justifiable(state, state.previous_epoch_attestations, previous_epoch, config),
-    )
 
 
 def _get_finalized_epoch(
@@ -209,12 +198,8 @@ def process_justification(state: BeaconState, config: Eth2Config) -> BeaconState
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH)
 
-    current_epoch_justifiable, previous_epoch_justifiable = _current_previous_epochs_justifiable(
-        state,
-        current_epoch,
-        previous_epoch,
-        config,
-    )
+    current_epoch_justifiable = _is_epoch_justifiable(state, state.current_epoch_attestations, current_epoch, config)
+    previous_epoch_justifiable = _is_epoch_justifiable(state, state.previous_epoch_attestations, previous_epoch, config)
 
     _justification_bitfield = state.justification_bitfield << 1
     if previous_epoch_justifiable and current_epoch_justifiable:
