@@ -206,7 +206,6 @@ def _get_finalized_epoch(
 
 
 def process_justification(state: BeaconState, config: Eth2Config) -> BeaconState:
-
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH)
 
