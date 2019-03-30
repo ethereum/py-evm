@@ -133,7 +133,7 @@ def process_eth1_data_votes(state: BeaconState, config: Eth2Config) -> BeaconSta
 def _is_epoch_justifiable(state: BeaconState,
                           attestations: Sequence[PendingAttestationRecord],
                           epoch: Epoch,
-                          config: BeaconConfig) -> bool:
+                          config: Eth2Config) -> bool:
     active_validator_indices = get_active_validator_indices(
         state.validator_registry,
         epoch

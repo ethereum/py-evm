@@ -147,7 +147,7 @@ def get_winning_root_and_participants(
 @to_tuple
 def get_attesting_indices(state: 'BeaconState',
                           attestations: Sequence[PendingAttestationRecord],
-                          config: 'BeaconConfig') -> Iterable[ValidatorIndex]:
+                          config: 'Eth2Config') -> Iterable[ValidatorIndex]:
     output: Set[ValidatorIndex] = set()
     for a in attestations:
         participants = get_attestation_participants(state, a.data, a.aggregation_bitfield, config)
@@ -160,7 +160,7 @@ def get_attesting_indices(state: 'BeaconState',
 def _get_epoch_boundary_attesting_indices(state: 'BeaconState',
                                           attestations: Sequence[PendingAttestationRecord],
                                           epoch: Epoch,
-                                          config: 'BeaconConfig') -> Iterable[ValidatorIndex]:
+                                          config: 'Eth2Config') -> Iterable[ValidatorIndex]:
     relevant_attestations = (
         a for a in attestations
         if a.data.epoch_boundary_root == get_block_root(
@@ -182,7 +182,7 @@ def _get_epoch_boundary_attesting_indices(state: 'BeaconState',
 def get_epoch_boundary_attesting_balance(state: 'BeaconState',
                                          attestations: Sequence[PendingAttestationRecord],
                                          epoch: Epoch,
-                                         config: 'BeaconConfig') -> Gwei:
+                                         config: 'Eth2Config') -> Gwei:
     attesting_indices = _get_epoch_boundary_attesting_indices(state, attestations, epoch, config)
     return get_total_balance(
         state.validator_balances,
