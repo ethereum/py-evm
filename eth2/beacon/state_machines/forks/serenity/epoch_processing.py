@@ -17,6 +17,7 @@ from eth_utils.toolz import (
 )
 
 from eth2.beacon import helpers
+from eth2._utils.merkle.normal import get_merkle_root
 from eth2._utils.numeric import (
     is_power_of_two,
 )
@@ -524,7 +525,7 @@ def _process_rewards_and_penalties_for_finality(
         state,
         config.SLOTS_PER_EPOCH,
         config.GENESIS_EPOCH,
-        config.LATEST_BLOCK_ROOTS_LENGTH,
+        config.SLOTS_PER_HISTORICAL_ROOT,
     )
     previous_epoch_boundary_attester_indices = get_attester_indices_from_attestations(
         state=state,
@@ -536,7 +537,7 @@ def _process_rewards_and_penalties_for_finality(
         state,
         config.SLOTS_PER_EPOCH,
         config.GENESIS_EPOCH,
-        config.LATEST_BLOCK_ROOTS_LENGTH,
+        config.SLOTS_PER_HISTORICAL_ROOT,
     )
     previous_epoch_head_attester_indices = get_attester_indices_from_attestations(
         state=state,
@@ -1170,6 +1171,21 @@ def process_exit_queue(state: BeaconState,
     return state
 
 
+def _update_historical_roots(state: BeaconState,
+                             next_epoch: Epoch,
+                             config: BeaconConfig) -> BeaconState:
+    updated_historical_roots = state.historical_roots
+    epochs_per_historical_root = config.SLOTS_PER_HISTORICAL_ROOT // config.SLOTS_PER_EPOCH
+    should_update_historical_roots = next_epoch % epochs_per_historical_root == 0
+    if should_update_historical_roots:
+        roots = state.latest_block_roots + state.latest_state_roots
+        updated_historical_roots += (get_merkle_root(roots),)
+
+    return state.copy(
+        historical_roots=updated_historical_roots
+    )
+
+
 #
 # Final updates
 #
@@ -1197,6 +1213,8 @@ def process_final_updates(state: BeaconState,
             ),
         ),
     )
+
+    state = _update_historical_roots(state, next_epoch, config)
 
     # Rotate current/previous epoch attestations
     state = state.copy(

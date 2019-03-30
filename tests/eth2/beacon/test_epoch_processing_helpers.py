@@ -126,7 +126,7 @@ def test_get_current_and_previous_epoch_attestations(random,
 @given(random=st.randoms())
 @pytest.mark.parametrize(
     (
-        'slots_per_epoch,latest_block_roots_length,genesis_slot'
+        'slots_per_epoch,slots_per_historical_root,genesis_slot'
     ),
     [
         (10, 100, 0),
@@ -137,7 +137,7 @@ def test_get_previous_epoch_matching_head_attestations(
         sample_state,
         genesis_epoch,
         slots_per_epoch,
-        latest_block_roots_length,
+        slots_per_historical_root,
         sample_attestation_data_params,
         sample_attestation_params):
     previous_epoch = 9
@@ -145,7 +145,7 @@ def test_get_previous_epoch_matching_head_attestations(
     current_slot = get_epoch_start_slot(current_epoch + 1, slots_per_epoch) - 1
     latest_block_roots = [
         hash_eth2(b'block_root' + i.to_bytes(1, 'little'))
-        for i in range(latest_block_roots_length)
+        for i in range(slots_per_historical_root)
     ]
 
     num_previous_epoch_attestation = random.sample(range(slots_per_epoch), 1)[0]
@@ -171,7 +171,7 @@ def test_get_previous_epoch_matching_head_attestations(
             Attestation(**sample_attestation_params).copy(
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=slot,
-                    beacon_block_root=latest_block_roots[slot % latest_block_roots_length],
+                    beacon_block_root=latest_block_roots[slot % slots_per_historical_root],
                 ),
             )
         )
@@ -197,7 +197,7 @@ def test_get_previous_epoch_matching_head_attestations(
         state,
         slots_per_epoch,
         genesis_epoch,
-        latest_block_roots_length,
+        slots_per_historical_root,
     )
     assert set(previous_epoch_head_attestations) == set(result)
 
@@ -491,7 +491,7 @@ def test_get_epoch_boundary_attesting_balances(
 
     current_epoch_boundary_root = hash_eth2(b'block_root_1')
     previous_epoch_boundary_root = hash_eth2(b'block_root_2')
-    latest_block_roots = list(None for _ in range(config.LATEST_BLOCK_ROOTS_LENGTH))
+    latest_block_roots = list(None for _ in range(config.SLOTS_PER_HISTORICAL_ROOT))
     latest_block_roots[192] = current_epoch_boundary_root
     latest_block_roots[128] = previous_epoch_boundary_root
     (

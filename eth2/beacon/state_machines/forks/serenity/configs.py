@@ -29,7 +29,7 @@ SERENITY_CONFIG = BeaconConfig(
     MAX_EXIT_DEQUEUES_PER_EPOCH=2**2,  # (= 4)
     SHUFFLE_ROUND_COUNT=90,
     # State list lengths
-    LATEST_BLOCK_ROOTS_LENGTH=2**13,  # (= 8,192) slots
+    SLOTS_PER_HISTORICAL_ROOT=2**13,  # (= 8,192) slots
     LATEST_ACTIVE_INDEX_ROOTS_LENGTH=2**13,  # (= 8,192) epochs
     LATEST_RANDAO_MIXES_LENGTH=2**13,  # (= 8,192) epochs
     LATEST_SLASHED_EXIT_LENGTH=2**13,  # (= 8,192) epochs

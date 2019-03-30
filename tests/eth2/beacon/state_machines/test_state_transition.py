@@ -27,22 +27,22 @@ from eth2._utils.merkle.normal import get_merkle_root
         'target_committee_size,'
         'shard_count,'
         'state_slot,'
-        'latest_block_roots_length'
+        'slots_per_historical_root'
     ),
     [
         (10, 10, 1, 2, 2, 2, 8192),
-        # state.slot == LATEST_BLOCK_ROOTS_LENGTH
+        # state.slot == SLOTS_PER_HISTORICAL_ROOT
         (6, 6, 1, 2, 2, 8, 8),
-        # state.slot > LATEST_BLOCK_ROOTS_LENGTH
+        # state.slot > SLOTS_PER_HISTORICAL_ROOT
         (7, 7, 1, 2, 2, 9, 8),
-        # state.slot < LATEST_BLOCK_ROOTS_LENGTH
+        # state.slot < SLOTS_PER_HISTORICAL_ROOT
         (7, 7, 1, 2, 2, 7, 8),
-        # state.slot % LATEST_BLOCK_ROOTS_LENGTH = 0
+        # state.slot % SLOTS_PER_HISTORICAL_ROOT = 0
         (11, 4, 1, 2, 2, 16, 8),
         (16, 4, 1, 2, 2, 32, 8),
-        # updated_state.slot == LATEST_BLOCK_ROOTS_LENGTH
+        # updated_state.slot == SLOTS_PER_HISTORICAL_ROOT
         (6, 4, 1, 2, 2, 7, 8),
-        # updated_state.slot % LATEST_BLOCK_ROOTS_LENGTH = 0
+        # updated_state.slot % SLOTS_PER_HISTORICAL_ROOT = 0
         (11, 4, 1, 2, 2, 15, 8),
         (16, 4, 1, 2, 2, 31, 8),
     ]
@@ -92,13 +92,13 @@ def test_per_slot_transition(base_db,
     assert updated_state.slot == state.slot + 1
 
     # latest_block_roots
-    latest_block_roots_index = (updated_state.slot - 1) % st.config.LATEST_BLOCK_ROOTS_LENGTH
+    latest_block_roots_index = (updated_state.slot - 1) % st.config.SLOTS_PER_HISTORICAL_ROOT
     assert updated_state.latest_block_roots[latest_block_roots_index] == block.parent_root
 
-    # batched_block_roots
-    if updated_state.slot % st.config.LATEST_BLOCK_ROOTS_LENGTH == 0:
-        assert updated_state.batched_block_roots[-1] == get_merkle_root(
+    # historical_roots
+    if updated_state.slot % st.config.SLOTS_PER_HISTORICAL_ROOT == 0:
+        assert updated_state.historical_roots[-1] == get_merkle_root(
             updated_state.latest_block_roots
         )
     else:
-        assert updated_state.batched_block_roots == state.batched_block_roots
+        assert updated_state.historical_roots == state.historical_roots

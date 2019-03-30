@@ -53,7 +53,7 @@ def test_get_genesis_beacon_state(
         genesis_start_shard,
         shard_count,
         min_seed_lookahead,
-        latest_block_roots_length,
+        slots_per_historical_root,
         latest_active_index_roots_length,
         slots_per_epoch,
         max_deposit_amount,
@@ -88,7 +88,7 @@ def test_get_genesis_beacon_state(
         genesis_start_shard=genesis_start_shard,
         shard_count=shard_count,
         min_seed_lookahead=min_seed_lookahead,
-        latest_block_roots_length=latest_block_roots_length,
+        slots_per_historical_root=slots_per_historical_root,
         latest_active_index_roots_length=latest_active_index_roots_length,
         slots_per_epoch=slots_per_epoch,
         max_deposit_amount=max_deposit_amount,
@@ -132,12 +132,12 @@ def test_get_genesis_beacon_state(
         epoch=genesis_epoch,
         crosslink_data_root=ZERO_HASH32,
     )
-    assert len(state.latest_block_roots) == latest_block_roots_length
+    assert len(state.latest_block_roots) == slots_per_historical_root
     assert state.latest_block_roots[0] == ZERO_HASH32
     assert len(state.latest_slashed_balances) == latest_slashed_exit_length
     assert state.latest_slashed_balances[0] == Gwei(0)
 
-    assert len(state.batched_block_roots) == 0
+    assert len(state.historical_roots) == 0
 
     # Ethereum 1.0 chain data
     assert state.latest_eth1_data == genesis_eth1_data

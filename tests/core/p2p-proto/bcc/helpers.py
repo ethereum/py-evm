@@ -20,9 +20,7 @@ from eth2.beacon.types.blocks import (
     BeaconBlock,
     BeaconBlockBody,
 )
-from eth2.beacon.types.eth1_data import (
-    Eth1Data,
-)
+from eth2.beacon.types.eth1_data import Eth1Data
 
 from trinity.protocol.bcc.context import BeaconContext
 from trinity.protocol.bcc.peer import (

@@ -48,23 +48,26 @@ def get_epoch_start_slot(epoch: Epoch, slots_per_epoch: int) -> Slot:
     return Slot(epoch * slots_per_epoch)
 
 
-def _get_block_root(
-        latest_block_roots: Sequence[Hash32],
+def _get_historical_root(
+        historical_roots: Sequence[Hash32],
         state_slot: Slot,
         slot: Slot,
-        latest_block_roots_length: int) -> Hash32:
+        slots_per_historical_root: int) -> Hash32:
     """
-    Return the block root at a recent ``slot``.
+    Return the historical root at a recent ``slot``.
+
+    An internal helper function used to grab a recent
+    block root or state root.
     """
-    if state_slot > slot + latest_block_roots_length:
+    if state_slot > slot + slots_per_historical_root:
         raise ValidationError(
             "state.slot ({}) should be less than or equal to "
-            "(slot + latest_block_roots_length) ({}), "
-            "where slot={}, latest_block_roots_length={}".format(
+            "(slot + slots_per_historical_root) ({}), "
+            "where slot={}, slots_per_historical_root={}".format(
                 state_slot,
-                slot + latest_block_roots_length,
+                slot + slots_per_historical_root,
                 slot,
-                latest_block_roots_length,
+                slots_per_historical_root,
             )
         )
     if slot >= state_slot:
@@ -74,21 +77,34 @@ def _get_block_root(
                 state_slot,
             )
         )
-    return latest_block_roots[slot % latest_block_roots_length]
+    return historical_roots[slot % slots_per_historical_root]
 
 
-def get_block_root(
-        state: 'BeaconState',
-        slot: Slot,
-        latest_block_roots_length: int) -> Hash32:
+def get_block_root(state: 'BeaconState',
+                   slot: Slot,
+                   slots_per_historical_root: int) -> Hash32:
     """
     Return the block root at a recent ``slot``.
     """
-    return _get_block_root(
+    return _get_historical_root(
         state.latest_block_roots,
         state.slot,
         slot,
-        latest_block_roots_length,
+        slots_per_historical_root,
+    )
+
+
+def get_state_root(state: 'BeaconState',
+                   slot: Slot,
+                   slots_per_historical_root: int) -> Hash32:
+    """
+    Return the state root at a recent ``slot``.
+    """
+    return _get_historical_root(
+        state.latest_state_roots,
+        state.slot,
+        slot,
+        slots_per_historical_root,
     )
 
 

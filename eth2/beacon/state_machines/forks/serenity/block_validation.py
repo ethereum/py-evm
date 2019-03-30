@@ -298,7 +298,7 @@ def validate_slashable_indices(slashable_indices: Sequence[ValidatorIndex]) -> N
 def validate_attestation(state: BeaconState,
                          attestation: Attestation,
                          min_attestation_inclusion_delay: int,
-                         latest_block_roots_length: int,
+                         slots_per_historical_root: int,
                          committee_config: CommitteeConfig) -> None:
     """
     Validate the given ``attestation``.
@@ -330,7 +330,7 @@ def validate_attestation(state: BeaconState,
                 attestation.data.justified_epoch,
                 slots_per_epoch,
             ),
-            latest_block_roots_length=latest_block_roots_length,
+            slots_per_historical_root=slots_per_historical_root,
         ),
     )
 

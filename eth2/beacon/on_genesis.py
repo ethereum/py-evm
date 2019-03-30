@@ -69,7 +69,7 @@ def get_genesis_beacon_state(*,
                              genesis_start_shard: Shard,
                              shard_count: int,
                              min_seed_lookahead: int,
-                             latest_block_roots_length: int,
+                             slots_per_historical_root: int,
                              latest_active_index_roots_length: int,
                              slots_per_epoch: int,
                              max_deposit_amount: Gwei,
@@ -113,10 +113,11 @@ def get_genesis_beacon_state(*,
         latest_crosslinks=(
             (CrosslinkRecord(epoch=genesis_epoch, crosslink_data_root=ZERO_HASH32),) * shard_count
         ),
-        latest_block_roots=(ZERO_HASH32,) * latest_block_roots_length,
+        latest_block_roots=(ZERO_HASH32,) * slots_per_historical_root,
+        latest_state_roots=(ZERO_HASH32,) * slots_per_historical_root,
         latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
         latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
-        batched_block_roots=(),
+        historical_roots=(),
 
         # Ethereum 1.0 chain data
         latest_eth1_data=genesis_eth1_data,

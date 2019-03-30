@@ -27,7 +27,7 @@ BeaconConfig = NamedTuple(
         ('MAX_EXIT_DEQUEUES_PER_EPOCH', int),
         ('SHUFFLE_ROUND_COUNT', int),
         # State list lengths
-        ('LATEST_BLOCK_ROOTS_LENGTH', int),
+        ('SLOTS_PER_HISTORICAL_ROOT', int),
         ('LATEST_ACTIVE_INDEX_ROOTS_LENGTH', int),
         ('LATEST_RANDAO_MIXES_LENGTH', int),
         ('LATEST_SLASHED_EXIT_LENGTH', int),

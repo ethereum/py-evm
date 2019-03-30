@@ -76,12 +76,12 @@ def get_previous_epoch_matching_head_attestations(
         state: 'BeaconState',
         slots_per_epoch: int,
         genesis_epoch: Epoch,
-        latest_block_roots_length: int) -> Iterable[PendingAttestationRecord]:
+        slots_per_historical_root: int) -> Iterable[PendingAttestationRecord]:
     for attestation in state.previous_epoch_attestations:
         beacon_block_root = get_block_root(
             state,
             attestation.data.slot,
-            latest_block_roots_length,
+            slots_per_historical_root,
         )
         if attestation.data.beacon_block_root == beacon_block_root:
             yield attestation
@@ -171,7 +171,7 @@ def get_epoch_boundary_attesting_balances(
     previous_epoch_boundary_root = get_block_root(
         state,
         get_epoch_start_slot(previous_epoch, config.SLOTS_PER_EPOCH),
-        config.LATEST_BLOCK_ROOTS_LENGTH,
+        config.SLOTS_PER_HISTORICAL_ROOT,
     )
 
     previous_epoch_boundary_attester_indices = get_epoch_boundary_attester_indices(
@@ -191,7 +191,7 @@ def get_epoch_boundary_attesting_balances(
     current_epoch_boundary_root = get_block_root(
         state,
         get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
-        config.LATEST_BLOCK_ROOTS_LENGTH,
+        config.SLOTS_PER_HISTORICAL_ROOT,
     )
 
     current_epoch_boundary_attester_indices = get_epoch_boundary_attester_indices(
