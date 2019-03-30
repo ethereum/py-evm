@@ -198,8 +198,18 @@ def process_justification(state: BeaconState, config: Eth2Config) -> BeaconState
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH)
 
-    current_epoch_justifiable = _is_epoch_justifiable(state, state.current_epoch_attestations, current_epoch, config)
-    previous_epoch_justifiable = _is_epoch_justifiable(state, state.previous_epoch_attestations, previous_epoch, config)
+    current_epoch_justifiable = _is_epoch_justifiable(
+        state,
+        state.current_epoch_attestations,
+        current_epoch,
+        config
+    )
+    previous_epoch_justifiable = _is_epoch_justifiable(
+        state,
+        state.previous_epoch_attestations,
+        previous_epoch,
+        config
+    )
 
     _justification_bitfield = state.justification_bitfield << 1
     if previous_epoch_justifiable and current_epoch_justifiable:
