@@ -192,7 +192,7 @@ def create_mock_block(*,
     proposer_privkey = keymap[proposer_pubkey]
 
     result_block = create_block_on_state(
-        state=future_state,
+        state=state,
         config=config,
         state_machine=state_machine,
         block_class=block_class,
