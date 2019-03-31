@@ -37,7 +37,7 @@ from .block_validation import (
 
 def process_block_header(state: BeaconState,
                          block: BaseBeaconBlock,
-                         config: BeaconConfig,
+                         config: Eth2Config,
                          check_proposer_signature: bool) -> BeaconState:
     validate_block_slot(state, block)
     validate_block_previous_root(state, block)
