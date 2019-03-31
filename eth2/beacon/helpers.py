@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 #
 def get_temporary_block_header(block: BeaconBlock) -> BeaconBlockHeader:
     """
-    Return the block header corresponding to a block with ``state_root`` set to ``ZERO_HASH``.
+    Return the block header corresponding to a block with ``state_root`` set to ``ZERO_HASH32``.
     """
     return BeaconBlockHeader(
         slot=block.slot,

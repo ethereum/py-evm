@@ -97,8 +97,6 @@ class BeaconBlockHeader(ssz.Serializable):
             self._signed_root = ssz.hash_tree_root(self.copy(signature=EMPTY_SIGNATURE))
         return Hash32(self._signed_root)
 
-    _root = None
-
     @property
     def root(self) -> Hash32:
         return self.signed_root
@@ -298,8 +296,8 @@ class BeaconBlock(BaseBeaconBlock):
             slot=block.slot,
             previous_block_root=block.previous_block_root,
             state_root=block.state_root,
-            signature=block.signature,
             body=body,
+            signature=block.signature,
         )
 
     @classmethod
@@ -308,7 +306,7 @@ class BeaconBlock(BaseBeaconBlock):
                     block_params: FromBlockParams) -> 'BaseBeaconBlock':
         """
         Initialize a new block with the `parent` block as the block's
-        parent hash.
+        parent root.
         """
         if block_params.slot is None:
             slot = parent_block.slot + 1
@@ -319,8 +317,8 @@ class BeaconBlock(BaseBeaconBlock):
             slot=slot,
             previous_block_root=parent_block.root,
             state_root=parent_block.state_root,
-            signature=EMPTY_SIGNATURE,
             body=cls.block_body_class.create_empty_body(),
+            signature=EMPTY_SIGNATURE,
         )
 
     @classmethod
@@ -330,6 +328,6 @@ class BeaconBlock(BaseBeaconBlock):
             slot=block.slot,
             previous_block_root=block.previous_block_root,
             state_root=block.state_root,
-            signature=block.signature,
             body=block.body,
+            signature=block.signature,
         )
