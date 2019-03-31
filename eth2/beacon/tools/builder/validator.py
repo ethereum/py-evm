@@ -266,25 +266,25 @@ def create_mock_slashable_attestation(state: BeaconState,
         config.SLOTS_PER_HISTORICAL_ROOT,
     )
 
-    # Get `epoch_boundary_root`
-    epoch_boundary_root = _get_epoch_boundary_root(state, config, beacon_block_root)
-    # Get `justified_block_root`
-    justified_block_root = get_block_root(
+    # Get `target_root`
+    target_root = _get_target_root(state, config, beacon_block_root)
+    # Get `source_root`
+    source_root = get_block_root(
         state,
         get_epoch_start_slot(state.justified_epoch, config.SLOTS_PER_EPOCH),
         config.SLOTS_PER_HISTORICAL_ROOT,
     )
-    latest_crosslink = state.latest_crosslinks[shard]
+    previous_crosslink = state.latest_crosslinks[shard]
 
     attestation_data = AttestationData(
         slot=attestation_slot,
-        shard=shard,
         beacon_block_root=beacon_block_root,
-        epoch_boundary_root=epoch_boundary_root,
+        source_epoch=state.justified_epoch,
+        source_root=source_root,
+        target_root=target_root,
+        shard=shard,
+        previous_crosslink=previous_crosslink,
         crosslink_data_root=ZERO_HASH32,
-        latest_crosslink=latest_crosslink,
-        justified_epoch=state.justified_epoch,
-        justified_block_root=justified_block_root,
     )
 
     message_hash, voting_committee_indices = _get_mock_message_and_voting_committee_indices(
@@ -379,9 +379,9 @@ def create_mock_attester_slashing_is_surround_vote(
 #
 # Attestation
 #
-def _get_epoch_boundary_root(state: BeaconState,
-                             config: Eth2Config,
-                             beacon_block_root: Hash32) -> Hash32:
+def _get_target_root(state: BeaconState,
+                     config: Eth2Config,
+                     beacon_block_root: Hash32) -> Hash32:
     epoch_start_slot = get_epoch_start_slot(
         slot_to_epoch(state.slot, config.SLOTS_PER_EPOCH),
         config.SLOTS_PER_EPOCH,
@@ -490,11 +490,11 @@ def create_mock_signed_attestations_at_slot(
         CommitteeConfig(config),
     )
 
-    # Get `epoch_boundary_root`
-    epoch_boundary_root = _get_epoch_boundary_root(state, config, beacon_block_root)
+    # Get `target_root`
+    target_root = _get_target_root(state, config, beacon_block_root)
 
-    # Get `justified_block_root`
-    justified_block_root = get_block_root(
+    # Get `source_root`
+    source_root = get_block_root(
         state,
         get_epoch_start_slot(state.justified_epoch, slots_per_epoch),
         config.SLOTS_PER_HISTORICAL_ROOT,
@@ -504,17 +504,17 @@ def create_mock_signed_attestations_at_slot(
         committee, shard = crosslink_committee
 
         num_voted_attesters = int(len(committee) * voted_attesters_ratio)
-        latest_crosslink = state.latest_crosslinks[shard]
+        previous_crosslink = state.latest_crosslinks[shard]
 
         attestation_data = AttestationData(
             slot=attestation_slot,
-            shard=shard,
             beacon_block_root=beacon_block_root,
-            epoch_boundary_root=epoch_boundary_root,
+            source_epoch=state.justified_epoch,
+            source_root=source_root,
+            target_root=target_root,
+            shard=shard,
+            previous_crosslink=previous_crosslink,
             crosslink_data_root=ZERO_HASH32,
-            latest_crosslink=latest_crosslink,
-            justified_epoch=state.justified_epoch,
-            justified_block_root=justified_block_root,
         )
 
         num_voted_attesters = int(len(committee) * voted_attesters_ratio)

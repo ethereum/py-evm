@@ -93,7 +93,7 @@ def _filter_attestations_by_latest_crosslinks_and_shard(
         latest_crosslink: CrosslinkRecord,
         shard: Shard) -> Iterable[PendingAttestationRecord]:
     for attestation in attestations:
-        is_latest_crosslink_matched = attestation.data.latest_crosslink == latest_crosslink
+        is_latest_crosslink_matched = attestation.data.previous_crosslink == latest_crosslink
         is_shard_matched = attestation.data.shard == shard
         if is_latest_crosslink_matched and is_shard_matched:
             yield attestation
@@ -153,7 +153,7 @@ def get_epoch_boundary_attester_indices(
         root: Hash32,
         committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     for a in attestations:
-        if a.data.justified_epoch == epoch and a.data.epoch_boundary_root == root:
+        if a.data.source_epoch == epoch and a.data.target_root == root:
             yield from get_attestation_participants(
                 state,
                 a.data,

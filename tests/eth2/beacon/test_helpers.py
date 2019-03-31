@@ -385,14 +385,14 @@ def test_is_double_vote(sample_attestation_data_params, slots_per_epoch):
     (
         'slots_per_epoch,'
         'attestation_1_slot,'
-        'attestation_1_justified_epoch,'
+        'attestation_1_source_epoch,'
         'attestation_2_slot,'
-        'attestation_2_justified_epoch,'
+        'attestation_2_source_epoch,'
         'expected'
     ),
     [
         (1, 0, 0, 0, 0, False),
-        # not (attestation_1_justified_epoch < attestation_2_justified_epoch
+        # not (attestation_1_source_epoch < attestation_2_source_epoch
         (1, 4, 3, 3, 2, False),
         # not (slot_to_epoch(attestation_2_slot) < slot_to_epoch(attestation_1_slot))
         (1, 4, 0, 4, 3, False),
@@ -402,21 +402,21 @@ def test_is_double_vote(sample_attestation_data_params, slots_per_epoch):
 def test_is_surround_vote(sample_attestation_data_params,
                           slots_per_epoch,
                           attestation_1_slot,
-                          attestation_1_justified_epoch,
+                          attestation_1_source_epoch,
                           attestation_2_slot,
-                          attestation_2_justified_epoch,
+                          attestation_2_source_epoch,
                           expected):
     attestation_data_1_params = {
         **sample_attestation_data_params,
         'slot': attestation_1_slot,
-        'justified_epoch': attestation_1_justified_epoch,
+        'source_epoch': attestation_1_source_epoch,
     }
     attestation_data_1 = AttestationData(**attestation_data_1_params)
 
     attestation_data_2_params = {
         **sample_attestation_data_params,
         'slot': attestation_2_slot,
-        'justified_epoch': attestation_2_justified_epoch,
+        'source_epoch': attestation_2_source_epoch,
     }
     attestation_data_2 = AttestationData(**attestation_data_2_params)
 

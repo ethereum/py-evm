@@ -490,7 +490,7 @@ def test_process_crosslinks(
                             slot=slot_in_previous_epoch,
                             shard=shard,
                             crosslink_data_root=previous_epoch_crosslink_data_root,
-                            latest_crosslink=CrosslinkRecord(
+                            previous_crosslink=CrosslinkRecord(
                                 epoch=config.GENESIS_EPOCH,
                                 crosslink_data_root=ZERO_HASH32,
                             ),
@@ -529,7 +529,7 @@ def test_process_crosslinks(
                             slot=slot_in_current_epoch,
                             shard=shard,
                             crosslink_data_root=current_epoch_crosslink_data_root,
-                            latest_crosslink=CrosslinkRecord(
+                            previous_crosslink=CrosslinkRecord(
                                 epoch=config.GENESIS_EPOCH,
                                 crosslink_data_root=ZERO_HASH32,
                             ),
@@ -762,7 +762,7 @@ def test_process_rewards_and_penalties_for_finality(
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=(prev_epoch_start_slot + i),
                     shard=shard,
-                    epoch_boundary_root=get_block_root(
+                    target_root=get_block_root(
                         state,
                         prev_epoch_start_slot,
                         config.SLOTS_PER_HISTORICAL_ROOT,
@@ -880,7 +880,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=data_slot,
                     shard=shard,
-                    latest_crosslink=CrosslinkRecord(
+                    previous_crosslink=CrosslinkRecord(
                         epoch=config.GENESIS_EPOCH,
                         crosslink_data_root=ZERO_HASH32,
                     ),

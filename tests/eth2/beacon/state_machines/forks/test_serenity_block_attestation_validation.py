@@ -17,9 +17,9 @@ from eth2.beacon.committee_helpers import (
 )
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation_aggregate_signature,
-    validate_attestation_latest_crosslink_root,
-    validate_attestation_justified_block_root,
-    validate_attestation_justified_epoch,
+    validate_attestation_previous_crosslink_or_root,
+    validate_attestation_source_root,
+    validate_attestation_source_epoch,
     validate_attestation_crosslink_data_root,
     validate_attestation_slot,
 )
@@ -89,7 +89,7 @@ def test_validate_attestation_slot(sample_attestation_data_params,
 @pytest.mark.parametrize(
     (
         'attestation_slot,'
-        'attestation_justified_epoch,'
+        'attestation_source_epoch,'
         'current_epoch,'
         'previous_justified_epoch,'
         'justified_epoch,'
@@ -98,17 +98,19 @@ def test_validate_attestation_slot(sample_attestation_data_params,
     ),
     [
         # slot_to_epoch(attestation_data.slot + 1, slots_per_epoch) >= current_epoch
-        (23, 2, 3, 1, 2, 8, True),  # attestation_data.justified_epoch == justified_epoch
-        (23, 1, 3, 1, 2, 8, False),  # attestation_data.justified_epoch != justified_epoch
+        (23, 2, 3, 1, 2, 8, True),  # attestation_data.source_epoch == state.justified_epoch
+        (23, 1, 3, 1, 2, 8, False),  # attestation_data.source_epoch != state.justified_epoch
         # slot_to_epoch(attestation_data.slot + 1, slots_per_epoch) < current_epoch
-        (22, 1, 3, 1, 2, 8, True),  # attestation_data.justified_epoch == previous_justified_epoch
-        (22, 2, 3, 1, 2, 8, False),  # attestation_data.justified_epoch != previous_justified_epoch
+        # attestation_data.source_epoch == state.previous_justified_epoch
+        (22, 1, 3, 1, 2, 8, True),
+        # attestation_data.source_epoch != state.previous_justified_epoch
+        (22, 2, 3, 1, 2, 8, False),
     ]
 )
-def test_validate_attestation_justified_epoch(
+def test_validate_attestation_source_epoch(
         sample_attestation_data_params,
         attestation_slot,
-        attestation_justified_epoch,
+        attestation_source_epoch,
         current_epoch,
         previous_justified_epoch,
         justified_epoch,
@@ -116,11 +118,11 @@ def test_validate_attestation_justified_epoch(
         is_valid):
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
         slot=attestation_slot,
-        justified_epoch=attestation_justified_epoch,
+        source_epoch=attestation_source_epoch,
     )
 
     if is_valid:
-        validate_attestation_justified_epoch(
+        validate_attestation_source_epoch(
             attestation_data,
             current_epoch,
             previous_justified_epoch,
@@ -129,7 +131,7 @@ def test_validate_attestation_justified_epoch(
         )
     else:
         with pytest.raises(ValidationError):
-            validate_attestation_justified_epoch(
+            validate_attestation_source_epoch(
                 attestation_data,
                 current_epoch,
                 previous_justified_epoch,
@@ -140,39 +142,39 @@ def test_validate_attestation_justified_epoch(
 
 @pytest.mark.parametrize(
     (
-        'attestation_justified_block_root,'
-        'justified_block_root,'
+        'attestation_source_root,'
+        'source_root,'
         'is_valid,'
     ),
     [
-        (b'\x33' * 32, b'\x22' * 32, False),  # attestation.justified_block_root != justified_block_root # noqa: E501
+        (b'\x33' * 32, b'\x22' * 32, False),  # attestation.source_root != source_root # noqa: E501
         (b'\x33' * 32, b'\x33' * 32, True),
     ]
 )
-def test_validate_attestation_justified_block_root(sample_attestation_data_params,
-                                                   attestation_justified_block_root,
-                                                   justified_block_root,
-                                                   is_valid):
+def test_validate_attestation_source_root(sample_attestation_data_params,
+                                          attestation_source_root,
+                                          source_root,
+                                          is_valid):
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
-        justified_block_root=attestation_justified_block_root,
+        source_root=attestation_source_root,
     )
 
     if is_valid:
-        validate_attestation_justified_block_root(
+        validate_attestation_source_root(
             attestation_data,
-            justified_block_root
+            source_root
         )
     else:
         with pytest.raises(ValidationError):
-            validate_attestation_justified_block_root(
+            validate_attestation_source_root(
                 attestation_data,
-                justified_block_root
+                source_root
             )
 
 
 @pytest.mark.parametrize(
     (
-        'attestation_latest_crosslink,'
+        'attestation_previous_crosslink,'
         'attestation_crosslink_data_root,'
         'state_latest_crosslink,'
         'is_valid,'
@@ -211,27 +213,27 @@ def test_validate_attestation_justified_block_root(sample_attestation_data_param
     ]
 )
 def test_validate_attestation_latest_crosslink(sample_attestation_data_params,
-                                               attestation_latest_crosslink,
+                                               attestation_previous_crosslink,
                                                attestation_crosslink_data_root,
                                                state_latest_crosslink,
                                                slots_per_epoch,
                                                is_valid):
-    sample_attestation_data_params['latest_crosslink'] = attestation_latest_crosslink
+    sample_attestation_data_params['previous_crosslink'] = attestation_previous_crosslink
     sample_attestation_data_params['crosslink_data_root'] = attestation_crosslink_data_root
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
-        latest_crosslink=attestation_latest_crosslink,
+        previous_crosslink=attestation_previous_crosslink,
         crosslink_data_root=attestation_crosslink_data_root,
     )
 
     if is_valid:
-        validate_attestation_latest_crosslink_root(
+        validate_attestation_previous_crosslink_or_root(
             attestation_data,
             state_latest_crosslink,
             slots_per_epoch=slots_per_epoch,
         )
     else:
         with pytest.raises(ValidationError):
-            validate_attestation_latest_crosslink_root(
+            validate_attestation_previous_crosslink_or_root(
                 attestation_data,
                 state_latest_crosslink,
                 slots_per_epoch=slots_per_epoch,
