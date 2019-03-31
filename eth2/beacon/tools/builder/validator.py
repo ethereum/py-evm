@@ -276,7 +276,7 @@ def create_mock_slashable_attestation(state: BeaconState,
     )
     latest_crosslink = state.latest_crosslinks[shard]
 
-    attestation_data = attestation_data = AttestationData(
+    attestation_data = AttestationData(
         slot=attestation_slot,
         shard=shard,
         beacon_block_root=beacon_block_root,
