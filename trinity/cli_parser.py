@@ -11,6 +11,7 @@ from eth_utils import ValidationError
 from eth.tools.logging import DEBUG2_LEVEL_NUM
 
 from p2p.kademlia import Node
+from p2p.validation import validate_enode_uri
 
 from trinity import __version__
 from trinity.constants import (
@@ -18,7 +19,6 @@ from trinity.constants import (
     ROPSTEN_NETWORK_ID,
 )
 from trinity._utils.eip1085 import validate_raw_eip1085_genesis_config
-from trinity._utils.validation import validate_enode_uri
 
 
 class ValidateAndStoreEnodes(argparse.Action):
