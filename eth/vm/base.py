@@ -16,22 +16,19 @@ from typing import (
 )
 from typing import Set  # noqa: F401
 
-import rlp
-
 from eth_bloom import (
     BloomFilter,
 )
-
+from eth_hash.auto import keccak
 from eth_typing import (
     Address,
     Hash32,
 )
-
 from eth_utils import (
     ValidationError,
 )
+import rlp
 
-from eth_hash.auto import keccak
 from eth.consensus.pow import (
     check_pow,
 )
@@ -39,6 +36,9 @@ from eth.constants import (
     GENESIS_PARENT_HASH,
     MAX_PREV_HEADER_DEPTH,
     MAX_UNCLES,
+)
+from eth.db.backends.base import (
+    BaseAtomicDB,
 )
 from eth.db.trie import make_trie_root_and_nodes
 from eth.db.chain import BaseChainDB  # noqa: F401
@@ -376,12 +376,24 @@ class VM(BaseVM):
     @property
     def state(self) -> BaseState:
         if self._state is None:
-            self._state = self.get_state_class()(
-                db=self.chaindb.db,
-                execution_context=self.block.header.create_execution_context(self.previous_hashes),
-                state_root=self.block.header.state_root,
-            )
+            self._state = self.build_state(self.chaindb.db, self.block.header, self.previous_hashes)
         return self._state
+
+    @classmethod
+    def build_state(
+            cls,
+            db: BaseAtomicDB,
+            header: BlockHeader,
+            previous_hashes: Iterable[Hash32] = ()) -> BaseState:
+        """
+        You probably want `VM().state` instead of this.
+
+        Occasionally, you want to build custom state against a particular header and DB,
+        even if you don't have the VM initialized. This is a convenience method to do that.
+        """
+
+        execution_context = header.create_execution_context(previous_hashes)
+        return cls.get_state_class()(db, execution_context, header.state_root)
 
     #
     # Logging
@@ -529,11 +541,7 @@ class VM(BaseVM):
             uncles=block.uncles,
         )
         # we need to re-initialize the `state` to update the execution context.
-        self._state = self.get_state_class()(
-            db=self.chaindb.db,
-            execution_context=self.block.header.create_execution_context(self.previous_hashes),
-            state_root=self.block.header.state_root,
-        )
+        self._state = self.build_state(self.chaindb.db, self.block.header, self.previous_hashes)
 
         # run all of the transactions.
         new_header, receipts, _ = self.apply_all_transactions(block.transactions, self.block.header)
@@ -917,11 +925,7 @@ class VM(BaseVM):
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
         prev_hashes = itertools.chain((header.hash, ), self.previous_hashes)
 
-        state = self.get_state_class()(
-            db=self.chaindb.db,
-            execution_context=temp_block.header.create_execution_context(prev_hashes),
-            state_root=temp_block.header.state_root,
-        )
+        state = self.build_state(self.chaindb.db, temp_block.header, prev_hashes)
 
         snapshot = state.snapshot()
         yield state
