@@ -245,6 +245,13 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-wheel-cli
+  py36-plugins:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-plugins
+
 
   py37-core:
     <<: *common
@@ -282,6 +289,13 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-wheel-cli
+  py37-plugins:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-plugins
+
 
   docker-image-build-test:
     machine: true
@@ -301,6 +315,7 @@ workflows:
       - py37-p2p
       - py37-eth2
       - py37-libp2p
+      - py37-plugins
 
       - py36-rpc-state-byzantium
       - py36-rpc-state-constantinople
@@ -316,6 +331,7 @@ workflows:
       - py36-p2p
       - py36-eth2
       - py36-libp2p
+      - py36-plugins
 
       - py36-integration
       - py36-lightchain_integration
