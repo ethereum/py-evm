@@ -1,4 +1,9 @@
 import pytest
+
+from hypothesis import (
+    given,
+    strategies as st,
+)
 from eth.db.backends.memory import MemoryDB
 from eth.db.journal import JournalDB
 
@@ -198,16 +203,42 @@ def test_returns_key_from_underlying_db_if_missing(journal_db, memory_db):
     assert journal_db.get(b'1') == b'test-a'
 
 
-def test_journal_db_diff_application_mimics_persist(journal_db, memory_db):
-    journal_db.record()
-    journal_db.set(b'1', b'val1')
-    journal_db.set(b'2', b'val2')
-    journal_db.set(b'3', b'val3')
+# keys: a-e, values: A-E
+FIXTURE_KEYS = st.one_of([st.just(bytes([byte])) for byte in range(ord('a'), ord('f'))])
+FIXTURE_VALUES = st.one_of([st.just(bytes([byte])) for byte in range(ord('A'), ord('F'))])
+DO_RECORD = object()
 
-    journal_db.record()
-    journal_db.set(b'1', b'val1.1')
-    del journal_db[b'2']
 
+@given(
+    st.lists(
+        st.one_of(
+            FIXTURE_KEYS,  # deletions
+            st.tuples(  # updates
+                FIXTURE_KEYS,
+                FIXTURE_VALUES,
+            ),
+            st.just(DO_RECORD),
+        ),
+        max_size=10,
+    ),
+)
+def test_journal_db_diff_application_mimics_persist(journal_db, memory_db, actions):
+    memory_db.kv_store.clear()  # hypothesis isn't resetting the other test-scoped fixtures
+    for action in actions:
+        if action is DO_RECORD:
+            journal_db.record()
+        elif len(action) == 1:
+            try:
+                del journal_db[action]
+            except KeyError:
+                pass
+        elif len(action) == 2:
+            key, val = action
+            journal_db.set(key, val)
+        else:
+            raise Exception("Incorrectly formatted fixture input: %r" % action)
+
+    assert MemoryDB({}) == memory_db
     diff = journal_db.diff()
     journal_db.persist()
 
@@ -215,4 +246,3 @@ def test_journal_db_diff_application_mimics_persist(journal_db, memory_db):
     diff.apply_to(diff_test_db)
 
     assert memory_db == diff_test_db
-    assert len(memory_db) == len(diff_test_db)
