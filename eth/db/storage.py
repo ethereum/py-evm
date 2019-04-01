@@ -203,6 +203,7 @@ class AccountStorageDB:
         try:
             encoded_value = lookup_db[key]
         except MissingStorageTrieNode:
+            self.logger.debug("Account 0x%s missing node for slot %d", address.hex(), slot)
             raise
         except KeyError:
             return 0
