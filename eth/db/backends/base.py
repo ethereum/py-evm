@@ -8,7 +8,8 @@ from collections.abc import (
 
 from typing import (
     Any,
-    TYPE_CHECKING
+    Iterator,
+    TYPE_CHECKING,
 )
 
 if TYPE_CHECKING:
@@ -58,7 +59,7 @@ class BaseDB(MM, ABC):
         except KeyError:
             return None
 
-    def __iter__(self) -> None:
+    def __iter__(self) -> Iterator[bytes]:
         raise NotImplementedError("By default, DB classes cannot be iterated.")
 
     def __len__(self) -> int:

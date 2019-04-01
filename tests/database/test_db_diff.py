@@ -76,6 +76,18 @@ def test_database_api_missing_key_for_deletion(db):
         assert False, "key should be missing, but was retrieved as {}".format(val)
 
 
+def test_db_diff_equality(db):
+    db[b'key-1'] = b'value-1'
+    del db[b'key-2']
+
+    diff1 = db.diff()
+    diff2 = db.diff()
+    assert diff1 == diff2
+
+    db[b'key-3'] = b'value-3'
+    assert diff1 != db.diff()
+
+
 def test_database_api_deleted_key_for_deletion(db):
     # create an item, then delete it
     db[b'used-to-exist'] = b'old-value'

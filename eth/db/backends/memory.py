@@ -1,5 +1,6 @@
 from typing import (
-    Dict
+    Dict,
+    Iterator,
 )
 
 from .base import (
@@ -27,3 +28,12 @@ class MemoryDB(BaseDB):
 
     def __delitem__(self, key: bytes) -> None:
         del self.kv_store[key]
+
+    def __iter__(self) -> Iterator[bytes]:
+        return iter(self.kv_store)
+
+    def __len__(self) -> int:
+        return len(self.kv_store)
+
+    def __repr__(self) -> str:
+        return "MemoryDB(%r)" % self.kv_store

@@ -9,6 +9,10 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from eth_utils import (
+    encode_hex,
+)
+
 from eth.db.backends.base import BaseDB
 
 if TYPE_CHECKING:
@@ -126,6 +130,25 @@ class DBDiff(ABC_Mapping):
         raise NotImplementedError(
             "Cannot iterate through changes, use apply_to(db) to update a database"
         )
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, DBDiff):
+            return False
+        else:
+            return self._changes == other._changes
+
+    def __repr__(self) -> str:
+        deleted = [
+            'key=%s' % encode_hex(key)
+            for key, val in self._changes.items()
+            if val is DELETED
+        ]
+        updated = [
+            "key=%s to val=%s" % (encode_hex(key), encode_hex(val))
+            for key, val in self._changes.items()
+            if val is not DELETED
+        ]
+        return "<DBDiff: deletions=%r, updates=%r>" % (deleted, updated)
 
     def __len__(self) -> int:
         return len(self._changes)

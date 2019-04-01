@@ -1,5 +1,5 @@
 import collections
-from typing import cast, Dict, Union  # noqa: F401
+from typing import cast, Dict, Set, Union  # noqa: F401
 import uuid
 
 from eth_utils.toolz import (
@@ -12,6 +12,7 @@ from eth_utils import (
 )
 
 from eth.db.backends.base import BaseDB
+from eth.db.diff import DBDiff, DBDiffTracker
 
 
 class DeletedEntry:
@@ -262,3 +263,27 @@ class JournalDB(BaseDB):
         """
         self.journal = Journal()
         self.record()
+
+    def diff(self) -> DBDiff:
+        """
+        Generate a DBDiff of all pending changes.
+        These are the changes that would occur if :meth:`persist()` were called.
+        """
+        tracker = DBDiffTracker()
+        visited_keys = set()  # type: Set[bytes]
+
+        # Iterate in reverse, so you can skip over any keys from old checkpoints.
+        # This is purely for performance, not correctness.
+        for changeset in reversed(self.journal.journal_data.values()):
+            for key, value in changeset.items():
+                if key in visited_keys:
+                    # this old change has already been tracked
+                    continue
+                elif value is DELETED_ENTRY:
+                    del tracker[key]
+                else:
+                    tracker[key] = value  # type: ignore # This is always bytes, but mypy can't tell
+
+                visited_keys.add(key)
+
+        return tracker.diff()

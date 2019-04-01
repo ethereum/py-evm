@@ -1,4 +1,9 @@
 import pytest
+
+from hypothesis import (
+    given,
+    strategies as st,
+)
 from eth.db.backends.memory import MemoryDB
 from eth.db.journal import JournalDB
 
@@ -128,8 +133,10 @@ def test_commit_merges_changeset_into_previous(journal_db):
     journal_db.set(b'1', b'test-a')
     assert journal_db.get(b'1') == b'test-a'
 
+    before_diff = journal_db.diff()
     journal_db.commit(changeset)
 
+    assert journal_db.diff() == before_diff
     assert len(journal_db.journal.journal_data) == 1
     assert journal_db.journal.has_changeset(changeset) is False
 
@@ -194,3 +201,48 @@ def test_returns_key_from_underlying_db_if_missing(journal_db, memory_db):
     assert memory_db.exists(b'1')
 
     assert journal_db.get(b'1') == b'test-a'
+
+
+# keys: a-e, values: A-E
+FIXTURE_KEYS = st.one_of([st.just(bytes([byte])) for byte in range(ord('a'), ord('f'))])
+FIXTURE_VALUES = st.one_of([st.just(bytes([byte])) for byte in range(ord('A'), ord('F'))])
+DO_RECORD = object()
+
+
+@given(
+    st.lists(
+        st.one_of(
+            FIXTURE_KEYS,  # deletions
+            st.tuples(  # updates
+                FIXTURE_KEYS,
+                FIXTURE_VALUES,
+            ),
+            st.just(DO_RECORD),
+        ),
+        max_size=10,
+    ),
+)
+def test_journal_db_diff_application_mimics_persist(journal_db, memory_db, actions):
+    memory_db.kv_store.clear()  # hypothesis isn't resetting the other test-scoped fixtures
+    for action in actions:
+        if action is DO_RECORD:
+            journal_db.record()
+        elif len(action) == 1:
+            try:
+                del journal_db[action]
+            except KeyError:
+                pass
+        elif len(action) == 2:
+            key, val = action
+            journal_db.set(key, val)
+        else:
+            raise Exception("Incorrectly formatted fixture input: %r" % action)
+
+    assert MemoryDB({}) == memory_db
+    diff = journal_db.diff()
+    journal_db.persist()
+
+    diff_test_db = MemoryDB()
+    diff.apply_to(diff_test_db)
+
+    assert memory_db == diff_test_db
