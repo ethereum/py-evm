@@ -4,7 +4,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from trinity._utils.validation import (
+from p2p.validation import (
     validate_enode_uri
 )
 

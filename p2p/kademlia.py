@@ -30,7 +30,7 @@ from eth_keys import (
 
 from eth_hash.auto import keccak
 
-from trinity._utils.validation import validate_enode_uri
+from p2p.validation import validate_enode_uri
 
 k_b = 8  # 8 bits per hop
 
