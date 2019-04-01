@@ -196,6 +196,6 @@ class FrontierState(BaseState):
     def validate_transaction(self, transaction: BaseOrSpoofTransaction) -> None:
         validate_frontier_transaction(self.account_db, transaction)
 
-    def execute_transaction(self, transaction: BaseOrSpoofTransaction) -> BaseTransactionExecutor:
+    def execute_transaction(self, transaction: BaseOrSpoofTransaction) -> BaseComputation:
         executor = self.get_transaction_executor()
         return executor(transaction)

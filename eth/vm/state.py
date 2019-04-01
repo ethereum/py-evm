@@ -244,18 +244,19 @@ class BaseState(Configurable, ABC):
     #
     # Execution
     #
-    def apply_transaction(self, transaction: 'BaseTransaction') -> Tuple[bytes, 'BaseComputation']:
+    def apply_transaction(
+            self,
+            transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
         """
         Apply transaction to the vm state
 
         :param transaction: the transaction to apply
-        :return: the new state root, and the computation
+        :return: the computation
         """
         if self.state_root != BLANK_ROOT_HASH and not self.account_db.has_root(self.state_root):
             raise StateRootNotFound(self.state_root)
-        computation = self.execute_transaction(transaction)
-        state_root = self.account_db.make_state_root()
-        return state_root, computation
+        else:
+            return self.execute_transaction(transaction)
 
     def get_transaction_executor(self) -> 'BaseTransactionExecutor':
         return self.transaction_executor(self)
