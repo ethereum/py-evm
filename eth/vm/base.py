@@ -540,7 +540,7 @@ class VM(BaseVM):
         previous_header = base_header
         result_header = base_header
 
-        for transaction in transactions:
+        for idx, transaction in enumerate(transactions):
             try:
                 snapshot = self.state.snapshot()
                 receipt, computation = self.apply_transaction(
@@ -548,6 +548,7 @@ class VM(BaseVM):
                     transaction,
                 )
             except EVMMissingData as exc:
+                exc.set_failing_transaction_index(idx, len(transactions))
                 self.state.revert(snapshot)
 
             result_header = self.add_receipt_to_header(previous_header, receipt)
