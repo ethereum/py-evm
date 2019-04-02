@@ -339,7 +339,7 @@ class AccountDB(BaseAccountDB):
         return account.storage_root
 
     def _set_storage_root(self, address: Address, new_storage_root: Hash32) -> None:
-        self.logger.debug2("setting storage root of 0x%s to 0x%s", address.hex(), new_storage_root.hex())
+        self.logger.debug("setting storage root of 0x%s to 0x%s", address.hex(), new_storage_root.hex())
         account = self._get_account(address)
         self._set_account(address, account.copy(storage_root=new_storage_root))
 
