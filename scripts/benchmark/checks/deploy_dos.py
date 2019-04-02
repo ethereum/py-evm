@@ -56,7 +56,7 @@ W3_TX_DEFAULTS = {'gas': 0, 'gasPrice': 0}
 
 class BaseDOSContractBenchmark(BaseBenchmark):
 
-    def __init__(self, num_blocks: int = 20, num_tx: int = 10) -> None:
+    def __init__(self, num_blocks: int = 3, num_tx: int = 3) -> None:
         super().__init__()
 
         self.num_blocks = num_blocks
