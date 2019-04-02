@@ -138,7 +138,7 @@ def test_database_api_deleted_key_for_deletion(db):
         ),
     ),
 )
-def join_diffs(db, series_of_diffs, expected):
+def test_join_diffs(db, series_of_diffs, expected):
     diffs = []
     for changes in series_of_diffs:
         tracker = DBDiffTracker()
@@ -151,3 +151,61 @@ def join_diffs(db, series_of_diffs, expected):
 
     DBDiff.join(diffs).apply_to(db)
     assert db == expected
+
+
+@pytest.mark.parametrize(
+    'series_of_diffs, expected_updates, expected_deletions',
+    (
+        (tuple(), {}, []),
+        (({}, {}), {}, []),
+        (
+            (
+                {b'1': b'1'},
+                {b'1': None},
+            ),
+            {},
+            [b'1'],
+        ),
+        (
+            (
+                {b'1': b'1'},
+                {b'1': b'2'},
+            ),
+            {b'1': b'2'},
+            [],
+        ),
+        (
+            (
+                {b'1': None},
+            ),
+            {},
+            [b'1'],
+        ),
+        (
+            (
+                {b'2': b'3'},
+            ),
+            {b'2': b'3'},
+            [],
+        ),
+    ),
+)
+def test_db_diff_inspection(series_of_diffs, expected_updates, expected_deletions):
+    diffs = []
+    for changes in series_of_diffs:
+        tracker = DBDiffTracker()
+        for key, val in changes.items():
+            if val is None:
+                del tracker[key]
+            else:
+                tracker[key] = val
+        diffs.append(tracker.diff())
+
+    actual_diff = DBDiff.join(diffs)
+    if expected_updates:
+        expected_keys, _ = zip(*expected_updates.items())
+    else:
+        expected_keys = tuple()
+    assert actual_diff.pending_keys() == expected_keys
+    assert actual_diff.pending_items() == tuple(expected_updates.items())
+    assert actual_diff.deleted_keys() == tuple(expected_deletions)

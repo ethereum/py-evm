@@ -6,11 +6,13 @@ from typing import (
     Dict,
     Iterable,
     Union,
+    Tuple,
     TYPE_CHECKING,
 )
 
 from eth_utils import (
     encode_hex,
+    to_tuple,
 )
 
 from eth.db.backends.base import BaseDB
@@ -128,7 +130,8 @@ class DBDiff(ABC_Mapping):
 
     def __iter__(self) -> None:
         raise NotImplementedError(
-            "Cannot iterate through changes, use apply_to(db) to update a database"
+            "Cannot iterate through changes, use apply_to(db) to update a database. "
+            "Also, pending_keys(), deleted_keys(), and pending_items() might be of interest."
         )
 
     def __eq__(self, other: object) -> bool:
@@ -152,6 +155,35 @@ class DBDiff(ABC_Mapping):
 
     def __len__(self) -> int:
         return len(self._changes)
+
+    @to_tuple
+    def deleted_keys(self) -> Iterable[bytes]:
+        """
+        List all the keys that have been deleted.
+        """
+        for key, value in self._changes.items():
+            if value is DELETED:
+                yield key
+
+    @to_tuple
+    def pending_keys(self) -> Iterable[bytes]:
+        """
+        List all the keys who have had values change. This IGNORES
+        any keys that have been deleted.
+        """
+        for key, value in self._changes.items():
+            if value is not DELETED:
+                yield key
+
+    @to_tuple
+    def pending_items(self) -> Iterable[Tuple[bytes, bytes]]:
+        """
+        A tuple of (key, value) pairs for every key that has been updated.
+        Like :meth:`pending_keys()`, this does not return any deleted keys.
+        """
+        for key, value in self._changes.items():
+            if value is not DELETED:
+                yield key, value  # type: ignore # value can only be DELETED or actual new value
 
     def apply_to(self,
                  db: Union[BaseDB, ABC_Mutable_Mapping],
