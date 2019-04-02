@@ -41,7 +41,11 @@ class BatchDB(BaseDB):
         self._track_diff = DBDiffTracker()
 
     def commit(self, apply_deletes: bool = True) -> None:
-        self.diff().apply_to(self.wrapped_db, apply_deletes)
+        self.commit_to(self.wrapped_db, apply_deletes)
+
+    def commit_to(self, target_db: BaseDB, apply_deletes: bool = True) -> None:
+        diff = self.diff()
+        diff.apply_to(target_db, apply_deletes)
         self.clear()
 
     def _exists(self, key: bytes) -> bool:
