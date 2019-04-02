@@ -60,7 +60,7 @@ W3_TX_DEFAULTS = {'gas': 0, 'gasPrice': 0}
 
 class BaseERC20Benchmark(BaseBenchmark):
 
-    def __init__(self, num_blocks: int = 100, num_tx: int = 2) -> None:
+    def __init__(self, num_blocks: int = 10, num_tx: int = 2) -> None:
         super().__init__()
 
         self.num_blocks = num_blocks
