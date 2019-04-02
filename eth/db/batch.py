@@ -11,8 +11,6 @@ from eth.db.diff import (
 )
 from eth.db.backends.base import BaseDB
 
-#TWrappedDB = TypeVar('TWrappedDB', BaseDB)
-
 
 class BatchDB(BaseDB):
     """
