@@ -23,6 +23,7 @@ from eth_typing import (
 )
 from eth_utils import (
     ValidationError,
+    encode_hex,
 )
 import rlp
 
@@ -76,8 +77,9 @@ from eth.vm.interrupt import (
 from eth.vm.message import (
     Message,
 )
-from eth.vm.state import BaseState
 from eth.vm.computation import BaseComputation
+from eth.vm.interrupt import MidBlockState
+from eth.vm.state import BaseState
 
 
 class BaseVM(Configurable, ABC):
@@ -516,7 +518,8 @@ class VM(BaseVM):
     def apply_all_transactions(
             self,
             transactions: Tuple[BaseTransaction, ...],
-            base_header: BlockHeader
+            base_header: BlockHeader,
+            completed_receipts: Tuple[Receipt, ...] = (),
     ) -> Tuple[BlockHeader, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:
         """
         Determine the results of applying all transactions to the base header.
@@ -535,13 +538,13 @@ class VM(BaseVM):
                 )
             )
 
-        receipts = []
+        receipts = list(completed_receipts)
         computations = []
         previous_header = base_header
         result_header = base_header
 
-        for idx, transaction in enumerate(transactions):
-            if transaction is None:
+        for block_idx, transaction in enumerate(transactions):
+            if block_idx < len(completed_receipts):
                 # skip transaction for partial import
                 continue
             try:
@@ -552,10 +555,10 @@ class VM(BaseVM):
                 )
             except EVMMissingData as exc:
                 self.state.revert(snapshot)
-                exc.set_failing_transaction_index(idx, len(transactions))
-                exc.set_vm_state_before_failure(self.state)
-                exc.set_header_before_failure(previous_header)
-                exc.set_previous_receipts(receipts)
+                if len(receipts) != block_idx:
+                    raise ValidationError("wtf receipts %r block_idx %r" % (receipts, block_idx))
+                saved_state = MidBlockState(self.state, previous_header, tuple(receipts))
+                exc.set_mid_block_state(saved_state)
                 raise
             else:
                 self.state.commit(snapshot)
@@ -572,8 +575,16 @@ class VM(BaseVM):
     #
     # Mining
     #
-    def resume_import_block(self, block, partial_state, partial_header, start_txn_idx, previous_receipts):
-        self.logger.debug("Resuming %s import from transaction %s / %s: 0x%s", block, start_txn_idx, len(block.transactions), block.transactions[start_txn_idx].hash.hex())
+    def resume_import_block(self, block, mid_block_state: MidBlockState):
+        current_transaction = block.transactions[mid_block_state.num_completed_transactions]
+        self.logger.debug(
+            "Resuming %s import from transaction %s / %s: %s",
+            block,
+            mid_block_state.num_completed_transactions,
+            len(block.transactions),
+            encode_hex(current_transaction.hash),
+        )
+
         if self.block.number != block.number:
             raise ValidationError(
                 "This VM can only import blocks at number #{}, the attempted block was #{}".format(
@@ -582,20 +593,23 @@ class VM(BaseVM):
                 )
             )
         self.block = self.block.copy(
-            header=partial_header,
+            header=mid_block_state.partial_header,
             uncles=block.uncles,
         )
-        self._state = partial_state
+        self._state = mid_block_state.state
 
         # run the remaining transactions
-        remaining_transactions = (None, ) * start_txn_idx + block.transactions[start_txn_idx:]
-        new_header, receipts, _ = self.apply_all_transactions(remaining_transactions, self.header)
+        new_header, receipts, _ = self.apply_all_transactions(
+            block.transactions,
+            self.header,
+            mid_block_state.completed_receipts,
+        )
 
         self.block = self.set_block_transactions(
             self.block,
             new_header,
             block.transactions,
-            previous_receipts + receipts,
+            receipts,
         )
 
         # TODO catch here as well to resume after applying ALL transactions

@@ -103,6 +103,7 @@ from eth.validation import (
     validate_vm_configuration,
 )
 from eth.vm.computation import BaseComputation
+from eth.vm.interrupt import MidBlockState
 from eth.vm.state import BaseState  # noqa: F401
 
 from eth._warnings import catch_and_ignore_import_warning
@@ -698,7 +699,7 @@ class Chain(BaseChain):
     def import_block(self,
                      block: BaseBlock,
                      perform_validation: bool=True,
-                     resume_from=None
+                     resume_from: MidBlockState=None,
                      ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         """
         Imports a complete block and returns a 3-tuple
@@ -722,15 +723,19 @@ class Chain(BaseChain):
 
         base_header_for_import = self.create_header_from_parent(parent_header)
         vm = self.get_vm(base_header_for_import)
-        '''
-            header = resume_from.header_before_failure
-            vm_class = self.get_vm_class_for_block_number(header.block_number)
-            vm = vm_class(header, self.chaindb, resume_from.vm_state_before_failure)
-        else:
-        '''
         if resume_from:
-            # TODO combine pieces into "paused execution" component
-            imported_block = vm.resume_import_block(block, resume_from.vm_state_before_failure, resume_from.header_before_failure, resume_from.failed_transaction_index, resume_from.previous_receipts)
+            if block.header.parent_hash != resume_from.partial_header.parent_hash:
+                raise ValidationError(
+                    "Cannot resume import of a block %r that was not paused during "
+                    "the same block execution %r. Parent of block is %s, parent of "
+                    "mid execution state is %s" % (
+                        block,
+                        resume_from,
+                        block.header.parent_hash,
+                        resume_from.partial_header.parent_hash
+                    )
+                )
+            imported_block = vm.resume_import_block(block, resume_from)
         else:
             imported_block = vm.import_block(block)
 

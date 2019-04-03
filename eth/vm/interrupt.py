@@ -5,6 +5,12 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
 )
+from typing import (
+    NamedTuple,
+    Tuple,
+    TYPE_CHECKING,
+)
+
 from trie.exceptions import (
     MissingTrieNode,
 )
@@ -12,16 +18,46 @@ from trie.exceptions import (
 from eth.exceptions import (
     PyEVMError,
 )
+from eth.rlp.headers import (
+    BlockHeader,
+)
+from eth.rlp.receipts import Receipt
+
+if TYPE_CHECKING:
+    from eth.vm.state import BaseState
+
+
+class MidBlockState(NamedTuple):
+    """
+    The data needed to resume transaction execution from the middle of a block
+    """
+    state: 'BaseState'
+    partial_header: BlockHeader
+    completed_receipts: Tuple[Receipt, ...]
+
+    # how many transactions have already been completed
+    @property
+    def num_completed_transactions(self) -> int:
+        return len(self.completed_receipts)
 
 
 class EVMMissingData(PyEVMError):
-    pass
+    mid_block_state = None
+
+    def set_mid_block_state(self, mid_block_state: MidBlockState):
+        self.mid_block_state = mid_block_state
+
+    def __str__(self):
+        return "EVMMissingData at transaction index %r" % (
+            self.mid_block_state.num_completed_transactions if self.mid_block_state else None,
+        )
 
 
 class MissingAccountTrieNode(EVMMissingData, MissingTrieNode):
     """
     Raised when a main state trie node is missing from the DB, to get an account RLP
     """
+
     @property
     def state_root_hash(self) -> Hash32:
         return self.root_hash
