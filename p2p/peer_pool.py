@@ -242,12 +242,16 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     async def start_peer(self, peer: BasePeer) -> None:
         self.run_child_service(peer)
         await self.wait(peer.events.started.wait(), timeout=1)
+        if peer.is_operational:
+            self._add_peer(peer, ())
+        else:
+            self.logger.debug("%s was cancelled immediately, not adding to pool", peer)
+
         try:
-            with peer.collect_sub_proto_messages() as buffer:
-                await self.wait(
-                    peer.boot_manager.events.finished.wait(),
-                    timeout=self._peer_boot_timeout
-                )
+            await self.wait(
+                peer.boot_manager.events.finished.wait(),
+                timeout=self._peer_boot_timeout
+            )
         except TimeoutError as err:
             self.logger.debug('Timout waiting for peer to boot: %s', err)
             await peer.disconnect(DisconnectReason.timeout)
@@ -256,10 +260,8 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             await self.connection_tracker.record_failure(peer.remote, err)
             raise
         else:
-            if peer.is_operational:
-                self._add_peer(peer, buffer.get_messages())
-            else:
-                self.logger.debug('%s disconnected during boot-up, not adding to pool', peer)
+            if not peer.is_operational:
+                self.logger.debug('%s disconnected during boot-up, dropped from pool', peer)
 
     def _add_peer(self,
                   peer: BasePeer,

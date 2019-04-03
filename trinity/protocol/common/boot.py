@@ -62,9 +62,11 @@ class DAOCheckBootManager(BasePeerBootManager):
                 ) from err
 
             if len(headers) != 2:
-                raise DAOForkCheckFailure(
-                    f"{self.peer} failed to return DAO fork check headers"
+                self.logger.debug(
+                    f"{self.peer} returned only {headers!r} at DAO fork. "
+                    "Assuming peer is syncing, for now..."
                 )
+                return
             else:
                 parent, header = headers
 
