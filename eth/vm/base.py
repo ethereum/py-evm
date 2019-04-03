@@ -572,6 +572,7 @@ class VM(BaseVM):
     # Mining
     #
     def resume_import_block(self, block, partial_state, partial_header, start_txn_idx):
+        self.logger.debug("Resuming %s import from transaction %s / %s: 0x%s", block, start_txn_idx, len(block.transactions), block.transactions[start_txn_idx].hash.hex())
         if self.block.number != block.number:
             raise ValidationError(
                 "This VM can only import blocks at number #{}, the attempted block was #{}".format(
