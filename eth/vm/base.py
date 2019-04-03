@@ -541,6 +541,9 @@ class VM(BaseVM):
         result_header = base_header
 
         for idx, transaction in enumerate(transactions):
+            if transaction is None:
+                # skip transaction for partial import
+                continue
             try:
                 snapshot = self.state.snapshot()
                 receipt, computation = self.apply_transaction(
@@ -583,7 +586,7 @@ class VM(BaseVM):
         self._state = partial_state
 
         # run the remaining transactions
-        remaining_transactions = block.transactions[start_txn_idx:]
+        remaining_transactions = (None, ) * start_txn_idx + block.transactions[start_txn_idx:]
         new_header, receipts, _ = self.apply_all_transactions(remaining_transactions, self.header)
 
         self.block = self.set_block_transactions(
