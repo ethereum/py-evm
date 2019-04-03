@@ -548,9 +548,13 @@ class VM(BaseVM):
                     transaction,
                 )
             except EVMMissingData as exc:
-                exc.set_failing_transaction_index(idx, len(transactions))
                 self.state.revert(snapshot)
-
+                exc.set_failing_transaction_index(idx, len(transactions))
+                exc.set_vm_state_before_failure(self.state)
+                exc.set_header_before_failure(previous_header)
+                raise
+            else:
+                self.state.commit(snapshot)
             result_header = self.add_receipt_to_header(previous_header, receipt)
             previous_header = result_header
             receipts.append(receipt)
@@ -564,6 +568,34 @@ class VM(BaseVM):
     #
     # Mining
     #
+    def resume_import_block(self, block, partial_state, partial_header, start_txn_idx):
+        if self.block.number != block.number:
+            raise ValidationError(
+                "This VM can only import blocks at number #{}, the attempted block was #{}".format(
+                    self.block.number,
+                    block.number,
+                )
+            )
+        self.block = self.block.copy(
+            header=partial_header,
+            uncles=block.uncles,
+        )
+        self._state = partial_state
+
+        # run the remaining transactions
+        remaining_transactions = block.transactions[start_txn_idx:]
+        new_header, receipts, _ = self.apply_all_transactions(remaining_transactions, self.header)
+
+        self.block = self.set_block_transactions(
+            self.block,
+            new_header,
+            block.transactions,
+            receipts,
+        )
+
+        # TODO catch here as well to resume after applying ALL transactions
+        return self.mine_block()
+
     def import_block(self, block: BaseBlock) -> BaseBlock:
         """
         Import the given block to the chain.

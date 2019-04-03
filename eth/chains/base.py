@@ -697,7 +697,8 @@ class Chain(BaseChain):
 
     def import_block(self,
                      block: BaseBlock,
-                     perform_validation: bool=True
+                     perform_validation: bool=True,
+                     resume_from=None
                      ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         """
         Imports a complete block and returns a 3-tuple
@@ -720,7 +721,18 @@ class Chain(BaseChain):
             )
 
         base_header_for_import = self.create_header_from_parent(parent_header)
-        imported_block = self.get_vm(base_header_for_import).import_block(block)
+        vm = self.get_vm(base_header_for_import)
+        '''
+            header = resume_from.header_before_failure
+            vm_class = self.get_vm_class_for_block_number(header.block_number)
+            vm = vm_class(header, self.chaindb, resume_from.vm_state_before_failure)
+        else:
+        '''
+        if resume_from:
+            # TODO combine pieces into "paused execution" component
+            imported_block = vm.resume_import_block(block, resume_from.vm_state_before_failure, resume_from.header_before_failure, resume_from.failed_transaction_index)
+        else:
+            imported_block = vm.import_block(block)
 
         # Validate the imported block.
         if perform_validation:
