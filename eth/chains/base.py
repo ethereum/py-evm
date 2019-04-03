@@ -730,7 +730,7 @@ class Chain(BaseChain):
         '''
         if resume_from:
             # TODO combine pieces into "paused execution" component
-            imported_block = vm.resume_import_block(block, resume_from.vm_state_before_failure, resume_from.header_before_failure, resume_from.failed_transaction_index)
+            imported_block = vm.resume_import_block(block, resume_from.vm_state_before_failure, resume_from.header_before_failure, resume_from.failed_transaction_index, resume_from.previous_receipts)
         else:
             imported_block = vm.import_block(block)
 

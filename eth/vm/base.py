@@ -555,6 +555,7 @@ class VM(BaseVM):
                 exc.set_failing_transaction_index(idx, len(transactions))
                 exc.set_vm_state_before_failure(self.state)
                 exc.set_header_before_failure(previous_header)
+                exc.set_previous_receipts(receipts)
                 raise
             else:
                 self.state.commit(snapshot)
@@ -571,7 +572,7 @@ class VM(BaseVM):
     #
     # Mining
     #
-    def resume_import_block(self, block, partial_state, partial_header, start_txn_idx):
+    def resume_import_block(self, block, partial_state, partial_header, start_txn_idx, previous_receipts):
         self.logger.debug("Resuming %s import from transaction %s / %s: 0x%s", block, start_txn_idx, len(block.transactions), block.transactions[start_txn_idx].hash.hex())
         if self.block.number != block.number:
             raise ValidationError(
@@ -594,7 +595,7 @@ class VM(BaseVM):
             self.block,
             new_header,
             block.transactions,
-            receipts,
+            previous_receipts + receipts,
         )
 
         # TODO catch here as well to resume after applying ALL transactions
