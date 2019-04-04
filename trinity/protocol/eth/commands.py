@@ -18,20 +18,23 @@ from trinity.rlp.block_body import BlockBody
 from trinity.rlp.sedes import HashOrNumber
 
 
+hash_sedes = sedes.Binary(min_length=32, max_length=32)
+
+
 class Status(Command):
     _cmd_id = 0
     structure = (
         ('protocol_version', sedes.big_endian_int),
         ('network_id', sedes.big_endian_int),
         ('td', sedes.big_endian_int),
-        ('best_hash', sedes.binary),
-        ('genesis_hash', sedes.binary),
+        ('best_hash', hash_sedes),
+        ('genesis_hash', hash_sedes),
     )
 
 
 class NewBlockHashes(Command):
     _cmd_id = 1
-    structure = sedes.CountableList(sedes.List([sedes.binary, sedes.big_endian_int]))
+    structure = sedes.CountableList(sedes.List([hash_sedes, sedes.big_endian_int]))
 
 
 class Transactions(Command):
@@ -79,7 +82,7 @@ class NewBlock(Command):
 
 class GetNodeData(Command):
     _cmd_id = 13
-    structure = sedes.CountableList(sedes.binary)
+    structure = sedes.CountableList(hash_sedes)
 
 
 class NodeData(Command):
@@ -89,7 +92,7 @@ class NodeData(Command):
 
 class GetReceipts(Command):
     _cmd_id = 15
-    structure = sedes.CountableList(sedes.binary)
+    structure = sedes.CountableList(hash_sedes)
 
 
 class Receipts(Command):
