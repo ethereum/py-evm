@@ -140,7 +140,10 @@ class DiscoveryBootstrapService(BaseService):
                 self.cancel_token,
             )
 
-        await discovery_service.run()
+        try:
+            await discovery_service.run()
+        except Exception:
+            self.event_bus.request_shutdown("Discovery ended unexpectedly")
 
 
 class PeerDiscoveryPlugin(BaseIsolatedPlugin):
