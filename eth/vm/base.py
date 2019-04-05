@@ -576,14 +576,23 @@ class VM(BaseVM):
     # Mining
     #
     def resume_import_block(self, block, mid_block_state: MidBlockState):
-        current_transaction = block.transactions[mid_block_state.num_completed_transactions]
-        self.logger.debug(
-            "Resuming %s import from transaction %s / %s: %s",
-            block,
-            mid_block_state.num_completed_transactions,
-            len(block.transactions),
-            encode_hex(current_transaction.hash),
-        )
+        num_completed = mid_block_state.num_completed_transactions
+        if num_completed < len(block.transactions):
+            current_transaction = block.transactions[num_completed]
+            self.logger.debug(
+                "Resuming %s import from transaction %s / %s: %s gas limit:%d",
+                block,
+                mid_block_state.num_completed_transactions,
+                len(block.transactions),
+                encode_hex(current_transaction.hash),
+                current_transaction.gas,
+            )
+        else:
+            self.logger.debug(
+                "Resuming %s import after all %s transactions completed",
+                block,
+                len(block.transactions),
+            )
 
         if self.block.number != block.number:
             raise ValidationError(
@@ -612,8 +621,7 @@ class VM(BaseVM):
             receipts,
         )
 
-        # TODO catch here as well to resume after applying ALL transactions
-        return self.mine_block()
+        return self.mine_block(receipts=receipts)
 
     def import_block(self, block: BaseBlock) -> BaseBlock:
         """
@@ -652,15 +660,21 @@ class VM(BaseVM):
             receipts,
         )
 
-        return self.mine_block()
+        return self.mine_block(receipts=receipts)
 
     def mine_block(self, *args: Any, **kwargs: Any) -> BaseBlock:
         """
         Mine the current block. Proxies to self.pack_block method.
         """
+        receipts = kwargs.pop('receipts', ())
         packed_block = self.pack_block(self.block, *args, **kwargs)
 
-        final_block = self.finalize_block(packed_block)
+        try:
+            final_block = self.finalize_block(packed_block)
+        except EVMMissingData as exc:
+            saved_state = MidBlockState(self.state, packed_block.header, receipts)
+            exc.set_mid_block_state(saved_state)
+            raise
 
         # Perform validation
         self.validate_block(final_block)
