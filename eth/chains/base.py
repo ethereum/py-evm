@@ -699,6 +699,7 @@ class Chain(BaseChain):
     def import_block(self,
                      block: BaseBlock,
                      perform_validation: bool=True,
+                     validate_uncles=True,
                      resume_from: MidBlockState=None,
                      ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         """
@@ -742,7 +743,7 @@ class Chain(BaseChain):
         # Validate the imported block.
         if perform_validation:
             validate_imported_block_unchanged(imported_block, block)
-            self.validate_block(imported_block)
+            self.validate_block(imported_block, validate_uncles=validate_uncles)
 
         (
             new_canonical_hashes,
@@ -775,7 +776,7 @@ class Chain(BaseChain):
         VM_class = self.get_vm_class(at_header)
         VM_class.validate_receipt(receipt)
 
-    def validate_block(self, block: BaseBlock) -> None:
+    def validate_block(self, block: BaseBlock, validate_uncles=True) -> None:
         """
         Performs validation on a block that is either being mined or imported.
 
@@ -790,7 +791,8 @@ class Chain(BaseChain):
         VM_class = self.get_vm_class_for_block_number(BlockNumber(block.number))
         parent_header = self.get_block_header_by_hash(block.header.parent_hash)
         VM_class.validate_header(block.header, parent_header, check_seal=True)
-        self.validate_uncles(block)
+        if validate_uncles:
+            self.validate_uncles(block)
         self.validate_gaslimit(block.header)
 
     def validate_seal(self, header: BlockHeader) -> None:
