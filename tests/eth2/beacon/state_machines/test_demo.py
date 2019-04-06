@@ -94,6 +94,10 @@ def test_demo(base_db,
         attestations = create_mock_signed_attestations_at_slot(
             state=state,
             config=config,
+            state_machine=fixture_sm_class(
+                chaindb,
+                block,
+            ),
             attestation_slot=attestation_slot,
             beacon_block_root=block.root,
             keymap=keymap,
@@ -105,5 +109,5 @@ def test_demo(base_db,
     assert isinstance(sm.block, SerenityBeaconBlock)
 
     # Justification assertions
-    assert state.justified_epoch == 2 + genesis_epoch
+    assert state.current_justified_epoch == 2 + genesis_epoch
     assert state.finalized_epoch == 1 + genesis_epoch

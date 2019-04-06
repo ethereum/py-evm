@@ -122,7 +122,7 @@ def test_get_genesis_beacon_state(
     assert len(state.previous_epoch_attestations) == 0
     assert len(state.current_epoch_attestations) == 0
     assert state.previous_justified_epoch == genesis_epoch
-    assert state.justified_epoch == genesis_epoch
+    assert state.current_justified_epoch == genesis_epoch
     assert state.justification_bitfield == 0
     assert state.finalized_epoch == genesis_epoch
 

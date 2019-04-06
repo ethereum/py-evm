@@ -257,7 +257,7 @@ def test_current_previous_epochs_justifiable(
 @pytest.mark.parametrize(
     "justification_bitfield,"
     "previous_justified_epoch,"
-    "justified_epoch,"
+    "current_justified_epoch,"
     "expected,",
     (
         # Rule 1
@@ -274,13 +274,13 @@ def test_current_previous_epochs_justifiable(
 )
 def test_get_finalized_epoch(justification_bitfield,
                              previous_justified_epoch,
-                             justified_epoch,
+                             current_justified_epoch,
                              expected):
     previous_epoch = 5
     finalized_epoch = 1
     assert _get_finalized_epoch(justification_bitfield,
                                 previous_justified_epoch,
-                                justified_epoch,
+                                current_justified_epoch,
                                 finalized_epoch,
                                 previous_epoch,) == expected
 
@@ -307,7 +307,8 @@ def test_justification_without_mock(sample_beacon_state_params,
 )
 @pytest.mark.parametrize(
     # Each state contains epoch, current_epoch_justifiable, previous_epoch_justifiable,
-    # previous_justified_epoch, justified_epoch, justification_bitfield, and finalized_epoch.
+    # previous_justified_epoch, current_justified_epoch,
+    # justification_bitfield, and finalized_epoch.
     # Specify the last epoch processed state at the end of the items.
     "states,",
     (
@@ -338,7 +339,7 @@ def test_justification_without_mock(sample_beacon_state_params,
 )
 def test_process_justification(monkeypatch,
                                config,
-                               sample_beacon_state_params,
+                               genesis_state,
                                states,
                                genesis_epoch=0):
     from eth2.beacon.state_machines.forks.serenity import epoch_processing
@@ -372,10 +373,10 @@ def test_process_justification(monkeypatch,
                 mock_current_previous_epochs_justifiable,
             )
 
-            state = BeaconState(**sample_beacon_state_params).copy(
+            state = genesis_state.copy(
                 slot=slot,
                 previous_justified_epoch=previous_justified_epoch_before,
-                justified_epoch=justified_epoch_before,
+                current_justified_epoch=justified_epoch_before,
                 justification_bitfield=justification_bitfield_before,
                 finalized_epoch=finalized_epoch_before,
             )
@@ -383,7 +384,7 @@ def test_process_justification(monkeypatch,
             state = process_justification(state, config)
 
             assert state.previous_justified_epoch == previous_justified_epoch_after
-            assert state.justified_epoch == justified_epoch_after
+            assert state.current_justified_epoch == justified_epoch_after
             assert state.justification_bitfield == justification_bitfield_after
             assert state.finalized_epoch == finalized_epoch_after
 

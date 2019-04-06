@@ -10,6 +10,7 @@ from eth2.configs import (
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
 )
+from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.helpers import (
     get_epoch_start_slot,
 )
@@ -38,7 +39,9 @@ def test_process_max_attestations(genesis_state,
                                   sample_beacon_block_params,
                                   sample_beacon_block_body_params,
                                   config,
-                                  keymap):
+                                  keymap,
+                                  fixture_sm_class,
+                                  base_db):
     attestation_slot = config.GENESIS_SLOT
     current_slot = attestation_slot + config.MIN_ATTESTATION_INCLUSION_DELAY
     state = genesis_state.copy(
@@ -48,6 +51,10 @@ def test_process_max_attestations(genesis_state,
     attestations = create_mock_signed_attestations_at_slot(
         state=state,
         config=config,
+        state_machine=fixture_sm_class(
+            BeaconChainDB(base_db),
+            genesis_block,
+        ),
         attestation_slot=attestation_slot,
         beacon_block_root=genesis_block.root,
         keymap=keymap,
@@ -247,6 +254,8 @@ def test_process_attestations(genesis_state,
                               sample_beacon_block_body_params,
                               config,
                               keymap,
+                              fixture_sm_class,
+                              base_db,
                               success):
 
     attestation_slot = 0
@@ -258,6 +267,10 @@ def test_process_attestations(genesis_state,
     attestations = create_mock_signed_attestations_at_slot(
         state=state,
         config=config,
+        state_machine=fixture_sm_class(
+            BeaconChainDB(base_db),
+            genesis_block,
+        ),
         attestation_slot=attestation_slot,
         beacon_block_root=genesis_block.root,
         keymap=keymap,

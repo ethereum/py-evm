@@ -105,9 +105,12 @@ def get_genesis_beacon_state(*,
         previous_epoch_attestations=(),
         current_epoch_attestations=(),
         previous_justified_epoch=genesis_epoch,
-        justified_epoch=genesis_epoch,
+        current_justified_epoch=genesis_epoch,
+        previous_justified_root=ZERO_HASH32,
+        current_justified_root=ZERO_HASH32,
         justification_bitfield=0,
         finalized_epoch=genesis_epoch,
+        finalized_root=ZERO_HASH32,
 
         # Recent state
         latest_crosslinks=(

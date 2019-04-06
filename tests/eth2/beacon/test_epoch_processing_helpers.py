@@ -468,7 +468,7 @@ def test_get_epoch_boundary_attesting_balances(
     slot = 255
     current_epoch = 3
     previous_epoch = 2
-    justified_epoch = 2
+    current_justified_epoch = 2
     previous_justified_epoch = 1
     target_committee_size = n
     committee = tuple(i for i in range(target_committee_size))
@@ -515,7 +515,7 @@ def test_get_epoch_boundary_attesting_balances(
             aggregation_bitfield=aggregation_bitfield_1,
             data=AttestationData(**sample_attestation_data_params).copy(
                 slot=194,
-                source_epoch=justified_epoch,
+                source_epoch=current_justified_epoch,
                 target_root=current_target_root,
             ),
         ),
@@ -523,7 +523,7 @@ def test_get_epoch_boundary_attesting_balances(
             aggregation_bitfield=aggregation_bitfield_2,
             data=AttestationData(**sample_attestation_data_params).copy(
                 slot=193,
-                source_epoch=justified_epoch,
+                source_epoch=current_justified_epoch,
                 target_root=current_target_root,
             ),
         ),
@@ -551,7 +551,7 @@ def test_get_epoch_boundary_attesting_balances(
 
     state = n_validators_state.copy(
         slot=slot,
-        justified_epoch=justified_epoch,
+        current_justified_epoch=current_justified_epoch,
         previous_justified_epoch=previous_justified_epoch,
         previous_epoch_attestations=previous_epoch_attestations,
         current_epoch_attestations=current_epoch_attestations,

@@ -197,7 +197,7 @@ def get_epoch_boundary_attesting_balances(
     current_epoch_boundary_attester_indices = get_epoch_boundary_attester_indices(
         state,
         state.current_epoch_attestations,
-        state.justified_epoch,
+        state.current_justified_epoch,
         current_epoch_boundary_root,
         CommitteeConfig(config),
     )
