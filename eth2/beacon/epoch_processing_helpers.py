@@ -161,11 +161,10 @@ def get_attesting_indices(state: 'BeaconState',
         yield result
 
 
-@to_tuple
 def _get_epoch_boundary_attesting_indices(state: 'BeaconState',
                                           attestations: Sequence[PendingAttestationRecord],
                                           epoch: Epoch,
-                                          config: Eth2Config) -> Iterable[ValidatorIndex]:
+                                          config: Eth2Config) -> Tuple[ValidatorIndex]:
     relevant_attestations = (
         a for a in attestations
         if a.data.epoch_boundary_root == get_block_root(
