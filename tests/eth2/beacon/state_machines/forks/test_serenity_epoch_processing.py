@@ -200,20 +200,13 @@ def test_only_process_eth1_data_votes_per_period(sample_beacon_state_params, con
 @pytest.mark.parametrize(
     "total_balance,"
     "current_epoch_boundary_attesting_balance,"
-    "previous_epoch_boundary_attesting_balance,"
     "expected,",
     (
         (
-            1500 * GWEI_PER_ETH, 1000 * GWEI_PER_ETH, 1000 * GWEI_PER_ETH, (True, True),
+            1500 * GWEI_PER_ETH, 1000 * GWEI_PER_ETH, True,
         ),
         (
-            1500 * GWEI_PER_ETH, 1000 * GWEI_PER_ETH, 999 * GWEI_PER_ETH, (True, False),
-        ),
-        (
-            1500 * GWEI_PER_ETH, 999 * GWEI_PER_ETH, 1000 * GWEI_PER_ETH, (False, True),
-        ),
-        (
-            1500 * GWEI_PER_ETH, 999 * GWEI_PER_ETH, 999 * GWEI_PER_ETH, (False, False),
+            1500 * GWEI_PER_ETH,  999 * GWEI_PER_ETH, False,
         ),
     )
 )
@@ -223,10 +216,8 @@ def test_is_epoch_justifiable(
         config,
         expected,
         total_balance,
-        previous_epoch_boundary_attesting_balance,
         current_epoch_boundary_attesting_balance):
     current_epoch = 5
-    previous_epoch = 4
 
     from eth2.beacon.state_machines.forks.serenity import epoch_processing
 
@@ -236,8 +227,6 @@ def test_is_epoch_justifiable(
     def mock_get_epoch_boundary_attesting_balance(state, attestations, epoch, config):
         if epoch == current_epoch:
             return current_epoch_boundary_attesting_balance
-        elif epoch == previous_epoch:
-            return previous_epoch_boundary_attesting_balance
         else:
             raise Exception("ensure mock is matching on a specific epoch")
 
@@ -270,21 +259,14 @@ def test_is_epoch_justifiable(
             mock_get_active_validator_indices,
         )
 
-        current_epoch_justifiable = _is_epoch_justifiable(
+        epoch_justifiable = _is_epoch_justifiable(
             sample_state,
             sample_state.current_epoch_attestations,
             current_epoch,
-            config
-        )
-
-        previous_epoch_justifiable = _is_epoch_justifiable(
-            sample_state,
-            sample_state.previous_epoch_attestations,
-            previous_epoch,
             config,
         )
 
-        assert (current_epoch_justifiable, previous_epoch_justifiable) == expected
+        assert epoch_justifiable == expected
 
 
 @pytest.mark.parametrize(
