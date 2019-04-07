@@ -206,7 +206,7 @@ def test_only_process_eth1_data_votes_per_period(sample_beacon_state_params, con
             1500 * GWEI_PER_ETH, 1000 * GWEI_PER_ETH, True,
         ),
         (
-            1500 * GWEI_PER_ETH,  999 * GWEI_PER_ETH, False,
+            1500 * GWEI_PER_ETH, 999 * GWEI_PER_ETH, False,
         ),
     )
 )
