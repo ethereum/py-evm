@@ -40,7 +40,7 @@ from eth2.beacon.exceptions import (
     BlockClassError,
     StateMachineNotFound,
 )
-from eth2.beacon.state_machines.base import BaseBeaconStateMachine  # noqa: F401
+from eth2.beacon.state_machines.base import BeaconStateMachine  # noqa: F401
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
 )
@@ -60,7 +60,7 @@ class BaseBeaconChain(Configurable, ABC):
     """
     chaindb = None  # type: BaseBeaconChainDB
     chaindb_class = None  # type: Type[BaseBeaconChainDB]
-    sm_configuration = None  # type: Tuple[Tuple[int, Type[BaseBeaconStateMachine]], ...]
+    sm_configuration = None  # type: Tuple[Tuple[Slot, Type[BeaconStateMachine]], ...]
     chain_id = None  # type: int
 
     #
@@ -89,18 +89,18 @@ class BaseBeaconChain(Configurable, ABC):
     @abstractmethod
     def get_state_machine_class(
             cls,
-            block: BaseBeaconBlock) -> Type['BaseBeaconStateMachine']:
+            block: BaseBeaconBlock) -> Type['BeaconStateMachine']:
         pass
 
     @abstractmethod
-    def get_state_machine(self, at_block: BaseBeaconBlock=None) -> 'BaseBeaconStateMachine':
+    def get_state_machine(self, at_block: BaseBeaconBlock=None) -> 'BeaconStateMachine':
         pass
 
     @classmethod
     @abstractmethod
     def get_state_machine_class_for_block_slot(
             cls,
-            slot: Slot) -> Type['BaseBeaconStateMachine']:
+            slot: Slot) -> Type['BeaconStateMachine']:
         pass
 
     #
@@ -224,7 +224,7 @@ class BeaconChain(BaseBeaconChain):
     # StateMachine API
     #
     @classmethod
-    def get_state_machine_class(cls, block: BaseBeaconBlock) -> Type['BaseBeaconStateMachine']:
+    def get_state_machine_class(cls, block: BaseBeaconBlock) -> Type['BeaconStateMachine']:
         """
         Returns the ``StateMachine`` instance for the given block slot number.
         """
@@ -233,7 +233,7 @@ class BeaconChain(BaseBeaconChain):
     @classmethod
     def get_state_machine_class_for_block_slot(
             cls,
-            slot: Slot) -> Type['BaseBeaconStateMachine']:
+            slot: Slot) -> Type['BeaconStateMachine']:
         """
         Return the ``StateMachine`` class for the given block slot number.
         """
@@ -246,7 +246,7 @@ class BeaconChain(BaseBeaconChain):
                 return sm_class
         raise StateMachineNotFound("No StateMachine available for block slot: #{0}".format(slot))
 
-    def get_state_machine(self, at_block: BaseBeaconBlock=None) -> 'BaseBeaconStateMachine':
+    def get_state_machine(self, at_block: BaseBeaconBlock=None) -> 'BeaconStateMachine':
         """
         Return the ``StateMachine`` instance for the given block number.
         """
