@@ -165,16 +165,17 @@ def _get_epoch_boundary_attesting_indices(state: 'BeaconState',
                                           attestations: Sequence[PendingAttestationRecord],
                                           epoch: Epoch,
                                           config: Eth2Config) -> Tuple[ValidatorIndex]:
+    epoch_boundary_root = get_block_root(
+        state,
+        get_epoch_start_slot(
+            epoch,
+            config.SLOTS_PER_EPOCH
+        ),
+        config.SLOTS_PER_HISTORICAL_ROOT,
+    )
     relevant_attestations = (
         a for a in attestations
-        if a.data.epoch_boundary_root == get_block_root(
-            state,
-            get_epoch_start_slot(
-                epoch,
-                config.SLOTS_PER_EPOCH
-            ),
-            config.SLOTS_PER_HISTORICAL_ROOT,
-        )
+        if a.data.epoch_boundary_root == epoch_boundary_root
     )
     return get_attesting_indices(
         state,
