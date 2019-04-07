@@ -281,7 +281,7 @@ def test_is_epoch_justifiable(
             sample_state,
             sample_state.previous_epoch_attestations,
             previous_epoch,
-            config
+            config,
         )
 
         assert (current_epoch_justifiable, previous_epoch_justifiable) == expected

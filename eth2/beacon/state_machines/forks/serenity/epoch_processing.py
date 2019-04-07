@@ -140,7 +140,7 @@ def _is_epoch_justifiable(state: BeaconState,
     """
     active_validator_indices = get_active_validator_indices(
         state.validator_registry,
-        epoch
+        epoch,
     )
 
     if not active_validator_indices:
@@ -202,13 +202,13 @@ def process_justification(state: BeaconState, config: Eth2Config) -> BeaconState
         state,
         state.current_epoch_attestations,
         current_epoch,
-        config
+        config,
     )
     previous_epoch_justifiable = _is_epoch_justifiable(
         state,
         state.previous_epoch_attestations,
         previous_epoch,
-        config
+        config,
     )
 
     _justification_bitfield = state.justification_bitfield << 1
