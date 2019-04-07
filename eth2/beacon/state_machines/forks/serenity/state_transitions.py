@@ -43,7 +43,7 @@ class SerenityStateTransition(BaseStateTransition):
                                state: BeaconState,
                                block: BaseBeaconBlock,
                                check_proposer_signature: bool=True) -> BeaconState:
-        while state.slot != block.slot:
+        for _ in range(state.slot, block.slot):
             state = self.cache_state(state)
             if (state.slot + 1) % self.config.SLOTS_PER_EPOCH == 0:
                 state = self.per_epoch_transition(state)
