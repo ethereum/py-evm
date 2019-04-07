@@ -7,8 +7,7 @@ from eth2.beacon.state_machines.forks.serenity.blocks import (
 from eth2.beacon.tools.builder.proposer import (
     create_mock_block,
 )
-
-from eth2._utils.merkle.normal import get_merkle_root
+from eth2.beacon.types.historical_batch import HistoricalBatch
 
 
 @pytest.mark.parametrize(
@@ -100,8 +99,11 @@ def test_per_slot_transition(base_db,
 
     # historical_roots
     if updated_state.slot % st.config.SLOTS_PER_HISTORICAL_ROOT == 0:
-        assert updated_state.historical_roots[-1] == get_merkle_root(
-            updated_state.latest_block_roots
+        historical_batch = HistoricalBatch(
+            block_roots=state.latest_block_roots,
+            state_roots=state.latest_state_roots,
+            slots_per_historical_root=config.SLOTS_PER_HISTORICAL_ROOT,
         )
+        assert updated_state.historical_roots[-1] == historical_batch.hash_tree_root
     else:
         assert updated_state.historical_roots == state.historical_roots
