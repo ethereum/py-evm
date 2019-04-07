@@ -473,7 +473,7 @@ def test_get_crosslink_committees_at_slot(
     #
     epoch = slot_to_epoch(slot, slots_per_epoch)
     current_epoch = state.current_epoch(slots_per_epoch)
-    previous_epoch = state.previous_epoch(slots_per_epoch, genesis_epoch)
+    previous_epoch = state.previous_epoch(slots_per_epoch)
     next_epoch = current_epoch + 1
 
     if epoch == current_epoch:

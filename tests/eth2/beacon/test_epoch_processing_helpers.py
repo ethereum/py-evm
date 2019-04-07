@@ -21,8 +21,7 @@ from eth2.beacon._utils.hash import (
 )
 from eth2.configs import CommitteeConfig
 from eth2.beacon.epoch_processing_helpers import (
-    get_epoch_boundary_attester_indices,
-    get_epoch_boundary_attesting_balances,
+    get_epoch_boundary_attesting_balance,
     get_inclusion_infos,
     get_previous_epoch_matching_head_attestations,
     get_winning_root_and_participants,
@@ -77,7 +76,6 @@ def get_aggregation_bitfield(attestation_participants, target_committee_size):
 )
 def test_get_current_and_previous_epoch_attestations(random,
                                                      sample_state,
-                                                     genesis_epoch,
                                                      slots_per_epoch,
                                                      sample_attestation_data_params,
                                                      sample_attestation_params):
@@ -135,7 +133,6 @@ def test_get_current_and_previous_epoch_attestations(random,
 def test_get_previous_epoch_matching_head_attestations(
         random,
         sample_state,
-        genesis_epoch,
         slots_per_epoch,
         slots_per_historical_root,
         sample_attestation_data_params,
@@ -196,7 +193,6 @@ def test_get_previous_epoch_matching_head_attestations(
     result = get_previous_epoch_matching_head_attestations(
         state,
         slots_per_epoch,
-        genesis_epoch,
         slots_per_historical_root,
     )
     assert set(previous_epoch_head_attestations) == set(result)
@@ -338,107 +334,26 @@ def test_get_winning_root_and_participants(
             assert set(attesting_validator_indices) == set(block_root_1_participants)
 
 
-@settings(max_examples=1)
-@given(random=st.randoms())
-def test_get_epoch_boundary_attester_indices(monkeypatch,
-                                             random,
-                                             sample_attestation_params,
-                                             sample_attestation_data_params,
-                                             sample_state,
-                                             committee_config):
-    target_committee_size = 16
-    committee = tuple([i for i in range(target_committee_size)])
-
-    from eth2.beacon import committee_helpers
-
-    def mock_get_crosslink_committees_at_slot(state,
-                                              slot,
-                                              committee_config,
-                                              registry_change=False):
-        return (
-            (committee, sample_attestation_data_params['shard'],),
-        )
-
-    monkeypatch.setattr(
-        committee_helpers,
-        'get_crosslink_committees_at_slot',
-        mock_get_crosslink_committees_at_slot
-    )
-
-    block_root_1 = hash_eth2(b'block_root_1')
-    block_root_2 = hash_eth2(b'block_root_2')
-
-    (
-        attestation_participants_1,
-        attestation_participants_2,
-        not_attestation_participants_1,
-    ) = sampling_attestation_participants(random, committee, target_committee_size)
-
-    # Generate bitfield of each participants set
-    aggregation_bitfield_1 = get_aggregation_bitfield(
-        attestation_participants_1,
-        target_committee_size,
-    )
-    aggregation_bitfield_2 = get_aggregation_bitfield(
-        attestation_participants_2,
-        target_committee_size,
-    )
-    not_aggregation_bitfield_1 = get_aggregation_bitfield(
-        not_attestation_participants_1,
-        target_committee_size,
-    )
-    # `attestions` contains attestation to different block root by different set of participants
-    attestations = [
-        # Attestation to `block_root_1` by `attestation_participants_1`
-        Attestation(**sample_attestation_params).copy(
-            aggregation_bitfield=aggregation_bitfield_1,
-            data=AttestationData(**sample_attestation_data_params).copy(
-                source_epoch=1,
-                target_root=block_root_1,
-            ),
+# used as a helper for backwards compatibility of the following test
+# the following test could be refactored to remove this function
+def get_epoch_boundary_attesting_balances(current_epoch,
+                                          previous_epoch,
+                                          state,
+                                          config):
+    return (
+        get_epoch_boundary_attesting_balance(
+            state,
+            state.previous_epoch_attestations,
+            previous_epoch,
+            config,
         ),
-        # Attestation to `block_root_1` by `attestation_participants_2`
-        Attestation(**sample_attestation_params).copy(
-            aggregation_bitfield=aggregation_bitfield_2,
-            data=AttestationData(**sample_attestation_data_params).copy(
-                source_epoch=1,
-                target_root=block_root_1,
-            ),
+        get_epoch_boundary_attesting_balance(
+            state,
+            state.current_epoch_attestations,
+            current_epoch,
+            config,
         ),
-        # Attestation to `block_root_2` by `not_attestation_participants_1`
-        Attestation(**sample_attestation_params).copy(
-            aggregation_bitfield=not_aggregation_bitfield_1,
-            data=AttestationData(**sample_attestation_data_params).copy(
-                source_epoch=2,
-                target_root=block_root_2,
-            ),
-        ),
-    ]
-
-    block_root_1_attesting_validator = get_epoch_boundary_attester_indices(
-        state=sample_state,
-        attestations=attestations,
-        epoch=1,
-        root=block_root_1,
-        committee_config=committee_config,
     )
-    # Check that result is the union of two participants set
-    # `attestation_participants_1` and `attestation_participants_2`
-    assert set(block_root_1_attesting_validator) == set(
-        attestation_participants_1 + attestation_participants_2)
-    assert len(block_root_1_attesting_validator) == len(
-        set(attestation_participants_1 + attestation_participants_2))
-
-    block_root_2_attesting_validator = get_epoch_boundary_attester_indices(
-        state=sample_state,
-        attestations=attestations,
-        epoch=2,
-        root=block_root_2,
-        committee_config=committee_config,
-    )
-    # Check that result is the `not_attestation_participants_1` set
-    assert set(block_root_2_attesting_validator) == set(not_attestation_participants_1)
-    assert len(block_root_2_attesting_validator) == len(not_attestation_participants_1)
 
 
 @settings(max_examples=1)

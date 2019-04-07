@@ -13,7 +13,6 @@ from eth_typing import (
 
 from eth_utils import (
     to_tuple,
-    to_set,
 )
 
 from eth.constants import ZERO_HASH32
@@ -56,12 +55,14 @@ if TYPE_CHECKING:
 def get_previous_epoch_boundary_attestations(
         state: 'BeaconState',
         slots_per_epoch: int,
-        genesis_epoch: Epoch,
         latest_block_roots_length: int) -> Iterable[PendingAttestationRecord]:
+    if not state.previous_epoch_attestations:
+        return tuple()
+
     beacon_block_root = get_block_root(
         state,
         get_epoch_start_slot(
-            state.previous_epoch(slots_per_epoch, genesis_epoch),
+            state.previous_epoch(slots_per_epoch),
             slots_per_epoch,
         ),
         latest_block_roots_length,
@@ -75,7 +76,6 @@ def get_previous_epoch_boundary_attestations(
 def get_previous_epoch_matching_head_attestations(
         state: 'BeaconState',
         slots_per_epoch: int,
-        genesis_epoch: Epoch,
         slots_per_historical_root: int) -> Iterable[PendingAttestationRecord]:
     for attestation in state.previous_epoch_attestations:
         beacon_block_root = get_block_root(
@@ -145,69 +145,55 @@ def get_winning_root_and_participants(
 
 
 @to_tuple
-@to_set
-def get_epoch_boundary_attester_indices(
-        state: 'BeaconState',
-        attestations: Sequence[PendingAttestationRecord],
-        epoch: Epoch,
-        root: Hash32,
-        committee_config: CommitteeConfig) -> Iterable[ValidatorIndex]:
+def get_attesting_indices(state: 'BeaconState',
+                          attestations: Sequence[PendingAttestationRecord],
+                          config: Eth2Config) -> Iterable[ValidatorIndex]:
+    output: Set[ValidatorIndex] = set()
     for a in attestations:
-        if a.data.source_epoch == epoch and a.data.target_root == root:
-            yield from get_attestation_participants(
-                state,
-                a.data,
-                a.aggregation_bitfield,
-                committee_config,
-            )
+        participants = get_attestation_participants(
+            state,
+            a.data,
+            a.aggregation_bitfield,
+            CommitteeConfig(config),
+        )
+        output = output.union(participants)
+    for result in sorted(output):
+        yield result
 
 
-def get_epoch_boundary_attesting_balances(
-        current_epoch: Epoch,
-        previous_epoch: Epoch,
-        state: 'BeaconState',
-        config: Eth2Config) -> Tuple[Gwei, Gwei]:
-
-    previous_epoch_boundary_root = get_block_root(
+def _get_epoch_boundary_attesting_indices(state: 'BeaconState',
+                                          attestations: Sequence[PendingAttestationRecord],
+                                          epoch: Epoch,
+                                          config: Eth2Config) -> Tuple[ValidatorIndex]:
+    target_root = get_block_root(
         state,
-        get_epoch_start_slot(previous_epoch, config.SLOTS_PER_EPOCH),
+        get_epoch_start_slot(
+            epoch,
+            config.SLOTS_PER_EPOCH
+        ),
         config.SLOTS_PER_HISTORICAL_ROOT,
     )
-
-    previous_epoch_boundary_attester_indices = get_epoch_boundary_attester_indices(
+    relevant_attestations = (
+        a for a in attestations
+        if a.data.target_root == target_root
+    )
+    return get_attesting_indices(
         state,
-        state.current_epoch_attestations + state.previous_epoch_attestations,
-        state.previous_justified_epoch,
-        previous_epoch_boundary_root,
-        CommitteeConfig(config),
+        relevant_attestations,
+        config,
     )
 
-    previous_epoch_boundary_attesting_balance = get_total_balance(
+
+def get_epoch_boundary_attesting_balance(state: 'BeaconState',
+                                         attestations: Sequence[PendingAttestationRecord],
+                                         epoch: Epoch,
+                                         config: Eth2Config) -> Gwei:
+    attesting_indices = _get_epoch_boundary_attesting_indices(state, attestations, epoch, config)
+    return get_total_balance(
         state.validator_balances,
-        previous_epoch_boundary_attester_indices,
+        attesting_indices,
         config.MAX_DEPOSIT_AMOUNT,
     )
-
-    current_epoch_boundary_root = get_block_root(
-        state,
-        get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
-        config.SLOTS_PER_HISTORICAL_ROOT,
-    )
-
-    current_epoch_boundary_attester_indices = get_epoch_boundary_attester_indices(
-        state,
-        state.current_epoch_attestations,
-        state.current_justified_epoch,
-        current_epoch_boundary_root,
-        CommitteeConfig(config),
-    )
-
-    current_epoch_boundary_attesting_balance = get_total_balance(
-        state.validator_balances,
-        current_epoch_boundary_attester_indices,
-        config.MAX_DEPOSIT_AMOUNT,
-    )
-    return previous_epoch_boundary_attesting_balance, current_epoch_boundary_attesting_balance
 
 
 def get_total_balance_from_effective_balances(

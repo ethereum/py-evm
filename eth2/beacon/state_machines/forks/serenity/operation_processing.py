@@ -139,7 +139,7 @@ def process_attestations(state: BeaconState,
         )
 
     # update attestations
-    previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
+    previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH)
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     new_previous_epoch_pending_attestations = []
     new_current_epoch_pending_attestations = []
