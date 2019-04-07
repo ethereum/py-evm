@@ -11,9 +11,6 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
-from eth2.beacon.constants import (
-    EMPTY_SIGNATURE,
-)
 from eth2.beacon.deposit_helpers import (
     process_deposit,
 )
@@ -21,10 +18,11 @@ from eth2.beacon.helpers import (
     generate_seed,
     get_active_validator_indices,
     get_effective_balance,
+    get_temporary_block_header,
 )
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
-    BeaconBlockBody,
+    BeaconBlock,
 )
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.deposits import Deposit
@@ -48,14 +46,8 @@ from eth2.beacon.validator_status_helpers import (
 def get_genesis_block(genesis_state_root: Hash32,
                       genesis_slot: Slot,
                       block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-    return block_class(
-        slot=genesis_slot,
-        parent_root=ZERO_HASH32,
+    return block_class.create_empty_block(genesis_slot).copy(
         state_root=genesis_state_root,
-        randao_reveal=EMPTY_SIGNATURE,
-        eth1_data=Eth1Data.create_empty_data(),
-        signature=EMPTY_SIGNATURE,
-        body=BeaconBlockBody.create_empty_body(),
     )
 
 
@@ -76,7 +68,8 @@ def get_genesis_beacon_state(*,
                              latest_slashed_exit_length: int,
                              latest_randao_mixes_length: int,
                              activation_exit_delay: int,
-                             deposit_contract_tree_depth: int) -> BeaconState:
+                             deposit_contract_tree_depth: int,
+                             block_class: Type[BaseBeaconBlock]) -> BeaconState:
     state = BeaconState(
         # Misc
         slot=genesis_slot,
@@ -120,6 +113,9 @@ def get_genesis_beacon_state(*,
         latest_state_roots=(ZERO_HASH32,) * slots_per_historical_root,
         latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
         latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
+        latest_block_header=get_temporary_block_header(
+            BeaconBlock.create_empty_block(genesis_slot),
+        ),
         historical_roots=(),
 
         # Ethereum 1.0 chain data

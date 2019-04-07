@@ -12,7 +12,6 @@ from eth2.beacon.types.blocks import (
     BeaconBlock,
     BeaconBlockBody,
 )
-from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 
 from p2p.peer import (
@@ -69,10 +68,8 @@ async def test_send_single_block(request, event_loop):
     request_id = 5
     block = BeaconBlock(
         slot=1,
-        parent_root=ZERO_HASH32,
+        previous_block_root=ZERO_HASH32,
         state_root=ZERO_HASH32,
-        randao_reveal=EMPTY_SIGNATURE,
-        eth1_data=Eth1Data.create_empty_data(),
         signature=EMPTY_SIGNATURE,
         body=BeaconBlockBody.create_empty_body(),
     )
@@ -94,10 +91,8 @@ async def test_send_multiple_blocks(request, event_loop):
     blocks = tuple(
         BeaconBlock(
             slot=slot,
-            parent_root=ZERO_HASH32,
+            previous_block_root=ZERO_HASH32,
             state_root=ZERO_HASH32,
-            randao_reveal=EMPTY_SIGNATURE,
-            eth1_data=Eth1Data.create_empty_data(),
             signature=EMPTY_SIGNATURE,
             body=BeaconBlockBody.create_empty_body(),
         )

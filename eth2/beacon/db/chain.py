@@ -375,7 +375,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         score = block.slot
 
         db.set(
-            SchemaV1.make_block_root_to_score_lookup_key(block.root),
+            SchemaV1.make_block_root_to_score_lookup_key(block.signed_root),
             ssz.encode(score, sedes=ssz.sedes.uint64),
         )
         return score
@@ -395,32 +395,35 @@ class BeaconChainDB(BaseBeaconChainDB):
             return tuple(), tuple()
 
         try:
-            previous_canonical_head = cls._get_canonical_head(db, block_class).root
+            previous_canonical_head = cls._get_canonical_head(db, block_class).signed_root
             head_score = cls._get_score(db, previous_canonical_head)
         except CanonicalHeadNotFound:
             no_canonical_head = True
         else:
             no_canonical_head = False
 
-        is_genesis = first_block.parent_root == GENESIS_PARENT_HASH
-        if not is_genesis and not cls._block_exists(db, first_block.parent_root):
+        is_genesis = first_block.previous_block_root == GENESIS_PARENT_HASH
+        if not is_genesis and not cls._block_exists(db, first_block.previous_block_root):
             raise ParentNotFound(
                 "Cannot persist block ({}) with unknown parent ({})".format(
-                    encode_hex(first_block.root), encode_hex(first_block.parent_root)))
+                    encode_hex(first_block.signed_root),
+                    encode_hex(first_block.previous_block_root),
+                )
+            )
 
         if is_genesis:
             score = 0
             # TODO: this should probably be done as part of the fork choice rule processing
             db.set(
                 SchemaV1.make_finalized_head_root_lookup_key(),
-                first_block.hash,
+                first_block.signed_root,
             )
         else:
             score = first_block.slot
 
         curr_block_head = first_block
         db.set(
-            curr_block_head.root,
+            curr_block_head.signed_root,
             ssz.encode(curr_block_head),
         )
         cls._add_block_root_to_slot_lookup(db, curr_block_head)
@@ -429,28 +432,28 @@ class BeaconChainDB(BaseBeaconChainDB):
         orig_blocks_seq = concat([(first_block,), blocks_iterator])
 
         for parent, child in sliding_window(2, orig_blocks_seq):
-            if parent.root != child.parent_root:
+            if parent.signed_root != child.previous_block_root:
                 raise ValidationError(
                     "Non-contiguous chain. Expected {} to have {} as parent but was {}".format(
-                        encode_hex(child.root),
-                        encode_hex(parent.root),
-                        encode_hex(child.parent_root),
+                        encode_hex(child.signed_root),
+                        encode_hex(parent.signed_root),
+                        encode_hex(child.previous_block_root),
                     )
                 )
 
             curr_block_head = child
             db.set(
-                curr_block_head.root,
+                curr_block_head.signed_root,
                 ssz.encode(curr_block_head),
             )
             cls._add_block_root_to_slot_lookup(db, curr_block_head)
             score = cls._set_block_scores_to_db(db, curr_block_head)
 
         if no_canonical_head:
-            return cls._set_as_canonical_chain_head(db, curr_block_head.root, block_class)
+            return cls._set_as_canonical_chain_head(db, curr_block_head.signed_root, block_class)
 
         if score > head_score:
-            return cls._set_as_canonical_chain_head(db, curr_block_head.root, block_class)
+            return cls._set_as_canonical_chain_head(db, curr_block_head.signed_root, block_class)
         else:
             return tuple(), tuple()
 
@@ -491,7 +494,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         for block in new_canonical_blocks:
             cls._add_block_slot_to_root_lookup(db, block)
 
-        db.set(SchemaV1.make_canonical_head_root_lookup_key(), block.root)
+        db.set(SchemaV1.make_canonical_head_root_lookup_key(), block.signed_root)
 
         return new_canonical_blocks, tuple(old_canonical_blocks)
 
@@ -520,17 +523,17 @@ class BeaconChainDB(BaseBeaconChainDB):
                 # This just means the block is not on the canonical chain.
                 pass
             else:
-                if orig.root == block.root:
+                if orig.signed_root == block.signed_root:
                     # Found the common ancestor, stop.
                     break
 
             # Found a new ancestor
             yield block
 
-            if block.parent_root == GENESIS_PARENT_HASH:
+            if block.previous_block_root == GENESIS_PARENT_HASH:
                 break
             else:
-                block = cls._get_block_by_root(db, block.parent_root, block_class)
+                block = cls._get_block_by_root(db, block.previous_block_root, block_class)
 
     @staticmethod
     def _add_block_slot_to_root_lookup(db: BaseDB, block: BaseBeaconBlock) -> None:
@@ -543,7 +546,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         )
         db.set(
             block_slot_to_root_key,
-            ssz.encode(block.root, sedes=ssz.sedes.bytes_sedes),
+            ssz.encode(block.signed_root, sedes=ssz.sedes.bytes_sedes),
         )
 
     @staticmethod
@@ -553,7 +556,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         block root.
         """
         block_root_to_slot_key = SchemaV1.make_block_root_to_slot_lookup_key(
-            block.root
+            block.signed_root
         )
         db.set(
             block_root_to_slot_key,

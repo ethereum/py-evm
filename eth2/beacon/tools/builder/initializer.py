@@ -135,6 +135,7 @@ def create_mock_genesis(
         latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
         activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
         deposit_contract_tree_depth=config.DEPOSIT_CONTRACT_TREE_DEPTH,
+        block_class=genesis_block_class,
     )
 
     block = get_genesis_block(

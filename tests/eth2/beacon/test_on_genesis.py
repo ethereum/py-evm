@@ -10,7 +10,6 @@ from eth2.beacon.constants import (
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.eth1_data import Eth1Data
-
 from eth2.beacon.on_genesis import (
     get_genesis_block,
     get_genesis_beacon_state,
@@ -28,10 +27,8 @@ def test_get_genesis_block():
     genesis_slot = 10
     genesis_block = get_genesis_block(genesis_state_root, genesis_slot, BeaconBlock)
     assert genesis_block.slot == genesis_slot
-    assert genesis_block.parent_root == ZERO_HASH32
+    assert genesis_block.previous_block_root == ZERO_HASH32
     assert genesis_block.state_root == genesis_state_root
-    assert genesis_block.randao_reveal == EMPTY_SIGNATURE
-    assert genesis_block.eth1_data == Eth1Data.create_empty_data()
     assert genesis_block.signature == EMPTY_SIGNATURE
     assert genesis_block.body.is_empty
 
@@ -62,7 +59,9 @@ def test_get_genesis_beacon_state(
         activation_exit_delay,
         config,
         keymap,
-        deposit_contract_tree_depth):
+        deposit_contract_tree_depth,
+        sample_eth1_data_params,
+        sample_genesis_block_class):
     validator_count = 5
 
     genesis_validator_deposits, deposit_root = create_mock_genesis_validator_deposits_and_root(
@@ -96,6 +95,7 @@ def test_get_genesis_beacon_state(
         latest_randao_mixes_length=latest_randao_mixes_length,
         activation_exit_delay=activation_exit_delay,
         deposit_contract_tree_depth=deposit_contract_tree_depth,
+        block_class=sample_genesis_block_class,
     )
 
     # Misc

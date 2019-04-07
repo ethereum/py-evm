@@ -6,9 +6,9 @@ from typing import (
 from eth_typing import (
     BLSPubkey,
     BLSSignature,
+    Hash32,
 )
 
-from eth_typing import Hash32
 
 from eth2.configs import (
     CommitteeConfig,
@@ -37,7 +37,6 @@ from eth2.beacon.types.blocks import (
 )
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.proposal import Proposal
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     FromBlockParams,
@@ -109,7 +108,7 @@ def create_block_on_state(
     if check_proposer_index:
         validate_proposer_index(state, config, slot, validator_index)
 
-    # Prepare block: slot and parent_root
+    # Prepare block: slot and previous_block_root
     block = block_class.from_parent(
         parent_block=parent_block,
         block_params=FromBlockParams(slot=slot),
@@ -119,12 +118,12 @@ def create_block_on_state(
     randao_reveal = _generate_randao_reveal(privkey, slot, state.fork, config)
     eth1_data = Eth1Data.create_empty_data()
     body = BeaconBlockBody.create_empty_body().copy(
+        randao_reveal=randao_reveal,
+        eth1_data=eth1_data,
         attestations=attestations,
     )
 
     block = block.copy(
-        randao_reveal=randao_reveal,
-        eth1_data=eth1_data,
         body=body,
     )
 
@@ -132,15 +131,9 @@ def create_block_on_state(
     state, block = state_machine.import_block(block, check_proposer_signature=False)
 
     # Sign
-    empty_signature_block_root = block.block_without_signature_root
-    proposal_root = Proposal(
-        slot,
-        config.BEACON_CHAIN_SHARD_NUMBER,
-        empty_signature_block_root,
-    ).root
-
+    # TODO make sure we use the correct signed_root
     signature = sign_transaction(
-        message_hash=proposal_root,
+        message_hash=block.signed_root,
         privkey=privkey,
         fork=state.fork,
         slot=slot,
@@ -155,15 +148,18 @@ def create_block_on_state(
     return block
 
 
-def _get_proposer_index(state_machine: BaseBeaconStateMachine,
-                        state: BeaconState,
-                        slot: Slot,
-                        previous_block_root: Hash32,
-                        config: Eth2Config) -> ValidatorIndex:
+def advance_to_slot(state_machine: BaseBeaconStateMachine,
+                    state: BeaconState,
+                    slot: Slot) -> BeaconState:
     # advance the state to the ``slot``.
     state_transition = state_machine.state_transition
-    state = state_transition.apply_state_transition_without_block(state, slot, previous_block_root)
+    state = state_transition.apply_state_transition_without_block(state, slot)
+    return state
 
+
+def _get_proposer_index(state: BeaconState,
+                        slot: Slot,
+                        config: Eth2Config) -> ValidatorIndex:
     proposer_index = get_beacon_proposer_index(
         state,
         slot,
@@ -186,7 +182,12 @@ def create_mock_block(*,
 
     Note that it doesn't return the correct ``state_root``.
     """
-    proposer_index = _get_proposer_index(state_machine, state, slot, parent_block.root, config)
+    future_state = advance_to_slot(state_machine, state, slot)
+    proposer_index = _get_proposer_index(
+        future_state,
+        slot,
+        config
+    )
     proposer_pubkey = state.validator_registry[proposer_index].pubkey
     proposer_privkey = keymap[proposer_pubkey]
 

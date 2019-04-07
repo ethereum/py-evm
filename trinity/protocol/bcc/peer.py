@@ -59,7 +59,7 @@ class BCCPeer(BasePeer):
             BeaconBlock,
         )
         head = await self.chain_db.coro_get_canonical_head(BeaconBlock)
-        self.sub_proto.send_handshake(genesis.hash, head.slot)
+        self.sub_proto.send_handshake(genesis.signed_root, head.slot)
 
     async def process_sub_proto_handshake(self, cmd: Command, msg: _DecodedMsgType) -> None:
         if not isinstance(cmd, Status):
@@ -78,11 +78,12 @@ class BCCPeer(BasePeer):
             self.context.genesis_slot,
             BeaconBlock,
         )
-        if msg['genesis_hash'] != genesis_block.hash:
+        # TODO change message descriptor to 'genesis_root', accounting for the spec
+        if msg['genesis_hash'] != genesis_block.signed_root:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 f"{self} genesis ({encode_hex(msg['genesis_hash'])}) does not "
-                f"match ours ({encode_hex(genesis_block.hash)}), disconnecting"
+                f"match ours ({encode_hex(genesis_block.signed_root)}), disconnecting"
             )
 
         self.head_slot = msg['head_slot']

@@ -4,6 +4,9 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from eth.constants import (
+    ZERO_HASH32,
+)
 
 from eth_utils import (
     ValidationError,
@@ -15,8 +18,15 @@ from eth_typing import (
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
+from eth2.beacon.constants import (
+    EMPTY_SIGNATURE,
+)
 from eth2.beacon.enums import (
     SignatureDomain,
+)
+from eth2.beacon.types.blocks import (
+    BeaconBlock,
+    BeaconBlockHeader,
 )
 from eth2.beacon.typing import (
     Epoch,
@@ -35,6 +45,22 @@ if TYPE_CHECKING:
     from eth2.beacon.types.forks import Fork  # noqa: F401
     from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
     from eth2.beacon.types.validator_records import ValidatorRecord  # noqa: F401
+
+
+#
+# Header/block helpers
+#
+def get_temporary_block_header(block: BeaconBlock) -> BeaconBlockHeader:
+    """
+    Return the block header corresponding to a block with ``state_root`` set to ``ZERO_HASH32``.
+    """
+    return BeaconBlockHeader(
+        slot=block.slot,
+        previous_block_root=block.previous_block_root,
+        state_root=ZERO_HASH32,
+        block_body_root=block.body.hash_tree_root,
+        signature=EMPTY_SIGNATURE,
+    )
 
 
 #

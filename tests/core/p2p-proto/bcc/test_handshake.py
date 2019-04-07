@@ -59,7 +59,7 @@ async def test_unidirectional_handshake():
         SERENITY_CONFIG.GENESIS_SLOT,
         BeaconBlock,
     )
-    alice_genesis_hash = alice_genesis.hash
+    alice_genesis_root = alice_genesis.signed_root
     alice_head = await alice_chain_db.coro_get_canonical_head(BeaconBlock)
     alice_head_slot = alice_head.slot
 
@@ -72,7 +72,7 @@ async def test_unidirectional_handshake():
 
     assert msg["protocol_version"] == BCCProtocol.version
     assert msg["network_id"] == alice.context.network_id
-    assert msg["genesis_hash"] == alice_genesis_hash
+    assert msg["genesis_hash"] == alice_genesis_root
     assert msg["head_slot"] == alice_head_slot
 
     await bob.process_sub_proto_handshake(cmd, msg)

@@ -24,7 +24,6 @@ from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.eth1_data import Eth1Data
-from eth2.beacon.types.proposal import Proposal
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
 
@@ -33,6 +32,7 @@ from eth2.beacon.on_genesis import (
 )
 from eth2.beacon.types.blocks import (
     BeaconBlockBody,
+    BeaconBlockHeader,
 )
 from eth2.beacon.types.forks import (
     Fork,
@@ -81,12 +81,12 @@ def pubkeys(keymap):
 
 
 @pytest.fixture
-def sample_proposer_slashing_params(sample_proposal_params):
-    proposal_data = Proposal(**sample_proposal_params)
+def sample_proposer_slashing_params(sample_block_header_params):
+    block_header_data = BeaconBlockHeader(**sample_block_header_params)
     return {
         'proposer_index': 1,
-        'proposal_1': proposal_data,
-        'proposal_2': proposal_data,
+        'header_1': block_header_data,
+        'header_2': block_header_data,
     }
 
 
@@ -123,8 +123,10 @@ def sample_attestation_data_and_custody_bit_params(sample_attestation_data_param
 
 
 @pytest.fixture
-def sample_beacon_block_body_params():
+def sample_beacon_block_body_params(sample_eth1_data_params):
     return {
+        'randao_reveal': EMPTY_SIGNATURE,
+        'eth1_data': Eth1Data(**sample_eth1_data_params),
         'proposer_slashings': (),
         'attester_slashings': (),
         'attestations': (),
@@ -136,24 +138,27 @@ def sample_beacon_block_body_params():
 
 @pytest.fixture
 def sample_beacon_block_params(sample_beacon_block_body_params,
-                               sample_eth1_data_params,
                                genesis_slot):
     return {
         'slot': genesis_slot + 10,
-        'parent_root': ZERO_HASH32,
+        'previous_block_root': ZERO_HASH32,
         'state_root': b'\x55' * 32,
-        'randao_reveal': EMPTY_SIGNATURE,
-        'eth1_data': Eth1Data(**sample_eth1_data_params),
         'signature': EMPTY_SIGNATURE,
         'body': BeaconBlockBody(**sample_beacon_block_body_params)
     }
 
 
 @pytest.fixture
+def sample_genesis_block_class():
+    return SerenityBeaconBlock
+
+
+@pytest.fixture
 def sample_beacon_state_params(genesis_slot,
                                genesis_epoch,
                                sample_fork_params,
-                               sample_eth1_data_params):
+                               sample_eth1_data_params,
+                               sample_block_header_params):
     return {
         'slot': genesis_slot + 100,
         'genesis_time': 0,
@@ -182,6 +187,7 @@ def sample_beacon_state_params(genesis_slot,
         'latest_state_roots': (),
         'latest_active_index_roots': (),
         'latest_slashed_balances': (),
+        'latest_block_header': BeaconBlockHeader(**sample_block_header_params),
         'historical_roots': (),
         'latest_eth1_data': Eth1Data(**sample_eth1_data_params),
         'eth1_data_votes': (),
@@ -269,11 +275,12 @@ def sample_pending_attestation_record_params(sample_attestation_data_params):
 
 
 @pytest.fixture
-def sample_proposal_params():
+def sample_block_header_params():
     return {
         'slot': 10,
-        'shard': 12,
-        'block_root': b'\x43' * 32,
+        'previous_block_root': b'\x22' * 32,
+        'state_root': b'\x33' * 32,
+        'block_body_root': b'\x43' * 32,
         'signature': b'\x56' * 96,
     }
 
@@ -360,6 +367,7 @@ def filled_beacon_state(genesis_epoch,
         latest_active_index_roots_length=latest_active_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
         latest_slashed_exit_length=latest_slashed_exit_length,
+        genesis_block_class=SerenityBeaconBlock,
     )
 
 

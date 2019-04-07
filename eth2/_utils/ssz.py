@@ -34,7 +34,7 @@ def diff_ssz_object(left: BaseBeaconBlock,
                         sub_left_value,
                         sub_right_value,
                     )
-            elif isinstance(field_type, (ssz.sedes.List, ssz.sedes.CountableList)):
+            elif isinstance(field_type, ssz.sedes.List):
                 if tuple(left_value) != tuple(right_value):
                     yield (
                         field_name,

@@ -31,13 +31,13 @@ def mock_validator_record(pubkey,
 @to_tuple
 def get_pseudo_chain(length, genesis_block):
     """
-    Get a pseudo chain, only slot and parent_root are valid.
+    Get a pseudo chain, only slot and previous_block_root are valid.
     """
     block = genesis_block.copy()
     yield block
     for slot in range(1, length * 3):
         block = genesis_block.copy(
             slot=slot,
-            parent_root=block.root
+            previous_block_root=block.signed_root
         )
         yield block
