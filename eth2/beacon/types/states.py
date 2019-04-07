@@ -26,7 +26,6 @@ from eth2.beacon._utils.hash import (
 )
 from eth2.beacon.helpers import (
     slot_to_epoch,
-    get_empty_block,
     get_temporary_block_header,
 )
 from eth2.beacon.typing import (
@@ -273,7 +272,7 @@ class BeaconState(ssz.Serializable):
             latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
             latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
             latest_block_header=get_temporary_block_header(
-                get_empty_block(genesis_slot, genesis_block_class)
+                BaseBeaconBlock.create_empty_block(genesis_slot),
             ),
             historical_roots=(),
 

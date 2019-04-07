@@ -18,7 +18,6 @@ from eth2.beacon.helpers import (
     generate_seed,
     get_active_validator_indices,
     get_effective_balance,
-    get_empty_block,
     get_temporary_block_header,
 )
 from eth2.beacon.types.blocks import (
@@ -44,9 +43,8 @@ from eth2.beacon.validator_status_helpers import (
 
 
 def get_genesis_block(genesis_state_root: Hash32,
-                      genesis_slot: Slot,
-                      block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-    return get_empty_block(genesis_slot, block_class).copy(
+                      genesis_slot: Slot) -> BaseBeaconBlock:
+    return BaseBeaconBlock.create_empty_block(genesis_slot).copy(
         state_root=genesis_state_root,
     )
 
@@ -114,10 +112,7 @@ def get_genesis_beacon_state(*,
         latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
         latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
         latest_block_header=get_temporary_block_header(
-            get_empty_block(
-                genesis_slot,
-                block_class,
-            )
+            BaseBeaconBlock.create_empty_block(genesis_slot),
         ),
         historical_roots=(),
 

@@ -17,6 +17,10 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from eth.constants import (
+    ZERO_HASH32,
+)
+
 from eth_typing import (
     BLSSignature,
     Hash32,
@@ -270,6 +274,16 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
         Return the block denoted by the given block root.
         """
         raise NotImplementedError("Must be implemented by subclasses")
+
+    @classmethod
+    def create_empty_block(cls, genesis_slot: Slot) -> 'BaseBeaconBlock':
+        return cls(
+            slot=genesis_slot,
+            previous_block_root=ZERO_HASH32,
+            state_root=ZERO_HASH32,
+            body=BeaconBlockBody.create_empty_body(),
+            signature=EMPTY_SIGNATURE,
+        )
 
 
 class BeaconBlock(BaseBeaconBlock):
