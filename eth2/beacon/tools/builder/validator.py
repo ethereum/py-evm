@@ -491,7 +491,6 @@ def create_mock_signed_attestations_at_slot(
     state = state_transition.apply_state_transition_without_block(
         state,
         attestation_slot,
-        beacon_block_root,
     )
     crosslink_committees_at_slot = get_crosslink_committees_at_slot(
         # To avoid the epoch boundary cases
