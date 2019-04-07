@@ -58,13 +58,13 @@ def test_chaindb_add_block_number_to_root_lookup(chaindb, block):
 
 def test_chaindb_persist_block_and_slot_to_root(chaindb, block):
     with pytest.raises(BlockNotFound):
-        chaindb.get_block_by_root(block.root, block.__class__)
-    slot_to_root_key = SchemaV1.make_block_root_to_score_lookup_key(block.root)
+        chaindb.get_block_by_root(block.signed_root, block.__class__)
+    slot_to_root_key = SchemaV1.make_block_root_to_score_lookup_key(block.signed_root)
     assert not chaindb.exists(slot_to_root_key)
 
     chaindb.persist_block(block, block.__class__)
 
-    assert chaindb.get_block_by_root(block.root, block.__class__) == block
+    assert chaindb.get_block_by_root(block.signed_root, block.__class__) == block
     assert chaindb.exists(slot_to_root_key)
 
 
@@ -76,7 +76,7 @@ def test_chaindb_persist_block_and_unknown_parent(chaindb, block, seed):
 
 
 def test_chaindb_persist_block_and_block_to_root(chaindb, block):
-    block_to_root_key = SchemaV1.make_block_root_to_score_lookup_key(block.root)
+    block_to_root_key = SchemaV1.make_block_root_to_score_lookup_key(block.signed_root)
     assert not chaindb.exists(block_to_root_key)
     chaindb.persist_block(block, block.__class__)
     assert chaindb.exists(block_to_root_key)
@@ -89,33 +89,33 @@ def test_chaindb_get_score(chaindb, sample_beacon_block_params):
     )
     chaindb.persist_block(genesis, genesis.__class__)
 
-    genesis_score_key = SchemaV1.make_block_root_to_score_lookup_key(genesis.root)
+    genesis_score_key = SchemaV1.make_block_root_to_score_lookup_key(genesis.signed_root)
     genesis_score = ssz.decode(chaindb.db.get(genesis_score_key), sedes=ssz.sedes.uint64)
     assert genesis_score == 0
-    assert chaindb.get_score(genesis.root) == 0
+    assert chaindb.get_score(genesis.signed_root) == 0
 
     block1 = BeaconBlock(**sample_beacon_block_params).copy(
-        previous_block_root=genesis.root,
+        previous_block_root=genesis.signed_root,
         slot=1,
     )
     chaindb.persist_block(block1, block1.__class__)
 
-    block1_score_key = SchemaV1.make_block_root_to_score_lookup_key(block1.root)
+    block1_score_key = SchemaV1.make_block_root_to_score_lookup_key(block1.signed_root)
     block1_score = ssz.decode(chaindb.db.get(block1_score_key), sedes=ssz.sedes.uint64)
     assert block1_score == 1
-    assert chaindb.get_score(block1.root) == 1
+    assert chaindb.get_score(block1.signed_root) == 1
 
 
 def test_chaindb_get_block_by_root(chaindb, block):
     chaindb.persist_block(block, block.__class__)
-    result_block = chaindb.get_block_by_root(block.root, block.__class__)
+    result_block = chaindb.get_block_by_root(block.signed_root, block.__class__)
     validate_ssz_equal(result_block, block)
 
 
 def test_chaindb_get_canonical_block_root(chaindb, block):
     chaindb.persist_block(block, block.__class__)
     block_root = chaindb.get_canonical_block_root(block.slot)
-    assert block_root == block.root
+    assert block_root == block.signed_root
 
 
 def test_chaindb_state(chaindb, state):
@@ -136,14 +136,14 @@ def test_chaindb_get_canonical_head(chaindb, block):
     chaindb.persist_block(block, block.__class__)
 
     canonical_head_root = chaindb.get_canonical_head_root()
-    assert canonical_head_root == block.root
+    assert canonical_head_root == block.signed_root
 
     result_block = chaindb.get_canonical_head(block.__class__)
     assert result_block == block
 
     block_2 = block.copy(
         slot=block.slot + 1,
-        previous_block_root=block.root,
+        previous_block_root=block.signed_root,
     )
     chaindb.persist_block(block_2, block_2.__class__)
     result_block = chaindb.get_canonical_head(block.__class__)
@@ -151,7 +151,7 @@ def test_chaindb_get_canonical_head(chaindb, block):
 
     block_3 = block.copy(
         slot=block_2.slot + 1,
-        previous_block_root=block_2.root,
+        previous_block_root=block_2.signed_root,
     )
     chaindb.persist_block(block_3, block_3.__class__)
     result_block = chaindb.get_canonical_head(block.__class__)
@@ -161,5 +161,5 @@ def test_chaindb_get_canonical_head(chaindb, block):
 def test_get_slot_by_root(chaindb, block):
     chaindb.persist_block(block, block.__class__)
     block_slot = block.slot
-    result_slot = chaindb.get_slot_by_root(block.root)
+    result_slot = chaindb.get_slot_by_root(block.signed_root)
     assert result_slot == block_slot

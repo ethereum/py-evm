@@ -54,7 +54,7 @@ def process_cache_state(state: BeaconState, config: Eth2Config) -> BeaconState:
         state.slot,
         slots_per_historical_root,
         # TODO make `signed_root`
-        state.latest_block_header.root,
+        state.latest_block_header.signed_root,
     )
 
     state = state.copy(
