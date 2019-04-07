@@ -22,6 +22,7 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
+    BeaconBlock,
 )
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.deposits import Deposit
@@ -112,7 +113,7 @@ def get_genesis_beacon_state(*,
         latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
         latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
         latest_block_header=get_temporary_block_header(
-            BaseBeaconBlock.create_empty_block(genesis_slot),
+            BeaconBlock.create_empty_block(genesis_slot),
         ),
         historical_roots=(),
 
