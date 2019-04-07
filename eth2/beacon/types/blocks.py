@@ -306,8 +306,8 @@ class BeaconBlock(BaseBeaconBlock):
                     parent_block: 'BaseBeaconBlock',
                     block_params: FromBlockParams) -> 'BaseBeaconBlock':
         """
-        Initialize a new block with the `parent` block as the block's
-        parent root.
+        Initialize a new block with the ``parent_block`` as the block's
+        previous block root.
         """
         if block_params.slot is None:
             slot = parent_block.slot + 1
