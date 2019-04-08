@@ -52,6 +52,9 @@ from eth.db.chain import (
 from eth.db.header import (
     HeaderDB,
 )
+from eth.db.trie import (
+    make_trie_root_and_nodes,
+)
 
 from eth.estimators import (
     get_gas_estimator,
@@ -794,6 +797,15 @@ class Chain(BaseChain):
         if validate_uncles:
             self.validate_uncles(block)
         self.validate_gaslimit(block.header)
+        # validate transaction root
+        actual_transaction_root, _ = make_trie_root_and_nodes(block.transactions)
+        if actual_transaction_root != block.header.transaction_root:
+            raise ValidationError(
+                "The provided transactions %s don't match the block's transaction_root %s" % (
+                    encode_hex(actual_transaction_root),
+                    encode_hex(block.header.transaction_root),
+                )
+            )
 
     def validate_seal(self, header: BlockHeader) -> None:
         """
