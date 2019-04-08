@@ -945,10 +945,14 @@ class MiningChain(Chain):
 
     def import_block(self,
                      block: BaseBlock,
-                     perform_validation: bool=True
+                     perform_validation: bool=True,
+                     validate_uncles=True,
                      ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         imported_block, new_canonical_blocks, old_canonical_blocks = super().import_block(
-            block, perform_validation)
+            block,
+            perform_validation,
+            validate_uncles=validate_uncles,
+            )
 
         self.header = self.ensure_header()
         return imported_block, new_canonical_blocks, old_canonical_blocks
