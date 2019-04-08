@@ -17,7 +17,6 @@ from eth_utils.toolz import (
 )
 
 from eth2.beacon import helpers
-from eth2._utils.merkle.normal import get_merkle_root
 from eth2._utils.numeric import (
     is_power_of_two,
 )
@@ -69,6 +68,7 @@ from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 from eth2.beacon.types.crosslink_records import CrosslinkRecord
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
+from eth2.beacon.types.historical_batch import HistoricalBatch
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     Epoch,
@@ -1189,8 +1189,12 @@ def _update_historical_roots(state: BeaconState,
     epochs_per_historical_root = config.SLOTS_PER_HISTORICAL_ROOT // config.SLOTS_PER_EPOCH
     should_update_historical_roots = next_epoch % epochs_per_historical_root == 0
     if should_update_historical_roots:
-        roots = state.latest_block_roots + state.latest_state_roots
-        updated_historical_roots += (get_merkle_root(roots),)
+        historical_batch = HistoricalBatch(
+            block_roots=state.latest_block_roots,
+            state_roots=state.latest_state_roots,
+            slots_per_historical_root=config.SLOTS_PER_HISTORICAL_ROOT,
+        )
+        updated_historical_roots += (historical_batch.hash_tree_root,)
 
     return state.copy(
         historical_roots=updated_historical_roots
