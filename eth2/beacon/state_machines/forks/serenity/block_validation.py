@@ -368,7 +368,7 @@ def validate_attestation_source_epoch_and_root(state: BeaconState,
     Validate ``source_epoch`` and ``source_root`` fields of ``attestation_data``.
     Raise ``ValidationError`` if it's invalid.
     """
-    if slot_to_epoch(attestation_data.slot + 1, slots_per_epoch) >= current_epoch:
+    if slot_to_epoch(attestation_data.slot, slots_per_epoch) >= current_epoch:
         # Case 1: current epoch attestations
         if attestation_data.source_epoch != state.current_justified_epoch:
             raise ValidationError(
