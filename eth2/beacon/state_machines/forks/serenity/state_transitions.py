@@ -43,7 +43,7 @@ class SerenityStateTransition(BaseStateTransition):
                                state: BeaconState,
                                block: BaseBeaconBlock,
                                check_proposer_signature: bool=True) -> BeaconState:
-        if state.slot == block.slot:
+        if state.slot >= block.slot:
             return state
 
         for _ in range(state.slot, block.slot):
@@ -70,7 +70,7 @@ class SerenityStateTransition(BaseStateTransition):
         See docs for :meth:`eth2.beacon.state_machines.state_transitions.BaseStateTransition.apply_state_transition_without_block`  # noqa: E501
         for more information about the behavior of this method.
         """
-        if state.slot == slot:
+        if state.slot >= slot:
             return state
 
         for _ in range(state.slot, slot):
