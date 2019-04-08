@@ -594,10 +594,10 @@ class VM(BaseVM):
                 len(block.transactions),
             )
 
-        if self.block.number != block.number:
+        if self.header.block_number != block.number:
             raise ValidationError(
                 "This VM can only import blocks at number #{}, the attempted block was #{}".format(
-                    self.block.number,
+                    self.header.block_number,
                     block.number,
                 )
             )
