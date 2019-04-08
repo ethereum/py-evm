@@ -43,6 +43,9 @@ class SerenityStateTransition(BaseStateTransition):
                                state: BeaconState,
                                block: BaseBeaconBlock,
                                check_proposer_signature: bool=True) -> BeaconState:
+        if state.slot == block.slot:
+            return state
+
         for _ in range(state.slot, block.slot):
             state = self.cache_state(state)
             if (state.slot + 1) % self.config.SLOTS_PER_EPOCH == 0:
@@ -50,7 +53,12 @@ class SerenityStateTransition(BaseStateTransition):
             state = self.per_slot_transition(state)
             if state.slot == block.slot:
                 state = self.per_block_transition(state, block, check_proposer_signature)
-
+                break
+        else:
+            raise Exception(
+                f"Invariant: state.slot ({state.slot}) should be less "
+                "than block.slot ({block.slot}) so that state transition terminates"
+            )
         return state
 
     def apply_state_transition_without_block(self,
@@ -62,11 +70,21 @@ class SerenityStateTransition(BaseStateTransition):
         See docs for :meth:`eth2.beacon.state_machines.state_transitions.BaseStateTransition.apply_state_transition_without_block`  # noqa: E501
         for more information about the behavior of this method.
         """
+        if state.slot == slot:
+            return state
+
         for _ in range(state.slot, slot):
             state = self.cache_state(state)
             if (state.slot + 1) % self.config.SLOTS_PER_EPOCH == 0:
                 state = self.per_epoch_transition(state)
             state = self.per_slot_transition(state)
+            if state.slot == slot:
+                break
+        else:
+            raise Exception(
+                f"Invariant: state.slot ({state.slot}) should be less than slot ({slot}) "
+                "so that state transition terminates"
+            )
         return state
 
     def cache_state(self, state: BeaconState) -> BeaconState:
