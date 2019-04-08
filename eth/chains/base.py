@@ -947,11 +947,13 @@ class MiningChain(Chain):
                      block: BaseBlock,
                      perform_validation: bool=True,
                      validate_uncles=True,
+                     resume_from: MidBlockState=None,
                      ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         imported_block, new_canonical_blocks, old_canonical_blocks = super().import_block(
             block,
             perform_validation,
             validate_uncles=validate_uncles,
+            resume_from=resume_from,
             )
 
         self.header = self.ensure_header()
