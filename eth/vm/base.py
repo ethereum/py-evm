@@ -621,7 +621,7 @@ class VM(BaseVM):
             receipts,
         )
 
-        return self.mine_block(receipts=receipts)
+        return self.mine_block(receipts=receipts, mid_block_state=mid_block_state)
 
     def import_block(self, block: BaseBlock) -> BaseBlock:
         """
@@ -667,14 +667,10 @@ class VM(BaseVM):
         Mine the current block. Proxies to self.pack_block method.
         """
         receipts = kwargs.pop('receipts', ())
+        mid_block_state = kwargs.pop('mid_block_state', None)
         packed_block = self.pack_block(self.block, *args, **kwargs)
 
-        try:
-            final_block = self.finalize_block(packed_block)
-        except EVMMissingData as exc:
-            saved_state = MidBlockState(self.state, packed_block.header, receipts)
-            exc.set_mid_block_state(saved_state)
-            raise
+        final_block = self.finalize_block(packed_block, receipts, mid_block_state)
 
         # Perform validation
         self.validate_block(final_block)
@@ -725,24 +721,31 @@ class VM(BaseVM):
                 uncle.coinbase,
             )
 
-    def finalize_block(self, block: BaseBlock) -> BaseBlock:
+    def finalize_block(self, block: BaseBlock, receipts=None, mid_block_state=None) -> BaseBlock:
         """
         Perform any finalization steps like awarding the block mining reward,
         and persisting the final state root.
         """
-        if block.number > 0:
+        if block.number > 0 and (not mid_block_state or not mid_block_state.applied_block_rewards):
             snapshot = self.state.snapshot()
             try:
                 self._assign_block_rewards(block)
             except EVMMissingData as exc:
                 self.state.revert(snapshot)
+                saved_state = MidBlockState(self.state, block.header, receipts, applied_block_rewards=False)
+                exc.set_mid_block_state(saved_state)
                 raise
             else:
                 self.state.commit(snapshot)
 
         # We need to call `persist` here since the state db batches
         # all writes until we tell it to write to the underlying db
-        self.state.persist()
+        try:
+            self.state.persist()
+        except EVMMissingData as exc:
+            saved_state = MidBlockState(self.state, block.header, receipts, applied_block_rewards=True)
+            exc.set_mid_block_state(saved_state)
+            raise
 
         return block.copy(header=block.header.copy(state_root=self.state.state_root))
 

@@ -34,6 +34,7 @@ class MidBlockState(NamedTuple):
     state: 'BaseState'
     partial_header: BlockHeader
     completed_receipts: Tuple[Receipt, ...]
+    applied_block_rewards: bool = False
 
     # how many transactions have already been completed
     @property
@@ -45,7 +46,10 @@ class EVMMissingData(PyEVMError):
     mid_block_state = None
 
     def set_mid_block_state(self, mid_block_state: MidBlockState):
-        self.mid_block_state = mid_block_state
+        if self.mid_block_state is not None:
+            raise ValidationError("Cannot set mid-block state twice")
+        else:
+            self.mid_block_state = mid_block_state
 
     def __str__(self):
         return "EVMMissingData at transaction index %r" % (
