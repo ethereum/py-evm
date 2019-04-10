@@ -79,12 +79,21 @@ class Journal(BaseDB):
     def has_changeset(self, changeset_id: uuid.UUID) -> bool:
         return changeset_id in self.journal_data
 
-    def record_changeset(self) -> uuid.UUID:
+    def record_changeset(self, custom_changeset_id: uuid.UUID = None) -> uuid.UUID:
         """
         Creates a new changeset. Changesets are referenced by a random uuid4
         to prevent collisions between multiple changesets.
         """
-        changeset_id = uuid.uuid4()
+        if custom_changeset_id is not None:
+            if custom_changeset_id in self.journal_data:
+                raise ValidationError(
+                    "Tried to record with an existing changeset id: %r" % custom_changeset_id
+                )
+            else:
+                changeset_id = custom_changeset_id
+        else:
+            changeset_id = uuid.uuid4()
+
         self.journal_data[changeset_id] = {}
         return changeset_id
 
@@ -227,11 +236,14 @@ class JournalDB(BaseDB):
                 str(changeset_id)
             ))
 
-    def record(self) -> uuid.UUID:
+    def has_changeset(self, changeset_id: uuid.UUID) -> bool:
+        return self.journal.has_changeset(changeset_id)
+
+    def record(self, custom_changeset_id: uuid.UUID = None) -> uuid.UUID:
         """
         Starts a new recording and returns an id for the associated changeset
         """
-        return self.journal.record_changeset()
+        return self.journal.record_changeset(custom_changeset_id)
 
     def discard(self, changeset_id: uuid.UUID) -> None:
         """
