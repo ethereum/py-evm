@@ -1,9 +1,12 @@
-import pytest
+from uuid import uuid4
 
+from eth_utils import ValidationError
 from hypothesis import (
     given,
     strategies as st,
 )
+import pytest
+
 from eth.db.backends.memory import MemoryDB
 from eth.db.journal import JournalDB
 
@@ -44,6 +47,41 @@ def test_snapshot_and_revert_with_set(journal_db):
     journal_db.discard(changeset)
 
     assert journal_db.get(b'1') == b'test-a'
+
+
+def test_custom_snapshot_and_revert_with_set(journal_db):
+    journal_db.set(b'1', b'test-a')
+
+    assert journal_db.get(b'1') == b'test-a'
+
+    custom_changeset = uuid4()
+    changeset = journal_db.record(custom_changeset)
+
+    assert journal_db.has_changeset(custom_changeset)
+    assert changeset == custom_changeset
+
+    journal_db.set(b'1', b'test-b')
+
+    assert journal_db.get(b'1') == b'test-b'
+
+    journal_db.discard(changeset)
+
+    assert not journal_db.has_changeset(custom_changeset)
+
+    assert journal_db.get(b'1') == b'test-a'
+
+
+def test_custom_snapshot_revert_on_reuse(journal_db):
+    custom_changeset = uuid4()
+    journal_db.record(custom_changeset)
+
+    auto_changeset = journal_db.record()
+
+    with pytest.raises(ValidationError):
+        journal_db.record(custom_changeset)
+
+    with pytest.raises(ValidationError):
+        journal_db.record(auto_changeset)
 
 
 def test_snapshot_and_revert_with_delete(journal_db):
