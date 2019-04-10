@@ -36,6 +36,7 @@ class Journal(BaseDB):
         # to a dictionary of key:value pairs with the recorded changes
         # that belong to the changeset
         self.journal_data = collections.OrderedDict()  # type: collections.OrderedDict[uuid.UUID, Dict[bytes, Union[bytes, DeletedEntry]]]  # noqa E501
+        self._clears_at = set()  # type: Set[uuid.UUID]
 
     @property
     def root_changeset_id(self) -> uuid.UUID:
@@ -80,18 +81,26 @@ class Journal(BaseDB):
         self.journal_data[changeset_id] = {}
         return changeset_id
 
-    def pop_changeset(self, changeset_id: uuid.UUID) -> Dict[bytes, bytes]:
+    def pop_changeset(self, changeset_id: uuid.UUID) -> Dict[bytes, Union[bytes, DeletedEntry]]:
         """
         Returns all changes from the given changeset.  This includes all of
         the changes from any subsequent changeset, giving precidence to
         later changesets.
         """
         if changeset_id not in self.journal_data:
-            raise KeyError("Unknown changeset: {0}".format(changeset_id))
+            raise KeyError(changeset_id, "Unknown changeset in JournalDB")
 
         all_ids = tuple(self.journal_data.keys())
         changeset_idx = all_ids.index(changeset_id)
         changesets_to_pop = all_ids[changeset_idx:]
+        popped_clears = tuple(idx for idx in changesets_to_pop if idx in self._clears_at)
+        if popped_clears:
+            last_clear_idx = changesets_to_pop.index(popped_clears[-1])
+            changesets_to_drop = changesets_to_pop[:last_clear_idx]
+            changesets_to_merge = changesets_to_pop[last_clear_idx:]
+        else:
+            changesets_to_drop = ()
+            changesets_to_merge = changesets_to_pop
 
         # we pull all of the changesets *after* the changeset we are
         # reverting to and collapse them to a single set of keys (giving
@@ -99,24 +108,59 @@ class Journal(BaseDB):
         changeset_data = merge(*(
             self.journal_data.pop(c_id)
             for c_id
-            in changesets_to_pop
+            in changesets_to_merge
         ))
 
+        # drop the changes on the floor if they came before a clear that is being committed
+        for changeset_id in changesets_to_drop:
+            self.journal_data.pop(changeset_id)
+
+        self._clears_at.difference_update(popped_clears)
         return changeset_data
 
-    def commit_changeset(self, changeset_id: uuid.UUID) -> Dict[bytes, bytes]:
+    def clear(self) -> None:
+        """
+        Treat as if the *underlying* database will also be cleared by some other mechanism.
+        We build a special empty changeset just for marking that all previous data should
+        be ignored.
+        """
+        # these internal records are used as a way to tell the difference between
+        # changes that came before and after the clear
+        self.record_changeset()
+        self._clears_at.add(self.latest_id)
+        self.record_changeset()
+
+    def has_clear(self, check_changeset_id: uuid.UUID) -> bool:
+        for changeset_id in reversed(self.journal_data.keys()):
+            if changeset_id in self._clears_at:
+                return True
+            elif check_changeset_id == changeset_id:
+                return False
+        raise ValidationError("Changeset ID %s is not in the journal" % check_changeset_id)
+
+    def commit_changeset(self, changeset_id: uuid.UUID) -> Dict[bytes, Union[bytes, DeletedEntry]]:
         """
         Collapses all changes for the given changeset into the previous
         changesets if it exists.
         """
+        does_clear = self.has_clear(changeset_id)
         changeset_data = self.pop_changeset(changeset_id)
         if not self.is_empty():
-            # we only have to merge the changes into the latest changeset if
+            # we only have to assign changeset data into the latest changeset if
             # there is one.
-            self.latest = merge(
-                self.latest,
-                changeset_data,
-            )
+            if does_clear:
+                # if there was a clear and more changesets underneath then clear the latest
+                # changeset, and replace with a new clear changeset
+                self.latest = {}
+                self._clears_at.add(self.latest_id)
+                self.record_changeset()
+                self.latest = changeset_data
+            else:
+                # otherwise, merge in all the current data
+                self.latest = merge(
+                    self.latest,
+                    changeset_data,
+                )
         return changeset_data
 
     #
@@ -128,8 +172,10 @@ class Journal(BaseDB):
         order, returning from the first one in which the key is present.
         """
         # Ignored from mypy because of https://github.com/python/typeshed/issues/2078
-        for changeset_data in reversed(self.journal_data.values()):
-            if key in changeset_data:
+        for changeset_id, changeset_data in reversed(self.journal_data.items()):
+            if changeset_id in self._clears_at:
+                return DELETED_ENTRY
+            elif key in changeset_data:
                 return changeset_data[key]
             else:
                 continue
@@ -177,7 +223,7 @@ class JournalDB(BaseDB):
 
         val = self.journal[key]
         if val is DELETED_ENTRY:
-            raise KeyError(key)
+            raise KeyError(key, "item was explicitly deleted in JournalDB")
         elif val is None:
             return self.wrapped_db[key]
         else:
@@ -193,11 +239,35 @@ class JournalDB(BaseDB):
         self.journal[key] = value
 
     def _exists(self, key: bytes) -> bool:
-        return key in self.journal or key in self.wrapped_db
+        val = self.journal[key]
+        if val is DELETED_ENTRY:
+            return False
+        elif val is None:
+            return key in self.wrapped_db
+        else:
+            return True
+
+    def clear(self) -> None:
+        """
+        Remove all keys. Immediately after a clear, *all* getitem requests will return a KeyError.
+        That includes the changes pending persist and any data in the underlying database.
+
+        (This action is journaled, like all other actions)
+
+        clear will *not* persist the emptying of all keys in the underlying DB.
+        It only prevents any updates (or deletes!) before it from being persisted.
+
+        Any caller that wants to use clear must also make sure that the underlying database
+        reflects their desired end state (maybe emptied, maybe not).
+        """
+        self.journal.clear()
+
+    def has_clear(self) -> bool:
+        return self.journal.has_clear(self.journal.root_changeset_id)
 
     def __delitem__(self, key: bytes) -> None:
         if key not in self.journal and key not in self.wrapped_db:
-            raise KeyError(key)
+            raise KeyError(key, "key could not be deleted in JournalDB, because it was missing")
         del self.journal[key]
 
     #
@@ -240,7 +310,7 @@ class JournalDB(BaseDB):
         if self.journal.is_empty():
             for key, value in journal_data.items():
                 if value is not DELETED_ENTRY:
-                    self.wrapped_db[key] = value
+                    self.wrapped_db[key] = value  # type: ignore # value can only be bytes here
                 else:
                     try:
                         del self.wrapped_db[key]

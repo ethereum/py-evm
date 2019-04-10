@@ -30,6 +30,29 @@ def test_delete_removes_data_from_underlying_db_after_persist(journal_db, memory
     assert memory_db.exists(b'1') is False
 
 
+def test_clear_leaves_data_in_underlying_db_after_persist(journal_db, memory_db):
+    """
+    JournalDB.clear() can't assume that it can iterate all underlying keys, so it
+    can't know which data to delete on disk. Instead, clear() is only responsible
+    for deleting all changes that came before it.
+    """
+    memory_db.set(b'underlying-untouched', b'exists')
+    memory_db.set(b'underlying-modified', b'unchanged')
+
+    journal_db.set(b'new-before-clear', b'never added')
+    journal_db.set(b'underlying-modified', b'dropped')
+    journal_db.clear()
+    journal_db.set(b'after-clear', b'added')
+
+    journal_db.persist()
+
+    assert memory_db[b'underlying-untouched'] == b'exists'
+    assert memory_db[b'underlying-modified'] == b'unchanged'
+    with pytest.raises(KeyError):
+        memory_db[b'new-before-clear']
+    assert memory_db[b'after-clear'] == b'added'
+
+
 def test_snapshot_and_revert_with_set(journal_db):
     journal_db.set(b'1', b'test-a')
 
@@ -62,6 +85,41 @@ def test_snapshot_and_revert_with_delete(journal_db):
 
     assert journal_db.exists(b'1') is True
     assert journal_db.get(b'1') == b'test-a'
+
+
+def test_snapshot_and_revert_with_clear(journal_db, memory_db):
+    memory_db.set(b'only-in-wrapped', b'A')
+    memory_db.set(b'wrapped-and-journal', b'B')
+
+    journal_db.set(b'wrapped-and-journal', b'C')
+    journal_db.set(b'only-in-journal', b'D')
+
+    changeset = journal_db.record()
+
+    journal_db.clear()
+
+    assert journal_db.exists(b'only-in-wrapped') is False
+    with pytest.raises(KeyError):
+        journal_db[b'only-in-wrapped']
+
+    assert journal_db.exists(b'wrapped-and-journal') is False
+    with pytest.raises(KeyError):
+        journal_db[b'wrapped-and-journal']
+
+    assert journal_db.exists(b'only-in-journal') is False
+    with pytest.raises(KeyError):
+        journal_db[b'only-in-journal']
+
+    journal_db.discard(changeset)
+
+    assert journal_db.exists(b'only-in-wrapped') is True
+    assert journal_db[b'only-in-wrapped'] == b'A'
+
+    assert journal_db.exists(b'wrapped-and-journal') is True
+    assert journal_db[b'wrapped-and-journal'] == b'C'
+
+    assert journal_db.exists(b'only-in-journal') is True
+    assert journal_db[b'only-in-journal'] == b'D'
 
 
 def test_revert_clears_reverted_journal_entries(journal_db):
@@ -141,6 +199,48 @@ def test_commit_merges_changeset_into_previous(journal_db):
     assert journal_db.journal.has_changeset(changeset) is False
 
 
+def test_journal_db_has_clear(journal_db):
+    journal_db.clear()
+    assert journal_db.has_clear()
+
+    journal_db.reset()
+    assert not journal_db.has_clear()
+
+    journal_db.record()
+    journal_db.clear()
+
+    assert journal_db.has_clear()
+
+
+def test_merged_clear_still_clears_before_merge(journal_db, memory_db):
+    memory_db.set(b'only-in-wrapped', b'A')
+    memory_db.set(b'wrapped-and-journal', b'B')
+
+    journal_db.set(b'wrapped-and-journal', b'C')
+    journal_db.set(b'only-in-journal', b'D')
+
+    journal_db.record()
+    journal_db.set(b'in-unmerged-snapshot', b'E')
+
+    journal_db.record()
+    journal_db.set(b'in-merged-snapshot', b'F')
+
+    changeset3 = journal_db.record()
+    journal_db.set(b'just-before-clear', b'G')
+    journal_db.clear()
+    journal_db.set(b'just-after-clear', b'H')
+
+    journal_db.commit(changeset3)
+
+    assert not journal_db.exists(b'only-in-wrapped')
+    assert not journal_db.exists(b'wrapped-and-journal')
+    assert not journal_db.exists(b'only-in-journal')
+    assert not journal_db.exists(b'in-merged-snapshot')
+    assert not journal_db.exists(b'in-unmerged-snapshot')
+    assert not journal_db.exists(b'just-before-clear')
+    assert journal_db.exists(b'just-after-clear')
+
+
 def test_committing_middle_changeset_merges_in_subsequent_changesets(journal_db):
 
     journal_db.set(b'1', b'test-a')
@@ -195,12 +295,22 @@ def test_journal_restarts_after_write(journal_db, memory_db):
 
 
 def test_returns_key_from_underlying_db_if_missing(journal_db, memory_db):
-    changeset = journal_db.record()  # noqa: F841
+    journal_db.record()
     memory_db.set(b'1', b'test-a')
 
     assert memory_db.exists(b'1')
 
     assert journal_db.get(b'1') == b'test-a'
+
+
+def test_is_empty_if_deleted(journal_db, memory_db):
+    memory_db.set(b'1', b'test-a')
+
+    journal_db.record()
+
+    del journal_db[b'1']
+
+    assert not journal_db.exists(b'1')
 
 
 # keys: a-e, values: A-E
