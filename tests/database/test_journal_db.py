@@ -295,12 +295,22 @@ def test_journal_restarts_after_write(journal_db, memory_db):
 
 
 def test_returns_key_from_underlying_db_if_missing(journal_db, memory_db):
-    changeset = journal_db.record()  # noqa: F841
+    journal_db.record()
     memory_db.set(b'1', b'test-a')
 
     assert memory_db.exists(b'1')
 
     assert journal_db.get(b'1') == b'test-a'
+
+
+def test_is_empty_if_deleted(journal_db, memory_db):
+    memory_db.set(b'1', b'test-a')
+
+    journal_db.record()
+
+    del journal_db[b'1']
+
+    assert not journal_db.exists(b'1')
 
 
 # keys: a-e, values: A-E
