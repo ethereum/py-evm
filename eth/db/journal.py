@@ -4,8 +4,9 @@ import uuid
 
 from eth_utils.toolz import (
     first,
-    merge,
     last,
+    merge,
+    nth,
 )
 from eth_utils import (
     ValidationError,
@@ -43,6 +44,13 @@ class Journal(BaseDB):
         Returns the id of the root changeset
         """
         return first(self.journal_data.keys())
+
+    @property
+    def is_squashed(self) -> bool:
+        """
+        Returns the id of the root changeset
+        """
+        return len(self.journal_data) < 2
 
     @property
     def latest_id(self) -> uuid.UUID:
@@ -118,6 +126,13 @@ class Journal(BaseDB):
                 changeset_data,
             )
         return changeset_data
+
+    def squash(self) -> None:
+        if self.is_squashed:
+            return
+
+        changeset_id_after_root = nth(1, self.journal_data.keys())
+        self.commit_changeset(changeset_id_after_root)
 
     #
     # Database API
@@ -256,6 +271,12 @@ class JournalDB(BaseDB):
         Persist all changes in underlying db
         """
         self.commit(self.journal.root_changeset_id)
+
+    def squash(self) -> None:
+        """
+        Commit everything possible without persisting
+        """
+        self.journal.squash()
 
     def reset(self) -> None:
         """
