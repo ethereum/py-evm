@@ -1,4 +1,8 @@
 import pytest
+from eth_utils import (
+    ValidationError,
+)
+
 from eth.db.backends.memory import MemoryDB
 from eth.db.batch import BatchDB
 
@@ -65,6 +69,58 @@ def test_batch_db_with_set_and_delete(base_db, batch_db):
     expected_result = {b'key-2': b'unrelated'}
     diff.apply_to(example_db)
     assert example_db == expected_result
+
+
+def test_batch_db_read_through_should_fail_to_commit_deletes(base_db):
+    batch_db = BatchDB(base_db, read_through_deletes=True)
+
+    # When a batch_db is reading through it's deletes, those deletes
+    # should never be applied. It's nonsense
+    with pytest.raises(ValidationError):
+        batch_db.commit(apply_deletes=True)
+
+
+def test_batch_db_read_through_delete(base_db):
+    base_db[b'read-through-deleted'] = b'still-here'
+
+    batch_db = BatchDB(base_db, read_through_deletes=True)
+
+    batch_db.set(b'only-in-batch', b'will-disappear')
+
+    batch_db.delete(b'read-through-deleted')
+    batch_db.delete(b'only-in-batch')
+
+    assert b'read-through-deleted' in batch_db
+    assert batch_db[b'read-through-deleted'] == b'still-here'
+
+    assert b'only-in-batch' not in batch_db
+    with pytest.raises(KeyError):
+        batch_db[b'only-in-batch']
+
+    batch_db.commit(apply_deletes=False)
+
+    assert base_db[b'read-through-deleted'] == b'still-here'
+
+    # deleted batch data should never get pushed to the underlying
+    assert b'only-in-batch' not in base_db
+
+
+def test_batch_db_read_through_delete_after_modify(base_db):
+    base_db[b'modify-then-delete'] = b'original'
+
+    batch_db = BatchDB(base_db, read_through_deletes=True)
+
+    batch_db.set(b'modify-then-delete', b'new-val')
+
+    assert batch_db[b'modify-then-delete'] == b'new-val'
+
+    batch_db.delete(b'modify-then-delete')
+
+    assert batch_db[b'modify-then-delete'] == b'original'
+
+    batch_db.commit(apply_deletes=False)
+
+    assert base_db[b'modify-then-delete'] == b'original'
 
 
 def test_batch_db_with_exception(base_db, batch_db):

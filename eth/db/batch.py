@@ -1,5 +1,9 @@
 import logging
 
+from eth_utils import (
+    ValidationError,
+)
+
 from eth.db.diff import (
     DBDiff,
     DBDiffTracker,
@@ -45,6 +49,8 @@ class BatchDB(BaseDB):
         self.commit_to(self.wrapped_db, apply_deletes)
 
     def commit_to(self, target_db: BaseDB, apply_deletes: bool = True) -> None:
+        if apply_deletes and self._read_through_deletes:
+            raise ValidationError("BatchDB should never apply deletes when reading through deletes")
         diff = self.diff()
         diff.apply_to(target_db, apply_deletes)
         self.clear()
