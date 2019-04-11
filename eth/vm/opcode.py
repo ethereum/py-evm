@@ -1,5 +1,4 @@
 import functools
-import logging
 
 from abc import (
     ABC,
@@ -9,13 +8,12 @@ from abc import (
 from typing import (
     Any,
     Callable,
-    cast,
     Type,
     TypeVar,
     TYPE_CHECKING,
 )
 
-from eth.tools.logging import ExtendedDebugLogger
+from eth.tools.logging import HasExtendedDebugLogger
 
 from eth._utils.datatypes import Configurable
 
@@ -26,7 +24,7 @@ if TYPE_CHECKING:
 T = TypeVar('T')
 
 
-class Opcode(Configurable, ABC):
+class Opcode(Configurable, HasExtendedDebugLogger, ABC):
     mnemonic = None  # type: str
     gas_cost = None  # type: int
 
@@ -42,11 +40,6 @@ class Opcode(Configurable, ABC):
         Hook for performing the actual VM execution.
         """
         raise NotImplementedError("Must be implemented by subclasses")
-
-    @property
-    def logger(self) -> ExtendedDebugLogger:
-        logger_obj = logging.getLogger('eth.vm.logic.{0}'.format(self.mnemonic))
-        return cast(ExtendedDebugLogger, logger_obj)
 
     @classmethod
     def as_opcode(cls: Type[T],

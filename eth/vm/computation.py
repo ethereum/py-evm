@@ -3,7 +3,6 @@ from abc import (
     abstractmethod
 )
 import itertools
-import logging
 from typing import (  # noqa: F401
     Any,
     Callable,
@@ -33,7 +32,7 @@ from eth.typing import (
     BytesOrView,
 )
 from eth.tools.logging import (
-    ExtendedDebugLogger,
+    HasExtendedDebugLogger,
 )
 from eth._utils.datatypes import (
     Configurable,
@@ -84,7 +83,7 @@ def memory_gas_cost(size_in_bytes: int) -> int:
     return total_cost
 
 
-class BaseComputation(Configurable, ABC):
+class BaseComputation(Configurable, HasExtendedDebugLogger, ABC):
     """
     The base class for all execution computations.
 
@@ -119,8 +118,6 @@ class BaseComputation(Configurable, ABC):
     # VM configuration
     opcodes = None  # type: Dict[int, Any]
     _precompiles = None  # type: Dict[Address, Callable[['BaseComputation'], 'BaseComputation']]
-
-    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.vm.computation.Computation'))
 
     def __init__(self,
                  state: BaseState,

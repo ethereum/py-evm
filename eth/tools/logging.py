@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, cast
 
 DEBUG2_LEVEL_NUM = 8
 
@@ -14,3 +14,16 @@ def setup_extended_logging() -> None:
     logging.setLoggerClass(ExtendedDebugLogger)
     logging.addLevelName(DEBUG2_LEVEL_NUM, 'DEBUG2')
     setattr(logging, 'DEBUG2', DEBUG2_LEVEL_NUM)  # typing: ignore
+
+
+class HasExtendedDebugLogger:
+    _logger = None  # typing: ExtendedDebugLogger
+
+    @property
+    def logger(self) -> ExtendedDebugLogger:
+        if self._logger is None:
+            self._logger = cast(
+                ExtendedDebugLogger,
+                logging.getLogger(self.__module__ + '.' + self.__class__.__name__)
+            )
+        return self._logger

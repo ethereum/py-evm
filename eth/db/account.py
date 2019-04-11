@@ -3,7 +3,6 @@ from abc import (
     abstractmethod
 )
 from uuid import UUID
-import logging
 from lru import LRU
 from typing import cast, Set, Tuple  # noqa: F401
 
@@ -49,7 +48,7 @@ from eth.validation import (
     validate_canonical_address,
 )
 from eth.tools.logging import (
-    ExtendedDebugLogger
+    HasExtendedDebugLogger,
 )
 from eth._utils.padding import (
     pad32,
@@ -58,7 +57,7 @@ from eth._utils.padding import (
 from .hash_trie import HashTrie
 
 
-class BaseAccountDB(ABC):
+class BaseAccountDB(HasExtendedDebugLogger, ABC):
 
     @abstractmethod
     def __init__(self) -> None:
@@ -171,9 +170,6 @@ class BaseAccountDB(ABC):
 
 
 class AccountDB(BaseAccountDB):
-
-    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.db.account.AccountDB'))
-
     def __init__(self, db: BaseDB, state_root: Hash32=BLANK_ROOT_HASH) -> None:
         r"""
         Internal implementation details (subject to rapid change):
