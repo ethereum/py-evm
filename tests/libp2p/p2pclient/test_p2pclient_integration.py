@@ -75,7 +75,7 @@ async def try_until_success(coro_func, timeout=TIMEOUT_DURATION):
             break
         if (time.monotonic() - t_start) >= timeout:
             # timeout
-            assert False, f"{coro_func} still failed after `timeout` seconds"
+            assert False, f"{coro_func} still failed after `{timeout}` seconds"
         await asyncio.sleep(0.01)
 
 
@@ -1015,10 +1015,9 @@ async def test_pubsub_client_subscribe(p2pds):
     await p2pds[0].pubsub.publish(topic, another_data_1)
     pubsub_msg_1_0 = p2pd_pb.PSMessage()
     await read_pbmsg_safe(reader_1, pubsub_msg_1_0)
-    assert pubsub_msg_1_0.data == another_data_0
     pubsub_msg_1_1 = p2pd_pb.PSMessage()
     await read_pbmsg_safe(reader_1, pubsub_msg_1_1)
-    assert pubsub_msg_1_1.data == another_data_1
+    assert set([pubsub_msg_1_0.data, pubsub_msg_1_1.data]) == set([another_data_0, another_data_1])
     # test case: subscribe to multiple topics
     another_topic = "topic456"
     reader_0_another, writer_0_another = await p2pds[0].pubsub.subscribe(another_topic)
