@@ -29,6 +29,7 @@ from eth.constants import (
     EMPTY_SHA3,
 )
 from eth.db.backends.base import (
+    BaseAtomicDB,
     BaseDB,
 )
 from eth.db.batch import (
@@ -171,7 +172,7 @@ class AccountDB(BaseAccountDB):
 
     logger = cast(ExtendedDebugLogger, logging.getLogger('eth.db.account.AccountDB'))
 
-    def __init__(self, db: BaseDB, state_root: Hash32=BLANK_ROOT_HASH) -> None:
+    def __init__(self, db: BaseAtomicDB, state_root: Hash32=BLANK_ROOT_HASH) -> None:
         r"""
         Internal implementation details (subject to rapid change):
         Database entries go through several pipes, like so...
@@ -211,6 +212,7 @@ class AccountDB(BaseAccountDB):
         AccountDB synchronizes the snapshot/revert/persist of both of the
         journals.
         """
+        self._raw_store_db = db
         self._batchdb = BatchDB(db)
         self._batchtrie = BatchDB(db)
         self._journaldb = JournalDB(self._batchdb)
@@ -412,8 +414,9 @@ class AccountDB(BaseAccountDB):
 
     def persist(self) -> None:
         self.make_state_root()
-        self._batchtrie.commit(apply_deletes=False)
-        self._batchdb.commit(apply_deletes=True)
+        with self._raw_store_db.atomic_batch() as write_batch:
+            self._batchtrie.commit_to(write_batch, apply_deletes=False)
+            self._batchdb.commit_to(write_batch, apply_deletes=False)
 
     def _log_pending_accounts(self) -> None:
         accounts_displayed = set()  # type: Set[bytes]
