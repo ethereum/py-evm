@@ -46,7 +46,7 @@ class Journal(BaseDB):
         return first(self.journal_data.keys())
 
     @property
-    def is_squashed(self) -> bool:
+    def is_flattened(self) -> bool:
         """
         Returns the id of the root changeset
         """
@@ -136,8 +136,8 @@ class Journal(BaseDB):
             )
         return changeset_data
 
-    def squash(self) -> None:
-        if self.is_squashed:
+    def flatten(self) -> None:
+        if self.is_flattened:
             return
 
         changeset_id_after_root = nth(1, self.journal_data.keys())
@@ -284,11 +284,11 @@ class JournalDB(BaseDB):
         """
         self.commit(self.journal.root_changeset_id)
 
-    def squash(self) -> None:
+    def flatten(self) -> None:
         """
         Commit everything possible without persisting
         """
-        self.journal.squash()
+        self.journal.flatten()
 
     def reset(self) -> None:
         """

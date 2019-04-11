@@ -201,11 +201,11 @@ def test_committing_middle_changeset_merges_in_subsequent_changesets(journal_db)
     assert journal_db.journal.has_changeset(changeset_c) is False
 
 
-def test_squash_does_not_persist_0_checkpoints(journal_db, memory_db):
+def test_flatten_does_not_persist_0_checkpoints(journal_db, memory_db):
     journal_db.set(b'1', b'test-a')
 
     # should have no effect
-    journal_db.squash()
+    journal_db.flatten()
 
     assert b'1' not in memory_db
     assert b'1' in journal_db
@@ -215,7 +215,7 @@ def test_squash_does_not_persist_0_checkpoints(journal_db, memory_db):
     assert b'1' in memory_db
 
 
-def test_squash_does_not_persist_1_checkpoint(journal_db, memory_db):
+def test_flatten_does_not_persist_1_checkpoint(journal_db, memory_db):
     journal_db.set(b'1', b'test-a')
 
     checkpoint = journal_db.record()
@@ -224,7 +224,7 @@ def test_squash_does_not_persist_1_checkpoint(journal_db, memory_db):
 
     # should only remove this checkpoint, but b'2' still be available
     assert journal_db.has_changeset(checkpoint)
-    journal_db.squash()
+    journal_db.flatten()
     assert not journal_db.has_changeset(checkpoint)
 
     assert b'1' in journal_db
@@ -240,7 +240,7 @@ def test_squash_does_not_persist_1_checkpoint(journal_db, memory_db):
     assert b'2' in memory_db
 
 
-def test_squash_does_not_persist_2_checkpoint(journal_db, memory_db):
+def test_flatten_does_not_persist_2_checkpoint(journal_db, memory_db):
     journal_db.set(b'1', b'test-a')
 
     checkpoint1 = journal_db.record()
@@ -254,7 +254,7 @@ def test_squash_does_not_persist_2_checkpoint(journal_db, memory_db):
     # should only remove these checkpoints, but 2 and 3 still be available
     assert journal_db.has_changeset(checkpoint1)
     assert journal_db.has_changeset(checkpoint2)
-    journal_db.squash()
+    journal_db.flatten()
     assert not journal_db.has_changeset(checkpoint1)
     assert not journal_db.has_changeset(checkpoint2)
 
