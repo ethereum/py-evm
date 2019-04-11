@@ -4,8 +4,9 @@ import uuid
 
 from eth_utils.toolz import (
     first,
-    merge,
     last,
+    merge,
+    nth,
 )
 from eth_utils import (
     ValidationError,
@@ -46,6 +47,13 @@ class Journal(BaseDB):
         return first(self.journal_data.keys())
 
     @property
+    def is_flattened(self) -> bool:
+        """
+        Returns the id of the root changeset
+        """
+        return len(self.journal_data) < 2
+
+    @property
     def latest_id(self) -> uuid.UUID:
         """
         Returns the id of the latest changeset
@@ -72,12 +80,21 @@ class Journal(BaseDB):
     def has_changeset(self, changeset_id: uuid.UUID) -> bool:
         return changeset_id in self.journal_data
 
-    def record_changeset(self) -> uuid.UUID:
+    def record_changeset(self, custom_changeset_id: uuid.UUID = None) -> uuid.UUID:
         """
         Creates a new changeset. Changesets are referenced by a random uuid4
         to prevent collisions between multiple changesets.
         """
-        changeset_id = uuid.uuid4()
+        if custom_changeset_id is not None:
+            if custom_changeset_id in self.journal_data:
+                raise ValidationError(
+                    "Tried to record with an existing changeset id: %r" % custom_changeset_id
+                )
+            else:
+                changeset_id = custom_changeset_id
+        else:
+            changeset_id = uuid.uuid4()
+
         self.journal_data[changeset_id] = {}
         return changeset_id
 
@@ -162,6 +179,13 @@ class Journal(BaseDB):
                     changeset_data,
                 )
         return changeset_data
+
+    def flatten(self) -> None:
+        if self.is_flattened:
+            return
+
+        changeset_id_after_root = nth(1, self.journal_data.keys())
+        self.commit_changeset(changeset_id_after_root)
 
     #
     # Database API
@@ -282,11 +306,14 @@ class JournalDB(BaseDB):
                 str(changeset_id)
             ))
 
-    def record(self) -> uuid.UUID:
+    def has_changeset(self, changeset_id: uuid.UUID) -> bool:
+        return self.journal.has_changeset(changeset_id)
+
+    def record(self, custom_changeset_id: uuid.UUID = None) -> uuid.UUID:
         """
         Starts a new recording and returns an id for the associated changeset
         """
-        return self.journal.record_changeset()
+        return self.journal.record_changeset(custom_changeset_id)
 
     def discard(self, changeset_id: uuid.UUID) -> None:
         """
@@ -326,6 +353,12 @@ class JournalDB(BaseDB):
         Persist all changes in underlying db
         """
         self.commit(self.journal.root_changeset_id)
+
+    def flatten(self) -> None:
+        """
+        Commit everything possible without persisting
+        """
+        self.journal.flatten()
 
     def reset(self) -> None:
         """
