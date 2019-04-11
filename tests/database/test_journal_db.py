@@ -202,75 +202,75 @@ def test_committing_middle_changeset_merges_in_subsequent_changesets(journal_db)
 
 
 def test_flatten_does_not_persist_0_checkpoints(journal_db, memory_db):
-    journal_db.set(b'1', b'test-a')
+    journal_db.set(b'before-record', b'test-a')
 
     # should have no effect
     journal_db.flatten()
 
-    assert b'1' not in memory_db
-    assert b'1' in journal_db
+    assert b'before-record' not in memory_db
+    assert b'before-record' in journal_db
 
     journal_db.persist()
 
-    assert b'1' in memory_db
+    assert b'before-record' in memory_db
 
 
 def test_flatten_does_not_persist_1_checkpoint(journal_db, memory_db):
-    journal_db.set(b'1', b'test-a')
+    journal_db.set(b'before-record', b'test-a')
 
     checkpoint = journal_db.record()
 
-    journal_db.set(b'2', b'test-b')
+    journal_db.set(b'after-one-record', b'test-b')
 
-    # should only remove this checkpoint, but b'2' still be available
+    # should only remove this checkpoint, but after-one-record is still available
     assert journal_db.has_changeset(checkpoint)
     journal_db.flatten()
     assert not journal_db.has_changeset(checkpoint)
 
-    assert b'1' in journal_db
-    assert b'2' in journal_db
+    assert b'before-record' in journal_db
+    assert b'after-one-record' in journal_db
 
     # changes should not be persisted yet
-    assert b'1' not in memory_db
-    assert b'2' not in memory_db
+    assert b'before-record' not in memory_db
+    assert b'after-one-record' not in memory_db
 
     journal_db.persist()
 
-    assert b'1' in memory_db
-    assert b'2' in memory_db
+    assert b'before-record' in memory_db
+    assert b'after-one-record' in memory_db
 
 
 def test_flatten_does_not_persist_2_checkpoint(journal_db, memory_db):
-    journal_db.set(b'1', b'test-a')
+    journal_db.set(b'before-record', b'test-a')
 
     checkpoint1 = journal_db.record()
 
-    journal_db.set(b'2', b'test-b')
+    journal_db.set(b'after-one-record', b'test-b')
 
     checkpoint2 = journal_db.record()
 
-    journal_db.set(b'3', b'3')
+    journal_db.set(b'after-two-records', b'3')
 
-    # should only remove these checkpoints, but 2 and 3 still be available
+    # should remove these checkpoints, but after-one-record & after-two-records are still available
     assert journal_db.has_changeset(checkpoint1)
     assert journal_db.has_changeset(checkpoint2)
     journal_db.flatten()
     assert not journal_db.has_changeset(checkpoint1)
     assert not journal_db.has_changeset(checkpoint2)
 
-    assert b'1' in journal_db
-    assert b'2' in journal_db
-    assert b'3' in journal_db
+    assert b'before-record' in journal_db
+    assert b'after-one-record' in journal_db
+    assert b'after-two-records' in journal_db
 
-    assert b'1' not in memory_db
-    assert b'2' not in memory_db
-    assert b'3' not in memory_db
+    assert b'before-record' not in memory_db
+    assert b'after-one-record' not in memory_db
+    assert b'after-two-records' not in memory_db
 
     journal_db.persist()
 
-    assert b'1' in memory_db
-    assert b'2' in memory_db
-    assert b'3' in memory_db
+    assert b'before-record' in memory_db
+    assert b'after-one-record' in memory_db
+    assert b'after-two-records' in memory_db
 
 
 def test_persist_writes_to_underlying_db(journal_db, memory_db):
