@@ -390,19 +390,19 @@ class AccountDB(BaseAccountDB):
     #
     # Record and discard API
     #
-    def record(self) -> Tuple[UUID, UUID]:
-        return (self._journaldb.record(), self._journaltrie.record())
+    def record(self) -> UUID:
+        changeset_id = self._journaldb.record()
+        self._journaltrie.record(changeset_id)
+        return changeset_id
 
-    def discard(self, changeset: Tuple[UUID, UUID]) -> None:
-        db_changeset, trie_changeset = changeset
-        self._journaldb.discard(db_changeset)
-        self._journaltrie.discard(trie_changeset)
+    def discard(self, changeset: UUID) -> None:
+        self._journaldb.discard(changeset)
+        self._journaltrie.discard(changeset)
         self._account_cache.clear()
 
-    def commit(self, changeset: Tuple[UUID, UUID]) -> None:
-        db_changeset, trie_changeset = changeset
-        self._journaldb.commit(db_changeset)
-        self._journaltrie.commit(trie_changeset)
+    def commit(self, changeset: UUID) -> None:
+        self._journaldb.commit(changeset)
+        self._journaltrie.commit(changeset)
 
     def make_state_root(self) -> Hash32:
         self.logger.debug2("Generating AccountDB trie")
