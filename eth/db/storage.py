@@ -94,7 +94,6 @@ class StorageLookup(BaseDB):
         try:
             return read_trie[hashed_slot]
         except trie_exceptions.MissingTrieNode as exc:
-            self.logger.info("StorageGettingMissingNode:%s", exc.missing_node_hash.hex())
             raise MissingStorageTrieNode(
                 exc.missing_node_hash,
                 self._starting_root_hash,
@@ -120,7 +119,6 @@ class StorageLookup(BaseDB):
         try:
             del write_trie[hashed_slot]
         except trie_exceptions.MissingTrieNode as exc:
-            self.logger.info("StorageDeletingMissingNode:%s", exc.missing_node_hash.hex())
             raise MissingStorageTrieNode(
                 exc.missing_node_hash,
                 self._starting_root_hash,
