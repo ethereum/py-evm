@@ -34,6 +34,7 @@ deps = {
     'test': [
         "hypothesis==3.69.5",
         "pexpect>=4.6, <5",
+        "factory-boy==2.11.1",
         # pinned to <3.7 until async fixtures work again
         # https://github.com/pytest-dev/pytest-asyncio/issues/89
         "pytest>=3.6,<3.7",

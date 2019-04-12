@@ -1,6 +1,5 @@
 import asyncio
 import pytest
-import socket
 
 from eth_keys import keys
 
@@ -16,6 +15,7 @@ from p2p.kademlia import (
     Address,
 )
 from p2p.peer import PeerConnection
+from p2p.tools.factories import get_open_port
 from p2p.tools.paragon import (
     ParagonContext,
     ParagonPeer,
@@ -32,15 +32,6 @@ from tests.core.integration_test_helpers import (
     FakeAsyncHeaderDB,
     make_peer_pool_answer_event_bus_requests,
 )
-
-
-def get_open_port():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    s.listen(1)
-    port = s.getsockname()[1]
-    s.close()
-    return port
 
 
 port = get_open_port()

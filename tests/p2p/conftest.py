@@ -1,5 +1,12 @@
 import pytest
 
+from p2p.tools.factories import (
+    AddressFactory,
+    DiscoveryProtocolFactory,
+    NodeFactory,
+    PrivateKeyFactory,
+)
+
 
 """
 # Uncomment the following lines to globally change the logging level for all
@@ -35,3 +42,13 @@ def _network_sim(router):
     network = router.get_network(name='simulated')
     with network.patch_asyncio():
         yield network
+
+
+@pytest.fixture(scope='session')
+def factories():
+    class P2PFactories:
+        AddressFactory = AddressFactory
+        DiscoveryProtocolFactory = DiscoveryProtocolFactory
+        NodeFactory = NodeFactory
+        PrivateKeyFactory = staticmethod(PrivateKeyFactory)
+    return P2PFactories()

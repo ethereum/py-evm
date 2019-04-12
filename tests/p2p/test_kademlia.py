@@ -1,12 +1,4 @@
-import random
-
 import pytest
-
-from eth_keys import keys
-
-from eth_utils import (
-    int_to_big_endian,
-)
 
 from p2p import kademlia
 
@@ -22,8 +14,8 @@ def test_node_from_uri():
     assert node.pubkey.to_hex() == '0x' + pubkey
 
 
-def test_routingtable_split_bucket():
-    table = kademlia.RoutingTable(random_node())
+def test_routingtable_split_bucket(factories):
+    table = kademlia.RoutingTable(factories.NodeFactory())
     assert len(table.buckets) == 1
     old_bucket = table.buckets[0]
     table.split_bucket(0)
@@ -31,22 +23,22 @@ def test_routingtable_split_bucket():
     assert old_bucket not in table.buckets
 
 
-def test_routingtable_add_node():
-    table = kademlia.RoutingTable(random_node())
+def test_routingtable_add_node(factories):
+    table = kademlia.RoutingTable(factories.NodeFactory())
     for i in range(table.buckets[0].k):
         # As long as the bucket is not full, the new node is added to the bucket and None is
         # returned.
-        assert table.add_node(random_node()) is None
+        assert table.add_node(factories.NodeFactory()) is None
         assert len(table.buckets) == 1
         assert len(table) == i + 1
     assert table.buckets[0].is_full
     # Now that the bucket is full, an add_node() should cause it to be split.
-    assert table.add_node(random_node()) is None
+    assert table.add_node(factories.NodeFactory()) is None
 
 
-def test_routingtable_remove_node():
-    table = kademlia.RoutingTable(random_node())
-    node1 = random_node()
+def test_routingtable_remove_node(factories):
+    table = kademlia.RoutingTable(factories.NodeFactory())
+    node1 = factories.NodeFactory()
     assert table.add_node(node1) is None
     assert node1 in table
 
@@ -55,33 +47,33 @@ def test_routingtable_remove_node():
     assert node1 not in table
 
 
-def test_routingtable_add_node_error():
-    table = kademlia.RoutingTable(random_node())
+def test_routingtable_add_node_error(factories):
+    table = kademlia.RoutingTable(factories.NodeFactory())
     with pytest.raises(ValueError):
-        table.add_node(random_node(kademlia.k_max_node_id + 1))
+        table.add_node(factories.NodeFactory.with_nodeid(kademlia.k_max_node_id + 1))
 
 
-def test_routingtable_neighbours():
-    table = kademlia.RoutingTable(random_node())
+def test_routingtable_neighbours(factories):
+    table = kademlia.RoutingTable(factories.NodeFactory())
     for i in range(1000):
-        assert table.add_node(random_node()) is None
+        assert table.add_node(factories.NodeFactory()) is None
         assert i == len(table) - 1
 
     for _ in range(100):
-        node = random_node()
+        node = factories.NodeFactory()
         nearest_bucket = table.buckets_by_distance_to(node.id)[0]
         if not nearest_bucket.nodes:
             continue
         # Change nodeid to something that is in this bucket's range.
         node_a = nearest_bucket.nodes[0]
-        node_b = random_node(node_a.id + 1)
+        node_b = factories.NodeFactory.with_nodeid(node_a.id + 1)
         assert node_a == table.neighbours(node_b.id)[0]
 
 
-def test_routingtable_get_random_nodes():
-    table = kademlia.RoutingTable(random_node())
+def test_routingtable_get_random_nodes(factories):
+    table = kademlia.RoutingTable(factories.NodeFactory())
     for _ in range(100):
-        assert table.add_node(random_node()) is None
+        assert table.add_node(factories.NodeFactory()) is None
 
     nodes = list(table.get_random_nodes(50))
     assert len(nodes) == 50
@@ -94,13 +86,13 @@ def test_routingtable_get_random_nodes():
     assert len(set(nodes)) == 100
 
 
-def test_kbucket_add():
+def test_kbucket_add(factories):
     bucket = kademlia.KBucket(0, 100)
-    node = random_node()
+    node = factories.NodeFactory()
     assert bucket.add(node) is None
     assert bucket.nodes == [node]
 
-    node2 = random_node()
+    node2 = factories.NodeFactory()
     assert bucket.add(node2) is None
     assert bucket.nodes == [node, node2]
     assert bucket.head == node
@@ -110,24 +102,24 @@ def test_kbucket_add():
     assert bucket.head == node2
 
     bucket.k = 2
-    node3 = random_node()
+    node3 = factories.NodeFactory()
     assert bucket.add(node3) == node2
     assert bucket.nodes == [node2, node]
     assert bucket.head == node2
 
 
-def test_kbucket_remove():
+def test_kbucket_remove(factories):
     bucket = kademlia.KBucket(0, 100)
     bucket.k = 25
 
-    nodes = [random_node() for _ in range(bucket.k)]
+    nodes = factories.NodeFactory.create_batch(bucket.k)
     for node in nodes:
         bucket.add(node)
     assert bucket.nodes == nodes
     assert bucket.replacement_cache == []
 
     replacement_count = 10
-    replacement_nodes = [random_node() for _ in range(replacement_count)]
+    replacement_nodes = factories.NodeFactory.create_batch(replacement_count)
     for replacement_node in replacement_nodes:
         bucket.add(replacement_node)
     assert bucket.nodes == nodes
@@ -144,10 +136,10 @@ def test_kbucket_remove():
     assert bucket.replacement_cache == []
 
 
-def test_kbucket_split():
+def test_kbucket_split(factories):
     bucket = kademlia.KBucket(0, 100)
     for i in range(1, bucket.k + 1):
-        node = random_node()
+        node = factories.NodeFactory()
         # Set the IDs of half the nodes below the midpoint, so when we split we should end up with
         # two buckets containing k/2 nodes.
         if i % 2 == 0:
@@ -165,10 +157,10 @@ def test_kbucket_split():
     assert len(bucket2) == bucket.k / 2
 
 
-def test_bucket_ordering():
+def test_bucket_ordering(factories):
     first = kademlia.KBucket(0, 50)
     second = kademlia.KBucket(51, 100)
-    third = random_node()
+    third = factories.NodeFactory()
     assert first < second
     with pytest.raises(TypeError):
         assert first > third
@@ -192,8 +184,8 @@ def test_bucket_ordering():
         ), 0),
     )
 )
-def test_binary_get_bucket_for_node_error(bucket_list, node_id):
-    node = random_node(nodeid=node_id)
+def test_binary_get_bucket_for_node_error(factories, bucket_list, node_id):
+    node = factories.NodeFactory.with_nodeid(nodeid=node_id)
     with pytest.raises(ValueError):
         kademlia.binary_get_bucket_for_node(bucket_list, node)
 
@@ -213,19 +205,19 @@ def test_binary_get_bucket_for_node_error(bucket_list, node_id):
         ), 5, 1),
     )
 )
-def test_binary_get_bucket_for_node(bucket_list, node_id, correct_position):
-    node = random_node(nodeid=node_id)
+def test_binary_get_bucket_for_node(factories, bucket_list, node_id, correct_position):
+    node = factories.NodeFactory.with_nodeid(nodeid=node_id)
     assert kademlia.binary_get_bucket_for_node(bucket_list, node) == bucket_list[correct_position]
 
 
-def test_compute_shared_prefix_bits():
+def test_compute_shared_prefix_bits(factories):
     # When we have less than 2 nodes, the depth is k_id_size.
-    nodes = [random_node()]
+    nodes = [factories.NodeFactory()]
     assert kademlia._compute_shared_prefix_bits(nodes) == kademlia.k_id_size
 
     # Otherwise the depth is the number of leading bits (in the left-padded binary representation)
     # shared by all node IDs.
-    nodes.append(random_node())
+    nodes.append(factories.NodeFactory())
     nodes[0].id = int('0b1', 2)
     nodes[1].id = int('0b0', 2)
     assert kademlia._compute_shared_prefix_bits(nodes) == kademlia.k_id_size - 1
@@ -252,16 +244,3 @@ def test_check_relayed_addr():
     unspecified = kademlia.Address('0.0.0.0', 80)
     assert not kademlia.check_relayed_addr(local_host, unspecified)
     assert not kademlia.check_relayed_addr(public_host, unspecified)
-
-
-def random_pubkey():
-    pk = int_to_big_endian(random.getrandbits(kademlia.k_pubkey_size))
-    return keys.PublicKey(b'\x00' * (kademlia.k_pubkey_size // 8 - len(pk)) + pk)
-
-
-def random_node(nodeid=None):
-    address = kademlia.Address('127.0.0.1', 30303)
-    node = kademlia.Node(random_pubkey(), address)
-    if nodeid is not None:
-        node.id = nodeid
-    return node

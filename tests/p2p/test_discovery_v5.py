@@ -1,16 +1,7 @@
 import asyncio
-import os
-import random
 import socket
 
 import pytest
-
-from p2p import kademlia
-
-from tests.p2p.helpers import (
-    get_discovery_protocol,
-    random_node,
-)
 
 
 """
@@ -18,22 +9,22 @@ NOTE: These tests end up making actual network connections
 """
 
 
-async def get_listening_discovery_protocol(event_loop):
-    addr = kademlia.Address('127.0.0.1', random.randint(1024, 9999))
-    proto = get_discovery_protocol(os.urandom(4), addr)
+async def get_listening_discovery_protocol(factories, event_loop):
+    addr = factories.AddressFactory.localhost()
+    proto = factories.DiscoveryProtocolFactory(address=addr)
     await event_loop.create_datagram_endpoint(
         lambda: proto, local_addr=(addr.ip, addr.udp_port), family=socket.AF_INET)
     return proto
 
 
 @pytest.mark.asyncio
-async def test_topic_query(event_loop):
-    bob = await get_listening_discovery_protocol(event_loop)
-    les_nodes = [random_node() for _ in range(10)]
+async def test_topic_query(factories, event_loop):
+    bob = await get_listening_discovery_protocol(factories, event_loop)
+    les_nodes = factories.NodeFactory.create_batch(10)
     topic = b'les'
     for n in les_nodes:
         bob.topic_table.add_node(n, topic)
-    alice = await get_listening_discovery_protocol(event_loop)
+    alice = await get_listening_discovery_protocol(factories, event_loop)
 
     echo = alice.send_topic_query(bob.this_node, topic)
     received_nodes = await alice.wait_topic_nodes(bob.this_node, echo)
@@ -43,9 +34,9 @@ async def test_topic_query(event_loop):
 
 
 @pytest.mark.asyncio
-async def test_topic_register(event_loop):
-    bob = await get_listening_discovery_protocol(event_loop)
-    alice = await get_listening_discovery_protocol(event_loop)
+async def test_topic_register(factories, event_loop):
+    bob = await get_listening_discovery_protocol(factories, event_loop)
+    alice = await get_listening_discovery_protocol(factories, event_loop)
     topics = [b'les', b'les2']
 
     # In order to register ourselves under a given topic we need to first get a ticket.
