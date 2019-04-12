@@ -406,6 +406,7 @@ class AccountDB(BaseAccountDB):
             try:
                 return self._journaldb[code_hash]
             except KeyError:
+                self.logger.info("BytecodeMissingNode:%s", code_hash.hex())
                 raise MissingBytecode(code_hash) from KeyError
 
     def set_code(self, address: Address, code: bytes) -> None:
@@ -468,6 +469,7 @@ class AccountDB(BaseAccountDB):
         try:
             return lookup_trie[address]
         except trie_exceptions.MissingTrieNode as exc:
+            self.logger.info("AccountGettingMissingNode:%s", exc.missing_node_hash.hex())
             raise MissingAccountTrieNode(*exc.args) from exc
         except KeyError:
             # In case the account is deleted in the JournalDB
@@ -630,6 +632,7 @@ class AccountDB(BaseAccountDB):
                     encode_hex(delete_key),
                     exc,
                 )
+                self.logger.info("AccountDeletingMissingNode:%s", exc.missing_node_hash.hex())
                 raise MissingAccountTrieNode(
                     exc.missing_node_hash,
                     self._root_hash_at_last_persist,
@@ -659,6 +662,7 @@ class AccountDB(BaseAccountDB):
                     encode_hex(val),
                     exc,
                 )
+                self.logger.info("AccountSavingMissingNode:%s", exc.missing_node_hash.hex())
                 raise MissingAccountTrieNode(
                     exc.missing_node_hash,
                     self._root_hash_at_last_persist,
