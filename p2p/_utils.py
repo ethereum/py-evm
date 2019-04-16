@@ -8,6 +8,15 @@ from typing import Tuple
 import rlp
 
 
+def clamp(lower_bound: int, upper_bound: int, value: int) -> int:
+    if value < lower_bound:
+        return lower_bound
+    elif value > upper_bound:
+        return upper_bound
+    else:
+        return value
+
+
 def sxor(s1: bytes, s2: bytes) -> bytes:
     if len(s1) != len(s2):
         raise ValueError("Cannot sxor strings of different length")

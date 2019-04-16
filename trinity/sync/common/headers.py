@@ -164,7 +164,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                     self.wait(self._chain.coro_validate_chain(parent, (child, )))
                     for parent, child in pairs
                 ]
-                await asyncio.gather(*validate_pair_coros, loop=self.get_event_loop())
+                await self.wait(asyncio.gather(*validate_pair_coros, loop=self.get_event_loop()))
             except ValidationError as e:
                 self.logger.warning(
                     "Received an invalid header pair from %s, disconnecting: %s",

@@ -30,6 +30,7 @@ from lahja import (
     BroadcastConfig,
 )
 
+from p2p._utils import clamp
 from p2p.constants import (
     DEFAULT_MAX_PEERS,
     DEFAULT_PEER_BOOT_TIMEOUT,
@@ -318,8 +319,9 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
             # only attempt to connect to up to the maximum number of available
             # peer slots that are open.
-            available_peer_slots = min(10, max(1, self.max_peers - len(self)))
-            batch = tuple(take(available_peer_slots, nodes_iter))
+            available_peer_slots = self.max_peers - len(self)
+            batch_size = clamp(1, 10, available_peer_slots)
+            batch = tuple(take(batch_size, nodes_iter))
 
             # There are no more *known* nodes to connect to.
             if not batch:
@@ -331,11 +333,10 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 available_peer_slots,
             )
             # Try to connect to the peers concurrently.
-            # TODO: does this need to be wrapped in `self.wait`...
-            await asyncio.gather(
+            await self.wait(asyncio.gather(
                 *(self.connect_to_node(node) for node in batch),
                 loop=self.get_event_loop(),
-            )
+            ))
 
     async def connect_to_node(self, node: Node) -> None:
         """
