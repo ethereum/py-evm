@@ -55,8 +55,8 @@ def ecdh_agree(privkey: datatypes.PrivateKey, pubkey: datatypes.PublicKey) -> by
     pubkey_bytes = b'\x04' + pubkey.to_bytes()
     try:
         # either of these can raise a ValueError:
-        pubkey_nums = ec.EllipticCurvePublicNumbers.from_encoded_point(CURVE, pubkey_bytes)
-        ec_pubkey = pubkey_nums.public_key(default_backend())
+        pubkey_nums = ec.EllipticCurvePublicKey.from_encoded_point(CURVE, pubkey_bytes)
+        ec_pubkey = pubkey_nums.public_numbers().public_key(default_backend())
     except ValueError as exc:
         # Not all bytes can be made into valid public keys, see the warning at
         # https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ec/
