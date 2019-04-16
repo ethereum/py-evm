@@ -7,7 +7,13 @@ from eth2.beacon.chains.base import (
 from eth2.beacon.state_machines.forks.xiao_long_bao import (
     XiaoLongBaoStateMachine,
 )
-from .constants import GENESIS_SLOT, TESTNET_CHAIN_ID
+from .constants import (
+    TESTNET_CHAIN_ID,
+)
+from eth2.beacon.state_machines.forks.serenity.configs import (
+    SERENITY_CONFIG,
+)
+
 
 if TYPE_CHECKING:
     from eth2.beacon.typing import (  # noqa: F401
@@ -23,7 +29,8 @@ if TYPE_CHECKING:
 
 
 TESTNET_SM_CONFIGURATION = (
-    (GENESIS_SLOT, XiaoLongBaoStateMachine),
+    # FIXME: Shouldn't access GENESIS_SLOT from a particular state machine configs.
+    (SERENITY_CONFIG.GENESIS_SLOT, XiaoLongBaoStateMachine),
 )  # type: Tuple[Tuple[Slot, Type[BaseBeaconStateMachine]], ...]
 
 
