@@ -1,38 +1,38 @@
 from abc import (
     ABC,
-    abstractmethod
+    abstractmethod,
 )
+import logging
 from typing import (
+    TYPE_CHECKING,
     Tuple,
     Type,
 )
 
-import logging
-
-from eth_typing import (
-    Hash32,
+from eth._utils.datatypes import (
+    Configurable,
 )
-from eth_utils import (
-    encode_hex,
-    ValidationError,
+from eth.db.backends.base import (
+    BaseAtomicDB,
 )
-
-from eth.db.backends.base import BaseAtomicDB
 from eth.exceptions import (
     BlockNotFound,
 )
 from eth.validation import (
     validate_word,
 )
-
-from eth._utils.datatypes import (
-    Configurable,
+from eth_typing import (
+    Hash32,
 )
+from eth_utils import (
+    ValidationError,
+    encode_hex,
+)
+
 from eth2._utils.ssz import (
     validate_imported_block_unchanged,
 )
-
-from eth2.beacon.db.chain import (  # noqa: F401
+from eth2.beacon.db.chain import (
     BaseBeaconChainDB,
     BeaconChainDB,
 )
@@ -40,11 +40,12 @@ from eth2.beacon.exceptions import (
     BlockClassError,
     StateMachineNotFound,
 )
-from eth2.beacon.state_machines.base import BeaconStateMachine  # noqa: F401
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
 )
-from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.states import (
+    BeaconState,
+)
 from eth2.beacon.typing import (
     FromBlockParams,
     Slot,
@@ -53,6 +54,11 @@ from eth2.beacon.validation import (
     validate_slot,
 )
 
+if TYPE_CHECKING:
+    from eth2.beacon.state_machines.base import (  # noqa: F401
+        BaseBeaconStateMachine,
+    )
+
 
 class BaseBeaconChain(Configurable, ABC):
     """
@@ -60,7 +66,7 @@ class BaseBeaconChain(Configurable, ABC):
     """
     chaindb = None  # type: BaseBeaconChainDB
     chaindb_class = None  # type: Type[BaseBeaconChainDB]
-    sm_configuration = None  # type: Tuple[Tuple[Slot, Type[BeaconStateMachine]], ...]
+    sm_configuration = None  # type: Tuple[Tuple[Slot, Type[BaseBeaconStateMachine]], ...]
     chain_id = None  # type: int
 
     #
@@ -89,18 +95,18 @@ class BaseBeaconChain(Configurable, ABC):
     @abstractmethod
     def get_state_machine_class(
             cls,
-            block: BaseBeaconBlock) -> Type['BeaconStateMachine']:
+            block: BaseBeaconBlock) -> Type['BaseBeaconStateMachine']:
         pass
 
     @abstractmethod
-    def get_state_machine(self, at_block: BaseBeaconBlock=None) -> 'BeaconStateMachine':
+    def get_state_machine(self, at_block: BaseBeaconBlock=None) -> 'BaseBeaconStateMachine':
         pass
 
     @classmethod
     @abstractmethod
     def get_state_machine_class_for_block_slot(
             cls,
-            slot: Slot) -> Type['BeaconStateMachine']:
+            slot: Slot) -> Type['BaseBeaconStateMachine']:
         pass
 
     #
@@ -224,7 +230,7 @@ class BeaconChain(BaseBeaconChain):
     # StateMachine API
     #
     @classmethod
-    def get_state_machine_class(cls, block: BaseBeaconBlock) -> Type['BeaconStateMachine']:
+    def get_state_machine_class(cls, block: BaseBeaconBlock) -> Type['BaseBeaconStateMachine']:
         """
         Returns the ``StateMachine`` instance for the given block slot number.
         """
@@ -233,7 +239,7 @@ class BeaconChain(BaseBeaconChain):
     @classmethod
     def get_state_machine_class_for_block_slot(
             cls,
-            slot: Slot) -> Type['BeaconStateMachine']:
+            slot: Slot) -> Type['BaseBeaconStateMachine']:
         """
         Return the ``StateMachine`` class for the given block slot number.
         """
@@ -246,7 +252,7 @@ class BeaconChain(BaseBeaconChain):
                 return sm_class
         raise StateMachineNotFound("No StateMachine available for block slot: #{0}".format(slot))
 
-    def get_state_machine(self, at_block: BaseBeaconBlock=None) -> 'BeaconStateMachine':
+    def get_state_machine(self, at_block: BaseBeaconBlock=None) -> 'BaseBeaconStateMachine':
         """
         Return the ``StateMachine`` instance for the given block number.
         """

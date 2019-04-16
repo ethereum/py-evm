@@ -1,7 +1,3 @@
-from typing import (  # noqa: F401,
-    Type
-)
-
 from eth2.beacon.state_machines.base import (
     BeaconStateMachine,
 )
@@ -15,14 +11,8 @@ from eth2.beacon.state_machines.forks.serenity.state_transitions import (
 from eth2.beacon.state_machines.forks.serenity.states import (
     SerenityBeaconState,
 )
-from eth2.beacon.state_machines.state_transitions import (  # noqa: F401,
-    BaseStateTransition,
-)
-from eth2.beacon.types.blocks import (  # noqa: F401,
+from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
-)
-from eth2.beacon.types.states import (  # noqa: F401,
-    BeaconState,
 )
 from eth2.beacon.typing import (
     FromBlockParams,
@@ -35,12 +25,12 @@ from .configs import (
 
 class XiaoLongBaoStateMachine(BeaconStateMachine):
     # fork name
-    fork = 'xiao_long_bao'  # type: str
+    fork = 'xiao_long_bao'
 
     # classes
-    block_class = SerenityBeaconBlock  # type: Type[BaseBeaconBlock]
-    state_class = SerenityBeaconState  # type: Type[BeaconState]
-    state_transition_class = SerenityStateTransition  # type: Type[BaseStateTransition]
+    block_class = SerenityBeaconBlock
+    state_class = SerenityBeaconState
+    state_transition_class = SerenityStateTransition
     config = XIAO_LONG_BAO_CONFIG
 
     # methods
