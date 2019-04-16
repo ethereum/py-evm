@@ -1,6 +1,5 @@
 import pytest
 
-
 """
 # Uncomment the following lines to globally change the logging level for all
 # `p2p` namespaced loggers.  Useful for debugging failing tests in async code

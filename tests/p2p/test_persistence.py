@@ -4,15 +4,16 @@ import sqlite3
 import pytest
 import tempfile
 
-from p2p.ecies import generate_privkey
 from p2p.exceptions import (
     BadDatabaseError,
     HandshakeFailure,
     WrongGenesisFailure,
 )
 from p2p import (
-    kademlia,
     persistence,
+)
+from p2p.tools.factories import (
+    NodeFactory,
 )
 
 
@@ -79,16 +80,11 @@ def test_fails_when_schema_version_is_not_1(temp_path):
         SQLitePeerInfo(dbpath)
 
 
-def random_node():
-    address = kademlia.Address('127.0.0.1', 30303)
-    return kademlia.Node(generate_privkey(), address)
-
-
 def test_records_failures():
     # where can you get a random pubkey from?
     peer_info = MemoryPeerInfo()
 
-    node = random_node()
+    node = NodeFactory()
     assert peer_info.should_connect_to(node) is True
 
     peer_info.record_failure(node, HandshakeFailure())
@@ -105,7 +101,7 @@ def test_records_failures():
 
 
 def test_memory_does_not_persist():
-    node = random_node()
+    node = NodeFactory()
 
     peer_info = MemoryPeerInfo()
     assert peer_info.should_connect_to(node) is True
@@ -121,7 +117,7 @@ def test_memory_does_not_persist():
 
 def test_sql_does_persist(temp_path):
     dbpath = temp_path / "nodedb"
-    node = random_node()
+    node = NodeFactory()
 
     peer_info = SQLitePeerInfo(dbpath)
     assert peer_info.should_connect_to(node) is True
@@ -137,7 +133,7 @@ def test_sql_does_persist(temp_path):
 
 
 def test_timeout_works(monkeypatch):
-    node = random_node()
+    node = NodeFactory()
 
     current_time = datetime.datetime.utcnow()
 
@@ -165,6 +161,6 @@ def test_fails_when_closed():
     peer_info = MemoryPeerInfo()
     peer_info.close()
 
-    node = random_node()
+    node = NodeFactory()
     with pytest.raises(persistence.ClosedException):
         peer_info.record_failure(node, HandshakeFailure())
