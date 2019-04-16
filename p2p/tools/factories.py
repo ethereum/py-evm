@@ -31,17 +31,16 @@ def get_open_port() -> int:
     return port
 
 
-def random_pubkey() -> keys.PublicKey:
-    pk = int_to_big_endian(random.getrandbits(kademlia.k_pubkey_size))
-    return keys.PublicKey(b'\x00' * (kademlia.k_pubkey_size // 8 - len(pk)) + pk)
-
-
 def PrivateKeyFactory(seed: bytes=None) -> keys.PrivateKey:
     if seed is None:
-        key_bytes = int_to_big_endian(random.getrandbits(256))
+        key_bytes = int_to_big_endian(random.getrandbits(256)).rjust(32, b'\x00')
     else:
         key_bytes = keccak(seed)
     return keys.PrivateKey(key_bytes)
+
+
+def PublicKeyFactory() -> keys.PublicKey:
+    return PrivateKeyFactory().public_key
 
 
 class AddressFactory(factory.Factory):
@@ -61,7 +60,7 @@ class NodeFactory(factory.Factory):
     class Meta:
         model = kademlia.Node
 
-    pubkey = factory.LazyFunction(random_pubkey)
+    pubkey = factory.LazyFunction(PublicKeyFactory)
     address = factory.SubFactory(AddressFactory)
 
     @classmethod
