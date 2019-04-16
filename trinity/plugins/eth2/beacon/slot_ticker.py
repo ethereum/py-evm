@@ -33,6 +33,11 @@ class NewSlotEvent(BaseEvent):
 
 
 class SlotTicker(BaseService):
+    genesis_slot: Slot
+    genesis_time: int
+    seconds_per_slot: Second
+    latest_slot: Slot
+    event_bus: TrinityEventBusEndpoint
 
     def __init__(
             self,

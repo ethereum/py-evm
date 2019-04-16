@@ -1,9 +1,11 @@
-import pytest
-from trinity.plugins.eth2.beacon.slot_ticker import (
-    SlotTicker,
-    NewSlotEvent,
-)
 import asyncio
+
+import pytest
+
+from trinity.plugins.eth2.beacon.slot_ticker import (
+    NewSlotEvent,
+    SlotTicker,
+)
 
 
 @pytest.mark.asyncio
