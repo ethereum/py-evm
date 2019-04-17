@@ -27,5 +27,4 @@ async def test_burstable_rate_limiter_allows_burst():
 
     end_at = time.perf_counter()
     delta = end_at - start_at
-    print('DELTA:', delta)
     assert delta < 0.001
