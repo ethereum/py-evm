@@ -59,7 +59,6 @@ from p2p.peer import (
     PeerSubscriber,
 )
 from p2p.peer_backend import (
-    PoolMeta,
     BasePeerBackend,
     DiscoveryPeerBackend,
     BootnodesPeerBackend,
@@ -133,38 +132,38 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             BootnodesPeerBackend(self.event_bus),
         )
 
+    async def _add_peers_from_backend(self, backend: BasePeerBackend) -> None:
+        available_slots = self.max_peers - len(self)
+
+        try:
+            candidates = await self.wait(
+                backend.get_peer_candidates(
+                    num_requested=available_slots,
+                    num_connected_peers=len(self),
+                ),
+                timeout=REQUEST_PEER_CANDIDATE_TIMEOUT,
+            )
+        except TimeoutError:
+            self.logger.warning("PeerCandidateRequest timed out to backend %s", backend)
+            return
+        else:
+            self.logger.debug2(
+                "Got candidates from backend %s (%s)",
+                backend,
+                candidates,
+            )
+            await self.connect_to_nodes(iter(candidates))
+
     async def maybe_connect_more_peers(self) -> None:
         while self.is_operational:
-            await self.sleep(DISOVERY_INTERVAL)
-            available_slots = self.max_peers - len(self)
+            if self.is_full:
+                await self.sleep(DISOVERY_INTERVAL)
+                continue
 
-            if available_slots > 0:
-                pool_info = PoolMeta(
-                    num_connected_peers=len(self),
-                    num_requested=available_slots,
-                )
-
-                async def _add_peers_from_backend(backend: BasePeerBackend) -> None:
-                    try:
-                        candidates = await self.wait(
-                            backend.get_peer_candidates(pool_info),
-                            timeout=REQUEST_PEER_CANDIDATE_TIMEOUT,
-                        )
-                    except TimeoutError:
-                        self.logger.warning("PeerCandidateRequest timed out to backend %s", backend)
-                        return
-                    else:
-                        self.logger.debug2(
-                            "Got candidates from backend %s (%s)",
-                            backend,
-                            candidates,
-                        )
-                        await self.connect_to_nodes(iter(candidates))
-
-                await self.wait(asyncio.gather(*(
-                    _add_peers_from_backend(backend)
-                    for backend in self.peer_backends
-                )))
+            await self.wait(asyncio.gather(*(
+                self._add_peers_from_backend(backend)
+                for backend in self.peer_backends
+            )))
 
     def __len__(self) -> int:
         return len(self.connected_nodes)

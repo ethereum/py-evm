@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import (
     Iterable,
-    NamedTuple,
 )
 
 from lahja import (
@@ -22,14 +21,11 @@ from p2p.events import (
 )
 
 
-class PoolMeta(NamedTuple):
-    num_connected_peers: int
-    num_requested: int
-
-
 class BasePeerBackend(ABC):
     @abstractmethod
-    async def get_peer_candidates(self, pool_info: PoolMeta) -> Iterable[Node]:
+    async def get_peer_candidates(self,
+                                  num_requested: int,
+                                  num_connected_peers: int) -> Iterable[Node]:
         pass
 
 
@@ -40,9 +36,11 @@ class DiscoveryPeerBackend(BasePeerBackend):
     def __init__(self, event_bus: Endpoint) -> None:
         self.event_bus = event_bus
 
-    async def get_peer_candidates(self, pool_info: PoolMeta) -> Iterable[Node]:
+    async def get_peer_candidates(self,
+                                  num_requested: int,
+                                  num_connected_peers: int) -> Iterable[Node]:
         response = await self.event_bus.request(
-            PeerCandidatesRequest(pool_info.num_requested),
+            PeerCandidatesRequest(num_requested),
             TO_DISCOVERY_BROADCAST_CONFIG,
         )
         return from_uris(response.candidates)
@@ -52,8 +50,10 @@ class BootnodesPeerBackend(BasePeerBackend):
     def __init__(self, event_bus: Endpoint) -> None:
         self.event_bus = event_bus
 
-    async def get_peer_candidates(self, pool_info: PoolMeta) -> Iterable[Node]:
-        if pool_info.num_connected_peers == 0:
+    async def get_peer_candidates(self,
+                                  num_requested: int,
+                                  num_connected_peers: int) -> Iterable[Node]:
+        if num_connected_peers == 0:
             response = await self.event_bus.request(
                 RandomBootnodeRequest(),
                 TO_DISCOVERY_BROADCAST_CONFIG
