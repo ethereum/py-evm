@@ -30,7 +30,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p._utils import clamp, burstable_rate_limiter
+from p2p._utils import clamp, token_bucket
 from p2p.constants import (
     DEFAULT_MAX_PEERS,
     DEFAULT_PEER_BOOT_TIMEOUT,
@@ -155,13 +155,13 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             await self.connect_to_nodes(iter(candidates))
 
     async def maybe_connect_more_peers(self) -> None:
-        # allowed to operate at a maximum rate of 10 checks every 20 seconds.
-        rate_limiter = burstable_rate_limiter(10, 20)
+        # allowed to operate at a maximum rate of 1 check every 2 seconds
+        rate_limiter = token_bucket(0.5, 5)
         while True:
             if self.is_full:
                 await self.sleep(DISOVERY_INTERVAL)
                 continue
-            await rate_limiter.__anext__()
+            await self.wait(rate_limiter.__anext__())
 
             await self.wait(asyncio.gather(*(
                 self._add_peers_from_backend(backend)

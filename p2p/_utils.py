@@ -1,6 +1,4 @@
 import asyncio
-import bisect
-import collections
 from concurrent.futures import Executor, ProcessPoolExecutor
 import datetime
 import logging
@@ -9,7 +7,6 @@ import signal
 import time
 from typing import (
     AsyncGenerator,
-    Deque,
     Tuple,
     Union,
 )
@@ -117,31 +114,29 @@ def ensure_global_asyncio_executor(cpu_count: int=None) -> Executor:
     return _executor
 
 
-async def burstable_rate_limiter(num_per_time_unit: Union[int, float],
-                                 time_unit_in_seconds: Union[int, float],
-                                 ) -> AsyncGenerator[None, None]:
+async def token_bucket(rate: Union[int, float],
+                       capacity: Union[int, float],
+                       ) -> AsyncGenerator[None, None]:
     """
-    Given a rate, which represents number of attempts per second
+    rate: Number of token that can be consumed per second.
+    capacity: Maximum number of tokens
+
+    Each `await` call consumes a single token.
     """
-    history: Deque[float] = collections.deque()
-    sleep_time = time_unit_in_seconds / num_per_time_unit
+    num_tokens = capacity
+    last_refill = time.perf_counter()
+    seconds_per_token = 1 / rate
 
     while True:
         now = time.perf_counter()
+        num_tokens = min(
+            capacity,
+            num_tokens + (rate * (now - last_refill)),
+        )
+        last_refill = now
 
-        # discard any stale history
-        cutoff = now = time_unit_in_seconds
-        discard_index = bisect.bisect_left(history, cutoff)
-
-        for _ in range(discard_index):
-            history.popleft()
-
-        if len(history) < num_per_time_unit:
-            # not at capacity yet, can yield without waiting.
-            history.append(now)
+        if num_tokens >= 1:
+            num_tokens -= 1
             yield
         else:
-            # at capacity so must wait the average sleep time
-            await asyncio.sleep(sleep_time)
-            history.append(time.perf_counter())
-            yield
+            await asyncio.sleep((1 - num_tokens) * seconds_per_token)
