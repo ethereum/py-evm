@@ -15,6 +15,7 @@ from eth.tools.builder.chain import (
     frontier_at,
     genesis,
     homestead_at,
+    istanbul_at,
     name,
     spurious_dragon_at,
     tangerine_whistle_at,
@@ -26,6 +27,7 @@ from eth.vm.forks import (
     SpuriousDragonVM,
     ByzantiumVM,
     ConstantinopleVM,
+    IstanbulVM,
 )
 
 
@@ -75,6 +77,7 @@ def test_chain_builder_construct_chain_vm_configuration_multiple_forks():
         (spurious_dragon_at, SpuriousDragonVM),
         (byzantium_at, ByzantiumVM),
         (constantinople_at, ConstantinopleVM),
+        (istanbul_at, IstanbulVM),
     )
 )
 def test_chain_builder_construct_chain_fork_specific_helpers(fork_fn, vm_class):

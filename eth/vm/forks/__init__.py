@@ -19,3 +19,6 @@ from .constantinople import (  # noqa: F401
 from .petersburg import (  # noqa: F401
     PetersburgVM,
 )
+from .istanbul import (  # noqa: F401
+    IstanbulVM,
+)

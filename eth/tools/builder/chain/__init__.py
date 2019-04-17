@@ -23,6 +23,7 @@ from .builders import (  # noqa: F401
     spurious_dragon_at,
     tangerine_whistle_at,
     constantinople_at,
+    istanbul_at,
 )
 
 
@@ -33,6 +34,7 @@ mainnet_fork_at_fns = (
     spurious_dragon_at,
     tangerine_whistle_at,
     constantinople_at,
+    istanbul_at,
 )
 
 
@@ -60,6 +62,7 @@ class API:
     spurious_dragon_at = staticmethod(spurious_dragon_at)
     byzantium_at = staticmethod(byzantium_at)
     constantinople_at = staticmethod(constantinople_at)
+    istanbul_at = staticmethod(istanbul_at)
 
     # iterable of the fork specific functions
     mainnet_fork_at_fns = mainnet_fork_at_fns

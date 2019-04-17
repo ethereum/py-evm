@@ -71,6 +71,7 @@ from eth.vm.forks import (
     ByzantiumVM,
     ConstantinopleVM,
     PetersburgVM,
+    IstanbulVM,
 )
 
 
@@ -227,6 +228,7 @@ spurious_dragon_at = fork_at(SpuriousDragonVM)
 byzantium_at = fork_at(ByzantiumVM)
 constantinople_at = fork_at(ConstantinopleVM)
 petersburg_at = fork_at(PetersburgVM)
+istanbul_at = fork_at(IstanbulVM)
 
 GENESIS_DEFAULTS = (
     ('difficulty', 1),
