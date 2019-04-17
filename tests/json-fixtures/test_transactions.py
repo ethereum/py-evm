@@ -34,6 +34,9 @@ from eth.vm.forks.constantinople.transactions import (
 from eth.vm.forks.petersburg.transactions import (
     PetersburgTransaction
 )
+from eth.vm.forks.istanbul.transactions import (
+    IstanbulTransaction
+)
 
 from eth_typing.enums import (
     ForkName
@@ -101,6 +104,8 @@ def fixture_transaction_class(fixture_data):
         return ConstantinopleTransaction
     elif fork_name == "Petersburg":
         return PetersburgTransaction
+    elif fork_name == ForkName.Istanbul:
+        return IstanbulTransaction
     elif fork_name == ForkName.Metropolis:
         pytest.skip("Metropolis Transaction class has not been implemented")
     else:
