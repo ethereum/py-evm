@@ -68,6 +68,8 @@ def get_permuted_index(index: int,
 def shuffle(values: Sequence[TItem],
             seed: Hash32,
             shuffle_round_count: int) -> Tuple[TItem, ...]:
+    # This uses this *sub-function* to get around this `eth-utils` bug
+    # https://github.com/ethereum/eth-utils/issues/152
     return tuple(_shuffle(values, seed, shuffle_round_count))
 
 
