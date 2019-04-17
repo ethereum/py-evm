@@ -3,6 +3,10 @@ from eth_utils.toolz import (
     merge
 )
 
+from eth.vm.forks.constantinople.opcodes import (
+    CONSTANTINOPLE_OPCODES,
+)
+
 
 UPDATED_OPCODES = {
 }
