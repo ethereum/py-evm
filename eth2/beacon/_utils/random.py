@@ -10,7 +10,6 @@ from eth_typing import (
     Hash32,
 )
 from eth_utils import (
-    to_tuple,
     ValidationError,
 )
 
@@ -66,10 +65,17 @@ def get_permuted_index(index: int,
     return new_index
 
 
-@to_tuple
 def shuffle(values: Sequence[TItem],
             seed: Hash32,
-            shuffle_round_count: int) -> Iterable[TItem]:
+            shuffle_round_count: int) -> Tuple[TItem, ...]:
+    # This uses this *sub-function* to get around this `eth-utils` bug
+    # https://github.com/ethereum/eth-utils/issues/152
+    return tuple(_shuffle(values, seed, shuffle_round_count))
+
+
+def _shuffle(values: Sequence[TItem],
+             seed: Hash32,
+             shuffle_round_count: int) -> Iterable[TItem]:
     """
     Return shuffled indices in a pseudorandom permutation `0...list_size-1` with
     ``seed`` as entropy.
@@ -114,7 +120,7 @@ def shuffle(values: Sequence[TItem],
         yield values[i]
 
 
-def split(values: Sequence[TItem], split_count: int) -> Tuple[Iterable[TItem], ...]:
+def split(values: Sequence[TItem], split_count: int) -> Tuple[Sequence[TItem], ...]:
     """
     Return the split ``values`` in ``split_count`` pieces in protocol.
     Spec: https://github.com/ethereum/eth2.0-specs/blob/70cef14a08de70e7bd0455d75cf380eb69694bfb/specs/core/0_beacon-chain.md#helper-functions  # noqa: E501

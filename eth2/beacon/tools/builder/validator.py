@@ -668,6 +668,6 @@ def get_committee_assignment(
                 registry_change=registry_change,
             )
 
-            return CommitteeAssignment(validators, shard, Slot(slot), is_proposer)
+            return CommitteeAssignment(tuple(validators), shard, Slot(slot), is_proposer)
 
     raise NoCommitteeAssignment

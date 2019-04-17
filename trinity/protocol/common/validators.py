@@ -9,6 +9,7 @@ from typing import (
 
 from eth.rlp.headers import BlockHeader
 from eth_typing import (
+    Hash32,
     BlockIdentifier,
     BlockNumber,
 )
@@ -61,12 +62,13 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
             # An empty response is always valid
             return
         elif not self._is_numbered:
+            block_hash = cast(Hash32, self.block_number_or_hash)
             first_header = response[0]
-            if first_header.hash != self.block_number_or_hash:
+            if first_header.hash != block_hash:
                 raise ValidationError(
                     "Returned headers cannot be matched to header request. "
                     "Expected first header to have hash of "
-                    f"{encode_hex(self.block_number_or_hash)} but instead got "
+                    f"{encode_hex(block_hash)} but instead got "
                     f"{encode_hex(first_header.hash)}."
                 )
 

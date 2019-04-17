@@ -1198,7 +1198,7 @@ class Ticket:
 @to_list
 def _extract_nodes_from_payload(
         sender: kademlia.Address,
-        payload: List[Tuple[str, str, str, bytes]],
+        payload: List[Tuple[str, bytes, bytes, bytes]],
         logger: ExtendedDebugLogger) -> Iterator[kademlia.Node]:
     for item in payload:
         ip, udp_port, tcp_port, node_id = item

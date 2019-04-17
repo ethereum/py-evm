@@ -74,7 +74,7 @@ def get_shuffling(*,
                   seed: Hash32,
                   validators: Sequence['ValidatorRecord'],
                   epoch: Epoch,
-                  committee_config: CommitteeConfig) -> Tuple[Iterable[ValidatorIndex], ...]:
+                  committee_config: CommitteeConfig) -> Tuple[Sequence[ValidatorIndex], ...]:
     """
     Shuffle ``validators`` into crosslink committees seeded by ``seed`` and ``epoch``.
     Return a list of ``committee_per_epoch`` committees where each
@@ -285,7 +285,7 @@ def get_crosslink_committees_at_slot(
         state: 'BeaconState',
         slot: Slot,
         committee_config: CommitteeConfig,
-        registry_change: bool=False) -> Iterable[Tuple[Iterable[ValidatorIndex], Shard]]:
+        registry_change: bool=False) -> Iterable[Tuple[Sequence[ValidatorIndex], Shard]]:
     """
     Return the list of ``(committee, shard)`` tuples for the ``slot``.
     """

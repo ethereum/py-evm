@@ -2,20 +2,28 @@ import argparse
 import os
 from pathlib import Path
 from typing import (
+    cast,
+    Any,
+    Dict,
     Iterable,
+    Optional,
     Tuple,
     Union,
 )
 
+from mypy_extensions import (
+    TypedDict,
+)
+
 from eth_utils import (
     decode_hex,
-    to_dict,
 )
 
 from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
 
 from p2p.constants import DEFAULT_MAX_PEERS
+from p2p.kademlia import Node as KademliaNode
 
 from trinity.constants import (
     MAINNET_NETWORK_ID,
@@ -109,9 +117,33 @@ def load_nodekey(nodekey_path: Path) -> PrivateKey:
     return nodekey
 
 
-@to_dict
+class TrinityConfigParams(TypedDict):
+    network_id: int
+    use_discv5: bool
+
+    trinity_root_dir: Optional[str]
+
+    genesis_config: Optional[Dict[str, Any]]
+
+    data_dir: Optional[str]
+
+    nodekey_path: Optional[str]
+    nodekey: Optional[PrivateKey]
+
+    max_peers: Optional[int]
+
+    port: Optional[int]
+
+    preferred_nodes: Optional[Tuple[KademliaNode, ...]]
+
+
 def construct_trinity_config_params(
-        args: argparse.Namespace) -> Iterable[Tuple[str, Union[int, str, Tuple[str, ...]]]]:
+        args: argparse.Namespace) -> TrinityConfigParams:
+    return cast(TrinityConfigParams, dict(_construct_trinity_config_params(args)))
+
+
+def _construct_trinity_config_params(
+        args: argparse.Namespace) -> Iterable[Tuple[str, Union[int, str, bytes, Tuple[str, ...]]]]:
     """
     Helper function for constructing the kwargs to initialize a TrinityConfig object.
     """
