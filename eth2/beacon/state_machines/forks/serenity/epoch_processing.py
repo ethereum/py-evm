@@ -4,7 +4,6 @@ from typing import (
     Dict,
     Iterable,
     Sequence,
-    Set,
     Tuple,
 )
 
@@ -350,11 +349,11 @@ def _update_rewards_or_penalies(
 def _compute_normal_justification_and_finalization_deltas(
         state: BeaconState,
         config: Eth2Config,
-        previous_epoch_active_validator_indices: Set[ValidatorIndex],
+        previous_epoch_active_validator_indices: Sequence[ValidatorIndex],
         previous_total_balance: Gwei,
-        previous_epoch_attester_indices: Set[ValidatorIndex],
-        previous_epoch_boundary_attester_indices: Set[ValidatorIndex],
-        previous_epoch_head_attester_indices: Set[ValidatorIndex],
+        previous_epoch_attester_indices: Sequence[ValidatorIndex],
+        previous_epoch_boundary_attester_indices: Sequence[ValidatorIndex],
+        previous_epoch_head_attester_indices: Sequence[ValidatorIndex],
         inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
         effective_balances: Dict[ValidatorIndex, Gwei],
         base_rewards: Dict[ValidatorIndex, Gwei]) -> Tuple[Dict[ValidatorIndex, Gwei], Dict[ValidatorIndex, Gwei]]:  # noqa: E501
@@ -448,10 +447,10 @@ def _compute_normal_justification_and_finalization_deltas(
 def _compute_inactivity_leak_deltas(
         state: BeaconState,
         config: Eth2Config,
-        previous_epoch_active_validator_indices: Set[ValidatorIndex],
-        previous_epoch_attester_indices: Set[ValidatorIndex],
-        previous_epoch_boundary_attester_indices: Set[ValidatorIndex],
-        previous_epoch_head_attester_indices: Set[ValidatorIndex],
+        previous_epoch_active_validator_indices: Sequence[ValidatorIndex],
+        previous_epoch_attester_indices: Sequence[ValidatorIndex],
+        previous_epoch_boundary_attester_indices: Sequence[ValidatorIndex],
+        previous_epoch_head_attester_indices: Sequence[ValidatorIndex],
         inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
         effective_balances: Dict[ValidatorIndex, Gwei],
         base_rewards: Dict[ValidatorIndex, Gwei],
@@ -527,10 +526,10 @@ def _compute_inactivity_leak_deltas(
 def _process_rewards_and_penalties_for_finality(
         state: BeaconState,
         config: Eth2Config,
-        previous_epoch_active_validator_indices: Set[ValidatorIndex],
+        previous_epoch_active_validator_indices: Sequence[ValidatorIndex],
         previous_total_balance: Gwei,
         previous_epoch_attestations: Sequence[Attestation],
-        previous_epoch_attester_indices: Set[ValidatorIndex],
+        previous_epoch_attester_indices: Sequence[ValidatorIndex],
         inclusion_infos: Dict[ValidatorIndex, InclusionInfo],
         effective_balances: Dict[ValidatorIndex, Gwei],
         base_rewards: Dict[ValidatorIndex, Gwei]) -> Tuple[Dict[ValidatorIndex, Gwei], Dict[ValidatorIndex, Gwei]]:  # noqa: E501

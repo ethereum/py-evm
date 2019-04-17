@@ -11,7 +11,8 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from cytoolz import (
+from eth_utils.toolz import (
+    cons,
     iterate,
     take,
 )
@@ -86,7 +87,7 @@ def calc_merkle_tree_from_leaves(leaves: Sequence[Hash32]) -> MerkleTree:
                 0,
                 tuple(tree[0]) + (EmptyNodeHashes[i],),
             )
-        tree = (_hash_layer(tree[0]),) + tree
+        tree = tuple(cons(_hash_layer(tree[0]), tree))
     return MerkleTree(tree)
 
 

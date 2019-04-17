@@ -164,7 +164,7 @@ def get_attesting_indices(state: 'BeaconState',
 def _get_epoch_boundary_attesting_indices(state: 'BeaconState',
                                           attestations: Sequence[PendingAttestationRecord],
                                           epoch: Epoch,
-                                          config: Eth2Config) -> Tuple[ValidatorIndex]:
+                                          config: Eth2Config) -> Tuple[ValidatorIndex, ...]:
     target_root = get_block_root(
         state,
         get_epoch_start_slot(
@@ -198,7 +198,7 @@ def get_epoch_boundary_attesting_balance(state: 'BeaconState',
 
 def get_total_balance_from_effective_balances(
         effective_balances: Dict[ValidatorIndex, Gwei],
-        validator_indices: Set[ValidatorIndex]) -> Gwei:
+        validator_indices: Sequence[ValidatorIndex]) -> Gwei:
     return Gwei(
         sum(
             effective_balances[index]

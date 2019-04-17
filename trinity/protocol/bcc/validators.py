@@ -1,4 +1,5 @@
 from typing import (
+    cast,
     Tuple,
     Union,
 )
@@ -58,8 +59,9 @@ class BeaconBlocksValidator(BaseValidator[Tuple[BaseBeaconBlock, ...]]):
                 )
         else:
             if first_block.signed_root != self.block_slot_or_hash:
+                block_hash = cast(Hash32, self.block_slot_or_hash)
                 raise ValidationError(
-                    f"Requested blocks starting with hash {encode_hex(self.block_slot_or_hash)} "
+                    f"Requested blocks starting with hash {encode_hex(block_hash)} "
                     f"but first returned block has hash {encode_hex(first_block.signed_root)}"
                 )
 

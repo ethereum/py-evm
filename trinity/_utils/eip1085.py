@@ -213,9 +213,9 @@ def extract_genesis_params(genesis_config: RawEIP1085Dict) -> GenesisParams:
     return GenesisParams(
         nonce=decode_hex(raw_params['nonce']),
         difficulty=to_int(hexstr=raw_params['difficulty']),
-        extra_data=decode_hex(raw_params['extraData']),
+        extra_data=Hash32(decode_hex(raw_params['extraData'])),
         gas_limit=to_int(hexstr=raw_params['gasLimit']),
-        coinbase=decode_hex(raw_params['author']),
+        coinbase=Address(decode_hex(raw_params['author'])),
         timestamp=to_int(hexstr=raw_params['timestamp']),
     )
 
