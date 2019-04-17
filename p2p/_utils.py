@@ -1,9 +1,18 @@
-import datetime
+import asyncio
+import bisect
+import collections
 from concurrent.futures import Executor, ProcessPoolExecutor
+import datetime
 import logging
 import os
 import signal
-from typing import Tuple
+import time
+from typing import (
+    AsyncGenerator,
+    Deque,
+    Tuple,
+    Union,
+)
 
 import rlp
 
@@ -106,3 +115,33 @@ def ensure_global_asyncio_executor(cpu_count: int=None) -> Executor:
         _executor._start_queue_management_thread()  # type: ignore
         signal.signal(signal.SIGINT, original_handler)
     return _executor
+
+
+async def burstable_rate_limiter(num_per_time_unit: Union[int, float],
+                                 time_unit_in_seconds: Union[int, float],
+                                 ) -> AsyncGenerator[None, None]:
+    """
+    Given a rate, which represents number of attempts per second
+    """
+    history: Deque[float] = collections.deque()
+    sleep_time = time_unit_in_seconds / num_per_time_unit
+
+    while True:
+        now = time.perf_counter()
+
+        # discard any stale history
+        cutoff = now = time_unit_in_seconds
+        discard_index = bisect.bisect_left(history, cutoff)
+
+        for _ in range(discard_index):
+            history.popleft()
+
+        if len(history) < num_per_time_unit:
+            # not at capacity yet, can yield without waiting.
+            history.append(now)
+            yield
+        else:
+            # at capacity so must wait the average sleep time
+            await asyncio.sleep(sleep_time)
+            history.append(time.perf_counter())
+            yield
