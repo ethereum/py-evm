@@ -10,10 +10,6 @@ from trinity.rpc.modules import (
 
 class Web3(BaseRPCModule):
 
-    @property
-    def name(self) -> str:
-        return 'web3'
-
     async def clientVersion(self) -> str:
         """
         Returns the current client version.

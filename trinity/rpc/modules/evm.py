@@ -32,10 +32,6 @@ from trinity.rpc.modules import (
 
 class EVM(Eth1ChainRPCModule):
 
-    @property
-    def name(self) -> str:
-        return 'evm'
-
     @format_params(normalize_blockchain_fixtures)
     async def resetToGenesisFixture(self, chain_info: Any) -> BaseChain:
         """

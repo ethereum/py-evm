@@ -143,10 +143,6 @@ class Eth(Eth1ChainRPCModule):
     Any attribute without an underscore is publicly accessible.
     """
 
-    @property
-    def name(self) -> str:
-        return 'eth'
-
     async def accounts(self) -> List[str]:
         # trinity does not manage accounts for the user
         return []
