@@ -26,6 +26,7 @@ from eth.vm.forks import (
     ByzantiumVM,
     ConstantinopleVM,
     PetersburgVM,
+    IstanbulVM,
 )
 
 
@@ -78,6 +79,7 @@ def _file_logging(request):
                 ByzantiumVM,
                 ConstantinopleVM,
                 PetersburgVM,
+                IstanbulVM,
                 ])
 def VM(request):
     return request.param
