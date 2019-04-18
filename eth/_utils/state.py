@@ -2,24 +2,24 @@ from eth_utils import (
     to_tuple,
 )
 
-from eth.db.account import (
-    BaseAccountDB,
-)
 from eth.typing import (
     AccountDiff,
     AccountState,
 )
+from eth.vm.state import BaseState
 
 
 @to_tuple
-def diff_account_db(expected_state: AccountState,
-                    account_db: BaseAccountDB) -> AccountDiff:
+def diff_state(
+        expected_state: AccountState,
+        state: BaseState) -> AccountDiff:
 
     for account, account_data in sorted(expected_state.items()):
         expected_balance = account_data['balance']
         expected_nonce = account_data['nonce']
         expected_code = account_data['code']
 
+        account_db = state.account_db
         actual_nonce = account_db.get_nonce(account)
         actual_code = account_db.get_code(account)
         actual_balance = account_db.get_balance(account)
@@ -32,7 +32,7 @@ def diff_account_db(expected_state: AccountState,
             yield (account, 'balance', actual_balance, expected_balance)
 
         for slot, expected_storage_value in sorted(account_data['storage'].items()):
-            actual_storage_value = account_db.get_storage(account, slot)
+            actual_storage_value = state.get_storage(account, slot)
             if actual_storage_value != expected_storage_value:
                 yield (
                     account,

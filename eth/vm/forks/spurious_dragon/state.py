@@ -38,7 +38,7 @@ class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
                     "CLEARING EMPTY ACCOUNT: %s",
                     encode_hex(account),
                 )
-                self.vm_state.account_db.delete_account(account)
+                self.vm_state.delete_account(account)
 
         return computation
 

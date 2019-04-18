@@ -10,9 +10,9 @@ from .helpers import (  # noqa: F401
     new_chain_from_fixture,
     genesis_params_from_fixture,
     apply_fixture_block_to_chain,
-    setup_account_db,
+    setup_state,
     should_run_slow_tests,
-    verify_account_db,
+    verify_state,
 )
 from eth.tools._utils.normalization import (  # noqa: F401
     normalize_block,

@@ -182,7 +182,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             # TODO: this balance setting is likely superflous and can be
             # removed since `delete_account` does this.
             self.vm_state.account_db.set_balance(account, 0)
-            self.vm_state.account_db.delete_account(account)
+            self.vm_state.delete_account(account)
 
         return computation
 

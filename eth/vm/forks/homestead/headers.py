@@ -94,7 +94,7 @@ def configure_homestead_header(vm: "HomesteadVM", **header_params: Any) -> Block
                 state.account_db.set_balance(account, 0)
 
             # Persist the changes to the database
-            state.account_db.persist()
+            state.persist()
 
             # Update state_root manually
             changeset.state_root = state.state_root

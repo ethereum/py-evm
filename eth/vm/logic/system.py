@@ -246,7 +246,7 @@ class Create2(CreateByzantium):
         # to its original state root.
         snapshot = computation.state.snapshot()
 
-        computation.state.account_db.delete_storage(child_msg.storage_address)
+        computation.state.delete_storage(child_msg.storage_address)
 
         child_computation = computation.apply_child_computation(child_msg)
 

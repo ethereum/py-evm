@@ -6,15 +6,14 @@ from eth_typing import (
     Hash32,
 )
 
-from eth.db.account import (
-    BaseAccountDB,
-)
-
 from eth.rlp.headers import (
     BlockHeader,
 )
 from eth.typing import (
     AccountState,
+)
+from eth.vm.state import (
+    BaseState,
 )
 
 if TYPE_CHECKING:
@@ -35,7 +34,8 @@ def get_block_header_by_hash(block_hash: Hash32, db: 'BaseChainDB') -> BlockHead
     return db.get_block_header_by_hash(block_hash)
 
 
-def apply_state_dict(account_db: BaseAccountDB, state_dict: AccountState) -> BaseAccountDB:
+def apply_state_dict(state: BaseState, state_dict: AccountState) -> None:
+    account_db = state.account_db
 
     for account, account_data in state_dict.items():
         account_db.set_balance(account, account_data["balance"])
@@ -43,6 +43,4 @@ def apply_state_dict(account_db: BaseAccountDB, state_dict: AccountState) -> Bas
         account_db.set_code(account, account_data["code"])
 
         for slot, value in account_data["storage"].items():
-            account_db.set_storage(account, slot, value)
-
-    return account_db
+            state.set_storage(account, slot, value)

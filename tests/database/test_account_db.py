@@ -94,43 +94,6 @@ def test_code(state):
 @pytest.mark.parametrize("state", [
     AccountDB(MemoryDB()),
 ])
-def test_storage(state):
-    assert state.get_storage(ADDRESS, 0) == 0
-
-    state.set_storage(ADDRESS, 0, 123)
-    assert state.get_storage(ADDRESS, 0) == 123
-    assert state.get_storage(ADDRESS, 1) == 0
-    assert state.get_storage(OTHER_ADDRESS, 0) == 0
-
-    with pytest.raises(ValidationError):
-        state.get_storage(INVALID_ADDRESS, 0)
-    with pytest.raises(ValidationError):
-        state.set_storage(INVALID_ADDRESS, 0, 0)
-    with pytest.raises(ValidationError):
-        state.get_storage(ADDRESS, b'\x00')
-    with pytest.raises(ValidationError):
-        state.set_storage(ADDRESS, b'\x00', 0)
-    with pytest.raises(ValidationError):
-        state.set_storage(ADDRESS, 0, b'asdf')
-
-
-@pytest.mark.parametrize("state", [
-    AccountDB(MemoryDB()),
-])
-def test_storage_deletion(state):
-    state.set_storage(ADDRESS, 0, 123)
-    state.set_storage(OTHER_ADDRESS, 1, 321)
-    state.delete_storage(ADDRESS)
-    assert state.get_storage(ADDRESS, 0) == 0
-    assert state.get_storage(OTHER_ADDRESS, 1) == 321
-
-    with pytest.raises(ValidationError):
-        state.delete_storage(INVALID_ADDRESS)
-
-
-@pytest.mark.parametrize("state", [
-    AccountDB(MemoryDB()),
-])
 def test_accounts(state):
     assert not state.account_exists(ADDRESS)
     assert not state.account_has_code_or_nonce(ADDRESS)

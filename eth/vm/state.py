@@ -152,11 +152,26 @@ class BaseState(Configurable, ABC):
         return cls.account_db_class
 
     @property
-    def state_root(self) -> bytes:
+    def state_root(self) -> Hash32:
         """
         Return the current ``state_root`` from the underlying database
         """
         return self.account_db.state_root
+
+    def make_state_root(self) -> Hash32:
+        return self.account_db.make_state_root()
+
+    def get_storage(self, address: Address, slot: int, from_journal: bool=True) -> int:
+        return self.account_db.get_storage(address, slot, from_journal)
+
+    def set_storage(self, address: Address, slot: int, value: int) -> None:
+        self.account_db.set_storage(address, slot, value)
+
+    def delete_storage(self, address: Address) -> None:
+        self.account_db.delete_storage(address)
+
+    def delete_account(self, address: Address) -> None:
+        self.account_db.delete_account(address)
 
     #
     # Access self._chaindb
@@ -188,6 +203,9 @@ class BaseState(Configurable, ABC):
         """
         _, checkpoint_id = snapshot
         self.account_db.commit(checkpoint_id)
+
+    def persist(self) -> None:
+        self.account_db.persist()
 
     #
     # Access self.prev_hashes (Read-only)

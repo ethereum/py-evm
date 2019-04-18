@@ -618,8 +618,8 @@ def test_sstore(vm_class, code, gas_used, refund, original):
     computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, decode_hex(code))
 
     computation.state.account_db.set_balance(CANONICAL_ADDRESS_B, 100000000000)
-    computation.state.account_db.set_storage(CANONICAL_ADDRESS_B, 0, original)
-    computation.state.account_db.persist()
+    computation.state.set_storage(CANONICAL_ADDRESS_B, 0, original)
+    computation.state.persist()
 
     comp = computation.apply_message()
     assert comp.get_gas_refund() == refund

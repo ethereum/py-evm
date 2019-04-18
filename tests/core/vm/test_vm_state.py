@@ -1,8 +1,14 @@
 import pytest
 
+from eth_utils import ValidationError
+
 from eth.db.backends.memory import MemoryDB
 from eth.exceptions import StateRootNotFound
 from eth.vm.forks.frontier.state import FrontierState
+
+ADDRESS = b'\xaa' * 20
+OTHER_ADDRESS = b'\xbb' * 20
+INVALID_ADDRESS = b'aa' * 20
 
 
 @pytest.fixture
@@ -27,3 +33,36 @@ def test_missing_state_root():
     state = FrontierState(MemoryDB(), context, b'\x0f' * 32)
     with pytest.raises(StateRootNotFound):
         state.apply_transaction(None)
+
+
+@pytest.mark.parametrize(
+    'address, slot',
+    (
+        (INVALID_ADDRESS, 0),
+        (ADDRESS, b'\0'),
+        (ADDRESS, None),
+    ),
+)
+def test_get_storage_input_validation(state, address, slot):
+    with pytest.raises(ValidationError):
+        state.get_storage(address, slot)
+
+
+@pytest.mark.parametrize(
+    'address, slot, new_value',
+    (
+        (INVALID_ADDRESS, 0, 0),
+        (ADDRESS, b'\0', 0),
+        (ADDRESS, 0, b'\0'),
+        (ADDRESS, 0, None),
+        (ADDRESS, None, 0),
+    ),
+)
+def test_set_storage_input_validation(state, address, slot, new_value):
+    with pytest.raises(ValidationError):
+        state.set_storage(address, slot, new_value)
+
+
+def test_delete_storage_input_validation(state):
+    with pytest.raises(ValidationError):
+        state.delete_storage(INVALID_ADDRESS)
