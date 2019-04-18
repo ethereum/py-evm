@@ -64,6 +64,10 @@ class BaseAsyncBeaconChainDB(ABC):
         pass
 
     @abstractmethod
+    async def coro_get_canonical_head_root(self)-> Hash32:
+        pass
+
+    @abstractmethod
     async def coro_get_finalized_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         pass
 
@@ -124,6 +128,7 @@ class AsyncBeaconChainDBPreProxy(BaseAsyncBeaconChainDB):
     coro_get_canonical_block_by_slot = async_method('get_canonical_block_by_slot')
     coro_get_canonical_block_root_by_slot = async_method('get_canonical_block_root_by_slot')
     coro_get_canonical_head = async_method('get_canonical_head')
+    coro_get_canonical_head_root = async_method('get_canonical_head_root')
     coro_get_finalized_head = async_method('get_finalized_head')
     coro_get_block_by_root = async_method('get_block_by_root')
     coro_get_score = async_method('get_score')

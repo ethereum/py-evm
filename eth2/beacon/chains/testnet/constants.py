@@ -1,0 +1,3 @@
+
+
+TESTNET_CHAIN_ID = 5566

@@ -1,38 +1,38 @@
 from abc import (
     ABC,
-    abstractmethod
+    abstractmethod,
 )
+import logging
 from typing import (
+    TYPE_CHECKING,
     Tuple,
     Type,
 )
 
-import logging
-
-from eth_typing import (
-    Hash32,
+from eth._utils.datatypes import (
+    Configurable,
 )
-from eth_utils import (
-    encode_hex,
-    ValidationError,
+from eth.db.backends.base import (
+    BaseAtomicDB,
 )
-
-from eth.db.backends.base import BaseAtomicDB
 from eth.exceptions import (
     BlockNotFound,
 )
 from eth.validation import (
     validate_word,
 )
-
-from eth._utils.datatypes import (
-    Configurable,
+from eth_typing import (
+    Hash32,
 )
+from eth_utils import (
+    ValidationError,
+    encode_hex,
+)
+
 from eth2._utils.ssz import (
     validate_imported_block_unchanged,
 )
-
-from eth2.beacon.db.chain import (  # noqa: F401
+from eth2.beacon.db.chain import (
     BaseBeaconChainDB,
     BeaconChainDB,
 )
@@ -40,11 +40,12 @@ from eth2.beacon.exceptions import (
     BlockClassError,
     StateMachineNotFound,
 )
-from eth2.beacon.state_machines.base import BaseBeaconStateMachine  # noqa: F401
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
 )
-from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.states import (
+    BeaconState,
+)
 from eth2.beacon.typing import (
     FromBlockParams,
     Slot,
@@ -53,6 +54,11 @@ from eth2.beacon.validation import (
     validate_slot,
 )
 
+if TYPE_CHECKING:
+    from eth2.beacon.state_machines.base import (  # noqa: F401
+        BaseBeaconStateMachine,
+    )
+
 
 class BaseBeaconChain(Configurable, ABC):
     """
@@ -60,7 +66,7 @@ class BaseBeaconChain(Configurable, ABC):
     """
     chaindb = None  # type: BaseBeaconChainDB
     chaindb_class = None  # type: Type[BaseBeaconChainDB]
-    sm_configuration = None  # type: Tuple[Tuple[int, Type[BaseBeaconStateMachine]], ...]
+    sm_configuration = None  # type: Tuple[Tuple[Slot, Type[BaseBeaconStateMachine]], ...]
     chain_id = None  # type: int
 
     #
