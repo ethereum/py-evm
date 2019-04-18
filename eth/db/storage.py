@@ -259,6 +259,7 @@ class AccountStorageDB:
         """
         Force calculation of the storage root for this account
         """
+        self.logger.debug2('commit all checkpoints')
         self._journal_storage.persist()
 
     def _validate_flushed(self) -> None:
