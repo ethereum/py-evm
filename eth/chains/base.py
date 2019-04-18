@@ -413,7 +413,6 @@ class Chain(BaseChain):
 
         pre_genesis_header = BlockHeader(difficulty=0, block_number=-1, gas_limit=0)
         state = genesis_vm_class.build_state(base_db, pre_genesis_header)
-        account_db = state.account_db
 
         if genesis_state is None:
             genesis_state = {}
@@ -425,14 +424,14 @@ class Chain(BaseChain):
         if 'state_root' not in genesis_params:
             # If the genesis state_root was not specified, use the value
             # computed from the initialized state database.
-            genesis_params = assoc(genesis_params, 'state_root', account_db.state_root)
-        elif genesis_params['state_root'] != account_db.state_root:
+            genesis_params = assoc(genesis_params, 'state_root', state.state_root)
+        elif genesis_params['state_root'] != state.state_root:
             # If the genesis state_root was specified, validate that it matches
             # the computed state from the initialized state database.
             raise ValidationError(
                 "The provided genesis state root does not match the computed "
                 "genesis state root.  Got {0}.  Expected {1}".format(
-                    account_db.state_root,
+                    state.state_root,
                     genesis_params['state_root'],
                 )
             )
