@@ -1,5 +1,9 @@
 import logging
 
+from eth_utils import (
+    ValidationError,
+)
+
 from eth.db.diff import (
     DBDiff,
     DBDiffTracker,
@@ -22,9 +26,10 @@ class BatchDB(BaseDB):
     wrapped_db = None  # type: BaseDB
     _track_diff = None  # type: DBDiffTracker
 
-    def __init__(self, wrapped_db: BaseDB) -> None:
+    def __init__(self, wrapped_db: BaseDB, read_through_deletes: bool = False) -> None:
         self.wrapped_db = wrapped_db
         self._track_diff = DBDiffTracker()
+        self._read_through_deletes = read_through_deletes
 
     def __enter__(self) -> 'BatchDB':
         return self
@@ -44,6 +49,8 @@ class BatchDB(BaseDB):
         self.commit_to(self.wrapped_db, apply_deletes)
 
     def commit_to(self, target_db: BaseDB, apply_deletes: bool = True) -> None:
+        if apply_deletes and self._read_through_deletes:
+            raise ValidationError("BatchDB should never apply deletes when reading through deletes")
         diff = self.diff()
         diff.apply_to(target_db, apply_deletes)
         self.clear()
@@ -60,7 +67,7 @@ class BatchDB(BaseDB):
         try:
             value = self._track_diff[key]
         except DiffMissingError as missing:
-            if missing.is_deleted:
+            if missing.is_deleted and not self._read_through_deletes:
                 raise KeyError(key)
             else:
                 return self.wrapped_db[key]
