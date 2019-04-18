@@ -123,7 +123,7 @@ BOMB_EXPONENTIAL_FREE_PERIODS = 2
 #
 # Mining
 #
-BLOCK_REWARD = 5 * denoms.ether
+BLOCK_REWARD = 5 * denoms.ether  # type: ignore  # https://github.com/ethereum/eth-utils/pull/154  # noqa: E501
 
 UNCLE_DEPTH_PENALTY_FACTOR = 8
 MAX_UNCLE_DEPTH = 6

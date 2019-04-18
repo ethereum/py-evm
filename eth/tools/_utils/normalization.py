@@ -1,6 +1,5 @@
 import binascii
 import functools
-
 from typing import (
     Any,
     AnyStr,
@@ -15,6 +14,10 @@ from typing import (
     Union,
 )
 
+from mypy_extensions import (
+    TypedDict,
+)
+
 from eth_utils.toolz import (
     assoc_in,
     compose,
@@ -27,6 +30,7 @@ from eth_utils.toolz import curried
 
 from eth_typing import (
     Address,
+    HexStr,
 )
 
 from eth_utils import (
@@ -77,7 +81,7 @@ def normalize_int(value: IntConvertible) -> int:
     if is_integer(value):
         return cast(int, value)
     elif is_bytes(value):
-        return big_endian_to_int(value)
+        return big_endian_to_int(cast(bytes, value))
     elif is_hex(value) and is_0x_prefixed(value):
         value = cast(str, value)
         if len(value) == 2:
@@ -94,7 +98,7 @@ def normalize_bytes(value: Union[bytes, str]) -> bytes:
     if is_bytes(value):
         return cast(bytes, value)
     elif is_text(value) and is_hex(value):
-        return decode_hex(value)
+        return decode_hex(cast(str, value))
     elif is_text(value):
         return b''
     else:
@@ -124,7 +128,7 @@ def normalize_to_address(value: AnyStr) -> Address:
         return CREATE_CONTRACT_ADDRESS
 
 
-robust_decode_hex = eth_utils.curried.hexstr_if_str(to_bytes)
+robust_decode_hex = eth_utils.curried.hexstr_if_str(to_bytes)  # type: ignore  # https://github.com/ethereum/eth-utils/issues/156  # noqa: E501
 
 
 #
@@ -245,7 +249,7 @@ normalize_state = compose(
         "nonce": normalize_int,
         "storage": normalize_storage
     }, required=[])),
-    eth_utils.curried.apply_formatter_if(
+    eth_utils.curried.apply_formatter_if(  # type: ignore  # https://github.com/ethereum/eth-utils/issues/156  # noqa: E501
         lambda s: isinstance(s, Iterable) and not isinstance(s, Mapping),
         state_definition_to_dict
     ),
@@ -349,7 +353,16 @@ def normalize_unsigned_transaction(transaction: TransactionDict,
     })
 
 
-def normalize_account_state(account_state: AccountState) -> AccountState:
+FixtureAccountDetails = TypedDict('FixtureAccountDetails',
+                                  {'balance': HexStr,
+                                   'nonce': HexStr,
+                                   'code': HexStr,
+                                   'storage': Dict[HexStr, HexStr]
+                                   })
+FixtureAccountState = Dict[Address, FixtureAccountDetails]
+
+
+def normalize_account_state(account_state: FixtureAccountState) -> AccountState:
     return {
         to_canonical_address(address): {
             'balance': to_int(state['balance']),
@@ -503,7 +516,7 @@ def normalize_block_header(header: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def normalize_block(block: Dict[str, Any]) -> Dict[str, Any]:
-    normalized_block = {}
+    normalized_block = {}  # type: Dict[str, Any]
 
     try:
         normalized_block['rlp'] = decode_hex(block['rlp'])

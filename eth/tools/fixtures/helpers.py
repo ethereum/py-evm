@@ -3,6 +3,7 @@ import os
 import rlp
 
 from typing import (
+    cast,
     Any,
     Dict,
     Iterable,
@@ -83,7 +84,7 @@ def verify_state(expected_state: AccountState, state: BaseState) -> None:
                         'balance',
                         actual_value,
                         expected_value,
-                        actual_value - expected_value,
+                        cast(int, actual_value) - cast(int, expected_value),
                     )
                 )
             else:
