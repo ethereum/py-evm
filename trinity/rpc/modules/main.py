@@ -1,5 +1,4 @@
 from abc import (
-    abstractmethod,
     ABC,
 )
 from typing import (
@@ -33,9 +32,11 @@ class ChainReplacementEvent(BaseEvent, Generic[TChain]):
 class BaseRPCModule(ABC):
 
     @property
-    @abstractmethod
     def name(self) -> str:
-        pass
+        # By default the name is the lower-case class name.
+        # This encourages a standard name of the module, but can
+        # be overridden if necessary.
+        return self.__class__.__name__.lower()
 
 
 class ChainBasedRPCModule(BaseRPCModule, Generic[TChain]):

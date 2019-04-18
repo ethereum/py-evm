@@ -11,10 +11,6 @@ class Net(BaseRPCModule):
     def __init__(self, event_bus: TrinityEventBusEndpoint):
         self.event_bus = event_bus
 
-    @property
-    def name(self) -> str:
-        return 'net'
-
     async def version(self) -> str:
         """
         Returns the current network ID.
