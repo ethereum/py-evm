@@ -94,7 +94,7 @@ def configure_header(difficulty_fn: Callable[[BlockHeader, int], int],
                      **header_params: Any) -> BlockHeader:
     validate_header_params_for_configuration(header_params)
 
-    with vm.block.header.build_changeset(**header_params) as changeset:
+    with vm.header.build_changeset(**header_params) as changeset:
         if 'timestamp' in header_params and changeset.block_number > 0:
             parent_header = get_parent_header(changeset.build_rlp(), vm.chaindb)
             changeset.difficulty = difficulty_fn(

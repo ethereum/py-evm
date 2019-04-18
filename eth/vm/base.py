@@ -87,10 +87,20 @@ class BaseVM(Configurable, ABC):
     @property
     @abstractmethod
     def state(self) -> BaseState:
-        raise NotImplementedError("VM classes must implement this property")
+        pass
 
     @abstractmethod
     def __init__(self, header: BlockHeader, chaindb: BaseChainDB) -> None:
+        pass
+
+    @property
+    @abstractmethod
+    def header(self) -> BlockHeader:
+        pass
+
+    @property
+    @abstractmethod
+    def block(self) -> BaseBlock:
         pass
 
     #
@@ -374,15 +384,34 @@ class VM(BaseVM):
     """
 
     _state = None
+    _block = None
 
     def __init__(self, header: BlockHeader, chaindb: BaseChainDB) -> None:
         self.chaindb = chaindb
-        self.block = self.get_block_class().from_header(header=header, chaindb=self.chaindb)
+        self._initial_header = header
+
+    @property
+    def header(self) -> BlockHeader:
+        if self._block is None:
+            return self._initial_header
+        else:
+            return self._block.header
+
+    @property
+    def block(self) -> BaseBlock:
+        if self._block is None:
+            block_class = self.get_block_class()
+            self._block = block_class.from_header(header=self._initial_header, chaindb=self.chaindb)
+        return self._block
+
+    @block.setter
+    def block(self, block: BaseBlock) -> None:
+        self._block = block
 
     @property
     def state(self) -> BaseState:
         if self._state is None:
-            self._state = self.build_state(self.chaindb.db, self.block.header, self.previous_hashes)
+            self._state = self.build_state(self.chaindb.db, self.header, self.previous_hashes)
         return self._state
 
     @classmethod
@@ -484,11 +513,11 @@ class VM(BaseVM):
         :param base_header: the starting header to apply transactions to
         :return: the final header, the receipts of each transaction, and the computations
         """
-        if base_header.block_number != self.block.number:
+        if base_header.block_number != self.header.block_number:
             raise ValidationError(
                 "This VM instance must only work on block #{}, "
                 "but the target header has block #{}".format(
-                    self.block.number,
+                    self.header.block_number,
                     base_header.block_number,
                 )
             )
@@ -541,10 +570,10 @@ class VM(BaseVM):
             uncles=block.uncles,
         )
         # we need to re-initialize the `state` to update the execution context.
-        self._state = self.build_state(self.chaindb.db, self.block.header, self.previous_hashes)
+        self._state = self.build_state(self.chaindb.db, self.header, self.previous_hashes)
 
         # run all of the transactions.
-        new_header, receipts, _ = self.apply_all_transactions(block.transactions, self.block.header)
+        new_header, receipts, _ = self.apply_all_transactions(block.transactions, self.header)
 
         self.block = self.set_block_transactions(
             self.block,
@@ -719,7 +748,7 @@ class VM(BaseVM):
         """
         Convenience API for accessing the previous 255 block hashes.
         """
-        return self.get_prev_hashes(self.block.header.parent_hash, self.chaindb)
+        return self.get_prev_hashes(self.header.parent_hash, self.chaindb)
 
     #
     # Transactions
@@ -923,7 +952,7 @@ class VM(BaseVM):
 
     @contextlib.contextmanager
     def state_in_temp_block(self) -> Iterator[BaseState]:
-        header = self.block.header
+        header = self.header
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
         prev_hashes = itertools.chain((header.hash, ), self.previous_hashes)
 
