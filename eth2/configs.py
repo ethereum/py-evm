@@ -20,29 +20,25 @@ Eth2Config = NamedTuple(
         # Misc
         ('SHARD_COUNT', int),
         ('TARGET_COMMITTEE_SIZE', int),
-        ('EJECTION_BALANCE', Gwei),
         ('MAX_BALANCE_CHURN_QUOTIENT', int),
-        ('BEACON_CHAIN_SHARD_NUMBER', Shard),
         ('MAX_INDICES_PER_SLASHABLE_VOTE', int),
         ('MAX_EXIT_DEQUEUES_PER_EPOCH', int),
         ('SHUFFLE_ROUND_COUNT', int),
-        # State list lengths
-        ('SLOTS_PER_HISTORICAL_ROOT', int),
-        ('LATEST_ACTIVE_INDEX_ROOTS_LENGTH', int),
-        ('LATEST_RANDAO_MIXES_LENGTH', int),
-        ('LATEST_SLASHED_EXIT_LENGTH', int),
-        # EMPTY_SIGNATURE is defined in constants.py
         # Deposit contract
         ('DEPOSIT_CONTRACT_ADDRESS', Address),
         ('DEPOSIT_CONTRACT_TREE_DEPTH', int),
+        # Gwei values,
         ('MIN_DEPOSIT_AMOUNT', Gwei),
         ('MAX_DEPOSIT_AMOUNT', Gwei),
-        # ZERO_HASH (ZERO_HASH32) is defined in constants.py
-        # Genesis values
+        ('FORK_CHOICE_BALANCE_INCREMENT', Gwei),
+        ('EJECTION_BALANCE', Gwei),
+        # Initial values
         ('GENESIS_FORK_VERSION', int),
         ('GENESIS_SLOT', Slot),
         ('GENESIS_EPOCH', Epoch),
         ('GENESIS_START_SHARD', Shard),
+        # `FAR_FUTURE_EPOCH`, `EMPTY_SIGNATURE` `ZERO_HASH (ZERO_HASH32)`
+        # are defined in constants.py
         ('BLS_WITHDRAWAL_PREFIX_BYTE', bytes),
         # Time parameters
         ('SECONDS_PER_SLOT', Second),
@@ -53,6 +49,11 @@ Eth2Config = NamedTuple(
         ('EPOCHS_PER_ETH1_VOTING_PERIOD', int),
         ('MIN_VALIDATOR_WITHDRAWABILITY_DELAY', int),
         ('PERSISTENT_COMMITTEE_PERIOD', int),
+        # State list lengths
+        ('SLOTS_PER_HISTORICAL_ROOT', int),
+        ('LATEST_ACTIVE_INDEX_ROOTS_LENGTH', int),
+        ('LATEST_RANDAO_MIXES_LENGTH', int),
+        ('LATEST_SLASHED_EXIT_LENGTH', int),
         # Reward and penalty quotients
         ('BASE_REWARD_QUOTIENT', int),
         ('WHISTLEBLOWER_REWARD_QUOTIENT', int),

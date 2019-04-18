@@ -91,7 +91,6 @@ def test_validate_proposer_signature(
         is_valid_signature,
         sample_beacon_block_params,
         sample_beacon_state_params,
-        beacon_chain_shard_number,
         target_committee_size,
         max_deposit_amount,
         config):
@@ -127,7 +126,6 @@ def test_validate_proposer_signature(
         validate_proposer_signature(
             state,
             proposed_block,
-            beacon_chain_shard_number,
             CommitteeConfig(config),
         )
     else:
@@ -135,7 +133,6 @@ def test_validate_proposer_signature(
             validate_proposer_signature(
                 state,
                 proposed_block,
-                beacon_chain_shard_number,
                 CommitteeConfig(config),
             )
 

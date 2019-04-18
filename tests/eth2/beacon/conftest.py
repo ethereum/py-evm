@@ -448,18 +448,8 @@ def target_committee_size():
 
 
 @pytest.fixture
-def ejection_balance():
-    return SERENITY_CONFIG.EJECTION_BALANCE
-
-
-@pytest.fixture
 def max_balance_churn_quotient():
     return SERENITY_CONFIG.MAX_BALANCE_CHURN_QUOTIENT
-
-
-@pytest.fixture
-def beacon_chain_shard_number():
-    return SERENITY_CONFIG.BEACON_CHAIN_SHARD_NUMBER
 
 
 @pytest.fixture
@@ -483,21 +473,6 @@ def slots_per_historical_root():
 
 
 @pytest.fixture
-def latest_active_index_roots_length():
-    return SERENITY_CONFIG.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
-
-
-@pytest.fixture
-def latest_randao_mixes_length():
-    return SERENITY_CONFIG.LATEST_RANDAO_MIXES_LENGTH
-
-
-@pytest.fixture
-def latest_slashed_exit_length():
-    return SERENITY_CONFIG.LATEST_SLASHED_EXIT_LENGTH
-
-
-@pytest.fixture
 def deposit_contract_address():
     return SERENITY_CONFIG.DEPOSIT_CONTRACT_ADDRESS
 
@@ -515,6 +490,16 @@ def min_deposit_amount():
 @pytest.fixture
 def max_deposit_amount():
     return SERENITY_CONFIG.MAX_DEPOSIT_AMOUNT
+
+
+@pytest.fixture
+def fork_choice_balance_increment():
+    return SERENITY_CONFIG.FORK_CHOICE_BALANCE_INCREMENT
+
+
+@pytest.fixture
+def ejection_balance():
+    return SERENITY_CONFIG.EJECTION_BALANCE
 
 
 @pytest.fixture
@@ -580,6 +565,21 @@ def min_validator_withdrawability_delay():
 @pytest.fixture
 def persistent_committee_period():
     return SERENITY_CONFIG.PERSISTENT_COMMITTEE_PERIOD
+
+
+@pytest.fixture
+def latest_active_index_roots_length():
+    return SERENITY_CONFIG.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
+
+
+@pytest.fixture
+def latest_randao_mixes_length():
+    return SERENITY_CONFIG.LATEST_RANDAO_MIXES_LENGTH
+
+
+@pytest.fixture
+def latest_slashed_exit_length():
+    return SERENITY_CONFIG.LATEST_SLASHED_EXIT_LENGTH
 
 
 @pytest.fixture
@@ -724,20 +724,17 @@ def genesis_balances(init_validator_pubkeys, max_deposit_amount):
 def config(
         shard_count,
         target_committee_size,
-        ejection_balance,
         max_balance_churn_quotient,
-        beacon_chain_shard_number,
         max_indices_per_slashable_vote,
         max_exit_dequeues_per_epoch,
         shuffle_round_count,
         slots_per_historical_root,
-        latest_active_index_roots_length,
-        latest_randao_mixes_length,
-        latest_slashed_exit_length,
         deposit_contract_address,
         deposit_contract_tree_depth,
         min_deposit_amount,
         max_deposit_amount,
+        fork_choice_balance_increment,
+        ejection_balance,
         genesis_fork_version,
         genesis_slot,
         genesis_epoch,
@@ -751,6 +748,9 @@ def config(
         epochs_per_eth1_voting_period,
         min_validator_withdrawability_delay,
         persistent_committee_period,
+        latest_active_index_roots_length,
+        latest_randao_mixes_length,
+        latest_slashed_exit_length,
         base_reward_quotient,
         whistleblower_reward_quotient,
         attestation_inclusion_reward_quotient,
@@ -766,20 +766,17 @@ def config(
     return Eth2Config(
         SHARD_COUNT=shard_count,
         TARGET_COMMITTEE_SIZE=target_committee_size,
-        EJECTION_BALANCE=ejection_balance,
         MAX_BALANCE_CHURN_QUOTIENT=max_balance_churn_quotient,
-        BEACON_CHAIN_SHARD_NUMBER=beacon_chain_shard_number,
         MAX_INDICES_PER_SLASHABLE_VOTE=max_indices_per_slashable_vote,
         MAX_EXIT_DEQUEUES_PER_EPOCH=max_exit_dequeues_per_epoch,
         SHUFFLE_ROUND_COUNT=shuffle_round_count,
         SLOTS_PER_HISTORICAL_ROOT=slots_per_historical_root,
-        LATEST_ACTIVE_INDEX_ROOTS_LENGTH=latest_active_index_roots_length,
-        LATEST_RANDAO_MIXES_LENGTH=latest_randao_mixes_length,
-        LATEST_SLASHED_EXIT_LENGTH=latest_slashed_exit_length,
         DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,
         DEPOSIT_CONTRACT_TREE_DEPTH=deposit_contract_tree_depth,
         MIN_DEPOSIT_AMOUNT=min_deposit_amount,
         MAX_DEPOSIT_AMOUNT=max_deposit_amount,
+        FORK_CHOICE_BALANCE_INCREMENT=fork_choice_balance_increment,
+        EJECTION_BALANCE=ejection_balance,
         GENESIS_FORK_VERSION=genesis_fork_version,
         GENESIS_SLOT=genesis_slot,
         GENESIS_EPOCH=genesis_epoch,
@@ -793,6 +790,9 @@ def config(
         EPOCHS_PER_ETH1_VOTING_PERIOD=epochs_per_eth1_voting_period,
         MIN_VALIDATOR_WITHDRAWABILITY_DELAY=min_validator_withdrawability_delay,
         PERSISTENT_COMMITTEE_PERIOD=persistent_committee_period,
+        LATEST_ACTIVE_INDEX_ROOTS_LENGTH=latest_active_index_roots_length,
+        LATEST_RANDAO_MIXES_LENGTH=latest_randao_mixes_length,
+        LATEST_SLASHED_EXIT_LENGTH=latest_slashed_exit_length,
         BASE_REWARD_QUOTIENT=base_reward_quotient,
         WHISTLEBLOWER_REWARD_QUOTIENT=whistleblower_reward_quotient,
         ATTESTATION_INCLUSION_REWARD_QUOTIENT=attestation_inclusion_reward_quotient,

@@ -50,7 +50,6 @@ def process_block_header(state: BeaconState,
         validate_proposer_signature(
             state,
             block,
-            beacon_chain_shard_number=config.BEACON_CHAIN_SHARD_NUMBER,
             committee_config=CommitteeConfig(config),
         )
 
