@@ -57,7 +57,7 @@ class SerenityStateTransition(BaseStateTransition):
         else:
             raise Exception(
                 f"Invariant: state.slot ({state.slot}) should be less "
-                "than block.slot ({block.slot}) so that state transition terminates"
+                f"than block.slot ({block.slot}) so that state transition terminates"
             )
         return state
 

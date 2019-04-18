@@ -60,7 +60,6 @@ from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
     Bitfield,
     Epoch,
-    Shard,
     Slot,
     ValidatorIndex,
 )

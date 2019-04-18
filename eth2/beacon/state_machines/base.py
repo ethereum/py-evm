@@ -45,7 +45,8 @@ class BaseBeaconStateMachine(Configurable, ABC):
     @abstractmethod
     def __init__(self,
                  chaindb: BaseBeaconChainDB,
-                 block_root: Hash32) -> None:
+                 block: BaseBeaconBlock,
+                 state: BeaconState=None) -> None:
         pass
 
     @classmethod
@@ -87,9 +88,13 @@ class BaseBeaconStateMachine(Configurable, ABC):
 class BeaconStateMachine(BaseBeaconStateMachine):
     def __init__(self,
                  chaindb: BaseBeaconChainDB,
-                 block: BaseBeaconBlock) -> None:
+                 block: BaseBeaconBlock,
+                 state: BeaconState=None) -> None:
         self.chaindb = chaindb
-        self.block = block
+        if state is not None:
+            self._state = state
+        else:
+            self.block = block
 
     @property
     def state(self) -> BeaconState:

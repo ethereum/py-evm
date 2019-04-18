@@ -47,6 +47,7 @@ deps = {
         "pytest-cov==2.5.1",
         "pytest-watch>=4.1.0,<5",
         "pytest-xdist==1.18.1",
+        "pytest-mock==1.10.4",
         # only needed for p2p
         "pytest-asyncio-network-simulator==0.1.0a2;python_version>='3.6'",
     ],
