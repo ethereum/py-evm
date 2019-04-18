@@ -104,6 +104,7 @@ class StorageLookup(BaseDB):
     def __setitem__(self, key: bytes, value: bytes) -> None:
         hashed_slot = self._decode_key(key)
         write_trie = self._get_write_trie()
+        self.logger.debug2("Setting storage key 0x%s to value 0x%s", hashed_slot.hex(), value.hex())
         write_trie[hashed_slot] = value
 
     def _exists(self, key: bytes) -> bool:
@@ -212,6 +213,12 @@ class AccountStorageDB:
             return rlp.decode(encoded_value, sedes=rlp.sedes.big_endian_int)
 
     def set(self, slot: int, value: int) -> None:
+        self.logger.debug2(
+            "Setting decoded storage in account 0x%s & slot %s to value %s",
+            self._address.hex(),
+            slot,
+            value,
+        )
         key = int_to_big_endian(slot)
         if value:
             self._journal_storage[key] = rlp.encode(value)

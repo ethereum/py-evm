@@ -288,6 +288,12 @@ class AccountDB(BaseAccountDB):
         validate_uint256(slot, title="Storage Slot")
         validate_canonical_address(address, title="Storage Address")
 
+        self.logger.debug2(
+            "Setting decoded storage in account 0x%s & slot %s to value %s",
+            self._address.hex(),
+            slot,
+            value,
+        )
         account_store = self._get_address_store(address)
         self._dirty_accounts.add(address)
         account_store.set(slot, value)
@@ -496,6 +502,7 @@ class AccountDB(BaseAccountDB):
         return checkpoint
 
     def discard(self, checkpoint: JournalDBCheckpoint) -> None:
+        self.logger.debug2('discard checkpoint %r', checkpoint)
         self._journaldb.discard(checkpoint)
         self._journaltrie.discard(checkpoint)
         self._account_cache.clear()
@@ -509,6 +516,8 @@ class AccountDB(BaseAccountDB):
             store.commit(checkpoint)
 
     def make_state_root(self) -> Hash32:
+        self.logger.debug2("Generating AccountDB trie, with account cache: %r" % self._account_cache.items())
+
         for _, store in self._dirty_account_stores():
             store.make_storage_root()
 
