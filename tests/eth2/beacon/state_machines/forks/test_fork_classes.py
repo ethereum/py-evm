@@ -1,10 +1,17 @@
 import pytest
-from eth2.beacon.state_machines.forks.xiao_long_bao import XiaoLongBaoStateMachine
+
+from eth2.beacon.state_machines.forks.serenity import (
+    SerenityStateMachine,
+)
+from eth2.beacon.state_machines.forks.xiao_long_bao import (
+    XiaoLongBaoStateMachine,
+)
 
 
 @pytest.mark.parametrize(
     "sm_klass",
     (
+        SerenityStateMachine,
         XiaoLongBaoStateMachine,
     )
 )

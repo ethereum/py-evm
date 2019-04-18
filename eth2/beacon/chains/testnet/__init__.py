@@ -7,13 +7,12 @@ from eth2.beacon.chains.base import (
 from eth2.beacon.state_machines.forks.xiao_long_bao import (
     XiaoLongBaoStateMachine,
 )
-from .constants import (
-    TESTNET_CHAIN_ID,
-)
 from eth2.beacon.state_machines.forks.serenity.configs import (
     SERENITY_CONFIG,
 )
-
+from .constants import (
+    TESTNET_CHAIN_ID,
+)
 
 if TYPE_CHECKING:
     from eth2.beacon.typing import (  # noqa: F401
