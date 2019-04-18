@@ -30,17 +30,14 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p._utils import clamp
+from p2p._utils import clamp, token_bucket
 from p2p.constants import (
     DEFAULT_MAX_PEERS,
     DEFAULT_PEER_BOOT_TIMEOUT,
     DISCOVERY_EVENTBUS_ENDPOINT,
-    DISOVERY_INTERVAL,
+    PEER_CONNECT_INTERVAL,
+    MAX_SEQUENTIAL_PEER_CONNECT,
     REQUEST_PEER_CANDIDATE_TIMEOUT,
-)
-from p2p.events import (
-    PeerCandidatesRequest,
-    RandomBootnodeRequest,
 )
 from p2p.exceptions import (
     BaseP2PError,
@@ -52,7 +49,6 @@ from p2p.exceptions import (
     UnreachablePeer,
 )
 from p2p.kademlia import (
-    from_uris,
     Node,
 )
 from p2p.peer import (
@@ -62,6 +58,11 @@ from p2p.peer import (
     handshake,
     PeerMessage,
     PeerSubscriber,
+)
+from p2p.peer_backend import (
+    BasePeerBackend,
+    DiscoveryPeerBackend,
+    BootnodesPeerBackend,
 )
 from p2p.persistence import (
     BasePeerInfo,
@@ -124,47 +125,49 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         self._subscribers: List[PeerSubscriber] = []
         self.event_bus = event_bus
 
+        self.peer_backends = self.setup_peer_backends()
+
+    def setup_peer_backends(self) -> Tuple[BasePeerBackend, ...]:
+        return (
+            DiscoveryPeerBackend(self.event_bus),
+            BootnodesPeerBackend(self.event_bus),
+        )
+
+    async def _add_peers_from_backend(self, backend: BasePeerBackend) -> None:
+        available_slots = self.max_peers - len(self)
+
+        try:
+            candidates = await self.wait(
+                backend.get_peer_candidates(
+                    num_requested=available_slots,
+                    num_connected_peers=len(self),
+                ),
+                timeout=REQUEST_PEER_CANDIDATE_TIMEOUT,
+            )
+        except TimeoutError:
+            self.logger.warning("PeerCandidateRequest timed out to backend %s", backend)
+            return
+        else:
+            self.logger.debug2(
+                "Got candidates from backend %s (%s)",
+                backend,
+                candidates,
+            )
+            await self.connect_to_nodes(iter(candidates))
+
     async def maybe_connect_more_peers(self) -> None:
-        while self.is_operational:
-            await self.sleep(DISOVERY_INTERVAL)
+        # allowed to operate at a maximum rate of 1 check every 2 seconds
+        rate_limiter = token_bucket(1 / PEER_CONNECT_INTERVAL, MAX_SEQUENTIAL_PEER_CONNECT)
+        while True:
+            if self.is_full:
+                await self.sleep(PEER_CONNECT_INTERVAL)
+                continue
+            await self.wait(rate_limiter.__anext__())
 
-            available_peer_slots = self.max_peers - len(self)
-            if available_peer_slots > 0:
-                try:
-                    response = await self.wait(
-                        self.event_bus.request(
-                            PeerCandidatesRequest(available_peer_slots),
-                            TO_DISCOVERY_BROADCAST_CONFIG,
-                        ),
-                        timeout=REQUEST_PEER_CANDIDATE_TIMEOUT
-                    )
-                except TimeoutError:
-                    self.logger.warning("Discovery did not answer PeerCandidateRequest in time")
-                    continue
-
-                # In some cases (e.g ROPSTEN or private testnets), the discovery table might be
-                # full of bad peers so if we can't connect to any peers we try a random bootstrap
-                # node as well.
-                if not len(self):
-                    try:
-                        bootnodes_response = await self.wait(
-                            self.event_bus.request(
-                                RandomBootnodeRequest(),
-                                TO_DISCOVERY_BROADCAST_CONFIG
-                            ),
-                            timeout=REQUEST_PEER_CANDIDATE_TIMEOUT
-                        )
-                    except TimeoutError:
-                        self.logger.warning(
-                            "Discovery did not answer RandomBootnodeRequest in time"
-                        )
-                        continue
-                    candidates = response.candidates + bootnodes_response.candidates
-                else:
-                    candidates = response.candidates
-
-                self.logger.debug2("Received candidates to connect to (%s)", candidates)
-                await self.connect_to_nodes(from_uris(candidates))
+            await self.wait(asyncio.gather(*(
+                self._add_peers_from_backend(backend)
+                for backend in self.peer_backends
+            )))
 
     def __len__(self) -> int:
         return len(self.connected_nodes)

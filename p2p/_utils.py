@@ -1,9 +1,15 @@
-import datetime
+import asyncio
 from concurrent.futures import Executor, ProcessPoolExecutor
+import datetime
 import logging
 import os
 import signal
-from typing import Tuple
+import time
+from typing import (
+    AsyncGenerator,
+    Tuple,
+    Union,
+)
 
 import rlp
 
@@ -106,3 +112,31 @@ def ensure_global_asyncio_executor(cpu_count: int=None) -> Executor:
         _executor._start_queue_management_thread()  # type: ignore
         signal.signal(signal.SIGINT, original_handler)
     return _executor
+
+
+async def token_bucket(rate: Union[int, float],
+                       capacity: Union[int, float],
+                       ) -> AsyncGenerator[None, None]:
+    """
+    rate: Number of token that can be consumed per second.
+    capacity: Maximum number of tokens
+
+    Each `await` call consumes a single token.
+    """
+    num_tokens = capacity
+    last_refill = time.perf_counter()
+    seconds_per_token = 1 / rate
+
+    while True:
+        now = time.perf_counter()
+        num_tokens = min(
+            capacity,
+            num_tokens + (rate * (now - last_refill)),
+        )
+        last_refill = now
+
+        if num_tokens >= 1:
+            num_tokens -= 1
+            yield
+        else:
+            await asyncio.sleep((1 - num_tokens) * seconds_per_token)
