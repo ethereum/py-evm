@@ -8,9 +8,6 @@ from typing import (  # noqa: F401
 
 from eth_utils import encode_hex
 
-from eth.db.account import (
-    AccountDB,
-)
 from eth.tools.fixtures.helpers import (
     get_test_name,
 )
@@ -21,6 +18,14 @@ from eth.tools._utils.normalization import (
     normalize_transaction_group,
 )
 from eth.tools._utils.mappings import deep_merge
+from eth.vm.forks.byzantium.state import ByzantiumState
+from eth.vm.forks.constantinople.state import ConstantinopleState
+from eth.vm.forks.frontier.state import FrontierState
+from eth.vm.forks.homestead.state import HomesteadState
+from eth.vm.forks.istanbul.state import IstanbulState
+from eth.vm.forks.petersburg.state import PetersburgState
+from eth.vm.forks.spurious_dragon.state import SpuriousDragonState
+from eth.vm.forks.tangerine_whistle.state import TangerineWhistleState
 
 from ._utils import (
     calc_state_root,
@@ -34,17 +39,23 @@ ALL_NETWORKS = [
     "EIP158",
     "Byzantium",
     "Constantinople",
+    "Petersburg",
+    "Istanbul",
 ]
 
-ACCOUNT_STATE_DB_CLASSES = {
-    "Frontier": AccountDB,
-    "Homestead": AccountDB,
-    "EIP150": AccountDB,
-    "EIP158": AccountDB,
-    "Byzantium": AccountDB,
-    "Constantinople": AccountDB,
+STATE_CLASSES = {
+    "Frontier": FrontierState,
+    "Homestead": HomesteadState,
+    "EIP150": TangerineWhistleState,
+    "EIP158": SpuriousDragonState,
+    "Byzantium": ByzantiumState,
+    "Constantinople": ConstantinopleState,
+    "Petersburg": PetersburgState,
+    "Istanbul": IstanbulState,
 }
-assert all(network in ACCOUNT_STATE_DB_CLASSES for network in ALL_NETWORKS)
+
+_missing_state_classes = set(ALL_NETWORKS) - set(STATE_CLASSES)
+assert not any(_missing_state_classes)
 
 
 def fill_state_test(filler: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
@@ -65,8 +76,8 @@ def fill_state_test(filler: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
         result = normalize_state(expect["result"])
         post_state = deep_merge(pre_state, result)
         for network in networks:
-            account_db_class = ACCOUNT_STATE_DB_CLASSES[network]
-            post_state_root = calc_state_root(post_state, account_db_class)
+            state_class = STATE_CLASSES[network]
+            post_state_root = calc_state_root(post_state, state_class)
             post[network].append({
                 "hash": encode_hex(post_state_root),
                 "indexes": indexes,
