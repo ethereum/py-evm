@@ -35,7 +35,7 @@ class Account(rlp.Serializable):
                  **kwargs: Any) -> None:
         super().__init__(nonce, balance, storage_root, code_hash, **kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Account(nonce=%d, balance=%d, storage_root=0x%s, code_hash=0x%s)" % (
             self.nonce,
             self.balance,
