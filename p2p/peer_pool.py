@@ -35,7 +35,8 @@ from p2p.constants import (
     DEFAULT_MAX_PEERS,
     DEFAULT_PEER_BOOT_TIMEOUT,
     DISCOVERY_EVENTBUS_ENDPOINT,
-    DISOVERY_INTERVAL,
+    PEER_CONNECT_INTERVAL,
+    MAX_SEQUENTIAL_PEER_CONNECT,
     REQUEST_PEER_CANDIDATE_TIMEOUT,
 )
 from p2p.exceptions import (
@@ -156,10 +157,10 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
     async def maybe_connect_more_peers(self) -> None:
         # allowed to operate at a maximum rate of 1 check every 2 seconds
-        rate_limiter = token_bucket(0.5, 5)
+        rate_limiter = token_bucket(1 / PEER_CONNECT_INTERVAL, MAX_SEQUENTIAL_PEER_CONNECT)
         while True:
             if self.is_full:
-                await self.sleep(DISOVERY_INTERVAL)
+                await self.sleep(PEER_CONNECT_INTERVAL)
                 continue
             await self.wait(rate_limiter.__anext__())
 

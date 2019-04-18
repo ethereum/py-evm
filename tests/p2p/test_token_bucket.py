@@ -5,6 +5,18 @@ import time
 from p2p._utils import token_bucket
 
 
+async def measure_zero(iterations):
+    start_at = time.perf_counter()
+    for _ in range(iterations):
+        await asyncio.sleep(0)
+    end_at = time.perf_counter()
+    return end_at - start_at
+
+
+def assert_fuzzy_equal(actual, expected, allowed_drift):
+    assert abs(1 - (actual / expected)) < allowed_drift
+
+
 @pytest.mark.asyncio
 async def test_token_bucket_initial_tokens():
     limiter = token_bucket(1000, 10)
@@ -15,9 +27,13 @@ async def test_token_bucket_initial_tokens():
 
     end_at = time.perf_counter()
     delta = end_at - start_at
+
     # since the bucket starts out full the loop
     # should take near zero time
-    assert delta < 0.0001
+    expected = await measure_zero(10)
+    # drift is allowed to be up to 200% since we're working with very small
+    # numbers.
+    assert_fuzzy_equal(delta, expected, allowed_drift=2)
 
 
 @pytest.mark.asyncio
@@ -32,12 +48,12 @@ async def test_token_bucket_hits_limit():
 
     end_at = time.perf_counter()
 
-    expected_delta = 10 / 1000
+    # we use a zero-measure of 20 to account for the loop overhead.
+    expected_delta = 10 / 1000 + await measure_zero(20)
     delta = end_at - start_at
-    print('DELTA:', delta, expected_delta)
 
-    # allow up to 10% drift from expected result
-    assert abs(1 - (delta / expected_delta)) < 0.1
+    # allow up to 1% difference in expected time
+    assert_fuzzy_equal(delta, expected_delta, allowed_drift=0.01)
 
 
 @pytest.mark.asyncio
@@ -61,4 +77,7 @@ async def test_token_bucket_refills_itself():
     delta = end_at - start_at
     # since the capacity should have been fully refilled, second loop time
     # should take near zero time
-    assert delta < 0.0001
+    expected = await measure_zero(10)
+    # drift is allowed to be up to 200% since we're working with very small
+    # numbers.
+    assert_fuzzy_equal(delta, expected, allowed_drift=2)

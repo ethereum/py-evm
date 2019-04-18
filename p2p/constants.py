@@ -114,7 +114,10 @@ DEFAULT_PEER_BOOT_TIMEOUT = 20
 
 # Name of the endpoint that the discovery uses to connect to the eventbus
 DISCOVERY_EVENTBUS_ENDPOINT = 'discovery'
-# Interval at which peer pool is checked for potential new candidates
-DISOVERY_INTERVAL = 2
+# Interval at which peer pool requests new connection candidates
+PEER_CONNECT_INTERVAL = 2
+# Maximum number of sequential connection attempts that can be made before
+# hitting the rate limit
+MAX_SEQUENTIAL_PEER_CONNECT = 5
 # Timeout used when fetching peer candidates from discovery
 REQUEST_PEER_CANDIDATE_TIMEOUT = 0.5
