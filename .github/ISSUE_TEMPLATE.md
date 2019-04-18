@@ -1,6 +1,6 @@
-* py-evm Version: x.x.x
+* Trinity version: x.x.x
 * OS: osx/linux/win
-* Python Version (python --version):
+* Python version (output of `python --version`):
 * Environment (output of `pip freeze`):
 
 ### What is wrong?
