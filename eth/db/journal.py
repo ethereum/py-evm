@@ -20,7 +20,17 @@ class DeletedEntry:
     pass
 
 
+# Track two different kinds of deletion:
+
+# 1. key in wrapped
+# 2. key modified in journal
+# 3. key deleted
 DELETED_ENTRY = DeletedEntry()
+
+# 1. key not in wrapped
+# 2. key created in journal
+# 3. key deleted
+ERASE_CREATED_ENTRY = DeletedEntry()
 
 
 class Journal(BaseDB):
@@ -198,7 +208,7 @@ class Journal(BaseDB):
         # Ignored from mypy because of https://github.com/python/typeshed/issues/2078
         for changeset_id, changeset_data in reversed(self.journal_data.items()):
             if changeset_id in self._clears_at:
-                return DELETED_ENTRY
+                return ERASE_CREATED_ENTRY
             elif key in changeset_data:
                 return changeset_data[key]
             else:
@@ -211,10 +221,13 @@ class Journal(BaseDB):
 
     def _exists(self, key: bytes) -> bool:
         val = self.get(key)
-        return val is not None and val is not DELETED_ENTRY
+        return val is not None and val not in (ERASE_CREATED_ENTRY, DELETED_ENTRY)
 
     def __delitem__(self, key: bytes) -> None:
         self.latest[key] = DELETED_ENTRY
+
+    def local_delete(self, key: bytes) -> None:
+        self.latest[key] = ERASE_CREATED_ENTRY
 
 
 class JournalDB(BaseDB):
@@ -247,7 +260,9 @@ class JournalDB(BaseDB):
 
         val = self.journal[key]
         if val is DELETED_ENTRY:
-            raise KeyError(key, "item was explicitly deleted in JournalDB")
+            raise KeyError(key, "item is pending deletion, by JournalDB")
+        elif val is ERASE_CREATED_ENTRY:
+            raise KeyError(key, "item was absent, then created and deleted, by JournalDB")
         elif val is None:
             return self.wrapped_db[key]
         else:
@@ -264,7 +279,7 @@ class JournalDB(BaseDB):
 
     def _exists(self, key: bytes) -> bool:
         val = self.journal[key]
-        if val is DELETED_ENTRY:
+        if val in (ERASE_CREATED_ENTRY, DELETED_ENTRY):
             return False
         elif val is None:
             return key in self.wrapped_db
@@ -290,9 +305,13 @@ class JournalDB(BaseDB):
         return self.journal.has_clear(self.journal.root_changeset_id)
 
     def __delitem__(self, key: bytes) -> None:
-        if key not in self.journal and key not in self.wrapped_db:
-            raise KeyError(key, "key could not be deleted in JournalDB, because it was missing")
-        del self.journal[key]
+        if key in self.wrapped_db:
+            del self.journal[key]
+        else:
+            if key in self.journal:
+                self.journal.local_delete(key)
+            else:
+                raise KeyError(key, "key could not be deleted in JournalDB, because it was missing")
 
     #
     # Snapshot API
@@ -338,12 +357,10 @@ class JournalDB(BaseDB):
             for key, value in journal_data.items():
                 if value is not DELETED_ENTRY:
                     self.wrapped_db[key] = value  # type: ignore # value can only be bytes here
+                elif value is ERASE_CREATED_ENTRY:
+                    pass
                 else:
-                    try:
-                        del self.wrapped_db[key]
-                    except KeyError:
-                        pass
-
+                    del self.wrapped_db[key]
             # Ensure the journal automatically restarts recording after
             # it has been persisted to the underlying db
             self.reset()
@@ -376,7 +393,8 @@ class JournalDB(BaseDB):
         visited_keys = set()  # type: Set[bytes]
 
         # Iterate in reverse, so you can skip over any keys from old checkpoints.
-        # This is purely for performance, not correctness.
+        # This is required so that when a key is created and then deleted in the journal,
+        #   we don't add the delete to the diff. (We simply omit the change altogether)
         for changeset in reversed(self.journal.journal_data.values()):
             for key, value in changeset.items():
                 if key in visited_keys:
@@ -384,6 +402,8 @@ class JournalDB(BaseDB):
                     continue
                 elif value is DELETED_ENTRY:
                     del tracker[key]
+                elif value is ERASE_CREATED_ENTRY:
+                    pass
                 else:
                     tracker[key] = value  # type: ignore # This is always bytes, but mypy can't tell
 
