@@ -59,7 +59,7 @@ class Journal(BaseDB):
     @property
     def is_flattened(self) -> bool:
         """
-        Returns the id of the root changeset
+        :return: whether there are any explicitly committed checkpoints
         """
         return len(self.journal_data) < 2
 
@@ -224,10 +224,39 @@ class Journal(BaseDB):
         return val is not None and val not in (ERASE_CREATED_ENTRY, DELETED_ENTRY)
 
     def __delitem__(self, key: bytes) -> None:
+        raise NotImplementedError("You must delete with one of delete_local or delete_wrapped")
+
+    def delete_wrapped(self, key: bytes) -> None:
         self.latest[key] = DELETED_ENTRY
 
-    def local_delete(self, key: bytes) -> None:
+    def delete_local(self, key: bytes) -> None:
         self.latest[key] = ERASE_CREATED_ENTRY
+
+    def diff(self) -> DBDiff:
+        tracker = DBDiffTracker()
+        visited_keys = set()  # type: Set[bytes]
+
+        # Iterate in reverse, so you can skip over any keys from old checkpoints.
+        # This is required so that when a key is created and then deleted in the journal,
+        #   we don't add the delete to the diff. (We simply omit the change altogether)
+        for changeset_id, changeset in reversed(self.journal_data.items()):
+            if changeset_id in self._clears_at:
+                break
+
+            for key, value in changeset.items():
+                if key in visited_keys:
+                    # this old change has already been tracked
+                    continue
+                elif value is DELETED_ENTRY:
+                    del tracker[key]
+                elif value is ERASE_CREATED_ENTRY:
+                    pass
+                else:
+                    tracker[key] = cast(bytes, value)
+
+                visited_keys.add(key)
+
+        return tracker.diff()
 
 
 class JournalDB(BaseDB):
@@ -260,9 +289,15 @@ class JournalDB(BaseDB):
 
         val = self.journal[key]
         if val is DELETED_ENTRY:
-            raise KeyError(key, "item is pending deletion, by JournalDB")
+            raise KeyError(
+                key,
+                "item is deleted in JournalDB, and will be deleted from the wrapped DB",
+            )
         elif val is ERASE_CREATED_ENTRY:
-            raise KeyError(key, "item was absent, then created and deleted, by JournalDB")
+            raise KeyError(
+                key,
+                "item is deleted in JournalDB, and is presumed gone from the wrapped DB",
+            )
         elif val is None:
             return self.wrapped_db[key]
         else:
@@ -306,10 +341,10 @@ class JournalDB(BaseDB):
 
     def __delitem__(self, key: bytes) -> None:
         if key in self.wrapped_db:
-            del self.journal[key]
+            self.journal.delete_wrapped(key)
         else:
             if key in self.journal:
-                self.journal.local_delete(key)
+                self.journal.delete_local(key)
             else:
                 raise KeyError(key, "key could not be deleted in JournalDB, because it was missing")
 
@@ -377,9 +412,9 @@ class JournalDB(BaseDB):
         self.record(changeset_id)
         for key, value in journal_data.items():
             if value is DELETED_ENTRY:
-                del self.journal[key]
+                self.journal.delete_wrapped(key)
             elif value is ERASE_CREATED_ENTRY:
-                self.journal.local_delete(key)
+                self.journal.delete_local(key)
             else:
                 self.journal[key] = cast(bytes, value)
 
@@ -407,24 +442,4 @@ class JournalDB(BaseDB):
         Generate a DBDiff of all pending changes.
         These are the changes that would occur if :meth:`persist()` were called.
         """
-        tracker = DBDiffTracker()
-        visited_keys = set()  # type: Set[bytes]
-
-        # Iterate in reverse, so you can skip over any keys from old checkpoints.
-        # This is required so that when a key is created and then deleted in the journal,
-        #   we don't add the delete to the diff. (We simply omit the change altogether)
-        for changeset in reversed(self.journal.journal_data.values()):
-            for key, value in changeset.items():
-                if key in visited_keys:
-                    # this old change has already been tracked
-                    continue
-                elif value is DELETED_ENTRY:
-                    del tracker[key]
-                elif value is ERASE_CREATED_ENTRY:
-                    pass
-                else:
-                    tracker[key] = value  # type: ignore # This is always bytes, but mypy can't tell
-
-                visited_keys.add(key)
-
-        return tracker.diff()
+        return self.journal.diff()

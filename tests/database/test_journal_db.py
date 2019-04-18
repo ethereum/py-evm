@@ -546,3 +546,14 @@ def test_journal_persist_set_KeyError_then_persist():
     assert b'data-to-delete' not in memory_db
     # This key is set on the second attempt
     assert b'failing-to-set-key' in memory_db
+
+
+def test_journal_db_diff_respects_clear():
+    memory_db = MemoryDB({})
+    journal_db = JournalDB(memory_db)
+
+    journal_db[b'first'] = b'val'
+    journal_db.clear()
+
+    pending = journal_db.diff().pending_items()
+    assert len(pending) == 0
