@@ -466,3 +466,83 @@ def test_journal_db_diff_application_mimics_persist(journal_db, memory_db, actio
     diff.apply_to(diff_test_db)
 
     assert memory_db == diff_test_db
+
+
+def test_journal_persist_delete_KeyError_then_persist():
+    db = {b'delete-me': b'val'}
+    memory_db = MemoryDB(db)
+
+    journal_db = JournalDB(memory_db)
+
+    del journal_db[b'delete-me']
+
+    # Let's artificially remove the key so it fails on delete
+    # (this might happen if the wrapped db is a trie)
+    db.clear()
+    with pytest.raises(KeyError):
+        journal_db.persist()
+
+    # A persist that fails reinstates all the pending changes as a single changeset
+    # Let's add the value to the Memory DB so doesn't fail on delete and try again:
+    db[b'delete-me'] = b'val'
+
+    # smoke test that persist works after an exception
+    journal_db[b'new-key'] = b'new-val'
+    journal_db.persist()
+    assert memory_db[b'new-key'] == b'new-val'
+    assert b'delete-me' not in memory_db
+
+
+class MemoryDBSetRaisesKeyError(MemoryDB):
+    def __setitem__(self, *args):
+        raise KeyError("Artificial key error during set, can happen if underlying db is trie")
+
+
+def test_journal_persist_set_KeyError():
+    memory_db = MemoryDBSetRaisesKeyError()
+
+    # make sure test is set up correctly
+    with pytest.raises(KeyError):
+        memory_db[b'failing-to-set-key'] = b'val'
+
+    journal_db = JournalDB(memory_db)
+
+    journal_db[b'failing-to-set-key'] = b'val'
+    with pytest.raises(KeyError):
+        journal_db.persist()
+
+
+def test_journal_persist_set_KeyError_leaves_changeset_in_place():
+    memory_db = MemoryDBSetRaisesKeyError()
+
+    journal_db = JournalDB(memory_db)
+
+    journal_db[b'failing-to-set-key'] = b'val'
+    with pytest.raises(KeyError):
+        journal_db.persist()
+
+    diff = journal_db.diff()
+    assert diff.pending_items() == ((b'failing-to-set-key', b'val'), )
+
+
+def test_journal_persist_set_KeyError_then_persist():
+    original_data = {b'data-to-delete': b'val'}
+    memory_db = MemoryDBSetRaisesKeyError(original_data)
+
+    journal_db = JournalDB(memory_db)
+
+    journal_db[b'failing-to-set-key'] = b'val'
+    with pytest.raises(KeyError):
+        journal_db.persist()
+    assert b'failing-to-set-key' not in memory_db
+
+    # A persist that fails reinstates all the pending changes as a single changeset
+    # Let's switch to a Memory DB that doesn't fail on delete and try again:
+    journal_db.wrapped_db = original_data
+
+    # smoke test that persist works after an exception
+    del journal_db[b'data-to-delete']
+    journal_db.persist()
+    assert b'data-to-delete' not in memory_db
+    # This key is set on the second attempt
+    assert b'failing-to-set-key' in memory_db

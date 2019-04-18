@@ -354,16 +354,34 @@ class JournalDB(BaseDB):
         journal_data = self.journal.commit_changeset(changeset_id)
 
         if self.journal.is_empty():
-            for key, value in journal_data.items():
-                if value is not DELETED_ENTRY:
-                    self.wrapped_db[key] = value  # type: ignore # value can only be bytes here
-                elif value is ERASE_CREATED_ENTRY:
-                    pass
-                else:
-                    del self.wrapped_db[key]
             # Ensure the journal automatically restarts recording after
             # it has been persisted to the underlying db
             self.reset()
+
+            for key, value in journal_data.items():
+                try:
+                    if value is DELETED_ENTRY:
+                        del self.wrapped_db[key]
+                    elif value is ERASE_CREATED_ENTRY:
+                        pass
+                    else:
+                        self.wrapped_db[key] = cast(bytes, value)
+                except Exception:
+                    self._reapply_changeset_to_journal(changeset_id, journal_data)
+                    raise
+
+    def _reapply_changeset_to_journal(
+            self,
+            changeset_id: uuid.UUID,
+            journal_data: Dict[bytes, Union[bytes, DeletedEntry]]) -> None:
+        self.record(changeset_id)
+        for key, value in journal_data.items():
+            if value is DELETED_ENTRY:
+                del self.journal[key]
+            elif value is ERASE_CREATED_ENTRY:
+                self.journal.local_delete(key)
+            else:
+                self.journal[key] = cast(bytes, value)
 
     def persist(self) -> None:
         """
