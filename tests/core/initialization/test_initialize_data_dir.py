@@ -23,13 +23,6 @@ def data_dir(trinity_config):
     return trinity_config.data_dir
 
 
-@pytest.fixture
-def nodekey(trinity_config, data_dir):
-    with open(trinity_config.nodekey_path, 'wb') as nodekey_file:
-        nodekey_file.write(b'\x01' * 32)
-    return trinity_config.nodekey_path
-
-
 def test_initializing_data_dir_from_nothing(trinity_config):
     assert not os.path.exists(trinity_config.data_dir)
     assert not is_data_dir_initialized(trinity_config)
