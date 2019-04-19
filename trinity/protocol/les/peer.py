@@ -78,29 +78,36 @@ class LESPeer(BaseChainPeer):
         if not isinstance(cmd, (Status, StatusV2)):
             await self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure(f"Expected a LES Status msg, got {cmd}, disconnecting")
+
         msg = cast(Dict[str, Any], msg)
-        if msg['networkId'] != self.network_id:
+
+        self.head_td = msg['headTd']
+        self.head_hash = msg['headHash']
+        self.head_number = msg['headNum']
+        self.network_id = msg['networkId']
+        self.genesis_hash = msg['genesisHash']
+
+        if msg['networkId'] != self.local_network_id:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 f"{self} network ({msg['networkId']}) does not match ours "
-                f"({self.network_id}), disconnecting"
+                f"({self.local_network_id}), disconnecting"
             )
-        genesis = await self.genesis
-        if msg['genesisHash'] != genesis.hash:
+
+        local_genesis_hash = await self._get_local_genesis_hash()
+        if msg['genesisHash'] != local_genesis_hash:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 f"{self} genesis ({encode_hex(msg['genesisHash'])}) does not "
-                f"match ours ({genesis.hex_hash}), disconnecting"
+                f"match ours ({local_genesis_hash}), disconnecting"
             )
+
         # Eventually we might want to keep connections to peers where we are the only side serving
         # data, but right now both our chain syncer and the Peer.boot() method expect the remote
         # to reply to header requests, so if they don't we simply disconnect here.
         if 'serveHeaders' not in msg:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(f"{self} doesn't serve headers, disconnecting")
-        self.head_td = msg['headTd']
-        self.head_hash = msg['headHash']
-        self.head_number = msg['headNum']
 
 
 class LESPeerFactory(BaseChainPeerFactory):

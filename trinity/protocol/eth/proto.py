@@ -57,7 +57,7 @@ class ETHProtocol(HasExtendedDebugLogger, Protocol):
     def send_handshake(self, chain_info: ChainInfo) -> None:
         resp = {
             'protocol_version': self.version,
-            'network_id': self.peer.network_id,
+            'network_id': self.peer.local_network_id,
             'td': chain_info.total_difficulty,
             'best_hash': chain_info.block_hash,
             'genesis_hash': chain_info.genesis_hash,

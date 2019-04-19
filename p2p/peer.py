@@ -201,6 +201,7 @@ class BasePeer(BaseService):
     listen_port = 30303
     # Will be set upon the successful completion of a P2P handshake.
     sub_proto: protocol.Protocol = None
+    disconnect_reason: DisconnectReason = None
 
     def __init__(self,
                  remote: Node,
@@ -624,6 +625,7 @@ class BasePeer(BaseService):
             )
         self.logger.debug("Disconnecting from remote peer %s; reason: %s", self.remote, reason.name)
         self.base_protocol.send_disconnect(reason.value)
+        self.disconnect_reason = reason
         self.close()
 
     async def disconnect(self, reason: DisconnectReason) -> None:
