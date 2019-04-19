@@ -84,10 +84,10 @@ def prepare_general_computation(vm_class, create_address=None, code=b''):
 
     computation = setup_computation(vm_class, create_address, code)
 
-    computation.state.account_db.touch_account(decode_hex(EMPTY_ADDRESS_IN_STATE))
-    computation.state.account_db.set_code(decode_hex(ADDRESS_WITH_CODE[0]), ADDRESS_WITH_CODE[1])
+    computation.state.touch_account(decode_hex(EMPTY_ADDRESS_IN_STATE))
+    computation.state.set_code(decode_hex(ADDRESS_WITH_CODE[0]), ADDRESS_WITH_CODE[1])
 
-    computation.state.account_db.set_balance(decode_hex(ADDRESS_WITH_JUST_BALANCE), 1)
+    computation.state.set_balance(decode_hex(ADDRESS_WITH_JUST_BALANCE), 1)
 
     return computation
 
@@ -617,7 +617,7 @@ def test_sstore(vm_class, code, gas_used, refund, original):
 
     computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, decode_hex(code))
 
-    computation.state.account_db.set_balance(CANONICAL_ADDRESS_B, 100000000000)
+    computation.state.set_balance(CANONICAL_ADDRESS_B, 100000000000)
     computation.state.set_storage(CANONICAL_ADDRESS_B, 0, original)
     computation.state.persist()
 

@@ -55,7 +55,7 @@ class HomesteadComputation(FrontierComputation):
                             encode_hex(keccak(contract_code))
                         )
 
-                    self.state.account_db.set_code(self.msg.storage_address, contract_code)
+                    self.state.set_code(self.msg.storage_address, contract_code)
                     self.state.commit(snapshot)
             else:
                 self.state.commit(snapshot)

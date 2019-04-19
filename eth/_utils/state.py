@@ -19,10 +19,9 @@ def diff_state(
         expected_nonce = account_data['nonce']
         expected_code = account_data['code']
 
-        account_db = state.account_db
-        actual_nonce = account_db.get_nonce(account)
-        actual_code = account_db.get_code(account)
-        actual_balance = account_db.get_balance(account)
+        actual_nonce = state.get_nonce(account)
+        actual_code = state.get_code(account)
+        actual_balance = state.get_balance(account)
 
         if actual_nonce != expected_nonce:
             yield (account, 'nonce', actual_nonce, expected_nonce)

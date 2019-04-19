@@ -30,8 +30,8 @@ class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
 
         for account in touched_accounts:
             should_delete = (
-                self.vm_state.account_db.account_exists(account) and
-                self.vm_state.account_db.account_is_empty(account)
+                self.vm_state.account_exists(account) and
+                self.vm_state.account_is_empty(account)
             )
             if should_delete:
                 self.vm_state.logger.debug2(

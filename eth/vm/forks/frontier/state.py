@@ -57,10 +57,10 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         gas_fee = transaction.gas * transaction.gas_price
 
         # Buy Gas
-        self.vm_state.account_db.delta_balance(transaction.sender, -1 * gas_fee)
+        self.vm_state.delta_balance(transaction.sender, -1 * gas_fee)
 
         # Increment Nonce
-        self.vm_state.account_db.increment_nonce(transaction.sender)
+        self.vm_state.increment_nonce(transaction.sender)
 
         # Setup VM Message
         message_gas = transaction.gas - transaction.intrinsic_gas
@@ -68,14 +68,14 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         if transaction.to == CREATE_CONTRACT_ADDRESS:
             contract_address = generate_contract_address(
                 transaction.sender,
-                self.vm_state.account_db.get_nonce(transaction.sender) - 1,
+                self.vm_state.get_nonce(transaction.sender) - 1,
             )
             data = b''
             code = transaction.data
         else:
             contract_address = None
             data = transaction.data
-            code = self.vm_state.account_db.get_code(transaction.to)
+            code = self.vm_state.get_code(transaction.to)
 
         self.vm_state.logger.debug2(
             (
@@ -110,7 +110,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         """Apply the message to the VM."""
         transaction_context = self.vm_state.get_transaction_context(transaction)
         if message.is_create:
-            is_collision = self.vm_state.account_db.account_has_code_or_nonce(
+            is_collision = self.vm_state.has_code_or_nonce(
                 message.storage_address
             )
 
@@ -161,7 +161,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                 encode_hex(computation.msg.sender),
             )
 
-            self.vm_state.account_db.delta_balance(computation.msg.sender, gas_refund_amount)
+            self.vm_state.delta_balance(computation.msg.sender, gas_refund_amount)
 
         # Miner Fees
         transaction_fee = \
@@ -171,7 +171,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             transaction_fee,
             encode_hex(self.vm_state.coinbase),
         )
-        self.vm_state.account_db.delta_balance(self.vm_state.coinbase, transaction_fee)
+        self.vm_state.delta_balance(self.vm_state.coinbase, transaction_fee)
 
         # Process Self Destructs
         for account, _ in computation.get_accounts_for_deletion():
@@ -181,7 +181,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
             # TODO: this balance setting is likely superflous and can be
             # removed since `delete_account` does this.
-            self.vm_state.account_db.set_balance(account, 0)
+            self.vm_state.set_balance(account, 0)
             self.vm_state.delete_account(account)
 
         return computation
@@ -193,8 +193,7 @@ class FrontierState(BaseState):
     account_db_class = AccountDB  # Type[BaseAccountDB]
     transaction_executor = FrontierTransactionExecutor  # Type[BaseTransactionExecutor]
 
-    def validate_transaction(self, transaction: BaseOrSpoofTransaction) -> None:
-        validate_frontier_transaction(self.account_db, transaction)
+    validate_transaction = validate_frontier_transaction
 
     def execute_transaction(self, transaction: BaseOrSpoofTransaction) -> BaseComputation:
         executor = self.get_transaction_executor()

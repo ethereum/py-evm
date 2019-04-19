@@ -35,12 +35,10 @@ def get_block_header_by_hash(block_hash: Hash32, db: 'BaseChainDB') -> BlockHead
 
 
 def apply_state_dict(state: BaseState, state_dict: AccountState) -> None:
-    account_db = state.account_db
-
     for account, account_data in state_dict.items():
-        account_db.set_balance(account, account_data["balance"])
-        account_db.set_nonce(account, account_data["nonce"])
-        account_db.set_code(account, account_data["code"])
+        state.set_balance(account, account_data["balance"])
+        state.set_nonce(account, account_data["nonce"])
+        state.set_code(account, account_data["code"])
 
         for slot, value in account_data["storage"].items():
             state.set_storage(account, slot, value)

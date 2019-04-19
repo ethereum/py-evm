@@ -2,23 +2,19 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.db.account import BaseAccountDB
-
 from eth.rlp.headers import BlockHeader
-
 from eth.rlp.transactions import BaseTransaction
-
 from eth.typing import (
     BaseOrSpoofTransaction
 )
-
 from eth.vm.base import BaseVM
+from eth.vm.state import BaseState
 
 
-def validate_frontier_transaction(account_db: BaseAccountDB,
+def validate_frontier_transaction(state: BaseState,
                                   transaction: BaseOrSpoofTransaction) -> None:
     gas_cost = transaction.gas * transaction.gas_price
-    sender_balance = account_db.get_balance(transaction.sender)
+    sender_balance = state.get_balance(transaction.sender)
 
     if sender_balance < gas_cost:
         raise ValidationError(
@@ -30,7 +26,7 @@ def validate_frontier_transaction(account_db: BaseAccountDB,
     if sender_balance < total_cost:
         raise ValidationError("Sender account balance cannot afford txn")
 
-    if account_db.get_nonce(transaction.sender) != transaction.nonce:
+    if state.get_nonce(transaction.sender) != transaction.nonce:
         raise ValidationError("Invalid transaction nonce")
 
 

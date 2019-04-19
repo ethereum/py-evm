@@ -31,20 +31,12 @@ def test_balance(state):
     assert state.get_balance(ADDRESS) == 1
     assert state.get_balance(OTHER_ADDRESS) == 0
 
-    state.delta_balance(ADDRESS, 2)
-    assert state.get_balance(ADDRESS) == 3
-    assert state.get_balance(OTHER_ADDRESS) == 0
-
     with pytest.raises(ValidationError):
         state.get_balance(INVALID_ADDRESS)
     with pytest.raises(ValidationError):
         state.set_balance(INVALID_ADDRESS, 1)
     with pytest.raises(ValidationError):
-        state.delta_balance(INVALID_ADDRESS, 1)
-    with pytest.raises(ValidationError):
         state.set_balance(ADDRESS, 1.0)
-    with pytest.raises(ValidationError):
-        state.delta_balance(ADDRESS, 1.0)
 
 
 @pytest.mark.parametrize("state", [

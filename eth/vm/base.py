@@ -634,7 +634,7 @@ class VM(BaseVM):
             len(block.uncles) * self.get_nephew_reward()
         )
 
-        self.state.account_db.delta_balance(block.header.coinbase, block_reward)
+        self.state.delta_balance(block.header.coinbase, block_reward)
         self.logger.debug(
             "BLOCK REWARD: %s -> %s",
             block_reward,
@@ -643,7 +643,7 @@ class VM(BaseVM):
 
         for uncle in block.uncles:
             uncle_reward = self.get_uncle_reward(block.number, uncle)
-            self.state.account_db.delta_balance(uncle.coinbase, uncle_reward)
+            self.state.delta_balance(uncle.coinbase, uncle_reward)
             self.logger.debug(
                 "UNCLE REWARD REWARD: %s -> %s",
                 uncle_reward,

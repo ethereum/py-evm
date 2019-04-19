@@ -192,7 +192,7 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
     vm = vm_class(header=header, chaindb=chaindb)
     state = vm.state
     setup_state(fixture['pre'], state)
-    code = state.account_db.get_code(fixture['exec']['address'])
+    code = state.get_code(fixture['exec']['address'])
     # Update state_root manually
     vm.block = vm.block.copy(header=vm.header.copy(state_root=state.state_root))
 

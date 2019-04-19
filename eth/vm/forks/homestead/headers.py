@@ -3,6 +3,9 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from eth_typing import (
+    Address,
+)
 from eth_utils import (
     decode_hex,
 )
@@ -88,10 +91,10 @@ def configure_homestead_header(vm: "HomesteadVM", **header_params: Any) -> Block
             state = vm.state
 
             for account in dao_drain_list:
-                account = decode_hex(account)
-                balance = state.account_db.get_balance(account)
-                state.account_db.delta_balance(dao_refund_contract, balance)
-                state.account_db.set_balance(account, 0)
+                address = Address(decode_hex(account))
+                balance = state.get_balance(address)
+                state.delta_balance(dao_refund_contract, balance)
+                state.set_balance(address, 0)
 
             # Persist the changes to the database
             state.persist()
@@ -103,7 +106,7 @@ def configure_homestead_header(vm: "HomesteadVM", **header_params: Any) -> Block
     return header
 
 
-dao_refund_contract = decode_hex('0xbf4ed7b27f1d666546e30d74d50d173d20bca754')
+dao_refund_contract = Address(decode_hex('0xbf4ed7b27f1d666546e30d74d50d173d20bca754'))
 dao_drain_list = [
     "0xd4fe7bc31cedb7bfb8a345f31e668033056b2728",
     "0xb3fb0e5aba0e20e5c49d252dfd30e102b171a425",

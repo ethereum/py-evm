@@ -86,7 +86,7 @@ class BaseCall(Opcode, ABC):
         computation.consume_gas(child_msg_gas_fee, reason=self.mnemonic)
 
         # Pre-call checks
-        sender_balance = computation.state.account_db.get_balance(
+        sender_balance = computation.state.get_balance(
             computation.msg.storage_address
         )
 
@@ -114,9 +114,9 @@ class BaseCall(Opcode, ABC):
             computation.stack_push(0)
         else:
             if code_address:
-                code = computation.state.account_db.get_code(code_address)
+                code = computation.state.get_code(code_address)
             else:
-                code = computation.state.account_db.get_code(to)
+                code = computation.state.get_code(to)
 
             child_msg_kwargs = {
                 'gas': child_msg_gas,
@@ -131,7 +131,8 @@ class BaseCall(Opcode, ABC):
             if sender is not None:
                 child_msg_kwargs['sender'] = sender
 
-            child_msg = computation.prepare_child_message(**child_msg_kwargs)
+            # TODO: after upgrade to py3.6, use a TypedDict and try again
+            child_msg = computation.prepare_child_message(**child_msg_kwargs)  # type: ignore
 
             child_computation = computation.apply_child_computation(child_msg)
 
@@ -158,7 +159,7 @@ class Call(BaseCall):
                               gas: int,
                               to: Address,
                               value: int) -> int:
-        account_exists = computation.state.account_db.account_exists(to)
+        account_exists = computation.state.account_exists(to)
 
         transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
         create_gas_fee = constants.GAS_NEWACCOUNT if not account_exists else 0
@@ -366,8 +367,8 @@ class CallEIP161(CallEIP150):
                               to: Address,
                               value: int) -> int:
         account_is_dead = (
-            not computation.state.account_db.account_exists(to) or
-            computation.state.account_db.account_is_empty(to)
+            not computation.state.account_exists(to) or
+            computation.state.account_is_empty(to)
         )
 
         transfer_gas_fee = constants.GAS_CALLVALUE if value else 0

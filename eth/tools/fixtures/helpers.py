@@ -65,10 +65,9 @@ def setup_state(desired_state: AccountState, state: BaseState) -> None:
         code = account_data['code']
         balance = account_data['balance']
 
-        account_db = state.account_db
-        account_db.set_nonce(account, nonce)
-        account_db.set_code(account, code)
-        account_db.set_balance(account, balance)
+        state.set_nonce(account, nonce)
+        state.set_code(account, code)
+        state.set_balance(account, balance)
     state.persist()
 
 

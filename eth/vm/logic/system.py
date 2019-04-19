@@ -52,7 +52,7 @@ def selfdestruct(computation: BaseComputation) -> None:
 
 def selfdestruct_eip150(computation: BaseComputation) -> None:
     beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
-    if not computation.state.account_db.account_exists(beneficiary):
+    if not computation.state.account_exists(beneficiary):
         computation.consume_gas(
             constants.GAS_SELFDESTRUCT_NEWACCOUNT,
             reason=mnemonics.SELFDESTRUCT,
@@ -63,10 +63,10 @@ def selfdestruct_eip150(computation: BaseComputation) -> None:
 def selfdestruct_eip161(computation: BaseComputation) -> None:
     beneficiary = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
     is_dead = (
-        not computation.state.account_db.account_exists(beneficiary) or
-        computation.state.account_db.account_is_empty(beneficiary)
+        not computation.state.account_exists(beneficiary) or
+        computation.state.account_is_empty(beneficiary)
     )
-    if is_dead and computation.state.account_db.get_balance(computation.msg.storage_address):
+    if is_dead and computation.state.get_balance(computation.msg.storage_address):
         computation.consume_gas(
             constants.GAS_SELFDESTRUCT_NEWACCOUNT,
             reason=mnemonics.SELFDESTRUCT,
@@ -75,15 +75,15 @@ def selfdestruct_eip161(computation: BaseComputation) -> None:
 
 
 def _selfdestruct(computation: BaseComputation, beneficiary: Address) -> None:
-    local_balance = computation.state.account_db.get_balance(computation.msg.storage_address)
-    beneficiary_balance = computation.state.account_db.get_balance(beneficiary)
+    local_balance = computation.state.get_balance(computation.msg.storage_address)
+    beneficiary_balance = computation.state.get_balance(beneficiary)
 
     # 1st: Transfer to beneficiary
-    computation.state.account_db.set_balance(beneficiary, local_balance + beneficiary_balance)
+    computation.state.set_balance(beneficiary, local_balance + beneficiary_balance)
     # 2nd: Zero the balance of the address being deleted (must come after
     # sending to beneficiary in case the contract named itself as the
     # beneficiary.
-    computation.state.account_db.set_balance(computation.msg.storage_address, 0)
+    computation.state.set_balance(computation.msg.storage_address, 0)
 
     computation.logger.debug2(
         "SELFDESTRUCT: %s (%s) -> %s",
@@ -124,8 +124,8 @@ class Create(Opcode):
                                   call_data: bytes,
                                   computation: BaseComputation) -> Address:
 
-        creation_nonce = computation.state.account_db.get_nonce(computation.msg.storage_address)
-        computation.state.account_db.increment_nonce(computation.msg.storage_address)
+        creation_nonce = computation.state.get_nonce(computation.msg.storage_address)
+        computation.state.increment_nonce(computation.msg.storage_address)
 
         contract_address = generate_contract_address(
             computation.msg.storage_address,
@@ -151,7 +151,7 @@ class Create(Opcode):
 
         computation.extend_memory(stack_data.memory_start, stack_data.memory_length)
 
-        insufficient_funds = computation.state.account_db.get_balance(
+        insufficient_funds = computation.state.get_balance(
             computation.msg.storage_address
         ) < stack_data.endowment
         stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
@@ -171,7 +171,7 @@ class Create(Opcode):
 
         contract_address = self.generate_contract_address(stack_data, call_data, computation)
 
-        is_collision = computation.state.account_db.account_has_code_or_nonce(contract_address)
+        is_collision = computation.state.has_code_or_nonce(contract_address)
 
         if is_collision:
             self.logger.debug2(
@@ -233,7 +233,7 @@ class Create2(CreateByzantium):
                                   call_data: bytes,
                                   computation: BaseComputation) -> Address:
 
-        computation.state.account_db.increment_nonce(computation.msg.storage_address)
+        computation.state.increment_nonce(computation.msg.storage_address)
         return generate_safe_contract_address(
             computation.msg.storage_address,
             stack_data.salt,

@@ -1,7 +1,3 @@
-from eth.typing import (
-    BaseOrSpoofTransaction,
-)
-
 from eth.vm.forks.frontier.state import (
     FrontierState,
     FrontierTransactionExecutor,
@@ -14,8 +10,7 @@ from .validation import validate_homestead_transaction
 class HomesteadState(FrontierState):
     computation_class = HomesteadComputation
 
-    def validate_transaction(self, transaction: BaseOrSpoofTransaction) -> None:
-        validate_homestead_transaction(self.account_db, transaction)
+    validate_transaction = validate_homestead_transaction
 
 
 class HomesteadTransactionExecutor(FrontierTransactionExecutor):
