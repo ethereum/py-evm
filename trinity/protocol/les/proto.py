@@ -56,7 +56,7 @@ class LESProtocol(Protocol):
     def send_handshake(self, chain_info: ChainInfo) -> None:
         resp = {
             'protocolVersion': self.version,
-            'networkId': self.peer.network_id,
+            'networkId': self.peer.local_network_id,
             'headTd': chain_info.total_difficulty,
             'headHash': chain_info.block_hash,
             'headNum': chain_info.block_number,
@@ -178,7 +178,7 @@ class LESProtocolV2(LESProtocol):
         resp = {
             'announceType': constants.LES_ANNOUNCE_SIMPLE,
             'protocolVersion': self.version,
-            'networkId': self.peer.network_id,
+            'networkId': self.peer.local_network_id,
             'headTd': chain_info.total_difficulty,
             'headHash': chain_info.block_hash,
             'headNum': chain_info.block_number,

@@ -17,7 +17,6 @@ from eth_typing import (
 from eth_utils.toolz import groupby
 
 from eth.constants import GENESIS_BLOCK_NUMBER
-from eth.rlp.headers import BlockHeader
 from eth.vm.base import BaseVM
 
 from p2p.exceptions import NoConnectedPeers
@@ -51,6 +50,8 @@ class BaseChainPeer(BasePeer):
     head_td: int = None
     head_hash: Hash32 = None
     head_number: BlockNumber = None
+    network_id: int = None
+    genesis_hash: Hash32 = None
 
     @property
     @abstractmethod
@@ -67,29 +68,32 @@ class BaseChainPeer(BasePeer):
         return self.context.headerdb
 
     @property
-    def network_id(self) -> int:
+    def local_network_id(self) -> int:
         return self.context.network_id
 
     @property
     def vm_configuration(self) -> Tuple[Tuple[int, Type[BaseVM]], ...]:
         return self.context.vm_configuration
 
-    @property
-    async def genesis(self) -> BlockHeader:
-        genesis_hash = await self.wait(
-            self.headerdb.coro_get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER)))
-        return await self.wait(self.headerdb.coro_get_block_header_by_hash(genesis_hash))
+    _local_genesis_hash: Hash32 = None
+
+    async def _get_local_genesis_hash(self) -> Hash32:
+        if self._local_genesis_hash is None:
+            self._local_genesis_hash = await self.wait(
+                self.headerdb.coro_get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER))
+            )
+        return self._local_genesis_hash
 
     @property
     async def _local_chain_info(self) -> ChainInfo:
-        genesis = await self.genesis
         head = await self.wait(self.headerdb.coro_get_canonical_head())
-        total_difficulty = await self.headerdb.coro_get_score(head.hash)
+        total_difficulty = await self.wait(self.headerdb.coro_get_score(head.hash))
+        genesis_hash = await self._get_local_genesis_hash()
         return ChainInfo(
             block_number=head.block_number,
             block_hash=head.hash,
             total_difficulty=total_difficulty,
-            genesis_hash=genesis.hash,
+            genesis_hash=genesis_hash,
         )
 
 
