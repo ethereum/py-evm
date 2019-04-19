@@ -23,8 +23,8 @@ from eth.tools.fixtures import (
     filter_fixtures,
     generate_fixture_tests,
     load_fixture,
-    setup_account_db,
-    verify_account_db,
+    setup_state,
+    verify_state,
 )
 from eth.tools._utils.normalization import (
     normalize_vmtest_fixture,
@@ -191,8 +191,8 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
     )
     vm = vm_class(header=header, chaindb=chaindb)
     state = vm.state
-    setup_account_db(fixture['pre'], state.account_db)
-    code = state.account_db.get_code(fixture['exec']['address'])
+    setup_state(fixture['pre'], state)
+    code = state.get_code(fixture['exec']['address'])
     # Update state_root manually
     vm.block = vm.block.copy(header=vm.header.copy(state_root=state.state_root))
 
@@ -265,4 +265,4 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         assert isinstance(computation._error, VMError)
         expected_account_db = fixture['pre']
 
-    verify_account_db(expected_account_db, vm.state.account_db)
+    verify_state(expected_account_db, vm.state)

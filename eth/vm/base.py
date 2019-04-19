@@ -84,13 +84,22 @@ class BaseVM(Configurable, ABC):
     chaindb = None  # type: BaseChainDB
     _state_class = None  # type: Type[BaseState]
 
+    @abstractmethod
+    def __init__(self, header: BlockHeader, chaindb: BaseChainDB) -> None:
+        pass
+
     @property
     @abstractmethod
     def state(self) -> BaseState:
         pass
 
+    @classmethod
     @abstractmethod
-    def __init__(self, header: BlockHeader, chaindb: BaseChainDB) -> None:
+    def build_state(
+            cls,
+            db: BaseAtomicDB,
+            header: BlockHeader,
+            previous_hashes: Iterable[Hash32] = ()) -> BaseState:
         pass
 
     @property
@@ -625,7 +634,7 @@ class VM(BaseVM):
             len(block.uncles) * self.get_nephew_reward()
         )
 
-        self.state.account_db.delta_balance(block.header.coinbase, block_reward)
+        self.state.delta_balance(block.header.coinbase, block_reward)
         self.logger.debug(
             "BLOCK REWARD: %s -> %s",
             block_reward,
@@ -634,7 +643,7 @@ class VM(BaseVM):
 
         for uncle in block.uncles:
             uncle_reward = self.get_uncle_reward(block.number, uncle)
-            self.state.account_db.delta_balance(uncle.coinbase, uncle_reward)
+            self.state.delta_balance(uncle.coinbase, uncle_reward)
             self.logger.debug(
                 "UNCLE REWARD REWARD: %s -> %s",
                 uncle_reward,
@@ -651,7 +660,7 @@ class VM(BaseVM):
 
         # We need to call `persist` here since the state db batches
         # all writes until we tell it to write to the underlying db
-        self.state.account_db.persist()
+        self.state.persist()
 
         return block.copy(header=block.header.copy(state_root=self.state.state_root))
 

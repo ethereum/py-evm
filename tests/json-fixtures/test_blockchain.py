@@ -26,7 +26,7 @@ from eth.tools.fixtures import (
     load_fixture,
     new_chain_from_fixture,
     should_run_slow_tests,
-    verify_account_db,
+    verify_state,
 )
 
 
@@ -318,4 +318,4 @@ def test_blockchain_fixtures(fixture_data, fixture):
 
     latest_block_hash = chain.get_canonical_block_by_number(chain.get_block().number - 1).hash
     if latest_block_hash != fixture['lastblockhash']:
-        verify_account_db(fixture['postState'], chain.get_vm().state.account_db)
+        verify_state(fixture['postState'], chain.get_vm().state)

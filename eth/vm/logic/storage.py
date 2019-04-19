@@ -9,7 +9,7 @@ from eth.vm.computation import BaseComputation
 def sstore(computation: BaseComputation) -> None:
     slot, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
 
-    current_value = computation.state.account_db.get_storage(
+    current_value = computation.state.get_storage(
         address=computation.msg.storage_address,
         slot=slot,
     )
@@ -43,7 +43,7 @@ def sstore(computation: BaseComputation) -> None:
     if gas_refund:
         computation.refund_gas(gas_refund)
 
-    computation.state.account_db.set_storage(
+    computation.state.set_storage(
         address=computation.msg.storage_address,
         slot=slot,
         value=value,
@@ -53,7 +53,7 @@ def sstore(computation: BaseComputation) -> None:
 def sload(computation: BaseComputation) -> None:
     slot = computation.stack_pop(type_hint=constants.UINT256)
 
-    value = computation.state.account_db.get_storage(
+    value = computation.state.get_storage(
         address=computation.msg.storage_address,
         slot=slot,
     )

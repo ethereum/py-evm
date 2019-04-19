@@ -106,7 +106,7 @@ Next, we'll create a new directory ``app`` and create a file ``main.py`` inside.
 
   >>> chain = MainnetChain.from_genesis(AtomicDB(), GENESIS_PARAMS, GENESIS_STATE)
 
-  >>> mock_address_balance = chain.get_vm().state.account_db.get_balance(MOCK_ADDRESS)
+  >>> mock_address_balance = chain.get_vm().state.get_balance(MOCK_ADDRESS)
 
   >>> print("The balance of address {} is {} wei".format(
   ...     encode_hex(MOCK_ADDRESS),

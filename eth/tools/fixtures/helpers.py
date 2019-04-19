@@ -27,9 +27,6 @@ from eth.chains.base import (
 from eth.chains.mainnet import (
     MainnetDAOValidatorVM,
 )
-from eth.db.account import (
-    BaseAccountDB,
-)
 from eth.tools.builder.chain import (
     disable_pow_check,
 )
@@ -37,7 +34,7 @@ from eth.typing import (
     AccountState,
 )
 from eth._utils.state import (
-    diff_account_db,
+    diff_state,
 )
 from eth.vm.base import (
     BaseVM,
@@ -51,28 +48,31 @@ from eth.vm.forks import (
     HomesteadVM as BaseHomesteadVM,
     SpuriousDragonVM,
 )
+from eth.vm.state import (
+    BaseState,
+)
 
 
 #
 # State Setup
 #
-def setup_account_db(desired_state: AccountState, account_db: BaseAccountDB) -> None:
+def setup_state(desired_state: AccountState, state: BaseState) -> None:
     for account, account_data in desired_state.items():
         for slot, value in account_data['storage'].items():
-            account_db.set_storage(account, slot, value)
+            state.set_storage(account, slot, value)
 
         nonce = account_data['nonce']
         code = account_data['code']
         balance = account_data['balance']
 
-        account_db.set_nonce(account, nonce)
-        account_db.set_code(account, code)
-        account_db.set_balance(account, balance)
-    account_db.persist()
+        state.set_nonce(account, nonce)
+        state.set_code(account, code)
+        state.set_balance(account, balance)
+    state.persist()
 
 
-def verify_account_db(expected_state: AccountState, account_db: BaseAccountDB) -> None:
-    diff = diff_account_db(expected_state, account_db)
+def verify_state(expected_state: AccountState, state: BaseState) -> None:
+    diff = diff_state(expected_state, state)
     if diff:
         error_messages = []
         for account, field, actual_value, expected_value in diff:

@@ -103,8 +103,8 @@ Considering our previous example, we can get the balance of our pre-funded accou
 .. doctest::
 
   >>> current_vm = chain.get_vm()
-  >>> account_db = current_vm.state.account_db
-  >>> account_db.get_balance(SOME_ADDRESS)
+  >>> state = current_vm.state
+  >>> state.get_balance(SOME_ADDRESS)
   10000000000000000000000
 
 .. _evm_cookbook_recipe_building_blocks_incrementally:

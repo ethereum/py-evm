@@ -94,7 +94,7 @@ class FrontierVM(VM):
         return old_header.copy(
             bloom=int(BloomFilter(old_header.bloom) | receipt.bloom),
             gas_used=receipt.gas_used,
-            state_root=self.state.account_db.make_state_root(),
+            state_root=self.state.make_state_root(),
         )
 
     @staticmethod
@@ -107,5 +107,5 @@ class FrontierVM(VM):
         receipt_without_state_root = make_frontier_receipt(base_header, transaction, computation)
 
         return receipt_without_state_root.copy(
-            state_root=state.account_db.make_state_root()
+            state_root=state.make_state_root()
         )

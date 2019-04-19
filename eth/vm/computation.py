@@ -113,8 +113,8 @@ class BaseComputation(Configurable, ABC):
     return_data = b''
     _error = None  # type: VMError
 
-    _log_entries = None  # type: List[Tuple[int, bytes, List[int], bytes]]
-    accounts_to_delete = None  # type: Dict[bytes, bytes]
+    _log_entries = None  # type: List[Tuple[int, Address, List[int], bytes]]
+    accounts_to_delete = None  # type: Dict[Address, Address]
 
     # VM configuration
     opcodes = None  # type: Dict[int, Any]
@@ -439,7 +439,7 @@ class BaseComputation(Configurable, ABC):
             )
         self.accounts_to_delete[self.msg.storage_address] = beneficiary
 
-    def get_accounts_for_deletion(self) -> Tuple[Tuple[bytes, bytes], ...]:
+    def get_accounts_for_deletion(self) -> Tuple[Tuple[Address, Address], ...]:
         if self.is_error:
             return tuple()
         else:

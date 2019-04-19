@@ -79,7 +79,7 @@ class BaseState(Configurable, ABC):
     #
     # Set from __init__
     #
-    __slots__ = ['_db', 'execution_context', 'account_db']
+    __slots__ = ['_db', 'execution_context', '_account_db']
 
     computation_class = None  # type: Type[BaseComputation]
     transaction_context_class = None  # type: Type[BaseTransactionContext]
@@ -89,7 +89,7 @@ class BaseState(Configurable, ABC):
     def __init__(self, db: BaseDB, execution_context: ExecutionContext, state_root: bytes) -> None:
         self._db = db
         self.execution_context = execution_context
-        self.account_db = self.get_account_db_class()(self._db, state_root)
+        self._account_db = self.get_account_db_class()(self._db, state_root)
 
     #
     # Logging
@@ -152,11 +152,68 @@ class BaseState(Configurable, ABC):
         return cls.account_db_class
 
     @property
-    def state_root(self) -> bytes:
+    def state_root(self) -> Hash32:
         """
         Return the current ``state_root`` from the underlying database
         """
-        return self.account_db.state_root
+        return self._account_db.state_root
+
+    def make_state_root(self) -> Hash32:
+        return self._account_db.make_state_root()
+
+    def get_storage(self, address: Address, slot: int, from_journal: bool=True) -> int:
+        return self._account_db.get_storage(address, slot, from_journal)
+
+    def set_storage(self, address: Address, slot: int, value: int) -> None:
+        self._account_db.set_storage(address, slot, value)
+
+    def delete_storage(self, address: Address) -> None:
+        self._account_db.delete_storage(address)
+
+    def delete_account(self, address: Address) -> None:
+        self._account_db.delete_account(address)
+
+    def get_balance(self, address: Address) -> int:
+        return self._account_db.get_balance(address)
+
+    def set_balance(self, address: Address, balance: int) -> None:
+        self._account_db.set_balance(address, balance)
+
+    def delta_balance(self, address: Address, delta: int) -> None:
+        self.set_balance(address, self.get_balance(address) + delta)
+
+    def get_nonce(self, address: Address) -> int:
+        return self._account_db.get_nonce(address)
+
+    def set_nonce(self, address: Address, nonce: int) -> None:
+        self._account_db.set_nonce(address, nonce)
+
+    def increment_nonce(self, address: Address) -> None:
+        self._account_db.increment_nonce(address)
+
+    def get_code(self, address: Address) -> bytes:
+        return self._account_db.get_code(address)
+
+    def set_code(self, address: Address, code: bytes) -> None:
+        self._account_db.set_code(address, code)
+
+    def get_code_hash(self, address: Address) -> Hash32:
+        return self._account_db.get_code_hash(address)
+
+    def delete_code(self, address: Address) -> None:
+        self._account_db.delete_code(address)
+
+    def has_code_or_nonce(self, address: Address) -> bool:
+        return self._account_db.account_has_code_or_nonce(address)
+
+    def account_exists(self, address: Address) -> bool:
+        return self._account_db.account_exists(address)
+
+    def touch_account(self, address: Address) -> None:
+        self._account_db.touch_account(address)
+
+    def account_is_empty(self, address: Address) -> bool:
+        return self._account_db.account_is_empty(address)
 
     #
     # Access self._chaindb
@@ -168,7 +225,7 @@ class BaseState(Configurable, ABC):
         Snapshots are a combination of the :attr:`~state_root` at the time of the
         snapshot and the id of the changeset from the journaled DB.
         """
-        return (self.state_root, self.account_db.record())
+        return (self.state_root, self._account_db.record())
 
     def revert(self, snapshot: Tuple[bytes, Tuple[UUID, UUID]]) -> None:
         """
@@ -177,9 +234,9 @@ class BaseState(Configurable, ABC):
         state_root, changeset_id = snapshot
 
         # first revert the database state root.
-        self.account_db.state_root = state_root
+        self._account_db.state_root = state_root
         # now roll the underlying database back
-        self.account_db.discard(changeset_id)
+        self._account_db.discard(changeset_id)
 
     def commit(self, snapshot: Tuple[bytes, Tuple[UUID, UUID]]) -> None:
         """
@@ -187,7 +244,10 @@ class BaseState(Configurable, ABC):
         will merge in any changesets that were recorded *after* the snapshot changeset.
         """
         _, checkpoint_id = snapshot
-        self.account_db.commit(checkpoint_id)
+        self._account_db.commit(checkpoint_id)
+
+    def persist(self) -> None:
+        self._account_db.persist()
 
     #
     # Access self.prev_hashes (Read-only)
@@ -253,7 +313,7 @@ class BaseState(Configurable, ABC):
         :param transaction: the transaction to apply
         :return: the computation
         """
-        if self.state_root != BLANK_ROOT_HASH and not self.account_db.has_root(self.state_root):
+        if self.state_root != BLANK_ROOT_HASH and not self._account_db.has_root(self.state_root):
             raise StateRootNotFound(self.state_root)
         else:
             return self.execute_transaction(transaction)

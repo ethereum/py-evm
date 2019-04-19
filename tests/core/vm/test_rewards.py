@@ -71,8 +71,8 @@ def test_rewards(vm_fn, miner_1_balance, miner_2_balance):
     assert block.uncles[0] == uncle
 
     vm = chain.get_vm()
-    coinbase_balance = vm.state.account_db.get_balance(block.header.coinbase)
-    other_miner_balance = vm.state.account_db.get_balance(uncle.coinbase)
+    coinbase_balance = vm.state.get_balance(block.header.coinbase)
+    other_miner_balance = vm.state.get_balance(uncle.coinbase)
 
     # We first test if the balance matches what we would determine
     # if we made all the API calls involved ourselves.
@@ -167,8 +167,8 @@ def test_rewards_uncle_created_at_different_generations(
     block = chain.get_block_by_hash(header.hash)
 
     vm = chain.get_vm()
-    coinbase_balance = vm.state.account_db.get_balance(block.header.coinbase)
-    other_miner_balance = vm.state.account_db.get_balance(uncle.coinbase)
+    coinbase_balance = vm.state.get_balance(block.header.coinbase)
+    other_miner_balance = vm.state.get_balance(uncle.coinbase)
 
     # We first test if the balance matches what we would determine
     # if we made all the API calls involved ourselves.
@@ -278,8 +278,8 @@ def test_rewards_nephew_uncle_different_vm(
     assert block.uncles[0] == uncle
 
     vm = chain.get_vm()
-    coinbase_balance = vm.state.account_db.get_balance(block.header.coinbase)
-    other_miner_balance = vm.state.account_db.get_balance(uncle.coinbase)
+    coinbase_balance = vm.state.get_balance(block.header.coinbase)
+    other_miner_balance = vm.state.get_balance(uncle.coinbase)
 
     uncle_vm = chain.get_vm_class_for_block_number(0)
     nephew_vm = chain.get_vm_class_for_block_number(VM_CHANGE_BLOCK_NUMBER)

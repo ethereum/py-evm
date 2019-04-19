@@ -40,7 +40,6 @@ from eth_utils.toolz import (
 )
 
 from eth.constants import (
-    BLANK_ROOT_HASH,
     EMPTY_UNCLE_HASH,
     MAX_UNCLE_DEPTH,
 )
@@ -412,29 +411,27 @@ class Chain(BaseChain):
         """
         genesis_vm_class = cls.get_vm_class_for_block_number(BlockNumber(0))
 
-        account_db = genesis_vm_class.get_state_class().get_account_db_class()(
-            base_db,
-            BLANK_ROOT_HASH,
-        )
+        pre_genesis_header = BlockHeader(difficulty=0, block_number=-1, gas_limit=0)
+        state = genesis_vm_class.build_state(base_db, pre_genesis_header)
 
         if genesis_state is None:
             genesis_state = {}
 
         # mutation
-        apply_state_dict(account_db, genesis_state)
-        account_db.persist()
+        apply_state_dict(state, genesis_state)
+        state.persist()
 
         if 'state_root' not in genesis_params:
             # If the genesis state_root was not specified, use the value
             # computed from the initialized state database.
-            genesis_params = assoc(genesis_params, 'state_root', account_db.state_root)
-        elif genesis_params['state_root'] != account_db.state_root:
+            genesis_params = assoc(genesis_params, 'state_root', state.state_root)
+        elif genesis_params['state_root'] != state.state_root:
             # If the genesis state_root was specified, validate that it matches
             # the computed state from the initialized state database.
             raise ValidationError(
                 "The provided genesis state root does not match the computed "
                 "genesis state root.  Got {0}.  Expected {1}".format(
-                    account_db.state_root,
+                    state.state_root,
                     genesis_params['state_root'],
                 )
             )
@@ -903,7 +900,7 @@ class MiningChain(Chain):
         header_with_receipt = vm.add_receipt_to_header(base_block.header, receipt)
 
         # since we are building the block locally, we have to persist all the incremental state
-        vm.state.account_db.persist()
+        vm.state.persist()
         new_header = header_with_receipt.copy(state_root=vm.state.state_root)
 
         transactions = base_block.transactions + (transaction, )

@@ -16,7 +16,7 @@ from eth.vm.computation import BaseComputation
 
 def balance(computation: BaseComputation) -> None:
     addr = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
-    balance = computation.state.account_db.get_balance(addr)
+    balance = computation.state.get_balance(addr)
     computation.stack_push(balance)
 
 
@@ -112,7 +112,7 @@ def gasprice(computation: BaseComputation) -> None:
 
 def extcodesize(computation: BaseComputation) -> None:
     account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
-    code_size = len(computation.state.account_db.get_code(account))
+    code_size = len(computation.state.get_code(account))
 
     computation.stack_push(code_size)
 
@@ -135,7 +135,7 @@ def extcodecopy(computation: BaseComputation) -> None:
         reason='EXTCODECOPY: word gas cost',
     )
 
-    code = computation.state.account_db.get_code(account)
+    code = computation.state.get_code(account)
 
     code_bytes = code[code_start_position:code_start_position + size]
     padded_code_bytes = code_bytes.ljust(size, b'\x00')
@@ -149,12 +149,12 @@ def extcodehash(computation: BaseComputation) -> None:
     EIP: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1052.md
     """
     account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
-    account_db = computation.state.account_db
+    state = computation.state
 
-    if account_db.account_is_empty(account):
+    if state.account_is_empty(account):
         computation.stack_push(constants.NULL_BYTE)
     else:
-        computation.stack_push(account_db.get_code_hash(account))
+        computation.stack_push(state.get_code_hash(account))
 
 
 def returndatasize(computation: BaseComputation) -> None:

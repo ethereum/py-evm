@@ -108,9 +108,6 @@ class BaseAccountDB(ABC):
     def set_balance(self, address: Address, balance: int) -> None:
         raise NotImplementedError("Must be implemented by subclasses")
 
-    def delta_balance(self, address: Address, delta: int) -> None:
-        self.set_balance(address, self.get_balance(address) + delta)
-
     #
     # Code
     #
