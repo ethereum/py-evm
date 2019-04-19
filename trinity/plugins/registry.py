@@ -32,6 +32,7 @@ from trinity.plugins.builtin.syncer.plugin import (
     NoopSyncStrategy,
     SyncerPlugin,
 )
+from trinity.plugins.eth2.network_generator.plugin import NetworkGeneratorPlugin
 from trinity.plugins.eth2.beacon.plugin import BeaconNodePlugin
 from trinity.plugins.builtin.tx_pool.plugin import (
     TxPlugin,
@@ -52,6 +53,7 @@ def is_ipython_available() -> bool:
 
 BASE_PLUGINS: Tuple[BasePlugin, ...] = (
     AttachPlugin(use_ipython=is_ipython_available()),
+    NetworkGeneratorPlugin(),
     FixUncleanShutdownPlugin(),
     JsonRpcServerPlugin(),
     NetworkDBPlugin(),
