@@ -15,6 +15,7 @@ from typing import (
     cast,
     Dict,
     Iterable,
+    NamedTuple,
     TYPE_CHECKING,
     Tuple,
     Type,
@@ -24,6 +25,7 @@ from typing import (
 
 from eth_typing import (
     Address,
+    BLSPubkey,
 )
 
 from eth_keys import keys
@@ -31,8 +33,6 @@ from eth_keys.datatypes import PrivateKey
 
 from eth.db.backends.base import BaseAtomicDB
 from eth.typing import VMConfiguration
-
-from py_ecc import bls
 
 from p2p.kademlia import Node as KademliaNode
 from p2p.constants import (
@@ -72,18 +72,13 @@ from trinity._utils.xdg import (
     get_xdg_trinity_root,
 )
 
-from eth2.beacon.constants import (
-    ZERO_TIMESTAMP,
-)
-from eth2.beacon.state_machines.forks.serenity import (
-    SERENITY_CONFIG,
-    SerenityStateMachine,
+from eth2.beacon.chains.testnet import TestnetChain
+from eth2.beacon.typing import (
+    Slot,
+    Timestamp,
 )
 from eth2.beacon.tools.builder.initializer import (
     create_mock_genesis,
-)
-from eth2.beacon.state_machines.forks.serenity.blocks import (
-    SerenityBeaconBlock,
 )
 
 
@@ -589,16 +584,30 @@ class Eth1AppConfig(BaseAppConfig):
         return config.with_app_suffix(config.data_dir / "nodedb")
 
 
+class BeaconGenesisData(NamedTuple):
+    genesis_time: Timestamp
+    genesis_slot: Slot
+    keymap: Dict[BLSPubkey, int]
+    num_validators: int
+    # TODO: Maybe Validator deposit data
+
+
 class BeaconChainConfig:
     def __init__(self,
-                 chain_name: str=None) -> None:
+                 chain_name: str=None,
+                 genesis_data: BeaconGenesisData=None) -> None:
         self._chain_name = chain_name
-        self.chain_id = 5566
         self.network_id = 5567
+        self.genesis_data = genesis_data
+        self._beacon_chain_class = None
 
-        self.sm_configuration = (
-            (SERENITY_CONFIG.GENESIS_SLOT, SerenityStateMachine),
-        )
+    @property
+    def genesis_time(self) -> Timestamp:
+        return self.genesis_data.genesis_time
+
+    @property
+    def genesis_slot(self) -> Slot:
+        return self.genesis_data.genesis_slot
 
     @property
     def chain_name(self) -> str:
@@ -609,31 +618,25 @@ class BeaconChainConfig:
 
     @property
     def beacon_chain_class(self) -> Type['BeaconChain']:
-        from eth2.beacon.chains.base import BeaconChain  # noqa: F811
-        return BeaconChain.configure(
-            __name__=self.chain_name,
-            sm_configuration=self.sm_configuration,
-            chain_id=self.chain_id,
-        )
+        if self._beacon_chain_class is None:
+            self._beacon_chain_class = TestnetChain.configure(
+                __name__=self.chain_name,
+            )
+        return self._beacon_chain_class
 
     def initialize_chain(self,
                          base_db: BaseAtomicDB) -> 'BeaconChain':
-        config = SERENITY_CONFIG
-
         # Only used for testing
-        num_validators = 10
-        privkeys = tuple(2 ** i for i in range(num_validators))
-        keymap = {}
-        for k in privkeys:
-            keymap[bls.privtopub(k)] = k
+        chain_class = self.beacon_chain_class
+        _, state_machine = chain_class.sm_configuration[0]
         state, block = create_mock_genesis(
-            num_validators=num_validators,
-            config=config,
-            keymap=keymap,
-            genesis_block_class=SerenityBeaconBlock,
-            genesis_time=ZERO_TIMESTAMP,
+            num_validators=self.genesis_data.num_validators,
+            config=state_machine.config,
+            keymap=self.genesis_data.keymap,
+            genesis_block_class=state_machine.block_class,
+            genesis_time=self.genesis_time,
         )
-        return cast('BeaconChain', self.beacon_chain_class.from_genesis(
+        return cast('BeaconChain', chain_class.from_genesis(
             base_db=base_db,
             genesis_state=state,
             genesis_block=block,
