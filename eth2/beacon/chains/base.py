@@ -360,7 +360,7 @@ class BeaconChain(BaseBeaconChain):
 
         - the imported block
         - a tuple of blocks which are now part of the canonical chain.
-        - a tuple of blocks which are were canonical and now are no longer canonical.
+        - a tuple of blocks which were canonical and now are no longer canonical.
         """
 
         try:
