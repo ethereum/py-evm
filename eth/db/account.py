@@ -291,7 +291,7 @@ class AccountDB(BaseAccountDB):
 
         self.logger.debug2(
             "Setting decoded storage in account 0x%s & slot %s to value %s",
-            self._address.hex(),
+            address.hex(),
             slot,
             value,
         )
