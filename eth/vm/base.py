@@ -560,8 +560,6 @@ class VM(BaseVM):
                 saved_state = MidBlockState(self.state, previous_header, tuple(receipts))
                 exc.set_mid_block_state(saved_state)
                 raise
-            else:
-                self.state.commit(snapshot)
             result_header = self.add_receipt_to_header(previous_header, receipt)
             previous_header = result_header
             receipts.append(receipt)
