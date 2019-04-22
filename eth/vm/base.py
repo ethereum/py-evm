@@ -399,22 +399,19 @@ class VM(BaseVM):
         self.chaindb = chaindb
         self._initial_header = header
 
-    @property
-    def header(self) -> BlockHeader:
+    def get_header(self) -> BlockHeader:
         if self._block is None:
             return self._initial_header
         else:
             return self._block.header
 
-    @property
-    def block(self) -> BaseBlock:
+    def get_block(self) -> BaseBlock:
         if self._block is None:
             block_class = self.get_block_class()
             self._block = block_class.from_header(header=self._initial_header, chaindb=self.chaindb)
         return self._block
 
-    @block.setter
-    def block(self, block: BaseBlock) -> None:
+    def set_block(self, block: BaseBlock) -> None:
         self._block = block
 
     @property
