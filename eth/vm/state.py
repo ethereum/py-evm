@@ -30,7 +30,7 @@ from eth.db.account import (  # noqa: F401
     AccountDB,
 )
 from eth.db.backends.base import (
-    BaseDB,
+    BaseAtomicDB,
 )
 from eth.exceptions import StateRootNotFound
 from eth.tools.logging import (
@@ -86,10 +86,14 @@ class BaseState(Configurable, ABC):
     account_db_class = None  # type: Type[BaseAccountDB]
     transaction_executor = None  # type: Type[BaseTransactionExecutor]
 
-    def __init__(self, db: BaseDB, execution_context: ExecutionContext, state_root: bytes) -> None:
+    def __init__(
+            self,
+            db: BaseAtomicDB,
+            execution_context: ExecutionContext,
+            state_root: bytes) -> None:
         self._db = db
         self.execution_context = execution_context
-        self._account_db = self.get_account_db_class()(self._db, state_root)
+        self._account_db = self.get_account_db_class()(db, state_root)
 
     #
     # Logging
@@ -165,7 +169,7 @@ class BaseState(Configurable, ABC):
         return self._account_db.get_storage(address, slot, from_journal)
 
     def set_storage(self, address: Address, slot: int, value: int) -> None:
-        self._account_db.set_storage(address, slot, value)
+        return self._account_db.set_storage(address, slot, value)
 
     def delete_storage(self, address: Address) -> None:
         self._account_db.delete_storage(address)
@@ -218,33 +222,33 @@ class BaseState(Configurable, ABC):
     #
     # Access self._chaindb
     #
-    def snapshot(self) -> Tuple[bytes, Tuple[UUID, UUID]]:
+    def snapshot(self) -> Tuple[Hash32, UUID]:
         """
         Perform a full snapshot of the current state.
 
         Snapshots are a combination of the :attr:`~state_root` at the time of the
         snapshot and the id of the changeset from the journaled DB.
         """
-        return (self.state_root, self._account_db.record())
+        return self.state_root, self._account_db.record()
 
-    def revert(self, snapshot: Tuple[bytes, Tuple[UUID, UUID]]) -> None:
+    def revert(self, snapshot: Tuple[Hash32, UUID]) -> None:
         """
         Revert the VM to the state at the snapshot
         """
-        state_root, changeset_id = snapshot
+        state_root, account_snapshot = snapshot
 
         # first revert the database state root.
         self._account_db.state_root = state_root
         # now roll the underlying database back
-        self._account_db.discard(changeset_id)
+        self._account_db.discard(account_snapshot)
 
-    def commit(self, snapshot: Tuple[bytes, Tuple[UUID, UUID]]) -> None:
+    def commit(self, snapshot: Tuple[Hash32, UUID]) -> None:
         """
         Commit the journal to the point where the snapshot was taken.  This
         will merge in any changesets that were recorded *after* the snapshot changeset.
         """
-        _, checkpoint_id = snapshot
-        self._account_db.commit(checkpoint_id)
+        _, account_snapshot = snapshot
+        self._account_db.commit(account_snapshot)
 
     def persist(self) -> None:
         self._account_db.persist()

@@ -23,7 +23,7 @@ from eth._utils.padding import (
     pad32,
 )
 from eth.constants import BLANK_ROOT_HASH
-from eth.db.backends.memory import MemoryDB
+from eth.db.atomic import AtomicDB
 from eth.typing import (
     AccountState,
     TransactionDict,
@@ -63,7 +63,7 @@ def add_transaction_to_group(group: Dict[str, Any],
 
 
 def calc_state_root(state_dict: AccountState, state_class: Type[BaseState]) -> bytes:
-    state = state_class(MemoryDB(), None, BLANK_ROOT_HASH)
+    state = state_class(AtomicDB(), None, BLANK_ROOT_HASH)
     apply_state_dict(state, state_dict)
     return state.state_root
 

@@ -384,6 +384,8 @@ class JournalDB(BaseDB):
 
         If this is the base changeset then all changes will be written to
         the underlying database and the Journal starts a new recording.
+        Typically, callers won't have access to the base changeset, because
+        it is dropped during .reset() which is called in JournalDB().
         """
         self._validate_changeset(changeset_id)
         journal_data = self.journal.commit_changeset(changeset_id)
