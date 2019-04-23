@@ -101,6 +101,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     """
     _report_interval = 60
     _peer_boot_timeout = DEFAULT_PEER_BOOT_TIMEOUT
+    _event_bus: Endpoint = None
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
@@ -123,9 +124,23 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
         self.connected_nodes: Dict[str, BasePeer] = {}
         self._subscribers: List[PeerSubscriber] = []
-        self.event_bus = event_bus
+        self._event_bus = event_bus
 
-        self.peer_backends = self.setup_peer_backends()
+        if self.has_event_bus:
+            self.peer_backends = self.setup_peer_backends()
+        else:
+            self.logger.warning("No event bus configured for peer pool.")
+            self.peer_backends = ()
+
+    @property
+    def event_bus(self) -> Endpoint:
+        if self._event_bus is None:
+            raise AttributeError("No event bus configured for this peer pool")
+        return self._event_bus
+
+    @property
+    def has_event_bus(self) -> bool:
+        return self._event_bus is not None
 
     def setup_peer_backends(self) -> Tuple[BasePeerBackend, ...]:
         return (
@@ -248,7 +263,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     async def _run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
         # so in order to ensure we cancel all peers when we terminate.
-        if self.event_bus is not None:
+        if self.has_event_bus is not None:
             self.run_daemon_task(self.maybe_connect_more_peers())
 
         self.run_daemon_task(self._periodically_report_stats())
