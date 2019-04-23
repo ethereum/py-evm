@@ -1,3 +1,4 @@
+import enum
 from pathlib import Path
 from typing import Dict, Tuple
 
@@ -34,6 +35,7 @@ SYNC_LIGHT = 'light'
 
 # lahja endpoint names
 MAIN_EVENTBUS_ENDPOINT = 'main'
+BLACKLIST_EVENTBUS_ENDPOINT = 'blacklist'
 NETWORKING_EVENTBUS_ENDPOINT = 'networking'
 TO_NETWORKING_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=NETWORKING_EVENTBUS_ENDPOINT)
 
@@ -81,3 +83,9 @@ DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
              Address("34.198.237.7", 30303, 30303)),
     ),
 }
+
+
+class TrackingBackend(enum.Enum):
+    sqlite3 = 'sqlite3'
+    memory = 'memory'
+    disabled = 'disabled'

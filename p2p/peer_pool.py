@@ -65,15 +65,15 @@ from p2p.peer_backend import (
     DiscoveryPeerBackend,
     BootnodesPeerBackend,
 )
-from p2p.persistence import (
-    BasePeerInfo,
-    NoopPeerInfo,
-)
 from p2p.p2p_proto import (
     DisconnectReason,
 )
 from p2p.service import (
     BaseService,
+)
+from p2p.tracking.connection import (
+    BaseConnectionTracker,
+    NoopConnectionTracker,
 )
 
 
@@ -108,16 +108,10 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                  privkey: datatypes.PrivateKey,
                  context: BasePeerContext,
                  max_peers: int = DEFAULT_MAX_PEERS,
-                 peer_info: BasePeerInfo = None,
                  token: CancelToken = None,
                  event_bus: Endpoint = None,
                  ) -> None:
         super().__init__(token)
-
-        if peer_info is None:
-            peer_info = NoopPeerInfo()
-
-        self.peer_info = peer_info
 
         self.privkey = privkey
         self.max_peers = max_peers
@@ -145,6 +139,13 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     @property
     def has_event_bus(self) -> bool:
         return self._event_bus is not None
+
+    def setup_connection_tracker(self) -> BaseConnectionTracker:
+        """
+        Return an instance of `p2p.tracking.connection.BaseConnectionTracker`
+        which will be used to track peer connection failures.
+        """
+        return NoopConnectionTracker()
 
     def setup_peer_backends(self) -> Tuple[BasePeerBackend, ...]:
         return (
@@ -246,6 +247,9 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             self.logger.debug('Timout waiting for peer to boot: %s', err)
             await peer.disconnect(DisconnectReason.timeout)
             return
+        except HandshakeFailure as err:
+            self.connection_tracker.record_failure(peer.remote, err)
+            raise
         else:
             if peer.is_operational:
                 self._add_peer(peer, buffer.get_messages())
@@ -298,7 +302,17 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         if remote in self.connected_nodes:
             self.logger.debug2("Skipping %s; already connected to it", remote)
             raise IneligiblePeer(f"Already connected to {remote}")
-        if not self.peer_info.should_connect_to(remote):
+
+        try:
+            should_connect = await self.wait(
+                self.connection_tracker.coro_should_connect_to(remote),
+                timeout=1,
+            )
+        except TimeoutError:
+            self.logger.warning("ConnectionTracker.coro_should_connect_to request timed out.")
+            raise
+
+        if not should_connect:
             raise IneligiblePeer(f"Peer database rejected peer candidate: {remote}")
 
         try:
@@ -329,7 +343,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             raise
         except HandshakeFailure as e:
             self.logger.debug("Could not complete handshake with %r: %s", remote, repr(e))
-            self.peer_info.record_failure(remote, e)
+            self.connection_tracker.record_failure(remote, e)
             raise
         except COMMON_PEER_CONNECTION_EXCEPTIONS as e:
             self.logger.debug("Could not complete handshake with %r: %s", remote, repr(e))
