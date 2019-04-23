@@ -26,7 +26,7 @@ from .proto import ParagonProtocol
 
 
 class ParagonPeer(BasePeer):
-    _supported_sub_protocols = [ParagonProtocol]
+    supported_sub_protocols = [ParagonProtocol]
     sub_proto: ParagonProtocol = None
 
     async def send_sub_proto_handshake(self) -> None:

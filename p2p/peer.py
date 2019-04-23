@@ -196,7 +196,7 @@ class BasePeer(BaseService):
     conn_idle_timeout = CONN_IDLE_TIMEOUT
     # Must be defined in subclasses. All items here must be Protocol classes representing
     # different versions of the same P2P sub-protocol (e.g. ETH, LES, etc).
-    _supported_sub_protocols: List[Type[protocol.Protocol]] = []
+    supported_sub_protocols: List[Type[protocol.Protocol]] = []
     # FIXME: Must be configurable.
     listen_port = 30303
     # Will be set upon the successful completion of a P2P handshake.
@@ -359,7 +359,7 @@ class BasePeer(BaseService):
 
     @property
     def capabilities(self) -> List[Tuple[str, int]]:
-        return [(klass.name, klass.version) for klass in self._supported_sub_protocols]
+        return [(klass.name, klass.version) for klass in self.supported_sub_protocols]
 
     def get_protocol_command_for(self, msg: bytes) -> protocol.Command:
         """Return the Command corresponding to the cmd_id encoded in the given msg."""
@@ -664,7 +664,7 @@ class BasePeer(BaseService):
             raise NoMatchingPeerCapabilities()
         _, highest_matching_version = max(matching_capabilities, key=operator.itemgetter(1))
         offset = self.base_protocol.cmd_length
-        for proto_class in self._supported_sub_protocols:
+        for proto_class in self.supported_sub_protocols:
             if proto_class.version == highest_matching_version:
                 return proto_class(self, offset, snappy_support)
         raise NoMatchingPeerCapabilities()
