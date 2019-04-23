@@ -3,6 +3,7 @@ from abc import (
     abstractmethod
 )
 
+from cached_property import cached_property
 import rlp
 from rlp.sedes import (
     big_endian_int,
@@ -87,7 +88,7 @@ class BaseTransaction(BaseTransactionFields, BaseTransactionMethods):
     def from_base_transaction(cls, transaction: 'BaseTransaction') -> 'BaseTransaction':
         return rlp.decode(rlp.encode(transaction), sedes=cls)
 
-    @property
+    @cached_property
     def sender(self) -> Address:
         """
         Convenience property for the return value of `get_sender`
