@@ -43,7 +43,7 @@ from trinity.protocol.bcc.context import (
 
 class BCCPeer(BasePeer):
 
-    _supported_sub_protocols = [BCCProtocol]
+    supported_sub_protocols = [BCCProtocol]
     sub_proto: BCCProtocol = None
 
     _requests: BCCExchangeHandler = None
