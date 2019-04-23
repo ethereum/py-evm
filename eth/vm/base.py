@@ -574,24 +574,6 @@ class VM(BaseVM):
     # Mining
     #
     def resume_import_block(self, block, mid_block_state: MidBlockState):
-        num_completed = mid_block_state.num_completed_transactions
-        if num_completed < len(block.transactions):
-            current_transaction = block.transactions[num_completed]
-            self.logger.debug(
-                "Resuming %s import from transaction %s / %s: %s gas limit:%d",
-                block,
-                mid_block_state.num_completed_transactions,
-                len(block.transactions),
-                encode_hex(current_transaction.hash),
-                current_transaction.gas,
-            )
-        else:
-            self.logger.debug(
-                "Resuming %s import after all %s transactions completed",
-                block,
-                len(block.transactions),
-            )
-
         if self.header.block_number != block.number:
             raise ValidationError(
                 "This VM can only import blocks at number #{}, the attempted block was #{}".format(
