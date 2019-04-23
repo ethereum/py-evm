@@ -36,6 +36,7 @@ from p2p.constants import (
     DEFAULT_PEER_BOOT_TIMEOUT,
     DISCOVERY_EVENTBUS_ENDPOINT,
     PEER_CONNECT_INTERVAL,
+    MAX_CONCURRENT_CONNECTION_ATTEMPTS,
     MAX_SEQUENTIAL_PEER_CONNECT,
     REQUEST_PEER_CANDIDATE_TIMEOUT,
 )
@@ -126,6 +127,9 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         self._subscribers: List[PeerSubscriber] = []
         self._event_bus = event_bus
 
+        # Restricts the number of concurrent connection attempts can be made
+        self._connection_attempt_lock = asyncio.BoundedSemaphore(MAX_CONCURRENT_CONNECTION_ATTEMPTS)
+
         if self.has_event_bus:
             self.peer_backends = self.setup_peer_backends()
         else:
@@ -168,15 +172,20 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 backend,
                 candidates,
             )
-            await self.connect_to_nodes(iter(candidates))
+            if candidates:
+                await self.connect_to_nodes(iter(candidates))
 
     async def maybe_connect_more_peers(self) -> None:
-        # allowed to operate at a maximum rate of 1 check every 2 seconds
-        rate_limiter = token_bucket(1 / PEER_CONNECT_INTERVAL, MAX_SEQUENTIAL_PEER_CONNECT)
-        while True:
+        rate_limiter = token_bucket(
+            rate=1 / PEER_CONNECT_INTERVAL,
+            capacity=MAX_SEQUENTIAL_PEER_CONNECT,
+        )
+
+        while self.is_operational:
             if self.is_full:
                 await self.sleep(PEER_CONNECT_INTERVAL)
                 continue
+
             await self.wait(rate_limiter.__anext__())
 
             await self.wait(asyncio.gather(*(
@@ -366,7 +375,8 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             return
 
         try:
-            peer = await self.connect(node)
+            async with self._connection_attempt_lock:
+                peer = await self.connect(node)
         except ALLOWED_PEER_CONNECTION_EXCEPTIONS:
             return
 
