@@ -130,6 +130,8 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             self.logger.warning("No event bus configured for peer pool.")
             self.peer_backends = ()
 
+        self.connection_tracker = self.setup_connection_tracker()
+
     @property
     def event_bus(self) -> Endpoint:
         if self._event_bus is None:

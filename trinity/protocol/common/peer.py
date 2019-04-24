@@ -30,6 +30,7 @@ from p2p.peer_pool import (
 )
 from p2p.tracking.connection import (
     BaseConnectionTracker,
+    NoopConnectionTracker,
 )
 
 from trinity.db.eth1.header import BaseAsyncHeaderDB
@@ -128,5 +129,7 @@ class BaseChainPeerPool(BasePeerPool):
         return [peer for peer in peers if peer.head_td >= min_td]
 
     def setup_connection_tracker(self) -> BaseConnectionTracker:
-        tracker = EventBusConnectionTracker(self.event_bus)
-        return tracker
+        if self.has_event_bus:
+            return EventBusConnectionTracker(self.event_bus)
+        else:
+            return NoopConnectionTracker()

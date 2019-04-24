@@ -41,7 +41,6 @@ from p2p.constants import (
 )
 
 from trinity.constants import (
-    TrackingBackend,
     ASSETS_DIR,
     DEFAULT_PREFERRED_NODES,
     IPC_DIR,
@@ -249,14 +248,12 @@ class TrinityConfig:
                  port: int=30303,
                  use_discv5: bool = False,
                  preferred_nodes: Tuple[KademliaNode, ...]=None,
-                 bootstrap_nodes: Tuple[KademliaNode, ...]=None,
-                 tracking_backend: TrackingBackend=None) -> None:
+                 bootstrap_nodes: Tuple[KademliaNode, ...]=None) -> None:
         self.app_identifier = app_identifier
         self.network_id = network_id
         self.max_peers = max_peers
         self.port = port
         self.use_discv5 = use_discv5
-        self.tracking_backend = tracking_backend
         self._app_configs = {}
 
         if genesis_config is not None:

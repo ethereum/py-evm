@@ -1,8 +1,4 @@
 import asyncio
-from argparse import (
-    ArgumentParser,
-    _SubParsersAction,
-)
 
 from p2p.tracking.connection import (
     BaseConnectionTracker,
@@ -13,9 +9,9 @@ from trinity._utils.shutdown import (
     exit_with_service_and_endpoint,
 )
 from trinity.db.orm import get_tracking_database
+from trinity.db.network import get_networkdb_path
 from trinity.constants import (
     BLACKLIST_EVENTBUS_ENDPOINT,
-    TrackingBackend,
 )
 from trinity.endpoint import (
     TrinityEventBusEndpoint,
@@ -23,12 +19,10 @@ from trinity.endpoint import (
 from trinity.extensibility.plugin import (
     BaseIsolatedPlugin,
 )
-from trinity.tracking import (
-    get_nodedb_path,
-    clear_node_db,
+from trinity.plugins.builtin.network_db.backends import (
+    TrackingBackend,
 )
 
-from .cli import NormalizeTrackingBackend
 from .server import BlacklistServer
 from .tracker import (
     SQLiteConnectionTracker,
@@ -47,42 +41,21 @@ class BlacklistPlugin(BaseIsolatedPlugin):
     def normalized_name(self) -> str:
         return BLACKLIST_EVENTBUS_ENDPOINT
 
-    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
-        tracking_parser = arg_parser.add_argument_group('enode tracking')
-        tracking_parser.add_argument(
-            '--enode-tracking-backend',
-            help=(
-                "Configure whether nodes are tracked and how. (sqlite3: persistent "
-                "tracking across runs from an on-disk sqlite3 datase, memory: tracking "
-                "only in memory, disabled: no tracking)"
-            ),
-            action=NormalizeTrackingBackend,
-            choices=('sqlite3', 'memory', 'disabled'),
-            default=TrackingBackend.sqlite3,
-            type=str,
-        )
-
-        attach_parser = subparser.add_parser(
-            'remove-enode-db',
-            help='Remove the on-disk sqlite database that tracks data about node connections',
-        )
-        attach_parser.set_defaults(func=clear_node_db)
-
     def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
         self.start()
 
     def _get_tracker(self) -> BaseConnectionTracker:
-        config = self.context.trinity_config
+        backend = self.context.args.network_tracking_backend
 
-        if config.tracking_backend is TrackingBackend.sqlite3:
-            session = get_tracking_database(get_nodedb_path(config))
+        if backend is TrackingBackend.sqlite3:
+            session = get_tracking_database(get_networkdb_path(self.context.trinity_config))
             return SQLiteConnectionTracker(session)
-        elif config.tracking_backend is TrackingBackend.memory:
+        elif backend is TrackingBackend.memory:
             return MemoryConnectionTracker()
-        elif config.tracking_backend is TrackingBackend.disabled:
+        elif backend is TrackingBackend.disabled:
             return NoopConnectionTracker()
         else:
-            raise Exception(f"INVARIANT: {config.tracking_backend}")
+            raise Exception(f"INVARIANT: {backend}")
 
     def do_start(self) -> None:
         tracker = self._get_tracker()

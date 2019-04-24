@@ -1,12 +1,12 @@
 import argparse
 from typing import Any
 
-from trinity.constants import TrackingBackend
+from .backends import TrackingBackend
 
 
 class NormalizeTrackingBackend(argparse.Action):
     """
-    Normalized the --enode-tracking-backend CLI arg into the proper Enum type.
+    Normalized the --network-tracking-backend CLI arg into the proper Enum type.
     """
     def __call__(self,
                  parser: argparse.ArgumentParser,
@@ -19,7 +19,7 @@ class NormalizeTrackingBackend(argparse.Action):
             raise argparse.ArgumentError(
                 self,
                 (
-                    "Unknown option for --enode-tracking-backend.  Must be one of "
+                    "Unknown option for --network-tracking-backend.  Must be one of "
                     "`sqlite3/memory/disabled`.  Got '{value}'"
                 ),
             )

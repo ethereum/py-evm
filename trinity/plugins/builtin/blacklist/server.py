@@ -55,4 +55,4 @@ class BlacklistServer(BaseService):
         self.run_daemon_task(self.handle_should_connect_to_requests())
         self.run_daemon_task(self.handle_blacklist_command())
 
-        await self.cancel_token.wait()
+        await self.cancellation()

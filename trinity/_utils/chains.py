@@ -149,7 +149,6 @@ def _construct_trinity_config_params(
     """
     yield 'network_id', args.network_id
     yield 'use_discv5', args.discv5
-    yield 'tracking_backend', args.enode_tracking_backend
 
     if args.trinity_root_dir is not None:
         yield 'trinity_root_dir', args.trinity_root_dir
