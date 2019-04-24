@@ -91,7 +91,7 @@ class BaseTransaction(BaseTransactionFields, BaseTransactionMethods):
     @cached_property
     def sender(self) -> Address:
         """
-        Convenience property for the return value of `get_sender`
+        Convenience and performance property for the return value of `get_sender`
         """
         return self.get_sender()
 
@@ -135,6 +135,8 @@ class BaseTransaction(BaseTransactionFields, BaseTransactionMethods):
     def get_sender(self) -> Address:
         """
         Get the 20-byte address which sent this transaction.
+
+        This can be a slow operation. ``transaction.sender`` is always preferred.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
