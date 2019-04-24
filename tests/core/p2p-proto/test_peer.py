@@ -103,5 +103,5 @@ class LESProtocolV3(LESProtocol):
 class ProtoMatchingPeer(LESPeer):
 
     def __init__(self, supported_sub_protocols, snappy_support):
-        self._supported_sub_protocols = supported_sub_protocols
+        self.supported_sub_protocols = supported_sub_protocols
         self.base_protocol = P2PProtocol(self, snappy_support)

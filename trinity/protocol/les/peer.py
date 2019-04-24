@@ -46,7 +46,7 @@ from .handlers import LESExchangeHandler
 class LESPeer(BaseChainPeer):
     max_headers_fetch = MAX_HEADERS_FETCH
 
-    _supported_sub_protocols = [LESProtocol, LESProtocolV2]
+    supported_sub_protocols = [LESProtocol, LESProtocolV2]
     sub_proto: LESProtocol = None
 
     _requests: LESExchangeHandler = None
