@@ -139,4 +139,4 @@ def test_transaction_fixtures(fixture, fixture_transaction_class):
 
     if 'sender' in fixture:
         assert 'hash' in fixture, "Transaction was supposed to be invalid"
-        assert is_same_address(txn.get_sender(), fixture['sender'])
+        assert is_same_address(txn.sender, fixture['sender'])
