@@ -14,6 +14,10 @@ Unreleased (latest source)
 
   - Maintenance: Lazily generate VM.block on first access. Enables loading the VM when you don't have its block body.
   - Performance: Fewer DB reads when block is never accessed.
+- Performance: speedups on ``chain.import_block()``:
+
+  - `#1765 <https://github.com/ethereum/py-evm/pull/1765>`_: Reduce logging overhead
+  - `#1766 <https://github.com/ethereum/py-evm/pull/1766>`_: Cache transaction sender
 - `#1751 <https://github.com/ethereum/py-evm/pull/1751>`_: Maintenance: Add placeholder for Istanbul fork
 
 0.2.0-alpha.42
