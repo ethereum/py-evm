@@ -389,8 +389,13 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         for subscriber in self._subscribers:
             subscriber.deregister_peer(peer)
 
-    def __aiter__(self) -> AsyncIterator[BasePeer]:
-        return ConnectedPeersIterator(tuple(self.connected_nodes.values()))
+    async def __aiter__(self) -> AsyncIterator[BasePeer]:
+        for peer in tuple(self.connected_nodes.values()):
+            # Yield control to ensure we process any disconnection requests from peers. Otherwise
+            # we could return peers that should have been disconnected already.
+            await asyncio.sleep(0)
+            if not peer.is_closing:
+                yield peer
 
     async def _periodically_report_stats(self) -> None:
         while self.is_operational:
@@ -423,21 +428,3 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                     self.logger.debug("    %s", line)
             self.logger.debug("== End peer details == ")
             await self.sleep(self._report_interval)
-
-
-class ConnectedPeersIterator(AsyncIterator[BasePeer]):
-
-    def __init__(self, peers: Tuple[BasePeer, ...]) -> None:
-        self.iter = iter(peers)
-
-    async def __anext__(self) -> BasePeer:
-        while True:
-            # Yield control to ensure we process any disconnection requests from peers. Otherwise
-            # we could return peers that should have been disconnected already.
-            await asyncio.sleep(0)
-            try:
-                peer = next(self.iter)
-                if not peer.is_closing:
-                    return peer
-            except StopIteration:
-                raise StopAsyncIteration
