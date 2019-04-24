@@ -34,8 +34,8 @@ class NetworkDBPlugin(BaseMainProcessPlugin):
         return "network-db"
 
     def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
-        tracking_parser = arg_parser.add_argument_group('network db')
-        tracking_parser.add_argument(
+        networkdb_parser = arg_parser.add_argument_group('network db')
+        networkdb_parser.add_argument(
             '--network-tracking-backend',
             help=(
                 "Configure whether nodes are tracked and how. (sqlite3: persistent "

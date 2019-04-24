@@ -1,3 +1,7 @@
+from argparse import (
+    ArgumentParser,
+    _SubParsersAction,
+)
 import asyncio
 
 from p2p.tracking.connection import (
@@ -41,8 +45,25 @@ class BlacklistPlugin(BaseIsolatedPlugin):
     def normalized_name(self) -> str:
         return BLACKLIST_EVENTBUS_ENDPOINT
 
+    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
+        blacklistdb_parser = arg_parser.add_argument_group('blacklist db')
+        blacklistdb_parser.add_argument(
+            '--disable-blacklistdb-plugin',
+            help=(
+                "Disables the builtin 'Connection Blacklist Database' plugin. "
+                "**WARNING**: disabling this API without a proper replacement "
+                "will cause your trinity node to crash."
+            ),
+            action='store_true',
+        )
+
     def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
-        self.start()
+        if self.context.args.disable_blacklistdb_plugin:
+            # Allow this plugin to be disabled for extreme cases such as the
+            # user swapping in an equivalent experimental version.
+            return
+        else:
+            self.start()
 
     def _get_tracker(self) -> BaseConnectionTracker:
         backend = self.context.args.network_tracking_backend
