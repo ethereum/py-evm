@@ -263,7 +263,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     async def _run(self) -> None:
         # FIXME: PeerPool should probably no longer be a BaseService, but for now we're keeping it
         # so in order to ensure we cancel all peers when we terminate.
-        if self.has_event_bus is not None:
+        if self.has_event_bus:
             self.run_daemon_task(self.maybe_connect_more_peers())
 
         self.run_daemon_task(self._periodically_report_stats())
