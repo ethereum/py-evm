@@ -13,7 +13,7 @@ from eth.validation import (
     validate_uint256,
 )
 from eth.tools.logging import (
-    ExtendedDebugLogger
+    ExtendedDebugLogger,
 )
 
 
@@ -67,13 +67,14 @@ class GasMeter(object):
 
         self.gas_remaining -= amount
 
-        self.logger.debug2(
-            'GAS CONSUMPTION: %s - %s -> %s (%s)',
-            self.gas_remaining + amount,
-            amount,
-            self.gas_remaining,
-            reason,
-        )
+        if self.logger.show_debug2:
+            self.logger.debug2(
+                'GAS CONSUMPTION: %s - %s -> %s (%s)',
+                self.gas_remaining + amount,
+                amount,
+                self.gas_remaining,
+                reason,
+            )
 
     def return_gas(self, amount: int) -> None:
         if amount < 0:
@@ -81,19 +82,21 @@ class GasMeter(object):
 
         self.gas_remaining += amount
 
-        self.logger.debug2(
-            'GAS RETURNED: %s + %s -> %s',
-            self.gas_remaining - amount,
-            amount,
-            self.gas_remaining,
-        )
+        if self.logger.show_debug2:
+            self.logger.debug2(
+                'GAS RETURNED: %s + %s -> %s',
+                self.gas_remaining - amount,
+                amount,
+                self.gas_remaining,
+            )
 
     def refund_gas(self, amount: int) -> None:
         self.gas_refunded = self.refund_strategy(self.gas_refunded, amount)
 
-        self.logger.debug2(
-            'GAS REFUND: %s + %s -> %s',
-            self.gas_refunded - amount,
-            amount,
-            self.gas_refunded,
-        )
+        if self.logger.show_debug2:
+            self.logger.debug2(
+                'GAS REFUND: %s + %s -> %s',
+                self.gas_refunded - amount,
+                amount,
+                self.gas_refunded,
+            )

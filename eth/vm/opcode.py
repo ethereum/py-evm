@@ -65,7 +65,7 @@ class Opcode(Configurable, ABC):
                 """
                 computation.consume_gas(
                     gas_cost,
-                    reason=mnemonic,
+                    mnemonic,
                 )
                 return logic_fn(computation)
         else:

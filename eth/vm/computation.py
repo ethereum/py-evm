@@ -217,13 +217,14 @@ class BaseComputation(Configurable, ABC):
         before_cost = memory_gas_cost(before_size)
         after_cost = memory_gas_cost(after_size)
 
-        self.logger.debug2(
-            "MEMORY: size (%s -> %s) | cost (%s -> %s)",
-            before_size,
-            after_size,
-            before_cost,
-            after_cost,
-        )
+        if self.logger.show_debug2:
+            self.logger.debug2(
+                "MEMORY: size (%s -> %s) | cost (%s -> %s)",
+                before_size,
+                after_size,
+                before_cost,
+                after_cost,
+            )
 
         if size:
             if before_cost < after_cost:
@@ -481,27 +482,11 @@ class BaseComputation(Configurable, ABC):
     # Context Manager API
     #
     def __enter__(self) -> 'BaseComputation':
-        self.logger.debug2(
-            (
-                "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s "
-                "| depth %s | static: %s"
-            ),
-            self.msg.gas,
-            encode_hex(self.msg.sender),
-            encode_hex(self.msg.to),
-            self.msg.value,
-            self.msg.depth,
-            "y" if self.msg.is_static else "n",
-        )
-
-        return self
-
-    def __exit__(self, exc_type: None, exc_value: None, traceback: None) -> None:
-        if exc_value and isinstance(exc_value, VMError):
+        if self.logger.show_debug2:
             self.logger.debug2(
                 (
-                    "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | "
-                    "depth: %s | static: %s | error: %s"
+                    "COMPUTATION STARTING: gas: %s | from: %s | to: %s | value: %s "
+                    "| depth %s | static: %s"
                 ),
                 self.msg.gas,
                 encode_hex(self.msg.sender),
@@ -509,8 +494,26 @@ class BaseComputation(Configurable, ABC):
                 self.msg.value,
                 self.msg.depth,
                 "y" if self.msg.is_static else "n",
-                exc_value,
             )
+
+        return self
+
+    def __exit__(self, exc_type: None, exc_value: None, traceback: None) -> None:
+        if exc_value and isinstance(exc_value, VMError):
+            if self.logger.show_debug2:
+                self.logger.debug2(
+                    (
+                        "COMPUTATION ERROR: gas: %s | from: %s | to: %s | value: %s | "
+                        "depth: %s | static: %s | error: %s"
+                    ),
+                    self.msg.gas,
+                    encode_hex(self.msg.sender),
+                    encode_hex(self.msg.to),
+                    self.msg.value,
+                    self.msg.depth,
+                    "y" if self.msg.is_static else "n",
+                    exc_value,
+                )
             self._error = exc_value
             if self.should_burn_gas:
                 self.consume_gas(
@@ -523,7 +526,7 @@ class BaseComputation(Configurable, ABC):
 
             # suppress VM exceptions
             return True
-        elif exc_type is None:
+        elif exc_type is None and self.logger.show_debug2:
             self.logger.debug2(
                 (
                     "COMPUTATION SUCCESS: from: %s | to: %s | value: %s | "
@@ -569,15 +572,18 @@ class BaseComputation(Configurable, ABC):
                 computation.precompiles[message.code_address](computation)
                 return computation
 
+            show_debug2 = computation.logger.show_debug2
+
             for opcode in computation.code:
                 opcode_fn = computation.get_opcode_fn(opcode)
 
-                computation.logger.debug2(
-                    "OPCODE: 0x%x (%s) | pc: %s",
-                    opcode,
-                    opcode_fn.mnemonic,
-                    max(0, computation.code.pc - 1),
-                )
+                if show_debug2:
+                    computation.logger.debug2(
+                        "OPCODE: 0x%x (%s) | pc: %s",
+                        opcode,
+                        opcode_fn.mnemonic,
+                        max(0, computation.code.pc - 1),
+                    )
 
                 try:
                     opcode_fn(computation=computation)

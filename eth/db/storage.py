@@ -227,7 +227,6 @@ class AccountStorageDB:
         self._storage_cache.reset_cache()
 
     def commit(self, changeset: UUID) -> None:
-        self.logger.debug2('commit checkpoint %r', changeset)
         if self._journal_storage.has_changeset(changeset):
             self._journal_storage.commit(changeset)
         else:
