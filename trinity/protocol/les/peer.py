@@ -15,6 +15,8 @@ from eth_utils import encode_hex
 
 from p2p.exceptions import (
     HandshakeFailure,
+    WrongGenesisFailure,
+    WrongNetworkFailure,
 )
 from p2p.p2p_proto import DisconnectReason
 from p2p.protocol import (
@@ -89,7 +91,7 @@ class LESPeer(BaseChainPeer):
 
         if msg['networkId'] != self.local_network_id:
             await self.disconnect(DisconnectReason.useless_peer)
-            raise HandshakeFailure(
+            raise WrongNetworkFailure(
                 f"{self} network ({msg['networkId']}) does not match ours "
                 f"({self.local_network_id}), disconnecting"
             )
@@ -97,7 +99,7 @@ class LESPeer(BaseChainPeer):
         local_genesis_hash = await self._get_local_genesis_hash()
         if msg['genesisHash'] != local_genesis_hash:
             await self.disconnect(DisconnectReason.useless_peer)
-            raise HandshakeFailure(
+            raise WrongGenesisFailure(
                 f"{self} genesis ({encode_hex(msg['genesisHash'])}) does not "
                 f"match ours ({local_genesis_hash}), disconnecting"
             )
