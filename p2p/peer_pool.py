@@ -123,7 +123,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         self.max_peers = max_peers
         self.context = context
 
-        self.connected_nodes: Dict[str, BasePeer] = {}
+        self.connected_nodes: Dict[Node, BasePeer] = {}
         self._subscribers: List[PeerSubscriber] = []
         self._event_bus = event_bus
 
@@ -215,8 +215,8 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     def is_valid_connection_candidate(self, candidate: Node) -> bool:
         # connect to no more then 2 nodes with the same IP
         nodes_by_ip = groupby(
-            operator.attrgetter('remote.address.ip'),
-            self.connected_nodes.values(),
+            operator.attrgetter('address.ip'),
+            self.connected_nodes.keys(),
         )
         matching_ip_nodes = nodes_by_ip.get(candidate.address.ip, [])
         return len(matching_ip_nodes) <= 2
@@ -261,7 +261,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         to the peer, we also add the given messages to our subscriber's queues.
         """
         self.logger.info('Adding %s to pool', peer)
-        self.connected_nodes[peer.remote.uri()] = peer
+        self.connected_nodes[peer.remote] = peer
         peer.add_finished_callback(self._peer_finished)
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
@@ -281,9 +281,11 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     async def stop_all_peers(self) -> None:
         self.logger.info("Stopping all peers ...")
         peers = self.connected_nodes.values()
-        await asyncio.gather(*[
-            peer.disconnect(DisconnectReason.client_quitting) for peer in peers if peer.is_running
-        ])
+        await asyncio.gather(*(
+            peer.disconnect(DisconnectReason.client_quitting)
+            for peer in peers
+            if peer.is_running
+        ))
 
     async def _cleanup(self) -> None:
         await self.stop_all_peers()
@@ -405,12 +407,16 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         This is passed as a callback to be called when a peer finishes.
         """
         peer = cast(BasePeer, peer)
-        if peer.remote.uri() in self.connected_nodes:
+        if peer.remote in self.connected_nodes:
             self.logger.info("%s finished, removing from pool", peer)
-            self.connected_nodes.pop(peer.remote.uri())
+            self.connected_nodes.pop(peer.remote)
         else:
             self.logger.warning(
-                "%s finished but was not found in connected_nodes (%s)", peer, self.connected_nodes)
+                "%s finished but was not found in connected_nodes (%s)",
+                peer,
+                tuple(sorted(self.connected_nodes.values())),
+            )
+
         for subscriber in self._subscribers:
             subscriber.deregister_peer(peer)
 

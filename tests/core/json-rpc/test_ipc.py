@@ -597,4 +597,4 @@ async def test_admin_addPeer_fires_message(
     assert result == {'id': 3, 'jsonrpc': '2.0', 'result': None}
 
     event = await asyncio.wait_for(future, timeout=0.1, loop=event_loop)
-    assert event.node == enode
+    assert event.remote.uri() == enode

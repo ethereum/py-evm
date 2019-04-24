@@ -64,7 +64,7 @@ class ParagonPeerPoolEventServer(PeerPoolEventServer[ParagonPeer]):
     async def handle_get_sum_requests(self) -> None:
         async for req in self.wait_iter(self.event_bus.stream(GetSumRequest)):
             try:
-                peer = self.get_peer(req.peer)
+                peer = self.get_peer(req.remote)
             except PeerConnectionLost:
                 pass
             else:
@@ -80,7 +80,7 @@ class ParagonMockPeerPoolWithConnectedPeers(ParagonPeerPool):
     def __init__(self, peers: Iterable[ParagonPeer]) -> None:
         super().__init__(privkey=None, context=None)
         for peer in peers:
-            self.connected_nodes[peer.remote.uri()] = peer
+            self.connected_nodes[peer.remote] = peer
 
     async def _run(self) -> None:
         raise NotImplementedError("This is a mock PeerPool implementation, you must not _run() it")

@@ -8,17 +8,16 @@ from lahja import (
     BaseRequestResponseEvent,
 )
 
+from .kademlia import Node
+
 
 class BaseDiscoveryServiceResponse(BaseEvent):
-
-    def __init__(self, error: Exception) -> None:
-        self.error = error
+    pass
 
 
 class PeerCandidatesResponse(BaseDiscoveryServiceResponse):
 
-    def __init__(self, candidates: Tuple[str, ...], error: Exception=None) -> None:
-        super().__init__(error)
+    def __init__(self, candidates: Tuple[Node, ...]) -> None:
         self.candidates = candidates
 
 
