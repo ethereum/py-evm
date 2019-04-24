@@ -380,12 +380,12 @@ class BeaconChain(BaseBeaconChain):
         )
         state, imported_block = self.get_state_machine(base_block_for_import).import_block(block)
 
-        # TODO: Now it just persists all state. Should design how to clean up the old state.
-        self.chaindb.persist_state(state)
-
         # Validate the imported block.
         if perform_validation:
             validate_imported_block_unchanged(imported_block, block)
+
+        # TODO: Now it just persists all state. Should design how to clean up the old state.
+        self.chaindb.persist_state(state)
 
         (
             new_canonical_blocks,
