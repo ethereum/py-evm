@@ -68,7 +68,7 @@ from p2p.events import (
     PeerCandidatesResponse,
 )
 from p2p.exceptions import AlreadyWaitingDiscoveryResponse, NoEligibleNodes, UnableToGetDiscV5Ticket
-from p2p.kademlia import to_uris, Node as KademliaNode
+from p2p.kademlia import Node as KademliaNode
 from p2p import kademlia
 from p2p import protocol
 from p2p.service import BaseService
@@ -439,9 +439,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             self.receive_v5(address, cast(bytes, data))
         else:
             self.receive(address, cast(bytes, data))
-
-    def error_received(self, exc: Exception) -> None:
-        self.logger.error('error received: %s', exc)
 
     def send(self, node: kademlia.Node, message: bytes) -> None:
         self.transport.sendto(message, (node.address.ip, node.address.udp_port))
@@ -1002,9 +999,8 @@ class StaticDiscoveryService(BaseService):
             self,
             event: BaseRequestResponseEvent[PeerCandidatesResponse],
             nodes: Tuple[KademliaNode, ...]) -> None:
-        node_uris = tuple(to_uris(nodes))
         self._event_bus.broadcast(
-            event.expected_response_type()(node_uris),
+            event.expected_response_type()(nodes),
             event.broadcast_config()
         )
 
@@ -1067,7 +1063,7 @@ class DiscoveryService(BaseService):
 
             self.run_task(self.maybe_lookup_random_node())
 
-            nodes = tuple(to_uris(self.proto.get_nodes_to_connect(event.max_candidates)))
+            nodes = tuple(self.proto.get_nodes_to_connect(event.max_candidates))
 
             self.logger.debug2("Broadcasting peer candidates (%s)", nodes)
             self._event_bus.broadcast(
@@ -1078,7 +1074,7 @@ class DiscoveryService(BaseService):
     async def handle_get_random_bootnode_requests(self) -> None:
         async for event in self.wait_iter(self._event_bus.stream(RandomBootnodeRequest)):
 
-            nodes = tuple(to_uris(self.proto.get_random_bootnode()))
+            nodes = tuple(self.proto.get_random_bootnode())
 
             self.logger.debug2("Broadcasting random boot nodes (%s)", nodes)
             self._event_bus.broadcast(

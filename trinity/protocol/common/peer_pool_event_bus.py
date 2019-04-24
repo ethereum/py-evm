@@ -13,12 +13,9 @@ from lahja import (
 from p2p.exceptions import (
     PeerConnectionLost,
 )
-from p2p.kademlia import (
-    from_uris,
-)
+from p2p.kademlia import Node
 from p2p.peer import (
     BasePeer,
-    IdentifiablePeer,
 )
 from p2p.peer_pool import (
     BasePeerPool,
@@ -55,8 +52,8 @@ class PeerPoolEventServer(BaseService, Generic[TPeer]):
 
     async def accept_connect_commands(self) -> None:
         async for command in self.wait_iter(self.event_bus.stream(ConnectToNodeCommand)):
-            self.logger.debug('Received request to connect to %s', command.node)
-            self.run_task(self.peer_pool.connect_to_nodes(from_uris([command.node])))
+            self.logger.debug('Received request to connect to %s', command.remote)
+            self.run_task(self.peer_pool.connect_to_node(command.remote))
 
     async def handle_peer_count_requests(self) -> None:
         async for req in self.wait_iter(self.event_bus.stream(PeerCountRequest)):
@@ -66,13 +63,13 @@ class PeerPoolEventServer(BaseService, Generic[TPeer]):
             )
 
     async def handle_disconnect_peer_events(self) -> None:
-        async for ev in self.wait_iter(self.event_bus.stream(DisconnectPeerEvent)):
+        async for command in self.wait_iter(self.event_bus.stream(DisconnectPeerEvent)):
             try:
-                peer = self.get_peer(ev.peer)
+                peer = self.get_peer(command.remote)
             except PeerConnectionLost:
                 pass
             else:
-                peer.disconnect(ev.reason)
+                peer.disconnect(command.reason)
 
     async def _run(self) -> None:
         self.logger.debug("Running PeerPoolEventServer")
@@ -83,12 +80,12 @@ class PeerPoolEventServer(BaseService, Generic[TPeer]):
 
         await self.cancel_token.wait()
 
-    def get_peer(self, dto_peer: IdentifiablePeer) -> TPeer:
+    def get_peer(self, remote: Node) -> TPeer:
 
         try:
-            peer = self.peer_pool.connected_nodes[dto_peer.uri]
+            peer = self.peer_pool.connected_nodes[remote]
         except KeyError:
-            self.logger.debug("Peer %s does not exist in the pool anymore", dto_peer.uri)
+            self.logger.debug("Peer with remote %s does not exist in the pool anymore", remote)
             raise PeerConnectionLost()
         else:
             if not peer.is_operational:

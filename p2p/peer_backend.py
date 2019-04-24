@@ -12,7 +12,6 @@ from p2p.constants import (
     DISCOVERY_EVENTBUS_ENDPOINT,
 )
 from p2p.kademlia import (
-    from_uris,
     Node,
 )
 from p2p.events import (
@@ -43,7 +42,7 @@ class DiscoveryPeerBackend(BasePeerBackend):
             PeerCandidatesRequest(num_requested),
             TO_DISCOVERY_BROADCAST_CONFIG,
         )
-        return from_uris(response.candidates)
+        return response.candidates
 
 
 class BootnodesPeerBackend(BasePeerBackend):
@@ -59,6 +58,6 @@ class BootnodesPeerBackend(BasePeerBackend):
                 TO_DISCOVERY_BROADCAST_CONFIG
             )
 
-            return from_uris(response.candidates)
+            return response.candidates
         else:
             return ()

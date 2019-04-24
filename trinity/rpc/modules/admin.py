@@ -1,3 +1,4 @@
+from p2p.kademlia import Node
 from p2p.validation import validate_enode_uri
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
@@ -11,10 +12,10 @@ class Admin(BaseRPCModule):
     def __init__(self, event_bus: TrinityEventBusEndpoint) -> None:
         self.event_bus = event_bus
 
-    async def addPeer(self, node: str) -> None:
-        validate_enode_uri(node, require_ip=True)
+    async def addPeer(self, uri: str) -> None:
+        validate_enode_uri(uri, require_ip=True)
 
         self.event_bus.broadcast(
-            ConnectToNodeCommand(node),
+            ConnectToNodeCommand(Node.from_uri(uri)),
             TO_NETWORKING_BROADCAST_CONFIG
         )
