@@ -434,7 +434,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             return self._persist_block_chain(db, blocks, block_class)
 
     @staticmethod
-    def _set_block_scores_to_db(
+    def _set_block_score_to_db(
             db: BaseDB,
             block: BaseBeaconBlock
     ) -> int:
@@ -486,7 +486,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             ssz.encode(curr_block_head),
         )
         cls._add_block_root_to_slot_lookup(db, curr_block_head)
-        cls._set_block_scores_to_db(db, curr_block_head)
+        cls._set_block_score_to_db(db, curr_block_head)
         cls._add_attestations_root_to_block_lookup(db, curr_block_head)
 
         orig_blocks_seq = concat([(first_block,), blocks_iterator])
@@ -507,7 +507,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                 ssz.encode(curr_block_head),
             )
             cls._add_block_root_to_slot_lookup(db, curr_block_head)
-            score = cls._set_block_scores_to_db(db, curr_block_head)
+            score = cls._set_block_score_to_db(db, curr_block_head)
             cls._add_attestations_root_to_block_lookup(db, curr_block_head)
 
         if no_canonical_head:
