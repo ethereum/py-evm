@@ -11,10 +11,10 @@ from typing import (
 
 
 class AsyncProcessRunner():
+    logger = logging.getLogger("trinity.tools.async_process_runner.AsyncProcessRunner")
 
     def __init__(self, debug_fn: Callable[[bytes], None] = None) -> None:
         self.debug_fn = debug_fn
-        self.logger = logging.getLogger("trinity.tools.async_process_runner.AsyncProcessRunner")
 
     @classmethod
     async def create_and_run(cls,
