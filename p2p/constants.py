@@ -122,7 +122,7 @@ PEER_CONNECT_INTERVAL = 2
 MAX_SEQUENTIAL_PEER_CONNECT = 5
 
 # Timeout used when fetching peer candidates from discovery
-REQUEST_PEER_CANDIDATE_TIMEOUT = 0.5
+REQUEST_PEER_CANDIDATE_TIMEOUT = 1
 
 # The maximum number of concurrent attempts to establis new peer connections
 MAX_CONCURRENT_CONNECTION_ATTEMPTS = 10
