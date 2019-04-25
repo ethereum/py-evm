@@ -26,7 +26,7 @@ from p2p.kademlia import Node
 from p2p.tracking.connection import BaseConnectionTracker
 
 from trinity.constants import (
-    BLACKLIST_EVENTBUS_ENDPOINT,
+    NETWORKDB_EVENTBUS_ENDPOINT,
 )
 
 from trinity.db.orm import (
@@ -140,13 +140,13 @@ class MemoryConnectionTracker(SQLiteConnectionTracker):
         super().__init__(session)
 
 
-TO_BLACKLIST_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=BLACKLIST_EVENTBUS_ENDPOINT)
+TO_NETWORKDB_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=NETWORKDB_EVENTBUS_ENDPOINT)
 
 
 class EventBusConnectionTracker(BaseConnectionTracker):
     def __init__(self,
                  event_bus: Endpoint,
-                 config: BroadcastConfig = TO_BLACKLIST_BROADCAST_CONFIG) -> None:
+                 config: BroadcastConfig = TO_NETWORKDB_BROADCAST_CONFIG) -> None:
         self.event_bus = event_bus
         self.config = config
 

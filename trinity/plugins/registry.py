@@ -10,9 +10,6 @@ from trinity.plugins.builtin.attach.plugin import (
     DbShellPlugin,
     AttachPlugin,
 )
-from trinity.plugins.builtin.blacklist.plugin import (
-    BlacklistPlugin,
-)
 from trinity.plugins.builtin.ethstats.plugin import (
     EthstatsPlugin,
 )
@@ -64,7 +61,6 @@ BASE_PLUGINS: Tuple[BasePlugin, ...] = (
 
 
 ETH1_NODE_PLUGINS: Tuple[BasePlugin, ...] = (
-    BlacklistPlugin(),
     DbShellPlugin(use_ipython=is_ipython_available()),
     EthstatsPlugin(),
     LightPeerChainBridgePlugin(),

@@ -36,7 +36,7 @@ from p2p.tracking.connection import (
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.handlers import BaseChainExchangeHandler
 
-from trinity.plugins.builtin.blacklist.tracker import EventBusConnectionTracker
+from trinity.plugins.builtin.network_db.blacklist.tracker import EventBusConnectionTracker
 
 from .boot import DAOCheckBootManager
 from .context import ChainContext

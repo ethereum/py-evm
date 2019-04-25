@@ -8,8 +8,8 @@ from p2p.tools.factories import NodeFactory
 from trinity.constants import (
     NETWORKING_EVENTBUS_ENDPOINT,
 )
-from trinity.plugins.builtin.blacklist.server import BlacklistServer
-from trinity.plugins.builtin.blacklist.tracker import (
+from trinity.plugins.builtin.network_db.blacklist.server import BlacklistServer
+from trinity.plugins.builtin.network_db.blacklist.tracker import (
     EventBusConnectionTracker,
     MemoryConnectionTracker,
 )

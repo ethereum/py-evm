@@ -8,7 +8,7 @@ from p2p.tools.factories import (
     NodeFactory,
 )
 
-from trinity.plugins.builtin.blacklist.tracker import (
+from trinity.plugins.builtin.network_db.blacklist.tracker import (
     SQLiteConnectionTracker,
     MemoryConnectionTracker,
 )
