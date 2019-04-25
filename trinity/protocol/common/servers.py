@@ -2,7 +2,6 @@ from abc import abstractmethod
 from typing import (
     AsyncIterator,
     Tuple,
-    cast,
 )
 
 from cancel_token import CancelToken, OperationCancelled
@@ -12,7 +11,6 @@ from eth.exceptions import (
 )
 from eth_typing import (
     BlockNumber,
-    Hash32,
 )
 from eth.rlp.headers import BlockHeader
 from p2p import protocol
@@ -55,7 +53,7 @@ class BaseRequestServer(BaseService, PeerSubscriber):
     async def _handle_msg_loop(self) -> None:
         while self.is_operational:
             peer, cmd, msg = await self.wait(self.msg_queue.get())
-            self.run_task(self._quiet_handle_msg(cast(BasePeer, peer), cmd, msg))
+            self.run_task(self._quiet_handle_msg(peer, cmd, msg))
 
     async def _quiet_handle_msg(
             self,
@@ -113,7 +111,7 @@ class BasePeerRequestHandler(CancellableMixin, HasExtendedDebugLogger):
         """
         if isinstance(request.block_number_or_hash, bytes):
             header = await self.wait(
-                self.db.coro_get_block_header_by_hash(cast(Hash32, request.block_number_or_hash)))
+                self.db.coro_get_block_header_by_hash(request.block_number_or_hash))
             return request.generate_block_numbers(header.block_number)
         elif isinstance(request.block_number_or_hash, int):
             # We don't need to pass in the block number to

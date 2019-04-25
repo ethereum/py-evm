@@ -8,7 +8,6 @@ import struct
 import time
 from typing import (
     Any,
-    cast,
     Dict,
     Iterable,
     Iterator,
@@ -134,7 +133,6 @@ class Node:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, self.__class__):
             return super().__eq__(other)
-        other = cast(Node, other)
         return self.pubkey == other.pubkey
 
     def __ne__(self, other: object) -> bool:

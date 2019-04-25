@@ -131,7 +131,7 @@ class BlockHeaders(BaseBlockHeaders):
 
     def extract_headers(self, msg: _DecodedMsgType) -> Tuple[BlockHeader, ...]:
         msg = cast(Dict[str, Any], msg)
-        return cast(Tuple[BlockHeader, ...], tuple(msg['headers']))
+        return tuple(msg['headers'])
 
 
 class GetBlockBodies(Command):
