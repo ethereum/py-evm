@@ -252,7 +252,7 @@ normalize_state = compose(
 )
 
 
-normalize_main_transaction = cast(Normalizer, dict_normalizer({
+normalize_main_transaction = dict_normalizer({
     "data": normalize_bytes,
     "gasLimit": normalize_int,
     "gasPrice": normalize_int,
@@ -260,7 +260,7 @@ normalize_main_transaction = cast(Normalizer, dict_normalizer({
     "secretKey": normalize_bytes,
     "to": normalize_to_address,
     "value": normalize_int,
-}))
+})
 
 
 normalize_transaction = cast(TransactionNormalizer, dict_options_normalizer([
@@ -268,7 +268,7 @@ normalize_transaction = cast(TransactionNormalizer, dict_options_normalizer([
 ]))
 
 
-normalize_main_transaction_group = cast(Normalizer, dict_normalizer({
+normalize_main_transaction_group = dict_normalizer({
     "data": eth_utils.curried.apply_formatter_to_array(normalize_bytes),
     "gasLimit": eth_utils.curried.apply_formatter_to_array(normalize_int),
     "gasPrice": normalize_int,
@@ -276,7 +276,7 @@ normalize_main_transaction_group = cast(Normalizer, dict_normalizer({
     "secretKey": normalize_bytes,
     "to": normalize_to_address,
     "value": eth_utils.curried.apply_formatter_to_array(normalize_int),
-}))
+})
 
 
 normalize_transaction_group = cast(TransactionNormalizer, dict_options_normalizer([
