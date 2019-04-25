@@ -114,7 +114,7 @@ def event_loop():
 # This fixture provides a tear down to run after each test that uses it.
 # This ensures the AsyncProcessRunner will never leave a process behind
 @pytest.fixture(scope="function")
-def async_process_runner(event_loop):
+def async_process_runner():
     runner = AsyncProcessRunner(
         # This allows running pytest with -s and observing the output
         debug_fn=lambda line: print(line)
@@ -127,7 +127,7 @@ def async_process_runner(event_loop):
 
 
 @pytest.fixture(scope='module')
-async def event_bus(event_loop):
+async def event_bus():
     endpoint = TrinityEventBusEndpoint()
     # Tests run concurrently, therefore we need unique IPC paths
     ipc_path = Path(f"networking-{uuid.uuid4()}.ipc")
@@ -135,7 +135,7 @@ async def event_bus(event_loop):
         name=NETWORKING_EVENTBUS_ENDPOINT,
         path=ipc_path
     )
-    await endpoint.start_serving(networking_connection_config, event_loop)
+    await endpoint.start_serving(networking_connection_config)
     await endpoint.connect_to_endpoints(networking_connection_config)
     try:
         yield endpoint

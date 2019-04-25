@@ -170,7 +170,6 @@ class PeerDiscoveryPlugin(BaseIsolatedPlugin):
         )
 
     def do_start(self) -> None:
-        loop = asyncio.get_event_loop()
         discovery_bootstrap = DiscoveryBootstrapService(
             self.context.args.disable_discovery,
             self.event_bus,
@@ -178,5 +177,3 @@ class PeerDiscoveryPlugin(BaseIsolatedPlugin):
         )
         asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, discovery_bootstrap))
         asyncio.ensure_future(discovery_bootstrap.run())
-        loop.run_forever()
-        loop.close()

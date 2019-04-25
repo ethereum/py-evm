@@ -267,7 +267,7 @@ async def test_validator_handle_new_slot(caplog, event_loop, event_bus, monkeypa
     # sleep for `event_bus` ready
     await asyncio.sleep(0.01)
 
-    event_bus.broadcast(
+    await event_bus.broadcast(
         NewSlotEvent(
             slot=1,
             elapsed_time=2,

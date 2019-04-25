@@ -57,7 +57,7 @@ class PeerPoolEventServer(BaseService, Generic[TPeer]):
 
     async def handle_peer_count_requests(self) -> None:
         async for req in self.wait_iter(self.event_bus.stream(PeerCountRequest)):
-            self.event_bus.broadcast(
+            await self.event_bus.broadcast(
                 PeerCountResponse(len(self.peer_pool)),
                 req.broadcast_config()
             )

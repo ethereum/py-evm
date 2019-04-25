@@ -123,10 +123,5 @@ class EthstatsPlugin(BaseIsolatedPlugin):
             self.stats_interval,
         )
 
-        loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
-
         asyncio.ensure_future(exit_with_endpoint_and_services(self.context.event_bus, service))
         asyncio.ensure_future(service.run())
-
-        loop.run_forever()
-        loop.close()

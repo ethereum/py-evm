@@ -76,9 +76,6 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
             server.cancel_token,
         )
 
-        loop = asyncio.get_event_loop()
         asyncio.ensure_future(exit_with_endpoint_and_services(self.context.event_bus, server))
         asyncio.ensure_future(server.run())
         asyncio.ensure_future(syncer.run())
-        loop.run_forever()
-        loop.close()

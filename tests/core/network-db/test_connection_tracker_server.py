@@ -19,7 +19,7 @@ from trinity.plugins.builtin.network_db.connection.tracker import (
 async def test_connection_tracker_server_and_client(event_loop, event_bus):
     tracker = MemoryConnectionTracker()
     remote_a = NodeFactory()
-    tracker.record_blacklist(remote_a, 60, "testing")
+    await tracker.record_blacklist(remote_a, 60, "testing")
 
     assert await tracker.should_connect_to(remote_a) is False
 
@@ -40,7 +40,7 @@ async def test_connection_tracker_server_and_client(event_loop, event_bus):
 
     assert await bus_tracker.should_connect_to(remote_b) is True
 
-    bus_tracker.record_blacklist(remote_b, 60, "testing")
+    await bus_tracker.record_blacklist(remote_b, 60, "testing")
 
     assert await bus_tracker.should_connect_to(remote_b) is False
     assert await tracker.should_connect_to(remote_b) is False

@@ -979,12 +979,12 @@ class StaticDiscoveryService(BaseService):
     async def handle_get_peer_candidates_requests(self) -> None:
         async for event in self._event_bus.stream(PeerCandidatesRequest):
             candidates = self._select_nodes(event.max_candidates)
-            self._broadcast_nodes(event, candidates)
+            await self._broadcast_nodes(event, candidates)
 
     async def handle_get_random_bootnode_requests(self) -> None:
         async for event in self._event_bus.stream(RandomBootnodeRequest):
             candidates = self._select_nodes(1)
-            self._broadcast_nodes(event, candidates)
+            await self._broadcast_nodes(event, candidates)
 
     def _select_nodes(self, max_nodes: int) -> Tuple[KademliaNode, ...]:
         if max_nodes >= len(self._static_peers):
@@ -995,11 +995,11 @@ class StaticDiscoveryService(BaseService):
             self.logger.debug2("Replying with subset of static nodes: %r", candidates)
         return candidates
 
-    def _broadcast_nodes(
+    async def _broadcast_nodes(
             self,
             event: BaseRequestResponseEvent[PeerCandidatesResponse],
             nodes: Tuple[KademliaNode, ...]) -> None:
-        self._event_bus.broadcast(
+        await self._event_bus.broadcast(
             event.expected_response_type()(nodes),
             event.broadcast_config()
         )
@@ -1022,7 +1022,7 @@ class NoopDiscoveryService(BaseService):
         async for event in self._event_bus.stream(PeerCandidatesRequest):
             self.logger.debug("Servicing request for more peer candidates")
 
-            self._event_bus.broadcast(
+            await self._event_bus.broadcast(
                 event.expected_response_type()(tuple()),
                 event.broadcast_config()
             )
@@ -1031,7 +1031,7 @@ class NoopDiscoveryService(BaseService):
         async for event in self._event_bus.stream(RandomBootnodeRequest):
             self.logger.debug("Servicing request for boot nodes")
 
-            self._event_bus.broadcast(
+            await self._event_bus.broadcast(
                 event.expected_response_type()(tuple()),
                 event.broadcast_config()
             )
@@ -1066,7 +1066,7 @@ class DiscoveryService(BaseService):
             nodes = tuple(self.proto.get_nodes_to_connect(event.max_candidates))
 
             self.logger.debug2("Broadcasting peer candidates (%s)", nodes)
-            self._event_bus.broadcast(
+            await self._event_bus.broadcast(
                 event.expected_response_type()(nodes),
                 event.broadcast_config()
             )
@@ -1077,7 +1077,7 @@ class DiscoveryService(BaseService):
             nodes = tuple(self.proto.get_random_bootnode())
 
             self.logger.debug2("Broadcasting random boot nodes (%s)", nodes)
-            self._event_bus.broadcast(
+            await self._event_bus.broadcast(
                 event.expected_response_type()(nodes),
                 event.broadcast_config()
             )

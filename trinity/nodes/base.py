@@ -63,7 +63,7 @@ class Node(BaseService):
             # `NetworkIdResponse` to the callsite that made the request.  We do that by
             # retrieving a `BroadcastConfig` from the request via the
             # `event.broadcast_config()` API.
-            self.event_bus.broadcast(
+            await self.event_bus.broadcast(
                 NetworkIdResponse(self._network_id),
                 req.broadcast_config()
             )
@@ -113,14 +113,14 @@ class Node(BaseService):
     def headerdb(self) -> BaseAsyncHeaderDB:
         return self._headerdb
 
-    def notify_resource_available(self) -> None:
+    async def notify_resource_available(self) -> None:
 
         # We currently need this to give plugins the chance to start as soon
         # as the `PeerPool` is available. In the long term, the peer pool may become
         # a plugin itself and we can get rid of this.
         peer_pool = self.get_peer_pool()
 
-        self.event_bus.broadcast(
+        await self.event_bus.broadcast(
             ResourceAvailableEvent(
                 resource=(peer_pool, self.cancel_token),
                 resource_type=type(peer_pool)
@@ -130,7 +130,7 @@ class Node(BaseService):
 
         # This broadcasts the *local* chain, which is suited for tasks that aren't blocking
         # for too long. There may be value in also broadcasting the proxied chain.
-        self.event_bus.broadcast(
+        await self.event_bus.broadcast(
             ResourceAvailableEvent(
                 resource=self.get_chain(),
                 resource_type=BaseChain
@@ -140,7 +140,7 @@ class Node(BaseService):
 
         # Broadcasting the DbManager internally, ensures plugins that run in the networking process
         # can reuse the existing connection instead of creating additional new connections
-        self.event_bus.broadcast(
+        await self.event_bus.broadcast(
             ResourceAvailableEvent(
                 resource=self.db_manager,
                 resource_type=BaseManager
@@ -150,7 +150,7 @@ class Node(BaseService):
 
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()
-        self.notify_resource_available()
+        await self.notify_resource_available()
         self.run_daemon_task(self.handle_network_id_requests())
         self.run_daemon(self.get_p2p_server())
         await self.cancellation()

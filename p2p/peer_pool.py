@@ -253,7 +253,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             await peer.disconnect(DisconnectReason.timeout)
             return
         except HandshakeFailure as err:
-            self.connection_tracker.record_failure(peer.remote, err)
+            await self.connection_tracker.record_failure(peer.remote, err)
             raise
         else:
             if peer.is_operational:
@@ -348,7 +348,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             raise
         except HandshakeFailure as e:
             self.logger.debug("Could not complete handshake with %r: %s", remote, repr(e))
-            self.connection_tracker.record_failure(remote, e)
+            await self.connection_tracker.record_failure(remote, e)
             raise
         except COMMON_PEER_CONNECTION_EXCEPTIONS as e:
             self.logger.debug("Could not complete handshake with %r: %s", remote, repr(e))

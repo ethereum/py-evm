@@ -1,12 +1,15 @@
+import asyncio
 from argparse import ArgumentParser, Namespace
 import logging
 import multiprocessing
 import os
+import signal
 from typing import (
     Any,
     Callable,
     Dict,
     Iterable,
+    Tuple,
     Type,
 )
 
@@ -43,6 +46,9 @@ from trinity.extensibility import (
     BaseManagerProcessScope,
     MainAndIsolatedProcessScope,
     PluginManager,
+)
+from trinity.events import (
+    ShutdownRequest,
 )
 from trinity._utils.ipc import (
     kill_process_gracefully,
@@ -95,7 +101,7 @@ BootFn = Callable[[
     logging.handlers.QueueListener,
     TrinityMainEventBusEndpoint,
     logging.Logger
-], None]
+], Tuple[multiprocessing.Process, ...]]
 
 
 def main_entry(trinity_boot: BootFn,
@@ -144,7 +150,6 @@ def main_entry(trinity_boot: BootFn,
     if args.log_levels:
         setup_log_levels(args.log_levels)
 
-    main_endpoint.track_and_propagate_available_endpoints()
     try:
         trinity_config = TrinityConfig.from_parser_args(args, app_identifier, sub_configs)
     except AmbigiousFileSystem:
@@ -195,27 +200,65 @@ def main_entry(trinity_boot: BootFn,
     # the entire process from here.
     if hasattr(args, 'func'):
         args.func(args, trinity_config)
-    else:
-        # We postpone EventBus connection until here because we don't want one in cases where
-        # a plugin just redefines the `trinity` command such as `trinity fix-unclean-shutdown`
-        main_connection_config = ConnectionConfig.from_name(
-            MAIN_EVENTBUS_ENDPOINT,
-            trinity_config.ipc_dir
-        )
-        main_endpoint.start_serving_nowait(main_connection_config)
+        return
 
-        # We listen on events such as `ShutdownRequested` which may or may not originate on
-        # the `main_endpoint` which is why we connect to our own endpoint here
-        main_endpoint.connect_to_endpoints_blocking(main_connection_config)
-        trinity_boot(
-            args,
+    processes = trinity_boot(
+        args,
+        trinity_config,
+        extra_kwargs,
+        plugin_manager,
+        listener,
+        main_endpoint,
+        stderr_logger,
+    )
+
+    def kill_trinity_with_reason(reason: str) -> None:
+        kill_trinity_gracefully(
             trinity_config,
-            extra_kwargs,
-            plugin_manager,
-            listener,
-            main_endpoint,
             stderr_logger,
+            processes,
+            plugin_manager,
+            main_endpoint,
+            reason=reason
         )
+
+    try:
+        loop = asyncio.get_event_loop()
+        asyncio.ensure_future(trinity_boot_coro(
+            kill_trinity_with_reason,
+            main_endpoint,
+            trinity_config,
+            plugin_manager,
+            args, extra_kwargs,
+        ))
+        loop.add_signal_handler(signal.SIGTERM, lambda: kill_trinity_with_reason("SIGTERM"))
+        loop.run_forever()
+        loop.close()
+    except KeyboardInterrupt:
+        kill_trinity_with_reason("CTRL+C / Keyboard Interrupt")
+
+
+async def trinity_boot_coro(kill_trinity, main_endpoint, trinity_config,  # type: ignore
+                            plugin_manager, args, extra_kwargs) -> None:
+    # We postpone EventBus connection until here because we don't want one in cases where
+    # a plugin just redefines the `trinity` command such as `trinity fix-unclean-shutdown`
+    main_connection_config = ConnectionConfig.from_name(
+        MAIN_EVENTBUS_ENDPOINT,
+        trinity_config.ipc_dir
+    )
+    await main_endpoint.start_serving(main_connection_config)
+    main_endpoint.track_and_propagate_available_endpoints()
+
+    # We listen on events such as `ShutdownRequested` which may or may not originate on
+    # the `main_endpoint` which is why we connect to our own endpoint here
+    await main_endpoint.connect_to_endpoints(main_connection_config)
+
+    main_endpoint.subscribe(
+        ShutdownRequest,
+        lambda ev: kill_trinity(ev.reason)
+    )
+
+    plugin_manager.prepare(args, trinity_config, extra_kwargs)
 
 
 def setup_plugins(scope: BaseManagerProcessScope, plugins: Iterable[BasePlugin]) -> PluginManager:

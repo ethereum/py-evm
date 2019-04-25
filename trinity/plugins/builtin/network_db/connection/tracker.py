@@ -56,7 +56,7 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
     #
     # Core API
     #
-    def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
+    async def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
         if self._record_exists(remote.uri()):
             self._update_record(remote, timeout_seconds, reason)
         else:
@@ -150,8 +150,8 @@ class ConnectionTrackerClient(BaseConnectionTracker):
         self.event_bus = event_bus
         self.config = config
 
-    def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
-        self.event_bus.broadcast(
+    async def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
+        await self.event_bus.broadcast(
             BlacklistEvent(remote, timeout_seconds, reason=reason),
             self.config,
         )

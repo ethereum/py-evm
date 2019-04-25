@@ -4,7 +4,8 @@ Trinity
 Unreleased (latest source)
 --------------------------
 
-- `#436 <https://github.com/ethereum/trinity/pull/436>`_: Feauture: connect to preferred nodes even when discovery is disabled
+- `#556 <https://github.com/ethereum/trinity/pull/556>`_: Performance: Upgrade to lahja 0.13.0 which performs less inter-process communication
+- `#436 <https://github.com/ethereum/trinity/pull/436>`_: Feature: connect to preferred nodes even when discovery is disabled
 - `#400 <https://github.com/ethereum/trinity/pull/400>`_: Bugfix: Respect configuration of individual logger (e.g -l p2p.discovery=ERROR)
 - `#386 <https://github.com/ethereum/trinity/pull/386>`_: Slightly reduce eventbus traffic that the peer pool causes
 - `#336 <https://github.com/ethereum/trinity/pull/336>`_: Bugfix: Ensure Trinity shuts down if the process pool dies (fatal error)

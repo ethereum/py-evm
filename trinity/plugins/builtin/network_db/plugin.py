@@ -150,12 +150,6 @@ class NetworkDBPlugin(BaseIsolatedPlugin):
             self.logger.warning("Blacklist Database disabled via CLI flag")
             return
         else:
-            loop = asyncio.get_event_loop()
-
             service = self._get_blacklist_service()
-
             asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, service))
             asyncio.ensure_future(service.run())
-
-            loop.run_forever()
-            loop.close()

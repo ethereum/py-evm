@@ -34,7 +34,7 @@ class ConnectionTrackerServer(BaseService):
         async for req in self.wait_iter(self.event_bus.stream(ShouldConnectToPeerRequest)):
             self.logger.debug2('Received should connect to request: %s', req.remote)
             should_connect = await self.tracker.should_connect_to(req.remote)
-            self.event_bus.broadcast(
+            await self.event_bus.broadcast(
                 ShouldConnectToPeerResponse(should_connect),
                 req.broadcast_config()
             )
@@ -47,7 +47,11 @@ class ConnectionTrackerServer(BaseService):
                 humanize_seconds(command.timeout_seconds),
                 command.reason,
             )
-            self.tracker.record_blacklist(command.remote, command.timeout_seconds, command.reason)
+            await self.tracker.record_blacklist(
+                command.remote,
+                command.timeout_seconds,
+                command.reason
+            )
 
     async def _run(self) -> None:
         self.logger.debug("Running ConnectionTrackerServer")

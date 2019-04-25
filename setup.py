@@ -27,7 +27,7 @@ deps = {
         "plyvel==1.0.5",
         "py-evm==0.2.0a42",
         "web3==4.4.1",
-        "lahja==0.11.2",
+        "lahja==0.12.0",
         "termcolor>=1.1.0,<2.0.0",
         "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",  # noqa: E501
         "websockets==5.0.1",

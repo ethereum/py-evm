@@ -215,7 +215,7 @@ class BasePlugin(ABC):
 
         self._status = PluginStatus.STARTED
         self.do_start()
-        self.event_bus.broadcast(
+        self.event_bus.broadcast_nowait(
             PluginStartedEvent(type(self))
         )
         self.logger.info("Plugin started: %s", self.name)
@@ -273,6 +273,13 @@ class BaseIsolatedPlugin(BasePlugin):
     """
 
     _process: Process = None
+    _event_bus: TrinityEventBusEndpoint = None
+
+    @property
+    def event_bus(self) -> TrinityEventBusEndpoint:
+        if self._event_bus is None:
+            self._event_bus = TrinityEventBusEndpoint()
+        return self._event_bus
 
     @property
     def process(self) -> Process:
@@ -287,29 +294,37 @@ class BaseIsolatedPlugin(BasePlugin):
         """
         self._status = PluginStatus.STARTED
         self._process = ctx.Process(
-            target=self._prepare_start,
+            target=self._spawn_start,
         )
 
         self._process.start()
         self.logger.info("Plugin started: %s (pid=%d)", self.name, self._process.pid)
 
-    def _prepare_start(self) -> None:
+    def _spawn_start(self) -> None:
         log_queue = self.context.boot_kwargs['log_queue']
         level = self.context.boot_kwargs.get('log_level', logging.INFO)
         setup_queue_logging(log_queue, level)
         if self.context.args.log_levels:
             setup_log_levels(self.context.args.log_levels)
+
+        with self.context.trinity_config.process_id_file(self.normalized_name):
+            loop = asyncio.get_event_loop()
+            asyncio.ensure_future(self._prepare_start())
+            loop.run_forever()
+            loop.close()
+
+    async def _prepare_start(self) -> None:
         connection_config = ConnectionConfig.from_name(
             self.normalized_name, self.context.trinity_config.ipc_dir
         )
-        self.event_bus.start_serving_nowait(connection_config)
-        self.event_bus.connect_to_endpoints_blocking(
+        await self.event_bus.start_serving(connection_config)
+        await self.event_bus.connect_to_endpoints(
             ConnectionConfig.from_name(MAIN_EVENTBUS_ENDPOINT, self.context.trinity_config.ipc_dir)
         )
         # This makes the `main` process aware of this Endpoint which will then propagate the info
         # so that every other Endpoint can connect directly to the plugin Endpoint
-        self.event_bus.announce_endpoint()
-        self.event_bus.broadcast(
+        await self.event_bus.announce_endpoint()
+        await self.event_bus.broadcast(
             PluginStartedEvent(type(self))
         )
 
@@ -317,8 +332,7 @@ class BaseIsolatedPlugin(BasePlugin):
         # and we connect to every Endpoint directly
         self.event_bus.auto_connect_new_announced_endpoints()
 
-        with self.context.trinity_config.process_id_file(self.normalized_name):
-            self.do_start()
+        self.do_start()
 
     def stop(self) -> None:
         """

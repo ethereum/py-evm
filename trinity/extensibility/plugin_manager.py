@@ -99,7 +99,7 @@ class MainAndIsolatedProcessScope(BaseManagerProcessScope):
             # created here for API symmetry. Endpoints are pickleable *before* they are connected,
             # which means, this Endpoint will be pickled and transferred into the new process
             # together with the rest of the `PluginContext`.
-            plugin.set_context(PluginContext(TrinityEventBusEndpoint(), boot_info,))
+            plugin.set_context(PluginContext(None, boot_info,))
 
 
 class SharedProcessScope(BaseManagerProcessScope):

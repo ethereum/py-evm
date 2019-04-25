@@ -41,7 +41,7 @@ class EVM(Eth1ChainRPCModule):
         """
         chain = new_chain_from_fixture(chain_info, type(self.chain))
 
-        self.event_bus.broadcast(
+        await self.event_bus.broadcast(
             ChainReplacementEvent(chain),
             BroadcastConfig(internal=True)
         )

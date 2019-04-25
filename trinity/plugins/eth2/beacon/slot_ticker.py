@@ -69,7 +69,7 @@ class SlotTicker(BaseService):
                         bold_green(f"New slot: {slot}\tElapsed time: {elapsed_time}")
                     )
                     self.latest_slot = slot
-                    self.event_bus.broadcast(
+                    await self.event_bus.broadcast(
                         NewSlotEvent(
                             slot=slot,
                             elapsed_time=elapsed_time,

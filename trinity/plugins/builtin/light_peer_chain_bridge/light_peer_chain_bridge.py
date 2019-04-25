@@ -167,7 +167,7 @@ class LightPeerChainEventBusHandler(BaseService):
                 self.chain.coro_get_block_header_by_hash(event.block_hash)
             )
 
-            self.event_bus.broadcast(
+            await self.event_bus.broadcast(
                 event.expected_response_type()(val, error),
                 event.broadcast_config()
             )
@@ -179,7 +179,7 @@ class LightPeerChainEventBusHandler(BaseService):
                 self.chain.coro_get_block_body_by_hash(event.block_hash)
             )
 
-            self.event_bus.broadcast(
+            await self.event_bus.broadcast(
                 event.expected_response_type()(val, error),
                 event.broadcast_config()
             )
@@ -189,7 +189,7 @@ class LightPeerChainEventBusHandler(BaseService):
 
             val, error = await await_and_wrap_errors(self.chain.coro_get_receipts(event.block_hash))
 
-            self.event_bus.broadcast(
+            await self.event_bus.broadcast(
                 event.expected_response_type()(val, error),
                 event.broadcast_config()
             )
@@ -201,7 +201,7 @@ class LightPeerChainEventBusHandler(BaseService):
                 self.chain.coro_get_account(event.block_hash, event.address)
             )
 
-            self.event_bus.broadcast(
+            await self.event_bus.broadcast(
                 event.expected_response_type()(val, error),
                 event.broadcast_config()
             )
@@ -214,7 +214,7 @@ class LightPeerChainEventBusHandler(BaseService):
                 self.chain.coro_get_contract_code(event.block_hash, event.address)
             )
 
-            self.event_bus.broadcast(
+            await self.event_bus.broadcast(
                 event.expected_response_type()(val, error),
                 event.broadcast_config()
             )

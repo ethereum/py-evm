@@ -54,9 +54,6 @@ class PeerCountReporterPlugin(BaseIsolatedPlugin):
             self.start()
 
     def do_start(self) -> None:
-        loop = asyncio.get_event_loop()
         service = PeerCountReporter(self.event_bus)
         asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, service))
         asyncio.ensure_future(service.run())
-        loop.run_forever()
-        loop.close()

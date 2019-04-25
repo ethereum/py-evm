@@ -15,7 +15,7 @@ class Admin(BaseRPCModule):
     async def addPeer(self, uri: str) -> None:
         validate_enode_uri(uri, require_ip=True)
 
-        self.event_bus.broadcast(
+        await self.event_bus.broadcast(
             ConnectToNodeCommand(Node.from_uri(uri)),
             TO_NETWORKING_BROADCAST_CONFIG
         )

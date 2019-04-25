@@ -152,7 +152,7 @@ def uint256_to_bytes(uint):
 def mock_network_id(network_id):
     async def mock_event_bus_interaction(bus):
         async for req in bus.stream(NetworkIdRequest):
-            bus.broadcast(NetworkIdResponse(network_id), req.broadcast_config())
+            await bus.broadcast(NetworkIdResponse(network_id), req.broadcast_config())
             break
 
     return mock_event_bus_interaction
@@ -439,7 +439,7 @@ async def test_eth_call_with_contract_on_ipc(
 def mock_peer_count(count):
     async def mock_event_bus_interaction(bus):
         async for req in bus.stream(PeerCountRequest):
-            bus.broadcast(PeerCountResponse(count), req.broadcast_config())
+            await bus.broadcast(PeerCountResponse(count), req.broadcast_config())
             break
 
     return mock_event_bus_interaction
@@ -486,7 +486,7 @@ async def test_peer_pool_over_ipc(
 def mock_syncing(is_syncing, progress=None):
     async def mock_event_bus_interaction(bus):
         async for req in bus.stream(SyncingRequest):
-            bus.broadcast(SyncingResponse(is_syncing, progress), req.broadcast_config())
+            await bus.broadcast(SyncingResponse(is_syncing, progress), req.broadcast_config())
             break
 
     return mock_event_bus_interaction
