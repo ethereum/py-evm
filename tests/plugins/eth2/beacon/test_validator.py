@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 import logging
 import time
 from typing import (
@@ -44,9 +45,8 @@ from trinity.plugins.eth2.beacon.slot_ticker import (
     NewSlotEvent,
 )
 
-from .helpers import (
-    get_chain_db,
-)
+
+helpers = importlib.import_module('tests.core.p2p-proto.bcc.helpers')
 
 
 NUM_VALIDATORS = 8
@@ -111,7 +111,7 @@ def get_chain(db):
 
 
 async def get_validator(event_loop, event_bus, index) -> Validator:
-    chain_db = await get_chain_db()
+    chain_db = await helpers.get_chain_db()
     chain = get_chain(chain_db.db)
     peer_pool = FakePeerPool()
     v = Validator(
