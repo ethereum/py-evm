@@ -333,7 +333,7 @@ class RoutingTable:
         # nodes and sort it by distance_to.
         for bucket in self.buckets_by_distance_to(node_id):
             for n in bucket.nodes_by_distance_to(node_id):
-                if n is not node_id:
+                if n.id is not node_id:
                     nodes.append(n)
                     if len(nodes) == k * 2:
                         break

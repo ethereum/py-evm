@@ -27,7 +27,7 @@ class Percentile:
             raise ValueError("No data for percentile calculation")
 
         idx = (len(self.window) - 1) * self.percentile
-        if int(idx) == idx:
+        if idx.is_integer():
             return self.window[int(idx)]
 
         left = int(math.floor(idx))
