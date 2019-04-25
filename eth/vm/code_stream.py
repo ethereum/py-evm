@@ -93,9 +93,9 @@ class CodeStream(object):
     def is_valid_opcode(self, position: int) -> bool:
         if position >= self._length_cache:
             return False
-        if position in self.invalid_positions:
+        elif position in self.invalid_positions:
             return False
-        if position in self.valid_positions:
+        elif position in self.valid_positions:
             return True
         else:
             # An opcode is not valid, iff it is the "data" following a PUSH_

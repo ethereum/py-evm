@@ -1,13 +1,18 @@
+import itertools
+
 import pytest
 
-from eth_utils import (
-    ValidationError,
+from hypothesis import (
+    given,
+    strategies as st,
 )
 
+from eth_utils import ValidationError
+
+from eth_utils.toolz import take
+
 from eth.vm import opcode_values
-from eth.vm.code_stream import (
-    CodeStream,
-)
+from eth.vm.code_stream import CodeStream
 
 
 def test_code_stream_accepts_bytes():
@@ -137,3 +142,46 @@ def test_right_number_of_bytes_invalidated_after_pushxx():
     assert code_stream.is_valid_opcode(3) is False
     assert code_stream.is_valid_opcode(4) is True
     assert code_stream.is_valid_opcode(5) is False
+
+
+ALL_SINGLE_BYTES = tuple(sorted(set(range(0, 256))))
+PUSH_CODES = set(bytearray(range(96, 128)))
+NON_PUSH_CODES = set(ALL_SINGLE_BYTES).difference(PUSH_CODES)
+
+
+def _mk_bytecode(opcodes, data):
+    index_tracker = itertools.count(0)
+    for opcode in opcodes:
+        opcode_as_byte = bytes(bytearray((opcode,)))
+        if opcode in NON_PUSH_CODES:
+            yield next(index_tracker), opcode_as_byte
+        else:
+            data_size = opcode - 95
+            push_data = data.draw(st.binary(min_size=data_size, max_size=data_size))
+            yield next(index_tracker), opcode_as_byte + push_data
+            tuple(take(data_size, index_tracker))
+
+
+@given(
+    opcodes=st.lists(st.sampled_from(ALL_SINGLE_BYTES), min_size=0, max_size=2048),
+    data=st.data(),
+)
+def test_fuzzy_is_valid_opcode(opcodes, data):
+    if opcodes:
+        opcodes_and_valid_indices = tuple(_mk_bytecode(opcodes, data))
+        indices, bytecode_sections = zip(*opcodes_and_valid_indices)
+        bytecode = b''.join(bytecode_sections)
+    else:
+        indices = set()
+        bytecode = b''
+
+    valid_indices = set(indices)
+
+    stream = CodeStream(bytecode)
+
+    index_st = st.integers(min_value=0, max_value=len(bytecode) + 10)
+    to_check = data.draw(st.lists(index_st, max_size=len(bytecode)))
+    for index in to_check:
+        is_valid = stream.is_valid_opcode(index)
+        expected = index in valid_indices
+        assert is_valid is expected
