@@ -168,8 +168,8 @@ class BaseReceiveServer(BaseRequestServer):
 
 class BCCReceiveServer(BaseReceiveServer):
     subscription_msg_types: FrozenSet[Type[Command]] = frozenset({
-        NewBeaconBlock,
         BeaconBlocks,
+        NewBeaconBlock,
     })
 
     requested_ids: MutableSet[int]
@@ -253,7 +253,7 @@ class BCCReceiveServer(BaseReceiveServer):
                 self.orphan_block_pool = list(
                     set(self.orphan_block_pool).difference(matched_orphan_blocks)
                 )
-        # add the blocks-failed-to-import back
+        # add the failed-to-be-imported blocks back
         self.orphan_block_pool.extend(blocks_failed_to_be_imported)
 
     def _request_block_by_root(self, block_root: Hash32) -> None:

@@ -44,6 +44,8 @@ from p2p.p2p_proto import (
 from p2p.peer import BasePeer, PeerConnection
 from p2p.service import BaseService
 
+from eth2.beacon.chains.base import BeaconChain
+
 from trinity.chains.base import BaseAsyncChain
 from trinity.constants import DEFAULT_PREFERRED_NODES
 from trinity.db.base import BaseAsyncDB
@@ -64,7 +66,10 @@ from trinity.protocol.les.peer import LESPeerPool
 from trinity.protocol.les.servers import LightRequestServer
 from trinity.protocol.bcc.context import BeaconContext
 from trinity.protocol.bcc.peer import BCCPeerPool
-from trinity.protocol.bcc.servers import BCCRequestServer
+from trinity.protocol.bcc.servers import (
+    BCCRequestServer,
+    BCCReceiveServer,
+)
 
 DIAL_IN_OUT_RATIO = 0.75
 
@@ -335,6 +340,66 @@ class LightServer(BaseServer[LESPeerPool]):
 
 
 class BCCServer(BaseServer[BCCPeerPool]):
+
+    def __init__(self,
+                 privkey: datatypes.PrivateKey,
+                 port: int,
+                 chain: BaseAsyncChain,
+                 chaindb: BaseAsyncChainDB,
+                 headerdb: BaseAsyncHeaderDB,
+                 base_db: BaseAsyncDB,
+                 network_id: int,
+                 peer_info: BasePeerInfo = None,
+                 max_peers: int = DEFAULT_MAX_PEERS,
+                 bootstrap_nodes: Tuple[Node, ...] = None,
+                 preferred_nodes: Sequence[Node] = None,
+                 event_bus: TrinityEventBusEndpoint = None,
+                 token: CancelToken = None,
+                 ) -> None:
+        super().__init__(
+            privkey,
+            port,
+            chain,
+            chaindb,
+            headerdb,
+            base_db,
+            network_id,
+            peer_info,
+            max_peers,
+            bootstrap_nodes,
+            preferred_nodes,
+            event_bus,
+            token,
+        )
+        self.receive_server = self._make_receive_server()
+
+    async def _run(self) -> None:
+        self.logger.info("Running server...")
+        mapped_external_ip = await self.upnp_service.add_nat_portmap()
+        if mapped_external_ip is None:
+            external_ip = '0.0.0.0'
+        else:
+            external_ip = mapped_external_ip
+        await self._start_tcp_listener()
+        self.logger.info(
+            "enode://%s@%s:%s",
+            self.privkey.public_key.to_hex()[2:],
+            external_ip,
+            self.port,
+        )
+        self.logger.info('network: %s', self.network_id)
+        self.logger.info('peers: max_peers=%s', self.max_peers)
+
+        self.run_daemon(self.peer_pool)
+        self.run_daemon(self._peer_pool_request_handler)
+        self.run_daemon(self.request_server)
+        self.run_daemon(self.receive_server)
+
+        # UPNP service is still experimental and not essential, so we don't use run_daemon() for
+        # it as that means if it crashes we'd be terminated as well.
+        self.run_child_service(self.upnp_service)
+        await self.cancel_token.wait()
+
     def _make_peer_pool(self) -> BCCPeerPool:
         context = BeaconContext(
             chain_db=cast(BaseAsyncBeaconChainDB, self.chaindb),
@@ -352,6 +417,13 @@ class BCCServer(BaseServer[BCCPeerPool]):
     def _make_request_server(self) -> BCCRequestServer:
         return BCCRequestServer(
             db=cast(BaseAsyncBeaconChainDB, self.chaindb),
+            peer_pool=self.peer_pool,
+            token=self.cancel_token,
+        )
+
+    def _make_receive_server(self) -> BCCReceiveServer:
+        return BCCReceiveServer(
+            chain=cast(BeaconChain, self.chain),
             peer_pool=self.peer_pool,
             token=self.cancel_token,
         )
