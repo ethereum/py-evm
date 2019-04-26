@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import asyncio
 import concurrent
+import datetime
 import functools
 import logging
 from typing import (
@@ -73,6 +74,10 @@ class BaseService(ABC, CancellableMixin):
             )
         return self._logger
 
+    @property
+    def uptime(self) -> datetime.timedelta:
+        return datetime.datetime.utcnow() - self.start_time
+
     def get_event_loop(self) -> asyncio.AbstractEventLoop:
         if self._loop is None:
             return asyncio.get_event_loop()
@@ -98,6 +103,7 @@ class BaseService(ABC, CancellableMixin):
         try:
             async with self._run_lock:
                 self.events.started.set()
+                self.start_time = datetime.datetime.utcnow()
                 await self._run()
         except OperationCancelled as e:
             self.logger.debug("%s finished: %s", self, e)

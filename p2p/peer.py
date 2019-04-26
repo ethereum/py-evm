@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 import asyncio
 import collections
 import contextlib
-import datetime
 import functools
 import logging
 import operator
@@ -44,7 +43,6 @@ from p2p._utils import (
     get_devp2p_cmd_id,
     roundup_16,
     sxor,
-    time_since,
 )
 from p2p.protocol import (
     Command,
@@ -235,11 +233,6 @@ class BasePeer(BaseService):
         self.inbound = inbound
         self._subscribers: List[PeerSubscriber] = []
 
-        # Uptime tracker for how long the peer has been running.
-        # TODO: this should move to begin within the `_run` method (or maybe as
-        # part of the `BaseService` API)
-        self.start_time = datetime.datetime.now()
-
         # A counter of the number of messages this peer has received for each
         # message type.
         self.received_msgs: Dict[Command, int] = collections.defaultdict(int)
@@ -311,10 +304,6 @@ class BasePeer(BaseService):
     @property
     def received_msgs_count(self) -> int:
         return sum(self.received_msgs.values())
-
-    @property
-    def uptime(self) -> str:
-        return '%d:%02d:%02d:%02d' % time_since(self.start_time)
 
     def add_subscriber(self, subscriber: 'PeerSubscriber') -> None:
         self._subscribers.append(subscriber)
