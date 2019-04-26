@@ -4,7 +4,6 @@ import collections
 import contextlib
 import functools
 import logging
-import struct
 from typing import (
     Any,
     cast,
@@ -20,39 +19,19 @@ from typing import (
 
 from lahja import Endpoint
 
-import sha3
+from cached_property import cached_property
 
 import rlp
-
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.constant_time import bytes_eq
 
 from eth_utils import (
     to_tuple,
 )
 
-
 from eth_keys import datatypes
 
 from cancel_token import CancelToken
 
-from p2p import auth
-from p2p._utils import (
-    get_devp2p_cmd_id,
-    roundup_16,
-    sxor,
-)
-from p2p.protocol import (
-    match_protocols_with_capabilities,
-    Command,
-    PayloadType,
-    Protocol,
-    CapabilitiesType,
-)
-from p2p.kademlia import (
-    Node,
-)
+from p2p._utils import get_devp2p_cmd_id
 from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
@@ -62,8 +41,9 @@ from p2p.exceptions import (
     TooManyPeersFailure,
     UnexpectedMessage,
     UnknownProtocolCommand,
-    UnreachablePeer,
 )
+from p2p.kademlia import Node
+from p2p.service import BaseService
 from p2p.p2p_proto import (
     Disconnect,
     DisconnectReason,
@@ -72,16 +52,20 @@ from p2p.p2p_proto import (
     Ping,
     Pong,
 )
-from p2p.service import BaseService
+from p2p.protocol import (
+    match_protocols_with_capabilities,
+    Command,
+    PayloadType,
+    Protocol,
+    CapabilitiesType,
+)
+from p2p.transport import Transport
 from p2p.tracking.connection import (
     BaseConnectionTracker,
     NoopConnectionTracker,
 )
 
 from .constants import (
-    CONN_IDLE_TIMEOUT,
-    HEADER_LEN,
-    MAC_LEN,
     BLACKLIST_SECONDS_BAD_PROTOCOL,
     SNAPPY_PROTOCOL_VERSION,
 )
@@ -103,29 +87,13 @@ async def handshake(remote: Node, factory: 'BasePeerFactory') -> 'BasePeer':
     handshake or if none of the sub-protocols supported by us is also
     supported by the remote.
     """
-    try:
-        (aes_secret,
-         mac_secret,
-         egress_mac,
-         ingress_mac,
-         reader,
-         writer
-         ) = await auth.handshake(remote, factory.privkey, factory.cancel_token)
-    except (ConnectionRefusedError, OSError) as e:
-        raise UnreachablePeer(f"Can't reach {remote!r}") from e
-    connection = PeerConnection(
-        reader=reader,
-        writer=writer,
-        aes_secret=aes_secret,
-        mac_secret=mac_secret,
-        egress_mac=egress_mac,
-        ingress_mac=ingress_mac,
+    transport = await Transport.open_connection(
+        remote,
+        factory.privkey,
+        factory.cancel_token,
     )
-    peer = factory.create_peer(
-        remote=remote,
-        connection=connection,
-        inbound=False,
-    )
+
+    peer = factory.create_peer(transport, inbound=False)
 
     try:
         await peer.do_p2p_handshake()
@@ -135,22 +103,11 @@ async def handshake(remote: Node, factory: 'BasePeerFactory') -> 'BasePeer':
         # reader/writer connection pair in the event of an error during the
         # peer connection and handshake process.
         # See `p2p.auth.handshake` for the other.
-        if not reader.at_eof():
-            reader.feed_eof()
-        writer.close()
+        transport.close()
         await asyncio.sleep(0)
         raise
 
     return peer
-
-
-class PeerConnection(NamedTuple):
-    reader: asyncio.StreamReader
-    writer: asyncio.StreamWriter
-    aes_secret: bytes
-    mac_secret: bytes
-    egress_mac: sha3.keccak_256
-    ingress_mac: sha3.keccak_256
 
 
 class BasePeerBootManager(BaseService):
@@ -170,19 +127,7 @@ class BasePeerContext:
     pass
 
 
-class BaseDTOPeer:
-    """
-    A peer solely meant as a Data Transfer Object (DTO) to travel across process boundaries.
-    It's a shallow, pickleable representation of a peer that carries enough information to
-    make the peer identifiable within the actual pool of real peers.
-    """
-
-    def __init__(self, uri: str):
-        self.uri = uri
-
-
 class BasePeer(BaseService):
-    conn_idle_timeout = CONN_IDLE_TIMEOUT
     # Must be defined in subclasses. All items here must be Protocol classes representing
     # different versions of the same P2P sub-protocol (e.g. ETH, LES, etc).
     supported_sub_protocols: Tuple[Type[Protocol], ...] = ()
@@ -195,9 +140,7 @@ class BasePeer(BaseService):
     _event_bus: Endpoint = None
 
     def __init__(self,
-                 remote: Node,
-                 privkey: datatypes.PrivateKey,
-                 connection: PeerConnection,
+                 transport: Transport,
                  context: BasePeerContext,
                  inbound: bool = False,
                  event_bus: Endpoint = None,
@@ -205,24 +148,23 @@ class BasePeer(BaseService):
                  ) -> None:
         super().__init__(token)
 
+        # Transport instance for network communications
+        self.transport = transport
+
         # Any contextual information the peer may need.
         self.context = context
-
-        # The `Node` that this peer is connected to
-        self.remote = remote
-
-        # The private key this peer uses for identification and encryption.
-        self.privkey = privkey
 
         # The self-identifying string that the remote names itself.
         self.client_version_string = ''
 
-        # Networking reader and writer objects for communication
-        self.reader = connection.reader
-        self.writer = connection.writer
         # Initially while doing the handshake, the base protocol shouldn't support
         # snappy compression
-        self.base_protocol = P2PProtocol(self, snappy_support=False)
+        self.base_protocol = P2PProtocol(
+            transport=self.transport,
+            snappy_support=False,
+            capabilities=self.capabilities,
+            listen_port=self.listen_port,
+        )
 
         # Optional event bus handle
         self._event_bus = event_bus
@@ -237,19 +179,6 @@ class BasePeer(BaseService):
         # A counter of the number of messages this peer has received for each
         # message type.
         self.received_msgs: Dict[Command, int] = collections.defaultdict(int)
-
-        # Encryption and Cryptography *stuff*
-        self.egress_mac = connection.egress_mac
-        self.ingress_mac = connection.ingress_mac
-        # FIXME: Insecure Encryption: https://github.com/ethereum/devp2p/issues/32
-        iv = b"\x00" * 16
-        aes_secret = connection.aes_secret
-        mac_secret = connection.mac_secret
-        aes_cipher = Cipher(algorithms.AES(aes_secret), modes.CTR(iv), default_backend())
-        self.aes_enc = aes_cipher.encryptor()
-        self.aes_dec = aes_cipher.decryptor()
-        mac_cipher = Cipher(algorithms.AES(mac_secret), modes.ECB(), default_backend())
-        self.mac_enc = mac_cipher.encryptor().update
 
         # Manages the boot process
         self.boot_manager = self.get_boot_manager()
@@ -270,6 +199,26 @@ class BasePeer(BaseService):
         which will be used to track peer connection failures.
         """
         return NoopConnectionTracker()
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__} {self.remote}"
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__} {self.remote!r}"
+
+    def __hash__(self) -> int:
+        return hash(self.remote)
+
+    #
+    # Proxy Transport attributes
+    #
+    @cached_property
+    def remote(self) -> Node:
+        return self.transport.remote
+
+    @property
+    def is_closing(self) -> bool:
+        return self.transport.is_closing
 
     def get_extra_stats(self) -> List[str]:
         return []
@@ -375,30 +324,8 @@ class BasePeer(BaseService):
         else:
             raise UnknownProtocolCommand(f"No protocol found for cmd_id {cmd_id}")
 
-    async def read(self, n: int) -> bytes:
-        self.logger.debug2("Waiting for %s bytes from %s", n, self.remote)
-        try:
-            return await self.wait(self.reader.readexactly(n), timeout=self.conn_idle_timeout)
-        except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as e:
-            raise PeerConnectionLost(repr(e))
-
-    def close(self) -> None:
-        """Close this peer's reader/writer streams.
-
-        This will cause the peer to stop in case it is running.
-
-        If the streams have already been closed, do nothing.
-        """
-        if not self.reader.at_eof():
-            self.reader.feed_eof()
-        self.writer.close()
-
-    @property
-    def is_closing(self) -> bool:
-        return self.writer.transport.is_closing()
-
     async def _cleanup(self) -> None:
-        self.close()
+        self.transport.close()
 
     async def _run(self) -> None:
         # The `boot` process is run in the background to allow the `run` loop
@@ -430,28 +357,8 @@ class BasePeer(BaseService):
                 return
 
     async def read_msg(self) -> Tuple[Command, PayloadType]:
-        header_data = await self.read(HEADER_LEN + MAC_LEN)
-        try:
-            header = self.decrypt_header(header_data)
-        except DecryptionError as err:
-            self.logger.debug(
-                "Bad message header from peer %s: Error: %r",
-                self, err,
-            )
-            raise MalformedMessage from err
-        frame_size = self.get_frame_size(header)
-        # The frame_size specified in the header does not include the padding to 16-byte boundary,
-        # so need to do this here to ensure we read all the frame's data.
-        read_size = roundup_16(frame_size)
-        frame_data = await self.read(read_size + MAC_LEN)
-        try:
-            msg = self.decrypt_body(frame_data, frame_size)
-        except DecryptionError as err:
-            self.logger.debug(
-                "Bad message body from peer %s: Error: %r",
-                self, err,
-            )
-            raise MalformedMessage from err
+        # TODO: Transport class needs a cancel token for proper cancellation
+        msg = await self.transport.recv(self.cancel_token)
         cmd = self.get_protocol_command_for(msg)
         # NOTE: This used to be a bottleneck but it doesn't seem to be so anymore. If we notice
         # too much time is being spent on this again, we need to consider running this in a
@@ -532,7 +439,12 @@ class BasePeer(BaseService):
             # Now update the base protocol to support snappy compression
             # This is needed so that Trinity is compatible with parity since
             # parity sends Ping immediately after Handshake
-            self.base_protocol = P2PProtocol(self, snappy_support=snappy_support)
+                self.base_protocol = P2PProtocol(
+                    self.transport,
+                    snappy_support=snappy_support,
+                    capabilities=self.capabilities,
+                    listen_port=self.listen_port,
+                )
 
         remote_capabilities = msg['capabilities']
         matched_proto_classes = match_protocols_with_capabilities(
@@ -541,7 +453,7 @@ class BasePeer(BaseService):
         )
         if len(matched_proto_classes) == 1:
             self.sub_proto = matched_proto_classes[0](
-                self,
+                self.transport,
                 self.base_protocol.cmd_length,
                 snappy_support,
             )
@@ -562,79 +474,6 @@ class BasePeer(BaseService):
             "Finished P2P handshake with %s, using sub-protocol %s",
             self.remote, self.sub_proto)
 
-    def encrypt(self, header: bytes, frame: bytes) -> bytes:
-        if len(header) != HEADER_LEN:
-            raise ValueError(f"Unexpected header length: {len(header)}")
-
-        header_ciphertext = self.aes_enc.update(header)
-        mac_secret = self.egress_mac.digest()[:HEADER_LEN]
-        self.egress_mac.update(sxor(self.mac_enc(mac_secret), header_ciphertext))
-        header_mac = self.egress_mac.digest()[:HEADER_LEN]
-
-        frame_ciphertext = self.aes_enc.update(frame)
-        self.egress_mac.update(frame_ciphertext)
-        fmac_seed = self.egress_mac.digest()[:HEADER_LEN]
-
-        mac_secret = self.egress_mac.digest()[:HEADER_LEN]
-        self.egress_mac.update(sxor(self.mac_enc(mac_secret), fmac_seed))
-        frame_mac = self.egress_mac.digest()[:HEADER_LEN]
-
-        return header_ciphertext + header_mac + frame_ciphertext + frame_mac
-
-    def decrypt_header(self, data: bytes) -> bytes:
-        if len(data) != HEADER_LEN + MAC_LEN:
-            raise ValueError(
-                f"Unexpected header length: {len(data)}, expected {HEADER_LEN} + {MAC_LEN}"
-            )
-
-        header_ciphertext = data[:HEADER_LEN]
-        header_mac = data[HEADER_LEN:]
-        mac_secret = self.ingress_mac.digest()[:HEADER_LEN]
-        aes = self.mac_enc(mac_secret)[:HEADER_LEN]
-        self.ingress_mac.update(sxor(aes, header_ciphertext))
-        expected_header_mac = self.ingress_mac.digest()[:HEADER_LEN]
-        if not bytes_eq(expected_header_mac, header_mac):
-            raise DecryptionError(
-                f'Invalid header mac: expected {expected_header_mac}, got {header_mac}'
-            )
-        return self.aes_dec.update(header_ciphertext)
-
-    def decrypt_body(self, data: bytes, body_size: int) -> bytes:
-        read_size = roundup_16(body_size)
-        if len(data) < read_size + MAC_LEN:
-            raise ValueError(
-                f'Insufficient body length; Got {len(data)}, wanted {read_size} + {MAC_LEN}'
-            )
-
-        frame_ciphertext = data[:read_size]
-        frame_mac = data[read_size:read_size + MAC_LEN]
-
-        self.ingress_mac.update(frame_ciphertext)
-        fmac_seed = self.ingress_mac.digest()[:MAC_LEN]
-        self.ingress_mac.update(sxor(self.mac_enc(fmac_seed), fmac_seed))
-        expected_frame_mac = self.ingress_mac.digest()[:MAC_LEN]
-        if not bytes_eq(expected_frame_mac, frame_mac):
-            raise DecryptionError(
-                f'Invalid frame mac: expected {expected_frame_mac}, got {frame_mac}'
-            )
-        return self.aes_dec.update(frame_ciphertext)[:body_size]
-
-    def get_frame_size(self, header: bytes) -> int:
-        # The frame size is encoded in the header as a 3-byte int, so before we unpack we need
-        # to prefix it with an extra byte.
-        encoded_size = b'\x00' + header[:3]
-        (size,) = struct.unpack(b'>I', encoded_size)
-        return size
-
-    def send(self, header: bytes, body: bytes) -> None:
-        cmd_id = rlp.decode(body[:1], sedes=rlp.sedes.big_endian_int)
-        self.logger.debug2("Sending msg with cmd id %d to %s", cmd_id, self)
-        if self.is_closing:
-            self.logger.error(
-                "Attempted to send msg with cmd id %d to disconnected peer %s", cmd_id, self)
-            return
-        self.writer.write(self.encrypt(header, body))
-
     def _disconnect(self, reason: DisconnectReason) -> None:
         if not isinstance(reason, DisconnectReason):
             raise ValueError(
@@ -651,7 +490,7 @@ class BasePeer(BaseService):
         self.logger.debug("Disconnecting from remote peer %s; reason: %s", self.remote, reason.name)
         self.base_protocol.send_disconnect(reason.value)
         self.disconnect_reason = reason
-        self.close()
+        self.transport.close()
 
     async def disconnect(self, reason: DisconnectReason) -> None:
         """Send a disconnect msg to the remote node and stop this Peer.
@@ -671,15 +510,6 @@ class BasePeer(BaseService):
         self._disconnect(reason)
         if self.is_operational:
             self.cancel_nowait()
-
-    def __str__(self) -> str:
-        return f"{self.__class__.__name__} {self.remote}"
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__} {self.remote!r}"
-
-    def __hash__(self) -> int:
-        return hash(self.remote)
 
 
 class PeerMessage(NamedTuple):
@@ -857,13 +687,10 @@ class BasePeerFactory(ABC):
         self.event_bus = event_bus
 
     def create_peer(self,
-                    remote: Node,
-                    connection: PeerConnection,
+                    transport: Transport,
                     inbound: bool = False) -> BasePeer:
         return self.peer_class(
-            remote=remote,
-            privkey=self.privkey,
-            connection=connection,
+            transport=transport,
             context=self.context,
             inbound=inbound,
             event_bus=self.event_bus,

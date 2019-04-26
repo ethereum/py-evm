@@ -48,6 +48,8 @@ class ChainInfo(NamedTuple):
     total_difficulty: int
     genesis_hash: Hash32
 
+    network_id: int
+
 
 class BaseChainPeer(BasePeer):
     boot_manager_class = DAOCheckBootManager
@@ -100,6 +102,7 @@ class BaseChainPeer(BasePeer):
             block_hash=head.hash,
             total_difficulty=total_difficulty,
             genesis_hash=genesis_hash,
+            network_id=self.local_network_id,
         )
 
     def setup_connection_tracker(self) -> BaseConnectionTracker:

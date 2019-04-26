@@ -3,7 +3,7 @@ from typing import (
     cast,
     Any,
     Dict,
-    TYPE_CHECKING
+    Tuple,
 )
 
 from eth_utils.toolz import assoc
@@ -18,11 +18,7 @@ from p2p.protocol import (
     Protocol,
     _DecodedMsgType,
 )
-
-if TYPE_CHECKING:
-    from p2p.peer import (  # noqa: F401
-        BasePeer
-    )
+from p2p.transport import Transport
 
 
 class Hello(Command):
@@ -98,21 +94,27 @@ class P2PProtocol(Protocol):
     _commands = (Hello, Ping, Pong, Disconnect)
     cmd_length = 16
 
-    def __init__(self, peer: 'BasePeer', snappy_support: bool) -> None:
+    def __init__(self,
+                 transport: Transport,
+                 snappy_support: bool,
+                 capabilities: Tuple[Tuple[str, int], ...],
+                 listen_port: int) -> None:
         # For the base protocol the cmd_id_offset is always 0.
         # For the base protocol snappy compression should be disabled
-        super().__init__(peer, cmd_id_offset=0, snappy_support=snappy_support)
+        super().__init__(transport, cmd_id_offset=0, snappy_support=snappy_support)
+        self.capabilities = capabilities
+        self.listen_port = listen_port
 
     def send_handshake(self) -> None:
         # TODO: move import out once this is in the trinity codebase
         from trinity._utils.version import construct_trinity_client_identifier
         data = dict(version=self.version,
                     client_version_string=construct_trinity_client_identifier(),
-                    capabilities=self.peer.capabilities,
-                    listen_port=self.peer.listen_port,
-                    remote_pubkey=self.peer.privkey.public_key.to_bytes())
+                    capabilities=self.capabilities,
+                    listen_port=self.listen_port,
+                    remote_pubkey=self.transport.public_key.to_bytes())
         header, body = Hello(self.cmd_id_offset, self.snappy_support).encode(data)
-        self.send(header, body)
+        self.transport.send(header, body)
 
     def send_disconnect(self, reason: DisconnectReason) -> None:
         msg: Dict[str, Any] = {"reason": reason}
@@ -120,8 +122,8 @@ class P2PProtocol(Protocol):
             self.cmd_id_offset,
             self.snappy_support
         ).encode(msg)
-        self.send(header, body)
+        self.transport.send(header, body)
 
     def send_pong(self) -> None:
         header, body = Pong(self.cmd_id_offset, self.snappy_support).encode({})
-        self.send(header, body)
+        self.transport.send(header, body)

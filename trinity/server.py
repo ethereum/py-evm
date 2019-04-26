@@ -41,8 +41,9 @@ from p2p.nat import UPnPService
 from p2p.p2p_proto import (
     DisconnectReason,
 )
-from p2p.peer import BasePeer, PeerConnection
+from p2p.peer import BasePeer
 from p2p.service import BaseService
+from p2p.transport import Transport
 
 from eth2.beacon.chains.base import BeaconChain
 
@@ -249,7 +250,10 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             auth_init_ciphertext=msg,
             auth_ack_ciphertext=auth_ack_ciphertext
         )
-        connection = PeerConnection(
+
+        transport = Transport(
+            remote=initiator_remote,
+            private_key=self.privkey,
             reader=reader,
             writer=writer,
             aes_secret=aes_secret,
@@ -260,8 +264,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
 
         # Create and register peer in peer_pool
         peer = self.peer_pool.get_peer_factory().create_peer(
-            remote=initiator_remote,
-            connection=connection,
+            transport=transport,
             inbound=True,
         )
 

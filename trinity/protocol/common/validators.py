@@ -111,7 +111,7 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
     def _get_formatted_params(self) -> str:
         identifier = self.block_number_or_hash
         return (
-            f'ident: {identifier if self._is_numbered else humanize_hash(identifier)}  '  # type: ignore  # mypy doesn't know that identifier is of the right type  # noqa: E501
+            f'ident: {identifier if self._is_numbered else humanize_hash(identifier)}  '  # type: ignore  # mypy doesn't know `identifier` is a Hash32  # noqa: E501
             f'max={self.max_headers}  '
             f'skip={self.skip}  '
             f'reverse={self.reverse}'

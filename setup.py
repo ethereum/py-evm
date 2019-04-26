@@ -8,6 +8,7 @@ deps = {
     'p2p': [
         "asyncio-cancel-token==0.1.0a2",
         "async_lru>=0.1.0,<1.0.0",
+        "cached-property>=1.5.1,<2",
         # cryptography does not use semver and allows breaking changes within `0.3` version bumps.
         "cryptography>=2.5,<2.7",
         "eth-hash>=0.1.4,<1",
