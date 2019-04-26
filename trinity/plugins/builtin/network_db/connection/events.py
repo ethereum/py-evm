@@ -8,18 +8,18 @@ from lahja import (
 from p2p.kademlia import Node
 
 
-class BaseBlacklistEvent(BaseEvent):
+class BaseConnectionTrackerEvent(BaseEvent):
     pass
 
 
-class BlacklistEvent(BaseBlacklistEvent):
-    def __init__(self, remote: Node, timeout: int, reason: str) -> None:
+class BlacklistEvent(BaseConnectionTrackerEvent):
+    def __init__(self, remote: Node, timeout_seconds: int, reason: str) -> None:
         self.remote = remote
-        self.timeout = timeout
+        self.timeout_seconds = timeout_seconds
         self.reason = reason
 
 
-class ShouldConnectToPeerResponse(BaseBlacklistEvent):
+class ShouldConnectToPeerResponse(BaseConnectionTrackerEvent):
     def __init__(self, should_connect: bool) -> None:
         self.should_connect = should_connect
 

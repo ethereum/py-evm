@@ -34,13 +34,15 @@ from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
 
-from .backends import TrackingBackend
-from .blacklist.server import BlacklistServer
-from .blacklist.tracker import (
+from .connection.server import ConnectionTrackerServer
+from .connection.tracker import (
     SQLiteConnectionTracker,
     MemoryConnectionTracker,
 )
-from .cli import NormalizeTrackingBackend
+from .cli import (
+    TrackingBackend,
+    NormalizeTrackingBackend,
+)
 
 
 class NetworkDBPlugin(BaseIsolatedPlugin):
@@ -136,9 +138,9 @@ class NetworkDBPlugin(BaseIsolatedPlugin):
         else:
             raise Exception(f"INVARIANT: {backend}")
 
-    def _get_blacklist_service(self) -> BlacklistServer:
+    def _get_blacklist_service(self) -> ConnectionTrackerServer:
         tracker = self._get_blacklist_tracker()
-        blacklist_service = BlacklistServer(
+        blacklist_service = ConnectionTrackerServer(
             event_bus=self.event_bus,
             tracker=tracker,
         )

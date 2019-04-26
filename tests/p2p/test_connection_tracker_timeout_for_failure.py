@@ -12,7 +12,7 @@ from p2p.tracking.connection import (
 
 
 @pytest.fixture(autouse=True)
-def _prevent_global_mutation_of_registry(monkeypatch):
+def _prevent_global_mutation_of_registry():
     # Ensure that the tests don't result in mutation of the configuration of
     # timeout failures.
     from p2p.tracking import connection

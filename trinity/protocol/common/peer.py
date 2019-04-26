@@ -36,7 +36,7 @@ from p2p.tracking.connection import (
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.handlers import BaseChainExchangeHandler
 
-from trinity.plugins.builtin.network_db.blacklist.tracker import EventBusConnectionTracker
+from trinity.plugins.builtin.network_db.connection.tracker import ConnectionTrackerClient
 
 from .boot import DAOCheckBootManager
 from .context import ChainContext
@@ -130,6 +130,6 @@ class BaseChainPeerPool(BasePeerPool):
 
     def setup_connection_tracker(self) -> BaseConnectionTracker:
         if self.has_event_bus:
-            return EventBusConnectionTracker(self.event_bus)
+            return ConnectionTrackerClient(self.event_bus)
         else:
             return NoopConnectionTracker()

@@ -307,11 +307,11 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
         try:
             should_connect = await self.wait(
-                self.connection_tracker.coro_should_connect_to(remote),
+                self.connection_tracker.should_connect_to(remote),
                 timeout=1,
             )
         except TimeoutError:
-            self.logger.warning("ConnectionTracker.coro_should_connect_to request timed out.")
+            self.logger.warning("ConnectionTracker.should_connect_to request timed out.")
             raise
 
         if not should_connect:

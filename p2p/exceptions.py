@@ -195,10 +195,3 @@ class UnableToGetDiscV5Ticket(BaseP2PError):
     Raised when we're unable to get a discv5 ticket from a remote peer.
     """
     pass
-
-
-class BadDatabaseError(BaseP2PError):
-    """
-    The local database wasn't in quite the format we were expecting
-    """
-    pass

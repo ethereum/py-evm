@@ -19,7 +19,7 @@ from sqlalchemy import (
     String,
 )
 
-from p2p.exceptions import (
+from trinity.exceptions import (
     BadDatabaseError,
 )
 
@@ -40,7 +40,7 @@ class SchemaVersion(Base):
 #
 # SQL Based Trackers
 #
-def _get_session(path: Path) -> 'BaseSession':
+def _get_session(path: Path) -> BaseSession:
     # python 3.6 does not support sqlite3.connect(Path)
     is_memory = path.name == ':memory:'
 
@@ -58,12 +58,8 @@ def _get_session(path: Path) -> 'BaseSession':
 def _setup_schema(session: BaseSession) -> None:
     Base.metadata.create_all(session.get_bind())
     session.add(SchemaVersion(version=SCHEMA_VERSION))
-    session.commit()
-
-
-def _get_schema_version(session: BaseSession) -> str:
-    schema_version = session.query(SchemaVersion).one()
-    return schema_version.version
+    # mypy doesn't know about the type of the `commit()` function
+    session.commit()  # type: ignore
 
 
 def _check_is_empty(session: BaseSession) -> bool:
@@ -79,7 +75,8 @@ def _check_schema_version(session: BaseSession) -> bool:
         return False
 
     try:
-        schema_version = _get_schema_version(session)
+        # mypy doesn't know about the type of the `query()` function
+        schema_version = session.query(SchemaVersion).one()  # type: ignore
     except NoResultFound:
         return False
     except MultipleResultsFound:
@@ -88,7 +85,7 @@ def _check_schema_version(session: BaseSession) -> bool:
         # table is present but schema doesn't match query
         return False
     else:
-        return schema_version == SCHEMA_VERSION
+        return schema_version.version == SCHEMA_VERSION
 
 
 def _check_tables_exist(session: BaseSession) -> bool:
@@ -102,12 +99,14 @@ def _check_tables_exist(session: BaseSession) -> bool:
 def get_tracking_database(db_path: Path) -> BaseSession:
     session = _get_session(db_path)
 
-    if _check_schema_version(session):
-        if not _check_tables_exist(session):
-            raise BadDatabaseError(f"Tracking database is missing tables: {db_path.resolve()}")
+    if _check_is_empty(session):
+        _setup_schema(session)
         return session
-    elif not _check_is_empty(session):
-        raise BadDatabaseError(f"Tracking database not empty: {db_path.resolve()}")
+    elif not _check_schema_version(session) or not _check_tables_exist(session):
+        raise BadDatabaseError(
+            f"Tracking database has incorrect schema: {db_path.resolve()}."
+            "This can normally be fixed by clearing your network database "
+            "with the CLI command `trinity remove-network-db`"
+        )
 
-    _setup_schema(session)
     return session

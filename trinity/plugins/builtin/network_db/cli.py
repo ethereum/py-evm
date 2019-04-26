@@ -1,7 +1,12 @@
 import argparse
+import enum
 from typing import Any
 
-from .backends import TrackingBackend
+
+class TrackingBackend(enum.Enum):
+    sqlite3 = 'sqlite3'
+    memory = 'memory'
+    do_not_track = 'do-not-track'
 
 
 class NormalizeTrackingBackend(argparse.Action):

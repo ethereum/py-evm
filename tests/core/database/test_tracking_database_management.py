@@ -4,8 +4,6 @@ import uuid
 
 import pytest
 
-from p2p.exceptions import BadDatabaseError
-
 from trinity.db.orm import (
     SchemaVersion,
     Base,
@@ -13,11 +11,10 @@ from trinity.db.orm import (
     _check_is_empty,
     _check_tables_exist,
     _check_schema_version,
-    _get_schema_version,
     _get_session,
     get_tracking_database,
-    SCHEMA_VERSION,
 )
+from trinity.exceptions import BadDatabaseError
 
 
 @pytest.fixture
@@ -28,19 +25,13 @@ def session():
 
 @pytest.fixture
 def db_path(tmpdir):
-    path = Path(str(tmpdir.join('nodedb.sqlite')))
+    path = Path(tmpdir.join('nodedb.sqlite'))
     return path
 
 
 #
 # Schema initialization tests
 #
-def test_get_schema_version(session):
-    _setup_schema(session)
-    version = _get_schema_version(session)
-    assert version == SCHEMA_VERSION
-
-
 def test_setup_schema(session):
     assert _check_schema_version(session) is False
     _setup_schema(session)

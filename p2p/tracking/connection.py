@@ -17,10 +17,10 @@ ONE_DAY = 60 * 60 * 24
 FAILURE_TIMEOUTS: Dict[Type[Exception], int] = {}
 
 
-def register_error(exception: Type[BaseP2PError], timeout: int) -> None:
+def register_error(exception: Type[BaseP2PError], timout_seconds: int) -> None:
     if exception in FAILURE_TIMEOUTS:
         raise KeyError(f"Exception class already registered")
-    FAILURE_TIMEOUTS[exception] = timeout
+    FAILURE_TIMEOUTS[exception] = timout_seconds
 
 
 register_error(HandshakeFailure, 10)  # 10 seconds
@@ -43,26 +43,23 @@ class BaseConnectionTracker(ABC):
     logger = logging.getLogger('p2p.tracking.connection.ConnectionTracker')
 
     def record_failure(self, remote: Node, failure: BaseP2PError) -> None:
-        timeout = get_timeout_for_failure(failure)
+        timout_seconds = get_timeout_for_failure(failure)
         failure_name = type(failure).__name__
 
-        return self.record_blacklist(remote, timeout, failure_name)
+        return self.record_blacklist(remote, timout_seconds, failure_name)
 
     @abstractmethod
-    def record_blacklist(self, remote: Node, timeout: int, reason: str) -> None:
+    def record_blacklist(self, remote: Node, timout_seconds: int, reason: str) -> None:
         pass
 
     @abstractmethod
-    def should_connect_to(self, remote: Node) -> bool:
+    async def should_connect_to(self, remote: Node) -> bool:
         pass
-
-    async def coro_should_connect_to(self, remote: Node) -> bool:
-        return self.should_connect_to(remote)
 
 
 class NoopConnectionTracker(BaseConnectionTracker):
-    def record_blacklist(self, remote: Node, timeout: int, reason: str) -> None:
+    def record_blacklist(self, remote: Node, timout_seconds: int, reason: str) -> None:
         pass
 
-    def should_connect_to(self, remote: Node) -> bool:
+    async def should_connect_to(self, remote: Node) -> bool:
         return True

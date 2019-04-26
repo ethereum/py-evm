@@ -16,7 +16,7 @@ from .events import (
 )
 
 
-class BlacklistServer(BaseService):
+class ConnectionTrackerServer(BaseService):
     """
     Server to handle the event bus communication for BlacklistEvent and
     ShouldConnectToPeerRequest/Response events
@@ -33,7 +33,7 @@ class BlacklistServer(BaseService):
     async def handle_should_connect_to_requests(self) -> None:
         async for req in self.wait_iter(self.event_bus.stream(ShouldConnectToPeerRequest)):
             self.logger.debug2('Received should connect to request: %s', req.remote)
-            should_connect = self.tracker.should_connect_to(req.remote)
+            should_connect = await self.tracker.should_connect_to(req.remote)
             self.event_bus.broadcast(
                 ShouldConnectToPeerResponse(should_connect),
                 req.broadcast_config()
@@ -44,13 +44,13 @@ class BlacklistServer(BaseService):
             self.logger.debug2(
                 'Received blacklist commmand: remote: %s | timeout: %s | reason: %s',
                 command.remote,
-                humanize_seconds(command.timeout),
+                humanize_seconds(command.timeout_seconds),
                 command.reason,
             )
-            self.tracker.record_blacklist(command.remote, command.timeout, command.reason)
+            self.tracker.record_blacklist(command.remote, command.timeout_seconds, command.reason)
 
     async def _run(self) -> None:
-        self.logger.debug("Running BlacklistServer")
+        self.logger.debug("Running ConnectionTrackerServer")
 
         self.run_daemon_task(self.handle_should_connect_to_requests())
         self.run_daemon_task(self.handle_blacklist_command())
