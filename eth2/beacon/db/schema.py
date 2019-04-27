@@ -34,6 +34,11 @@ class BaseSchema(ABC):
     def make_finalized_head_root_lookup_key() -> bytes:
         pass
 
+    @staticmethod
+    @abstractmethod
+    def make_justified_head_root_lookup_key() -> bytes:
+        pass
+
 
 class SchemaV1(BaseSchema):
     #
@@ -46,6 +51,10 @@ class SchemaV1(BaseSchema):
     @staticmethod
     def make_finalized_head_root_lookup_key() -> bytes:
         return b'v1:beacon:finalized-head-root'
+
+    @staticmethod
+    def make_justified_head_root_lookup_key() -> bytes:
+        return b'v1:beacon:justified-head-root'
 
     @staticmethod
     def make_block_slot_to_root_lookup_key(slot: int) -> bytes:

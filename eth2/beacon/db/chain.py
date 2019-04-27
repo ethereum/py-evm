@@ -40,7 +40,12 @@ from eth.validation import (
     validate_word,
 )
 
+from eth2.configs import Eth2Config
+from eth2.beacon.helpers import (
+    slot_to_epoch,
+)
 from eth2.beacon.typing import (
+    Epoch,
     Slot,
 )
 from eth2.beacon.types.states import BeaconState  # noqa: F401
@@ -54,6 +59,7 @@ from eth2.beacon.validation import (
 
 from eth2.beacon.db.exceptions import (
     FinalizedHeadNotFound,
+    JustifiedHeadNotFound,
 )
 from eth2.beacon.db.schema import SchemaV1
 
@@ -100,6 +106,10 @@ class BaseBeaconChainDB(ABC):
 
     @abstractmethod
     def get_finalized_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+        pass
+
+    @abstractmethod
+    def get_justified_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         pass
 
     @abstractmethod
@@ -154,16 +164,25 @@ class BaseBeaconChainDB(ABC):
 
 
 class BeaconChainDB(BaseBeaconChainDB):
-    def __init__(self, db: BaseAtomicDB) -> None:
+    def __init__(self, db: BaseAtomicDB, config: Eth2Config) -> None:
         self.db = db
 
         self._last_finalized_root = self._get_last_finalized_root_if_present(db)
+        self._highest_justified_epoch = self._get_highest_justified_epoch(db, config)
 
     def _get_last_finalized_root_if_present(self, db: BaseDB) -> Optional[Hash32]:
         try:
             return self._get_finalized_head_root(db)
         except FinalizedHeadNotFound:
             return None
+
+    def _get_highest_justified_epoch(self, db: BaseDB, config: Eth2Config) -> Epoch:
+        try:
+            justified_head_root = self._get_justified_head_root(db)
+            slot = self.get_slot_by_root(justified_head_root)
+            return slot_to_epoch(slot, config.SLOTS_PER_EPOCH)
+        except JustifiedHeadNotFound:
+            return Epoch(0)
 
     def persist_block(
             self,
@@ -301,13 +320,33 @@ class BeaconChainDB(BaseBeaconChainDB):
         return cls._get_block_by_root(db, Hash32(finalized_head_root), block_class)
 
     @classmethod
-    def _get_finalized_head_root(cls,
-                                 db: BaseDB) -> Hash32:
+    def _get_finalized_head_root(cls, db: BaseDB) -> Hash32:
         try:
             finalized_head_root = db[SchemaV1.make_finalized_head_root_lookup_key()]
         except KeyError:
             raise FinalizedHeadNotFound("No finalized head set for this chain")
         return finalized_head_root
+
+    def get_justified_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+        """
+        Return the justified head.
+        """
+        return self._get_justified_head(self.db, block_class)
+
+    @classmethod
+    def _get_justified_head(cls,
+                            db: BaseDB,
+                            block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+        justified_head_root = cls._get_justified_head_root(db)
+        return cls._get_block_by_root(db, Hash32(justified_head_root), block_class)
+
+    @classmethod
+    def _get_justified_head_root(cls, db: BaseDB) -> Hash32:
+        try:
+            justified_head_root = db[SchemaV1.make_justified_head_root_lookup_key()]
+        except KeyError:
+            raise JustifiedHeadNotFound("No justified head set for this chain")
+        return justified_head_root
 
     def get_block_by_root(self,
                           block_root: Hash32,
@@ -612,6 +651,15 @@ class BeaconChainDB(BaseBeaconChainDB):
         """
         return self._persist_state(state)
 
+    def _persist_state(self, state: BeaconState) -> None:
+        self.db.set(
+            state.root,
+            ssz.encode(state),
+        )
+
+        self._persist_finalized_head(state)
+        self._persist_justified_head(state)
+
     def _update_finalized_head(self, finalized_root: Hash32) -> None:
         """
         Unconditionally write the ``finalized_root`` as the root of the currently
@@ -632,13 +680,44 @@ class BeaconChainDB(BaseBeaconChainDB):
         if state.finalized_root != self._last_finalized_root:
             self._update_finalized_head(state.finalized_root)
 
-    def _persist_state(self, state: BeaconState) -> None:
+    def _update_justified_head(self, justified_root: Hash32, epoch: Epoch) -> None:
+        """
+        Unconditionally write the ``justified_root`` as the root of the highest
+        justified block.
+        """
         self.db.set(
-            state.root,
-            ssz.encode(state),
+            SchemaV1.make_justified_head_root_lookup_key(),
+            justified_root,
         )
+        self._highest_justified_epoch = epoch
 
-        self._persist_finalized_head(state)
+    def _find_updated_justified_root(self, state: BeaconState) -> Optional[Tuple[Hash32, Epoch]]:
+        """
+        Find the highest epoch that has been justified so far.
+
+        If:
+        (i) we find one higher than the epoch of the current justified head
+        and
+        (ii) it has been justified for more than one epoch,
+
+        then return that (root, epoch) pair.
+        """
+        if state.current_justified_epoch > self._highest_justified_epoch:
+            return (state.current_justified_root, state.current_justified_epoch)
+        elif state.previous_justified_epoch > self._highest_justified_epoch:
+            return (state.previous_justified_root, state.previous_justified_epoch)
+        return None
+
+    def _persist_justified_head(self, state: BeaconState) -> None:
+        """
+        If there is a new justified root that has been justified for at least one
+        epoch _and_ the justification is for a higher epoch than we have previously
+        seen, go ahead and update the justified head.
+        """
+        result = self.find_updated_justified_root(state)
+
+        if result:
+            self._update_justified_head(*result)
 
     #
     # Raw Database API
