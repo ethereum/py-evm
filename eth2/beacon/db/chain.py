@@ -624,6 +624,11 @@ class BeaconChainDB(BaseBeaconChainDB):
         self._last_finalized_root = finalized_root
 
     def _persist_finalized_head(self, state: BeaconState) -> None:
+        """
+        If there is a new ``state.finalized_root``, then we can update it in the DB.
+        This policy is safe because a large number of validators on the network
+        will have violated a slashing condition if the invariant does not hold.
+        """
         if state.finalized_root != self._last_finalized_root:
             self._update_finalized_head(state.finalized_root)
 
