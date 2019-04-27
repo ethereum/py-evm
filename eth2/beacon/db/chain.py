@@ -632,8 +632,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         if state.finalized_root != self._last_finalized_root:
             self._update_finalized_head(state.finalized_root)
 
-    def _persist_state(self,
-                       state: BeaconState) -> None:
+    def _persist_state(self, state: BeaconState) -> None:
         self.db.set(
             state.root,
             ssz.encode(state),
