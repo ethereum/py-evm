@@ -9,7 +9,7 @@ from hypothesis import (
 
 from eth_utils import ValidationError
 
-from eth_utils.toolz import take
+from eth_utils.toolz import drop
 
 from eth.vm import opcode_values
 from eth.vm.code_stream import CodeStream
@@ -152,14 +152,14 @@ NON_PUSH_CODES = set(ALL_SINGLE_BYTES).difference(PUSH_CODES)
 def _mk_bytecode(opcodes, data):
     index_tracker = itertools.count(0)
     for opcode in opcodes:
-        opcode_as_byte = bytes(bytearray((opcode,)))
+        opcode_as_byte = bytes((opcode,))
         if opcode in NON_PUSH_CODES:
             yield next(index_tracker), opcode_as_byte
         else:
             data_size = opcode - 95
             push_data = data.draw(st.binary(min_size=data_size, max_size=data_size))
             yield next(index_tracker), opcode_as_byte + push_data
-            tuple(take(data_size, index_tracker))
+            drop(data_size, index_tracker)
 
 
 @given(
@@ -168,8 +168,7 @@ def _mk_bytecode(opcodes, data):
 )
 def test_fuzzy_is_valid_opcode(opcodes, data):
     if opcodes:
-        opcodes_and_valid_indices = tuple(_mk_bytecode(opcodes, data))
-        indices, bytecode_sections = zip(*opcodes_and_valid_indices)
+        indices, bytecode_sections = zip(*_mk_bytecode(opcodes, data))
         bytecode = b''.join(bytecode_sections)
     else:
         indices = set()
