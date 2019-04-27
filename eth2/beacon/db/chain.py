@@ -3,6 +3,7 @@ import functools
 
 from typing import (
     Iterable,
+    Optional,
     Tuple,
     Type,
 )
@@ -51,6 +52,9 @@ from eth2.beacon.validation import (
     validate_slot,
 )
 
+from eth2.beacon.db.exceptions import (
+    FinalizedHeadNotFound,
+)
 from eth2.beacon.db.schema import SchemaV1
 
 
@@ -152,6 +156,14 @@ class BaseBeaconChainDB(ABC):
 class BeaconChainDB(BaseBeaconChainDB):
     def __init__(self, db: BaseAtomicDB) -> None:
         self.db = db
+
+        self._last_finalized_root = self._get_last_finalized_root_if_present(db)
+
+    def _get_last_finalized_root_if_present(self, db: BaseDB) -> Optional[Hash32]:
+        try:
+            return self._get_finalized_head_root(db)
+        except FinalizedHeadNotFound:
+            return None
 
     def persist_block(
             self,
@@ -285,11 +297,17 @@ class BeaconChainDB(BaseBeaconChainDB):
     def _get_finalized_head(cls,
                             db: BaseDB,
                             block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+        finalized_head_root = cls._get_finalized_head_root(db)
+        return cls._get_block_by_root(db, Hash32(finalized_head_root), block_class)
+
+    @classmethod
+    def _get_finalized_head_root(cls,
+                                 db: BaseDB) -> Hash32:
         try:
             finalized_head_root = db[SchemaV1.make_finalized_head_root_lookup_key()]
         except KeyError:
-            raise CanonicalHeadNotFound("No finalized head set for this chain")
-        return cls._get_block_by_root(db, Hash32(finalized_head_root), block_class)
+            raise FinalizedHeadNotFound("No finalized head set for this chain")
+        return finalized_head_root
 
     def get_block_by_root(self,
                           block_root: Hash32,
@@ -589,17 +607,35 @@ class BeaconChainDB(BaseBeaconChainDB):
                       state: BeaconState) -> None:
         """
         Persist the given BeaconState.
-        """
-        return self._persist_state(self.db, state)
 
-    @classmethod
-    def _persist_state(cls,
-                       db: BaseDB,
+        This method also updates the finality data which requires
+        the ``block_class`` for the class of the block associated with ``state.slot``.
+        """
+        return self._persist_state(state)
+
+    def _update_finalized_head(self, finalized_root: Hash32) -> None:
+        """
+        Unconditionally write the ``finalized_root`` as the root of the currently
+        finalized block.
+        """
+        self.db.set(
+            SchemaV1.make_finalized_head_root_lookup_key(),
+            finalized_root,
+        )
+        self._last_finalized_root = finalized_root
+
+    def _persist_finalized_head(self, state: BeaconState) -> None:
+        if state.finalized_root != self._last_finalized_root:
+            self._update_finalized_head(state.finalized_root)
+
+    def _persist_state(self,
                        state: BeaconState) -> None:
-        db.set(
+        self.db.set(
             state.root,
             ssz.encode(state),
         )
+
+        self._persist_finalized_head(state)
 
     #
     # Raw Database API
