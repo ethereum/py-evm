@@ -608,8 +608,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         """
         Persist the given BeaconState.
 
-        This method also updates the finality data which requires
-        the ``block_class`` for the class of the block associated with ``state.slot``.
+        This includes the finality data contained in the BeaconState.
         """
         return self._persist_state(state)
 
