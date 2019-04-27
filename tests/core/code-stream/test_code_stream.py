@@ -1,13 +1,18 @@
+import itertools
+
 import pytest
 
-from eth_utils import (
-    ValidationError,
+from hypothesis import (
+    given,
+    strategies as st,
 )
 
+from eth_utils import ValidationError
+
+from eth_utils.toolz import drop
+
 from eth.vm import opcode_values
-from eth.vm.code_stream import (
-    CodeStream,
-)
+from eth.vm.code_stream import CodeStream
 
 
 def test_code_stream_accepts_bytes():
@@ -72,6 +77,17 @@ def test_is_valid_opcode_invalidates_bytes_after_PUSHXX_opcodes():
     assert code_stream.is_valid_opcode(4) is False
 
 
+def test_is_valid_opcode_valid_with_PUSH32_just_past_boundary():
+    # valid: 0 :: 33
+    # invalid: 1 - 32 (PUSH32) :: 34+ (too long)
+    code_stream = CodeStream(b'\x7f' + (b'\0' * 32) + b'\x60')
+    assert code_stream.is_valid_opcode(0) is True
+    for pos in range(1, 33):
+        assert code_stream.is_valid_opcode(pos) is False
+    assert code_stream.is_valid_opcode(33) is True
+    assert code_stream.is_valid_opcode(34) is False
+
+
 def test_harder_is_valid_opcode():
     code_stream = CodeStream(b'\x02\x03\x72' + (b'\x04' * 32) + b'\x05')
     # valid: 0 - 2 :: 22 - 35
@@ -110,6 +126,14 @@ def test_even_harder_is_valid_opcode():
     assert code_stream.is_valid_opcode(77) is False
 
 
+def test_even_harder_is_valid_opcode_first_check_deep():
+    test = b'\x02\x03\x7d' + (b'\x04' * 32) + b'\x05\x7e' + (b'\x04' * 35) + b'\x01\x61\x01\x01\x01'
+    code_stream = CodeStream(test)
+    # valid: 0 - 2 :: 33 - 36 :: 68 - 73 :: 76
+    # invalid: 3 - 32 (PUSH30) :: 37 - 67 (PUSH31) :: 74, 75 (PUSH2) :: 77+ (too long)
+    assert code_stream.is_valid_opcode(75) is False
+
+
 def test_right_number_of_bytes_invalidated_after_pushxx():
     code_stream = CodeStream(b'\x02\x03\x60\x02\x02')
     assert code_stream.is_valid_opcode(0) is True
@@ -118,3 +142,45 @@ def test_right_number_of_bytes_invalidated_after_pushxx():
     assert code_stream.is_valid_opcode(3) is False
     assert code_stream.is_valid_opcode(4) is True
     assert code_stream.is_valid_opcode(5) is False
+
+
+ALL_SINGLE_BYTES = tuple(sorted(set(range(0, 256))))
+PUSH_CODES = set(bytearray(range(96, 128)))
+NON_PUSH_CODES = set(ALL_SINGLE_BYTES).difference(PUSH_CODES)
+
+
+def _mk_bytecode(opcodes, data):
+    index_tracker = itertools.count(0)
+    for opcode in opcodes:
+        opcode_as_byte = bytes((opcode,))
+        if opcode in NON_PUSH_CODES:
+            yield next(index_tracker), opcode_as_byte
+        else:
+            data_size = opcode - 95
+            push_data = data.draw(st.binary(min_size=data_size, max_size=data_size))
+            yield next(index_tracker), opcode_as_byte + push_data
+            drop(data_size, index_tracker)
+
+
+@given(
+    opcodes=st.lists(st.sampled_from(ALL_SINGLE_BYTES), min_size=0, max_size=2048),
+    data=st.data(),
+)
+def test_fuzzy_is_valid_opcode(opcodes, data):
+    if opcodes:
+        indices, bytecode_sections = zip(*_mk_bytecode(opcodes, data))
+        bytecode = b''.join(bytecode_sections)
+    else:
+        indices = set()
+        bytecode = b''
+
+    valid_indices = set(indices)
+
+    stream = CodeStream(bytecode)
+
+    index_st = st.integers(min_value=0, max_value=len(bytecode) + 10)
+    to_check = data.draw(st.lists(index_st, max_size=len(bytecode)))
+    for index in to_check:
+        is_valid = stream.is_valid_opcode(index)
+        expected = index in valid_indices
+        assert is_valid is expected
