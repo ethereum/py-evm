@@ -279,11 +279,11 @@ def get_inclusion_infos(
         for index in participant_indices:
             should_update_inclusion_data = (
                 index not in inclusion_infos or
-                attestation.slot_included < inclusion_infos[index].inclusion_slot
+                attestation.inclusion_slot < inclusion_infos[index].inclusion_slot
             )
             if should_update_inclusion_data:
                 inclusion_infos[index] = InclusionInfo(
-                    attestation.slot_included,
+                    attestation.inclusion_slot,
                     attestation.data.slot
                 )
     return inclusion_infos

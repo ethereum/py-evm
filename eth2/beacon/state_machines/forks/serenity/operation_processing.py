@@ -150,7 +150,7 @@ def process_attestations(state: BeaconState,
                     data=attestation.data,
                     aggregation_bitfield=attestation.aggregation_bitfield,
                     custody_bitfield=attestation.custody_bitfield,
-                    slot_included=state.slot,
+                    inclusion_slot=state.slot,
                 )
             )
         elif slot_to_epoch(attestation.data.slot, config.SLOTS_PER_EPOCH) == previous_epoch:
@@ -159,7 +159,7 @@ def process_attestations(state: BeaconState,
                     data=attestation.data,
                     aggregation_bitfield=attestation.aggregation_bitfield,
                     custody_bitfield=attestation.custody_bitfield,
-                    slot_included=state.slot,
+                    inclusion_slot=state.slot,
                 )
             )
 

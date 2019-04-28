@@ -553,7 +553,7 @@ def test_get_inclusion_infos(
                 shard=shard,
             ),
             aggregation_bitfield=aggregation_bitfield,
-            slot_included=attestation_1_inclusion_slot,
+            inclusion_slot=attestation_1_inclusion_slot,
         ),
         PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
             data=AttestationData(**sample_attestation_data_params).copy(
@@ -561,7 +561,7 @@ def test_get_inclusion_infos(
                 shard=shard,
             ),
             aggregation_bitfield=aggregation_bitfield,
-            slot_included=attestation_2_inclusion_slot,
+            inclusion_slot=attestation_2_inclusion_slot,
         ),
     ]
 
