@@ -30,7 +30,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p._utils import clamp, token_bucket
+from p2p._utils import clamp
 from p2p.constants import (
     DEFAULT_MAX_PEERS,
     DEFAULT_PEER_BOOT_TIMEOUT,
@@ -71,6 +71,7 @@ from p2p.p2p_proto import (
 from p2p.service import (
     BaseService,
 )
+from p2p.token_bucket import TokenBucket
 from p2p.tracking.connection import (
     BaseConnectionTracker,
     NoopConnectionTracker,
@@ -179,7 +180,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 await self.connect_to_nodes(iter(candidates))
 
     async def maybe_connect_more_peers(self) -> None:
-        rate_limiter = token_bucket(
+        rate_limiter = TokenBucket(
             rate=1 / PEER_CONNECT_INTERVAL,
             capacity=MAX_SEQUENTIAL_PEER_CONNECT,
         )
@@ -189,7 +190,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 await self.sleep(PEER_CONNECT_INTERVAL)
                 continue
 
-            await self.wait(rate_limiter.__anext__())
+            await self.wait(rate_limiter.take())
 
             await self.wait(asyncio.gather(*(
                 self._add_peers_from_backend(backend)
