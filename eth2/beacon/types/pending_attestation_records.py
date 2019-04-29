@@ -17,24 +17,24 @@ from .attestation_data import (
 class PendingAttestationRecord(ssz.Serializable):
 
     fields = [
-        # Signed data
-        ('data', AttestationData),
         # Attester aggregation bitfield
         ('aggregation_bitfield', bytes_sedes),
+        # Attestation data
+        ('data', AttestationData),
         # Custody bitfield
         ('custody_bitfield', bytes_sedes),
-        # Slot the attestation was included
+        # Inclusion slot
         ('inclusion_slot', uint64),
     ]
 
     def __init__(self,
-                 data: AttestationData,
                  aggregation_bitfield: Bitfield,
+                 data: AttestationData,
                  custody_bitfield: Bitfield,
                  inclusion_slot: Slot) -> None:
         super().__init__(
-            data=data,
             aggregation_bitfield=aggregation_bitfield,
+            data=data,
             custody_bitfield=custody_bitfield,
             inclusion_slot=inclusion_slot,
         )

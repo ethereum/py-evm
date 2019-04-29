@@ -147,8 +147,8 @@ def process_attestations(state: BeaconState,
         if slot_to_epoch(attestation.data.slot, config.SLOTS_PER_EPOCH) == current_epoch:
             new_current_epoch_pending_attestations.append(
                 PendingAttestationRecord(
-                    data=attestation.data,
                     aggregation_bitfield=attestation.aggregation_bitfield,
+                    data=attestation.data,
                     custody_bitfield=attestation.custody_bitfield,
                     inclusion_slot=state.slot,
                 )
@@ -156,8 +156,8 @@ def process_attestations(state: BeaconState,
         elif slot_to_epoch(attestation.data.slot, config.SLOTS_PER_EPOCH) == previous_epoch:
             new_previous_epoch_pending_attestations.append(
                 PendingAttestationRecord(
-                    data=attestation.data,
                     aggregation_bitfield=attestation.aggregation_bitfield,
+                    data=attestation.data,
                     custody_bitfield=attestation.custody_bitfield,
                     inclusion_slot=state.slot,
                 )
