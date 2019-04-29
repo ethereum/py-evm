@@ -430,6 +430,11 @@ class BasePeer(BaseService):
                 )
                 return
             except MalformedMessage as err:
+                self.connection_tracker.record_blacklist(
+                    self.remote,
+                    timeout_seconds=300,  # 5 minutes
+                    reason=f"Malformed message: {err}",
+                )
                 await self.disconnect(DisconnectReason.bad_protocol)
                 return
 
