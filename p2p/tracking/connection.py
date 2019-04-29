@@ -13,7 +13,6 @@ from p2p.exceptions import (
 )
 
 
-ONE_DAY = 60 * 60 * 24
 FAILURE_TIMEOUTS: Dict[Type[Exception], int] = {}
 
 

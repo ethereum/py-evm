@@ -5,13 +5,9 @@ from argparse import (
     _SubParsersAction,
 )
 import logging
-from typing import Iterable
-
-from eth_utils import to_tuple
 
 from sqlalchemy.orm import Session
 
-from p2p.service import BaseService
 from p2p.tracking.connection import (
     BaseConnectionTracker,
     NoopConnectionTracker,
@@ -146,23 +142,20 @@ class NetworkDBPlugin(BaseIsolatedPlugin):
         )
         return blacklist_service
 
-    @to_tuple
-    def _get_services(self) -> Iterable[BaseService]:
+    def do_start(self) -> None:
+
         if self.context.args.disable_blacklistdb:
             # Allow this plugin to be disabled for extreme cases such as the
             # user swapping in an equivalent experimental version.
             self.logger.warning("Blacklist Database disabled via CLI flag")
+            return
         else:
-            yield self._get_blacklist_service()
+            loop = asyncio.get_event_loop()
 
-    def do_start(self) -> None:
-        loop = asyncio.get_event_loop()
+            service = self._get_blacklist_service()
 
-        tracker_services = self._get_services()
-
-        for service in tracker_services:
             asyncio.ensure_future(exit_with_service_and_endpoint(service, self.event_bus))
             asyncio.ensure_future(service.run())
 
-        loop.run_forever()
-        loop.close()
+            loop.run_forever()
+            loop.close()

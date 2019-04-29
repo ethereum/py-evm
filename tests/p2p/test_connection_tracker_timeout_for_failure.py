@@ -18,11 +18,16 @@ def _prevent_global_mutation_of_registry():
     from p2p.tracking import connection
     original = copy.copy(connection.FAILURE_TIMEOUTS)
     yield
+    # We cannot simply replace the original object onto the module because
+    # there are functions which maintain a reference to the original object
+    # which means it has to be updated in-place.
     keys_to_pop = set(connection.FAILURE_TIMEOUTS.keys()).difference(original.keys())
     for key in keys_to_pop:
         connection.FAILURE_TIMEOUTS.pop(key)
     for key, value in original.items():
         connection.FAILURE_TIMEOUTS[key] = value
+    # Validate that it is back to the original state
+    assert connection.FAILURE_TIMEOUTS == original
 
 
 def test_get_timeout_for_failure_with_HandshakeFailure():
