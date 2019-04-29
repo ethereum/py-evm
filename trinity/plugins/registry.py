@@ -19,6 +19,9 @@ from trinity.plugins.builtin.fix_unclean_shutdown.plugin import (
 from trinity.plugins.builtin.json_rpc.plugin import (
     JsonRpcServerPlugin,
 )
+from trinity.plugins.builtin.network_db.plugin import (
+    NetworkDBPlugin,
+)
 from trinity.plugins.builtin.peer_discovery.plugin import (
     PeerDiscoveryPlugin,
 )
@@ -51,6 +54,7 @@ BASE_PLUGINS: Tuple[BasePlugin, ...] = (
     AttachPlugin(use_ipython=is_ipython_available()),
     FixUncleanShutdownPlugin(),
     JsonRpcServerPlugin(),
+    NetworkDBPlugin(),
     PeerDiscoveryPlugin(),
     BeaconNodePlugin(),
 )

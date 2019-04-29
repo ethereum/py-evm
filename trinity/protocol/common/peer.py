@@ -28,9 +28,15 @@ from p2p.peer import (
 from p2p.peer_pool import (
     BasePeerPool,
 )
+from p2p.tracking.connection import (
+    BaseConnectionTracker,
+    NoopConnectionTracker,
+)
 
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.handlers import BaseChainExchangeHandler
+
+from trinity.plugins.builtin.network_db.connection.tracker import ConnectionTrackerClient
 
 from .boot import DAOCheckBootManager
 from .context import ChainContext
@@ -121,3 +127,9 @@ class BaseChainPeerPool(BasePeerPool):
         # might disconnect in the meantime.
         peers = tuple(self.connected_nodes.values())
         return [peer for peer in peers if peer.head_td >= min_td]
+
+    def setup_connection_tracker(self) -> BaseConnectionTracker:
+        if self.has_event_bus:
+            return ConnectionTrackerClient(self.event_bus)
+        else:
+            return NoopConnectionTracker()

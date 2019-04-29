@@ -13,6 +13,7 @@ deps = {
         "eth-hash>=0.1.4,<1",
         "netifaces>=0.10.7<1",
         "pysha3>=1.0.0,<2.0.0",
+        "SQLAlchemy>=1.3.3,<2",
         "upnpclient>=0.0.8,<1",
     ],
     'trinity': [
@@ -51,6 +52,7 @@ deps = {
         "flake8==3.5.0",
         "flake8-bugbear==18.8.0",
         "mypy==0.701",
+        "sqlalchemy-stubs==0.1",
     ],
     'doc': [
         "pytest~=3.2",
