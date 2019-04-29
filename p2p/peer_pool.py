@@ -125,23 +125,17 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         # Restricts the number of concurrent connection attempts can be made
         self._connection_attempt_lock = asyncio.BoundedSemaphore(MAX_CONCURRENT_CONNECTION_ATTEMPTS)
 
-        if self.has_event_bus:
-            self.peer_backends = self.setup_peer_backends()
-        else:
-            self.logger.warning("No event bus configured for peer pool.")
-            self.peer_backends = ()
-
+        self.peer_backends = self.setup_peer_backends()
         self.connection_tracker = self.setup_connection_tracker()
-
-    @property
-    def event_bus(self) -> Endpoint:
-        if self._event_bus is None:
-            raise AttributeError("No event bus configured for this peer pool")
-        return self._event_bus
 
     @property
     def has_event_bus(self) -> bool:
         return self._event_bus is not None
+
+    def get_event_bus(self) -> Endpoint:
+        if self._event_bus is None:
+            raise AttributeError("No event bus configured for this peer pool")
+        return self._event_bus
 
     def setup_connection_tracker(self) -> BaseConnectionTracker:
         """
@@ -151,10 +145,14 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         return NoopConnectionTracker()
 
     def setup_peer_backends(self) -> Tuple[BasePeerBackend, ...]:
-        return (
-            DiscoveryPeerBackend(self.event_bus),
-            BootnodesPeerBackend(self.event_bus),
-        )
+        if self.has_event_bus:
+            return (
+                DiscoveryPeerBackend(self.get_event_bus()),
+                BootnodesPeerBackend(self.get_event_bus()),
+            )
+        else:
+            self.logger.warning("No event bus configured for peer pool.")
+            return ()
 
     async def _add_peers_from_backend(self, backend: BasePeerBackend) -> None:
         available_slots = self.max_peers - len(self)
@@ -209,6 +207,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         return self.peer_factory_class(
             privkey=self.privkey,
             context=self.context,
+            event_bus=self._event_bus,
             token=self.cancel_token,
         )
 

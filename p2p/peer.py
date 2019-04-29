@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import asyncio
 import collections
 import contextlib
@@ -6,11 +7,6 @@ import functools
 import logging
 import operator
 import struct
-from abc import (
-    ABC,
-    abstractmethod
-)
-
 from typing import (
     Any,
     cast,
@@ -23,6 +19,8 @@ from typing import (
     Type,
     TYPE_CHECKING,
 )
+
+from lahja import Endpoint
 
 import sha3
 
@@ -43,8 +41,11 @@ from cancel_token import CancelToken
 
 from p2p import auth
 from p2p import protocol
-from p2p.kademlia import (
-    Node,
+from p2p._utils import (
+    get_devp2p_cmd_id,
+    roundup_16,
+    sxor,
+    time_since,
 )
 from p2p.exceptions import (
     DecryptionError,
@@ -58,13 +59,7 @@ from p2p.exceptions import (
     UnknownProtocolCommand,
     UnreachablePeer,
 )
-from p2p.service import BaseService
-from p2p._utils import (
-    get_devp2p_cmd_id,
-    roundup_16,
-    sxor,
-    time_since,
-)
+from p2p.kademlia import Node
 from p2p.p2p_proto import (
     Disconnect,
     DisconnectReason,
@@ -72,6 +67,11 @@ from p2p.p2p_proto import (
     P2PProtocol,
     Ping,
     Pong,
+)
+from p2p.service import BaseService
+from p2p.tracking.connection import (
+    BaseConnectionTracker,
+    NoopConnectionTracker,
 )
 
 from .constants import (
@@ -187,12 +187,15 @@ class BasePeer(BaseService):
     sub_proto: protocol.Protocol = None
     disconnect_reason: DisconnectReason = None
 
+    _event_bus: Endpoint = None
+
     def __init__(self,
                  remote: Node,
                  privkey: datatypes.PrivateKey,
                  connection: PeerConnection,
                  context: BasePeerContext,
                  inbound: bool = False,
+                 event_bus: Endpoint = None,
                  token: CancelToken = None,
                  ) -> None:
         super().__init__(token)
@@ -215,6 +218,9 @@ class BasePeer(BaseService):
         # Initially while doing the handshake, the base protocol shouldn't support
         # snappy compression
         self.base_protocol = P2PProtocol(self, snappy_support=False)
+
+        # Optional event bus handle
+        self._event_bus = event_bus
 
         # Flag indicating whether the connection this peer represents was
         # established from a dial-out or dial-in (True: dial-in, False:
@@ -247,6 +253,23 @@ class BasePeer(BaseService):
 
         # Manages the boot process
         self.boot_manager = self.get_boot_manager()
+        self.connection_tracker = self.setup_connection_tracker()
+
+    @property
+    def has_event_bus(self) -> bool:
+        return self._event_bus is not None
+
+    def get_event_bus(self) -> Endpoint:
+        if self._event_bus is None:
+            raise AttributeError("No event bus configured for this peer pool")
+        return self._event_bus
+
+    def setup_connection_tracker(self) -> BaseConnectionTracker:
+        """
+        Return an instance of `p2p.tracking.connection.BaseConnectionTracker`
+        which will be used to track peer connection failures.
+        """
+        return NoopConnectionTracker()
 
     def get_extra_stats(self) -> List[str]:
         return []
@@ -830,10 +853,12 @@ class BasePeerFactory(ABC):
     def __init__(self,
                  privkey: datatypes.PrivateKey,
                  context: BasePeerContext,
-                 token: CancelToken) -> None:
+                 token: CancelToken,
+                 event_bus: Endpoint = None) -> None:
         self.privkey = privkey
         self.context = context
         self.cancel_token = token
+        self.event_bus = event_bus
 
     def create_peer(self,
                     remote: Node,
@@ -845,5 +870,6 @@ class BasePeerFactory(ABC):
             connection=connection,
             context=self.context,
             inbound=inbound,
+            event_bus=self.event_bus,
             token=self.cancel_token,
         )
