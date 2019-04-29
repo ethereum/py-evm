@@ -18,7 +18,7 @@ from trinity.extensibility import (
     BaseIsolatedPlugin,
 )
 from trinity._utils.shutdown import (
-    exit_with_service_and_endpoint,
+    exit_with_endpoint_and_services,
 )
 
 from trinity.plugins.builtin.ethstats.ethstats_service import (
@@ -125,7 +125,7 @@ class EthstatsPlugin(BaseIsolatedPlugin):
 
         loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
 
-        asyncio.ensure_future(exit_with_service_and_endpoint(service, self.context.event_bus))
+        asyncio.ensure_future(exit_with_endpoint_and_services(self.context.event_bus, service))
         asyncio.ensure_future(service.run())
 
         loop.run_forever()

@@ -38,7 +38,7 @@ from trinity.rpc.ipc import (
     IPCServer,
 )
 from trinity._utils.shutdown import (
-    exit_with_service_and_endpoint,
+    exit_with_endpoint_and_services,
 )
 
 
@@ -98,7 +98,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
         ipc_server = IPCServer(rpc, self.context.trinity_config.jsonrpc_ipc_path)
 
         loop = asyncio.get_event_loop()
-        asyncio.ensure_future(exit_with_service_and_endpoint(ipc_server, self.context.event_bus))
+        asyncio.ensure_future(exit_with_endpoint_and_services(self.context.event_bus, ipc_server))
         asyncio.ensure_future(ipc_server.run())
         loop.run_forever()
         loop.close()

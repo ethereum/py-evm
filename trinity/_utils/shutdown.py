@@ -16,22 +16,26 @@ from trinity.endpoint import (
 )
 
 
-async def exit_with_service_and_endpoint(service_to_exit: BaseService,
-                                         endpoint: TrinityEventBusEndpoint) -> None:
-    async with exit_signal_with_service(service_to_exit):
+async def exit_with_endpoint_and_services(endpoint: TrinityEventBusEndpoint,
+                                          *services_to_exit: BaseService) -> None:
+    async with exit_signal_with_services(*services_to_exit):
         endpoint.stop()
 
 
-async def exit_with_service(service_to_exit: BaseService) -> None:
-    async with exit_signal_with_service(service_to_exit):
+async def exit_with_services(*services_to_exit: BaseService) -> None:
+    async with exit_signal_with_services(*services_to_exit):
         pass
 
 
 @asynccontextmanager
-async def exit_signal_with_service(service_to_exit: BaseService) -> AsyncGenerator[None, None]:
-    loop = service_to_exit.get_event_loop()
+async def exit_signal_with_services(*services_to_exit: BaseService,
+                                    ) -> AsyncGenerator[None, None]:
+    loop_ids = set(service.get_event_loop() for service in services_to_exit)
+    if len(loop_ids) != 1:
+        raise ValueError(f"Multiple event loops found: {loop_ids}")
+    loop = services_to_exit[0].get_event_loop()
     async with exit_signal(loop):
-        await service_to_exit.cancel()
+        await asyncio.gather(*(service.cancel() for service in services_to_exit))
         yield
 
 

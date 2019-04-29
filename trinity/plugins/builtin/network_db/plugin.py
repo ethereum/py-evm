@@ -14,7 +14,7 @@ from p2p.tracking.connection import (
 )
 
 from trinity._utils.shutdown import (
-    exit_with_service_and_endpoint,
+    exit_with_endpoint_and_services,
 )
 from trinity.config import (
     TrinityConfig,
@@ -154,7 +154,7 @@ class NetworkDBPlugin(BaseIsolatedPlugin):
 
             service = self._get_blacklist_service()
 
-            asyncio.ensure_future(exit_with_service_and_endpoint(service, self.event_bus))
+            asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, service))
             asyncio.ensure_future(service.run())
 
             loop.run_forever()
