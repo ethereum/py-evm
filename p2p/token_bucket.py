@@ -41,6 +41,8 @@ class TokenBucket:
         return max(0, self._get_num_tokens(time.perf_counter()))
 
     def _get_num_tokens(self, when: float) -> float:
+        # Note that the implementation of the `take` method requires that this
+        # function to allow negative results..
         return min(
             self._capacity,
             self._num_tokens + (self._rate * (when - self._last_refill)),
@@ -55,7 +57,9 @@ class TokenBucket:
         self._num_tokens = self._get_num_tokens(now)
         self._last_refill = now
 
-        # deduct the requested tokens
+        # deduct the requested tokens.  this operation is allowed to result in
+        # a negative internal representation of the number of tokens in the
+        # bucket.
         self._num_tokens -= num
 
     async def take(self, num: Union[int, float] = 1) -> None:
@@ -69,7 +73,9 @@ class TokenBucket:
         async with self._take_lock:
             self._take(num)
 
-        # if the bucket balance is negative, wait an amount of seconds adequatet to fill it
+        # if the bucket balance is negative, wait an amount of seconds
+        # adequatet to fill it.  Note that this requires that `_get_num_tokens`
+        # be able to return a negative value.
         if self._num_tokens < 0:
             sleep_for = abs(self._num_tokens) * self._seconds_per_token
             await asyncio.sleep(sleep_for)
@@ -82,7 +88,9 @@ class TokenBucket:
         if num_tokens >= num:
             self._take(num)
         else:
-            raise NotEnoughTokens(f"Insufficient capacity.  Needed {num} but only has {num_tokens}")
+            raise NotEnoughTokens(
+                f"Insufficient capacity.  Needed {num:.2f} but only has {num_tokens:.2f}"
+            )
 
     def can_take(self, num: Union[int, float] = 1) -> bool:
         """
