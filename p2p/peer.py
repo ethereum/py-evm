@@ -261,7 +261,7 @@ class BasePeer(BaseService):
 
     def get_event_bus(self) -> Endpoint:
         if self._event_bus is None:
-            raise AttributeError("No event bus configured for this peer pool")
+            raise AttributeError(f"No event bus configured for peer {self}")
         return self._event_bus
 
     def setup_connection_tracker(self) -> BaseConnectionTracker:
