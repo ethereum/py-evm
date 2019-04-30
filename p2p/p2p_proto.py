@@ -84,10 +84,12 @@ class Disconnect(Command):
 
 class Ping(Command):
     _cmd_id = 2
+    structure = ()
 
 
 class Pong(Command):
     _cmd_id = 3
+    structure = ()
 
 
 class P2PProtocol(Protocol):
