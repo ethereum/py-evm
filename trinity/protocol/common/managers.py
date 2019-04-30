@@ -17,7 +17,9 @@ from eth_utils import (
     ValidationError,
 )
 
+from p2p._utils import ensure_global_asyncio_executor
 from p2p.exceptions import PeerConnectionLost
+from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.protocol import (
     BaseRequest,
@@ -25,7 +27,7 @@ from p2p.protocol import (
     TRequestPayload,
 )
 from p2p.service import BaseService
-from p2p._utils import ensure_global_asyncio_executor
+from p2p.token_bucket import TokenBucket, NotEnoughTokens
 
 from trinity.exceptions import AlreadyWaiting
 
@@ -227,6 +229,15 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
         self._cancel_token = cancel_token
         self._response_command_type = listening_for
 
+        # This TokenBucket allows for the occasional invalid response at a
+        # maximum rate of 1-per-10-minutes and allowing up to two in quick
+        # succession.  We *allow* invalid responses because the ETH protocol
+        # doesn't have strong correlation between request/response and certain
+        # networking conditions can result in us interpreting a legitimate
+        # message as an invalid response if messages arrive out of order or
+        # late.
+        self._invalid_response_bucket = TokenBucket(1 / 600, 2)
+
     async def launch_service(self) -> None:
         if self._cancel_token.triggered:
             raise PeerConnectionLost("Peer %s is gone. Ignoring new requests to it" % self._peer)
@@ -287,7 +298,19 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
                     self._peer,
                     err,
                 )
-                continue
+                try:
+                    self._invalid_response_bucket.take()
+                except NotEnoughTokens:
+                    self.service.logger.warning(
+                        "Blacklisting and disconnecting from %s due to too many invalid responses",
+                        self._peer,
+                    )
+                    self._peer.disconnect_nowait(DisconnectReason.bad_protocol)
+                    await self.service.cancellation()
+                    # re-raise the outer ValidationError exception
+                    raise err from err
+                else:
+                    continue
             else:
                 tracker.record_response(
                     stream.last_response_time,
