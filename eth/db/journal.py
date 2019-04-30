@@ -111,7 +111,7 @@ class Journal(BaseDB):
     def pop_changeset(self, changeset_id: uuid.UUID) -> Dict[bytes, Union[bytes, DeletedEntry]]:
         """
         Returns all changes from the given changeset.  This includes all of
-        the changes from any subsequent changeset, giving precidence to
+        the changes from any subsequent changeset, giving precedence to
         later changesets.
         """
         if changeset_id not in self.journal_data:
@@ -381,31 +381,14 @@ class JournalDB(BaseDB):
         Commits a given changeset. This merges the given changeset and all
         subsequent changesets into the previous changeset giving precidence
         to later changesets in case of any conflicting keys.
-
-        If this is the base changeset then all changes will be written to
-        the underlying database and the Journal starts a new recording.
-        Typically, callers won't have access to the base changeset, because
-        it is dropped during .reset() which is called in JournalDB().
         """
         self._validate_changeset(changeset_id)
-        journal_data = self.journal.commit_changeset(changeset_id)
-
-        if self.journal.is_empty():
-            # Ensure the journal automatically restarts recording after
-            # it has been persisted to the underlying db
-            self.reset()
-
-            for key, value in journal_data.items():
-                try:
-                    if value is DELETED_ENTRY:
-                        del self.wrapped_db[key]
-                    elif value is ERASE_CREATED_ENTRY:
-                        pass
-                    else:
-                        self.wrapped_db[key] = cast(bytes, value)
-                except Exception:
-                    self._reapply_changeset_to_journal(changeset_id, journal_data)
-                    raise
+        if changeset_id == self.journal.root_changeset_id:
+            raise ValidationError(
+                "Tried to commit the root changeset. Callers should not keep references "
+                "to the root changeset. Maybe you meant to use persist()?"
+            )
+        self.journal.commit_changeset(changeset_id)
 
     def _reapply_changeset_to_journal(
             self,
@@ -422,9 +405,27 @@ class JournalDB(BaseDB):
 
     def persist(self) -> None:
         """
-        Persist all changes in underlying db
+        Persist all changes in underlying db. After all changes have been written the
+        JournalDB starts a new recording.
         """
-        self.commit(self.journal.root_changeset_id)
+        root_changeset = self.journal.root_changeset_id
+        journal_data = self.journal.commit_changeset(root_changeset)
+
+        # Ensure the journal automatically restarts recording after
+        # it has been persisted to the underlying db
+        self.reset()
+
+        for key, value in journal_data.items():
+            try:
+                if value is DELETED_ENTRY:
+                    del self.wrapped_db[key]
+                elif value is ERASE_CREATED_ENTRY:
+                    pass
+                else:
+                    self.wrapped_db[key] = cast(bytes, value)
+            except Exception:
+                self._reapply_changeset_to_journal(root_changeset, journal_data)
+                raise
 
     def flatten(self) -> None:
         """

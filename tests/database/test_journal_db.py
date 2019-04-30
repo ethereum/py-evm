@@ -557,3 +557,12 @@ def test_journal_db_diff_respects_clear():
 
     pending = journal_db.diff().pending_items()
     assert len(pending) == 0
+
+
+def test_journal_db_rejects_committing_root():
+    memory_db = MemoryDB({})
+    journal_db = JournalDB(memory_db)
+
+    root = journal_db.journal.root_changeset_id
+    with pytest.raises(ValidationError):
+        journal_db.commit(root)
