@@ -40,12 +40,19 @@ from eth_keys import datatypes
 from cancel_token import CancelToken
 
 from p2p import auth
-from p2p import protocol
 from p2p._utils import (
     get_devp2p_cmd_id,
     roundup_16,
     sxor,
     time_since,
+)
+from p2p.protocol import (
+    Command,
+    PayloadType,
+    Protocol,
+)
+from p2p.kademlia import (
+    Node,
 )
 from p2p.exceptions import (
     DecryptionError,
@@ -59,7 +66,6 @@ from p2p.exceptions import (
     UnknownProtocolCommand,
     UnreachablePeer,
 )
-from p2p.kademlia import Node
 from p2p.p2p_proto import (
     Disconnect,
     DisconnectReason,
@@ -180,11 +186,11 @@ class BasePeer(BaseService):
     conn_idle_timeout = CONN_IDLE_TIMEOUT
     # Must be defined in subclasses. All items here must be Protocol classes representing
     # different versions of the same P2P sub-protocol (e.g. ETH, LES, etc).
-    supported_sub_protocols: List[Type[protocol.Protocol]] = []
+    supported_sub_protocols: List[Type[Protocol]] = []
     # FIXME: Must be configurable.
     listen_port = 30303
     # Will be set upon the successful completion of a P2P handshake.
-    sub_proto: protocol.Protocol = None
+    sub_proto: Protocol = None
     disconnect_reason: DisconnectReason = None
 
     _event_bus: Endpoint = None
@@ -236,7 +242,7 @@ class BasePeer(BaseService):
 
         # A counter of the number of messages this peer has received for each
         # message type.
-        self.received_msgs: Dict[protocol.Command, int] = collections.defaultdict(int)
+        self.received_msgs: Dict[Command, int] = collections.defaultdict(int)
 
         # Encryption and Cryptography *stuff*
         self.egress_mac = connection.egress_mac
@@ -287,7 +293,7 @@ class BasePeer(BaseService):
 
     @abstractmethod
     async def process_sub_proto_handshake(
-            self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
+            self, cmd: Command, msg: PayloadType) -> None:
         pass
 
     @contextlib.contextmanager
@@ -368,7 +374,7 @@ class BasePeer(BaseService):
     def capabilities(self) -> List[Tuple[str, int]]:
         return [(klass.name, klass.version) for klass in self.supported_sub_protocols]
 
-    def get_protocol_command_for(self, msg: bytes) -> protocol.Command:
+    def get_protocol_command_for(self, msg: bytes) -> Command:
         """Return the Command corresponding to the cmd_id encoded in the given msg."""
         cmd_id = get_devp2p_cmd_id(msg)
         self.logger.debug2("Got msg with cmd_id: %s", cmd_id)
@@ -433,7 +439,7 @@ class BasePeer(BaseService):
                 self.logger.debug("%r disconnected: %s", self, e)
                 return
 
-    async def read_msg(self) -> Tuple[protocol.Command, protocol.PayloadType]:
+    async def read_msg(self) -> Tuple[Command, PayloadType]:
         header_data = await self.read(HEADER_LEN + MAC_LEN)
         try:
             header = self.decrypt_header(header_data)
@@ -474,7 +480,7 @@ class BasePeer(BaseService):
             self.received_msgs[cmd] += 1
             return cmd, decoded_msg
 
-    def handle_p2p_msg(self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
+    def handle_p2p_msg(self, cmd: Command, msg: PayloadType) -> None:
         """Handle the base protocol (P2P) messages."""
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
@@ -488,7 +494,7 @@ class BasePeer(BaseService):
         else:
             raise UnexpectedMessage(f"Unexpected msg: {cmd} ({msg})")
 
-    def handle_sub_proto_msg(self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
+    def handle_sub_proto_msg(self, cmd: Command, msg: PayloadType) -> None:
         cmd_type = type(cmd)
 
         if self._subscribers:
@@ -506,14 +512,14 @@ class BasePeer(BaseService):
         else:
             self.logger.warning("Peer %s has no subscribers, discarding %s msg", self, cmd)
 
-    def process_msg(self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
+    def process_msg(self, cmd: Command, msg: PayloadType) -> None:
         if cmd.is_base_protocol:
             self.handle_p2p_msg(cmd, msg)
         else:
             self.handle_sub_proto_msg(cmd, msg)
 
     async def process_p2p_handshake(
-            self, cmd: protocol.Command, msg: protocol.PayloadType) -> None:
+            self, cmd: Command, msg: PayloadType) -> None:
         msg = cast(Dict[str, Any], msg)
         if not isinstance(cmd, Hello):
             await self.disconnect(DisconnectReason.bad_protocol)
@@ -656,7 +662,7 @@ class BasePeer(BaseService):
 
     def select_sub_protocol(self,
                             remote_capabilities: List[Tuple[bytes, int]],
-                            snappy_support: bool) -> protocol.Protocol:
+                            snappy_support: bool) -> Protocol:
         """Select the sub-protocol to use when talking to the remote.
 
         Find the highest version of our supported sub-protocols that is also supported by the
@@ -688,8 +694,8 @@ class BasePeer(BaseService):
 
 class PeerMessage(NamedTuple):
     peer: BasePeer
-    command: protocol.Command
-    payload: protocol.PayloadType
+    command: Command
+    payload: PayloadType
 
 
 class PeerSubscriber(ABC):
@@ -701,7 +707,7 @@ class PeerSubscriber(ABC):
 
     @property
     @abstractmethod
-    def subscription_msg_types(self) -> FrozenSet[Type[protocol.Command]]:
+    def subscription_msg_types(self) -> FrozenSet[Type[Command]]:
         """
         The :class:`p2p.protocol.Command` types that this class subscribes to. Any
         command which is not in this set will not be passed to this subscriber.
@@ -716,9 +722,9 @@ class PeerSubscriber(ABC):
         pass
 
     @functools.lru_cache(maxsize=64)
-    def is_subscription_command(self, cmd_type: Type[protocol.Command]) -> bool:
+    def is_subscription_command(self, cmd_type: Type[Command]) -> bool:
         return bool(self.subscription_msg_types.intersection(
-            {cmd_type, protocol.Command}
+            {cmd_type, Command}
         ))
 
     @property
@@ -836,7 +842,7 @@ class PeerSubscriber(ABC):
 class MsgBuffer(PeerSubscriber):
     logger = logging.getLogger('p2p.peer.MsgBuffer')
     msg_queue_maxsize = 500
-    subscription_msg_types = frozenset({protocol.Command})
+    subscription_msg_types = frozenset({Command})
 
     @to_tuple
     def get_messages(self) -> Iterator[PeerMessage]:
