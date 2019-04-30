@@ -22,6 +22,7 @@ from eth_typing import (
     Hash32,
 )
 from eth_utils import (
+    humanize_hash,
     ValidationError,
 )
 from eth_utils.toolz import (
@@ -64,9 +65,6 @@ from trinity._utils.datastructures import (
 )
 from trinity._utils.headers import (
     skip_complete_headers,
-)
-from trinity._utils.humanize import (
-    humanize_hash,
 )
 
 
