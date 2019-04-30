@@ -1,11 +1,13 @@
 from abc import ABC
 import logging
+import operator
 import struct
 from typing import (
     Any,
     Dict,
     Generic,
     List,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
@@ -26,6 +28,7 @@ from eth.constants import NULL_BYTE
 
 from p2p.exceptions import (
     MalformedMessage,
+    NoMatchingPeerCapabilities,
 )
 from p2p._utils import get_devp2p_cmd_id
 
@@ -184,6 +187,9 @@ class BaseRequest(ABC, Generic[TRequestPayload]):
     response_type: Type[Command]
 
 
+TCapability = Tuple[str, int]
+
+
 class Protocol:
     peer: 'BasePeer'
     name: str = None
@@ -219,8 +225,59 @@ class Protocol:
     def supports_command(self, cmd_type: Type[Command]) -> bool:
         return cmd_type in self.cmd_by_type
 
+    @classmethod
+    def as_capability(cls) -> TCapability:
+        return (cls.name, cls.version)
+
     def __repr__(self) -> str:
         return "(%s, %d)" % (self.name, self.version)
+
+
+TCapabilities = Tuple[TCapability, ...]
+
+
+def select_sub_protocol(protocols: Sequence[Type[Protocol]],
+                        capabilities: TCapabilities) -> Type[Protocol]:
+    """
+    Return the highest version protocol from the provided `protocols` based on
+    the provided remote `capabilities`.
+
+    Return the protocol with the highest version that is present in the
+    remote and stores an instance of it (with the appropriate cmd_id offset) in
+    self.sub_proto.
+
+    Raise NoMatchingPeerCapabilities if none of our supported protocols match one of the
+    remote's protocols.
+
+    Raise NotImplementedError if all protocols do not share the same name.
+    """
+    proto_names = set(proto.name for proto in protocols)
+    if len(proto_names) != 1:
+        raise NotImplementedError(
+            "Negotiation of capabilities across multiple protocol names not "
+            "implemented"
+        )
+
+    supported_capabilities = set(proto.as_capability() for proto in protocols)
+    matching_capabilities = tuple(sorted(
+        supported_capabilities.intersection(capabilities),
+        key=operator.itemgetter(1),
+        reverse=True,
+    ))
+
+    if not matching_capabilities:
+        raise NoMatchingPeerCapabilities(
+            f"No matching capabilities:\n"
+            f" - {tuple(sorted(supported_capabilities))}\n"
+            f" - {tuple(sorted(capabilities))}"
+        )
+
+    for match in matching_capabilities:
+        for proto in protocols:
+            if proto.as_capability() == match:
+                return proto
+
+    raise NoMatchingPeerCapabilities()
 
 
 def _pad_to_16_byte_boundary(data: bytes) -> bytes:

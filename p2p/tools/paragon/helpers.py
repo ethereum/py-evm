@@ -23,14 +23,17 @@ from p2p.exceptions import (
     HandshakeFailure,
     NoMatchingPeerCapabilities,
 )
+from p2p.p2p_proto import (
+    DisconnectReason,
+    Hello,
+)
 from p2p.peer import (
     BasePeer,
     BasePeerFactory,
     PeerConnection,
 )
-from p2p.p2p_proto import (
-    DisconnectReason,
-    Hello,
+from p2p.protocol import (
+    select_sub_protocol,
 )
 
 
@@ -249,13 +252,15 @@ async def process_v4_p2p_handshake(
 
     remote_capabilities = msg['capabilities']
     try:
-        self.sub_proto = self.select_sub_protocol(remote_capabilities, snappy_support)
+        sub_proto_class = select_sub_protocol(self.supported_sub_protocols, remote_capabilities)
     except NoMatchingPeerCapabilities:
         await self.disconnect(DisconnectReason.useless_peer)
         raise HandshakeFailure(
             f"No matching capabilities between us ({self.capabilities}) and {self.remote} "
             f"({remote_capabilities}), disconnecting"
         )
+    else:
+        self.sub_proto = sub_proto_class(self, self.base_protocol.cmd_length, snappy_support)
 
     self.logger.debug(
         "Finished P2P handshake with %s, using sub-protocol %s",
