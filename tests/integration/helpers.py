@@ -3,9 +3,17 @@ async def run_command_and_detect_errors(async_process_runner, command, time):
     Run the given ``command`` on the given ``async_process_runner`` for ``time`` seconds and
     throw an Exception in case any unresolved Exceptions are detected in the output of the command.
     """
-    lines_since_error = 0
     await async_process_runner.run(command, timeout_sec=time)
-    async for line in async_process_runner.stderr:
+    scan_for_errors(async_process_runner.stderr)
+
+
+async def scan_for_errors(async_iterable):
+    """
+    Consume the output produced by the async iterable and throw if it contains hints of an
+    uncaught exception.
+    """
+    lines_since_error = 0
+    async for line in async_iterable:
 
         # We detect errors by some string at the beginning of the Traceback and keep
         # counting lines from there to be able to read and report more valuable info

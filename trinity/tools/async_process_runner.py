@@ -65,8 +65,8 @@ class AsyncProcessRunner():
         self.kill()
         raise TimeoutError(f'Killed process after {timeout_sec} seconds')
 
-    def kill(self) -> None:
+    def kill(self, sig: int = signal.SIGKILL) -> None:
         try:
-            os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+            os.killpg(os.getpgid(self.proc.pid), sig)
         except ProcessLookupError:
             self.logger.info("Process %s has already disappeared", self.proc.pid)
