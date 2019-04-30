@@ -619,6 +619,8 @@ class BeaconChainConfig:
     @property
     def beacon_chain_class(self) -> Type['BeaconChain']:
         if self._beacon_chain_class is None:
+            # TODO: we should be able to customize configs for tests/ instead of using the configs
+            #   from `TestnetChain`
             self._beacon_chain_class = TestnetChain.configure(
                 __name__=self.chain_name,
             )

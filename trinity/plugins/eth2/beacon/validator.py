@@ -28,6 +28,12 @@ from eth2.beacon.typing import (
     ValidatorIndex,
 )
 
+from p2p.service import BaseService
+
+from trinity._utils.shellart import (
+    bold_green,
+    bold_red,
+)
 from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.bcc.peer import (
     BCCPeer,
@@ -36,19 +42,9 @@ from trinity.protocol.bcc.peer import (
 from trinity.plugins.eth2.beacon.slot_ticker import (
     NewSlotEvent,
 )
-from trinity._utils.shellart import (
-    bold_green,
-    bold_red,
-)
-
-from p2p.service import BaseService
 
 
 class Validator(BaseService):
-    """
-    Reference: https://github.com/ethereum/trinity/blob/master/eth2/beacon/tools/builder/proposer.py#L175  # noqa: E501
-    """
-
     validator_index: ValidatorIndex
     chain: BeaconChain
     peer_pool: BCCPeerPool

@@ -102,7 +102,7 @@ class FakePeerPool:
         self.connected_nodes[index] = FakePeer()
 
 
-def get_chain(db):
+def get_chain_from_genesis(db):
     return chain_class.from_genesis(
         base_db=db,
         genesis_state=genesis_state,
@@ -112,7 +112,7 @@ def get_chain(db):
 
 async def get_validator(event_loop, event_bus, index) -> Validator:
     chain_db = await helpers.get_chain_db()
-    chain = get_chain(chain_db.db)
+    chain = get_chain_from_genesis(chain_db.db)
     peer_pool = FakePeerPool()
     v = Validator(
         validator_index=index,
@@ -247,44 +247,6 @@ async def test_validator_skip_block(caplog, event_loop, event_bus):
 
 
 @pytest.mark.asyncio
-async def test_validator_new_slot(caplog, event_loop, event_bus, monkeypatch):
-    caplog.set_level(logging.DEBUG)
-    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=0)
-    state_machine = alice.chain.get_state_machine()
-    state = state_machine.state
-    new_slot = state.slot + 1
-    # test: `new_slot` should call `propose_block` if the validator get selected,
-    #   else calls `skip_block`.
-    index = _get_proposer_index(
-        state,
-        new_slot,
-        state_machine.config,
-    )
-
-    is_proposing = True
-
-    def propose_block(slot, state, state_machine, head_block):
-        nonlocal is_proposing
-        is_proposing = True
-
-    def skip_block(slot, state, state_machine):
-        nonlocal is_proposing
-        is_proposing = False
-
-    monkeypatch.setattr(alice, 'propose_block', propose_block)
-    monkeypatch.setattr(alice, 'skip_block', skip_block)
-
-    await alice.new_slot(new_slot)
-
-    # test: either `propose_block` or `skip_block` should be called.
-    assert is_proposing is not None
-    if alice.validator_index == index:
-        assert is_proposing
-    else:
-        assert not is_proposing
-
-
-@pytest.mark.asyncio
 async def test_validator_handle_new_slot(caplog, event_loop, event_bus, monkeypatch):
     alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=0)
 
@@ -310,3 +272,41 @@ async def test_validator_handle_new_slot(caplog, event_loop, event_bus, monkeypa
         timeout=2,
         loop=event_loop,
     )
+
+
+@pytest.mark.asyncio
+async def test_validator_new_slot(caplog, event_loop, event_bus, monkeypatch):
+    caplog.set_level(logging.DEBUG)
+    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=0)
+    state_machine = alice.chain.get_state_machine()
+    state = state_machine.state
+    new_slot = state.slot + 1
+    # test: `new_slot` should call `propose_block` if the validator get selected,
+    #   else calls `skip_block`.
+    index = _get_proposer_index(
+        state,
+        new_slot,
+        state_machine.config,
+    )
+
+    is_proposing = None
+
+    def propose_block(slot, state, state_machine, head_block):
+        nonlocal is_proposing
+        is_proposing = True
+
+    def skip_block(slot, state, state_machine):
+        nonlocal is_proposing
+        is_proposing = False
+
+    monkeypatch.setattr(alice, 'propose_block', propose_block)
+    monkeypatch.setattr(alice, 'skip_block', skip_block)
+
+    await alice.new_slot(new_slot)
+
+    # test: either `propose_block` or `skip_block` should be called.
+    assert is_proposing is not None
+    if alice.validator_index == index:
+        assert is_proposing
+    else:
+        assert not is_proposing
