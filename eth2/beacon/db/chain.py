@@ -167,14 +167,14 @@ class BeaconChainDB(BaseBeaconChainDB):
     def __init__(self, db: BaseAtomicDB, config: Eth2Config) -> None:
         self.db = db
 
-        self._last_finalized_root = self._get_last_finalized_root_if_present(db)
+        self._finalized_root = self._get_finalized_root_if_present(db)
         self._highest_justified_epoch = self._get_highest_justified_epoch(db, config)
 
-    def _get_last_finalized_root_if_present(self, db: BaseDB) -> Optional[Hash32]:
+    def _get_finalized_root_if_present(self, db: BaseDB) -> Hash32:
         try:
             return self._get_finalized_head_root(db)
         except FinalizedHeadNotFound:
-            return None
+            return ZERO_HASH32
 
     def _get_highest_justified_epoch(self, db: BaseDB, config: Eth2Config) -> Epoch:
         try:
@@ -182,7 +182,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             slot = self.get_slot_by_root(justified_head_root)
             return slot_to_epoch(slot, config.SLOTS_PER_EPOCH)
         except JustifiedHeadNotFound:
-            return Epoch(0)
+            return config.GENESIS_EPOCH
 
     def persist_block(
             self,
@@ -669,7 +669,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             SchemaV1.make_finalized_head_root_lookup_key(),
             finalized_root,
         )
-        self._last_finalized_root = finalized_root
+        self._finalized_root = finalized_root
 
     def _persist_finalized_head(self, state: BeaconState) -> None:
         """
@@ -677,7 +677,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         This policy is safe because a large number of validators on the network
         will have violated a slashing condition if the invariant does not hold.
         """
-        if state.finalized_root != self._last_finalized_root:
+        if state.finalized_root != self._finalized_root:
             self._update_finalized_head(state.finalized_root)
 
     def _update_justified_head(self, justified_root: Hash32, epoch: Epoch) -> None:
