@@ -19,10 +19,10 @@ from .commands import (
 class ParagonProtocol(Protocol):
     name = 'paragon'
     version = 1
-    _commands = [
+    _commands = (
         BroadcastData,
         GetSum, Sum,
-    ]
+    )
     cmd_length = 3
     logger = logging.getLogger("p2p.tools.paragon.proto.ParagonProtocol")
 

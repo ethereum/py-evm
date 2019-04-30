@@ -93,7 +93,7 @@ class Status(Command):
 
 class Announce(Command):
     _cmd_id = 1
-    structure = [
+    structure = (
         ('head_hash', sedes.binary),
         ('head_number', sedes.big_endian_int),
         ('head_td', sedes.big_endian_int),
@@ -101,33 +101,33 @@ class Announce(Command):
         # TODO: The params CountableList may contain any of the values from the
         # Status msg.  Need to extend this command to process that too.
         ('params', sedes.CountableList(sedes.List([sedes.text, sedes.raw]))),
-    ]
+    )
 
 
 class GetBlockHeadersQuery(rlp.Serializable):
-    fields = [
+    fields = (
         ('block_number_or_hash', HashOrNumber()),
         ('max_headers', sedes.big_endian_int),
         ('skip', sedes.big_endian_int),
         ('reverse', sedes.boolean),
-    ]
+    )
 
 
 class GetBlockHeaders(Command):
     _cmd_id = 2
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('query', GetBlockHeadersQuery),
-    ]
+    )
 
 
 class BlockHeaders(BaseBlockHeaders):
     _cmd_id = 3
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('buffer_value', sedes.big_endian_int),
         ('headers', sedes.CountableList(BlockHeader)),
-    ]
+    )
 
     def extract_headers(self, msg: _DecodedMsgType) -> Tuple[BlockHeader, ...]:
         msg = cast(Dict[str, Any], msg)
@@ -136,62 +136,62 @@ class BlockHeaders(BaseBlockHeaders):
 
 class GetBlockBodies(Command):
     _cmd_id = 4
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('block_hashes', sedes.CountableList(sedes.binary)),
-    ]
+    )
 
 
 class BlockBodies(Command):
     _cmd_id = 5
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('buffer_value', sedes.big_endian_int),
         ('bodies', sedes.CountableList(BlockBody)),
-    ]
+    )
 
 
 class GetReceipts(Command):
     _cmd_id = 6
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('block_hashes', sedes.CountableList(sedes.binary)),
-    ]
+    )
 
 
 class Receipts(Command):
     _cmd_id = 7
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('buffer_value', sedes.big_endian_int),
         ('receipts', sedes.CountableList(sedes.CountableList(Receipt))),
-    ]
+    )
 
 
 class ProofRequest(rlp.Serializable):
-    fields = [
+    fields = (
         ('block_hash', sedes.binary),
         ('account_key', sedes.binary),
         ('key', sedes.binary),
         ('from_level', sedes.big_endian_int),
-    ]
+    )
 
 
 class GetProofs(Command):
     _cmd_id = 8
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('proof_requests', sedes.CountableList(ProofRequest)),
-    ]
+    )
 
 
 class Proofs(Command):
     _cmd_id = 9
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('buffer_value', sedes.big_endian_int),
         ('proofs', sedes.CountableList(sedes.CountableList(sedes.raw))),
-    ]
+    )
 
     def decode_payload(self, rlp_data: bytes) -> _DecodedMsgType:
         decoded = super().decode_payload(rlp_data)
@@ -207,27 +207,27 @@ class Proofs(Command):
 
 
 class ContractCodeRequest(rlp.Serializable):
-    fields = [
+    fields = (
         ('block_hash', sedes.binary),
         ('key', sedes.binary),
-    ]
+    )
 
 
 class GetContractCodes(Command):
     _cmd_id = 10
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('code_requests', sedes.CountableList(ContractCodeRequest)),
-    ]
+    )
 
 
 class ContractCodes(Command):
     _cmd_id = 11
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('buffer_value', sedes.big_endian_int),
         ('codes', sedes.CountableList(sedes.binary)),
-    ]
+    )
 
 
 class StatusV2(Status):
@@ -244,8 +244,8 @@ class GetProofsV2(GetProofs):
 
 class ProofsV2(Command):
     _cmd_id = 16
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('buffer_value', sedes.big_endian_int),
         ('proof', sedes.CountableList(sedes.raw)),
-    ]
+    )

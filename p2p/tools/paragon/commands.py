@@ -7,21 +7,21 @@ from p2p.protocol import (
 
 class BroadcastData(Command):
     _cmd_id = 0
-    structure = [
+    structure = (
         ('data', sedes.binary),
-    ]
+    )
 
 
 class GetSum(Command):
     _cmd_id = 2
-    structure = [
+    structure = (
         ('a', sedes.big_endian_int),
         ('b', sedes.big_endian_int),
-    ]
+    )
 
 
 class Sum(Command):
     _cmd_id = 3
-    structure = [
+    structure = (
         ('result', sedes.big_endian_int),
-    ]
+    )

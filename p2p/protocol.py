@@ -53,10 +53,16 @@ TRequestPayload = TypeVar('TRequestPayload', bound=PayloadType, covariant=True)
 _DecodedMsgType = PayloadType
 
 
+TStructure = Union[
+    Tuple[Tuple[str, Any], ...],
+    sedes.CountableList,
+]
+
+
 class Command:
     _cmd_id: int = None
     decode_strict = True
-    structure: List[Tuple[str, Any]] = []
+    structure: TStructure
 
     _logger: logging.Logger = None
 
@@ -79,9 +85,12 @@ class Command:
         return f"{type(self).__name__} (cmd_id={self.cmd_id})"
 
     def encode_payload(self, data: Union[PayloadType, sedes.CountableList]) -> bytes:
-        if isinstance(data, dict):  # convert dict to ordered list
-            if not isinstance(self.structure, list):
-                raise ValueError("Command.structure must be a list when data is a dict")
+        if isinstance(data, dict):  # convert dict to ordered tuple
+            if not isinstance(self.structure, tuple):
+                raise ValueError(
+                    "Command.structure must be a list when data is a dict.  Got "
+                    f"{self.structure}"
+                )
             expected_keys = sorted(name for name, _ in self.structure)
             data_keys = sorted(data.keys())
             if data_keys != expected_keys:
@@ -180,8 +189,8 @@ class Protocol:
     name: str = None
     version: int = None
     cmd_length: int = None
-    # List of Command classes that this protocol supports.
-    _commands: List[Type[Command]] = []
+    # Command classes that this protocol supports.
+    _commands: Tuple[Type[Command], ...]
 
     _logger: logging.Logger = None
 

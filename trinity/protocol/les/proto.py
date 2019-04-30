@@ -48,8 +48,15 @@ if TYPE_CHECKING:
 class LESProtocol(Protocol):
     name = 'les'
     version = 1
-    _commands = [Status, Announce, BlockHeaders, GetBlockHeaders, BlockBodies, Receipts, Proofs,
-                 ContractCodes]
+    _commands = (
+        Status,
+        Announce,
+        BlockHeaders, GetBlockHeaders,
+        BlockBodies,
+        Receipts,
+        Proofs,
+        ContractCodes,
+    )
     cmd_length = 15
     peer: 'LESPeer'
 
@@ -170,8 +177,15 @@ class LESProtocol(Protocol):
 
 class LESProtocolV2(LESProtocol):
     version = 2
-    _commands = [StatusV2, Announce, BlockHeaders, GetBlockHeaders, BlockBodies, Receipts,
-                 ProofsV2, ContractCodes]
+    _commands = (  # type: ignore  # mypy doesn't like us overriding this.
+        StatusV2,
+        Announce,
+        BlockHeaders, GetBlockHeaders,
+        BlockBodies,
+        Receipts,
+        ProofsV2,
+        ContractCodes,
+    )
     cmd_length = 21
 
     def send_handshake(self, chain_info: ChainInfo) -> None:
