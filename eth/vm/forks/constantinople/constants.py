@@ -9,4 +9,4 @@ GAS_SSTORE_EIP1283_CLEAR_REFUND = 15000
 GAS_SSTORE_EIP1283_RESET_CLEAR_REFUND = 19800
 GAS_SSTORE_EIP1283_RESET_REFUND = 4800
 
-EIP1234_BLOCK_REWARD = 2 * denoms.ether  # type: ignore  # https://github.com/ethereum/eth-utils/pull/154  # noqa: E501
+EIP1234_BLOCK_REWARD = 2 * denoms.ether
