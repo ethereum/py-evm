@@ -31,7 +31,10 @@ from p2p.token_bucket import TokenBucket, NotEnoughTokens
 
 from trinity.exceptions import AlreadyWaiting
 
-from .constants import ROUND_TRIP_TIMEOUT, NUM_QUEUED_REQUESTS
+from .constants import (
+    ROUND_TRIP_TIMEOUT,
+    NUM_QUEUED_REQUESTS,
+)
 from .normalizers import BaseNormalizer
 from .trackers import BasePerformanceTracker
 from .types import (
@@ -70,6 +73,11 @@ class ResponseCandidateStream(
         self.response_msg_type = response_msg_type
         self._lock = asyncio.Lock()
 
+        # token bucket for limiting timeouts.
+        # - Refills at 1-token every 5 minutes
+        # - Max capacity of 3 tokens
+        self.timeout_bucket = TokenBucket(1 / 300, 3)
+
     async def payload_candidates(
             self,
             request: BaseRequest[TRequestPayload],
@@ -103,9 +111,27 @@ class ResponseCandidateStream(
 
                 try:
                     yield await self._get_payload(timeout_remaining)
-                except TimeoutError:
+                except TimeoutError as err:
                     tracker.record_timeout()
-                    raise
+
+                    # If the peer has timeoud out too many times, desconnect
+                    # and blacklist them
+                    try:
+                        self.timeout_bucket.take_nowait()
+                    except NotEnoughTokens:
+                        self.logger.warning(
+                            "Blacklisting and disconnecting from %s due to too many timeouts",
+                            self._peer,
+                        )
+                        self._peer.connection_tracker.record_blacklist(
+                            self._peer.remote,
+                            300,  # 5 minutes
+                            f"Too many timeouts: {err}",
+                        )
+                        self._peer.disconnect_nowait(DisconnectReason.timeout)
+                        await self.cancelation()
+                    finally:
+                        raise
         finally:
             self._lock.release()
 
