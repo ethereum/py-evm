@@ -1,4 +1,8 @@
 # The default timeout for a round trip API request and response from a peer.
+#
+# > NOTE: This value **MUST** be less than `p2p.constants.CONN_IDLE_TIMEOUT` for
+# it to be meaningful.  Otherwise, the actual reading of the p2p message from
+# the network will timeout before this timeout is ever hit.
 ROUND_TRIP_TIMEOUT = 20.0
 
 # Timeout used when performing the check to ensure peers are on the same side of chain splits as

@@ -102,6 +102,16 @@ class BaseChainPeer(BasePeer):
             genesis_hash=genesis_hash,
         )
 
+    def setup_connection_tracker(self) -> BaseConnectionTracker:
+        if self.has_event_bus:
+            return ConnectionTrackerClient(self.get_event_bus())
+        else:
+            self.logger.warning(
+                "No event_bus set on peer.  Connection tracking falling back to "
+                "`NoopConnectionTracker`."
+            )
+            return NoopConnectionTracker()
+
 
 class BaseChainPeerFactory(BasePeerFactory):
     context: ChainContext
@@ -130,6 +140,6 @@ class BaseChainPeerPool(BasePeerPool):
 
     def setup_connection_tracker(self) -> BaseConnectionTracker:
         if self.has_event_bus:
-            return ConnectionTrackerClient(self.event_bus)
+            return ConnectionTrackerClient(self.get_event_bus())
         else:
             return NoopConnectionTracker()
