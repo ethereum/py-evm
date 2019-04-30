@@ -183,7 +183,7 @@ class BeaconState(ssz.Serializable):
         )
 
     def __repr__(self) -> str:
-        return 'BeaconState #{0}>'.format(
+        return '<BeaconState #{0}>'.format(
             encode_hex(self.root)[2:10],
         )
 

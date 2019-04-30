@@ -25,6 +25,8 @@ from trinity.protocol.bcc.commands import (
     GetBeaconBlocksMessage,
     BeaconBlocks,
     BeaconBlocksMessage,
+    NewBeaconBlock,
+    NewBeaconBlockMessage,
     AttestationRecords,
 )
 
@@ -38,8 +40,8 @@ if TYPE_CHECKING:
 class BCCProtocol(HasExtendedDebugLogger, Protocol):
     name = "bcc"
     version = 0
-    _commands = [Status, GetBeaconBlocks, BeaconBlocks, AttestationRecords]
-    cmd_length = 4
+    _commands = [Status, GetBeaconBlocks, BeaconBlocks, AttestationRecords, NewBeaconBlock]
+    cmd_length = 5
 
     peer: "BCCPeer"
 
@@ -77,4 +79,11 @@ class BCCProtocol(HasExtendedDebugLogger, Protocol):
     def send_attestation_records(self, attestations: Tuple[Attestation, ...]) -> None:
         cmd = AttestationRecords(self.cmd_id_offset, self.snappy_support)
         header, body = cmd.encode(tuple(ssz.encode(attestation) for attestation in attestations))
+        self.send(header, body)
+
+    def send_new_block(self, block: BaseBeaconBlock) -> None:
+        cmd = NewBeaconBlock(self.cmd_id_offset, self.snappy_support)
+        header, body = cmd.encode(NewBeaconBlockMessage(
+            encoded_block=ssz.encode(block),
+        ))
         self.send(header, body)

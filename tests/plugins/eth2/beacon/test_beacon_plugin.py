@@ -4,6 +4,8 @@ from trinity._utils.async_iter import (
 )
 
 
+# FIXME: this test should not be skipped after genesis json is added
+@pytest.mark.skip(reason="need genesis json to initialize `genesis_data`")
 @pytest.mark.parametrize(
     'command',
     (
