@@ -73,7 +73,7 @@ from trinity._utils.proxy import (
     serve_until_sigint,
 )
 from trinity._utils.shutdown import (
-    exit_signal_with_service,
+    exit_signal_with_services,
 )
 
 
@@ -212,7 +212,7 @@ async def handle_networking_exit(service: BaseService,
                                  plugin_manager: PluginManager,
                                  endpoint: TrinityEventBusEndpoint) -> None:
 
-    async with exit_signal_with_service(service):
+    async with exit_signal_with_services(service):
         await plugin_manager.shutdown()
         endpoint.stop()
         # Retrieve and shutdown the global executor that was created at startup

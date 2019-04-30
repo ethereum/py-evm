@@ -59,7 +59,7 @@ from trinity.protocol.les.proto import (
     LESProtocolV2,
 )
 from trinity._utils.shutdown import (
-    exit_with_service_and_endpoint,
+    exit_with_endpoint_and_services,
 )
 
 
@@ -176,7 +176,7 @@ class PeerDiscoveryPlugin(BaseIsolatedPlugin):
             self.event_bus,
             self.context.trinity_config
         )
-        asyncio.ensure_future(exit_with_service_and_endpoint(discovery_bootstrap, self.event_bus))
+        asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, discovery_bootstrap))
         asyncio.ensure_future(discovery_bootstrap.run())
         loop.run_forever()
         loop.close()
