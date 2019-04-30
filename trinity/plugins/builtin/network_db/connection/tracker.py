@@ -56,11 +56,11 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
     #
     # Core API
     #
-    def record_blacklist(self, remote: Node, timout_seconds: int, reason: str) -> None:
+    def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
         if self._record_exists(remote.uri()):
-            self._update_record(remote, timout_seconds, reason)
+            self._update_record(remote, timeout_seconds, reason)
         else:
-            self._create_record(remote, timout_seconds, reason)
+            self._create_record(remote, timeout_seconds, reason)
 
     async def should_connect_to(self, remote: Node) -> bool:
         try:
@@ -96,9 +96,9 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
         else:
             return True
 
-    def _create_record(self, remote: Node, timout_seconds: int, reason: str) -> None:
+    def _create_record(self, remote: Node, timeout_seconds: int, reason: str) -> None:
         uri = remote.uri()
-        expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=timout_seconds)
+        expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=timeout_seconds)
 
         record = BlacklistRecord(uri=uri, expires_at=expires_at, reason=reason)
         self.session.add(record)
@@ -108,17 +108,17 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
         self.logger.debug(
             '%s will not be retried for %s because %s',
             remote,
-            humanize_seconds(timout_seconds),
+            humanize_seconds(timeout_seconds),
             reason,
         )
 
-    def _update_record(self, remote: Node, timout_seconds: int, reason: str) -> None:
+    def _update_record(self, remote: Node, timeout_seconds: int, reason: str) -> None:
         uri = remote.uri()
         record = self._get_record(uri)
         record.error_count += 1
 
-        adjusted_timout_seconds = int(timout_seconds * math.sqrt(record.error_count))
-        record.expires_at += datetime.timedelta(seconds=adjusted_timout_seconds)
+        adjusted_timeout_seconds = int(timeout_seconds * math.sqrt(record.error_count))
+        record.expires_at += datetime.timedelta(seconds=adjusted_timeout_seconds)
         record.reason = reason
         record.error_count += 1
 
@@ -129,7 +129,7 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
         self.logger.debug(
             '%s will not be retried for %s because %s',
             remote,
-            humanize_seconds(adjusted_timout_seconds),
+            humanize_seconds(adjusted_timeout_seconds),
             reason,
         )
 
@@ -150,9 +150,9 @@ class ConnectionTrackerClient(BaseConnectionTracker):
         self.event_bus = event_bus
         self.config = config
 
-    def record_blacklist(self, remote: Node, timout_seconds: int, reason: str) -> None:
+    def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
         self.event_bus.broadcast(
-            BlacklistEvent(remote, timout_seconds, reason=reason),
+            BlacklistEvent(remote, timeout_seconds, reason=reason),
             self.config,
         )
 

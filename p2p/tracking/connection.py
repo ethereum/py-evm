@@ -16,10 +16,10 @@ from p2p.exceptions import (
 FAILURE_TIMEOUTS: Dict[Type[Exception], int] = {}
 
 
-def register_error(exception: Type[BaseP2PError], timout_seconds: int) -> None:
+def register_error(exception: Type[BaseP2PError], timeout_seconds: int) -> None:
     if exception in FAILURE_TIMEOUTS:
         raise KeyError(f"Exception class already registered")
-    FAILURE_TIMEOUTS[exception] = timout_seconds
+    FAILURE_TIMEOUTS[exception] = timeout_seconds
 
 
 register_error(HandshakeFailure, 10)  # 10 seconds
@@ -42,13 +42,13 @@ class BaseConnectionTracker(ABC):
     logger = logging.getLogger('p2p.tracking.connection.ConnectionTracker')
 
     def record_failure(self, remote: Node, failure: BaseP2PError) -> None:
-        timout_seconds = get_timeout_for_failure(failure)
+        timeout_seconds = get_timeout_for_failure(failure)
         failure_name = type(failure).__name__
 
-        return self.record_blacklist(remote, timout_seconds, failure_name)
+        return self.record_blacklist(remote, timeout_seconds, failure_name)
 
     @abstractmethod
-    def record_blacklist(self, remote: Node, timout_seconds: int, reason: str) -> None:
+    def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
         pass
 
     @abstractmethod
@@ -57,7 +57,7 @@ class BaseConnectionTracker(ABC):
 
 
 class NoopConnectionTracker(BaseConnectionTracker):
-    def record_blacklist(self, remote: Node, timout_seconds: int, reason: str) -> None:
+    def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
         pass
 
     async def should_connect_to(self, remote: Node) -> bool:
