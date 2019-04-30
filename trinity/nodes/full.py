@@ -1,10 +1,9 @@
 from typing import Type
 
 from p2p.peer_pool import BasePeerPool
-from p2p.persistence import SQLitePeerInfo
 
 from trinity.chains.full import FullChain
-from trinity.config import TrinityConfig, Eth1AppConfig
+from trinity.config import TrinityConfig
 from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.server import FullServer
 
@@ -23,9 +22,6 @@ class FullNode(Node):
         self._node_port = trinity_config.port
         self._max_peers = trinity_config.max_peers
 
-        app_config = trinity_config.get_app_config(Eth1AppConfig)
-        self._nodedb_path = app_config.nodedb_path
-
     @property
     def chain_class(self) -> Type[FullChain]:
         return self.chain_config.full_chain_class
@@ -36,7 +32,6 @@ class FullNode(Node):
     def get_p2p_server(self) -> FullServer:
         if self._p2p_server is None:
             manager = self.db_manager
-            peer_info = SQLitePeerInfo(self._nodedb_path)
             self._p2p_server = FullServer(
                 privkey=self._node_key,
                 port=self._node_port,
@@ -45,7 +40,6 @@ class FullNode(Node):
                 headerdb=self.headerdb,
                 base_db=manager.get_db(),  # type: ignore
                 network_id=self._network_id,
-                peer_info=peer_info,
                 max_peers=self._max_peers,
                 bootstrap_nodes=self._bootstrap_nodes,
                 preferred_nodes=self._preferred_nodes,

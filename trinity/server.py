@@ -42,7 +42,6 @@ from p2p.p2p_proto import (
     DisconnectReason,
 )
 from p2p.peer import BasePeer, PeerConnection
-from p2p.persistence import BasePeerInfo
 from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
@@ -86,7 +85,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
                  headerdb: BaseAsyncHeaderDB,
                  base_db: BaseAsyncDB,
                  network_id: int,
-                 peer_info: BasePeerInfo = None,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
@@ -107,7 +105,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         self.privkey = privkey
         self.port = port
         self.network_id = network_id
-        self.peer_info = peer_info
         self.max_peers = max_peers
         self.bootstrap_nodes = bootstrap_nodes
         self.preferred_nodes = preferred_nodes
@@ -302,7 +299,6 @@ class FullServer(BaseServer[ETHPeerPool]):
             privkey=self.privkey,
             max_peers=self.max_peers,
             context=context,
-            peer_info=self.peer_info,
             token=self.cancel_token,
             event_bus=self.event_bus
         )

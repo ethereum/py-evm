@@ -1,5 +1,4 @@
 from typing import (
-    cast,
     Tuple,
 )
 
@@ -55,7 +54,7 @@ class BlockHeaders(BaseBlockHeaders):
     structure = sedes.CountableList(BlockHeader)
 
     def extract_headers(self, msg: _DecodedMsgType) -> Tuple[BlockHeader, ...]:
-        return cast(Tuple[BlockHeader, ...], tuple(msg))
+        return tuple(msg)
 
 
 class GetBlockBodies(Command):

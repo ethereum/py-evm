@@ -8,7 +8,6 @@ import struct
 import time
 from typing import (
     Any,
-    cast,
     Dict,
     Iterable,
     Iterator,
@@ -134,7 +133,6 @@ class Node:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, self.__class__):
             return super().__eq__(other)
-        other = cast(Node, other)
         return self.pubkey == other.pubkey
 
     def __ne__(self, other: object) -> bool:
@@ -335,7 +333,7 @@ class RoutingTable:
         # nodes and sort it by distance_to.
         for bucket in self.buckets_by_distance_to(node_id):
             for n in bucket.nodes_by_distance_to(node_id):
-                if n is not node_id:
+                if n.id is not node_id:
                     nodes.append(n)
                     if len(nodes) == k * 2:
                         break

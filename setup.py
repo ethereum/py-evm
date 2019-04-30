@@ -13,6 +13,7 @@ deps = {
         "eth-hash>=0.1.4,<1",
         "netifaces>=0.10.7<1",
         "pysha3>=1.0.0,<2.0.0",
+        "SQLAlchemy>=1.3.3,<2",
         "upnpclient>=0.0.8,<1",
     ],
     'trinity': [
@@ -29,7 +30,7 @@ deps = {
         "termcolor>=1.1.0,<2.0.0",
         "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",  # noqa: E501
         "websockets==5.0.1",
-        "jsonschema==2.6.0",
+        "jsonschema==3.0.1",
         "mypy_extensions>=0.4.1,<1.0.0",
         "typing_extensions>=3.7.2,<4.0.0",
     ],
@@ -51,6 +52,7 @@ deps = {
         "flake8==3.5.0",
         "flake8-bugbear==18.8.0",
         "mypy==0.701",
+        "sqlalchemy-stubs==0.1",
     ],
     'doc': [
         "pytest~=3.2",

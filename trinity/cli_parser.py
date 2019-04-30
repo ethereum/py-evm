@@ -14,11 +14,11 @@ from p2p.kademlia import Node
 from p2p.validation import validate_enode_uri
 
 from trinity import __version__
+from trinity._utils.eip1085 import validate_raw_eip1085_genesis_config
 from trinity.constants import (
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
 )
-from trinity._utils.eip1085 import validate_raw_eip1085_genesis_config
 
 
 class ValidateAndStoreEnodes(argparse.Action):

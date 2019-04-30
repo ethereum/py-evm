@@ -34,6 +34,7 @@ SYNC_LIGHT = 'light'
 
 # lahja endpoint names
 MAIN_EVENTBUS_ENDPOINT = 'main'
+NETWORKDB_EVENTBUS_ENDPOINT = 'network-db'
 NETWORKING_EVENTBUS_ENDPOINT = 'networking'
 TO_NETWORKING_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=NETWORKING_EVENTBUS_ENDPOINT)
 

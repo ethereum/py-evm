@@ -51,3 +51,13 @@ class DAOForkCheckFailure(BaseTrinityError):
     Raised when the DAO fork check with a certain peer is unsuccessful.
     """
     pass
+
+
+class BadDatabaseError(BaseTrinityError):
+    """
+    The local network database is not in the expected format
+     - empty
+     - wrong schema version
+     - missing tables
+    """
+    pass
