@@ -11,7 +11,7 @@ from eth.validation import (
 )
 from eth.vm import opcode_values
 
-PUSH1, PUSH32 = opcode_values.PUSH1, opcode_values.PUSH32
+PUSH1, PUSH32, STOP = opcode_values.PUSH1, opcode_values.PUSH32, opcode_values.STOP
 
 
 class CodeStream(object):
@@ -25,14 +25,16 @@ class CodeStream(object):
 
     def __init__(self, code_bytes: bytes) -> None:
         validate_is_bytes(code_bytes, title="CodeStream bytes")
-        self.stream = io.BytesIO(code_bytes)
+        stream = io.BytesIO(code_bytes)
+        self.stream = stream
+        self._bound_stream_read = stream.read
         self._raw_code_bytes = code_bytes
         self._length_cache = len(code_bytes)
         self.invalid_positions = set()
         self.valid_positions = set()
 
     def read(self, size: int) -> bytes:
-        return self.stream.read(size)
+        return self._bound_stream_read(size)
 
     def __len__(self) -> int:
         return self._length_cache
@@ -40,19 +42,17 @@ class CodeStream(object):
     def __iter__(self) -> 'CodeStream':
         return self
 
-    def __next__(self) -> int:
-        return self._next()
-
     def __getitem__(self, i: int) -> int:
         return self._raw_code_bytes[i]
 
-    def _next(self) -> int:
-        next_opcode_as_byte = self.read(1)
+    def __next__(self) -> int:
+        # a very performance-sensitive method
+        next_opcode_as_byte = self._bound_stream_read(1)
 
         if next_opcode_as_byte:
             return ord(next_opcode_as_byte)
         else:
-            return opcode_values.STOP
+            return STOP
 
     def peek(self) -> int:
         current_pc = self.pc
