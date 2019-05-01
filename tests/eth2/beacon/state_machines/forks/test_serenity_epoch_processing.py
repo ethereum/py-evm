@@ -778,6 +778,7 @@ def test_process_rewards_and_penalties_for_finality(
                 participants_bitfield = set_voted(participants_bitfield, committee.index(index))
         prev_epoch_attestations.append(
             PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+                aggregation_bitfield=participants_bitfield,
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=(prev_epoch_start_slot + i),
                     shard=shard,
@@ -792,7 +793,6 @@ def test_process_rewards_and_penalties_for_finality(
                         config.SLOTS_PER_HISTORICAL_ROOT,
                     ),
                 ),
-                aggregation_bitfield=participants_bitfield,
             )
         )
     state = state.copy(
@@ -896,6 +896,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
         data_slot = i + previous_epoch * slots_per_epoch
         previous_epoch_attestations.append(
             PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+                aggregation_bitfield=participants_bitfield,
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=data_slot,
                     shard=shard,
@@ -904,8 +905,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
                         crosslink_data_root=ZERO_HASH32,
                     ),
                 ),
-                aggregation_bitfield=participants_bitfield,
-                slot_included=(data_slot + min_attestation_inclusion_delay),
+                inclusion_slot=(data_slot + min_attestation_inclusion_delay),
             )
         )
     state = state.copy(

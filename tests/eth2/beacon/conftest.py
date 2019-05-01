@@ -267,10 +267,10 @@ def sample_fork_params():
 @pytest.fixture
 def sample_pending_attestation_record_params(sample_attestation_data_params):
     return {
-        'data': AttestationData(**sample_attestation_data_params),
         'aggregation_bitfield': b'\12' * 16,
+        'data': AttestationData(**sample_attestation_data_params),
         'custody_bitfield': b'\34' * 16,
-        'slot_included': 0,
+        'inclusion_slot': 0,
     }
 
 
