@@ -1,3 +1,9 @@
+from typing import (
+    NamedTuple,
+    Tuple,
+    TYPE_CHECKING,
+)
+
 from eth_typing import (
     Address,
     Hash32,
@@ -5,12 +11,6 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
 )
-from typing import (
-    NamedTuple,
-    Tuple,
-    TYPE_CHECKING,
-)
-
 from trie.exceptions import (
     MissingTrieNode,
 )
