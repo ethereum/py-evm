@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 import asyncio
 import concurrent
-import datetime
 import functools
 import logging
+import time
 from typing import (
     Any,
     Awaitable,
@@ -47,6 +47,8 @@ class BaseService(ABC, CancellableMixin):
 
     _logger: ExtendedDebugLogger = None
 
+    _start_time: float = None
+
     def __init__(self,
                  token: CancelToken=None,
                  loop: asyncio.AbstractEventLoop = None) -> None:
@@ -75,8 +77,11 @@ class BaseService(ABC, CancellableMixin):
         return self._logger
 
     @property
-    def uptime(self) -> datetime.timedelta:
-        return datetime.datetime.utcnow() - self.start_time
+    def uptime(self) -> float:
+        if self._start_time is None:
+            return 0.0
+        else:
+            return time.monotonic() - self._start_time
 
     def get_event_loop(self) -> asyncio.AbstractEventLoop:
         if self._loop is None:
@@ -103,7 +108,7 @@ class BaseService(ABC, CancellableMixin):
         try:
             async with self._run_lock:
                 self.events.started.set()
-                self.start_time = datetime.datetime.utcnow()
+                self._start_time = time.monotonic()
                 await self._run()
         except OperationCancelled as e:
             self.logger.debug("%s finished: %s", self, e)
