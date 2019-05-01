@@ -115,12 +115,18 @@ deps['dev'] = (
 
 install_requires = deps['trinity'] + deps['p2p'] + deps['eth2']
 
+
+with open('./README.md') as readme:
+    long_description = readme.read()
+
+
 setup(
     name='trinity',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
     version='0.1.0-alpha.23',
     description='The Trinity client for the Ethereum network',
-    long_description_markdown_filename='README.md',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     author='Ethereum Foundation',
     author_email='piper@pipermerriam.com',
     url='https://github.com/ethereum/trinity',
@@ -129,7 +135,6 @@ setup(
     python_requires=">=3.6,<4",
     install_requires=install_requires,
     extras_require=deps,
-    setup_requires=['setuptools-markdown'],
     license='MIT',
     zip_safe=False,
     keywords='ethereum blockchain evm trinity',
