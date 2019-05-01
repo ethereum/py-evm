@@ -21,6 +21,9 @@ from cancel_token import (
 from eth_keys import (
     datatypes,
 )
+from eth_utils import (
+    humanize_seconds,
+)
 from eth_utils.toolz import (
     groupby,
     take,
@@ -468,7 +471,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                     peer.received_msgs.items(), key=operator.itemgetter(1))
                 self.logger.debug(
                     "%s: uptime=%s, received_msgs=%d, most_received=%s(%d)",
-                    peer, peer.uptime, peer.received_msgs_count,
+                    peer, humanize_seconds(peer.uptime), peer.received_msgs_count,
                     most_received_type, count)
                 self.logger.debug("client_version_string='%s'", peer.client_version_string)
                 for line in peer.get_extra_stats():
