@@ -29,6 +29,7 @@ from eth.db.backends.base import (
 )
 from eth.constants import (
     GENESIS_PARENT_HASH,
+    ZERO_HASH32,
 )
 from eth.exceptions import (
     BlockNotFound,
@@ -714,7 +715,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         epoch _and_ the justification is for a higher epoch than we have previously
         seen, go ahead and update the justified head.
         """
-        result = self.find_updated_justified_root(state)
+        result = self._find_updated_justified_root(state)
 
         if result:
             self._update_justified_head(*result)
