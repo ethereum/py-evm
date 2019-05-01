@@ -23,7 +23,8 @@ from eth.validation import (
     validate_lt_secpk1n,
     validate_lt_secpk1n2,
     validate_multiple_of,
-    validate_stack_item,
+    validate_stack_bytes,
+    validate_stack_int,
     validate_uint256,
     validate_unique,
     validate_vm_block_numbers,
@@ -301,11 +302,6 @@ def test_validate_uint256(value, is_valid):
 @pytest.mark.parametrize(
     "value,is_valid",
     (
-        ('a', False),
-        (b'', True),
-        (b'a', True),
-        (b'10010010010010010010010010010010', True),
-        (b'100100100100100100100100100100100', False),
         (-1, False),
         (0, True),
         (10, True),
@@ -313,12 +309,29 @@ def test_validate_uint256(value, is_valid):
         ((2**256) - 1, True),
     ),
 )
-def test_validate_stack_item(value, is_valid):
+def test_validate_stack_int(value, is_valid):
     if is_valid:
-            validate_stack_item(value)
+        validate_stack_int(value)
     else:
         with pytest.raises(ValidationError):
-            validate_stack_item(value)
+            validate_stack_int(value)
+
+
+@pytest.mark.parametrize(
+    "value,is_valid",
+    (
+        (b'', True),
+        (b'a', True),
+        (b'10010010010010010010010010010010', True),
+        (b'100100100100100100100100100100100', False),
+    ),
+)
+def test_validate_stack_bytes(value, is_valid):
+    if is_valid:
+        validate_stack_bytes(value)
+    else:
+        with pytest.raises(ValidationError):
+            validate_stack_bytes(value)
 
 
 @pytest.mark.parametrize(

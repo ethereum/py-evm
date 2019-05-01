@@ -2,7 +2,6 @@ from typing import (
     Any,
     Dict,
     Iterable,
-    List,
     Tuple,
     Union,
 )
@@ -29,7 +28,7 @@ def fill_vm_test(
         call_creates: Any=None,
         gas_price: Union[int, str]=None,
         gas_remaining: Union[int, str]=0,
-        logs: Iterable[Tuple[bytes, List[int], bytes]]=None,
+        logs: Iterable[Tuple[bytes, Tuple[int, ...], bytes]]=None,
         output: bytes=b"") -> Dict[str, Dict[str, Any]]:
 
     test_name = get_test_name(filler)

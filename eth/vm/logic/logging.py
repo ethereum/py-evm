@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import functools
-from typing import List  # noqa: F401
+from typing import Tuple  # noqa: F401
 
 from eth import constants
 
@@ -11,14 +11,14 @@ def log_XX(computation: BaseComputation, topic_count: int) -> None:
     if topic_count < 0 or topic_count > 4:
         raise TypeError("Invalid log topic size.  Must be 0, 1, 2, 3, or 4")
 
-    mem_start_position, size = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    mem_start_position, size = computation.stack_pop_ints(2)
 
     if not topic_count:
-        topics = []  # type: List[int]
+        topics = ()  # type: Tuple[int, ...]
     elif topic_count > 1:
-        topics = computation.stack_pop(num_items=topic_count, type_hint=constants.UINT256)
+        topics = computation.stack_pop_ints(topic_count)
     else:
-        topics = [computation.stack_pop(num_items=topic_count, type_hint=constants.UINT256)]
+        topics = (computation.stack_pop1_int(), )
 
     data_gas_cost = constants.GAS_LOGDATA * size
     topic_gas_cost = constants.GAS_LOGTOPIC * topic_count

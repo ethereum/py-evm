@@ -7,7 +7,7 @@ from eth.vm.computation import BaseComputation
 
 
 def sstore(computation: BaseComputation) -> None:
-    slot, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    slot, value = computation.stack_pop_ints(2)
 
     current_value = computation.state.get_storage(
         address=computation.msg.storage_address,
@@ -51,10 +51,10 @@ def sstore(computation: BaseComputation) -> None:
 
 
 def sload(computation: BaseComputation) -> None:
-    slot = computation.stack_pop(type_hint=constants.UINT256)
+    slot = computation.stack_pop1_int()
 
     value = computation.state.get_storage(
         address=computation.msg.storage_address,
         slot=slot,
     )
-    computation.stack_push(value)
+    computation.stack_push_int(value)

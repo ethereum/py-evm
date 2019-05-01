@@ -104,11 +104,49 @@ def prepare_general_computation(vm_class, create_address=None, code=b''):
 )
 def test_add(vm_class, val1, val2, expected):
     computation = prepare_general_computation(vm_class)
-    computation.stack_push(val1)
-    computation.stack_push(val2)
+    computation.stack_push_int(val1)
+    computation.stack_push_int(val2)
     computation.opcodes[opcode_values.ADD](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result = computation.stack_pop1_int()
+
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    'opcode_value, expected',
+    (
+        (opcode_values.COINBASE, b'\0' * 20),
+        # (opcode_values.TIMESTAMP, 1556826898),
+        (opcode_values.NUMBER, 0),
+        (opcode_values.DIFFICULTY, 17179869184),
+        (opcode_values.GASLIMIT, 5000),
+    )
+)
+def test_nullary_opcodes(VM, opcode_value, expected):
+    computation = prepare_general_computation(VM)
+    computation.opcodes[opcode_value](computation)
+
+    result = computation.stack_pop1_any()
+
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    'val1, expected',
+    (
+        (0, b''),
+        (1, b''),
+        (255, b''),
+        (256, b''),
+    )
+)
+def test_blockhash(VM, val1, expected):
+    computation = prepare_general_computation(VM)
+    computation.stack_push_int(val1)
+    computation.opcodes[opcode_values.BLOCKHASH](computation)
+
+    result = computation.stack_pop1_any()
 
     assert result == expected
 
@@ -125,11 +163,11 @@ def test_add(vm_class, val1, val2, expected):
 )
 def test_mul(vm_class, val1, val2, expected):
     computation = prepare_general_computation(vm_class)
-    computation.stack_push(val1)
-    computation.stack_push(val2)
+    computation.stack_push_int(val1)
+    computation.stack_push_int(val2)
     computation.opcodes[opcode_values.MUL](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result = computation.stack_pop1_int()
 
     assert result == expected
 
@@ -151,11 +189,11 @@ def test_mul(vm_class, val1, val2, expected):
 )
 def test_exp(vm_class, base, exponent, expected):
     computation = prepare_general_computation(vm_class)
-    computation.stack_push(exponent)
-    computation.stack_push(base)
+    computation.stack_push_int(exponent)
+    computation.stack_push_int(base)
     computation.opcodes[opcode_values.EXP](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result = computation.stack_pop1_int()
 
     assert result == expected
 
@@ -234,11 +272,11 @@ def test_exp(vm_class, base, exponent, expected):
 )
 def test_shl(vm_class, val1, val2, expected):
     computation = prepare_general_computation(vm_class)
-    computation.stack_push(decode_hex(val1))
-    computation.stack_push(decode_hex(val2))
+    computation.stack_push_bytes(decode_hex(val1))
+    computation.stack_push_bytes(decode_hex(val2))
     computation.opcodes[opcode_values.SHL](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result = computation.stack_pop1_int()
 
     assert encode_hex(pad32(int_to_big_endian(result))) == expected
 
@@ -317,11 +355,11 @@ def test_shl(vm_class, val1, val2, expected):
 )
 def test_shr(vm_class, val1, val2, expected):
     computation = prepare_general_computation(vm_class)
-    computation.stack_push(decode_hex(val1))
-    computation.stack_push(decode_hex(val2))
+    computation.stack_push_bytes(decode_hex(val1))
+    computation.stack_push_bytes(decode_hex(val2))
     computation.opcodes[opcode_values.SHR](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result = computation.stack_pop1_int()
     assert encode_hex(pad32(int_to_big_endian(result))) == expected
 
 
@@ -430,11 +468,11 @@ def test_shr(vm_class, val1, val2, expected):
 )
 def test_sar(vm_class, val1, val2, expected):
     computation = prepare_general_computation(vm_class)
-    computation.stack_push(decode_hex(val1))
-    computation.stack_push(decode_hex(val2))
+    computation.stack_push_bytes(decode_hex(val1))
+    computation.stack_push_bytes(decode_hex(val2))
     computation.opcodes[opcode_values.SAR](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result = computation.stack_pop1_int()
     assert encode_hex(pad32(int_to_big_endian(result))) == expected
 
 
@@ -467,10 +505,10 @@ def test_sar(vm_class, val1, val2, expected):
 def test_extcodehash(vm_class, address, expected):
     computation = prepare_general_computation(vm_class)
 
-    computation.stack_push(decode_hex(address))
+    computation.stack_push_bytes(decode_hex(address))
     computation.opcodes[opcode_values.EXTCODEHASH](computation)
 
-    result = computation.stack_pop(type_hint=constants.BYTES)
+    result = computation.stack_pop1_bytes()
     assert encode_hex(pad32(result)) == expected
 
 
