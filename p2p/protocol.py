@@ -53,16 +53,15 @@ TRequestPayload = TypeVar('TRequestPayload', bound=PayloadType, covariant=True)
 _DecodedMsgType = PayloadType
 
 
-TStructure = Union[
+StructureType = Union[
     Tuple[Tuple[str, Any], ...],
-    sedes.CountableList,
 ]
 
 
 class Command:
     _cmd_id: int = None
     decode_strict = True
-    structure: TStructure
+    structure: StructureType
 
     _logger: logging.Logger = None
 
@@ -85,7 +84,7 @@ class Command:
         return f"{type(self).__name__} (cmd_id={self.cmd_id})"
 
     def encode_payload(self, data: Union[PayloadType, sedes.CountableList]) -> bytes:
-        if isinstance(data, dict):  # convert dict to ordered tuple
+        if isinstance(data, dict):
             if not isinstance(self.structure, tuple):
                 raise ValueError(
                     "Command.structure must be a list when data is a dict.  Got "
@@ -97,7 +96,8 @@ class Command:
                 raise ValueError(
                     f"Keys in data dict ({data_keys}) do not match expected keys ({expected_keys})"
                 )
-            data = [data[name] for name, _ in self.structure]
+            data = tuple(data[name] for name, _ in self.structure)
+
         if isinstance(self.structure, sedes.CountableList):
             encoder = self.structure
         else:

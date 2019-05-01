@@ -92,6 +92,6 @@ class NewBeaconBlockMessage(TypedDict):
 
 class NewBeaconBlock(Command):
     _cmd_id = 4
-    structure = [
+    structure = (
         ('encoded_block', sedes.binary),
-    ]
+    )
