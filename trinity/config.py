@@ -32,6 +32,7 @@ from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
 
 from eth.db.backends.base import BaseAtomicDB
+from eth2.configs import Eth2Config
 from eth.typing import VMConfiguration
 
 from p2p.kademlia import Node as KademliaNode
@@ -603,6 +604,12 @@ class BeaconChainConfig:
     @property
     def genesis_slot(self) -> Slot:
         return self.genesis_data.genesis_slot
+
+    # NOTE(ralexstokes), this is temporary to merge in some other work
+    # will want to revisit this as we move towards our MVP testnet
+    @property
+    def eth2_config(self) -> Eth2Config:
+        return SERENITY_CONFIG
 
     @property
     def chain_name(self) -> str:
