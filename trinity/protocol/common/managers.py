@@ -80,12 +80,12 @@ class ResponseCandidateStream(
         To mark a response as valid, use `complete_request`. After that call, payload
         candidates will stop arriving.
         """
-        outer_timeout = self.response_timeout if timeout is None else timeout
+        total_timeout = self.response_timeout if timeout is None else timeout
 
         # The _lock ensures that we never have two concurrent requests to a
         # single peer for a single command pair in flight.
         try:
-            await self.wait(self._lock.acquire(), timeout=outer_timeout * NUM_QUEUED_REQUESTS)
+            await self.wait(self._lock.acquire(), timeout=total_timeout * NUM_QUEUED_REQUESTS)
         except TimeoutError:
             raise AlreadyWaiting(
                 f"Timed out waiting for {self.response_msg_name} request lock "
@@ -94,29 +94,13 @@ class ResponseCandidateStream(
 
         start_at = time.perf_counter()
 
-        if timeout is not None or tracker.total_msgs < 20:
-            inner_timeout = outer_timeout
-        else:
-            # We compute a timeout based on the historical performance
-            # of the peer defined as three standard deviations above
-            # the response time for the 99th percentile of requests.
-            try:
-                rtt_99th = tracker.round_trip_99th.value
-                rtt_stddev = tracker.round_trip_stddev.value
-            except ValueError:
-                inner_timeout = outer_timeout
-            else:
-                inner_timeout = rtt_99th + 3 * rtt_stddev
-
         try:
             self._request(request)
             while self._is_pending():
-                timeout_remaining = max(0, outer_timeout - (time.perf_counter() - start_at))
-
-                payload_timeout = min(inner_timeout, timeout_remaining)
+                timeout_remaining = max(0, total_timeout - (time.perf_counter() - start_at))
 
                 try:
-                    yield await self._get_payload(payload_timeout)
+                    yield await self._get_payload(timeout_remaining)
                 except TimeoutError:
                     tracker.record_timeout()
                     raise
