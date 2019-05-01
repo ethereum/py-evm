@@ -84,6 +84,7 @@ from .constants import (
     CONN_IDLE_TIMEOUT,
     HEADER_LEN,
     MAC_LEN,
+    MINUTES_10,
     SNAPPY_PROTOCOL_VERSION,
 )
 
@@ -430,11 +431,6 @@ class BasePeer(BaseService):
                 )
                 return
             except MalformedMessage as err:
-                self.connection_tracker.record_blacklist(
-                    self.remote,
-                    timeout_seconds=300,  # 5 minutes
-                    reason=f"Malformed message: {err}",
-                )
                 await self.disconnect(DisconnectReason.bad_protocol)
                 return
 
@@ -641,6 +637,14 @@ class BasePeer(BaseService):
             raise ValueError(
                 f"Reason must be an item of DisconnectReason, got {reason}"
             )
+
+        if reason is DisconnectReason.bad_protocol:
+            self.connection_tracker.record_blacklist(
+                self.remote,
+                timeout_seconds=MINUTES_10,
+                reason=f"Bad protocol",
+            )
+
         self.logger.debug("Disconnecting from remote peer %s; reason: %s", self.remote, reason.name)
         self.base_protocol.send_disconnect(reason.value)
         self.disconnect_reason = reason
