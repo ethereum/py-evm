@@ -18,6 +18,7 @@ from eth_utils import (
 )
 
 from p2p._utils import ensure_global_asyncio_executor
+from p2p.constants import BLACKLIST_SECONDS_TOO_MANY_TIMEOUTS
 from p2p.exceptions import PeerConnectionLost
 from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, PeerSubscriber
@@ -125,11 +126,11 @@ class ResponseCandidateStream(
                         )
                         self._peer.connection_tracker.record_blacklist(
                             self._peer.remote,
-                            300,  # 5 minutes
+                            BLACKLIST_SECONDS_TOO_MANY_TIMEOUTS,
                             f"Too many timeouts: {err}",
                         )
                         self._peer.disconnect_nowait(DisconnectReason.timeout)
-                        await self.cancelation()
+                        await self.cancellation()
                     finally:
                         raise
         finally:
