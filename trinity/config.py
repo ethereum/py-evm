@@ -32,8 +32,10 @@ from eth_keys import keys
 from eth_keys.datatypes import PrivateKey
 
 from eth.db.backends.base import BaseAtomicDB
-from eth2.configs import Eth2Config
 from eth.typing import VMConfiguration
+
+from eth2.configs import Eth2Config
+from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
 from p2p.kademlia import Node as KademliaNode
 from p2p.constants import (
@@ -631,6 +633,11 @@ class BeaconChainConfig:
 
     def initialize_chain(self,
                          base_db: BaseAtomicDB) -> 'BeaconChain':
+        # TODO(ralexstokes):
+        # NOTE(ralexstokes), this is temporary to merge in some other work
+        # will want to revisit this as we move towards our MVP testnet
+        config = SERENITY_CONFIG
+
         # Only used for testing
         chain_class = self.beacon_chain_class
         _, state_machine = chain_class.sm_configuration[0]
