@@ -3,6 +3,7 @@ from collections.abc import (
     MutableMapping,
 )
 from typing import (
+    cast,
     Dict,
     Iterable,
     Union,
@@ -25,18 +26,12 @@ else:
     ABC_Mapping = Mapping
 
 
-class MissingReason:
-    def __init__(self, reason: str) -> None:
-        self.reason = reason
-
-    def __str__(self, reason: str) -> str:      # type: ignore
-        # Ignoring mypy type here because the function signature
-        # has been overwritten from the traditional `def __str__(self): ...`
-        return "Key is missing because it was {}".format(self.reason)
+class MissingReason(str):
+    pass
 
 
-NEVER_INSERTED = MissingReason("never inserted")
-DELETED = MissingReason("deleted")
+NEVER_INSERTED = MissingReason("Key is missing because it was never inserted")
+DELETED = MissingReason("Key is missing because it was deleted")
 
 
 class DiffMissingError(KeyError):
@@ -147,7 +142,7 @@ class DBDiff(ABC_Mapping):
             if val is DELETED
         ]
         updated = [
-            "key=%s to val=%s" % (encode_hex(key), encode_hex(val))
+            "key=%s to val=%s" % (encode_hex(key), encode_hex(cast(bytes, val)))
             for key, val in self._changes.items()
             if val is not DELETED
         ]

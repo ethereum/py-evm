@@ -10,7 +10,7 @@ deps = {
         "eth-bloom>=1.0.3,<2.0.0",
         "eth-keys>=0.2.1,<1.0.0",
         "eth-typing>=2.0.0,<3.0.0",
-        "eth-utils>=1.3.0,<1.5",
+        "eth-utils>=1.5.2,<2.0.0",
         "lru-dict>=1.1.6",
         "mypy_extensions>=0.4.1,<1.0.0",
         "py-ecc>=1.4.7,<2.0.0",
@@ -42,7 +42,7 @@ deps = {
     'lint': [
         "flake8==3.5.0",
         "flake8-bugbear==18.8.0",
-        "mypy==0.641",
+        "mypy==0.701",
     ],
     'benchmark': [
         "termcolor>=1.1.0,<2.0.0",

@@ -90,8 +90,8 @@ def configure_homestead_header(vm: "HomesteadVM", **header_params: Any) -> Block
         if vm.support_dao_fork and changeset.block_number == vm.get_dao_fork_block_number():
             state = vm.state
 
-            for account in dao_drain_list:
-                address = Address(decode_hex(account))
+            for hex_account in dao_drain_list:
+                address = Address(decode_hex(hex_account))
                 balance = state.get_balance(address)
                 state.delta_balance(dao_refund_contract, balance)
                 state.set_balance(address, 0)
