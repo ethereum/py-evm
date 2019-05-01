@@ -482,7 +482,7 @@ def _compute_inactivity_leak_deltas(
             rewards_received = _update_rewards_or_penalies(
                 index,
                 (
-                    base_rewards[index] // config.MIN_ATTESTATION_INCLUSION_DELAY //
+                    base_rewards[index] * config.MIN_ATTESTATION_INCLUSION_DELAY //
                     inclusion_infos[index].inclusion_distance
                 ),
                 rewards_received,
