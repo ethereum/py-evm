@@ -126,3 +126,6 @@ REQUEST_PEER_CANDIDATE_TIMEOUT = 1
 
 # The maximum number of concurrent attempts to establis new peer connections
 MAX_CONCURRENT_CONNECTION_ATTEMPTS = 10
+
+# Time values in seconds
+MINUTES_10 = 60 * 10
