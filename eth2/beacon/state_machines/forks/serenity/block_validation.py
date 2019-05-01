@@ -9,12 +9,13 @@ from typing import (  # noqa: F401
 from eth_typing import (
     BLSPubkey,
     BLSSignature,
-    Hash32
 )
 from eth_utils import (
+    encode_hex,
     to_tuple,
     ValidationError,
 )
+import ssz
 
 from eth.constants import (
     ZERO_HASH32,
@@ -67,6 +68,11 @@ from eth2.beacon.validation import (
     validate_bitfield,
 )
 
+if TYPE_CHECKING:
+    from eth_typing import (
+        Hash32,
+    )
+
 
 #
 # Slot validatation
@@ -85,8 +91,8 @@ def validate_block_previous_root(state: BeaconState,
     previous_root = block.previous_block_root
     if previous_root != expected_root:
         raise ValidationError(
-            f"block.previous_block_root ({previous_root}) is not equal to "
-            f"state.latest_block_header.signed_root ({expected_root})"
+            f"block.previous_block_root ({encode_hex(previous_root)}) is not equal to "
+            f"state.latest_block_header.signing_root ({encode_hex(expected_root)}"
         )
 
 
@@ -583,7 +589,7 @@ def validate_randao_reveal(randao_reveal: BLSSignature,
                            proposer_pubkey: BLSPubkey,
                            epoch: Epoch,
                            fork: Fork) -> None:
-    message_hash = Hash32(epoch.to_bytes(32, byteorder="little"))
+    message_hash = ssz.hash_tree_root(epoch, sedes=ssz.sedes.uint64)
     domain = get_domain(fork, epoch, SignatureDomain.DOMAIN_RANDAO)
 
     is_randao_reveal_valid = bls.verify(
