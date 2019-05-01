@@ -605,6 +605,7 @@ class BeaconChainConfig:
     def genesis_slot(self) -> Slot:
         return self.genesis_data.genesis_slot
 
+    # TODO(ralexstokes):
     # NOTE(ralexstokes), this is temporary to merge in some other work
     # will want to revisit this as we move towards our MVP testnet
     @property
