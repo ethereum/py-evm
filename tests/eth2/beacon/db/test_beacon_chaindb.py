@@ -32,8 +32,8 @@ from eth2.beacon.types.states import BeaconState
 
 
 @pytest.fixture
-def chaindb(base_db):
-    return BeaconChainDB(base_db)
+def chaindb(base_db, config):
+    return BeaconChainDB(base_db, config)
 
 
 @pytest.fixture(params=[0, 10, 999])

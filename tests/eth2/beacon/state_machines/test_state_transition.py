@@ -53,7 +53,7 @@ def test_per_slot_transition(base_db,
                              config,
                              state_slot,
                              keymap):
-    chaindb = BeaconChainDB(base_db)
+    chaindb = BeaconChainDB(base_db, config)
     chaindb.persist_block(genesis_block, SerenityBeaconBlock)
     chaindb.persist_state(genesis_state)
 

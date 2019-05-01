@@ -10,6 +10,7 @@ def _beacon_chain_with_block_validation(
         genesis_block,
         genesis_state,
         fixture_sm_class,
+        config,
         chain_cls=BeaconChain):
     """
     Return a Chain object containing just the genesis block.
@@ -35,6 +36,7 @@ def _beacon_chain_with_block_validation(
         base_db,
         genesis_state,
         genesis_block,
+        config,
     )
     return chain
 
@@ -43,12 +45,14 @@ def _beacon_chain_with_block_validation(
 def beacon_chain_with_block_validation(base_db,
                                        genesis_block,
                                        genesis_state,
-                                       fixture_sm_class):
+                                       fixture_sm_class,
+                                       config):
     return _beacon_chain_with_block_validation(
         base_db,
         genesis_block,
         genesis_state,
         fixture_sm_class,
+        config,
     )
 
 

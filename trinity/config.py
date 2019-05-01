@@ -644,6 +644,7 @@ class BeaconChainConfig:
             base_db=base_db,
             genesis_state=state,
             genesis_block=block,
+            config=config,
         ))
 
 
