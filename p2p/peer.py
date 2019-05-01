@@ -48,7 +48,7 @@ from p2p.protocol import (
     Command,
     PayloadType,
     Protocol,
-    TCapabilities,
+    CapabilitiesType,
 )
 from p2p.kademlia import (
     Node,
@@ -362,7 +362,7 @@ class BasePeer(BaseService):
         await self.process_p2p_handshake(cmd, msg)
 
     @property
-    def capabilities(self) -> TCapabilities:
+    def capabilities(self) -> CapabilitiesType:
         return tuple(proto.as_capability() for proto in self.supported_sub_protocols)
 
     def get_protocol_command_for(self, msg: bytes) -> Command:

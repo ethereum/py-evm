@@ -187,7 +187,7 @@ class BaseRequest(ABC, Generic[TRequestPayload]):
     response_type: Type[Command]
 
 
-TCapability = Tuple[str, int]
+CapabilityType = Tuple[str, int]
 
 
 class Protocol:
@@ -226,18 +226,18 @@ class Protocol:
         return cmd_type in self.cmd_by_type
 
     @classmethod
-    def as_capability(cls) -> TCapability:
+    def as_capability(cls) -> CapabilityType:
         return (cls.name, cls.version)
 
     def __repr__(self) -> str:
         return "(%s, %d)" % (self.name, self.version)
 
 
-TCapabilities = Tuple[TCapability, ...]
+CapabilitiesType = Tuple[CapabilityType, ...]
 
 
 def select_sub_protocol(protocols: Sequence[Type[Protocol]],
-                        capabilities: TCapabilities) -> Type[Protocol]:
+                        capabilities: CapabilitiesType) -> Type[Protocol]:
     """
     Return the highest version protocol from the provided `protocols` based on
     the provided remote `capabilities`.
