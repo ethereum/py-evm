@@ -472,10 +472,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                 )
             )
 
-        if is_genesis:
-            score = 0
-        else:
-            score = first_block.slot
+        score = first_block.slot
 
         curr_block_head = first_block
         db.set(
