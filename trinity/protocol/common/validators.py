@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import collections
 from typing import (
     Any,
     Generic,
@@ -16,9 +17,11 @@ from eth_typing import (
 from eth_utils import (
     ValidationError,
     encode_hex,
+    humanize_hash,
 )
 
 from trinity._utils.headers import sequence_builder
+from trinity._utils.humanize import humanize_integer_sequence
 
 TResponse = TypeVar('TResponse')
 
@@ -69,7 +72,8 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
                     "Returned headers cannot be matched to header request. "
                     "Expected first header to have hash of "
                     f"{encode_hex(block_hash)} but instead got "
-                    f"{encode_hex(first_header.hash)}."
+                    f"{encode_hex(first_header.hash)}. "
+                    f'Requested: {self._get_formatted_params()}'
                 )
 
         block_numbers: Tuple[BlockNumber, ...] = tuple(
@@ -104,6 +108,15 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
     def _is_numbered(self) -> bool:
         return isinstance(self.block_number_or_hash, int)
 
+    def _get_formatted_params(self) -> str:
+        identifier = self.block_number_or_hash
+        return (
+            f'ident: {identifier if self._is_numbered else humanize_hash(identifier)}  '  # type: ignore  # mypy doesn't know that identifier is of the right type  # noqa: E501
+            f'max={self.max_headers}  '
+            f'skip={self.skip}  '
+            f'reverse={self.reverse}'
+        )
+
     def _validate_sequence(self, block_numbers: Tuple[BlockNumber, ...]) -> None:
         if not block_numbers:
             return
@@ -115,7 +128,12 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
         # check for numbers that should not be present.
         unexpected_numbers = set(block_numbers).difference(expected_numbers)
         if unexpected_numbers:
-            raise ValidationError(f'Unexpected numbers: {unexpected_numbers}')
+            raise ValidationError(
+                f'Got unexpected headers:\n'
+                f' - request params: {self._get_formatted_params()}\n'
+                f' - unexpected: {humanize_integer_sequence(sorted(unexpected_numbers))}\n'
+                f' - expected  : {humanize_integer_sequence(expected_numbers)}\n'
+            )
 
         # check that the numbers are correctly ordered.
         expected_order = tuple(sorted(
@@ -124,21 +142,20 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
         ))
         if block_numbers != expected_order:
             raise ValidationError(
-                'Returned headers are not correctly ordered.\n'
-                f'Expected: {expected_order}\n'
-                f'Got     : {block_numbers}\n'
+                'Headers are incorrectly ordered.\n'
+                f'- expected: {humanize_integer_sequence(expected_order)}\n'
+                f'- actual  : {block_numbers}\n'
             )
 
-        # check that all provided numbers are an ordered subset of the master
-        # sequence.
-        iter_expected = iter(expected_numbers)
-        for number in block_numbers:
-            for value in iter_expected:
-                if value == number:
-                    break
-            else:
-                raise ValidationError(
-                    'Returned headers contain an unexpected block number.\n'
-                    f'Unexpected Number: {number}\n'
-                    f'Expected Numbers : {expected_numbers}'
-                )
+        # check that there are no duplicate numbers
+        duplicates = {
+            key for
+            key, value in
+            collections.Counter(block_numbers).items()
+            if value > 1
+        }
+        if duplicates:
+            raise ValidationError(
+                'Duplicate headers returned.\n'
+                f'- duplicates: {humanize_integer_sequence(sorted(duplicates))}\n'
+            )

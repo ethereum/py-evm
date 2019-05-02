@@ -90,49 +90,80 @@ def test_block_number_generation_limited_to_MAX_HEADERS_FETCH():
 
 
 @pytest.mark.parametrize(
-    "params,sequence,is_match",
+    "params,sequence",
     (
-        (FORWARD_0_to_5, tuple(), True),
-        (FORWARD_0_to_5, (0, 1, 2, 3, 4, 5), True),
-        (FORWARD_0_to_5, (0, 2, 4, 5), True),
-        (FORWARD_0_to_5, (0, 5), True),
-        (FORWARD_0_to_5, (2,), True),
-        (FORWARD_0_to_5, (0,), True),
-        (FORWARD_0_to_5, (5,), True),
+        (FORWARD_0_to_5, tuple()),
+        (FORWARD_0_to_5, (0, 1, 2, 3, 4, 5)),
+        (FORWARD_0_to_5, (0, 2, 4, 5)),
+        (FORWARD_0_to_5, (0, 5)),
+        (FORWARD_0_to_5, (2,)),
+        (FORWARD_0_to_5, (0,)),
+        (FORWARD_0_to_5, (5,)),
         # skips
-        (FORWARD_0_to_5_SKIP_1, tuple(), True),
-        (FORWARD_0_to_5_SKIP_1, (0, 2, 4), True),
-        (FORWARD_0_to_5_SKIP_1, (0, 4), True),
-        (FORWARD_0_to_5_SKIP_1, (2, 4), True),
-        (FORWARD_0_to_5_SKIP_1, (0, 2), True),
-        (FORWARD_0_to_5_SKIP_1, (0,), True),
-        (FORWARD_0_to_5_SKIP_1, (2,), True),
-        (FORWARD_0_to_5_SKIP_1, (4,), True),
+        (FORWARD_0_to_5_SKIP_1, tuple()),
+        (FORWARD_0_to_5_SKIP_1, (0, 2, 4)),
+        (FORWARD_0_to_5_SKIP_1, (0, 4)),
+        (FORWARD_0_to_5_SKIP_1, (2, 4)),
+        (FORWARD_0_to_5_SKIP_1, (0, 2)),
+        (FORWARD_0_to_5_SKIP_1, (0,)),
+        (FORWARD_0_to_5_SKIP_1, (2,)),
+        (FORWARD_0_to_5_SKIP_1, (4,)),
         # reverse
-        (REVERSE_5_to_0, tuple(), True),
-        (REVERSE_5_to_0, (5, 4, 3, 2, 1, 0), True),
-        (REVERSE_5_to_0, (5, 4, 3), True),
-        (REVERSE_5_to_0, (2, 1, 0), True),
-        # duplicate value
-        (FORWARD_0_to_5, (0, 0, 1, 2, 3, 4, 5), False),
-        (FORWARD_0_to_5, (0, 1, 2, 2, 3, 4, 5), False),
-        (FORWARD_0_to_5, (0, 1, 2, 3, 4, 5, 5), False),
-        # extra value
-        (FORWARD_0_to_5, (0, 1, 2, 3, 4, 5, 6), False),
-        (FORWARD_0_to_5, (0, 1, 3, 5, 6), False),
-        (FORWARD_0_to_5_SKIP_1, (0, 2, 4, 6), False),
-        (FORWARD_0_to_5_SKIP_1, (0, 2, 3, 4), False),
-        (FORWARD_0_to_5_SKIP_1, (0, 2, 3), False),
+        (REVERSE_5_to_0, tuple()),
+        (REVERSE_5_to_0, (5, 4, 3, 2, 1, 0)),
+        (REVERSE_5_to_0, (5, 4, 3)),
+        (REVERSE_5_to_0, (2, 1, 0)),
     ),
 )
-def test_header_request_sequence_matching(
-        params,
-        sequence,
-        is_match):
+def test_header_request_sequence_matching(params, sequence):
     validator = BlockHeadersValidator(*params)
 
-    if is_match:
+    validator._validate_sequence(sequence)
+
+
+@pytest.mark.parametrize(
+    "params,sequence",
+    (
+        (FORWARD_0_to_5, (0, 0, 1, 2, 3, 4, 5)),
+        (FORWARD_0_to_5, (0, 1, 2, 2, 3, 4, 5)),
+        (FORWARD_0_to_5, (0, 1, 2, 3, 4, 5, 5)),
+    ),
+)
+def test_header_request_sequence_matching_duplicate(params, sequence):
+    validator = BlockHeadersValidator(*params)
+
+    with pytest.raises(ValidationError, match="Duplicate"):
         validator._validate_sequence(sequence)
-    else:
-        with pytest.raises(ValidationError):
-            validator._validate_sequence(sequence)
+
+
+@pytest.mark.parametrize(
+    "params,sequence",
+    (
+        (FORWARD_0_to_5, (0, 1, 2, 3, 4, 5, 6)),
+        (FORWARD_0_to_5, (0, 1, 3, 5, 6)),
+        (FORWARD_0_to_5_SKIP_1, (0, 2, 4, 6)),
+        (FORWARD_0_to_5_SKIP_1, (0, 2, 3, 4)),
+        (FORWARD_0_to_5_SKIP_1, (0, 2, 3)),
+    ),
+)
+def test_header_request_sequence_matching_unexpected(params, sequence):
+    validator = BlockHeadersValidator(*params)
+
+    with pytest.raises(ValidationError, match="unexpected headers"):
+        validator._validate_sequence(sequence)
+
+
+@pytest.mark.parametrize(
+    "params,sequence",
+    (
+        (FORWARD_0_to_5, (0, 1, 3, 2, 4, 5)),
+        (FORWARD_0_to_5, (0, 1, 5, 3)),
+        (FORWARD_0_to_5_SKIP_1, (0, 4, 2)),
+        (FORWARD_0_to_5_SKIP_1, (2, 0, 4)),
+    ),
+)
+def test_header_request_sequence_matching_wrong_order(params, sequence):
+    validator = BlockHeadersValidator(*params)
+
+    with pytest.raises(ValidationError, match="incorrectly ordered"):
+        validator._validate_sequence(sequence)
