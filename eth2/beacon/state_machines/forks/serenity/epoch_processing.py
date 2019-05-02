@@ -62,7 +62,7 @@ from eth2.beacon.validator_status_helpers import (
 )
 from eth2.beacon.datastructures.inclusion_info import InclusionInfo
 from eth2.beacon.types.attestations import Attestation
-from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
+from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
 from eth2.beacon.types.historical_batch import HistoricalBatch
@@ -128,7 +128,7 @@ def process_eth1_data_votes(state: BeaconState, config: Eth2Config) -> BeaconSta
 #
 
 def _is_epoch_justifiable(state: BeaconState,
-                          attestations: Sequence[PendingAttestationRecord],
+                          attestations: Sequence[PendingAttestation],
                           epoch: Epoch,
                           config: Eth2Config) -> bool:
     """

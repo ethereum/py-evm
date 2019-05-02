@@ -37,7 +37,7 @@ from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
 from eth2.beacon.types.crosslinks import Crosslink
-from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
+from eth2.beacon.types.pending_attestations import PendingAttestation
 
 
 def sampling_attestation_participants(random, committee, target_committee_size):
@@ -547,7 +547,7 @@ def test_get_inclusion_infos(
         committee.index(participating_validator_index)
     )
     previous_epoch_attestations = [
-        PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+        PendingAttestation(**sample_pending_attestation_record_params).copy(
             aggregation_bitfield=aggregation_bitfield,
             data=AttestationData(**sample_attestation_data_params).copy(
                 slot=attestation_1_data_slot,
@@ -555,7 +555,7 @@ def test_get_inclusion_infos(
             ),
             inclusion_slot=attestation_1_inclusion_slot,
         ),
-        PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+        PendingAttestation(**sample_pending_attestation_record_params).copy(
             aggregation_bitfield=aggregation_bitfield,
             data=AttestationData(**sample_attestation_data_params).copy(
                 slot=attestation_2_data_slot,

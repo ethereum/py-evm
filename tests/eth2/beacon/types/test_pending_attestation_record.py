@@ -1,12 +1,12 @@
 import ssz
 
-from eth2.beacon.types.pending_attestation_records import (
-    PendingAttestationRecord,
+from eth2.beacon.types.pending_attestations import (
+    PendingAttestation,
 )
 
 
 def test_defaults(sample_pending_attestation_record_params):
-    pending_attestation = PendingAttestationRecord(**sample_pending_attestation_record_params)
+    pending_attestation = PendingAttestation(**sample_pending_attestation_record_params)
 
     assert pending_attestation.data == sample_pending_attestation_record_params['data']
     assert pending_attestation.aggregation_bitfield == sample_pending_attestation_record_params['aggregation_bitfield']  # noqa: E501

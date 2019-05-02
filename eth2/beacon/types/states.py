@@ -39,7 +39,7 @@ from .eth1_data import Eth1Data
 from .eth1_data_vote import Eth1DataVote
 from .crosslinks import Crosslink
 from .forks import Fork
-from .pending_attestation_records import PendingAttestationRecord
+from .pending_attestations import PendingAttestation
 from .validators import Validator
 
 
@@ -66,8 +66,8 @@ class BeaconState(ssz.Serializable):
         ('current_shuffling_seed', bytes32),
 
         # Finality
-        ('previous_epoch_attestations', List(PendingAttestationRecord)),
-        ('current_epoch_attestations', List(PendingAttestationRecord)),
+        ('previous_epoch_attestations', List(PendingAttestation)),
+        ('current_epoch_attestations', List(PendingAttestation)),
         ('previous_justified_epoch', uint64),
         ('current_justified_epoch', uint64),
         ('previous_justified_root', bytes32),
@@ -113,8 +113,8 @@ class BeaconState(ssz.Serializable):
             previous_shuffling_seed: Hash32,
             current_shuffling_seed: Hash32,
             # Finality
-            previous_epoch_attestations: Sequence[PendingAttestationRecord],
-            current_epoch_attestations: Sequence[PendingAttestationRecord],
+            previous_epoch_attestations: Sequence[PendingAttestation],
+            current_epoch_attestations: Sequence[PendingAttestation],
             previous_justified_epoch: Epoch,
             current_justified_epoch: Epoch,
             previous_justified_root: Hash32,

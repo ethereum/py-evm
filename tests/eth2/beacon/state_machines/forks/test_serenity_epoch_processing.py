@@ -55,7 +55,7 @@ from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
 from eth2.beacon.types.crosslinks import Crosslink
-from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
+from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _check_if_update_validator_registry,
     _compute_individual_penalty,
@@ -504,7 +504,7 @@ def test_process_crosslinks(
                         aggregation_bitfield, committee.index(v_index))
                 # Generate the attestation
                 previous_epoch_attestations.append(
-                    PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+                    PendingAttestation(**sample_pending_attestation_record_params).copy(
                         aggregation_bitfield=aggregation_bitfield,
                         data=AttestationData(**sample_attestation_data_params).copy(
                             slot=slot_in_previous_epoch,
@@ -543,7 +543,7 @@ def test_process_crosslinks(
                         aggregation_bitfield, committee.index(v_index))
                 # Generate the attestation
                 current_epoch_attestations.append(
-                    PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+                    PendingAttestation(**sample_pending_attestation_record_params).copy(
                         aggregation_bitfield=aggregation_bitfield,
                         data=AttestationData(**sample_attestation_data_params).copy(
                             slot=slot_in_current_epoch,
@@ -778,7 +778,7 @@ def test_process_rewards_and_penalties_for_finality(
             if index in committee:
                 participants_bitfield = set_voted(participants_bitfield, committee.index(index))
         prev_epoch_attestations.append(
-            PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+            PendingAttestation(**sample_pending_attestation_record_params).copy(
                 aggregation_bitfield=participants_bitfield,
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=(prev_epoch_start_slot + i),
@@ -896,7 +896,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
             participants_bitfield = set_voted(participants_bitfield, committee.index(index))
         data_slot = i + previous_epoch * slots_per_epoch
         previous_epoch_attestations.append(
-            PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+            PendingAttestation(**sample_pending_attestation_record_params).copy(
                 aggregation_bitfield=participants_bitfield,
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=data_slot,
