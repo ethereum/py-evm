@@ -299,7 +299,7 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
                     err,
                 )
                 try:
-                    self._invalid_response_bucket.take()
+                    self._invalid_response_bucket.take_nowait()
                 except NotEnoughTokens:
                     self.service.logger.warning(
                         "Blacklisting and disconnecting from %s due to too many invalid responses",
@@ -308,7 +308,7 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
                     self._peer.disconnect_nowait(DisconnectReason.bad_protocol)
                     await self.service.cancellation()
                     # re-raise the outer ValidationError exception
-                    raise err from err
+                    raise err
                 else:
                     continue
             else:
