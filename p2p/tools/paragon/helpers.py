@@ -21,16 +21,18 @@ from p2p import protocol
 from p2p.auth import decode_authentication
 from p2p.exceptions import (
     HandshakeFailure,
-    NoMatchingPeerCapabilities,
+)
+from p2p.p2p_proto import (
+    DisconnectReason,
+    Hello,
 )
 from p2p.peer import (
     BasePeer,
     BasePeerFactory,
     PeerConnection,
 )
-from p2p.p2p_proto import (
-    DisconnectReason,
-    Hello,
+from p2p.protocol import (
+    match_protocols_with_capabilities,
 )
 
 
@@ -248,9 +250,23 @@ async def process_v4_p2p_handshake(
     snappy_support = False
 
     remote_capabilities = msg['capabilities']
-    try:
-        self.sub_proto = self.select_sub_protocol(remote_capabilities, snappy_support)
-    except NoMatchingPeerCapabilities:
+    matched_proto_classes = match_protocols_with_capabilities(
+        self.supported_sub_protocols,
+        remote_capabilities,
+    )
+    if len(matched_proto_classes) == 1:
+        self.sub_proto = matched_proto_classes[0](
+            self,
+            self.base_protocol.cmd_length,
+            snappy_support,
+        )
+    elif len(matched_proto_classes) > 1:
+        raise NotImplementedError(
+            f"Peer {self.remote} connection matched on multiple protocols "
+            f"{matched_proto_classes}.  Support for multiple protocols is not "
+            f"yet supported"
+        )
+    else:
         await self.disconnect(DisconnectReason.useless_peer)
         raise HandshakeFailure(
             f"No matching capabilities between us ({self.capabilities}) and {self.remote} "

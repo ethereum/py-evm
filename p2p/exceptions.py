@@ -108,13 +108,6 @@ class TooManyTimeouts(BaseP2PError):
     pass
 
 
-class NoMatchingPeerCapabilities(BaseP2PError):
-    """
-    Raised when no matching protocol between peers was found.
-    """
-    pass
-
-
 class RemoteDisconnected(BaseP2PError):
     """
     Raised when a remote disconnected.

@@ -4,7 +4,6 @@ import collections
 import contextlib
 import functools
 import logging
-import operator
 import struct
 from typing import (
     Any,
@@ -45,9 +44,11 @@ from p2p._utils import (
     sxor,
 )
 from p2p.protocol import (
+    match_protocols_with_capabilities,
     Command,
     PayloadType,
     Protocol,
+    CapabilitiesType,
 )
 from p2p.kademlia import (
     Node,
@@ -56,7 +57,6 @@ from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
     MalformedMessage,
-    NoMatchingPeerCapabilities,
     PeerConnectionLost,
     RemoteDisconnected,
     TooManyPeersFailure,
@@ -185,7 +185,7 @@ class BasePeer(BaseService):
     conn_idle_timeout = CONN_IDLE_TIMEOUT
     # Must be defined in subclasses. All items here must be Protocol classes representing
     # different versions of the same P2P sub-protocol (e.g. ETH, LES, etc).
-    supported_sub_protocols: List[Type[Protocol]] = []
+    supported_sub_protocols: Tuple[Type[Protocol], ...] = ()
     # FIXME: Must be configurable.
     listen_port = 30303
     # Will be set upon the successful completion of a P2P handshake.
@@ -361,8 +361,8 @@ class BasePeer(BaseService):
         await self.process_p2p_handshake(cmd, msg)
 
     @property
-    def capabilities(self) -> List[Tuple[str, int]]:
-        return [(klass.name, klass.version) for klass in self.supported_sub_protocols]
+    def capabilities(self) -> CapabilitiesType:
+        return tuple(proto.as_capability() for proto in self.supported_sub_protocols)
 
     def get_protocol_command_for(self, msg: bytes) -> Command:
         """Return the Command corresponding to the cmd_id encoded in the given msg."""
@@ -535,9 +535,23 @@ class BasePeer(BaseService):
             self.base_protocol = P2PProtocol(self, snappy_support=snappy_support)
 
         remote_capabilities = msg['capabilities']
-        try:
-            self.sub_proto = self.select_sub_protocol(remote_capabilities, snappy_support)
-        except NoMatchingPeerCapabilities:
+        matched_proto_classes = match_protocols_with_capabilities(
+            self.supported_sub_protocols,
+            remote_capabilities,
+        )
+        if len(matched_proto_classes) == 1:
+            self.sub_proto = matched_proto_classes[0](
+                self,
+                self.base_protocol.cmd_length,
+                snappy_support,
+            )
+        elif len(matched_proto_classes) > 1:
+            raise NotImplementedError(
+                f"Peer {self.remote} connection matched on multiple protocols "
+                f"{matched_proto_classes}.  Support for multiple protocols is not "
+                f"yet supported"
+            )
+        else:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 f"No matching capabilities between us ({self.capabilities}) and {self.remote} "
@@ -657,28 +671,6 @@ class BasePeer(BaseService):
         self._disconnect(reason)
         if self.is_operational:
             self.cancel_nowait()
-
-    def select_sub_protocol(self,
-                            remote_capabilities: List[Tuple[bytes, int]],
-                            snappy_support: bool) -> Protocol:
-        """Select the sub-protocol to use when talking to the remote.
-
-        Find the highest version of our supported sub-protocols that is also supported by the
-        remote and stores an instance of it (with the appropriate cmd_id offset) in
-        self.sub_proto.
-
-        Raises NoMatchingPeerCapabilities if none of our supported protocols match one of the
-        remote's protocols.
-        """
-        matching_capabilities = set(self.capabilities).intersection(remote_capabilities)
-        if not matching_capabilities:
-            raise NoMatchingPeerCapabilities()
-        _, highest_matching_version = max(matching_capabilities, key=operator.itemgetter(1))
-        offset = self.base_protocol.cmd_length
-        for proto_class in self.supported_sub_protocols:
-            if proto_class.version == highest_matching_version:
-                return proto_class(self, offset, snappy_support)
-        raise NoMatchingPeerCapabilities()
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__} {self.remote}"
