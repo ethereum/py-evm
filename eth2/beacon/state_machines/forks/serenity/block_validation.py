@@ -50,7 +50,7 @@ from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockHeader
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
@@ -409,14 +409,14 @@ def validate_attestation_source_epoch_and_root(state: BeaconState,
 
 
 def validate_attestation_previous_crosslink_or_root(attestation_data: AttestationData,
-                                                    state_latest_crosslink: CrosslinkRecord,
+                                                    state_latest_crosslink: Crosslink,
                                                     slots_per_epoch: int) -> None:
     """
     Validate that either the attestation ``previous_crosslink`` or ``crosslink_data_root``
     field of ``attestation_data`` is the provided ``latest_crosslink``.
     Raise ``ValidationError`` if it's invalid.
     """
-    attestation_creating_crosslink = CrosslinkRecord(
+    attestation_creating_crosslink = Crosslink(
         epoch=slot_to_epoch(attestation_data.slot, slots_per_epoch),
         crosslink_data_root=attestation_data.crosslink_data_root,
     )

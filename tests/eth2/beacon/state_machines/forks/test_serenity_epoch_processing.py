@@ -54,7 +54,7 @@ from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _check_if_update_validator_registry,
@@ -468,7 +468,7 @@ def test_process_crosslinks(
     current_slot = config.SLOTS_PER_EPOCH * 2 - 1
 
     genesis_crosslinks = tuple([
-        CrosslinkRecord(epoch=config.GENESIS_EPOCH, crosslink_data_root=ZERO_HASH32)
+        Crosslink(epoch=config.GENESIS_EPOCH, crosslink_data_root=ZERO_HASH32)
         for _ in range(shard_count)
     ])
     state = n_validators_state.copy(
@@ -510,7 +510,7 @@ def test_process_crosslinks(
                             slot=slot_in_previous_epoch,
                             shard=shard,
                             crosslink_data_root=previous_epoch_crosslink_data_root,
-                            previous_crosslink=CrosslinkRecord(
+                            previous_crosslink=Crosslink(
                                 epoch=config.GENESIS_EPOCH,
                                 crosslink_data_root=ZERO_HASH32,
                             ),
@@ -549,7 +549,7 @@ def test_process_crosslinks(
                             slot=slot_in_current_epoch,
                             shard=shard,
                             crosslink_data_root=current_epoch_crosslink_data_root,
-                            previous_crosslink=CrosslinkRecord(
+                            previous_crosslink=Crosslink(
                                 epoch=config.GENESIS_EPOCH,
                                 crosslink_data_root=ZERO_HASH32,
                             ),
@@ -901,7 +901,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=data_slot,
                     shard=shard,
-                    previous_crosslink=CrosslinkRecord(
+                    previous_crosslink=Crosslink(
                         epoch=config.GENESIS_EPOCH,
                         crosslink_data_root=ZERO_HASH32,
                     ),
@@ -1072,7 +1072,7 @@ def test_check_if_update_validator_registry(genesis_state,
         validator_registry_update_epoch=validator_registry_update_epoch,
     )
     if has_crosslink:
-        crosslink = CrosslinkRecord(
+        crosslink = Crosslink(
             epoch=crosslink_epoch,
             crosslink_data_root=ZERO_HASH32,
         )

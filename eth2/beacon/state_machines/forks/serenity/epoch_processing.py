@@ -63,7 +63,7 @@ from eth2.beacon.validator_status_helpers import (
 from eth2.beacon.datastructures.inclusion_info import InclusionInfo
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
 from eth2.beacon.types.historical_batch import HistoricalBatch
 from eth2.beacon.types.states import BeaconState
@@ -321,7 +321,7 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
                     latest_crosslinks = update_tuple_item(
                         latest_crosslinks,
                         shard,
-                        CrosslinkRecord(
+                        Crosslink(
                             epoch=slot_to_epoch(Slot(slot), config.SLOTS_PER_EPOCH),
                             crosslink_data_root=winning_root,
                         ),

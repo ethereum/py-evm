@@ -36,7 +36,7 @@ from eth2.beacon.types.attestations import (
 from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
 
 
@@ -277,7 +277,7 @@ def test_get_winning_root_and_participants(
             aggregation_bitfield=root_1_participants_bitfield,
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
-                previous_crosslink=CrosslinkRecord(
+                previous_crosslink=Crosslink(
                     epoch=config.GENESIS_EPOCH,
                     crosslink_data_root=ZERO_HASH32,
                 ),
@@ -289,7 +289,7 @@ def test_get_winning_root_and_participants(
             aggregation_bitfield=root_2_participants_bitfield,
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
-                previous_crosslink=CrosslinkRecord(
+                previous_crosslink=Crosslink(
                     epoch=config.GENESIS_EPOCH,
                     crosslink_data_root=ZERO_HASH32,
                 ),

@@ -37,7 +37,7 @@ from eth2.beacon.typing import (
 from .blocks import BeaconBlockHeader, BeaconBlock
 from .eth1_data import Eth1Data
 from .eth1_data_vote import Eth1DataVote
-from .crosslink_records import CrosslinkRecord
+from .crosslinks import Crosslink
 from .forks import Fork
 from .pending_attestation_records import PendingAttestationRecord
 from .validator_records import ValidatorRecord
@@ -79,7 +79,7 @@ class BeaconState(ssz.Serializable):
         ('finalized_root', bytes32),
 
         # Recent state
-        ('latest_crosslinks', Vector(CrosslinkRecord, 1)),
+        ('latest_crosslinks', Vector(Crosslink, 1)),
         ('latest_block_roots', Vector(bytes32, 1)),  # Needed to process attestations, older to newer  # noqa: E501
         ('latest_state_roots', Vector(bytes32, 1)),
         ('latest_active_index_roots', Vector(bytes32, 1)),
@@ -123,7 +123,7 @@ class BeaconState(ssz.Serializable):
             finalized_epoch: Epoch,
             finalized_root: Hash32,
             # Recent state
-            latest_crosslinks: Sequence[CrosslinkRecord],
+            latest_crosslinks: Sequence[Crosslink],
             latest_block_roots: Sequence[Hash32],
             latest_state_roots: Sequence[Hash32],
             latest_active_index_roots: Sequence[Hash32],
@@ -244,7 +244,7 @@ class BeaconState(ssz.Serializable):
             # Recent state
             latest_crosslinks=(
                 (
-                    CrosslinkRecord(
+                    Crosslink(
                         epoch=genesis_epoch,
                         crosslink_data_root=ZERO_HASH32,
                     ),

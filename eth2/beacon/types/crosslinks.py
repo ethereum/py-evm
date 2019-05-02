@@ -11,7 +11,7 @@ from ssz.sedes import (
 from eth2.beacon.typing import Epoch
 
 
-class CrosslinkRecord(ssz.Serializable):
+class Crosslink(ssz.Serializable):
 
     fields = [
         # Epoch during which crosslink was added

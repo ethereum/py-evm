@@ -39,7 +39,7 @@ from eth2.beacon.typing import (
 )
 
 from eth2.beacon.datastructures.inclusion_info import InclusionInfo
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestation_records import (
     PendingAttestationRecord,
 )
@@ -90,7 +90,7 @@ def get_previous_epoch_matching_head_attestations(
 @to_tuple
 def _filter_attestations_by_latest_crosslinks_and_shard(
         attestations: Sequence[PendingAttestationRecord],
-        latest_crosslink: CrosslinkRecord,
+        latest_crosslink: Crosslink,
         shard: Shard) -> Iterable[PendingAttestationRecord]:
     for attestation in attestations:
         is_latest_crosslink_matched = attestation.data.previous_crosslink == latest_crosslink

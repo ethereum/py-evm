@@ -12,7 +12,7 @@ from eth2.beacon.types.blocks import (
     BeaconBlock,
     BeaconBlockBody,
 )
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 
 from p2p.peer import (
     MsgBuffer,
@@ -164,7 +164,7 @@ async def test_send_single_attestation(request, event_loop):
             target_root=ZERO_HASH32,
             source_root=ZERO_HASH32,
             shard=1,
-            previous_crosslink=CrosslinkRecord(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
+            previous_crosslink=Crosslink(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
             crosslink_data_root=ZERO_HASH32,
         ),
         custody_bitfield=b"\x00\x00\x00",
@@ -191,7 +191,7 @@ async def test_send_multiple_attestations(request, event_loop):
                 target_root=ZERO_HASH32,
                 source_root=ZERO_HASH32,
                 shard=shard,
-                previous_crosslink=CrosslinkRecord(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
+                previous_crosslink=Crosslink(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
                 crosslink_data_root=ZERO_HASH32,
             ),
             custody_bitfield=b"\x00\x00\x00",
