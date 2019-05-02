@@ -26,7 +26,7 @@ from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlock,
 )
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
@@ -97,7 +97,7 @@ def get_genesis_beacon_state(*,
         # Recent state
         latest_crosslinks=(
             (
-                CrosslinkRecord(
+                Crosslink(
                     epoch=config.GENESIS_EPOCH,
                     crosslink_data_root=ZERO_HASH32,
                 ),

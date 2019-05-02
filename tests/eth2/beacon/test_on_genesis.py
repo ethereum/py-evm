@@ -8,7 +8,7 @@ from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
 )
 from eth2.beacon.types.blocks import BeaconBlock
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.on_genesis import (
     get_genesis_block,
@@ -106,7 +106,7 @@ def test_get_genesis_beacon_state(
 
     # Recent state
     assert len(state.latest_crosslinks) == shard_count
-    assert state.latest_crosslinks[0] == CrosslinkRecord(
+    assert state.latest_crosslinks[0] == Crosslink(
         epoch=genesis_epoch,
         crosslink_data_root=ZERO_HASH32,
     )

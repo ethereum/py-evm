@@ -54,8 +54,8 @@ from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
-from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
+from eth2.beacon.types.crosslinks import Crosslink
+from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _check_if_update_validator_registry,
     _compute_individual_penalty,
@@ -80,7 +80,7 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
 )
 
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.validator_records import ValidatorRecord
+from eth2.beacon.types.validators import Validator
 
 
 #
@@ -468,7 +468,7 @@ def test_process_crosslinks(
     current_slot = config.SLOTS_PER_EPOCH * 2 - 1
 
     genesis_crosslinks = tuple([
-        CrosslinkRecord(epoch=config.GENESIS_EPOCH, crosslink_data_root=ZERO_HASH32)
+        Crosslink(epoch=config.GENESIS_EPOCH, crosslink_data_root=ZERO_HASH32)
         for _ in range(shard_count)
     ])
     state = n_validators_state.copy(
@@ -504,13 +504,13 @@ def test_process_crosslinks(
                         aggregation_bitfield, committee.index(v_index))
                 # Generate the attestation
                 previous_epoch_attestations.append(
-                    PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+                    PendingAttestation(**sample_pending_attestation_record_params).copy(
                         aggregation_bitfield=aggregation_bitfield,
                         data=AttestationData(**sample_attestation_data_params).copy(
                             slot=slot_in_previous_epoch,
                             shard=shard,
                             crosslink_data_root=previous_epoch_crosslink_data_root,
-                            previous_crosslink=CrosslinkRecord(
+                            previous_crosslink=Crosslink(
                                 epoch=config.GENESIS_EPOCH,
                                 crosslink_data_root=ZERO_HASH32,
                             ),
@@ -543,13 +543,13 @@ def test_process_crosslinks(
                         aggregation_bitfield, committee.index(v_index))
                 # Generate the attestation
                 current_epoch_attestations.append(
-                    PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+                    PendingAttestation(**sample_pending_attestation_record_params).copy(
                         aggregation_bitfield=aggregation_bitfield,
                         data=AttestationData(**sample_attestation_data_params).copy(
                             slot=slot_in_current_epoch,
                             shard=shard,
                             crosslink_data_root=current_epoch_crosslink_data_root,
-                            previous_crosslink=CrosslinkRecord(
+                            previous_crosslink=Crosslink(
                                 epoch=config.GENESIS_EPOCH,
                                 crosslink_data_root=ZERO_HASH32,
                             ),
@@ -778,7 +778,7 @@ def test_process_rewards_and_penalties_for_finality(
             if index in committee:
                 participants_bitfield = set_voted(participants_bitfield, committee.index(index))
         prev_epoch_attestations.append(
-            PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+            PendingAttestation(**sample_pending_attestation_record_params).copy(
                 aggregation_bitfield=participants_bitfield,
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=(prev_epoch_start_slot + i),
@@ -896,12 +896,12 @@ def test_process_rewards_and_penalties_for_crosslinks(
             participants_bitfield = set_voted(participants_bitfield, committee.index(index))
         data_slot = i + previous_epoch * slots_per_epoch
         previous_epoch_attestations.append(
-            PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
+            PendingAttestation(**sample_pending_attestation_record_params).copy(
                 aggregation_bitfield=participants_bitfield,
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=data_slot,
                     shard=shard,
-                    previous_crosslink=CrosslinkRecord(
+                    previous_crosslink=Crosslink(
                         epoch=config.GENESIS_EPOCH,
                         crosslink_data_root=ZERO_HASH32,
                     ),
@@ -1072,7 +1072,7 @@ def test_check_if_update_validator_registry(genesis_state,
         validator_registry_update_epoch=validator_registry_update_epoch,
     )
     if has_crosslink:
-        crosslink = CrosslinkRecord(
+        crosslink = Crosslink(
             epoch=crosslink_epoch,
             crosslink_data_root=ZERO_HASH32,
         )
@@ -1126,7 +1126,7 @@ def test_update_validator_registry(n,
     activating_index = n
     exiting_index = 0
 
-    activating_validator = ValidatorRecord.create_pending_validator(
+    activating_validator = Validator.create_pending_validator(
         pubkey=b'\x10' * 48,
         withdrawal_credentials=b'\x11' * 32,
     )

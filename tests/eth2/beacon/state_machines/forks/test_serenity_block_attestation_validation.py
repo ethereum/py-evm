@@ -29,7 +29,7 @@ from eth2.beacon.tools.builder.validator import (
     create_mock_signed_attestation,
 )
 from eth2.beacon.types.attestation_data import AttestationData
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 
 
 @pytest.mark.parametrize(
@@ -177,33 +177,33 @@ def test_validate_attestation_source_epoch_and_root(
     ),
     [
         (
-            CrosslinkRecord(0, b'\x11' * 32),
+            Crosslink(0, b'\x11' * 32),
             b'\x33' * 32,
-            CrosslinkRecord(0, b'\x22' * 32),
+            Crosslink(0, b'\x22' * 32),
             False,
         ),
         (
-            CrosslinkRecord(0, b'\x33' * 32),
+            Crosslink(0, b'\x33' * 32),
             b'\x33' * 32,
-            CrosslinkRecord(0, b'\x11' * 32),
+            Crosslink(0, b'\x11' * 32),
             False,
         ),
         (
-            CrosslinkRecord(0, b'\x11' * 32),
+            Crosslink(0, b'\x11' * 32),
             b'\x33' * 32,
-            CrosslinkRecord(0, b'\x33' * 32),
+            Crosslink(0, b'\x33' * 32),
             True,
         ),
         (
-            CrosslinkRecord(0, b'\x33' * 32),
+            Crosslink(0, b'\x33' * 32),
             b'\x22' * 32,
-            CrosslinkRecord(0, b'\x33' * 32),
+            Crosslink(0, b'\x33' * 32),
             True,
         ),
         (
-            CrosslinkRecord(0, b'\x33' * 32),
+            Crosslink(0, b'\x33' * 32),
             b'\x33' * 32,
-            CrosslinkRecord(0, b'\x33' * 32),
+            Crosslink(0, b'\x33' * 32),
             True,
         ),
     ]

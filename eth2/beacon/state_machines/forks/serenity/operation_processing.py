@@ -22,7 +22,7 @@ from eth2.beacon.committee_helpers import (
 )
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BaseBeaconBlock
-from eth2.beacon.types.pending_attestation_records import PendingAttestationRecord
+from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.deposit_helpers import (
     process_deposit,
@@ -118,7 +118,7 @@ def process_attestations(state: BeaconState,
 
     Validate the ``attestations`` contained within the ``block`` in the context of ``state``.
     If any invalid, throw ``ValidationError``.
-    Otherwise, append a ``PendingAttestationRecords`` for each to ``previous_epoch_attestations``
+    Otherwise, append a ``PendingAttestation`` for each to ``previous_epoch_attestations``
     or ``current_epoch_attestations``.
     Return resulting ``state``.
     """
@@ -146,7 +146,7 @@ def process_attestations(state: BeaconState,
     for attestation in block.body.attestations:
         if slot_to_epoch(attestation.data.slot, config.SLOTS_PER_EPOCH) == current_epoch:
             new_current_epoch_pending_attestations.append(
-                PendingAttestationRecord(
+                PendingAttestation(
                     aggregation_bitfield=attestation.aggregation_bitfield,
                     data=attestation.data,
                     custody_bitfield=attestation.custody_bitfield,
@@ -155,7 +155,7 @@ def process_attestations(state: BeaconState,
             )
         elif slot_to_epoch(attestation.data.slot, config.SLOTS_PER_EPOCH) == previous_epoch:
             new_previous_epoch_pending_attestations.append(
-                PendingAttestationRecord(
+                PendingAttestation(
                     aggregation_bitfield=attestation.aggregation_bitfield,
                     data=attestation.data,
                     custody_bitfield=attestation.custody_bitfield,

@@ -50,13 +50,13 @@ from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockHeader
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
-from eth2.beacon.types.validator_records import ValidatorRecord
+from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
     Bitfield,
     Epoch,
@@ -409,14 +409,14 @@ def validate_attestation_source_epoch_and_root(state: BeaconState,
 
 
 def validate_attestation_previous_crosslink_or_root(attestation_data: AttestationData,
-                                                    state_latest_crosslink: CrosslinkRecord,
+                                                    state_latest_crosslink: Crosslink,
                                                     slots_per_epoch: int) -> None:
     """
     Validate that either the attestation ``previous_crosslink`` or ``crosslink_data_root``
     field of ``attestation_data`` is the provided ``latest_crosslink``.
     Raise ``ValidationError`` if it's invalid.
     """
-    attestation_creating_crosslink = CrosslinkRecord(
+    attestation_creating_crosslink = Crosslink(
         epoch=slot_to_epoch(attestation_data.slot, slots_per_epoch),
         crosslink_data_root=attestation_data.crosslink_data_root,
     )
@@ -457,7 +457,7 @@ def validate_attestation_crosslink_data_root(attestation_data: AttestationData) 
 
 
 @to_tuple
-def get_pubkey_for_indices(validators: Sequence[ValidatorRecord],
+def get_pubkey_for_indices(validators: Sequence[Validator],
                            indices: Sequence[ValidatorIndex]) -> Iterable[BLSPubkey]:
     for index in indices:
         yield validators[index].pubkey
@@ -465,7 +465,7 @@ def get_pubkey_for_indices(validators: Sequence[ValidatorRecord],
 
 @to_tuple
 def generate_aggregate_pubkeys_from_indices(
-        validators: Sequence[ValidatorRecord],
+        validators: Sequence[Validator],
         *indices: Sequence[Sequence['ValidatorIndex']]) -> Iterable[BLSPubkey]:
     get_pubkeys = functools.partial(get_pubkey_for_indices, validators)
     return map(
@@ -708,7 +708,7 @@ def validate_voluntary_exit(state: BeaconState,
     validate_voluntary_exit_signature(state, voluntary_exit, validator)
 
 
-def validate_voluntary_exit_validator_exit_epoch(validator: ValidatorRecord) -> None:
+def validate_voluntary_exit_validator_exit_epoch(validator: Validator) -> None:
     """
     Verify the validator has not yet exited.
     """
@@ -719,7 +719,7 @@ def validate_voluntary_exit_validator_exit_epoch(validator: ValidatorRecord) -> 
         )
 
 
-def validate_voluntary_exit_initiated_exit(validator: ValidatorRecord) -> None:
+def validate_voluntary_exit_initiated_exit(validator: Validator) -> None:
     """
     Verify the validator has not initiated an exit.
     """
@@ -741,7 +741,7 @@ def validate_voluntary_exit_epoch(voluntary_exit: VoluntaryExit,
         )
 
 
-def validate_voluntary_exit_persistent(validator: ValidatorRecord,
+def validate_voluntary_exit_persistent(validator: Validator,
                                        current_epoch: Epoch,
                                        persistent_committee_period: int) -> None:
     """
@@ -757,7 +757,7 @@ def validate_voluntary_exit_persistent(validator: ValidatorRecord,
 
 def validate_voluntary_exit_signature(state: BeaconState,
                                       voluntary_exit: VoluntaryExit,
-                                      validator: ValidatorRecord) -> None:
+                                      validator: Validator) -> None:
     """
     Verify signature.
     """

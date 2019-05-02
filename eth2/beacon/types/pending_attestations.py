@@ -14,7 +14,7 @@ from .attestation_data import (
 )
 
 
-class PendingAttestationRecord(ssz.Serializable):
+class PendingAttestation(ssz.Serializable):
 
     fields = [
         # Attester aggregation bitfield

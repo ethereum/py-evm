@@ -13,7 +13,7 @@ from eth2.beacon.typing import (
     Slot,
     Shard,
 )
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 
 
 class AttestationData(ssz.Serializable):
@@ -30,7 +30,7 @@ class AttestationData(ssz.Serializable):
 
         # Crosslink vote
         ('shard', uint64),
-        ('previous_crosslink', CrosslinkRecord),
+        ('previous_crosslink', Crosslink),
         ('crosslink_data_root', bytes32),
     ]
 
@@ -41,7 +41,7 @@ class AttestationData(ssz.Serializable):
                  source_root: Hash32,
                  target_root: Hash32,
                  shard: Shard,
-                 previous_crosslink: CrosslinkRecord,
+                 previous_crosslink: Crosslink,
                  crosslink_data_root: Hash32) -> None:
         super().__init__(
             slot=slot,

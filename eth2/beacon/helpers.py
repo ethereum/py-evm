@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     from eth2.beacon.types.states import BeaconState  # noqa: F401
     from eth2.beacon.types.forks import Fork  # noqa: F401
     from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
-    from eth2.beacon.types.validator_records import ValidatorRecord  # noqa: F401
+    from eth2.beacon.types.validators import Validator  # noqa: F401
 
 
 #
@@ -153,7 +153,7 @@ def get_randao_mix(state: 'BeaconState',
     return state.latest_randao_mixes[epoch % latest_randao_mixes_length]
 
 
-def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
+def get_active_validator_indices(validators: Sequence['Validator'],
                                  epoch: Epoch) -> Tuple[ValidatorIndex, ...]:
     """
     Get indices of active validators from ``validators``.

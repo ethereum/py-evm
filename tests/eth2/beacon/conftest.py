@@ -19,7 +19,7 @@ from eth2.beacon.helpers import (
     slot_to_epoch,
 )
 from eth2.beacon.types.attestation_data import AttestationData
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.eth1_data import Eth1Data
@@ -119,7 +119,7 @@ def sample_attestation_data_params(sample_crosslink_record_params):
         'source_root': b'\x22' * 32,
         'target_root': b'\x33' * 32,
         'shard': 12,
-        'previous_crosslink': CrosslinkRecord(**sample_crosslink_record_params),
+        'previous_crosslink': Crosslink(**sample_crosslink_record_params),
         'crosslink_data_root': b'\x44' * 32,
     }
 
@@ -195,7 +195,7 @@ def sample_beacon_state_params(config,
         'finalized_epoch': 0,
         'finalized_root': b'\x33' * 32,
         'latest_crosslinks': (
-            (CrosslinkRecord(**sample_crosslink_record_params),) *
+            (Crosslink(**sample_crosslink_record_params),) *
             config.SHARD_COUNT
         ),
         'latest_block_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
@@ -657,7 +657,7 @@ def genesis_state(filled_beacon_state,
         latest_block_roots=tuple(ZERO_HASH32 for _ in range(slots_per_historical_root)),
         latest_slashed_balances=(0,) * latest_slashed_exit_length,
         latest_crosslinks=tuple(
-            CrosslinkRecord(
+            Crosslink(
                 epoch=genesis_epoch,
                 crosslink_data_root=ZERO_HASH32,
             )

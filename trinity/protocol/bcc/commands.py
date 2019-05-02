@@ -81,7 +81,7 @@ class BeaconBlocks(Command):
     )
 
 
-class AttestationRecords(Command):
+class Attestations(Command):
     _cmd_id = 3
     structure = sedes.CountableList(sedes.binary)
 

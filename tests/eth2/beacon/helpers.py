@@ -8,8 +8,8 @@ from eth2.configs import Eth2Config
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
-from eth2.beacon.types.validator_records import (
-    ValidatorRecord,
+from eth2.beacon.types.validators import (
+    Validator,
 )
 
 
@@ -17,7 +17,7 @@ def mock_validator_record(pubkey,
                           config: Eth2Config,
                           withdrawal_credentials=ZERO_HASH32,
                           is_active=True):
-    return ValidatorRecord(
+    return Validator(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
         activation_epoch=config.GENESIS_EPOCH if is_active else FAR_FUTURE_EPOCH,

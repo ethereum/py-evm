@@ -25,7 +25,7 @@ from eth2.beacon.deposit_helpers import (
 )
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.validator_records import ValidatorRecord
+from eth2.beacon.types.validators import Validator
 from eth2.beacon.types.deposits import Deposit
 
 from eth2.beacon.tools.builder.validator import (
@@ -84,12 +84,12 @@ def test_add_pending_validator(sample_beacon_state_params,
     validator_registry_len = 2
     state = BeaconState(**sample_beacon_state_params).copy(
         validator_registry=[
-            ValidatorRecord(**sample_validator_record_params)
+            Validator(**sample_validator_record_params)
             for _ in range(validator_registry_len)
         ],
         validator_balances=(100,) * validator_registry_len,
     )
-    validator = ValidatorRecord(**sample_validator_record_params)
+    validator = Validator(**sample_validator_record_params)
     amount = 5566
     state = add_pending_validator(
         state,

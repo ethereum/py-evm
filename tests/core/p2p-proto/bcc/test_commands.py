@@ -12,7 +12,7 @@ from eth2.beacon.types.blocks import (
     BeaconBlock,
     BeaconBlockBody,
 )
-from eth2.beacon.types.crosslink_records import CrosslinkRecord
+from eth2.beacon.types.crosslinks import Crosslink
 
 from p2p.peer import (
     MsgBuffer,
@@ -21,7 +21,7 @@ from p2p.peer import (
 from trinity.protocol.bcc.commands import (
     BeaconBlocks,
     GetBeaconBlocks,
-    AttestationRecords,
+    Attestations,
 )
 
 from .helpers import (
@@ -147,7 +147,7 @@ async def test_send_no_attestations(request, event_loop):
     alice.sub_proto.send_attestation_records(())
 
     message = await msg_buffer.msg_queue.get()
-    assert isinstance(message.command, AttestationRecords)
+    assert isinstance(message.command, Attestations)
     assert message.payload == ()
 
 
@@ -164,7 +164,7 @@ async def test_send_single_attestation(request, event_loop):
             target_root=ZERO_HASH32,
             source_root=ZERO_HASH32,
             shard=1,
-            previous_crosslink=CrosslinkRecord(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
+            previous_crosslink=Crosslink(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
             crosslink_data_root=ZERO_HASH32,
         ),
         custody_bitfield=b"\x00\x00\x00",
@@ -173,7 +173,7 @@ async def test_send_single_attestation(request, event_loop):
     alice.sub_proto.send_attestation_records((attestation,))
 
     message = await msg_buffer.msg_queue.get()
-    assert isinstance(message.command, AttestationRecords)
+    assert isinstance(message.command, Attestations)
     assert message.payload == (ssz.encode(attestation),)
 
 
@@ -191,7 +191,7 @@ async def test_send_multiple_attestations(request, event_loop):
                 target_root=ZERO_HASH32,
                 source_root=ZERO_HASH32,
                 shard=shard,
-                previous_crosslink=CrosslinkRecord(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
+                previous_crosslink=Crosslink(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
                 crosslink_data_root=ZERO_HASH32,
             ),
             custody_bitfield=b"\x00\x00\x00",
@@ -201,5 +201,5 @@ async def test_send_multiple_attestations(request, event_loop):
     alice.sub_proto.send_attestation_records(attestations)
 
     message = await msg_buffer.msg_queue.get()
-    assert isinstance(message.command, AttestationRecords)
+    assert isinstance(message.command, Attestations)
     assert message.payload == tuple(ssz.encode(attestation) for attestation in attestations)

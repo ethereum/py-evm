@@ -24,7 +24,7 @@ from eth2.beacon.types.attestation_data import (
 )
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.validator_records import ValidatorRecord
+from eth2.beacon.types.validators import Validator
 
 from eth2.beacon.helpers import (
     generate_seed,
@@ -195,7 +195,7 @@ def test_get_active_validator_indices(sample_validator_record_params):
     current_epoch = 1
     # 3 validators are ACTIVE
     validators = [
-        ValidatorRecord(
+        Validator(
             **sample_validator_record_params,
         ).copy(
             activation_epoch=0,

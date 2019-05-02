@@ -5,8 +5,8 @@ import ssz
 from eth2.beacon.types.states import (
     BeaconState,
 )
-from eth2.beacon.types.crosslink_records import (
-    CrosslinkRecord,
+from eth2.beacon.types.crosslinks import (
+    Crosslink,
 )
 
 from tests.eth2.beacon.helpers import (
@@ -59,12 +59,12 @@ def test_num_validators(expected,
 def test_num_crosslink_records(expected,
                                sample_crosslink_record_params,
                                filled_beacon_state):
-    crosslink_records = [
-        CrosslinkRecord(**sample_crosslink_record_params)
+    crosslinks = [
+        Crosslink(**sample_crosslink_record_params)
         for i in range(expected)
     ]
     state = filled_beacon_state.copy(
-        latest_crosslinks=crosslink_records,
+        latest_crosslinks=crosslinks,
     )
 
     assert state.num_crosslinks == expected
