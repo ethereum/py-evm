@@ -5,7 +5,7 @@ from typing import (
     Dict,
     FrozenSet,
     List,
-    MutableSet,
+    Set,
     Tuple,
     Type,
 )
@@ -164,7 +164,7 @@ class BaseReceiveServer(BaseRequestServer):
 class OrphanBlockPool:
     # TODO: probably use lru-cache or other cache in the future?
     #   map from `block.previous_block_root` to `block`
-    _pool: MutableSet[BaseBeaconBlock]
+    _pool: Set[BaseBeaconBlock]
 
     def __init__(self) -> None:
         self._pool = set()
@@ -220,7 +220,7 @@ class BCCReceiveServer(BaseReceiveServer):
         else:
             raise Exception(f"Invariant: Only subscribed to {self.subscription_msg_types}")
 
-    async def _handle_beacon_blocks(self, peer: BCCPeer, msg: NewBeaconBlockMessage) -> None:
+    async def _handle_beacon_blocks(self, peer: BCCPeer, msg: BeaconBlocksMessage) -> None:
         if not peer.is_operational:
             return
         request_id = msg["request_id"]
@@ -277,6 +277,7 @@ class BCCReceiveServer(BaseReceiveServer):
 
     def _request_block_by_root(self, block_root: Hash32) -> None:
         for i, peer in enumerate(self._peer_pool.connected_nodes.values()):
+            peer = cast(BCCPeer, peer)
             self.logger.debug(
                 bold_red(f"send block request to: request_id={i}, peer={peer}")
             )
