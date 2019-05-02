@@ -817,11 +817,7 @@ def _update_shuffling_start_shard(state: BeaconState,
 
 
 def _update_shuffling_seed(state: BeaconState,
-                           slots_per_epoch: int,
-                           min_seed_lookahead: int,
-                           activation_exit_delay: int,
-                           latest_active_index_roots_length: int,
-                           latest_randao_mixes_length: int) -> BeaconState:
+                           committee_config: CommitteeConfig) -> BeaconState:
     """
     Updates the ``current_shuffling_seed`` in the ``state`` given the current state data.
     """
@@ -830,11 +826,7 @@ def _update_shuffling_seed(state: BeaconState,
     current_shuffling_seed = helpers.generate_seed(
         state=state,
         epoch=state.current_shuffling_epoch,
-        slots_per_epoch=slots_per_epoch,
-        min_seed_lookahead=min_seed_lookahead,
-        activation_exit_delay=activation_exit_delay,
-        latest_active_index_roots_length=latest_active_index_roots_length,
-        latest_randao_mixes_length=latest_randao_mixes_length,
+        committee_config=committee_config,
     )
     return state.copy(
         current_shuffling_seed=current_shuffling_seed,
@@ -966,14 +958,7 @@ def _process_validator_registry_with_update(current_epoch_committee_count: int,
 
     state = _update_shuffling_epoch(state, config.SLOTS_PER_EPOCH)
 
-    state = _update_shuffling_seed(
-        state,
-        config.SLOTS_PER_EPOCH,
-        config.MIN_SEED_LOOKAHEAD,
-        config.ACTIVATION_EXIT_DELAY,
-        config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
-        config.LATEST_RANDAO_MIXES_LENGTH,
-    )
+    state = _update_shuffling_seed(state, CommitteeConfig(config))
 
     return state
 
@@ -996,14 +981,7 @@ def _process_validator_registry_without_update(state: BeaconState,
         # produced a full set of new crosslinks; validators should have a chance to
         # complete this goal in future epochs.
 
-        state = _update_shuffling_seed(
-            state,
-            config.SLOTS_PER_EPOCH,
-            config.MIN_SEED_LOOKAHEAD,
-            config.ACTIVATION_EXIT_DELAY,
-            config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
-            config.LATEST_RANDAO_MIXES_LENGTH,
-        )
+        state = _update_shuffling_seed(state, CommitteeConfig(config))
 
     return state
 

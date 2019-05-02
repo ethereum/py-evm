@@ -448,6 +448,7 @@ def test_get_delayed_activation_exit_epoch(activation_exit_delay):
 
 def test_generate_seed(monkeypatch,
                        genesis_state,
+                       committee_config,
                        slots_per_epoch,
                        min_seed_lookahead,
                        activation_exit_delay,
@@ -496,11 +497,7 @@ def test_generate_seed(monkeypatch,
     seed = generate_seed(
         state=state,
         epoch=epoch,
-        slots_per_epoch=slots_per_epoch,
-        min_seed_lookahead=min_seed_lookahead,
-        activation_exit_delay=activation_exit_delay,
-        latest_active_index_roots_length=latest_active_index_roots_length,
-        latest_randao_mixes_length=latest_randao_mixes_length,
+        committee_config=committee_config,
     )
     assert seed == hash_eth2(
         mock_get_randao_mix(

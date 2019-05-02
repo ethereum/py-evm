@@ -38,6 +38,9 @@ from eth2.beacon.validation import (
     validate_epoch_for_active_index_root,
     validate_epoch_for_active_randao_mix,
 )
+from eth2.configs import (
+    CommitteeConfig,
+)
 
 if TYPE_CHECKING:
     from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
@@ -164,26 +167,22 @@ def get_active_validator_indices(validators: Sequence['ValidatorRecord'],
 
 def generate_seed(state: 'BeaconState',
                   epoch: Epoch,
-                  slots_per_epoch: int,
-                  min_seed_lookahead: int,
-                  activation_exit_delay: int,
-                  latest_active_index_roots_length: int,
-                  latest_randao_mixes_length: int) -> Hash32:
+                  committee_config: CommitteeConfig) -> Hash32:
     """
     Generate a seed for the given ``epoch``.
     """
     randao_mix = get_randao_mix(
         state=state,
-        epoch=Epoch(epoch - min_seed_lookahead),
-        slots_per_epoch=slots_per_epoch,
-        latest_randao_mixes_length=latest_randao_mixes_length,
+        epoch=Epoch(epoch - committee_config.MIN_SEED_LOOKAHEAD),
+        slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
+        latest_randao_mixes_length=committee_config.LATEST_RANDAO_MIXES_LENGTH,
     )
     active_index_root = get_active_index_root(
         state=state,
         epoch=epoch,
-        slots_per_epoch=slots_per_epoch,
-        activation_exit_delay=activation_exit_delay,
-        latest_active_index_roots_length=latest_active_index_roots_length,
+        slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
+        activation_exit_delay=committee_config.ACTIVATION_EXIT_DELAY,
+        latest_active_index_roots_length=committee_config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
     )
     epoch_as_bytes = epoch.to_bytes(32, byteorder="little")
 

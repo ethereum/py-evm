@@ -223,11 +223,7 @@ def _get_shuffling_contextis_next_epoch_registry_change(
         seed=helpers.generate_seed(
             state=state,
             epoch=next_epoch,
-            slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
-            min_seed_lookahead=committee_config.MIN_SEED_LOOKAHEAD,
-            activation_exit_delay=committee_config.SLOTS_PER_EPOCH,
-            latest_active_index_roots_length=committee_config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
-            latest_randao_mixes_length=committee_config.LATEST_RANDAO_MIXES_LENGTH,
+            committee_config=committee_config,
         ),
         shuffling_epoch=next_epoch,
         # for mocking this out in tests.
@@ -252,11 +248,7 @@ def _get_shuffling_contextis_next_epoch_should_reseed(
         seed=helpers.generate_seed(
             state=state,
             epoch=next_epoch,
-            slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
-            min_seed_lookahead=committee_config.MIN_SEED_LOOKAHEAD,
-            activation_exit_delay=committee_config.SLOTS_PER_EPOCH,
-            latest_active_index_roots_length=committee_config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
-            latest_randao_mixes_length=committee_config.LATEST_RANDAO_MIXES_LENGTH,
+            committee_config=committee_config,
         ),
         shuffling_epoch=next_epoch,
         shuffling_start_shard=state.current_shuffling_start_shard,
