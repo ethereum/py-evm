@@ -1,4 +1,3 @@
-from abc import abstractmethod
 import random
 from typing import (
     cast,
@@ -9,27 +8,21 @@ from typing import (
     MutableSet,
     Tuple,
     Type,
-    Union,
 )
 
 from eth_typing import (
     Hash32,
 )
-from eth_utils import (
-    ValidationError,
-)
 
-from cancel_token import CancelToken, OperationCancelled
+from cancel_token import CancelToken
 
 import ssz
 
 from p2p import protocol
 from p2p.peer import (
     BasePeer,
-    PeerSubscriber,
 )
 from p2p.protocol import Command
-from p2p.service import BaseService
 
 from eth.exceptions import BlockNotFound
 
@@ -48,7 +41,6 @@ from trinity._utils.shellart import (
 )
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.protocol.common.servers import BaseRequestServer
-from trinity.protocol.common.peer import BasePeerPool
 from trinity.protocol.bcc.commands import (
     BeaconBlocks,
     BeaconBlocksMessage,

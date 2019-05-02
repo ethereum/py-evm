@@ -363,7 +363,6 @@ class BCCServer(BaseServer[BCCPeerPool]):
             headerdb,
             base_db,
             network_id,
-            peer_info,
             max_peers,
             bootstrap_nodes,
             preferred_nodes,

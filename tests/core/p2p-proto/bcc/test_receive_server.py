@@ -1,6 +1,5 @@
 import asyncio
 import functools
-import time
 
 from typing import (
     Tuple,
@@ -21,7 +20,6 @@ from p2p.peer import (
 from eth.exceptions import (
     BlockNotFound,
 )
-from eth2.beacon.chains.base import BeaconChain
 from eth2.beacon.chains.testnet import TestnetChain
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
@@ -197,12 +195,14 @@ async def test_bcc_receive_server_try_import_or_handle_orphan(request, event_loo
     assert block_2 not in bob_recv_server.orphan_block_pool._pool
     assert bob_recv_server._is_block_root_in_db(block_3.signed_root)
     assert block_3 not in bob_recv_server.orphan_block_pool._pool
-    # TODO: test for requests
 
 
 @pytest.mark.asyncio
 async def test_bcc_receive_server_handle_beacon_blocks_checks(request, event_loop, monkeypatch):
-    alice, _, bob_recv_server, bob_msg_queue = await get_peer_and_receive_server(request, event_loop)
+    alice, _, bob_recv_server, bob_msg_queue = await get_peer_and_receive_server(
+        request,
+        event_loop,
+    )
     bob_chain = bob_recv_server.chain
     head = bob_chain.get_canonical_head()
     block_0 = bob_chain.create_block_from_parent(
@@ -333,7 +333,7 @@ async def test_bcc_receive_request_block_by_root(request, event_loop):
 
 
 @pytest.mark.asyncio
-async def test_bcc_receive_server_interleaving_operations(request, event_loop, monkeypatch):
+async def test_bcc_receive_server_with_request_server(request, event_loop):
     alice, alice_req_server, bob_recv_server, bob_msg_queue = await get_peer_and_receive_server(
         request,
         event_loop,
