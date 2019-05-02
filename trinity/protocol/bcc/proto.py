@@ -27,7 +27,7 @@ from trinity.protocol.bcc.commands import (
     BeaconBlocksMessage,
     NewBeaconBlock,
     NewBeaconBlockMessage,
-    AttestationRecords,
+    Attestations,
 )
 
 from trinity._utils.logging import HasExtendedDebugLogger
@@ -43,7 +43,7 @@ class BCCProtocol(HasExtendedDebugLogger, Protocol):
     _commands = (
         Status,
         GetBeaconBlocks, BeaconBlocks,
-        AttestationRecords,
+        Attestations,
         NewBeaconBlock,
     )
     cmd_length = 5
@@ -82,7 +82,7 @@ class BCCProtocol(HasExtendedDebugLogger, Protocol):
         self.send(header, body)
 
     def send_attestation_records(self, attestations: Tuple[Attestation, ...]) -> None:
-        cmd = AttestationRecords(self.cmd_id_offset, self.snappy_support)
+        cmd = Attestations(self.cmd_id_offset, self.snappy_support)
         header, body = cmd.encode(tuple(ssz.encode(attestation) for attestation in attestations))
         self.send(header, body)
 

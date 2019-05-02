@@ -21,7 +21,7 @@ from p2p.peer import (
 from trinity.protocol.bcc.commands import (
     BeaconBlocks,
     GetBeaconBlocks,
-    AttestationRecords,
+    Attestations,
 )
 
 from .helpers import (
@@ -147,7 +147,7 @@ async def test_send_no_attestations(request, event_loop):
     alice.sub_proto.send_attestation_records(())
 
     message = await msg_buffer.msg_queue.get()
-    assert isinstance(message.command, AttestationRecords)
+    assert isinstance(message.command, Attestations)
     assert message.payload == ()
 
 
@@ -173,7 +173,7 @@ async def test_send_single_attestation(request, event_loop):
     alice.sub_proto.send_attestation_records((attestation,))
 
     message = await msg_buffer.msg_queue.get()
-    assert isinstance(message.command, AttestationRecords)
+    assert isinstance(message.command, Attestations)
     assert message.payload == (ssz.encode(attestation),)
 
 
@@ -201,5 +201,5 @@ async def test_send_multiple_attestations(request, event_loop):
     alice.sub_proto.send_attestation_records(attestations)
 
     message = await msg_buffer.msg_queue.get()
-    assert isinstance(message.command, AttestationRecords)
+    assert isinstance(message.command, Attestations)
     assert message.payload == tuple(ssz.encode(attestation) for attestation in attestations)
