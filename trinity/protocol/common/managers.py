@@ -18,6 +18,7 @@ from eth_utils import (
 )
 
 from p2p._utils import ensure_global_asyncio_executor
+from p2p.constants import BLACKLIST_SECONDS_TOO_MANY_TIMEOUTS
 from p2p.exceptions import PeerConnectionLost
 from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, PeerSubscriber
@@ -31,7 +32,12 @@ from p2p.token_bucket import TokenBucket, NotEnoughTokens
 
 from trinity.exceptions import AlreadyWaiting
 
-from .constants import ROUND_TRIP_TIMEOUT, NUM_QUEUED_REQUESTS
+from .constants import (
+    ROUND_TRIP_TIMEOUT,
+    NUM_QUEUED_REQUESTS,
+    TIMEOUT_BUCKET_CAPACITY,
+    TIMEOUT_BUCKET_RATE,
+)
 from .normalizers import BaseNormalizer
 from .trackers import BasePerformanceTracker
 from .types import (
@@ -70,6 +76,11 @@ class ResponseCandidateStream(
         self.response_msg_type = response_msg_type
         self._lock = asyncio.Lock()
 
+        # token bucket for limiting timeouts.
+        # - Refills at 1-token every 5 minutes
+        # - Max capacity of 3 tokens
+        self.timeout_bucket = TokenBucket(TIMEOUT_BUCKET_RATE, TIMEOUT_BUCKET_CAPACITY)
+
     async def payload_candidates(
             self,
             request: BaseRequest[TRequestPayload],
@@ -103,9 +114,27 @@ class ResponseCandidateStream(
 
                 try:
                     yield await self._get_payload(timeout_remaining)
-                except TimeoutError:
+                except TimeoutError as err:
                     tracker.record_timeout()
-                    raise
+
+                    # If the peer has timeoud out too many times, desconnect
+                    # and blacklist them
+                    try:
+                        self.timeout_bucket.take_nowait()
+                    except NotEnoughTokens:
+                        self.logger.warning(
+                            "Blacklisting and disconnecting from %s due to too many timeouts",
+                            self._peer,
+                        )
+                        self._peer.connection_tracker.record_blacklist(
+                            self._peer.remote,
+                            BLACKLIST_SECONDS_TOO_MANY_TIMEOUTS,
+                            f"Too many timeouts: {err}",
+                        )
+                        self._peer.disconnect_nowait(DisconnectReason.timeout)
+                        await self.cancellation()
+                    finally:
+                        raise
         finally:
             self._lock.release()
 

@@ -82,7 +82,7 @@ from .constants import (
     CONN_IDLE_TIMEOUT,
     HEADER_LEN,
     MAC_LEN,
-    MINUTES_10,
+    BLACKLIST_SECONDS_BAD_PROTOCOL,
     SNAPPY_PROTOCOL_VERSION,
 )
 
@@ -630,8 +630,8 @@ class BasePeer(BaseService):
         if reason is DisconnectReason.bad_protocol:
             self.connection_tracker.record_blacklist(
                 self.remote,
-                timeout_seconds=MINUTES_10,
-                reason=f"Bad protocol",
+                timeout_seconds=BLACKLIST_SECONDS_BAD_PROTOCOL,
+                reason="Bad protocol",
             )
 
         self.logger.debug("Disconnecting from remote peer %s; reason: %s", self.remote, reason.name)

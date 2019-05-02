@@ -127,5 +127,9 @@ REQUEST_PEER_CANDIDATE_TIMEOUT = 1
 # The maximum number of concurrent attempts to establis new peer connections
 MAX_CONCURRENT_CONNECTION_ATTEMPTS = 10
 
-# Time values in seconds
-MINUTES_10 = 60 * 10
+# Amount of time a peer will be blacklisted when they are disconnected as
+# `DisconnectReason.bad_protocol`
+BLACKLIST_SECONDS_BAD_PROTOCOL = 60 * 10  # 10 minutes
+
+# Amount of time a peer will be blacklisted when they timeout too frequently
+BLACKLIST_SECONDS_TOO_MANY_TIMEOUTS = 60 * 5  # 5 minutes
