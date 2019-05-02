@@ -1222,11 +1222,7 @@ def test_process_validator_registry(monkeypatch,
 
     def mock_generate_seed(state,
                            epoch,
-                           slots_per_epoch,
-                           min_seed_lookahead,
-                           activation_exit_delay,
-                           latest_active_index_roots_length,
-                           latest_randao_mixes_length):
+                           committee_config):
         return new_seed
 
     monkeypatch.setattr(

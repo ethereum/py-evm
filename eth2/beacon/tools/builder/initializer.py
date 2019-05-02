@@ -121,21 +121,7 @@ def create_mock_genesis(
         genesis_validator_deposits=genesis_validator_deposits,
         genesis_time=genesis_time,
         genesis_eth1_data=genesis_eth1_data,
-        genesis_slot=config.GENESIS_SLOT,
-        genesis_epoch=config.GENESIS_EPOCH,
-        genesis_fork_version=config.GENESIS_FORK_VERSION,
-        genesis_start_shard=config.GENESIS_START_SHARD,
-        shard_count=config.SHARD_COUNT,
-        min_seed_lookahead=config.MIN_SEED_LOOKAHEAD,
-        slots_per_historical_root=config.SLOTS_PER_HISTORICAL_ROOT,
-        latest_active_index_roots_length=config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
-        slots_per_epoch=config.SLOTS_PER_EPOCH,
-        max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
-        latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,
-        latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
-        activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
-        deposit_contract_tree_depth=config.DEPOSIT_CONTRACT_TREE_DEPTH,
-        block_class=genesis_block_class,
+        config=config,
     )
 
     block = get_genesis_block(
