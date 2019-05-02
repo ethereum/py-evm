@@ -19,7 +19,7 @@ deps = {
     'trinity': [
         "async-generator==1.10",
         "bloom-filter==1.3",
-        "cachetools>=2.1.0,<3.0.0",
+        "cachetools>=3.1.0,<4.0.0",
         "coincurve>=10.0.0,<11.0.0",
         "eth-utils>=1.5.1,<2",
         "ipython>=6.2.1,<7.0.0",
