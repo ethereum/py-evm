@@ -728,7 +728,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         handling to mark the genesis block's root and the genesis epoch as
         finalized and justified.
         """
-        genesis_root = genesis_block.signed_root
+        genesis_root = genesis_block.signing_root
         genesis_epoch = slot_to_epoch(genesis_block.slot, self.config.SLOTS_PER_EPOCH)
         self._update_finalized_head(genesis_root)
         self._update_justified_head(genesis_root, genesis_epoch)

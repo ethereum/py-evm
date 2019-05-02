@@ -150,19 +150,19 @@ def test_chaindb_get_finalized_head(chaindb_at_genesis,
                                     sample_beacon_block_params):
     chaindb = chaindb_at_genesis
     block = BeaconBlock(**sample_beacon_block_params).copy(
-        previous_block_root=genesis_block.signed_root,
+        previous_block_root=genesis_block.signing_root,
     )
 
     assert chaindb.get_finalized_head(BeaconBlock) == genesis_block
     assert chaindb.get_justified_head(BeaconBlock) == genesis_block
 
     state_with_finalized_block = genesis_state.copy(
-        finalized_root=block.signed_root,
+        finalized_root=block.signing_root,
     )
     chaindb.persist_state(state_with_finalized_block)
     chaindb.persist_block(block, BeaconBlock)
 
-    assert chaindb.get_finalized_head(BeaconBlock).signed_root == block.signed_root
+    assert chaindb.get_finalized_head(BeaconBlock).signing_root == block.signing_root
     assert chaindb.get_justified_head(BeaconBlock) == genesis_block
 
 
@@ -173,7 +173,7 @@ def test_chaindb_get_justified_head(chaindb_at_genesis,
                                     config):
     chaindb = chaindb_at_genesis
     block = BeaconBlock(**sample_beacon_block_params).copy(
-        previous_block_root=genesis_block.signed_root,
+        previous_block_root=genesis_block.signing_root,
     )
 
     assert chaindb.get_finalized_head(BeaconBlock) == genesis_block
@@ -181,7 +181,7 @@ def test_chaindb_get_justified_head(chaindb_at_genesis,
 
     # test that there is only one justified head per epoch
     state_with_bad_epoch = genesis_state.copy(
-        current_justified_root=block.signed_root,
+        current_justified_root=block.signing_root,
         current_justified_epoch=config.GENESIS_EPOCH,
     )
     chaindb.persist_state(state_with_bad_epoch)
@@ -192,13 +192,13 @@ def test_chaindb_get_justified_head(chaindb_at_genesis,
 
     # test that the we can update justified head if we satisfy the invariants
     state_with_justified_block = genesis_state.copy(
-        current_justified_root=block.signed_root,
+        current_justified_root=block.signing_root,
         current_justified_epoch=config.GENESIS_EPOCH + 1,
     )
     chaindb.persist_state(state_with_justified_block)
 
     assert chaindb.get_finalized_head(BeaconBlock) == genesis_block
-    assert chaindb.get_justified_head(BeaconBlock).signed_root == block.signed_root
+    assert chaindb.get_justified_head(BeaconBlock).signing_root == block.signing_root
 
 
 def test_chaindb_get_finalized_head_at_init_time(chaindb):
