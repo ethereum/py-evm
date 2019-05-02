@@ -7,10 +7,6 @@ from typing import (
     Type,
 )
 
-from eth_typing import (
-    Hash32,
-)
-
 from eth._utils.datatypes import (
     Configurable,
 )
