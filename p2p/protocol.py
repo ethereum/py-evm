@@ -257,7 +257,8 @@ def match_protocols_with_capabilities(protocols: Sequence[Type[Protocol]],
     # group the protocols by name
     proto_groups = groupby(operator.attrgetter('name'), protocols)
     for _, homogenous_protocols in sorted(proto_groups.items()):
-        # sort the commonly named protocols by decreasing version number.
+        # for each set of protocols with the same name, sort them in decreasing
+        # order by their version number.
         ordered_protocols = sorted(
             homogenous_protocols,
             key=operator.attrgetter('version'),
@@ -265,6 +266,9 @@ def match_protocols_with_capabilities(protocols: Sequence[Type[Protocol]],
         )
         for proto in ordered_protocols:
             if proto.as_capability() in capabilities_set:
+                # select the first protocol we find that is in the provided
+                # `capabilities` which will be the *highest* version since we
+                # previously sorted them.
                 yield proto
                 break
 
