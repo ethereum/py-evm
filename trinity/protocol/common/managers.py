@@ -35,6 +35,8 @@ from trinity.exceptions import AlreadyWaiting
 from .constants import (
     ROUND_TRIP_TIMEOUT,
     NUM_QUEUED_REQUESTS,
+    TIMEOUT_BUCKET_CAPACITY,
+    TIMEOUT_BUCKET_RATE,
 )
 from .normalizers import BaseNormalizer
 from .trackers import BasePerformanceTracker
@@ -77,7 +79,7 @@ class ResponseCandidateStream(
         # token bucket for limiting timeouts.
         # - Refills at 1-token every 5 minutes
         # - Max capacity of 3 tokens
-        self.timeout_bucket = TokenBucket(1 / 300, 3)
+        self.timeout_bucket = TokenBucket(TIMEOUT_BUCKET_RATE, TIMEOUT_BUCKET_CAPACITY)
 
     async def payload_candidates(
             self,
