@@ -3,10 +3,13 @@ import random
 from typing import (
     cast,
     AsyncIterator,
+    Dict,
     FrozenSet,
-    MutableSet,
     List,
+    MutableSet,
+    Tuple,
     Type,
+    Union,
 )
 
 from eth_typing import (
@@ -30,7 +33,7 @@ from p2p.service import BaseService
 
 from eth.exceptions import BlockNotFound
 
-from eth2.beacon.chains.base import BeaconChain
+from eth2.beacon.chains.base import BaseBeaconChain
 
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
@@ -166,26 +169,53 @@ class BaseReceiveServer(BaseRequestServer):
     pass
 
 
+class OrphanBlockPool:
+    # TODO: probably use lru-cache or other cache in the future?
+    #   map from `block.previous_block_root` to `block`
+    _pool: MutableSet[BaseBeaconBlock]
+
+    def __init__(self) -> None:
+        self._pool = set()
+
+    def get(self, block_root: Hash32) -> BaseBeaconBlock:
+        for block in self._pool:
+            if block.signed_root == block_root:
+                return block
+        raise BlockNotFound(f"No block with root {block_root} is found")
+
+    def add(self, block: BaseBeaconBlock) -> None:
+        if block in self._pool:
+            return
+        self._pool.add(block)
+
+    def pop_children(self, block: BaseBeaconBlock) -> Tuple[BaseBeaconBlock, ...]:
+        children = tuple(
+            orphan_block
+            for orphan_block in self._pool
+            if orphan_block.previous_block_root == block.signed_root
+        )
+        self._pool.difference_update(children)
+        return children
+
+
 class BCCReceiveServer(BaseReceiveServer):
     subscription_msg_types: FrozenSet[Type[Command]] = frozenset({
         BeaconBlocks,
         NewBeaconBlock,
     })
 
-    requested_ids: MutableSet[int]
-    # TODO: probably use lru-cache or other cache in the future?
-    #   map from `block.parent_root` to `block`
-    orphan_block_pool: List[BeaconBlock]
+    map_requested_id_block_root: Dict[int, Hash32]
+    orphan_block_pool: OrphanBlockPool
 
     def __init__(
             self,
-            chain: BeaconChain,
+            chain: BaseBeaconChain,
             peer_pool: BCCPeerPool,
             token: CancelToken = None) -> None:
         super().__init__(peer_pool, token)
         self.chain = chain
-        self.orphan_block_pool = []
-        self.requested_ids = set()
+        self.map_requested_id_block_root = {}
+        self.orphan_block_pool = OrphanBlockPool()
 
     async def _handle_msg(self, base_peer: BasePeer, cmd: Command,
                           msg: protocol._DecodedMsgType) -> None:
@@ -202,59 +232,56 @@ class BCCReceiveServer(BaseReceiveServer):
         if not peer.is_operational:
             return
         request_id = msg["request_id"]
-        if request_id not in self.requested_ids:
-            return
+        if request_id not in self.map_requested_id_block_root:
+            raise Exception(f"request_id={request_id} is not found")
         encoded_blocks = msg["encoded_blocks"]
         if len(encoded_blocks) != 1:
             raise Exception("should only receive 1 block from our requests")
         resp_block = ssz.decode(encoded_blocks[0], BeaconBlock)
+        if resp_block.signed_root != self.map_requested_id_block_root[request_id]:
+            raise Exception(
+                f"block root {resp_block.signed_root} does not correpond to the one we requested"
+            )
         self.logger.debug(f"received request_id={request_id}, resp_block={resp_block}")  # noqa: E501
         self._try_import_or_handle_orphan(resp_block)
-        self.requested_ids.remove(request_id)
+        del self.map_requested_id_block_root[request_id]
 
     async def _handle_new_beacon_block(self, peer: BCCPeer, msg: NewBeaconBlockMessage) -> None:
         if not peer.is_operational:
             return
         encoded_block = msg["encoded_block"]
-        # TODO: Catch ssz decode error.
         block = ssz.decode(encoded_block, BeaconBlock)
-        self.logger.debug(f"received block={block}")  # noqa: E501
+        if self._is_block_seen(block):
+            raise Exception(f"block {block} is seen before")
+        self.logger.debug(f"received block={block}")
         self._try_import_or_handle_orphan(block)
+        # TODO: relay the block if it is valid
 
     def _try_import_or_handle_orphan(self, block: BeaconBlock) -> None:
         blocks_to_be_imported: List[BeaconBlock] = []
-        blocks_failed_to_be_imported: List[BeaconBlock] = []
 
         blocks_to_be_imported.append(block)
         while len(blocks_to_be_imported) != 0:
             block = blocks_to_be_imported.pop()
             # try to import the block
-            try:
-                self.logger.debug(f"try to import block={block}")
-                self.chain.import_block(block)
-                self.logger.debug(f"successfully imported block={block}")
-            except ValidationError:
-                self.logger.debug(f"failed to import block={block}, add to the orphan pool")
+            if not self._is_block_root_in_db(block.previous_block_root):
+                self.logger.debug(f"found orphan block={block}")
                 # if failed, add the block and the rest of the queue back to the pool
-                blocks_failed_to_be_imported.append(block)
-                #   and send request for their parents
-                self._request_block_by_root(block_root=block.parent_root)
+                self.orphan_block_pool.add(block)
+                self._request_block_by_root(block_root=block.previous_block_root)
+                continue
+            # only import the block when its parent is in db
+            self.logger.debug(f"try to import block={block}")
+            self.chain.import_block(block)
+            self.logger.debug(f"successfully imported block={block}")
+
             # if succeeded, handle the orphan blocks which depend on this block.
-            matched_orphan_blocks = tuple(
-                orphan_block
-                for orphan_block in self.orphan_block_pool
-                if orphan_block.parent_root == block.root
-            )
+            matched_orphan_blocks = self.orphan_block_pool.pop_children(block)
             if len(matched_orphan_blocks) > 0:
                 self.logger.debug(
                     f"blocks {matched_orphan_blocks} match their parent {block}"
                 )
-                blocks_to_be_imported.extend(matched_orphan_blocks)
-                self.orphan_block_pool = list(
-                    set(self.orphan_block_pool).difference(matched_orphan_blocks)
-                )
-        # add the failed-to-be-imported blocks back
-        self.orphan_block_pool.extend(blocks_failed_to_be_imported)
+            blocks_to_be_imported.extend(matched_orphan_blocks)
 
     def _request_block_by_root(self, block_root: Hash32) -> None:
         for i, peer in enumerate(self._peer_pool.connected_nodes.values()):
@@ -262,9 +289,31 @@ class BCCReceiveServer(BaseReceiveServer):
                 bold_red(f"send block request to: request_id={i}, peer={peer}")
             )
             req_request_id = random.randint(0, 32768)
-            self.requested_ids.add(req_request_id)
+            self.map_requested_id_block_root[req_request_id] = block_root
             peer.sub_proto.send_get_blocks(
                 block_root,
                 max_blocks=1,
                 request_id=req_request_id,
             )
+
+    def _is_block_root_in_orphan_block_pool(self, block_root: Hash32) -> bool:
+        try:
+            self.orphan_block_pool.get(block_root=block_root)
+            return True
+        except BlockNotFound:
+            return False
+
+    def _is_block_root_in_db(self, block_root: Hash32) -> bool:
+        try:
+            self.chain.get_block_by_root(block_root=block_root)
+            return True
+        except BlockNotFound:
+            return False
+
+    def _is_block_root_seen(self, block_root: Hash32) -> bool:
+        if self._is_block_root_in_orphan_block_pool(block_root=block_root):
+            return True
+        return self._is_block_root_in_db(block_root=block_root)
+
+    def _is_block_seen(self, block: BaseBeaconBlock) -> bool:
+        return self._is_block_root_seen(block_root=block.signed_root)

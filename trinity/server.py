@@ -349,7 +349,6 @@ class BCCServer(BaseServer[BCCPeerPool]):
                  headerdb: BaseAsyncHeaderDB,
                  base_db: BaseAsyncDB,
                  network_id: int,
-                 peer_info: BasePeerInfo = None,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
