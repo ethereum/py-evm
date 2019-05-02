@@ -28,13 +28,13 @@ if TYPE_CHECKING:
 class Hello(Command):
     _cmd_id = 0
     decode_strict = False
-    structure = [
+    structure = (
         ('version', sedes.big_endian_int),
         ('client_version_string', sedes.text),
         ('capabilities', sedes.CountableList(sedes.List([sedes.text, sedes.big_endian_int]))),
         ('listen_port', sedes.big_endian_int),
         ('remote_pubkey', sedes.binary)
-    ]
+    )
 
     def decompress_payload(self, raw_payload: bytes) -> bytes:
         # The `Hello` command doesn't support snappy compression
@@ -65,7 +65,7 @@ class DisconnectReason(enum.Enum):
 
 class Disconnect(Command):
     _cmd_id = 1
-    structure = [('reason', sedes.big_endian_int)]
+    structure = (('reason', sedes.big_endian_int),)
 
     def get_reason_name(self, reason_id: int) -> str:
         try:
@@ -84,16 +84,18 @@ class Disconnect(Command):
 
 class Ping(Command):
     _cmd_id = 2
+    structure = ()
 
 
 class Pong(Command):
     _cmd_id = 3
+    structure = ()
 
 
 class P2PProtocol(Protocol):
     name = 'p2p'
     version = 5
-    _commands = [Hello, Ping, Pong, Disconnect]
+    _commands = (Hello, Ping, Pong, Disconnect)
     cmd_length = 16
 
     def __init__(self, peer: 'BasePeer', snappy_support: bool) -> None:

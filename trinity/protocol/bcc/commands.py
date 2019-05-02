@@ -45,12 +45,12 @@ class StatusMessage(TypedDict):
 
 class Status(Command):
     _cmd_id = 0
-    structure = [
+    structure = (
         ('protocol_version', sedes.big_endian_int),
         ('network_id', sedes.big_endian_int),
         ('genesis_hash', sedes.binary),
         ('head_slot', sedes.big_endian_int),
-    ]
+    )
 
 
 class GetBeaconBlocksMessage(TypedDict):
@@ -61,11 +61,11 @@ class GetBeaconBlocksMessage(TypedDict):
 
 class GetBeaconBlocks(Command):
     _cmd_id = 1
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('block_slot_or_root', HashOrNumber()),
         ('max_blocks', sedes.big_endian_int),
-    ]
+    )
 
 
 class BeaconBlocksMessage(TypedDict):
@@ -75,10 +75,10 @@ class BeaconBlocksMessage(TypedDict):
 
 class BeaconBlocks(Command):
     _cmd_id = 2
-    structure = [
+    structure = (
         ('request_id', sedes.big_endian_int),
         ('encoded_blocks', sedes.CountableList(sedes.binary)),
-    ]
+    )
 
 
 class AttestationRecords(Command):
@@ -92,6 +92,6 @@ class NewBeaconBlockMessage(TypedDict):
 
 class NewBeaconBlock(Command):
     _cmd_id = 4
-    structure = [
+    structure = (
         ('encoded_block', sedes.binary),
-    ]
+    )

@@ -20,13 +20,13 @@ from trinity.rlp.sedes import HashOrNumber
 
 class Status(Command):
     _cmd_id = 0
-    structure = [
+    structure = (
         ('protocol_version', sedes.big_endian_int),
         ('network_id', sedes.big_endian_int),
         ('td', sedes.big_endian_int),
         ('best_hash', sedes.binary),
         ('genesis_hash', sedes.binary),
-    ]
+    )
 
 
 class NewBlockHashes(Command):
@@ -41,12 +41,12 @@ class Transactions(Command):
 
 class GetBlockHeaders(Command):
     _cmd_id = 3
-    structure = [
+    structure = (
         ('block_number_or_hash', HashOrNumber()),
         ('max_headers', sedes.big_endian_int),
         ('skip', sedes.big_endian_int),
         ('reverse', sedes.boolean),
-    ]
+    )
 
 
 class BlockHeaders(BaseBlockHeaders):
@@ -69,11 +69,12 @@ class BlockBodies(Command):
 
 class NewBlock(Command):
     _cmd_id = 7
-    structure = [
+    structure = (
         ('block', sedes.List([BlockHeader,
                               sedes.CountableList(BaseTransactionFields),
                               sedes.CountableList(BlockHeader)])),
-        ('total_difficulty', sedes.big_endian_int)]
+        ('total_difficulty', sedes.big_endian_int),
+    )
 
 
 class GetNodeData(Command):

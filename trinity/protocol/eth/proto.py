@@ -46,10 +46,16 @@ if TYPE_CHECKING:
 class ETHProtocol(HasExtendedDebugLogger, Protocol):
     name = 'eth'
     version = 63
-    _commands = [
-        Status, NewBlockHashes, Transactions, GetBlockHeaders, BlockHeaders,
-        GetBlockBodies, BlockBodies, NewBlock, GetNodeData, NodeData,
-        GetReceipts, Receipts]
+    _commands = (
+        Status,
+        NewBlockHashes,
+        Transactions,
+        GetBlockHeaders, BlockHeaders,
+        GetBlockBodies, BlockBodies,
+        NewBlock,
+        GetNodeData, NodeData,
+        GetReceipts, Receipts,
+    )
     cmd_length = 17
 
     peer: 'ETHPeer'
