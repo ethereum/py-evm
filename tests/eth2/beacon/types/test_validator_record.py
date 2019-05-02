@@ -3,13 +3,13 @@ import pytest
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
-from eth2.beacon.types.validator_records import (
-    ValidatorRecord,
+from eth2.beacon.types.validators import (
+    Validator,
 )
 
 
 def test_defaults(sample_validator_record_params):
-    validator = ValidatorRecord(**sample_validator_record_params)
+    validator = Validator(**sample_validator_record_params)
     assert validator.pubkey == sample_validator_record_params['pubkey']
     assert validator.withdrawal_credentials == sample_validator_record_params['withdrawal_credentials']  # noqa: E501
 
@@ -33,7 +33,7 @@ def test_is_active(sample_validator_record_params,
         'activation_epoch': activation_epoch,
         'exit_epoch': exit_epoch,
     }
-    validator = ValidatorRecord(**validator_record_params)
+    validator = Validator(**validator_record_params)
     assert validator.is_active(epoch) == expected
 
 
@@ -41,7 +41,7 @@ def test_create_pending_validator():
     pubkey = 123
     withdrawal_credentials = b'\x11' * 32
 
-    validator = ValidatorRecord.create_pending_validator(
+    validator = Validator.create_pending_validator(
         pubkey=pubkey,
         withdrawal_credentials=withdrawal_credentials,
     )

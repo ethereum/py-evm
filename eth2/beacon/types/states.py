@@ -40,7 +40,7 @@ from .eth1_data_vote import Eth1DataVote
 from .crosslinks import Crosslink
 from .forks import Fork
 from .pending_attestation_records import PendingAttestationRecord
-from .validator_records import ValidatorRecord
+from .validators import Validator
 
 
 class BeaconState(ssz.Serializable):
@@ -52,7 +52,7 @@ class BeaconState(ssz.Serializable):
         ('fork', Fork),  # For versioning hard forks
 
         # Validator registry
-        ('validator_registry', List(ValidatorRecord)),
+        ('validator_registry', List(Validator)),
         ('validator_balances', List(uint64)),
         ('validator_registry_update_epoch', uint64),
 
@@ -101,7 +101,7 @@ class BeaconState(ssz.Serializable):
             genesis_time: Timestamp,
             fork: Fork,
             # Validator registry
-            validator_registry: Sequence[ValidatorRecord],
+            validator_registry: Sequence[Validator],
             validator_balances: Sequence[Gwei],
             validator_registry_update_epoch: Epoch,
             # Randomness and committees
@@ -204,7 +204,7 @@ class BeaconState(ssz.Serializable):
                             latest_active_index_roots_length: int,
                             latest_randao_mixes_length: int,
                             latest_slashed_exit_length: int,
-                            activated_genesis_validators: Sequence[ValidatorRecord]=(),
+                            activated_genesis_validators: Sequence[Validator]=(),
                             genesis_balances: Sequence[Gwei]=()) -> 'BeaconState':
         return cls(
             # Misc
@@ -267,7 +267,7 @@ class BeaconState(ssz.Serializable):
 
     def update_validator_registry(self,
                                   validator_index: ValidatorIndex,
-                                  validator: ValidatorRecord) -> 'BeaconState':
+                                  validator: Validator) -> 'BeaconState':
         """
         Replace ``self.validator_registry[validator_index]`` with ``validator``.
         """
@@ -301,10 +301,10 @@ class BeaconState(ssz.Serializable):
 
     def update_validator(self,
                          validator_index: ValidatorIndex,
-                         validator: ValidatorRecord,
+                         validator: Validator,
                          balance: Gwei) -> 'BeaconState':
         """
-        Update the ``ValidatorRecord`` and balance of validator of the given ``validator_index``.
+        Update the ``Validator`` and balance of validator of the given ``validator_index``.
         """
         state = self.update_validator_registry(validator_index, validator)
         state = state.update_validator_balance(validator_index, balance)

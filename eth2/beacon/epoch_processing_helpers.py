@@ -48,7 +48,7 @@ if TYPE_CHECKING:
     from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
     from eth2.beacon.types.states import BeaconState  # noqa: F401
     from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
-    from eth2.beacon.types.validator_records import ValidatorRecord  # noqa: F401
+    from eth2.beacon.types.validators import Validator  # noqa: F401
 
 
 @to_tuple

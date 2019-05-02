@@ -18,7 +18,7 @@ from eth2.beacon.typing import (
 )
 
 
-class ValidatorRecord(ssz.Serializable):
+class Validator(ssz.Serializable):
 
     fields = [
         # BLS public key
@@ -64,9 +64,9 @@ class ValidatorRecord(ssz.Serializable):
     @classmethod
     def create_pending_validator(cls,
                                  pubkey: BLSPubkey,
-                                 withdrawal_credentials: Hash32) -> 'ValidatorRecord':
+                                 withdrawal_credentials: Hash32) -> 'Validator':
         """
-        Return a new pending ``ValidatorRecord`` with the given fields.
+        Return a new pending ``Validator`` with the given fields.
         """
         return cls(
             pubkey=pubkey,

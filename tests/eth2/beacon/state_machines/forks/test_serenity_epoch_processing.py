@@ -80,7 +80,7 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
 )
 
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.validator_records import ValidatorRecord
+from eth2.beacon.types.validators import Validator
 
 
 #
@@ -1126,7 +1126,7 @@ def test_update_validator_registry(n,
     activating_index = n
     exiting_index = 0
 
-    activating_validator = ValidatorRecord.create_pending_validator(
+    activating_validator = Validator.create_pending_validator(
         pubkey=b'\x10' * 48,
         withdrawal_credentials=b'\x11' * 32,
     )
