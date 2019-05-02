@@ -15,8 +15,8 @@ def _find_breakpoints(*values: int) -> Iterable[int]:
 
 def _extract_integer_ranges(*values: int) -> Iterable[Tuple[int, int]]:
     """
-    Takes a sequence of integers which is expected to be ordered and returns
-    the most concise definition of the sequence in terms of integer ranges.
+    Take a sequence of integers which is expected to be ordered and return the
+    most concise definition of the sequence in terms of integer ranges.
 
     - fn(1, 2, 3) -> ((1, 3),)
     - fn(1, 2, 3, 7, 8, 9) -> ((1, 3), (7, 9))
@@ -40,9 +40,10 @@ def humanize_integer_sequence(values: Sequence[int]) -> str:
     Return a human readable string that attempts to concisely define a sequence
     of integers.
 
-    - fn((1, 2, 3)) -> '1 - 3'
-    - fn((1, 2, 3, 7, 8, 9)) -> '1-3, 7-9'
-    - fn((1, 7, 8, 9)) -> '1, 7-9'
+    - fn((1, 2, 3)) -> '1-3'
+    - fn((1, 2, 3, 7, 8, 9)) -> '1-3|7-9'
+    - fn((1, 2, 3, 5, 7, 8, 9)) -> '1-3|5|7-9'
+    - fn((1, 7, 8, 9)) -> '1|7-9'
     """
     if not values:
         return "(empty)"
