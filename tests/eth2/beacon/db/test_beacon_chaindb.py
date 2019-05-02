@@ -144,7 +144,10 @@ def test_chaindb_get_justified_head_at_genesis(chaindb_at_genesis, genesis_block
     assert chaindb_at_genesis.get_justified_head(BeaconBlock) == genesis_block
 
 
-def test_chaindb_get_finalized_head(chaindb_at_genesis, genesis_block, genesis_state, sample_beacon_block_params):
+def test_chaindb_get_finalized_head(chaindb_at_genesis,
+                                    genesis_block,
+                                    genesis_state,
+                                    sample_beacon_block_params):
     chaindb = chaindb_at_genesis
     block = BeaconBlock(**sample_beacon_block_params).copy(
         previous_block_root=genesis_block.signed_root,
@@ -163,7 +166,11 @@ def test_chaindb_get_finalized_head(chaindb_at_genesis, genesis_block, genesis_s
     assert chaindb.get_justified_head(BeaconBlock) == genesis_block
 
 
-def test_chaindb_get_justified_head(chaindb_at_genesis, genesis_block, genesis_state, sample_beacon_block_params, config):
+def test_chaindb_get_justified_head(chaindb_at_genesis,
+                                    genesis_block,
+                                    genesis_state,
+                                    sample_beacon_block_params,
+                                    config):
     chaindb = chaindb_at_genesis
     block = BeaconBlock(**sample_beacon_block_params).copy(
         previous_block_root=genesis_block.signed_root,
@@ -196,12 +203,12 @@ def test_chaindb_get_justified_head(chaindb_at_genesis, genesis_block, genesis_s
 
 def test_chaindb_get_finalized_head_at_init_time(chaindb):
     with pytest.raises(FinalizedHeadNotFound):
-        _ = chaindb.get_finalized_head(BeaconBlock)
+        chaindb.get_finalized_head(BeaconBlock)
 
 
 def test_chaindb_get_justified_head_at_init_time(chaindb):
     with pytest.raises(JustifiedHeadNotFound):
-        _ = chaindb.get_justified_head(BeaconBlock)
+        chaindb.get_justified_head(BeaconBlock)
 
 
 def test_chaindb_get_canonical_head(chaindb, block):
