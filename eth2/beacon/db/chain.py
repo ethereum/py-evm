@@ -68,7 +68,7 @@ class BaseBeaconChainDB(ABC):
     db = None  # type: BaseAtomicDB
 
     @abstractmethod
-    def __init__(self, db: BaseAtomicDB) -> None:
+    def __init__(self, db: BaseAtomicDB, config: Eth2Config) -> None:
         pass
 
     #
