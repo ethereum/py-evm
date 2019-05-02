@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import time
 
 from typing import (
@@ -63,6 +64,8 @@ class FakeChain(TestnetChain):
     def __init__(self, base_db):
         super().__init__(base_db)
         self.fake_db = {}
+        head = self.get_canonical_head()
+        self.fake_db[head.signed_root] = head
 
     def import_block(
             self,
@@ -73,6 +76,8 @@ class FakeChain(TestnetChain):
         Remove the logics about `state`, because we only need to check a block's parent in
         `ReceiveServer`.
         """
+        if block.previous_block_root not in self.fake_db:
+            raise ValidationError
         try:
             self.get_block_by_root(block.previous_block_root)
         except BlockNotFound:
@@ -113,8 +118,19 @@ async def get_peer_and_receive_server(request, event_loop) -> Tuple[
         bob_chain_db=bob_chain.chaindb,
     )
 
-    msg_buffer = MsgBuffer()
-    bob.add_subscriber(msg_buffer)
+    # add a queue to put message after every msg handler finishes
+    msg_queue = asyncio.Queue()
+    orig_handle_msg = BCCReceiveServer._handle_msg
+
+    async def _handle_msg(self, base_peer, cmd, msg):
+        task = asyncio.ensure_future(orig_handle_msg(self, base_peer, cmd, msg))
+
+        def enqueue_msg(future, msg):
+            msg_queue.put_nowait(msg)
+        task.add_done_callback(functools.partial(enqueue_msg, msg))
+        await task
+    BCCReceiveServer._handle_msg = _handle_msg
+
     bob_receive_server = BCCReceiveServer(chain=bob_chain, peer_pool=bob_peer_pool)
 
     asyncio.ensure_future(bob_receive_server.run())
@@ -125,7 +141,7 @@ async def get_peer_and_receive_server(request, event_loop) -> Tuple[
 
     request.addfinalizer(finalizer)
 
-    return alice, bob_receive_server, msg_buffer
+    return alice, bob_receive_server, msg_queue
 
 
 def test_orphan_block_pool():
@@ -152,7 +168,7 @@ def test_orphan_block_pool():
 
 @pytest.mark.asyncio
 async def test_bcc_receive_server_try_import_or_handle_orphan(request, event_loop, monkeypatch):
-    alice, bob_receive_server, msg_buffer = await get_peer_and_receive_server(request, event_loop)
+    alice, bob_receive_server, _ = await get_peer_and_receive_server(request, event_loop)
 
     def _request_block_by_root(block_root):
         pass
@@ -190,7 +206,6 @@ async def test_bcc_receive_server_try_import_or_handle_orphan(request, event_loo
     # test: block without its parent in db should not be imported, and it should be put in the
     #   `orphan_block_pool`.
     bob_receive_server._try_import_or_handle_orphan(block_2)
-    await asyncio.sleep(0)
     assert not bob_chain.is_block_existing(block_2.signed_root)
     assert block_2 in bob_receive_server.orphan_block_pool._pool
     bob_receive_server._try_import_or_handle_orphan(block_3)
@@ -199,7 +214,6 @@ async def test_bcc_receive_server_try_import_or_handle_orphan(request, event_loo
     # test: a successfully imported parent is present, its children should be processed
     #   recursively.
     bob_receive_server._try_import_or_handle_orphan(block_1)
-    await asyncio.sleep(0)
     assert bob_chain.is_block_existing(block_1.signed_root)
     assert bob_chain.is_block_existing(block_2.signed_root)
     assert block_2 not in bob_receive_server.orphan_block_pool._pool
@@ -210,7 +224,7 @@ async def test_bcc_receive_server_try_import_or_handle_orphan(request, event_loo
 
 @pytest.mark.asyncio
 async def test_bcc_receive_server_handle_beacon_blocks(request, event_loop, monkeypatch):
-    alice, bob_receive_server, msg_buffer = await get_peer_and_receive_server(request, event_loop)
+    alice, bob_receive_server, msg_queue = await get_peer_and_receive_server(request, event_loop)
     bob_chain = bob_receive_server.chain
     head = bob_chain.get_canonical_head()
     block_0 = bob_chain.create_block_from_parent(
@@ -222,34 +236,33 @@ async def test_bcc_receive_server_handle_beacon_blocks(request, event_loop, monk
     inexistent_request_id = 5566
     assert inexistent_request_id not in bob_receive_server.map_requested_id_block_root
     alice.sub_proto.send_blocks(blocks=(block_0,), request_id=inexistent_request_id)
-    await msg_buffer.msg_queue.get()
+    await msg_queue.get()
     await asyncio.sleep(0)
     assert not bob_chain.is_block_existing(block_0.signed_root)
     # test: >= 1 blocks are sent, the request should be rejected.
     existing_request_id = 1
     bob_receive_server.map_requested_id_block_root[existing_request_id] = block_0.signed_root
     alice.sub_proto.send_blocks(blocks=(block_0, block_0), request_id=existing_request_id)
-    await msg_buffer.msg_queue.get()
+    await msg_queue.get()
     assert not bob_chain.is_block_existing(block_0.signed_root)
     # test: `request_id` is found but `block.signed_root` does not correspond to the request
     existing_request_id = 2
     bob_receive_server.map_requested_id_block_root[existing_request_id] = b'\x12' * 32
     alice.sub_proto.send_blocks(blocks=(block_0,), request_id=existing_request_id)
-    await msg_buffer.msg_queue.get()
+    await msg_queue.get()
     assert not bob_chain.is_block_existing(block_0.signed_root)
     # test: `request_id` is found and the block is valid. It should be imported.
     existing_request_id = 3
     bob_receive_server.map_requested_id_block_root[existing_request_id] = block_0.signed_root
     alice.sub_proto.send_blocks(blocks=(block_0,), request_id=existing_request_id)
-    await msg_buffer.msg_queue.get()
-    await asyncio.sleep(0.01)
+    await msg_queue.get()
     assert bob_chain.is_block_existing(block_0.signed_root)
     assert existing_request_id not in bob_receive_server.map_requested_id_block_root
 
 
 @pytest.mark.asyncio
 async def test_bcc_receive_server_handle_new_beacon_block_checks(request, event_loop, monkeypatch):
-    alice, bob_receive_server, msg_buffer = await get_peer_and_receive_server(request, event_loop)
+    alice, bob_receive_server, msg_queue = await get_peer_and_receive_server(request, event_loop)
     bob_chain = bob_receive_server.chain
     head = bob_chain.get_canonical_head()
     block_0 = bob_chain.create_block_from_parent(
@@ -269,12 +282,12 @@ async def test_bcc_receive_server_handle_new_beacon_block_checks(request, event_
     )
 
     alice.sub_proto.send_new_block(block=block_0)
-    await asyncio.sleep(0.01)
+    await msg_queue.get()
     assert is_called
     is_called = False
 
     # test: seen blocks should be rejected
     bob_receive_server.orphan_block_pool.add(block_0)
     alice.sub_proto.send_new_block(block=block_0)
-    await asyncio.sleep(0.01)
+    await msg_queue.get()
     assert not is_called
