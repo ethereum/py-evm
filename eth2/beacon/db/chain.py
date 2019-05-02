@@ -28,7 +28,6 @@ from eth.db.backends.base import (
     BaseDB,
 )
 from eth.constants import (
-    GENESIS_PARENT_HASH,
     ZERO_HASH32,
 )
 from eth.exceptions import (
@@ -460,7 +459,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         else:
             no_canonical_head = False
 
-        is_genesis = first_block.previous_block_root == GENESIS_PARENT_HASH
+        is_genesis = first_block.is_genesis
         if not is_genesis and not cls._block_exists(db, first_block.previous_block_root):
             raise ParentNotFound(
                 "Cannot persist block ({}) with unknown parent ({})".format(
@@ -588,7 +587,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             # Found a new ancestor
             yield block
 
-            if block.previous_block_root == GENESIS_PARENT_HASH:
+            if block.is_genesis:
                 break
             else:
                 block = cls._get_block_by_root(db, block.previous_block_root, block_class)
