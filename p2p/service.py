@@ -265,12 +265,25 @@ class BaseService(ABC, CancellableMixin):
                 for child_service in self._child_services])
             self.logger.debug("All child services finished")
         if self._tasks:
-            self.logger.debug("Waiting for tasks: %s", list(self._tasks))
+            self._log_tasks("Waiting for tasks")
             await asyncio.gather(*self._tasks)
             self.logger.debug("All tasks finished")
 
         await self._cleanup()
         self.events.cleaned_up.set()
+
+    def _log_tasks(self, message: str) -> None:
+        MAX_DISPLAY_TASKS = 50
+        task_list = list(self._tasks)
+        if len(self._tasks) > MAX_DISPLAY_TASKS:
+            task_display = ''.join(map(str, [
+                task_list[:MAX_DISPLAY_TASKS // 2],
+                '...',
+                task_list[-1 * MAX_DISPLAY_TASKS // 2:],
+            ]))
+        else:
+            task_display = str(task_list)
+        self.logger.debug("%s (%d): %s", message, len(self._tasks), task_display)
 
     def cancel_nowait(self) -> None:
         if self.is_cancelled:
@@ -295,7 +308,7 @@ class BaseService(ABC, CancellableMixin):
                 "Timed out waiting for %s to finish its cleanup, forcibly cancelling pending "
                 "tasks and exiting anyway", self)
             if self._tasks:
-                self.logger.debug("Pending tasks: %s", list(self._tasks))
+                self._log_tasks("Pending tasks")
             if self._child_services:
                 self.logger.debug("Pending child services: %s", list(self._child_services))
             self._forcibly_cancel_all_tasks()
