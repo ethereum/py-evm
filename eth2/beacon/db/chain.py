@@ -166,9 +166,10 @@ class BaseBeaconChainDB(ABC):
 class BeaconChainDB(BaseBeaconChainDB):
     def __init__(self, db: BaseAtomicDB, config: Eth2Config) -> None:
         self.db = db
+        self.config = config
 
         self._finalized_root = self._get_finalized_root_if_present(db)
-        self._highest_justified_epoch = self._get_highest_justified_epoch(db, config)
+        self._highest_justified_epoch = self._get_highest_justified_epoch(db)
 
     def _get_finalized_root_if_present(self, db: BaseDB) -> Hash32:
         try:
@@ -176,13 +177,13 @@ class BeaconChainDB(BaseBeaconChainDB):
         except FinalizedHeadNotFound:
             return ZERO_HASH32
 
-    def _get_highest_justified_epoch(self, db: BaseDB, config: Eth2Config) -> Epoch:
+    def _get_highest_justified_epoch(self, db: BaseDB) -> Epoch:
         try:
             justified_head_root = self._get_justified_head_root(db)
             slot = self.get_slot_by_root(justified_head_root)
-            return slot_to_epoch(slot, config.SLOTS_PER_EPOCH)
+            return slot_to_epoch(slot, self.config.SLOTS_PER_EPOCH)
         except JustifiedHeadNotFound:
-            return config.GENESIS_EPOCH
+            return self.config.GENESIS_EPOCH
 
     def persist_block(
             self,
@@ -193,6 +194,9 @@ class BeaconChainDB(BaseBeaconChainDB):
         Persist the given block.
         """
         with self.db.atomic_batch() as db:
+            if block.is_genesis:
+                self._handle_exceptional_justification_and_finality(db, block)
+
             return self._persist_block(db, block, block_class)
 
     @classmethod
@@ -470,11 +474,6 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         if is_genesis:
             score = 0
-            # TODO: this should probably be done as part of the fork choice rule processing
-            db.set(
-                SchemaV1.make_finalized_head_root_lookup_key(),
-                first_block.signing_root,
-            )
         else:
             score = first_block.slot
 
@@ -677,6 +676,10 @@ class BeaconChainDB(BaseBeaconChainDB):
         This policy is safe because a large number of validators on the network
         will have violated a slashing condition if the invariant does not hold.
         """
+        if state.finalized_root == ZERO_HASH32:
+            # ignore finality in the genesis state
+            return
+
         if state.finalized_root != self._finalized_root:
             self._update_finalized_head(state.finalized_root)
 
@@ -718,6 +721,20 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         if result:
             self._update_justified_head(*result)
+
+    def _handle_exceptional_justification_and_finality(self,
+                                                       db: BaseDB,
+                                                       genesis_block: BaseBeaconBlock) -> None:
+        """
+        The genesis ``BeaconState`` lacks the correct justification and finality
+        data in the early epochs. The invariants of this class require an exceptional
+        handling to mark the genesis block's root and the genesis epoch as
+        finalized and justified.
+        """
+        genesis_root = genesis_block.signed_root
+        genesis_epoch = slot_to_epoch(genesis_block.slot, self.config.SLOTS_PER_EPOCH)
+        self._update_finalized_head(genesis_root)
+        self._update_justified_head(genesis_root, genesis_epoch)
 
     #
     # Raw Database API
