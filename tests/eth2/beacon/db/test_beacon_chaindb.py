@@ -137,7 +137,9 @@ def test_chaindb_state(chaindb, state):
 
 
 def test_chaindb_get_finalized_head_at_genesis(chaindb_at_genesis, genesis_block):
-    assert chaindb_at_genesis.get_finalized_head(BeaconBlock) == genesis_block
+    finalized_head = chaindb_at_genesis.get_finalized_head(BeaconBlock)
+    assert finalized_head.signing_root == genesis_block.signing_root
+    assert finalized_head == genesis_block
 
 
 def test_chaindb_get_justified_head_at_genesis(chaindb_at_genesis, genesis_block):
