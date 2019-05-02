@@ -6,6 +6,7 @@ from typing import (
     Any,
     Dict,
     Generic,
+    Iterable,
     List,
     Sequence,
     Tuple,
@@ -21,6 +22,9 @@ from mypy_extensions import (
 
 import snappy
 
+from eth_utils import to_tuple
+from eth_utils.toolz import groupby
+
 import rlp
 from rlp import sedes
 
@@ -28,7 +32,6 @@ from eth.constants import NULL_BYTE
 
 from p2p.exceptions import (
     MalformedMessage,
-    NoMatchingPeerCapabilities,
 )
 from p2p._utils import get_devp2p_cmd_id
 
@@ -236,48 +239,34 @@ class Protocol:
 CapabilitiesType = Tuple[CapabilityType, ...]
 
 
-def select_sub_protocol(protocols: Sequence[Type[Protocol]],
-                        capabilities: CapabilitiesType) -> Type[Protocol]:
+@to_tuple
+def match_protocols_with_capabilities(protocols: Sequence[Type[Protocol]],
+                                      capabilities: CapabilitiesType) -> Iterable[Type[Protocol]]:
     """
-    Return the highest version protocol from the provided `protocols` based on
-    the provided remote `capabilities`.
+    Return the `Protocol` classes that match with the provided `capabilities`
+    according to the RLPx protocol rules.
 
-    Return the protocol with the highest version that is present in the
-    remote and stores an instance of it (with the appropriate cmd_id offset) in
-    self.sub_proto.
-
-    Raise NoMatchingPeerCapabilities if none of our supported protocols match one of the
-    remote's protocols.
-
-    Raise NotImplementedError if all protocols do not share the same name.
+    - ordered case-sensitive by protocol name
+    - at most one protocol per name
+    - discard protocols that are not present in `capabilities`
+    - use highest version in case of multiple same-name matched protocols
     """
-    proto_names = set(proto.name for proto in protocols)
-    if len(proto_names) != 1:
-        raise NotImplementedError(
-            "Negotiation of capabilities across multiple protocol names not "
-            "implemented"
+    # make a set for faster inclusion checks
+    capabilities_set = set(capabilities)
+
+    # group the protocols by name
+    proto_groups = groupby(operator.attrgetter('name'), protocols)
+    for _, homogenous_protocols in sorted(proto_groups.items()):
+        # sort the commonly named protocols by decreasing version number.
+        ordered_protocols = sorted(
+            homogenous_protocols,
+            key=operator.attrgetter('version'),
+            reverse=True,
         )
-
-    supported_capabilities = set(proto.as_capability() for proto in protocols)
-    matching_capabilities = tuple(sorted(
-        supported_capabilities.intersection(capabilities),
-        key=operator.itemgetter(1),
-        reverse=True,
-    ))
-
-    if not matching_capabilities:
-        raise NoMatchingPeerCapabilities(
-            f"No matching capabilities:\n"
-            f" - {tuple(sorted(supported_capabilities))}\n"
-            f" - {tuple(sorted(capabilities))}"
-        )
-
-    for match in matching_capabilities:
-        for proto in protocols:
-            if proto.as_capability() == match:
-                return proto
-
-    raise NoMatchingPeerCapabilities()
+        for proto in ordered_protocols:
+            if proto.as_capability() in capabilities_set:
+                yield proto
+                break
 
 
 def _pad_to_16_byte_boundary(data: bytes) -> bytes:

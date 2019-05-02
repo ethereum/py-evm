@@ -44,7 +44,7 @@ from p2p._utils import (
     sxor,
 )
 from p2p.protocol import (
-    select_sub_protocol,
+    match_protocols_with_capabilities,
     Command,
     PayloadType,
     Protocol,
@@ -57,7 +57,6 @@ from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
     MalformedMessage,
-    NoMatchingPeerCapabilities,
     PeerConnectionLost,
     RemoteDisconnected,
     TooManyPeersFailure,
@@ -536,22 +535,27 @@ class BasePeer(BaseService):
             self.base_protocol = P2PProtocol(self, snappy_support=snappy_support)
 
         remote_capabilities = msg['capabilities']
-        try:
-            sub_proto_class = select_sub_protocol(
-                self.supported_sub_protocols,
-                remote_capabilities,
+        matched_proto_classes = match_protocols_with_capabilities(
+            self.supported_sub_protocols,
+            remote_capabilities,
+        )
+        if len(matched_proto_classes) == 1:
+            self.sub_proto = matched_proto_classes[0](
+                self,
+                self.base_protocol.cmd_length,
+                snappy_support,
             )
-        except NoMatchingPeerCapabilities:
+        elif len(matched_proto_classes) > 1:
+            raise NotImplementedError(
+                f"Peer {self.remote} connection matched on multiple protocols "
+                f"{matched_proto_classes}.  Support for multiple protocols is not "
+                f"yet supported"
+            )
+        else:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
                 f"No matching capabilities between us ({self.capabilities}) and {self.remote} "
                 f"({remote_capabilities}), disconnecting"
-            )
-        else:
-            self.sub_proto = sub_proto_class(
-                self,
-                self.base_protocol.cmd_length,
-                snappy_support,
             )
 
         self.logger.debug(
