@@ -6,7 +6,7 @@ from typing import (
 import ssz
 from ssz.sedes import (
     List,
-    bytes_sedes,
+    byte_list,
     bytes96,
     uint64,
 )
@@ -18,7 +18,6 @@ from eth_typing import (
 from eth2._utils.bitfield import (
     has_voted,
 )
-from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.typing import (
     ValidatorIndex,
 )
@@ -36,7 +35,7 @@ class SlashableAttestation(ssz.Serializable):
         # Attestation data
         ('data', AttestationData),
         # Custody bitfield
-        ('custody_bitfield', bytes_sedes),
+        ('custody_bitfield', byte_list),
         # Aggregate signature
         ('aggregate_signature', bytes96),
     ]
@@ -52,20 +51,6 @@ class SlashableAttestation(ssz.Serializable):
             custody_bitfield,
             aggregate_signature,
         )
-
-    _hash = None
-
-    @property
-    def hash(self) -> Hash32:
-        if self._hash is None:
-            self._hash = hash_eth2(ssz.encode(self.data))
-        return self._hash
-
-    @property
-    def root(self) -> Hash32:
-        # Alias of `hash`.
-        # Using flat hash, will likely use SSZ tree hash.
-        return self.hash
 
     @property
     def are_validator_indices_ascending(self) -> bool:
@@ -92,7 +77,6 @@ class SlashableAttestation(ssz.Serializable):
         Build the message_hashes that validators are expected to sign for an
         ``AttesterSlashing`` operation.
         """
-        # TODO: change to hash_tree_root when we have SSZ tree hashing
         return (
             AttestationDataAndCustodyBit(data=self.data, custody_bit=False).root,
             AttestationDataAndCustodyBit(data=self.data, custody_bit=True).root,

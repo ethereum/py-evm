@@ -14,6 +14,7 @@ from eth_utils.toolz import (
     curry,
     first,
 )
+import ssz
 
 from eth2.beacon import helpers
 from eth2._utils.numeric import (
@@ -58,9 +59,6 @@ from eth2.beacon.validator_status_helpers import (
     activate_validator,
     exit_validator,
     prepare_validator_for_withdrawal,
-)
-from eth2.beacon._utils.hash import (
-    hash_eth2,
 )
 from eth2.beacon.datastructures.inclusion_info import InclusionInfo
 from eth2.beacon.types.attestations import Attestation
@@ -1019,18 +1017,13 @@ def _update_latest_active_index_roots(state: BeaconState,
     """
     next_epoch = state.next_epoch(committee_config.SLOTS_PER_EPOCH)
 
-    # TODO: chanege to hash_tree_root
     active_validator_indices = get_active_validator_indices(
         state.validator_registry,
         Epoch(next_epoch + committee_config.ACTIVATION_EXIT_DELAY),
     )
-    index_root = hash_eth2(
-        b''.join(
-            [
-                index.to_bytes(32, 'little')
-                for index in active_validator_indices
-            ]
-        )
+    index_root = ssz.hash_tree_root(
+        active_validator_indices,
+        ssz.sedes.List(ssz.uint64),
     )
 
     latest_active_index_roots = update_tuple_item(
@@ -1169,9 +1162,8 @@ def _update_historical_roots(state: BeaconState,
         historical_batch = HistoricalBatch(
             block_roots=state.latest_block_roots,
             state_roots=state.latest_state_roots,
-            slots_per_historical_root=config.SLOTS_PER_HISTORICAL_ROOT,
         )
-        updated_historical_roots += (historical_batch.hash_tree_root,)
+        updated_historical_roots += (historical_batch.root,)
 
     return state.copy(
         historical_roots=updated_historical_roots

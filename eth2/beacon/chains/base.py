@@ -370,7 +370,7 @@ class BeaconChain(BaseBeaconChain):
                 "Attempt to import block #{}.  Cannot import block {} before importing "
                 "its parent block at {}".format(
                     block.slot,
-                    block.signed_root,
+                    block.signing_root,
                     block.previous_block_root,
                 )
             )
@@ -395,7 +395,7 @@ class BeaconChain(BaseBeaconChain):
         self.logger.debug(
             'IMPORTED_BLOCK: slot %s | signed root %s',
             imported_block.slot,
-            encode_hex(imported_block.signed_root),
+            encode_hex(imported_block.signing_root),
         )
 
         return imported_block, new_canonical_blocks, old_canonical_blocks

@@ -1,7 +1,6 @@
 from eth_typing import (
     BLSPubkey,
     BLSSignature,
-    Hash32,
 )
 import ssz
 from ssz.sedes import (
@@ -10,7 +9,6 @@ from ssz.sedes import (
     uint64
 )
 
-from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.constants import EMPTY_SIGNATURE
 
 from eth2.beacon.typing import (
@@ -55,11 +53,3 @@ class Transfer(ssz.Serializable):
             pubkey=pubkey,
             signature=signature,
         )
-
-    _root = None
-
-    @property
-    def root(self) -> Hash32:
-        if self._root is None:
-            self._root = hash_eth2(ssz.encode(self))
-        return self._root

@@ -38,6 +38,9 @@ from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
 from eth2.beacon.tools.builder.initializer import (
     create_mock_genesis,
 )
+from eth2.beacon.tools.misc.ssz_vector import (
+    override_vector_lengths,
+)
 from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
 )
@@ -79,6 +82,8 @@ genesis_data = BeaconGenesisData(
 )
 beacon_chain_config = BeaconChainConfig(chain_name='TestTestTest', genesis_data=genesis_data)
 chain_class = beacon_chain_config.beacon_chain_class
+
+override_vector_lengths(XIAO_LONG_BAO_CONFIG)
 
 
 class FakeProtocol:
@@ -187,7 +192,7 @@ async def test_validator_propose_block_succeeds(caplog, event_loop, event_bus):
         head_block=head,
     )
     # test: ensure the proposed block is saved to the chaindb
-    assert v.chain.get_block_by_root(block.signed_root) == block
+    assert v.chain.get_block_by_root(block.signing_root) == block
 
     # test: ensure that the `canonical_head` changed after proposing
     new_head = v.chain.get_canonical_head()

@@ -19,7 +19,6 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
 )
-
 import ssz
 from ssz.sedes import (
     List,
@@ -42,63 +41,15 @@ from eth2.beacon.typing import (
 
 from .attestations import Attestation
 from .attester_slashings import AttesterSlashing
+from .block_headers import BeaconBlockHeader
 from .deposits import Deposit
 from .eth1_data import Eth1Data
+from .proposer_slashings import ProposerSlashing
 from .transfers import Transfer
 from .voluntary_exits import VoluntaryExit
 
 if TYPE_CHECKING:
-    from .proposer_slashings import ProposerSlashing  # noqa: F401
     from eth2.beacon.db.chain import BaseBeaconChainDB  # noqa: F401
-
-
-class BeaconBlockHeader(ssz.Serializable):
-
-    fields = [
-        ('slot', uint64),
-        ('previous_block_root', bytes32),
-        ('state_root', bytes32),
-        ('block_body_root', bytes32),
-        ('signature', bytes96),
-    ]
-
-    def __init__(self,
-                 *,
-                 slot: uint64,
-                 previous_block_root: bytes32,
-                 state_root: bytes32,
-                 block_body_root: bytes32,
-                 signature: BLSSignature=EMPTY_SIGNATURE):
-        super().__init__(
-            slot=slot,
-            previous_block_root=previous_block_root,
-            state_root=state_root,
-            block_body_root=block_body_root,
-            signature=signature,
-        )
-
-    def __repr__(self) -> str:
-        return '<BlockHeader #{0} {1}>'.format(
-            self.slot,
-            encode_hex(self.signed_root)[2:10],
-        )
-
-    _hash_tree_root = None
-
-    @property
-    def hash_tree_root(self) -> Hash32:
-        if self._hash_tree_root is None:
-            self._hash_tree_root = ssz.hash_tree_root(self)
-        return self._hash_tree_root
-
-    _signed_root = None
-
-    @property
-    def signed_root(self) -> Hash32:
-        # TODO Use SSZ built-in function
-        if self._signed_root is None:
-            self._signed_root = ssz.hash_tree_root(self.copy(signature=EMPTY_SIGNATURE))
-        return Hash32(self._signed_root)
 
 
 class BeaconBlockBody(ssz.Serializable):
@@ -106,7 +57,7 @@ class BeaconBlockBody(ssz.Serializable):
     fields = [
         ('randao_reveal', bytes96),
         ('eth1_data', Eth1Data),
-        ('proposer_slashings', List('ProposerSlashing')),
+        ('proposer_slashings', List(ProposerSlashing)),
         ('attester_slashings', List(AttesterSlashing)),
         ('attestations', List(Attestation)),
         ('deposits', List(Deposit)),
@@ -118,7 +69,7 @@ class BeaconBlockBody(ssz.Serializable):
                  *,
                  randao_reveal: bytes96,
                  eth1_data: Eth1Data,
-                 proposer_slashings: Sequence['ProposerSlashing'],
+                 proposer_slashings: Sequence[ProposerSlashing],
                  attester_slashings: Sequence[AttesterSlashing],
                  attestations: Sequence[Attestation],
                  deposits: Sequence[Deposit],
@@ -175,16 +126,8 @@ class BeaconBlockBody(ssz.Serializable):
             transfers=body.transfers,
         )
 
-    _hash_tree_root = None
 
-    @property
-    def hash_tree_root(self) -> Hash32:
-        if self._hash_tree_root is None:
-            self._hash_tree_root = ssz.hash_tree_root(self)
-        return self._hash_tree_root
-
-
-class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
+class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
     fields = [
         #
         # Header
@@ -217,28 +160,11 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
         )
 
     def __repr__(self) -> str:
-        return '<Block #{0} {1}>'.format(
-            self.slot,
-            encode_hex(self.signed_root)[2:10],
+        return (
+            f'<Block #{self.slot} '
+            f'signing_root={encode_hex(self.signing_root)[2:10]} '
+            f'root={encode_hex(self.root)[2:10]}>'
         )
-
-    _hash_tree_root = None
-
-    @property
-    def hash_tree_root(self) -> Hash32:
-        # NOTE: this is used in the fork choice calculation
-        if self._hash_tree_root is None:
-            self._hash_tree_root = ssz.hash_tree_root(self)
-        return self._hash_tree_root
-
-    _signed_root = None
-
-    @property
-    def signed_root(self) -> Hash32:
-        # TODO Use SSZ built-in function
-        if self._signed_root is None:
-            self._signed_root = ssz.hash_tree_root(self.copy(signature=EMPTY_SIGNATURE))
-        return Hash32(self._signed_root)
 
     @property
     def num_attestations(self) -> int:
@@ -250,7 +176,7 @@ class BaseBeaconBlock(ssz.Serializable, Configurable, ABC):
             slot=self.slot,
             previous_block_root=self.previous_block_root,
             state_root=self.state_root,
-            block_body_root=self.body.hash_tree_root,
+            block_body_root=self.body.root,
             signature=self.signature,
         )
 
@@ -316,7 +242,7 @@ class BeaconBlock(BaseBeaconBlock):
 
         return cls(
             slot=slot,
-            previous_block_root=parent_block.signed_root,
+            previous_block_root=parent_block.signing_root,
             state_root=parent_block.state_root,
             body=cls.block_body_class.create_empty_body(),
             signature=EMPTY_SIGNATURE,
@@ -331,4 +257,14 @@ class BeaconBlock(BaseBeaconBlock):
             state_root=block.state_root,
             body=block.body,
             signature=block.signature,
+        )
+
+    @classmethod
+    def from_header(cls, header: BeaconBlockHeader) -> 'BeaconBlock':
+        return cls(
+            slot=header.slot,
+            previous_block_root=header.previous_block_root,
+            state_root=header.state_root,
+            signature=header.signature,
+            body=BeaconBlockBody.create_empty_body(),
         )

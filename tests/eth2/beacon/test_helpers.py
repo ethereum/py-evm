@@ -14,6 +14,7 @@ from eth2.beacon._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.constants import (
+    EMPTY_SIGNATURE,
     GWEI_PER_ETH,
     FAR_FUTURE_EPOCH,
 )
@@ -54,8 +55,8 @@ def test_get_temporary_block_header(sample_block):
     assert header.slot == sample_block.slot
     assert header.previous_block_root == sample_block.previous_block_root
     assert header.state_root == ZERO_HASH32
-    assert header.block_body_root == sample_block.body.hash_tree_root
-    assert header.signature == sample_block.signature
+    assert header.block_body_root == sample_block.body.root
+    assert header.signature == EMPTY_SIGNATURE
 
 
 def generate_mock_latest_historical_roots(
@@ -68,7 +69,7 @@ def generate_mock_latest_historical_roots(
     chain_length = (current_slot // slots_per_epoch + 1) * slots_per_epoch
     blocks = get_pseudo_chain(chain_length, genesis_block)
     latest_block_roots = [
-        block.signed_root
+        block.signing_root
         for block in blocks[:current_slot]
     ] + [
         ZERO_HASH32
@@ -125,7 +126,7 @@ def test_get_block_root(sample_beacon_state_params,
             target_slot,
             slots_per_historical_root,
         )
-        assert block_root == blocks[target_slot].signed_root
+        assert block_root == blocks[target_slot].signing_root
     else:
         with pytest.raises(ValidationError):
             get_block_root(
@@ -180,7 +181,7 @@ def test_get_state_root(sample_beacon_state_params,
             target_slot,
             slots_per_historical_root,
         )
-        assert state_root == blocks[target_slot].signed_root
+        assert state_root == blocks[target_slot].signing_root
     else:
         with pytest.raises(ValidationError):
             get_state_root(

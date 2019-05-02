@@ -87,7 +87,7 @@ def validate_block_slot(state: BeaconState,
 
 def validate_block_previous_root(state: BeaconState,
                                  block: BaseBeaconBlock) -> None:
-    expected_root = state.latest_block_header.signed_root
+    expected_root = state.latest_block_header.signing_root
     previous_root = block.previous_block_root
     if previous_root != expected_root:
         raise ValidationError(
@@ -103,9 +103,7 @@ def validate_proposer_signature(state: BeaconState,
                                 block: BaseBeaconBlock,
                                 beacon_chain_shard_number: Shard,
                                 committee_config: CommitteeConfig) -> None:
-
-    # TODO: Replace this with real signed_root
-    message_hash = block.signed_root
+    message_hash = block.signing_root
 
     # Get the public key of proposer
     beacon_proposer_index = get_beacon_proposer_index(
@@ -200,7 +198,7 @@ def validate_block_header_signature(header: BeaconBlockHeader,
                                     slots_per_epoch: int) -> None:
     header_signature_is_valid = bls.verify(
         pubkey=pubkey,
-        message_hash=header.signed_root,  # TODO: use signed_root
+        message_hash=header.signing_root,
         signature=header.signature,
         domain=get_domain(
             fork,
@@ -211,7 +209,7 @@ def validate_block_header_signature(header: BeaconBlockHeader,
     if not header_signature_is_valid:
         raise ValidationError(
             "Header signature is invalid: "
-            f"proposer pubkey: {pubkey}, message_hash: {header.signed_root}, "
+            f"proposer pubkey: {pubkey}, message_hash: {header.signing_root}, "
             f"signature: {header.signature}"
         )
 
@@ -766,7 +764,7 @@ def validate_voluntary_exit_signature(state: BeaconState,
     domain = get_domain(state.fork, voluntary_exit.epoch, SignatureDomain.DOMAIN_VOLUNTARY_EXIT)
     is_valid_signature = bls.verify(
         pubkey=validator.pubkey,
-        message_hash=voluntary_exit.signed_root,
+        message_hash=voluntary_exit.signing_root,
         signature=voluntary_exit.signature,
         domain=domain,
     )
@@ -774,6 +772,6 @@ def validate_voluntary_exit_signature(state: BeaconState,
     if not is_valid_signature:
         raise ValidationError(
             f"Invalid VoluntaryExit signature, validator_index={voluntary_exit.validator_index}, "
-            f"pubkey={validator.pubkey}, message_hash={voluntary_exit.signed_root},"
+            f"pubkey={validator.pubkey}, message_hash={voluntary_exit.signing_root},"
             f"signature={voluntary_exit.signature}, domain={domain}"
         )

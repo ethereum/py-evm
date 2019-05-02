@@ -59,7 +59,7 @@ async def test_unidirectional_handshake():
         SERENITY_CONFIG.GENESIS_SLOT,
         BeaconBlock,
     )
-    alice_genesis_root = alice_genesis.signed_root
+    alice_genesis_root = alice_genesis.signing_root
     alice_head = await alice_chain_db.coro_get_canonical_head(BeaconBlock)
     alice_head_slot = alice_head.slot
 

@@ -7,7 +7,7 @@ from eth_typing import (
 )
 import ssz
 from ssz.sedes import (
-    List,
+    Vector,
     bytes32,
     uint64,
 )
@@ -24,7 +24,7 @@ class Deposit(ssz.Serializable):
 
     fields = [
         # Merkle branch in the deposit tree
-        ('proof', List(bytes32)),
+        ('proof', Vector(bytes32, 1)),
         # Index in the deposit tree
         ('index', uint64),
         # Deposit data

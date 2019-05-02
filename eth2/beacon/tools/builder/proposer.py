@@ -131,9 +131,8 @@ def create_block_on_state(
     state, block = state_machine.import_block(block, check_proposer_signature=False)
 
     # Sign
-    # TODO make sure we use the correct signed_root
     signature = sign_transaction(
-        message_hash=block.signed_root,
+        message_hash=block.signing_root,
         privkey=privkey,
         fork=state.fork,
         slot=slot,

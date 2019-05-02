@@ -1,6 +1,6 @@
 import ssz
 from ssz.sedes import (
-    bytes_sedes,
+    byte_list,
     bytes96,
 )
 
@@ -21,11 +21,11 @@ class Attestation(ssz.Serializable):
 
     fields = [
         # Attester aggregation bitfield
-        ('aggregation_bitfield', bytes_sedes),
+        ('aggregation_bitfield', byte_list),
         # Attestation data
         ('data', AttestationData),
         # Proof of custody bitfield
-        ('custody_bitfield', bytes_sedes),
+        ('custody_bitfield', byte_list),
         # BLS aggregate signature
         ('aggregate_signature', bytes96),
     ]

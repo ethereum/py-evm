@@ -14,6 +14,7 @@ from eth_utils.toolz import (
     assoc,
     curry,
 )
+import ssz
 
 from eth2._utils.tuple import (
     update_tuple_item,
@@ -460,7 +461,7 @@ def test_process_crosslinks(
         success_crosslink_in_previous_epoch,
         success_crosslink_in_current_epoch,
         sample_attestation_data_params,
-        sample_attestation_params):
+        sample_pending_attestation_record_params):
     shard = 1
     previous_epoch_crosslink_data_root = hash_eth2(b'previous_epoch_crosslink_data_root')
     current_epoch_crosslink_data_root = hash_eth2(b'current_epoch_crosslink_data_root')
@@ -503,7 +504,7 @@ def test_process_crosslinks(
                         aggregation_bitfield, committee.index(v_index))
                 # Generate the attestation
                 previous_epoch_attestations.append(
-                    Attestation(**sample_attestation_params).copy(
+                    PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
                         aggregation_bitfield=aggregation_bitfield,
                         data=AttestationData(**sample_attestation_data_params).copy(
                             slot=slot_in_previous_epoch,
@@ -542,7 +543,7 @@ def test_process_crosslinks(
                         aggregation_bitfield, committee.index(v_index))
                 # Generate the attestation
                 current_epoch_attestations.append(
-                    Attestation(**sample_attestation_params).copy(
+                    PendingAttestationRecord(**sample_pending_attestation_record_params).copy(
                         aggregation_bitfield=aggregation_bitfield,
                         data=AttestationData(**sample_attestation_data_params).copy(
                             slot=slot_in_current_epoch,
@@ -1565,18 +1566,12 @@ def test_update_latest_active_index_roots(genesis_state,
 
     result_state = _update_latest_active_index_roots(state, committee_config)
 
-    # TODO: chanege to hash_tree_root
-    index_root = hash_eth2(
-        b''.join(
-            [
-                index.to_bytes(32, 'little')
-                for index in get_active_validator_indices(
-                    state.validator_registry,
-                    # TODO: change to `per-epoch` version
-                    slot_to_epoch(state.slot, slots_per_epoch),
-                )
-            ]
-        )
+    index_root = ssz.hash_tree_root(
+        get_active_validator_indices(
+            state.validator_registry,
+            slot_to_epoch(state.slot, slots_per_epoch),
+        ),
+        ssz.sedes.List(ssz.uint64),
     )
 
     target_epoch = state.next_epoch(slots_per_epoch) + activation_exit_delay

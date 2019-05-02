@@ -126,7 +126,7 @@ class BCCRequestServer(BaseRequestServer):
                 # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under
                 # per BeaconStateMachine fork
                 block = await self.db.coro_get_canonical_block_by_slot(slot, BeaconBlock)
-                if block.previous_block_root == parent.signed_root:
+                if block.previous_block_root == parent.signing_root:
                     yield block
                 else:
                     break

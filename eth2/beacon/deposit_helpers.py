@@ -115,8 +115,8 @@ def process_deposit(state: BeaconState,
         # Verify the proof of possession
         proof_is_valid = bls.verify(
             pubkey=pubkey,
-            message_hash=deposit_input.signed_root,
-            signature=deposit_input.proof_of_possession,
+            message_hash=deposit_input.signing_root,
+            signature=deposit_input.signature,
             domain=get_domain(
                 state.fork,
                 state.current_epoch(slots_per_epoch),

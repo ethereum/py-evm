@@ -102,8 +102,7 @@ def test_per_slot_transition(base_db,
         historical_batch = HistoricalBatch(
             block_roots=state.latest_block_roots,
             state_roots=state.latest_state_roots,
-            slots_per_historical_root=config.SLOTS_PER_HISTORICAL_ROOT,
         )
-        assert updated_state.historical_roots[-1] == historical_batch.hash_tree_root
+        assert updated_state.historical_roots[-1] == historical_batch.root
     else:
         assert updated_state.historical_roots == state.historical_roots

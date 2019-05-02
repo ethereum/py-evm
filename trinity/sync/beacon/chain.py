@@ -128,7 +128,7 @@ class BeaconChainSyncer(BaseService):
                 except ValidationError:
                     return
             else:
-                if batch[0].previous_block_root != last_block.signed_root:
+                if batch[0].previous_block_root != last_block.signing_root:
                     self.logger.info(f"Received batch is not linked to previous one")
                     break
             last_block = batch[-1]
@@ -176,7 +176,7 @@ class BeaconChainSyncer(BaseService):
             parent_slot,
             BeaconBlock,
         )
-        if canonical_parent.signed_root != previous_block_root:
+        if canonical_parent.signing_root != previous_block_root:
             message = f"Peer has different block finalized at slot #{parent_slot}"
             self.logger.info(message)
             raise ValidationError(message)

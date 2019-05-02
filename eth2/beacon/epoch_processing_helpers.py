@@ -1,4 +1,4 @@
-from typing import (
+from typing import (  # noqa: F401
     Dict,
     Iterable,
     Sequence,

@@ -79,10 +79,8 @@ def test_validate_block_slot(sample_beacon_state_params,
     (
         (5, 2, 0, bls.privtopub(0), True, ),
         (5, 2, 0, bls.privtopub(0)[1:] + b'\x01', False),
-        (5, 2, 0, b'\x01\x23', False),
         (5, 2, 123, bls.privtopub(123), True),
         (5, 2, 123, bls.privtopub(123)[1:] + b'\x01', False),
-        (5, 2, 123, b'\x01\x23', False),
     )
 )
 def test_validate_proposer_signature(
@@ -111,7 +109,7 @@ def test_validate_proposer_signature(
 
     proposed_block = block.copy(
         signature=bls.sign(
-            message_hash=header.signed_root,
+            message_hash=header.signing_root,
             privkey=proposer_privkey,
             domain=get_domain(
                 Fork(
@@ -364,9 +362,7 @@ def _corrupt_signature(slots_per_epoch, params, fork):
 
 
 def _create_slashable_attestation_messages(params):
-    # TODO update when we move to `ssz` tree hash
-    votes = SlashableAttestation(**params)
-    return votes.message_hashes
+    return SlashableAttestation(**params).message_hashes
 
 
 @pytest.mark.parametrize(

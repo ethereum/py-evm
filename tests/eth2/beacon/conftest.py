@@ -13,7 +13,6 @@ from eth2.configs import (
     CommitteeConfig,
 )
 from eth2.beacon.constants import (
-    EMPTY_SIGNATURE,
     FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.helpers import (
@@ -29,6 +28,9 @@ from eth2.beacon.types.states import BeaconState
 
 from eth2.beacon.on_genesis import (
     get_genesis_block,
+)
+from eth2.beacon.tools.misc.ssz_vector import (
+    override_vector_lengths,
 )
 from eth2.beacon.types.blocks import (
     BeaconBlockBody,
@@ -52,6 +54,14 @@ from tests.eth2.beacon.helpers import (
 DEFAULT_SHUFFLING_SEED = b'\00' * 32
 DEFAULT_RANDAO = b'\45' * 32
 DEFAULT_NUM_VALIDATORS = 40
+
+SAMPLE_SIGNATURE = b'\56' * 96
+
+
+# SSZ
+@pytest.fixture(scope="function", autouse=True)
+def override_lengths(config):
+    override_vector_lengths(config)
 
 
 @pytest.fixture(scope="session")
@@ -96,7 +106,7 @@ def sample_attestation_params(sample_attestation_data_params):
         'aggregation_bitfield': b'\12' * 16,
         'data': AttestationData(**sample_attestation_data_params),
         'custody_bitfield': b'\34' * 16,
-        'aggregate_signature': [0, 0],
+        'aggregate_signature': SAMPLE_SIGNATURE,
     }
 
 
@@ -125,7 +135,7 @@ def sample_attestation_data_and_custody_bit_params(sample_attestation_data_param
 @pytest.fixture
 def sample_beacon_block_body_params(sample_eth1_data_params):
     return {
-        'randao_reveal': EMPTY_SIGNATURE,
+        'randao_reveal': SAMPLE_SIGNATURE,
         'eth1_data': Eth1Data(**sample_eth1_data_params),
         'proposer_slashings': (),
         'attester_slashings': (),
@@ -143,7 +153,7 @@ def sample_beacon_block_params(sample_beacon_block_body_params,
         'slot': genesis_slot + 10,
         'previous_block_root': ZERO_HASH32,
         'state_root': b'\x55' * 32,
-        'signature': EMPTY_SIGNATURE,
+        'signature': SAMPLE_SIGNATURE,
         'body': BeaconBlockBody(**sample_beacon_block_body_params)
     }
 
@@ -154,11 +164,13 @@ def sample_genesis_block_class():
 
 
 @pytest.fixture
-def sample_beacon_state_params(genesis_slot,
+def sample_beacon_state_params(config,
+                               genesis_slot,
                                genesis_epoch,
                                sample_fork_params,
                                sample_eth1_data_params,
-                               sample_block_header_params):
+                               sample_block_header_params,
+                               sample_crosslink_record_params):
     return {
         'slot': genesis_slot + 100,
         'genesis_time': 0,
@@ -166,7 +178,7 @@ def sample_beacon_state_params(genesis_slot,
         'validator_registry': (),
         'validator_balances': (),
         'validator_registry_update_epoch': 0,
-        'latest_randao_mixes': (),
+        'latest_randao_mixes': (ZERO_HASH32,) * config.LATEST_RANDAO_MIXES_LENGTH,
         'previous_shuffling_start_shard': 1,
         'current_shuffling_start_shard': 2,
         'previous_shuffling_epoch': genesis_epoch,
@@ -182,11 +194,14 @@ def sample_beacon_state_params(genesis_slot,
         'justification_bitfield': 0,
         'finalized_epoch': 0,
         'finalized_root': b'\x33' * 32,
-        'latest_crosslinks': (),
-        'latest_block_roots': (),
-        'latest_state_roots': (),
-        'latest_active_index_roots': (),
-        'latest_slashed_balances': (),
+        'latest_crosslinks': (
+            (CrosslinkRecord(**sample_crosslink_record_params),) *
+            config.SHARD_COUNT
+        ),
+        'latest_block_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
+        'latest_state_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
+        'latest_active_index_roots': (ZERO_HASH32,) * config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
+        'latest_slashed_balances': (0,) * config.LATEST_SLASHED_EXIT_LENGTH,
         'latest_block_header': BeaconBlockHeader(**sample_block_header_params),
         'historical_roots': (),
         'latest_eth1_data': Eth1Data(**sample_eth1_data_params),
@@ -222,9 +237,9 @@ def sample_crosslink_record_params():
 @pytest.fixture
 def sample_deposit_input_params():
     return {
-        'pubkey': 123,
+        'pubkey': b'\x67' * 48,
         'withdrawal_credentials': b'\11' * 32,
-        'proof_of_possession': (0, 0),
+        'signature': SAMPLE_SIGNATURE,
     }
 
 
@@ -251,7 +266,7 @@ def sample_voluntary_exit_params():
     return {
         'epoch': 123,
         'validator_index': 15,
-        'signature': EMPTY_SIGNATURE,
+        'signature': SAMPLE_SIGNATURE,
     }
 
 
@@ -300,7 +315,7 @@ def sample_slashable_attestation_params(sample_attestation_data_params):
         'validator_indices': (10, 11, 12, 15, 28),
         'data': AttestationData(**sample_attestation_data_params),
         'custody_bitfield': b'\00' * 4,
-        'aggregate_signature': EMPTY_SIGNATURE,
+        'aggregate_signature': SAMPLE_SIGNATURE,
     }
 
 
@@ -329,7 +344,7 @@ def sample_attester_slashing_params(sample_slashable_attestation_params):
 @pytest.fixture
 def sample_validator_record_params():
     return {
-        'pubkey': 123,
+        'pubkey': b'\x67' * 48,
         'withdrawal_credentials': b'\x01' * 32,
         'activation_epoch': FAR_FUTURE_EPOCH,
         'exit_epoch': FAR_FUTURE_EPOCH,
@@ -367,7 +382,6 @@ def filled_beacon_state(genesis_epoch,
         latest_active_index_roots_length=latest_active_index_roots_length,
         latest_randao_mixes_length=latest_randao_mixes_length,
         latest_slashed_exit_length=latest_slashed_exit_length,
-        genesis_block_class=SerenityBeaconBlock,
     )
 
 

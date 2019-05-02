@@ -1,15 +1,12 @@
 import ssz
 from ssz.sedes import (
-    BytesN,
+    bytes4,
     uint64,
 )
 
 from eth2.beacon.typing import (
     Epoch,
 )
-
-
-bytes4 = BytesN(4)
 
 
 class Fork(ssz.Serializable):

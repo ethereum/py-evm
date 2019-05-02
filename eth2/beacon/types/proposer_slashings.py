@@ -3,7 +3,7 @@ from ssz.sedes import (
     uint64,
 )
 
-from .blocks import BeaconBlockHeader
+from .block_headers import BeaconBlockHeader
 from eth2.beacon.typing import (
     ValidatorIndex,
 )

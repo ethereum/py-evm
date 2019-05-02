@@ -31,7 +31,7 @@ def test_root(sample_slashable_attestation_params):
     # NOTE: see note in `test_hash`, this test will need to be updated
     # once ssz tree hash lands...
 
-    assert slashable_attestation.root == slashable_attestation.hash
+    assert slashable_attestation.root == slashable_attestation.root
 
 
 @pytest.mark.parametrize(

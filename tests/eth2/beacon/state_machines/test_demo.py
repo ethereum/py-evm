@@ -99,7 +99,7 @@ def test_demo(base_db,
                 block,
             ),
             attestation_slot=attestation_slot,
-            beacon_block_root=block.signed_root,
+            beacon_block_root=block.signing_root,
             keymap=keymap,
             voted_attesters_ratio=1.0,
         )

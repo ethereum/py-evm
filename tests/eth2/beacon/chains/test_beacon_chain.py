@@ -47,7 +47,7 @@ def test_canonical_chain(valid_chain, genesis_slot):
 
     block = genesis_block.copy(
         slot=genesis_block.slot + 1,
-        previous_block_root=genesis_block.signed_root,
+        previous_block_root=genesis_block.signing_root,
     )
     valid_chain.chaindb.persist_block(block, block.__class__)
 
@@ -58,7 +58,7 @@ def test_canonical_chain(valid_chain, genesis_slot):
     )
     assert canonical_block_1 == block
 
-    result_block = valid_chain.get_block_by_root(block.signed_root)
+    result_block = valid_chain.get_block_by_root(block.signing_root)
     assert result_block == block
 
 
@@ -98,7 +98,7 @@ def test_import_blocks(valid_chain,
         assert block == valid_chain.get_canonical_block_by_slot(
             block.slot
         )
-        assert block.signed_root == valid_chain.get_canonical_block_root(
+        assert block.signing_root == valid_chain.get_canonical_block_root(
             block.slot
         )
         blocks += (block,)

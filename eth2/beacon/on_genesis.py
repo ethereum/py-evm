@@ -10,6 +10,7 @@ from eth_typing import (
 from eth.constants import (
     ZERO_HASH32,
 )
+import ssz
 
 from eth2.beacon.deposit_helpers import (
     process_deposit,
@@ -30,7 +31,6 @@ from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon._utils.hash import hash_eth2
 from eth2.beacon.typing import (
     Gwei,
     Slot,
@@ -145,18 +145,13 @@ def get_genesis_beacon_state(*,
                 activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
             )
 
-    # TODO: chanege to hash_tree_root
     active_validator_indices = get_active_validator_indices(
         state.validator_registry,
         config.GENESIS_EPOCH,
     )
-    genesis_active_index_root = hash_eth2(
-        b''.join(
-            [
-                index.to_bytes(32, 'little')
-                for index in active_validator_indices
-            ]
-        )
+    genesis_active_index_root = ssz.hash_tree_root(
+        active_validator_indices,
+        ssz.sedes.List(ssz.uint64),
     )
     latest_active_index_roots = (
         (genesis_active_index_root,) * config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH

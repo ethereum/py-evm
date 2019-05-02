@@ -58,11 +58,11 @@ class BeaconBlocksValidator(BaseValidator[Tuple[BaseBeaconBlock, ...]]):
                     f"returned block is from slot #{first_block.slot}"
                 )
         else:
-            if first_block.signed_root != self.block_slot_or_hash:
+            if first_block.signing_root != self.block_slot_or_hash:
                 block_hash = cast(Hash32, self.block_slot_or_hash)
                 raise ValidationError(
                     f"Requested blocks starting with hash {encode_hex(block_hash)} "
-                    f"but first returned block has hash {encode_hex(first_block.signed_root)}"
+                    f"but first returned block has hash {encode_hex(first_block.signing_root)}"
                 )
 
     def _validate_number(self, blocks: Tuple[BaseBeaconBlock, ...]) -> None:
@@ -80,7 +80,7 @@ class BeaconBlocksValidator(BaseValidator[Tuple[BaseBeaconBlock, ...]]):
         for parent, child in sliding_window(2, blocks):
             # check that the received blocks form a sequence of descendents connected by parent
             # hashes, starting with the oldest ancestor
-            if child.previous_block_root != parent.signed_root:
+            if child.previous_block_root != parent.signing_root:
                 raise ValidationError(
                     "Returned blocks are not a connected branch"
                 )

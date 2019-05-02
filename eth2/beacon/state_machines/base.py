@@ -94,7 +94,10 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     @property
     def state(self) -> BeaconState:
         if self._state is None:
-            self._state = self.chaindb.get_state_by_root(self.block.state_root)
+            self._state = self.chaindb.get_state_by_root(
+                self.block.state_root,
+                self.get_state_class()
+            )
         return self._state
 
     @classmethod
