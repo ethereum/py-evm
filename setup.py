@@ -84,7 +84,7 @@ deps = {
         "py-ecc>=1.6.0,<2.0.0",
         "rlp>=1.1.0,<2.0.0",
         "py-evm==0.2.0a42",
-        "ssz==0.1.0a7",
+        "ssz @ https://github.com/ethereum/py-ssz/tarball/master",
     ],
     'libp2p': [
         "base58>=1.0.3",
