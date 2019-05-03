@@ -1,2 +1,2 @@
 KEYS_DIR = "keys"
-DEPOSITS_DIR = "deposits"
+GENESIS_FILE = "genesis_state.yaml"

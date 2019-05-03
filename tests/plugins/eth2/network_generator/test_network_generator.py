@@ -1,5 +1,4 @@
 import pytest
-import os
 from trinity._utils.async_iter import (
     contains_all,
 )
@@ -20,7 +19,3 @@ async def test_directory_generation(async_process_runner, command, tmpdir):
     assert await contains_all(async_process_runner.stderr, {
         "Network generation completed",
     })
-
-    deposits = testnet_path / "deposits"
-    assert deposits.exists()
-    assert len(os.listdir(deposits)) == 5

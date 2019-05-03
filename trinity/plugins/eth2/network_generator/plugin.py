@@ -4,29 +4,39 @@ from argparse import (
     _SubParsersAction,
 )
 import asyncio
-import json
 import os
 from pathlib import (
     Path,
 )
-import shutil
 import sys
-from typing import (
-    NamedTuple,
-)
 import time
-from eth_utils import (
-    encode_hex,
+
+from ssz.tools import (
+    to_formatted_dict,
 )
-from py_ecc import (
-    bls,
-)
+import yaml
 
 from eth2.beacon._utils.hash import (
     hash_eth2,
 )
+from eth2.beacon.state_machines.forks.xiao_long_bao import (
+    XiaoLongBaoStateMachine,
+)
+from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
+    XIAO_LONG_BAO_CONFIG,
+)
+from eth2.beacon.tools.builder.initializer import (
+    create_mock_genesis,
+)
+from eth2.beacon.tools.misc.ssz_vector import (
+    override_vector_lengths,
+)
 from eth2.beacon.typing import (
     Second,
+    Timestamp,
+)
+from py_ecc import (
+    bls,
 )
 from trinity._utils.shellart import (
     bold_green,
@@ -42,33 +52,22 @@ from trinity.plugins.eth2.constants import (
 )
 
 from .constants import (
-    DEPOSITS_DIR,
+    GENESIS_FILE,
     KEYS_DIR,
 )
 
-from eth2.beacon.types.deposits import (
-    Deposit,
-)
-from eth2.beacon.types.forks import (
-    Fork,
-)
-from eth2.beacon.tools.builder.validator import (
-    create_deposit_data,
-)
-from eth2.beacon.state_machines.forks.xiao_long_bao import (
-    XiaoLongBaoStateMachine,
-)
+override_vector_lengths(XIAO_LONG_BAO_CONFIG)
 
 
-class Validator:
-    index: int
-    private_key: int
-    public_key: str
-    deposit_filename: str
-    private_key_filename: str
+class Client:
+    name: str
+    client_dir: Path
+    validator_keys_dir: Path
 
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
+    def __init__(self, name: str, root_dir: Path):
+        self.name = name
+        self.client_dir = root_dir / name
+        self.validator_keys_dir = self.client_dir / VALIDATOR_KEY_DIR
 
 
 class NetworkGeneratorPlugin(BaseMainProcessPlugin):
@@ -92,7 +91,7 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
             "--num",
             help="Number of validators to generate",
             type=int,
-            default=400,
+            default=100,
         )
         testnet_generator_parser.add_argument(
             "--genesis-delay",
@@ -115,77 +114,61 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
             self.logger.error("This directory is not empty, won't create network files here.")
             sys.exit(1)
 
+        self.generate_trinity_root_dirs()
         self.generate_keys(args.num)
         self.generate_genesis_state(args.genesis_delay)
-        self.generate_trinity_root_dirs()
 
         self.logger.info(bold_green("Network generation completed"))
 
     def generate_keys(self, num: int) -> None:
-        self.logger.info("Creating %s validators' keys and deposits" % (num))
+        self.logger.info(f"Creating {num} validators' keys")
         self.keys_dir = self.network_dir / KEYS_DIR
         self.keys_dir.mkdir()
-        self.deposits_dir = self.network_dir / DEPOSITS_DIR
-        self.deposits_dir.mkdir()
 
         privkeys = tuple(int.from_bytes(
             hash_eth2(str(i).encode('utf-8'))[:4], 'big')
             for i in range(num)
         )
-        self.validators = tuple(
-            Validator(
-                index=index,
-                private_key=key,
-                public_key=bls.privtopub(key),
-                deposit_filename=f"v{index:07d}.deposit.json",
-                private_key_filename=f"v{index:07d}.privkey",
-            )
-            for index, key in enumerate(privkeys)
-        )
-        config = XiaoLongBaoStateMachine.config
+        self.keymap = {bls.privtopub(key): key for key in privkeys}
 
-        for validator in self.validators:
-            if validator.index % 50 == 0:
-                self.logger.info("%s\tvalidators processed" % (validator.index))
-            deposit_path = self.deposits_dir / validator.deposit_filename
-            private_key_path = self.keys_dir / validator.private_key_filename
-
-            fork = Fork(
-                previous_version=config.GENESIS_FORK_VERSION.to_bytes(4, 'little'),
-                current_version=config.GENESIS_FORK_VERSION.to_bytes(4, 'little'),
-                epoch=config.GENESIS_EPOCH,
-            )
-            deposit = Deposit(
-                proof=[b'\x00' * 32] * config.DEPOSIT_CONTRACT_TREE_DEPTH,
-                index=validator.index,
-                deposit_data=create_deposit_data(
-                    config=config,
-                    pubkey=validator.public_key,
-                    privkey=validator.private_key,
-                    withdrawal_credentials=b'\x56' * 32,
-                    fork=fork,
-                    deposit_timestamp=int(time.time()),
-                )
-            )
-            with open(deposit_path, "w") as f:
-                json.dump(deposit.to_formatted_dict(), f, indent=4)
+        num_of_clients = len(self.clients)
+        for validator_index, key in enumerate(privkeys):
+            file_name = f"v{validator_index:07d}.privkey"
+            private_key_path = self.keys_dir / file_name
             with open(private_key_path, "w") as f:
-                f.write(str(validator.private_key))
+                f.write(str(key))
+
+            # Distribute keys to clients
+            client = self.clients[validator_index % num_of_clients]
+            with open(client.validator_keys_dir / file_name, "w") as f:
+                f.write(str(key))
 
     def generate_genesis_state(self, genesis_delay: Second) -> None:
-        pass
+        state_machine = XiaoLongBaoStateMachine
+        dummy_time = Timestamp(int(time.time()))
+        state, _ = create_mock_genesis(
+            num_validators=len(self.keymap.keys()),
+            config=state_machine.config,
+            keymap=self.keymap,
+            genesis_block_class=state_machine.block_class,
+            genesis_time=dummy_time,
+        )
+        self.logger.info(f"Genesis time will be {genesis_delay} seconds from now")
+        genesis_time = Timestamp(int(time.time()) + genesis_delay)
+        state = state.copy(
+            genesis_time=genesis_time,
+        )
+        with open(self.network_dir / GENESIS_FILE, "w") as f:
+            yaml.dump(to_formatted_dict(state), f)
+
+        # Distribute genesis file to clients
+        for client in self.clients:
+            with open(client.client_dir / GENESIS_FILE, "w") as f:
+                yaml.dump(to_formatted_dict(state), f)
 
     def generate_trinity_root_dirs(self) -> None:
         self.logger.info("Generating root directories for clients")
-        clients = ("alice", "bob")
-
-        for index, client in enumerate(clients):
-            client_path = self.network_dir / client
-            client_path.mkdir()
-            validator_keys_dir = client_path / VALIDATOR_KEY_DIR
-            validator_keys_dir.mkdir()
-            for validator_index, validator in enumerate(self.validators):
-                if validator_index % len(client) == index:
-                    from_path = self.keys_dir / validator.private_key_filename
-                    to_path = validator_keys_dir / validator.private_key_filename
-                    shutil.copyfile(from_path, to_path)
+        self.clients = tuple(Client(name, self.network_dir) for name in ("alice", "bob"))
+        for client in self.clients:
+            client.client_dir.mkdir()
+            client.validator_keys_dir.mkdir()
