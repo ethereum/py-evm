@@ -729,9 +729,8 @@ class BeaconChainDB(BaseBeaconChainDB):
         finalized and justified.
         """
         genesis_root = genesis_block.signing_root
-        genesis_epoch = slot_to_epoch(genesis_block.slot, self.config.SLOTS_PER_EPOCH)
         self._update_finalized_head(genesis_root)
-        self._update_justified_head(genesis_root, genesis_epoch)
+        self._update_justified_head(genesis_root, self.config.GENESIS_EPOCH)
 
     #
     # Raw Database API
