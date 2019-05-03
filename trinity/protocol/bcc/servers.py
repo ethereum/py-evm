@@ -1,4 +1,3 @@
-import random
 from typing import (
     cast,
     AsyncIterator,
@@ -38,6 +37,9 @@ from eth2.beacon.typing import (
 
 from trinity._utils.shellart import (
     bold_red,
+)
+from trinity._utils.les import (
+    gen_request_id,
 )
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.protocol.common.servers import BaseRequestServer
@@ -171,9 +173,9 @@ class OrphanBlockPool:
 
     def get(self, block_root: Hash32) -> BaseBeaconBlock:
         for block in self._pool:
-            if block.signed_root == block_root:
+            if block.signing_root == block_root:
                 return block
-        raise BlockNotFound(f"No block with root {block_root} is found")
+        raise BlockNotFound(f"No block with signing_root {block_root} is found")
 
     def add(self, block: BaseBeaconBlock) -> None:
         if block in self._pool:
@@ -184,7 +186,7 @@ class OrphanBlockPool:
         children = tuple(
             orphan_block
             for orphan_block in self._pool
-            if orphan_block.previous_block_root == block.signed_root
+            if orphan_block.previous_block_root == block.signing_root
         )
         self._pool.difference_update(children)
         return children
@@ -227,14 +229,17 @@ class BCCReceiveServer(BaseReceiveServer):
         if request_id not in self.map_requested_id_block_root:
             raise Exception(f"request_id={request_id} is not found")
         encoded_blocks = msg["encoded_blocks"]
+        # TODO: remove this condition check in the future, when we start requesting more than one
+        #   block at a time.
         if len(encoded_blocks) != 1:
             raise Exception("should only receive 1 block from our requests")
         resp_block = ssz.decode(encoded_blocks[0], BeaconBlock)
-        if resp_block.signed_root != self.map_requested_id_block_root[request_id]:
+        if resp_block.signing_root != self.map_requested_id_block_root[request_id]:
             raise Exception(
-                f"block root {resp_block.signed_root} does not correpond to the one we requested"
+                f"block signing_root {resp_block.signing_root} does not correpond to"
+                "the one we requested"
             )
-        self.logger.debug(f"received request_id={request_id}, resp_block={resp_block}")  # noqa: E501
+        self.logger.debug(f"received request_id={request_id}, resp_block={resp_block}")
         self._try_import_or_handle_orphan(resp_block)
         del self.map_requested_id_block_root[request_id]
 
@@ -246,6 +251,7 @@ class BCCReceiveServer(BaseReceiveServer):
         if self._is_block_seen(block):
             raise Exception(f"block {block} is seen before")
         self.logger.debug(f"received block={block}")
+        # TODO: check the proposer signature before importing the block
         self._try_import_or_handle_orphan(block)
         # TODO: relay the block if it is valid
 
@@ -276,17 +282,17 @@ class BCCReceiveServer(BaseReceiveServer):
             blocks_to_be_imported.extend(matched_orphan_blocks)
 
     def _request_block_by_root(self, block_root: Hash32) -> None:
-        for i, peer in enumerate(self._peer_pool.connected_nodes.values()):
+        for peer in self._peer_pool.connected_nodes.values():
             peer = cast(BCCPeer, peer)
+            request_id = gen_request_id()
             self.logger.debug(
-                bold_red(f"send block request to: request_id={i}, peer={peer}")
+                bold_red(f"send block request to: request_id={request_id}, peer={peer}")
             )
-            req_request_id = random.randint(0, 32768)
-            self.map_requested_id_block_root[req_request_id] = block_root
+            self.map_requested_id_block_root[request_id] = block_root
             peer.sub_proto.send_get_blocks(
                 block_root,
                 max_blocks=1,
-                request_id=req_request_id,
+                request_id=request_id,
             )
 
     def _is_block_root_in_orphan_block_pool(self, block_root: Hash32) -> bool:
@@ -309,4 +315,4 @@ class BCCReceiveServer(BaseReceiveServer):
         return self._is_block_root_in_db(block_root=block_root)
 
     def _is_block_seen(self, block: BaseBeaconBlock) -> bool:
-        return self._is_block_root_seen(block_root=block.signed_root)
+        return self._is_block_root_seen(block_root=block.signing_root)
