@@ -164,8 +164,7 @@ class BaseReceiveServer(BaseRequestServer):
 
 
 class OrphanBlockPool:
-    # TODO: probably use lru-cache or other cache in the future?
-    #   map from `block.previous_block_root` to `block`
+    # TODO: can probably use lru-cache or even database
     _pool: Set[BaseBeaconBlock]
 
     def __init__(self) -> None:
