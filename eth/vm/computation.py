@@ -75,6 +75,14 @@ from eth.vm.transaction_context import (
 )
 
 
+def NO_RESULT(computation: 'BaseComputation') -> None:
+    """
+    This is a special method intended for usage as the "no precompile found" result.
+    The type signature is designed to match the other precompiles.
+    """
+    raise Exception("This method is never intended to be executed")
+
+
 def memory_gas_cost(size_in_bytes: int) -> int:
     size_in_words = ceil32(size_in_bytes) // 32
     linear_cost = size_in_words * GAS_MEMORY
@@ -568,14 +576,19 @@ class BaseComputation(Configurable, ABC):
         """
         with cls(state, message, transaction_context) as computation:
             # Early exit on pre-compiles
-            if message.code_address in computation.precompiles:
-                computation.precompiles[message.code_address](computation)
+            precompile = computation.precompiles.get(message.code_address, NO_RESULT)
+            if precompile is not NO_RESULT:
+                precompile(computation)
                 return computation
 
             show_debug2 = computation.logger.show_debug2
 
+            opcode_lookup = computation.opcodes
             for opcode in computation.code:
-                opcode_fn = computation.get_opcode_fn(opcode)
+                try:
+                    opcode_fn = opcode_lookup[opcode]
+                except KeyError:
+                    opcode_fn = InvalidOpcode(opcode)
 
                 if show_debug2:
                     computation.logger.debug2(
