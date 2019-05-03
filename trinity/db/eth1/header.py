@@ -1,4 +1,7 @@
-from abc import abstractmethod
+from abc import (
+    ABC,
+    abstractmethod,
+)
 # Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
 # https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
 from multiprocessing.managers import (  # type: ignore
@@ -24,7 +27,7 @@ from trinity._utils.mp import (
 )
 
 
-class BaseAsyncHeaderDB:
+class BaseAsyncHeaderDB(ABC):
     """
     Abstract base class for the async counterpart to ``BaseHeaderDB``.
     """

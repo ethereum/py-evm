@@ -83,6 +83,7 @@ class FakeAsyncHeaderDB(BaseAsyncHeaderDB, HeaderDB):
 
 
 class FakeAsyncChainDB(BaseAsyncChainDB, FakeAsyncHeaderDB, ChainDB):
+    coro_exists = async_passthrough('exists')
     coro_persist_block = async_passthrough('persist_block')
     coro_persist_uncles = async_passthrough('persist_uncles')
     coro_persist_trie_data_dict = async_passthrough('persist_trie_data_dict')

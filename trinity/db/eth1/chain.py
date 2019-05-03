@@ -87,6 +87,7 @@ class AsyncChainDBPreProxy(BaseAsyncChainDB):
     coro_get_canonical_block_header_by_number = async_method('get_canonical_block_header_by_number')
     coro_persist_header = async_method('persist_header')
     coro_persist_block = async_method('persist_block')
+    coro_persist_header_chain = async_method('persist_header_chain')
     coro_persist_uncles = async_method('persist_uncles')
     coro_persist_trie_data_dict = async_method('persist_trie_data_dict')
     coro_get_block_transactions = async_method('get_block_transactions')
