@@ -32,7 +32,10 @@ from eth._utils.datatypes import (
     Configurable,
 )
 
-from eth2.beacon.constants import EMPTY_SIGNATURE
+from eth2.beacon.constants import (
+    EMPTY_SIGNATURE,
+    GENESIS_PARENT_ROOT,
+)
 from eth2.beacon.typing import (
     Slot,
     FromBlockParams,
@@ -179,6 +182,10 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
             block_body_root=self.body.root,
             signature=self.signature,
         )
+
+    @property
+    def is_genesis(self) -> bool:
+        return self.previous_block_root == GENESIS_PARENT_ROOT
 
     @classmethod
     @abstractmethod

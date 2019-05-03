@@ -47,7 +47,7 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
         base_db = db_manager.get_db()  # type: ignore
         chain_db = db_manager.get_chaindb()  # type: ignore
         chain_config = beacon_config.get_chain_config()
-        chain = chain_config.beacon_chain_class(base_db)
+        chain = chain_config.beacon_chain_class(base_db, chain_config.eth2_config)
 
         if self.context.args.beacon_nodekey:
             from eth_keys.datatypes import PrivateKey

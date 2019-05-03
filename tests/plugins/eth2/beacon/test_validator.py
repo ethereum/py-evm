@@ -112,6 +112,8 @@ def get_chain_from_genesis(db):
         base_db=db,
         genesis_state=genesis_state,
         genesis_block=genesis_block,
+        # TODO(ralexstokes) do we need to avoid pulling in this as a global dependency?
+        config=XIAO_LONG_BAO_CONFIG,
     )
 
 

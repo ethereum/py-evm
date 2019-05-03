@@ -119,7 +119,8 @@ def test_import_blocks(valid_chain,
 def test_from_genesis(base_db,
                       genesis_block,
                       genesis_state,
-                      fixture_sm_class):
+                      fixture_sm_class,
+                      config):
     klass = BeaconChain.configure(
         __name__='TestChain',
         sm_configuration=(
@@ -137,4 +138,5 @@ def test_from_genesis(base_db,
             base_db,
             genesis_state,
             block,
+            config,
         )

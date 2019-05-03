@@ -24,6 +24,10 @@ from eth2._utils.ssz import (
 from eth2.beacon.db.chain import (
     BeaconChainDB,
 )
+from eth2.beacon.db.exceptions import (
+    FinalizedHeadNotFound,
+    JustifiedHeadNotFound,
+)
 from eth2.beacon.db.schema import SchemaV1
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     BeaconBlock,
@@ -32,8 +36,15 @@ from eth2.beacon.types.states import BeaconState
 
 
 @pytest.fixture
-def chaindb(base_db):
-    return BeaconChainDB(base_db)
+def chaindb(base_db, config):
+    return BeaconChainDB(base_db, config)
+
+
+@pytest.fixture
+def chaindb_at_genesis(chaindb, genesis_state, genesis_block):
+    chaindb.persist_state(genesis_state)
+    chaindb.persist_block(genesis_block, BeaconBlock)
+    return chaindb
 
 
 @pytest.fixture(params=[0, 10, 999])
@@ -125,11 +136,79 @@ def test_chaindb_state(chaindb, state):
     assert result_state.root == state.root
 
 
-def test_chaindb_get_finalized_head(chaindb, block):
-    # TODO: update when we support finalizing blocks that are not the genesis block
-    genesis = block.copy(previous_block_root=GENESIS_PARENT_HASH)
-    chaindb.persist_block(genesis, BeaconBlock)
-    assert chaindb.get_finalized_head(BeaconBlock) == genesis
+def test_chaindb_get_finalized_head_at_genesis(chaindb_at_genesis, genesis_block):
+    assert chaindb_at_genesis.get_finalized_head(genesis_block.__class__) == genesis_block
+
+
+def test_chaindb_get_justified_head_at_genesis(chaindb_at_genesis, genesis_block):
+    assert chaindb_at_genesis.get_justified_head(genesis_block.__class__) == genesis_block
+
+
+def test_chaindb_get_finalized_head(chaindb_at_genesis,
+                                    genesis_block,
+                                    genesis_state,
+                                    sample_beacon_block_params):
+    chaindb = chaindb_at_genesis
+    block = BeaconBlock(**sample_beacon_block_params).copy(
+        previous_block_root=genesis_block.signing_root,
+    )
+
+    assert chaindb.get_finalized_head(genesis_block.__class__) == genesis_block
+    assert chaindb.get_justified_head(genesis_block.__class__) == genesis_block
+
+    state_with_finalized_block = genesis_state.copy(
+        finalized_root=block.signing_root,
+    )
+    chaindb.persist_state(state_with_finalized_block)
+    chaindb.persist_block(block, BeaconBlock)
+
+    assert chaindb.get_finalized_head(BeaconBlock).signing_root == block.signing_root
+    assert chaindb.get_justified_head(genesis_block.__class__) == genesis_block
+
+
+def test_chaindb_get_justified_head(chaindb_at_genesis,
+                                    genesis_block,
+                                    genesis_state,
+                                    sample_beacon_block_params,
+                                    config):
+    chaindb = chaindb_at_genesis
+    block = BeaconBlock(**sample_beacon_block_params).copy(
+        previous_block_root=genesis_block.signing_root,
+    )
+
+    assert chaindb.get_finalized_head(genesis_block.__class__) == genesis_block
+    assert chaindb.get_justified_head(genesis_block.__class__) == genesis_block
+
+    # test that there is only one justified head per epoch
+    state_with_bad_epoch = genesis_state.copy(
+        current_justified_root=block.signing_root,
+        current_justified_epoch=config.GENESIS_EPOCH,
+    )
+    chaindb.persist_state(state_with_bad_epoch)
+    chaindb.persist_block(block, BeaconBlock)
+
+    assert chaindb.get_finalized_head(genesis_block.__class__) == genesis_block
+    assert chaindb.get_justified_head(genesis_block.__class__) == genesis_block
+
+    # test that the we can update justified head if we satisfy the invariants
+    state_with_justified_block = genesis_state.copy(
+        current_justified_root=block.signing_root,
+        current_justified_epoch=config.GENESIS_EPOCH + 1,
+    )
+    chaindb.persist_state(state_with_justified_block)
+
+    assert chaindb.get_finalized_head(genesis_block.__class__) == genesis_block
+    assert chaindb.get_justified_head(BeaconBlock).signing_root == block.signing_root
+
+
+def test_chaindb_get_finalized_head_at_init_time(chaindb):
+    with pytest.raises(FinalizedHeadNotFound):
+        chaindb.get_finalized_head(BeaconBlock)
+
+
+def test_chaindb_get_justified_head_at_init_time(chaindb):
+    with pytest.raises(JustifiedHeadNotFound):
+        chaindb.get_justified_head(BeaconBlock)
 
 
 def test_chaindb_get_canonical_head(chaindb, block):

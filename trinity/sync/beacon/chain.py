@@ -27,6 +27,8 @@ from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlock,
 )
+from eth2.beacon.db.exceptions import FinalizedHeadNotFound
+from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from eth2.beacon.typing import (
     Slot,
@@ -102,22 +104,33 @@ class BeaconChainSyncer(BaseService):
         sorted_peers = sorted(peers, key=operator.attrgetter("head_slot"), reverse=True)
         best_peer = first(sorted_peers)
 
-        finalized_head = await self.chain_db.coro_get_finalized_head(BeaconBlock)
+        try:
+            finalized_head = await self.chain_db.coro_get_finalized_head(BeaconBlock)
+        # TODO(ralexstokes) look at better way to handle once we have fork choice in place
+        except FinalizedHeadNotFound:
+            return best_peer
+
         if best_peer.head_slot <= finalized_head.slot:
             raise ValidationError("No peer that is ahead of us")
 
         return best_peer
 
     async def sync(self) -> None:
-        finalized_head = await self.chain_db.coro_get_finalized_head(BeaconBlock)
+        try:
+            finalized_head = await self.chain_db.coro_get_finalized_head(BeaconBlock)
+            finalized_slot = finalized_head.slot
+        # TODO(ralexstokes) look at better way to handle once we have fork choice in place
+        except FinalizedHeadNotFound:
+            finalized_slot = SERENITY_CONFIG.GENESIS_SLOT
+
         self.logger.info(
             "Syncing with %s (their head slot: %d, our finalized slot: %d)",
             self.sync_peer,
             self.sync_peer.head_slot,
-            finalized_head.slot,
+            finalized_slot,
         )
 
-        start_slot = finalized_head.slot + 1
+        start_slot = finalized_slot + 1
         batches = self.request_batches(start_slot)
 
         last_block = None

@@ -8,6 +8,8 @@ from eth2.beacon.chains.testnet import TestnetChain
         TestnetChain,
     )
 )
-def test_chain_class_well_defined(chain_klass):
-    chain = chain_klass(None)
+def test_chain_class_well_defined(base_db,
+                                  chain_klass,
+                                  config):
+    chain = chain_klass(base_db, config)
     assert chain.sm_configuration is not () and chain.sm_configuration is not None
