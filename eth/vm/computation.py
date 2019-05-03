@@ -19,7 +19,6 @@ from eth_typing import (
 )
 from eth_utils import (
     encode_hex,
-    ValidationError,
 )
 
 from eth.constants import (
@@ -81,7 +80,7 @@ def NO_RESULT(computation: 'BaseComputation') -> None:
     This is a special method intended for usage as the "no precompile found" result.
     The type signature is designed to match the other precompiles.
     """
-    raise ValidationError("This method is never intended to be executed")
+    raise Exception("This method is never intended to be executed")
 
 
 def memory_gas_cost(size_in_bytes: int) -> int:
