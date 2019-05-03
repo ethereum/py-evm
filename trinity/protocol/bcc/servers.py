@@ -198,7 +198,7 @@ class BCCReceiveServer(BaseReceiveServer):
         NewBeaconBlock,
     })
 
-    map_requested_id_block_root: Dict[int, Hash32]
+    map_request_id_block_root: Dict[int, Hash32]
     orphan_block_pool: OrphanBlockPool
 
     def __init__(
@@ -208,7 +208,7 @@ class BCCReceiveServer(BaseReceiveServer):
             token: CancelToken = None) -> None:
         super().__init__(peer_pool, token)
         self.chain = chain
-        self.map_requested_id_block_root = {}
+        self.map_request_id_block_root = {}
         self.orphan_block_pool = OrphanBlockPool()
 
     async def _handle_msg(self, base_peer: BasePeer, cmd: Command,
@@ -226,7 +226,7 @@ class BCCReceiveServer(BaseReceiveServer):
         if not peer.is_operational:
             return
         request_id = msg["request_id"]
-        if request_id not in self.map_requested_id_block_root:
+        if request_id not in self.map_request_id_block_root:
             raise Exception(f"request_id={request_id} is not found")
         encoded_blocks = msg["encoded_blocks"]
         # TODO: remove this condition check in the future, when we start requesting more than one
@@ -234,14 +234,14 @@ class BCCReceiveServer(BaseReceiveServer):
         if len(encoded_blocks) != 1:
             raise Exception("should only receive 1 block from our requests")
         resp_block = ssz.decode(encoded_blocks[0], BeaconBlock)
-        if resp_block.signing_root != self.map_requested_id_block_root[request_id]:
+        if resp_block.signing_root != self.map_request_id_block_root[request_id]:
             raise Exception(
                 f"block signing_root {resp_block.signing_root} does not correpond to"
                 "the one we requested"
             )
         self.logger.debug(f"received request_id={request_id}, resp_block={resp_block}")
         self._try_import_or_handle_orphan(resp_block)
-        del self.map_requested_id_block_root[request_id]
+        del self.map_request_id_block_root[request_id]
 
     async def _handle_new_beacon_block(self, peer: BCCPeer, msg: NewBeaconBlockMessage) -> None:
         if not peer.is_operational:
@@ -288,7 +288,7 @@ class BCCReceiveServer(BaseReceiveServer):
             self.logger.debug(
                 bold_red(f"send block request to: request_id={request_id}, peer={peer}")
             )
-            self.map_requested_id_block_root[request_id] = block_root
+            self.map_request_id_block_root[request_id] = block_root
             peer.sub_proto.send_get_blocks(
                 block_root,
                 max_blocks=1,

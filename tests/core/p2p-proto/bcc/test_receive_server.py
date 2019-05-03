@@ -77,8 +77,26 @@ async def get_fake_chain() -> FakeChain:
     return FakeChain(chain_db.db)
 
 
+def get_blocks(
+        receive_server: BCCReceiveServer,
+        parent_block: SerenityBeaconBlock = None,
+        num_blocks: int = 3) -> Tuple[SerenityBeaconBlock, ...]:
+    chain = receive_server.chain
+    if parent_block is None:
+        parent_block = chain.get_canonical_head()
+    blocks = []
+    for _ in range(num_blocks):
+        block = chain.create_block_from_parent(
+            parent_block=parent_block,
+            block_params=FromBlockParams(),
+        )
+        blocks.append(block)
+        parent_block = block
+    return tuple(blocks)
+
+
 async def get_peer_and_receive_server(request, event_loop) -> Tuple[
-        BCCPeer, BCCReceiveServer]:
+        BCCPeer, BCCRequestServer, BCCReceiveServer, asyncio.Queue]:
     alice_chain = await get_fake_chain()
     bob_chain = await get_fake_chain()
 
@@ -158,46 +176,29 @@ async def test_bcc_receive_server_try_import_or_handle_orphan(request, event_loo
         _request_block_by_root,
     )
 
-    bob_chain = bob_recv_server.chain
-    head = bob_chain.get_canonical_head()
-    block_0 = bob_chain.create_block_from_parent(
-        parent_block=head,
-        block_params=FromBlockParams(),
-    )
-    block_1 = bob_chain.create_block_from_parent(
-        parent_block=block_0,
-        block_params=FromBlockParams(),
-    )
-    block_2 = bob_chain.create_block_from_parent(
-        parent_block=block_1,
-        block_params=FromBlockParams(),
-    )
-    block_3 = bob_chain.create_block_from_parent(
-        parent_block=block_2,
-        block_params=FromBlockParams(),
-    )
+    blocks = get_blocks(bob_recv_server, num_blocks=4)
     # test: block should not be in the db before imported.
-    assert not bob_recv_server._is_block_root_in_db(block_0.signing_root)
+    assert not bob_recv_server._is_block_root_in_db(blocks[0].signing_root)
     # test: block with its parent in db should be imported successfully.
-    bob_recv_server._try_import_or_handle_orphan(block_0)
+    bob_recv_server._try_import_or_handle_orphan(blocks[0])
 
-    assert bob_recv_server._is_block_root_in_db(block_0.signing_root)
+    assert bob_recv_server._is_block_root_in_db(blocks[0].signing_root)
     # test: block without its parent in db should not be imported, and it should be put in the
     #   `orphan_block_pool`.
-    bob_recv_server._try_import_or_handle_orphan(block_2)
-    assert not bob_recv_server._is_block_root_in_db(block_2.signing_root)
-    assert bob_recv_server._is_block_root_in_orphan_block_pool(block_2.signing_root)
-    bob_recv_server._try_import_or_handle_orphan(block_3)
-    assert not bob_recv_server._is_block_root_in_db(block_3.signing_root)
-    assert block_3 in bob_recv_server.orphan_block_pool._pool
+    bob_recv_server._try_import_or_handle_orphan(blocks[2])
+    assert not bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
+    assert bob_recv_server._is_block_root_in_orphan_block_pool(blocks[2].signing_root)
+    bob_recv_server._try_import_or_handle_orphan(blocks[3])
+    assert not bob_recv_server._is_block_root_in_db(blocks[3].signing_root)
+    assert blocks[3] in bob_recv_server.orphan_block_pool._pool
     # test: a successfully imported parent is present, its children should be processed
     #   recursively.
-    bob_recv_server._try_import_or_handle_orphan(block_1)
-    assert bob_recv_server._is_block_root_in_db(block_1.signing_root)
-    assert bob_recv_server._is_block_root_in_db(block_2.signing_root)
-    assert block_2 not in bob_recv_server.orphan_block_pool._pool
-    assert bob_recv_server._is_block_root_in_db(block_3.signing_root)
-    assert block_3 not in bob_recv_server.orphan_block_pool._pool
+    bob_recv_server._try_import_or_handle_orphan(blocks[1])
+    assert bob_recv_server._is_block_root_in_db(blocks[1].signing_root)
+    assert bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
+    assert blocks[2] not in bob_recv_server.orphan_block_pool._pool
+    assert bob_recv_server._is_block_root_in_db(blocks[3].signing_root)
+    assert blocks[3] not in bob_recv_server.orphan_block_pool._pool
 
 
 @pytest.mark.asyncio
@@ -206,12 +207,7 @@ async def test_bcc_receive_server_handle_beacon_blocks_checks(request, event_loo
         request,
         event_loop,
     )
-    bob_chain = bob_recv_server.chain
-    head = bob_chain.get_canonical_head()
-    block_0 = bob_chain.create_block_from_parent(
-        parent_block=head,
-        block_params=FromBlockParams(),
-    )
+    blocks = get_blocks(bob_recv_server, num_blocks=1)
 
     event = asyncio.Event()
 
@@ -226,36 +222,36 @@ async def test_bcc_receive_server_handle_beacon_blocks_checks(request, event_loo
 
     # test: `request_id` not found, it should be rejected
     inexistent_request_id = 5566
-    assert inexistent_request_id not in bob_recv_server.map_requested_id_block_root
-    alice.sub_proto.send_blocks(blocks=(block_0,), request_id=inexistent_request_id)
+    assert inexistent_request_id not in bob_recv_server.map_request_id_block_root
+    alice.sub_proto.send_blocks(blocks=(blocks[0],), request_id=inexistent_request_id)
     await bob_msg_queue.get()
     assert not event.is_set()
 
     # test: >= 1 blocks are sent, the request should be rejected.
     event.clear()
     existing_request_id = 1
-    bob_recv_server.map_requested_id_block_root[existing_request_id] = block_0.signing_root
-    alice.sub_proto.send_blocks(blocks=(block_0, block_0), request_id=existing_request_id)
+    bob_recv_server.map_request_id_block_root[existing_request_id] = blocks[0].signing_root
+    alice.sub_proto.send_blocks(blocks=(blocks[0], blocks[0]), request_id=existing_request_id)
     await bob_msg_queue.get()
     assert not event.is_set()
 
     # test: `request_id` is found but `block.signing_root` does not correspond to the request
     event.clear()
     existing_request_id = 2
-    bob_recv_server.map_requested_id_block_root[existing_request_id] = b'\x12' * 32
-    alice.sub_proto.send_blocks(blocks=(block_0,), request_id=existing_request_id)
+    bob_recv_server.map_request_id_block_root[existing_request_id] = b'\x12' * 32
+    alice.sub_proto.send_blocks(blocks=(blocks[0],), request_id=existing_request_id)
     await bob_msg_queue.get()
     assert not event.is_set()
 
     # test: `request_id` is found and the block is valid. It should be imported.
     event.clear()
     existing_request_id = 3
-    bob_recv_server.map_requested_id_block_root[existing_request_id] = block_0.signing_root
-    alice.sub_proto.send_blocks(blocks=(block_0,), request_id=existing_request_id)
+    bob_recv_server.map_request_id_block_root[existing_request_id] = blocks[0].signing_root
+    alice.sub_proto.send_blocks(blocks=(blocks[0],), request_id=existing_request_id)
     await bob_msg_queue.get()
     assert event.is_set()
     # ensure `request_id` is cleared after successful response
-    assert existing_request_id not in bob_recv_server.map_requested_id_block_root
+    assert existing_request_id not in bob_recv_server.map_request_id_block_root
 
 
 @pytest.mark.asyncio
@@ -264,12 +260,7 @@ async def test_bcc_receive_server_handle_new_beacon_block_checks(request, event_
         request,
         event_loop,
     )
-    bob_chain = bob_recv_server.chain
-    head = bob_chain.get_canonical_head()
-    block_0 = bob_chain.create_block_from_parent(
-        parent_block=head,
-        block_params=FromBlockParams(),
-    )
+    blocks = get_blocks(bob_recv_server, num_blocks=1)
 
     event = asyncio.Event()
 
@@ -282,14 +273,14 @@ async def test_bcc_receive_server_handle_new_beacon_block_checks(request, event_
         _try_import_or_handle_orphan,
     )
 
-    alice.sub_proto.send_new_block(block=block_0)
+    alice.sub_proto.send_new_block(block=blocks[0])
     await bob_msg_queue.get()
     assert event.is_set()
 
     # test: seen blocks should be rejected
     event.clear()
-    bob_recv_server.orphan_block_pool.add(block_0)
-    alice.sub_proto.send_new_block(block=block_0)
+    bob_recv_server.orphan_block_pool.add(blocks[0])
+    alice.sub_proto.send_new_block(block=blocks[0])
     await bob_msg_queue.get()
     assert not event.is_set()
 
@@ -316,26 +307,21 @@ async def test_bcc_receive_request_block_by_root(request, event_loop):
     )
     alice_msg_buffer = MsgBuffer()
     alice.add_subscriber(alice_msg_buffer)
-    bob_chain = bob_recv_server.chain
-    head = bob_chain.get_canonical_head()
-    block_0 = bob_chain.create_block_from_parent(
-        parent_block=head,
-        block_params=FromBlockParams(),
-    )
+    blocks = get_blocks(bob_recv_server, num_blocks=1)
 
     # test: request from bob is issued and received by alice
-    bob_recv_server._request_block_by_root(block_0.signing_root)
+    bob_recv_server._request_block_by_root(blocks[0].signing_root)
     req = await alice_msg_buffer.msg_queue.get()
-    assert req.payload['block_slot_or_root'] == block_0.signing_root
+    assert req.payload['block_slot_or_root'] == blocks[0].signing_root
 
     # test: alice responds to the bob's request
     await alice_req_server.db.coro_persist_block(
-        block_0,
+        blocks[0],
         SerenityBeaconBlock,
     )
-    bob_recv_server._request_block_by_root(block_0.signing_root)
+    bob_recv_server._request_block_by_root(blocks[0].signing_root)
     msg_block = await bob_msg_queue.get()
-    assert block_0 == parse_resp_block_msg(msg_block)
+    assert blocks[0] == parse_resp_block_msg(msg_block)
 
 
 @pytest.mark.asyncio
@@ -346,51 +332,38 @@ async def test_bcc_receive_server_with_request_server(request, event_loop):
     )
     alice_msg_buffer = MsgBuffer()
     alice.add_subscriber(alice_msg_buffer)
-    bob_chain = bob_recv_server.chain
-    head = bob_chain.get_canonical_head()
-    block_0 = bob_chain.create_block_from_parent(
-        parent_block=head,
-        block_params=FromBlockParams(),
-    )
-    block_1 = bob_chain.create_block_from_parent(
-        parent_block=block_0,
-        block_params=FromBlockParams(),
-    )
-    block_2 = bob_chain.create_block_from_parent(
-        parent_block=block_1,
-        block_params=FromBlockParams(),
-    )
+    blocks = get_blocks(bob_recv_server, num_blocks=3)
     await alice_req_server.db.coro_persist_block(
-        block_0,
+        blocks[0],
         SerenityBeaconBlock,
     )
     await alice_req_server.db.coro_persist_block(
-        block_1,
+        blocks[1],
         SerenityBeaconBlock,
     )
     await alice_req_server.db.coro_persist_block(
-        block_2,
+        blocks[2],
         SerenityBeaconBlock,
     )
 
-    # test: alice send `block_2` to bob, and bob should be able to get `block_1` and `block_0`
+    # test: alice send `blocks[2]` to bob, and bob should be able to get `blocks[1]` and `blocks[0]`
     #   later through the requests.
-    assert not bob_recv_server._is_block_seen(block_0)
-    assert not bob_recv_server._is_block_seen(block_1)
-    assert not bob_recv_server._is_block_seen(block_2)
-    alice.sub_proto.send_new_block(block=block_2)
-    # bob receives new block `block_2`
-    assert block_2 == parse_new_block_msg(await bob_msg_queue.get())
-    # bob requests for `block_1`, and alice receives the request
+    assert not bob_recv_server._is_block_seen(blocks[0])
+    assert not bob_recv_server._is_block_seen(blocks[1])
+    assert not bob_recv_server._is_block_seen(blocks[2])
+    alice.sub_proto.send_new_block(block=blocks[2])
+    # bob receives new block `blocks[2]`
+    assert blocks[2] == parse_new_block_msg(await bob_msg_queue.get())
+    # bob requests for `blocks[1]`, and alice receives the request
     req_1 = await alice_msg_buffer.msg_queue.get()
-    assert req_1.payload['block_slot_or_root'] == block_1.signing_root
-    # bob receives the response block `block_1`
-    assert block_1 == parse_resp_block_msg(await bob_msg_queue.get())
-    # bob requests for `block_0`, and alice receives the request
+    assert req_1.payload['block_slot_or_root'] == blocks[1].signing_root
+    # bob receives the response block `blocks[1]`
+    assert blocks[1] == parse_resp_block_msg(await bob_msg_queue.get())
+    # bob requests for `blocks[0]`, and alice receives the request
     req_0 = await alice_msg_buffer.msg_queue.get()
-    assert req_0.payload['block_slot_or_root'] == block_0.signing_root
-    # bob receives the response block `block_0`
-    assert block_0 == parse_resp_block_msg(await bob_msg_queue.get())
-    assert bob_recv_server._is_block_root_in_db(block_0.signing_root)
-    assert bob_recv_server._is_block_root_in_db(block_1.signing_root)
-    assert bob_recv_server._is_block_root_in_db(block_2.signing_root)
+    assert req_0.payload['block_slot_or_root'] == blocks[0].signing_root
+    # bob receives the response block `blocks[0]`
+    assert blocks[0] == parse_resp_block_msg(await bob_msg_queue.get())
+    assert bob_recv_server._is_block_root_in_db(blocks[0].signing_root)
+    assert bob_recv_server._is_block_root_in_db(blocks[1].signing_root)
+    assert bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
