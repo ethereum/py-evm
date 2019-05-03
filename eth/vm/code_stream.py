@@ -39,11 +39,17 @@ class CodeStream(object):
     def __len__(self) -> int:
         return self._length_cache
 
-    def __iter__(self) -> 'CodeStream':
-        return self
-
     def __getitem__(self, i: int) -> int:
         return self._raw_code_bytes[i]
+
+    def __iter__(self) -> Iterator[int]:
+        # a very performance-sensitive method
+        read = self.read
+        try:
+            while True:
+                yield ord(read(1))
+        except TypeError:
+            yield STOP
 
     def __next__(self) -> int:
         # a very performance-sensitive method
