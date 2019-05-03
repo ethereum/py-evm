@@ -137,11 +137,11 @@ def test_chaindb_state(chaindb, state):
 
 
 def test_chaindb_get_finalized_head_at_genesis(chaindb_at_genesis, genesis_block):
-    assert chaindb_at_genesis.get_finalized_head(BeaconBlock) == genesis_block
+    assert chaindb_at_genesis.get_finalized_head(genesis_block.__class__) == genesis_block
 
 
 def test_chaindb_get_justified_head_at_genesis(chaindb_at_genesis, genesis_block):
-    assert chaindb_at_genesis.get_justified_head(BeaconBlock) == genesis_block
+    assert chaindb_at_genesis.get_justified_head(genesis_block.__class__) == genesis_block
 
 
 def test_chaindb_get_finalized_head(chaindb_at_genesis,
@@ -153,8 +153,8 @@ def test_chaindb_get_finalized_head(chaindb_at_genesis,
         previous_block_root=genesis_block.signing_root,
     )
 
-    assert chaindb.get_finalized_head(BeaconBlock) == genesis_block
-    assert chaindb.get_justified_head(BeaconBlock) == genesis_block
+    assert chaindb.get_finalized_head(genesis_block.__class__) == genesis_block
+    assert chaindb.get_justified_head(genesis_block.__class__) == genesis_block
 
     state_with_finalized_block = genesis_state.copy(
         finalized_root=block.signing_root,
@@ -163,7 +163,7 @@ def test_chaindb_get_finalized_head(chaindb_at_genesis,
     chaindb.persist_block(block, BeaconBlock)
 
     assert chaindb.get_finalized_head(BeaconBlock).signing_root == block.signing_root
-    assert chaindb.get_justified_head(BeaconBlock) == genesis_block
+    assert chaindb.get_justified_head(genesis_block.__class__) == genesis_block
 
 
 def test_chaindb_get_justified_head(chaindb_at_genesis,
@@ -176,8 +176,8 @@ def test_chaindb_get_justified_head(chaindb_at_genesis,
         previous_block_root=genesis_block.signing_root,
     )
 
-    assert chaindb.get_finalized_head(BeaconBlock) == genesis_block
-    assert chaindb.get_justified_head(BeaconBlock) == genesis_block
+    assert chaindb.get_finalized_head(genesis_block.__class__) == genesis_block
+    assert chaindb.get_justified_head(genesis_block.__class__) == genesis_block
 
     # test that there is only one justified head per epoch
     state_with_bad_epoch = genesis_state.copy(
@@ -187,8 +187,8 @@ def test_chaindb_get_justified_head(chaindb_at_genesis,
     chaindb.persist_state(state_with_bad_epoch)
     chaindb.persist_block(block, BeaconBlock)
 
-    assert chaindb.get_finalized_head(BeaconBlock) == genesis_block
-    assert chaindb.get_justified_head(BeaconBlock) == genesis_block
+    assert chaindb.get_finalized_head(genesis_block.__class__) == genesis_block
+    assert chaindb.get_justified_head(genesis_block.__class__) == genesis_block
 
     # test that the we can update justified head if we satisfy the invariants
     state_with_justified_block = genesis_state.copy(
@@ -197,7 +197,7 @@ def test_chaindb_get_justified_head(chaindb_at_genesis,
     )
     chaindb.persist_state(state_with_justified_block)
 
-    assert chaindb.get_finalized_head(BeaconBlock) == genesis_block
+    assert chaindb.get_finalized_head(genesis_block.__class__) == genesis_block
     assert chaindb.get_justified_head(BeaconBlock).signing_root == block.signing_root
 
 
