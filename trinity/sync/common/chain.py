@@ -28,6 +28,8 @@ from eth.rlp.headers import (
     BlockHeader,
 )
 
+from eth2.beacon.types.blocks import BaseBeaconBlock
+
 from p2p.constants import (
     MAX_REORG_DEPTH,
     SEAL_CHECK_RANDOM_SAMPLE_RATE,
@@ -43,6 +45,10 @@ from trinity.chains.base import BaseAsyncChain
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.peer import (
     BaseChainPeer,
+)
+
+from eth2.beacon.chains.base import (
+    BaseBeaconChain
 )
 
 from .types import SyncProgress
@@ -274,3 +280,22 @@ class SimpleBlockImporter(BaseBlockImporter):
             self,
             block: BaseBlock) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         return await self._chain.coro_import_block(block, perform_validation=True)
+
+
+class BaseSyncBlockImporter(ABC):
+    @abstractmethod
+    def import_block(
+            self,
+            block: BaseBlock) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+        pass
+
+
+class SyncBlockImporter(BaseSyncBlockImporter):
+    def __init__(self, chain: BaseBeaconChain) -> None:
+        self._chain = chain
+
+    def import_block(
+            self,
+            block: BaseBeaconBlock
+    ) -> Tuple[BaseBeaconBlock, Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
+        return self._chain.import_block(block, perform_validation=True)

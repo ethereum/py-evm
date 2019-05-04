@@ -368,11 +368,19 @@ async def test_bcc_receive_server_process_received_block(request, event_loop, mo
     class OtherException(Exception):
         pass
 
+<<<<<<< HEAD:tests/plugins/eth2/beacon/test_receive_server.py
     def import_block_raises_other_exception_error(block, performa_validation=True):
         raise OtherException
 
     with monkeypatch.context() as m:
         m.setattr(bob_recv_server.chain, 'import_block', import_block_raises_other_exception_error)
+=======
+    def import_block_raises_validation_error(block, performa_validation=True):
+        raise OtherException
+
+    with monkeypatch.context() as m:
+        m.setattr(bob_recv_server.chain, 'import_block', import_block_raises_validation_error)
+>>>>>>> Draft of `receive_server.broadcast`:tests/core/p2p-proto/bcc/test_receive_server.py
         with pytest.raises(OtherException):
             bob_recv_server._process_received_block(block_not_orphan)
 
@@ -398,6 +406,7 @@ async def test_bcc_receive_server_broadcast_block(request, event_loop, monkeypat
     alice_msg_buffer = MsgBuffer()
     alice.add_subscriber(alice_msg_buffer)
 
+<<<<<<< HEAD:tests/plugins/eth2/beacon/test_receive_server.py
     # test: with `from_peer=alice`, bob broadcasts to all peers except alice. Therefore, alice
     #   should fail to receive the block.
     bob_peers = bob_recv_server._peer_pool.connected_nodes.values()
@@ -408,6 +417,8 @@ async def test_bcc_receive_server_broadcast_block(request, event_loop, monkeypat
     with pytest.raises(asyncio.TimeoutError):
         await asyncio.wait_for(alice_msg_buffer.msg_queue.get(), 0.1)
 
+=======
+>>>>>>> Draft of `receive_server.broadcast`:tests/core/p2p-proto/bcc/test_receive_server.py
     # test: with `from_peer=None` it broadcasts the block to all bob's peers. Try the orphan block
     #   first.
     bob_recv_server._broadcast_block(block_orphan, from_peer=None)
