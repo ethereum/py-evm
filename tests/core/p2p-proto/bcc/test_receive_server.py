@@ -107,11 +107,12 @@ async def get_peer_and_receive_server(request, event_loop) -> Tuple[
         bob_chain_db=bob_chain.chaindb,
     )
 
-    # Add a queue to ensure messages put after every msg handler finishes.
-    # This is crucial to synchronize the test with the BCCReceiveServer.
     msg_queue = asyncio.Queue()
     orig_handle_msg = BCCReceiveServer._handle_msg
 
+    # Inject a queue to each `BCCReceiveServer`, which puts the message passed to `_handle_msg` to
+    # the queue, right after every `_handle_msg` finishes.
+    # This is crucial to make the test be able to wait until `_handle_msg` finishes.
     async def _handle_msg(self, base_peer, cmd, msg):
         task = asyncio.ensure_future(orig_handle_msg(self, base_peer, cmd, msg))
 
@@ -149,18 +150,23 @@ def test_orphan_block_pool():
     # test: add
     pool.add(b1)
     assert b1 in pool._pool
+    assert len(pool._pool) == 1
     # test: add: no side effect for adding twice
     pool.add(b1)
+    assert len(pool._pool) == 1
     # test: add: two blocks
     pool.add(b2)
+    assert len(pool._pool) == 2
     # test: get
     assert pool.get(b1.signing_root) == b1
     assert pool.get(b2.signing_root) == b2
     # test: pop_children
     b2_children = pool.pop_children(b2)
     assert len(b2_children) == 0
+    assert len(pool._pool) == 2
     b0_children = pool.pop_children(b0)
     assert len(b0_children) == 2 and (b1 in b0_children) and (b2 in b0_children)
+    assert len(pool._pool) == 0
 
 
 @pytest.mark.asyncio
