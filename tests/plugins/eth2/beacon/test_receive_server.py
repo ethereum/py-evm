@@ -163,45 +163,36 @@ def test_orphan_block_pool():
     assert pool.get(b1.signing_root) == b1
     assert pool.get(b2.signing_root) == b2
     # test: pop_children
-    b2_children = pool.pop_children(b2)
+    b2_children = pool.pop_children(b2.signing_root)
     assert len(b2_children) == 0
     assert len(pool._pool) == 2
-    b0_children = pool.pop_children(b0)
+    b0_children = pool.pop_children(b0.signing_root)
     assert len(b0_children) == 2 and (b1 in b0_children) and (b2 in b0_children)
     assert len(pool._pool) == 0
 
 
 @pytest.mark.asyncio
-async def test_bcc_receive_server_try_import_or_handle_orphan(request, event_loop, monkeypatch):
+async def test_bcc_receive_server_try_import_orphan_blocks(request, event_loop, monkeypatch):
     _, _, bob_recv_server, _ = await get_peer_and_receive_server(request, event_loop)
-
-    def _request_block_by_root(block_root):
-        pass
-
-    monkeypatch.setattr(
-        bob_recv_server,
-        '_request_block_by_root',
-        _request_block_by_root,
-    )
 
     blocks = get_blocks(bob_recv_server, num_blocks=4)
     # test: block should not be in the db before imported.
     assert not bob_recv_server._is_block_root_in_db(blocks[0].signing_root)
     # test: block with its parent in db should be imported successfully.
-    bob_recv_server._try_import_or_handle_orphan(blocks[0])
+    bob_recv_server._try_import_orphan_blocks(blocks[0])
 
     assert bob_recv_server._is_block_root_in_db(blocks[0].signing_root)
     # test: block without its parent in db should not be imported, and it should be put in the
     #   `orphan_block_pool`.
-    bob_recv_server._try_import_or_handle_orphan(blocks[2])
+    bob_recv_server._try_import_orphan_blocks(blocks[2])
     assert not bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
     assert bob_recv_server._is_block_root_in_orphan_block_pool(blocks[2].signing_root)
-    bob_recv_server._try_import_or_handle_orphan(blocks[3])
+    bob_recv_server._try_import_orphan_blocks(blocks[3])
     assert not bob_recv_server._is_block_root_in_db(blocks[3].signing_root)
     assert blocks[3] in bob_recv_server.orphan_block_pool._pool
     # test: a successfully imported parent is present, its children should be processed
     #   recursively.
-    bob_recv_server._try_import_or_handle_orphan(blocks[1])
+    bob_recv_server._try_import_orphan_blocks(blocks[1])
     assert bob_recv_server._is_block_root_in_db(blocks[1].signing_root)
     assert bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
     assert blocks[2] not in bob_recv_server.orphan_block_pool._pool
@@ -219,13 +210,13 @@ async def test_bcc_receive_server_handle_beacon_blocks_checks(request, event_loo
 
     event = asyncio.Event()
 
-    def _try_import_or_handle_orphan(block):
+    def _try_import_orphan_blocks(block):
         event.set()
 
     monkeypatch.setattr(
         bob_recv_server,
-        '_try_import_or_handle_orphan',
-        _try_import_or_handle_orphan,
+        '_try_import_orphan_blocks',
+        _try_import_orphan_blocks,
     )
 
     # test: `request_id` not found, it should be rejected
@@ -272,13 +263,13 @@ async def test_bcc_receive_server_handle_new_beacon_block_checks(request, event_
 
     event = asyncio.Event()
 
-    def _try_import_or_handle_orphan(block):
+    def _try_import_orphan_blocks(block):
         event.set()
 
     monkeypatch.setattr(
         bob_recv_server,
-        '_try_import_or_handle_orphan',
-        _try_import_or_handle_orphan,
+        '_try_import_orphan_blocks',
+        _try_import_orphan_blocks,
     )
 
     alice.sub_proto.send_new_block(block=blocks[0])
