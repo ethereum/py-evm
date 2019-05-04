@@ -417,7 +417,7 @@ async def test_control_client_list_peers(p2pds):
     (True,),
 )
 @pytest.mark.asyncio
-async def test_controle_client_disconnect(peer_id_random, p2pds):
+async def test_control_client_disconnect(peer_id_random, p2pds):
     c0, c1 = p2pds[0].control, p2pds[1].control
     # test case: disconnect a peer without connections
     await c1.disconnect(peer_id_random)
