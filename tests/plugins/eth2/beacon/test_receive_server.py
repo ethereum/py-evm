@@ -176,28 +176,39 @@ async def test_bcc_receive_server_try_import_orphan_blocks(request, event_loop, 
     _, _, bob_recv_server, _ = await get_peer_and_receive_server(request, event_loop)
 
     blocks = get_blocks(bob_recv_server, num_blocks=4)
-    # test: block should not be in the db before imported.
     assert not bob_recv_server._is_block_root_in_db(blocks[0].signing_root)
-    # test: block with its parent in db should be imported successfully.
-    bob_recv_server._try_import_orphan_blocks(blocks[0])
+    bob_recv_server._import_block(blocks[0])
 
     assert bob_recv_server._is_block_root_in_db(blocks[0].signing_root)
     # test: block without its parent in db should not be imported, and it should be put in the
     #   `orphan_block_pool`.
-    bob_recv_server._try_import_orphan_blocks(blocks[2])
+    # In orphan pool: x    x    x    x
+    # In db:          o    x    x    x
+    #                 0 <- 1 <- 2 <- 3
+    bob_recv_server.orphan_block_pool.add(blocks[2])
+    # test: No use to call `_try_import_orphan_blocks` if the `parent_root` is not in db.
+    assert blocks[2].previous_block_root == blocks[1].signing_root
+    bob_recv_server._try_import_orphan_blocks(blocks[2].previous_block_root)
+    assert not bob_recv_server._is_block_root_in_db(blocks[2].previous_block_root)
     assert not bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
     assert bob_recv_server._is_block_root_in_orphan_block_pool(blocks[2].signing_root)
-    bob_recv_server._try_import_orphan_blocks(blocks[3])
+
+    bob_recv_server.orphan_block_pool.add(blocks[3])
+    # test: No use to call if `parent_root` is in the pool but not in db.
+    assert blocks[3].previous_block_root == blocks[2].signing_root
+    bob_recv_server._try_import_orphan_blocks(blocks[2].signing_root)
+    assert not bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
     assert not bob_recv_server._is_block_root_in_db(blocks[3].signing_root)
-    assert blocks[3] in bob_recv_server.orphan_block_pool._pool
+    assert bob_recv_server._is_block_root_in_orphan_block_pool(blocks[3].signing_root)
     # test: a successfully imported parent is present, its children should be processed
     #   recursively.
-    bob_recv_server._try_import_orphan_blocks(blocks[1])
+    bob_recv_server._import_block(blocks[1])
+    bob_recv_server._try_import_orphan_blocks(blocks[1].signing_root)
     assert bob_recv_server._is_block_root_in_db(blocks[1].signing_root)
     assert bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
-    assert blocks[2] not in bob_recv_server.orphan_block_pool._pool
     assert bob_recv_server._is_block_root_in_db(blocks[3].signing_root)
-    assert blocks[3] not in bob_recv_server.orphan_block_pool._pool
+    assert not bob_recv_server._is_block_root_in_orphan_block_pool(blocks[2].signing_root)
+    assert not bob_recv_server._is_block_root_in_orphan_block_pool(blocks[3].signing_root)
 
 
 @pytest.mark.asyncio
@@ -210,13 +221,13 @@ async def test_bcc_receive_server_handle_beacon_blocks_checks(request, event_loo
 
     event = asyncio.Event()
 
-    def _try_import_orphan_blocks(block):
+    def _process_received_block(block):
         event.set()
 
     monkeypatch.setattr(
         bob_recv_server,
-        '_try_import_orphan_blocks',
-        _try_import_orphan_blocks,
+        '_process_received_block',
+        _process_received_block,
     )
 
     # test: `request_id` not found, it should be rejected
@@ -263,13 +274,13 @@ async def test_bcc_receive_server_handle_new_beacon_block_checks(request, event_
 
     event = asyncio.Event()
 
-    def _try_import_orphan_blocks(block):
+    def _process_received_block(block):
         event.set()
 
     monkeypatch.setattr(
         bob_recv_server,
-        '_try_import_orphan_blocks',
-        _try_import_orphan_blocks,
+        '_process_received_block',
+        _process_received_block,
     )
 
     alice.sub_proto.send_new_block(block=blocks[0])
@@ -321,6 +332,11 @@ async def test_bcc_receive_request_block_by_root(request, event_loop):
     bob_recv_server._request_block_by_root(blocks[0].signing_root)
     msg_block = await bob_msg_queue.get()
     assert blocks[0] == parse_resp_block_msg(msg_block)
+
+
+# TODO: test for `_process_received_block`
+# TODO: test for `_broadcast_block`
+# TODO: test for `_import_block`
 
 
 @pytest.mark.asyncio

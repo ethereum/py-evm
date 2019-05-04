@@ -287,6 +287,9 @@ class BCCReceiveServer(BaseReceiveServer):
         imported_roots.append(parent_root)
         while len(imported_roots) != 0:
             current_parent_root = imported_roots.pop()
+            # Only process the children if the `parent_root` is already in db.
+            if not self._is_block_root_in_db(block_root=parent_root):
+                continue
             # If succeeded, handle the orphan blocks which depend on this block.
             children = self.orphan_block_pool.pop_children(current_parent_root)
             if len(children) > 0:
