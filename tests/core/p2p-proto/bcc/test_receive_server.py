@@ -31,6 +31,9 @@ from eth2.beacon.typing import (
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
+from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
+    XIAO_LONG_BAO_CONFIG,
+)
 
 from trinity.protocol.bcc.peer import (
     BCCPeer,
@@ -74,7 +77,7 @@ class FakeChain(TestnetChain):
 
 async def get_fake_chain() -> FakeChain:
     chain_db = await get_genesis_chain_db()
-    return FakeChain(chain_db.db)
+    return FakeChain(base_db=chain_db.db, config=XIAO_LONG_BAO_CONFIG)
 
 
 def get_blocks(
