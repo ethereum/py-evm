@@ -11,10 +11,12 @@ from pathlib import (
 import sys
 import time
 
+from ruamel.yaml import (
+    YAML,
+)
 from ssz.tools import (
     to_formatted_dict,
 )
-import yaml
 
 from eth2.beacon._utils.hash import (
     hash_eth2,
@@ -158,6 +160,7 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
         state = state.copy(
             genesis_time=genesis_time,
         )
+        yaml = YAML()
         with open(self.network_dir / GENESIS_FILE, "w") as f:
             yaml.dump(to_formatted_dict(state), f)
 
