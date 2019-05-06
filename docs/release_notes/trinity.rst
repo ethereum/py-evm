@@ -4,15 +4,32 @@ Trinity
 Unreleased (latest source)
 --------------------------
 
+- `#596 <https://github.com/ethereum/trinity/pull/596>`_: Feature: ``p2p.PeerPool`` now sources peer candidates using an extendable backend system.
+- `#519 <https://github.com/ethereum/trinity/pull/519>`_: Feature: Retain disconnect reason on ``BasePeer`` when we disconnect.
+- `#555 <https://github.com/ethereum/trinity/pull/555>`_: Feature: Peers who timeout too often in the Request/Response API will be disconnected from and blacklisted for 5 minutes.
+- `#558 <https://github.com/ethereum/trinity/pull/558>`_: Feature: Peers who are disconnected due to a ``bad_protocol`` are blacklisted for 10 minutes.
+- `#559 <https://github.com/ethereum/trinity/pull/559>`_: Feature: Peers who send invalid responses are disconnected from using ``bad_protocol``.
+- `#569 <https://github.com/ethereum/trinity/pull/569>`_: Feature: Log messages with sequences of block numbers now use a concise representation to reduce message size.
+- `#571 <https://github.com/ethereum/trinity/pull/571>`_: Feature: ``BaseService.uptime`` property now exposes integer number of seconds since service was started.
 - `#441 <https://github.com/ethereum/trinity/pull/441>`_: Feature: Run with any custom network ID, as long as you specify a genesis file
 - `#436 <https://github.com/ethereum/trinity/pull/436>`_: Feature: Connect to preferred nodes even when discovery is disabled
 - `#518 <https://github.com/ethereum/trinity/pull/518>`_: Feature: Create log directory for you, if data dir is empty
+- `#469 <https://github.com/ethereum/trinity/pull/469>`_: Bugfix: Fix deprecation warnings from ``p2p.ecies`` module.
+- `#527 <https://github.com/ethereum/trinity/pull/527>`_: Bugfix: ``LESPeer`` class now raises proper exceptions for mismatched genesis hash or network id.
+- `#531 <https://github.com/ethereum/trinity/pull/431>`_: Bugfix: ``p2p.kademlia.Node`` class is now pickleable.
+- `#564 <https://github.com/ethereum/trinity/pull/464>`_: Bugfix: Sub-protocol compatibility matching extracted from ``p2p.BasePeer`` to make it easier to test.
+- `#565 <https://github.com/ethereum/trinity/pull/565>`_: Bugfix: ``p2p.Protocol`` and ``p2p.Command`` classes no longer use mutable data structures for class-level properties.
+- `#568 <https://github.com/ethereum/trinity/pull/568>`_: Bugfix: Revert to fixed timeout for Request/Response cycle with peer to mitigate incorrect timeouts when networking conditions change.
+- `#570 <https://github.com/ethereum/trinity/pull/570>`_: Bugfix: Remove local implementations of humanize utils in favor of ``eth-utils`` library implementations.
 - `#485 <https://github.com/ethereum/trinity/pull/485>`_: Bugfix: Ensure Trinity shuts down if Discovery crashes unexpectedly
 - `#400 <https://github.com/ethereum/trinity/pull/400>`_: Bugfix: Respect configuration of individual logger (e.g -l p2p.discovery=ERROR)
 - `#336 <https://github.com/ethereum/trinity/pull/336>`_: Bugfix: Ensure Trinity shuts down if the process pool dies (fatal error)
 - `#347 <https://github.com/ethereum/trinity/pull/347>`_: Bugfix: Don't crash during sync pruning when switching peers
 - `#446 <https://github.com/ethereum/trinity/pull/446>`_: Bugfix(es): Several reliability improvements to regular sync
 - `#389 <https://github.com/ethereum/trinity/pull/389>`_: Bugfix: Always return contiguous headers from header syncer
+- `#493 <https://github.com/ethereum/trinity/pull/493>`_: Performance: Establish peer connections concurrently rather than sequentially.
+- `#528 <https://github.com/ethereum/trinity/pull/528>`_: Performance: Limit number of concurrent attempts to establish new peer connections.
+- `#536 <https://github.com/ethereum/trinity/pull/536>`_: Performance: Peer connection tracking is now a plugin in the ``trinity`` codebase.
 - `#389 <https://github.com/ethereum/trinity/pull/389>`_: Performance: When switching sync to a new lead peer, don't backtrack to importing old headers
 - `#556 <https://github.com/ethereum/trinity/pull/556>`_: Performance: Upgrade to lahja 0.13.0 which performs less inter-process communication
 - `#386 <https://github.com/ethereum/trinity/pull/386>`_: Performance: Slightly reduce eventbus traffic that the peer pool causes
