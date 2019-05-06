@@ -29,7 +29,6 @@ from p2p.protocol import Command
 
 from eth.exceptions import (
     BlockNotFound,
-    ParentNotFound,
 )
 
 from eth2.beacon.chains.base import BaseBeaconChain
@@ -262,16 +261,19 @@ class BCCReceiveServer(BaseReceiveServer):
             self._broadcast_block(block, from_peer=peer)
 
     def _process_received_block(self, block: BaseBeaconBlock) -> bool:
-        try:
-            self._import_block(block)
-        except ParentNotFound:
+        # If the block is an orphan, put it directly to the pool and request for its parent.
+        if not self._is_block_root_in_db(block.previous_block_root):
             self.logger.debug(f"found orphan block={block}")
             self.orphan_block_pool.add(block)
             self._request_block_by_root(block_root=block.previous_block_root)
             return False
+        try:
+            self.chain.import_block(block)
+        # If the block is invalid, we should drop it.
         except ValidationError:
             # TODO: Possibly drop all of its descendants in `self.orphan_block_pool`?
             return False
+        # If the other exceptions occurred, raise it.
         except Exception:
             # Unexpected result
             raise
@@ -332,11 +334,6 @@ class BCCReceiveServer(BaseReceiveServer):
                 bold_red(f"send block request to: request_id={request_id}, peer={peer}")
             )
             peer.sub_proto.send_new_block(block=block)
-
-    def _import_block(self, block: BaseBeaconBlock):
-        if not self._is_block_root_in_db(block.previous_block_root):
-            raise ParentNotFound
-        self.chain.import_block(block)
 
     def _is_block_root_in_orphan_block_pool(self, block_root: Hash32) -> bool:
         try:
