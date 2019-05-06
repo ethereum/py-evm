@@ -182,11 +182,8 @@ async def test_bcc_receive_server_try_import_orphan_blocks(request, event_loop, 
     assert bob_recv_server._is_block_root_in_db(blocks[0].signing_root)
     # test: block without its parent in db should not be imported, and it should be put in the
     #   `orphan_block_pool`.
-    # In orphan pool: x    x    x    x
-    # In db:          o    x    x    x
-    #                 0 <- 1 <- 2 <- 3
     bob_recv_server.orphan_block_pool.add(blocks[2])
-    # test: No use to call `_try_import_orphan_blocks` if the `parent_root` is not in db.
+    # test: No effect when calling `_try_import_orphan_blocks` if the `parent_root` is not in db.
     assert blocks[2].previous_block_root == blocks[1].signing_root
     bob_recv_server._try_import_orphan_blocks(blocks[2].previous_block_root)
     assert not bob_recv_server._is_block_root_in_db(blocks[2].previous_block_root)
@@ -194,7 +191,8 @@ async def test_bcc_receive_server_try_import_orphan_blocks(request, event_loop, 
     assert bob_recv_server._is_block_root_in_orphan_block_pool(blocks[2].signing_root)
 
     bob_recv_server.orphan_block_pool.add(blocks[3])
-    # test: No use to call if `parent_root` is in the pool but not in db.
+    # test: No effect when calling `_try_import_orphan_blocks` if `parent_root` is in the pool
+    #   but not in db.
     assert blocks[3].previous_block_root == blocks[2].signing_root
     bob_recv_server._try_import_orphan_blocks(blocks[2].signing_root)
     assert not bob_recv_server._is_block_root_in_db(blocks[2].signing_root)

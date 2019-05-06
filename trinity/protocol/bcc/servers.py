@@ -267,7 +267,8 @@ class BCCReceiveServer(BaseReceiveServer):
 
     def _process_received_block(self, block: BaseBeaconBlock) -> bool:
         """
-        Process the block received from other peers.
+        Process the block received from other peers, and returns whether the block should be
+        further broadcast to other peers.
         """
         # If the block is an orphan, put it directly to the pool and request for its parent.
         if not self._is_block_root_in_db(block.previous_block_root):
@@ -288,6 +289,7 @@ class BCCReceiveServer(BaseReceiveServer):
         else:
             # Successfully imported the block. See if anyone in `self.orphan_block_pool` which
             # depends on it. If there are, try to import them.
+            # TODO: should be done asynchronously?
             self._try_import_orphan_blocks(block.signing_root)
             return True
 
