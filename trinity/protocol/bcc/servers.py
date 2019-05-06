@@ -170,6 +170,9 @@ class BaseReceiveServer(BaseRequestServer):
 
 
 class OrphanBlockPool:
+    """
+    Stores the orphan blocks(the blocks who arrive before their parents).
+    """
     # TODO: can probably use lru-cache or even database
     _pool: Set[BaseBeaconBlock]
 
@@ -228,6 +231,8 @@ class BCCReceiveServer(BaseReceiveServer):
             raise Exception(f"Invariant: Only subscribed to {self.subscription_msg_types}")
 
     async def _handle_beacon_blocks(self, peer: BCCPeer, msg: BeaconBlocksMessage) -> None:
+        """
+        """
         if not peer.is_operational:
             return
         request_id = msg["request_id"]
@@ -261,6 +266,9 @@ class BCCReceiveServer(BaseReceiveServer):
             self._broadcast_block(block, from_peer=peer)
 
     def _process_received_block(self, block: BaseBeaconBlock) -> bool:
+        """
+        Process the block received from other peers.
+        """
         # If the block is an orphan, put it directly to the pool and request for its parent.
         if not self._is_block_root_in_db(block.previous_block_root):
             self.logger.debug(f"found orphan block={block}")
@@ -284,6 +292,10 @@ class BCCReceiveServer(BaseReceiveServer):
             return True
 
     def _try_import_orphan_blocks(self, parent_root: BeaconBlock) -> None:
+        """
+        Perform ``chain.import`` on the blocks in ``self.orphan_block_pool`` in breadth-first
+        order, starting from the children of ``parent_root``.
+        """
         imported_roots: List[BeaconBlock] = []
 
         imported_roots.append(parent_root)
@@ -310,6 +322,9 @@ class BCCReceiveServer(BaseReceiveServer):
                     pass
 
     def _request_block_by_root(self, block_root: Hash32) -> None:
+        """
+        Request a block by its root from the peers.
+        """
         for peer in self._peer_pool.connected_nodes.values():
             peer = cast(BCCPeer, peer)
             request_id = gen_request_id()
@@ -324,6 +339,9 @@ class BCCReceiveServer(BaseReceiveServer):
             )
 
     def _broadcast_block(self, block: BaseBeaconBlock, from_peer: BCCPeer = None) -> None:
+        """
+        Broadcast a block to the peers, except for ``from_peer``.
+        """
         for peer in self._peer_pool.connected_nodes.values():
             peer = cast(BCCPeer, peer)
             # skip the peer who send the block to use

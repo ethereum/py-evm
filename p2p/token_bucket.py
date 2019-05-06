@@ -36,7 +36,7 @@ class TokenBucket:
 
     def get_num_tokens(self) -> float:
         """
-        Return the number of tokens current in the bucke
+        Return the number of tokens current in the bucket.
         """
         return max(0, self._get_num_tokens(time.perf_counter()))
 
