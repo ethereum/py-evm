@@ -88,7 +88,7 @@ async def handshake(remote: Node, factory: 'BasePeerFactory') -> 'BasePeer':
     handshake or if none of the sub-protocols supported by us is also
     supported by the remote.
     """
-    transport = await Transport.handshake(
+    transport = await Transport.connect(
         remote,
         factory.privkey,
         factory.cancel_token,

@@ -74,10 +74,10 @@ class Transport:
         self._mac_enc = mac_cipher.encryptor().update
 
     @classmethod
-    async def handshake(cls,
-                        remote: Node,
-                        private_key: datatypes.PrivateKey,
-                        token: CancelToken) -> 'Transport':
+    async def connect(cls,
+                      remote: Node,
+                      private_key: datatypes.PrivateKey,
+                      token: CancelToken) -> 'Transport':
         """Perform the auth and P2P handshakes with the given remote.
 
         Return an instance of the given peer_class (must be a subclass of
