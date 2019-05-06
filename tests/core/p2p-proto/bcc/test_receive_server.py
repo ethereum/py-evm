@@ -76,7 +76,7 @@ class FakeChain(TestnetChain):
 
 
 async def get_fake_chain() -> FakeChain:
-    chain_db = await get_genesis_chain_db()
+    chain_db = await get_genesis_chain_db(config=XIAO_LONG_BAO_CONFIG)
     return FakeChain(base_db=chain_db.db, config=XIAO_LONG_BAO_CONFIG)
 
 

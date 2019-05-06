@@ -101,16 +101,16 @@ def create_branch(length, root=None, **start_kwargs):
         parent = child
 
 
-async def get_chain_db(blocks=()):
+async def get_chain_db(blocks=(), config=SERENITY_CONFIG):
     db = AtomicDB()
-    chain_db = FakeAsyncBeaconChainDB(db=db, config=SERENITY_CONFIG)
+    chain_db = FakeAsyncBeaconChainDB(db=db, config=config)
     await chain_db.coro_persist_block_chain(blocks, BeaconBlock)
     return chain_db
 
 
-async def get_genesis_chain_db():
+async def get_genesis_chain_db(config=SERENITY_CONFIG):
     genesis = create_test_block()
-    return await get_chain_db((genesis,))
+    return await get_chain_db((genesis,), config=config)
 
 
 async def _setup_alice_and_bob_factories(alice_chain_db, bob_chain_db):
