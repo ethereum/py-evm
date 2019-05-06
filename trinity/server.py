@@ -232,7 +232,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         try:
             ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
                 msg, self.privkey)
-        except DecryptionError:
+        except DecryptionError as non_eip8_err:
             # Try to decode as EIP8
             got_eip8 = True
             msg_size = big_endian_to_int(msg[:2])
@@ -243,8 +243,11 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             try:
                 ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
                     msg, self.privkey)
-            except DecryptionError as err:
-                raise HandshakeFailure(f"Failed to decrypt handshake: {err}")
+            except DecryptionError as eip8_err:
+                raise HandshakeFailure(
+                    f"Failed to decrypt both EIP8 handshake: {eip8_err}  and "
+                    f"non-EIP8 handshake: {non_eip8_err}"
+                )
         else:
             got_eip8 = False
 
