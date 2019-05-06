@@ -108,10 +108,21 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
     def _is_numbered(self) -> bool:
         return isinstance(self.block_number_or_hash, int)
 
+    @property
+    def block_identifier(self) -> str:
+        if isinstance(self.block_number_or_hash, int):
+            return str(self.block_number_or_hash)
+        elif isinstance(self.block_number_or_hash, bytes):
+            return humanize_hash(self.block_number_or_hash)
+        else:
+            raise Exception(
+                f"Unexpected type for block identifier: "
+                f"{type(self.block_number_or_hash)}"
+            )
+
     def _get_formatted_params(self) -> str:
-        identifier = self.block_number_or_hash
         return (
-            f'ident: {identifier if self._is_numbered else humanize_hash(identifier)}  '  # type: ignore  # mypy doesn't know `identifier` is a Hash32  # noqa: E501
+            f'ident: {self.block_identifier}  '
             f'max={self.max_headers}  '
             f'skip={self.skip}  '
             f'reverse={self.reverse}'

@@ -75,7 +75,8 @@ if TYPE_CHECKING:
 
 
 async def handshake(remote: Node, factory: 'BasePeerFactory') -> 'BasePeer':
-    """Perform the auth and P2P handshakes with the given remote.
+    """
+    Perform the auth and P2P handshakes with the given remote.
 
     Return an instance of the given peer_class (must be a subclass of
     BasePeer) connected to that remote in case both handshakes are
@@ -87,7 +88,7 @@ async def handshake(remote: Node, factory: 'BasePeerFactory') -> 'BasePeer':
     handshake or if none of the sub-protocols supported by us is also
     supported by the remote.
     """
-    transport = await Transport.open_connection(
+    transport = await Transport.handshake(
         remote,
         factory.privkey,
         factory.cancel_token,
@@ -205,9 +206,6 @@ class BasePeer(BaseService):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__} {self.remote!r}"
-
-    def __hash__(self) -> int:
-        return hash(self.remote)
 
     #
     # Proxy Transport attributes
@@ -357,7 +355,6 @@ class BasePeer(BaseService):
                 return
 
     async def read_msg(self) -> Tuple[Command, PayloadType]:
-        # TODO: Transport class needs a cancel token for proper cancellation
         msg = await self.transport.recv(self.cancel_token)
         cmd = self.get_protocol_command_for(msg)
         # NOTE: This used to be a bottleneck but it doesn't seem to be so anymore. If we notice
