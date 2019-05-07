@@ -6,7 +6,6 @@ from typing import (  # noqa: F401
     Set,
     Tuple,
 )
-from uuid import UUID
 
 from eth_hash.auto import keccak
 from eth_typing import (
@@ -38,6 +37,9 @@ from eth.db.cache import (
 )
 from eth.db.journal import (
     JournalDB,
+)
+from eth.db.typing import (
+    JournalDBCheckpoint,
 )
 from eth.tools.logging import (
     ExtendedDebugLogger
@@ -213,10 +215,10 @@ class AccountStorageDB:
         self._journal_storage.clear()
         self._storage_cache.reset_cache()
 
-    def record(self, changeset: UUID) -> None:
+    def record(self, changeset: JournalDBCheckpoint) -> None:
         self._journal_storage.record(changeset)
 
-    def discard(self, changeset: UUID) -> None:
+    def discard(self, changeset: JournalDBCheckpoint) -> None:
         self.logger.debug2('discard checkpoint %r', changeset)
         if self._journal_storage.has_changeset(changeset):
             self._journal_storage.discard(changeset)
@@ -226,7 +228,7 @@ class AccountStorageDB:
             self._journal_storage.reset()
         self._storage_cache.reset_cache()
 
-    def commit(self, changeset: UUID) -> None:
+    def commit(self, changeset: JournalDBCheckpoint) -> None:
         if self._journal_storage.has_changeset(changeset):
             self._journal_storage.commit(changeset)
         else:

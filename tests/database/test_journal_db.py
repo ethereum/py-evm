@@ -590,3 +590,63 @@ def test_journal_db_discard_missing_changeset(journal_db):
     # checkpoint doesn't exist anymore
     with pytest.raises(ValidationError):
         journal_db.discard(checkpoint)
+
+
+@pytest.mark.parametrize('do_final_record', (True, False))
+def test_journal_db_discard_to_deleted(journal_db, do_final_record):
+    journal_db[1] = b'original-value'
+    checkpoint_created = journal_db.record()
+    del journal_db[1]
+    checkpoint_deleted = journal_db.record()
+    journal_db[1] = b'value-after-delete'
+    if do_final_record:
+        journal_db.record()
+
+    assert journal_db[1] == b'value-after-delete'
+
+    journal_db.discard(checkpoint_deleted)
+    assert 1 not in journal_db
+    with pytest.raises(KeyError):
+        journal_db[1]
+
+    journal_db.discard(checkpoint_created)
+    assert journal_db[1] == b'original-value'
+
+
+@pytest.mark.parametrize('do_final_record', (True, False))
+def test_journal_db_discard_past_clear(journal_db, do_final_record):
+    journal_db[0] = b'untouched-wrapped-value'
+    journal_db[1] = b'wrapped-value-to-delete'
+    journal_db.persist()
+
+    before_changes = journal_db.record()
+
+    del journal_db[1]
+    journal_db[2] = b'fresh-journaled-value-to-delete'
+    journal_db.record()
+
+    del journal_db[2]
+    checkpoint_before_clear = journal_db.record()
+
+    journal_db[3] = b'added-before-clear'
+    journal_db.clear()
+    if do_final_record:
+        journal_db.record()
+
+    assert 0 not in journal_db
+    assert 1 not in journal_db
+    assert 2 not in journal_db
+    assert 3 not in journal_db
+
+    journal_db.discard(checkpoint_before_clear)
+
+    assert journal_db[0] == b'untouched-wrapped-value'
+    assert 1 not in journal_db
+    assert 2 not in journal_db
+    assert 3 not in journal_db
+
+    journal_db.discard(before_changes)
+    assert journal_db[0] == b'untouched-wrapped-value'
+    assert journal_db[1] == b'wrapped-value-to-delete'
+    assert 2 not in journal_db
+    assert 3 not in journal_db

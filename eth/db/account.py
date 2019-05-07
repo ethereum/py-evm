@@ -2,7 +2,6 @@ from abc import (
     ABC,
     abstractmethod
 )
-from uuid import UUID
 import logging
 from lru import LRU
 from typing import (  # noqa: F401
@@ -20,6 +19,7 @@ from eth_typing import (
 )
 from eth_utils import (
     encode_hex,
+    to_checksum_address,
     to_tuple,
     ValidationError,
 )
@@ -46,6 +46,9 @@ from eth.db.journal import (
 )
 from eth.db.storage import (
     AccountStorageDB,
+)
+from eth.db.typing import (
+    JournalDBCheckpoint,
 )
 from eth.rlp.accounts import (
     Account,
@@ -153,15 +156,15 @@ class BaseAccountDB(ABC):
     # Record and discard API
     #
     @abstractmethod
-    def record(self) -> UUID:
+    def record(self) -> JournalDBCheckpoint:
         raise NotImplementedError("Must be implemented by subclass")
 
     @abstractmethod
-    def discard(self, changeset: UUID) -> None:
+    def discard(self, changeset: JournalDBCheckpoint) -> None:
         raise NotImplementedError("Must be implemented by subclass")
 
     @abstractmethod
-    def commit(self, changeset: UUID) -> None:
+    def commit(self, changeset: JournalDBCheckpoint) -> None:
         raise NotImplementedError("Must be implemented by subclass")
 
     @abstractmethod
@@ -455,7 +458,7 @@ class AccountDB(BaseAccountDB):
     #
     # Record and discard API
     #
-    def record(self) -> UUID:
+    def record(self) -> JournalDBCheckpoint:
         changeset_id = self._journaldb.record()
         self._journaltrie.record(changeset_id)
 
@@ -463,14 +466,14 @@ class AccountDB(BaseAccountDB):
             store.record(changeset_id)
         return changeset_id
 
-    def discard(self, changeset: UUID) -> None:
+    def discard(self, changeset: JournalDBCheckpoint) -> None:
         self._journaldb.discard(changeset)
         self._journaltrie.discard(changeset)
         self._account_cache.clear()
         for _, store in self._dirty_account_stores():
             store.discard(changeset)
 
-    def commit(self, changeset: UUID) -> None:
+    def commit(self, changeset: JournalDBCheckpoint) -> None:
         self._journaldb.commit(changeset)
         self._journaltrie.commit(changeset)
         for _, store in self._dirty_account_stores():
@@ -534,21 +537,22 @@ class AccountDB(BaseAccountDB):
             )
 
     def _log_pending_accounts(self) -> None:
-        accounts_displayed = set()  # type: Set[bytes]
-        queued_changes = self._journaltrie.journal.journal_data.items()
-        # mypy bug for ordered dict reversibility: https://github.com/python/typeshed/issues/2078
-        for _, accounts in reversed(queued_changes):
-            for address in accounts:
-                if address in accounts_displayed:
-                    continue
-                else:
-                    accounts_displayed.add(address)
-                    account = self._get_account(Address(address))
-                    self.logger.debug2(
-                        "Account %s: balance %d, nonce %d, storage root %s, code hash %s",
-                        encode_hex(address),
-                        account.balance,
-                        account.nonce,
-                        encode_hex(account.storage_root),
-                        encode_hex(account.code_hash),
-                    )
+        diff = self._journaltrie.diff()
+        for address in sorted(diff.pending_keys()):
+            account = self._get_account(Address(address))
+            self.logger.debug2(
+                "Pending Account %s: balance %d, nonce %d, storage root %s, code hash %s",
+                to_checksum_address(address),
+                account.balance,
+                account.nonce,
+                encode_hex(account.storage_root),
+                encode_hex(account.code_hash),
+            )
+        for deleted_address in sorted(diff.deleted_keys()):
+            cast_deleted_address = Address(deleted_address)
+            self.logger.debug2(
+                "Deleted Account %s, empty? %s, exists? %s",
+                to_checksum_address(deleted_address),
+                self.account_is_empty(cast_deleted_address),
+                self.account_exists(cast_deleted_address),
+            )
