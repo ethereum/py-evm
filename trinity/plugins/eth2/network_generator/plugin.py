@@ -109,7 +109,7 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
         loop.run_until_complete(self._run_generate_testnet_dir(args))
         loop.close()
 
-    async def _run_generate_testnet_dir(self, args: Namespace)-> None:
+    async def _run_generate_testnet_dir(self, args: Namespace) -> None:
         self.logger.info("Generating testnet")
         self.network_dir = args.network_dir
         if len(os.listdir(self.network_dir)) > 0:
