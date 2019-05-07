@@ -66,7 +66,7 @@ class Client:
     client_dir: Path
     validator_keys_dir: Path
 
-    def __init__(self, name: str, root_dir: Path):
+    def __init__(self, name: str, root_dir: Path) -> None:
         self.name = name
         self.client_dir = root_dir / name
         self.validator_keys_dir = self.client_dir / VALIDATOR_KEY_DIR
