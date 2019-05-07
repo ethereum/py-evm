@@ -85,7 +85,11 @@ async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamRead
     initiator_nonce = keccak(os.urandom(HASH_LEN))
     auth_msg = initiator.create_auth_message(initiator_nonce)
     auth_init = initiator.encrypt_auth_message(auth_msg)
-    writer.write(auth_init)
+
+    try:
+        writer.write(auth_init)
+    except RuntimeError as err:
+        raise HandshakeFailure("Error during handshake with {initiator.remote!r}: {err}") from err
 
     auth_ack = await token.cancellable_wait(
         reader.read(ENCRYPTED_AUTH_ACK_LEN),
@@ -94,7 +98,7 @@ async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamRead
     if reader.at_eof():
         # This is what happens when Parity nodes have blacklisted us
         # (https://github.com/ethereum/py-evm/issues/901).
-        raise HandshakeFailure("%s disconnected before sending auth ack", repr(initiator.remote))
+        raise HandshakeFailure(f"{initiator.remote!r} disconnected before sending auth ack")
 
     ephemeral_pubkey, responder_nonce = initiator.decode_auth_ack_message(auth_ack)
     aes_secret, mac_secret, egress_mac, ingress_mac = initiator.derive_secrets(
