@@ -1,4 +1,7 @@
 import collections
+from itertools import (
+    count,
+)
 from typing import cast, Dict, Set, Union  # noqa: F401
 import uuid
 
@@ -8,6 +11,7 @@ from eth_utils.toolz import (
     nth,
 )
 from eth_utils import (
+    to_tuple,
     ValidationError,
 )
 
@@ -32,21 +36,33 @@ DELETED_ENTRY = DeletedEntry()
 ERASE_CREATED_ENTRY = DeletedEntry()
 
 
+class ValueDelta:
+    pass
+
+
+REVERT_TO_ORIGINAL = ValueDelta()
+
+
+id_generator = count()
+
+
 class Journal(BaseDB):
     """
     A Journal is an ordered list of changesets.  A changeset is a dictionary
-    of database keys and values.  The values are tracked changes that were
-    written after the changeset was created
+    of database keys and values.  The values are tracked changes which give
+    the information needed to revert a changeset to an old checkpoint.
 
-    Changesets are referenced by a random uuid4.
+    Changesets are referenced by an internally-generated integer.
     """
 
     def __init__(self) -> None:
         # contains a mapping from all of the `uuid4` changeset_ids
-        # to a dictionary of key:value pairs with the recorded changes
-        # that belong to the changeset
+        # to a dictionary of key:value pairs that describe how to rewind from the current values
+        # to the given checkpoint
         self.journal_data = collections.OrderedDict()  # type: collections.OrderedDict[uuid.UUID, Dict[bytes, Union[bytes, DeletedEntry]]]  # noqa E501
         self._clears_at = set()  # type: Set[uuid.UUID]
+        self._current_values = {}  # Dict[bytes, Union[bytes, DeletedEntry]]
+        self._is_cleared = False
 
     @property
     def root_changeset_id(self) -> uuid.UUID:
@@ -68,6 +84,7 @@ class Journal(BaseDB):
         Returns the id of the latest changeset
         """
         # last() was iterating through all values, so first(reversed()) gives a 12.5x speedup
+        # Interestingly, an attempt to cache this value caused a slowdown.
         return first(reversed(self.journal_data.keys()))
 
     @property
@@ -103,47 +120,49 @@ class Journal(BaseDB):
             else:
                 changeset_id = custom_changeset_id
         else:
-            changeset_id = uuid.uuid4()
+            changeset_id = next(id_generator)
 
         self.journal_data[changeset_id] = {}
         return changeset_id
 
-    def pop_changeset(self, changeset_id: uuid.UUID) -> Dict[bytes, Union[bytes, DeletedEntry]]:
-        """
-        Returns all changes from the given changeset.  This includes all of
-        the changes from any subsequent changeset, giving precedence to
-        later changesets.
-        """
-        if changeset_id not in self.journal_data:
-            raise KeyError(changeset_id, "Unknown changeset in JournalDB")
+    def discard(self, discard_through_checkpoint_id):
+        for checkpoint_id, rollback_data in self._rollbacks_through(discard_through_checkpoint_id):
+            for old_key, old_value in rollback_data.items():
+                if old_value is REVERT_TO_ORIGINAL:
+                    del self._current_values[old_key]
+                else:
+                    self._current_values[old_key] = old_value
 
-        all_ids = tuple(self.journal_data.keys())
-        changeset_idx = all_ids.index(changeset_id)
-        changesets_to_pop = all_ids[changeset_idx:]
-        popped_clears = tuple(idx for idx in changesets_to_pop if idx in self._clears_at)
-        if popped_clears:
-            last_clear_idx = changesets_to_pop.index(popped_clears[-1])
-            changesets_to_drop = changesets_to_pop[:last_clear_idx]
-            changesets_to_merge = changesets_to_pop[last_clear_idx:]
+            del self.journal_data[checkpoint_id]
+
+            if checkpoint_id in self._clears_at:
+                self._clears_at.remove(checkpoint_id)
+                self._is_cleared = False
+
+        if self._clears_at:
+            # if there is still a clear in older locations, then reinitiate the clear flag
+            self._is_cleared = True
+
+    @to_tuple
+    def _rollbacks_through(self, through_checkpoint_id):
+        for checkpoint_id, rollback_data in reversed(self.journal_data.items()):
+            yield checkpoint_id, rollback_data
+            if checkpoint_id == through_checkpoint_id:
+                break
         else:
-            changesets_to_drop = ()
-            changesets_to_merge = changesets_to_pop
+            # checkpoint not found!
+            raise ValidationError("No checkpoint %s was found" % through_checkpoint_id)
 
-        # we pull all of the changesets *after* the changeset we are
-        # reverting to and collapse them to a single set of keys (giving
-        # precedence to later changesets)
-        changeset_data = merge(*(
-            self.journal_data.pop(c_id)
-            for c_id
-            in changesets_to_merge
-        ))
+    def _drop_rollbacks(self, drop_through_checkpoint_id: uuid.UUID) -> Dict[bytes, Union[bytes, DeletedEntry]]:
+        had_clear = False
+        for checkpoint_id, _ in self._rollbacks_through(drop_through_checkpoint_id):
+            del self.journal_data[checkpoint_id]
 
-        # drop the changes on the floor if they came before a clear that is being committed
-        for changeset_id in changesets_to_drop:
-            self.journal_data.pop(changeset_id)
+            if checkpoint_id in self._clears_at:
+                self._clears_at.remove(checkpoint_id)
+                had_clear = True
 
-        self._clears_at.difference_update(popped_clears)
-        return changeset_data
+        return had_clear
 
     def clear(self) -> None:
         """
@@ -151,11 +170,11 @@ class Journal(BaseDB):
         We build a special empty changeset just for marking that all previous data should
         be ignored.
         """
-        # these internal records are used as a way to tell the difference between
-        # changes that came before and after the clear
-        self.record_changeset()
-        self._clears_at.add(self.latest_id)
-        self.record_changeset()
+        changeset_id = next(id_generator)
+        self.journal_data[changeset_id] = self._current_values
+        self._current_values = {}
+        self._is_cleared = True
+        self._clears_at.add(changeset_id)
 
     def has_clear(self, check_changeset_id: uuid.UUID) -> bool:
         for changeset_id in reversed(self.journal_data.keys()):
@@ -170,8 +189,7 @@ class Journal(BaseDB):
         Collapses all changes for the given changeset into the previous
         changesets if it exists.
         """
-        does_clear = self.has_clear(changeset_id)
-        changeset_data = self.pop_changeset(changeset_id)
+        does_clear = self._drop_rollbacks(changeset_id)
         if not self.is_empty():
             # we only have to assign changeset data into the latest changeset if
             # there is one.
@@ -181,14 +199,7 @@ class Journal(BaseDB):
                 self.latest = {}
                 self._clears_at.add(self.latest_id)
                 self.record_changeset()
-                self.latest = changeset_data
-            else:
-                # otherwise, merge in all the current data
-                self.latest = merge(
-                    self.latest,
-                    changeset_data,
-                )
-        return changeset_data
+        return self._current_values
 
     def flatten(self) -> None:
         if self.is_flattened:
@@ -205,7 +216,15 @@ class Journal(BaseDB):
         For key lookups we need to iterate through the changesets in reverse
         order, returning from the first one in which the key is present.
         """
-        # Ignored from mypy because of https://github.com/python/typeshed/issues/2078
+        # the default result (the value if not in the local values) depends on whether there
+        # was a clear
+        if self._is_cleared:
+            default_result = ERASE_CREATED_ENTRY
+        else:
+            default_result = None  # indicate that caller should check wrapped database
+        return self._current_values.get(key, default_result)
+
+        '''
         for changeset_id, changeset_data in reversed(self.journal_data.items()):
             if changeset_id in self._clears_at:
                 return ERASE_CREATED_ENTRY
@@ -215,9 +234,14 @@ class Journal(BaseDB):
                 continue
 
         return None
+    '''
 
     def __setitem__(self, key: bytes, value: bytes) -> None:
-        self.latest[key] = value
+        # if the value has not been changed since wrapping, then simply revert to original value
+        revert_changeset = self.latest
+        if key not in revert_changeset:
+            revert_changeset[key] = self._current_values.get(key, REVERT_TO_ORIGINAL)
+        self._current_values[key] = value
 
     def _exists(self, key: bytes) -> bool:
         val = self.get(key)
@@ -227,34 +251,27 @@ class Journal(BaseDB):
         raise NotImplementedError("You must delete with one of delete_local or delete_wrapped")
 
     def delete_wrapped(self, key: bytes) -> None:
-        self.latest[key] = DELETED_ENTRY
+        revert_changeset = self.latest
+        if key not in revert_changeset:
+            revert_changeset[key] = self._current_values.get(key, REVERT_TO_ORIGINAL)
+        self._current_values[key] = DELETED_ENTRY
 
     def delete_local(self, key: bytes) -> None:
-        self.latest[key] = ERASE_CREATED_ENTRY
+        revert_changeset = self.latest
+        if key not in revert_changeset:
+            revert_changeset[key] = self._current_values.get(key, REVERT_TO_ORIGINAL)
+        self._current_values[key] = ERASE_CREATED_ENTRY
 
     def diff(self) -> DBDiff:
         tracker = DBDiffTracker()
-        visited_keys = set()  # type: Set[bytes]
 
-        # Iterate in reverse, so you can skip over any keys from old checkpoints.
-        # This is required so that when a key is created and then deleted in the journal,
-        #   we don't add the delete to the diff. (We simply omit the change altogether)
-        for changeset_id, changeset in reversed(self.journal_data.items()):
-            if changeset_id in self._clears_at:
-                break
-
-            for key, value in changeset.items():
-                if key in visited_keys:
-                    # this old change has already been tracked
-                    continue
-                elif value is DELETED_ENTRY:
-                    del tracker[key]
-                elif value is ERASE_CREATED_ENTRY:
-                    pass
-                else:
-                    tracker[key] = cast(bytes, value)
-
-                visited_keys.add(key)
+        for key, value in self._current_values.items():
+            if value is DELETED_ENTRY:
+                del tracker[key]
+            elif value is ERASE_CREATED_ENTRY:
+                pass
+            else:
+                tracker[key] = value  # type: ignore  # cast(bytes, value)
 
         return tracker.diff()
 
@@ -374,7 +391,7 @@ class JournalDB(BaseDB):
         Throws away all journaled data starting at the given changeset
         """
         self._validate_changeset(changeset_id)
-        self.journal.pop_changeset(changeset_id)
+        self.journal.discard(changeset_id)
 
     def commit(self, changeset_id: uuid.UUID) -> None:
         """
