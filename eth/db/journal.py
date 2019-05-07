@@ -295,16 +295,15 @@ class JournalDB(BaseDB):
     the same changeset will not increase the journal size since we only need
     to track latest value for any given key within any given changeset.
     """
-    wrapped_db = None
-    journal = None  # type: Journal
+    __slots__ = ['_wrapped_db', '_journal']
 
     def __init__(self, wrapped_db: BaseDB) -> None:
-        self.wrapped_db = wrapped_db
+        self._wrapped_db = wrapped_db
         self.reset()
 
     def __getitem__(self, key: bytes) -> bytes:
 
-        val = self.journal[key]
+        val = self._journal[key]
         if val is DELETED_ENTRY:
             raise KeyError(
                 key,
@@ -316,7 +315,7 @@ class JournalDB(BaseDB):
                 "item is deleted in JournalDB, and is presumed gone from the wrapped DB",
             )
         elif val is None:
-            return self.wrapped_db[key]
+            return self._wrapped_db[key]
         else:
             # mypy doesn't allow custom type guards yet so we need to cast here
             # even though we know it can only be `bytes` at this point.
@@ -327,14 +326,14 @@ class JournalDB(BaseDB):
         - replacing an existing value
         - setting a value that does not exist
         """
-        self.journal[key] = value
+        self._journal[key] = value
 
     def _exists(self, key: bytes) -> bool:
-        val = self.journal[key]
+        val = self._journal[key]
         if val in (ERASE_CREATED_ENTRY, DELETED_ENTRY):
             return False
         elif val is None:
-            return key in self.wrapped_db
+            return key in self._wrapped_db
         else:
             return True
 
@@ -351,17 +350,17 @@ class JournalDB(BaseDB):
         Any caller that wants to use clear must also make sure that the underlying database
         reflects their desired end state (maybe emptied, maybe not).
         """
-        self.journal.clear()
+        self._journal.clear()
 
     def has_clear(self) -> bool:
-        return self.journal.has_clear(self.journal.root_changeset_id)
+        return self._journal.has_clear(self._journal.root_changeset_id)
 
     def __delitem__(self, key: bytes) -> None:
-        if key in self.wrapped_db:
-            self.journal.delete_wrapped(key)
+        if key in self._wrapped_db:
+            self._journal.delete_wrapped(key)
         else:
-            if key in self.journal:
-                self.journal.delete_local(key)
+            if key in self._journal:
+                self._journal.delete_local(key)
             else:
                 raise KeyError(key, "key could not be deleted in JournalDB, because it was missing")
 
@@ -372,26 +371,26 @@ class JournalDB(BaseDB):
         """
         Checks to be sure the changeset is known by the journal
         """
-        if not self.journal.has_changeset(changeset_id):
+        if not self._journal.has_changeset(changeset_id):
             raise ValidationError("Changeset not found in journal: {0}".format(
                 str(changeset_id)
             ))
 
     def has_changeset(self, changeset_id: uuid.UUID) -> bool:
-        return self.journal.has_changeset(changeset_id)
+        return self._journal.has_changeset(changeset_id)
 
     def record(self, custom_changeset_id: uuid.UUID = None) -> uuid.UUID:
         """
         Starts a new recording and returns an id for the associated changeset
         """
-        return self.journal.record_changeset(custom_changeset_id)
+        return self._journal.record_changeset(custom_changeset_id)
 
     def discard(self, changeset_id: uuid.UUID) -> None:
         """
         Throws away all journaled data starting at the given changeset
         """
         self._validate_changeset(changeset_id)
-        self.journal.discard(changeset_id)
+        self._journal.discard(changeset_id)
 
     def commit(self, changeset_id: uuid.UUID) -> None:
         """
@@ -400,12 +399,12 @@ class JournalDB(BaseDB):
         to later changesets in case of any conflicting keys.
         """
         self._validate_changeset(changeset_id)
-        if changeset_id == self.journal.root_changeset_id:
+        if changeset_id == self._journal.root_changeset_id:
             raise ValidationError(
                 "Tried to commit the root changeset. Callers should not keep references "
                 "to the root changeset. Maybe you meant to use persist()?"
             )
-        self.journal.commit_changeset(changeset_id)
+        self._journal.commit_changeset(changeset_id)
 
     def _reapply_changeset_to_journal(
             self,
@@ -414,19 +413,19 @@ class JournalDB(BaseDB):
         self.record(changeset_id)
         for key, value in journal_data.items():
             if value is DELETED_ENTRY:
-                self.journal.delete_wrapped(key)
+                self._journal.delete_wrapped(key)
             elif value is ERASE_CREATED_ENTRY:
-                self.journal.delete_local(key)
+                self._journal.delete_local(key)
             else:
-                self.journal[key] = cast(bytes, value)
+                self._journal[key] = cast(bytes, value)
 
     def persist(self) -> None:
         """
         Persist all changes in underlying db. After all changes have been written the
         JournalDB starts a new recording.
         """
-        root_changeset = self.journal.root_changeset_id
-        journal_data = self.journal.commit_changeset(root_changeset)
+        root_changeset = self._journal.root_changeset_id
+        journal_data = self._journal.commit_changeset(root_changeset)
 
         # Ensure the journal automatically restarts recording after
         # it has been persisted to the underlying db
@@ -435,11 +434,11 @@ class JournalDB(BaseDB):
         for key, value in journal_data.items():
             try:
                 if value is DELETED_ENTRY:
-                    del self.wrapped_db[key]
+                    del self._wrapped_db[key]
                 elif value is ERASE_CREATED_ENTRY:
                     pass
                 else:
-                    self.wrapped_db[key] = cast(bytes, value)
+                    self._wrapped_db[key] = cast(bytes, value)
             except Exception:
                 self._reapply_changeset_to_journal(root_changeset, journal_data)
                 raise
@@ -448,13 +447,13 @@ class JournalDB(BaseDB):
         """
         Commit everything possible without persisting
         """
-        self.journal.flatten()
+        self._journal.flatten()
 
     def reset(self) -> None:
         """
         Reset the entire journal.
         """
-        self.journal = Journal()
+        self._journal = Journal()
         self.record()
 
     def diff(self) -> DBDiff:
@@ -462,4 +461,4 @@ class JournalDB(BaseDB):
         Generate a DBDiff of all pending changes.
         These are the changes that would occur if :meth:`persist()` were called.
         """
-        return self.journal.diff()
+        return self._journal.diff()

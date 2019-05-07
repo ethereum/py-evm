@@ -197,34 +197,43 @@ def test_revert_clears_reverted_journal_entries(journal_db):
 def test_revert_removes_journal_entries(journal_db):
 
     changeset_a = journal_db.record()  # noqa: F841
-    assert len(journal_db.journal.journal_data) == 2
+    assert journal_db.has_changeset(changeset_a)
 
     changeset_b = journal_db.record()
-    assert len(journal_db.journal.journal_data) == 3
+    assert journal_db.has_changeset(changeset_a)
+    assert journal_db.has_changeset(changeset_b)
 
     # Forget *latest* changeset and prove it's the only one removed
     journal_db.discard(changeset_b)
-    assert len(journal_db.journal.journal_data) == 2
+    assert journal_db.has_changeset(changeset_a)
+    assert not journal_db.has_changeset(changeset_b)
 
     changeset_b2 = journal_db.record()
-    assert len(journal_db.journal.journal_data) == 3
+    assert journal_db.has_changeset(changeset_a)
+    assert journal_db.has_changeset(changeset_b2)
 
-    changeset_c = journal_db.record()  # noqa: F841
-    assert len(journal_db.journal.journal_data) == 4
+    changeset_c = journal_db.record()
+    assert journal_db.has_changeset(changeset_a)
+    assert journal_db.has_changeset(changeset_b2)
+    assert journal_db.has_changeset(changeset_c)
 
-    changeset_d = journal_db.record()  # noqa: F841
-    assert len(journal_db.journal.journal_data) == 5
+    changeset_d = journal_db.record()
+    assert journal_db.has_changeset(changeset_a)
+    assert journal_db.has_changeset(changeset_b2)
+    assert journal_db.has_changeset(changeset_c)
+    assert journal_db.has_changeset(changeset_d)
 
     # Forget everything from b2 (inclusive) and what follows
     journal_db.discard(changeset_b2)
-    assert len(journal_db.journal.journal_data) == 2
-    assert journal_db.journal.has_changeset(changeset_b2) is False
+    assert journal_db.has_changeset(changeset_a)
+    assert not journal_db.has_changeset(changeset_b2)
+    assert not journal_db.has_changeset(changeset_c)
+    assert not journal_db.has_changeset(changeset_d)
 
 
 def test_commit_merges_changeset_into_previous(journal_db):
 
     changeset = journal_db.record()
-    assert len(journal_db.journal.journal_data) == 2
 
     journal_db.set(b'1', b'test-a')
     assert journal_db.get(b'1') == b'test-a'
@@ -233,8 +242,8 @@ def test_commit_merges_changeset_into_previous(journal_db):
     journal_db.commit(changeset)
 
     assert journal_db.diff() == before_diff
-    assert len(journal_db.journal.journal_data) == 1
-    assert journal_db.journal.has_changeset(changeset) is False
+    assert journal_db.get(b'1') == b'test-a'
+    assert journal_db.has_changeset(changeset) is False
 
 
 def test_journal_db_has_clear(journal_db):
@@ -283,22 +292,24 @@ def test_committing_middle_changeset_merges_in_subsequent_changesets(journal_db)
 
     journal_db.set(b'1', b'test-a')
     changeset_a = journal_db.record()
-    assert len(journal_db.journal.journal_data) == 2
+    assert journal_db.has_changeset(changeset_a)
 
     journal_db.set(b'1', b'test-b')
     changeset_b = journal_db.record()
-    assert len(journal_db.journal.journal_data) == 3
+    assert journal_db.has_changeset(changeset_a)
+    assert journal_db.has_changeset(changeset_b)
 
     journal_db.set(b'1', b'test-c')
     changeset_c = journal_db.record()
-    assert len(journal_db.journal.journal_data) == 4
+    assert journal_db.has_changeset(changeset_a)
+    assert journal_db.has_changeset(changeset_b)
+    assert journal_db.has_changeset(changeset_c)
 
     journal_db.commit(changeset_b)
     assert journal_db.get(b'1') == b'test-c'
-    assert len(journal_db.journal.journal_data) == 2
-    assert journal_db.journal.has_changeset(changeset_a)
-    assert journal_db.journal.has_changeset(changeset_b) is False
-    assert journal_db.journal.has_changeset(changeset_c) is False
+    assert journal_db.has_changeset(changeset_a)
+    assert journal_db.has_changeset(changeset_b) is False
+    assert journal_db.has_changeset(changeset_c) is False
 
 
 def test_flatten_does_not_persist_0_checkpoints(journal_db, memory_db):
@@ -386,7 +397,8 @@ def test_persist_writes_to_underlying_db(journal_db, memory_db):
     assert memory_db.exists(b'1') is False
 
     journal_db.persist()
-    assert len(journal_db.journal.journal_data) == 1
+    assert not journal_db.has_changeset(changeset)
+    assert not journal_db.has_changeset(changeset_b)
     assert memory_db.get(b'1') == b'test-b'
 
 
@@ -538,7 +550,7 @@ def test_journal_persist_set_KeyError_then_persist():
 
     # A persist that fails reinstates all the pending changes as a single changeset
     # Let's switch to a Memory DB that doesn't fail on delete and try again:
-    journal_db.wrapped_db = original_data
+    journal_db._wrapped_db = original_data
 
     # smoke test that persist works after an exception
     del journal_db[b'data-to-delete']
@@ -563,6 +575,6 @@ def test_journal_db_rejects_committing_root():
     memory_db = MemoryDB({})
     journal_db = JournalDB(memory_db)
 
-    root = journal_db.journal.root_changeset_id
+    root = journal_db._journal.root_changeset_id
     with pytest.raises(ValidationError):
         journal_db.commit(root)
