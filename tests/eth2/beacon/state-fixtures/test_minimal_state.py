@@ -3,7 +3,10 @@ import yaml
 import pytest
 
 from py_ecc import bls
-import ssz
+from ssz.tools import (
+    from_formatted_dict,
+    to_formatted_dict,
+)
 
 from eth2.configs import (
     Eth2Config,
@@ -110,12 +113,12 @@ def execute_state_transtion(test_case, base_db):
     override_vector_lengths(config)
 
     # Set pre_state
-    pre_state = ssz.tools.from_formatted_dict(dict_initial_state, BeaconState)
+    pre_state = from_formatted_dict(dict_initial_state, BeaconState)
 
     # Set blocks
     blocks = ()
     for dict_block in dict_blocks:
-        block = ssz.tools.from_formatted_dict(dict_block, SerenityBeaconBlock)
+        block = from_formatted_dict(dict_block, SerenityBeaconBlock)
         blocks += (block,)
 
     sm_class = SerenityStateMachine.configure(
@@ -130,7 +133,7 @@ def execute_state_transtion(test_case, base_db):
         post_state, _ = sm.import_block(block)
 
     # Use dict diff, easier to see the diff
-    dict_post_state = ssz.tools.to_formatted_dict(post_state, BeaconState)
+    dict_post_state = to_formatted_dict(post_state, BeaconState)
 
     for key, value in dict_expected_state.items():
         if isinstance(value, list):
