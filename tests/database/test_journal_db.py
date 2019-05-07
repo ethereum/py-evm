@@ -560,10 +560,7 @@ def test_journal_persist_set_KeyError_then_persist():
     assert b'failing-to-set-key' in memory_db
 
 
-def test_journal_db_diff_respects_clear():
-    memory_db = MemoryDB({})
-    journal_db = JournalDB(memory_db)
-
+def test_journal_db_diff_respects_clear(journal_db):
     journal_db[b'first'] = b'val'
     journal_db.clear()
 
@@ -571,10 +568,25 @@ def test_journal_db_diff_respects_clear():
     assert len(pending) == 0
 
 
-def test_journal_db_rejects_committing_root():
-    memory_db = MemoryDB({})
-    journal_db = JournalDB(memory_db)
-
+def test_journal_db_rejects_committing_root(journal_db):
     root = journal_db._journal.root_changeset_id
     with pytest.raises(ValidationError):
         journal_db.commit(root)
+
+
+def test_journal_db_commit_missing_changeset(journal_db):
+    checkpoint = journal_db.record()
+    journal_db.commit(checkpoint)
+
+    # checkpoint doesn't exist anymore
+    with pytest.raises(ValidationError):
+        journal_db.commit(checkpoint)
+
+
+def test_journal_db_discard_missing_changeset(journal_db):
+    checkpoint = journal_db.record()
+    journal_db.discard(checkpoint)
+
+    # checkpoint doesn't exist anymore
+    with pytest.raises(ValidationError):
+        journal_db.discard(checkpoint)
