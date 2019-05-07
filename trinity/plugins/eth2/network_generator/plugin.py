@@ -146,13 +146,15 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
                 f.write(str(key))
 
     def generate_genesis_state(self, genesis_delay: Second) -> None:
-        state_machine = XiaoLongBaoStateMachine
+        state_machine_class = XiaoLongBaoStateMachine
+
+        # Since create_mock_genesis takes a long time, update the real genesis_time later
         dummy_time = Timestamp(int(time.time()))
         state, _ = create_mock_genesis(
             num_validators=len(self.keymap.keys()),
-            config=state_machine.config,
+            config=state_machine_class.config,
             keymap=self.keymap,
-            genesis_block_class=state_machine.block_class,
+            genesis_block_class=state_machine_class.block_class,
             genesis_time=dummy_time,
         )
         self.logger.info(f"Genesis time will be {genesis_delay} seconds from now")
