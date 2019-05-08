@@ -14,7 +14,6 @@ from p2p.kademlia import (
     Node,
     Address,
 )
-from p2p.peer import PeerConnection
 from p2p.tools.factories import get_open_port
 from p2p.tools.paragon import (
     ParagonContext,
@@ -22,6 +21,7 @@ from p2p.tools.paragon import (
     ParagonPeerPool,
     ParagonPeerPoolEventServer,
 )
+from p2p.transport import Transport
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.protocol.common.events import ConnectToNodeCommand
@@ -100,7 +100,9 @@ async def test_server_incoming_connection(monkeypatch, server, event_loop):
     aes_secret, mac_secret, egress_mac, ingress_mac = await _handshake(
         initiator, reader, writer, token)
 
-    connection = PeerConnection(
+    transport = Transport(
+        remote=RECEIVER_REMOTE,
+        private_key=initiator.privkey,
         reader=reader,
         writer=writer,
         aes_secret=aes_secret,
@@ -109,9 +111,7 @@ async def test_server_incoming_connection(monkeypatch, server, event_loop):
         ingress_mac=ingress_mac,
     )
     initiator_peer = ParagonPeer(
-        remote=initiator.remote,
-        privkey=initiator.privkey,
-        connection=connection,
+        transport=transport,
         context=ParagonContext(),
         token=token,
     )
@@ -130,7 +130,8 @@ async def test_server_incoming_connection(monkeypatch, server, event_loop):
     assert initiator_peer.sub_proto is not None
     assert initiator_peer.sub_proto.name == receiver_peer.sub_proto.name
     assert initiator_peer.sub_proto.version == receiver_peer.sub_proto.version
-    assert receiver_peer.privkey == RECEIVER_PRIVKEY
+    # test public key here in order to not access private `_private_key` variable.
+    assert receiver_peer.transport.public_key == RECEIVER_PRIVKEY.public_key
 
 
 @pytest.mark.asyncio

@@ -180,8 +180,8 @@ async def get_directly_linked_peers_in_peer_pools(request,
         alice_chain_db=alice_chain_db,
         bob_chain_db=bob_chain_db,
     )
-    alice_peer_pool = BCCPeerPool(alice.privkey, alice.context)
-    bob_peer_pool = BCCPeerPool(bob.privkey, bob.context)
+    alice_peer_pool = BCCPeerPool(alice.transport._private_key, alice.context)
+    bob_peer_pool = BCCPeerPool(bob.transport._private_key, bob.context)
 
     asyncio.ensure_future(alice_peer_pool.run())
     asyncio.ensure_future(bob_peer_pool.run())

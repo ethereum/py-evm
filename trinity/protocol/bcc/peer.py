@@ -59,7 +59,7 @@ class BCCPeer(BasePeer):
             BeaconBlock,
         )
         head = await self.chain_db.coro_get_canonical_head(BeaconBlock)
-        self.sub_proto.send_handshake(genesis.signing_root, head.slot)
+        self.sub_proto.send_handshake(genesis.signing_root, head.slot, self.network_id)
 
     async def process_sub_proto_handshake(self, cmd: Command, msg: _DecodedMsgType) -> None:
         if not isinstance(cmd, Status):

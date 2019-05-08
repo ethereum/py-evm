@@ -4,6 +4,7 @@ import operator
 import struct
 from typing import (
     Any,
+    ClassVar,
     Dict,
     Generic,
     Iterable,
@@ -12,7 +13,6 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
-    TYPE_CHECKING,
     Union,
 )
 
@@ -30,15 +30,11 @@ from rlp import sedes
 
 from eth.constants import NULL_BYTE
 
+from p2p._utils import get_devp2p_cmd_id
 from p2p.exceptions import (
     MalformedMessage,
 )
-from p2p._utils import get_devp2p_cmd_id
-
-# Workaround for import cycles caused by type annotations:
-# http://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
-if TYPE_CHECKING:
-    from p2p.peer import BasePeer  # noqa: F401
+from p2p.transport import Transport
 
 
 class TypedDictPayload(TypedDict):
@@ -193,18 +189,18 @@ class BaseRequest(ABC, Generic[TRequestPayload]):
 CapabilityType = Tuple[str, int]
 
 
-class Protocol:
-    peer: 'BasePeer'
-    name: str = None
-    version: int = None
+class Protocol(ABC):
+    transport: Transport
+    name: ClassVar[str]
+    version: ClassVar[int]
     cmd_length: int = None
     # Command classes that this protocol supports.
     _commands: Tuple[Type[Command], ...]
 
     _logger: logging.Logger = None
 
-    def __init__(self, peer: 'BasePeer', cmd_id_offset: int, snappy_support: bool) -> None:
-        self.peer = peer
+    def __init__(self, transport: Transport, cmd_id_offset: int, snappy_support: bool) -> None:
+        self.transport = transport
         self.cmd_id_offset = cmd_id_offset
         self.snappy_support = snappy_support
         self.commands = [cmd_class(cmd_id_offset, snappy_support) for cmd_class in self._commands]
@@ -217,13 +213,10 @@ class Protocol:
             self._logger = logging.getLogger(f"p2p.protocol.{type(self).__name__}")
         return self._logger
 
-    def send(self, header: bytes, body: bytes) -> None:
-        self.peer.send(header, body)
-
     def send_request(self, request: BaseRequest[PayloadType]) -> None:
         command = self.cmd_by_type[request.cmd_type]
         header, body = command.encode(request.command_payload)
-        self.send(header, body)
+        self.transport.send(header, body)
 
     def supports_command(self, cmd_type: Type[Command]) -> bool:
         return cmd_type in self.cmd_by_type

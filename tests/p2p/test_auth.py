@@ -10,18 +10,18 @@ from cancel_token import CancelToken
 
 from p2p import ecies
 from p2p import kademlia
-from p2p.p2p_proto import Hello
 from p2p.auth import (
     HandshakeInitiator,
     HandshakeResponder,
 )
 from p2p.auth import decode_authentication
-from p2p.peer import PeerConnection
+from p2p.p2p_proto import Hello
 from p2p.tools.paragon import (
     ParagonPeer,
     ParagonContext,
     get_directly_connected_streams,
 )
+from p2p.transport import Transport
 
 
 from tests.p2p.auth_constants import (
@@ -110,7 +110,9 @@ async def test_handshake():
         (initiator_reader, initiator_writer),
     ) = get_directly_connected_streams()
 
-    initiator_connection = PeerConnection(
+    initiator_transport = Transport(
+        remote=initiator_remote,
+        private_key=initiator.privkey,
         reader=initiator_reader,
         writer=initiator_writer,
         aes_secret=initiator_aes_secret,
@@ -119,13 +121,13 @@ async def test_handshake():
         ingress_mac=initiator_ingress_mac
     )
     initiator_peer = ParagonPeer(
-        remote=initiator.remote,
-        privkey=initiator.privkey,
-        connection=initiator_connection,
+        transport=initiator_transport,
         context=ParagonContext(),
     )
     initiator_peer.base_protocol.send_handshake()
-    responder_connection = PeerConnection(
+    responder_transport = Transport(
+        remote=responder_remote,
+        private_key=responder.privkey,
         reader=responder_reader,
         writer=responder_writer,
         aes_secret=aes_secret,
@@ -134,9 +136,7 @@ async def test_handshake():
         ingress_mac=ingress_mac,
     )
     responder_peer = ParagonPeer(
-        remote=responder.remote,
-        privkey=responder.privkey,
-        connection=responder_connection,
+        transport=responder_transport,
         context=ParagonContext(),
     )
     responder_peer.base_protocol.send_handshake()
@@ -220,7 +220,9 @@ async def test_handshake_eip8():
         (initiator_reader, initiator_writer),
     ) = get_directly_connected_streams()
 
-    initiator_connection = PeerConnection(
+    initiator_transport = Transport(
+        remote=initiator_remote,
+        private_key=initiator.privkey,
         reader=initiator_reader,
         writer=initiator_writer,
         aes_secret=initiator_aes_secret,
@@ -229,13 +231,13 @@ async def test_handshake_eip8():
         ingress_mac=initiator_ingress_mac
     )
     initiator_peer = ParagonPeer(
-        remote=initiator.remote,
-        privkey=initiator.privkey,
-        connection=initiator_connection,
+        transport=initiator_transport,
         context=ParagonContext(),
     )
     initiator_peer.base_protocol.send_handshake()
-    responder_connection = PeerConnection(
+    responder_transport = Transport(
+        remote=responder_remote,
+        private_key=responder.privkey,
         reader=responder_reader,
         writer=responder_writer,
         aes_secret=aes_secret,
@@ -244,9 +246,7 @@ async def test_handshake_eip8():
         ingress_mac=ingress_mac,
     )
     responder_peer = ParagonPeer(
-        remote=responder.remote,
-        privkey=responder.privkey,
-        connection=responder_connection,
+        transport=responder_transport,
         context=ParagonContext(),
     )
     responder_peer.base_protocol.send_handshake()
