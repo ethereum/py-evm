@@ -1,7 +1,6 @@
 import asyncio
-import importlib
 import logging
-import time
+
 from typing import (
     Tuple,
 )
@@ -14,32 +13,14 @@ from lahja import (
 
 import pytest
 
-from py_ecc import bls
-
 from eth.exceptions import BlockNotFound
 
-from trinity.config import (
-    BeaconChainConfig,
-    BeaconGenesisData,
-)
 from trinity.plugins.eth2.beacon.validator import (
     Validator,
 )
 
-from eth2.beacon._utils.hash import (
-    hash_eth2,
-)
-from eth2.beacon.state_machines.forks.serenity.blocks import (
-    SerenityBeaconBlock,
-)
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
     XIAO_LONG_BAO_CONFIG,
-)
-from eth2.beacon.tools.builder.initializer import (
-    create_mock_genesis,
-)
-from eth2.beacon.tools.misc.ssz_vector import (
-    override_vector_lengths,
 )
 from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
@@ -48,42 +29,14 @@ from trinity.plugins.eth2.beacon.slot_ticker import (
     NewSlotEvent,
 )
 
-
-helpers = importlib.import_module('tests.core.p2p-proto.bcc.helpers')
-
-
-NUM_VALIDATORS = 8
-
-privkeys = tuple(int.from_bytes(
-    hash_eth2(str(i).encode('utf-8'))[:4], 'big')
-    for i in range(NUM_VALIDATORS)
+from .helpers import (
+    chain_class,
+    genesis_state,
+    genesis_block,
+    helpers,
+    index_to_pubkey,
+    keymap,
 )
-index_to_pubkey = {}
-keymap = {}  # pub -> priv
-for i, k in enumerate(privkeys):
-    pubkey = bls.privtopub(k)
-    index_to_pubkey[i] = pubkey
-    keymap[pubkey] = k
-
-genesis_time = int(time.time())
-
-genesis_state, genesis_block = create_mock_genesis(
-    num_validators=NUM_VALIDATORS,
-    config=XIAO_LONG_BAO_CONFIG,
-    keymap=keymap,
-    genesis_block_class=SerenityBeaconBlock,
-    genesis_time=genesis_time,
-)
-genesis_data = BeaconGenesisData(
-    genesis_time=genesis_time,
-    genesis_slot=XIAO_LONG_BAO_CONFIG.GENESIS_SLOT,
-    keymap=keymap,
-    num_validators=NUM_VALIDATORS,
-)
-beacon_chain_config = BeaconChainConfig(chain_name='TestTestTest', genesis_data=genesis_data)
-chain_class = beacon_chain_config.beacon_chain_class
-
-override_vector_lengths(XIAO_LONG_BAO_CONFIG)
 
 
 class FakeProtocol:
