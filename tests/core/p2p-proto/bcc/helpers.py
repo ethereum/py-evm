@@ -51,6 +51,9 @@ class FakeAsyncBeaconChainDB(BaseAsyncBeaconChainDB, BeaconChainDB):
         self.db = db
         self.config = config
 
+        self._finalized_root = self._get_finalized_root_if_present(db)
+        self._highest_justified_epoch = self._get_highest_justified_epoch(db)
+
     coro_persist_block = async_passthrough('persist_block')
     coro_get_canonical_block_root = async_passthrough('get_canonical_block_root')
     coro_get_canonical_block_by_slot = async_passthrough('get_canonical_block_by_slot')
