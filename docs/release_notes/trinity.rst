@@ -14,6 +14,7 @@ Unreleased (latest source)
 - `#441 <https://github.com/ethereum/trinity/pull/441>`_: Feature: Run with any custom network ID, as long as you specify a genesis file
 - `#436 <https://github.com/ethereum/trinity/pull/436>`_: Feature: Connect to preferred nodes even when discovery is disabled
 - `#518 <https://github.com/ethereum/trinity/pull/518>`_: Feature: Create log directory for you, if data dir is empty
+- `#591 <https://github.com/ethereum/trinity/pull/591>`_: Bugfix: Catch ``RuntimeError`` in handshake to prevent crashing the entire node
 - `#469 <https://github.com/ethereum/trinity/pull/469>`_: Bugfix: Fix deprecation warnings from ``p2p.ecies`` module.
 - `#527 <https://github.com/ethereum/trinity/pull/527>`_: Bugfix: ``LESPeer`` class now raises proper exceptions for mismatched genesis hash or network id.
 - `#531 <https://github.com/ethereum/trinity/pull/431>`_: Bugfix: ``p2p.kademlia.Node`` class is now pickleable.
