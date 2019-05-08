@@ -1,14 +1,15 @@
-from uuid import uuid4
-
 from eth_utils import ValidationError
 from hypothesis import (
     given,
+    settings,
     strategies as st,
 )
+from hypothesis.stateful import Bundle, RuleBasedStateMachine, rule
 import pytest
 
 from eth.db.backends.memory import MemoryDB
 from eth.db.journal import JournalDB
+from eth.db.slow_journal import JournalDB as SlowJournalDB
 
 
 @pytest.fixture
@@ -77,7 +78,7 @@ def test_custom_snapshot_and_revert_with_set(journal_db):
 
     assert journal_db.get(b'1') == b'test-a'
 
-    custom_changeset = uuid4()
+    custom_changeset = -1
     changeset = journal_db.record(custom_changeset)
 
     assert journal_db.has_changeset(custom_changeset)
@@ -95,7 +96,7 @@ def test_custom_snapshot_and_revert_with_set(journal_db):
 
 
 def test_custom_snapshot_revert_on_reuse(journal_db):
-    custom_changeset = uuid4()
+    custom_changeset = -1
     journal_db.record(custom_changeset)
 
     auto_changeset = journal_db.record()
@@ -650,3 +651,99 @@ def test_journal_db_discard_past_clear(journal_db, do_final_record):
     assert journal_db[1] == b'wrapped-value-to-delete'
     assert 2 not in journal_db
     assert 3 not in journal_db
+
+
+def test_journal_db_commit_then_discard(journal_db):
+    discard_to = journal_db.record()
+    commit_to = journal_db.record()
+    journal_db[1] = b'to-be-removed'
+
+    journal_db.commit(commit_to)
+    assert journal_db[1] == b'to-be-removed'
+
+    journal_db.discard(discard_to)
+    assert 1 not in journal_db
+
+
+class JournalComparison(RuleBasedStateMachine):
+    """
+    Compare an older version of JournalDB against a newer, optimized one.
+    """
+    def __init__(self):
+        super().__init__()
+        self.slow_wrapped = {}
+        self.slow_journal = SlowJournalDB(self.slow_wrapped)
+        self.fast_wrapped = {}
+        self.fast_journal = JournalDB(self.fast_wrapped)
+
+    keys = Bundle('keys')
+    values = Bundle('values')
+    checkpoints = Bundle('checkpoints')
+
+    @rule(target=keys, k=st.binary())
+    def add_key(self, k):
+        return k
+
+    @rule(target=values, v=st.binary())
+    def add_value(self, v):
+        return v
+
+    @rule(target=checkpoints)
+    def record(self):
+        slow_checkpoint = self.slow_journal.record()
+        fast_checkpoint = self.fast_journal.record()
+        assert self.slow_journal.diff() == self.fast_journal.diff()
+        return slow_checkpoint, fast_checkpoint
+
+    @rule(k=keys, v=values)
+    def set(self, k, v):
+        self.slow_journal[k] = v
+        self.fast_journal[k] = v
+        assert self.slow_journal.diff() == self.fast_journal.diff()
+
+    @rule(k=keys)
+    def delete(self, k):
+        if k not in self.slow_journal:
+            assert k not in self.fast_journal
+            return
+        else:
+            del self.slow_journal[k]
+            del self.fast_journal[k]
+            assert self.slow_journal.diff() == self.fast_journal.diff()
+
+    @rule(c=checkpoints)
+    def commit(self, c):
+        slow_checkpoint, fast_checkpoint = c
+        if not self.slow_journal.has_changeset(slow_checkpoint):
+            assert not self.fast_journal.has_changeset(fast_checkpoint)
+            return
+        else:
+            self.slow_journal.commit(slow_checkpoint)
+            self.fast_journal.commit(fast_checkpoint)
+            assert self.slow_journal.diff() == self.fast_journal.diff()
+
+    @rule(c=checkpoints)
+    def discard(self, c):
+        slow_checkpoint, fast_checkpoint = c
+        if not self.slow_journal.has_changeset(slow_checkpoint):
+            assert not self.fast_journal.has_changeset(fast_checkpoint)
+        else:
+            self.slow_journal.discard(slow_checkpoint)
+            self.fast_journal.discard(fast_checkpoint)
+            assert self.slow_journal.diff() == self.fast_journal.diff()
+
+    @rule()
+    def flatten(self):
+        self.slow_journal.flatten()
+        self.fast_journal.flatten()
+        assert self.slow_journal.diff() == self.fast_journal.diff()
+
+    @rule()
+    def persist(self):
+        self.slow_journal.persist()
+        self.fast_journal.persist()
+        assert self.slow_wrapped == self.fast_wrapped
+
+
+JournalComparison.TestCase.settings = settings(max_examples=200, stateful_step_count=100)
+TestJournalComparison = JournalComparison.TestCase
