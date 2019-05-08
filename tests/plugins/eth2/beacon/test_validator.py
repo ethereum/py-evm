@@ -224,6 +224,7 @@ async def test_validator_handle_new_slot(caplog, event_loop, event_bus, monkeypa
         NewSlotEvent(
             slot=1,
             elapsed_time=2,
+            is_second_signal=False,
         ),
         BroadcastConfig(internal=True),
     )
@@ -262,7 +263,7 @@ async def test_validator_new_slot(caplog, event_loop, event_bus, monkeypatch):
     monkeypatch.setattr(alice, 'propose_block', propose_block)
     monkeypatch.setattr(alice, 'skip_block', skip_block)
 
-    await alice.new_slot(new_slot)
+    await alice.new_slot(new_slot, True)
 
     # test: either `propose_block` or `skip_block` should be called.
     assert is_proposing is not None

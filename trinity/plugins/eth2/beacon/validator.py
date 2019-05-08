@@ -79,9 +79,9 @@ class Validator(BaseService):
         The callback for `SlotTicker`, to be called whenever new slot is ticked.
         """
         async for event in self.event_bus.stream(NewSlotEvent):
-            await self.new_slot(event.slot)
+            await self.new_slot(event.slot, event.is_second_signal)
 
-    async def new_slot(self, slot: Slot) -> None:
+    async def new_slot(self, slot: Slot, is_second_signal: bool) -> None:
         head = self.chain.get_canonical_head()
         state_machine = self.chain.get_state_machine()
         state = state_machine.state
@@ -100,7 +100,7 @@ class Validator(BaseService):
                 state_machine=state_machine,
                 head_block=head,
             )
-        else:
+        elif is_second_signal:
             self.skip_block(
                 slot=slot,
                 state=state,
