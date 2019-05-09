@@ -212,7 +212,7 @@ async def test_validator_handle_new_slot(caplog, event_loop, event_bus, monkeypa
 
     event_new_slot_called = asyncio.Event()
 
-    async def new_slot(slot):
+    async def new_slot(slot, is_second_signal):
         event_new_slot_called.set()
 
     monkeypatch.setattr(alice, 'new_slot', new_slot)
