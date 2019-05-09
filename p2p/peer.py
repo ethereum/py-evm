@@ -294,8 +294,6 @@ class BasePeer(BaseService):
             cmd, msg = await self.read_msg()
         except rlp.DecodingError:
             raise HandshakeFailure("Got invalid rlp data during handshake")
-        except MalformedMessage as e:
-            raise HandshakeFailure("Got malformed message during handshake") from e
 
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
