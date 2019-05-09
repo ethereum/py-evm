@@ -22,7 +22,6 @@ from p2p._utils import ensure_global_asyncio_executor
 
 from trinity.bootstrap import (
     main_entry,
-    setup_plugins,
 )
 from trinity.config import (
     TrinityConfig,
@@ -74,7 +73,7 @@ from trinity._utils.shutdown import (
 )
 
 
-def get_all_plugins() -> Iterable[BasePlugin]:
+def get_all_plugins() -> Iterable[Type[BasePlugin]]:
     return BASE_PLUGINS + ETH1_NODE_PLUGINS + discover_plugins()
 
 
@@ -167,7 +166,7 @@ async def launch_node_coro(args: Namespace, trinity_config: TrinityConfig) -> No
     await endpoint.announce_endpoint()
 
     # This is a second PluginManager instance governing plugins in a shared process.
-    plugin_manager = setup_plugins(SharedProcessScope(endpoint), get_all_plugins())
+    plugin_manager = PluginManager(SharedProcessScope(endpoint), get_all_plugins())
     plugin_manager.prepare(args, trinity_config)
 
     asyncio.ensure_future(handle_networking_exit(node, plugin_manager, endpoint))

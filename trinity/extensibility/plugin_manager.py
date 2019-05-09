@@ -12,11 +12,13 @@ import logging
 from typing import (
     Any,
     Awaitable,
+    cast,
     Dict,
     Iterable,
     List,
     Optional,
-    Union,
+    Type,
+    TypeVar,
 )
 
 from trinity.config import (
@@ -34,7 +36,6 @@ from trinity.extensibility.plugin import (
     BaseIsolatedPlugin,
     BaseMainProcessPlugin,
     BasePlugin,
-    PluginContext,
     TrinityBootInfo,
 )
 from trinity._utils.ipc import (
@@ -42,19 +43,21 @@ from trinity._utils.ipc import (
 )
 
 
+TPlugin = TypeVar('TPlugin', bound=BasePlugin)
+
+
 class BaseManagerProcessScope(ABC):
     """
     Define the operational model under which a
     :class:`~trinity.extensibility.plugin_manager.PluginManager` works. Subclasses
     define whether a :class:`~trinity.extensibility.plugin_manager.PluginManager` is
-    responsible to manage a specific plugin and how its
-    :class:`~trinity.extensibility.plugin.PluginContext` is created.
+    responsible to manage a specific plugin and how it is created.
     """
 
     endpoint: TrinityEventBusEndpoint
 
     @abstractmethod
-    def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
+    def is_responsible_for_plugin(self, plugin: Type[BasePlugin]) -> bool:
         """
         Define whether a :class:`~trinity.extensibility.plugin_manager.PluginManager` operating
         under this scope is responsible to manage the given ``plugin``.
@@ -62,11 +65,11 @@ class BaseManagerProcessScope(ABC):
         pass
 
     @abstractmethod
-    def create_plugin_context(self,
-                              plugin: BasePlugin,
-                              boot_info: TrinityBootInfo) -> None:
+    def create_plugin(self,
+                      plugin_type: Type[TPlugin],
+                      boot_info: TrinityBootInfo) -> TPlugin:
         """
-        Create the :class:`~trinity.extensibility.plugin.PluginContext` for the given ``plugin``.
+        Instantiate the given plugin.
         """
         pass
 
@@ -76,30 +79,18 @@ class MainAndIsolatedProcessScope(BaseManagerProcessScope):
     def __init__(self, main_proc_endpoint: TrinityMainEventBusEndpoint) -> None:
         self.endpoint = main_proc_endpoint
 
-    def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
+    def is_responsible_for_plugin(self, plugin: Type[BasePlugin]) -> bool:
         """
         Return ``True`` if if the plugin instance is a subclass of
         :class:`~trinity.extensibility.plugin.BaseIsolatedPlugin` or
         :class:`~trinity.extensibility.plugin.BaseMainProcessPlugin`
         """
-        return isinstance(plugin, BaseIsolatedPlugin) or isinstance(plugin, BaseMainProcessPlugin)
+        return issubclass(plugin, BaseIsolatedPlugin) or issubclass(plugin, BaseMainProcessPlugin)
 
-    def create_plugin_context(self,
-                              plugin: BasePlugin,
-                              boot_info: TrinityBootInfo) -> None:
-        """
-        Create a :class:`~trinity.extensibility.plugin.PluginContext` that creates a new
-        :class:`~lahja.endpoint.Endpoint` dedicated to the isolated plugin that runs in its own
-        process. The :class:`~lahja.endpoint.Endpoint` enable application wide event-driven
-        communication even across process boundaries.
-        """
-
-        if isinstance(plugin, BaseIsolatedPlugin):
-            # Isolated plugins use their own Endpoint that lives in the new process. It is only
-            # created here for API symmetry. Endpoints are pickleable *before* they are connected,
-            # which means, this Endpoint will be pickled and transferred into the new process
-            # together with the rest of the `PluginContext`.
-            plugin.set_context(PluginContext(None, boot_info,))
+    def create_plugin(self,
+                      plugin_type: Type[TPlugin],
+                      boot_info: TrinityBootInfo) -> TPlugin:
+        return plugin_type(boot_info)
 
 
 class SharedProcessScope(BaseManagerProcessScope):
@@ -107,29 +98,24 @@ class SharedProcessScope(BaseManagerProcessScope):
     def __init__(self, shared_proc_endpoint: TrinityEventBusEndpoint) -> None:
         self.endpoint = shared_proc_endpoint
 
-    def is_responsible_for_plugin(self, plugin: BasePlugin) -> bool:
+    def is_responsible_for_plugin(self, plugin: Type[BasePlugin]) -> bool:
         """
         Return ``True`` if if the plugin instance is a subclass of
         :class:`~trinity.extensibility.plugin.BaseAsyncStopPlugin`.
         """
-        return isinstance(plugin, BaseAsyncStopPlugin)
+        return issubclass(plugin, BaseAsyncStopPlugin)
 
-    def create_plugin_context(self,
-                              plugin: BasePlugin,
-                              boot_info: TrinityBootInfo) -> None:
-        """
-        Create a :class:`~trinity.extensibility.plugin.PluginContext` that uses the
-        :class:`~lahja.endpoint.Endpoint` of the
-        :class:`~trinity.extensibility.plugin_manager.PluginManager` as the event bus that
-        enables application wide, event-driven communication even across process boundaries.
-        """
+    def create_plugin(self,
+                      plugin_type: Type[TPlugin],
+                      boot_info: TrinityBootInfo) -> TPlugin:
         # Plugins that run in a shared process all share the endpoint of the plugin manager
-        plugin.set_context(PluginContext(self.endpoint, boot_info))
+        assert issubclass(plugin_type, BaseAsyncStopPlugin)
+        return cast(TPlugin, plugin_type(boot_info, self.endpoint))
 
 
 class PluginManager:
     """
-    The plugin manager is responsible to register, keep and manage the life cycle of any available
+    The plugin manager is responsible for managing the life cycle of any available
     plugins.
 
     A :class:`~trinity.extensibility.plugin_manager.PluginManager` is tight to a specific
@@ -148,8 +134,11 @@ class PluginManager:
         This API is very much in flux and is expected to change heavily.
     """
 
-    def __init__(self, scope: BaseManagerProcessScope) -> None:
+    def __init__(self,
+                 scope: BaseManagerProcessScope,
+                 plugins: Iterable[Type[BasePlugin]]) -> None:
         self._scope = scope
+        self._registered_plugins: List[Type[BasePlugin]] = list(plugins)
         self._plugin_store: List[BasePlugin] = []
         self._logger = logging.getLogger("trinity.extensibility.plugin_manager.PluginManager")
 
@@ -162,15 +151,6 @@ class PluginManager:
         """
         return self._scope.endpoint
 
-    def register(self, plugins: Union[BasePlugin, Iterable[BasePlugin]]) -> None:
-        """
-        Register one or multiple instances of :class:`~trinity.extensibility.plugin.BasePlugin`
-        with the plugin manager.
-        """
-
-        new_plugins = [plugins] if isinstance(plugins, BasePlugin) else plugins
-        self._plugin_store.extend(new_plugins)
-
     def amend_argparser_config(self,
                                arg_parser: ArgumentParser,
                                subparser: _SubParsersAction) -> None:
@@ -178,28 +158,28 @@ class PluginManager:
         Call :meth:`~trinity.extensibility.plugin.BasePlugin.configure_parser` for every registered
         plugin, giving them the option to amend the global parser setup.
         """
-        for plugin in self._plugin_store:
-            plugin.configure_parser(arg_parser, subparser)
+        for plugin_type in self._registered_plugins:
+            plugin_type.configure_parser(arg_parser, subparser)
 
     def prepare(self,
                 args: Namespace,
                 trinity_config: TrinityConfig,
                 boot_kwargs: Dict[str, Any] = None) -> None:
         """
-        Create and set the :class:`~trinity.extensibility.plugin.PluginContext` and call
-        :meth:`~trinity.extensibility.plugin.BasePlugin.ready` on every plugin that this
-        plugin manager instance is responsible for.
+        Create all plugins which this manager is responsible for and call
+        :meth:`~trinity.extensibility.plugin.BasePlugin.ready` on each of them.
         """
-        for plugin in self._plugin_store:
-
-            if not self._scope.is_responsible_for_plugin(plugin):
+        for plugin_type in self._registered_plugins:
+            if not self._scope.is_responsible_for_plugin(plugin_type):
                 continue
 
-            self._scope.create_plugin_context(
-                plugin,
+            plugin = self._scope.create_plugin(
+                plugin_type,
                 TrinityBootInfo(args, trinity_config, boot_kwargs)
             )
             plugin.ready(self.event_bus_endpoint)
+
+            self._plugin_store.append(plugin)
 
     def shutdown_blocking(self) -> None:
         """

@@ -43,7 +43,6 @@ from trinity.endpoint import (
 )
 from trinity.extensibility import (
     BasePlugin,
-    BaseManagerProcessScope,
     MainAndIsolatedProcessScope,
     PluginManager,
 )
@@ -106,12 +105,12 @@ BootFn = Callable[[
 
 def main_entry(trinity_boot: BootFn,
                app_identifier: str,
-               plugins: Iterable[BasePlugin],
+               plugins: Iterable[Type[BasePlugin]],
                sub_configs: Iterable[Type[BaseAppConfig]]) -> None:
 
     main_endpoint = TrinityMainEventBusEndpoint()
 
-    plugin_manager = setup_plugins(
+    plugin_manager = PluginManager(
         MainAndIsolatedProcessScope(main_endpoint),
         plugins
     )
@@ -259,13 +258,6 @@ async def trinity_boot_coro(kill_trinity, main_endpoint, trinity_config,  # type
     )
 
     plugin_manager.prepare(args, trinity_config, extra_kwargs)
-
-
-def setup_plugins(scope: BaseManagerProcessScope, plugins: Iterable[BasePlugin]) -> PluginManager:
-    plugin_manager = PluginManager(scope)
-    plugin_manager.register(plugins)
-
-    return plugin_manager
 
 
 def display_launch_logs(trinity_config: TrinityConfig) -> None:

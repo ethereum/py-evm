@@ -4,7 +4,6 @@ from argparse import (
     ArgumentParser,
     _SubParsersAction,
 )
-import logging
 
 from sqlalchemy.orm import Session
 
@@ -42,11 +41,6 @@ from .cli import (
 
 
 class NetworkDBPlugin(BaseIsolatedPlugin):
-    # we access this logger from a classmethod so it needs to be available on
-    # the class (instead of as a computed property like the base class
-    # provided.
-    logger = logging.getLogger(f'trinity.extensibility.plugin.NetworkDBPlugin')
-
     @property
     def name(self) -> str:
         return "Network Database"
@@ -55,7 +49,10 @@ class NetworkDBPlugin(BaseIsolatedPlugin):
     def normalized_name(self) -> str:
         return "network-db"
 
-    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
+    @classmethod
+    def configure_parser(cls,
+                         arg_parser: ArgumentParser,
+                         subparser: _SubParsersAction) -> None:
         tracking_parser = arg_parser.add_argument_group('network db')
         tracking_parser.add_argument(
             '--network-tracking-backend',
@@ -93,10 +90,10 @@ class NetworkDBPlugin(BaseIsolatedPlugin):
             'remove-network-db',
             help='Remove the on-disk sqlite database that tracks data about the p2p network',
         )
-        remove_db_parser.set_defaults(func=self.clear_node_db)
+        remove_db_parser.set_defaults(func=cls.clear_node_db)
 
     def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
-        if self.context.args.disable_networkdb_plugin:
+        if self.boot_info.args.disable_networkdb_plugin:
             self.logger.warning("Network Database disabled via CLI flag")
             # Allow this plugin to be disabled for extreme cases such as the
             # user swapping in an equivalent experimental version.
@@ -106,23 +103,24 @@ class NetworkDBPlugin(BaseIsolatedPlugin):
 
     @classmethod
     def clear_node_db(cls, args: Namespace, trinity_config: TrinityConfig) -> None:
+        logger = cls.get_logger()
         db_path = get_networkdb_path(trinity_config)
 
         if db_path.exists():
-            cls.logger.info("Removing network database at: %s", db_path.resolve())
+            logger.info("Removing network database at: %s", db_path.resolve())
             db_path.unlink()
         else:
-            cls.logger.info("No network database found at: %s", db_path.resolve())
+            logger.info("No network database found at: %s", db_path.resolve())
 
     _session: Session = None
 
     def _get_database_session(self) -> Session:
         if self._session is None:
-            self._session = get_tracking_database(get_networkdb_path(self.context.trinity_config))
+            self._session = get_tracking_database(get_networkdb_path(self.boot_info.trinity_config))
         return self._session
 
     def _get_blacklist_tracker(self) -> BaseConnectionTracker:
-        backend = self.context.args.network_tracking_backend
+        backend = self.boot_info.args.network_tracking_backend
 
         if backend is TrackingBackend.sqlite3:
             session = self._get_database_session()
@@ -144,7 +142,7 @@ class NetworkDBPlugin(BaseIsolatedPlugin):
 
     def do_start(self) -> None:
 
-        if self.context.args.disable_blacklistdb:
+        if self.boot_info.args.disable_blacklistdb:
             # Allow this plugin to be disabled for extreme cases such as the
             # user swapping in an equivalent experimental version.
             self.logger.warning("Blacklist Database disabled via CLI flag")

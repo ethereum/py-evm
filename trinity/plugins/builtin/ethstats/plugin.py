@@ -43,9 +43,10 @@ class EthstatsPlugin(BaseIsolatedPlugin):
         return 'Ethstats'
 
     def get_default_server_url(self) -> str:
-        return DEFAULT_SERVERS_URLS.get(self.context.trinity_config.network_id, '')
+        return DEFAULT_SERVERS_URLS.get(self.boot_info.trinity_config.network_id, '')
 
-    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
+    @classmethod
+    def configure_parser(cls, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         ethstats_parser = arg_parser.add_argument_group('ethstats (experimental)')
 
         ethstats_parser.add_argument(
@@ -81,7 +82,7 @@ class EthstatsPlugin(BaseIsolatedPlugin):
         )
 
     def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
-        args = self.context.args
+        args = self.boot_info.args
 
         if not args.ethstats:
             return
@@ -115,7 +116,8 @@ class EthstatsPlugin(BaseIsolatedPlugin):
 
     def do_start(self) -> None:
         service = EthstatsService(
-            self.context,
+            self.boot_info,
+            self.event_bus,
             self.server_url,
             self.server_secret,
             self.node_id,
@@ -123,5 +125,5 @@ class EthstatsPlugin(BaseIsolatedPlugin):
             self.stats_interval,
         )
 
-        asyncio.ensure_future(exit_with_endpoint_and_services(self.context.event_bus, service))
+        asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, service))
         asyncio.ensure_future(service.run())

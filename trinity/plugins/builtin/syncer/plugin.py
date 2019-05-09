@@ -181,46 +181,48 @@ class SyncerPlugin(BaseAsyncStopPlugin):
     db_manager: BaseManager = None
 
     active_strategy: BaseSyncStrategy = None
-    strategies: Iterable[BaseSyncStrategy]
+    strategies: Iterable[BaseSyncStrategy] = (
+        FastThenFullSyncStrategy(),
+        FullSyncStrategy(),
+        LightSyncStrategy(),
+        NoopSyncStrategy(),
+    )
 
-    def __init__(self,
-                 strategies: Iterable[BaseSyncStrategy],
-                 default_strategy: Type[BaseSyncStrategy]):
-        # Other plugins can get a reference to this plugin instance and
-        # add another sync strategy which will then be available under --sync-strategy=<other>
-        self.strategies = strategies
-        self.default_strategy = default_strategy
+    default_strategy = FastThenFullSyncStrategy
 
     @property
     def name(self) -> str:
         return "Syncer Plugin"
 
-    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
+    @classmethod
+    def configure_parser(cls, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
 
-        if self.default_strategy not in self.extract_strategy_types():
-            raise ValidationError(f"Default strategy {self.default_strategy} not in strategies")
+        if cls.default_strategy not in cls.extract_strategy_types():
+            raise ValidationError(f"Default strategy {cls.default_strategy} not in strategies")
 
         syncing_parser = arg_parser.add_argument_group('sync mode')
         mode_parser = syncing_parser.add_mutually_exclusive_group()
         mode_parser.add_argument(
             '--sync-mode',
-            choices=self.extract_modes(),
-            default=self.default_strategy.get_sync_mode(),
+            choices=cls.extract_modes(),
+            default=cls.default_strategy.get_sync_mode(),
         )
 
+    @classmethod
     @to_tuple
-    def extract_modes(self) -> Iterable[str]:
-        for strategy in self.strategies:
+    def extract_modes(cls) -> Iterable[str]:
+        for strategy in cls.strategies:
             yield strategy.get_sync_mode()
 
+    @classmethod
     @to_tuple
-    def extract_strategy_types(self) -> Iterable[Type[BaseSyncStrategy]]:
-        for strategy in self.strategies:
+    def extract_strategy_types(cls) -> Iterable[Type[BaseSyncStrategy]]:
+        for strategy in cls.strategies:
             yield type(strategy)
 
     def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
         for strategy in self.strategies:
-            if strategy.get_sync_mode().lower() == self.context.args.sync_mode.lower():
+            if strategy.get_sync_mode().lower() == self.boot_info.args.sync_mode.lower():
                 if self.active_strategy is not None:
                     raise ValidationError(
                         f"Ambiguous sync strategy. Both {self.active_strategy} and {strategy} apply"
@@ -228,7 +230,10 @@ class SyncerPlugin(BaseAsyncStopPlugin):
                 self.active_strategy = strategy
 
         if not self.active_strategy:
-            self.logger.warn("No sync strategy matches --sync-mode=%s", self.context.args.sync_mode)
+            self.logger.warn(
+                "No sync strategy matches --sync-mode=%s",
+                self.boot_info.args.sync_mode
+            )
             return
 
         self.event_bus.subscribe(ResourceAvailableEvent, self.handle_event)

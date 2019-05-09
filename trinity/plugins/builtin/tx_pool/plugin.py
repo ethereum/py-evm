@@ -50,7 +50,8 @@ class TxPlugin(BaseAsyncStopPlugin):
     def name(self) -> str:
         return "TxPlugin"
 
-    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
+    @classmethod
+    def configure_parser(cls, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         arg_parser.add_argument(
             "--tx-pool",
             action="store_true",
@@ -59,10 +60,10 @@ class TxPlugin(BaseAsyncStopPlugin):
 
     def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
 
-        light_mode = self.context.args.sync_mode == SYNC_LIGHT
-        self.is_enabled = self.context.args.tx_pool and not light_mode
+        light_mode = self.boot_info.args.sync_mode == SYNC_LIGHT
+        self.is_enabled = self.boot_info.args.tx_pool and not light_mode
 
-        unsupported = self.context.args.tx_pool and light_mode
+        unsupported = self.boot_info.args.tx_pool and light_mode
 
         if unsupported:
             unsupported_msg = "Transaction pool not available in light mode"
@@ -85,9 +86,9 @@ class TxPlugin(BaseAsyncStopPlugin):
             self.start()
 
     def do_start(self) -> None:
-        if self.context.trinity_config.network_id == MAINNET_NETWORK_ID:
+        if self.boot_info.trinity_config.network_id == MAINNET_NETWORK_ID:
             validator = DefaultTransactionValidator(self.chain, BYZANTIUM_MAINNET_BLOCK)
-        elif self.context.trinity_config.network_id == ROPSTEN_NETWORK_ID:
+        elif self.boot_info.trinity_config.network_id == ROPSTEN_NETWORK_ID:
             validator = DefaultTransactionValidator(self.chain, BYZANTIUM_ROPSTEN_BLOCK)
         else:
             # TODO: We could hint the user about e.g. a --tx-pool-no-validation flag to run the

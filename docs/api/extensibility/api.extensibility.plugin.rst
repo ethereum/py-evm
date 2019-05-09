@@ -2,12 +2,6 @@ Plugin
 ======
 
 
-PluginContext
--------------
-
-.. autoclass:: trinity.extensibility.plugin.PluginContext
-  :members:
-
 BasePlugin
 ----------
 

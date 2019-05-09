@@ -134,13 +134,12 @@ was called which happens as soon as the core infrastructure of Trinity is ready.
 Plugin state: ``READY``
 -----------------------
 
-After Trinity has finished setting up the core infrastructure, every plugin has its
-:class:`~trinity.extensibility.plugin.PluginContext` set and
-:meth:`~trinity.extensibility.plugin.BasePlugin.on_ready` is called. At this point the plugin has
-access to important information such as the parsed arguments or the 
-:class:`~trinity.config.TrinityConfig`. It also has access to the central event bus via its
-:meth:`~trinity.extensibility.plugin.BasePlugin.event_bus` property which enables the plugin to
-communicate with other parts of the application including other plugins.
+After Trinity has finished setting up the core infrastructure,
+:meth:`~trinity.extensibility.plugin.BasePlugin.on_ready` is called on each plugin. At
+this point the plugin has access to important information such as the parsed arguments or
+the :class:`~trinity.config.TrinityConfig`. It also has access to the central event bus
+via its :meth:`~trinity.extensibility.plugin.BasePlugin.event_bus` property which enables
+the plugin to communicate with other parts of the application including other plugins.
 
 Plugin state: ``STARTED``
 -------------------------

@@ -11,15 +11,15 @@ from p2p.service import (
 from trinity import (
     __version__,
 )
-from trinity.extensibility import (
-    PluginContext,
-)
 from trinity.constants import (
     SYNC_LIGHT,
     TO_NETWORKING_BROADCAST_CONFIG,
 )
 from trinity.db.eth1.manager import (
     create_db_consumer_manager,
+)
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
 )
 from trinity.plugins.builtin.light_peer_chain_bridge.light_peer_chain_bridge import (
     EventBusLightPeerChain,
@@ -28,6 +28,9 @@ from trinity._utils.version import (
     construct_trinity_client_identifier,
 )
 
+from trinity.extensibility.plugin import (
+    TrinityBootInfo,
+)
 from trinity.plugins.builtin.ethstats.ethstats_client import (
     EthstatsClient,
     EthstatsMessage,
@@ -42,7 +45,8 @@ from trinity.protocol.common.events import (
 class EthstatsService(BaseService):
     def __init__(
         self,
-        context: PluginContext,
+        boot_info: TrinityBootInfo,
+        event_bus: TrinityEventBusEndpoint,
         server_url: str,
         server_secret: str,
         node_id: str,
@@ -51,7 +55,8 @@ class EthstatsService(BaseService):
     ) -> None:
         super().__init__()
 
-        self.context = context
+        self.boot_info = boot_info
+        self.event_bus = event_bus
 
         self.server_url = server_url
         self.server_secret = server_secret
@@ -114,8 +119,8 @@ class EthstatsService(BaseService):
             'name': self.node_id,
             'contact': self.node_contact,
             'node': construct_trinity_client_identifier(),
-            'net': self.context.trinity_config.network_id,
-            'port': self.context.trinity_config.port,
+            'net': self.boot_info.trinity_config.network_id,
+            'port': self.boot_info.trinity_config.port,
             'os': platform.system(),
             'os_v': platform.release(),
             'client': __version__,
@@ -139,7 +144,7 @@ class EthstatsService(BaseService):
         """Getter for data that should be sent periodically."""
         try:
             peer_count = (await self.wait(
-                self.context.event_bus.request(
+                self.event_bus.request(
                     PeerCountRequest(),
                     TO_NETWORKING_BROADCAST_CONFIG,
                 ),
@@ -156,17 +161,17 @@ class EthstatsService(BaseService):
         }
 
     def get_chain(self) -> BaseChain:
-        db_manager = create_db_consumer_manager(self.context.trinity_config.database_ipc_path)
+        db_manager = create_db_consumer_manager(self.boot_info.trinity_config.database_ipc_path)
 
-        chain_config = self.context.trinity_config.get_chain_config()
+        chain_config = self.boot_info.trinity_config.get_chain_config()
 
         chain: BaseChain
 
-        if self.context.args.sync_mode == SYNC_LIGHT:
+        if self.boot_info.args.sync_mode == SYNC_LIGHT:
             header_db = db_manager.get_headerdb()  # type: ignore
             chain = chain_config.light_chain_class(
                 header_db,
-                peer_chain=EventBusLightPeerChain(self.context.event_bus)
+                peer_chain=EventBusLightPeerChain(self.event_bus)
             )
         else:
             db = db_manager.get_db()  # type: ignore

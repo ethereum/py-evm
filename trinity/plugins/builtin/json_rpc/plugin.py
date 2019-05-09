@@ -49,10 +49,11 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
         return "JSON-RPC API"
 
     def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
-        if not self.context.args.disable_rpc:
+        if not self.boot_info.args.disable_rpc:
             self.start()
 
-    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
+    @classmethod
+    def configure_parser(cls, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         arg_parser.add_argument(
             "--disable-rpc",
             action="store_true",
@@ -69,7 +70,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
 
         if eth1_app_config.database_mode is Eth1DbMode.LIGHT:
             header_db = db_manager.get_headerdb()  # type: ignore
-            event_bus_light_peer_chain = EventBusLightPeerChain(self.context.event_bus)
+            event_bus_light_peer_chain = EventBusLightPeerChain(self.event_bus)
             chain = chain_config.light_chain_class(header_db, peer_chain=event_bus_light_peer_chain)
         elif eth1_app_config.database_mode is Eth1DbMode.FULL:
             db = db_manager.get_db()  # type: ignore
@@ -85,7 +86,7 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
 
     def do_start(self) -> None:
 
-        trinity_config = self.context.trinity_config
+        trinity_config = self.boot_info.trinity_config
 
         if trinity_config.has_app_config(Eth1AppConfig):
             modules = self.setup_eth1_modules(trinity_config)
@@ -94,8 +95,8 @@ class JsonRpcServerPlugin(BaseIsolatedPlugin):
         else:
             raise Exception("Unsupported Node Type")
 
-        rpc = RPCServer(modules, self.context.event_bus)
-        ipc_server = IPCServer(rpc, self.context.trinity_config.jsonrpc_ipc_path)
+        rpc = RPCServer(modules, self.event_bus)
+        ipc_server = IPCServer(rpc, self.boot_info.trinity_config.jsonrpc_ipc_path)
 
-        asyncio.ensure_future(exit_with_endpoint_and_services(self.context.event_bus, ipc_server))
+        asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, ipc_server))
         asyncio.ensure_future(ipc_server.run())

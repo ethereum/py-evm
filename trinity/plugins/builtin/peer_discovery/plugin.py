@@ -162,7 +162,10 @@ class PeerDiscoveryPlugin(BaseIsolatedPlugin):
     def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
         self.start()
 
-    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
+    @classmethod
+    def configure_parser(cls,
+                         arg_parser: ArgumentParser,
+                         subparser: _SubParsersAction) -> None:
         arg_parser.add_argument(
             "--disable-discovery",
             action="store_true",
@@ -171,9 +174,9 @@ class PeerDiscoveryPlugin(BaseIsolatedPlugin):
 
     def do_start(self) -> None:
         discovery_bootstrap = DiscoveryBootstrapService(
-            self.context.args.disable_discovery,
+            self.boot_info.args.disable_discovery,
             self.event_bus,
-            self.context.trinity_config
+            self.boot_info.trinity_config
         )
         asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, discovery_bootstrap))
         asyncio.ensure_future(discovery_bootstrap.run())

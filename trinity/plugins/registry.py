@@ -1,6 +1,7 @@
 import pkg_resources
 from typing import (
     Tuple,
+    Type,
 )
 
 from trinity.extensibility import (
@@ -26,10 +27,6 @@ from trinity.plugins.builtin.peer_discovery.plugin import (
     PeerDiscoveryPlugin,
 )
 from trinity.plugins.builtin.syncer.plugin import (
-    FastThenFullSyncStrategy,
-    FullSyncStrategy,
-    LightSyncStrategy,
-    NoopSyncStrategy,
     SyncerPlugin,
 )
 from trinity.plugins.eth2.network_generator.plugin import NetworkGeneratorPlugin
@@ -42,44 +39,30 @@ from trinity.plugins.builtin.light_peer_chain_bridge.plugin import (
 )
 
 
-def is_ipython_available() -> bool:
-    try:
-        pkg_resources.get_distribution('IPython')
-    except pkg_resources.DistributionNotFound:
-        return False
-    else:
-        return True
-
-
-BASE_PLUGINS: Tuple[BasePlugin, ...] = (
-    AttachPlugin(use_ipython=is_ipython_available()),
-    NetworkGeneratorPlugin(),
-    FixUncleanShutdownPlugin(),
-    JsonRpcServerPlugin(),
-    NetworkDBPlugin(),
-    PeerDiscoveryPlugin(),
-    BeaconNodePlugin(),
+BASE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
+    AttachPlugin,
+    NetworkGeneratorPlugin,
+    FixUncleanShutdownPlugin,
+    JsonRpcServerPlugin,
+    NetworkDBPlugin,
+    PeerDiscoveryPlugin,
+    BeaconNodePlugin,
 )
 
 
-ETH1_NODE_PLUGINS: Tuple[BasePlugin, ...] = (
-    DbShellPlugin(use_ipython=is_ipython_available()),
-    EthstatsPlugin(),
-    LightPeerChainBridgePlugin(),
-    SyncerPlugin((
-        FastThenFullSyncStrategy(),
-        FullSyncStrategy(),
-        LightSyncStrategy(),
-        NoopSyncStrategy(),
-    ), FastThenFullSyncStrategy),
-    TxPlugin(),
+ETH1_NODE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
+    DbShellPlugin,
+    EthstatsPlugin,
+    LightPeerChainBridgePlugin,
+    SyncerPlugin,
+    TxPlugin,
 )
 
 
-def discover_plugins() -> Tuple[BasePlugin, ...]:
+def discover_plugins() -> Tuple[Type[BasePlugin], ...]:
     # Plugins need to define entrypoints at 'trinity.plugins' to automatically get loaded
     # https://packaging.python.org/guides/creating-and-discovering-plugins/#using-package-metadata
 
     return tuple(
-        entry_point.load()() for entry_point in pkg_resources.iter_entry_points('trinity.plugins')
+        entry_point.load() for entry_point in pkg_resources.iter_entry_points('trinity.plugins')
     )

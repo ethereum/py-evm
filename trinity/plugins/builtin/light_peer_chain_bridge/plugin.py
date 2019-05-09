@@ -44,7 +44,7 @@ class LightPeerChainBridgePlugin(BaseAsyncStopPlugin):
         return "LightPeerChain Bridge"
 
     def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
-        if self.context.args.sync_mode != SYNC_LIGHT:
+        if self.boot_info.args.sync_mode != SYNC_LIGHT:
             return
 
         self.event_bus.subscribe(
@@ -59,7 +59,7 @@ class LightPeerChainBridgePlugin(BaseAsyncStopPlugin):
 
     def do_start(self) -> None:
         chain = cast(LightDispatchChain, self.chain)
-        self.handler = LightPeerChainEventBusHandler(chain._peer_chain, self.context.event_bus)
+        self.handler = LightPeerChainEventBusHandler(chain._peer_chain, self.event_bus)
         asyncio.ensure_future(self.handler.run())
 
     async def do_stop(self) -> None:

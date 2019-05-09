@@ -3,6 +3,7 @@ from argparse import (
     Namespace,
     _SubParsersAction,
 )
+import pkg_resources
 import sys
 
 from trinity.config import (
@@ -19,56 +20,65 @@ from trinity.plugins.builtin.attach.console import (
 )
 
 
+def is_ipython_available() -> bool:
+    try:
+        pkg_resources.get_distribution('IPython')
+    except pkg_resources.DistributionNotFound:
+        return False
+    else:
+        return True
+
+
 class AttachPlugin(BaseMainProcessPlugin):
-
-    def __init__(self, use_ipython: bool = True) -> None:
-        super().__init__()
-        self.use_ipython = use_ipython
-
     @property
     def name(self) -> str:
         return "Attach"
 
-    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
+    @classmethod
+    def configure_parser(cls,
+                         arg_parser: ArgumentParser,
+                         subparser: _SubParsersAction) -> None:
 
         attach_parser = subparser.add_parser(
             'attach',
             help='open an REPL attached to a currently running chain',
         )
 
-        attach_parser.set_defaults(func=self.run_console)
+        attach_parser.set_defaults(func=cls.run_console)
 
-    def run_console(self, args: Namespace, trinity_config: TrinityConfig) -> None:
+    @classmethod
+    def run_console(cls, args: Namespace, trinity_config: TrinityConfig) -> None:
         try:
-            console(trinity_config.jsonrpc_ipc_path, use_ipython=self.use_ipython)
+            console(trinity_config.jsonrpc_ipc_path, use_ipython=is_ipython_available())
         except FileNotFoundError as err:
-            self.logger.error(str(err))
+            cls.get_logger().error(str(err))
             sys.exit(1)
 
 
 class DbShellPlugin(BaseMainProcessPlugin):
-
-    def __init__(self, use_ipython: bool = True) -> None:
-        super().__init__()
-        self.use_ipython = use_ipython
-
     @property
     def name(self) -> str:
         return "DB Shell"
 
-    def configure_parser(self, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
+    @classmethod
+    def configure_parser(cls,
+                         arg_parser: ArgumentParser,
+                         subparser: _SubParsersAction) -> None:
 
         attach_parser = subparser.add_parser(
             'db-shell',
             help='open a REPL to inspect the db',
         )
 
-        attach_parser.set_defaults(func=self.run_shell)
+        attach_parser.set_defaults(func=cls.run_shell)
 
-    def run_shell(self, args: Namespace, trinity_config: TrinityConfig) -> None:
+    @classmethod
+    def run_shell(cls, args: Namespace, trinity_config: TrinityConfig) -> None:
 
         if trinity_config.has_app_config(Eth1AppConfig):
             config = trinity_config.get_app_config(Eth1AppConfig)
-            db_shell(self.use_ipython, config.database_dir, trinity_config)
+            db_shell(is_ipython_available(), config.database_dir, trinity_config)
         else:
-            self.logger.error("DB Shell does only support the Ethereum 1 node at this time")
+            cls.get_logger().error(
+                "DB Shell only supports the Ethereum 1 node at this time"
+            )

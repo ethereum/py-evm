@@ -13,5 +13,5 @@ def test_plugin_discovery():
     # pip install -e trinity-external-plugins/examples/peer_count_reporter
     from peer_count_reporter_plugin import PeerCountReporterPlugin
 
-    plugins = [type(plugin) for plugin in discover_plugins()]
+    plugins = discover_plugins()
     assert PeerCountReporterPlugin in plugins
