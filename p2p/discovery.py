@@ -33,7 +33,7 @@ from typing import (
 import eth_utils.toolz
 
 from lahja import (
-    Endpoint,
+    AsyncioEndpoint,
 )
 
 import rlp
@@ -969,7 +969,7 @@ class StaticDiscoveryService(BaseService):
 
     def __init__(
             self,
-            event_bus: Endpoint,
+            event_bus: AsyncioEndpoint,
             static_peers: Tuple[KademliaNode, ...],
             token: CancelToken = None) -> None:
         super().__init__(token)
@@ -1014,7 +1014,7 @@ class StaticDiscoveryService(BaseService):
 class NoopDiscoveryService(BaseService):
     'A stub "discovery service" which does nothing'
 
-    def __init__(self, event_bus: Endpoint, token: CancelToken = None) -> None:
+    def __init__(self, event_bus: AsyncioEndpoint, token: CancelToken = None) -> None:
         super().__init__(token)
         self._event_bus = event_bus
 
@@ -1050,7 +1050,7 @@ class DiscoveryService(BaseService):
     def __init__(self,
                  proto: DiscoveryProtocol,
                  port: int,
-                 event_bus: Endpoint,
+                 event_bus: AsyncioEndpoint,
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self.proto = proto

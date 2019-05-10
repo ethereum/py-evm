@@ -29,7 +29,8 @@ deps = {
         "plyvel==1.0.5",
         PYEVM_DEPENDENCY,
         "web3==4.4.1",
-        "lahja==0.12.0",
+        "lahja@git+https://github.com/ethereum/lahja.git@22396a8fe79809357438e917e66a7101e6e3ac01",  # noqa: E501
+        # "lahja==0.12.0",
         "termcolor>=1.1.0,<2.0.0",
         "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",  # noqa: E501
         "websockets==5.0.1",

@@ -32,6 +32,8 @@ async def test_connection_tracker_server_and_client(event_loop, event_bus):
     config = BroadcastConfig(filter_endpoint=NETWORKING_EVENTBUS_ENDPOINT)
     bus_tracker = ConnectionTrackerClient(event_bus, config=config)
 
+    # Give `bus_tracker` a moment to setup subscriptions
+    await asyncio.sleep(0.01)
     # ensure we can read from the tracker over the event bus
     assert await bus_tracker.should_connect_to(remote_a) is False
 

@@ -5,7 +5,7 @@ from typing import (
 from lahja import (
     BroadcastConfig,
     ConnectionConfig,
-    Endpoint,
+    AsyncioEndpoint,
 )
 
 from trinity.constants import (
@@ -18,7 +18,7 @@ from trinity.events import (
 )
 
 
-class TrinityEventBusEndpoint(Endpoint):
+class TrinityEventBusEndpoint(AsyncioEndpoint):
     """
     Lahja Endpoint with some Trinity specific logic.
     """

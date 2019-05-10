@@ -12,7 +12,6 @@ from eth_typing import (
 )
 
 from eth_utils import encode_hex
-
 from p2p.exceptions import (
     HandshakeFailure,
 )

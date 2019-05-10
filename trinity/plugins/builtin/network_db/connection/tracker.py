@@ -16,8 +16,8 @@ from sqlalchemy.orm.exc import (
 )
 
 from lahja import (
+    AsyncioEndpoint,
     BroadcastConfig,
-    Endpoint,
 )
 
 from eth_utils import humanize_seconds
@@ -145,7 +145,7 @@ TO_NETWORKDB_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=NETWORKDB_EVENTB
 
 class ConnectionTrackerClient(BaseConnectionTracker):
     def __init__(self,
-                 event_bus: Endpoint,
+                 event_bus: AsyncioEndpoint,
                  config: BroadcastConfig = TO_NETWORKDB_BROADCAST_CONFIG) -> None:
         self.event_bus = event_bus
         self.config = config

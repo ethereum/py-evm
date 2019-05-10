@@ -87,6 +87,8 @@ async def get_ipc_response(
         request_msg,
         event_loop):
 
+    # Give the event subscriptions a moment to propagate
+    await asyncio.sleep(0.01)
     assert wait_for(jsonrpc_ipc_pipe_path), "IPC server did not successfully start with IPC file"
 
     reader, writer = await asyncio.open_unix_connection(str(jsonrpc_ipc_pipe_path), loop=event_loop)

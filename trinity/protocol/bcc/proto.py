@@ -7,7 +7,6 @@ from typing import (
 from eth_typing import (
     Hash32,
 )
-
 import ssz
 
 from p2p.protocol import Protocol

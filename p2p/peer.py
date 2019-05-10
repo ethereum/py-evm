@@ -17,7 +17,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from lahja import Endpoint
+from lahja import AsyncioEndpoint
 
 from cached_property import cached_property
 
@@ -140,13 +140,13 @@ class BasePeer(BaseService):
     sub_proto: Protocol = None
     disconnect_reason: DisconnectReason = None
 
-    _event_bus: Endpoint = None
+    _event_bus: AsyncioEndpoint = None
 
     def __init__(self,
                  transport: Transport,
                  context: BasePeerContext,
                  inbound: bool = False,
-                 event_bus: Endpoint = None,
+                 event_bus: AsyncioEndpoint = None,
                  token: CancelToken = None,
                  ) -> None:
         super().__init__(token)
@@ -191,7 +191,7 @@ class BasePeer(BaseService):
     def has_event_bus(self) -> bool:
         return self._event_bus is not None
 
-    def get_event_bus(self) -> Endpoint:
+    def get_event_bus(self) -> AsyncioEndpoint:
         if self._event_bus is None:
             raise AttributeError(f"No event bus configured for peer {self}")
         return self._event_bus
@@ -696,7 +696,7 @@ class BasePeerFactory(ABC):
                  privkey: datatypes.PrivateKey,
                  context: BasePeerContext,
                  token: CancelToken,
-                 event_bus: Endpoint = None) -> None:
+                 event_bus: AsyncioEndpoint = None) -> None:
         self.privkey = privkey
         self.context = context
         self.cancel_token = token

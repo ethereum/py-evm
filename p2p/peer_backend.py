@@ -5,7 +5,7 @@ from typing import (
 )
 
 from lahja import (
-    Endpoint,
+    AsyncioEndpoint,
     BroadcastConfig,
 )
 
@@ -33,7 +33,7 @@ TO_DISCOVERY_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=DISCOVERY_EVENTB
 
 
 class DiscoveryPeerBackend(BasePeerBackend):
-    def __init__(self, event_bus: Endpoint) -> None:
+    def __init__(self, event_bus: AsyncioEndpoint) -> None:
         self.event_bus = event_bus
 
     async def get_peer_candidates(self,
@@ -51,7 +51,7 @@ class DiscoveryPeerBackend(BasePeerBackend):
 
 
 class BootnodesPeerBackend(BasePeerBackend):
-    def __init__(self, event_bus: Endpoint) -> None:
+    def __init__(self, event_bus: AsyncioEndpoint) -> None:
         self.event_bus = event_bus
 
     async def get_peer_candidates(self,

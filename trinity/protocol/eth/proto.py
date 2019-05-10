@@ -13,7 +13,6 @@ from eth_typing import (
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransactionFields
-
 from p2p.protocol import (
     Protocol,
 )

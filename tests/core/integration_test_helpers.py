@@ -184,4 +184,6 @@ async def make_peer_pool_answer_event_bus_requests(event_bus, peer_pool, handler
         peer_pool.cancel_token
     )
     asyncio.ensure_future(peer_pool_event_bus_request_handler.run())
+    # Give event subscriptions a moment to propagate
+    await asyncio.sleep(0.01)
     await peer_pool_event_bus_request_handler.events.started.wait()

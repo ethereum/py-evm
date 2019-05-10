@@ -6,9 +6,6 @@ from typing import (
 from cancel_token import (
     CancelToken,
 )
-from lahja import (
-    Endpoint,
-)
 
 from p2p.exceptions import (
     PeerConnectionLost,
@@ -22,6 +19,10 @@ from p2p.peer_pool import (
 )
 from p2p.service import (
     BaseService,
+)
+
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
 )
 
 from .events import (
@@ -43,7 +44,7 @@ class PeerPoolEventServer(BaseService, Generic[TPeer]):
     """
 
     def __init__(self,
-                 event_bus: Endpoint,
+                 event_bus: TrinityEventBusEndpoint,
                  peer_pool: BasePeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
