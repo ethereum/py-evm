@@ -75,7 +75,7 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
             self.start()
 
     def do_start(self) -> None:
-        trinity_config = self.context.trinity_config
+        trinity_config = self.boot_info.trinity_config
         beacon_app_config = trinity_config.get_app_config(BeaconAppConfig)
         db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
         base_db = db_manager.get_db()  # type: ignore
@@ -83,8 +83,8 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
         chain_config = beacon_app_config.get_chain_config()
         chain = chain_config.beacon_chain_class(base_db, chain_config.eth2_config)
 
-        if self.context.args.beacon_nodekey:
-            privkey = PrivateKey(bytes.fromhex(self.context.args.beacon_nodekey))
+        if self.boot_info.args.beacon_nodekey:
+            privkey = PrivateKey(bytes.fromhex(self.boot_info.args.beacon_nodekey))
         else:
             privkey = ecies.generate_privkey()
 
@@ -124,7 +124,7 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
             chain=chain,
             peer_pool=server.peer_pool,
             validator_privkeys=validator_privkeys,
-            event_bus=self.context.event_bus,
+            event_bus=self.event_bus,
             token=server.cancel_token,
         )
 
@@ -132,12 +132,12 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
             genesis_slot=state_machine.config.GENESIS_SLOT,
             genesis_time=state.genesis_time,
             seconds_per_slot=state_machine.config.SECONDS_PER_SLOT,
-            event_bus=self.context.event_bus,
+            event_bus=self.event_bus,
             token=server.cancel_token,
         )
 
         loop = asyncio.get_event_loop()
-        asyncio.ensure_future(exit_with_endpoint_and_services(self.context.event_bus, server))
+        asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, server))
         asyncio.ensure_future(server.run())
         asyncio.ensure_future(syncer.run())
         asyncio.ensure_future(slot_ticker.run())
