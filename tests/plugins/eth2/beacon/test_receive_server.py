@@ -156,6 +156,11 @@ def test_orphan_block_pool():
     # test: add: no side effect for adding twice
     pool.add(b1)
     assert len(pool._pool) == 1
+    # test: `__contains__`
+    assert b1 in pool
+    assert b1.signing_root in pool
+    assert b2 not in pool
+    assert b2.signing_root not in pool
     # test: add: two blocks
     pool.add(b2)
     assert len(pool._pool) == 2

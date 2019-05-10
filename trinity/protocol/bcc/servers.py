@@ -7,6 +7,7 @@ from typing import (
     Set,
     Tuple,
     Type,
+    Union,
 )
 
 from eth_typing import (
@@ -179,6 +180,20 @@ class OrphanBlockPool:
     def __init__(self) -> None:
         self._pool = set()
 
+    def __contains__(self, block_or_block_root: Union[BaseBeaconBlock, Hash32]) -> bool:
+        block_root: Hash32
+        if isinstance(block_or_block_root, BaseBeaconBlock):
+            block_root = block_or_block_root.signing_root
+        elif isinstance(block_or_block_root, bytes):
+            block_root = block_or_block_root
+        else:
+            raise TypeError("`block_or_block_root` should be `BaseBeaconBlock` or `Hash32`")
+        try:
+            self.get(block_root)
+            return True
+        except BlockNotFound:
+            return False
+
     def get(self, block_root: Hash32) -> BaseBeaconBlock:
         for block in self._pool:
             if block.signing_root == block_root:
@@ -272,9 +287,10 @@ class BCCReceiveServer(BaseReceiveServer):
         """
         # If the block is an orphan, put it directly to the pool and request for its parent.
         if not self._is_block_root_in_db(block.previous_block_root):
-            self.logger.debug(f"found orphan block={block}")
-            self.orphan_block_pool.add(block)
-            self._request_block_by_root(block_root=block.previous_block_root)
+            if block not in self.orphan_block_pool:
+                self.logger.debug(f"found orphan block={block}")
+                self.orphan_block_pool.add(block)
+                self._request_block_by_root(block_root=block.previous_block_root)
             return False
         try:
             self.chain.import_block(block)
@@ -303,8 +319,8 @@ class BCCReceiveServer(BaseReceiveServer):
         imported_roots.append(parent_root)
         while len(imported_roots) != 0:
             current_parent_root = imported_roots.pop()
-            # Only process the children if the `parent_root` is already in db.
-            if not self._is_block_root_in_db(block_root=parent_root):
+            # Only process the children if the `current_parent_root` is already in db.
+            if not self._is_block_root_in_db(block_root=current_parent_root):
                 continue
             # If succeeded, handle the orphan blocks which depend on this block.
             children = self.orphan_block_pool.pop_children(current_parent_root)
@@ -319,8 +335,7 @@ class BCCReceiveServer(BaseReceiveServer):
                     self.logger.debug(f"successfully imported block={block}")
                     imported_roots.append(block.signing_root)
                 except ValidationError:
-                    # If enter here, it means we fail to import the block due to the reason other
-                    # than the missing parent. Currently, just implicitly drop it.
+                    # TODO: Possibly drop all of its descendants in `self.orphan_block_pool`?
                     pass
 
     def _request_block_by_root(self, block_root: Hash32) -> None:
@@ -356,11 +371,7 @@ class BCCReceiveServer(BaseReceiveServer):
             peer.sub_proto.send_new_block(block=block)
 
     def _is_block_root_in_orphan_block_pool(self, block_root: Hash32) -> bool:
-        try:
-            self.orphan_block_pool.get(block_root=block_root)
-            return True
-        except BlockNotFound:
-            return False
+        return block_root in self.orphan_block_pool
 
     def _is_block_root_in_db(self, block_root: Hash32) -> bool:
         try:
