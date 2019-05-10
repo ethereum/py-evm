@@ -26,7 +26,7 @@ from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
 )
 from trinity.plugins.eth2.beacon.slot_ticker import (
-    NewSlotEvent,
+    SlotTickEvent,
 )
 
 from .helpers import (
@@ -212,7 +212,7 @@ async def test_validator_handle_new_slot(caplog, event_loop, event_bus, monkeypa
 
     event_new_slot_called = asyncio.Event()
 
-    async def new_slot(slot, is_second_signal):
+    async def new_slot(slot, is_second_half_slot):
         event_new_slot_called.set()
 
     monkeypatch.setattr(alice, 'new_slot', new_slot)
@@ -221,10 +221,10 @@ async def test_validator_handle_new_slot(caplog, event_loop, event_bus, monkeypa
     await asyncio.sleep(0.01)
 
     await event_bus.broadcast(
-        NewSlotEvent(
+        SlotTickEvent(
             slot=1,
             elapsed_time=2,
-            is_second_signal=False,
+            is_second_half_slot=False,
         ),
         BroadcastConfig(internal=True),
     )

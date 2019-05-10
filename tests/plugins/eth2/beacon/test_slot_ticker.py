@@ -5,7 +5,7 @@ import pytest
 import time
 
 from trinity.plugins.eth2.beacon.slot_ticker import (
-    NewSlotEvent,
+    SlotTickEvent,
     SlotTicker,
 )
 
@@ -21,14 +21,14 @@ async def test_slot_ticker_ticking(event_bus, event_loop):
     asyncio.ensure_future(slot_ticker.run(), loop=event_loop)
     await slot_ticker.events.started.wait()
     try:
-        new_slot_event = await asyncio.wait_for(
-            event_bus.wait_for(NewSlotEvent),
+        slot_tick_event = await asyncio.wait_for(
+            event_bus.wait_for(SlotTickEvent),
             timeout=2,
             loop=event_loop,
         )
     except asyncio.TimeoutError:
         assert False, "Slot not ticking"
-    assert new_slot_event.slot > 0
+    assert slot_tick_event.slot > 0
     await slot_ticker.cancel()
 
 
@@ -44,21 +44,21 @@ async def test_slot_ticker_second_half_tick(event_bus, event_loop):
     await slot_ticker.events.started.wait()
     try:
         first_slot_event = await asyncio.wait_for(
-            event_bus.wait_for(NewSlotEvent),
+            event_bus.wait_for(SlotTickEvent),
             timeout=4,
             loop=event_loop,
         )
     except asyncio.TimeoutError:
         assert False, "Slot not ticking"
-    assert not first_slot_event.is_second_signal
+    assert not first_slot_event.is_second_half_slot
     try:
         second_slot_event = await asyncio.wait_for(
-            event_bus.wait_for(NewSlotEvent),
+            event_bus.wait_for(SlotTickEvent),
             timeout=4,
             loop=event_loop,
         )
     except asyncio.TimeoutError:
         assert False, "No second half tick"
     assert second_slot_event.slot == first_slot_event.slot
-    assert second_slot_event.is_second_signal
+    assert second_slot_event.is_second_half_slot
     await slot_ticker.cancel()
