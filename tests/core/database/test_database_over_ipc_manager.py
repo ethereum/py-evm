@@ -1,8 +1,5 @@
 import logging
 import multiprocessing
-from multiprocessing.managers import (
-    BaseManager,
-)
 import tempfile
 
 import pytest
@@ -16,6 +13,7 @@ from eth.db.chain import (
 )
 
 from trinity.db.eth1.manager import (
+    create_db_consumer_manager,
     create_db_server_manager,
 )
 from trinity.config import (
@@ -25,8 +23,6 @@ from trinity.initialization import (
     initialize_data_dir,
 )
 from trinity.constants import ROPSTEN_NETWORK_ID
-from trinity.db.eth1.chain import AsyncChainDBProxy
-from trinity.db.base import AsyncDBProxy
 from trinity._utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
@@ -71,15 +67,7 @@ def database_server_ipc_path():
 
 @pytest.fixture
 def manager(database_server_ipc_path):
-    class DBManager(BaseManager):
-        pass
-
-    DBManager.register('get_db', proxytype=AsyncDBProxy)
-    DBManager.register('get_chaindb', proxytype=AsyncChainDBProxy)
-
-    _manager = DBManager(address=str(database_server_ipc_path))
-    _manager.connect()
-    return _manager
+    return create_db_consumer_manager(database_server_ipc_path, connect=True)
 
 
 @pytest.mark.asyncio
