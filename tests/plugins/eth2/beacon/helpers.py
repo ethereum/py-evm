@@ -1,5 +1,4 @@
 import importlib
-import time
 
 from py_ecc import bls
 

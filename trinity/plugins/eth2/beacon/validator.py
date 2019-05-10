@@ -1,7 +1,7 @@
 import logging
 from typing import (
     cast,
-    Sequence,
+    Tuple,
 )
 
 from cancel_token import (
@@ -51,7 +51,7 @@ class Validator(BaseService):
     peer_pool: BCCPeerPool
     privkey: PrivateKey
     event_bus: TrinityEventBusEndpoint
-    slots_proposed: Sequence[Slot] = []
+    slots_proposed: Tuple[Slot, ...]
 
     logger = logging.getLogger('trinity.plugins.eth2.beacon.Validator')
 
@@ -69,6 +69,7 @@ class Validator(BaseService):
         self.peer_pool = peer_pool
         self.privkey = privkey
         self.event_bus = event_bus
+        self.slots_proposed = tuple()
 
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()
@@ -82,7 +83,7 @@ class Validator(BaseService):
         """
         async for event in self.event_bus.stream(SlotTickEvent):
             await self.propose_or_skip_block(event.slot, event.is_second_half_slot)
-                
+
     async def propose_or_skip_block(self, slot: Slot, is_second_half_slot: bool) -> None:
         head = self.chain.get_canonical_head()
         state_machine = self.chain.get_state_machine()
@@ -104,7 +105,7 @@ class Validator(BaseService):
                 state_machine=state_machine,
                 head_block=head,
             )
-            self.slots_proposed.append(slot)
+            self.slots_proposed += (Slot(slot),)
         # skip the block if it's second half of the slot and we are not proposing
         elif is_second_half_slot and self.validator_index != proposer_index:
             self.skip_block(
