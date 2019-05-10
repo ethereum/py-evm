@@ -78,7 +78,7 @@ class Validator(BaseService):
 
     async def handle_slot_tick(self) -> None:
         """
-        The callback for `SlotTicker`, to be called whenever new slot is ticked.
+        The callback for `SlotTicker` and it's expected to be called twice for one slot.
         """
         async for event in self.event_bus.stream(SlotTickEvent):
             await self.propose_or_skip_block(event.slot, event.is_second_half_slot)
@@ -95,6 +95,8 @@ class Validator(BaseService):
             slot,
             state_machine.config,
         )
+        # Since it's expected to tick twice for one slot, `slots_proposed` is used to prevent
+        # proposing twice in the same slot.
         if slot not in self.slots_proposed and self.validator_index == proposer_index:
             self.propose_block(
                 slot=slot,
@@ -103,6 +105,7 @@ class Validator(BaseService):
                 head_block=head,
             )
             self.slots_proposed.append(slot)
+        # skip the block if it's second half of the slot and we are not proposing
         elif is_second_half_slot and self.validator_index != proposer_index:
             self.skip_block(
                 slot=slot,
