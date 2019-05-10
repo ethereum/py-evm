@@ -1,6 +1,7 @@
 import logging
 from typing import (
     cast,
+    Sequence,
 )
 
 from cancel_token import (
@@ -50,6 +51,7 @@ class Validator(BaseService):
     peer_pool: BCCPeerPool
     privkey: PrivateKey
     event_bus: TrinityEventBusEndpoint
+    slots_proposed: Sequence[Slot] = []
 
     logger = logging.getLogger('trinity.plugins.eth2.beacon.Validator')
 
@@ -71,17 +73,17 @@ class Validator(BaseService):
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()
         self.logger.debug(bold_green("validator running!!!"))
-        self.run_daemon_task(self.handle_new_slot())
+        self.run_daemon_task(self.handle_slot_tick())
         await self.cancellation()
 
-    async def handle_new_slot(self) -> None:
+    async def handle_slot_tick(self) -> None:
         """
         The callback for `SlotTicker`, to be called whenever new slot is ticked.
         """
         async for event in self.event_bus.stream(SlotTickEvent):
-            await self.new_slot(event.slot, event.is_second_half_slot)
-
-    async def new_slot(self, slot: Slot, is_second_half_slot: bool) -> None:
+            await self.propose_or_skip_block(event.slot, event.is_second_half_slot)
+                
+    async def propose_or_skip_block(self, slot: Slot, is_second_half_slot: bool) -> None:
         head = self.chain.get_canonical_head()
         state_machine = self.chain.get_state_machine()
         state = state_machine.state
@@ -93,14 +95,15 @@ class Validator(BaseService):
             slot,
             state_machine.config,
         )
-        if self.validator_index == proposer_index:
+        if slot not in self.slots_proposed and self.validator_index == proposer_index:
             self.propose_block(
                 slot=slot,
                 state=state,
                 state_machine=state_machine,
                 head_block=head,
             )
-        elif is_second_half_slot:
+            self.slots_proposed.append(slot)
+        elif is_second_half_slot and self.validator_index != proposer_index:
             self.skip_block(
                 slot=slot,
                 state=state,

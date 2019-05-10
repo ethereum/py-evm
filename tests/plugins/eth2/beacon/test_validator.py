@@ -146,6 +146,7 @@ async def test_validator_propose_block_succeeds(caplog, event_loop, event_bus):
         state_machine=state_machine,
         head_block=head,
     )
+
     # test: ensure the proposed block is saved to the chaindb
     assert v.chain.get_block_by_root(block.signing_root) == block
 
@@ -207,15 +208,15 @@ async def test_validator_skip_block(caplog, event_loop, event_bus):
 
 
 @pytest.mark.asyncio
-async def test_validator_handle_new_slot(caplog, event_loop, event_bus, monkeypatch):
+async def test_validator_handle_slot_tick(caplog, event_loop, event_bus, monkeypatch):
     alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=0)
 
     event_new_slot_called = asyncio.Event()
 
-    async def new_slot(slot, is_second_half_slot):
+    async def propose_or_skip_block(slot, is_second_half_slot):
         event_new_slot_called.set()
 
-    monkeypatch.setattr(alice, 'new_slot', new_slot)
+    monkeypatch.setattr(alice, 'propose_or_skip_block', propose_or_skip_block)
 
     # sleep for `event_bus` ready
     await asyncio.sleep(0.01)
@@ -263,7 +264,7 @@ async def test_validator_new_slot(caplog, event_loop, event_bus, monkeypatch):
     monkeypatch.setattr(alice, 'propose_block', propose_block)
     monkeypatch.setattr(alice, 'skip_block', skip_block)
 
-    await alice.new_slot(new_slot, True)
+    await alice.propose_or_skip_block(new_slot, True)
 
     # test: either `propose_block` or `skip_block` should be called.
     assert is_proposing is not None
