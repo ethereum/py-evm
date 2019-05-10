@@ -6,6 +6,7 @@ import time
 
 from eth_utils.toolz import (
     assoc,
+    curry,
 )
 from eth_utils import (
     decode_hex,
@@ -32,6 +33,13 @@ from trinity.sync.common.types import (
 )
 
 from trinity._utils.version import construct_trinity_client_identifier
+
+
+@curry
+async def mock_request_response(request_type, response, bus):
+    async for req in bus.stream(request_type):
+        await bus.broadcast(response, req.broadcast_config())
+        break
 
 
 def wait_for(path):
@@ -149,15 +157,6 @@ def uint256_to_bytes(uint):
     return to_bytes(uint).rjust(32, b'\0')
 
 
-def mock_network_id(network_id):
-    async def mock_event_bus_interaction(bus):
-        async for req in bus.stream(NetworkIdRequest):
-            await bus.broadcast(NetworkIdResponse(network_id), req.broadcast_config())
-            break
-
-    return mock_event_bus_interaction
-
-
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     'request_msg, expected',
@@ -228,7 +227,9 @@ async def test_network_id_ipc_request(
         event_loop,
         event_bus,
         ipc_server):
-    asyncio.ensure_future(mock_network_id(1337)(event_bus))
+
+    asyncio.ensure_future(
+        mock_request_response(NetworkIdRequest, NetworkIdResponse(1337))(event_bus))
     request_msg = build_request('net_version')
     expected = {'result': '1337', 'id': 3, 'jsonrpc': '2.0'}
     result = await get_ipc_response(jsonrpc_ipc_pipe_path, request_msg, event_loop)
@@ -436,27 +437,18 @@ async def test_eth_call_with_contract_on_ipc(
     assert result == expected
 
 
-def mock_peer_count(count):
-    async def mock_event_bus_interaction(bus):
-        async for req in bus.stream(PeerCountRequest):
-            await bus.broadcast(PeerCountResponse(count), req.broadcast_config())
-            break
-
-    return mock_event_bus_interaction
-
-
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     'request_msg, event_bus_setup_fn, expected',
     (
         (
             build_request('net_peerCount'),
-            mock_peer_count(1),
+            mock_request_response(PeerCountRequest, PeerCountResponse(1)),
             {'result': '0x1', 'id': 3, 'jsonrpc': '2.0'},
         ),
         (
             build_request('net_peerCount'),
-            mock_peer_count(0),
+            mock_request_response(PeerCountRequest, PeerCountResponse(0)),
             {'result': '0x0', 'id': 3, 'jsonrpc': '2.0'},
         ),
     ),
@@ -483,27 +475,18 @@ async def test_peer_pool_over_ipc(
     assert result == expected
 
 
-def mock_syncing(is_syncing, progress=None):
-    async def mock_event_bus_interaction(bus):
-        async for req in bus.stream(SyncingRequest):
-            await bus.broadcast(SyncingResponse(is_syncing, progress), req.broadcast_config())
-            break
-
-    return mock_event_bus_interaction
-
-
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     'request_msg, event_bus_setup_fn, expected',
     (
         (
             build_request('eth_syncing'),
-            mock_syncing(False),
+            mock_request_response(SyncingRequest, SyncingResponse(False, None)),
             {'result': False, 'id': 3, 'jsonrpc': '2.0'},
         ),
         (
             build_request('eth_syncing'),
-            mock_syncing(True, SyncProgress(0, 1, 2)),
+            mock_request_response(SyncingRequest, SyncingResponse(True, SyncProgress(0, 1, 2))),
             {'result': {'startingBlock': 0, 'currentBlock': 1, 'highestBlock': 2}, 'id': 3,
              'jsonrpc': '2.0'},
         ),
