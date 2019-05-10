@@ -40,17 +40,15 @@ for i, k in enumerate(privkeys):
     index_to_pubkey[i] = pubkey
     keymap[pubkey] = k
 
-genesis_time = int(time.time())
-
 genesis_state, genesis_block = create_mock_genesis(
     num_validators=NUM_VALIDATORS,
     config=XIAO_LONG_BAO_CONFIG,
     keymap=keymap,
     genesis_block_class=SerenityBeaconBlock,
-    genesis_time=genesis_time,
+    genesis_time=0,
 )
 genesis_data = BeaconGenesisData(
-    genesis_time=genesis_time,
+    genesis_time=0,
     genesis_slot=XIAO_LONG_BAO_CONFIG.GENESIS_SLOT,
     keymap=keymap,
     num_validators=NUM_VALIDATORS,
