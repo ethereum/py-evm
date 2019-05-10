@@ -292,8 +292,12 @@ class BasePeer(BaseService):
 
         try:
             cmd, msg = await self.read_msg()
-        except rlp.DecodingError:
-            raise HandshakeFailure("Got invalid rlp data during handshake")
+        except rlp.DecodingError as err:
+            # We dump the exception trace here to ensure that when/if this
+            # happens we have enough information to better diagnose if this is
+            # an error in our handshake code or just a broken peer.
+            self.logger.debug("Got RLP decoding error during P2P handshake", exc_info=True)
+            raise MalformedMessage(f"Got invalid rlp data during handshake: {err}") from err
 
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
