@@ -27,10 +27,10 @@ DEFAULT_CHECK_FREQUENCY = 6
 
 
 class SlotTickEvent(BaseEvent):
-    def __init__(self, slot: Slot, elapsed_time: Second, is_second_half_slot: bool):
+    def __init__(self, slot: Slot, elapsed_time: Second, is_second_tick: bool):
         self.slot = slot
         self.elapsed_time = elapsed_time
-        self.is_second_half_slot = is_second_half_slot
+        self.is_second_tick = is_second_tick
 
 
 class SlotTicker(BaseService):
@@ -74,7 +74,7 @@ class SlotTicker(BaseService):
             elapsed_time = Second(int(time.time()) - self.genesis_time)
             if elapsed_time >= self.seconds_per_slot:
                 slot = Slot(elapsed_time // self.seconds_per_slot + self.genesis_slot)
-                is_second_half_slot = (
+                is_second_tick = (
                     (elapsed_time % self.seconds_per_slot) >= (self.seconds_per_slot / 2)
                 )
                 # Case 1: new slot
@@ -87,13 +87,13 @@ class SlotTicker(BaseService):
                         SlotTickEvent(
                             slot=slot,
                             elapsed_time=elapsed_time,
-                            is_second_half_slot=is_second_half_slot,
+                            is_second_tick=is_second_tick,
                         ),
                         BroadcastConfig(internal=True),
                     )
-                    has_sent_second_half_slot_tick = is_second_half_slot
+                    has_sent_second_half_slot_tick = is_second_tick
                 # Case 2: second half of an already ticked slot and it hasn't tick yet
-                elif is_second_half_slot and not has_sent_second_half_slot_tick:
+                elif is_second_tick and not has_sent_second_half_slot_tick:
                     self.logger.debug(
                         bold_green(f"Second half of slot: {slot}")
                     )
@@ -101,7 +101,7 @@ class SlotTicker(BaseService):
                         SlotTickEvent(
                             slot=slot,
                             elapsed_time=elapsed_time,
-                            is_second_half_slot=is_second_half_slot,
+                            is_second_tick=is_second_tick,
                         ),
                         BroadcastConfig(internal=True),
                     )

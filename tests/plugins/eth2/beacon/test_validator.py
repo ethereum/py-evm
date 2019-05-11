@@ -213,7 +213,7 @@ async def test_validator_handle_slot_tick(caplog, event_loop, event_bus, monkeyp
 
     event_new_slot_called = asyncio.Event()
 
-    async def propose_or_skip_block(slot, is_second_half_slot):
+    async def propose_or_skip_block(slot, is_second_tick):
         event_new_slot_called.set()
 
     monkeypatch.setattr(alice, 'propose_or_skip_block', propose_or_skip_block)
@@ -225,7 +225,7 @@ async def test_validator_handle_slot_tick(caplog, event_loop, event_bus, monkeyp
         SlotTickEvent(
             slot=1,
             elapsed_time=2,
-            is_second_half_slot=False,
+            is_second_tick=False,
         ),
         BroadcastConfig(internal=True),
     )
