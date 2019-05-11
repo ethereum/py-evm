@@ -19,9 +19,6 @@ from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
 from eth2.beacon.tools.builder.initializer import (
     create_mock_genesis,
 )
-from eth2.beacon.tools.misc.ssz_vector import (
-    override_vector_lengths,
-)
 
 helpers = importlib.import_module('tests.core.p2p-proto.bcc.helpers')
 
@@ -54,5 +51,3 @@ genesis_data = BeaconGenesisData(
 )
 beacon_chain_config = BeaconChainConfig(chain_name='TestTestTest', genesis_data=genesis_data)
 chain_class = beacon_chain_config.beacon_chain_class
-
-override_vector_lengths(XIAO_LONG_BAO_CONFIG)
