@@ -75,6 +75,7 @@ class Validator(BaseService):
         self.peer_pool = peer_pool
         self.privkey = privkey
         self.event_bus = event_bus
+        # TODO: `latest_proposed_epoch` should be written into/read from validator's own db
         self.latest_proposed_epoch = genesis_epoch
         self.slots_per_epoch = slots_per_epoch
 
@@ -127,6 +128,9 @@ class Validator(BaseService):
                       state: BeaconState,
                       state_machine: BaseBeaconStateMachine,
                       head_block: BaseBeaconBlock) -> BaseBeaconBlock:
+        # TODO: Proposed block should be written into validator's own db.
+        # Before proposing, validator should check it's own db if block has
+        # been proposed for this epoch.
         block = self._make_proposing_block(slot, state, state_machine, head_block)
         self.logger.debug(
             bold_green(f"proposing block, block={block}")
