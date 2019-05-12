@@ -1,7 +1,6 @@
 import logging
 from typing import (
     cast,
-    Tuple,
 )
 
 from cancel_token import (
@@ -14,6 +13,9 @@ from eth_typing import (
 from eth_keys.datatypes import PrivateKey
 
 from eth2.beacon.chains.base import BeaconChain
+from eth2.beacon.helpers import (
+    slot_to_epoch,
+)
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
@@ -25,6 +27,7 @@ from eth2.beacon.tools.builder.proposer import (
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
+    Epoch,
     Slot,
     ValidatorIndex,
 )
@@ -51,7 +54,8 @@ class Validator(BaseService):
     peer_pool: BCCPeerPool
     privkey: PrivateKey
     event_bus: TrinityEventBusEndpoint
-    slots_proposed: Tuple[Slot, ...]
+    slots_per_epoch: int
+    latest_proposed_epoch: Epoch
 
     logger = logging.getLogger('trinity.plugins.eth2.beacon.Validator')
 
@@ -62,6 +66,8 @@ class Validator(BaseService):
             peer_pool: BCCPeerPool,
             privkey: PrivateKey,
             event_bus: TrinityEventBusEndpoint,
+            genesis_epoch: Epoch,
+            slots_per_epoch: int,
             token: CancelToken = None) -> None:
         super().__init__(token)
         self.validator_index = validator_index
@@ -69,7 +75,8 @@ class Validator(BaseService):
         self.peer_pool = peer_pool
         self.privkey = privkey
         self.event_bus = event_bus
-        self.slots_proposed = tuple()
+        self.latest_proposed_epoch = genesis_epoch
+        self.slots_per_epoch = slots_per_epoch
 
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()
@@ -96,16 +103,17 @@ class Validator(BaseService):
             slot,
             state_machine.config,
         )
-        # Since it's expected to tick twice for one slot, `slots_proposed` is used to prevent
+        # Since it's expected to tick twice in one slot, `latest_proposed_epoch` is used to prevent
         # proposing twice in the same slot.
-        if slot not in self.slots_proposed and self.validator_index == proposer_index:
+        has_proposed = slot_to_epoch(slot, self.slots_per_epoch) <= self.latest_proposed_epoch
+        if not has_proposed and self.validator_index == proposer_index:
             self.propose_block(
                 slot=slot,
                 state=state,
                 state_machine=state_machine,
                 head_block=head,
             )
-            self.slots_proposed += (Slot(slot),)
+            self.latest_proposed_epoch = slot_to_epoch(slot, self.slots_per_epoch)
         # skip the block if it's second half of the slot and we are not proposing
         elif is_second_tick and self.validator_index != proposer_index:
             self.skip_block(

@@ -80,6 +80,8 @@ async def get_validator(event_loop, event_bus, index) -> Validator:
         peer_pool=peer_pool,
         privkey=keymap[index_to_pubkey[index]],
         event_bus=event_bus,
+        genesis_epoch=XIAO_LONG_BAO_CONFIG.GENESIS_EPOCH,
+        slots_per_epoch=XIAO_LONG_BAO_CONFIG.SLOTS_PER_EPOCH,
     )
     asyncio.ensure_future(v.run(), loop=event_loop)
     await v.events.started.wait()
