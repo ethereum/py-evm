@@ -29,7 +29,7 @@ from eth2.configs import Eth2Config
 from eth2.beacon.constants import (
     ZERO_TIMESTAMP,
 )
-from eth2.beacon.on_genesis import (
+from eth2.beacon.genesis import (
     get_genesis_block,
     get_genesis_beacon_state,
 )

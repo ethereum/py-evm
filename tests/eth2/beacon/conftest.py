@@ -26,7 +26,7 @@ from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
 
-from eth2.beacon.on_genesis import (
+from eth2.beacon.genesis import (
     get_genesis_block,
 )
 from eth2.beacon.tools.misc.ssz_vector import (
