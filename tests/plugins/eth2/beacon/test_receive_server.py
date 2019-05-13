@@ -323,7 +323,7 @@ async def test_bcc_receive_request_block_by_root(request, event_loop):
     blocks = get_blocks(bob_recv_server, num_blocks=1)
 
     # test: request from bob is issued and received by alice
-    bob_recv_server._request_block_by_root(blocks[0].signing_root)
+    bob_recv_server._request_block_from_peers(blocks[0].signing_root)
     req = await alice_msg_buffer.msg_queue.get()
     assert req.payload['block_slot_or_root'] == blocks[0].signing_root
 
@@ -332,7 +332,7 @@ async def test_bcc_receive_request_block_by_root(request, event_loop):
         blocks[0],
         SerenityBeaconBlock,
     )
-    bob_recv_server._request_block_by_root(blocks[0].signing_root)
+    bob_recv_server._request_block_from_peers(blocks[0].signing_root)
     msg_block = await bob_msg_queue.get()
     assert blocks[0] == parse_resp_block_msg(msg_block)
 
@@ -345,14 +345,14 @@ async def test_bcc_receive_server_process_received_block(request, event_loop, mo
     )
     block_not_orphan, block_orphan = get_blocks(bob_recv_server, num_blocks=2)
 
-    # test: if the block is an orphan, puts it in the orphan pool, calls `_request_block_by_root`,
-    #   and returns `False`.
+    # test: if the block is an orphan, puts it in the orphan pool, calls
+    #   `_request_block_from_peers`, and returns `False`.
     event = asyncio.Event()
 
-    def _request_block_by_root(block_root):
+    def _request_block_from_peers(block_root):
         event.set()
     with monkeypatch.context() as m:
-        m.setattr(bob_recv_server, '_request_block_by_root', _request_block_by_root)
+        m.setattr(bob_recv_server, '_request_block_from_peers', _request_block_from_peers)
         assert not bob_recv_server._process_received_block(block_orphan)
         assert bob_recv_server.orphan_block_pool.get(block_orphan.signing_root) == block_orphan
         assert event.is_set()

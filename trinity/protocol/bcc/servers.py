@@ -205,7 +205,7 @@ class OrphanBlockPool:
             return
         self._pool.add(block)
 
-    def pop_children(self, block_root: BaseBeaconBlock) -> Tuple[BaseBeaconBlock, ...]:
+    def pop_children(self, block_root: Hash32) -> Tuple[BaseBeaconBlock, ...]:
         children = tuple(
             orphan_block
             for orphan_block in self._pool
@@ -246,8 +246,6 @@ class BCCReceiveServer(BaseReceiveServer):
             raise Exception(f"Invariant: Only subscribed to {self.subscription_msg_types}")
 
     async def _handle_beacon_blocks(self, peer: BCCPeer, msg: BeaconBlocksMessage) -> None:
-        """
-        """
         if not peer.is_operational:
             return
         request_id = msg["request_id"]
@@ -290,7 +288,7 @@ class BCCReceiveServer(BaseReceiveServer):
             if block not in self.orphan_block_pool:
                 self.logger.debug(f"found orphan block={block}")
                 self.orphan_block_pool.add(block)
-                self._request_block_by_root(block_root=block.previous_block_root)
+                self._request_block_from_peers(block_root=block.previous_block_root)
             return False
         try:
             self.chain.import_block(block)
@@ -309,12 +307,12 @@ class BCCReceiveServer(BaseReceiveServer):
             self._try_import_orphan_blocks(block.signing_root)
             return True
 
-    def _try_import_orphan_blocks(self, parent_root: BeaconBlock) -> None:
+    def _try_import_orphan_blocks(self, parent_root: Hash32) -> None:
         """
         Perform ``chain.import`` on the blocks in ``self.orphan_block_pool`` in breadth-first
         order, starting from the children of ``parent_root``.
         """
-        imported_roots: List[BeaconBlock] = []
+        imported_roots: List[Hash32] = []
 
         imported_roots.append(parent_root)
         while len(imported_roots) != 0:
@@ -338,10 +336,7 @@ class BCCReceiveServer(BaseReceiveServer):
                     # TODO: Possibly drop all of its descendants in `self.orphan_block_pool`?
                     pass
 
-    def _request_block_by_root(self, block_root: Hash32) -> None:
-        """
-        Request a block by its root from the peers.
-        """
+    def _request_block_from_peers(self, block_root: Hash32) -> None:
         for peer in self._peer_pool.connected_nodes.values():
             peer = cast(BCCPeer, peer)
             request_id = gen_request_id()
