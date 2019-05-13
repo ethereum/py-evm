@@ -13,6 +13,9 @@ from eth_typing import (
 from eth_keys.datatypes import PrivateKey
 
 from eth2.beacon.chains.base import BeaconChain
+from eth2.beacon.helpers import (
+    slot_to_epoch,
+)
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
@@ -24,6 +27,7 @@ from eth2.beacon.tools.builder.proposer import (
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
+    Epoch,
     Slot,
     ValidatorIndex,
 )
@@ -40,7 +44,7 @@ from trinity.protocol.bcc.peer import (
     BCCPeerPool,
 )
 from trinity.plugins.eth2.beacon.slot_ticker import (
-    NewSlotEvent,
+    SlotTickEvent,
 )
 
 
@@ -50,6 +54,8 @@ class Validator(BaseService):
     peer_pool: BCCPeerPool
     privkey: PrivateKey
     event_bus: TrinityEventBusEndpoint
+    slots_per_epoch: int
+    latest_proposed_epoch: Epoch
 
     logger = logging.getLogger('trinity.plugins.eth2.beacon.Validator')
 
@@ -60,6 +66,8 @@ class Validator(BaseService):
             peer_pool: BCCPeerPool,
             privkey: PrivateKey,
             event_bus: TrinityEventBusEndpoint,
+            genesis_epoch: Epoch,
+            slots_per_epoch: int,
             token: CancelToken = None) -> None:
         super().__init__(token)
         self.validator_index = validator_index
@@ -67,21 +75,24 @@ class Validator(BaseService):
         self.peer_pool = peer_pool
         self.privkey = privkey
         self.event_bus = event_bus
+        # TODO: `latest_proposed_epoch` should be written into/read from validator's own db
+        self.latest_proposed_epoch = genesis_epoch
+        self.slots_per_epoch = slots_per_epoch
 
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()
         self.logger.debug(bold_green("validator running!!!"))
-        self.run_daemon_task(self.handle_new_slot())
+        self.run_daemon_task(self.handle_slot_tick())
         await self.cancellation()
 
-    async def handle_new_slot(self) -> None:
+    async def handle_slot_tick(self) -> None:
         """
-        The callback for `SlotTicker`, to be called whenever new slot is ticked.
+        The callback for `SlotTicker` and it's expected to be called twice for one slot.
         """
-        async for event in self.event_bus.stream(NewSlotEvent):
-            await self.new_slot(event.slot)
+        async for event in self.event_bus.stream(SlotTickEvent):
+            await self.propose_or_skip_block(event.slot, event.is_second_tick)
 
-    async def new_slot(self, slot: Slot) -> None:
+    async def propose_or_skip_block(self, slot: Slot, is_second_tick: bool) -> None:
         head = self.chain.get_canonical_head()
         state_machine = self.chain.get_state_machine()
         state = state_machine.state
@@ -93,14 +104,19 @@ class Validator(BaseService):
             slot,
             state_machine.config,
         )
-        if self.validator_index == proposer_index:
+        # Since it's expected to tick twice in one slot, `latest_proposed_epoch` is used to prevent
+        # proposing twice in the same slot.
+        has_proposed = slot_to_epoch(slot, self.slots_per_epoch) <= self.latest_proposed_epoch
+        if not has_proposed and self.validator_index == proposer_index:
             self.propose_block(
                 slot=slot,
                 state=state,
                 state_machine=state_machine,
                 head_block=head,
             )
-        else:
+            self.latest_proposed_epoch = slot_to_epoch(slot, self.slots_per_epoch)
+        # skip the block if it's second half of the slot and we are not proposing
+        elif is_second_tick and self.validator_index != proposer_index:
             self.skip_block(
                 slot=slot,
                 state=state,
@@ -112,6 +128,9 @@ class Validator(BaseService):
                       state: BeaconState,
                       state_machine: BaseBeaconStateMachine,
                       head_block: BaseBeaconBlock) -> BaseBeaconBlock:
+        # TODO: Proposed block should be written into validator's own db.
+        # Before proposing, validator should check it's own db if block has
+        # been proposed for this epoch.
         block = self._make_proposing_block(slot, state, state_machine, head_block)
         self.logger.debug(
             bold_green(f"proposing block, block={block}")

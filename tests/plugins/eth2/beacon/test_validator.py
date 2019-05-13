@@ -1,7 +1,6 @@
 import asyncio
-import importlib
 import logging
-import time
+
 from typing import (
     Tuple,
 )
@@ -14,76 +13,30 @@ from lahja import (
 
 import pytest
 
-from py_ecc import bls
-
 from eth.exceptions import BlockNotFound
 
-from trinity.config import (
-    BeaconChainConfig,
-    BeaconGenesisData,
-)
 from trinity.plugins.eth2.beacon.validator import (
     Validator,
 )
 
-from eth2.beacon._utils.hash import (
-    hash_eth2,
-)
-from eth2.beacon.state_machines.forks.serenity.blocks import (
-    SerenityBeaconBlock,
-)
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
     XIAO_LONG_BAO_CONFIG,
-)
-from eth2.beacon.tools.builder.initializer import (
-    create_mock_genesis,
-)
-from eth2.beacon.tools.misc.ssz_vector import (
-    override_vector_lengths,
 )
 from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
 )
 from trinity.plugins.eth2.beacon.slot_ticker import (
-    NewSlotEvent,
+    SlotTickEvent,
 )
 
-
-helpers = importlib.import_module('tests.core.p2p-proto.bcc.helpers')
-
-
-NUM_VALIDATORS = 8
-
-privkeys = tuple(int.from_bytes(
-    hash_eth2(str(i).encode('utf-8'))[:4], 'big')
-    for i in range(NUM_VALIDATORS)
+from .helpers import (
+    chain_class,
+    genesis_state,
+    genesis_block,
+    helpers,
+    index_to_pubkey,
+    keymap,
 )
-index_to_pubkey = {}
-keymap = {}  # pub -> priv
-for i, k in enumerate(privkeys):
-    pubkey = bls.privtopub(k)
-    index_to_pubkey[i] = pubkey
-    keymap[pubkey] = k
-
-genesis_time = int(time.time())
-
-genesis_state, genesis_block = create_mock_genesis(
-    num_validators=NUM_VALIDATORS,
-    config=XIAO_LONG_BAO_CONFIG,
-    keymap=keymap,
-    genesis_block_class=SerenityBeaconBlock,
-    genesis_time=genesis_time,
-)
-genesis_data = BeaconGenesisData(
-    genesis_time=genesis_time,
-    genesis_slot=XIAO_LONG_BAO_CONFIG.GENESIS_SLOT,
-    keymap=keymap,
-    num_validators=NUM_VALIDATORS,
-)
-beacon_chain_config = BeaconChainConfig(chain_name='TestTestTest', genesis_data=genesis_data)
-chain_class = beacon_chain_config.beacon_chain_class
-
-override_vector_lengths(XIAO_LONG_BAO_CONFIG)
 
 
 class FakeProtocol:
@@ -127,6 +80,8 @@ async def get_validator(event_loop, event_bus, index) -> Validator:
         peer_pool=peer_pool,
         privkey=keymap[index_to_pubkey[index]],
         event_bus=event_bus,
+        genesis_epoch=XIAO_LONG_BAO_CONFIG.GENESIS_EPOCH,
+        slots_per_epoch=XIAO_LONG_BAO_CONFIG.SLOTS_PER_EPOCH,
     )
     asyncio.ensure_future(v.run(), loop=event_loop)
     await v.events.started.wait()
@@ -193,6 +148,7 @@ async def test_validator_propose_block_succeeds(caplog, event_loop, event_bus):
         state_machine=state_machine,
         head_block=head,
     )
+
     # test: ensure the proposed block is saved to the chaindb
     assert v.chain.get_block_by_root(block.signing_root) == block
 
@@ -254,23 +210,24 @@ async def test_validator_skip_block(caplog, event_loop, event_bus):
 
 
 @pytest.mark.asyncio
-async def test_validator_handle_new_slot(caplog, event_loop, event_bus, monkeypatch):
+async def test_validator_handle_slot_tick(caplog, event_loop, event_bus, monkeypatch):
     alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=0)
 
     event_new_slot_called = asyncio.Event()
 
-    async def new_slot(slot):
+    async def propose_or_skip_block(slot, is_second_tick):
         event_new_slot_called.set()
 
-    monkeypatch.setattr(alice, 'new_slot', new_slot)
+    monkeypatch.setattr(alice, 'propose_or_skip_block', propose_or_skip_block)
 
     # sleep for `event_bus` ready
     await asyncio.sleep(0.01)
 
     await event_bus.broadcast(
-        NewSlotEvent(
+        SlotTickEvent(
             slot=1,
             elapsed_time=2,
+            is_second_tick=False,
         ),
         BroadcastConfig(internal=True),
     )
@@ -309,7 +266,7 @@ async def test_validator_new_slot(caplog, event_loop, event_bus, monkeypatch):
     monkeypatch.setattr(alice, 'propose_block', propose_block)
     monkeypatch.setattr(alice, 'skip_block', skip_block)
 
-    await alice.new_slot(new_slot)
+    await alice.propose_or_skip_block(new_slot, True)
 
     # test: either `propose_block` or `skip_block` should be called.
     assert is_proposing is not None

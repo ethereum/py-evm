@@ -14,7 +14,6 @@ from eth.constants import (
 )
 from eth.db.atomic import AtomicDB
 
-from eth2.configs import Eth2Config
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.types.blocks import (
     BeaconBlock,
@@ -39,17 +38,10 @@ from eth2.beacon.constants import (
 from tests.core.integration_test_helpers import (
     async_passthrough,
 )
-from eth.db.backends.base import (
-    BaseAtomicDB,
-)
 from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
 
 
 class FakeAsyncBeaconChainDB(BaseAsyncBeaconChainDB, BeaconChainDB):
-
-    def __init__(self, db: BaseAtomicDB, config: Eth2Config) -> None:
-        self.db = db
-        self.config = config
 
     coro_persist_block = async_passthrough('persist_block')
     coro_get_canonical_block_root = async_passthrough('get_canonical_block_root')

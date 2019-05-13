@@ -45,15 +45,12 @@ from trinity.protocol.bcc.servers import (
 )
 
 from .helpers import (
-    FakeAsyncBeaconChainDB,
-    get_genesis_chain_db,
-    create_test_block,
-    get_directly_linked_peers_in_peer_pools,
+    helpers,
 )
 
 
 class FakeChain(TestnetChain):
-    chaindb_class = FakeAsyncBeaconChainDB
+    chaindb_class = helpers.FakeAsyncBeaconChainDB
 
     def import_block(
             self,
@@ -76,7 +73,7 @@ class FakeChain(TestnetChain):
 
 
 async def get_fake_chain() -> FakeChain:
-    chain_db = await get_genesis_chain_db(config=XIAO_LONG_BAO_CONFIG)
+    chain_db = await helpers.get_genesis_chain_db(config=XIAO_LONG_BAO_CONFIG)
     return FakeChain(base_db=chain_db.db, config=XIAO_LONG_BAO_CONFIG)
 
 
@@ -103,7 +100,9 @@ async def get_peer_and_receive_server(request, event_loop) -> Tuple[
     alice_chain = await get_fake_chain()
     bob_chain = await get_fake_chain()
 
-    alice, alice_peer_pool, bob, bob_peer_pool = await get_directly_linked_peers_in_peer_pools(
+    (
+        alice, alice_peer_pool, bob, bob_peer_pool
+    ) = await helpers.get_directly_linked_peers_in_peer_pools(
         request,
         event_loop,
         alice_chain_db=alice_chain.chaindb,
@@ -147,9 +146,9 @@ async def get_peer_and_receive_server(request, event_loop) -> Tuple[
 
 def test_orphan_block_pool():
     pool = OrphanBlockPool()
-    b0 = create_test_block()
-    b1 = create_test_block(parent=b0)
-    b2 = create_test_block(parent=b0, state_root=b"\x11" * 32)
+    b0 = helpers.create_test_block()
+    b1 = helpers.create_test_block(parent=b0)
+    b2 = helpers.create_test_block(parent=b0, state_root=b"\x11" * 32)
     # test: add
     pool.add(b1)
     assert b1 in pool._pool

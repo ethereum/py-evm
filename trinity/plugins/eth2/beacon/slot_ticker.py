@@ -23,13 +23,14 @@ from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
 
-DEFAULT_CHECK_FREQUENCY = 5
+DEFAULT_CHECK_FREQUENCY = 6
 
 
-class NewSlotEvent(BaseEvent):
-    def __init__(self, slot: Slot, elapsed_time: Second):
+class SlotTickEvent(BaseEvent):
+    def __init__(self, slot: Slot, elapsed_time: Second, is_second_tick: bool):
         self.slot = slot
         self.elapsed_time = elapsed_time
+        self.is_second_tick = is_second_tick
 
 
 class SlotTicker(BaseService):
@@ -60,20 +61,50 @@ class SlotTicker(BaseService):
         await self.cancellation()
 
     async def _keep_ticking(self) -> None:
+        """
+        Ticker should tick twice in one slot:
+        one for a new slot, one for the second half of an already ticked slot,
+        e.g., if `seconds_per_slot` is `6`, for slot `49` it should tick once
+        for the first 3 seconds and once for the last 3 seconds.
+        """
+        # `has_sent_second_half_slot_tick` is used to prevent another tick
+        # for the second half of a ticked slot.
+        has_sent_second_half_slot_tick = False
         while self.is_operational:
             elapsed_time = Second(int(time.time()) - self.genesis_time)
             if elapsed_time >= self.seconds_per_slot:
                 slot = Slot(elapsed_time // self.seconds_per_slot + self.genesis_slot)
+                is_second_tick = (
+                    (elapsed_time % self.seconds_per_slot) >= (self.seconds_per_slot / 2)
+                )
+                # Case 1: new slot
                 if slot > self.latest_slot:
                     self.logger.debug(
                         bold_green(f"New slot: {slot}\tElapsed time: {elapsed_time}")
                     )
                     self.latest_slot = slot
                     await self.event_bus.broadcast(
-                        NewSlotEvent(
+                        SlotTickEvent(
                             slot=slot,
                             elapsed_time=elapsed_time,
+                            is_second_tick=is_second_tick,
                         ),
                         BroadcastConfig(internal=True),
                     )
+                    has_sent_second_half_slot_tick = is_second_tick
+                # Case 2: second half of an already ticked slot and it hasn't tick yet
+                elif is_second_tick and not has_sent_second_half_slot_tick:
+                    self.logger.debug(
+                        bold_green(f"Second half of slot: {slot}")
+                    )
+                    await self.event_bus.broadcast(
+                        SlotTickEvent(
+                            slot=slot,
+                            elapsed_time=elapsed_time,
+                            is_second_tick=is_second_tick,
+                        ),
+                        BroadcastConfig(internal=True),
+                    )
+                    has_sent_second_half_slot_tick = True
+
             await asyncio.sleep(self.seconds_per_slot // DEFAULT_CHECK_FREQUENCY)
