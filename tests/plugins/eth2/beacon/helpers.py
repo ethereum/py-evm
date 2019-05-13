@@ -2,11 +2,6 @@ import importlib
 
 from py_ecc import bls
 
-from trinity.config import (
-    BeaconChainConfig,
-    BeaconGenesisData,
-)
-
 from eth2._utils.hash import (
     hash_eth2,
 )
@@ -43,11 +38,3 @@ genesis_state, genesis_block = create_mock_genesis(
     genesis_block_class=SerenityBeaconBlock,
     genesis_time=0,
 )
-genesis_data = BeaconGenesisData(
-    genesis_time=0,
-    genesis_slot=XIAO_LONG_BAO_CONFIG.GENESIS_SLOT,
-    keymap=keymap,
-    num_validators=NUM_VALIDATORS,
-)
-beacon_chain_config = BeaconChainConfig(chain_name='TestTestTest', genesis_data=genesis_data)
-chain_class = beacon_chain_config.beacon_chain_class
