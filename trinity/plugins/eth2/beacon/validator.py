@@ -104,7 +104,7 @@ class Validator(BaseService):
         # Since it's expected to tick twice in one slot, `latest_proposed_epoch` is used to prevent
         # proposing twice in the same slot.
         has_proposed = slot_to_epoch(slot, self.slots_per_epoch) <= self.latest_proposed_epoch
-        if not has_proposed and self.validator_index == proposer_index:
+        if not has_proposed and proposer_index in self.validator_privkeys:
             self.propose_block(
                 proposer_index=proposer_index,
                 slot=slot,
@@ -114,7 +114,7 @@ class Validator(BaseService):
             )
             self.latest_proposed_epoch = slot_to_epoch(slot, self.slots_per_epoch)
         # skip the block if it's second half of the slot and we are not proposing
-        elif is_second_tick and self.validator_index != proposer_index:
+        elif is_second_tick and proposer_index not in self.validator_privkeys:
             self.skip_block(
                 slot=slot,
                 state=state,

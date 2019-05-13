@@ -19,6 +19,9 @@ from trinity.plugins.eth2.beacon.validator import (
     Validator,
 )
 
+from eth2.beacon.helpers import (
+    slot_to_epoch,
+)
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
     XIAO_LONG_BAO_CONFIG,
 )
@@ -248,17 +251,65 @@ async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_validator_new_slot(event_loop, event_bus, monkeypatch):
+async def test_validator_propose_or_skip_block_propose(event_loop, event_bus, monkeypatch):
     alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=0)
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
-    new_slot = state.slot + 1
-    # test: `new_slot` should call `propose_block` if the validator get selected,
+
+    # test: `propose_or_skip_block` should call `propose_block` if the validator get selected,
     #   else calls `skip_block`.
-    index = _get_proposer_index(
-        state,
-        new_slot,
-        state_machine.config,
+    def is_desired_proposer_index(proposer_index):
+        if proposer_index in alice.validator_privkeys:
+            return True
+        return False
+
+    slot, index = _get_slot_with_validator_selected(
+        is_desired_proposer_index=is_desired_proposer_index,
+        start_slot=state.slot + 1,
+        state=state,
+        state_machine=state_machine,
+    )
+    alice.latest_proposed_epoch = slot_to_epoch(slot, alice.slots_per_epoch) - 1
+
+    is_proposing = None
+
+    def propose_block(proposer_index, slot, state, state_machine, head_block):
+        nonlocal is_proposing
+        is_proposing = True
+
+    def skip_block(slot, state, state_machine):
+        nonlocal is_proposing
+        is_proposing = False
+
+    monkeypatch.setattr(alice, 'propose_block', propose_block)
+    monkeypatch.setattr(alice, 'skip_block', skip_block)
+
+    await alice.propose_or_skip_block(slot, False)
+
+    # test: either `propose_block` or `skip_block` should be called.
+    assert is_proposing
+
+
+async def test_validator_propose_or_skip_block_skip(event_loop, event_bus, monkeypatch):
+    alice, bob = await get_linked_validators(event_loop=event_loop, event_bus=event_bus)
+    state_machine = alice.chain.get_state_machine()
+    state = state_machine.state
+
+    # test: `propose_or_skip_block` should call `propose_block` if the validator get selected,
+    #   else calls `skip_block`.
+    def is_desired_proposer_index(proposer_index):
+        if (
+            proposer_index not in alice.validator_privkeys and
+            proposer_index not in bob.validator_privkeys
+        ):
+            return True
+        return False
+
+    slot, index = _get_slot_with_validator_selected(
+        is_desired_proposer_index=is_desired_proposer_index,
+        start_slot=state.slot + 1,
+        state=state,
+        state_machine=state_machine,
     )
 
     is_proposing = None
@@ -274,11 +325,8 @@ async def test_validator_new_slot(event_loop, event_bus, monkeypatch):
     monkeypatch.setattr(alice, 'propose_block', propose_block)
     monkeypatch.setattr(alice, 'skip_block', skip_block)
 
-    await alice.propose_or_skip_block(new_slot, True)
+    await alice.propose_or_skip_block(slot, False)
+    assert not is_proposing
 
-    # test: either `propose_block` or `skip_block` should be called.
-    assert is_proposing is not None
-    if index in alice.validator_privkeys:
-        assert is_proposing
-    else:
-        assert not is_proposing
+    await alice.propose_or_skip_block(slot, True)
+    assert is_proposing
