@@ -29,6 +29,7 @@ from .common import (  # noqa: F401
     _calc_parent_hash,
     _hash_layer,
     get_branch_indices,
+    get_merkle_proof,
     get_root,
     MerkleTree,
     MerkleProof,
