@@ -22,7 +22,7 @@ from ssz.tools import (
     to_formatted_dict,
 )
 
-from eth2.beacon._utils.hash import (
+from eth2._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.state_machines.forks.xiao_long_bao import (

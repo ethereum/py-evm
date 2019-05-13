@@ -16,10 +16,10 @@ from eth_utils.toolz import (
     iterate,
     take,
 )
-from eth2._utils.tuple import update_tuple_item
-from eth2.beacon._utils.hash import (
+from eth2._utils.hash import (
     hash_eth2,
 )
+from eth2._utils.tuple import update_tuple_item
 from eth_typing import (
     Hash32,
 )

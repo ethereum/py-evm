@@ -15,6 +15,9 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
+from eth2._utils.hash import (
+    hash_eth2,
+)
 from eth2._utils.merkle.common import (
     get_merkle_proof,
 )
@@ -23,9 +26,6 @@ from eth2._utils.merkle.sparse import (
     get_merkle_root,
 )
 from eth2.configs import Eth2Config
-from eth2.beacon._utils.hash import (
-    hash_eth2,
-)
 from eth2.beacon.constants import (
     ZERO_TIMESTAMP,
 )

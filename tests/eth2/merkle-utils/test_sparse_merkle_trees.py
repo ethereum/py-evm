@@ -1,13 +1,13 @@
 import pytest
 
+from eth2._utils.hash import (
+    hash_eth2,
+)
 from eth2._utils.merkle.sparse import (
     calc_merkle_tree,
     get_merkle_proof,
     get_root,
     verify_merkle_proof,
-)
-from eth2.beacon._utils.hash import (
-    hash_eth2,
 )
 
 

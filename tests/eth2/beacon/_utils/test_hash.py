@@ -1,5 +1,6 @@
-from eth2.beacon._utils.hash import hash_eth2
 from eth_hash.auto import keccak
+
+from eth2._utils.hash import hash_eth2
 
 
 def test_hash():

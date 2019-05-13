@@ -23,6 +23,9 @@ from eth2._utils.bitfield import (
     set_voted,
     get_empty_bitfield,
 )
+from eth2._utils.hash import (
+    hash_eth2,
+)
 from eth2.configs import (
     CommitteeConfig,
 )
@@ -45,9 +48,6 @@ from eth2.beacon.helpers import (
 from eth2.beacon.epoch_processing_helpers import (
     get_base_reward,
     get_effective_balance,
-)
-from eth2.beacon._utils.hash import (
-    hash_eth2,
 )
 from eth2.beacon.datastructures.inclusion_info import InclusionInfo
 from eth2.beacon.types.attestations import Attestation

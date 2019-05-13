@@ -7,7 +7,7 @@ from trinity.config import (
     BeaconGenesisData,
 )
 
-from eth2.beacon._utils.hash import (
+from eth2._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.state_machines.forks.serenity.blocks import (

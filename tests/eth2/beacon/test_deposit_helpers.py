@@ -6,15 +6,15 @@ from eth_utils import (
 
 import ssz
 
+from eth2._utils.hash import (
+    hash_eth2,
+)
 from eth2._utils.merkle.common import (
     get_merkle_proof,
 )
 from eth2._utils.merkle.sparse import (
     calc_merkle_tree_from_leaves,
     get_merkle_root,
-)
-from eth2.beacon._utils.hash import (
-    hash_eth2,
 )
 
 from eth2.beacon.deposit_helpers import (

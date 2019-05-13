@@ -2,11 +2,11 @@ from eth_utils.toolz import (
     first,
 )
 
+from eth2._utils.hash import hash_eth2
 from eth2._utils.tuple import update_tuple_item
 from eth2._utils.numeric import (
     bitwise_xor,
 )
-from eth2.beacon._utils.hash import hash_eth2
 
 from eth2.configs import (
     Eth2Config,
