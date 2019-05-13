@@ -22,23 +22,19 @@ SERENITY_CONFIG = Eth2Config(
     # Misc
     SHARD_COUNT=2**10,  # (= 1,024) shards
     TARGET_COMMITTEE_SIZE=2**7,  # (= 128) validators
-    EJECTION_BALANCE=Gwei(2**4 * GWEI_PER_ETH),  # (= 16,000,000,000) Gwei
     MAX_BALANCE_CHURN_QUOTIENT=2**5,  # (= 32)
-    BEACON_CHAIN_SHARD_NUMBER=Shard(2**64 - 1),
     MAX_INDICES_PER_SLASHABLE_VOTE=2**12,  # (= 4,096) votes
     MAX_EXIT_DEQUEUES_PER_EPOCH=2**2,  # (= 4)
     SHUFFLE_ROUND_COUNT=90,
-    # State list lengths
-    SLOTS_PER_HISTORICAL_ROOT=2**13,  # (= 8,192) slots
-    LATEST_ACTIVE_INDEX_ROOTS_LENGTH=2**13,  # (= 8,192) epochs
-    LATEST_RANDAO_MIXES_LENGTH=2**13,  # (= 8,192) epochs
-    LATEST_SLASHED_EXIT_LENGTH=2**13,  # (= 8,192) epochs
     # Deposit contract
     DEPOSIT_CONTRACT_ADDRESS=ZERO_ADDRESS,  # TBD
     DEPOSIT_CONTRACT_TREE_DEPTH=2**5,  # (= 32)
+    # Gwei values
     MIN_DEPOSIT_AMOUNT=Gwei(2**0 * GWEI_PER_ETH),  # (= 1,000,000,000) Gwei
     MAX_DEPOSIT_AMOUNT=Gwei(2**5 * GWEI_PER_ETH),  # (= 32,000,000,00) Gwei
-    # Genesis values
+    FORK_CHOICE_BALANCE_INCREMENT=Gwei(2**0 * GWEI_PER_ETH),  # (= 1,000,000,000) Gwei
+    EJECTION_BALANCE=Gwei(2**4 * GWEI_PER_ETH),  # (= 16,000,000,000) Gwei
+    # Initial values
     GENESIS_FORK_VERSION=0,
     GENESIS_SLOT=GENESIS_SLOT,
     GENESIS_EPOCH=slot_to_epoch(GENESIS_SLOT, SLOTS_PER_EPOCH),
@@ -53,6 +49,11 @@ SERENITY_CONFIG = Eth2Config(
     EPOCHS_PER_ETH1_VOTING_PERIOD=2**4,  # (= 16) epochs
     MIN_VALIDATOR_WITHDRAWABILITY_DELAY=2**8,  # (= 256) epochs
     PERSISTENT_COMMITTEE_PERIOD=2**11,  # (= 2,048) epochs
+    # State list lengths
+    SLOTS_PER_HISTORICAL_ROOT=2**13,  # (= 8,192) slots
+    LATEST_ACTIVE_INDEX_ROOTS_LENGTH=2**13,  # (= 8,192) epochs
+    LATEST_RANDAO_MIXES_LENGTH=2**13,  # (= 8,192) epochs
+    LATEST_SLASHED_EXIT_LENGTH=2**13,  # (= 8,192) epochs
     # Reward and penalty quotients
     BASE_REWARD_QUOTIENT=2**10,  # (= 1,024)
     WHISTLEBLOWER_REWARD_QUOTIENT=2**9,  # (= 512)

@@ -60,7 +60,6 @@ from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
     Bitfield,
     Epoch,
-    Shard,
     Slot,
     ValidatorIndex,
 )
@@ -101,7 +100,6 @@ def validate_block_previous_root(state: BeaconState,
 #
 def validate_proposer_signature(state: BeaconState,
                                 block: BaseBeaconBlock,
-                                beacon_chain_shard_number: Shard,
                                 committee_config: CommitteeConfig) -> None:
     message_hash = block.signing_root
 

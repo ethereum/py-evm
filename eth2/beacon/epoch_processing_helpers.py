@@ -94,6 +94,8 @@ def _filter_attestations_by_latest_crosslinks_and_shard(
         shard: Shard) -> Iterable[PendingAttestation]:
     for attestation in attestations:
         is_latest_crosslink_matched = attestation.data.previous_crosslink == latest_crosslink
+        # NOTE: v0.5.1 doesn't check is_shard_matched but it's fixed in v0.6.0
+        # We implemented ahead here.
         is_shard_matched = attestation.data.shard == shard
         if is_latest_crosslink_matched and is_shard_matched:
             yield attestation

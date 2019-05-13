@@ -98,11 +98,7 @@ def test_validate_proposer_slashing_headers(genesis_state,
         (True, False),
     ],
 )
-def test_validate_proposer_slashing_is_slashed(slots_per_epoch,
-                                               genesis_state,
-                                               beacon_chain_shard_number,
-                                               keymap,
-                                               slashed,
+def test_validate_proposer_slashing_is_slashed(slashed,
                                                success):
     # Invalid
     if success:
