@@ -227,7 +227,7 @@ class BaseState(Configurable, ABC):
         Perform a full snapshot of the current state.
 
         Snapshots are a combination of the :attr:`~state_root` at the time of the
-        snapshot and the id of the changeset from the journaled DB.
+        snapshot and the checkpoint from the journaled DB.
         """
         return self.state_root, self._account_db.record()
 
@@ -245,7 +245,7 @@ class BaseState(Configurable, ABC):
     def commit(self, snapshot: Tuple[Hash32, UUID]) -> None:
         """
         Commit the journal to the point where the snapshot was taken.  This
-        will merge in any changesets that were recorded *after* the snapshot changeset.
+        merges in any changes that were recorded since the snapshot.
         """
         _, account_snapshot = snapshot
         self._account_db.commit(account_snapshot)

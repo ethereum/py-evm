@@ -6,7 +6,6 @@ from typing import (  # noqa: F401
     Set,
     Tuple,
 )
-from uuid import UUID
 
 from eth_hash.auto import keccak
 from eth_typing import (
@@ -38,6 +37,9 @@ from eth.db.cache import (
 )
 from eth.db.journal import (
     JournalDB,
+)
+from eth.db.typing import (
+    JournalDBCheckpoint,
 )
 from eth.tools.logging import (
     ExtendedDebugLogger
@@ -213,24 +215,24 @@ class AccountStorageDB:
         self._journal_storage.clear()
         self._storage_cache.reset_cache()
 
-    def record(self, changeset: UUID) -> None:
-        self._journal_storage.record(changeset)
+    def record(self, checkpoint: JournalDBCheckpoint) -> None:
+        self._journal_storage.record(checkpoint)
 
-    def discard(self, changeset: UUID) -> None:
-        self.logger.debug2('discard checkpoint %r', changeset)
-        if self._journal_storage.has_changeset(changeset):
-            self._journal_storage.discard(changeset)
+    def discard(self, checkpoint: JournalDBCheckpoint) -> None:
+        self.logger.debug2('discard checkpoint %r', checkpoint)
+        if self._journal_storage.has_checkpoint(checkpoint):
+            self._journal_storage.discard(checkpoint)
         else:
-            # if the changeset comes before this account started tracking,
+            # if the checkpoint comes before this account started tracking,
             #    then simply reset to the beginning
             self._journal_storage.reset()
         self._storage_cache.reset_cache()
 
-    def commit(self, changeset: UUID) -> None:
-        if self._journal_storage.has_changeset(changeset):
-            self._journal_storage.commit(changeset)
+    def commit(self, checkpoint: JournalDBCheckpoint) -> None:
+        if self._journal_storage.has_checkpoint(checkpoint):
+            self._journal_storage.commit(checkpoint)
         else:
-            # if the changeset comes before this account started tracking,
+            # if the checkpoint comes before this account started tracking,
             #    then flatten all changes, without persisting
             self._journal_storage.flatten()
 

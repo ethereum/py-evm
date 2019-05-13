@@ -1,14 +1,15 @@
-from uuid import uuid4
-
 from eth_utils import ValidationError
 from hypothesis import (
     given,
+    settings,
     strategies as st,
 )
+from hypothesis.stateful import Bundle, RuleBasedStateMachine, rule
 import pytest
 
 from eth.db.backends.memory import MemoryDB
 from eth.db.journal import JournalDB
+from eth.db.slow_journal import JournalDB as SlowJournalDB
 
 
 @pytest.fixture
@@ -61,13 +62,13 @@ def test_snapshot_and_revert_with_set(journal_db):
 
     assert journal_db.get(b'1') == b'test-a'
 
-    changeset = journal_db.record()
+    checkpoint = journal_db.record()
 
     journal_db.set(b'1', b'test-b')
 
     assert journal_db.get(b'1') == b'test-b'
 
-    journal_db.discard(changeset)
+    journal_db.discard(checkpoint)
 
     assert journal_db.get(b'1') == b'test-a'
 
@@ -77,34 +78,34 @@ def test_custom_snapshot_and_revert_with_set(journal_db):
 
     assert journal_db.get(b'1') == b'test-a'
 
-    custom_changeset = uuid4()
-    changeset = journal_db.record(custom_changeset)
+    custom_checkpoint = -1
+    checkpoint = journal_db.record(custom_checkpoint)
 
-    assert journal_db.has_changeset(custom_changeset)
-    assert changeset == custom_changeset
+    assert journal_db.has_checkpoint(custom_checkpoint)
+    assert checkpoint == custom_checkpoint
 
     journal_db.set(b'1', b'test-b')
 
     assert journal_db.get(b'1') == b'test-b'
 
-    journal_db.discard(changeset)
+    journal_db.discard(checkpoint)
 
-    assert not journal_db.has_changeset(custom_changeset)
+    assert not journal_db.has_checkpoint(custom_checkpoint)
 
     assert journal_db.get(b'1') == b'test-a'
 
 
 def test_custom_snapshot_revert_on_reuse(journal_db):
-    custom_changeset = uuid4()
-    journal_db.record(custom_changeset)
+    custom_checkpoint = -1
+    journal_db.record(custom_checkpoint)
 
-    auto_changeset = journal_db.record()
-
-    with pytest.raises(ValidationError):
-        journal_db.record(custom_changeset)
+    auto_checkpoint = journal_db.record()
 
     with pytest.raises(ValidationError):
-        journal_db.record(auto_changeset)
+        journal_db.record(custom_checkpoint)
+
+    with pytest.raises(ValidationError):
+        journal_db.record(auto_checkpoint)
 
 
 def test_snapshot_and_revert_with_delete(journal_db):
@@ -113,13 +114,13 @@ def test_snapshot_and_revert_with_delete(journal_db):
     assert journal_db.exists(b'1') is True
     assert journal_db.get(b'1') == b'test-a'
 
-    changeset = journal_db.record()
+    checkpoint = journal_db.record()
 
     journal_db.delete(b'1')
 
     assert journal_db.exists(b'1') is False
 
-    journal_db.discard(changeset)
+    journal_db.discard(checkpoint)
 
     assert journal_db.exists(b'1') is True
     assert journal_db.get(b'1') == b'test-a'
@@ -132,7 +133,7 @@ def test_snapshot_and_revert_with_clear(journal_db, memory_db):
     journal_db.set(b'wrapped-and-journal', b'C')
     journal_db.set(b'only-in-journal', b'D')
 
-    changeset = journal_db.record()
+    checkpoint = journal_db.record()
 
     journal_db.clear()
 
@@ -148,7 +149,7 @@ def test_snapshot_and_revert_with_clear(journal_db, memory_db):
     with pytest.raises(KeyError):
         journal_db[b'only-in-journal']
 
-    journal_db.discard(changeset)
+    journal_db.discard(checkpoint)
 
     assert journal_db.exists(b'only-in-wrapped') is True
     assert journal_db[b'only-in-wrapped'] == b'A'
@@ -165,7 +166,7 @@ def test_revert_clears_reverted_journal_entries(journal_db):
 
     assert journal_db.get(b'1') == b'test-a'
 
-    changeset_a = journal_db.record()
+    checkpoint_a = journal_db.record()
 
     journal_db.set(b'1', b'test-b')
     journal_db.delete(b'1')
@@ -173,7 +174,7 @@ def test_revert_clears_reverted_journal_entries(journal_db):
 
     assert journal_db.get(b'1') == b'test-c'
 
-    changeset_b = journal_db.record()
+    checkpoint_b = journal_db.record()
 
     journal_db.set(b'1', b'test-d')
     journal_db.delete(b'1')
@@ -181,7 +182,7 @@ def test_revert_clears_reverted_journal_entries(journal_db):
 
     assert journal_db.get(b'1') == b'test-e'
 
-    journal_db.discard(changeset_b)
+    journal_db.discard(checkpoint_b)
 
     assert journal_db.get(b'1') == b'test-c'
 
@@ -189,52 +190,61 @@ def test_revert_clears_reverted_journal_entries(journal_db):
 
     assert journal_db.exists(b'1') is False
 
-    journal_db.discard(changeset_a)
+    journal_db.discard(checkpoint_a)
 
     assert journal_db.get(b'1') == b'test-a'
 
 
 def test_revert_removes_journal_entries(journal_db):
 
-    changeset_a = journal_db.record()  # noqa: F841
-    assert len(journal_db.journal.journal_data) == 2
+    checkpoint_a = journal_db.record()
+    assert journal_db.has_checkpoint(checkpoint_a)
 
-    changeset_b = journal_db.record()
-    assert len(journal_db.journal.journal_data) == 3
+    checkpoint_b = journal_db.record()
+    assert journal_db.has_checkpoint(checkpoint_a)
+    assert journal_db.has_checkpoint(checkpoint_b)
 
-    # Forget *latest* changeset and prove it's the only one removed
-    journal_db.discard(changeset_b)
-    assert len(journal_db.journal.journal_data) == 2
+    # Forget *latest* checkpoint and prove it's the only one removed
+    journal_db.discard(checkpoint_b)
+    assert journal_db.has_checkpoint(checkpoint_a)
+    assert not journal_db.has_checkpoint(checkpoint_b)
 
-    changeset_b2 = journal_db.record()
-    assert len(journal_db.journal.journal_data) == 3
+    checkpoint_b2 = journal_db.record()
+    assert journal_db.has_checkpoint(checkpoint_a)
+    assert journal_db.has_checkpoint(checkpoint_b2)
 
-    changeset_c = journal_db.record()  # noqa: F841
-    assert len(journal_db.journal.journal_data) == 4
+    checkpoint_c = journal_db.record()
+    assert journal_db.has_checkpoint(checkpoint_a)
+    assert journal_db.has_checkpoint(checkpoint_b2)
+    assert journal_db.has_checkpoint(checkpoint_c)
 
-    changeset_d = journal_db.record()  # noqa: F841
-    assert len(journal_db.journal.journal_data) == 5
+    checkpoint_d = journal_db.record()
+    assert journal_db.has_checkpoint(checkpoint_a)
+    assert journal_db.has_checkpoint(checkpoint_b2)
+    assert journal_db.has_checkpoint(checkpoint_c)
+    assert journal_db.has_checkpoint(checkpoint_d)
 
     # Forget everything from b2 (inclusive) and what follows
-    journal_db.discard(changeset_b2)
-    assert len(journal_db.journal.journal_data) == 2
-    assert journal_db.journal.has_changeset(changeset_b2) is False
+    journal_db.discard(checkpoint_b2)
+    assert journal_db.has_checkpoint(checkpoint_a)
+    assert not journal_db.has_checkpoint(checkpoint_b2)
+    assert not journal_db.has_checkpoint(checkpoint_c)
+    assert not journal_db.has_checkpoint(checkpoint_d)
 
 
-def test_commit_merges_changeset_into_previous(journal_db):
+def test_commit_merges_checkpoint_into_previous(journal_db):
 
-    changeset = journal_db.record()
-    assert len(journal_db.journal.journal_data) == 2
+    checkpoint = journal_db.record()
 
     journal_db.set(b'1', b'test-a')
     assert journal_db.get(b'1') == b'test-a'
 
     before_diff = journal_db.diff()
-    journal_db.commit(changeset)
+    journal_db.commit(checkpoint)
 
     assert journal_db.diff() == before_diff
-    assert len(journal_db.journal.journal_data) == 1
-    assert journal_db.journal.has_changeset(changeset) is False
+    assert journal_db.get(b'1') == b'test-a'
+    assert journal_db.has_checkpoint(checkpoint) is False
 
 
 def test_journal_db_has_clear(journal_db):
@@ -263,12 +273,12 @@ def test_merged_clear_still_clears_before_merge(journal_db, memory_db):
     journal_db.record()
     journal_db.set(b'in-merged-snapshot', b'F')
 
-    changeset3 = journal_db.record()
+    checkpoint3 = journal_db.record()
     journal_db.set(b'just-before-clear', b'G')
     journal_db.clear()
     journal_db.set(b'just-after-clear', b'H')
 
-    journal_db.commit(changeset3)
+    journal_db.commit(checkpoint3)
 
     assert not journal_db.exists(b'only-in-wrapped')
     assert not journal_db.exists(b'wrapped-and-journal')
@@ -279,26 +289,28 @@ def test_merged_clear_still_clears_before_merge(journal_db, memory_db):
     assert journal_db.exists(b'just-after-clear')
 
 
-def test_committing_middle_changeset_merges_in_subsequent_changesets(journal_db):
+def test_committing_middle_checkpoint_includes_subsequent_checkpoints(journal_db):
 
     journal_db.set(b'1', b'test-a')
-    changeset_a = journal_db.record()
-    assert len(journal_db.journal.journal_data) == 2
+    checkpoint_a = journal_db.record()
+    assert journal_db.has_checkpoint(checkpoint_a)
 
     journal_db.set(b'1', b'test-b')
-    changeset_b = journal_db.record()
-    assert len(journal_db.journal.journal_data) == 3
+    checkpoint_b = journal_db.record()
+    assert journal_db.has_checkpoint(checkpoint_a)
+    assert journal_db.has_checkpoint(checkpoint_b)
 
     journal_db.set(b'1', b'test-c')
-    changeset_c = journal_db.record()
-    assert len(journal_db.journal.journal_data) == 4
+    checkpoint_c = journal_db.record()
+    assert journal_db.has_checkpoint(checkpoint_a)
+    assert journal_db.has_checkpoint(checkpoint_b)
+    assert journal_db.has_checkpoint(checkpoint_c)
 
-    journal_db.commit(changeset_b)
+    journal_db.commit(checkpoint_b)
     assert journal_db.get(b'1') == b'test-c'
-    assert len(journal_db.journal.journal_data) == 2
-    assert journal_db.journal.has_changeset(changeset_a)
-    assert journal_db.journal.has_changeset(changeset_b) is False
-    assert journal_db.journal.has_changeset(changeset_c) is False
+    assert journal_db.has_checkpoint(checkpoint_a)
+    assert journal_db.has_checkpoint(checkpoint_b) is False
+    assert journal_db.has_checkpoint(checkpoint_c) is False
 
 
 def test_flatten_does_not_persist_0_checkpoints(journal_db, memory_db):
@@ -323,9 +335,9 @@ def test_flatten_does_not_persist_1_checkpoint(journal_db, memory_db):
     journal_db.set(b'after-one-record', b'test-b')
 
     # should only remove this checkpoint, but after-one-record is still available
-    assert journal_db.has_changeset(checkpoint)
+    assert journal_db.has_checkpoint(checkpoint)
     journal_db.flatten()
-    assert not journal_db.has_changeset(checkpoint)
+    assert not journal_db.has_checkpoint(checkpoint)
 
     assert b'before-record' in journal_db
     assert b'after-one-record' in journal_db
@@ -352,11 +364,11 @@ def test_flatten_does_not_persist_2_checkpoint(journal_db, memory_db):
     journal_db.set(b'after-two-records', b'3')
 
     # should remove these checkpoints, but after-one-record & after-two-records are still available
-    assert journal_db.has_changeset(checkpoint1)
-    assert journal_db.has_changeset(checkpoint2)
+    assert journal_db.has_checkpoint(checkpoint1)
+    assert journal_db.has_checkpoint(checkpoint2)
     journal_db.flatten()
-    assert not journal_db.has_changeset(checkpoint1)
-    assert not journal_db.has_changeset(checkpoint2)
+    assert not journal_db.has_checkpoint(checkpoint1)
+    assert not journal_db.has_checkpoint(checkpoint2)
 
     assert b'before-record' in journal_db
     assert b'after-one-record' in journal_db
@@ -374,19 +386,20 @@ def test_flatten_does_not_persist_2_checkpoint(journal_db, memory_db):
 
 
 def test_persist_writes_to_underlying_db(journal_db, memory_db):
-    changeset = journal_db.record()  # noqa: F841
+    checkpoint = journal_db.record()  # noqa: F841
     journal_db.set(b'1', b'test-a')
     assert journal_db.get(b'1') == b'test-a'
     assert memory_db.exists(b'1') is False
 
-    changeset_b = journal_db.record()  # noqa: F841
+    checkpoint_b = journal_db.record()  # noqa: F841
 
     journal_db.set(b'1', b'test-b')
     assert journal_db.get(b'1') == b'test-b'
     assert memory_db.exists(b'1') is False
 
     journal_db.persist()
-    assert len(journal_db.journal.journal_data) == 1
+    assert not journal_db.has_checkpoint(checkpoint)
+    assert not journal_db.has_checkpoint(checkpoint_b)
     assert memory_db.get(b'1') == b'test-b'
 
 
@@ -482,7 +495,7 @@ def test_journal_persist_delete_KeyError_then_persist():
     with pytest.raises(KeyError):
         journal_db.persist()
 
-    # A persist that fails reinstates all the pending changes as a single changeset
+    # A persist that fails reinstates all the pending changes, but without any checkpoints.
     # Let's add the value to the Memory DB so doesn't fail on delete and try again:
     db[b'delete-me'] = b'val'
 
@@ -512,7 +525,7 @@ def test_journal_persist_set_KeyError():
         journal_db.persist()
 
 
-def test_journal_persist_set_KeyError_leaves_changeset_in_place():
+def test_journal_persist_set_KeyError_leaves_checkpoint_in_place():
     memory_db = MemoryDBSetRaisesKeyError()
 
     journal_db = JournalDB(memory_db)
@@ -536,9 +549,9 @@ def test_journal_persist_set_KeyError_then_persist():
         journal_db.persist()
     assert b'failing-to-set-key' not in memory_db
 
-    # A persist that fails reinstates all the pending changes as a single changeset
+    # A persist that fails reinstates all the pending changes, but without any checkpoints.
     # Let's switch to a Memory DB that doesn't fail on delete and try again:
-    journal_db.wrapped_db = original_data
+    journal_db._wrapped_db = original_data
 
     # smoke test that persist works after an exception
     del journal_db[b'data-to-delete']
@@ -548,10 +561,7 @@ def test_journal_persist_set_KeyError_then_persist():
     assert b'failing-to-set-key' in memory_db
 
 
-def test_journal_db_diff_respects_clear():
-    memory_db = MemoryDB({})
-    journal_db = JournalDB(memory_db)
-
+def test_journal_db_diff_respects_clear(journal_db):
     journal_db[b'first'] = b'val'
     journal_db.clear()
 
@@ -559,10 +569,181 @@ def test_journal_db_diff_respects_clear():
     assert len(pending) == 0
 
 
-def test_journal_db_rejects_committing_root():
-    memory_db = MemoryDB({})
-    journal_db = JournalDB(memory_db)
-
-    root = journal_db.journal.root_changeset_id
+def test_journal_db_rejects_committing_root(journal_db):
+    root = journal_db._journal.root_checkpoint
     with pytest.raises(ValidationError):
         journal_db.commit(root)
+
+
+def test_journal_db_commit_missing_checkpoint(journal_db):
+    checkpoint = journal_db.record()
+    journal_db.commit(checkpoint)
+
+    # checkpoint doesn't exist anymore
+    with pytest.raises(ValidationError):
+        journal_db.commit(checkpoint)
+
+
+def test_journal_db_discard_missing_checkpoint(journal_db):
+    checkpoint = journal_db.record()
+    journal_db.discard(checkpoint)
+
+    # checkpoint doesn't exist anymore
+    with pytest.raises(ValidationError):
+        journal_db.discard(checkpoint)
+
+
+@pytest.mark.parametrize('do_final_record', (True, False))
+def test_journal_db_discard_to_deleted(journal_db, do_final_record):
+    journal_db[1] = b'original-value'
+    checkpoint_created = journal_db.record()
+    del journal_db[1]
+    checkpoint_deleted = journal_db.record()
+    journal_db[1] = b'value-after-delete'
+    if do_final_record:
+        journal_db.record()
+
+    assert journal_db[1] == b'value-after-delete'
+
+    journal_db.discard(checkpoint_deleted)
+    assert 1 not in journal_db
+    with pytest.raises(KeyError):
+        journal_db[1]
+
+    journal_db.discard(checkpoint_created)
+    assert journal_db[1] == b'original-value'
+
+
+@pytest.mark.parametrize('do_final_record', (True, False))
+def test_journal_db_discard_past_clear(journal_db, do_final_record):
+    journal_db[0] = b'untouched-wrapped-value'
+    journal_db[1] = b'wrapped-value-to-delete'
+    journal_db.persist()
+
+    before_changes = journal_db.record()
+
+    del journal_db[1]
+    journal_db[2] = b'fresh-journaled-value-to-delete'
+    journal_db.record()
+
+    del journal_db[2]
+    checkpoint_before_clear = journal_db.record()
+
+    journal_db[3] = b'added-before-clear'
+    journal_db.clear()
+    if do_final_record:
+        journal_db.record()
+
+    assert 0 not in journal_db
+    assert 1 not in journal_db
+    assert 2 not in journal_db
+    assert 3 not in journal_db
+
+    journal_db.discard(checkpoint_before_clear)
+
+    assert journal_db[0] == b'untouched-wrapped-value'
+    assert 1 not in journal_db
+    assert 2 not in journal_db
+    assert 3 not in journal_db
+
+    journal_db.discard(before_changes)
+    assert journal_db[0] == b'untouched-wrapped-value'
+    assert journal_db[1] == b'wrapped-value-to-delete'
+    assert 2 not in journal_db
+    assert 3 not in journal_db
+
+
+def test_journal_db_commit_then_discard(journal_db):
+    discard_to = journal_db.record()
+    commit_to = journal_db.record()
+    journal_db[1] = b'to-be-removed'
+
+    journal_db.commit(commit_to)
+    assert journal_db[1] == b'to-be-removed'
+
+    journal_db.discard(discard_to)
+    assert 1 not in journal_db
+
+
+class JournalComparison(RuleBasedStateMachine):
+    """
+    Compare an older version of JournalDB against a newer, optimized one.
+    """
+    def __init__(self):
+        super().__init__()
+        self.slow_wrapped = {}
+        self.slow_journal = SlowJournalDB(self.slow_wrapped)
+        self.fast_wrapped = {}
+        self.fast_journal = JournalDB(self.fast_wrapped)
+
+    keys = Bundle('keys')
+    values = Bundle('values')
+    checkpoints = Bundle('checkpoints')
+
+    @rule(target=keys, k=st.binary())
+    def add_key(self, k):
+        return k
+
+    @rule(target=values, v=st.binary())
+    def add_value(self, v):
+        return v
+
+    @rule(target=checkpoints)
+    def record(self):
+        slow_checkpoint = self.slow_journal.record()
+        fast_checkpoint = self.fast_journal.record()
+        assert self.slow_journal.diff() == self.fast_journal.diff()
+        return slow_checkpoint, fast_checkpoint
+
+    @rule(k=keys, v=values)
+    def set(self, k, v):
+        self.slow_journal[k] = v
+        self.fast_journal[k] = v
+        assert self.slow_journal.diff() == self.fast_journal.diff()
+
+    @rule(k=keys)
+    def delete(self, k):
+        if k not in self.slow_journal:
+            assert k not in self.fast_journal
+            return
+        else:
+            del self.slow_journal[k]
+            del self.fast_journal[k]
+            assert self.slow_journal.diff() == self.fast_journal.diff()
+
+    @rule(c=checkpoints)
+    def commit(self, c):
+        slow_checkpoint, fast_checkpoint = c
+        if not self.slow_journal.has_changeset(slow_checkpoint):
+            assert not self.fast_journal.has_checkpoint(fast_checkpoint)
+            return
+        else:
+            self.slow_journal.commit(slow_checkpoint)
+            self.fast_journal.commit(fast_checkpoint)
+            assert self.slow_journal.diff() == self.fast_journal.diff()
+
+    @rule(c=checkpoints)
+    def discard(self, c):
+        slow_checkpoint, fast_checkpoint = c
+        if not self.slow_journal.has_changeset(slow_checkpoint):
+            assert not self.fast_journal.has_checkpoint(fast_checkpoint)
+        else:
+            self.slow_journal.discard(slow_checkpoint)
+            self.fast_journal.discard(fast_checkpoint)
+            assert self.slow_journal.diff() == self.fast_journal.diff()
+
+    @rule()
+    def flatten(self):
+        self.slow_journal.flatten()
+        self.fast_journal.flatten()
+        assert self.slow_journal.diff() == self.fast_journal.diff()
+
+    @rule()
+    def persist(self):
+        self.slow_journal.persist()
+        self.fast_journal.persist()
+        assert self.slow_wrapped == self.fast_wrapped
+
+
+JournalComparison.TestCase.settings = settings(max_examples=200, stateful_step_count=100)
+TestJournalComparison = JournalComparison.TestCase
