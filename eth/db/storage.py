@@ -215,24 +215,24 @@ class AccountStorageDB:
         self._journal_storage.clear()
         self._storage_cache.reset_cache()
 
-    def record(self, changeset: JournalDBCheckpoint) -> None:
-        self._journal_storage.record(changeset)
+    def record(self, checkpoint: JournalDBCheckpoint) -> None:
+        self._journal_storage.record(checkpoint)
 
-    def discard(self, changeset: JournalDBCheckpoint) -> None:
-        self.logger.debug2('discard checkpoint %r', changeset)
-        if self._journal_storage.has_changeset(changeset):
-            self._journal_storage.discard(changeset)
+    def discard(self, checkpoint: JournalDBCheckpoint) -> None:
+        self.logger.debug2('discard checkpoint %r', checkpoint)
+        if self._journal_storage.has_checkpoint(checkpoint):
+            self._journal_storage.discard(checkpoint)
         else:
-            # if the changeset comes before this account started tracking,
+            # if the checkpoint comes before this account started tracking,
             #    then simply reset to the beginning
             self._journal_storage.reset()
         self._storage_cache.reset_cache()
 
-    def commit(self, changeset: JournalDBCheckpoint) -> None:
-        if self._journal_storage.has_changeset(changeset):
-            self._journal_storage.commit(changeset)
+    def commit(self, checkpoint: JournalDBCheckpoint) -> None:
+        if self._journal_storage.has_checkpoint(checkpoint):
+            self._journal_storage.commit(checkpoint)
         else:
-            # if the changeset comes before this account started tracking,
+            # if the checkpoint comes before this account started tracking,
             #    then flatten all changes, without persisting
             self._journal_storage.flatten()
 

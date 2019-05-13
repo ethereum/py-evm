@@ -160,11 +160,11 @@ class BaseAccountDB(ABC):
         raise NotImplementedError("Must be implemented by subclass")
 
     @abstractmethod
-    def discard(self, changeset: JournalDBCheckpoint) -> None:
+    def discard(self, checkpoint: JournalDBCheckpoint) -> None:
         raise NotImplementedError("Must be implemented by subclass")
 
     @abstractmethod
-    def commit(self, changeset: JournalDBCheckpoint) -> None:
+    def commit(self, checkpoint: JournalDBCheckpoint) -> None:
         raise NotImplementedError("Must be implemented by subclass")
 
     @abstractmethod
@@ -459,25 +459,25 @@ class AccountDB(BaseAccountDB):
     # Record and discard API
     #
     def record(self) -> JournalDBCheckpoint:
-        changeset_id = self._journaldb.record()
-        self._journaltrie.record(changeset_id)
+        checkpoint = self._journaldb.record()
+        self._journaltrie.record(checkpoint)
 
         for _, store in self._dirty_account_stores():
-            store.record(changeset_id)
-        return changeset_id
+            store.record(checkpoint)
+        return checkpoint
 
-    def discard(self, changeset: JournalDBCheckpoint) -> None:
-        self._journaldb.discard(changeset)
-        self._journaltrie.discard(changeset)
+    def discard(self, checkpoint: JournalDBCheckpoint) -> None:
+        self._journaldb.discard(checkpoint)
+        self._journaltrie.discard(checkpoint)
         self._account_cache.clear()
         for _, store in self._dirty_account_stores():
-            store.discard(changeset)
+            store.discard(checkpoint)
 
-    def commit(self, changeset: JournalDBCheckpoint) -> None:
-        self._journaldb.commit(changeset)
-        self._journaltrie.commit(changeset)
+    def commit(self, checkpoint: JournalDBCheckpoint) -> None:
+        self._journaldb.commit(checkpoint)
+        self._journaltrie.commit(checkpoint)
         for _, store in self._dirty_account_stores():
-            store.commit(changeset)
+            store.commit(checkpoint)
 
     def make_state_root(self) -> Hash32:
         for _, store in self._dirty_account_stores():

@@ -36,16 +36,20 @@ REVERT_TO_WRAPPED = DeletedEntry()
 ChangesetValue = Union[bytes, DeletedEntry]
 ChangesetDict = Dict[bytes, ChangesetValue]
 
-get_next_checkpoint_id = cast(Callable[[], JournalDBCheckpoint], count().__next__)
+get_next_checkpoint = cast(Callable[[], JournalDBCheckpoint], count().__next__)
 
 
 class Journal(BaseDB):
     """
-    A Journal is an ordered list of changesets.  A changeset is a dictionary
-    of database keys and values.  The values are tracked changes which give
-    the information needed to revert a changeset to an old checkpoint.
+    A Journal provides a mechanism to track a series of changes to a dict, by inserting
+    checkpoints, and committing to them or rolling back to them, and ultimitely persisting
+    the final changes.
 
-    Changesets are referenced by an internally-generated integer. This is *not* threadsafe.
+    Internally, it keeps an ordered list of reversion changesets, used to roll back
+    on demand. This is optimized for the most common path: lots of checkpoints and commits,
+    and not many discards.
+
+    Checkpoints are referenced by an internally-generated integer. This is *not* threadsafe.
     """
     __slots__ = [
         '_journal_data',
@@ -62,26 +66,29 @@ class Journal(BaseDB):
     #
 
     def __init__(self) -> None:
-        # contains a mapping from all of the int changeset_ids
-        # to a dictionary of key:value pairs that describe how to rewind from the current values
-        # to the given checkpoint
-        self._journal_data = collections.OrderedDict()  # type: collections.OrderedDict[JournalDBCheckpoint, ChangesetDict]  # noqa E501
-        self._clears_at = set()  # type: Set[JournalDBCheckpoint]
-
         # If the journal was persisted right now, these would be the current changes to push:
         self._current_values = {}  # type: ChangesetDict
+
+        # contains a mapping from all of the int checkpoints
+        # to a dictionary of key:value pairs that are used to rewind from the current values
+        # to the given checkpoint
+        self._journal_data = collections.OrderedDict()  # type: collections.OrderedDict[JournalDBCheckpoint, ChangesetDict]  # noqa E501
+
+        # Clears are special operations that enforce that the underlying database and current
+        # changes are completely emptied out. Clears are also committable & discardable.
+        self._clears_at = set()  # type: Set[JournalDBCheckpoint]
 
         # If a clear was called, then any missing keys should be treated as missing
         self._ignore_wrapped_db = False
 
-        # To speed up commits, we leave in old recorded checkpoints on commit and keep a separate
-        # list of active checkpoints.
+        # To speed up commits, we leave in old recorded checkpoints in self._journal_data, even
+        # on commit. Instead of dropping them, we keep a separate list of active checkpoints.
         self._checkpoint_stack = []  # type: List[JournalDBCheckpoint]
 
     @property
-    def root_changeset_id(self) -> JournalDBCheckpoint:
+    def root_checkpoint(self) -> JournalDBCheckpoint:
         """
-        Returns the id of the root changeset
+        Returns the starting checkpoint
         """
         return first(self._journal_data.keys())
 
@@ -93,40 +100,40 @@ class Journal(BaseDB):
         return len(self._checkpoint_stack) < 2
 
     @property
-    def last_changeset_index(self) -> JournalDBCheckpoint:
+    def last_checkpoint(self) -> JournalDBCheckpoint:
         """
-        Returns the id of the latest changeset
+        Returns the latest checkpoint
         """
         # last() was iterating through all values, so first(reversed()) gives a 12.5x speedup
         # Interestingly, an attempt to cache this value caused a slowdown.
         return first(reversed(self._journal_data.keys()))
 
-    def has_changeset(self, changeset_id: JournalDBCheckpoint) -> bool:
-        # another option would be to enforce monotonically-increasing changeset ids, so we can do:
-        # checkpoint_idx = bisect_left(self._checkpoint_stack, changeset_id)
+    def has_checkpoint(self, checkpoint: JournalDBCheckpoint) -> bool:
+        # another option would be to enforce monotonically-increasing checkpoints, so we can do:
+        # checkpoint_idx = bisect_left(self._checkpoint_stack, checkpoint)
         # (then validate against length and value at index)
-        return changeset_id in self._checkpoint_stack
+        return checkpoint in self._checkpoint_stack
 
-    def record_changeset(
+    def record_checkpoint(
             self,
-            custom_changeset_id: JournalDBCheckpoint = None) -> JournalDBCheckpoint:
+            custom_checkpoint: JournalDBCheckpoint = None) -> JournalDBCheckpoint:
         """
-        Creates a new changeset. Changesets are referenced by a random int
-        to prevent collisions between multiple changesets.
+        Creates a new checkpoint. Checkpoints are a sequential int chosen by Journal
+        to prevent collisions.
         """
-        if custom_changeset_id is not None:
-            if custom_changeset_id in self._journal_data:
+        if custom_checkpoint is not None:
+            if custom_checkpoint in self._journal_data:
                 raise ValidationError(
-                    "Tried to record with an existing changeset id: %r" % custom_changeset_id
+                    "Tried to record with an existing checkpoint: %r" % custom_checkpoint
                 )
             else:
-                changeset_id = custom_changeset_id
+                checkpoint = custom_checkpoint
         else:
-            changeset_id = get_next_checkpoint_id()
+            checkpoint = get_next_checkpoint()
 
-        self._journal_data[changeset_id] = {}
-        self._checkpoint_stack.append(changeset_id)
-        return changeset_id
+        self._journal_data[checkpoint] = {}
+        self._checkpoint_stack.append(checkpoint)
+        return checkpoint
 
     def discard(self, through_checkpoint_id: JournalDBCheckpoint) -> None:
         while self._checkpoint_stack:
@@ -168,37 +175,37 @@ class Journal(BaseDB):
     def clear(self) -> None:
         """
         Treat as if the *underlying* database will also be cleared by some other mechanism.
-        We build a special empty changeset just for marking that all previous data should
+        We build a special empty reversion changeset just for marking that all previous data should
         be ignored.
         """
-        changeset_id = get_next_checkpoint_id()
-        self._journal_data[changeset_id] = self._current_values
+        checkpooint = get_next_checkpoint()
+        self._journal_data[checkpooint] = self._current_values
         self._current_values = {}
         self._ignore_wrapped_db = True
-        self._clears_at.add(changeset_id)
+        self._clears_at.add(checkpooint)
 
-    def has_clear(self, check_changeset_id: JournalDBCheckpoint) -> bool:
-        for changeset_id in reversed(self._journal_data.keys()):
-            if changeset_id in self._clears_at:
+    def has_clear(self, at_checkpoint: JournalDBCheckpoint) -> bool:
+        for reversion_changeset_id in reversed(self._journal_data.keys()):
+            if reversion_changeset_id in self._clears_at:
                 return True
-            elif check_changeset_id == changeset_id:
+            elif at_checkpoint == reversion_changeset_id:
                 return False
-        raise ValidationError("Changeset ID %s is not in the journal" % check_changeset_id)
+        raise ValidationError("Checkpoint %s is not in the journal" % at_checkpoint)
 
-    def commit_changeset(self, commit_id: JournalDBCheckpoint) -> ChangesetDict:
+    def commit_checkpoint(self, commit_to: JournalDBCheckpoint) -> ChangesetDict:
         """
-        Collapses all changes for the given changeset into the previous
-        changesets if it exists.
+        Collapses all changes since the given checkpoint. Can no longer discard to any of
+        the checkpoints that followed the given checkpoint.
         """
         # Another option would be to enforce monotonically-increasing changeset ids, so we can do:
-        # checkpoint_idx = bisect_left(self._checkpoint_stack, commit_id)
+        # checkpoint_idx = bisect_left(self._checkpoint_stack, commit_to)
         # (then validate against length and value at index)
         for positions_before_last, checkpoint in enumerate(reversed(self._checkpoint_stack)):
-            if checkpoint == commit_id:
+            if checkpoint == commit_to:
                 checkpoint_idx = -1 - positions_before_last
                 break
         else:
-            raise ValidationError("No checkpoint %s was found" % commit_id)
+            raise ValidationError("No checkpoint %s was found" % commit_to)
 
         if checkpoint_idx == -1 * len(self._checkpoint_stack):
             raise ValidationError(
@@ -216,15 +223,15 @@ class Journal(BaseDB):
         self._clears_at.clear()
         self._current_values = {}
         self._checkpoint_stack.clear()
-        self.record_changeset()
+        self.record_checkpoint()
         return final_changes
 
     def flatten(self) -> None:
         if self.is_flattened:
             return
 
-        changeset_id_after_root = nth(1, self._checkpoint_stack)
-        self.commit_changeset(changeset_id_after_root)
+        checkpoint_after_root = nth(1, self._checkpoint_stack)
+        self.commit_checkpoint(checkpoint_after_root)
 
     #
     # Database API
@@ -244,7 +251,7 @@ class Journal(BaseDB):
 
     def __setitem__(self, key: bytes, value: bytes) -> None:
         # if the value has not been changed since wrapping, then simply revert to original value
-        revert_changeset = self._journal_data[self.last_changeset_index]
+        revert_changeset = self._journal_data[self.last_checkpoint]
         if key not in revert_changeset:
             revert_changeset[key] = self._current_values.get(key, REVERT_TO_WRAPPED)
         self._current_values[key] = value
@@ -257,13 +264,13 @@ class Journal(BaseDB):
         raise NotImplementedError("You must delete with one of delete_local or delete_wrapped")
 
     def delete_wrapped(self, key: bytes) -> None:
-        revert_changeset = self._journal_data[self.last_changeset_index]
+        revert_changeset = self._journal_data[self.last_checkpoint]
         if key not in revert_changeset:
             revert_changeset[key] = self._current_values.get(key, REVERT_TO_WRAPPED)
         self._current_values[key] = DELETE_WRAPPED
 
     def delete_local(self, key: bytes) -> None:
-        revert_changeset = self._journal_data[self.last_changeset_index]
+        revert_changeset = self._journal_data[self.last_checkpoint]
         if key not in revert_changeset:
             revert_changeset[key] = self._current_values.get(key, REVERT_TO_WRAPPED)
         self._current_values[key] = REVERT_TO_WRAPPED
@@ -285,29 +292,28 @@ class Journal(BaseDB):
 class JournalDB(BaseDB):
     """
     A wrapper around the basic DB objects that keeps a journal of all changes.
-    Each time a recording is started, the underlying journal creates a new
-    changeset and assigns an id to it. The journal then keeps track of all changes
-    that go into this changeset.
+    Checkpoints can be recorded at any time. You can then commit or roll back
+    to those checkpoints.
 
-    Discarding a changeset simply throws it away inculding all subsequent changesets
-    that may have followed. Commiting a changeset merges the given changeset and all
-    subsequent changesets into the previous changeset giving precidence to later
-    changesets in case of conflicting keys.
+    Discarding a checkpoint throws away all changes that happened since that
+    checkpoint.
+    Commiting a checkpoint simply removes the option of reverting back to it
+    later.
 
     Nothing is written to the underlying db until `persist()` is called.
 
     The added memory footprint for a JournalDB is one key/value stored per
-    database key which is changed.  Subsequent changes to the same key within
-    the same changeset will not increase the journal size since we only need
-    to track latest value for any given key within any given changeset.
+    database key which is changed, at each checkpoint.  Subsequent changes to the same key
+    between two checkpoints will not increase the journal size, since we
+    do not permit reverting to a place that has no checkpoint.
     """
     __slots__ = ['_wrapped_db', '_journal', 'record', 'commit']
 
     def __init__(self, wrapped_db: BaseDB) -> None:
         self._wrapped_db = wrapped_db
         self._journal = Journal()
-        self.record = self._journal.record_changeset
-        self.commit = self._journal.commit_changeset
+        self.record = self._journal.record_checkpoint
+        self.commit = self._journal.commit_checkpoint
         self.reset()
 
     def __getitem__(self, key: bytes) -> bytes:
@@ -362,7 +368,7 @@ class JournalDB(BaseDB):
         self._journal.clear()
 
     def has_clear(self) -> bool:
-        return self._journal.has_clear(self._journal.root_changeset_id)
+        return self._journal.has_clear(self._journal.root_checkpoint)
 
     def __delitem__(self, key: bytes) -> None:
         if key in self._wrapped_db:
@@ -376,16 +382,16 @@ class JournalDB(BaseDB):
     #
     # Snapshot API
     #
-    def has_changeset(self, changeset_id: JournalDBCheckpoint) -> bool:
-        return self._journal.has_changeset(changeset_id)
+    def has_checkpoint(self, checkpoint: JournalDBCheckpoint) -> bool:
+        return self._journal.has_checkpoint(checkpoint)
 
-    def discard(self, changeset_id: JournalDBCheckpoint) -> None:
+    def discard(self, checkpoint: JournalDBCheckpoint) -> None:
         """
-        Throws away all journaled data starting at the given changeset
+        Throws away all journaled data starting at the given checkpoint
         """
-        self._journal.discard(changeset_id)
+        self._journal.discard(checkpoint)
 
-    def _reapply_changeset_to_journal(
+    def _reapply_checkpoint_to_journal(
             self,
             journal_data: ChangesetDict) -> None:
         for key, value in journal_data.items():
@@ -412,7 +418,7 @@ class JournalDB(BaseDB):
                 else:
                     self._wrapped_db[key] = cast(bytes, value)
             except Exception:
-                self._reapply_changeset_to_journal(journal_data)
+                self._reapply_checkpoint_to_journal(journal_data)
                 raise
 
     def flatten(self) -> None:
