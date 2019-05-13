@@ -4,6 +4,7 @@ import pytest
 
 from eth_utils import (
     ValidationError,
+    to_tuple,
 )
 
 from eth.constants import (
@@ -41,10 +42,6 @@ from eth2.beacon.helpers import (
     is_surround_vote,
 )
 
-from tests.eth2.beacon.helpers import (
-    get_pseudo_chain,
-)
-
 
 #
 # Header helpers
@@ -57,6 +54,21 @@ def test_get_temporary_block_header(sample_block):
     assert header.state_root == ZERO_HASH32
     assert header.block_body_root == sample_block.body.root
     assert header.signature == EMPTY_SIGNATURE
+
+
+@to_tuple
+def get_pseudo_chain(length, genesis_block):
+    """
+    Get a pseudo chain, only slot and previous_block_root are valid.
+    """
+    block = genesis_block.copy()
+    yield block
+    for slot in range(1, length * 3):
+        block = genesis_block.copy(
+            slot=slot,
+            previous_block_root=block.signing_root
+        )
+        yield block
 
 
 def generate_mock_latest_historical_roots(
