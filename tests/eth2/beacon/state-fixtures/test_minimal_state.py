@@ -1,10 +1,8 @@
 from pathlib import Path
-import yaml
-try:
-    from yaml import CLoader as Loader
-except ImportError:
-    from yaml import Loader
 import pytest
+from ruamel.yaml import (
+    YAML,
+)
 
 from eth_utils import (
     to_tuple,
@@ -36,7 +34,7 @@ BASE_FIXTURE_PATH = ROOT_PROJECT_DIR / 'eth2-fixtures' / 'state'
 
 FIXTURE_FILE_NAMES = [
     "sanity-check_small-config_32-vals.yaml",
-    # "sanity-check_default-config_100-vals.yaml",
+    "sanity-check_default-config_100-vals.yaml",
 ]
 
 
@@ -67,7 +65,8 @@ def mock_bls(mocker, request):
 # Helpers for generating test suite
 #
 def get_all_test_cases(file_names):
-    test_cases = []
+    test_cases = {}
+    yaml = YAML()
     for file_name in file_names:
         file_to_open = BASE_FIXTURE_PATH / file_name
         with open(file_to_open, 'U') as f:
@@ -75,8 +74,8 @@ def get_all_test_cases(file_names):
             # Trinity renamed it ahead due to py-ssz signing_root requirements
             new_text = f.read().replace('proof_of_possession', 'signature')
             try:
-                data = yaml.load(new_text, Loader=Loader)
-                test_cases += data['test_cases']
+                data = yaml.load(new_text)
+                test_cases[file_name] = data['test_cases']
             except yaml.YAMLError as exc:
                 print(exc)
     return test_cases
@@ -92,13 +91,15 @@ def state_fixture_mark_fn(fixture_name):
 @to_tuple
 def get_test_cases(fixture_file_names):
     test_cases = get_all_test_cases(fixture_file_names)
-    for test_case in test_cases:
-        test_name = test_case['name']
-        mark = state_fixture_mark_fn(test_name)
-        if mark is not None:
-            yield pytest.param(test_case, id=test_name, marks=(mark,))
-        else:
-            yield pytest.param(test_case, id=test_name)
+    for file_name, test_cases in test_cases.items():
+        for test_case in test_cases:
+            test_name = test_case['name']
+            test_id = f"{file_name}::{test_name}:{test_case.lc.line}"
+            mark = state_fixture_mark_fn(test_name)
+            if mark is not None:
+                yield pytest.param(test_case, id=test_id, marks=(mark,))
+            else:
+                yield pytest.param(test_case, id=test_id)
 
 
 all_test_cases = get_test_cases(FIXTURE_FILE_NAMES)
