@@ -151,7 +151,7 @@ def execute_state_transtion(test_case, base_db):
         __name__='SerenityStateMachineForTesting',
         config=config,
     )
-    chaindb = BeaconChainDB(base_db)
+    chaindb = BeaconChainDB(base_db, config)
 
     post_state = pre_state.copy()
     for block in blocks:
