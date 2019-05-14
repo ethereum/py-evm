@@ -156,6 +156,11 @@ def test_orphan_block_pool():
     # test: add: no side effect for adding twice
     pool.add(b1)
     assert len(pool._pool) == 1
+    # test: `__contains__`
+    assert b1 in pool
+    assert b1.signing_root in pool
+    assert b2 not in pool
+    assert b2.signing_root not in pool
     # test: add: two blocks
     pool.add(b2)
     assert len(pool._pool) == 2
@@ -163,50 +168,50 @@ def test_orphan_block_pool():
     assert pool.get(b1.signing_root) == b1
     assert pool.get(b2.signing_root) == b2
     # test: pop_children
-    b2_children = pool.pop_children(b2)
+    b2_children = pool.pop_children(b2.signing_root)
     assert len(b2_children) == 0
     assert len(pool._pool) == 2
-    b0_children = pool.pop_children(b0)
+    b0_children = pool.pop_children(b0.signing_root)
     assert len(b0_children) == 2 and (b1 in b0_children) and (b2 in b0_children)
     assert len(pool._pool) == 0
 
 
 @pytest.mark.asyncio
-async def test_bcc_receive_server_try_import_or_handle_orphan(request, event_loop, monkeypatch):
+async def test_bcc_receive_server_try_import_orphan_blocks(request, event_loop, monkeypatch):
     _, _, bob_recv_server, _ = await get_peer_and_receive_server(request, event_loop)
 
-    def _request_block_by_root(block_root):
-        pass
-
-    monkeypatch.setattr(
-        bob_recv_server,
-        '_request_block_by_root',
-        _request_block_by_root,
-    )
-
     blocks = get_blocks(bob_recv_server, num_blocks=4)
-    # test: block should not be in the db before imported.
     assert not bob_recv_server._is_block_root_in_db(blocks[0].signing_root)
-    # test: block with its parent in db should be imported successfully.
-    bob_recv_server._try_import_or_handle_orphan(blocks[0])
+    bob_recv_server.chain.import_block(blocks[0])
 
     assert bob_recv_server._is_block_root_in_db(blocks[0].signing_root)
     # test: block without its parent in db should not be imported, and it should be put in the
     #   `orphan_block_pool`.
-    bob_recv_server._try_import_or_handle_orphan(blocks[2])
+    bob_recv_server.orphan_block_pool.add(blocks[2])
+    # test: No effect when calling `_try_import_orphan_blocks` if the `parent_root` is not in db.
+    assert blocks[2].previous_block_root == blocks[1].signing_root
+    bob_recv_server._try_import_orphan_blocks(blocks[2].previous_block_root)
+    assert not bob_recv_server._is_block_root_in_db(blocks[2].previous_block_root)
     assert not bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
     assert bob_recv_server._is_block_root_in_orphan_block_pool(blocks[2].signing_root)
-    bob_recv_server._try_import_or_handle_orphan(blocks[3])
+
+    bob_recv_server.orphan_block_pool.add(blocks[3])
+    # test: No effect when calling `_try_import_orphan_blocks` if `parent_root` is in the pool
+    #   but not in db.
+    assert blocks[3].previous_block_root == blocks[2].signing_root
+    bob_recv_server._try_import_orphan_blocks(blocks[2].signing_root)
+    assert not bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
     assert not bob_recv_server._is_block_root_in_db(blocks[3].signing_root)
-    assert blocks[3] in bob_recv_server.orphan_block_pool._pool
+    assert bob_recv_server._is_block_root_in_orphan_block_pool(blocks[3].signing_root)
     # test: a successfully imported parent is present, its children should be processed
     #   recursively.
-    bob_recv_server._try_import_or_handle_orphan(blocks[1])
+    bob_recv_server.chain.import_block(blocks[1])
+    bob_recv_server._try_import_orphan_blocks(blocks[1].signing_root)
     assert bob_recv_server._is_block_root_in_db(blocks[1].signing_root)
     assert bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
-    assert blocks[2] not in bob_recv_server.orphan_block_pool._pool
     assert bob_recv_server._is_block_root_in_db(blocks[3].signing_root)
-    assert blocks[3] not in bob_recv_server.orphan_block_pool._pool
+    assert not bob_recv_server._is_block_root_in_orphan_block_pool(blocks[2].signing_root)
+    assert not bob_recv_server._is_block_root_in_orphan_block_pool(blocks[3].signing_root)
 
 
 @pytest.mark.asyncio
@@ -219,13 +224,13 @@ async def test_bcc_receive_server_handle_beacon_blocks_checks(request, event_loo
 
     event = asyncio.Event()
 
-    def _try_import_or_handle_orphan(block):
+    def _process_received_block(block):
         event.set()
 
     monkeypatch.setattr(
         bob_recv_server,
-        '_try_import_or_handle_orphan',
-        _try_import_or_handle_orphan,
+        '_process_received_block',
+        _process_received_block,
     )
 
     # test: `request_id` not found, it should be rejected
@@ -272,13 +277,13 @@ async def test_bcc_receive_server_handle_new_beacon_block_checks(request, event_
 
     event = asyncio.Event()
 
-    def _try_import_or_handle_orphan(block):
+    def _process_received_block(block):
         event.set()
 
     monkeypatch.setattr(
         bob_recv_server,
-        '_try_import_or_handle_orphan',
-        _try_import_or_handle_orphan,
+        '_process_received_block',
+        _process_received_block,
     )
 
     alice.sub_proto.send_new_block(block=blocks[0])
@@ -318,7 +323,7 @@ async def test_bcc_receive_request_block_by_root(request, event_loop):
     blocks = get_blocks(bob_recv_server, num_blocks=1)
 
     # test: request from bob is issued and received by alice
-    bob_recv_server._request_block_by_root(blocks[0].signing_root)
+    bob_recv_server._request_block_from_peers(blocks[0].signing_root)
     req = await alice_msg_buffer.msg_queue.get()
     assert req.payload['block_slot_or_root'] == blocks[0].signing_root
 
@@ -327,9 +332,94 @@ async def test_bcc_receive_request_block_by_root(request, event_loop):
         blocks[0],
         SerenityBeaconBlock,
     )
-    bob_recv_server._request_block_by_root(blocks[0].signing_root)
+    bob_recv_server._request_block_from_peers(blocks[0].signing_root)
     msg_block = await bob_msg_queue.get()
     assert blocks[0] == parse_resp_block_msg(msg_block)
+
+
+@pytest.mark.asyncio
+async def test_bcc_receive_server_process_received_block(request, event_loop, monkeypatch):
+    _, _, bob_recv_server, _ = await get_peer_and_receive_server(
+        request,
+        event_loop,
+    )
+    block_not_orphan, block_orphan = get_blocks(bob_recv_server, num_blocks=2)
+
+    # test: if the block is an orphan, puts it in the orphan pool, calls
+    #   `_request_block_from_peers`, and returns `False`.
+    event = asyncio.Event()
+
+    def _request_block_from_peers(block_root):
+        event.set()
+    with monkeypatch.context() as m:
+        m.setattr(bob_recv_server, '_request_block_from_peers', _request_block_from_peers)
+        assert not bob_recv_server._process_received_block(block_orphan)
+        assert bob_recv_server.orphan_block_pool.get(block_orphan.signing_root) == block_orphan
+        assert event.is_set()
+
+    # test: should returns `False` if `ValidationError` occurs.
+    def import_block_raises_validation_error(block, performa_validation=True):
+        raise ValidationError
+    with monkeypatch.context() as m:
+        m.setattr(bob_recv_server.chain, 'import_block', import_block_raises_validation_error)
+        assert not bob_recv_server._process_received_block(block_not_orphan)
+
+    # test: other exceptions occurred when importing the block.
+    class OtherException(Exception):
+        pass
+
+    def import_block_raises_other_exception_error(block, performa_validation=True):
+        raise OtherException
+
+    with monkeypatch.context() as m:
+        m.setattr(bob_recv_server.chain, 'import_block', import_block_raises_other_exception_error)
+        with pytest.raises(OtherException):
+            bob_recv_server._process_received_block(block_not_orphan)
+
+    # test: successfully imported the block, calls `self._try_import_orphan_blocks`,
+    #   and returns `True`.
+    event.clear()
+
+    def _try_import_orphan_blocks(parent_root):
+        event.set()
+    with monkeypatch.context() as m:
+        m.setattr(bob_recv_server, '_try_import_orphan_blocks', _try_import_orphan_blocks)
+        assert bob_recv_server._process_received_block(block_not_orphan)
+        assert event.is_set()
+
+
+@pytest.mark.asyncio
+async def test_bcc_receive_server_broadcast_block(request, event_loop, monkeypatch):
+    alice, _, bob_recv_server, _ = await get_peer_and_receive_server(
+        request,
+        event_loop,
+    )
+    block_non_orphan, block_orphan = get_blocks(bob_recv_server, num_blocks=2)
+    alice_msg_buffer = MsgBuffer()
+    alice.add_subscriber(alice_msg_buffer)
+
+    # test: with `from_peer=alice`, bob broadcasts to all peers except alice. Therefore, alice
+    #   should fail to receive the block.
+    bob_peers = bob_recv_server._peer_pool.connected_nodes.values()
+    assert len(bob_peers) == 1
+    alice_in_bobs_peer_pool = tuple(bob_peers)[0]
+    # NOTE: couldn't use `alice` directly, `from_peer` should be a `BCCPeer` in its PeerPool
+    bob_recv_server._broadcast_block(block_orphan, from_peer=alice_in_bobs_peer_pool)
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(alice_msg_buffer.msg_queue.get(), 0.1)
+
+    # test: with `from_peer=None` it broadcasts the block to all bob's peers. Try the orphan block
+    #   first.
+    bob_recv_server._broadcast_block(block_orphan, from_peer=None)
+    msg_block_orphan = await alice_msg_buffer.msg_queue.get()
+    block_orphan_received = parse_new_block_msg(msg_block_orphan.payload)
+    assert block_orphan_received.signing_root == block_orphan.signing_root
+
+    # test: Try the non-orphan block.
+    bob_recv_server._broadcast_block(block_non_orphan, from_peer=None)
+    msg_block_orphan = await alice_msg_buffer.msg_queue.get()
+    block_non_orphan_received = parse_new_block_msg(msg_block_orphan.payload)
+    assert block_non_orphan_received.signing_root == block_non_orphan.signing_root
 
 
 @pytest.mark.asyncio
