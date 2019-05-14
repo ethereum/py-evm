@@ -10,7 +10,7 @@ from eth2.beacon.constants import (
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.eth1_data import Eth1Data
-from eth2.beacon.on_genesis import (
+from eth2.beacon.genesis import (
     get_genesis_block,
     get_genesis_beacon_state,
 )

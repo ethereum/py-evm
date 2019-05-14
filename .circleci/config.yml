@@ -227,12 +227,18 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-rpc-state-quadratic
-  py36-eth2:
+  py36-eth2-core:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-eth2
+          TOXENV: py36-eth2-core
+  py36-eth2-fixtures:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-eth2-fixtures
   py36-libp2p:
     docker:
       - image: circleci/python:3.6
@@ -271,12 +277,18 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-p2p
-  py37-eth2:
+  py37-eth2-core:
     <<: *common
     docker:
       - image: circleci/python:3.7
         environment:
-          TOXENV: py37-eth2
+          TOXENV: py37-eth2-core
+  py37-eth2-fixtures:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-eth2-fixtures
   py37-libp2p:
     docker:
       - image: circleci/python:3.7
@@ -313,7 +325,8 @@ workflows:
       - py37-core
       - py37-wheel-cli
       - py37-p2p
-      - py37-eth2
+      - py37-eth2-core
+      - py37-eth2-fixtures
       # - py37-libp2p
       - py37-plugins
 
@@ -329,7 +342,8 @@ workflows:
       - py36-core
       - py36-wheel-cli
       - py36-p2p
-      - py36-eth2
+      - py36-eth2-core
+      - py36-eth2-fixtures
       # - py36-libp2p
       - py36-plugins
 

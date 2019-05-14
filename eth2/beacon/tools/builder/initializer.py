@@ -27,9 +27,10 @@ from eth2._utils.merkle.sparse import (
 )
 from eth2.configs import Eth2Config
 from eth2.beacon.constants import (
+    FAR_FUTURE_EPOCH,
     ZERO_TIMESTAMP,
 )
-from eth2.beacon.on_genesis import (
+from eth2.beacon.genesis import (
     get_genesis_block,
     get_genesis_beacon_state,
 )
@@ -41,6 +42,7 @@ from eth2.beacon.types.deposit_data import DepositData  # noqa: F401
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
     Timestamp,
     ValidatorIndex,
@@ -132,3 +134,18 @@ def create_mock_genesis(
     assert len(state.validator_registry) == num_validators
 
     return state, block
+
+
+def mock_validator(pubkey: BLSPubkey,
+                   config: Eth2Config,
+                   withdrawal_credentials: Hash32=ZERO_HASH32,
+                   is_active: bool=True) -> Validator:
+    return Validator(
+        pubkey=pubkey,
+        withdrawal_credentials=withdrawal_credentials,
+        activation_epoch=config.GENESIS_EPOCH if is_active else FAR_FUTURE_EPOCH,
+        exit_epoch=FAR_FUTURE_EPOCH,
+        withdrawable_epoch=FAR_FUTURE_EPOCH,
+        initiated_exit=False,
+        slashed=False,
+    )

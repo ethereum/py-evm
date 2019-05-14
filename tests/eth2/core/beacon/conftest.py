@@ -26,7 +26,7 @@ from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
 
-from eth2.beacon.on_genesis import (
+from eth2.beacon.genesis import (
     get_genesis_block,
 )
 from eth2.beacon.tools.misc.ssz_vector import (
@@ -47,8 +47,8 @@ from eth2.beacon.state_machines.forks.serenity.blocks import (
 )
 from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
-from tests.eth2.beacon.helpers import (
-    mock_validator_record,
+from eth2.beacon.tools.builder.initializer import (
+    mock_validator,
 )
 
 DEFAULT_SHUFFLING_SEED = b'\00' * 32
@@ -395,7 +395,7 @@ def n_validators_state(filled_beacon_state, max_deposit_amount, n, config):
     validator_count = n
     return filled_beacon_state.copy(
         validator_registry=tuple(
-            mock_validator_record(
+            mock_validator(
                 pubkey=index.to_bytes(48, "little"),
                 config=config,
                 is_active=True,
@@ -688,7 +688,7 @@ def genesis_validators(init_validator_pubkeys,
     Inactive
     """
     return tuple(
-        mock_validator_record(
+        mock_validator(
             pubkey=pubkey,
             config=config,
             withdrawal_credentials=ZERO_HASH32,

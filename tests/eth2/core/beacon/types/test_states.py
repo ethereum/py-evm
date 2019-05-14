@@ -9,8 +9,8 @@ from eth2.beacon.types.crosslinks import (
     Crosslink,
 )
 
-from tests.eth2.beacon.helpers import (
-    mock_validator_record,
+from eth2.beacon.tools.builder.initializer import (
+    mock_validator,
 )
 
 
@@ -26,7 +26,7 @@ def test_validator_registry_and_balances_length(sample_beacon_state_params, conf
     with pytest.raises(ValueError):
         BeaconState(**sample_beacon_state_params).copy(
             validator_registry=tuple(
-                mock_validator_record(pubkey, config)
+                mock_validator(pubkey, config)
                 for pubkey in range(10)
             ),
         )
@@ -41,7 +41,7 @@ def test_num_validators(expected,
                         config):
     state = filled_beacon_state.copy(
         validator_registry=tuple(
-            mock_validator_record(
+            mock_validator(
                 pubkey,
                 config,
             )
@@ -82,7 +82,7 @@ def test_update_validator(n_validators_state,
                           new_pubkey,
                           new_balance, config):
     state = n_validators_state
-    validator = mock_validator_record(new_pubkey, config)
+    validator = mock_validator(new_pubkey, config)
 
     if validator_index < state.num_validators:
         result_state = state.update_validator(

@@ -25,8 +25,8 @@ from eth2.beacon.validator_status_helpers import (
 )
 
 
-from tests.eth2.beacon.helpers import (
-    mock_validator_record,
+from eth2.beacon.tools.builder.initializer import (
+    mock_validator,
 )
 
 
@@ -52,7 +52,7 @@ def test_activate_validator(is_genesis,
     validator_count = 10
     state = filled_beacon_state.copy(
         validator_registry=tuple(
-            mock_validator_record(
+            mock_validator(
                 pubkey=index.to_bytes(48, 'little'),
                 config=config,
                 is_active=False,
