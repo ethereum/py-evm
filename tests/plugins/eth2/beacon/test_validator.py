@@ -96,7 +96,6 @@ async def get_validator(event_loop, event_bus, index) -> Validator:
         chain=chain,
         peer_pool=peer_pool,
         validator_privkeys=validator_privkeys,
-        genesis_config=Eth2GenesisConfig(XIAO_LONG_BAO_CONFIG),
         event_bus=event_bus,
     )
     asyncio.ensure_future(v.run(), loop=event_loop)

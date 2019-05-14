@@ -66,7 +66,6 @@ class Validator(BaseService):
             chain: BeaconChain,
             peer_pool: BCCPeerPool,
             validator_privkeys: Dict[ValidatorIndex, int],
-            genesis_config: Eth2GenesisConfig,
             event_bus: TrinityEventBusEndpoint,
             token: CancelToken = None) -> None:
         super().__init__(token)
@@ -74,9 +73,10 @@ class Validator(BaseService):
         self.peer_pool = peer_pool
         self.validator_privkeys = validator_privkeys
         self.event_bus = event_bus
+        config = self.chain.get_state_machine().config
         # TODO: `latest_proposed_epoch` should be written into/read from validator's own db
-        self.latest_proposed_epoch = genesis_config.GENESIS_EPOCH
-        self.slots_per_epoch = genesis_config.SECONDS_PER_SLOT
+        self.latest_proposed_epoch = config.GENESIS_EPOCH
+        self.slots_per_epoch = config.SLOTS_PER_EPOCH
 
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()
@@ -104,7 +104,7 @@ class Validator(BaseService):
             state_machine.config,
         )
         # Since it's expected to tick twice in one slot, `latest_proposed_epoch` is used to prevent
-        # proposing twice in the same slot.
+        # validator from erraneously proposing again.
         has_proposed = slot_to_epoch(slot, self.slots_per_epoch) <= self.latest_proposed_epoch
         if not has_proposed and proposer_index in self.validator_privkeys:
             self.propose_block(
