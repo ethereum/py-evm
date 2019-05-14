@@ -1,8 +1,17 @@
 import pytest
 
 from eth2.beacon.db.chain import BeaconChainDB
+from eth2.beacon.helpers import (
+    slot_to_epoch,
+)
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
+)
+from eth2.beacon.state_machines.forks.serenity.configs import (
+    SERENITY_CONFIG,
+)
+from eth2.beacon.state_machines.forks.serenity import (
+    SerenityStateMachine,
 )
 from eth2.beacon.tools.builder.initializer import (
     create_mock_genesis,
@@ -15,24 +24,43 @@ from eth2.beacon.tools.builder.validator import (
 )
 
 
-@pytest.mark.long
-@pytest.mark.parametrize(
-    (
-        'num_validators,'
-        'slots_per_epoch,'
-        'min_attestation_inclusion_delay,'
-        'target_committee_size,'
-        'shard_count'
-    ),
-    [
-        (40, 8, 2, 3, 2)
-    ]
-)
+#
+# Mock bls verification for these tests
+#
+def mock_bls_verify(message_hash, pubkey, signature, domain):
+    return True
+
+
+def mock_bls_verify_multiple(pubkeys,
+                             message_hashes,
+                             signature,
+                             domain):
+    return True
+
+
+@pytest.fixture(autouse=True)
+def mock_bls(mocker, request):
+    mocker.patch('py_ecc.bls.verify', side_effect=mock_bls_verify)
+    mocker.patch('py_ecc.bls.verify_multiple', side_effect=mock_bls_verify_multiple)
+
+
 def test_demo(base_db,
-              num_validators,
-              config,
-              keymap,
-              fixture_sm_class):
+              keymap):
+    slots_per_epoch = 8
+    config = SERENITY_CONFIG._replace(
+        SLOTS_PER_EPOCH=slots_per_epoch,
+        GENESIS_EPOCH=slot_to_epoch(SERENITY_CONFIG.GENESIS_SLOT, slots_per_epoch),
+        TARGET_COMMITTEE_SIZE=3,
+        SHARD_COUNT=2,
+        MIN_ATTESTATION_INCLUSION_DELAY=2,
+    )
+    fixture_sm_class = SerenityStateMachine.configure(
+        __name__='SerenityStateMachineForTesting',
+        config=config,
+    )
+
+    num_validators = 40
+
     genesis_slot = config.GENESIS_SLOT
     genesis_epoch = config.GENESIS_EPOCH
     chaindb = BeaconChainDB(base_db, config)
