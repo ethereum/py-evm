@@ -11,6 +11,8 @@ from lahja import (
 )
 import pytest
 
+from eth.exceptions import BlockNotFound
+
 from eth2.beacon.helpers import (
     slot_to_epoch,
 )
@@ -23,18 +25,15 @@ from eth2.beacon.tools.builder.proposer import (
 from eth2.beacon.tools.misc.ssz_vector import (
     override_vector_lengths,
 )
-from eth2.configs import (
-    Eth2GenesisConfig,
-)
 from trinity.config import (
     BeaconChainConfig,
     BeaconGenesisData,
 )
-from trinity.plugins.eth2.beacon.slot_ticker import (
-    SlotTickEvent,
-)
 from trinity.plugins.eth2.beacon.validator import (
     Validator,
+)
+from trinity.plugins.eth2.beacon.slot_ticker import (
+    SlotTickEvent,
 )
 
 from .helpers import (
@@ -305,3 +304,16 @@ async def test_validator_propose_or_skip_block(event_loop, event_bus, monkeypatc
 
     await alice.propose_or_skip_block(slot_to_skip, is_second_tick=True)
     assert is_proposing is False, "`skip_block` should have been called"
+
+
+@pytest.mark.asyncio
+async def test_validator_get_committee_assigment(caplog, event_loop, event_bus):
+    caplog.set_level(logging.DEBUG)
+    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=7)
+    state_machine = alice.chain.get_state_machine()
+    state = state_machine.state
+    epoch = slot_to_epoch(state.slot, state_machine.config.SLOTS_PER_EPOCH)
+
+    assert alice.this_epoch_assignment[0] == -1
+    alice._get_this_epoch_assignment(epoch)
+    assert alice.this_epoch_assignment[0] == epoch

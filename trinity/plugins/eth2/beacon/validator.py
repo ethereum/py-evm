@@ -2,6 +2,7 @@ import logging
 from typing import (
     Dict,
     cast,
+    Tuple,
 )
 
 from cancel_token import (
@@ -20,9 +21,13 @@ from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
 from eth2.beacon.state_machines.base import BaseBeaconStateMachine  # noqa: F401
+from eth2.beacon.tools.builder.committee_assignment import CommitteeAssignment
 from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
     create_block_on_state,
+)
+from eth2.beacon.tools.builder.validator import (
+    get_committee_assignment,
 )
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
@@ -58,6 +63,7 @@ class Validator(BaseService):
     event_bus: TrinityEventBusEndpoint
     slots_per_epoch: int
     latest_proposed_epoch: Epoch
+    this_epoch_assignment: Tuple[Epoch, CommitteeAssignment]
 
     logger = logging.getLogger('trinity.plugins.eth2.beacon.Validator')
 
@@ -77,6 +83,7 @@ class Validator(BaseService):
         # TODO: `latest_proposed_epoch` should be written into/read from validator's own db
         self.latest_proposed_epoch = config.GENESIS_EPOCH
         self.slots_per_epoch = config.SLOTS_PER_EPOCH
+        self.this_epoch_assignment = (Epoch(-1),)  # type: ignore
 
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()
@@ -90,6 +97,25 @@ class Validator(BaseService):
         """
         async for event in self.event_bus.stream(SlotTickEvent):
             await self.propose_or_skip_block(event.slot, event.is_second_tick)
+
+    def _get_this_epoch_assignment(self, this_epoch: Epoch) -> CommitteeAssignment:
+        # update `this_epoch_assignment` if it's outdated
+        if this_epoch > self.this_epoch_assignment[0]:
+            state_machine = self.chain.get_state_machine()
+            state = state_machine.state
+            self.this_epoch_assignment = (
+                this_epoch,
+                get_committee_assignment(
+                    state,
+                    state_machine.config,
+                    this_epoch,
+                    self.validator_index,
+                    # FIXME: in simple testnet, `registry_change` is not likely to change
+                    # so hardcode it as `False`.
+                    registry_change=False,
+                )
+            )
+        return self.this_epoch_assignment[1]
 
     async def propose_or_skip_block(self, slot: Slot, is_second_tick: bool) -> None:
         head = self.chain.get_canonical_head()
