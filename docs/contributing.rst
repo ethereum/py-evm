@@ -32,7 +32,7 @@ We can run all tests with:
 
 .. code:: sh
 
-    pytest
+    pytest tests
 
 However, running the entire test suite does take a very long time so often we just want to run a subset instead, like:
 
