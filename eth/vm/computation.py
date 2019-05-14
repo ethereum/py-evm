@@ -1,6 +1,6 @@
 from abc import (
     ABC,
-    abstractmethod
+    abstractmethod,
 )
 import itertools
 import logging
@@ -14,6 +14,7 @@ from typing import (  # noqa: F401
     Union,
 )
 
+from cached_property import cached_property
 from eth_typing import (
     Address,
 )
@@ -92,7 +93,94 @@ def memory_gas_cost(size_in_bytes: int) -> int:
     return total_cost
 
 
-class BaseComputation(Configurable, ABC):
+class BaseStackManipulation:
+    @abstractmethod
+    def stack_pop_ints(self, num_items: int) -> Tuple[int, ...]:
+        """
+        Pop and return a tuple of integers of length ``num_items`` from the stack.
+
+        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
+        the stack.
+
+        Items are ordered with the top of the stack as the first item in the tuple.
+        """
+        pass
+
+    @abstractmethod
+    def stack_pop_bytes(self, num_items: int) -> Tuple[bytes, ...]:
+        """
+        Pop and return a tuple of bytes of length ``num_items`` from the stack.
+
+        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
+        the stack.
+
+        Items are ordered with the top of the stack as the first item in the tuple.
+        """
+        pass
+
+    @abstractmethod
+    def stack_pop_any(self, num_items: int) -> Tuple[Union[int, bytes], ...]:
+        """
+        Pop and return a tuple of items of length ``num_items`` from the stack.
+        The type of each element will be int or bytes, depending on whether it was
+        pushed with stack_push_bytes or stack_push_int.
+
+        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
+        the stack.
+
+        Items are ordered with the top of the stack as the first item in the tuple.
+        """
+        pass
+
+    @abstractmethod
+    def stack_pop1_int(self) -> int:
+        """
+        Pop and return an integer from the stack.
+
+        Raise `eth.exceptions.InsufficientStack` if the stack was empty.
+        """
+        pass
+
+    @abstractmethod
+    def stack_pop1_bytes(self) -> bytes:
+        """
+        Pop and return a bytes element from the stack.
+
+        Raise `eth.exceptions.InsufficientStack` if the stack was empty.
+        """
+        pass
+
+    @abstractmethod
+    def stack_pop1_any(self) -> Union[int, bytes]:
+        """
+        Pop and return an element from the stack.
+        The type of each element will be int or bytes, depending on whether it was
+        pushed with stack_push_bytes or stack_push_int.
+
+        Raise `eth.exceptions.InsufficientStack` if the stack was empty.
+        """
+        pass
+
+    @abstractmethod
+    def stack_push_int(self, value: int) -> None:
+        """
+        Push ``value`` onto the stack.
+
+        Raise `eth.exceptions.StackDepthLimit` if the stack is full.
+        """
+        pass
+
+    @abstractmethod
+    def stack_push_bytes(self, value: bytes) -> None:
+        """
+        Push ``value`` onto the stack.
+
+        Raise `eth.exceptions.StackDepthLimit` if the stack is full.
+        """
+        pass
+
+
+class BaseComputation(Configurable, BaseStackManipulation, ABC):
     """
     The base class for all execution computations.
 
@@ -121,7 +209,7 @@ class BaseComputation(Configurable, ABC):
     return_data = b''
     _error = None  # type: VMError
 
-    _log_entries = None  # type: List[Tuple[int, Address, List[int], bytes]]
+    _log_entries = None  # type: List[Tuple[int, Address, Tuple[int, ...], bytes]]
     accounts_to_delete = None  # type: Dict[Address, Address]
 
     # VM configuration
@@ -316,28 +404,6 @@ class BaseComputation(Configurable, ABC):
     #
     # Stack management
     #
-    def stack_pop(self, num_items: int=1, type_hint: str=None) -> Any:
-        # TODO: Needs to be replaced with
-        # `Union[int, bytes, Tuple[Union[int, bytes], ...]]` if done properly
-        """
-        Pop and return a number of items equal to ``num_items`` from the stack.
-        ``type_hint`` can be either ``'uint256'`` or ``'bytes'``.  The return value
-        will be an ``int`` or ``bytes`` type depending on the value provided for
-        the ``type_hint``.
-
-        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
-        the stack.
-        """
-        return self._stack.pop(num_items, type_hint)
-
-    def stack_push(self, value: Union[int, bytes]) -> None:
-        """
-        Push ``value`` onto the stack.
-
-        Raise `eth.exceptions.StackDepthLimit` if the stack is full.
-        """
-        return self._stack.push(value)
-
     def stack_swap(self, position: int) -> None:
         """
         Swap the item on the top of the stack with the item at ``position``.
@@ -349,6 +415,41 @@ class BaseComputation(Configurable, ABC):
         Duplicate the stack item at ``position`` and pushes it onto the stack.
         """
         return self._stack.dup(position)
+
+    # Stack manipulation is performance-sensitive code.
+    # Avoid method call overhead by proxying stack method directly to stack object
+
+    @cached_property
+    def stack_pop_ints(self) -> Callable[[int], Tuple[int, ...]]:
+        return self._stack.pop_ints
+
+    @cached_property
+    def stack_pop_bytes(self) -> Callable[[int], Tuple[bytes, ...]]:
+        return self._stack.pop_bytes
+
+    @cached_property
+    def stack_pop_any(self) -> Callable[[int], Tuple[Union[int, bytes], ...]]:
+        return self._stack.pop_any
+
+    @cached_property
+    def stack_pop1_int(self) -> Callable[[], int]:
+        return self._stack.pop1_int
+
+    @cached_property
+    def stack_pop1_bytes(self) -> Callable[[], bytes]:
+        return self._stack.pop1_bytes
+
+    @cached_property
+    def stack_pop1_any(self) -> Callable[[], Union[int, bytes]]:
+        return self._stack.pop1_any
+
+    @cached_property
+    def stack_push_int(self) -> Callable[[int], None]:
+        return self._stack.push_int
+
+    @cached_property
+    def stack_push_bytes(self) -> Callable[[bytes], None]:
+        return self._stack.push_bytes
 
     #
     # Computation result
@@ -460,7 +561,7 @@ class BaseComputation(Configurable, ABC):
     #
     # EVM logging
     #
-    def add_log_entry(self, account: Address, topics: List[int], data: bytes) -> None:
+    def add_log_entry(self, account: Address, topics: Tuple[int, ...], data: bytes) -> None:
         validate_canonical_address(account, title="Log entry address")
         for topic in topics:
             validate_uint256(topic, title="Log entry topic")
@@ -468,7 +569,7 @@ class BaseComputation(Configurable, ABC):
         self._log_entries.append(
             (self.transaction_context.get_next_log_counter(), account, topics, data))
 
-    def _get_log_entries(self) -> List[Tuple[int, bytes, List[int], bytes]]:
+    def _get_log_entries(self) -> List[Tuple[int, bytes, Tuple[int, ...], bytes]]:
         """
         Return the log entries for this computation and its children.
 
@@ -483,7 +584,7 @@ class BaseComputation(Configurable, ABC):
                 *(child._get_log_entries() for child in self.children)
             ))
 
-    def get_log_entries(self) -> Tuple[Tuple[bytes, List[int], bytes], ...]:
+    def get_log_entries(self) -> Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...]:
         return tuple(log[1:] for log in self._get_log_entries())
 
     #

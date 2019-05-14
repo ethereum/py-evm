@@ -8,7 +8,7 @@ from eth.vm.computation import BaseComputation
 
 
 def sha3(computation: BaseComputation) -> None:
-    start_position, size = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    start_position, size = computation.stack_pop_ints(2)
 
     computation.extend_memory(start_position, size)
 
@@ -20,4 +20,4 @@ def sha3(computation: BaseComputation) -> None:
 
     result = keccak(sha3_bytes)
 
-    computation.stack_push(result)
+    computation.stack_push_bytes(result)

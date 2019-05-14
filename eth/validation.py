@@ -190,14 +190,21 @@ def validate_uint256(value: int, title: str="Value") -> None:
         )
 
 
-def validate_stack_item(value: Union[int, bytes]) -> None:
-    if isinstance(value, bytes) and len(value) <= 32:
-        return
-    elif isinstance(value, int) and 0 <= value <= UINT_256_MAX:
+def validate_stack_int(value: int) -> None:
+    if 0 <= value <= UINT_256_MAX:
         return
     raise ValidationError(
         "Invalid Stack Item: Must be either a length 32 byte "
-        "string or a 256 bit integer. Got {0}".format(value)
+        "string or a 256 bit integer. Got {!r}".format(value)
+    )
+
+
+def validate_stack_bytes(value: bytes) -> None:
+    if len(value) <= 32:
+        return
+    raise ValidationError(
+        "Invalid Stack Item: Must be either a length 32 byte "
+        "string or a 256 bit integer. Got {!r}".format(value)
     )
 
 
