@@ -368,11 +368,11 @@ async def test_bcc_receive_server_process_received_block(request, event_loop, mo
     class OtherException(Exception):
         pass
 
-    def import_block_raises_validation_error(block, performa_validation=True):
+    def import_block_raises_other_exception_error(block, performa_validation=True):
         raise OtherException
 
     with monkeypatch.context() as m:
-        m.setattr(bob_recv_server.chain, 'import_block', import_block_raises_validation_error)
+        m.setattr(bob_recv_server.chain, 'import_block', import_block_raises_other_exception_error)
         with pytest.raises(OtherException):
             bob_recv_server._process_received_block(block_not_orphan)
 
@@ -397,6 +397,16 @@ async def test_bcc_receive_server_broadcast_block(request, event_loop, monkeypat
     block_non_orphan, block_orphan = get_blocks(bob_recv_server, num_blocks=2)
     alice_msg_buffer = MsgBuffer()
     alice.add_subscriber(alice_msg_buffer)
+
+    # test: with `from_peer=alice`, bob broadcasts to all peers except alice. Therefore, alice
+    #   should fail to receive the block.
+    bob_peers = bob_recv_server._peer_pool.connected_nodes.values()
+    assert len(bob_peers) == 1
+    alice_in_bobs_peer_pool = tuple(bob_peers)[0]
+    # NOTE: couldn't use `alice` directly, `from_peer` should be a `BCCPeer` in its PeerPool
+    bob_recv_server._broadcast_block(block_orphan, from_peer=alice_in_bobs_peer_pool)
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(alice_msg_buffer.msg_queue.get(), 0.1)
 
     # test: with `from_peer=None` it broadcasts the block to all bob's peers. Try the orphan block
     #   first.
