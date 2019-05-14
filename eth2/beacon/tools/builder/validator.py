@@ -507,7 +507,6 @@ def create_mock_signed_attestations_at_slot(
     for crosslink_committee in crosslink_committees_at_slot:
         committee, shard = crosslink_committee
 
-        num_voted_attesters = int(len(committee) * voted_attesters_ratio)
         previous_crosslink = state.latest_crosslinks[shard]
 
         attestation_data = AttestationData(
@@ -531,6 +530,74 @@ def create_mock_signed_attestations_at_slot(
             keymap,
             config.SLOTS_PER_EPOCH,
         )
+
+
+def create_signed_attestation_at_slot(
+        state: BeaconState,
+        config: Eth2Config,
+        state_machine: BaseBeaconStateMachine,
+        attestation_slot: Slot,
+        beacon_block_root: Hash32,
+        validator_index: ValidatorIndex,
+        committee: Tuple[ValidatorIndex, ...],
+        shard: Shard,
+        privkey: int) -> Attestation:
+    """
+    Create the attestations of the given ``attestation_slot`` slot with ``privkey``.
+    """
+    state_transition = state_machine.state_transition
+    state = state_transition.apply_state_transition_without_block(
+        state,
+        attestation_slot,
+    )
+
+    # Get `target_root`
+    target_root = _get_target_root(state, config, beacon_block_root)
+
+    previous_crosslink = state.latest_crosslinks[shard]
+
+    attestation_data = AttestationData(
+        slot=attestation_slot,
+        beacon_block_root=beacon_block_root,
+        source_epoch=state.current_justified_epoch,
+        source_root=state.current_justified_root,
+        target_root=target_root,
+        shard=shard,
+        previous_crosslink=previous_crosslink,
+        crosslink_data_root=ZERO_HASH32,
+    )
+
+    message_hash = AttestationDataAndCustodyBit(
+        data=attestation_data,
+        custody_bit=False
+    ).root
+
+    signatures = [
+        sign_transaction(
+            message_hash=message_hash,
+            privkey=privkey,
+            fork=state.fork,
+            slot=attestation_data.slot,
+            signature_domain=SignatureDomain.DOMAIN_ATTESTATION,
+            slots_per_epoch=config.SLOTS_PER_EPOCH,
+        )
+    ]
+
+    # aggregate signatures and construct participant bitfield
+    aggregation_bitfield, aggregate_signature = aggregate_votes(
+        bitfield=get_empty_bitfield(len(committee)),
+        sigs=(),
+        voting_sigs=signatures,
+        voting_committee_indices=[CommitteeIndex(committee.index(validator_index))],
+    )
+
+    # create attestation from attestation_data, particpipant_bitfield, and signature
+    return Attestation(
+        aggregation_bitfield=aggregation_bitfield,
+        data=attestation_data,
+        custody_bitfield=Bitfield(b'\x00' * len(aggregation_bitfield)),
+        aggregate_signature=aggregate_signature,
+    )
 
 
 #
