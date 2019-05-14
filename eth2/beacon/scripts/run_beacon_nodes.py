@@ -9,28 +9,24 @@ import signal
 import sys
 import time
 from typing import (
+    ClassVar,
     Dict,
     List,
     MutableSet,
     NamedTuple,
+    Optional,
+    Tuple,
 )
 
 from pathlib import Path
 
+from eth_keys.datatypes import (
+    PrivateKey,
+)
 
-dir_root = Path("/tmp/aaaa")
-dir_alice = dir_root / "alice"
-dir_bob = dir_root / "bob"
-port_alice = 30304
-port_bob = 30305
-num_validators = 5
-cmd_gen_testnet_files = f"trinity-beacon testnet --num={num_validators} --network-dir={dir_root}"
-cmd_alice = f"trinity-beacon --port={port_alice} --trinity-root-dir={dir_alice} --beacon-nodekey=6b94ffa2d9b8ee85afb9d7153c463ea22789d3bbc5d961cc4f63a41676883c19 -l debug"  # noqa: E501
-cmd_bob = f"trinity-beacon --port={port_bob} --trinity-root-dir={dir_bob} --beacon-nodekey=f5ad1c57b5a489fc8f21ad0e5a19c1f1a60b8ab357a2100ff7e75f3fa8a4fd2e --bootstrap_nodes=enode://c289557985d885a3f13830a475d649df434099066fbdc840aafac23144f6ecb70d7cc16c186467f273ad7b29707aa15e6a50ec3fde35ae2e69b07b3ddc7a36c7@127.0.0.1:{port_alice} -l debug"  # noqa: E501
-file_genesis_json = "genesis.json"
-file_validators_json = "validators.json"
-
-time_bob_wait_for_alice = 15
+from eth_utils import (
+    remove_0x_prefix,
+)
 
 
 async def run(cmd):
@@ -42,10 +38,10 @@ async def run(cmd):
     return proc
 
 
-class NodeEvent(NamedTuple):
+class Log(NamedTuple):
     name: str
     pattern: str
-    # TODO: dependent event?
+    # TODO: probably we can add dependent relationship between logs?
     timeout: int
 
 
@@ -53,79 +49,122 @@ class EventTimeOutError(Exception):
     pass
 
 
-SERVER_RUNNING = NodeEvent(name="server running", pattern="Running server", timeout=60)
-START_SYNCING = NodeEvent(name="start syncing", pattern="their head slot", timeout=200)
-
-
-nodes_to_stop = []
-
-
-def stop_all_nodes():
-    global nodes_to_stop
-    for node in nodes_to_stop:
-        print(f"Stopping node={node}")
-        node.stop()
+SERVER_RUNNING = Log(name="server running", pattern="Running server", timeout=60)
+START_SYNCING = Log(name="start syncing", pattern="their head slot", timeout=200)
 
 
 class Node:
     name: str
-    cmd: str
+    node_privkey: str
+    port: int
+    bootstrap_nodes: Tuple["Node", ...]
+
     start_time: float
     proc: asyncio.subprocess.Process
     # TODO: use CancelToken instead
     tasks: List[asyncio.Task]
-    events_expected: Dict[str, MutableSet[NodeEvent]]
-    has_event_happend: Dict[NodeEvent, bool]
+    logs_expected: Dict[str, MutableSet[Log]]
+    has_log_happened: Dict[Log, bool]
 
-    logger = logging.getLogger("eth2.beacon.scripts.run_beacon_nodes.Node")
+    dir_root: ClassVar[Path] = Path("/tmp/aaaa")
+    nodes_to_stop: ClassVar[List] = []
+    logger: ClassVar[logging.Logger] = logging.getLogger(
+        "eth2.beacon.scripts.run_beacon_nodes.Node"
+    )
 
-    def __init__(self, name: str, cmd: str) -> None:
+    def __init__(
+            self,
+            name: str,
+            node_privkey: str,
+            port: int,
+            bootstrap_nodes: Optional[Tuple["Node", ...]] = None) -> None:
         self.name = name
-        self.cmd = cmd
+        self.node_privkey = PrivateKey(bytes.fromhex(node_privkey))
+        self.port = port
+        if bootstrap_nodes is None:
+            bootstrap_nodes = []
+        self.bootstrap_nodes = bootstrap_nodes
+
         self.tasks = []
         self.start_time = time.monotonic()
-        self.events_expected = {}
-        self.events_expected["stdout"] = set()
-        self.events_expected["stderr"] = set([SERVER_RUNNING])
-        self.has_event_happend = defaultdict(lambda: False)
-        asyncio.ensure_future(self._run(self.cmd))
+        self.logs_expected = {}
+        self.logs_expected["stdout"] = set()
+        self.logs_expected["stderr"] = set()
+        self.add_log("stderr", SERVER_RUNNING)
+        self.has_log_happened = defaultdict(lambda: False)
 
     def __repr__(self) -> str:
-        return f"<Node {self.name} {self.proc}"
+        return f"<Node {self.logging_name} {self.proc}>"
+
+    @property
+    def logging_name(self) -> str:
+        return f"{self.name}@{remove_0x_prefix(self.node_id)[:6]}"
+
+    @property
+    def root_dir(self) -> Path:
+        return self.dir_root / self.name
+
+    @property
+    def node_id(self) -> str:
+        return self.node_privkey.public_key.to_hex()
+
+    @property
+    def enode_id(self) -> str:
+        return f"enode://{remove_0x_prefix(self.node_id)}@127.0.0.1:{self.port}"
+
+    @property
+    def cmd(self) -> str:
+        _cmds = [
+            "trinity-beacon",
+            f"--port={self.port}",
+            f"--trinity-root-dir={self.root_dir}",
+            f" --beacon-nodekey={remove_0x_prefix(self.node_privkey.to_hex())}",
+            "-l debug",
+        ]
+        if len(self.bootstrap_nodes) != 0:
+            bootstrap_nodes_str = ",".join([node.enode_id for node in self.bootstrap_nodes])
+            _cmds.append(f"--bootstrap_nodes={bootstrap_nodes_str}")
+        _cmd = " ".join(_cmds)
+        return _cmd
 
     def stop(self) -> None:
         for task in self.tasks:
             task.cancel()
         self.proc.terminate()
 
-    def add_event(self, from_stream: str, event: NodeEvent) -> None:
+    @classmethod
+    def stop_all_nodes(cls) -> None:
+        for node in cls.nodes_to_stop:
+            print(f"Stopping node={node}")
+            node.stop()
+
+    def add_log(self, from_stream: str, log: Log) -> None:
         if from_stream not in ("stdout", "stderr"):
             return
-        self.events_expected[from_stream].add(event)
+        self.logs_expected[from_stream].add(log)
 
-    async def _run(self, cmd: str) -> None:
+    async def run(self) -> None:
         print(f"Spinning up {self.name}")
-        self.proc = await run(cmd)
+        self.proc = await run(self.cmd)
         self.tasks.append(asyncio.ensure_future(self._print_logs('stdout', self.proc.stdout)))
         self.tasks.append(asyncio.ensure_future(self._print_logs('stderr', self.proc.stderr)))
         try:
-            await self._event_monitor()
+            await self._log_monitor()
         except EventTimeOutError as e:
-            print(e)
             self.logger.debug(e)
             # FIXME: nasty
-            stop_all_nodes()
+            self.stop_all_nodes()
             sys.exit(2)
 
-    async def _event_monitor(self):
+    async def _log_monitor(self) -> None:
         while True:
-            for from_stream, events in self.events_expected.items():
-                for event in events:
+            for from_stream, logs in self.logs_expected.items():
+                for log in logs:
                     current_time = time.monotonic()
                     ellapsed_time = current_time - self.start_time
-                    if not self.has_event_happend[event] and (ellapsed_time > event.timeout):
+                    if not self.has_log_happened[log] and (ellapsed_time > log.timeout):
                         raise EventTimeOutError(
-                            f"Event {event.name!r} is time out, "
+                            f"{self.logging_name}: log {log.name!r} is time out, "
                             f"which should have occurred in {from_stream}."
                         )
             await asyncio.sleep(0.1)
@@ -134,47 +173,58 @@ class Node:
         async for line_bytes in stream_reader:
             line = line_bytes.decode('utf-8').replace('\n', '')
             # TODO: Preprocessing
-            self._record_happenning_event(from_stream, line)
-            print(f"{self.name}.{from_stream}: {line}")
+            self._record_happenning_logs(from_stream, line)
+            print(f"{self.logging_name}.{from_stream}\t: {line}")
 
-    def _record_happenning_event(self, from_stream, line):
-        for event in self.events_expected[from_stream]:
-            if event.pattern in line:
-                self.logger.debug(f"event \"event.name\" occurred in {from_stream}")
-                self.has_event_happend[event] = True
+    def _record_happenning_logs(self, from_stream: str, line: str) -> None:
+        for log in self.logs_expected[from_stream]:
+            if log.pattern in line:
+                self.logger.debug(f"log \"log.name\" occurred in {from_stream}")
+                self.has_log_happened[log] = True
 
 
 async def main():
+    num_validators = 5
+    time_bob_wait_for_alice = 15
+
     proc = await run(
-        f"rm -rf {dir_root}"
+        f"rm -rf {Node.dir_root}"
     )
     await proc.wait()
-    # proc = await run(
-    #     f"mkdir -p {dir_alice} {dir_bob}"
-    # )
     proc = await run(
-        f"mkdir -p {dir_root}"
+        f"mkdir -p {Node.dir_root}"
     )
     await proc.wait()
 
-    proc = await run(cmd_gen_testnet_files)
+    proc = await run(
+        f"trinity-beacon testnet --num={num_validators} --network-dir={Node.dir_root}"
+    )
     await proc.wait()
 
     def sigint_handler(sig, frame):
-        stop_all_nodes()
+        Node.stop_all_nodes()
         sys.exit(123)
 
     signal.signal(signal.SIGINT, sigint_handler)
 
-    node_alice = Node('Alice\tc2895', cmd_alice)
-    nodes_to_stop.append(node_alice)
+    node_alice = Node(
+        name="alice",
+        node_privkey="6b94ffa2d9b8ee85afb9d7153c463ea22789d3bbc5d961cc4f63a41676883c19",
+        port=30304,
+        bootstrap_nodes=[],
+    )
+    asyncio.ensure_future(node_alice.run())
 
     print(f"Sleeping {time_bob_wait_for_alice} seconds to wait until Alice is initialized")
     await asyncio.sleep(time_bob_wait_for_alice)
 
-    node_bob = Node('Bob\t0e01b', cmd_bob)
-    # node_bob.add_event("stderr", START_SYNCING)
-    nodes_to_stop.append(node_bob)
+    node_bob = Node(
+        name="bob",
+        node_privkey="f5ad1c57b5a489fc8f21ad0e5a19c1f1a60b8ab357a2100ff7e75f3fa8a4fd2e",
+        port=30305,
+        bootstrap_nodes=[node_alice],
+    )
+    asyncio.ensure_future(node_bob.run())
 
     await asyncio.sleep(1000000)
 
