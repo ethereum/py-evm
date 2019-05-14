@@ -271,7 +271,6 @@ def _get_shuffling_contextis_next_epoch_no_registry_change_no_reseed(
     )
 
 
-@functools.lru_cache(maxsize=128)
 @to_tuple
 def get_crosslink_committees_at_slot(
         state: 'BeaconState',
