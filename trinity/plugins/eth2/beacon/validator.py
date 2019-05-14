@@ -2,6 +2,7 @@ import logging
 from typing import (
     Dict,
     cast,
+    Optional,
     Tuple,
 )
 
@@ -27,8 +28,10 @@ from eth2.beacon.tools.builder.proposer import (
     create_block_on_state,
 )
 from eth2.beacon.tools.builder.validator import (
+    create_signed_attestation_at_slot,
     get_committee_assignment,
 )
+from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
@@ -63,6 +66,7 @@ class Validator(BaseService):
     event_bus: TrinityEventBusEndpoint
     slots_per_epoch: int
     latest_proposed_epoch: Epoch
+    latest_attested_epoch: Epoch
     this_epoch_assignment: Tuple[Epoch, CommitteeAssignment]
 
     logger = logging.getLogger('trinity.plugins.eth2.beacon.Validator')
@@ -81,8 +85,9 @@ class Validator(BaseService):
         self.event_bus = event_bus
         config = self.chain.get_state_machine().config
         # TODO: `latest_proposed_epoch` should be written into/read from validator's own db
-        self.latest_proposed_epoch = config.GENESIS_EPOCH
+        self.latest_proposed_epoch = Epoch(-1)
         self.slots_per_epoch = config.SLOTS_PER_EPOCH
+        self.latest_attested_epoch = Epoch(-1)
         self.this_epoch_assignment = (Epoch(-1),)  # type: ignore
 
     async def _run(self) -> None:
@@ -97,6 +102,7 @@ class Validator(BaseService):
         """
         async for event in self.event_bus.stream(SlotTickEvent):
             await self.propose_or_skip_block(event.slot, event.is_second_tick)
+            await self.attest(event.slot)
 
     def _get_this_epoch_assignment(self, this_epoch: Epoch) -> CommitteeAssignment:
         # update `this_epoch_assignment` if it's outdated
@@ -211,3 +217,29 @@ class Validator(BaseService):
         # will run the state transition which also includes the state transition for skipped slots.
         self.chain.chaindb.persist_state(post_state)
         return post_state.root
+
+    async def attest(self, slot: Slot) -> Optional[Attestation]:
+        assignment = self._get_this_epoch_assignment(slot_to_epoch(slot, self.slots_per_epoch))
+        has_attested = slot_to_epoch(slot, self.slots_per_epoch) <= self.latest_attested_epoch
+        if not has_attested and slot == assignment.slot:
+            head = self.chain.get_canonical_head()
+            state_machine = self.chain.get_state_machine()
+            state = state_machine.state
+            attestation = create_signed_attestation_at_slot(
+                state,
+                state_machine.config,
+                state_machine,
+                slot,
+                head.signing_root,
+                self.validator_index,
+                assignment.committee,
+                assignment.shard,
+                self.privkey,
+            )
+            self.logger.debug(
+                bold_green(f"attest to block, block={head}, attestation={attestation}")
+            )
+            self.latest_attested_epoch = slot_to_epoch(slot, self.slots_per_epoch)
+            return attestation
+        else:
+            return None
