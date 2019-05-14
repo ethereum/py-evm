@@ -16,6 +16,7 @@ from eth.exceptions import BlockNotFound
 from eth2.beacon.helpers import (
     slot_to_epoch,
 )
+from eth2.beacon.state_machines.forks.serenity.block_validation import validate_attestation
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
     XIAO_LONG_BAO_CONFIG,
 )
@@ -25,6 +26,8 @@ from eth2.beacon.tools.builder.proposer import (
 from eth2.beacon.tools.misc.ssz_vector import (
     override_vector_lengths,
 )
+from eth2.configs import CommitteeConfig
+
 from trinity.config import (
     BeaconChainConfig,
     BeaconGenesisData,
@@ -225,11 +228,16 @@ async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
     alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=0)
 
     event_new_slot_called = asyncio.Event()
+    event_attest_called = asyncio.Event()
 
     async def propose_or_skip_block(slot, is_second_tick):
         event_new_slot_called.set()
 
+    async def attest(slot):
+        event_attest_called.set()
+
     monkeypatch.setattr(alice, 'propose_or_skip_block', propose_or_skip_block)
+    monkeypatch.setattr(alice, 'attest', attest)
 
     # sleep for `event_bus` ready
     await asyncio.sleep(0.01)
@@ -244,6 +252,11 @@ async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
     )
     await asyncio.wait_for(
         event_new_slot_called.wait(),
+        timeout=2,
+        loop=event_loop,
+    )
+    await asyncio.wait_for(
+        event_attest_called.wait(),
         timeout=2,
         loop=event_loop,
     )
@@ -265,7 +278,6 @@ async def test_validator_propose_or_skip_block(event_loop, event_bus, monkeypatc
         state=state,
         state_machine=state_machine,
     )
-    alice.latest_proposed_epoch = slot_to_epoch(slot_to_propose, alice.slots_per_epoch) - 1
 
     is_proposing = None
 
@@ -307,13 +319,46 @@ async def test_validator_propose_or_skip_block(event_loop, event_bus, monkeypatc
 
 
 @pytest.mark.asyncio
-async def test_validator_get_committee_assigment(caplog, event_loop, event_bus):
-    caplog.set_level(logging.DEBUG)
-    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=7)
+async def test_validator_get_committee_assigment(event_loop, event_bus):
+    alice_index = 7
+    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=alice_index)
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
     epoch = slot_to_epoch(state.slot, state_machine.config.SLOTS_PER_EPOCH)
 
-    assert alice.this_epoch_assignment[0] == -1
-    alice._get_this_epoch_assignment(epoch)
-    assert alice.this_epoch_assignment[0] == epoch
+    assert alice.this_epoch_assignment[alice_index][0] == -1
+    alice._get_this_epoch_assignment(alice_index, epoch)
+    assert alice.this_epoch_assignment[alice_index][0] == epoch
+
+
+@pytest.mark.asyncio
+async def test_validator_attest(event_loop, event_bus):
+    alice_index = 5
+    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=alice_index)
+    head = alice.chain.get_canonical_head()
+    state_machine = alice.chain.get_state_machine()
+    state = state_machine.state
+    epoch = slot_to_epoch(state.slot, state_machine.config.SLOTS_PER_EPOCH)
+
+    assignment = alice._get_this_epoch_assignment(alice_index, epoch)
+
+    attestations = await alice.attest(assignment.slot)
+    assert len(attestations) == 1
+    attestation = attestations[0]
+    assert attestation.data.slot == assignment.slot
+    assert attestation.data.beacon_block_root == head.signing_root
+    assert attestation.data.shard == assignment.shard
+
+    # Advance the state and validate the attestation
+    config = state_machine.config
+    future_state = state_machine.state_transition.apply_state_transition_without_block(
+        state,
+        assignment.slot + config.MIN_ATTESTATION_INCLUSION_DELAY,
+    )
+    validate_attestation(
+        future_state,
+        attestation,
+        config.MIN_ATTESTATION_INCLUSION_DELAY,
+        config.SLOTS_PER_HISTORICAL_ROOT,
+        CommitteeConfig(config),
+    )

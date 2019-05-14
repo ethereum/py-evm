@@ -1,9 +1,8 @@
 import logging
 from typing import (
     Dict,
-    cast,
-    Optional,
     Tuple,
+    cast,
 )
 
 from cancel_token import (
@@ -65,9 +64,9 @@ class Validator(BaseService):
     validator_privkeys: Dict[ValidatorIndex, int]
     event_bus: TrinityEventBusEndpoint
     slots_per_epoch: int
-    latest_proposed_epoch: Epoch
-    latest_attested_epoch: Epoch
-    this_epoch_assignment: Tuple[Epoch, CommitteeAssignment]
+    latest_proposed_epoch: Dict[ValidatorIndex, Epoch]
+    latest_attested_epoch: Dict[ValidatorIndex, Epoch]
+    this_epoch_assignment: Dict[ValidatorIndex, Tuple[Epoch, CommitteeAssignment]]
 
     logger = logging.getLogger('trinity.plugins.eth2.beacon.Validator')
 
@@ -84,11 +83,15 @@ class Validator(BaseService):
         self.validator_privkeys = validator_privkeys
         self.event_bus = event_bus
         config = self.chain.get_state_machine().config
-        # TODO: `latest_proposed_epoch` should be written into/read from validator's own db
-        self.latest_proposed_epoch = Epoch(-1)
         self.slots_per_epoch = config.SLOTS_PER_EPOCH
-        self.latest_attested_epoch = Epoch(-1)
-        self.this_epoch_assignment = (Epoch(-1),)  # type: ignore
+        # TODO: `latest_proposed_epoch` should be written into/read from validator's own db
+        self.latest_proposed_epoch = {}
+        self.latest_attested_epoch = {}
+        self.this_epoch_assignment = {}
+        for validator_index in validator_privkeys:
+            self.latest_proposed_epoch[validator_index] = Epoch(-1)
+            self.latest_attested_epoch[validator_index] = Epoch(-1)
+            self.this_epoch_assignment[validator_index] = (Epoch(-1),)  # type: ignore
 
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()
@@ -104,24 +107,26 @@ class Validator(BaseService):
             await self.propose_or_skip_block(event.slot, event.is_second_tick)
             await self.attest(event.slot)
 
-    def _get_this_epoch_assignment(self, this_epoch: Epoch) -> CommitteeAssignment:
+    def _get_this_epoch_assignment(self,
+                                   validator_index: ValidatorIndex,
+                                   this_epoch: Epoch) -> CommitteeAssignment:
         # update `this_epoch_assignment` if it's outdated
-        if this_epoch > self.this_epoch_assignment[0]:
+        if this_epoch > self.this_epoch_assignment[validator_index][0]:
             state_machine = self.chain.get_state_machine()
             state = state_machine.state
-            self.this_epoch_assignment = (
+            self.this_epoch_assignment[validator_index] = (
                 this_epoch,
                 get_committee_assignment(
                     state,
                     state_machine.config,
                     this_epoch,
-                    self.validator_index,
+                    validator_index,
                     # FIXME: in simple testnet, `registry_change` is not likely to change
                     # so hardcode it as `False`.
                     registry_change=False,
                 )
             )
-        return self.this_epoch_assignment[1]
+        return self.this_epoch_assignment[validator_index][1]
 
     async def propose_or_skip_block(self, slot: Slot, is_second_tick: bool) -> None:
         head = self.chain.get_canonical_head()
@@ -137,16 +142,18 @@ class Validator(BaseService):
         )
         # Since it's expected to tick twice in one slot, `latest_proposed_epoch` is used to prevent
         # validator from erraneously proposing again.
-        has_proposed = slot_to_epoch(slot, self.slots_per_epoch) <= self.latest_proposed_epoch
-        if not has_proposed and proposer_index in self.validator_privkeys:
-            self.propose_block(
-                proposer_index=proposer_index,
-                slot=slot,
-                state=state,
-                state_machine=state_machine,
-                head_block=head,
-            )
-            self.latest_proposed_epoch = slot_to_epoch(slot, self.slots_per_epoch)
+        epoch = slot_to_epoch(slot, self.slots_per_epoch)
+        if proposer_index in self.validator_privkeys:
+            has_proposed = epoch <= self.latest_proposed_epoch[proposer_index]
+            if not has_proposed:
+                self.propose_block(
+                    proposer_index=proposer_index,
+                    slot=slot,
+                    state=state,
+                    state_machine=state_machine,
+                    head_block=head,
+                )
+                self.latest_proposed_epoch[proposer_index] = epoch
         # skip the block if it's second half of the slot and we are not proposing
         elif is_second_tick and proposer_index not in self.validator_privkeys:
             self.skip_block(
@@ -169,7 +176,7 @@ class Validator(BaseService):
             parent_block=head_block,
         )
         self.logger.debug(
-            bold_green(f"proposing block, block={block}")
+            bold_green(f"validator index={proposer_index} proposing block, block={block}")
         )
         for peer in self.peer_pool.connected_nodes.values():
             peer = cast(BCCPeer, peer)
@@ -218,28 +225,42 @@ class Validator(BaseService):
         self.chain.chaindb.persist_state(post_state)
         return post_state.root
 
-    async def attest(self, slot: Slot) -> Optional[Attestation]:
-        assignment = self._get_this_epoch_assignment(slot_to_epoch(slot, self.slots_per_epoch))
-        has_attested = slot_to_epoch(slot, self.slots_per_epoch) <= self.latest_attested_epoch
-        if not has_attested and slot == assignment.slot:
-            head = self.chain.get_canonical_head()
-            state_machine = self.chain.get_state_machine()
-            state = state_machine.state
-            attestation = create_signed_attestation_at_slot(
-                state,
-                state_machine.config,
-                state_machine,
-                slot,
-                head.signing_root,
-                self.validator_index,
-                assignment.committee,
-                assignment.shard,
-                self.privkey,
+    async def attest(self, slot: Slot) -> Tuple[Attestation, ...]:
+        attestations: Tuple[Attestation, ...] = ()
+        head = self.chain.get_canonical_head()
+        state_machine = self.chain.get_state_machine()
+        state = state_machine.state
+        for validator_index in self.validator_privkeys:
+            epoch = slot_to_epoch(slot, self.slots_per_epoch)
+            assignment = self._get_this_epoch_assignment(
+                validator_index,
+                epoch,
             )
+            has_attested = epoch <= self.latest_attested_epoch[validator_index]
+            if not has_attested and slot == assignment.slot:
+                attestation = create_signed_attestation_at_slot(
+                    state,
+                    state_machine.config,
+                    state_machine,
+                    slot,
+                    head.signing_root,
+                    validator_index,
+                    assignment.committee,
+                    assignment.shard,
+                    self.validator_privkeys[validator_index],
+                )
+                self.logger.debug(
+                    bold_green(
+                        f"validator index={validator_index} attest to block, "
+                        "block={head}, attestation={attestation}"
+                    )
+                )
+                self.latest_attested_epoch[validator_index] = epoch
+                attestations = attestations + (attestation,)
+        for peer in self.peer_pool.connected_nodes.values():
+            peer = cast(BCCPeer, peer)
             self.logger.debug(
-                bold_green(f"attest to block, block={head}, attestation={attestation}")
+                bold_red(f"sending attestations to peer={peer}")
             )
-            self.latest_attested_epoch = slot_to_epoch(slot, self.slots_per_epoch)
-            return attestation
-        else:
-            return None
+            peer.sub_proto.send_attestation_records(attestations)
+        return attestations
