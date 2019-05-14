@@ -105,6 +105,7 @@ SLOW_TESTS = (
 # at the commit currently checked out in submodule `fixtures`.
 # Ideally, this list should be empty.
 # WHEN ADDING ENTRIES, ALWAYS PROVIDE AN EXPLANATION!
+# TODO: import from `py-evm` if possible
 INCORRECT_UPSTREAM_TESTS = {
     # The test considers a "synthetic" scenario (the state described there can't
     # be arrived at using regular consensus rules).
@@ -112,6 +113,28 @@ INCORRECT_UPSTREAM_TESTS = {
     # The result is in conflict with the yellow-paper:
     # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-418800369
     ('GeneralStateTests/stRevertTest/RevertInCreateInInit_d0g0v0.json', 'RevertInCreateInInit_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stRevertTest/RevertInCreateInInit_d0g0v0.json', 'RevertInCreateInInit_d0g0v0_Constantinople'),  # noqa: E501
+    ('GeneralStateTests/stRevertTest/RevertInCreateInInit_d0g0v0.json', 'RevertInCreateInInit_d0g0v0_ConstantinopleFix'),  # noqa: E501
+
+    # The CREATE2 variant seems to have been derived from the one above - it, too,
+    # has a "synthetic" state, on which py-evm flips.
+    # * https://github.com/ethereum/py-evm/pull/1181#issuecomment-446330609
+    ('GeneralStateTests/stCreate2/RevertInCreateInInitCreate2_d0g0v0.json', 'RevertInCreateInInitCreate2_d0g0v0_Constantinople'),  # noqa: E501
+    ('GeneralStateTests/stCreate2/RevertInCreateInInitCreate2_d0g0v0.json', 'RevertInCreateInInitCreate2_d0g0v0_ConstantinopleFix'),  # noqa: E501
+
+    # Four variants have been specifically added to test a collision type
+    # like the above; therefore, they fail in the same manner.
+    # * https://github.com/ethereum/py-evm/pull/1579#issuecomment-446591118
+    # Interestingly, d2 passes in Constantinople after a py-evm refactor of storage handling,
+    # the same test is already passing in ConstantinopleFix. Since the situation is synthetic,
+    # not much research went into why, yet.
+    ('GeneralStateTests/stSStoreTest/InitCollision_d0g0v0.json', 'InitCollision_d0g0v0_Constantinople'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision_d1g0v0.json', 'InitCollision_d1g0v0_Constantinople'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision_d2g0v0.json', 'InitCollision_d2g0v0_Constantinople'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision_d3g0v0.json', 'InitCollision_d3g0v0_Constantinople'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision_d0g0v0.json', 'InitCollision_d0g0v0_ConstantinopleFix'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision_d1g0v0.json', 'InitCollision_d1g0v0_ConstantinopleFix'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision_d3g0v0.json', 'InitCollision_d3g0v0_ConstantinopleFix'),  # noqa: E501
 }
 
 RPC_STATE_NORMALIZERS = {
@@ -376,8 +399,8 @@ async def validate_uncles(rpc, block_fixture, at_block):
 @pytest.fixture
 def chain_fixture(fixture_data):
     fixture = load_fixture(*fixture_data)
-    if fixture['network'] == 'Constantinople':
-        pytest.skip('Constantinople VM rules not yet supported')
+    if fixture['network'] == 'Istanbul':
+        pytest.skip('Istanbul VM rules not yet supported')
     return fixture
 
 
