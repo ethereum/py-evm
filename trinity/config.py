@@ -47,7 +47,7 @@ from eth_typing import (
 from eth2.beacon.chains.testnet import (
     TestnetChain,
 )
-from eth2.beacon.on_genesis import (
+from eth2.beacon.genesis import (
     get_genesis_block,
 )
 from p2p.constants import (
