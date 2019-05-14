@@ -599,11 +599,6 @@ class Eth1AppConfig(BaseAppConfig):
     def sync_mode(self) -> str:
         return self._sync_mode
 
-    @property
-    def nodedb_path(self) -> Path:
-        config = self.trinity_config
-        return config.with_app_suffix(config.data_dir / "nodedb")
-
 
 class BeaconGenesisData(NamedTuple):
     state: BeaconState
