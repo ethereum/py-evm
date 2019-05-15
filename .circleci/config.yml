@@ -171,6 +171,13 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-rpc-state-homestead
+  py36-rpc-state-petersburg:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-rpc-state-petersburg
+
   py36-rpc-state-tangerine_whistle:
     <<: *common
     docker:
@@ -347,6 +354,7 @@ workflows:
       - py36-rpc-state-constantinople
       - py36-rpc-state-frontier
       - py36-rpc-state-homestead
+      - py36-rpc-state-petersburg
       - py36-rpc-state-tangerine_whistle
       - py36-rpc-state-spurious_dragon
       - py36-rpc-state-quadratic
