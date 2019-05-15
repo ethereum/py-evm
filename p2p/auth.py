@@ -86,10 +86,10 @@ async def _handshake(initiator: 'HandshakeInitiator', reader: asyncio.StreamRead
     auth_msg = initiator.create_auth_message(initiator_nonce)
     auth_init = initiator.encrypt_auth_message(auth_msg)
 
-    try:
-        writer.write(auth_init)
-    except RuntimeError as err:
-        raise HandshakeFailure("Error during handshake with {initiator.remote!r}: {err}") from err
+    if writer.transport.is_closing():
+        raise HandshakeFailure("Error during handshake with {initiator.remote!r}. Writer closed.")
+
+    writer.write(auth_init)
 
     auth_ack = await token.cancellable_wait(
         reader.read(ENCRYPTED_AUTH_ACK_LEN),
