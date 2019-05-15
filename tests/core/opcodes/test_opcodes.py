@@ -657,7 +657,10 @@ def test_sstore(vm_class, code, gas_used, refund, original):
 
     computation.state.set_balance(CANONICAL_ADDRESS_B, 100000000000)
     computation.state.set_storage(CANONICAL_ADDRESS_B, 0, original)
+    assert computation.state.get_storage(CANONICAL_ADDRESS_B, 0) == original
     computation.state.persist()
+    assert computation.state.get_storage(CANONICAL_ADDRESS_B, 0, from_journal=True) == original
+    assert computation.state.get_storage(CANONICAL_ADDRESS_B, 0, from_journal=False) == original
 
     comp = computation.apply_message()
     assert comp.get_gas_refund() == refund

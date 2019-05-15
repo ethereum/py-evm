@@ -17,6 +17,7 @@ from eth_typing import (
     Address,
     Hash32
 )
+
 from eth_utils import (
     encode_hex,
     to_checksum_address,
@@ -26,6 +27,7 @@ from eth_utils import (
 import rlp
 from trie import (
     HexaryTrie,
+    exceptions as trie_exceptions,
 )
 
 from eth.constants import (
@@ -33,6 +35,7 @@ from eth.constants import (
     EMPTY_SHA3,
 )
 from eth.db.backends.base import (
+    BaseDB,
     BaseAtomicDB,
 )
 from eth.db.batch import (
@@ -40,6 +43,9 @@ from eth.db.batch import (
 )
 from eth.db.cache import (
     CacheDB,
+)
+from eth.db.diff import (
+    DBDiff,
 )
 from eth.db.journal import (
     JournalDB,
@@ -49,6 +55,10 @@ from eth.db.storage import (
 )
 from eth.db.typing import (
     JournalDBCheckpoint,
+)
+from eth.vm.interrupt import (
+    MissingAccountTrieNode,
+    MissingBytecode,
 )
 from eth.rlp.accounts import (
     Account,
@@ -240,14 +250,16 @@ class AccountDB(BaseAccountDB):
         """
         self._raw_store_db = db
         self._batchdb = BatchDB(db)
-        self._batchtrie = BatchDB(db)
+        self._batchtrie = BatchDB(db, read_through_deletes=True)
         self._journaldb = JournalDB(self._batchdb)
         self._trie = HashTrie(HexaryTrie(self._batchtrie, state_root, prune=True))
         self._trie_cache = CacheDB(self._trie)
-        self._journaltrie = JournalDB(self._trie_cache)
+        self._journalbatch = BatchDB(self._trie_cache)
+        self._journaltrie = JournalDB(self._journalbatch)
         self._account_cache = LRU(2048)
         self._account_stores = {}  # type: Dict[Address, AccountStorageDB]
         self._dirty_accounts = set()  # type: Set[Address]
+        self._root_hash_at_last_persist = state_root
 
     @property
     def state_root(self) -> Hash32:
@@ -380,10 +392,14 @@ class AccountDB(BaseAccountDB):
     def get_code(self, address: Address) -> bytes:
         validate_canonical_address(address, title="Storage Address")
 
-        try:
-            return self._journaldb[self.get_code_hash(address)]
-        except KeyError:
-            return b""
+        code_hash = self.get_code_hash(address)
+        if code_hash == EMPTY_SHA3:
+            return b''
+        else:
+            try:
+                return self._journaldb[code_hash]
+            except KeyError:
+                raise MissingBytecode(code_hash) from KeyError
 
     def set_code(self, address: Address, code: bytes) -> None:
         validate_canonical_address(address, title="Storage Address")
@@ -424,7 +440,8 @@ class AccountDB(BaseAccountDB):
 
     def account_exists(self, address: Address) -> bool:
         validate_canonical_address(address, title="Storage Address")
-        return self._journaltrie.get(address, b'') != b''
+        account_rlp = self._get_encoded_account(address, from_journal=True)
+        return account_rlp != b''
 
     def touch_account(self, address: Address) -> None:
         validate_canonical_address(address, title="Storage Address")
@@ -438,10 +455,23 @@ class AccountDB(BaseAccountDB):
     #
     # Internal
     #
+    def _get_encoded_account(self, address: Address, from_journal: bool=True) -> bytes:
+        lookup_trie = self._journaltrie if from_journal else self._trie_cache
+
+        try:
+            return lookup_trie[address]
+        except trie_exceptions.MissingTrieNode as exc:
+            raise MissingAccountTrieNode(*exc.args) from exc
+        except KeyError:
+            # In case the account is deleted in the JournalDB
+            return b''
+
     def _get_account(self, address: Address, from_journal: bool=True) -> Account:
         if from_journal and address in self._account_cache:
             return self._account_cache[address]
-        rlp_account = (self._journaltrie if from_journal else self._trie_cache).get(address, b'')
+
+        rlp_account = self._get_encoded_account(address, from_journal)
+
         if rlp_account:
             account = rlp.decode(rlp_account, sedes=Account)
         else:
@@ -493,6 +523,15 @@ class AccountDB(BaseAccountDB):
 
         self._journaldb.persist()
         self._journaltrie.persist()
+
+        diff = self._journalbatch.diff()
+        # In addition to squashing (which is redundant here), this context manager causes
+        # an atomic commit of the changes, so exceptions will revert the trie
+        with self._trie.squash_changes() as memory_trie:
+            self._apply_account_diff_without_proof(diff, memory_trie)
+
+        self._journalbatch.clear()
+
         return self.state_root
 
     def persist(self) -> None:
@@ -520,9 +559,12 @@ class AccountDB(BaseAccountDB):
 
         # persist accounts
         self._validate_generated_root()
+        new_root_hash = self.state_root
+        self.logger.debug2("Persisting new state root: 0x%s", new_root_hash.hex())
         with self._raw_store_db.atomic_batch() as write_batch:
             self._batchtrie.commit_to(write_batch, apply_deletes=False)
             self._batchdb.commit_to(write_batch, apply_deletes=False)
+        self._root_hash_at_last_persist = new_root_hash
 
     def _validate_generated_root(self) -> None:
         db_diff = self._journaldb.diff()
@@ -556,3 +598,35 @@ class AccountDB(BaseAccountDB):
                 self.account_is_empty(cast_deleted_address),
                 self.account_exists(cast_deleted_address),
             )
+
+    def _apply_account_diff_without_proof(self, diff: DBDiff, trie: BaseDB) -> None:
+        """
+        Apply diff of trie updates, when original nodes might be missing.
+        Note that doing this naively will raise exceptions about missing nodes
+        from *intermediate* tries, which other clients do not maintain.
+        This application instead reorders updates to get nodes from the original trie.
+        """
+        deletions = diff.deleted_keys()
+        for index, delete_key in enumerate(deletions):
+            try:
+                del trie[delete_key]
+            except trie_exceptions.MissingTrieNode as exc:
+                self.logger.debug("Missing node on account index %d: %s", index, exc)
+                raise MissingAccountTrieNode(
+                    exc.missing_node_hash,
+                    self._root_hash_at_last_persist,
+                    exc.requested_key,
+                ) from exc
+
+        # AFAICT sets never have this problem at update time, because they are always
+        # retrieved by get first
+        for key, val in diff.pending_items():
+            try:
+                trie[key] = val
+            except trie_exceptions.MissingTrieNode as exc:
+                self.logger.warning("Missing node on account update (unexpected): %s", exc)
+                raise MissingAccountTrieNode(
+                    exc.missing_node_hash,
+                    self._root_hash_at_last_persist,
+                    exc.requested_key,
+                ) from exc

@@ -70,6 +70,9 @@ from eth.validation import (
     validate_length_lte,
     validate_gas_limit,
 )
+from eth.vm.interrupt import (
+    EVMMissingData,
+)
 from eth.vm.message import (
     Message,
 )
@@ -380,6 +383,7 @@ class BaseVM(Configurable, ABC):
 
 
 class VM(BaseVM):
+    cls_logger = logging.getLogger('eth.vm.base.VM')
     """
     The :class:`~eth.vm.base.BaseVM` class represents the Chain rules for a
     specific protocol definition such as the Frontier or Homestead network.
@@ -537,10 +541,15 @@ class VM(BaseVM):
         result_header = base_header
 
         for transaction in transactions:
-            receipt, computation = self.apply_transaction(
-                previous_header,
-                transaction,
-            )
+            try:
+                snapshot = self.state.snapshot()
+                receipt, computation = self.apply_transaction(
+                    previous_header,
+                    transaction,
+                )
+            except EVMMissingData as exc:
+                self.state.revert(snapshot)
+
             result_header = self.add_receipt_to_header(previous_header, receipt)
             previous_header = result_header
             receipts.append(receipt)
@@ -656,7 +665,14 @@ class VM(BaseVM):
         and persisting the final state root.
         """
         if block.number > 0:
-            self._assign_block_rewards(block)
+            snapshot = self.state.snapshot()
+            try:
+                self._assign_block_rewards(block)
+            except EVMMissingData as exc:
+                self.state.revert(snapshot)
+                raise
+            else:
+                self.state.commit(snapshot)
 
         # We need to call `persist` here since the state db batches
         # all writes until we tell it to write to the underlying db
@@ -912,7 +928,14 @@ class VM(BaseVM):
                 )
 
             if check_seal:
-                cls.validate_seal(header)
+                try:
+                    cls.validate_seal(header)
+                except ValidationError:
+                    cls.cls_logger.warning(
+                        "Failed to validate header proof of work on header: %r",
+                        header.as_dict()
+                    )
+                    raise
 
     @classmethod
     def validate_seal(cls, header: BlockHeader) -> None:

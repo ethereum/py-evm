@@ -41,6 +41,9 @@ from eth.db.journal import (
 from eth.db.typing import (
     JournalDBCheckpoint,
 )
+from eth.vm.interrupt import (
+    MissingStorageTrieNode,
+)
 from eth.tools.logging import (
     ExtendedDebugLogger
 )
@@ -91,9 +94,12 @@ class StorageLookup(BaseDB):
         try:
             return read_trie[hashed_slot]
         except trie_exceptions.MissingTrieNode as exc:
-            self.logger.warning(exc)
-            self.logger.debug("expected to get slot, but:", exc_info=True)
-            raise exc
+            raise MissingStorageTrieNode(
+                exc.missing_node_hash,
+                self._starting_root_hash,
+                exc.requested_key,
+                self._address,
+            ) from exc
 
     def __setitem__(self, key: bytes, value: bytes) -> None:
         hashed_slot = self._decode_key(key)
@@ -112,8 +118,12 @@ class StorageLookup(BaseDB):
         try:
             del write_trie[hashed_slot]
         except trie_exceptions.MissingTrieNode as exc:
-            self.logger.warning(exc)
-            self.logger.debug("expected to be able to delete slot, but:", exc_info=True)
+            raise MissingStorageTrieNode(
+                exc.missing_node_hash,
+                self._starting_root_hash,
+                exc.requested_key,
+                self._address,
+            ) from exc
 
     @property
     def has_changed_root(self) -> bool:
@@ -191,6 +201,8 @@ class AccountStorageDB:
         lookup_db = self._journal_storage if from_journal else self._storage_cache
         try:
             encoded_value = lookup_db[key]
+        except MissingStorageTrieNode:
+            raise
         except KeyError:
             return 0
 

@@ -18,7 +18,11 @@ def validate_frontier_transaction(state: BaseState,
 
     if sender_balance < gas_cost:
         raise ValidationError(
-            "Sender account balance cannot afford txn gas: `{0}`".format(transaction.sender)
+            "Sender {} cannot afford txn gas {} with account balance {}".format(
+                transaction.sender,
+                gas_cost,
+                sender_balance,
+            )
         )
 
     total_cost = transaction.value + gas_cost
