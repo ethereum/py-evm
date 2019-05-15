@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from ruamel.yaml.compat import StreamTextType  # noqa: F401
 
 
-class PrivateKeyNotFound(FileNotFoundError):
+class KeyFileNotFound(FileNotFoundError):
     pass
 
 
@@ -65,5 +65,5 @@ def extract_privkeys_from_dir(dir_path: Path) -> Dict[BLSPubkey, int]:
         privkey = _read_privkey(key_file_path)
         validator_keymap[bls.privtopub(privkey)] = privkey
     if len(validator_keymap) == 0:
-        raise PrivateKeyNotFound("no proper private keys found")
+        raise KeyFileNotFound("No validator key file is provided")
     return validator_keymap
