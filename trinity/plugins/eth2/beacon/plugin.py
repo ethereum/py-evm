@@ -11,6 +11,10 @@ from eth_keys.datatypes import (
     PrivateKey,
 )
 
+from eth2.beacon.typing import (
+    ValidatorIndex,
+)
+
 from p2p import ecies
 from p2p.constants import (
     DEFAULT_MAX_PEERS,
@@ -39,10 +43,6 @@ from trinity.sync.beacon.chain import (
 )
 from trinity.sync.common.chain import (
     SyncBlockImporter,
-)
-
-from eth2.beacon.typing import (
-    ValidatorIndex,
 )
 
 from .slot_ticker import (
@@ -132,17 +132,14 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
 
         slot_ticker = SlotTicker(
             genesis_slot=state_machine.config.GENESIS_SLOT,
-            genesis_time=state.genesis_time,
+            genesis_time=chain_config.genesis_data.genesis_time,
             seconds_per_slot=state_machine.config.SECONDS_PER_SLOT,
             event_bus=self.event_bus,
             token=server.cancel_token,
         )
 
-        loop = asyncio.get_event_loop()
         asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, server))
         asyncio.ensure_future(server.run())
         asyncio.ensure_future(syncer.run())
         asyncio.ensure_future(slot_ticker.run())
         asyncio.ensure_future(validator.run())
-        loop.run_forever()
-        loop.close()

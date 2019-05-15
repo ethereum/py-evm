@@ -1,4 +1,5 @@
 import importlib
+import time
 
 from py_ecc import bls
 
@@ -36,5 +37,5 @@ genesis_state, genesis_block = create_mock_genesis(
     config=XIAO_LONG_BAO_CONFIG,
     keymap=keymap,
     genesis_block_class=SerenityBeaconBlock,
-    genesis_time=0,
+    genesis_time=time.time(),
 )

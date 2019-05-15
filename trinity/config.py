@@ -50,6 +50,12 @@ from eth2.beacon.chains.testnet import (
 from eth2.beacon.genesis import (
     get_genesis_block,
 )
+from eth2.beacon.types.states import BeaconState
+from eth2.beacon.typing import (
+    Timestamp,
+)
+from eth2.configs import Eth2Config
+
 from p2p.constants import (
     MAINNET_BOOTNODES,
     ROPSTEN_BOOTNODES,
@@ -99,8 +105,6 @@ from trinity.plugins.eth2.network_generator.constants import (
     GENESIS_FILE,
 )
 
-from eth2.beacon.types.states import BeaconState
-from eth2.configs import Eth2Config
 
 if TYPE_CHECKING:
     # avoid circular import
@@ -601,6 +605,7 @@ class Eth1AppConfig(BaseAppConfig):
 
 
 class BeaconGenesisData(NamedTuple):
+    genesis_time: Timestamp
     state: BeaconState
     validator_keymap: Dict[BLSPubkey, int]
     # TODO: Maybe Validator deposit data
@@ -655,6 +660,7 @@ class BeaconChainConfig:
         validator_keymap = extract_privkeys_from_dir(keys_path)
         # set `genesis_data`
         genesis_data = BeaconGenesisData(
+            genesis_time=state.genesis_time,
             state=state,
             validator_keymap=validator_keymap,
         )
@@ -671,15 +677,15 @@ class BeaconChainConfig:
         state = self.genesis_data.state
         block = get_genesis_block(
             genesis_state_root=state.root,
-            genesis_slot=config.GENESIS_SLOT,
+            genesis_slot=config.GENESIS_SLOT,  # FIXME: Shouldn't access GENESIS_SLOT from a particular state machine configs.  # noqa: E501
             block_class=state_machine_class.block_class,
         )
-        return cast('BeaconChain', chain_class.from_genesis(
+        return chain_class.from_genesis(
             base_db=base_db,
             genesis_state=state,
             genesis_block=block,
             config=config,
-        ))
+        )
 
 
 class BeaconAppConfig(BaseAppConfig):

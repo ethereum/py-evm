@@ -16,7 +16,7 @@ from .helpers import (
 )
 
 
-class NopBlockImporter:
+class NoopBlockImporter:
     """
     Do nothing, to override the block validation in ``SyncBlockImporter``.
     """
@@ -33,7 +33,7 @@ async def get_sync_setup(request, event_loop, alice_chain_db, bob_chain_db):
     )
 
     bob_request_server = BCCRequestServer(bob.context.chain_db, bob_peer_pool)
-    alice_syncer = BeaconChainSyncer(alice_chain_db, alice_peer_pool, NopBlockImporter())
+    alice_syncer = BeaconChainSyncer(alice_chain_db, alice_peer_pool, NoopBlockImporter())
 
     asyncio.ensure_future(bob_request_server.run())
     asyncio.ensure_future(alice_syncer.run())

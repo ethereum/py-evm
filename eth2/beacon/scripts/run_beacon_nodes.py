@@ -67,7 +67,7 @@ class Node:
     has_log_happened: Dict[Log, bool]
 
     dir_root: ClassVar[Path] = Path("/tmp/aaaa")
-    nodes_to_stop: ClassVar[List] = []
+    running_nodes: ClassVar[List] = []
     logger: ClassVar[logging.Logger] = logging.getLogger(
         "eth2.beacon.scripts.run_beacon_nodes.Node"
     )
@@ -134,7 +134,7 @@ class Node:
 
     @classmethod
     def stop_all_nodes(cls) -> None:
-        for node in cls.nodes_to_stop:
+        for node in cls.running_nodes:
             print(f"Stopping node={node}")
             node.stop()
 
@@ -146,6 +146,7 @@ class Node:
     async def run(self) -> None:
         print(f"Spinning up {self.name}")
         self.proc = await run(self.cmd)
+        self.running_nodes.append(self)
         self.tasks.append(asyncio.ensure_future(self._print_logs('stdout', self.proc.stdout)))
         self.tasks.append(asyncio.ensure_future(self._print_logs('stderr', self.proc.stderr)))
         try:

@@ -71,6 +71,7 @@ def get_chain_from_genesis(db, index):
     pubkey = index_to_pubkey[index]
     validator_keymap = {pubkey: keymap[pubkey]}
     genesis_data = BeaconGenesisData(
+        genesis_time=genesis_state.genesis_time,
         state=genesis_state,
         validator_keymap=validator_keymap,
     )
@@ -251,25 +252,22 @@ async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_validator_propose_or_skip_block_propose(event_loop, event_bus, monkeypatch):
-    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=0)
+async def test_validator_propose_or_skip_block(event_loop, event_bus, monkeypatch):
+    alice, bob = await get_linked_validators(event_loop=event_loop, event_bus=event_bus)
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
 
-    # test: `propose_or_skip_block` should call `propose_block` if the validator get selected,
-    #   else calls `skip_block`.
-    def is_desired_proposer_index(proposer_index):
-        if proposer_index in alice.validator_privkeys:
-            return True
-        return False
+    # test: `propose_or_skip_block` should call `propose_block` if the validator get selected
+    def is_alice_selected(proposer_index):
+        return proposer_index in alice.validator_privkeys
 
-    slot, index = _get_slot_with_validator_selected(
-        is_desired_proposer_index=is_desired_proposer_index,
+    slot_to_propose, index = _get_slot_with_validator_selected(
+        is_desired_proposer_index=is_alice_selected,
         start_slot=state.slot + 1,
         state=state,
         state_machine=state_machine,
     )
-    alice.latest_proposed_epoch = slot_to_epoch(slot, alice.slots_per_epoch) - 1
+    alice.latest_proposed_epoch = slot_to_epoch(slot_to_propose, alice.slots_per_epoch) - 1
 
     is_proposing = None
 
@@ -284,49 +282,27 @@ async def test_validator_propose_or_skip_block_propose(event_loop, event_bus, mo
     monkeypatch.setattr(alice, 'propose_block', propose_block)
     monkeypatch.setattr(alice, 'skip_block', skip_block)
 
-    await alice.propose_or_skip_block(slot, False)
-
-    # test: either `propose_block` or `skip_block` should be called.
+    await alice.propose_or_skip_block(slot_to_propose, False)
     assert is_proposing
 
+    is_proposing = None
 
-async def test_validator_propose_or_skip_block_skip(event_loop, event_bus, monkeypatch):
-    alice, bob = await get_linked_validators(event_loop=event_loop, event_bus=event_bus)
-    state_machine = alice.chain.get_state_machine()
-    state = state_machine.state
-
-    # test: `propose_or_skip_block` should call `propose_block` if the validator get selected,
-    #   else calls `skip_block`.
-    def is_desired_proposer_index(proposer_index):
-        if (
+    # test: `propose_or_skip_block` should call `skip_block`.
+    def is_not_alice_bob_selected(proposer_index):
+        return (
             proposer_index not in alice.validator_privkeys and
             proposer_index not in bob.validator_privkeys
-        ):
-            return True
-        return False
+        )
 
-    slot, index = _get_slot_with_validator_selected(
-        is_desired_proposer_index=is_desired_proposer_index,
+    slot_to_skip, index = _get_slot_with_validator_selected(
+        is_desired_proposer_index=is_not_alice_bob_selected,
         start_slot=state.slot + 1,
         state=state,
         state_machine=state_machine,
     )
 
-    is_proposing = None
+    await alice.propose_or_skip_block(slot_to_skip, is_second_tick=False)
+    assert is_proposing is None, "`skip_block` should not be called if `is_second_tick == False`"
 
-    def propose_block(slot, state, state_machine, head_block):
-        nonlocal is_proposing
-        is_proposing = True
-
-    def skip_block(slot, state, state_machine):
-        nonlocal is_proposing
-        is_proposing = False
-
-    monkeypatch.setattr(alice, 'propose_block', propose_block)
-    monkeypatch.setattr(alice, 'skip_block', skip_block)
-
-    await alice.propose_or_skip_block(slot, False)
-    assert not is_proposing
-
-    await alice.propose_or_skip_block(slot, True)
-    assert is_proposing
+    await alice.propose_or_skip_block(slot_to_skip, is_second_tick=True)
+    assert is_proposing is False, "`skip_block` should have been called"

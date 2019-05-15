@@ -39,6 +39,10 @@ if TYPE_CHECKING:
     from ruamel.yaml.compat import StreamTextType  # noqa: F401
 
 
+class PrivateKeyNotFound(FileNotFoundError):
+    pass
+
+
 def extract_genesis_state_from_stream(stream: Union[Path, "StreamTextType"]) -> BeaconState:
     yaml = YAML(typ="unsafe")
     genesis_json = yaml.load(stream)
@@ -46,10 +50,10 @@ def extract_genesis_state_from_stream(stream: Union[Path, "StreamTextType"]) -> 
     return state
 
 
-def _extract_privkey_from_stream(stream: Union[Path, "StreamTextType"]) -> int:
+def _read_privkey(stream: Union[Path, "StreamTextType"]) -> int:
     if isinstance(stream, Path):
         with stream.open('r') as f:
-            return _extract_privkey_from_stream(stream=f)
+            return _read_privkey(stream=f)
     privkey_str = stream.read()
     return int(privkey_str, 10)
 
@@ -58,6 +62,8 @@ def extract_privkeys_from_dir(dir_path: Path) -> Dict[BLSPubkey, int]:
     validator_keymap = {}  # pub -> priv
     for key_file_name in os.listdir(dir_path):
         key_file_path = dir_path / key_file_name
-        privkey = _extract_privkey_from_stream(key_file_path)
+        privkey = _read_privkey(key_file_path)
         validator_keymap[bls.privtopub(privkey)] = privkey
+    if len(validator_keymap) == 0:
+        raise PrivateKeyNotFound("no proper private keys found")
     return validator_keymap
