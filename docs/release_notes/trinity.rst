@@ -4,6 +4,7 @@ Trinity
 Unreleased (latest source)
 --------------------------
 
+- `#612 <https://github.com/ethereum/trinity/pull/612>`_: Feature: Make Python 3.7 the environment of the ethereum/trinity docker images
 - `#596 <https://github.com/ethereum/trinity/pull/596>`_: Feature: ``p2p.PeerPool`` now sources peer candidates using an extendable backend system.
 - `#519 <https://github.com/ethereum/trinity/pull/519>`_: Feature: Retain disconnect reason on ``BasePeer`` when we disconnect.
 - `#555 <https://github.com/ethereum/trinity/pull/555>`_: Feature: Peers who timeout too often in the Request/Response API will be disconnected from and blacklisted for 5 minutes.
