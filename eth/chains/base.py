@@ -771,8 +771,8 @@ class Chain(BaseChain):
         if block.is_genesis:
             raise ValidationError("Cannot validate genesis block this way")
         VM_class = self.get_vm_class_for_block_number(BlockNumber(block.number))
-        parent_block = self.get_block_by_hash(block.header.parent_hash)
-        VM_class.validate_header(block.header, parent_block.header, check_seal=True)
+        parent_header = self.get_block_header_by_hash(block.header.parent_hash)
+        VM_class.validate_header(block.header, parent_header, check_seal=True)
         self.validate_uncles(block)
         self.validate_gaslimit(block.header)
 
