@@ -531,6 +531,7 @@ class AccountDB(BaseAccountDB):
             self._apply_account_diff_without_proof(diff, memory_trie)
 
         self._journalbatch.clear()
+        self._trie_cache.reset_cache()
 
         return self.state_root
 
