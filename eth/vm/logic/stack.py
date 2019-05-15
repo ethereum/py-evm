@@ -10,10 +10,16 @@ def pop(computation: BaseComputation) -> None:
 def push_XX(computation: BaseComputation, size: int) -> None:
     raw_value = computation.code.read(size)
 
-    computation.stack_push_bytes(
-        # padded value
-        raw_value.ljust(size, b'\x00')
-    )
+    # This is a performance-sensitive area.
+    # Calling raw_value.ljust() when size == len(raw_value) is more expensive than
+    # calling len(raw_value) and raw_len is typically the correct size already,
+    # so this saves a bit of time:
+    raw_len = len(raw_value)
+    if raw_len == size:
+        computation.stack_push_bytes(raw_value)
+    else:
+        padded_value = raw_value.ljust(size, b'\x00')
+        computation.stack_push_bytes(padded_value)
 
 
 push1 = functools.partial(push_XX, size=1)

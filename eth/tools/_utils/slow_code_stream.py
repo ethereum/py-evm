@@ -1,4 +1,5 @@
 import contextlib
+import io
 import logging
 from typing import (  # noqa: F401
     Iterator,
@@ -13,27 +14,31 @@ from eth.vm import opcode_values
 PUSH1, PUSH32, STOP = opcode_values.PUSH1, opcode_values.PUSH32, opcode_values.STOP
 
 
-class CodeStream:
-    __slots__ = ['_length_cache', '_raw_code_bytes', 'invalid_positions', 'valid_positions', 'pc']
+class SlowCodeStream(object):
+    """
+    A known working version of code stream that is kept around for testing,
+    despite not being optimized.
+    """
+    stream = None
+    _length_cache = None
+    _raw_code_bytes = None
+    invalid_positions = None  # type: Set[int]
+    valid_positions = None  # type: Set[int]
 
-    logger = logging.getLogger('eth.vm.CodeStream')
+    logger = logging.getLogger('eth.vm.SlowCodeStream')
 
     def __init__(self, code_bytes: bytes) -> None:
-        validate_is_bytes(code_bytes, title="CodeStream bytes")
-        # in order to avoid method overhead when setting/accessing pc, we no longer fence
-        # the pc (Program Counter) into 0 <= pc <= len(code_bytes). We now let it float free.
-        # NOTE: Setting pc to a negative value has undefined behavior.
-        self.pc = 0
+        validate_is_bytes(code_bytes, title="SlowCodeStream bytes")
+        stream = io.BytesIO(code_bytes)
+        self.stream = stream
+        self._bound_stream_read = stream.read
         self._raw_code_bytes = code_bytes
         self._length_cache = len(code_bytes)
-        self.invalid_positions = set()  # type: Set[int]
-        self.valid_positions = set()  # type: Set[int]
+        self.invalid_positions = set()
+        self.valid_positions = set()
 
     def read(self, size: int) -> bytes:
-        old_pc = self.pc
-        target_pc = old_pc + size
-        self.pc = target_pc
-        return self._raw_code_bytes[old_pc:target_pc]
+        return self._bound_stream_read(size)
 
     def __len__(self) -> int:
         return self._length_cache
@@ -43,25 +48,38 @@ class CodeStream:
 
     def __iter__(self) -> Iterator[int]:
         # a very performance-sensitive method
-        pc = self.pc
-        while pc < self._length_cache:
-            opcode = self._raw_code_bytes[pc]
-            self.pc = pc + 1
-            yield opcode
-            # a read might have adjusted the pc during the last yield
-            pc = self.pc
+        read = self.read
+        try:
+            while True:
+                yield ord(read(1))
+        except TypeError:
+            yield STOP
 
-        yield STOP
+    def __next__(self) -> int:
+        # a very performance-sensitive method
+        next_opcode_as_byte = self._bound_stream_read(1)
 
-    def peek(self) -> int:
-        pc = self.pc
-        if pc < self._length_cache:
-            return self._raw_code_bytes[pc]
+        if next_opcode_as_byte:
+            return ord(next_opcode_as_byte)
         else:
             return STOP
 
+    def peek(self) -> int:
+        current_pc = self.pc
+        next_opcode = next(self)
+        self.pc = current_pc
+        return next_opcode
+
+    @property
+    def pc(self) -> int:
+        return self.stream.tell()
+
+    @pc.setter
+    def pc(self, value: int) -> None:
+        self.stream.seek(min(value, len(self)))
+
     @contextlib.contextmanager
-    def seek(self, pc: int) -> Iterator['CodeStream']:
+    def seek(self, pc: int) -> Iterator['SlowCodeStream']:
         anchor_pc = self.pc
         self.pc = pc
         try:

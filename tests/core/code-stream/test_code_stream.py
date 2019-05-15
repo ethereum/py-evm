@@ -13,11 +13,13 @@ from eth_utils.toolz import drop
 
 from eth.vm import opcode_values
 from eth.vm.code_stream import CodeStream
+from eth.tools._utils.slow_code_stream import SlowCodeStream
 
 
 def test_code_stream_accepts_bytes():
-    code_stream = CodeStream(b'\x01')
-    assert len(code_stream.stream.getvalue()) == 1
+    code_stream = CodeStream(b'\x02')
+    assert len(code_stream) == 1
+    assert code_stream[0] == 2
 
 
 @pytest.mark.parametrize("code_bytes", (1010, '1010', True, bytearray(32)))
@@ -27,7 +29,8 @@ def test_code_stream_rejects_invalid_code_byte_values(code_bytes):
 
 
 def test_next_returns_the_correct_next_opcode():
-    code_stream = CodeStream(b'\x01\x02\x30')
+    iterable = CodeStream(b'\x01\x02\x30')
+    code_stream = iter(iterable)
     assert next(code_stream) == opcode_values.ADD
     assert next(code_stream) == opcode_values.MUL
     assert next(code_stream) == opcode_values.ADDRESS
@@ -35,17 +38,19 @@ def test_next_returns_the_correct_next_opcode():
 
 def test_peek_returns_next_opcode_without_changing_code_stream_location():
     code_stream = CodeStream(b'\x01\x02\x30')
+    code_iter = iter(code_stream)
     assert code_stream.pc == 0
     assert code_stream.peek() == opcode_values.ADD
     assert code_stream.pc == 0
-    assert next(code_stream) == opcode_values.ADD
+    assert next(code_iter) == opcode_values.ADD
     assert code_stream.pc == 1
     assert code_stream.peek() == opcode_values.MUL
     assert code_stream.pc == 1
 
 
 def test_STOP_opcode_is_returned_when_bytecode_end_is_reached():
-    code_stream = CodeStream(b'\x01\x02')
+    iterable = CodeStream(b'\x01\x02')
+    code_stream = iter(iterable)
     next(code_stream)
     next(code_stream)
     assert next(code_stream) == opcode_values.STOP
@@ -53,19 +58,20 @@ def test_STOP_opcode_is_returned_when_bytecode_end_is_reached():
 
 def test_seek_reverts_to_original_stream_position_when_context_exits():
     code_stream = CodeStream(b'\x01\x02\x30')
+    code_iter = iter(code_stream)
     assert code_stream.pc == 0
     with code_stream.seek(1):
         assert code_stream.pc == 1
-        assert next(code_stream) == opcode_values.MUL
+        assert next(code_iter) == opcode_values.MUL
     assert code_stream.pc == 0
     assert code_stream.peek() == opcode_values.ADD
 
 
 def test_get_item_returns_correct_opcode():
     code_stream = CodeStream(b'\x01\x02\x30')
-    assert code_stream.__getitem__(0) == opcode_values.ADD
-    assert code_stream.__getitem__(1) == opcode_values.MUL
-    assert code_stream.__getitem__(2) == opcode_values.ADDRESS
+    assert code_stream[0] == opcode_values.ADD
+    assert code_stream[1] == opcode_values.MUL
+    assert code_stream[2] == opcode_values.ADDRESS
 
 
 def test_is_valid_opcode_invalidates_bytes_after_PUSHXX_opcodes():
@@ -184,3 +190,46 @@ def test_fuzzy_is_valid_opcode(opcodes, data):
         is_valid = stream.is_valid_opcode(index)
         expected = index in valid_indices
         assert is_valid is expected
+
+
+@given(bytecode=st.binary(max_size=2048))
+def test_new_vs_reference_code_stream_iter(bytecode):
+    reference = SlowCodeStream(bytecode)
+    latest = CodeStream(bytecode)
+    for expected_op, actual_op in zip(reference, latest):
+        assert expected_op == actual_op
+        assert reference.pc == latest.pc
+
+    assert latest.pc == reference.pc
+
+
+@given(read_len=st.integers(min_value=0), bytecode=st.binary(max_size=128))
+def test_new_vs_reference_code_stream_read(read_len, bytecode):
+    reference = SlowCodeStream(bytecode)
+    latest = CodeStream(bytecode)
+    readout_expected = reference.read(read_len)
+    readout_actual = latest.read(read_len)
+    assert readout_expected == readout_actual
+    if read_len <= len(bytecode):
+        assert latest.pc == reference.pc
+    assert latest.read(1) == reference.read(1)
+
+
+@given(
+    read_idx=st.integers(min_value=0, max_value=10),
+    read_len=st.integers(min_value=0),
+    bytecode=st.binary(max_size=128),
+)
+def test_new_vs_reference_code_stream_read_during_iter(read_idx, read_len, bytecode):
+    reference = SlowCodeStream(bytecode)
+    latest = CodeStream(bytecode)
+    for index, (actual, expected) in enumerate(zip(latest, reference)):
+        assert actual == expected
+        if index == read_idx:
+            readout_actual = latest.read(read_len)
+            readout_expected = reference.read(read_len)
+            assert readout_expected == readout_actual
+        if reference.pc >= len(reference):
+            assert latest.pc >= len(reference)
+        else:
+            assert latest.pc == reference.pc
