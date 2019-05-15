@@ -144,9 +144,7 @@ class BlockHeader(rlp.Serializable):
             nonce=nonce,
         )
 
-    #TODO implement long repr in Serializeable (or is it already there??)
-    # implement this short version, too:
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return '<BlockHeader #{0} {1}>'.format(
             self.block_number,
             encode_hex(self.hash)[2:10],
