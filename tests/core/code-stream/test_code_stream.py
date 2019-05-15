@@ -13,7 +13,7 @@ from eth_utils.toolz import drop
 
 from eth.vm import opcode_values
 from eth.vm.code_stream import CodeStream
-from eth.vm.slow_code_stream import SlowCodeStream
+from eth.tools._utils.slow_code_stream import SlowCodeStream
 
 
 def test_code_stream_accepts_bytes():
