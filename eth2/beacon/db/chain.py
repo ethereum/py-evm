@@ -302,8 +302,8 @@ class BeaconChainDB(BaseBeaconChainDB):
         finalized_head_root = cls._get_finalized_head_root(db)
         return cls._get_block_by_root(db, Hash32(finalized_head_root), block_class)
 
-    @classmethod
-    def _get_finalized_head_root(cls, db: BaseDB) -> Hash32:
+    @staticmethod
+    def _get_finalized_head_root(db: BaseDB) -> Hash32:
         try:
             finalized_head_root = db[SchemaV1.make_finalized_head_root_lookup_key()]
         except KeyError:
@@ -323,8 +323,8 @@ class BeaconChainDB(BaseBeaconChainDB):
         justified_head_root = cls._get_justified_head_root(db)
         return cls._get_block_by_root(db, Hash32(justified_head_root), block_class)
 
-    @classmethod
-    def _get_justified_head_root(cls, db: BaseDB) -> Hash32:
+    @staticmethod
+    def _get_justified_head_root(db: BaseDB) -> Hash32:
         try:
             justified_head_root = db[SchemaV1.make_justified_head_root_lookup_key()]
         except KeyError:
@@ -405,9 +405,8 @@ class BeaconChainDB(BaseBeaconChainDB):
         with self.db.atomic_batch() as db:
             return self._persist_block_chain(db, blocks, block_class)
 
-    @classmethod
+    @staticmethod
     def _set_block_scores_to_db(
-            cls,
             db: BaseDB,
             block: BaseBeaconBlock
     ) -> int:
