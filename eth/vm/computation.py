@@ -3,7 +3,6 @@ from abc import (
     abstractmethod,
 )
 import itertools
-import logging
 from typing import (  # noqa: F401
     Any,
     Callable,
@@ -20,6 +19,7 @@ from eth_typing import (
 )
 from eth_utils import (
     encode_hex,
+    HasExtendedDebugLogger,
 )
 
 from eth.constants import (
@@ -32,9 +32,6 @@ from eth.exceptions import (
 )
 from eth.typing import (
     BytesOrView,
-)
-from eth.tools.logging import (
-    ExtendedDebugLogger,
 )
 from eth._utils.datatypes import (
     Configurable,
@@ -180,7 +177,7 @@ class BaseStackManipulation:
         pass
 
 
-class BaseComputation(Configurable, BaseStackManipulation, ABC):
+class BaseComputation(Configurable, BaseStackManipulation, HasExtendedDebugLogger, ABC):
     """
     The base class for all execution computations.
 
@@ -215,8 +212,6 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
     # VM configuration
     opcodes = None  # type: Dict[int, Any]
     _precompiles = None  # type: Dict[Address, Callable[['BaseComputation'], 'BaseComputation']]
-
-    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.vm.computation.Computation'))
 
     def __init__(self,
                  state: BaseState,

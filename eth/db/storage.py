@@ -1,4 +1,3 @@
-import logging
 from typing import (  # noqa: F401
     cast,
     Dict,
@@ -13,6 +12,7 @@ from eth_typing import (
     Hash32
 )
 from eth_utils import (
+    HasExtendedDebugLogger,
     ValidationError,
     int_to_big_endian,
 )
@@ -41,9 +41,6 @@ from eth.db.journal import (
 from eth.db.typing import (
     JournalDBCheckpoint,
 )
-from eth.tools.logging import (
-    ExtendedDebugLogger
-)
 
 
 class StorageLookup(BaseDB):
@@ -53,7 +50,6 @@ class StorageLookup(BaseDB):
 
     StorageLookup also tracks the state roots changed since the last persist.
     """
-    logger = cast(ExtendedDebugLogger, logging.getLogger("eth.db.storage.StorageLookup"))
 
     def __init__(self, db: BaseDB, storage_root: Hash32, address: Address) -> None:
         self._db = db
@@ -145,13 +141,11 @@ class StorageLookup(BaseDB):
         self._clear_changed_root()
 
 
-class AccountStorageDB:
+class AccountStorageDB(HasExtendedDebugLogger):
     """
     Storage cache and write batch for a single account. Changes are not
     merklized until :meth:`make_storage_root` is called.
     """
-    logger = cast(ExtendedDebugLogger, logging.getLogger("eth.db.storage.AccountStorageDB"))
-
     def __init__(self, db: BaseAtomicDB, storage_root: Hash32, address: Address) -> None:
         """
         Database entries go through several pipes, like so...

@@ -1,10 +1,11 @@
 import contextlib
 import io
-import logging
 from typing import (  # noqa: F401
     Iterator,
     Set
 )
+
+from eth_utils import HasLogger
 
 from eth.validation import (
     validate_is_bytes,
@@ -14,7 +15,7 @@ from eth.vm import opcode_values
 PUSH1, PUSH32, STOP = opcode_values.PUSH1, opcode_values.PUSH32, opcode_values.STOP
 
 
-class SlowCodeStream(object):
+class SlowCodeStream(HasLogger):
     """
     A known working version of code stream that is kept around for testing,
     despite not being optimized.
@@ -24,8 +25,6 @@ class SlowCodeStream(object):
     _raw_code_bytes = None
     invalid_positions = None  # type: Set[int]
     valid_positions = None  # type: Set[int]
-
-    logger = logging.getLogger('eth.vm.SlowCodeStream')
 
     def __init__(self, code_bytes: bytes) -> None:
         validate_is_bytes(code_bytes, title="SlowCodeStream bytes")

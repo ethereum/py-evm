@@ -1,6 +1,10 @@
 import itertools
-import logging
 
+from eth_utils import HasLogger
+
+from eth._utils.numeric import (
+    ceil32,
+)
 from eth.validation import (
     validate_is_bytes,
     validate_length,
@@ -8,17 +12,12 @@ from eth.validation import (
     validate_uint256,
 )
 
-from eth._utils.numeric import (
-    ceil32,
-)
 
-
-class Memory(object):
+class Memory(HasLogger):
     """
     VM Memory
     """
     __slots__ = ['_bytes']
-    logger = logging.getLogger('eth.vm.memory.Memory')
 
     def __init__(self) -> None:
         self._bytes = bytearray()

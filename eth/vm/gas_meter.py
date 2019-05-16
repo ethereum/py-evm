@@ -1,19 +1,17 @@
-import logging
 from typing import (
     Callable,
-    cast,
 )
+
 from eth_utils import (
+    HasExtendedDebugLogger,
     ValidationError,
 )
+
 from eth.exceptions import (
     OutOfGas,
 )
 from eth.validation import (
     validate_uint256,
-)
-from eth.tools.logging import (
-    ExtendedDebugLogger,
 )
 
 
@@ -31,14 +29,12 @@ def allow_negative_refund_strategy(gas_refunded_total: int, amount: int) -> int:
 RefundStrategy = Callable[[int, int], int]
 
 
-class GasMeter(object):
+class GasMeter(HasExtendedDebugLogger):
 
     start_gas = None  # type: int
 
     gas_refunded = None  # type: int
     gas_remaining = None  # type: int
-
-    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.gas.GasMeter'))
 
     def __init__(self,
                  start_gas: int,

@@ -1,9 +1,10 @@
 import contextlib
-import logging
 from typing import (  # noqa: F401
     Iterator,
     Set
 )
+
+from eth_utils import HasLogger
 
 from eth.validation import (
     validate_is_bytes,
@@ -13,10 +14,8 @@ from eth.vm import opcode_values
 PUSH1, PUSH32, STOP = opcode_values.PUSH1, opcode_values.PUSH32, opcode_values.STOP
 
 
-class CodeStream:
+class CodeStream(HasLogger):
     __slots__ = ['_length_cache', '_raw_code_bytes', 'invalid_positions', 'valid_positions', 'pc']
-
-    logger = logging.getLogger('eth.vm.CodeStream')
 
     def __init__(self, code_bytes: bytes) -> None:
         validate_is_bytes(code_bytes, title="CodeStream bytes")

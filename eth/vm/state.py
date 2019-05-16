@@ -3,7 +3,6 @@ from abc import (
     abstractmethod
 )
 import contextlib
-import logging
 from typing import (  # noqa: F401
     cast,
     Callable,
@@ -19,6 +18,7 @@ from eth_typing import (
     Address,
     Hash32,
 )
+from eth_utils import HasExtendedDebugLogger
 from eth_utils.toolz import nth
 
 from eth.constants import (
@@ -33,9 +33,6 @@ from eth.db.backends.base import (
     BaseAtomicDB,
 )
 from eth.exceptions import StateRootNotFound
-from eth.tools.logging import (
-    ExtendedDebugLogger,
-)
 from eth.typing import (
     BaseOrSpoofTransaction,
 )
@@ -60,7 +57,7 @@ if TYPE_CHECKING:
     )
 
 
-class BaseState(Configurable, ABC):
+class BaseState(Configurable, HasExtendedDebugLogger, ABC):
     """
     The base class that encapsulates all of the various moving parts related to
     the state of the VM during execution.
@@ -94,14 +91,6 @@ class BaseState(Configurable, ABC):
         self._db = db
         self.execution_context = execution_context
         self._account_db = self.get_account_db_class()(db, state_root)
-
-    #
-    # Logging
-    #
-    @property
-    def logger(self) -> ExtendedDebugLogger:
-        normal_logger = logging.getLogger('eth.vm.state.{0}'.format(self.__class__.__name__))
-        return cast(ExtendedDebugLogger, normal_logger)
 
     #
     # Block Object Properties (in opcodes)

@@ -1,6 +1,6 @@
-import logging
-
 from eth_typing import Address
+
+from eth_utils import HasLogger
 
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
@@ -19,7 +19,7 @@ from eth.validation import (
 )
 
 
-class Message(object):
+class Message(HasLogger):
     """
     A message for VM computation.
     """
@@ -27,8 +27,6 @@ class Message(object):
         'to', 'sender', 'value', 'data', 'depth', 'gas', 'code', '_code_address',
         'create_address', 'should_transfer_value', 'is_static', '_storage_address'
     ]
-
-    logger = logging.getLogger('eth.vm.message.Message')
 
     def __init__(self,
                  gas: int,

@@ -12,13 +12,15 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from eth_utils import HasExtendedDebugLogger
+
 if TYPE_CHECKING:
     MM = MutableMapping[bytes, bytes]
 else:
     MM = MutableMapping
 
 
-class BaseDB(MM, ABC):
+class BaseDB(MM, HasExtendedDebugLogger, ABC):
     """
     This is an abstract key/value lookup with all :class:`bytes` values,
     with some convenience methods for databases. As much as possible,

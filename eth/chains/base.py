@@ -24,8 +24,6 @@ from typing import (  # noqa: F401
     Generic,
 )
 
-import logging
-
 from eth_typing import (
     Address,
     BlockNumber,
@@ -33,6 +31,7 @@ from eth_typing import (
 )
 from eth_utils import (
     encode_hex,
+    HasLogger,
 )
 from eth_utils.toolz import (
     concatv,
@@ -125,7 +124,7 @@ if TYPE_CHECKING:
     )
 
 
-class BaseChain(Configurable, ABC):
+class BaseChain(Configurable, HasLogger, ABC):
     """
     The base class for all Chain objects
     """
@@ -371,7 +370,6 @@ class Chain(BaseChain):
     VM classes, delegating operations to the appropriate VM depending on the
     current block number.
     """
-    logger = logging.getLogger("eth.chain.chain.Chain")
     gas_estimator = None  # type: StaticMethod[Callable[[BaseState, BaseOrSpoofTransaction], int]]
 
     chaindb_class = ChainDB  # type: Type[BaseChainDB]

@@ -5,7 +5,6 @@ from abc import (
 )
 import contextlib
 import itertools
-import logging
 from typing import (
     Any,
     Iterable,
@@ -22,6 +21,7 @@ from eth_typing import (
     Hash32,
 )
 from eth_utils import (
+    HasLogger,
     ValidationError,
 )
 import rlp
@@ -77,7 +77,7 @@ from eth.vm.state import BaseState
 from eth.vm.computation import BaseComputation
 
 
-class BaseVM(Configurable, ABC):
+class BaseVM(Configurable, HasLogger, ABC):
     block = None  # type: BaseBlock
     block_class = None  # type: Type[BaseBlock]
     fork = None  # type: str
@@ -111,14 +111,6 @@ class BaseVM(Configurable, ABC):
     @abstractmethod
     def block(self) -> BaseBlock:
         pass
-
-    #
-    # Logging
-    #
-    @property
-    @abstractmethod
-    def logger(self) -> logging.Logger:
-        raise NotImplementedError("VM classes must implement this method")
 
     #
     # Execution
@@ -438,13 +430,6 @@ class VM(BaseVM):
 
         execution_context = header.create_execution_context(previous_hashes)
         return cls.get_state_class()(db, execution_context, header.state_root)
-
-    #
-    # Logging
-    #
-    @property
-    def logger(self) -> logging.Logger:
-        return logging.getLogger('eth.vm.base.VM.{0}'.format(self.__class__.__name__))
 
     #
     # Execution

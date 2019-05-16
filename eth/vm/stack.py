@@ -1,8 +1,7 @@
-import logging
-
 from eth_utils import (
     big_endian_to_int,
     int_to_big_endian,
+    HasLogger,
     ValidationError,
 )
 from eth.exceptions import (
@@ -32,12 +31,11 @@ def _busted_type(item_type: type, value: Union[int, bytes]) -> ValidationError:
     )
 
 
-class Stack(object):
+class Stack(HasLogger):
     """
     VM Stack
     """
     __slots__ = ['values', '_append', '_pop_typed', '__len__']
-    logger = logging.getLogger('eth.vm.stack.Stack')
 
     #
     # Performance Note: Operations that push to the stack have the data in some natural form:

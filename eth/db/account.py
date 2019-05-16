@@ -2,7 +2,6 @@ from abc import (
     ABC,
     abstractmethod
 )
-import logging
 from lru import LRU
 from typing import (  # noqa: F401
     cast,
@@ -21,6 +20,7 @@ from eth_utils import (
     encode_hex,
     to_checksum_address,
     to_tuple,
+    HasExtendedDebugLogger,
     ValidationError,
 )
 import rlp
@@ -58,14 +58,11 @@ from eth.validation import (
     validate_uint256,
     validate_canonical_address,
 )
-from eth.tools.logging import (
-    ExtendedDebugLogger
-)
 
 from .hash_trie import HashTrie
 
 
-class BaseAccountDB(ABC):
+class BaseAccountDB(HasExtendedDebugLogger, ABC):
 
     @abstractmethod
     def __init__(self) -> None:
@@ -197,8 +194,6 @@ class BaseAccountDB(ABC):
 
 
 class AccountDB(BaseAccountDB):
-
-    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.db.account.AccountDB'))
 
     def __init__(self, db: BaseAtomicDB, state_root: Hash32=BLANK_ROOT_HASH) -> None:
         r"""
