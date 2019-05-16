@@ -46,7 +46,6 @@ class FakeAsyncBeaconChainDB(BaseAsyncBeaconChainDB, BeaconChainDB):
     coro_persist_block = async_passthrough('persist_block')
     coro_get_canonical_block_root = async_passthrough('get_canonical_block_root')
     coro_get_canonical_block_by_slot = async_passthrough('get_canonical_block_by_slot')
-    coro_get_canonical_block_root_by_slot = async_passthrough('get_canonical_block_root_by_slot')
     coro_get_canonical_head = async_passthrough('get_canonical_head')
     coro_get_canonical_head_root = async_passthrough('get_canonical_head_root')
     coro_get_finalized_head = async_passthrough('get_finalized_head')
