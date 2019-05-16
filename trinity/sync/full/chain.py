@@ -11,6 +11,7 @@ from typing import (
     Awaitable,
     Callable,
     Dict,
+    Iterable,
     List,
     NamedTuple,
     FrozenSet,
@@ -24,6 +25,7 @@ from eth_typing import Hash32
 from eth_utils import (
     humanize_hash,
     humanize_seconds,
+    to_tuple,
     ValidationError,
 )
 from eth_utils.toolz import (
@@ -39,6 +41,7 @@ from eth.constants import (
     EMPTY_UNCLE_HASH,
 )
 from eth.exceptions import HeaderNotFound
+from eth.rlp.blocks import BaseBlock
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
@@ -1049,6 +1052,37 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
 
         :param headers: headers that have the block bodies downloaded
         """
+        unimported_blocks = self._headers_to_blocks(headers)
+
+        for block in unimported_blocks:
+            timer = Timer()
+            _, new_canonical_blocks, old_canonical_blocks = await self.wait(
+                self._block_importer.import_block(block)
+            )
+
+            if new_canonical_blocks == (block,):
+                # simple import of a single new block.
+                self.logger.info("Imported block %d (%d txs) in %.2f seconds",
+                                 block.number, len(block.transactions), timer.elapsed)
+            elif not new_canonical_blocks:
+                # imported block from a fork.
+                self.logger.info("Imported non-canonical block %d (%d txs) in %.2f seconds",
+                                 block.number, len(block.transactions), timer.elapsed)
+            elif old_canonical_blocks:
+                self.logger.info(
+                    "Chain Reorganization: Imported block %d (%d txs) in %.2f "
+                    "seconds, %d blocks discarded and %d new canonical blocks added",
+                    block.number,
+                    len(block.transactions),
+                    timer.elapsed,
+                    len(old_canonical_blocks),
+                    len(new_canonical_blocks),
+                )
+            else:
+                raise Exception("Invariant: unreachable code path")
+
+    @to_tuple
+    def _headers_to_blocks(self, headers: Iterable[BlockHeader]) -> Iterable[BaseBlock]:
         for header in headers:
             vm_class = self.chain.get_vm_class(header)
             block_class = vm_class.get_block_class()
@@ -1063,32 +1097,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
                                 for tx in body.transactions]
                 uncles = body.uncles
 
-            block = block_class(header, transactions, uncles)
-            timer = Timer()
-            _, new_canonical_blocks, old_canonical_blocks = await self.wait(
-                self._block_importer.import_block(block)
-            )
-
-            if new_canonical_blocks == (block,):
-                # simple import of a single new block.
-                self.logger.info("Imported block %d (%d txs) in %.2f seconds",
-                                 block.number, len(transactions), timer.elapsed)
-            elif not new_canonical_blocks:
-                # imported block from a fork.
-                self.logger.info("Imported non-canonical block %d (%d txs) in %.2f seconds",
-                                 block.number, len(transactions), timer.elapsed)
-            elif old_canonical_blocks:
-                self.logger.info(
-                    "Chain Reorganization: Imported block %d (%d txs) in %.2f "
-                    "seconds, %d blocks discarded and %d new canonical blocks added",
-                    block.number,
-                    len(transactions),
-                    timer.elapsed,
-                    len(old_canonical_blocks),
-                    len(new_canonical_blocks),
-                )
-            else:
-                raise Exception("Invariant: unreachable code path")
+            yield block_class(header, transactions, uncles)
 
     async def _display_stats(self) -> None:
         self.logger.debug("Regular sync waiting for first header to arrive")
