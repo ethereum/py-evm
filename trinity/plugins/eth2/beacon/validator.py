@@ -1,5 +1,6 @@
 import logging
 from typing import (
+    Dict,
     cast,
 )
 
@@ -10,7 +11,6 @@ from cancel_token import (
 from eth_typing import (
     Hash32,
 )
-from eth_keys.datatypes import PrivateKey
 
 from eth2.beacon.chains.base import BeaconChain
 from eth2.beacon.helpers import (
@@ -49,10 +49,9 @@ from trinity.plugins.eth2.beacon.slot_ticker import (
 
 
 class Validator(BaseService):
-    validator_index: ValidatorIndex
     chain: BeaconChain
     peer_pool: BCCPeerPool
-    privkey: PrivateKey
+    validator_privkeys: Dict[ValidatorIndex, int]
     event_bus: TrinityEventBusEndpoint
     slots_per_epoch: int
     latest_proposed_epoch: Epoch
@@ -61,19 +60,17 @@ class Validator(BaseService):
 
     def __init__(
             self,
-            validator_index: ValidatorIndex,
             chain: BeaconChain,
             peer_pool: BCCPeerPool,
-            privkey: PrivateKey,
+            validator_privkeys: Dict[ValidatorIndex, int],
             event_bus: TrinityEventBusEndpoint,
             genesis_epoch: Epoch,
             slots_per_epoch: int,
             token: CancelToken = None) -> None:
         super().__init__(token)
-        self.validator_index = validator_index
         self.chain = chain
         self.peer_pool = peer_pool
-        self.privkey = privkey
+        self.validator_privkeys = validator_privkeys
         self.event_bus = event_bus
         # TODO: `latest_proposed_epoch` should be written into/read from validator's own db
         self.latest_proposed_epoch = genesis_epoch
@@ -97,7 +94,7 @@ class Validator(BaseService):
         state_machine = self.chain.get_state_machine()
         state = state_machine.state
         self.logger.debug(
-            bold_green(f"head: slot={head.slot}, state root={head.state_root}")
+            bold_green(f"head: slot={head.slot}, state root={head.state_root.hex()}")
         )
         proposer_index = _get_proposer_index(
             state,
@@ -107,8 +104,9 @@ class Validator(BaseService):
         # Since it's expected to tick twice in one slot, `latest_proposed_epoch` is used to prevent
         # proposing twice in the same slot.
         has_proposed = slot_to_epoch(slot, self.slots_per_epoch) <= self.latest_proposed_epoch
-        if not has_proposed and self.validator_index == proposer_index:
+        if not has_proposed and proposer_index in self.validator_privkeys:
             self.propose_block(
+                proposer_index=proposer_index,
                 slot=slot,
                 state=state,
                 state_machine=state_machine,
@@ -116,7 +114,7 @@ class Validator(BaseService):
             )
             self.latest_proposed_epoch = slot_to_epoch(slot, self.slots_per_epoch)
         # skip the block if it's second half of the slot and we are not proposing
-        elif is_second_tick and self.validator_index != proposer_index:
+        elif is_second_tick and proposer_index not in self.validator_privkeys:
             self.skip_block(
                 slot=slot,
                 state=state,
@@ -124,14 +122,18 @@ class Validator(BaseService):
             )
 
     def propose_block(self,
+                      proposer_index: ValidatorIndex,
                       slot: Slot,
                       state: BeaconState,
                       state_machine: BaseBeaconStateMachine,
                       head_block: BaseBeaconBlock) -> BaseBeaconBlock:
-        # TODO: Proposed block should be written into validator's own db.
-        # Before proposing, validator should check it's own db if block has
-        # been proposed for this epoch.
-        block = self._make_proposing_block(slot, state, state_machine, head_block)
+        block = self._make_proposing_block(
+            proposer_index=proposer_index,
+            slot=slot,
+            state=state,
+            state_machine=state_machine,
+            parent_block=head_block,
+        )
         self.logger.debug(
             bold_green(f"proposing block, block={block}")
         )
@@ -145,6 +147,7 @@ class Validator(BaseService):
         return block
 
     def _make_proposing_block(self,
+                              proposer_index: ValidatorIndex,
                               slot: Slot,
                               state: BeaconState,
                               state_machine: BaseBeaconStateMachine,
@@ -156,8 +159,8 @@ class Validator(BaseService):
             block_class=SerenityBeaconBlock,
             parent_block=parent_block,
             slot=slot,
-            validator_index=self.validator_index,
-            privkey=self.privkey,
+            validator_index=proposer_index,
+            privkey=self.validator_privkeys[proposer_index],
             attestations=(),
             check_proposer_index=False,
         )

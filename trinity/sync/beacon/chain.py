@@ -29,11 +29,11 @@ from eth2.beacon.types.blocks import (
 )
 from eth2.beacon.db.exceptions import FinalizedHeadNotFound
 from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
-from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from eth2.beacon.typing import (
     Slot,
 )
 
+from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.protocol.bcc.peer import (
     BCCPeer,
     BCCPeerPool,
@@ -43,6 +43,9 @@ from trinity.sync.beacon.constants import (
     PEER_SELECTION_RETRY_INTERVAL,
     PEER_SELECTION_MAX_RETRIES,
 )
+from trinity.sync.common.chain import (
+    SyncBlockImporter,
+)
 
 
 class BeaconChainSyncer(BaseService):
@@ -51,11 +54,13 @@ class BeaconChainSyncer(BaseService):
     def __init__(self,
                  chain_db: BaseAsyncBeaconChainDB,
                  peer_pool: BCCPeerPool,
+                 block_importer: SyncBlockImporter,
                  token: CancelToken = None) -> None:
         super().__init__(token)
 
         self.chain_db = chain_db
         self.peer_pool = peer_pool
+        self.block_importer = block_importer
 
         self.sync_peer: BCCPeer = None
 
@@ -151,6 +156,27 @@ class BeaconChainSyncer(BaseService):
             except ValidationError as exception:
                 self.logger.info(f"Received invalid batch from {self.sync_peer}: {exception}")
                 break
+
+            for block in batch:
+                # Copied from `RegularChainBodySyncer._import_blocks`
+                _, new_canonical_blocks, old_canonical_blocks = self.block_importer.import_block(block)  # noqa: E501
+
+                if new_canonical_blocks == (block,):
+                    # simple import of a single new block.
+                    self.logger.info("Imported block %d", block.slot)
+                elif not new_canonical_blocks:
+                    # imported block from a fork.
+                    self.logger.info("Imported non-canonical block %d", block.slot)
+                elif old_canonical_blocks:
+                    self.logger.info(
+                        "Chain Reorganization: Imported block %d"
+                        ", %d blocks discarded and %d new canonical blocks added",
+                        block.slot,
+                        len(old_canonical_blocks),
+                        len(new_canonical_blocks),
+                    )
+                else:
+                    raise Exception("Invariant: unreachable code path")
 
     async def request_batches(self,
                               start_slot: Slot,
