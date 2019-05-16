@@ -93,10 +93,6 @@ class BaseBeaconChainDB(ABC):
         pass
 
     @abstractmethod
-    def get_canonical_block_root_by_slot(self, slot: int) -> Hash32:
-        pass
-
-    @abstractmethod
     def get_canonical_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         pass
 
@@ -263,25 +259,8 @@ class BeaconChainDB(BaseBeaconChainDB):
             db: BaseDB,
             slot: int,
             block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-        canonical_block_root = cls._get_canonical_block_root_by_slot(db, slot)
+        canonical_block_root = cls._get_canonical_block_root(db, slot)
         return cls._get_block_by_root(db, canonical_block_root, block_class)
-
-    def get_canonical_block_root_by_slot(self, slot: int) -> Hash32:
-        """
-        Return the block root with the given slot in the canonical chain.
-
-        Raise BlockNotFound if there's no block with the given slot in the
-        canonical chain.
-        """
-        return self._get_canonical_block_root_by_slot(self.db, slot)
-
-    @classmethod
-    def _get_canonical_block_root_by_slot(
-            cls,
-            db: BaseDB,
-            slot: int) -> Hash32:
-        validate_slot(slot)
-        return cls._get_canonical_block_root(db, slot)
 
     def get_canonical_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         """
@@ -323,8 +302,8 @@ class BeaconChainDB(BaseBeaconChainDB):
         finalized_head_root = cls._get_finalized_head_root(db)
         return cls._get_block_by_root(db, Hash32(finalized_head_root), block_class)
 
-    @classmethod
-    def _get_finalized_head_root(cls, db: BaseDB) -> Hash32:
+    @staticmethod
+    def _get_finalized_head_root(db: BaseDB) -> Hash32:
         try:
             finalized_head_root = db[SchemaV1.make_finalized_head_root_lookup_key()]
         except KeyError:
@@ -344,8 +323,8 @@ class BeaconChainDB(BaseBeaconChainDB):
         justified_head_root = cls._get_justified_head_root(db)
         return cls._get_block_by_root(db, Hash32(justified_head_root), block_class)
 
-    @classmethod
-    def _get_justified_head_root(cls, db: BaseDB) -> Hash32:
+    @staticmethod
+    def _get_justified_head_root(db: BaseDB) -> Hash32:
         try:
             justified_head_root = db[SchemaV1.make_justified_head_root_lookup_key()]
         except KeyError:
@@ -426,9 +405,8 @@ class BeaconChainDB(BaseBeaconChainDB):
         with self.db.atomic_batch() as db:
             return self._persist_block_chain(db, blocks, block_class)
 
-    @classmethod
+    @staticmethod
     def _set_block_scores_to_db(
-            cls,
             db: BaseDB,
             block: BaseBeaconBlock
     ) -> int:
