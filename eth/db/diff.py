@@ -199,7 +199,6 @@ class DBDiff(ABC_Mapping):
                     except EVMMissingData:
                         raise
                     except KeyError:
-                        # TODO stop silently swallowing this key error
                         pass
                 else:
                     pass
