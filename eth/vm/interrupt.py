@@ -20,7 +20,7 @@ class EVMMissingData(PyEVMError):
 
 class MissingAccountTrieNode(EVMMissingData, MissingTrieNode):
     """
-    Raised when a storage trie node is missing from the DB
+    Raised when a main state trie node is missing from the DB, to get an account RLP
     """
     @property
     def state_root_hash(self) -> Hash32:
