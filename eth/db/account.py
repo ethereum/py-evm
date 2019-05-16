@@ -602,28 +602,50 @@ class AccountDB(BaseAccountDB):
         """
         Apply diff of trie updates, when original nodes might be missing.
         Note that doing this naively will raise exceptions about missing nodes
-        from *intermediate* tries, which other clients do not maintain.
-        This application instead reorders updates to get nodes from the original trie.
+        from *intermediate* trie roots. This captures exceptions and uses the previous
+        trie root hash that will be recognized by other nodes.
         """
-        deletions = diff.deleted_keys()
-        for index, delete_key in enumerate(deletions):
+        # It's fairly common that when an account is deleted, we need to retrieve nodes
+        # for accounts that were not needed during normal execution. We only need these
+        # nodes to refactor the trie.
+        for delete_key in diff.deleted_keys():
             try:
                 del trie[delete_key]
             except trie_exceptions.MissingTrieNode as exc:
-                self.logger.debug("Missing node on account index %d: %s", index, exc)
+                self.logger.debug(
+                    "Missing node while deleting account with key %s: %s",
+                    encode_hex(delete_key),
+                    exc,
+                )
                 raise MissingAccountTrieNode(
                     exc.missing_node_hash,
                     self._root_hash_at_last_persist,
                     exc.requested_key,
                 ) from exc
 
-        # AFAICT sets never have this problem at update time, because they are always
-        # retrieved by get first
+        # It's fairly unusual, but possible, that setting an account will need unknown
+        # nodes during a trie refactor. Here is an example that seems to cause it:
+        #
+        # Setup:
+        #   - Root node is a branch, with 0 pointing to a leaf
+        #   - The complete leaf key is (0, 1, 2), so (1, 2) is in the leaf node
+        #   - We know the leaf node hash but not the leaf node body
+        # Refactor that triggers missing node:
+        #   - Add value with key (0, 3, 4)
+        #   - We need to replace the current leaf node with a branch that points leaves at 1 and 3
+        #   - The leaf for key (0, 1, 2) now contains only the (2) part, so needs to be rebuilt
+        #   - We need the full body of the old (1, 2) leaf node, to rebuild
+
         for key, val in diff.pending_items():
             try:
                 trie[key] = val
             except trie_exceptions.MissingTrieNode as exc:
-                self.logger.warning("Missing node on account update (unexpected): %s", exc)
+                self.logger.debug(
+                    "Missing node on account update key %s to %s: %s",
+                    encode_hex(key),
+                    encode_hex(val),
+                    exc,
+                )
                 raise MissingAccountTrieNode(
                     exc.missing_node_hash,
                     self._root_hash_at_last_persist,
