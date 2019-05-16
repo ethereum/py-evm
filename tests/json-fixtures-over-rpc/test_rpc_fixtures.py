@@ -16,6 +16,7 @@ from eth_utils import (
     is_hex,
     is_integer,
     is_string,
+    to_tuple,
 )
 
 from eth.chains.mainnet import (
@@ -201,7 +202,7 @@ def fixture_transaction_in_rpc_format(state):
     }
 
 
-def blockchain_fixture_mark_fn(fixture_path, fixture_name):
+def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
     for slow_test in SLOW_TESTS:
         if slow_test in fixture_path or slow_test in fixture_name:
             if not should_run_slow_tests():
@@ -211,13 +212,35 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name):
         return pytest.mark.xfail(reason="Listed in INCORRECT_UPSTREAM_TESTS.")
 
 
+# TODO: import from `py-evm` if possible?..
+def generate_ignore_fn_for_fork(passed_fork):
+    if passed_fork:
+        passed_fork = passed_fork.lower()
+
+        def ignore_fn(fixture_path, fixture_key, fixture_fork):
+            return fixture_fork.lower() != passed_fork
+
+        return ignore_fn
+
+
+# TODO: import from `py-evm` if possible?..
+@to_tuple
+def expand_fixtures_forks(all_fixtures):
+    for fixture_path, fixture_key in all_fixtures:
+        fixture = load_fixture(fixture_path, fixture_key)
+        yield fixture_path, fixture_key, fixture['network']
+
+
 def pytest_generate_tests(metafunc):
+    ignore_fn = generate_ignore_fn_for_fork(metafunc.config.getoption('fork'))
     generate_fixture_tests(
         metafunc=metafunc,
         base_fixture_path=BASE_FIXTURE_PATH,
+        preprocess_fn=expand_fixtures_forks,
         filter_fn=filter_fixtures(
             fixtures_base_dir=BASE_FIXTURE_PATH,
             mark_fn=blockchain_fixture_mark_fn,
+            ignore_fn=ignore_fn
         ),
     )
 
@@ -398,8 +421,9 @@ async def validate_uncles(rpc, block_fixture, at_block):
 
 @pytest.fixture
 def chain_fixture(fixture_data):
-    fixture = load_fixture(*fixture_data)
-    if fixture['network'] == 'Istanbul':
+    fixture_path, fixture_key, fixture_fork = fixture_data
+    fixture = load_fixture(fixture_path, fixture_key)
+    if fixture_fork == 'Istanbul':
         pytest.skip('Istanbul VM rules not yet supported')
     return fixture
 
