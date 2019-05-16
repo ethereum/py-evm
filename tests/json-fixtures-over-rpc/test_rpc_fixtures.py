@@ -48,16 +48,12 @@ ROOT_PROJECT_DIR = Path(__file__).parent.parent.parent
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')
 
 SLOW_TESTS = (
-    'Call1024PreCalls_d0g0v0_Byzantium',
-    'Call1024PreCalls_d0g0v0_EIP150',
-    'Call1024PreCalls_d0g0v0_EIP158',
+    'Call1024PreCalls_d0g0v0',
     'ContractCreationSpam_d0g0v0_Homestead',
     'ContractCreationSpam_d0g0v0_Frontier',
-    'ForkStressTest_EIP150',
-    'ForkStressTest_EIP158',
-    'ForkStressTest_Homestead',
-    'ForkStressTest_Frontier',
-    'ForkStressTest_Byzantium',
+    'Create2Recursive_d0g0v0',
+    'Create2Recursive_d0g1v0',
+    'ForkStressTest',
     'stQuadraticComplexityTest/Call50000_d0g1v0.json',
     'stQuadraticComplexityTest/QuadraticComplexitySolidity_CallDataCopy_d0g1v0.json',
     'stQuadraticComplexityTest/Return50000_2_d0g1v0.json',
@@ -67,46 +63,43 @@ SLOW_TESTS = (
     'stQuadraticComplexityTest/Call50000_ecrec_d0g1v0.json',
     'walletReorganizeOwners',
     'bcExploitTest/SuicideIssue.json',
-    'DelegateCallSpam_Homestead',
-    'static_Call50000_sha256_d0g0v0_Byzantium',
-    'static_Call50000_rip160_d0g0v0_Byzantium',
-    'static_Call50000_rip160_d1g0v0_Byzantium',
-    'static_Call50000_sha256_d1g0v0_Byzantium',
-    'static_Call50000_ecrec_d1g0v0_Byzantium',
-    'static_Call50000_d1g0v0_Byzantium',
-    'static_Call50000_d0g0v0_Byzantium',
-    'static_Call50000_ecrec_d0g0v0_Byzantium',
-    'static_Call50000_identity2_d0g0v0_Byzantium',
-    'static_Call50000_identity2_d1g0v0_Byzantium',
-    'static_Call50000_identity_d1g0v0_Byzantium',
-    'static_Call50000_identity_d0g0v0_Byzantium',
-    'static_Call50000bytesContract50_1_d1g0v0_Byzantium',
-    'static_Call50000bytesContract50_2_d1g0v0_Byzantium',
-    'static_LoopCallsThenRevert_d0g0v0_Byzantium',
-    'static_LoopCallsThenRevert_d0g1v0_Byzantium',
-    'Call1024PreCalls_d0g0v0_Byzantium',
-    'Call1024PreCalls_d0g0v0_EIP158',
-    'Call1024PreCalls_d0g0v0_EIP150',
-    'Call1024PreCalls_d0g0v0_Byzantium',
-    'Call1024PreCalls_d0g0v0_EIP150',
-    'Call1024PreCalls_d0g0v0_EIP158',
+    'static_Call1024PreCalls_d1g0v0',
+    'static_Call1024PreCalls2_d0g0v0',
+    'static_Call1024PreCalls2_d1g0v0',
+    'static_Call1024PreCalls3_d1g0v0',
+    'static_Call50000bytesContract50_1_d0g0v0',
+    'static_Call50000_ecrec_d0g0v0',
+    'static_Call50000_ecrec_d1g0v0',
+    'static_Call50000_rip160_d0g0v0',
+    'static_Call50000_rip160_d1g0v0',
+    'static_Call50000_sha256_d0g0v0',
+    'static_Call50000_sha256_d1g0v0',
+    'static_Call50000_d0g0v0',
+    'static_Call50000_d1g0v0',
+    'static_Call50000_identity2_d0g0v0',
+    'static_Call50000_identity2_d1g0v0',
+    'static_Call50000_identity_d0g0v0',
+    'static_Call50000_identity_d1g0v0',
+    'static_Call50000bytesContract50_1_d1g0v0',
+    'static_Call50000bytesContract50_2_d1g0v0',
+    'static_LoopCallsThenRevert_d0g0v0',
+    'static_LoopCallsThenRevert_d0g1v0',
+    'static_Return50000_2_d0g0v0',
     'stQuadraticComplexityTest/Call50000_identity2_d0g1v0.json',
     'stQuadraticComplexityTest/Call50000_identity_d0g1v0.json',
     'stQuadraticComplexityTest/Call50000_rip160_d0g1v0.json',
     'stQuadraticComplexityTest/Call50000bytesContract50_1_d0g1v0.json',
+    'stQuadraticComplexityTest/Call50000bytesContract50_2_d0g1v0.json',
     'stQuadraticComplexityTest/Create1000_d0g1v0.json',
     'ShanghaiLove_Homestead',
     'ShanghaiLove_Frontier',
-    'DelegateCallSpam_EIP158',
-    'DelegateCallSpam_Byzantium',
-    'DelegateCallSpam_EIP150',
+    'DelegateCallSpam',
 )
 
 # These are tests that are thought to be incorrect or buggy upstream,
 # at the commit currently checked out in submodule `fixtures`.
 # Ideally, this list should be empty.
 # WHEN ADDING ENTRIES, ALWAYS PROVIDE AN EXPLANATION!
-# TODO: import from `py-evm` if possible
 INCORRECT_UPSTREAM_TESTS = {
     # The test considers a "synthetic" scenario (the state described there can't
     # be arrived at using regular consensus rules).
@@ -212,7 +205,6 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
         return pytest.mark.xfail(reason="Listed in INCORRECT_UPSTREAM_TESTS.")
 
 
-# TODO: import from `py-evm` if possible?..
 def generate_ignore_fn_for_fork(passed_fork):
     if passed_fork:
         passed_fork = passed_fork.lower()
@@ -223,7 +215,6 @@ def generate_ignore_fn_for_fork(passed_fork):
         return ignore_fn
 
 
-# TODO: import from `py-evm` if possible?..
 @to_tuple
 def expand_fixtures_forks(all_fixtures):
     for fixture_path, fixture_key in all_fixtures:
