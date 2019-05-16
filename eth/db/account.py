@@ -254,8 +254,7 @@ class AccountDB(BaseAccountDB):
         self._journaldb = JournalDB(self._batchdb)
         self._trie = HashTrie(HexaryTrie(self._batchtrie, state_root, prune=True))
         self._trie_cache = CacheDB(self._trie)
-        self._journalbatch = BatchDB(self._trie_cache)
-        self._journaltrie = JournalDB(self._journalbatch)
+        self._journaltrie = JournalDB(self._trie_cache)
         self._account_cache = LRU(2048)
         self._account_stores = {}  # type: Dict[Address, AccountStorageDB]
         self._dirty_accounts = set()  # type: Set[Address]
@@ -522,15 +521,14 @@ class AccountDB(BaseAccountDB):
             self._set_storage_root(address, storage_root)
 
         self._journaldb.persist()
-        self._journaltrie.persist()
 
-        diff = self._journalbatch.diff()
+        diff = self._journaltrie.diff()
         # In addition to squashing (which is redundant here), this context manager causes
         # an atomic commit of the changes, so exceptions will revert the trie
         with self._trie.squash_changes() as memory_trie:
             self._apply_account_diff_without_proof(diff, memory_trie)
 
-        self._journalbatch.clear()
+        self._journaltrie.reset()
         self._trie_cache.reset_cache()
 
         return self.state_root
