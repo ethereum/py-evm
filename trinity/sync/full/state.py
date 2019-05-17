@@ -86,7 +86,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.root_hash = root_hash
         # We use a LevelDB instance for the nodes cache because a full state download, if run
         # uninterrupted will visit more than 180M nodes, making an in-memory cache unfeasible.
-        self._nodes_cache_dir = tempfile.TemporaryDirectory(prefix="pyevm-state-sync-cache")
+        self._nodes_cache_dir = tempfile.TemporaryDirectory(prefix="trinity-state-sync-cache")
 
         # Allow the LevelDB instance to consume half of the entire file descriptor limit that
         # the OS permits. Let the other half be reserved for other db access, networking etc.

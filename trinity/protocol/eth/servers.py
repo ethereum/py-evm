@@ -17,10 +17,10 @@ from eth_typing import (
     BlockIdentifier,
     Hash32,
 )
-
 from eth_utils import (
     to_hex,
 )
+from trie.exceptions import MissingTrieNode
 
 from p2p import protocol
 from p2p.peer import BasePeer
@@ -83,8 +83,18 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
                     "%s asked for a block we don't have: %s", peer, to_hex(block_hash)
                 )
                 continue
-            transactions = await self.wait(
-                self.db.coro_get_block_transactions(header, BaseTransactionFields))
+            try:
+                transactions = await self.wait(
+                    self.db.coro_get_block_transactions(header, BaseTransactionFields))
+            except MissingTrieNode as exc:
+                self.logger.debug(
+                    "%s asked for block transactions we don't have: %s, "
+                    "due to %r",
+                    peer,
+                    to_hex(block_hash),
+                    exc,
+                )
+                continue
             uncles = await self.wait(self.db.coro_get_block_uncles(header.uncles_hash))
             bodies.append(BlockBody(transactions, uncles))
         self.logger.debug2("Replying to %s with %d block bodies", peer, len(bodies))
@@ -104,7 +114,17 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
                     "%s asked receipts for a block we don't have: %s", peer, to_hex(block_hash)
                 )
                 continue
-            block_receipts = await self.wait(self.db.coro_get_receipts(header, Receipt))
+            try:
+                block_receipts = await self.wait(self.db.coro_get_receipts(header, Receipt))
+            except MissingTrieNode as exc:
+                self.logger.debug(
+                    "%s asked for block receipts we don't have: %s, "
+                    "due to %r",
+                    peer,
+                    to_hex(block_hash),
+                    exc,
+                )
+                continue
             receipts.append(block_receipts)
         self.logger.debug2("Replying to %s with receipts for %d blocks", peer, len(receipts))
         peer.sub_proto.send_receipts(receipts)
