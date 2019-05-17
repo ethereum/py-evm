@@ -133,3 +133,8 @@ BLACKLIST_SECONDS_BAD_PROTOCOL = 60 * 10  # 10 minutes
 
 # Amount of time a peer will be blacklisted when they timeout too frequently
 BLACKLIST_SECONDS_TOO_MANY_TIMEOUTS = 60 * 5  # 5 minutes
+
+# Both the amount of time that we consider to be a peer disconnecting from us
+# too quickly as well as the amount of time they will be blacklisted for doing
+# so.
+BLACKLIST_SECONDS_QUICK_DISCONNECT = 60

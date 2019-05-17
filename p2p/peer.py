@@ -67,6 +67,7 @@ from p2p.tracking.connection import (
 
 from .constants import (
     BLACKLIST_SECONDS_BAD_PROTOCOL,
+    BLACKLIST_SECONDS_QUICK_DISCONNECT,
     SNAPPY_PROTOCOL_VERSION,
 )
 
@@ -351,6 +352,12 @@ class BasePeer(BaseService):
             try:
                 self.process_msg(cmd, msg)
             except RemoteDisconnected as e:
+                if self.uptime < BLACKLIST_SECONDS_QUICK_DISCONNECT:
+                    await self.connection_tracker.record_blacklist(
+                        self.remote,
+                        BLACKLIST_SECONDS_QUICK_DISCONNECT,
+                        "Quick disconnect",
+                    )
                 self.logger.debug("%r disconnected: %s", self, e)
                 return
 
