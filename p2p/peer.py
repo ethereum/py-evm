@@ -274,9 +274,15 @@ class BasePeer(BaseService):
             cmd, msg = await self.read_msg()
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
-            # Peers sometimes send a disconnect msg before they send the sub-proto handshake.
-            if msg['reason'] == DisconnectReason.too_many_peers.value:
-                raise TooManyPeersFailure(f'{self} disconnected from us before handshake')
+            try:
+                reason = DisconnectReason(msg['reason'])
+            except TypeError:
+                self.logger.info('Unrecognized disconnect reason: %s', msg['reason'])
+            else:
+                self.disconnect_reason = reason
+                # Peers sometimes send a disconnect msg before they send the sub-proto handshake.
+                if reason is DisconnectReason.too_many_peers:
+                    raise TooManyPeersFailure(f'{self} disconnected from us before handshake')
             raise HandshakeFailure(
                 f"{self} disconnected before completing sub-proto handshake: {msg['reason_name']}"
             )
@@ -378,6 +384,12 @@ class BasePeer(BaseService):
         """Handle the base protocol (P2P) messages."""
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
+            try:
+                reason = DisconnectReason(msg['reason'])
+            except TypeError:
+                self.logger.info('Unrecognized reason: %s', msg['reason'])
+            else:
+                self.disconnect_reason = reason
             raise RemoteDisconnected(msg['reason_name'])
         elif isinstance(cmd, Ping):
             self.base_protocol.send_pong()

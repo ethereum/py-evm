@@ -427,7 +427,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         """
         peer = cast(BasePeer, peer)
         if peer.remote in self.connected_nodes:
-            self.logger.info("%s finished, removing from pool", peer)
+            self.logger.info("%s finished[%s], removing from pool", peer, peer.disconnect_reason)
             self.connected_nodes.pop(peer.remote)
         else:
             self.logger.warning(
