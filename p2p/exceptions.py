@@ -38,20 +38,6 @@ class HandshakeFailure(BaseP2PError):
     pass
 
 
-class WrongNetworkFailure(HandshakeFailure):
-    """
-    Disconnected from the peer because it's on a different network than we're on
-    """
-    pass
-
-
-class WrongGenesisFailure(HandshakeFailure):
-    """
-    Disconnected from the peer because it has a different genesis than we do
-    """
-    pass
-
-
 class TooManyPeersFailure(HandshakeFailure):
     """
     The remote disconnected from us because it has too many peers

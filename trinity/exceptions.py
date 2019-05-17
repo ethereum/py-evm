@@ -1,5 +1,10 @@
 import pathlib
 
+from p2p.exceptions import HandshakeFailure
+from p2p.tracking.connection import register_error
+
+from trinity.constants import BLACKLIST_SECONDS_WRONG_NETWORK_OR_GENESIS
+
 
 class BaseTrinityError(Exception):
     """
@@ -61,3 +66,23 @@ class BadDatabaseError(BaseTrinityError):
      - missing tables
     """
     pass
+
+
+class WrongNetworkFailure(HandshakeFailure):
+    """
+    Disconnected from the peer because it's on a different network than we're on
+    """
+    pass
+
+
+register_error(WrongNetworkFailure, BLACKLIST_SECONDS_WRONG_NETWORK_OR_GENESIS)
+
+
+class WrongGenesisFailure(HandshakeFailure):
+    """
+    Disconnected from the peer because it has a different genesis than we do
+    """
+    pass
+
+
+register_error(WrongGenesisFailure, BLACKLIST_SECONDS_WRONG_NETWORK_OR_GENESIS)

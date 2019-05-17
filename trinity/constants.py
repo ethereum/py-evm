@@ -82,3 +82,6 @@ DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
              Address("34.198.237.7", 30303, 30303)),
     ),
 }
+
+# Amount of time a peer will be blacklisted if their network or genesis hash does not match
+BLACKLIST_SECONDS_WRONG_NETWORK_OR_GENESIS = 600
