@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import (
-    Iterable,
+    Set,
+    Tuple,
 )
 
 from lahja import (
@@ -24,7 +25,7 @@ class BasePeerBackend(ABC):
     @abstractmethod
     async def get_peer_candidates(self,
                                   num_requested: int,
-                                  num_connected_peers: int) -> Iterable[Node]:
+                                  connected_remotes: Set[Node]) -> Tuple[Node, ...]:
         pass
 
 
@@ -37,12 +38,16 @@ class DiscoveryPeerBackend(BasePeerBackend):
 
     async def get_peer_candidates(self,
                                   num_requested: int,
-                                  num_connected_peers: int) -> Iterable[Node]:
+                                  connected_remotes: Set[Node]) -> Tuple[Node, ...]:
         response = await self.event_bus.request(
             PeerCandidatesRequest(num_requested),
             TO_DISCOVERY_BROADCAST_CONFIG,
         )
-        return response.candidates
+        return tuple(
+            candidate
+            for candidate in response.candidates
+            if candidate not in connected_remotes
+        )
 
 
 class BootnodesPeerBackend(BasePeerBackend):
@@ -51,13 +56,17 @@ class BootnodesPeerBackend(BasePeerBackend):
 
     async def get_peer_candidates(self,
                                   num_requested: int,
-                                  num_connected_peers: int) -> Iterable[Node]:
-        if num_connected_peers == 0:
+                                  connected_remotes: Set[Node]) -> Tuple[Node, ...]:
+        if len(connected_remotes) == 0:
             response = await self.event_bus.request(
                 RandomBootnodeRequest(),
                 TO_DISCOVERY_BROADCAST_CONFIG
             )
 
-            return response.candidates
+            return tuple(
+                candidate
+                for candidate in response.candidates
+                if candidate not in connected_remotes
+            )
         else:
             return ()
