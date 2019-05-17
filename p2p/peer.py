@@ -21,8 +21,6 @@ from lahja import Endpoint
 
 from cached_property import cached_property
 
-import rlp
-
 from eth_utils import (
     to_tuple,
 )
@@ -290,12 +288,7 @@ class BasePeer(BaseService):
         """
         self.base_protocol.send_handshake()
 
-        try:
-            cmd, msg = await self.read_msg()
-        except rlp.DecodingError:
-            raise HandshakeFailure("Got invalid rlp data during handshake")
-        except MalformedMessage as e:
-            raise HandshakeFailure("Got malformed message during handshake") from e
+        cmd, msg = await self.read_msg()
 
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
