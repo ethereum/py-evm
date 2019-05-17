@@ -4,7 +4,7 @@ async def run_command_and_detect_errors(async_process_runner, command, time):
     throw an Exception in case any unresolved Exceptions are detected in the output of the command.
     """
     await async_process_runner.run(command, timeout_sec=time)
-    scan_for_errors(async_process_runner.stderr)
+    await scan_for_errors(async_process_runner.stderr)
 
 
 async def scan_for_errors(async_iterable):
