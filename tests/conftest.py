@@ -123,7 +123,7 @@ def async_process_runner():
         pass
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 async def event_bus():
     endpoint = TrinityEventBusEndpoint()
     # Tests run concurrently, therefore we need unique IPC paths
