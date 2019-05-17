@@ -75,13 +75,28 @@ async def _skip_complete_headers_iterator(
     the remaining headers.
     """
     iter_headers = iter(headers)
+    # for logging:
+    first_discarded = None
+    last_discarded = None
+    num_discarded = 0
     for header in iter_headers:
         is_present = await completion_check(header)
         if is_present:
-            logger.debug("Discarding header that we already have: %s", header)
+            if first_discarded is None:
+                first_discarded = header
+            else:
+                last_discarded = header
+            num_discarded += 1
         else:
             yield header
             break
+
+    logger.debug(
+        "Discarding %d headers that we already have: %s...%s",
+        num_discarded,
+        first_discarded,
+        last_discarded,
+    )
 
     for header in iter_headers:
         yield header
