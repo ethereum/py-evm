@@ -277,7 +277,7 @@ class BasePeer(BaseService):
             try:
                 reason = DisconnectReason(msg['reason'])
             except TypeError:
-                self.logger.info('Unrecognized disconnect reason: %s', msg['reason'])
+                self.logger.warning('Unrecognized disconnect reason: %s', msg['reason'])
             else:
                 self.disconnect_reason = reason
                 # Peers sometimes send a disconnect msg before they send the sub-proto handshake.
