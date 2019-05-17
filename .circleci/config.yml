@@ -234,6 +234,18 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-rpc-state-quadratic
+  py36-rpc-state-sstore:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-rpc-state-sstore
+  py36-rpc-state-zero_knowledge:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-rpc-state-zero_knowledge
   py36-eth2-core:
     <<: *common
     docker:
@@ -358,6 +370,8 @@ workflows:
       - py36-rpc-state-tangerine_whistle
       - py36-rpc-state-spurious_dragon
       - py36-rpc-state-quadratic
+      - py36-rpc-state-sstore
+      - py36-rpc-state-zero_knowledge
       - py36-rpc-blockchain
 
       - py36-core
