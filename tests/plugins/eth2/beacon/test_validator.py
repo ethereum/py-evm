@@ -71,9 +71,12 @@ class FakePeerPool:
         self.connected_nodes[index] = FakePeer()
 
 
-def get_chain_from_genesis(db, index):
-    pubkey = index_to_pubkey[index]
-    validator_keymap = {pubkey: keymap[pubkey]}
+def get_chain_from_genesis(db, indices):
+    # pubkey -> privkey map
+    validator_keymap = {
+        index_to_pubkey[index]: keymap[index_to_pubkey[index]]
+        for index in indices
+    }
     genesis_data = BeaconGenesisData(
         genesis_time=genesis_state.genesis_time,
         state=genesis_state,
@@ -89,11 +92,14 @@ def get_chain_from_genesis(db, index):
     )
 
 
-async def get_validator(event_loop, event_bus, index) -> Validator:
+async def get_validator(event_loop, event_bus, indices) -> Validator:
     chain_db = await helpers.get_chain_db()
-    chain = get_chain_from_genesis(chain_db.db, index)
+    chain = get_chain_from_genesis(chain_db.db, indices)
     peer_pool = FakePeerPool()
-    validator_privkeys = {index: keymap[index_to_pubkey[index]]}
+    validator_privkeys = {
+        index: keymap[index_to_pubkey[index]]
+        for index in indices
+    }
     v = Validator(
         chain=chain,
         peer_pool=peer_pool,
@@ -108,12 +114,12 @@ async def get_validator(event_loop, event_bus, index) -> Validator:
 
 
 async def get_linked_validators(event_loop, event_bus) -> Tuple[Validator, Validator]:
-    alice_index = 0
-    bob_index = 1
-    alice = await get_validator(event_loop, event_bus, alice_index)
-    bob = await get_validator(event_loop, event_bus, bob_index)
-    alice.peer_pool.add_peer(bob_index)
-    bob.peer_pool.add_peer(alice_index)
+    alice_indices = [0]
+    bob_indices = [1]
+    alice = await get_validator(event_loop, event_bus, alice_indices)
+    bob = await get_validator(event_loop, event_bus, bob_indices)
+    alice.peer_pool.add_peer(bob_indices[0])
+    bob.peer_pool.add_peer(alice_indices[0])
     return alice, bob
 
 
@@ -206,7 +212,7 @@ async def test_validator_propose_block_fails(event_loop, event_bus):
 
 @pytest.mark.asyncio
 async def test_validator_skip_block(event_loop, event_bus):
-    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=0)
+    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, indices=[0])
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
     slot = state.slot + 1
@@ -225,7 +231,7 @@ async def test_validator_skip_block(event_loop, event_bus):
 
 @pytest.mark.asyncio
 async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
-    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=0)
+    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, indices=[0])
 
     event_new_slot_called = asyncio.Event()
     event_attest_called = asyncio.Event()
@@ -320,27 +326,27 @@ async def test_validator_propose_or_skip_block(event_loop, event_bus, monkeypatc
 
 @pytest.mark.asyncio
 async def test_validator_get_committee_assigment(event_loop, event_bus):
-    alice_index = 7
-    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=alice_index)
+    alice_indices = [7]
+    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, indices=alice_indices)
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
     epoch = slot_to_epoch(state.slot, state_machine.config.SLOTS_PER_EPOCH)
 
-    assert alice.this_epoch_assignment[alice_index][0] == -1
-    alice._get_this_epoch_assignment(alice_index, epoch)
-    assert alice.this_epoch_assignment[alice_index][0] == epoch
+    assert alice.this_epoch_assignment[alice_indices[0]][0] == -1
+    alice._get_this_epoch_assignment(alice_indices[0], epoch)
+    assert alice.this_epoch_assignment[alice_indices[0]][0] == epoch
 
 
 @pytest.mark.asyncio
-async def test_validator_attest(event_loop, event_bus):
-    alice_index = 5
-    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, index=alice_index)
+async def test_validator_attest(event_loop, event_bus, monkeypatch):
+    alice_indices = [i for i in range(8)]
+    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, indices=alice_indices)
     head = alice.chain.get_canonical_head()
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
-    epoch = slot_to_epoch(state.slot, state_machine.config.SLOTS_PER_EPOCH)
 
-    assignment = alice._get_this_epoch_assignment(alice_index, epoch)
+    epoch = slot_to_epoch(state.slot, state_machine.config.SLOTS_PER_EPOCH)
+    assignment = alice._get_this_epoch_assignment(alice_indices[0], epoch)
 
     attestations = await alice.attest(assignment.slot)
     assert len(attestations) == 1

@@ -538,12 +538,11 @@ def create_signed_attestation_at_slot(
         state_machine: BaseBeaconStateMachine,
         attestation_slot: Slot,
         beacon_block_root: Hash32,
-        validator_index: ValidatorIndex,
+        validator_privkeys: Dict[ValidatorIndex, int],
         committee: Tuple[ValidatorIndex, ...],
-        shard: Shard,
-        privkey: int) -> Attestation:
+        shard: Shard) -> Attestation:
     """
-    Create the attestations of the given ``attestation_slot`` slot with ``privkey``.
+    Create the attestations of the given ``attestation_slot`` slot with ``validator_privkeys``.
     """
     state_transition = state_machine.state_transition
     state = state_transition.apply_state_transition_without_block(
@@ -581,14 +580,19 @@ def create_signed_attestation_at_slot(
             signature_domain=SignatureDomain.DOMAIN_ATTESTATION,
             slots_per_epoch=config.SLOTS_PER_EPOCH,
         )
+        for _, privkey in validator_privkeys.items()
     ]
 
+    voting_committee_indices = [
+        CommitteeIndex(committee.index(validator_index))
+        for validator_index in validator_privkeys
+    ]
     # aggregate signatures and construct participant bitfield
     aggregation_bitfield, aggregate_signature = aggregate_votes(
         bitfield=get_empty_bitfield(len(committee)),
         sigs=(),
         voting_sigs=signatures,
-        voting_committee_indices=[CommitteeIndex(committee.index(validator_index))],
+        voting_committee_indices=voting_committee_indices,
     )
 
     # create attestation from attestation_data, particpipant_bitfield, and signature

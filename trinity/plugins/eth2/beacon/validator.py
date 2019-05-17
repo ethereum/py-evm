@@ -9,6 +9,10 @@ from cancel_token import (
     CancelToken,
 )
 
+from cytoolz import (
+    curry,
+)
+
 from eth_typing import (
     Hash32,
 )
@@ -35,6 +39,7 @@ from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     Epoch,
+    Shard,
     Slot,
     ValidatorIndex,
 )
@@ -225,38 +230,78 @@ class Validator(BaseService):
         self.chain.chaindb.persist_state(post_state)
         return post_state.root
 
+    @curry
+    def _is_attesting(self,
+                      validator_index: ValidatorIndex,
+                      slot: Slot,
+                      epoch: Epoch) -> Tuple[bool, ValidatorIndex, Shard]:
+        assignment = self._get_this_epoch_assignment(
+            validator_index,
+            epoch,
+        )
+        has_attested = epoch <= self.latest_attested_epoch[validator_index]
+        if not has_attested and slot == assignment.slot:
+            return (True, validator_index, assignment.shard)
+        else:
+            return (False, ValidatorIndex(-1), Shard(-1))
+
     async def attest(self, slot: Slot) -> Tuple[Attestation, ...]:
         attestations: Tuple[Attestation, ...] = ()
         head = self.chain.get_canonical_head()
         state_machine = self.chain.get_state_machine()
         state = state_machine.state
-        for validator_index in self.validator_privkeys:
-            epoch = slot_to_epoch(slot, self.slots_per_epoch)
+        epoch = slot_to_epoch(slot, self.slots_per_epoch)
+
+        attesting_validators = filter(
+            lambda attesting_data: attesting_data[0],
+            [
+                self._is_attesting(validator_index, slot, epoch)
+                for validator_index in self.validator_privkeys
+            ],
+        )
+        # Sort the attesting validators by shard
+        sorted_attesting_validators = sorted(
+            attesting_validators,
+            key=lambda attesting_data: attesting_data[2],
+        )
+        # Group the attesting validators by shard
+        from itertools import groupby
+        attesting_validators_groups = groupby(
+            sorted_attesting_validators,
+            lambda attesting_data: attesting_data[2],
+        )
+        for shard, group in attesting_validators_groups:
+            # Get the validator_index -> privkey map of the attesting validators
+            attesting_validator_privkeys = {
+                attesting_data[1]: self.validator_privkeys[attesting_data[1]]
+                for attesting_data in group
+            }
+            attesting_validators_indices = tuple(attesting_validator_privkeys.keys())
+            # Get one of the attesting validator's assignment in order to get the committee info
             assignment = self._get_this_epoch_assignment(
-                validator_index,
+                attesting_validators_indices[0],
                 epoch,
             )
-            has_attested = epoch <= self.latest_attested_epoch[validator_index]
-            if not has_attested and slot == assignment.slot:
-                attestation = create_signed_attestation_at_slot(
-                    state,
-                    state_machine.config,
-                    state_machine,
-                    slot,
-                    head.signing_root,
-                    validator_index,
-                    assignment.committee,
-                    assignment.shard,
-                    self.validator_privkeys[validator_index],
+            attestation = create_signed_attestation_at_slot(
+                state,
+                state_machine.config,
+                state_machine,
+                slot,
+                head.signing_root,
+                attesting_validator_privkeys,
+                assignment.committee,
+                shard,
+            )
+            self.logger.debug(
+                bold_green(
+                    f"validator index={attesting_validators_indices} attest to block, "
+                    "block={head}, attestation={attestation}"
                 )
-                self.logger.debug(
-                    bold_green(
-                        f"validator index={validator_index} attest to block, "
-                        "block={head}, attestation={attestation}"
-                    )
-                )
+            )
+            for validator_index in attesting_validators_indices:
                 self.latest_attested_epoch[validator_index] = epoch
-                attestations = attestations + (attestation,)
+            attestations = attestations + (attestation,)
+
         for peer in self.peer_pool.connected_nodes.values():
             peer = cast(BCCPeer, peer)
             self.logger.debug(
