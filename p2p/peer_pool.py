@@ -161,10 +161,13 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         available_slots = self.max_peers - len(self)
 
         try:
+            connected_remotes = {
+                peer.remote for peer in self.connected_nodes.values()
+            }
             candidates = await self.wait(
                 backend.get_peer_candidates(
                     num_requested=available_slots,
-                    num_connected_peers=len(self),
+                    connected_remotes=connected_remotes,
                 ),
                 timeout=REQUEST_PEER_CANDIDATE_TIMEOUT,
             )
