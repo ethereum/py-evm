@@ -28,6 +28,9 @@ from trinity.db.network import (
 from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
+from trinity.exceptions import (
+    BadDatabaseError,
+)
 
 from .connection.server import ConnectionTrackerServer
 from .connection.tracker import (
@@ -99,7 +102,15 @@ class NetworkDBPlugin(BaseIsolatedPlugin):
             # user swapping in an equivalent experimental version.
             return
         else:
-            self.start()
+            try:
+                get_tracking_database(get_networkdb_path(self.boot_info.trinity_config))
+            except BadDatabaseError as err:
+                manager_eventbus.request_shutdown(
+                    "Error loading network database.  Trying removing database "
+                    f"with `remove-network-db` command:\n{err}"
+                )
+            else:
+                self.start()
 
     @classmethod
     def clear_node_db(cls, args: Namespace, trinity_config: TrinityConfig) -> None:
