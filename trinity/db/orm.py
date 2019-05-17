@@ -27,7 +27,7 @@ from trinity.exceptions import (
 Base = declarative_base()
 
 
-SCHEMA_VERSION = '2'
+SCHEMA_VERSION = '3'
 
 
 class SchemaVersion(Base):
