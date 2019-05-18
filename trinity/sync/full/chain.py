@@ -86,6 +86,9 @@ from trinity._utils.ema import EMA
 from trinity._utils.headers import (
     skip_complete_headers,
 )
+from trinity._utils.humanize import (
+    humanize_integer_sequence,
+)
 from trinity._utils.timer import Timer
 
 # (ReceiptBundle, (Receipt, (root_hash, receipt_trie_data))
@@ -181,15 +184,16 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
                 #   - a bug: old headers were pruned out of the tracker, but not in DB yet
 
                 # Skip over all headers found in db, (could happen with a long backtrack)
-                new_headers = await self.wait(
-                    skip_complete_headers(headers, self.logger, completion_check)
+                completed_headers, new_headers = await self.wait(
+                    skip_complete_headers(headers, completion_check)
                 )
-                if len(new_headers) < len(headers):
+                if completed_headers:
                     self.logger.debug(
-                        "Sync skipping over already stored headers (%d) from %s..%s",
-                        len(headers),
-                        headers[0],
-                        headers[-1],
+                        "Chain sync skipping over (%d) already stored headers %s: %s..%s",
+                        len(completed_headers),
+                        humanize_integer_sequence(h.block_number for h in completed_headers),
+                        completed_headers[0],
+                        completed_headers[-1],
                     )
                     if not new_headers:
                         # no new headers to process, wait for next batch to come in

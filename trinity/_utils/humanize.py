@@ -1,4 +1,4 @@
-from typing import Iterable, Sequence, Tuple
+from typing import Iterable, Tuple
 
 from eth_utils.toolz import sliding_window
 
@@ -35,7 +35,7 @@ def _humanize_range(bounds: Tuple[int, int]) -> str:
         return f'{left}-{right}'
 
 
-def humanize_integer_sequence(values: Sequence[int]) -> str:
+def humanize_integer_sequence(values: Iterable[int]) -> str:
     """
     Return a human readable string that attempts to concisely define a sequence
     of integers.
