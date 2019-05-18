@@ -3,6 +3,7 @@ from typing import (
     AsyncIterator,
     Dict,
     FrozenSet,
+    Iterable,
     List,
     Set,
     Tuple,
@@ -15,6 +16,7 @@ from eth_typing import (
 )
 
 from eth_utils import (
+    to_tuple,
     ValidationError,
 )
 
@@ -32,15 +34,17 @@ from eth.exceptions import (
     BlockNotFound,
 )
 
+from eth2.configs import CommitteeConfig
+from eth2.beacon.typing import (
+    Slot,
+)
 from eth2.beacon.chains.base import BaseBeaconChain
-
+from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlock,
 )
-from eth2.beacon.typing import (
-    Slot,
-)
+from eth2.beacon.state_machines.forks.serenity.block_validation import validate_attestation
 
 from trinity._utils.shellart import (
     bold_red,
@@ -51,6 +55,8 @@ from trinity._utils.les import (
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.protocol.common.servers import BaseRequestServer
 from trinity.protocol.bcc.commands import (
+    Attestations,
+    AttestationsMessage,
     BeaconBlocks,
     BeaconBlocksMessage,
     GetBeaconBlocks,
@@ -217,6 +223,7 @@ class OrphanBlockPool:
 
 class BCCReceiveServer(BaseReceiveServer):
     subscription_msg_types: FrozenSet[Type[Command]] = frozenset({
+        Attestations,
         BeaconBlocks,
         NewBeaconBlock,
     })
@@ -238,12 +245,38 @@ class BCCReceiveServer(BaseReceiveServer):
                           msg: protocol._DecodedMsgType) -> None:
         peer = cast(BCCPeer, base_peer)
         self.logger.debug("cmd %s" % cmd)
-        if isinstance(cmd, NewBeaconBlock):
+        if isinstance(cmd, Attestations):
+            await self._handle_attestations(peer, cast(AttestationsMessage, msg))
+        elif isinstance(cmd, NewBeaconBlock):
             await self._handle_new_beacon_block(peer, cast(NewBeaconBlockMessage, msg))
         elif isinstance(cmd, BeaconBlocks):
             await self._handle_beacon_blocks(peer, cast(BeaconBlocksMessage, msg))
         else:
             raise Exception(f"Invariant: Only subscribed to {self.subscription_msg_types}")
+
+    async def _handle_attestations(self, peer: BCCPeer, msg: AttestationsMessage) -> None:
+        if not peer.is_operational:
+            return
+        encoded_attestations = msg["encoded_attestations"]
+        attestations = (
+            ssz.decode(encoded_attestation, Attestation)
+            for encoded_attestation in encoded_attestations
+        )
+        self.logger.debug(f"received attestations={attestations}")
+
+        # Validate attestations
+        valid_attestations = self._validate_attestations(attestations)
+        if len(valid_attestations) == 0:
+            return
+
+        # Check if attestations has been seen already.
+        # Filter out those seen already
+        valid_new_attestations = filter(
+            self._is_attestation_new,
+            valid_attestations,
+        )
+        # Broadcast the valid and newly received attestations
+        self._broadcast_attestations(tuple(valid_new_attestations), peer)
 
     async def _handle_beacon_blocks(self, peer: BCCPeer, msg: BeaconBlocksMessage) -> None:
         if not peer.is_operational:
@@ -277,6 +310,54 @@ class BCCReceiveServer(BaseReceiveServer):
         # TODO: check the proposer signature before importing the block
         if self._process_received_block(block):
             self._broadcast_block(block, from_peer=peer)
+
+    def _is_attestation_new(self, attestation: Attestation) -> bool:
+        """
+        Check if the attestation is already in the database or the attestion pool.
+        """
+        # stub
+        return False
+
+    @to_tuple
+    def _validate_attestations(self,
+                               attestations: Iterable[Attestation]) -> Iterable[Attestation]:
+        state_machine = self.chain.get_state_machine()
+        config = state_machine.config
+        state = state_machine.state
+        for attestation in attestations:
+            # Fast forward to state in future slot in order to pass
+            # attestation.data.slot validity check
+            future_state = state_machine.state_transition.apply_state_transition_without_block(
+                state,
+                attestation.data.slot + config.MIN_ATTESTATION_INCLUSION_DELAY,
+            )
+            try:
+                validate_attestation(
+                    future_state,
+                    attestation,
+                    config.MIN_ATTESTATION_INCLUSION_DELAY,
+                    config.SLOTS_PER_HISTORICAL_ROOT,
+                    CommitteeConfig(config),
+                )
+                yield attestation
+            except ValidationError:
+                pass
+
+    def _broadcast_attestations(self,
+                                attestations: Tuple[Attestation, ...],
+                                from_peer: BCCPeer = None) ->None:
+        """
+        Broadcast the attestations to peers, except for ``from_peer``.
+        """
+        for peer in self._peer_pool.connected_nodes.values():
+            peer = cast(BCCPeer, peer)
+            # skip the peer who send the attestations to us
+            if from_peer is not None and peer == from_peer:
+                continue
+            self.logger.debug(
+                bold_red(f"send attestations to peer={peer}")
+            )
+            peer.sub_proto.send_attestation_records(attestations)
 
     def _process_received_block(self, block: BaseBeaconBlock) -> bool:
         """
@@ -352,16 +433,15 @@ class BCCReceiveServer(BaseReceiveServer):
 
     def _broadcast_block(self, block: BaseBeaconBlock, from_peer: BCCPeer = None) -> None:
         """
-        Broadcast a block to the peers, except for ``from_peer``.
+        Broadcast the block to peers, except for ``from_peer``.
         """
         for peer in self._peer_pool.connected_nodes.values():
             peer = cast(BCCPeer, peer)
-            # skip the peer who send the block to use
+            # skip the peer who send the block to us
             if from_peer is not None and peer == from_peer:
                 continue
-            request_id = gen_request_id()
             self.logger.debug(
-                bold_red(f"send block request to: request_id={request_id}, peer={peer}")
+                bold_red(f"send block to peer={peer}")
             )
             peer.sub_proto.send_new_block(block=block)
 
