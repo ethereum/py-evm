@@ -17,6 +17,7 @@ from eth_utils import (
 )
 
 from eth.db.backends.base import BaseDB
+from eth.vm.interrupt import EVMMissingData
 
 if TYPE_CHECKING:
     ABC_Mutable_Mapping = MutableMapping[bytes, Union[bytes, 'MissingReason']]
@@ -195,6 +196,8 @@ class DBDiff(ABC_Mapping):
                 if apply_deletes:
                     try:
                         del db[key]
+                    except EVMMissingData:
+                        raise
                     except KeyError:
                         pass
                 else:

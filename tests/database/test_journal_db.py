@@ -10,6 +10,7 @@ import pytest
 from eth.db.backends.memory import MemoryDB
 from eth.db.journal import JournalDB
 from eth.db.slow_journal import JournalDB as SlowJournalDB
+from eth.vm.interrupt import EVMMissingData
 
 
 @pytest.fixture
@@ -481,11 +482,10 @@ def test_journal_db_diff_application_mimics_persist(journal_db, memory_db, actio
     assert memory_db == diff_test_db
 
 
-def test_journal_persist_delete_KeyError_then_persist():
+def test_journal_persist_delete_fail_then_persist():
     db = {b'delete-me': b'val'}
-    memory_db = MemoryDB(db)
 
-    journal_db = JournalDB(memory_db)
+    journal_db = JournalDB(db)
 
     del journal_db[b'delete-me']
 
@@ -502,8 +502,8 @@ def test_journal_persist_delete_KeyError_then_persist():
     # smoke test that persist works after an exception
     journal_db[b'new-key'] = b'new-val'
     journal_db.persist()
-    assert memory_db[b'new-key'] == b'new-val'
-    assert b'delete-me' not in memory_db
+    assert db[b'new-key'] == b'new-val'
+    assert b'delete-me' not in db
 
 
 class MemoryDBSetRaisesKeyError(MemoryDB):
@@ -511,41 +511,68 @@ class MemoryDBSetRaisesKeyError(MemoryDB):
         raise KeyError("Artificial key error during set, can happen if underlying db is trie")
 
 
-def test_journal_persist_set_KeyError():
-    memory_db = MemoryDBSetRaisesKeyError()
+class MemoryDBSetRaisesMissingData(MemoryDB):
+    def __setitem__(self, *args):
+        raise EVMMissingData()
+
+
+@pytest.mark.parametrize(
+    "db_class, expected_exception",
+    (
+        (MemoryDBSetRaisesKeyError, KeyError),
+        (MemoryDBSetRaisesMissingData, EVMMissingData),
+    ),
+)
+def test_journal_persist_set_fail(db_class, expected_exception):
+    memory_db = db_class()
 
     # make sure test is set up correctly
-    with pytest.raises(KeyError):
+    with pytest.raises(expected_exception):
         memory_db[b'failing-to-set-key'] = b'val'
 
     journal_db = JournalDB(memory_db)
 
     journal_db[b'failing-to-set-key'] = b'val'
-    with pytest.raises(KeyError):
+
+    with pytest.raises(expected_exception):
         journal_db.persist()
 
 
-def test_journal_persist_set_KeyError_leaves_checkpoint_in_place():
-    memory_db = MemoryDBSetRaisesKeyError()
+@pytest.mark.parametrize(
+    "db_class, expected_exception",
+    (
+        (MemoryDBSetRaisesKeyError, KeyError),
+        (MemoryDBSetRaisesMissingData, EVMMissingData),
+    ),
+)
+def test_journal_persist_set_fail_leaves_checkpoint_in_place(db_class, expected_exception):
+    memory_db = db_class()
 
     journal_db = JournalDB(memory_db)
 
     journal_db[b'failing-to-set-key'] = b'val'
-    with pytest.raises(KeyError):
+    with pytest.raises(expected_exception):
         journal_db.persist()
 
     diff = journal_db.diff()
     assert diff.pending_items() == ((b'failing-to-set-key', b'val'), )
 
 
-def test_journal_persist_set_KeyError_then_persist():
+@pytest.mark.parametrize(
+    "db_class, expected_exception",
+    (
+        (MemoryDBSetRaisesKeyError, KeyError),
+        (MemoryDBSetRaisesMissingData, EVMMissingData),
+    ),
+)
+def test_journal_persist_set_fail_then_persist(db_class, expected_exception):
     original_data = {b'data-to-delete': b'val'}
-    memory_db = MemoryDBSetRaisesKeyError(original_data)
+    memory_db = db_class(original_data)
 
     journal_db = JournalDB(memory_db)
 
     journal_db[b'failing-to-set-key'] = b'val'
-    with pytest.raises(KeyError):
+    with pytest.raises(expected_exception):
         journal_db.persist()
     assert b'failing-to-set-key' not in memory_db
 
