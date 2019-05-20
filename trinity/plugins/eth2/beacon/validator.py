@@ -1,6 +1,7 @@
 import logging
 from typing import (
     Dict,
+    Iterable,
     Tuple,
     cast,
 )
@@ -9,12 +10,11 @@ from cancel_token import (
     CancelToken,
 )
 
-from cytoolz import (
-    curry,
-)
-
 from eth_typing import (
     Hash32,
+)
+from eth_utils import (
+    to_tuple,
 )
 
 from eth2.beacon.chains.base import BeaconChain
@@ -230,20 +230,25 @@ class Validator(BaseService):
         self.chain.chaindb.persist_state(post_state)
         return post_state.root
 
-    @curry
     def _is_attesting(self,
                       validator_index: ValidatorIndex,
+                      assignment: CommitteeAssignment,
                       slot: Slot,
-                      epoch: Epoch) -> Tuple[bool, ValidatorIndex, Shard]:
-        assignment = self._get_this_epoch_assignment(
-            validator_index,
-            epoch,
-        )
+                      epoch: Epoch) -> bool:
         has_attested = epoch <= self.latest_attested_epoch[validator_index]
         if not has_attested and slot == assignment.slot:
-            return (True, validator_index, assignment.shard)
+            return True
         else:
-            return (False, ValidatorIndex(-1), Shard(-1))
+            return False
+
+    @to_tuple
+    def _get_attesting_validator_and_shard(self,
+                                           assignments: Dict[ValidatorIndex, CommitteeAssignment],
+                                           slot: Slot,
+                                           epoch: Epoch) -> Iterable[Tuple[ValidatorIndex, Shard]]:
+        for validator_index, assignment in assignments.items():
+            if self._is_attesting(validator_index, assignment, slot, epoch):
+                yield (validator_index, assignment.shard)
 
     async def attest(self, slot: Slot) -> Tuple[Attestation, ...]:
         attestations: Tuple[Attestation, ...] = ()
@@ -252,28 +257,34 @@ class Validator(BaseService):
         state = state_machine.state
         epoch = slot_to_epoch(slot, self.slots_per_epoch)
 
-        attesting_validators = filter(
-            lambda attesting_data: attesting_data[0],
-            [
-                self._is_attesting(validator_index, slot, epoch)
-                for validator_index in self.validator_privkeys
-            ],
+        validator_assignments = {
+            validator_index: self._get_this_epoch_assignment(
+                validator_index,
+                epoch,
+            )
+            for validator_index in self.validator_privkeys
+        }
+        attesting_validators = self._get_attesting_validator_and_shard(
+            validator_assignments,
+            slot,
+            epoch,
         )
+
         # Sort the attesting validators by shard
         sorted_attesting_validators = sorted(
             attesting_validators,
-            key=lambda attesting_data: attesting_data[2],
+            key=lambda attesting_data: attesting_data[1],
         )
         # Group the attesting validators by shard
         from itertools import groupby
         attesting_validators_groups = groupby(
             sorted_attesting_validators,
-            lambda attesting_data: attesting_data[2],
+            lambda attesting_data: attesting_data[1],
         )
         for shard, group in attesting_validators_groups:
             # Get the validator_index -> privkey map of the attesting validators
             attesting_validator_privkeys = {
-                attesting_data[1]: self.validator_privkeys[attesting_data[1]]
+                attesting_data[0]: self.validator_privkeys[attesting_data[0]]
                 for attesting_data in group
             }
             attesting_validators_indices = tuple(attesting_validator_privkeys.keys())
