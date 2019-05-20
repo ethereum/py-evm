@@ -19,6 +19,7 @@ Unreleased (latest source)
 - `#436 <https://github.com/ethereum/trinity/pull/436>`_: Feature: Connect to preferred nodes even when discovery is disabled
 - `#518 <https://github.com/ethereum/trinity/pull/518>`_: Feature: Create log directory for you, if data dir is empty
 - `#630 <https://github.com/ethereum/trinity/pull/630>`_: Bugfix: Proper shutdown of the whole trinity process if the network database is corrupt.
+- `#618 <https://github.com/ethereum/trinity/pull/618>`_: Bugfix: Can actually connect to other trinity peers now (and syncing peers).
 - `#595 <https://github.com/ethereum/trinity/pull/595>`_: Bugfix: Error handling for corrupt snappy data
 - `#591 <https://github.com/ethereum/trinity/pull/591>`_: Bugfix: Catch ``RuntimeError`` in handshake to prevent crashing the entire node
 - `#469 <https://github.com/ethereum/trinity/pull/469>`_: Bugfix: Fix deprecation warnings from ``p2p.ecies`` module.
