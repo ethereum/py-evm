@@ -195,12 +195,12 @@ jobs:
         environment:
           TOXENV: py36-rpc-blockchain
 
-  py36-core:
+  py36-eth1-core:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-core
+          TOXENV: py36-eth1-core
   py36-integration:
     <<: *common
     docker:
@@ -282,12 +282,12 @@ jobs:
         environment:
           TOXENV: py37-rpc-state-zero_knowledge
 
-  py37-core:
+  py37-eth1-core:
     <<: *common
     docker:
       - image: circleci/python:3.7
         environment:
-          TOXENV: py37-core
+          TOXENV: py37-eth1-core
   py37-integration:
     <<: *common
     docker:
@@ -350,7 +350,7 @@ workflows:
     jobs:
       - py36-docs
 
-      - py37-core
+      - py37-eth1-core
       - py37-wheel-cli
       - py37-p2p
       - py37-eth2-core
@@ -372,7 +372,7 @@ workflows:
       - py36-rpc-state-tangerine_whistle
       - py36-rpc-blockchain
 
-      - py36-core
+      - py36-eth1-core
       - py36-wheel-cli
       - py36-p2p
       - py36-eth2-core
