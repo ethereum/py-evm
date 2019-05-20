@@ -163,18 +163,22 @@ async def test_queue_contains_task_until_complete(tasks):
     first_task = tasks[0]
 
     assert first_task not in q
+    assert q.num_pending() == 0
 
     await wait(q.add(tasks))
 
     assert first_task in q
+    assert q.num_pending() == 2
 
     batch, pending_tasks = await wait(q.get())
 
     assert first_task in q
+    assert q.num_pending() == 0
 
     q.complete(batch, pending_tasks)
 
     assert first_task not in q
+    assert q.num_pending() == 0
 
 
 @pytest.mark.asyncio
@@ -259,13 +263,20 @@ async def test_unfinished_tasks_readded():
     q = TaskQueue()
     await wait(q.add((2, 1, 3)))
 
+    assert q.num_pending() == 3
+
     batch, tasks = await wait(q.get())
 
+    assert q.num_pending() == 0
+
     q.complete(batch, (2, ))
+
+    assert q.num_pending() == 2
 
     batch, tasks = await wait(q.get())
 
     assert tasks == (1, 3)
+    assert q.num_pending() == 0
 
 
 @pytest.mark.asyncio

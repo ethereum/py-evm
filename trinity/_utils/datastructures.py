@@ -269,6 +269,10 @@ class TaskQueue(Generic[TTask]):
         """How many tasks are retrieved, but not completed"""
         return len(self._tasks) - self._open_queue.qsize()
 
+    def num_pending(self) -> int:
+        """How many tasks are pending, not retrieved nor completed"""
+        return self._open_queue.qsize()
+
     def __len__(self) -> int:
         """How many tasks are queued for completion"""
         return len(self._tasks)
