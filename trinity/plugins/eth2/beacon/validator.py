@@ -307,7 +307,7 @@ class Validator(BaseService):
             self.logger.debug(
                 bold_green(
                     f"validator index={attesting_validators_indices} attest to block, "
-                    "block={head}, attestation={attestation}"
+                    f"block={head}, attestation={attestation}"
                 )
             )
             for validator_index in attesting_validators_indices:
