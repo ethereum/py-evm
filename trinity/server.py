@@ -36,7 +36,6 @@ from p2p.kademlia import (
     Address,
     Node,
 )
-from p2p.nat import UPnPService
 from p2p.p2p_proto import (
     DisconnectReason,
 )
@@ -68,6 +67,7 @@ from trinity.protocol.bcc.servers import (
 )
 
 DIAL_IN_OUT_RATIO = 0.75
+BOUND_IP = '0.0.0.0'
 
 TPeerPool = TypeVar('TPeerPool', bound=BasePeerPool)
 T_VM_CONFIGURATION = Tuple[Tuple[BlockNumber, Type[BaseVM]], ...]
@@ -114,7 +114,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
 
         # child services
-        self.upnp_service = UPnPService(port, token=self.cancel_token)
         self.peer_pool = self._make_peer_pool()
         self.event_server = self.event_server_class(event_bus, self.peer_pool, self.cancel_token)
 
@@ -129,7 +128,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         # TODO: Support IPv6 addresses as well.
         self._tcp_listener = await asyncio.start_server(
             self.receive_handshake,
-            host='0.0.0.0',
+            host=BOUND_IP,
             port=self.port,
         )
 
@@ -140,16 +139,11 @@ class BaseServer(BaseService, Generic[TPeerPool]):
 
     async def _run(self) -> None:
         self.logger.info("Running server...")
-        mapped_external_ip = await self.upnp_service.add_nat_portmap()
-        if mapped_external_ip is None:
-            external_ip = '0.0.0.0'
-        else:
-            external_ip = mapped_external_ip
         await self._start_tcp_listener()
         self.logger.info(
             "enode://%s@%s:%s",
             self.privkey.public_key.to_hex()[2:],
-            external_ip,
+            BOUND_IP,
             self.port,
         )
         self.logger.info('network: %s', self.network_id)
@@ -158,9 +152,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         self.run_daemon(self.peer_pool)
         self.run_daemon(self.event_server)
 
-        # UPNP service is still experimental and not essential, so we don't use run_daemon() for
-        # it as that means if it crashes we'd be terminated as well.
-        self.run_child_service(self.upnp_service)
         await self.cancel_token.wait()
 
     async def _cleanup(self) -> None:
@@ -372,16 +363,11 @@ class BCCServer(BaseServer[BCCPeerPool]):
 
     async def _run(self) -> None:
         self.logger.info("Running server...")
-        mapped_external_ip = await self.upnp_service.add_nat_portmap()
-        if mapped_external_ip is None:
-            external_ip = '0.0.0.0'
-        else:
-            external_ip = mapped_external_ip
         await self._start_tcp_listener()
         self.logger.info(
             "enode://%s@%s:%s",
             self.privkey.public_key.to_hex()[2:],
-            external_ip,
+            BOUND_IP,
             self.port,
         )
         self.logger.info('network: %s', self.network_id)
@@ -391,9 +377,6 @@ class BCCServer(BaseServer[BCCPeerPool]):
         self.run_daemon(self.event_server)
         self.run_daemon(self.receive_server)
 
-        # UPNP service is still experimental and not essential, so we don't use run_daemon() for
-        # it as that means if it crashes we'd be terminated as well.
-        self.run_child_service(self.upnp_service)
         await self.cancel_token.wait()
 
     def _make_peer_pool(self) -> BCCPeerPool:

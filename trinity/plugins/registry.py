@@ -32,6 +32,9 @@ from trinity.plugins.builtin.request_server.plugin import (
 from trinity.plugins.builtin.syncer.plugin import (
     SyncerPlugin,
 )
+from trinity.plugins.builtin.upnp.plugin import (
+    UpnpPlugin,
+)
 from trinity.plugins.eth2.network_generator.plugin import NetworkGeneratorPlugin
 from trinity.plugins.eth2.beacon.plugin import BeaconNodePlugin
 from trinity.plugins.builtin.tx_pool.plugin import (
@@ -51,6 +54,7 @@ BASE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
     PeerDiscoveryPlugin,
     RequestServerPlugin,
     BeaconNodePlugin,
+    UpnpPlugin,
 )
 
 
