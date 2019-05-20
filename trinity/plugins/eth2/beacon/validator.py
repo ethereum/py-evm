@@ -1,4 +1,6 @@
+from itertools import groupby
 import logging
+from operator import itemgetter
 from typing import (
     Dict,
     Iterable,
@@ -273,13 +275,12 @@ class Validator(BaseService):
         # Sort the attesting validators by shard
         sorted_attesting_validators = sorted(
             attesting_validators,
-            key=lambda attesting_data: attesting_data[1],
+            key=itemgetter(1),
         )
         # Group the attesting validators by shard
-        from itertools import groupby
         attesting_validators_groups = groupby(
             sorted_attesting_validators,
-            lambda attesting_data: attesting_data[1],
+            key=itemgetter(1),
         )
         for shard, group in attesting_validators_groups:
             # Get the validator_index -> privkey map of the attesting validators
