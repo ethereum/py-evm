@@ -16,6 +16,9 @@ from trinity._utils.humanize import humanize_integer_sequence
         ((1, 2, 3, 5, 7, 8, 9), '1-3|5|7-9'),
         ((1, 3, 4, 5, 7, 8, 9), '1|3-5|7-9'),
         ((1, 3, 4, 5, 9), '1|3-5|9'),
+        # should accept a generator
+        ((_ for _ in range(0)), '(empty)'),
+        ((i for i in (1, 2, 3, 7, 8, 10)), '1-3|7-8|10'),
     ),
 )
 def test_humanize_integer_sequence(seq, expected):
