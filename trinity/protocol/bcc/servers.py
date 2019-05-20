@@ -258,7 +258,7 @@ class BCCReceiveServer(BaseReceiveServer):
         if not peer.is_operational:
             return
         encoded_attestations = msg["encoded_attestations"]
-        attestations = (
+        attestations = tuple(
             ssz.decode(encoded_attestation, Attestation)
             for encoded_attestation in encoded_attestations
         )
