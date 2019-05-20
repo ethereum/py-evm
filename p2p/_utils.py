@@ -97,3 +97,25 @@ def ensure_global_asyncio_executor(cpu_count: int=None) -> Executor:
         _executor._start_queue_management_thread()  # type: ignore
         signal.signal(signal.SIGINT, original_handler)
     return _executor
+
+
+def trim_middle(arbitrary_string: str, max_length: int) -> str:
+    """
+    Trim down strings to max_length by cutting out the middle.
+    This assumes that the most "interesting" bits are toward
+    the beginning and the end.
+
+    Adds a highly unusual '✂✂✂' in the middle where characters
+    were stripped out, to avoid not realizing about the stripped
+    info.
+    """
+    # candidate for moving to eth-utils, if we like it
+    size = len(arbitrary_string)
+    if size <= max_length:
+        return arbitrary_string
+    else:
+        half_len, is_odd = divmod(max_length, 2)
+        first_half = arbitrary_string[:half_len - 1]
+        last_half_len = half_len - 2 + is_odd
+        last_half = arbitrary_string[last_half_len * -1:]
+        return f"{first_half}✂✂✂{last_half}"
