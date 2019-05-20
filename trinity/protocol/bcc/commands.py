@@ -39,7 +39,7 @@ class ResponseMessage(TypedDict):
 class StatusMessage(TypedDict):
     protocol_version: int
     network_id: int
-    genesis_hash: Hash32
+    genesis_root: Hash32
     head_slot: Slot
 
 
@@ -48,7 +48,7 @@ class Status(Command):
     structure = (
         ('protocol_version', sedes.big_endian_int),
         ('network_id', sedes.big_endian_int),
-        ('genesis_hash', sedes.binary),
+        ('genesis_root', sedes.binary),
         ('head_slot', sedes.big_endian_int),
     )
 

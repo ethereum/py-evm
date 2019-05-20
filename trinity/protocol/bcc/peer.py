@@ -5,6 +5,9 @@ from typing import (
 from eth_utils import (
     encode_hex,
 )
+from eth_typing import (
+    Hash32,
+)
 
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from eth2.beacon.types.blocks import (
@@ -52,14 +55,12 @@ class BCCPeer(BasePeer):
 
     head_slot: Slot = None
 
+    _genesis_root: Hash32 = None
+
     async def send_sub_proto_handshake(self) -> None:
-        # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under per BeaconStateMachine fork
-        genesis = await self.chain_db.coro_get_canonical_block_by_slot(
-            self.context.genesis_slot,
-            BeaconBlock,
-        )
+        genesis_root = await self.get_genesis_root()
         head = await self.chain_db.coro_get_canonical_head(BeaconBlock)
-        self.sub_proto.send_handshake(genesis.signing_root, head.slot, self.network_id)
+        self.sub_proto.send_handshake(genesis_root, head.slot, self.network_id)
 
     async def process_sub_proto_handshake(self, cmd: Command, msg: _DecodedMsgType) -> None:
         if not isinstance(cmd, Status):
@@ -73,20 +74,23 @@ class BCCPeer(BasePeer):
                 f"{self} network ({msg['network_id']}) does not match ours "
                 f"({self.network_id}), disconnecting"
             )
-        # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under per BeaconStateMachine fork
-        genesis_block = await self.chain_db.coro_get_canonical_block_by_slot(
-            self.context.genesis_slot,
-            BeaconBlock,
-        )
-        # TODO change message descriptor to 'genesis_root', accounting for the spec
-        if msg['genesis_hash'] != genesis_block.signing_root:
+        genesis_root = await self.get_genesis_root()
+
+        if msg['genesis_root'] != genesis_root:
             await self.disconnect(DisconnectReason.useless_peer)
             raise HandshakeFailure(
-                f"{self} genesis ({encode_hex(msg['genesis_hash'])}) does not "
-                f"match ours ({encode_hex(genesis_block.signing_root)}), disconnecting"
+                f"{self} genesis ({encode_hex(msg['genesis_root'])}) does not "
+                f"match ours ({encode_hex(genesis_root)}), disconnecting"
             )
 
         self.head_slot = msg['head_slot']
+
+    async def get_genesis_root(self) -> Hash32:
+        if self._genesis_root is None:
+            self._genesis_root = await self.chain_db.coro_get_canonical_block_root(
+                self.chain_db.genesis_config.GENESIS_SLOT,
+            )
+        return self._genesis_root
 
     @property
     def network_id(self) -> int:

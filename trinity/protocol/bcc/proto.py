@@ -51,13 +51,13 @@ class BCCProtocol(HasExtendedDebugLogger, Protocol):
     peer: "BCCPeer"
 
     def send_handshake(self,
-                       genesis_hash: Hash32,
+                       genesis_root: Hash32,
                        head_slot: Slot,
                        network_id: int) -> None:
         resp = StatusMessage(
             protocol_version=self.version,
             network_id=network_id,
-            genesis_hash=genesis_hash,
+            genesis_root=genesis_root,
             head_slot=head_slot,
         )
         cmd = Status(self.cmd_id_offset, self.snappy_support)

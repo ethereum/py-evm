@@ -43,6 +43,9 @@ from trinity.protocol.bcc.servers import (
     BCCRequestServer,
     OrphanBlockPool,
 )
+from eth2.configs import (
+    Eth2GenesisConfig,
+)
 
 from .helpers import (
     helpers,
@@ -73,8 +76,9 @@ class FakeChain(TestnetChain):
 
 
 async def get_fake_chain() -> FakeChain:
-    chain_db = await helpers.get_genesis_chain_db(config=XIAO_LONG_BAO_CONFIG)
-    return FakeChain(base_db=chain_db.db, config=XIAO_LONG_BAO_CONFIG)
+    genesis_config = Eth2GenesisConfig(XIAO_LONG_BAO_CONFIG)
+    chain_db = await helpers.get_genesis_chain_db(genesis_config=genesis_config)
+    return FakeChain(base_db=chain_db.db, genesis_config=genesis_config)
 
 
 def get_blocks(

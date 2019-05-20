@@ -1,6 +1,5 @@
 import pytest
 
-from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
@@ -46,14 +45,13 @@ from eth2.beacon.types.historical_batch import HistoricalBatch
         (16, 4, 1, 2, 2, 31, 8),
     ]
 )
-def test_per_slot_transition(base_db,
+def test_per_slot_transition(chaindb,
                              genesis_block,
                              genesis_state,
                              fixture_sm_class,
                              config,
                              state_slot,
                              keymap):
-    chaindb = BeaconChainDB(base_db, config)
     chaindb.persist_block(genesis_block, SerenityBeaconBlock)
     chaindb.persist_state(genesis_state)
 

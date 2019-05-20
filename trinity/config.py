@@ -54,8 +54,9 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     Timestamp,
 )
-from eth2.configs import Eth2Config
-
+from eth2.configs import (
+    Eth2GenesisConfig,
+)
 from p2p.constants import (
     MAINNET_BOOTNODES,
     ROPSTEN_BOOTNODES,
@@ -605,31 +606,41 @@ class Eth1AppConfig(BaseAppConfig):
 
 
 class BeaconGenesisData(NamedTuple):
+    """
+    Use this data to initialize BeaconChainConfig
+    """
     genesis_time: Timestamp
+    # TODO: Should come from eth2.beacon.genesis.get_genesis_beacon_state
     state: BeaconState
+    # TODO: Trinity should have no knowledge of validators' private keys
     validator_keymap: Dict[BLSPubkey, int]
     # TODO: Maybe Validator deposit data
 
 
 class BeaconChainConfig:
+    network_id: int
+    genesis_data: BeaconGenesisData
+    _chain_name: str
+    _beacon_chain_class: Type['BeaconChain'] = None
+    _genesis_config: Eth2GenesisConfig = None
+
     def __init__(self,
                  chain_name: str=None,
                  genesis_data: BeaconGenesisData=None) -> None:
-        self._chain_name = chain_name
+
         self.network_id = 5567
         self.genesis_data = genesis_data
-        self._beacon_chain_class = None
+
+        self._chain_name = chain_name
 
     @property
-    def state_machine_class(self) -> "Type[BaseBeaconStateMachine]":
-        return self.beacon_chain_class.sm_configuration[0][1]
+    def genesis_config(self) -> Eth2GenesisConfig:
+        if self._genesis_config is None:
+            self._genesis_config = Eth2GenesisConfig(
+                self.beacon_chain_class.get_genesis_state_machine_class().config,
+            )
 
-    # TODO(ralexstokes):
-    # NOTE(ralexstokes), this is temporary to merge in some other work
-    # will want to revisit this as we move towards our MVP testnet
-    @property
-    def eth2_config(self) -> Eth2Config:
-        return self.state_machine_class.config
+        return self._genesis_config
 
     @property
     def chain_name(self) -> str:
@@ -671,20 +682,18 @@ class BeaconChainConfig:
 
     def initialize_chain(self,
                          base_db: BaseAtomicDB) -> 'BeaconChain':
-        config = self.eth2_config
         chain_class = self.beacon_chain_class
-        state_machine_class = self.state_machine_class
         state = self.genesis_data.state
         block = get_genesis_block(
             genesis_state_root=state.root,
-            genesis_slot=config.GENESIS_SLOT,  # FIXME: Shouldn't access GENESIS_SLOT from a particular state machine configs.  # noqa: E501
-            block_class=state_machine_class.block_class,
+            genesis_slot=self.genesis_config.GENESIS_SLOT,
+            block_class=chain_class.get_genesis_state_machine_class().block_class,
         )
         return chain_class.from_genesis(
             base_db=base_db,
             genesis_state=state,
             genesis_block=block,
-            config=config,
+            genesis_config=self.genesis_config,
         )
 
 

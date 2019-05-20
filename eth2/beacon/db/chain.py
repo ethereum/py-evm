@@ -39,8 +39,6 @@ from eth.exceptions import (
 from eth.validation import (
     validate_word,
 )
-
-from eth2.configs import Eth2Config
 from eth2.beacon.helpers import (
     slot_to_epoch,
 )
@@ -63,12 +61,16 @@ from eth2.beacon.db.exceptions import (
 )
 from eth2.beacon.db.schema import SchemaV1
 
+from eth2.configs import (
+    Eth2GenesisConfig,
+)
+
 
 class BaseBeaconChainDB(ABC):
     db = None  # type: BaseAtomicDB
 
     @abstractmethod
-    def __init__(self, db: BaseAtomicDB, config: Eth2Config) -> None:
+    def __init__(self, db: BaseAtomicDB, genesis_config: Eth2GenesisConfig) -> None:
         pass
 
     #
@@ -160,9 +162,9 @@ class BaseBeaconChainDB(ABC):
 
 
 class BeaconChainDB(BaseBeaconChainDB):
-    def __init__(self, db: BaseAtomicDB, config: Eth2Config) -> None:
+    def __init__(self, db: BaseAtomicDB, genesis_config: Eth2GenesisConfig) -> None:
         self.db = db
-        self.config = config
+        self.genesis_config = genesis_config
 
         self._finalized_root = self._get_finalized_root_if_present(db)
         self._highest_justified_epoch = self._get_highest_justified_epoch(db)
@@ -177,9 +179,9 @@ class BeaconChainDB(BaseBeaconChainDB):
         try:
             justified_head_root = self._get_justified_head_root(db)
             slot = self.get_slot_by_root(justified_head_root)
-            return slot_to_epoch(slot, self.config.SLOTS_PER_EPOCH)
+            return slot_to_epoch(slot, self.genesis_config.SLOTS_PER_EPOCH)
         except JustifiedHeadNotFound:
-            return self.config.GENESIS_EPOCH
+            return self.genesis_config.GENESIS_EPOCH
 
     def persist_block(
             self,
@@ -708,7 +710,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         """
         genesis_root = genesis_block.signing_root
         self._update_finalized_head(genesis_root)
-        self._update_justified_head(genesis_root, self.config.GENESIS_EPOCH)
+        self._update_justified_head(genesis_root, self.genesis_config.GENESIS_EPOCH)
 
     #
     # Raw Database API

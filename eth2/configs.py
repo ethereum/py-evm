@@ -86,3 +86,18 @@ class CommitteeConfig:
         self.ACTIVATION_EXIT_DELAY = config.ACTIVATION_EXIT_DELAY
         self.LATEST_ACTIVE_INDEX_ROOTS_LENGTH = config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
         self.LATEST_RANDAO_MIXES_LENGTH = config.LATEST_RANDAO_MIXES_LENGTH
+
+
+class Eth2GenesisConfig:
+    """
+    Genesis parameters that might lives in
+    a state or a state machine config
+    but is assumed unlikely to change between forks.
+    Pass this to the chains, chain_db, or other objects that need them.
+    """
+
+    def __init__(self, config: Eth2Config) -> None:
+        self.GENESIS_SLOT = config.GENESIS_SLOT
+        self.GENESIS_EPOCH = config.GENESIS_EPOCH
+        self.SECONDS_PER_SLOT = config.SECONDS_PER_SLOT
+        self.SLOTS_PER_EPOCH = config.SLOTS_PER_EPOCH

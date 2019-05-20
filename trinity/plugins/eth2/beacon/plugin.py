@@ -81,7 +81,7 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
         base_db = db_manager.get_db()  # type: ignore
         chain_db = db_manager.get_chaindb()  # type: ignore
         chain_config = beacon_app_config.get_chain_config()
-        chain = chain_config.beacon_chain_class(base_db, chain_config.eth2_config)
+        chain = chain_config.beacon_chain_class(base_db, chain_config.genesis_config)
 
         if self.boot_info.args.beacon_nodekey:
             privkey = PrivateKey(bytes.fromhex(self.boot_info.args.beacon_nodekey))
@@ -104,10 +104,10 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
         )
 
         syncer = BeaconChainSyncer(
-            chain_db,
-            server.peer_pool,
-            SyncBlockImporter(chain),
-            server.cancel_token,
+            chain_db=chain_db,
+            peer_pool=server.peer_pool,
+            block_importer=SyncBlockImporter(chain),
+            token=server.cancel_token,
         )
 
         state_machine = chain.get_state_machine()
@@ -124,16 +124,15 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
             chain=chain,
             peer_pool=server.peer_pool,
             validator_privkeys=validator_privkeys,
+            genesis_config=chain_config.genesis_config,
             event_bus=self.event_bus,
             token=server.cancel_token,
-            genesis_epoch=state_machine.config.GENESIS_EPOCH,
-            slots_per_epoch=state_machine.config.SLOTS_PER_EPOCH,
         )
 
         slot_ticker = SlotTicker(
-            genesis_slot=state_machine.config.GENESIS_SLOT,
+            genesis_slot=chain_config.genesis_config.GENESIS_SLOT,
             genesis_time=chain_config.genesis_data.genesis_time,
-            seconds_per_slot=state_machine.config.SECONDS_PER_SLOT,
+            seconds_per_slot=chain_config.genesis_config.SECONDS_PER_SLOT,
             event_bus=self.event_bus,
             token=server.cancel_token,
         )

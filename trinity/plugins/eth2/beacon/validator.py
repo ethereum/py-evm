@@ -46,6 +46,9 @@ from trinity.protocol.bcc.peer import (
 from trinity.plugins.eth2.beacon.slot_ticker import (
     SlotTickEvent,
 )
+from eth2.configs import (
+    Eth2GenesisConfig,
+)
 
 
 class Validator(BaseService):
@@ -63,9 +66,8 @@ class Validator(BaseService):
             chain: BeaconChain,
             peer_pool: BCCPeerPool,
             validator_privkeys: Dict[ValidatorIndex, int],
+            genesis_config: Eth2GenesisConfig,
             event_bus: TrinityEventBusEndpoint,
-            genesis_epoch: Epoch,
-            slots_per_epoch: int,
             token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
@@ -73,8 +75,8 @@ class Validator(BaseService):
         self.validator_privkeys = validator_privkeys
         self.event_bus = event_bus
         # TODO: `latest_proposed_epoch` should be written into/read from validator's own db
-        self.latest_proposed_epoch = genesis_epoch
-        self.slots_per_epoch = slots_per_epoch
+        self.latest_proposed_epoch = genesis_config.GENESIS_EPOCH
+        self.slots_per_epoch = genesis_config.SECONDS_PER_SLOT
 
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()

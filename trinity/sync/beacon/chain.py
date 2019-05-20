@@ -28,7 +28,6 @@ from eth2.beacon.types.blocks import (
     BeaconBlock,
 )
 from eth2.beacon.db.exceptions import FinalizedHeadNotFound
-from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 from eth2.beacon.typing import (
     Slot,
 )
@@ -126,7 +125,7 @@ class BeaconChainSyncer(BaseService):
             finalized_slot = finalized_head.slot
         # TODO(ralexstokes) look at better way to handle once we have fork choice in place
         except FinalizedHeadNotFound:
-            finalized_slot = SERENITY_CONFIG.GENESIS_SLOT
+            finalized_slot = self.chain_db.genesis_config.GENESIS_SLOT
 
         self.logger.info(
             "Syncing with %s (their head slot: %d, our finalized slot: %d)",

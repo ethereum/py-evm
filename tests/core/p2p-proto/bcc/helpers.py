@@ -39,6 +39,11 @@ from tests.core.integration_test_helpers import (
     async_passthrough,
 )
 from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
+from eth2.configs import (
+    Eth2GenesisConfig,
+)
+
+SERENITY_GENESIS_CONFIG = Eth2GenesisConfig(SERENITY_CONFIG)
 
 
 class FakeAsyncBeaconChainDB(BaseAsyncBeaconChainDB, BeaconChainDB):
@@ -59,9 +64,9 @@ class FakeAsyncBeaconChainDB(BaseAsyncBeaconChainDB, BeaconChainDB):
     coro_get = async_passthrough('get')
 
 
-def create_test_block(parent=None, **kwargs):
+def create_test_block(parent=None, genesis_config=SERENITY_GENESIS_CONFIG, **kwargs):
     defaults = {
-        "slot": SERENITY_CONFIG.GENESIS_SLOT,
+        "slot": genesis_config.GENESIS_SLOT,
         "previous_block_root": ZERO_HASH32,
         "state_root": ZERO_HASH32,  # note: not the actual genesis state root
         "signature": EMPTY_SIGNATURE,
@@ -92,16 +97,16 @@ def create_branch(length, root=None, **start_kwargs):
         parent = child
 
 
-async def get_chain_db(blocks=(), config=SERENITY_CONFIG):
+async def get_chain_db(blocks=(), genesis_config=SERENITY_GENESIS_CONFIG):
     db = AtomicDB()
-    chain_db = FakeAsyncBeaconChainDB(db=db, config=config)
+    chain_db = FakeAsyncBeaconChainDB(db=db, genesis_config=genesis_config)
     await chain_db.coro_persist_block_chain(blocks, BeaconBlock)
     return chain_db
 
 
-async def get_genesis_chain_db(config=SERENITY_CONFIG):
-    genesis = create_test_block()
-    return await get_chain_db((genesis,), config=config)
+async def get_genesis_chain_db(genesis_config=SERENITY_GENESIS_CONFIG):
+    genesis = create_test_block(genesis_config=genesis_config)
+    return await get_chain_db((genesis,), genesis_config=genesis_config)
 
 
 async def _setup_alice_and_bob_factories(alice_chain_db, bob_chain_db):

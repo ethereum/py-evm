@@ -3,21 +3,13 @@ from typing import (
     Tuple,
 )
 
+from eth.exceptions import (
+    BlockNotFound,
+)
 from lahja import (
     BroadcastConfig,
 )
-
 import pytest
-
-from eth.exceptions import BlockNotFound
-
-from trinity.config import (
-    BeaconChainConfig,
-    BeaconGenesisData,
-)
-from trinity.plugins.eth2.beacon.validator import (
-    Validator,
-)
 
 from eth2.beacon.helpers import (
     slot_to_epoch,
@@ -31,13 +23,23 @@ from eth2.beacon.tools.builder.proposer import (
 from eth2.beacon.tools.misc.ssz_vector import (
     override_vector_lengths,
 )
+from eth2.configs import (
+    Eth2GenesisConfig,
+)
+from trinity.config import (
+    BeaconChainConfig,
+    BeaconGenesisData,
+)
 from trinity.plugins.eth2.beacon.slot_ticker import (
     SlotTickEvent,
 )
+from trinity.plugins.eth2.beacon.validator import (
+    Validator,
+)
 
 from .helpers import (
-    genesis_state,
     genesis_block,
+    genesis_state,
     helpers,
     index_to_pubkey,
     keymap,
@@ -81,8 +83,7 @@ def get_chain_from_genesis(db, index):
         base_db=db,
         genesis_state=genesis_state,
         genesis_block=genesis_block,
-        # TODO(ralexstokes) do we need to avoid pulling in this as a global dependency?
-        config=XIAO_LONG_BAO_CONFIG,
+        genesis_config=beacon_chain_config.genesis_config,
     )
 
 
@@ -95,9 +96,8 @@ async def get_validator(event_loop, event_bus, index) -> Validator:
         chain=chain,
         peer_pool=peer_pool,
         validator_privkeys=validator_privkeys,
+        genesis_config=Eth2GenesisConfig(XIAO_LONG_BAO_CONFIG),
         event_bus=event_bus,
-        genesis_epoch=XIAO_LONG_BAO_CONFIG.GENESIS_EPOCH,
-        slots_per_epoch=XIAO_LONG_BAO_CONFIG.SLOTS_PER_EPOCH,
     )
     asyncio.ensure_future(v.run(), loop=event_loop)
     await v.events.started.wait()

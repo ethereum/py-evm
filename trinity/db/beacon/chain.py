@@ -25,12 +25,16 @@ from eth2.beacon.types.blocks import (  # noqa: F401
 from trinity._utils.mp import (
     async_method,
 )
+from eth2.configs import (
+    Eth2Config,
+)
 
 
 class BaseAsyncBeaconChainDB(ABC):
     """
     Abstract base class defines async counterparts of the sync ``BaseBeaconChainDB`` APIs.
     """
+    genesis_config: Eth2Config
 
     @abstractmethod
     async def coro_persist_block(

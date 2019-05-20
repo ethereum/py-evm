@@ -21,9 +21,6 @@ from eth2._utils.ssz import (
     validate_ssz_equal,
 )
 
-from eth2.beacon.db.chain import (
-    BeaconChainDB,
-)
 from eth2.beacon.db.exceptions import (
     FinalizedHeadNotFound,
     JustifiedHeadNotFound,
@@ -33,11 +30,6 @@ from eth2.beacon.state_machines.forks.serenity.blocks import (
     BeaconBlock,
 )
 from eth2.beacon.types.states import BeaconState
-
-
-@pytest.fixture
-def chaindb(base_db, config):
-    return BeaconChainDB(base_db, config)
 
 
 @pytest.fixture

@@ -1,4 +1,3 @@
-from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
 from abc import abstractmethod
 import asyncio
 import logging
@@ -426,7 +425,6 @@ class BCCServer(BaseServer[BCCPeerPool]):
         context = BeaconContext(
             chain_db=cast(BaseAsyncBeaconChainDB, self.chaindb),
             network_id=self.network_id,
-            genesis_slot=SERENITY_CONFIG.GENESIS_SLOT,
         )
         return BCCPeerPool(
             privkey=self.privkey,

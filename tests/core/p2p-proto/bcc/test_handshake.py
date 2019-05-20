@@ -72,7 +72,7 @@ async def test_unidirectional_handshake():
 
     assert msg["protocol_version"] == BCCProtocol.version
     assert msg["network_id"] == alice.context.network_id
-    assert msg["genesis_hash"] == alice_genesis_root
+    assert msg["genesis_root"] == alice_genesis_root
     assert msg["head_slot"] == alice_head_slot
 
     await bob.process_sub_proto_handshake(cmd, msg)

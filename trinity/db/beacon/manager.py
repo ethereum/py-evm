@@ -27,7 +27,7 @@ def create_db_server_manager(trinity_config: TrinityConfig,
                              base_db: BaseAtomicDB) -> BaseManager:
     app_config = trinity_config.get_app_config(BeaconAppConfig)
     chain_config = app_config.get_chain_config()
-    chaindb = BeaconChainDB(base_db, chain_config.eth2_config)
+    chaindb = BeaconChainDB(base_db, chain_config.genesis_config)
 
     if not is_beacon_database_initialized(chaindb, BeaconBlock):
         initialize_beacon_database(chain_config, chaindb, base_db, BeaconBlock)

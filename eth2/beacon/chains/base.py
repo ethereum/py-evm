@@ -53,7 +53,9 @@ from eth2.beacon.typing import (
 from eth2.beacon.validation import (
     validate_slot,
 )
-from eth2.configs import Eth2Config
+from eth2.configs import (
+    Eth2GenesisConfig,
+)
 
 if TYPE_CHECKING:
     from eth2.beacon.state_machines.base import (  # noqa: F401
@@ -87,7 +89,7 @@ class BaseBeaconChain(Configurable, ABC):
                      base_db: BaseAtomicDB,
                      genesis_state: BeaconState,
                      genesis_block: BaseBeaconBlock,
-                     config: Eth2Config) -> 'BaseBeaconChain':
+                     genesis_config: Eth2GenesisConfig) -> 'BaseBeaconChain':
         pass
 
     #
@@ -109,6 +111,11 @@ class BaseBeaconChain(Configurable, ABC):
     def get_state_machine_class_for_block_slot(
             cls,
             slot: Slot) -> Type['BaseBeaconStateMachine']:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_genesis_state_machine_class(self) -> Type['BaseBeaconStateMachine']:
         pass
 
     #
@@ -172,7 +179,7 @@ class BeaconChain(BaseBeaconChain):
 
     chaindb_class = BeaconChainDB  # type: Type[BaseBeaconChainDB]
 
-    def __init__(self, base_db: BaseAtomicDB, config: Eth2Config) -> None:
+    def __init__(self, base_db: BaseAtomicDB, genesis_config: Eth2GenesisConfig) -> None:
         if not self.sm_configuration:
             raise ValueError(
                 "The Chain class cannot be instantiated with an empty `sm_configuration`"
@@ -182,7 +189,7 @@ class BeaconChain(BaseBeaconChain):
             # validate_sm_configuration(self.sm_configuration)
             pass
 
-        self.chaindb = self.get_chaindb_class()(base_db, config)
+        self.chaindb = self.get_chaindb_class()(base_db, genesis_config)
 
     #
     # Helpers
@@ -201,7 +208,7 @@ class BeaconChain(BaseBeaconChain):
                      base_db: BaseAtomicDB,
                      genesis_state: BeaconState,
                      genesis_block: BaseBeaconBlock,
-                     config: Eth2Config) -> 'BaseBeaconChain':
+                     genesis_config: Eth2GenesisConfig) -> 'BaseBeaconChain':
         """
         Initialize the ``BeaconChain`` from a genesis state.
         """
@@ -214,21 +221,21 @@ class BeaconChain(BaseBeaconChain):
                 )
             )
 
-        chaindb = cls.get_chaindb_class()(db=base_db, config=config)
+        chaindb = cls.get_chaindb_class()(db=base_db, genesis_config=genesis_config)
         chaindb.persist_state(genesis_state)
-        return cls._from_genesis_block(base_db, genesis_block, config)
+        return cls._from_genesis_block(base_db, genesis_block, genesis_config)
 
     @classmethod
     def _from_genesis_block(cls,
                             base_db: BaseAtomicDB,
                             genesis_block: BaseBeaconBlock,
-                            config: Eth2Config) -> 'BaseBeaconChain':
+                            genesis_config: Eth2GenesisConfig) -> 'BaseBeaconChain':
         """
         Initialize the ``BeaconChain`` from the genesis block.
         """
-        chaindb = cls.get_chaindb_class()(db=base_db, config=config)
+        chaindb = cls.get_chaindb_class()(db=base_db, genesis_config=genesis_config)
         chaindb.persist_block(genesis_block, genesis_block.__class__)
-        return cls(base_db, config)
+        return cls(base_db, genesis_config)
 
     #
     # StateMachine API
@@ -267,6 +274,10 @@ class BeaconChain(BaseBeaconChain):
             chaindb=self.chaindb,
             block=block,
         )
+
+    @classmethod
+    def get_genesis_state_machine_class(cls) -> Type['BaseBeaconStateMachine']:
+        return cls.sm_configuration[0][1]
 
     #
     # Block API

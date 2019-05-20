@@ -10,6 +10,7 @@ from eth_utils import (
 from eth2.configs import (
     Eth2Config,
     CommitteeConfig,
+    Eth2GenesisConfig,
 )
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
@@ -49,6 +50,11 @@ from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 from eth2.beacon.tools.builder.initializer import (
     mock_validator,
 )
+
+from eth2.beacon.db.chain import (
+    BeaconChainDB,
+)
+
 
 DEFAULT_SHUFFLING_SEED = b'\00' * 32
 DEFAULT_RANDAO = b'\45' * 32
@@ -791,9 +797,20 @@ def fixture_sm_class(config):
     )
 
 
+@pytest.fixture
+def genesis_config(config):
+    return Eth2GenesisConfig(config)
+
+
+@pytest.fixture
+def chaindb(base_db, genesis_config):
+    return BeaconChainDB(base_db, genesis_config)
+
 #
 # CommitteeConfig
 #
+
+
 @pytest.fixture
 def committee_config(config):
     return CommitteeConfig(config)

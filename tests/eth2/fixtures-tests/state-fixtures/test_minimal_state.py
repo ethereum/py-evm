@@ -16,6 +16,7 @@ from ssz.tools import (
 
 from eth2.configs import (
     Eth2Config,
+    Eth2GenesisConfig,
 )
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.tools.misc.ssz_vector import (
@@ -151,7 +152,7 @@ def execute_state_transtion(test_case, base_db):
         __name__='SerenityStateMachineForTesting',
         config=config,
     )
-    chaindb = BeaconChainDB(base_db, config)
+    chaindb = BeaconChainDB(base_db, Eth2GenesisConfig(config))
 
     post_state = pre_state.copy()
     for block in blocks:
