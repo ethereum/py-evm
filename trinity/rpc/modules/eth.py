@@ -87,12 +87,13 @@ async def get_header(chain: BaseAsyncChain, at_block: Union[str, int]) -> BlockH
     return at_header
 
 
-async def account_db_at_block(chain: BaseAsyncChain,
-                              at_block: Union[str, int],
-                              read_only: bool=True) ->BaseAccountDB:
+async def state_at_block(
+        chain: BaseAsyncChain,
+        at_block: Union[str, int],
+        read_only: bool=True) ->BaseAccountDB:
     at_header = await get_header(chain, at_block)
     vm = chain.get_vm(at_header)
-    return vm.state.account_db
+    return vm.state
 
 
 async def get_block_at_number(chain: BaseAsyncChain, at_block: Union[str, int]) -> BaseBlock:
@@ -120,7 +121,7 @@ def dict_to_spoof_transaction(
         nonce = txn_dict['nonce']
     else:
         vm = chain.get_vm(header)
-        nonce = vm.state.account_db.get_nonce(sender)
+        nonce = vm.state.get_nonce(sender)
 
     gas_price = txn_dict.get('gasPrice', 0)
     gas = txn_dict.get('gas', header.gas_limit)
@@ -177,8 +178,8 @@ class Eth(Eth1ChainRPCModule):
 
     @format_params(decode_hex, to_int_if_hex)
     async def getBalance(self, address: Address, at_block: Union[str, int]) -> str:
-        account_db = await account_db_at_block(self.chain, at_block)
-        balance = account_db.get_balance(address)
+        state = await state_at_block(self.chain, at_block)
+        balance = state.get_balance(address)
 
         return hex(balance)
 
@@ -208,8 +209,8 @@ class Eth(Eth1ChainRPCModule):
 
     @format_params(decode_hex, to_int_if_hex)
     async def getCode(self, address: Address, at_block: Union[str, int]) -> str:
-        account_db = await account_db_at_block(self.chain, at_block)
-        code = account_db.get_code(address)
+        state = await state_at_block(self.chain, at_block)
+        code = state.get_code(address)
         return encode_hex(code)
 
     @format_params(decode_hex, to_int_if_hex, to_int_if_hex)
@@ -217,8 +218,8 @@ class Eth(Eth1ChainRPCModule):
         if not is_integer(position) or position < 0:
             raise TypeError("Position of storage must be a whole number, but was: %r" % position)
 
-        account_db = await account_db_at_block(self.chain, at_block)
-        stored_val = account_db.get_storage(address, position)
+        state = await state_at_block(self.chain, at_block)
+        stored_val = state.get_storage(address, position)
         return encode_hex(int_to_big_endian(stored_val))
 
     @format_params(decode_hex, to_int_if_hex)
@@ -239,8 +240,8 @@ class Eth(Eth1ChainRPCModule):
 
     @format_params(decode_hex, to_int_if_hex)
     async def getTransactionCount(self, address: Address, at_block: Union[str, int]) -> str:
-        account_db = await account_db_at_block(self.chain, at_block)
-        nonce = account_db.get_nonce(address)
+        state = await state_at_block(self.chain, at_block)
+        nonce = state.get_nonce(address)
         return hex(nonce)
 
     @format_params(decode_hex)
