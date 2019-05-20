@@ -60,9 +60,6 @@ from trinity.protocol.bcc.peer import (
 from trinity.plugins.eth2.beacon.slot_ticker import (
     SlotTickEvent,
 )
-from eth2.configs import (
-    Eth2GenesisConfig,
-)
 
 
 class Validator(BaseService):

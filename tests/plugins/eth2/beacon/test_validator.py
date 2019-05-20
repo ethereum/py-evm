@@ -11,11 +11,12 @@ from lahja import (
 )
 import pytest
 
-from eth.exceptions import BlockNotFound
-
-from eth2.configs import CommitteeConfig
 from eth2.beacon.helpers import (
     slot_to_epoch,
+)
+from eth2.beacon.state_machines.forks.serenity.block_validation import validate_attestation
+from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
+    XIAO_LONG_BAO_CONFIG,
 )
 from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
@@ -23,10 +24,7 @@ from eth2.beacon.tools.builder.proposer import (
 from eth2.beacon.tools.misc.ssz_vector import (
     override_vector_lengths,
 )
-from eth2.beacon.state_machines.forks.serenity.block_validation import validate_attestation
-from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
-    XIAO_LONG_BAO_CONFIG,
-)
+from eth2.configs import CommitteeConfig
 
 from trinity.config import (
     BeaconChainConfig,
