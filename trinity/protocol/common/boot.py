@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from eth_utils import ValidationError
 
+from eth.rlp.headers import BlockHeader
 from eth.vm.forks import HomesteadVM
 
 from p2p.exceptions import PeerConnectionLost
@@ -42,7 +43,8 @@ class DAOCheckBootManager(BasePeerBootManager):
                 # VM comes after the fork, so stop checking
                 break
 
-            start_block = vm_class.get_dao_fork_block_number() - 1
+            dao_fork_num = vm_class.get_dao_fork_block_number()
+            start_block = dao_fork_num - 1
 
             try:
                 headers = await self.peer.requests.get_block_headers(  # type: ignore
@@ -62,9 +64,18 @@ class DAOCheckBootManager(BasePeerBootManager):
                 ) from err
 
             if len(headers) != 2:
-                raise DAOForkCheckFailure(
-                    f"{self.peer} failed to return DAO fork check headers"
-                )
+                tip_header = await self._get_tip_header()
+                if tip_header.block_number < dao_fork_num:
+                    self.logger.debug(
+                        f"{self.peer} has tip {tip_header!r}, and returned {headers!r} "
+                        "at DAO fork #{dao_fork_num}. Peer seems to be syncing..."
+                    )
+                    return
+                else:
+                    raise DAOForkCheckFailure(
+                        f"{self.peer} has tip {tip_header!r}, but only returned {headers!r} "
+                        "at DAO fork #{dao_fork_num}. Peer seems to be witholding DAO headers..."
+                    )
             else:
                 parent, header = headers
 
@@ -72,3 +83,27 @@ class DAOCheckBootManager(BasePeerBootManager):
                 vm_class.validate_header(header, parent, check_seal=True)
             except ValidationError as err:
                 raise DAOForkCheckFailure(f"{self.peer} failed DAO fork check validation: {err}")
+
+    async def _get_tip_header(self) -> BlockHeader:
+        try:
+            headers = await self.peer.requests.get_block_headers(  # type: ignore
+                self.peer.head_hash,
+                max_headers=1,
+                timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
+            )
+
+        except (TimeoutError, PeerConnectionLost) as err:
+            raise DAOForkCheckFailure(
+                f"Timed out waiting for tip header from {self.peer}: {err}"
+            ) from err
+        except ValidationError as err:
+            raise DAOForkCheckFailure(
+                f"Invalid header response for tip header during DAO fork check: {err}"
+            ) from err
+        else:
+            if len(headers) != 1:
+                raise DAOForkCheckFailure(
+                    f"{self.peer} returned {headers!r} when asked for tip"
+                )
+            else:
+                return headers[0]
