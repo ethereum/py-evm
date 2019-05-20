@@ -18,9 +18,6 @@ from eth_utils import (
     is_string,
 )
 
-from eth.chains.base import (
-    MiningChain,
-)
 from eth.chains.mainnet import (
     MainnetChain,
 )
@@ -384,21 +381,12 @@ def chain_fixture(fixture_data):
     return fixture
 
 
-@pytest.fixture
-def chain(chain_without_block_validation):
-    if isinstance(chain_without_block_validation, MiningChain):
-        # These tests are long. For RPC state tests, there shouldn't be any
-        # significant difference between a mining chain and a basic chain.
-        pytest.skip("Only need to test basic chain")
-        return
-
-
 class MainnetFullChain(FullChain):
     vm_configuration = MainnetChain.vm_configuration
 
 
 @pytest.mark.asyncio
-async def test_rpc_against_fixtures(chain, event_bus, ipc_server, chain_fixture, fixture_data):
+async def test_rpc_against_fixtures(event_bus, chain_fixture, fixture_data):
     rpc = RPCServer(
         initialize_eth1_modules(MainnetFullChain(None), event_bus)
     )
