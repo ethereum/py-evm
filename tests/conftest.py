@@ -30,15 +30,6 @@ from eth.vm.forks import (
 )
 
 
-import sys
-
-def trace(frame, event, arg):
-    print("%s, %s:%d" % (event, frame.f_code.co_filename, frame.f_lineno))
-    return trace
-
-#sys.settrace(trace)
-
-
 # Uncomment this to have logs from tests written to a file.  This is useful for
 # debugging when you need to dump the VM output from test runs.
 """
