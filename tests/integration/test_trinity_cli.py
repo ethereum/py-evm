@@ -194,7 +194,9 @@ async def test_logger(async_process_runner, command, expected_to_contain_log):
 async def test_shutdown(command, async_process_runner):
 
     async def run_then_shutdown_and_yield_output():
-        await async_process_runner.run(command, timeout_sec=30)
+        # This test spins up Trinity, waits until it has started syncing, sends a SIGINT and then
+        # tries to scan the entire shutdown process for errors. It needs a little bit more time.
+        await async_process_runner.run(command, timeout_sec=40)
 
         # Somewhat arbitrary but we wait until the syncer starts before we trigger the shutdown.
         # At this point, most of the internals should be set up, leaving us with more room for
