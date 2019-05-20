@@ -1,8 +1,10 @@
 Release notes
 =============
 
-Unreleased (latest source)
+0.2.0-alpha.43
 --------------------------
+
+Released 2019-05-20
 
 - `#1778 <https://github.com/ethereum/py-evm/pull/1778>`_: Feature: Raise custom decorated exceptions when a trie node is missing from the database (plus some bonus logging and performance improvements)
 - `#1732 <https://github.com/ethereum/py-evm/pull/1732>`_: Bugfix: squashed an occasional "mix hash mismatch" while syncing
