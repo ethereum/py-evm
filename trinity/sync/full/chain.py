@@ -207,16 +207,19 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
                     # Nowhere to go from here, re-raise
                     raise
 
-                # This appears to be a fork, since the parent header is persisted,
-                self.logger.info(
-                    "Received a header before processing its parent during regular sync. "
-                    "Canonical head is %s, the received header "
-                    "is %s, with parent %s. This might be a fork, importing to determine if it is "
-                    "the longest chain",
-                    await self.db.coro_get_canonical_head(),
-                    new_headers[0],
-                    parent_header,
-                )
+                # If this isn't a trivial case, log it as a possible fork
+                canonical_head = await self.db.coro_get_canonical_head()
+                if canonical_head not in new_headers and canonical_head != parent_header:
+                    self.logger.info(
+                        "Received a header before processing its parent during regular sync. "
+                        "Canonical head is %s, the received header "
+                        "is %s, with parent %s. This might be a fork, importing to determine if it "
+                        "is the longest chain",
+                        canonical_head,
+                        new_headers[0],
+                        parent_header,
+                    )
+
                 # Set first header's parent as finished
                 task_integrator.set_finished_dependency(parent_header)
                 # Re-register the header tasks, which will now succeed
