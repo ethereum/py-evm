@@ -3,6 +3,8 @@
 import os
 from setuptools import setup, find_packages
 
+PYEVM_DEPENDENCY = "py-evm==0.2.0a43"
+
 
 deps = {
     'p2p': [
@@ -25,7 +27,7 @@ deps = {
         "eth-utils>=1.5.1,<2",
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.5",
-        "py-evm==0.2.0a42",
+        PYEVM_DEPENDENCY,
         "web3==4.4.1",
         "lahja==0.12.0",
         "termcolor>=1.1.0,<2.0.0",
@@ -88,7 +90,7 @@ deps = {
         "lru-dict>=1.1.6",
         "py-ecc>=1.6.0,<2.0.0",
         "rlp>=1.1.0,<2.0.0",
-        "py-evm==0.2.0a42",
+        PYEVM_DEPENDENCY,
         "ssz==0.1.0a8",
     ],
     'libp2p': [

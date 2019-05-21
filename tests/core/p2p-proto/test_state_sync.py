@@ -14,14 +14,14 @@ from hypothesis.types import RandomWithSeed
 
 from trie import HexaryTrie
 
-from eth.db.backends.memory import MemoryDB
+from eth.db.atomic import AtomicDB
 from eth.db.account import AccountDB
 from eth.tools.logging import ExtendedDebugLogger
 
 from trinity.sync.full.hexary_trie import HexaryTrieSync
 from trinity.sync.full.state import StateSync, TrieNodeRequestTracker
 
-from tests.core.integration_test_helpers import FakeAsyncMemoryDB
+from tests.core.integration_test_helpers import FakeAsyncAtomicDB
 
 
 # produces a branch node with an extention node who's encoding is less than 32
@@ -59,8 +59,8 @@ def test_trie_sync(random, event_loop):
     # like this for now. https://github.com/HypothesisWorks/hypothesis/pull/1343
     async def _test_trie_sync():
         src_trie, contents = make_random_trie(random)
-        dest_db = FakeAsyncMemoryDB()
-        nodes_cache = MemoryDB()
+        dest_db = FakeAsyncAtomicDB()
+        nodes_cache = AtomicDB()
         scheduler = HexaryTrieSync(src_trie.root_hash, dest_db, nodes_cache,
                                    ExtendedDebugLogger("test"))
         requests = scheduler.next_batch()
@@ -78,7 +78,7 @@ def test_trie_sync(random, event_loop):
 
 
 def make_random_state(n):
-    raw_db = MemoryDB()
+    raw_db = AtomicDB()
     account_db = AccountDB(raw_db)
     contents = {}
     for _ in range(n):
@@ -100,8 +100,8 @@ def make_random_state(n):
 @pytest.mark.asyncio
 async def test_state_sync():
     raw_db, state_root, contents = make_random_state(1000)
-    dest_db = FakeAsyncMemoryDB()
-    nodes_cache = MemoryDB()
+    dest_db = FakeAsyncAtomicDB()
+    nodes_cache = AtomicDB()
     scheduler = StateSync(state_root, dest_db, nodes_cache, ExtendedDebugLogger('test'))
     requests = scheduler.next_batch(10)
     while requests:
