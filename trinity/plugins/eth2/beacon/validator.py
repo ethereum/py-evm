@@ -96,7 +96,10 @@ class Validator(BaseService):
         for validator_index in validator_privkeys:
             self.latest_proposed_epoch[validator_index] = Epoch(-1)
             self.latest_attested_epoch[validator_index] = Epoch(-1)
-            self.this_epoch_assignment[validator_index] = (Epoch(-1),)  # type: ignore
+            self.this_epoch_assignment[validator_index] = (
+                Epoch(-1),
+                CommitteeAssignment((), Shard(-1), Slot(-1), False),
+            )
 
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()
@@ -247,10 +250,7 @@ class Validator(BaseService):
                       slot: Slot,
                       epoch: Epoch) -> bool:
         has_attested = epoch <= self.latest_attested_epoch[validator_index]
-        if not has_attested and slot == assignment.slot:
-            return True
-        else:
-            return False
+        return not has_attested and slot == assignment.slot
 
     @to_tuple
     def _get_attesting_validator_and_shard(self,

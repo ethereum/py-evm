@@ -599,7 +599,7 @@ def create_signed_attestation_at_slot(
     return Attestation(
         aggregation_bitfield=aggregation_bitfield,
         data=attestation_data,
-        custody_bitfield=Bitfield(b'\x00' * len(aggregation_bitfield)),
+        custody_bitfield=Bitfield(get_empty_bitfield(len(aggregation_bitfield))),
         aggregate_signature=aggregate_signature,
     )
 
