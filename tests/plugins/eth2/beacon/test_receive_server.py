@@ -17,24 +17,29 @@ from p2p.peer import (
     MsgBuffer,
 )
 
+from eth.constants import (
+    ZERO_HASH32,
+)
 from eth.exceptions import (
     BlockNotFound,
 )
 
-from eth2.beacon.chains.testnet import TestnetChain
-from eth2.beacon.types.blocks import (
-    BaseBeaconBlock,
-)
 from eth2.beacon.typing import (
     FromBlockParams,
 )
+from eth2.beacon.chains.testnet import TestnetChain
+from eth2.beacon.types.attestations import Attestation
+from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.blocks import (
+    BaseBeaconBlock,
+)
+from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
     XIAO_LONG_BAO_CONFIG,
 )
-
 from trinity.protocol.bcc.peer import (
     BCCPeer,
 )
@@ -469,3 +474,44 @@ async def test_bcc_receive_server_with_request_server(request, event_loop):
     assert bob_recv_server._is_block_root_in_db(blocks[0].signing_root)
     assert bob_recv_server._is_block_root_in_db(blocks[1].signing_root)
     assert bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
+
+
+@pytest.mark.asyncio
+async def test_bcc_receive_server_handle_attestations_checks(request, event_loop, monkeypatch):
+    alice, _, bob_recv_server, bob_msg_queue = await get_peer_and_receive_server(
+        request,
+        event_loop,
+    )
+    attestation = Attestation(
+        aggregation_bitfield=b'\x12' * 16,
+        data=AttestationData(
+            slot=XIAO_LONG_BAO_CONFIG.GENESIS_SLOT + 1,
+            beacon_block_root=ZERO_HASH32,
+            source_epoch=XIAO_LONG_BAO_CONFIG.GENESIS_EPOCH,
+            source_root=ZERO_HASH32,
+            target_root=ZERO_HASH32,
+            shard=0,
+            previous_crosslink=Crosslink(
+                epoch=XIAO_LONG_BAO_CONFIG.GENESIS_EPOCH,
+                crosslink_data_root=ZERO_HASH32,
+            ),
+            crosslink_data_root=ZERO_HASH32,
+        ),
+        custody_bitfield=b'\x34' * 16,
+        aggregate_signature=b'\x56' * 96,
+    )
+
+    def _validate_attestations(attestations):
+        return tuple(attestations)
+
+    monkeypatch.setattr(
+        bob_recv_server,
+        '_validate_attestations',
+        _validate_attestations,
+    )
+
+    alice.sub_proto.send_attestation_records([attestation])
+    msg = await bob_msg_queue.get()
+    assert len(msg['encoded_attestations']) == 1
+    decoded_attestation = ssz.decode(msg['encoded_attestations'][0], Attestation)
+    assert decoded_attestation == attestation

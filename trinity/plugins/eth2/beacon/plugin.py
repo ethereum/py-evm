@@ -124,7 +124,6 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
             chain=chain,
             peer_pool=server.peer_pool,
             validator_privkeys=validator_privkeys,
-            genesis_config=chain_config.genesis_config,
             event_bus=self.event_bus,
             token=server.cancel_token,
         )

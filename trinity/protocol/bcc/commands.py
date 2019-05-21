@@ -16,6 +16,8 @@ from eth_typing import (
 from eth2.beacon.typing import (
     Slot,
 )
+from eth2.beacon.types.attestations import Attestation
+from eth2.beacon.types.blocks import BeaconBlock
 
 from p2p.protocol import (
     Command,
@@ -24,8 +26,6 @@ from p2p.protocol import (
 from trinity.rlp.sedes import (
     HashOrNumber,
 )
-
-from eth2.beacon.types.blocks import BeaconBlock
 
 
 class RequestMessage(TypedDict):
@@ -81,9 +81,15 @@ class BeaconBlocks(Command):
     )
 
 
+class AttestationsMessage(TypedDict):
+    encoded_attestations: Tuple[Attestation, ...]
+
+
 class Attestations(Command):
     _cmd_id = 3
-    structure = sedes.CountableList(sedes.binary)
+    structure = (
+        ('encoded_attestations', sedes.CountableList(sedes.binary)),
+    )
 
 
 class NewBeaconBlockMessage(TypedDict):

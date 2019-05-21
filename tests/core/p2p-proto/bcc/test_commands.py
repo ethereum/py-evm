@@ -148,7 +148,9 @@ async def test_send_no_attestations(request, event_loop):
 
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, Attestations)
-    assert message.payload == ()
+    assert message.payload == {
+        "encoded_attestations": (),
+    }
 
 
 @pytest.mark.asyncio
@@ -174,7 +176,7 @@ async def test_send_single_attestation(request, event_loop):
 
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, Attestations)
-    assert message.payload == (ssz.encode(attestation),)
+    assert message.payload["encoded_attestations"] == (ssz.encode(attestation),)
 
 
 @pytest.mark.asyncio
@@ -202,4 +204,5 @@ async def test_send_multiple_attestations(request, event_loop):
 
     message = await msg_buffer.msg_queue.get()
     assert isinstance(message.command, Attestations)
-    assert message.payload == tuple(ssz.encode(attestation) for attestation in attestations)
+    assert message.payload["encoded_attestations"] == tuple(
+        ssz.encode(attestation) for attestation in attestations)
