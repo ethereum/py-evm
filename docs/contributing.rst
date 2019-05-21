@@ -145,10 +145,6 @@ After confirming that the release package looks okay, release a new version:
 
     make release bump=$$VERSION_PART_TO_BUMP$$
 
-    # While trinity and py-evm are colocated,
-    # manually change trinity & py-evm version in setup_trinity.py
-    make release-trinity
-
 Which version part to bump
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
