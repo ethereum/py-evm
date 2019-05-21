@@ -88,7 +88,8 @@ class Validator(BaseService):
         self.event_bus = event_bus
         config = self.chain.get_state_machine().config
         self.slots_per_epoch = config.SLOTS_PER_EPOCH
-        # TODO: `latest_proposed_epoch` should be written into/read from validator's own db
+        # TODO: `latest_proposed_epoch` and `latest_attested_epoch` should be written
+        # into/read from validator's own db.
         self.latest_proposed_epoch = {}
         self.latest_attested_epoch = {}
         self.this_epoch_assignment = {}
@@ -108,8 +109,10 @@ class Validator(BaseService):
         The callback for `SlotTicker` and it's expected to be called twice for one slot.
         """
         async for event in self.event_bus.stream(SlotTickEvent):
-            await self.propose_or_skip_block(event.slot, event.is_second_tick)
-            await self.attest(event.slot)
+            if not event.is_second_tick:
+                await self.handle_first_tick(event.slot)
+            else:
+                await self.handle_second_tick(event.slot)
 
     def _get_this_epoch_assignment(self,
                                    validator_index: ValidatorIndex,
@@ -132,7 +135,7 @@ class Validator(BaseService):
             )
         return self.this_epoch_assignment[validator_index][1]
 
-    async def propose_or_skip_block(self, slot: Slot, is_second_tick: bool) -> None:
+    async def handle_first_tick(self, slot: Slot) -> None:
         head = self.chain.get_canonical_head()
         state_machine = self.chain.get_state_machine()
         state = state_machine.state
@@ -144,8 +147,8 @@ class Validator(BaseService):
             slot,
             state_machine.config,
         )
-        # Since it's expected to tick twice in one slot, `latest_proposed_epoch` is used to prevent
-        # validator from erraneously proposing again.
+        # `latest_proposed_epoch` is used to prevent validator from erraneously proposing twice
+        # in the same epoch due to service crashing.
         epoch = slot_to_epoch(slot, self.slots_per_epoch)
         if proposer_index in self.validator_privkeys:
             has_proposed = epoch <= self.latest_proposed_epoch[proposer_index]
@@ -158,8 +161,17 @@ class Validator(BaseService):
                     head_block=head,
                 )
                 self.latest_proposed_epoch[proposer_index] = epoch
-        # skip the block if it's second half of the slot and we are not proposing
-        elif is_second_tick and proposer_index not in self.validator_privkeys:
+
+        await self.attest(slot)
+
+    async def handle_second_tick(self, slot: Slot) -> None:
+        head = self.chain.get_canonical_head()
+        state_machine = self.chain.get_state_machine()
+        state = state_machine.state
+        self.logger.debug(
+            bold_green(f"head: slot={head.slot}, state root={head.state_root.hex()}")
+        )
+        if state.slot < slot:
             self.skip_block(
                 slot=slot,
                 state=state,

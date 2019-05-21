@@ -231,21 +231,22 @@ async def test_validator_skip_block(event_loop, event_bus):
 async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
     alice = await get_validator(event_loop=event_loop, event_bus=event_bus, indices=[0])
 
-    event_new_slot_called = asyncio.Event()
-    event_attest_called = asyncio.Event()
+    event_first_tick_called = asyncio.Event()
+    event_second_tick_called = asyncio.Event()
 
-    async def propose_or_skip_block(slot, is_second_tick):
-        event_new_slot_called.set()
+    async def handle_first_tick(slot):
+        event_first_tick_called.set()
 
-    async def attest(slot):
-        event_attest_called.set()
+    async def handle_second_tick(slot):
+        event_second_tick_called.set()
 
-    monkeypatch.setattr(alice, 'propose_or_skip_block', propose_or_skip_block)
-    monkeypatch.setattr(alice, 'attest', attest)
+    monkeypatch.setattr(alice, 'handle_first_tick', handle_first_tick)
+    monkeypatch.setattr(alice, 'handle_second_tick', handle_second_tick)
 
     # sleep for `event_bus` ready
     await asyncio.sleep(0.01)
 
+    # First tick
     await event_bus.broadcast(
         SlotTickEvent(
             slot=1,
@@ -255,24 +256,38 @@ async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
         BroadcastConfig(internal=True),
     )
     await asyncio.wait_for(
-        event_new_slot_called.wait(),
+        event_first_tick_called.wait(),
         timeout=2,
         loop=event_loop,
+    )
+    assert not event_second_tick_called.is_set()
+    event_first_tick_called.clear()
+
+    # Second tick
+    await event_bus.broadcast(
+        SlotTickEvent(
+            slot=1,
+            elapsed_time=2,
+            is_second_tick=True,
+        ),
+        BroadcastConfig(internal=True),
     )
     await asyncio.wait_for(
-        event_attest_called.wait(),
+        event_second_tick_called.wait(),
         timeout=2,
         loop=event_loop,
     )
+    assert not event_first_tick_called.is_set()
 
 
 @pytest.mark.asyncio
-async def test_validator_propose_or_skip_block(event_loop, event_bus, monkeypatch):
+async def test_validator_handle_first_tick(event_loop, event_bus, monkeypatch):
     alice, bob = await get_linked_validators(event_loop=event_loop, event_bus=event_bus)
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
 
-    # test: `propose_or_skip_block` should call `propose_block` if the validator get selected
+    # test: `handle_first_tick` should call `attest` and
+    # `propose_block` if the validator get selected
     def is_alice_selected(proposer_index):
         return proposer_index in alice.validator_privkeys
 
@@ -284,42 +299,41 @@ async def test_validator_propose_or_skip_block(event_loop, event_bus, monkeypatc
     )
 
     is_proposing = None
+    is_attesting = None
 
     def propose_block(proposer_index, slot, state, state_machine, head_block):
         nonlocal is_proposing
         is_proposing = True
 
-    def skip_block(slot, state, state_machine):
-        nonlocal is_proposing
-        is_proposing = False
+    async def attest(slot):
+        nonlocal is_attesting
+        is_attesting = True
 
     monkeypatch.setattr(alice, 'propose_block', propose_block)
+    monkeypatch.setattr(alice, 'attest', attest)
+
+    await alice.handle_first_tick(slot_to_propose)
+    assert is_proposing
+    assert is_attesting
+
+
+@pytest.mark.asyncio
+async def test_validator_handle_second_tick(event_loop, event_bus, monkeypatch):
+    alice, bob = await get_linked_validators(event_loop=event_loop, event_bus=event_bus)
+    state_machine = alice.chain.get_state_machine()
+    state = state_machine.state
+
+    # test: `handle_second_tick` should call `skip_block` if `state.slot` is behind latest slot
+    is_skipping = None
+
+    def skip_block(slot, state, state_machine):
+        nonlocal is_skipping
+        is_skipping = True
+
     monkeypatch.setattr(alice, 'skip_block', skip_block)
 
-    await alice.propose_or_skip_block(slot_to_propose, False)
-    assert is_proposing
-
-    is_proposing = None
-
-    # test: `propose_or_skip_block` should call `skip_block`.
-    def is_not_alice_bob_selected(proposer_index):
-        return (
-            proposer_index not in alice.validator_privkeys and
-            proposer_index not in bob.validator_privkeys
-        )
-
-    slot_to_skip, index = _get_slot_with_validator_selected(
-        is_desired_proposer_index=is_not_alice_bob_selected,
-        start_slot=state.slot + 1,
-        state=state,
-        state_machine=state_machine,
-    )
-
-    await alice.propose_or_skip_block(slot_to_skip, is_second_tick=False)
-    assert is_proposing is None, "`skip_block` should not be called if `is_second_tick == False`"
-
-    await alice.propose_or_skip_block(slot_to_skip, is_second_tick=True)
-    assert is_proposing is False, "`skip_block` should have been called"
+    await alice.handle_second_tick(state.slot + 1)
+    assert is_skipping
 
 
 @pytest.mark.asyncio
