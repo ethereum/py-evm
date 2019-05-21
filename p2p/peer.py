@@ -29,7 +29,10 @@ from eth_keys import datatypes
 
 from cancel_token import CancelToken
 
-from p2p._utils import get_devp2p_cmd_id
+from p2p._utils import (
+    get_devp2p_cmd_id,
+    trim_middle,
+)
 from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
@@ -376,7 +379,11 @@ class BasePeer(BaseService):
             )
             raise
         else:
-            self.logger.debug2("Successfully decoded %s msg: %s", cmd, decoded_msg)
+            self.logger.debug2(
+                "Successfully decoded %s msg: %s",
+                cmd,
+                trim_middle(str(decoded_msg), 500),
+            )
             self.received_msgs[cmd] += 1
             return cmd, decoded_msg
 
