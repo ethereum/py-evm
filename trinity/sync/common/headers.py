@@ -66,6 +66,9 @@ from trinity._utils.datastructures import (
 from trinity._utils.headers import (
     skip_complete_headers,
 )
+from trinity._utils.humanize import (
+    humanize_integer_sequence,
+)
 
 
 class SkeletonSyncer(BaseService, Generic[TChainPeer]):
@@ -286,9 +289,18 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             )
 
         # identify headers that are not already stored locally
-        new_headers = await self.wait(
-            skip_complete_headers(launch_headers, self.logger, self._should_skip_header)
+        completed_headers, new_headers = await self.wait(
+            skip_complete_headers(launch_headers, self._should_skip_header)
         )
+
+        if completed_headers:
+            self.logger.debug(
+                "During header sync launch, skipping over (%d) already stored headers %s: %s..%s",
+                len(completed_headers),
+                humanize_integer_sequence(h.block_number for h in completed_headers),
+                completed_headers[0],
+                completed_headers[-1],
+            )
 
         if len(new_headers) == 0:
             self.logger.debug(

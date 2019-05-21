@@ -1,5 +1,4 @@
 from typing import (
-    AsyncIterator,
     Awaitable,
     Callable,
     cast,
@@ -10,7 +9,6 @@ from typing import (
 
 from eth.constants import UINT_256_MAX
 from eth.rlp.headers import BlockHeader
-from eth.tools.logging import ExtendedDebugLogger
 
 from trinity.exceptions import OversizeObject
 
@@ -47,56 +45,24 @@ def sequence_builder(start_number: T,
 
 
 async def skip_complete_headers(
-        headers: Iterable[BlockHeader],
-        logger: ExtendedDebugLogger,
+        headers_iter: Iterable[BlockHeader],
         completion_check: Callable[[BlockHeader], Awaitable[bool]]) -> Tuple[BlockHeader, ...]:
     """
-    Skip any headers where `completion_check(header)` returns False
-    After finding the first header that returns True, return all remaining headers.
-    This is useful when importing headers in sequence, after writing them to DB in sequence.
+    Collect all completed headers into a tuple, and the remaining headers into a second tuple,
+    using `completion_check(header)` to decide on completion.
 
-    Services should call self.wait() when using this method
-    """
-    skip_headers_coro = _skip_complete_headers_iterator(headers, logger, completion_check)
-    return tuple(
-        # The inner list comprehension is needed because async_generators
-        # cannot be cast to a tuple.
-        [header async for header in skip_headers_coro]
-    )
+    Note that `completion_check` is *not* run on the remaining headers after the first time
+    that it returns ``False``.
 
-
-async def _skip_complete_headers_iterator(
-        headers: Iterable[BlockHeader],
-        logger: ExtendedDebugLogger,
-        completion_check: Callable[[BlockHeader], Awaitable[bool]]) -> AsyncIterator[BlockHeader]:
+    Services should call self.wait() when using this method.
     """
-    We only want headers that are missing, so we iterate over the list
-    until we find the first missing header, after which we return all of
-    the remaining headers.
-    """
-    iter_headers = iter(headers)
-    # for logging:
-    first_discarded = None
-    last_discarded = None
-    num_discarded = 0
-    for header in iter_headers:
-        is_present = await completion_check(header)
-        if is_present:
-            if first_discarded is None:
-                first_discarded = header
-            else:
-                last_discarded = header
-            num_discarded += 1
-        else:
-            yield header
+    headers = tuple(headers_iter)
+    for index, header in enumerate(headers):
+        if not await completion_check(header):
+            # index of first header that is not complete
+            first_incomplete_index = index
             break
+    else:
+        first_incomplete_index = len(headers)
 
-    logger.debug(
-        "Discarding %d headers that we already have: %s...%s",
-        num_discarded,
-        first_discarded,
-        last_discarded,
-    )
-
-    for header in iter_headers:
-        yield header
+    return tuple(headers[:first_incomplete_index]), tuple(headers[first_incomplete_index:])

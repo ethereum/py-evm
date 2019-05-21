@@ -44,6 +44,9 @@ from p2p.service import (
 from trinity._utils.headers import (
     skip_complete_headers,
 )
+from trinity._utils.humanize import (
+    humanize_integer_sequence,
+)
 from trinity.chains.base import BaseAsyncChain
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.peer import (
@@ -124,10 +127,10 @@ class PeerHeaderSyncer(BaseService):
                 all_headers = await self.wait(self._request_headers(peer, start_at))
                 if last_received_header is None:
                     # Skip over existing headers on the first run-through
-                    new_headers = await self.wait(
-                        skip_complete_headers(all_headers, self.logger, self.db.coro_header_exists)
+                    completed_headers, new_headers = await self.wait(
+                        skip_complete_headers(all_headers, self.db.coro_header_exists)
                     )
-                    if len(new_headers) == 0 and len(all_headers) > 0:
+                    if len(new_headers) == 0 and len(completed_headers) > 0:
                         head = await self.wait(self.db.coro_get_canonical_head())
                         start_at = max(
                             all_headers[-1].block_number + 1,
@@ -135,11 +138,19 @@ class PeerHeaderSyncer(BaseService):
                         )
                         self.logger.debug(
                             "All %d headers redundant, head at %s, fetching from #%d",
-                            len(all_headers),
+                            len(completed_headers),
                             head,
                             start_at,
                         )
                         continue
+                    elif completed_headers:
+                        self.logger.debug(
+                            "Header sync skipping over (%d) already stored headers %s: %s..%s",
+                            len(completed_headers),
+                            humanize_integer_sequence(h.block_number for h in completed_headers),
+                            completed_headers[0],
+                            completed_headers[-1],
+                        )
                 else:
                     new_headers = all_headers
                 self.logger.debug2('sync received new headers: %s', new_headers)
