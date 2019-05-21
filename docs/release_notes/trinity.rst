@@ -4,14 +4,76 @@ Trinity
 Unreleased (latest source)
 --------------------------
 
-- `#556 <https://github.com/ethereum/trinity/pull/556>`_: Performance: Upgrade to lahja 0.13.0 which performs less inter-process communication
-- `#436 <https://github.com/ethereum/trinity/pull/436>`_: Feature: connect to preferred nodes even when discovery is disabled
+v0.1.0-alpha.24
+--------------------------
+
+Released 2019-05-21
+
+- `#637 <https://github.com/ethereum/trinity/pull/637>`_: EVM upgrade: py-evm upgraded to v0.2.0-alpha.43, changes copied here, from `the py-evm changelog <https://py-evm.readthedocs.io/en/latest/release_notes/index.html#alpha-43>`_
+
+  - `#1778 <https://github.com/ethereum/py-evm/pull/1778>`_: Feature: Raise custom decorated exceptions when a trie node is missing from the database (plus some bonus logging and performance improvements)
+  - `#1732 <https://github.com/ethereum/py-evm/pull/1732>`_: Bugfix: squashed an occasional "mix hash mismatch" while syncing
+  - `#1716 <https://github.com/ethereum/py-evm/pull/1716>`_: Performance: only calculate & persist state root at end of block (post-Byzantium)
+  - `#1735 <https://github.com/ethereum/py-evm/pull/1735>`_:
+
+    - Performance: only calculate & persist storage roots at end of block (post-Byzantium)
+    - Performance: batch all account trie writes to the database once per block
+  - `#1747 <https://github.com/ethereum/py-evm/pull/1747>`_:
+
+    - Maintenance: Lazily generate VM.block on first access. Enables loading the VM when you don't have its block body.
+    - Performance: Fewer DB reads when block is never accessed.
+  - Performance: speedups on ``chain.import_block()``:
+
+    - `#1764 <https://github.com/ethereum/py-evm/pull/1764>`_: Speed up ``is_valid_opcode`` check, formerly 7% of total import time! (now less than 1%)
+    - `#1765 <https://github.com/ethereum/py-evm/pull/1765>`_: Reduce logging overhead, ~15% speedup
+    - `#1766 <https://github.com/ethereum/py-evm/pull/1766>`_: Cache transaction sender, ~3% speedup
+    - `#1770 <https://github.com/ethereum/py-evm/pull/1770>`_: Faster bytecode iteration, ~2.5% speedup
+    - `#1771 <https://github.com/ethereum/py-evm/pull/1771>`_: Faster opcode lookup in apply_computation, ~1.5% speedup
+    - `#1772 <https://github.com/ethereum/py-evm/pull/1772>`_: Faster Journal access of latest data, ~6% speedup
+    - `#1773 <https://github.com/ethereum/py-evm/pull/1773>`_: Faster stack operations, ~9% speedup
+    - `#1776 <https://github.com/ethereum/py-evm/pull/1776>`_: Faster Journal record & commit checkpoints, ~7% speedup
+    - `#1777 <https://github.com/ethereum/py-evm/pull/1777>`_: Faster bytecode navigation, ~7% speedup
+  - `#1751 <https://github.com/ethereum/py-evm/pull/1751>`_: Maintenance: Add placeholder for Istanbul fork
+- `#629 <https://github.com/ethereum/trinity/pull/629>`_: Feature: Peers which disconnect from us too quickly are blacklisted for a short period of time.
+- `#625 <https://github.com/ethereum/trinity/pull/625>`_: Feature: Peer backend system is now sent full list of connected remotes
+- `#624 <https://github.com/ethereum/trinity/pull/624>`_: Feature: Better logging and tracking of the reason a peer disconnection occured.
+- `#612 <https://github.com/ethereum/trinity/pull/612>`_: Feature: Make Python 3.7 the environment of the ethereum/trinity docker images
+- `#596 <https://github.com/ethereum/trinity/pull/596>`_: Feature: ``p2p.PeerPool`` now sources peer candidates using an extendable backend system.
+- `#519 <https://github.com/ethereum/trinity/pull/519>`_: Feature: Retain disconnect reason on ``BasePeer`` when we disconnect.
+- `#555 <https://github.com/ethereum/trinity/pull/555>`_: Feature: Peers who timeout too often in the Request/Response API will be disconnected from and blacklisted for 5 minutes.
+- `#558 <https://github.com/ethereum/trinity/pull/558>`_: Feature: Peers who are disconnected due to a ``bad_protocol`` are blacklisted for 10 minutes.
+- `#559 <https://github.com/ethereum/trinity/pull/559>`_: Feature: Peers who send invalid responses are disconnected from using ``bad_protocol``.
+- `#569 <https://github.com/ethereum/trinity/pull/569>`_: Feature: Log messages with sequences of block numbers now use a concise representation to reduce message size.
+- `#571 <https://github.com/ethereum/trinity/pull/571>`_: Feature: ``BaseService.uptime`` property now exposes integer number of seconds since service was started.
+- `#441 <https://github.com/ethereum/trinity/pull/441>`_: Feature: Run with any custom network ID, as long as you specify a genesis file
+- `#436 <https://github.com/ethereum/trinity/pull/436>`_: Feature: Connect to preferred nodes even when discovery is disabled
+- `#518 <https://github.com/ethereum/trinity/pull/518>`_: Feature: Create log directory for you, if data dir is empty
+- `#630 <https://github.com/ethereum/trinity/pull/630>`_: Bugfix: Proper shutdown of the whole trinity process if the network database is corrupt.
+- `#618 <https://github.com/ethereum/trinity/pull/618>`_: Bugfix: Can actually connect to other trinity peers now (and syncing peers).
+- `#595 <https://github.com/ethereum/trinity/pull/595>`_: Bugfix: Error handling for corrupt snappy data
+- `#591 <https://github.com/ethereum/trinity/pull/591>`_: Bugfix: Catch ``RuntimeError`` in handshake to prevent crashing the entire node
+- `#469 <https://github.com/ethereum/trinity/pull/469>`_: Bugfix: Fix deprecation warnings from ``p2p.ecies`` module.
+- `#527 <https://github.com/ethereum/trinity/pull/527>`_: Bugfix: ``LESPeer`` class now raises proper exceptions for mismatched genesis hash or network id.
+- `#531 <https://github.com/ethereum/trinity/pull/431>`_: Bugfix: ``p2p.kademlia.Node`` class is now pickleable.
+- `#564 <https://github.com/ethereum/trinity/pull/464>`_: Bugfix: Sub-protocol compatibility matching extracted from ``p2p.BasePeer`` to make it easier to test.
+- `#565 <https://github.com/ethereum/trinity/pull/565>`_: Bugfix: ``p2p.Protocol`` and ``p2p.Command`` classes no longer use mutable data structures for class-level properties.
+- `#568 <https://github.com/ethereum/trinity/pull/568>`_: Bugfix: Revert to fixed timeout for Request/Response cycle with peer to mitigate incorrect timeouts when networking conditions change.
+- `#570 <https://github.com/ethereum/trinity/pull/570>`_: Bugfix: Remove local implementations of humanize utils in favor of ``eth-utils`` library implementations.
+- `#485 <https://github.com/ethereum/trinity/pull/485>`_: Bugfix: Ensure Trinity shuts down if Discovery crashes unexpectedly
 - `#400 <https://github.com/ethereum/trinity/pull/400>`_: Bugfix: Respect configuration of individual logger (e.g -l p2p.discovery=ERROR)
-- `#386 <https://github.com/ethereum/trinity/pull/386>`_: Slightly reduce eventbus traffic that the peer pool causes
 - `#336 <https://github.com/ethereum/trinity/pull/336>`_: Bugfix: Ensure Trinity shuts down if the process pool dies (fatal error)
 - `#347 <https://github.com/ethereum/trinity/pull/347>`_: Bugfix: Don't crash during sync pruning when switching peers
+- `#446 <https://github.com/ethereum/trinity/pull/446>`_: Bugfix(es): Several reliability improvements to regular sync
 - `#389 <https://github.com/ethereum/trinity/pull/389>`_: Bugfix: Always return contiguous headers from header syncer
+- `#493 <https://github.com/ethereum/trinity/pull/493>`_: Performance: Establish peer connections concurrently rather than sequentially.
+- `#528 <https://github.com/ethereum/trinity/pull/528>`_: Performance: Limit number of concurrent attempts to establish new peer connections.
+- `#536 <https://github.com/ethereum/trinity/pull/536>`_: Performance: Peer connection tracking is now a plugin in the ``trinity`` codebase.
 - `#389 <https://github.com/ethereum/trinity/pull/389>`_: Performance: When switching sync to a new lead peer, don't backtrack to importing old headers
+- `#556 <https://github.com/ethereum/trinity/pull/556>`_: Performance: Upgrade to lahja 0.13.0 which performs less inter-process communication
+- `#386 <https://github.com/ethereum/trinity/pull/386>`_: Performance: Slightly reduce eventbus traffic that the peer pool causes
+- `#483 <https://github.com/ethereum/trinity/pull/483>`_: Performance: Speed up normalization of peer messages
+- `#608 <https://github.com/ethereum/trinity/pull/608>`_: Maintenance: Enable tests for Constantinople and Petersburg
+- `#623 <https://github.com/ethereum/trinity/pull/623>`_: Maintenance: Optimise for faster test runs
 
 0.1.0-alpha.23
 --------------------------
