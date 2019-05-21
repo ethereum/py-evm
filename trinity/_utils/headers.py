@@ -2,7 +2,7 @@ from typing import (
     Awaitable,
     Callable,
     cast,
-    Sequence,
+    Iterable,
     Tuple,
     TypeVar,
 )
@@ -45,7 +45,7 @@ def sequence_builder(start_number: T,
 
 
 async def skip_complete_headers(
-        headers: Sequence[BlockHeader],
+        headers_iter: Iterable[BlockHeader],
         completion_check: Callable[[BlockHeader], Awaitable[bool]]) -> Tuple[BlockHeader, ...]:
     """
     Collect all completed headers into a tuple, and the remaining headers into a second tuple,
@@ -56,6 +56,7 @@ async def skip_complete_headers(
 
     Services should call self.wait() when using this method.
     """
+    headers = tuple(headers_iter)
     for index, header in enumerate(headers):
         if not await completion_check(header):
             # index of first header that is not complete

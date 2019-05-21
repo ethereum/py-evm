@@ -28,6 +28,12 @@ async def is_odd(header):
         ((2, 3), return_true, (2, 3), ()),
         ((2, 3), return_false, (), (2, 3)),
         ((5, 6), is_odd, (5,), (6,)),
+        # should accept a generator
+        ((_ for _ in range(0)), return_false, (), ()),
+        ((_ for _ in range(0)), return_true, (), ()),
+        ((i for i in range(3)), return_true, (0, 1, 2), ()),
+        ((i for i in range(3)), return_false, (), (0, 1, 2)),
+        ((i for i in range(1, 4)), is_odd, (1,), (2, 3)),
     ),
 )
 async def test_skip_complete_headers(headers, check, expected_completed, expected_remaining):
