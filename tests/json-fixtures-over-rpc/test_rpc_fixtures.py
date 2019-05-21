@@ -16,6 +16,7 @@ from eth_utils import (
     is_hex,
     is_integer,
     is_string,
+    to_tuple,
 )
 
 from eth.chains.mainnet import (
@@ -47,16 +48,12 @@ ROOT_PROJECT_DIR = Path(__file__).parent.parent.parent
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')
 
 SLOW_TESTS = (
-    'Call1024PreCalls_d0g0v0_Byzantium',
-    'Call1024PreCalls_d0g0v0_EIP150',
-    'Call1024PreCalls_d0g0v0_EIP158',
+    'Call1024PreCalls_d0g0v0',
     'ContractCreationSpam_d0g0v0_Homestead',
     'ContractCreationSpam_d0g0v0_Frontier',
-    'ForkStressTest_EIP150',
-    'ForkStressTest_EIP158',
-    'ForkStressTest_Homestead',
-    'ForkStressTest_Frontier',
-    'ForkStressTest_Byzantium',
+    'Create2Recursive_d0g0v0',
+    'Create2Recursive_d0g1v0',
+    'ForkStressTest',
     'stQuadraticComplexityTest/Call50000_d0g1v0.json',
     'stQuadraticComplexityTest/QuadraticComplexitySolidity_CallDataCopy_d0g1v0.json',
     'stQuadraticComplexityTest/Return50000_2_d0g1v0.json',
@@ -66,39 +63,37 @@ SLOW_TESTS = (
     'stQuadraticComplexityTest/Call50000_ecrec_d0g1v0.json',
     'walletReorganizeOwners',
     'bcExploitTest/SuicideIssue.json',
-    'DelegateCallSpam_Homestead',
-    'static_Call50000_sha256_d0g0v0_Byzantium',
-    'static_Call50000_rip160_d0g0v0_Byzantium',
-    'static_Call50000_rip160_d1g0v0_Byzantium',
-    'static_Call50000_sha256_d1g0v0_Byzantium',
-    'static_Call50000_ecrec_d1g0v0_Byzantium',
-    'static_Call50000_d1g0v0_Byzantium',
-    'static_Call50000_d0g0v0_Byzantium',
-    'static_Call50000_ecrec_d0g0v0_Byzantium',
-    'static_Call50000_identity2_d0g0v0_Byzantium',
-    'static_Call50000_identity2_d1g0v0_Byzantium',
-    'static_Call50000_identity_d1g0v0_Byzantium',
-    'static_Call50000_identity_d0g0v0_Byzantium',
-    'static_Call50000bytesContract50_1_d1g0v0_Byzantium',
-    'static_Call50000bytesContract50_2_d1g0v0_Byzantium',
-    'static_LoopCallsThenRevert_d0g0v0_Byzantium',
-    'static_LoopCallsThenRevert_d0g1v0_Byzantium',
-    'Call1024PreCalls_d0g0v0_Byzantium',
-    'Call1024PreCalls_d0g0v0_EIP158',
-    'Call1024PreCalls_d0g0v0_EIP150',
-    'Call1024PreCalls_d0g0v0_Byzantium',
-    'Call1024PreCalls_d0g0v0_EIP150',
-    'Call1024PreCalls_d0g0v0_EIP158',
+    'static_Call1024PreCalls_d1g0v0',
+    'static_Call1024PreCalls2_d0g0v0',
+    'static_Call1024PreCalls2_d1g0v0',
+    'static_Call1024PreCalls3_d1g0v0',
+    'static_Call50000bytesContract50_1_d0g0v0',
+    'static_Call50000_ecrec_d0g0v0',
+    'static_Call50000_ecrec_d1g0v0',
+    'static_Call50000_rip160_d0g0v0',
+    'static_Call50000_rip160_d1g0v0',
+    'static_Call50000_sha256_d0g0v0',
+    'static_Call50000_sha256_d1g0v0',
+    'static_Call50000_d0g0v0',
+    'static_Call50000_d1g0v0',
+    'static_Call50000_identity2_d0g0v0',
+    'static_Call50000_identity2_d1g0v0',
+    'static_Call50000_identity_d0g0v0',
+    'static_Call50000_identity_d1g0v0',
+    'static_Call50000bytesContract50_1_d1g0v0',
+    'static_Call50000bytesContract50_2_d1g0v0',
+    'static_LoopCallsThenRevert_d0g0v0',
+    'static_LoopCallsThenRevert_d0g1v0',
+    'static_Return50000_2_d0g0v0',
     'stQuadraticComplexityTest/Call50000_identity2_d0g1v0.json',
     'stQuadraticComplexityTest/Call50000_identity_d0g1v0.json',
     'stQuadraticComplexityTest/Call50000_rip160_d0g1v0.json',
     'stQuadraticComplexityTest/Call50000bytesContract50_1_d0g1v0.json',
+    'stQuadraticComplexityTest/Call50000bytesContract50_2_d0g1v0.json',
     'stQuadraticComplexityTest/Create1000_d0g1v0.json',
     'ShanghaiLove_Homestead',
     'ShanghaiLove_Frontier',
-    'DelegateCallSpam_EIP158',
-    'DelegateCallSpam_Byzantium',
-    'DelegateCallSpam_EIP150',
+    'DelegateCallSpam',
 )
 
 # These are tests that are thought to be incorrect or buggy upstream,
@@ -112,6 +107,28 @@ INCORRECT_UPSTREAM_TESTS = {
     # The result is in conflict with the yellow-paper:
     # * https://github.com/ethereum/py-evm/pull/1224#issuecomment-418800369
     ('GeneralStateTests/stRevertTest/RevertInCreateInInit_d0g0v0.json', 'RevertInCreateInInit_d0g0v0_Byzantium'),  # noqa: E501
+    ('GeneralStateTests/stRevertTest/RevertInCreateInInit_d0g0v0.json', 'RevertInCreateInInit_d0g0v0_Constantinople'),  # noqa: E501
+    ('GeneralStateTests/stRevertTest/RevertInCreateInInit_d0g0v0.json', 'RevertInCreateInInit_d0g0v0_ConstantinopleFix'),  # noqa: E501
+
+    # The CREATE2 variant seems to have been derived from the one above - it, too,
+    # has a "synthetic" state, on which py-evm flips.
+    # * https://github.com/ethereum/py-evm/pull/1181#issuecomment-446330609
+    ('GeneralStateTests/stCreate2/RevertInCreateInInitCreate2_d0g0v0.json', 'RevertInCreateInInitCreate2_d0g0v0_Constantinople'),  # noqa: E501
+    ('GeneralStateTests/stCreate2/RevertInCreateInInitCreate2_d0g0v0.json', 'RevertInCreateInInitCreate2_d0g0v0_ConstantinopleFix'),  # noqa: E501
+
+    # Four variants have been specifically added to test a collision type
+    # like the above; therefore, they fail in the same manner.
+    # * https://github.com/ethereum/py-evm/pull/1579#issuecomment-446591118
+    # Interestingly, d2 passes in Constantinople after a py-evm refactor of storage handling,
+    # the same test is already passing in ConstantinopleFix. Since the situation is synthetic,
+    # not much research went into why, yet.
+    ('GeneralStateTests/stSStoreTest/InitCollision_d0g0v0.json', 'InitCollision_d0g0v0_Constantinople'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision_d1g0v0.json', 'InitCollision_d1g0v0_Constantinople'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision_d2g0v0.json', 'InitCollision_d2g0v0_Constantinople'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision_d3g0v0.json', 'InitCollision_d3g0v0_Constantinople'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision_d0g0v0.json', 'InitCollision_d0g0v0_ConstantinopleFix'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision_d1g0v0.json', 'InitCollision_d1g0v0_ConstantinopleFix'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision_d3g0v0.json', 'InitCollision_d3g0v0_ConstantinopleFix'),  # noqa: E501
 }
 
 RPC_STATE_NORMALIZERS = {
@@ -178,7 +195,7 @@ def fixture_transaction_in_rpc_format(state):
     }
 
 
-def blockchain_fixture_mark_fn(fixture_path, fixture_name):
+def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
     for slow_test in SLOW_TESTS:
         if slow_test in fixture_path or slow_test in fixture_name:
             if not should_run_slow_tests():
@@ -188,13 +205,33 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name):
         return pytest.mark.xfail(reason="Listed in INCORRECT_UPSTREAM_TESTS.")
 
 
+def generate_ignore_fn_for_fork(passed_fork):
+    if passed_fork:
+        normalized_fork = passed_fork.lower()
+
+        def ignore_fn(fixture_path, fixture_key, fixture_fork):
+            return fixture_fork.lower() != normalized_fork
+
+        return ignore_fn
+
+
+@to_tuple
+def expand_fixtures_forks(all_fixtures):
+    for fixture_path, fixture_key in all_fixtures:
+        fixture = load_fixture(fixture_path, fixture_key)
+        yield fixture_path, fixture_key, fixture['network']
+
+
 def pytest_generate_tests(metafunc):
+    ignore_fn = generate_ignore_fn_for_fork(metafunc.config.getoption('fork'))
     generate_fixture_tests(
         metafunc=metafunc,
         base_fixture_path=BASE_FIXTURE_PATH,
+        preprocess_fn=expand_fixtures_forks,
         filter_fn=filter_fixtures(
             fixtures_base_dir=BASE_FIXTURE_PATH,
             mark_fn=blockchain_fixture_mark_fn,
+            ignore_fn=ignore_fn
         ),
     )
 
@@ -375,9 +412,10 @@ async def validate_uncles(rpc, block_fixture, at_block):
 
 @pytest.fixture
 def chain_fixture(fixture_data):
-    fixture = load_fixture(*fixture_data)
-    if fixture['network'] == 'Constantinople':
-        pytest.skip('Constantinople VM rules not yet supported')
+    fixture_path, fixture_key, fixture_fork = fixture_data
+    fixture = load_fixture(fixture_path, fixture_key)
+    if fixture_fork == 'Istanbul':
+        pytest.skip('Istanbul VM rules not yet supported')
     return fixture
 
 

@@ -131,14 +131,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-lint
-
   py37-lint:
     <<: *common
     docker:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-lint
-
 
   py36-docs:
     <<: *common
@@ -171,6 +169,13 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-rpc-state-homestead
+  py36-rpc-state-petersburg:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-rpc-state-petersburg
+
   py36-rpc-state-tangerine_whistle:
     <<: *common
     docker:
@@ -221,12 +226,6 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-p2p
-  py36-rpc-state-quadratic:
-    <<: *common
-    docker:
-      - image: circleci/python:3.6
-        environment:
-          TOXENV: py36-rpc-state-quadratic
   py36-eth2-core:
     <<: *common
     docker:
@@ -264,6 +263,24 @@ jobs:
         environment:
           TOXENV: py36-plugins
 
+  py37-rpc-state-quadratic:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-rpc-state-quadratic
+  py37-rpc-state-sstore:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-rpc-state-sstore
+  py37-rpc-state-zero_knowledge:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-rpc-state-zero_knowledge
 
   py37-core:
     <<: *common
@@ -320,7 +337,6 @@ jobs:
         environment:
           TOXENV: py37-plugins
 
-
   docker-image-build-test:
     machine: true
     steps:
@@ -343,13 +359,17 @@ workflows:
       # - py37-libp2p
       - py37-plugins
 
+      - py37-rpc-state-quadratic
+      - py37-rpc-state-sstore
+      - py37-rpc-state-zero_knowledge
+
       - py36-rpc-state-byzantium
       - py36-rpc-state-constantinople
       - py36-rpc-state-frontier
       - py36-rpc-state-homestead
-      - py36-rpc-state-tangerine_whistle
+      - py36-rpc-state-petersburg
       - py36-rpc-state-spurious_dragon
-      - py36-rpc-state-quadratic
+      - py36-rpc-state-tangerine_whistle
       - py36-rpc-blockchain
 
       - py36-core
