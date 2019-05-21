@@ -14,6 +14,7 @@ from p2p._utils import trim_middle
         ("notcut", 6, "notcut"),
         ("tobecut", 6, "to✂✂✂t"),
         ("tobecut", 5, "t✂✂✂t"),
+        ("0000", 3, "✂✂✂"),
         ("really long thing with a bunch of garbage", 20, "really lo✂✂✂ garbage"),
     )
 )

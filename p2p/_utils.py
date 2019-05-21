@@ -117,5 +117,8 @@ def trim_middle(arbitrary_string: str, max_length: int) -> str:
         half_len, is_odd = divmod(max_length, 2)
         first_half = arbitrary_string[:half_len - 1]
         last_half_len = half_len - 2 + is_odd
-        last_half = arbitrary_string[last_half_len * -1:]
+        if last_half_len > 0:
+            last_half = arbitrary_string[last_half_len * -1:]
+        else:
+            last_half = ''
         return f"{first_half}✂✂✂{last_half}"
