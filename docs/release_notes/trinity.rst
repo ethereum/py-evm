@@ -42,6 +42,8 @@ Unreleased (latest source)
 - `#556 <https://github.com/ethereum/trinity/pull/556>`_: Performance: Upgrade to lahja 0.13.0 which performs less inter-process communication
 - `#386 <https://github.com/ethereum/trinity/pull/386>`_: Performance: Slightly reduce eventbus traffic that the peer pool causes
 - `#483 <https://github.com/ethereum/trinity/pull/483>`_: Performance: Speed up normalization of peer messages
+- `#608 <https://github.com/ethereum/trinity/pull/608>`_: Maintenance: Enable tests for Constantinople and Petersburg
+- `#623 <https://github.com/ethereum/trinity/pull/623>`_: Maintenance: Optimise for faster test runs
 
 0.1.0-alpha.23
 --------------------------
