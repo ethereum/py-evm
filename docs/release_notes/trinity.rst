@@ -4,6 +4,36 @@ Trinity
 Unreleased (latest source)
 --------------------------
 
+v0.1.0-alpha.24
+--------------------------
+
+Released 2019-05-21
+
+- `#637 <https://github.com/ethereum/trinity/pull/637>`_: EVM upgrade: py-evm upgraded to v0.2.0-alpha.43, changes copied here, from `the py-evm changelog <https://py-evm.readthedocs.io/en/latest/release_notes/index.html#alpha-43>`_
+
+  - `#1778 <https://github.com/ethereum/py-evm/pull/1778>`_: Feature: Raise custom decorated exceptions when a trie node is missing from the database (plus some bonus logging and performance improvements)
+  - `#1732 <https://github.com/ethereum/py-evm/pull/1732>`_: Bugfix: squashed an occasional "mix hash mismatch" while syncing
+  - `#1716 <https://github.com/ethereum/py-evm/pull/1716>`_: Performance: only calculate & persist state root at end of block (post-Byzantium)
+  - `#1735 <https://github.com/ethereum/py-evm/pull/1735>`_:
+
+    - Performance: only calculate & persist storage roots at end of block (post-Byzantium)
+    - Performance: batch all account trie writes to the database once per block
+  - `#1747 <https://github.com/ethereum/py-evm/pull/1747>`_:
+
+    - Maintenance: Lazily generate VM.block on first access. Enables loading the VM when you don't have its block body.
+    - Performance: Fewer DB reads when block is never accessed.
+  - Performance: speedups on ``chain.import_block()``:
+
+    - `#1764 <https://github.com/ethereum/py-evm/pull/1764>`_: Speed up ``is_valid_opcode`` check, formerly 7% of total import time! (now less than 1%)
+    - `#1765 <https://github.com/ethereum/py-evm/pull/1765>`_: Reduce logging overhead, ~15% speedup
+    - `#1766 <https://github.com/ethereum/py-evm/pull/1766>`_: Cache transaction sender, ~3% speedup
+    - `#1770 <https://github.com/ethereum/py-evm/pull/1770>`_: Faster bytecode iteration, ~2.5% speedup
+    - `#1771 <https://github.com/ethereum/py-evm/pull/1771>`_: Faster opcode lookup in apply_computation, ~1.5% speedup
+    - `#1772 <https://github.com/ethereum/py-evm/pull/1772>`_: Faster Journal access of latest data, ~6% speedup
+    - `#1773 <https://github.com/ethereum/py-evm/pull/1773>`_: Faster stack operations, ~9% speedup
+    - `#1776 <https://github.com/ethereum/py-evm/pull/1776>`_: Faster Journal record & commit checkpoints, ~7% speedup
+    - `#1777 <https://github.com/ethereum/py-evm/pull/1777>`_: Faster bytecode navigation, ~7% speedup
+  - `#1751 <https://github.com/ethereum/py-evm/pull/1751>`_: Maintenance: Add placeholder for Istanbul fork
 - `#629 <https://github.com/ethereum/trinity/pull/629>`_: Feature: Peers which disconnect from us too quickly are blacklisted for a short period of time.
 - `#625 <https://github.com/ethereum/trinity/pull/625>`_: Feature: Peer backend system is now sent full list of connected remotes
 - `#624 <https://github.com/ethereum/trinity/pull/624>`_: Feature: Better logging and tracking of the reason a peer disconnection occured.
