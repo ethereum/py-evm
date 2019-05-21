@@ -207,10 +207,10 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
 
 def generate_ignore_fn_for_fork(passed_fork):
     if passed_fork:
-        passed_fork = passed_fork.lower()
+        normalized_fork = passed_fork.lower()
 
         def ignore_fn(fixture_path, fixture_key, fixture_fork):
-            return fixture_fork.lower() != passed_fork
+            return fixture_fork.lower() != normalized_fork
 
         return ignore_fn
 
