@@ -96,7 +96,7 @@ deps = {
     'libp2p': [
         "base58>=1.0.3",
         # use the forked multiaddr temporarily until the fixing changes are released
-        "multiaddr @ git+https://git@github.com/mhchia/py-multiaddr@feature/add-unix-proto",
+        "multiaddr>=0.0.7,<0.1.0",
         "protobuf>=3.6.1",
         "pymultihash>=0.8.2",
     ],
