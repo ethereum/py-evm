@@ -399,8 +399,11 @@ class BCCReceiveServer(BaseReceiveServer):
         """
         Check if the attestation is already in the database or the attestion pool.
         """
-        # stub
-        return False
+        try:
+            self.attestation_pool.get(attestation.root)
+            return True
+        except AttestationNotFound:
+            return False
 
     @to_tuple
     def _validate_attestations(self,
