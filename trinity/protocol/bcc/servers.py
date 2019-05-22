@@ -313,6 +313,7 @@ class BCCReceiveServer(BaseReceiveServer):
         NewBeaconBlock,
     })
 
+    attestation_pool: AttestationPool
     map_request_id_block_root: Dict[int, Hash32]
     orphan_block_pool: OrphanBlockPool
 
@@ -323,6 +324,7 @@ class BCCReceiveServer(BaseReceiveServer):
             token: CancelToken = None) -> None:
         super().__init__(peer_pool, token)
         self.chain = chain
+        self.attestation_pool = AttestationPool()
         self.map_request_id_block_root = {}
         self.orphan_block_pool = OrphanBlockPool()
 
@@ -355,12 +357,14 @@ class BCCReceiveServer(BaseReceiveServer):
             return
 
         # Check if attestations has been seen already.
-        # Filter out those seen already
+        # Filter out those seen already.
         valid_new_attestations = filter(
             self._is_attestation_new,
             valid_attestations,
         )
-        # Broadcast the valid and newly received attestations
+        # Add the valid and new attestations to attestation pool.
+        self.attestation_pool.add(valid_new_attestations)
+        # Broadcast the valid and new attestations.
         self._broadcast_attestations(tuple(valid_new_attestations), peer)
 
     async def _handle_beacon_blocks(self, peer: BCCPeer, msg: BeaconBlocksMessage) -> None:
