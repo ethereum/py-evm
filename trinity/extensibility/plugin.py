@@ -291,7 +291,7 @@ class BaseIsolatedPlugin(BasePlugin):
 
         # Whenever new EventBus Endpoints come up the `main` process broadcasts this event
         # and we connect to every Endpoint directly
-        self.event_bus.auto_connect_new_announced_endpoints()
+        asyncio.ensure_future(self.event_bus.auto_connect_new_announced_endpoints())
 
         self.do_start()
 

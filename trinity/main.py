@@ -156,7 +156,7 @@ async def launch_node_coro(args: Namespace, trinity_config: TrinityConfig) -> No
     )
 
     await endpoint.start_serving(networking_connection_config)
-    endpoint.auto_connect_new_announced_endpoints()
+    asyncio.ensure_future(endpoint.auto_connect_new_announced_endpoints())
     await endpoint.connect_to_endpoints(
         ConnectionConfig.from_name(MAIN_EVENTBUS_ENDPOINT, trinity_config.ipc_dir),
         # Plugins that run within the networking process broadcast and receive on the
