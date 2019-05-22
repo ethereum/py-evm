@@ -190,7 +190,7 @@ async def test_logger(async_process_runner, command, expected_to_contain_log):
 @pytest.mark.asyncio
 # Once we get Trinity to shutdown cleanly, we should remove the xfail so that the test ensures
 # ongoing clean exits.
-@pytest.mark.xfail
+@pytest.mark.skip(reason="Needs to be made more sensitive to be less flaky")
 async def test_shutdown(command, async_process_runner):
 
     async def run_then_shutdown_and_yield_output():
