@@ -226,7 +226,14 @@ class AttestationPool:
     def __init__(self) -> None:
         self._pool = set()
 
-    def __contains__(self, attestation_root: Hash32) -> bool:
+    def __contains__(self, attestation_or_root: Union[Attestation, Hash32]) -> bool:
+        attestation_root: Hash32
+        if isinstance(attestation_or_root, Attestation):
+            attestation_root = attestation_or_root.root
+        elif isinstance(attestation_or_root, bytes):
+            attestation_root = attestation_or_root
+        else:
+            raise TypeError("`attestation_or_root` should be `Attestation` or `Hash32`")
         try:
             self.get(attestation_root)
             return True
