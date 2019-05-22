@@ -69,8 +69,11 @@ from trinity._utils.les import (
 from trinity._utils.shellart import (
     bold_red,
 )
+from trinity.exceptions import (
+    AttestationNotFound,
+)
 from trinity.endpoint import (
-    TrinityEventBusEndpoint
+    TrinityEventBusEndpoint,
 )
 from trinity.db.beacon.chain import (
     BaseAsyncBeaconChainDB,
@@ -211,6 +214,44 @@ class BCCRequestServer(BaseIsolatedRequestServer):
 # add the `BaseReceiveServer` here instead.
 class BaseReceiveServer(BaseRequestServer):
     pass
+
+
+class AttestationPool:
+    """
+    Stores the attestations not yet included on chain.
+    """
+    # TODO: can probably use lru-cache or even database
+    _pool: Set[Attestation]
+
+    def __init__(self) -> None:
+        self._pool = set()
+
+    def __contains__(self, attestation_root: Hash32) -> bool:
+        try:
+            self.get(attestation_root)
+            return True
+        except AttestationNotFound:
+            return False
+
+    def get(self, attestation_root: Hash32) -> Attestation:
+        for attestation in self._pool:
+            if attestation.root == attestation_root:
+                return attestation
+        raise AttestationNotFound(f"No attestation with root {attestation_root} is found.")
+
+    def add(self, attestations: Iterable[Attestation]) -> None:
+        for attestation in attestations:
+            if attestation in self._pool:
+                return
+            self._pool.add(attestation)
+
+    def remove(self, attestation_roots: Iterable[Hash32]) -> None:
+        attestations = tuple(
+            self.get(root)
+            for root in attestation_roots
+            if root in self._pool
+        )
+        self._pool.difference_update(attestations)
 
 
 class OrphanBlockPool:
