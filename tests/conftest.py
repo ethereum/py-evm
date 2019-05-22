@@ -236,8 +236,7 @@ def pytest_addoption(parser):
 
 @to_tuple
 def load_bytes_from_file(path):
-    # Using str(path) for python3.5 support of pathlib.Path
-    with open(str(path)) as f:
+    with open(path) as f:
         for line in f:
             if line.startswith('#'):
                 continue
