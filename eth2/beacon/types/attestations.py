@@ -41,3 +41,6 @@ class Attestation(ssz.Serializable):
             custody_bitfield,
             aggregate_signature,
         )
+
+    def __repr__(self) -> str:
+        return f"<Attestation {self.data} >"

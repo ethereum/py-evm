@@ -1,6 +1,10 @@
-from itertools import groupby
+from itertools import (
+    groupby,
+)
 import logging
-from operator import itemgetter
+from operator import (
+    itemgetter,
+)
 from typing import (
     Dict,
     Iterable,
@@ -11,23 +15,29 @@ from typing import (
 from cancel_token import (
     CancelToken,
 )
-
 from eth_typing import (
     Hash32,
 )
 from eth_utils import (
+    encode_hex,
     to_tuple,
 )
 
-from eth2.beacon.chains.base import BeaconChain
+from eth2.beacon.chains.base import (
+    BeaconChain,
+)
 from eth2.beacon.helpers import (
     slot_to_epoch,
+)
+from eth2.beacon.state_machines.base import (
+    BaseBeaconStateMachine,
 )
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
-from eth2.beacon.state_machines.base import BaseBeaconStateMachine  # noqa: F401
-from eth2.beacon.tools.builder.committee_assignment import CommitteeAssignment
+from eth2.beacon.tools.builder.committee_assignment import (
+    CommitteeAssignment,
+)
 from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
     create_block_on_state,
@@ -36,29 +46,37 @@ from eth2.beacon.tools.builder.validator import (
     create_signed_attestation_at_slot,
     get_committee_assignment,
 )
-from eth2.beacon.types.attestations import Attestation
-from eth2.beacon.types.blocks import BaseBeaconBlock
-from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.attestations import (
+    Attestation,
+)
+from eth2.beacon.types.blocks import (
+    BaseBeaconBlock,
+)
+from eth2.beacon.types.states import (
+    BeaconState,
+)
 from eth2.beacon.typing import (
     Epoch,
     Shard,
     Slot,
     ValidatorIndex,
 )
-
-from p2p.service import BaseService
-
+from p2p.service import (
+    BaseService,
+)
 from trinity._utils.shellart import (
     bold_green,
     bold_red,
 )
-from trinity.endpoint import TrinityEventBusEndpoint
-from trinity.protocol.bcc.peer import (
-    BCCPeer,
-    BCCPeerPool,
+from trinity.endpoint import (
+    TrinityEventBusEndpoint,
 )
 from trinity.plugins.eth2.beacon.slot_ticker import (
     SlotTickEvent,
+)
+from trinity.protocol.bcc.peer import (
+    BCCPeer,
+    BCCPeerPool,
 )
 
 
@@ -103,7 +121,10 @@ class Validator(BaseService):
 
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()
-        self.logger.debug(bold_green("validator running!!!"))
+        self.logger.info(
+            bold_green("Validator service up  Handle indices=%s"),
+            tuple(self.validator_privkeys.keys())
+        )
         self.run_daemon_task(self.handle_slot_tick())
         await self.cancellation()
 
@@ -143,7 +164,26 @@ class Validator(BaseService):
         state_machine = self.chain.get_state_machine()
         state = state_machine.state
         self.logger.debug(
-            bold_green(f"head: slot={head.slot}, state root={head.state_root.hex()}")
+            # Align with debug log below
+            bold_green("Head       epoch=%s slot=%s state_root=%s"),
+            state.current_epoch(self.slots_per_epoch),
+            head.slot,
+            encode_hex(head.state_root),
+        )
+        self.logger.debug(
+            bold_green("Justified  epoch=%s root=%s  (current)"),
+            state.current_justified_epoch,
+            encode_hex(state.current_justified_root),
+        )
+        self.logger.debug(
+            bold_green("Justified  epoch=%s root=%s  (previous)"),
+            state.previous_justified_epoch,
+            encode_hex(state.previous_justified_root),
+        )
+        self.logger.debug(
+            bold_green("Finalized  epoch=%s root=%s"),
+            state.finalized_epoch,
+            encode_hex(state.finalized_root),
         )
         proposer_index = _get_proposer_index(
             state,
@@ -168,12 +208,8 @@ class Validator(BaseService):
         await self.attest(slot)
 
     async def handle_second_tick(self, slot: Slot) -> None:
-        head = self.chain.get_canonical_head()
         state_machine = self.chain.get_state_machine()
         state = state_machine.state
-        self.logger.debug(
-            bold_green(f"head: slot={head.slot}, state root={head.state_root.hex()}")
-        )
         if state.slot < slot:
             self.skip_block(
                 slot=slot,
@@ -194,14 +230,10 @@ class Validator(BaseService):
             state_machine=state_machine,
             parent_block=head_block,
         )
-        self.logger.debug(
-            bold_green(f"validator index={proposer_index} proposing block, block={block}")
-        )
+        self.logger.info(bold_green("Validator=%s proposing block=%s"), proposer_index, block)
         for peer in self.peer_pool.connected_nodes.values():
             peer = cast(BCCPeer, peer)
-            self.logger.debug(
-                bold_red(f"sending block to peer={peer}")
-            )
+            self.logger.debug(bold_red("Sending block=%s to peer=%s"), block, peer)
             peer.sub_proto.send_new_block(block)
         self.chain.import_block(block)
         return block
@@ -237,7 +269,9 @@ class Validator(BaseService):
             cast(Slot, slot + 1),
         )
         self.logger.debug(
-            bold_green(f"skipping block, post state={post_state.root}")
+            bold_green("Skip block at slot=%s  post_state_root=%s"),
+            slot,
+            encode_hex(post_state.root),
         )
         # FIXME: We might not need to persist state for skip slots since `create_block_on_state`
         # will run the state transition which also includes the state transition for skipped slots.
@@ -314,10 +348,10 @@ class Validator(BaseService):
                 shard,
             )
             self.logger.debug(
-                bold_green(
-                    f"validator index={attesting_validators_indices} attest to block, "
-                    f"block={head}, attestation={attestation}"
-                )
+                bold_green("Validators=%s attest to block=%s  attestation=%s"),
+                attesting_validators_indices,
+                head,
+                attestation,
             )
             for validator_index in attesting_validators_indices:
                 self.latest_attested_epoch[validator_index] = epoch
@@ -325,8 +359,6 @@ class Validator(BaseService):
 
         for peer in self.peer_pool.connected_nodes.values():
             peer = cast(BCCPeer, peer)
-            self.logger.debug(
-                bold_red(f"sending attestations to peer={peer}")
-            )
+            self.logger.debug(bold_red("Sending attestations=%s to peer=%s"), attestations, peer)
             peer.sub_proto.send_attestation_records(attestations)
         return attestations

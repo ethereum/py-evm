@@ -9,6 +9,10 @@ from ssz.sedes import (
 )
 
 from eth2.beacon.typing import Epoch
+from eth_utils import (
+    encode_hex,
+    humanize_hash,
+)
 
 
 class Crosslink(ssz.Serializable):
@@ -28,3 +32,9 @@ class Crosslink(ssz.Serializable):
             epoch=epoch,
             crosslink_data_root=crosslink_data_root,
         )
+
+    def __str__(self) -> str:
+        return f"CL:{self.epoch} data_root={humanize_hash(self.crosslink_data_root)}"
+
+    def __repr__(self) -> str:
+        return f"<Crosslink epoch={self.epoch} data_root={encode_hex(self.crosslink_data_root)}>"

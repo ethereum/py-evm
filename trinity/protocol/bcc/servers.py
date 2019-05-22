@@ -1,5 +1,4 @@
 from typing import (
-    cast,
     AsyncIterator,
     Dict,
     FrozenSet,
@@ -9,51 +8,62 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 
-from eth_typing import (
-    Hash32,
+from cancel_token import (
+    CancelToken,
 )
-
-from eth_utils import (
-    to_tuple,
-    ValidationError,
-)
-
-from cancel_token import CancelToken
-
-import ssz
-
-from p2p import protocol
-from p2p.peer import (
-    BasePeer,
-)
-from p2p.protocol import Command
-
 from eth.exceptions import (
     BlockNotFound,
 )
-
-from eth2.configs import CommitteeConfig
-from eth2.beacon.typing import (
-    Slot,
+from eth_typing import (
+    Hash32,
 )
-from eth2.beacon.chains.base import BaseBeaconChain
-from eth2.beacon.types.attestations import Attestation
+from eth_utils import (
+    ValidationError,
+    encode_hex,
+    to_tuple,
+)
+import ssz
+
+from eth2.beacon.chains.base import (
+    BaseBeaconChain,
+)
+from eth2.beacon.state_machines.forks.serenity.block_validation import (
+    validate_attestation,
+)
+from eth2.beacon.types.attestations import (
+    Attestation,
+)
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlock,
 )
-from eth2.beacon.state_machines.forks.serenity.block_validation import validate_attestation
-
-from trinity._utils.shellart import (
-    bold_red,
+from eth2.beacon.typing import (
+    Slot,
+)
+from eth2.configs import (
+    CommitteeConfig,
+)
+from p2p import (
+    protocol,
+)
+from p2p.peer import (
+    BasePeer,
+)
+from p2p.protocol import (
+    Command,
 )
 from trinity._utils.les import (
     gen_request_id,
 )
-from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
-from trinity.protocol.common.servers import BaseRequestServer
+from trinity._utils.shellart import (
+    bold_red,
+)
+from trinity.db.beacon.chain import (
+    BaseAsyncBeaconChainDB,
+)
 from trinity.protocol.bcc.commands import (
     Attestations,
     AttestationsMessage,
@@ -67,6 +77,9 @@ from trinity.protocol.bcc.commands import (
 from trinity.protocol.bcc.peer import (
     BCCPeer,
     BCCPeerPool,
+)
+from trinity.protocol.common.servers import (
+    BaseRequestServer,
 )
 
 
@@ -85,7 +98,7 @@ class BCCRequestServer(BaseRequestServer):
     async def _handle_msg(self, base_peer: BasePeer, cmd: Command,
                           msg: protocol._DecodedMsgType) -> None:
         peer = cast(BCCPeer, base_peer)
-        self.logger.debug("cmd %s" % cmd)
+        self.logger.debug("cmd %s", cmd)
         if isinstance(cmd, GetBeaconBlocks):
             await self._handle_get_beacon_blocks(peer, cast(GetBeaconBlocksMessage, msg))
         else:
@@ -262,7 +275,7 @@ class BCCReceiveServer(BaseReceiveServer):
             ssz.decode(encoded_attestation, Attestation)
             for encoded_attestation in encoded_attestations
         )
-        self.logger.debug(f"received attestations={attestations}")
+        self.logger.debug("Received attestations=%s", attestations)
 
         # Validate attestations
         valid_attestations = self._validate_attestations(attestations)
@@ -295,7 +308,7 @@ class BCCReceiveServer(BaseReceiveServer):
                 f"block signing_root {block.signing_root} does not correpond to"
                 "the one we requested"
             )
-        self.logger.debug(f"received request_id={request_id}, block={block}")
+        self.logger.debug("Received request_id=%s, block=%s", request_id, block)
         self._process_received_block(block)
         del self.map_request_id_block_root[request_id]
 
@@ -306,7 +319,7 @@ class BCCReceiveServer(BaseReceiveServer):
         block = ssz.decode(encoded_block, BeaconBlock)
         if self._is_block_seen(block):
             raise Exception(f"block {block} is seen before")
-        self.logger.debug(f"received block={block}")
+        self.logger.debug("Received new block=%s", block)
         # TODO: check the proposer signature before importing the block
         if self._process_received_block(block):
             self._broadcast_block(block, from_peer=peer)
@@ -354,9 +367,7 @@ class BCCReceiveServer(BaseReceiveServer):
             # skip the peer who send the attestations to us
             if from_peer is not None and peer == from_peer:
                 continue
-            self.logger.debug(
-                bold_red(f"send attestations to peer={peer}")
-            )
+            self.logger.debug(bold_red("Send attestations=%s to peer=%s"), attestations, peer)
             peer.sub_proto.send_attestation_records(attestations)
 
     def _process_received_block(self, block: BaseBeaconBlock) -> bool:
@@ -367,7 +378,7 @@ class BCCReceiveServer(BaseReceiveServer):
         # If the block is an orphan, put it directly to the pool and request for its parent.
         if not self._is_block_root_in_db(block.previous_block_root):
             if block not in self.orphan_block_pool:
-                self.logger.debug(f"found orphan block={block}")
+                self.logger.debug("Found orphan_block=%s", block)
                 self.orphan_block_pool.add(block)
                 self._request_block_from_peers(block_root=block.previous_block_root)
             return False
@@ -405,16 +416,18 @@ class BCCReceiveServer(BaseReceiveServer):
             children = self.orphan_block_pool.pop_children(current_parent_root)
             if len(children) > 0:
                 self.logger.debug(
-                    f"blocks {children} match their parent block, block.root={current_parent_root}"
+                    "Blocks=%s match their parent block, parent_root=%s",
+                    children,
+                    current_parent_root,
                 )
             for block in children:
-                self.logger.debug(f"try to import block={block}")
                 try:
                     self.chain.import_block(block)
-                    self.logger.debug(f"successfully imported block={block}")
+                    self.logger.debug("Successfully imported block=%s", block)
                     imported_roots.append(block.signing_root)
-                except ValidationError:
+                except ValidationError as e:
                     # TODO: Possibly drop all of its descendants in `self.orphan_block_pool`?
+                    self.logger.debug("Fail to import invalid block=%s  reason=%s", block, e)
                     pass
 
     def _request_block_from_peers(self, block_root: Hash32) -> None:
@@ -422,8 +435,12 @@ class BCCReceiveServer(BaseReceiveServer):
             peer = cast(BCCPeer, peer)
             request_id = gen_request_id()
             self.logger.debug(
-                bold_red(f"send block request to: request_id={request_id}, peer={peer}")
+                bold_red("Send block request with request_id=%s root=%s to peer=%s"),
+                request_id,
+                encode_hex(block_root),
+                peer,
             )
+
             self.map_request_id_block_root[request_id] = block_root
             peer.sub_proto.send_get_blocks(
                 block_root,
@@ -440,9 +457,7 @@ class BCCReceiveServer(BaseReceiveServer):
             # skip the peer who send the block to us
             if from_peer is not None and peer == from_peer:
                 continue
-            self.logger.debug(
-                bold_red(f"send block to peer={peer}")
-            )
+            self.logger.debug(bold_red("Send block=%s to peer=%s"), block, peer)
             peer.sub_proto.send_new_block(block=block)
 
     def _is_block_root_in_orphan_block_pool(self, block_root: Hash32) -> bool:

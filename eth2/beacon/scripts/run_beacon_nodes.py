@@ -180,7 +180,7 @@ class Node:
     def _record_happenning_logs(self, from_stream: str, line: str) -> None:
         for log in self.logs_expected[from_stream]:
             if log.pattern in line:
-                self.logger.debug(f"log \"log.name\" occurred in {from_stream}")
+                self.logger.debug('log "log.name" occurred in %s', from_stream)
                 self.has_log_happened[log] = True
 
 
