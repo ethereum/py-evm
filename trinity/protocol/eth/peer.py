@@ -9,8 +9,6 @@ from eth_utils import encode_hex
 
 from p2p.exceptions import (
     HandshakeFailure,
-    WrongNetworkFailure,
-    WrongGenesisFailure,
 )
 from p2p.p2p_proto import DisconnectReason
 from p2p.protocol import (
@@ -18,6 +16,10 @@ from p2p.protocol import (
     _DecodedMsgType,
 )
 
+from trinity.exceptions import (
+    WrongNetworkFailure,
+    WrongGenesisFailure,
+)
 from trinity.protocol.common.peer import (
     BaseChainPeer,
     BaseChainPeerFactory,
