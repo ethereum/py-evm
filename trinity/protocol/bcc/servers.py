@@ -252,12 +252,7 @@ class AttestationPool:
                 return
             self._pool.add(attestation)
 
-    def remove(self, attestation_roots: Iterable[Hash32]) -> None:
-        attestations = tuple(
-            self.get(root)
-            for root in attestation_roots
-            if root in self._pool
-        )
+    def remove(self, attestations: Iterable[Attestation]) -> None:
         self._pool.difference_update(attestations)
 
 
