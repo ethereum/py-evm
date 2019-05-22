@@ -87,9 +87,7 @@ class BCCPeer(BasePeer):
 
     async def get_genesis_root(self) -> Hash32:
         if self._genesis_root is None:
-            self._genesis_root = await self.chain_db.coro_get_canonical_block_root(
-                self.chain_db.genesis_config.GENESIS_SLOT,
-            )
+            self._genesis_root = await self.chain_db.coro_get_genesis_block_root()
         return self._genesis_root
 
     @property

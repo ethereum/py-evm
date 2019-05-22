@@ -9,6 +9,7 @@ from trinity.protocol.bcc.servers import BCCRequestServer
 from trinity.sync.beacon.chain import BeaconChainSyncer
 
 from .helpers import (
+    SERENITY_GENESIS_CONFIG,
     get_directly_linked_peers_in_peer_pools,
     get_chain_db,
     create_test_block,
@@ -20,11 +21,17 @@ class NoopBlockImporter:
     """
     Do nothing, to override the block validation in ``SyncBlockImporter``.
     """
+
     def import_block(self, block):
         return None, tuple(), tuple()
 
 
-async def get_sync_setup(request, event_loop, alice_chain_db, bob_chain_db):
+async def get_sync_setup(
+        request,
+        event_loop,
+        alice_chain_db,
+        bob_chain_db,
+        genesis_config=SERENITY_GENESIS_CONFIG):
     alice, alice_peer_pool, bob, bob_peer_pool = await get_directly_linked_peers_in_peer_pools(
         request,
         event_loop,
@@ -33,7 +40,12 @@ async def get_sync_setup(request, event_loop, alice_chain_db, bob_chain_db):
     )
 
     bob_request_server = BCCRequestServer(bob.context.chain_db, bob_peer_pool)
-    alice_syncer = BeaconChainSyncer(alice_chain_db, alice_peer_pool, NoopBlockImporter())
+    alice_syncer = BeaconChainSyncer(
+        alice_chain_db,
+        alice_peer_pool,
+        NoopBlockImporter(),
+        genesis_config,
+    )
 
     asyncio.ensure_future(bob_request_server.run())
     asyncio.ensure_future(alice_syncer.run())

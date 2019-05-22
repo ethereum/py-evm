@@ -121,6 +121,12 @@ def test_chaindb_get_canonical_block_root(chaindb, block):
     assert block_root == block.signing_root
 
 
+def test_chaindb_get_genesis_block_root(chaindb, genesis_block):
+    chaindb.persist_block(genesis_block, genesis_block.__class__)
+    block_root = chaindb.get_genesis_block_root()
+    assert block_root == genesis_block.signing_root
+
+
 def test_chaindb_state(chaindb, state):
     chaindb.persist_state(state)
     state_class = BeaconState

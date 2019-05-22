@@ -107,6 +107,7 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
             chain_db=chain_db,
             peer_pool=server.peer_pool,
             block_importer=SyncBlockImporter(chain),
+            genesis_config=chain_config.genesis_config,
             token=server.cancel_token,
         )
 

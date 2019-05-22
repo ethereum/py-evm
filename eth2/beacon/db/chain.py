@@ -89,6 +89,10 @@ class BaseBeaconChainDB(ABC):
         pass
 
     @abstractmethod
+    def get_genesis_block_root(self) -> Hash32:
+        pass
+
+    @abstractmethod
     def get_canonical_block_by_slot(self,
                                     slot: int,
                                     block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
@@ -230,6 +234,9 @@ class BeaconChainDB(BaseBeaconChainDB):
         canonical chain.
         """
         return self._get_canonical_block_root(self.db, slot)
+
+    def get_genesis_block_root(self) -> Hash32:
+        return self._get_canonical_block_root(self.db, self.genesis_config.GENESIS_SLOT)
 
     @staticmethod
     def _get_canonical_block_root(db: BaseDB, slot: int) -> Hash32:

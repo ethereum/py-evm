@@ -25,16 +25,12 @@ from eth2.beacon.types.blocks import (  # noqa: F401
 from trinity._utils.mp import (
     async_method,
 )
-from eth2.configs import (
-    Eth2Config,
-)
 
 
 class BaseAsyncBeaconChainDB(ABC):
     """
     Abstract base class defines async counterparts of the sync ``BaseBeaconChainDB`` APIs.
     """
-    genesis_config: Eth2Config
 
     @abstractmethod
     async def coro_persist_block(
@@ -50,6 +46,10 @@ class BaseAsyncBeaconChainDB(ABC):
 
     @abstractmethod
     async def coro_get_canonical_block_root(self, slot: int) -> Hash32:
+        pass
+
+    @abstractmethod
+    async def coro_get_genesis_block_root(self) -> Hash32:
         pass
 
     @abstractmethod
@@ -125,6 +125,7 @@ class AsyncBeaconChainDBPreProxy(BaseAsyncBeaconChainDB):
 
     coro_persist_block = async_method('persist_block')
     coro_get_canonical_block_root = async_method('get_canonical_block_root')
+    coro_get_genesis_block_root = async_method('get_genesis_block_root')
     coro_get_canonical_block_by_slot = async_method('get_canonical_block_by_slot')
     coro_get_canonical_head = async_method('get_canonical_head')
     coro_get_canonical_head_root = async_method('get_canonical_head_root')

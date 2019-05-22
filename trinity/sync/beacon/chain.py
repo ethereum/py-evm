@@ -45,6 +45,9 @@ from trinity.sync.beacon.constants import (
 from trinity.sync.common.chain import (
     SyncBlockImporter,
 )
+from eth2.configs import (
+    Eth2GenesisConfig,
+)
 
 
 class BeaconChainSyncer(BaseService):
@@ -54,12 +57,14 @@ class BeaconChainSyncer(BaseService):
                  chain_db: BaseAsyncBeaconChainDB,
                  peer_pool: BCCPeerPool,
                  block_importer: SyncBlockImporter,
+                 genesis_config: Eth2GenesisConfig,
                  token: CancelToken = None) -> None:
         super().__init__(token)
 
         self.chain_db = chain_db
         self.peer_pool = peer_pool
         self.block_importer = block_importer
+        self.genesis_config = genesis_config
 
         self.sync_peer: BCCPeer = None
 
@@ -125,7 +130,7 @@ class BeaconChainSyncer(BaseService):
             finalized_slot = finalized_head.slot
         # TODO(ralexstokes) look at better way to handle once we have fork choice in place
         except FinalizedHeadNotFound:
-            finalized_slot = self.chain_db.genesis_config.GENESIS_SLOT
+            finalized_slot = self.genesis_config.GENESIS_SLOT
 
         self.logger.info(
             "Syncing with %s (their head slot: %d, our finalized slot: %d)",
