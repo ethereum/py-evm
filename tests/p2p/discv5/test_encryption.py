@@ -16,6 +16,7 @@ from p2p.discv5.encryption import (
     aesgcm_encrypt,
     aesgcm_decrypt,
     validate_aes128_key,
+    validate_nonce,
     AES128Key,
     Nonce,
 )
@@ -28,15 +29,29 @@ from p2p.discv5.constants import (
 key_st = st.binary(min_size=AES128_KEY_SIZE, max_size=AES128_KEY_SIZE)
 nonce_st = st.binary(min_size=NONCE_SIZE, max_size=NONCE_SIZE)
 plain_text_st = st.binary(min_size=0, max_size=10)
-cipher_text_st = st.binary(min_size=0, max_size=10)
 aad_st = st.binary(min_size=0, max_size=10)
 
 
 def test_key_validation_invalid():
-    for length in (0, 15, 17, 32):
+    for length in (0, 12, 15, 17, 32):
         with pytest.raises(ValidationError):
             validate_aes128_key(AES128Key(b"\x00" * length))
-    validate_aes128_key(AES128Key(b"\x00" * 16))
+
+
+@given(key_st)
+def test_key_validation_valid(key):
+    validate_aes128_key(AES128Key(key))
+
+
+def test_nonce_validation_invalid():
+    for length in (0, 11, 13, 16):
+        with pytest.raises(ValidationError):
+            validate_nonce(Nonce(b"\x00" * length))
+
+
+@given(nonce_st)
+def test_nonce_validation_valid(key):
+    validate_nonce(Nonce(key))
 
 
 def test_decryption_with_wrong_inputs():
