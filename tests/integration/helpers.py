@@ -13,7 +13,11 @@ async def scan_for_errors(async_iterable):
     uncaught exception.
     """
 
-    error_trigger = ("exception was never retrieved", "Traceback (most recent call last)")
+    error_trigger = (
+        "exception was never retrieved",
+        "Task was destroyed but it is pending",
+        "Traceback (most recent call last)",
+    )
 
     lines_since_error = 0
     async for line in async_iterable:
