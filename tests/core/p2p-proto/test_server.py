@@ -182,7 +182,7 @@ async def test_peer_pool_answers_connect_commands(event_loop, event_bus, server)
             TO_NETWORKING_BROADCAST_CONFIG
         )
 
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.1)
 
         assert len(server.peer_pool.connected_nodes) == 1
 

@@ -55,7 +55,7 @@ async def test_cancel_exits_async_generator():
 
     async def async_iterator():
         yield 1
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.05)
         assert False, "iterator should have been cancelled by now"
 
     try:
