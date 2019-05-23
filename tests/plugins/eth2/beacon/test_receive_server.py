@@ -582,9 +582,53 @@ def test_attestation_pool(mock_attestation):
     assert pool.get(a1.root) == a1
     assert pool.get(a2.root) == a2
     # test: get_all
-    assert a1 in pool.get_all() and a2 in pool.get_all()
+    assert set([a1, a2]) == set(pool.get_all())
     # test: remove
     pool.remove([a3])
     assert len(pool._pool) == 2
     pool.remove([a2, a1])
     assert len(pool._pool) == 0
+
+
+@pytest.mark.asyncio
+async def test_bcc_receive_server_get_ready_attestations(
+        request,
+        event_loop,
+        monkeypatch,
+        mock_attestation):
+    alice, _, bob_recv_server, _ = await get_peer_and_receive_server(
+        request,
+        event_loop,
+    )
+    attesting_slot = XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
+    a1 = mock_attestation.copy(
+        data=mock_attestation.data.copy(
+            slot=attesting_slot,
+        ),
+    )
+    a2 = a1.copy(
+        data=a1.data.copy(
+            shard=a1.data.shard + 1,
+        ),
+    )
+    a3 = a1.copy(
+        data=a1.data.copy(
+            slot=attesting_slot + 1,
+        ),
+    )
+    bob_recv_server.attestation_pool.add([a1, a2, a3])
+
+    ready_attestations = bob_recv_server.get_ready_attestations(
+        attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY - 1,
+    )
+    assert len(ready_attestations) == 0
+
+    ready_attestations = bob_recv_server.get_ready_attestations(
+        attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY,
+    )
+    assert set([a1, a2]) == set(ready_attestations)
+
+    ready_attestations = bob_recv_server.get_ready_attestations(
+        attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY + 1,
+    )
+    assert set([a1, a2, a3]) == set(ready_attestations)
