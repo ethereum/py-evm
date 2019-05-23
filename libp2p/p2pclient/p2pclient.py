@@ -1,5 +1,4 @@
 import asyncio
-import binascii
 import logging
 from typing import (
     AsyncGenerator,

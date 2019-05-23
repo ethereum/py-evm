@@ -1,5 +1,3 @@
-import binascii
-
 import pytest
 
 from multiaddr import (

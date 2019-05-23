@@ -1,4 +1,3 @@
-import binascii
 from typing import (
     Any,
     List,
