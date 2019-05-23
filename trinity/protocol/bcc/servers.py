@@ -554,3 +554,10 @@ class BCCReceiveServer(BaseReceiveServer):
 
     def _is_block_seen(self, block: BaseBeaconBlock) -> bool:
         return self._is_block_root_seen(block_root=block.signing_root)
+
+    @to_tuple
+    def get_ready_attestations(self, inclusion_slot: Slot) -> Iterable[Attestation]:
+        config = self.chain.get_state_machine().config
+        for attestation in self.attestation_pool.get_all():
+            if attestation.data.slot + config.MIN_ATTESTATION_INCLUSION_DELAY <= inclusion_slot:
+                yield attestation
