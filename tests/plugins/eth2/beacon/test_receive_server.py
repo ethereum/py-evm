@@ -581,6 +581,8 @@ def test_attestation_pool(mock_attestation):
         pass
     assert pool.get(a1.root) == a1
     assert pool.get(a2.root) == a2
+    # test: get_all
+    assert a1 in pool.get_all() and a2 in pool.get_all()
     # test: remove
     pool.remove([a3])
     assert len(pool._pool) == 2

@@ -246,6 +246,9 @@ class AttestationPool:
                 return attestation
         raise AttestationNotFound(f"No attestation with root {attestation_root} is found.")
 
+    def get_all(self) -> Tuple[Attestation, ...]:
+        return tuple(self._pool)
+
     def add(self, attestations: Iterable[Attestation]) -> None:
         for attestation in attestations:
             if attestation in self._pool:
