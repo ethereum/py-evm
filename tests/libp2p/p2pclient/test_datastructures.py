@@ -1,5 +1,3 @@
-import binascii
-
 import pytest
 
 from multiaddr import (
@@ -60,7 +58,7 @@ def test_stream_info(peer_id, maddr):
     # test case: `StreamInfo.to_pb`
     pb_si = si.to_pb()
     assert pb_si.peer == peer_id.to_bytes()
-    assert pb_si.addr == binascii.unhexlify(maddr.to_bytes())
+    assert pb_si.addr == maddr.to_bytes()
     assert pb_si.proto == si.proto
     # test case: `StreamInfo.from_pb`
     si_1 = StreamInfo.from_pb(pb_si)
@@ -77,7 +75,7 @@ def test_peer_info(peer_id, maddr):
     # test case: `PeerInfo.from_pb`
     pi_pb = p2pd_pb.PeerInfo(
         id=peer_id.to_bytes(),
-        addrs=[binascii.unhexlify(maddr.to_bytes())],
+        addrs=[maddr.to_bytes()],
     )
     pi_1 = PeerInfo.from_pb(pi_pb)
     assert pi.peer_id == pi_1.peer_id

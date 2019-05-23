@@ -1,5 +1,4 @@
 import asyncio
-import binascii
 import logging
 from typing import (
     AsyncGenerator,
@@ -175,7 +174,7 @@ class ControlClient:
         maddrs_bytes = resp.identify.addrs
 
         maddrs = tuple(
-            Multiaddr(binascii.hexlify(maddr_bytes))
+            Multiaddr(maddr_bytes)
             for maddr_bytes in maddrs_bytes
         )
         peer_id = PeerID(peer_id_bytes)
@@ -185,7 +184,7 @@ class ControlClient:
     async def connect(self, peer_id: PeerID, maddrs: Iterable[Multiaddr]) -> None:
         reader, writer = await self.client.open_connection()
 
-        maddrs_bytes = [binascii.unhexlify(i.to_bytes()) for i in maddrs]
+        maddrs_bytes = [i.to_bytes() for i in maddrs]
         connect_req = p2pd_pb.ConnectRequest(
             peer=peer_id.to_bytes(),
             addrs=maddrs_bytes,
@@ -259,7 +258,7 @@ class ControlClient:
     async def stream_handler(self, proto: str, handler_cb: StreamHandler) -> None:
         reader, writer = await self.client.open_connection()
 
-        listen_path_maddr_bytes = binascii.unhexlify(self.listen_maddr.to_bytes())
+        listen_path_maddr_bytes = self.listen_maddr.to_bytes()
         stream_handler_req = p2pd_pb.StreamHandlerRequest(
             addr=listen_path_maddr_bytes,
             proto=[proto],
