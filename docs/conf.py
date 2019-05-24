@@ -181,7 +181,7 @@ texinfo_documents = [
 # -- Intersphinx configuration ------------------------------------------------
 
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.5', None),
+    'python': ('https://docs.python.org/3.6', None),
     'eth-typing': ('https://eth-typing.readthedocs.io/en/latest', None),
 }
 
