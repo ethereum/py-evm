@@ -22,12 +22,12 @@ from .state_transitions import SerenityStateTransition
 class SerenityStateMachine(BeaconStateMachine):
     # fork name
     fork = 'serenity'  # type: str
+    config = SERENITY_CONFIG
 
     # classes
     block_class = SerenityBeaconBlock  # type: Type[BaseBeaconBlock]
     state_class = SerenityBeaconState  # type: Type[BeaconState]
     state_transition_class = SerenityStateTransition  # type: Type[BaseStateTransition]
-    config = SERENITY_CONFIG
 
     # methods
     @staticmethod

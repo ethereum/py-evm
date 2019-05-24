@@ -26,12 +26,12 @@ from .configs import (
 class XiaoLongBaoStateMachine(BeaconStateMachine):
     # fork name
     fork = 'xiao_long_bao'
+    config = XIAO_LONG_BAO_CONFIG
 
     # classes
     block_class = SerenityBeaconBlock
     state_class = SerenityBeaconState
     state_transition_class = SerenityStateTransition
-    config = XIAO_LONG_BAO_CONFIG
 
     # methods
     @staticmethod
