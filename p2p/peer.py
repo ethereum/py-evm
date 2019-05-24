@@ -355,7 +355,7 @@ class BasePeer(BaseService):
                 self.process_msg(cmd, msg)
             except RemoteDisconnected as e:
                 if self.uptime < BLACKLIST_SECONDS_QUICK_DISCONNECT:
-                    await self.connection_tracker.record_blacklist(
+                    self.connection_tracker.record_blacklist(
                         self.remote,
                         BLACKLIST_SECONDS_QUICK_DISCONNECT,
                         "Quick disconnect",

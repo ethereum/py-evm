@@ -49,6 +49,15 @@ class BlacklistRecord(Base):
     error_count = Column(Integer, default=1, nullable=False)
 
 
+def adjust_repeat_offender_timeout(base_timeout: float, error_count: int) -> datetime.datetime:
+    """
+    sub-linear scaling based on number of errors recorded against the offender.
+    """
+    adjusted_timeout_seconds = int(base_timeout * math.sqrt(error_count + 1))
+    delta = datetime.timedelta(seconds=adjusted_timeout_seconds)
+    return datetime.datetime.utcnow() + delta
+
+
 class SQLiteConnectionTracker(BaseConnectionTracker):
     def __init__(self, session: BaseSession):
         self.session = session
@@ -57,10 +66,17 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
     # Core API
     #
     def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
-        if self._record_exists(remote.uri()):
-            self._update_record(remote, timeout_seconds, reason)
+        try:
+            record = self._get_record(remote.uri())
+        except NoResultFound:
+            expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=timeout_seconds)
+            self._create_record(remote, expires_at, reason)
         else:
-            self._create_record(remote, timeout_seconds, reason)
+            scaled_expires_at = adjust_repeat_offender_timeout(
+                timeout_seconds,
+                record.error_count + 1,
+            )
+            self._update_record(remote, scaled_expires_at, reason)
 
     async def should_connect_to(self, remote: Node) -> bool:
         try:
@@ -96,29 +112,29 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
         else:
             return True
 
-    def _create_record(self, remote: Node, timeout_seconds: int, reason: str) -> None:
+    def _create_record(self, remote: Node, expires_at: datetime.datetime, reason: str) -> None:
         uri = remote.uri()
-        expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=timeout_seconds)
 
         record = BlacklistRecord(uri=uri, expires_at=expires_at, reason=reason)
         self.session.add(record)
         # mypy doesn't know about the type of the `commit()` function
         self.session.commit()  # type: ignore
 
+        usable_delta = expires_at - datetime.datetime.utcnow()
         self.logger.debug(
             '%s will not be retried for %s because %s',
             remote,
-            humanize_seconds(timeout_seconds),
+            humanize_seconds(usable_delta.total_seconds()),
             reason,
         )
 
-    def _update_record(self, remote: Node, timeout_seconds: int, reason: str) -> None:
+    def _update_record(self, remote: Node, expires_at: datetime.datetime, reason: str) -> None:
         uri = remote.uri()
         record = self._get_record(uri)
-        record.error_count += 1
 
-        adjusted_timeout_seconds = int(timeout_seconds * math.sqrt(record.error_count))
-        record.expires_at += datetime.timedelta(seconds=adjusted_timeout_seconds)
+        if expires_at > record.expires_at:
+            # only update expiration if it is further in the future than the existing expiration
+            record.expires_at = expires_at
         record.reason = reason
         record.error_count += 1
 
@@ -126,10 +142,11 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
         # mypy doesn't know about the type of the `commit()` function
         self.session.commit()  # type: ignore
 
+        usable_delta = expires_at - datetime.datetime.utcnow()
         self.logger.debug(
             '%s will not be retried for %s because %s',
             remote,
-            humanize_seconds(adjusted_timeout_seconds),
+            humanize_seconds(usable_delta.total_seconds()),
             reason,
         )
 
