@@ -33,7 +33,7 @@ class XiaoLongBaoStateMachine(BeaconStateMachine):
     block_class = SerenityBeaconBlock
     state_class = SerenityBeaconState
     state_transition_class = SerenityStateTransition
-    fork_choice_scoring = higher_slot_scoring
+    fork_choice_scoring = staticmethod(higher_slot_scoring)
 
     # methods
     @staticmethod
