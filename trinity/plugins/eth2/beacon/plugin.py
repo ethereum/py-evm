@@ -127,6 +127,7 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
             validator_privkeys=validator_privkeys,
             event_bus=self.event_bus,
             token=server.cancel_token,
+            get_ready_attestations_fn=server.receive_server.get_ready_attestations,
         )
 
         slot_ticker = SlotTicker(
