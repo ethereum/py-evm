@@ -4,7 +4,8 @@ Release notes
 Unreleased (latest source)
 --------------------------
 
-TBD
+- `#1785 <https://github.com/ethereum/py-evm/pull/1785>`_: Breaking Change: Dropped python3.5 support
+
 
 0.2.0-alpha.43
 --------------------------
