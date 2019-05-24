@@ -49,6 +49,15 @@ class BlacklistRecord(Base):
     error_count = Column(Integer, default=1, nullable=False)
 
 
+def adjust_repeat_offender_timeout(base_timeout: float, error_count: int) -> datetime.datetime:
+    """
+    sub-linear scaling based on number of errors recorded against the offender.
+    """
+    adjusted_timeout_seconds = int(base_timeout * math.sqrt(error_count + 1))
+    delta = datetime.timedelta(seconds=adjusted_timeout_seconds)
+    return datetime.datetime.utcnow() + delta
+
+
 class SQLiteConnectionTracker(BaseConnectionTracker):
     def __init__(self, session: BaseSession):
         self.session = session
@@ -63,9 +72,10 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
             expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=timeout_seconds)
             self._create_record(remote, expires_at, reason)
         else:
-            adjusted_timeout_seconds = int(timeout_seconds * math.sqrt(record.error_count + 1))
-            delta = datetime.timedelta(seconds=adjusted_timeout_seconds)
-            scaled_expires_at = datetime.datetime.utcnow() + delta
+            scaled_expires_at = adjust_repeat_offender_timeout(
+                timeout_seconds,
+                record.error_count + 1,
+            )
             self._update_record(remote, scaled_expires_at, reason)
 
     async def should_connect_to(self, remote: Node) -> bool:
