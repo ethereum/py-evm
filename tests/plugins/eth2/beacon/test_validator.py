@@ -98,10 +98,15 @@ async def get_validator(event_loop, event_bus, indices) -> Validator:
         index: keymap[index_to_pubkey[index]]
         for index in indices
     }
+
+    def get_ready_attestations_fn(slot):
+        return ()
+
     v = Validator(
         chain=chain,
         peer_pool=peer_pool,
         validator_privkeys=validator_privkeys,
+        get_ready_attestations_fn=get_ready_attestations_fn,
         event_bus=event_bus,
     )
     asyncio.ensure_future(v.run(), loop=event_loop)
@@ -380,3 +385,40 @@ async def test_validator_attest(event_loop, event_bus, monkeypatch):
         config.SLOTS_PER_HISTORICAL_ROOT,
         CommitteeConfig(config),
     )
+
+
+@pytest.mark.asyncio
+async def test_validator_include_ready_attestations(event_loop, event_bus, monkeypatch):
+    # Alice controls all validators
+    alice_indices = list(range(8))
+    alice = await get_validator(event_loop=event_loop, event_bus=event_bus, indices=alice_indices)
+    state_machine = alice.chain.get_state_machine()
+    state = state_machine.state
+
+    attesting_slot = state.slot + 1
+    attestations = await alice.attest(attesting_slot)
+
+    # Mock `get_ready_attestations_fn` so it returns the attestation alice
+    # attested to.
+    def get_ready_attestations_fn(slog):
+        return attestations
+    monkeypatch.setattr(alice, 'get_ready_attestations', get_ready_attestations_fn)
+
+    proposing_slot = attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
+    proposer_index = _get_proposer_index(
+        state,
+        proposing_slot,
+        state_machine.config,
+    )
+
+    head = alice.chain.get_canonical_head()
+    block = alice.propose_block(
+        proposer_index=proposer_index,
+        slot=proposing_slot,
+        state=state,
+        state_machine=state_machine,
+        head_block=head,
+    )
+
+    # Check that attestation is included in the proposed block.
+    assert attestations[0] in block.body.attestations
