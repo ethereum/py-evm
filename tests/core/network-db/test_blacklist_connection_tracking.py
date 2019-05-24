@@ -26,7 +26,7 @@ async def test_records_failures():
     node = NodeFactory()
     assert await connection_tracker.should_connect_to(node) is True
 
-    await connection_tracker.record_failure(node, HandshakeFailure())
+    connection_tracker.record_failure(node, HandshakeFailure())
 
     assert await connection_tracker.should_connect_to(node) is False
     assert connection_tracker._record_exists(node.uri())
@@ -38,7 +38,7 @@ async def test_memory_does_not_persist():
 
     connection_tracker_a = MemoryConnectionTracker()
     assert await connection_tracker_a.should_connect_to(node) is True
-    await connection_tracker_a.record_failure(node, HandshakeFailure())
+    connection_tracker_a.record_failure(node, HandshakeFailure())
     assert await connection_tracker_a.should_connect_to(node) is False
 
     # open a second instance
@@ -56,7 +56,7 @@ async def test_sql_does_persist(tmpdir):
 
     connection_tracker_a = SQLiteConnectionTracker(get_tracking_database(db_path))
     assert await connection_tracker_a.should_connect_to(node) is True
-    await connection_tracker_a.record_failure(node, HandshakeFailure())
+    connection_tracker_a.record_failure(node, HandshakeFailure())
     assert await connection_tracker_a.should_connect_to(node) is False
     del connection_tracker_a
 
@@ -73,7 +73,7 @@ async def test_timeout_works():
     connection_tracker = MemoryConnectionTracker()
     assert await connection_tracker.should_connect_to(node) is True
 
-    await connection_tracker.record_failure(node, HandshakeFailure())
+    connection_tracker.record_failure(node, HandshakeFailure())
     assert await connection_tracker.should_connect_to(node) is False
 
     record = connection_tracker._get_record(node.uri())

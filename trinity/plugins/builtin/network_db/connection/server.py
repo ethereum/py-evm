@@ -47,7 +47,7 @@ class ConnectionTrackerServer(BaseService):
                 humanize_seconds(command.timeout_seconds),
                 command.reason,
             )
-            await self.tracker.record_blacklist(
+            self.tracker.record_blacklist(
                 command.remote,
                 command.timeout_seconds,
                 command.reason

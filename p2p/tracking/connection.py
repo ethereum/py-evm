@@ -41,14 +41,14 @@ class BaseConnectionTracker(ABC):
     """
     logger = logging.getLogger('p2p.tracking.connection.ConnectionTracker')
 
-    async def record_failure(self, remote: Node, failure: BaseP2PError) -> None:
+    def record_failure(self, remote: Node, failure: BaseP2PError) -> None:
         timeout_seconds = get_timeout_for_failure(failure)
         failure_name = type(failure).__name__
 
-        return await self.record_blacklist(remote, timeout_seconds, failure_name)
+        return self.record_blacklist(remote, timeout_seconds, failure_name)
 
     @abstractmethod
-    async def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
+    def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
         pass
 
     @abstractmethod
@@ -57,7 +57,7 @@ class BaseConnectionTracker(ABC):
 
 
 class NoopConnectionTracker(BaseConnectionTracker):
-    async def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
+    def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
         pass
 
     async def should_connect_to(self, remote: Node) -> bool:
