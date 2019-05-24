@@ -410,7 +410,7 @@ class BeaconChain(BaseBeaconChain):
 
         self.chaindb.persist_block_without_scoring(imported_block, imported_block.__class__)
 
-        fork_choice_scoring = state_machine.fork_choice_scoring
+        fork_choice_scoring = state_machine.get_fork_choice_scoring()
         score = fork_choice_scoring(imported_block)
 
         self.chaindb.set_score(imported_block, score)

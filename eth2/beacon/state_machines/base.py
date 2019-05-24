@@ -38,7 +38,6 @@ class BaseBeaconStateMachine(Configurable, ABC):
     block_class = None  # type: Type[BaseBeaconBlock]
     state_class = None  # type: Type[BeaconState]
     state_transition_class = None  # type: Type[BaseStateTransition]
-    fork_choice_scoring = None  # type: ForkChoiceScoring
 
     @abstractmethod
     def __init__(self,
@@ -67,9 +66,8 @@ class BaseBeaconStateMachine(Configurable, ABC):
     def state_transition(self) -> BaseStateTransition:
         pass
 
-    @property
     @abstractmethod
-    def fork_choice_scoring(self) -> ForkChoiceScoring:
+    def get_fork_choice_scoring(self) -> ForkChoiceScoring:
         pass
 
     #
@@ -144,10 +142,6 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     @property
     def state_transition(self) -> BaseStateTransition:
         return self.get_state_transiton_class()(self.config)
-
-    @property
-    def fork_choice_scoring(self) -> ForkChoiceScoring:
-        return self.fork_choice_scoring
 
     #
     # Import block API

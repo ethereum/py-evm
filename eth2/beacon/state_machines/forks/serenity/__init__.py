@@ -1,6 +1,9 @@
 from typing import Type  # noqa: F401
 
-from eth2.beacon.fork_choice import higher_slot_scoring
+from eth2.beacon.fork_choice import (
+    ForkChoiceScoring,
+    higher_slot_scoring,
+)
 from eth2.beacon.typing import (
     FromBlockParams,
 )
@@ -29,10 +32,12 @@ class SerenityStateMachine(BeaconStateMachine):
     block_class = SerenityBeaconBlock  # type: Type[BaseBeaconBlock]
     state_class = SerenityBeaconState  # type: Type[BeaconState]
     state_transition_class = SerenityStateTransition  # type: Type[BaseStateTransition]
-    fork_choice_scoring = staticmethod(higher_slot_scoring)
 
     # methods
     @staticmethod
     def create_block_from_parent(parent_block: BaseBeaconBlock,
                                  block_params: FromBlockParams) -> BaseBeaconBlock:
         return create_serenity_block_from_parent(parent_block, block_params)
+
+    def get_fork_choice_scoring(self) -> ForkChoiceScoring:
+        return higher_slot_scoring

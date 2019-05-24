@@ -1,4 +1,7 @@
-from eth2.beacon.fork_choice import higher_slot_scoring
+from eth2.beacon.fork_choice import (
+    ForkChoiceScoring,
+    higher_slot_scoring,
+)
 from eth2.beacon.state_machines.base import (
     BeaconStateMachine,
 )
@@ -33,10 +36,12 @@ class XiaoLongBaoStateMachine(BeaconStateMachine):
     block_class = SerenityBeaconBlock
     state_class = SerenityBeaconState
     state_transition_class = SerenityStateTransition
-    fork_choice_scoring = staticmethod(higher_slot_scoring)
 
     # methods
     @staticmethod
     def create_block_from_parent(parent_block: BaseBeaconBlock,
                                  block_params: FromBlockParams) -> BaseBeaconBlock:
         return create_serenity_block_from_parent(parent_block, block_params)
+
+    def get_fork_choice_scoring(self) -> ForkChoiceScoring:
+        return higher_slot_scoring
