@@ -23,8 +23,8 @@ from trinity.config import (
     TrinityConfig,
 )
 from trinity.db.orm import get_tracking_database
-from trinity.extensibility.plugin import (
-    BaseIsolatedPlugin,
+from trinity.extensibility import (
+    AsyncioIsolatedPlugin,
 )
 from trinity.db.network import (
     get_networkdb_path,
@@ -52,7 +52,7 @@ from .eth1_peer_db.tracker import (
 )
 
 
-class NetworkDBPlugin(BaseIsolatedPlugin):
+class NetworkDBPlugin(AsyncioIsolatedPlugin):
     @property
     def name(self) -> str:
         return "Network Database"

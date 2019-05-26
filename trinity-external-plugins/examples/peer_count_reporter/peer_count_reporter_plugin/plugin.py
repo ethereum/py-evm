@@ -6,7 +6,7 @@ import asyncio
 
 from p2p.service import BaseService
 from trinity.endpoint import TrinityEventBusEndpoint
-from trinity.extensibility import BaseIsolatedPlugin
+from trinity.extensibility import AsyncioIsolatedPlugin
 from trinity.protocol.common.events import PeerCountRequest
 from trinity._utils.shutdown import exit_with_endpoint_and_services
 
@@ -34,7 +34,7 @@ class PeerCountReporter(BaseService):
             await asyncio.sleep(5)
 
 
-class PeerCountReporterPlugin(BaseIsolatedPlugin):
+class PeerCountReporterPlugin(AsyncioIsolatedPlugin):
 
     @property
     def name(self) -> str:

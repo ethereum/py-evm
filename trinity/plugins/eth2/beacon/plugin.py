@@ -23,24 +23,14 @@ from p2p.constants import (
 from trinity._utils.shutdown import (
     exit_with_endpoint_and_services,
 )
-from trinity.config import (
-    BeaconAppConfig,
-)
 from trinity.db.beacon.manager import (
     create_db_consumer_manager,
 )
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
-from trinity.extensibility import (
-    BaseIsolatedPlugin,
-)
-from trinity.server import (
-    BCCServer,
-)
-from trinity.sync.beacon.chain import (
-    BeaconChainSyncer,
-)
+from trinity.config import BeaconAppConfig
+from trinity.endpoint import TrinityEventBusEndpoint
+from trinity.extensibility import AsyncioIsolatedPlugin
+from trinity.server import BCCServer
+from trinity.sync.beacon.chain import BeaconChainSyncer
 from trinity.sync.common.chain import (
     SyncBlockImporter,
 )
@@ -53,7 +43,7 @@ from .validator import (
 )
 
 
-class BeaconNodePlugin(BaseIsolatedPlugin):
+class BeaconNodePlugin(AsyncioIsolatedPlugin):
 
     @property
     def name(self) -> str:

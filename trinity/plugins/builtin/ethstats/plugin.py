@@ -15,7 +15,7 @@ from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
 from trinity.extensibility import (
-    BaseIsolatedPlugin,
+    AsyncioIsolatedPlugin,
 )
 from trinity._utils.shutdown import (
     exit_with_endpoint_and_services,
@@ -31,7 +31,7 @@ DEFAULT_SERVERS_URLS = {
 }
 
 
-class EthstatsPlugin(BaseIsolatedPlugin):
+class EthstatsPlugin(AsyncioIsolatedPlugin):
     server_url: str
     server_secret: str
     stats_interval: int

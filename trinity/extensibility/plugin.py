@@ -23,20 +23,16 @@ from typing import (
 )
 
 from lahja import (
-    ConnectionConfig,
+    BaseEvent,
 )
 
 from trinity.config import (
     TrinityConfig
 )
-from trinity.constants import (
-    MAIN_EVENTBUS_ENDPOINT,
-)
 from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
 from trinity.extensibility.events import (
-    BaseEvent,
     PluginStartedEvent,
 )
 from trinity.extensibility.exceptions import (
@@ -230,15 +226,8 @@ class BaseIsolatedPlugin(BasePlugin):
     isolated plugin is stopped it does first receive a SIGINT followed by a SIGTERM soon after.
     It is up to the plugin to handle these signals accordingly.
     """
-
     _process: Process = None
     _event_bus: TrinityEventBusEndpoint = None
-
-    @property
-    def event_bus(self) -> TrinityEventBusEndpoint:
-        if self._event_bus is None:
-            self._event_bus = TrinityEventBusEndpoint()
-        return self._event_bus
 
     @property
     def process(self) -> Process:
@@ -259,41 +248,9 @@ class BaseIsolatedPlugin(BasePlugin):
         self._process.start()
         self.logger.info("Plugin started: %s (pid=%d)", self.name, self._process.pid)
 
+    @abstractmethod
     def _spawn_start(self) -> None:
-        log_queue = self.boot_info.boot_kwargs['log_queue']
-        level = self.boot_info.boot_kwargs.get('log_level', logging.INFO)
-        setup_queue_logging(log_queue, level)
-        if self.boot_info.args.log_levels:
-            setup_log_levels(self.boot_info.args.log_levels)
-
-        with self.boot_info.trinity_config.process_id_file(self.normalized_name):
-            loop = asyncio.get_event_loop()
-            asyncio.ensure_future(self._prepare_start())
-            loop.run_forever()
-            loop.close()
-
-    async def _prepare_start(self) -> None:
-        connection_config = ConnectionConfig.from_name(
-            self.normalized_name, self.boot_info.trinity_config.ipc_dir
-        )
-        await self.event_bus.start_serving(connection_config)
-        await self.event_bus.connect_to_endpoints(
-            ConnectionConfig.from_name(
-                MAIN_EVENTBUS_ENDPOINT, self.boot_info.trinity_config.ipc_dir
-            )
-        )
-        # This makes the `main` process aware of this Endpoint which will then propagate the info
-        # so that every other Endpoint can connect directly to the plugin Endpoint
-        await self.event_bus.announce_endpoint()
-        await self.event_bus.broadcast(
-            PluginStartedEvent(type(self))
-        )
-
-        # Whenever new EventBus Endpoints come up the `main` process broadcasts this event
-        # and we connect to every Endpoint directly
-        asyncio.ensure_future(self.event_bus.auto_connect_new_announced_endpoints())
-
-        self.do_start()
+        pass
 
     def stop(self) -> None:
         """
@@ -303,6 +260,13 @@ class BaseIsolatedPlugin(BasePlugin):
         event loop.
         """
         self._status = PluginStatus.STOPPED
+
+    def _setup_logging(self) -> None:
+        log_queue = self.boot_info.boot_kwargs['log_queue']
+        level = self.boot_info.boot_kwargs.get('log_level', logging.INFO)
+        setup_queue_logging(log_queue, level)
+        if self.boot_info.args.log_levels:
+            setup_log_levels(self.boot_info.args.log_levels)
 
 
 class DebugPlugin(BaseAsyncStopPlugin):
