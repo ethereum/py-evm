@@ -291,8 +291,7 @@ async def test_validator_handle_first_tick(event_loop, event_bus, monkeypatch):
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
 
-    # test: `handle_first_tick` should call `attest` and
-    # `propose_block` if the validator get selected
+    # test: `handle_first_tick` should call `propose_block` if the validator get selected
     def is_alice_selected(proposer_index):
         return proposer_index in alice.validator_privkeys
 
@@ -304,22 +303,15 @@ async def test_validator_handle_first_tick(event_loop, event_bus, monkeypatch):
     )
 
     is_proposing = None
-    is_attesting = None
 
     def propose_block(proposer_index, slot, state, state_machine, head_block):
         nonlocal is_proposing
         is_proposing = True
 
-    async def attest(slot):
-        nonlocal is_attesting
-        is_attesting = True
-
     monkeypatch.setattr(alice, 'propose_block', propose_block)
-    monkeypatch.setattr(alice, 'attest', attest)
 
     await alice.handle_first_tick(slot_to_propose)
     assert is_proposing
-    assert is_attesting
 
 
 @pytest.mark.asyncio
@@ -328,17 +320,25 @@ async def test_validator_handle_second_tick(event_loop, event_bus, monkeypatch):
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
 
-    # test: `handle_second_tick` should call `skip_block` if `state.slot` is behind latest slot
+    # test: `handle_second_tick` should call `attest`
+    # and skip_block` if `state.slot` is behind latest slot
     is_skipping = None
+    is_attesting = None
 
     def skip_block(slot, state, state_machine):
         nonlocal is_skipping
         is_skipping = True
 
+    async def attest(slot):
+        nonlocal is_attesting
+        is_attesting = True
+
     monkeypatch.setattr(alice, 'skip_block', skip_block)
+    monkeypatch.setattr(alice, 'attest', attest)
 
     await alice.handle_second_tick(state.slot + 1)
     assert is_skipping
+    assert is_attesting
 
 
 @pytest.mark.asyncio

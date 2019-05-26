@@ -209,8 +209,6 @@ class Validator(BaseService):
                 )
                 self.latest_proposed_epoch[proposer_index] = epoch
 
-        await self.attest(slot)
-
     async def handle_second_tick(self, slot: Slot) -> None:
         state_machine = self.chain.get_state_machine()
         state = state_machine.state
@@ -220,6 +218,8 @@ class Validator(BaseService):
                 state=state,
                 state_machine=state_machine,
             )
+
+        await self.attest(slot)
 
     def propose_block(self,
                       proposer_index: ValidatorIndex,
