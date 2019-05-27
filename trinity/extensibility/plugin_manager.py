@@ -85,7 +85,7 @@ class MainAndIsolatedProcessScope(BaseManagerProcessScope):
         :class:`~trinity.extensibility.plugin.BaseIsolatedPlugin` or
         :class:`~trinity.extensibility.plugin.BaseMainProcessPlugin`
         """
-        return issubclass(plugin, BaseIsolatedPlugin) or issubclass(plugin, BaseMainProcessPlugin)
+        return issubclass(plugin, (BaseIsolatedPlugin, BaseMainProcessPlugin))
 
     def create_plugin(self,
                       plugin_type: Type[TPlugin],
