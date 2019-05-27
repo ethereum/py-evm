@@ -17,6 +17,9 @@ from tests.integration.helpers import (
     scan_for_errors,
 )
 
+from trinity.config import (
+    TrinityConfig,
+)
 from trinity._utils.async_iter import (
     contains_all
 )
@@ -165,20 +168,99 @@ async def test_does_not_throw(async_process_runner, command):
 
 
 @pytest.mark.parametrize(
-    'command, expected_to_contain_log',
+    'command,expected_stderr_logs,unexpected_stderr_logs,expected_file_logs,unexpected_file_logs',
     (
-        (('trinity', '-l=DEBUG2'), True),
-        # We expect not to contain it because we set the p2p.discovery logger to only log errors
-        (('trinity', '-l=DEBUG2', '-l', 'p2p.discovery=ERROR'), False,)
+        (
+            # Default run without any flag
+            ('trinity',),
+            # Expected stderr logs
+            {'Started main process'},
+            # Unexpected stderr logs
+            {'DiscoveryProtocol  >>> ping'},
+            # Expected file logs
+            {'Started main process', 'Logging initialized'},
+            # Unexpected file logs
+            {'DiscoveryProtocol  >>> ping'},
+        ),
+        (
+            # Enable DEBUG2 logs across the board
+            ('trinity', '-l=DEBUG2'),
+            {'Started main process', 'DiscoveryProtocol  >>> ping'},
+            {},
+            {'Started main process', 'DiscoveryProtocol  >>> ping'},
+            {},
+        ),
+        (   # Enable DEBUG2 logs for everything except discovery which is reduced to ERROR logs
+            ('trinity', '-l=DEBUG2', '-l', 'p2p.discovery=ERROR'),
+            {'Started main process', 'ConnectionTrackerServer  Running task <coroutine object'},
+            {'DiscoveryProtocol  >>> ping'},
+            {'Started main process', 'ConnectionTrackerServer  Running task <coroutine object'},
+            {'DiscoveryProtocol  >>> ping'},
+        ),
+        (
+            # Reduce stderr logging to ERROR logs but report DEBUG2 or higher for file logs
+            ('trinity', '--stderr-log-level=ERROR', '--file-log-level=DEBUG2',),
+            {},
+            {'Started main process', 'DiscoveryProtocol  >>> ping'},
+            {'Started main process', 'DiscoveryProtocol  >>> ping'},
+            {},
+        ),
+        (
+            # Reduce everything to ERROR logs, except discovery that should report DEBUG2 or higher
+            ('trinity', '-l=ERROR', '-l', 'p2p.discovery=DEBUG2'),
+            {'DiscoveryProtocol  >>> ping'},
+            {'Started main process'},
+            {},
+            {},
+            # Increasing per-module log level to a higher value than the general log level does
+            # not yet work for file logging. Once https://github.com/ethereum/trinity/issues/689
+            # is resolved, the following should work.
+            # {'DiscoveryProtocol  >>> ping'},
+            # {'Started main process'},
+        )
     )
 )
 @pytest.mark.asyncio
-async def test_logger(async_process_runner, command, expected_to_contain_log):
-    await async_process_runner.run(command, timeout_sec=40)
-    actually_contains_log = await contains_all(async_process_runner.stderr, {
-        "DiscoveryProtocol  >>> ping",
-    })
-    assert actually_contains_log == expected_to_contain_log
+async def test_logger(async_process_runner,
+                      command,
+                      expected_stderr_logs,
+                      unexpected_stderr_logs,
+                      expected_file_logs,
+                      unexpected_file_logs):
+
+    def contains_substring(iterable, substring):
+        return any(substring in x for x in iterable)
+
+    await async_process_runner.run(command, timeout_sec=30)
+
+    stderr_logs = []
+
+    # Collect logs up to the point when the sync begins so that we have enough logs for assertions
+    async for line in async_process_runner.stderr:
+        if "FastChainBodySyncer" in line:
+            break
+        else:
+            stderr_logs.append(line)
+
+    for log in expected_stderr_logs:
+        if not contains_substring(stderr_logs, log):
+            assert False, f"Log should contain `{log}` but does not"
+
+    for log in unexpected_stderr_logs:
+        if contains_substring(stderr_logs, log):
+            assert False, f"Log should not contain `{log}` but does"
+
+    log_file_path = TrinityConfig(app_identifier="eth1", network_id=1).logfile_path
+    with open(log_file_path) as log_file:
+        file_content = log_file.read()
+
+        for log in expected_file_logs:
+            if log not in file_content:
+                assert False, f"Logfile should contain `{log}` but does not"
+
+        for log in unexpected_file_logs:
+            if log in file_content:
+                assert False, f"Logfile should not contain `{log}` but does"
 
 
 @pytest.mark.parametrize(

@@ -2,7 +2,6 @@ import functools
 import logging
 from logging import (
     Logger,
-    Formatter,
     StreamHandler
 )
 from logging.handlers import (
@@ -56,6 +55,12 @@ class TrinityLogFormatter(logging.Formatter):
             return super().format(record)
 
 
+LOG_FORMATTER = TrinityLogFormatter(
+    fmt='%(levelname)8s  %(asctime)s  %(shortname)20s  %(message)s',
+    datefmt='%m-%d %H:%M:%S'
+)
+
+
 class HasExtendedDebugLogger:
     _logger: ExtendedDebugLogger = None
 
@@ -71,38 +76,43 @@ class HasExtendedDebugLogger:
 
 def setup_log_levels(log_levels: Dict[str, int]) -> None:
     for name, level in log_levels.items():
+
+        # The root logger is configured separately
+        if name is None:
+            continue
+
+        handler_stream = logging.StreamHandler(sys.stderr)
+        handler_stream.setLevel(level)
+        handler_stream.setFormatter(LOG_FORMATTER)
+
         logger = logging.getLogger(name)
+        logger.propagate = False
         logger.setLevel(level)
+        logger.addHandler(handler_stream)
 
 
 def setup_trinity_stderr_logging(level: int=None,
-                                 ) -> Tuple[Logger, Formatter, StreamHandler]:
+                                 ) -> Tuple[Logger, StreamHandler]:
+
     if level is None:
         level = logging.INFO
-    logger = logging.getLogger('trinity')
-    logger.setLevel(logging.DEBUG)
+    logger = logging.getLogger()
+    logger.setLevel(0)
 
     handler_stream = logging.StreamHandler(sys.stderr)
     handler_stream.setLevel(level)
 
-    # TODO: allow configuring `detailed` logging
-    formatter = TrinityLogFormatter(
-        fmt='%(levelname)8s  %(asctime)s  %(shortname)20s  %(message)s',
-        datefmt='%m-%d %H:%M:%S'
-    )
-
-    handler_stream.setFormatter(formatter)
+    handler_stream.setFormatter(LOG_FORMATTER)
 
     logger.addHandler(handler_stream)
 
     logger.debug('Logging initialized: PID=%s', os.getpid())
 
-    return logger, formatter, handler_stream
+    return logger, handler_stream
 
 
 def setup_trinity_file_and_queue_logging(
         logger: Logger,
-        formatter: Formatter,
         handler_stream: StreamHandler,
         logfile_path: Path,
         level: int=None) -> Tuple[Logger, 'Queue[str]', QueueListener]:
@@ -120,7 +130,7 @@ def setup_trinity_file_and_queue_logging(
     )
 
     handler_file.setLevel(level)
-    handler_file.setFormatter(formatter)
+    handler_file.setFormatter(LOG_FORMATTER)
 
     logger.addHandler(handler_file)
 
