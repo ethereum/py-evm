@@ -474,6 +474,8 @@ class BCCReceiveServer(BaseReceiveServer):
             # depends on it. If there are, try to import them.
             # TODO: should be done asynchronously?
             self._try_import_orphan_blocks(block.signing_root)
+            # Remove attestations in block that are also in the attestation pool.
+            self.attestation_pool.remove(block.body.attestations)
             return True
 
     def _try_import_orphan_blocks(self, parent_root: Hash32) -> None:
