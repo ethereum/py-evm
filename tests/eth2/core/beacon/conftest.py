@@ -1,3 +1,4 @@
+from eth2.beacon.types.attestations import Attestation
 import pytest
 
 from eth.constants import (
@@ -383,6 +384,11 @@ def n_validators_state(filled_beacon_state, max_deposit_amount, n, config):
         ),
         validator_balances=(max_deposit_amount,) * validator_count,
     )
+
+
+@pytest.fixture
+def sample_attestation(sample_attestation_params):
+    return Attestation(**sample_attestation_params)
 
 
 #

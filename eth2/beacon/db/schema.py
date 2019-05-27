@@ -68,3 +68,10 @@ class SchemaV1(BaseSchema):
     @staticmethod
     def make_block_root_to_slot_lookup_key(block_root: Hash32) -> bytes:
         return b'v1:beacon:block-root-to-slot:%s' % block_root
+
+    #
+    # Attestaion
+    #
+    @staticmethod
+    def make_attestation_root_to_block_lookup_key(attestaton_root: Hash32) -> bytes:
+        return b'v1:beacon:attestation-root-to-block:%s' % attestaton_root

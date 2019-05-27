@@ -56,6 +56,7 @@ from eth2.beacon.validation import (
 )
 
 from eth2.beacon.db.exceptions import (
+    AttestationRootNotFound,
     FinalizedHeadNotFound,
     JustifiedHeadNotFound,
 )
@@ -64,6 +65,13 @@ from eth2.beacon.db.schema import SchemaV1
 from eth2.configs import (
     Eth2GenesisConfig,
 )
+
+
+class AttestationKey(ssz.Serializable):
+    fields = [
+        ('block_root', ssz.sedes.bytes32),
+        ('index', ssz.sedes.uint8),
+    ]
 
 
 class BaseBeaconChainDB(ABC):
@@ -151,6 +159,17 @@ class BaseBeaconChainDB(ABC):
     @abstractmethod
     def persist_state(self,
                       state: BeaconState) -> None:
+        pass
+
+    #
+    # Attestation API
+    #
+    @abstractmethod
+    def get_attestation_key_by_root(self, attestation_root: Hash32)-> Tuple[Hash32, int]:
+        pass
+
+    @abstractmethod
+    def attestation_exists(self, attestation_root: Hash32) -> bool:
         pass
 
     #
@@ -468,6 +487,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         )
         cls._add_block_root_to_slot_lookup(db, curr_block_head)
         cls._set_block_scores_to_db(db, curr_block_head)
+        cls._add_attestations_root_to_block_lookup(db, curr_block_head)
 
         orig_blocks_seq = concat([(first_block,), blocks_iterator])
 
@@ -488,6 +508,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             )
             cls._add_block_root_to_slot_lookup(db, curr_block_head)
             score = cls._set_block_scores_to_db(db, curr_block_head)
+            cls._add_attestations_root_to_block_lookup(db, curr_block_head)
 
         if no_canonical_head:
             return cls._set_as_canonical_chain_head(db, curr_block_head.signing_root, block_class)
@@ -718,6 +739,39 @@ class BeaconChainDB(BaseBeaconChainDB):
         genesis_root = genesis_block.signing_root
         self._update_finalized_head(genesis_root)
         self._update_justified_head(genesis_root, self.genesis_config.GENESIS_EPOCH)
+
+    #
+    # Attestation API
+    #
+
+    @staticmethod
+    def _add_attestations_root_to_block_lookup(db: BaseDB,
+                                               block: BaseBeaconBlock) -> None:
+        root = block.signing_root
+        for index, attestation in enumerate(block.body.attestations):
+            attestation_key = AttestationKey(root, index)
+            db.set(
+                SchemaV1.make_attestation_root_to_block_lookup_key(attestation.root),
+                ssz.encode(attestation_key),
+            )
+
+    def get_attestation_key_by_root(self, attestation_root: Hash32)-> Tuple[Hash32, int]:
+        return self._get_attestation_key_by_root(self.db, attestation_root)
+
+    @staticmethod
+    def _get_attestation_key_by_root(db: BaseDB, attestation_root: Hash32) -> Tuple[Hash32, int]:
+        try:
+            encoded_key = db[SchemaV1.make_attestation_root_to_block_lookup_key(attestation_root)]
+        except KeyError:
+            raise AttestationRootNotFound(
+                "Attestation root {0} not found".format(encode_hex(attestation_root))
+            )
+        attestation_key = ssz.decode(encoded_key, sedes=AttestationKey)
+        return attestation_key.block_root, attestation_key.index
+
+    def attestation_exists(self, attestation_root: Hash32) -> bool:
+        lookup_key = SchemaV1.make_attestation_root_to_block_lookup_key(attestation_root)
+        return self.exists(lookup_key)
 
     #
     # Raw Database API

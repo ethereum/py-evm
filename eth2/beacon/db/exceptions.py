@@ -17,3 +17,10 @@ class JustifiedHeadNotFound(BeaconDBException):
     Exception raised if no justified head is set in this database.
     """
     pass
+
+
+class AttestationRootNotFound(BeaconDBException):
+    """
+    Exception raised if no attestation root is set in this database.
+    """
+    pass

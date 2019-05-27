@@ -14,6 +14,10 @@ from eth2.beacon.state_machines.forks.serenity.blocks import (
 )
 from eth2.beacon.tools.builder.proposer import (
     create_mock_block,
+
+)
+from eth2.beacon.tools.builder.validator import (
+    create_mock_signed_attestations_at_slot,
 )
 from eth2.beacon.types.blocks import (
     BeaconBlock,
@@ -140,3 +144,47 @@ def test_from_genesis(base_db,
             block,
             config,
         )
+
+
+@pytest.mark.long
+@pytest.mark.parametrize(
+    (
+        'num_validators,'
+        'slots_per_epoch,'
+        'target_committee_size,'
+        'shard_count,'
+        'min_attestation_inclusion_delay,'
+    ),
+    [
+        (100, 16, 10, 10, 0),
+    ]
+)
+def test_get_attestation_root(valid_chain,
+                              genesis_block,
+                              genesis_state,
+                              config,
+                              keymap,
+                              min_attestation_inclusion_delay):
+    state_machine = valid_chain.get_state_machine(genesis_block)
+    attestations = create_mock_signed_attestations_at_slot(
+        state=genesis_state,
+        config=config,
+        state_machine=state_machine,
+        attestation_slot=genesis_block.slot,
+        beacon_block_root=genesis_block.signing_root,
+        keymap=keymap,
+    )
+    block = create_mock_block(
+        state=genesis_state,
+        config=config,
+        state_machine=state_machine,
+        block_class=genesis_block.__class__,
+        parent_block=genesis_block,
+        keymap=keymap,
+        slot=genesis_state.slot + 1,
+        attestations=attestations,
+    )
+    valid_chain.import_block(block)
+    # Only one attestation in attestations, so just check that one
+    a0 = attestations[0]
+    assert valid_chain.get_attestation_by_root(a0.root) == a0
