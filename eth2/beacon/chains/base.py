@@ -425,3 +425,6 @@ class BeaconChain(BaseBeaconChain):
         block_root, index = self.chaindb.get_attestation_key_by_root(attestation_root)
         block = self.get_block_by_root(block_root)
         return block.body.attestations[index]
+
+    def attestation_exists(self, attestation_root: Hash32) -> bool:
+        return self.chaindb.attestation_exists(attestation_root)
