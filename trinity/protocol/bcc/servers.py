@@ -46,6 +46,9 @@ from p2p.protocol import (
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
 )
+from eth2.beacon.db.exceptions import (
+    AttestationRootNotFound,
+)
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation,
 )
@@ -404,8 +407,8 @@ class BCCReceiveServer(BaseReceiveServer):
         """
         try:
             self.attestation_pool.get(attestation.root)
-            return True
-        except AttestationNotFound:
+            return self.chain.attestation_exists(attestation.root)
+        except (AttestationNotFound, AttestationRootNotFound):
             return False
 
     @to_tuple
