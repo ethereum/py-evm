@@ -13,4 +13,8 @@ def test_fork_choice_scoring(sample_beacon_block_params, slot):
         slot=slot,
     )
 
-    assert higher_slot_scoring(block) == slot
+    expected_score = slot
+
+    score = higher_slot_scoring(block)
+
+    assert score == expected_score
