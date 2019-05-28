@@ -1,3 +1,5 @@
+import random
+
 import pytest
 
 from hypothesis import (
@@ -40,7 +42,7 @@ def chaindb_at_genesis(chaindb, genesis_state, genesis_block):
     return chaindb
 
 
-@pytest.fixture(params=[0, 10, 999])
+@pytest.fixture(params=[1, 10, 999])
 def block(request, sample_beacon_block_params):
     return BeaconBlock(**sample_beacon_block_params).copy(
         previous_block_root=GENESIS_PARENT_HASH,
@@ -65,6 +67,11 @@ def block_with_attestation(chaindb, sample_block, sample_attestation):
         )
     )
     return block1, sample_attestation
+
+
+@pytest.fixture()
+def maximum_score_value():
+    return 2**64 - 1
 
 
 def test_chaindb_add_block_number_to_root_lookup(chaindb, block):
@@ -122,6 +129,15 @@ def test_chaindb_get_score(chaindb, sample_beacon_block_params):
     block1_score = ssz.decode(chaindb.db.get(block1_score_key), sedes=ssz.sedes.uint64)
     assert block1_score == 1
     assert chaindb.get_score(block1.signing_root) == 1
+
+
+def test_chaindb_set_score(chaindb, block, maximum_score_value):
+    score = random.randint(0, maximum_score_value)
+    chaindb.set_score(block, score)
+
+    block_score = chaindb.get_score(block.signing_root)
+
+    assert block_score == score
 
 
 def test_chaindb_get_block_by_root(chaindb, block):
