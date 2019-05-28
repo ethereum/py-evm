@@ -188,3 +188,4 @@ def test_get_attestation_root(valid_chain,
     # Only one attestation in attestations, so just check that one
     a0 = attestations[0]
     assert valid_chain.get_attestation_by_root(a0.root) == a0
+    assert valid_chain.attestation_exists(a0.root)
