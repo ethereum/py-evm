@@ -93,14 +93,6 @@ class BaseBeaconChainDB(ABC):
         pass
 
     @abstractmethod
-    def persist_block_without_scoring(
-            self,
-            block: BaseBeaconBlock,
-            block_class: Type[BaseBeaconBlock]
-    ) -> None:
-        pass
-
-    @abstractmethod
     def get_canonical_block_root(self, slot: int) -> Hash32:
         pass
 
@@ -155,14 +147,6 @@ class BaseBeaconChainDB(ABC):
             blocks: Iterable[BaseBeaconBlock],
             block_class: Type[BaseBeaconBlock]
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
-        pass
-
-    @abstractmethod
-    def update_canonical_head_if_needed(
-            self,
-            block: BaseBeaconBlock,
-            block_class: Type[BaseBeaconBlock]
-    )-> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         pass
 
     @abstractmethod
@@ -255,34 +239,6 @@ class BeaconChainDB(BaseBeaconChainDB):
         )
 
         return new_canonical_blocks, old_canonical_blocks
-
-    def persist_block_without_scoring(
-            self,
-            block: BaseBeaconBlock,
-            block_class: Type[BaseBeaconBlock]
-    ) -> None:
-        """
-        Persist the given block. Does not score the block or try to run the fork choice.
-        """
-        with self.db.atomic_batch() as db:
-            if block.is_genesis:
-                self._handle_exceptional_justification_and_finality(db, block)
-
-            self._persist_block_without_scoring(db, block, block_class)
-
-    @classmethod
-    def _persist_block_without_scoring(
-            cls,
-            db: 'BaseDB',
-            block: BaseBeaconBlock,
-            block_class: Type[BaseBeaconBlock]
-    ) -> None:
-        block_chain = (block, )
-        cls._persist_block_chain_without_scoring(
-            db,
-            block_chain,
-            block_class,
-        )
 
     #
     #
@@ -650,55 +606,6 @@ class BeaconChainDB(BaseBeaconChainDB):
             else:
                 block = cls._get_block_by_root(db, block.previous_block_root, block_class)
 
-    @classmethod
-    def _persist_block_chain_without_scoring(
-            cls,
-            db: BaseDB,
-            blocks: Iterable[BaseBeaconBlock],
-            block_class: Type[BaseBeaconBlock]
-    ) -> None:
-        blocks_iterator = iter(blocks)
-
-        try:
-            first_block = first(blocks_iterator)
-        except StopIteration:
-            return
-
-        is_genesis = first_block.is_genesis
-        if not is_genesis and not cls._block_exists(db, first_block.previous_block_root):
-            raise ParentNotFound(
-                "Cannot persist block ({}) with unknown parent ({})".format(
-                    encode_hex(first_block.signing_root),
-                    encode_hex(first_block.previous_block_root),
-                )
-            )
-
-        curr_block_head = first_block
-        db.set(
-            curr_block_head.signing_root,
-            ssz.encode(curr_block_head),
-        )
-        cls._add_block_root_to_slot_lookup(db, curr_block_head)
-
-        orig_blocks_seq = concat([(first_block,), blocks_iterator])
-
-        for parent, child in sliding_window(2, orig_blocks_seq):
-            if parent.signing_root != child.previous_block_root:
-                raise ValidationError(
-                    "Non-contiguous chain. Expected {} to have {} as parent but was {}".format(
-                        encode_hex(child.signing_root),
-                        encode_hex(parent.signing_root),
-                        encode_hex(child.previous_block_root),
-                    )
-                )
-
-            curr_block_head = child
-            db.set(
-                curr_block_head.signing_root,
-                ssz.encode(curr_block_head),
-            )
-            cls._add_block_root_to_slot_lookup(db, curr_block_head)
-
     @staticmethod
     def _add_block_slot_to_root_lookup(db: BaseDB, block: BaseBeaconBlock) -> None:
         """
@@ -726,24 +633,6 @@ class BeaconChainDB(BaseBeaconChainDB):
             block_root_to_slot_key,
             ssz.encode(block.slot, sedes=ssz.sedes.uint64),
         )
-
-    def update_canonical_head_if_needed(
-        self,
-        block: BaseBeaconBlock,
-        block_class: Type[BaseBeaconBlock]
-    ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
-        try:
-            previous_canonical_head = self.get_canonical_head(block_class).signing_root
-            head_score = self.get_score(previous_canonical_head)
-        except CanonicalHeadNotFound:
-            return self._set_as_canonical_chain_head(self.db, block.signing_root, block_class)
-
-        score = self.get_score(block.signing_root)
-
-        if score > head_score:
-            return self._set_as_canonical_chain_head(self.db, block.signing_root, block_class)
-        else:
-            return tuple(), tuple()
 
     #
     # Beacon State API
