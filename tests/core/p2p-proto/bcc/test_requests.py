@@ -32,6 +32,7 @@ from .helpers import (
     create_branch,
     get_directly_linked_peers_in_peer_pools,
 )
+from eth2.beacon.fork_choice import higher_slot_scoring
 from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
 
 
@@ -172,7 +173,8 @@ async def test_get_canonical_block_range_by_slot(request, event_loop, event_bus)
     canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
 
     for branch in [[genesis], base_branch, non_canonical_branch, canonical_branch]:
-        await chain_db.coro_persist_block_chain(branch, BeaconBlock)
+        scorings = (higher_slot_scoring for block in branch)
+        await chain_db.coro_persist_block_chain(branch, BeaconBlock, scorings)
 
     async with get_request_server_setup(
         request, event_loop, event_bus, chain_db
@@ -200,7 +202,8 @@ async def test_get_canonical_block_range_by_root(request, event_loop, event_bus)
     canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
 
     for branch in [[genesis], base_branch, non_canonical_branch, canonical_branch]:
-        await chain_db.coro_persist_block_chain(branch, BeaconBlock)
+        scorings = (higher_slot_scoring for block in branch)
+        await chain_db.coro_persist_block_chain(branch, BeaconBlock, scorings)
 
     async with get_request_server_setup(
         request, event_loop, event_bus, chain_db
@@ -228,7 +231,8 @@ async def test_get_incomplete_canonical_block_range(request, event_loop, event_b
     canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
 
     for branch in [[genesis], base_branch, non_canonical_branch, canonical_branch]:
-        await chain_db.coro_persist_block_chain(branch, BeaconBlock)
+        scorings = (higher_slot_scoring for block in branch)
+        await chain_db.coro_persist_block_chain(branch, BeaconBlock, scorings)
 
     async with get_request_server_setup(
         request, event_loop, event_bus, chain_db
@@ -256,7 +260,8 @@ async def test_get_non_canonical_branch(request, event_loop, event_bus):
     canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
 
     for branch in [[genesis], base_branch, non_canonical_branch, canonical_branch]:
-        await chain_db.coro_persist_block_chain(branch, BeaconBlock)
+        scorings = (higher_slot_scoring for block in branch)
+        await chain_db.coro_persist_block_chain(branch, BeaconBlock, scorings)
 
     async with get_request_server_setup(
         request, event_loop, event_bus, chain_db
