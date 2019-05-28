@@ -363,6 +363,8 @@ class BCCReceiveServer(BaseReceiveServer):
             self._is_attestation_new,
             valid_attestations,
         )
+        if len(valid_new_attestations) == 0:
+            return
         # Add the valid and new attestations to attestation pool.
         self.attestation_pool.add(valid_new_attestations)
         # Broadcast the valid and new attestations.
@@ -407,9 +409,9 @@ class BCCReceiveServer(BaseReceiveServer):
         """
         try:
             self.attestation_pool.get(attestation.root)
-            return self.chain.attestation_exists(attestation.root)
+            return not self.chain.attestation_exists(attestation.root)
         except (AttestationNotFound, AttestationRootNotFound):
-            return False
+            return True
 
     @to_tuple
     def _validate_attestations(self,
