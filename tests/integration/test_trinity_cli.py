@@ -47,7 +47,7 @@ from trinity._utils.async_iter import (
 )
 @pytest.mark.asyncio
 async def test_full_boot(async_process_runner, command):
-    await async_process_runner.run(command, timeout_sec=30)
+    await async_process_runner.run(command, timeout_sec=40)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
@@ -65,7 +65,7 @@ async def test_full_boot(async_process_runner, command):
 )
 @pytest.mark.asyncio
 async def test_txpool_full_boot(async_process_runner, command):
-    await async_process_runner.run(command, timeout_sec=30)
+    await async_process_runner.run(command, timeout_sec=40)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
@@ -84,7 +84,7 @@ async def test_txpool_full_boot(async_process_runner, command):
 )
 @pytest.mark.asyncio
 async def test_txpool_deactivated(async_process_runner, command):
-    await async_process_runner.run(command, timeout_sec=30)
+    await async_process_runner.run(command, timeout_sec=40)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
@@ -101,7 +101,7 @@ async def test_txpool_deactivated(async_process_runner, command):
 )
 @pytest.mark.asyncio
 async def test_light_boot(async_process_runner, command):
-    await async_process_runner.run(command, timeout_sec=30)
+    await async_process_runner.run(command, timeout_sec=40)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
@@ -117,7 +117,7 @@ async def test_light_boot(async_process_runner, command):
 )
 @pytest.mark.asyncio
 async def test_web3(command, async_process_runner):
-    await async_process_runner.run(command, timeout_sec=30)
+    await async_process_runner.run(command, timeout_sec=40)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
@@ -174,7 +174,7 @@ async def test_does_not_throw(async_process_runner, command):
 )
 @pytest.mark.asyncio
 async def test_logger(async_process_runner, command, expected_to_contain_log):
-    await async_process_runner.run(command, timeout_sec=30)
+    await async_process_runner.run(command, timeout_sec=40)
     actually_contains_log = await contains_all(async_process_runner.stderr, {
         "DiscoveryProtocol  >>> ping",
     })
@@ -196,7 +196,7 @@ async def test_shutdown(command, async_process_runner):
     async def run_then_shutdown_and_yield_output():
         # This test spins up Trinity, waits until it has started syncing, sends a SIGINT and then
         # tries to scan the entire shutdown process for errors. It needs a little bit more time.
-        await async_process_runner.run(command, timeout_sec=40)
+        await async_process_runner.run(command, timeout_sec=50)
 
         # Somewhat arbitrary but we wait until the syncer starts before we trigger the shutdown.
         # At this point, most of the internals should be set up, leaving us with more room for
