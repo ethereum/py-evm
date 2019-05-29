@@ -5,6 +5,13 @@ class BeaconDBException(Exception):
     pass
 
 
+class StateNotFound(BeaconDBException):
+    """
+    Exception raised if state root with the given slot number does not exist.
+    """
+    pass
+
+
 class FinalizedHeadNotFound(BeaconDBException):
     """
     Exception raised if no finalized head is set in this database.
