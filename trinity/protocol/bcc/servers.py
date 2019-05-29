@@ -257,7 +257,7 @@ class AttestationPool:
         return tuple(self._pool)
 
     def add(self, attestations: Iterable[Attestation]) -> None:
-        self._pool.union(set(attestations))
+        self._pool = self._pool.union(set(attestations))
 
     def remove(self, attestations: Iterable[Attestation]) -> None:
         self._pool.difference_update(attestations)
