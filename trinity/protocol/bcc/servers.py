@@ -236,7 +236,7 @@ class AttestationPool:
         elif isinstance(attestation_or_root, bytes):
             attestation_root = attestation_or_root
         else:
-            raise TypeError("`attestation_or_root` should be `Attestation` or `Hash32`")
+            raise TypeError(f"`attestation_or_root` should be `Attestation` or `Hash32`, got {type(attestation_or_root)}")
         try:
             self.get(attestation_root)
             return True
