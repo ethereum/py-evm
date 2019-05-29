@@ -236,7 +236,10 @@ class AttestationPool:
         elif isinstance(attestation_or_root, bytes):
             attestation_root = attestation_or_root
         else:
-            raise TypeError(f"`attestation_or_root` should be `Attestation` or `Hash32`, got {type(attestation_or_root)}")
+            raise TypeError(
+                f"`attestation_or_root` should be `Attestation` or `Hash32`,"
+                f" got {type(attestation_or_root)}"
+            )
         try:
             self.get(attestation_root)
             return True
@@ -254,10 +257,7 @@ class AttestationPool:
         return tuple(self._pool)
 
     def add(self, attestations: Iterable[Attestation]) -> None:
-        for attestation in attestations:
-            if attestation in self._pool:
-                continue
-            self._pool.add(attestation)
+        self._pool.union(set(attestations))
 
     def remove(self, attestations: Iterable[Attestation]) -> None:
         self._pool.difference_update(attestations)
