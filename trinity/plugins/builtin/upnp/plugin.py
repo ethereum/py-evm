@@ -4,11 +4,6 @@ from argparse import (
 )
 import asyncio
 
-
-from p2p.nat import (
-    UPnPService,
-)
-
 from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
@@ -17,6 +12,9 @@ from trinity.extensibility import (
 )
 from trinity._utils.shutdown import (
     exit_with_endpoint_and_services,
+)
+from .nat import (
+    UPnPService
 )
 
 
