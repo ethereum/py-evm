@@ -657,6 +657,19 @@ class BeaconChainDB(BaseBeaconChainDB):
     #
     # Beacon State API
     #
+    def _add_slot_to_state_root_lookup(self, slot: Slot, state_root: Hash32) -> None:
+        """
+        Set a record in the database to allow looking up the state root by
+        slot number.
+        """
+        slot_to_state_root_key = SchemaV1.make_slot_to_state_root_lookup_key(
+            slot
+        )
+        self.db.set(
+            slot_to_state_root_key,
+            ssz.encode(state_root, sedes=ssz.sedes.byte_list),
+        )
+
     def get_state_by_root(self, state_root: Hash32, state_class: Type[BeaconState]) -> BeaconState:
         return self._get_state_by_root(self.db, state_root, state_class)
 
@@ -690,6 +703,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             state.root,
             ssz.encode(state),
         )
+        self._add_slot_to_state_root_lookup(state.slot, state.root)
 
         self._persist_finalized_head(state)
         self._persist_justified_head(state)
