@@ -155,32 +155,30 @@ class BeaconChainSyncer(BaseService):
                     break
             last_block = batch[-1]
 
-            try:
-                await self.chain_db.coro_persist_block_chain(batch, BeaconBlock)
-            except ValidationError as exception:
-                self.logger.info(f"Received invalid batch from {self.sync_peer}: {exception}")
-                break
-
             for block in batch:
                 # Copied from `RegularChainBodySyncer._import_blocks`
-                _, new_canonical_blocks, old_canonical_blocks = self.block_importer.import_block(block)  # noqa: E501
+                try:
+                    _, new_canonical_blocks, old_canonical_blocks = self.block_importer.import_block(block)  # noqa: E501
 
-                if new_canonical_blocks == (block,):
-                    # simple import of a single new block.
-                    self.logger.info("Imported block %d", block.slot)
-                elif not new_canonical_blocks:
-                    # imported block from a fork.
-                    self.logger.info("Imported non-canonical block %d", block.slot)
-                elif old_canonical_blocks:
-                    self.logger.info(
-                        "Chain Reorganization: Imported block %d"
-                        ", %d blocks discarded and %d new canonical blocks added",
-                        block.slot,
-                        len(old_canonical_blocks),
-                        len(new_canonical_blocks),
-                    )
-                else:
-                    raise Exception("Invariant: unreachable code path")
+                    if new_canonical_blocks == (block,):
+                        # simple import of a single new block.
+                        self.logger.info("Imported block %d", block.slot)
+                    elif not new_canonical_blocks:
+                        # imported block from a fork.
+                        self.logger.info("Imported non-canonical block %d", block.slot)
+                    elif old_canonical_blocks:
+                        self.logger.info(
+                            "Chain Reorganization: Imported block %d"
+                            ", %d blocks discarded and %d new canonical blocks added",
+                            block.slot,
+                            len(old_canonical_blocks),
+                            len(new_canonical_blocks),
+                        )
+                    else:
+                        raise Exception("Invariant: unreachable code path")
+                except ValidationError as error:
+                        self.logger.info(f"Received invalid block from {self.sync_peer}: {error}")
+                        break
 
     async def request_batches(self,
                               start_slot: Slot,
