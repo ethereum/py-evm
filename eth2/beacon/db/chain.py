@@ -63,6 +63,7 @@ from eth2.beacon.db.exceptions import (
     FinalizedHeadNotFound,
     JustifiedHeadNotFound,
     MissingForkChoiceScorings,
+    StateNotFound,
 )
 from eth2.beacon.db.schema import SchemaV1
 
@@ -162,6 +163,10 @@ class BaseBeaconChainDB(ABC):
     #
     # Beacon State
     #
+    @abstractmethod
+    def get_state_by_slot(self, slot: Slot, state_class: Type[BeaconState]) -> BeaconState:
+        pass
+
     @abstractmethod
     def get_state_by_root(self, state_root: Hash32, state_class: Type[BeaconState]) -> BeaconState:
         pass
@@ -669,6 +674,33 @@ class BeaconChainDB(BaseBeaconChainDB):
             slot_to_state_root_key,
             ssz.encode(state_root, sedes=ssz.sedes.byte_list),
         )
+
+    def get_state_by_slot(self, slot: Slot, state_class: Type[BeaconState]) -> BeaconState:
+        return self._get_state_by_slot(self.db, slot, state_class)
+
+    @staticmethod
+    def _get_state_by_slot(db, slot: Slot, state_class: Type[BeaconState]) -> BeaconState:
+        """
+        Return the requested beacon state as specified by slot.
+
+        Raises StateNotFound if it is not present in the db.
+        """
+        slot_to_state_root_key = SchemaV1.make_slot_to_state_root_lookup_key(
+            slot
+        )
+        try:
+            state_root_ssz = db[slot_to_state_root_key]
+        except KeyError:
+            raise StateNotFound(
+                "No state root for slot #{0}".format(slot)
+            )
+
+        state_root = ssz.decode(state_root_ssz, sedes=ssz.sedes.byte_list)
+        try:
+            state_ssz = db[state_root]
+        except KeyError:
+            raise StateRootNotFound(f"No state with root {encode_hex(state_root)} found")
+        return _decode_state(state_ssz, state_class)
 
     def get_state_by_root(self, state_root: Hash32, state_class: Type[BeaconState]) -> BeaconState:
         return self._get_state_by_root(self.db, state_root, state_class)
