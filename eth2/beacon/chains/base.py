@@ -125,6 +125,13 @@ class BaseBeaconChain(Configurable, ABC):
         pass
 
     #
+    # State API
+    #
+    @abstractmethod
+    def get_state_by_slot(self, slot: Slot) -> Hash32:
+        pass
+
+    #
     # Block API
     #
     @abstractmethod
@@ -298,6 +305,20 @@ class BeaconChain(BaseBeaconChain):
     @classmethod
     def get_genesis_state_machine_class(cls) -> Type['BaseBeaconStateMachine']:
         return cls.sm_configuration[0][1]
+
+    #
+    # State API
+    #
+    def get_state_by_slot(self, slot: Slot) -> BeaconState:
+        """
+        Return the requested state as specified by slot number.
+
+        Raise ``StateNotFound`` if there's no state with the given slot in the db.
+        """
+        validate_slot(slot)
+        sm_class = self.get_state_machine_class_for_block_slot(slot)
+        state_class = sm_class.get_state_class()
+        return self.chaindb.get_state_by_slot(slot, state_class)
 
     #
     # Block API

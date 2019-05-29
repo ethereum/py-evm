@@ -679,7 +679,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._get_state_by_slot(self.db, slot, state_class)
 
     @staticmethod
-    def _get_state_by_slot(db, slot: Slot, state_class: Type[BeaconState]) -> BeaconState:
+    def _get_state_by_slot(db: BaseDB, slot: Slot, state_class: Type[BeaconState]) -> BeaconState:
         """
         Return the requested beacon state as specified by slot.
 
