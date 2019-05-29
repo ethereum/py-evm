@@ -77,9 +77,9 @@ class UPnPService(BaseService):
         """
         while self.is_operational:
             try:
+                await self.add_nat_portmap()
                 # Wait for the port mapping lifetime, and then try registering it again
                 await self.wait(asyncio.sleep(self._nat_portmap_lifetime))
-                await self.add_nat_portmap()
             except OperationCancelled:
                 break
             except Exception:
