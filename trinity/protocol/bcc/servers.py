@@ -247,7 +247,8 @@ class AttestationPool:
         for attestation in self._pool:
             if attestation.root == attestation_root:
                 return attestation
-        raise AttestationNotFound(f"No attestation with root {attestation_root} is found.")
+        raise AttestationNotFound(
+            f"No attestation with root {encode_hex(attestation_root)} is found.")
 
     def get_all(self) -> Tuple[Attestation, ...]:
         return tuple(self._pool)
@@ -255,7 +256,7 @@ class AttestationPool:
     def add(self, attestations: Iterable[Attestation]) -> None:
         for attestation in attestations:
             if attestation in self._pool:
-                return
+                continue
             self._pool.add(attestation)
 
     def remove(self, attestations: Iterable[Attestation]) -> None:
@@ -359,16 +360,18 @@ class BCCReceiveServer(BaseReceiveServer):
 
         # Check if attestations has been seen already.
         # Filter out those seen already.
-        valid_new_attestations = filter(
-            self._is_attestation_new,
-            valid_attestations,
+        valid_new_attestations = tuple(
+            filter(
+                self._is_attestation_new,
+                valid_attestations,
+            )
         )
         if len(valid_new_attestations) == 0:
             return
         # Add the valid and new attestations to attestation pool.
         self.attestation_pool.add(valid_new_attestations)
         # Broadcast the valid and new attestations.
-        self._broadcast_attestations(tuple(valid_new_attestations), peer)
+        self._broadcast_attestations(valid_new_attestations, peer)
 
     async def _handle_beacon_blocks(self, peer: BCCPeer, msg: BeaconBlocksMessage) -> None:
         if not peer.is_operational:
@@ -409,7 +412,8 @@ class BCCReceiveServer(BaseReceiveServer):
         """
         try:
             self.attestation_pool.get(attestation.root)
-            return not self.chain.attestation_exists(attestation.root)
+            attestation_exists = self.chain.attestation_exists(attestation.root)
+            return not attestation_exists
         except (AttestationNotFound, AttestationRootNotFound):
             return True
 
