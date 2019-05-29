@@ -170,6 +170,17 @@ class BaseBeaconChain(Configurable, ABC):
     ) -> Tuple[BaseBeaconBlock, Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         pass
 
+    #
+    # Attestation API
+    #
+    @abstractmethod
+    def get_attestation_by_root(self, attestation_root: Hash32)-> Attestation:
+        pass
+
+    @abstractmethod
+    def attestation_exists(self, attestation_root: Hash32) -> bool:
+        pass
+
 
 class BeaconChain(BaseBeaconChain):
     """
