@@ -11,6 +11,7 @@ from eth2.beacon.chains.base import (
 )
 from eth2.beacon.db.exceptions import (
     AttestationRootNotFound,
+    StateNotFound,
 )
 from eth2.beacon.types.blocks import (
     BeaconBlock,
@@ -21,6 +22,9 @@ from eth2.beacon.tools.builder.proposer import (
 )
 from eth2.beacon.tools.builder.validator import (
     create_mock_signed_attestations_at_slot,
+)
+from eth2.beacon.state_machines.forks.serenity.blocks import (
+    SerenityBeaconBlock,
 )
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
@@ -147,6 +151,54 @@ def test_from_genesis(base_db,
             block,
             config,
         )
+
+
+@pytest.mark.long
+@pytest.mark.parametrize(
+    (
+        'num_validators,'
+        'slots_per_epoch,'
+        'target_committee_size,'
+        'shard_count,'
+    ),
+    [
+        (100, 16, 10, 10, 0),
+    ]
+)
+def test_get_state_by_slot(valid_chain,
+                           genesis_block,
+                           genesis_state,
+                           config,
+                           keymap):
+    # Fisrt, skip block and check if `get_state_by_slot` returns the expected state
+    state_machine = valid_chain.get_state_machine(genesis_block)
+    state = state_machine.state
+    block_skipped_slot = genesis_block.slot + 1
+    block_skipped_state = state_machine.state_transition.apply_state_transition_without_block(
+        state,
+        block_skipped_slot,
+    )
+    with pytest.raises(StateNotFound):
+        valid_chain.get_state_by_slot(block_skipped_slot)
+    valid_chain.chaindb.persist_state(block_skipped_state)
+    assert valid_chain.get_state_by_slot(block_skipped_slot).root == block_skipped_state.root
+
+    # Next, import proposed block and check if `get_state_by_slot` returns the expected state
+    proposed_slot = block_skipped_slot + 1
+    block = create_mock_block(
+        state=block_skipped_state,
+        config=config,
+        state_machine=state_machine,
+        block_class=genesis_block.__class__,
+        parent_block=genesis_block,
+        keymap=keymap,
+        slot=proposed_slot,
+        attestations=(),
+    )
+    valid_chain.import_block(block)
+    state_machine = valid_chain.get_state_machine(block)
+    state = state_machine.state
+    assert valid_chain.get_state_by_slot(proposed_slot).root == state.root
 
 
 @pytest.mark.long
