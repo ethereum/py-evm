@@ -62,7 +62,7 @@ class SchemaV1(BaseSchema):
     #
     @staticmethod
     def make_slot_to_state_root_lookup_key(slot: int) -> bytes:
-        return b'v1:beacon:slot-to-state-root%s' % slot
+        return b'v1:beacon:slot-to-state-root%d' % slot
 
     #
     # Block
