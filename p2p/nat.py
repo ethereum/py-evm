@@ -176,5 +176,6 @@ class UPnPService(BaseService):
             try:
                 device.WANIPConn1
             except AttributeError:
+                self.logger.debug2("Skipping non UPNP-enabled device: %s", device)
                 continue
             yield device
