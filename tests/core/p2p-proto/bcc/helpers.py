@@ -20,6 +20,10 @@ from eth2.beacon.types.blocks import (
     BeaconBlockBody,
 )
 
+from tests.core.integration_test_helpers import (
+    async_passthrough,
+)
+
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.protocol.bcc.context import BeaconContext
 from trinity.protocol.bcc.peer import (
@@ -34,9 +38,6 @@ from p2p.tools.paragon.helpers import (
 )
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
-)
-from tests.core.integration_test_helpers import (
-    async_passthrough,
 )
 from eth2.beacon.fork_choice import higher_slot_scoring
 from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
