@@ -7,6 +7,14 @@ from eth_typing import (
 
 class BaseSchema(ABC):
     #
+    # Attestaion
+    #
+    @staticmethod
+    @abstractmethod
+    def make_slot_to_state_root_lookup_key(slot: int) -> bytes:
+        pass
+
+    #
     # Block
     #
     @staticmethod
@@ -39,8 +47,23 @@ class BaseSchema(ABC):
     def make_justified_head_root_lookup_key() -> bytes:
         pass
 
+    #
+    # Attestaion
+    #
+    @staticmethod
+    @abstractmethod
+    def make_attestation_root_to_block_lookup_key(attestaton_root: Hash32) -> bytes:
+        pass
+
 
 class SchemaV1(BaseSchema):
+    #
+    # Attestaion
+    #
+    @staticmethod
+    def make_slot_to_state_root_lookup_key(slot: int) -> bytes:
+        return b'v1:beacon:slot-to-state-root%s' % slot
+
     #
     # Block
     #
