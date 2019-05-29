@@ -163,6 +163,8 @@ def test_chaindb_state(chaindb, state):
     state_class = BeaconState
     result_state = chaindb.get_state_by_root(state.root, state_class)
     assert result_state.root == state.root
+    result_state = chaindb.get_state_by_slot(state.slot, state_class)
+    assert result_state.root == state.root
 
 
 def test_chaindb_get_finalized_head_at_genesis(chaindb_at_genesis, genesis_block):
