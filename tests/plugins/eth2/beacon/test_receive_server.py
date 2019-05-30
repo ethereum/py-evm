@@ -632,3 +632,8 @@ async def test_bcc_receive_server_get_ready_attestations(
             attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY + 1,
         )
         assert set([a1, a2, a3]) == set(ready_attestations)
+
+        ready_attestations = bob_recv_server.get_ready_attestations(
+            attesting_slot + XIAO_LONG_BAO_CONFIG.SLOTS_PER_EPOCH + 1,
+        )
+        assert set([a3]) == set(ready_attestations)

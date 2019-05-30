@@ -43,14 +43,17 @@ from p2p.protocol import (
     Command,
 )
 
+from eth2.configs import (
+    CommitteeConfig,
+)
+from eth2.beacon.typing import (
+    Slot,
+)
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
 )
 from eth2.beacon.db.exceptions import (
     AttestationRootNotFound,
-)
-from eth2.beacon.state_machines.forks.serenity.block_validation import (
-    validate_attestation,
 )
 from eth2.beacon.types.attestations import (
     Attestation,
@@ -59,11 +62,9 @@ from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlock,
 )
-from eth2.beacon.typing import (
-    Slot,
-)
-from eth2.configs import (
-    CommitteeConfig,
+from eth2.beacon.state_machines.forks.serenity.block_validation import (
+    validate_attestation,
+    validate_attestation_slot,
 )
 
 from trinity._utils.les import (
@@ -572,5 +573,18 @@ class BCCReceiveServer(BaseReceiveServer):
     def get_ready_attestations(self, inclusion_slot: Slot) -> Iterable[Attestation]:
         config = self.chain.get_state_machine().config
         for attestation in self.attestation_pool.get_all():
-            if attestation.data.slot + config.MIN_ATTESTATION_INCLUSION_DELAY <= inclusion_slot:
+            # Validate attestation slot
+            try:
+                validate_attestation_slot(
+                    attestation.data,
+                    inclusion_slot,
+                    config.SLOTS_PER_EPOCH,
+                    config.MIN_ATTESTATION_INCLUSION_DELAY,
+                    config.GENESIS_SLOT,
+                )
+            except ValidationError:
+                # TODO: Should clean up attestations with invalid slot because
+                # they are no longer available for inclusion into block.
+                continue
+            else:
                 yield attestation
