@@ -109,7 +109,7 @@ class BaseBeaconChain(Configurable, ABC):
         pass
 
     @abstractmethod
-    def get_state_machine(self, at_block: BaseBeaconBlock=None) -> 'BaseBeaconStateMachine':
+    def get_state_machine(self, at_slot: Slot) -> 'BaseBeaconStateMachine':
         pass
 
     @classmethod
@@ -154,10 +154,6 @@ class BaseBeaconChain(Configurable, ABC):
 
     @abstractmethod
     def get_score(self, block_root: Hash32) -> int:
-        pass
-
-    @abstractmethod
-    def ensure_block(self, block: BaseBeaconBlock=None) -> BaseBeaconBlock:
         pass
 
     @abstractmethod
@@ -290,16 +286,15 @@ class BeaconChain(BaseBeaconChain):
                 return sm_class
         raise StateMachineNotFound("No StateMachine available for block slot: #{0}".format(slot))
 
-    def get_state_machine(self, at_block: BaseBeaconBlock=None) -> 'BaseBeaconStateMachine':
+    def get_state_machine(self, at_slot: Slot) -> 'BaseBeaconStateMachine':
         """
-        Return the ``StateMachine`` instance for the given block number.
+        Return the ``StateMachine`` instance for the given slot number.
         """
-        block = self.ensure_block(at_block)
-        sm_class = self.get_state_machine_class_for_block_slot(block.slot)
+        sm_class = self.get_state_machine_class_for_block_slot(at_slot)
 
         return sm_class(
             chaindb=self.chaindb,
-            block=block,
+            slot=at_slot,
         )
 
     @classmethod
@@ -369,17 +364,6 @@ class BeaconChain(BaseBeaconChain):
         Raise ``BlockNotFound`` if there is no matching black hash.
         """
         return self.chaindb.get_score(block_root)
-
-    def ensure_block(self, block: BaseBeaconBlock=None) -> BaseBeaconBlock:
-        """
-        Return ``block`` if it is not ``None``, otherwise return the block
-        of the canonical head.
-        """
-        if block is None:
-            head = self.get_canonical_head()
-            return self.create_block_from_parent(head, FromBlockParams())
-        else:
-            return block
 
     def get_block(self) -> BaseBeaconBlock:
         """
