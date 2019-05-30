@@ -61,7 +61,6 @@ def test_track_peer_connection_metadata(remote, caplog):
     tracker.track_peer_connection(remote, *TRACK_ARGS)
 
     node = tracker._get_remote(remote.uri())
-    node = tracker._get_remote(remote.uri())
     assert node.genesis_hash == ZERO_HASH_HEX
     assert node.protocol == 'eth'
     assert node.protocol_version == 61
@@ -143,15 +142,14 @@ async def do_tracker_peer_query_test(tracker_params,
         expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=delta_seconds)
         blacklist_tracker._create_record(remote, expires_at, 'test')
 
-    candidates = tuple(sorted(
+    candidates = tuple(
         await tracker.get_peer_candidates(
             num_requested=10,
             connected_remotes=connected_remotes or set(),
-        ),
-        key=lambda r: r.uri(),
-    ))
-    just_good_remotes = tuple(r[0] for r in sorted(good_remotes, key=lambda r: r[0].uri()))
-    just_bad_remotes = tuple(r[0] for r in sorted(bad_remotes, key=lambda r: r[0].uri()))
+        )
+    )
+    just_good_remotes = tuple(r[0] for r in good_remotes)
+    just_bad_remotes = tuple(r[0] for r in bad_remotes)
     assert len(candidates) == len(just_good_remotes)
     for remote in just_good_remotes:
         assert remote in candidates
@@ -162,25 +160,25 @@ async def do_tracker_peer_query_test(tracker_params,
 @pytest.mark.asyncio
 async def test_getting_peer_candidates_no_filter():
     await do_tracker_peer_query_test(
-        {},
-        (
+        tracker_params={},
+        good_remotes=(
             (NodeFactory(), True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
         ),
-        (),
+        bad_remotes=(),
     )
 
 
 @pytest.mark.asyncio
 async def test_getting_peer_candidates_excludes_non_outbound():
     await do_tracker_peer_query_test(
-        {},
-        (
+        tracker_params={},
+        good_remotes=(
             (NodeFactory(), True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
         ),
-        (
+        bad_remotes=(
             (NodeFactory(), False, SIMPLE_META),
         ),
     )
@@ -189,12 +187,12 @@ async def test_getting_peer_candidates_excludes_non_outbound():
 @pytest.mark.asyncio
 async def test_getting_peer_candidates_excludes_genesis_hash_mismatch():
     await do_tracker_peer_query_test(
-        {'genesis_hash': ZERO_HASH},
-        (
+        tracker_params={'genesis_hash': ZERO_HASH},
+        good_remotes=(
             (NodeFactory(), True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
         ),
-        (
+        bad_remotes=(
             (NodeFactory(), True, (ZERO_ONE_HASH, 'eth', 61, 1)),
         ),
     )
@@ -203,12 +201,12 @@ async def test_getting_peer_candidates_excludes_genesis_hash_mismatch():
 @pytest.mark.asyncio
 async def test_getting_peer_candidates_excludes_protocol_mismatch():
     await do_tracker_peer_query_test(
-        {'protocols': ('eth',)},
-        (
+        tracker_params={'protocols': ('eth',)},
+        good_remotes=(
             (NodeFactory(), True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
         ),
-        (
+        bad_remotes=(
             (NodeFactory(), True, (ZERO_HASH, 'les', 61, 1)),
         ),
     )
@@ -217,12 +215,12 @@ async def test_getting_peer_candidates_excludes_protocol_mismatch():
 @pytest.mark.asyncio
 async def test_getting_peer_candidates_matches_multiple_protocols():
     await do_tracker_peer_query_test(
-        {'protocols': ('eth', 'les')},
-        (
+        tracker_params={'protocols': ('eth', 'les')},
+        good_remotes=(
             (NodeFactory(), True, (ZERO_HASH, 'eth', 61, 1)),
             (NodeFactory(), True, (ZERO_HASH, 'les', 61, 1)),
         ),
-        (
+        bad_remotes=(
             (NodeFactory(), True, (ZERO_HASH, 'bcc', 61, 1)),
         ),
     )
@@ -231,12 +229,12 @@ async def test_getting_peer_candidates_matches_multiple_protocols():
 @pytest.mark.asyncio
 async def test_getting_peer_candidates_excludes_protocol_version_mismatch():
     await do_tracker_peer_query_test(
-        {'protocol_versions': (60, 61)},
-        (
+        tracker_params={'protocol_versions': (60, 61)},
+        good_remotes=(
             (NodeFactory(), True, (ZERO_HASH, 'eth', 60, 1)),
             (NodeFactory(), True, (ZERO_HASH, 'eth', 61, 1)),
         ),
-        (
+        bad_remotes=(
             (NodeFactory(), True, (ZERO_HASH, 'eth', 62, 1)),
         ),
     )
@@ -245,12 +243,12 @@ async def test_getting_peer_candidates_excludes_protocol_version_mismatch():
 @pytest.mark.asyncio
 async def test_getting_peer_candidates_excludes_network_id_mismatch():
     await do_tracker_peer_query_test(
-        {'network_id': 1},
-        (
+        tracker_params={'network_id': 1},
+        good_remotes=(
             (NodeFactory(), True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
         ),
-        (
+        bad_remotes=(
             (NodeFactory(), True, (ZERO_HASH, 'eth', 62, 2)),
         ),
     )
@@ -259,17 +257,17 @@ async def test_getting_peer_candidates_excludes_network_id_mismatch():
 @pytest.mark.asyncio
 async def test_getting_peer_candidates_complex_query():
     await do_tracker_peer_query_test(
-        {
+        tracker_params={
             'genesis_hash': ZERO_HASH,
             'protocols': ['eth'],
             'protocol_versions': [61],
             'network_id': 1,
         },
-        (
+        good_remotes=(
             (NodeFactory(), True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
         ),
-        (
+        bad_remotes=(
             (NodeFactory(), False, SIMPLE_META),  # inbound peer
             (NodeFactory(), True, (ZERO_HASH, 'les', 61, 1)),  # wrong protocol
             (NodeFactory(), True, (ZERO_HASH, 'eth', 60, 1)),  # wrong protocol version
@@ -282,15 +280,15 @@ async def test_getting_peer_candidates_complex_query():
 async def test_excludes_blacklisted_peers_from_candidates():
     remote_b = NodeFactory()
     await do_tracker_peer_query_test(
-        {},
-        (
+        tracker_params={},
+        good_remotes=(
             (NodeFactory(), True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
         ),
-        (
+        bad_remotes=(
             (remote_b, True, SIMPLE_META),
         ),
-        (
+        blacklist_records=(
             (remote_b, 10),  # blacklisted for 10 seconds
         )
     )
@@ -300,15 +298,15 @@ async def test_excludes_blacklisted_peers_from_candidates():
 async def test_includes_expired_blacklisted_from_candidates():
     remote_a = NodeFactory()
     await do_tracker_peer_query_test(
-        {},
-        (
+        tracker_params={},
+        good_remotes=(
             (remote_a, True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
         ),
-        (
+        bad_remotes=(
         ),
-        (
+        blacklist_records=(
             (remote_a, -10),  # expired blacklist record
         )
     )
@@ -321,18 +319,18 @@ async def test_candidate_selection_with_mixed_blacklisted_remotes():
     remote_c = NodeFactory()
     remote_d = NodeFactory()
     await do_tracker_peer_query_test(
-        {},
-        (
+        tracker_params={},
+        good_remotes=(
             (remote_a, True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
             (remote_c, True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
         ),
-        (
+        bad_remotes=(
             (remote_b, True, SIMPLE_META),
             (remote_d, True, SIMPLE_META),
         ),
-        (
+        blacklist_records=(
             (remote_a, -5),  # expired blacklist record
             (remote_b, 10),  # expired blacklist record
             (remote_c, -20),  # expired blacklist record
@@ -345,12 +343,12 @@ async def test_candidate_selection_with_mixed_blacklisted_remotes():
 async def test_getting_peer_candidates_excludes_already_connected():
     remote_a = NodeFactory()
     await do_tracker_peer_query_test(
-        {},
-        (
+        tracker_params={},
+        good_remotes=(
             (NodeFactory(), True, SIMPLE_META),
             (NodeFactory(), True, SIMPLE_META),
         ),
-        (
+        bad_remotes=(
             (remote_a, True, SIMPLE_META),
         ),
         connected_remotes=(remote_a,),

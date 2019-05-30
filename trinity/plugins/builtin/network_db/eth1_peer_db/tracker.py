@@ -117,8 +117,8 @@ class BaseEth1PeerTracker(BasePeerBackend, PeerSubscriber):
 
     def deregister_peer(self, peer: BasePeer) -> None:
         """
-        This is likely the proper place to do record statistics about peer
-        performance.
+        At disconnection we check whether our session with the peer was long
+        enough to warrant recording statistics about them in our peer database.
         """
         # prevent circular import
         from trinity.protocol.common.peer import BaseChainPeer
@@ -308,7 +308,7 @@ class SQLiteEth1PeerTracker(BaseEth1PeerTracker):
         ).order_by(
             # We want the ones that we have recently connected to succesfully to be first.
             Remote.last_connected_at.desc(),  # type: ignore
-        ).all()
+        )
 
         # Return them as an iterator to allow the consuming process to
         # determine how many records it wants to fetch.
