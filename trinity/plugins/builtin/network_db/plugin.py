@@ -4,9 +4,13 @@ from argparse import (
     ArgumentParser,
     _SubParsersAction,
 )
+from typing import Iterable
 
 from sqlalchemy.orm import Session
 
+from eth_utils import to_tuple
+
+from p2p.service import BaseService
 from p2p.tracking.connection import (
     BaseConnectionTracker,
     NoopConnectionTracker,
@@ -28,9 +32,7 @@ from trinity.db.network import (
 from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
-from trinity.exceptions import (
-    BadDatabaseError,
-)
+from trinity.exceptions import BadDatabaseError
 
 from .connection.server import ConnectionTrackerServer
 from .connection.tracker import (
@@ -40,6 +42,13 @@ from .connection.tracker import (
 from .cli import (
     TrackingBackend,
     NormalizeTrackingBackend,
+)
+from .eth1_peer_db.server import PeerDBServer
+from .eth1_peer_db.tracker import (
+    BaseEth1PeerTracker,
+    NoopEth1PeerTracker,
+    SQLiteEth1PeerTracker,
+    MemoryEth1PeerTracker,
 )
 
 
@@ -87,6 +96,23 @@ class NetworkDBPlugin(BaseIsolatedPlugin):
             ),
             action='store_true',
         )
+        tracking_parser.add_argument(
+            '--disable-eth1-peer-db',
+            help=(
+                "Disables the ETH1.0 peer database server component of the Network Database plugin."
+                "**WARNING**: disabling this API without a proper replacement "
+                "will cause your trinity node to crash."
+            ),
+            action='store_true',
+        )
+        tracking_parser.add_argument(
+            '--enable-experimental-eth1-peer-tracking',
+            help=(
+                "Enables the experimental tracking of metadata about successful "
+                "connections to Eth1 peers."
+            ),
+            action='store_true',
+        )
 
         # Command to wipe the on-disk database
         remove_db_parser = subparser.add_parser(
@@ -130,6 +156,9 @@ class NetworkDBPlugin(BaseIsolatedPlugin):
             self._session = get_tracking_database(get_networkdb_path(self.boot_info.trinity_config))
         return self._session
 
+    #
+    # Blacklist Server
+    #
     def _get_blacklist_tracker(self) -> BaseConnectionTracker:
         backend = self.boot_info.args.network_tracking_backend
 
@@ -145,20 +174,75 @@ class NetworkDBPlugin(BaseIsolatedPlugin):
 
     def _get_blacklist_service(self) -> ConnectionTrackerServer:
         tracker = self._get_blacklist_tracker()
-        blacklist_service = ConnectionTrackerServer(
+        return ConnectionTrackerServer(
             event_bus=self.event_bus,
             tracker=tracker,
         )
-        return blacklist_service
 
-    def do_start(self) -> None:
+    #
+    # Eth1 Peer Server
+    #
+    def _get_eth1_tracker(self) -> BaseEth1PeerTracker:
+        if not self.boot_info.args.enable_experimental_eth1_peer_tracking:
+            return NoopEth1PeerTracker()
 
+        backend = self.boot_info.args.network_tracking_backend
+
+        if backend is TrackingBackend.sqlite3:
+            session = self._get_database_session()
+
+            # TODO: correctly determine protocols and versions
+            protocols = ('eth',)
+            protocol_versions = (63,)
+
+            # TODO: get genesis_hash
+            return SQLiteEth1PeerTracker(
+                session,
+                network_id=self.boot_info.trinity_config.network_id,
+                protocols=protocols,
+                protocol_versions=protocol_versions,
+            )
+        elif backend is TrackingBackend.memory:
+            return MemoryEth1PeerTracker()
+        elif backend is TrackingBackend.do_not_track:
+            return NoopEth1PeerTracker()
+        else:
+            raise Exception(f"INVARIANT: {backend}")
+
+    def _get_eth1_peer_server(self) -> PeerDBServer:
+        tracker = self._get_eth1_tracker()
+
+        return PeerDBServer(
+            event_bus=self.event_bus,
+            tracker=tracker,
+        )
+
+    @to_tuple
+    def _get_services(self) -> Iterable[BaseService]:
         if self.boot_info.args.disable_blacklistdb:
             # Allow this plugin to be disabled for extreme cases such as the
             # user swapping in an equivalent experimental version.
             self.logger.warning("Blacklist Database disabled via CLI flag")
             return
         else:
-            service = self._get_blacklist_service()
-            asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, service))
-            asyncio.ensure_future(service.run())
+            yield self._get_blacklist_service()
+
+        if self.boot_info.args.disable_eth1_peer_db:
+            # Allow this plugin to be disabled for extreme cases such as the
+            # user swapping in an equivalent experimental version.
+            self.logger.warning("ETH1 Peer Database disabled via CLI flag")
+        else:
+            yield self._get_eth1_peer_server()
+
+    def do_start(self) -> None:
+        try:
+            tracker_services = self._get_services()
+        except BadDatabaseError as err:
+            self.logger.exception(f"Unrecoverable error in Network Plugin: {err}")
+        else:
+            asyncio.ensure_future(exit_with_endpoint_and_services(
+                self.event_bus,
+                *tracker_services
+            ))
+            for service in tracker_services:
+                asyncio.ensure_future(service.run())

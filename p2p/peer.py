@@ -496,6 +496,7 @@ class BasePeer(BaseService):
                 f"Reason must be an item of DisconnectReason, got {reason}"
             )
 
+        self.disconnect_reason = reason
         if reason is DisconnectReason.bad_protocol:
             self.connection_tracker.record_blacklist(
                 self.remote,
@@ -505,7 +506,6 @@ class BasePeer(BaseService):
 
         self.logger.debug("Disconnecting from remote peer %s; reason: %s", self.remote, reason.name)
         self.base_protocol.send_disconnect(reason.value)
-        self.disconnect_reason = reason
         self.transport.close()
 
     async def disconnect(self, reason: DisconnectReason) -> None:
