@@ -516,6 +516,8 @@ class BCCReceiveServer(BaseReceiveServer):
                 except ValidationError as e:
                     # TODO: Possibly drop all of its descendants in `self.orphan_block_pool`?
                     self.logger.debug("Fail to import invalid block=%s  reason=%s", block, e)
+                    # Remove attestations in block that are also in the attestation pool.
+                    self.attestation_pool.remove(block.body.attestations)
                     pass
 
     def _request_block_from_peers(self, block_root: Hash32) -> None:
