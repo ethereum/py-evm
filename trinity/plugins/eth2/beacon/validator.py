@@ -321,6 +321,8 @@ class Validator(BaseService):
             slot,
             epoch,
         )
+        if len(attesting_validators) == 0:
+            return ()
 
         # Sort the attesting validators by shard
         sorted_attesting_validators = sorted(
