@@ -73,87 +73,6 @@ def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
     assert result_block == block
 
 
-@pytest.mark.long
-@pytest.mark.parametrize(
-    (
-        'num_validators,slots_per_epoch,target_committee_size,shard_count'
-    ),
-    [
-        (100, 16, 10, 10),
-    ]
-)
-def test_import_blocks(valid_chain,
-                       genesis_block,
-                       genesis_state,
-                       config,
-                       keymap):
-    state = genesis_state
-    blocks = (genesis_block,)
-    valid_chain_2 = copy.deepcopy(valid_chain)
-    for _ in range(3):
-        block = create_mock_block(
-            state=state,
-            config=config,
-            state_machine=valid_chain.get_state_machine(blocks[-1]),
-            block_class=genesis_block.__class__,
-            parent_block=blocks[-1],
-            keymap=keymap,
-            slot=state.slot + 2,
-        )
-
-        valid_chain.import_block(block)
-        assert valid_chain.get_canonical_head() == block
-
-        state = valid_chain.get_state_machine(block).state
-
-        assert block == valid_chain.get_canonical_block_by_slot(
-            block.slot
-        )
-        assert block.signing_root == valid_chain.get_canonical_block_root(
-            block.slot
-        )
-        blocks += (block,)
-
-    assert valid_chain.get_canonical_head() != valid_chain_2.get_canonical_head()
-
-    for block in blocks[1:]:
-        valid_chain_2.import_block(block)
-
-    assert valid_chain.get_canonical_head() == valid_chain_2.get_canonical_head()
-    assert valid_chain.get_state_machine(blocks[-1]).state.slot != 0
-    assert (
-        valid_chain.get_state_machine(blocks[-1]).state ==
-        valid_chain_2.get_state_machine(blocks[-1]).state
-    )
-
-
-def test_from_genesis(base_db,
-                      genesis_block,
-                      genesis_state,
-                      fixture_sm_class,
-                      config):
-    klass = BeaconChain.configure(
-        __name__='TestChain',
-        sm_configuration=(
-            (0, fixture_sm_class),
-        ),
-        chain_id=5566,
-    )
-
-    assert type(genesis_block) == SerenityBeaconBlock
-    block = BeaconBlock.convert_block(genesis_block)
-    assert type(block) == BeaconBlock
-
-    with pytest.raises(BlockClassError):
-        klass.from_genesis(
-            base_db,
-            genesis_state,
-            block,
-            config,
-        )
-
-
-@pytest.mark.long
 @pytest.mark.parametrize(
     (
         'num_validators,'
@@ -162,7 +81,7 @@ def test_from_genesis(base_db,
         'shard_count,'
     ),
     [
-        (100, 16, 10, 10, 0),
+        (100, 16, 10, 10),
     ]
 )
 def test_get_state_by_slot(valid_chain,
@@ -199,6 +118,86 @@ def test_get_state_by_slot(valid_chain,
     state_machine = valid_chain.get_state_machine(block)
     state = state_machine.state
     assert valid_chain.get_state_by_slot(proposed_slot).root == state.root
+
+
+@pytest.mark.long
+@pytest.mark.parametrize(
+    (
+        'num_validators,slots_per_epoch,target_committee_size,shard_count'
+    ),
+    [
+        (100, 16, 10, 10),
+    ]
+)
+def test_import_blocks(valid_chain,
+                       genesis_block,
+                       genesis_state,
+                       config,
+                       keymap):
+    state = genesis_state
+    blocks = (genesis_block,)
+    valid_chain_2 = copy.deepcopy(valid_chain)
+    for _ in range(3):
+        block = create_mock_block(
+            state=state,
+            config=config,
+            state_machine=valid_chain.get_state_machine(blocks[-1]),
+            block_class=genesis_block.__class__,
+            parent_block=blocks[-1],
+            keymap=keymap,
+            slot=state.slot + 2,
+        )
+
+        valid_chain.import_block(block)
+        assert valid_chain.get_canonical_head() == block
+
+        state = valid_chain.get_state_by_slot(block.slot)
+
+        assert block == valid_chain.get_canonical_block_by_slot(
+            block.slot
+        )
+        assert block.signing_root == valid_chain.get_canonical_block_root(
+            block.slot
+        )
+        blocks += (block,)
+
+    assert valid_chain.get_canonical_head() != valid_chain_2.get_canonical_head()
+
+    for block in blocks[1:]:
+        valid_chain_2.import_block(block)
+
+    assert valid_chain.get_canonical_head() == valid_chain_2.get_canonical_head()
+    assert valid_chain.get_state_by_slot(blocks[-1].slot).slot != 0
+    assert (
+        valid_chain.get_state_by_slot(blocks[-1].slot) ==
+        valid_chain_2.get_state_by_slot(blocks[-1].slot)
+    )
+
+
+def test_from_genesis(base_db,
+                      genesis_block,
+                      genesis_state,
+                      fixture_sm_class,
+                      config):
+    klass = BeaconChain.configure(
+        __name__='TestChain',
+        sm_configuration=(
+            (0, fixture_sm_class),
+        ),
+        chain_id=5566,
+    )
+
+    assert type(genesis_block) == SerenityBeaconBlock
+    block = BeaconBlock.convert_block(genesis_block)
+    assert type(block) == BeaconBlock
+
+    with pytest.raises(BlockClassError):
+        klass.from_genesis(
+            base_db,
+            genesis_state,
+            block,
+            config,
+        )
 
 
 @pytest.mark.long

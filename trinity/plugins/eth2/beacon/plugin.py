@@ -111,8 +111,7 @@ class BeaconNodePlugin(BaseIsolatedPlugin):
             token=server.cancel_token,
         )
 
-        state_machine = chain.get_state_machine()
-        state = state_machine.state
+        state = chain.get_state_by_slot(chain_config.genesis_config.GENESIS_SLOT)
         registry_pubkeys = [v_record.pubkey for v_record in state.validator_registry]
 
         validator_privkeys = {}
