@@ -52,9 +52,6 @@ from eth2.beacon.typing import (
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
 )
-from eth2.beacon.db.exceptions import (
-    AttestationRootNotFound,
-)
 from eth2.beacon.types.attestations import (
     Attestation,
 )
@@ -413,9 +410,8 @@ class BCCReceiveServer(BaseReceiveServer):
         """
         try:
             self.attestation_pool.get(attestation.root)
-            attestation_exists = self.chain.attestation_exists(attestation.root)
-            return not attestation_exists
-        except (AttestationNotFound, AttestationRootNotFound):
+            return not self.chain.attestation_exists(attestation.root)
+        except AttestationNotFound:
             return True
 
     @to_tuple
