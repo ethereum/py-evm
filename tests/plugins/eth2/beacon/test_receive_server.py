@@ -560,19 +560,19 @@ def test_attestation_pool(mock_attestation):
     )
 
     # test: add
-    pool.add([a1])
+    pool.add(a1)
     assert a1 in pool._pool
     assert len(pool._pool) == 1
     # test: add: no side effect for adding twice
-    pool.add([a1])
+    pool.add(a1)
     assert len(pool._pool) == 1
     # test: `__contains__`
     assert a1.root in pool
     assert a1 in pool
     assert a2.root not in pool
     assert a2 not in pool
-    # test: add: two blocks
-    pool.add([a2])
+    # test: batch_add: two attestations
+    pool.batch_add([a1, a2])
     assert len(pool._pool) == 2
     # test: get
     with pytest.raises(AttestationNotFound):
@@ -582,9 +582,9 @@ def test_attestation_pool(mock_attestation):
     # test: get_all
     assert set([a1, a2]) == set(pool.get_all())
     # test: remove
-    pool.remove([a3])
+    pool.remove(a3)
     assert len(pool._pool) == 2
-    pool.remove([a2, a1])
+    pool.batch_remove([a2, a1])
     assert len(pool._pool) == 0
 
 

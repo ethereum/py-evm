@@ -254,10 +254,18 @@ class AttestationPool:
     def get_all(self) -> Tuple[Attestation, ...]:
         return tuple(self._pool)
 
-    def add(self, attestations: Iterable[Attestation]) -> None:
+    def add(self, attestation: Attestation) -> None:
+        if attestation not in self._pool:
+            self._pool.add(attestation)
+
+    def batch_add(self, attestations: Iterable[Attestation]) -> None:
         self._pool = self._pool.union(set(attestations))
 
-    def remove(self, attestations: Iterable[Attestation]) -> None:
+    def remove(self, attestation: Attestation) -> None:
+        if attestation in self._pool:
+            self._pool.remove(attestation)
+
+    def batch_remove(self, attestations: Iterable[Attestation]) -> None:
         self._pool.difference_update(attestations)
 
 
@@ -367,7 +375,7 @@ class BCCReceiveServer(BaseReceiveServer):
         if len(valid_new_attestations) == 0:
             return
         # Add the valid and new attestations to attestation pool.
-        self.attestation_pool.add(valid_new_attestations)
+        self.attestation_pool.batch_add(valid_new_attestations)
         # Broadcast the valid and new attestations.
         self._broadcast_attestations(valid_new_attestations, peer)
 
@@ -409,8 +417,10 @@ class BCCReceiveServer(BaseReceiveServer):
         Check if the attestation is already in the database or the attestion pool.
         """
         try:
-            self.attestation_pool.get(attestation.root)
-            return not self.chain.attestation_exists(attestation.root)
+            if attestation.root in self.attestation_pool:
+                return True
+            else:
+                return not self.chain.attestation_exists(attestation.root)
         except AttestationNotFound:
             return True
 
