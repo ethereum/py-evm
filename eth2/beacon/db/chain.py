@@ -61,6 +61,7 @@ from eth2.beacon.validation import (
 from eth2.beacon.db.exceptions import (
     AttestationRootNotFound,
     FinalizedHeadNotFound,
+    HeadStateSlotNotFound,
     JustifiedHeadNotFound,
     MissingForkChoiceScorings,
     StateNotFound,
@@ -163,6 +164,10 @@ class BaseBeaconChainDB(ABC):
     #
     # Beacon State
     #
+    @abstractmethod
+    def get_head_state_slot(self) -> Slot:
+        pass
+
     @abstractmethod
     def get_state_by_slot(self, slot: Slot, state_class: Type[BeaconState]) -> BeaconState:
         pass
@@ -674,6 +679,13 @@ class BeaconChainDB(BaseBeaconChainDB):
             slot_to_state_root_key,
             ssz.encode(state_root, sedes=ssz.sedes.byte_list),
         )
+
+    def get_head_state_slot(self) -> Slot:
+        try:
+            head_state_slot = self.db[SchemaV1.make_head_state_slot_lookup_key()]
+        except KeyError:
+            raise HeadStateSlotNotFound("No head state slot found")
+        return head_state_slot
 
     def get_state_by_slot(self, slot: Slot, state_class: Type[BeaconState]) -> BeaconState:
         return self._get_state_by_slot(self.db, slot, state_class)
