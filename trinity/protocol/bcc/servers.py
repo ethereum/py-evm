@@ -525,7 +525,6 @@ class BCCReceiveServer(BaseReceiveServer):
                     self.logger.debug("Fail to import invalid block=%s  reason=%s", block, e)
                     # Remove attestations in block that are also in the attestation pool.
                     self.attestation_pool.remove(block.body.attestations)
-                    pass
 
     def _request_block_from_peers(self, block_root: Hash32) -> None:
         for peer in self._peer_pool.connected_nodes.values():
