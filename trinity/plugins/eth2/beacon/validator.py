@@ -6,8 +6,10 @@ from operator import (
     itemgetter,
 )
 from typing import (
+    Callable,
     Dict,
     Iterable,
+    Sequence,
     Tuple,
     cast,
 )
@@ -80,6 +82,9 @@ from trinity.protocol.bcc.peer import (
 )
 
 
+GetReadyAttestationsFn = Callable[[Slot], Sequence[Attestation]]
+
+
 class Validator(BaseService):
     chain: BeaconChain
     peer_pool: BCCPeerPool
@@ -98,6 +103,7 @@ class Validator(BaseService):
             peer_pool: BCCPeerPool,
             validator_privkeys: Dict[ValidatorIndex, int],
             event_bus: TrinityEventBusEndpoint,
+            get_ready_attestations_fn: GetReadyAttestationsFn,
             token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
@@ -118,6 +124,7 @@ class Validator(BaseService):
                 Epoch(-1),
                 CommitteeAssignment((), Shard(-1), Slot(-1), False),
             )
+        self.get_ready_attestations: GetReadyAttestationsFn = get_ready_attestations_fn
 
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()
@@ -205,8 +212,6 @@ class Validator(BaseService):
                 )
                 self.latest_proposed_epoch[proposer_index] = epoch
 
-        await self.attest(slot)
-
     async def handle_second_tick(self, slot: Slot) -> None:
         state_machine = self.chain.get_state_machine()
         state = state_machine.state
@@ -217,18 +222,22 @@ class Validator(BaseService):
                 state_machine=state_machine,
             )
 
+        await self.attest(slot)
+
     def propose_block(self,
                       proposer_index: ValidatorIndex,
                       slot: Slot,
                       state: BeaconState,
                       state_machine: BaseBeaconStateMachine,
                       head_block: BaseBeaconBlock) -> BaseBeaconBlock:
+        ready_attestations = self.get_ready_attestations(slot)
         block = self._make_proposing_block(
             proposer_index=proposer_index,
             slot=slot,
             state=state,
             state_machine=state_machine,
             parent_block=head_block,
+            attestations=ready_attestations,
         )
         self.logger.info(bold_green("Validator=%s proposing block=%s"), proposer_index, block)
         for peer in self.peer_pool.connected_nodes.values():
@@ -243,7 +252,8 @@ class Validator(BaseService):
                               slot: Slot,
                               state: BeaconState,
                               state_machine: BaseBeaconStateMachine,
-                              parent_block: BaseBeaconBlock) -> BaseBeaconBlock:
+                              parent_block: BaseBeaconBlock,
+                              attestations: Sequence[Attestation]) -> BaseBeaconBlock:
         return create_block_on_state(
             state=state,
             config=state_machine.config,
@@ -253,7 +263,7 @@ class Validator(BaseService):
             slot=slot,
             validator_index=proposer_index,
             privkey=self.validator_privkeys[proposer_index],
-            attestations=(),
+            attestations=attestations,
             check_proposer_index=False,
         )
 
@@ -314,6 +324,8 @@ class Validator(BaseService):
             slot,
             epoch,
         )
+        if len(attesting_validators) == 0:
+            return ()
 
         # Sort the attesting validators by shard
         sorted_attesting_validators = sorted(

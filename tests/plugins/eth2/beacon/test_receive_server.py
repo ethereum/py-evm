@@ -20,9 +20,6 @@ from p2p.peer import (
     MsgBuffer,
 )
 
-from eth.constants import (
-    ZERO_HASH32,
-)
 from eth.exceptions import (
     BlockNotFound,
 )
@@ -32,22 +29,25 @@ from eth2.beacon.typing import (
 )
 from eth2.beacon.chains.testnet import TestnetChain
 from eth2.beacon.types.attestations import Attestation
-from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
 )
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
     XIAO_LONG_BAO_CONFIG,
 )
+
+from trinity.exceptions import (
+    AttestationNotFound,
+)
 from trinity.protocol.bcc.peer import (
     BCCPeer,
     BCCPeerPoolEventServer,
 )
 from trinity.protocol.bcc.servers import (
+    AttestationPool,
     BCCReceiveServer,
     BCCRequestServer,
     OrphanBlockPool,
@@ -519,31 +519,15 @@ async def test_bcc_receive_server_with_request_server(request, event_loop, event
 async def test_bcc_receive_server_handle_attestations_checks(request,
                                                              event_loop,
                                                              event_bus,
-                                                             monkeypatch):
+                                                             monkeypatch,
+                                                             mock_attestation):
     async with get_peer_and_receive_server(
         request,
         event_loop,
         event_bus,
     ) as (alice, _, bob_recv_server, bob_msg_queue):
 
-        attestation = Attestation(
-            aggregation_bitfield=b'\x12' * 16,
-            data=AttestationData(
-                slot=XIAO_LONG_BAO_CONFIG.GENESIS_SLOT + 1,
-                beacon_block_root=ZERO_HASH32,
-                source_epoch=XIAO_LONG_BAO_CONFIG.GENESIS_EPOCH,
-                source_root=ZERO_HASH32,
-                target_root=ZERO_HASH32,
-                shard=0,
-                previous_crosslink=Crosslink(
-                    epoch=XIAO_LONG_BAO_CONFIG.GENESIS_EPOCH,
-                    crosslink_data_root=ZERO_HASH32,
-                ),
-                crosslink_data_root=ZERO_HASH32,
-            ),
-            custody_bitfield=b'\x34' * 16,
-            aggregate_signature=b'\x56' * 96,
-        )
+        attestation = mock_attestation
 
         def _validate_attestations(attestations):
             return tuple(attestations)
@@ -559,3 +543,97 @@ async def test_bcc_receive_server_handle_attestations_checks(request,
         assert len(msg['encoded_attestations']) == 1
         decoded_attestation = ssz.decode(msg['encoded_attestations'][0], Attestation)
         assert decoded_attestation == attestation
+
+
+def test_attestation_pool(mock_attestation):
+    pool = AttestationPool()
+    a1 = mock_attestation
+    a2 = mock_attestation.copy(
+        data=mock_attestation.data.copy(
+            slot=a1.data.slot + 1,
+        ),
+    )
+    a3 = mock_attestation.copy(
+        data=mock_attestation.data.copy(
+            slot=a1.data.slot + 2,
+        ),
+    )
+
+    # test: add
+    pool.add(a1)
+    assert a1 in pool._pool
+    assert len(pool._pool) == 1
+    # test: add: no side effect for adding twice
+    pool.add(a1)
+    assert len(pool._pool) == 1
+    # test: `__contains__`
+    assert a1.root in pool
+    assert a1 in pool
+    assert a2.root not in pool
+    assert a2 not in pool
+    # test: batch_add: two attestations
+    pool.batch_add([a1, a2])
+    assert len(pool._pool) == 2
+    # test: get
+    with pytest.raises(AttestationNotFound):
+        pool.get(a3.root)
+    assert pool.get(a1.root) == a1
+    assert pool.get(a2.root) == a2
+    # test: get_all
+    assert set([a1, a2]) == set(pool.get_all())
+    # test: remove
+    pool.remove(a3)
+    assert len(pool._pool) == 2
+    pool.batch_remove([a2, a1])
+    assert len(pool._pool) == 0
+
+
+@pytest.mark.asyncio
+async def test_bcc_receive_server_get_ready_attestations(
+        request,
+        event_loop,
+        event_bus,
+        monkeypatch,
+        mock_attestation):
+    async with get_peer_and_receive_server(
+        request,
+        event_loop,
+        event_bus,
+    ) as (alice, _, bob_recv_server, _):
+        attesting_slot = XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
+        a1 = mock_attestation.copy(
+            data=mock_attestation.data.copy(
+                slot=attesting_slot,
+            ),
+        )
+        a2 = a1.copy(
+            data=a1.data.copy(
+                shard=a1.data.shard + 1,
+            ),
+        )
+        a3 = a1.copy(
+            data=a1.data.copy(
+                slot=attesting_slot + 1,
+            ),
+        )
+        bob_recv_server.attestation_pool.batch_add([a1, a2, a3])
+
+        ready_attestations = bob_recv_server.get_ready_attestations(
+            attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY - 1,
+        )
+        assert len(ready_attestations) == 0
+
+        ready_attestations = bob_recv_server.get_ready_attestations(
+            attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY,
+        )
+        assert set([a1, a2]) == set(ready_attestations)
+
+        ready_attestations = bob_recv_server.get_ready_attestations(
+            attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY + 1,
+        )
+        assert set([a1, a2, a3]) == set(ready_attestations)
+
+        ready_attestations = bob_recv_server.get_ready_attestations(
+            attesting_slot + XIAO_LONG_BAO_CONFIG.SLOTS_PER_EPOCH + 1,
+        )
+        assert set([a3]) == set(ready_attestations)

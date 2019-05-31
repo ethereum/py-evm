@@ -43,11 +43,14 @@ from p2p.protocol import (
     Command,
 )
 
+from eth2.configs import (
+    CommitteeConfig,
+)
+from eth2.beacon.typing import (
+    Slot,
+)
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
-)
-from eth2.beacon.state_machines.forks.serenity.block_validation import (
-    validate_attestation,
 )
 from eth2.beacon.types.attestations import (
     Attestation,
@@ -56,11 +59,9 @@ from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlock,
 )
-from eth2.beacon.typing import (
-    Slot,
-)
-from eth2.configs import (
-    CommitteeConfig,
+from eth2.beacon.state_machines.forks.serenity.block_validation import (
+    validate_attestation,
+    validate_attestation_slot,
 )
 
 from trinity._utils.les import (
@@ -69,8 +70,11 @@ from trinity._utils.les import (
 from trinity._utils.shellart import (
     bold_red,
 )
+from trinity.exceptions import (
+    AttestationNotFound,
+)
 from trinity.endpoint import (
-    TrinityEventBusEndpoint
+    TrinityEventBusEndpoint,
 )
 from trinity.db.beacon.chain import (
     BaseAsyncBeaconChainDB,
@@ -213,6 +217,58 @@ class BaseReceiveServer(BaseRequestServer):
     pass
 
 
+class AttestationPool:
+    """
+    Stores the attestations not yet included on chain.
+    """
+    # TODO: can probably use lru-cache or even database
+    _pool: Set[Attestation]
+
+    def __init__(self) -> None:
+        self._pool = set()
+
+    def __contains__(self, attestation_or_root: Union[Attestation, Hash32]) -> bool:
+        attestation_root: Hash32
+        if isinstance(attestation_or_root, Attestation):
+            attestation_root = attestation_or_root.root
+        elif isinstance(attestation_or_root, bytes):
+            attestation_root = attestation_or_root
+        else:
+            raise TypeError(
+                f"`attestation_or_root` should be `Attestation` or `Hash32`,"
+                f" got {type(attestation_or_root)}"
+            )
+        try:
+            self.get(attestation_root)
+            return True
+        except AttestationNotFound:
+            return False
+
+    def get(self, attestation_root: Hash32) -> Attestation:
+        for attestation in self._pool:
+            if attestation.root == attestation_root:
+                return attestation
+        raise AttestationNotFound(
+            f"No attestation with root {encode_hex(attestation_root)} is found.")
+
+    def get_all(self) -> Tuple[Attestation, ...]:
+        return tuple(self._pool)
+
+    def add(self, attestation: Attestation) -> None:
+        if attestation not in self._pool:
+            self._pool.add(attestation)
+
+    def batch_add(self, attestations: Iterable[Attestation]) -> None:
+        self._pool = self._pool.union(set(attestations))
+
+    def remove(self, attestation: Attestation) -> None:
+        if attestation in self._pool:
+            self._pool.remove(attestation)
+
+    def batch_remove(self, attestations: Iterable[Attestation]) -> None:
+        self._pool.difference_update(attestations)
+
+
 class OrphanBlockPool:
     """
     Stores the orphan blocks(the blocks who arrive before their parents).
@@ -265,6 +321,7 @@ class BCCReceiveServer(BaseReceiveServer):
         NewBeaconBlock,
     })
 
+    attestation_pool: AttestationPool
     map_request_id_block_root: Dict[int, Hash32]
     orphan_block_pool: OrphanBlockPool
 
@@ -275,6 +332,7 @@ class BCCReceiveServer(BaseReceiveServer):
             token: CancelToken = None) -> None:
         super().__init__(peer_pool, token)
         self.chain = chain
+        self.attestation_pool = AttestationPool()
         self.map_request_id_block_root = {}
         self.orphan_block_pool = OrphanBlockPool()
 
@@ -307,13 +365,19 @@ class BCCReceiveServer(BaseReceiveServer):
             return
 
         # Check if attestations has been seen already.
-        # Filter out those seen already
-        valid_new_attestations = filter(
-            self._is_attestation_new,
-            valid_attestations,
+        # Filter out those seen already.
+        valid_new_attestations = tuple(
+            filter(
+                self._is_attestation_new,
+                valid_attestations,
+            )
         )
-        # Broadcast the valid and newly received attestations
-        self._broadcast_attestations(tuple(valid_new_attestations), peer)
+        if len(valid_new_attestations) == 0:
+            return
+        # Add the valid and new attestations to attestation pool.
+        self.attestation_pool.batch_add(valid_new_attestations)
+        # Broadcast the valid and new attestations.
+        self._broadcast_attestations(valid_new_attestations, peer)
 
     async def _handle_beacon_blocks(self, peer: BCCPeer, msg: BeaconBlocksMessage) -> None:
         if not peer.is_operational:
@@ -352,8 +416,13 @@ class BCCReceiveServer(BaseReceiveServer):
         """
         Check if the attestation is already in the database or the attestion pool.
         """
-        # stub
-        return False
+        try:
+            if attestation.root in self.attestation_pool:
+                return True
+            else:
+                return not self.chain.attestation_exists(attestation.root)
+        except AttestationNotFound:
+            return True
 
     @to_tuple
     def _validate_attestations(self,
@@ -421,6 +490,8 @@ class BCCReceiveServer(BaseReceiveServer):
             # depends on it. If there are, try to import them.
             # TODO: should be done asynchronously?
             self._try_import_orphan_blocks(block.signing_root)
+            # Remove attestations in block that are also in the attestation pool.
+            self.attestation_pool.remove(block.body.attestations)
             return True
 
     def _try_import_orphan_blocks(self, parent_root: Hash32) -> None:
@@ -452,7 +523,8 @@ class BCCReceiveServer(BaseReceiveServer):
                 except ValidationError as e:
                     # TODO: Possibly drop all of its descendants in `self.orphan_block_pool`?
                     self.logger.debug("Fail to import invalid block=%s  reason=%s", block, e)
-                    pass
+                    # Remove attestations in block that are also in the attestation pool.
+                    self.attestation_pool.remove(block.body.attestations)
 
     def _request_block_from_peers(self, block_root: Hash32) -> None:
         for peer in self._peer_pool.connected_nodes.values():
@@ -501,3 +573,23 @@ class BCCReceiveServer(BaseReceiveServer):
 
     def _is_block_seen(self, block: BaseBeaconBlock) -> bool:
         return self._is_block_root_seen(block_root=block.signing_root)
+
+    @to_tuple
+    def get_ready_attestations(self, inclusion_slot: Slot) -> Iterable[Attestation]:
+        config = self.chain.get_state_machine().config
+        for attestation in self.attestation_pool.get_all():
+            # Validate attestation slot
+            try:
+                validate_attestation_slot(
+                    attestation.data,
+                    inclusion_slot,
+                    config.SLOTS_PER_EPOCH,
+                    config.MIN_ATTESTATION_INCLUSION_DELAY,
+                    config.GENESIS_SLOT,
+                )
+            except ValidationError:
+                # TODO: Should clean up attestations with invalid slot because
+                # they are no longer available for inclusion into block.
+                continue
+            else:
+                yield attestation

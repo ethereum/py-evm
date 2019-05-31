@@ -68,6 +68,13 @@ class BadDatabaseError(BaseTrinityError):
     pass
 
 
+class AttestationNotFound(BaseTrinityError):
+    """
+    Raised when attestion with given attestation root does not exist.
+    """
+    pass
+
+
 class WrongNetworkFailure(HandshakeFailure):
     """
     Disconnected from the peer because it's on a different network than we're on
