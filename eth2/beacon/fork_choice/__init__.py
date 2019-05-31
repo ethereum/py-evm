@@ -14,4 +14,8 @@ from .higher_slot import (  # noqa: F401
     higher_slot_scoring,
 )
 
+from .lmd_ghost import (  # noqa: F401
+    lmd_ghost_scoring,
+)
+
 from .fork_choice_scoring import ForkChoiceScoring  # noqa: F401
