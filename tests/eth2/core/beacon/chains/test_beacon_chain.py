@@ -3,14 +3,17 @@ import copy
 import pytest
 
 
-from eth2.beacon.chains.base import (
-    BeaconChain,
-)
 from eth2.beacon.exceptions import (
     BlockClassError,
 )
-from eth2.beacon.state_machines.forks.serenity.blocks import (
-    SerenityBeaconBlock,
+from eth2.beacon.chains.base import (
+    BeaconChain,
+)
+from eth2.beacon.db.exceptions import (
+    AttestationRootNotFound,
+)
+from eth2.beacon.types.blocks import (
+    BeaconBlock,
 )
 from eth2.beacon.tools.builder.proposer import (
     create_mock_block,
@@ -19,8 +22,8 @@ from eth2.beacon.tools.builder.proposer import (
 from eth2.beacon.tools.builder.validator import (
     create_mock_signed_attestations_at_slot,
 )
-from eth2.beacon.types.blocks import (
-    BeaconBlock,
+from eth2.beacon.state_machines.forks.serenity.blocks import (
+    SerenityBeaconBlock,
 )
 
 
@@ -189,3 +192,9 @@ def test_get_attestation_root(valid_chain,
     a0 = attestations[0]
     assert valid_chain.get_attestation_by_root(a0.root) == a0
     assert valid_chain.attestation_exists(a0.root)
+    fake_attestation = a0.copy(
+        aggregate_signature=b'\x78' * 96,
+    )
+    with pytest.raises(AttestationRootNotFound):
+        valid_chain.get_attestation_by_root(fake_attestation.root)
+    assert not valid_chain.attestation_exists(fake_attestation.root)
