@@ -2,7 +2,7 @@ from typing import Type  # noqa: F401
 
 from eth2.beacon.fork_choice import (
     ForkChoiceScoring,
-    higher_slot_scoring,
+    lmd_ghost_scoring,
 )
 from eth2.beacon.typing import (
     FromBlockParams,
@@ -39,5 +39,13 @@ class SerenityStateMachine(BeaconStateMachine):
                                  block_params: FromBlockParams) -> BaseBeaconBlock:
         return create_serenity_block_from_parent(parent_block, block_params)
 
+    def _get_justified_head_state(self) -> BeaconState:
+        justified_head = self.chaindb.get_justified_head(self.block_class)
+        return self.chaindb.get_state_by_root(justified_head.state_root, self.state_class)
+
     def get_fork_choice_scoring(self) -> ForkChoiceScoring:
-        return higher_slot_scoring
+        state = self._get_justified_head_state()
+        # TODO(ralexstokes) integrate attestation pool
+        # blocked on: https://github.com/ethereum/trinity/pull/667
+        attestation_pool = set()
+        return lmd_ghost_scoring(self.chaindb, attestation_pool, state, self.config)
