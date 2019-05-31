@@ -667,6 +667,15 @@ class BeaconChainDB(BaseBeaconChainDB):
     #
     # Beacon State API
     #
+    def _add_head_state_slot_lookup(self, slot: Slot) -> None:
+        """
+        Write head state slot into the database.
+        """
+        self.db.set(
+            SchemaV1.make_head_state_slot_lookup_key(),
+            ssz.encode(slot, sedes=ssz.sedes.uint64),
+        )
+
     def _add_slot_to_state_root_lookup(self, slot: Slot, state_root: Hash32) -> None:
         """
         Set a record in the database to allow looking up the state root by
@@ -682,7 +691,8 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     def get_head_state_slot(self) -> Slot:
         try:
-            head_state_slot = self.db[SchemaV1.make_head_state_slot_lookup_key()]
+            encoded_head_state_slot = self.db[SchemaV1.make_head_state_slot_lookup_key()]
+            head_state_slot = ssz.decode(encoded_head_state_slot, sedes=ssz.sedes.uint64)
         except KeyError:
             raise HeadStateSlotNotFound("No head state slot found")
         return head_state_slot
@@ -751,6 +761,16 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         self._persist_finalized_head(state)
         self._persist_justified_head(state)
+
+        # Update head state slot if new state slot is 
+        # greater than head state slot.
+        try:
+            head_state_slot = self.get_head_state_slot()
+            if state.slot > head_state_slot:
+                self._add_head_state_slot_lookup(state.slot)
+        except HeadStateSlotNotFound:
+            # Hasn't store any head state slot yet.
+            self._add_head_state_slot_lookup(state.slot)
 
     def _update_finalized_head(self, finalized_root: Hash32) -> None:
         """
