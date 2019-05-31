@@ -161,10 +161,6 @@ class BaseBeaconChain(Configurable, ABC):
         pass
 
     @abstractmethod
-    def get_block(self) -> BaseBeaconBlock:
-        pass
-
-    @abstractmethod
     def get_canonical_block_by_slot(self, slot: Slot) -> BaseBeaconBlock:
         pass
 
@@ -381,12 +377,6 @@ class BeaconChain(BaseBeaconChain):
         Raise ``BlockNotFound`` if there is no matching black hash.
         """
         return self.chaindb.get_score(block_root)
-
-    def get_block(self) -> BaseBeaconBlock:
-        """
-        Return the current TIP block.
-        """
-        return self.get_state_machine().block
 
     def get_canonical_block_by_slot(self, slot: Slot) -> BaseBeaconBlock:
         """
