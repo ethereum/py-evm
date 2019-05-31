@@ -109,6 +109,10 @@ class BaseBeaconChain(Configurable, ABC):
         pass
 
     @abstractmethod
+    def ensure_slot(self, slot: Slot=None) -> Slot:
+        pass
+
+    @abstractmethod
     def get_state_machine(self, at_slot: Slot) -> 'BaseBeaconStateMachine':
         pass
 
@@ -286,15 +290,28 @@ class BeaconChain(BaseBeaconChain):
                 return sm_class
         raise StateMachineNotFound("No StateMachine available for block slot: #{0}".format(slot))
 
-    def get_state_machine(self, at_slot: Slot) -> 'BaseBeaconStateMachine':
+    def ensure_slot(self, slot: Slot=None) -> Slot:
+        """
+        Return ``slot`` if it is not ``None``, otherwise return the slot
+        of head state.
+
+        Raise ``HeadStateSlotNotFound`` if there's no head state slot.
+        """
+        if slot is None:
+            return self.chaindb.get_head_state_slot()
+        else:
+            return slot
+
+    def get_state_machine(self, at_slot: Slot=None) -> 'BaseBeaconStateMachine':
         """
         Return the ``StateMachine`` instance for the given slot number.
         """
-        sm_class = self.get_state_machine_class_for_block_slot(at_slot)
+        slot = self.ensure_slot(at_slot)
+        sm_class = self.get_state_machine_class_for_block_slot(slot)
 
         return sm_class(
             chaindb=self.chaindb,
-            slot=at_slot,
+            slot=slot,
         )
 
     @classmethod
