@@ -616,7 +616,7 @@ async def test_bcc_receive_server_get_ready_attestations(
                 slot=attesting_slot + 1,
             ),
         )
-        bob_recv_server.attestation_pool.add([a1, a2, a3])
+        bob_recv_server.attestation_pool.batch_add([a1, a2, a3])
 
         ready_attestations = bob_recv_server.get_ready_attestations(
             attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY - 1,

@@ -82,6 +82,9 @@ from trinity.protocol.bcc.peer import (
 )
 
 
+GetReadyAttestationsFn = Callable[[Slot], Sequence[Attestation]]
+
+
 class Validator(BaseService):
     chain: BeaconChain
     peer_pool: BCCPeerPool
@@ -100,7 +103,7 @@ class Validator(BaseService):
             peer_pool: BCCPeerPool,
             validator_privkeys: Dict[ValidatorIndex, int],
             event_bus: TrinityEventBusEndpoint,
-            get_ready_attestations_fn: Callable[[Slot], Sequence[Attestation]],
+            get_ready_attestations_fn: GetReadyAttestationsFn,
             token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
@@ -121,7 +124,7 @@ class Validator(BaseService):
                 Epoch(-1),
                 CommitteeAssignment((), Shard(-1), Slot(-1), False),
             )
-        self.get_ready_attestations = get_ready_attestations_fn
+        self.get_ready_attestations: GetReadyAttestationsFn = get_ready_attestations_fn
 
     async def _run(self) -> None:
         await self.event_bus.wait_until_serving()
