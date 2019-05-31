@@ -36,6 +36,9 @@ from eth2.beacon.db.chain import (
     BaseBeaconChainDB,
     BeaconChainDB,
 )
+from eth2.beacon.db.exceptions import (
+    HeadStateSlotNotFound,
+)
 from eth2.beacon.exceptions import (
     BlockClassError,
     StateMachineNotFound,
@@ -421,12 +424,16 @@ class BeaconChain(BaseBeaconChain):
                     block.previous_block_root,
                 )
             )
-        base_block_for_import = self.create_block_from_parent(
-            parent_block,
-            FromBlockParams(),
-        )
+        try:
+            head_state_slot = self.chaindb.get_head_state_slot()
+            if head_state_slot >= block.slot:
+                prev_state_slot = parent_block.slot
+            else:
+                prev_state_slot = head_state_slot
+        except HeadStateSlotNotFound:
+            prev_state_slot = parent_block.slot
 
-        state_machine = self.get_state_machine(base_block_for_import)
+        state_machine = self.get_state_machine(prev_state_slot)
 
         state, imported_block = state_machine.import_block(block)
 

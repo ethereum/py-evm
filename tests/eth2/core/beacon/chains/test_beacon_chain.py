@@ -90,7 +90,7 @@ def test_get_state_by_slot(valid_chain,
                            config,
                            keymap):
     # Fisrt, skip block and check if `get_state_by_slot` returns the expected state
-    state_machine = valid_chain.get_state_machine(genesis_block)
+    state_machine = valid_chain.get_state_machine(genesis_block.slot)
     state = state_machine.state
     block_skipped_slot = genesis_block.slot + 1
     block_skipped_state = state_machine.state_transition.apply_state_transition_without_block(
@@ -115,8 +115,7 @@ def test_get_state_by_slot(valid_chain,
         attestations=(),
     )
     valid_chain.import_block(block)
-    state_machine = valid_chain.get_state_machine(block)
-    state = state_machine.state
+    state = valid_chain.get_state_machine().state
     assert valid_chain.get_state_by_slot(proposed_slot).root == state.root
 
 
@@ -141,7 +140,7 @@ def test_import_blocks(valid_chain,
         block = create_mock_block(
             state=state,
             config=config,
-            state_machine=valid_chain.get_state_machine(blocks[-1]),
+            state_machine=valid_chain.get_state_machine(blocks[-1].slot),
             block_class=genesis_block.__class__,
             parent_block=blocks[-1],
             keymap=keymap,
@@ -219,7 +218,7 @@ def test_get_attestation_root(valid_chain,
                               config,
                               keymap,
                               min_attestation_inclusion_delay):
-    state_machine = valid_chain.get_state_machine(genesis_block)
+    state_machine = valid_chain.get_state_machine()
     attestations = create_mock_signed_attestations_at_slot(
         state=genesis_state,
         config=config,
