@@ -762,7 +762,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         self._persist_finalized_head(state)
         self._persist_justified_head(state)
 
-        # Update head state slot if new state slot is 
+        # Update head state slot if new state slot is
         # greater than head state slot.
         try:
             head_state_slot = self.get_head_state_slot()

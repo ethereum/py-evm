@@ -26,9 +26,6 @@ from eth2.beacon.tools.builder.validator import (
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
-from eth2.beacon.state_machines.forks.serenity.blocks import (
-    SerenityBeaconBlock,
-)
 
 
 @pytest.fixture

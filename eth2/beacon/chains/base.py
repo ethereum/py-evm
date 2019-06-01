@@ -116,7 +116,7 @@ class BaseBeaconChain(Configurable, ABC):
         pass
 
     @abstractmethod
-    def get_state_machine(self, at_slot: Slot) -> 'BaseBeaconStateMachine':
+    def get_state_machine(self, at_slot: Slot=None) -> 'BaseBeaconStateMachine':
         pass
 
     @classmethod

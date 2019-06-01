@@ -64,7 +64,7 @@ def test_per_slot_transition(chaindb,
         config=config,
         state_machine=fixture_sm_class(
             chaindb,
-            genesis_block,
+            genesis_block.slot,
         ),
         block_class=SerenityBeaconBlock,
         parent_block=genesis_block,
