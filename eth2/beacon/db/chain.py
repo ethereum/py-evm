@@ -460,6 +460,9 @@ class BeaconChainDB(BaseBeaconChainDB):
             block: BaseBeaconBlock,
             score: int,
     ) -> int:
+        # NOTE if we change the score serialization, we will likely need to
+        # patch up the fork choice logic.
+        # We will decide the score serialization is fixed for now.
         db.set(
             SchemaV1.make_block_root_to_score_lookup_key(block.signing_root),
             ssz.encode(score, sedes=ssz.sedes.uint64),
@@ -467,9 +470,10 @@ class BeaconChainDB(BaseBeaconChainDB):
         return score
 
     def set_score(self, block: BaseBeaconBlock, score: int) -> None:
-        self.db.set(
-            SchemaV1.make_block_root_to_score_lookup_key(block.signing_root),
-            ssz.encode(score, sedes=ssz.sedes.uint64),
+        self.__class__._set_block_score_to_db(
+            self.db,
+            block,
+            score,
         )
 
     @classmethod
