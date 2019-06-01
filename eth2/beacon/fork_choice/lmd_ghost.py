@@ -160,7 +160,7 @@ def score_block_by_attestations(state: BeaconState,
 
 
 def score_block_by_root(block: BaseBeaconBlock) -> int:
-    return int.from_bytes(block.root, byteorder='big')
+    return int.from_bytes(block.root[:8], byteorder='big')
 
 
 @curry
