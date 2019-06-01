@@ -20,6 +20,7 @@ from eth2.beacon.constants import (
 from eth2.beacon.fork_choice import (
     higher_slot_scoring,
 )
+from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.crosslinks import Crosslink
@@ -713,6 +714,14 @@ def fork_choice_scoring():
 @pytest.fixture
 def chaindb(base_db, genesis_config):
     return BeaconChainDB(base_db, genesis_config)
+
+
+#
+# Attestation pool
+#
+@pytest.fixture
+def empty_attestation_pool():
+    return AttestationPool()
 
 
 #

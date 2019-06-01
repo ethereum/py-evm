@@ -43,6 +43,7 @@ from eth2.beacon.exceptions import (
 from eth2.beacon.fork_choice import (
     ForkChoiceScoring,
 )
+from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestations import (
     Attestation,
 )
@@ -192,7 +193,10 @@ class BeaconChain(BaseBeaconChain):
 
     chaindb_class = BeaconChainDB  # type: Type[BaseBeaconChainDB]
 
-    def __init__(self, base_db: BaseAtomicDB, genesis_config: Eth2GenesisConfig) -> None:
+    def __init__(self,
+                 base_db: BaseAtomicDB,
+                 attestation_pool: AttestationPool,
+                 genesis_config: Eth2GenesisConfig) -> None:
         if not self.sm_configuration:
             raise ValueError(
                 "The Chain class cannot be instantiated with an empty `sm_configuration`"
@@ -203,6 +207,7 @@ class BeaconChain(BaseBeaconChain):
             pass
 
         self.chaindb = self.get_chaindb_class()(base_db, genesis_config)
+        self.attestation_pool = attestation_pool
 
     #
     # Helpers
@@ -236,22 +241,27 @@ class BeaconChain(BaseBeaconChain):
 
         chaindb = cls.get_chaindb_class()(db=base_db, genesis_config=genesis_config)
         chaindb.persist_state(genesis_state)
-        state_machine = sm_class(chaindb, genesis_block, genesis_state)
-        fork_choice_scoring = state_machine.get_fork_choice_scoring()
-        return cls._from_genesis_block(base_db, genesis_block, fork_choice_scoring, genesis_config)
+        attestation_pool = AttestationPool()
+        return cls._from_genesis_block(
+            base_db,
+            attestation_pool,
+            genesis_block,
+            genesis_config,
+        )
 
     @classmethod
     def _from_genesis_block(cls,
                             base_db: BaseAtomicDB,
+                            attestation_pool: AttestationPool,
                             genesis_block: BaseBeaconBlock,
-                            fork_choice_scoring: ForkChoiceScoring,
                             genesis_config: Eth2GenesisConfig) -> 'BaseBeaconChain':
         """
         Initialize the ``BeaconChain`` from the genesis block.
         """
         chaindb = cls.get_chaindb_class()(db=base_db, genesis_config=genesis_config)
-        chaindb.persist_block(genesis_block, genesis_block.__class__, fork_choice_scoring)
-        return cls(base_db, genesis_config)
+        genesis_scoring = lambda _block: 0
+        chaindb.persist_block(genesis_block, genesis_block.__class__, genesis_scoring)
+        return cls(base_db, attestation_pool, genesis_config)
 
     #
     # StateMachine API
@@ -290,6 +300,7 @@ class BeaconChain(BaseBeaconChain):
 
         return sm_class(
             chaindb=self.chaindb,
+            attestation_pool=self.attestation_pool,
             slot=slot,
         )
 

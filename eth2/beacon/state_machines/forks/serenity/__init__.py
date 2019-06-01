@@ -45,7 +45,10 @@ class SerenityStateMachine(BeaconStateMachine):
 
     def get_fork_choice_scoring(self) -> ForkChoiceScoring:
         state = self._get_justified_head_state()
-        # TODO(ralexstokes) integrate attestation pool
-        # blocked on: https://github.com/ethereum/trinity/pull/667
-        attestation_pool = set()
-        return lmd_ghost_scoring(self.chaindb, attestation_pool, state, self.config)
+        return lmd_ghost_scoring(
+            self.chaindb,
+            self.attestation_pool,
+            state,
+            self.config,
+            self.block_class
+        )

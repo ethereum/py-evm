@@ -5,6 +5,7 @@ from eth2.beacon.fork_choice import higher_slot_scoring
 from eth2.beacon.helpers import (
     slot_to_epoch,
 )
+from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
@@ -83,6 +84,7 @@ def test_demo(base_db,
     genesis_slot = config.GENESIS_SLOT
     genesis_epoch = config.GENESIS_EPOCH
     chaindb = BeaconChainDB(base_db, config)
+    attestation_pool = AttestationPool()
 
     # TODO(ralexstokes) clean up how the cache is populated
     for i in range(validator_count):
@@ -119,6 +121,7 @@ def test_demo(base_db,
             config=config,
             state_machine=fixture_sm_class(
                 chaindb,
+                attestation_pool,
                 blocks[-1].slot,
             ),
             block_class=SerenityBeaconBlock,
@@ -131,6 +134,7 @@ def test_demo(base_db,
         # Get state machine instance
         sm = fixture_sm_class(
             chaindb,
+            attestation_pool,
             blocks[-1].slot,
         )
         state, _ = sm.import_block(block)
@@ -147,6 +151,7 @@ def test_demo(base_db,
             config=config,
             state_machine=fixture_sm_class(
                 chaindb,
+                attestation_pool,
                 block.slot,
             ),
             attestation_slot=attestation_slot,

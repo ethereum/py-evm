@@ -16,6 +16,7 @@ from eth2.configs import (  # noqa: F401
 )
 from eth2.beacon.db.chain import BaseBeaconChainDB
 from eth2.beacon.fork_choice import ForkChoiceScoring
+from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
@@ -43,6 +44,7 @@ class BaseBeaconStateMachine(Configurable, ABC):
     @abstractmethod
     def __init__(self,
                  chaindb: BaseBeaconChainDB,
+                 attestation_pool: AttestationPool,
                  slot: Slot,
                  state: BeaconState=None) -> None:
         pass
@@ -90,9 +92,11 @@ class BaseBeaconStateMachine(Configurable, ABC):
 class BeaconStateMachine(BaseBeaconStateMachine):
     def __init__(self,
                  chaindb: BaseBeaconChainDB,
+                 attestation_pool: AttestationPool,
                  slot: Slot,
                  state: BeaconState=None) -> None:
         self.chaindb = chaindb
+        self.attestation_pool = attestation_pool
         if state is not None:
             self._state = state
         else:

@@ -29,6 +29,7 @@ from eth2.beacon.typing import (
 )
 from eth2.beacon.chains.testnet import TestnetChain as _TestnetChain
 from eth2.beacon.fork_choice import higher_slot_scoring
+from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.blocks import (
@@ -49,7 +50,7 @@ from trinity.protocol.bcc.peer import (
     BCCPeerPoolEventServer,
 )
 from trinity.protocol.bcc.servers import (
-    AttestationPool,
+    AttestationPool as BCCAttestationPool,
     BCCReceiveServer,
     BCCRequestServer,
     OrphanBlockPool,
@@ -94,7 +95,11 @@ class FakeChain(_TestnetChain):
 async def get_fake_chain() -> FakeChain:
     genesis_config = Eth2GenesisConfig(XIAO_LONG_BAO_CONFIG)
     chain_db = await bcc_helpers.get_genesis_chain_db(genesis_config=genesis_config)
-    return FakeChain(base_db=chain_db.db, genesis_config=genesis_config)
+    return FakeChain(
+        base_db=chain_db.db,
+        attestation_pool=AttestationPool(),
+        genesis_config=genesis_config,
+    )
 
 
 def get_blocks(
@@ -551,7 +556,7 @@ async def test_bcc_receive_server_handle_attestations_checks(request,
 
 
 def test_attestation_pool():
-    pool = AttestationPool()
+    pool = BCCAttestationPool()
     a1 = Attestation()
     a2 = Attestation(
         data=a1.data.copy(
