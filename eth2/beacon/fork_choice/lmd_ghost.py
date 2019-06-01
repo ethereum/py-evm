@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, Sequence, Tuple
+from typing import Dict, Iterable, Optional, Sequence, Tuple, Type, Union
 
 from eth_utils import (
     to_tuple,
@@ -55,23 +55,51 @@ class Store:
         Assembles a dictionary of latest attestations keyed by validator index.
         Any attestation made by a validator in the ``attestation_pool`` that occur after the last known attestation according to the state take precedence.
         """
-        # TODO
-        # For `state.previous_epoch_attestations`, figure out the combination key (validator_index, timestamp) and map to a given attestation
-        # For `state.current_epoch_attestations`, figure out the combination key (validator_index, timestamp) and map to a given attestation
-        # For each attestation in `attestation_pool`, figure out the epoch, then figure out the validator index, then see if we have a later timestamp
-        # If so, then overwrite the value in the index.
-        return {}
+        previous_epoch_index = self._mk_pre_index_from_attestations(
+            state,
+            state.previous_epoch_attestations
+        )
 
-    def get_latest_attestation(self, index: ValidatorIndex) -> AttestationData:
+        current_epoch_index = self._mk_pre_index_from_attestations(
+            state,
+            state.current_epoch_attestations
+        )
+
+        pool_index = self._mk_pre_index_from_attestations(
+            state,
+            tuple(attestation for _, attestation in attestation_pool)
+        )
+
+        all_attestations_by_index = concat(
+            (
+                previous_epoch_index,
+                current_epoch_index,
+                pool_index,
+            )
+        )
+        return valmap(
+            second,
+            merge_with(
+                _take_latest_attestation_by_slot,
+                all_attestations_by_index,
+            )
+        )
+
+    def _get_latest_attestation(self, index: ValidatorIndex) -> Optional[AttestationData]:
         """
         Return the latest attesation we know from the validator with the
         given ``index``.
         """
-        return self._attestation_index[index]
+        return self._attestation_index.get(index, None)
 
-    def get_latest_attestation_target(self, index: ValidatorIndex) -> BaseBeaconBlock:
-        attestation = self.get_latest_attestation(index)
-        target_block = self.get_block_by_root(attestation.beacon_block_root)
+    def _get_block_by_root(self, root: Hash32) -> BaseBeaconBlock:
+        return self._db.get_block_by_root(root, self._block_class)
+
+    def get_latest_attestation_target(self, index: ValidatorIndex) -> Optional[BaseBeaconBlock]:
+        attestation = self._get_latest_attestation(index)
+        if not attestation:
+            return None
+        target_block = self._get_block_by_root(attestation.beacon_block_root)
         return target_block
 
     def get_ancestor(self, index):
@@ -82,7 +110,7 @@ class Store:
         pass
 
 
-AttestationTarget = Tuple[ValidatorIndex, BaseBeaconBlock]
+AttestationTarget = Tuple[ValidatorIndex, Optional[BaseBeaconBlock]]
 
 
 @curry
@@ -100,12 +128,16 @@ def _find_latest_attestation_targets(state: BeaconState,
                                      store: Store,
                                      config: Eth2Config) -> Iterable[AttestationTarget]:
     epoch = slot_to_epoch(state.slot, config.SLOTS_PER_EPOCH)
-    return map(
-        _find_latest_attestation_target(store),
-        get_active_validator_indices(
-            state.validator_registry,
-            epoch,
-        ),
+    active_validators = get_active_validator_indices(
+        state.validator_registry,
+        epoch,
+    )
+    return filter(
+        second,
+        map(
+            _find_latest_attestation_target(store),
+            active_validators,
+        )
     )
 
 
