@@ -29,7 +29,8 @@ from eth2.beacon.typing import (
 )
 from eth2.beacon.chains.testnet import TestnetChain as _TestnetChain
 from eth2.beacon.fork_choice import higher_slot_scoring
-from eth2.beacon.operations.attestation_pool import AttestationPool
+# TODO(ralexstokes) merge together each pool
+from eth2.beacon.operations.attestation_pool import AttestationPool as TempPool
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.blocks import (
@@ -50,7 +51,7 @@ from trinity.protocol.bcc.peer import (
     BCCPeerPoolEventServer,
 )
 from trinity.protocol.bcc.servers import (
-    AttestationPool as BCCAttestationPool,
+    AttestationPool,
     BCCReceiveServer,
     BCCRequestServer,
     OrphanBlockPool,
@@ -97,7 +98,7 @@ async def get_fake_chain() -> FakeChain:
     chain_db = await bcc_helpers.get_genesis_chain_db(genesis_config=genesis_config)
     return FakeChain(
         base_db=chain_db.db,
-        attestation_pool=AttestationPool(),
+        attestation_pool=TempPool(),
         genesis_config=genesis_config,
     )
 
@@ -556,7 +557,7 @@ async def test_bcc_receive_server_handle_attestations_checks(request,
 
 
 def test_attestation_pool():
-    pool = BCCAttestationPool()
+    pool = AttestationPool()
     a1 = Attestation()
     a2 = Attestation(
         data=a1.data.copy(
