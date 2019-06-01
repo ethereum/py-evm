@@ -1,7 +1,7 @@
 import pytest
 
 from eth2.beacon.db.chain import BeaconChainDB
-from eth2.beacon.fork_choice import higher_slot_scoring
+from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
 from eth2.beacon.helpers import (
     slot_to_epoch,
 )

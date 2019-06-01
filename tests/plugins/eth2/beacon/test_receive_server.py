@@ -28,7 +28,7 @@ from eth2.beacon.typing import (
     FromBlockParams,
 )
 from eth2.beacon.chains.testnet import TestnetChain as _TestnetChain
-from eth2.beacon.fork_choice import higher_slot_scoring
+from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
 # TODO(ralexstokes) merge together each pool
 from eth2.beacon.operations.attestation_pool import AttestationPool as TempPool
 from eth2.beacon.types.attestations import Attestation

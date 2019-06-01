@@ -1,7 +1,7 @@
 from typing import Type  # noqa: F401
 
-from eth2.beacon.fork_choice import (
-    ForkChoiceScoring,
+from eth2.beacon.fork_choice.scoring import Scoring as ForkChoiceScoring
+from eth2.beacon.fork_choice.lmd_ghost import (
     lmd_ghost_scoring,
 )
 from eth2.beacon.typing import (

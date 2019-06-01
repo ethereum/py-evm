@@ -15,7 +15,7 @@ from typing import (
 
 from eth_typing import Hash32
 
-from eth2.beacon.fork_choice import ForkChoiceScoring
+from eth2.beacon.fork_choice.scoring import Scoring as ForkChoiceScoring
 from eth2.beacon.types.states import (
     BeaconState,
 )

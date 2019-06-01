@@ -17,7 +17,7 @@ from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
     GWEI_PER_ETH,
 )
-from eth2.beacon.fork_choice import (
+from eth2.beacon.fork_choice.higher_slot import (
     higher_slot_scoring,
 )
 from eth2.beacon.operations.attestation_pool import AttestationPool

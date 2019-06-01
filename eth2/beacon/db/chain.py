@@ -39,9 +39,7 @@ from eth.exceptions import (
 from eth.validation import (
     validate_word,
 )
-from eth2.beacon.fork_choice import (
-    ForkChoiceScoring,
-)
+from eth2.beacon.fork_choice.scoring import Scoring as ForkChoiceScoring
 from eth2.beacon.helpers import (
     slot_to_epoch,
 )

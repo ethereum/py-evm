@@ -1,5 +1,5 @@
-from eth2.beacon.fork_choice import (
-    ForkChoiceScoring,
+from eth2.beacon.fork_choice.scoring import Scoring as ForkChoiceScoring
+from eth2.beacon.fork_choice.higher_slot import (
     higher_slot_scoring,
 )
 from eth2.beacon.state_machines.base import (
