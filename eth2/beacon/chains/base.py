@@ -29,6 +29,7 @@ from eth_utils import (
     encode_hex,
 )
 
+from eth2._utils.funcs import constantly
 from eth2._utils.ssz import (
     validate_imported_block_unchanged,
 )
@@ -39,9 +40,6 @@ from eth2.beacon.db.chain import (
 from eth2.beacon.exceptions import (
     BlockClassError,
     StateMachineNotFound,
-)
-from eth2.beacon.fork_choice import (
-    ForkChoiceScoring,
 )
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestations import (
@@ -259,7 +257,7 @@ class BeaconChain(BaseBeaconChain):
         Initialize the ``BeaconChain`` from the genesis block.
         """
         chaindb = cls.get_chaindb_class()(db=base_db, genesis_config=genesis_config)
-        genesis_scoring = lambda _block: 0
+        genesis_scoring = constantly(0)
         chaindb.persist_block(genesis_block, genesis_block.__class__, genesis_scoring)
         return cls(base_db, attestation_pool, genesis_config)
 
