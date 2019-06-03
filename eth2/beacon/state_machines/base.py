@@ -15,7 +15,7 @@ from eth2.configs import (  # noqa: F401
     Eth2Config,
 )
 from eth2.beacon.db.chain import BaseBeaconChainDB
-from eth2.beacon.fork_choice.scoring import Scoring as ForkChoiceScoring
+from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
@@ -70,7 +70,7 @@ class BaseBeaconStateMachine(Configurable, ABC):
         pass
 
     @abstractmethod
-    def get_fork_choice_scoring(self) -> ForkChoiceScoring:
+    def get_fork_choice_scoring(self) -> ForkChoiceScoringFn:
         pass
 
     #

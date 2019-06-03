@@ -14,4 +14,4 @@ from typing import Callable
 
 from eth2.beacon.types.blocks import BaseBeaconBlock
 
-Scoring = Callable[[BaseBeaconBlock], int]
+ScoringFn = Callable[[BaseBeaconBlock], int]

@@ -15,7 +15,7 @@ from typing import (
 
 from eth_typing import Hash32
 
-from eth2.beacon.fork_choice.scoring import Scoring as ForkChoiceScoring
+from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
 from eth2.beacon.types.states import (
     BeaconState,
 )
@@ -38,7 +38,7 @@ class BaseAsyncBeaconChainDB(ABC):
             self,
             block: BaseBeaconBlock,
             block_class: Type[BaseBeaconBlock],
-            fork_choice_scoring: ForkChoiceScoring,
+            fork_choice_scoring: ForkChoiceScoringFn,
     ) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
         pass
 
@@ -92,7 +92,7 @@ class BaseAsyncBeaconChainDB(ABC):
             self,
             blocks: Iterable[BaseBeaconBlock],
             block_class: Type[BaseBeaconBlock],
-            fork_choice_scorings: Iterable[ForkChoiceScoring],
+            fork_choice_scorings: Iterable[ForkChoiceScoringFn],
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         pass
 

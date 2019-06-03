@@ -1,4 +1,4 @@
-from eth2.beacon.fork_choice.scoring import Scoring as ForkChoiceScoring
+from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
 from eth2.beacon.fork_choice.higher_slot import (
     higher_slot_scoring,
 )
@@ -43,5 +43,5 @@ class XiaoLongBaoStateMachine(BeaconStateMachine):
                                  block_params: FromBlockParams) -> BaseBeaconBlock:
         return create_serenity_block_from_parent(parent_block, block_params)
 
-    def get_fork_choice_scoring(self) -> ForkChoiceScoring:
+    def get_fork_choice_scoring(self) -> ForkChoiceScoringFn:
         return higher_slot_scoring

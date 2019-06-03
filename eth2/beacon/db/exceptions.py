@@ -40,7 +40,7 @@ class AttestationRootNotFound(BeaconDBException):
     pass
 
 
-class MissingForkChoiceScorings(BeaconDBException):
+class MissingForkChoiceScoringFns(BeaconDBException):
     """
     Exception raised if a client tries to score a block without providing
     the ability to generate a score via a ``scoring``.

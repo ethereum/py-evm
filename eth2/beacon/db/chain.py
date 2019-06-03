@@ -39,7 +39,7 @@ from eth.exceptions import (
 from eth.validation import (
     validate_word,
 )
-from eth2.beacon.fork_choice.scoring import Scoring as ForkChoiceScoring
+from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
 from eth2.beacon.helpers import (
     slot_to_epoch,
 )
@@ -58,7 +58,7 @@ from eth2.beacon.db.exceptions import (
     FinalizedHeadNotFound,
     HeadStateSlotNotFound,
     JustifiedHeadNotFound,
-    MissingForkChoiceScorings,
+    MissingForkChoiceScoringFns,
     StateSlotNotFound,
 )
 from eth2.beacon.db.schema import SchemaV1
@@ -90,7 +90,7 @@ class BaseBeaconChainDB(ABC):
             self,
             block: BaseBeaconBlock,
             block_class: Type[BaseBeaconBlock],
-            fork_choice_scoring: ForkChoiceScoring,
+            fork_choice_scoring: ForkChoiceScoringFn,
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         pass
 
@@ -148,7 +148,7 @@ class BaseBeaconChainDB(ABC):
             self,
             blocks: Iterable[BaseBeaconBlock],
             block_class: Type[BaseBeaconBlock],
-            fork_choice_scoring: Iterable[ForkChoiceScoring],
+            fork_choice_scoring: Iterable[ForkChoiceScoringFn],
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         pass
 
@@ -225,7 +225,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             self,
             block: BaseBeaconBlock,
             block_class: Type[BaseBeaconBlock],
-            fork_choice_scoring: ForkChoiceScoring,
+            fork_choice_scoring: ForkChoiceScoringFn,
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         """
         Persist the given block.
@@ -242,7 +242,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             db: 'BaseDB',
             block: BaseBeaconBlock,
             block_class: Type[BaseBeaconBlock],
-            fork_choice_scoring: ForkChoiceScoring,
+            fork_choice_scoring: ForkChoiceScoringFn,
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         block_chain = (block, )
         scorings = (fork_choice_scoring, )
@@ -443,7 +443,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             self,
             blocks: Iterable[BaseBeaconBlock],
             block_class: Type[BaseBeaconBlock],
-            fork_choice_scorings: Iterable[ForkChoiceScoring],
+            fork_choice_scorings: Iterable[ForkChoiceScoringFn],
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         """
         Return two iterable of blocks, the first containing the new canonical blocks,
@@ -480,7 +480,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             db: BaseDB,
             blocks: Iterable[BaseBeaconBlock],
             block_class: Type[BaseBeaconBlock],
-            fork_choice_scorings: Iterable[ForkChoiceScoring],
+            fork_choice_scorings: Iterable[ForkChoiceScoringFn],
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         blocks_iterator = iter(blocks)
         scorings_iterator = iter(fork_choice_scorings)
@@ -543,7 +543,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             try:
                 next_scoring = next(scorings_iterator)
             except StopIteration:
-                raise MissingForkChoiceScorings
+                raise MissingForkChoiceScoringFns
 
             score = next_scoring(curr_block_head)
             cls._set_block_score_to_db(db, curr_block_head, score)
