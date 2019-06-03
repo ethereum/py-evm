@@ -110,9 +110,7 @@ async def get_chain_db(blocks=(),
     await chain_db.coro_persist_block_chain(
         blocks,
         BeaconBlock,
-        (
-            higher_slot_scoring for block in blocks
-        ),
+        (higher_slot_scoring,) * len(blocks),
     )
     return chain_db
 
