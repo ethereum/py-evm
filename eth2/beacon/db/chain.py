@@ -681,17 +681,19 @@ class BeaconChainDB(BaseBeaconChainDB):
         Set a record in the database to allow looking up the state root by
         slot number.
         """
-        slot_to_state_root_key = SchemaV1.make_slot_to_state_root_lookup_key(
-            slot
-        )
+        slot_to_state_root_key = SchemaV1.make_slot_to_state_root_lookup_key(slot)
         self.db.set(
             slot_to_state_root_key,
             ssz.encode(state_root, sedes=ssz.sedes.byte_list),
         )
 
     def get_head_state_slot(self) -> Slot:
+        return self._get_head_state_slot(self.db)
+
+    @staticmethod
+    def _get_head_state_slot(db: BaseDB) -> Slot:
         try:
-            encoded_head_state_slot = self.db[SchemaV1.make_head_state_slot_lookup_key()]
+            encoded_head_state_slot = db[SchemaV1.make_head_state_slot_lookup_key()]
             head_state_slot = ssz.decode(encoded_head_state_slot, sedes=ssz.sedes.uint64)
         except KeyError:
             raise HeadStateSlotNotFound("No head state slot found")
@@ -707,9 +709,7 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         Raises StateNotFound if it is not present in the db.
         """
-        slot_to_state_root_key = SchemaV1.make_slot_to_state_root_lookup_key(
-            slot
-        )
+        slot_to_state_root_key = SchemaV1.make_slot_to_state_root_lookup_key(slot)
         try:
             state_root_ssz = db[slot_to_state_root_key]
         except KeyError:
@@ -762,15 +762,15 @@ class BeaconChainDB(BaseBeaconChainDB):
         self._persist_finalized_head(state)
         self._persist_justified_head(state)
 
-        # Update head state slot if new state slot is
-        # greater than head state slot.
+        # Update head state slot if new state slot is greater than head state slot.
         try:
             head_state_slot = self.get_head_state_slot()
-            if state.slot > head_state_slot:
-                self._add_head_state_slot_lookup(state.slot)
         except HeadStateSlotNotFound:
             # Hasn't store any head state slot yet.
             self._add_head_state_slot_lookup(state.slot)
+        else:
+            if state.slot > head_state_slot:
+                self._add_head_state_slot_lookup(state.slot)
 
     def _update_finalized_head(self, finalized_root: Hash32) -> None:
         """
