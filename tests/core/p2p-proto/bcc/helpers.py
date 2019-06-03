@@ -20,6 +20,10 @@ from eth2.beacon.types.blocks import (
     BeaconBlockBody,
 )
 
+from tests.core.integration_test_helpers import (
+    async_passthrough,
+)
+
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.protocol.bcc.context import BeaconContext
 from trinity.protocol.bcc.peer import (
@@ -35,9 +39,7 @@ from p2p.tools.paragon.helpers import (
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
 )
-from tests.core.integration_test_helpers import (
-    async_passthrough,
-)
+from eth2.beacon.fork_choice import higher_slot_scoring
 from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
 from eth2.configs import (
     Eth2GenesisConfig,
@@ -100,10 +102,18 @@ def create_branch(length, root=None, **start_kwargs):
         parent = child
 
 
-async def get_chain_db(blocks=(), genesis_config=SERENITY_GENESIS_CONFIG):
+async def get_chain_db(blocks=(),
+                       genesis_config=SERENITY_GENESIS_CONFIG,
+                       fork_choice_scoring=higher_slot_scoring):
     db = AtomicDB()
     chain_db = FakeAsyncBeaconChainDB(db=db, genesis_config=genesis_config)
-    await chain_db.coro_persist_block_chain(blocks, BeaconBlock)
+    await chain_db.coro_persist_block_chain(
+        blocks,
+        BeaconBlock,
+        (
+            higher_slot_scoring for block in blocks
+        ),
+    )
     return chain_db
 
 

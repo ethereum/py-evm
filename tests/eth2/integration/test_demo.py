@@ -1,6 +1,7 @@
 import pytest
 
 from eth2.beacon.db.chain import BeaconChainDB
+from eth2.beacon.fork_choice import higher_slot_scoring
 from eth2.beacon.helpers import (
     slot_to_epoch,
 )
@@ -44,8 +45,14 @@ def mock_bls(mocker, request):
     mocker.patch('py_ecc.bls.verify_multiple', side_effect=mock_bls_verify_multiple)
 
 
+@pytest.fixture
+def fork_choice_scoring():
+    return higher_slot_scoring
+
+
 def test_demo(base_db,
-              keymap):
+              keymap,
+              fork_choice_scoring):
     slots_per_epoch = 8
     config = SERENITY_CONFIG._replace(
         SLOTS_PER_EPOCH=slots_per_epoch,
@@ -74,7 +81,7 @@ def test_demo(base_db,
     for i in range(num_validators):
         assert genesis_state.validator_registry[i].is_active(genesis_slot)
 
-    chaindb.persist_block(genesis_block, SerenityBeaconBlock)
+    chaindb.persist_block(genesis_block, SerenityBeaconBlock, fork_choice_scoring)
     chaindb.persist_state(genesis_state)
 
     state = genesis_state
@@ -113,7 +120,7 @@ def test_demo(base_db,
         state, _ = sm.import_block(block)
 
         chaindb.persist_state(state)
-        chaindb.persist_block(block, SerenityBeaconBlock)
+        chaindb.persist_block(block, SerenityBeaconBlock, fork_choice_scoring)
 
         blocks += (block,)
 

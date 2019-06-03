@@ -24,3 +24,11 @@ class AttestationRootNotFound(BeaconDBException):
     Exception raised if no attestation root is set in this database.
     """
     pass
+
+
+class MissingForkChoiceScorings(BeaconDBException):
+    """
+    Exception raised if a client tries to score a block without providing
+    the ability to generate a score via a ``scoring``.
+    """
+    pass

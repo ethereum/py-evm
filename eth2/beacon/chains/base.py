@@ -40,6 +40,9 @@ from eth2.beacon.exceptions import (
     BlockClassError,
     StateMachineNotFound,
 )
+from eth2.beacon.fork_choice import (
+    ForkChoiceScoring,
+)
 from eth2.beacon.types.attestations import (
     Attestation,
 )
@@ -237,18 +240,21 @@ class BeaconChain(BaseBeaconChain):
 
         chaindb = cls.get_chaindb_class()(db=base_db, genesis_config=genesis_config)
         chaindb.persist_state(genesis_state)
-        return cls._from_genesis_block(base_db, genesis_block, genesis_config)
+        state_machine = sm_class(chaindb, genesis_block, genesis_state)
+        fork_choice_scoring = state_machine.get_fork_choice_scoring()
+        return cls._from_genesis_block(base_db, genesis_block, fork_choice_scoring, genesis_config)
 
     @classmethod
     def _from_genesis_block(cls,
                             base_db: BaseAtomicDB,
                             genesis_block: BaseBeaconBlock,
+                            fork_choice_scoring: ForkChoiceScoring,
                             genesis_config: Eth2GenesisConfig) -> 'BaseBeaconChain':
         """
         Initialize the ``BeaconChain`` from the genesis block.
         """
         chaindb = cls.get_chaindb_class()(db=base_db, genesis_config=genesis_config)
-        chaindb.persist_block(genesis_block, genesis_block.__class__)
+        chaindb.persist_block(genesis_block, genesis_block.__class__, fork_choice_scoring)
         return cls(base_db, genesis_config)
 
     #
@@ -407,7 +413,10 @@ class BeaconChain(BaseBeaconChain):
             parent_block,
             FromBlockParams(),
         )
-        state, imported_block = self.get_state_machine(base_block_for_import).import_block(block)
+
+        state_machine = self.get_state_machine(base_block_for_import)
+
+        state, imported_block = state_machine.import_block(block)
 
         # Validate the imported block.
         if perform_validation:
@@ -416,10 +425,15 @@ class BeaconChain(BaseBeaconChain):
         # TODO: Now it just persists all state. Should design how to clean up the old state.
         self.chaindb.persist_state(state)
 
+        fork_choice_scoring = state_machine.get_fork_choice_scoring()
         (
             new_canonical_blocks,
             old_canonical_blocks,
-        ) = self.chaindb.persist_block(imported_block, imported_block.__class__)
+        ) = self.chaindb.persist_block(
+            imported_block,
+            imported_block.__class__,
+            fork_choice_scoring,
+        )
 
         self.logger.debug(
             'IMPORTED_BLOCK: slot %s | signed root %s',

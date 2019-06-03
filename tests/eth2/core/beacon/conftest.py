@@ -16,6 +16,9 @@ from eth2.configs import (
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
+from eth2.beacon.fork_choice import (
+    higher_slot_scoring,
+)
 from eth2.beacon.helpers import (
     slot_to_epoch,
 )
@@ -801,6 +804,11 @@ def fixture_sm_class(config):
         __name__='SerenityStateMachineForTesting',
         config=config,
     )
+
+
+@pytest.fixture
+def fork_choice_scoring():
+    return higher_slot_scoring
 
 
 @pytest.fixture

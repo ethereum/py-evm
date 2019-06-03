@@ -45,7 +45,7 @@ def valid_chain(beacon_chain_with_block_validation):
         (100, 20, 10, 10),
     ]
 )
-def test_canonical_chain(valid_chain, genesis_slot):
+def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
     genesis_block = valid_chain.get_canonical_block_by_slot(genesis_slot)
 
     # Our chain fixture is created with only the genesis header, so initially that's the head of
@@ -56,7 +56,7 @@ def test_canonical_chain(valid_chain, genesis_slot):
         slot=genesis_block.slot + 1,
         previous_block_root=genesis_block.signing_root,
     )
-    valid_chain.chaindb.persist_block(block, block.__class__)
+    valid_chain.chaindb.persist_block(block, block.__class__, fork_choice_scoring)
 
     assert valid_chain.get_canonical_head() == block
 

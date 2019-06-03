@@ -28,6 +28,7 @@ from eth2.beacon.typing import (
     FromBlockParams,
 )
 from eth2.beacon.chains.testnet import TestnetChain
+from eth2.beacon.fork_choice import higher_slot_scoring
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
@@ -85,7 +86,7 @@ class FakeChain(TestnetChain):
         (
             new_canonical_blocks,
             old_canonical_blocks,
-        ) = self.chaindb.persist_block(block, block.__class__)
+        ) = self.chaindb.persist_block(block, block.__class__, higher_slot_scoring)
         return block, new_canonical_blocks, old_canonical_blocks
 
 
@@ -368,6 +369,7 @@ async def test_bcc_receive_request_block_by_root(request, event_loop, event_bus)
         await alice_req_server.db.coro_persist_block(
             blocks[0],
             SerenityBeaconBlock,
+            higher_slot_scoring,
         )
         bob_recv_server._request_block_from_peers(blocks[0].signing_root)
         msg_block = await bob_msg_queue.get()
@@ -482,14 +484,17 @@ async def test_bcc_receive_server_with_request_server(request, event_loop, event
         await alice_req_server.db.coro_persist_block(
             blocks[0],
             SerenityBeaconBlock,
+            higher_slot_scoring,
         )
         await alice_req_server.db.coro_persist_block(
             blocks[1],
             SerenityBeaconBlock,
+            higher_slot_scoring,
         )
         await alice_req_server.db.coro_persist_block(
             blocks[2],
             SerenityBeaconBlock,
+            higher_slot_scoring,
         )
 
         # test: alice send `blocks[2]` to bob, and bob should be able to

@@ -15,6 +15,7 @@ from typing import (
 
 from eth_typing import Hash32
 
+from eth2.beacon.fork_choice import ForkChoiceScoring
 from eth2.beacon.types.states import (
     BeaconState,
 )
@@ -36,7 +37,8 @@ class BaseAsyncBeaconChainDB(ABC):
     async def coro_persist_block(
             self,
             block: BaseBeaconBlock,
-            block_class: Type[BaseBeaconBlock]
+            block_class: Type[BaseBeaconBlock],
+            fork_choice_scoring: ForkChoiceScoring,
     ) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
         pass
 
@@ -89,7 +91,8 @@ class BaseAsyncBeaconChainDB(ABC):
     async def coro_persist_block_chain(
             self,
             blocks: Iterable[BaseBeaconBlock],
-            block_class: Type[BaseBeaconBlock]
+            block_class: Type[BaseBeaconBlock],
+            fork_choice_scorings: Iterable[ForkChoiceScoring],
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
         pass
 

@@ -3,6 +3,7 @@ import pytest
 import asyncio
 
 from async_generator import asynccontextmanager
+from eth2.beacon.fork_choice import higher_slot_scoring
 from eth2.beacon.types.blocks import BeaconBlock
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
@@ -23,13 +24,20 @@ from .helpers import (
 )
 
 
-class NoopBlockImporter:
+class SimpleWriterBlockImporter:
     """
-    Do nothing, to override the block validation in ``SyncBlockImporter``.
+    ``SimpleWriterBlockImporter`` just persists any imported blocks to the
+    database provided at instantiation.
     """
 
+    def __init__(self, chain_db):
+        self._chain_db = chain_db
+
     def import_block(self, block):
-        return None, tuple(), tuple()
+        new_blocks, old_blocks = self._chain_db.persist_block(block,
+                                                              BeaconBlock,
+                                                              higher_slot_scoring)
+        return None, new_blocks, old_blocks
 
 
 @asynccontextmanager
@@ -54,7 +62,7 @@ async def get_sync_setup(
     alice_syncer = BeaconChainSyncer(
         alice_chain_db,
         alice_peer_pool,
-        NoopBlockImporter(),
+        SimpleWriterBlockImporter(alice_chain_db),
         genesis_config,
     )
     async with run_peer_pool_event_server(

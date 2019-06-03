@@ -15,6 +15,7 @@ from eth2.configs import (  # noqa: F401
     Eth2Config,
 )
 from eth2.beacon.db.chain import BaseBeaconChainDB
+from eth2.beacon.fork_choice import ForkChoiceScoring
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
@@ -63,6 +64,10 @@ class BaseBeaconStateMachine(Configurable, ABC):
     @property
     @abstractmethod
     def state_transition(self) -> BaseStateTransition:
+        pass
+
+    @abstractmethod
+    def get_fork_choice_scoring(self) -> ForkChoiceScoring:
         pass
 
     #
