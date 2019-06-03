@@ -36,9 +36,6 @@ from eth2.beacon.db.chain import (
     BaseBeaconChainDB,
     BeaconChainDB,
 )
-from eth2.beacon.db.exceptions import (
-    HeadStateSlotNotFound,
-)
 from eth2.beacon.exceptions import (
     BlockClassError,
     StateMachineNotFound,
@@ -109,10 +106,6 @@ class BaseBeaconChain(Configurable, ABC):
     def get_state_machine_class(
             cls,
             block: BaseBeaconBlock) -> Type['BaseBeaconStateMachine']:
-        pass
-
-    @abstractmethod
-    def ensure_slot(self, slot: Slot=None) -> Slot:
         pass
 
     @abstractmethod
@@ -289,23 +282,14 @@ class BeaconChain(BaseBeaconChain):
                 return sm_class
         raise StateMachineNotFound("No StateMachine available for block slot: #{0}".format(slot))
 
-    def ensure_slot(self, slot: Slot=None) -> Slot:
-        """
-        Return ``slot`` if it is not ``None``, otherwise return the slot
-        of head state.
-
-        Raise ``HeadStateSlotNotFound`` if there's no head state slot.
-        """
-        if slot is None:
-            return self.chaindb.get_head_state_slot()
-        else:
-            return slot
-
     def get_state_machine(self, at_slot: Slot=None) -> 'BaseBeaconStateMachine':
         """
         Return the ``StateMachine`` instance for the given slot number.
         """
-        slot = self.ensure_slot(at_slot)
+        if at_slot is None:
+            slot = self.chaindb.get_head_state_slot()
+        else:
+            slot = at_slot
         sm_class = self.get_state_machine_class_for_block_slot(slot)
 
         return sm_class(
@@ -424,14 +408,14 @@ class BeaconChain(BaseBeaconChain):
                     block.previous_block_root,
                 )
             )
-        try:
-            head_state_slot = self.chaindb.get_head_state_slot()
-            if head_state_slot >= block.slot:
-                prev_state_slot = parent_block.slot
-            else:
-                prev_state_slot = head_state_slot
-        except HeadStateSlotNotFound:
+
+        head_state_slot = self.chaindb.get_head_state_slot()
+        if head_state_slot >= block.slot:
+            # Importing a block older than the head state. Hence head state can not be used to
+            # perform state transition.
             prev_state_slot = parent_block.slot
+        else:
+            prev_state_slot = head_state_slot
 
         state_machine = self.get_state_machine(prev_state_slot)
 
