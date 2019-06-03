@@ -2,13 +2,9 @@ import itertools
 
 from eth_utils.toolz import take
 
+from eth2._utils.funcs import forever
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestations import Attestation
-
-
-def forever(x):
-    while True:
-        yield x
 
 
 def mk_attestation(index, sample_attestation_params):
