@@ -20,6 +20,7 @@ from eth.tools.builder.chain import (
     spurious_dragon_at,
     tangerine_whistle_at,
     constantinople_at,
+    petersburg_at,
     genesis,
 )
 
@@ -33,6 +34,7 @@ from eth.tools.builder.chain import (
         (spurious_dragon_at, 15.15625, 4.375),
         (byzantium_at, 9.09375, 2.625),
         (constantinople_at, 6.0625, 1.75),
+        (petersburg_at, 6.0625, 1.75),
     )
 )
 def test_rewards(vm_fn, miner_1_balance, miner_2_balance):
@@ -130,6 +132,13 @@ def test_rewards(vm_fn, miner_1_balance, miner_2_balance):
         (constantinople_at, 6, 20.0625, 1.25),
         (constantinople_at, 7, 20.0625, 1.5),
         (constantinople_at, 8, 20.0625, 1.75),
+
+        (petersburg_at, 3, 20.0625, 0.5),
+        (petersburg_at, 4, 20.0625, 0.75),
+        (petersburg_at, 5, 20.0625, 1),
+        (petersburg_at, 6, 20.0625, 1.25),
+        (petersburg_at, 7, 20.0625, 1.5),
+        (petersburg_at, 8, 20.0625, 1.75),
     )
 )
 def test_rewards_uncle_created_at_different_generations(
@@ -192,6 +201,7 @@ def test_rewards_uncle_created_at_different_generations(
         spurious_dragon_at,
         byzantium_at,
         constantinople_at,
+        petersburg_at,
     )
 )
 def test_uncle_block_inclusion_validity(vm_fn):
@@ -237,6 +247,7 @@ def test_uncle_block_inclusion_validity(vm_fn):
         (tangerine_whistle_at, spurious_dragon_at, 50.15625, 1.25),
         (spurious_dragon_at, byzantium_at, 36.09375, 0.75),
         (byzantium_at, constantinople_at, 23.0625, 0.5),
+        (byzantium_at, petersburg_at, 23.0625, 0.5),
     )
 )
 def test_rewards_nephew_uncle_different_vm(

@@ -141,6 +141,9 @@ def fork_at(vm_class: Type[BaseVM], at_block: int, chain_class: Type[BaseChain])
     * :func:`~eth.tools.builder.chain.spurious_dragon_at`
     * :func:`~eth.tools.builder.chain.byzantium_at`
     * :func:`~eth.tools.builder.chain.constantinople_at`
+    * :func:`~eth.tools.builder.chain.petersburg_at`
+    * :func:`~eth.tools.builder.chain.istanbul_at`
+    * :func:`~eth.tools.builder.chain.latest_mainnet_at` - whatever the latest mainnet VM is
     """
     if chain_class.vm_configuration is not None:
         base_configuration = chain_class.vm_configuration
@@ -233,6 +236,8 @@ byzantium_at = fork_at(ByzantiumVM)
 constantinople_at = fork_at(ConstantinopleVM)
 petersburg_at = fork_at(PetersburgVM)
 istanbul_at = fork_at(IstanbulVM)
+
+latest_mainnet_at = petersburg_at
 
 GENESIS_DEFAULTS = cast(
     Tuple[Tuple[str, Union[int, None, bytes, Address, Hash32]], ...],
