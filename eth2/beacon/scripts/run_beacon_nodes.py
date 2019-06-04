@@ -118,7 +118,7 @@ class Node:
             "trinity-beacon",
             f"--port={self.port}",
             f"--trinity-root-dir={self.root_dir}",
-            f" --beacon-nodekey={remove_0x_prefix(self.node_privkey.to_hex())}",
+            f"--beacon-nodekey={remove_0x_prefix(self.node_privkey.to_hex())}",
             "-l debug",
         ]
         if len(self.bootstrap_nodes) != 0:
@@ -187,6 +187,7 @@ class Node:
 async def main():
     num_validators = 5
     time_bob_wait_for_alice = 15
+    genesis_delay = time_bob_wait_for_alice * 3
 
     proc = await run(
         f"rm -rf {Node.dir_root}"
@@ -198,7 +199,13 @@ async def main():
     await proc.wait()
 
     proc = await run(
-        f"trinity-beacon testnet --num={num_validators} --network-dir={Node.dir_root}"
+        " ".join((
+            "trinity-beacon",
+            "testnet",
+            f"--num={num_validators}",
+            f"--network-dir={Node.dir_root}",
+            f"--genesis-delay={genesis_delay}",
+        ))
     )
     await proc.wait()
 

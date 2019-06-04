@@ -11,10 +11,14 @@ import sys
 import time
 from typing import (
     Any,
+    Callable,
     Dict,
     Tuple,
 )
 
+from eth_utils import (
+    humanize_seconds,
+)
 from ruamel.yaml import (
     YAML,
 )
@@ -76,6 +80,18 @@ class Client:
         self.validator_keys_dir = self.client_dir / VALIDATOR_KEY_DIR
 
 
+def get_genesis_time_from_constant(genesis_time: Timestamp) -> Callable[[], Timestamp]:
+    def get_genesis_time() -> Timestamp:
+        return genesis_time
+    return get_genesis_time
+
+
+def get_genesis_time_from_delay(genesis_delay: Second)-> Callable[[], Timestamp]:
+    def get_genesis_time() -> Timestamp:
+        return Timestamp(int(time.time()) + genesis_delay)
+    return get_genesis_time
+
+
 class NetworkGeneratorPlugin(BaseMainProcessPlugin):
     @property
     def name(self) -> str:
@@ -100,11 +116,19 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
             type=int,
             default=100,
         )
-        testnet_generator_parser.add_argument(
+
+        genesis_time_group = testnet_generator_parser.add_mutually_exclusive_group(
+            required=True,
+        )
+        genesis_time_group.add_argument(
             "--genesis-delay",
-            help="Seconds before genesis time from now",
+            help="Set seconds delay after the genesis state is created as genesis time",
             type=int,
-            default=60,
+        )
+        genesis_time_group.add_argument(
+            "--genesis-time",
+            help="Set a genesis time as Unix int, e.g. 1559292765",
+            type=int,
         )
 
         testnet_generator_parser.set_defaults(func=cls.run_generate_testnet_dir)
@@ -115,12 +139,19 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
         logger.info("Generating testnet")
         network_dir = args.network_dir
         if len(os.listdir(network_dir)) > 0:
-            logger.error("This directory is not empty, won't create network files here.")
+            logger.error("This directory is not empty, won't create network files here")
             sys.exit(1)
 
         clients = cls.generate_trinity_root_dirs(network_dir)
         keymap = cls.generate_keys(args.num, network_dir, clients)
-        cls.generate_genesis_state(args.genesis_delay, network_dir, keymap, clients)
+
+        get_genesis_time = (
+            get_genesis_time_from_constant(args.genesis_time)
+            if args.genesis_time is not None
+            else get_genesis_time_from_delay(args.genesis_delay)
+        )
+
+        cls.generate_genesis_state(get_genesis_time, network_dir, keymap, clients)
 
         logger.info(bold_green("Network generation completed"))
 
@@ -130,7 +161,7 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
                       network_dir: Path,
                       clients: Tuple[Client, ...]) -> Dict[Any, Any]:
         logger = cls.get_logger()
-        logger.info(f"Creating {num} validators' keys")
+        logger.info("Creating %s validators' keys", num)
         keys_dir = network_dir / KEYS_DIR
         keys_dir.mkdir()
 
@@ -156,7 +187,7 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
 
     @classmethod
     def generate_genesis_state(cls,
-                               genesis_delay: Second,
+                               get_genesis_time: Callable[[], Timestamp],
                                network_dir: Path,
                                keymap: Dict[Any, Any],
                                clients: Tuple[Client, ...]) -> None:
@@ -172,8 +203,11 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
             genesis_block_class=state_machine_class.block_class,
             genesis_time=dummy_time,
         )
-        logger.info(f"Genesis time will be {genesis_delay} seconds from now")
-        genesis_time = Timestamp(int(time.time()) + genesis_delay)
+        genesis_time = get_genesis_time()
+        logger.info(
+            "Genesis time will be %s from now",
+            humanize_seconds(genesis_time - int(time.time())),
+        )
         state = state.copy(
             genesis_time=genesis_time,
         )
