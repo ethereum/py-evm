@@ -11,7 +11,7 @@ from eth2.beacon.chains.base import (
 )
 from eth2.beacon.db.exceptions import (
     AttestationRootNotFound,
-    StateNotFound,
+    StateSlotNotFound,
 )
 from eth2.beacon.types.blocks import (
     BeaconBlock,
@@ -94,7 +94,7 @@ def test_get_state_by_slot(valid_chain,
         state,
         block_skipped_slot,
     )
-    with pytest.raises(StateNotFound):
+    with pytest.raises(StateSlotNotFound):
         valid_chain.get_state_by_slot(block_skipped_slot)
     valid_chain.chaindb.persist_state(block_skipped_state)
     assert valid_chain.get_state_by_slot(block_skipped_slot).root == block_skipped_state.root

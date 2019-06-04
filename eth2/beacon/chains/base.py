@@ -308,7 +308,7 @@ class BeaconChain(BaseBeaconChain):
         """
         Return the requested state as specified by slot number.
 
-        Raise ``StateNotFound`` if there's no state with the given slot in the db.
+        Raise ``StateSlotNotFound`` if there's no state with the given slot in the db.
         """
         validate_slot(slot)
         sm_class = self.get_state_machine_class_for_block_slot(slot)

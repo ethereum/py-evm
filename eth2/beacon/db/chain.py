@@ -64,7 +64,7 @@ from eth2.beacon.db.exceptions import (
     HeadStateSlotNotFound,
     JustifiedHeadNotFound,
     MissingForkChoiceScorings,
-    StateNotFound,
+    StateSlotNotFound,
 )
 from eth2.beacon.db.schema import SchemaV1
 
@@ -707,13 +707,13 @@ class BeaconChainDB(BaseBeaconChainDB):
         """
         Return the requested beacon state as specified by slot.
 
-        Raises StateNotFound if it is not present in the db.
+        Raises StateSlotNotFound if it is not present in the db.
         """
         slot_to_state_root_key = SchemaV1.make_slot_to_state_root_lookup_key(slot)
         try:
             state_root_ssz = db[slot_to_state_root_key]
         except KeyError:
-            raise StateNotFound(
+            raise StateSlotNotFound(
                 "No state root for slot #{0}".format(slot)
             )
 
