@@ -27,6 +27,7 @@ from eth.tools.builder.chain import (
 )
 from eth.db.header import HeaderDB
 from eth.vm.forks.byzantium import ByzantiumVM
+from eth.vm.forks.petersburg import PetersburgVM
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.db.base import BaseAsyncDB
@@ -128,6 +129,15 @@ class FakeAsyncChain(MiningChain):
     coro_validate_chain = async_passthrough('validate_chain')
     coro_validate_receipt = async_passthrough('validate_receipt')
     chaindb_class = FakeAsyncChainDB
+
+
+class LatestTestChain(FakeAsyncChain):
+    """
+    A test chain that uses the most recent mainnet VM from block 0.
+    That means the VM will explicitly change when a new network upgrade is locked in.
+    """
+    vm_configuration = ((0, PetersburgVM),)
+    network_id = 999
 
 
 class ByzantiumTestChain(FakeAsyncChain):
