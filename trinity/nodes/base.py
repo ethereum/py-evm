@@ -149,7 +149,6 @@ class Node(BaseService):
         )
 
     async def _run(self) -> None:
-        await self.event_bus.wait_until_serving()
         await self.notify_resource_available()
         self.run_daemon_task(self.handle_network_id_requests())
         self.run_daemon(self.get_p2p_server())

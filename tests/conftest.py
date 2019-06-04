@@ -125,19 +125,14 @@ def async_process_runner():
 
 @pytest.fixture
 async def event_bus():
-    endpoint = TrinityEventBusEndpoint()
     # Tests run concurrently, therefore we need unique IPC paths
     ipc_path = Path(f"networking-{uuid.uuid4()}.ipc")
     networking_connection_config = ConnectionConfig(
         name=NETWORKING_EVENTBUS_ENDPOINT,
         path=ipc_path
     )
-    await endpoint.start_serving(networking_connection_config)
-    await endpoint.connect_to_endpoints(networking_connection_config)
-    try:
+    async with TrinityEventBusEndpoint.serve(networking_connection_config) as endpoint:
         yield endpoint
-    finally:
-        endpoint.stop()
 
 
 @pytest.fixture(scope='session')

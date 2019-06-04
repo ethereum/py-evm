@@ -62,7 +62,7 @@ async def get_request_server_setup(request, event_loop, event_bus, chain_db):
             event_bus, TO_NETWORKING_BROADCAST_CONFIG, bob.context.chain_db)
         asyncio.ensure_future(bob_request_server.run())
 
-        await event_bus.wait_until_all_connections_subscribed_to(GetBeaconBlocksEvent)
+        await event_bus.wait_until_all_endpoints_subscribed_to(GetBeaconBlocksEvent)
 
         def finalizer():
             event_loop.run_until_complete(bob_request_server.cancel())

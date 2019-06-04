@@ -176,7 +176,7 @@ async def test_peer_pool_answers_connect_commands(event_loop, event_bus, server)
 
         assert len(server.peer_pool.connected_nodes) == 0
 
-        await event_bus.wait_until_any_connection_subscribed_to(ConnectToNodeCommand)
+        await event_bus.wait_until_any_endpoint_subscribed_to(ConnectToNodeCommand)
         await event_bus.broadcast(
             ConnectToNodeCommand(RECEIVER_REMOTE),
             TO_NETWORKING_BROADCAST_CONFIG

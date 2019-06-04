@@ -26,7 +26,7 @@ class SimpleService(BaseService):
 def run_service(ready_to_kill_event):
     loop = asyncio.get_event_loop()
 
-    endpoint = TrinityEventBusEndpoint()
+    endpoint = TrinityEventBusEndpoint("dummy")
     service = SimpleService(ready_to_kill_event, loop=loop)
 
     asyncio.ensure_future(exit_with_endpoint_and_services(endpoint, service))

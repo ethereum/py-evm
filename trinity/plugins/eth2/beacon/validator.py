@@ -124,7 +124,6 @@ class Validator(BaseService):
         self.get_ready_attestations: GetReadyAttestationsFn = get_ready_attestations_fn
 
     async def _run(self) -> None:
-        await self.event_bus.wait_until_serving()
         self.logger.info(
             bold_green("Validator service up  Handle indices=%s"),
             tuple(self.validator_privkeys.keys())

@@ -108,7 +108,7 @@ def main_entry(trinity_boot: BootFn,
                plugins: Iterable[Type[BasePlugin]],
                sub_configs: Iterable[Type[BaseAppConfig]]) -> None:
 
-    main_endpoint = TrinityMainEventBusEndpoint()
+    main_endpoint = TrinityMainEventBusEndpoint(name=MAIN_EVENTBUS_ENDPOINT)
 
     plugin_manager = PluginManager(
         MainAndIsolatedProcessScope(main_endpoint),
@@ -255,12 +255,10 @@ async def trinity_boot_coro(kill_trinity, main_endpoint, trinity_config,  # type
         MAIN_EVENTBUS_ENDPOINT,
         trinity_config.ipc_dir
     )
-    await main_endpoint.start_serving(main_connection_config)
-    main_endpoint.track_and_propagate_available_endpoints()
+    await main_endpoint.start()
+    await main_endpoint.start_server(main_connection_config.path)
 
-    # We listen on events such as `ShutdownRequested` which may or may not originate on
-    # the `main_endpoint` which is why we connect to our own endpoint here
-    await main_endpoint.connect_to_endpoints(main_connection_config)
+    main_endpoint.track_and_propagate_available_endpoints()
 
     main_endpoint.subscribe(
         ShutdownRequest,

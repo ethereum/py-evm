@@ -19,7 +19,7 @@ async def test_event_bus_requests_against_peer_pool(request, event_loop, event_b
     peer_pool = ParagonMockPeerPoolWithConnectedPeers([alice, bob])
     async with run_peer_pool_event_server(event_bus, peer_pool):
 
-        await event_bus.wait_until_any_connection_subscribed_to(PeerCountRequest)
+        await event_bus.wait_until_any_endpoint_subscribed_to(PeerCountRequest)
 
         res = await event_bus.request(PeerCountRequest())
 

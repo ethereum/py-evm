@@ -34,7 +34,7 @@ async def test_connection_tracker_server_and_client(event_loop, event_bus):
     bus_tracker = ConnectionTrackerClient(event_bus, config=config)
 
     # Give `bus_tracker` a moment to setup subscriptions
-    await event_bus.wait_until_all_connections_subscribed_to(ShouldConnectToPeerRequest)
+    await event_bus.wait_until_all_endpoints_subscribed_to(ShouldConnectToPeerRequest)
     # ensure we can read from the tracker over the event bus
     assert await bus_tracker.should_connect_to(remote_a) is False
 

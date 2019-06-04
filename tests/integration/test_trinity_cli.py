@@ -131,9 +131,9 @@ async def test_web3(command, async_process_runner):
         "Started DB server process",
         "Started networking process",
         "IPC started at",
-        # Ensure we do not start making requests that depend on the networking
-        # process, before it is connected to the JSON-RPC-API
-        "EventBus Endpoint networking connecting to other Endpoint bjson-rpc-api",
+        # Ensure we do not start making requests before Trinity is ready.
+        # Waiting for fast-sync to start gives us a reliable starting point
+        "Starting fast-sync",
     })
 
     attached_trinity = pexpect.spawn('trinity', ['attach'], logfile=sys.stdout, encoding="utf-8")
