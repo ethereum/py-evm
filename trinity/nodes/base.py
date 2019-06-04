@@ -8,6 +8,8 @@ from typing import (
     TypeVar,
 )
 
+from lahja import EndpointAPI
+
 from eth.chains.base import BaseChain
 
 from p2p.peer_pool import BasePeerPool
@@ -23,13 +25,11 @@ from trinity.db.eth1.header import (
 from trinity.db.eth1.manager import (
     create_db_consumer_manager,
 )
+from trinity.events import ShutdownRequest
 from trinity.config import (
     Eth1ChainConfig,
     Eth1AppConfig,
     TrinityConfig,
-)
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
 )
 from trinity.protocol.common.peer import BasePeer
 from trinity.protocol.common.peer_pool_event_bus import (
@@ -52,7 +52,7 @@ class Node(BaseService, Generic[TPeer]):
     _full_chain: FullChain = None
     _event_server: PeerPoolEventServer[TPeer] = None
 
-    def __init__(self, event_bus: TrinityEventBusEndpoint, trinity_config: TrinityConfig) -> None:
+    def __init__(self, event_bus: EndpointAPI, trinity_config: TrinityConfig) -> None:
         super().__init__()
         self.trinity_config = trinity_config
         self._db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
@@ -137,5 +137,4 @@ class Node(BaseService, Generic[TPeer]):
         await self.cancellation()
 
     async def _cleanup(self) -> None:
-        self.event_bus.request_shutdown("Node finished unexpectedly")
-        ensure_global_asyncio_executor().shutdown(wait=True)
+        await self.event_bus.broadcast(ShutdownRequest("Node finished unexpectedly"))

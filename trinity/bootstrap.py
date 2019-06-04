@@ -10,12 +10,9 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    Sequence,
     Tuple,
     Type,
-)
-
-from lahja import (
-    ConnectionConfig,
 )
 
 from trinity.exceptions import (
@@ -36,18 +33,12 @@ from trinity.config import (
 )
 from trinity.constants import (
     MAINNET_NETWORK_ID,
-    MAIN_EVENTBUS_ENDPOINT,
     ROPSTEN_NETWORK_ID,
 )
-from trinity.endpoint import (
-    TrinityMainEventBusEndpoint,
-)
+from trinity.event_bus import PluginManagerService
 from trinity.extensibility import (
     BasePlugin,
-    PluginManager,
-)
-from trinity.events import (
-    ShutdownRequest,
+    TrinityBootInfo,
 )
 from trinity._utils.ipc import (
     kill_process_gracefully,
@@ -58,6 +49,9 @@ from trinity._utils.logging import (
     setup_log_levels,
     setup_trinity_stderr_logging,
     setup_trinity_file_and_queue_logging,
+)
+from trinity._utils.shutdown import (
+    exit_with_services,
 )
 from trinity._utils.version import (
     construct_trinity_client_identifier,
@@ -96,25 +90,17 @@ BootFn = Callable[[
     Namespace,
     TrinityConfig,
     Dict[str, Any],
-    PluginManager,
     logging.handlers.QueueListener,
-    TrinityMainEventBusEndpoint,
     logging.Logger
 ], Tuple[multiprocessing.Process, ...]]
 
 
 def main_entry(trinity_boot: BootFn,
                app_identifier: str,
-               plugins: Iterable[Type[BasePlugin]],
-               sub_configs: Iterable[Type[BaseAppConfig]]) -> None:
-
-    main_endpoint = TrinityMainEventBusEndpoint(name=MAIN_EVENTBUS_ENDPOINT)
-
-    plugin_manager = PluginManager(
-        main_endpoint,
-        plugins
-    )
-    plugin_manager.amend_argparser_config(parser, subparser)
+               plugins: Tuple[Type[BasePlugin], ...],
+               sub_configs: Sequence[Type[BaseAppConfig]]) -> None:
+    for plugin_type in plugins:
+        plugin_type.configure_parser(parser, subparser)
 
     argcomplete.autocomplete(parser)
 
@@ -218,9 +204,7 @@ def main_entry(trinity_boot: BootFn,
         args,
         trinity_config,
         extra_kwargs,
-        plugin_manager,
         listener,
-        main_endpoint,
         stderr_logger,
     )
 
@@ -229,46 +213,22 @@ def main_entry(trinity_boot: BootFn,
             trinity_config,
             stderr_logger,
             processes,
-            plugin_manager,
-            main_endpoint,
+            plugin_manager_service,
             reason=reason
         )
 
+    boot_info = TrinityBootInfo(args, trinity_config, extra_kwargs)
+    plugin_manager_service = PluginManagerService(boot_info, plugins, kill_trinity_with_reason)
+
     try:
         loop = asyncio.get_event_loop()
-        asyncio.ensure_future(trinity_boot_coro(
-            kill_trinity_with_reason,
-            main_endpoint,
-            trinity_config,
-            plugin_manager,
-            args, extra_kwargs,
-        ))
+        asyncio.ensure_future(exit_with_services(plugin_manager_service))
+        asyncio.ensure_future(plugin_manager_service.run())
         loop.add_signal_handler(signal.SIGTERM, lambda: kill_trinity_with_reason("SIGTERM"))
         loop.run_forever()
         loop.close()
     except KeyboardInterrupt:
         kill_trinity_with_reason("CTRL+C / Keyboard Interrupt")
-
-
-async def trinity_boot_coro(kill_trinity, main_endpoint, trinity_config,  # type: ignore
-                            plugin_manager, args, extra_kwargs) -> None:
-    # We postpone EventBus connection until here because we don't want one in cases where
-    # a plugin just redefines the `trinity` command such as `trinity fix-unclean-shutdown`
-    main_connection_config = ConnectionConfig.from_name(
-        MAIN_EVENTBUS_ENDPOINT,
-        trinity_config.ipc_dir
-    )
-    await main_endpoint.start()
-    await main_endpoint.start_server(main_connection_config.path)
-
-    main_endpoint.track_and_propagate_available_endpoints()
-
-    main_endpoint.subscribe(
-        ShutdownRequest,
-        lambda ev: kill_trinity(ev.reason)
-    )
-
-    plugin_manager.prepare(args, trinity_config, extra_kwargs)
 
 
 def display_launch_logs(trinity_config: TrinityConfig) -> None:
@@ -282,8 +242,7 @@ def display_launch_logs(trinity_config: TrinityConfig) -> None:
 def kill_trinity_gracefully(trinity_config: TrinityConfig,
                             logger: logging.Logger,
                             processes: Iterable[multiprocessing.Process],
-                            plugin_manager: PluginManager,
-                            main_endpoint: TrinityMainEventBusEndpoint,
+                            plugin_manager_service: PluginManagerService,
                             reason: str=None) -> None:
     # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
     # foreground *process group*, so both our networking and database processes will terminate
@@ -298,7 +257,7 @@ def kill_trinity_gracefully(trinity_config: TrinityConfig,
 
     hint = f"({reason})" if reason else f""
     logger.info('Shutting down Trinity %s', hint)
-    plugin_manager.shutdown_blocking()
+    plugin_manager_service.cancel_nowait()
     for process in processes:
         # Our sub-processes will have received a SIGINT already (see comment above), so here we
         # wait 2s for them to finish cleanly, and if they fail we kill them for real.
@@ -307,7 +266,6 @@ def kill_trinity_gracefully(trinity_config: TrinityConfig,
             kill_process_gracefully(process, logger)
         logger.info('%s process (pid=%d) terminated', process.name, process.pid)
 
-    main_endpoint.stop()
-    remove_dangling_ipc_files(logger, trinity_config.ipc_dir, except_file=main_endpoint.ipc_path)
+    remove_dangling_ipc_files(logger, trinity_config.ipc_dir)
 
     ArgumentParser().exit(message=f"Trinity shutdown complete {hint}\n")

@@ -5,6 +5,8 @@ from typing import (
     Tuple,
 )
 
+from lahja import EndpointAPI
+
 from eth.rlp.headers import BlockHeader
 from eth_utils import encode_hex
 from lahja import (
@@ -23,9 +25,6 @@ from p2p.protocol import (
     PayloadType,
 )
 
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 from trinity.exceptions import (
     WrongNetworkFailure,
     WrongGenesisFailure,
@@ -150,7 +149,7 @@ class ETHProxyPeer(BaseProxyPeer):
 
     def __init__(self,
                  remote: Node,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  sub_proto: ProxyETHProtocol,
                  requests: ProxyETHExchangeHandler):
 
@@ -162,7 +161,7 @@ class ETHProxyPeer(BaseProxyPeer):
     @classmethod
     def from_node(cls,
                   remote: Node,
-                  event_bus: TrinityEventBusEndpoint,
+                  event_bus: EndpointAPI,
                   broadcast_config: BroadcastConfig) -> 'ETHProxyPeer':
         return cls(
             remote,
@@ -294,7 +293,7 @@ class ETHProxyPeerPool(BaseProxyPeerPool[ETHProxyPeer]):
 
     def convert_node_to_proxy_peer(self,
                                    remote: Node,
-                                   event_bus: TrinityEventBusEndpoint,
+                                   event_bus: EndpointAPI,
                                    broadcast_config: BroadcastConfig) -> ETHProxyPeer:
         return ETHProxyPeer.from_node(
             remote,

@@ -1,5 +1,6 @@
 import signal
 import sys
+import time
 
 import pexpect
 import pytest
@@ -131,9 +132,11 @@ async def test_web3(command, async_process_runner):
         "Started DB server process",
         "Plugin started: Sync / PeerPool",
         "IPC started at",
+        "Plugin started: JSON-RPC API",
         # Ensure we do not start making requests before Trinity is ready.
-        # Waiting for fast-sync to start gives us a reliable starting point
-        "Starting fast-sync",
+        # Waiting for the json-rpc-api event bus to connect to other endpoints
+        # seems to be late enough in the process for this to be the case.
+        "EventBus Endpoint bjson-rpc-api connecting to other Endpoints",
     })
 
     attached_trinity = pexpect.spawn('trinity', ['attach'], logfile=sys.stdout, encoding="utf-8")
@@ -243,9 +246,13 @@ async def test_logger(async_process_runner,
     stderr_logs = []
 
     # Collect logs up to the point when the sync begins so that we have enough logs for assertions
+    marker_seen_at = 0
     async for line in async_process_runner.stderr:
-        if "FastChainBodySyncer" in line:
+        if marker_seen_at != 0 and time.time() - marker_seen_at > 3:
             break
+        if "DiscoveryProtocol" in line:
+            marker_seen_at = time.time()
+            stderr_logs.append(line)
         else:
             stderr_logs.append(line)
 

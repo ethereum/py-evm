@@ -4,16 +4,17 @@
 from argparse import ArgumentParser, _SubParsersAction
 import asyncio
 
+from lahja import EndpointAPI
+
 from p2p.service import BaseService
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.extensibility import AsyncioIsolatedPlugin
 from trinity.protocol.common.events import PeerCountRequest
-from trinity._utils.shutdown import exit_with_endpoint_and_services
+from trinity._utils.shutdown import exit_with_services
 
 
 class PeerCountReporter(BaseService):
 
-    def __init__(self, event_bus: TrinityEventBusEndpoint) -> None:
+    def __init__(self, event_bus: EndpointAPI) -> None:
         super().__init__()
         self.event_bus = event_bus
 
@@ -50,11 +51,11 @@ class PeerCountReporterPlugin(AsyncioIsolatedPlugin):
             help="Report peer count to console",
         )
 
-    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
+    def on_ready(self, manager_eventbus: EndpointAPI) -> None:
         if self.boot_info.args.report_peer_count:
             self.start()
 
     def do_start(self) -> None:
         service = PeerCountReporter(self.event_bus)
-        asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, service))
+        asyncio.ensure_future(exit_with_services(service, self._event_bus_service))
         asyncio.ensure_future(service.run())

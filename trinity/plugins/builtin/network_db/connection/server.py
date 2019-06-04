@@ -1,13 +1,11 @@
+from lahja import EndpointAPI
+
 from cancel_token import CancelToken
 
 from eth_utils import humanize_seconds
 
 from p2p.service import BaseService
 from p2p.tracking.connection import BaseConnectionTracker
-
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 
 from .events import (
     BlacklistEvent,
@@ -23,7 +21,7 @@ class ConnectionTrackerServer(BaseService):
     """
 
     def __init__(self,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  tracker: BaseConnectionTracker,
                  token: CancelToken = None) -> None:
         super().__init__(token)

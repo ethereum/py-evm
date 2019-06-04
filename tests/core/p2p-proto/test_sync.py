@@ -171,7 +171,7 @@ async def test_beam_syncer(
         pausing_config
     ) as pausing_endpoint, AsyncioEndpoint.serve(gatherer_config) as gatherer_endpoint:
 
-        BeamPetersburgVM = pausing_vm_decorator(PetersburgVM, pausing_endpoint)
+        BeamPetersburgVM = pausing_vm_decorator(PetersburgVM, pausing_endpoint, event_loop)
 
         class BeamPetersburgTestChain(FakeAsyncChain):
             vm_configuration = ((0, BeamPetersburgVM),)

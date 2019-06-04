@@ -9,6 +9,8 @@ from async_generator import (
 )
 import pytest
 
+from lahja import AsyncioEndpoint
+
 from eth_utils import (
     decode_hex,
     to_canonical_address,
@@ -36,9 +38,6 @@ from trinity.constants import (
 )
 from trinity.chains.coro import (
     AsyncChainMixin,
-)
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
 )
 from trinity.initialization import (
     ensure_eth1_dirs,
@@ -134,7 +133,7 @@ async def make_networking_event_bus():
         name=NETWORKING_EVENTBUS_ENDPOINT,
         path=ipc_path
     )
-    async with TrinityEventBusEndpoint.serve(networking_connection_config) as endpoint:
+    async with AsyncioEndpoint.serve(networking_connection_config) as endpoint:
         yield endpoint
 
 

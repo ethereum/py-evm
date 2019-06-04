@@ -8,13 +8,12 @@ from typing import (
     Union,
 )
 
+from lahja import EndpointAPI
+
 from eth_utils import (
     ValidationError,
 )
 
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 from trinity.rpc.modules import (
     BaseRPCModule,
 )
@@ -62,7 +61,7 @@ class RPCServer:
 
     def __init__(self,
                  modules: Sequence[BaseRPCModule],
-                 event_bus: TrinityEventBusEndpoint=None) -> None:
+                 event_bus: EndpointAPI=None) -> None:
         self.modules: Dict[str, BaseRPCModule] = {}
 
         for module in modules:

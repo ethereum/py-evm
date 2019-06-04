@@ -7,6 +7,8 @@ from multiprocessing.managers import (
 )
 import asyncio
 
+from lahja import EndpointAPI
+
 from p2p.service import (
     BaseService,
 )
@@ -26,9 +28,6 @@ from trinity.db.beacon.manager import (
     create_db_consumer_manager as create_beacon_db_consumer_manager,
 )
 
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
 )
@@ -42,7 +41,7 @@ from trinity.protocol.les.servers import (
     LightRequestServer,
 )
 from trinity._utils.shutdown import (
-    exit_with_endpoint_and_services,
+    exit_with_services,
 )
 
 
@@ -52,7 +51,7 @@ class RequestServerPlugin(AsyncioIsolatedPlugin):
     def name(self) -> str:
         return "Request Server"
 
-    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
+    def on_ready(self, manager_eventbus: EndpointAPI) -> None:
         if not self.boot_info.args.disable_request_server:
             self.start()
 
@@ -83,7 +82,7 @@ class RequestServerPlugin(AsyncioIsolatedPlugin):
         else:
             raise Exception("Trinity config must have either eth1 or beacon chain config")
 
-        asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, server))
+        asyncio.ensure_future(exit_with_services(server, self._event_bus_service))
         asyncio.ensure_future(server.run())
 
     def make_eth1_request_server(self,

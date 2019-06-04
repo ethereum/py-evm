@@ -12,6 +12,8 @@ from lahja import (
     BroadcastConfig,
 )
 
+from lahja import EndpointAPI
+
 from eth2.beacon.typing import (
     Second,
     Slot,
@@ -21,9 +23,6 @@ from p2p.service import (
 )
 from trinity._utils.shellart import (
     bold_green,
-)
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
 )
 
 DEFAULT_CHECK_FREQUENCY = 6
@@ -42,14 +41,14 @@ class SlotTicker(BaseService):
     genesis_time: int
     seconds_per_slot: Second
     latest_slot: Slot
-    event_bus: TrinityEventBusEndpoint
+    event_bus: EndpointAPI
 
     def __init__(
             self,
             genesis_slot: Slot,
             genesis_time: int,
             seconds_per_slot: Second,
-            event_bus: TrinityEventBusEndpoint,
+            event_bus: EndpointAPI,
             token: CancelToken = None) -> None:
         super().__init__(token)
         self.genesis_slot = genesis_slot

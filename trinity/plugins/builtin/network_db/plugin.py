@@ -6,6 +6,8 @@ from argparse import (
 )
 from typing import Iterable
 
+from lahja import EndpointAPI
+
 from sqlalchemy.orm import Session
 
 from eth_utils import to_tuple
@@ -17,20 +19,18 @@ from p2p.tracking.connection import (
 )
 
 from trinity._utils.shutdown import (
-    exit_with_endpoint_and_services,
+    exit_with_services,
 )
 from trinity.config import (
     TrinityConfig,
 )
 from trinity.db.orm import get_tracking_database
+from trinity.events import ShutdownRequest
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
 )
 from trinity.db.network import (
     get_networkdb_path,
-)
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
 )
 from trinity.exceptions import BadDatabaseError
 
@@ -121,7 +121,7 @@ class NetworkDBPlugin(AsyncioIsolatedPlugin):
         )
         remove_db_parser.set_defaults(func=cls.clear_node_db)
 
-    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
+    def on_ready(self, manager_eventbus: EndpointAPI) -> None:
         if self.boot_info.args.disable_networkdb_plugin:
             self.logger.warning("Network Database disabled via CLI flag")
             # Allow this plugin to be disabled for extreme cases such as the
@@ -131,10 +131,10 @@ class NetworkDBPlugin(AsyncioIsolatedPlugin):
             try:
                 get_tracking_database(get_networkdb_path(self.boot_info.trinity_config))
             except BadDatabaseError as err:
-                manager_eventbus.request_shutdown(
+                manager_eventbus.broadcast_nowait(ShutdownRequest(
                     "Error loading network database.  Trying removing database "
                     f"with `remove-network-db` command:\n{err}"
-                )
+                ))
             else:
                 self.start()
 
@@ -240,9 +240,9 @@ class NetworkDBPlugin(AsyncioIsolatedPlugin):
         except BadDatabaseError as err:
             self.logger.exception(f"Unrecoverable error in Network Plugin: {err}")
         else:
-            asyncio.ensure_future(exit_with_endpoint_and_services(
-                self.event_bus,
-                *tracker_services
+            asyncio.ensure_future(exit_with_services(
+                self._event_bus_service,
+                *tracker_services,
             ))
             for service in tracker_services:
                 asyncio.ensure_future(service.run())

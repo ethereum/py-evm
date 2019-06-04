@@ -19,6 +19,8 @@ from typing import (
     Type,
 )
 
+from lahja import EndpointAPI
+
 from cancel_token import CancelToken
 from eth.chains.base import (
     BaseChain
@@ -38,15 +40,13 @@ from trinity.constants import (
     SYNC_LIGHT,
     SYNC_BEAM,
 )
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 from trinity.extensibility.asyncio import (
     AsyncioIsolatedPlugin
 )
 from trinity.nodes.base import (
     Node,
 )
+from trinity.events import ShutdownRequest
 from trinity.protocol.common.peer import (
     BasePeer,
     BasePeerPool,
@@ -69,7 +69,7 @@ from trinity.sync.light.chain import (
     LightChainSyncer,
 )
 from trinity._utils.shutdown import (
-    exit_with_endpoint_and_services,
+    exit_with_services,
 )
 
 
@@ -94,7 +94,7 @@ class BaseSyncStrategy(ABC):
                    chain: BaseChain,
                    db_manager: BaseManager,
                    peer_pool: BasePeerPool,
-                   event_bus: TrinityEventBusEndpoint,
+                   event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
         pass
 
@@ -114,7 +114,7 @@ class NoopSyncStrategy(BaseSyncStrategy):
                    chain: BaseChain,
                    db_manager: BaseManager,
                    peer_pool: BasePeerPool,
-                   event_bus: TrinityEventBusEndpoint,
+                   event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
 
         logger.info("Node running without sync (--sync-mode=%s)", self.get_sync_mode())
@@ -131,7 +131,7 @@ class FullSyncStrategy(BaseSyncStrategy):
                    chain: BaseChain,
                    db_manager: BaseManager,
                    peer_pool: BasePeerPool,
-                   event_bus: TrinityEventBusEndpoint,
+                   event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
 
         syncer = FullChainSyncer(
@@ -156,7 +156,7 @@ class FastThenFullSyncStrategy(BaseSyncStrategy):
                    chain: BaseChain,
                    db_manager: BaseManager,
                    peer_pool: BasePeerPool,
-                   event_bus: TrinityEventBusEndpoint,
+                   event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
 
         syncer = FastThenFullChainSyncer(
@@ -181,7 +181,7 @@ class BeamSyncStrategy(BaseSyncStrategy):
                    chain: BaseChain,
                    db_manager: BaseManager,
                    peer_pool: BasePeerPool,
-                   event_bus: TrinityEventBusEndpoint,
+                   event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
 
         syncer = BeamSyncService(
@@ -207,7 +207,7 @@ class LightSyncStrategy(BaseSyncStrategy):
                    chain: BaseChain,
                    db_manager: BaseManager,
                    peer_pool: BasePeerPool,
-                   event_bus: TrinityEventBusEndpoint,
+                   event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
 
         syncer = LightChainSyncer(
@@ -271,7 +271,7 @@ class SyncerPlugin(AsyncioIsolatedPlugin):
         for strategy in cls.strategies:
             yield type(strategy)
 
-    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
+    def on_ready(self, manager_eventbus: EndpointAPI) -> None:
         for strategy in self.strategies:
             if strategy.get_sync_mode().lower() == self.boot_info.args.sync_mode.lower():
                 if self.active_strategy is not None:
@@ -297,7 +297,10 @@ class SyncerPlugin(AsyncioIsolatedPlugin):
 
         asyncio.ensure_future(self.launch_sync(node))
 
-        asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, node))
+        asyncio.ensure_future(exit_with_services(
+            node,
+            self._event_bus_service,
+        ))
         asyncio.ensure_future(node.run())
 
     async def launch_sync(self, node: Node[BasePeer]) -> None:
@@ -313,4 +316,4 @@ class SyncerPlugin(AsyncioIsolatedPlugin):
 
         if self.active_strategy.shutdown_node_on_halt:
             self.logger.error("Sync ended unexpectedly. Shutting down trinity")
-            self.event_bus.request_shutdown("Sync ended unexpectedly")
+            await self.event_bus.broadcast(ShutdownRequest("Sync ended unexpectedly"))

@@ -1,6 +1,6 @@
+from lahja import EndpointAPI
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.nodes.events import NetworkIdRequest
 from trinity.protocol.common.events import PeerCountRequest
 from trinity.rpc.modules import BaseRPCModule
@@ -8,7 +8,7 @@ from trinity.rpc.modules import BaseRPCModule
 
 class Net(BaseRPCModule):
 
-    def __init__(self, event_bus: TrinityEventBusEndpoint):
+    def __init__(self, event_bus: EndpointAPI):
         self.event_bus = event_bus
 
     async def version(self) -> str:

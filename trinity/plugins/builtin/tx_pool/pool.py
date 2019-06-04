@@ -6,6 +6,8 @@ from typing import (
 )
 import uuid
 
+from lahja import EndpointAPI
+
 from bloom_filter import (
     BloomFilter
 )
@@ -23,7 +25,6 @@ from p2p.service import (
     BaseService
 )
 
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.eth.peer import (
     ETHProxyPeer,
     ETHProxyPeerPool,
@@ -46,7 +47,7 @@ class TxPool(BaseService):
     """
 
     def __init__(self,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  peer_pool: ETHProxyPeerPool,
                  tx_validation_fn: Callable[[BaseTransactionFields], bool],
                  token: CancelToken = None) -> None:

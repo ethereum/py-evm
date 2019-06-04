@@ -4,6 +4,8 @@ from argparse import (
 )
 import asyncio
 
+from lahja import EndpointAPI
+
 from eth.chains.mainnet import (
     BYZANTIUM_MAINNET_BLOCK,
 )
@@ -11,6 +13,7 @@ from eth.chains.ropsten import (
     BYZANTIUM_ROPSTEN_BLOCK,
 )
 
+from trinity._utils.shutdown import exit_with_services
 from trinity.config import (
     Eth1AppConfig,
 )
@@ -23,9 +26,7 @@ from trinity.constants import (
 from trinity.db.eth1.manager import (
     create_db_consumer_manager
 )
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
+from trinity.events import ShutdownRequest
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
 )
@@ -53,7 +54,7 @@ class TxPlugin(AsyncioIsolatedPlugin):
             help="Enables the Transaction Pool (experimental)",
         )
 
-    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
+    def on_ready(self, manager_eventbus: EndpointAPI) -> None:
 
         light_mode = self.boot_info.args.sync_mode == SYNC_LIGHT
         is_enabled = self.boot_info.args.tx_pool and not light_mode
@@ -65,7 +66,9 @@ class TxPlugin(AsyncioIsolatedPlugin):
         elif unsupported:
             unsupported_msg = "Transaction pool not available in light mode"
             self.logger.error(unsupported_msg)
-            manager_eventbus.request_shutdown(unsupported_msg)
+            manager_eventbus.broadcast_nowait(ShutdownRequest(
+                unsupported_msg,
+            ))
 
     def do_start(self) -> None:
 
@@ -90,6 +93,7 @@ class TxPlugin(AsyncioIsolatedPlugin):
         proxy_peer_pool = ETHProxyPeerPool(self.event_bus, TO_NETWORKING_BROADCAST_CONFIG)
 
         self.tx_pool = TxPool(self.event_bus, proxy_peer_pool, validator)
+        asyncio.ensure_future(exit_with_services(self.tx_pool, self._event_bus_service))
         asyncio.ensure_future(self.tx_pool.run())
 
     async def do_stop(self) -> None:

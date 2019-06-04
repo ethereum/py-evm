@@ -7,6 +7,8 @@ from typing import (
     cast,
 )
 
+from lahja import EndpointAPI
+
 from eth_keys.datatypes import (
     PrivateKey,
 )
@@ -22,13 +24,12 @@ from p2p.constants import (
 )
 
 from trinity._utils.shutdown import (
-    exit_with_endpoint_and_services,
+    exit_with_services,
 )
 from trinity.db.beacon.manager import (
     create_db_consumer_manager,
 )
 from trinity.config import BeaconAppConfig
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.extensibility import AsyncioIsolatedPlugin
 from trinity.protocol.bcc.peer import BCCPeerPoolEventServer
 from trinity.server import BCCServer
@@ -66,7 +67,7 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
             help="0xabcd",
         )
 
-    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
+    def on_ready(self, manager_eventbus: EndpointAPI) -> None:
         if self.boot_info.trinity_config.has_app_config(BeaconAppConfig):
             self.start()
 
@@ -144,7 +145,14 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
             token=server.cancel_token,
         )
 
-        asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, server))
+        asyncio.ensure_future(exit_with_services(
+            server,
+            syncer,
+            slot_ticker,
+            validator,
+            event_server,
+            self._event_bus_service,
+        ))
         asyncio.ensure_future(event_server.run())
         asyncio.ensure_future(server.run())
         asyncio.ensure_future(syncer.run())

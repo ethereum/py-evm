@@ -6,6 +6,8 @@ from typing_extensions import (
     Protocol,
 )
 
+from lahja import EndpointAPI
+
 from eth_typing import (
     Address,
     Hash32,
@@ -22,9 +24,6 @@ from eth.rlp.receipts import (
 
 from trinity.constants import (
     TO_NETWORKING_BROADCAST_CONFIG,
-)
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
 )
 from trinity.rlp.block_body import BlockBody
 from trinity.sync.light.service import (
@@ -53,7 +52,7 @@ class EventBusLightPeerChain(BaseLightPeerChain):
     be used from within any process.
     """
 
-    def __init__(self, event_bus: TrinityEventBusEndpoint) -> None:
+    def __init__(self, event_bus: EndpointAPI) -> None:
         self.event_bus = event_bus
 
     async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:

@@ -7,6 +7,8 @@ from typing import (
     Type,
 )
 
+from lahja import EndpointAPI
+
 from eth_typing import (
     BlockNumber,
 )
@@ -43,9 +45,7 @@ from trinity.config import (
 from trinity.db.eth1.manager import (
     create_db_consumer_manager
 )
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
+from trinity.events import ShutdownRequest
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
 )
@@ -59,7 +59,7 @@ from trinity.protocol.les.proto import (
     LESProtocolV2,
 )
 from trinity._utils.shutdown import (
-    exit_with_endpoint_and_services,
+    exit_with_services,
 )
 
 
@@ -95,7 +95,7 @@ class DiscoveryBootstrapService(BaseService):
 
     def __init__(self,
                  disable_discovery: bool,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  trinity_config: TrinityConfig) -> None:
         super().__init__()
         self.is_discovery_disabled = disable_discovery
@@ -143,7 +143,7 @@ class DiscoveryBootstrapService(BaseService):
         try:
             await discovery_service.run()
         except Exception:
-            self.event_bus.request_shutdown("Discovery ended unexpectedly")
+            await self.event_bus.broadcast(ShutdownRequest("Discovery ended unexpectedly"))
 
 
 class PeerDiscoveryPlugin(AsyncioIsolatedPlugin):
@@ -159,7 +159,7 @@ class PeerDiscoveryPlugin(AsyncioIsolatedPlugin):
     def normalized_name(self) -> str:
         return DISCOVERY_EVENTBUS_ENDPOINT
 
-    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
+    def on_ready(self, manager_eventbus: EndpointAPI) -> None:
         self.start()
 
     @classmethod
@@ -178,5 +178,8 @@ class PeerDiscoveryPlugin(AsyncioIsolatedPlugin):
             self.event_bus,
             self.boot_info.trinity_config
         )
-        asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, discovery_bootstrap))
+        asyncio.ensure_future(exit_with_services(
+            discovery_bootstrap,
+            self._event_bus_service,
+        ))
         asyncio.ensure_future(discovery_bootstrap.run())

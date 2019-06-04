@@ -1,0 +1,1 @@
+Remove Trinity specific subclass of the ``lahja`` endpoint in favor of using the core ``EndpointAPI`` everywhere.  The previous functionality from the ``TrinityEventBusEndpoint`` is now handled by a special service designed to manage the endpoint lifecycle.

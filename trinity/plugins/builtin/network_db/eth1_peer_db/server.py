@@ -1,10 +1,8 @@
+from lahja import EndpointAPI
+
 from cancel_token import CancelToken
 
 from p2p.service import BaseService
-
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 
 from .tracker import (
     BaseEth1PeerTracker,
@@ -22,7 +20,7 @@ class PeerDBServer(BaseService):
     """
 
     def __init__(self,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  tracker: BaseEth1PeerTracker,
                  token: CancelToken = None) -> None:
         super().__init__(token)

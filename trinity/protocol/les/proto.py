@@ -14,6 +14,7 @@ from eth.rlp.headers import BlockHeader
 
 from lahja import (
     BroadcastConfig,
+    EndpointAPI,
 )
 from p2p.kademlia import (
     Node,
@@ -22,7 +23,6 @@ from p2p.protocol import (
     Protocol,
 )
 
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.common.peer import ChainInfo
 from trinity._utils.les import gen_request_id
 
@@ -240,7 +240,7 @@ class ProxyLESProtocol:
     """
     def __init__(self,
                  remote: Node,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig):
         self.remote = remote
         self._event_bus = event_bus
