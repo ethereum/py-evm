@@ -52,6 +52,8 @@ def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
     # Our chain fixture is created with only the genesis header, so initially that's the head of
     # the canonical chain.
     assert valid_chain.get_canonical_head() == genesis_block
+    # verify a special case (score(genesis) == 0)
+    assert valid_chain.get_score(genesis_block.signing_root) == 0
 
     block = genesis_block.copy(
         slot=genesis_block.slot + 1,
@@ -60,6 +62,11 @@ def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
     valid_chain.chaindb.persist_block(block, block.__class__, fork_choice_scoring)
 
     assert valid_chain.get_canonical_head() == block
+    state_machine = valid_chain.get_state_machine(block)
+    scoring_fn = state_machine.get_fork_choice_scoring()
+
+    assert valid_chain.get_score(block.signing_root) == scoring_fn(block)
+    assert scoring_fn(block) != 0
 
     canonical_block_1 = valid_chain.get_canonical_block_by_slot(
         genesis_block.slot + 1,
