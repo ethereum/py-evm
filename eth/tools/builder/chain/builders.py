@@ -141,6 +141,7 @@ def fork_at(vm_class: Type[BaseVM], at_block: int, chain_class: Type[BaseChain])
     * :func:`~eth.tools.builder.chain.spurious_dragon_at`
     * :func:`~eth.tools.builder.chain.byzantium_at`
     * :func:`~eth.tools.builder.chain.constantinople_at`
+    * :func:`~eth.tools.builder.chain.petersburg_at`
     """
     if chain_class.vm_configuration is not None:
         base_configuration = chain_class.vm_configuration

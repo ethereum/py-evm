@@ -23,6 +23,7 @@ from .builders import (  # noqa: F401
     spurious_dragon_at,
     tangerine_whistle_at,
     constantinople_at,
+    petersburg_at,
     istanbul_at,
 )
 
@@ -33,7 +34,7 @@ mainnet_fork_at_fns = (
     homestead_at,
     spurious_dragon_at,
     tangerine_whistle_at,
-    constantinople_at,
+    petersburg_at,
     istanbul_at,
 )
 
