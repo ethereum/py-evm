@@ -26,6 +26,7 @@ from eth2._utils.ssz import (
 from eth2.beacon.db.exceptions import (
     AttestationRootNotFound,
     FinalizedHeadNotFound,
+    HeadStateSlotNotFound,
     JustifiedHeadNotFound,
 )
 from eth2.beacon.db.schema import SchemaV1
@@ -158,10 +159,27 @@ def test_chaindb_get_genesis_block_root(chaindb, genesis_block, fork_choice_scor
     assert block_root == genesis_block.signing_root
 
 
+def test_chaindb_get_head_state_slot(chaindb, state):
+    # No head state slot stored in the beginning
+    with pytest.raises(HeadStateSlotNotFound):
+        chaindb.get_head_state_slot()
+    current_slot = state.slot + 10
+    current_state = state.copy(
+        slot=current_slot,
+    )
+    chaindb.persist_state(current_state)
+    assert chaindb.get_head_state_slot() == current_state.slot
+    past_state = state
+    chaindb.persist_state(past_state)
+    assert chaindb.get_head_state_slot() == current_state.slot
+
+
 def test_chaindb_state(chaindb, state):
     chaindb.persist_state(state)
     state_class = BeaconState
     result_state = chaindb.get_state_by_root(state.root, state_class)
+    assert result_state.root == state.root
+    result_state = chaindb.get_state_by_slot(state.slot, state_class)
     assert result_state.root == state.root
 
 

@@ -11,6 +11,7 @@ from eth2.beacon.chains.base import (
 )
 from eth2.beacon.db.exceptions import (
     AttestationRootNotFound,
+    StateSlotNotFound,
 )
 from eth2.beacon.types.blocks import (
     BeaconBlock,
@@ -69,6 +70,52 @@ def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
     assert result_block == block
 
 
+@pytest.mark.parametrize(
+    (
+        'num_validators,'
+        'slots_per_epoch,'
+        'target_committee_size,'
+        'shard_count,'
+    ),
+    [
+        (100, 16, 10, 10),
+    ]
+)
+def test_get_state_by_slot(valid_chain,
+                           genesis_block,
+                           genesis_state,
+                           config,
+                           keymap):
+    # Fisrt, skip block and check if `get_state_by_slot` returns the expected state
+    state_machine = valid_chain.get_state_machine(genesis_block.slot)
+    state = state_machine.state
+    block_skipped_slot = genesis_block.slot + 1
+    block_skipped_state = state_machine.state_transition.apply_state_transition_without_block(
+        state,
+        block_skipped_slot,
+    )
+    with pytest.raises(StateSlotNotFound):
+        valid_chain.get_state_by_slot(block_skipped_slot)
+    valid_chain.chaindb.persist_state(block_skipped_state)
+    assert valid_chain.get_state_by_slot(block_skipped_slot).root == block_skipped_state.root
+
+    # Next, import proposed block and check if `get_state_by_slot` returns the expected state
+    proposed_slot = block_skipped_slot + 1
+    block = create_mock_block(
+        state=block_skipped_state,
+        config=config,
+        state_machine=state_machine,
+        block_class=genesis_block.__class__,
+        parent_block=genesis_block,
+        keymap=keymap,
+        slot=proposed_slot,
+        attestations=(),
+    )
+    valid_chain.import_block(block)
+    state = valid_chain.get_state_machine().state
+    assert valid_chain.get_state_by_slot(proposed_slot).root == state.root
+
+
 @pytest.mark.long
 @pytest.mark.parametrize(
     (
@@ -90,7 +137,7 @@ def test_import_blocks(valid_chain,
         block = create_mock_block(
             state=state,
             config=config,
-            state_machine=valid_chain.get_state_machine(blocks[-1]),
+            state_machine=valid_chain.get_state_machine(blocks[-1].slot),
             block_class=genesis_block.__class__,
             parent_block=blocks[-1],
             keymap=keymap,
@@ -100,7 +147,7 @@ def test_import_blocks(valid_chain,
         valid_chain.import_block(block)
         assert valid_chain.get_canonical_head() == block
 
-        state = valid_chain.get_state_machine(block).state
+        state = valid_chain.get_state_by_slot(block.slot)
 
         assert block == valid_chain.get_canonical_block_by_slot(
             block.slot
@@ -116,10 +163,10 @@ def test_import_blocks(valid_chain,
         valid_chain_2.import_block(block)
 
     assert valid_chain.get_canonical_head() == valid_chain_2.get_canonical_head()
-    assert valid_chain.get_state_machine(blocks[-1]).state.slot != 0
+    assert valid_chain.get_state_by_slot(blocks[-1].slot).slot != 0
     assert (
-        valid_chain.get_state_machine(blocks[-1]).state ==
-        valid_chain_2.get_state_machine(blocks[-1]).state
+        valid_chain.get_state_by_slot(blocks[-1].slot) ==
+        valid_chain_2.get_state_by_slot(blocks[-1].slot)
     )
 
 
@@ -168,7 +215,7 @@ def test_get_attestation_root(valid_chain,
                               config,
                               keymap,
                               min_attestation_inclusion_delay):
-    state_machine = valid_chain.get_state_machine(genesis_block)
+    state_machine = valid_chain.get_state_machine()
     attestations = create_mock_signed_attestations_at_slot(
         state=genesis_state,
         config=config,

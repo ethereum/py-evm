@@ -61,8 +61,10 @@ from eth2.beacon.validation import (
 from eth2.beacon.db.exceptions import (
     AttestationRootNotFound,
     FinalizedHeadNotFound,
+    HeadStateSlotNotFound,
     JustifiedHeadNotFound,
     MissingForkChoiceScorings,
+    StateSlotNotFound,
 )
 from eth2.beacon.db.schema import SchemaV1
 
@@ -162,6 +164,14 @@ class BaseBeaconChainDB(ABC):
     #
     # Beacon State
     #
+    @abstractmethod
+    def get_head_state_slot(self) -> Slot:
+        pass
+
+    @abstractmethod
+    def get_state_by_slot(self, slot: Slot, state_class: Type[BeaconState]) -> BeaconState:
+        pass
+
     @abstractmethod
     def get_state_by_root(self, state_root: Hash32, state_class: Type[BeaconState]) -> BeaconState:
         pass
@@ -657,6 +667,63 @@ class BeaconChainDB(BaseBeaconChainDB):
     #
     # Beacon State API
     #
+    def _add_head_state_slot_lookup(self, slot: Slot) -> None:
+        """
+        Write head state slot into the database.
+        """
+        self.db.set(
+            SchemaV1.make_head_state_slot_lookup_key(),
+            ssz.encode(slot, sedes=ssz.sedes.uint64),
+        )
+
+    def _add_slot_to_state_root_lookup(self, slot: Slot, state_root: Hash32) -> None:
+        """
+        Set a record in the database to allow looking up the state root by
+        slot number.
+        """
+        slot_to_state_root_key = SchemaV1.make_slot_to_state_root_lookup_key(slot)
+        self.db.set(
+            slot_to_state_root_key,
+            ssz.encode(state_root, sedes=ssz.sedes.byte_list),
+        )
+
+    def get_head_state_slot(self) -> Slot:
+        return self._get_head_state_slot(self.db)
+
+    @staticmethod
+    def _get_head_state_slot(db: BaseDB) -> Slot:
+        try:
+            encoded_head_state_slot = db[SchemaV1.make_head_state_slot_lookup_key()]
+            head_state_slot = ssz.decode(encoded_head_state_slot, sedes=ssz.sedes.uint64)
+        except KeyError:
+            raise HeadStateSlotNotFound("No head state slot found")
+        return head_state_slot
+
+    def get_state_by_slot(self, slot: Slot, state_class: Type[BeaconState]) -> BeaconState:
+        return self._get_state_by_slot(self.db, slot, state_class)
+
+    @staticmethod
+    def _get_state_by_slot(db: BaseDB, slot: Slot, state_class: Type[BeaconState]) -> BeaconState:
+        """
+        Return the requested beacon state as specified by slot.
+
+        Raises StateSlotNotFound if it is not present in the db.
+        """
+        slot_to_state_root_key = SchemaV1.make_slot_to_state_root_lookup_key(slot)
+        try:
+            state_root_ssz = db[slot_to_state_root_key]
+        except KeyError:
+            raise StateSlotNotFound(
+                "No state root for slot #{0}".format(slot)
+            )
+
+        state_root = ssz.decode(state_root_ssz, sedes=ssz.sedes.byte_list)
+        try:
+            state_ssz = db[state_root]
+        except KeyError:
+            raise StateRootNotFound(f"No state with root {encode_hex(state_root)} found")
+        return _decode_state(state_ssz, state_class)
+
     def get_state_by_root(self, state_root: Hash32, state_class: Type[BeaconState]) -> BeaconState:
         return self._get_state_by_root(self.db, state_root, state_class)
 
@@ -690,9 +757,20 @@ class BeaconChainDB(BaseBeaconChainDB):
             state.root,
             ssz.encode(state),
         )
+        self._add_slot_to_state_root_lookup(state.slot, state.root)
 
         self._persist_finalized_head(state)
         self._persist_justified_head(state)
+
+        # Update head state slot if new state slot is greater than head state slot.
+        try:
+            head_state_slot = self.get_head_state_slot()
+        except HeadStateSlotNotFound:
+            # Hasn't store any head state slot yet.
+            self._add_head_state_slot_lookup(state.slot)
+        else:
+            if state.slot > head_state_slot:
+                self._add_head_state_slot_lookup(state.slot)
 
     def _update_finalized_head(self, finalized_root: Hash32) -> None:
         """

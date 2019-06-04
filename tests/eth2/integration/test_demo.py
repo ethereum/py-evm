@@ -103,7 +103,7 @@ def test_demo(base_db,
             config=config,
             state_machine=fixture_sm_class(
                 chaindb,
-                blocks[-1],
+                blocks[-1].slot,
             ),
             block_class=SerenityBeaconBlock,
             parent_block=block,
@@ -115,7 +115,7 @@ def test_demo(base_db,
         # Get state machine instance
         sm = fixture_sm_class(
             chaindb,
-            blocks[-1],
+            blocks[-1].slot,
         )
         state, _ = sm.import_block(block)
 
@@ -131,7 +131,7 @@ def test_demo(base_db,
             config=config,
             state_machine=fixture_sm_class(
                 chaindb,
-                block,
+                block.slot,
             ),
             attestation_slot=attestation_slot,
             beacon_block_root=block.signing_root,
@@ -141,7 +141,6 @@ def test_demo(base_db,
         attestations_map[attestation_slot] = attestations
 
     assert state.slot == chain_length + genesis_slot
-    assert isinstance(sm.block, SerenityBeaconBlock)
 
     # Justification assertions
     assert state.current_justified_epoch == 2 + genesis_epoch

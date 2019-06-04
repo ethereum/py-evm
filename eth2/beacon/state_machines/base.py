@@ -20,6 +20,7 @@ from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     FromBlockParams,
+    Slot,
 )
 
 from .state_transitions import (
@@ -32,7 +33,7 @@ class BaseBeaconStateMachine(Configurable, ABC):
     chaindb = None  # type: BaseBeaconChainDB
     config = None  # type: Eth2Config
 
-    block = None  # type: BaseBeaconBlock
+    slot = None  # type: Slot
     _state = None  # type: BeaconState
 
     block_class = None  # type: Type[BaseBeaconBlock]
@@ -42,7 +43,7 @@ class BaseBeaconStateMachine(Configurable, ABC):
     @abstractmethod
     def __init__(self,
                  chaindb: BaseBeaconChainDB,
-                 block: BaseBeaconBlock,
+                 slot: Slot,
                  state: BeaconState=None) -> None:
         pass
 
@@ -89,19 +90,19 @@ class BaseBeaconStateMachine(Configurable, ABC):
 class BeaconStateMachine(BaseBeaconStateMachine):
     def __init__(self,
                  chaindb: BaseBeaconChainDB,
-                 block: BaseBeaconBlock,
+                 slot: Slot,
                  state: BeaconState=None) -> None:
         self.chaindb = chaindb
         if state is not None:
             self._state = state
         else:
-            self.block = block
+            self.slot = slot
 
     @property
     def state(self) -> BeaconState:
         if self._state is None:
-            self._state = self.chaindb.get_state_by_root(
-                self.block.state_root,
+            self._state = self.chaindb.get_state_by_slot(
+                self.slot,
                 self.get_state_class()
             )
         return self._state

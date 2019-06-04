@@ -16,5 +16,5 @@ from eth2.beacon.state_machines.forks.xiao_long_bao import (
     )
 )
 def test_sm_class_well_defined(sm_klass):
-    state_machine = sm_klass(chaindb=None, block=None)
+    state_machine = sm_klass(chaindb=None, slot=None)
     assert state_machine.get_block_class()
