@@ -125,6 +125,7 @@ class FakeAsyncMainnetChain(MainnetChain):
 
 class FakeAsyncChain(MiningChain):
     coro_import_block = coro_import_block
+    coro_get_block_header_by_hash = async_passthrough('get_block_header_by_hash')
     coro_get_canonical_head = async_passthrough('get_canonical_head')
     coro_validate_chain = async_passthrough('validate_chain')
     coro_validate_receipt = async_passthrough('validate_receipt')
@@ -174,6 +175,11 @@ def load_mining_chain(db):
 class DBFixture(Enum):
     twenty_pow_headers = '20pow_headers.ldb'
     thousand_pow_headers = '1000pow_headers.ldb'
+
+    # this chain updates and churns storage, as well as creating a bunch of
+    # contracts that are later deleted. It was built with:
+    # build_pow_churning_fixture(db, 128)
+    state_churner = 'churn_state.ldb'
 
 
 def load_fixture_db(db_fixture, db_class=LevelDB):
