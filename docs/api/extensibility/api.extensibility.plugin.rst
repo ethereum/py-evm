@@ -20,8 +20,8 @@ BaseMainProcessPlugin
 .. autoclass:: trinity.extensibility.plugin.BaseMainProcessPlugin
   :members:
 
-BaseIsolatedPlugin
-------------------
+AsyncioIsolatedPlugin
+---------------------
 
-.. autoclass:: trinity.extensibility.plugin.BaseIsolatedPlugin
+.. autoclass:: trinity.extensibility.asyncio.AsyncioIsolatedPlugin
   :members:

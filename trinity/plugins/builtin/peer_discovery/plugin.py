@@ -47,7 +47,7 @@ from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
 from trinity.extensibility import (
-    BaseIsolatedPlugin,
+    AsyncioIsolatedPlugin,
 )
 from trinity.protocol.bcc.proto import (
     BCCProtocol,
@@ -146,7 +146,7 @@ class DiscoveryBootstrapService(BaseService):
             self.event_bus.request_shutdown("Discovery ended unexpectedly")
 
 
-class PeerDiscoveryPlugin(BaseIsolatedPlugin):
+class PeerDiscoveryPlugin(AsyncioIsolatedPlugin):
     """
     Continously discover other Ethereum nodes.
     """

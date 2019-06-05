@@ -8,7 +8,7 @@ from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
 from trinity.extensibility import (
-    BaseIsolatedPlugin,
+    AsyncioIsolatedPlugin,
 )
 from trinity._utils.shutdown import (
     exit_with_endpoint_and_services,
@@ -18,7 +18,7 @@ from .nat import (
 )
 
 
-class UpnpPlugin(BaseIsolatedPlugin):
+class UpnpPlugin(AsyncioIsolatedPlugin):
     """
     Continously try to map external to internal ip address/port using the
     Universal Plug 'n' Play (upnp) standard.

@@ -18,7 +18,7 @@ from trinity.db.eth1.manager import (
     create_db_consumer_manager
 )
 from trinity.extensibility import (
-    BaseIsolatedPlugin,
+    AsyncioIsolatedPlugin,
 )
 from trinity.endpoint import (
     TrinityEventBusEndpoint,
@@ -42,7 +42,7 @@ from trinity._utils.shutdown import (
 )
 
 
-class JsonRpcServerPlugin(BaseIsolatedPlugin):
+class JsonRpcServerPlugin(AsyncioIsolatedPlugin):
 
     @property
     def name(self) -> str:

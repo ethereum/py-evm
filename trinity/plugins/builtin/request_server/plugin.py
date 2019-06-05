@@ -26,7 +26,7 @@ from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
 from trinity.extensibility import (
-    BaseIsolatedPlugin,
+    AsyncioIsolatedPlugin,
 )
 from trinity.protocol.bcc.servers import (
     BCCRequestServer,
@@ -42,7 +42,7 @@ from trinity._utils.shutdown import (
 )
 
 
-class RequestServerPlugin(BaseIsolatedPlugin):
+class RequestServerPlugin(AsyncioIsolatedPlugin):
 
     @property
     def name(self) -> str:

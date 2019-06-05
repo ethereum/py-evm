@@ -1,3 +1,6 @@
+from trinity.extensibility.asyncio import (  # noqa: F401
+    AsyncioIsolatedPlugin,
+)
 from trinity.extensibility.events import (  # noqa: F401
     BaseEvent
 )
@@ -8,7 +11,6 @@ from trinity.extensibility.exceptions import (  # noqa: F401
 from trinity.extensibility.plugin import (  # noqa: F401
     BaseAsyncStopPlugin,
     BaseMainProcessPlugin,
-    BaseIsolatedPlugin,
     BasePlugin,
     DebugPlugin,
     PluginStatus,
