@@ -16,6 +16,8 @@ from trinity.protocol.common.events import (
 )
 
 
+# Events flowing from PeerPool to Proxy
+
 class GetBlockHeadersEvent(PeerPoolMessageEvent):
     """
     Event to carry a ``GetBlockHeaders`` command from the peer pool to any process that
@@ -46,6 +48,24 @@ class GetNodeDataEvent(PeerPoolMessageEvent):
     subscribes the event through the event bus.
     """
     pass
+
+
+class TransactionsEvent(PeerPoolMessageEvent):
+    """
+    Event to carry a ``Transactions`` command from the peer pool to any process that
+    subscribes the event through the event bus.
+    """
+    pass
+
+
+class NewBlockHashesEvent(PeerPoolMessageEvent):
+    """
+    Event to carry a ``Transactions`` command from the peer pool to any process that
+    subscribes the event through the event bus.
+    """
+    pass
+
+# Events flowing from Proxy to PeerPool
 
 
 class SendBlockHeadersEvent(HasRemoteEvent):

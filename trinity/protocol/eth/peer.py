@@ -54,10 +54,12 @@ from .events import (
     GetBlockBodiesEvent,
     GetReceiptsEvent,
     GetNodeDataEvent,
+    NewBlockHashesEvent,
     SendBlockBodiesEvent,
     SendBlockHeadersEvent,
     SendNodeDataEvent,
     SendReceiptsEvent,
+    TransactionsEvent,
 )
 from .proto import ETHProtocol, ProxyETHProtocol
 from .handlers import ETHExchangeHandler
@@ -157,8 +159,6 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
         GetBlockBodies,
         GetReceipts,
         GetNodeData,
-        # TODO: all of the following are here to quiet warning logging output
-        # until the messages are properly handled.
         Transactions,
         NewBlockHashes,
     })
@@ -181,14 +181,7 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
                                          cmd: Command,
                                          msg: PayloadType) -> None:
 
-        ignored_commands = (
-            Transactions,
-            NewBlockHashes,
-        )
-
-        if isinstance(cmd, ignored_commands):
-            pass
-        elif isinstance(cmd, GetBlockHeaders):
+        if isinstance(cmd, GetBlockHeaders):
             await self.event_bus.broadcast(GetBlockHeadersEvent(remote, cmd, msg))
         elif isinstance(cmd, GetBlockBodies):
             await self.event_bus.broadcast(GetBlockBodiesEvent(remote, cmd, msg))
@@ -196,6 +189,10 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
             await self.event_bus.broadcast(GetReceiptsEvent(remote, cmd, msg))
         elif isinstance(cmd, GetNodeData):
             await self.event_bus.broadcast(GetNodeDataEvent(remote, cmd, msg))
+        elif isinstance(cmd, NewBlockHashes):
+            await self.event_bus.broadcast(NewBlockHashesEvent(remote, cmd, msg))
+        elif isinstance(cmd, Transactions):
+            await self.event_bus.broadcast(TransactionsEvent(remote, cmd, msg))
         else:
             raise Exception(f"Command {cmd} is not broadcasted")
 
