@@ -32,6 +32,7 @@ from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
+    Gwei,
     Slot,
     ValidatorIndex,
 )
@@ -207,6 +208,10 @@ def _get_ancestor(store: Store, block: BaseBeaconBlock, slot: Slot) -> BaseBeaco
     return store.get_ancestor(block, slot)
 
 
+def _balance_for_validator(state: BeaconState, validator_index: ValidatorIndex) -> Gwei:
+    return state.validator_balances[validator_index]
+
+
 def score_block_by_attestations(state: BeaconState,
                                 store: Store,
                                 attestation_targets: Sequence[AttestationTarget],
@@ -215,7 +220,7 @@ def score_block_by_attestations(state: BeaconState,
     Return the total balance attesting to ``block`` based on the ``attestation_targets``.
     """
     return sum(
-        state.validator_registry[validator_index].high_balance
+        _balance_for_validator(state, validator_index)
         for validator_index, target in attestation_targets
         if _get_ancestor(store, target, block.slot) == block
     )
