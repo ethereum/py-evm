@@ -21,9 +21,9 @@ from eth.db.atomic import AtomicDB
 from eth.db.chain import ChainDB
 from eth.tools.builder.chain import (
     build,
-    byzantium_at,
     enable_pow_mining,
     genesis,
+    latest_mainnet_at,
 )
 from eth.db.header import HeaderDB
 from eth.vm.forks.byzantium import ByzantiumVM
@@ -165,7 +165,7 @@ def load_mining_chain(db):
 
     return build(
         FakeAsyncChain,
-        byzantium_at(0),
+        latest_mainnet_at(0),
         enable_pow_mining(),
         genesis(db=db, params=GENESIS_PARAMS, state=GENESIS_STATE),
     )
