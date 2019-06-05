@@ -1,7 +1,7 @@
 import asyncio
 
+from eth.exceptions import HeaderNotFound
 import pytest
-
 from p2p.service import BaseService
 
 from trinity.protocol.eth.peer import ETHPeerPoolEventServer
@@ -335,13 +335,17 @@ def chaindb_fresh():
     return chain.chaindb
 
 
-async def wait_for_head(headerdb, header, timeout=None):
+async def wait_for_head(headerdb, header, sync_timeout=3):
     # A full header sync may involve several round trips, so we must be willing to wait a little
     # bit for them.
-    if timeout is None:
-        timeout = 3
 
     async def wait_loop():
-        while headerdb.get_canonical_head() != header:
-            await asyncio.sleep(0.1)
-    await asyncio.wait_for(wait_loop(), timeout)
+        header_at_block = None
+        while header_at_block != header:
+            try:
+                header_at_block = headerdb.get_canonical_block_header_by_number(header.block_number)
+            except HeaderNotFound:
+                await asyncio.sleep(0.1)
+            else:
+                break
+    await asyncio.wait_for(wait_loop(), sync_timeout)
