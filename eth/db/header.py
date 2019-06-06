@@ -112,7 +112,7 @@ class HeaderDB(BaseHeaderDB):
             encoded_key = db[number_to_hash_key]
         except KeyError:
             raise HeaderNotFound(
-                "No canonical header for block number #{0}".format(block_number)
+                f"No canonical header for block number #{block_number}"
             )
         else:
             return rlp.decode(encoded_key, sedes=rlp.sedes.binary)
@@ -166,7 +166,7 @@ class HeaderDB(BaseHeaderDB):
         try:
             header_rlp = db[block_hash]
         except KeyError:
-            raise HeaderNotFound("No header with hash {0} found".format(
+            raise HeaderNotFound("No header with hash {} found".format(
                 encode_hex(block_hash)))
         return _decode_block_header(header_rlp)
 
@@ -178,7 +178,7 @@ class HeaderDB(BaseHeaderDB):
         try:
             encoded_score = db[SchemaV1.make_block_hash_to_score_lookup_key(block_hash)]
         except KeyError:
-            raise HeaderNotFound("No header with hash {0} found".format(
+            raise HeaderNotFound("No header with hash {} found".format(
                 encode_hex(block_hash)))
         return rlp.decode(encoded_score, sedes=rlp.sedes.big_endian_int)
 
@@ -296,7 +296,7 @@ class HeaderDB(BaseHeaderDB):
             header = cls._get_block_header_by_hash(db, block_hash)
         except HeaderNotFound:
             raise ValueError(
-                "Cannot use unknown block hash as canonical head: {}".format(block_hash)
+                f"Cannot use unknown block hash as canonical head: {block_hash}"
             )
 
         new_canonical_headers = tuple(reversed(cls._find_new_ancestors(db, header)))

@@ -42,7 +42,7 @@ def add_transaction_to_group(group: Dict[str, Any],
 
     for key in ["gasPrice", "nonce", "secretKey", "to"]:
         if key in transaction and transaction[key] != group[key]:   # type: ignore # https://github.com/python/mypy/issues/5359 # noqa: 501
-            raise ValueError("Can't add transaction as it differs in {}".format(key))
+            raise ValueError(f"Can't add transaction as it differs in {key}")
 
     new_group = copy.deepcopy(group)
     indexes = {}
@@ -50,7 +50,7 @@ def add_transaction_to_group(group: Dict[str, Any],
         if key in group:
             if key not in transaction:
                 if len(new_group[key]) != 1:
-                    raise ValueError("Can't add transaction as {} is ambiguous".format(key))
+                    raise ValueError(f"Can't add transaction as {key} is ambiguous")
                 index = 0
             else:
                 if transaction[key] not in new_group[key]:      # type: ignore # https://github.com/python/mypy/issues/5359 # noqa: 501

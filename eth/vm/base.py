@@ -448,7 +448,7 @@ class VM(BaseVM):
     #
     @property
     def logger(self) -> logging.Logger:
-        return logging.getLogger('eth.vm.base.VM.{0}'.format(self.__class__.__name__))
+        return logging.getLogger(f'eth.vm.base.VM.{self.__class__.__name__}')
 
     #
     # Execution
@@ -707,8 +707,8 @@ class VM(BaseVM):
 
         if unknown_fields:
             raise AttributeError(
-                "Unable to set the field(s) {0} on the `BlockHeader` class. "
-                "Received the following unexpected fields: {1}.".format(
+                "Unable to set the field(s) {} on the `BlockHeader` class. "
+                "Received the following unexpected fields: {}.".format(
                     ", ".join(known_fields),
                     ", ".join(unknown_fields),
                 )
@@ -824,7 +824,7 @@ class VM(BaseVM):
                 continue
             elif log.address not in receipt.bloom_filter:
                 raise ValidationError(
-                    "The address from the log entry at position {0} is not "
+                    "The address from the log entry at position {} is not "
                     "present in the provided bloom filter.".format(log_idx)
                 )
             already_checked.add(log.address)
@@ -835,8 +835,8 @@ class VM(BaseVM):
                     continue
                 elif uint32.serialize(topic) not in receipt.bloom_filter:
                     raise ValidationError(
-                        "The topic at position {0} from the log entry at "
-                        "position {1} is not present in the provided bloom "
+                        "The topic at position {} from the log entry at "
+                        "position {} is not present in the provided bloom "
                         "filter.".format(topic_idx, log_idx)
                     )
                 already_checked.add(topic)
@@ -847,7 +847,7 @@ class VM(BaseVM):
         """
         if not isinstance(block, self.get_block_class()):
             raise ValidationError(
-                "This vm ({0!r}) is not equipped to validate a block of type {1!r}".format(
+                "This vm ({!r}) is not equipped to validate a block of type {!r}".format(
                     self,
                     block,
                 )
@@ -862,19 +862,19 @@ class VM(BaseVM):
         tx_root_hash, _ = make_trie_root_and_nodes(block.transactions)
         if tx_root_hash != block.header.transaction_root:
             raise ValidationError(
-                "Block's transaction_root ({0}) does not match expected value: {1}".format(
+                "Block's transaction_root ({}) does not match expected value: {}".format(
                     block.header.transaction_root, tx_root_hash))
 
         if len(block.uncles) > MAX_UNCLES:
             raise ValidationError(
-                "Blocks may have a maximum of {0} uncles.  Found "
-                "{1}.".format(MAX_UNCLES, len(block.uncles))
+                "Blocks may have a maximum of {} uncles.  Found "
+                "{}.".format(MAX_UNCLES, len(block.uncles))
             )
 
         if not self.chaindb.exists(block.header.state_root):
             raise ValidationError(
                 "`state_root` was not found in the db.\n"
-                "- state_root: {0}".format(
+                "- state_root: {}".format(
                     block.header.state_root,
                 )
             )
@@ -882,9 +882,9 @@ class VM(BaseVM):
         if local_uncle_hash != block.header.uncles_hash:
             raise ValidationError(
                 "`uncles_hash` and block `uncles` do not match.\n"
-                " - num_uncles       : {0}\n"
-                " - block uncle_hash : {1}\n"
-                " - header uncle_hash: {2}".format(
+                " - num_uncles       : {}\n"
+                " - block uncle_hash : {}\n"
+                " - header uncle_hash: {}".format(
                     len(block.uncles),
                     local_uncle_hash,
                     block.header.uncles_hash,
@@ -953,20 +953,20 @@ class VM(BaseVM):
         """
         if uncle.block_number >= block.number:
             raise ValidationError(
-                "Uncle number ({0}) is higher than block number ({1})".format(
+                "Uncle number ({}) is higher than block number ({})".format(
                     uncle.block_number, block.number))
 
         if uncle.block_number != uncle_parent.block_number + 1:
             raise ValidationError(
-                "Uncle number ({0}) is not one above ancestor's number ({1})".format(
+                "Uncle number ({}) is not one above ancestor's number ({})".format(
                     uncle.block_number, uncle_parent.block_number))
         if uncle.timestamp < uncle_parent.timestamp:
             raise ValidationError(
-                "Uncle timestamp ({0}) is before ancestor's timestamp ({1})".format(
+                "Uncle timestamp ({}) is before ancestor's timestamp ({})".format(
                     uncle.timestamp, uncle_parent.timestamp))
         if uncle.gas_used > uncle.gas_limit:
             raise ValidationError(
-                "Uncle's gas usage ({0}) is above the limit ({1})".format(
+                "Uncle's gas usage ({}) is above the limit ({})".format(
                     uncle.gas_used, uncle.gas_limit))
 
     #

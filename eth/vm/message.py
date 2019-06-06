@@ -19,7 +19,7 @@ from eth.validation import (
 )
 
 
-class Message(object):
+class Message:
     """
     A message for VM computation.
     """

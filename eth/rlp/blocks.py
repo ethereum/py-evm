@@ -60,4 +60,4 @@ class BaseBlock(rlp.Serializable, Configurable, ABC):
         )
 
     def __str__(self) -> str:
-        return "Block #{b.number}".format(b=self)
+        return f"Block #{self.number}"

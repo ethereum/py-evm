@@ -40,8 +40,8 @@ class SpuriousDragonComputation(HomesteadComputation):
 
             if contract_code and len(contract_code) >= EIP170_CODE_SIZE_LIMIT:
                 computation._error = OutOfGas(
-                    "Contract code size exceeds EIP170 limit of {0}.  Got code of "
-                    "size: {1}".format(
+                    "Contract code size exceeds EIP170 limit of {}.  Got code of "
+                    "size: {}".format(
                         EIP170_CODE_SIZE_LIMIT,
                         len(contract_code),
                     )

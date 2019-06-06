@@ -32,7 +32,7 @@ def _busted_type(item_type: type, value: Union[int, bytes]) -> ValidationError:
     )
 
 
-class Stack(object):
+class Stack:
     """
     VM Stack
     """
@@ -267,7 +267,7 @@ class Stack(object):
         try:
             self.values[-1], self.values[idx] = self.values[idx], self.values[-1]
         except IndexError:
-            raise InsufficientStack("Insufficient stack items for SWAP{0}".format(position))
+            raise InsufficientStack(f"Insufficient stack items for SWAP{position}")
 
     def dup(self, position: int) -> None:
         """
@@ -280,4 +280,4 @@ class Stack(object):
         try:
             self._append(self.values[peek_index])
         except IndexError:
-            raise InsufficientStack("Insufficient stack items for DUP{0}".format(position))
+            raise InsufficientStack(f"Insufficient stack items for DUP{position}")

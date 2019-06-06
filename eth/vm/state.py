@@ -100,7 +100,7 @@ class BaseState(Configurable, ABC):
     #
     @property
     def logger(self) -> ExtendedDebugLogger:
-        normal_logger = logging.getLogger('eth.vm.state.{0}'.format(self.__class__.__name__))
+        normal_logger = logging.getLogger(f'eth.vm.state.{self.__class__.__name__}')
         return cast(ExtendedDebugLogger, normal_logger)
 
     #
@@ -152,7 +152,7 @@ class BaseState(Configurable, ABC):
         state class uses.
         """
         if cls.account_db_class is None:
-            raise AttributeError("No account_db_class set for {0}".format(cls.__name__))
+            raise AttributeError(f"No account_db_class set for {cls.__name__}")
         return cls.account_db_class
 
     @property

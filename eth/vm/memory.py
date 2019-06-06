@@ -13,7 +13,7 @@ from eth._utils.numeric import (
 )
 
 
-class Memory(object):
+class Memory:
     """
     VM Memory
     """

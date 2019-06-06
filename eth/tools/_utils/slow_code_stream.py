@@ -14,7 +14,7 @@ from eth.vm import opcode_values
 PUSH1, PUSH32, STOP = opcode_values.PUSH1, opcode_values.PUSH32, opcode_values.STOP
 
 
-class SlowCodeStream(object):
+class SlowCodeStream:
     """
     A known working version of code stream that is kept around for testing,
     despite not being optimized.

@@ -33,7 +33,7 @@ def sstore(computation: BaseComputation) -> None:
     else:
         gas_cost = constants.GAS_SRESET
 
-    computation.consume_gas(gas_cost, reason="SSTORE: {0}[{1}] -> {2} ({3})".format(
+    computation.consume_gas(gas_cost, reason="SSTORE: {}[{}] -> {} ({})".format(
         encode_hex(computation.msg.storage_address),
         slot,
         value,

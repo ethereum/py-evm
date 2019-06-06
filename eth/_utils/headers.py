@@ -47,8 +47,8 @@ def compute_gas_limit(parent_header: BlockHeader, gas_limit_floor: int) -> int:
     if gas_limit_floor < GAS_LIMIT_MINIMUM:
         raise ValueError(
             "The `gas_limit_floor` value must be greater than the "
-            "GAS_LIMIT_MINIMUM.  Got {0}.  Must be greater than "
-            "{1}".format(gas_limit_floor, GAS_LIMIT_MINIMUM)
+            "GAS_LIMIT_MINIMUM.  Got {}.  Must be greater than "
+            "{}".format(gas_limit_floor, GAS_LIMIT_MINIMUM)
         )
 
     decay = parent_header.gas_limit // GAS_LIMIT_EMA_DENOMINATOR

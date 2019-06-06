@@ -145,7 +145,7 @@ class BlockHeader(rlp.Serializable):
         )
 
     def __str__(self) -> str:
-        return '<BlockHeader #{0} {1}>'.format(
+        return '<BlockHeader #{} {}>'.format(
             self.block_number,
             encode_hex(self.hash)[2:10],
         )

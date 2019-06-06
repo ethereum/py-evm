@@ -52,7 +52,7 @@ def sstore_eip1283(computation: BaseComputation) -> None:
 
     computation.consume_gas(
         gas_cost,
-        reason="SSTORE: {0}[{1}] -> {2} (current: {3} / original: {4})".format(
+        reason="SSTORE: {}[{}] -> {} (current: {} / original: {})".format(
             encode_hex(computation.msg.storage_address),
             slot,
             value,

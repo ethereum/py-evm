@@ -18,14 +18,14 @@ from typing import (  # noqa: F401
 
 
 # No set literals because we support Python 2.6.
-TRUE_VALUES = set((
+TRUE_VALUES = {
     True,
     'True',
     'true',
-))
+}
 
 
-class empty(object):
+class empty:
     """
     We use this sentinel object, instead of None, as None is a plausible value
     for a default in real Python code.
@@ -49,7 +49,7 @@ def get_env_value(name: str, required: bool=False, default: Any=empty) -> str:
             value = os.environ[name]
         except KeyError:
             raise KeyError(
-                "Must set environment variable {0}".format(name)
+                f"Must set environment variable {name}"
             )
     else:
         value = os.environ.get(name, default)

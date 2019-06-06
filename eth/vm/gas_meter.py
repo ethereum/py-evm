@@ -31,7 +31,7 @@ def allow_negative_refund_strategy(gas_refunded_total: int, amount: int) -> int:
 RefundStrategy = Callable[[int, int], int]
 
 
-class GasMeter(object):
+class GasMeter:
 
     start_gas = None  # type: int
 
@@ -59,7 +59,7 @@ class GasMeter(object):
             raise ValidationError("Gas consumption amount must be positive")
 
         if amount > self.gas_remaining:
-            raise OutOfGas("Out of gas: Needed {0} - Remaining {1} - Reason: {2}".format(
+            raise OutOfGas("Out of gas: Needed {} - Remaining {} - Reason: {}".format(
                 amount,
                 self.gas_remaining,
                 reason,

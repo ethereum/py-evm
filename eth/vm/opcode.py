@@ -32,9 +32,9 @@ class Opcode(Configurable, ABC):
 
     def __init__(self) -> None:
         if self.mnemonic is None:
-            raise TypeError("Opcode class {0} missing opcode mnemonic".format(type(self)))
+            raise TypeError("Opcode class {} missing opcode mnemonic".format(type(self)))
         if self.gas_cost is None:
-            raise TypeError("Opcode class {0} missing opcode gas_cost".format(type(self)))
+            raise TypeError("Opcode class {} missing opcode gas_cost".format(type(self)))
 
     @abstractmethod
     def __call__(self, computation: 'BaseComputation') -> Any:
@@ -45,7 +45,7 @@ class Opcode(Configurable, ABC):
 
     @property
     def logger(self) -> ExtendedDebugLogger:
-        logger_obj = logging.getLogger('eth.vm.logic.{0}'.format(self.mnemonic))
+        logger_obj = logging.getLogger(f'eth.vm.logic.{self.mnemonic}')
         return cast(ExtendedDebugLogger, logger_obj)
 
     @classmethod
@@ -76,7 +76,7 @@ class Opcode(Configurable, ABC):
             'mnemonic': mnemonic,
             'gas_cost': gas_cost,
         }
-        opcode_cls = type("opcode:{0}".format(mnemonic), (cls,), props)
+        opcode_cls = type(f"opcode:{mnemonic}", (cls,), props)
         return opcode_cls()
 
     def __copy__(self) -> 'Opcode':

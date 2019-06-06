@@ -183,7 +183,7 @@ class ChainDB(HeaderDB, BaseChainDB):
             encoded_uncles = self.db[uncles_hash]
         except KeyError:
             raise HeaderNotFound(
-                "No uncles found for hash {0}".format(uncles_hash)
+                f"No uncles found for hash {uncles_hash}"
             )
         else:
             return rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader))
@@ -373,7 +373,7 @@ class ChainDB(HeaderDB, BaseChainDB):
         try:
             block_header = self.get_canonical_block_header_by_number(block_number)
         except HeaderNotFound:
-            raise TransactionNotFound("Block {} is not in the canonical chain".format(block_number))
+            raise TransactionNotFound(f"Block {block_number} is not in the canonical chain")
         transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         encoded_index = rlp.encode(transaction_index)
         if encoded_index in transaction_db:
@@ -381,7 +381,7 @@ class ChainDB(HeaderDB, BaseChainDB):
             return rlp.decode(encoded_transaction, sedes=transaction_class)
         else:
             raise TransactionNotFound(
-                "No transaction is at index {} of block {}".format(transaction_index, block_number))
+                f"No transaction is at index {transaction_index} of block {block_number}")
 
     def get_transaction_index(self, transaction_hash: Hash32) -> Tuple[BlockNumber, int]:
         """
@@ -412,7 +412,7 @@ class ChainDB(HeaderDB, BaseChainDB):
         try:
             block_header = self.get_canonical_block_header_by_number(block_number)
         except HeaderNotFound:
-            raise ReceiptNotFound("Block {} is not in the canonical chain".format(block_number))
+            raise ReceiptNotFound(f"Block {block_number} is not in the canonical chain")
 
         receipt_db = HexaryTrie(db=self.db, root_hash=block_header.receipt_root)
         receipt_key = rlp.encode(receipt_index)
@@ -421,7 +421,7 @@ class ChainDB(HeaderDB, BaseChainDB):
             return rlp.decode(receipt_data, sedes=Receipt)
         else:
             raise ReceiptNotFound(
-                "Receipt with index {} not found in block".format(receipt_index))
+                f"Receipt with index {receipt_index} not found in block")
 
     @staticmethod
     def _get_block_transaction_data(db: BaseDB, transaction_root: Hash32) -> Iterable[Hash32]:

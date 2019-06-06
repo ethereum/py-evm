@@ -103,7 +103,7 @@ def validate_gte(value: int, minimum: int, title: str="Value") -> None:
 def validate_gt(value: int, minimum: int, title: str="Value") -> None:
     if value <= minimum:
         raise ValidationError(
-            "{title} {0} is not greater than {1}".format(value, minimum, title=title)
+            f"{title} {value} is not greater than {minimum}"
         )
     validate_is_integer(value, title=title)
 
@@ -123,7 +123,7 @@ def validate_lte(value: int, maximum: int, title: str="Value") -> None:
 def validate_lt(value: int, maximum: int, title: str="Value") -> None:
     if value >= maximum:
         raise ValidationError(
-            "{title} {0} is not less than {1}".format(value, maximum, title=title)
+            f"{title} {value} is not less than {maximum}"
         )
     validate_is_integer(value, title=title)
 
@@ -131,14 +131,14 @@ def validate_lt(value: int, maximum: int, title: str="Value") -> None:
 def validate_canonical_address(value: Address, title: str="Value") -> None:
     if not isinstance(value, bytes) or not len(value) == 20:
         raise ValidationError(
-            "{title} {0} is not a valid canonical address".format(value, title=title)
+            f"{title} {value} is not a valid canonical address"
         )
 
 
 def validate_multiple_of(value: int, multiple_of: int, title: str="Value") -> None:
     if not value % multiple_of == 0:
         raise ValidationError(
-            "{title} {0} is not a multiple of {1}".format(value, multiple_of, title=title)
+            f"{title} {value} is not a multiple of {multiple_of}"
         )
 
 
@@ -225,7 +225,7 @@ def validate_unique(values: Iterable[Any], title: str="Value") -> None:
         )
         raise ValidationError(
             "{title} does not contain unique items.  Duplicates: {0}".format(
-                ', '.join((str(value) for value in duplicates)),
+                ', '.join(str(value) for value in duplicates),
                 title=title,
             )
         )
@@ -253,15 +253,15 @@ def validate_vm_configuration(vm_configuration: Tuple[Tuple[int, Type['BaseVM']]
 
 def validate_gas_limit(gas_limit: int, parent_gas_limit: int) -> None:
     if gas_limit < GAS_LIMIT_MINIMUM:
-        raise ValidationError("Gas limit {0} is below minimum {1}".format(
+        raise ValidationError("Gas limit {} is below minimum {}".format(
             gas_limit, GAS_LIMIT_MINIMUM))
     if gas_limit > GAS_LIMIT_MAXIMUM:
-        raise ValidationError("Gas limit {0} is above maximum {1}".format(
+        raise ValidationError("Gas limit {} is above maximum {}".format(
             gas_limit, GAS_LIMIT_MAXIMUM))
     diff = gas_limit - parent_gas_limit
     if diff > (parent_gas_limit // GAS_LIMIT_ADJUSTMENT_FACTOR):
         raise ValidationError(
-            "Gas limit {0} difference to parent {1} is too big {2}".format(
+            "Gas limit {} difference to parent {} is too big {}".format(
                 gas_limit, parent_gas_limit, diff))
 
 
@@ -282,8 +282,8 @@ def validate_header_params_for_configuration(header_params: Dict[str, Any]) -> N
     extra_fields = set(header_params.keys()).difference(ALLOWED_HEADER_FIELDS)
     if extra_fields:
         raise ValidationError(
-            "The `configure_header` method may only be used with the fields ({0}). "
-            "The provided fields ({1}) are not supported".format(
+            "The `configure_header` method may only be used with the fields ({}). "
+            "The provided fields ({}) are not supported".format(
                 ", ".join(tuple(sorted(ALLOWED_HEADER_FIELDS))),
                 ", ".join(tuple(sorted(extra_fields))),
             )

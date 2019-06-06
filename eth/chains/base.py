@@ -191,7 +191,7 @@ class BaseChain(Configurable, ABC):
             if block_number >= start_block:
                 return vm_class
         else:
-            raise VMNotFound("No vm available for block #{0}".format(block_number))
+            raise VMNotFound(f"No vm available for block #{block_number}")
 
     #
     # Header API
@@ -356,7 +356,7 @@ class BaseChain(Configurable, ABC):
                 vm_class.validate_header(child, parent, check_seal=should_check_seal)
             except ValidationError as exc:
                 raise ValidationError(
-                    "%s is not a valid child of %s: %s" % (
+                    "{} is not a valid child of {}: {}".format(
                         child,
                         parent,
                         exc,
@@ -430,7 +430,7 @@ class Chain(BaseChain):
             # the computed state from the initialized state database.
             raise ValidationError(
                 "The provided genesis state root does not match the computed "
-                "genesis state root.  Got {0}.  Expected {1}".format(
+                "genesis state root.  Got {}.  Expected {}".format(
                     state.state_root,
                     genesis_params['state_root'],
                 )
@@ -791,11 +791,11 @@ class Chain(BaseChain):
         low_bound, high_bound = compute_gas_limit_bounds(parent_header)
         if header.gas_limit < low_bound:
             raise ValidationError(
-                "The gas limit on block {0} is too low: {1}. It must be at least {2}".format(
+                "The gas limit on block {} is too low: {}. It must be at least {}".format(
                     encode_hex(header.hash), header.gas_limit, low_bound))
         elif header.gas_limit > high_bound:
             raise ValidationError(
-                "The gas limit on block {0} is too high: {1}. It must be at most {2}".format(
+                "The gas limit on block {} is too high: {}. It must be at most {}".format(
                     encode_hex(header.hash), header.gas_limit, high_bound))
 
     def validate_uncles(self, block: BaseBlock) -> None:
@@ -821,7 +821,7 @@ class Chain(BaseChain):
         if duplicate_uncles:
             raise ValidationError(
                 "Block contains duplicate uncles:\n"
-                " - {0}".format(' - '.join(duplicate_uncles))
+                " - {}".format(' - '.join(duplicate_uncles))
             )
 
         recent_ancestors = tuple(
@@ -839,13 +839,13 @@ class Chain(BaseChain):
             # ensure the uncle has not already been included.
             if uncle.hash in recent_uncle_hashes:
                 raise ValidationError(
-                    "Duplicate uncle: {0}".format(encode_hex(uncle.hash))
+                    "Duplicate uncle: {}".format(encode_hex(uncle.hash))
                 )
 
             # ensure that the uncle is not one of the canonical chain blocks.
             if uncle.hash in recent_ancestor_hashes:
                 raise ValidationError(
-                    "Uncle {0} cannot be an ancestor of {1}".format(
+                    "Uncle {} cannot be an ancestor of {}".format(
                         encode_hex(uncle.hash), encode_hex(block.hash)))
 
             # ensure that the uncle was built off of one of the canonical chain
@@ -853,7 +853,7 @@ class Chain(BaseChain):
             if uncle.parent_hash not in recent_ancestor_hashes or (
                uncle.parent_hash == block.header.parent_hash):
                 raise ValidationError(
-                    "Uncle's parent {0} is not an ancestor of {1}".format(
+                    "Uncle's parent {} is not an ancestor of {}".format(
                         encode_hex(uncle.parent_hash), encode_hex(block.hash)))
 
             # Now perform VM level validation of the uncle
@@ -863,7 +863,7 @@ class Chain(BaseChain):
                 uncle_parent = self.get_block_header_by_hash(uncle.parent_hash)
             except HeaderNotFound:
                 raise ValidationError(
-                    "Uncle ancestor not found: {0}".format(uncle.parent_hash)
+                    f"Uncle ancestor not found: {uncle.parent_hash}"
                 )
 
             uncle_vm_class = self.get_vm_class_for_block_number(uncle.block_number)

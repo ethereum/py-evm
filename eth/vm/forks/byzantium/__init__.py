@@ -77,8 +77,8 @@ class ByzantiumVM(SpuriousDragonVM):
         super().validate_receipt(receipt)
         if receipt.state_root not in EIP658_STATUS_CODES:
             raise ValidationError(
-                "The receipt's `state_root` must be one of [{0}, {1}].  Got: "
-                "{2}".format(
+                "The receipt's `state_root` must be one of [{}, {}].  Got: "
+                "{}".format(
                     encode_hex(EIP658_TRANSACTION_STATUS_CODE_SUCCESS),
                     encode_hex(EIP658_TRANSACTION_STATUS_CODE_FAILURE),
                     encode_hex(receipt.state_root),
