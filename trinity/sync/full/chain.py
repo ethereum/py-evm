@@ -6,6 +6,7 @@ from functools import (
     partial,
 )
 from operator import attrgetter
+import time
 from typing import (
     AsyncIterator,
     Awaitable,
@@ -51,6 +52,7 @@ from p2p.exceptions import BaseP2PError, PeerConnectionLost
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.protocol import Command
 from p2p.service import BaseService
+from p2p.token_bucket import TokenBucket
 
 from trinity.chains.base import BaseAsyncChain
 from trinity.db.eth1.chain import BaseAsyncChainDB
@@ -976,6 +978,12 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         # Track if any headers have been received yet
         self._got_first_header = asyncio.Event()
 
+        # Rate limit the block import logs
+        self._import_log_limiter = TokenBucket(
+            0.33,  # show about one log per 3 seconds
+            5,  # burst up to 5 logs after a lag
+        )
+
     async def _run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
         self._block_import_tracker.set_finished_dependency(head)
@@ -1069,8 +1077,20 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
 
             if new_canonical_blocks == (block,):
                 # simple import of a single new block.
-                self.logger.info("Imported block %d (%d txs) in %.2f seconds",
-                                 block.number, len(block.transactions), timer.elapsed)
+
+                # decide whether to log to info or debug, based on log rate
+                if self._import_log_limiter.can_take(1):
+                    log_fn = self.logger.info
+                    self._import_log_limiter.take_nowait(1)
+                else:
+                    log_fn = self.logger.debug
+                log_fn(
+                    "Imported block %d (%d txs) in %.2f seconds, with %s lag",
+                    block.number,
+                    len(block.transactions),
+                    timer.elapsed,
+                    humanize_seconds(time.time() - block.header.timestamp),
+                )
             elif not new_canonical_blocks:
                 # imported block from a fork.
                 self.logger.info("Imported non-canonical block %d (%d txs) in %.2f seconds",
