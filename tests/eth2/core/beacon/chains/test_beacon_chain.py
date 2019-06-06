@@ -62,7 +62,7 @@ def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
     valid_chain.chaindb.persist_block(block, block.__class__, fork_choice_scoring)
 
     assert valid_chain.get_canonical_head() == block
-    state_machine = valid_chain.get_state_machine(block)
+    state_machine = valid_chain.get_state_machine(block.slot)
     scoring_fn = state_machine.get_fork_choice_scoring()
 
     assert valid_chain.get_score(block.signing_root) == scoring_fn(block)
