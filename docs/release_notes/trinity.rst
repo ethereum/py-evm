@@ -1,8 +1,13 @@
 Trinity 
 =======
 
-Unreleased (latest source)
+v0.1.0-alpha.25
 --------------------------
+
+Released 2019-06-05
+
+- Upgraded py-evm to deal with eth-keys v0.3.0 dependency issue --
+  `see commit <https://github.com/ethereum/trinity/commit/55d70bafb6e8d6918fee91ad54da721bdc5ed185>`_
 
 v0.1.0-alpha.24
 --------------------------

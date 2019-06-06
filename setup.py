@@ -3,7 +3,7 @@
 import os
 from setuptools import setup, find_packages
 
-PYEVM_DEPENDENCY = "py-evm==0.2.0a43"
+PYEVM_DEPENDENCY = "py-evm==0.3.0a1"
 
 
 deps = {
@@ -129,7 +129,7 @@ with open('./README.md') as readme:
 setup(
     name='trinity',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
-    version='0.1.0-alpha.24',
+    version='0.1.0-alpha.25',
     description='The Trinity client for the Ethereum network',
     long_description=long_description,
     long_description_content_type='text/markdown',
