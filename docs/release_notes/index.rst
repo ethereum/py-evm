@@ -4,7 +4,14 @@ Release notes
 Unreleased (latest source)
 --------------------------
 
+v0.3.0-alpha.1
+--------------------------
+
+Released 2019-06-05
+(off-schedule release to handle eth-keys dependency issue)
+
 - `#1785 <https://github.com/ethereum/py-evm/pull/1785>`_: Breaking Change: Dropped python3.5 support
+- `#1788 <https://github.com/ethereum/py-evm/pull/1788>`_: Fix dependency issue with eth-keys, don't allow v0.3+ for now
 
 
 0.2.0-alpha.43
