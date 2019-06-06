@@ -2,7 +2,7 @@ import random
 
 import pytest
 
-from eth_utils import to_dict, to_tuple
+from eth_utils import to_dict
 
 from eth_utils.toolz import (
     first,
@@ -10,7 +10,7 @@ from eth_utils.toolz import (
     merge,
     merge_with,
     second,
-    valmap,
+    sliding_window,
 )
 
 from eth2._utils import bitfield
@@ -27,6 +27,7 @@ from eth2.beacon.committee_helpers import (
 )
 from eth2.beacon.helpers import (
     get_epoch_start_slot,
+    slot_to_epoch,
 )
 from eth2.beacon.fork_choice.lmd_ghost import Store
 from eth2.beacon.types.attestations import Attestation
@@ -84,20 +85,98 @@ def _mk_attestations_for_epoch_by_count(number_of_committee_samples,
             )
 
 
-@to_tuple
 def _extract_attestations_from_index_keying(values):
+    results = ()
     for value in values:
         aggregation_bitfield, data = second(value)
-        yield Attestation(
+        attestation = Attestation(
             aggregation_bitfield=aggregation_bitfield,
             data=data,
             custody_bitfield=bytes(),
             aggregate_signature=EMPTY_SIGNATURE,
         )
+        if attestation not in results:
+            results += (attestation,)
+    return results
 
 
 def _keep_by_latest_slot(values):
-    return max(values, key=first)
+    """
+    we get a sequence of (Slot, (Bitfield, AttestationData))
+    and return the AttestationData with the highest slot
+    """
+    return max(values, key=first)[1][1]
+
+
+def _find_collision(state, config, index=None, epoch=None):
+    """
+    Given a target epoch, make the attestation expected for the
+    validator w/ the given index.
+    """
+    assert index is not None
+    assert epoch is not None
+
+    epoch_range = _mk_range_for_epoch(epoch, config.SLOTS_PER_EPOCH)
+
+    for slot in epoch_range:
+        crosslink_committees_at_slot = get_crosslink_committees_at_slot(
+            state,
+            slot,
+            committee_config=CommitteeConfig(config),
+        )
+
+        for committee, shard in crosslink_committees_at_slot:
+            if index in committee:
+                attestation_data = AttestationData(
+                    slot=slot,
+                    beacon_block_root=ZERO_HASH32,
+                    source_epoch=0,
+                    source_root=ZERO_HASH32,
+                    target_root=ZERO_HASH32,
+                    shard=shard,
+                    previous_crosslink=Crosslink(
+                        epoch=0,
+                        crosslink_data_root=ZERO_HASH32,
+                    ),
+                    crosslink_data_root=ZERO_HASH32,
+                )
+                committee_count = len(committee)
+                aggregation_bitfield = bitfield.get_empty_bitfield(committee_count)
+                for i in range(committee_count):
+                    aggregation_bitfield = bitfield.set_voted(aggregation_bitfield, i)
+
+                return {
+                    index: (
+                        slot, (aggregation_bitfield, attestation_data)
+                    )
+                    for index in committee
+                }
+    else:
+        raise Exception("should have found a duplicate validator")
+
+
+def _introduce_collisions(all_attestations_by_index,
+                          state,
+                          config):
+    """
+    Find some attestations for later epochs for the validators
+    that are current attesting in each source of attestation.
+    """
+    collisions = (all_attestations_by_index[0],)
+    for src, dst in sliding_window(2, all_attestations_by_index):
+        if not src:
+            # src can be empty at low validator count
+            collisions += (dst,)
+            continue
+        src_index = random.choice(list(src.keys()))
+        src_val = src[src_index]
+        src_slot, _ = src_val
+        src_epoch = slot_to_epoch(src_slot, config.SLOTS_PER_EPOCH)
+        dst_epoch = src_epoch + 1
+
+        collision = _find_collision(state, config, index=src_index, epoch=dst_epoch)
+        collisions += (merge(dst, collision),)
+    return collisions
 
 
 @pytest.mark.parametrize(
@@ -106,6 +185,7 @@ def _keep_by_latest_slot(values):
     ),
     [
         (8,),     # low number of validators
+        (128,),   # medium number of validators
         (1024,),  # high number of validators
     ]
 )
@@ -114,7 +194,7 @@ def _keep_by_latest_slot(values):
         "collisions",
     ),
     [
-        # (True,),
+        (True,),
         (False,),
     ]
 )
@@ -216,21 +296,39 @@ def test_store_get_latest_attestation(n_validators_state,
         pool_attestations_by_index.values(),
     )
 
-    if collisions:
-        # introduce_collisions(...)
-        pass
-
-    # build expected results
-    expected_full_index = merge_with(
-        _keep_by_latest_slot,
+    all_attestations_by_index = (
         previous_epoch_attestations_by_index,
         current_epoch_attestations_by_index,
         pool_attestations_by_index,
     )
 
-    expected_index = valmap(
-        lambda pairs: pairs[1][1],
-        expected_full_index,
+    if collisions:
+        (
+            previous_epoch_attestations_by_index,
+            current_epoch_attestations_by_index,
+            pool_attestations_by_index,
+        ) = _introduce_collisions(
+            all_attestations_by_index,
+            state,
+            config,
+        )
+
+        previous_epoch_attestations = _extract_attestations_from_index_keying(
+            previous_epoch_attestations_by_index.values(),
+        )
+        current_epoch_attestations = _extract_attestations_from_index_keying(
+            current_epoch_attestations_by_index.values(),
+        )
+        pool_attestations = _extract_attestations_from_index_keying(
+            pool_attestations_by_index.values(),
+        )
+
+    # build expected results
+    expected_index = merge_with(
+        _keep_by_latest_slot,
+        previous_epoch_attestations_by_index,
+        current_epoch_attestations_by_index,
+        pool_attestations_by_index,
     )
 
     # ensure we get the expected results
@@ -245,6 +343,9 @@ def test_store_get_latest_attestation(n_validators_state,
 
     chain_db = None  # not relevant for this test
     store = Store(chain_db, state, pool, BeaconBlock, config)
+
+    # sanity check
+    assert expected_index.keys() == store._attestation_index.keys()
 
     for validator_index in range(len(state.validator_registry)):
         expected_attestation_data = expected_index.get(validator_index, None)
