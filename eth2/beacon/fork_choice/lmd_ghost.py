@@ -7,11 +7,10 @@ from eth_utils import (
     to_tuple,
 )
 from eth_utils.toolz import (
-    concat,
     curry,
     first,
-    identity,
     mapcat,
+    merge,
     merge_with,
     second,
     valmap,
@@ -89,8 +88,7 @@ class Store:
         """
         A 'pre-index' is a Dict[ValidatorIndex, Tuple[Slot, AttestationData]].
         """
-        return merge_with(
-            identity,  # just return a sequence of all collisions by validator index
+        return merge(
             *mapcat(
                 self._mk_pre_index_from_attestation(state),
                 attestations,
@@ -125,19 +123,16 @@ class Store:
             tuple(attestation for _, attestation in attestation_pool)
         )
 
-        all_attestations_by_index = concat(
-            (
-                previous_epoch_index,
-                current_epoch_index,
-                pool_index,
-            )
+        index_by_latest_slot = merge_with(
+            _take_latest_attestation_by_slot,
+            previous_epoch_index,
+            current_epoch_index,
+            pool_index,
         )
+        # convert the index to a mapping of ValidatorIndex -> (latest) Attestation
         return valmap(
             second,
-            merge_with(
-                _take_latest_attestation_by_slot,
-                all_attestations_by_index,
-            )
+            index_by_latest_slot,
         )
 
     def _get_latest_attestation(self, index: ValidatorIndex) -> Optional[AttestationData]:
