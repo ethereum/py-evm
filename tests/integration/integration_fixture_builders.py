@@ -15,12 +15,13 @@ RECEIVER = keys.PrivateKey(
 
 def build_pow_fixture(write_db, num_blocks=20):
     chain = load_mining_chain(write_db)
+    recipient_address = RECEIVER.public_key.to_canonical_address()
     for i in range(num_blocks):
         tx = chain.create_unsigned_transaction(
             nonce=i,
             gas_price=1234,
             gas=123400,
-            to=RECEIVER.public_key.to_canonical_address(),
+            to=recipient_address,
             value=i,
             data=b'',
         )
