@@ -16,3 +16,10 @@ HEADER_QUEUE_SIZE_TARGET = 6000
 # How many blocks to persist at a time
 # Only need a few seconds of buffer on the DB write side.
 BLOCK_QUEUE_SIZE_TARGET = 1000
+
+# How many blocks to import at a time
+# Only need a few seconds of buffer on the DB side
+# This is specifically for blocks where execution happens locally.
+# So each block might have a pretty significant execution time, on
+#   the order of seconds.
+BLOCK_IMPORT_QUEUE_SIZE_TARGET = 10
