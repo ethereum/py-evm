@@ -20,8 +20,12 @@ from trinity.constants import (
     TO_NETWORKING_BROADCAST_CONFIG,
 )
 from trinity.db.eth1.manager import (
-    create_db_consumer_manager
+    create_db_consumer_manager,
 )
+from trinity.db.beacon.manager import (
+    create_db_consumer_manager as create_beacon_db_consumer_manager,
+)
+
 from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
@@ -64,17 +68,17 @@ class RequestServerPlugin(AsyncioIsolatedPlugin):
 
         trinity_config = self.boot_info.trinity_config
 
-        db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
-
         if trinity_config.has_app_config(Eth1AppConfig):
+            db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
             server = self.make_eth1_request_server(
                 trinity_config.get_app_config(Eth1AppConfig),
                 db_manager,
             )
         elif trinity_config.has_app_config(BeaconAppConfig):
+            db_manager = create_beacon_db_consumer_manager(trinity_config.database_ipc_path)
             server = self.make_beacon_request_server(
                 trinity_config.get_app_config(BeaconAppConfig),
-                db_manager
+                db_manager,
             )
         else:
             raise Exception("Trinity config must have either eth1 or beacon chain config")
