@@ -316,6 +316,11 @@ def leveldb_1000():
 
 
 @pytest.fixture
+def leveldb_churner():
+    yield from load_fixture_db(DBFixture.state_churner)
+
+
+@pytest.fixture
 def chaindb_1000(leveldb_1000):
     chain = load_mining_chain(FakeAsyncAtomicDB(leveldb_1000))
     assert chain.chaindb.get_canonical_head().block_number == 1000
@@ -333,6 +338,13 @@ def chaindb_20(leveldb_20):
 def chaindb_fresh():
     chain = load_mining_chain(FakeAsyncAtomicDB())
     assert chain.chaindb.get_canonical_head().block_number == 0
+    return chain.chaindb
+
+
+@pytest.fixture
+def chaindb_churner(leveldb_churner):
+    chain = load_mining_chain(FakeAsyncAtomicDB(leveldb_churner))
+    assert chain.chaindb.get_canonical_head().block_number == 129
     return chain.chaindb
 
 
