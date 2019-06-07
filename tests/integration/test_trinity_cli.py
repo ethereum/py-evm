@@ -50,7 +50,9 @@ from trinity._utils.async_iter import (
 )
 @pytest.mark.asyncio
 async def test_full_boot(async_process_runner, command):
-    await async_process_runner.run(command, timeout_sec=40)
+    # Since this short-circuits on sucess, we can set the timeout high.
+    # We only hit the timeout if the test fails.
+    await async_process_runner.run(command, timeout_sec=120)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
@@ -68,7 +70,9 @@ async def test_full_boot(async_process_runner, command):
 )
 @pytest.mark.asyncio
 async def test_txpool_full_boot(async_process_runner, command):
-    await async_process_runner.run(command, timeout_sec=40)
+    # Since this short-circuits on sucess, we can set the timeout high.
+    # We only hit the timeout if the test fails.
+    await async_process_runner.run(command, timeout_sec=120)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
@@ -87,7 +91,9 @@ async def test_txpool_full_boot(async_process_runner, command):
 )
 @pytest.mark.asyncio
 async def test_txpool_deactivated(async_process_runner, command):
-    await async_process_runner.run(command, timeout_sec=40)
+    # Since this short-circuits on sucess, we can set the timeout high.
+    # We only hit the timeout if the test fails.
+    await async_process_runner.run(command, timeout_sec=120)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
         "Started networking process",
@@ -231,7 +237,8 @@ async def test_logger(async_process_runner,
     def contains_substring(iterable, substring):
         return any(substring in x for x in iterable)
 
-    await async_process_runner.run(command, timeout_sec=30)
+    # Saw occasional (<25%, >5%) failures in CI at 30s because of slow machines or bad luck
+    await async_process_runner.run(command, timeout_sec=45)
 
     stderr_logs = []
 
