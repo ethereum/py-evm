@@ -21,12 +21,13 @@ from eth.db.atomic import AtomicDB
 from eth.db.chain import ChainDB
 from eth.tools.builder.chain import (
     build,
-    byzantium_at,
     enable_pow_mining,
     genesis,
+    latest_mainnet_at,
 )
 from eth.db.header import HeaderDB
 from eth.vm.forks.byzantium import ByzantiumVM
+from eth.vm.forks.petersburg import PetersburgVM
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.db.base import BaseAsyncDB
@@ -130,6 +131,15 @@ class FakeAsyncChain(MiningChain):
     chaindb_class = FakeAsyncChainDB
 
 
+class LatestTestChain(FakeAsyncChain):
+    """
+    A test chain that uses the most recent mainnet VM from block 0.
+    That means the VM will explicitly change when a new network upgrade is locked in.
+    """
+    vm_configuration = ((0, PetersburgVM),)
+    network_id = 999
+
+
 class ByzantiumTestChain(FakeAsyncChain):
     vm_configuration = ((0, ByzantiumVM),)
     network_id = 999
@@ -155,7 +165,7 @@ def load_mining_chain(db):
 
     return build(
         FakeAsyncChain,
-        byzantium_at(0),
+        latest_mainnet_at(0),
         enable_pow_mining(),
         genesis(db=db, params=GENESIS_PARAMS, state=GENESIS_STATE),
     )

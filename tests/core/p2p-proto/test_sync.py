@@ -26,6 +26,7 @@ from tests.core.integration_test_helpers import (
     FakeAsyncAtomicDB,
     FakeAsyncChainDB,
     FakeAsyncHeaderDB,
+    LatestTestChain,
     load_fixture_db,
     load_mining_chain,
     run_peer_pool_event_server,
@@ -58,7 +59,7 @@ async def test_fast_syncer(request,
         alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
         bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
-    client = FastChainSyncer(ByzantiumTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
+    client = FastChainSyncer(LatestTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
 
     async with run_peer_pool_event_server(
@@ -94,7 +95,7 @@ async def test_skeleton_syncer(request, event_loop, event_bus, chaindb_fresh, ch
         alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
         bob_headerdb=FakeAsyncHeaderDB(chaindb_1000.db))
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
-    client = FastChainSyncer(ByzantiumTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
+    client = FastChainSyncer(LatestTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
 
     async with run_peer_pool_event_server(
@@ -279,7 +280,7 @@ async def test_light_syncer(request,
         alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
         bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
     client = LightChainSyncer(
-        ByzantiumTestChain(chaindb_fresh.db),
+        LatestTestChain(chaindb_fresh.db),
         chaindb_fresh,
         MockPeerPoolWithConnectedPeers([client_peer]))
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
