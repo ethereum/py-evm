@@ -77,6 +77,7 @@ from trinity.sync.common.peers import WaitingPeers
 from trinity.sync.full.constants import (
     HEADER_QUEUE_SIZE_TARGET,
     BLOCK_QUEUE_SIZE_TARGET,
+    BLOCK_IMPORT_QUEUE_SIZE_TARGET,
 )
 from trinity._utils.datastructures import (
     BaseOrderedTaskPreparation,
@@ -1040,8 +1041,10 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         while self.is_operational:
             timer = Timer()
 
-            # wait for block bodies to become ready for execution
-            completed_headers = await self.wait(self._block_import_tracker.ready_tasks())
+            # This tracker waits for all prerequisites to be complete, and returns headers in
+            # order, so that each header's parent is already persisted.
+            get_ready_coro = self._block_import_tracker.ready_tasks(BLOCK_IMPORT_QUEUE_SIZE_TARGET)
+            completed_headers = await self.wait(get_ready_coro)
 
             if self._block_import_tracker.has_ready_tasks():
                 # Even after clearing out a big batch, there is no available capacity, so
