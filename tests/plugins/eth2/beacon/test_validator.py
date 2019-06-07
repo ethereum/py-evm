@@ -219,7 +219,7 @@ async def test_validator_skip_block(event_loop, event_bus):
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
     slot = state.slot + 1
-    root_post_state = alice.skip_block(
+    post_state = alice.skip_block(
         slot=slot,
         state=state,
         state_machine=state_machine,
@@ -228,8 +228,8 @@ async def test_validator_skip_block(event_loop, event_bus):
     with pytest.raises(BlockNotFound):
         alice.chain.get_canonical_block_by_slot(slot)
     # test: the state root should change after skipping the block
-    assert state.root != root_post_state
-    # TODO: more tests
+    assert state.root != post_state.root
+    assert state.slot + 1 == post_state.slot
 
 
 @pytest.mark.asyncio
