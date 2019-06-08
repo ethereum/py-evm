@@ -149,7 +149,11 @@ class Store:
         attestation = self._get_latest_attestation(index)
         if not attestation:
             return None
-        target_block = self._get_block_by_root(attestation.beacon_block_root)
+        try:
+            target_block = self._get_block_by_root(attestation.beacon_block_root)
+        except KeyError:
+            # attestation made for a block we have not imported
+            return None
         return target_block
 
     def _get_previous_block(self, block: BaseBeaconBlock) -> BaseBeaconBlock:
