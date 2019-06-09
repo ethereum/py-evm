@@ -65,6 +65,7 @@ deps = {
         "pytest-randomly==3.0.0",
         # only for eth2
         "ruamel.yaml==0.15.98",
+        "eth-tester",
     ],
     # We have to keep some separation between trio and asyncio based tests
     # because `pytest-asyncio` is greedy and tries to run all asyncio fixtures.
