@@ -14,6 +14,7 @@ from eth2.configs import (
     Eth2GenesisConfig,
 )
 from eth2.beacon.constants import (
+    GWEI_PER_ETH,
     FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.fork_choice import (
@@ -42,6 +43,9 @@ from eth2.beacon.types.blocks import (
 )
 from eth2.beacon.types.forks import (
     Fork,
+)
+from eth2.beacon.typing import (
+    Gwei,
 )
 from eth2.beacon.state_machines.forks.serenity import (
     SerenityStateMachine,
@@ -329,11 +333,12 @@ def sample_validator_record_params():
     return {
         'pubkey': b'\x67' * 48,
         'withdrawal_credentials': b'\x01' * 32,
+        'activation_eligibility_epoch': FAR_FUTURE_EPOCH,
         'activation_epoch': FAR_FUTURE_EPOCH,
         'exit_epoch': FAR_FUTURE_EPOCH,
         'withdrawable_epoch': FAR_FUTURE_EPOCH,
-        'initiated_exit': False,
         'slashed': False,
+        'effective_balance': Gwei(32 * GWEI_PER_ETH),
     }
 
 
@@ -488,6 +493,11 @@ def fork_choice_balance_increment():
 @pytest.fixture
 def ejection_balance():
     return SERENITY_CONFIG.EJECTION_BALANCE
+
+
+@pytest.fixture
+def effective_balance_increment():
+    return SERENITY_CONFIG.EFFECTIVE_BALANCE_INCREMENT
 
 
 @pytest.fixture
@@ -723,6 +733,7 @@ def config(
         max_effective_balance,
         fork_choice_balance_increment,
         ejection_balance,
+        effective_balance_increment,
         genesis_fork_version,
         genesis_slot,
         genesis_epoch,
@@ -765,6 +776,7 @@ def config(
         MAX_EFFECTIVE_BALANCE=max_effective_balance,
         FORK_CHOICE_BALANCE_INCREMENT=fork_choice_balance_increment,
         EJECTION_BALANCE=ejection_balance,
+        EFFECTIVE_BALANCE_INCREMENT=effective_balance_increment,
         GENESIS_FORK_VERSION=genesis_fork_version,
         GENESIS_SLOT=genesis_slot,
         GENESIS_EPOCH=genesis_epoch,

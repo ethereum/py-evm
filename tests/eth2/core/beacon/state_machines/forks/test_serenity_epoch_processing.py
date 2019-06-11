@@ -56,6 +56,7 @@ from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
+from eth2.beacon.typing import Gwei
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _check_if_update_validator_registry,
     _compute_individual_penalty,
@@ -1136,11 +1137,12 @@ def test_update_validator_registry(n,
     activating_validator = Validator.create_pending_validator(
         pubkey=b'\x10' * 48,
         withdrawal_credentials=b'\x11' * 32,
+        amount=Gwei(32 * GWEI_PER_ETH),
+        config=config,
     )
 
     exiting_validator = n_validators_state.validator_registry[exiting_index].copy(
         exit_epoch=FAR_FUTURE_EPOCH,
-        initiated_exit=True,
     )
 
     validator_registry[exiting_index] = exiting_validator

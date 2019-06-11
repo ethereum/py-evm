@@ -21,6 +21,7 @@ from eth2.beacon.typing import (
     ValidatorIndex,
     Gwei,
 )
+from eth2.configs import Eth2Config
 
 
 def add_pending_validator(state: BeaconState,
@@ -90,12 +91,11 @@ def validate_deposit_proof(state: BeaconState,
 
 def process_deposit(state: BeaconState,
                     deposit: Deposit,
-                    slots_per_epoch: int,
-                    deposit_contract_tree_depth: int) -> BeaconState:
+                    config: Eth2Config) -> BeaconState:
     """
     Process a deposit from Ethereum 1.0.
     """
-    validate_deposit(state, deposit, deposit_contract_tree_depth)
+    validate_deposit(state, deposit, config.DEPOSIT_CONTRACT_TREE_DEPTH)
 
     # Increment the next deposit index we are expecting. Note that this
     # needs to be done here because while the deposit contract will never
@@ -119,7 +119,7 @@ def process_deposit(state: BeaconState,
             signature=deposit_input.signature,
             domain=get_domain(
                 state.fork,
-                state.current_epoch(slots_per_epoch),
+                state.current_epoch(config.SLOTS_PER_EPOCH),
                 SignatureDomain.DOMAIN_DEPOSIT,
             ),
         )
@@ -129,6 +129,8 @@ def process_deposit(state: BeaconState,
         validator = Validator.create_pending_validator(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
+            amount=amount,
+            config=config,
         )
 
         # Note: In phase 2 registry indices that has been withdrawn for a long time

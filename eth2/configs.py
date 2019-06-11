@@ -32,6 +32,7 @@ Eth2Config = NamedTuple(
         ('MAX_EFFECTIVE_BALANCE', Gwei),
         ('FORK_CHOICE_BALANCE_INCREMENT', Gwei),
         ('EJECTION_BALANCE', Gwei),
+        ('EFFECTIVE_BALANCE_INCREMENT', Gwei),
         # Initial values
         ('GENESIS_FORK_VERSION', int),
         ('GENESIS_SLOT', Slot),

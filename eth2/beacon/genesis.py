@@ -123,8 +123,7 @@ def get_genesis_beacon_state(*,
         state = process_deposit(
             state=state,
             deposit=deposit,
-            slots_per_epoch=config.SLOTS_PER_EPOCH,
-            deposit_contract_tree_depth=config.DEPOSIT_CONTRACT_TREE_DEPTH,
+            config=config,
         )
 
     # Process genesis activations

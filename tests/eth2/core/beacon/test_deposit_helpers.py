@@ -176,7 +176,6 @@ def test_validate_deposit_proof(config,
 
 
 def test_process_deposit(config,
-                         deposit_contract_tree_depth,
                          sample_beacon_state_params,
                          keymap,
                          pubkeys):
@@ -195,8 +194,7 @@ def test_process_deposit(config,
     result_state = process_deposit(
         state=state,
         deposit=deposit,
-        slots_per_epoch=config.SLOTS_PER_EPOCH,
-        deposit_contract_tree_depth=deposit_contract_tree_depth,
+        config=config,
     )
 
     assert len(result_state.validator_registry) == 1

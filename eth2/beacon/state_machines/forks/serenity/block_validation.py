@@ -697,7 +697,8 @@ def validate_voluntary_exit(state: BeaconState,
 
     validate_voluntary_exit_validator_exit_epoch(validator)
 
-    validate_voluntary_exit_initiated_exit(validator)
+    # TODO(ralexstokes) fix this
+    # validate_voluntary_exit_initiated_exit(validator)
 
     validate_voluntary_exit_epoch(voluntary_exit, current_epoch)
 

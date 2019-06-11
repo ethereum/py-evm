@@ -841,7 +841,8 @@ def _is_ready_to_activate(state: BeaconState,
 
 def _is_ready_to_exit(state: BeaconState, index: ValidatorIndex) -> bool:
     validator = state.validator_registry[index]
-    return validator.exit_epoch == FAR_FUTURE_EPOCH and validator.initiated_exit
+    # TODO(ralexstokes) patch this up
+    return validator.exit_epoch == FAR_FUTURE_EPOCH  # and validator.initiated_exit
 
 
 def _churn_validators(state: BeaconState,

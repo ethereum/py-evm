@@ -57,9 +57,10 @@ def initiate_validator_exit(state: BeaconState,
     Return the updated state (immutable).
     """
     validator = state.validator_registry[index]
-    validator = validator.copy(
-        initiated_exit=True,
-    )
+    # TODO(ralexstokes) gets fixed in spec update
+    # validator = validator.copy(
+    #     initiated_exit=True,
+    # )
     state = state.update_validator_registry(index, validator)
 
     return state
