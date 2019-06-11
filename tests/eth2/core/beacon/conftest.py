@@ -374,7 +374,7 @@ def n():
 
 
 @pytest.fixture()
-def n_validators_state(filled_beacon_state, max_deposit_amount, n, config):
+def n_validators_state(filled_beacon_state, max_effective_balance, n, config):
     validator_count = n
     return filled_beacon_state.copy(
         validator_registry=tuple(
@@ -385,7 +385,7 @@ def n_validators_state(filled_beacon_state, max_deposit_amount, n, config):
             )
             for index in range(validator_count)
         ),
-        validator_balances=(max_deposit_amount,) * validator_count,
+        validator_balances=(max_effective_balance,) * validator_count,
     )
 
 
@@ -476,8 +476,8 @@ def min_deposit_amount():
 
 
 @pytest.fixture
-def max_deposit_amount():
-    return SERENITY_CONFIG.MAX_DEPOSIT_AMOUNT
+def max_effective_balance():
+    return SERENITY_CONFIG.MAX_EFFECTIVE_BALANCE
 
 
 @pytest.fixture
@@ -670,7 +670,7 @@ def genesis_block(genesis_state, genesis_slot):
 @pytest.fixture
 def genesis_validators(init_validator_pubkeys,
                        init_randao,
-                       max_deposit_amount,
+                       max_effective_balance,
                        config):
     """
     Inactive
@@ -697,9 +697,9 @@ def activated_genesis_validators(genesis_validators, genesis_epoch):
 
 
 @pytest.fixture
-def genesis_balances(init_validator_pubkeys, max_deposit_amount):
+def genesis_balances(init_validator_pubkeys, max_effective_balance):
     return tuple(
-        max_deposit_amount
+        max_effective_balance
         for _ in init_validator_pubkeys
     )
 
@@ -720,7 +720,7 @@ def config(
         deposit_contract_address,
         deposit_contract_tree_depth,
         min_deposit_amount,
-        max_deposit_amount,
+        max_effective_balance,
         fork_choice_balance_increment,
         ejection_balance,
         genesis_fork_version,
@@ -762,7 +762,7 @@ def config(
         DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,
         DEPOSIT_CONTRACT_TREE_DEPTH=deposit_contract_tree_depth,
         MIN_DEPOSIT_AMOUNT=min_deposit_amount,
-        MAX_DEPOSIT_AMOUNT=max_deposit_amount,
+        MAX_EFFECTIVE_BALANCE=max_effective_balance,
         FORK_CHOICE_BALANCE_INCREMENT=fork_choice_balance_increment,
         EJECTION_BALANCE=ejection_balance,
         GENESIS_FORK_VERSION=genesis_fork_version,

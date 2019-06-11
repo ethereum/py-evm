@@ -31,7 +31,7 @@ SERENITY_CONFIG = Eth2Config(
     DEPOSIT_CONTRACT_TREE_DEPTH=2**5,  # (= 32)
     # Gwei values
     MIN_DEPOSIT_AMOUNT=Gwei(2**0 * GWEI_PER_ETH),  # (= 1,000,000,000) Gwei
-    MAX_DEPOSIT_AMOUNT=Gwei(2**5 * GWEI_PER_ETH),  # (= 32,000,000,00) Gwei
+    MAX_EFFECTIVE_BALANCE=Gwei(2**5 * GWEI_PER_ETH),  # (= 32,000,000,00) Gwei
     FORK_CHOICE_BALANCE_INCREMENT=Gwei(2**0 * GWEI_PER_ETH),  # (= 1,000,000,000) Gwei
     EJECTION_BALANCE=Gwei(2**4 * GWEI_PER_ETH),  # (= 16,000,000,000) Gwei
     # Initial values

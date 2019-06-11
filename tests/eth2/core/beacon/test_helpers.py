@@ -234,7 +234,7 @@ def test_get_active_validator_indices(sample_validator_record_params):
 @pytest.mark.parametrize(
     (
         'balance,'
-        'max_deposit_amount,'
+        'max_effective_balance,'
         'expected'
     ),
     [
@@ -256,11 +256,11 @@ def test_get_active_validator_indices(sample_validator_record_params):
     ]
 )
 def test_get_effective_balance(balance,
-                               max_deposit_amount,
+                               max_effective_balance,
                                expected,
                                sample_validator_record_params):
     balances = (balance,)
-    result = get_effective_balance(balances, 0, max_deposit_amount)
+    result = get_effective_balance(balances, 0, max_effective_balance)
     assert result == expected
 
 
@@ -268,7 +268,7 @@ def test_get_effective_balance(balance,
     (
         'validator_balances,'
         'validator_indices,'
-        'max_deposit_amount,'
+        'max_effective_balance,'
         'expected'
     ),
     [
@@ -300,9 +300,9 @@ def test_get_effective_balance(balance,
 )
 def test_get_total_balance(validator_balances,
                            validator_indices,
-                           max_deposit_amount,
+                           max_effective_balance,
                            expected):
-    total_balance = get_total_balance(validator_balances, validator_indices, max_deposit_amount)
+    total_balance = get_total_balance(validator_balances, validator_indices, max_effective_balance)
     assert total_balance == expected
 
 

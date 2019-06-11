@@ -98,7 +98,7 @@ def _settle_penality_to_validator_and_whistleblower(
         validator_index: ValidatorIndex,
         latest_slashed_exit_length: int,
         whistleblower_reward_quotient: int,
-        max_deposit_amount: Gwei,
+        max_effective_balance: Gwei,
         committee_config: CommitteeConfig) -> BeaconState:
     """
     Apply penality/reward to validator and whistleblower and update the meta data
@@ -123,7 +123,7 @@ def _settle_penality_to_validator_and_whistleblower(
     effective_balance = get_effective_balance(
         state.validator_balances,
         validator_index,
-        max_deposit_amount,
+        max_effective_balance,
     )
     slashed_exit_balance = (
         state.latest_slashed_balances[current_epoch_penalization_index] +
@@ -172,7 +172,7 @@ def slash_validator(*,
                     index: ValidatorIndex,
                     latest_slashed_exit_length: int,
                     whistleblower_reward_quotient: int,
-                    max_deposit_amount: Gwei,
+                    max_effective_balance: Gwei,
                     committee_config: CommitteeConfig) -> BeaconState:
     """
     Slash the validator with index ``index``.
@@ -193,7 +193,7 @@ def slash_validator(*,
         validator_index=index,
         latest_slashed_exit_length=latest_slashed_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
-        max_deposit_amount=max_deposit_amount,
+        max_effective_balance=max_effective_balance,
         committee_config=committee_config,
     )
     return state

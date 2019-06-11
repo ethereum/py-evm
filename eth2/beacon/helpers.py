@@ -210,22 +210,22 @@ def get_active_index_root(state: 'BeaconState',
 def get_effective_balance(
         validator_balances: Sequence[Gwei],
         index: ValidatorIndex,
-        max_deposit_amount: Gwei) -> Gwei:
+        max_effective_balance: Gwei) -> Gwei:
     """
     Return the effective balance (also known as "balance at stake") for a
     ``validator`` with the given ``index``.
     """
-    return min(validator_balances[index], max_deposit_amount)
+    return min(validator_balances[index], max_effective_balance)
 
 
 def get_total_balance(validator_balances: Sequence[Gwei],
                       validator_indices: Sequence[ValidatorIndex],
-                      max_deposit_amount: Gwei) -> Gwei:
+                      max_effective_balance: Gwei) -> Gwei:
     """
     Return the combined effective balance of an array of validators.
     """
     return Gwei(sum(
-        get_effective_balance(validator_balances, index, max_deposit_amount)
+        get_effective_balance(validator_balances, index, max_effective_balance)
         for index in validator_indices
     ))
 

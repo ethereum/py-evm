@@ -36,7 +36,7 @@ def test_validator_registry_and_balances_length(sample_beacon_state_params, conf
     'expected', [(0), (1)]
 )
 def test_num_validators(expected,
-                        max_deposit_amount,
+                        max_effective_balance,
                         filled_beacon_state,
                         config):
     state = filled_beacon_state.copy(
@@ -47,7 +47,7 @@ def test_num_validators(expected,
             )
             for pubkey in range(expected)
         ),
-        validator_balances=(max_deposit_amount,) * expected,
+        validator_balances=(max_effective_balance,) * expected,
     )
 
     assert state.num_validators == expected

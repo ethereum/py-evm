@@ -47,7 +47,7 @@ def test_activate_validator(is_genesis,
                             genesis_epoch,
                             slots_per_epoch,
                             activation_exit_delay,
-                            max_deposit_amount,
+                            max_effective_balance,
                             config):
     validator_count = 10
     state = filled_beacon_state.copy(
@@ -59,7 +59,7 @@ def test_activate_validator(is_genesis,
             )
             for index in range(validator_count)
         ),
-        validator_balances=(max_deposit_amount,) * validator_count,
+        validator_balances=(max_effective_balance,) * validator_count,
     )
     index = 1
     # Check that the `index`th validator in `state` is inactivated
@@ -183,7 +183,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
                                                         n_validators_state,
                                                         latest_slashed_exit_length,
                                                         whistleblower_reward_quotient,
-                                                        max_deposit_amount,
+                                                        max_effective_balance,
                                                         committee_config):
     from eth2.beacon import committee_helpers
 
@@ -208,7 +208,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
         state.slot,
         committee_config,
     )
-    effective_balance = max_deposit_amount
+    effective_balance = max_effective_balance
 
     # Check the initial balance
     assert (
@@ -222,7 +222,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
         validator_index=validator_index,
         latest_slashed_exit_length=latest_slashed_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
-        max_deposit_amount=max_deposit_amount,
+        max_effective_balance=max_effective_balance,
         committee_config=committee_config,
     )
 
@@ -231,7 +231,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
     last_slashed_epoch = (
         state.current_epoch(committee_config.SLOTS_PER_EPOCH) % latest_slashed_exit_length
     )
-    latest_slashed_balances_list[last_slashed_epoch] = max_deposit_amount
+    latest_slashed_balances_list[last_slashed_epoch] = max_effective_balance
     latest_slashed_balances = tuple(latest_slashed_balances_list)
 
     assert state.latest_slashed_balances == latest_slashed_balances
@@ -264,7 +264,7 @@ def test_slash_validator(monkeypatch,
                          latest_slashed_exit_length,
                          whistleblower_reward_quotient,
                          activation_exit_delay,
-                         max_deposit_amount,
+                         max_effective_balance,
                          target_committee_size,
                          shard_count,
                          committee_config):
@@ -292,7 +292,7 @@ def test_slash_validator(monkeypatch,
         index=index,
         latest_slashed_exit_length=latest_slashed_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
-        max_deposit_amount=max_deposit_amount,
+        max_effective_balance=max_effective_balance,
         committee_config=committee_config,
     )
 
@@ -303,7 +303,7 @@ def test_slash_validator(monkeypatch,
         validator_index=index,
         latest_slashed_exit_length=latest_slashed_exit_length,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
-        max_deposit_amount=max_deposit_amount,
+        max_effective_balance=max_effective_balance,
         committee_config=committee_config,
     )
     current_epoch = state.current_epoch(slots_per_epoch)

@@ -133,8 +133,8 @@ def get_genesis_beacon_state(*,
         is_enough_effective_balance = get_effective_balance(
             state.validator_balances,
             validator_index,
-            config.MAX_DEPOSIT_AMOUNT,
-        ) >= config.MAX_DEPOSIT_AMOUNT
+            config.MAX_EFFECTIVE_BALANCE,
+        ) >= config.MAX_EFFECTIVE_BALANCE
         if is_enough_effective_balance:
             state = activate_validator(
                 state=state,

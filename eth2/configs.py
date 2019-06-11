@@ -29,7 +29,7 @@ Eth2Config = NamedTuple(
         ('DEPOSIT_CONTRACT_TREE_DEPTH', int),
         # Gwei values,
         ('MIN_DEPOSIT_AMOUNT', Gwei),
-        ('MAX_DEPOSIT_AMOUNT', Gwei),
+        ('MAX_EFFECTIVE_BALANCE', Gwei),
         ('FORK_CHOICE_BALANCE_INCREMENT', Gwei),
         ('EJECTION_BALANCE', Gwei),
         # Initial values

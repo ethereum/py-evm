@@ -146,7 +146,7 @@ def _is_epoch_justifiable(state: BeaconState,
     total_balance = get_total_balance(
         state.validator_balances,
         active_validator_indices,
-        config.MAX_DEPOSIT_AMOUNT,
+        config.MAX_EFFECTIVE_BALANCE,
     )
 
     attesting_balance = get_epoch_boundary_attesting_balance(state, attestations, epoch, config)
@@ -281,7 +281,7 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
         ValidatorIndex(index): get_effective_balance(
             state.validator_balances,
             ValidatorIndex(index),
-            config.MAX_DEPOSIT_AMOUNT,
+            config.MAX_EFFECTIVE_BALANCE,
         )
         for index in range(len(state.validator_registry))
     }
@@ -310,12 +310,12 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
                 total_attesting_balance = get_total_balance(
                     state.validator_balances,
                     attesting_validator_indices,
-                    config.MAX_DEPOSIT_AMOUNT,
+                    config.MAX_EFFECTIVE_BALANCE,
                 )
                 total_balance = get_total_balance(
                     state.validator_balances,
                     crosslink_committee,
-                    config.MAX_DEPOSIT_AMOUNT,
+                    config.MAX_EFFECTIVE_BALANCE,
                 )
                 if 3 * total_attesting_balance >= 2 * total_balance:
                     latest_crosslinks = update_tuple_item(
@@ -619,7 +619,7 @@ def _process_rewards_and_penalties_for_crosslinks(
             total_attesting_balance = get_total_balance(
                 state.validator_balances,
                 attesting_validator_indices,
-                config.MAX_DEPOSIT_AMOUNT,
+                config.MAX_EFFECTIVE_BALANCE,
             )
             total_balance = get_total_balance_from_effective_balances(
                 effective_balances,
@@ -652,7 +652,7 @@ def process_rewards_and_penalties(state: BeaconState, config: Eth2Config) -> Bea
     previous_total_balance: Gwei = get_total_balance(
         state.validator_balances,
         tuple(previous_epoch_active_validator_indices),
-        config.MAX_DEPOSIT_AMOUNT,
+        config.MAX_EFFECTIVE_BALANCE,
     )
 
     # Compute previous epoch attester indices and the total balance they account for
@@ -676,7 +676,7 @@ def process_rewards_and_penalties(state: BeaconState, config: Eth2Config) -> Bea
         ValidatorIndex(index): get_effective_balance(
             state.validator_balances,
             ValidatorIndex(index),
-            config.MAX_DEPOSIT_AMOUNT,
+            config.MAX_EFFECTIVE_BALANCE,
         )
         for index in range(len(state.validator_registry))
     }
@@ -687,7 +687,7 @@ def process_rewards_and_penalties(state: BeaconState, config: Eth2Config) -> Bea
             index=ValidatorIndex(index),
             base_reward_quotient=config.BASE_REWARD_QUOTIENT,
             previous_total_balance=previous_total_balance,
-            max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            max_effective_balance=config.MAX_EFFECTIVE_BALANCE,
         )
         for index in range(len(state.validator_registry))
     }
@@ -833,10 +833,10 @@ def _update_shuffling_seed(state: BeaconState,
 
 def _is_ready_to_activate(state: BeaconState,
                           index: ValidatorIndex,
-                          max_deposit_amount: Gwei) -> bool:
+                          max_effective_balance: Gwei) -> bool:
     validator = state.validator_registry[index]
     balance = state.validator_balances[index]
-    return validator.activation_epoch == FAR_FUTURE_EPOCH and balance >= max_deposit_amount
+    return validator.activation_epoch == FAR_FUTURE_EPOCH and balance >= max_effective_balance
 
 
 def _is_ready_to_exit(state: BeaconState, index: ValidatorIndex) -> bool:
@@ -869,7 +869,7 @@ def _churn_validators(state: BeaconState,
             balance_churn += get_effective_balance(
                 state.validator_balances,
                 index,
-                config.MAX_DEPOSIT_AMOUNT,
+                config.MAX_EFFECTIVE_BALANCE,
             )
             if balance_churn > max_balance_churn:
                 break
@@ -889,12 +889,12 @@ def update_validator_registry(state: BeaconState, config: Eth2Config) -> BeaconS
     total_balance = get_total_balance(
         state.validator_balances,
         active_validator_indices,
-        config.MAX_DEPOSIT_AMOUNT,
+        config.MAX_EFFECTIVE_BALANCE,
     )
 
     # The maximum balance churn in Gwei (for deposits and exits separately)
     max_balance_churn = max(
-        config.MAX_DEPOSIT_AMOUNT,
+        config.MAX_EFFECTIVE_BALANCE,
         total_balance // (2 * config.MAX_BALANCE_CHURN_QUOTIENT)
     )
 
@@ -906,7 +906,7 @@ def update_validator_registry(state: BeaconState, config: Eth2Config) -> BeaconS
         check_should_churn_fn=lambda state, index: _is_ready_to_activate(
             state,
             index,
-            max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            max_effective_balance=config.MAX_EFFECTIVE_BALANCE,
         ),
         churn_fn=lambda state, index: activate_validator(
             state,
@@ -1060,7 +1060,7 @@ def _compute_individual_penalty(state: BeaconState,
     effective_balance = get_effective_balance(
         state.validator_balances,
         validator_index,
-        config.MAX_DEPOSIT_AMOUNT,
+        config.MAX_EFFECTIVE_BALANCE,
     )
     return Gwei(
         max(
@@ -1076,13 +1076,13 @@ def process_slashings(state: BeaconState,
     Process the slashings.
     """
     latest_slashed_exit_length = config.LATEST_SLASHED_EXIT_LENGTH
-    max_deposit_amount = config.MAX_DEPOSIT_AMOUNT
+    max_effective_balance = config.MAX_EFFECTIVE_BALANCE
 
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     active_validator_indices = get_active_validator_indices(state.validator_registry, current_epoch)
     total_balance = Gwei(
         sum(
-            get_effective_balance(state.validator_balances, i, max_deposit_amount)
+            get_effective_balance(state.validator_balances, i, max_effective_balance)
             for i in active_validator_indices
         )
     )

@@ -222,7 +222,7 @@ def test_is_epoch_justifiable(
 
     from eth2.beacon.state_machines.forks.serenity import epoch_processing
 
-    def mock_get_total_balance(validators, epoch, max_deposit_amount):
+    def mock_get_total_balance(validators, epoch, max_effective_balance):
         return total_balance
 
     def mock_get_epoch_boundary_attesting_balance(state, attestations, epoch, config):
@@ -867,7 +867,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
         shard_count,
         current_slot,
         num_attesting_validators,
-        max_deposit_amount,
+        max_effective_balance,
         min_attestation_inclusion_delay,
         sample_attestation_data_params,
         sample_pending_attestation_record_params):
@@ -930,12 +930,12 @@ def test_process_rewards_and_penalties_for_crosslinks(
         index: get_effective_balance(
             state.validator_balances,
             index,
-            config.MAX_DEPOSIT_AMOUNT,
+            config.MAX_EFFECTIVE_BALANCE,
         )
         for index in active_validators
     }
 
-    validator_balance = max_deposit_amount
+    validator_balance = max_effective_balance
     total_active_balance = len(active_validators) * validator_balance
 
     base_rewards = {
@@ -944,7 +944,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
             index=index,
             base_reward_quotient=config.BASE_REWARD_QUOTIENT,
             previous_total_balance=total_active_balance,
-            max_deposit_amount=max_deposit_amount,
+            max_effective_balance=max_effective_balance,
         )
         for index in active_validators
     }
@@ -971,7 +971,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
                 index=index,
                 base_reward_quotient=config.BASE_REWARD_QUOTIENT,
                 previous_total_balance=total_active_balance,
-                max_deposit_amount=max_deposit_amount,
+                max_effective_balance=max_effective_balance,
             ) * total_attesting_balance // total_committee_balance
             expected_rewards_received[index] += reward
         for index in set(crosslink_committee).difference(attesting_validators):
@@ -980,7 +980,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
                 index=index,
                 base_reward_quotient=config.BASE_REWARD_QUOTIENT,
                 previous_total_balance=total_active_balance,
-                max_deposit_amount=max_deposit_amount,
+                max_effective_balance=max_effective_balance,
             )
             expected_rewards_received[index] -= penalty
 
@@ -1147,7 +1147,7 @@ def test_update_validator_registry(n,
     validator_registry.append(activating_validator)
     state = n_validators_state.copy(
         validator_registry=validator_registry,
-        validator_balances=n_validators_state.validator_balances + (config.MAX_DEPOSIT_AMOUNT,),
+        validator_balances=n_validators_state.validator_balances + (config.MAX_EFFECTIVE_BALANCE,),
     )
 
     state = update_validator_registry(state, config)

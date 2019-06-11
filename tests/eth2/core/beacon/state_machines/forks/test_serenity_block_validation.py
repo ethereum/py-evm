@@ -92,7 +92,7 @@ def test_validate_proposer_signature(
         sample_beacon_block_params,
         sample_beacon_state_params,
         target_committee_size,
-        max_deposit_amount,
+        max_effective_balance,
         config):
 
     state = BeaconState(**sample_beacon_state_params).copy(
@@ -100,7 +100,7 @@ def test_validate_proposer_signature(
             mock_validator(proposer_pubkey, config)
             for _ in range(10)
         ),
-        validator_balances=(max_deposit_amount,) * 10,
+        validator_balances=(max_effective_balance,) * 10,
     )
 
     block = BeaconBlock(**sample_beacon_block_params)

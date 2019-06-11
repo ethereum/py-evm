@@ -641,7 +641,7 @@ def create_deposit_data(*,
                         deposit_timestamp: Timestamp,
                         amount: Gwei=None) -> DepositData:
     if amount is None:
-        amount = config.MAX_DEPOSIT_AMOUNT
+        amount = config.MAX_EFFECTIVE_BALANCE
 
     return DepositData(
         deposit_input=DepositInput(

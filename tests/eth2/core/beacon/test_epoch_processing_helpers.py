@@ -305,7 +305,7 @@ def test_get_winning_root_and_participants(
         index: get_effective_balance(
             state.validator_balances,
             index,
-            config.MAX_DEPOSIT_AMOUNT,
+            config.MAX_EFFECTIVE_BALANCE,
         )
         for index in range(len(state.validator_registry))
     }
@@ -378,7 +378,7 @@ def test_get_epoch_boundary_attesting_balances(
     n_validators_state,
     sample_attestation_data_params,
     sample_attestation_params,
-    max_deposit_amount,
+    max_effective_balance,
 ):
     slot = 255
     current_epoch = 3
@@ -482,8 +482,8 @@ def test_get_epoch_boundary_attesting_balances(
         config=config,
     )
     num_unique_attesters = len(set(attestation_participants_1 + attestation_participants_2))
-    assert previous_epoch_boundary_attesting_balance == num_unique_attesters * max_deposit_amount
-    assert current_epoch_boundary_attesting_balance == num_unique_attesters * max_deposit_amount
+    assert previous_epoch_boundary_attesting_balance == num_unique_attesters * max_effective_balance
+    assert current_epoch_boundary_attesting_balance == num_unique_attesters * max_effective_balance
 
 
 @pytest.mark.parametrize(

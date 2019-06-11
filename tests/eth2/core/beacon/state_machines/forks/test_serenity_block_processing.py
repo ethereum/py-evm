@@ -54,7 +54,7 @@ def test_randao_processing(sample_beacon_block_params,
             mock_validator(proposer_pubkey, config)
             for _ in range(config.TARGET_COMMITTEE_SIZE)
         ),
-        validator_balances=(config.MAX_DEPOSIT_AMOUNT,) * config.TARGET_COMMITTEE_SIZE,
+        validator_balances=(config.MAX_EFFECTIVE_BALANCE,) * config.TARGET_COMMITTEE_SIZE,
 
         latest_randao_mixes=tuple(
             ZERO_HASH32
@@ -104,7 +104,7 @@ def test_randao_processing_validates_randao_reveal(sample_beacon_block_params,
             mock_validator(proposer_pubkey, config)
             for _ in range(config.TARGET_COMMITTEE_SIZE)
         ),
-        validator_balances=(config.MAX_DEPOSIT_AMOUNT,) * config.TARGET_COMMITTEE_SIZE,
+        validator_balances=(config.MAX_EFFECTIVE_BALANCE,) * config.TARGET_COMMITTEE_SIZE,
 
         latest_randao_mixes=tuple(
             ZERO_HASH32

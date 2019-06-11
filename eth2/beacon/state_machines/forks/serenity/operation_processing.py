@@ -55,7 +55,7 @@ def process_proposer_slashings(state: BeaconState,
             index=proposer_slashing.proposer_index,
             latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,
             whistleblower_reward_quotient=config.WHISTLEBLOWER_REWARD_QUOTIENT,
-            max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+            max_effective_balance=config.MAX_EFFECTIVE_BALANCE,
             committee_config=CommitteeConfig(config),
         )
 
@@ -102,7 +102,7 @@ def process_attester_slashings(state: BeaconState,
                 index=index,
                 latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,
                 whistleblower_reward_quotient=config.WHISTLEBLOWER_REWARD_QUOTIENT,
-                max_deposit_amount=config.MAX_DEPOSIT_AMOUNT,
+                max_effective_balance=config.MAX_EFFECTIVE_BALANCE,
                 committee_config=CommitteeConfig(config),
             )
 

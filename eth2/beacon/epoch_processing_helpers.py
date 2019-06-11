@@ -194,7 +194,7 @@ def get_epoch_boundary_attesting_balance(state: 'BeaconState',
     return get_total_balance(
         state.validator_balances,
         attesting_indices,
-        config.MAX_DEPOSIT_AMOUNT,
+        config.MAX_EFFECTIVE_BALANCE,
     )
 
 
@@ -231,7 +231,7 @@ def get_base_reward(
         index: ValidatorIndex,
         base_reward_quotient: int,
         previous_total_balance: Gwei,
-        max_deposit_amount: Gwei) -> Gwei:
+        max_effective_balance: Gwei) -> Gwei:
     if previous_total_balance == 0:
         return Gwei(0)
     adjusted_quotient = (
@@ -241,7 +241,7 @@ def get_base_reward(
         get_effective_balance(
             state.validator_balances,
             index,
-            max_deposit_amount,
+            max_effective_balance,
         ) // adjusted_quotient // 5
     )
 

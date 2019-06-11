@@ -203,6 +203,6 @@ def test_process_deposit(config,
     validator = result_state.validator_registry[validator_index]
     assert validator.pubkey == pubkeys[validator_index]
     assert validator.withdrawal_credentials == withdrawal_credentials
-    assert result_state.validator_balances[validator_index] == config.MAX_DEPOSIT_AMOUNT
+    assert result_state.validator_balances[validator_index] == config.MAX_EFFECTIVE_BALANCE
     # test immutable
     assert len(state.validator_registry) == 0
