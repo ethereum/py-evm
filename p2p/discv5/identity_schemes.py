@@ -2,9 +2,11 @@ from abc import (
     ABC,
     abstractmethod,
 )
+from collections import (
+    UserDict,
+)
 
 from typing import (
-    Dict,
     Type,
     TYPE_CHECKING,
 )
@@ -30,24 +32,33 @@ if TYPE_CHECKING:
         ENR,
     )
 
+# https://github.com/python/mypy/issues/5264#issuecomment-399407428
+if TYPE_CHECKING:
+    IdentitySchemeRegistryBaseType = UserDict[bytes, Type["IdentityScheme"]]
+else:
+    IdentitySchemeRegistryBaseType = UserDict
 
-identity_scheme_registry: Dict[bytes, Type["IdentityScheme"]] = {}
+
+class IdentitySchemeRegistry(IdentitySchemeRegistryBaseType):
+
+    def register(self,
+                 identity_scheme_class: Type["IdentityScheme"]
+                 ) -> Type["IdentityScheme"]:
+        """Class decorator to register identity schemes."""
+        if identity_scheme_class.id is None:
+            raise ValueError("Identity schemes must define ID")
+
+        if identity_scheme_class.id in self:
+            raise ValueError(
+                f"Identity scheme with id {identity_scheme_class.id} is already registered",
+            )
+
+        self[identity_scheme_class.id] = identity_scheme_class
+
+        return identity_scheme_class
 
 
-def register_identity_scheme(identity_scheme_class: Type["IdentityScheme"],
-                             ) -> Type["IdentityScheme"]:
-    """Class decorator to register identity schemes."""
-    if identity_scheme_class.id is None:
-        raise ValueError("Identity schemes must define ID")
-
-    if identity_scheme_class.id in identity_scheme_registry:
-        raise ValueError(
-            f"Identity scheme with id {identity_scheme_class.id} is already registered",
-        )
-
-    identity_scheme_registry[identity_scheme_class.id] = identity_scheme_class
-
-    return identity_scheme_class
+default_identity_scheme_registry = IdentitySchemeRegistry()
 
 
 class IdentityScheme(ABC):
@@ -70,7 +81,7 @@ class IdentityScheme(ABC):
         pass
 
 
-@register_identity_scheme
+@default_identity_scheme_registry.register
 class V4IdentityScheme(IdentityScheme):
 
     id = b"v4"

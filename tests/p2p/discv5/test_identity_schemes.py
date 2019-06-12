@@ -14,7 +14,7 @@ from eth_keys.datatypes import (
 
 from p2p.discv5 import identity_schemes as identity_schemes_module
 from p2p.discv5.identity_schemes import (
-    identity_scheme_registry,
+    default_identity_scheme_registry,
     IdentityScheme,
     V4IdentityScheme,
 )
@@ -24,7 +24,7 @@ from p2p.discv5.enr import (
 )
 
 
-def test_identity_schemes_are_registered_properly():
+def test_default_registry_contents():
     identity_schemes = tuple(
         member for _, member in inspect.getmembers(identity_schemes_module)
         if (
@@ -34,10 +34,10 @@ def test_identity_schemes_are_registered_properly():
         )
     )
 
-    assert len(identity_schemes) == len(identity_scheme_registry)
+    assert len(identity_schemes) == len(default_identity_scheme_registry)
     for identity_scheme in identity_schemes:
-        assert identity_scheme.id in identity_scheme_registry
-        assert identity_scheme_registry[identity_scheme.id] is identity_scheme
+        assert identity_scheme.id in default_identity_scheme_registry
+        assert default_identity_scheme_registry[identity_scheme.id] is identity_scheme
 
 
 #
