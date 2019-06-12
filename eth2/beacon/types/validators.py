@@ -13,6 +13,7 @@ from ssz.sedes import (
 from eth2.configs import Eth2Config
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
+    ZERO_HASH32,
 )
 from eth2.beacon.typing import (
     Epoch,
@@ -45,14 +46,15 @@ class Validator(ssz.Serializable):
     ]
 
     def __init__(self,
-                 pubkey: BLSPubkey,
-                 withdrawal_credentials: Hash32,
-                 activation_eligibility_epoch: Epoch,
-                 activation_epoch: Epoch,
-                 exit_epoch: Epoch,
-                 withdrawable_epoch: Epoch,
-                 slashed: bool,
-                 effective_balance: uint64) -> None:
+                 *,
+                 pubkey: BLSPubkey=b'\x00' * 48,
+                 withdrawal_credentials: Hash32=ZERO_HASH32,
+                 activation_eligibility_epoch: Epoch=0,
+                 activation_epoch: Epoch=0,
+                 exit_epoch: Epoch=0,
+                 withdrawable_epoch: Epoch=0,
+                 slashed: bool=False,
+                 effective_balance: uint64=0) -> None:
         super().__init__(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
