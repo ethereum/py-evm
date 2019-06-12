@@ -14,6 +14,7 @@ from typing import (
     Sequence,
     ValuesView,
 )
+import operator
 
 import rlp
 from rlp.exceptions import (
@@ -50,7 +51,7 @@ class ENRContentSedes:
     def serialize(cls, enr: "BaseENR") -> Tuple[bytes, ...]:
         serialized_sequence_number = big_endian_int.serialize(enr.sequence_number)
 
-        sorted_key_value_pairs = sorted(enr.items(), key=lambda key_value: key_value[0])
+        sorted_key_value_pairs = sorted(enr.items(), key=operator.itemgetter(0))
 
         serialized_keys = tuple(binary.serialize(key) for key, _ in sorted_key_value_pairs)
         values_and_serializers = tuple(
@@ -115,10 +116,7 @@ class ENRContentSedes:
     def _validate_key_uniqueness(cls,
                                  keys: Sequence[bytes],
                                  serialized_enr: Sequence[bytes]) -> None:
-        duplicates = set(
-            key for index, key in enumerate(keys)
-            if key in keys[index + 1:]
-        )
+        duplicates = {key for key, num in collections.Counter(keys).items() if num > 1}
         if duplicates:
             raise DeserializationError(
                 f"ENR contains the following duplicate keys: {b', '.join(duplicates).decode()}",

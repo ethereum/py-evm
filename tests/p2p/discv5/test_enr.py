@@ -229,28 +229,19 @@ def test_deserialization_key_uniqueness_validation():
         rlp.decode(serialized_enr, ENRSedes)
 
 
-def test_deserialization_completeness_validation():
-    incomplete_enrs = (
-        rlp.encode([]),
-        rlp.encode([
-            b"signature",
-        ]),
-        rlp.encode([
-            b"signature",
-            0,
-            b"key1",
-        ]),
-        rlp.encode([
-            b"signature",
-            0,
-            b"key1",
-            b"value1",
-            b"id",
-        ]),
-    )
-    for incomplete_enr in incomplete_enrs:
-        with pytest.raises(rlp.DeserializationError):
-            rlp.decode(incomplete_enr, ENRSedes)
+@pytest.mark.parametrize("incomplete_enr", (
+    (),
+    (b"signature",),
+    (b"signature", 0, b"key1"),
+    (b"signature", 0, b"key1", b"value1", b"id"),
+))
+def test_deserialization_completeness_validation(incomplete_enr):
+    incomplete_enr_rlp = rlp.encode(incomplete_enr)
+    with pytest.raises(rlp.DeserializationError):
+        rlp.decode(
+            incomplete_enr_rlp,
+            ENRSedes,
+        )
 
 
 def test_equality():
