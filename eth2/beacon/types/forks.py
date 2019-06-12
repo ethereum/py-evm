@@ -21,9 +21,9 @@ class Fork(ssz.Serializable):
     ]
 
     def __init__(self,
-                 previous_version: bytes,
-                 current_version: bytes,
-                 epoch: Epoch) -> None:
+                 previous_version: bytes=b'\x00' * 4,
+                 current_version: bytes=b'\x00' * 4,
+                 epoch: Epoch=0) -> None:
         super().__init__(
             previous_version=previous_version,
             current_version=current_version,
