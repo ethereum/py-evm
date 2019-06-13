@@ -26,8 +26,8 @@ class VoluntaryExit(ssz.SignedSerializable):
     ]
 
     def __init__(self,
-                 epoch: Epoch,
-                 validator_index: ValidatorIndex,
+                 epoch: Epoch=Epoch(0),
+                 validator_index: ValidatorIndex=ValidatorIndex(0),
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             epoch,
