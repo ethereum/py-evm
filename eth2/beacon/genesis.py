@@ -158,3 +158,8 @@ def get_genesis_beacon_state(*,
     )
 
     return state
+
+
+def is_genesis_trigger(deposits: Sequence[Deposit], timestamp: int) -> bool:
+    # TODO fill out the correct trigger
+    return False
