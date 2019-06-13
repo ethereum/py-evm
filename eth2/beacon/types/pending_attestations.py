@@ -5,8 +5,8 @@ from ssz.sedes import (
 )
 
 from eth2.beacon.typing import (
-    Slot,
     Bitfield,
+    ValidatorIndex,
 )
 
 from .attestation_data import (
@@ -21,22 +21,22 @@ class PendingAttestation(ssz.Serializable):
         ('aggregation_bitfield', byte_list),
         # Attestation data
         ('data', AttestationData),
-        # Custody bitfield
-        ('custody_bitfield', byte_list),
-        # Inclusion slot
-        ('inclusion_slot', uint64),
+        # Inclusion delay
+        ('inclusion_delay', uint64),
+        # Proposer index
+        ('proposer_index', uint64),
     ]
 
     def __init__(self,
-                 aggregation_bitfield: Bitfield,
-                 data: AttestationData,
-                 custody_bitfield: Bitfield,
-                 inclusion_slot: Slot) -> None:
+                 aggregation_bitfield: Bitfield=Bitfield(),
+                 data: AttestationData=AttestationData(),
+                 inclusion_delay: int=0,
+                 proposer_index: ValidatorIndex=ValidatorIndex(0)) -> None:
         super().__init__(
             aggregation_bitfield=aggregation_bitfield,
             data=data,
-            custody_bitfield=custody_bitfield,
-            inclusion_slot=inclusion_slot,
+            inclusion_delay=inclusion_delay,
+            proposer_index=proposer_index,
         )
 
     def __repr__(self) -> str:
