@@ -46,7 +46,6 @@ if TYPE_CHECKING:
     from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth2.beacon.types.states import BeaconState  # noqa: F401
     from eth2.beacon.types.forks import Fork  # noqa: F401
-    from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
     from eth2.beacon.types.validators import Validator  # noqa: F401
 
 
@@ -109,9 +108,9 @@ def _get_historical_root(
     return historical_roots[slot % slots_per_historical_root]
 
 
-def get_block_root(state: 'BeaconState',
-                   slot: Slot,
-                   slots_per_historical_root: int) -> Hash32:
+def get_block_root_at_slot(state: 'BeaconState',
+                           slot: Slot,
+                           slots_per_historical_root: int) -> Hash32:
     """
     Return the block root at a recent ``slot``.
     """
@@ -119,6 +118,17 @@ def get_block_root(state: 'BeaconState',
         state.latest_block_roots,
         state.slot,
         slot,
+        slots_per_historical_root,
+    )
+
+
+def get_block_root(state: 'BeaconState',
+                   epoch: Epoch,
+                   slots_per_epoch: int,
+                   slots_per_historical_root: int) -> Hash32:
+    return get_block_root_at_slot(
+        state,
+        get_epoch_start_slot(epoch, slots_per_epoch),
         slots_per_historical_root,
     )
 
@@ -207,31 +217,23 @@ def get_active_index_root(state: 'BeaconState',
     return state.latest_active_index_roots[epoch % latest_active_index_roots_length]
 
 
-def get_effective_balance(
-        validator_balances: Sequence[Gwei],
-        index: ValidatorIndex,
-        max_effective_balance: Gwei) -> Gwei:
-    """
-    Return the effective balance (also known as "balance at stake") for a
-    ``validator`` with the given ``index``.
-    """
-    return min(validator_balances[index], max_effective_balance)
-
-
-def get_total_balance(validator_balances: Sequence[Gwei],
-                      validator_indices: Sequence[ValidatorIndex],
-                      max_effective_balance: Gwei) -> Gwei:
+def get_total_balance(state: 'BeaconState',
+                      validator_indices: Sequence[ValidatorIndex]) -> Gwei:
     """
     Return the combined effective balance of an array of validators.
     """
-    return Gwei(sum(
-        get_effective_balance(validator_balances, index, max_effective_balance)
-        for index in validator_indices
-    ))
+    return Gwei(
+        max(
+            sum(
+                state.validator_registry[index].effective_balance
+                for index in validator_indices
+            ),
+            1
+        )
+    )
 
 
-def get_fork_version(fork: 'Fork',
-                     epoch: Epoch) -> bytes:
+def _get_fork_version(fork: 'Fork', epoch: Epoch) -> bytes:
     """
     Return the current ``fork_version`` from the given ``fork`` and ``epoch``.
     """
@@ -241,39 +243,35 @@ def get_fork_version(fork: 'Fork',
         return fork.current_version
 
 
-def get_domain(fork: 'Fork',
-               epoch: Epoch,
-               domain_type: SignatureDomain) -> int:
+def _bls_domain(domain_type: SignatureDomain, fork_version: bytes=b'\x00' * 4) -> int:
+    return int.from_bytes(domain_type.to_bytes(4, 'little') + fork_version, 'little')
+
+
+def get_domain(state: 'BeaconState',
+               domain_type: SignatureDomain,
+               slots_per_epoch: int,
+               message_epoch: Epoch=None) -> int:
     """
     Return the domain number of the current fork and ``domain_type``.
     """
-    return int.from_bytes(
-        get_fork_version(
-            fork,
-            epoch,
-        ) + domain_type.to_bytes(4, 'little'),
-        'little'
-    )
+    epoch = state.current_epoch(slots_per_epoch) if message_epoch is None else message_epoch
+    fork_version = _get_fork_version(state.fork, epoch)
+    return _bls_domain(domain_type, fork_version)
 
 
 def is_double_vote(attestation_data_1: 'AttestationData',
-                   attestation_data_2: 'AttestationData',
-                   slots_per_epoch: int) -> bool:
+                   attestation_data_2: 'AttestationData') -> bool:
     """
     Assumes ``attestation_data_1`` is distinct from ``attestation_data_2``.
 
     Return True if the provided ``AttestationData`` are slashable
     due to a 'double vote'.
     """
-    return (
-        slot_to_epoch(attestation_data_1.slot, slots_per_epoch) ==
-        slot_to_epoch(attestation_data_2.slot, slots_per_epoch)
-    )
+    return attestation_data_1.target_epoch == attestation_data_2.target_epoch
 
 
 def is_surround_vote(attestation_data_1: 'AttestationData',
-                     attestation_data_2: 'AttestationData',
-                     slots_per_epoch: int) -> bool:
+                     attestation_data_2: 'AttestationData') -> bool:
     """
     Assumes ``attestation_data_1`` is distinct from ``attestation_data_2``.
 
@@ -285,8 +283,8 @@ def is_surround_vote(attestation_data_1: 'AttestationData',
     """
     source_epoch_1 = attestation_data_1.source_epoch
     source_epoch_2 = attestation_data_2.source_epoch
-    target_epoch_1 = slot_to_epoch(attestation_data_1.slot, slots_per_epoch)
-    target_epoch_2 = slot_to_epoch(attestation_data_2.slot, slots_per_epoch)
+    target_epoch_1 = attestation_data_1.target_epoch
+    target_epoch_2 = attestation_data_2.target_epoch
     return source_epoch_1 < source_epoch_2 and target_epoch_2 < target_epoch_1
 
 

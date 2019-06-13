@@ -48,7 +48,7 @@ from eth2.beacon.exceptions import (
     NoCommitteeAssignment,
 )
 from eth2.beacon.helpers import (
-    get_block_root,
+    get_block_root_at_slot,
     get_domain,
     get_epoch_start_slot,
     slot_to_epoch,
@@ -270,7 +270,7 @@ def create_mock_slashable_attestation(state: BeaconState,
     shard = Shard(0)
 
     # Use genesis block root as `beacon_block_root`, only for tests.
-    beacon_block_root = get_block_root(
+    beacon_block_root = get_block_root_at_slot(
         state,
         config.GENESIS_SLOT,
         config.SLOTS_PER_HISTORICAL_ROOT,
@@ -279,7 +279,7 @@ def create_mock_slashable_attestation(state: BeaconState,
     # Get `target_root`
     target_root = _get_target_root(state, config, beacon_block_root)
     # Get `source_root`
-    source_root = get_block_root(
+    source_root = get_block_root_at_slot(
         state,
         get_epoch_start_slot(state.current_justified_epoch, config.SLOTS_PER_EPOCH),
         config.SLOTS_PER_HISTORICAL_ROOT,
