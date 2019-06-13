@@ -12,8 +12,8 @@ class AttesterSlashing(ssz.Serializable):
     ]
 
     def __init__(self,
-                 attestation_1: IndexedAttestation,
-                 attestation_2: IndexedAttestation)-> None:
+                 attestation_1: IndexedAttestation=IndexedAttestation(),
+                 attestation_2: IndexedAttestation=IndexedAttestation())-> None:
         super().__init__(
             attestation_1,
             attestation_2,
