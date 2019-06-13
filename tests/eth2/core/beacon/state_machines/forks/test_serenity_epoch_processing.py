@@ -47,7 +47,6 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.epoch_processing_helpers import (
     get_base_reward,
-    get_effective_balance,
 )
 from eth2.beacon.datastructures.inclusion_info import InclusionInfo
 from eth2.beacon.types.attestations import Attestation
@@ -928,11 +927,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
     )
 
     effective_balances = {
-        index: get_effective_balance(
-            state.validator_balances,
-            index,
-            config.MAX_EFFECTIVE_BALANCE,
-        )
+        index: state.validator_registry[index].effective_balance
         for index in active_validators
     }
 

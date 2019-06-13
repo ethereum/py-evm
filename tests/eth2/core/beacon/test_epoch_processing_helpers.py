@@ -27,7 +27,6 @@ from eth2.beacon.epoch_processing_helpers import (
     get_winning_root_and_participants,
 )
 from eth2.beacon.helpers import (
-    get_effective_balance,
     get_epoch_start_slot,
 )
 from eth2.beacon.types.attestations import (
@@ -302,11 +301,7 @@ def test_get_winning_root_and_participants(
         previous_epoch_attestations=attestations,
     )
     effective_balances = {
-        index: get_effective_balance(
-            state.validator_balances,
-            index,
-            config.MAX_EFFECTIVE_BALANCE,
-        )
+        index: state.validator_registry[index].effective_balance
         for index in range(len(state.validator_registry))
     }
 

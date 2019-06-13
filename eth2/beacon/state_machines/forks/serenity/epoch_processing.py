@@ -51,7 +51,6 @@ from eth2.beacon.epoch_processing_helpers import (
 from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_block_root,
-    get_effective_balance,
     get_epoch_start_slot,
     get_randao_mix,
 )
@@ -263,6 +262,10 @@ def process_justification(state: BeaconState, config: Eth2Config) -> BeaconState
     return state
 
 
+def _get_effective_balance(state: BeaconState, index: ValidatorIndex) -> Gwei:
+    return state.validator_registry[index].effective_balance
+
+
 #
 # Crosslinks
 #
@@ -278,10 +281,9 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
     """
     latest_crosslinks = state.latest_crosslinks
     effective_balances = {
-        ValidatorIndex(index): get_effective_balance(
-            state.validator_balances,
+        ValidatorIndex(index): _get_effective_balance(
+            state,
             ValidatorIndex(index),
-            config.MAX_EFFECTIVE_BALANCE,
         )
         for index in range(len(state.validator_registry))
     }
@@ -673,10 +675,9 @@ def process_rewards_and_penalties(state: BeaconState, config: Eth2Config) -> Bea
 
     # Compute effective balance of each previous epoch active validator for later use
     effective_balances = {
-        ValidatorIndex(index): get_effective_balance(
-            state.validator_balances,
+        ValidatorIndex(index): _get_effective_balance(
+            state,
             ValidatorIndex(index),
-            config.MAX_EFFECTIVE_BALANCE,
         )
         for index in range(len(state.validator_registry))
     }
@@ -867,10 +868,9 @@ def _churn_validators(state: BeaconState,
         )
         if should_churn:
             # Check the balance churn would be within the allowance
-            balance_churn += get_effective_balance(
-                state.validator_balances,
+            balance_churn += _get_effective_balance(
+                state,
                 index,
-                config.MAX_EFFECTIVE_BALANCE,
             )
             if balance_churn > max_balance_churn:
                 break
@@ -1058,10 +1058,9 @@ def _compute_individual_penalty(state: BeaconState,
                                 validator_index: ValidatorIndex,
                                 total_penalties: Gwei,
                                 total_balance: Gwei) -> Gwei:
-    effective_balance = get_effective_balance(
-        state.validator_balances,
+    effective_balance = _get_effective_balance(
+        state,
         validator_index,
-        config.MAX_EFFECTIVE_BALANCE,
     )
     return Gwei(
         max(
@@ -1077,13 +1076,12 @@ def process_slashings(state: BeaconState,
     Process the slashings.
     """
     latest_slashed_exit_length = config.LATEST_SLASHED_EXIT_LENGTH
-    max_effective_balance = config.MAX_EFFECTIVE_BALANCE
 
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     active_validator_indices = get_active_validator_indices(state.validator_registry, current_epoch)
     total_balance = Gwei(
         sum(
-            get_effective_balance(state.validator_balances, i, max_effective_balance)
+            _get_effective_balance(state, i)
             for i in active_validator_indices
         )
     )

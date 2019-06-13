@@ -33,7 +33,6 @@ from eth2.beacon.helpers import (
     get_block_root,
     get_state_root,
     get_domain,
-    get_effective_balance,
     get_delayed_activation_exit_epoch,
     get_fork_version,
     get_temporary_block_header,
@@ -229,39 +228,6 @@ def test_get_active_validator_indices(sample_validator_record_params):
     )
     active_validator_indices = get_active_validator_indices(validators, current_epoch)
     assert len(active_validator_indices) == 1
-
-
-@pytest.mark.parametrize(
-    (
-        'balance,'
-        'max_effective_balance,'
-        'expected'
-    ),
-    [
-        (
-            1 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
-            1 * GWEI_PER_ETH,
-        ),
-        (
-            32 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
-        ),
-        (
-            33 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
-        )
-    ]
-)
-def test_get_effective_balance(balance,
-                               max_effective_balance,
-                               expected,
-                               sample_validator_record_params):
-    balances = (balance,)
-    result = get_effective_balance(balances, 0, max_effective_balance)
-    assert result == expected
 
 
 @pytest.mark.parametrize(

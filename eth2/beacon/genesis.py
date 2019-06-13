@@ -18,7 +18,6 @@ from eth2.beacon.deposit_helpers import (
 from eth2.beacon.helpers import (
     generate_seed,
     get_active_validator_indices,
-    get_effective_balance,
     get_temporary_block_header,
 )
 
@@ -129,11 +128,8 @@ def get_genesis_beacon_state(*,
     # Process genesis activations
     for validator_index, _ in enumerate(state.validator_registry):
         validator_index = ValidatorIndex(validator_index)
-        is_enough_effective_balance = get_effective_balance(
-            state.validator_balances,
-            validator_index,
-            config.MAX_EFFECTIVE_BALANCE,
-        ) >= config.MAX_EFFECTIVE_BALANCE
+        effective_balance = state.validator_registry[validator_index].effective_balance
+        is_enough_effective_balance = effective_balance >= config.MAX_EFFECTIVE_BALANCE
         if is_enough_effective_balance:
             state = activate_validator(
                 state=state,
