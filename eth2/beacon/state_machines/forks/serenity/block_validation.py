@@ -45,14 +45,13 @@ from eth2.beacon.helpers import (
     is_surround_vote,
     slot_to_epoch,
 )
-from eth2.beacon.types.attestations import Attestation
+from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockHeader
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
@@ -219,57 +218,41 @@ def validate_attester_slashing(state: BeaconState,
                                attester_slashing: AttesterSlashing,
                                max_indices_per_slashable_vote: int,
                                slots_per_epoch: int) -> None:
-    slashable_attestation_1 = attester_slashing.slashable_attestation_1
-    slashable_attestation_2 = attester_slashing.slashable_attestation_2
+    attestation_1 = attester_slashing.attestation_1
+    attestation_2 = attester_slashing.attestation_2
 
-    validate_attester_slashing_different_data(slashable_attestation_1, slashable_attestation_2)
-
-    validate_attester_slashing_slashing_conditions(
-        slashable_attestation_1,
-        slashable_attestation_2,
-        slots_per_epoch,
+    validate_is_slashable_attestation_data(
+        attestation_1,
+        attestation_2,
     )
 
-    validate_slashable_attestation(
+    validate_indexed_attestation(
         state,
-        slashable_attestation_1,
+        attestation_1,
         max_indices_per_slashable_vote,
         slots_per_epoch,
     )
 
-    validate_slashable_attestation(
+    validate_indexed_attestation(
         state,
-        slashable_attestation_2,
+        attestation_2,
         max_indices_per_slashable_vote,
         slots_per_epoch,
     )
 
 
-def validate_attester_slashing_different_data(
-        slashable_attestation_1: SlashableAttestation,
-        slashable_attestation_2: SlashableAttestation) -> None:
-    if slashable_attestation_1.data == slashable_attestation_2.data:
-        raise ValidationError(
-            "slashable_attestation_1.data "
-            f"({slashable_attestation_1.data}) "
-            "should not be equal to slashable_attestation_2.data "
-            f"({slashable_attestation_2.data})"
+def validate_is_slashable_attestation_data(attestation_1: IndexedAttestation,
+                                           attestation_2: IndexedAttestation) -> None:
+    is_double_vote_slashing = (
+        attestation_1.data != attestation_2.data and
+        is_double_vote(
+            attestation_1.data,
+            attestation_2.data,
         )
-
-
-def validate_attester_slashing_slashing_conditions(
-        slashable_attestation_1: SlashableAttestation,
-        slashable_attestation_2: SlashableAttestation,
-        slots_per_epoch: int) -> None:
-    is_double_vote_slashing = is_double_vote(
-        slashable_attestation_1.data,
-        slashable_attestation_2.data,
-        slots_per_epoch,
     )
     is_surround_vote_slashing = is_surround_vote(
-        slashable_attestation_1.data,
-        slashable_attestation_2.data,
-        slots_per_epoch,
+        attestation_1.data,
+        attestation_2.data,
     )
     if not (is_double_vote_slashing or is_surround_vote_slashing):
         raise ValidationError(
@@ -282,6 +265,20 @@ def validate_slashable_indices(slashable_indices: Sequence[ValidatorIndex]) -> N
         raise ValidationError(
             "len(slashable_indices) should be greater or equal to 1"
         )
+
+
+def validate_attestation_bitfield(state: BeaconState,
+                                  data: AttestationData,
+                                  bitfield: Bitfield,
+                                  config: CommitteeConfig) -> None:
+    committee = get_crosslink_committee(
+        state,
+        data.target_epoch,
+        data.crosslink.shard,
+        config,
+    )
+    committee_size = len(committee)
+    validate_bitfield(bitfield, committee_size)
 
 
 #
@@ -297,6 +294,23 @@ def validate_attestation(state: BeaconState,
     Raise ``ValidationError`` if it's invalid.
     """
     slots_per_epoch = committee_config.SLOTS_PER_EPOCH
+
+    # NOTE: `validate_bitfield` is called here which deviates from the
+    # spec, where it is used downstream from the validation barrier
+    # filtering what goes on chain in `get_attesting_indices`
+    validate_attestation_bitfield(
+        state,
+        attestation.data,
+        attestation.aggregation_bitfield,
+        committee_config,
+    )
+
+    validate_attestation_bitfield(
+        state,
+        attestation.data,
+        attestation.custody_bitfield,
+        committee_config,
+    )
 
     validate_attestation_slot(
         attestation.data,
@@ -473,16 +487,6 @@ def generate_aggregate_pubkeys_from_indices(
     )
 
 
-def _validate_custody_bitfield(custody_bitfield: Bitfield) -> None:
-    # TODO: to be removed in phase 1.
-    empty_custody_bitfield = b'\x00' * len(custody_bitfield)
-    if custody_bitfield != empty_custody_bitfield:
-        raise ValidationError(
-            "Attestation custody bitfield is not empty.\n"
-            f"\tFound: {custody_bitfield}, Expected {empty_custody_bitfield}"
-        )
-
-
 def _validate_aggregation_bitfield(aggregation_bitfield: Bitfield) -> None:
     empty_aggregation_bitfield = b'\x00' * len(aggregation_bitfield)
     if aggregation_bitfield == empty_aggregation_bitfield:
@@ -606,83 +610,91 @@ def validate_randao_reveal(randao_reveal: BLSSignature,
 
 
 #
-# Slashable attestation validation
+# Attester slashing validation
 #
-def verify_slashable_attestation_signature(state: BeaconState,
-                                           slashable_attestation: SlashableAttestation,
-                                           slots_per_epoch: int) -> bool:
-    """
-    Ensure we have a valid aggregate signature for the ``slashable_attestation``.
-    """
-    all_indices = slashable_attestation.custody_bit_indices
-    pubkeys: Tuple[BLSPubkey, ...] = generate_aggregate_pubkeys_from_indices(
-        state.validator_registry,
-        *all_indices,
-    )
-    message_hashes: Tuple[Hash32, ...] = slashable_attestation.message_hashes
+def verify_indexed_attestation_aggregate_signature(state,
+                                                   indexed_attestation,
+                                                   slots_per_epoch):
+    bit_0_indices = indexed_attestation.custody_bit_0_indices
+    bit_1_indices = indexed_attestation.custody_bit_1_indices
 
-    signature = slashable_attestation.aggregate_signature
+    pubkeys = tuple(
+        bls.aggregate_pubkeys(
+            tuple(state.validator_registry[i].pubkey for i in bit_0_indices)
+        ),
+        bls.aggregate_pubkeys(
+            tuple(state.validator_registry[i].pubkey for i in bit_1_indices)
+        ),
+    )
+
+    message_hashes = tuple(
+        AttestationDataAndCustodyBit(
+            data=indexed_attestation.data,
+            custody_bit=False
+        ).root,
+        AttestationDataAndCustodyBit(
+            data=indexed_attestation.data,
+            custody_bit=True,
+        ).root,
+    )
 
     domain = get_domain(
-        state.fork,
-        slot_to_epoch(slashable_attestation.data.slot, slots_per_epoch),
+        state,
         SignatureDomain.DOMAIN_ATTESTATION,
+        slots_per_epoch,
+        indexed_attestation.data.target_epoch,
     )
-
-    # No custody bit 1 indice votes in phase 0, so we only need to process custody bit 0
-    # for efficiency.
-    # TODO: to be removed in phase 1.
-    if len(all_indices[1]) == 0:
-        pubkeys = pubkeys[:1]
-        message_hashes = message_hashes[:1]
 
     return bls.verify_multiple(
         pubkeys=pubkeys,
         message_hashes=message_hashes,
-        signature=signature,
+        signature=indexed_attestation.signature,
         domain=domain,
     )
 
 
-def validate_slashable_attestation(state: BeaconState,
-                                   slashable_attestation: SlashableAttestation,
-                                   max_indices_per_slashable_vote: int,
-                                   slots_per_epoch: int) -> None:
-    """
-    Verify validity of ``slashable_attestation`` fields.
-    Ensure that the ``slashable_attestation`` is properly assembled and contains the signature
-    we expect from the validators we expect. Otherwise, return False as
-    the ``slashable_attestation`` is invalid.
-    """
-    _validate_custody_bitfield(slashable_attestation.custody_bitfield)
+def validate_indexed_attestation(state: BeaconState,
+                                 indexed_attestation: IndexedAttestation,
+                                 max_indices_per_attestation: int,
+                                 slots_per_epoch: int) -> None:
+    bit_0_indices = indexed_attestation.custody_bit_0_indices
+    bit_1_indices = indexed_attestation.custody_bit_1_indices
 
-    if len(slashable_attestation.validator_indices) == 0:
+    if len(bit_1_indices) != 0:
         raise ValidationError(
-            "`slashable_attestation.validator_indices` is empty."
+            f"Expected no custody bit 1 validators (cf. {bit_1_indices})."
         )
 
-    if not slashable_attestation.are_validator_indices_ascending:
+    if len(bit_0_indices) + len(bit_1_indices) > max_indices_per_attestation:
         raise ValidationError(
-            "`slashable_attestation.validator_indices` "
-            f"({slashable_attestation.validator_indices}) "
-            "is not ordered in ascending."
+            f"Require no more than {max_indices_per_attestation} validators per attestation,"
+            f" but have {len(bit_0_indices)} 0-bit validators"
+            f" and {len(bit_1_indices)} 1-bit validators}."
         )
 
-    validate_bitfield(
-        slashable_attestation.custody_bitfield,
-        len(slashable_attestation.validator_indices),
-    )
-
-    if len(slashable_attestation.validator_indices) > max_indices_per_slashable_vote:
+    intersection = set(bit_0_indices).intersection(bit_1_indices)
+    if len(intersection) != 0:
         raise ValidationError(
-            f"`len(slashable_attestation.validator_indices)` "
-            f"({len(slashable_attestation.validator_indices)}) greater than "
-            f"MAX_INDICES_PER_SLASHABLE_VOTE ({max_indices_per_slashable_vote})"
+            f"Index sets by custody bits must be disjoint but have the following"
+            f" indices in common: {intersection}."
         )
 
-    if not verify_slashable_attestation_signature(state, slashable_attestation, slots_per_epoch):
+    if bit_0_indices != sorted(bit_0_indices):
         raise ValidationError(
-            f"slashable_attestation.signature error"
+            f"Indices should be sorted; the 0-bit indices are not: {bit_0_indices}."
+        )
+
+    if bit_1_indices != sorted(bit_1_indices):
+        raise ValidationError(
+            f"Indices should be sorted; the 1-bit indices are not: {bit_1_indices}."
+        )
+
+    if not verify_indexed_attestation_aggregate_signature(state,
+                                                          indexed_attestation,
+                                                          slots_per_epoch):
+        raise ValidationError(
+            "The aggregate signature on the indexed attestation"
+            f" {indexed_attestation} was incorrect."
         )
 
 

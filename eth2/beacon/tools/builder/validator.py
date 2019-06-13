@@ -53,7 +53,7 @@ from eth2.beacon.helpers import (
     get_epoch_start_slot,
     slot_to_epoch,
 )
-from eth2.beacon.types.attestations import Attestation
+from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import (
     AttestationDataAndCustodyBit,
@@ -64,7 +64,6 @@ from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
-from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.beacon.typing import (
@@ -261,9 +260,9 @@ def create_mock_proposer_slashing_at_block(
 def create_mock_slashable_attestation(state: BeaconState,
                                       config: Eth2Config,
                                       keymap: Dict[BLSPubkey, int],
-                                      attestation_slot: Slot) -> SlashableAttestation:
+                                      attestation_slot: Slot) -> IndexedAttestation:
     """
-    Create `SlashableAttestation` that is signed by one attester.
+    Create an `IndexedAttestation` that is signed by one attester.
     """
     attester_index = ValidatorIndex(0)
     committee = (attester_index,)
@@ -317,10 +316,10 @@ def create_mock_slashable_attestation(state: BeaconState,
     )
     validator_indices = tuple(committee[i] for i in voting_committee_indices)
 
-    return SlashableAttestation(
-        validator_indices=sorted(validator_indices),
+    return IndexedAttestation(
+        custody_bit_0_indices=validator_indices,
+        custody_bit_1_indices=tuple(),
         data=attestation_data,
-        custody_bitfield=get_empty_bitfield(len(voting_committee_indices)),
         aggregate_signature=signature,
     )
 

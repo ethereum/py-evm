@@ -23,12 +23,12 @@ from eth2.beacon.fork_choice import (
 from eth2.beacon.helpers import (
     slot_to_epoch,
 )
+from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.deposit_input import DepositInput
 from eth2.beacon.types.eth1_data import Eth1Data
-from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
 
 from eth2.beacon.genesis import (
@@ -300,12 +300,12 @@ def sample_recent_proposer_record_params():
 
 
 @pytest.fixture
-def sample_slashable_attestation_params(sample_attestation_data_params):
+def sample_indexed_attestation_params(sample_attestation_data_params):
     return {
-        'validator_indices': (10, 11, 12, 15, 28),
+        'custody_bit_0_indices': (10, 11, 12, 15, 28),
+        'custody_bit_1_indices': tuple(),
         'data': AttestationData(**sample_attestation_data_params),
-        'custody_bitfield': b'\00' * 4,
-        'aggregate_signature': SAMPLE_SIGNATURE,
+        'signature': SAMPLE_SIGNATURE,
     }
 
 
@@ -323,11 +323,13 @@ def sample_transfer_params():
 
 
 @pytest.fixture
-def sample_attester_slashing_params(sample_slashable_attestation_params):
-    slashable_attestation = SlashableAttestation(**sample_slashable_attestation_params)
+def sample_attester_slashing_params(sample_indexed_attestation_params):
+    indexed_attestation = IndexedAttestation(
+        **sample_indexed_attestation_params
+    )
     return {
-        'slashable_attestation_1': slashable_attestation,
-        'slashable_attestation_2': slashable_attestation,
+        'attestation_1': indexed_attestation,
+        'attestation_2': indexed_attestation,
     }
 
 

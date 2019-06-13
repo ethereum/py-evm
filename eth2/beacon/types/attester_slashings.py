@@ -1,20 +1,20 @@
 import ssz
-from .slashable_attestations import SlashableAttestation
+from .attestations import IndexedAttestation
 
 
 class AttesterSlashing(ssz.Serializable):
 
     fields = [
-        # First slashable attestation
-        ('slashable_attestation_1', SlashableAttestation),
-        # Second slashable attestation
-        ('slashable_attestation_2', SlashableAttestation),
+        # First attestation
+        ('attestation_1', IndexedAttestation),
+        # Second attestation
+        ('attestation_2', IndexedAttestation),
     ]
 
     def __init__(self,
-                 slashable_attestation_1: SlashableAttestation,
-                 slashable_attestation_2: SlashableAttestation)-> None:
+                 attestation_1: IndexedAttestation,
+                 attestation_2: IndexedAttestation)-> None:
         super().__init__(
-            slashable_attestation_1,
-            slashable_attestation_2,
+            attestation_1,
+            attestation_2,
         )
