@@ -23,10 +23,12 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
-from eth2._utils.tuple import update_tuple_item
+from eth2._utils.tuple import (
+    update_tuple_item,
+    update_tuple_item_with_fn,
+)
 from eth2.beacon.helpers import (
     slot_to_epoch,
-    get_temporary_block_header,
 )
 from eth2.beacon.typing import (
     Epoch,
@@ -37,9 +39,8 @@ from eth2.beacon.typing import (
     ValidatorIndex,
 )
 
-from .blocks import BeaconBlockHeader, BeaconBlock
+from .blocks import BeaconBlockHeader
 from .eth1_data import Eth1Data
-from .eth1_data_vote import Eth1DataVote
 from .crosslinks import Crosslink
 from .forks import Fork
 from .pending_attestations import PendingAttestation
@@ -56,17 +57,11 @@ class BeaconState(ssz.Serializable):
 
         # Validator registry
         ('validator_registry', List(Validator)),
-        ('validator_balances', List(uint64)),
-        ('validator_registry_update_epoch', uint64),
+        ('balances', List(uint64)),
 
         # Randomness and committees
         ('latest_randao_mixes', Vector(bytes32, 1)),
-        ('previous_shuffling_start_shard', uint64),
-        ('current_shuffling_start_shard', uint64),
-        ('previous_shuffling_epoch', uint64),
-        ('current_shuffling_epoch', uint64),
-        ('previous_shuffling_seed', bytes32),
-        ('current_shuffling_seed', bytes32),
+        ('latest_start_shard', uint64),
 
         # Finality
         ('previous_epoch_attestations', List(PendingAttestation)),
@@ -82,7 +77,8 @@ class BeaconState(ssz.Serializable):
         ('finalized_root', bytes32),
 
         # Recent state
-        ('latest_crosslinks', Vector(Crosslink, 1)),
+        ('current_crosslinks', Vector(Crosslink, 1)),
+        ('previous_crosslinks', Vector(Crosslink, 1)),
         ('latest_block_roots', Vector(bytes32, 1)),  # Needed to process attestations, older to newer  # noqa: E501
         ('latest_state_roots', Vector(bytes32, 1)),
         ('latest_active_index_roots', Vector(bytes32, 1)),
@@ -92,7 +88,7 @@ class BeaconState(ssz.Serializable):
 
         # Ethereum 1.0 chain
         ('latest_eth1_data', Eth1Data),
-        ('eth1_data_votes', List(Eth1DataVote)),
+        ('eth1_data_votes', List(Eth1Data)),
         ('deposit_index', uint64),
     ]
 
@@ -100,33 +96,28 @@ class BeaconState(ssz.Serializable):
             self,
             *,
             # Misc
-            slot: Slot=0,
-            genesis_time: Timestamp=0,
+            slot: Slot=Slot(0),
+            genesis_time: Timestamp=Timestamp(0),
             fork: Fork=Fork(),
             # Validator registry
             validator_registry: Sequence[Validator]=tuple(),
-            validator_balances: Sequence[Gwei]=tuple(),
-            validator_registry_update_epoch: Epoch=0,
+            balances: Sequence[Gwei]=tuple(),
             # Randomness and committees
             latest_randao_mixes: Sequence[Hash32]=tuple(),
-            previous_shuffling_start_shard: Shard=0,
-            current_shuffling_start_shard: Shard=0,
-            previous_shuffling_epoch: Epoch,
-            current_shuffling_epoch: Epoch,
-            previous_shuffling_seed: Hash32,
-            current_shuffling_seed: Hash32,
+            latest_start_shard: Shard=Shard(0),
             # Finality
             previous_epoch_attestations: Sequence[PendingAttestation]=tuple(),
             current_epoch_attestations: Sequence[PendingAttestation]=tuple(),
-            previous_justified_epoch: Epoch=0,
-            current_justified_epoch: Epoch=0,
+            previous_justified_epoch: Epoch=Epoch(0),
+            current_justified_epoch: Epoch=Epoch(0),
             previous_justified_root: Hash32=ZERO_HASH32,
             current_justified_root: Hash32=ZERO_HASH32,
             justification_bitfield: int=0,
-            finalized_epoch: Epoch=0,
+            finalized_epoch: Epoch=Epoch(0),
             finalized_root: Hash32=ZERO_HASH32,
             # Recent state
-            latest_crosslinks: Sequence[Crosslink]=tuple(),
+            current_crosslinks: Sequence[Crosslink]=tuple(),
+            previous_crosslinks: Sequence[Crosslink]=tuple(),
             latest_block_roots: Sequence[Hash32]=tuple(),
             latest_state_roots: Sequence[Hash32]=tuple(),
             latest_active_index_roots: Sequence[Hash32]=tuple(),
@@ -135,9 +126,9 @@ class BeaconState(ssz.Serializable):
             historical_roots: Sequence[Hash32]=tuple(),
             # Ethereum 1.0 chain
             latest_eth1_data: Eth1Data=Eth1Data(),
-            eth1_data_votes: Sequence[Eth1DataVote]=tuple(),
+            eth1_data_votes: Sequence[Eth1Data]=tuple(),
             deposit_index: int=0) -> None:
-        if len(validator_registry) != len(validator_balances):
+        if len(validator_registry) != len(balances):
             raise ValueError(
                 "The length of validator_registry and validator_balances should be the same."
             )
@@ -149,16 +140,10 @@ class BeaconState(ssz.Serializable):
             fork=fork,
             # Validator registry
             validator_registry=validator_registry,
-            validator_balances=validator_balances,
-            validator_registry_update_epoch=validator_registry_update_epoch,
+            balances=balances,
             # Randomness and committees
             latest_randao_mixes=latest_randao_mixes,
-            previous_shuffling_start_shard=previous_shuffling_start_shard,
-            current_shuffling_start_shard=current_shuffling_start_shard,
-            previous_shuffling_epoch=previous_shuffling_epoch,
-            current_shuffling_epoch=current_shuffling_epoch,
-            previous_shuffling_seed=previous_shuffling_seed,
-            current_shuffling_seed=current_shuffling_seed,
+            latest_start_shard=latest_start_shard,
             # Finality
             previous_epoch_attestations=previous_epoch_attestations,
             current_epoch_attestations=current_epoch_attestations,
@@ -170,7 +155,8 @@ class BeaconState(ssz.Serializable):
             finalized_epoch=finalized_epoch,
             finalized_root=finalized_root,
             # Recent state
-            latest_crosslinks=latest_crosslinks,
+            current_crosslinks=current_crosslinks,
+            previous_crosslinks=previous_crosslinks,
             latest_block_roots=latest_block_roots,
             latest_state_roots=latest_state_roots,
             latest_active_index_roots=latest_active_index_roots,
@@ -207,40 +193,26 @@ class BeaconState(ssz.Serializable):
                             latest_slashed_exit_length: int,
                             activated_genesis_validators: Sequence[Validator]=(),
                             genesis_balances: Sequence[Gwei]=()) -> 'BeaconState':
+        # TODO(ralexstokes) clean this up?
+        # how does it compare to `genesis.py`
         return cls(
             # Misc
             slot=genesis_slot,
-            genesis_time=Timestamp(0),
             fork=Fork(
-                previous_version=(0).to_bytes(4, 'little'),
-                current_version=(0).to_bytes(4, 'little'),
                 epoch=genesis_epoch,
             ),
 
             # Validator registry
             validator_registry=activated_genesis_validators,
-            validator_balances=genesis_balances,
-            validator_registry_update_epoch=genesis_epoch,
+            balances=genesis_balances,
 
             # Randomness and committees
             latest_randao_mixes=(ZERO_HASH32,) * latest_randao_mixes_length,
-            previous_shuffling_start_shard=genesis_start_shard,
-            current_shuffling_start_shard=genesis_start_shard,
-            previous_shuffling_epoch=genesis_epoch,
-            current_shuffling_epoch=genesis_epoch,
-            previous_shuffling_seed=ZERO_HASH32,
-            current_shuffling_seed=ZERO_HASH32,
 
             # Finality
-            previous_epoch_attestations=(),
-            current_epoch_attestations=(),
             previous_justified_epoch=genesis_epoch,
             current_justified_epoch=genesis_epoch,
-            previous_justified_root=ZERO_HASH32,
-            current_justified_root=ZERO_HASH32,
-            justification_bitfield=0,
             finalized_epoch=genesis_epoch,
-            finalized_root=ZERO_HASH32,
 
             # Recent state
             latest_crosslinks=(Crosslink(),) * shard_count,
@@ -248,18 +220,15 @@ class BeaconState(ssz.Serializable):
             latest_state_roots=(ZERO_HASH32,) * slots_per_historical_root,
             latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
             latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
-            latest_block_header=get_temporary_block_header(
-                BeaconBlock.create_empty_block(genesis_slot),
+            latest_block_header=BeaconBlockHeader().copy(
+                slot=genesis_slot,
             ),
-            historical_roots=(),
 
             # Ethereum 1.0 chain data
-            latest_eth1_data=Eth1Data.create_empty_data(),
-            eth1_data_votes=(),
             deposit_index=len(activated_genesis_validators),
         )
 
-    def update_validator_registry(self,
+    def update_validator_at_index(self,
                                   validator_index: ValidatorIndex,
                                   validator: Validator) -> 'BeaconState':
         """
@@ -270,24 +239,25 @@ class BeaconState(ssz.Serializable):
             lambda _: validator,
         )
 
-    def update_validator_registry_with_fn(self,
+    def update_validator_at_index_with_fn(self,
                                           validator_index: ValidatorIndex,
                                           fn: Callable[[Validator, Any], Validator],
                                           *args: Any) -> 'BeaconState':
         """
         Replace ``self.validator_registry[validator_index]`` with
         the result of calling ``fn`` on the existing ``validator``.
+        Any auxillary args passed in ``args`` are provided to ``fn`` along with the
+        ``validator``.
         """
         if validator_index >= self.num_validators or validator_index < 0:
             raise IndexError("Incorrect validator index")
 
-        validator = self.validator_registry[validator_index]
-
         return self.copy(
-            validator_registry=update_tuple_item(
+            validator_registry=update_tuple_item_with_fn(
                 self.validator_registry,
                 validator_index,
-                fn(validator, *args),
+                fn,
+                args,
             ),
         )
 
@@ -300,13 +270,13 @@ class BeaconState(ssz.Serializable):
         if validator_index >= self.num_validators or validator_index < 0:
             raise IndexError("Incorrect validator index")
 
-        validator_balances = list(self.validator_balances)
-        validator_balances[validator_index] = balance
-
-        updated_state = self.copy(
-            validator_balances=tuple(validator_balances),
+        return self.copy(
+            balances=update_tuple_item(
+                self.balances,
+                validator_index,
+                balance,
+            )
         )
-        return updated_state
 
     def update_validator(self,
                          validator_index: ValidatorIndex,
