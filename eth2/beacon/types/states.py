@@ -321,7 +321,11 @@ class BeaconState(ssz.Serializable):
         return slot_to_epoch(self.slot, slots_per_epoch)
 
     def previous_epoch(self, slots_per_epoch: int, genesis_epoch: Epoch) -> Epoch:
-        return Epoch(self.current_epoch(slots_per_epoch) - 1)
+        current_epoch = self.current_epoch(slots_per_epoch)
+        if current_epoch == genesis_epoch:
+            return genesis_epoch
+        else:
+            return Epoch(current_epoch - 1)
 
     def next_epoch(self, slots_per_epoch: int) -> Epoch:
         return Epoch(self.current_epoch(slots_per_epoch) + 1)
