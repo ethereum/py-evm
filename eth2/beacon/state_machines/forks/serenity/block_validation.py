@@ -30,7 +30,7 @@ from eth2.configs import (
 )
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
-    get_crosslink_committee_for_attestation,
+    get_crosslink_committee,
     get_members_from_bitfield,
 )
 from eth2.beacon.constants import (

@@ -25,7 +25,7 @@ from eth2.beacon.constants import (
 TItem = TypeVar('TItem')
 
 
-def get_permuted_index(index: int,
+def get_shuffled_index(index: int,
                        list_size: int,
                        seed: Hash32,
                        shuffle_round_count: int) -> int:
@@ -55,7 +55,7 @@ def get_permuted_index(index: int,
             'little',
         ) % list_size
 
-        flip = (pivot - new_index) % list_size
+        flip = (pivot + list_size - new_index) % list_size
         hash_pos = max(new_index, flip)
         h = hash_eth2(seed + round.to_bytes(1, 'little') + (hash_pos // 256).to_bytes(4, 'little'))
         byte = h[(hash_pos % 256) // 8]
