@@ -1,4 +1,5 @@
 from typing import (
+    Callable,
     Sequence,
 )
 
@@ -21,6 +22,7 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
+from eth2._utils.tuple import update_tuple_item
 from eth2.beacon.helpers import (
     slot_to_epoch,
     get_temporary_block_header,
@@ -262,16 +264,30 @@ class BeaconState(ssz.Serializable):
         """
         Replace ``self.validator_registry[validator_index]`` with ``validator``.
         """
+        return self.update_validator_registry_with_fn(
+            validator_index,
+            lambda _: validator,
+        )
+
+    def update_validator_registry_with_fn(self,
+                                          validator_index: ValidatorIndex,
+                                          fn: Callable[[Validator], Validator]) -> 'BeaconState':
+        """
+        Replace ``self.validator_registry[validator_index]`` with
+        the result of calling ``fn`` on the existing ``validator``.
+        """
         if validator_index >= self.num_validators or validator_index < 0:
             raise IndexError("Incorrect validator index")
 
-        validator_registry = list(self.validator_registry)
-        validator_registry[validator_index] = validator
+        validator = self.validator_registry[validator_index]
 
-        updated_state = self.copy(
-            validator_registry=tuple(validator_registry),
+        return self.copy(
+            validator_registry=update_tuple_item(
+                self.validator_registry,
+                validator_index,
+                fn(validator),
+            ),
         )
-        return updated_state
 
     def update_validator_balance(self,
                                  validator_index: ValidatorIndex,
@@ -304,7 +320,7 @@ class BeaconState(ssz.Serializable):
     def current_epoch(self, slots_per_epoch: int) -> Epoch:
         return slot_to_epoch(self.slot, slots_per_epoch)
 
-    def previous_epoch(self, slots_per_epoch: int) -> Epoch:
+    def previous_epoch(self, slots_per_epoch: int, genesis_epoch: Epoch) -> Epoch:
         return Epoch(self.current_epoch(slots_per_epoch) - 1)
 
     def next_epoch(self, slots_per_epoch: int) -> Epoch:
