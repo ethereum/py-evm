@@ -21,9 +21,9 @@ class ProposerSlashing(ssz.Serializable):
     ]
 
     def __init__(self,
-                 proposer_index: ValidatorIndex,
-                 header_1: BeaconBlockHeader,
-                 header_2: BeaconBlockHeader) -> None:
+                 proposer_index: ValidatorIndex=ValidatorIndex(0),
+                 header_1: BeaconBlockHeader=BeaconBlockHeader(),
+                 header_2: BeaconBlockHeader=BeaconBlockHeader()) -> None:
         super().__init__(
             proposer_index=proposer_index,
             header_1=header_1,
