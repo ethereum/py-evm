@@ -74,14 +74,14 @@ def mock_identity_scheme():
 
 
 @pytest.fixture
-def test_identity_scheme_registry(mock_identity_scheme):
+def identity_scheme_registry(mock_identity_scheme):
     registry = IdentitySchemeRegistry()
     registry.register(V4IdentityScheme)
     registry.register(mock_identity_scheme)
     return registry
 
 
-def test_mapping_interface(test_identity_scheme_registry):
+def test_mapping_interface(identity_scheme_registry):
     kv_pairs = {
         b"id": b"mock",
         b"key1": b"value1",
@@ -91,7 +91,7 @@ def test_mapping_interface(test_identity_scheme_registry):
         signature=b"",
         sequence_number=0,
         kv_pairs=kv_pairs,
-        identity_scheme_registry=test_identity_scheme_registry,
+        identity_scheme_registry=identity_scheme_registry,
     )
 
     for key, value in kv_pairs.items():
@@ -114,7 +114,7 @@ def test_mapping_interface(test_identity_scheme_registry):
     assert tuple(iter(enr)) == tuple(iter(kv_pairs))
 
 
-def test_inititialization(test_identity_scheme_registry):
+def test_inititialization(identity_scheme_registry):
     valid_sequence_number = 0
     valid_kv_pairs = {b"id": b"mock"}
     valid_signature = b""  # signature is not validated during initialization
@@ -122,57 +122,57 @@ def test_inititialization(test_identity_scheme_registry):
     assert UnsignedENR(
         sequence_number=valid_sequence_number,
         kv_pairs=valid_kv_pairs,
-        identity_scheme_registry=test_identity_scheme_registry,
+        identity_scheme_registry=identity_scheme_registry,
     )
     assert ENR(
         sequence_number=valid_sequence_number,
         kv_pairs=valid_kv_pairs,
         signature=valid_signature,
-        identity_scheme_registry=test_identity_scheme_registry,
+        identity_scheme_registry=identity_scheme_registry,
     )
 
     with pytest.raises(ValidationError):
         UnsignedENR(
             sequence_number=valid_sequence_number,
             kv_pairs={b"no-id": b""},
-            identity_scheme_registry=test_identity_scheme_registry,
+            identity_scheme_registry=identity_scheme_registry,
         )
     with pytest.raises(ValidationError):
         ENR(
             sequence_number=valid_sequence_number,
             kv_pairs={b"no-id": b""},
             signature=valid_signature,
-            identity_scheme_registry=test_identity_scheme_registry,
+            identity_scheme_registry=identity_scheme_registry,
         )
 
     with pytest.raises(ValidationError):
         UnsignedENR(
             sequence_number=-1,
             kv_pairs=valid_kv_pairs,
-            identity_scheme_registry=test_identity_scheme_registry,
+            identity_scheme_registry=identity_scheme_registry,
         )
     with pytest.raises(ValidationError):
         ENR(
             sequence_number=-1,
             kv_pairs=valid_kv_pairs,
             signature=valid_signature,
-            identity_scheme_registry=test_identity_scheme_registry,
+            identity_scheme_registry=identity_scheme_registry,
         )
 
 
-def test_signing(mock_identity_scheme, test_identity_scheme_registry):
+def test_signing(mock_identity_scheme, identity_scheme_registry):
     unsigned_enr = UnsignedENR(
         sequence_number=0,
         kv_pairs={b"id": b"mock"},
-        identity_scheme_registry=test_identity_scheme_registry
+        identity_scheme_registry=identity_scheme_registry
     )
     private_key = b"\x00" * 32
     enr = unsigned_enr.to_signed_enr(private_key)
     assert enr.signature == mock_identity_scheme.create_signature(enr, private_key)
 
 
-def test_signature_validation(mock_identity_scheme, test_identity_scheme_registry):
-    unsigned_enr = UnsignedENR(0, {b"id": b"mock"}, test_identity_scheme_registry)
+def test_signature_validation(mock_identity_scheme, identity_scheme_registry):
+    unsigned_enr = UnsignedENR(0, {b"id": b"mock"}, identity_scheme_registry)
     private_key = b"\x00" * 32
     enr = unsigned_enr.to_signed_enr(private_key)
     enr.validate_signature()
@@ -182,7 +182,7 @@ def test_signature_validation(mock_identity_scheme, test_identity_scheme_registr
         enr.sequence_number,
         dict(enr),
         invalid_signature,
-        identity_scheme_registry=test_identity_scheme_registry
+        identity_scheme_registry=identity_scheme_registry
     )
     with pytest.raises(ValidationError):
         invalid_enr.validate_signature()
@@ -192,30 +192,30 @@ def test_signature_validation(mock_identity_scheme, test_identity_scheme_registr
             0,
             {b"id": b"unknown"},
             b"",
-            identity_scheme_registry=test_identity_scheme_registry,
+            identity_scheme_registry=identity_scheme_registry,
         )
 
 
-def test_extract_node_address(mock_identity_scheme, test_identity_scheme_registry):
-    unsigned_enr = UnsignedENR(0, {b"id": b"mock"}, test_identity_scheme_registry)
+def test_extract_node_address(mock_identity_scheme, identity_scheme_registry):
+    unsigned_enr = UnsignedENR(0, {b"id": b"mock"}, identity_scheme_registry)
     private_key = b"\x00" * 32
     enr = unsigned_enr.to_signed_enr(private_key)
     assert enr.extract_node_address() == private_key
 
 
-def test_signature_scheme_selection(mock_identity_scheme, test_identity_scheme_registry):
-    mock_enr = ENR(0, {b"id": b"mock"}, b"", test_identity_scheme_registry)
+def test_signature_scheme_selection(mock_identity_scheme, identity_scheme_registry):
+    mock_enr = ENR(0, {b"id": b"mock"}, b"", identity_scheme_registry)
     assert mock_enr.identity_scheme is mock_identity_scheme
 
-    v4_enr = ENR(0, {b"id": b"v4"}, b"", test_identity_scheme_registry)
+    v4_enr = ENR(0, {b"id": b"v4"}, b"", identity_scheme_registry)
     assert v4_enr.identity_scheme is V4IdentityScheme
 
     with pytest.raises(ValidationError):
-        ENR(0, {b"id": b"other"}, b"", test_identity_scheme_registry)
+        ENR(0, {b"id": b"other"}, b"", identity_scheme_registry)
 
 
-def test_repr(mock_identity_scheme, test_identity_scheme_registry):
-    unsigned_enr = UnsignedENR(0, {b"id": b"mock"}, test_identity_scheme_registry)
+def test_repr(mock_identity_scheme, identity_scheme_registry):
+    unsigned_enr = UnsignedENR(0, {b"id": b"mock"}, identity_scheme_registry)
     enr = unsigned_enr.to_signed_enr(b"\x00" * 32)
     base64_encoded_enr = base64.urlsafe_b64encode(rlp.encode(enr))
     represented_enr = repr(enr)
@@ -223,10 +223,10 @@ def test_repr(mock_identity_scheme, test_identity_scheme_registry):
     assert represented_enr.startswith("enr:")
     assert base64_encoded_enr.rstrip(b"=").decode() == represented_enr[4:]
 
-    assert ENR.from_repr(represented_enr, test_identity_scheme_registry) == enr
+    assert ENR.from_repr(represented_enr, identity_scheme_registry) == enr
 
 
-def test_deserialization_key_order_validation(test_identity_scheme_registry):
+def test_deserialization_key_order_validation(identity_scheme_registry):
     serialized_enr = rlp.encode([
         b"signature",
         0,
@@ -241,11 +241,11 @@ def test_deserialization_key_order_validation(test_identity_scheme_registry):
         rlp.decode(
             serialized_enr,
             ENRSedes,
-            identity_scheme_registry=test_identity_scheme_registry,
+            identity_scheme_registry=identity_scheme_registry,
         )
 
 
-def test_deserialization_key_uniqueness_validation(test_identity_scheme_registry):
+def test_deserialization_key_uniqueness_validation(identity_scheme_registry):
     serialized_enr = rlp.encode([
         b"signature",
         0,
@@ -260,7 +260,7 @@ def test_deserialization_key_uniqueness_validation(test_identity_scheme_registry
         rlp.decode(
             serialized_enr,
             ENRSedes,
-            identity_scheme_registry=test_identity_scheme_registry,
+            identity_scheme_registry=identity_scheme_registry,
         )
 
 
@@ -270,17 +270,17 @@ def test_deserialization_key_uniqueness_validation(test_identity_scheme_registry
     (b"signature", 0, b"key1"),
     (b"signature", 0, b"key1", b"value1", b"id"),
 ))
-def test_deserialization_completeness_validation(incomplete_enr, test_identity_scheme_registry):
+def test_deserialization_completeness_validation(incomplete_enr, identity_scheme_registry):
     incomplete_enr_rlp = rlp.encode(incomplete_enr)
     with pytest.raises(rlp.DeserializationError):
         rlp.decode(
             incomplete_enr_rlp,
             ENRSedes,
-            identity_scheme_registry=test_identity_scheme_registry,
+            identity_scheme_registry=identity_scheme_registry,
         )
 
 
-def test_equality(test_identity_scheme_registry):
+def test_equality(identity_scheme_registry):
     base_kwargs = {
         "sequence_number": 0,
         "kv_pairs": {
@@ -289,7 +289,7 @@ def test_equality(test_identity_scheme_registry):
             b"key2": b"value2",
         },
         "signature": b"signature",
-        "identity_scheme_registry": test_identity_scheme_registry,
+        "identity_scheme_registry": identity_scheme_registry,
     }
 
     base_enr = ENR(**base_kwargs)
@@ -311,7 +311,7 @@ def test_equality(test_identity_scheme_registry):
     assert enr_different_signature != base_enr
 
 
-def test_serialization_roundtrip(test_identity_scheme_registry):
+def test_serialization_roundtrip(identity_scheme_registry):
     original_enr = ENR(
         sequence_number=0,
         kv_pairs={
@@ -320,13 +320,13 @@ def test_serialization_roundtrip(test_identity_scheme_registry):
             b"key1": b"value1",
         },
         signature=b"",
-        identity_scheme_registry=test_identity_scheme_registry,
+        identity_scheme_registry=identity_scheme_registry,
     )
     encoded = rlp.encode(original_enr)
     recovered_enr = rlp.decode(
         encoded,
         ENR,
-        identity_scheme_registry=test_identity_scheme_registry,
+        identity_scheme_registry=identity_scheme_registry,
     )
     assert recovered_enr == original_enr
 
