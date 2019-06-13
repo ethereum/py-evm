@@ -10,6 +10,7 @@ from eth_typing import (
     Hash32,
 )
 
+from eth2._utils.tuple import update_tuple_item
 from eth2.configs import (
     Eth2Config,
 )
@@ -23,9 +24,11 @@ def _update_historical_root(roots: Sequence[Hash32],
                             index: Slot,
                             slots_per_historical_root: int,
                             new_root: Hash32) -> Sequence[Hash32]:
-    mutable_roots = list(roots)
-    mutable_roots[index % slots_per_historical_root] = new_root
-    return tuple(mutable_roots)
+    return update_tuple_item(
+        roots,
+        index % slots_per_historical_root,
+        new_root,
+    )
 
 
 def process_cache_state(state: BeaconState, config: Eth2Config) -> BeaconState:
