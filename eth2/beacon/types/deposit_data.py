@@ -1,11 +1,21 @@
+from eth.constants import (
+    ZERO_HASH32,
+)
+from eth_typing import (
+    BLSPubkey,
+    BLSSignature,
+    Hash32,
+)
 import ssz
 from ssz.sedes import (
     uint64,
+    bytes32,
+    bytes48,
+    bytes96,
 )
 
-from .deposit_input import DepositInput
+from eth2.beacon.constants import EMPTY_SIGNATURE
 from eth2.beacon.typing import (
-    Timestamp,
     Gwei,
 )
 
@@ -17,21 +27,24 @@ class DepositData(ssz.Serializable):
     contract.
     """
     fields = [
+        # BLS pubkey
+        ('pubkey', bytes48),
+        # Withdrawal credentials
+        ('withdrawal_credentials', bytes32),
         # Amount in Gwei
         ('amount', uint64),
-        # Timestamp from deposit contract
-        ('timestamp', uint64),
-        # Deposit input
-        ('deposit_input', DepositInput),
+        # BLS proof of possession (a BLS signature)
+        ('signature', bytes96),
     ]
 
     def __init__(self,
-                 amount: Gwei,
-                 timestamp: Timestamp,
-                 deposit_input: DepositInput) -> None:
-
+                 pubkey: BLSPubkey=b'\x00' * 48,
+                 withdrawal_credentials: Hash32=ZERO_HASH32,
+                 amount: Gwei=0,
+                 signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
-            amount,
-            timestamp,
-            deposit_input,
+            pubkey=pubkey,
+            withdrawal_credentials=withdrawal_credentials,
+            amount=amount,
+            signature=signature,
         )
