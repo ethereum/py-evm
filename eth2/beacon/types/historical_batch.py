@@ -24,8 +24,8 @@ class HistoricalBatch(ssz.Serializable):
 
     def __init__(self,
                  *,
-                 block_roots: Sequence[Hash32],
-                 state_roots: Sequence[Hash32]) -> None:
+                 block_roots: Sequence[Hash32]=tuple(),
+                 state_roots: Sequence[Hash32]=tuple()) -> None:
         super().__init__(
             block_roots=block_roots,
             state_roots=state_roots,
