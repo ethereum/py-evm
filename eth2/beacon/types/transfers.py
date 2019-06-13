@@ -37,12 +37,12 @@ class Transfer(ssz.Serializable):
     ]
 
     def __init__(self,
-                 sender: ValidatorIndex,
-                 recipient: ValidatorIndex,
-                 amount: Gwei,
-                 fee: Gwei,
-                 slot: Slot,
-                 pubkey: BLSPubkey,
+                 sender: ValidatorIndex=ValidatorIndex(0),
+                 recipient: ValidatorIndex=ValidatorIndex(0),
+                 amount: Gwei=Gwei(0),
+                 fee: Gwei=Gwei(0),
+                 slot: Slot=Slot(0),
+                 pubkey: BLSPubkey=b'\x00' * 48,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             sender=sender,
