@@ -143,8 +143,10 @@ class FakeAsyncMainnetChain(MainnetChain):
 
 class FakeAsyncChain(MiningChain):
     coro_import_block = coro_import_block
+    coro_get_block_by_header = async_passthrough('get_block_by_header')
     coro_get_block_header_by_hash = async_passthrough('get_block_header_by_hash')
     coro_get_canonical_head = async_passthrough('get_canonical_head')
+    coro_get_canonical_block_by_number = async_passthrough('get_canonical_block_by_number')
     coro_validate_chain = async_passthrough('validate_chain')
     coro_validate_receipt = async_passthrough('validate_receipt')
     chaindb_class = FakeAsyncChainDB

@@ -8,6 +8,7 @@ from typing import (
     Callable,
     FrozenSet,
     Generic,
+    Iterable,
     Sequence,
     Tuple,
     Type,
@@ -28,7 +29,9 @@ from eth_utils import (
 from eth_utils.toolz import (
     compose,
     concatv,
+    drop,
     sliding_window,
+    take,
 )
 
 from eth.constants import GENESIS_BLOCK_NUMBER
@@ -495,6 +498,33 @@ class HeaderSyncerAPI(ABC):
     @abstractmethod
     def get_target_header_hash(self) -> Hash32:
         pass
+
+
+class ManualHeaderSyncer(HeaderSyncerAPI):
+    def __init__(self) -> None:
+        self._headers_to_emit: Tuple[BlockHeader, ...] = ()
+        self._final_header_hash: Hash32 = None
+        self._new_data = asyncio.Event()
+
+    async def new_sync_headers(
+            self,
+            max_batch_size: int = None) -> AsyncIterator[Tuple[BlockHeader, ...]]:
+        while True:
+            next_batch = tuple(take(max_batch_size, self._headers_to_emit))
+            if not next_batch:
+                self._new_data.clear()
+                await self._new_data.wait()
+                continue
+            yield next_batch
+            self._headers_to_emit = tuple(drop(max_batch_size, self._headers_to_emit))
+
+    def get_target_header_hash(self) -> Hash32:
+        return self._final_header_hash
+
+    def emit(self, headers: Iterable[BlockHeader]) -> None:
+        self._headers_to_emit = self._headers_to_emit + tuple(headers)
+        self._final_header_hash = self._headers_to_emit[-1].hash
+        self._new_data.set()
 
 
 class _PeerBehind(Exception):

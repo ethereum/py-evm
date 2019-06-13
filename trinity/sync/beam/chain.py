@@ -1,13 +1,21 @@
 import asyncio
 from typing import (
     AsyncIterator,
+    Iterable,
     Tuple,
 )
 
 from cancel_token import CancelToken
+from eth.constants import GENESIS_PARENT_HASH, MAX_UNCLE_DEPTH
+from eth.exceptions import (
+    HeaderNotFound,
+)
 from eth.rlp.blocks import BaseBlock
 from eth.rlp.headers import BlockHeader
-from eth_typing import Hash32
+from eth_typing import (
+    Hash32,
+    BlockNumber,
+)
 from eth_utils import (
     ValidationError,
 )
@@ -33,8 +41,12 @@ from trinity.sync.common.events import (
     MissingBytecodeCollected,
     MissingStorageCollected,
 )
-from trinity.sync.common.headers import HeaderSyncerAPI
+from trinity.sync.common.headers import (
+    HeaderSyncerAPI,
+    ManualHeaderSyncer,
+)
 from trinity.sync.full.chain import (
+    FastChainBodySyncer,
     RegularChainBodySyncer,
 )
 from trinity.sync.full.constants import (
@@ -103,6 +115,17 @@ class BeamSyncer(BaseService):
             self.cancel_token,
         )
 
+        self._manual_header_syncer = ManualHeaderSyncer()
+        self._fast_syncer = RigorousFastChainBodySyncer(
+            chain,
+            chain_db,
+            peer_pool,
+            self._manual_header_syncer,
+            self.cancel_token,
+        )
+
+        self._chain = chain
+
     async def _run(self) -> None:
         self.run_daemon(self._header_syncer)
 
@@ -122,6 +145,11 @@ class BeamSyncer(BaseService):
         # We want to trigger beam sync on the last block received,
         # not wait for the next one to be broadcast
         final_headers = self._header_persister.get_final_headers()
+
+        # First, download block bodies for previous 6 blocks, for validation
+        await self._download_blocks(final_headers[0])
+
+        # Now let the beam sync importer kick in
         self._checkpoint_header_syncer.set_checkpoint_headers(final_headers)
 
         # TODO wait until first header with a body comes in?...
@@ -130,6 +158,98 @@ class BeamSyncer(BaseService):
 
         # run sync until cancelled
         await self.cancellation()
+
+    async def _download_blocks(self, before_header: BlockHeader) -> None:
+        """
+        When importing a block, we need to validate uncles against the previous
+        six blocks, so download those bodies and persist them to the database.
+        """
+        self.logger.info(
+            "Downloading %d block bodies for uncle validation, before %s",
+            MAX_UNCLE_DEPTH,
+            before_header,
+        )
+
+        # select the recent ancestors to sync block bodies for
+        parent_headers = tuple(reversed([
+            header async for header
+            in self._get_ancestors(MAX_UNCLE_DEPTH + 1, header=before_header)
+        ]))
+
+        # identify starting tip and headers with possible uncle conflicts for validation
+        if len(parent_headers) <= MAX_UNCLE_DEPTH:
+            sync_from_tip = await self._chain.coro_get_canonical_block_by_number(BlockNumber(0))
+            uncle_conflict_headers = parent_headers
+        else:
+            sync_from_tip = parent_headers[0]
+            uncle_conflict_headers = parent_headers[1:]
+
+        # check if we already have the blocks for the uncle conflict headers
+        if await self._all_verification_bodies_present(uncle_conflict_headers):
+            self.logger.debug("All needed block bodies are already available")
+        else:
+            # tell the header syncer to emit those headers
+            self._manual_header_syncer.emit(uncle_conflict_headers)
+
+            # tell the fast syncer which tip to start from
+            self._fast_syncer.set_starting_tip(sync_from_tip)
+
+            # run the fast syncer (which downloads block bodies and then exits)
+            self.logger.info("Getting recent block data for uncle validation")
+            await self._fast_syncer.run()
+
+        # When this completes, we have all the uncles needed to validate
+        self.logger.info("Have all data needed for Beam validation, continuing...")
+
+    async def _get_ancestors(self, limit: int, header: BlockHeader) -> AsyncIterator[BlockHeader]:
+        """
+        Return `limit` number of ancestor headers from the specified header.
+        """
+        headers_returned = 0
+        while header.parent_hash != GENESIS_PARENT_HASH and headers_returned < limit:
+            parent = await self._chain.coro_get_block_header_by_hash(header.parent_hash)
+            yield parent
+            headers_returned += 1
+            header = parent
+
+    async def _all_verification_bodies_present(
+            self,
+            headers_with_potential_conflicts: Iterable[BlockHeader]) -> bool:
+
+        for header in headers_with_potential_conflicts:
+            if not await self._fast_syncer._should_skip_header(header):
+                return False
+        return True
+
+
+class RigorousFastChainBodySyncer(FastChainBodySyncer):
+    _starting_tip: BlockHeader = None
+
+    async def _should_skip_header(self, header: BlockHeader) -> bool:
+        """
+        Should we skip trying to import this header?
+        Return True if the syncing of header appears to be complete.
+
+        Only skip the header if we've definitely got the body downloaded
+        """
+        if not await self.db.coro_header_exists(header.hash):
+            return False
+        try:
+            await self.chain.coro_get_block_by_header(header)
+        except (HeaderNotFound, KeyError):
+            # TODO unify these exceptions in py-evm, returning BlockBodyNotFound instead
+            return False
+        else:
+            return True
+
+    async def _sync_from(self) -> BlockHeader:
+        if self._starting_tip is None:
+            raise ValidationError("Must set a previous tip before rigorous-fast-syncing")
+        else:
+            return self._starting_tip
+
+    def set_starting_tip(self, header: BlockHeader) -> None:
+        self._starting_tip = header
 
 
 class HeaderCheckpointSyncer(HeaderSyncerAPI, HasExtendedDebugLogger):
