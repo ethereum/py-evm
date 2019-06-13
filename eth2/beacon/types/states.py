@@ -1,4 +1,5 @@
 from typing import (
+    Any,
     Callable,
     Sequence,
 )
@@ -271,7 +272,8 @@ class BeaconState(ssz.Serializable):
 
     def update_validator_registry_with_fn(self,
                                           validator_index: ValidatorIndex,
-                                          fn: Callable[[Validator], Validator]) -> 'BeaconState':
+                                          fn: Callable[[Validator, Any], Validator],
+                                          *args: Any) -> 'BeaconState':
         """
         Replace ``self.validator_registry[validator_index]`` with
         the result of calling ``fn`` on the existing ``validator``.
@@ -285,7 +287,7 @@ class BeaconState(ssz.Serializable):
             validator_registry=update_tuple_item(
                 self.validator_registry,
                 validator_index,
-                fn(validator),
+                fn(validator, *args),
             ),
         )
 

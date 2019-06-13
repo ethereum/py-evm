@@ -32,6 +32,11 @@ from eth2.beacon.typing import (
 #
 # State update
 #
+def activate_validator(validator: Validator, activation_epoch: Epoch) -> Validator:
+    validator.activation_eligibility_epoch = activation_epoch
+    validator.activation_epoch = activation_epoch
+    return validator
+
 # def activate_validator(state: BeaconState,
 #                        index: ValidatorIndex,
 #                        is_genesis: bool,
