@@ -1,5 +1,4 @@
 from typing import (
-    Dict,
     Type,
     TYPE_CHECKING,
 )
@@ -28,7 +27,7 @@ from p2p.discv5.constants import (
 
 # https://github.com/python/mypy/issues/5264#issuecomment-399407428
 if TYPE_CHECKING:
-    MessageTypeRegistryBaseType = UserDict[bytes, Type["MessageData"]]
+    MessageTypeRegistryBaseType = UserDict[int, Type["MessageData"]]
 else:
     MessageTypeRegistryBaseType = UserDict
 
