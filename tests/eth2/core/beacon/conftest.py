@@ -216,8 +216,11 @@ def sample_eth1_data_vote_params(sample_eth1_data_params):
 @pytest.fixture
 def sample_crosslink_record_params():
     return {
-        'epoch': 0,
-        'crosslink_data_root': b'\x43' * 32,
+        'shard': 0,
+        'start_epoch': 0,
+        'end_epoch': 0,
+        'parent_root': b'\x34' * 32,
+        'data_root': b'\x43' * 32,
     }
 
 
@@ -656,10 +659,9 @@ def genesis_state(filled_beacon_state,
         latest_slashed_balances=(0,) * latest_slashed_exit_length,
         latest_crosslinks=tuple(
             Crosslink(
-                epoch=genesis_epoch,
-                crosslink_data_root=ZERO_HASH32,
+                shard=shard,
             )
-            for _ in range(shard_count)
+            for shard in range(shard_count)
         ),
         latest_randao_mixes=tuple(
             ZERO_HASH32

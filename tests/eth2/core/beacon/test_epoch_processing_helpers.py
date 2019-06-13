@@ -277,8 +277,7 @@ def test_get_winning_root_and_participants(
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
                 previous_crosslink=Crosslink(
-                    epoch=config.GENESIS_EPOCH,
-                    crosslink_data_root=ZERO_HASH32,
+                    shard=shard,
                 ),
                 crosslink_data_root=competing_block_roots[0],
             ),
@@ -289,8 +288,7 @@ def test_get_winning_root_and_participants(
             data=AttestationData(**sample_attestation_data_params).copy(
                 shard=shard,
                 previous_crosslink=Crosslink(
-                    epoch=config.GENESIS_EPOCH,
-                    crosslink_data_root=ZERO_HASH32,
+                    shard=shard,
                 ),
                 crosslink_data_root=competing_block_roots[1],
             ),

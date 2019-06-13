@@ -94,14 +94,7 @@ def get_genesis_beacon_state(*,
         finalized_root=ZERO_HASH32,
 
         # Recent state
-        latest_crosslinks=(
-            (
-                Crosslink(
-                    epoch=config.GENESIS_EPOCH,
-                    crosslink_data_root=ZERO_HASH32,
-                ),
-            ) * config.SHARD_COUNT
-        ),
+        latest_crosslinks=(Crosslink(),) * config.SHARD_COUNT,
         latest_block_roots=(ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
         latest_state_roots=(ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
         latest_active_index_roots=(ZERO_HASH32,) * config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,

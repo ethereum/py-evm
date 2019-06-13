@@ -472,8 +472,10 @@ def test_process_crosslinks(
     current_slot = config.SLOTS_PER_EPOCH * 2 - 1
 
     genesis_crosslinks = tuple([
-        Crosslink(epoch=config.GENESIS_EPOCH, crosslink_data_root=ZERO_HASH32)
-        for _ in range(shard_count)
+        Crosslink(
+            shard=shard,
+        )
+        for shard in range(shard_count)
     ])
     state = n_validators_state.copy(
         slot=current_slot,
@@ -515,8 +517,7 @@ def test_process_crosslinks(
                             shard=shard,
                             crosslink_data_root=previous_epoch_crosslink_data_root,
                             previous_crosslink=Crosslink(
-                                epoch=config.GENESIS_EPOCH,
-                                crosslink_data_root=ZERO_HASH32,
+                                shard=shard,
                             ),
                         ),
                     )
@@ -554,8 +555,7 @@ def test_process_crosslinks(
                             shard=shard,
                             crosslink_data_root=current_epoch_crosslink_data_root,
                             previous_crosslink=Crosslink(
-                                epoch=config.GENESIS_EPOCH,
-                                crosslink_data_root=ZERO_HASH32,
+                                shard=shard,
                             ),
                         ),
                     )
@@ -909,8 +909,7 @@ def test_process_rewards_and_penalties_for_crosslinks(
                     slot=data_slot,
                     shard=shard,
                     previous_crosslink=Crosslink(
-                        epoch=config.GENESIS_EPOCH,
-                        crosslink_data_root=ZERO_HASH32,
+                        shard=shard
                     ),
                 ),
                 inclusion_slot=(data_slot + min_attestation_inclusion_delay),
@@ -1075,19 +1074,12 @@ def test_check_if_update_validator_registry(genesis_state,
         validator_registry_update_epoch=validator_registry_update_epoch,
     )
     if has_crosslink:
-        crosslink = Crosslink(
-            epoch=crosslink_epoch,
-            crosslink_data_root=ZERO_HASH32,
-        )
-        latest_crosslinks = state.latest_crosslinks
-        for shard in range(config.SHARD_COUNT):
-            latest_crosslinks = update_tuple_item(
-                latest_crosslinks,
-                shard,
-                crosslink,
-            )
         state = state.copy(
-            latest_crosslinks=latest_crosslinks,
+            latest_crosslinks=tuple(
+                Crosslink(
+                    shard=shard,
+                ) for shard in range(config.SHARD_COUNT)
+            ),
         )
 
     need_to_update, num_shards_in_committees = _check_if_update_validator_registry(state, config)

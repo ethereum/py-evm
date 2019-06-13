@@ -415,8 +415,9 @@ def validate_attestation_previous_crosslink_or_root(attestation_data: Attestatio
     Raise ``ValidationError`` if it's invalid.
     """
     attestation_creating_crosslink = Crosslink(
-        epoch=slot_to_epoch(attestation_data.slot, slots_per_epoch),
-        crosslink_data_root=attestation_data.crosslink_data_root,
+        shard=attestation_data.shard,
+        start_epoch=slot_to_epoch(attestation_data.slot, slots_per_epoch),
+        data_root=attestation_data.crosslink_data_root,
     )
     acceptable_crosslink_data = {
         # Case 1: Latest crosslink matches the one in the state

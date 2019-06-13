@@ -106,10 +106,7 @@ def test_get_genesis_beacon_state(
 
     # Recent state
     assert len(state.latest_crosslinks) == shard_count
-    assert state.latest_crosslinks[0] == Crosslink(
-        epoch=genesis_epoch,
-        crosslink_data_root=ZERO_HASH32,
-    )
+    assert state.latest_crosslinks[0] == Crosslink()
     assert len(state.latest_block_roots) == slots_per_historical_root
     assert state.latest_block_roots[0] == ZERO_HASH32
     assert len(state.latest_slashed_balances) == latest_slashed_exit_length

@@ -166,7 +166,9 @@ async def test_send_single_attestation(request, event_loop):
             target_root=ZERO_HASH32,
             source_root=ZERO_HASH32,
             shard=1,
-            previous_crosslink=Crosslink(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
+            previous_crosslink=Crosslink(
+                shard=1,
+            ),
             crosslink_data_root=ZERO_HASH32,
         ),
         custody_bitfield=b"\x00\x00\x00",
@@ -193,7 +195,9 @@ async def test_send_multiple_attestations(request, event_loop):
                 target_root=ZERO_HASH32,
                 source_root=ZERO_HASH32,
                 shard=shard,
-                previous_crosslink=Crosslink(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
+                previous_crosslink=Crosslink(
+                    shard=shard,
+                ),
                 crosslink_data_root=ZERO_HASH32,
             ),
             custody_bitfield=b"\x00\x00\x00",

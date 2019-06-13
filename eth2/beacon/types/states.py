@@ -240,14 +240,7 @@ class BeaconState(ssz.Serializable):
             finalized_root=ZERO_HASH32,
 
             # Recent state
-            latest_crosslinks=(
-                (
-                    Crosslink(
-                        epoch=genesis_epoch,
-                        crosslink_data_root=ZERO_HASH32,
-                    ),
-                ) * shard_count
-            ),
+            latest_crosslinks=(Crosslink(),) * shard_count,
             latest_block_roots=(ZERO_HASH32,) * slots_per_historical_root,
             latest_state_roots=(ZERO_HASH32,) * slots_per_historical_root,
             latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,

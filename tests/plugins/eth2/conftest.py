@@ -32,10 +32,7 @@ def mock_attestation():
             source_root=ZERO_HASH32,
             target_root=ZERO_HASH32,
             shard=0,
-            previous_crosslink=Crosslink(
-                epoch=XIAO_LONG_BAO_CONFIG.GENESIS_EPOCH,
-                crosslink_data_root=ZERO_HASH32,
-            ),
+            previous_crosslink=Crosslink(),
             crosslink_data_root=ZERO_HASH32,
         ),
         custody_bitfield=b'\x34' * 16,

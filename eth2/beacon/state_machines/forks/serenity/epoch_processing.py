@@ -324,8 +324,9 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
                         latest_crosslinks,
                         shard,
                         Crosslink(
-                            epoch=slot_to_epoch(Slot(slot), config.SLOTS_PER_EPOCH),
-                            crosslink_data_root=winning_root,
+                            shard=shard,
+                            start_epoch=slot_to_epoch(Slot(slot), config.SLOTS_PER_EPOCH),
+                            data_root=winning_root,
                         ),
                     )
     state = state.copy(

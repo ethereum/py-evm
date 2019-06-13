@@ -168,6 +168,16 @@ def test_validate_attestation_source_epoch_and_root(
             )
 
 
+def _crosslink_from_byte(byte):
+    return Crosslink(
+        shard=12,
+        start_epoch=0,
+        end_epoch=1,
+        parent_root=b'\x00' * 32,
+        data_root=byte * 32,
+    )
+
+
 @pytest.mark.parametrize(
     (
         'attestation_previous_crosslink,'
@@ -177,33 +187,33 @@ def test_validate_attestation_source_epoch_and_root(
     ),
     [
         (
-            Crosslink(0, b'\x11' * 32),
+            _crosslink_from_byte(b'\x11'),
             b'\x33' * 32,
-            Crosslink(0, b'\x22' * 32),
+            _crosslink_from_byte(b'\x22'),
             False,
         ),
         (
-            Crosslink(0, b'\x33' * 32),
+            _crosslink_from_byte(b'\x33'),
             b'\x33' * 32,
-            Crosslink(0, b'\x11' * 32),
+            _crosslink_from_byte(b'\x11'),
             False,
         ),
         (
-            Crosslink(0, b'\x11' * 32),
+            _crosslink_from_byte(b'\x11'),
             b'\x33' * 32,
-            Crosslink(0, b'\x33' * 32),
+            _crosslink_from_byte(b'\x33'),
             True,
         ),
         (
-            Crosslink(0, b'\x33' * 32),
+            _crosslink_from_byte(b'\x33'),
             b'\x22' * 32,
-            Crosslink(0, b'\x33' * 32),
+            _crosslink_from_byte(b'\x33'),
             True,
         ),
         (
-            Crosslink(0, b'\x33' * 32),
+            _crosslink_from_byte(b'\x33'),
             b'\x33' * 32,
-            Crosslink(0, b'\x33' * 32),
+            _crosslink_from_byte(b'\x33'),
             True,
         ),
     ]
