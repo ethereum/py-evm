@@ -30,3 +30,12 @@ class NoCommitteeAssignment(PyEVMError):
     Raised when no potential crosslink committee assignment.
     """
     pass
+
+
+class InvalidEpochError:
+    """
+    Raised when a function receives a query for an epoch that is not semantically valid.
+
+    Example: asking the ``BeaconState`` about an epoch that is not derivable given the current data.
+    """
+    pass
