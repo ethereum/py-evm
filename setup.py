@@ -14,6 +14,7 @@ deps = {
         # cryptography does not use semver and allows breaking changes within `0.3` version bumps.
         "cryptography>=2.5,<2.7",
         "eth-hash>=0.1.4,<1",
+        "eth-keys>=0.2.4,<0.3.0",
         "netifaces>=0.10.7<1",
         "pysha3>=1.0.0,<2.0.0",
         "SQLAlchemy>=1.3.3,<2",
