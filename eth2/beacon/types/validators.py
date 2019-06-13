@@ -72,6 +72,11 @@ class Validator(ssz.Serializable):
         """
         return self.activation_epoch <= epoch < self.exit_epoch
 
+    def is_slashable(self, epoch: Epoch) -> bool:
+        not_slashed = self.slashed is False
+        active_but_not_withdrawn = self.activation_epoch <= epoch < self.withdrawable_epoch
+        return not_slashed and active_but_not_withdrawn
+
     @classmethod
     def create_pending_validator(cls,
                                  pubkey: BLSPubkey,
