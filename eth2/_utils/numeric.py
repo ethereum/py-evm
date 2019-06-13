@@ -14,16 +14,6 @@ def bitwise_xor(a: Hash32, b: Hash32) -> Hash32:
     return Hash32(result)
 
 
-def is_power_of_two(value: int) -> bool:
-    """
-    Check if ``value`` is a power of two integer.
-    """
-    if value == 0:
-        return False
-    else:
-        return bool(value and not (value & (value - 1)))
-
-
 def integer_squareroot(value: int) -> int:
     """
     Return the integer square root of ``value``.

@@ -22,7 +22,6 @@ ZERO_TIMESTAMP = Timestamp(0)
 # shuffle function
 #
 
-POWER_OF_TWO_NUMBERS = [1, 2, 4, 8, 16, 32, 64, 128]
 MAX_LIST_SIZE = 2**40
 
 ## Proposer selection

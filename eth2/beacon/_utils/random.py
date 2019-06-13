@@ -1,11 +1,3 @@
-
-from typing import (
-    Iterable,
-    Sequence,
-    Tuple,
-    TypeVar,
-)
-
 from eth_typing import (
     Hash32,
 )
@@ -17,12 +9,8 @@ from eth2._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.constants import (
-    POWER_OF_TWO_NUMBERS,
     MAX_LIST_SIZE,
 )
-
-
-TItem = TypeVar('TItem')
 
 
 def get_shuffled_index(index: int,
@@ -65,68 +53,69 @@ def get_shuffled_index(index: int,
     return new_index
 
 
-def shuffle(values: Sequence[TItem],
-            seed: Hash32,
-            shuffle_round_count: int) -> Tuple[TItem, ...]:
-    # This uses this *sub-function* to get around this `eth-utils` bug
-    # https://github.com/ethereum/eth-utils/issues/152
-    return tuple(_shuffle(values, seed, shuffle_round_count))
+# TODO(ralexstokes) I think this has all been deprecated... clean up(?)
+# def shuffle(values: Sequence[TItem],
+#             seed: Hash32,
+#             shuffle_round_count: int) -> Tuple[TItem, ...]:
+#     # This uses this *sub-function* to get around this `eth-utils` bug
+#     # https://github.com/ethereum/eth-utils/issues/152
+#     return tuple(_shuffle(values, seed, shuffle_round_count))
 
 
-def _shuffle(values: Sequence[TItem],
-             seed: Hash32,
-             shuffle_round_count: int) -> Iterable[TItem]:
-    """
-    Return shuffled indices in a pseudorandom permutation `0...list_size-1` with
-    ``seed`` as entropy.
+# def _shuffle(values: Sequence[TItem],
+#              seed: Hash32,
+#              shuffle_round_count: int) -> Iterable[TItem]:
+#     """
+#     Return shuffled indices in a pseudorandom permutation `0...list_size-1` with
+#     ``seed`` as entropy.
 
-    Utilizes 'swap or not' shuffling found in
-    https://link.springer.com/content/pdf/10.1007%2F978-3-642-32009-5_1.pdf
-    See the 'generalized domain' algorithm on page 3.
-    """
-    list_size = len(values)
+#     Utilizes 'swap or not' shuffling found in
+#     https://link.springer.com/content/pdf/10.1007%2F978-3-642-32009-5_1.pdf
+#     See the 'generalized domain' algorithm on page 3.
+#     """
+#     list_size = len(values)
 
-    if list_size > MAX_LIST_SIZE:
-        raise ValidationError(
-            f"The `list_size` ({list_size}) should be equal to or less than "
-            f"`MAX_LIST_SIZE` ({MAX_LIST_SIZE}"
-        )
+#     if list_size > MAX_LIST_SIZE:
+#         raise ValidationError(
+#             f"The `list_size` ({list_size}) should be equal to or less than "
+#             f"`MAX_LIST_SIZE` ({MAX_LIST_SIZE}"
+#         )
 
-    indices = list(range(list_size))
-    for round in range(shuffle_round_count):
-        hash_bytes = b''.join(
-            [
-                hash_eth2(seed + round.to_bytes(1, 'little') + i.to_bytes(4, 'little'))
-                for i in range((list_size + 255) // 256)
-            ]
-        )
+#     indices = list(range(list_size))
+#     for round in range(shuffle_round_count):
+#         hash_bytes = b''.join(
+#             [
+#                 hash_eth2(seed + round.to_bytes(1, 'little') + i.to_bytes(4, 'little'))
+#                 for i in range((list_size + 255) // 256)
+#             ]
+#         )
 
-        pivot = int.from_bytes(
-            hash_eth2(seed + round.to_bytes(1, 'little'))[:8],
-            'little',
-        ) % list_size
-        for i in range(list_size):
-            flip = (pivot - indices[i]) % list_size
-            hash_position = indices[i] if indices[i] > flip else flip
-            byte = hash_bytes[hash_position // 8]
-            mask = POWER_OF_TWO_NUMBERS[hash_position % 8]
-            if byte & mask:
-                indices[i] = flip
-            else:
-                # not swap
-                pass
+#         pivot = int.from_bytes(
+#             hash_eth2(seed + round.to_bytes(1, 'little'))[:8],
+#             'little',
+#         ) % list_size
+#         for i in range(list_size):
+#             flip = (pivot - indices[i]) % list_size
+#             hash_position = indices[i] if indices[i] > flip else flip
+#             byte = hash_bytes[hash_position // 8]
+#             mask = POWER_OF_TWO_NUMBERS[hash_position % 8]
+#             if byte & mask:
+#                 indices[i] = flip
+#             else:
+#                 # not swap
+#                 pass
 
-    for i in indices:
-        yield values[i]
+#     for i in indices:
+#         yield values[i]
 
 
-def split(values: Sequence[TItem], split_count: int) -> Tuple[Sequence[TItem], ...]:
-    """
-    Return the split ``values`` in ``split_count`` pieces in protocol.
-    Spec: https://github.com/ethereum/eth2.0-specs/blob/70cef14a08de70e7bd0455d75cf380eb69694bfb/specs/core/0_beacon-chain.md#helper-functions  # noqa: E501
-    """
-    list_length = len(values)
-    return tuple(
-        values[(list_length * i // split_count): (list_length * (i + 1) // split_count)]
-        for i in range(split_count)
-    )
+# def split(values: Sequence[TItem], split_count: int) -> Tuple[Sequence[TItem], ...]:
+#     """
+#     Return the split ``values`` in ``split_count`` pieces in protocol.
+#     Spec: https://github.com/ethereum/eth2.0-specs/blob/70cef14a08de70e7bd0455d75cf380eb69694bfb/specs/core/0_beacon-chain.md#helper-functions  # noqa: E501
+#     """
+#     list_length = len(values)
+#     return tuple(
+#         values[(list_length * i // split_count): (list_length * (i + 1) // split_count)]
+#         for i in range(split_count)
+#     )
