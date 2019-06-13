@@ -2,6 +2,10 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from eth.constants import (
+    ZERO_HASH32,
+)
+
 from eth_typing import (
     BLSSignature,
     Hash32,
@@ -39,10 +43,10 @@ class BeaconBlockHeader(ssz.SignedSerializable):
 
     def __init__(self,
                  *,
-                 slot: Slot,
-                 previous_block_root: Hash32,
-                 state_root: Hash32,
-                 block_body_root: Hash32,
+                 slot: Slot=0,
+                 previous_block_root: Hash32=ZERO_HASH32,
+                 state_root: Hash32=ZERO_HASH32,
+                 block_body_root: Hash32=ZERO_HASH32,
                  signature: BLSSignature=EMPTY_SIGNATURE):
         super().__init__(
             slot=slot,

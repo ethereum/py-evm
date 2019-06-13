@@ -22,8 +22,8 @@ class Eth1Data(ssz.Serializable):
     ]
 
     def __init__(self,
-                 deposit_root: Hash32,
-                 block_hash: Hash32) -> None:
+                 deposit_root: Hash32=ZERO_HASH32,
+                 block_hash: Hash32=ZERO_HASH32) -> None:
         super().__init__(
             deposit_root=deposit_root,
             block_hash=block_hash,
