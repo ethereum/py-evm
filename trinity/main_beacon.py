@@ -41,7 +41,7 @@ from trinity.initialization import (
     ensure_beacon_dirs,
 )
 from trinity.plugins.registry import (
-    BASE_PLUGINS,
+    get_plugins_for_beacon_client,
 )
 from trinity._utils.ipc import (
     wait_for_ipc,
@@ -62,7 +62,12 @@ from trinity._utils.proxy import (
 
 
 def main_beacon() -> None:
-    main_entry(trinity_boot, APP_IDENTIFIER_BEACON, BASE_PLUGINS, (BeaconAppConfig,))
+    main_entry(
+        trinity_boot,
+        APP_IDENTIFIER_BEACON,
+        get_plugins_for_beacon_client(),
+        (BeaconAppConfig,)
+    )
 
 
 def trinity_boot(args: Namespace,

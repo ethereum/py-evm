@@ -5,7 +5,6 @@ import multiprocessing
 from typing import (
     Any,
     Dict,
-    Iterable,
     Tuple,
     Type,
 )
@@ -40,7 +39,6 @@ from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
 from trinity.extensibility import (
-    BasePlugin,
     PluginManager,
     SharedProcessScope,
 )
@@ -48,9 +46,7 @@ from trinity.initialization import (
     ensure_eth1_dirs,
 )
 from trinity.plugins.registry import (
-    BASE_PLUGINS,
-    discover_plugins,
-    ETH1_NODE_PLUGINS,
+    get_plugins_for_eth1_client,
 )
 from trinity._utils.ipc import (
     wait_for_ipc,
@@ -73,12 +69,8 @@ from trinity._utils.shutdown import (
 )
 
 
-def get_all_plugins() -> Iterable[Type[BasePlugin]]:
-    return BASE_PLUGINS + ETH1_NODE_PLUGINS + discover_plugins()
-
-
 def main() -> None:
-    main_entry(trinity_boot, APP_IDENTIFIER_ETH1, get_all_plugins(), (Eth1AppConfig,))
+    main_entry(trinity_boot, APP_IDENTIFIER_ETH1, get_plugins_for_eth1_client(), (Eth1AppConfig,))
 
 
 def trinity_boot(args: Namespace,
@@ -161,7 +153,7 @@ async def launch_node_coro(args: Namespace, trinity_config: TrinityConfig) -> No
         await endpoint.announce_endpoint()
 
         # This is a second PluginManager instance governing plugins in a shared process.
-        plugin_manager = PluginManager(SharedProcessScope(endpoint), get_all_plugins())
+        plugin_manager = PluginManager(SharedProcessScope(endpoint), get_plugins_for_eth1_client())
         plugin_manager.prepare(args, trinity_config)
 
         asyncio.ensure_future(handle_networking_exit(node, plugin_manager, endpoint))
