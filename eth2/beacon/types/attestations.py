@@ -66,10 +66,10 @@ class IndexedAttestation(ssz.Serializable):
     ]
 
     def __init__(self,
-                 custody_bit_0_indices: Sequence[ValidatorIndex],
-                 custody_bit_1_indices: Sequence[ValidatorIndex],
-                 data: AttestationData,
-                 signature: BLSSignature) -> None:
+                 custody_bit_0_indices: Sequence[ValidatorIndex]=tuple(),
+                 custody_bit_1_indices: Sequence[ValidatorIndex]=tuple(),
+                 data: AttestationData=AttestationData(),
+                 signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             custody_bit_0_indices,
             custody_bit_1_indices,
