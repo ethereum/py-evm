@@ -44,6 +44,8 @@ from p2p.discv5.identity_schemes import (
 from p2p.discv5.constants import (
     MAX_ENR_SIZE,
     ENR_REPR_PREFIX,
+    IP_V4_SIZE,
+    IP_V6_SIZE,
 )
 
 
@@ -349,10 +351,10 @@ IDENTITY_SCHEME_ENR_KEY = b"id"
 ENR_KEY_SEDES_MAPPING = {
     b"id": binary,
     b"secp256k1": Binary.fixed_length(33),
-    b"ip": Binary.fixed_length(4),
+    b"ip": Binary.fixed_length(IP_V4_SIZE),
     b"tcp": big_endian_int,
     b"udp": big_endian_int,
-    b"ip6": Binary.fixed_length(16),
+    b"ip6": Binary.fixed_length(IP_V6_SIZE),
     b"tcp6": big_endian_int,
     b"udp6": big_endian_int,
 }
