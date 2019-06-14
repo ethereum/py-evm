@@ -4,6 +4,9 @@ from pathlib import Path
 import tempfile
 import uuid
 
+from async_generator import (
+    asynccontextmanager,
+)
 import pytest
 
 from eth_utils import (
@@ -123,8 +126,8 @@ def async_process_runner():
         pass
 
 
-@pytest.fixture
-async def event_bus():
+@asynccontextmanager
+async def make_networking_event_bus():
     # Tests run concurrently, therefore we need unique IPC paths
     ipc_path = Path(f"networking-{uuid.uuid4()}.ipc")
     networking_connection_config = ConnectionConfig(
@@ -132,6 +135,19 @@ async def event_bus():
         path=ipc_path
     )
     async with TrinityEventBusEndpoint.serve(networking_connection_config) as endpoint:
+        yield endpoint
+
+
+@pytest.fixture
+async def event_bus():
+    async with make_networking_event_bus() as endpoint:
+        yield endpoint
+
+
+# Tests with multiple peers require us to give each of them there independent 'networking' endpoint
+@pytest.fixture
+async def other_event_bus():
+    async with make_networking_event_bus() as endpoint:
         yield endpoint
 
 

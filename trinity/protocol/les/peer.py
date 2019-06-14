@@ -37,11 +37,13 @@ from trinity.exceptions import (
 )
 from trinity.protocol.common.peer import (
     BaseChainPeer,
+    BaseProxyPeer,
     BaseChainPeerFactory,
     BaseChainPeerPool,
 )
 from trinity.protocol.common.peer_pool_event_bus import (
     PeerPoolEventServer,
+    BaseProxyPeerPool,
 )
 
 from .commands import (
@@ -132,14 +134,20 @@ class LESPeer(BaseChainPeer):
             raise HandshakeFailure(f"{self} doesn't serve headers, disconnecting")
 
 
-class LESProxyPeer:
+class LESProxyPeer(BaseProxyPeer):
     """
     A ``LESPeer`` that can be used from any process instead of the actual peer pool peer.
     Any action performed on the ``BCCProxyPeer`` is delegated to the actual peer in the pool.
     This does not yet mimic all APIs of the real peer.
     """
 
-    def __init__(self, sub_proto: ProxyLESProtocol):
+    def __init__(self,
+                 remote: Node,
+                 event_bus: TrinityEventBusEndpoint,
+                 sub_proto: ProxyLESProtocol):
+
+        super().__init__(remote, event_bus)
+
         self.sub_proto = sub_proto
 
     @classmethod
@@ -147,7 +155,7 @@ class LESProxyPeer:
                   remote: Node,
                   event_bus: TrinityEventBusEndpoint,
                   broadcast_config: BroadcastConfig) -> 'LESProxyPeer':
-        return cls(ProxyLESProtocol(remote, event_bus, broadcast_config))
+        return cls(remote, event_bus, ProxyLESProtocol(remote, event_bus, broadcast_config))
 
 
 class LESPeerFactory(BaseChainPeerFactory):
@@ -182,3 +190,16 @@ class LESPeerPoolEventServer(PeerPoolEventServer[LESPeer]):
 
 class LESPeerPool(BaseChainPeerPool):
     peer_factory_class = LESPeerFactory
+
+
+class LESProxyPeerPool(BaseProxyPeerPool[LESProxyPeer]):
+
+    def convert_node_to_proxy_peer(self,
+                                   remote: Node,
+                                   event_bus: TrinityEventBusEndpoint,
+                                   broadcast_config: BroadcastConfig) -> LESProxyPeer:
+        return LESProxyPeer.from_node(
+            remote,
+            self.event_bus,
+            self.broadcast_config
+        )

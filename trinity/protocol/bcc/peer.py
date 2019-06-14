@@ -49,6 +49,9 @@ from trinity.protocol.bcc.commands import (
 from trinity.protocol.bcc.context import (
     BeaconContext,
 )
+from trinity.protocol.common.peer import (
+    BaseProxyPeer,
+)
 from trinity.protocol.common.peer_pool_event_bus import (
     PeerPoolEventServer,
 )
@@ -58,14 +61,20 @@ from .events import (
 )
 
 
-class BCCProxyPeer:
+class BCCProxyPeer(BaseProxyPeer):
     """
     A ``BCCPeer`` that can be used from any process instead of the actual peer pool peer.
     Any action performed on the ``BCCProxyPeer`` is delegated to the actual peer in the pool.
     This does not yet mimic all APIs of the real peer.
     """
 
-    def __init__(self, sub_proto: ProxyBCCProtocol):
+    def __init__(self,
+                 remote: Node,
+                 event_bus: TrinityEventBusEndpoint,
+                 sub_proto: ProxyBCCProtocol):
+
+        super().__init__(remote, event_bus)
+
         self.sub_proto = sub_proto
 
     @classmethod
@@ -73,7 +82,7 @@ class BCCProxyPeer:
                   remote: Node,
                   event_bus: TrinityEventBusEndpoint,
                   broadcast_config: BroadcastConfig) -> 'BCCProxyPeer':
-        return cls(ProxyBCCProtocol(remote, event_bus, broadcast_config))
+        return cls(remote, event_bus, ProxyBCCProtocol(remote, event_bus, broadcast_config))
 
 
 class BCCPeer(BasePeer):

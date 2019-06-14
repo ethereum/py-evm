@@ -37,6 +37,9 @@ from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.peer_pool_event_bus import (
     DefaultPeerPoolEventServer,
 )
+from trinity.protocol.eth.peer import (
+    ETHProxyPeerPool,
+)
 from trinity.protocol.eth.servers import (
     ETHRequestServer,
 )
@@ -230,3 +233,21 @@ async def run_request_server(event_bus, chaindb, server_type=None):
         yield request_server
     finally:
         await request_server.cancel()
+
+
+@asynccontextmanager
+async def run_proxy_peer_pool(event_bus, peer_pool_type=None):
+
+    peer_pool_type = ETHProxyPeerPool if peer_pool_type is None else peer_pool_type
+
+    proxy_peer_pool = peer_pool_type(
+        event_bus,
+        TO_NETWORKING_BROADCAST_CONFIG,
+    )
+    asyncio.ensure_future(proxy_peer_pool.run())
+
+    await proxy_peer_pool.events.started.wait()
+    try:
+        yield proxy_peer_pool
+    finally:
+        await proxy_peer_pool.cancel()

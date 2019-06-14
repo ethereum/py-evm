@@ -63,7 +63,8 @@ if TYPE_CHECKING:
             BlockIdentifier,
             int,
             DefaultArg(int, 'skip'),
-            DefaultArg(int, 'reverse')
+            DefaultArg(int, 'reverse'),
+            DefaultArg(float, 'timeout')
         ],
         Awaitable[Tuple[BlockHeader, ...]]
     ]

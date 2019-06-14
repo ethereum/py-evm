@@ -3,6 +3,7 @@ from dataclasses import (
 )
 from typing import (
     Type,
+    TypeVar
 )
 
 from lahja import (
@@ -29,7 +30,19 @@ class HasRemoteEvent(BaseEvent):
     remote: Node
 
 
-@dataclass
+TResponse = TypeVar('TResponse', bound=BaseEvent)
+
+
+class HasRemoteAndTimeoutRequest(BaseRequestResponseEvent[TResponse]):
+    """
+    Abstract base class for request types that carry a ``remote`` and ``timeout`` property.
+    """
+
+    def __init__(self, remote: Node, timeout: float) -> None:
+        self.remote = remote
+        self.timeout = timeout
+
+
 class ConnectToNodeCommand(HasRemoteEvent):
     """
     Event that wraps a node URI that the pool should connect to.

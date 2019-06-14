@@ -3,8 +3,10 @@ from typing import (
     cast,
     Dict,
     List,
+    Tuple,
 )
 
+from eth.rlp.headers import BlockHeader
 from eth_utils import encode_hex
 from lahja import (
     BroadcastConfig,
@@ -35,7 +37,14 @@ from trinity.protocol.common.peer import (
     BaseChainPeerPool,
 )
 from trinity.protocol.common.peer_pool_event_bus import (
+    BaseProxyPeer,
+    BaseProxyPeerPool,
     PeerPoolEventServer,
+)
+from trinity.protocol.common.types import (
+    BlockBodyBundles,
+    NodeDataBundles,
+    ReceiptsBundles,
 )
 
 from .commands import (
@@ -51,9 +60,13 @@ from .commands import (
 from .constants import MAX_HEADERS_FETCH
 from .events import (
     GetBlockHeadersEvent,
+    GetBlockHeadersRequest,
     GetBlockBodiesEvent,
+    GetBlockBodiesRequest,
     GetReceiptsEvent,
     GetNodeDataEvent,
+    GetNodeDataRequest,
+    GetReceiptsRequest,
     NewBlockHashesEvent,
     SendBlockBodiesEvent,
     SendBlockHeadersEvent,
@@ -62,7 +75,7 @@ from .events import (
     TransactionsEvent,
 )
 from .proto import ETHProtocol, ProxyETHProtocol
-from .handlers import ETHExchangeHandler
+from .handlers import ETHExchangeHandler, ProxyETHExchangeHandler
 
 
 class ETHPeer(BaseChainPeer):
@@ -127,22 +140,35 @@ class ETHPeer(BaseChainPeer):
             )
 
 
-class ETHProxyPeer:
+class ETHProxyPeer(BaseProxyPeer):
     """
     A ``ETHPeer`` that can be used from any process instead of the actual peer pool peer.
     Any action performed on the ``BCCProxyPeer`` is delegated to the actual peer in the pool.
     This does not yet mimic all APIs of the real peer.
     """
 
-    def __init__(self, sub_proto: ProxyETHProtocol):
+    def __init__(self,
+                 remote: Node,
+                 event_bus: TrinityEventBusEndpoint,
+                 sub_proto: ProxyETHProtocol,
+                 requests: ProxyETHExchangeHandler):
+
+        super().__init__(remote, event_bus)
+
         self.sub_proto = sub_proto
+        self.requests = requests
 
     @classmethod
     def from_node(cls,
                   remote: Node,
                   event_bus: TrinityEventBusEndpoint,
                   broadcast_config: BroadcastConfig) -> 'ETHProxyPeer':
-        return cls(ProxyETHProtocol(remote, event_bus, broadcast_config))
+        return cls(
+            remote,
+            event_bus,
+            ProxyETHProtocol(remote, event_bus, broadcast_config),
+            ProxyETHExchangeHandler(remote, event_bus, broadcast_config)
+        )
 
 
 class ETHPeerFactory(BaseChainPeerFactory):
@@ -174,7 +200,40 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
         self.run_daemon_event(
             SendReceiptsEvent, lambda peer, ev: peer.sub_proto.send_receipts(ev.receipts))
 
+        self.run_daemon_request(GetBlockHeadersRequest, self.handle_get_block_headers_request)
+        self.run_daemon_request(GetReceiptsRequest, self.handle_get_receipts_request)
+        self.run_daemon_request(GetBlockBodiesRequest, self.handle_get_block_bodies_request)
+        self.run_daemon_request(GetNodeDataRequest, self.handle_get_node_data_request)
+
         await super()._run()
+
+    async def handle_get_block_headers_request(
+            self,
+            peer: ETHPeer,
+            event: GetBlockHeadersRequest) -> Tuple[BlockHeader, ...]:
+
+        return await peer.requests.get_block_headers(
+            event.block_number_or_hash,
+            event.max_headers,
+            skip=event.skip,
+            reverse=event.reverse,
+            timeout=event.timeout
+        )
+
+    async def handle_get_receipts_request(self,
+                                          peer: ETHPeer,
+                                          event: GetReceiptsRequest) -> ReceiptsBundles:
+        return await peer.requests.get_receipts(event.headers)
+
+    async def handle_get_block_bodies_request(self,
+                                              peer: ETHPeer,
+                                              event: GetBlockBodiesRequest) -> BlockBodyBundles:
+        return await peer.requests.get_block_bodies(event.headers)
+
+    async def handle_get_node_data_request(self,
+                                           peer: ETHPeer,
+                                           event: GetNodeDataRequest) -> NodeDataBundles:
+        return await peer.requests.get_node_data(event.node_hashes)
 
     async def handle_native_peer_message(self,
                                          remote: Node,
@@ -199,3 +258,16 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
 
 class ETHPeerPool(BaseChainPeerPool):
     peer_factory_class = ETHPeerFactory
+
+
+class ETHProxyPeerPool(BaseProxyPeerPool[ETHProxyPeer]):
+
+    def convert_node_to_proxy_peer(self,
+                                   remote: Node,
+                                   event_bus: TrinityEventBusEndpoint,
+                                   broadcast_config: BroadcastConfig) -> ETHProxyPeer:
+        return ETHProxyPeer.from_node(
+            remote,
+            self.event_bus,
+            self.broadcast_config
+        )
