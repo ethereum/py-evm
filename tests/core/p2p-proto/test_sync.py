@@ -1,10 +1,15 @@
 import asyncio
 
 from eth.exceptions import HeaderNotFound
-import pytest
+from lahja import ConnectionConfig, AsyncioEndpoint
 from p2p.service import BaseService
+import pytest
 
 from trinity.protocol.eth.peer import ETHPeerPoolEventServer
+from trinity.sync.beam.importer import (
+    pausing_vm_decorator,
+    BlockImportServer,
+)
 from trinity.protocol.eth.sync import ETHHeaderChainSyncer
 from trinity.protocol.les.peer import LESPeer
 from trinity.protocol.les.servers import LightRequestServer
@@ -18,15 +23,20 @@ from trinity.protocol.les.peer import (
 )
 
 from trinity.sync.full.state import StateDownloader
+from trinity.sync.beam.chain import (
+    BeamSyncer,
+)
 from trinity.sync.light.chain import LightChainSyncer
 
 from tests.core.integration_test_helpers import (
     ByzantiumTestChain,
     DBFixture,
     FakeAsyncAtomicDB,
+    FakeAsyncChain,
     FakeAsyncChainDB,
     FakeAsyncHeaderDB,
     LatestTestChain,
+    PetersburgVM,
     load_fixture_db,
     load_mining_chain,
     run_peer_pool_event_server,
@@ -118,6 +128,85 @@ async def test_skeleton_syncer(request, event_loop, event_bus, chaindb_fresh, ch
         await asyncio.wait_for(state_downloader.run(), timeout=20)
 
         assert head.state_root in chaindb_fresh.db
+
+
+# Identified tricky scenarios:
+# - 66: Missing an account trie node required for account deletion trie fixups,
+#       when "resuming" execution after completing all transactions
+# - 68: If some storage saves succeed and some fail, you might get:
+#       After persisting storage trie, a root node was not found.
+#       State root for account 0x49361e4f811f49542f19d691cf5f79d39983e8e0 is missing for
+#       hash 0x4d76d61d563099c7fa0088068bc7594d27334f5df2df43110bf86ff91dce5be6
+# This test was reduced to a few cases for speed. To run the full suite, use
+# range(1, 130) for beam_to_block. (and optionally follow the instructions at target_head)
+@pytest.mark.asyncio
+@pytest.mark.parametrize('beam_to_block', [1, 66, 68, 129])
+async def test_beam_syncer(
+        request,
+        event_loop,
+        event_bus,
+        chaindb_fresh,
+        chaindb_churner,
+        beam_to_block):
+
+    client_peer, server_peer = await get_directly_linked_peers(
+        request, event_loop,
+        alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
+        bob_headerdb=FakeAsyncHeaderDB(chaindb_churner.db))
+
+    # manually add endpoint for beam vm to make requests
+    pausing_config = ConnectionConfig.from_name("PausingEndpoint")
+
+    # manually add endpoint for trie data gatherer to serve requests
+    gatherer_config = ConnectionConfig.from_name("GathererEndpoint")
+
+    client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
+    server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
+
+    async with run_peer_pool_event_server(
+        event_bus, server_peer_pool, handler_type=ETHPeerPoolEventServer
+    ), run_request_server(
+        event_bus, FakeAsyncChainDB(chaindb_churner.db)
+    ), AsyncioEndpoint.serve(
+        pausing_config
+    ) as pausing_endpoint, AsyncioEndpoint.serve(gatherer_config) as gatherer_endpoint:
+
+        BeamPetersburgVM = pausing_vm_decorator(PetersburgVM, pausing_endpoint)
+
+        class BeamPetersburgTestChain(FakeAsyncChain):
+            vm_configuration = ((0, BeamPetersburgVM),)
+            network_id = 999
+
+        client_chain = BeamPetersburgTestChain(chaindb_fresh.db)
+        client = BeamSyncer(
+            client_chain,
+            chaindb_fresh.db,
+            client_chain.chaindb,
+            client_peer_pool,
+            gatherer_endpoint,
+            beam_to_block,
+        )
+
+        client_peer.logger.info("%s is serving churner blocks", client_peer)
+        server_peer.logger.info("%s is syncing up churner blocks", server_peer)
+
+        import_server = BlockImportServer(pausing_endpoint, client_chain, token=client.cancel_token)
+        asyncio.ensure_future(import_server.run())
+
+        await pausing_endpoint.connect_to_endpoints(gatherer_config)
+        asyncio.ensure_future(client.run())
+
+        # We can sync at least 10 blocks in 1s at current speeds, (or reach the current one)
+        # Trying to keep the tests short-ish. A fuller test could always set the target header
+        #   to the chaindb_churner canonical head, and increase the timeout significantly
+        target_block_number = min(beam_to_block + 10, 129)
+        target_head = chaindb_churner.get_canonical_block_header_by_number(target_block_number)
+        await wait_for_head(chaindb_fresh, target_head, sync_timeout=4)
+        assert target_head.state_root in chaindb_fresh.db
+
+        # first stop the import server, so it doesn't hang waiting for state data
+        await import_server.cancel()
+        await client.cancel()
 
 
 @pytest.mark.asyncio

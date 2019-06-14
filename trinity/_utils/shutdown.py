@@ -27,6 +27,16 @@ async def exit_with_services(*services_to_exit: BaseService) -> None:
         pass
 
 
+async def clean_up_endpoint(endpoint: TrinityEventBusEndpoint) -> None:
+    """
+    Used when the event bus is the only thing to exit. This should probably
+    be changed when lahja is more sync-friendly.
+    """
+    loop = asyncio.get_event_loop()
+    async with exit_signal(loop):
+        endpoint.stop()
+
+
 @asynccontextmanager
 async def exit_signal_with_services(*services_to_exit: BaseService,
                                     ) -> AsyncGenerator[None, None]:

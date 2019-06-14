@@ -32,6 +32,7 @@ from trinity.constants import (
     SYNC_FAST,
     SYNC_FULL,
     SYNC_LIGHT,
+    SYNC_BEAM,
 )
 from trinity.endpoint import (
     TrinityEventBusEndpoint,
@@ -52,6 +53,9 @@ from trinity.protocol.les.peer import (
 from trinity.sync.full.service import (
     FastThenFullChainSyncer,
     FullChainSyncer,
+)
+from trinity.sync.beam.service import (
+    BeamSyncService,
 )
 from trinity.sync.light.chain import (
     LightChainSyncer,
@@ -79,6 +83,7 @@ class BaseSyncStrategy(ABC):
                    chain: BaseChain,
                    db_manager: BaseManager,
                    peer_pool: BaseChainPeerPool,
+                   event_bus: TrinityEventBusEndpoint,
                    cancel_token: CancelToken) -> None:
         pass
 
@@ -98,6 +103,7 @@ class NoopSyncStrategy(BaseSyncStrategy):
                    chain: BaseChain,
                    db_manager: BaseManager,
                    peer_pool: BaseChainPeerPool,
+                   event_bus: TrinityEventBusEndpoint,
                    cancel_token: CancelToken) -> None:
 
         logger.info("Node running without sync (--sync-mode=%s)", self.get_sync_mode())
@@ -114,6 +120,7 @@ class FullSyncStrategy(BaseSyncStrategy):
                    chain: BaseChain,
                    db_manager: BaseManager,
                    peer_pool: BaseChainPeerPool,
+                   event_bus: TrinityEventBusEndpoint,
                    cancel_token: CancelToken) -> None:
 
         syncer = FullChainSyncer(
@@ -138,6 +145,7 @@ class FastThenFullSyncStrategy(BaseSyncStrategy):
                    chain: BaseChain,
                    db_manager: BaseManager,
                    peer_pool: BaseChainPeerPool,
+                   event_bus: TrinityEventBusEndpoint,
                    cancel_token: CancelToken) -> None:
 
         syncer = FastThenFullChainSyncer(
@@ -145,6 +153,32 @@ class FastThenFullSyncStrategy(BaseSyncStrategy):
             db_manager.get_chaindb(),  # type: ignore
             db_manager.get_db(),  # type: ignore
             cast(ETHPeerPool, peer_pool),
+            cancel_token,
+        )
+
+        await syncer.run()
+
+
+class BeamSyncStrategy(BaseSyncStrategy):
+
+    @classmethod
+    def get_sync_mode(cls) -> str:
+        return SYNC_BEAM
+
+    async def sync(self,
+                   logger: Logger,
+                   chain: BaseChain,
+                   db_manager: BaseManager,
+                   peer_pool: BaseChainPeerPool,
+                   event_bus: TrinityEventBusEndpoint,
+                   cancel_token: CancelToken) -> None:
+
+        syncer = BeamSyncService(
+            chain,
+            db_manager.get_chaindb(),  # type: ignore
+            db_manager.get_db(),  # type: ignore
+            cast(ETHPeerPool, peer_pool),
+            event_bus,
             cancel_token,
         )
 
@@ -162,6 +196,7 @@ class LightSyncStrategy(BaseSyncStrategy):
                    chain: BaseChain,
                    db_manager: BaseManager,
                    peer_pool: BaseChainPeerPool,
+                   event_bus: TrinityEventBusEndpoint,
                    cancel_token: CancelToken) -> None:
 
         syncer = LightChainSyncer(
@@ -184,6 +219,7 @@ class SyncerPlugin(BaseAsyncStopPlugin):
     strategies: Iterable[BaseSyncStrategy] = (
         FastThenFullSyncStrategy(),
         FullSyncStrategy(),
+        BeamSyncStrategy(),
         LightSyncStrategy(),
         NoopSyncStrategy(),
     )
@@ -262,6 +298,7 @@ class SyncerPlugin(BaseAsyncStopPlugin):
             self.chain,
             self.db_manager,
             self.peer_pool,
+            self.event_bus,
             self.cancel_token
         )
 

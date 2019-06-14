@@ -31,6 +31,7 @@ PID_DIR = 'pids'
 SYNC_FULL = 'full'
 SYNC_FAST = 'fast'
 SYNC_LIGHT = 'light'
+SYNC_BEAM = 'beam'
 
 # lahja endpoint names
 MAIN_EVENTBUS_ENDPOINT = 'main'
