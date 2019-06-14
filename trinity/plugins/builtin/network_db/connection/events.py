@@ -1,3 +1,6 @@
+from dataclasses import (
+    dataclass,
+)
 from typing import Type
 
 from lahja import (
@@ -12,21 +15,24 @@ class BaseConnectionTrackerEvent(BaseEvent):
     pass
 
 
+@dataclass
 class BlacklistEvent(BaseConnectionTrackerEvent):
-    def __init__(self, remote: Node, timeout_seconds: int, reason: str) -> None:
-        self.remote = remote
-        self.timeout_seconds = timeout_seconds
-        self.reason = reason
+
+    remote: Node
+    timeout_seconds: int
+    reason: str
 
 
+@dataclass
 class ShouldConnectToPeerResponse(BaseConnectionTrackerEvent):
-    def __init__(self, should_connect: bool) -> None:
-        self.should_connect = should_connect
+
+    should_connect: bool
 
 
+@dataclass
 class ShouldConnectToPeerRequest(BaseRequestResponseEvent[ShouldConnectToPeerResponse]):
-    def __init__(self, remote: Node) -> None:
-        self.remote = remote
+
+    remote: Node
 
     @staticmethod
     def expected_response_type() -> Type[ShouldConnectToPeerResponse]:

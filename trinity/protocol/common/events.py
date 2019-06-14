@@ -1,6 +1,5 @@
-from abc import (
-    ABC,
-    abstractmethod,
+from dataclasses import (
+    dataclass,
 )
 from typing import (
     Type,
@@ -21,37 +20,30 @@ from p2p.protocol import (
 )
 
 
-class HasRemoteEvent(BaseEvent, ABC):
+@dataclass
+class HasRemoteEvent(BaseEvent):
     """
     Abstract base event for event types that carry a ``Node`` on the ``remote`` property.
     """
 
-    @property
-    @abstractmethod
-    def remote(self) -> Node:
-        pass
+    remote: Node
 
 
+@dataclass
 class ConnectToNodeCommand(HasRemoteEvent):
     """
     Event that wraps a node URI that the pool should connect to.
     """
-
-    def __init__(self, remote: Node) -> None:
-        self._remote = remote
-
-    @property
-    def remote(self) -> Node:
-        return self._remote
+    pass
 
 
+@dataclass
 class PeerCountResponse(BaseEvent):
     """
     Response event that wraps the count of peers connected to the pool.
     """
 
-    def __init__(self, peer_count: int) -> None:
-        self.peer_count = peer_count
+    peer_count: int
 
 
 class PeerCountRequest(BaseRequestResponseEvent[PeerCountResponse]):
@@ -64,20 +56,16 @@ class PeerCountRequest(BaseRequestResponseEvent[PeerCountResponse]):
         return PeerCountResponse
 
 
+@dataclass
 class DisconnectPeerEvent(HasRemoteEvent):
     """
     Event broadcasted when we want to disconnect from a peer
     """
 
-    def __init__(self, remote: Node, reason: DisconnectReason) -> None:
-        self._remote = remote
-        self.reason = reason
-
-    @property
-    def remote(self) -> Node:
-        return self._remote
+    reason: DisconnectReason
 
 
+@dataclass
 class PeerPoolMessageEvent(HasRemoteEvent):
     """
     Base event for all peer messages that are relayed on the event bus. The events are mapped
@@ -85,11 +73,5 @@ class PeerPoolMessageEvent(HasRemoteEvent):
     the event bus.
     """
 
-    def __init__(self, remote: Node, cmd: Command, msg: PayloadType) -> None:
-        self._remote = remote
-        self.cmd = cmd
-        self.msg = msg
-
-    @property
-    def remote(self) -> Node:
-        return self._remote
+    cmd: Command
+    msg: PayloadType

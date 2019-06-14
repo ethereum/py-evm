@@ -1,3 +1,6 @@
+from dataclasses import (
+    dataclass,
+)
 from typing import (
     Tuple,
 )
@@ -24,19 +27,12 @@ class GetBeaconBlocksEvent(PeerPoolMessageEvent):
     pass
 
 
+@dataclass
 class SendBeaconBlocksEvent(HasRemoteEvent):
     """
     Event to proxy a ``BccPeer.sub_proto.send_blocks`` call from a proxy peer to the actual peer
     that sits in the peer pool.
     """
-    def __init__(self,
-                 remote: Node,
-                 blocks: Tuple[BaseBeaconBlock, ...],
-                 request_id: int) -> None:
-        self._remote = remote
-        self.blocks = blocks
-        self.request_id = request_id
-
-    @property
-    def remote(self) -> Node:
-        return self._remote
+    remote: Node
+    blocks: Tuple[BaseBeaconBlock, ...]
+    request_id: int

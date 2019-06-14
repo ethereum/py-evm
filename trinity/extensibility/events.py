@@ -1,3 +1,6 @@
+from dataclasses import (
+    dataclass,
+)
 from typing import (
     Any,
     Type,
@@ -15,18 +18,20 @@ if TYPE_CHECKING:
     )
 
 
+@dataclass
 class PluginStartedEvent(BaseEvent):
     """
     Broadcasted when a plugin was started
     """
-    def __init__(self, plugin_type: Type['BasePlugin']) -> None:
-        self.plugin_type = plugin_type
+
+    plugin_type: Type['BasePlugin']
 
 
+@dataclass
 class ResourceAvailableEvent(BaseEvent):
     """
     Broadcasted when a resource becomes available
     """
-    def __init__(self, resource: Any, resource_type: Type[Any]) -> None:
-        self.resource = resource
-        self.resource_type = resource_type
+
+    resource: Any
+    resource_type: Type[Any]

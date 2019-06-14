@@ -1,3 +1,6 @@
+from dataclasses import (
+    dataclass,
+)
 from typing import (
     Type,
 )
@@ -8,10 +11,10 @@ from lahja import (
 )
 
 
+@dataclass
 class NetworkIdResponse(BaseEvent):
 
-    def __init__(self, network_id: int) -> None:
-        self.network_id = network_id
+    network_id: int
 
 
 class NetworkIdRequest(BaseRequestResponseEvent[NetworkIdResponse]):

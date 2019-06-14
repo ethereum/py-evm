@@ -4,6 +4,9 @@ import time
 from cancel_token import (
     CancelToken,
 )
+from dataclasses import (
+    dataclass,
+)
 from lahja import (
     BaseEvent,
     BroadcastConfig,
@@ -26,11 +29,12 @@ from trinity.endpoint import (
 DEFAULT_CHECK_FREQUENCY = 6
 
 
+@dataclass
 class SlotTickEvent(BaseEvent):
-    def __init__(self, slot: Slot, elapsed_time: Second, is_second_tick: bool):
-        self.slot = slot
-        self.elapsed_time = elapsed_time
-        self.is_second_tick = is_second_tick
+
+    slot: Slot
+    elapsed_time: Second
+    is_second_tick: bool
 
 
 class SlotTicker(BaseService):

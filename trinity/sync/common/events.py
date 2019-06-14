@@ -1,3 +1,6 @@
+from dataclasses import (
+    dataclass,
+)
 from typing import (
     Optional,
     Tuple,
@@ -19,11 +22,10 @@ from trinity.sync.common.types import (
 )
 
 
+@dataclass
 class SyncingResponse(BaseEvent):
-    def __init__(self, is_syncing: bool, progress: Optional[SyncProgress]) -> None:
-        super().__init__()
-        self.is_syncing: bool = is_syncing
-        self.progress: Optional[SyncProgress] = progress
+    is_syncing: bool
+    progress: Optional[SyncProgress]
 
 
 class SyncingRequest(BaseRequestResponseEvent[SyncingResponse]):
@@ -40,20 +42,15 @@ class MissingAccountCollected(BaseEvent):
     pass
 
 
+@dataclass
 class CollectMissingAccount(BaseRequestResponseEvent[MissingAccountCollected]):
     """
     Beam Sync has been paused because the given address and/or missing_node_hash
     is missing from the state DB, at the given state root hash.
     """
-    def __init__(
-            self,
-            missing_node_hash: Hash32,
-            address_hash: Hash32,
-            state_root_hash: Hash32) -> None:
-        super().__init__()
-        self.missing_node_hash = missing_node_hash
-        self.address_hash = address_hash
-        self.state_root_hash = state_root_hash
+    missing_node_hash: Hash32
+    address_hash: Hash32
+    state_root_hash: Hash32
 
     @staticmethod
     def expected_response_type() -> Type[MissingAccountCollected]:
@@ -68,14 +65,13 @@ class MissingBytecodeCollected(BaseEvent):
     pass
 
 
+@dataclass
 class CollectMissingBytecode(BaseRequestResponseEvent[MissingBytecodeCollected]):
     """
     Beam Sync has been paused because the given bytecode
     is missing from the state DB, at the given state root hash.
     """
-    def __init__(self, bytecode_hash: Hash32) -> None:
-        super().__init__()
-        self.bytecode_hash = bytecode_hash
+    bytecode_hash: Hash32
 
     @staticmethod
     def expected_response_type() -> Type[MissingBytecodeCollected]:
@@ -90,56 +86,45 @@ class MissingStorageCollected(BaseEvent):
     pass
 
 
+@dataclass
 class CollectMissingStorage(BaseRequestResponseEvent[MissingStorageCollected]):
     """
     Beam Sync has been paused because the given storage key and/or missing_node_hash
     is missing from the state DB, at the given state root hash.
     """
-    def __init__(
-            self,
-            missing_node_hash: Hash32,
-            storage_key: Hash32,
-            storage_root_hash: Hash32,
-            account_address: Address) -> None:
 
-        super().__init__()
-        self.missing_node_hash = missing_node_hash
-        self.storage_key = storage_key
-        self.storage_root_hash = storage_root_hash
-        self.account_address = account_address
+    missing_node_hash: Hash32
+    storage_key: Hash32
+    storage_root_hash: Hash32
+    account_address: Address
 
     @staticmethod
     def expected_response_type() -> Type[MissingStorageCollected]:
         return MissingStorageCollected
 
 
+@dataclass
 class StatelessBlockImportDone(BaseEvent):
     """
     Response to :cls:`DoStatelessBlockImport`, emitted only after the block has
     been fully imported. This event is emitted whether the import was successful
     or a failure.
     """
-    def __init__(
-            self,
-            block: BaseBlock,
-            completed: bool,
-            result: Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]],
-            exception: BaseException) -> None:
-        super().__init__()
-        self.block = block
-        self.completed = completed
-        self.result = result
-        self.exception = exception
+
+    block: BaseBlock
+    completed: bool
+    result: Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]
+    # flake8 gets confused by the Tuple syntax above
+    exception: BaseException  # noqa: E701
 
 
+@dataclass
 class DoStatelessBlockImport(BaseRequestResponseEvent[StatelessBlockImportDone]):
     """
     The syncer emits this event when it would like the Beam Sync process to
     start attempting a block import.
     """
-    def __init__(self, block: BaseBlock) -> None:
-        super().__init__()
-        self.block = block
+    block: BaseBlock
 
     @staticmethod
     def expected_response_type() -> Type[StatelessBlockImportDone]:

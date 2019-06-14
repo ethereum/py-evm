@@ -25,6 +25,7 @@ deps = {
         "bloom-filter==1.3",
         "cachetools>=3.1.0,<4.0.0",
         "coincurve>=10.0.0,<11.0.0",
+        "dataclasses>=0.6, <1;python_version<'3.7'",
         "eth-utils>=1.5.1,<2",
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.5",

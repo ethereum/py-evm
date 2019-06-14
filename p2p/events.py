@@ -1,3 +1,6 @@
+from dataclasses import (
+    dataclass,
+)
 from typing import (
     Tuple,
     Type,
@@ -15,16 +18,16 @@ class BaseDiscoveryServiceResponse(BaseEvent):
     pass
 
 
+@dataclass
 class PeerCandidatesResponse(BaseDiscoveryServiceResponse):
 
-    def __init__(self, candidates: Tuple[Node, ...]) -> None:
-        self.candidates = candidates
+    candidates: Tuple[Node, ...]
 
 
+@dataclass
 class PeerCandidatesRequest(BaseRequestResponseEvent[PeerCandidatesResponse]):
 
-    def __init__(self, max_candidates: int) -> None:
-        self.max_candidates = max_candidates
+    max_candidates: int
 
     @staticmethod
     def expected_response_type() -> Type[PeerCandidatesResponse]:
