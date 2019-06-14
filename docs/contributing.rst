@@ -10,7 +10,7 @@ First we need to clone the Py-EVM repository. Py-EVM depends on a submodule of t
 
 .. code:: sh
 
-    $ git clone --recursive https://github.com/ethereum/py-evm.git
+    $ git clone --recursive https://github.com/ethereum/trinity.git
 
 
 
