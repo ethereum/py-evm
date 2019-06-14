@@ -66,6 +66,22 @@ class DisconnectPeerEvent(HasRemoteEvent):
 
 
 @dataclass
+class PeerJoinedEvent(HasRemoteEvent):
+    """
+    Event broadcasted when a new peer joined the pool.
+    """
+    pass
+
+
+@dataclass
+class PeerLeftEvent(HasRemoteEvent):
+    """
+    Event broadcasted when a peer left the pool.
+    """
+    pass
+
+
+@dataclass
 class PeerPoolMessageEvent(HasRemoteEvent):
     """
     Base event for all peer messages that are relayed on the event bus. The events are mapped

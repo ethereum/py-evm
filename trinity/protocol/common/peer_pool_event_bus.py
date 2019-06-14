@@ -44,6 +44,8 @@ from .events import (
     HasRemoteEvent,
     PeerCountRequest,
     PeerCountResponse,
+    PeerJoinedEvent,
+    PeerLeftEvent,
 )
 
 
@@ -154,6 +156,14 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
             while self.is_operational:
                 peer, cmd, msg = await self.wait(self.msg_queue.get())
                 await self.handle_native_peer_message(peer.remote, cmd, msg)
+
+    def register_peer(self, peer: BasePeer) -> None:
+        self.logger.debug2("Broadcasting PeerJoinedEvent for %s", peer)
+        self.event_bus.broadcast_nowait(PeerJoinedEvent(peer.remote))
+
+    def deregister_peer(self, peer: BasePeer) -> None:
+        self.logger.debug2("Broadcasting PeerLeftEvent for %s", peer)
+        self.event_bus.broadcast_nowait(PeerLeftEvent(peer.remote))
 
 
 class DefaultPeerPoolEventServer(PeerPoolEventServer[BasePeer]):
