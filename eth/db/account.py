@@ -4,11 +4,9 @@ from abc import (
 )
 import logging
 from lru import LRU
-from typing import (  # noqa: F401
+from typing import (
     cast,
-    Dict,
     Iterable,
-    Set,
     Tuple,
 )
 
@@ -256,8 +254,8 @@ class AccountDB(BaseAccountDB):
         self._trie_cache = CacheDB(self._trie)
         self._journaltrie = JournalDB(self._trie_cache)
         self._account_cache = LRU(2048)
-        self._account_stores = {}  # type: Dict[Address, AccountStorageDB]
-        self._dirty_accounts = set()  # type: Set[Address]
+        self._account_stores: Dict[Address, AccountStorageDB] = {}
+        self._dirty_accounts: Set[Address] = set()
         self._root_hash_at_last_persist = state_root
 
     @property

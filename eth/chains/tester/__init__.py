@@ -134,7 +134,7 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
 
 
 class BaseMainnetTesterChain(Chain):
-    vm_configuration = _generate_vm_configuration()  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
+    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = _generate_vm_configuration()
 
 
 class MainnetTesterChain(BaseMainnetTesterChain):

@@ -60,8 +60,8 @@ class ByzantiumVM(SpuriousDragonVM):
     fork = 'byzantium'
 
     # classes
-    block_class = ByzantiumBlock  # type: Type[BaseBlock]
-    _state_class = ByzantiumState  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = ByzantiumBlock
+    _state_class: Type[BaseState] = ByzantiumState
 
     # Methods
     create_header_from_parent = staticmethod(create_byzantium_header_from_parent)   # type: ignore

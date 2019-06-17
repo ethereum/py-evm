@@ -14,7 +14,6 @@ from typing import (
     Tuple,
     Type,
 )
-from typing import Set  # noqa: F401
 
 from eth_hash.auto import keccak
 from eth_typing import (
@@ -81,11 +80,9 @@ from eth.vm.computation import BaseComputation
 
 
 class BaseVM(Configurable, ABC):
-    get_block = None  # type: BaseBlock
-    block_class = None  # type: Type[BaseBlock]
-    fork = None  # type: str
-    chaindb = None  # type: BaseChainDB
-    _state_class = None  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = None
+    chaindb: BaseChainDB = None  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
+    _state_class: Type[BaseState] = None
 
     @abstractmethod
     def __init__(self, header: BlockHeader, chaindb: BaseChainDB) -> None:
@@ -816,7 +813,7 @@ class VM(BaseVM):
     #
     @classmethod
     def validate_receipt(cls, receipt: Receipt) -> None:
-        already_checked = set()  # type: Set[Hash32]
+        already_checked: Set[Hash32] = set()
 
         for log_idx, log in enumerate(receipt.logs):
             if log.address in already_checked:

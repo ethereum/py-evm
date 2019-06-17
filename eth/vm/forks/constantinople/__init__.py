@@ -24,8 +24,8 @@ class ConstantinopleVM(ByzantiumVM):
     fork = 'constantinople'
 
     # classes
-    block_class = ConstantinopleBlock  # type: Type[BaseBlock]
-    _state_class = ConstantinopleState  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = ConstantinopleBlock
+    _state_class: Type[BaseState] = ConstantinopleState
 
     # Methods
     create_header_from_parent = staticmethod(create_constantinople_header_from_parent)  # type: ignore  # noqa: E501

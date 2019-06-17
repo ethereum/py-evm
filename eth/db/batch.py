@@ -23,8 +23,8 @@ class BatchDB(BaseDB):
     """
     logger = logging.getLogger("eth.db.BatchDB")
 
-    wrapped_db = None  # type: BaseDB
-    _track_diff = None  # type: DBDiffTracker
+    wrapped_db: BaseDB = None
+    _track_diff: DBDiffTracker = None
 
     def __init__(self, wrapped_db: BaseDB, read_through_deletes: bool = False) -> None:
         self.wrapped_db = wrapped_db

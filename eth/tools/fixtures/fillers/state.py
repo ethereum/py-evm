@@ -1,9 +1,7 @@
 from collections import defaultdict
-from typing import (  # noqa: F401
+from typing import (
     Any,
     Dict,
-    List,
-    Sequence,
 )
 
 from eth_utils import encode_hex
@@ -69,7 +67,7 @@ def fill_state_test(filler: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     pre_state = normalize_state(test["pre"])
     transaction_group = normalize_transaction_group(test["transaction"])
 
-    post = defaultdict(list)  # type: Dict[int, List[Dict[str, str]]]
+    post: Dict[int, List[Dict[str, str]]] = defaultdict(list)
     for expect in test["expect"]:
         indexes = expect["indexes"]
         networks = normalize_networks(expect["networks"])

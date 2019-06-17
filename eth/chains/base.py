@@ -6,22 +6,13 @@ from abc import (
 )
 import operator
 import random
-from typing import (  # noqa: F401
+from typing import (
     Any,
     Callable,
-    cast,
     Dict,
-    Generator,
     Iterable,
-    Iterator,
-    List,
-    Optional,
     Tuple,
     Type,
-    TYPE_CHECKING,
-    Union,
-    TypeVar,
-    Generic,
 )
 
 import logging
@@ -37,6 +28,10 @@ from eth_utils import (
 from eth_utils.toolz import (
     concatv,
     sliding_window,
+)
+
+from eth.vm.base import (
+    BaseVM,
 )
 
 from eth.constants import (
@@ -119,20 +114,15 @@ with catch_and_ignore_import_warning():
         take,
     )
 
-if TYPE_CHECKING:
-    from eth.vm.base import (     # noqa: F401
-        BaseVM,
-    )
-
 
 class BaseChain(Configurable, ABC):
     """
     The base class for all Chain objects
     """
-    chaindb = None  # type: BaseChainDB
-    chaindb_class = None  # type: Type[BaseChainDB]
-    vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
-    chain_id = None  # type: int
+    chaindb: BaseChainDB = None
+    chaindb_class: Type[BaseChainDB] = None
+    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = None
+    chain_id: int = None
 
     @abstractmethod
     def __init__(self) -> None:
@@ -372,9 +362,9 @@ class Chain(BaseChain):
     current block number.
     """
     logger = logging.getLogger("eth.chain.chain.Chain")
-    gas_estimator = None  # type: StaticMethod[Callable[[BaseState, BaseOrSpoofTransaction], int]]
+    gas_estimator: StaticMethod[Callable[[BaseState, BaseOrSpoofTransaction], int]] = None
 
-    chaindb_class = ChainDB  # type: Type[BaseChainDB]
+    chaindb_class: Type[BaseChainDB] = ChainDB
 
     def __init__(self, base_db: BaseAtomicDB) -> None:
         if not self.vm_configuration:
@@ -878,7 +868,7 @@ def _extract_uncle_hashes(blocks: Iterable[BaseBlock]) -> Iterable[Hash32]:
 
 
 class MiningChain(Chain):
-    header = None  # type: BlockHeader
+    header: BlockHeader = None
 
     def __init__(self, base_db: BaseAtomicDB, header: BlockHeader=None) -> None:
         super().__init__(base_db)

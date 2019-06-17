@@ -10,8 +10,8 @@ from .state import SpuriousDragonState
 
 class SpuriousDragonVM(TangerineWhistleVM):
     # fork name
-    fork = 'spurious-dragon'  # type: str
+    fork: str = 'spurious-dragon'  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
 
     # classes
-    block_class = SpuriousDragonBlock  # type: Type[BaseBlock]
-    _state_class = SpuriousDragonState  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = SpuriousDragonBlock
+    _state_class: Type[BaseState] = SpuriousDragonState

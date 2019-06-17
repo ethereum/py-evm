@@ -10,7 +10,6 @@ from typing import (
     List,
     Tuple,
     Type,
-    TYPE_CHECKING,
 )
 
 from eth_typing import (
@@ -58,12 +57,6 @@ with catch_and_ignore_import_warning():
         ValidationError,
     )
 
-if TYPE_CHECKING:
-    from eth.rlp.blocks import (  # noqa: F401
-        BaseBlock,
-        BaseTransaction
-    )
-
 
 class TransactionKey(rlp.Serializable):
     fields = [
@@ -73,7 +66,7 @@ class TransactionKey(rlp.Serializable):
 
 
 class BaseChainDB(BaseHeaderDB):
-    db = None  # type: BaseAtomicDB
+    db: BaseAtomicDB = None
 
     @abstractmethod
     def __init__(self, db: BaseAtomicDB) -> None:

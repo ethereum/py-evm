@@ -1,7 +1,6 @@
-from typing import (    # noqa: F401
+from typing import (
     Tuple,
     Type,
-    TypeVar,
 )
 
 from eth_utils import (
@@ -96,7 +95,7 @@ MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))
 
 class BaseMainnetChain:
     chain_id = MAINNET_CHAIN_ID
-    vm_configuration = MAINNET_VM_CONFIGURATION  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
+    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = MAINNET_VM_CONFIGURATION
 
 
 class MainnetChain(BaseMainnetChain, Chain):

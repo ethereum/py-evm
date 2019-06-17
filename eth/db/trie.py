@@ -28,7 +28,7 @@ def make_trie_root_and_nodes(items: TransactionsOrReceipts) -> TrieRootAndData:
 # use a relatively small cache size here.
 @functools.lru_cache(128)
 def _make_trie_root_and_nodes(items: Tuple[bytes, ...]) -> TrieRootAndData:
-    kv_store = {}  # type: Dict[Hash32, bytes]
+    kv_store: Dict[Hash32, bytes] = {}
     trie = HexaryTrie(kv_store, BLANK_ROOT_HASH)
     with trie.squash_changes() as memory_trie:
         for index, item in enumerate(items):

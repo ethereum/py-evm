@@ -1,8 +1,7 @@
 import contextlib
 import logging
-from typing import (  # noqa: F401
+from typing import (
     Iterator,
-    Set
 )
 
 from eth.validation import (
@@ -26,8 +25,8 @@ class CodeStream:
         self.pc = 0
         self._raw_code_bytes = code_bytes
         self._length_cache = len(code_bytes)
-        self.invalid_positions = set()  # type: Set[int]
-        self.valid_positions = set()  # type: Set[int]
+        self.invalid_positions: Set[int] = set()
+        self.valid_positions: Set[int] = set()
 
     def read(self, size: int) -> bytes:
         old_pc = self.pc

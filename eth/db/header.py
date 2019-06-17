@@ -42,7 +42,7 @@ from eth.validation import (
 
 
 class BaseHeaderDB(ABC):
-    db = None  # type: BaseAtomicDB
+    db: BaseAtomicDB = None
 
     def __init__(self, db: BaseAtomicDB) -> None:
         self.db = db

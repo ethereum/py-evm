@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import (      # noqa: F401
-    Any,
+from typing import (
     cast,
-    Dict,
     Tuple,
     Type,
 )
@@ -28,14 +26,14 @@ from eth.vm.base import BaseVM  # noqa: F401
 
 
 class BaseHeaderChain(Configurable, ABC):
-    _base_db = None  # type: BaseDB
+    _base_db: BaseDB = None
 
-    _headerdb_class = None  # type: Type[BaseHeaderDB]
-    _headerdb = None  # type: BaseHeaderDB
+    _headerdb_class: Type[BaseHeaderDB] = None
+    _headerdb: BaseHeaderDB = None
 
-    header = None  # type: BlockHeader
-    chain_id = None  # type: int
-    vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
+    header: BlockHeader = None
+    chain_id: int = None
+    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = None
 
     @abstractmethod
     def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
@@ -89,7 +87,7 @@ class BaseHeaderChain(Configurable, ABC):
 
 
 class HeaderChain(BaseHeaderChain):
-    _headerdb_class = HeaderDB  # type: Type[BaseHeaderDB]
+    _headerdb_class: Type[BaseHeaderDB] = HeaderDB
 
     def __init__(self, base_db: BaseDB, header: BlockHeader=None) -> None:
         self.base_db = base_db

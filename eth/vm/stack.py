@@ -14,13 +14,10 @@ from eth.validation import (
     validate_stack_int,
 )
 
-from typing import (  # noqa: F401
-    Generator,
-    List,
+from typing import (
     Tuple,
     Union
 )
-from eth_typing import Hash32  # noqa: F401
 
 
 def _busted_type(item_type: type, value: Union[int, bytes]) -> ValidationError:
@@ -48,7 +45,7 @@ class Stack(object):
     #
 
     def __init__(self) -> None:
-        values = []  # type: List[Tuple[type, Union[int, bytes]]]
+        values: List[Tuple[type, Union[int, bytes]]] = []
         self.values = values
         # caching optimizations to avoid an attribute lookup on self.values
         # This doesn't use `cached_property`, because it doesn't play nice with slots

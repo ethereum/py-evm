@@ -373,7 +373,7 @@ def genesis(chain_class: BaseChain,
     and chain state.
     """
     if state is None:
-        genesis_state = {}  # type: AccountState
+        genesis_state: AccountState = {}
     else:
         genesis_state = _fill_and_normalize_state(state)
 
@@ -385,7 +385,7 @@ def genesis(chain_class: BaseChain,
         genesis_params = merge(genesis_params_defaults, params)
 
     if db is None:
-        base_db = AtomicDB()  # type: BaseAtomicDB
+        base_db: BaseAtomicDB = AtomicDB()
     else:
         base_db = db
 

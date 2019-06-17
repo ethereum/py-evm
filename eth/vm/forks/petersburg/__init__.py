@@ -24,8 +24,8 @@ class PetersburgVM(ByzantiumVM):
     fork = 'petersburg'
 
     # classes
-    block_class = PetersburgBlock  # type: Type[BaseBlock]
-    _state_class = PetersburgState  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = PetersburgBlock
+    _state_class: Type[BaseState] = PetersburgState
 
     # Methods
     create_header_from_parent = staticmethod(create_petersburg_header_from_parent)  # type: ignore  # noqa: E501

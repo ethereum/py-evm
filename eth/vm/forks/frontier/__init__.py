@@ -64,11 +64,11 @@ def make_frontier_receipt(base_header: BlockHeader,
 
 class FrontierVM(VM):
     # fork name
-    fork = 'frontier'  # type: str
+    fork: str = 'frontier'  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
 
     # classes
-    block_class = FrontierBlock  # type: Type[BaseBlock]
-    _state_class = FrontierState  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = FrontierBlock
+    _state_class: Type[BaseState] = FrontierState
 
     # methods
     create_header_from_parent = staticmethod(create_frontier_header_from_parent)    # type: ignore

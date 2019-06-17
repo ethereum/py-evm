@@ -22,8 +22,8 @@ class IstanbulVM(ConstantinopleVM):
     fork = 'istanbul'
 
     # classes
-    block_class = IstanbulBlock  # type: Type[BaseBlock]
-    _state_class = IstanbulState  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = IstanbulBlock
+    _state_class: Type[BaseState] = IstanbulState
 
     # Methods
     create_header_from_parent = staticmethod(create_istanbul_header_from_parent)  # type: ignore  # noqa: E501

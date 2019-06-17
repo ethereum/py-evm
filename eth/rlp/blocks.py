@@ -23,7 +23,7 @@ from .headers import BlockHeader
 
 
 class BaseBlock(rlp.Serializable, Configurable, ABC):
-    transaction_class = None  # type: Type[BaseTransaction]
+    transaction_class: Type[BaseTransaction] = None
 
     @classmethod
     def get_transaction_class(cls) -> Type[BaseTransaction]:

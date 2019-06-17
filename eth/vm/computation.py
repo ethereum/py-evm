@@ -203,18 +203,18 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
 
     code = None
 
-    children = None  # type: List[BaseComputation]
+    children: List['BaseComputation'] = None
 
     _output = b''
     return_data = b''
-    _error = None  # type: VMError
+    _error: VMError = None
 
-    _log_entries = None  # type: List[Tuple[int, Address, Tuple[int, ...], bytes]]
-    accounts_to_delete = None  # type: Dict[Address, Address]
+    _log_entries: List[Tuple[int, Address, Tuple[int, ...], bytes]] = None
+    accounts_to_delete: Dict[Address, Address] = None
 
     # VM configuration
-    opcodes = None  # type: Dict[int, Any]
-    _precompiles = None  # type: Dict[Address, Callable[['BaseComputation'], 'BaseComputation']]
+    opcodes: Dict[int, Any] = None
+    _precompiles: Dict[Address, Callable[['BaseComputation'], 'BaseComputation']] = None
 
     logger = cast(ExtendedDebugLogger, logging.getLogger('eth.vm.computation.Computation'))
 

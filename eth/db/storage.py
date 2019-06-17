@@ -1,10 +1,6 @@
 import logging
-from typing import (  # noqa: F401
+from typing import (
     cast,
-    Dict,
-    Iterable,
-    Set,
-    Tuple,
 )
 
 from eth_hash.auto import keccak
@@ -63,7 +59,7 @@ class StorageLookup(BaseDB):
         self._starting_root_hash = storage_root
         self._address = address
         self._write_trie = None
-        self._trie_nodes_batch = None  # type: BatchDB
+        self._trie_nodes_batch: BatchDB = None
 
     def _get_write_trie(self) -> HexaryTrie:
         if self._trie_nodes_batch is None:

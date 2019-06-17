@@ -516,7 +516,7 @@ def normalize_block_header(header: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def normalize_block(block: Dict[str, Any]) -> Dict[str, Any]:
-    normalized_block = {}  # type: Dict[str, Any]
+    normalized_block: Dict[str, Any] = {}
 
     try:
         normalized_block['rlp'] = decode_hex(block['rlp'])

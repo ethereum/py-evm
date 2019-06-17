@@ -34,8 +34,8 @@ ROPSTEN_VM_CONFIGURATION = (
 
 
 class BaseRopstenChain:
-    vm_configuration = ROPSTEN_VM_CONFIGURATION  # type: Tuple[Tuple[int, Type[BaseVM]], ...]  # noqa: E501
-    chain_id = ROPSTEN_CHAIN_ID  # type: int
+    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = ROPSTEN_VM_CONFIGURATION
+    chain_id: int = ROPSTEN_CHAIN_ID
 
 
 class RopstenChain(BaseRopstenChain, Chain):

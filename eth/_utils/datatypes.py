@@ -95,7 +95,7 @@ class Configurable(object):
         sub_overrides_by_prop = _get_sub_overrides_by_prop(overrides)
 
         for key, sub_overrides in sub_overrides_by_prop.items():
-            sub_cls = None  # type: Configurable
+            sub_cls: Configurable = None
             if key in local_overrides:
                 sub_cls = local_overrides[key]
             elif hasattr(cls, key):
