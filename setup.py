@@ -120,8 +120,7 @@ deps['dev'] = (
     deps['doc'] +
     deps['lint'] +
     deps['eth2'] +
-    deps['libp2p'] +
-    deps['bls-bindings']
+    deps['libp2p']
 )
 
 
