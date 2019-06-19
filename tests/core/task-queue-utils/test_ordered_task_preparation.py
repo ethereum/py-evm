@@ -7,6 +7,12 @@ from eth_utils import (
     ValidationError,
 )
 from eth_utils.toolz import identity
+from hypothesis import (
+    example,
+    given,
+    settings,
+    strategies as st,
+)
 import pytest
 
 from trinity._utils.datastructures import (
@@ -665,3 +671,36 @@ async def test_wait_to_prune_until_yielded():
     # now old tasks are pruned
     with pytest.raises(MissingDependency):
         ti.register_tasks((3, ), ignore_duplicates=True)
+
+
+@given(
+    st.lists(
+        st.integers(min_value=0, max_value=5),
+        min_size=1,
+        max_size=400,
+    ),
+    st.integers(min_value=1, max_value=4),
+)
+@settings(max_examples=1000)
+@example(task_series=[1, 2, 0, 3], prune_depth=1)
+@example(task_series=[0, 1, 2, 3, 0, 4], prune_depth=1)
+@pytest.mark.asyncio
+async def test_random_pruning(task_series, prune_depth):
+    ti = OrderedTaskPreparation(
+        NoPrerequisites,
+        identity,
+        lambda x: x - 1,
+        accept_dangling_tasks=True,
+        max_depth=prune_depth,
+    )
+    ti.set_finished_dependency(task_series[0])
+
+    for task in task_series:
+        try:
+            ti.register_tasks((task, ))
+        except DuplicateTasks:
+            continue
+        if ti.has_ready_tasks():
+            await wait(ti.ready_tasks())
+
+    # no test result, just make sure we don't crash

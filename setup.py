@@ -41,7 +41,7 @@ deps = {
         "ruamel.yaml>=0.15.87",
     ],
     'test': [
-        "hypothesis==3.69.5",
+        "hypothesis>=4.24.3,<5",
         "pexpect>=4.6, <5",
         "factory-boy==2.11.1",
         # pinned to <3.7 until async fixtures work again

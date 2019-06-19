@@ -6,7 +6,6 @@ from asyncio import (
     Queue,
     QueueFull,
 )
-from collections import defaultdict
 from enum import Enum
 from functools import (
     total_ordering,
@@ -493,11 +492,6 @@ class OrderedTaskPreparation(
         # all of the tasks that have been completed, and not pruned
         self._tasks: Dict[TTaskID, BaseTaskPrerequisites[TTask, TPrerequisite]] = {}
 
-        # In self._dependencies, when the key becomes ready, the task ids in the
-        # value set *might* also become ready
-        # (they only become ready if their prerequisites are complete)
-        self._dependencies: Dict[TTaskID, Set[TTaskID]] = defaultdict(set)
-
         # task ids are in this set if either:
         # - one of their prerequisites is incomplete OR
         # - their dependent task is not ready
@@ -539,9 +533,6 @@ class OrderedTaskPreparation(
 
         dependency_id = self._dependency_of(finished_task)
         self._roots.add(task_id, dependency_id)
-        if dependency_id in self._tasks:
-            # set a finished dependency that has a parent already entered. Mark this as a dependency
-            self._dependencies[dependency_id].add(task_id)
 
         # note that this task is intentionally *not* added to self._unready
 
@@ -584,7 +575,6 @@ class OrderedTaskPreparation(
             else:
                 self._tasks[task_id] = prereq_tracker
                 self._unready.add(task_id)
-                self._dependencies[dependency_id].add(task_id)
                 self._roots.add(task_id, dependency_id)
 
                 if prereq_tracker.is_complete and self._is_ready(prereq_tracker.task):
@@ -663,7 +653,7 @@ class OrderedTaskPreparation(
         self._unready.remove(task_id)
 
         # resolve tasks that depend on this task
-        for depending_task_id in self._dependencies[task_id]:
+        for depending_task_id in self._roots.get_children(task_id):
             # we already know that this task is ready, so we only need to check completion
             if self._tasks[depending_task_id].is_complete:
                 yield depending_task_id
@@ -700,7 +690,6 @@ class OrderedTaskPreparation(
     def _prune(self, prune_task_id: TTaskID) -> None:
         # _roots.prune() has validation in it, so if there is a problem, we should skip the rest
         self._roots.prune(prune_task_id)
-        del self._dependencies[prune_task_id]
         del self._tasks[prune_task_id]
         if prune_task_id in self._declared_finished:
             self._declared_finished.remove(prune_task_id)
