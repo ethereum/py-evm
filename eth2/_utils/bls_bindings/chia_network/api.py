@@ -20,7 +20,6 @@ def _domain_to_bytes(domain: int) -> bytes:
 
 
 def _privkey_int_to_bytes(privkey: int) -> bytes:
-    # FIXME: workaround due to the privkey in Chia-Network BLS starts from 1
     return privkey.to_bytes(bls_chia.PrivateKey.PRIVATE_KEY_SIZE, "big")
 
 
