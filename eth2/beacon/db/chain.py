@@ -5,12 +5,7 @@ from typing import Iterable, Optional, Tuple, Type
 from cytoolz import concat, first, sliding_window
 from eth.abc import AtomicDatabaseAPI, DatabaseAPI
 from eth.constants import ZERO_HASH32
-from eth.exceptions import (
-    BlockNotFound,
-    CanonicalHeadNotFound,
-    ParentNotFound,
-    StateRootNotFound,
-)
+from eth.exceptions import BlockNotFound, CanonicalHeadNotFound, ParentNotFound
 from eth.validation import validate_word
 from eth_typing import Hash32
 from eth_utils import ValidationError, encode_hex, to_tuple
@@ -22,7 +17,7 @@ from eth2.beacon.db.exceptions import (
     HeadStateSlotNotFound,
     JustifiedHeadNotFound,
     MissingForkChoiceScoringFns,
-    StateSlotNotFound,
+    StateNotFound,
 )
 from eth2.beacon.db.schema import SchemaV1
 from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
@@ -127,9 +122,7 @@ class BaseBeaconChainDB(ABC):
         pass
 
     @abstractmethod
-    def get_state_by_slot(
-        self, slot: Slot, state_class: Type[BeaconState]
-    ) -> BeaconState:
+    def get_state_root_by_slot(self, slot: Slot) -> Hash32:
         pass
 
     @abstractmethod
@@ -652,34 +645,24 @@ class BeaconChainDB(BaseBeaconChainDB):
             raise HeadStateSlotNotFound("No head state slot found")
         return head_state_slot
 
-    def get_state_by_slot(
-        self, slot: Slot, state_class: Type[BeaconState]
-    ) -> BeaconState:
-        return self._get_state_by_slot(self.db, slot, state_class)
+    def get_state_root_by_slot(self, slot: Slot) -> Hash32:
+        return self._get_state_root_by_slot(self.db, slot)
 
     @staticmethod
-    def _get_state_by_slot(
-        db: DatabaseAPI, slot: Slot, state_class: Type[BeaconState]
-    ) -> BeaconState:
+    def _get_state_root_by_slot(db: DatabaseAPI, slot: Slot) -> Hash32:
         """
         Return the requested beacon state as specified by slot.
 
-        Raises StateSlotNotFound if it is not present in the db.
+        Raises StateNotFound if it is not present in the db.
         """
         slot_to_state_root_key = SchemaV1.make_slot_to_state_root_lookup_key(slot)
         try:
             state_root_ssz = db[slot_to_state_root_key]
         except KeyError:
-            raise StateSlotNotFound("No state root for slot #{0}".format(slot))
+            raise StateNotFound("No state root for slot #{0}".format(slot))
 
         state_root = ssz.decode(state_root_ssz, sedes=ssz.sedes.bytes32)
-        try:
-            state_ssz = db[state_root]
-        except KeyError:
-            raise StateRootNotFound(
-                f"No state with root {encode_hex(state_root)} found"
-            )
-        return _decode_state(state_ssz, state_class)
+        return state_root
 
     def get_state_by_root(
         self, state_root: Hash32, state_class: Type[BeaconState]
@@ -693,15 +676,13 @@ class BeaconChainDB(BaseBeaconChainDB):
         """
         Return the requested beacon state as specified by state hash.
 
-        Raises StateRootNotFound if it is not present in the db.
+        Raises StateNotFound if it is not present in the db.
         """
         # TODO: validate_state_root
         try:
             state_ssz = db[state_root]
         except KeyError:
-            raise StateRootNotFound(
-                f"No state with root {encode_hex(state_root)} found"
-            )
+            raise StateNotFound(f"No state with root {encode_hex(state_root)} found")
         return _decode_state(state_ssz, state_class)
 
     def persist_state(self, state: BeaconState) -> None:

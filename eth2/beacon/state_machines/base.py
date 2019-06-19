@@ -65,9 +65,12 @@ class BaseBeaconStateMachine(Configurable, ABC):
     #
     @abstractmethod
     def import_block(
-        self, block: BaseBeaconBlock, check_proposer_signature: bool = True
+        self,
+        block: BaseBeaconBlock,
+        state: BeaconState,
+        check_proposer_signature: bool = True,
     ) -> Tuple[BeaconState, BaseBeaconBlock]:
-        ...
+        pass
 
     @staticmethod
     @abstractmethod
@@ -91,14 +94,6 @@ class BeaconStateMachine(BaseBeaconStateMachine):
             self._state = state
         else:
             self.slot = slot
-
-    @property
-    def state(self) -> BeaconState:
-        if self._state is None:
-            self._state = self.chaindb.get_state_by_slot(
-                self.slot, self.get_state_class()
-            )
-        return self._state
 
     @classmethod
     def get_block_class(cls) -> Type[BaseBeaconBlock]:
@@ -143,10 +138,13 @@ class BeaconStateMachine(BaseBeaconStateMachine):
     # Import block API
     #
     def import_block(
-        self, block: BaseBeaconBlock, check_proposer_signature: bool = True
+        self,
+        block: BaseBeaconBlock,
+        state: BeaconState,
+        check_proposer_signature: bool = True,
     ) -> Tuple[BeaconState, BaseBeaconBlock]:
         state = self.state_transition.apply_state_transition(
-            self.state, block=block, check_proposer_signature=check_proposer_signature
+            state, block=block, check_proposer_signature=check_proposer_signature
         )
 
         block = block.copy(state_root=state.hash_tree_root)

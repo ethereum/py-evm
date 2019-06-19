@@ -143,7 +143,7 @@ class Validator(BaseService):
         # update `this_epoch_assignment` if it's outdated
         if this_epoch > self.this_epoch_assignment[validator_index][0]:
             state_machine = self.chain.get_state_machine()
-            state = state_machine.state
+            state = self.chain.get_head_state()
             self.this_epoch_assignment[validator_index] = (
                 this_epoch,
                 get_committee_assignment(
@@ -158,7 +158,7 @@ class Validator(BaseService):
     async def handle_first_tick(self, slot: Slot) -> None:
         head = self.chain.get_canonical_head()
         state_machine = self.chain.get_state_machine()
-        state = state_machine.state
+        state = self.chain.get_head_state()
         self.logger.debug(
             # Align with debug log below
             bold_green("Head       epoch=%s slot=%s state_root=%s"),
@@ -212,7 +212,7 @@ class Validator(BaseService):
 
     async def handle_second_tick(self, slot: Slot) -> None:
         state_machine = self.chain.get_state_machine()
-        state = state_machine.state
+        state = self.chain.get_head_state()
         if state.slot < slot:
             self.skip_block(
                 slot=slot,
@@ -307,7 +307,7 @@ class Validator(BaseService):
         attestations: Tuple[Attestation, ...] = ()
         head = self.chain.get_canonical_head()
         state_machine = self.chain.get_state_machine()
-        state = state_machine.state
+        state = self.chain.get_head_state()
         epoch = compute_epoch_of_slot(slot, self.slots_per_epoch)
 
         validator_assignments = {

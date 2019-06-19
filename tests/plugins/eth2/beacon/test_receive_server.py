@@ -637,9 +637,12 @@ async def test_bcc_receive_server_get_ready_attestations(
             slot = XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
         state = MockState()
 
+        def mock_get_head_state(self):
+            return state
+
         def mock_get_attestation_data_slot(state, data, config):
             return data.slot
-        mocker.patch("eth2.beacon.state_machines.base.BeaconStateMachine.state", state)
+        mocker.patch("eth2.beacon.chains.base.BeaconChain.get_head_state", mock_get_head_state)
         mocker.patch(
             "trinity.protocol.bcc.servers.get_attestation_data_slot",
             mock_get_attestation_data_slot,

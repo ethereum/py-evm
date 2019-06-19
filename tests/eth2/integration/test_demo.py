@@ -83,7 +83,7 @@ def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
 
         # Get state machine instance
         sm = fixture_sm_class(chaindb, attestation_pool, blocks[-1].slot)
-        state, _ = sm.import_block(block)
+        state, _ = sm.import_block(block, state)
 
         chaindb.persist_state(state)
         chaindb.persist_block(block, SerenityBeaconBlock, fork_choice_scoring)

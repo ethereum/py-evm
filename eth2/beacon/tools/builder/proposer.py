@@ -83,7 +83,9 @@ def create_block_on_state(
     block = block.copy(body=body)
 
     # Apply state transition to get state root
-    state, block = state_machine.import_block(block, check_proposer_signature=False)
+    state, block = state_machine.import_block(
+        block, state, check_proposer_signature=False
+    )
 
     # Sign
     signature = sign_transaction(
