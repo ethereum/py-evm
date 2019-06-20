@@ -10,6 +10,9 @@ from async_generator import (
 from cancel_token import OperationCancelled
 from eth_keys import keys
 from eth_utils import decode_hex
+from eth_utils.toolz import (
+    curry,
+)
 
 from eth import MainnetChain, RopstenChain, constants
 from eth.chains.base import (
@@ -45,6 +48,18 @@ from trinity.protocol.eth.servers import (
 )
 
 ZIPPED_FIXTURES_PATH = Path(__file__).parent.parent / 'integration' / 'fixtures'
+
+
+@curry
+async def mock_request_response(request_type, response, bus):
+    async for req in bus.stream(request_type):
+        await bus.broadcast(response, req.broadcast_config())
+        break
+
+
+@curry
+def run_mock_request_response(request_type, response, bus):
+    asyncio.ensure_future(mock_request_response(request_type, response, bus))
 
 
 async def connect_to_peers_loop(peer_pool, nodes):

@@ -6,7 +6,6 @@ import time
 
 from eth_utils.toolz import (
     assoc,
-    curry,
 )
 from eth_utils import (
     decode_hex,
@@ -34,12 +33,9 @@ from trinity.sync.common.types import (
 
 from trinity._utils.version import construct_trinity_client_identifier
 
-
-@curry
-async def mock_request_response(request_type, response, bus):
-    async for req in bus.stream(request_type):
-        await bus.broadcast(response, req.broadcast_config())
-        break
+from tests.core.integration_test_helpers import (
+    mock_request_response,
+)
 
 
 def wait_for(path):
