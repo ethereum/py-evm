@@ -2,6 +2,7 @@ from dataclasses import (
     dataclass,
 )
 from typing import (
+    Tuple,
     Type,
     TypeVar
 )
@@ -92,6 +93,19 @@ class PeerLeftEvent(HasRemoteEvent):
     Event broadcasted when a peer left the pool.
     """
     pass
+
+
+@dataclass
+class GetConnectedPeersResponse(BaseEvent):
+
+    remotes: Tuple[Node, ...]
+
+
+class GetConnectedPeersRequest(BaseRequestResponseEvent[GetConnectedPeersResponse]):
+
+    @staticmethod
+    def expected_response_type() -> Type[GetConnectedPeersResponse]:
+        return GetConnectedPeersResponse
 
 
 @dataclass
