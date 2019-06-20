@@ -29,7 +29,10 @@ class UpnpPlugin(AsyncioIsolatedPlugin):
         return "Upnp"
 
     def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
-        self.start()
+        if self.boot_info.args.disable_upnp:
+            self.logger.debug("UPnP plugin disabled")
+        else:
+            self.start()
 
     @classmethod
     def configure_parser(cls,
