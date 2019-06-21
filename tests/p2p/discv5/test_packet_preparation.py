@@ -10,6 +10,7 @@ from eth_utils import (
 
 from p2p.discv5.packets import (
     AuthHeaderPacket,
+    AuthTagPacket,
     WhoAreYouPacket,
 )
 from p2p.discv5.enr import (
@@ -35,6 +36,7 @@ from tests.p2p.discv5.strategies import (
     node_id_st,
     id_nonce_st,
     enr_seq_st,
+    random_data_st,
 )
 
 
@@ -106,6 +108,22 @@ def test_auth_header_preparation(tag,
 @given(
     tag=tag_st,
     auth_tag=nonce_st,
+    random_data=random_data_st,
+)
+def test_random_packet_preparation(tag, auth_tag, random_data):
+    packet = AuthTagPacket.prepare_random(
+        tag=tag,
+        auth_tag=auth_tag,
+        random_data=random_data,
+    )
+    assert packet.tag == tag
+    assert packet.auth_tag == auth_tag
+    assert packet.encrypted_message == random_data
+
+
+@given(
+    tag=tag_st,
+    auth_tag=nonce_st,
     initiator_key=key_st,
     auth_response_key=key_st,
     ephemeral_pubkey=pubkey_st,
@@ -164,3 +182,32 @@ def test_who_are_you_preparation(tag, node_id, token, id_nonce, enr_seq):
     assert packet.id_nonce == id_nonce
     assert packet.enr_sequence_number == enr_seq
     assert len(packet.magic) == MAGIC_SIZE
+
+
+@given(
+    tag=tag_st,
+    auth_tag=nonce_st,
+    initiator_key=key_st,
+)
+def test_auth_tag_packet_preparation(tag, auth_tag, initiator_key):
+    message = PingMessage(
+        request_id=5,
+        enr_seq=3,
+    )
+
+    packet = AuthTagPacket.prepare(
+        tag=tag,
+        auth_tag=auth_tag,
+        message=message,
+        initiator_key=initiator_key,
+    )
+    assert packet.tag == tag
+    assert packet.auth_tag == auth_tag
+    decrypted_message = aesgcm_decrypt(
+        key=initiator_key,
+        nonce=auth_tag,
+        cipher_text=packet.encrypted_message,
+        authenticated_data=tag,
+    )
+    assert decrypted_message[0] == message.message_type
+    assert rlp.decode(decrypted_message[1:], PingMessage) == message
