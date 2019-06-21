@@ -178,7 +178,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
                 # We might end up with duplicates that can be safely ignored.
                 # Likely scenario: switched which peer downloads headers, and the new peer isn't
                 # aware of some of the in-progress headers
-                task_integrator.register_tasks(headers, ignore_duplicates=True)
+                new_headers = task_integrator.register_tasks(headers, ignore_duplicates=True)
             except MissingDependency as missing_exc:
                 # The parent of this header is not registered as a dependency yet.
                 # Some reasons this might happen, in rough descending order of likelihood:
@@ -231,16 +231,16 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
                 task_integrator.set_finished_dependency(parent_header)
                 # Re-register the header tasks, which will now succeed
                 task_integrator.register_tasks(new_headers, ignore_duplicates=True)
-                # Clobber the headers variable so that the follow-up work below is consistent with
-                # or without exceptions (ie~ only add headers not in DB to body/receipt queue)
-                headers = new_headers
 
-            yield headers
+            if not new_headers:
+                continue
+
+            yield new_headers
 
             # Don't race ahead of the database, by blocking when the persistance queue is too long
             await self._db_buffer_capacity.wait()
 
-            highest_block_num = max(headers[-1].block_number, highest_block_num)
+            highest_block_num = max(new_headers[-1].block_number, highest_block_num)
 
     async def _assign_body_download_to_peers(self) -> None:
         """
