@@ -1,7 +1,3 @@
-from typing import (
-    NewType,
-)
-
 from cryptography.hazmat.primitives.ciphers.aead import (
     AESGCM,
 )
@@ -20,10 +16,10 @@ from p2p.discv5.constants import (
     NONCE_SIZE,
     AES128_KEY_SIZE,
 )
-
-
-AES128Key = NewType("AES128Key", bytes)
-Nonce = NewType("Nonce", bytes)
+from p2p.discv5.typing import (
+    AES128Key,
+    Nonce,
+)
 
 
 def validate_aes128_key(key: AES128Key) -> None:
