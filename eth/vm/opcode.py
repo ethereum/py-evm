@@ -12,11 +12,15 @@ from typing import (
     cast,
     Type,
     TypeVar,
+    TYPE_CHECKING,
 )
 
 from eth.tools.logging import ExtendedDebugLogger
 
 from eth._utils.datatypes import Configurable
+
+if TYPE_CHECKING:
+    from computation import BaseComputation  # noqa: F401
 
 T = TypeVar('T')
 

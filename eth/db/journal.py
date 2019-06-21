@@ -2,7 +2,7 @@ import collections
 from itertools import (
     count,
 )
-from typing import Callable, cast, Dict, Union
+from typing import Callable, cast, Dict, List, Set, Union
 
 from eth_utils.toolz import (
     first,

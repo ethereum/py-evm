@@ -10,6 +10,7 @@ from typing import (
     List,
     Tuple,
     Type,
+    TYPE_CHECKING,
 )
 
 from eth_typing import (
@@ -55,6 +56,12 @@ with catch_and_ignore_import_warning():
         to_list,
         to_tuple,
         ValidationError,
+    )
+
+if TYPE_CHECKING:
+    from eth.rlp.blocks import (  # noqa: F401
+        BaseBlock,
+        BaseTransaction
     )
 
 

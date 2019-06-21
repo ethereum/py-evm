@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import (
     Any,
     Dict,
+    List,
 )
 
 from eth_utils import encode_hex

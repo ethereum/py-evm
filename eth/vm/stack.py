@@ -15,6 +15,7 @@ from eth.validation import (
 )
 
 from typing import (
+    List,
     Tuple,
     Union
 )

@@ -9,6 +9,7 @@ from typing import (
     Iterator,
     Tuple,
     Type,
+    TYPE_CHECKING,
 )
 from uuid import UUID
 
@@ -42,6 +43,17 @@ from eth.vm.execution_context import (
     ExecutionContext,
 )
 from eth.vm.message import Message
+
+if TYPE_CHECKING:
+    from eth.computation import (  # noqa: F401
+        BaseComputation,
+    )
+    from eth.rlp.transactions import (  # noqa: F401
+        BaseTransaction,
+    )
+    from eth.vm.transaction_context import (  # noqa: F401
+        BaseTransactionContext,
+    )
 
 
 class BaseState(Configurable, ABC):

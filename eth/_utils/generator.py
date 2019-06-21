@@ -3,6 +3,7 @@ from typing import (
     Generic,
     Iterable,
     Iterator,
+    List,
     TypeVar,
 )
 

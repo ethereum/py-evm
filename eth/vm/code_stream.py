@@ -2,6 +2,7 @@ import contextlib
 import logging
 from typing import (
     Iterator,
+    Set
 )
 
 from eth.validation import (

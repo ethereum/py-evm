@@ -1,5 +1,6 @@
 from typing import (
     Iterable,
+    List,
     Type,
 )
 

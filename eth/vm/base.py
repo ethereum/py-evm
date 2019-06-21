@@ -15,6 +15,8 @@ from typing import (
     Type,
 )
 
+from typing import Set
+
 from eth_hash.auto import keccak
 from eth_typing import (
     Address,
@@ -81,6 +83,7 @@ from eth.vm.computation import BaseComputation
 
 class BaseVM(Configurable, ABC):
     block_class: Type[BaseBlock] = None
+    fork: str = None  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
     chaindb: BaseChainDB = None  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
     _state_class: Type[BaseState] = None
 
