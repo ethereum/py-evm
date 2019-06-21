@@ -1,3 +1,5 @@
+import hashlib
+
 from typing import (
     cast,
     NamedTuple,
@@ -45,6 +47,7 @@ from p2p.discv5.constants import (
     TAG_SIZE,
     MAGIC_SIZE,
     ZERO_NONCE,
+    WHO_ARE_YOU_MAGIC_SUFFIX,
 )
 from p2p.discv5.typing import (
     AES128Key,
@@ -310,6 +313,23 @@ def prepare_auth_header_packet(*,
     )
 
 
+def prepare_who_are_you_packet(*,
+                               tag: Hash32,
+                               destination_node_id: Hash32,
+                               token: Nonce,
+                               id_nonce: bytes,
+                               enr_sequence_number: int,
+                               ) -> WhoAreYouPacket:
+    magic = compute_who_are_you_magic(destination_node_id)
+    return WhoAreYouPacket(
+        tag=tag,
+        magic=magic,
+        token=token,
+        id_nonce=id_nonce,
+        enr_sequence_number=enr_sequence_number,
+    )
+
+
 #
 # Packet data computation
 #
@@ -344,3 +364,8 @@ def compute_encrypted_message(initiator_key: AES128Key,
         authenticated_data=authenticated_data,
     )
     return encrypted_message
+
+
+def compute_who_are_you_magic(destination_node_id: Hash32) -> Hash32:
+    preimage = destination_node_id + WHO_ARE_YOU_MAGIC_SUFFIX
+    return Hash32(hashlib.sha256(preimage).digest())

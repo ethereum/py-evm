@@ -27,18 +27,16 @@ from p2p.discv5.constants import (
     MAGIC_SIZE,
 )
 
+from tests.p2p.discv5.strategies import (
+    enr_seq_st,
+    id_nonce_st,
+    magic_st,
+    nonce_st,
+    tag_st,
+)
 
-nonce_st = st.binary(min_size=NONCE_SIZE, max_size=NONCE_SIZE)
-tag_st = st.binary(min_size=TAG_SIZE, max_size=TAG_SIZE)
 # arbitrary as we're not working with a particular identity scheme
 pubkey_st = st.binary(min_size=33, max_size=33)
-
-
-magic_st = st.binary(min_size=MAGIC_SIZE, max_size=MAGIC_SIZE)
-nonce_st = st.binary(min_size=NONCE_SIZE, max_size=NONCE_SIZE)
-tag_st = st.binary(min_size=TAG_SIZE, max_size=TAG_SIZE)
-id_nonce_st = st.binary(min_size=16, max_size=32)  # arbitrary as there are no spec restrictions
-enr_seq_st = st.integers(min_value=0)
 
 
 @given(
