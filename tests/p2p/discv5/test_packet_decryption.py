@@ -10,6 +10,7 @@ from p2p.exceptions import (
 
 from p2p.discv5.packets import (
     AuthHeaderPacket,
+    AuthTagPacket,
 )
 from p2p.discv5.enr import (
     ENR,
@@ -55,6 +56,37 @@ def message(enr):
     auth_response_key=key_st,
     ephemeral_pubkey=pubkey_st,
 )
+def test_auth_header_message_decryption(tag,
+                                        auth_tag,
+                                        initiator_key,
+                                        auth_response_key,
+                                        ephemeral_pubkey,
+                                        enr,
+                                        message):
+    id_nonce_signature = b"\x00" * 32
+
+    packet = AuthHeaderPacket.prepare(
+        tag=tag,
+        auth_tag=auth_tag,
+        message=message,
+        initiator_key=initiator_key,
+        id_nonce_signature=id_nonce_signature,
+        auth_response_key=auth_response_key,
+        enr=enr,
+        ephemeral_pubkey=ephemeral_pubkey
+    )
+
+    decrypted_message = packet.decrypt_message(initiator_key)
+    assert decrypted_message == message
+
+
+@given(
+    tag=tag_st,
+    auth_tag=nonce_st,
+    initiator_key=key_st,
+    auth_response_key=key_st,
+    ephemeral_pubkey=pubkey_st,
+)
 def test_auth_header_decryption_with_enr(tag,
                                          auth_tag,
                                          initiator_key,
@@ -63,6 +95,7 @@ def test_auth_header_decryption_with_enr(tag,
                                          enr,
                                          message):
     id_nonce_signature = b"\x00" * 32
+
     packet = AuthHeaderPacket.prepare(
         tag=tag,
         auth_tag=auth_tag,
@@ -135,3 +168,20 @@ def test_invalid_auth_header_decryption_with_wrong_key(tag,
     )
     with pytest.raises(DecryptionError):
         packet.decrypt_auth_response(decryption_key)
+
+
+@given(
+    tag=tag_st,
+    auth_tag=nonce_st,
+    initiator_key=key_st,
+)
+def test_auth_tag_message_decryption(tag, auth_tag, initiator_key, message):
+    packet = AuthTagPacket.prepare(
+        tag=tag,
+        auth_tag=auth_tag,
+        message=message,
+        initiator_key=initiator_key,
+    )
+
+    decrypted_message = packet.decrypt_message(initiator_key)
+    assert decrypted_message == message
