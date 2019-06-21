@@ -10,6 +10,8 @@ from typing import (
 from eth.rlp.blocks import BaseBlock
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
+from eth.rlp.transactions import BaseTransactionFields
+
 from lahja import (
     BaseEvent,
 )
@@ -123,7 +125,16 @@ class SendReceiptsEvent(HasRemoteEvent):
     receipts: List[List[Receipt]]
 
 
+@dataclass
+class SendTransactionsEvent(HasRemoteEvent):
+    """
+    Event to proxy a ``ETHPeer.sub_proto.send_transactions`` call from a proxy peer to the actual
+    peer that sits in the peer pool.
+    """
+    transactions: List[BaseTransactionFields]
+
 # EXCHANGE HANDLER REQUEST / RESPONSE PAIRS
+
 
 @dataclass
 class GetBlockHeadersResponse(BaseEvent):

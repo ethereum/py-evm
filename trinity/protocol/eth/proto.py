@@ -46,6 +46,7 @@ from .events import (
     SendBlockHeadersEvent,
     SendNodeDataEvent,
     SendReceiptsEvent,
+    SendTransactionsEvent,
 )
 
 from trinity._utils.logging import HasExtendedDebugLogger
@@ -233,4 +234,7 @@ class ProxyETHProtocol:
     # Transactions
     #
     def send_transactions(self, transactions: List[BaseTransactionFields]) -> None:
-        raise NotImplementedError("Not yet implemented")
+        self._event_bus.broadcast_nowait(
+            SendTransactionsEvent(self.remote, transactions),
+            self._broadcast_config,
+        )

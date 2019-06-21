@@ -3,8 +3,6 @@ from typing import (
     Callable,
     Iterable,
     List,
-    FrozenSet,
-    Type,
 )
 import uuid
 
@@ -18,21 +16,24 @@ from eth.rlp.transactions import (
     BaseTransactionFields
 )
 
-from p2p.peer import (
-    PeerSubscriber,
+from p2p.kademlia import (
+    Node,
 )
-from p2p.protocol import Command
 from p2p.service import (
     BaseService
 )
 
-from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
-from trinity.protocol.eth.commands import (
-    Transactions,
+from trinity.endpoint import TrinityEventBusEndpoint
+from trinity.protocol.eth.peer import (
+    ETHProxyPeer,
+    ETHProxyPeerPool,
+)
+from trinity.protocol.eth.events import (
+    TransactionsEvent,
 )
 
 
-class TxPool(BaseService, PeerSubscriber):
+class TxPool(BaseService):
     """
     The :class:`~trinity.tx_pool.pool.TxPool` class is responsible for holding and relaying
     of transactions, represented as :class:`~eth.rlp.transactions.BaseTransaction` among the
@@ -45,10 +46,12 @@ class TxPool(BaseService, PeerSubscriber):
     """
 
     def __init__(self,
-                 peer_pool: ETHPeerPool,
+                 event_bus: TrinityEventBusEndpoint,
+                 peer_pool: ETHProxyPeerPool,
                  tx_validation_fn: Callable[[BaseTransactionFields], bool],
                  token: CancelToken = None) -> None:
         super().__init__(token)
+        self._event_bus = event_bus
         self._peer_pool = peer_pool
 
         if tx_validation_fn is None:
@@ -60,8 +63,6 @@ class TxPool(BaseService, PeerSubscriber):
         self._bloom = BloomFilter(max_elements=1000000)
         self._bloom_salt = str(uuid.uuid4())
 
-    subscription_msg_types: FrozenSet[Type[Command]] = frozenset({Transactions})
-
     # This is a rather arbitrary value, but when the sync is operating normally we never see
     # the msg queue grow past a few hundred items, so this should be a reasonable limit for
     # now.
@@ -70,25 +71,19 @@ class TxPool(BaseService, PeerSubscriber):
     async def _run(self) -> None:
         self.logger.info("Running Tx Pool")
 
-        with self.subscribe(self._peer_pool):
-            while self.is_operational:
-                peer, cmd, msg = await self.wait(
-                    self.msg_queue.get(), token=self.cancel_token)
-                peer = cast(ETHPeer, peer)
-                if isinstance(cmd, Transactions):
-                    msg = cast(List[BaseTransactionFields], msg)
-                    await self._handle_tx(peer, msg)
+        async for event in self.wait_iter(self._event_bus.stream(TransactionsEvent)):
+            txs = cast(List[BaseTransactionFields], event.msg)
+            await self._handle_tx(event.remote, txs)
 
-    async def _handle_tx(self, peer: ETHPeer, txs: List[BaseTransactionFields]) -> None:
+    async def _handle_tx(self, sender: Node, txs: List[BaseTransactionFields]) -> None:
 
-        self.logger.debug('Received %d transactions from %s', len(txs), peer)
+        self.logger.debug('Received %d transactions from %s', len(txs), sender)
 
-        self._add_txs_to_bloom(peer, txs)
+        self._add_txs_to_bloom(sender, txs)
 
-        async for receiving_peer in self._peer_pool:
-            receiving_peer = cast(ETHPeer, receiving_peer)
+        for receiving_peer in await self._peer_pool.get_peers():
 
-            if receiving_peer is peer:
+            if receiving_peer.remote is sender:
                 continue
 
             filtered_tx = self._filter_tx_for_peer(receiving_peer, txs)
@@ -101,26 +96,26 @@ class TxPool(BaseService, PeerSubscriber):
                 receiving_peer,
             )
             receiving_peer.sub_proto.send_transactions(filtered_tx)
-            self._add_txs_to_bloom(receiving_peer, filtered_tx)
+            self._add_txs_to_bloom(receiving_peer.remote, filtered_tx)
 
     def _filter_tx_for_peer(
             self,
-            peer: ETHPeer,
+            peer: ETHProxyPeer,
             txs: List[BaseTransactionFields]) -> List[BaseTransactionFields]:
 
         return [
             val for val in txs
-            if self._construct_bloom_entry(peer, val) not in self._bloom
+            if self._construct_bloom_entry(peer.remote, val) not in self._bloom
             # TODO: we need to keep track of invalid txs and eventually blacklist nodes
             if self.tx_validation_fn(val)
         ]
 
-    def _construct_bloom_entry(self, peer: ETHPeer, tx: BaseTransactionFields) -> bytes:
-        return f"{repr(peer.remote)}-{tx.hash}-{self._bloom_salt}".encode()
+    def _construct_bloom_entry(self, remote: Node, tx: BaseTransactionFields) -> bytes:
+        return f"{repr(remote)}-{tx.hash}-{self._bloom_salt}".encode()
 
-    def _add_txs_to_bloom(self, peer: ETHPeer, txs: Iterable[BaseTransactionFields]) -> None:
+    def _add_txs_to_bloom(self, remote: Node, txs: Iterable[BaseTransactionFields]) -> None:
         for val in txs:
-            self._bloom.add(self._construct_bloom_entry(peer, val))
+            self._bloom.add(self._construct_bloom_entry(remote, val))
 
     async def do_cleanup(self) -> None:
         self.logger.info("Stopping Tx Pool...")
