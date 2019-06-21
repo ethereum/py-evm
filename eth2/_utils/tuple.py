@@ -14,6 +14,27 @@ from eth_utils import (
 VType = TypeVar('VType')
 
 
+def update_tuple_with_mapping_fn(tuple_data: Tuple[VType, ...],
+                                 fn: Callable[[VType, Any], VType],
+                                 *args: Sequence[Sequence[Any]]) -> Tuple[VType, ...]:
+    list_data = list(tuple_data)
+
+    if args:
+        if len(list_data) != len(args):
+            raise ValidationError(
+                "The number of args supplied to ``update_tuple_with_mapping_fn``"
+                " should equal the number of elements in the tuple"
+            )
+        for index, item in enumerate(list_data):
+            args_for_index = args[index]
+            list_data[index] = fn(item, *args_for_index)
+    else:
+        for index, item in enumerate(list_data):
+            list_data[index] = fn(item)
+
+    return tuple(list_data)
+
+
 def update_tuple_item_with_fn(tuple_data: Tuple[VType, ...],
                               index: int,
                               fn: Callable[[VType, Any], VType],

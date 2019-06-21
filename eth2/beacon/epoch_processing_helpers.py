@@ -59,10 +59,11 @@ if TYPE_CHECKING:
     from eth2.beacon.types.states import BeaconState  # noqa: F401
 
 
-def get_churn_limit(state: 'BeaconState',
-                    slots_per_epoch: int,
-                    min_per_epoch_churn_limit: int,
-                    churn_limit_quotient: int) -> int:
+def get_churn_limit(state: 'BeaconState', config: Eth2Config) -> int:
+    slots_per_epoch = config.SLOTS_PER_EPOCH
+    min_per_epoch_churn_limit = config.MIN_PER_EPOCH_CHURN_LIMIT
+    churn_limit_quotient = config.CHURN_LIMIT_QUOTIENT
+
     current_epoch = state.current_epoch(slots_per_epoch)
     active_validator_indices = get_active_validator_indices(
         state.validator_registry,
@@ -160,9 +161,9 @@ def get_attesting_indices(state: 'BeaconState',
     return sorted(index for i, index in enumerate(committee) if has_voted(bitfield, i))
 
 
-def _get_matching_source_attestations(state: 'BeaconState',
-                                      epoch: Epoch,
-                                      config: Eth2Config) -> Tuple[PendingAttestation, ...]:
+def get_matching_source_attestations(state: 'BeaconState',
+                                     epoch: Epoch,
+                                     config: Eth2Config) -> Tuple[PendingAttestation, ...]:
     if epoch == state.current_epoch(config.SLOTS_PER_EPOCH):
         return state.current_epoch_attestations
     elif epoch == state.previous_epoch(config.SLOTS_PER_EPOCH):
@@ -172,20 +173,20 @@ def _get_matching_source_attestations(state: 'BeaconState',
 
 
 @to_tuple
-def _get_matching_target_attestations(state: 'BeaconState',
-                                      epoch: Epoch) -> Iterable[PendingAttestation]:
+def get_matching_target_attestations(state: 'BeaconState',
+                                     epoch: Epoch) -> Iterable[PendingAttestation]:
     target_root = get_block_root(state, epoch)
 
-    for a in _get_matching_source_attestations(state, epoch):
+    for a in get_matching_source_attestations(state, epoch):
         if a.data.target_root == target_root:
             yield a
 
 
 @to_tuple
-def _get_matching_head_attestations(state: 'BeaconState',
-                                    epoch: Epoch,
-                                    config: Eth2Config) -> Iterable[PendingAttestation]:
-    for a in _get_matching_source_attestations(state, epoch):
+def get_matching_head_attestations(state: 'BeaconState',
+                                   epoch: Epoch,
+                                   config: Eth2Config) -> Iterable[PendingAttestation]:
+    for a in get_matching_source_attestations(state, epoch):
         beacon_block_root = get_block_root_at_slot(
             state,
             get_attestation_data_slot(
@@ -200,7 +201,7 @@ def _get_matching_head_attestations(state: 'BeaconState',
 
 
 @to_tuple
-def _get_unslashed_attesting_indices(
+def get_unslashed_attesting_indices(
         state: 'BeaconState',
         attestations: Sequence[PendingAttestation]) -> Iterable[ValidatorIndex]:
     output = set()
@@ -214,12 +215,12 @@ def _get_unslashed_attesting_indices(
     )
 
 
-def _get_attesting_balance(state: 'BeaconState',
-                           attestations: Sequence[PendingAttestation],
-                           config: Eth2Config) -> Gwei:
+def get_attesting_balance(state: 'BeaconState',
+                          attestations: Sequence[PendingAttestation],
+                          config: Eth2Config) -> Gwei:
     return get_total_balance(
         state,
-        _get_unslashed_attesting_indices(state, attestations, config)
+        get_unslashed_attesting_indices(state, attestations, config)
     )
 
 
@@ -234,7 +235,7 @@ def _score_winning_crosslink(state: 'BeaconState',
                              attestations: Sequence[PendingAttestation],
                              config: Eth2Config,
                              c: Crosslink) -> int:
-    balance = _get_attesting_balance(
+    balance = get_attesting_balance(
         state,
         tuple(
             a for a in attestations if a.data.crosslink == c
@@ -249,9 +250,8 @@ def get_winning_crosslink_and_attesting_indices(
         state: 'BeaconState',
         epoch: Epoch,
         shard: Shard,
-        effective_balances: Dict[ValidatorIndex, Gwei],
         committee_config: CommitteeConfig) -> Tuple[Hash32, Tuple[ValidatorIndex, ...]]:
-    matching_attestations = _get_matching_source_attestations(
+    matching_attestations = get_matching_source_attestations(
         state,
         epoch,
         committee_config,
@@ -282,7 +282,7 @@ def get_winning_crosslink_and_attesting_indices(
 
     return (
         winning_crosslink,
-        _get_unslashed_attesting_indices(
+        get_unslashed_attesting_indices(
             state,
             winning_attestations,
             committee_config,
@@ -352,24 +352,21 @@ def get_winning_crosslink_and_attesting_indices(
 #     )
 
 
-def _get_total_active_balance(state: 'BeaconState', validator_index: ValidatorIndex,
-                              slots_per_epoch: int) -> Gwei:
-    current_epoch = state.current_epoch(slots_per_epoch)
+def get_total_active_balance(state: 'BeaconState', config: Eth2Config) -> Gwei:
+    current_epoch = state.current_epoch(config.slots_per_epoch)
     active_validator_indices = get_active_validator_indices(state, current_epoch)
     return get_total_balance(state, active_validator_indices)
 
 
-# ?
 def get_base_reward(state: 'BeaconState',
                     index: ValidatorIndex,
-                    base_reward_factor: int,
-                    base_rewards_per_epoch: int,
-                    slots_per_epoch: int) -> Gwei:
-    total_balance = _get_total_active_balance(state, index, slots_per_epoch)
+                    config: Eth2Config) -> Gwei:
+    total_balance = get_total_active_balance(state, config)
     effective_balance = state.validator_registry[index].effective_balance
     return (
-        effective_balance * base_reward_factor //
-        integer_squareroot(total_balance) // base_rewards_per_epoch
+        effective_balance * config.BASE_REWARD_FACTOR
+        // integer_squareroot(total_balance)
+        // config.BASE_REWARDS_PER_EPOCH
     )
 
 

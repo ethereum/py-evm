@@ -382,9 +382,9 @@ def get_beacon_proposer_index(state: 'BeaconState',
         i += 1
 
 
-def _get_shard_delta(state: 'BeaconState',
-                     epoch: Epoch,
-                     config: CommitteeConfig) -> int:
+def get_shard_delta(state: 'BeaconState',
+                    epoch: Epoch,
+                    config: CommitteeConfig) -> int:
     shard_count = config.SHARD_COUNT
     slots_per_epoch = config.SLOTS_PER_EPOCH
 
@@ -411,12 +411,12 @@ def get_epoch_start_shard(state: 'BeaconState',
 
     check_epoch = next_epoch
     shard = (
-        state.latest_start_shard + _get_shard_delta(state, current_epoch)
+        state.latest_start_shard + get_shard_delta(state, current_epoch)
     ) % config.SHARD_COUNT
     while check_epoch > epoch:
         check_epoch -= 1
         shard = (
-            shard + config.SHARD_COUNT - _get_shard_delta(state, check_epoch)
+            shard + config.SHARD_COUNT - get_shard_delta(state, check_epoch)
         ) % config.SHARD_COUNT
     return shard
 

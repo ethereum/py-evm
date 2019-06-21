@@ -7,6 +7,7 @@ from eth2._utils.tuple import (
 )
 from eth2.configs import (
     CommitteeConfig,
+    Eth2Config,
 )
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
@@ -58,10 +59,12 @@ def activate_validator(validator: Validator, activation_epoch: Epoch) -> Validat
 
 #     return state
 
-def _compute_exit_queue_epoch(state: BeaconState,
-                              slots_per_epoch: int,
-                              min_per_epoch_churn_limit: int,
-                              churn_limit_quotient: int) -> int:
+
+def _compute_exit_queue_epoch(state: BeaconState, config: Eth2Config) -> int:
+    slots_per_epoch = config.SLOTS_PER_EPOCH
+    min_per_epoch_churn_limit = config.MIN_PER_EPOCH_CHURN_LIMIT
+    churn_limit_quotient = config.CHURN_LIMIT_QUOTIENT
+
     exit_epochs = tuple(
         v.exit_epoch for v in state.validator_registry
         if v.exit_epoch != FAR_FUTURE_EPOCH
@@ -85,26 +88,39 @@ def _compute_exit_queue_epoch(state: BeaconState,
     return exit_queue_epoch
 
 
+def initiate_validator_exit_for_validator(state: BeaconState,
+                                          config: Eth2Config,
+                                          validator: Validator) -> Validator:
+    """
+    Performs the mutations to ``validator`` used to initiate an exit.
+    More convenient given our immutability patterns compared to ``initiate_validator_exit``.
+    """
+    if validator.exit_epoch != config.FAR_FUTURE_EPOCH:
+        return validator
+
+    exit_queue_epoch = _compute_exit_queue_epoch(state, config)
+
+    validator.exit_epoch = exit_queue_epoch
+    validator.withdrawable_epoch = validator.exit_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY
+
+    return validator
+
+
 def initiate_validator_exit(state: BeaconState,
                             index: ValidatorIndex,
-                            min_validator_withdrawability_delay: int) -> BeaconState:
+                            config: Eth2Config) -> BeaconState:
     """
     Initiate exit for the validator with the given ``index``.
     Return the updated state (immutable).
     """
     validator = state.validator_registry[index]
 
-    if validator.exit_epoch != FAR_FUTURE_EPOCH:
-        return state
-
-    exit_queue_epoch = _compute_exit_queue_epoch(
-        state,
+    updated_validator = initiate_validator_exit_for_validator(
+        validator,
+        config
     )
 
-    validator.exit_epoch = exit_queue_epoch
-    validator.withdrawable_epoch = validator.exit_epoch + min_validator_withdrawability_delay
-
-    return state.update_validator_registry(index, validator)
+    return state.update_validator_registry(index, updated_validator)
 
 
 # def exit_validator(state: BeaconState,

@@ -12,13 +12,12 @@ from .block_processing import (
     process_randao,
 )
 from .epoch_processing import (
-    process_eth1_data_votes,
     process_justification,
     process_crosslinks,
-    process_ejections,
-    process_final_updates,
     process_rewards_and_penalties,
-    process_validator_registry,
+    process_registry_updates,
+    process_slashings,
+    process_final_updates,
 )
 from .operation_processing import (
     process_attestations,
@@ -112,12 +111,11 @@ class SerenityStateTransition(BaseStateTransition):
         return state
 
     def per_epoch_transition(self, state: BeaconState) -> BeaconState:
-        state = process_eth1_data_votes(state, self.config)
         state = process_justification(state, self.config)
         state = process_crosslinks(state, self.config)
         state = process_rewards_and_penalties(state, self.config)
-        state = process_ejections(state, self.config)
-        state = process_validator_registry(state, self.config)
+        state = process_registry_updates(state, self.config)
+        state = process_slashings(state, self.config)
         state = process_final_updates(state, self.config)
 
         return state
