@@ -15,25 +15,21 @@ from eth_utils import (
 )
 
 
-def _domain_to_bytes(domain: int) -> bytes:
-    return domain.to_bytes(8, 'big')  # bytes8
-
-
 def _privkey_int_to_bytes(privkey: int) -> bytes:
     return privkey.to_bytes(bls_chia.PrivateKey.PRIVATE_KEY_SIZE, "big")
 
 
-def _hash_to_be_signed(message_hash: Hash32, domain: int) -> bytes:
-    domain_in_bytes = _domain_to_bytes(domain)
-    return message_hash + domain_in_bytes
+def combine_domain(message_hash: Hash32, domain: int) -> bytes:
+    return message_hash + domain.to_bytes(8, 'big')
 
 
 def sign(message_hash: Hash32,
          privkey: int,
          domain: int) -> BLSSignature:
     privkey_chia = bls_chia.PrivateKey.from_bytes(_privkey_int_to_bytes(privkey))
-    hash_to_be_signed = _hash_to_be_signed(message_hash, domain)
-    sig_chia = privkey_chia.sign_insecure(hash_to_be_signed)
+    sig_chia = privkey_chia.sign_insecure(
+        combine_domain(message_hash, domain)
+    )
     sig_chia_bytes = sig_chia.serialize()
     return cast(BLSSignature, sig_chia_bytes)
 
@@ -44,11 +40,13 @@ def privtopub(k: int) -> BLSPubkey:
 
 
 def verify(message_hash: Hash32, pubkey: BLSPubkey, signature: BLSSignature, domain: int) -> bool:
-    hash_to_be_signed = _hash_to_be_signed(message_hash, domain)
     pubkey_chia = bls_chia.PublicKey.from_bytes(pubkey)
     signature_chia = bls_chia.Signature.from_bytes(signature)
     signature_chia.set_aggregation_info(
-        bls_chia.AggregationInfo.from_msg(pubkey_chia, hash_to_be_signed)
+        bls_chia.AggregationInfo.from_msg(
+            pubkey_chia,
+            combine_domain(message_hash, domain),
+        )
     )
     return cast(bool, signature_chia.verify())
 
@@ -64,7 +62,10 @@ def aggregate_signatures(signatures: Sequence[BLSSignature]) -> BLSSignature:
 
 
 def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkey:
-    pubkeys_chia = list(map(bls_chia.PublicKey.from_bytes, pubkeys))
+    pubkeys_chia = [
+        bls_chia.PublicKey.from_bytes(pubkey)
+        for pubkey in pubkeys
+    ]
     aggregated_pubkey_chia = bls_chia.PublicKey.aggregate_insecure(pubkeys_chia)
     return cast(BLSPubkey, aggregated_pubkey_chia.serialize())
 
@@ -84,7 +85,7 @@ def verify_multiple(pubkeys: Sequence[BLSPubkey],
         )
 
     message_hashes_with_domain = [
-        _hash_to_be_signed(message_hash, domain)
+        combine_domain(message_hash, domain)
         for message_hash in message_hashes
     ]
     pubkeys_chia = map(bls_chia.PublicKey.from_bytes, pubkeys)
