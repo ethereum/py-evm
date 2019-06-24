@@ -56,6 +56,10 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
             help="enode://node1@0.0.0.0:1234,enode://node2@0.0.0.0:5678",
         )
         arg_parser.add_argument(
+            "--preferred_nodes",
+            help="enode://node1@0.0.0.0:1234,enode://node2@0.0.0.0:5678",
+        )
+        arg_parser.add_argument(
             "--beacon-nodekey",
             help="0xabcd",
         )
