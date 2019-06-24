@@ -81,3 +81,6 @@ create-docker-image: clean
 sdist: clean
 	python setup.py sdist bdist_wheel
 	ls -l dist
+
+install-git-lfs:
+	apt-get install -y git-lfs

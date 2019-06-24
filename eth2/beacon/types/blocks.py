@@ -138,7 +138,7 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
             f'parent_root={encode_hex(self.parent_root)[2:10]} '
             f'signing_root={encode_hex(self.signing_root)[2:10]} '
             f'state_root={encode_hex(self.state_root)[2:10]} '
-            f'attestations={self.num_attestations} '
+            f'attestations={self.body.attestations} '
             '>'
         )
 
