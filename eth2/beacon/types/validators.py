@@ -93,7 +93,6 @@ class Validator(ssz.Serializable):
             activation_epoch=FAR_FUTURE_EPOCH,
             exit_epoch=FAR_FUTURE_EPOCH,
             withdrawable_epoch=FAR_FUTURE_EPOCH,
-            slashed=False,
             effective_balance=min(
                 _round_down_to_previous_multiple(
                     amount,
