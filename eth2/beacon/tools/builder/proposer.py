@@ -14,7 +14,7 @@ from eth2.configs import (
     CommitteeConfig,
     Eth2Config,
 )
-from eth2.beacon.enums import (
+from eth2.beacon.signature_domain import (
     SignatureDomain,
 )
 from eth2.beacon.committee_helpers import (

@@ -21,7 +21,7 @@ from eth2._utils.bitfield import (
 from eth2.configs import (
     CommitteeConfig,
 )
-from eth2.beacon.enums import (
+from eth2.beacon.signature_domain import (
     SignatureDomain,
 )
 from eth2.beacon.helpers import (

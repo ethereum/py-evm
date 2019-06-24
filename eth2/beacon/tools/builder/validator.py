@@ -37,7 +37,7 @@ from eth2.configs import (
 from eth2.beacon.constants import (
     ZERO_TIMESTAMP,
 )
-from eth2.beacon.enums import (
+from eth2.beacon.signature_domain import (
     SignatureDomain,
 )
 from eth2.beacon.committee_helpers import (

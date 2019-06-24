@@ -21,7 +21,7 @@ from eth2._utils.hash import (
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
 )
-from eth2.beacon.enums import (
+from eth2.beacon.signature_domain import (
     SignatureDomain,
 )
 from eth2.beacon.types.blocks import (

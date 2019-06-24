@@ -14,7 +14,7 @@ from eth2._utils.merkle.common import (
 from eth2.beacon.constants import (
     DEPOSIT_CONTRACT_TREE_DEPTH,
 )
-from eth2.beacon.enums import (
+from eth2.beacon.signature_domain import (
     SignatureDomain,
 )
 from eth2.beacon.helpers import (

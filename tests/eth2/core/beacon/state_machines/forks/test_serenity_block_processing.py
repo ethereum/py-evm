@@ -16,7 +16,7 @@ from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
-from eth2.beacon.enums import SignatureDomain
+from eth2.beacon.signature_domain import SignatureDomain
 
 from eth2.beacon.helpers import (
     get_domain,

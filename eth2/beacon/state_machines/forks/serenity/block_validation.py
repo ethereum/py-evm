@@ -44,7 +44,7 @@ from eth2.beacon.committee_helpers import (
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
-from eth2.beacon.enums import (
+from eth2.beacon.signature_domain import (
     SignatureDomain,
 )
 from eth2.beacon.helpers import (
