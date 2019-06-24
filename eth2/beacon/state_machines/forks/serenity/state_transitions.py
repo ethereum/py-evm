@@ -20,11 +20,6 @@ from .epoch_processing import (
     process_final_updates,
 )
 from .operation_processing import (
-    process_attestations,
-    process_attester_slashings,
-    process_deposits,
-    process_proposer_slashings,
-    process_voluntary_exits,
     process_operations,
 )
 from .slot_processing import (
