@@ -19,6 +19,7 @@ from eth2.configs import (
     CommitteeConfig,
 )
 from eth2.beacon.constants import (
+    BASE_REWARDS_PER_EPOCH,
     FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.committee_helpers import (
@@ -349,7 +350,7 @@ def get_attestation_deltas(state: BeaconState,
                 penalties,
                 index,
                 sum,
-                config.BASE_REWARDS_PER_EPOCH * get_base_reward(state, index, config),
+                BASE_REWARDS_PER_EPOCH * get_base_reward(state, index, config),
             )
             if index not in matching_target_attesting_indices:
                 effective_balance = _get_effective_balance(state, index)

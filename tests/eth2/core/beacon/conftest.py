@@ -14,8 +14,9 @@ from eth2.configs import (
     Eth2GenesisConfig,
 )
 from eth2.beacon.constants import (
-    GWEI_PER_ETH,
+    DEPOSIT_CONTRACT_TREE_DEPTH,
     FAR_FUTURE_EPOCH,
+    GWEI_PER_ETH,
 )
 from eth2.beacon.fork_choice import (
     higher_slot_scoring,
@@ -477,7 +478,7 @@ def deposit_contract_address():
 
 @pytest.fixture
 def deposit_contract_tree_depth():
-    return SERENITY_CONFIG.DEPOSIT_CONTRACT_TREE_DEPTH
+    return DEPOSIT_CONTRACT_TREE_DEPTH
 
 
 @pytest.fixture
@@ -775,7 +776,6 @@ def config(
         SHUFFLE_ROUND_COUNT=shuffle_round_count,
         SLOTS_PER_HISTORICAL_ROOT=slots_per_historical_root,
         DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,
-        DEPOSIT_CONTRACT_TREE_DEPTH=deposit_contract_tree_depth,
         MIN_DEPOSIT_AMOUNT=min_deposit_amount,
         MAX_EFFECTIVE_BALANCE=max_effective_balance,
         FORK_CHOICE_BALANCE_INCREMENT=fork_choice_balance_increment,

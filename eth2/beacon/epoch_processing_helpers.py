@@ -30,6 +30,9 @@ from eth2.beacon.attestation_helpers import (
 from eth2.beacon.committee_helpers import (
     get_crosslink_committee,
 )
+from eth2.beacon.constants import (
+    BASE_REWARDS_PER_EPOCH,
+)
 from eth2.configs import (
     CommitteeConfig,
     Eth2Config,
@@ -253,6 +256,5 @@ def get_base_reward(state: 'BeaconState',
     effective_balance = state.validator_registry[index].effective_balance
     return (
         effective_balance * config.BASE_REWARD_FACTOR
-        // integer_squareroot(total_balance)
-        // config.BASE_REWARDS_PER_EPOCH
+        // integer_squareroot(total_balance) // BASE_REWARDS_PER_EPOCH
     )

@@ -11,6 +11,9 @@ from eth2._utils.hash import (
 from eth2._utils.merkle.common import (
     verify_merkle_branch,
 )
+from eth2.beacon.constants import (
+    DEPOSIT_CONTRACT_TREE_DEPTH,
+)
 from eth2.beacon.enums import (
     SignatureDomain,
 )
@@ -58,7 +61,7 @@ def process_deposit(state: BeaconState,
     """
     Process a deposit from Ethereum 1.0.
     """
-    validate_deposit_proof(state, deposit, config.DEPOSIT_CONTRACT_TREE_DEPTH)
+    validate_deposit_proof(state, deposit, DEPOSIT_CONTRACT_TREE_DEPTH)
 
     # Increment the next deposit index we are expecting. Note that this
     # needs to be done here because while the deposit contract will never

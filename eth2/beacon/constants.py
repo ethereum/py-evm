@@ -18,12 +18,10 @@ GENESIS_PARENT_ROOT = ZERO_HASH32
 
 ZERO_TIMESTAMP = Timestamp(0)
 
-#
-# shuffle function
-#
-
 MAX_LIST_SIZE = 2**40
 
-## Proposer selection
-
 MAX_RANDOM_BYTE = 2**8 - 1
+
+BASE_REWARDS_PER_EPOCH = 5
+
+DEPOSIT_CONTRACT_TREE_DEPTH = 2**5

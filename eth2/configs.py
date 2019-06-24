@@ -26,7 +26,6 @@ Eth2Config = NamedTuple(
         ('SHUFFLE_ROUND_COUNT', int),
         # Deposit contract
         ('DEPOSIT_CONTRACT_ADDRESS', Address),
-        ('DEPOSIT_CONTRACT_TREE_DEPTH', int),
         # Gwei values,
         ('MIN_DEPOSIT_AMOUNT', Gwei),
         ('MAX_EFFECTIVE_BALANCE', Gwei),
