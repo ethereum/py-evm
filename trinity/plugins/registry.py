@@ -56,7 +56,6 @@ BASE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
     PeerDiscoveryPlugin,
     RequestServerPlugin,
     UpnpPlugin,
-    BeamChainExecutionPlugin,
 )
 
 BEACON_NODE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
@@ -66,6 +65,7 @@ BEACON_NODE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
 
 
 ETH1_NODE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
+    BeamChainExecutionPlugin,
     DbShellPlugin,
     EthstatsPlugin,
     LightPeerChainBridgePlugin,
