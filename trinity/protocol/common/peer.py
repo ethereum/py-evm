@@ -177,7 +177,7 @@ class BaseChainPeerPool(BasePeerPool):
     def highest_td_peer(self) -> BaseChainPeer:
         peers = tuple(self.connected_nodes.values())
         if not peers:
-            raise NoConnectedPeers()
+            raise NoConnectedPeers("No connected peers")
         peers_by_td = groupby(operator.attrgetter('head_td'), peers)
         max_td = max(peers_by_td.keys())
         return random.choice(peers_by_td[max_td])
