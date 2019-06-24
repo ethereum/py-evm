@@ -25,6 +25,7 @@ from .operation_processing import (
     process_deposits,
     process_proposer_slashings,
     process_voluntary_exits,
+    process_operations,
 )
 from .slot_processing import (
     process_slot_transition,
@@ -98,16 +99,8 @@ class SerenityStateTransition(BaseStateTransition):
                              check_proposer_signature: bool=True) -> BeaconState:
         state = process_block_header(state, block, self.config, check_proposer_signature)
         state = process_randao(state, block, self.config)
-        state = process_eth1_data(state, block)
-
-        # Operations
-        state = process_proposer_slashings(state, block, self.config)
-        state = process_attester_slashings(state, block, self.config)
-        state = process_attestations(state, block, self.config)
-        state = process_deposits(state, block, self.config)
-        state = process_voluntary_exits(state, block, self.config)
-        # TODO: state = process_transfers(state, block, self.config)
-
+        state = process_eth1_data(state, block, self.config)
+        state = process_operations(state, block, self.config)
         return state
 
     def per_epoch_transition(self, state: BeaconState) -> BeaconState:

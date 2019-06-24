@@ -1,7 +1,3 @@
-from eth_utils.toolz import (
-    first,
-)
-
 from eth2._utils.hash import hash_eth2
 from eth2._utils.tuple import update_tuple_item
 from eth2._utils.numeric import (
@@ -14,7 +10,7 @@ from eth2.configs import (
 )
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.blocks import BaseBeaconBlock
-from eth2.beacon.types.eth1_data_vote import Eth1DataVote
+from eth2.beacon.types.block_headers import BeaconBlockHeader
 
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_randao_reveal,
@@ -22,7 +18,6 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import (
 
 from eth2.beacon.helpers import (
     get_randao_mix,
-    get_temporary_block_header,
 )
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
@@ -30,8 +25,9 @@ from eth2.beacon.committee_helpers import (
 
 from .block_validation import (
     validate_block_slot,
-    validate_block_previous_root,
+    validate_block_parent_root,
     validate_proposer_signature,
+    validate_proposer_is_not_slashed,
 )
 
 
@@ -40,10 +36,11 @@ def process_block_header(state: BeaconState,
                          config: Eth2Config,
                          check_proposer_signature: bool) -> BeaconState:
     validate_block_slot(state, block)
-    validate_block_previous_root(state, block)
-
-    state = state.copy(
-        latest_block_header=get_temporary_block_header(block),
+    validate_block_parent_root(state, block)
+    validate_proposer_is_not_slashed(
+        state,
+        block.signing_root,
+        CommitteeConfig(config),
     )
 
     if check_proposer_signature:
@@ -53,34 +50,13 @@ def process_block_header(state: BeaconState,
             committee_config=CommitteeConfig(config),
         )
 
-    return state
-
-
-def process_eth1_data(state: BeaconState,
-                      block: BaseBeaconBlock) -> BeaconState:
-    try:
-        vote_index, original_vote = first(
-            (index, eth1_data_vote)
-            for index, eth1_data_vote in enumerate(state.eth1_data_votes)
-            if block.body.eth1_data == eth1_data_vote.eth1_data
-        )
-    except StopIteration:
-        new_vote = Eth1DataVote(
-            eth1_data=block.body.eth1_data,
-            vote_count=1,
-        )
-        state = state.copy(
-            eth1_data_votes=state.eth1_data_votes + (new_vote,)
-        )
-    else:
-        updated_vote = original_vote.copy(
-            vote_count=original_vote.vote_count + 1
-        )
-        state = state.copy(
-            eth1_data_votes=update_tuple_item(state.eth1_data_votes, vote_index, updated_vote)
-        )
-
-    return state
+    return state.copy(
+        latest_block_header=BeaconBlockHeader(
+            slot=block.slot,
+            parent_root=block.parent_root,
+            body_root=block.body.root,
+        ),
+    )
 
 
 def process_randao(state: BeaconState,
@@ -88,36 +64,50 @@ def process_randao(state: BeaconState,
                    config: Eth2Config) -> BeaconState:
     proposer_index = get_beacon_proposer_index(
         state=state,
-        slot=state.slot,
         committee_config=CommitteeConfig(config),
     )
-    proposer = state.validator_registry[proposer_index]
 
     epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
 
     validate_randao_reveal(
-        randao_reveal=block.body.randao_reveal,
+        state=state,
         proposer_index=proposer_index,
-        proposer_pubkey=proposer.pubkey,
         epoch=epoch,
-        fork=state.fork,
+        randao_reveal=block.body.randao_reveal,
     )
 
-    randao_mix_index = epoch % config.LATEST_RANDAO_MIXES_LENGTH
+    randao_mix_index = epoch % config.EPOCHS_PER_HISTORICAL_VECTOR
     new_randao_mix = bitwise_xor(
         get_randao_mix(
             state=state,
             epoch=epoch,
             slots_per_epoch=config.SLOTS_PER_EPOCH,
-            latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
+            epochs_per_historical_vector=config.EPOCHS_PER_HISTORICAL_VECTOR,
         ),
         hash_eth2(block.body.randao_reveal),
     )
 
     return state.copy(
-        latest_randao_mixes=update_tuple_item(
-            state.latest_randao_mixes,
+        randao_mixes=update_tuple_item(
+            state.randao_mixes,
             randao_mix_index,
             new_randao_mix,
         ),
+    )
+
+
+def process_eth1_data(state: BeaconState,
+                      block: BaseBeaconBlock,
+                      config: Eth2Config) -> BeaconState:
+    body = block.body
+
+    new_eth1_data_votes = state.eth1_data_votes + body.eth1_data
+
+    new_eth1_data = state.eth1_data
+    if new_eth1_data_votes.count(body.eth1_data) * 2 > config.SLOTS_PER_ETH1_VOTING_PERIOD:
+        new_eth1_data = body.eth1_data
+
+    return state.copy(
+        eth1_data=new_eth1_data,
+        eth1_data_votes=new_eth1_data_votes,
     )

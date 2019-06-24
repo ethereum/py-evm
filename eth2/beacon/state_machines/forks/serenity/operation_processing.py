@@ -1,8 +1,4 @@
-from typing import (
-    Iterable,
-)
 from eth_utils import (
-    to_tuple,
     ValidationError,
 )
 
@@ -14,13 +10,16 @@ from eth2.beacon.validator_status_helpers import (
     initiate_validator_exit,
     slash_validator,
 )
-from eth2.beacon.typing import (
-    ValidatorIndex,
+from eth2.beacon.attestation_helpers import (
+    get_attestation_data_slot,
 )
 from eth2.beacon.committee_helpers import (
-    slot_to_epoch,
+    get_beacon_proposer_index,
 )
-from eth2.beacon.types.attester_slashings import AttesterSlashing
+from eth2.beacon.epoch_processing_helpers import (
+    increase_balance,
+    decrease_balance,
+)
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.states import BeaconState
@@ -32,8 +31,11 @@ from .block_validation import (
     validate_attestation,
     validate_attester_slashing,
     validate_proposer_slashing,
-    validate_slashable_indices,
     validate_voluntary_exit,
+    validate_correct_number_of_deposits,
+    validate_some_slashing,
+    validate_transfer,
+    validate_unique_transfers,
 )
 
 
@@ -55,24 +57,13 @@ def process_proposer_slashings(state: BeaconState,
             index=proposer_slashing.proposer_index,
             latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,
             whistleblower_reward_quotient=config.WHISTLEBLOWER_REWARD_QUOTIENT,
+            proposer_reward_quotient=config.PROPOSER_REWARD_QUOTIENT,
             max_effective_balance=config.MAX_EFFECTIVE_BALANCE,
+            min_validator_withdrawability_delay=config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY,
             committee_config=CommitteeConfig(config),
         )
 
     return state
-
-
-@to_tuple
-def _get_slashable_indices(state: BeaconState,
-                           config: Eth2Config,
-                           attester_slashing: AttesterSlashing) -> Iterable[ValidatorIndex]:
-    for index in attester_slashing.slashable_attestation_1.validator_indices:
-        should_be_slashed = (
-            index in attester_slashing.slashable_attestation_2.validator_indices and
-            not state.validator_registry[index].slashed
-        )
-        if should_be_slashed:
-            yield index
 
 
 def process_attester_slashings(state: BeaconState,
@@ -85,6 +76,8 @@ def process_attester_slashings(state: BeaconState,
             f"maximum: {config.MAX_ATTESTER_SLASHINGS}"
         )
 
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+
     for attester_slashing in block.body.attester_slashings:
         validate_attester_slashing(
             state,
@@ -93,18 +86,32 @@ def process_attester_slashings(state: BeaconState,
             config.SLOTS_PER_EPOCH,
         )
 
-        slashable_indices = _get_slashable_indices(state, config, attester_slashing)
+        slashed_any = False
+        attestation_1 = attester_slashing.attestation_1
+        attestation_2 = attester_slashing.attestation_2
+        attesting_indices_1 = (
+            attestation_1.custody_bit_0_indices + attestation_1.custody_bit_1_indices
+        )
+        attesting_indices_2 = (
+            attestation_2.custody_bit_0_indices + attestation_2.custody_bit_1_indices
+        )
 
-        validate_slashable_indices(slashable_indices)
-        for index in slashable_indices:
-            state = slash_validator(
-                state=state,
-                index=index,
-                latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,
-                whistleblower_reward_quotient=config.WHISTLEBLOWER_REWARD_QUOTIENT,
-                max_effective_balance=config.MAX_EFFECTIVE_BALANCE,
-                committee_config=CommitteeConfig(config),
-            )
+        eligible_indices = sorted(set(attesting_indices_1).intersection(attesting_indices_2))
+        for index in eligible_indices:
+            validator = state.validator_registry[index]
+            if validator.is_slashable(current_epoch):
+                state = slash_validator(
+                    state=state,
+                    index=index,
+                    latest_slashed_exit_length=config.LATEST_SLASHED_EXIT_LENGTH,
+                    whistleblower_reward_quotient=config.WHISTLEBLOWER_REWARD_QUOTIENT,
+                    proposer_reward_quotient=config.PROPOSER_REWARD_QUOTIENT,
+                    max_effective_balance=config.MAX_EFFECTIVE_BALANCE,
+                    min_validator_withdrawability_delay=config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY,
+                    committee_config=CommitteeConfig(config),
+                )
+                slashed_any = True
+        validate_some_slashing(slashed_any, attester_slashing)
 
     return state
 
@@ -112,16 +119,6 @@ def process_attester_slashings(state: BeaconState,
 def process_attestations(state: BeaconState,
                          block: BaseBeaconBlock,
                          config: Eth2Config) -> BeaconState:
-    """
-    Implements 'per-block-processing.operations.attestations' portion of Phase 0 spec:
-    https://github.com/ethereum/eth2.0-specs/blob/master/specs/core/0_beacon-chain.md#attestations-1
-
-    Validate the ``attestations`` contained within the ``block`` in the context of ``state``.
-    If any invalid, throw ``ValidationError``.
-    Otherwise, append a ``PendingAttestation`` for each to ``previous_epoch_attestations``
-    or ``current_epoch_attestations``.
-    Return resulting ``state``.
-    """
     if len(block.body.attestations) > config.MAX_ATTESTATIONS:
         raise ValidationError(
             f"The block ({block}) has too many attestations:\n"
@@ -129,48 +126,64 @@ def process_attestations(state: BeaconState,
             f"maximum: {config.MAX_ATTESTATIONS}"
         )
 
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    new_current_epoch_attestations = tuple()
+    new_previous_epoch_attestations = tuple()
     for attestation in block.body.attestations:
         validate_attestation(
             state,
             attestation,
-            config.MIN_ATTESTATION_INCLUSION_DELAY,
-            config.SLOTS_PER_HISTORICAL_ROOT,
-            CommitteeConfig(config),
+            config,
         )
 
-    # update attestations
-    previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH)
-    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    new_previous_epoch_pending_attestations = []
-    new_current_epoch_pending_attestations = []
-    for attestation in block.body.attestations:
-        if slot_to_epoch(attestation.data.slot, config.SLOTS_PER_EPOCH) == current_epoch:
-            new_current_epoch_pending_attestations.append(
-                PendingAttestation(
-                    aggregation_bitfield=attestation.aggregation_bitfield,
-                    data=attestation.data,
-                    custody_bitfield=attestation.custody_bitfield,
-                    inclusion_slot=state.slot,
-                )
-            )
-        elif slot_to_epoch(attestation.data.slot, config.SLOTS_PER_EPOCH) == previous_epoch:
-            new_previous_epoch_pending_attestations.append(
-                PendingAttestation(
-                    aggregation_bitfield=attestation.aggregation_bitfield,
-                    data=attestation.data,
-                    custody_bitfield=attestation.custody_bitfield,
-                    inclusion_slot=state.slot,
-                )
-            )
+        attestation_slot = get_attestation_data_slot(
+            state,
+            attestation.data,
+            config,
+        )
+        proposer_index = get_beacon_proposer_index(
+            state,
+            CommitteeConfig(config),
+        )
+        pending_attestation = PendingAttestation(
+            aggregation_bitfield=attestation.aggregation_bitfield,
+            data=attestation.data,
+            inclusion_delay=state.slot - attestation_slot,
+            proposer_index=proposer_index,
+        )
 
-    state = state.copy(
-        previous_epoch_attestations=(
-            state.previous_epoch_attestations + tuple(new_previous_epoch_pending_attestations)
-        ),
+        if attestation.data.target_epoch == current_epoch:
+            new_current_epoch_attestations += (pending_attestation,)
+        else:
+            new_previous_epoch_attestations += (pending_attestation,)
+
+    return state.copy(
         current_epoch_attestations=(
-            state.current_epoch_attestations + tuple(new_current_epoch_pending_attestations)
+            state.current_epoch_attestations + new_current_epoch_attestations
+        ),
+        previous_epoch_attestations=(
+            state.previous_epoch_attestations + new_previous_epoch_attestations
         ),
     )
+
+
+def process_deposits(state: BeaconState,
+                     block: BaseBeaconBlock,
+                     config: Eth2Config) -> BeaconState:
+    if len(block.body.deposits) > config.MAX_DEPOSITS:
+        raise ValidationError(
+            f"The block ({block}) has too many deposits:\n"
+            f"\tFound {len(block.body.deposits)} deposits, "
+            f"maximum: {config.MAX_DEPOSITS}"
+        )
+
+    for deposit in block.body.deposits:
+        state = process_deposit(
+            state,
+            deposit,
+            config,
+        )
+
     return state
 
 
@@ -191,28 +204,60 @@ def process_voluntary_exits(state: BeaconState,
             config.SLOTS_PER_EPOCH,
             config.PERSISTENT_COMMITTEE_PERIOD,
         )
-        # Run the exit
         state = initiate_validator_exit(state, voluntary_exit.validator_index)
 
     return state
 
 
-def process_deposits(state: BeaconState,
-                     block: BaseBeaconBlock,
-                     config: Eth2Config) -> BeaconState:
-    if len(block.body.deposits) > config.MAX_DEPOSITS:
+def process_transfers(state: BeaconState,
+                      block: BaseBeaconBlock,
+                      config: Eth2Config) -> BeaconState:
+    if len(block.body.transfers) > config.MAX_TRANSFERS:
         raise ValidationError(
-            f"The block ({block}) has too many deposits:\n"
-            f"\tFound {len(block.body.deposits)} deposits, "
-            f"maximum: {config.MAX_DEPOSITS}"
+            f"The block ({block}) has too many transfers:\n"
+            f"\tFound {len(block.body.transfers)} transfers, "
+            f"maximum: {config.MAX_TRANSFERS}"
         )
 
-    for deposit in block.body.deposits:
-        state = process_deposit(
+    for transfer in block.body.transfers:
+        validate_transfer(
             state,
-            deposit,
-            slots_per_epoch=config.SLOTS_PER_EPOCH,
-            deposit_contract_tree_depth=config.DEPOSIT_CONTRACT_TREE_DEPTH,
+            transfer,
+            config,
         )
+        state = decrease_balance(
+            state,
+            transfer.sender,
+            transfer.amount + transfer.fee,
+        )
+        state = increase_balance(
+            state,
+            transfer.recipient,
+            transfer.amount,
+        )
+        state = increase_balance(
+            state,
+            get_beacon_proposer_index(
+                state,
+                CommitteeConfig(config),
+            ),
+            transfer.fee,
+        )
+
+    return state
+
+
+def process_operations(state: BeaconState,
+                       block: BaseBeaconBlock,
+                       config: Eth2Config) -> BeaconState:
+    validate_correct_number_of_deposits(state, block, config)
+    validate_unique_transfers(state, block, config)
+
+    state = process_proposer_slashings(state, block, config)
+    state = process_attester_slashings(state, block, config)
+    state = process_attestations(state, block, config)
+    state = process_deposits(state, block, config)
+    state = process_voluntary_exits(state, block, config)
+    state = process_transfers(state, block, config)
 
     return state
