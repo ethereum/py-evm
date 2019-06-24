@@ -166,7 +166,9 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
         return (
             f'<Block #{self.slot} '
             f'signing_root={encode_hex(self.signing_root)[2:10]} '
-            f'root={encode_hex(self.root)[2:10]}>'
+            f'root={encode_hex(self.root)[2:10]} '
+            f'attestations={self.num_attestations} '
+            '>'
         )
 
     @property

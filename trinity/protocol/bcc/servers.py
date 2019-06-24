@@ -458,7 +458,7 @@ class BCCReceiveServer(BaseReceiveServer):
         for peer in self._peer_pool.connected_nodes.values():
             peer = cast(BCCPeer, peer)
             # skip the peer who send the attestations to us
-            if from_peer is not None and peer == from_peer:
+            if from_peer is not None and peer.remote == from_peer.remote:
                 continue
             self.logger.debug(bold_red("Send attestations=%s to peer=%s"), attestations, peer)
             peer.sub_proto.send_attestation_records(attestations)
@@ -551,7 +551,7 @@ class BCCReceiveServer(BaseReceiveServer):
         for peer in self._peer_pool.connected_nodes.values():
             peer = cast(BCCPeer, peer)
             # skip the peer who send the block to us
-            if from_peer is not None and peer == from_peer:
+            if from_peer is not None and peer.remote == from_peer.remote:
                 continue
             self.logger.debug(bold_red("Send block=%s to peer=%s"), block, peer)
             peer.sub_proto.send_new_block(block=block)

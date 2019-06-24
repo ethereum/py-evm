@@ -38,3 +38,6 @@ class PendingAttestation(ssz.Serializable):
             custody_bitfield=custody_bitfield,
             inclusion_slot=inclusion_slot,
         )
+
+    def __repr__(self) -> str:
+        return f"<PendingAttestation inclusion_slot={self.inclusion_slot}>"

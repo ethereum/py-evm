@@ -188,6 +188,14 @@ class Validator(BaseService):
             state.finalized_epoch,
             encode_hex(state.finalized_root),
         )
+        self.logger.debug(
+            bold_green("current_epoch_attestations  %s"),
+            state.current_epoch_attestations,
+        )
+        self.logger.debug(
+            bold_green("previous_epoch_attestations %s"),
+            state.previous_epoch_attestations,
+        )
         proposer_index = _get_proposer_index(
             state,
             slot,
