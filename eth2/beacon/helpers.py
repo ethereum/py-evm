@@ -49,25 +49,6 @@ if TYPE_CHECKING:
     from eth2.beacon.types.validators import Validator  # noqa: F401
 
 
-#
-# Header/block helpers
-#
-def get_temporary_block_header(block: BeaconBlock) -> BeaconBlockHeader:
-    """
-    Return the block header corresponding to a block with ``state_root`` set to ``ZERO_HASH32``.
-    """
-    return BeaconBlockHeader(
-        slot=block.slot,
-        previous_block_root=block.previous_block_root,
-        state_root=ZERO_HASH32,
-        block_body_root=block.body.root,
-        signature=EMPTY_SIGNATURE,
-    )
-
-
-#
-# Time unit convertion
-#
 def slot_to_epoch(slot: Slot, slots_per_epoch: int) -> Epoch:
     return Epoch(slot // slots_per_epoch)
 
@@ -150,17 +131,17 @@ def get_state_root(state: 'BeaconState',
 def get_randao_mix(state: 'BeaconState',
                    epoch: Epoch,
                    slots_per_epoch: int,
-                   latest_randao_mixes_length: int) -> Hash32:
+                   epochs_per_historical_vector: int) -> Hash32:
     """
     Return the randao mix at a recent ``epoch``.
     """
     validate_epoch_for_active_randao_mix(
         state.current_epoch(slots_per_epoch),
         epoch,
-        latest_randao_mixes_length,
+        epochs_per_historical_vector,
     )
 
-    return state.latest_randao_mixes[epoch % latest_randao_mixes_length]
+    return state.latest_randao_mixes[epoch % epochs_per_historical_vector]
 
 
 def get_active_validator_indices(validators: Sequence['Validator'],
@@ -185,7 +166,7 @@ def generate_seed(state: 'BeaconState',
         state=state,
         epoch=Epoch(epoch - committee_config.MIN_SEED_LOOKAHEAD),
         slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
-        latest_randao_mixes_length=committee_config.LATEST_RANDAO_MIXES_LENGTH,
+        epochs_per_historical_vector=committee_config.LATEST_RANDAO_MIXES_LENGTH,
     )
     active_index_root = get_active_index_root(
         state=state,
@@ -243,7 +224,7 @@ def _get_fork_version(fork: 'Fork', epoch: Epoch) -> bytes:
         return fork.current_version
 
 
-def _bls_domain(domain_type: SignatureDomain, fork_version: bytes=b'\x00' * 4) -> int:
+def bls_domain(domain_type: SignatureDomain, fork_version: bytes=b'\x00' * 4) -> int:
     return int.from_bytes(domain_type.to_bytes(4, 'little') + fork_version, 'little')
 
 
@@ -256,36 +237,7 @@ def get_domain(state: 'BeaconState',
     """
     epoch = state.current_epoch(slots_per_epoch) if message_epoch is None else message_epoch
     fork_version = _get_fork_version(state.fork, epoch)
-    return _bls_domain(domain_type, fork_version)
-
-
-def is_double_vote(attestation_data_1: 'AttestationData',
-                   attestation_data_2: 'AttestationData') -> bool:
-    """
-    Assumes ``attestation_data_1`` is distinct from ``attestation_data_2``.
-
-    Return True if the provided ``AttestationData`` are slashable
-    due to a 'double vote'.
-    """
-    return attestation_data_1.target_epoch == attestation_data_2.target_epoch
-
-
-def is_surround_vote(attestation_data_1: 'AttestationData',
-                     attestation_data_2: 'AttestationData') -> bool:
-    """
-    Assumes ``attestation_data_1`` is distinct from ``attestation_data_2``.
-
-    Return True if the provided ``AttestationData`` are slashable
-    due to a 'surround vote'.
-
-    Note: parameter order matters as this function only checks
-    that ``attestation_data_1`` surrounds ``attestation_data_2``.
-    """
-    source_epoch_1 = attestation_data_1.source_epoch
-    source_epoch_2 = attestation_data_2.source_epoch
-    target_epoch_1 = attestation_data_1.target_epoch
-    target_epoch_2 = attestation_data_2.target_epoch
-    return source_epoch_1 < source_epoch_2 and target_epoch_2 < target_epoch_1
+    return bls_domain(domain_type, fork_version)
 
 
 def get_delayed_activation_exit_epoch(
