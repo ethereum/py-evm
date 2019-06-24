@@ -7,6 +7,10 @@ from typing import (
     Tuple
 )
 
+from eth.db.header import (
+    HeaderDB,
+)
+
 from trinity.config import (
     Eth1AppConfig,
     Eth1DbMode,
@@ -69,7 +73,8 @@ class JsonRpcServerPlugin(AsyncioIsolatedPlugin):
         chain: BaseAsyncChain
 
         if eth1_app_config.database_mode is Eth1DbMode.LIGHT:
-            header_db = db_manager.get_headerdb()  # type: ignore
+            db = db_manager.get_db()  # type: ignore
+            header_db = HeaderDB(db)
             event_bus_light_peer_chain = EventBusLightPeerChain(self.event_bus)
             chain = chain_config.light_chain_class(header_db, peer_chain=event_bus_light_peer_chain)
         elif eth1_app_config.database_mode is Eth1DbMode.FULL:
