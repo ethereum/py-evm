@@ -124,6 +124,48 @@ p2pd_steps: &p2pd_steps
           - ~/.local
         key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
+cmake: &cmake
+  working_directory: ~/repo
+  steps:
+    - checkout
+    - run:
+        name: checkout fixtures submodule
+        command: git submodule update --init --recursive
+    - run:
+        name: merge pull request base
+        command: ./.circleci/merge_pr.sh
+    - run:
+        name: merge pull request base (2nd try)
+        command: ./.circleci/merge_pr.sh
+        when: on_fail
+    - run:
+        name: merge pull request base (3nd try)
+        command: ./.circleci/merge_pr.sh
+        when: on_fail
+    - restore_cache:
+        keys:
+          - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+    - run:
+        name: install libsnappy-dev
+        command: sudo apt install -y libsnappy-dev
+    - run:
+        name: install cmake
+        command: sudo apt-get update && sudo apt-get install -y gcc g++ cmake
+    - run:
+        name: install dependencies
+        command: pip install --user tox
+    - run:
+        name: run tox
+        command: ~/.local/bin/tox
+    - save_cache:
+        paths:
+          - .hypothesis
+          - .tox
+          - ~/.cache/pip
+          - ~/.local
+          - ./eggs
+        key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+
 jobs:
   py36-lint:
     <<: *common
@@ -250,6 +292,12 @@ jobs:
         environment:
           TOXENV: py36-libp2p
     <<: *p2pd_steps
+  py36-bls-bindings:
+    <<: *cmake
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-bls-bindings
   py36-wheel-cli:
     <<: *common
     docker:
@@ -324,6 +372,12 @@ jobs:
         environment:
           TOXENV: py37-libp2p
     <<: *p2pd_steps
+  py37-bls-bindings:
+    <<: *cmake
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-bls-bindings
   py37-wheel-cli:
     <<: *common
     docker:
@@ -357,6 +411,7 @@ workflows:
       - py37-eth2-fixtures
       - py37-eth2-integration
       # - py37-libp2p
+      - py37-bls-bindings
       - py37-plugins
 
       - py37-rpc-state-quadratic
@@ -379,6 +434,7 @@ workflows:
       - py36-eth2-fixtures
       - py36-eth2-integration
       # - py36-libp2p
+      - py36-bls-bindings
       - py36-plugins
 
       - py36-integration

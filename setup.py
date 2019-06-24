@@ -101,6 +101,9 @@ deps = {
         "protobuf>=3.6.1",
         "pymultihash>=0.8.2",
     ],
+    'bls-bindings': [
+        "blspy>=0.1.8,<1",  # for `bls_chia`
+    ],
 }
 
 # NOTE: Snappy breaks RTD builds. Until we have a more mature solution
