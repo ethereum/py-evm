@@ -48,3 +48,15 @@ def convert_to_indexed(state: BeaconState, attestation: Attestation) -> IndexedA
         data=attestation.data,
         signature=attestation.signature,
     )
+
+
+def is_slashable_attestation_data(data_1: AttestationData, data_2: AttestationData) -> bool:
+    """
+    Check if ``data_1`` and ``data_2`` are slashable according to Casper FFG rules.
+    """
+    return (
+        # Double vote
+        (data_1 != data_2 and data_1.target_epoch == data_2.target_epoch) or
+        # Surround vote
+        (data_1.source_epoch < data_2.source_epoch and data_2.target_epoch < data_1.target_epoch)
+    )
