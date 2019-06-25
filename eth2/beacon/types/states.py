@@ -195,7 +195,7 @@ class BeaconState(ssz.Serializable):
     #                         slots_per_historical_root: int,
     #                         epochs_per_historical_vector: int,
     #                         epochs_per_historical_vector: int,
-    #                         latest_slashed_exit_length: int,
+    #                         epochs_per_slashed_balances_vector: int,
     #                         activated_genesis_validators: Sequence[Validator]=(),
     #                         genesis_balances: Sequence[Gwei]=()) -> 'BeaconState':
 
@@ -223,7 +223,7 @@ class BeaconState(ssz.Serializable):
     #         block_roots=(ZERO_HASH32,) * slots_per_historical_root,
     #         state_roots=(ZERO_HASH32,) * slots_per_historical_root,
     #         latest_active_index_roots=(ZERO_HASH32,) * epochs_per_historical_vector,
-    #         latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
+    #         latest_slashed_balances=(Gwei(0),) * epochs_per_slashed_balances_vector,
     #         latest_block_header=BeaconBlockHeader().copy(
     #             slot=genesis_slot,
     #         ),

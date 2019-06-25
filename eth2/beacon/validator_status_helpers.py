@@ -109,7 +109,7 @@ def slash_validator(*,
                     state: BeaconState,
                     index: ValidatorIndex,
                     whistleblower_index: ValidatorIndex=None,
-                    latest_slashed_exit_length: int,
+                    epochs_per_slashed_balances_vector: int,
                     whistleblower_reward_quotient: int,
                     proposer_reward_quotient: int,
                     max_effective_balance: Gwei,
@@ -128,12 +128,12 @@ def slash_validator(*,
     state = state.update_validator_registry_with_fn(
         index,
         _set_validator_slashed(
-            current_epoch + latest_slashed_exit_length,
+            current_epoch + epochs_per_slashed_balances_vector,
         ),
     )
 
     slashed_balance = state.validator_registry[index].effective_balance
-    slashed_epoch = current_epoch % latest_slashed_exit_length
+    slashed_epoch = current_epoch % epochs_per_slashed_balances_vector
     state = state.copy(
         latest_slashed_balances=update_tuple_item_with_fn(
             state.latest_slashed_balances,

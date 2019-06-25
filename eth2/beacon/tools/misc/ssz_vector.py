@@ -13,7 +13,7 @@ def override_vector_lengths(config: Eth2Config) -> None:
         "latest_block_roots": config.SLOTS_PER_HISTORICAL_ROOT,
         "latest_state_roots": config.SLOTS_PER_HISTORICAL_ROOT,
         "latest_active_index_roots": config.EPOCHS_PER_HISTORICAL_VECTOR,
-        "latest_slashed_balances": config.LATEST_SLASHED_EXIT_LENGTH,
+        "latest_slashed_balances": config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
     }
     for key, value in state_vector_dict.items():
         BeaconState._meta.container_sedes.field_name_to_sedes[key].length = value

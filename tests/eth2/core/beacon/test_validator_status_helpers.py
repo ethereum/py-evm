@@ -182,7 +182,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
                                                         num_validators,
                                                         committee,
                                                         n_validators_state,
-                                                        latest_slashed_exit_length,
+                                                        epochs_per_slashed_balances_vector,
                                                         whistleblower_reward_quotient,
                                                         max_effective_balance,
                                                         committee_config):
@@ -221,7 +221,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
     state = _settle_penality_to_validator_and_whistleblower(
         state=state,
         validator_index=validator_index,
-        latest_slashed_exit_length=latest_slashed_exit_length,
+        epochs_per_slashed_balances_vector=epochs_per_slashed_balances_vector,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         max_effective_balance=max_effective_balance,
         committee_config=committee_config,
@@ -230,7 +230,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
     # Check `state.latest_slashed_balances`
     latest_slashed_balances_list = list(state.latest_slashed_balances)
     last_slashed_epoch = (
-        state.current_epoch(committee_config.SLOTS_PER_EPOCH) % latest_slashed_exit_length
+        state.current_epoch(committee_config.SLOTS_PER_EPOCH) % epochs_per_slashed_balances_vector
     )
     latest_slashed_balances_list[last_slashed_epoch] = max_effective_balance
     latest_slashed_balances = tuple(latest_slashed_balances_list)
@@ -262,7 +262,7 @@ def test_slash_validator(monkeypatch,
                          n_validators_state,
                          genesis_epoch,
                          slots_per_epoch,
-                         latest_slashed_exit_length,
+                         epochs_per_slashed_balances_vector,
                          whistleblower_reward_quotient,
                          activation_exit_delay,
                          max_effective_balance,
@@ -291,7 +291,7 @@ def test_slash_validator(monkeypatch,
     result_state = slash_validator(
         state=state,
         index=index,
-        latest_slashed_exit_length=latest_slashed_exit_length,
+        epochs_per_slashed_balances_vector=epochs_per_slashed_balances_vector,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         max_effective_balance=max_effective_balance,
         committee_config=committee_config,
@@ -302,7 +302,7 @@ def test_slash_validator(monkeypatch,
     expected_state = _settle_penality_to_validator_and_whistleblower(
         state=expected_state,
         validator_index=index,
-        latest_slashed_exit_length=latest_slashed_exit_length,
+        epochs_per_slashed_balances_vector=epochs_per_slashed_balances_vector,
         whistleblower_reward_quotient=whistleblower_reward_quotient,
         max_effective_balance=max_effective_balance,
         committee_config=committee_config,
@@ -310,7 +310,7 @@ def test_slash_validator(monkeypatch,
     current_epoch = state.current_epoch(slots_per_epoch)
     validator = state.validator_registry[index].copy(
         slashed=False,
-        withdrawable_epoch=current_epoch + latest_slashed_exit_length,
+        withdrawable_epoch=current_epoch + epochs_per_slashed_balances_vector,
     )
     expected_state.update_validator_registry(index, validator)
 

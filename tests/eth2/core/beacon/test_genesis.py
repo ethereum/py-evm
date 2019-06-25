@@ -50,7 +50,7 @@ def test_get_genesis_beacon_state(
         genesis_start_shard,
         shard_count,
         slots_per_historical_root,
-        latest_slashed_exit_length,
+        epochs_per_slashed_balances_vector,
         epochs_per_historical_vector,
         config,
         keymap):
@@ -109,7 +109,7 @@ def test_get_genesis_beacon_state(
     assert state.latest_crosslinks[0] == Crosslink()
     assert len(state.latest_block_roots) == slots_per_historical_root
     assert state.latest_block_roots[0] == ZERO_HASH32
-    assert len(state.latest_slashed_balances) == latest_slashed_exit_length
+    assert len(state.latest_slashed_balances) == epochs_per_slashed_balances_vector
     assert state.latest_slashed_balances[0] == Gwei(0)
 
     assert len(state.historical_roots) == 0

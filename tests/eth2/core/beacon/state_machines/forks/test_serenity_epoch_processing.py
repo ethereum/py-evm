@@ -1264,7 +1264,7 @@ def test_process_validator_registry(monkeypatch,
         'slots_per_epoch',
         'genesis_slot',
         'current_epoch',
-        'latest_slashed_exit_length',
+        'epochs_per_slashed_balances_vector',
         'latest_slashed_balances',
         'expected_total_penalties',
     ),
@@ -1296,7 +1296,7 @@ def test_compute_total_penalties(genesis_state,
         'slots_per_epoch',
         'genesis_slot',
         'current_epoch',
-        'latest_slashed_exit_length',
+        'epochs_per_slashed_balances_vector',
     ),
     [
         (
@@ -1332,7 +1332,7 @@ def test_compute_individual_penalty(genesis_state,
                                     config,
                                     slots_per_epoch,
                                     current_epoch,
-                                    latest_slashed_exit_length,
+                                    epochs_per_slashed_balances_vector,
                                     total_penalties,
                                     total_balance,
                                     expected_penalty):
@@ -1356,7 +1356,7 @@ def test_compute_individual_penalty(genesis_state,
         'slots_per_epoch',
         'genesis_slot',
         'current_epoch',
-        'latest_slashed_exit_length',
+        'epochs_per_slashed_balances_vector',
         'latest_slashed_balances',
         'expected_penalty',
     ),
@@ -1377,7 +1377,7 @@ def test_process_slashings(genesis_state,
                            current_epoch,
                            latest_slashed_balances,
                            slots_per_epoch,
-                           latest_slashed_exit_length,
+                           epochs_per_slashed_balances_vector,
                            expected_penalty):
     state = genesis_state.copy(
         slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
@@ -1386,7 +1386,7 @@ def test_process_slashings(genesis_state,
     slashing_validator_index = 0
     validator = state.validator_registry[slashing_validator_index].copy(
         slashed=True,
-        withdrawable_epoch=current_epoch + latest_slashed_exit_length // 2
+        withdrawable_epoch=current_epoch + epochs_per_slashed_balances_vector // 2
     )
     state = state.update_validator_registry(slashing_validator_index, validator)
 
@@ -1592,8 +1592,8 @@ def test_process_final_updates(genesis_state,
     state = genesis_state.copy(
         slot=current_slot,
     )
-    current_index = state.next_epoch(config.SLOTS_PER_EPOCH) % config.LATEST_SLASHED_EXIT_LENGTH
-    previous_index = state.current_epoch(config.SLOTS_PER_EPOCH) % config.LATEST_SLASHED_EXIT_LENGTH
+    current_index = state.next_epoch(config.SLOTS_PER_EPOCH) % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+    previous_index = state.current_epoch(config.SLOTS_PER_EPOCH) % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
 
     attestation = Attestation(**sample_attestation_params)
     previous_epoch_attestation_slot = current_slot - config.SLOTS_PER_EPOCH

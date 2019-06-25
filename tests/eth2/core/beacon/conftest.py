@@ -189,7 +189,7 @@ def sample_beacon_state_params(config,
         'latest_block_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
         'latest_state_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
         'latest_active_index_roots': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
-        'latest_slashed_balances': (0,) * config.LATEST_SLASHED_EXIT_LENGTH,
+        'latest_slashed_balances': (0,) * config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
         'latest_block_header': BeaconBlockHeader(**sample_block_header_params),
         'historical_roots': (),
         'latest_eth1_data': Eth1Data(**sample_eth1_data_params),
@@ -366,7 +366,7 @@ def filled_beacon_state(genesis_epoch,
                         slots_per_historical_root,
                         epochs_per_historical_vector,
                         epochs_per_historical_vector,
-                        latest_slashed_exit_length):
+                        epochs_per_slashed_balances_vector):
     return BeaconState.create_filled_state(
         genesis_epoch=genesis_epoch,
         genesis_start_shard=genesis_start_shard,
@@ -375,7 +375,7 @@ def filled_beacon_state(genesis_epoch,
         slots_per_historical_root=slots_per_historical_root,
         epochs_per_historical_vector=epochs_per_historical_vector,
         epochs_per_historical_vector=epochs_per_historical_vector,
-        latest_slashed_exit_length=latest_slashed_exit_length,
+        epochs_per_slashed_balances_vector=epochs_per_slashed_balances_vector,
     )
 
 
@@ -582,8 +582,8 @@ def epochs_per_historical_vector():
 
 
 @pytest.fixture
-def latest_slashed_exit_length():
-    return SERENITY_CONFIG.LATEST_SLASHED_EXIT_LENGTH
+def epochs_per_slashed_balances_vector():
+    return SERENITY_CONFIG.EPOCHS_PER_SLASHED_BALANCES_VECTOR
 
 
 @pytest.fixture
@@ -658,13 +658,13 @@ def genesis_state(filled_beacon_state,
                   genesis_epoch,
                   shard_count,
                   slots_per_historical_root,
-                  latest_slashed_exit_length,
+                  epochs_per_slashed_balances_vector,
                   epochs_per_historical_vector):
     return filled_beacon_state.copy(
         validator_registry=activated_genesis_validators,
         validator_balances=genesis_balances,
         latest_block_roots=tuple(ZERO_HASH32 for _ in range(slots_per_historical_root)),
-        latest_slashed_balances=(0,) * latest_slashed_exit_length,
+        latest_slashed_balances=(0,) * epochs_per_slashed_balances_vector,
         latest_crosslinks=tuple(
             Crosslink(
                 shard=shard,
