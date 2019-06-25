@@ -102,5 +102,3 @@ def process_deposit(state: BeaconState,
             index,
             amount,
         )
-
-    return state
