@@ -111,7 +111,7 @@ def test_process_proposer_slashings(genesis_state,
         state.slot,
         CommitteeConfig(config),
     )
-    slashing_proposer_index = (whistleblower_index + 1) % len(state.validator_registry)
+    slashing_proposer_index = (whistleblower_index + 1) % len(state.validators)
     proposer_slashing = create_mock_proposer_slashing_at_block(
         state,
         config,
@@ -138,8 +138,8 @@ def test_process_proposer_slashings(genesis_state,
         )
         # Check if slashed
         assert (
-            new_state.validator_balances[slashing_proposer_index] <
-            state.validator_balances[slashing_proposer_index]
+            new_state.balances[slashing_proposer_index] <
+            state.balances[slashing_proposer_index]
         )
     else:
         with pytest.raises(ValidationError):
@@ -207,7 +207,7 @@ def test_process_attester_slashings(genesis_state,
         )
         # Check if slashed
         assert (
-            new_state.validator_balances[attester_index] < state.validator_balances[attester_index]
+            new_state.balances[attester_index] < state.balances[attester_index]
         )
     else:
         invalid_attester_slashing = valid_attester_slashing.copy(
@@ -346,10 +346,10 @@ def test_process_voluntary_exits(genesis_state,
         ),
     )
     validator_index = 0
-    validator = state.validator_registry[validator_index].copy(
+    validator = state.validators[validator_index].copy(
         activation_epoch=config.GENESIS_EPOCH,
     )
-    state = state.update_validator_registry(validator_index, validator)
+    state = state.update_validators(validator_index, validator)
     valid_voluntary_exit = create_mock_voluntary_exit(
         state,
         config,
@@ -374,7 +374,7 @@ def test_process_voluntary_exits(genesis_state,
         # TODO(ralexstokes) patch up exit testing
         # Check if initiated exit
         # assert (
-        #     new_state.validator_registry[validator_index].initiated_exit
+        #     new_state.validators[validator_index].initiated_exit
         # )
     else:
         invalid_voluntary_exit = valid_voluntary_exit.copy(

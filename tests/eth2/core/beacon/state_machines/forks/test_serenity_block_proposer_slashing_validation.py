@@ -119,7 +119,7 @@ def test_validate_block_header_signature(slots_per_epoch,
         keymap,
         config,
     )
-    proposer = state.validator_registry[proposer_index]
+    proposer = state.validators[proposer_index]
 
     # Valid
     validate_block_header_signature(
@@ -131,7 +131,7 @@ def test_validate_block_header_signature(slots_per_epoch,
 
     # Invalid
     wrong_proposer_index = proposer_index + 1
-    wrong_proposer = state.validator_registry[wrong_proposer_index]
+    wrong_proposer = state.validators[wrong_proposer_index]
     with pytest.raises(ValidationError):
         validate_block_header_signature(
             header=valid_proposer_slashing.header_1,

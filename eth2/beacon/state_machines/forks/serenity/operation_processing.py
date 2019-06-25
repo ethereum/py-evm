@@ -98,7 +98,7 @@ def process_attester_slashings(state: BeaconState,
 
         eligible_indices = sorted(set(attesting_indices_1).intersection(attesting_indices_2))
         for index in eligible_indices:
-            validator = state.validator_registry[index]
+            validator = state.validators[index]
             if validator.is_slashable(current_epoch):
                 state = slash_validator(
                     state=state,

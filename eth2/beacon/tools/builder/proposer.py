@@ -187,7 +187,7 @@ def create_mock_block(*,
         slot,
         config
     )
-    proposer_pubkey = state.validator_registry[proposer_index].pubkey
+    proposer_pubkey = state.validators[proposer_index].pubkey
     proposer_privkey = keymap[proposer_pubkey]
 
     result_block = create_block_on_state(

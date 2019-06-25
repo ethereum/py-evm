@@ -47,10 +47,10 @@ def test_validate_voluntary_exit(
         ),
     )
     validator_index = 0
-    validator = state.validator_registry[validator_index].copy(
+    validator = state.validators[validator_index].copy(
         activation_epoch=config.GENESIS_EPOCH,
     )
-    state = state.update_validator_registry(validator_index, validator)
+    state = state.update_validators(validator_index, validator)
     valid_voluntary_exit = create_mock_voluntary_exit(
         state,
         config,
@@ -95,7 +95,7 @@ def test_validate_voluntary_validator_exit_epoch(
 
     validator_index = 0
 
-    validator = state.validator_registry[validator_index].copy(
+    validator = state.validators[validator_index].copy(
         exit_epoch=validator_exit_epoch,
     )
 
@@ -125,7 +125,7 @@ def test_validate_voluntary_exit_initiated_exit(
     validator_index = 0
 
     # TODO(ralexstokes) fix validation for this
-    # validator = state.validator_registry[validator_index].copy(
+    # validator = state.validators[validator_index].copy(
     #     initiated_exit=initiated_exit,
     # )
 
@@ -214,10 +214,10 @@ def test_validate_voluntary_exit_persistent(
         ),
     )
     validator_index = 0
-    validator = state.validator_registry[validator_index].copy(
+    validator = state.validators[validator_index].copy(
         activation_epoch=activation_epoch,
     )
-    state = state.update_validator_registry(validator_index, validator)
+    state = state.update_validators(validator_index, validator)
 
     if success:
         validate_voluntary_exit_persistent(
@@ -267,7 +267,7 @@ def test_validate_voluntary_exit_signature(
         keymap,
         validator_index,
     )
-    validator = state.validator_registry[validator_index]
+    validator = state.validators[validator_index]
     if success:
         validate_voluntary_exit_signature(state, voluntary_exit, validator)
     else:

@@ -84,12 +84,12 @@ def test_get_genesis_beacon_state(
     assert state.fork.epoch == genesis_epoch
 
     # Validator registry
-    assert len(state.validator_registry) == validator_count
-    assert len(state.validator_balances) == validator_count
-    assert state.validator_registry_update_epoch == genesis_epoch
+    assert len(state.validators) == validator_count
+    assert len(state.balances) == validator_count
+    assert state.validators_update_epoch == genesis_epoch
 
     # Randomness and committees
-    assert len(state.latest_randao_mixes) == epochs_per_historical_vector
+    assert len(state.randao_mixes) == epochs_per_historical_vector
     assert state.previous_shuffling_start_shard == genesis_start_shard
     assert state.current_shuffling_start_shard == genesis_start_shard
     assert state.previous_shuffling_epoch == genesis_epoch
@@ -107,16 +107,16 @@ def test_get_genesis_beacon_state(
     # Recent state
     assert len(state.latest_crosslinks) == shard_count
     assert state.latest_crosslinks[0] == Crosslink()
-    assert len(state.latest_block_roots) == slots_per_historical_root
-    assert state.latest_block_roots[0] == ZERO_HASH32
-    assert len(state.latest_slashed_balances) == epochs_per_slashed_balances_vector
-    assert state.latest_slashed_balances[0] == Gwei(0)
+    assert len(state.block_roots) == slots_per_historical_root
+    assert state.block_roots[0] == ZERO_HASH32
+    assert len(state.slashed_balances) == epochs_per_slashed_balances_vector
+    assert state.slashed_balances[0] == Gwei(0)
 
     assert len(state.historical_roots) == 0
 
     # Ethereum 1.0 chain data
-    assert state.latest_eth1_data == genesis_eth1_data
+    assert state.eth1_data == genesis_eth1_data
     assert len(state.eth1_data_votes) == 0
-    assert state.deposit_index == len(genesis_validator_deposits)
+    assert state.eth1_deposit_index == len(genesis_validator_deposits)
 
-    assert state.validator_registry[0].is_active(genesis_epoch)
+    assert state.validators[0].is_active(genesis_epoch)

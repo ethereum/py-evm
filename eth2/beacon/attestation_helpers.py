@@ -63,10 +63,10 @@ def verify_indexed_attestation_aggregate_signature(state: BeaconState,
 
     pubkeys = tuple(
         bls.aggregate_pubkeys(
-            tuple(state.validator_registry[i].pubkey for i in bit_0_indices)
+            tuple(state.validators[i].pubkey for i in bit_0_indices)
         ),
         bls.aggregate_pubkeys(
-            tuple(state.validator_registry[i].pubkey for i in bit_1_indices)
+            tuple(state.validators[i].pubkey for i in bit_1_indices)
         ),
     )
 

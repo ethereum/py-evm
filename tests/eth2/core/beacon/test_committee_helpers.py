@@ -100,8 +100,8 @@ def test_get_next_epoch_committee_count(n_validators_state,
 
     # Exit all validators
     exit_epoch = state.current_epoch(slots_per_epoch) + 1
-    for index, validator in enumerate(state.validator_registry):
-        state = state.update_validator_registry(
+    for index, validator in enumerate(state.validators):
+        state = state.update_validators(
             validator_index=index,
             validator=validator.copy(
                 exit_epoch=exit_epoch,
@@ -294,20 +294,20 @@ def test_get_prev_or_cur_epoch_committee_count(
         previous_shuffling_epoch=previous_shuffling_epoch,
         current_shuffling_epoch=current_shuffling_epoch,
     )
-    for index in range(len(state.validator_registry)):
+    for index in range(len(state.validators)):
         if index < len_active_validators:
-            validator = state.validator_registry[index].copy(
+            validator = state.validators[index].copy(
                 activation_epoch=0,
             )
-            state = state.update_validator_registry(
+            state = state.update_validators(
                 index,
                 validator,
             )
         else:
-            validator = state.validator_registry[index].copy(
+            validator = state.validators[index].copy(
                 activation_epoch=delayed_activation_epoch,
             )
-            state = state.update_validator_registry(
+            state = state.update_validators(
                 index,
                 validator,
             )
@@ -484,7 +484,7 @@ def test_get_crosslink_committees_at_slot(
 
     shuffling = get_shuffling(
         seed=seed,
-        validators=state.validator_registry,
+        validators=state.validators,
         epoch=shuffling_epoch,
         committee_config=committee_config,
     )

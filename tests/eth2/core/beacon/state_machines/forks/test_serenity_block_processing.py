@@ -50,13 +50,13 @@ def test_randao_processing(sample_beacon_block_params,
                            config):
     proposer_pubkey, proposer_privkey = first(keymap.items())
     state = SerenityBeaconState(**sample_beacon_state_params).copy(
-        validator_registry=tuple(
+        validators=tuple(
             mock_validator(proposer_pubkey, config)
             for _ in range(config.TARGET_COMMITTEE_SIZE)
         ),
-        validator_balances=(config.MAX_EFFECTIVE_BALANCE,) * config.TARGET_COMMITTEE_SIZE,
+        balances=(config.MAX_EFFECTIVE_BALANCE,) * config.TARGET_COMMITTEE_SIZE,
 
-        latest_randao_mixes=tuple(
+        randao_mixes=tuple(
             ZERO_HASH32
             for _ in range(config.EPOCHS_PER_HISTORICAL_VECTOR)
         ),
@@ -83,8 +83,8 @@ def test_randao_processing(sample_beacon_block_params,
     new_state = process_randao(state, block, config)
 
     updated_index = epoch % config.EPOCHS_PER_HISTORICAL_VECTOR
-    original_mixes = state.latest_randao_mixes
-    updated_mixes = new_state.latest_randao_mixes
+    original_mixes = state.randao_mixes
+    updated_mixes = new_state.randao_mixes
 
     assert all(
         updated == original if index != updated_index else updated != original
@@ -100,13 +100,13 @@ def test_randao_processing_validates_randao_reveal(sample_beacon_block_params,
                                                    config):
     proposer_pubkey, proposer_privkey = first(keymap.items())
     state = SerenityBeaconState(**sample_beacon_state_params).copy(
-        validator_registry=tuple(
+        validators=tuple(
             mock_validator(proposer_pubkey, config)
             for _ in range(config.TARGET_COMMITTEE_SIZE)
         ),
-        validator_balances=(config.MAX_EFFECTIVE_BALANCE,) * config.TARGET_COMMITTEE_SIZE,
+        balances=(config.MAX_EFFECTIVE_BALANCE,) * config.TARGET_COMMITTEE_SIZE,
 
-        latest_randao_mixes=tuple(
+        randao_mixes=tuple(
             ZERO_HASH32
             for _ in range(config.EPOCHS_PER_HISTORICAL_VECTOR)
         ),

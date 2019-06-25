@@ -236,14 +236,14 @@ def create_mock_proposer_slashing_at_block(
     block_header_1 = create_block_header_with_signature(
         state,
         block_root_1,
-        keymap[state.validator_registry[proposer_index].pubkey],
+        keymap[state.validators[proposer_index].pubkey],
         slots_per_epoch,
     )
 
     block_header_2 = create_block_header_with_signature(
         state,
         block_root_2,
-        keymap[state.validator_registry[proposer_index].pubkey],
+        keymap[state.validators[proposer_index].pubkey],
         slots_per_epoch,
     )
 
@@ -305,7 +305,7 @@ def create_mock_slashable_attestation(state: BeaconState,
     signature = sign_transaction(
         message_hash=message_hash,
         privkey=keymap[
-            state.validator_registry[
+            state.validators[
                 voting_committee_indices[0]
             ].pubkey
         ],
@@ -448,7 +448,7 @@ def create_mock_signed_attestation(state: BeaconState,
         sign_transaction(
             message_hash=message_hash,
             privkey=keymap[
-                state.validator_registry[
+                state.validators[
                     committee[committee_index]
                 ].pubkey
             ],
@@ -619,7 +619,7 @@ def create_mock_voluntary_exit(state: BeaconState,
     return voluntary_exit.copy(
         signature=sign_transaction(
             message_hash=voluntary_exit.signing_root,
-            privkey=keymap[state.validator_registry[validator_index].pubkey],
+            privkey=keymap[state.validators[validator_index].pubkey],
             fork=state.fork,
             slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
             signature_domain=SignatureDomain.DOMAIN_VOLUNTARY_EXIT,

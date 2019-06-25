@@ -83,7 +83,7 @@ def test_demo(base_db,
         genesis_block_class=SerenityBeaconBlock,
     )
     for i in range(num_validators):
-        assert genesis_state.validator_registry[i].is_active(genesis_slot)
+        assert genesis_state.validators[i].is_active(genesis_slot)
 
     chaindb.persist_block(genesis_block, SerenityBeaconBlock, fork_choice_scoring)
     chaindb.persist_state(genesis_state)

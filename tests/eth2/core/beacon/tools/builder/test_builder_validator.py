@@ -172,10 +172,10 @@ def test_get_committee_assignment_no_assignment(genesis_state,
     state = genesis_state
     validator_index = 1
     current_epoch = state.current_epoch(slots_per_epoch)
-    validator = state.validator_registry[validator_index].copy(
+    validator = state.validators[validator_index].copy(
         exit_epoch=genesis_epoch,
     )
-    state = state.update_validator_registry(
+    state = state.update_validators(
         validator_index,
         validator=validator,
     )

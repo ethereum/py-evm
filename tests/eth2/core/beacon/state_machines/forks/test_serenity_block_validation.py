@@ -96,11 +96,11 @@ def test_validate_proposer_signature(
         config):
 
     state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=tuple(
+        validators=tuple(
             mock_validator(proposer_pubkey, config)
             for _ in range(10)
         ),
-        validator_balances=(max_effective_balance,) * 10,
+        balances=(max_effective_balance,) * 10,
     )
 
     block = BeaconBlock(**sample_beacon_block_params)
@@ -380,8 +380,8 @@ def test_verify_slashable_attestation_signature(
         sample_slashable_attestation_params,
         sample_fork_params):
     state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=activated_genesis_validators,
-        validator_balances=genesis_balances,
+        validators=activated_genesis_validators,
+        balances=genesis_balances,
         fork=Fork(**sample_fork_params),
     )
 
@@ -468,8 +468,8 @@ def test_validate_slashable_attestation(
         sample_fork_params,
         max_indices_per_slashable_vote):
     state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=activated_genesis_validators,
-        validator_balances=genesis_balances,
+        validators=activated_genesis_validators,
+        balances=genesis_balances,
         fork=Fork(**sample_fork_params),
     )
 
@@ -528,8 +528,8 @@ def test_verify_slashable_attestation_after_fork(
     }
 
     state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=activated_genesis_validators,
-        validator_balances=genesis_balances,
+        validators=activated_genesis_validators,
+        balances=genesis_balances,
         fork=Fork(**past_fork_params),
         slot=20,
     )

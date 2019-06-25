@@ -73,7 +73,7 @@ def process_deposit(state: BeaconState,
 
     pubkey = deposit.data.pubkey
     amount = deposit.data.amount
-    validator_pubkeys = tuple(v.pubkey for v in state.validator_registry)
+    validator_pubkeys = tuple(v.pubkey for v in state.validators)
     if pubkey not in validator_pubkeys:
         # Verify the proof of possession
         proof_is_valid = bls.verify(
@@ -96,8 +96,8 @@ def process_deposit(state: BeaconState,
         )
 
         return state.copy(
-            validator_registry=state.validator_registry + (validator,),
-            validator_balances=state.validator_balances + (amount, ),
+            validators=state.validators + (validator,),
+            balances=state.balances + (amount, ),
         )
     else:
         index = ValidatorIndex(validator_pubkeys.index(pubkey))

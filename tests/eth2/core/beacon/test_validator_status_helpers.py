@@ -51,7 +51,7 @@ def test_activate_validator(is_genesis,
                             config):
     validator_count = 10
     state = filled_beacon_state.copy(
-        validator_registry=tuple(
+        validators=tuple(
             mock_validator(
                 pubkey=index.to_bytes(48, 'little'),
                 config=config,
@@ -59,11 +59,11 @@ def test_activate_validator(is_genesis,
             )
             for index in range(validator_count)
         ),
-        validator_balances=(max_effective_balance,) * validator_count,
+        balances=(max_effective_balance,) * validator_count,
     )
     index = 1
     # Check that the `index`th validator in `state` is inactivated
-    assert state.validator_registry[index].activation_epoch == FAR_FUTURE_EPOCH
+    assert state.validators[index].activation_epoch == FAR_FUTURE_EPOCH
 
     result_state = activate_validator(
         state=state,
@@ -75,10 +75,10 @@ def test_activate_validator(is_genesis,
     )
 
     if is_genesis:
-        assert result_state.validator_registry[index].activation_epoch == genesis_epoch
+        assert result_state.validators[index].activation_epoch == genesis_epoch
     else:
         assert (
-            result_state.validator_registry[index].activation_epoch ==
+            result_state.validators[index].activation_epoch ==
             get_delayed_activation_exit_epoch(
                 state.current_epoch(slots_per_epoch),
                 activation_exit_delay,
@@ -90,13 +90,13 @@ def test_initiate_validator_exit(n_validators_state):
     state = n_validators_state
     index = 1
     # TODO(ralexstokes) test exit queuing
-    # assert state.validator_registry[index].initiated_exit is False
+    # assert state.validators[index].initiated_exit is False
 
     # result_state = initiate_validator_exit(
     #     state,
     #     index,
     # )
-    # assert result_state.validator_registry[index].initiated_exit is True
+    # assert result_state.validators[index].initiated_exit is True
 
 
 @pytest.mark.parametrize(
@@ -145,10 +145,10 @@ def test_exit_validator(num_validators,
     index = 1
 
     # Set validator `exit_epoch` prior to running `exit_validator`
-    validator = state.validator_registry[index].copy(
+    validator = state.validators[index].copy(
         exit_epoch=exit_epoch,
     )
-    state = state.update_validator_registry(
+    state = state.update_validators(
         validator_index=index,
         validator=validator,
     )
@@ -163,7 +163,7 @@ def test_exit_validator(num_validators,
         return
     else:
         assert validator.exit_epoch > state.current_epoch(slots_per_epoch) + activation_exit_delay
-        result_validator = result_state.validator_registry[index]
+        result_validator = result_state.validators[index]
         assert result_validator.exit_epoch == get_delayed_activation_exit_epoch(
             state.current_epoch(slots_per_epoch),
             activation_exit_delay,
@@ -213,8 +213,8 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
 
     # Check the initial balance
     assert (
-        state.validator_balances[validator_index] ==
-        state.validator_balances[whistleblower_index] ==
+        state.balances[validator_index] ==
+        state.balances[whistleblower_index] ==
         effective_balance
     )
 
@@ -227,23 +227,23 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
         committee_config=committee_config,
     )
 
-    # Check `state.latest_slashed_balances`
-    latest_slashed_balances_list = list(state.latest_slashed_balances)
+    # Check `state.slashed_balances`
+    slashed_balances_list = list(state.slashed_balances)
     last_slashed_epoch = (
         state.current_epoch(committee_config.SLOTS_PER_EPOCH) % epochs_per_slashed_balances_vector
     )
-    latest_slashed_balances_list[last_slashed_epoch] = max_effective_balance
-    latest_slashed_balances = tuple(latest_slashed_balances_list)
+    slashed_balances_list[last_slashed_epoch] = max_effective_balance
+    slashed_balances = tuple(slashed_balances_list)
 
-    assert state.latest_slashed_balances == latest_slashed_balances
+    assert state.slashed_balances == slashed_balances
 
     # Check penality and reward
     whistleblower_reward = (
         effective_balance //
         whistleblower_reward_quotient
     )
-    whistleblower_balance = state.validator_balances[whistleblower_index]
-    validator_balance = state.validator_balances[validator_index]
+    whistleblower_balance = state.balances[whistleblower_index]
+    validator_balance = state.balances[validator_index]
     balance_difference = whistleblower_balance - validator_balance
     assert balance_difference == whistleblower_reward * 2
 
@@ -308,11 +308,11 @@ def test_slash_validator(monkeypatch,
         committee_config=committee_config,
     )
     current_epoch = state.current_epoch(slots_per_epoch)
-    validator = state.validator_registry[index].copy(
+    validator = state.validators[index].copy(
         slashed=False,
         withdrawable_epoch=current_epoch + epochs_per_slashed_balances_vector,
     )
-    expected_state.update_validator_registry(index, validator)
+    expected_state.update_validators(index, validator)
 
     assert result_state == expected_state
 
@@ -329,7 +329,7 @@ def test_prepare_validator_for_withdrawal(n_validators_state,
         min_validator_withdrawability_delay,
     )
 
-    result_validator = result_state.validator_registry[index]
+    result_validator = result_state.validators[index]
     assert result_validator.withdrawable_epoch == (
         state.current_epoch(slots_per_epoch) + min_validator_withdrawability_delay
     )

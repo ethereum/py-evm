@@ -24,7 +24,6 @@ from eth.constants import (
 )
 
 from eth2._utils.tuple import (
-    update_tuple_item,
     update_tuple_item_with_fn,
 )
 from eth2.beacon.helpers import (
@@ -222,21 +221,21 @@ class BeaconState(ssz.Serializable):
     #         latest_crosslinks=(Crosslink(),) * shard_count,
     #         block_roots=(ZERO_HASH32,) * slots_per_historical_root,
     #         state_roots=(ZERO_HASH32,) * slots_per_historical_root,
-    #         latest_active_index_roots=(ZERO_HASH32,) * epochs_per_historical_vector,
-    #         latest_slashed_balances=(Gwei(0),) * epochs_per_slashed_balances_vector,
+    #         active_index_roots=(ZERO_HASH32,) * epochs_per_historical_vector,
+    #         slashed_balances=(Gwei(0),) * epochs_per_slashed_balances_vector,
     #         latest_block_header=BeaconBlockHeader().copy(
     #             slot=genesis_slot,
     #         ),
 
     #         # Ethereum 1.0 chain data
-    #         deposit_index=len(activated_genesis_validators),
+    #         eth1_deposit_index=len(activated_genesis_validators),
     #     )
 
     def update_validator_at_index(self,
                                   validator_index: ValidatorIndex,
                                   validator: Validator) -> 'BeaconState':
         """
-        Replace ``self.validator_registry[validator_index]`` with ``validator``.
+        Replace ``self.validators[validator_index]`` with ``validator``.
         """
         return self.update_validator_at_index_with_fn(
             validator_index,
@@ -248,7 +247,7 @@ class BeaconState(ssz.Serializable):
                                           fn: Callable[[Validator, Any], Validator],
                                           *args: Any) -> 'BeaconState':
         """
-        Replace ``self.validator_registry[validator_index]`` with
+        Replace ``self.validators[validator_index]`` with
         the result of calling ``fn`` on the existing ``validator``.
         Any auxillary args passed in ``args`` are provided to ``fn`` along with the
         ``validator``.
@@ -289,7 +288,7 @@ class BeaconState(ssz.Serializable):
     #     """
     #     Update the ``Validator`` and balance of validator of the given ``validator_index``.
     #     """
-    #     state = self.update_validator_registry(validator_index, validator)
+    #     state = self.update_validators(validator_index, validator)
     #     state = state.update_validator_balance(validator_index, balance)
     #     return state
 

@@ -79,14 +79,14 @@ def generate_mock_latest_historical_roots(
 
     chain_length = (current_slot // slots_per_epoch + 1) * slots_per_epoch
     blocks = get_pseudo_chain(chain_length, genesis_block)
-    latest_block_roots = [
+    block_roots = [
         block.signing_root
         for block in blocks[:current_slot]
     ] + [
         ZERO_HASH32
         for _ in range(slots_per_historical_root - current_slot)
     ]
-    return blocks, latest_block_roots
+    return blocks, block_roots
 
 
 #
@@ -120,7 +120,7 @@ def test_get_block_root(sample_beacon_state_params,
                         slots_per_epoch,
                         slots_per_historical_root,
                         sample_block):
-    blocks, latest_block_roots = generate_mock_latest_historical_roots(
+    blocks, block_roots = generate_mock_latest_historical_roots(
         sample_block,
         current_slot,
         slots_per_epoch,
@@ -128,7 +128,7 @@ def test_get_block_root(sample_beacon_state_params,
     )
     state = BeaconState(**sample_beacon_state_params).copy(
         slot=current_slot,
-        latest_block_roots=latest_block_roots,
+        block_roots=block_roots,
     )
 
     if success:
@@ -175,7 +175,7 @@ def test_get_state_root(sample_beacon_state_params,
                         slots_per_epoch,
                         slots_per_historical_root,
                         sample_block):
-    blocks, latest_state_roots = generate_mock_latest_historical_roots(
+    blocks, state_roots = generate_mock_latest_historical_roots(
         sample_block,
         current_slot,
         slots_per_epoch,
@@ -183,7 +183,7 @@ def test_get_state_root(sample_beacon_state_params,
     )
     state = BeaconState(**sample_beacon_state_params).copy(
         slot=current_slot,
-        latest_state_roots=latest_state_roots,
+        state_roots=state_roots,
     )
 
     if success:
@@ -232,7 +232,7 @@ def test_get_active_validator_indices(sample_validator_record_params):
 
 @pytest.mark.parametrize(
     (
-        'validator_balances,'
+        'balances,'
         'validator_indices,'
         'max_effective_balance,'
         'expected'
@@ -264,11 +264,11 @@ def test_get_active_validator_indices(sample_validator_record_params):
         ),
     ]
 )
-def test_get_total_balance(validator_balances,
+def test_get_total_balance(balances,
                            validator_indices,
                            max_effective_balance,
                            expected):
-    total_balance = get_total_balance(validator_balances, validator_indices, max_effective_balance)
+    total_balance = get_total_balance(balances, validator_indices, max_effective_balance)
     assert total_balance == expected
 
 

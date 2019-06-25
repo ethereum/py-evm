@@ -40,7 +40,7 @@ def _compute_exit_queue_epoch(state: BeaconState, config: Eth2Config) -> int:
     churn_limit_quotient = config.CHURN_LIMIT_QUOTIENT
 
     exit_epochs = tuple(
-        v.exit_epoch for v in state.validator_registry
+        v.exit_epoch for v in state.validators
         if v.exit_epoch != FAR_FUTURE_EPOCH
     )
     exit_queue_epoch = max(
@@ -51,7 +51,7 @@ def _compute_exit_queue_epoch(state: BeaconState, config: Eth2Config) -> int:
         )
     )
     exit_queue_churn = len(tuple(
-        v for v in state.validator_registry
+        v for v in state.validators
         if v.exit_epoch == exit_queue_epoch
     ))
     if exit_queue_churn >= get_churn_limit(state,
@@ -87,14 +87,14 @@ def initiate_validator_exit(state: BeaconState,
     Initiate exit for the validator with the given ``index``.
     Return the updated state (immutable).
     """
-    validator = state.validator_registry[index]
+    validator = state.validators[index]
 
     updated_validator = initiate_validator_exit_for_validator(
         validator,
         config
     )
 
-    return state.update_validator_registry(index, updated_validator)
+    return state.update_validators(index, updated_validator)
 
 
 @curry
@@ -125,18 +125,18 @@ def slash_validator(*,
     current_epoch = state.current_epoch(slots_per_epoch)
 
     state = initiate_validator_exit(state, index, min_validator_withdrawability_delay)
-    state = state.update_validator_registry_with_fn(
+    state = state.update_validators_with_fn(
         index,
         _set_validator_slashed(
             current_epoch + epochs_per_slashed_balances_vector,
         ),
     )
 
-    slashed_balance = state.validator_registry[index].effective_balance
+    slashed_balance = state.validators[index].effective_balance
     slashed_epoch = current_epoch % epochs_per_slashed_balances_vector
     state = state.copy(
-        latest_slashed_balances=update_tuple_item_with_fn(
-            state.latest_slashed_balances,
+        slashed_balances=update_tuple_item_with_fn(
+            state.slashed_balances,
             slashed_epoch,
             sum,
             slashed_balance,

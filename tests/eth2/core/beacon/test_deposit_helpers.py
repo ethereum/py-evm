@@ -41,7 +41,7 @@ def create_mock_deposit(config,
                         validator_index):
     state = BeaconState(**sample_beacon_state_params).copy(
         slot=1,
-        validator_registry=(),
+        validators=(),
     )
     fork = Fork(
         previous_version=config.GENESIS_FORK_VERSION.to_bytes(4, 'little'),
@@ -64,7 +64,7 @@ def create_mock_deposit(config,
     proof = list(get_merkle_proof(tree, item_index=validator_index))
 
     state = state.copy(
-        latest_eth1_data=state.latest_eth1_data.copy(
+        eth1_data=state.eth1_data.copy(
             deposit_root=root,
         ),
     )
@@ -81,13 +81,13 @@ def create_mock_deposit(config,
 def test_add_pending_validator(sample_beacon_state_params,
                                sample_validator_record_params):
 
-    validator_registry_len = 2
+    validators_len = 2
     state = BeaconState(**sample_beacon_state_params).copy(
-        validator_registry=[
+        validators=[
             Validator(**sample_validator_record_params)
-            for _ in range(validator_registry_len)
+            for _ in range(validators_len)
         ],
-        validator_balances=(100,) * validator_registry_len,
+        balances=(100,) * validators_len,
     )
     validator = Validator(**sample_validator_record_params)
     amount = 5566
@@ -97,7 +97,7 @@ def test_add_pending_validator(sample_beacon_state_params,
         amount,
     )
 
-    assert state.validator_registry[-1] == validator
+    assert state.validators[-1] == validator
 
 
 @pytest.mark.parametrize(
@@ -197,10 +197,10 @@ def test_process_deposit(config,
         config=config,
     )
 
-    assert len(result_state.validator_registry) == 1
-    validator = result_state.validator_registry[validator_index]
+    assert len(result_state.validators) == 1
+    validator = result_state.validators[validator_index]
     assert validator.pubkey == pubkeys[validator_index]
     assert validator.withdrawal_credentials == withdrawal_credentials
-    assert result_state.validator_balances[validator_index] == config.MAX_EFFECTIVE_BALANCE
+    assert result_state.balances[validator_index] == config.MAX_EFFECTIVE_BALANCE
     # test immutable
-    assert len(state.validator_registry) == 0
+    assert len(state.validators) == 0

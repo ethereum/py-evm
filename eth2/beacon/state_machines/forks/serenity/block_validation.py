@@ -139,7 +139,7 @@ def validate_proposer_is_not_slashed(state: BeaconState,
                                      block_root: Hash32,
                                      config: CommitteeConfig) -> None:
     proposer_index = get_beacon_proposer_index(state, config)
-    proposer = state.validator_registry[proposer_index]
+    proposer = state.validators[proposer_index]
     if proposer.slashed:
         raise ValidationError(
             f"Proposer for block {encode_hex(block_root)} is slashed"
@@ -156,7 +156,7 @@ def validate_proposer_signature(state: BeaconState,
         state,
         committee_config,
     )
-    proposer_pubkey = state.validator_registry[beacon_proposer_index].pubkey
+    proposer_pubkey = state.validators[beacon_proposer_index].pubkey
     domain = get_domain(
         state,
         SignatureDomain.DOMAIN_BEACON_PROPOSER,
@@ -185,7 +185,7 @@ def validate_randao_reveal(state: BeaconState,
                            proposer_index: int,
                            epoch: Epoch,
                            randao_reveal: Hash32) -> None:
-    proposer = state.validator_registry[proposer_index]
+    proposer = state.validators[proposer_index]
     proposer_pubkey = proposer.pubkey
     message_hash = ssz.hash_tree_root(epoch, sedes=ssz.sedes.uint64)
     domain = get_domain(state, SignatureDomain.DOMAIN_RANDAO)
@@ -216,7 +216,7 @@ def validate_proposer_slashing(state: BeaconState,
     Validate the given ``proposer_slashing``.
     Raise ``ValidationError`` if it's invalid.
     """
-    proposer = state.validator_registry[proposer_slashing.proposer_index]
+    proposer = state.validators[proposer_slashing.proposer_index]
 
     validate_proposer_slashing_epoch(proposer_slashing, slots_per_epoch)
 
@@ -534,7 +534,7 @@ def validate_voluntary_exit(state: BeaconState,
                             voluntary_exit: VoluntaryExit,
                             slots_per_epoch: int,
                             persistent_committee_period: int) -> None:
-    validator = state.validator_registry[voluntary_exit.validator_index]
+    validator = state.validators[voluntary_exit.validator_index]
     current_epoch = state.current_epoch(slots_per_epoch)
 
     _validate_validator_is_active(validator, current_epoch)
@@ -568,7 +568,7 @@ def _validate_transfer_slot(state_slot: Slot, transfer_slot: Slot) -> None:
 
 def _validate_sender_eligibility(state: Beacon, transfer: Transfer, config: Eth2Config) -> None:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    sender = state.validator_registry[transfer.sender]
+    sender = state.validators[transfer.sender]
     sender_balance = state.balances[transfer.sender]
 
     eligible_for_activation = sender.activation_eligibility_epoch != FAR_FUTURE_EPOCH
@@ -597,7 +597,7 @@ def _validate_sender_eligibility(state: Beacon, transfer: Transfer, config: Eth2
 
 
 def _validate_sender_pubkey(state: BeaconState, transfer: Transfer, config: Eth2Config) -> None:
-    sender = state.validator_registry[transfer.sender]
+    sender = state.validators[transfer.sender]
     expected_withdrawal_credentials = config.BLS_WITHDRAWAL_PREFIX.to_bytes(
         1,
         byteorder='little',

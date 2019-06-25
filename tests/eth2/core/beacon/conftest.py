@@ -163,10 +163,10 @@ def sample_beacon_state_params(config,
         'slot': genesis_slot + 100,
         'genesis_time': 0,
         'fork': Fork(**sample_fork_params),
-        'validator_registry': (),
-        'validator_balances': (),
-        'validator_registry_update_epoch': 0,
-        'latest_randao_mixes': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
+        'validators': (),
+        'balances': (),
+        'validators_update_epoch': 0,
+        'randao_mixes': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
         'previous_shuffling_start_shard': 1,
         'current_shuffling_start_shard': 2,
         'previous_shuffling_epoch': genesis_epoch,
@@ -186,15 +186,15 @@ def sample_beacon_state_params(config,
             (Crosslink(**sample_crosslink_record_params),) *
             config.SHARD_COUNT
         ),
-        'latest_block_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
-        'latest_state_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
-        'latest_active_index_roots': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
-        'latest_slashed_balances': (0,) * config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
+        'block_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
+        'state_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
+        'active_index_roots': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
+        'slashed_balances': (0,) * config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
         'latest_block_header': BeaconBlockHeader(**sample_block_header_params),
         'historical_roots': (),
-        'latest_eth1_data': Eth1Data(**sample_eth1_data_params),
+        'eth1_data': Eth1Data(**sample_eth1_data_params),
         'eth1_data_votes': (),
-        'deposit_index': 0,
+        'eth1_deposit_index': 0,
     }
 
 
@@ -388,7 +388,7 @@ def n():
 def n_validators_state(filled_beacon_state, max_effective_balance, n, config):
     validator_count = n
     return filled_beacon_state.copy(
-        validator_registry=tuple(
+        validators=tuple(
             mock_validator(
                 pubkey=index.to_bytes(48, "little"),
                 config=config,
@@ -396,7 +396,7 @@ def n_validators_state(filled_beacon_state, max_effective_balance, n, config):
             )
             for index in range(validator_count)
         ),
-        validator_balances=(max_effective_balance,) * validator_count,
+        balances=(max_effective_balance,) * validator_count,
     )
 
 
@@ -661,17 +661,17 @@ def genesis_state(filled_beacon_state,
                   epochs_per_slashed_balances_vector,
                   epochs_per_historical_vector):
     return filled_beacon_state.copy(
-        validator_registry=activated_genesis_validators,
-        validator_balances=genesis_balances,
-        latest_block_roots=tuple(ZERO_HASH32 for _ in range(slots_per_historical_root)),
-        latest_slashed_balances=(0,) * epochs_per_slashed_balances_vector,
+        validators=activated_genesis_validators,
+        balances=genesis_balances,
+        block_roots=tuple(ZERO_HASH32 for _ in range(slots_per_historical_root)),
+        slashed_balances=(0,) * epochs_per_slashed_balances_vector,
         latest_crosslinks=tuple(
             Crosslink(
                 shard=shard,
             )
             for shard in range(shard_count)
         ),
-        latest_randao_mixes=tuple(
+        randao_mixes=tuple(
             ZERO_HASH32
             for _ in range(epochs_per_historical_vector)
         ),

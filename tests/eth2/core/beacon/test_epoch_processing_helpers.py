@@ -139,7 +139,7 @@ def test_get_previous_epoch_matching_head_attestations(
     previous_epoch = 9
     current_epoch = previous_epoch + 1
     current_slot = get_epoch_start_slot(current_epoch + 1, slots_per_epoch) - 1
-    latest_block_roots = [
+    block_roots = [
         hash_eth2(b'block_root' + i.to_bytes(1, 'little'))
         for i in range(slots_per_historical_root)
     ]
@@ -167,7 +167,7 @@ def test_get_previous_epoch_matching_head_attestations(
             Attestation(**sample_attestation_params).copy(
                 data=AttestationData(**sample_attestation_data_params).copy(
                     slot=slot,
-                    beacon_block_root=latest_block_roots[slot % slots_per_historical_root],
+                    beacon_block_root=block_roots[slot % slots_per_historical_root],
                 ),
             )
         )
@@ -183,7 +183,7 @@ def test_get_previous_epoch_matching_head_attestations(
 
     state = sample_state.copy(
         slot=current_slot,
-        latest_block_roots=latest_block_roots,
+        block_roots=block_roots,
         previous_epoch_attestations=(
             previous_epoch_head_attestations + previous_epoch_not_head_attestations
         ),
@@ -299,8 +299,8 @@ def test_get_winning_root_and_participants(
         previous_epoch_attestations=attestations,
     )
     effective_balances = {
-        index: state.validator_registry[index].effective_balance
-        for index in range(len(state.validator_registry))
+        index: state.validators[index].effective_balance
+        for index in range(len(state.validators))
     }
 
     winning_root, attesting_validator_indices = get_winning_root_and_participants(
@@ -399,9 +399,9 @@ def test_get_epoch_boundary_attesting_balances(
 
     current_target_root = hash_eth2(b'block_root_1')
     previous_target_root = hash_eth2(b'block_root_2')
-    latest_block_roots = list(None for _ in range(config.SLOTS_PER_HISTORICAL_ROOT))
-    latest_block_roots[192] = current_target_root
-    latest_block_roots[128] = previous_target_root
+    block_roots = list(None for _ in range(config.SLOTS_PER_HISTORICAL_ROOT))
+    block_roots[192] = current_target_root
+    block_roots[128] = previous_target_root
     (
         attestation_participants_1,
         attestation_participants_2,
@@ -463,7 +463,7 @@ def test_get_epoch_boundary_attesting_balances(
         previous_justified_epoch=previous_justified_epoch,
         previous_epoch_attestations=previous_epoch_attestations,
         current_epoch_attestations=current_epoch_attestations,
-        latest_block_roots=tuple(latest_block_roots),
+        block_roots=tuple(block_roots),
     )
     (
         previous_epoch_boundary_attesting_balance,

@@ -16,16 +16,16 @@ from eth2.beacon.tools.builder.initializer import (
 
 def test_defaults(sample_beacon_state_params):
     state = BeaconState(**sample_beacon_state_params)
-    assert state.validator_registry == sample_beacon_state_params['validator_registry']
-    assert state.validator_registry_update_epoch == sample_beacon_state_params['validator_registry_update_epoch']  # noqa: E501
+    assert state.validators == sample_beacon_state_params['validators']
+    assert state.validators_update_epoch == sample_beacon_state_params['validators_update_epoch']  # noqa: E501
     assert ssz.encode(state)
 
 
-def test_validator_registry_and_balances_length(sample_beacon_state_params, config):
-    # When len(BeaconState.validator_registry) != len(BeaconState.validtor_balances)
+def test_validators_and_balances_length(sample_beacon_state_params, config):
+    # When len(BeaconState.validators) != len(BeaconState.validtor_balances)
     with pytest.raises(ValueError):
         BeaconState(**sample_beacon_state_params).copy(
-            validator_registry=tuple(
+            validators=tuple(
                 mock_validator(pubkey, config)
                 for pubkey in range(10)
             ),
@@ -52,9 +52,9 @@ def test_update_validator(n_validators_state,
             validator=validator,
             balance=new_balance,
         )
-        assert result_state.validator_balances[validator_index] == new_balance
-        assert result_state.validator_registry[validator_index].pubkey == new_pubkey
-        assert state.validator_registry[validator_index].pubkey != new_pubkey
+        assert result_state.balances[validator_index] == new_balance
+        assert result_state.validators[validator_index].pubkey == new_pubkey
+        assert state.validators[validator_index].pubkey != new_pubkey
     else:
         with pytest.raises(IndexError):
             state.update_validator(

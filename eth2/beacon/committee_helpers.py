@@ -82,7 +82,7 @@ def get_epoch_start_shard(state: 'BeaconState',
 
     check_epoch = next_epoch
     shard = (
-        state.latest_start_shard + get_shard_delta(state, current_epoch)
+        state.start_shard + get_shard_delta(state, current_epoch)
     ) % config.SHARD_COUNT
     while check_epoch > epoch:
         check_epoch -= 1
@@ -104,7 +104,7 @@ def get_beacon_proposer_index(state: 'BeaconState',
 
     current_slot = state.slot
     current_epoch = state.current_epoch(slots_per_epoch)
-    active_validator_indices = get_active_validator_indices(state.validator_registry, current_epoch)
+    active_validator_indices = get_active_validator_indices(state.validators, current_epoch)
     committees_per_slot = get_epoch_committee_count(
         len(active_validator_indices),
         shard_count,
@@ -127,16 +127,16 @@ def get_beacon_proposer_index(state: 'BeaconState',
     while True:
         candidate_index = first_committee[(current_epoch + i) % first_committee_len]
         random_byte = hash(seed + (i // 32).to_bytes(8, "little"))[i % 32]
-        effective_balance = state.validator_registry[candidate_index].effective_balance
+        effective_balance = state.validators[candidate_index].effective_balance
         if effective_balance * MAX_RANDOM_BYTE >= max_effective_balance * random_byte:
             return candidate_index
         i += 1
 
 
 def _get_shuffled_index(index: int,
-                       index_count: int,
-                       seed: Hash32,
-                       shuffle_round_count: int) -> int:
+                        index_count: int,
+                        seed: Hash32,
+                        shuffle_round_count: int) -> int:
     """
     Return `p(index)` in a pseudorandom permutation `p` of `0...index_count-1`
     with ``seed`` as entropy.

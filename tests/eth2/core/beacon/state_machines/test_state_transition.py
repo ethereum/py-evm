@@ -92,15 +92,15 @@ def test_per_slot_transition(chaindb,
     # Ensure that slot gets increased by 1
     assert updated_state.slot == state.slot + 1
 
-    # latest_block_roots
-    latest_block_roots_index = (updated_state.slot - 1) % st.config.SLOTS_PER_HISTORICAL_ROOT
-    assert updated_state.latest_block_roots[latest_block_roots_index] == block.previous_block_root
+    # block_roots
+    block_roots_index = (updated_state.slot - 1) % st.config.SLOTS_PER_HISTORICAL_ROOT
+    assert updated_state.block_roots[block_roots_index] == block.previous_block_root
 
     # historical_roots
     if updated_state.slot % st.config.SLOTS_PER_HISTORICAL_ROOT == 0:
         historical_batch = HistoricalBatch(
-            block_roots=state.latest_block_roots,
-            state_roots=state.latest_state_roots,
+            block_roots=state.block_roots,
+            state_roots=state.state_roots,
         )
         assert updated_state.historical_roots[-1] == historical_batch.root
     else:

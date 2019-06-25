@@ -133,7 +133,7 @@ def create_mock_genesis(
         genesis_slot=config.GENESIS_SLOT,
         block_class=genesis_block_class,
     )
-    assert len(state.validator_registry) == num_validators
+    assert len(state.validators) == num_validators
 
     return state, block
 

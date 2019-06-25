@@ -124,7 +124,7 @@ def get_churn_limit(state: 'BeaconState', config: Eth2Config) -> int:
 
     current_epoch = state.current_epoch(slots_per_epoch)
     active_validator_indices = get_active_validator_indices(
-        state.validator_registry,
+        state.validators,
         current_epoch,
     )
     return max(
@@ -187,7 +187,7 @@ def get_unslashed_attesting_indices(
         output = output.union(get_attesting_indices(state, a.data, a.aggregation_bitfield))
     return sorted(
         filter(
-            lambda index: not state.validator_registry[index].slashed,
+            lambda index: not state.validators[index].slashed,
             tuple(output),
         )
     )
@@ -272,7 +272,7 @@ def get_base_reward(state: 'BeaconState',
                     index: ValidatorIndex,
                     config: Eth2Config) -> Gwei:
     total_balance = get_total_active_balance(state, config)
-    effective_balance = state.validator_registry[index].effective_balance
+    effective_balance = state.validators[index].effective_balance
     return (
         effective_balance * config.BASE_REWARD_FACTOR //
         integer_squareroot(total_balance) // BASE_REWARDS_PER_EPOCH

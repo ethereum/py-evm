@@ -87,18 +87,18 @@ def get_genesis_beacon_state(*,
             )
 
     active_validator_indices = get_active_validator_indices(
-        state.validator_registry,
+        state.validators,
         config.GENESIS_EPOCH,
     )
     genesis_active_index_root = ssz.hash_tree_root(
         active_validator_indices,
         ssz.sedes.List(ssz.uint64),
     )
-    latest_active_index_roots = (
+    active_index_roots = (
         (genesis_active_index_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
     )
     return state.copy(
-        latest_active_index_roots=latest_active_index_roots,
+        active_index_roots=active_index_roots,
     )
 
 
