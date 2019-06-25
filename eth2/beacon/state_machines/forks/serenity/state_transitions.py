@@ -7,24 +7,10 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import Slot
 
 from .block_processing import (
-    process_block_header,
-    process_eth1_data,
-    process_randao,
-)
-from .epoch_processing import (
-    process_justification,
-    process_crosslinks,
-    process_rewards_and_penalties,
-    process_registry_updates,
-    process_slashings,
-    process_final_updates,
-)
-from .operation_processing import (
-    process_operations,
+    process_block,
 )
 from .slot_processing import (
-    process_slot_transition,
-    process_cache_state,
+    process_slots,
 )
 
 
@@ -36,74 +22,18 @@ class SerenityStateTransition(BaseStateTransition):
 
     def apply_state_transition(self,
                                state: BeaconState,
-                               block: BaseBeaconBlock,
+                               block: BaseBeaconBlock=None,
+                               future_slot=None,
                                check_proposer_signature: bool=True) -> BeaconState:
-        if state.slot >= block.slot:
-            return state
+        # NOTE: Callers should request a transition to some slot past the ``state.slot``.
+        # This can be done by providing either a ``block`` *or* a ``future_slot``.
+        # We enforce this invariant with the assertion on ``target_slot``.
+        target_slot = block.slot if block else future_slot
+        assert target_slot
 
-        for _ in range(state.slot, block.slot):
-            state = self.cache_state(state)
-            if (state.slot + 1) % self.config.SLOTS_PER_EPOCH == 0:
-                state = self.per_epoch_transition(state)
-            state = self.per_slot_transition(state)
-            if state.slot == block.slot:
-                state = self.per_block_transition(state, block, check_proposer_signature)
-                break
-        else:
-            raise Exception(
-                f"Invariant: state.slot ({state.slot}) should be less "
-                f"than block.slot ({block.slot}) so that state transition terminates"
-            )
-        return state
+        state = process_slots(state, target_slot, self.config)
 
-    def apply_state_transition_without_block(self,
-                                             state: BeaconState,
-                                             slot: Slot) -> BeaconState:
-        """
-        Advance the ``state`` to the beginning of the requested ``slot``.
-        Return the resulting state at that slot assuming there are no intervening blocks.
-        See docs for :meth:`eth2.beacon.state_machines.state_transitions.BaseStateTransition.apply_state_transition_without_block`  # noqa: E501
-        for more information about the behavior of this method.
-        """
-        if state.slot >= slot:
-            return state
-
-        for _ in range(state.slot, slot):
-            state = self.cache_state(state)
-            if (state.slot + 1) % self.config.SLOTS_PER_EPOCH == 0:
-                state = self.per_epoch_transition(state)
-            state = self.per_slot_transition(state)
-            if state.slot == slot:
-                break
-        else:
-            raise Exception(
-                f"Invariant: state.slot ({state.slot}) should be less than slot ({slot}) "
-                "so that state transition terminates"
-            )
-        return state
-
-    def cache_state(self, state: BeaconState) -> BeaconState:
-        return process_cache_state(state, self.config)
-
-    def per_slot_transition(self, state: BeaconState) -> BeaconState:
-        return process_slot_transition(state)
-
-    def per_block_transition(self,
-                             state: BeaconState,
-                             block: BaseBeaconBlock,
-                             check_proposer_signature: bool=True) -> BeaconState:
-        state = process_block_header(state, block, self.config, check_proposer_signature)
-        state = process_randao(state, block, self.config)
-        state = process_eth1_data(state, block, self.config)
-        state = process_operations(state, block, self.config)
-        return state
-
-    def per_epoch_transition(self, state: BeaconState) -> BeaconState:
-        state = process_justification(state, self.config)
-        state = process_crosslinks(state, self.config)
-        state = process_rewards_and_penalties(state, self.config)
-        state = process_registry_updates(state, self.config)
-        state = process_slashings(state, self.config)
-        state = process_final_updates(state, self.config)
+        if block:
+            state = process_block(state, block, self.config, check_proposer_signature)
 
         return state

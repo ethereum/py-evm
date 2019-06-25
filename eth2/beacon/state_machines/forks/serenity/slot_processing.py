@@ -9,6 +9,9 @@ from eth.constants import (
 from eth_typing import (
     Hash32,
 )
+from eth_utils import (
+    ValidationError,
+)
 
 from eth2._utils.tuple import update_tuple_item
 from eth2.configs import (
@@ -18,6 +21,10 @@ from eth2.beacon.typing import (
     Slot,
 )
 from eth2.beacon.types.states import BeaconState
+
+from .epoch_processing import (
+    process_epoch,
+)
 
 
 def _update_historical_root(roots: Sequence[Hash32],
@@ -31,44 +38,53 @@ def _update_historical_root(roots: Sequence[Hash32],
     )
 
 
-def process_cache_state(state: BeaconState, config: Eth2Config) -> BeaconState:
+def _process_slot(state: BeaconState, config: Eth2Config) -> BeaconState:
     slots_per_historical_root = config.SLOTS_PER_HISTORICAL_ROOT
 
-    # Update state.latest_state_roots
-    latest_state_root = state.root
-    updated_latest_state_roots = _update_historical_root(
-        state.latest_state_roots,
+    previous_state_root = state.root
+    updated_state_roots = _update_historical_root(
+        state.state_roots,
         state.slot,
         slots_per_historical_root,
-        latest_state_root,
+        previous_state_root,
     )
 
     if state.latest_block_header.state_root == ZERO_HASH32:
         latest_block_header = state.latest_block_header
         state = state.copy(
             latest_block_header=latest_block_header.copy(
-                state_root=latest_state_root,
+                state_root=previous_state_root,
             ),
         )
 
-    # Update state.latest_block_roots
-    updated_latest_block_roots = _update_historical_root(
-        state.latest_block_roots,
+    updated_block_roots = _update_historical_root(
+        state.block_roots,
         state.slot,
         slots_per_historical_root,
         state.latest_block_header.signing_root,
     )
 
-    state = state.copy(
-        latest_block_roots=updated_latest_block_roots,
-        latest_state_roots=updated_latest_state_roots,
+    return state.copy(
+        block_roots=updated_block_roots,
+        state_roots=updated_state_roots,
     )
+
+
+def process_slots(state: BeaconState, slot: Slot, config: Eth2Config) -> BeaconState:
+    if state.slot > slot:
+        raise ValidationError(
+            f"Requested a slot transition at {slot}, behind the current slot {state.slot}"
+        )
+
+    # NOTE: ``while`` is guaranteed to terminate if we do not raise the previous ValidationError
+    while state.slot < slot:
+        state = _process_slot(state, config)
+
+        if (state.slot + 1) % config.SLOTS_PER_EPOCH == 0:
+            state = process_epoch(state, config)
+
+        state = state.copy(
+            slot=state.slot + 1,
+        )
 
     return state
-
-
-def process_slot_transition(state: BeaconState) -> BeaconState:
-    # Update state.slot
-    return state.copy(
-        slot=state.slot + 1
-    )
