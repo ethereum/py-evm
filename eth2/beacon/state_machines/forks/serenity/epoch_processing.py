@@ -95,7 +95,7 @@ def _bitfield_matches(bitfield: Bitfield,
     return (bitfield >> offset) % modulus == pattern
 
 
-def process_justification(state: BeaconState, config: Eth2Config) -> BeaconState:
+def process_justification_and_finalization(state: BeaconState, config: Eth2Config) -> BeaconState:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     genesis_epoch = config.GENESIS_EPOCH
 
@@ -648,3 +648,14 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
         start_shard=new_start_shard,
         validator_registry=new_validator_registry,
     )
+
+
+def process_epoch(state: BeaconState, config: Eth2Config) -> BeaconState:
+    state = process_justification_and_finalization(state, config)
+    state = process_crosslinks(state, config)
+    state = process_rewards_and_penalties(state, config)
+    state = process_registry_updates(state, config)
+    state = process_slashings(state, config)
+    state = process_final_updates(state, config)
+
+    return state

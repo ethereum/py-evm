@@ -30,6 +30,10 @@ from .block_validation import (
     validate_proposer_is_not_slashed,
 )
 
+from .operation_processing import (
+    process_operations,
+)
+
 
 def process_block_header(state: BeaconState,
                          block: BaseBeaconBlock,
@@ -111,3 +115,14 @@ def process_eth1_data(state: BeaconState,
         eth1_data=new_eth1_data,
         eth1_data_votes=new_eth1_data_votes,
     )
+
+
+def process_block(state: BeaconState,
+                  block: BaseBeaconBlock,
+                  config: Eth2Config,
+                  check_proposer_signature: bool=True) -> BeaconState:
+    state = process_block_header(state, block, config, check_proposer_signature)
+    state = process_randao(state, block, config)
+    state = process_eth1_data(state, block, config)
+    state = process_operations(state, block, config)
+    return state
