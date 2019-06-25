@@ -1,11 +1,7 @@
-from eth2.beacon.constants import (
-    DEPOSIT_CONTRACT_TREE_DEPTH,
-)
 from eth2.configs import (
     Eth2Config,
 )
 
-from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.historical_batch import HistoricalBatch
 from eth2.beacon.types.states import BeaconState
 
@@ -28,5 +24,3 @@ def override_vector_lengths(config: Eth2Config) -> None:
     }
     for key, value in historical_batch_vector_dict.items():
         HistoricalBatch._meta.container_sedes.field_name_to_sedes[key].length = value
-
-    Deposit._meta.container_sedes.field_name_to_sedes['proof'].length = DEPOSIT_CONTRACT_TREE_DEPTH
