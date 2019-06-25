@@ -1,1 +1,1 @@
-from .plugin import PeerCountReporterPlugin
+from .plugin import PeerCountReporterPlugin  # noqa: F401
