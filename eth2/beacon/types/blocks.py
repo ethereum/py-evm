@@ -45,11 +45,19 @@ from eth2.beacon.typing import (
 from .attestations import Attestation
 from .attester_slashings import AttesterSlashing
 from .block_headers import BeaconBlockHeader
+from .defaults import (
+    default_tuple,
+    default_slot,
+)
 from .deposits import Deposit
-from .eth1_data import Eth1Data
+from .eth1_data import (
+    Eth1Data,
+    default_eth1_data,
+)
 from .proposer_slashings import ProposerSlashing
 from .transfers import Transfer
 from .voluntary_exits import VoluntaryExit
+
 
 if TYPE_CHECKING:
     from eth2.beacon.db.chain import BaseBeaconChainDB  # noqa: F401
@@ -72,14 +80,14 @@ class BeaconBlockBody(ssz.Serializable):
     def __init__(self,
                  *,
                  randao_reveal: bytes96=EMPTY_SIGNATURE,
-                 eth1_data: Eth1Data=Eth1Data(),
+                 eth1_data: Eth1Data=default_eth1_data,
                  graffiti: Hash32=ZERO_HASH32,
-                 proposer_slashings: Sequence[ProposerSlashing]=tuple(),
-                 attester_slashings: Sequence[AttesterSlashing]=tuple(),
-                 attestations: Sequence[Attestation]=tuple(),
-                 deposits: Sequence[Deposit]=tuple(),
-                 voluntary_exits: Sequence[VoluntaryExit]=tuple(),
-                 transfers: Sequence[Transfer]=tuple())-> None:
+                 proposer_slashings: Sequence[ProposerSlashing]=default_tuple,
+                 attester_slashings: Sequence[AttesterSlashing]=default_tuple,
+                 attestations: Sequence[Attestation]=default_tuple,
+                 deposits: Sequence[Deposit]=default_tuple,
+                 voluntary_exits: Sequence[VoluntaryExit]=default_tuple,
+                 transfers: Sequence[Transfer]=default_tuple)-> None:
         super().__init__(
             randao_reveal=randao_reveal,
             eth1_data=eth1_data,
@@ -97,6 +105,9 @@ class BeaconBlockBody(ssz.Serializable):
         return self == BeaconBlockBody()
 
 
+default_beacon_block_body = BeaconBlockBody()
+
+
 class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
     fields = [
         ('slot', uint64),
@@ -108,10 +119,10 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
 
     def __init__(self,
                  *,
-                 slot: Slot=Slot(0),
+                 slot: Slot=default_slot,
                  parent_root: Hash32=ZERO_HASH32,
                  state_root: Hash32=ZERO_HASH32,
-                 body: BeaconBlockBody=BeaconBlockBody(),
+                 body: BeaconBlockBody=default_beacon_block_body,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             slot=slot,

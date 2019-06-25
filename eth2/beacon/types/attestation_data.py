@@ -15,7 +15,10 @@ from ssz.sedes import (
 from eth2.beacon.typing import (
     Epoch,
 )
-from eth2.beacon.types.crosslinks import Crosslink
+from eth2.beacon.types.crosslinks import (
+    Crosslink,
+    default_crosslink,
+)
 from eth_utils import (
     humanize_hash,
 )
@@ -43,7 +46,7 @@ class AttestationData(ssz.Serializable):
                  source_root: Hash32=ZERO_HASH32,
                  target_epoch: Epoch=0,
                  target_root: Hash32=ZERO_HASH32,
-                 crosslink: Crosslink=Crosslink()) -> None:
+                 crosslink: Crosslink=default_crosslink) -> None:
         super().__init__(
             beacon_block_root=beacon_block_root,
             source_epoch=source_epoch,
@@ -61,3 +64,6 @@ class AttestationData(ssz.Serializable):
             f"CL  shard={self.shard} {humanize_hash(self.previous_crosslink.root)}"
             f"<-{humanize_hash(self.crosslink_data_root)}"
         )
+
+
+default_attestation_data = AttestationData()

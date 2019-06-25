@@ -12,6 +12,7 @@ from ssz.sedes import (
 
 from .attestation_data import (
     AttestationData,
+    default_attestation_data,
 )
 
 from eth2.beacon.typing import (
@@ -21,6 +22,11 @@ from eth2.beacon.typing import (
 from eth2.beacon.constants import EMPTY_SIGNATURE
 from eth_typing import (
     BLSSignature,
+)
+
+from .defaults import (
+    default_bitfield,
+    default_tuple,
 )
 
 
@@ -34,9 +40,9 @@ class Attestation(ssz.Serializable):
     ]
 
     def __init__(self,
-                 aggregation_bitfield: Bitfield=Bitfield(),
-                 data: AttestationData=AttestationData(),
-                 custody_bitfield: Bitfield=Bitfield(),
+                 aggregation_bitfield: Bitfield=default_bitfield,
+                 data: AttestationData=default_attestation_data,
+                 custody_bitfield: Bitfield=default_bitfield,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             aggregation_bitfield,
@@ -62,9 +68,9 @@ class IndexedAttestation(ssz.Serializable):
     ]
 
     def __init__(self,
-                 custody_bit_0_indices: Sequence[ValidatorIndex]=tuple(),
-                 custody_bit_1_indices: Sequence[ValidatorIndex]=tuple(),
-                 data: AttestationData=AttestationData(),
+                 custody_bit_0_indices: Sequence[ValidatorIndex]=default_tuple,
+                 custody_bit_1_indices: Sequence[ValidatorIndex]=default_tuple,
+                 data: AttestationData=default_attestation_data,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             custody_bit_0_indices,
@@ -75,3 +81,6 @@ class IndexedAttestation(ssz.Serializable):
 
     def __repr__(self) -> str:
         return f"<IndexedAttestation {self.data}>"
+
+
+default_indexed_attestation = IndexedAttestation()

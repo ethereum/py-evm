@@ -21,3 +21,14 @@ Second = NewType('Second', int)
 
 class FromBlockParams(NamedTuple):
     slot: Slot = None
+
+
+# defaults to emulate "zero types"
+default_slot = Slot(0)
+default_epoch = Epoch(0)
+default_shard = Shard(0)
+default_validator_index = ValidatorIndex(0)
+default_gwei = Gwei(0)
+default_timestamp = Timestamp(0)
+default_second = Second(0)
+default_bitfield = Bitfield(b'')

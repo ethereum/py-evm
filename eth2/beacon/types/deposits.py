@@ -15,7 +15,14 @@ from eth2.beacon.constants import (
     DEPOSIT_CONTRACT_TREE_DEPTH,
 )
 
-from .deposit_data import DepositData
+from .deposit_data import (
+    DepositData,
+    default_deposit_data,
+)
+
+from .default import (
+    default_tuple,
+)
 
 
 class Deposit(ssz.Serializable):
@@ -32,8 +39,8 @@ class Deposit(ssz.Serializable):
     ]
 
     def __init__(self,
-                 proof: Sequence[Hash32]=tuple(),
-                 deposit_data: DepositData=DepositData())-> None:
+                 proof: Sequence[Hash32]=default_tuple,
+                 deposit_data: DepositData=default_deposit_data)-> None:
         super().__init__(
             proof,
             deposit_data,

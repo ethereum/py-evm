@@ -19,6 +19,11 @@ from eth2.beacon.typing import (
     Gwei,
 )
 
+from .defaults import (
+    default_bls_pubkey,
+    default_gwei,
+)
+
 
 class DepositData(ssz.Serializable):
     """
@@ -35,9 +40,9 @@ class DepositData(ssz.Serializable):
     ]
 
     def __init__(self,
-                 pubkey: BLSPubkey=b'\x00' * 48,
+                 pubkey: BLSPubkey=default_bls_pubkey,
                  withdrawal_credentials: Hash32=ZERO_HASH32,
-                 amount: Gwei=0,
+                 amount: Gwei=default_gwei,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             pubkey=pubkey,
@@ -45,3 +50,6 @@ class DepositData(ssz.Serializable):
             amount=amount,
             signature=signature,
         )
+
+
+default_deposit_data = DepositData()

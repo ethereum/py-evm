@@ -3,9 +3,16 @@ from ssz.sedes import (
     uint64,
 )
 
-from .block_headers import BeaconBlockHeader
+from .block_headers import (
+    BeaconBlockHeader,
+    default_beacon_block_header,
+)
 from eth2.beacon.typing import (
     ValidatorIndex,
+)
+
+from .defaults import (
+    default_validator_index,
 )
 
 
@@ -21,9 +28,9 @@ class ProposerSlashing(ssz.Serializable):
     ]
 
     def __init__(self,
-                 proposer_index: ValidatorIndex=ValidatorIndex(0),
-                 header_1: BeaconBlockHeader=BeaconBlockHeader(),
-                 header_2: BeaconBlockHeader=BeaconBlockHeader()) -> None:
+                 proposer_index: ValidatorIndex=default_validator_index,
+                 header_1: BeaconBlockHeader=default_beacon_block_header,
+                 header_2: BeaconBlockHeader=default_beacon_block_header) -> None:
         super().__init__(
             proposer_index=proposer_index,
             header_1=header_1,

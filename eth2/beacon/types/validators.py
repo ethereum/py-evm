@@ -19,6 +19,11 @@ from eth2.beacon.typing import (
     Epoch,
 )
 
+from .defaults import (
+    default_bls_pubkey,
+    default_epoch,
+)
+
 
 def _round_down_to_previous_multiple(amount: int, increment: int) -> int:
     return amount - amount % increment
@@ -43,14 +48,14 @@ class Validator(ssz.Serializable):
 
     def __init__(self,
                  *,
-                 pubkey: BLSPubkey=b'\x00' * 48,
+                 pubkey: BLSPubkey=default_bls_pubkey,
                  withdrawal_credentials: Hash32=ZERO_HASH32,
                  effective_balance: uint64=0,
                  slashed: bool=False,
-                 activation_eligibility_epoch: Epoch=0,
-                 activation_epoch: Epoch=0,
-                 exit_epoch: Epoch=0,
-                 withdrawable_epoch: Epoch=0) -> None:
+                 activation_eligibility_epoch: Epoch=default_epoch,
+                 activation_epoch: Epoch=default_epoch,
+                 exit_epoch: Epoch=default_epoch,
+                 withdrawable_epoch: Epoch=default_epoch) -> None:
         super().__init__(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,

@@ -13,6 +13,11 @@ from eth2.beacon.typing import (
 )
 from eth2.beacon.constants import EMPTY_SIGNATURE
 
+from .defaults import (
+    default_validator_index,
+    default_epoch,
+)
+
 
 class VoluntaryExit(ssz.SignedSerializable):
 
@@ -24,8 +29,8 @@ class VoluntaryExit(ssz.SignedSerializable):
     ]
 
     def __init__(self,
-                 epoch: Epoch=Epoch(0),
-                 validator_index: ValidatorIndex=ValidatorIndex(0),
+                 epoch: Epoch=default_epoch,
+                 validator_index: ValidatorIndex=default_validator_index,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             epoch,

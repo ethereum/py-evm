@@ -11,6 +11,12 @@ from eth2.beacon.typing import (
 
 from .attestation_data import (
     AttestationData,
+    default_attestation_data,
+)
+
+from .defaults import (
+    default_bitfield,
+    default_validator_index,
 )
 
 
@@ -24,10 +30,10 @@ class PendingAttestation(ssz.Serializable):
     ]
 
     def __init__(self,
-                 aggregation_bitfield: Bitfield=Bitfield(),
-                 data: AttestationData=AttestationData(),
+                 aggregation_bitfield: Bitfield=default_bitfield,
+                 data: AttestationData=default_attestation_data,
                  inclusion_delay: int=0,
-                 proposer_index: ValidatorIndex=ValidatorIndex(0)) -> None:
+                 proposer_index: ValidatorIndex=default_validator_index) -> None:
         super().__init__(
             aggregation_bitfield=aggregation_bitfield,
             data=data,

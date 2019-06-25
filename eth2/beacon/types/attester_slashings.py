@@ -1,5 +1,9 @@
 import ssz
-from .attestations import IndexedAttestation
+
+from .attestations import (
+    IndexedAttestation,
+    default_indexed_attestation,
+)
 
 
 class AttesterSlashing(ssz.Serializable):
@@ -12,8 +16,8 @@ class AttesterSlashing(ssz.Serializable):
     ]
 
     def __init__(self,
-                 attestation_1: IndexedAttestation=IndexedAttestation(),
-                 attestation_2: IndexedAttestation=IndexedAttestation())-> None:
+                 attestation_1: IndexedAttestation=default_indexed_attestation,
+                 attestation_2: IndexedAttestation=default_indexed_attestation)-> None:
         super().__init__(
             attestation_1,
             attestation_2,

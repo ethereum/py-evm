@@ -8,6 +8,10 @@ from eth2.beacon.typing import (
     Epoch,
 )
 
+from .defaults import (
+    default_epoch,
+)
+
 
 class Fork(ssz.Serializable):
 
@@ -21,9 +25,12 @@ class Fork(ssz.Serializable):
     def __init__(self,
                  previous_version: bytes=b'\x00' * 4,
                  current_version: bytes=b'\x00' * 4,
-                 epoch: Epoch=0) -> None:
+                 epoch: Epoch=default_epoch) -> None:
         super().__init__(
             previous_version=previous_version,
             current_version=current_version,
             epoch=epoch,
         )
+
+
+default_fork = Fork()

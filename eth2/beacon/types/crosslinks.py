@@ -20,6 +20,11 @@ from eth_utils import (
     humanize_hash,
 )
 
+from .defaults import (
+    default_shard,
+    default_epoch,
+)
+
 
 class Crosslink(ssz.Serializable):
 
@@ -34,10 +39,10 @@ class Crosslink(ssz.Serializable):
     ]
 
     def __init__(self,
-                 shard: Shard=0,
+                 shard: Shard=default_shard,
                  parent_root: Hash32=ZERO_HASH32,
-                 start_epoch: Epoch=0,
-                 end_epoch: Epoch=0,
+                 start_epoch: Epoch=default_epoch,
+                 end_epoch: Epoch=default_epoch,
                  data_root: Hash32=ZERO_HASH32) -> None:
         super().__init__(
             shard=shard,
@@ -61,3 +66,6 @@ class Crosslink(ssz.Serializable):
             f" start_epoch={self.start_epoch} end_epoch={self.end_epoch}"
             f" parent_root={encode_hex(self.parent_root)} data_root={encode_hex(self.data_root)}>"
         )
+
+
+default_crosslink = Crosslink()

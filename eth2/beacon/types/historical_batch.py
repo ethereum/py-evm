@@ -12,6 +12,10 @@ from ssz.sedes import (
     Vector,
 )
 
+from .defaults import (
+    default_tuple,
+)
+
 
 class HistoricalBatch(ssz.Serializable):
 
@@ -22,8 +26,8 @@ class HistoricalBatch(ssz.Serializable):
 
     def __init__(self,
                  *,
-                 block_roots: Sequence[Hash32]=tuple(),
-                 state_roots: Sequence[Hash32]=tuple()) -> None:
+                 block_roots: Sequence[Hash32]=default_tuple,
+                 state_roots: Sequence[Hash32]=default_tuple) -> None:
         super().__init__(
             block_roots=block_roots,
             state_roots=state_roots,

@@ -39,12 +39,29 @@ from eth2.beacon.typing import (
     ValidatorIndex,
 )
 
-from .blocks import BeaconBlockHeader
-from .eth1_data import Eth1Data
+from .block_headers import (
+    BeaconBlockHeader,
+    default_beacon_block_header,
+)
+from .eth1_data import (
+    Eth1Data,
+    default_eth1_data,
+)
 from .crosslinks import Crosslink
-from .forks import Fork
+from .forks import (
+    Fork,
+    default_fork,
+)
 from .pending_attestations import PendingAttestation
 from .validators import Validator
+
+from .defaults import (
+    default_timestamp,
+    default_slot,
+    default_tuple,
+    default_shard,
+    default_epoch,
+)
 
 
 class BeaconState(ssz.Serializable):
@@ -103,32 +120,32 @@ class BeaconState(ssz.Serializable):
     def __init__(
             self,
             *,
-            genesis_time: Timestamp=Timestamp(0),
-            slot: Slot=Slot(0),
-            fork: Fork=Fork(),
-            latest_block_header: BeaconBlockHeader=BeaconBlockHeader(),
-            block_roots: Sequence[Hash32]=tuple(),
-            state_roots: Sequence[Hash32]=tuple(),
-            historical_roots: Sequence[Hash32]=tuple(),
-            eth1_data: Eth1Data=Eth1Data(),
-            eth1_data_votes: Sequence[Eth1Data]=tuple(),
+            genesis_time: Timestamp=default_timestamp,
+            slot: Slot=default_slot,
+            fork: Fork=default_fork,
+            latest_block_header: BeaconBlockHeader=default_beacon_block_header,
+            block_roots: Sequence[Hash32]=default_tuple,
+            state_roots: Sequence[Hash32]=default_tuple,
+            historical_roots: Sequence[Hash32]=default_tuple,
+            eth1_data: Eth1Data=default_eth1_data,
+            eth1_data_votes: Sequence[Eth1Data]=default_tuple,
             eth1_deposit_index: int=0,
-            validators: Sequence[Validator]=tuple(),
-            balances: Sequence[Gwei]=tuple(),
-            start_shard: Shard=Shard(0),
-            randao_mixes: Sequence[Hash32]=tuple(),
-            active_index_roots: Sequence[Hash32]=tuple(),
-            slashed_balances: Sequence[Gwei]=tuple(),
-            previous_epoch_attestations: Sequence[PendingAttestation]=tuple(),
-            current_epoch_attestations: Sequence[PendingAttestation]=tuple(),
-            previous_crosslinks: Sequence[Crosslink]=tuple(),
-            current_crosslinks: Sequence[Crosslink]=tuple(),
-            previous_justified_epoch: Epoch=Epoch(0),
+            validators: Sequence[Validator]=default_tuple,
+            balances: Sequence[Gwei]=default_tuple,
+            start_shard: Shard=default_shard,
+            randao_mixes: Sequence[Hash32]=default_tuple,
+            active_index_roots: Sequence[Hash32]=default_tuple,
+            slashed_balances: Sequence[Gwei]=default_tuple,
+            previous_epoch_attestations: Sequence[PendingAttestation]=default_tuple,
+            current_epoch_attestations: Sequence[PendingAttestation]=default_tuple,
+            previous_crosslinks: Sequence[Crosslink]=default_tuple,
+            current_crosslinks: Sequence[Crosslink]=default_tuple,
+            previous_justified_epoch: Epoch=default_epoch,
             previous_justified_root: Hash32=ZERO_HASH32,
-            current_justified_epoch: Epoch=Epoch(0),
+            current_justified_epoch: Epoch=default_epoch,
             current_justified_root: Hash32=ZERO_HASH32,
             justification_bitfield: int=0,
-            finalized_epoch: Epoch=Epoch(0),
+            finalized_epoch: Epoch=default_epoch,
             finalized_root: Hash32=ZERO_HASH32) -> None:
         if len(validators) != len(balances):
             raise ValueError(
@@ -248,33 +265,33 @@ class BeaconState(ssz.Serializable):
             ),
         )
 
-    def update_validator_balance(self,
-                                 validator_index: ValidatorIndex,
-                                 balance: Gwei) -> 'BeaconState':
-        """
-        Update the balance of validator of the given ``validator_index``.
-        """
-        if validator_index >= self.num_validators or validator_index < 0:
-            raise IndexError("Incorrect validator index")
+    # def update_validator_balance(self,
+    #                              validator_index: ValidatorIndex,
+    #                              balance: Gwei) -> 'BeaconState':
+    #     """
+    #     Update the balance of validator of the given ``validator_index``.
+    #     """
+    #     if validator_index >= self.num_validators or validator_index < 0:
+    #         raise IndexError("Incorrect validator index")
 
-        return self.copy(
-            balances=update_tuple_item(
-                self.balances,
-                validator_index,
-                balance,
-            )
-        )
+    #     return self.copy(
+    #         balances=update_tuple_item(
+    #             self.balances,
+    #             validator_index,
+    #             balance,
+    #         )
+    #     )
 
-    def update_validator(self,
-                         validator_index: ValidatorIndex,
-                         validator: Validator,
-                         balance: Gwei) -> 'BeaconState':
-        """
-        Update the ``Validator`` and balance of validator of the given ``validator_index``.
-        """
-        state = self.update_validator_registry(validator_index, validator)
-        state = state.update_validator_balance(validator_index, balance)
-        return state
+    # def update_validator(self,
+    #                      validator_index: ValidatorIndex,
+    #                      validator: Validator,
+    #                      balance: Gwei) -> 'BeaconState':
+    #     """
+    #     Update the ``Validator`` and balance of validator of the given ``validator_index``.
+    #     """
+    #     state = self.update_validator_registry(validator_index, validator)
+    #     state = state.update_validator_balance(validator_index, balance)
+    #     return state
 
     def current_epoch(self, slots_per_epoch: int) -> Epoch:
         return slot_to_epoch(self.slot, slots_per_epoch)

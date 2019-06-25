@@ -30,3 +30,6 @@ class Eth1Data(ssz.Serializable):
             deposit_count=deposit_count,
             block_hash=block_hash,
         )
+
+
+default_eth1_data = Eth1Data()

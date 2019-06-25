@@ -26,6 +26,10 @@ from eth2.beacon.typing import (
     Slot,
 )
 
+from .defaults import (
+    default_slot,
+)
+
 
 if TYPE_CHECKING:
     from eth2.beacon.db.chain import BaseBeaconChainDB  # noqa: F401
@@ -43,7 +47,7 @@ class BeaconBlockHeader(ssz.SignedSerializable):
 
     def __init__(self,
                  *,
-                 slot: Slot=0,
+                 slot: Slot=default_slot,
                  parent_root: Hash32=ZERO_HASH32,
                  state_root: Hash32=ZERO_HASH32,
                  body_root: Hash32=ZERO_HASH32,
@@ -62,3 +66,6 @@ class BeaconBlockHeader(ssz.SignedSerializable):
             f'signing_root={encode_hex(self.signing_root)[2:10]} '
             f'root={encode_hex(self.root)[2:10]}>'
         )
+
+
+default_beacon_block_header = BeaconBlockHeader()

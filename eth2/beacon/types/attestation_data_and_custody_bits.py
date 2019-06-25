@@ -5,6 +5,7 @@ from ssz.sedes import (
 
 from .attestation_data import (
     AttestationData,
+    default_attestation_data,
 )
 
 
@@ -18,7 +19,7 @@ class AttestationDataAndCustodyBit(ssz.Serializable):
     ]
 
     def __init__(self,
-                 data: AttestationData=AttestationData(),
+                 data: AttestationData=default_attestation_data,
                  custody_bit: bool=False)-> None:
         super().__init__(
             data=data,
