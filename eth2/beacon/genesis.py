@@ -39,30 +39,35 @@ from eth2.configs import (
 )
 
 
-def get_genesis_block(genesis_state_root: Hash32,
-                      genesis_slot: Slot,
-                      block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-    return block_class(
-        slot=genesis_slot,
-        state_root=genesis_state_root,
-    )
+def is_genesis_trigger(deposits: Sequence[Deposit], timestamp: int, config: Eth2Config) -> bool:
+    state = BeaconState()
+
+    for deposit in deposits:
+        state = process_deposit(state, deposit, config)
+
+    active_validator_count = 0
+    for validator in state.validators:
+        if validator.effective_balance == config.MAX_EFFECTIVE_BALANCE:
+            active_validator_count += 1
+
+    return active_validator_count == config.GENESIS_ACTIVE_VALIDATOR_COUNT
 
 
 def get_genesis_beacon_state(*,
-                             genesis_validator_deposits: Sequence[Deposit],
+                             genesis_deposits: Sequence[Deposit],
                              genesis_time: Timestamp,
                              genesis_eth1_data: Eth1Data,
                              config: Eth2Config) -> BeaconState:
     state = BeaconState(
         genesis_time=genesis_time,
-        latest_eth1_data=genesis_eth1_data,
+        eth1_data=genesis_eth1_data,
         latest_block_header=BeaconBlockHeader(
             body_root=BeaconBlockBody().root,
         )
     )
 
     # Process genesis deposits
-    for deposit in genesis_validator_deposits:
+    for deposit in genesis_deposits:
         state = process_deposit(
             state=state,
             deposit=deposit,
@@ -70,12 +75,12 @@ def get_genesis_beacon_state(*,
         )
 
     # Process genesis activations
-    for validator_index in range(len(state.validator_registry)):
+    for validator_index in range(len(state.validators)):
         validator_index = ValidatorIndex(validator_index)
-        effective_balance = state.validator_registry[validator_index].effective_balance
+        effective_balance = state.validators[validator_index].effective_balance
         is_enough_effective_balance = effective_balance >= config.MAX_EFFECTIVE_BALANCE
         if is_enough_effective_balance:
-            state = state.update_validator_registry_with_fn(
+            state = state.update_validator_at_index_with_fn(
                 validator_index,
                 activate_validator,
                 config.GENESIS_EPOCH,
@@ -99,6 +104,8 @@ def get_genesis_beacon_state(*,
     return state
 
 
-def is_genesis_trigger(deposits: Sequence[Deposit], timestamp: int) -> bool:
-    # TODO fill out the correct trigger
-    return False
+def get_genesis_block(genesis_state_root: Hash32,
+                      block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+    return block_class(
+        state_root=genesis_state_root,
+    )
