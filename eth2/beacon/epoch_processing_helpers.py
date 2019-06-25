@@ -133,6 +133,12 @@ def get_churn_limit(state: 'BeaconState', config: Eth2Config) -> int:
     )
 
 
+def get_total_active_balance(state: 'BeaconState', config: Eth2Config) -> Gwei:
+    current_epoch = state.current_epoch(config.slots_per_epoch)
+    active_validator_indices = get_active_validator_indices(state, current_epoch)
+    return get_total_balance(state, active_validator_indices)
+
+
 def get_matching_source_attestations(state: 'BeaconState',
                                      epoch: Epoch,
                                      config: Eth2Config) -> Tuple[PendingAttestation, ...]:
@@ -262,18 +268,12 @@ def get_winning_crosslink_and_attesting_indices(
     )
 
 
-def get_total_active_balance(state: 'BeaconState', config: Eth2Config) -> Gwei:
-    current_epoch = state.current_epoch(config.slots_per_epoch)
-    active_validator_indices = get_active_validator_indices(state, current_epoch)
-    return get_total_balance(state, active_validator_indices)
-
-
 def get_base_reward(state: 'BeaconState',
                     index: ValidatorIndex,
                     config: Eth2Config) -> Gwei:
     total_balance = get_total_active_balance(state, config)
     effective_balance = state.validator_registry[index].effective_balance
     return (
-        effective_balance * config.BASE_REWARD_FACTOR
-        // integer_squareroot(total_balance) // BASE_REWARDS_PER_EPOCH
+        effective_balance * config.BASE_REWARD_FACTOR //
+        integer_squareroot(total_balance) // BASE_REWARDS_PER_EPOCH
     )
