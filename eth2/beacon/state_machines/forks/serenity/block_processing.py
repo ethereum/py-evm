@@ -78,6 +78,7 @@ def process_randao(state: BeaconState,
         proposer_index=proposer_index,
         epoch=epoch,
         randao_reveal=block.body.randao_reveal,
+        slots_per_epoch=config.SLOTS_PER_EPOCH,
     )
 
     randao_mix_index = epoch % config.EPOCHS_PER_HISTORICAL_VECTOR

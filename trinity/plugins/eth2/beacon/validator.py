@@ -155,9 +155,6 @@ class Validator(BaseService):
                     state_machine.config,
                     this_epoch,
                     validator_index,
-                    # FIXME: in simple testnet, `registry_change` is not likely to change
-                    # so hardcode it as `False`.
-                    registry_change=False,
                 )
             )
         return self.this_epoch_assignment[validator_index][1]
@@ -280,9 +277,9 @@ class Validator(BaseService):
                    slot: Slot,
                    state: BeaconState,
                    state_machine: BaseBeaconStateMachine) -> BeaconState:
-        post_state = state_machine.state_transition.apply_state_transition_without_block(
+        post_state = state_machine.state_transition.apply_state_transition(
             state,
-            slot,
+            future_slot=slot,
         )
         self.logger.debug(
             bold_green("Skip block at slot=%s  post_state=%s"),

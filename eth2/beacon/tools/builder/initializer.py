@@ -62,23 +62,17 @@ def create_mock_genesis_validator_deposits_and_root(
         keymap: Dict[BLSPubkey, int]) -> Tuple[Tuple[Deposit, ...], Hash32]:
     # Mock data
     withdrawal_credentials = Hash32(b'\x22' * 32)
-    fork = Fork(
-        previous_version=config.GENESIS_FORK_VERSION.to_bytes(4, 'little'),
-        current_version=config.GENESIS_FORK_VERSION.to_bytes(4, 'little'),
-        epoch=config.GENESIS_EPOCH,
-    )
 
     deposit_data_array = tuple()  # type: Tuple[DepositData, ...]
     deposit_data_leaves = tuple()  # type: Tuple[Hash32, ...]
 
     for i in range(num_validators):
+        privkey = keymap[pubkeys[ValidatorIndex(i)]]
         deposit_data = create_mock_deposit_data(
             config=config,
-            pubkeys=pubkeys,
-            keymap=keymap,
-            validator_index=ValidatorIndex(i),
+            pubkey=pubkeys[ValidatorIndex(i)],
+            privkey=privkey,
             withdrawal_credentials=withdrawal_credentials,
-            fork=fork,
         )
         item = hash_eth2(ssz.encode(deposit_data))
         deposit_data_leaves += (item,)
@@ -90,8 +84,7 @@ def create_mock_genesis_validator_deposits_and_root(
     genesis_validator_deposits = tuple(
         Deposit(
             proof=get_merkle_proof(tree, item_index=i),
-            index=i,
-            deposit_data=deposit_data_array[i],
+            data=deposit_data_array[i],
         )
         for i in range(num_validators)
     )
@@ -109,7 +102,7 @@ def create_mock_genesis(
 
     pubkeys = list(keymap)[:num_validators]
 
-    genesis_validator_deposits, deposit_root = create_mock_genesis_validator_deposits_and_root(
+    genesis_deposits, deposit_root = create_mock_genesis_validator_deposits_and_root(
         num_validators=num_validators,
         config=config,
         pubkeys=pubkeys,
@@ -122,7 +115,7 @@ def create_mock_genesis(
     )
 
     state = get_genesis_beacon_state(
-        genesis_validator_deposits=genesis_validator_deposits,
+        genesis_deposits=genesis_deposits,
         genesis_time=genesis_time,
         genesis_eth1_data=genesis_eth1_data,
         config=config,
@@ -130,7 +123,6 @@ def create_mock_genesis(
 
     block = get_genesis_block(
         genesis_state_root=state.root,
-        genesis_slot=config.GENESIS_SLOT,
         block_class=genesis_block_class,
     )
     assert len(state.validators) == num_validators
@@ -141,7 +133,7 @@ def create_mock_genesis(
 def mock_validator(pubkey: BLSPubkey,
                    config: Eth2Config,
                    withdrawal_credentials: Hash32=ZERO_HASH32,
-                   balance=32,  # ETH
+                   balance: int=32,  # ETH
                    is_active: bool=True) -> Validator:
     return Validator(
         pubkey=pubkey,

@@ -1,3 +1,7 @@
+from typing import (
+    Tuple,
+)
+
 from eth_utils import (
     ValidationError,
 )
@@ -55,12 +59,7 @@ def process_proposer_slashings(state: BeaconState,
         state = slash_validator(
             state=state,
             index=proposer_slashing.proposer_index,
-            epochs_per_slashed_balances_vector=config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
-            whistleblower_reward_quotient=config.WHISTLEBLOWER_REWARD_QUOTIENT,
-            proposer_reward_quotient=config.PROPOSER_REWARD_QUOTIENT,
-            max_effective_balance=config.MAX_EFFECTIVE_BALANCE,
-            min_validator_withdrawability_delay=config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY,
-            committee_config=CommitteeConfig(config),
+            config=config,
         )
 
     return state
@@ -82,7 +81,7 @@ def process_attester_slashings(state: BeaconState,
         validate_attester_slashing(
             state,
             attester_slashing,
-            config.MAX_INDICES_PER_SLASHABLE_VOTE,
+            config.MAX_INDICES_PER_ATTESTATION,
             config.SLOTS_PER_EPOCH,
         )
 
@@ -103,12 +102,7 @@ def process_attester_slashings(state: BeaconState,
                 state = slash_validator(
                     state=state,
                     index=index,
-                    epochs_per_slashed_balances_vector=config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
-                    whistleblower_reward_quotient=config.WHISTLEBLOWER_REWARD_QUOTIENT,
-                    proposer_reward_quotient=config.PROPOSER_REWARD_QUOTIENT,
-                    max_effective_balance=config.MAX_EFFECTIVE_BALANCE,
-                    min_validator_withdrawability_delay=config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY,
-                    committee_config=CommitteeConfig(config),
+                    config=config,
                 )
                 slashed_any = True
         validate_some_slashing(slashed_any, attester_slashing)
@@ -127,8 +121,8 @@ def process_attestations(state: BeaconState,
         )
 
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    new_current_epoch_attestations = tuple()
-    new_previous_epoch_attestations = tuple()
+    new_current_epoch_attestations: Tuple[PendingAttestation, ...] = tuple()
+    new_previous_epoch_attestations: Tuple[PendingAttestation, ...] = tuple()
     for attestation in block.body.attestations:
         validate_attestation(
             state,
@@ -204,7 +198,7 @@ def process_voluntary_exits(state: BeaconState,
             config.SLOTS_PER_EPOCH,
             config.PERSISTENT_COMMITTEE_PERIOD,
         )
-        state = initiate_validator_exit(state, voluntary_exit.validator_index)
+        state = initiate_validator_exit(state, voluntary_exit.validator_index, config)
 
     return state
 

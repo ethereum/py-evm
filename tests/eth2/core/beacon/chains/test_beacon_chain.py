@@ -90,9 +90,9 @@ def test_get_state_by_slot(valid_chain,
     state_machine = valid_chain.get_state_machine(genesis_block.slot)
     state = state_machine.state
     block_skipped_slot = genesis_block.slot + 1
-    block_skipped_state = state_machine.state_transition.apply_state_transition_without_block(
+    block_skipped_state = state_machine.state_transition.apply_state_transition(
         state,
-        block_skipped_slot,
+        future_slot=block_skipped_slot,
     )
     with pytest.raises(StateSlotNotFound):
         valid_chain.get_state_by_slot(block_skipped_slot)

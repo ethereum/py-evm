@@ -16,7 +16,7 @@ VType = TypeVar('VType')
 
 def update_tuple_with_mapping_fn(tuple_data: Tuple[VType, ...],
                                  fn: Callable[[VType, Any], VType],
-                                 *args: Sequence[Sequence[Any]]) -> Tuple[VType, ...]:
+                                 *args: Sequence[Any]) -> Tuple[VType, ...]:
     list_data = list(tuple_data)
 
     if args:
@@ -38,7 +38,7 @@ def update_tuple_with_mapping_fn(tuple_data: Tuple[VType, ...],
 def update_tuple_item_with_fn(tuple_data: Tuple[VType, ...],
                               index: int,
                               fn: Callable[[VType, Any], VType],
-                              *args: Sequence[Any]) -> Tuple[VType, ...]:
+                              *args: Any) -> Tuple[VType, ...]:
     """
     Update the ``index``th item of ``tuple_data`` to the result of calling ``fn`` on the existing
     value.

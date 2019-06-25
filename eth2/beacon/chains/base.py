@@ -56,9 +56,6 @@ from eth2.beacon.typing import (
     FromBlockParams,
     Slot,
 )
-from eth2.beacon.validation import (
-    validate_slot,
-)
 from eth2.configs import (
     Eth2GenesisConfig,
 )
@@ -276,7 +273,6 @@ class BeaconChain(BaseBeaconChain):
         if cls.sm_configuration is None:
             raise AttributeError("Chain classes must define the StateMachines in sm_configuration")
 
-        validate_slot(slot)
         for start_slot, sm_class in reversed(cls.sm_configuration):
             if slot >= start_slot:
                 return sm_class
@@ -310,7 +306,6 @@ class BeaconChain(BaseBeaconChain):
 
         Raise ``StateSlotNotFound`` if there's no state with the given slot in the db.
         """
-        validate_slot(slot)
         sm_class = self.get_state_machine_class_for_block_slot(slot)
         state_class = sm_class.get_state_class()
         return self.chaindb.get_state_by_slot(slot, state_class)
@@ -372,7 +367,6 @@ class BeaconChain(BaseBeaconChain):
         Raise ``BlockNotFound`` if there's no block with the given number in the
         canonical chain.
         """
-        validate_slot(slot)
         return self.get_block_by_root(self.chaindb.get_canonical_block_root(slot))
 
     def get_canonical_block_root(self, slot: Slot) -> Hash32:

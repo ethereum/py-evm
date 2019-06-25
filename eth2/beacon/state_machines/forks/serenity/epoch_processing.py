@@ -8,7 +8,6 @@ from eth_utils.toolz import (
 )
 import ssz
 
-from eth2._utils.bitfield import Bitfield
 from eth2._utils.tuple import (
     update_tuple_item,
     update_tuple_item_with_fn,
@@ -34,6 +33,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_attesting_indices,
     get_base_reward,
     get_churn_limit,
+    get_delayed_activation_exit_epoch,
     get_matching_head_attestations,
     get_matching_source_attestations,
     get_matching_target_attestations,
@@ -46,7 +46,6 @@ from eth2.beacon.epoch_processing_helpers import (
 from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_block_root,
-    get_delayed_activation_exit_epoch,
     get_randao_mix,
 )
 from eth2.beacon.validator_status_helpers import (
@@ -55,6 +54,7 @@ from eth2.beacon.validator_status_helpers import (
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.crosslinks import Crosslink
+from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.eth1_data_vote import Eth1DataVote
 from eth2.beacon.types.historical_batch import HistoricalBatch
 from eth2.beacon.types.states import BeaconState
@@ -62,6 +62,7 @@ from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
     Epoch,
     Gwei,
+    Shard,
     Slot,
     ValidatorIndex,
 )
@@ -88,7 +89,9 @@ def _is_epoch_justifiable(state: BeaconState,
     return 3 * attesting_balance >= 2 * total_active_balance
 
 
-def _bitfield_matches(bitfield: Bitfield,
+# NOTE: the type of bitfield here is an ``int``, to facilitate bitwise operations;
+# we do not use the ``Bitfield`` type seen elsewhere.
+def _bitfield_matches(bitfield: int,
                       offset: int,
                       modulus: int,
                       pattern: int) -> bool:
@@ -217,7 +220,7 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
             CommitteeConfig(config),
         )
         for shard_offset in range(epoch_committee_count):
-            shard = (epoch_start_shard + shard_offset) % config.SHARD_COUNT
+            shard = Shard((epoch_start_shard + shard_offset) % config.SHARD_COUNT)
             crosslink_committee = get_crosslink_committee(
                 state,
                 epoch,
@@ -228,7 +231,7 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
                 state=state,
                 epoch=epoch,
                 shard=shard,
-                committee_config=CommitteeConfig(config),
+                config=config,
             )
             total_attesting_balance = get_total_balance(
                 state,
@@ -262,7 +265,7 @@ def get_attestation_deltas(state: BeaconState,
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
     total_balance = get_total_active_balance(state, config)
     eligible_validator_indices = tuple(
-        index for index, v in enumerate(state.validators)
+        ValidatorIndex(index) for index, v in enumerate(state.validators)
         if v.is_active(previous_epoch) or (
             v.slashed and previous_epoch + 1 < v.withdrawable_epoch
         )
@@ -296,15 +299,23 @@ def get_attestation_deltas(state: BeaconState,
                 rewards = update_tuple_item_with_fn(
                     rewards,
                     index,
-                    sum,
-                    get_base_reward(state, index, config) * attesting_balance // total_balance,
+                    lambda balance, delta: balance + delta,
+                    get_base_reward(
+                        state,
+                        index,
+                        config,
+                    ) * attesting_balance // total_balance,
                 )
             else:
                 penalties = update_tuple_item_with_fn(
                     penalties,
                     index,
-                    sum,
-                    get_base_reward(state, index, config),
+                    lambda balance, delta: balance + delta,
+                    get_base_reward(
+                        state,
+                        index,
+                        config,
+                    ),
                 )
 
     for index in get_unslashed_attesting_indices(state, matching_source_attestations):
@@ -324,18 +335,18 @@ def get_attestation_deltas(state: BeaconState,
         rewards = update_tuple_item_with_fn(
             rewards,
             attestation.proposer_index,
-            sum,
+            lambda balance, delta: balance + delta,
             proposer_reward,
         )
         max_attester_reward = base_reward - proposer_reward
         rewards = update_tuple_item_with_fn(
             rewards,
             index,
-            sum,
+            lambda balance, delta: balance + delta,
             (
-                max_attester_reward
-                * config.MIN_ATTESTATION_INCLUSION_DELAY
-                // attestation.inclusion_delay
+                max_attester_reward *
+                config.MIN_ATTESTATION_INCLUSION_DELAY //
+                attestation.inclusion_delay
             )
         )
 
@@ -349,18 +360,26 @@ def get_attestation_deltas(state: BeaconState,
             penalties = update_tuple_item_with_fn(
                 penalties,
                 index,
-                sum,
-                BASE_REWARDS_PER_EPOCH * get_base_reward(state, index, config),
+                lambda balance, delta: balance + delta,
+                BASE_REWARDS_PER_EPOCH * get_base_reward(
+                    state,
+                    index,
+                    config,
+                ),
             )
             if index not in matching_target_attesting_indices:
                 effective_balance = _get_effective_balance(state, index)
                 penalties = update_tuple_item_with_fn(
                     penalties,
                     index,
-                    sum,
+                    lambda balance, delta: balance + delta,
                     effective_balance * finality_delay // config.INACTIVITY_PENALTY_QUOTIENT,
                 )
-    return rewards, penalties
+    return tuple(
+        Gwei(reward) for reward in rewards
+    ), tuple(
+        Gwei(penalty) for penalty in penalties
+    )
 
 
 def get_crosslink_deltas(state: BeaconState,
@@ -385,7 +404,7 @@ def get_crosslink_deltas(state: BeaconState,
         CommitteeConfig(config),
     )
     for shard_offset in range(epoch_committee_count):
-        shard = (epoch_start_shard + shard_offset) % config.SHARD_COUNT
+        shard = Shard((epoch_start_shard + shard_offset) % config.SHARD_COUNT)
         crosslink_committee = get_crosslink_committee(
             state,
             epoch,
@@ -396,7 +415,7 @@ def get_crosslink_deltas(state: BeaconState,
             state=state,
             epoch=epoch,
             shard=shard,
-            committee_config=CommitteeConfig(config),
+            config=config,
         )
         total_attesting_balance = get_total_balance(
             state,
@@ -412,17 +431,21 @@ def get_crosslink_deltas(state: BeaconState,
                 rewards = update_tuple_item_with_fn(
                     rewards,
                     index,
-                    sum,
+                    lambda balance, delta: balance + delta,
                     base_reward * total_attesting_balance // total_committee_balance
                 )
             else:
                 penalties = update_tuple_item_with_fn(
                     penalties,
                     index,
-                    sum,
+                    lambda balance, delta: balance + delta,
                     base_reward,
                 )
-    return rewards, penalties
+    return tuple(
+        Gwei(reward) for reward in rewards
+    ), tuple(
+        Gwei(penalty) for penalty in penalties
+    )
 
 
 def process_rewards_and_penalties(state: BeaconState, config: Eth2Config) -> BeaconState:
@@ -434,10 +457,11 @@ def process_rewards_and_penalties(state: BeaconState, config: Eth2Config) -> Bea
     rewards_for_crosslinks, penalties_for_crosslinks = get_crosslink_deltas(state, config)
 
     for index in range(len(state.validators)):
-        state = increase_balance(state, index, (
+        index = ValidatorIndex(index)
+        state = increase_balance(state, index, Gwei(
             rewards_for_attestations[index] + rewards_for_crosslinks[index]
         ))
-        state = decrease_balance(state, index, (
+        state = decrease_balance(state, index, Gwei(
             penalties_for_attestations[index] + penalties_for_crosslinks[index]
         ))
 
@@ -457,8 +481,8 @@ def _process_activation_eligibility_or_ejections(state: BeaconState,
         validator.activation_eligibility_epoch = current_epoch
 
     if (
-        validator.is_active(current_epoch)
-        and validator.effective_balance <= config.EJECTION_BALANCE
+        validator.is_active(current_epoch) and
+        validator.effective_balance <= config.EJECTION_BALANCE
     ):
         validator = initiate_validator_exit_for_validator(state, config, validator)
 
@@ -542,6 +566,7 @@ def process_slashings(state: BeaconState, config: Eth2Config) -> BeaconState:
 
     slashing_period = config.EPOCHS_PER_SLASHED_BALANCES_VECTOR // 2
     for index, validator in enumerate(state.validators):
+        index = ValidatorIndex(index)
         if validator.slashed and current_epoch == validator.withdrawable_epoch - slashing_period:
             collective_penalty = min(total_penalties * 3, total_balance) // total_balance
             penalty = max(
@@ -552,7 +577,7 @@ def process_slashings(state: BeaconState, config: Eth2Config) -> BeaconState:
     return state
 
 
-def _determine_next_eth1_votes(state: BeaconState, config: Eth2Config) -> BeaconState:
+def _determine_next_eth1_votes(state: BeaconState, config: Eth2Config) -> Tuple[Eth1Data, ...]:
     if (state.slot + 1) % config.SLOTS_PER_ETH1_VOTING_PERIOD == 0:
         return tuple()
     else:
@@ -598,7 +623,7 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
     ) % config.EPOCHS_PER_HISTORICAL_VECTOR
     validator_indices_for_new_active_index_root = get_active_validator_indices(
         state.validators,
-        next_epoch + config.ACTIVATION_EXIT_DELAY,
+        Epoch(next_epoch + config.ACTIVATION_EXIT_DELAY),
     )
     new_active_index_root = ssz.hash_tree_root(
         validator_indices_for_new_active_index_root,
@@ -632,8 +657,8 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
     new_historical_roots = state.historical_roots
     if next_epoch % (config.SLOTS_PER_HISTORICAL_ROOT // config.SLOTS_PER_EPOCH) == 0:
         historical_batch = HistoricalBatch(
-            state.block_roots,
-            state.state_roots,
+            block_roots=state.block_roots,
+            state_roots=state.state_roots,
         )
         new_historical_roots = state.historical_roots + historical_batch.root
 

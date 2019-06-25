@@ -46,7 +46,8 @@ def _compute_exit_queue_epoch(state: BeaconState, config: Eth2Config) -> int:
     exit_queue_epoch = max(
         exit_epochs + (
             get_delayed_activation_exit_epoch(
-                state.current_epoch(slots_per_epoch)
+                state.current_epoch(slots_per_epoch),
+                config.ACTIVATION_EXIT_DELAY,
             ),
         )
     )
@@ -54,10 +55,7 @@ def _compute_exit_queue_epoch(state: BeaconState, config: Eth2Config) -> int:
         v for v in state.validators
         if v.exit_epoch == exit_queue_epoch
     ))
-    if exit_queue_churn >= get_churn_limit(state,
-                                           slots_per_epoch,
-                                           min_per_epoch_churn_limit,
-                                           churn_limit_quotient):
+    if exit_queue_churn >= get_churn_limit(state, config):
         exit_queue_epoch += 1
     return exit_queue_epoch
 
@@ -90,8 +88,9 @@ def initiate_validator_exit(state: BeaconState,
     validator = state.validators[index]
 
     updated_validator = initiate_validator_exit_for_validator(
+        state,
+        config,
         validator,
-        config
     )
 
     return state.update_validators(index, updated_validator)
@@ -109,31 +108,29 @@ def slash_validator(*,
                     state: BeaconState,
                     index: ValidatorIndex,
                     whistleblower_index: ValidatorIndex=None,
-                    epochs_per_slashed_balances_vector: int,
-                    whistleblower_reward_quotient: int,
-                    proposer_reward_quotient: int,
-                    max_effective_balance: Gwei,
-                    min_validator_withdrawability_delay: int,
-                    committee_config: CommitteeConfig) -> BeaconState:
+                    config: Eth2Config) -> BeaconState:
     """
     Slash the validator with index ``index``.
 
     Exit the validator, penalize the validator, and reward the whistleblower.
     """
-    slots_per_epoch = committee_config.SLOTS_PER_EPOCH
+    # NOTE: remove in phase 1
+    assert whistleblower_index == None
+
+    slots_per_epoch = config.SLOTS_PER_EPOCH
 
     current_epoch = state.current_epoch(slots_per_epoch)
 
-    state = initiate_validator_exit(state, index, min_validator_withdrawability_delay)
+    state = initiate_validator_exit(state, index, config)
     state = state.update_validators_with_fn(
         index,
         _set_validator_slashed(
-            current_epoch + epochs_per_slashed_balances_vector,
+            current_epoch + config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
         ),
     )
 
     slashed_balance = state.validators[index].effective_balance
-    slashed_epoch = current_epoch % epochs_per_slashed_balances_vector
+    slashed_epoch = current_epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
     state = state.copy(
         slashed_balances=update_tuple_item_with_fn(
             state.slashed_balances,
@@ -143,11 +140,11 @@ def slash_validator(*,
         )
     )
 
-    proposer_index = get_beacon_proposer_index(state, committee_config)
+    proposer_index = get_beacon_proposer_index(state, CommitteeConfig(config))
     if whistleblower_index is None:
         whistleblower_index = proposer_index
-    whistleblowing_reward = slashed_balance // whistleblower_reward_quotient
-    proposer_reward = whistleblowing_reward // proposer_reward_quotient
+    whistleblowing_reward = slashed_balance // config.WHISTLEBLOWING_REWARD_QUOTIENT
+    proposer_reward = whistleblowing_reward // config.PROPOSER_REWARD_QUOTIENT
     state = increase_balance(state, proposer_index, proposer_reward)
     state = increase_balance(state, whistleblower_index, whistleblowing_reward - proposer_reward)
     state = decrease_balance(state, index, whistleblowing_reward)

@@ -1,5 +1,6 @@
 import functools
 from typing import (  # noqa: F401
+    cast,
     Iterable,
     Sequence,
     Tuple,
@@ -40,7 +41,6 @@ from eth2.beacon.attestation_helpers import (
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
     get_crosslink_committee,
-    get_members_from_bitfield,
 )
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
@@ -50,8 +50,6 @@ from eth2.beacon.signature_domain import (
 )
 from eth2.beacon.helpers import (
     get_domain,
-    is_double_vote,
-    is_surround_vote,
     slot_to_epoch,
 )
 from eth2.beacon.types.attestations import Attestation, IndexedAttestation
@@ -63,6 +61,7 @@ from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.transfers import Transfer
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
@@ -75,6 +74,9 @@ from eth2.beacon.typing import (
 from eth2.beacon.validation import (
     validate_bitfield,
 )
+from eth2.configs import (
+    Eth2Config,
+)
 
 if TYPE_CHECKING:
     from eth_typing import (
@@ -83,7 +85,7 @@ if TYPE_CHECKING:
 
 
 def validate_correct_number_of_deposits(state: BeaconState,
-                                        block: BeaconBlock,
+                                        block: BaseBeaconBlock,
                                         config: Eth2Config) -> None:
     body = block.body
     deposit_count_in_block = len(body.deposits)
@@ -101,7 +103,7 @@ def validate_correct_number_of_deposits(state: BeaconState,
 
 
 def validate_unique_transfers(state: BeaconState,
-                              block: BeaconBlock,
+                              block: BaseBeaconBlock,
                               config: Eth2Config) -> None:
     body = block.body
     transfer_count_in_block = len(body.transfers)
@@ -184,16 +186,17 @@ def validate_proposer_signature(state: BeaconState,
 def validate_randao_reveal(state: BeaconState,
                            proposer_index: int,
                            epoch: Epoch,
-                           randao_reveal: Hash32) -> None:
+                           randao_reveal: Hash32,
+                           slots_per_epoch: int) -> None:
     proposer = state.validators[proposer_index]
     proposer_pubkey = proposer.pubkey
     message_hash = ssz.hash_tree_root(epoch, sedes=ssz.sedes.uint64)
-    domain = get_domain(state, SignatureDomain.DOMAIN_RANDAO)
+    domain = get_domain(state, SignatureDomain.DOMAIN_RANDAO, slots_per_epoch)
 
     is_randao_reveal_valid = bls.verify(
         pubkey=proposer_pubkey,
         message_hash=message_hash,
-        signature=randao_reveal,
+        signature=cast(BLSSignature, randao_reveal),
         domain=domain,
     )
 
@@ -225,12 +228,14 @@ def validate_proposer_slashing(state: BeaconState,
     validate_proposer_slashing_is_slashable(state, proposer, slots_per_epoch)
 
     validate_block_header_signature(
+        state=state,
         header=proposer_slashing.header_1,
         pubkey=proposer.pubkey,
         slots_per_epoch=slots_per_epoch,
     )
 
     validate_block_header_signature(
+        state=state,
         header=proposer_slashing.header_2,
         pubkey=proposer.pubkey,
         slots_per_epoch=slots_per_epoch,
@@ -269,7 +274,8 @@ def validate_proposer_slashing_is_slashable(state: BeaconState,
         )
 
 
-def validate_block_header_signature(header: BeaconBlockHeader,
+def validate_block_header_signature(state: BeaconState,
+                                    header: BeaconBlockHeader,
                                     pubkey: BLSPubkey,
                                     slots_per_epoch: int) -> None:
     header_signature_is_valid = bls.verify(
@@ -280,7 +286,7 @@ def validate_block_header_signature(header: BeaconBlockHeader,
             state,
             SignatureDomain.DOMAIN_BEACON_PROPOSER,
             slots_per_epoch,
-            slot_to_epoch(header.slot),
+            slot_to_epoch(header.slot, slots_per_epoch),
         )
     )
     if not header_signature_is_valid:
@@ -306,7 +312,7 @@ def validate_is_slashable_attestation_data(attestation_1: IndexedAttestation,
 
 def validate_attester_slashing(state: BeaconState,
                                attester_slashing: AttesterSlashing,
-                               max_indices_per_slashable_vote: int,
+                               max_indices_per_attestation: int,
                                slots_per_epoch: int) -> None:
     attestation_1 = attester_slashing.attestation_1
     attestation_2 = attester_slashing.attestation_2
@@ -319,14 +325,14 @@ def validate_attester_slashing(state: BeaconState,
     validate_indexed_attestation(
         state,
         attestation_1,
-        max_indices_per_slashable_vote,
+        max_indices_per_attestation,
         slots_per_epoch,
     )
 
     validate_indexed_attestation(
         state,
         attestation_2,
-        max_indices_per_slashable_vote,
+        max_indices_per_attestation,
         slots_per_epoch,
     )
 
@@ -336,6 +342,7 @@ def validate_some_slashing(slashed_any: bool, attester_slashing: AttesterSlashin
         raise ValidationError(
             f"Attesting slashing {attester_slashing} did not yield any slashable validators."
         )
+
 
 #
 # Attestation validation
@@ -357,10 +364,10 @@ def _validate_eligible_target_epoch(target_epoch: Epoch,
         )
 
 
-def _validate_attestation_slot(attestation_slot: Slot,
-                               state_slot: Slot,
-                               slots_per_epoch: int,
-                               min_attestation_inclusion_delay: int) -> None:
+def validate_attestation_slot(attestation_slot: Slot,
+                              state_slot: Slot,
+                              slots_per_epoch: int,
+                              min_attestation_inclusion_delay: int) -> None:
     if attestation_slot + min_attestation_inclusion_delay > state_slot:
         raise ValidationError(
             f"Attestation at slot {attestation_slot} can only be included after the"
@@ -378,10 +385,10 @@ def _validate_attestation_slot(attestation_slot: Slot,
 FFGData = Tuple[Epoch, Hash32, Epoch]
 
 
-def _validate_ffg_data(attestation_data: AttestationData, ffg_data: FFGData) -> None:
+def _validate_ffg_data(data: AttestationData, ffg_data: FFGData) -> None:
     if ffg_data != (data.source_epoch, data.source_root, data.target_epoch):
         raise ValidationError(
-            f"Attestation with data {attestation_data} did not match the expected"
+            f"Attestation with data {data} did not match the expected"
             f" FFG data ({ffg_data}) based on the specified ``target_epoch``."
         )
 
@@ -452,14 +459,19 @@ def validate_attestation(state: BeaconState,
 
     _validate_eligible_shard_number(data.crosslink.shard, config.SHARD_COUNT)
     _validate_eligible_target_epoch(data.target_epoch, current_epoch, previous_epoch)
-    _validate_attestation_slot(
+    validate_attestation_slot(
         attestation_slot,
         state.slot,
         slots_per_epoch,
         config.MIN_ATTESTATION_INCLUSION_DELAY
     )
     _validate_ffg_data(data, ffg_data)
-    _validate_crosslink(data.crosslink, parent_crosslink, config.MAX_EPOCHS_PER_CROSSLINK)
+    _validate_crosslink(
+        data.crosslink,
+        data.target_epoch,
+        parent_crosslink,
+        config.MAX_EPOCHS_PER_CROSSLINK
+    )
     validate_indexed_attestation(
         state,
         convert_to_indexed(state, attestation),
@@ -566,7 +578,7 @@ def _validate_transfer_slot(state_slot: Slot, transfer_slot: Slot) -> None:
         )
 
 
-def _validate_sender_eligibility(state: Beacon, transfer: Transfer, config: Eth2Config) -> None:
+def _validate_sender_eligibility(state: BeaconState, transfer: Transfer, config: Eth2Config) -> None:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     sender = state.validators[transfer.sender]
     sender_balance = state.balances[transfer.sender]
@@ -609,7 +621,7 @@ def _validate_sender_pubkey(state: BeaconState, transfer: Transfer, config: Eth2
     if not are_withdrawal_credentials_valid:
         raise ValidationError(
             f"Pubkey in transfer {transfer} does not match the withdrawal credentials"
-            f" {withdrawal_credentials} for validator {sender}."
+            f" {expected_withdrawal_credentials} for validator {sender}."
         )
 
 
@@ -665,4 +677,4 @@ def validate_transfer(state: BeaconState,
     _validate_sender_eligibility(state, transfer, config)
     _validate_sender_pubkey(state, transfer, config)
     _validate_transfer_signature(state, transfer, config)
-    _validate_transfer_does_not_result_in_dust(state, transfer)
+    _validate_transfer_does_not_result_in_dust(state, transfer, config)

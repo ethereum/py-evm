@@ -452,8 +452,8 @@ def max_balance_churn_quotient():
 
 
 @pytest.fixture
-def max_indices_per_slashable_vote():
-    return SERENITY_CONFIG.MAX_INDICES_PER_SLASHABLE_VOTE
+def max_indices_per_attestation():
+    return SERENITY_CONFIG.MAX_INDICES_PER_ATTESTATION
 
 
 @pytest.fixture
@@ -731,7 +731,7 @@ def genesis_balances(init_validator_pubkeys, max_effective_balance):
 @pytest.fixture
 def config(shard_count,
            target_committee_size,
-           max_indices_per_slashable_vote,
+           max_indices_per_attestation,
            min_per_epoch_churn_limit,
            churn_limit_quotient,
            shuffle_round_count,
@@ -770,7 +770,7 @@ def config(shard_count,
     return Eth2Config(
         SHARD_COUNT=shard_count,
         TARGET_COMMITTEE_SIZE=target_committee_size,
-        MAX_INDICES_PER_ATTESTATION=max_indices_per_slashable_vote,
+        MAX_INDICES_PER_ATTESTATION=max_indices_per_attestation,
         MIN_PER_EPOCH_CHURN_LIMIT=min_per_epoch_churn_limit,
         CHURN_LIMIT_QUOTIENT=churn_limit_quotient,
         SHUFFLE_ROUND_COUNT=shuffle_round_count,

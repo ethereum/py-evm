@@ -80,6 +80,8 @@ class CommitteeConfig:
         self.EPOCHS_PER_HISTORICAL_VECTOR = config.EPOCHS_PER_HISTORICAL_VECTOR
         self.EPOCHS_PER_HISTORICAL_VECTOR = config.EPOCHS_PER_HISTORICAL_VECTOR
 
+        self.MAX_EFFECTIVE_BALANCE = config.MAX_EFFECTIVE_BALANCE
+
 
 class Eth2GenesisConfig:
     """

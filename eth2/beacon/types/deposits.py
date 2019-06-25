@@ -40,8 +40,8 @@ class Deposit(ssz.Serializable):
 
     def __init__(self,
                  proof: Sequence[Hash32]=default_tuple,
-                 deposit_data: DepositData=default_deposit_data)-> None:
+                 data: DepositData=default_deposit_data)-> None:
         super().__init__(
             proof,
-            deposit_data,
+            data,
         )

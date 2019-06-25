@@ -80,14 +80,14 @@ def get_epoch_start_shard(state: 'BeaconState',
     if epoch > next_epoch:
         raise ValidationError("Asking for start shard for an epoch after next")
 
-    check_epoch = next_epoch
+    check_epoch = int(next_epoch)
     shard = (
-        state.start_shard + get_shard_delta(state, current_epoch)
+        state.start_shard + get_shard_delta(state, current_epoch, config)
     ) % config.SHARD_COUNT
     while check_epoch > epoch:
         check_epoch -= 1
         shard = (
-            shard + config.SHARD_COUNT - get_shard_delta(state, check_epoch)
+            shard + config.SHARD_COUNT - get_shard_delta(state, Epoch(check_epoch), config)
         ) % config.SHARD_COUNT
     return shard
 
@@ -126,7 +126,7 @@ def get_beacon_proposer_index(state: 'BeaconState',
     first_committee_len = len(first_committee)
     while True:
         candidate_index = first_committee[(current_epoch + i) % first_committee_len]
-        random_byte = hash(seed + (i // 32).to_bytes(8, "little"))[i % 32]
+        random_byte = hash_eth2(seed + (i // 32).to_bytes(8, "little"))[i % 32]
         effective_balance = state.validators[candidate_index].effective_balance
         if effective_balance * MAX_RANDOM_BYTE >= max_effective_balance * random_byte:
             return candidate_index
@@ -176,11 +176,12 @@ def _get_shuffled_index(index: int,
 def _compute_committee(indices: Sequence[ValidatorIndex],
                        seed: Hash32,
                        index: int,
-                       count: int) -> Iterable[ValidatorIndex]:
-    start = (len(index) * index) // count
-    end = (len(index) * (index + 1)) // count
+                       count: int,
+                       shuffle_round_count: int) -> Iterable[ValidatorIndex]:
+    start = (len(indices) * index) // count
+    end = (len(indices) * (index + 1)) // count
     for i in range(start, end):
-        shuffled_index = _get_shuffled_index(i, len(indices), seed)
+        shuffled_index = _get_shuffled_index(i, len(indices), seed, shuffle_round_count)
         yield indices[shuffled_index]
 
 
@@ -190,12 +191,23 @@ def get_crosslink_committee(state: 'BeaconState',
                             shard: Shard,
                             config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     target_shard = (
-        shard + config.SHARD_COUNT - get_epoch_start_shard(state, epoch)
+        shard + config.SHARD_COUNT - get_epoch_start_shard(state, epoch, config)
     ) % config.SHARD_COUNT
+
+    active_validator_indices = get_active_validator_indices(
+        state,
+        epoch,
+    )
 
     return _compute_committee(
         indices=get_active_validator_indices(state, epoch),
-        seed=generate_seed(state, epoch),
+        seed=generate_seed(state, epoch, config),
         index=target_shard,
-        count=get_epoch_committee_count(state, epoch),
+        count=get_epoch_committee_count(
+            len(active_validator_indices),
+            config.SHARD_COUNT,
+            config.SLOTS_PER_EPOCH,
+            config.TARGET_COMMITTEE_SIZE,
+        ),
+        shuffle_round_count=config.SHUFFLE_ROUND_COUNT,
     )

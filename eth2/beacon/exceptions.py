@@ -2,6 +2,10 @@ from eth.exceptions import (
     PyEVMError,
 )
 
+from eth_utils import (
+    ValidationError,
+)
+
 
 class StateMachineNotFound(PyEVMError):
     """
@@ -32,7 +36,7 @@ class NoCommitteeAssignment(PyEVMError):
     pass
 
 
-class InvalidEpochError:
+class InvalidEpochError(ValidationError):
     """
     Raised when a function receives a query for an epoch that is not semantically valid.
 

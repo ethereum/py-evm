@@ -374,9 +374,9 @@ async def test_validator_attest(event_loop, event_bus, monkeypatch):
 
     # Advance the state and validate the attestation
     config = state_machine.config
-    future_state = state_machine.state_transition.apply_state_transition_without_block(
+    future_state = state_machine.state_transition.apply_state_transition(
         state,
-        assignment.slot + config.MIN_ATTESTATION_INCLUSION_DELAY,
+        future_slot=assignment.slot + config.MIN_ATTESTATION_INCLUSION_DELAY,
     )
     validate_attestation(
         future_state,

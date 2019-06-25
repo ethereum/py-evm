@@ -3,32 +3,57 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth2.beacon.helpers import (
+    get_active_validator_indices,
+    get_domain,
+    get_epoch_start_slot,
+)
 from eth2.beacon.committee_helpers import (
     get_epoch_committee_count,
     get_epoch_start_shard,
 )
 from eth2.beacon.epoch_processing_helpers import (
     get_attesting_indices,
-    get_epoch_start_slot,
 )
+from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     Slot,
 )
-from eth2.configs import Eth2Config
+from eth2.configs import (
+    CommitteeConfig,
+    Eth2Config,
+)
 
 
 def get_attestation_data_slot(state: BeaconState,
                               data: AttestationData,
                               config: Eth2Config) -> Slot:
-    committee_count = get_epoch_committee_count(state, data.target_epoch)
+    active_validator_indices = get_active_validator_indices(
+        state.validators,
+        data.target_epoch,
+    )
+    committee_count = get_epoch_committee_count(
+        len(active_validator_indices),
+        config.SHARD_COUNT,
+        config.SLOTS_PER_EPOCH,
+        config.TARGET_COMMITTEE_SIZE,
+    )
     offset = (
-        data.crosslink.shard + config.SHARD_COUNT - get_epoch_start_shard(state, data.target_epoch)
+        data.crosslink.shard + config.SHARD_COUNT - get_epoch_start_shard(
+            state,
+            data.target_epoch,
+            CommitteeConfig(config),
+        )
     ) % config.SHARD_COUNT
     committees_per_slot = committee_count // config.SLOTS_PER_EPOCH
-    return get_epoch_start_slot(data.target_epoch) + offset // committees_per_slot
+    return get_epoch_start_slot(
+        data.target_epoch,
+        config.SLOTS_PER_EPOCH,
+    ) + offset // committees_per_slot
 
 
 def convert_to_indexed(state: BeaconState, attestation: Attestation) -> IndexedAttestation:
@@ -57,11 +82,11 @@ def convert_to_indexed(state: BeaconState, attestation: Attestation) -> IndexedA
 
 def verify_indexed_attestation_aggregate_signature(state: BeaconState,
                                                    indexed_attestation: IndexedAttestation,
-                                                   slots_per_epoch: int):
+                                                   slots_per_epoch: int) -> bool:
     bit_0_indices = indexed_attestation.custody_bit_0_indices
     bit_1_indices = indexed_attestation.custody_bit_1_indices
 
-    pubkeys = tuple(
+    pubkeys = (
         bls.aggregate_pubkeys(
             tuple(state.validators[i].pubkey for i in bit_0_indices)
         ),
@@ -70,7 +95,7 @@ def verify_indexed_attestation_aggregate_signature(state: BeaconState,
         ),
     )
 
-    message_hashes = tuple(
+    message_hashes = (
         AttestationDataAndCustodyBit(
             data=indexed_attestation.data,
             custody_bit=False

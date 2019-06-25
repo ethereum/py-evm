@@ -1,5 +1,6 @@
 from typing import (
     Sequence,
+    Tuple,
 )
 
 from eth.constants import (
@@ -27,7 +28,7 @@ from .epoch_processing import (
 )
 
 
-def _update_historical_root(roots: Sequence[Hash32],
+def _update_historical_root(roots: Tuple[Hash32, ...],
                             index: Slot,
                             slots_per_historical_root: int,
                             new_root: Hash32) -> Sequence[Hash32]:

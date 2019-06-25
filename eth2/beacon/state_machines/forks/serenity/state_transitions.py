@@ -23,7 +23,7 @@ class SerenityStateTransition(BaseStateTransition):
     def apply_state_transition(self,
                                state: BeaconState,
                                block: BaseBeaconBlock=None,
-                               future_slot=None,
+                               future_slot: Slot=None,
                                check_proposer_signature: bool=True) -> BeaconState:
         # NOTE: Callers should request a transition to some slot past the ``state.slot``.
         # This can be done by providing either a ``block`` *or* a ``future_slot``.
