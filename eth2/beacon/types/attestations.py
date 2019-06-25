@@ -27,26 +27,22 @@ from eth_typing import (
 class Attestation(ssz.Serializable):
 
     fields = [
-        # Attester aggregation bitfield
         ('aggregation_bitfield', byte_list),
-        # Attestation data
         ('data', AttestationData),
-        # Proof of custody bitfield
         ('custody_bitfield', byte_list),
-        # BLS aggregate signature
-        ('aggregate_signature', bytes96),
+        ('signature', bytes96),
     ]
 
     def __init__(self,
                  aggregation_bitfield: Bitfield=Bitfield(),
                  data: AttestationData=AttestationData(),
                  custody_bitfield: Bitfield=Bitfield(),
-                 aggregate_signature: BLSSignature=EMPTY_SIGNATURE) -> None:
+                 signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             aggregation_bitfield,
             data,
             custody_bitfield,
-            aggregate_signature,
+            signature,
         )
 
     def __repr__(self) -> str:

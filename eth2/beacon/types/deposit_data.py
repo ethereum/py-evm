@@ -27,11 +27,8 @@ class DepositData(ssz.Serializable):
     contract.
     """
     fields = [
-        # BLS pubkey
         ('pubkey', bytes48),
-        # Withdrawal credentials
         ('withdrawal_credentials', bytes32),
-        # Amount in Gwei
         ('amount', uint64),
         # BLS proof of possession (a BLS signature)
         ('signature', bytes96),

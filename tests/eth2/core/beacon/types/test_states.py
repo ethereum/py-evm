@@ -33,44 +33,6 @@ def test_validator_registry_and_balances_length(sample_beacon_state_params, conf
 
 
 @pytest.mark.parametrize(
-    'expected', [(0), (1)]
-)
-def test_num_validators(expected,
-                        max_effective_balance,
-                        filled_beacon_state,
-                        config):
-    state = filled_beacon_state.copy(
-        validator_registry=tuple(
-            mock_validator(
-                pubkey,
-                config,
-            )
-            for pubkey in range(expected)
-        ),
-        validator_balances=(max_effective_balance,) * expected,
-    )
-
-    assert state.num_validators == expected
-
-
-@pytest.mark.parametrize(
-    'expected', [(0), (1), (5)]
-)
-def test_num_crosslink_records(expected,
-                               sample_crosslink_record_params,
-                               filled_beacon_state):
-    crosslinks = [
-        Crosslink(**sample_crosslink_record_params)
-        for i in range(expected)
-    ]
-    state = filled_beacon_state.copy(
-        latest_crosslinks=crosslinks,
-    )
-
-    assert state.num_crosslinks == expected
-
-
-@pytest.mark.parametrize(
     'validator_index, new_pubkey, new_balance',
     [
         (0, 5566, 100),

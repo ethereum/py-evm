@@ -27,10 +27,10 @@ def _round_down_to_previous_multiple(amount: int, increment: int) -> int:
 class Validator(ssz.Serializable):
 
     fields = [
-        # BLS public key
         ('pubkey', bytes48),
-        # Withdrawal credentials
         ('withdrawal_credentials', bytes32),
+        ('effective_balance', uint64)
+        ('slashed', boolean),
         # Epoch when validator became eligible for activation
         ('activation_eligibility_epoch', uint64),
         # Epoch when validator activated
@@ -39,43 +39,44 @@ class Validator(ssz.Serializable):
         ('exit_epoch', uint64),
         # Epoch when validator withdrew
         ('withdrawable_epoch', uint64),
-        # Was the validator slashed
-        ('slashed', boolean),
-        # Effective balance
-        ('effective_balance', uint64)
     ]
 
     def __init__(self,
                  *,
                  pubkey: BLSPubkey=b'\x00' * 48,
                  withdrawal_credentials: Hash32=ZERO_HASH32,
+                 effective_balance: uint64=0,
+                 slashed: bool=False,
                  activation_eligibility_epoch: Epoch=0,
                  activation_epoch: Epoch=0,
                  exit_epoch: Epoch=0,
-                 withdrawable_epoch: Epoch=0,
-                 slashed: bool=False,
-                 effective_balance: uint64=0) -> None:
+                 withdrawable_epoch: Epoch=0) -> None:
         super().__init__(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
+            effective_balance=effective_balance,
+            slashed=slashed,
             activation_eligibility_epoch=activation_eligibility_epoch,
             activation_epoch=activation_epoch,
             exit_epoch=exit_epoch,
             withdrawable_epoch=withdrawable_epoch,
-            slashed=slashed,
-            effective_balance=effective_balance,
         )
 
     def is_active(self, epoch: Epoch) -> bool:
         """
         Return ``True`` if the validator is active during the epoch, ``epoch``.
+
+        From `is_active_validator` in the spec.
         """
         return self.activation_epoch <= epoch < self.exit_epoch
 
     def is_slashable(self, epoch: Epoch) -> bool:
+        """
+        From `is_slashable_validator` in the spec.
+        """
         not_slashed = self.slashed is False
-        active_but_not_withdrawn = self.activation_epoch <= epoch < self.withdrawable_epoch
-        return not_slashed and active_but_not_withdrawn
+        active_but_not_withdrawable = self.activation_epoch <= epoch < self.withdrawable_epoch
+        return not_slashed and active_but_not_withdrawable
 
     @classmethod
     def create_pending_validator(cls,
@@ -89,10 +90,6 @@ class Validator(ssz.Serializable):
         return cls(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
-            activation_eligibility_epoch=FAR_FUTURE_EPOCH,
-            activation_epoch=FAR_FUTURE_EPOCH,
-            exit_epoch=FAR_FUTURE_EPOCH,
-            withdrawable_epoch=FAR_FUTURE_EPOCH,
             effective_balance=min(
                 _round_down_to_previous_multiple(
                     amount,
@@ -100,4 +97,8 @@ class Validator(ssz.Serializable):
                 ),
                 config.MAX_EFFECTIVE_BALANCE,
             ),
+            activation_eligibility_epoch=FAR_FUTURE_EPOCH,
+            activation_epoch=FAR_FUTURE_EPOCH,
+            exit_epoch=FAR_FUTURE_EPOCH,
+            withdrawable_epoch=FAR_FUTURE_EPOCH,
         )

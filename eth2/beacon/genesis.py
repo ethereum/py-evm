@@ -42,7 +42,8 @@ from eth2.configs import (
 def get_genesis_block(genesis_state_root: Hash32,
                       genesis_slot: Slot,
                       block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-    return block_class.create_empty_block(genesis_slot).copy(
+    return block_class(
+        slot=genesis_slot,
         state_root=genesis_state_root,
     )
 

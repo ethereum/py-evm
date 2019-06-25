@@ -17,13 +17,9 @@ from .attestation_data import (
 class PendingAttestation(ssz.Serializable):
 
     fields = [
-        # Attester aggregation bitfield
         ('aggregation_bitfield', byte_list),
-        # Attestation data
         ('data', AttestationData),
-        # Inclusion delay
         ('inclusion_delay', uint64),
-        # Proposer index
         ('proposer_index', uint64),
     ]
 

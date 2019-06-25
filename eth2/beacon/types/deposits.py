@@ -11,6 +11,10 @@ from ssz.sedes import (
     bytes32,
 )
 
+from eth2.beacon.constants import (
+    DEPOSIT_CONTRACT_TREE_DEPTH,
+)
+
 from .deposit_data import DepositData
 
 
@@ -22,9 +26,8 @@ class Deposit(ssz.Serializable):
     """
 
     fields = [
-        # Merkle branch in the deposit tree
-        ('proof', Vector(bytes32, 1)),
-        # Deposit data
+        # Merkle path to deposit root
+        ('proof', Vector(bytes32, DEPOSIT_CONTRACT_TREE_DEPTH)),
         ('data', DepositData),
     ]
 

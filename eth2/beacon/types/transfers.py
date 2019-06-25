@@ -20,13 +20,9 @@ from eth2.beacon.typing import (
 
 class Transfer(ssz.Serializable):
     fields = [
-        # Sender index
         ('sender', uint64),
-        # Recipient index
         ('recipient', uint64),
-        # Amount in Gwei
         ('amount', uint64),
-        # Fee in Gwei for block proposer
         ('fee', uint64),
         # Inclusion slot
         ('slot', uint64),

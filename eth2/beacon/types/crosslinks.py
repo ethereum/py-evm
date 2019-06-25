@@ -24,28 +24,26 @@ from eth_utils import (
 class Crosslink(ssz.Serializable):
 
     fields = [
-        # Shard number
         ('shard', uint64),
+        ('parent_root', bytes32),
         # Crosslinking data from epochs [start....end-1]
         ('start_epoch', uint64),
         ('end_epoch', uint64),
-        # Root of the previous crosslink
-        ('parent_root', bytes32),
         # Root of the crosslinked shard data since the previous crosslink
         ('data_root', bytes32),
     ]
 
     def __init__(self,
                  shard: Shard=0,
+                 parent_root: Hash32=ZERO_HASH32,
                  start_epoch: Epoch=0,
                  end_epoch: Epoch=0,
-                 parent_root: Hash32=ZERO_HASH32,
                  data_root: Hash32=ZERO_HASH32) -> None:
         super().__init__(
             shard=shard,
+            parent_root=parent_root,
             start_epoch=start_epoch,
             end_epoch=end_epoch,
-            parent_root=parent_root,
             data_root=data_root,
         )
 

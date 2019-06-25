@@ -12,11 +12,9 @@ from eth2.beacon.typing import (
 class Fork(ssz.Serializable):
 
     fields = [
-        # Previous fork version
         ('previous_version', bytes4),
-        # Current fork version
         ('current_version', bytes4),
-        # Fork epoch number
+        # Epoch of latest fork
         ('epoch', uint64)
     ]
 

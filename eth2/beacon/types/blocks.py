@@ -60,6 +60,7 @@ class BeaconBlockBody(ssz.Serializable):
     fields = [
         ('randao_reveal', bytes96),
         ('eth1_data', Eth1Data),
+        ('graffiti', bytes32),
         ('proposer_slashings', List(ProposerSlashing)),
         ('attester_slashings', List(AttesterSlashing)),
         ('attestations', List(Attestation)),
@@ -72,6 +73,7 @@ class BeaconBlockBody(ssz.Serializable):
                  *,
                  randao_reveal: bytes96=EMPTY_SIGNATURE,
                  eth1_data: Eth1Data=Eth1Data(),
+                 graffiti: Hash32=ZERO_HASH32,
                  proposer_slashings: Sequence[ProposerSlashing]=tuple(),
                  attester_slashings: Sequence[AttesterSlashing]=tuple(),
                  attestations: Sequence[Attestation]=tuple(),
@@ -81,6 +83,7 @@ class BeaconBlockBody(ssz.Serializable):
         super().__init__(
             randao_reveal=randao_reveal,
             eth1_data=eth1_data,
+            graffiti=graffiti,
             proposer_slashings=proposer_slashings,
             attester_slashings=attester_slashings,
             attestations=attestations,
@@ -93,35 +96,13 @@ class BeaconBlockBody(ssz.Serializable):
     def is_empty(self) -> bool:
         return self == BeaconBlockBody()
 
-    @classmethod
-    def cast_block_body(cls,
-                        body: 'BeaconBlockBody') -> 'BeaconBlockBody':
-        return cls(
-            randao_reveal=body.randao_reveal,
-            eth1_data=body.eth1_data,
-            proposer_slashings=body.proposer_slashings,
-            attester_slashings=body.attester_slashings,
-            attestations=body.attestations,
-            deposits=body.deposits,
-            voluntary_exits=body.voluntary_exits,
-            transfers=body.transfers,
-        )
-
 
 class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
     fields = [
-        #
-        # Header
-        #
         ('slot', uint64),
         ('parent_root', bytes32),
         ('state_root', bytes32),
-
-        #
-        # Body
-        #
         ('body', BeaconBlockBody),
-
         ('signature', bytes96),
     ]
 
@@ -151,20 +132,6 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
         )
 
     @property
-    def num_attestations(self) -> int:
-        return len(self.body.attestations)
-
-    @property
-    def header(self) -> BeaconBlockHeader:
-        return BeaconBlockHeader(
-            slot=self.slot,
-            parent_root=self.parent_root,
-            state_root=self.state_root,
-            block_body_root=self.body.root,
-            signature=self.signature,
-        )
-
-    @property
     def is_genesis(self) -> bool:
         return self.parent_root == GENESIS_PARENT_ROOT
 
@@ -189,6 +156,7 @@ class BeaconBlock(BaseBeaconBlock):
         body = cls.block_body_class(
             randao_reveal=block.body.randao_reveal,
             eth1_data=block.body.eth1_data,
+            graffiti=block.body.graffiti,
             proposer_slashings=block.body.proposer_slashings,
             attester_slashings=block.body.attester_slashings,
             attestations=block.body.attestations,

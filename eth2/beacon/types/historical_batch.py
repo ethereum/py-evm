@@ -16,9 +16,7 @@ from ssz.sedes import (
 class HistoricalBatch(ssz.Serializable):
 
     fields = [
-        # Block roots
         ('block_roots', Vector(bytes32, 1)),
-        # State roots
         ('state_roots', Vector(bytes32, 1)),
     ]
 
