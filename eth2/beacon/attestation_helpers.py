@@ -1,3 +1,8 @@
+import bls
+from eth_utils import (
+    ValidationError,
+)
+
 from eth2.beacon.committee_helpers import (
     get_epoch_committee_count,
     get_epoch_start_shard,
@@ -107,7 +112,7 @@ def validate_indexed_attestation(state: BeaconState,
         raise ValidationError(
             f"Require no more than {max_indices_per_attestation} validators per attestation,"
             f" but have {len(bit_0_indices)} 0-bit validators"
-            f" and {len(bit_1_indices)} 1-bit validators}."
+            f" and {len(bit_1_indices)} 1-bit validators."
         )
 
     intersection = set(bit_0_indices).intersection(bit_1_indices)
