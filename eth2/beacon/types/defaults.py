@@ -1,6 +1,10 @@
 """
 This module contains default values to be shared across types in the parent module.
 """
+from typing import (
+    Any,
+    Tuple,
+)
 
 from eth_typing import (
     BLSPubkey,
@@ -18,4 +22,4 @@ from eth2.beacon.typing import (  # noqa: F401
 )
 
 default_bls_pubkey = BLSPubkey(b'\x00' * 48)
-default_tuple = tuple()
+default_tuple: Tuple[Any, ...] = tuple()

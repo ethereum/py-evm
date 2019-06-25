@@ -23,6 +23,10 @@ from eth_utils import (
     humanize_hash,
 )
 
+from .defaults import (
+    default_epoch,
+)
+
 
 class AttestationData(ssz.Serializable):
 
@@ -42,9 +46,9 @@ class AttestationData(ssz.Serializable):
 
     def __init__(self,
                  beacon_block_root: Hash32=ZERO_HASH32,
-                 source_epoch: Epoch=0,
+                 source_epoch: Epoch=default_epoch,
                  source_root: Hash32=ZERO_HASH32,
-                 target_epoch: Epoch=0,
+                 target_epoch: Epoch=default_epoch,
                  target_root: Hash32=ZERO_HASH32,
                  crosslink: Crosslink=default_crosslink) -> None:
         super().__init__(
