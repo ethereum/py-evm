@@ -32,8 +32,9 @@ from eth2.configs import (
     CommitteeConfig,
 )
 from eth2.beacon.attestation_helpers import (
-    convert_to_indexed,
     get_attestation_data_slot,
+    convert_to_indexed,
+    validate_indexed_attestation,
     is_slashable_attestation_data,
 )
 from eth2.beacon.committee_helpers import (
@@ -67,6 +68,7 @@ from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
     Bitfield,
     Epoch,
+    Shard,
     Slot,
     ValidatorIndex,
 )
@@ -299,92 +301,6 @@ def validate_is_slashable_attestation_data(attestation_1: IndexedAttestation,
     if not is_slashable_data:
         raise ValidationError(
             "The `AttesterSlashing` object doesn't meet the Casper FFG slashing conditions."
-        )
-
-
-def verify_indexed_attestation_aggregate_signature(state: BeaconState,
-                                                   indexed_attestation: IndexedAttestation,
-                                                   slots_per_epoch: int):
-    bit_0_indices = indexed_attestation.custody_bit_0_indices
-    bit_1_indices = indexed_attestation.custody_bit_1_indices
-
-    pubkeys = tuple(
-        bls.aggregate_pubkeys(
-            tuple(state.validator_registry[i].pubkey for i in bit_0_indices)
-        ),
-        bls.aggregate_pubkeys(
-            tuple(state.validator_registry[i].pubkey for i in bit_1_indices)
-        ),
-    )
-
-    message_hashes = tuple(
-        AttestationDataAndCustodyBit(
-            data=indexed_attestation.data,
-            custody_bit=False
-        ).root,
-        AttestationDataAndCustodyBit(
-            data=indexed_attestation.data,
-            custody_bit=True,
-        ).root,
-    )
-
-    domain = get_domain(
-        state,
-        SignatureDomain.DOMAIN_ATTESTATION,
-        slots_per_epoch,
-        indexed_attestation.data.target_epoch,
-    )
-
-    return bls.verify_multiple(
-        pubkeys=pubkeys,
-        message_hashes=message_hashes,
-        signature=indexed_attestation.signature,
-        domain=domain,
-    )
-
-
-def validate_indexed_attestation(state: BeaconState,
-                                 indexed_attestation: IndexedAttestation,
-                                 max_indices_per_attestation: int,
-                                 slots_per_epoch: int) -> None:
-    bit_0_indices = indexed_attestation.custody_bit_0_indices
-    bit_1_indices = indexed_attestation.custody_bit_1_indices
-
-    if len(bit_1_indices) != 0:
-        raise ValidationError(
-            f"Expected no custody bit 1 validators (cf. {bit_1_indices})."
-        )
-
-    if len(bit_0_indices) + len(bit_1_indices) > max_indices_per_attestation:
-        raise ValidationError(
-            f"Require no more than {max_indices_per_attestation} validators per attestation,"
-            f" but have {len(bit_0_indices)} 0-bit validators"
-            f" and {len(bit_1_indices)} 1-bit validators}."
-        )
-
-    intersection = set(bit_0_indices).intersection(bit_1_indices)
-    if len(intersection) != 0:
-        raise ValidationError(
-            f"Index sets by custody bits must be disjoint but have the following"
-            f" indices in common: {intersection}."
-        )
-
-    if bit_0_indices != sorted(bit_0_indices):
-        raise ValidationError(
-            f"Indices should be sorted; the 0-bit indices are not: {bit_0_indices}."
-        )
-
-    if bit_1_indices != sorted(bit_1_indices):
-        raise ValidationError(
-            f"Indices should be sorted; the 1-bit indices are not: {bit_1_indices}."
-        )
-
-    if not verify_indexed_attestation_aggregate_signature(state,
-                                                          indexed_attestation,
-                                                          slots_per_epoch):
-        raise ValidationError(
-            "The aggregate signature on the indexed attestation"
-            f" {indexed_attestation} was incorrect."
         )
 
 

@@ -13,6 +13,7 @@ from eth_typing import (
 
 from eth_utils import (
     to_tuple,
+    ValidationError,
 )
 from eth_utils.toolz import (
     curry,
@@ -52,6 +53,9 @@ from eth2.beacon.typing import (
     Shard,
     ValidatorIndex,
 )
+from eth2.beacon.validation import (
+    validate_bitfield,
+)
 
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import (
@@ -60,22 +64,6 @@ from eth2.beacon.types.pending_attestations import (
 if TYPE_CHECKING:
     from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth2.beacon.types.states import BeaconState  # noqa: F401
-
-
-def get_churn_limit(state: 'BeaconState', config: Eth2Config) -> int:
-    slots_per_epoch = config.SLOTS_PER_EPOCH
-    min_per_epoch_churn_limit = config.MIN_PER_EPOCH_CHURN_LIMIT
-    churn_limit_quotient = config.CHURN_LIMIT_QUOTIENT
-
-    current_epoch = state.current_epoch(slots_per_epoch)
-    active_validator_indices = get_active_validator_indices(
-        state.validator_registry,
-        current_epoch,
-    )
-    return max(
-        min_per_epoch_churn_limit,
-        len(active_validator_indices) // churn_limit_quotient
-    )
 
 
 def increase_balance(state: 'BeaconState', index: ValidatorIndex, delta: Gwei) -> 'BeaconState':
@@ -111,7 +99,38 @@ def get_attesting_indices(state: 'BeaconState',
         attestation_data.target_epoch,
         attestation_data.crosslink.shard,
     )
+    if not validate_bitfield(bitfield, len(committee)):
+        raise ValidationError(
+            f"The bitfield {bitfield} did not validate properly when requesting the attesting"
+            " indicies."
+        )
+
     return sorted(index for i, index in enumerate(committee) if has_voted(bitfield, i))
+
+
+def get_delayed_activation_exit_epoch(epoch: Epoch,
+                                      activation_exit_delay: int) -> Epoch:
+    """
+    An entry or exit triggered in the ``epoch`` given by the input takes effect at
+    the epoch given by the output.
+    """
+    return Epoch(epoch + 1 + activation_exit_delay)
+
+
+def get_churn_limit(state: 'BeaconState', config: Eth2Config) -> int:
+    slots_per_epoch = config.SLOTS_PER_EPOCH
+    min_per_epoch_churn_limit = config.MIN_PER_EPOCH_CHURN_LIMIT
+    churn_limit_quotient = config.CHURN_LIMIT_QUOTIENT
+
+    current_epoch = state.current_epoch(slots_per_epoch)
+    active_validator_indices = get_active_validator_indices(
+        state.validator_registry,
+        current_epoch,
+    )
+    return max(
+        min_per_epoch_churn_limit,
+        len(active_validator_indices) // churn_limit_quotient
+    )
 
 
 def get_matching_source_attestations(state: 'BeaconState',

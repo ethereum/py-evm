@@ -16,10 +16,8 @@ from eth2.beacon.constants import FAR_FUTURE_EPOCH
 from eth2.beacon.epoch_processing_helpers import (
     decrease_balance,
     get_churn_limit,
-    increase_balance,
-)
-from eth2.beacon.helpers import (
     get_delayed_activation_exit_epoch,
+    increase_balance,
 )
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator

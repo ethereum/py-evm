@@ -6,38 +6,32 @@ from typing import (
 
 from eth_utils import (
     to_tuple,
-    to_set,
     ValidationError,
 )
 from eth_typing import (
     Hash32,
 )
 
-from eth2._utils.bitfield import (
-    has_voted,
+from eth2._utils.hash import (
+    hash_eth2,
 )
 from eth2.configs import (
     CommitteeConfig,
 )
-from eth2.beacon._utils.random import (
-    get_shuffled_index,
-)
 from eth2.beacon.constants import (
     MAX_RANDOM_BYTE,
+    MAX_INDEX_COUNT,
 )
 from eth2.beacon.helpers import (
     generate_seed,
     get_active_validator_indices,
 )
 from eth2.beacon.typing import (
-    Bitfield,
     Epoch,
     Shard,
     ValidatorIndex,
 )
-from eth2.beacon.validation import (
-    validate_bitfield,
-)
+
 
 if TYPE_CHECKING:
     from eth2.beacon.types.attestations import Attestation  # noqa: F401
@@ -46,11 +40,10 @@ if TYPE_CHECKING:
     from eth2.beacon.types.validators import Validator  # noqa: F401
 
 
-def get_epoch_committee_count(
-        active_validator_count: int,
-        shard_count: int,
-        slots_per_epoch: int,
-        target_committee_size: int) -> int:
+def get_epoch_committee_count(active_validator_count: int,
+                              shard_count: int,
+                              slots_per_epoch: int,
+                              target_committee_size: int) -> int:
     return max(
         1,
         min(
@@ -58,6 +51,45 @@ def get_epoch_committee_count(
             active_validator_count // slots_per_epoch // target_committee_size,
         )
     ) * slots_per_epoch
+
+
+def get_shard_delta(state: 'BeaconState',
+                    epoch: Epoch,
+                    config: CommitteeConfig) -> int:
+    shard_count = config.SHARD_COUNT
+    slots_per_epoch = config.SLOTS_PER_EPOCH
+
+    active_validator_indices = get_active_validator_indices(state, epoch)
+
+    return min(
+        get_epoch_committee_count(
+            len(active_validator_indices),
+            shard_count,
+            slots_per_epoch,
+            config.TARGET_COMMITTEE_SIZE,
+        ),
+        shard_count - shard_count // slots_per_epoch,
+    )
+
+
+def get_epoch_start_shard(state: 'BeaconState',
+                          epoch: Epoch,
+                          config: CommitteeConfig) -> Shard:
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
+    if epoch > next_epoch:
+        raise ValidationError("Asking for start shard for an epoch after next")
+
+    check_epoch = next_epoch
+    shard = (
+        state.latest_start_shard + get_shard_delta(state, current_epoch)
+    ) % config.SHARD_COUNT
+    while check_epoch > epoch:
+        check_epoch -= 1
+        shard = (
+            shard + config.SHARD_COUNT - get_shard_delta(state, check_epoch)
+        ) % config.SHARD_COUNT
+    return shard
 
 
 def get_beacon_proposer_index(state: 'BeaconState',
@@ -101,43 +133,44 @@ def get_beacon_proposer_index(state: 'BeaconState',
         i += 1
 
 
-def get_shard_delta(state: 'BeaconState',
-                    epoch: Epoch,
-                    config: CommitteeConfig) -> int:
-    shard_count = config.SHARD_COUNT
-    slots_per_epoch = config.SLOTS_PER_EPOCH
+def _get_shuffled_index(index: int,
+                       index_count: int,
+                       seed: Hash32,
+                       shuffle_round_count: int) -> int:
+    """
+    Return `p(index)` in a pseudorandom permutation `p` of `0...index_count-1`
+    with ``seed`` as entropy.
 
-    active_validator_indices = get_active_validator_indices(state, epoch)
+    Utilizes 'swap or not' shuffling found in
+    https://link.springer.com/content/pdf/10.1007%2F978-3-642-32009-5_1.pdf
+    See the 'generalized domain' algorithm on page 3.
+    """
+    if index >= index_count:
+        raise ValidationError(
+            f"The given `index` ({index}) should be less than `index_count` ({index_count}"
+        )
 
-    return min(
-        get_epoch_committee_count(
-            len(active_validator_indices),
-            shard_count,
-            slots_per_epoch,
-            config.TARGET_COMMITTEE_SIZE,
-        ),
-        shard_count - shard_count // slots_per_epoch
-    )
+    if index_count > MAX_INDEX_COUNT:
+        raise ValidationError(
+            f"The given `index_count` ({index_count}) should be equal to or less than "
+            f"`MAX_INDEX_COUNT` ({MAX_INDEX_COUNT}"
+        )
 
+    new_index = index
+    for round in range(shuffle_round_count):
+        pivot = int.from_bytes(
+            hash_eth2(seed + round.to_bytes(1, 'little'))[0:8],
+            'little',
+        ) % index_count
 
-def get_epoch_start_shard(state: 'BeaconState',
-                          epoch: Epoch,
-                          config: CommitteeConfig) -> Shard:
-    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
-    if epoch > next_epoch:
-        raise ValidationError("Asking for start shard for an epoch after next")
+        flip = (pivot + index_count - new_index) % index_count
+        hash_pos = max(new_index, flip)
+        h = hash_eth2(seed + round.to_bytes(1, 'little') + (hash_pos // 256).to_bytes(4, 'little'))
+        byte = h[(hash_pos % 256) // 8]
+        bit = (byte >> (hash_pos % 8)) % 2
+        new_index = flip if bit else new_index
 
-    check_epoch = next_epoch
-    shard = (
-        state.latest_start_shard + get_shard_delta(state, current_epoch)
-    ) % config.SHARD_COUNT
-    while check_epoch > epoch:
-        check_epoch -= 1
-        shard = (
-            shard + config.SHARD_COUNT - get_shard_delta(state, check_epoch)
-        ) % config.SHARD_COUNT
-    return shard
+    return new_index
 
 
 def _compute_committee(indices: Sequence[ValidatorIndex],
@@ -147,7 +180,7 @@ def _compute_committee(indices: Sequence[ValidatorIndex],
     start = (len(index) * index) // count
     end = (len(index) * (index + 1)) // count
     for i in range(start, end):
-        shuffled_index = get_shuffled_index(i, len(indices), seed)
+        shuffled_index = _get_shuffled_index(i, len(indices), seed)
         yield indices[shuffled_index]
 
 
