@@ -3,11 +3,7 @@ from eth_utils import (
     ValidationError,
 )
 from py_ecc import bls
-import ssz
 
-from eth2._utils.hash import (
-    hash_eth2,
-)
 from eth2._utils.merkle.common import (
     verify_merkle_branch,
 )

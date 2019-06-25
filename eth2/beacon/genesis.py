@@ -27,7 +27,6 @@ from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
-    Slot,
     Timestamp,
     ValidatorIndex,
 )

@@ -4,10 +4,6 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from eth.constants import (
-    ZERO_HASH32,
-)
-
 from eth_utils import (
     ValidationError,
 )
@@ -18,15 +14,8 @@ from eth_typing import (
 from eth2._utils.hash import (
     hash_eth2,
 )
-from eth2.beacon.constants import (
-    EMPTY_SIGNATURE,
-)
 from eth2.beacon.signature_domain import (
     SignatureDomain,
-)
-from eth2.beacon.types.blocks import (
-    BeaconBlock,
-    BeaconBlockHeader,
 )
 from eth2.beacon.typing import (
     Epoch,

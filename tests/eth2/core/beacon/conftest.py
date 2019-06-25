@@ -365,7 +365,6 @@ def filled_beacon_state(genesis_epoch,
                         shard_count,
                         slots_per_historical_root,
                         epochs_per_historical_vector,
-                        epochs_per_historical_vector,
                         epochs_per_slashed_balances_vector):
     return BeaconState.create_filled_state(
         genesis_epoch=genesis_epoch,
@@ -373,7 +372,6 @@ def filled_beacon_state(genesis_epoch,
         genesis_slot=genesis_slot,
         shard_count=shard_count,
         slots_per_historical_root=slots_per_historical_root,
-        epochs_per_historical_vector=epochs_per_historical_vector,
         epochs_per_historical_vector=epochs_per_historical_vector,
         epochs_per_slashed_balances_vector=epochs_per_slashed_balances_vector,
     )
@@ -569,11 +567,6 @@ def min_validator_withdrawability_delay():
 @pytest.fixture
 def persistent_committee_period():
     return SERENITY_CONFIG.PERSISTENT_COMMITTEE_PERIOD
-
-
-@pytest.fixture
-def epochs_per_historical_vector():
-    return SERENITY_CONFIG.EPOCHS_PER_HISTORICAL_VECTOR
 
 
 @pytest.fixture

@@ -23,7 +23,6 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
     Epoch,
-    Gwei,
     ValidatorIndex,
 )
 
@@ -36,8 +35,6 @@ def activate_validator(validator: Validator, activation_epoch: Epoch) -> Validat
 
 def _compute_exit_queue_epoch(state: BeaconState, config: Eth2Config) -> int:
     slots_per_epoch = config.SLOTS_PER_EPOCH
-    min_per_epoch_churn_limit = config.MIN_PER_EPOCH_CHURN_LIMIT
-    churn_limit_quotient = config.CHURN_LIMIT_QUOTIENT
 
     exit_epochs = tuple(
         v.exit_epoch for v in state.validators
@@ -115,7 +112,7 @@ def slash_validator(*,
     Exit the validator, penalize the validator, and reward the whistleblower.
     """
     # NOTE: remove in phase 1
-    assert whistleblower_index == None
+    assert whistleblower_index is None
 
     slots_per_epoch = config.SLOTS_PER_EPOCH
 

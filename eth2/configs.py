@@ -6,7 +6,6 @@ from eth2.beacon.typing import (
     Epoch,
     Gwei,
     Second,
-    Shard,
     Slot,
 )
 

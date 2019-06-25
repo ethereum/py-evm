@@ -13,7 +13,6 @@ from eth_typing import (
 
 from eth_utils import (
     to_tuple,
-    ValidationError,
 )
 from eth_utils.toolz import (
     curry,
@@ -35,7 +34,6 @@ from eth2.beacon.constants import (
     BASE_REWARDS_PER_EPOCH,
 )
 from eth2.configs import (
-    CommitteeConfig,
     Eth2Config,
 )
 from eth2.beacon.exceptions import (

@@ -89,14 +89,13 @@ def test_activate_validator(is_genesis,
 def test_initiate_validator_exit(n_validators_state):
     state = n_validators_state
     index = 1
-    # TODO(ralexstokes) test exit queuing
-    # assert state.validators[index].initiated_exit is False
+    assert state.validators[index].initiated_exit is False
 
-    # result_state = initiate_validator_exit(
-    #     state,
-    #     index,
-    # )
-    # assert result_state.validators[index].initiated_exit is True
+    result_state = initiate_validator_exit(
+        state,
+        index,
+    )
+    assert result_state.validators[index].initiated_exit is True
 
 
 @pytest.mark.parametrize(

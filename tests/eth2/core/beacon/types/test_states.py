@@ -5,9 +5,6 @@ import ssz
 from eth2.beacon.types.states import (
     BeaconState,
 )
-from eth2.beacon.types.crosslinks import (
-    Crosslink,
-)
 
 from eth2.beacon.tools.builder.initializer import (
     mock_validator,

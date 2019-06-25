@@ -1061,13 +1061,13 @@ def test_process_ejections(genesis_state, config, activation_exit_delay):
     ]
 )
 def test_check_if_update_validators(genesis_state,
-                                            state_slot,
-                                            validators_update_epoch,
-                                            finalized_epoch,
-                                            has_crosslink,
-                                            crosslink_epoch,
-                                            expected_need_to_update,
-                                            config):
+                                    state_slot,
+                                    validators_update_epoch,
+                                    finalized_epoch,
+                                    has_crosslink,
+                                    crosslink_epoch,
+                                    expected_need_to_update,
+                                    config):
     state = genesis_state.copy(
         slot=state_slot,
         finalized_epoch=finalized_epoch,
@@ -1114,9 +1114,9 @@ def test_check_if_update_validators(genesis_state,
     ]
 )
 def test_update_validators(n,
-                                   n_validators_state,
-                                   config,
-                                   slots_per_epoch):
+                           n_validators_state,
+                           config,
+                           slots_per_epoch):
     validators = list(n_validators_state.validators)
     activating_index = n
     exiting_index = 0
@@ -1190,18 +1190,18 @@ def test_update_validators(n,
     ]
 )
 def test_process_validators(monkeypatch,
-                                    genesis_state,
-                                    slots_per_epoch,
-                                    state_slot,
-                                    need_to_update,
-                                    num_shards_in_committees,
-                                    validators_update_epoch,
-                                    epochs_since_last_registry_change_is_power_of_two,
-                                    current_shuffling_epoch,
-                                    randao_mixes,
-                                    expected_current_shuffling_epoch,
-                                    activation_exit_delay,
-                                    config):
+                            genesis_state,
+                            slots_per_epoch,
+                            state_slot,
+                            need_to_update,
+                            num_shards_in_committees,
+                            validators_update_epoch,
+                            epochs_since_last_registry_change_is_power_of_two,
+                            current_shuffling_epoch,
+                            randao_mixes,
+                            expected_current_shuffling_epoch,
+                            activation_exit_delay,
+                            config):
     # Mock check_if_update_validators
     from eth2.beacon.state_machines.forks.serenity import epoch_processing
 
@@ -1551,11 +1551,11 @@ def test_process_exit_queue(genesis_state,
     ]
 )
 def test_update_active_index_roots(genesis_state,
-                                          committee_config,
-                                          state_slot,
-                                          slots_per_epoch,
-                                          epochs_per_historical_vector,
-                                          activation_exit_delay):
+                                   committee_config,
+                                   state_slot,
+                                   slots_per_epoch,
+                                   epochs_per_historical_vector,
+                                   activation_exit_delay):
     state = genesis_state.copy(
         slot=state_slot,
     )
@@ -1592,8 +1592,12 @@ def test_process_final_updates(genesis_state,
     state = genesis_state.copy(
         slot=current_slot,
     )
-    current_index = state.next_epoch(config.SLOTS_PER_EPOCH) % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
-    previous_index = state.current_epoch(config.SLOTS_PER_EPOCH) % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+    current_index = state.next_epoch(
+        config.SLOTS_PER_EPOCH
+    ) % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+    previous_index = state.current_epoch(
+        config.SLOTS_PER_EPOCH
+    ) % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
 
     attestation = Attestation(**sample_attestation_params)
     previous_epoch_attestation_slot = current_slot - config.SLOTS_PER_EPOCH

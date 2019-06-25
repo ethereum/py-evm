@@ -371,11 +371,9 @@ def test_process_voluntary_exits(genesis_state,
             block,
             config,
         )
-        # TODO(ralexstokes) patch up exit testing
-        # Check if initiated exit
-        # assert (
-        #     new_state.validators[validator_index].initiated_exit
-        # )
+        assert (
+            new_state.validators[validator_index].initiated_exit
+        )
     else:
         invalid_voluntary_exit = valid_voluntary_exit.copy(
             signature=b'\x12' * 96,  # Put wrong signature

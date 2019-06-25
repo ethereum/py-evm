@@ -51,11 +51,7 @@ from eth2.beacon.helpers import (
 from eth2.beacon.validator_status_helpers import (
     initiate_validator_exit_for_validator,
 )
-from eth2.beacon.types.attestations import Attestation
-from eth2.beacon.types.pending_attestations import PendingAttestation
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.eth1_data import Eth1Data
-from eth2.beacon.types.eth1_data_vote import Eth1DataVote
 from eth2.beacon.types.historical_batch import HistoricalBatch
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
@@ -63,7 +59,6 @@ from eth2.beacon.typing import (
     Epoch,
     Gwei,
     Shard,
-    Slot,
     ValidatorIndex,
 )
 
@@ -502,8 +497,8 @@ def _process_activations(state: BeaconState,
         validator.activation_eligibility_epoch = current_epoch
 
     if (
-        validator.is_active(current_epoch)
-        and validator.effective_balance <= config.EJECTION_BALANCE
+        validator.is_active(current_epoch) and
+        validator.effective_balance <= config.EJECTION_BALANCE
     ):
         validator = initiate_validator_exit_for_validator(state, config, validator)
 
@@ -536,8 +531,8 @@ def process_registry_updates(state: BeaconState, config: Eth2Config) -> BeaconSt
     )
     activation_queue = sorted([
         index for index, validator in enumerate(state.validators) if
-        validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH
-        and validator.activation_epoch >= delayed_activation_exit_epoch
+        validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH and
+        validator.activation_epoch >= delayed_activation_exit_epoch
     ], key=lambda index: state.validators[index].activation_eligibility_epoch)
 
     for index in activation_queue[:get_churn_limit(state, config)]:

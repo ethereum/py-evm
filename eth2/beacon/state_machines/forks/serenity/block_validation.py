@@ -1,4 +1,3 @@
-import functools
 from typing import (  # noqa: F401
     cast,
     Iterable,
@@ -13,7 +12,6 @@ from eth_typing import (
 )
 from eth_utils import (
     encode_hex,
-    to_tuple,
     ValidationError,
 )
 import ssz
@@ -23,9 +21,6 @@ from eth.constants import (
 )
 
 from py_ecc import bls
-from eth2._utils import (
-    bitfield,
-)
 from eth2._utils.hash import (
     hash_eth2,
 )
@@ -40,7 +35,6 @@ from eth2.beacon.attestation_helpers import (
 )
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
-    get_crosslink_committee,
 )
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
@@ -54,25 +48,18 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
-from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockHeader
 from eth2.beacon.types.crosslinks import Crosslink
-from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.transfers import Transfer
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
-    Bitfield,
     Epoch,
     Shard,
     Slot,
-    ValidatorIndex,
-)
-from eth2.beacon.validation import (
-    validate_bitfield,
 )
 from eth2.configs import (
     Eth2Config,
@@ -578,7 +565,9 @@ def _validate_transfer_slot(state_slot: Slot, transfer_slot: Slot) -> None:
         )
 
 
-def _validate_sender_eligibility(state: BeaconState, transfer: Transfer, config: Eth2Config) -> None:
+def _validate_sender_eligibility(state: BeaconState,
+                                 transfer: Transfer,
+                                 config: Eth2Config) -> None:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     sender = state.validators[transfer.sender]
     sender_balance = state.balances[transfer.sender]

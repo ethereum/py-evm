@@ -43,9 +43,6 @@ from p2p.protocol import (
     Command,
 )
 
-from eth2.configs import (
-    CommitteeConfig,
-)
 from eth2.beacon.typing import (
     Slot,
 )

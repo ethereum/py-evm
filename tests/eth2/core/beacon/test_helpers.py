@@ -431,7 +431,6 @@ def test_generate_seed(monkeypatch,
                        slots_per_epoch,
                        min_seed_lookahead,
                        activation_exit_delay,
-                       epochs_per_historical_vector,
                        epochs_per_historical_vector):
     from eth2.beacon import helpers
 

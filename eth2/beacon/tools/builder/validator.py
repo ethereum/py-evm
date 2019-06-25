@@ -21,9 +21,6 @@ from eth_utils.toolz import (
     keymap as keymapper,
 )
 
-from eth.constants import (
-    ZERO_HASH32,
-)
 from py_ecc import bls
 
 from eth2._utils.bitfield import (
@@ -33,9 +30,6 @@ from eth2._utils.bitfield import (
 from eth2.configs import (
     CommitteeConfig,
     Eth2Config,
-)
-from eth2.beacon.constants import (
-    ZERO_TIMESTAMP,
 )
 from eth2.beacon.signature_domain import (
     SignatureDomain,
@@ -52,7 +46,6 @@ from eth2.beacon.exceptions import (
 from eth2.beacon.helpers import (
     bls_domain,
     get_block_root_at_slot,
-    get_block_root,
     get_domain,
     get_epoch_start_slot,
     slot_to_epoch,
@@ -66,8 +59,6 @@ from eth2.beacon.types.attestation_data_and_custody_bits import (
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BeaconBlockHeader
 from eth2.beacon.types.deposit_data import DepositData
-from eth2.beacon.types.deposit_input import DepositInput
-from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
@@ -77,7 +68,6 @@ from eth2.beacon.typing import (
     Gwei,
     Shard,
     Slot,
-    Timestamp,
     ValidatorIndex,
 )
 from eth2.beacon.state_machines.base import (

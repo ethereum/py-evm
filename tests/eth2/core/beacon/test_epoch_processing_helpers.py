@@ -10,8 +10,6 @@ from hypothesis import (
     strategies as st,
 )
 
-from eth.constants import ZERO_HASH32
-
 from eth2._utils.bitfield import (
     set_voted,
     get_empty_bitfield,
