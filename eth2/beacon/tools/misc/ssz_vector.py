@@ -12,7 +12,7 @@ def override_vector_lengths(config: Eth2Config) -> None:
         "latest_crosslinks": config.SHARD_COUNT,
         "latest_block_roots": config.SLOTS_PER_HISTORICAL_ROOT,
         "latest_state_roots": config.SLOTS_PER_HISTORICAL_ROOT,
-        "latest_active_index_roots": config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
+        "latest_active_index_roots": config.EPOCHS_PER_HISTORICAL_VECTOR,
         "latest_slashed_balances": config.LATEST_SLASHED_EXIT_LENGTH,
     }
     for key, value in state_vector_dict.items():

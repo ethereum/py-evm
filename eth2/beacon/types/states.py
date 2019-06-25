@@ -176,7 +176,7 @@ class BeaconState(ssz.Serializable):
     #                         genesis_slot: Slot,
     #                         shard_count: int,
     #                         slots_per_historical_root: int,
-    #                         latest_active_index_roots_length: int,
+    #                         epochs_per_historical_vector: int,
     #                         latest_randao_mixes_length: int,
     #                         latest_slashed_exit_length: int,
     #                         activated_genesis_validators: Sequence[Validator]=(),
@@ -205,7 +205,7 @@ class BeaconState(ssz.Serializable):
     #         latest_crosslinks=(Crosslink(),) * shard_count,
     #         block_roots=(ZERO_HASH32,) * slots_per_historical_root,
     #         state_roots=(ZERO_HASH32,) * slots_per_historical_root,
-    #         latest_active_index_roots=(ZERO_HASH32,) * latest_active_index_roots_length,
+    #         latest_active_index_roots=(ZERO_HASH32,) * epochs_per_historical_vector,
     #         latest_slashed_balances=(Gwei(0),) * latest_slashed_exit_length,
     #         latest_block_header=BeaconBlockHeader().copy(
     #             slot=genesis_slot,

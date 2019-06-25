@@ -188,7 +188,7 @@ def sample_beacon_state_params(config,
         ),
         'latest_block_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
         'latest_state_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
-        'latest_active_index_roots': (ZERO_HASH32,) * config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
+        'latest_active_index_roots': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
         'latest_slashed_balances': (0,) * config.LATEST_SLASHED_EXIT_LENGTH,
         'latest_block_header': BeaconBlockHeader(**sample_block_header_params),
         'historical_roots': (),
@@ -364,7 +364,7 @@ def filled_beacon_state(genesis_epoch,
                         genesis_start_shard,
                         shard_count,
                         slots_per_historical_root,
-                        latest_active_index_roots_length,
+                        epochs_per_historical_vector,
                         latest_randao_mixes_length,
                         latest_slashed_exit_length):
     return BeaconState.create_filled_state(
@@ -373,7 +373,7 @@ def filled_beacon_state(genesis_epoch,
         genesis_slot=genesis_slot,
         shard_count=shard_count,
         slots_per_historical_root=slots_per_historical_root,
-        latest_active_index_roots_length=latest_active_index_roots_length,
+        epochs_per_historical_vector=epochs_per_historical_vector,
         latest_randao_mixes_length=latest_randao_mixes_length,
         latest_slashed_exit_length=latest_slashed_exit_length,
     )
@@ -572,8 +572,8 @@ def persistent_committee_period():
 
 
 @pytest.fixture
-def latest_active_index_roots_length():
-    return SERENITY_CONFIG.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
+def epochs_per_historical_vector():
+    return SERENITY_CONFIG.EPOCHS_PER_HISTORICAL_VECTOR
 
 
 @pytest.fixture

@@ -95,7 +95,7 @@ def get_genesis_beacon_state(*,
         ssz.sedes.List(ssz.uint64),
     )
     latest_active_index_roots = (
-        (genesis_active_index_root,) * config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
+        (genesis_active_index_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
     )
     return state.copy(
         latest_active_index_roots=latest_active_index_roots,

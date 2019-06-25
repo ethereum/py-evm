@@ -1542,7 +1542,7 @@ def test_process_exit_queue(genesis_state,
 @pytest.mark.parametrize(
     (
         'slots_per_epoch,'
-        'latest_active_index_roots_length,'
+        'epochs_per_historical_vector,'
         'state_slot,'
     ),
     [
@@ -1554,7 +1554,7 @@ def test_update_latest_active_index_roots(genesis_state,
                                           committee_config,
                                           state_slot,
                                           slots_per_epoch,
-                                          latest_active_index_roots_length,
+                                          epochs_per_historical_vector,
                                           activation_exit_delay):
     state = genesis_state.copy(
         slot=state_slot,
@@ -1572,7 +1572,7 @@ def test_update_latest_active_index_roots(genesis_state,
 
     target_epoch = state.next_epoch(slots_per_epoch) + activation_exit_delay
     assert result_state.latest_active_index_roots[
-        target_epoch % latest_active_index_roots_length
+        target_epoch % epochs_per_historical_vector
     ] == index_root
 
 
