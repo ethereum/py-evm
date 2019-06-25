@@ -240,7 +240,7 @@ class BeaconState(ssz.Serializable):
         """
         return self.update_validator_at_index_with_fn(
             validator_index,
-            lambda _: validator,
+            lambda *_: validator,
         )
 
     def update_validator_at_index_with_fn(self,

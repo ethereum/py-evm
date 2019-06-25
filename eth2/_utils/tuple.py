@@ -30,7 +30,7 @@ def update_tuple_with_mapping_fn(tuple_data: Tuple[VType, ...],
             list_data[index] = fn(item, *args_for_index)
     else:
         for index, item in enumerate(list_data):
-            list_data[index] = fn(item)
+            list_data[index] = fn(item, *args)
 
     return tuple(list_data)
 
