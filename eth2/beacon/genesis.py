@@ -97,11 +97,9 @@ def get_genesis_beacon_state(*,
     latest_active_index_roots = (
         (genesis_active_index_root,) * config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
     )
-    state = state.copy(
+    return state.copy(
         latest_active_index_roots=latest_active_index_roots,
     )
-
-    return state
 
 
 def get_genesis_block(genesis_state_root: Hash32,
