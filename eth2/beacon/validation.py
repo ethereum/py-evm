@@ -45,11 +45,11 @@ def validate_epoch_within_previous_and_next(
 
 def validate_epoch_for_active_randao_mix(state_epoch: Epoch,
                                          given_epoch: Epoch,
-                                         latest_randao_mixes_length: int) -> None:
-    if state_epoch >= given_epoch + latest_randao_mixes_length:
+                                         epochs_per_historical_vector: int) -> None:
+    if state_epoch >= given_epoch + epochs_per_historical_vector:
         raise ValidationError(
             f"state_epoch ({state_epoch}) should be less than (given_epoch {given_epoch} + "
-            f"LATEST_RANDAO_MIXED_LENGTH ({latest_randao_mixes_length}))"
+            f"EPOCHS_PER_HISTORICAL_VECTOR ({epochs_per_historical_vector}))"
         )
 
     if given_epoch > state_epoch:

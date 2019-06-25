@@ -166,7 +166,7 @@ def sample_beacon_state_params(config,
         'validator_registry': (),
         'validator_balances': (),
         'validator_registry_update_epoch': 0,
-        'latest_randao_mixes': (ZERO_HASH32,) * config.LATEST_RANDAO_MIXES_LENGTH,
+        'latest_randao_mixes': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
         'previous_shuffling_start_shard': 1,
         'current_shuffling_start_shard': 2,
         'previous_shuffling_epoch': genesis_epoch,
@@ -365,7 +365,7 @@ def filled_beacon_state(genesis_epoch,
                         shard_count,
                         slots_per_historical_root,
                         epochs_per_historical_vector,
-                        latest_randao_mixes_length,
+                        epochs_per_historical_vector,
                         latest_slashed_exit_length):
     return BeaconState.create_filled_state(
         genesis_epoch=genesis_epoch,
@@ -374,7 +374,7 @@ def filled_beacon_state(genesis_epoch,
         shard_count=shard_count,
         slots_per_historical_root=slots_per_historical_root,
         epochs_per_historical_vector=epochs_per_historical_vector,
-        latest_randao_mixes_length=latest_randao_mixes_length,
+        epochs_per_historical_vector=epochs_per_historical_vector,
         latest_slashed_exit_length=latest_slashed_exit_length,
     )
 
@@ -577,8 +577,8 @@ def epochs_per_historical_vector():
 
 
 @pytest.fixture
-def latest_randao_mixes_length():
-    return SERENITY_CONFIG.LATEST_RANDAO_MIXES_LENGTH
+def epochs_per_historical_vector():
+    return SERENITY_CONFIG.EPOCHS_PER_HISTORICAL_VECTOR
 
 
 @pytest.fixture
@@ -659,7 +659,7 @@ def genesis_state(filled_beacon_state,
                   shard_count,
                   slots_per_historical_root,
                   latest_slashed_exit_length,
-                  latest_randao_mixes_length):
+                  epochs_per_historical_vector):
     return filled_beacon_state.copy(
         validator_registry=activated_genesis_validators,
         validator_balances=genesis_balances,
@@ -673,7 +673,7 @@ def genesis_state(filled_beacon_state,
         ),
         latest_randao_mixes=tuple(
             ZERO_HASH32
-            for _ in range(latest_randao_mixes_length)
+            for _ in range(epochs_per_historical_vector)
         ),
     )
 

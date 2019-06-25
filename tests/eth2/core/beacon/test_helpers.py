@@ -432,17 +432,17 @@ def test_generate_seed(monkeypatch,
                        min_seed_lookahead,
                        activation_exit_delay,
                        epochs_per_historical_vector,
-                       latest_randao_mixes_length):
+                       epochs_per_historical_vector):
     from eth2.beacon import helpers
 
     def mock_get_randao_mix(state,
                             epoch,
                             slots_per_epoch,
-                            latest_randao_mixes_length):
+                            epochs_per_historical_vector):
         return hash_eth2(
             state.root +
             epoch.to_bytes(32, byteorder='little') +
-            latest_randao_mixes_length.to_bytes(32, byteorder='little')
+            epochs_per_historical_vector.to_bytes(32, byteorder='little')
         )
 
     def mock_get_active_index_root(state,
@@ -483,7 +483,7 @@ def test_generate_seed(monkeypatch,
             state=state,
             epoch=(epoch - min_seed_lookahead),
             slots_per_epoch=slots_per_epoch,
-            latest_randao_mixes_length=latest_randao_mixes_length,
+            epochs_per_historical_vector=epochs_per_historical_vector,
         ) + mock_get_active_index_root(
             state=state,
             epoch=epoch,

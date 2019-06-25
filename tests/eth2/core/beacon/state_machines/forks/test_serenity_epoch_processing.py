@@ -1155,7 +1155,7 @@ def test_update_validator_registry(n,
 @pytest.mark.parametrize(
     (
         'num_validators, slots_per_epoch, target_committee_size, shard_count,'
-        'latest_randao_mixes_length, min_seed_lookahead, state_slot,'
+        'epochs_per_historical_vector, min_seed_lookahead, state_slot,'
         'need_to_update,'
         'num_shards_in_committees,'
         'validator_registry_update_epoch,'
@@ -1640,7 +1640,7 @@ def test_process_final_updates(genesis_state,
                 state=state,
                 epoch=state.current_epoch(config.SLOTS_PER_EPOCH),
                 slots_per_epoch=config.SLOTS_PER_EPOCH,
-                latest_randao_mixes_length=config.LATEST_RANDAO_MIXES_LENGTH,
+                epochs_per_historical_vector=config.EPOCHS_PER_HISTORICAL_VECTOR,
             )
         )
     )

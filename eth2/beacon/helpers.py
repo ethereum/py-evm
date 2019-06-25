@@ -167,14 +167,14 @@ def generate_seed(state: 'BeaconState',
         state=state,
         epoch=Epoch(epoch - committee_config.MIN_SEED_LOOKAHEAD),
         slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
-        epochs_per_historical_vector=committee_config.LATEST_RANDAO_MIXES_LENGTH,
+        epochs_per_historical_vector=committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
     )
     active_index_root = get_active_index_root(
         state=state,
         epoch=epoch,
         slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
         activation_exit_delay=committee_config.ACTIVATION_EXIT_DELAY,
-        epochs_per_historical_vector=committee_config.LATEST_RANDAO_MIXES_LENGTH,
+        epochs_per_historical_vector=committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
     )
     epoch_as_bytes = epoch.to_bytes(32, byteorder="little")
 

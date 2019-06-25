@@ -8,7 +8,7 @@ from eth2.beacon.types.states import BeaconState
 
 def override_vector_lengths(config: Eth2Config) -> None:
     state_vector_dict = {
-        "latest_randao_mixes": config.LATEST_RANDAO_MIXES_LENGTH,
+        "latest_randao_mixes": config.EPOCHS_PER_HISTORICAL_VECTOR,
         "latest_crosslinks": config.SHARD_COUNT,
         "latest_block_roots": config.SLOTS_PER_HISTORICAL_ROOT,
         "latest_state_roots": config.SLOTS_PER_HISTORICAL_ROOT,

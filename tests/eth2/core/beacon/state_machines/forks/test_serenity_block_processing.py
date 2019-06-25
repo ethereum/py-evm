@@ -58,7 +58,7 @@ def test_randao_processing(sample_beacon_block_params,
 
         latest_randao_mixes=tuple(
             ZERO_HASH32
-            for _ in range(config.LATEST_RANDAO_MIXES_LENGTH)
+            for _ in range(config.EPOCHS_PER_HISTORICAL_VECTOR)
         ),
     )
 
@@ -82,7 +82,7 @@ def test_randao_processing(sample_beacon_block_params,
 
     new_state = process_randao(state, block, config)
 
-    updated_index = epoch % config.LATEST_RANDAO_MIXES_LENGTH
+    updated_index = epoch % config.EPOCHS_PER_HISTORICAL_VECTOR
     original_mixes = state.latest_randao_mixes
     updated_mixes = new_state.latest_randao_mixes
 
@@ -108,7 +108,7 @@ def test_randao_processing_validates_randao_reveal(sample_beacon_block_params,
 
         latest_randao_mixes=tuple(
             ZERO_HASH32
-            for _ in range(config.LATEST_RANDAO_MIXES_LENGTH)
+            for _ in range(config.EPOCHS_PER_HISTORICAL_VECTOR)
         ),
     )
 

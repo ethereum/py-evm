@@ -177,7 +177,7 @@ class BeaconState(ssz.Serializable):
     #                         shard_count: int,
     #                         slots_per_historical_root: int,
     #                         epochs_per_historical_vector: int,
-    #                         latest_randao_mixes_length: int,
+    #                         epochs_per_historical_vector: int,
     #                         latest_slashed_exit_length: int,
     #                         activated_genesis_validators: Sequence[Validator]=(),
     #                         genesis_balances: Sequence[Gwei]=()) -> 'BeaconState':
@@ -194,7 +194,7 @@ class BeaconState(ssz.Serializable):
     #         balances=genesis_balances,
 
     #         # Randomness and committees
-    #         randao_mixes=(ZERO_HASH32,) * latest_randao_mixes_length,
+    #         randao_mixes=(ZERO_HASH32,) * epochs_per_historical_vector,
 
     #         # Finality
     #         previous_justified_epoch=genesis_epoch,

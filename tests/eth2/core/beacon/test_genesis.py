@@ -51,7 +51,7 @@ def test_get_genesis_beacon_state(
         shard_count,
         slots_per_historical_root,
         latest_slashed_exit_length,
-        latest_randao_mixes_length,
+        epochs_per_historical_vector,
         config,
         keymap):
     validator_count = 5
@@ -89,7 +89,7 @@ def test_get_genesis_beacon_state(
     assert state.validator_registry_update_epoch == genesis_epoch
 
     # Randomness and committees
-    assert len(state.latest_randao_mixes) == latest_randao_mixes_length
+    assert len(state.latest_randao_mixes) == epochs_per_historical_vector
     assert state.previous_shuffling_start_shard == genesis_start_shard
     assert state.current_shuffling_start_shard == genesis_start_shard
     assert state.previous_shuffling_epoch == genesis_epoch

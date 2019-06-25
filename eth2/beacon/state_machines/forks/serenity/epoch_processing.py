@@ -625,7 +625,7 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
             state,
             current_epoch,
             config.SLOTS_PER_EPOCH,
-            config.LATEST_RANDAO_MIXES_LENGTH,
+            config.EPOCHS_PER_HISTORICAL_VECTOR,
         ),
     )
 
