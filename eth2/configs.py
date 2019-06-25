@@ -58,6 +58,8 @@ Eth2Config = NamedTuple(
         ('MAX_DEPOSITS', int),
         ('MAX_VOLUNTARY_EXITS', int),
         ('MAX_TRANSFERS', int),
+        # Genesis
+        ('GENESIS_ACTIVE_VALIDATOR_COUNT', int),
     )
 )
 

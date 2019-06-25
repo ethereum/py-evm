@@ -641,6 +641,11 @@ def max_transfers():
     return SERENITY_CONFIG.MAX_TRANSFERS
 
 
+@pytest.fixture
+def genesis_active_validator_count():
+    return SERENITY_CONFIG.GENESIS_ACTIVE_VALIDATOR_COUNT
+
+
 #
 # genesis
 #
@@ -760,7 +765,8 @@ def config(shard_count,
            max_attestations,
            max_deposits,
            max_voluntary_exits,
-           max_transfers):
+           max_transfers,
+           genesis_active_validator_count):
     return Eth2Config(
         SHARD_COUNT=shard_count,
         TARGET_COMMITTEE_SIZE=target_committee_size,
@@ -799,6 +805,7 @@ def config(shard_count,
         MAX_DEPOSITS=max_deposits,
         MAX_VOLUNTARY_EXITS=max_voluntary_exits,
         MAX_TRANSFERS=max_transfers,
+        GENESIS_ACTIVE_VALIDATOR_COUNT=genesis_active_validator_count,
     )
 
 
