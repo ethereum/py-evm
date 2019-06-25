@@ -29,7 +29,7 @@ class Validator(ssz.Serializable):
     fields = [
         ('pubkey', bytes48),
         ('withdrawal_credentials', bytes32),
-        ('effective_balance', uint64)
+        ('effective_balance', uint64),
         ('slashed', boolean),
         # Epoch when validator became eligible for activation
         ('activation_eligibility_epoch', uint64),
