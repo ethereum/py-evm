@@ -29,17 +29,12 @@ from eth2.beacon.helpers import (
     slot_to_epoch,
 )
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
-    generate_aggregate_pubkeys_from_indices,
-    get_pubkey_for_indices,
     validate_block_slot,
     validate_proposer_signature,
     validate_randao_reveal,
-    validate_slashable_attestation,
-    verify_slashable_attestation_signature,
 )
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.slashable_attestations import SlashableAttestation
 from eth2.beacon.types.states import BeaconState
 
 from eth2.beacon.tools.builder.initializer import mock_validator
@@ -200,78 +195,78 @@ def _generate_some_indices(data, max_value_for_list):
     )
 
 
-@given(st.data())
-def test_get_pubkey_for_indices(genesis_validators, data):
-    max_value_for_list = len(genesis_validators) - 1
-    indices = _generate_some_indices(data, max_value_for_list)
-    pubkeys = get_pubkey_for_indices(genesis_validators, indices)
+# @given(st.data())
+# def test_get_pubkey_for_indices(genesis_validators, data):
+#     max_value_for_list = len(genesis_validators) - 1
+#     indices = _generate_some_indices(data, max_value_for_list)
+#     pubkeys = get_pubkey_for_indices(genesis_validators, indices)
 
-    assert len(indices) == len(pubkeys)
+#     assert len(indices) == len(pubkeys)
 
-    for index, pubkey in enumerate(pubkeys):
-        validator_index = indices[index]
-        assert genesis_validators[validator_index].pubkey == pubkey
-
-
-def _list_and_index(data, max_size=None, elements=None):
-    """
-    Hypothesis helper function cribbed from their docs on @composite
-    """
-    if elements is None:
-        elements = st.integers()
-    xs = data.draw(st.lists(elements, max_size=max_size, unique=True))
-    i = data.draw(st.integers(min_value=0, max_value=max(len(xs) - 1, 0)))
-    return (xs, i)
+#     for index, pubkey in enumerate(pubkeys):
+#         validator_index = indices[index]
+#         assert genesis_validators[validator_index].pubkey == pubkey
 
 
-@given(st.data())
-def test_generate_aggregate_pubkeys(genesis_validators,
-                                    sample_slashable_attestation_params,
-                                    data):
-    max_value_for_list = len(genesis_validators) - 1
-    (validator_indices, some_index) = _list_and_index(
-        data,
-        elements=st.integers(
-            min_value=0,
-            max_value=max_value_for_list,
-        )
-    )
-
-    key = "validator_indices"
-    sample_slashable_attestation_params[key] = validator_indices
-
-    custody_bitfield = get_empty_bitfield(len(validator_indices))
-    for index in range(some_index):
-        custody_bitfield = set_voted(custody_bitfield, index)
-
-    key = "custody_bitfield"
-    sample_slashable_attestation_params[key] = custody_bitfield
-
-    slashable_attestation = SlashableAttestation(**sample_slashable_attestation_params)
-    custody_bit_0_indices, custody_bit_1_indices = slashable_attestation.custody_bit_indices
-    assert len(
-        set(custody_bit_0_indices).intersection(set(custody_bit_1_indices))
-    ) == 0
-
-    keys = generate_aggregate_pubkeys_from_indices(
-        genesis_validators,
-        *slashable_attestation.custody_bit_indices,
-    )
-    assert len(keys) == 2
-
-    (poc_0_key, poc_1_key) = keys
-
-    poc_0_keys = get_pubkey_for_indices(genesis_validators, custody_bit_0_indices)
-    poc_1_keys = get_pubkey_for_indices(genesis_validators, custody_bit_1_indices)
-
-    assert bls.aggregate_pubkeys(poc_0_keys) == poc_0_key
-    assert bls.aggregate_pubkeys(poc_1_keys) == poc_1_key
+# def _list_and_index(data, max_size=None, elements=None):
+#     """
+#     Hypothesis helper function cribbed from their docs on @composite
+#     """
+#     if elements is None:
+#         elements = st.integers()
+#     xs = data.draw(st.lists(elements, max_size=max_size, unique=True))
+#     i = data.draw(st.integers(min_value=0, max_value=max(len(xs) - 1, 0)))
+#     return (xs, i)
 
 
-def _get_indices_and_signatures(num_validators, message_hash, privkeys, fork, epoch):
+# @given(st.data())
+# def test_generate_aggregate_pubkeys(genesis_validators,
+#                                     sample_slashable_attestation_params,
+#                                     data):
+#     max_value_for_list = len(genesis_validators) - 1
+#     (validator_indices, some_index) = _list_and_index(
+#         data,
+#         elements=st.integers(
+#             min_value=0,
+#             max_value=max_value_for_list,
+#         )
+#     )
+
+#     key = "validator_indices"
+#     sample_slashable_attestation_params[key] = validator_indices
+
+#     custody_bitfield = get_empty_bitfield(len(validator_indices))
+#     for index in range(some_index):
+#         custody_bitfield = set_voted(custody_bitfield, index)
+
+#     key = "custody_bitfield"
+#     sample_slashable_attestation_params[key] = custody_bitfield
+
+#     slashable_attestation = SlashableAttestation(**sample_slashable_attestation_params)
+#     custody_bit_0_indices, custody_bit_1_indices = slashable_attestation.custody_bit_indices
+#     assert len(
+#         set(custody_bit_0_indices).intersection(set(custody_bit_1_indices))
+#     ) == 0
+
+#     keys = generate_aggregate_pubkeys_from_indices(
+#         genesis_validators,
+#         *slashable_attestation.custody_bit_indices,
+#     )
+#     assert len(keys) == 2
+
+#     (poc_0_key, poc_1_key) = keys
+
+#     poc_0_keys = get_pubkey_for_indices(genesis_validators, custody_bit_0_indices)
+#     poc_1_keys = get_pubkey_for_indices(genesis_validators, custody_bit_1_indices)
+
+#     assert bls.aggregate_pubkeys(poc_0_keys) == poc_0_key
+#     assert bls.aggregate_pubkeys(poc_1_keys) == poc_1_key
+
+
+def _get_indices_and_signatures(validator_count, message_hash, privkeys, fork, epoch):
     num_indices = 5
-    assert num_validators >= num_indices
-    indices = random.sample(range(num_validators), num_indices)
+    assert validator_count >= num_indices
+    indices = random.sample(range(validator_count), num_indices)
     indices.sort()
 
     privkeys = [privkeys[i] for i in indices]

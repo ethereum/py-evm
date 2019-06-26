@@ -19,10 +19,8 @@ from eth2._utils.hash import (
 )
 from eth2.configs import CommitteeConfig
 from eth2.beacon.epoch_processing_helpers import (
-    get_epoch_boundary_attesting_balance,
-    get_inclusion_infos,
-    get_previous_epoch_matching_head_attestations,
-    get_winning_root_and_participants,
+    get_delayed_activation_exit_epoch,
+    get_winning_crosslink_and_attesting_indices,
 )
 from eth2.beacon.helpers import (
     get_epoch_start_slot,
@@ -563,3 +561,12 @@ def test_get_inclusion_infos(
     )
     assert result[participating_validator_index].inclusion_slot == expected_inclusion_slot
     assert result[participating_validator_index].inclusion_distance == expected_inclusion_distance
+
+
+def test_get_delayed_activation_exit_epoch(activation_exit_delay):
+    epoch = random.randint(0, FAR_FUTURE_EPOCH)
+    entry_exit_effect_epoch = get_delayed_activation_exit_epoch(
+        epoch,
+        activation_exit_delay,
+    )
+    assert entry_exit_effect_epoch == (epoch + 1 + activation_exit_delay)

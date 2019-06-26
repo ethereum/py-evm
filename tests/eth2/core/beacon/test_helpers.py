@@ -20,9 +20,6 @@ from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
 
-from eth2.beacon.types.attestation_data import (
-    AttestationData,
-)
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.validators import Validator
@@ -31,28 +28,10 @@ from eth2.beacon.helpers import (
     generate_seed,
     get_active_validator_indices,
     get_block_root,
-    get_state_root,
     get_domain,
-    get_delayed_activation_exit_epoch,
-    get_fork_version,
-    get_temporary_block_header,
+    _get_fork_version,
     get_total_balance,
-    is_double_vote,
-    is_surround_vote,
 )
-
-
-#
-# Header helpers
-#
-def test_get_temporary_block_header(sample_block):
-    header = get_temporary_block_header(sample_block)
-
-    assert header.slot == sample_block.slot
-    assert header.previous_block_root == sample_block.previous_block_root
-    assert header.state_root == ZERO_HASH32
-    assert header.block_body_root == sample_block.body.root
-    assert header.signature == EMPTY_SIGNATURE
 
 
 @to_tuple
@@ -141,61 +120,6 @@ def test_get_block_root(sample_beacon_state_params,
     else:
         with pytest.raises(ValidationError):
             get_block_root(
-                state,
-                target_slot,
-                slots_per_historical_root,
-            )
-
-
-@pytest.mark.parametrize(
-    (
-        'genesis_slot,'
-    ),
-    [
-        (0),
-    ],
-)
-@pytest.mark.parametrize(
-    (
-        'current_slot,target_slot,success'
-    ),
-    [
-        (10, 0, True),
-        (10, 9, True),
-        (10, 10, False),
-        (128, 0, True),
-        (128, 127, True),
-        (128, 128, False),
-    ],
-)
-def test_get_state_root(sample_beacon_state_params,
-                        current_slot,
-                        target_slot,
-                        success,
-                        slots_per_epoch,
-                        slots_per_historical_root,
-                        sample_block):
-    blocks, state_roots = generate_mock_latest_historical_roots(
-        sample_block,
-        current_slot,
-        slots_per_epoch,
-        slots_per_historical_root,
-    )
-    state = BeaconState(**sample_beacon_state_params).copy(
-        slot=current_slot,
-        state_roots=state_roots,
-    )
-
-    if success:
-        state_root = get_state_root(
-            state,
-            target_slot,
-            slots_per_historical_root,
-        )
-        assert state_root == blocks[target_slot].signing_root
-    else:
-        with pytest.raises(ValidationError):
-            get_state_root(
                 state,
                 target_slot,
                 slots_per_historical_root,
@@ -348,81 +272,6 @@ def test_get_domain(previous_version,
         epoch=current_epoch,
         domain_type=domain_type,
     )
-
-
-def test_is_double_vote(sample_attestation_data_params, slots_per_epoch):
-    attestation_data_1_params = {
-        **sample_attestation_data_params,
-        'slot': 12345,
-    }
-    attestation_data_1 = AttestationData(**attestation_data_1_params)
-
-    attestation_data_2_params = {
-        **sample_attestation_data_params,
-        'slot': 12345,
-    }
-    attestation_data_2 = AttestationData(**attestation_data_2_params)
-
-    assert is_double_vote(attestation_data_1, attestation_data_2, slots_per_epoch)
-
-    attestation_data_3_params = {
-        **sample_attestation_data_params,
-        'slot': 54321,
-    }
-    attestation_data_3 = AttestationData(**attestation_data_3_params)
-
-    assert not is_double_vote(attestation_data_1, attestation_data_3, slots_per_epoch)
-
-
-@pytest.mark.parametrize(
-    (
-        'slots_per_epoch,'
-        'attestation_1_slot,'
-        'attestation_1_source_epoch,'
-        'attestation_2_slot,'
-        'attestation_2_source_epoch,'
-        'expected'
-    ),
-    [
-        (1, 0, 0, 0, 0, False),
-        # not (attestation_1_source_epoch < attestation_2_source_epoch
-        (1, 4, 3, 3, 2, False),
-        # not (slot_to_epoch(attestation_2_slot) < slot_to_epoch(attestation_1_slot))
-        (1, 4, 0, 4, 3, False),
-        (1, 4, 0, 3, 2, True),
-    ],
-)
-def test_is_surround_vote(sample_attestation_data_params,
-                          slots_per_epoch,
-                          attestation_1_slot,
-                          attestation_1_source_epoch,
-                          attestation_2_slot,
-                          attestation_2_source_epoch,
-                          expected):
-    attestation_data_1_params = {
-        **sample_attestation_data_params,
-        'slot': attestation_1_slot,
-        'source_epoch': attestation_1_source_epoch,
-    }
-    attestation_data_1 = AttestationData(**attestation_data_1_params)
-
-    attestation_data_2_params = {
-        **sample_attestation_data_params,
-        'slot': attestation_2_slot,
-        'source_epoch': attestation_2_source_epoch,
-    }
-    attestation_data_2 = AttestationData(**attestation_data_2_params)
-
-    assert is_surround_vote(attestation_data_1, attestation_data_2, slots_per_epoch) == expected
-
-
-def test_get_delayed_activation_exit_epoch(activation_exit_delay):
-    epoch = random.randint(0, FAR_FUTURE_EPOCH)
-    entry_exit_effect_epoch = get_delayed_activation_exit_epoch(
-        epoch,
-        activation_exit_delay,
-    )
-    assert entry_exit_effect_epoch == (epoch + 1 + activation_exit_delay)
 
 
 def test_generate_seed(monkeypatch,

@@ -11,19 +11,14 @@ from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
 )
 
-from eth2.beacon.helpers import (
+from eth2.beacon.epoch_processing_helpers import (
     get_delayed_activation_exit_epoch,
 )
 from eth2.beacon.validator_status_helpers import (
-    _settle_penality_to_validator_and_whistleblower,
-    _validate_withdrawable_epoch,
     activate_validator,
-    exit_validator,
     initiate_validator_exit,
-    prepare_validator_for_withdrawal,
     slash_validator,
 )
-
 
 from eth2.beacon.tools.builder.initializer import (
     mock_validator,

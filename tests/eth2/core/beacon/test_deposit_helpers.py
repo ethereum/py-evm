@@ -18,14 +18,11 @@ from eth2._utils.merkle.sparse import (
 )
 
 from eth2.beacon.deposit_helpers import (
-    add_pending_validator,
     process_deposit,
-    validate_deposit_order,
     validate_deposit_proof,
 )
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.validators import Validator
 from eth2.beacon.types.deposits import Deposit
 
 from eth2.beacon.tools.builder.validator import (
@@ -76,65 +73,6 @@ def create_mock_deposit(config,
     )
 
     return state, deposit
-
-
-def test_add_pending_validator(sample_beacon_state_params,
-                               sample_validator_record_params):
-
-    validators_len = 2
-    state = BeaconState(**sample_beacon_state_params).copy(
-        validators=[
-            Validator(**sample_validator_record_params)
-            for _ in range(validators_len)
-        ],
-        balances=(100,) * validators_len,
-    )
-    validator = Validator(**sample_validator_record_params)
-    amount = 5566
-    state = add_pending_validator(
-        state,
-        validator,
-        amount,
-    )
-
-    assert state.validators[-1] == validator
-
-
-@pytest.mark.parametrize(
-    (
-        'deposit_index',
-        'success',
-    ),
-    [
-        (0, True),
-        (1, False),
-    ]
-)
-def test_validate_deposit_order(config,
-                                sample_beacon_state_params,
-                                keymap,
-                                pubkeys,
-                                deposit_index,
-                                success):
-    validator_index = 0
-    withdrawal_credentials = b'\x34' * 32
-    state, deposit = create_mock_deposit(
-        config,
-        sample_beacon_state_params,
-        keymap,
-        pubkeys,
-        withdrawal_credentials,
-        validator_index,
-    )
-    deposit = deposit.copy(
-        index=deposit_index,
-    )
-
-    if success:
-        validate_deposit_order(state, deposit)
-    else:
-        with pytest.raises(ValidationError):
-            validate_deposit_order(state, deposit)
 
 
 @pytest.mark.parametrize(

@@ -13,16 +13,12 @@ from eth.constants import (
     ZERO_HASH32,
 )
 from eth2.beacon.committee_helpers import (
-    get_crosslink_committees_at_slot,
+    get_crosslink_committee,
 )
 from eth2.beacon.helpers import (
     get_epoch_start_slot,
 )
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
-    validate_attestation_aggregate_signature,
-    validate_attestation_previous_crosslink_or_root,
-    validate_attestation_source_epoch_and_root,
-    validate_attestation_crosslink_data_root,
     validate_attestation_slot,
 )
 from eth2.beacon.tools.builder.validator import (
@@ -275,85 +271,82 @@ def test_validate_attestation_crosslink_data_root(sample_attestation_data_params
             )
 
 
-@settings(
-    max_examples=1,
-    # Last CI run took >4.4 seconds. Allow up to 5.5s.
-    deadline=5500,
-)
-@given(random=st.randoms())
-@pytest.mark.parametrize(
-    (
-        'num_validators,'
-        'slots_per_epoch,'
-        'target_committee_size,'
-        'shard_count,'
-        'is_valid,'
-        'genesis_slot'
-    ),
-    [
-        (10, 2, 2, 2, True, 0),
-        (40, 4, 3, 5, True, 0),
-        (20, 5, 3, 2, True, 0),
-        (20, 5, 3, 2, False, 0),
-    ],
-)
-def test_validate_attestation_aggregate_signature(genesis_state,
-                                                  slots_per_epoch,
-                                                  random,
-                                                  sample_attestation_data_params,
-                                                  is_valid,
-                                                  target_committee_size,
-                                                  shard_count,
-                                                  keymap,
-                                                  committee_config):
-    state = genesis_state
+# TODO(ralexstokes) moved to indexed attestation signature in attestation_helpers
+# @settings(max_examples=1)
+# @given(random=st.randoms())
+# @pytest.mark.parametrize(
+#     (
+#         'validator_count,'
+#         'slots_per_epoch,'
+#         'target_committee_size,'
+#         'shard_count,'
+#         'is_valid,'
+#         'genesis_slot'
+#     ),
+#     [
+#         (10, 2, 2, 2, True, 0),
+#         (40, 4, 3, 5, True, 0),
+#         (20, 5, 3, 2, True, 0),
+#         (20, 5, 3, 2, False, 0),
+#     ],
+# )
+# def test_validate_attestation_aggregate_signature(genesis_state,
+#                                                   slots_per_epoch,
+#                                                   random,
+#                                                   sample_attestation_data_params,
+#                                                   is_valid,
+#                                                   target_committee_size,
+#                                                   shard_count,
+#                                                   keymap,
+#                                                   committee_config):
+#     state = genesis_state
 
-    # choose committee
-    slot = 0
-    crosslink_committee = get_crosslink_committees_at_slot(
-        state=state,
-        slot=slot,
-        committee_config=committee_config,
-    )[0]
-    committee, shard = crosslink_committee
-    committee_size = len(committee)
-    assert committee_size > 0
+#     # choose committee
+#     slot = 0
+#     crosslink_committee = get_crosslink_committees_at_slot(
+#         state=state,
+#         slot=slot,
+#         committee_config=committee_config,
+#     )[0]
+#     committee, shard = crosslink_committee
+#     committee_size = len(committee)
+#     assert committee_size > 0
 
-    # randomly select 3/4 participants from committee
-    votes_count = len(committee) * 3 // 4
-    assert votes_count > 0
+#     # randomly select 3/4 participants from committee
+#     votes_count = len(committee) * 3 // 4
+#     assert votes_count > 0
 
-    attestation_data = AttestationData(**sample_attestation_data_params).copy(
-        slot=slot,
-        shard=shard,
-    )
+#     attestation_data = AttestationData(**sample_attestation_data_params).copy(
+#         slot=slot,
+#         shard=shard,
+#     )
 
-    attestation = create_mock_signed_attestation(
-        state,
-        attestation_data,
-        committee,
-        votes_count,
-        keymap,
-        slots_per_epoch,
-    )
+#     attestation = create_mock_signed_attestation(
+#         state,
+#         attestation_data,
+#         committee,
+#         votes_count,
+#         keymap,
+#         slots_per_epoch,
+#     )
 
-    if is_valid:
-        validate_attestation_aggregate_signature(
-            state,
-            attestation,
-            committee_config,
-        )
-    else:
-        # mess up signature
-        attestation = attestation.copy(
-            aggregate_signature=(
-                attestation.aggregate_signature[0] + 10,
-                attestation.aggregate_signature[1] - 1
-            )
-        )
-        with pytest.raises(ValidationError):
-            validate_attestation_aggregate_signature(
-                state,
-                attestation,
-                committee_config,
-            )
+#     if is_valid:
+#         validate_attestation_aggregate_signature(
+#             state,
+#             attestation,
+#             committee_config,
+#         )
+#     else:
+#         # mess up signature
+#         attestation = attestation.copy(
+#             aggregate_signature=(
+#                 attestation.aggregate_signature[0] + 10,
+#                 attestation.aggregate_signature[1] - 1
+#             )
+#         )
+#         with pytest.raises(ValidationError):
+#             validate_attestation_aggregate_signature(
+#                 state,
+#                 attestation,
+#                 committee_config,
+#             )
