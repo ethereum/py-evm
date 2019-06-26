@@ -17,11 +17,13 @@ from eth2.beacon.constants import (
 )
 from eth2.beacon.typing import (
     Epoch,
+    Gwei,
 )
 
 from .defaults import (
     default_bls_pubkey,
     default_epoch,
+    default_gwei,
 )
 
 
@@ -50,7 +52,7 @@ class Validator(ssz.Serializable):
                  *,
                  pubkey: BLSPubkey=default_bls_pubkey,
                  withdrawal_credentials: Hash32=ZERO_HASH32,
-                 effective_balance: uint64=0,
+                 effective_balance: Gwei=default_gwei,
                  slashed: bool=False,
                  activation_eligibility_epoch: Epoch=default_epoch,
                  activation_epoch: Epoch=default_epoch,
@@ -87,7 +89,7 @@ class Validator(ssz.Serializable):
     def create_pending_validator(cls,
                                  pubkey: BLSPubkey,
                                  withdrawal_credentials: Hash32,
-                                 amount: int,
+                                 amount: Gwei,
                                  config: Eth2Config) -> 'Validator':
         """
         Return a new pending ``Validator`` with the given fields.
@@ -95,12 +97,14 @@ class Validator(ssz.Serializable):
         return cls(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
-            effective_balance=min(
-                _round_down_to_previous_multiple(
-                    amount,
-                    config.EFFECTIVE_BALANCE_INCREMENT,
-                ),
-                config.MAX_EFFECTIVE_BALANCE,
+            effective_balance=Gwei(
+                min(
+                    _round_down_to_previous_multiple(
+                        amount,
+                        config.EFFECTIVE_BALANCE_INCREMENT,
+                    ),
+                    config.MAX_EFFECTIVE_BALANCE,
+                )
             ),
             activation_eligibility_epoch=FAR_FUTURE_EPOCH,
             activation_epoch=FAR_FUTURE_EPOCH,
