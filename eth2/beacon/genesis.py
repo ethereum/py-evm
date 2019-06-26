@@ -52,6 +52,23 @@ def is_genesis_trigger(deposits: Sequence[Deposit], timestamp: int, config: Eth2
     return active_validator_count == config.GENESIS_ACTIVE_VALIDATOR_COUNT
 
 
+def genesis_state_with_active_index_roots(state: BeaconState, config: Eth2Config) -> BeaconState:
+    active_validator_indices = get_active_validator_indices(
+        state.validators,
+        config.GENESIS_EPOCH,
+    )
+    genesis_active_index_root = ssz.hash_tree_root(
+        active_validator_indices,
+        ssz.sedes.List(ssz.uint64),
+    )
+    active_index_roots = (
+        (genesis_active_index_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
+    )
+    return state.copy(
+        active_index_roots=active_index_roots,
+    )
+
+
 def get_genesis_beacon_state(*,
                              genesis_deposits: Sequence[Deposit],
                              genesis_time: Timestamp,
@@ -85,19 +102,9 @@ def get_genesis_beacon_state(*,
                 config.GENESIS_EPOCH,
             )
 
-    active_validator_indices = get_active_validator_indices(
-        state.validators,
-        config.GENESIS_EPOCH,
-    )
-    genesis_active_index_root = ssz.hash_tree_root(
-        active_validator_indices,
-        ssz.sedes.List(ssz.uint64),
-    )
-    active_index_roots = (
-        (genesis_active_index_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
-    )
-    return state.copy(
-        active_index_roots=active_index_roots,
+    return genesis_state_with_active_index_roots(
+        state,
+        config,
     )
 
 
