@@ -99,10 +99,10 @@ class BaseVM(Configurable, ABC):
     @classmethod
     @abstractmethod
     def build_state(
-            cls,
-            db: BaseAtomicDB,
-            header: BlockHeader,
-            previous_hashes: Iterable[Hash32] = ()) -> BaseState:
+        cls,
+        db: BaseAtomicDB,
+        header: BlockHeader,
+        previous_hashes: Iterable[Hash32] = ()) -> BaseState:
         pass
 
     @abstractmethod
@@ -146,9 +146,9 @@ class BaseVM(Configurable, ABC):
 
     @abstractmethod
     def apply_all_transactions(
-            self,
-            transactions: Tuple[BaseTransaction, ...],
-            base_header: BlockHeader
+        self,
+        transactions: Tuple[BaseTransaction, ...],
+        base_header: BlockHeader
     ) -> Tuple[BlockHeader, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:
         raise NotImplementedError("VM classes must implement this method")
 
@@ -338,7 +338,7 @@ class BaseVM(Configurable, ABC):
     @classmethod
     @abstractmethod
     def validate_header(
-            cls, header: BlockHeader, parent_header: BlockHeader, check_seal: bool = True) -> None:
+        cls, header: BlockHeader, parent_header: BlockHeader, check_seal: bool = True) -> None:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
@@ -363,7 +363,7 @@ class BaseVM(Configurable, ABC):
     @classmethod
     @abstractmethod
     def validate_uncle(
-            cls, block: BaseBlock, uncle: BlockHeader, uncle_parent: BlockHeader) -> None:
+        cls, block: BaseBlock, uncle: BlockHeader, uncle_parent: BlockHeader) -> None:
         raise NotImplementedError("VM classes must implement this method")
 
     #
@@ -413,9 +413,6 @@ class VM(BaseVM):
             self._block = block_class.from_header(header=self._initial_header, chaindb=self.chaindb)
         return self._block
 
-    def set_block(self, block: BaseBlock) -> None:
-        self._block = block
-
     @property
     def state(self) -> BaseState:
         if self._state is None:
@@ -424,10 +421,10 @@ class VM(BaseVM):
 
     @classmethod
     def build_state(
-            cls,
-            db: BaseAtomicDB,
-            header: BlockHeader,
-            previous_hashes: Iterable[Hash32] = ()) -> BaseState:
+        cls,
+        db: BaseAtomicDB,
+        header: BlockHeader,
+        previous_hashes: Iterable[Hash32] = ()) -> BaseState:
         """
         You probably want `VM().state` instead of this.
 
@@ -509,9 +506,9 @@ class VM(BaseVM):
         )
 
     def apply_all_transactions(
-            self,
-            transactions: Tuple[BaseTransaction, ...],
-            base_header: BlockHeader
+        self,
+        transactions: Tuple[BaseTransaction, ...],
+        base_header: BlockHeader
     ) -> Tuple[BlockHeader, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:
         """
         Determine the results of applying all transactions to the base header.
@@ -570,33 +567,30 @@ class VM(BaseVM):
                 )
             )
 
-        self.set_block(
-            self.get_block().copy(
-                header=self.configure_header(
-                    coinbase=block.header.coinbase,
-                    gas_limit=block.header.gas_limit,
-                    timestamp=block.header.timestamp,
-                    extra_data=block.header.extra_data,
-                    mix_hash=block.header.mix_hash,
-                    nonce=block.header.nonce,
-                    uncles_hash=keccak(rlp.encode(block.uncles)),
-                ),
-                uncles=block.uncles,
-            )
+        self._block = self.get_block().copy(
+            header=self.configure_header(
+                coinbase=block.header.coinbase,
+                gas_limit=block.header.gas_limit,
+                timestamp=block.header.timestamp,
+                extra_data=block.header.extra_data,
+                mix_hash=block.header.mix_hash,
+                nonce=block.header.nonce,
+                uncles_hash=keccak(rlp.encode(block.uncles)),
+            ),
+            uncles=block.uncles,
         )
+
         # we need to re-initialize the `state` to update the execution context.
         self._state = self.build_state(self.chaindb.db, self.get_header(), self.previous_hashes)
 
         # run all of the transactions.
         new_header, receipts, _ = self.apply_all_transactions(block.transactions, self.get_header())
 
-        self.set_block(
-            self.set_block_transactions(
-                self.get_block(),
-                new_header,
-                block.transactions,
-                receipts,
-            )
+        self._block = self.set_block_transactions(
+            self.get_block(),
+            new_header,
+            block.transactions,
+            receipts,
         )
 
         return self.mine_block()
@@ -639,7 +633,7 @@ class VM(BaseVM):
     #
     def _assign_block_rewards(self, block: BaseBlock) -> None:
         block_reward = self.get_block_reward() + (
-                len(block.uncles) * self.get_nephew_reward()
+            len(block.uncles) * self.get_nephew_reward()
         )
 
         self.state.delta_balance(block.header.coinbase, block_reward)
