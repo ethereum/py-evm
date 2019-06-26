@@ -3,12 +3,12 @@ from typing import (  # noqa: F401
     Iterable,
     Sequence,
     Tuple,
-    TYPE_CHECKING,
 )
 
 from eth_typing import (
     BLSPubkey,
     BLSSignature,
+    Hash32,
 )
 from eth_utils import (
     encode_hex,
@@ -29,12 +29,14 @@ from eth2.configs import (
 )
 from eth2.beacon.attestation_helpers import (
     get_attestation_data_slot,
-    convert_to_indexed,
     validate_indexed_attestation,
     is_slashable_attestation_data,
 )
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
+)
+from eth2.beacon.epoch_processing_helpers import (
+    convert_to_indexed,
 )
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
@@ -64,11 +66,6 @@ from eth2.beacon.typing import (
 from eth2.configs import (
     Eth2Config,
 )
-
-if TYPE_CHECKING:
-    from eth_typing import (
-        Hash32,
-    )
 
 
 def validate_correct_number_of_deposits(state: BeaconState,

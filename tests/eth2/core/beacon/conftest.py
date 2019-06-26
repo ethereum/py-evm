@@ -1,4 +1,3 @@
-from eth2.beacon.types.attestations import Attestation
 import pytest
 
 from eth.constants import (
@@ -24,6 +23,7 @@ from eth2.beacon.fork_choice import (
 from eth2.beacon.helpers import (
     slot_to_epoch,
 )
+from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.crosslinks import Crosslink

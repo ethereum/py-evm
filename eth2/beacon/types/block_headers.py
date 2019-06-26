@@ -1,7 +1,3 @@
-from typing import (
-    TYPE_CHECKING,
-)
-
 from eth.constants import (
     ZERO_HASH32,
 )
@@ -29,10 +25,6 @@ from eth2.beacon.typing import (
 from .defaults import (
     default_slot,
 )
-
-
-if TYPE_CHECKING:
-    from eth2.beacon.db.chain import BaseBeaconChainDB  # noqa: F401
 
 
 class BeaconBlockHeader(ssz.SignedSerializable):

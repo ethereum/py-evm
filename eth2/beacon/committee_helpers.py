@@ -1,7 +1,6 @@
 from typing import (
     Iterable,
     Sequence,
-    TYPE_CHECKING,
 )
 
 from eth_utils import (
@@ -31,13 +30,7 @@ from eth2.beacon.typing import (
     Shard,
     ValidatorIndex,
 )
-
-
-if TYPE_CHECKING:
-    from eth2.beacon.types.attestations import Attestation  # noqa: F401
-    from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
-    from eth2.beacon.types.states import BeaconState  # noqa: F401
-    from eth2.beacon.types.validators import Validator  # noqa: F401
+from eth2.beacon.types.states import BeaconState
 
 
 def get_epoch_committee_count(active_validator_count: int,
@@ -53,7 +46,7 @@ def get_epoch_committee_count(active_validator_count: int,
     ) * slots_per_epoch
 
 
-def get_shard_delta(state: 'BeaconState',
+def get_shard_delta(state: BeaconState,
                     epoch: Epoch,
                     config: CommitteeConfig) -> int:
     shard_count = config.SHARD_COUNT
@@ -72,7 +65,7 @@ def get_shard_delta(state: 'BeaconState',
     )
 
 
-def get_epoch_start_shard(state: 'BeaconState',
+def get_epoch_start_shard(state: BeaconState,
                           epoch: Epoch,
                           config: CommitteeConfig) -> Shard:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
@@ -92,7 +85,7 @@ def get_epoch_start_shard(state: 'BeaconState',
     return shard
 
 
-def get_beacon_proposer_index(state: 'BeaconState',
+def get_beacon_proposer_index(state: BeaconState,
                               committee_config: CommitteeConfig) -> ValidatorIndex:
     """
     Return the current beacon proposer index.
@@ -186,7 +179,7 @@ def _compute_committee(indices: Sequence[ValidatorIndex],
 
 
 @to_tuple
-def get_crosslink_committee(state: 'BeaconState',
+def get_crosslink_committee(state: BeaconState,
                             epoch: Epoch,
                             shard: Shard,
                             config: CommitteeConfig) -> Iterable[ValidatorIndex]:

@@ -31,11 +31,11 @@ from eth2.configs import (
     CommitteeConfig,
 )
 
+from eth2.beacon.types.forks import Fork
+from eth2.beacon.types.validators import Validator
+
 if TYPE_CHECKING:
-    from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
     from eth2.beacon.types.states import BeaconState  # noqa: F401
-    from eth2.beacon.types.forks import Fork  # noqa: F401
-    from eth2.beacon.types.validators import Validator  # noqa: F401
 
 
 def slot_to_epoch(slot: Slot, slots_per_epoch: int) -> Epoch:
@@ -46,7 +46,7 @@ def get_epoch_start_slot(epoch: Epoch, slots_per_epoch: int) -> Slot:
     return Slot(epoch * slots_per_epoch)
 
 
-def get_active_validator_indices(validators: Sequence['Validator'],
+def get_active_validator_indices(validators: Sequence[Validator],
                                  epoch: Epoch) -> Tuple[ValidatorIndex, ...]:
     """
     Get indices of active validators from ``validators``.
@@ -186,7 +186,7 @@ def get_total_balance(state: 'BeaconState',
     )
 
 
-def _get_fork_version(fork: 'Fork', epoch: Epoch) -> bytes:
+def _get_fork_version(fork: Fork, epoch: Epoch) -> bytes:
     """
     Return the current ``fork_version`` from the given ``fork`` and ``epoch``.
     """
