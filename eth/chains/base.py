@@ -540,7 +540,7 @@ class Chain(BaseChain):
         """
         Returns the current TIP block.
         """
-        return self.get_vm().block
+        return self.get_vm().get_block()
 
     def get_block_by_hash(self, block_hash: Hash32) -> BaseBlock:
         """
@@ -555,7 +555,7 @@ class Chain(BaseChain):
         Returns the requested block as specified by the block header.
         """
         vm = self.get_vm(block_header)
-        return vm.block
+        return vm.get_block()
 
     def get_canonical_block_by_number(self, block_number: BlockNumber) -> BaseBlock:
         """
@@ -594,7 +594,7 @@ class Chain(BaseChain):
         vm = self.get_vm(base_header)
 
         new_header, receipts, computations = vm.apply_all_transactions(transactions, base_header)
-        new_block = vm.set_block_transactions(vm.block, new_header, transactions, receipts)
+        new_block = vm.set_block_transactions(vm.get_block(), new_header, transactions, receipts)
 
         return new_block, receipts, computations
 
@@ -894,7 +894,7 @@ class MiningChain(Chain):
         heavy and incurs significant performance overhead.
         """
         vm = self.get_vm(self.header)
-        base_block = vm.block
+        base_block = vm.get_block()
 
         receipt, computation = vm.apply_transaction(base_block.header, transaction)
         header_with_receipt = vm.add_receipt_to_header(base_block.header, receipt)

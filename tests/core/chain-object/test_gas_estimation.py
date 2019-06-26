@@ -112,7 +112,7 @@ def test_estimate_gas_on_full_block(chain, funded_address_private_key, funded_ad
 
     # fill the canonical head
     fill_block(chain, from_, from_key, gas, garbage_data)
-    chain.import_block(chain.get_vm().block)
+    chain.import_block(chain.get_vm().get_block())
 
     # build a transaction to estimate gas for
     next_canonical_tx = mk_estimation_txn(chain, from_, from_key, data=garbage_data * 2)

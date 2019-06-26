@@ -97,8 +97,8 @@ def create_frontier_header_from_parent(parent_header: BlockHeader,
 def configure_frontier_header(vm: "FrontierVM", **header_params: Any) -> BlockHeader:
     validate_header_params_for_configuration(header_params)
 
-    with vm.header.build_changeset(**header_params) as changeset:
-        if 'timestamp' in header_params and vm.header.block_number > 0:
+    with vm.get_header().build_changeset(**header_params) as changeset:
+        if 'timestamp' in header_params and vm.get_header().block_number > 0:
             parent_header = get_parent_header(changeset.build_rlp(), vm.chaindb)
             changeset.difficulty = compute_frontier_difficulty(
                 parent_header,

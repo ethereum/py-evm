@@ -81,7 +81,7 @@ from eth.vm.computation import BaseComputation
 
 
 class BaseVM(Configurable, ABC):
-    block = None  # type: BaseBlock
+    get_block = None  # type: BaseBlock
     block_class = None  # type: Type[BaseBlock]
     fork = None  # type: str
     chaindb = None  # type: BaseChainDB
@@ -105,14 +105,12 @@ class BaseVM(Configurable, ABC):
             previous_hashes: Iterable[Hash32] = ()) -> BaseState:
         pass
 
-    @property
     @abstractmethod
-    def header(self) -> BlockHeader:
+    def get_header(self) -> BlockHeader:
         pass
 
-    @property
     @abstractmethod
-    def block(self) -> BaseBlock:
+    def get_block(self) -> BaseBlock:
         pass
 
     #
@@ -143,7 +141,7 @@ class BaseVM(Configurable, ABC):
                          value: int,
                          data: bytes,
                          code: bytes,
-                         code_address: Address=None) -> BaseComputation:
+                         code_address: Address = None) -> BaseComputation:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
@@ -403,28 +401,25 @@ class VM(BaseVM):
         self.chaindb = chaindb
         self._initial_header = header
 
-    @property
-    def header(self) -> BlockHeader:
+    def get_header(self) -> BlockHeader:
         if self._block is None:
             return self._initial_header
         else:
             return self._block.header
 
-    @property
-    def block(self) -> BaseBlock:
+    def get_block(self) -> BaseBlock:
         if self._block is None:
             block_class = self.get_block_class()
             self._block = block_class.from_header(header=self._initial_header, chaindb=self.chaindb)
         return self._block
 
-    @block.setter
-    def block(self, block: BaseBlock) -> None:
+    def set_block(self, block: BaseBlock) -> None:
         self._block = block
 
     @property
     def state(self) -> BaseState:
         if self._state is None:
-            self._state = self.build_state(self.chaindb.db, self.header, self.previous_hashes)
+            self._state = self.build_state(self.chaindb.db, self.get_header(), self.previous_hashes)
         return self._state
 
     @classmethod
@@ -480,7 +475,7 @@ class VM(BaseVM):
                          value: int,
                          data: bytes,
                          code: bytes,
-                         code_address: Address=None,
+                         code_address: Address = None,
                          ) -> BaseComputation:
         """
         Execute raw bytecode in the context of the current state of
@@ -526,11 +521,11 @@ class VM(BaseVM):
         :param base_header: the starting header to apply transactions to
         :return: the final header, the receipts of each transaction, and the computations
         """
-        if base_header.block_number != self.header.block_number:
+        if base_header.block_number != self.get_header().block_number:
             raise ValidationError(
                 "This VM instance must only work on block #{}, "
                 "but the target header has block #{}".format(
-                    self.header.block_number,
+                    self.get_header().block_number,
                     base_header.block_number,
                 )
             )
@@ -567,37 +562,41 @@ class VM(BaseVM):
         """
         Import the given block to the chain.
         """
-        if self.block.number != block.number:
+        if self.get_block().number != block.number:
             raise ValidationError(
                 "This VM can only import blocks at number #{}, the attempted block was #{}".format(
-                    self.block.number,
+                    self.get_block().number,
                     block.number,
                 )
             )
 
-        self.block = self.block.copy(
-            header=self.configure_header(
-                coinbase=block.header.coinbase,
-                gas_limit=block.header.gas_limit,
-                timestamp=block.header.timestamp,
-                extra_data=block.header.extra_data,
-                mix_hash=block.header.mix_hash,
-                nonce=block.header.nonce,
-                uncles_hash=keccak(rlp.encode(block.uncles)),
-            ),
-            uncles=block.uncles,
+        self.set_block(
+            self.get_block().copy(
+                header=self.configure_header(
+                    coinbase=block.header.coinbase,
+                    gas_limit=block.header.gas_limit,
+                    timestamp=block.header.timestamp,
+                    extra_data=block.header.extra_data,
+                    mix_hash=block.header.mix_hash,
+                    nonce=block.header.nonce,
+                    uncles_hash=keccak(rlp.encode(block.uncles)),
+                ),
+                uncles=block.uncles,
+            )
         )
         # we need to re-initialize the `state` to update the execution context.
-        self._state = self.build_state(self.chaindb.db, self.header, self.previous_hashes)
+        self._state = self.build_state(self.chaindb.db, self.get_header(), self.previous_hashes)
 
         # run all of the transactions.
-        new_header, receipts, _ = self.apply_all_transactions(block.transactions, self.header)
+        new_header, receipts, _ = self.apply_all_transactions(block.transactions, self.get_header())
 
-        self.block = self.set_block_transactions(
-            self.block,
-            new_header,
-            block.transactions,
-            receipts,
+        self.set_block(
+            self.set_block_transactions(
+                self.get_block(),
+                new_header,
+                block.transactions,
+                receipts,
+            )
         )
 
         return self.mine_block()
@@ -606,7 +605,7 @@ class VM(BaseVM):
         """
         Mine the current block. Proxies to self.pack_block method.
         """
-        packed_block = self.pack_block(self.block, *args, **kwargs)
+        packed_block = self.pack_block(self.get_block(), *args, **kwargs)
 
         final_block = self.finalize_block(packed_block)
 
@@ -640,7 +639,7 @@ class VM(BaseVM):
     #
     def _assign_block_rewards(self, block: BaseBlock) -> None:
         block_reward = self.get_block_reward() + (
-            len(block.uncles) * self.get_nephew_reward()
+                len(block.uncles) * self.get_nephew_reward()
         )
 
         self.state.delta_balance(block.header.coinbase, block_reward)
@@ -773,7 +772,7 @@ class VM(BaseVM):
         """
         Convenience API for accessing the previous 255 block hashes.
         """
-        return self.get_prev_hashes(self.header.parent_hash, self.chaindb)
+        return self.get_prev_hashes(self.get_header().parent_hash, self.chaindb)
 
     #
     # Transactions
@@ -984,9 +983,9 @@ class VM(BaseVM):
 
     @contextlib.contextmanager
     def state_in_temp_block(self) -> Iterator[BaseState]:
-        header = self.header
+        header = self.get_header()
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
-        prev_hashes = itertools.chain((header.hash, ), self.previous_hashes)
+        prev_hashes = itertools.chain((header.hash,), self.previous_hashes)
 
         state = self.build_state(self.chaindb.db, temp_block.header, prev_hashes)
 
