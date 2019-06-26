@@ -20,7 +20,7 @@ from .deposit_data import (
     default_deposit_data,
 )
 
-from .default import (
+from .defaults import (
     default_tuple,
 )
 
