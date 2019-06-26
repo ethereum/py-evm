@@ -231,7 +231,7 @@ def test_get_winning_root_and_participants(
         block_root_2_participants,
         config,
         committee_config,
-        n_validators_state,
+        genesis_state,
         sample_attestation_data_params,
         sample_attestation_params):
     shard = 1
@@ -293,7 +293,7 @@ def test_get_winning_root_and_participants(
         ),
     )
 
-    state = n_validators_state.copy(
+    state = genesis_state.copy(
         previous_epoch_attestations=attestations,
     )
     effective_balances = {
@@ -366,7 +366,7 @@ def test_get_epoch_boundary_attesting_balances(
     random,
     config,
     n,
-    n_validators_state,
+    genesis_state,
     sample_attestation_data_params,
     sample_attestation_params,
     max_effective_balance,
@@ -455,7 +455,7 @@ def test_get_epoch_boundary_attesting_balances(
         ),
     )
 
-    state = n_validators_state.copy(
+    state = genesis_state.copy(
         slot=slot,
         current_justified_epoch=current_justified_epoch,
         previous_justified_epoch=previous_justified_epoch,
@@ -500,7 +500,7 @@ def test_get_epoch_boundary_attesting_balances(
 def test_get_inclusion_infos(
         monkeypatch,
         n,
-        n_validators_state,
+        genesis_state,
         config,
         slots_per_epoch,
         target_committee_size,
@@ -557,7 +557,7 @@ def test_get_inclusion_infos(
     ]
 
     result = get_inclusion_infos(
-        state=n_validators_state,
+        state=genesis_state,
         attestations=previous_epoch_attestations,
         committee_config=CommitteeConfig(config),
     )

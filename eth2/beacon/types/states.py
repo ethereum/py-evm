@@ -184,53 +184,6 @@ class BeaconState(ssz.Serializable):
     def __repr__(self) -> str:
         return f"<BeaconState #{self.slot} {encode_hex(self.root)[2:10]}>"
 
-    # @classmethod
-    # def create_filled_state(cls,
-    #                         *,
-    #                         genesis_epoch: Epoch,
-    #                         genesis_start_shard: Shard,
-    #                         genesis_slot: Slot,
-    #                         shard_count: int,
-    #                         slots_per_historical_root: int,
-    #                         epochs_per_historical_vector: int,
-    #                         epochs_per_historical_vector: int,
-    #                         epochs_per_slashed_balances_vector: int,
-    #                         activated_genesis_validators: Sequence[Validator]=(),
-    #                         genesis_balances: Sequence[Gwei]=()) -> 'BeaconState':
-
-    #     return cls(
-    #         # Misc
-    #         slot=genesis_slot,
-    #         fork=Fork(
-    #             epoch=genesis_epoch,
-    #         ),
-
-    #         # Validator registry
-    #         validators=activated_genesis_validators,
-    #         balances=genesis_balances,
-
-    #         # Randomness and committees
-    #         randao_mixes=(ZERO_HASH32,) * epochs_per_historical_vector,
-
-    #         # Finality
-    #         previous_justified_epoch=genesis_epoch,
-    #         current_justified_epoch=genesis_epoch,
-    #         finalized_epoch=genesis_epoch,
-
-    #         # Recent state
-    #         latest_crosslinks=(Crosslink(),) * shard_count,
-    #         block_roots=(ZERO_HASH32,) * slots_per_historical_root,
-    #         state_roots=(ZERO_HASH32,) * slots_per_historical_root,
-    #         active_index_roots=(ZERO_HASH32,) * epochs_per_historical_vector,
-    #         slashed_balances=(Gwei(0),) * epochs_per_slashed_balances_vector,
-    #         latest_block_header=BeaconBlockHeader().copy(
-    #             slot=genesis_slot,
-    #         ),
-
-    #         # Ethereum 1.0 chain data
-    #         eth1_deposit_index=len(activated_genesis_validators),
-    #     )
-
     def update_validator_at_index(self,
                                   validator_index: ValidatorIndex,
                                   validator: Validator) -> 'BeaconState':

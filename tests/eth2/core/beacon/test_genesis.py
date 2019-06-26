@@ -35,14 +35,14 @@ def test_get_genesis_block():
 
 @pytest.mark.parametrize(
     (
-        'num_validators,'
+        'validator_count,'
     ),
     [
         (10)
     ]
 )
 def test_get_genesis_beacon_state(
-        num_validators,
+        validator_count,
         pubkeys,
         genesis_epoch,
         genesis_slot,
@@ -57,7 +57,7 @@ def test_get_genesis_beacon_state(
     validator_count = 5
 
     genesis_validator_deposits, deposit_root = create_mock_genesis_validator_deposits_and_root(
-        num_validators=validator_count,
+        validator_count=validator_count,
         config=config,
         pubkeys=pubkeys,
         keymap=keymap,

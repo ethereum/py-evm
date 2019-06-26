@@ -81,7 +81,7 @@ def test_process_max_attestations(genesis_state,
 
 @pytest.mark.parametrize(
     (
-        'num_validators',
+        'validator_count',
         'slots_per_epoch',
         'target_committee_size',
         'shard_count',
@@ -152,7 +152,7 @@ def test_process_proposer_slashings(genesis_state,
 
 @pytest.mark.parametrize(
     (
-        'num_validators',
+        'validator_count',
         'slots_per_epoch',
         'target_committee_size',
         'shard_count',
@@ -233,7 +233,7 @@ def test_process_attester_slashings(genesis_state,
 
 @pytest.mark.parametrize(
     (
-        'num_validators,'
+        'validator_count,'
         'slots_per_epoch,'
         'min_attestation_inclusion_delay,'
         'target_committee_size,'
@@ -315,7 +315,7 @@ def test_process_attestations(genesis_state,
 
 @pytest.mark.parametrize(
     (
-        'num_validators',
+        'validator_count',
         'slots_per_epoch',
         'target_committee_size',
         'activation_exit_delay',

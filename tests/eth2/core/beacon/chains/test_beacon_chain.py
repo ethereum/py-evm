@@ -40,7 +40,7 @@ def valid_chain(beacon_chain_with_block_validation):
 
 @pytest.mark.parametrize(
     (
-        'num_validators,slots_per_epoch,target_committee_size,shard_count'
+        'validator_count,slots_per_epoch,target_committee_size,shard_count'
     ),
     [
         (100, 20, 10, 10),
@@ -72,7 +72,7 @@ def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
 
 @pytest.mark.parametrize(
     (
-        'num_validators,'
+        'validator_count,'
         'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
@@ -119,7 +119,7 @@ def test_get_state_by_slot(valid_chain,
 @pytest.mark.long
 @pytest.mark.parametrize(
     (
-        'num_validators,slots_per_epoch,target_committee_size,shard_count'
+        'validator_count,slots_per_epoch,target_committee_size,shard_count'
     ),
     [
         (100, 16, 10, 10),
@@ -199,7 +199,7 @@ def test_from_genesis(base_db,
 @pytest.mark.long
 @pytest.mark.parametrize(
     (
-        'num_validators,'
+        'validator_count,'
         'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'

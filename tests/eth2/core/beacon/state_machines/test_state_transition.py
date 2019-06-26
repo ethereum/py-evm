@@ -19,7 +19,7 @@ from eth2.beacon.types.historical_batch import HistoricalBatch
 )
 @pytest.mark.parametrize(
     (
-        'num_validators,'
+        'validator_count,'
         'slots_per_epoch,'
         'min_attestation_inclusion_delay,'
         'target_committee_size,'

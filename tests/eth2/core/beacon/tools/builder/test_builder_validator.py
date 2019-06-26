@@ -98,7 +98,7 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
 )
 @pytest.mark.parametrize(
     (
-        'num_validators,'
+        'validator_count,'
         'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
@@ -117,7 +117,7 @@ def test_get_committee_assignment(genesis_state,
                                   slots_per_epoch,
                                   shard_count,
                                   config,
-                                  num_validators,
+                                  validator_count,
                                   state_epoch,
                                   epoch,
                                   registry_change):
@@ -134,7 +134,7 @@ def test_get_committee_assignment(genesis_state,
 
     epoch_start_slot = get_epoch_start_slot(epoch, slots_per_epoch)
 
-    for validator_index in range(num_validators):
+    for validator_index in range(validator_count):
         assignment = get_committee_assignment(
             state,
             config,
@@ -151,12 +151,12 @@ def test_get_committee_assignment(genesis_state,
         slots.append(assignment.slot)
 
     assert proposer_count == slots_per_epoch
-    assert sum(shard_validator_count) == num_validators
+    assert sum(shard_validator_count) == validator_count
 
 
 @pytest.mark.parametrize(
     (
-        'num_validators,'
+        'validator_count,'
         'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'

@@ -36,11 +36,11 @@ def test_validators_and_balances_length(sample_beacon_state_params, config):
         (100, 5566, 100),
     ]
 )
-def test_update_validator(n_validators_state,
+def test_update_validator(genesis_state,
                           validator_index,
                           new_pubkey,
                           new_balance, config):
-    state = n_validators_state
+    state = genesis_state
     validator = mock_validator(new_pubkey, config)
 
     if validator_index < state.num_validators:

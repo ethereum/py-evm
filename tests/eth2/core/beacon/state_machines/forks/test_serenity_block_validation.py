@@ -201,16 +201,16 @@ def _generate_some_indices(data, max_value_for_list):
 
 
 @given(st.data())
-def test_get_pubkey_for_indices(activated_genesis_validators, data):
-    max_value_for_list = len(activated_genesis_validators) - 1
+def test_get_pubkey_for_indices(genesis_validators, data):
+    max_value_for_list = len(genesis_validators) - 1
     indices = _generate_some_indices(data, max_value_for_list)
-    pubkeys = get_pubkey_for_indices(activated_genesis_validators, indices)
+    pubkeys = get_pubkey_for_indices(genesis_validators, indices)
 
     assert len(indices) == len(pubkeys)
 
     for index, pubkey in enumerate(pubkeys):
         validator_index = indices[index]
-        assert activated_genesis_validators[validator_index].pubkey == pubkey
+        assert genesis_validators[validator_index].pubkey == pubkey
 
 
 def _list_and_index(data, max_size=None, elements=None):
@@ -225,10 +225,10 @@ def _list_and_index(data, max_size=None, elements=None):
 
 
 @given(st.data())
-def test_generate_aggregate_pubkeys(activated_genesis_validators,
+def test_generate_aggregate_pubkeys(genesis_validators,
                                     sample_slashable_attestation_params,
                                     data):
-    max_value_for_list = len(activated_genesis_validators) - 1
+    max_value_for_list = len(genesis_validators) - 1
     (validator_indices, some_index) = _list_and_index(
         data,
         elements=st.integers(
@@ -254,15 +254,15 @@ def test_generate_aggregate_pubkeys(activated_genesis_validators,
     ) == 0
 
     keys = generate_aggregate_pubkeys_from_indices(
-        activated_genesis_validators,
+        genesis_validators,
         *slashable_attestation.custody_bit_indices,
     )
     assert len(keys) == 2
 
     (poc_0_key, poc_1_key) = keys
 
-    poc_0_keys = get_pubkey_for_indices(activated_genesis_validators, custody_bit_0_indices)
-    poc_1_keys = get_pubkey_for_indices(activated_genesis_validators, custody_bit_1_indices)
+    poc_0_keys = get_pubkey_for_indices(genesis_validators, custody_bit_0_indices)
+    poc_1_keys = get_pubkey_for_indices(genesis_validators, custody_bit_1_indices)
 
     assert bls.aggregate_pubkeys(poc_0_keys) == poc_0_key
     assert bls.aggregate_pubkeys(poc_1_keys) == poc_1_key
@@ -289,7 +289,7 @@ def _get_indices_and_signatures(num_validators, message_hash, privkeys, fork, ep
 
 def _correct_slashable_attestation_params(
         slots_per_epoch,
-        num_validators,
+        validator_count,
         params,
         message_hashes,
         privkeys,
@@ -297,7 +297,7 @@ def _correct_slashable_attestation_params(
     valid_params = copy.deepcopy(params)
 
     (validator_indices, signatures) = _get_indices_and_signatures(
-        num_validators,
+        validator_count,
         message_hashes[0],  # custody bit is False
         privkeys,
         fork,
@@ -364,7 +364,7 @@ def _create_slashable_attestation_messages(params):
 
 @pytest.mark.parametrize(
     (
-        'num_validators',
+        'validator_count',
     ),
     [
         (40,),
@@ -372,15 +372,15 @@ def _create_slashable_attestation_messages(params):
 )
 def test_verify_slashable_attestation_signature(
         slots_per_epoch,
-        num_validators,
+        validator_count,
         privkeys,
         sample_beacon_state_params,
-        activated_genesis_validators,
+        genesis_validators,
         genesis_balances,
         sample_slashable_attestation_params,
         sample_fork_params):
     state = BeaconState(**sample_beacon_state_params).copy(
-        validators=activated_genesis_validators,
+        validators=genesis_validators,
         balances=genesis_balances,
         fork=Fork(**sample_fork_params),
     )
@@ -391,7 +391,7 @@ def test_verify_slashable_attestation_signature(
 
     valid_params = _correct_slashable_attestation_params(
         slots_per_epoch,
-        num_validators,
+        validator_count,
         sample_slashable_attestation_params,
         message_hashes,
         privkeys,
@@ -431,7 +431,7 @@ def _run_verify_slashable_vote(
 
 @pytest.mark.parametrize(
     (
-        'num_validators',
+        'validator_count',
     ),
     [
         (40,),
@@ -455,20 +455,20 @@ def _run_verify_slashable_vote(
 )
 def test_validate_slashable_attestation(
         slots_per_epoch,
-        num_validators,
+        validator_count,
         param_mapper,
         should_succeed,
         needs_fork,
         is_testing_max_length,
         privkeys,
         sample_beacon_state_params,
-        activated_genesis_validators,
+        genesis_validators,
         genesis_balances,
         sample_slashable_attestation_params,
         sample_fork_params,
         max_indices_per_slashable_vote):
     state = BeaconState(**sample_beacon_state_params).copy(
-        validators=activated_genesis_validators,
+        validators=genesis_validators,
         balances=genesis_balances,
         fork=Fork(**sample_fork_params),
     )
@@ -479,7 +479,7 @@ def test_validate_slashable_attestation(
 
     params = _correct_slashable_attestation_params(
         slots_per_epoch,
-        num_validators,
+        validator_count,
         sample_slashable_attestation_params,
         message_hashes,
         privkeys,
@@ -503,7 +503,7 @@ def test_validate_slashable_attestation(
 
 @pytest.mark.parametrize(
     (
-        'num_validators',
+        'validator_count',
     ),
     [
         (40,),
@@ -511,10 +511,10 @@ def test_validate_slashable_attestation(
 )
 def test_verify_slashable_attestation_after_fork(
         slots_per_epoch,
-        num_validators,
+        validator_count,
         privkeys,
         sample_beacon_state_params,
-        activated_genesis_validators,
+        genesis_validators,
         genesis_balances,
         sample_slashable_attestation_params,
         sample_fork_params,
@@ -528,7 +528,7 @@ def test_verify_slashable_attestation_after_fork(
     }
 
     state = BeaconState(**sample_beacon_state_params).copy(
-        validators=activated_genesis_validators,
+        validators=genesis_validators,
         balances=genesis_balances,
         fork=Fork(**past_fork_params),
         slot=20,
@@ -538,7 +538,7 @@ def test_verify_slashable_attestation_after_fork(
 
     valid_params = _correct_slashable_attestation_params(
         slots_per_epoch,
-        num_validators,
+        validator_count,
         sample_slashable_attestation_params,
         message_hashes,
         privkeys,

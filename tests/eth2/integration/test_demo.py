@@ -70,19 +70,19 @@ def test_demo(base_db,
         config=config,
     )
 
-    num_validators = 40
+    validator_count = 40
 
     genesis_slot = config.GENESIS_SLOT
     genesis_epoch = config.GENESIS_EPOCH
     chaindb = BeaconChainDB(base_db, config)
 
     genesis_state, genesis_block = create_mock_genesis(
-        num_validators=num_validators,
+        validator_count=validator_count,
         config=config,
         keymap=keymap,
         genesis_block_class=SerenityBeaconBlock,
     )
-    for i in range(num_validators):
+    for i in range(validator_count):
         assert genesis_state.validators[i].is_active(genesis_slot)
 
     chaindb.persist_block(genesis_block, SerenityBeaconBlock, fork_choice_scoring)

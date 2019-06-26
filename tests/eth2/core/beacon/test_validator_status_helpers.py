@@ -43,14 +43,14 @@ from eth2.beacon.tools.builder.initializer import (
     ]
 )
 def test_activate_validator(is_genesis,
-                            filled_beacon_state,
+                            genesis_state,
                             genesis_epoch,
                             slots_per_epoch,
                             activation_exit_delay,
                             max_effective_balance,
                             config):
-    validator_count = 10
-    state = filled_beacon_state.copy(
+    validator_count = len(genesis_state.validators)
+    state = genesis_state.copy(
         validators=tuple(
             mock_validator(
                 pubkey=index.to_bytes(48, 'little'),
@@ -59,7 +59,6 @@ def test_activate_validator(is_genesis,
             )
             for index in range(validator_count)
         ),
-        balances=(max_effective_balance,) * validator_count,
     )
     index = 1
     # Check that the `index`th validator in `state` is inactivated
@@ -86,8 +85,8 @@ def test_activate_validator(is_genesis,
         )
 
 
-def test_initiate_validator_exit(n_validators_state):
-    state = n_validators_state
+def test_initiate_validator_exit(genesis_state):
+    state = genesis_state
     index = 1
     assert state.validators[index].initiated_exit is False
 
@@ -100,7 +99,7 @@ def test_initiate_validator_exit(n_validators_state):
 
 @pytest.mark.parametrize(
     (
-        'num_validators',
+        'validator_count',
         'activation_exit_delay',
         'committee',
         'state_slot',
@@ -130,15 +129,15 @@ def test_initiate_validator_exit(n_validators_state):
         ),
     ],
 )
-def test_exit_validator(num_validators,
+def test_exit_validator(validator_count,
                         activation_exit_delay,
                         committee,
                         state_slot,
                         exit_epoch,
-                        n_validators_state,
+                        genesis_state,
                         slots_per_epoch):
     # Unchanged
-    state = n_validators_state.copy(
+    state = genesis_state.copy(
         slot=state_slot,
     )
     index = 1
@@ -171,16 +170,16 @@ def test_exit_validator(num_validators,
 
 @pytest.mark.parametrize(
     (
-        'num_validators, committee'
+        'validator_count, committee'
     ),
     [
         (10, [4, 5, 6, 7]),
     ],
 )
 def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
-                                                        num_validators,
+                                                        validator_count,
                                                         committee,
-                                                        n_validators_state,
+                                                        genesis_state,
                                                         epochs_per_slashed_balances_vector,
                                                         whistleblower_reward_quotient,
                                                         max_effective_balance,
@@ -201,7 +200,7 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
         mock_get_crosslink_committees_at_slot
     )
 
-    state = n_validators_state
+    state = genesis_state
     validator_index = 5
     whistleblower_index = get_beacon_proposer_index(
         state,
@@ -249,16 +248,16 @@ def test_settle_penality_to_validator_and_whistleblower(monkeypatch,
 
 @pytest.mark.parametrize(
     (
-        'num_validators, committee'
+        'validator_count, committee'
     ),
     [
         (10, [4, 5, 6, 7]),
     ],
 )
 def test_slash_validator(monkeypatch,
-                         num_validators,
+                         validator_count,
                          committee,
-                         n_validators_state,
+                         genesis_state,
                          genesis_epoch,
                          slots_per_epoch,
                          epochs_per_slashed_balances_vector,
@@ -284,7 +283,7 @@ def test_slash_validator(monkeypatch,
         mock_get_crosslink_committees_at_slot
     )
 
-    state = n_validators_state
+    state = genesis_state
     index = 1
 
     result_state = slash_validator(
@@ -316,10 +315,10 @@ def test_slash_validator(monkeypatch,
     assert result_state == expected_state
 
 
-def test_prepare_validator_for_withdrawal(n_validators_state,
+def test_prepare_validator_for_withdrawal(genesis_state,
                                           slots_per_epoch,
                                           min_validator_withdrawability_delay):
-    state = n_validators_state
+    state = genesis_state
     index = 1
     result_state = prepare_validator_for_withdrawal(
         state,

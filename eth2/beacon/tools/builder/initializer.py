@@ -27,8 +27,6 @@ from eth2._utils.merkle.sparse import (
 )
 from eth2.configs import Eth2Config
 from eth2.beacon.constants import (
-    GWEI_PER_ETH,
-    FAR_FUTURE_EPOCH,
     ZERO_TIMESTAMP,
 )
 from eth2.beacon.genesis import (
@@ -44,9 +42,11 @@ from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
-    Gwei,
     Timestamp,
     ValidatorIndex,
+)
+from eth2.beacon.validator_status_helpers import (
+    activate_validator,
 )
 
 from eth2.beacon.tools.builder.validator import (
@@ -132,15 +132,17 @@ def create_mock_genesis(
 def mock_validator(pubkey: BLSPubkey,
                    config: Eth2Config,
                    withdrawal_credentials: Hash32=ZERO_HASH32,
-                   balance: int=32,  # ETH
                    is_active: bool=True) -> Validator:
-    return Validator(
-        pubkey=pubkey,
-        withdrawal_credentials=withdrawal_credentials,
-        activation_eligibility_epoch=config.GENESIS_EPOCH if is_active else FAR_FUTURE_EPOCH,
-        activation_epoch=config.GENESIS_EPOCH if is_active else FAR_FUTURE_EPOCH,
-        exit_epoch=FAR_FUTURE_EPOCH,
-        withdrawable_epoch=FAR_FUTURE_EPOCH,
-        slashed=False,
-        effective_balance=Gwei(balance * GWEI_PER_ETH),
+    validator = Validator.create_pending_validator(
+        pubkey,
+        withdrawal_credentials,
+        config.MAX_EFFECTIVE_BALANCE,
+        config,
     )
+    if is_active:
+        return activate_validator(
+            validator,
+            config.GENESIS_EPOCH,
+        )
+    else:
+        return validator

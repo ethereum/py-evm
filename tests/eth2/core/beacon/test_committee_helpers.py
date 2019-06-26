@@ -75,13 +75,13 @@ def test_get_epoch_committee_count(
         (64, 2, 2, 1024, 32),
     ]
 )
-def test_get_next_epoch_committee_count(n_validators_state,
+def test_get_next_epoch_committee_count(genesis_state,
                                         shard_count,
                                         slots_per_epoch,
                                         target_committee_size,
                                         expected_committee_count,
                                         config):
-    state = n_validators_state
+    state = genesis_state
 
     current_epoch_committee_count = get_current_epoch_committee_count(
         state,
@@ -149,7 +149,7 @@ def test_get_next_epoch_committee_count(n_validators_state,
         (20, 10, 3, 10, 1),
     ],
 )
-def test_get_shuffling_is_complete(activated_genesis_validators,
+def test_get_shuffling_is_complete(# activated_genesis_validators,
                                    slots_per_epoch,
                                    target_committee_size,
                                    committee_config,
@@ -204,7 +204,7 @@ def test_get_shuffling_is_complete(activated_genesis_validators,
 
     ],
 )
-def test_get_shuffling_cache(activated_genesis_validators,
+def test_get_shuffling_cache(# activated_genesis_validators,
                              committee_config,
                              epoch):
     start_time = time.time()
@@ -264,7 +264,7 @@ def test_get_shuffling_cache(activated_genesis_validators,
 )
 def test_get_prev_or_cur_epoch_committee_count(
         monkeypatch,
-        n_validators_state,
+        genesis_state,
         slots_per_epoch,
         n,
         target_committee_size,
@@ -289,7 +289,7 @@ def test_get_prev_or_cur_epoch_committee_count(
         mock_get_epoch_committee_count
     )
 
-    state = n_validators_state.copy(
+    state = genesis_state.copy(
         slot=0,
         previous_shuffling_epoch=previous_shuffling_epoch,
         current_shuffling_epoch=current_shuffling_epoch,
@@ -381,7 +381,7 @@ def test_get_prev_or_cur_epoch_committee_count(
 def test_get_crosslink_committees_at_slot(
         monkeypatch,
         genesis_slot,
-        n_validators_state,
+        genesis_state,
         current_slot,
         slot,
         slots_per_epoch,
@@ -407,7 +407,7 @@ def test_get_crosslink_committees_at_slot(
         mock_generate_seed
     )
 
-    state = n_validators_state.copy(
+    state = genesis_state.copy(
         slot=current_slot,
         previous_shuffling_epoch=previous_shuffling_epoch,
         current_shuffling_epoch=current_shuffling_epoch,
@@ -511,7 +511,7 @@ def test_get_crosslink_committees_at_slot(
 )
 @pytest.mark.parametrize(
     (
-        'num_validators,'
+        'validator_count,'
         'slots_per_epoch,'
         'committee,'
         'slot,'

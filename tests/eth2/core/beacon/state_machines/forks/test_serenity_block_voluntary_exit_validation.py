@@ -25,7 +25,7 @@ from eth2.beacon.tools.builder.validator import (
 
 @pytest.mark.parametrize(
     (
-        'num_validators',
+        'validator_count',
         'slots_per_epoch',
         'target_committee_size',
         'persistent_committee_period',
