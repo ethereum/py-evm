@@ -25,7 +25,7 @@ from .defaults import (
 )
 
 
-class DepositData(ssz.Serializable):
+class DepositData(ssz.SignedSerializable):
     """
     :class:`~eth2.beacon.types.deposit_data.DepositData` corresponds to the data broadcast from the
     Ethereum 1.0 deposit contract after a successful call to the ``deposit`` function on that

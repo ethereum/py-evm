@@ -25,7 +25,7 @@ from .defaults import (
 )
 
 
-class Transfer(ssz.Serializable):
+class Transfer(ssz.SignedSerializable):
     fields = [
         ('sender', uint64),
         ('recipient', uint64),
