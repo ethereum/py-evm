@@ -35,7 +35,6 @@ from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlockBody,
 )
-from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     FromBlockParams,

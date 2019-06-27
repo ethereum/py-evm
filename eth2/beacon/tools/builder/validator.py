@@ -368,8 +368,10 @@ def create_mock_attester_slashing_is_surround_vote(
 def _get_target_root(state: BeaconState,
                      config: Eth2Config,
                      beacon_block_root: Hash32) -> Hash32:
+
+    epoch = slot_to_epoch(state.slot, config.SLOTS_PER_EPOCH)
     epoch_start_slot = get_epoch_start_slot(
-        slot_to_epoch(state.slot, config.SLOTS_PER_EPOCH),
+        epoch,
         config.SLOTS_PER_EPOCH,
     )
     if epoch_start_slot == state.slot:
@@ -377,7 +379,8 @@ def _get_target_root(state: BeaconState,
     else:
         return get_block_root(
             state,
-            epoch_start_slot,
+            epoch,
+            config.SLOTS_PER_EPOCH,
             config.SLOTS_PER_HISTORICAL_ROOT,
         )
 
@@ -503,7 +506,7 @@ def create_signed_attestation_at_slot(state: BeaconState,
         config.SLOTS_PER_EPOCH,
     )
 
-    target_root = _get_target_root(state, config)
+    target_root = _get_target_root(state, config, beacon_block_root)
 
     previous_crosslink = state.previous_crosslinks[shard]
 
