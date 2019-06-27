@@ -55,7 +55,7 @@ from eth2.beacon.tools.builder.validator import (
 
 
 def create_mock_genesis_validator_deposits_and_root(
-        num_validators: int,
+        validator_count: int,
         config: Eth2Config,
         pubkeys: Sequence[BLSPubkey],
         keymap: Dict[BLSPubkey, int]) -> Tuple[Tuple[Deposit, ...], Hash32]:
@@ -65,7 +65,7 @@ def create_mock_genesis_validator_deposits_and_root(
     deposit_data_array = tuple()  # type: Tuple[DepositData, ...]
     deposit_data_leaves = tuple()  # type: Tuple[Hash32, ...]
 
-    for i in range(num_validators):
+    for i in range(validator_count):
         privkey = keymap[pubkeys[ValidatorIndex(i)]]
         deposit_data = create_mock_deposit_data(
             config=config,
@@ -85,10 +85,10 @@ def create_mock_genesis_validator_deposits_and_root(
             proof=get_merkle_proof(tree, item_index=i),
             data=deposit_data_array[i],
         )
-        for i in range(num_validators)
+        for i in range(validator_count)
     )
 
-    return genesis_validator_deposits, root
+    return genesis_deposits, root
 
 
 def create_mock_genesis(

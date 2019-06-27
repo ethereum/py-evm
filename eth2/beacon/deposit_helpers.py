@@ -43,10 +43,10 @@ def validate_deposit_proof(state: BeaconState,
     )
     if not is_valid_proof:
         raise ValidationError(
-            f"deposit.proof ({encode_hex(deposit.proof)}) is invalid against "
+            f"deposit.proof ({list(map(encode_hex, deposit.proof))}) is invalid against "
             f"leaf={encode_hex(deposit.data.root)}, "
             f"deposit_contract_tree_depth={deposit_contract_tree_depth}, "
-            f"deposit.index (via state) ={state.eth1_deposit_index} "
+            f"deposit.index (via state) = {state.eth1_deposit_index} "
             f"state.eth1_data.deposit_root={state.eth1_data.deposit_root.hex()}"
         )
 
