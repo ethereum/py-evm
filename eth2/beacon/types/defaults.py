@@ -4,6 +4,7 @@ This module contains default values to be shared across types in the parent modu
 from typing import (
     Tuple,
     TypeVar,
+    TYPE_CHECKING,
 )
 
 from eth_typing import (
@@ -21,6 +22,9 @@ from eth2.beacon.typing import (  # noqa: F401
     default_bitfield,
 )
 
+if TYPE_CHECKING:
+    from typing import Any  # noqa: F401
+
 
 default_bls_pubkey = BLSPubkey(b'\x00' * 48)
 
@@ -33,7 +37,7 @@ default_bls_pubkey = BLSPubkey(b'\x00' * 48)
 # updating to ``flake8==3.7.7`` fixes this bug but introduces many other breaking changes.
 SomeElement = TypeVar('SomeElement')
 
-default_tuple = tuple()  # type: Tuple[SomeElement, ...]
+default_tuple = tuple()  # type: Tuple[Any, ...]
 
 
 def default_tuple_of_size(
