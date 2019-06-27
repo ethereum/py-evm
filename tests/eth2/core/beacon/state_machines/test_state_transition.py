@@ -3,6 +3,9 @@ import pytest
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
+from eth2.beacon.state_machines.forks.serenity.slot_processing import (
+    process_slots,
+)
 from eth2.beacon.tools.builder.proposer import (
     create_mock_block,
 )
@@ -70,23 +73,23 @@ def test_per_slot_transition(chaindb,
     # Get state machine instance
     sm = fixture_sm_class(
         chaindb,
-        block,
+        block.slot,
     )
 
     # Get state transition instance
     st = sm.state_transition_class(sm.config)
 
-    # NOTE: we want to run both functions, however they are run independently
-    # so we have two function calls
-    updated_state = st.cache_state(state)
-    updated_state = st.per_slot_transition(updated_state)
+    updated_state = st.apply_state_transition(state, future_slot=state.slot + 1)
 
     # Ensure that slot gets increased by 1
     assert updated_state.slot == state.slot + 1
 
     # block_roots
-    block_roots_index = (updated_state.slot - 1) % st.config.SLOTS_PER_HISTORICAL_ROOT
-    assert updated_state.block_roots[block_roots_index] == block.parent_root
+    roots_index = (updated_state.slot - 1) % st.config.SLOTS_PER_HISTORICAL_ROOT
+    assert updated_state.block_roots[roots_index] == block.parent_root
+
+    # state_roots
+    assert updated_state.state_roots[roots_index] == state.root
 
     # historical_roots
     if updated_state.slot % st.config.SLOTS_PER_HISTORICAL_ROOT == 0:
