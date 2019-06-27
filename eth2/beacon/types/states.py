@@ -24,6 +24,7 @@ from eth.constants import (
 )
 
 from eth2._utils.tuple import (
+    update_tuple_item,
     update_tuple_item_with_fn,
 )
 from eth2.configs import Eth2Config
@@ -222,21 +223,43 @@ class BeaconState(ssz.Serializable):
     def __repr__(self) -> str:
         return f"<BeaconState #{self.slot} {encode_hex(self.root)[2:10]}>"
 
-    def update_validator_at_index(self,
-                                  validator_index: ValidatorIndex,
-                                  validator: Validator) -> 'BeaconState':
+    @property
+    def validator_count(self) -> int:
+        return len(self.validators)
+
+    def update_validator(self,
+                         validator_index: ValidatorIndex,
+                         validator: Validator,
+                         balance: Gwei=None) -> 'BeaconState':
         """
         Replace ``self.validators[validator_index]`` with ``validator``.
+
+        Callers can optionally provide a ``balance`` which will replace
+        ``self.balances[validator_index] with ``balance``.
         """
-        return self.update_validator_at_index_with_fn(
+        if (
+                validator_index >= len(self.validators) or
+                validator_index >= len(self.balances) or
+                validator_index < 0
+        ):
+            raise IndexError("Incorrect validator index")
+
+        state = self.update_validator_with_fn(
             validator_index,
             lambda *_: validator,
         )
+        if balance:
+            return state._update_validator_balance(
+                validator_index,
+                balance,
+            )
+        else:
+            return state
 
-    def update_validator_at_index_with_fn(self,
-                                          validator_index: ValidatorIndex,
-                                          fn: Callable[[Validator, Any], Validator],
-                                          *args: Any) -> 'BeaconState':
+    def update_validator_with_fn(self,
+                                 validator_index: ValidatorIndex,
+                                 fn: Callable[[Validator, Any], Validator],
+                                 *args: Any) -> 'BeaconState':
         """
         Replace ``self.validators[validator_index]`` with
         the result of calling ``fn`` on the existing ``validator``.
@@ -255,33 +278,22 @@ class BeaconState(ssz.Serializable):
             ),
         )
 
-    # def update_validator_balance(self,
-    #                              validator_index: ValidatorIndex,
-    #                              balance: Gwei) -> 'BeaconState':
-    #     """
-    #     Update the balance of validator of the given ``validator_index``.
-    #     """
-    #     if validator_index >= self.num_validators or validator_index < 0:
-    #         raise IndexError("Incorrect validator index")
+    def _update_validator_balance(self,
+                                  validator_index: ValidatorIndex,
+                                  balance: Gwei) -> 'BeaconState':
+        """
+        Update the balance of validator of the given ``validator_index``.
+        """
+        if validator_index >= len(self.balances) or validator_index < 0:
+            raise IndexError("Incorrect validator index")
 
-    #     return self.copy(
-    #         balances=update_tuple_item(
-    #             self.balances,
-    #             validator_index,
-    #             balance,
-    #         )
-    #     )
-
-    # def update_validator(self,
-    #                      validator_index: ValidatorIndex,
-    #                      validator: Validator,
-    #                      balance: Gwei) -> 'BeaconState':
-    #     """
-    #     Update the ``Validator`` and balance of validator of the given ``validator_index``.
-    #     """
-    #     state = self.update_validators(validator_index, validator)
-    #     state = state.update_validator_balance(validator_index, balance)
-    #     return state
+        return self.copy(
+            balances=update_tuple_item(
+                self.balances,
+                validator_index,
+                balance,
+            )
+        )
 
     def current_epoch(self, slots_per_epoch: int) -> Epoch:
         return slot_to_epoch(self.slot, slots_per_epoch)

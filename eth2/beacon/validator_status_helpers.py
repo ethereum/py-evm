@@ -91,7 +91,7 @@ def initiate_validator_exit(state: BeaconState,
         validator,
     )
 
-    return state.update_validators(index, updated_validator)
+    return state.update_validator(index, updated_validator)
 
 
 @curry
@@ -121,7 +121,7 @@ def slash_validator(*,
     current_epoch = state.current_epoch(slots_per_epoch)
 
     state = initiate_validator_exit(state, index, config)
-    state = state.update_validators_with_fn(
+    state = state.update_validator_with_fn(
         index,
         _set_validator_slashed(
             current_epoch + config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,

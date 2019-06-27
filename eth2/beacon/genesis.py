@@ -97,7 +97,7 @@ def get_genesis_beacon_state(*,
         effective_balance = state.validators[validator_index].effective_balance
         is_enough_effective_balance = effective_balance >= config.MAX_EFFECTIVE_BALANCE
         if is_enough_effective_balance:
-            state = state.update_validator_at_index_with_fn(
+            state = state.update_validator_with_fn(
                 validator_index,
                 activate_validator,
                 config.GENESIS_EPOCH,

@@ -519,7 +519,7 @@ def sample_attestation_params(sample_signature, sample_attestation_data_params):
 def sample_deposit_params(sample_deposit_data_params, deposit_contract_tree_depth):
     return {
         'proof': (b'\x22' * 32,) * deposit_contract_tree_depth,
-        'deposit_data': DepositData(**sample_deposit_data_params)
+        'data': DepositData(**sample_deposit_data_params)
     }
 
 

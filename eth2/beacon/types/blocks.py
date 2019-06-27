@@ -146,6 +146,16 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
     def is_genesis(self) -> bool:
         return self.parent_root == GENESIS_PARENT_ROOT
 
+    @property
+    def header(self) -> BeaconBlockHeader:
+        return BeaconBlockHeader(
+            slot=self.slot,
+            parent_root=self.parent_root,
+            state_root=self.state_root,
+            body_root=self.body.root,
+            signature=self.signature,
+        )
+
     @classmethod
     @abstractmethod
     def from_root(cls, root: Hash32, chaindb: 'BaseBeaconChainDB') -> 'BaseBeaconBlock':
