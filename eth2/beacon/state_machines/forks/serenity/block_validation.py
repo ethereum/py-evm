@@ -332,7 +332,7 @@ def validate_some_slashing(slashed_any: bool, attester_slashing: AttesterSlashin
 # Attestation validation
 #
 def _validate_eligible_shard_number(shard: Shard, shard_count: int) -> None:
-    if shard < shard_count:
+    if shard >= shard_count:
         raise ValidationError(
             f"Attestation with shard {shard} must be less than the total shard count {shard_count}"
         )
@@ -355,7 +355,7 @@ def validate_attestation_slot(attestation_slot: Slot,
     if attestation_slot + min_attestation_inclusion_delay > state_slot:
         raise ValidationError(
             f"Attestation at slot {attestation_slot} can only be included after the"
-            f"minimum delay {min_attestation_inclusion_delay} with respect to the"
+            f" minimum delay {min_attestation_inclusion_delay} with respect to the"
             f" state's slot {state_slot}."
         )
 
@@ -458,7 +458,7 @@ def validate_attestation(state: BeaconState,
     )
     validate_indexed_attestation(
         state,
-        convert_to_indexed(state, attestation),
+        convert_to_indexed(state, attestation, CommitteeConfig(config)),
         config.MAX_INDICES_PER_ATTESTATION,
         slots_per_epoch,
     )

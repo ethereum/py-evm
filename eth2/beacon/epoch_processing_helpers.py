@@ -33,6 +33,7 @@ from eth2.beacon.constants import (
 )
 from eth2.configs import (
     Eth2Config,
+    CommitteeConfig,
 )
 from eth2.beacon.exceptions import (
     InvalidEpochError,
@@ -88,7 +89,8 @@ def decrease_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> 
 @to_tuple
 def get_attesting_indices(state: BeaconState,
                           attestation_data: AttestationData,
-                          bitfield: Bitfield) -> Iterable[ValidatorIndex]:
+                          bitfield: Bitfield,
+                          config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     """
     Return the sorted attesting indices corresponding to ``attestation_data`` and ``bitfield``.
     """
@@ -96,21 +98,26 @@ def get_attesting_indices(state: BeaconState,
         state,
         attestation_data.target_epoch,
         attestation_data.crosslink.shard,
+        config,
     )
     validate_bitfield(bitfield, len(committee))
     return sorted(index for i, index in enumerate(committee) if has_voted(bitfield, i))
 
 
-def convert_to_indexed(state: BeaconState, attestation: Attestation) -> IndexedAttestation:
+def convert_to_indexed(state: BeaconState,
+                       attestation: Attestation,
+                       config: CommitteeConfig) -> IndexedAttestation:
     attesting_indices = get_attesting_indices(
         state,
         attestation.data,
         attestation.aggregation_bitfield,
+        config,
     )
     custody_bit_1_indices = get_attesting_indices(
         state,
         attestation.data,
         attestation.custody_bitfield,
+        config,
     )
     custody_bit_0_indices = tuple(
         index for index in attesting_indices
@@ -204,10 +211,11 @@ def get_matching_head_attestations(state: BeaconState,
 @to_tuple
 def get_unslashed_attesting_indices(
         state: BeaconState,
-        attestations: Sequence[PendingAttestation]) -> Iterable[ValidatorIndex]:
+        attestations: Sequence[PendingAttestation],
+        config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     output: Set[ValidatorIndex] = set()
     for a in attestations:
-        output = output.union(get_attesting_indices(state, a.data, a.aggregation_bitfield))
+        output = output.union(get_attesting_indices(state, a.data, a.aggregation_bitfield, config))
     return sorted(
         filter(
             lambda index: not state.validators[index].slashed,
@@ -221,7 +229,7 @@ def get_attesting_balance(state: BeaconState,
                           config: Eth2Config) -> Gwei:
     return get_total_balance(
         state,
-        get_unslashed_attesting_indices(state, attestations, config)
+        get_unslashed_attesting_indices(state, attestations, CommitteeConfig(config))
     )
 
 
@@ -286,6 +294,7 @@ def get_winning_crosslink_and_attesting_indices(
         get_unslashed_attesting_indices(
             state,
             winning_attestations,
+            CommitteeConfig(config),
         )
     )
 

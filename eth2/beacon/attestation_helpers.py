@@ -123,12 +123,12 @@ def validate_indexed_attestation(state: BeaconState,
             f" indices in common: {intersection}."
         )
 
-    if bit_0_indices != sorted(bit_0_indices):
+    if bit_0_indices != tuple(sorted(bit_0_indices)):
         raise ValidationError(
             f"Indices should be sorted; the 0-bit indices are not: {bit_0_indices}."
         )
 
-    if bit_1_indices != sorted(bit_1_indices):
+    if bit_1_indices != tuple(sorted(bit_1_indices)):
         raise ValidationError(
             f"Indices should be sorted; the 1-bit indices are not: {bit_1_indices}."
         )

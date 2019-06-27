@@ -251,6 +251,7 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
 
 def get_attestation_deltas(state: BeaconState,
                            config: Eth2Config) -> Tuple[Sequence[Gwei], Sequence[Gwei]]:
+    committee_config = CommitteeConfig(confi)
     rewards = tuple(
         0 for _ in range(len(state.validators))
     )
@@ -287,7 +288,11 @@ def get_attestation_deltas(state: BeaconState,
             matching_target_attestations,
             matching_head_attestations
     ):
-        unslashed_attesting_indices = get_unslashed_attesting_indices(state, attestations)
+        unslashed_attesting_indices = get_unslashed_attesting_indices(
+            state,
+            attestations,
+            committee_config,
+        )
         attesting_balance = get_total_balance(state, unslashed_attesting_indices)
         for index in eligible_validator_indices:
             if index in unslashed_attesting_indices:
@@ -313,7 +318,11 @@ def get_attestation_deltas(state: BeaconState,
                     ),
                 )
 
-    for index in get_unslashed_attesting_indices(state, matching_source_attestations):
+    for index in get_unslashed_attesting_indices(
+            state,
+            matching_source_attestations,
+            committee_config,
+    ):
         attestation = min(
             (
                 a for a in matching_source_attestations
@@ -321,6 +330,7 @@ def get_attestation_deltas(state: BeaconState,
                     state,
                     a.data,
                     a.aggregation_bitfield,
+                    committee_config,
                 )
             ),
             key=lambda a: a.inclusion_delay,
@@ -350,6 +360,7 @@ def get_attestation_deltas(state: BeaconState,
         matching_target_attesting_indices = get_unslashed_attesting_indices(
             state,
             matching_target_attestations,
+            committee_config,
         )
         for index in eligible_validator_indices:
             penalties = update_tuple_item_with_fn(
