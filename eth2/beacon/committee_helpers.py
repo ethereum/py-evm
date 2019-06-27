@@ -150,15 +150,19 @@ def _get_shuffled_index(index: int,
         )
 
     new_index = index
-    for round in range(shuffle_round_count):
+    for current_round in range(shuffle_round_count):
         pivot = int.from_bytes(
-            hash_eth2(seed + round.to_bytes(1, 'little'))[0:8],
+            hash_eth2(seed + current_round.to_bytes(1, 'little'))[0:8],
             'little',
         ) % index_count
 
         flip = (pivot + index_count - new_index) % index_count
         hash_pos = max(new_index, flip)
-        h = hash_eth2(seed + round.to_bytes(1, 'little') + (hash_pos // 256).to_bytes(4, 'little'))
+        h = hash_eth2(
+            seed +
+            current_round.to_bytes(1, 'little') +
+            (hash_pos // 256).to_bytes(4, 'little')
+        )
         byte = h[(hash_pos % 256) // 8]
         bit = (byte >> (hash_pos % 8)) % 2
         new_index = flip if bit else new_index
