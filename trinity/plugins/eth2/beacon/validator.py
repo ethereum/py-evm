@@ -41,9 +41,11 @@ from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
     create_block_on_state,
 )
+from eth2.beacon.tools.builder.committee_assignment import (
+    get_committee_assignment,
+)
 from eth2.beacon.tools.builder.validator import (
     create_signed_attestation_at_slot,
-    get_committee_assignment,
 )
 from eth2.beacon.types.attestations import (
     Attestation,
