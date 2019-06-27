@@ -41,6 +41,7 @@ from eth2.beacon.committee_helpers import (
 from eth2.beacon.helpers import (
     bls_domain,
     get_block_root_at_slot,
+    get_block_root,
     get_domain,
     get_epoch_start_slot,
     slot_to_epoch,
@@ -53,6 +54,7 @@ from eth2.beacon.types.attestation_data_and_custody_bits import (
 )
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BeaconBlockHeader
+from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
@@ -366,7 +368,18 @@ def create_mock_attester_slashing_is_surround_vote(
 def _get_target_root(state: BeaconState,
                      config: Eth2Config,
                      beacon_block_root: Hash32) -> Hash32:
-    return beacon_block_root
+    epoch_start_slot = get_epoch_start_slot(
+        slot_to_epoch(state.slot, config.SLOTS_PER_EPOCH),
+        config.SLOTS_PER_EPOCH,
+    )
+    if epoch_start_slot == state.slot:
+        return beacon_block_root
+    else:
+        return get_block_root(
+            state,
+            epoch_start_slot,
+            config.SLOTS_PER_HISTORICAL_ROOT,
+        )
 
 
 def _get_mock_message_and_attesting_indices(
@@ -389,15 +402,16 @@ def _get_mock_message_and_attesting_indices(
         ValidatorIndex(i) for i in random.sample(range(committee_size), num_voted_attesters)
     )
 
-    return message_hash, attesting_indices
+    return message_hash, tuple(sorted(attesting_indices))
 
 
-def create_mock_signed_attestation(state: BeaconState,
-                                   attestation_data: AttestationData,
-                                   committee: Sequence[ValidatorIndex],
-                                   num_voted_attesters: int,
-                                   keymap: Dict[BLSPubkey, int],
-                                   slots_per_epoch: int) -> Attestation:
+def _create_mock_signed_attestation(state: BeaconState,
+                                    attestation_data: AttestationData,
+                                    attestation_slot: Slot,
+                                    committee: Sequence[ValidatorIndex],
+                                    num_voted_attesters: int,
+                                    keymap: Dict[BLSPubkey, int],
+                                    slots_per_epoch: int) -> Attestation:
     """
     Create a mocking attestation of the given ``attestation_data`` slot with ``keymap``.
     """
@@ -417,7 +431,7 @@ def create_mock_signed_attestation(state: BeaconState,
                 ].pubkey
             ],
             state=state,
-            slot=attestation_data.slot,
+            slot=attestation_slot,
             signature_domain=SignatureDomain.DOMAIN_ATTESTATION,
             slots_per_epoch=slots_per_epoch,
         )
@@ -441,6 +455,7 @@ def create_mock_signed_attestation(state: BeaconState,
     )
 
 
+# TODO merge in w/ ``get_committee_assignment``
 def _get_crosslink_committees_at_slot(
         state: BeaconState,
         slot: Slot,
@@ -452,7 +467,7 @@ def _get_crosslink_committees_at_slot(
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,
         config.TARGET_COMMITTEE_SIZE,
-    )
+    ) // config.SLOTS_PER_EPOCH
     results = []
     offset = committees_per_slot * (slot % config.SLOTS_PER_EPOCH)
     slot_start_shard = Shard((
@@ -464,6 +479,52 @@ def _get_crosslink_committees_at_slot(
         results.append((committee, Shard(shard)))
 
     return tuple(results)
+
+
+def create_signed_attestation_at_slot(state: BeaconState,
+                                      config: Eth2Config,
+                                      state_machine: BaseBeaconStateMachine,
+                                      attestation_slot: Slot,
+                                      beacon_block_root: Hash32,
+                                      validator_privkeys: Dict[ValidatorIndex, int],
+                                      committee: Tuple[ValidatorIndex, ...],
+                                      shard: Shard) -> Attestation:
+    """
+    Create the attestations of the given ``attestation_slot`` slot with ``validator_privkeys``.
+    """
+    state_transition = state_machine.state_transition
+    state = state_transition.apply_state_transition(
+        state,
+        future_slot=attestation_slot,
+    )
+
+    target_epoch = slot_to_epoch(
+        attestation_slot,
+        config.SLOTS_PER_EPOCH,
+    )
+
+    target_root = _get_target_root(state, config)
+
+    previous_crosslink = state.previous_crosslinks[shard]
+
+    attestation_data = AttestationData(
+        beacon_block_root=beacon_block_root,
+        source_epoch=state.current_justified_epoch,
+        source_root=state.current_justified_root,
+        target_root=target_root,
+        target_epoch=target_epoch,
+        crosslink=previous_crosslink,
+    )
+
+    return _create_mock_signed_attestation(
+        state,
+        attestation_data,
+        attestation_slot,
+        committee,
+        len(committee),
+        keymapper(lambda index: state.validators[index].pubkey, validator_privkeys),
+        config.SLOTS_PER_EPOCH,
+    )
 
 
 @to_tuple
@@ -491,79 +552,44 @@ def create_mock_signed_attestations_at_slot(
 
     # Get `target_root`
     target_root = _get_target_root(state, config, beacon_block_root)
+    target_epoch = slot_to_epoch(
+        state.slot,
+        config.SLOTS_PER_EPOCH,
+    )
 
     for crosslink_committee in crosslink_committees_at_slot:
         committee, shard = crosslink_committee
 
-        previous_crosslink = state.latest_crosslinks[shard]
+        parent_crosslink = state.current_crosslinks[shard]
 
         attestation_data = AttestationData(
             beacon_block_root=beacon_block_root,
             source_epoch=state.current_justified_epoch,
             source_root=state.current_justified_root,
             target_root=target_root,
-            target_epoch=slot_to_epoch(
-                state.slot,
-                config.SLOTS_PER_EPOCH,
-            ),
-            crosslink=previous_crosslink,
+            target_epoch=target_epoch,
+            crosslink=Crosslink(
+                shard=shard,
+                parent_root=parent_crosslink.root,
+                start_epoch=parent_crosslink.end_epoch,
+                end_epoch=min(
+                    target_epoch,
+                    parent_crosslink.end_epoch + config.MAX_EPOCHS_PER_CROSSLINK
+                ),
+            )
         )
 
         num_voted_attesters = int(len(committee) * voted_attesters_ratio)
 
-        yield create_mock_signed_attestation(
+        yield _create_mock_signed_attestation(
             state,
             attestation_data,
+            attestation_slot,
             committee,
             num_voted_attesters,
             keymap,
             config.SLOTS_PER_EPOCH,
         )
-
-
-def create_signed_attestation_at_slot(state: BeaconState,
-                                      config: Eth2Config,
-                                      state_machine: BaseBeaconStateMachine,
-                                      attestation_slot: Slot,
-                                      beacon_block_root: Hash32,
-                                      validator_privkeys: Dict[ValidatorIndex, int],
-                                      committee: Tuple[ValidatorIndex, ...],
-                                      shard: Shard) -> Attestation:
-    """
-    Create the attestations of the given ``attestation_slot`` slot with ``validator_privkeys``.
-    """
-    state_transition = state_machine.state_transition
-    state = state_transition.apply_state_transition(
-        state,
-        future_slot=attestation_slot,
-    )
-
-    target_epoch = slot_to_epoch(
-        attestation_slot,
-        config.SLOTS_PER_EPOCH,
-    )
-
-    target_root = _get_target_root(state, config, beacon_block_root)
-
-    previous_crosslink = state.previous_crosslinks[shard]
-
-    attestation_data = AttestationData(
-        beacon_block_root=beacon_block_root,
-        source_epoch=state.current_justified_epoch,
-        source_root=state.current_justified_root,
-        target_root=target_root,
-        target_epoch=target_epoch,
-        crosslink=previous_crosslink,
-    )
-
-    return create_mock_signed_attestation(
-        state,
-        attestation_data,
-        committee,
-        len(committee),
-        keymapper(lambda index: state.validators[index].pubkey, validator_privkeys),
-        config.SLOTS_PER_EPOCH,
-    )
 
 
 #
