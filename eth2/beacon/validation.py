@@ -12,9 +12,9 @@ from eth2.beacon.typing import (
 )
 
 
-def validate_epoch_for_active_randao_mix(state_epoch: Epoch,
-                                         given_epoch: Epoch,
-                                         epochs_per_historical_vector: int) -> None:
+def validate_epoch_for_randao_mix(state_epoch: Epoch,
+                                  given_epoch: Epoch,
+                                  epochs_per_historical_vector: int) -> None:
     if state_epoch >= given_epoch + epochs_per_historical_vector:
         raise ValidationError(
             f"state_epoch ({state_epoch}) should be less than (given_epoch {given_epoch} + "
