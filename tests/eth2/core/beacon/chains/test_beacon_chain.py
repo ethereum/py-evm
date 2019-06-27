@@ -240,7 +240,7 @@ def test_get_attestation_root(valid_chain,
     assert valid_chain.get_attestation_by_root(a0.root) == a0
     assert valid_chain.attestation_exists(a0.root)
     fake_attestation = a0.copy(
-        aggregate_signature=b'\x78' * 96,
+        signature=b'\x78' * 96,
     )
     with pytest.raises(AttestationRootNotFound):
         valid_chain.get_attestation_by_root(fake_attestation.root)
