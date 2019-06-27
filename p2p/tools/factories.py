@@ -1,6 +1,6 @@
 import random
 import socket
-from typing import Any
+from typing import Any, Tuple
 
 from cancel_token import CancelToken
 
@@ -9,11 +9,13 @@ from eth_utils import (
     int_to_big_endian,
 )
 
+from eth_keys import datatypes
 from eth_keys import keys
 
 from p2p import discovery
 from p2p import kademlia
 from p2p.ecies import generate_privkey
+from p2p.tools.memory_transport import MemoryTransport
 
 
 try:
@@ -70,6 +72,13 @@ class NodeFactory(factory.Factory):
         return node
 
 
+class CancelTokenFactory(factory.Factory):
+    class Meta:
+        model = CancelToken
+
+    name = factory.Sequence(lambda n: "test-token-%d".format(n))
+
+
 class DiscoveryProtocolFactory(factory.Factory):
     class Meta:
         model = discovery.DiscoveryProtocol
@@ -77,9 +86,40 @@ class DiscoveryProtocolFactory(factory.Factory):
     privkey = factory.LazyFunction(generate_privkey)
     address = factory.SubFactory(AddressFactory)
     bootstrap_nodes = factory.LazyFunction(tuple)
-    cancel_token = factory.LazyFunction(lambda: CancelToken('discovery-test'))
+
+    cancel_token = factory.SubFactory(CancelTokenFactory, name='discovery-test')
 
     @classmethod
     def from_seed(cls, seed: bytes, *args: Any, **kwargs: Any) -> discovery.DiscoveryProtocol:
         privkey = keys.PrivateKey(keccak(seed))
         return cls(*args, privkey=privkey, **kwargs)
+
+
+def MemoryTransportPairFactory(alice_remote: kademlia.Node = None,
+                               alice_private_key: datatypes.PrivateKey = None,
+                               alice_token: CancelToken = None,
+                               bob_remote: kademlia.Node = None,
+                               bob_private_key: datatypes.PrivateKey = None,
+                               bob_token: CancelToken = None,
+                               ) -> Tuple[MemoryTransport, MemoryTransport]:
+    if alice_remote is None:
+        alice_remote = NodeFactory()
+    if alice_private_key is None:
+        alice_private_key = PrivateKeyFactory()
+    if alice_token is None:
+        alice_token = CancelTokenFactory(name='alice')
+
+    if bob_remote is None:
+        bob_remote = NodeFactory()
+    if bob_private_key is None:
+        bob_private_key = PrivateKeyFactory()
+    if bob_token is None:
+        bob_token = CancelTokenFactory(name='bob')
+
+    # the remotes are intentionally switched since they represent the *other*
+    # side of the connection.
+    alice_transport, bob_transport = MemoryTransport.connected_pair(
+        alice=(bob_remote, alice_private_key, alice_token),
+        bob=(alice_remote, bob_private_key, bob_token),
+    )
+    return alice_transport, bob_transport
