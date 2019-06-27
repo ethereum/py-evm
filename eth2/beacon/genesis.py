@@ -39,7 +39,7 @@ from eth2.configs import (
 
 
 def is_genesis_trigger(deposits: Sequence[Deposit], timestamp: int, config: Eth2Config) -> bool:
-    state = BeaconState()
+    state = BeaconState(config=config)
 
     for deposit in deposits:
         state = process_deposit(state, deposit, config)
@@ -79,7 +79,8 @@ def get_genesis_beacon_state(*,
         eth1_data=genesis_eth1_data,
         latest_block_header=BeaconBlockHeader(
             body_root=BeaconBlockBody().root,
-        )
+        ),
+        config=config,
     )
 
     # Process genesis deposits

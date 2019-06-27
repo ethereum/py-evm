@@ -26,6 +26,7 @@ from eth.constants import (
 from eth2._utils.tuple import (
     update_tuple_item_with_fn,
 )
+from eth2.configs import Eth2Config
 from eth2.beacon.helpers import (
     slot_to_epoch,
 )
@@ -46,7 +47,10 @@ from .eth1_data import (
     Eth1Data,
     default_eth1_data,
 )
-from .crosslinks import Crosslink
+from .crosslinks import (
+    Crosslink,
+    default_crosslink,
+)
 from .forks import (
     Fork,
     default_fork,
@@ -58,6 +62,7 @@ from .defaults import (
     default_timestamp,
     default_slot,
     default_tuple,
+    default_tuple_of_size,
     default_shard,
     default_epoch,
 )
@@ -145,11 +150,44 @@ class BeaconState(ssz.Serializable):
             current_justified_root: Hash32=ZERO_HASH32,
             justification_bitfield: int=0,
             finalized_epoch: Epoch=default_epoch,
-            finalized_root: Hash32=ZERO_HASH32) -> None:
+            finalized_root: Hash32=ZERO_HASH32,
+            config: Eth2Config=None) -> None:
         if len(validators) != len(balances):
             raise ValueError(
                 "The length of validators and balances lists should be the same."
             )
+
+        if config:
+            # try to provide sane defaults
+            if block_roots == default_tuple:
+                block_roots = default_tuple_of_size(config.SLOTS_PER_HISTORICAL_ROOT, ZERO_HASH32)
+            if state_roots == default_tuple:
+                state_roots = default_tuple_of_size(config.SLOTS_PER_HISTORICAL_ROOT, ZERO_HASH32)
+            if randao_mixes == default_tuple:
+                randao_mixes = default_tuple_of_size(
+                    config.EPOCHS_PER_HISTORICAL_VECTOR,
+                    ZERO_HASH32
+                )
+            if active_index_roots == default_tuple:
+                active_index_roots = default_tuple_of_size(
+                    config.EPOCHS_PER_HISTORICAL_VECTOR,
+                    ZERO_HASH32
+                )
+            if slashed_balances == default_tuple:
+                slashed_balances = default_tuple_of_size(
+                    config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
+                    Gwei(0),
+                )
+            if previous_crosslinks == default_tuple:
+                previous_crosslinks = default_tuple_of_size(
+                    config.SHARD_COUNT,
+                    default_crosslink,
+                )
+            if current_crosslinks == default_tuple:
+                current_crosslinks = default_tuple_of_size(
+                    config.SHARD_COUNT,
+                    default_crosslink,
+                )
 
         super().__init__(
             genesis_time=genesis_time,
