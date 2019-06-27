@@ -75,6 +75,7 @@ def _is_epoch_justifiable(state: BeaconState,
         get_matching_target_attestations(
             state,
             epoch,
+            config,
         ),
         config
     )
@@ -140,6 +141,7 @@ def process_justification_and_finalization(state: BeaconState, config: Eth2Confi
 
     # process finalizations
     new_finalized_epoch = state.finalized_epoch
+    new_finalized_root = state.finalized_root
 
     old_previous_justified_epoch = state.previous_justified_epoch
     old_current_justified_epoch = state.current_justified_epoch
@@ -176,12 +178,18 @@ def process_justification_and_finalization(state: BeaconState, config: Eth2Confi
     ) and old_current_justified_epoch + 1 == current_epoch:
         new_finalized_epoch = old_current_justified_epoch
 
-    new_finalized_root = get_block_root(
-        state,
-        new_finalized_epoch,
-        config.SLOTS_PER_EPOCH,
-        config.SLOTS_PER_HISTORICAL_ROOT,
-    )
+    if new_finalized_epoch != state.finalized_epoch:
+        # NOTE: we only want to call ``get_block_root``
+        # upon some change, not unconditionally
+        # Given the way it reads the block roots, it can cause
+        # validation problems with some configurations, esp. in testing.
+        # This is implicitly happening above for the justified roots.
+        new_finalized_root = get_block_root(
+            state,
+            new_finalized_epoch,
+            config.SLOTS_PER_EPOCH,
+            config.SLOTS_PER_HISTORICAL_ROOT,
+        )
 
     # Update state
     return state.copy(
@@ -251,7 +259,7 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
 
 def get_attestation_deltas(state: BeaconState,
                            config: Eth2Config) -> Tuple[Sequence[Gwei], Sequence[Gwei]]:
-    committee_config = CommitteeConfig(confi)
+    committee_config = CommitteeConfig(config)
     rewards = tuple(
         0 for _ in range(len(state.validators))
     )
@@ -592,8 +600,9 @@ def _determine_next_eth1_votes(state: BeaconState, config: Eth2Config) -> Tuple[
 
 @curry
 def _set_effective_balance(new_effective_balance: Gwei, validator: Validator) -> Validator:
-    validator.effective_balance = new_effective_balance
-    return validator
+    return validator.copy(
+        effective_balance=new_effective_balance,
+    )
 
 
 def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState:
@@ -666,7 +675,7 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
             block_roots=state.block_roots,
             state_roots=state.state_roots,
         )
-        new_historical_roots = state.historical_roots + historical_batch.root
+        new_historical_roots = state.historical_roots + (historical_batch.root,)
 
     return state.copy(
         active_index_roots=new_active_index_roots,
