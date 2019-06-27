@@ -33,6 +33,7 @@ from eth2.beacon.db.schema import SchemaV1
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     BeaconBlock,
 )
+from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.states import BeaconState
 
 
@@ -57,7 +58,9 @@ def state(sample_beacon_state_params):
 
 
 @pytest.fixture()
-def block_with_attestation(chaindb, sample_block, sample_attestation, fork_choice_scoring):
+def block_with_attestation(chaindb, sample_block, sample_attestation_params, fork_choice_scoring):
+    sample_attestation = Attestation(**sample_attestation_params)
+
     genesis = sample_block
     chaindb.persist_block(genesis, genesis.__class__, fork_choice_scoring)
     block1 = genesis.copy(
