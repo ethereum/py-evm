@@ -575,8 +575,9 @@ def create_mock_voluntary_exit(state: BeaconState,
                                validator_index: ValidatorIndex,
                                exit_epoch: Epoch=None) -> VoluntaryExit:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    target_epoch = current_epoch if exit_epoch is None else exit_epoch
     voluntary_exit = VoluntaryExit(
-        epoch=state.current_epoch(config.SLOTS_PER_EPOCH) if exit_epoch is None else exit_epoch,
+        epoch=target_epoch,
         validator_index=validator_index,
     )
     return voluntary_exit.copy(
@@ -584,7 +585,7 @@ def create_mock_voluntary_exit(state: BeaconState,
             message_hash=voluntary_exit.signing_root,
             privkey=keymap[state.validators[validator_index].pubkey],
             state=state,
-            slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
+            slot=get_epoch_start_slot(target_epoch, config.SLOTS_PER_EPOCH),
             signature_domain=SignatureDomain.DOMAIN_VOLUNTARY_EXIT,
             slots_per_epoch=config.SLOTS_PER_EPOCH,
         )
