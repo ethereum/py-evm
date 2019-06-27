@@ -102,11 +102,9 @@ def create_block_on_state(
     """
     Create a beacon block with the given parameters.
     """
-    # Check proposer
     if check_proposer_index:
         validate_proposer_index(state, config, slot, validator_index)
 
-    # Prepare block: slot and previous_block_root
     block = block_class.from_parent(
         parent_block=parent_block,
         block_params=FromBlockParams(slot=slot),
@@ -114,8 +112,8 @@ def create_block_on_state(
 
     # TODO: Add more operations
     randao_reveal = _generate_randao_reveal(privkey, slot, state, config)
-    eth1_data = Eth1Data.create_empty_data()
-    body = BeaconBlockBody.create_empty_body().copy(
+    eth1_data = state.eth1_data
+    body = BeaconBlockBody(
         randao_reveal=randao_reveal,
         eth1_data=eth1_data,
         attestations=attestations,

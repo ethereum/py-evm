@@ -110,6 +110,7 @@ def create_mock_genesis(
 
     genesis_eth1_data = Eth1Data(
         deposit_root=deposit_root,
+        deposit_count=len(genesis_deposits),
         block_hash=ZERO_HASH32,
     )
 

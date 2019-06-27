@@ -40,6 +40,11 @@ def _check_activated_validators(validators: Sequence[Validator],
         assert validator.activation_epoch == genesis_epoch
 
 
+def _check_correct_eth1_data(eth1_data: Eth1Data,
+                             validators: Sequence[Validator]) -> None:
+    assert eth1_data.deposit_count == len(validators)
+
+
 def mock_genesis_state(genesis_time: Timestamp,
                        genesis_eth1_data: Eth1Data,
                        genesis_validators: Sequence[Validator],
@@ -56,6 +61,7 @@ def mock_genesis_state(genesis_time: Timestamp,
     _check_no_missing_balances(genesis_validators, genesis_balances)
     _check_sufficient_balance(genesis_balances, config.MAX_EFFECTIVE_BALANCE)
     _check_activated_validators(genesis_validators, config.GENESIS_EPOCH)
+    _check_correct_eth1_data(genesis_eth1_data, genesis_validators)
 
     empty_state = get_genesis_beacon_state(
         genesis_deposits=tuple(),

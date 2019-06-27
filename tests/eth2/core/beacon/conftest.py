@@ -667,7 +667,9 @@ def genesis_state(genesis_validators,
                   genesis_time,
                   sample_eth1_data_params,
                   config):
-    genesis_eth1_data = Eth1Data(**sample_eth1_data_params)
+    genesis_eth1_data = Eth1Data(**sample_eth1_data_params).copy(
+        deposit_count=len(genesis_validators),
+    )
 
     return mock_genesis_state(
         genesis_time,
