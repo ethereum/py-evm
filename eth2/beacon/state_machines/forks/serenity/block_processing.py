@@ -106,7 +106,7 @@ def process_eth1_data(state: BeaconState,
                       config: Eth2Config) -> BeaconState:
     body = block.body
 
-    new_eth1_data_votes = state.eth1_data_votes + body.eth1_data
+    new_eth1_data_votes = state.eth1_data_votes + (body.eth1_data,)
 
     new_eth1_data = state.eth1_data
     if new_eth1_data_votes.count(body.eth1_data) * 2 > config.SLOTS_PER_ETH1_VOTING_PERIOD:
