@@ -76,8 +76,7 @@ from eth2.beacon.state_machines.base import (
 def verify_votes(
         message_hash: Hash32,
         votes: Iterable[Tuple[ValidatorIndex, BLSSignature, BLSPubkey]],
-        domain: SignatureDomain
-) -> Tuple[Tuple[BLSSignature, ...], Tuple[ValidatorIndex, ...]]:
+        domain: SignatureDomain) -> Tuple[Tuple[BLSSignature, ...], Tuple[ValidatorIndex, ...]]:
     """
     Verify the given votes.
     """
