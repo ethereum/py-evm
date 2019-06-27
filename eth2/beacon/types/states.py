@@ -243,7 +243,7 @@ class BeaconState(ssz.Serializable):
         Any auxillary args passed in ``args`` are provided to ``fn`` along with the
         ``validator``.
         """
-        if validator_index >= self.num_validators or validator_index < 0:
+        if validator_index >= len(self.validators) or validator_index < 0:
             raise IndexError("Incorrect validator index")
 
         return self.copy(
