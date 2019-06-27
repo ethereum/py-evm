@@ -71,6 +71,12 @@ def _process_slot(state: BeaconState, config: Eth2Config) -> BeaconState:
     )
 
 
+def _increment_slot(state: BeaconState) -> BeaconState:
+    return state.copy(
+        slot=state.slot + 1,
+    )
+
+
 def process_slots(state: BeaconState, slot: Slot, config: Eth2Config) -> BeaconState:
     if state.slot > slot:
         raise ValidationError(
@@ -84,8 +90,6 @@ def process_slots(state: BeaconState, slot: Slot, config: Eth2Config) -> BeaconS
         if (state.slot + 1) % config.SLOTS_PER_EPOCH == 0:
             state = process_epoch(state, config)
 
-        state = state.copy(
-            slot=state.slot + 1,
-        )
+        state = _increment_slot(state)
 
     return state
