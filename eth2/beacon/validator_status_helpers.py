@@ -28,9 +28,10 @@ from eth2.beacon.typing import (
 
 
 def activate_validator(validator: Validator, activation_epoch: Epoch) -> Validator:
-    validator.activation_eligibility_epoch = activation_epoch
-    validator.activation_epoch = activation_epoch
-    return validator
+    return validator.copy(
+        activation_eligibility_epoch=activation_epoch,
+        activation_epoch=activation_epoch,
+    )
 
 
 def _compute_exit_queue_epoch(state: BeaconState, config: Eth2Config) -> int:
@@ -96,9 +97,10 @@ def initiate_validator_exit(state: BeaconState,
 @curry
 def _set_validator_slashed(withdrawable_epoch: Epoch,
                            v: Validator) -> Validator:
-    v.slashed = True
-    v.withdrawable_epoch = withdrawable_epoch
-    return v
+    return v.copy(
+        slashed=True,
+        withdrawable_epoch=withdrawable_epoch,
+    )
 
 
 def slash_validator(*,

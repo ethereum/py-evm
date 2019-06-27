@@ -152,7 +152,7 @@ def get_churn_limit(state: BeaconState, config: Eth2Config) -> int:
 
 def get_total_active_balance(state: BeaconState, config: Eth2Config) -> Gwei:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    active_validator_indices = get_active_validator_indices(state, current_epoch)
+    active_validator_indices = get_active_validator_indices(state.validators, current_epoch)
     return get_total_balance(state, active_validator_indices)
 
 
