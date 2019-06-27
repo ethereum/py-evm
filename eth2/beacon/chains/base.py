@@ -392,14 +392,14 @@ class BeaconChain(BaseBeaconChain):
         """
 
         try:
-            parent_block = self.get_block_by_root(block.previous_block_root)
+            parent_block = self.get_block_by_root(block.parent_root)
         except BlockNotFound:
             raise ValidationError(
                 "Attempt to import block #{}.  Cannot import block {} before importing "
                 "its parent block at {}".format(
                     block.slot,
                     block.signing_root,
-                    block.previous_block_root,
+                    block.parent_root,
                 )
             )
 

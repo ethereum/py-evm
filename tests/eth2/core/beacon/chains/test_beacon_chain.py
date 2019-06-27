@@ -55,7 +55,7 @@ def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
 
     block = genesis_block.copy(
         slot=genesis_block.slot + 1,
-        previous_block_root=genesis_block.signing_root,
+        parent_root=genesis_block.signing_root,
     )
     valid_chain.chaindb.persist_block(block, block.__class__, fork_choice_scoring)
 

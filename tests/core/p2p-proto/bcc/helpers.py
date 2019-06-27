@@ -72,14 +72,14 @@ class FakeAsyncBeaconChainDB(BaseAsyncBeaconChainDB, BeaconChainDB):
 def create_test_block(parent=None, genesis_config=SERENITY_GENESIS_CONFIG, **kwargs):
     defaults = {
         "slot": genesis_config.GENESIS_SLOT,
-        "previous_block_root": ZERO_HASH32,
+        "parent_root": ZERO_HASH32,
         "state_root": ZERO_HASH32,  # note: not the actual genesis state root
         "signature": EMPTY_SIGNATURE,
         "body": BeaconBlockBody.create_empty_body()
     }
 
     if parent is not None:
-        kwargs["previous_block_root"] = parent.signing_root
+        kwargs["parent_root"] = parent.signing_root
         kwargs["slot"] = parent.slot + 1
 
     return BeaconBlock(**merge(defaults, kwargs))

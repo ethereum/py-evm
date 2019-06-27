@@ -200,7 +200,7 @@ class BCCRequestServer(BaseIsolatedRequestServer):
                 # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under
                 # per BeaconStateMachine fork
                 block = await self.db.coro_get_canonical_block_by_slot(slot, BeaconBlock)
-                if block.previous_block_root == parent.signing_root:
+                if block.parent_root == parent.signing_root:
                     yield block
                 else:
                     break
@@ -308,7 +308,7 @@ class OrphanBlockPool:
         children = tuple(
             orphan_block
             for orphan_block in self._pool
-            if orphan_block.previous_block_root == block_root
+            if orphan_block.parent_root == block_root
         )
         self._pool.difference_update(children)
         return children
@@ -467,11 +467,11 @@ class BCCReceiveServer(BaseReceiveServer):
         further broadcast to other peers.
         """
         # If the block is an orphan, put it directly to the pool and request for its parent.
-        if not self._is_block_root_in_db(block.previous_block_root):
+        if not self._is_block_root_in_db(block.parent_root):
             if block not in self.orphan_block_pool:
                 self.logger.debug("Found orphan_block=%s", block)
                 self.orphan_block_pool.add(block)
-                self._request_block_from_peers(block_root=block.previous_block_root)
+                self._request_block_from_peers(block_root=block.parent_root)
             return False
         try:
             self.chain.import_block(block)

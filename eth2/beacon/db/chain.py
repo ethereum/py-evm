@@ -498,11 +498,11 @@ class BeaconChainDB(BaseBeaconChainDB):
             no_canonical_head = False
 
         is_genesis = first_block.is_genesis
-        if not is_genesis and not cls._block_exists(db, first_block.previous_block_root):
+        if not is_genesis and not cls._block_exists(db, first_block.parent_root):
             raise ParentNotFound(
                 "Cannot persist block ({}) with unknown parent ({})".format(
                     encode_hex(first_block.signing_root),
-                    encode_hex(first_block.previous_block_root),
+                    encode_hex(first_block.parent_root),
                 )
             )
 
@@ -520,12 +520,12 @@ class BeaconChainDB(BaseBeaconChainDB):
         orig_blocks_seq = concat([(first_block,), blocks_iterator])
 
         for parent, child in sliding_window(2, orig_blocks_seq):
-            if parent.signing_root != child.previous_block_root:
+            if parent.signing_root != child.parent_root:
                 raise ValidationError(
                     "Non-contiguous chain. Expected {} to have {} as parent but was {}".format(
                         encode_hex(child.signing_root),
                         encode_hex(parent.signing_root),
-                        encode_hex(child.previous_block_root),
+                        encode_hex(child.parent_root),
                     )
                 )
 
@@ -630,7 +630,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             if block.is_genesis:
                 break
             else:
-                block = cls._get_block_by_root(db, block.previous_block_root, block_class)
+                block = cls._get_block_by_root(db, block.parent_root, block_class)
 
     @staticmethod
     def _add_block_slot_to_root_lookup(db: BaseDB, block: BaseBeaconBlock) -> None:

@@ -68,7 +68,7 @@ async def test_send_single_block(request, event_loop):
     request_id = 5
     block = BeaconBlock(
         slot=1,
-        previous_block_root=ZERO_HASH32,
+        parent_root=ZERO_HASH32,
         state_root=ZERO_HASH32,
         signature=EMPTY_SIGNATURE,
         body=BeaconBlockBody.create_empty_body(),
@@ -91,7 +91,7 @@ async def test_send_multiple_blocks(request, event_loop):
     blocks = tuple(
         BeaconBlock(
             slot=slot,
-            previous_block_root=ZERO_HASH32,
+            parent_root=ZERO_HASH32,
             state_root=ZERO_HASH32,
             signature=EMPTY_SIGNATURE,
             body=BeaconBlockBody.create_empty_body(),

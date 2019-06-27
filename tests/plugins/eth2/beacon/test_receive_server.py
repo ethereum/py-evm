@@ -80,7 +80,7 @@ class FakeChain(_TestnetChain):
         `ReceiveServer`.
         """
         try:
-            self.get_block_by_root(block.previous_block_root)
+            self.get_block_by_root(block.parent_root)
         except BlockNotFound:
             raise ValidationError
         (
@@ -215,16 +215,16 @@ async def test_bcc_receive_server_try_import_orphan_blocks(request,
         bob_recv_server.orphan_block_pool.add(blocks[2])
         # test: No effect when calling `_try_import_orphan_blocks`
         # if the `parent_root` is not in db.
-        assert blocks[2].previous_block_root == blocks[1].signing_root
-        bob_recv_server._try_import_orphan_blocks(blocks[2].previous_block_root)
-        assert not bob_recv_server._is_block_root_in_db(blocks[2].previous_block_root)
+        assert blocks[2].parent_root == blocks[1].signing_root
+        bob_recv_server._try_import_orphan_blocks(blocks[2].parent_root)
+        assert not bob_recv_server._is_block_root_in_db(blocks[2].parent_root)
         assert not bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
         assert bob_recv_server._is_block_root_in_orphan_block_pool(blocks[2].signing_root)
 
         bob_recv_server.orphan_block_pool.add(blocks[3])
         # test: No effect when calling `_try_import_orphan_blocks` if `parent_root` is in the pool
         #   but not in db.
-        assert blocks[3].previous_block_root == blocks[2].signing_root
+        assert blocks[3].parent_root == blocks[2].signing_root
         bob_recv_server._try_import_orphan_blocks(blocks[2].signing_root)
         assert not bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
         assert not bob_recv_server._is_block_root_in_db(blocks[3].signing_root)
