@@ -11,14 +11,6 @@ from eth2.beacon.types.historical_batch import HistoricalBatch
 
 @pytest.mark.parametrize(
     (
-        'genesis_slot,'
-    ),
-    [
-        (0),
-    ]
-)
-@pytest.mark.parametrize(
-    (
         'validator_count,'
         'slots_per_epoch,'
         'min_attestation_inclusion_delay,'

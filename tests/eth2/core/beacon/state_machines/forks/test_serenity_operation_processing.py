@@ -239,12 +239,11 @@ def test_process_attester_slashings(genesis_state,
         'target_committee_size,'
         'shard_count,'
         'success,'
-        'genesis_slot,'
     ),
     [
-        (10, 2, 1, 2, 2, True, 0),
-        (10, 2, 1, 2, 2, False, 0),
-        (40, 4, 2, 3, 5, True, 0),
+        (10, 2, 1, 2, 2, True),
+        (10, 2, 1, 2, 2, False),
+        (40, 4, 2, 3, 5, True),
     ]
 )
 def test_process_attestations(genesis_state,

@@ -281,13 +281,12 @@ def test_validate_attestation_crosslink_data_root(sample_attestation_data_params
 #         'target_committee_size,'
 #         'shard_count,'
 #         'is_valid,'
-#         'genesis_slot'
 #     ),
 #     [
-#         (10, 2, 2, 2, True, 0),
-#         (40, 4, 3, 5, True, 0),
-#         (20, 5, 3, 2, True, 0),
-#         (20, 5, 3, 2, False, 0),
+#         (10, 2, 2, 2, True),
+#         (40, 4, 3, 5, True),
+#         (20, 5, 3, 2, True),
+#         (20, 5, 3, 2, False),
 #     ],
 # )
 # def test_validate_attestation_aggregate_signature(genesis_state,

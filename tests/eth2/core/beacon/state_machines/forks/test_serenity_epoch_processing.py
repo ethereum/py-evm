@@ -298,14 +298,6 @@ def test_is_epoch_justifiable(
 
 
 @pytest.mark.parametrize(
-    (
-        "genesis_slot,"
-    ),
-    [
-        (0),
-    ]
-)
-@pytest.mark.parametrize(
     # Each state contains epoch, current_epoch_justifiable, previous_epoch_justifiable,
     # previous_justified_epoch, current_justified_epoch,
     # justification_bitfield, and finalized_epoch.
@@ -404,7 +396,6 @@ def test_process_justification_and_finalization(monkeypatch,
 #         'slots_per_epoch,'
 #         'target_committee_size,'
 #         'shard_count,'
-#         'genesis_slot,'
 #     ),
 #     [
 #         (
@@ -412,7 +403,6 @@ def test_process_justification_and_finalization(monkeypatch,
 #             10,
 #             9,
 #             10,
-#             0,
 #         ),
 #     ]
 # )
@@ -967,14 +957,6 @@ def test_process_justification_and_finalization(monkeypatch,
 #
 # Ejections
 #
-@pytest.mark.parametrize(
-    (
-        'genesis_slot,'
-    ),
-    [
-        (0),
-    ]
-)
 def test_process_ejections(genesis_state, config, activation_exit_delay):
     current_epoch = 8
     state = genesis_state.copy(

@@ -73,14 +73,6 @@ def generate_mock_latest_historical_roots(
 #
 @pytest.mark.parametrize(
     (
-        'genesis_slot,'
-    ),
-    [
-        (0),
-    ],
-)
-@pytest.mark.parametrize(
-    (
         'current_slot,target_slot,success'
     ),
     [

@@ -48,15 +48,6 @@ def test_get_epoch_committee_count(
 # TODO(ralexstokes) clean up
 @pytest.mark.parametrize(
     (
-        'genesis_slot,'
-        'genesis_epoch,'
-    ),
-    [
-        (0, 0),
-    ],
-)
-@pytest.mark.parametrize(
-    (
         'validator_count,'
         'slots_per_epoch,'
         'committee,'
