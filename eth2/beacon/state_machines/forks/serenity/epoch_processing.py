@@ -645,7 +645,7 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
         state.slashed_balances,
         next_epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
         state.slashed_balances[
-            current_epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
+            current_epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
         ],
     )
 
