@@ -76,7 +76,7 @@ def test_get_committee_assignment(genesis_state,
         'shard_count,'
     ),
     [
-        (40, 16, 1, 2),
+        (40, 16, 1, 16),
     ]
 )
 def test_get_committee_assignment_no_assignment(genesis_state,
@@ -89,11 +89,11 @@ def test_get_committee_assignment_no_assignment(genesis_state,
     validator = state.validators[validator_index].copy(
         exit_epoch=genesis_epoch,
     )
-    state = state.update_validators(
+    state = state.update_validator_at_index(
         validator_index,
-        validator=validator,
+        validator,
     )
     assert not validator.is_active(current_epoch)
 
     with pytest.raises(NoCommitteeAssignment):
-        get_committee_assignment(state, config, current_epoch, validator_index, True)
+        get_committee_assignment(state, config, current_epoch, validator_index)
