@@ -145,9 +145,9 @@ def create_block_on_state(
     return block
 
 
-def advance_to_slot(state_machine: BaseBeaconStateMachine,
-                    state: BeaconState,
-                    slot: Slot) -> BeaconState:
+def _advance_to_slot(state_machine: BaseBeaconStateMachine,
+                     state: BeaconState,
+                     slot: Slot) -> BeaconState:
     # advance the state to the ``slot``.
     state_transition = state_machine.state_transition
     state = state_transition.apply_state_transition(state, future_slot=slot)
@@ -178,7 +178,7 @@ def create_mock_block(*,
 
     Note that it doesn't return the correct ``state_root``.
     """
-    future_state = advance_to_slot(state_machine, state, slot)
+    future_state = _advance_to_slot(state_machine, state, slot)
     proposer_index = _get_proposer_index(
         future_state,
         slot,
