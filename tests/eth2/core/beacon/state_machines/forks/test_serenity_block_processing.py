@@ -8,13 +8,14 @@ from eth_utils import (
 )
 from eth_utils.toolz import (
     first,
+    mapcat,
 )
 
 from py_ecc import bls
 
-from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
+from eth2.beacon.types.eth1_data import Eth1Data
+from eth2.beacon.types.states import BeaconState
 from eth2.beacon.signature_domain import SignatureDomain
 
 from eth2.beacon.helpers import (
@@ -67,7 +68,7 @@ def test_randao_processing(sample_beacon_block_params,
     randao_reveal = _generate_randao_reveal(
         privkey=proposer_privkey,
         slot=slot,
-        fork=state.fork,
+        state=state,
         config=config,
     )
 
@@ -112,10 +113,8 @@ def test_randao_processing_validates_randao_reveal(sample_beacon_block_params,
     )
 
     epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    slot = epoch * config.SLOTS_PER_EPOCH
     message_hash = (epoch + 1).to_bytes(32, byteorder="little")
-    fork = Fork(**sample_fork_params)
-    domain = get_domain(fork, slot, SignatureDomain.DOMAIN_RANDAO)
+    domain = get_domain(state, SignatureDomain.DOMAIN_RANDAO, config.SLOTS_PER_EPOCH)
     randao_reveal = bls.sign(message_hash, proposer_privkey, domain)
 
     block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
@@ -130,43 +129,53 @@ def test_randao_processing_validates_randao_reveal(sample_beacon_block_params,
         process_randao(state, block, config)
 
 
-
-# TODO(ralexstokes) fix test
-# HASH1 = b"\x11" * 32
-# HASH2 = b"\x22" * 32
+HASH1 = b"\x11" * 32
+HASH2 = b"\x22" * 32
 
 
-# @pytest.mark.parametrize(("original_votes", "block_data", "expected_votes"), (
-#     ((), HASH1, ((HASH1, 1),)),
-#     (((HASH1, 5),), HASH1, ((HASH1, 6),)),
-#     (((HASH2, 5),), HASH1, ((HASH2, 5), (HASH1, 1))),
-#     (((HASH1, 10), (HASH2, 2)), HASH2, ((HASH1, 10), (HASH2, 3))),
-# ))
-# def test_process_eth1_data(original_votes,
-#                            block_data,
-#                            expected_votes,
-#                            sample_beacon_state_params,
-#                            sample_beacon_block_params,
-#                            sample_beacon_block_body_params):
-#     eth1_data_votes = tuple(
-#         Eth1DataVote(data, vote_count)
-#         for data, vote_count in original_votes
-#     )
-#     state = BeaconState(**sample_beacon_state_params).copy(
-#         eth1_data_votes=eth1_data_votes,
-#     )
+def _expand_eth1_votes(args):
+    block_hash, vote_count = args
+    return (Eth1Data(
+        block_hash=block_hash,
+    ),) * vote_count
 
-#     block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
-#         eth1_data=block_data,
-#     )
 
-#     block = BeaconBlock(**sample_beacon_block_params).copy(
-#         body=block_body,
-#     )
+@pytest.mark.parametrize(("original_votes", "block_data", "expected_votes"), (
+    ((), HASH1, ((HASH1, 1),)),
+    (((HASH1, 5),), HASH1, ((HASH1, 6),)),
+    (((HASH2, 5),), HASH1, ((HASH2, 5), (HASH1, 1))),
+    (((HASH1, 10), (HASH2, 2)), HASH2, ((HASH1, 10), (HASH2, 3))),
+))
+def test_process_eth1_data(original_votes,
+                           block_data,
+                           expected_votes,
+                           sample_beacon_state_params,
+                           sample_beacon_block_params,
+                           sample_beacon_block_body_params,
+                           config):
+    eth1_data_votes = tuple(mapcat(
+        _expand_eth1_votes,
+        original_votes,
+    ))
+    state = BeaconState(**sample_beacon_state_params).copy(
+        eth1_data_votes=eth1_data_votes,
+    )
 
-#     updated_state = process_eth1_data(state, block)
-#     updated_votes = tuple(
-#         (vote.eth1_data, vote.vote_count)
-#         for vote in updated_state.eth1_data_votes
-#     )
-#     assert updated_votes == expected_votes
+    block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
+        eth1_data=Eth1Data(
+            block_hash=block_data,
+        ),
+    )
+
+    block = BeaconBlock(**sample_beacon_block_params).copy(
+        body=block_body,
+    )
+
+    updated_state = process_eth1_data(state, block, config)
+    updated_votes = updated_state.eth1_data_votes
+    expanded_expected_votes = tuple(mapcat(
+        _expand_eth1_votes,
+        expected_votes,
+    ))
+
+    assert updated_votes == expanded_expected_votes
