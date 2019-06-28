@@ -1,4 +1,5 @@
 from typing import (
+    Callable,
     Sequence,
     Tuple,
     TYPE_CHECKING,
@@ -152,33 +153,57 @@ def get_active_index_root(state: 'BeaconState',
     return state.active_index_roots[epoch % epochs_per_historical_vector]
 
 
+def _epoch_for_seed(epoch: Epoch) -> Hash32:
+    return Hash32(epoch.to_bytes(32, byteorder="little"))
+
+
+RandaoProvider = Callable[['BeaconState', Epoch, int, int, bool], Hash32]
+ActiveIndexRootProvider = Callable[['BeaconState', Epoch, int, int, int], Hash32]
+
+
+def _generate_seed(state: 'BeaconState',
+                   epoch: Epoch,
+                   randao_provider: RandaoProvider,
+                   active_index_root_provider: ActiveIndexRootProvider,
+                   epoch_provider: Callable[[Epoch], Hash32],
+                   committee_config: CommitteeConfig) -> Hash32:
+    randao_mix = randao_provider(
+        state,
+        Epoch(
+            epoch +
+            committee_config.EPOCHS_PER_HISTORICAL_VECTOR -
+            committee_config.MIN_SEED_LOOKAHEAD
+        ),
+        committee_config.SLOTS_PER_EPOCH,
+        committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
+        False,
+    )
+    active_index_root = active_index_root_provider(
+        state,
+        epoch,
+        committee_config.SLOTS_PER_EPOCH,
+        committee_config.ACTIVATION_EXIT_DELAY,
+        committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
+    )
+    epoch_as_bytes = epoch_provider(epoch)
+
+    return hash_eth2(randao_mix + active_index_root + epoch_as_bytes)
+
+
 def generate_seed(state: 'BeaconState',
                   epoch: Epoch,
                   committee_config: CommitteeConfig) -> Hash32:
     """
     Generate a seed for the given ``epoch``.
     """
-    randao_mix = get_randao_mix(
-        state=state,
-        epoch=Epoch(
-            epoch +
-            committee_config.EPOCHS_PER_HISTORICAL_VECTOR -
-            committee_config.MIN_SEED_LOOKAHEAD
-        ),
-        slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
-        epochs_per_historical_vector=committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
-        perform_validation=False,
+    return _generate_seed(
+        state,
+        epoch,
+        get_randao_mix,
+        get_active_index_root,
+        _epoch_for_seed,
+        committee_config,
     )
-    active_index_root = get_active_index_root(
-        state=state,
-        epoch=epoch,
-        slots_per_epoch=committee_config.SLOTS_PER_EPOCH,
-        activation_exit_delay=committee_config.ACTIVATION_EXIT_DELAY,
-        epochs_per_historical_vector=committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
-    )
-    epoch_as_bytes = epoch.to_bytes(32, byteorder="little")
-
-    return hash_eth2(randao_mix + active_index_root + epoch_as_bytes)
 
 
 def get_total_balance(state: 'BeaconState',

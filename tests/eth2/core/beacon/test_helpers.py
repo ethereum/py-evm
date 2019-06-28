@@ -1,5 +1,3 @@
-import random
-
 import pytest
 
 from eth_utils import (
@@ -15,7 +13,6 @@ from eth2._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.constants import (
-    EMPTY_SIGNATURE,
     GWEI_PER_ETH,
     FAR_FUTURE_EPOCH,
 )
@@ -25,9 +22,10 @@ from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.validators import Validator
 
 from eth2.beacon.helpers import (
-    generate_seed,
+    _generate_seed,
     get_active_validator_indices,
-    get_block_root,
+    get_block_root_at_slot,
+    get_epoch_start_slot,
     get_domain,
     _get_fork_version,
     get_total_balance,
@@ -84,13 +82,13 @@ def generate_mock_latest_historical_roots(
         (128, 128, False),
     ],
 )
-def test_get_block_root(sample_beacon_state_params,
-                        current_slot,
-                        target_slot,
-                        success,
-                        slots_per_epoch,
-                        slots_per_historical_root,
-                        sample_block):
+def test_get_block_root_at_slot(sample_beacon_state_params,
+                                current_slot,
+                                target_slot,
+                                success,
+                                slots_per_epoch,
+                                slots_per_historical_root,
+                                sample_block):
     blocks, block_roots = generate_mock_latest_historical_roots(
         sample_block,
         current_slot,
@@ -103,7 +101,7 @@ def test_get_block_root(sample_beacon_state_params,
     )
 
     if success:
-        block_root = get_block_root(
+        block_root = get_block_root_at_slot(
             state,
             target_slot,
             slots_per_historical_root,
@@ -111,7 +109,7 @@ def test_get_block_root(sample_beacon_state_params,
         assert block_root == blocks[target_slot].signing_root
     else:
         with pytest.raises(ValidationError):
-            get_block_root(
+            get_block_root_at_slot(
                 state,
                 target_slot,
                 slots_per_historical_root,
@@ -150,41 +148,37 @@ def test_get_active_validator_indices(sample_validator_record_params):
     (
         'balances,'
         'validator_indices,'
-        'max_effective_balance,'
         'expected'
     ),
     [
         (
             tuple(),
             tuple(),
-            1 * GWEI_PER_ETH,
-            0,
+            1,
         ),
         (
             (32 * GWEI_PER_ETH, 32 * GWEI_PER_ETH),
             (0, 1),
-            32 * GWEI_PER_ETH,
             64 * GWEI_PER_ETH,
         ),
         (
             (32 * GWEI_PER_ETH, 32 * GWEI_PER_ETH),
             (1,),
             32 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
-        ),
-        (
-            (32 * GWEI_PER_ETH, 32 * GWEI_PER_ETH),
-            (0, 1),
-            16 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
         ),
     ]
 )
-def test_get_total_balance(balances,
+def test_get_total_balance(genesis_state,
+                           balances,
                            validator_indices,
-                           max_effective_balance,
                            expected):
-    total_balance = get_total_balance(balances, validator_indices, max_effective_balance)
+    state = genesis_state
+    for i, index in enumerate(validator_indices):
+        state = state._update_validator_balance(
+            index,
+            balances[i],
+        )
+    total_balance = get_total_balance(state, validator_indices)
     assert total_balance == expected
 
 
@@ -214,7 +208,7 @@ def test_get_fork_version(previous_version,
         current_version=current_version,
         epoch=epoch,
     )
-    assert expected == get_fork_version(
+    assert expected == _get_fork_version(
         fork,
         current_epoch,
     )
@@ -236,7 +230,7 @@ def test_get_fork_version(previous_version,
             4,
             4,
             1,
-            int.from_bytes(b'\x22' * 4 + b'\x01\x00\x00\x00', 'little'),
+            int.from_bytes(b'\x01\x00\x00\x00' + b'\x22' * 4, 'little'),
         ),
         (
             b'\x11' * 4,
@@ -244,7 +238,7 @@ def test_get_fork_version(previous_version,
             4,
             4 - 1,
             1,
-            int.from_bytes(b'\x11' * 4 + b'\x01\x00\x00\x00', 'little'),
+            int.from_bytes(b'\x01\x00\x00\x00' + b'\x11' * 4, 'little'),
         ),
     ]
 )
@@ -253,32 +247,36 @@ def test_get_domain(previous_version,
                     epoch,
                     current_epoch,
                     domain_type,
+                    genesis_state,
+                    slots_per_epoch,
                     expected):
+    state = genesis_state
     fork = Fork(
         previous_version=previous_version,
         current_version=current_version,
         epoch=epoch,
     )
     assert expected == get_domain(
-        fork=fork,
-        epoch=current_epoch,
+        state=state.copy(
+            fork=fork,
+        ),
         domain_type=domain_type,
+        slots_per_epoch=slots_per_epoch,
+        message_epoch=current_epoch,
     )
 
 
-def test_generate_seed(monkeypatch,
-                       genesis_state,
+def test_generate_seed(genesis_state,
                        committee_config,
                        slots_per_epoch,
                        min_seed_lookahead,
                        activation_exit_delay,
                        epochs_per_historical_vector):
-    from eth2.beacon import helpers
-
     def mock_get_randao_mix(state,
                             epoch,
                             slots_per_epoch,
-                            epochs_per_historical_vector):
+                            epochs_per_historical_vector,
+                            perform_validation=False):
         return hash_eth2(
             state.root +
             epoch.to_bytes(32, byteorder='little') +
@@ -297,31 +295,26 @@ def test_generate_seed(monkeypatch,
             epochs_per_historical_vector.to_bytes(32, byteorder='little')
         )
 
-    monkeypatch.setattr(
-        helpers,
-        'get_randao_mix',
-        mock_get_randao_mix
-    )
-    monkeypatch.setattr(
-        helpers,
-        'get_active_index_root',
-        mock_get_active_index_root
-    )
-
     state = genesis_state
     epoch = 1
+    state = state.copy(
+        slot=get_epoch_start_slot(epoch, committee_config.SLOTS_PER_EPOCH),
+    )
 
     epoch_as_bytes = epoch.to_bytes(32, 'little')
 
-    seed = generate_seed(
+    seed = _generate_seed(
         state=state,
         epoch=epoch,
+        randao_provider=mock_get_randao_mix,
+        active_index_root_provider=mock_get_active_index_root,
+        epoch_provider=lambda *_: epoch_as_bytes,
         committee_config=committee_config,
     )
     assert seed == hash_eth2(
         mock_get_randao_mix(
             state=state,
-            epoch=(epoch - min_seed_lookahead),
+            epoch=(epoch + epochs_per_historical_vector - min_seed_lookahead),
             slots_per_epoch=slots_per_epoch,
             epochs_per_historical_vector=epochs_per_historical_vector,
         ) + mock_get_active_index_root(
