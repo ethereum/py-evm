@@ -7,7 +7,7 @@ from eth.constants import (
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
 )
-from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
 from eth2.beacon.types.block_headers import BeaconBlockHeader
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.eth1_data import Eth1Data
@@ -17,7 +17,7 @@ from eth2.beacon.genesis import (
     get_genesis_beacon_state,
 )
 from eth2.beacon.tools.builder.initializer import (
-    create_mock_genesis_validator_deposits_and_root,
+    create_mock_deposits_and_root,
 )
 from eth2.beacon.typing import (
     Gwei,
@@ -54,11 +54,10 @@ def test_get_genesis_beacon_state(
         epochs_per_historical_vector,
         config,
         keymap):
-    genesis_deposits, deposit_root = create_mock_genesis_validator_deposits_and_root(
-        validator_count=validator_count,
-        config=config,
-        pubkeys=pubkeys,
+    genesis_deposits, deposit_root = create_mock_deposits_and_root(
+        pubkeys=pubkeys[:validator_count],
         keymap=keymap,
+        config=config,
     )
 
     genesis_eth1_data = Eth1Data(
@@ -78,11 +77,12 @@ def test_get_genesis_beacon_state(
     # Versioning
     assert state.slot == genesis_slot
     assert state.genesis_time == genesis_time
-    assert state.genesis_slot == 0
     assert state.fork == Fork()
 
     # History
-    assert state.latest_block_header == BeaconBlockHeader()
+    assert state.latest_block_header == BeaconBlockHeader(
+        body_root=BeaconBlockBody().root,
+    )
     assert len(state.block_roots) == slots_per_historical_root
     assert state.block_roots == (ZERO_HASH32,) * slots_per_historical_root
     assert len(state.state_roots) == slots_per_historical_root
@@ -102,7 +102,7 @@ def test_get_genesis_beacon_state(
     assert state.start_shard == 0
     assert len(state.randao_mixes) == epochs_per_historical_vector
     assert state.randao_mixes == (ZERO_HASH32,) * epochs_per_historical_vector
-    assert state.active_index_roots == (ZERO_HASH32,) * epochs_per_historical_vector
+    assert len(state.active_index_roots) == epochs_per_historical_vector
 
     # Slashings
     assert len(state.slashed_balances) == epochs_per_slashed_balances_vector
@@ -129,5 +129,5 @@ def test_get_genesis_beacon_state(
     assert state.finalized_epoch == genesis_epoch
     assert state.finalized_root == ZERO_HASH32
 
-    for i in range(genesis_deposits):
+    for i in range(len(genesis_deposits)):
         assert state.validators[i].is_active(genesis_epoch)
