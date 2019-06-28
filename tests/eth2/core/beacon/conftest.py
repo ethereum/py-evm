@@ -643,16 +643,16 @@ def genesis_time():
 
 
 @pytest.fixture
-def genesis_validators(validator_count, pubkeys, config):
+def genesis_validators(validator_count, config):
     """
     Returns ``validator_count`` number of activated validators.
     """
+    # TODO use real pubkeys from ``pubkeys`` fixture.
     return tuple(
         create_mock_validator(
-            pubkey=pubkey,
+            pubkey=i.to_bytes(48, byteorder='big'),
             config=config,
-        )
-        for pubkey in pubkeys[:validator_count]
+        ) for i in range(validator_count)
     )
 
 
