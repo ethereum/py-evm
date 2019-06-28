@@ -37,7 +37,7 @@ from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
 
-from eth2.beacon.tools.builder.initializer import mock_validator
+from eth2.beacon.tools.builder.initializer import create_mock_validator
 
 
 @pytest.mark.parametrize(
@@ -92,7 +92,7 @@ def test_validate_proposer_signature(
 
     state = BeaconState(**sample_beacon_state_params).copy(
         validators=tuple(
-            mock_validator(proposer_pubkey, config)
+            create_mock_validator(proposer_pubkey, config)
             for _ in range(10)
         ),
         balances=(max_effective_balance,) * 10,

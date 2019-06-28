@@ -164,10 +164,10 @@ def create_mock_genesis(
     return state, block
 
 
-def mock_validator(pubkey: BLSPubkey,
-                   config: Eth2Config,
-                   withdrawal_credentials: Hash32=ZERO_HASH32,
-                   is_active: bool=True) -> Validator:
+def create_mock_validator(pubkey: BLSPubkey,
+                          config: Eth2Config,
+                          withdrawal_credentials: Hash32=ZERO_HASH32,
+                          is_active: bool=True) -> Validator:
     validator = Validator.create_pending_validator(
         pubkey,
         withdrawal_credentials,

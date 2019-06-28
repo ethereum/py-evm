@@ -7,7 +7,7 @@ from eth2.beacon.types.states import (
 )
 
 from eth2.beacon.tools.builder.initializer import (
-    mock_validator,
+    create_mock_validator,
 )
 
 
@@ -22,7 +22,7 @@ def test_validators_and_balances_length(sample_beacon_state_params, config):
     with pytest.raises(ValueError):
         BeaconState(**sample_beacon_state_params).copy(
             validators=tuple(
-                mock_validator(pubkey, config)
+                create_mock_validator(pubkey, config)
                 for pubkey in range(10)
             ),
         )
@@ -42,7 +42,7 @@ def test_update_validator(genesis_state,
                           new_balance,
                           config):
     state = genesis_state
-    validator = mock_validator(new_pubkey, config)
+    validator = create_mock_validator(new_pubkey, config)
     validator_index = validator_count + validator_index_offset
 
     if validator_index < state.validator_count:

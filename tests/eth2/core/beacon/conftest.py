@@ -57,7 +57,7 @@ from eth2.beacon.state_machines.forks.serenity.blocks import (
 from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
 from eth2.beacon.tools.builder.initializer import (
-    mock_validator,
+    create_mock_validator,
 )
 
 from eth2.beacon.db.chain import (
@@ -648,7 +648,7 @@ def genesis_validators(validator_count, pubkeys, config):
     Returns ``validator_count`` number of activated validators.
     """
     return tuple(
-        mock_validator(
+        create_mock_validator(
             pubkey=pubkey,
             config=config,
         )
