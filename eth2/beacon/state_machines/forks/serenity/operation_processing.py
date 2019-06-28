@@ -57,9 +57,9 @@ def process_proposer_slashings(state: BeaconState,
         validate_proposer_slashing(state, proposer_slashing, config.SLOTS_PER_EPOCH)
 
         state = slash_validator(
-            state=state,
-            index=proposer_slashing.proposer_index,
-            config=config,
+            state,
+            proposer_slashing.proposer_index,
+            config,
         )
 
     return state
@@ -100,9 +100,9 @@ def process_attester_slashings(state: BeaconState,
             validator = state.validators[index]
             if validator.is_slashable(current_epoch):
                 state = slash_validator(
-                    state=state,
-                    index=index,
-                    config=config,
+                    state,
+                    index,
+                    config,
                 )
                 slashed_any = True
         validate_some_slashing(slashed_any, attester_slashing)

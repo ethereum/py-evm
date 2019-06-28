@@ -23,6 +23,7 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
     Epoch,
+    Gwei,
     ValidatorIndex,
 )
 
@@ -34,7 +35,7 @@ def activate_validator(validator: Validator, activation_epoch: Epoch) -> Validat
     )
 
 
-def _compute_exit_queue_epoch(state: BeaconState, config: Eth2Config) -> int:
+def _compute_exit_queue_epoch(state: BeaconState, churn_limit: int, config: Eth2Config) -> int:
     slots_per_epoch = config.SLOTS_PER_EPOCH
 
     exit_epochs = tuple(
@@ -42,18 +43,16 @@ def _compute_exit_queue_epoch(state: BeaconState, config: Eth2Config) -> int:
         if v.exit_epoch != FAR_FUTURE_EPOCH
     )
     exit_queue_epoch = max(
-        exit_epochs + (
-            get_delayed_activation_exit_epoch(
-                state.current_epoch(slots_per_epoch),
-                config.ACTIVATION_EXIT_DELAY,
-            ),
-        )
+        exit_epochs + (get_delayed_activation_exit_epoch(
+            state.current_epoch(slots_per_epoch),
+            config.ACTIVATION_EXIT_DELAY,
+        ),)
     )
     exit_queue_churn = len(tuple(
         v for v in state.validators
         if v.exit_epoch == exit_queue_epoch
     ))
-    if exit_queue_churn >= get_churn_limit(state, config):
+    if exit_queue_churn >= churn_limit:
         exit_queue_epoch += 1
     return exit_queue_epoch
 
@@ -70,7 +69,8 @@ def initiate_exit_for_validator(validator: Validator,
     if validator.exit_epoch != FAR_FUTURE_EPOCH:
         return validator
 
-    exit_queue_epoch = _compute_exit_queue_epoch(state, config)
+    churn_limit = get_churn_limit(state, config)
+    exit_queue_epoch = _compute_exit_queue_epoch(state, churn_limit, config)
 
     return validator.copy(
         exit_epoch=exit_queue_epoch,
@@ -94,19 +94,18 @@ def initiate_validator_exit(state: BeaconState,
 
 
 @curry
-def _set_validator_slashed(withdrawable_epoch: Epoch,
-                           v: Validator) -> Validator:
+def _set_validator_slashed(v: Validator,
+                           withdrawable_epoch: Epoch) -> Validator:
     return v.copy(
         slashed=True,
         withdrawable_epoch=withdrawable_epoch,
     )
 
 
-def slash_validator(*,
-                    state: BeaconState,
+def slash_validator(state: BeaconState,
                     index: ValidatorIndex,
-                    whistleblower_index: ValidatorIndex=None,
-                    config: Eth2Config) -> BeaconState:
+                    config: Eth2Config,
+                    whistleblower_index: ValidatorIndex=None) -> BeaconState:
     """
     Slash the validator with index ``index``.
 
@@ -122,9 +121,8 @@ def slash_validator(*,
     state = initiate_validator_exit(state, index, config)
     state = state.update_validator_with_fn(
         index,
-        _set_validator_slashed(
-            current_epoch + config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
-        ),
+        _set_validator_slashed,
+        current_epoch + config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
     )
 
     slashed_balance = state.validators[index].effective_balance
@@ -133,7 +131,7 @@ def slash_validator(*,
         slashed_balances=update_tuple_item_with_fn(
             state.slashed_balances,
             slashed_epoch,
-            sum,
+            lambda balance, slashed_balance: Gwei(balance + slashed_balance),
             slashed_balance,
         )
     )
