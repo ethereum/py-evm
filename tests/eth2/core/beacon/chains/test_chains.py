@@ -1,11 +1,11 @@
 import pytest
-from eth2.beacon.chains.testnet import TestnetChain
+from eth2.beacon.chains.testnet import TestnetChain as _TestnetChain
 
 
 @pytest.mark.parametrize(
     "chain_klass",
     (
-        TestnetChain,
+        _TestnetChain,
     )
 )
 def test_chain_class_well_defined(base_db,
