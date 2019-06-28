@@ -103,9 +103,9 @@ def test_validate_block_header_signature(slots_per_epoch,
 
     # Valid
     validate_block_header_signature(
+        state=state,
         header=valid_proposer_slashing.header_1,
         pubkey=proposer.pubkey,
-        fork=state.fork,
         slots_per_epoch=slots_per_epoch,
     )
 
@@ -114,8 +114,8 @@ def test_validate_block_header_signature(slots_per_epoch,
     wrong_proposer = state.validators[wrong_proposer_index]
     with pytest.raises(ValidationError):
         validate_block_header_signature(
+            state=state,
             header=valid_proposer_slashing.header_1,
             pubkey=wrong_proposer.pubkey,
-            fork=state.fork,
             slots_per_epoch=slots_per_epoch,
         )
