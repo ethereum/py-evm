@@ -34,7 +34,7 @@ from eth2.beacon.tools.misc.ssz_vector import (
     override_vector_lengths,
 )
 from eth2.beacon.tools.builder.state import (
-    mock_genesis_state,
+    create_mock_genesis_state_from_validators,
 )
 from eth2.beacon.types.blocks import (
     BeaconBlockBody,
@@ -671,7 +671,7 @@ def genesis_state(genesis_validators,
         deposit_count=len(genesis_validators),
     )
 
-    return mock_genesis_state(
+    return create_mock_genesis_state_from_validators(
         genesis_time,
         genesis_eth1_data,
         genesis_validators,

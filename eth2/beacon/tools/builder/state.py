@@ -45,11 +45,11 @@ def _check_correct_eth1_data(eth1_data: Eth1Data,
     assert eth1_data.deposit_count == len(validators)
 
 
-def mock_genesis_state(genesis_time: Timestamp,
-                       genesis_eth1_data: Eth1Data,
-                       genesis_validators: Sequence[Validator],
-                       genesis_balances: Sequence[Gwei],
-                       config: Eth2Config) -> BeaconState:
+def create_mock_genesis_state_from_validators(genesis_time: Timestamp,
+                                              genesis_eth1_data: Eth1Data,
+                                              genesis_validators: Sequence[Validator],
+                                              genesis_balances: Sequence[Gwei],
+                                              config: Eth2Config) -> BeaconState:
     """
     Produce a valid genesis state without creating the
     corresponding deposits.
