@@ -27,7 +27,7 @@ from eth.exceptions import (
 from eth2.beacon.typing import (
     FromBlockParams,
 )
-from eth2.beacon.chains.testnet import TestnetChain
+from eth2.beacon.chains.testnet import TestnetChain as _TestnetChain
 from eth2.beacon.fork_choice import higher_slot_scoring
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import (
@@ -67,7 +67,7 @@ from .helpers import (
 )
 
 
-class FakeChain(TestnetChain):
+class FakeChain(_TestnetChain):
     chaindb_class = helpers.FakeAsyncBeaconChainDB
 
     def import_block(
