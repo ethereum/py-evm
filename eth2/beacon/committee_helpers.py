@@ -1,6 +1,7 @@
 from typing import (
     Iterable,
     Sequence,
+    Tuple,
 )
 
 from eth_utils import (
@@ -27,22 +28,37 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.typing import (
     Epoch,
+    Gwei,
     Shard,
+    Slot,
     ValidatorIndex,
 )
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.validators import Validator
 
 
-def get_epoch_committee_count(active_validator_count: int,
-                              shard_count: int,
-                              slots_per_epoch: int,
-                              target_committee_size: int) -> int:
+def get_committees_per_slot(active_validator_count: int,
+                            shard_count: int,
+                            slots_per_epoch: int,
+                            target_committee_size: int) -> int:
     return max(
         1,
         min(
             shard_count // slots_per_epoch,
             active_validator_count // slots_per_epoch // target_committee_size,
         )
+    )
+
+
+def get_epoch_committee_count(active_validator_count: int,
+                              shard_count: int,
+                              slots_per_epoch: int,
+                              target_committee_size: int) -> int:
+    return get_committees_per_slot(
+        active_validator_count,
+        shard_count,
+        slots_per_epoch,
+        target_committee_size,
     ) * slots_per_epoch
 
 
@@ -85,45 +101,77 @@ def get_epoch_start_shard(state: BeaconState,
     return shard
 
 
+def _find_proposer_in_committee(validators: Sequence[Validator],
+                                committee: Sequence[ValidatorIndex],
+                                epoch: Epoch,
+                                seed: Hash32,
+                                max_effective_balance: Gwei) -> ValidatorIndex:
+    base = int(epoch)
+    i = 0
+    committee_len = len(committee)
+    while True:
+        candidate_index = committee[(base + i) % committee_len]
+        random_byte = hash_eth2(seed + (i // 32).to_bytes(8, "little"))[i % 32]
+        effective_balance = validators[candidate_index].effective_balance
+        if effective_balance * MAX_RANDOM_BYTE >= max_effective_balance * random_byte:
+            return candidate_index
+        i += 1
+
+
+def _calculate_first_committee_at_slot(state: BeaconState,
+                                       slot: Slot,
+                                       config: CommitteeConfig) -> Tuple[ValidatorIndex, ...]:
+    slots_per_epoch = config.SLOTS_PER_EPOCH
+    shard_count = config.SHARD_COUNT
+    target_committee_size = config.TARGET_COMMITTEE_SIZE
+
+    current_epoch = state.current_epoch(slots_per_epoch)
+
+    active_validator_indices = get_active_validator_indices(state.validators, current_epoch)
+
+    committees_per_slot = get_committees_per_slot(
+        len(active_validator_indices),
+        shard_count,
+        slots_per_epoch,
+        target_committee_size,
+    )
+
+    offset = committees_per_slot * (slot % slots_per_epoch)
+    shard = (
+        get_epoch_start_shard(state, current_epoch, config) + offset
+    ) % shard_count
+
+    return get_crosslink_committee(
+        state,
+        current_epoch,
+        shard,
+        config,
+    )
+
+
 def get_beacon_proposer_index(state: BeaconState,
                               committee_config: CommitteeConfig) -> ValidatorIndex:
     """
     Return the current beacon proposer index.
     """
-    slots_per_epoch = committee_config.SLOTS_PER_EPOCH
-    shard_count = committee_config.SHARD_COUNT
-    target_committee_size = committee_config.TARGET_COMMITTEE_SIZE
-    max_effective_balance = committee_config.MAX_EFFECTIVE_BALANCE
 
-    current_slot = state.slot
-    current_epoch = state.current_epoch(slots_per_epoch)
-    active_validator_indices = get_active_validator_indices(state.validators, current_epoch)
-    committees_per_slot = get_epoch_committee_count(
-        len(active_validator_indices),
-        shard_count,
-        slots_per_epoch,
-        target_committee_size,
-    ) // slots_per_epoch
-    offset = committees_per_slot * (current_slot % slots_per_epoch)
-    shard = (
-        get_epoch_start_shard(state, current_epoch, committee_config) + offset
-    ) % shard_count
-    first_committee = get_crosslink_committee(
+    first_committee = _calculate_first_committee_at_slot(
         state,
-        current_epoch,
-        shard,
+        state.slot,
         committee_config,
     )
+
+    current_epoch = state.current_epoch(committee_config.SLOTS_PER_EPOCH)
+
     seed = generate_seed(state, current_epoch, committee_config)
-    i = 0
-    first_committee_len = len(first_committee)
-    while True:
-        candidate_index = first_committee[(current_epoch + i) % first_committee_len]
-        random_byte = hash_eth2(seed + (i // 32).to_bytes(8, "little"))[i % 32]
-        effective_balance = state.validators[candidate_index].effective_balance
-        if effective_balance * MAX_RANDOM_BYTE >= max_effective_balance * random_byte:
-            return candidate_index
-        i += 1
+
+    return _find_proposer_in_committee(
+        state.validators,
+        first_committee,
+        current_epoch,
+        seed,
+        committee_config.MAX_EFFECTIVE_BALANCE,
+    )
 
 
 def _get_shuffled_index(index: int,
