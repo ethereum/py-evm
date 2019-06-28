@@ -49,7 +49,7 @@ from eth2.beacon.helpers import (
     get_randao_mix,
 )
 from eth2.beacon.validator_status_helpers import (
-    initiate_validator_exit_for_validator,
+    initiate_exit_for_validator,
 )
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.historical_batch import HistoricalBatch
@@ -498,7 +498,7 @@ def _process_activation_eligibility_or_ejections(state: BeaconState,
         validator.is_active(current_epoch) and
         validator.effective_balance <= config.EJECTION_BALANCE
     ):
-        validator = initiate_validator_exit_for_validator(state, config, validator)
+        validator = initiate_exit_for_validator(validator, state, config)
 
     return validator
 
@@ -519,7 +519,7 @@ def _process_activations(state: BeaconState,
         validator.is_active(current_epoch) and
         validator.effective_balance <= config.EJECTION_BALANCE
     ):
-        validator = initiate_validator_exit_for_validator(state, config, validator)
+        validator = initiate_exit_for_validator(validator, state, config)
 
     return validator
 

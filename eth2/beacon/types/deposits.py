@@ -5,6 +5,9 @@ from typing import (
 from eth.constants import (
     ZERO_HASH32,
 )
+from eth_utils import (
+    encode_hex,
+)
 from eth_typing import (
     Hash32,
 )
@@ -50,3 +53,6 @@ class Deposit(ssz.Serializable):
             proof,
             data,
         )
+
+    def __repr__(self) -> str:
+        return f"<Deposit root: {encode_hex(self.root)[0:8]} data: {self.data}>"

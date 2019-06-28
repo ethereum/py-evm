@@ -6,6 +6,9 @@ from eth_typing import (
     BLSSignature,
     Hash32,
 )
+from eth_utils import (
+    encode_hex,
+)
 import ssz
 from ssz.sedes import (
     uint64,
@@ -50,6 +53,9 @@ class DepositData(ssz.SignedSerializable):
             amount=amount,
             signature=signature,
         )
+
+    def __repr__(self) -> str:
+        return f"<DepositData root: {encode_hex(self.root)[0:8]}>"  # noqa: F501
 
 
 default_deposit_data = DepositData()

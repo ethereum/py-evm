@@ -274,7 +274,7 @@ class BeaconState(ssz.Serializable):
                 self.validators,
                 validator_index,
                 fn,
-                args,
+                *args,
             ),
         )
 

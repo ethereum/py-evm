@@ -58,9 +58,11 @@ def _compute_exit_queue_epoch(state: BeaconState, config: Eth2Config) -> int:
     return exit_queue_epoch
 
 
-def initiate_validator_exit_for_validator(state: BeaconState,
-                                          config: Eth2Config,
-                                          validator: Validator) -> Validator:
+# NOTE: adding ``curry`` here gets mypy to allow use of this elsewhere.
+@curry
+def initiate_exit_for_validator(validator: Validator,
+                                state: BeaconState,
+                                config: Eth2Config) -> Validator:
     """
     Performs the mutations to ``validator`` used to initiate an exit.
     More convenient given our immutability patterns compared to ``initiate_validator_exit``.
@@ -70,10 +72,10 @@ def initiate_validator_exit_for_validator(state: BeaconState,
 
     exit_queue_epoch = _compute_exit_queue_epoch(state, config)
 
-    validator.exit_epoch = exit_queue_epoch
-    validator.withdrawable_epoch = validator.exit_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY
-
-    return validator
+    return validator.copy(
+        exit_epoch=exit_queue_epoch,
+        withdrawable_epoch=exit_queue_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY,
+    )
 
 
 def initiate_validator_exit(state: BeaconState,
@@ -83,15 +85,12 @@ def initiate_validator_exit(state: BeaconState,
     Initiate exit for the validator with the given ``index``.
     Return the updated state (immutable).
     """
-    validator = state.validators[index]
-
-    updated_validator = initiate_validator_exit_for_validator(
+    return state.update_validator_with_fn(
+        index,
+        initiate_exit_for_validator,
         state,
         config,
-        validator,
     )
-
-    return state.update_validator(index, updated_validator)
 
 
 @curry
