@@ -44,6 +44,7 @@ CommitteeAssignment = NamedTuple(
 )
 
 
+# TODO(ralexstokes) refactor using other helpers, also likely to have duplicated in tests
 def get_committee_assignment(state: BeaconState,
                              config: Eth2Config,
                              epoch: Epoch,
