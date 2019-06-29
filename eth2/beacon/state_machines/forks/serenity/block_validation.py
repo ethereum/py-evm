@@ -475,7 +475,7 @@ def _validate_validator_is_active(validator: Validator, target_epoch: Epoch) -> 
         )
 
 
-def _valdiate_validator_has_not_exited(validator: Validator) -> None:
+def _validate_validator_has_not_exited(validator: Validator) -> None:
     if validator.exit_epoch != FAR_FUTURE_EPOCH:
         raise ValidationError(
             f"Validator {validator} in voluntary exit has already exited."
@@ -534,7 +534,7 @@ def validate_voluntary_exit(state: BeaconState,
     current_epoch = state.current_epoch(slots_per_epoch)
 
     _validate_validator_is_active(validator, current_epoch)
-    _valdiate_validator_has_not_exited(validator)
+    _validate_validator_has_not_exited(validator)
     _validate_eligible_exit_epoch(voluntary_exit.epoch, current_epoch)
     _validate_validator_minimum_lifespan(
         validator,
