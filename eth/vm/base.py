@@ -98,11 +98,11 @@ class BaseVM(Configurable, ABC):
 
     @classmethod
     @abstractmethod
-    def build_state(
-        cls,
-        db: BaseAtomicDB,
-        header: BlockHeader,
-        previous_hashes: Iterable[Hash32] = ()) -> BaseState:
+    def build_state(cls,
+                    db: BaseAtomicDB,
+                    header: BlockHeader,
+                    previous_hashes: Iterable[Hash32] = ()
+                    ) -> BaseState:
         pass
 
     @abstractmethod
@@ -337,8 +337,7 @@ class BaseVM(Configurable, ABC):
 
     @classmethod
     @abstractmethod
-    def validate_header(
-        cls, header: BlockHeader, parent_header: BlockHeader, check_seal: bool = True) -> None:
+    def validate_header(cls, header: BlockHeader, parent_header: BlockHeader, check_seal: bool = True) -> None:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
@@ -362,8 +361,7 @@ class BaseVM(Configurable, ABC):
 
     @classmethod
     @abstractmethod
-    def validate_uncle(
-        cls, block: BaseBlock, uncle: BlockHeader, uncle_parent: BlockHeader) -> None:
+    def validate_uncle(cls, block: BaseBlock, uncle: BlockHeader, uncle_parent: BlockHeader) -> None:
         raise NotImplementedError("VM classes must implement this method")
 
     #
@@ -420,11 +418,11 @@ class VM(BaseVM):
         return self._state
 
     @classmethod
-    def build_state(
-        cls,
-        db: BaseAtomicDB,
-        header: BlockHeader,
-        previous_hashes: Iterable[Hash32] = ()) -> BaseState:
+    def build_state(cls,
+                    db: BaseAtomicDB,
+                    header: BlockHeader,
+                    previous_hashes: Iterable[Hash32] = ()
+                    ) -> BaseState:
         """
         You probably want `VM().state` instead of this.
 
