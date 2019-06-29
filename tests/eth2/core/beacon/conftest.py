@@ -650,7 +650,7 @@ def genesis_validators(validator_count, config):
     # TODO use real pubkeys from ``pubkeys`` fixture.
     return tuple(
         create_mock_validator(
-            pubkey=i.to_bytes(48, byteorder='big'),
+            pubkey=i.to_bytes(48, byteorder="big"),
             config=config,
         ) for i in range(validator_count)
     )
