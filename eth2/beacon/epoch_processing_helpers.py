@@ -237,7 +237,7 @@ def get_attesting_balance(state: BeaconState,
 
 def _score_crosslink(state: BeaconState,
                      crosslink: Crosslink,
-                     attestations: Sequence[Attestation],
+                     attestations: Sequence[PendingAttestation],
                      config: Eth2Config) -> Tuple[Gwei, Hash32]:
     return (
         get_attesting_balance(
@@ -263,10 +263,10 @@ def _find_winning_crosslink_and_attesting_indices_from_candidates(
 
     winning_crosslink, winning_attestations = max(
         attestations_by_crosslink.items(),
-        key=lambda crosslink, *attestations: _score_crosslink(
+        key=lambda pair: _score_crosslink(
             state,
-            crosslink,
-            attestations,
+            pair[0],  # crosslink
+            pair[1],  # attestations
             config,
         ),
     )
@@ -288,7 +288,6 @@ def _get_attestations_for_shard(
     for a in attestations:
         if a.data.crosslink.shard == shard:
             yield a
-
 
 
 @curry
