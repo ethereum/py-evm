@@ -1,26 +1,38 @@
+import random
 import pytest
-
-from cytoolz import (
-    pipe,
-)
-
-from hypothesis import (
-    given,
-    settings,
-    strategies as st,
-)
 
 from eth2._utils.bitfield import (
     set_voted,
     get_empty_bitfield,
 )
-from eth2._utils.hash import (
-    hash_eth2,
+from eth2._utils.tuple import (
+    update_tuple_item,
 )
 from eth2.configs import CommitteeConfig
+from eth2.beacon.constants import (
+    FAR_FUTURE_EPOCH,
+    GWEI_PER_ETH,
+)
+from eth2.beacon.exceptions import InvalidEpochError
+from eth2.beacon.committee_helpers import (
+    get_crosslink_committee,
+)
 from eth2.beacon.epoch_processing_helpers import (
+    increase_balance,
+    decrease_balance,
+    get_attesting_indices,
+    convert_to_indexed,
     get_delayed_activation_exit_epoch,
-    get_winning_crosslink_and_attesting_indices,
+    get_churn_limit,
+    get_total_active_balance,
+    get_matching_source_attestations,
+    get_matching_target_attestations,
+    get_matching_head_attestations,
+    get_unslashed_attesting_indices,
+    _get_attestations_for_shard,
+    _get_attestations_for_valid_crosslink,
+    _find_winning_crosslink_and_attesting_indices_from_candidates,
+    get_base_reward,
 )
 from eth2.beacon.helpers import (
     get_epoch_start_slot,
@@ -33,524 +45,97 @@ from eth2.beacon.types.attestation_data import (
 )
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
+from eth2.beacon.typing import (
+    Gwei,
+)
 
 
-def sampling_attestation_participants(random, committee, target_committee_size):
-    """
-    Random sampling half the committee.
-    `attestation_participants_1` and `attestation_participants_2` are expected to have
-    overlapping participants.
-    """
-    attestation_participants_1 = random.sample(committee, target_committee_size // 2)
-    attestation_participants_2 = random.sample(committee, target_committee_size // 2)
-    not_attestation_participants_1 = [i for i in committee if i not in attestation_participants_1]
-    return attestation_participants_1, attestation_participants_2, not_attestation_participants_1
-
-
-def get_aggregation_bitfield(attestation_participants, target_committee_size):
-    bitfield = get_empty_bitfield(target_committee_size)
-    bitfield = pipe(
-        bitfield,
-        *(
-            set_voted(index=committee_index)
-            for committee_index in attestation_participants
-        )
-    )
-    return bitfield
-
-
-@settings(max_examples=1)
-@given(random=st.randoms())
-def test_get_current_and_previous_epoch_attestations(random,
-                                                     sample_state,
-                                                     slots_per_epoch,
-                                                     sample_attestation_data_params,
-                                                     sample_attestation_params):
-    num_previous_epoch_attestation, num_current_epoch_attestation = random.sample(
-        range(slots_per_epoch),
-        2,
-    )
-    previous_epoch_attestion_slots = random.sample(
-        range(slots_per_epoch),
-        num_previous_epoch_attestation,
-    )
-    current_epoch_attestion_slots = random.sample(
-        range(slots_per_epoch, slots_per_epoch * 2),
-        num_current_epoch_attestation,
-    )
-
-    previous_epoch_attestations = []
-    for slot in previous_epoch_attestion_slots:
-        previous_epoch_attestations.append(
-            Attestation(**sample_attestation_params).copy(
-                data=AttestationData(**sample_attestation_data_params).copy(
-                    slot=slot,
-                ),
-            )
-        )
-    current_epoch_attestations = []
-    for slot in current_epoch_attestion_slots:
-        current_epoch_attestations.append(
-            Attestation(**sample_attestation_params).copy(
-                data=AttestationData(**sample_attestation_data_params).copy(
-                    slot=slot,
-                ),
-            )
-        )
-
-    state = sample_state.copy(
-        slot=(slots_per_epoch * 2 - 1),
-        previous_epoch_attestations=previous_epoch_attestations,
-        current_epoch_attestations=current_epoch_attestations,
-    )
-    assert set(previous_epoch_attestations) == set(state.previous_epoch_attestations)
-    assert set(current_epoch_attestations) == set(state.current_epoch_attestations)
-
-
-@settings(max_examples=1)
-@given(random=st.randoms())
 @pytest.mark.parametrize(
     (
-        'slots_per_epoch,slots_per_historical_root'
+        "delta,"
     ),
     [
-        (10, 100),
-    ]
+        (1),
+        (GWEI_PER_ETH),
+        (2 * GWEI_PER_ETH),
+        (32 * GWEI_PER_ETH),
+        (33 * GWEI_PER_ETH),
+    ],
 )
-def test_get_previous_epoch_matching_head_attestations(
-        random,
-        sample_state,
-        slots_per_epoch,
-        slots_per_historical_root,
-        sample_attestation_data_params,
-        sample_attestation_params):
-    previous_epoch = 9
-    current_epoch = previous_epoch + 1
-    current_slot = get_epoch_start_slot(current_epoch + 1, slots_per_epoch) - 1
-    block_roots = [
-        hash_eth2(b'block_root' + i.to_bytes(1, 'little'))
-        for i in range(slots_per_historical_root)
-    ]
+def test_increase_balance(genesis_state,
+                          delta):
+    index = random.sample(range(len(genesis_state.validators)), 1)[0]
+    prior_balance = genesis_state.balances[index]
+    state = increase_balance(genesis_state, index, delta)
+    assert state.balances[index] == Gwei(prior_balance + delta)
 
-    num_previous_epoch_attestation = random.sample(range(slots_per_epoch), 1)[0]
-    previous_epoch_attestion_slots = random.sample(
-        range(
-            get_epoch_start_slot(previous_epoch, slots_per_epoch),
-            get_epoch_start_slot(current_epoch, slots_per_epoch),
-        ),
-        num_previous_epoch_attestation,
-    )
-    num_previous_epoch_head_attestation = random.sample(range(num_previous_epoch_attestation), 1)[0]
-    previous_epoch_head_attestion_slots = random.sample(
-        previous_epoch_attestion_slots,
-        num_previous_epoch_head_attestation,
-    )
-    previous_epoch_not_head_attestion_slots = set(previous_epoch_attestion_slots).difference(
-        set(previous_epoch_head_attestion_slots)
-    )
 
-    previous_epoch_head_attestations = []
-    for slot in previous_epoch_head_attestion_slots:
-        previous_epoch_head_attestations.append(
-            Attestation(**sample_attestation_params).copy(
-                data=AttestationData(**sample_attestation_data_params).copy(
-                    slot=slot,
-                    beacon_block_root=block_roots[slot % slots_per_historical_root],
-                ),
-            )
-        )
-    previous_epoch_not_head_attestations = []
-    for slot in previous_epoch_not_head_attestion_slots:
-        previous_epoch_not_head_attestations.append(
-            Attestation(**sample_attestation_params).copy(
-                data=AttestationData(**sample_attestation_data_params).copy(
-                    slot=slot,
-                ),
-            )
-        )
+@pytest.mark.parametrize(
+    (
+        "delta,"
+    ),
+    [
+        (1),
+        (GWEI_PER_ETH),
+        (2 * GWEI_PER_ETH),
+        (32 * GWEI_PER_ETH),
+        (33 * GWEI_PER_ETH),
+        (100 * GWEI_PER_ETH),
+    ],
+)
+def test_decrease_balance(genesis_state,
+                          delta):
+    index = random.sample(range(len(genesis_state.validators)), 1)[0]
+    prior_balance = genesis_state.balances[index]
+    state = decrease_balance(genesis_state, index, delta)
+    assert state.balances[index] == Gwei(max(prior_balance - delta, 0))
 
-    state = sample_state.copy(
-        slot=current_slot,
-        block_roots=block_roots,
-        previous_epoch_attestations=(
-            previous_epoch_head_attestations + previous_epoch_not_head_attestations
-        ),
+
+@pytest.mark.parametrize(
+    (
+        'validator_count,'
+    ),
+    [
+        (1000),
+    ],
+)
+def test_get_attesting_indices(genesis_state,
+                               config):
+    state = genesis_state.copy(
+        slot=get_epoch_start_slot(3, config.SLOTS_PER_EPOCH)
     )
-
-    result = get_previous_epoch_matching_head_attestations(
+    target_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    target_shard = (state.start_shard + 3) % config.SHARD_COUNT
+    some_committee = get_crosslink_committee(
         state,
-        slots_per_epoch,
-        slots_per_historical_root,
-    )
-    assert set(previous_epoch_head_attestations) == set(result)
-
-
-@settings(max_examples=10)
-@given(random=st.randoms())
-@pytest.mark.parametrize(
-    (
-        'target_committee_size,'
-        'block_root_1_participants,'
-        'block_root_2_participants,'
-    ),
-    [
-        (
-            16,
-            (1, 3),
-            (2, 4, 6, 8)
-        ),
-        (
-            16,
-            # vote tie; higher root value is favored
-            (1, 3, 5, 7),
-            (2, 4, 6, 8)
-        ),
-        (
-            16,
-            # no votes; no winning root
-            (),
-            ()
-        ),
-    ]
-)
-def test_get_winning_root_and_participants(
-        random,
-        monkeypatch,
-        target_committee_size,
-        block_root_1_participants,
-        block_root_2_participants,
-        config,
-        committee_config,
-        genesis_state,
-        sample_attestation_data_params,
-        sample_attestation_params):
-    shard = 1
-    committee = tuple([i for i in range(target_committee_size)])
-
-    from eth2.beacon import committee_helpers
-
-    def mock_get_crosslink_committees_at_slot(state,
-                                              slot,
-                                              committee_config,
-                                              registry_change=False):
-        return (
-            (committee, shard,),
-        )
-
-    monkeypatch.setattr(
-        committee_helpers,
-        'get_crosslink_committees_at_slot',
-        mock_get_crosslink_committees_at_slot
+        target_epoch,
+        target_shard,
+        CommitteeConfig(config),
     )
 
-    competing_block_roots = [
-        hash_eth2(bytearray(random.getrandbits(8) for _ in range(10))),
-        hash_eth2(bytearray(random.getrandbits(8) for _ in range(10)))
-    ]
-
-    # Generate bitfield of each participants set
-    root_1_participants_bitfield = get_aggregation_bitfield(
-        block_root_1_participants,
-        target_committee_size,
-    )
-    root_2_participants_bitfield = get_aggregation_bitfield(
-        block_root_2_participants,
-        target_committee_size,
-    )
-    # `attestions` contains attestation to different block root by different set of participants
-    attestations = (
-        # Attestation to `crosslink_data_root_1` by `attestation_participants_1`
-        Attestation(**sample_attestation_params).copy(
-            aggregation_bitfield=root_1_participants_bitfield,
-            data=AttestationData(**sample_attestation_data_params).copy(
-                shard=shard,
-                previous_crosslink=Crosslink(
-                    shard=shard,
-                ),
-                crosslink_data_root=competing_block_roots[0],
-            ),
-        ),
-        # Attestation to `crosslink_data_root_2` by `attestation_participants_2`
-        Attestation(**sample_attestation_params).copy(
-            aggregation_bitfield=root_2_participants_bitfield,
-            data=AttestationData(**sample_attestation_data_params).copy(
-                shard=shard,
-                previous_crosslink=Crosslink(
-                    shard=shard,
-                ),
-                crosslink_data_root=competing_block_roots[1],
-            ),
+    data = AttestationData(
+        target_epoch=target_epoch,
+        crosslink=Crosslink(
+            shard=target_shard,
         ),
     )
+    some_subset_count = random.randint(1, len(some_committee) // 2)
+    some_subset = random.sample(some_committee, some_subset_count)
 
-    state = genesis_state.copy(
-        previous_epoch_attestations=attestations,
-    )
-    effective_balances = {
-        index: state.validators[index].effective_balance
-        for index in range(len(state.validators))
-    }
+    bitfield = get_empty_bitfield(len(some_committee))
+    for i, index in enumerate(some_committee):
+        if index in some_subset:
+            bitfield = set_voted(bitfield, i)
 
-    winning_root, attesting_validator_indices = get_winning_root_and_participants(
-        state=state,
-        shard=shard,
-        effective_balances=effective_balances,
-        committee_config=committee_config,
-    )
-    if len(attesting_validator_indices) == 0:
-        assert len(block_root_1_participants) == 0 and len(block_root_2_participants) == 0
-    else:
-        if len(block_root_1_participants) == len(block_root_2_participants):
-            if competing_block_roots[0] > competing_block_roots[1]:
-                assert winning_root == competing_block_roots[0]
-                assert set(attesting_validator_indices) == set(block_root_1_participants)
-            else:
-                assert winning_root == competing_block_roots[1]
-                assert set(attesting_validator_indices) == set(block_root_2_participants)
-        elif len(block_root_1_participants) < len(block_root_2_participants):
-            assert winning_root == competing_block_roots[1]
-            assert set(attesting_validator_indices) == set(block_root_2_participants)
-        else:
-            assert winning_root == competing_block_roots[0]
-            assert set(attesting_validator_indices) == set(block_root_1_participants)
-
-
-# used as a helper for backwards compatibility of the following test
-# the following test could be refactored to remove this function
-def get_epoch_boundary_attesting_balances(current_epoch,
-                                          previous_epoch,
-                                          state,
-                                          config):
-    return (
-        get_epoch_boundary_attesting_balance(
-            state,
-            state.previous_epoch_attestations,
-            previous_epoch,
-            config,
-        ),
-        get_epoch_boundary_attesting_balance(
-            state,
-            state.current_epoch_attestations,
-            current_epoch,
-            config,
-        ),
+    indices = get_attesting_indices(
+        state,
+        data,
+        bitfield,
+        CommitteeConfig(config),
     )
 
-
-@settings(max_examples=1)
-@given(random=st.randoms())
-@pytest.mark.parametrize(
-    (
-        'n,'
-    ),
-    [
-        (
-            16,
-        ),
-    ]
-)
-def test_get_epoch_boundary_attesting_balances(
-    monkeypatch,
-    random,
-    config,
-    n,
-    genesis_state,
-    sample_attestation_data_params,
-    sample_attestation_params,
-    max_effective_balance,
-):
-    slot = 255
-    current_epoch = 3
-    previous_epoch = 2
-    current_justified_epoch = 2
-    previous_justified_epoch = 1
-    target_committee_size = n
-    committee = tuple(i for i in range(target_committee_size))
-
-    from eth2.beacon import committee_helpers
-
-    def mock_get_crosslink_committees_at_slot(state,
-                                              slot,
-                                              committee_config,
-                                              registry_change=False):
-        return (
-            (committee, sample_attestation_data_params['shard'],),
-        )
-
-    monkeypatch.setattr(
-        committee_helpers,
-        'get_crosslink_committees_at_slot',
-        mock_get_crosslink_committees_at_slot
-    )
-
-    current_target_root = hash_eth2(b'block_root_1')
-    previous_target_root = hash_eth2(b'block_root_2')
-    block_roots = list(None for _ in range(config.SLOTS_PER_HISTORICAL_ROOT))
-    block_roots[192] = current_target_root
-    block_roots[128] = previous_target_root
-    (
-        attestation_participants_1,
-        attestation_participants_2,
-        _,
-    ) = sampling_attestation_participants(random, committee, target_committee_size)
-
-    # Generate bitfield of each participants set
-    aggregation_bitfield_1 = get_aggregation_bitfield(
-        attestation_participants_1,
-        target_committee_size,
-    )
-    aggregation_bitfield_2 = get_aggregation_bitfield(
-        attestation_participants_2,
-        target_committee_size,
-    )
-
-    current_epoch_attestations = (
-        Attestation(**sample_attestation_params).copy(
-            aggregation_bitfield=aggregation_bitfield_1,
-            data=AttestationData(**sample_attestation_data_params).copy(
-                slot=194,
-                source_epoch=current_justified_epoch,
-                target_root=current_target_root,
-            ),
-        ),
-        Attestation(**sample_attestation_params).copy(
-            aggregation_bitfield=aggregation_bitfield_2,
-            data=AttestationData(**sample_attestation_data_params).copy(
-                slot=193,
-                source_epoch=current_justified_epoch,
-                target_root=current_target_root,
-            ),
-        ),
-
-    )
-
-    previous_epoch_attestations = (
-        Attestation(**sample_attestation_params).copy(
-            aggregation_bitfield=aggregation_bitfield_1,
-            data=AttestationData(**sample_attestation_data_params).copy(
-                slot=129,
-                source_epoch=previous_justified_epoch,
-                target_root=previous_target_root,
-            ),
-        ),
-        Attestation(**sample_attestation_params).copy(
-            aggregation_bitfield=aggregation_bitfield_2,
-            data=AttestationData(**sample_attestation_data_params).copy(
-                slot=130,
-                source_epoch=previous_justified_epoch,
-                target_root=previous_target_root,
-            ),
-        ),
-    )
-
-    state = genesis_state.copy(
-        slot=slot,
-        current_justified_epoch=current_justified_epoch,
-        previous_justified_epoch=previous_justified_epoch,
-        previous_epoch_attestations=previous_epoch_attestations,
-        current_epoch_attestations=current_epoch_attestations,
-        block_roots=tuple(block_roots),
-    )
-    (
-        previous_epoch_boundary_attesting_balance,
-        current_epoch_boundary_attesting_balance,
-    ) = get_epoch_boundary_attesting_balances(
-        current_epoch=current_epoch,
-        previous_epoch=previous_epoch,
-        state=state,
-        config=config,
-    )
-    num_unique_attesters = len(set(attestation_participants_1 + attestation_participants_2))
-    assert previous_epoch_boundary_attesting_balance == num_unique_attesters * max_effective_balance
-    assert current_epoch_boundary_attesting_balance == num_unique_attesters * max_effective_balance
-
-
-@pytest.mark.parametrize(
-    (
-        'n,'
-        'slots_per_epoch,'
-        'target_committee_size,'
-        'attestation_1_inclusion_slot,attestation_1_data_slot,'
-        'attestation_2_inclusion_slot,attestation_2_data_slot,'
-        'expected_inclusion_slot,expected_inclusion_distance,'
-    ),
-    [
-        (
-            50,
-            10,
-            5,
-            18, 12,
-            15, 11,
-            15, 4,  # 15 is the smaller inclusion_slot, inclusion_distance is 15-11 = 4
-        ),
-    ]
-)
-def test_get_inclusion_infos(
-        monkeypatch,
-        n,
-        genesis_state,
-        config,
-        slots_per_epoch,
-        target_committee_size,
-        shard_count,
-        attestation_1_inclusion_slot,
-        attestation_1_data_slot,
-        attestation_2_inclusion_slot,
-        attestation_2_data_slot,
-        expected_inclusion_slot,
-        expected_inclusion_distance,
-        sample_attestation_data_params,
-        sample_pending_attestation_record_params):
-    participating_validator_index = 1
-    committee = (1, 2, 3)
-    shard = 1
-    from eth2.beacon import committee_helpers
-
-    def mock_get_crosslink_committees_at_slot(state,
-                                              slot,
-                                              committee_config,
-                                              registry_change=False):
-        return (
-            (committee, shard,),
-        )
-
-    monkeypatch.setattr(
-        committee_helpers,
-        'get_crosslink_committees_at_slot',
-        mock_get_crosslink_committees_at_slot
-    )
-
-    aggregation_bitfield = get_empty_bitfield(target_committee_size)
-    aggregation_bitfield = set_voted(
-        aggregation_bitfield,
-        committee.index(participating_validator_index)
-    )
-    previous_epoch_attestations = [
-        PendingAttestation(**sample_pending_attestation_record_params).copy(
-            aggregation_bitfield=aggregation_bitfield,
-            data=AttestationData(**sample_attestation_data_params).copy(
-                slot=attestation_1_data_slot,
-                shard=shard,
-            ),
-            inclusion_slot=attestation_1_inclusion_slot,
-        ),
-        PendingAttestation(**sample_pending_attestation_record_params).copy(
-            aggregation_bitfield=aggregation_bitfield,
-            data=AttestationData(**sample_attestation_data_params).copy(
-                slot=attestation_2_data_slot,
-                shard=shard,
-            ),
-            inclusion_slot=attestation_2_inclusion_slot,
-        ),
-    ]
-
-    result = get_inclusion_infos(
-        state=genesis_state,
-        attestations=previous_epoch_attestations,
-        committee_config=CommitteeConfig(config),
-    )
-    assert result[participating_validator_index].inclusion_slot == expected_inclusion_slot
-    assert result[participating_validator_index].inclusion_distance == expected_inclusion_distance
+    assert set(indices) == set(some_subset)
+    assert len(indices) == len(some_subset)
 
 
 def test_get_delayed_activation_exit_epoch(activation_exit_delay):
@@ -560,3 +145,381 @@ def test_get_delayed_activation_exit_epoch(activation_exit_delay):
         activation_exit_delay,
     )
     assert entry_exit_effect_epoch == (epoch + 1 + activation_exit_delay)
+
+
+@pytest.mark.parametrize(
+    (
+        "validator_count,"
+        "churn_limit_quotient,"
+        "min_per_epoch_churn_limit,"
+        "expected_churn_limit,"
+    ),
+    [
+        # Too few validators
+        (5, 100, 32, 32),
+        # Enough validators
+        (100, 1, 5, 100),
+    ],
+)
+def test_get_churn_limit(genesis_state,
+                         expected_churn_limit,
+                         config):
+    assert get_churn_limit(genesis_state, config) == expected_churn_limit
+
+
+@pytest.mark.parametrize(
+    (
+        "current_epoch,"
+        "target_epoch,"
+        "success,"
+    ),
+    [
+        (40, 40, True),
+        (40, 39, True),
+        (40, 38, False),
+        (40, 41, False),
+    ],
+)
+def test_get_matching_source_attestations(genesis_state,
+                                          current_epoch,
+                                          target_epoch,
+                                          success,
+                                          config):
+    state = genesis_state.copy(
+        slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
+        current_epoch_attestations=tuple(
+            PendingAttestation(
+                data=AttestationData(
+                    beacon_block_root=current_epoch.to_bytes(32, "little"),
+                )
+            )
+        ),
+        previous_epoch_attestations=tuple(
+            PendingAttestation(
+                data=AttestationData(
+                    beacon_block_root=(current_epoch - 1).to_bytes(32, "little"),
+                )
+            )
+        )
+    )
+
+    if success:
+        attestations = get_matching_source_attestations(
+            state,
+            target_epoch,
+            config,
+        )
+    else:
+        with pytest.raises(InvalidEpochError):
+            get_matching_source_attestations(
+                state,
+                target_epoch,
+                config,
+            )
+        return
+
+    if current_epoch == target_epoch:
+        assert attestations == state.current_epoch_attestations
+    else:
+        assert attestations == state.previous_epoch_attestations
+
+
+def test_get_matching_target_attestations(genesis_state,
+                                          config):
+    some_epoch = config.GENESIS_EPOCH + 20
+    some_slot = get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH)
+    some_target_root = b'\x33' * 32
+    target_attestations = tuple(
+        (
+            PendingAttestation(
+                data=AttestationData(
+                    target_root=some_target_root,
+                ),
+            ) for _ in range(3)
+        )
+    )
+    current_epoch_attestations = target_attestations + tuple(
+        (
+            PendingAttestation(
+                data=AttestationData(
+                    target_root=b'\x44' * 32,
+                ),
+            ) for _ in range(3)
+        )
+    )
+    state = genesis_state.copy(
+        slot=some_slot + 1,
+        block_roots=update_tuple_item(
+            genesis_state.block_roots,
+            some_slot % config.SLOTS_PER_HISTORICAL_ROOT,
+            some_target_root,
+        ),
+        current_epoch_attestations=current_epoch_attestations,
+    )
+
+    attestations = get_matching_target_attestations(
+        state,
+        some_epoch,
+        config,
+    )
+
+    assert attestations == target_attestations
+
+
+def test_get_matching_head_attestations(genesis_state,
+                                        config):
+    some_epoch = config.GENESIS_EPOCH + 20
+    some_slot = get_epoch_start_slot(
+        some_epoch,
+        config.SLOTS_PER_EPOCH
+    ) + config.SLOTS_PER_EPOCH // 4
+    some_target_root = b'\x33' * 32
+    target_attestations = tuple(
+        (
+            PendingAttestation(
+                data=AttestationData(
+                    beacon_block_root=some_target_root,
+                    target_epoch=some_epoch - 1,
+                    crosslink=Crosslink(
+                        shard=i,
+                    )
+                ),
+            ) for i in range(3)
+        )
+    )
+    current_epoch_attestations = target_attestations + tuple(
+        (
+            PendingAttestation(
+                data=AttestationData(
+                    beacon_block_root=b'\x44' * 32,
+                    target_epoch=some_epoch - 1,
+                ),
+            ) for _ in range(3)
+        )
+    )
+    state = genesis_state.copy(
+        slot=some_slot - 1,
+        block_roots=tuple(
+            some_target_root for _ in range(config.SLOTS_PER_HISTORICAL_ROOT)
+        ),
+        current_epoch_attestations=current_epoch_attestations,
+    )
+
+    attestations = get_matching_head_attestations(
+        state,
+        some_epoch,
+        config,
+    )
+
+    assert attestations == target_attestations
+
+
+@pytest.mark.parametrize(
+    (
+        'validator_count,'
+    ),
+    [
+        (1000),
+    ],
+)
+def test_get_unslashed_attesting_indices(genesis_state,
+                                         config):
+    state = genesis_state.copy(
+        slot=get_epoch_start_slot(3, config.SLOTS_PER_EPOCH)
+    )
+    target_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    target_shard = (state.start_shard + 3) % config.SHARD_COUNT
+    some_committee = get_crosslink_committee(
+        state,
+        target_epoch,
+        target_shard,
+        CommitteeConfig(config),
+    )
+
+    data = AttestationData(
+        target_epoch=target_epoch,
+        crosslink=Crosslink(
+            shard=target_shard,
+        ),
+    )
+    some_subset_count = random.randint(1, len(some_committee) // 2)
+    some_subset = random.sample(some_committee, some_subset_count)
+
+    bitfield = get_empty_bitfield(len(some_committee))
+    for i, index in enumerate(some_committee):
+        if index in some_subset:
+            if random.choice([True, False]):
+                state = state.update_validator_with_fn(
+                    index,
+                    lambda v, *_: v.copy(
+                        slashed=True,
+                    )
+                )
+            bitfield = set_voted(bitfield, i)
+
+    some_subset = tuple(filter(
+        lambda index: not state.validators[index].slashed,
+        some_subset,
+    ))
+
+    indices = get_unslashed_attesting_indices(
+        state,
+        (
+            PendingAttestation(
+                data=data,
+                aggregation_bitfield=bitfield,
+            ),
+        ),
+        CommitteeConfig(config),
+    )
+
+    assert set(indices) == set(some_subset)
+    assert len(indices) == len(some_subset)
+
+
+# TODO(ralexstokes) merge into tools/builder
+def _mk_pending_attestation_from_committee(state, config, committee, shard):
+    parent_root = state.current_crosslinks[shard].root
+    bitfield = get_empty_bitfield(len(committee))
+    for i in range(len(committee)):
+        bitfield = set_voted(bitfield, i)
+
+    return PendingAttestation(
+        aggregation_bitfield=bitfield,
+        data=AttestationData(
+            crosslink=Crosslink(
+                shard=shard,
+                parent_root=parent_root,
+                data_root=parent_root,
+            )
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    (
+        'validator_count,'
+    ),
+    [
+        (1000),
+    ],
+)
+def test_find_candidate_attestations_for_shard(genesis_state,
+                                               config):
+    some_epoch = config.GENESIS_EPOCH + 20
+    some_shard = 3
+    shard_offset = 24
+
+    state = genesis_state.copy(
+        slot=get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH),
+        start_shard=some_shard,
+        current_crosslinks=tuple(
+            Crosslink(
+                shard=i,
+                data_root=(i).to_bytes(32, "little"),
+            )
+            for i in range(config.SHARD_COUNT)
+        ),
+    )
+
+    some_shards_with_attestations = random.sample(
+        range(some_shard, some_shard + shard_offset),
+        shard_offset // 2,
+    )
+
+    committee_and_shard_pairs = tuple(
+        (
+            get_crosslink_committee(
+                state,
+                some_epoch,
+                some_shard + i,
+                CommitteeConfig(config),
+            ), some_shard + i
+        ) for i in range(shard_offset)
+        if some_shard + i in some_shards_with_attestations
+    )
+
+    pending_attestations = {
+        shard: _mk_pending_attestation_from_committee(
+            state,
+            config,
+            committee,
+            shard,
+        ) for committee, shard in committee_and_shard_pairs
+    }
+
+    some_crosslinks_to_mangle = random.sample(
+        some_shards_with_attestations,
+        len(some_shards_with_attestations) // 2,
+    )
+
+    shards_with_valid_crosslinks = (
+        set(some_shards_with_attestations) - set(some_crosslinks_to_mangle)
+    )
+
+    crosslinks = tuple()
+    for shard in range(config.SHARD_COUNT):
+        if shard in shards_with_valid_crosslinks:
+            crosslinks += (state.current_crosslinks[shard],)
+        else:
+            crosslinks += (Crosslink(),)
+
+    state = state.copy(
+        current_crosslinks=crosslinks,
+    )
+
+    # check around the range of shards we built up
+    for shard in range(0, some_shard + shard_offset + 3):
+        if shard in some_shards_with_attestations:
+            attestations = _get_attestations_for_shard(
+                pending_attestations.values(),
+                shard,
+            )
+            assert attestations == (pending_attestations[shard],)
+
+            if shard in some_crosslinks_to_mangle:
+                assert not _get_attestations_for_valid_crosslink(
+                    pending_attestations.values(),
+                    state,
+                    shard,
+                    config,
+                )
+            else:
+                attestations = _get_attestations_for_valid_crosslink(
+                    pending_attestations.values(),
+                    state,
+                    shard,
+                    config,
+                )
+                assert attestations == (pending_attestations[shard],)
+        else:
+            assert not _get_attestations_for_shard(
+                pending_attestations.values(),
+                shard,
+            )
+            assert not _get_attestations_for_valid_crosslink(
+                pending_attestations.values(),
+                state,
+                shard,
+                config,
+            )
+
+
+@pytest.mark.parametrize(
+    (
+    ),
+    [
+)
+
+    )
+
+
+    )
+
+
+    )
+
+
+def test_get_base_reward(genesis_state,
+                         config):
+    assert get_base_reward(genesis_state, 0, config) == 724077
