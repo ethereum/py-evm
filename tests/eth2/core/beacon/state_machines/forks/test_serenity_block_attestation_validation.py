@@ -12,26 +12,21 @@ from eth_utils import (
 from eth.constants import (
     ZERO_HASH32,
 )
-from eth2.beacon.committee_helpers import (
-    get_crosslink_committee,
-)
 from eth2.beacon.helpers import (
     get_epoch_start_slot,
 )
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation_slot,
-)
-from eth2.beacon.tools.builder.validator import (
-    create_mock_signed_attestation,
+    validate_attestation,
 )
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.crosslinks import Crosslink
 
 
 @pytest.mark.parametrize(
-    ('genesis_slot', 'genesis_epoch', 'slots_per_epoch', 'min_attestation_inclusion_delay'),
+    ('slots_per_epoch', 'min_attestation_inclusion_delay'),
     [
-        (8, 2, 4, 2),
+        (4, 2),
     ]
 )
 @pytest.mark.parametrize(
@@ -45,42 +40,32 @@ from eth2.beacon.types.crosslinks import Crosslink
         (8, 2 + 8, True),
         # in bounds at high end
         (8, 8 + 4, True),
-        # attestation_slot < genesis_slot
-        (7, 2 + 8, False),
         # state_slot > attestation_data.slot + slots_per_epoch
         (8, 8 + 4 + 1, False),
         # attestation_data.slot + min_attestation_inclusion_delay > state_slot
         (8, 8 - 2, False),
     ]
 )
-def test_validate_attestation_slot(sample_attestation_data_params,
-                                   attestation_slot,
+def test_validate_attestation_slot(attestation_slot,
                                    state_slot,
                                    slots_per_epoch,
-                                   genesis_slot,
-                                   genesis_epoch,
                                    min_attestation_inclusion_delay,
                                    is_valid):
-    attestation_data = AttestationData(**sample_attestation_data_params).copy(
-        slot=attestation_slot,
-    )
 
     if is_valid:
         validate_attestation_slot(
-            attestation_data,
+            attestation_slot,
             state_slot,
             slots_per_epoch,
             min_attestation_inclusion_delay,
-            genesis_slot,
         )
     else:
         with pytest.raises(ValidationError):
             validate_attestation_slot(
-                attestation_data,
+                attestation_slot,
                 state_slot,
                 slots_per_epoch,
                 min_attestation_inclusion_delay,
-                genesis_slot,
             )
 
 
@@ -133,6 +118,7 @@ def test_validate_attestation_source_epoch_and_root(
         previous_justified_root,
         current_justified_root,
         slots_per_epoch,
+        config,
         is_valid):
     state = genesis_state.copy(
         slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
@@ -148,19 +134,17 @@ def test_validate_attestation_source_epoch_and_root(
     )
 
     if is_valid:
-        validate_attestation_source_epoch_and_root(
+        validate_attestation(
             state,
             attestation_data,
-            current_epoch,
-            slots_per_epoch,
+            config,
         )
     else:
         with pytest.raises(ValidationError):
-            validate_attestation_source_epoch_and_root(
+            validate_attestation(
                 state,
                 attestation_data,
-                current_epoch,
-                slots_per_epoch,
+                config,
             )
 
 
