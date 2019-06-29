@@ -243,7 +243,12 @@ class Validator(BaseService):
             parent_block=head_block,
             attestations=ready_attestations,
         )
-        self.logger.info(bold_green("Validator=%s proposing block=%s"), proposer_index, block)
+        self.logger.info(
+            bold_green("Validator=%s proposing block=%s with attestations=%s"),
+            proposer_index,
+            block,
+            block.body.attestations,
+        )
         for peer in self.peer_pool.connected_nodes.values():
             peer = cast(BCCPeer, peer)
             self.logger.debug(bold_red("Sending block=%s to peer=%s"), block, peer)
