@@ -76,16 +76,6 @@ def test_process_deposit(config,
 
     pubkey = pubkeys[validator_index]
 
-    state = state.copy(
-        validators=tuple(
-            (
-                state.validators[i].copy(
-                    pubkey=pubkeys[i],
-                ) for i in range(validator_count)
-            ),
-        )
-    )
-
     state, deposit = create_mock_deposit(
         state,
         pubkey,

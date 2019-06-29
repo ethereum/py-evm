@@ -643,16 +643,15 @@ def genesis_time():
 
 
 @pytest.fixture
-def genesis_validators(validator_count, config):
+def genesis_validators(validator_count, pubkeys, config):
     """
     Returns ``validator_count`` number of activated validators.
     """
-    # TODO use real pubkeys from ``pubkeys`` fixture.
     return tuple(
         create_mock_validator(
-            pubkey=i.to_bytes(48, byteorder="big"),
+            pubkey=pubkey,
             config=config,
-        ) for i in range(validator_count)
+        ) for pubkey in pubkeys[:validator_count]
     )
 
 
@@ -717,4 +716,12 @@ def chaindb(base_db, genesis_config):
 #
 @pytest.fixture()
 def validator_count():
+    """
+    NOTE:
+    * By default, a number of BLS public keys equal to this number
+      will be created when using the ``genesis_validators`` fixture.
+      High validator count can make this expensive quickly!
+
+      Consider persisting keys across runs (cf. ``BLSKeyCache`` class)
+    """
     return 10
