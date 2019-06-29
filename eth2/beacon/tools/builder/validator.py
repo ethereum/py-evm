@@ -247,7 +247,7 @@ def create_mock_slashable_attestation(state: BeaconState,
     # Use genesis block root as `beacon_block_root`, only for tests.
     beacon_block_root = get_block_root_at_slot(
         state,
-        config.GENESIS_SLOT,
+        attestation_slot,
         config.SLOTS_PER_HISTORICAL_ROOT,
     )
 
@@ -266,7 +266,7 @@ def create_mock_slashable_attestation(state: BeaconState,
         source_epoch=state.current_justified_epoch,
         source_root=source_root,
         target_epoch=slot_to_epoch(
-            state.slot,
+            attestation_slot,
             config.SLOTS_PER_EPOCH,
         ),
         target_root=target_root,
@@ -542,11 +542,6 @@ def create_mock_signed_attestations_at_slot(
     """
     Create the mocking attestations of the given ``attestation_slot`` slot with ``keymap``.
     """
-    state_transition = state_machine.state_transition
-    state = state_transition.apply_state_transition(
-        state,
-        future_slot=attestation_slot,
-    )
     crosslink_committees_at_slot = _get_crosslink_committees_at_slot(
         state,
         attestation_slot,

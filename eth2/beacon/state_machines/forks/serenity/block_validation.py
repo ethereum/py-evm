@@ -286,7 +286,7 @@ def validate_block_header_signature(state: BeaconState,
 #
 def validate_is_slashable_attestation_data(attestation_1: IndexedAttestation,
                                            attestation_2: IndexedAttestation) -> None:
-    is_slashable_data = is_slashable_attestation_data(attestation_1, attestation_2)
+    is_slashable_data = is_slashable_attestation_data(attestation_1.data, attestation_2.data)
 
     if not is_slashable_data:
         raise ValidationError(
