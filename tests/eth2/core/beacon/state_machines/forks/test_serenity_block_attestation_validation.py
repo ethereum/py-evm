@@ -18,6 +18,7 @@ from eth2.beacon.helpers import (
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation_slot,
     validate_attestation,
+    _validate_crosslink,
 )
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.crosslinks import Crosslink
@@ -148,188 +149,60 @@ def test_validate_attestation_source_epoch_and_root(
             )
 
 
-def _crosslink_from_byte(byte):
-    return Crosslink(
-        shard=12,
-        start_epoch=0,
-        end_epoch=1,
-        parent_root=b'\x00' * 32,
-        data_root=byte * 32,
-    )
-
-
 @pytest.mark.parametrize(
     (
-        'attestation_previous_crosslink,'
-        'attestation_crosslink_data_root,'
-        'state_latest_crosslink,'
-        'is_valid,'
+        'mutator',
+        'is_valid',
     ),
     [
-        (
-            _crosslink_from_byte(b'\x11'),
-            b'\x33' * 32,
-            _crosslink_from_byte(b'\x22'),
-            False,
-        ),
-        (
-            _crosslink_from_byte(b'\x33'),
-            b'\x33' * 32,
-            _crosslink_from_byte(b'\x11'),
-            False,
-        ),
-        (
-            _crosslink_from_byte(b'\x11'),
-            b'\x33' * 32,
-            _crosslink_from_byte(b'\x33'),
-            True,
-        ),
-        (
-            _crosslink_from_byte(b'\x33'),
-            b'\x22' * 32,
-            _crosslink_from_byte(b'\x33'),
-            True,
-        ),
-        (
-            _crosslink_from_byte(b'\x33'),
-            b'\x33' * 32,
-            _crosslink_from_byte(b'\x33'),
-            True,
-        ),
+        (lambda c: c, True),
+        # crosslink.start_epoch != end_epoch
+        (lambda c: c.copy(
+            start_epoch=c.start_epoch + 1,
+        ), False),
+        # end_epoch does not match expected
+        (lambda c: c.copy(
+            end_epoch=c.start_epoch + 10,
+        ), False),
+        # parent_root does not match
+        (lambda c: c.copy(
+            parent_root=b'\x33' * 32,
+        ), False),
+        # data_root is nonzero
+        (lambda c: c.copy(
+            data_root=b'\x33' * 32,
+        ), False),
     ]
 )
-def test_validate_attestation_latest_crosslink(sample_attestation_data_params,
-                                               attestation_previous_crosslink,
-                                               attestation_crosslink_data_root,
-                                               state_latest_crosslink,
-                                               slots_per_epoch,
-                                               is_valid):
-    sample_attestation_data_params['previous_crosslink'] = attestation_previous_crosslink
-    sample_attestation_data_params['crosslink_data_root'] = attestation_crosslink_data_root
-    attestation_data = AttestationData(**sample_attestation_data_params).copy(
-        previous_crosslink=attestation_previous_crosslink,
-        crosslink_data_root=attestation_crosslink_data_root,
+def test_validate_crosslink(genesis_state,
+                            mutator,
+                            is_valid,
+                            config):
+    some_shard = 3
+    parent = genesis_state.current_crosslinks[some_shard]
+    target_epoch = config.GENESIS_EPOCH + 1
+    valid_crosslink = Crosslink(
+        shard=some_shard,
+        parent_root=parent.root,
+        start_epoch=parent.end_epoch,
+        end_epoch=target_epoch,
+        data_root=ZERO_HASH32,
     )
 
+    candidate_crosslink = mutator(valid_crosslink)
+
     if is_valid:
-        validate_attestation_previous_crosslink_or_root(
-            attestation_data,
-            state_latest_crosslink,
-            slots_per_epoch=slots_per_epoch,
+        _validate_crosslink(
+            candidate_crosslink,
+            target_epoch,
+            parent,
+            config.MAX_EPOCHS_PER_CROSSLINK,
         )
     else:
         with pytest.raises(ValidationError):
-            validate_attestation_previous_crosslink_or_root(
-                attestation_data,
-                state_latest_crosslink,
-                slots_per_epoch=slots_per_epoch,
+            _validate_crosslink(
+                candidate_crosslink,
+                target_epoch,
+                parent,
+                config.MAX_EPOCHS_PER_CROSSLINK,
             )
-
-
-@pytest.mark.parametrize(
-    (
-        'attestation_crosslink_data_root,'
-        'is_valid,'
-    ),
-    [
-        (ZERO_HASH32, True),
-        (b'\x22' * 32, False),
-        (b'\x11' * 32, False),
-    ]
-)
-def test_validate_attestation_crosslink_data_root(sample_attestation_data_params,
-                                                  attestation_crosslink_data_root,
-                                                  is_valid):
-    attestation_data = AttestationData(**sample_attestation_data_params).copy(
-        crosslink_data_root=attestation_crosslink_data_root,
-    )
-
-    if is_valid:
-        validate_attestation_crosslink_data_root(
-            attestation_data,
-        )
-    else:
-        with pytest.raises(ValidationError):
-            validate_attestation_crosslink_data_root(
-                attestation_data,
-            )
-
-
-# TODO(ralexstokes) moved to indexed attestation signature in attestation_helpers
-# @settings(max_examples=1)
-# @given(random=st.randoms())
-# @pytest.mark.parametrize(
-#     (
-#         'validator_count,'
-#         'slots_per_epoch,'
-#         'target_committee_size,'
-#         'shard_count,'
-#         'is_valid,'
-#     ),
-#     [
-#         (10, 2, 2, 2, True),
-#         (40, 4, 3, 5, True),
-#         (20, 5, 3, 2, True),
-#         (20, 5, 3, 2, False),
-#     ],
-# )
-# def test_validate_attestation_aggregate_signature(genesis_state,
-#                                                   slots_per_epoch,
-#                                                   random,
-#                                                   sample_attestation_data_params,
-#                                                   is_valid,
-#                                                   target_committee_size,
-#                                                   shard_count,
-#                                                   keymap,
-#                                                   committee_config):
-#     state = genesis_state
-
-#     # choose committee
-#     slot = 0
-#     crosslink_committee = get_crosslink_committees_at_slot(
-#         state=state,
-#         slot=slot,
-#         committee_config=committee_config,
-#     )[0]
-#     committee, shard = crosslink_committee
-#     committee_size = len(committee)
-#     assert committee_size > 0
-
-#     # randomly select 3/4 participants from committee
-#     votes_count = len(committee) * 3 // 4
-#     assert votes_count > 0
-
-#     attestation_data = AttestationData(**sample_attestation_data_params).copy(
-#         slot=slot,
-#         shard=shard,
-#     )
-
-#     attestation = create_mock_signed_attestation(
-#         state,
-#         attestation_data,
-#         committee,
-#         votes_count,
-#         keymap,
-#         slots_per_epoch,
-#     )
-
-#     if is_valid:
-#         validate_attestation_aggregate_signature(
-#             state,
-#             attestation,
-#             committee_config,
-#         )
-#     else:
-#         # mess up signature
-#         attestation = attestation.copy(
-#             aggregate_signature=(
-#                 attestation.aggregate_signature[0] + 10,
-#                 attestation.aggregate_signature[1] - 1
-#             )
-#         )
-#         with pytest.raises(ValidationError):
-#             validate_attestation_aggregate_signature(
-#                 state,
-#                 attestation,
-#                 committee_config,
-#             )
