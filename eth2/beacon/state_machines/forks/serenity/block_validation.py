@@ -412,15 +412,10 @@ def _validate_crosslink(crosslink: Crosslink,
         )
 
 
-def validate_attestation(state: BeaconState,
-                         attestation: Attestation,
-                         config: Eth2Config) -> None:
-    """
-    Validate the given ``attestation``.
-    Raise ``ValidationError`` if it's invalid.
-    """
+def _validate_attestation_data(state: BeaconState,
+                               data: AttestationData,
+                               config: Eth2Config) -> None:
     slots_per_epoch = config.SLOTS_PER_EPOCH
-    data = attestation.data
     current_epoch = state.current_epoch(slots_per_epoch)
     previous_epoch = state.previous_epoch(slots_per_epoch, config.GENESIS_EPOCH)
 
@@ -456,11 +451,21 @@ def validate_attestation(state: BeaconState,
         parent_crosslink,
         config.MAX_EPOCHS_PER_CROSSLINK
     )
+
+
+def validate_attestation(state: BeaconState,
+                         attestation: Attestation,
+                         config: Eth2Config) -> None:
+    """
+    Validate the given ``attestation``.
+    Raise ``ValidationError`` if it's invalid.
+    """
+    _validate_attestation_data(state, attestation.data, config)
     validate_indexed_attestation(
         state,
         convert_to_indexed(state, attestation, CommitteeConfig(config)),
         config.MAX_INDICES_PER_ATTESTATION,
-        slots_per_epoch,
+        config.SLOTS_PER_EPOCH,
     )
 
 

@@ -17,7 +17,7 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation_slot,
-    validate_attestation,
+    _validate_attestation_data,
     _validate_crosslink,
 )
 from eth2.beacon.types.attestation_data import AttestationData
@@ -87,24 +87,25 @@ def test_validate_attestation_slot(attestation_slot,
     (
         'attestation_slot',
         'attestation_source_epoch',
+        'attestation_target_epoch',
         'attestation_source_root',
         'is_valid',
     ),
     [
         # slot_to_epoch(attestation_data.slot, slots_per_epoch) >= current_epoch
         # attestation_data.source_epoch == state.current_justified_epoch
-        (24, 2, b'\x22' * 32, True),
+        (24, 2, 3, b'\x22' * 32, True),
         # attestation_data.source_epoch != state.current_justified_epoch
-        (24, 3, b'\x22' * 32, False),
+        (24, 3, 3, b'\x22' * 32, False),
         # attestation_data.source_root != state.current_justified_root
-        (24, 2, b'\x33' * 32, False),
+        (24, 2, 3, b'\x33' * 32, False),
         # slot_to_epoch(attestation_data.slot, slots_per_epoch) < current_epoch
         # attestation_data.source_epoch == state.previous_justified_epoch
-        (23, 1, b'\x11' * 32, True),
+        (23, 1, 2, b'\x11' * 32, True),
         # attestation_data.source_epoch != state.previous_justified_epoch
-        (23, 2, b'\x11' * 32, False),
+        (23, 2, 2, b'\x11' * 32, False),
         # attestation_data.source_root != state.current_justified_root
-        (23, 1, b'\x33' * 32, False),
+        (23, 1, 2, b'\x33' * 32, False),
     ]
 )
 def test_validate_attestation_source_epoch_and_root(
@@ -112,6 +113,7 @@ def test_validate_attestation_source_epoch_and_root(
         sample_attestation_data_params,
         attestation_slot,
         attestation_source_epoch,
+        attestation_target_epoch,
         attestation_source_root,
         current_epoch,
         previous_justified_epoch,
@@ -120,29 +122,38 @@ def test_validate_attestation_source_epoch_and_root(
         current_justified_root,
         slots_per_epoch,
         config,
+        mocker,
         is_valid):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
+        slot=get_epoch_start_slot(current_epoch, slots_per_epoch) + 5,
         previous_justified_epoch=previous_justified_epoch,
         current_justified_epoch=current_justified_epoch,
         previous_justified_root=previous_justified_root,
         current_justified_root=current_justified_root,
     )
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
-        slot=attestation_slot,
         source_epoch=attestation_source_epoch,
         source_root=attestation_source_root,
+        target_epoch=attestation_target_epoch,
+    )
+
+    mocker.patch(
+        'eth2.beacon.state_machines.forks.serenity.block_validation.get_attestation_data_slot',
+        return_value=attestation_slot,
+    )
+    mocker.patch(
+        'eth2.beacon.state_machines.forks.serenity.block_validation._validate_crosslink',
     )
 
     if is_valid:
-        validate_attestation(
+        _validate_attestation_data(
             state,
             attestation_data,
             config,
         )
     else:
         with pytest.raises(ValidationError):
-            validate_attestation(
+            _validate_attestation_data(
                 state,
                 attestation_data,
                 config,
