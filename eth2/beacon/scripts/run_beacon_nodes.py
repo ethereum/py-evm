@@ -186,7 +186,7 @@ class Node:
 
 
 async def main():
-    num_validators = 5
+    num_validators = 9
     genesis_delay = 20
 
     proc = await run(
