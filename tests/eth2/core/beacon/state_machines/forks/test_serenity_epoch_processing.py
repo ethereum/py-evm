@@ -10,6 +10,9 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
+from eth_utils import (
+    to_tuple,
+)
 from eth_utils.toolz import (
     assoc,
     curry,
@@ -32,6 +35,8 @@ from eth2.configs import (
 from eth2.beacon.committee_helpers import (
     get_crosslink_committee,
     get_epoch_committee_count,
+    get_epoch_start_shard,
+    get_shard_delta,
 )
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
@@ -39,39 +44,37 @@ from eth2.beacon.constants import (
 )
 from eth2.beacon.helpers import (
     get_active_validator_indices,
-    # get_block_root,
+    get_block_root,
     get_epoch_start_slot,
     get_randao_mix,
     slot_to_epoch,
 )
-# from eth2.beacon.epoch_processing_helpers import (
-#     get_base_reward,
-# )
+from eth2.beacon.epoch_processing_helpers import (
+    get_base_reward,
+)
 from eth2.beacon.types.attestations import Attestation
-# from eth2.beacon.types.attestation_data import AttestationData
-# from eth2.beacon.types.eth1_data import Eth1Data
-# from eth2.beacon.types.crosslinks import Crosslink
-# from eth2.beacon.types.pending_attestations import PendingAttestation
+from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.crosslinks import Crosslink
+from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.typing import Gwei
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
+    _bft_threshold_met,
     _is_epoch_justifiable,
+    _determine_new_finalized_epoch,
     get_delayed_activation_exit_epoch,
-    # process_crosslinks,
+    process_crosslinks,
     process_final_updates,
     process_justification_and_finalization,
     process_slashings,
 )
 
-# from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
 
 
-#
-# Justification
-#
 @pytest.mark.parametrize(
     "total_balance,"
-    "current_epoch_boundary_attesting_balance,"
+    "attesting_balance,"
     "expected,",
     (
         (
@@ -82,193 +85,194 @@ from eth2.beacon.types.validators import Validator
         ),
     )
 )
-def test_is_epoch_justifiable(
-        monkeypatch,
-        sample_state,
-        config,
-        expected,
-        total_balance,
-        current_epoch_boundary_attesting_balance):
-    current_epoch = 5
-
-    from eth2.beacon.state_machines.forks.serenity import epoch_processing
-
-    def mock_get_total_balance(validators, epoch, max_effective_balance):
-        return total_balance
-
-    def mock_get_epoch_boundary_attesting_balance(state, attestations, epoch, config):
-        if epoch == current_epoch:
-            return current_epoch_boundary_attesting_balance
-        else:
-            raise Exception("ensure mock is matching on a specific epoch")
-
-    def mock_get_active_validator_indices(validators, epoch):
-        """
-        Use this mock to ensure that `_is_epoch_justifiable` does not return early
-        This is a bit unfortunate as it leaks an implementation detail, but we are
-        already monkeypatching so we will see it through.
-        """
-        indices = tuple(range(3))
-        # The only constraint on this mock is that the following assertion holds
-        # We ensure the sustainability of this test by testing the invariant at runtime.
-        assert indices
-        return indices
-
-    with monkeypatch.context() as m:
-        m.setattr(
-            epoch_processing,
-            'get_total_balance',
-            mock_get_total_balance,
-        )
-        m.setattr(
-            epoch_processing,
-            'get_epoch_boundary_attesting_balance',
-            mock_get_epoch_boundary_attesting_balance,
-        )
-        m.setattr(
-            epoch_processing,
-            'get_active_validator_indices',
-            mock_get_active_validator_indices,
-        )
-
-        epoch_justifiable = _is_epoch_justifiable(
-            sample_state,
-            sample_state.current_epoch_attestations,
-            current_epoch,
-            config,
-        )
-
-        assert epoch_justifiable == expected
-
-
-# @pytest.mark.parametrize(
-#     "justification_bitfield,"
-#     "previous_justified_epoch,"
-#     "current_justified_epoch,"
-#     "expected,",
-#     (
-#         # Rule 1
-#         (0b111110, 3, 3, (3, 1)),
-#         # Rule 2
-#         (0b111110, 4, 4, (4, 2)),
-#         # Rule 3
-#         (0b110111, 3, 4, (4, 3)),
-#         # Rule 4
-#         (0b110011, 2, 5, (5, 4)),
-#         # No finalize
-#         (0b110000, 2, 2, (1, 0)),
-#     )
-# )
-# def test_get_finalized_epoch(justification_bitfield,
-#                              previous_justified_epoch,
-#                              current_justified_epoch,
-#                              expected):
-#     previous_epoch = 5
-#     finalized_epoch = 1
-#     assert _get_finalized_epoch(justification_bitfield,
-#                                 previous_justified_epoch,
-#                                 current_justified_epoch,
-#                                 finalized_epoch,
-#                                 previous_epoch,) == expected
-
-
-# def test_justification_without_mock(sample_beacon_state_params,
-#                                     slots_per_historical_root,
-#                                     config):
-
-#     state = BeaconState(**sample_beacon_state_params).copy(
-#         block_roots=tuple(ZERO_HASH32 for _ in range(slots_per_historical_root)),
-#         justification_bitfield=0b0,
-#     )
-#     state = process_justification_and_finalization(state, config)
-#     assert state.justification_bitfield == 0b0
+def test_bft_threshold_met(attesting_balance,
+                           total_balance,
+                           expected):
+    assert _bft_threshold_met(attesting_balance, total_balance) == expected
 
 
 @pytest.mark.parametrize(
-    # Each state contains epoch, current_epoch_justifiable, previous_epoch_justifiable,
-    # previous_justified_epoch, current_justified_epoch,
-    # justification_bitfield, and finalized_epoch.
-    # Specify the last epoch processed state at the end of the items.
-    "states,",
+    "justification_bitfield,"
+    "previous_justified_epoch,"
+    "current_justified_epoch,"
+    "expected,",
     (
-        (
-            # Trigger R4 to finalize epoch 1
-            (0, True, False, 0, 0, 0b0, 0),
-            (1, True, True, 0, 0, 0b1, 0),  # R4 finalize 0
-            (2, True, True, 0, 1, 0b11, 0),  # R4 finalize 1
-            (1, 2, 0b111, 1),
+        # Rule 1
+        (0b111110, 3, 3, 3),
+        # Rule 2
+        (0b111110, 4, 4, 4),
+        # Rule 3
+        (0b110111, 3, 4, 4),
+        # Rule 4
+        (0b110011, 2, 5, 5),
+        # No finalize
+        (0b110000, 2, 2, 1),
+    )
+)
+def test_get_finalized_epoch(justification_bitfield,
+                             previous_justified_epoch,
+                             current_justified_epoch,
+                             expected):
+    current_epoch = 6
+    finalized_epoch = 1
+    assert _determine_new_finalized_epoch(
+        finalized_epoch,
+        previous_justified_epoch,
+        current_justified_epoch,
+        current_epoch,
+        justification_bitfield,
+    ) == expected
+
+
+def test_justification_without_mock(genesis_state,
+                                    slots_per_historical_root,
+                                    config):
+
+    state = genesis_state
+    state = process_justification_and_finalization(state, config)
+    assert state.justification_bitfield == 0b0
+
+
+def _mk_pending_attestation(block_root, epoch, shard, bitfield):
+    return PendingAttestation(
+        aggregation_bitfield=bitfield,
+        data=AttestationData(
+            target_epoch=epoch,
+            target_root=block_root,
+            crosslink=Crosslink(
+                shard=shard,
+            )
         ),
-        (
-            # Trigger R2 to finalize epoch 1
-            # Trigger R3 to finalize epoch 2
-            (2, False, True, 0, 1, 0b11, 0),  # R2 finalize 0
-            (3, False, True, 1, 1, 0b110, 0),  # R2 finalize 1
-            (4, True, True, 1, 2, 0b1110, 1),  # R3 finalize 2
-            (2, 4, 0b11111, 2)
-        ),
-        (
-            # Trigger R1 to finalize epoch 2
-            (2, False, True, 0, 1, 0b11, 0),  # R2 finalize 0
-            (3, False, True, 1, 1, 0b110, 0),  # R2 finalize 1
-            (4, False, True, 1, 2, 0b1110, 1),  # R1 finalize 1
-            (5, False, True, 2, 3, 0b11110, 1),  # R1 finalize 2
-            (3, 4, 0b111110, 2)
-        ),
+    )
+
+
+# TODO(ralexstokes) move to tools/builder
+@to_tuple
+def _mk_all_pending_attestations_with_full_participation_in_epoch(state,
+                                                                  epoch,
+                                                                  config):
+    block_root = get_block_root(
+        state,
+        epoch,
+        config.SLOTS_PER_EPOCH,
+        config.SLOTS_PER_HISTORICAL_ROOT,
+    )
+    epoch_start_shard = get_epoch_start_shard(
+        state,
+        epoch,
+        CommitteeConfig(config),
+    )
+    shard_delta = get_shard_delta(
+        state,
+        epoch,
+        CommitteeConfig(config),
+    )
+    for shard in range(epoch_start_shard, epoch_start_shard + shard_delta):
+        crosslink_committee = get_crosslink_committee(
+            state,
+            epoch,
+            shard,
+            CommitteeConfig(config),
+        )
+        if not crosslink_committee:
+            continue
+
+        bitfield = get_empty_bitfield(len(crosslink_committee))
+        for i in range(len(crosslink_committee)):
+            bitfield = set_voted(bitfield, i)
+
+        yield _mk_pending_attestation(
+            block_root,
+            epoch,
+            shard,
+            bitfield,
+        )
+
+
+@pytest.mark.parametrize(
+    (
+        "current_epoch",
+        "current_epoch_justifiable",
+        "previous_epoch_justifiable",
+        "previous_justified_epoch",
+        "current_justified_epoch",
+        "justification_bitfield",
+        "finalized_epoch",
+        "justified_epoch_after",
+        "justification_bitfield_after",
+        "finalized_epoch_after",
+    ),
+    (
+        # No processing on first and second epochs
+        (0, True, False, 0, 0, 0b0, 0, 0, 0b0, 0),
+        (1, True, True, 0, 0, 0b1, 0, 0, 0b1, 0),
+        # Trigger R4 to finalize epoch 1
+        (2, True, True, 0, 1, 0b11, 0, 2, 0b111, 1),  # R4 finalize 1
+        # Trigger R2 to finalize epoch 1
+        # Trigger R3 to finalize epoch 2
+        (2, False, True, 0, 1, 0b11, 0, 1, 0b110, 0),  # R2 finalize 0
+        (3, False, True, 1, 1, 0b110, 0, 2, 0b1110, 1),  # R2 finalize 1
+        (4, True, True, 1, 2, 0b1110, 1, 4, 0b11111, 2),  # R3 finalize 2
+        # Trigger R1 to finalize epoch 2
+        (2, False, True, 0, 1, 0b11, 0, 1, 0b110, 0),  # R2 finalize 0
+        (3, False, True, 1, 1, 0b110, 0, 2, 0b1110, 1),  # R2 finalize 1
+        (4, False, True, 1, 2, 0b1110, 1, 3, 0b11110, 1),  # R1 finalize 1
+        (5, False, True, 2, 3, 0b11110, 1, 4, 0b111110, 2),  # R1 finalize 2
     ),
 )
-def test_process_justification_and_finalization(monkeypatch,
-                               config,
-                               genesis_state,
-                               states,
-                               genesis_epoch=0):
-    from eth2.beacon.state_machines.forks.serenity import epoch_processing
+def test_process_justification_and_finalization(genesis_state,
+                                                current_epoch,
+                                                current_epoch_justifiable,
+                                                previous_epoch_justifiable,
+                                                previous_justified_epoch,
+                                                current_justified_epoch,
+                                                justification_bitfield,
+                                                finalized_epoch,
+                                                justified_epoch_after,
+                                                justification_bitfield_after,
+                                                finalized_epoch_after,
+                                                config):
+    previous_epoch = max(current_epoch - 1, 0)
+    slot = (current_epoch + 1) * config.SLOTS_PER_EPOCH - 1
 
-    for i in range(len(states) - 1):
-        (
+    state = genesis_state.copy(
+        slot=slot,
+        previous_justified_epoch=previous_justified_epoch,
+        current_justified_epoch=current_justified_epoch,
+        justification_bitfield=justification_bitfield,
+        finalized_epoch=finalized_epoch,
+        block_roots=tuple(
+            i.to_bytes(32, "little")
+            for i in range(config.SLOTS_PER_HISTORICAL_ROOT)
+        ),
+    )
+
+    if previous_epoch_justifiable:
+        attestations = _mk_all_pending_attestations_with_full_participation_in_epoch(
+            state,
+            previous_epoch,
+            config,
+        )
+        state = state.copy(
+            previous_epoch_attestations=attestations,
+        )
+
+    if current_epoch_justifiable:
+        attestations = _mk_all_pending_attestations_with_full_participation_in_epoch(
+            state,
             current_epoch,
-            current_epoch_justifiable,
-            previous_epoch_justifiable,
-            previous_justified_epoch_before,
-            justified_epoch_before,
-            justification_bitfield_before,
-            finalized_epoch_before,
-        ) = states[i]
+            config,
+        )
+        state = state.copy(
+            current_epoch_attestations=attestations,
+        )
 
-        (
-            previous_justified_epoch_after,
-            justified_epoch_after,
-            justification_bitfield_after,
-            finalized_epoch_after,
-        ) = states[i + 1][-4:]
-        slot = (current_epoch + 1) * config.SLOTS_PER_EPOCH - 1
+    post_state = process_justification_and_finalization(state, config)
 
-        def mock_is_epoch_justifiable(state, attestations, epoch, config):
-            if epoch == current_epoch:
-                return current_epoch_justifiable
-            else:
-                return previous_epoch_justifiable
-
-        with monkeypatch.context() as m:
-            m.setattr(
-                epoch_processing,
-                '_is_epoch_justifiable',
-                mock_is_epoch_justifiable,
-            )
-
-            state = genesis_state.copy(
-                slot=slot,
-                previous_justified_epoch=previous_justified_epoch_before,
-                current_justified_epoch=justified_epoch_before,
-                justification_bitfield=justification_bitfield_before,
-                finalized_epoch=finalized_epoch_before,
-            )
-
-            state = process_justification_and_finalization(state, config)
-
-            assert state.previous_justified_epoch == previous_justified_epoch_after
-            assert state.current_justified_epoch == justified_epoch_after
-            assert state.justification_bitfield == justification_bitfield_after
-            assert state.finalized_epoch == finalized_epoch_after
+    assert post_state.previous_justified_epoch == state.current_justified_epoch
+    assert post_state.current_justified_epoch == justified_epoch_after
+    assert post_state.justification_bitfield == justification_bitfield_after
+    assert post_state.finalized_epoch == finalized_epoch_after
 
 
 #

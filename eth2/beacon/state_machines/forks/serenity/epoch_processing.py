@@ -8,6 +8,10 @@ from eth_utils.toolz import (
 )
 import ssz
 
+from eth_typing import (
+    Hash32,
+)
+
 from eth2._utils.tuple import (
     update_tuple_item,
     update_tuple_item_with_fn,
@@ -53,6 +57,7 @@ from eth2.beacon.validator_status_helpers import (
 )
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.historical_batch import HistoricalBatch
+from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
@@ -63,26 +68,155 @@ from eth2.beacon.typing import (
 )
 
 
-def _get_effective_balance(state: BeaconState, index: ValidatorIndex) -> Gwei:
-    return state.validators[index].effective_balance
+def _bft_threshold_met(participation: Gwei, total: Gwei) -> bool:
+    return 3 * participation >= 2 * total
 
 
-def _is_epoch_justifiable(state: BeaconState,
-                          epoch: Epoch,
-                          config: Eth2Config) -> bool:
+def _did_bft_threshold_attest(state: BeaconState,
+                              attestations: Sequence[PendingAttestation],
+                              config: Eth2Config) -> bool:
+    """
+    Predicate indicating if the balance at risk of validators making an attestation
+    in ``attestations`` is greater than the fault tolerance threshold of the total balance.
+    """
     attesting_balance = get_attesting_balance(
         state,
-        get_matching_target_attestations(
-            state,
-            epoch,
-            config,
-        ),
+        attestations,
         config
     )
 
-    total_active_balance = get_total_active_balance(state, config)
+    total_balance = get_total_active_balance(state, config)
 
-    return 3 * attesting_balance >= 2 * total_active_balance
+    return _bft_threshold_met(
+        attesting_balance,
+        total_balance,
+    )
+
+
+def _is_epoch_justifiable(state: BeaconState, epoch: Epoch, config: Eth2Config) -> bool:
+    attestations = get_matching_target_attestations(
+        state,
+        epoch,
+        config,
+    )
+    return _did_bft_threshold_attest(
+        state,
+        attestations,
+        config,
+    )
+
+
+def _determine_updated_justification_data(justified_epoch: Epoch,
+                                          bitfield: int,
+                                          is_epoch_justifiable: bool,
+                                          candidate_epoch: Epoch,
+                                          bit_offset: int) -> Tuple[Epoch, int]:
+    if is_epoch_justifiable:
+        return (
+            candidate_epoch,
+            bitfield | (1 << bit_offset),
+        )
+    else:
+        return (
+            justified_epoch,
+            bitfield,
+        )
+
+
+def _determine_updated_justifications(
+        previous_epoch_justifiable: bool,
+        previous_epoch: Epoch,
+        current_epoch_justifiable: bool,
+        current_epoch: Epoch,
+        justified_epoch: Epoch,
+        justification_bitfield: int) -> Tuple[Epoch, int]:
+    (
+        justified_epoch,
+        justification_bitfield,
+    ) = _determine_updated_justification_data(
+        justified_epoch,
+        justification_bitfield,
+        previous_epoch_justifiable,
+        previous_epoch,
+        1,
+    )
+
+    (
+        justified_epoch,
+        justification_bitfield,
+    ) = _determine_updated_justification_data(
+        justified_epoch,
+        justification_bitfield,
+        current_epoch_justifiable,
+        current_epoch,
+        0,
+    )
+
+    return (
+        justified_epoch,
+        justification_bitfield,
+    )
+
+
+def _determine_new_justified_epoch_and_bitfield(state: BeaconState,
+                                                config: Eth2Config) -> Tuple[Epoch, int]:
+    genesis_epoch = config.GENESIS_EPOCH
+    previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, genesis_epoch)
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+
+    previous_epoch_justifiable = _is_epoch_justifiable(
+        state,
+        previous_epoch,
+        config,
+    )
+    current_epoch_justifiable = _is_epoch_justifiable(
+        state,
+        current_epoch,
+        config,
+    )
+
+    (
+        new_current_justified_epoch,
+        justification_bitfield,
+    ) = _determine_updated_justifications(
+        previous_epoch_justifiable,
+        previous_epoch,
+        current_epoch_justifiable,
+        current_epoch,
+        state.current_justified_epoch,
+        state.justification_bitfield << 1,
+    )
+
+    return (
+        new_current_justified_epoch,
+        justification_bitfield,
+    )
+
+
+def _determine_new_justified_checkpoint_and_bitfield(
+        state: BeaconState,
+        config: Eth2Config) -> Tuple[Epoch, Hash32, int]:
+
+    (
+        new_current_justified_epoch,
+        justification_bitfield,
+    ) = _determine_new_justified_epoch_and_bitfield(
+        state,
+        config,
+    )
+
+    new_current_justified_root = get_block_root(
+        state,
+        new_current_justified_epoch,
+        config.SLOTS_PER_EPOCH,
+        config.SLOTS_PER_HISTORICAL_ROOT,
+    )
+
+    return (
+        new_current_justified_epoch,
+        new_current_justified_root,
+        justification_bitfield,
+    )
 
 
 # NOTE: the type of bitfield here is an ``int``, to facilitate bitwise operations;
@@ -94,90 +228,60 @@ def _bitfield_matches(bitfield: int,
     return (bitfield >> offset) % modulus == pattern
 
 
-def process_justification_and_finalization(state: BeaconState, config: Eth2Config) -> BeaconState:
+def _determine_new_finalized_epoch(last_finalized_epoch: Epoch,
+                                   previous_justified_epoch: Epoch,
+                                   current_justified_epoch: Epoch,
+                                   current_epoch: Epoch,
+                                   justification_bitfield: int) -> Epoch:
+    new_finalized_epoch = last_finalized_epoch
+
+    if _bitfield_matches(
+            justification_bitfield,
+            1,
+            8,
+            0b111,
+    ) and previous_justified_epoch + 3 == current_epoch:
+        new_finalized_epoch = previous_justified_epoch
+
+    if _bitfield_matches(
+            justification_bitfield,
+            1,
+            4,
+            0b11,
+    ) and previous_justified_epoch + 2 == current_epoch:
+        new_finalized_epoch = previous_justified_epoch
+
+    if _bitfield_matches(
+            justification_bitfield,
+            0,
+            8,
+            0b111,
+    ) and current_justified_epoch + 2 == current_epoch:
+        new_finalized_epoch = current_justified_epoch
+
+    if _bitfield_matches(
+            justification_bitfield,
+            0,
+            4,
+            0b11,
+    ) and current_justified_epoch + 1 == current_epoch:
+        new_finalized_epoch = current_justified_epoch
+
+    return new_finalized_epoch
+
+
+def _determine_new_finalized_checkpoint(state: BeaconState,
+                                        justification_bitfield: int,
+                                        config: Eth2Config) -> Tuple[Epoch, Hash32]:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    genesis_epoch = config.GENESIS_EPOCH
 
-    if current_epoch <= genesis_epoch + 1:
-        return state
-
-    previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, genesis_epoch)
-
-    # process justification
-    justification_bitfield = state.justification_bitfield << 1
-
-    new_current_justified_epoch = state.current_justified_epoch
-    new_current_justified_root = state.current_justified_root
-
-    previous_epoch_justifiable = _is_epoch_justifiable(
-        state,
-        previous_epoch,
-        config,
-    )
-    if previous_epoch_justifiable:
-        new_current_justified_epoch = previous_epoch
-        new_current_justified_root = get_block_root(
-            state,
-            new_current_justified_epoch,
-            config.SLOTS_PER_EPOCH,
-            config.SLOTS_PER_HISTORICAL_ROOT,
-        )
-        justification_bitfield |= (1 << 1)
-
-    current_epoch_justifiable = _is_epoch_justifiable(
-        state,
+    new_finalized_epoch = _determine_new_finalized_epoch(
+        state.finalized_epoch,
+        state.previous_justified_epoch,
+        state.current_justified_epoch,
         current_epoch,
-        config,
+        justification_bitfield,
     )
-    if current_epoch_justifiable:
-        new_current_justified_epoch = current_epoch
-        new_current_justified_root = get_block_root(
-            state,
-            new_current_justified_epoch,
-            config.SLOTS_PER_EPOCH,
-            config.SLOTS_PER_HISTORICAL_ROOT,
-        )
-        justification_bitfield |= (1 << 0)
-
-    # process finalizations
-    new_finalized_epoch = state.finalized_epoch
-    new_finalized_root = state.finalized_root
-
-    old_previous_justified_epoch = state.previous_justified_epoch
-    old_current_justified_epoch = state.current_justified_epoch
-
-    if _bitfield_matches(
-            justification_bitfield,
-            1,
-            8,
-            0b111,
-    ) and old_previous_justified_epoch + 3 == current_epoch:
-        new_finalized_epoch = old_previous_justified_epoch
-
-    if _bitfield_matches(
-            justification_bitfield,
-            1,
-            4,
-            0b11,
-    ) and old_previous_justified_epoch + 2 == current_epoch:
-        new_finalized_epoch = old_previous_justified_epoch
-
-    if _bitfield_matches(
-            justification_bitfield,
-            0,
-            8,
-            0b111,
-    ) and old_current_justified_epoch + 2 == current_epoch:
-        new_finalized_epoch = old_current_justified_epoch
-
-    if _bitfield_matches(
-            justification_bitfield,
-            0,
-            4,
-            0b11,
-    ) and old_current_justified_epoch + 1 == current_epoch:
-        new_finalized_epoch = old_current_justified_epoch
-
     if new_finalized_epoch != state.finalized_epoch:
         # NOTE: we only want to call ``get_block_root``
         # upon some change, not unconditionally
@@ -190,8 +294,40 @@ def process_justification_and_finalization(state: BeaconState, config: Eth2Confi
             config.SLOTS_PER_EPOCH,
             config.SLOTS_PER_HISTORICAL_ROOT,
         )
+    else:
+        new_finalized_root = state.finalized_root
 
-    # Update state
+    return (
+        new_finalized_epoch,
+        new_finalized_root,
+    )
+
+
+def process_justification_and_finalization(state: BeaconState, config: Eth2Config) -> BeaconState:
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    genesis_epoch = config.GENESIS_EPOCH
+
+    if current_epoch <= genesis_epoch + 1:
+        return state
+
+    (
+        new_current_justified_epoch,
+        new_current_justified_root,
+        justification_bitfield,
+    ) = _determine_new_justified_checkpoint_and_bitfield(
+        state,
+        config,
+    )
+
+    (
+        new_finalized_epoch,
+        new_finalized_root,
+    ) = _determine_new_finalized_checkpoint(
+        state,
+        justification_bitfield,
+        config,
+    )
+
     return state.copy(
         previous_justified_epoch=state.current_justified_epoch,
         previous_justified_root=state.current_justified_root,
@@ -382,7 +518,7 @@ def get_attestation_deltas(state: BeaconState,
                 ),
             )
             if index not in matching_target_attesting_indices:
-                effective_balance = _get_effective_balance(state, index)
+                effective_balance = state.validators[index].effective_balance
                 penalties = update_tuple_item_with_fn(
                     penalties,
                     index,
