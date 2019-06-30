@@ -75,7 +75,7 @@ def create_test_block(parent=None, genesis_config=SERENITY_GENESIS_CONFIG, **kwa
         "parent_root": ZERO_HASH32,
         "state_root": ZERO_HASH32,  # note: not the actual genesis state root
         "signature": EMPTY_SIGNATURE,
-        "body": BeaconBlockBody.create_empty_body()
+        "body": BeaconBlockBody(),
     }
 
     if parent is not None:
