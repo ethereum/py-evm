@@ -9,6 +9,7 @@ from eth_utils import (
 from eth_utils.toolz import (
     first,
     mapcat,
+    concat,
 )
 
 from py_ecc import bls
@@ -179,3 +180,67 @@ def test_process_eth1_data(original_votes,
     ))
 
     assert updated_votes == expanded_expected_votes
+
+
+@pytest.mark.parametrize(
+    (
+        'slots_per_eth1_voting_period'
+    ),
+    (
+        (16),
+    )
+)
+@pytest.mark.parametrize(
+    (
+        'vote_offsets'  # a tuple of offsets against the majority threshold
+    ),
+    (
+        # no eth1_data_votes
+        (),
+        # a minority of eth1_data_votes (single)
+        (-2,),
+        # a plurality of eth1_data_votes (multiple but not majority)
+        (-2, -2),
+        # almost a majority!
+        (0,),
+        # a majority of eth1_data_votes
+        (1,),
+        (7,),
+        (12,),
+        # NOTE: we are accepting more than one block per slot if
+        # there are multiple majorities so no need to test this
+    )
+)
+def test_ensure_update_eth1_vote_if_exists(genesis_state,
+                                           config,
+                                           vote_offsets):
+    # one less than a majority is the majority divided by 2
+    threshold = config.SLOTS_PER_ETH1_VOTING_PERIOD // 2
+    data_votes = tuple(
+        concat(
+            (
+                Eth1Data(
+                    block_hash=(i).to_bytes(32, "little"),
+                ),
+            ) * (threshold + offset)
+            for i, offset in enumerate(vote_offsets)
+        )
+    )
+    state = genesis_state
+
+    for vote in data_votes:
+        state = process_eth1_data(state, BeaconBlock(
+            body=BeaconBlockBody(
+                eth1_data=vote,
+            )
+        ), config)
+
+    if not vote_offsets:
+        assert state.eth1_data == genesis_state.eth1_data
+
+    # we should update the 'latest' entry if we have a majority
+    for offset in vote_offsets:
+        if offset <= 0:
+            assert genesis_state.eth1_data == state.eth1_data
+        else:
+            assert state.eth1_data == data_votes[0]
