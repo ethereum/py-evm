@@ -15,7 +15,6 @@ from eth_typing import (
 from eth2._utils.tuple import (
     update_tuple_item,
     update_tuple_item_with_fn,
-    update_tuple_with_mapping_fn,
 )
 from eth2.configs import (
     Eth2Config,
@@ -636,8 +635,8 @@ def process_rewards_and_penalties(state: BeaconState, config: Eth2Config) -> Bea
 
 @curry
 def _process_activation_eligibility_or_ejections(state: BeaconState,
-                                                 config: Eth2Config,
-                                                 validator: Validator) -> Validator:
+                                                 validator: Validator,
+                                                 config: Eth2Config) -> Validator:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
 
     if (
@@ -673,9 +672,9 @@ def _update_validator_activation_epoch(state: BeaconState,
 
 
 def process_registry_updates(state: BeaconState, config: Eth2Config) -> BeaconState:
-    new_validators = update_tuple_with_mapping_fn(
-        state.validators,
-        _process_activation_eligibility_or_ejections(state, config),
+    new_validators = tuple(
+        _process_activation_eligibility_or_ejections(state, validator, config)
+        for validator in state.validators
     )
 
     delayed_activation_exit_epoch = get_delayed_activation_exit_epoch(
@@ -732,16 +731,7 @@ def _determine_next_eth1_votes(state: BeaconState, config: Eth2Config) -> Tuple[
         return state.eth1_data_votes
 
 
-@curry
-def _set_effective_balance(new_effective_balance: Gwei, validator: Validator) -> Validator:
-    return validator.copy(
-        effective_balance=new_effective_balance,
-    )
-
-
-def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState:
-    new_eth1_data_votes = _determine_next_eth1_votes(state, config)
-
+def _update_effective_balances(state: BeaconState, config: Eth2Config) -> Tuple[Validator, ...]:
     half_increment = config.EFFECTIVE_BALANCE_INCREMENT // 2
     new_validators = state.validators
     for index, validator in enumerate(state.validators):
@@ -756,16 +746,24 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
             new_validators = update_tuple_item_with_fn(
                 new_validators,
                 index,
-                _set_effective_balance(new_effective_balance),
+                lambda v, new_balance: v.copy(
+                    effective_balance=new_balance,
+                ),
+                new_effective_balance,
             )
+    return new_validators
 
+
+def _compute_next_start_shard(state: BeaconState, config: Eth2Config) -> Shard:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    new_start_shard = (state.start_shard + get_shard_delta(
+    return (state.start_shard + get_shard_delta(
         state,
         current_epoch,
         CommitteeConfig(config),
     )) % config.SHARD_COUNT
 
+
+def _compute_next_active_index_roots(state: BeaconState, config: Eth2Config) -> Tuple[Hash32, ...]:
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
     index_root_position = (
         next_epoch + config.ACTIVATION_EXIT_DELAY
@@ -778,13 +776,17 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
         validator_indices_for_new_active_index_root,
         ssz.sedes.List(ssz.uint64),
     )
-    new_active_index_roots = update_tuple_item(
+    return update_tuple_item(
         state.active_index_roots,
         index_root_position,
         new_active_index_root,
     )
 
-    new_slashed_balances = update_tuple_item(
+
+def _compute_next_slashed_balances(state: BeaconState, config: Eth2Config) -> Tuple[Gwei, ...]:
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
+    return update_tuple_item(
         state.slashed_balances,
         next_epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
         state.slashed_balances[
@@ -792,7 +794,11 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
         ],
     )
 
-    new_randao_mixes = update_tuple_item(
+
+def _compute_next_randao_mixes(state: BeaconState, config: Eth2Config) -> Tuple[Hash32, ...]:
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
+    return update_tuple_item(
         state.randao_mixes,
         next_epoch % config.EPOCHS_PER_HISTORICAL_VECTOR,
         get_randao_mix(
@@ -803,6 +809,9 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
         ),
     )
 
+
+def _compute_next_historical_roots(state: BeaconState, config: Eth2Config) -> Tuple[Hash32, ...]:
+    next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
     new_historical_roots = state.historical_roots
     if next_epoch % (config.SLOTS_PER_HISTORICAL_ROOT // config.SLOTS_PER_EPOCH) == 0:
         historical_batch = HistoricalBatch(
@@ -810,17 +819,28 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
             state_roots=state.state_roots,
         )
         new_historical_roots = state.historical_roots + (historical_batch.root,)
+    return new_historical_roots
+
+
+def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState:
+    new_eth1_data_votes = _determine_next_eth1_votes(state, config)
+    new_validators = _update_effective_balances(state, config)
+    new_start_shard = _compute_next_start_shard(state, config)
+    new_active_index_roots = _compute_next_active_index_roots(state, config)
+    new_slashed_balances = _compute_next_slashed_balances(state, config)
+    new_randao_mixes = _compute_next_randao_mixes(state, config)
+    new_historical_roots = _compute_next_historical_roots(state, config)
 
     return state.copy(
-        active_index_roots=new_active_index_roots,
-        current_epoch_attestations=tuple(),
         eth1_data_votes=new_eth1_data_votes,
+        validators=new_validators,
+        start_shard=new_start_shard,
+        active_index_roots=new_active_index_roots,
+        slashed_balances=new_slashed_balances,
+        randao_mixes=new_randao_mixes,
         historical_roots=new_historical_roots,
         previous_epoch_attestations=state.current_epoch_attestations,
-        randao_mixes=new_randao_mixes,
-        slashed_balances=new_slashed_balances,
-        start_shard=new_start_shard,
-        validators=new_validators,
+        current_epoch_attestations=tuple(),
     )
 
 
