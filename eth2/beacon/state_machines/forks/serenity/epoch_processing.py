@@ -72,9 +72,9 @@ def _bft_threshold_met(participation: Gwei, total: Gwei) -> bool:
     return 3 * participation >= 2 * total
 
 
-def _did_bft_threshold_attest(state: BeaconState,
-                              attestations: Sequence[PendingAttestation],
-                              config: Eth2Config) -> bool:
+def _is_threshold_met_against_active_set(state: BeaconState,
+                                         attestations: Sequence[PendingAttestation],
+                                         config: Eth2Config) -> bool:
     """
     Predicate indicating if the balance at risk of validators making an attestation
     in ``attestations`` is greater than the fault tolerance threshold of the total balance.
@@ -99,7 +99,7 @@ def _is_epoch_justifiable(state: BeaconState, epoch: Epoch, config: Eth2Config) 
         epoch,
         config,
     )
-    return _did_bft_threshold_attest(
+    return _is_threshold_met_against_active_set(
         state,
         attestations,
         config,
@@ -339,6 +339,20 @@ def process_justification_and_finalization(state: BeaconState, config: Eth2Confi
     )
 
 
+def _is_threshold_met_against_committee(state: BeaconState,
+                                        attesting_indices: Sequence[ValidatorIndex],
+                                        committee: Sequence[ValidatorIndex]) -> bool:
+    total_attesting_balance = get_total_balance(
+        state,
+        attesting_indices,
+    )
+    total_committee_balance = get_total_balance(
+        state,
+        committee,
+    )
+    return _bft_threshold_met(total_attesting_balance, total_committee_balance)
+
+
 def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
@@ -366,21 +380,23 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
                 shard,
                 CommitteeConfig(config),
             )
+
+            if not crosslink_committee:
+                # empty crosslink committee this epoch
+                continue
+
             winning_crosslink, attesting_indices = get_winning_crosslink_and_attesting_indices(
                 state=state,
                 epoch=epoch,
                 shard=shard,
                 config=config,
             )
-            total_attesting_balance = get_total_balance(
+            threshold_met = _is_threshold_met_against_committee(
                 state,
                 attesting_indices,
-            )
-            total_committee_balance = get_total_balance(
-                state,
                 crosslink_committee,
             )
-            if 3 * total_attesting_balance >= 2 * total_committee_balance:
+            if threshold_met:
                 new_current_crosslinks = update_tuple_item(
                     new_current_crosslinks,
                     shard,
