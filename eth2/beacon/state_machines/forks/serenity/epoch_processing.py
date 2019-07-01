@@ -682,10 +682,10 @@ def process_registry_updates(state: BeaconState, config: Eth2Config) -> BeaconSt
         config.ACTIVATION_EXIT_DELAY,
     )
     activation_queue = sorted([
-        index for index, validator in enumerate(state.validators) if
+        index for index, validator in enumerate(new_validators) if
         validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH and
         validator.activation_epoch >= delayed_activation_exit_epoch
-    ], key=lambda index: state.validators[index].activation_eligibility_epoch)
+    ], key=lambda index: new_validators[index].activation_eligibility_epoch)
 
     for index in activation_queue[:get_churn_limit(state, config)]:
         new_validators = update_tuple_item_with_fn(
