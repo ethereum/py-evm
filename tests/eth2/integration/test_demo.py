@@ -23,6 +23,9 @@ from eth2.beacon.tools.builder.proposer import (
 from eth2.beacon.tools.builder.validator import (
     create_mock_signed_attestations_at_slot,
 )
+from eth2.beacon.tools.misc.ssz_vector import (
+    override_vector_lengths,
+)
 
 
 #
@@ -61,6 +64,7 @@ def test_demo(base_db,
         SHARD_COUNT=2,
         MIN_ATTESTATION_INCLUSION_DELAY=2,
     )
+    override_vector_lengths(config)
     fixture_sm_class = SerenityStateMachine.configure(
         __name__='SerenityStateMachineForTesting',
         config=config,
