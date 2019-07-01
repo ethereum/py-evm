@@ -77,7 +77,7 @@ def test_demo(base_db,
     chaindb = BeaconChainDB(base_db, config)
 
     genesis_state, genesis_block = create_mock_genesis(
-        validator_count=validator_count,
+        num_validators=validator_count,
         config=config,
         keymap=keymap,
         genesis_block_class=SerenityBeaconBlock,
