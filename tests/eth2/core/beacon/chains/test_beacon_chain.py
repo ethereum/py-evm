@@ -43,7 +43,7 @@ def valid_chain(beacon_chain_with_block_validation):
         'validator_count,slots_per_epoch,target_committee_size,shard_count'
     ),
     [
-        (100, 20, 10, 10),
+        (100, 20, 10, 20),
     ]
 )
 def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
@@ -78,7 +78,7 @@ def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
         'shard_count,'
     ),
     [
-        (100, 16, 10, 10),
+        (100, 16, 10, 16),
     ]
 )
 def test_get_state_by_slot(valid_chain,
@@ -122,7 +122,7 @@ def test_get_state_by_slot(valid_chain,
         'validator_count,slots_per_epoch,target_committee_size,shard_count'
     ),
     [
-        (100, 16, 10, 10),
+        (100, 16, 10, 16),
     ]
 )
 def test_import_blocks(valid_chain,
@@ -206,7 +206,7 @@ def test_from_genesis(base_db,
         'min_attestation_inclusion_delay,'
     ),
     [
-        (100, 16, 10, 10, 0),
+        (100, 16, 10, 16, 0),
     ]
 )
 def test_get_attestation_root(valid_chain,

@@ -20,21 +20,21 @@ from eth2.beacon.types.historical_batch import HistoricalBatch
         'slots_per_historical_root'
     ),
     [
-        (10, 10, 1, 2, 2, 2, 8192),
+        (10, 10, 1, 2, 10, 2, 8192),
         # state.slot == SLOTS_PER_HISTORICAL_ROOT
-        (6, 6, 1, 2, 2, 8, 8),
+        (6, 6, 1, 2, 6, 8, 8),
         # state.slot > SLOTS_PER_HISTORICAL_ROOT
-        (7, 7, 1, 2, 2, 9, 8),
+        (7, 7, 1, 2, 7, 9, 8),
         # state.slot < SLOTS_PER_HISTORICAL_ROOT
-        (7, 7, 1, 2, 2, 7, 8),
+        (7, 7, 1, 2, 7, 7, 8),
         # state.slot % SLOTS_PER_HISTORICAL_ROOT = 0
-        (11, 4, 1, 2, 2, 16, 8),
-        (16, 4, 1, 2, 2, 32, 8),
+        # (11, 4, 1, 2, 2, 16, 8),
+        # (16, 4, 1, 2, 4, 32, 8),
         # updated_state.slot == SLOTS_PER_HISTORICAL_ROOT
-        (6, 4, 1, 2, 2, 7, 8),
+        (6, 4, 1, 2, 4, 7, 8),
         # updated_state.slot % SLOTS_PER_HISTORICAL_ROOT = 0
-        (11, 4, 1, 2, 2, 15, 8),
-        (16, 4, 1, 2, 2, 31, 8),
+        # (11, 4, 1, 2, 4, 15, 8),
+        # (16, 4, 1, 2, 4, 31, 8),
     ]
 )
 def test_per_slot_transition(chaindb,

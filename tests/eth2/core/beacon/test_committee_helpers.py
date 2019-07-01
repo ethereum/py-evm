@@ -41,9 +41,7 @@ from eth2.configs import (
         # 1
         (20, 10, 3, 10, 10),
         # 1
-        (20, 10, 3, 5, 10),
-        # 1
-        (40, 5, 10, 2, 5),
+        (40, 5, 10, 5, 5),
     ],
 )
 def test_get_committees_per_slot(active_validator_count,
@@ -75,9 +73,7 @@ def test_get_committees_per_slot(active_validator_count,
         # 1
         (20, 10, 3, 10, 10),
         # 1
-        (20, 10, 3, 5, 10),
-        # 1
-        (40, 5, 10, 2, 5),
+        (40, 5, 10, 5, 5),
     ],
 )
 def test_get_epoch_committee_count(active_validator_count,
