@@ -45,8 +45,10 @@ from eth2.beacon.types.attestation_data import (
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.typing import (
-    Epoch,
     Gwei,
+)
+from eth2.beacon.tools.builder.validator import (
+    mk_pending_attestation_from_committee,
 )
 
 
@@ -377,33 +379,6 @@ def test_get_unslashed_attesting_indices(genesis_state,
     assert len(indices) == len(some_subset)
 
 
-# TODO(ralexstokes) merge into tools/builder
-def _mk_pending_attestation_from_committee(state,
-                                           config,
-                                           committee,
-                                           shard,
-                                           target_epoch=None,
-                                           committee_size=None,
-                                           data_root=None):
-    committee_size = committee_size if committee_size else len(committee)
-    parent_root = state.current_crosslinks[shard].root
-    bitfield = get_empty_bitfield(committee_size)
-    for i in range(committee_size):
-        bitfield = set_voted(bitfield, i)
-
-    return PendingAttestation(
-        aggregation_bitfield=bitfield,
-        data=AttestationData(
-            target_epoch=Epoch(0) if target_epoch is None else target_epoch,
-            crosslink=Crosslink(
-                shard=shard,
-                parent_root=parent_root,
-                data_root=parent_root if data_root is None else data_root,
-            )
-        )
-    )
-
-
 @pytest.mark.parametrize(
     (
         'validator_count,'
@@ -450,10 +425,9 @@ def test_find_candidate_attestations_for_shard(genesis_state,
     )
 
     pending_attestations = {
-        shard: _mk_pending_attestation_from_committee(
-            state,
-            config,
-            committee,
+        shard: mk_pending_attestation_from_committee(
+            state.current_crosslinks[shard],
+            len(committee),
             shard,
         ) for committee, shard in committee_and_shard_pairs
     }
@@ -578,13 +552,11 @@ def test_find_winning_crosslink_and_attesting_indices_from_candidates(genesis_st
         filtered_committees += (deduplicated_committee,)
 
     candidates = tuple(
-        _mk_pending_attestation_from_committee(
-            state,
-            config,
-            committee,
+        mk_pending_attestation_from_committee(
+            state.current_crosslinks[some_shard],
+            len(full_committee),
             some_shard,
             target_epoch=some_epoch,
-            committee_size=len(full_committee),
         ) for committee in filtered_committees
     )
 

@@ -70,6 +70,10 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
 
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
+from eth2.beacon.tools.builder.validator import (
+    mk_all_pending_attestations_with_full_participation_in_epoch,
+    mk_all_pending_attestations_with_some_participation_in_epoch,
+)
 
 
 @pytest.mark.parametrize(
@@ -133,62 +137,6 @@ def test_justification_without_mock(genesis_state,
     assert state.justification_bitfield == 0b0
 
 
-def _mk_pending_attestation(block_root, epoch, shard, bitfield):
-    return PendingAttestation(
-        aggregation_bitfield=bitfield,
-        data=AttestationData(
-            target_epoch=epoch,
-            target_root=block_root,
-            crosslink=Crosslink(
-                shard=shard,
-            )
-        ),
-    )
-
-
-# TODO(ralexstokes) move to tools/builder
-@to_tuple
-def _mk_all_pending_attestations_with_full_participation_in_epoch(state,
-                                                                  epoch,
-                                                                  config):
-    block_root = get_block_root(
-        state,
-        epoch,
-        config.SLOTS_PER_EPOCH,
-        config.SLOTS_PER_HISTORICAL_ROOT,
-    )
-    epoch_start_shard = get_epoch_start_shard(
-        state,
-        epoch,
-        CommitteeConfig(config),
-    )
-    shard_delta = get_shard_delta(
-        state,
-        epoch,
-        CommitteeConfig(config),
-    )
-    for shard in range(epoch_start_shard, epoch_start_shard + shard_delta):
-        crosslink_committee = get_crosslink_committee(
-            state,
-            epoch,
-            shard,
-            CommitteeConfig(config),
-        )
-        if not crosslink_committee:
-            continue
-
-        bitfield = get_empty_bitfield(len(crosslink_committee))
-        for i in range(len(crosslink_committee)):
-            bitfield = set_voted(bitfield, i)
-
-        yield _mk_pending_attestation(
-            block_root,
-            epoch,
-            shard,
-            bitfield,
-        )
-
-
 @pytest.mark.parametrize(
     (
         "current_epoch",
@@ -248,7 +196,7 @@ def test_process_justification_and_finalization(genesis_state,
     )
 
     if previous_epoch_justifiable:
-        attestations = _mk_all_pending_attestations_with_full_participation_in_epoch(
+        attestations = mk_all_pending_attestations_with_full_participation_in_epoch(
             state,
             previous_epoch,
             config,
@@ -258,7 +206,7 @@ def test_process_justification_and_finalization(genesis_state,
         )
 
     if current_epoch_justifiable:
-        attestations = _mk_all_pending_attestations_with_full_participation_in_epoch(
+        attestations = mk_all_pending_attestations_with_full_participation_in_epoch(
             state,
             current_epoch,
             config,

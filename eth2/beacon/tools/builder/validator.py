@@ -1,3 +1,4 @@
+import math
 import random
 
 from typing import (
@@ -12,6 +13,11 @@ from eth_typing import (
     BLSSignature,
     Hash32,
 )
+
+from eth.constants import (
+    ZERO_HASH32,
+)
+
 from eth_utils import (
     to_tuple,
 )
@@ -37,6 +43,7 @@ from eth2.beacon.committee_helpers import (
     get_crosslink_committee,
     get_epoch_committee_count,
     get_epoch_start_shard,
+    get_shard_delta,
 )
 from eth2.beacon.helpers import (
     bls_domain,
@@ -56,6 +63,7 @@ from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BeaconBlockHeader
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposit_data import DepositData
+from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
@@ -66,10 +74,136 @@ from eth2.beacon.typing import (
     Shard,
     Slot,
     ValidatorIndex,
+    default_bitfield,
+    default_epoch,
+    default_shard,
 )
 from eth2.beacon.state_machines.base import (
     BaseBeaconStateMachine,
 )
+
+
+# TODO(ralexstokes) merge w/ below
+def _mk_pending_attestation(bitfield: Bitfield=default_bitfield,
+                            target_root: Hash32=ZERO_HASH32,
+                            target_epoch: Epoch=default_epoch,
+                            shard: Shard=default_shard,
+                            start_epoch: Epoch=default_epoch,
+                            parent_root: Hash32=ZERO_HASH32,
+                            data_root: Hash32=ZERO_HASH32):
+    return PendingAttestation(
+        aggregation_bitfield=bitfield,
+        data=AttestationData(
+            target_epoch=target_epoch,
+            target_root=target_root,
+            crosslink=Crosslink(
+                shard=shard,
+                parent_root=parent_root,
+                start_epoch=start_epoch,
+                end_epoch=target_epoch,
+                data_root=data_root,
+            )
+        ),
+    )
+
+
+def mk_pending_attestation_from_committee(parent: Crosslink,
+                                          committee_size: int,
+                                          shard: Shard,
+                                          target_epoch: Epoch=default_epoch,
+                                          target_root: Hash32=ZERO_HASH32,
+                                          data_root: Hash32=ZERO_HASH32):
+    bitfield = get_empty_bitfield(committee_size)
+    for i in range(committee_size):
+        bitfield = set_voted(bitfield, i)
+
+    return _mk_pending_attestation(
+        bitfield=bitfield,
+        target_root=target_root,
+        target_epoch=target_epoch,
+        shard=shard,
+        start_epoch=parent.end_epoch,
+        parent_root=parent.root,
+        data_root=data_root,
+    )
+
+
+def _mk_some_pending_attestations_with_some_participation_in_epoch(
+        state: BeaconState,
+        epoch: Epoch,
+        config: Eth2Config,
+        participation_ratio: float,
+        number_of_shards_to_check: int) -> Iterable[PendingAttestation]:
+    block_root = get_block_root(
+        state,
+        epoch,
+        config.SLOTS_PER_EPOCH,
+        config.SLOTS_PER_HISTORICAL_ROOT,
+    )
+    epoch_start_shard = get_epoch_start_shard(
+        state,
+        epoch,
+        CommitteeConfig(config),
+    )
+
+    if epoch == state.current_epoch(config.SLOTS_PER_EPOCH):
+        parent_crosslinks = state.current_crosslinks
+    else:
+        parent_crosslinks = state.previous_crosslinks
+
+    for shard in range(epoch_start_shard, epoch_start_shard + number_of_shards_to_check):
+        shard = shard % config.SHARD_COUNT
+        crosslink_committee = get_crosslink_committee(
+            state,
+            epoch,
+            shard,
+            CommitteeConfig(config),
+        )
+        if not crosslink_committee:
+            continue
+
+        participants_count = math.ceil(participation_ratio * len(crosslink_committee))
+        if not participants_count:
+            return tuple()
+
+        yield mk_pending_attestation_from_committee(
+            parent_crosslinks[shard],
+            participants_count,
+            shard,
+            target_epoch=epoch,
+            target_root=block_root,
+        )
+
+
+def mk_all_pending_attestations_with_some_participation_in_epoch(
+        state: BeaconState,
+        epoch: Epoch,
+        config: Eth2Config,
+        participation_ratio: float) -> Iterable[PendingAttestation]:
+    return _mk_some_pending_attestations_with_some_participation_in_epoch(
+        state,
+        epoch,
+        config,
+        participation_ratio,
+        get_shard_delta(
+            state,
+            epoch,
+            CommitteeConfig(config),
+        ),
+    )
+
+
+@to_tuple
+def mk_all_pending_attestations_with_full_participation_in_epoch(
+        state: BeaconState,
+        epoch: Epoch,
+        config: Eth2Config) -> Tuple[PendingAttestation]:
+    return mk_all_pending_attestations_with_some_participation_in_epoch(
+        state,
+        epoch,
+        config,
+        1.0,
+    )
 
 
 #
