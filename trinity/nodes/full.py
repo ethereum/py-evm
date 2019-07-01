@@ -5,12 +5,14 @@ from p2p.peer_pool import BasePeerPool
 from trinity.chains.full import FullChain
 from trinity.config import TrinityConfig
 from trinity.endpoint import TrinityEventBusEndpoint
+from trinity.protocol.common.peer_pool_event_bus import PeerPoolEventServer
+from trinity.protocol.eth.peer import ETHPeer, ETHPeerPoolEventServer
 from trinity.server import FullServer
 
 from .base import Node
 
 
-class FullNode(Node):
+class FullNode(Node[ETHPeer]):
     _chain: FullChain = None
     _p2p_server: FullServer = None
 
@@ -28,6 +30,15 @@ class FullNode(Node):
 
     def get_chain(self) -> FullChain:
         return self.get_full_chain()
+
+    def get_event_server(self) -> PeerPoolEventServer[ETHPeer]:
+        """
+        Return the ``PeerPoolEventServer`` of the FullNode
+        """
+        if self._event_server is None:
+            self._event_server = ETHPeerPoolEventServer(
+                self.event_bus, self.get_peer_pool(), self.cancel_token)
+        return self._event_server
 
     def get_p2p_server(self) -> FullServer:
         if self._p2p_server is None:

@@ -30,6 +30,7 @@ from trinity.db.beacon.manager import (
 from trinity.config import BeaconAppConfig
 from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.extensibility import AsyncioIsolatedPlugin
+from trinity.protocol.bcc.peer import BCCPeerPoolEventServer
 from trinity.server import BCCServer
 from trinity.sync.beacon.chain import BeaconChainSyncer
 from trinity.sync.common.chain import (
@@ -103,6 +104,12 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
             token=None,
         )
 
+        event_server = BCCPeerPoolEventServer(
+            self.event_bus,
+            server.peer_pool,
+            server.cancel_token
+        )
+
         syncer = BeaconChainSyncer(
             chain_db=chain_db,
             peer_pool=server.peer_pool,
@@ -138,6 +145,7 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
         )
 
         asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, server))
+        asyncio.ensure_future(event_server.run())
         asyncio.ensure_future(server.run())
         asyncio.ensure_future(syncer.run())
         asyncio.ensure_future(slot_ticker.run())

@@ -18,12 +18,19 @@ from trinity.config import (
 )
 from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.nodes.base import Node
-from trinity.protocol.les.peer import LESPeerPool
+from trinity.protocol.common.peer_pool_event_bus import (
+    PeerPoolEventServer,
+)
+from trinity.protocol.les.peer import (
+    LESPeer,
+    LESPeerPool,
+    LESPeerPoolEventServer,
+)
 from trinity.server import LightServer
 from trinity.sync.light.service import LightPeerChain
 
 
-class LightNode(Node):
+class LightNode(Node[LESPeer]):
     _chain: LightDispatchChain = None
     _peer_chain: LightPeerChain = None
     _p2p_server: LightServer = None
@@ -64,6 +71,15 @@ class LightNode(Node):
                 self._chain = self.chain_class(self.headerdb, peer_chain=self._peer_chain)
 
         return self._chain
+
+    def get_event_server(self) -> PeerPoolEventServer[LESPeer]:
+        if self._event_server is None:
+            self._event_server = LESPeerPoolEventServer(
+                self.event_bus,
+                self.get_peer_pool(),
+                self.cancel_token
+            )
+        return self._event_server
 
     def get_p2p_server(self) -> LightServer:
         if self._p2p_server is None:

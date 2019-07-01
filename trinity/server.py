@@ -3,7 +3,6 @@ import asyncio
 import logging
 import secrets
 from typing import (
-    Any,
     cast,
     Generic,
     Sequence,
@@ -54,14 +53,10 @@ from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.common.peer import BasePeerPool
-from trinity.protocol.common.peer_pool_event_bus import (
-    DefaultPeerPoolEventServer,
-    PeerPoolEventServer,
-)
-from trinity.protocol.eth.peer import ETHPeerPool, ETHPeerPoolEventServer
-from trinity.protocol.les.peer import LESPeerPool, LESPeerPoolEventServer
+from trinity.protocol.eth.peer import ETHPeerPool
+from trinity.protocol.les.peer import LESPeerPool
 from trinity.protocol.bcc.context import BeaconContext
-from trinity.protocol.bcc.peer import BCCPeerPool, BCCPeerPoolEventServer
+from trinity.protocol.bcc.peer import BCCPeerPool
 from trinity.protocol.bcc.servers import (
     BCCReceiveServer,
 )
@@ -77,7 +72,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
     """Server listening for incoming connections"""
     _tcp_listener = None
     peer_pool: TPeerPool
-    event_server_class: Type[PeerPoolEventServer[Any]] = DefaultPeerPoolEventServer
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
@@ -115,7 +109,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
 
         # child services
         self.peer_pool = self._make_peer_pool()
-        self.event_server = self.event_server_class(event_bus, self.peer_pool, self.cancel_token)
 
         if not bootstrap_nodes:
             self.logger.warning("Running with no bootstrap nodes")
@@ -150,7 +143,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         self.logger.info('peers: max_peers=%s', self.max_peers)
 
         self.run_daemon(self.peer_pool)
-        self.run_daemon(self.event_server)
 
         await self.cancel_token.wait()
 
@@ -291,8 +283,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
 
 class FullServer(BaseServer[ETHPeerPool]):
 
-    event_server_class = ETHPeerPoolEventServer
-
     def _make_peer_pool(self) -> ETHPeerPool:
         context = ChainContext(
             headerdb=self.headerdb,
@@ -310,8 +300,6 @@ class FullServer(BaseServer[ETHPeerPool]):
 
 class LightServer(BaseServer[LESPeerPool]):
 
-    event_server_class = LESPeerPoolEventServer
-
     def _make_peer_pool(self) -> LESPeerPool:
         context = ChainContext(
             headerdb=self.headerdb,
@@ -328,8 +316,6 @@ class LightServer(BaseServer[LESPeerPool]):
 
 
 class BCCServer(BaseServer[BCCPeerPool]):
-
-    event_server_class = BCCPeerPoolEventServer
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
@@ -374,7 +360,6 @@ class BCCServer(BaseServer[BCCPeerPool]):
         self.logger.info('peers: max_peers=%s', self.max_peers)
 
         self.run_daemon(self.peer_pool)
-        self.run_daemon(self.event_server)
         self.run_daemon(self.receive_server)
 
         await self.cancel_token.wait()

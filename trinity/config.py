@@ -612,7 +612,7 @@ class Eth1AppConfig(BaseAppConfig):
             return Eth1ChainConfig.from_eip1085_genesis_config(self.trinity_config.genesis_config)
 
     @property
-    def node_class(self) -> Type['Node']:
+    def node_class(self) -> Type['Node[Any]']:
         """
         Return the ``Node`` class that trinity uses.
         """

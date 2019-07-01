@@ -3,6 +3,10 @@ from pathlib import Path
 from multiprocessing.managers import (
     BaseManager,
 )
+from typing import (
+    Generic,
+    TypeVar,
+)
 
 from lahja import (
     BroadcastConfig,
@@ -33,19 +37,26 @@ from trinity.endpoint import (
 from trinity.extensibility.events import (
     ResourceAvailableEvent
 )
+from trinity.protocol.common.peer import BasePeer
+from trinity.protocol.common.peer_pool_event_bus import (
+    PeerPoolEventServer,
+)
 
 from .events import (
     NetworkIdRequest,
     NetworkIdResponse,
 )
 
+TPeer = TypeVar('TPeer', bound=BasePeer)
 
-class Node(BaseService):
+
+class Node(BaseService, Generic[TPeer]):
     """
     Create usable nodes by adding subclasses that define the following
     unset attributes.
     """
     _full_chain: FullChain = None
+    _event_server: PeerPoolEventServer[TPeer] = None
 
     def __init__(self, event_bus: TrinityEventBusEndpoint, trinity_config: TrinityConfig) -> None:
         super().__init__()
@@ -91,6 +102,13 @@ class Node(BaseService):
             self._full_chain = chain_class(self.db_manager.get_db())  # type: ignore
 
         return self._full_chain
+
+    @abstractmethod
+    def get_event_server(self) -> PeerPoolEventServer[TPeer]:
+        """
+        Return the ``PeerPoolEventServer`` of the node
+        """
+        raise NotImplementedError("Node classes must implement this method")
 
     @abstractmethod
     def get_peer_pool(self) -> BasePeerPool:
@@ -154,6 +172,7 @@ class Node(BaseService):
         await self.notify_resource_available()
         self.run_daemon_task(self.handle_network_id_requests())
         self.run_daemon(self.get_p2p_server())
+        self.run_daemon(self.get_event_server())
         await self.cancellation()
 
     async def _cleanup(self) -> None:
