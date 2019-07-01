@@ -43,9 +43,6 @@ from trinity.plugins.eth2.beacon.plugin import BeaconNodePlugin
 from trinity.plugins.builtin.tx_pool.plugin import (
     TxPlugin,
 )
-from trinity.plugins.builtin.light_peer_chain_bridge.plugin import (
-    LightPeerChainBridgePlugin
-)
 
 
 BASE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
@@ -68,7 +65,6 @@ ETH1_NODE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
     BeamChainExecutionPlugin,
     DbShellPlugin,
     EthstatsPlugin,
-    LightPeerChainBridgePlugin,
     SyncerPlugin,
     TxPlugin,
 )

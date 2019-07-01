@@ -2,10 +2,16 @@ from typing import (
     Any,
     cast,
     Dict,
+    List,
     Tuple,
     Union,
+    TYPE_CHECKING,
 )
 
+from cancel_token import CancelToken
+from eth.rlp.accounts import Account
+from eth.rlp.headers import BlockHeader
+from eth.rlp.receipts import Receipt
 from eth_typing import (
     BlockNumber,
     Hash32,
@@ -21,6 +27,7 @@ from p2p.exceptions import (
 from p2p.kademlia import (
     Node,
 )
+from p2p.peer_pool import BasePeerPool
 from p2p.p2p_proto import DisconnectReason
 from p2p.protocol import (
     Command,
@@ -28,6 +35,7 @@ from p2p.protocol import (
     PayloadType,
 )
 
+from trinity.rlp.block_body import BlockBody
 from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
@@ -64,7 +72,17 @@ from .proto import (
     LESProtocolV2,
     ProxyLESProtocol,
 )
+from .events import (
+    GetAccountRequest,
+    GetBlockBodyByHashRequest,
+    GetBlockHeaderByHashRequest,
+    GetContractCodeRequest,
+    GetReceiptsRequest,
+)
 from .handlers import LESExchangeHandler
+
+if TYPE_CHECKING:
+    from trinity.sync.light.service import BaseLightPeerChain  # noqa: F401
 
 
 class LESPeer(BaseChainPeer):
@@ -169,6 +187,14 @@ class LESPeerPoolEventServer(PeerPoolEventServer[LESPeer]):
     LES protocol specific ``PeerPoolEventServer``. See ``PeerPoolEventServer`` for more info.
     """
 
+    def __init__(self,
+                 event_bus: TrinityEventBusEndpoint,
+                 peer_pool: BasePeerPool,
+                 token: CancelToken = None,
+                 chain: 'BaseLightPeerChain' = None) -> None:
+        super().__init__(event_bus, peer_pool, token)
+        self.chain = chain
+
     subscription_msg_types = frozenset({GetBlockHeaders})
 
     async def _run(self) -> None:
@@ -181,7 +207,49 @@ class LESPeerPoolEventServer(PeerPoolEventServer[LESPeer]):
             )
         )
 
+        self.run_daemon_request(
+            GetBlockHeaderByHashRequest,
+            self.handle_get_blockheader_by_hash_requests
+        )
+        self.run_daemon_request(
+            GetBlockBodyByHashRequest,
+            self.handle_get_blockbody_by_hash_requests
+        )
+        self.run_daemon_request(GetReceiptsRequest, self.handle_get_receipts_by_hash_requests)
+        self.run_daemon_request(GetAccountRequest, self.handle_get_account_requests)
+        self.run_daemon_request(GetContractCodeRequest, self.handle_get_contract_code_requests)
+
         await super()._run()
+
+    async def handle_get_blockheader_by_hash_requests(
+            self,
+            event: GetBlockHeaderByHashRequest) -> BlockHeader:
+
+        return await self.chain.coro_get_block_header_by_hash(event.block_hash)
+
+    async def handle_get_blockbody_by_hash_requests(
+            self,
+            event: GetBlockBodyByHashRequest) -> BlockBody:
+
+        return await self.chain.coro_get_block_body_by_hash(event.block_hash)
+
+    async def handle_get_receipts_by_hash_requests(
+            self,
+            event: GetReceiptsRequest) -> List[Receipt]:
+
+        return await self.chain.coro_get_receipts(event.block_hash)
+
+    async def handle_get_account_requests(
+            self,
+            event: GetAccountRequest) -> Account:
+
+        return await self.chain.coro_get_account(event.block_hash, event.address)
+
+    async def handle_get_contract_code_requests(
+            self,
+            event: GetContractCodeRequest) -> bytes:
+
+        return await self.chain.coro_get_contract_code(event.block_hash, event.address)
 
     async def handle_native_peer_message(self,
                                          remote: Node,
