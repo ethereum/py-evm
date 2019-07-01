@@ -66,6 +66,8 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     process_final_updates,
     process_justification_and_finalization,
     process_slashings,
+    _compute_next_active_index_roots,
+    process_registry_updates,
 )
 
 from eth2.beacon.types.states import BeaconState
@@ -850,7 +852,7 @@ def test_process_ejections(genesis_state, config, activation_exit_delay):
 
 @pytest.mark.parametrize(
     (
-        'n',
+        'validator_count',
         'slots_per_epoch',
         'target_committee_size',
         'shard_count',
@@ -864,13 +866,12 @@ def test_process_ejections(genesis_state, config, activation_exit_delay):
         ),
     ]
 )
-def test_update_validators(n,
+def test_update_validators(validator_count,
                            genesis_state,
                            config,
                            slots_per_epoch):
-    validators = list(genesis_state.validators)
-    activating_index = n
-    exiting_index = 0
+    activation_index = len(genesis_state.validators)
+    exiting_index = len(genesis_state.validators) - 1
 
     activating_validator = Validator.create_pending_validator(
         pubkey=b'\x10' * 48,
@@ -879,226 +880,130 @@ def test_update_validators(n,
         config=config,
     )
 
-    exiting_validator = genesis_state.validators[exiting_index].copy(
-        exit_epoch=FAR_FUTURE_EPOCH,
-    )
-
-    validators[exiting_index] = exiting_validator
-    validators.append(activating_validator)
     state = genesis_state.copy(
-        validators=validators,
+        validators=genesis_state.validators[:exiting_index] + (
+            genesis_state.validators[exiting_index].copy(
+                effective_balance=config.EJECTION_BALANCE - 1,
+            ),
+        ) + (activating_validator,),
         balances=genesis_state.balances + (config.MAX_EFFECTIVE_BALANCE,),
     )
 
-    state = update_validators(state, config)
+    # handles activations
+    post_state = process_registry_updates(state, config)
 
-    entry_exit_effect_epoch = get_delayed_activation_exit_epoch(
-        state.current_epoch(slots_per_epoch),
-        config.ACTIVATION_EXIT_DELAY,
-    )
 
     # Check if the activating_validator is activated
-    assert state.validators[activating_index].activation_epoch == entry_exit_effect_epoch
+    pre_activation_validator = state.validators[activation_index]
+    post_activation_validator = post_state.validators[activation_index]
+    assert pre_activation_validator.activation_eligibility_epoch == FAR_FUTURE_EPOCH
+    assert pre_activation_validator.activation_epoch == FAR_FUTURE_EPOCH
+    assert post_activation_validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH
+    activation_epoch = get_delayed_activation_exit_epoch(
+        state.current_epoch(config.SLOTS_PER_EPOCH),
+        config.ACTIVATION_EXIT_DELAY,
+    )
+    assert post_activation_validator.is_active(activation_epoch)
     # Check if the activating_validator is exited
-    assert state.validators[exiting_index].exit_epoch == entry_exit_effect_epoch
+    pre_exiting_validator = state.validators[exiting_index]
+    post_exiting_validator = post_state.validators[exiting_index]
+    assert pre_exiting_validator.exit_epoch == FAR_FUTURE_EPOCH
+    assert pre_exiting_validator.withdrawable_epoch == FAR_FUTURE_EPOCH
+    assert state.validators[exiting_index].effective_balance <= config.EJECTION_BALANCE
+    assert post_exiting_validator.exit_epoch != FAR_FUTURE_EPOCH
+    assert post_exiting_validator.withdrawable_epoch != FAR_FUTURE_EPOCH
+    assert post_exiting_validator.withdrawable_epoch > post_exiting_validator.exit_epoch
 
 
-@pytest.mark.parametrize(
-    (
-        'validator_count, slots_per_epoch, target_committee_size, shard_count,'
-        'epochs_per_historical_vector, min_seed_lookahead, state_slot,'
-        'need_to_update,'
-        'num_shards_in_committees,'
-        'validators_update_epoch,'
-        'epochs_since_last_registry_change_is_power_of_two,'
-        'current_shuffling_epoch,'
-        'randao_mixes,'
-        'expected_current_shuffling_epoch,'
-    ),
-    [
-        (
-            40, 4, 2, 2,
-            2**10, 4, 19,
-            False,
-            10,
-            2,
-            True,  # (state.current_epoch - state.validators_update_epoch) is power of two
-            0,
-            [i.to_bytes(32, 'little') for i in range(2**10)],
-            5,  # expected current_shuffling_epoch is state.next_epoch
-        ),
-        (
-            40, 4, 2, 2,
-            2**10, 4, 19,
-            False,
-            10,
-            1,
-            False,  # (state.current_epoch - state.validators_update_epoch) != power of two
-            0,
-            [i.to_bytes(32, 'little') for i in range(2**10)],
-            0,  # expected_current_shuffling_epoch is current_shuffling_epoch because it will not be updated  # noqa: E501
-        ),
-    ]
-)
-def test_process_validators(monkeypatch,
-                            genesis_state,
-                            slots_per_epoch,
-                            state_slot,
-                            need_to_update,
-                            num_shards_in_committees,
-                            validators_update_epoch,
-                            epochs_since_last_registry_change_is_power_of_two,
-                            current_shuffling_epoch,
-                            randao_mixes,
-                            expected_current_shuffling_epoch,
-                            activation_exit_delay,
-                            config):
-    # Mock check_if_update_validators
-    from eth2.beacon.state_machines.forks.serenity import epoch_processing
-
-    def mock_check_if_update_validators(state, config):
-        return need_to_update, num_shards_in_committees
-
-    monkeypatch.setattr(
-        epoch_processing,
-        '_check_if_update_validators',
-        mock_check_if_update_validators
-    )
-
-    # Mock generate_seed
-    new_seed = b'\x88' * 32
-
-    def mock_generate_seed(state,
-                           epoch,
-                           committee_config):
-        return new_seed
-
-    monkeypatch.setattr(
-        'eth2.beacon.helpers.generate_seed',
-        mock_generate_seed
-    )
-
-    # Set state
-    state = genesis_state.copy(
-        slot=state_slot,
-        validators_update_epoch=validators_update_epoch,
-        current_shuffling_epoch=current_shuffling_epoch,
-        randao_mixes=randao_mixes,
-    )
-
-    result_state = process_validators(state, config)
-
-    assert result_state.previous_shuffling_epoch == state.current_shuffling_epoch
-    assert result_state.previous_shuffling_start_shard == state.current_shuffling_start_shard
-    assert result_state.previous_shuffling_seed == state.current_shuffling_seed
-
-    if need_to_update:
-        assert result_state.current_shuffling_epoch == slot_to_epoch(state_slot, slots_per_epoch)
-        assert result_state.current_shuffling_seed == new_seed
-        # TODO: Add test for validator registry updates
-    else:
-        assert (
-            result_state.current_shuffling_epoch ==
-            expected_current_shuffling_epoch
-        )
-        # state.current_shuffling_start_shard is left unchanged.
-        assert result_state.current_shuffling_start_shard == state.current_shuffling_start_shard
-
-        if epochs_since_last_registry_change_is_power_of_two:
-            assert result_state.current_shuffling_seed == new_seed
-        else:
-            assert result_state.current_shuffling_seed != new_seed
+# @pytest.mark.parametrize(
+#     (
+#         'slots_per_epoch',
+#         'genesis_slot',
+#         'current_epoch',
+#         'epochs_per_slashed_balances_vector',
+#         'slashed_balances',
+#         'expected_total_penalties',
+#     ),
+#     [
+#         (4, 8, 8, 8, (30, 10) + (0,) * 6, 30 - 10)
+#     ]
+# )
+# def test_compute_total_penalties(genesis_state,
+#                                  config,
+#                                  slots_per_epoch,
+#                                  current_epoch,
+#                                  slashed_balances,
+#                                  expected_total_penalties):
+#     state = genesis_state.copy(
+#         slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
+#         slashed_balances=slashed_balances,
+#     )
+#     total_penalties = _compute_total_penalties(
+#         state,
+#         config,
+#         current_epoch,
+#     )
+#     assert total_penalties == expected_total_penalties
 
 
-@pytest.mark.parametrize(
-    (
-        'slots_per_epoch',
-        'genesis_slot',
-        'current_epoch',
-        'epochs_per_slashed_balances_vector',
-        'slashed_balances',
-        'expected_total_penalties',
-    ),
-    [
-        (4, 8, 8, 8, (30, 10) + (0,) * 6, 30 - 10)
-    ]
-)
-def test_compute_total_penalties(genesis_state,
-                                 config,
-                                 slots_per_epoch,
-                                 current_epoch,
-                                 slashed_balances,
-                                 expected_total_penalties):
-    state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
-        slashed_balances=slashed_balances,
-    )
-    total_penalties = _compute_total_penalties(
-        state,
-        config,
-        current_epoch,
-    )
-    assert total_penalties == expected_total_penalties
-
-
-@pytest.mark.parametrize(
-    (
-        'validator_count',
-        'slots_per_epoch',
-        'genesis_slot',
-        'current_epoch',
-        'epochs_per_slashed_balances_vector',
-    ),
-    [
-        (
-            10, 4, 8, 8, 8,
-        )
-    ]
-)
-@pytest.mark.parametrize(
-    (
-        'total_penalties',
-        'total_balance',
-        'min_slashing_penalty_quotient',
-        'expected_penalty',
-    ),
-    [
-        (
-            10**9,  # 1 ETH
-            (32 * 10**9 * 10),
-            2**5,
-            # effective_balance // MIN_SLASHING_PENALTY_QUOTIENT,
-            32 * 10**9 // 2**5,
-        ),
-        (
-            10**9,  # 1 ETH
-            (32 * 10**9 * 10),
-            2**10,  # Make MIN_SLASHING_PENALTY_QUOTIENT greater
-            # effective_balance * min(total_penalties * 3, total_balance) // total_balance,
-            32 * 10**9 * min(10**9 * 3, (32 * 10**9 * 10)) // (32 * 10**9 * 10),
-        ),
-    ]
-)
-def test_compute_individual_penalty(genesis_state,
-                                    config,
-                                    slots_per_epoch,
-                                    current_epoch,
-                                    epochs_per_slashed_balances_vector,
-                                    total_penalties,
-                                    total_balance,
-                                    expected_penalty):
-    state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
-    )
-    validator_index = 0
-    penalty = _compute_individual_penalty(
-        state=state,
-        config=config,
-        validator_index=validator_index,
-        total_penalties=total_penalties,
-        total_balance=total_balance,
-    )
-    assert penalty == expected_penalty
+# @pytest.mark.parametrize(
+#     (
+#         'validator_count',
+#         'slots_per_epoch',
+#         'genesis_slot',
+#         'current_epoch',
+#         'epochs_per_slashed_balances_vector',
+#     ),
+#     [
+#         (
+#             10, 4, 8, 8, 8,
+#         )
+#     ]
+# )
+# @pytest.mark.parametrize(
+#     (
+#         'total_penalties',
+#         'total_balance',
+#         'min_slashing_penalty_quotient',
+#         'expected_penalty',
+#     ),
+#     [
+#         (
+#             10**9,  # 1 ETH
+#             (32 * 10**9 * 10),
+#             2**5,
+#             # effective_balance // MIN_SLASHING_PENALTY_QUOTIENT,
+#             32 * 10**9 // 2**5,
+#         ),
+#         (
+#             10**9,  # 1 ETH
+#             (32 * 10**9 * 10),
+#             2**10,  # Make MIN_SLASHING_PENALTY_QUOTIENT greater
+#             # effective_balance * min(total_penalties * 3, total_balance) // total_balance,
+#             32 * 10**9 * min(10**9 * 3, (32 * 10**9 * 10)) // (32 * 10**9 * 10),
+#         ),
+#     ]
+# )
+# def test_compute_individual_penalty(genesis_state,
+#                                     config,
+#                                     slots_per_epoch,
+#                                     current_epoch,
+#                                     epochs_per_slashed_balances_vector,
+#                                     total_penalties,
+#                                     total_balance,
+#                                     expected_penalty):
+#     state = genesis_state.copy(
+#         slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
+#     )
+#     validator_index = 0
+#     penalty = _compute_individual_penalty(
+#         state=state,
+#         config=config,
+#         validator_index=validator_index,
+#         total_penalties=total_penalties,
+#         total_balance=total_balance,
+#     )
+#     assert penalty == expected_penalty
 
 
 @pytest.mark.parametrize(
@@ -1139,7 +1044,7 @@ def test_process_slashings(genesis_state,
         slashed=True,
         withdrawable_epoch=current_epoch + epochs_per_slashed_balances_vector // 2
     )
-    state = state.update_validators(slashing_validator_index, validator)
+    state = state.update_validator(slashing_validator_index, validator)
 
     result_state = process_slashings(state, config)
     penalty = (
@@ -1149,147 +1054,6 @@ def test_process_slashings(genesis_state,
     assert penalty == expected_penalty
 
 
-@pytest.mark.parametrize(
-    (
-        'validator_count',
-        'slots_per_epoch',
-        'genesis_slot',
-        'current_epoch',
-    ),
-    [
-        (10, 4, 8, 8)
-    ]
-)
-@pytest.mark.parametrize(
-    (
-        'min_validator_withdrawability_delay',
-        'withdrawable_epoch',
-        'exit_epoch',
-        'is_eligible',
-    ),
-    [
-        # current_epoch == validator.exit_epoch + MIN_VALIDATOR_WITHDRAWABILITY_DELAY
-        (4, FAR_FUTURE_EPOCH, 4, True),
-        # withdrawable_epoch != FAR_FUTURE_EPOCH
-        (4, 8, 4, False),
-        # current_epoch < validator.exit_epoch + MIN_VALIDATOR_WITHDRAWABILITY_DELAY
-        (4, FAR_FUTURE_EPOCH, 5, False),
-    ]
-)
-def test_process_exit_queue_eligible(genesis_state,
-                                     config,
-                                     current_epoch,
-                                     min_validator_withdrawability_delay,
-                                     withdrawable_epoch,
-                                     exit_epoch,
-                                     is_eligible):
-    state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH)
-    )
-    validator_index = 0
-
-    # Set eligible validators
-    state = state.update_validators(
-        validator_index,
-        state.validators[validator_index].copy(
-            withdrawable_epoch=withdrawable_epoch,
-            exit_epoch=exit_epoch,
-        )
-    )
-
-    result_state = process_exit_queue(state, config)
-
-    if is_eligible:
-        # Check if they got prepared for withdrawal
-        assert (
-            result_state.validators[validator_index].withdrawable_epoch ==
-            current_epoch + min_validator_withdrawability_delay
-        )
-    else:
-        assert (
-            result_state.validators[validator_index].withdrawable_epoch ==
-            state.validators[validator_index].withdrawable_epoch
-        )
-
-
-@pytest.mark.parametrize(
-    (
-        'validator_count',
-        'slots_per_epoch',
-        'genesis_slot',
-        'current_epoch',
-        'min_validator_withdrawability_delay'
-    ),
-    [
-        (10, 4, 4, 16, 4)
-    ]
-)
-@pytest.mark.parametrize(
-    (
-        'max_exit_dequeues_per_epoch',
-        'num_eligible_validators',
-        'validator_exit_epochs',
-    ),
-    [
-        # no  eligible validator
-        (4, 0, ()),
-        # max_exit_dequeues_per_epoch == num_eligible_validators
-        (4, 4, (4, 5, 6, 7)),
-        # max_exit_dequeues_per_epoch > num_eligible_validators
-        (5, 4, (4, 5, 6, 7)),
-        # max_exit_dequeues_per_epoch < num_eligible_validators
-        (3, 4, (4, 5, 6, 7)),
-        (3, 4, (7, 6, 5, 4)),
-    ]
-)
-def test_process_exit_queue(genesis_state,
-                            config,
-                            current_epoch,
-                            validator_count,
-                            max_exit_dequeues_per_epoch,
-                            min_validator_withdrawability_delay,
-                            num_eligible_validators,
-                            validator_exit_epochs):
-    state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH)
-    )
-
-    # Set eligible validators
-    assert num_eligible_validators <= validator_count
-    for i in range(num_eligible_validators):
-        state = state.update_validators(
-            i,
-            state.validators[i].copy(
-                exit_epoch=validator_exit_epochs[i],
-            )
-        )
-
-    result_state = process_exit_queue(state, config)
-
-    # Exit queue is sorted
-    sorted_indices = sorted(
-        range(num_eligible_validators),
-        key=lambda i: validator_exit_epochs[i],
-    )
-    filtered_indices = sorted_indices[:min(max_exit_dequeues_per_epoch, num_eligible_validators)]
-
-    for i in range(validator_count):
-        if i in set(filtered_indices):
-            # Check if they got prepared for withdrawal
-            assert (
-                result_state.validators[i].withdrawable_epoch ==
-                current_epoch + min_validator_withdrawability_delay
-            )
-        else:
-            assert (
-                result_state.validators[i].withdrawable_epoch ==
-                FAR_FUTURE_EPOCH
-            )
-
-
-#
-# Final updates
-#
 @pytest.mark.parametrize(
     (
         'slots_per_epoch,'
@@ -1302,7 +1066,7 @@ def test_process_exit_queue(genesis_state,
     ]
 )
 def test_update_active_index_roots(genesis_state,
-                                   committee_config,
+                                   config,
                                    state_slot,
                                    slots_per_epoch,
                                    epochs_per_historical_vector,
@@ -1311,7 +1075,7 @@ def test_update_active_index_roots(genesis_state,
         slot=state_slot,
     )
 
-    result_state = _update_active_index_roots(state, committee_config)
+    result = _compute_next_active_index_roots(state, config)
 
     index_root = ssz.hash_tree_root(
         get_active_validator_indices(
@@ -1322,84 +1086,6 @@ def test_update_active_index_roots(genesis_state,
     )
 
     target_epoch = state.next_epoch(slots_per_epoch) + activation_exit_delay
-    assert result_state.active_index_roots[
+    assert result[
         target_epoch % epochs_per_historical_vector
     ] == index_root
-
-
-@pytest.mark.parametrize(
-    (
-        'validator_count,'
-        'slots_per_epoch'
-    ),
-    [
-        (10, 4),
-    ]
-)
-def test_process_final_updates(genesis_state,
-                               config,
-                               sample_attestation_params):
-    current_slot = 10
-    state = genesis_state.copy(
-        slot=current_slot,
-    )
-    current_index = state.next_epoch(
-        config.SLOTS_PER_EPOCH
-    ) % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
-    previous_index = state.current_epoch(
-        config.SLOTS_PER_EPOCH
-    ) % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
-
-    attestation = Attestation(**sample_attestation_params)
-    previous_epoch_attestation_slot = current_slot - config.SLOTS_PER_EPOCH
-    num_previous_epoch_attestations = 2
-    previous_epoch_attestations = [
-        attestation.copy(
-            data=attestation.data.copy(
-                slot=previous_epoch_attestation_slot
-            )
-        )
-        for _ in range(num_previous_epoch_attestations)
-    ]
-    num_current_epoch_attestations = 3
-    current_epoch_attestations = [
-        attestation.copy(
-            data=attestation.data.copy(
-                slot=current_slot
-            )
-        )
-        for _ in range(num_current_epoch_attestations)
-    ]
-
-    # Fill slashed_balances
-    slashed_balance_of_previous_epoch = 100
-    slashed_balances = update_tuple_item(
-        state.slashed_balances,
-        previous_index,
-        slashed_balance_of_previous_epoch,
-    )
-    state = state.copy(
-        slashed_balances=slashed_balances,
-        previous_epoch_attestations=previous_epoch_attestations,
-        current_epoch_attestations=current_epoch_attestations,
-    )
-
-    result_state = process_final_updates(state, config)
-
-    assert (
-        (
-            result_state.slashed_balances[current_index] ==
-            slashed_balance_of_previous_epoch
-        ) and (
-            result_state.randao_mixes[current_index] == get_randao_mix(
-                state=state,
-                epoch=state.current_epoch(config.SLOTS_PER_EPOCH),
-                slots_per_epoch=config.SLOTS_PER_EPOCH,
-                epochs_per_historical_vector=config.EPOCHS_PER_HISTORICAL_VECTOR,
-            )
-        )
-    )
-
-    for attestation in result_state.previous_epoch_attestations:
-        assert attestation.data.slot == current_slot
-    assert len(result_state.current_epoch_attestations) == 0
