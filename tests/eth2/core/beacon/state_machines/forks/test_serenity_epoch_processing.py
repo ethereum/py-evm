@@ -61,6 +61,7 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _bft_threshold_met,
     _is_epoch_justifiable,
     _determine_new_finalized_epoch,
+    _determine_slashing_penalty,
     get_delayed_activation_exit_epoch,
     process_crosslinks,
     process_final_updates,
@@ -866,10 +867,10 @@ def test_process_ejections(genesis_state, config, activation_exit_delay):
         ),
     ]
 )
-def test_update_validators(validator_count,
-                           genesis_state,
-                           config,
-                           slots_per_epoch):
+def test_process_registry_updates(validator_count,
+                                  genesis_state,
+                                  config,
+                                  slots_per_epoch):
     activation_index = len(genesis_state.validators)
     exiting_index = len(genesis_state.validators) - 1
 
@@ -915,95 +916,63 @@ def test_update_validators(validator_count,
     assert post_exiting_validator.withdrawable_epoch > post_exiting_validator.exit_epoch
 
 
-# @pytest.mark.parametrize(
-#     (
-#         'slots_per_epoch',
-#         'genesis_slot',
-#         'current_epoch',
-#         'epochs_per_slashed_balances_vector',
-#         'slashed_balances',
-#         'expected_total_penalties',
-#     ),
-#     [
-#         (4, 8, 8, 8, (30, 10) + (0,) * 6, 30 - 10)
-#     ]
-# )
-# def test_compute_total_penalties(genesis_state,
-#                                  config,
-#                                  slots_per_epoch,
-#                                  current_epoch,
-#                                  slashed_balances,
-#                                  expected_total_penalties):
-#     state = genesis_state.copy(
-#         slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
-#         slashed_balances=slashed_balances,
-#     )
-#     total_penalties = _compute_total_penalties(
-#         state,
-#         config,
-#         current_epoch,
-#     )
-#     assert total_penalties == expected_total_penalties
-
-
-# @pytest.mark.parametrize(
-#     (
-#         'validator_count',
-#         'slots_per_epoch',
-#         'genesis_slot',
-#         'current_epoch',
-#         'epochs_per_slashed_balances_vector',
-#     ),
-#     [
-#         (
-#             10, 4, 8, 8, 8,
-#         )
-#     ]
-# )
-# @pytest.mark.parametrize(
-#     (
-#         'total_penalties',
-#         'total_balance',
-#         'min_slashing_penalty_quotient',
-#         'expected_penalty',
-#     ),
-#     [
-#         (
-#             10**9,  # 1 ETH
-#             (32 * 10**9 * 10),
-#             2**5,
-#             # effective_balance // MIN_SLASHING_PENALTY_QUOTIENT,
-#             32 * 10**9 // 2**5,
-#         ),
-#         (
-#             10**9,  # 1 ETH
-#             (32 * 10**9 * 10),
-#             2**10,  # Make MIN_SLASHING_PENALTY_QUOTIENT greater
-#             # effective_balance * min(total_penalties * 3, total_balance) // total_balance,
-#             32 * 10**9 * min(10**9 * 3, (32 * 10**9 * 10)) // (32 * 10**9 * 10),
-#         ),
-#     ]
-# )
-# def test_compute_individual_penalty(genesis_state,
-#                                     config,
-#                                     slots_per_epoch,
-#                                     current_epoch,
-#                                     epochs_per_slashed_balances_vector,
-#                                     total_penalties,
-#                                     total_balance,
-#                                     expected_penalty):
-#     state = genesis_state.copy(
-#         slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
-#     )
-#     validator_index = 0
-#     penalty = _compute_individual_penalty(
-#         state=state,
-#         config=config,
-#         validator_index=validator_index,
-#         total_penalties=total_penalties,
-#         total_balance=total_balance,
-#     )
-#     assert penalty == expected_penalty
+@pytest.mark.parametrize(
+    (
+        'validator_count',
+        'slots_per_epoch',
+        'genesis_slot',
+        'current_epoch',
+        'epochs_per_slashed_balances_vector',
+    ),
+    [
+        (
+            10, 4, 8, 8, 8,
+        )
+    ]
+)
+@pytest.mark.parametrize(
+    (
+        'total_penalties',
+        'total_balance',
+        'min_slashing_penalty_quotient',
+        'expected_penalty',
+    ),
+    [
+        (
+            10**9,  # 1 ETH
+            (32 * 10**9 * 10),
+            2**5,
+            # effective_balance // MIN_SLASHING_PENALTY_QUOTIENT,
+            32 * 10**9 // 2**5,
+        ),
+        (
+            32 * 4 * 10**9,  # 3 * total_penalties > total_balance
+            (32 * 10**9 * 10),
+            2**10,  # Make MIN_SLASHING_PENALTY_QUOTIENT greater
+            # effective_balance * min(total_penalties * 3, total_balance) // total_balance,
+            32 * 10**9 * min(32 * 4 * 10**9 * 3, (32 * 10**9 * 10)) // (32 * 10**9 * 10),
+        ),
+    ]
+)
+def test_determine_slashing_penalty(genesis_state,
+                                    config,
+                                    slots_per_epoch,
+                                    current_epoch,
+                                    epochs_per_slashed_balances_vector,
+                                    total_penalties,
+                                    total_balance,
+                                    expected_penalty):
+    state = genesis_state.copy(
+        slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
+    )
+    validator_index = 0
+    penalty = _determine_slashing_penalty(
+        total_penalties,
+        total_balance,
+        state.validators[validator_index].effective_balance,
+        config.MIN_SLASHING_PENALTY_QUOTIENT,
+    )
+    assert penalty == expected_penalty
 
 
 @pytest.mark.parametrize(
