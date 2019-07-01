@@ -53,7 +53,16 @@ def fork_choice_scoring():
     return higher_slot_scoring
 
 
+@pytest.mark.parametrize(
+    (
+        "validator_count"
+    ),
+    (
+        (40),
+    )
+)
 def test_demo(base_db,
+              validator_count,
               keymap,
               fork_choice_scoring):
     slots_per_epoch = 8
@@ -69,8 +78,6 @@ def test_demo(base_db,
         __name__='SerenityStateMachineForTesting',
         config=config,
     )
-
-    validator_count = 40
 
     genesis_slot = config.GENESIS_SLOT
     genesis_epoch = config.GENESIS_EPOCH
@@ -147,5 +154,5 @@ def test_demo(base_db,
     assert state.slot == chain_length + genesis_slot
 
     # Justification assertions
-    assert state.current_justified_epoch == 2 + genesis_epoch
-    assert state.finalized_epoch == 1 + genesis_epoch
+    assert state.current_justified_epoch == genesis_epoch
+    assert state.finalized_epoch == genesis_epoch
