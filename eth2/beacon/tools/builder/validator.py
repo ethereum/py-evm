@@ -592,8 +592,8 @@ def _create_mock_signed_attestation(state: BeaconState,
     )
 
 
-# TODO merge in w/ ``get_committee_assignment``
-def _get_crosslink_committees_at_slot(
+# TODO(ralexstokes) merge in w/ ``get_committee_assignment``
+def get_crosslink_committees_at_slot(
         state: BeaconState,
         slot: Slot,
         config: Eth2Config) -> Tuple[Tuple[Tuple[ValidatorIndex, ...], Shard], ...]:
@@ -676,7 +676,7 @@ def create_mock_signed_attestations_at_slot(
     """
     Create the mocking attestations of the given ``attestation_slot`` slot with ``keymap``.
     """
-    crosslink_committees_at_slot = _get_crosslink_committees_at_slot(
+    crosslink_committees_at_slot = get_crosslink_committees_at_slot(
         state,
         attestation_slot,
         config,
