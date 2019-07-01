@@ -3,9 +3,6 @@ import pytest
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
-from eth2.beacon.state_machines.forks.serenity.slot_processing import (
-    process_slots,
-)
 from eth2.beacon.tools.builder.proposer import (
     create_mock_block,
 )

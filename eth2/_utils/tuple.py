@@ -1,7 +1,6 @@
 from typing import (
     Any,
     Callable,
-    Sequence,
     Tuple,
     TypeVar,
 )
