@@ -8,13 +8,15 @@ from typing import (
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
 )
+from lahja import (
+    BaseEvent,
+)
 
 from p2p.kademlia import (
     Node,
 )
 
 from trinity.protocol.common.events import (
-    HasRemoteEvent,
     PeerPoolMessageEvent,
 )
 
@@ -28,7 +30,7 @@ class GetBeaconBlocksEvent(PeerPoolMessageEvent):
 
 
 @dataclass
-class SendBeaconBlocksEvent(HasRemoteEvent):
+class SendBeaconBlocksEvent(BaseEvent):
     """
     Event to proxy a ``BccPeer.sub_proto.send_blocks`` call from a proxy peer to the actual peer
     that sits in the peer pool.

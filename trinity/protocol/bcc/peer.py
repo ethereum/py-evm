@@ -166,7 +166,10 @@ class BCCPeerPoolEventServer(PeerPoolEventServer[BCCPeer]):
 
         self.run_daemon_event(
             SendBeaconBlocksEvent,
-            lambda peer, ev: peer.sub_proto.send_blocks(ev.blocks, ev.request_id)
+            lambda event: self.try_with_node(
+                event.remote,
+                lambda peer: peer.sub_proto.send_blocks(event.blocks, event.request_id)
+            )
         )
 
         await super()._run()

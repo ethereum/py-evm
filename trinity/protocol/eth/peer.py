@@ -193,13 +193,33 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
     async def _run(self) -> None:
 
         self.run_daemon_event(
-            SendBlockHeadersEvent, lambda peer, ev: peer.sub_proto.send_block_headers(ev.headers))
+            SendBlockHeadersEvent,
+            lambda event: self.try_with_node(
+                event.remote,
+                lambda peer: peer.sub_proto.send_block_headers(event.headers)
+            )
+        )
         self.run_daemon_event(
-            SendBlockBodiesEvent, lambda peer, ev: peer.sub_proto.send_block_bodies(ev.blocks))
+            SendBlockBodiesEvent,
+            lambda event: self.try_with_node(
+                event.remote,
+                lambda peer: peer.sub_proto.send_block_bodies(event.blocks)
+            )
+        )
         self.run_daemon_event(
-            SendNodeDataEvent, lambda peer, ev: peer.sub_proto.send_node_data(ev.nodes))
+            SendNodeDataEvent,
+            lambda event: self.try_with_node(
+                event.remote,
+                lambda peer: peer.sub_proto.send_node_data(event.nodes)
+            )
+        )
         self.run_daemon_event(
-            SendReceiptsEvent, lambda peer, ev: peer.sub_proto.send_receipts(ev.receipts))
+            SendReceiptsEvent,
+            lambda event: self.try_with_node(
+                event.remote,
+                lambda peer: peer.sub_proto.send_receipts(event.receipts)
+            )
+        )
 
         self.run_daemon_request(GetBlockHeadersRequest, self.handle_get_block_headers_request)
         self.run_daemon_request(GetReceiptsRequest, self.handle_get_receipts_request)
@@ -210,9 +230,8 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
 
     async def handle_get_block_headers_request(
             self,
-            peer: ETHPeer,
             event: GetBlockHeadersRequest) -> Tuple[BlockHeader, ...]:
-
+        peer = self.get_peer(event.remote)
         return await peer.requests.get_block_headers(
             event.block_number_or_hash,
             event.max_headers,
@@ -222,19 +241,29 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
         )
 
     async def handle_get_receipts_request(self,
-                                          peer: ETHPeer,
                                           event: GetReceiptsRequest) -> ReceiptsBundles:
-        return await peer.requests.get_receipts(event.headers)
+
+        return await self.with_node_and_timeout(
+            event.remote,
+            event.timeout,
+            lambda peer: peer.requests.get_receipts(event.headers)
+        )
 
     async def handle_get_block_bodies_request(self,
-                                              peer: ETHPeer,
                                               event: GetBlockBodiesRequest) -> BlockBodyBundles:
-        return await peer.requests.get_block_bodies(event.headers)
+        return await self.with_node_and_timeout(
+            event.remote,
+            event.timeout,
+            lambda peer: peer.requests.get_block_bodies(event.headers)
+        )
 
     async def handle_get_node_data_request(self,
-                                           peer: ETHPeer,
                                            event: GetNodeDataRequest) -> NodeDataBundles:
-        return await peer.requests.get_node_data(event.node_hashes)
+        return await self.with_node_and_timeout(
+            event.remote,
+            event.timeout,
+            lambda peer: peer.requests.get_node_data(event.node_hashes)
+        )
 
     async def handle_native_peer_message(self,
                                          remote: Node,

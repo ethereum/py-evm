@@ -18,6 +18,8 @@ from cancel_token import (
 )
 
 from lahja import (
+    BaseEvent,
+    BaseRequestResponseEvent,
     BroadcastConfig,
 )
 
@@ -51,8 +53,6 @@ from .events import (
     DisconnectPeerEvent,
     GetConnectedPeersRequest,
     GetConnectedPeersResponse,
-    HasRemoteEvent,
-    HasRemoteAndTimeoutRequest,
     PeerCountRequest,
     PeerCountResponse,
     PeerJoinedEvent,
@@ -64,8 +64,8 @@ from .peer import (
 
 
 TPeer = TypeVar('TPeer', bound=BasePeer)
-TStreamEvent = TypeVar('TStreamEvent', bound=HasRemoteEvent)
-TStreamRequest = TypeVar('TStreamRequest', bound=HasRemoteAndTimeoutRequest[Any])
+TEvent = TypeVar('TEvent', bound=BaseEvent)
+TRequest = TypeVar('TRequest', bound=BaseRequestResponseEvent[Any])
 
 
 class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
@@ -96,7 +96,10 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
 
         self.run_daemon_event(
             DisconnectPeerEvent,
-            lambda peer, event: peer.disconnect_nowait(event.reason)
+            lambda event: self.try_with_node(
+                event.remote,
+                lambda peer: peer.disconnect_nowait(event.reason)
+            )
         )
 
         self.run_daemon_task(self.handle_peer_count_requests())
@@ -107,8 +110,8 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
         await self.cancellation()
 
     def run_daemon_event(self,
-                         event_type: Type[TStreamEvent],
-                         event_handler_fn: Callable[[TPeer, TStreamEvent], Any]) -> None:
+                         event_type: Type[TEvent],
+                         event_handler_fn: Callable[[TEvent], Any]) -> None:
         """
         Register a handler to be run every time that an event of type ``event_type`` appears.
         """
@@ -116,8 +119,8 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
 
     def run_daemon_request(
             self,
-            event_type: Type[TStreamRequest],
-            event_handler_fn: Callable[[TPeer, TStreamRequest], Any]) -> None:
+            event_type: Type[TRequest],
+            event_handler_fn: Callable[[TRequest], Any]) -> None:
         """
         Register a handler to be run every time that an request of type ``event_type`` appears.
         """
@@ -172,53 +175,50 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
             )
 
     async def handle_stream(self,
-                            event_type: Type[TStreamEvent],
-                            event_handler_fn: Callable[[TPeer, TStreamEvent], Any]) -> None:
+                            event_type: Type[TEvent],
+                            event_handler_fn: Callable[[TEvent], Any]) -> None:
 
         async for event in self.wait_iter(self.event_bus.stream(event_type)):
-            try:
-                peer = self.get_peer(event.remote)
-            except PeerConnectionLost:
-                pass
-            else:
-                event_handler_fn(peer, event)
+            await event_handler_fn(event)
 
     async def handle_request_stream(
             self,
-            event_type: Type[TStreamRequest],
-            event_handler_fn: Callable[[TPeer, TStreamRequest], Any]) -> None:
+            event_type: Type[TRequest],
+            event_handler_fn: Callable[[TRequest], Any]) -> None:
 
         async for event in self.wait_iter(self.event_bus.stream(event_type)):
             try:
-                peer = self.get_peer(event.remote)
-            except PeerConnectionLost as e:
+                self.logger.debug2("Replaying %s request on actual peer", event_type)
+                val = await event_handler_fn(event)
+            except Exception as e:
                 await self.event_bus.broadcast(
                     event.expected_response_type()(None, e),
                     event.broadcast_config()
                 )
-                continue
             else:
-                try:
-                    self.logger.debug2("Replaying %s request on actual peer %r", event_type, peer)
-                    # This is on the server side, we need to track the timeout here. If we don't
-                    # have a request server running, the client (who does not track timeouts) will
-                    # hang forever.
-                    val = await self.wait(event_handler_fn(peer, event), timeout=event.timeout)
-                except Exception as e:
-                    await self.event_bus.broadcast(
-                        event.expected_response_type()(None, e),
-                        event.broadcast_config()
-                    )
-                else:
-                    self.logger.debug2(
-                        "Forwarding response to %s from %r to its proxy peer",
-                        event_type,
-                        peer
-                    )
-                    await self.event_bus.broadcast(
-                        event.expected_response_type()(val, None),
-                        event.broadcast_config()
-                    )
+                self.logger.debug2(
+                    "Forwarding response to %s from peer to its proxy peer",
+                    event_type,
+                )
+                await self.event_bus.broadcast(
+                    event.expected_response_type()(val, None),
+                    event.broadcast_config()
+                )
+
+    async def try_with_node(self, remote: Node, fn: Callable[[TPeer], Any]) -> None:
+        try:
+            peer = self.get_peer(remote)
+        except PeerConnectionLost:
+            pass
+        else:
+            fn(peer)
+
+    async def with_node_and_timeout(self,
+                                    remote: Node,
+                                    timeout: float,
+                                    fn: Callable[[TPeer], Any]) -> Any:
+        peer = self.get_peer(remote)
+        return await self.wait(fn(peer), timeout=timeout)
 
     async def handle_native_peer_messages(self) -> None:
         with self.subscribe(self.peer_pool):

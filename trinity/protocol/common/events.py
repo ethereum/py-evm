@@ -4,7 +4,6 @@ from dataclasses import (
 from typing import (
     Tuple,
     Type,
-    TypeVar
 )
 
 from lahja import (
@@ -23,32 +22,11 @@ from p2p.protocol import (
 
 
 @dataclass
-class HasRemoteEvent(BaseEvent):
-    """
-    Abstract base event for event types that carry a ``Node`` on the ``remote`` property.
-    """
-
-    remote: Node
-
-
-TResponse = TypeVar('TResponse', bound=BaseEvent)
-
-
-class HasRemoteAndTimeoutRequest(BaseRequestResponseEvent[TResponse]):
-    """
-    Abstract base class for request types that carry a ``remote`` and ``timeout`` property.
-    """
-
-    def __init__(self, remote: Node, timeout: float) -> None:
-        self.remote = remote
-        self.timeout = timeout
-
-
-class ConnectToNodeCommand(HasRemoteEvent):
+class ConnectToNodeCommand(BaseEvent):
     """
     Event that wraps a node URI that the pool should connect to.
     """
-    pass
+    remote: Node
 
 
 @dataclass
@@ -71,28 +49,28 @@ class PeerCountRequest(BaseRequestResponseEvent[PeerCountResponse]):
 
 
 @dataclass
-class DisconnectPeerEvent(HasRemoteEvent):
+class DisconnectPeerEvent(BaseEvent):
     """
     Event broadcasted when we want to disconnect from a peer
     """
-
+    remote: Node
     reason: DisconnectReason
 
 
 @dataclass
-class PeerJoinedEvent(HasRemoteEvent):
+class PeerJoinedEvent(BaseEvent):
     """
     Event broadcasted when a new peer joined the pool.
     """
-    pass
+    remote: Node
 
 
 @dataclass
-class PeerLeftEvent(HasRemoteEvent):
+class PeerLeftEvent(BaseEvent):
     """
     Event broadcasted when a peer left the pool.
     """
-    pass
+    remote: Node
 
 
 @dataclass
@@ -109,12 +87,12 @@ class GetConnectedPeersRequest(BaseRequestResponseEvent[GetConnectedPeersRespons
 
 
 @dataclass
-class PeerPoolMessageEvent(HasRemoteEvent):
+class PeerPoolMessageEvent(BaseEvent):
     """
     Base event for all peer messages that are relayed on the event bus. The events are mapped
     to individual subclasses for every different ``cmd`` to allow efficient consumption through
     the event bus.
     """
-
+    remote: Node
     cmd: Command
     msg: PayloadType

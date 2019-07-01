@@ -14,6 +14,7 @@ from eth.rlp.transactions import BaseTransactionFields
 
 from lahja import (
     BaseEvent,
+    BaseRequestResponseEvent,
 )
 from p2p.kademlia import (
     Node,
@@ -25,8 +26,6 @@ from eth_typing import (
 )
 
 from trinity.protocol.common.events import (
-    HasRemoteEvent,
-    HasRemoteAndTimeoutRequest,
     PeerPoolMessageEvent,
 )
 from trinity.protocol.common.types import (
@@ -89,48 +88,52 @@ class NewBlockHashesEvent(PeerPoolMessageEvent):
 
 
 @dataclass
-class SendBlockHeadersEvent(HasRemoteEvent):
+class SendBlockHeadersEvent(BaseEvent):
     """
     Event to proxy a ``ETHPeer.sub_proto.send_block_headers`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
-
+    remote: Node
     headers: Tuple[BlockHeader, ...]
 
 
 @dataclass
-class SendBlockBodiesEvent(HasRemoteEvent):
+class SendBlockBodiesEvent(BaseEvent):
     """
     Event to proxy a ``ETHPeer.sub_proto.send_block_bodies`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
+    remote: Node
     blocks: List[BaseBlock]
 
 
 @dataclass
-class SendNodeDataEvent(HasRemoteEvent):
+class SendNodeDataEvent(BaseEvent):
     """
     Event to proxy a ``ETHPeer.sub_proto.send_node_data`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
+    remote: Node
     nodes: Tuple[bytes, ...]
 
 
 @dataclass
-class SendReceiptsEvent(HasRemoteEvent):
+class SendReceiptsEvent(BaseEvent):
     """
     Event to proxy a ``ETHPeer.sub_proto.send_receipts`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
+    remote: Node
     receipts: List[List[Receipt]]
 
 
 @dataclass
-class SendTransactionsEvent(HasRemoteEvent):
+class SendTransactionsEvent(BaseEvent):
     """
     Event to proxy a ``ETHPeer.sub_proto.send_transactions`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
+    remote: Node
     transactions: List[BaseTransactionFields]
 
 # EXCHANGE HANDLER REQUEST / RESPONSE PAIRS
@@ -144,7 +147,7 @@ class GetBlockHeadersResponse(BaseEvent):
 
 
 @dataclass
-class GetBlockHeadersRequest(HasRemoteAndTimeoutRequest[GetBlockHeadersResponse]):
+class GetBlockHeadersRequest(BaseRequestResponseEvent[GetBlockHeadersResponse]):
 
     remote: Node
     block_number_or_hash: BlockIdentifier
@@ -166,7 +169,7 @@ class GetBlockBodiesResponse(BaseEvent):
 
 
 @dataclass
-class GetBlockBodiesRequest(HasRemoteAndTimeoutRequest[GetBlockBodiesResponse]):
+class GetBlockBodiesRequest(BaseRequestResponseEvent[GetBlockBodiesResponse]):
 
     remote: Node
     headers: Tuple[BlockHeader, ...]
@@ -185,7 +188,7 @@ class GetNodeDataResponse(BaseEvent):
 
 
 @dataclass
-class GetNodeDataRequest(HasRemoteAndTimeoutRequest[GetNodeDataResponse]):
+class GetNodeDataRequest(BaseRequestResponseEvent[GetNodeDataResponse]):
 
     remote: Node
     node_hashes: Tuple[Hash32, ...]
@@ -204,7 +207,7 @@ class GetReceiptsResponse(BaseEvent):
 
 
 @dataclass
-class GetReceiptsRequest(HasRemoteAndTimeoutRequest[GetReceiptsResponse]):
+class GetReceiptsRequest(BaseRequestResponseEvent[GetReceiptsResponse]):
 
     remote: Node
     headers: Tuple[BlockHeader, ...]

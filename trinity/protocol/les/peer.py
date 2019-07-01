@@ -175,7 +175,10 @@ class LESPeerPoolEventServer(PeerPoolEventServer[LESPeer]):
 
         self.run_daemon_event(
             SendBlockHeadersEvent,
-            lambda peer, ev: peer.sub_proto.send_block_headers(ev.headers, ev.buffer_value, ev.request_id)  # noqa: E501
+            lambda ev: self.try_with_node(
+                ev.remote,
+                lambda peer: peer.sub_proto.send_block_headers(ev.headers, ev.buffer_value, ev.request_id)  # noqa: E501
+            )
         )
 
         await super()._run()
