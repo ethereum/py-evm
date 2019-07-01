@@ -699,6 +699,17 @@ def process_registry_updates(state: BeaconState, config: Eth2Config) -> BeaconSt
     )
 
 
+def _determine_slashing_penalty(total_penalties: Gwei,
+                                total_balance: Gwei,
+                                balance: Gwei,
+                                min_slashing_penalty_quotient: int) -> Gwei:
+    collective_penalty = min(total_penalties * 3, total_balance) // total_balance
+    return max(
+        balance * collective_penalty,
+        balance // min_slashing_penalty_quotient
+    )
+
+
 def process_slashings(state: BeaconState, config: Eth2Config) -> BeaconState:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     total_balance = get_total_active_balance(state, config)
@@ -715,10 +726,11 @@ def process_slashings(state: BeaconState, config: Eth2Config) -> BeaconState:
     for index, validator in enumerate(state.validators):
         index = ValidatorIndex(index)
         if validator.slashed and current_epoch == validator.withdrawable_epoch - slashing_period:
-            collective_penalty = min(total_penalties * 3, total_balance) // total_balance
-            penalty = max(
-                validator.effective_balance * collective_penalty,
-                validator.effective_balance // config.MIN_SLASHING_PENALTY_QUOTIENT
+            penalty = _determine_slashing_penalty(
+                total_penalties,
+                total_balance,
+                validator.effective_balance,
+                config.MIN_SLASHING_PENALTY_QUOTIENT,
             )
             state = decrease_balance(state, index, penalty)
     return state
