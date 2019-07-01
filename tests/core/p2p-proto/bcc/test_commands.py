@@ -30,7 +30,6 @@ from .helpers import (
 )
 
 from eth2.beacon.constants import EMPTY_SIGNATURE
-from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
 
 async def get_command_setup(request, event_loop):
