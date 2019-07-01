@@ -76,7 +76,7 @@ def test_process_max_attestations(genesis_state,
     assert attestations_count > 0
 
     block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
-        attestations=attestations * (config.MAX_ATTESTATIONS - attestations_count + 1),
+        attestations=attestations * (config.MAX_ATTESTATIONS // attestations_count + 1),
     )
     block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
         slot=current_slot,
