@@ -115,7 +115,7 @@ def process_attestations(state: BeaconState,
                          config: Eth2Config) -> BeaconState:
     if len(block.body.attestations) > config.MAX_ATTESTATIONS:
         raise ValidationError(
-            f"The block ({block}) has too many attestations:\n"
+            f"The block has too many attestations:\n"
             f"\tFound {len(block.body.attestations)} attestations, "
             f"maximum: {config.MAX_ATTESTATIONS}"
         )
