@@ -18,6 +18,9 @@ from trinity.config import (
     TrinityConfig
 )
 from trinity.chains.base import BaseAsyncChain
+from trinity.chains.light_eventbus import (
+    EventBusLightPeerChain,
+)
 from trinity.db.eth1.manager import (
     create_db_consumer_manager
 )
@@ -26,9 +29,6 @@ from trinity.extensibility import (
 )
 from trinity.endpoint import (
     TrinityEventBusEndpoint,
-)
-from trinity.plugins.builtin.light_peer_chain_bridge.light_peer_chain_bridge import (
-    EventBusLightPeerChain,
 )
 from trinity.rpc.main import (
     RPCServer,

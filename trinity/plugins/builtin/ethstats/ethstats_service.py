@@ -18,14 +18,14 @@ from trinity.constants import (
     SYNC_LIGHT,
     TO_NETWORKING_BROADCAST_CONFIG,
 )
+from trinity.chains.light_eventbus import (
+    EventBusLightPeerChain,
+)
 from trinity.db.eth1.manager import (
     create_db_consumer_manager,
 )
 from trinity.endpoint import (
     TrinityEventBusEndpoint,
-)
-from trinity.plugins.builtin.light_peer_chain_bridge.light_peer_chain_bridge import (
-    EventBusLightPeerChain,
 )
 from trinity._utils.version import (
     construct_trinity_client_identifier,

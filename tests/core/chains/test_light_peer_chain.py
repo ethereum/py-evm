@@ -1,8 +1,8 @@
 from trinity.sync.light.service import (
     LightPeerChain
 )
-from trinity.plugins.builtin.light_peer_chain_bridge import (
-    EventBusLightPeerChain,
+from trinity.chains.light_eventbus import (
+    EventBusLightPeerChain
 )
 
 
