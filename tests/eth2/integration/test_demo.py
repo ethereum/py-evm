@@ -64,6 +64,7 @@ def fork_choice_scoring():
 def test_demo(base_db,
               validator_count,
               keymap,
+              pubkeys,
               fork_choice_scoring):
     slots_per_epoch = 8
     config = SERENITY_CONFIG._replace(
@@ -82,6 +83,10 @@ def test_demo(base_db,
     genesis_slot = config.GENESIS_SLOT
     genesis_epoch = config.GENESIS_EPOCH
     chaindb = BeaconChainDB(base_db, config)
+
+    # TODO(ralexstokes) clean up how the cache is populated
+    for i in range(validator_count):
+        pubkeys[i]
 
     genesis_state, genesis_block = create_mock_genesis(
         num_validators=validator_count,
