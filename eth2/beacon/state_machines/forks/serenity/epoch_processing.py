@@ -644,28 +644,9 @@ def _process_activation_eligibility_or_ejections(state: BeaconState,
         validator.activation_eligibility_epoch == FAR_FUTURE_EPOCH and
         validator.effective_balance >= config.MAX_EFFECTIVE_BALANCE
     ):
-        validator.activation_eligibility_epoch = current_epoch
-
-    if (
-        validator.is_active(current_epoch) and
-        validator.effective_balance <= config.EJECTION_BALANCE
-    ):
-        validator = initiate_exit_for_validator(validator, state, config)
-
-    return validator
-
-
-@curry
-def _process_activations(state: BeaconState,
-                         config: Eth2Config,
-                         validator: Validator) -> Validator:
-    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-
-    if (
-        validator.activation_eligibility_epoch == FAR_FUTURE_EPOCH and
-        validator.effective_balance >= config.MAX_EFFECTIVE_BALANCE
-    ):
-        validator.activation_eligibility_epoch = current_epoch
+        validator = validator.copy(
+            activation_eligibility_epoch=current_epoch,
+        )
 
     if (
         validator.is_active(current_epoch) and
@@ -681,11 +662,12 @@ def _update_validator_activation_epoch(state: BeaconState,
                                        config: Eth2Config,
                                        validator: Validator) -> Validator:
     if validator.activation_epoch == FAR_FUTURE_EPOCH:
-        validator.activation_epoch = get_delayed_activation_exit_epoch(
-            state.current_epoch(config.SLOTS_PER_EPOCH),
-            config.ACTIVATION_EXIT_DELAY,
+        return validator.copy(
+            activation_epoch=get_delayed_activation_exit_epoch(
+                state.current_epoch(config.SLOTS_PER_EPOCH),
+                config.ACTIVATION_EXIT_DELAY,
+            )
         )
-        return validator
     else:
         return validator
 
