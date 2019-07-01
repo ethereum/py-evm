@@ -704,9 +704,11 @@ def _determine_slashing_penalty(total_penalties: Gwei,
                                 balance: Gwei,
                                 min_slashing_penalty_quotient: int) -> Gwei:
     collective_penalty = min(total_penalties * 3, total_balance) // total_balance
-    return max(
-        balance * collective_penalty,
-        balance // min_slashing_penalty_quotient
+    return Gwei(
+        max(
+            balance * collective_penalty,
+            balance // min_slashing_penalty_quotient
+        )
     )
 
 

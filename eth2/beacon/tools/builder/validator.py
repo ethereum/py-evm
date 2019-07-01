@@ -90,7 +90,7 @@ def _mk_pending_attestation(bitfield: Bitfield=default_bitfield,
                             shard: Shard=default_shard,
                             start_epoch: Epoch=default_epoch,
                             parent_root: Hash32=ZERO_HASH32,
-                            data_root: Hash32=ZERO_HASH32):
+                            data_root: Hash32=ZERO_HASH32) -> PendingAttestation:
     return PendingAttestation(
         aggregation_bitfield=bitfield,
         data=AttestationData(
@@ -112,7 +112,7 @@ def mk_pending_attestation_from_committee(parent: Crosslink,
                                           shard: Shard,
                                           target_epoch: Epoch=default_epoch,
                                           target_root: Hash32=ZERO_HASH32,
-                                          data_root: Hash32=ZERO_HASH32):
+                                          data_root: Hash32=ZERO_HASH32) -> PendingAttestation:
     bitfield = get_empty_bitfield(committee_size)
     for i in range(committee_size):
         bitfield = set_voted(bitfield, i)
@@ -152,7 +152,7 @@ def _mk_some_pending_attestations_with_some_participation_in_epoch(
         parent_crosslinks = state.previous_crosslinks
 
     for shard in range(epoch_start_shard, epoch_start_shard + number_of_shards_to_check):
-        shard = shard % config.SHARD_COUNT
+        shard = Shard(shard % config.SHARD_COUNT)
         crosslink_committee = get_crosslink_committee(
             state,
             epoch,
@@ -197,7 +197,7 @@ def mk_all_pending_attestations_with_some_participation_in_epoch(
 def mk_all_pending_attestations_with_full_participation_in_epoch(
         state: BeaconState,
         epoch: Epoch,
-        config: Eth2Config) -> Tuple[PendingAttestation]:
+        config: Eth2Config) -> Iterable[PendingAttestation]:
     return mk_all_pending_attestations_with_some_participation_in_epoch(
         state,
         epoch,
