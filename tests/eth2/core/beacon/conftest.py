@@ -308,6 +308,10 @@ def config(shard_count,
            max_voluntary_exits,
            max_transfers,
            genesis_active_validator_count):
+    # adding some config validity conditions here
+    # abstract out into the config object?
+    assert shard_count >= slots_per_epoch
+
     return Eth2Config(
         SHARD_COUNT=shard_count,
         TARGET_COMMITTEE_SIZE=target_committee_size,
