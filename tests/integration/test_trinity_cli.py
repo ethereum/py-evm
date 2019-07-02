@@ -55,7 +55,7 @@ async def test_full_boot(async_process_runner, command):
     await async_process_runner.run(command, timeout_sec=120)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
-        "Started networking process",
+        "Plugin started: Sync / PeerPool",
         "Running server",
         "IPC started at",
     })
@@ -75,7 +75,7 @@ async def test_txpool_full_boot(async_process_runner, command):
     await async_process_runner.run(command, timeout_sec=120)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
-        "Started networking process",
+        "Plugin started: Sync / PeerPool",
         "Running Tx Pool",
         "Running server",
         "IPC started at",
@@ -96,7 +96,7 @@ async def test_txpool_deactivated(async_process_runner, command):
     await async_process_runner.run(command, timeout_sec=120)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
-        "Started networking process",
+        "Plugin started: Sync / PeerPool",
         "Transaction pool not available in light mode",
     })
 
@@ -113,7 +113,7 @@ async def test_light_boot(async_process_runner, command):
     await async_process_runner.run(command, timeout_sec=40)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
-        "Started networking process",
+        "Plugin started: Sync / PeerPool",
         "IPC started at",
     })
 
@@ -129,7 +129,7 @@ async def test_web3(command, async_process_runner):
     await async_process_runner.run(command, timeout_sec=40)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
-        "Started networking process",
+        "Plugin started: Sync / PeerPool",
         "IPC started at",
         # Ensure we do not start making requests before Trinity is ready.
         # Waiting for fast-sync to start gives us a reliable starting point

@@ -28,7 +28,11 @@ from eth_utils import (
     ValidationError,
 )
 
+from trinity.config import (
+    Eth1AppConfig,
+)
 from trinity.constants import (
+    NETWORKING_EVENTBUS_ENDPOINT,
     SYNC_FAST,
     SYNC_FULL,
     SYNC_LIGHT,
@@ -37,11 +41,15 @@ from trinity.constants import (
 from trinity.endpoint import (
     TrinityEventBusEndpoint,
 )
-from trinity.extensibility.events import (
-    ResourceAvailableEvent,
+from trinity.extensibility.asyncio import (
+    AsyncioIsolatedPlugin
 )
-from trinity.extensibility.plugin import (
-    BaseAsyncStopPlugin,
+from trinity.nodes.base import (
+    Node,
+)
+from trinity.protocol.common.peer import (
+    BasePeer,
+    BasePeerPool,
 )
 from trinity.protocol.eth.peer import (
     BaseChainPeerPool,
@@ -59,6 +67,9 @@ from trinity.sync.beam.service import (
 )
 from trinity.sync.light.chain import (
     LightChainSyncer,
+)
+from trinity._utils.shutdown import (
+    exit_with_endpoint_and_services,
 )
 
 
@@ -82,7 +93,7 @@ class BaseSyncStrategy(ABC):
                    logger: Logger,
                    chain: BaseChain,
                    db_manager: BaseManager,
-                   peer_pool: BaseChainPeerPool,
+                   peer_pool: BasePeerPool,
                    event_bus: TrinityEventBusEndpoint,
                    cancel_token: CancelToken) -> None:
         pass
@@ -102,7 +113,7 @@ class NoopSyncStrategy(BaseSyncStrategy):
                    logger: Logger,
                    chain: BaseChain,
                    db_manager: BaseManager,
-                   peer_pool: BaseChainPeerPool,
+                   peer_pool: BasePeerPool,
                    event_bus: TrinityEventBusEndpoint,
                    cancel_token: CancelToken) -> None:
 
@@ -119,7 +130,7 @@ class FullSyncStrategy(BaseSyncStrategy):
                    logger: Logger,
                    chain: BaseChain,
                    db_manager: BaseManager,
-                   peer_pool: BaseChainPeerPool,
+                   peer_pool: BasePeerPool,
                    event_bus: TrinityEventBusEndpoint,
                    cancel_token: CancelToken) -> None:
 
@@ -144,7 +155,7 @@ class FastThenFullSyncStrategy(BaseSyncStrategy):
                    logger: Logger,
                    chain: BaseChain,
                    db_manager: BaseManager,
-                   peer_pool: BaseChainPeerPool,
+                   peer_pool: BasePeerPool,
                    event_bus: TrinityEventBusEndpoint,
                    cancel_token: CancelToken) -> None:
 
@@ -169,7 +180,7 @@ class BeamSyncStrategy(BaseSyncStrategy):
                    logger: Logger,
                    chain: BaseChain,
                    db_manager: BaseManager,
-                   peer_pool: BaseChainPeerPool,
+                   peer_pool: BasePeerPool,
                    event_bus: TrinityEventBusEndpoint,
                    cancel_token: CancelToken) -> None:
 
@@ -195,7 +206,7 @@ class LightSyncStrategy(BaseSyncStrategy):
                    logger: Logger,
                    chain: BaseChain,
                    db_manager: BaseManager,
-                   peer_pool: BaseChainPeerPool,
+                   peer_pool: BasePeerPool,
                    event_bus: TrinityEventBusEndpoint,
                    cancel_token: CancelToken) -> None:
 
@@ -209,7 +220,7 @@ class LightSyncStrategy(BaseSyncStrategy):
         await syncer.run()
 
 
-class SyncerPlugin(BaseAsyncStopPlugin):
+class SyncerPlugin(AsyncioIsolatedPlugin):
     peer_pool: BaseChainPeerPool = None
     cancel_token: CancelToken = None
     chain: BaseChain = None
@@ -228,7 +239,11 @@ class SyncerPlugin(BaseAsyncStopPlugin):
 
     @property
     def name(self) -> str:
-        return "Syncer Plugin"
+        return "Sync / PeerPool"
+
+    @property
+    def normalized_name(self) -> str:
+        return NETWORKING_EVENTBUS_ENDPOINT
 
     @classmethod
     def configure_parser(cls, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
@@ -272,34 +287,28 @@ class SyncerPlugin(BaseAsyncStopPlugin):
             )
             return
 
-        self.event_bus.subscribe(ResourceAvailableEvent, self.handle_event)
-
-    def handle_event(self, event: ResourceAvailableEvent) -> None:
-
-        if self.running:
-            return
-
-        if issubclass(event.resource_type, BaseChainPeerPool):
-            self.peer_pool, self.cancel_token = event.resource
-        elif event.resource_type is BaseManager:
-            self.db_manager = event.resource
-        elif event.resource_type is BaseChain:
-            self.chain = event.resource
-
-        if None not in (self.peer_pool, self.db_manager, self.chain):
-            self.start()
+        self.start()
 
     def do_start(self) -> None:
-        asyncio.ensure_future(self.handle_sync())
 
-    async def handle_sync(self) -> None:
+        trinity_config = self.boot_info.trinity_config
+        NodeClass = trinity_config.get_app_config(Eth1AppConfig).node_class
+        node = NodeClass(self.event_bus, trinity_config)
+
+        asyncio.ensure_future(self.launch_sync(node))
+
+        asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, node))
+        asyncio.ensure_future(node.run())
+
+    async def launch_sync(self, node: Node[BasePeer]) -> None:
+        await node.events.started.wait()
         await self.active_strategy.sync(
             self.logger,
-            self.chain,
-            self.db_manager,
-            self.peer_pool,
+            node.get_chain(),
+            node.db_manager,
+            node.get_peer_pool(),
             self.event_bus,
-            self.cancel_token
+            node.cancel_token
         )
 
         if self.active_strategy.shutdown_node_on_halt:

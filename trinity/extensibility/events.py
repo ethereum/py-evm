@@ -2,7 +2,6 @@ from dataclasses import (
     dataclass,
 )
 from typing import (
-    Any,
     Type,
     TYPE_CHECKING,
 )
@@ -25,13 +24,3 @@ class PluginStartedEvent(BaseEvent):
     """
 
     plugin_type: Type['BasePlugin']
-
-
-@dataclass
-class ResourceAvailableEvent(BaseEvent):
-    """
-    Broadcasted when a resource becomes available
-    """
-
-    resource: Any
-    resource_type: Type[Any]
