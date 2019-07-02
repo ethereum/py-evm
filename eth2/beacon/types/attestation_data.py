@@ -62,10 +62,10 @@ class AttestationData(ssz.Serializable):
 
     def __str__(self) -> str:
         return (
-            f"LMD root={humanize_hash(self.beacon_block_root)} | "
-            f"FFG epoch={self.source_epoch} "
-            f"{humanize_hash(self.source_root)}<-{humanize_hash(self.target_root)} | "
-            f"CL={self.crosslink}"
+            f"beacon_block_root={humanize_hash(self.beacon_block_root)[2:10]}"
+            f" source_epoch={self.source_epoch}"
+            f" target_epoch={self.target_epoch}"
+            f" | CL={self.crosslink}"
         )
 
 
