@@ -7,7 +7,6 @@ from argparse import (
     Namespace,
     _SubParsersAction,
 )
-import asyncio
 from enum import (
     auto,
     Enum,
@@ -20,10 +19,6 @@ from typing import (
     Any,
     Dict,
     NamedTuple,
-)
-
-from lahja import (
-    BaseEvent,
 )
 
 from trinity.config import (
@@ -173,37 +168,6 @@ class BasePlugin(ABC):
         pass
 
 
-class BaseAsyncStopPlugin(BasePlugin):
-    """
-    A :class:`~trinity.extensibility.plugin.BaseAsyncStopPlugin` unwinds asynchronoulsy, hence
-    needs to be awaited.
-    """
-
-    def __init__(self,
-                 boot_info: TrinityBootInfo,
-                 event_bus: TrinityEventBusEndpoint) -> None:
-        super().__init__(boot_info)
-        self._event_bus = event_bus
-
-    @property
-    def event_bus(self) -> TrinityEventBusEndpoint:
-        return self._event_bus
-
-    async def do_stop(self) -> None:
-        """
-        Asynchronously stop the plugin. Should be overwritten by subclasses.
-        """
-        pass
-
-    async def stop(self) -> None:
-        """
-        Delegate to :meth:`~trinity.extensibility.plugin.BaseAsyncStopPlugin.do_stop` causing the
-        plugin to stop asynchronously and setting ``running`` to ``False``.
-        """
-        await self.do_stop()
-        self._status = PluginStatus.STOPPED
-
-
 class BaseMainProcessPlugin(BasePlugin):
     """
     A :class:`~trinity.extensibility.plugin.BaseMainProcessPlugin` overtakes the whole main process
@@ -267,34 +231,3 @@ class BaseIsolatedPlugin(BasePlugin):
         setup_queue_logging(log_queue, level)
         if self.boot_info.args.log_levels:
             setup_log_levels(self.boot_info.args.log_levels)
-
-
-class DebugPlugin(BaseAsyncStopPlugin):
-    """
-    This is a dummy plugin useful for demonstration and debugging purposes
-    """
-
-    @property
-    def name(self) -> str:
-        return "Debug Plugin"
-
-    @classmethod
-    def configure_parser(cls, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
-        arg_parser.add_argument("--debug-plugin", type=bool, required=False)
-
-    def handle_event(self, activation_event: BaseEvent) -> None:
-        self.logger.info("Debug plugin: handle_event called: %s", activation_event)
-
-    def do_start(self) -> None:
-        self.logger.info("Debug plugin: start called")
-        asyncio.ensure_future(self.count_forever())
-
-    async def count_forever(self) -> None:
-        i = 0
-        while True:
-            self.logger.info(i)
-            i += 1
-            await asyncio.sleep(1)
-
-    async def do_stop(self) -> None:
-        self.logger.info("Debug plugin: stop called")

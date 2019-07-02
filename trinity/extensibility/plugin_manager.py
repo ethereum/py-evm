@@ -7,16 +7,12 @@ from argparse import (
     Namespace,
     _SubParsersAction,
 )
-import asyncio
 import logging
 from typing import (
     Any,
-    Awaitable,
-    cast,
     Dict,
     Iterable,
     List,
-    Optional,
     Type,
     TypeVar,
 )
@@ -28,11 +24,7 @@ from trinity.endpoint import (
     TrinityEventBusEndpoint,
     TrinityMainEventBusEndpoint,
 )
-from trinity.extensibility.exceptions import (
-    UnsuitableShutdownError,
-)
 from trinity.extensibility.plugin import (
-    BaseAsyncStopPlugin,
     BaseIsolatedPlugin,
     BaseMainProcessPlugin,
     BasePlugin,
@@ -91,26 +83,6 @@ class MainAndIsolatedProcessScope(BaseManagerProcessScope):
                       plugin_type: Type[TPlugin],
                       boot_info: TrinityBootInfo) -> TPlugin:
         return plugin_type(boot_info)
-
-
-class SharedProcessScope(BaseManagerProcessScope):
-
-    def __init__(self, shared_proc_endpoint: TrinityEventBusEndpoint) -> None:
-        self.endpoint = shared_proc_endpoint
-
-    def is_responsible_for_plugin(self, plugin: Type[BasePlugin]) -> bool:
-        """
-        Return ``True`` if if the plugin instance is a subclass of
-        :class:`~trinity.extensibility.plugin.BaseAsyncStopPlugin`.
-        """
-        return issubclass(plugin, BaseAsyncStopPlugin)
-
-    def create_plugin(self,
-                      plugin_type: Type[TPlugin],
-                      boot_info: TrinityBootInfo) -> TPlugin:
-        # Plugins that run in a shared process all share the endpoint of the plugin manager
-        assert issubclass(plugin_type, BaseAsyncStopPlugin)
-        return cast(TPlugin, plugin_type(boot_info, self.endpoint))
 
 
 class PluginManager:
@@ -183,14 +155,8 @@ class PluginManager:
 
     def shutdown_blocking(self) -> None:
         """
-        Synchronously shut down all running plugins. Raises an
-        :class:`~trinity.extensibility.exceptions.UnsuitableShutdownError` if called on a
-        :class:`~trinity.extensibility.plugin_manager.PluginManager` that operates in the
-        :class:`~trinity.extensibility.plugin_manager.SharedProcessScope`.
+        Synchronously shut down all running plugins.
         """
-
-        if isinstance(self._scope, SharedProcessScope):
-            raise UnsuitableShutdownError("Use `shutdown` for instances of this scope")
 
         self._logger.info("Shutting down PluginManager with scope %s", type(self._scope))
 
@@ -207,39 +173,3 @@ class PluginManager:
 
         for plugin in plugins:
             self._logger.info("Successfully stopped plugin: %s", plugin.name)
-
-    async def shutdown(self) -> None:
-        """
-        Asynchronously shut down all running plugins. Raises an
-        :class:`~trinity.extensibility.exceptions.UnsuitableShutdownError` if called on a
-        :class:`~trinity.extensibility.plugin_manager.PluginManager` that operates in the
-        :class:`~trinity.extensibility.plugin_manager.MainAndIsolatedProcessScope`.
-        """
-        if isinstance(self._scope, MainAndIsolatedProcessScope):
-            raise UnsuitableShutdownError("Use `shutdown_blocking` for instances of this scope")
-
-        self._logger.info("Shutting down PluginManager with scope %s", type(self._scope))
-
-        async_plugins = [
-            plugin for plugin in self._plugin_store
-            if isinstance(plugin, BaseAsyncStopPlugin) and plugin.running
-        ]
-
-        stop_results = await asyncio.gather(
-            *self._stop_plugins(async_plugins), return_exceptions=True
-        )
-
-        for plugin, result in zip(async_plugins, stop_results):
-            if isinstance(result, Exception):
-                self._logger.error(
-                    'Exception thrown while stopping plugin %s: %s', plugin.name, result
-                )
-            else:
-                self._logger.info("Successfully stopped plugin: %s", plugin.name)
-
-    def _stop_plugins(self,
-                      plugins: Iterable[BaseAsyncStopPlugin]
-                      ) -> Iterable[Awaitable[Optional[Exception]]]:
-        for plugin in plugins:
-            self._logger.info("Stopping plugin: %s", plugin.name)
-            yield plugin.stop()

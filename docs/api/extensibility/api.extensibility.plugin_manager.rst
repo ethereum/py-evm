@@ -13,12 +13,6 @@ MainAndIsolatedProcessScope
 .. autoclass:: trinity.extensibility.plugin_manager.MainAndIsolatedProcessScope
   :members:
 
-SharedProcessScope
-------------------
-
-.. autoclass:: trinity.extensibility.plugin_manager.SharedProcessScope
-  :members:
-
 PluginManager
 -------------
 

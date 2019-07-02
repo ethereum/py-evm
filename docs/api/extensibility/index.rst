@@ -8,7 +8,6 @@ Extensibility
    :name: toc-eth-api-extensibility
 
    api.extensibility.events.rst
-   api.extensibility.exceptions.rst
    api.extensibility.plugin.rst
    api.extensibility.plugin_manager.rst
 

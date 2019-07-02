@@ -82,26 +82,6 @@ We build this kind of plugin subclassing from
 :class:`~trinity.extensibility.asyncio.AsyncioIsolatedPlugin`.  A detailed example will follow soon.
 
 
-Plugins that run inside the networking process
-----------------------------------------------
-
-If the previous category sounded as if it could handle every possible use case, it's because it's
-actually meant to. In reality though, not all internal APIs yet work well across process
-boundaries. In practice, this means that sometimes we want to make sure that a plugin runs in the
-same process as the rest of the networking code.
-
-.. warning::
-  The need to run plugins in the networking process is declining as the internals of Trinity become
-  more and more multi-process friendly over time. While it isn't entirely clear yet, there's a fair
-  chance this type of plugin will become obsolete at some point and may eventually be removed.
-
-  We should only choose this type of plugin category if what we are trying to build cannot be built
-  with a :class:`~trinity.extensibility.asyncio.AsyncioIsolatedPlugin`.
-
-We build this kind of plugin subclassing from
-:class:`~trinity.extensibility.plugin.BaseAsyncStopPlugin`.  A detailed example will follow soon.
-
-
 The plugin lifecycle
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -165,9 +145,8 @@ Defining plugins
 ~~~~~~~~~~~~~~~~
 
 We define a plugin by deriving from either
-:class:`~trinity.extensibility.plugin.BaseMainProcessPlugin`,
-:class:`~trinity.extensibility.asyncio.AsyncioIsolatedPlugin` or 
-:class:`~trinity.extensibility.plugin.BaseAsyncStopPlugin` depending on the kind of plugin that we
+:class:`~trinity.extensibility.plugin.BaseMainProcessPlugin` or
+:class:`~trinity.extensibility.asyncio.AsyncioIsolatedPlugin` depending on the kind of plugin that we
 intend to write. For now, we'll stick to :class:`~trinity.extensibility.asyncio.AsyncioIsolatedPlugin`
 which is the most commonly used plugin category.
 

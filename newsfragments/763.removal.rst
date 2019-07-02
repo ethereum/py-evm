@@ -1,0 +1,2 @@
+Remove ``BaseAsyncStopPlugin`` which isn't needed anymore now that there is no
+hardwired ``networking`` process anymore.
