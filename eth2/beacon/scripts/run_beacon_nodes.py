@@ -120,7 +120,9 @@ class Node:
             f"--trinity-root-dir={self.root_dir}",
             f"--beacon-nodekey={remove_0x_prefix(self.node_privkey.to_hex())}",
             "--disable-discovery",
-            "-l debug",
+            "--network-tracking-backend=do-not-track",
+            "--disable-upnp",
+            "-l debug2",
         ]
         if len(self.preferred_nodes) != 0:
             preferred_nodes_str = ",".join([node.enode_id for node in self.preferred_nodes])
