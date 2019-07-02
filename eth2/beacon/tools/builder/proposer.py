@@ -152,7 +152,6 @@ def _advance_to_slot(state_machine: BaseBeaconStateMachine,
 
 
 def _get_proposer_index(state: BeaconState,
-                        slot: Slot,
                         config: Eth2Config) -> ValidatorIndex:
     proposer_index = get_beacon_proposer_index(
         state,
@@ -178,7 +177,6 @@ def create_mock_block(*,
     future_state = _advance_to_slot(state_machine, state, slot)
     proposer_index = _get_proposer_index(
         future_state,
-        slot,
         config
     )
     proposer_pubkey = state.validators[proposer_index].pubkey

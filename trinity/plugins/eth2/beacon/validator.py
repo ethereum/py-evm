@@ -196,8 +196,9 @@ class Validator(BaseService):
             state.previous_epoch_attestations,
         )
         proposer_index = _get_proposer_index(
-            state,
-            slot,
+            state.copy(
+                slot=slot,
+            ),
             state_machine.config,
         )
         # `latest_proposed_epoch` is used to prevent validator from erraneously proposing twice

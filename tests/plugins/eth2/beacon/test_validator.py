@@ -406,8 +406,9 @@ async def test_validator_include_ready_attestations(event_loop, event_bus, monke
 
     proposing_slot = attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
     proposer_index = _get_proposer_index(
-        state,
-        proposing_slot,
+        state.copy(
+            slot=proposing_slot,
+        ),
         state_machine.config,
     )
 
