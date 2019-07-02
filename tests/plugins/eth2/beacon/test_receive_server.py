@@ -72,7 +72,7 @@ from eth2.beacon.types.attestations import (
 )
 
 
-class FakeChain(TestnetChain):
+class FakeChain(_TestnetChain):
     chaindb_class = bcc_helpers.FakeAsyncBeaconChainDB
 
     def import_block(
