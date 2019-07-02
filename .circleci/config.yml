@@ -305,12 +305,24 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-wheel-cli
-  py36-plugins:
+  py36-eth1-plugins:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-plugins
+          TOXENV: py36-eth1-plugins
+  py36-eth2-plugins:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-eth2-plugins
+  py36-eth2-plugins-passing:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-eth2-plugins-passing
 
   py37-rpc-state-quadratic:
     <<: *common
@@ -385,12 +397,24 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-wheel-cli
-  py37-plugins:
+  py37-eth1-plugins:
     <<: *common
     docker:
       - image: circleci/python:3.7
         environment:
-          TOXENV: py37-plugins
+          TOXENV: py37-eth1-plugins
+  py37-eth2-plugins:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-eth2-plugins
+  py37-eth2-plugins-passing:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-eth2-plugins-passing
 
   docker-image-build-test:
     machine: true
