@@ -67,30 +67,27 @@ class BLSKeyCache:
         self.pubkeys = pubkey_view(self)
 
     def _restore_from_cache(self, cached_data):
-        self.keys = toolz.keymap(
-            _deserialize_bls_pubkey,
-            cached_data["keys"],
-        )
         self.all_pubkeys_by_index = toolz.itemmap(
             _deserialize_pair,
             cached_data["pubkeys_by_index"],
         )
-        self.all_privkeys_by_index = toolz.keymap(
-            int,
-            cached_data["privkeys_by_index"],
-        )
+        for index, pubkey in self.all_pubkeys_by_index.items():
+            privkey = self._get_privkey_for(index)
+            self.keys[pubkey] = privkey
 
     def _serialize(self):
+        """
+        Persist the expensive data to the backing cache.
+
+        NOTE: we currently use an inexpensive determinstic computation
+        for the private keys so all we need to persist are the expensive
+        pubkeys and the index data (which allows derivation of the privkey).
+        """
         return {
-            "keys": toolz.keymap(
-                _serialize_bls_pubkeys,
-                self.keys,
-            ),
             "pubkeys_by_index": toolz.valmap(
                 _serialize_bls_pubkeys,
                 self.all_pubkeys_by_index,
             ),
-            "privkeys_by_index": self.all_privkeys_by_index,
         }
 
     def _privkey_view(self):
@@ -124,8 +121,14 @@ class BLSKeyCache:
         self.all_privkeys_by_index[index] = privkey
         return privkey
 
+    def _generate_pubkey(self, privkey):
+        """
+        NOTE: this is currently our expensive function
+        """
+        return bls.privtopub(privkey)
+
     def _add_pubkey_for_privkey(self, index, privkey):
-        pubkey = bls.privtopub(privkey)
+        pubkey = self._generate_pubkey(privkey)
         self.all_pubkeys_by_index[index] = pubkey
         self.keys[pubkey] = privkey
         return pubkey
