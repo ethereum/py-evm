@@ -6,13 +6,22 @@ from typing import (
 from eth.exceptions import (
     BlockNotFound,
 )
+from eth_utils.toolz import (
+    partition_all,
+)
 from lahja import (
     BroadcastConfig,
 )
 import pytest
 
+from eth2.beacon.attestation_helpers import (
+    get_attestation_data_slot,
+)
 from eth2.beacon.helpers import (
     slot_to_epoch,
+)
+from eth2.beacon.exceptions import (
+    NoCommitteeAssignment,
 )
 from eth2.beacon.state_machines.forks.serenity.block_validation import validate_attestation
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
@@ -21,10 +30,12 @@ from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
 from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
 )
+from eth2.beacon.tools.builder.committee_assignment import (
+    get_committee_assignment,
+)
 from eth2.beacon.tools.misc.ssz_vector import (
     override_vector_lengths,
 )
-from eth2.configs import CommitteeConfig
 
 from trinity.config import (
     BeaconChainConfig,
@@ -117,8 +128,14 @@ async def get_validator(event_loop, event_bus, indices) -> Validator:
 
 
 async def get_linked_validators(event_loop, event_bus) -> Tuple[Validator, Validator]:
-    alice_indices = [0]
-    bob_indices = [1]
+    all_indices = tuple(
+        index for index in range(len(keymap))
+    )
+    global_peer_count = 2
+    alice_indices, bob_indices = partition_all(
+        len(all_indices) // global_peer_count,
+        all_indices
+    )
     alice = await get_validator(event_loop, event_bus, alice_indices)
     bob = await get_validator(event_loop, event_bus, bob_indices)
     alice.peer_pool.add_peer(bob_indices[0])
@@ -126,20 +143,25 @@ async def get_linked_validators(event_loop, event_bus) -> Tuple[Validator, Valid
     return alice, bob
 
 
-def _get_slot_with_validator_selected(is_desired_proposer_index, start_slot, state, state_machine):
-    slot = start_slot
-    num_trials = 1000
-    while True:
-        if (slot - start_slot) > num_trials:
-            raise Exception("Failed to find a slot where we have validators selected as a proposer")
-        proposer_index = _get_proposer_index(
-            state,
-            slot,
-            state_machine.config,
-        )
-        if is_desired_proposer_index(proposer_index):
-            return slot, proposer_index
-        slot += 1
+def _get_slot_with_validator_selected(candidate_indices, state, config):
+    epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+
+    for index in candidate_indices:
+        try:
+            committee, shard, slot, is_proposer = get_committee_assignment(
+                state,
+                config,
+                epoch,
+                index,
+            )
+            if is_proposer:
+                return slot, index
+        except NoCommitteeAssignment:
+            continue
+    raise Exception(
+        "Check the parameters of the genesis state; the above code should return"
+        " some proposer if the set of ``candidate_indices`` is big enough."
+    )
 
 
 @pytest.mark.asyncio
@@ -148,17 +170,10 @@ async def test_validator_propose_block_succeeds(event_loop, event_bus):
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
 
-    # keep trying future slots, until alice is a proposer.
-    def is_desired_proposer_index(proposer_index):
-        if proposer_index in alice.validator_privkeys:
-            return True
-        return False
-
     slot, proposer_index = _get_slot_with_validator_selected(
-        is_desired_proposer_index=is_desired_proposer_index,
-        start_slot=state.slot + 1,
-        state=state,
-        state_machine=state_machine,
+        alice.validator_privkeys,
+        state,
+        state_machine.config,
     )
 
     head = alice.chain.get_canonical_head()
@@ -187,19 +202,12 @@ async def test_validator_propose_block_fails(event_loop, event_bus):
     alice, bob = await get_linked_validators(event_loop=event_loop, event_bus=event_bus)
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
-    slot = state.slot + 1
 
-    # keep trying future slots, until bob is a proposer.
-    def is_desired_proposer_index(proposer_index):
-        if proposer_index not in alice.validator_privkeys:
-            return True
-        return False
-
+    assert set(alice.validator_privkeys).intersection(set(bob.validator_privkeys)) == set()
     slot, proposer_index = _get_slot_with_validator_selected(
-        is_desired_proposer_index=is_desired_proposer_index,
-        start_slot=state.slot + 1,
-        state=state,
-        state_machine=state_machine,
+        bob.validator_privkeys,
+        state,
+        state_machine.config,
     )
     head = alice.chain.get_canonical_head()
     # test: if a non-proposer validator proposes a block, the block validation should fail.
@@ -292,14 +300,10 @@ async def test_validator_handle_first_tick(event_loop, event_bus, monkeypatch):
     state = state_machine.state
 
     # test: `handle_first_tick` should call `propose_block` if the validator get selected
-    def is_alice_selected(proposer_index):
-        return proposer_index in alice.validator_privkeys
-
     slot_to_propose, index = _get_slot_with_validator_selected(
-        is_desired_proposer_index=is_alice_selected,
-        start_slot=state.slot + 1,
-        state=state,
-        state_machine=state_machine,
+        alice.validator_privkeys,
+        state,
+        state_machine.config,
     )
 
     is_proposing = None
@@ -368,9 +372,13 @@ async def test_validator_attest(event_loop, event_bus, monkeypatch):
     attestations = await alice.attest(assignment.slot)
     assert len(attestations) == 1
     attestation = attestations[0]
-    assert attestation.data.slot == assignment.slot
+    assert get_attestation_data_slot(
+        state,
+        attestation.data,
+        state_machine.config,
+    ) == assignment.slot
     assert attestation.data.beacon_block_root == head.signing_root
-    assert attestation.data.shard == assignment.shard
+    assert attestation.data.crosslink.shard == assignment.shard
 
     # Advance the state and validate the attestation
     config = state_machine.config
@@ -381,9 +389,7 @@ async def test_validator_attest(event_loop, event_bus, monkeypatch):
     validate_attestation(
         future_state,
         attestation,
-        config.MIN_ATTESTATION_INCLUSION_DELAY,
-        config.SLOTS_PER_HISTORICAL_ROOT,
-        CommitteeConfig(config),
+        config,
     )
 
 
@@ -397,6 +403,8 @@ async def test_validator_include_ready_attestations(event_loop, event_bus, monke
 
     attesting_slot = state.slot + 1
     attestations = await alice.attest(attesting_slot)
+
+    assert len(attestations) > 0
 
     # Mock `get_ready_attestations_fn` so it returns the attestation alice
     # attested to.
