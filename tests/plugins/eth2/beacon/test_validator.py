@@ -40,7 +40,7 @@ from trinity.plugins.eth2.beacon.slot_ticker import (
 from .helpers import (
     genesis_block,
     genesis_state,
-    helpers,
+    bcc_helpers,
     index_to_pubkey,
     keymap,
 )
@@ -91,7 +91,7 @@ def get_chain_from_genesis(db, indices):
 
 
 async def get_validator(event_loop, event_bus, indices) -> Validator:
-    chain_db = await helpers.get_chain_db()
+    chain_db = await bcc_helpers.get_chain_db()
     chain = get_chain_from_genesis(chain_db.db, indices)
     peer_pool = FakePeerPool()
     validator_privkeys = {

@@ -63,16 +63,17 @@ from tests.core.integration_test_helpers import (
 )
 
 from .helpers import (
-    helpers,
+    bcc_helpers
 )
+
 
 from eth2.beacon.types.attestations import (
     default_attestation,
 )
 
 
-class FakeChain(_TestnetChain):
-    chaindb_class = helpers.FakeAsyncBeaconChainDB
+class FakeChain(TestnetChain):
+    chaindb_class = bcc_helpers.FakeAsyncBeaconChainDB
 
     def import_block(
             self,
@@ -96,7 +97,7 @@ class FakeChain(_TestnetChain):
 
 async def get_fake_chain() -> FakeChain:
     genesis_config = Eth2GenesisConfig(XIAO_LONG_BAO_CONFIG)
-    chain_db = await helpers.get_genesis_chain_db(genesis_config=genesis_config)
+    chain_db = await bcc_helpers.get_genesis_chain_db(genesis_config=genesis_config)
     return FakeChain(base_db=chain_db.db, genesis_config=genesis_config)
 
 
@@ -126,7 +127,7 @@ async def get_peer_and_receive_server(request, event_loop, event_bus) -> Tuple[
 
     (
         alice, alice_peer_pool, bob, bob_peer_pool
-    ) = await helpers.get_directly_linked_peers_in_peer_pools(
+    ) = await bcc_helpers.get_directly_linked_peers_in_peer_pools(
         request,
         event_loop,
         alice_chain_db=alice_chain.chaindb,
@@ -169,9 +170,9 @@ async def get_peer_and_receive_server(request, event_loop, event_bus) -> Tuple[
 
 def test_orphan_block_pool():
     pool = OrphanBlockPool()
-    b0 = helpers.create_test_block()
-    b1 = helpers.create_test_block(parent=b0)
-    b2 = helpers.create_test_block(parent=b0, state_root=b"\x11" * 32)
+    b0 = bcc_helpers.create_test_block()
+    b1 = bcc_helpers.create_test_block(parent=b0)
+    b2 = bcc_helpers.create_test_block(parent=b0, state_root=b"\x11" * 32)
     # test: add
     pool.add(b1)
     assert b1 in pool._pool

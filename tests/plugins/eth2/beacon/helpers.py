@@ -16,7 +16,7 @@ from eth2.beacon.tools.builder.initializer import (
     create_mock_genesis,
 )
 
-helpers = importlib.import_module('tests.core.p2p-proto.bcc.helpers')
+bcc_helpers = importlib.import_module('tests.core.p2p-proto.bcc.helpers')
 
 
 NUM_VALIDATORS = 8
