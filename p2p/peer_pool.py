@@ -10,6 +10,7 @@ from typing import (
     Dict,
     Iterator,
     List,
+    Set,
     Tuple,
     Type,
 )
@@ -122,11 +123,16 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         self.context = context
 
         self.connected_nodes: Dict[Node, BasePeer] = {}
+
         self._subscribers: List[PeerSubscriber] = []
         self._event_bus = event_bus
 
         # Restricts the number of concurrent connection attempts can be made
         self._connection_attempt_lock = asyncio.BoundedSemaphore(MAX_CONCURRENT_CONNECTION_ATTEMPTS)
+
+        # Ensure we can only have a single concurrent handshake in flight per remote
+        self._handshake_lock = asyncio.Lock()
+        self._inflight_handshakes: Set[Node] = set()
 
         self.peer_backends = self.setup_peer_backends()
         self.connection_tracker = self.setup_connection_tracker()
@@ -314,6 +320,13 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             self.logger.debug2("Skipping %s; already connected to it", remote)
             raise IneligiblePeer(f"Already connected to {remote}")
 
+        async with self._handshake_lock:
+            if remote in self._inflight_handshakes:
+                self.logger.debug2("Skipping %s; already shaking hands", remote)
+                raise IneligiblePeer(f"Already shaking hands with {remote}")
+            else:
+                self._inflight_handshakes.add(remote)
+
         try:
             should_connect = await self.wait(
                 self.connection_tracker.should_connect_to(remote),
@@ -331,7 +344,6 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             # We use self.wait() as well as passing our CancelToken to handshake() as a workaround
             # for https://github.com/ethereum/py-evm/issues/670.
             peer = await self.wait(handshake(remote, self.get_peer_factory()))
-
             return peer
         except OperationCancelled:
             # Pass it on to instruct our main loop to stop.
@@ -362,6 +374,10 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         except Exception:
             self.logger.exception("Unexpected error during auth/p2p handshake with %r", remote)
             raise
+        finally:
+            async with self._handshake_lock:
+                self.logger.debug("Removing %s from connect_lock", remote)
+                self._inflight_handshakes.remove(remote)
 
     async def connect_to_nodes(self, nodes: Iterator[Node]) -> None:
         # create an generator for the nodes
