@@ -55,7 +55,7 @@ class DepositData(ssz.SignedSerializable):
         )
 
     def __repr__(self) -> str:
-        return f"<DepositData root: {encode_hex(self.root)[0:8]}>"  # noqa: F501
+        return f"<DepositData root: {encode_hex(self.root)[0:8]}>"
 
 
 default_deposit_data = DepositData()
