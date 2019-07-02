@@ -642,7 +642,7 @@ def create_signed_attestation_at_slot(state: BeaconState,
 
     target_root = _get_target_root(state, config, beacon_block_root)
 
-    previous_crosslink = state.previous_crosslinks[shard]
+    parent_crosslink = state.current_crosslinks[shard]
 
     attestation_data = AttestationData(
         beacon_block_root=beacon_block_root,
@@ -650,7 +650,12 @@ def create_signed_attestation_at_slot(state: BeaconState,
         source_root=state.current_justified_root,
         target_root=target_root,
         target_epoch=target_epoch,
-        crosslink=previous_crosslink,
+        crosslink=Crosslink(
+            shard=shard,
+            parent_root=parent_crosslink.root,
+            start_epoch=parent_crosslink.end_epoch,
+            end_epoch=target_epoch,
+        )
     )
 
     return _create_mock_signed_attestation(
