@@ -68,7 +68,7 @@ from .helpers import (
 
 
 from eth2.beacon.types.attestations import (
-    default_attestation,
+    Attestation,
 )
 
 
@@ -536,7 +536,7 @@ async def test_bcc_receive_server_handle_attestations_checks(request,
         event_bus,
     ) as (alice, _, bob_recv_server, bob_msg_queue):
 
-        attestation = default_attestation
+        attestation = Attestation()
 
         def _validate_attestations(attestations):
             return tuple(attestations)
@@ -556,13 +556,13 @@ async def test_bcc_receive_server_handle_attestations_checks(request,
 
 def test_attestation_pool():
     pool = AttestationPool()
-    a1 = default_attestation
-    a2 = default_attestation.copy(
+    a1 = Attestation()
+    a2 = Attestation(
         data=a1.data.copy(
             beacon_block_root=b'\x55' * 32,
         ),
     )
-    a3 = default_attestation.copy(
+    a3 = Attestation(
         data=a1.data.copy(
             beacon_block_root=b'\x66' * 32,
         ),
@@ -609,7 +609,7 @@ async def test_bcc_receive_server_get_ready_attestations(
         event_bus,
     ) as (alice, _, bob_recv_server, _):
         attesting_slot = XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
-        a1 = default_attestation
+        a1 = Attestation()
         a2 = a1  # TODO: Make it same attesting slot with a1
         a3 = a1  # TODO: Make it a1's attesting slot + 1
         bob_recv_server.attestation_pool.batch_add([a1, a2, a3])

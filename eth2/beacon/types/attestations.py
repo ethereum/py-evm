@@ -83,5 +83,4 @@ class IndexedAttestation(ssz.Serializable):
         return f"<IndexedAttestation {self.data}>"
 
 
-default_attestation = Attestation()
 default_indexed_attestation = IndexedAttestation()
