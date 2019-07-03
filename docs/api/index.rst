@@ -13,5 +13,6 @@ This section aims to provide a detailed description of all APIs. If you are look
 
    api.cli
    extensibility/index
+   protocol/index
 
 
