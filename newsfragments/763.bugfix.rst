@@ -1,0 +1,1 @@
+Fix a race condition in Trinity's event bus announcement ceremony

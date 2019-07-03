@@ -94,6 +94,10 @@ class TrinityMainEventBusEndpoint(TrinityEventBusEndpoint):
             self.logger.debug("New EventBus Endpoint connected %s", ev.connection_config.name)
             # Broadcast available endpoints to all connected endpoints, giving them
             # a chance to cross connect
+            await self.wait_until_all_endpoints_subscribed_to(
+                AvailableEndpointsUpdated,
+                include_self=False
+            )
             await self.broadcast(AvailableEndpointsUpdated(self.available_endpoints))
             self.logger.debug("Connected EventBus Endpoints %s", self.available_endpoints)
 
