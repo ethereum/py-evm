@@ -1,7 +1,3 @@
-from abc import (
-    ABC,
-    abstractmethod,
-)
 from argparse import (
     ArgumentParser,
     Namespace,
@@ -14,7 +10,6 @@ from typing import (
     Iterable,
     List,
     Type,
-    TypeVar,
 )
 
 from trinity.config import (
@@ -26,63 +21,12 @@ from trinity.endpoint import (
 )
 from trinity.extensibility.plugin import (
     BaseIsolatedPlugin,
-    BaseMainProcessPlugin,
     BasePlugin,
     TrinityBootInfo,
 )
 from trinity._utils.ipc import (
     kill_processes_gracefully,
 )
-
-
-TPlugin = TypeVar('TPlugin', bound=BasePlugin)
-
-
-class BaseManagerProcessScope(ABC):
-    """
-    Define the operational model under which a
-    :class:`~trinity.extensibility.plugin_manager.PluginManager` works. Subclasses
-    define whether a :class:`~trinity.extensibility.plugin_manager.PluginManager` is
-    responsible to manage a specific plugin and how it is created.
-    """
-
-    endpoint: TrinityEventBusEndpoint
-
-    @abstractmethod
-    def is_responsible_for_plugin(self, plugin: Type[BasePlugin]) -> bool:
-        """
-        Define whether a :class:`~trinity.extensibility.plugin_manager.PluginManager` operating
-        under this scope is responsible to manage the given ``plugin``.
-        """
-        pass
-
-    @abstractmethod
-    def create_plugin(self,
-                      plugin_type: Type[TPlugin],
-                      boot_info: TrinityBootInfo) -> TPlugin:
-        """
-        Instantiate the given plugin.
-        """
-        pass
-
-
-class MainAndIsolatedProcessScope(BaseManagerProcessScope):
-
-    def __init__(self, main_proc_endpoint: TrinityMainEventBusEndpoint) -> None:
-        self.endpoint = main_proc_endpoint
-
-    def is_responsible_for_plugin(self, plugin: Type[BasePlugin]) -> bool:
-        """
-        Return ``True`` if if the plugin instance is a subclass of
-        :class:`~trinity.extensibility.plugin.BaseIsolatedPlugin` or
-        :class:`~trinity.extensibility.plugin.BaseMainProcessPlugin`
-        """
-        return issubclass(plugin, (BaseIsolatedPlugin, BaseMainProcessPlugin))
-
-    def create_plugin(self,
-                      plugin_type: Type[TPlugin],
-                      boot_info: TrinityBootInfo) -> TPlugin:
-        return plugin_type(boot_info)
 
 
 class PluginManager:
@@ -107,9 +51,9 @@ class PluginManager:
     """
 
     def __init__(self,
-                 scope: BaseManagerProcessScope,
+                 endpoint: TrinityMainEventBusEndpoint,
                  plugins: Iterable[Type[BasePlugin]]) -> None:
-        self._scope = scope
+        self._endpoint = endpoint
         self._registered_plugins: List[Type[BasePlugin]] = list(plugins)
         self._plugin_store: List[BasePlugin] = []
         self._logger = logging.getLogger("trinity.extensibility.plugin_manager.PluginManager")
@@ -121,7 +65,7 @@ class PluginManager:
         :class:`~trinity.extensibility.plugin_manager.PluginManager` instance uses to connect to
         the event bus.
         """
-        return self._scope.endpoint
+        return self._endpoint
 
     def amend_argparser_config(self,
                                arg_parser: ArgumentParser,
@@ -138,17 +82,12 @@ class PluginManager:
                 trinity_config: TrinityConfig,
                 boot_kwargs: Dict[str, Any] = None) -> None:
         """
-        Create all plugins which this manager is responsible for and call
-        :meth:`~trinity.extensibility.plugin.BasePlugin.ready` on each of them.
+        Create all plugins and call :meth:`~trinity.extensibility.plugin.BasePlugin.ready` on each
+        of them.
         """
         for plugin_type in self._registered_plugins:
-            if not self._scope.is_responsible_for_plugin(plugin_type):
-                continue
 
-            plugin = self._scope.create_plugin(
-                plugin_type,
-                TrinityBootInfo(args, trinity_config, boot_kwargs)
-            )
+            plugin = plugin_type(TrinityBootInfo(args, trinity_config, boot_kwargs))
             plugin.ready(self.event_bus_endpoint)
 
             self._plugin_store.append(plugin)
@@ -158,7 +97,7 @@ class PluginManager:
         Synchronously shut down all running plugins.
         """
 
-        self._logger.info("Shutting down PluginManager with scope %s", type(self._scope))
+        self._logger.info("Shutting down PluginManager")
 
         plugins = [
             plugin for plugin in self._plugin_store

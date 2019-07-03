@@ -44,7 +44,6 @@ from trinity.endpoint import (
 )
 from trinity.extensibility import (
     BasePlugin,
-    MainAndIsolatedProcessScope,
     PluginManager,
 )
 from trinity.events import (
@@ -112,7 +111,7 @@ def main_entry(trinity_boot: BootFn,
     main_endpoint = TrinityMainEventBusEndpoint(name=MAIN_EVENTBUS_ENDPOINT)
 
     plugin_manager = PluginManager(
-        MainAndIsolatedProcessScope(main_endpoint),
+        main_endpoint,
         plugins
     )
     plugin_manager.amend_argparser_config(parser, subparser)

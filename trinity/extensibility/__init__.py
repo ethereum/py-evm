@@ -14,7 +14,5 @@ from trinity.extensibility.plugin import (  # noqa: F401
     TrinityBootInfo,
 )
 from trinity.extensibility.plugin_manager import (  # noqa: F401
-    BaseManagerProcessScope,
-    MainAndIsolatedProcessScope,
     PluginManager,
 )
