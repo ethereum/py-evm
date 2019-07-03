@@ -67,11 +67,6 @@ from .helpers import (
 )
 
 
-from eth2.beacon.types.attestations import (
-    Attestation,
-)
-
-
 class FakeChain(_TestnetChain):
     chaindb_class = bcc_helpers.FakeAsyncBeaconChainDB
 
