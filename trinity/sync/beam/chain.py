@@ -223,6 +223,13 @@ class BeamSyncer(BaseService):
 
 
 class RigorousFastChainBodySyncer(FastChainBodySyncer):
+    """
+    Very much like the regular FastChainBodySyncer, but does a more robust
+    check about whether we should skip syncing a header's body. We explicitly
+    check if the body has been downloaded, instead of just trusting that if
+    the header is present than the body must be. This is helpful, because
+    the previous syncer is a header-only syncer.
+    """
     _starting_tip: BlockHeader = None
 
     async def _should_skip_header(self, header: BlockHeader) -> bool:
@@ -243,12 +250,20 @@ class RigorousFastChainBodySyncer(FastChainBodySyncer):
             return True
 
     async def _sync_from(self) -> BlockHeader:
+        """
+        Typically, the FastChainBodySyncer always starts syncing from the tip of the chain,
+        but we actually want to sync from *behind* the tip, so we manually set the sync-from
+        target.
+        """
         if self._starting_tip is None:
             raise ValidationError("Must set a previous tip before rigorous-fast-syncing")
         else:
             return self._starting_tip
 
     def set_starting_tip(self, header: BlockHeader) -> None:
+        """
+        Explicitly set the sync-from target, to use instead of the canonical head.
+        """
         self._starting_tip = header
 
 
