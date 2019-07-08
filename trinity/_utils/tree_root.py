@@ -251,6 +251,9 @@ class RootTracker(Generic[TNodeID]):
         children = self._tree.children_of(node_id)
         self._link_children(node_root, original_depth, children)
 
+    def get_children(self, node_id: TNodeID) -> Tuple[TNodeID, ...]:
+        return self._tree.children_of(node_id)
+
     def get_root(self, node_id: TNodeID) -> Tuple[TNodeID, int]:
         """
         Look up the root of the tree that node_id is in, and the depth to that root.

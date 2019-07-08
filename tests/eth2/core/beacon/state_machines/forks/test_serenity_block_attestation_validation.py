@@ -265,7 +265,11 @@ def test_validate_attestation_crosslink_data_root(sample_attestation_data_params
             )
 
 
-@settings(max_examples=1)
+@settings(
+    max_examples=1,
+    # Last CI run took >4.4 seconds. Allow up to 5.5s.
+    deadline=5500,
+)
 @given(random=st.randoms())
 @pytest.mark.parametrize(
     (

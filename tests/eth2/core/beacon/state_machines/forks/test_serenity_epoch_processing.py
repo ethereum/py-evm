@@ -411,7 +411,11 @@ def test_process_justification(monkeypatch,
 #
 # Crosslink
 #
-@settings(max_examples=1)
+@settings(
+    max_examples=1,
+    # Last CI run took >200ms. Allow up to 0.5s.
+    deadline=500,
+)
 @given(random=st.randoms())
 @pytest.mark.parametrize(
     (

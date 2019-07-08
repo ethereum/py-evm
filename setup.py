@@ -41,13 +41,13 @@ deps = {
         "ruamel.yaml>=0.15.87",
     ],
     'test': [
-        "hypothesis==3.69.5",
+        "hypothesis>=4.24.3,<5",
         "pexpect>=4.6, <5",
         "factory-boy==2.11.1",
         # pinned to <3.7 until async fixtures work again
         # https://github.com/pytest-dev/pytest-asyncio/issues/89
         "pytest>=3.6,<3.7",
-        "pytest-asyncio==0.9.0",
+        "pytest-asyncio>=0.10.0,<0.11",
         "pytest-cov==2.5.1",
         "pytest-watch>=4.1.0,<5",
         "pytest-xdist==1.18.1",
