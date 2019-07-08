@@ -46,9 +46,7 @@ from eth.vm.transaction_context import (
     BaseTransactionContext,
 )
 
-
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
 
@@ -194,7 +192,7 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
     setup_state(fixture['pre'], state)
     code = state.get_code(fixture['exec']['address'])
     # Update state_root manually
-    vm.block = vm.block.copy(header=vm.header.copy(state_root=state.state_root))
+    vm._block = vm.get_block().copy(header=vm.get_header().copy(state_root=state.state_root))
 
     message = Message(
         to=fixture['exec']['address'],
@@ -214,8 +212,8 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         transaction_context,
     )
     # Update state_root manually
-    vm.block = vm.block.copy(
-        header=vm.header.copy(state_root=computation.state.state_root),
+    vm._block = vm.get_block().copy(
+        header=vm.get_header().copy(state_root=computation.state.state_root),
     )
 
     if 'post' in fixture:
