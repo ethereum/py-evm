@@ -556,8 +556,18 @@ class OrderedTaskPreparation(
             whether ready or not
         :return: which of the tasks were registered (only relevant when ignore_duplicates=True)
         """
-        identified_tasks = tuple((self._id_of(task), task) for task in tasks)
-        duplicates = tuple(task for task_id, task in identified_tasks if task_id in self._tasks)
+        identified_tasks = dict((self._id_of(task), task) for task in tasks)
+
+        # check if there are duplicate tasks within `tasks`
+        if len(identified_tasks) < len(tasks) and not ignore_duplicates:
+            raise ValidationError(
+                f"Not allowed to register same task twice. Tried to register: {tasks}"
+            )
+
+        duplicates = tuple(
+            task for task_id, task in identified_tasks.items()
+            if task_id in self._tasks
+        )
 
         if duplicates and not ignore_duplicates:
             raise DuplicateTasks(
@@ -567,7 +577,7 @@ class OrderedTaskPreparation(
 
         task_meta_info = tuple(
             (self._prereq_tracker(task), task_id, self._dependency_of(task))
-            for task_id, task in identified_tasks
+            for task_id, task in identified_tasks.items()
             # when ignoring duplicates, must not try to re-add them
             if task_id not in self._tasks
         )
