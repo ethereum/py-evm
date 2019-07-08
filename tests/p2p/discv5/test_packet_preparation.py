@@ -15,7 +15,7 @@ from p2p.discv5.enr import (
     ENR,
 )
 from p2p.discv5.messages import (
-    PingData,
+    PingMessage,
 )
 from p2p.discv5.encryption import (
     aesgcm_decrypt,
@@ -52,7 +52,7 @@ def test_auth_header_preparation(tag,
             b"id": b"v4",
         }
     )
-    message_data = PingData(
+    message = PingMessage(
         request_id=5,
         enr_seq=enr.sequence_number,
     )
@@ -61,7 +61,7 @@ def test_auth_header_preparation(tag,
     packet = prepare_auth_header_packet(
         tag=tag,
         auth_tag=auth_tag,
-        message_data=message_data,
+        message=message,
         initiator_key=initiator_key,
         id_nonce_signature=id_nonce_signature,
         auth_response_key=auth_response_key,
@@ -94,8 +94,8 @@ def test_auth_header_preparation(tag,
             rlp.encode(packet.auth_header),
         ))
     )
-    assert decrypted_message[0] == message_data.message_type
-    assert rlp.decode(decrypted_message[1:], PingData) == message_data
+    assert decrypted_message[0] == message.message_type
+    assert rlp.decode(decrypted_message[1:], PingMessage) == message
 
 
 @given(
@@ -110,7 +110,7 @@ def test_auth_header_preparation_without_enr(tag,
                                              initiator_key,
                                              auth_response_key,
                                              ephemeral_pubkey):
-    message_data = PingData(
+    message = PingMessage(
         request_id=5,
         enr_seq=1,
     )
@@ -119,7 +119,7 @@ def test_auth_header_preparation_without_enr(tag,
     packet = prepare_auth_header_packet(
         tag=tag,
         auth_tag=auth_tag,
-        message_data=message_data,
+        message=message,
         initiator_key=initiator_key,
         id_nonce_signature=id_nonce_signature,
         auth_response_key=auth_response_key,

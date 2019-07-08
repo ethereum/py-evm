@@ -35,7 +35,7 @@ from p2p.discv5.encryption import (
     validate_nonce,
 )
 from p2p.discv5.messages import (
-    MessageData,
+    BaseMessage,
 )
 from p2p.discv5.enr import (
     ENR,
@@ -273,7 +273,7 @@ def _decode_who_are_you_payload(encoded_packet: bytes) -> Tuple[Nonce, bytes, in
 def prepare_auth_header_packet(*,
                                tag: Hash32,
                                auth_tag: Nonce,
-                               message_data: MessageData,
+                               message: BaseMessage,
                                initiator_key: AES128Key,
                                id_nonce_signature: bytes,
                                auth_response_key: AES128Key,
@@ -300,7 +300,7 @@ def prepare_auth_header_packet(*,
     encrypted_message = compute_encrypted_message(
         initiator_key=initiator_key,
         auth_tag=auth_tag,
-        message_data=message_data,
+        message=message,
         authenticated_data=authenticated_data,
     )
 
@@ -335,7 +335,7 @@ def compute_encrypted_auth_response(auth_response_key: AES128Key,
 
 def compute_encrypted_message(initiator_key: AES128Key,
                               auth_tag: Nonce,
-                              message_data: MessageData,
+                              message: BaseMessage,
                               authenticated_data: bytes,
                               ) -> bytes:
     message_plain_text = b"".join((

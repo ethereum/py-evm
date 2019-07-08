@@ -7,14 +7,14 @@ from rlp.sedes import (
 from p2p.discv5 import messages
 from p2p.discv5.messages import (
     default_message_type_registry,
-    MessageData,
+    BaseMessage,
 )
 
 
 def test_default_message_registry():
     message_data_classes = tuple(
         member for _, member in inspect.getmembers(messages)
-        if inspect.isclass(member) and issubclass(member, MessageData) and member is not MessageData
+        if inspect.isclass(member) and issubclass(member, BaseMessage) and member is not BaseMessage
     )
     assert len(default_message_type_registry) == len(message_data_classes)
     for message_data_class in message_data_classes:
