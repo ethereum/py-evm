@@ -1,5 +1,6 @@
 import inspect
 
+import rlp
 from rlp.sedes import (
     big_endian_int,
 )
@@ -8,6 +9,7 @@ from p2p.discv5 import messages
 from p2p.discv5.messages import (
     default_message_type_registry,
     BaseMessage,
+    PingMessage,
 )
 
 
@@ -33,3 +35,10 @@ def test_all_messages_have_request_id():
 def test_message_types_are_continuous():
     sorted_message_types = sorted(default_message_type_registry.keys())
     assert sorted_message_types == list(range(1, len(sorted_message_types) + 1))
+
+
+def test_message_encoding():
+    message = PingMessage(request_id=5, enr_seq=10)
+    encoded_message = message.to_bytes()
+    assert encoded_message[0] == message.message_type
+    assert encoded_message[1:] == rlp.encode(message)

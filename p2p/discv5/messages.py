@@ -15,6 +15,10 @@ from rlp.sedes import (
     CountableList,
 )
 
+from eth_utils import (
+    int_to_big_endian,
+)
+
 from p2p.discv5.enr import (
     ENR,
 )
@@ -86,6 +90,12 @@ default_message_type_registry = MessageTypeRegistry()
 #
 class BaseMessage(rlp.Serializable):
     message_type: int
+
+    def to_bytes(self) -> bytes:
+        return b"".join((
+            int_to_big_endian(self.message_type),
+            rlp.encode(self),
+        ))
 
 
 @default_message_type_registry.register

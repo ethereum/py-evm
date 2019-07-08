@@ -15,7 +15,6 @@ from rlp.exceptions import (
 )
 
 from eth_utils import (
-    int_to_big_endian,
     is_bytes,
     encode_hex,
     is_list_like,
@@ -338,15 +337,10 @@ def compute_encrypted_message(initiator_key: AES128Key,
                               message: BaseMessage,
                               authenticated_data: bytes,
                               ) -> bytes:
-    message_plain_text = b"".join((
-        int_to_big_endian(message_data.message_type),
-        rlp.encode(message_data)
-    ))
     encrypted_message = aesgcm_encrypt(
         key=initiator_key,
         nonce=auth_tag,
-        plain_text=message_plain_text,
+        plain_text=message.to_bytes(),
         authenticated_data=authenticated_data,
     )
     return encrypted_message
->>>>>>> Implement auth header preparation helpers
