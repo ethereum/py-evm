@@ -8,7 +8,10 @@ from eth.db.chain import ChainDB
 from eth.db.backends.base import BaseAtomicDB
 from eth.db.header import HeaderDB
 
-from trinity.config import TrinityConfig
+from trinity.config import (
+    Eth1AppConfig,
+    TrinityConfig,
+)
 from trinity.db.base import AsyncDBProxy
 from trinity.db.eth1.chain import AsyncChainDBProxy
 from trinity.db.eth1.header import (
@@ -26,7 +29,8 @@ AUTH_KEY = b"not secure, but only connect over IPC"
 def create_db_server_manager(trinity_config: TrinityConfig,
                              base_db: BaseAtomicDB) -> BaseManager:
 
-    chain_config = trinity_config.get_chain_config()
+    eth1_app_config = trinity_config.get_app_config(Eth1AppConfig)
+    chain_config = eth1_app_config.get_chain_config()
     chaindb = ChainDB(base_db)
 
     if not is_database_initialized(chaindb):

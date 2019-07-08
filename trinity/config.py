@@ -320,14 +320,6 @@ class TrinityConfig:
         elif nodekey is not None:
             self.nodekey = nodekey
 
-    def get_chain_config(self) -> ChainConfig:
-        # the `ChainConfig` object cannot be pickled so we can't cache this
-        # value since the TrinityConfig is sent across process boundaries.
-        if self.network_id in PRECONFIGURED_NETWORKS:
-            return ChainConfig.from_preconfigured_network(self.network_id)
-        else:
-            return ChainConfig.from_eip1085_genesis_config(self.genesis_config)
-
     @property
     def app_suffix(self) -> str:
         return "" if len(self.app_identifier) == 0 else f"-{self.app_identifier}"
@@ -584,6 +576,14 @@ class Eth1AppConfig(BaseAppConfig):
             return Eth1DbMode.LIGHT
         else:
             return Eth1DbMode.FULL
+
+    def get_chain_config(self) -> ChainConfig:
+        # the `ChainConfig` object cannot be pickled so we can't cache this
+        # value since the TrinityConfig is sent across process boundaries.
+        if self.trinity_config.network_id in PRECONFIGURED_NETWORKS:
+            return ChainConfig.from_preconfigured_network(self.trinity_config.network_id)
+        else:
+            return ChainConfig.from_eip1085_genesis_config(self.trinity_config.genesis_config)
 
     @property
     def node_class(self) -> Type['Node']:

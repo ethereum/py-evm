@@ -24,6 +24,7 @@ from trinity.db.eth1.manager import (
 )
 from trinity.config import (
     ChainConfig,
+    Eth1AppConfig,
     TrinityConfig,
 )
 from trinity.endpoint import (
@@ -76,7 +77,8 @@ class Node(BaseService):
         Convenience and caching mechanism for the `ChainConfig`.
         """
         if self._chain_config is None:
-            self._chain_config = self.trinity_config.get_chain_config()
+            app_config = self.trinity_config.get_app_config(Eth1AppConfig)
+            self._chain_config = app_config.get_chain_config()
         return self._chain_config
 
     @abstractmethod

@@ -11,6 +11,9 @@ from p2p.service import (
 from trinity import (
     __version__,
 )
+from trinity.config import (
+    Eth1AppConfig,
+)
 from trinity.constants import (
     SYNC_LIGHT,
     TO_NETWORKING_BROADCAST_CONFIG,
@@ -162,8 +165,8 @@ class EthstatsService(BaseService):
 
     def get_chain(self) -> BaseChain:
         db_manager = create_db_consumer_manager(self.boot_info.trinity_config.database_ipc_path)
-
-        chain_config = self.boot_info.trinity_config.get_chain_config()
+        app_config = self.boot_info.trinity_config.get_app_config(Eth1AppConfig)
+        chain_config = app_config.get_chain_config()
 
         chain: BaseChain
 

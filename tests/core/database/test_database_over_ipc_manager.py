@@ -17,6 +17,7 @@ from trinity.db.eth1.manager import (
     create_db_server_manager,
 )
 from trinity.config import (
+    Eth1AppConfig,
     TrinityConfig,
 )
 from trinity.initialization import (
@@ -48,6 +49,7 @@ def database_server_ipc_path():
             network_id=ROPSTEN_NETWORK_ID,
             trinity_root_dir=temp_dir,
         )
+        trinity_config.add_app_config(Eth1AppConfig(trinity_config, None))
         initialize_data_dir(trinity_config)
 
         manager = create_db_server_manager(trinity_config, core_db)

@@ -68,7 +68,7 @@ class JsonRpcServerPlugin(AsyncioIsolatedPlugin):
         db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
 
         eth1_app_config = trinity_config.get_app_config(Eth1AppConfig)
-        chain_config = trinity_config.get_chain_config()
+        chain_config = eth1_app_config.get_chain_config()
 
         chain: BaseAsyncChain
 

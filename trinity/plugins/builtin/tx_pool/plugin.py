@@ -11,6 +11,9 @@ from eth.chains.ropsten import (
     BYZANTIUM_ROPSTEN_BLOCK,
 )
 
+from trinity.config import (
+    Eth1AppConfig,
+)
 from trinity.constants import (
     SYNC_LIGHT,
     TO_NETWORKING_BROADCAST_CONFIG,
@@ -70,7 +73,8 @@ class TxPlugin(AsyncioIsolatedPlugin):
         db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
         db = db_manager.get_db()  # type: ignore
 
-        chain_config = trinity_config.get_chain_config()
+        app_config = trinity_config.get_app_config(Eth1AppConfig)
+        chain_config = app_config.get_chain_config()
 
         chain = chain_config.full_chain_class(db)
 

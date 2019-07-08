@@ -19,7 +19,7 @@ def chaindb(base_db):
     return ChainDB(base_db)
 
 
-def test_initialize_database(trinity_config, chaindb, base_db):
+def test_initialize_database(eth1_app_config, chaindb, base_db):
     assert not is_database_initialized(chaindb)
-    initialize_database(trinity_config.get_chain_config(), chaindb, base_db)
+    initialize_database(eth1_app_config.get_chain_config(), chaindb, base_db)
     assert is_database_initialized(chaindb)

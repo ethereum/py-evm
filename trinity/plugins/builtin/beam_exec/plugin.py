@@ -1,5 +1,8 @@
 import asyncio
 
+from trinity.config import (
+    Eth1AppConfig,
+)
 from trinity.constants import (
     SYNC_BEAM,
 )
@@ -42,7 +45,8 @@ class BeamChainExecutionPlugin(AsyncioIsolatedPlugin):
 
     def do_start(self) -> None:
         trinity_config = self.boot_info.trinity_config
-        chain_config = trinity_config.get_chain_config()
+        app_config = trinity_config.get_app_config(Eth1AppConfig)
+        chain_config = app_config.get_chain_config()
 
         db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
 
