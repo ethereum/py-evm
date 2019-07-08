@@ -6,7 +6,10 @@ from typing import NamedTuple
 from eth_utils import (
     ValidationError,
 )
-from eth_utils.toolz import identity
+from eth_utils.toolz import (
+    identity,
+    partition_all,
+)
 from hypothesis import (
     example,
     given,
@@ -690,8 +693,17 @@ async def test_wait_to_prune_until_yielded():
 @settings(max_examples=1000)
 @example(task_series=[1, 2, 0, 3], prune_depth=1)
 @example(task_series=[0, 1, 2, 3, 0, 4], prune_depth=1)
+@pytest.mark.parametrize('ignore_duplicates', (False,))
+@pytest.mark.parametrize('recomplete_idx', (None,))
+@pytest.mark.parametrize('batch_size', (1,))
 @pytest.mark.asyncio
-async def test_random_pruning(task_series, prune_depth):
+async def test_random_pruning(
+        ignore_duplicates,
+        recomplete_idx,
+        batch_size,
+        task_series,
+        prune_depth):
+
     ti = OrderedTaskPreparation(
         NoPrerequisites,
         identity,
@@ -701,11 +713,24 @@ async def test_random_pruning(task_series, prune_depth):
     )
     ti.set_finished_dependency(task_series[0])
 
-    for task in task_series:
+    for idx, task_batch in enumerate(partition_all(batch_size, task_series)):
+        if ignore_duplicates:
+            registerable_tasks = task_batch
+        else:
+            registerable_tasks = set(task_batch)
+
+        if idx == recomplete_idx:
+            task_to_mark_finished = task_batch[0] - 1
+            if task_to_mark_finished not in ti._tasks:
+                ti.set_finished_dependency(task_to_mark_finished)
+
         try:
-            ti.register_tasks((task, ))
+            ti.register_tasks(registerable_tasks, ignore_duplicates=ignore_duplicates)
         except DuplicateTasks:
-            continue
+            if ignore_duplicates:
+                raise
+            else:
+                continue
         if ti.has_ready_tasks():
             await wait(ti.ready_tasks())
 
