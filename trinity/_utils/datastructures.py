@@ -692,6 +692,10 @@ class OrderedTaskPreparation(
             # ^ when this is called, pruning is triggered from
             # the tip of task 1 (whether or not task 2 is ready)
         """
+        # It is possible for this finished task to already be pruned, in which case, skip it
+        if task_id not in self._tasks:
+            return
+
         root_task_id, depth = self._roots.get_root(task_id)
         num_to_prune = depth - self._max_depth
         if num_to_prune <= 0:
