@@ -1,9 +1,7 @@
 Extensibility
 =============
 
-.. warning::
-
-  The extensibility API isn't stable yet. Expect breaking changes.
+.. include:: /fragments/unstable_api.rst
 
 .. toctree::
    :maxdepth: 4
