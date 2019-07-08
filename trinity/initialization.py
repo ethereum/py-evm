@@ -11,7 +11,7 @@ from trinity.config import (
     BeaconAppConfig,
     BeaconChainConfig,
     Eth1AppConfig,
-    ChainConfig,
+    Eth1ChainConfig,
     TrinityConfig,
 )
 
@@ -130,7 +130,7 @@ def initialize_data_dir(trinity_config: TrinityConfig) -> None:
             nodekey_file.write(nodekey.to_bytes())
 
 
-def initialize_database(chain_config: ChainConfig,
+def initialize_database(chain_config: Eth1ChainConfig,
                         chaindb: BaseChainDB,
                         base_db: BaseAtomicDB) -> None:
     try:

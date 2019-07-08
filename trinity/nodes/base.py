@@ -23,7 +23,7 @@ from trinity.db.eth1.manager import (
     create_db_consumer_manager,
 )
 from trinity.config import (
-    ChainConfig,
+    Eth1ChainConfig,
     Eth1AppConfig,
     TrinityConfig,
 )
@@ -69,10 +69,10 @@ class Node(BaseService):
                 req.broadcast_config()
             )
 
-    _chain_config: ChainConfig = None
+    _chain_config: Eth1ChainConfig = None
 
     @property
-    def chain_config(self) -> ChainConfig:
+    def chain_config(self) -> Eth1ChainConfig:
         """
         Convenience and caching mechanism for the `ChainConfig`.
         """

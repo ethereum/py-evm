@@ -18,7 +18,7 @@ from eth.chains.ropsten import (
 )
 
 from trinity.config import (
-    ChainConfig,
+    Eth1ChainConfig,
 )
 from trinity.constants import (
     MAINNET_NETWORK_ID,
@@ -46,7 +46,7 @@ def assert_vm_configuration_equal(left, right):
     (MAINNET_NETWORK_ID, ROPSTEN_NETWORK_ID),
 )
 def test_chain_config_from_preconfigured_network(network_id):
-    chain_config = ChainConfig.from_preconfigured_network(network_id)
+    chain_config = Eth1ChainConfig.from_preconfigured_network(network_id)
     chain = chain_config.initialize_chain(AtomicDB(MemoryDB()))
 
     if network_id == MAINNET_NETWORK_ID:
@@ -90,7 +90,7 @@ def test_chain_config_eip1085_fixture_is_valid():
 
 
 def test_chain_config_from_eip1085_genesis_config():
-    chain_config = ChainConfig.from_eip1085_genesis_config(EIP1085_GENESIS_CONFIG)
+    chain_config = Eth1ChainConfig.from_eip1085_genesis_config(EIP1085_GENESIS_CONFIG)
 
     assert chain_config.chain_id == 1234
     assert chain_config.vm_configuration == ((0, ConstantinopleVM),)

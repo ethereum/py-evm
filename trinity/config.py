@@ -144,7 +144,7 @@ def _get_preconfigured_chain_name(network_id: int) -> str:
         raise TypeError(f"Unknown or unsupported `network_id`: {network_id}")
 
 
-class ChainConfig:
+class Eth1ChainConfig:
     def __init__(self,
                  genesis_data: GenesisData,
                  chain_name: str=None) -> None:
@@ -183,7 +183,7 @@ class ChainConfig:
     def from_eip1085_genesis_config(cls,
                                     genesis_config: Dict[str, Any],
                                     chain_name: str=None,
-                                    ) -> 'ChainConfig':
+                                    ) -> 'Eth1ChainConfig':
         genesis_data = extract_genesis_data(genesis_config)
         return cls(
             genesis_data=genesis_data,
@@ -192,7 +192,7 @@ class ChainConfig:
 
     @classmethod
     def from_preconfigured_network(cls,
-                                   network_id: int) -> 'ChainConfig':
+                                   network_id: int) -> 'Eth1ChainConfig':
         genesis_config = _load_preconfigured_genesis_config(network_id)
         chain_name = _get_preconfigured_chain_name(network_id)
         return cls.from_eip1085_genesis_config(genesis_config, chain_name)
@@ -240,7 +240,7 @@ TAppConfig = TypeVar('TAppConfig', bound='BaseAppConfig')
 class TrinityConfig:
     _trinity_root_dir: Path = None
 
-    _chain_config: ChainConfig = None
+    _chain_config: Eth1ChainConfig = None
 
     _data_dir: Path = None
     _nodekey_path: Path = None
@@ -577,13 +577,13 @@ class Eth1AppConfig(BaseAppConfig):
         else:
             return Eth1DbMode.FULL
 
-    def get_chain_config(self) -> ChainConfig:
+    def get_chain_config(self) -> Eth1ChainConfig:
         # the `ChainConfig` object cannot be pickled so we can't cache this
         # value since the TrinityConfig is sent across process boundaries.
         if self.trinity_config.network_id in PRECONFIGURED_NETWORKS:
-            return ChainConfig.from_preconfigured_network(self.trinity_config.network_id)
+            return Eth1ChainConfig.from_preconfigured_network(self.trinity_config.network_id)
         else:
-            return ChainConfig.from_eip1085_genesis_config(self.trinity_config.genesis_config)
+            return Eth1ChainConfig.from_eip1085_genesis_config(self.trinity_config.genesis_config)
 
     @property
     def node_class(self) -> Type['Node']:
