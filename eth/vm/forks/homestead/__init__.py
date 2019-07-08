@@ -1,6 +1,6 @@
-from typing import Optional, Type  # noqa: F401
-from eth.rlp.blocks import BaseBlock  # noqa: F401
-from eth.vm.state import BaseState  # noqa: F401
+from typing import Optional, Type
+from eth.rlp.blocks import BaseBlock
+from eth.vm.state import BaseState
 
 from eth_typing import BlockNumber
 

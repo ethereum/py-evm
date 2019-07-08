@@ -1,5 +1,5 @@
-from typing import Type  # noqa: F401
-from eth.vm.state import BaseState  # noqa: F401
+from typing import Type
+from eth.vm.state import BaseState
 
 from eth.vm.forks.homestead import HomesteadVM
 

@@ -4,7 +4,7 @@ from abc import (
 )
 import itertools
 import logging
-from typing import (  # noqa: F401
+from typing import (
     Any,
     Callable,
     cast,
@@ -62,7 +62,7 @@ from eth.vm.memory import (
 from eth.vm.message import (
     Message,
 )
-from eth.vm.opcode import (  # noqa: F401
+from eth.vm.opcode import (
     Opcode
 )
 from eth.vm.stack import (

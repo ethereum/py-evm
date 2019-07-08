@@ -1,6 +1,6 @@
-from typing import Type  # noqa: F401
-from eth.rlp.blocks import BaseBlock  # noqa: F401
-from eth.vm.state import BaseState  # noqa: F401
+from typing import Type
+from eth.rlp.blocks import BaseBlock
+from eth.vm.state import BaseState
 
 from ..tangerine_whistle import TangerineWhistleVM
 

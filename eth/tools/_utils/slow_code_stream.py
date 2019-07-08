@@ -1,7 +1,7 @@
 import contextlib
 import io
 import logging
-from typing import (  # noqa: F401
+from typing import (
     Iterator,
     Set
 )

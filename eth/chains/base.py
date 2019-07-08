@@ -72,7 +72,7 @@ from eth.rlp.transactions import (
     BaseUnsignedTransaction,
 )
 
-from eth.typing import (  # noqa: F401
+from eth.typing import (
     AccountState,
     BaseOrSpoofTransaction,
     StaticMethod,
@@ -98,7 +98,7 @@ from eth.validation import (
     validate_vm_configuration,
 )
 from eth.vm.computation import BaseComputation
-from eth.vm.state import BaseState  # noqa: F401
+from eth.vm.state import BaseState
 
 from eth._warnings import catch_and_ignore_import_warning
 with catch_and_ignore_import_warning():

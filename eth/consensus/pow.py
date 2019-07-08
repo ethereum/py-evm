@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import (  # noqa: F401
+from typing import (
     Tuple
 )
 

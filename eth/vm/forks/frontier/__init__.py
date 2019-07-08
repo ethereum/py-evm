@@ -1,4 +1,4 @@
-from typing import Type  # noqa: F401
+from typing import Type
 
 from eth_bloom import (
     BloomFilter,
@@ -10,7 +10,7 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
-from eth.rlp.blocks import BaseBlock  # noqa: F401
+from eth.rlp.blocks import BaseBlock
 from eth.rlp.headers import BlockHeader
 from eth.rlp.logs import Log
 from eth.rlp.receipts import Receipt
@@ -18,7 +18,7 @@ from eth.rlp.transactions import BaseTransaction
 
 from eth.vm.base import VM
 from eth.vm.computation import BaseComputation
-from eth.vm.state import BaseState  # noqa: F401
+from eth.vm.state import BaseState
 
 from .blocks import FrontierBlock
 from .state import FrontierState

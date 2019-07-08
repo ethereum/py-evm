@@ -1,4 +1,4 @@
-from typing import Tuple, Type  # noqa: F401
+from typing import Tuple, Type
 from eth_utils import decode_hex
 
 from .constants import (
@@ -13,7 +13,7 @@ from eth import constants
 
 from eth.chains.base import Chain
 from eth.rlp.headers import BlockHeader
-from eth.vm.base import BaseVM  # noqa: F401
+from eth.vm.base import BaseVM
 from eth.vm.forks import (
     ByzantiumVM,
     ConstantinopleVM,

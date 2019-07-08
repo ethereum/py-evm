@@ -39,7 +39,7 @@ from eth.db.backends.base import (
     BaseAtomicDB,
 )
 from eth.db.trie import make_trie_root_and_nodes
-from eth.db.chain import BaseChainDB  # noqa: F401
+from eth.db.chain import BaseChainDB
 from eth.exceptions import (
     HeaderNotFound,
 )
@@ -84,7 +84,7 @@ from eth.vm.computation import BaseComputation
 class BaseVM(Configurable, ABC):
     block_class: Type[BaseBlock] = None
     fork: str = None  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
-    chaindb: BaseChainDB = None  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
+    chaindb: BaseChainDB = None
     _state_class: Type[BaseState] = None
 
     @abstractmethod

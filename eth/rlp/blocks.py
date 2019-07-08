@@ -2,7 +2,7 @@ from abc import (
     ABC,
     abstractmethod
 )
-from typing import (  # noqa: F401
+from typing import (
     Type
 )
 

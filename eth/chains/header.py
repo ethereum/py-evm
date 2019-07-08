@@ -14,7 +14,7 @@ from eth.db.backends.base import (
     BaseAtomicDB,
     BaseDB,
 )
-from eth.db.header import (  # noqa: F401
+from eth.db.header import (
     BaseHeaderDB,
     HeaderDB,
 )
@@ -22,7 +22,7 @@ from eth.rlp.headers import BlockHeader
 from eth._utils.datatypes import (
     Configurable,
 )
-from eth.vm.base import BaseVM  # noqa: F401
+from eth.vm.base import BaseVM
 
 
 class BaseHeaderChain(Configurable, ABC):

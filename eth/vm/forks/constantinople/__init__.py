@@ -1,13 +1,13 @@
-from typing import (  # noqa: F401
+from typing import (
     Type,
 )
 
-from eth.rlp.blocks import BaseBlock  # noqa: F401
+from eth.rlp.blocks import BaseBlock
 from eth.vm.forks.byzantium import (
     ByzantiumVM,
     get_uncle_reward,
 )
-from eth.vm.state import BaseState  # noqa: F401
+from eth.vm.state import BaseState
 
 from .blocks import ConstantinopleBlock
 from .constants import EIP1234_BLOCK_REWARD
