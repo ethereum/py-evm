@@ -250,11 +250,17 @@ async def test_no_prereq_tasks():
 async def test_ignore_duplicates():
     ti = OrderedTaskPreparation(NoPrerequisites, identity, lambda x: x - 1)
     ti.set_finished_dependency(1)
-    ti.register_tasks((2, ))
+
+    new_tasks = ti.register_tasks((2, ))
+    assert new_tasks == (2, )
+
     # this will ignore the 2 task:
-    ti.register_tasks((2, 3), ignore_duplicates=True)
+    new_tasks = ti.register_tasks((2, 3), ignore_duplicates=True)
+    assert new_tasks == (3, )
+
     # this will be completely ignored:
-    ti.register_tasks((2, 3), ignore_duplicates=True)
+    new_tasks = ti.register_tasks((2, 3), ignore_duplicates=True)
+    assert new_tasks == ()
 
     # with no prerequisites, tasks are *immediately* finished, as long as they are in order
     finished = await wait(ti.ready_tasks())

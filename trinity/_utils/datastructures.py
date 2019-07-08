@@ -359,7 +359,10 @@ class BaseOrderedTaskPreparation(ABC, Generic[TTask, TTaskID]):
         pass
 
     @abstractmethod
-    def register_tasks(self, tasks: Tuple[TTask, ...], ignore_duplicates: bool = False) -> None:
+    def register_tasks(
+            self,
+            tasks: Tuple[TTask, ...],
+            ignore_duplicates: bool = False) -> Iterable[TTask]:
         pass
 
     @abstractmethod
@@ -536,7 +539,11 @@ class OrderedTaskPreparation(
 
         # note that this task is intentionally *not* added to self._unready
 
-    def register_tasks(self, tasks: Tuple[TTask, ...], ignore_duplicates: bool = False) -> None:
+    @to_tuple
+    def register_tasks(
+            self,
+            tasks: Tuple[TTask, ...],
+            ignore_duplicates: bool = False) -> Iterable[TTask]:
         """
         Initiate a task into tracking. By default, each task must be registered
         *after* its dependency has been registered.
@@ -547,6 +554,7 @@ class OrderedTaskPreparation(
         :param tasks: the tasks to register, in iteration order
         :param ignore_duplicates: any tasks that have already been registered will be ignored,
             whether ready or not
+        :return: which of the tasks were registered (only relevant when ignore_duplicates=True)
         """
         identified_tasks = tuple((self._id_of(task), task) for task in tasks)
         duplicates = tuple(task for task_id, task in identified_tasks if task_id in self._tasks)
@@ -580,6 +588,8 @@ class OrderedTaskPreparation(
                 if prereq_tracker.is_complete and self._is_ready(prereq_tracker.task):
                     # this is possible for tasks with 0 prerequisites (useful for pure ordering)
                     self._mark_complete(task_id)
+
+                yield prereq_tracker.task
 
     def finish_prereq(self, prereq: TPrerequisite, tasks: Tuple[TTask, ...]) -> None:
         """For every task in tasks, mark the given prerequisite as completed"""
