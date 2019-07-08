@@ -234,7 +234,7 @@ class Validator(BaseService):
                       state: BeaconState,
                       state_machine: BaseBeaconStateMachine,
                       head_block: BaseBeaconBlock) -> BaseBeaconBlock:
-        ready_attestations = self.get_ready_attestations(slot)
+        ready_attestations = self.get_ready_attestations()
         block = self._make_proposing_block(
             proposer_index=proposer_index,
             slot=slot,

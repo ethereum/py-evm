@@ -573,7 +573,7 @@ class BCCReceiveServer(BaseReceiveServer):
         return self._is_block_root_seen(block_root=block.signing_root)
 
     @to_tuple
-    def get_ready_attestations(self, inclusion_slot: Slot) -> Iterable[Attestation]:
+    def get_ready_attestations(self) -> Iterable[Attestation]:
         state_machine = self.chain.get_state_machine()
         config = state_machine.config
         state = state_machine.state
