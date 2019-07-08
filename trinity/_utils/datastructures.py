@@ -664,8 +664,10 @@ class OrderedTaskPreparation(
 
         # resolve tasks that depend on this task
         for depending_task_id in self._roots.get_children(task_id):
-            # we already know that this task is ready, so we only need to check completion
-            if self._tasks[depending_task_id].is_complete:
+            # We already know that the depending task is ready, so we only need to check:
+            # 1. Are all the prerequesites of the depending task complete?
+            # 2. Was the depending task previously incomplete?
+            if self._tasks[depending_task_id].is_complete and depending_task_id in self._unready:
                 yield depending_task_id
 
     def _prune_finished(self, task_id: TTaskID) -> None:
