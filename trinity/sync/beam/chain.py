@@ -301,7 +301,7 @@ class BeamBlockImporter(BaseBlockImporter, HasExtendedDebugLogger):
     async def import_block(
             self,
             block: BaseBlock) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
-        self.logger.info("Fade importing %s with %d txns ...", block, len(block.transactions))
+        self.logger.info("Beam importing %s (%d txns) ...", block.header, len(block.transactions))
 
         new_account_nodes = await self._pre_check_addresses(block)
         self._preloaded_account_state += new_account_nodes
