@@ -1,13 +1,13 @@
-from typing import (  # noqa: F401
+from typing import (
     Type,
 )
 
-from eth.rlp.blocks import BaseBlock  # noqa: F401
+from eth.rlp.blocks import BaseBlock
 from eth.vm.forks.byzantium import (
     ByzantiumVM,
     get_uncle_reward,
 )
-from eth.vm.state import BaseState  # noqa: F401
+from eth.vm.state import BaseState
 
 from .blocks import PetersburgBlock
 from .constants import EIP1234_BLOCK_REWARD
@@ -24,11 +24,11 @@ class PetersburgVM(ByzantiumVM):
     fork = 'petersburg'
 
     # classes
-    block_class = PetersburgBlock  # type: Type[BaseBlock]
-    _state_class = PetersburgState  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = PetersburgBlock
+    _state_class: Type[BaseState] = PetersburgState
 
     # Methods
-    create_header_from_parent = staticmethod(create_petersburg_header_from_parent)  # type: ignore  # noqa: E501
+    create_header_from_parent = staticmethod(create_petersburg_header_from_parent)  # type: ignore
     compute_difficulty = staticmethod(compute_petersburg_difficulty)    # type: ignore
     configure_header = configure_petersburg_header
     get_uncle_reward = staticmethod(get_uncle_reward(EIP1234_BLOCK_REWARD))

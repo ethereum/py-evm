@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from typing import Type, Union  # noqa: F401
 
 from eth_hash.auto import keccak
 from eth_utils import (
@@ -35,8 +34,7 @@ from eth.vm.state import (
 
 from .computation import FrontierComputation
 from .constants import REFUND_SELFDESTRUCT
-from .transaction_context import (  # noqa: F401
-    BaseTransactionContext,
+from .transaction_context import (
     FrontierTransactionContext
 )
 from .validation import validate_frontier_transaction
@@ -189,7 +187,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
 class FrontierState(BaseState):
     computation_class = FrontierComputation
-    transaction_context_class = FrontierTransactionContext  # type: Type[BaseTransactionContext]
+    transaction_context_class = FrontierTransactionContext  # Type[BaseTransactionContext]
     account_db_class = AccountDB  # Type[BaseAccountDB]
     transaction_executor = FrontierTransactionExecutor  # Type[BaseTransactionExecutor]
 

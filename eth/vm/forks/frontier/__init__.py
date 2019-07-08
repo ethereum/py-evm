@@ -1,4 +1,4 @@
-from typing import Type  # noqa: F401
+from typing import Type
 
 from eth_bloom import (
     BloomFilter,
@@ -10,7 +10,7 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
-from eth.rlp.blocks import BaseBlock  # noqa: F401
+from eth.rlp.blocks import BaseBlock
 from eth.rlp.headers import BlockHeader
 from eth.rlp.logs import Log
 from eth.rlp.receipts import Receipt
@@ -18,7 +18,7 @@ from eth.rlp.transactions import BaseTransaction
 
 from eth.vm.base import VM
 from eth.vm.computation import BaseComputation
-from eth.vm.state import BaseState  # noqa: F401
+from eth.vm.state import BaseState
 
 from .blocks import FrontierBlock
 from .state import FrontierState
@@ -64,11 +64,11 @@ def make_frontier_receipt(base_header: BlockHeader,
 
 class FrontierVM(VM):
     # fork name
-    fork = 'frontier'  # type: str
+    fork: str = 'frontier'  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
 
     # classes
-    block_class = FrontierBlock  # type: Type[BaseBlock]
-    _state_class = FrontierState  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = FrontierBlock
+    _state_class: Type[BaseState] = FrontierState
 
     # methods
     create_header_from_parent = staticmethod(create_frontier_header_from_parent)    # type: ignore

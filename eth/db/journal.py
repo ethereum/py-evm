@@ -2,7 +2,7 @@ import collections
 from itertools import (
     count,
 )
-from typing import Callable, cast, Dict, List, Set, Union  # noqa: F401
+from typing import Callable, cast, Dict, List, Set, Union
 
 from eth_utils.toolz import (
     first,
@@ -67,23 +67,23 @@ class Journal(BaseDB):
 
     def __init__(self) -> None:
         # If the journal was persisted right now, these would be the current changes to push:
-        self._current_values = {}  # type: ChangesetDict
+        self._current_values: ChangesetDict = {}
 
         # contains a mapping from all of the int checkpoints
         # to a dictionary of key:value pairs that are used to rewind from the current values
         # to the given checkpoint
-        self._journal_data = collections.OrderedDict()  # type: collections.OrderedDict[JournalDBCheckpoint, ChangesetDict]  # noqa E501
+        self._journal_data: collections.OrderedDict[JournalDBCheckpoint, ChangesetDict] = collections.OrderedDict()  # noqa E501
 
         # Clears are special operations that enforce that the underlying database and current
         # changes are completely emptied out. Clears are also committable & discardable.
-        self._clears_at = set()  # type: Set[JournalDBCheckpoint]
+        self._clears_at: Set[JournalDBCheckpoint] = set()
 
         # If a clear was called, then any missing keys should be treated as missing
         self._ignore_wrapped_db = False
 
         # To speed up commits, we leave in old recorded checkpoints in self._journal_data, even
         # on commit. Instead of dropping them, we keep a separate list of active checkpoints.
-        self._checkpoint_stack = []  # type: List[JournalDBCheckpoint]
+        self._checkpoint_stack: List[JournalDBCheckpoint] = []
 
     @property
     def root_checkpoint(self) -> JournalDBCheckpoint:

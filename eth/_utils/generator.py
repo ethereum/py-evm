@@ -1,5 +1,5 @@
 import itertools
-from typing import (  # noqa: F401
+from typing import (
     Generic,
     Iterable,
     Iterator,
@@ -13,7 +13,7 @@ TItem = TypeVar('TItem')
 
 class CachedIterable(Generic[TItem], Iterable[TItem]):
     def __init__(self, iterable: Iterable[TItem]) -> None:
-        self._cached_results = []  # type: List[TItem]
+        self._cached_results: List[TItem] = []
         self._iterator = iter(iterable)
 
     def __iter__(self) -> Iterator[TItem]:

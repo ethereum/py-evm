@@ -5,7 +5,7 @@ extracting environment variables.
 
 import os
 
-from typing import (  # noqa: F401
+from typing import (
     Any,
     Callable,
     Dict,
@@ -222,7 +222,7 @@ def get(name: str,
     :param type: The type of variable expected.
     :param type: str or type
     """
-    fns = {
+    fns: Dict[Union[str, Type[Any]], Callable[..., Any]] = {
         'int': env_int,
         int: env_int,
 
@@ -237,7 +237,7 @@ def get(name: str,
 
         'list': env_list,
         list: env_list,
-    }  # type: Dict[Union[str, Type[Any]], Callable[..., Any]]
+    }
 
     fn = fns.get(type, env_string)
     return fn(name, default=default, required=required)

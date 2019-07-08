@@ -1,4 +1,4 @@
-from typing import (  # noqa: F401
+from typing import (
     Iterable,
     List,
     Type,
@@ -106,7 +106,7 @@ class FrontierBlock(BaseBlock):
         Returns the block denoted by the given block header.
         """
         if header.uncles_hash == EMPTY_UNCLE_HASH:
-            uncles = []  # type: List[BlockHeader]
+            uncles: List[BlockHeader] = []
         else:
             uncles = chaindb.get_block_uncles(header.uncles_hash)
 

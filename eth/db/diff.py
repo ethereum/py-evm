@@ -68,7 +68,7 @@ class DBDiffTracker(ABC_Mutable_Mapping):
     get the :class:`DBDiff` with :meth:`DBDiffTracker.diff` and use the attached methods.
     """
     def __init__(self) -> None:
-        self._changes = {}  # type: Dict[bytes, Union[bytes, MissingReason]]
+        self._changes: Dict[bytes, Union[bytes, MissingReason]] = {}
 
     def __contains__(self, key: bytes) -> bool:  # type: ignore # Breaks LSP
         result = self._changes.get(key, NEVER_INSERTED)
@@ -109,7 +109,7 @@ class DBDiff(ABC_Mapping):
     The primary usage is to apply these changes to your underlying
     database with :meth:`apply_to`.
     """
-    _changes = None  # type: Dict[bytes, Union[bytes, MissingReason]]
+    _changes: Dict[bytes, Union[bytes, MissingReason]] = None
 
     def __init__(self, changes: Dict[bytes, Union[bytes, MissingReason]] = None) -> None:
         if changes is None:

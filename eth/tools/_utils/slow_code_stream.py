@@ -1,7 +1,7 @@
 import contextlib
 import io
 import logging
-from typing import (  # noqa: F401
+from typing import (
     Iterator,
     Set
 )
@@ -22,8 +22,8 @@ class SlowCodeStream(object):
     stream = None
     _length_cache = None
     _raw_code_bytes = None
-    invalid_positions = None  # type: Set[int]
-    valid_positions = None  # type: Set[int]
+    invalid_positions: Set[int] = None
+    valid_positions: Set[int] = None
 
     logger = logging.getLogger('eth.vm.SlowCodeStream')
 

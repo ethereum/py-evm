@@ -33,10 +33,10 @@ RefundStrategy = Callable[[int, int], int]
 
 class GasMeter(object):
 
-    start_gas = None  # type: int
+    start_gas: int = None
 
-    gas_refunded = None  # type: int
-    gas_remaining = None  # type: int
+    gas_refunded: int = None
+    gas_remaining: int = None
 
     logger = cast(ExtendedDebugLogger, logging.getLogger('eth.gas.GasMeter'))
 

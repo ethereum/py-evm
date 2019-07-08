@@ -1,7 +1,5 @@
 from collections import OrderedDict
-from typing import (  # noqa: F401
-    Dict,
-    List,
+from typing import (
     Tuple
 )
 
@@ -31,7 +29,7 @@ from eth.validation import (
 
 
 # Type annotation here is to ensure we don't accidentally use strings instead of bytes.
-cache_by_epoch = OrderedDict()  # type: OrderedDict[int, bytearray]
+cache_by_epoch: 'OrderedDict[int, bytearray]' = OrderedDict()
 CACHE_MAX_ITEMS = 10
 
 

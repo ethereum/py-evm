@@ -4,14 +4,12 @@ from abc import (
 )
 import contextlib
 import logging
-from typing import (  # noqa: F401
+from typing import (
     cast,
-    Callable,
     Iterator,
     Tuple,
     Type,
     TYPE_CHECKING,
-    Union,
 )
 from uuid import UUID
 
@@ -25,9 +23,8 @@ from eth.constants import (
     BLANK_ROOT_HASH,
     MAX_PREV_HEADER_DEPTH,
 )
-from eth.db.account import (  # noqa: F401
+from eth.db.account import (
     BaseAccountDB,
-    AccountDB,
 )
 from eth.db.backends.base import (
     BaseAtomicDB,
@@ -54,7 +51,6 @@ if TYPE_CHECKING:
     from eth.rlp.transactions import (  # noqa: F401
         BaseTransaction,
     )
-
     from eth.vm.transaction_context import (  # noqa: F401
         BaseTransactionContext,
     )
@@ -81,10 +77,10 @@ class BaseState(Configurable, ABC):
     #
     __slots__ = ['_db', 'execution_context', '_account_db']
 
-    computation_class = None  # type: Type[BaseComputation]
-    transaction_context_class = None  # type: Type[BaseTransactionContext]
-    account_db_class = None  # type: Type[BaseAccountDB]
-    transaction_executor = None  # type: Type[BaseTransactionExecutor]
+    computation_class: Type['BaseComputation'] = None
+    transaction_context_class: Type['BaseTransactionContext'] = None
+    account_db_class: Type['BaseAccountDB'] = None
+    transaction_executor: Type['BaseTransactionExecutor'] = None
 
     def __init__(
             self,

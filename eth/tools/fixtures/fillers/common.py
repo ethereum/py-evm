@@ -5,12 +5,10 @@ from functools import (
     partial,
     wraps,
 )
-from typing import (  # noqa: F401
+from typing import (
     Any,
     Callable,
     Dict,
-    List,
-    Sequence,
 )
 from eth_utils.toolz import (
     assoc,
@@ -68,7 +66,7 @@ DEFAULT_MAIN_ENVIRONMENT = {
 }
 
 
-DEFAULT_MAIN_TRANSACTION = {
+DEFAULT_MAIN_TRANSACTION: TransactionDict = {
     "data": b"",
     "gasLimit": 100000,
     "gasPrice": 0,
@@ -76,7 +74,7 @@ DEFAULT_MAIN_TRANSACTION = {
     "secretKey": decode_hex("0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"),
     "to": to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"),
     "value": 0
-}   # type: TransactionDict
+}
 
 
 def get_default_transaction(networks: Any) -> TransactionDict:
@@ -192,7 +190,7 @@ def _expect(post_state: Dict[str, Any],
 
     test_name = get_test_name(filler)
     test = filler[test_name]
-    test_update = {test_name: {}}  # type: Dict[str, Dict[Any, Any]]
+    test_update: Dict[str, Dict[Any, Any]] = {test_name: {}}
 
     pre_state = test.get("pre", {})
     post_state = normalize_state(post_state or {})

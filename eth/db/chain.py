@@ -73,7 +73,7 @@ class TransactionKey(rlp.Serializable):
 
 
 class BaseChainDB(BaseHeaderDB):
-    db = None  # type: BaseAtomicDB
+    db: BaseAtomicDB = None
 
     @abstractmethod
     def __init__(self, db: BaseAtomicDB) -> None:

@@ -20,15 +20,14 @@ from eth.tools.logging import ExtendedDebugLogger
 from eth._utils.datatypes import Configurable
 
 if TYPE_CHECKING:
-    from computation import BaseComputation     # noqa: F401
-
+    from computation import BaseComputation  # noqa: F401
 
 T = TypeVar('T')
 
 
 class Opcode(Configurable, ABC):
-    mnemonic = None  # type: str
-    gas_cost = None  # type: int
+    mnemonic: str = None
+    gas_cost: int = None
 
     def __init__(self) -> None:
         if self.mnemonic is None:

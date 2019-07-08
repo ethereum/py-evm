@@ -1,4 +1,4 @@
-from typing import (  # noqa: F401
+from typing import (
     Type,
 )
 
@@ -16,7 +16,7 @@ from eth_utils import (
 from eth.constants import (
     MAX_UNCLE_DEPTH,
 )
-from eth.rlp.blocks import BaseBlock  # noqa: F401
+from eth.rlp.blocks import BaseBlock
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
@@ -26,7 +26,7 @@ from eth.validation import (
 from eth.vm.forks.spurious_dragon import SpuriousDragonVM
 from eth.vm.forks.frontier import make_frontier_receipt
 from eth.vm.computation import BaseComputation
-from eth.vm.state import BaseState  # noqa: F401
+from eth.vm.state import BaseState
 
 from .blocks import ByzantiumBlock
 from .constants import (
@@ -60,8 +60,8 @@ class ByzantiumVM(SpuriousDragonVM):
     fork = 'byzantium'
 
     # classes
-    block_class = ByzantiumBlock  # type: Type[BaseBlock]
-    _state_class = ByzantiumState  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = ByzantiumBlock
+    _state_class: Type[BaseState] = ByzantiumState
 
     # Methods
     create_header_from_parent = staticmethod(create_byzantium_header_from_parent)   # type: ignore

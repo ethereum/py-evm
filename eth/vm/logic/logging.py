@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 import functools
-from typing import Tuple  # noqa: F401
-
+from typing import Tuple
 from eth import constants
 
 from eth.vm.computation import BaseComputation
@@ -14,7 +13,7 @@ def log_XX(computation: BaseComputation, topic_count: int) -> None:
     mem_start_position, size = computation.stack_pop_ints(2)
 
     if not topic_count:
-        topics = ()  # type: Tuple[int, ...]
+        topics: Tuple[int, ...] = ()
     elif topic_count > 1:
         topics = computation.stack_pop_ints(topic_count)
     else:

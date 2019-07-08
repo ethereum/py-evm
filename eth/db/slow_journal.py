@@ -1,5 +1,5 @@
 import collections
-from typing import cast, Dict, Set, Union  # noqa: F401
+from typing import cast, Dict, Set, Union
 import uuid
 
 from eth_utils.toolz import (
@@ -45,8 +45,8 @@ class Journal(BaseDB):
         # contains a mapping from all of the `uuid4` changeset_ids
         # to a dictionary of key:value pairs with the recorded changes
         # that belong to the changeset
-        self.journal_data = collections.OrderedDict()  # type: collections.OrderedDict[uuid.UUID, Dict[bytes, Union[bytes, DeletedEntry]]]  # noqa E501
-        self._clears_at = set()  # type: Set[uuid.UUID]
+        self.journal_data: collections.OrderedDict[uuid.UUID, Dict[bytes, Union[bytes, DeletedEntry]]] = collections.OrderedDict()  # noqa E501
+        self._clears_at: Set[uuid.UUID] = set()
 
     @property
     def root_changeset_id(self) -> uuid.UUID:
@@ -234,7 +234,7 @@ class Journal(BaseDB):
 
     def diff(self) -> DBDiff:
         tracker = DBDiffTracker()
-        visited_keys = set()  # type: Set[bytes]
+        visited_keys: Set[bytes] = set()
 
         # Iterate in reverse, so you can skip over any keys from old checkpoints.
         # This is required so that when a key is created and then deleted in the journal,
@@ -279,7 +279,7 @@ class JournalDB(BaseDB):
     to track latest value for any given key within any given changeset.
     """
     wrapped_db = None
-    journal = None  # type: Journal
+    journal: Journal = None
 
     def __init__(self, wrapped_db: BaseDB) -> None:
         self.wrapped_db = wrapped_db

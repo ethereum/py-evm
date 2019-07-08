@@ -43,7 +43,7 @@ class Message(object):
                  should_transfer_value: bool=True,
                  is_static: bool=False) -> None:
         validate_uint256(gas, title="Message.gas")
-        self.gas = gas  # type: int
+        self.gas: int = gas
 
         if to != CREATE_CONTRACT_ADDRESS:
             validate_canonical_address(to, title="Message.to")
