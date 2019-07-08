@@ -694,7 +694,7 @@ async def test_wait_to_prune_until_yielded():
 @example(task_series=[1, 2, 0, 3], prune_depth=1)
 @example(task_series=[0, 1, 2, 3, 0, 4], prune_depth=1)
 @example(task_series=[0, 4, 2, 1, 5], prune_depth=1)
-@pytest.mark.parametrize('ignore_duplicates', (False,))
+@pytest.mark.parametrize('ignore_duplicates', (False, True))
 @pytest.mark.parametrize('recomplete_idx', (None, 1))
 @pytest.mark.parametrize('batch_size', (1, 3))
 @pytest.mark.asyncio
