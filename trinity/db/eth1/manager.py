@@ -1,3 +1,4 @@
+import multiprocessing
 from multiprocessing.managers import (
     BaseManager,
 )
@@ -19,6 +20,8 @@ from trinity.initialization import (
 )
 from trinity._utils.mp import TracebackRecorder
 
+AUTH_KEY = b"not secure, but only connect over IPC"
+
 
 def create_db_server_manager(trinity_config: TrinityConfig,
                              base_db: BaseAtomicDB) -> BaseManager:
@@ -30,6 +33,9 @@ def create_db_server_manager(trinity_config: TrinityConfig,
         initialize_database(chain_config, chaindb, base_db)
 
     headerdb = HeaderDB(base_db)
+
+    # This enables connection when clients launch from another process on the shell
+    multiprocessing.current_process().authkey = AUTH_KEY
 
     class DBManager(BaseManager):
         pass
@@ -58,6 +64,9 @@ def create_db_consumer_manager(ipc_path: pathlib.Path, connect: bool=True) -> Ba
     We're still using 'str' here on param ipc_path because an issue with
     multi-processing not being able to interpret 'Path' objects correctly
     """
+    # This enables connection when launched from another process on the shell
+    multiprocessing.current_process().authkey = AUTH_KEY
+
     class DBManager(BaseManager):
         pass
 
