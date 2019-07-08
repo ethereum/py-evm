@@ -561,7 +561,7 @@ class OrderedTaskPreparation(
         # check if there are duplicate tasks within `tasks`
         if len(identified_tasks) < len(tasks) and not ignore_duplicates:
             raise ValidationError(
-                f"Not allowed to register same task twice. Tried to register: {tasks}"
+                f"May not register same task twice in the same call. Tried to register: {tasks}"
             )
 
         duplicates = tuple(
