@@ -1,0 +1,20 @@
+tt, code, pre {
+    font-family: monospace, sans-serif;
+    font-size: 96.5%;
+}
+
+.rst-content dl:not(.docutils) tt.descname,
+.rst-content dl:not(.docutils) tt.descclassname,
+.rst-content dl:not(.docutils) tt.descname,
+.rst-content dl:not(.docutils) code.descname,
+.rst-content dl:not(.docutils) tt.descclassname,
+.rst-content dl:not(.docutils) code.descclassname {
+  font-size: 130% !important;
+}
+
+.rst-content dl:not(.docutils) dl dt {
+  background: #fff;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
