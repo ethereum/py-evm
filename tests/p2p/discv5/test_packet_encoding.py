@@ -15,13 +15,16 @@ from p2p.discv5.packets import (
     AuthTagPacket,
     AuthHeaderPacket,
     AuthHeader,
+    WhoAreYouPacket,
     decode_message_packet,
+    decode_who_are_you_packet,
 )
 from p2p.discv5.constants import (
     NONCE_SIZE,
     TAG_SIZE,
     MAX_PACKET_SIZE,
     AUTH_SCHEME_NAME,
+    MAGIC_SIZE,
 )
 
 
@@ -29,6 +32,13 @@ nonce_st = st.binary(min_size=NONCE_SIZE, max_size=NONCE_SIZE)
 tag_st = st.binary(min_size=TAG_SIZE, max_size=TAG_SIZE)
 # arbitrary as we're not working with a particular identity scheme
 pubkey_st = st.binary(min_size=33, max_size=33)
+
+
+magic_st = st.binary(min_size=MAGIC_SIZE, max_size=MAGIC_SIZE)
+nonce_st = st.binary(min_size=NONCE_SIZE, max_size=NONCE_SIZE)
+tag_st = st.binary(min_size=TAG_SIZE, max_size=TAG_SIZE)
+id_nonce_st = st.binary(min_size=16, max_size=32)  # arbitrary as there are no spec restrictions
+enr_seq_st = st.integers(min_value=0)
 
 
 @given(
@@ -150,3 +160,54 @@ def test_oversize_auth_header_packet_encoding():
 def test_invalid_message_packet_decoding(encoded_packet):
     with pytest.raises(ValidationError):
         decode_message_packet(encoded_packet)
+
+
+@given(
+    tag=tag_st,
+    magic=magic_st,
+    token=nonce_st,
+    id_nonce=id_nonce_st,
+    enr_seq=enr_seq_st,
+)
+def test_who_are_you_encoding_decoding(tag, magic, token, id_nonce, enr_seq):
+    original_packet = WhoAreYouPacket(
+        tag=tag,
+        magic=magic,
+        token=token,
+        id_nonce=id_nonce,
+        enr_sequence_number=enr_seq,
+    )
+    encoded_packet = original_packet.to_wire_bytes()
+    decoded_packet = decode_who_are_you_packet(encoded_packet)
+    assert decoded_packet == original_packet
+
+
+@pytest.mark.parametrize("encoded_packet", (
+    b"",  # empty
+    b"\x00" * (TAG_SIZE + MAGIC_SIZE),  # no payload
+    b"\x00" * 500,  # invalid RLP payload
+    b"\x00" * (TAG_SIZE + MAGIC_SIZE) + rlp.encode(b"payload"),  # payload is not a list
+    # payload too short
+    b"\x00" * (TAG_SIZE + MAGIC_SIZE) + rlp.encode((b"\x00" * NONCE_SIZE, b"")),
+    # payload too long
+    b"\x00" * (TAG_SIZE + MAGIC_SIZE) + rlp.encode((b"\x00" * NONCE_SIZE, b"", b"", b"")),
+    b"\x00" * (TAG_SIZE + MAGIC_SIZE - 1) + rlp.encode((b"\x00" * NONCE_SIZE, b"", 0)),  # too short
+    b"\x00" * (TAG_SIZE + MAGIC_SIZE) + rlp.encode((b"\x00" * 11, b"", 0)),  # invalid nonce
+    # too long
+    b"\x00" * (TAG_SIZE + MAGIC_SIZE) + rlp.encode((b"\x00" * NONCE_SIZE, b"\x00" * 2000, 0)),
+))
+def test_invalid_who_are_you_decoding(encoded_packet):
+    with pytest.raises(ValidationError):
+        decode_who_are_you_packet(encoded_packet)
+
+
+def test_invalid_who_are_you_encoding():
+    packet = WhoAreYouPacket(
+        tag=b"\x00" * TAG_SIZE,
+        magic=b"\x00" * MAGIC_SIZE,
+        token=b"\x00" * NONCE_SIZE,
+        id_nonce=b"\x00" * 2000,
+        enr_sequence_number=0,
+    )
+    with pytest.raises(ValidationError):
+        packet.to_wire_bytes()

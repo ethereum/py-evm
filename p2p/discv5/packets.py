@@ -6,12 +6,16 @@ from typing import (
 )
 
 import rlp
+from rlp.sedes import (
+    big_endian_int,
+)
 from rlp.exceptions import (
     DecodingError,
 )
 
 from eth_utils import (
     is_bytes,
+    encode_hex,
     is_list_like,
     ValidationError,
 )
@@ -32,6 +36,7 @@ from p2p.discv5.constants import (
     AUTH_SCHEME_NAME,
     MAX_PACKET_SIZE,
     TAG_SIZE,
+    MAGIC_SIZE,
 )
 
 
@@ -75,9 +80,47 @@ class AuthTagPacket(NamedTuple):
         return encoded_packet
 
 
+class WhoAreYouPacket(NamedTuple):
+    tag: Hash32
+    magic: Hash32
+    token: Nonce
+    id_nonce: bytes
+    enr_sequence_number: int
+
+    def to_wire_bytes(self) -> bytes:
+        message = rlp.encode((
+            self.token,
+            self.id_nonce,
+            self.enr_sequence_number,
+        ))
+
+        encoded_packet = b"".join((
+            self.tag,
+            self.magic,
+            message,
+        ))
+
+        validate_who_are_you_packet_size(encoded_packet)
+        return encoded_packet
+
+
 #
 # Validation
 #
+def validate_who_are_you_packet_size(encoded_packet: bytes) -> None:
+    validate_max_packet_size(encoded_packet)
+    validate_tag_prefix(encoded_packet)
+    if len(encoded_packet) - TAG_SIZE < MAGIC_SIZE:
+        raise ValidationError(
+            f"Encoded packet is only {len(encoded_packet)} bytes, but should contain {MAGIC_SIZE} "
+            f"bytes of magic following the {TAG_SIZE} tag at the beginning."
+        )
+    if len(encoded_packet) - TAG_SIZE - MAGIC_SIZE < 1:
+        raise ValidationError(
+            f"Encoded packet is missing RLP encoded payload section"
+        )
+
+
 def validate_message_packet_size(encoded_packet: bytes) -> None:
     validate_max_packet_size(encoded_packet)
     validate_tag_prefix(encoded_packet)
@@ -109,6 +152,11 @@ def validate_auth_header(auth_header: AuthHeader) -> None:
 
 
 #
+# Packet encoding
+#
+
+
+#
 # Packet decoding
 #
 def decode_message_packet(encoded_packet: bytes) -> Union[AuthTagPacket, AuthHeaderPacket]:
@@ -135,6 +183,21 @@ def decode_message_packet(encoded_packet: bytes) -> Union[AuthTagPacket, AuthHea
         raise Exception("Unreachable: decode_auth returns either Nonce or AuthHeader")
 
     return packet
+
+
+def decode_who_are_you_packet(encoded_packet: bytes) -> WhoAreYouPacket:
+    validate_who_are_you_packet_size(encoded_packet)
+
+    tag = _decode_tag(encoded_packet)
+    magic = _decode_who_are_you_magic(encoded_packet)
+    token, id_nonce, enr_seq = _decode_who_are_you_payload(encoded_packet)
+    return WhoAreYouPacket(
+        tag=tag,
+        magic=magic,
+        token=token,
+        id_nonce=id_nonce,
+        enr_sequence_number=enr_seq,
+    )
 
 
 def _decode_tag(encoded_packet: bytes) -> Hash32:
@@ -165,3 +228,32 @@ def _decode_auth(encoded_packet: bytes) -> Tuple[Union[AuthHeader, Nonce], int]:
         return auth_header, message_start_index
     else:
         raise Exception("unreachable: RLP can only encode bytes and lists")
+
+
+def _decode_who_are_you_magic(encoded_packet: bytes) -> Hash32:
+    return Hash32(encoded_packet[TAG_SIZE:TAG_SIZE + MAGIC_SIZE])
+
+
+def _decode_who_are_you_payload(encoded_packet: bytes) -> Tuple[Nonce, bytes, int]:
+    payload_rlp = encoded_packet[TAG_SIZE + MAGIC_SIZE:]
+
+    try:
+        payload = rlp.decode(payload_rlp)
+    except DecodingError as error:
+        raise ValidationError(
+            f"WHOAREYOU payload section is not proper RLP: {encode_hex(payload_rlp)}"
+        ) from error
+
+    if not is_list_like(payload):
+        raise ValidationError(
+            f"WHOAREYOU payload section is not an RLP encoded list: {payload}"
+        )
+    if len(payload) != 3:
+        raise ValidationError(
+            f"WHOAREYOU payload consists of {len(payload)} instead of 3 elements: {payload}"
+        )
+
+    token, id_nonce, enr_seq_bytes = payload
+    enr_seq = big_endian_int.deserialize(enr_seq_bytes)
+    validate_nonce(token)
+    return Nonce(token), id_nonce, enr_seq
