@@ -18,3 +18,35 @@ tt, code, pre {
   margin: 0;
   padding: 0;
 }
+
+/* We instruct sphinx to order members groupwise and use the following css to add headlines */
+
+dl.attribute:before {
+  content: "Attributes";
+}
+
+dl.method:before {
+  content: "Methods";
+}
+
+dl.classmethod:before {
+  content: "Classmethods";
+}
+
+dl.method:before,
+dl.attribute:before,
+dl.classmethod:before {
+  background: #e7f2fa;
+  border-top: solid 3px #6ab0de;
+  color: #000;
+  display: inline-block;
+  font-weight: bold;
+  margin: 5px 0 10px 0;
+  padding: 5px;
+}
+
+dl.method ~ dl.method:before,
+dl.attribute ~ dl.attribute:before,
+dl.classmethod ~ dl.classmethod:before {
+  display: none;
+}
