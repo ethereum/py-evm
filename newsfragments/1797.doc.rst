@@ -1,0 +1,1 @@
+Tweak layout of API docs to improve readability
