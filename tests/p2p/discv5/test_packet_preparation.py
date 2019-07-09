@@ -9,8 +9,8 @@ from eth_utils import (
 )
 
 from p2p.discv5.packets import (
-    prepare_auth_header_packet,
-    prepare_who_are_you_packet,
+    AuthHeaderPacket,
+    WhoAreYouPacket,
 )
 from p2p.discv5.enr import (
     ENR,
@@ -63,7 +63,7 @@ def test_auth_header_preparation(tag,
     )
     id_nonce_signature = b"\x00" * 32
 
-    packet = prepare_auth_header_packet(
+    packet = AuthHeaderPacket.prepare(
         tag=tag,
         auth_tag=auth_tag,
         message=message,
@@ -121,7 +121,7 @@ def test_auth_header_preparation_without_enr(tag,
     )
     id_nonce_signature = b"\x00" * 32
 
-    packet = prepare_auth_header_packet(
+    packet = AuthHeaderPacket.prepare(
         tag=tag,
         auth_tag=auth_tag,
         message=message,
@@ -152,7 +152,7 @@ def test_auth_header_preparation_without_enr(tag,
     enr_seq=enr_seq_st,
 )
 def test_who_are_you_preparation(tag, node_id, token, id_nonce, enr_seq):
-    packet = prepare_who_are_you_packet(
+    packet = WhoAreYouPacket.prepare(
         tag=tag,
         destination_node_id=node_id,
         token=token,

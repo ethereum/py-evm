@@ -70,6 +70,48 @@ class AuthHeaderPacket(NamedTuple):
     auth_header: AuthHeader
     encrypted_message: bytes
 
+    @classmethod
+    def prepare(cls,
+                *,
+                tag: Hash32,
+                auth_tag: Nonce,
+                message: BaseMessage,
+                initiator_key: AES128Key,
+                id_nonce_signature: bytes,
+                auth_response_key: AES128Key,
+                enr: Optional[ENR],
+                ephemeral_pubkey: bytes,
+                ) -> "AuthHeaderPacket":
+        encrypted_auth_response = compute_encrypted_auth_response(
+            auth_response_key=auth_response_key,
+            id_nonce_signature=id_nonce_signature,
+            enr=enr,
+            tag=tag,
+        )
+        auth_header = AuthHeader(
+            auth_tag=auth_tag,
+            auth_scheme_name=AUTH_SCHEME_NAME,
+            ephemeral_pubkey=ephemeral_pubkey,
+            encrypted_auth_response=encrypted_auth_response,
+        )
+
+        authenticated_data = b"".join((
+            tag,
+            rlp.encode(auth_header),
+        ))
+        encrypted_message = compute_encrypted_message(
+            initiator_key=initiator_key,
+            auth_tag=auth_tag,
+            message=message,
+            authenticated_data=authenticated_data,
+        )
+
+        return cls(
+            tag=tag,
+            auth_header=auth_header,
+            encrypted_message=encrypted_message,
+        )
+
     def to_wire_bytes(self) -> bytes:
         encoded_packet = b"".join((
             self.tag,
@@ -101,6 +143,24 @@ class WhoAreYouPacket(NamedTuple):
     token: Nonce
     id_nonce: bytes
     enr_sequence_number: int
+
+    @classmethod
+    def prepare(cls,
+                *,
+                tag: Hash32,
+                destination_node_id: Hash32,
+                token: Nonce,
+                id_nonce: bytes,
+                enr_sequence_number: int,
+                ) -> "WhoAreYouPacket":
+        magic = compute_who_are_you_magic(destination_node_id)
+        return cls(
+            tag=tag,
+            magic=magic,
+            token=token,
+            id_nonce=id_nonce,
+            enr_sequence_number=enr_sequence_number,
+        )
 
     def to_wire_bytes(self) -> bytes:
         message = rlp.encode((
@@ -267,67 +327,6 @@ def _decode_who_are_you_payload(encoded_packet: bytes) -> Tuple[Nonce, bytes, in
     enr_seq = big_endian_int.deserialize(enr_seq_bytes)
     validate_nonce(token)
     return Nonce(token), id_nonce, enr_seq
-
-
-#
-# Packet preparation
-#
-def prepare_auth_header_packet(*,
-                               tag: Hash32,
-                               auth_tag: Nonce,
-                               message: BaseMessage,
-                               initiator_key: AES128Key,
-                               id_nonce_signature: bytes,
-                               auth_response_key: AES128Key,
-                               enr: Optional[ENR],
-                               ephemeral_pubkey: bytes,
-                               ) -> AuthHeaderPacket:
-    encrypted_auth_response = compute_encrypted_auth_response(
-        auth_response_key=auth_response_key,
-        id_nonce_signature=id_nonce_signature,
-        enr=enr,
-        tag=tag,
-    )
-    auth_header = AuthHeader(
-        auth_tag=auth_tag,
-        auth_scheme_name=AUTH_SCHEME_NAME,
-        ephemeral_pubkey=ephemeral_pubkey,
-        encrypted_auth_response=encrypted_auth_response,
-    )
-
-    authenticated_data = b"".join((
-        tag,
-        rlp.encode(auth_header),
-    ))
-    encrypted_message = compute_encrypted_message(
-        initiator_key=initiator_key,
-        auth_tag=auth_tag,
-        message=message,
-        authenticated_data=authenticated_data,
-    )
-
-    return AuthHeaderPacket(
-        tag=tag,
-        auth_header=auth_header,
-        encrypted_message=encrypted_message,
-    )
-
-
-def prepare_who_are_you_packet(*,
-                               tag: Hash32,
-                               destination_node_id: Hash32,
-                               token: Nonce,
-                               id_nonce: bytes,
-                               enr_sequence_number: int,
-                               ) -> WhoAreYouPacket:
-    magic = compute_who_are_you_magic(destination_node_id)
-    return WhoAreYouPacket(
-        tag=tag,
-        magic=magic,
-        token=token,
-        id_nonce=id_nonce,
-        enr_sequence_number=enr_sequence_number,
-    )
 
 
 #
