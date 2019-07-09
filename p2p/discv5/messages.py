@@ -15,6 +15,10 @@ from rlp.sedes import (
     CountableList,
 )
 
+from eth_utils import (
+    int_to_big_endian,
+)
+
 from p2p.discv5.enr import (
     ENR,
 )
@@ -27,7 +31,7 @@ from p2p.discv5.constants import (
 
 # https://github.com/python/mypy/issues/5264#issuecomment-399407428
 if TYPE_CHECKING:
-    MessageTypeRegistryBaseType = UserDict[int, Type["MessageData"]]
+    MessageTypeRegistryBaseType = UserDict[int, Type["BaseMessage"]]
 else:
     MessageTypeRegistryBaseType = UserDict
 
@@ -53,9 +57,9 @@ ip_address_sedes = IPAddressSedes()
 class MessageTypeRegistry(MessageTypeRegistryBaseType):
 
     def register(self,
-                 message_data_class: Type["MessageData"]
-                 ) -> Type["MessageData"]:
-        """Class Decorator to register MessageData classes."""
+                 message_data_class: Type["BaseMessage"]
+                 ) -> Type["BaseMessage"]:
+        """Class Decorator to register BaseMessage classes."""
         message_type = message_data_class.message_type
         if message_type is None:
             raise ValueError("Message type must be defined")
@@ -84,12 +88,18 @@ default_message_type_registry = MessageTypeRegistry()
 #
 # Message types
 #
-class MessageData(rlp.Serializable):
+class BaseMessage(rlp.Serializable):
     message_type: int
+
+    def to_bytes(self) -> bytes:
+        return b"".join((
+            int_to_big_endian(self.message_type),
+            rlp.encode(self),
+        ))
 
 
 @default_message_type_registry.register
-class PingData(MessageData):
+class PingMessage(BaseMessage):
     message_type = 1
 
     fields = (
@@ -99,7 +109,7 @@ class PingData(MessageData):
 
 
 @default_message_type_registry.register
-class PongData(MessageData):
+class PongMessage(BaseMessage):
     message_type = 2
 
     fields = (
@@ -111,7 +121,7 @@ class PongData(MessageData):
 
 
 @default_message_type_registry.register
-class FindNodeData(MessageData):
+class FindNodeMessage(BaseMessage):
     message_type = 3
 
     fields = (
@@ -121,7 +131,7 @@ class FindNodeData(MessageData):
 
 
 @default_message_type_registry.register
-class NodesData(MessageData):
+class NodesMessage(BaseMessage):
     message_type = 4
 
     fields = (
@@ -132,7 +142,7 @@ class NodesData(MessageData):
 
 
 @default_message_type_registry.register
-class ReqTicketData(MessageData):
+class ReqTicketMessage(BaseMessage):
     message_type = 5
 
     fields = (
@@ -142,7 +152,7 @@ class ReqTicketData(MessageData):
 
 
 @default_message_type_registry.register
-class TicketData(MessageData):
+class TicketMessage(BaseMessage):
     message_type = 6
 
     fields = (
@@ -153,7 +163,7 @@ class TicketData(MessageData):
 
 
 @default_message_type_registry.register
-class RegTopicData(MessageData):
+class RegTopicMessage(BaseMessage):
     message_type = 7
 
     fields = (
@@ -163,7 +173,7 @@ class RegTopicData(MessageData):
 
 
 @default_message_type_registry.register
-class RegConfirmationData(MessageData):
+class RegConfirmationMessage(BaseMessage):
     message_type = 8
 
     fields = (
@@ -173,7 +183,7 @@ class RegConfirmationData(MessageData):
 
 
 @default_message_type_registry.register
-class TopicQueryData(MessageData):
+class TopicQueryMessage(BaseMessage):
     message_type = 9
 
     fields = (

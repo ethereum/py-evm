@@ -1,6 +1,7 @@
 from typing import (
     cast,
     NamedTuple,
+    Optional,
     Tuple,
     Union,
 )
@@ -29,14 +30,25 @@ from eth.validation import (
 )
 
 from p2p.discv5.encryption import (
+    aesgcm_encrypt,
     validate_nonce,
-    Nonce,
+)
+from p2p.discv5.messages import (
+    BaseMessage,
+)
+from p2p.discv5.enr import (
+    ENR,
 )
 from p2p.discv5.constants import (
     AUTH_SCHEME_NAME,
     MAX_PACKET_SIZE,
     TAG_SIZE,
     MAGIC_SIZE,
+    ZERO_NONCE,
+)
+from p2p.discv5.typing import (
+    AES128Key,
+    Nonce,
 )
 
 
@@ -152,11 +164,6 @@ def validate_auth_header(auth_header: AuthHeader) -> None:
 
 
 #
-# Packet encoding
-#
-
-
-#
 # Packet decoding
 #
 def decode_message_packet(encoded_packet: bytes) -> Union[AuthTagPacket, AuthHeaderPacket]:
@@ -257,3 +264,83 @@ def _decode_who_are_you_payload(encoded_packet: bytes) -> Tuple[Nonce, bytes, in
     enr_seq = big_endian_int.deserialize(enr_seq_bytes)
     validate_nonce(token)
     return Nonce(token), id_nonce, enr_seq
+
+
+#
+# Packet preparation
+#
+def prepare_auth_header_packet(*,
+                               tag: Hash32,
+                               auth_tag: Nonce,
+                               message: BaseMessage,
+                               initiator_key: AES128Key,
+                               id_nonce_signature: bytes,
+                               auth_response_key: AES128Key,
+                               enr: Optional[ENR],
+                               ephemeral_pubkey: bytes,
+                               ) -> AuthHeaderPacket:
+    encrypted_auth_response = compute_encrypted_auth_response(
+        auth_response_key=auth_response_key,
+        id_nonce_signature=id_nonce_signature,
+        enr=enr,
+        tag=tag,
+    )
+    auth_header = AuthHeader(
+        auth_tag=auth_tag,
+        auth_scheme_name=AUTH_SCHEME_NAME,
+        ephemeral_pubkey=ephemeral_pubkey,
+        encrypted_auth_response=encrypted_auth_response,
+    )
+
+    authenticated_data = b"".join((
+        tag,
+        rlp.encode(auth_header),
+    ))
+    encrypted_message = compute_encrypted_message(
+        initiator_key=initiator_key,
+        auth_tag=auth_tag,
+        message=message,
+        authenticated_data=authenticated_data,
+    )
+
+    return AuthHeaderPacket(
+        tag=tag,
+        auth_header=auth_header,
+        encrypted_message=encrypted_message,
+    )
+
+
+#
+# Packet data computation
+#
+def compute_encrypted_auth_response(auth_response_key: AES128Key,
+                                    id_nonce_signature: bytes,
+                                    enr: Optional[ENR],
+                                    tag: Hash32,
+                                    ) -> bytes:
+    if enr:
+        plain_text_auth_response = rlp.encode([id_nonce_signature, enr])
+    else:
+        plain_text_auth_response = rlp.encode([id_nonce_signature, []])
+
+    encrypted_auth_response = aesgcm_encrypt(
+        key=auth_response_key,
+        nonce=ZERO_NONCE,
+        plain_text=plain_text_auth_response,
+        authenticated_data=tag,
+    )
+    return encrypted_auth_response
+
+
+def compute_encrypted_message(initiator_key: AES128Key,
+                              auth_tag: Nonce,
+                              message: BaseMessage,
+                              authenticated_data: bytes,
+                              ) -> bytes:
+    encrypted_message = aesgcm_encrypt(
+        key=initiator_key,
+        nonce=auth_tag,
+        plain_text=message.to_bytes(),
+        authenticated_data=authenticated_data,
+    )
+    return encrypted_message
