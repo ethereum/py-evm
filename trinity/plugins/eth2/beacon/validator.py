@@ -81,7 +81,7 @@ from trinity.protocol.bcc.peer import (
 )
 
 
-GetReadyAttestationsFn = Callable[[Slot], Sequence[Attestation]]
+GetReadyAttestationsFn = Callable[[], Sequence[Attestation]]
 
 
 class Validator(BaseService):
