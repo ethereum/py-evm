@@ -1,0 +1,2 @@
+Cover :class:`~trinity.config.TrinityConfig`, :class:`~trinity.config.Eth1AppConfig` and
+:class:`~trinity.config.BeaconAppConfig` in API docs.

@@ -238,6 +238,15 @@ TAppConfig = TypeVar('TAppConfig', bound='BaseAppConfig')
 
 
 class TrinityConfig:
+    """
+    The :class:`~trinity.config.TrinityConfig` holds all base configurations that are generic
+    enough to be shared across the different runtime modes that are available. It also gives access
+    to the more specific application configurations derived from
+    :class:`~trinity.config.BaseAppConfig`.
+
+    This API is exposed to :class:`~trinity.extensibility.plugin.BasePlugin`
+    """
+
     _trinity_root_dir: Path = None
 
     _chain_config: Eth1ChainConfig = None
@@ -322,6 +331,11 @@ class TrinityConfig:
 
     @property
     def app_suffix(self) -> str:
+        """
+        Return the suffix that Trinity uses to derive various application directories depending
+        on the current mode of operation (e.g. ``eth1`` or ``beacon`` to derive
+        ``<trinity-root-dir>/mainnet/logs-eth1`` vs ``<trinity-root-dir>/mainnet/logs-beacon``)
+        """
         return "" if len(self.app_identifier) == 0 else f"-{self.app_identifier}"
 
     @property
@@ -341,26 +355,7 @@ class TrinityConfig:
     @property
     def trinity_root_dir(self) -> Path:
         """
-        The trinity_root_dir is the base directory that all trinity data is
-        stored under.
-
-        The default ``data_dir`` path will be resolved relative to this
-        directory.
-        """
-        if self._trinity_root_dir is not None:
-            return self._trinity_root_dir
-        else:
-            return get_xdg_trinity_root()
-
-    @trinity_root_dir.setter
-    def trinity_root_dir(self, value: str) -> None:
-        self._trinity_root_dir = Path(value).resolve()
-
-    @property
-    def trinity_root_dir(self) -> Path:
-        """
-        The trinity_root_dir is the base directory that all trinity data is
-        stored under.
+        Base directory that all trinity data is stored under.
 
         The default ``data_dir`` path will be resolved relative to this
         directory.
@@ -395,28 +390,28 @@ class TrinityConfig:
     @property
     def database_ipc_path(self) -> Path:
         """
-        Path for the database IPC socket connection.
+        Return the path for the database IPC socket connection.
         """
         return get_database_socket_path(self.ipc_dir)
 
     @property
     def ipc_dir(self) -> Path:
         """
-        The base directory for all open IPC files.
+        Return the base directory for all open IPC files.
         """
         return self.with_app_suffix(self.data_dir / IPC_DIR)
 
     @property
     def pid_dir(self) -> Path:
         """
-        The base directory for all PID files.
+        Return the base directory for all PID files.
         """
         return self.with_app_suffix(self.data_dir / PID_DIR)
 
     @property
     def jsonrpc_ipc_path(self) -> Path:
         """
-        Path for the JSON-RPC server IPC socket.
+        Return the path for the JSON-RPC server IPC socket.
         """
         return get_jsonrpc_socket_path(self.ipc_dir)
 
@@ -439,6 +434,10 @@ class TrinityConfig:
 
     @property
     def nodekey(self) -> PrivateKey:
+        """
+        The :class:`~eth_keys.datatypes.PrivateKey` which trinity uses to derive the
+        public key needed to identify itself on the network.
+        """
         if self._nodekey is None:
             try:
                 return load_nodekey(self.nodekey_path)
@@ -466,6 +465,16 @@ class TrinityConfig:
 
     @contextmanager
     def process_id_file(self, process_name: str):  # type: ignore
+        """
+        Context manager API to generate process identification files (pid) in the current
+        :meth:`pid_dir`.
+
+        .. code-block:: python
+
+            trinity_config.process_id_file('networking'):
+                ... # pid file sitting in pid directory while process is running
+            ... # pid file cleaned up
+        """
         with PidFile(process_name, self.pid_dir):
             yield
 
@@ -475,8 +484,8 @@ class TrinityConfig:
                          app_identifier: str,
                          app_config_types: Iterable[Type['BaseAppConfig']]) -> 'TrinityConfig':
         """
-        Helper function for initializing from the namespace object produced by
-        an ``argparse.ArgumentParser``
+        Initialize a :class:`~trinity.config.TrinityConfig` from the namespace object produced by
+        an :class:`~argparse.ArgumentParser`.
         """
         constructor_kwargs = construct_trinity_config_params(parser_args)
         trinity_config = cls(app_identifier=app_identifier, **constructor_kwargs)
@@ -489,8 +498,9 @@ class TrinityConfig:
                                parser_args: argparse.Namespace,
                                app_config_types: Iterable[Type['BaseAppConfig']]) -> None:
         """
-        Initialize all available ``BaseAppConfig`` based on their concrete types,
-        the ``parser_args`` and the existing ``TrinityConfig`` instance.
+        Initialize :class:`~trinity.config.BaseAppConfig` instances for the passed
+        ``app_config_types`` based on the ``parser_args`` and the existing
+        :class:`~trinity.config.TrintiyConfig` instance.
         """
         for app_config_type in app_config_types:
             self.add_app_config(app_config_type.from_parser_args(parser_args, self))
@@ -503,19 +513,24 @@ class TrinityConfig:
 
     def has_app_config(self, app_config_type: Type['BaseAppConfig']) -> bool:
         """
-        Check if a ``BaseAppConfig`` exists based on the given ``app_config_type``.
+        Check if a :class:`~trinity.config.BaseAppConfig` instance exists that matches the given
+        ``app_config_type``.
         """
         return app_config_type in self._app_configs.keys()
 
     def get_app_config(self, app_config_type: Type[TAppConfig]) -> TAppConfig:
         """
-        Return the ``BaseAppConfig`` derived instance based on the given ``app_config_type``.
+        Return the registered :class:`~trinity.config.BaseAppConfig` instance that matches
+        the given ``app_config_type``.
         """
         # We want this API to return the specific type of the app config that is requested.
         # Our backing field only knows that it is holding `BaseAppConfig`'s but not concrete types
         return cast(TAppConfig, self._app_configs[app_config_type])
 
     def with_app_suffix(self, path: Path) -> Path:
+        """
+        Return a :class:`~pathlib.Path` that matches the given ``path`` plus the :meth:`app_suffix`
+        """
         return path.with_name(path.name + self.app_suffix)
 
 
@@ -531,7 +546,7 @@ class BaseAppConfig(ABC):
                          trinity_config: TrinityConfig) -> 'BaseAppConfig':
         """
         Initialize from the namespace object produced by
-        an ``argparse.ArgumentParser`` and the ``TrinityConfig``
+        an ``argparse.ArgumentParser`` and the :class:`~trinity.config.TrinityConfig`
         """
         pass
 
@@ -553,12 +568,16 @@ class Eth1AppConfig(BaseAppConfig):
     def from_parser_args(cls,
                          args: argparse.Namespace,
                          trinity_config: TrinityConfig) -> 'BaseAppConfig':
+        """
+        Initialize from the namespace object produced by
+        an ``argparse.ArgumentParser`` and the :class:`~trinity.config.TrinityConfig`
+        """
         return cls(trinity_config, args.sync_mode)
 
     @property
     def database_dir(self) -> Path:
         """
-        Path where the chain database will be stored.
+        Path where the chain database is stored.
 
         This is resolved relative to the ``data_dir``
         """
@@ -572,12 +591,19 @@ class Eth1AppConfig(BaseAppConfig):
 
     @property
     def database_mode(self) -> Eth1DbMode:
+        """
+        Return the :class:`~trinity.config.Eth1DbMode` for the currently used database
+        """
         if self.sync_mode == SYNC_LIGHT:
             return Eth1DbMode.LIGHT
         else:
             return Eth1DbMode.FULL
 
     def get_chain_config(self) -> Eth1ChainConfig:
+        """
+        Return the :class:`~trinity.config.Eth1ChainConfig` either derived from the ``network_id``
+        or a custom genesis file.
+        """
         # the `ChainConfig` object cannot be pickled so we can't cache this
         # value since the TrinityConfig is sent across process boundaries.
         if self.trinity_config.network_id in PRECONFIGURED_NETWORKS:
@@ -588,7 +614,7 @@ class Eth1AppConfig(BaseAppConfig):
     @property
     def node_class(self) -> Type['Node']:
         """
-        The ``Node`` class that trinity will use.
+        Return the ``Node`` class that trinity uses.
         """
         from trinity.nodes.full import FullNode
         from trinity.nodes.light import LightNode
@@ -602,6 +628,9 @@ class Eth1AppConfig(BaseAppConfig):
 
     @property
     def sync_mode(self) -> str:
+        """
+        Return the currently used sync mode
+        """
         return self._sync_mode
 
 
@@ -702,6 +731,10 @@ class BeaconAppConfig(BaseAppConfig):
     def from_parser_args(cls,
                          args: argparse.Namespace,
                          trinity_config: TrinityConfig) -> 'BaseAppConfig':
+        """
+        Initialize from the namespace object produced by
+        an ``argparse.ArgumentParser`` and the :class:`~trinity.config.TrinityConfig`
+        """
         if args is not None:
             # This is quick and dirty way to get bootstrap_nodes
             trinity_config.bootstrap_nodes = tuple(
@@ -715,7 +748,7 @@ class BeaconAppConfig(BaseAppConfig):
     @property
     def database_dir(self) -> Path:
         """
-        Path where the chain database will be stored.
+        Return the path where the chain database is stored.
 
         This is resolved relative to the ``data_dir``
         """
@@ -723,6 +756,9 @@ class BeaconAppConfig(BaseAppConfig):
         return self.trinity_config.with_app_suffix(path) / "full"
 
     def get_chain_config(self) -> BeaconChainConfig:
+        """
+        Return the :class:`~trinity.config.BeaconChainConfig` that is derived from the genesis file
+        """
         return BeaconChainConfig.from_genesis_files(
             root_dir=self.trinity_config.trinity_root_dir,
             chain_name="TestnetChain",
