@@ -822,7 +822,10 @@ def test_process_rewards_and_penalties_for_finality(
         )
 
 
-@settings(max_examples=1)
+@settings(
+    max_examples=1,
+    deadline=300,
+)
 @given(random=st.randoms())
 @pytest.mark.parametrize(
     (
