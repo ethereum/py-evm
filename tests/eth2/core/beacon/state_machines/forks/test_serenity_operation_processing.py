@@ -10,12 +10,16 @@ from eth2.configs import (
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
 )
+from eth2.beacon.constants import (
+    FAR_FUTURE_EPOCH,
+)
 from eth2.beacon.helpers import (
     get_epoch_start_slot,
 )
 from eth2.beacon.types.blocks import (
     BeaconBlockBody,
 )
+from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,
 )
@@ -33,6 +37,14 @@ from eth2.beacon.tools.builder.validator import (
 )
 
 
+@pytest.mark.parametrize(
+    (
+        'validator_count,'
+    ),
+    [
+        (100),
+    ],
+)
 def test_process_max_attestations(genesis_state,
                                   genesis_block,
                                   sample_beacon_block_params,
@@ -52,7 +64,7 @@ def test_process_max_attestations(genesis_state,
         config=config,
         state_machine=fixture_sm_class(
             chaindb,
-            genesis_block.slot,
+            current_slot,
         ),
         attestation_slot=attestation_slot,
         beacon_block_root=genesis_block.signing_root,
@@ -64,7 +76,7 @@ def test_process_max_attestations(genesis_state,
     assert attestations_count > 0
 
     block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
-        attestations=attestations * (attestations_count // config.MAX_ATTESTATIONS + 1),
+        attestations=attestations * (config.MAX_ATTESTATIONS // attestations_count + 1),
     )
     block = SerenityBeaconBlock(**sample_beacon_block_params).copy(
         slot=current_slot,
@@ -81,7 +93,7 @@ def test_process_max_attestations(genesis_state,
 
 @pytest.mark.parametrize(
     (
-        'num_validators',
+        'validator_count',
         'slots_per_epoch',
         'target_committee_size',
         'shard_count',
@@ -108,10 +120,9 @@ def test_process_proposer_slashings(genesis_state,
     )
     whistleblower_index = get_beacon_proposer_index(
         state,
-        state.slot,
         CommitteeConfig(config),
     )
-    slashing_proposer_index = (whistleblower_index + 1) % len(state.validator_registry)
+    slashing_proposer_index = (whistleblower_index + 1) % len(state.validators)
     proposer_slashing = create_mock_proposer_slashing_at_block(
         state,
         config,
@@ -138,8 +149,8 @@ def test_process_proposer_slashings(genesis_state,
         )
         # Check if slashed
         assert (
-            new_state.validator_balances[slashing_proposer_index] <
-            state.validator_balances[slashing_proposer_index]
+            new_state.balances[slashing_proposer_index] <
+            state.balances[slashing_proposer_index]
         )
     else:
         with pytest.raises(ValidationError):
@@ -152,7 +163,7 @@ def test_process_proposer_slashings(genesis_state,
 
 @pytest.mark.parametrize(
     (
-        'num_validators',
+        'validator_count',
         'slots_per_epoch',
         'target_committee_size',
         'shard_count',
@@ -165,7 +176,7 @@ def test_process_proposer_slashings(genesis_state,
 @pytest.mark.parametrize(
     ('success'),
     [
-        # (True),
+        (True),
         (False),
     ]
 )
@@ -178,6 +189,10 @@ def test_process_attester_slashings(genesis_state,
                                     success):
     attesting_state = genesis_state.copy(
         slot=genesis_state.slot + config.SLOTS_PER_EPOCH,
+        block_roots=tuple(
+            i.to_bytes(32, "little")
+            for i in range(config.SLOTS_PER_HISTORICAL_ROOT)
+        )
     )
     valid_attester_slashing = create_mock_attester_slashing_is_double_vote(
         attesting_state,
@@ -198,7 +213,7 @@ def test_process_attester_slashings(genesis_state,
             body=block_body,
         )
 
-        attester_index = valid_attester_slashing.slashable_attestation_1.validator_indices[0]
+        attester_index = valid_attester_slashing.attestation_1.custody_bit_0_indices[0]
 
         new_state = process_attester_slashings(
             state,
@@ -207,12 +222,12 @@ def test_process_attester_slashings(genesis_state,
         )
         # Check if slashed
         assert (
-            new_state.validator_balances[attester_index] < state.validator_balances[attester_index]
+            new_state.balances[attester_index] < state.balances[attester_index]
         )
     else:
         invalid_attester_slashing = valid_attester_slashing.copy(
-            slashable_attestation_2=valid_attester_slashing.slashable_attestation_2.copy(
-                data=valid_attester_slashing.slashable_attestation_1.data,
+            attestation_2=valid_attester_slashing.attestation_2.copy(
+                data=valid_attester_slashing.attestation_1.data,
             )
         )
         block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
@@ -233,18 +248,17 @@ def test_process_attester_slashings(genesis_state,
 
 @pytest.mark.parametrize(
     (
-        'num_validators,'
+        'validator_count,'
         'slots_per_epoch,'
         'min_attestation_inclusion_delay,'
         'target_committee_size,'
         'shard_count,'
         'success,'
-        'genesis_slot,'
     ),
     [
-        (10, 2, 1, 2, 2, True, 0),
-        (10, 2, 1, 2, 2, False, 0),
-        (40, 4, 2, 3, 5, True, 0),
+        (10, 2, 1, 2, 2, True),
+        (10, 2, 1, 2, 2, False),
+        (40, 4, 2, 3, 5, True),
     ]
 )
 def test_process_attestations(genesis_state,
@@ -279,9 +293,14 @@ def test_process_attestations(genesis_state,
     assert len(attestations) > 0
 
     if not success:
-        # create invalid attestation in the future
+        # create invalid attestation by shard
+        # i.e. wrong parent
         invalid_attestation_data = attestations[-1].data.copy(
-            slot=state.slot + 10,
+            crosslink=attestations[-1].data.crosslink.copy(
+                parent_root=Crosslink(
+                    shard=333,
+                ).root,
+            )
         )
         invalid_attestation = attestations[-1].copy(
             data=invalid_attestation_data,
@@ -315,7 +334,7 @@ def test_process_attestations(genesis_state,
 
 @pytest.mark.parametrize(
     (
-        'num_validators',
+        'validator_count',
         'slots_per_epoch',
         'target_committee_size',
         'activation_exit_delay',
@@ -346,10 +365,10 @@ def test_process_voluntary_exits(genesis_state,
         ),
     )
     validator_index = 0
-    validator = state.validator_registry[validator_index].copy(
+    validator = state.validators[validator_index].copy(
         activation_epoch=config.GENESIS_EPOCH,
     )
-    state = state.update_validator_registry(validator_index, validator)
+    state = state.update_validator(validator_index, validator)
     valid_voluntary_exit = create_mock_voluntary_exit(
         state,
         config,
@@ -371,9 +390,11 @@ def test_process_voluntary_exits(genesis_state,
             block,
             config,
         )
-        # Check if initiated exit
-        assert (
-            new_state.validator_registry[validator_index].initiated_exit
+        updated_validator = new_state.validators[validator_index]
+        assert updated_validator.exit_epoch != FAR_FUTURE_EPOCH
+        assert updated_validator.exit_epoch > state.current_epoch(config.SLOTS_PER_EPOCH)
+        assert updated_validator.withdrawable_epoch == (
+            updated_validator.exit_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY
         )
     else:
         invalid_voluntary_exit = valid_voluntary_exit.copy(

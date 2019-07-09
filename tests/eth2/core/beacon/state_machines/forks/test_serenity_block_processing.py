@@ -8,15 +8,16 @@ from eth_utils import (
 )
 from eth_utils.toolz import (
     first,
+    mapcat,
+    concat,
 )
 
 from py_ecc import bls
 
-from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.eth1_data_vote import Eth1DataVote
-from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
-from eth2.beacon.enums import SignatureDomain
+from eth2.beacon.types.eth1_data import Eth1Data
+from eth2.beacon.types.states import BeaconState
+from eth2.beacon.signature_domain import SignatureDomain
 
 from eth2.beacon.helpers import (
     get_domain,
@@ -39,7 +40,7 @@ from eth2.beacon.tools.builder.proposer import (
 )
 
 from eth2.beacon.tools.builder.initializer import (
-    mock_validator,
+    create_mock_validator,
 )
 
 
@@ -50,15 +51,15 @@ def test_randao_processing(sample_beacon_block_params,
                            config):
     proposer_pubkey, proposer_privkey = first(keymap.items())
     state = SerenityBeaconState(**sample_beacon_state_params).copy(
-        validator_registry=tuple(
-            mock_validator(proposer_pubkey, config)
+        validators=tuple(
+            create_mock_validator(proposer_pubkey, config)
             for _ in range(config.TARGET_COMMITTEE_SIZE)
         ),
-        validator_balances=(config.MAX_DEPOSIT_AMOUNT,) * config.TARGET_COMMITTEE_SIZE,
+        balances=(config.MAX_EFFECTIVE_BALANCE,) * config.TARGET_COMMITTEE_SIZE,
 
-        latest_randao_mixes=tuple(
+        randao_mixes=tuple(
             ZERO_HASH32
-            for _ in range(config.LATEST_RANDAO_MIXES_LENGTH)
+            for _ in range(config.EPOCHS_PER_HISTORICAL_VECTOR)
         ),
     )
 
@@ -68,7 +69,7 @@ def test_randao_processing(sample_beacon_block_params,
     randao_reveal = _generate_randao_reveal(
         privkey=proposer_privkey,
         slot=slot,
-        fork=state.fork,
+        state=state,
         config=config,
     )
 
@@ -82,9 +83,9 @@ def test_randao_processing(sample_beacon_block_params,
 
     new_state = process_randao(state, block, config)
 
-    updated_index = epoch % config.LATEST_RANDAO_MIXES_LENGTH
-    original_mixes = state.latest_randao_mixes
-    updated_mixes = new_state.latest_randao_mixes
+    updated_index = epoch % config.EPOCHS_PER_HISTORICAL_VECTOR
+    original_mixes = state.randao_mixes
+    updated_mixes = new_state.randao_mixes
 
     assert all(
         updated == original if index != updated_index else updated != original
@@ -100,23 +101,21 @@ def test_randao_processing_validates_randao_reveal(sample_beacon_block_params,
                                                    config):
     proposer_pubkey, proposer_privkey = first(keymap.items())
     state = SerenityBeaconState(**sample_beacon_state_params).copy(
-        validator_registry=tuple(
-            mock_validator(proposer_pubkey, config)
+        validators=tuple(
+            create_mock_validator(proposer_pubkey, config)
             for _ in range(config.TARGET_COMMITTEE_SIZE)
         ),
-        validator_balances=(config.MAX_DEPOSIT_AMOUNT,) * config.TARGET_COMMITTEE_SIZE,
+        balances=(config.MAX_EFFECTIVE_BALANCE,) * config.TARGET_COMMITTEE_SIZE,
 
-        latest_randao_mixes=tuple(
+        randao_mixes=tuple(
             ZERO_HASH32
-            for _ in range(config.LATEST_RANDAO_MIXES_LENGTH)
+            for _ in range(config.EPOCHS_PER_HISTORICAL_VECTOR)
         ),
     )
 
     epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    slot = epoch * config.SLOTS_PER_EPOCH
     message_hash = (epoch + 1).to_bytes(32, byteorder="little")
-    fork = Fork(**sample_fork_params)
-    domain = get_domain(fork, slot, SignatureDomain.DOMAIN_RANDAO)
+    domain = get_domain(state, SignatureDomain.DOMAIN_RANDAO, config.SLOTS_PER_EPOCH)
     randao_reveal = bls.sign(message_hash, proposer_privkey, domain)
 
     block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
@@ -135,6 +134,13 @@ HASH1 = b"\x11" * 32
 HASH2 = b"\x22" * 32
 
 
+def _expand_eth1_votes(args):
+    block_hash, vote_count = args
+    return (Eth1Data(
+        block_hash=block_hash,
+    ),) * vote_count
+
+
 @pytest.mark.parametrize(("original_votes", "block_data", "expected_votes"), (
     ((), HASH1, ((HASH1, 1),)),
     (((HASH1, 5),), HASH1, ((HASH1, 6),)),
@@ -146,26 +152,95 @@ def test_process_eth1_data(original_votes,
                            expected_votes,
                            sample_beacon_state_params,
                            sample_beacon_block_params,
-                           sample_beacon_block_body_params):
-    eth1_data_votes = tuple(
-        Eth1DataVote(data, vote_count)
-        for data, vote_count in original_votes
-    )
+                           sample_beacon_block_body_params,
+                           config):
+    eth1_data_votes = tuple(mapcat(
+        _expand_eth1_votes,
+        original_votes,
+    ))
     state = BeaconState(**sample_beacon_state_params).copy(
         eth1_data_votes=eth1_data_votes,
     )
 
     block_body = BeaconBlockBody(**sample_beacon_block_body_params).copy(
-        eth1_data=block_data,
+        eth1_data=Eth1Data(
+            block_hash=block_data,
+        ),
     )
 
     block = BeaconBlock(**sample_beacon_block_params).copy(
         body=block_body,
     )
 
-    updated_state = process_eth1_data(state, block)
-    updated_votes = tuple(
-        (vote.eth1_data, vote.vote_count)
-        for vote in updated_state.eth1_data_votes
+    updated_state = process_eth1_data(state, block, config)
+    updated_votes = updated_state.eth1_data_votes
+    expanded_expected_votes = tuple(mapcat(
+        _expand_eth1_votes,
+        expected_votes,
+    ))
+
+    assert updated_votes == expanded_expected_votes
+
+
+@pytest.mark.parametrize(
+    (
+        'slots_per_eth1_voting_period'
+    ),
+    (
+        (16),
     )
-    assert updated_votes == expected_votes
+)
+@pytest.mark.parametrize(
+    (
+        'vote_offsets'  # a tuple of offsets against the majority threshold
+    ),
+    (
+        # no eth1_data_votes
+        (),
+        # a minority of eth1_data_votes (single)
+        (-2,),
+        # a plurality of eth1_data_votes (multiple but not majority)
+        (-2, -2),
+        # almost a majority!
+        (0,),
+        # a majority of eth1_data_votes
+        (1,),
+        (7,),
+        (12,),
+        # NOTE: we are accepting more than one block per slot if
+        # there are multiple majorities so no need to test this
+    )
+)
+def test_ensure_update_eth1_vote_if_exists(genesis_state,
+                                           config,
+                                           vote_offsets):
+    # one less than a majority is the majority divided by 2
+    threshold = config.SLOTS_PER_ETH1_VOTING_PERIOD // 2
+    data_votes = tuple(
+        concat(
+            (
+                Eth1Data(
+                    block_hash=(i).to_bytes(32, "little"),
+                ),
+            ) * (threshold + offset)
+            for i, offset in enumerate(vote_offsets)
+        )
+    )
+    state = genesis_state
+
+    for vote in data_votes:
+        state = process_eth1_data(state, BeaconBlock(
+            body=BeaconBlockBody(
+                eth1_data=vote,
+            )
+        ), config)
+
+    if not vote_offsets:
+        assert state.eth1_data == genesis_state.eth1_data
+
+    # we should update the 'latest' entry if we have a majority
+    for offset in vote_offsets:
+        if offset <= 0:
+            assert genesis_state.eth1_data == state.eth1_data
+        else:
+            assert state.eth1_data == data_votes[0]

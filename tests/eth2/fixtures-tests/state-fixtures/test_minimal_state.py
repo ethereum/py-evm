@@ -115,7 +115,6 @@ def test_state(base_db, test_case):
 
 
 def generate_config_by_dict(dict_config):
-    dict_config['DEPOSIT_CONTRACT_ADDRESS'] = b'\x00' * 20
     for key in list(dict_config):
         if 'DOMAIN_' in key:
             # DOMAIN is defined in SignatureDomain

@@ -30,6 +30,7 @@ from eth2.beacon.typing import (
 from eth2.beacon.chains.testnet import TestnetChain as _TestnetChain
 from eth2.beacon.fork_choice import higher_slot_scoring
 from eth2.beacon.types.attestations import Attestation
+from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
 )
@@ -63,12 +64,12 @@ from tests.core.integration_test_helpers import (
 )
 
 from .helpers import (
-    helpers,
+    bcc_helpers
 )
 
 
 class FakeChain(_TestnetChain):
-    chaindb_class = helpers.FakeAsyncBeaconChainDB
+    chaindb_class = bcc_helpers.FakeAsyncBeaconChainDB
 
     def import_block(
             self,
@@ -80,7 +81,7 @@ class FakeChain(_TestnetChain):
         `ReceiveServer`.
         """
         try:
-            self.get_block_by_root(block.previous_block_root)
+            self.get_block_by_root(block.parent_root)
         except BlockNotFound:
             raise ValidationError
         (
@@ -92,7 +93,7 @@ class FakeChain(_TestnetChain):
 
 async def get_fake_chain() -> FakeChain:
     genesis_config = Eth2GenesisConfig(XIAO_LONG_BAO_CONFIG)
-    chain_db = await helpers.get_genesis_chain_db(genesis_config=genesis_config)
+    chain_db = await bcc_helpers.get_genesis_chain_db(genesis_config=genesis_config)
     return FakeChain(base_db=chain_db.db, genesis_config=genesis_config)
 
 
@@ -122,7 +123,7 @@ async def get_peer_and_receive_server(request, event_loop, event_bus) -> Tuple[
 
     (
         alice, alice_peer_pool, bob, bob_peer_pool
-    ) = await helpers.get_directly_linked_peers_in_peer_pools(
+    ) = await bcc_helpers.get_directly_linked_peers_in_peer_pools(
         request,
         event_loop,
         alice_chain_db=alice_chain.chaindb,
@@ -165,9 +166,9 @@ async def get_peer_and_receive_server(request, event_loop, event_bus) -> Tuple[
 
 def test_orphan_block_pool():
     pool = OrphanBlockPool()
-    b0 = helpers.create_test_block()
-    b1 = helpers.create_test_block(parent=b0)
-    b2 = helpers.create_test_block(parent=b0, state_root=b"\x11" * 32)
+    b0 = bcc_helpers.create_test_block()
+    b1 = bcc_helpers.create_test_block(parent=b0)
+    b2 = bcc_helpers.create_test_block(parent=b0, state_root=b"\x11" * 32)
     # test: add
     pool.add(b1)
     assert b1 in pool._pool
@@ -215,16 +216,16 @@ async def test_bcc_receive_server_try_import_orphan_blocks(request,
         bob_recv_server.orphan_block_pool.add(blocks[2])
         # test: No effect when calling `_try_import_orphan_blocks`
         # if the `parent_root` is not in db.
-        assert blocks[2].previous_block_root == blocks[1].signing_root
-        bob_recv_server._try_import_orphan_blocks(blocks[2].previous_block_root)
-        assert not bob_recv_server._is_block_root_in_db(blocks[2].previous_block_root)
+        assert blocks[2].parent_root == blocks[1].signing_root
+        bob_recv_server._try_import_orphan_blocks(blocks[2].parent_root)
+        assert not bob_recv_server._is_block_root_in_db(blocks[2].parent_root)
         assert not bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
         assert bob_recv_server._is_block_root_in_orphan_block_pool(blocks[2].signing_root)
 
         bob_recv_server.orphan_block_pool.add(blocks[3])
         # test: No effect when calling `_try_import_orphan_blocks` if `parent_root` is in the pool
         #   but not in db.
-        assert blocks[3].previous_block_root == blocks[2].signing_root
+        assert blocks[3].parent_root == blocks[2].signing_root
         bob_recv_server._try_import_orphan_blocks(blocks[2].signing_root)
         assert not bob_recv_server._is_block_root_in_db(blocks[2].signing_root)
         assert not bob_recv_server._is_block_root_in_db(blocks[3].signing_root)
@@ -524,15 +525,14 @@ async def test_bcc_receive_server_with_request_server(request, event_loop, event
 async def test_bcc_receive_server_handle_attestations_checks(request,
                                                              event_loop,
                                                              event_bus,
-                                                             monkeypatch,
-                                                             mock_attestation):
+                                                             monkeypatch):
     async with get_peer_and_receive_server(
         request,
         event_loop,
         event_bus,
     ) as (alice, _, bob_recv_server, bob_msg_queue):
 
-        attestation = mock_attestation
+        attestation = Attestation()
 
         def _validate_attestations(attestations):
             return tuple(attestations)
@@ -550,17 +550,17 @@ async def test_bcc_receive_server_handle_attestations_checks(request,
         assert decoded_attestation == attestation
 
 
-def test_attestation_pool(mock_attestation):
+def test_attestation_pool():
     pool = AttestationPool()
-    a1 = mock_attestation
-    a2 = mock_attestation.copy(
-        data=mock_attestation.data.copy(
-            slot=a1.data.slot + 1,
+    a1 = Attestation()
+    a2 = Attestation(
+        data=a1.data.copy(
+            beacon_block_root=b'\x55' * 32,
         ),
     )
-    a3 = mock_attestation.copy(
-        data=mock_attestation.data.copy(
-            slot=a1.data.slot + 2,
+    a3 = Attestation(
+        data=a1.data.copy(
+            beacon_block_root=b'\x66' * 32,
         ),
     )
 
@@ -598,51 +598,48 @@ async def test_bcc_receive_server_get_ready_attestations(
         request,
         event_loop,
         event_bus,
-        monkeypatch,
-        mock_attestation):
+        mocker):
     async with get_peer_and_receive_server(
         request,
         event_loop,
         event_bus,
     ) as (alice, _, bob_recv_server, _):
+        class MockState:
+            slot = XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
+        state = MockState()
+
+        def mock_get_attestation_data_slot(state, data, config):
+            return data.slot
+        mocker.patch("eth2.beacon.state_machines.base.BeaconStateMachine.state", state)
+        mocker.patch(
+            "trinity.protocol.bcc.servers.get_attestation_data_slot",
+            mock_get_attestation_data_slot,
+        )
         attesting_slot = XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
-        a1 = mock_attestation.copy(
-            data=mock_attestation.data.copy(
-                slot=attesting_slot,
-            ),
-        )
-        a2 = a1.copy(
-            data=a1.data.copy(
-                shard=a1.data.shard + 1,
-            ),
-        )
-        a3 = a1.copy(
-            data=a1.data.copy(
-                slot=attesting_slot + 1,
-            ),
-        )
+        a1 = Attestation(data=AttestationData())
+        a1.data.slot = attesting_slot
+        a2 = Attestation(signature=b'\x56' * 96, data=AttestationData())
+        a2.data.slot = attesting_slot
+        a3 = Attestation(signature=b'\x78' * 96, data=AttestationData())
+        a3.data.slot = attesting_slot + 1
         bob_recv_server.attestation_pool.batch_add([a1, a2, a3])
 
         # Workaround: add a fake head state slot
         # so `get_state_machine` wont's trigger `HeadStateSlotNotFound` exception
         bob_recv_server.chain.chaindb._add_head_state_slot_lookup(XIAO_LONG_BAO_CONFIG.GENESIS_SLOT)
 
-        ready_attestations = bob_recv_server.get_ready_attestations(
-            attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY - 1,
-        )
+        state.slot = attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY - 1
+        ready_attestations = bob_recv_server.get_ready_attestations()
         assert len(ready_attestations) == 0
 
-        ready_attestations = bob_recv_server.get_ready_attestations(
-            attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY,
-        )
+        state.slot = attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
+        ready_attestations = bob_recv_server.get_ready_attestations()
         assert set([a1, a2]) == set(ready_attestations)
 
-        ready_attestations = bob_recv_server.get_ready_attestations(
-            attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY + 1,
-        )
+        state.slot = attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY + 1
+        ready_attestations = bob_recv_server.get_ready_attestations()
         assert set([a1, a2, a3]) == set(ready_attestations)
 
-        ready_attestations = bob_recv_server.get_ready_attestations(
-            attesting_slot + XIAO_LONG_BAO_CONFIG.SLOTS_PER_EPOCH + 1,
-        )
+        state.slot = attesting_slot + XIAO_LONG_BAO_CONFIG.SLOTS_PER_EPOCH + 1
+        ready_attestations = bob_recv_server.get_ready_attestations()
         assert set([a3]) == set(ready_attestations)

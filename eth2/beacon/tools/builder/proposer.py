@@ -14,7 +14,7 @@ from eth2.configs import (
     CommitteeConfig,
     Eth2Config,
 )
-from eth2.beacon.enums import (
+from eth2.beacon.signature_domain import (
     SignatureDomain,
 )
 from eth2.beacon.committee_helpers import (
@@ -35,8 +35,6 @@ from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlockBody,
 )
-from eth2.beacon.types.eth1_data import Eth1Data
-from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     FromBlockParams,
@@ -51,7 +49,7 @@ from eth2.beacon.tools.builder.validator import (
 
 def _generate_randao_reveal(privkey: int,
                             slot: Slot,
-                            fork: Fork,
+                            state: BeaconState,
                             config: Eth2Config) -> BLSSignature:
     """
     Return the RANDAO reveal for the validator represented by ``privkey``.
@@ -65,7 +63,7 @@ def _generate_randao_reveal(privkey: int,
     randao_reveal = sign_transaction(
         message_hash=message_hash,
         privkey=privkey,
-        fork=fork,
+        state=state,
         slot=slot,
         signature_domain=SignatureDomain.DOMAIN_RANDAO,
         slots_per_epoch=config.SLOTS_PER_EPOCH,
@@ -81,7 +79,6 @@ def validate_proposer_index(state: BeaconState,
         state.copy(
             slot=slot,
         ),
-        slot,
         CommitteeConfig(config),
     )
 
@@ -104,20 +101,18 @@ def create_block_on_state(
     """
     Create a beacon block with the given parameters.
     """
-    # Check proposer
     if check_proposer_index:
         validate_proposer_index(state, config, slot, validator_index)
 
-    # Prepare block: slot and previous_block_root
     block = block_class.from_parent(
         parent_block=parent_block,
         block_params=FromBlockParams(slot=slot),
     )
 
     # TODO: Add more operations
-    randao_reveal = _generate_randao_reveal(privkey, slot, state.fork, config)
-    eth1_data = Eth1Data.create_empty_data()
-    body = BeaconBlockBody.create_empty_body().copy(
+    randao_reveal = _generate_randao_reveal(privkey, slot, state, config)
+    eth1_data = state.eth1_data
+    body = BeaconBlockBody(
         randao_reveal=randao_reveal,
         eth1_data=eth1_data,
         attestations=attestations,
@@ -134,9 +129,9 @@ def create_block_on_state(
     signature = sign_transaction(
         message_hash=block.signing_root,
         privkey=privkey,
-        fork=state.fork,
+        state=state,
         slot=slot,
-        signature_domain=SignatureDomain.DOMAIN_BEACON_BLOCK,
+        signature_domain=SignatureDomain.DOMAIN_BEACON_PROPOSER,
         slots_per_epoch=config.SLOTS_PER_EPOCH,
     )
 
@@ -147,21 +142,19 @@ def create_block_on_state(
     return block
 
 
-def advance_to_slot(state_machine: BaseBeaconStateMachine,
-                    state: BeaconState,
-                    slot: Slot) -> BeaconState:
+def _advance_to_slot(state_machine: BaseBeaconStateMachine,
+                     state: BeaconState,
+                     slot: Slot) -> BeaconState:
     # advance the state to the ``slot``.
     state_transition = state_machine.state_transition
-    state = state_transition.apply_state_transition_without_block(state, slot)
+    state = state_transition.apply_state_transition(state, future_slot=slot)
     return state
 
 
 def _get_proposer_index(state: BeaconState,
-                        slot: Slot,
                         config: Eth2Config) -> ValidatorIndex:
     proposer_index = get_beacon_proposer_index(
         state,
-        slot,
         CommitteeConfig(config),
     )
     return proposer_index
@@ -181,17 +174,16 @@ def create_mock_block(*,
 
     Note that it doesn't return the correct ``state_root``.
     """
-    future_state = advance_to_slot(state_machine, state, slot)
+    future_state = _advance_to_slot(state_machine, state, slot)
     proposer_index = _get_proposer_index(
         future_state,
-        slot,
         config
     )
-    proposer_pubkey = state.validator_registry[proposer_index].pubkey
+    proposer_pubkey = state.validators[proposer_index].pubkey
     proposer_privkey = keymap[proposer_pubkey]
 
     result_block = create_block_on_state(
-        state=state,
+        state=future_state,
         config=config,
         state_machine=state_machine,
         block_class=block_class,

@@ -2,6 +2,10 @@ from eth.exceptions import (
     PyEVMError,
 )
 
+from eth_utils import (
+    ValidationError,
+)
+
 
 class StateMachineNotFound(PyEVMError):
     """
@@ -28,5 +32,14 @@ class ProposerIndexError(PyEVMError):
 class NoCommitteeAssignment(PyEVMError):
     """
     Raised when no potential crosslink committee assignment.
+    """
+    pass
+
+
+class InvalidEpochError(ValidationError):
+    """
+    Raised when a function receives a query for an epoch that is not semantically valid.
+
+    Example: asking the ``BeaconState`` about an epoch that is not derivable given the current data.
     """
     pass

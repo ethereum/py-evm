@@ -40,10 +40,10 @@ def valid_chain(beacon_chain_with_block_validation):
 
 @pytest.mark.parametrize(
     (
-        'num_validators,slots_per_epoch,target_committee_size,shard_count'
+        'validator_count,slots_per_epoch,target_committee_size,shard_count'
     ),
     [
-        (100, 20, 10, 10),
+        (100, 20, 10, 20),
     ]
 )
 def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
@@ -55,7 +55,7 @@ def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
 
     block = genesis_block.copy(
         slot=genesis_block.slot + 1,
-        previous_block_root=genesis_block.signing_root,
+        parent_root=genesis_block.signing_root,
     )
     valid_chain.chaindb.persist_block(block, block.__class__, fork_choice_scoring)
 
@@ -72,13 +72,13 @@ def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
 
 @pytest.mark.parametrize(
     (
-        'num_validators,'
+        'validator_count,'
         'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
     ),
     [
-        (100, 16, 10, 10),
+        (100, 16, 10, 16),
     ]
 )
 def test_get_state_by_slot(valid_chain,
@@ -90,9 +90,9 @@ def test_get_state_by_slot(valid_chain,
     state_machine = valid_chain.get_state_machine(genesis_block.slot)
     state = state_machine.state
     block_skipped_slot = genesis_block.slot + 1
-    block_skipped_state = state_machine.state_transition.apply_state_transition_without_block(
+    block_skipped_state = state_machine.state_transition.apply_state_transition(
         state,
-        block_skipped_slot,
+        future_slot=block_skipped_slot,
     )
     with pytest.raises(StateSlotNotFound):
         valid_chain.get_state_by_slot(block_skipped_slot)
@@ -119,10 +119,10 @@ def test_get_state_by_slot(valid_chain,
 @pytest.mark.long
 @pytest.mark.parametrize(
     (
-        'num_validators,slots_per_epoch,target_committee_size,shard_count'
+        'validator_count,slots_per_epoch,target_committee_size,shard_count'
     ),
     [
-        (100, 16, 10, 10),
+        (100, 16, 10, 16),
     ]
 )
 def test_import_blocks(valid_chain,
@@ -199,14 +199,14 @@ def test_from_genesis(base_db,
 @pytest.mark.long
 @pytest.mark.parametrize(
     (
-        'num_validators,'
+        'validator_count,'
         'slots_per_epoch,'
         'target_committee_size,'
         'shard_count,'
         'min_attestation_inclusion_delay,'
     ),
     [
-        (100, 16, 10, 10, 0),
+        (100, 16, 10, 16, 0),
     ]
 )
 def test_get_attestation_root(valid_chain,
@@ -240,7 +240,7 @@ def test_get_attestation_root(valid_chain,
     assert valid_chain.get_attestation_by_root(a0.root) == a0
     assert valid_chain.attestation_exists(a0.root)
     fake_attestation = a0.copy(
-        aggregate_signature=b'\x78' * 96,
+        signature=b'\x78' * 96,
     )
     with pytest.raises(AttestationRootNotFound):
         valid_chain.get_attestation_by_root(fake_attestation.root)

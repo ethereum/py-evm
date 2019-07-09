@@ -35,11 +35,11 @@ def test_update_attestations(sample_attestation_params, sample_beacon_block_para
     block2 = block.copy(
         body=body2
     )
-    assert block2.num_attestations == 1
+    assert len(block2.body.attestations) == 1
 
 
 def test_block_body_empty(sample_attestation_params):
-    block_body = BeaconBlockBody.create_empty_body()
+    block_body = BeaconBlockBody()
     assert block_body.proposer_slashings == ()
     assert block_body.attester_slashings == ()
     assert block_body.attestations == ()

@@ -8,7 +8,6 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_proposer_slashing,
     validate_proposer_slashing_epoch,
     validate_proposer_slashing_headers,
-    validate_proposer_slashing_is_slashed,
     validate_block_header_signature,
 )
 from eth2.beacon.tools.builder.validator import (
@@ -89,25 +88,6 @@ def test_validate_proposer_slashing_headers(genesis_state,
         validate_proposer_slashing_headers(invalid_proposer_slashing)
 
 
-@pytest.mark.parametrize(
-    (
-        'slashed', 'success'
-    ),
-    [
-        (False, True),
-        (True, False),
-    ],
-)
-def test_validate_proposer_slashing_is_slashed(slashed,
-                                               success):
-    # Invalid
-    if success:
-        validate_proposer_slashing_is_slashed(slashed)
-    else:
-        with pytest.raises(ValidationError):
-            validate_proposer_slashing_is_slashed(slashed)
-
-
 def test_validate_block_header_signature(slots_per_epoch,
                                          genesis_state,
                                          keymap,
@@ -119,23 +99,23 @@ def test_validate_block_header_signature(slots_per_epoch,
         keymap,
         config,
     )
-    proposer = state.validator_registry[proposer_index]
+    proposer = state.validators[proposer_index]
 
     # Valid
     validate_block_header_signature(
+        state=state,
         header=valid_proposer_slashing.header_1,
         pubkey=proposer.pubkey,
-        fork=state.fork,
         slots_per_epoch=slots_per_epoch,
     )
 
     # Invalid
     wrong_proposer_index = proposer_index + 1
-    wrong_proposer = state.validator_registry[wrong_proposer_index]
+    wrong_proposer = state.validators[wrong_proposer_index]
     with pytest.raises(ValidationError):
         validate_block_header_signature(
+            state=state,
             header=valid_proposer_slashing.header_1,
             pubkey=wrong_proposer.pubkey,
-            fork=state.fork,
             slots_per_epoch=slots_per_epoch,
         )

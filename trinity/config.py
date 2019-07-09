@@ -686,7 +686,6 @@ class BeaconChainConfig:
         state = self.genesis_data.state
         block = get_genesis_block(
             genesis_state_root=state.root,
-            genesis_slot=self.genesis_config.GENESIS_SLOT,
             block_class=chain_class.get_genesis_state_machine_class().block_class,
         )
         return chain_class.from_genesis(

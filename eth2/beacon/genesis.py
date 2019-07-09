@@ -7,33 +7,26 @@ from eth_typing import (
     Hash32,
 )
 
-from eth.constants import (
-    ZERO_HASH32,
-)
 import ssz
 
 from eth2.beacon.deposit_helpers import (
     process_deposit,
 )
 from eth2.beacon.helpers import (
-    generate_seed,
     get_active_validator_indices,
-    get_effective_balance,
-    get_temporary_block_header,
 )
 
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
-    BeaconBlock,
+    BeaconBlockBody,
 )
-from eth2.beacon.types.crosslinks import Crosslink
+from eth2.beacon.types.block_headers import (
+    BeaconBlockHeader,
+)
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.eth1_data import Eth1Data
-from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
-    Gwei,
-    Slot,
     Timestamp,
     ValidatorIndex,
 )
@@ -42,131 +35,82 @@ from eth2.beacon.validator_status_helpers import (
 )
 from eth2.configs import (
     Eth2Config,
-    CommitteeConfig,
 )
 
 
-def get_genesis_block(genesis_state_root: Hash32,
-                      genesis_slot: Slot,
-                      block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-    return block_class.create_empty_block(genesis_slot).copy(
-        state_root=genesis_state_root,
-    )
+def is_genesis_trigger(deposits: Sequence[Deposit], timestamp: int, config: Eth2Config) -> bool:
+    state = BeaconState(config=config)
+
+    for deposit in deposits:
+        state = process_deposit(state, deposit, config)
+
+    active_validator_count = 0
+    for validator in state.validators:
+        if validator.effective_balance == config.MAX_EFFECTIVE_BALANCE:
+            active_validator_count += 1
+
+    return active_validator_count == config.GENESIS_ACTIVE_VALIDATOR_COUNT
 
 
-def get_genesis_beacon_state(*,
-                             genesis_validator_deposits: Sequence[Deposit],
-                             genesis_time: Timestamp,
-                             genesis_eth1_data: Eth1Data,
-                             config: Eth2Config) -> BeaconState:
-    state = BeaconState(
-        # Misc
-        slot=config.GENESIS_SLOT,
-        genesis_time=genesis_time,
-        fork=Fork(
-            previous_version=config.GENESIS_FORK_VERSION.to_bytes(4, 'little'),
-            current_version=config.GENESIS_FORK_VERSION.to_bytes(4, 'little'),
-            epoch=config.GENESIS_EPOCH,
-        ),
-
-        # Validator registry
-        validator_registry=(),
-        validator_balances=(),
-        validator_registry_update_epoch=config.GENESIS_EPOCH,
-
-        # Randomness and committees
-        latest_randao_mixes=(ZERO_HASH32,) * config.LATEST_RANDAO_MIXES_LENGTH,
-        previous_shuffling_start_shard=config.GENESIS_START_SHARD,
-        current_shuffling_start_shard=config.GENESIS_START_SHARD,
-        previous_shuffling_epoch=config.GENESIS_EPOCH,
-        current_shuffling_epoch=config.GENESIS_EPOCH,
-        previous_shuffling_seed=ZERO_HASH32,
-        current_shuffling_seed=ZERO_HASH32,
-
-        # Finality
-        previous_epoch_attestations=(),
-        current_epoch_attestations=(),
-        previous_justified_epoch=config.GENESIS_EPOCH,
-        current_justified_epoch=config.GENESIS_EPOCH,
-        previous_justified_root=ZERO_HASH32,
-        current_justified_root=ZERO_HASH32,
-        justification_bitfield=0,
-        finalized_epoch=config.GENESIS_EPOCH,
-        finalized_root=ZERO_HASH32,
-
-        # Recent state
-        latest_crosslinks=(
-            (
-                Crosslink(
-                    epoch=config.GENESIS_EPOCH,
-                    crosslink_data_root=ZERO_HASH32,
-                ),
-            ) * config.SHARD_COUNT
-        ),
-        latest_block_roots=(ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
-        latest_state_roots=(ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
-        latest_active_index_roots=(ZERO_HASH32,) * config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH,
-        latest_slashed_balances=(Gwei(0),) * config.LATEST_SLASHED_EXIT_LENGTH,
-        latest_block_header=get_temporary_block_header(
-            BeaconBlock.create_empty_block(config.GENESIS_SLOT),
-        ),
-        historical_roots=(),
-
-        # Ethereum 1.0 chain data
-        latest_eth1_data=genesis_eth1_data,
-        eth1_data_votes=(),
-        deposit_index=0,
-    )
-
-    # Process genesis deposits
-    for deposit in genesis_validator_deposits:
-        state = process_deposit(
-            state=state,
-            deposit=deposit,
-            slots_per_epoch=config.SLOTS_PER_EPOCH,
-            deposit_contract_tree_depth=config.DEPOSIT_CONTRACT_TREE_DEPTH,
-        )
-
-    # Process genesis activations
-    for validator_index, _ in enumerate(state.validator_registry):
-        validator_index = ValidatorIndex(validator_index)
-        is_enough_effective_balance = get_effective_balance(
-            state.validator_balances,
-            validator_index,
-            config.MAX_DEPOSIT_AMOUNT,
-        ) >= config.MAX_DEPOSIT_AMOUNT
-        if is_enough_effective_balance:
-            state = activate_validator(
-                state=state,
-                index=validator_index,
-                is_genesis=True,
-                genesis_epoch=config.GENESIS_EPOCH,
-                slots_per_epoch=config.SLOTS_PER_EPOCH,
-                activation_exit_delay=config.ACTIVATION_EXIT_DELAY,
-            )
-
+def genesis_state_with_active_index_roots(state: BeaconState, config: Eth2Config) -> BeaconState:
     active_validator_indices = get_active_validator_indices(
-        state.validator_registry,
+        state.validators,
         config.GENESIS_EPOCH,
     )
     genesis_active_index_root = ssz.hash_tree_root(
         active_validator_indices,
         ssz.sedes.List(ssz.uint64),
     )
-    latest_active_index_roots = (
-        (genesis_active_index_root,) * config.LATEST_ACTIVE_INDEX_ROOTS_LENGTH
+    active_index_roots = (
+        (genesis_active_index_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
     )
-    state = state.copy(
-        latest_active_index_roots=latest_active_index_roots,
-    )
-
-    current_shuffling_seed = generate_seed(
-        state=state,
-        epoch=config.GENESIS_EPOCH,
-        committee_config=CommitteeConfig(config),
-    )
-    state = state.copy(
-        current_shuffling_seed=current_shuffling_seed,
+    return state.copy(
+        active_index_roots=active_index_roots,
     )
 
-    return state
+
+def get_genesis_beacon_state(*,
+                             genesis_deposits: Sequence[Deposit],
+                             genesis_time: Timestamp,
+                             genesis_eth1_data: Eth1Data,
+                             config: Eth2Config) -> BeaconState:
+    state = BeaconState(
+        genesis_time=genesis_time,
+        eth1_data=genesis_eth1_data,
+        latest_block_header=BeaconBlockHeader(
+            body_root=BeaconBlockBody().root,
+        ),
+        config=config,
+    )
+
+    # Process genesis deposits
+    for deposit in genesis_deposits:
+        state = process_deposit(
+            state=state,
+            deposit=deposit,
+            config=config,
+        )
+
+    # Process genesis activations
+    for validator_index in range(len(state.validators)):
+        validator_index = ValidatorIndex(validator_index)
+        effective_balance = state.validators[validator_index].effective_balance
+        is_enough_effective_balance = effective_balance >= config.MAX_EFFECTIVE_BALANCE
+        if is_enough_effective_balance:
+            state = state.update_validator_with_fn(
+                validator_index,
+                activate_validator,
+                config.GENESIS_EPOCH,
+            )
+
+    return genesis_state_with_active_index_roots(
+        state,
+        config,
+    )
+
+
+def get_genesis_block(genesis_state_root: Hash32,
+                      block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
+    return block_class(
+        state_root=genesis_state_root,
+    )

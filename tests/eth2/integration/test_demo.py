@@ -53,8 +53,18 @@ def fork_choice_scoring():
     return higher_slot_scoring
 
 
+@pytest.mark.parametrize(
+    (
+        "validator_count"
+    ),
+    (
+        (40),
+    )
+)
 def test_demo(base_db,
+              validator_count,
               keymap,
+              pubkeys,
               fork_choice_scoring):
     slots_per_epoch = 8
     config = SERENITY_CONFIG._replace(
@@ -70,20 +80,22 @@ def test_demo(base_db,
         config=config,
     )
 
-    num_validators = 40
-
     genesis_slot = config.GENESIS_SLOT
     genesis_epoch = config.GENESIS_EPOCH
     chaindb = BeaconChainDB(base_db, config)
 
+    # TODO(ralexstokes) clean up how the cache is populated
+    for i in range(validator_count):
+        pubkeys[i]
+
     genesis_state, genesis_block = create_mock_genesis(
-        num_validators=num_validators,
+        num_validators=validator_count,
         config=config,
         keymap=keymap,
         genesis_block_class=SerenityBeaconBlock,
     )
-    for i in range(num_validators):
-        assert genesis_state.validator_registry[i].is_active(genesis_slot)
+    for i in range(validator_count):
+        assert genesis_state.validators[i].is_active(genesis_slot)
 
     chaindb.persist_block(genesis_block, SerenityBeaconBlock, fork_choice_scoring)
     chaindb.persist_state(genesis_state)
@@ -147,5 +159,5 @@ def test_demo(base_db,
     assert state.slot == chain_length + genesis_slot
 
     # Justification assertions
-    assert state.current_justified_epoch == 2 + genesis_epoch
-    assert state.finalized_epoch == 1 + genesis_epoch
+    assert state.current_justified_epoch == genesis_epoch
+    assert state.finalized_epoch == genesis_epoch

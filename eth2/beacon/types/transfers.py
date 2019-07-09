@@ -17,16 +17,19 @@ from eth2.beacon.typing import (
     ValidatorIndex,
 )
 
+from .defaults import (
+    default_validator_index,
+    default_gwei,
+    default_slot,
+    default_bls_pubkey,
+)
 
-class Transfer(ssz.Serializable):
+
+class Transfer(ssz.SignedSerializable):
     fields = [
-        # Sender index
         ('sender', uint64),
-        # Recipient index
         ('recipient', uint64),
-        # Amount in Gwei
         ('amount', uint64),
-        # Fee in Gwei for block proposer
         ('fee', uint64),
         # Inclusion slot
         ('slot', uint64),
@@ -37,12 +40,12 @@ class Transfer(ssz.Serializable):
     ]
 
     def __init__(self,
-                 sender: ValidatorIndex,
-                 recipient: ValidatorIndex,
-                 amount: Gwei,
-                 fee: Gwei,
-                 slot: Slot,
-                 pubkey: BLSPubkey,
+                 sender: ValidatorIndex=default_validator_index,
+                 recipient: ValidatorIndex=default_validator_index,
+                 amount: Gwei=default_gwei,
+                 fee: Gwei=default_gwei,
+                 slot: Slot=default_slot,
+                 pubkey: BLSPubkey=default_bls_pubkey,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             sender=sender,

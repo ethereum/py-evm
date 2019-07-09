@@ -1,5 +1,3 @@
-import random
-
 import pytest
 
 from eth_utils import (
@@ -15,58 +13,36 @@ from eth2._utils.hash import (
     hash_eth2,
 )
 from eth2.beacon.constants import (
-    EMPTY_SIGNATURE,
     GWEI_PER_ETH,
     FAR_FUTURE_EPOCH,
 )
 
-from eth2.beacon.types.attestation_data import (
-    AttestationData,
-)
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.validators import Validator
 
 from eth2.beacon.helpers import (
-    generate_seed,
+    _generate_seed,
     get_active_validator_indices,
-    get_block_root,
-    get_state_root,
+    get_block_root_at_slot,
+    get_epoch_start_slot,
     get_domain,
-    get_effective_balance,
-    get_delayed_activation_exit_epoch,
-    get_fork_version,
-    get_temporary_block_header,
+    _get_fork_version,
     get_total_balance,
-    is_double_vote,
-    is_surround_vote,
 )
-
-
-#
-# Header helpers
-#
-def test_get_temporary_block_header(sample_block):
-    header = get_temporary_block_header(sample_block)
-
-    assert header.slot == sample_block.slot
-    assert header.previous_block_root == sample_block.previous_block_root
-    assert header.state_root == ZERO_HASH32
-    assert header.block_body_root == sample_block.body.root
-    assert header.signature == EMPTY_SIGNATURE
 
 
 @to_tuple
 def get_pseudo_chain(length, genesis_block):
     """
-    Get a pseudo chain, only slot and previous_block_root are valid.
+    Get a pseudo chain, only slot and parent_root are valid.
     """
     block = genesis_block.copy()
     yield block
     for slot in range(1, length * 3):
         block = genesis_block.copy(
             slot=slot,
-            previous_block_root=block.signing_root
+            parent_root=block.signing_root
         )
         yield block
 
@@ -80,14 +56,14 @@ def generate_mock_latest_historical_roots(
 
     chain_length = (current_slot // slots_per_epoch + 1) * slots_per_epoch
     blocks = get_pseudo_chain(chain_length, genesis_block)
-    latest_block_roots = [
+    block_roots = [
         block.signing_root
         for block in blocks[:current_slot]
     ] + [
         ZERO_HASH32
         for _ in range(slots_per_historical_root - current_slot)
     ]
-    return blocks, latest_block_roots
+    return blocks, block_roots
 
 
 #
@@ -95,14 +71,6 @@ def generate_mock_latest_historical_roots(
 #
 @pytest.mark.parametrize(
     (
-        'genesis_slot,'
-    ),
-    [
-        (0),
-    ],
-)
-@pytest.mark.parametrize(
-    (
         'current_slot,target_slot,success'
     ),
     [
@@ -114,14 +82,14 @@ def generate_mock_latest_historical_roots(
         (128, 128, False),
     ],
 )
-def test_get_block_root(sample_beacon_state_params,
-                        current_slot,
-                        target_slot,
-                        success,
-                        slots_per_epoch,
-                        slots_per_historical_root,
-                        sample_block):
-    blocks, latest_block_roots = generate_mock_latest_historical_roots(
+def test_get_block_root_at_slot(sample_beacon_state_params,
+                                current_slot,
+                                target_slot,
+                                success,
+                                slots_per_epoch,
+                                slots_per_historical_root,
+                                sample_block):
+    blocks, block_roots = generate_mock_latest_historical_roots(
         sample_block,
         current_slot,
         slots_per_epoch,
@@ -129,11 +97,11 @@ def test_get_block_root(sample_beacon_state_params,
     )
     state = BeaconState(**sample_beacon_state_params).copy(
         slot=current_slot,
-        latest_block_roots=latest_block_roots,
+        block_roots=block_roots,
     )
 
     if success:
-        block_root = get_block_root(
+        block_root = get_block_root_at_slot(
             state,
             target_slot,
             slots_per_historical_root,
@@ -141,62 +109,7 @@ def test_get_block_root(sample_beacon_state_params,
         assert block_root == blocks[target_slot].signing_root
     else:
         with pytest.raises(ValidationError):
-            get_block_root(
-                state,
-                target_slot,
-                slots_per_historical_root,
-            )
-
-
-@pytest.mark.parametrize(
-    (
-        'genesis_slot,'
-    ),
-    [
-        (0),
-    ],
-)
-@pytest.mark.parametrize(
-    (
-        'current_slot,target_slot,success'
-    ),
-    [
-        (10, 0, True),
-        (10, 9, True),
-        (10, 10, False),
-        (128, 0, True),
-        (128, 127, True),
-        (128, 128, False),
-    ],
-)
-def test_get_state_root(sample_beacon_state_params,
-                        current_slot,
-                        target_slot,
-                        success,
-                        slots_per_epoch,
-                        slots_per_historical_root,
-                        sample_block):
-    blocks, latest_state_roots = generate_mock_latest_historical_roots(
-        sample_block,
-        current_slot,
-        slots_per_epoch,
-        slots_per_historical_root,
-    )
-    state = BeaconState(**sample_beacon_state_params).copy(
-        slot=current_slot,
-        latest_state_roots=latest_state_roots,
-    )
-
-    if success:
-        state_root = get_state_root(
-            state,
-            target_slot,
-            slots_per_historical_root,
-        )
-        assert state_root == blocks[target_slot].signing_root
-    else:
-        with pytest.raises(ValidationError):
-            get_state_root(
+            get_block_root_at_slot(
                 state,
                 target_slot,
                 slots_per_historical_root,
@@ -233,76 +146,39 @@ def test_get_active_validator_indices(sample_validator_record_params):
 
 @pytest.mark.parametrize(
     (
-        'balance,'
-        'max_deposit_amount,'
-        'expected'
-    ),
-    [
-        (
-            1 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
-            1 * GWEI_PER_ETH,
-        ),
-        (
-            32 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
-        ),
-        (
-            33 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
-        )
-    ]
-)
-def test_get_effective_balance(balance,
-                               max_deposit_amount,
-                               expected,
-                               sample_validator_record_params):
-    balances = (balance,)
-    result = get_effective_balance(balances, 0, max_deposit_amount)
-    assert result == expected
-
-
-@pytest.mark.parametrize(
-    (
-        'validator_balances,'
+        'balances,'
         'validator_indices,'
-        'max_deposit_amount,'
         'expected'
     ),
     [
         (
             tuple(),
             tuple(),
-            1 * GWEI_PER_ETH,
-            0,
+            1,
         ),
         (
             (32 * GWEI_PER_ETH, 32 * GWEI_PER_ETH),
             (0, 1),
-            32 * GWEI_PER_ETH,
             64 * GWEI_PER_ETH,
         ),
         (
             (32 * GWEI_PER_ETH, 32 * GWEI_PER_ETH),
             (1,),
             32 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
-        ),
-        (
-            (32 * GWEI_PER_ETH, 32 * GWEI_PER_ETH),
-            (0, 1),
-            16 * GWEI_PER_ETH,
-            32 * GWEI_PER_ETH,
         ),
     ]
 )
-def test_get_total_balance(validator_balances,
+def test_get_total_balance(genesis_state,
+                           balances,
                            validator_indices,
-                           max_deposit_amount,
                            expected):
-    total_balance = get_total_balance(validator_balances, validator_indices, max_deposit_amount)
+    state = genesis_state
+    for i, index in enumerate(validator_indices):
+        state = state._update_validator_balance(
+            index,
+            balances[i],
+        )
+    total_balance = get_total_balance(state, validator_indices)
     assert total_balance == expected
 
 
@@ -332,7 +208,7 @@ def test_get_fork_version(previous_version,
         current_version=current_version,
         epoch=epoch,
     )
-    assert expected == get_fork_version(
+    assert expected == _get_fork_version(
         fork,
         current_epoch,
     )
@@ -354,7 +230,7 @@ def test_get_fork_version(previous_version,
             4,
             4,
             1,
-            int.from_bytes(b'\x22' * 4 + b'\x01\x00\x00\x00', 'little'),
+            int.from_bytes(b'\x01\x00\x00\x00' + b'\x22' * 4, 'little'),
         ),
         (
             b'\x11' * 4,
@@ -362,7 +238,7 @@ def test_get_fork_version(previous_version,
             4,
             4 - 1,
             1,
-            int.from_bytes(b'\x11' * 4 + b'\x01\x00\x00\x00', 'little'),
+            int.from_bytes(b'\x01\x00\x00\x00' + b'\x11' * 4, 'little'),
         ),
     ]
 )
@@ -371,158 +247,81 @@ def test_get_domain(previous_version,
                     epoch,
                     current_epoch,
                     domain_type,
+                    genesis_state,
+                    slots_per_epoch,
                     expected):
+    state = genesis_state
     fork = Fork(
         previous_version=previous_version,
         current_version=current_version,
         epoch=epoch,
     )
     assert expected == get_domain(
-        fork=fork,
-        epoch=current_epoch,
+        state=state.copy(
+            fork=fork,
+        ),
         domain_type=domain_type,
+        slots_per_epoch=slots_per_epoch,
+        message_epoch=current_epoch,
     )
 
 
-def test_is_double_vote(sample_attestation_data_params, slots_per_epoch):
-    attestation_data_1_params = {
-        **sample_attestation_data_params,
-        'slot': 12345,
-    }
-    attestation_data_1 = AttestationData(**attestation_data_1_params)
-
-    attestation_data_2_params = {
-        **sample_attestation_data_params,
-        'slot': 12345,
-    }
-    attestation_data_2 = AttestationData(**attestation_data_2_params)
-
-    assert is_double_vote(attestation_data_1, attestation_data_2, slots_per_epoch)
-
-    attestation_data_3_params = {
-        **sample_attestation_data_params,
-        'slot': 54321,
-    }
-    attestation_data_3 = AttestationData(**attestation_data_3_params)
-
-    assert not is_double_vote(attestation_data_1, attestation_data_3, slots_per_epoch)
-
-
-@pytest.mark.parametrize(
-    (
-        'slots_per_epoch,'
-        'attestation_1_slot,'
-        'attestation_1_source_epoch,'
-        'attestation_2_slot,'
-        'attestation_2_source_epoch,'
-        'expected'
-    ),
-    [
-        (1, 0, 0, 0, 0, False),
-        # not (attestation_1_source_epoch < attestation_2_source_epoch
-        (1, 4, 3, 3, 2, False),
-        # not (slot_to_epoch(attestation_2_slot) < slot_to_epoch(attestation_1_slot))
-        (1, 4, 0, 4, 3, False),
-        (1, 4, 0, 3, 2, True),
-    ],
-)
-def test_is_surround_vote(sample_attestation_data_params,
-                          slots_per_epoch,
-                          attestation_1_slot,
-                          attestation_1_source_epoch,
-                          attestation_2_slot,
-                          attestation_2_source_epoch,
-                          expected):
-    attestation_data_1_params = {
-        **sample_attestation_data_params,
-        'slot': attestation_1_slot,
-        'source_epoch': attestation_1_source_epoch,
-    }
-    attestation_data_1 = AttestationData(**attestation_data_1_params)
-
-    attestation_data_2_params = {
-        **sample_attestation_data_params,
-        'slot': attestation_2_slot,
-        'source_epoch': attestation_2_source_epoch,
-    }
-    attestation_data_2 = AttestationData(**attestation_data_2_params)
-
-    assert is_surround_vote(attestation_data_1, attestation_data_2, slots_per_epoch) == expected
-
-
-def test_get_delayed_activation_exit_epoch(activation_exit_delay):
-    epoch = random.randint(0, FAR_FUTURE_EPOCH)
-    entry_exit_effect_epoch = get_delayed_activation_exit_epoch(
-        epoch,
-        activation_exit_delay,
-    )
-    assert entry_exit_effect_epoch == (epoch + 1 + activation_exit_delay)
-
-
-def test_generate_seed(monkeypatch,
-                       genesis_state,
+def test_generate_seed(genesis_state,
                        committee_config,
                        slots_per_epoch,
                        min_seed_lookahead,
                        activation_exit_delay,
-                       latest_active_index_roots_length,
-                       latest_randao_mixes_length):
-    from eth2.beacon import helpers
-
+                       epochs_per_historical_vector):
     def mock_get_randao_mix(state,
                             epoch,
                             slots_per_epoch,
-                            latest_randao_mixes_length):
+                            epochs_per_historical_vector,
+                            perform_validation=False):
         return hash_eth2(
             state.root +
             epoch.to_bytes(32, byteorder='little') +
-            latest_randao_mixes_length.to_bytes(32, byteorder='little')
+            epochs_per_historical_vector.to_bytes(32, byteorder='little')
         )
 
     def mock_get_active_index_root(state,
                                    epoch,
                                    slots_per_epoch,
                                    activation_exit_delay,
-                                   latest_active_index_roots_length):
+                                   epochs_per_historical_vector):
         return hash_eth2(
             state.root +
             epoch.to_bytes(32, byteorder='little') +
             slots_per_epoch.to_bytes(32, byteorder='little') +
-            latest_active_index_roots_length.to_bytes(32, byteorder='little')
+            epochs_per_historical_vector.to_bytes(32, byteorder='little')
         )
-
-    monkeypatch.setattr(
-        helpers,
-        'get_randao_mix',
-        mock_get_randao_mix
-    )
-    monkeypatch.setattr(
-        helpers,
-        'get_active_index_root',
-        mock_get_active_index_root
-    )
 
     state = genesis_state
     epoch = 1
+    state = state.copy(
+        slot=get_epoch_start_slot(epoch, committee_config.SLOTS_PER_EPOCH),
+    )
 
     epoch_as_bytes = epoch.to_bytes(32, 'little')
 
-    seed = generate_seed(
+    seed = _generate_seed(
         state=state,
         epoch=epoch,
+        randao_provider=mock_get_randao_mix,
+        active_index_root_provider=mock_get_active_index_root,
+        epoch_provider=lambda *_: epoch_as_bytes,
         committee_config=committee_config,
     )
     assert seed == hash_eth2(
         mock_get_randao_mix(
             state=state,
-            epoch=(epoch - min_seed_lookahead),
+            epoch=(epoch + epochs_per_historical_vector - min_seed_lookahead),
             slots_per_epoch=slots_per_epoch,
-            latest_randao_mixes_length=latest_randao_mixes_length,
+            epochs_per_historical_vector=epochs_per_historical_vector,
         ) + mock_get_active_index_root(
             state=state,
             epoch=epoch,
             slots_per_epoch=slots_per_epoch,
             activation_exit_delay=activation_exit_delay,
-            latest_active_index_roots_length=latest_active_index_roots_length,
+            epochs_per_historical_vector=epochs_per_historical_vector,
         ) + epoch_as_bytes
     )

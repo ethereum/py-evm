@@ -30,7 +30,6 @@ from .helpers import (
 )
 
 from eth2.beacon.constants import EMPTY_SIGNATURE
-from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
 
 async def get_command_setup(request, event_loop):
@@ -68,10 +67,10 @@ async def test_send_single_block(request, event_loop):
     request_id = 5
     block = BeaconBlock(
         slot=1,
-        previous_block_root=ZERO_HASH32,
+        parent_root=ZERO_HASH32,
         state_root=ZERO_HASH32,
         signature=EMPTY_SIGNATURE,
-        body=BeaconBlockBody.create_empty_body(),
+        body=BeaconBlockBody(),
     )
     alice.sub_proto.send_blocks((block,), request_id=request_id)
 
@@ -91,10 +90,10 @@ async def test_send_multiple_blocks(request, event_loop):
     blocks = tuple(
         BeaconBlock(
             slot=slot,
-            previous_block_root=ZERO_HASH32,
+            parent_root=ZERO_HASH32,
             state_root=ZERO_HASH32,
             signature=EMPTY_SIGNATURE,
-            body=BeaconBlockBody.create_empty_body(),
+            body=BeaconBlockBody(),
         )
         for slot in range(3)
     )
@@ -160,14 +159,9 @@ async def test_send_single_attestation(request, event_loop):
     attestation = Attestation(
         aggregation_bitfield=b"\x00\x00\x00",
         data=AttestationData(
-            slot=0,
-            beacon_block_root=ZERO_HASH32,
-            source_epoch=SERENITY_CONFIG.GENESIS_EPOCH,
-            target_root=ZERO_HASH32,
-            source_root=ZERO_HASH32,
-            shard=1,
-            previous_crosslink=Crosslink(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
-            crosslink_data_root=ZERO_HASH32,
+            crosslink=Crosslink(
+                shard=1,
+            )
         ),
         custody_bitfield=b"\x00\x00\x00",
     )
@@ -187,14 +181,9 @@ async def test_send_multiple_attestations(request, event_loop):
         Attestation(
             aggregation_bitfield=b"\x00\x00\x00",
             data=AttestationData(
-                slot=0,
-                beacon_block_root=ZERO_HASH32,
-                source_epoch=SERENITY_CONFIG.GENESIS_EPOCH,
-                target_root=ZERO_HASH32,
-                source_root=ZERO_HASH32,
-                shard=shard,
-                previous_crosslink=Crosslink(SERENITY_CONFIG.GENESIS_EPOCH, ZERO_HASH32),
-                crosslink_data_root=ZERO_HASH32,
+                crosslink=Crosslink(
+                    shard=shard,
+                )
             ),
             custody_bitfield=b"\x00\x00\x00",
         ) for shard in range(10)

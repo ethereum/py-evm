@@ -45,11 +45,19 @@ from eth2.beacon.typing import (
 from .attestations import Attestation
 from .attester_slashings import AttesterSlashing
 from .block_headers import BeaconBlockHeader
+from .defaults import (
+    default_tuple,
+    default_slot,
+)
 from .deposits import Deposit
-from .eth1_data import Eth1Data
+from .eth1_data import (
+    Eth1Data,
+    default_eth1_data,
+)
 from .proposer_slashings import ProposerSlashing
 from .transfers import Transfer
 from .voluntary_exits import VoluntaryExit
+
 
 if TYPE_CHECKING:
     from eth2.beacon.db.chain import BaseBeaconChainDB  # noqa: F401
@@ -60,6 +68,7 @@ class BeaconBlockBody(ssz.Serializable):
     fields = [
         ('randao_reveal', bytes96),
         ('eth1_data', Eth1Data),
+        ('graffiti', bytes32),
         ('proposer_slashings', List(ProposerSlashing)),
         ('attester_slashings', List(AttesterSlashing)),
         ('attestations', List(Attestation)),
@@ -70,17 +79,19 @@ class BeaconBlockBody(ssz.Serializable):
 
     def __init__(self,
                  *,
-                 randao_reveal: bytes96,
-                 eth1_data: Eth1Data,
-                 proposer_slashings: Sequence[ProposerSlashing],
-                 attester_slashings: Sequence[AttesterSlashing],
-                 attestations: Sequence[Attestation],
-                 deposits: Sequence[Deposit],
-                 voluntary_exits: Sequence[VoluntaryExit],
-                 transfers: Sequence[Transfer])-> None:
+                 randao_reveal: bytes96=EMPTY_SIGNATURE,
+                 eth1_data: Eth1Data=default_eth1_data,
+                 graffiti: Hash32=ZERO_HASH32,
+                 proposer_slashings: Sequence[ProposerSlashing]=default_tuple,
+                 attester_slashings: Sequence[AttesterSlashing]=default_tuple,
+                 attestations: Sequence[Attestation]=default_tuple,
+                 deposits: Sequence[Deposit]=default_tuple,
+                 voluntary_exits: Sequence[VoluntaryExit]=default_tuple,
+                 transfers: Sequence[Transfer]=default_tuple)-> None:
         super().__init__(
             randao_reveal=randao_reveal,
             eth1_data=eth1_data,
+            graffiti=graffiti,
             proposer_slashings=proposer_slashings,
             attester_slashings=attester_slashings,
             attestations=attestations,
@@ -89,74 +100,33 @@ class BeaconBlockBody(ssz.Serializable):
             transfers=transfers,
         )
 
-    @classmethod
-    def create_empty_body(cls) -> 'BeaconBlockBody':
-        return cls(
-            randao_reveal=EMPTY_SIGNATURE,
-            eth1_data=Eth1Data.create_empty_data(),
-            proposer_slashings=(),
-            attester_slashings=(),
-            attestations=(),
-            deposits=(),
-            voluntary_exits=(),
-            transfers=(),
-        )
-
     @property
     def is_empty(self) -> bool:
-        return (
-            self.randao_reveal == EMPTY_SIGNATURE and
-            self.eth1_data == Eth1Data.create_empty_data() and
-            self.proposer_slashings == () and
-            self.attester_slashings == () and
-            self.attestations == () and
-            self.deposits == () and
-            self.voluntary_exits == () and
-            self.transfers == ()
-        )
+        return self == BeaconBlockBody()
 
-    @classmethod
-    def cast_block_body(cls,
-                        body: 'BeaconBlockBody') -> 'BeaconBlockBody':
-        return cls(
-            randao_reveal=body.randao_reveal,
-            eth1_data=body.eth1_data,
-            proposer_slashings=body.proposer_slashings,
-            attester_slashings=body.attester_slashings,
-            attestations=body.attestations,
-            deposits=body.deposits,
-            voluntary_exits=body.voluntary_exits,
-            transfers=body.transfers,
-        )
+
+default_beacon_block_body = BeaconBlockBody()
 
 
 class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
     fields = [
-        #
-        # Header
-        #
         ('slot', uint64),
-        ('previous_block_root', bytes32),
+        ('parent_root', bytes32),
         ('state_root', bytes32),
-
-        #
-        # Body
-        #
         ('body', BeaconBlockBody),
-
         ('signature', bytes96),
     ]
 
     def __init__(self,
                  *,
-                 slot: Slot,
-                 previous_block_root: Hash32,
-                 state_root: Hash32,
-                 body: BeaconBlockBody,
+                 slot: Slot=default_slot,
+                 parent_root: Hash32=ZERO_HASH32,
+                 state_root: Hash32=ZERO_HASH32,
+                 body: BeaconBlockBody=default_beacon_block_body,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             slot=slot,
-            previous_block_root=previous_block_root,
+            parent_root=parent_root,
             state_root=state_root,
             body=body,
             signature=signature,
@@ -173,22 +143,18 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
         )
 
     @property
-    def num_attestations(self) -> int:
-        return len(self.body.attestations)
+    def is_genesis(self) -> bool:
+        return self.parent_root == GENESIS_PARENT_ROOT
 
     @property
     def header(self) -> BeaconBlockHeader:
         return BeaconBlockHeader(
             slot=self.slot,
-            previous_block_root=self.previous_block_root,
+            parent_root=self.parent_root,
             state_root=self.state_root,
-            block_body_root=self.body.root,
+            body_root=self.body.root,
             signature=self.signature,
         )
-
-    @property
-    def is_genesis(self) -> bool:
-        return self.previous_block_root == GENESIS_PARENT_ROOT
 
     @classmethod
     @abstractmethod
@@ -197,16 +163,6 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
         Return the block denoted by the given block root.
         """
         raise NotImplementedError("Must be implemented by subclasses")
-
-    @classmethod
-    def create_empty_block(cls, genesis_slot: Slot) -> 'BaseBeaconBlock':
-        return cls(
-            slot=genesis_slot,
-            previous_block_root=ZERO_HASH32,
-            state_root=ZERO_HASH32,
-            body=BeaconBlockBody.create_empty_body(),
-            signature=EMPTY_SIGNATURE,
-        )
 
 
 class BeaconBlock(BaseBeaconBlock):
@@ -221,6 +177,7 @@ class BeaconBlock(BaseBeaconBlock):
         body = cls.block_body_class(
             randao_reveal=block.body.randao_reveal,
             eth1_data=block.body.eth1_data,
+            graffiti=block.body.graffiti,
             proposer_slashings=block.body.proposer_slashings,
             attester_slashings=block.body.attester_slashings,
             attestations=block.body.attestations,
@@ -231,7 +188,7 @@ class BeaconBlock(BaseBeaconBlock):
 
         return cls(
             slot=block.slot,
-            previous_block_root=block.previous_block_root,
+            parent_root=block.parent_root,
             state_root=block.state_root,
             body=body,
             signature=block.signature,
@@ -252,10 +209,9 @@ class BeaconBlock(BaseBeaconBlock):
 
         return cls(
             slot=slot,
-            previous_block_root=parent_block.signing_root,
+            parent_root=parent_block.signing_root,
             state_root=parent_block.state_root,
-            body=cls.block_body_class.create_empty_body(),
-            signature=EMPTY_SIGNATURE,
+            body=cls.block_body_class(),
         )
 
     @classmethod
@@ -263,7 +219,7 @@ class BeaconBlock(BaseBeaconBlock):
                       block: 'BaseBeaconBlock') -> 'BeaconBlock':
         return cls(
             slot=block.slot,
-            previous_block_root=block.previous_block_root,
+            parent_root=block.parent_root,
             state_root=block.state_root,
             body=block.body,
             signature=block.signature,
@@ -273,8 +229,8 @@ class BeaconBlock(BaseBeaconBlock):
     def from_header(cls, header: BeaconBlockHeader) -> 'BeaconBlock':
         return cls(
             slot=header.slot,
-            previous_block_root=header.previous_block_root,
+            parent_root=header.parent_root,
             state_root=header.state_root,
             signature=header.signature,
-            body=BeaconBlockBody.create_empty_body(),
+            body=BeaconBlockBody(),
         )

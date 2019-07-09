@@ -43,11 +43,11 @@ from p2p.protocol import (
     Command,
 )
 
-from eth2.configs import (
-    CommitteeConfig,
-)
 from eth2.beacon.typing import (
     Slot,
+)
+from eth2.beacon.attestation_helpers import (
+    get_attestation_data_slot,
 )
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
@@ -200,7 +200,7 @@ class BCCRequestServer(BaseIsolatedRequestServer):
                 # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under
                 # per BeaconStateMachine fork
                 block = await self.db.coro_get_canonical_block_by_slot(slot, BeaconBlock)
-                if block.previous_block_root == parent.signing_root:
+                if block.parent_root == parent.signing_root:
                     yield block
                 else:
                     break
@@ -308,7 +308,7 @@ class OrphanBlockPool:
         children = tuple(
             orphan_block
             for orphan_block in self._pool
-            if orphan_block.previous_block_root == block_root
+            if orphan_block.parent_root == block_root
         )
         self._pool.difference_update(children)
         return children
@@ -433,17 +433,15 @@ class BCCReceiveServer(BaseReceiveServer):
         for attestation in attestations:
             # Fast forward to state in future slot in order to pass
             # attestation.data.slot validity check
-            future_state = state_machine.state_transition.apply_state_transition_without_block(
+            future_state = state_machine.state_transition.apply_state_transition(
                 state,
-                attestation.data.slot + config.MIN_ATTESTATION_INCLUSION_DELAY,
+                future_slot=attestation.data.slot + config.MIN_ATTESTATION_INCLUSION_DELAY,
             )
             try:
                 validate_attestation(
                     future_state,
                     attestation,
-                    config.MIN_ATTESTATION_INCLUSION_DELAY,
-                    config.SLOTS_PER_HISTORICAL_ROOT,
-                    CommitteeConfig(config),
+                    config,
                 )
                 yield attestation
             except ValidationError:
@@ -469,11 +467,11 @@ class BCCReceiveServer(BaseReceiveServer):
         further broadcast to other peers.
         """
         # If the block is an orphan, put it directly to the pool and request for its parent.
-        if not self._is_block_root_in_db(block.previous_block_root):
+        if not self._is_block_root_in_db(block.parent_root):
             if block not in self.orphan_block_pool:
                 self.logger.debug("Found orphan_block=%s", block)
                 self.orphan_block_pool.add(block)
-                self._request_block_from_peers(block_root=block.previous_block_root)
+                self._request_block_from_peers(block_root=block.parent_root)
             return False
         try:
             self.chain.import_block(block)
@@ -575,17 +573,19 @@ class BCCReceiveServer(BaseReceiveServer):
         return self._is_block_root_seen(block_root=block.signing_root)
 
     @to_tuple
-    def get_ready_attestations(self, inclusion_slot: Slot) -> Iterable[Attestation]:
-        config = self.chain.get_state_machine().config
+    def get_ready_attestations(self) -> Iterable[Attestation]:
+        state_machine = self.chain.get_state_machine()
+        config = state_machine.config
+        state = state_machine.state
         for attestation in self.attestation_pool.get_all():
-            # Validate attestation slot
+            data = attestation.data
+            attestation_slot = get_attestation_data_slot(state, data, config)
             try:
                 validate_attestation_slot(
-                    attestation.data,
-                    inclusion_slot,
+                    attestation_slot,
+                    state.slot,
                     config.SLOTS_PER_EPOCH,
                     config.MIN_ATTESTATION_INCLUSION_DELAY,
-                    config.GENESIS_SLOT,
                 )
             except ValidationError:
                 # TODO: Should clean up attestations with invalid slot because

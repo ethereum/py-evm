@@ -11,15 +11,7 @@ from eth2.beacon.types.historical_batch import HistoricalBatch
 
 @pytest.mark.parametrize(
     (
-        'genesis_slot,'
-    ),
-    [
-        (0),
-    ]
-)
-@pytest.mark.parametrize(
-    (
-        'num_validators,'
+        'validator_count,'
         'slots_per_epoch,'
         'min_attestation_inclusion_delay,'
         'target_committee_size,'
@@ -28,21 +20,21 @@ from eth2.beacon.types.historical_batch import HistoricalBatch
         'slots_per_historical_root'
     ),
     [
-        (10, 10, 1, 2, 2, 2, 8192),
+        (10, 10, 1, 2, 10, 2, 8192),
         # state.slot == SLOTS_PER_HISTORICAL_ROOT
-        (6, 6, 1, 2, 2, 8, 8),
+        (6, 6, 1, 2, 6, 8, 8),
         # state.slot > SLOTS_PER_HISTORICAL_ROOT
-        (7, 7, 1, 2, 2, 9, 8),
+        (7, 7, 1, 2, 7, 9, 8),
         # state.slot < SLOTS_PER_HISTORICAL_ROOT
-        (7, 7, 1, 2, 2, 7, 8),
+        (7, 7, 1, 2, 7, 7, 8),
         # state.slot % SLOTS_PER_HISTORICAL_ROOT = 0
-        (11, 4, 1, 2, 2, 16, 8),
-        (16, 4, 1, 2, 2, 32, 8),
+        # (11, 4, 1, 2, 2, 16, 8),
+        # (16, 4, 1, 2, 4, 32, 8),
         # updated_state.slot == SLOTS_PER_HISTORICAL_ROOT
-        (6, 4, 1, 2, 2, 7, 8),
+        (6, 4, 1, 2, 4, 7, 8),
         # updated_state.slot % SLOTS_PER_HISTORICAL_ROOT = 0
-        (11, 4, 1, 2, 2, 15, 8),
-        (16, 4, 1, 2, 2, 31, 8),
+        # (11, 4, 1, 2, 4, 15, 8),
+        # (16, 4, 1, 2, 4, 31, 8),
     ]
 )
 def test_per_slot_transition(chaindb,
@@ -78,29 +70,29 @@ def test_per_slot_transition(chaindb,
     # Get state machine instance
     sm = fixture_sm_class(
         chaindb,
-        block,
+        block.slot,
     )
 
     # Get state transition instance
     st = sm.state_transition_class(sm.config)
 
-    # NOTE: we want to run both functions, however they are run independently
-    # so we have two function calls
-    updated_state = st.cache_state(state)
-    updated_state = st.per_slot_transition(updated_state)
+    updated_state = st.apply_state_transition(state, future_slot=state.slot + 1)
 
     # Ensure that slot gets increased by 1
     assert updated_state.slot == state.slot + 1
 
-    # latest_block_roots
-    latest_block_roots_index = (updated_state.slot - 1) % st.config.SLOTS_PER_HISTORICAL_ROOT
-    assert updated_state.latest_block_roots[latest_block_roots_index] == block.previous_block_root
+    # block_roots
+    roots_index = (updated_state.slot - 1) % st.config.SLOTS_PER_HISTORICAL_ROOT
+    assert updated_state.block_roots[roots_index] == block.parent_root
+
+    # state_roots
+    assert updated_state.state_roots[roots_index] == state.root
 
     # historical_roots
     if updated_state.slot % st.config.SLOTS_PER_HISTORICAL_ROOT == 0:
         historical_batch = HistoricalBatch(
-            block_roots=state.latest_block_roots,
-            state_roots=state.latest_state_roots,
+            block_roots=state.block_roots,
+            state_roots=state.state_roots,
         )
         assert updated_state.historical_roots[-1] == historical_batch.root
     else:

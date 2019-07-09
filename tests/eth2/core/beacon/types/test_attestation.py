@@ -10,7 +10,7 @@ from eth2.beacon.types.attestations import (
 @pytest.mark.parametrize(
     'param,default_value',
     [
-        ('aggregate_signature', b'\x00' * 96),
+        ('signature', b'\x00' * 96),
     ]
 )
 def test_defaults(param, default_value, sample_attestation_params):

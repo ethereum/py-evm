@@ -106,7 +106,7 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
         )
 
         state = chain.get_state_by_slot(chain_config.genesis_config.GENESIS_SLOT)
-        registry_pubkeys = [v_record.pubkey for v_record in state.validator_registry]
+        registry_pubkeys = [v_record.pubkey for v_record in state.validators]
 
         validator_privkeys = {}
         validator_keymap = chain_config.genesis_data.validator_keymap

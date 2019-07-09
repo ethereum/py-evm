@@ -1,230 +1,148 @@
-from eth_utils import (
-    ValidationError,
+from eth_utils.toolz import (
+    curry,
 )
 
 from eth2._utils.tuple import (
-    update_tuple_item,
+    update_tuple_item_with_fn,
 )
 from eth2.configs import (
     CommitteeConfig,
+    Eth2Config,
 )
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
 )
-from eth2.beacon.helpers import (
+from eth2.beacon.constants import FAR_FUTURE_EPOCH
+from eth2.beacon.epoch_processing_helpers import (
+    decrease_balance,
+    get_churn_limit,
     get_delayed_activation_exit_epoch,
-    get_effective_balance,
-    get_epoch_start_slot,
+    increase_balance,
 )
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
     Epoch,
     Gwei,
-    Slot,
     ValidatorIndex,
 )
 
 
-#
-# State update
-#
-def activate_validator(state: BeaconState,
-                       index: ValidatorIndex,
-                       is_genesis: bool,
-                       genesis_epoch: Epoch,
-                       slots_per_epoch: int,
-                       activation_exit_delay: int) -> BeaconState:
-    """
-    Activate the validator with the given ``index``.
-    Return the updated state (immutable).
-    """
-    # Update validator.activation_epoch
-    validator = state.validator_registry[index].copy(
-        activation_epoch=genesis_epoch if is_genesis else get_delayed_activation_exit_epoch(
-            state.current_epoch(slots_per_epoch),
-            activation_exit_delay,
-        )
+def activate_validator(validator: Validator, activation_epoch: Epoch) -> Validator:
+    return validator.copy(
+        activation_eligibility_epoch=activation_epoch,
+        activation_epoch=activation_epoch,
     )
-    state = state.update_validator_registry(index, validator)
 
-    return state
+
+def _compute_exit_queue_epoch(state: BeaconState, churn_limit: int, config: Eth2Config) -> int:
+    slots_per_epoch = config.SLOTS_PER_EPOCH
+
+    exit_epochs = tuple(
+        v.exit_epoch for v in state.validators
+        if v.exit_epoch != FAR_FUTURE_EPOCH
+    )
+    exit_queue_epoch = max(
+        exit_epochs + (get_delayed_activation_exit_epoch(
+            state.current_epoch(slots_per_epoch),
+            config.ACTIVATION_EXIT_DELAY,
+        ),)
+    )
+    exit_queue_churn = len(tuple(
+        v for v in state.validators
+        if v.exit_epoch == exit_queue_epoch
+    ))
+    if exit_queue_churn >= churn_limit:
+        exit_queue_epoch += 1
+    return exit_queue_epoch
+
+
+# NOTE: adding ``curry`` here gets mypy to allow use of this elsewhere.
+@curry
+def initiate_exit_for_validator(validator: Validator,
+                                state: BeaconState,
+                                config: Eth2Config) -> Validator:
+    """
+    Performs the mutations to ``validator`` used to initiate an exit.
+    More convenient given our immutability patterns compared to ``initiate_validator_exit``.
+    """
+    if validator.exit_epoch != FAR_FUTURE_EPOCH:
+        return validator
+
+    churn_limit = get_churn_limit(state, config)
+    exit_queue_epoch = _compute_exit_queue_epoch(state, churn_limit, config)
+
+    return validator.copy(
+        exit_epoch=exit_queue_epoch,
+        withdrawable_epoch=exit_queue_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY,
+    )
 
 
 def initiate_validator_exit(state: BeaconState,
-                            index: ValidatorIndex) -> BeaconState:
+                            index: ValidatorIndex,
+                            config: Eth2Config) -> BeaconState:
     """
     Initiate exit for the validator with the given ``index``.
     Return the updated state (immutable).
     """
-    validator = state.validator_registry[index]
-    validator = validator.copy(
-        initiated_exit=True,
-    )
-    state = state.update_validator_registry(index, validator)
-
-    return state
-
-
-def exit_validator(state: BeaconState,
-                   index: ValidatorIndex,
-                   slots_per_epoch: int,
-                   activation_exit_delay: int) -> BeaconState:
-    """
-    Exit the validator with the given ``index``.
-    Return the updated state (immutable).
-    """
-    validator = state.validator_registry[index]
-
-    delayed_activation_exit_epoch = get_delayed_activation_exit_epoch(
-        state.current_epoch(slots_per_epoch),
-        activation_exit_delay,
-    )
-
-    # The following updates only occur if not previous exited
-    if validator.exit_epoch <= delayed_activation_exit_epoch:
-        return state
-
-    validator = validator.copy(
-        exit_epoch=delayed_activation_exit_epoch,
-    )
-    state = state.update_validator_registry(index, validator)
-
-    return state
-
-
-def _settle_penality_to_validator_and_whistleblower(
-        *,
-        state: BeaconState,
-        validator_index: ValidatorIndex,
-        latest_slashed_exit_length: int,
-        whistleblower_reward_quotient: int,
-        max_deposit_amount: Gwei,
-        committee_config: CommitteeConfig) -> BeaconState:
-    """
-    Apply penality/reward to validator and whistleblower and update the meta data
-
-    More intuitive pseudo-code:
-    current_epoch_penalization_index = (state.slot // SLOTS_PER_EPOCH) % LATEST_SLASHED_EXIT_LENGTH
-    state.latest_slashed_balances[current_epoch_penalization_index] += (
-        get_effective_balance(state, index)
-    )
-    whistleblower_index = get_beacon_proposer_index(state, state.slot)
-    whistleblower_reward = get_effective_balance(state, index) // WHISTLEBLOWER_REWARD_QUOTIENT
-    state.validator_balances[whistleblower_index] += whistleblower_reward
-    state.validator_balances[index] -= whistleblower_reward
-    validator.slashed = True
-    validator.withdrawable_epoch = get_current_epoch(state) + LATEST_SLASHED_EXIT_LENGTH
-    """
-    slots_per_epoch = committee_config.SLOTS_PER_EPOCH
-
-    # Update `state.latest_slashed_balances`
-    current_epoch_penalization_index = state.current_epoch(
-        slots_per_epoch) % latest_slashed_exit_length
-    effective_balance = get_effective_balance(
-        state.validator_balances,
-        validator_index,
-        max_deposit_amount,
-    )
-    slashed_exit_balance = (
-        state.latest_slashed_balances[current_epoch_penalization_index] +
-        effective_balance
-    )
-    latest_slashed_balances = update_tuple_item(
-        tuple_data=state.latest_slashed_balances,
-        index=current_epoch_penalization_index,
-        new_value=slashed_exit_balance,
-    )
-    state = state.copy(
-        latest_slashed_balances=latest_slashed_balances,
-    )
-
-    # Update whistleblower's balance
-    whistleblower_reward = (
-        effective_balance //
-        whistleblower_reward_quotient
-    )
-    whistleblower_index = get_beacon_proposer_index(
+    return state.update_validator_with_fn(
+        index,
+        initiate_exit_for_validator,
         state,
-        state.slot,
-        committee_config,
-    )
-    state = state.update_validator_balance(
-        whistleblower_index,
-        state.validator_balances[whistleblower_index] + whistleblower_reward,
+        config,
     )
 
-    # Update validator's balance and `slashed`, `withdrawable_epoch` field
-    validator = state.validator_registry[validator_index].copy(
+
+@curry
+def _set_validator_slashed(v: Validator,
+                           withdrawable_epoch: Epoch) -> Validator:
+    return v.copy(
         slashed=True,
-        withdrawable_epoch=state.current_epoch(slots_per_epoch) + latest_slashed_exit_length,
-    )
-    state = state.update_validator(
-        validator_index,
-        validator,
-        state.validator_balances[validator_index] - whistleblower_reward,
+        withdrawable_epoch=withdrawable_epoch,
     )
 
-    return state
 
-
-def slash_validator(*,
-                    state: BeaconState,
+def slash_validator(state: BeaconState,
                     index: ValidatorIndex,
-                    latest_slashed_exit_length: int,
-                    whistleblower_reward_quotient: int,
-                    max_deposit_amount: Gwei,
-                    committee_config: CommitteeConfig) -> BeaconState:
+                    config: Eth2Config,
+                    whistleblower_index: ValidatorIndex=None) -> BeaconState:
     """
     Slash the validator with index ``index``.
 
     Exit the validator, penalize the validator, and reward the whistleblower.
     """
-    slots_per_epoch = committee_config.SLOTS_PER_EPOCH
-    activation_exit_delay = committee_config.ACTIVATION_EXIT_DELAY
+    # NOTE: remove in phase 1
+    assert whistleblower_index is None
 
-    validator = state.validator_registry[index]
+    slots_per_epoch = config.SLOTS_PER_EPOCH
 
-    # TODO: [TO BE REMOVED IN PHASE 2]
-    _validate_withdrawable_epoch(state.slot, validator.withdrawable_epoch, slots_per_epoch)
+    current_epoch = state.current_epoch(slots_per_epoch)
 
-    state = exit_validator(state, index, slots_per_epoch, activation_exit_delay)
-    state = _settle_penality_to_validator_and_whistleblower(
-        state=state,
-        validator_index=index,
-        latest_slashed_exit_length=latest_slashed_exit_length,
-        whistleblower_reward_quotient=whistleblower_reward_quotient,
-        max_deposit_amount=max_deposit_amount,
-        committee_config=committee_config,
+    state = initiate_validator_exit(state, index, config)
+    state = state.update_validator_with_fn(
+        index,
+        _set_validator_slashed,
+        current_epoch + config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
     )
-    return state
 
-
-def prepare_validator_for_withdrawal(state: BeaconState,
-                                     index: ValidatorIndex,
-                                     slots_per_epoch: int,
-                                     min_validator_withdrawability_delay: int) -> BeaconState:
-    """
-    Set the validator with the given ``index`` as withdrawable
-    ``MIN_VALIDATOR_WITHDRAWABILITY_DELAY`` after the current epoch.
-    """
-    validator = state.validator_registry[index].copy(
-        withdrawable_epoch=(
-            state.current_epoch(slots_per_epoch) + min_validator_withdrawability_delay
+    slashed_balance = state.validators[index].effective_balance
+    slashed_epoch = current_epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+    state = state.copy(
+        slashed_balances=update_tuple_item_with_fn(
+            state.slashed_balances,
+            slashed_epoch,
+            lambda balance, slashed_balance: Gwei(balance + slashed_balance),
+            slashed_balance,
         )
     )
-    state = state.update_validator_registry(index, validator)
+
+    proposer_index = get_beacon_proposer_index(state, CommitteeConfig(config))
+    if whistleblower_index is None:
+        whistleblower_index = proposer_index
+    whistleblowing_reward = slashed_balance // config.WHISTLEBLOWING_REWARD_QUOTIENT
+    proposer_reward = whistleblowing_reward // config.PROPOSER_REWARD_QUOTIENT
+    state = increase_balance(state, proposer_index, proposer_reward)
+    state = increase_balance(state, whistleblower_index, whistleblowing_reward - proposer_reward)
+    state = decrease_balance(state, index, whistleblowing_reward)
 
     return state
-
-
-#
-# Validation
-#
-def _validate_withdrawable_epoch(state_slot: Slot,
-                                 validator_withdrawable_epoch: Epoch,
-                                 slots_per_epoch: int) -> None:
-    if state_slot >= get_epoch_start_slot(validator_withdrawable_epoch, slots_per_epoch):
-        raise ValidationError(
-            f"state.slot ({state_slot}) should be less than "
-            f"validator.withdrawable_epoch ({validator_withdrawable_epoch})"
-        )

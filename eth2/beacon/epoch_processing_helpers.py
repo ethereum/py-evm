@@ -1,10 +1,8 @@
-from typing import (  # noqa: F401
-    Dict,
+from typing import (
     Iterable,
     Sequence,
     Set,
     Tuple,
-    TYPE_CHECKING,
 )
 
 from eth_typing import (
@@ -14,21 +12,38 @@ from eth_typing import (
 from eth_utils import (
     to_tuple,
 )
+from eth_utils.toolz import (
+    curry,
+    groupby,
+    thread_first,
+)
 
-from eth.constants import ZERO_HASH32
+from eth2._utils.bitfield import (
+    Bitfield,
+    has_voted
+)
 from eth2._utils.numeric import integer_squareroot
+from eth2._utils.tuple import update_tuple_item_with_fn
+from eth2.beacon.attestation_helpers import (
+    get_attestation_data_slot,
+)
 from eth2.beacon.committee_helpers import (
-    get_attestation_participants,
-    get_attester_indices_from_attestations,
+    get_crosslink_committee,
+)
+from eth2.beacon.constants import (
+    BASE_REWARDS_PER_EPOCH,
 )
 from eth2.configs import (
-    CommitteeConfig,
     Eth2Config,
+    CommitteeConfig,
+)
+from eth2.beacon.exceptions import (
+    InvalidEpochError,
 )
 from eth2.beacon.helpers import (
+    get_active_validator_indices,
     get_block_root,
-    get_epoch_start_slot,
-    get_effective_balance,
+    get_block_root_at_slot,
     get_total_balance,
 )
 from eth2.beacon.typing import (
@@ -37,255 +52,296 @@ from eth2.beacon.typing import (
     Shard,
     ValidatorIndex,
 )
+from eth2.beacon.validation import (
+    validate_bitfield,
+)
 
-from eth2.beacon.datastructures.inclusion_info import InclusionInfo
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import (
     PendingAttestation,
 )
-if TYPE_CHECKING:
-    from eth2.beacon.types.attestation_data import AttestationData  # noqa: F401
-    from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
-    from eth2.beacon.types.states import BeaconState  # noqa: F401
-    from eth2.beacon.types.slashable_attestations import SlashableAttestation  # noqa: F401
-    from eth2.beacon.types.validators import Validator  # noqa: F401
+from eth2.beacon.types.attestations import (
+    Attestation,
+    IndexedAttestation,
+)
+from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.states import BeaconState
 
 
-@to_tuple
-def get_previous_epoch_boundary_attestations(
-        state: 'BeaconState',
-        slots_per_epoch: int,
-        latest_block_roots_length: int) -> Iterable[PendingAttestation]:
-    if not state.previous_epoch_attestations:
-        return tuple()
-
-    beacon_block_root = get_block_root(
-        state,
-        get_epoch_start_slot(
-            state.previous_epoch(slots_per_epoch),
-            slots_per_epoch,
+def increase_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> BeaconState:
+    return state.copy(
+        balances=update_tuple_item_with_fn(
+            state.balances,
+            index,
+            lambda balance, *_: Gwei(balance + delta)
         ),
-        latest_block_roots_length,
     )
-    for attestation in state.previous_epoch_attestations:
-        if attestation.data.beacon_block_root == beacon_block_root:
-            yield attestation
+
+
+def decrease_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> BeaconState:
+    return state.copy(
+        balances=update_tuple_item_with_fn(
+            state.balances,
+            index,
+            lambda balance, *_: Gwei(0) if delta > balance else Gwei(balance - delta)
+        ),
+    )
 
 
 @to_tuple
-def get_previous_epoch_matching_head_attestations(
-        state: 'BeaconState',
-        slots_per_epoch: int,
-        slots_per_historical_root: int) -> Iterable[PendingAttestation]:
-    for attestation in state.previous_epoch_attestations:
-        beacon_block_root = get_block_root(
+def get_attesting_indices(state: BeaconState,
+                          attestation_data: AttestationData,
+                          bitfield: Bitfield,
+                          config: CommitteeConfig) -> Iterable[ValidatorIndex]:
+    """
+    Return the sorted attesting indices corresponding to ``attestation_data`` and ``bitfield``.
+    """
+    committee = get_crosslink_committee(
+        state,
+        attestation_data.target_epoch,
+        attestation_data.crosslink.shard,
+        config,
+    )
+    validate_bitfield(bitfield, len(committee))
+    return sorted(index for i, index in enumerate(committee) if has_voted(bitfield, i))
+
+
+def convert_to_indexed(state: BeaconState,
+                       attestation: Attestation,
+                       config: CommitteeConfig) -> IndexedAttestation:
+    attesting_indices = get_attesting_indices(
+        state,
+        attestation.data,
+        attestation.aggregation_bitfield,
+        config,
+    )
+    custody_bit_1_indices = get_attesting_indices(
+        state,
+        attestation.data,
+        attestation.custody_bitfield,
+        config,
+    )
+    custody_bit_0_indices = tuple(
+        index for index in attesting_indices
+        if index not in custody_bit_1_indices
+    )
+
+    return IndexedAttestation(
+        custody_bit_0_indices=custody_bit_0_indices,
+        custody_bit_1_indices=custody_bit_1_indices,
+        data=attestation.data,
+        signature=attestation.signature,
+    )
+
+
+def get_delayed_activation_exit_epoch(epoch: Epoch,
+                                      activation_exit_delay: int) -> Epoch:
+    """
+    An entry or exit triggered in the ``epoch`` given by the input takes effect at
+    the epoch given by the output.
+    """
+    return Epoch(epoch + 1 + activation_exit_delay)
+
+
+def get_churn_limit(state: BeaconState, config: Eth2Config) -> int:
+    slots_per_epoch = config.SLOTS_PER_EPOCH
+    min_per_epoch_churn_limit = config.MIN_PER_EPOCH_CHURN_LIMIT
+    churn_limit_quotient = config.CHURN_LIMIT_QUOTIENT
+
+    current_epoch = state.current_epoch(slots_per_epoch)
+    active_validator_indices = get_active_validator_indices(
+        state.validators,
+        current_epoch,
+    )
+    return max(
+        min_per_epoch_churn_limit,
+        len(active_validator_indices) // churn_limit_quotient
+    )
+
+
+def get_total_active_balance(state: BeaconState, config: Eth2Config) -> Gwei:
+    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    active_validator_indices = get_active_validator_indices(state.validators, current_epoch)
+    return get_total_balance(state, active_validator_indices)
+
+
+def get_matching_source_attestations(state: BeaconState,
+                                     epoch: Epoch,
+                                     config: Eth2Config) -> Tuple[PendingAttestation, ...]:
+    if epoch == state.current_epoch(config.SLOTS_PER_EPOCH):
+        return state.current_epoch_attestations
+    elif epoch == state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH):
+        return state.previous_epoch_attestations
+    else:
+        raise InvalidEpochError
+
+
+@to_tuple
+def get_matching_target_attestations(state: BeaconState,
+                                     epoch: Epoch,
+                                     config: Eth2Config) -> Iterable[PendingAttestation]:
+    target_root = get_block_root(
+        state,
+        epoch,
+        config.SLOTS_PER_EPOCH,
+        config.SLOTS_PER_HISTORICAL_ROOT,
+    )
+
+    for a in get_matching_source_attestations(state, epoch, config):
+        if a.data.target_root == target_root:
+            yield a
+
+
+@to_tuple
+def get_matching_head_attestations(state: BeaconState,
+                                   epoch: Epoch,
+                                   config: Eth2Config) -> Iterable[PendingAttestation]:
+    for a in get_matching_source_attestations(state, epoch, config):
+        beacon_block_root = get_block_root_at_slot(
             state,
-            attestation.data.slot,
-            slots_per_historical_root,
+            get_attestation_data_slot(
+                state,
+                a.data,
+                config,
+            ),
+            config.SLOTS_PER_HISTORICAL_ROOT,
         )
-        if attestation.data.beacon_block_root == beacon_block_root:
-            yield attestation
+        if a.data.beacon_block_root == beacon_block_root:
+            yield a
 
 
 @to_tuple
-def _filter_attestations_by_latest_crosslinks_and_shard(
+def get_unslashed_attesting_indices(
+        state: BeaconState,
         attestations: Sequence[PendingAttestation],
-        latest_crosslink: Crosslink,
-        shard: Shard) -> Iterable[PendingAttestation]:
-    for attestation in attestations:
-        is_latest_crosslink_matched = attestation.data.previous_crosslink == latest_crosslink
-        # NOTE: v0.5.1 doesn't check is_shard_matched but it's fixed in v0.6.0
-        # We implemented ahead here.
-        is_shard_matched = attestation.data.shard == shard
-        if is_latest_crosslink_matched and is_shard_matched:
-            yield attestation
-
-
-def get_winning_root_and_participants(
-        *,
-        state: 'BeaconState',
-        shard: Shard,
-        effective_balances: Dict[ValidatorIndex, Gwei],
-        committee_config: CommitteeConfig) -> Tuple[Hash32, Tuple[ValidatorIndex, ...]]:
-    valid_attestations = _filter_attestations_by_latest_crosslinks_and_shard(
-        state.current_epoch_attestations + state.previous_epoch_attestations,
-        state.latest_crosslinks[shard],
-        shard,
+        config: CommitteeConfig) -> Iterable[ValidatorIndex]:
+    output: Set[ValidatorIndex] = set()
+    for a in attestations:
+        output = output.union(get_attesting_indices(state, a.data, a.aggregation_bitfield, config))
+    return sorted(
+        filter(
+            lambda index: not state.validators[index].slashed,
+            tuple(output),
+        )
     )
-    all_roots = set([a.data.crosslink_data_root for a in valid_attestations])
 
-    # handle when no attestations for shard available
-    if len(all_roots) == 0:
-        return (Hash32(ZERO_HASH32), tuple())
 
-    def get_attestations_for(root: Hash32) -> Sequence[PendingAttestation]:
-        return [a for a in valid_attestations if a.data.crosslink_data_root == root]
+def get_attesting_balance(state: BeaconState,
+                          attestations: Sequence[PendingAttestation],
+                          config: Eth2Config) -> Gwei:
+    return get_total_balance(
+        state,
+        get_unslashed_attesting_indices(state, attestations, CommitteeConfig(config))
+    )
 
-    # Winning crosslink root is the root with the most votes for it, ties broken in favor of
-    # lexicographically higher hash
-    winning_root: Hash32 = max(
-        all_roots,
-        key=lambda r: (
-            get_attesting_balance_from_attestations(
-                state=state,
-                effective_balances=effective_balances,
-                attestations=get_attestations_for(r),
-                committee_config=committee_config,
-            ),
-            r,
+
+def _score_crosslink(state: BeaconState,
+                     crosslink: Crosslink,
+                     attestations: Sequence[PendingAttestation],
+                     config: Eth2Config) -> Tuple[Gwei, Hash32]:
+    return (
+        get_attesting_balance(
+            state,
+            attestations,
+            config,
+        ),
+        crosslink.data_root
+    )
+
+
+def _find_winning_crosslink_and_attesting_indices_from_candidates(
+        state: BeaconState,
+        candidate_attestations: Sequence[PendingAttestation],
+        config: Eth2Config) -> Tuple[Crosslink, Tuple[ValidatorIndex, ...]]:
+    if not candidate_attestations:
+        return (Crosslink(), tuple())
+
+    attestations_by_crosslink = groupby(
+        lambda a: a.data.crosslink,
+        candidate_attestations,
+    )
+
+    winning_crosslink, winning_attestations = max(
+        attestations_by_crosslink.items(),
+        key=lambda pair: _score_crosslink(
+            state,
+            pair[0],  # crosslink
+            pair[1],  # attestations
+            config,
         ),
     )
 
     return (
-        winning_root,
-        get_attester_indices_from_attestations(
-            state=state,
-            attestations=get_attestations_for(winning_root),
-            committee_config=committee_config,
+        winning_crosslink,
+        get_unslashed_attesting_indices(
+            state,
+            winning_attestations,
+            CommitteeConfig(config),
         ),
     )
 
 
 @to_tuple
-def get_attesting_indices(state: 'BeaconState',
-                          attestations: Sequence[PendingAttestation],
-                          config: Eth2Config) -> Iterable[ValidatorIndex]:
-    output: Set[ValidatorIndex] = set()
+def _get_attestations_for_shard(
+        attestations: Sequence[PendingAttestation],
+        shard: Shard) -> Iterable[PendingAttestation]:
     for a in attestations:
-        participants = get_attestation_participants(
-            state,
-            a.data,
-            a.aggregation_bitfield,
-            CommitteeConfig(config),
-        )
-        output = output.union(participants)
-    for result in sorted(output):
-        yield result
+        if a.data.crosslink.shard == shard:
+            yield a
 
 
-def _get_epoch_boundary_attesting_indices(state: 'BeaconState',
-                                          attestations: Sequence[PendingAttestation],
-                                          epoch: Epoch,
-                                          config: Eth2Config) -> Tuple[ValidatorIndex, ...]:
-    target_root = get_block_root(
-        state,
-        get_epoch_start_slot(
-            epoch,
-            config.SLOTS_PER_EPOCH
+@curry
+def _crosslink_or_parent_is_valid(valid_crosslink: Crosslink, candidate: Crosslink) -> bool:
+    return valid_crosslink.root in (candidate.parent_root, candidate.root)
+
+
+@to_tuple
+def _get_attestations_for_valid_crosslink(attestations: Sequence[PendingAttestation],
+                                          state: BeaconState,
+                                          shard: Shard,
+                                          config: Eth2Config) -> Iterable[PendingAttestation]:
+    return filter(
+        lambda a: _crosslink_or_parent_is_valid(
+            state.current_crosslinks[shard],
+            a.data.crosslink,
         ),
-        config.SLOTS_PER_HISTORICAL_ROOT,
+        attestations,
     )
-    relevant_attestations = (
-        a for a in attestations
-        if a.data.target_root == target_root
-    )
-    return get_attesting_indices(
+
+
+def _find_candidate_attestations_for_shard(state: BeaconState,
+                                           epoch: Epoch,
+                                           shard: Shard,
+                                           config: Eth2Config) -> Tuple[PendingAttestation, ...]:
+    return thread_first(
         state,
-        relevant_attestations,
+        (get_matching_source_attestations, epoch, config),
+        (_get_attestations_for_shard, shard),
+        (_get_attestations_for_valid_crosslink, state, shard, config),
+    )
+
+
+def get_winning_crosslink_and_attesting_indices(
+        *,
+        state: BeaconState,
+        epoch: Epoch,
+        shard: Shard,
+        config: Eth2Config) -> Tuple[Hash32, Tuple[ValidatorIndex, ...]]:
+    candidate_attestations = _find_candidate_attestations_for_shard(state, epoch, shard, config)
+
+    return _find_winning_crosslink_and_attesting_indices_from_candidates(
+        state,
+        candidate_attestations,
         config,
     )
 
 
-def get_epoch_boundary_attesting_balance(state: 'BeaconState',
-                                         attestations: Sequence[PendingAttestation],
-                                         epoch: Epoch,
-                                         config: Eth2Config) -> Gwei:
-    attesting_indices = _get_epoch_boundary_attesting_indices(state, attestations, epoch, config)
-    return get_total_balance(
-        state.validator_balances,
-        attesting_indices,
-        config.MAX_DEPOSIT_AMOUNT,
+def get_base_reward(state: BeaconState,
+                    index: ValidatorIndex,
+                    config: Eth2Config) -> Gwei:
+    total_balance = get_total_active_balance(state, config)
+    effective_balance = state.validators[index].effective_balance
+    return (
+        effective_balance * config.BASE_REWARD_FACTOR //
+        integer_squareroot(total_balance) // BASE_REWARDS_PER_EPOCH
     )
-
-
-def get_total_balance_from_effective_balances(
-        effective_balances: Dict[ValidatorIndex, Gwei],
-        validator_indices: Sequence[ValidatorIndex]) -> Gwei:
-    return Gwei(
-        sum(
-            effective_balances[index]
-            for index in validator_indices
-        )
-    )
-
-
-def get_attesting_balance_from_attestations(
-        *,
-        state: 'BeaconState',
-        effective_balances: Dict[ValidatorIndex, Gwei],
-        attestations: Sequence[PendingAttestation],
-        committee_config: CommitteeConfig) -> Gwei:
-    return get_total_balance_from_effective_balances(
-        effective_balances,
-        get_attester_indices_from_attestations(
-            state=state,
-            attestations=attestations,
-            committee_config=committee_config,
-        ),
-    )
-
-
-def get_base_reward(
-        *,
-        state: 'BeaconState',
-        index: ValidatorIndex,
-        base_reward_quotient: int,
-        previous_total_balance: Gwei,
-        max_deposit_amount: Gwei) -> Gwei:
-    if previous_total_balance == 0:
-        return Gwei(0)
-    adjusted_quotient = (
-        integer_squareroot(previous_total_balance) // base_reward_quotient
-    )
-    return Gwei(
-        get_effective_balance(
-            state.validator_balances,
-            index,
-            max_deposit_amount,
-        ) // adjusted_quotient // 5
-    )
-
-
-def get_inactivity_penalty(
-        *,
-        base_reward: Gwei,
-        effective_balance: Gwei,
-        epochs_since_finality: int,
-        inactivity_penalty_quotient: int) -> Gwei:
-    return Gwei(
-        base_reward +
-        effective_balance * epochs_since_finality // inactivity_penalty_quotient // 2
-    )
-
-
-def get_inclusion_infos(
-        *,
-        state: 'BeaconState',
-        attestations: Sequence[PendingAttestation],
-        committee_config: CommitteeConfig) -> Dict[ValidatorIndex, InclusionInfo]:  # noqa: E501
-    """
-    Return two maps. One with ``ValidatorIndex`` -> ``inclusion_slot`` and the other with
-    ``ValidatorIndex`` -> ``inclusion_distance``.
-
-    ``attestation.inclusion_slot`` is the slot during which the pending attestation is included.
-    ``inclusion_distance = attestation.inclusion_slot - attestation.data.slot``
-    """
-    inclusion_infos: Dict[ValidatorIndex, InclusionInfo] = {}
-    for attestation in attestations:
-        participant_indices = get_attestation_participants(
-            state,
-            attestation.data,
-            attestation.aggregation_bitfield,
-            committee_config,
-        )
-        for index in participant_indices:
-            should_update_inclusion_data = (
-                index not in inclusion_infos or
-                attestation.inclusion_slot < inclusion_infos[index].inclusion_slot
-            )
-            if should_update_inclusion_data:
-                inclusion_infos[index] = InclusionInfo(
-                    attestation.inclusion_slot,
-                    attestation.data.slot
-                )
-    return inclusion_infos

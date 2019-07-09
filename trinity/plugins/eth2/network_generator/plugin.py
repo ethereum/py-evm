@@ -211,7 +211,8 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
         state = state.copy(
             genesis_time=genesis_time,
         )
-        yaml = YAML()
+        # The output here can be trusted, so use unsafe mode for performance
+        yaml = YAML(typ='unsafe')
         with open(network_dir / GENESIS_FILE, "w") as f:
             yaml.dump(to_formatted_dict(state), f)
 

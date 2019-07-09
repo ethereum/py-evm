@@ -41,9 +41,11 @@ from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
     create_block_on_state,
 )
+from eth2.beacon.tools.builder.committee_assignment import (
+    get_committee_assignment,
+)
 from eth2.beacon.tools.builder.validator import (
     create_signed_attestation_at_slot,
-    get_committee_assignment,
 )
 from eth2.beacon.types.attestations import (
     Attestation,
@@ -79,7 +81,7 @@ from trinity.protocol.bcc.peer import (
 )
 
 
-GetReadyAttestationsFn = Callable[[Slot], Sequence[Attestation]]
+GetReadyAttestationsFn = Callable[[], Sequence[Attestation]]
 
 
 class Validator(BaseService):
@@ -155,9 +157,6 @@ class Validator(BaseService):
                     state_machine.config,
                     this_epoch,
                     validator_index,
-                    # FIXME: in simple testnet, `registry_change` is not likely to change
-                    # so hardcode it as `False`.
-                    registry_change=False,
                 )
             )
         return self.this_epoch_assignment[validator_index][1]
@@ -197,8 +196,9 @@ class Validator(BaseService):
             state.previous_epoch_attestations,
         )
         proposer_index = _get_proposer_index(
-            state,
-            slot,
+            state.copy(
+                slot=slot,
+            ),
             state_machine.config,
         )
         # `latest_proposed_epoch` is used to prevent validator from erraneously proposing twice
@@ -234,7 +234,7 @@ class Validator(BaseService):
                       state: BeaconState,
                       state_machine: BaseBeaconStateMachine,
                       head_block: BaseBeaconBlock) -> BaseBeaconBlock:
-        ready_attestations = self.get_ready_attestations(slot)
+        ready_attestations = self.get_ready_attestations()
         block = self._make_proposing_block(
             proposer_index=proposer_index,
             slot=slot,
@@ -280,9 +280,9 @@ class Validator(BaseService):
                    slot: Slot,
                    state: BeaconState,
                    state_machine: BaseBeaconStateMachine) -> BeaconState:
-        post_state = state_machine.state_transition.apply_state_transition_without_block(
+        post_state = state_machine.state_transition.apply_state_transition(
             state,
-            slot,
+            future_slot=slot,
         )
         self.logger.debug(
             bold_green("Skip block at slot=%s  post_state=%s"),
