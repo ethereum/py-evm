@@ -362,7 +362,7 @@ class BaseOrderedTaskPreparation(ABC, Generic[TTask, TTaskID]):
     def register_tasks(
             self,
             tasks: Tuple[TTask, ...],
-            ignore_duplicates: bool = False) -> Iterable[TTask]:
+            ignore_duplicates: bool = False) -> Tuple[TTask, ...]:
         pass
 
     @abstractmethod
