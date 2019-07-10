@@ -488,7 +488,7 @@ def get_attestation_deltas(state: BeaconState,
                 if index in get_attesting_indices(
                     state,
                     a.data,
-                    a.aggregation_bitfield,
+                    a.aggregation_bits,
                     committee_config,
                 )
             ),

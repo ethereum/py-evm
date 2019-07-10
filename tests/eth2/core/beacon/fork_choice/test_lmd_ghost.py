@@ -79,9 +79,9 @@ def _mk_attestation_inputs_in_epoch(epoch, state, config):
             ),
         )
         committee_count = len(committee)
-        aggregation_bitfield = bitfield.get_empty_bitfield(committee_count)
+        aggregation_bits = bitfield.get_empty_bitfield(committee_count)
         for index in range(committee_count):
-            aggregation_bitfield = bitfield.set_voted(aggregation_bitfield, index)
+            aggregation_bits = bitfield.set_voted(aggregation_bits, index)
 
             for index in committee:
                 yield (
@@ -93,7 +93,7 @@ def _mk_attestation_inputs_in_epoch(epoch, state, config):
                             config,
                         ),
                         (
-                            aggregation_bitfield,
+                            aggregation_bits,
                             attestation_data,
                         ),
                     ),
@@ -118,9 +118,9 @@ def _mk_attestations_for_epoch_by_count(number_of_committee_samples,
 def _extract_attestations_from_index_keying(values):
     results = ()
     for value in values:
-        aggregation_bitfield, data = second(value)
+        aggregation_bits, data = second(value)
         attestation = Attestation(
-            aggregation_bitfield=aggregation_bitfield,
+            aggregation_bits=aggregation_bits,
             data=data,
         )
         if attestation not in results:
@@ -169,13 +169,13 @@ def _find_collision(state, config, index, epoch):
                     ),
                 )
                 committee_count = len(committee)
-                aggregation_bitfield = bitfield.get_empty_bitfield(committee_count)
+                aggregation_bits = bitfield.get_empty_bitfield(committee_count)
                 for i in range(committee_count):
-                    aggregation_bitfield = bitfield.set_voted(aggregation_bitfield, i)
+                    aggregation_bits = bitfield.set_voted(aggregation_bits, i)
 
                 return {
                     index: (
-                        slot, (aggregation_bitfield, attestation_data)
+                        slot, (aggregation_bits, attestation_data)
                     )
                     for index in committee
                 }
@@ -501,12 +501,12 @@ def _attach_committees_to_block_tree(state,
 # TODO(ralexstokes) merge in w/ tools/builder
 def _mk_attestation_for_block_with_committee(block, committee, shard, config):
     committee_count = len(committee)
-    aggregation_bitfield = bitfield.get_empty_bitfield(committee_count)
+    aggregation_bits = bitfield.get_empty_bitfield(committee_count)
     for index in range(committee_count):
-        aggregation_bitfield = bitfield.set_voted(aggregation_bitfield, index)
+        aggregation_bits = bitfield.set_voted(aggregation_bits, index)
 
     attestation = Attestation(
-        aggregation_bitfield=aggregation_bitfield,
+        aggregation_bits=aggregation_bits,
         data=AttestationData(
             beacon_block_root=block.signing_root,
             target_epoch=slot_to_epoch(block.slot, config.SLOTS_PER_EPOCH),
@@ -548,7 +548,7 @@ def _iter_attestation_by_validator_index(state, attestation, config):
     for index in get_attesting_indices(
             state,
             attestation.data,
-            attestation.aggregation_bitfield,
+            attestation.aggregation_bits,
             config,
     ):
         yield index

@@ -140,7 +140,7 @@ def process_attestations(state: BeaconState,
             CommitteeConfig(config),
         )
         pending_attestation = PendingAttestation(
-            aggregation_bitfield=attestation.aggregation_bitfield,
+            aggregation_bits=attestation.aggregation_bits,
             data=attestation.data,
             inclusion_delay=state.slot - attestation_slot,
             proposer_index=proposer_index,

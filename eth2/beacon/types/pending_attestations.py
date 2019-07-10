@@ -23,19 +23,19 @@ from .defaults import (
 class PendingAttestation(ssz.Serializable):
 
     fields = [
-        ('aggregation_bitfield', byte_list),
+        ('aggregation_bits', byte_list),
         ('data', AttestationData),
         ('inclusion_delay', uint64),
         ('proposer_index', uint64),
     ]
 
     def __init__(self,
-                 aggregation_bitfield: Bitfield=default_bitfield,
+                 aggregation_bits: Bitfield=default_bitfield,
                  data: AttestationData=default_attestation_data,
                  inclusion_delay: int=0,
                  proposer_index: ValidatorIndex=default_validator_index) -> None:
         super().__init__(
-            aggregation_bitfield=aggregation_bitfield,
+            aggregation_bits=aggregation_bits,
             data=data,
             inclusion_delay=inclusion_delay,
             proposer_index=proposer_index,

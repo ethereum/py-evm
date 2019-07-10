@@ -90,7 +90,7 @@ def _mk_pending_attestation(bitfield: Bitfield=default_bitfield,
                             parent_root: Hash32=ZERO_HASH32,
                             data_root: Hash32=ZERO_HASH32) -> PendingAttestation:
     return PendingAttestation(
-        aggregation_bitfield=bitfield,
+        aggregation_bits=bitfield,
         data=AttestationData(
             target_epoch=target_epoch,
             target_root=target_root,
@@ -574,7 +574,7 @@ def _create_mock_signed_attestation(state: BeaconState,
     ]
 
     # aggregate signatures and construct participant bitfield
-    aggregation_bitfield, aggregate_signature = aggregate_votes(
+    aggregation_bits, aggregate_signature = aggregate_votes(
         bitfield=get_empty_bitfield(len(committee)),
         sigs=(),
         voting_sigs=signatures,
@@ -583,9 +583,9 @@ def _create_mock_signed_attestation(state: BeaconState,
 
     # create attestation from attestation_data, particpipant_bitfield, and signature
     return Attestation(
-        aggregation_bitfield=aggregation_bitfield,
+        aggregation_bits=aggregation_bits,
         data=attestation_data,
-        custody_bitfield=Bitfield(b'\x00' * len(aggregation_bitfield)),
+        custody_bitfield=Bitfield(b'\x00' * len(aggregation_bits)),
         signature=aggregate_signature,
     )
 

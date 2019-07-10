@@ -369,7 +369,7 @@ def test_get_unslashed_attesting_indices(genesis_state,
         (
             PendingAttestation(
                 data=data,
-                aggregation_bitfield=bitfield,
+                aggregation_bits=bitfield,
             ),
         ),
         CommitteeConfig(config),

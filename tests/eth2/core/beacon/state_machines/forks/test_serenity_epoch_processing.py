@@ -407,7 +407,7 @@ def test_get_attestation_deltas(genesis_state,
             participants_bitfield = set_voted(participants_bitfield, i)
         prev_epoch_attestations += (
             PendingAttestation(**sample_pending_attestation_record_params).copy(
-                aggregation_bitfield=participants_bitfield,
+                aggregation_bits=participants_bitfield,
                 inclusion_delay=min_attestation_inclusion_delay,
                 proposer_index=get_beacon_proposer_index(
                     state.copy(
@@ -547,7 +547,7 @@ def test_process_rewards_and_penalties_for_crosslinks(genesis_state,
             participants_bitfield = set_voted(participants_bitfield, committee.index(index))
         previous_epoch_attestations.append(
             PendingAttestation(**sample_pending_attestation_record_params).copy(
-                aggregation_bitfield=participants_bitfield,
+                aggregation_bits=participants_bitfield,
                 data=AttestationData(**sample_attestation_data_params).copy(
                     target_epoch=previous_epoch,
                     crosslink=Crosslink(

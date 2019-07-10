@@ -441,7 +441,7 @@ def sample_indexed_attestation_params(sample_signature, sample_attestation_data_
 @pytest.fixture
 def sample_pending_attestation_record_params(sample_attestation_data_params):
     return {
-        'aggregation_bitfield': b'\12' * 16,
+        'aggregation_bits': b'\12' * 16,
         'data': AttestationData(**sample_attestation_data_params),
         'inclusion_delay': 1,
         'proposer_index': ValidatorIndex(12),
@@ -514,7 +514,7 @@ def sample_attester_slashing_params(sample_indexed_attestation_params):
 @pytest.fixture
 def sample_attestation_params(sample_signature, sample_attestation_data_params):
     return {
-        'aggregation_bitfield': b'\12' * 16,
+        'aggregation_bits': b'\12' * 16,
         'data': AttestationData(**sample_attestation_data_params),
         'custody_bitfield': b'\34' * 16,
         'signature': sample_signature,

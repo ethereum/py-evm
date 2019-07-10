@@ -79,7 +79,7 @@ class Store:
             for index in get_attesting_indices(
                 state,
                 attestation.data,
-                attestation.aggregation_bitfield,
+                attestation.aggregation_bits,
                 CommitteeConfig(self._config),
             )
         )

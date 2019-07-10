@@ -112,7 +112,7 @@ def convert_to_indexed(state: BeaconState,
     attesting_indices = get_attesting_indices(
         state,
         attestation.data,
-        attestation.aggregation_bitfield,
+        attestation.aggregation_bits,
         config,
     )
     custody_bit_1_indices = get_attesting_indices(
@@ -217,7 +217,7 @@ def get_unslashed_attesting_indices(
         config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     output: Set[ValidatorIndex] = set()
     for a in attestations:
-        output = output.union(get_attesting_indices(state, a.data, a.aggregation_bitfield, config))
+        output = output.union(get_attesting_indices(state, a.data, a.aggregation_bits, config))
     return sorted(
         filter(
             lambda index: not state.validators[index].slashed,
