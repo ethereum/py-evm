@@ -220,8 +220,8 @@ class BasePeer(BaseService):
     def is_closing(self) -> bool:
         return self.transport.is_closing
 
-    def get_extra_stats(self) -> List[str]:
-        return []
+    def get_extra_stats(self) -> Tuple[str, ...]:
+        return tuple()
 
     @property
     def boot_manager_class(self) -> Type[BasePeerBootManager]:

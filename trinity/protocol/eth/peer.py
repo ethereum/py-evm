@@ -2,7 +2,6 @@ from typing import (
     Any,
     cast,
     Dict,
-    List,
     Tuple,
 )
 
@@ -86,9 +85,11 @@ class ETHPeer(BaseChainPeer):
 
     _requests: ETHExchangeHandler = None
 
-    def get_extra_stats(self) -> List[str]:
+    def get_extra_stats(self) -> Tuple[str, ...]:
         stats_pairs = self.requests.get_stats().items()
-        return ['%s: %s' % (cmd_name, stats) for cmd_name, stats in stats_pairs]
+        return tuple(
+            f"{cmd_name}: {stats}" for cmd_name, stats in stats_pairs
+        )
 
     @property
     def requests(self) -> ETHExchangeHandler:
