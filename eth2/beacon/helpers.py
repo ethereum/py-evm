@@ -118,7 +118,7 @@ def get_randao_mix(state: 'BeaconState',
     """
     Return the randao mix at a recent ``epoch``.
 
-    NOTE: There is one use of this function (``generate_seed``) where
+    NOTE: There is one use of this function (``get_seed``) where
     the ``epoch`` does not satisfy ``validate_epoch_for_randao_mix`` so
     callers need the flexibility to specify validation.
     """
@@ -158,12 +158,12 @@ RandaoProvider = Callable[['BeaconState', Epoch, int, int, bool], Hash32]
 ActiveIndexRootProvider = Callable[['BeaconState', Epoch, int, int, int], Hash32]
 
 
-def _generate_seed(state: 'BeaconState',
-                   epoch: Epoch,
-                   randao_provider: RandaoProvider,
-                   active_index_root_provider: ActiveIndexRootProvider,
-                   epoch_provider: Callable[[Epoch], Hash32],
-                   committee_config: CommitteeConfig) -> Hash32:
+def _get_seed(state: 'BeaconState',
+              epoch: Epoch,
+              randao_provider: RandaoProvider,
+              active_index_root_provider: ActiveIndexRootProvider,
+              epoch_provider: Callable[[Epoch], Hash32],
+              committee_config: CommitteeConfig) -> Hash32:
     randao_mix = randao_provider(
         state,
         Epoch(
@@ -187,13 +187,13 @@ def _generate_seed(state: 'BeaconState',
     return hash_eth2(randao_mix + active_index_root + epoch_as_bytes)
 
 
-def generate_seed(state: 'BeaconState',
-                  epoch: Epoch,
-                  committee_config: CommitteeConfig) -> Hash32:
+def get_seed(state: 'BeaconState',
+             epoch: Epoch,
+             committee_config: CommitteeConfig) -> Hash32:
     """
     Generate a seed for the given ``epoch``.
     """
-    return _generate_seed(
+    return _get_seed(
         state,
         epoch,
         get_randao_mix,

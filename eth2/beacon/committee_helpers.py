@@ -23,7 +23,7 @@ from eth2.beacon.constants import (
     MAX_INDEX_COUNT,
 )
 from eth2.beacon.helpers import (
-    generate_seed,
+    get_seed,
     get_active_validator_indices,
 )
 from eth2.beacon.typing import (
@@ -163,7 +163,7 @@ def get_beacon_proposer_index(state: BeaconState,
 
     current_epoch = state.current_epoch(committee_config.SLOTS_PER_EPOCH)
 
-    seed = generate_seed(state, current_epoch, committee_config)
+    seed = get_seed(state, current_epoch, committee_config)
 
     return _find_proposer_in_committee(
         state.validators,
@@ -246,7 +246,7 @@ def get_crosslink_committee(state: BeaconState,
 
     return _compute_committee(
         indices=active_validator_indices,
-        seed=generate_seed(state, epoch, config),
+        seed=get_seed(state, epoch, config),
         index=target_shard,
         count=get_epoch_committee_count(
             len(active_validator_indices),

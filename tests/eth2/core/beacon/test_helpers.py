@@ -22,7 +22,7 @@ from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.validators import Validator
 
 from eth2.beacon.helpers import (
-    _generate_seed,
+    _get_seed,
     get_active_validator_indices,
     get_block_root_at_slot,
     compute_start_slot_of_epoch,
@@ -266,7 +266,7 @@ def test_get_domain(previous_version,
     )
 
 
-def test_generate_seed(genesis_state,
+def test_get_seed(genesis_state,
                        committee_config,
                        slots_per_epoch,
                        min_seed_lookahead,
@@ -303,7 +303,7 @@ def test_generate_seed(genesis_state,
 
     epoch_as_bytes = epoch.to_bytes(32, 'little')
 
-    seed = _generate_seed(
+    seed = _get_seed(
         state=state,
         epoch=epoch,
         randao_provider=mock_get_randao_mix,
