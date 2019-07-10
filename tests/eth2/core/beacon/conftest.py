@@ -17,11 +17,13 @@ from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
     GWEI_PER_ETH,
 )
-from eth2.beacon.fork_choice import (
+from eth2.beacon.fork_choice.higher_slot import (
     higher_slot_scoring,
 )
+from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.eth1_data import Eth1Data
@@ -695,10 +697,11 @@ def genesis_block(genesis_state):
 # State machine
 #
 @pytest.fixture
-def fixture_sm_class(config):
+def fixture_sm_class(config, fork_choice_scoring):
     return SerenityStateMachine.configure(
         __name__='SerenityStateMachineForTesting',
         config=config,
+        get_fork_choice_scoring=lambda self: fork_choice_scoring
     )
 
 
@@ -713,6 +716,21 @@ def fork_choice_scoring():
 @pytest.fixture
 def chaindb(base_db, genesis_config):
     return BeaconChainDB(base_db, genesis_config)
+
+
+@pytest.fixture
+def chaindb_at_genesis(chaindb, genesis_state, genesis_block, fork_choice_scoring):
+    chaindb.persist_state(genesis_state)
+    chaindb.persist_block(genesis_block, BeaconBlock, fork_choice_scoring)
+    return chaindb
+
+
+#
+# Attestation pool
+#
+@pytest.fixture
+def empty_attestation_pool():
+    return AttestationPool()
 
 
 #

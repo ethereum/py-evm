@@ -37,13 +37,6 @@ from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.states import BeaconState
 
 
-@pytest.fixture
-def chaindb_at_genesis(chaindb, genesis_state, genesis_block, fork_choice_scoring):
-    chaindb.persist_state(genesis_state)
-    chaindb.persist_block(genesis_block, BeaconBlock, fork_choice_scoring)
-    return chaindb
-
-
 @pytest.fixture(params=[1, 10, 999])
 def block(request, sample_beacon_block_params):
     return BeaconBlock(**sample_beacon_block_params).copy(

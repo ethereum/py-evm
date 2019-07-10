@@ -3,7 +3,7 @@ import pytest
 import asyncio
 
 from async_generator import asynccontextmanager
-from eth2.beacon.fork_choice import higher_slot_scoring
+from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
 from eth2.beacon.types.blocks import BeaconBlock
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG

@@ -11,6 +11,7 @@ from eth_keys.datatypes import (
     PrivateKey,
 )
 
+from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.typing import (
     ValidatorIndex,
 )
@@ -75,7 +76,12 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
         base_db = db_manager.get_db()  # type: ignore
         chain_db = db_manager.get_chaindb()  # type: ignore
         chain_config = beacon_app_config.get_chain_config()
-        chain = chain_config.beacon_chain_class(base_db, chain_config.genesis_config)
+        attestation_pool = AttestationPool()
+        chain = chain_config.beacon_chain_class(
+            base_db,
+            attestation_pool,
+            chain_config.genesis_config
+        )
 
         if self.boot_info.args.beacon_nodekey:
             privkey = PrivateKey(bytes.fromhex(self.boot_info.args.beacon_nodekey))

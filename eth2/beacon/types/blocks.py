@@ -135,7 +135,7 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
     def __repr__(self) -> str:
         return (
             f'<Block #{self.slot} '
-            f'previous_block_root={encode_hex(self.previous_block_root)[2:10]} '
+            f'parent_root={encode_hex(self.parent_root)[2:10]} '
             f'signing_root={encode_hex(self.signing_root)[2:10]} '
             f'state_root={encode_hex(self.state_root)[2:10]} '
             f'attestations={self.num_attestations} '

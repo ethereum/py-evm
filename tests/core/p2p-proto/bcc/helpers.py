@@ -39,7 +39,7 @@ from p2p.tools.paragon.helpers import (
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
 )
-from eth2.beacon.fork_choice import higher_slot_scoring
+from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
 from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
 from eth2.configs import (
     Eth2GenesisConfig,
@@ -110,9 +110,7 @@ async def get_chain_db(blocks=(),
     await chain_db.coro_persist_block_chain(
         blocks,
         BeaconBlock,
-        (
-            higher_slot_scoring for block in blocks
-        ),
+        (higher_slot_scoring,) * len(blocks),
     )
     return chain_db
 
