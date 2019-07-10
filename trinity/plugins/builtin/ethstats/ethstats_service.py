@@ -72,7 +72,7 @@ class EthstatsService(BaseService):
     async def _run(self) -> None:
         while self.is_operational:
             try:
-                self.logger.info('Connecting to %s...' % self.server_url)
+                self.logger.info('Connecting to %s...', self.server_url)
                 async with websockets.connect(self.server_url) as websocket:
                     client: EthstatsClient = EthstatsClient(
                         websocket,
@@ -87,7 +87,7 @@ class EthstatsService(BaseService):
                         self.statistics_handler(client),
                     )
             except websockets.ConnectionClosed as e:
-                self.logger.info('Connection to %s is closed: %s' % (self.server_url, e))
+                self.logger.info('Connection to %s is closed: %s', self.server_url, e)
 
             self.logger.info('Reconnecting in 5s...')
             await self.sleep(5)
