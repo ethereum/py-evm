@@ -1,8 +1,8 @@
 Release notes
 =============
 
-Unreleased (latest source)
---------------------------
+.. towncrier release notes start
+
 
 v0.3.0-alpha.1
 --------------------------

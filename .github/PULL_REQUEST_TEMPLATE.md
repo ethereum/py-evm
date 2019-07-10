@@ -4,8 +4,16 @@
 
 ### How was it fixed?
 
-[//]: # (For important changes, please add a new entry to the running release notes PR)
-[//]: # (You can find the current one using: https://github.com/ethereum/py-evm/pulls?q=is%3Aopen+is%3Apr+label%3A%22Release+Notes%22 )
+
+### To-Do
+
+[//]: # (Stay ahead of things, add list items here!)
+- [ ] Clean up commit history
+
+[//]: # (For important changes that should go into the release notes please add a newsfragment file as explained here: https://github.com/ethereum/py-evm/blob/master/newsfragments/README.md)
+
+[//]: # (See: https://py-evm.readthedocs.io/en/latest/contributing.html#pull-requests)
+- [ ] Add entry to the [release notes](https://github.com/ethereum/py-evm/blob/master/newsfragments/README.md)
 
 #### Cute Animal Picture
 
