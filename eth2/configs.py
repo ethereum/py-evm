@@ -83,6 +83,7 @@ class CommitteeConfig:
         self.EPOCHS_PER_HISTORICAL_VECTOR = config.EPOCHS_PER_HISTORICAL_VECTOR
 
         self.MAX_EFFECTIVE_BALANCE = config.MAX_EFFECTIVE_BALANCE
+        self.EFFECTIVE_BALANCE_INCREMENT = config.EFFECTIVE_BALANCE_INCREMENT
 
 
 class Eth2GenesisConfig:

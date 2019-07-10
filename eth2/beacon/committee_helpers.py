@@ -12,8 +12,13 @@ from eth_typing import (
     Hash32,
 )
 
+import ssz
+
 from eth2._utils.hash import (
     hash_eth2,
+)
+from eth2._utils.tuple import (
+    update_tuple_item,
 )
 from eth2.configs import (
     CommitteeConfig,
@@ -33,6 +38,7 @@ from eth2.beacon.typing import (
     Slot,
     ValidatorIndex,
 )
+from eth2.beacon.types.compact_committees import CompactCommittee
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
 
@@ -256,3 +262,58 @@ def get_crosslink_committee(state: BeaconState,
         ),
         shuffle_round_count=config.SHUFFLE_ROUND_COUNT,
     )
+
+
+def _compute_compact_committee_for_shard_in_epoch(state: BeaconState,
+                                                  epoch: Epoch,
+                                                  shard: Shard,
+                                                  config: CommitteeConfig) -> CompactCommittee:
+    effective_balance_increment = config.EFFECTIVE_BALANCE_INCREMENT
+
+    pubkeys = tuple()
+    compact_validators = tuple()
+    for index in get_crosslink_committee(state, epoch, shard, config):
+        validator = state.validators[index]
+        pubkeys += (validator.pubkey,)
+        compact_balance = validator.effective_balance // effective_balance_increment
+        # `index` (top 6 bytes) + `slashed` (16th bit) + `compact_balance` (bottom 15 bits)
+        compact_validator = (index << 16) + (validator.slashed << 15) + compact_balance
+        compact_validators += (compact_validator,)
+
+    return CompactCommittee(
+        pubkeys=pubkeys,
+        compact_validators=compact_validators,
+    )
+
+
+def get_compact_committees_root(state: BeaconState,
+                                epoch: Epoch,
+                                config: CommitteeConfig) -> Hash32:
+    shard_count = config.SHARD_COUNT
+
+    committees = (CompactCommittee(),) * shard_count
+    start_shard = get_start_shard(state, epoch, config)
+    active_validator_indices = get_active_validator_indices(
+        state.validators,
+        epoch,
+    )
+    committee_count = get_committee_count(
+        len(active_validator_indices),
+        config.SHARD_COUNT,
+        config.SLOTS_PER_EPOCH,
+        config.TARGET_COMMITTEE_SIZE,
+    )
+    for committee_number in range(committee_count):
+        shard = Shard((start_shard + committee_number) % shard_count)
+        compact_committee = _compute_compact_committee_for_shard_in_epoch(
+            state,
+            epoch,
+            shard,
+            config,
+        )
+        committees = update_tuple_item(
+            committees,
+            shard,
+            compact_committee,
+        )
+    return ssz.hash_tree_root(committees, sedes=ssz.sedes.Vector(CompactCommittee, shard_count))
