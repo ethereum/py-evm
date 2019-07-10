@@ -174,10 +174,10 @@ def get_beacon_proposer_index(state: BeaconState,
     )
 
 
-def _get_shuffled_index(index: int,
-                        index_count: int,
-                        seed: Hash32,
-                        shuffle_round_count: int) -> int:
+def _compute_shuffled_index(index: int,
+                            index_count: int,
+                            seed: Hash32,
+                            shuffle_round_count: int) -> int:
     """
     Return `p(index)` in a pseudorandom permutation `p` of `0...index_count-1`
     with ``seed`` as entropy.
@@ -205,14 +205,14 @@ def _get_shuffled_index(index: int,
         ) % index_count
 
         flip = (pivot + index_count - new_index) % index_count
-        hash_pos = max(new_index, flip)
-        h = hash_eth2(
+        position = max(new_index, flip)
+        source = hash_eth2(
             seed +
             current_round.to_bytes(1, 'little') +
-            (hash_pos // 256).to_bytes(4, 'little')
+            (position // 256).to_bytes(4, 'little')
         )
-        byte = h[(hash_pos % 256) // 8]
-        bit = (byte >> (hash_pos % 8)) % 2
+        byte = source[(position % 256) // 8]
+        bit = (byte >> (position % 8)) % 2
         new_index = flip if bit else new_index
 
     return new_index
@@ -226,7 +226,7 @@ def _compute_committee(indices: Sequence[ValidatorIndex],
     start = (len(indices) * index) // count
     end = (len(indices) * (index + 1)) // count
     for i in range(start, end):
-        shuffled_index = _get_shuffled_index(i, len(indices), seed, shuffle_round_count)
+        shuffled_index = _compute_shuffled_index(i, len(indices), seed, shuffle_round_count)
         yield indices[shuffled_index]
 
 
