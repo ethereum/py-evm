@@ -226,7 +226,7 @@ def _get_fork_version(fork: Fork, epoch: Epoch) -> bytes:
         return fork.current_version
 
 
-def bls_domain(domain_type: SignatureDomain, fork_version: bytes=b'\x00' * 4) -> int:
+def compute_domain(domain_type: SignatureDomain, fork_version: bytes=b'\x00' * 4) -> int:
     return int.from_bytes(domain_type.to_bytes(4, 'little') + fork_version, 'little')
 
 
@@ -239,4 +239,4 @@ def get_domain(state: 'BeaconState',
     """
     epoch = state.current_epoch(slots_per_epoch) if message_epoch is None else message_epoch
     fork_version = _get_fork_version(state.fork, epoch)
-    return bls_domain(domain_type, fork_version)
+    return compute_domain(domain_type, fork_version)

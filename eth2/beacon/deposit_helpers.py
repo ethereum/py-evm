@@ -14,7 +14,7 @@ from eth2.beacon.signature_domain import (
     SignatureDomain,
 )
 from eth2.beacon.helpers import (
-    bls_domain,
+    compute_domain,
 )
 from eth2.beacon.epoch_processing_helpers import (
     increase_balance,
@@ -80,7 +80,7 @@ def process_deposit(state: BeaconState,
                 pubkey=pubkey,
                 message_hash=deposit.data.signing_root,
                 signature=deposit.data.signature,
-                domain=bls_domain(
+                domain=compute_domain(
                     SignatureDomain.DOMAIN_DEPOSIT,
                 ),
             )

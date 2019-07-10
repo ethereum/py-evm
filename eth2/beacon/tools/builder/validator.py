@@ -44,7 +44,7 @@ from eth2.beacon.committee_helpers import (
     get_shard_delta,
 )
 from eth2.beacon.helpers import (
-    bls_domain,
+    compute_domain,
     get_block_root_at_slot,
     get_block_root,
     get_domain,
@@ -264,7 +264,7 @@ def sign_proof_of_possession(deposit_data: DepositData,
     return bls.sign(
         message_hash=deposit_data.signing_root,
         privkey=privkey,
-        domain=bls_domain(SignatureDomain.DOMAIN_DEPOSIT),
+        domain=compute_domain(SignatureDomain.DOMAIN_DEPOSIT),
     )
 
 
