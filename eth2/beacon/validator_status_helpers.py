@@ -95,10 +95,14 @@ def initiate_validator_exit(state: BeaconState,
 
 @curry
 def _set_validator_slashed(v: Validator,
-                           withdrawable_epoch: Epoch) -> Validator:
+                           current_epoch: Epoch,
+                           epochs_per_slashings_vector: int) -> Validator:
     return v.copy(
         slashed=True,
-        withdrawable_epoch=withdrawable_epoch,
+        withdrawable_epoch=max(
+            v.withdrawable_epoch,
+            Epoch(current_epoch + epochs_per_slashings_vector),
+        ),
     )
 
 
@@ -122,7 +126,8 @@ def slash_validator(state: BeaconState,
     state = state.update_validator_with_fn(
         index,
         _set_validator_slashed,
-        current_epoch + config.EPOCHS_PER_SLASHINGS_VECTOR,
+        current_epoch,
+        config.EPOCHS_PER_SLASHINGS_VECTOR,
     )
 
     slashed_balance = state.validators[index].effective_balance
@@ -135,14 +140,14 @@ def slash_validator(state: BeaconState,
             slashed_balance,
         )
     )
+    state = decrease_balance(state, index, slashed_balance // config.MIN_SLASHING_PENALTY_QUOTIENT)
 
     proposer_index = get_beacon_proposer_index(state, CommitteeConfig(config))
     if whistleblower_index is None:
         whistleblower_index = proposer_index
-    whistleblower_reward = slashed_balance // config.WHISTLEBLOWER_REWARD_QUOTIENT
-    proposer_reward = whistleblower_reward // config.PROPOSER_REWARD_QUOTIENT
+    whistleblower_reward = Gwei(slashed_balance // config.WHISTLEBLOWER_REWARD_QUOTIENT)
+    proposer_reward = Gwei(whistleblower_reward // config.PROPOSER_REWARD_QUOTIENT)
     state = increase_balance(state, proposer_index, proposer_reward)
     state = increase_balance(state, whistleblower_index, whistleblower_reward - proposer_reward)
-    state = decrease_balance(state, index, whistleblower_reward)
 
     return state
