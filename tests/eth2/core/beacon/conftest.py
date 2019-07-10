@@ -621,7 +621,7 @@ def sample_beacon_state_params(config,
         'active_index_roots': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
         'compact_committees_roots': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
         # Slashings
-        'slashed_balances': (0,) * config.EPOCHS_PER_SLASHINGS_VECTOR,
+        'slashings': (0,) * config.EPOCHS_PER_SLASHINGS_VECTOR,
         # Attestations
         'previous_epoch_attestations': (),
         'current_epoch_attestations': (),

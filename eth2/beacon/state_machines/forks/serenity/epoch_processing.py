@@ -717,10 +717,10 @@ def process_slashings(state: BeaconState, config: Eth2Config) -> BeaconState:
     total_balance = get_total_active_balance(state, config)
 
     start_index = (current_epoch + 1) % config.EPOCHS_PER_SLASHINGS_VECTOR
-    total_at_start = state.slashed_balances[start_index]
+    total_at_start = state.slashings[start_index]
 
     end_index = current_epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
-    total_at_end = state.slashed_balances[end_index]
+    total_at_end = state.slashings[end_index]
 
     total_penalties = total_at_end - total_at_start
 
@@ -797,13 +797,13 @@ def _compute_next_active_index_roots(state: BeaconState, config: Eth2Config) -> 
     )
 
 
-def _compute_next_slashed_balances(state: BeaconState, config: Eth2Config) -> Tuple[Gwei, ...]:
+def _compute_next_slashings(state: BeaconState, config: Eth2Config) -> Tuple[Gwei, ...]:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
     return update_tuple_item(
-        state.slashed_balances,
+        state.slashings,
         next_epoch % config.EPOCHS_PER_SLASHINGS_VECTOR,
-        state.slashed_balances[
+        state.slashings[
             current_epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
         ],
     )
@@ -841,7 +841,7 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
     new_validators = _update_effective_balances(state, config)
     new_start_shard = _compute_next_start_shard(state, config)
     new_active_index_roots = _compute_next_active_index_roots(state, config)
-    new_slashed_balances = _compute_next_slashed_balances(state, config)
+    new_slashings = _compute_next_slashings(state, config)
     new_randao_mixes = _compute_next_randao_mixes(state, config)
     new_historical_roots = _compute_next_historical_roots(state, config)
 
@@ -850,7 +850,7 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
         validators=new_validators,
         start_shard=new_start_shard,
         active_index_roots=new_active_index_roots,
-        slashed_balances=new_slashed_balances,
+        slashings=new_slashings,
         randao_mixes=new_randao_mixes,
         historical_roots=new_historical_roots,
         previous_epoch_attestations=state.current_epoch_attestations,

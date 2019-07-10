@@ -99,7 +99,7 @@ class BeaconState(ssz.Serializable):
         ('compact_committees_roots', Vector(bytes32, 1)),
 
         # Slashings
-        ('slashed_balances', Vector(uint64, 1)),  # Balances slashed at every withdrawal period  # noqa: E501
+        ('slashings', Vector(uint64, 1)),  # Balances slashed at every withdrawal period  # noqa: E501
 
         # Attestations
         ('previous_epoch_attestations', List(PendingAttestation)),
@@ -142,7 +142,7 @@ class BeaconState(ssz.Serializable):
             randao_mixes: Sequence[Hash32]=default_tuple,
             active_index_roots: Sequence[Hash32]=default_tuple,
             compact_committees_roots: Sequence[Hash32]=default_tuple,
-            slashed_balances: Sequence[Gwei]=default_tuple,
+            slashings: Sequence[Gwei]=default_tuple,
             previous_epoch_attestations: Sequence[PendingAttestation]=default_tuple,
             current_epoch_attestations: Sequence[PendingAttestation]=default_tuple,
             previous_crosslinks: Sequence[Crosslink]=default_tuple,
@@ -181,8 +181,8 @@ class BeaconState(ssz.Serializable):
                     config.EPOCHS_PER_HISTORICAL_VECTOR,
                     ZERO_HASH32
                 )
-            if slashed_balances == default_tuple:
-                slashed_balances = default_tuple_of_size(
+            if slashings == default_tuple:
+                slashings = default_tuple_of_size(
                     config.EPOCHS_PER_SLASHINGS_VECTOR,
                     Gwei(0),
                 )
@@ -214,7 +214,7 @@ class BeaconState(ssz.Serializable):
             randao_mixes=randao_mixes,
             active_index_roots=active_index_roots,
             compact_committees_roots=compact_committees_roots,
-            slashed_balances=slashed_balances,
+            slashings=slashings,
             previous_epoch_attestations=previous_epoch_attestations,
             current_epoch_attestations=current_epoch_attestations,
             previous_crosslinks=previous_crosslinks,

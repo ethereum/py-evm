@@ -105,8 +105,8 @@ def test_get_genesis_beacon_state(
     assert len(state.active_index_roots) == epochs_per_historical_vector
 
     # Slashings
-    assert len(state.slashed_balances) == epochs_per_slashings_vector
-    assert state.slashed_balances == (Gwei(0),) * epochs_per_slashings_vector
+    assert len(state.slashings) == epochs_per_slashings_vector
+    assert state.slashings == (Gwei(0),) * epochs_per_slashings_vector
 
     # Attestations
     assert len(state.previous_epoch_attestations) == 0

@@ -733,7 +733,7 @@ def test_determine_slashing_penalty(genesis_state,
         'genesis_slot',
         'current_epoch',
         'epochs_per_slashings_vector',
-        'slashed_balances',
+        'slashings',
         'expected_penalty',
     ),
     [
@@ -751,13 +751,13 @@ def test_determine_slashing_penalty(genesis_state,
 def test_process_slashings(genesis_state,
                            config,
                            current_epoch,
-                           slashed_balances,
+                           slashings,
                            slots_per_epoch,
                            epochs_per_slashings_vector,
                            expected_penalty):
     state = genesis_state.copy(
         slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
-        slashed_balances=slashed_balances,
+        slashings=slashings,
     )
     slashing_validator_index = 0
     validator = state.validators[slashing_validator_index].copy(

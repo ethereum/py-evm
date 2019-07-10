@@ -300,7 +300,7 @@ def test_slash_validator(genesis_state,
         another_slashing_epoch += 1
     slashings[another_slashing_epoch] = (validator_indices_to_slash[0],)
 
-    expected_slashed_balances = {}
+    expected_slashings = {}
     expected_individual_penalties = {}
     for epoch, coalition in slashings.items():
         for index in coalition:
@@ -309,8 +309,8 @@ def test_slash_validator(genesis_state,
             assert validator.exit_epoch == FAR_FUTURE_EPOCH
             assert validator.withdrawable_epoch == FAR_FUTURE_EPOCH
 
-            expected_slashed_balances = update_in(
-                expected_slashed_balances,
+            expected_slashings = update_in(
+                expected_slashings,
                 [epoch],
                 lambda balance: balance + state.validators[index].effective_balance,
                 default=0,
@@ -334,7 +334,7 @@ def test_slash_validator(genesis_state,
             slot=get_epoch_start_slot(epoch, config.SLOTS_PER_EPOCH)
         )
 
-        expected_total_slashed_balance = expected_slashed_balances[epoch]
+        expected_total_slashed_balance = expected_slashings[epoch]
         proposer_index = get_beacon_proposer_index(state, CommitteeConfig(config))
 
         expected_proposer_rewards = update_in(
@@ -362,8 +362,8 @@ def test_slash_validator(genesis_state,
             )
 
             slashed_epoch_index = epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
-            slashed_balance = state.slashed_balances[slashed_epoch_index]
-            assert slashed_balance == expected_slashed_balances[epoch]
+            slashed_balance = state.slashings[slashed_epoch_index]
+            assert slashed_balance == expected_slashings[epoch]
             assert state.balances[index] == (
                 config.MAX_EFFECTIVE_BALANCE -
                 expected_individual_penalties[index] +

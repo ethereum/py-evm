@@ -128,8 +128,8 @@ def slash_validator(state: BeaconState,
     slashed_balance = state.validators[index].effective_balance
     slashed_epoch = current_epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
     state = state.copy(
-        slashed_balances=update_tuple_item_with_fn(
-            state.slashed_balances,
+        slashings=update_tuple_item_with_fn(
+            state.slashings,
             slashed_epoch,
             lambda balance, slashed_balance: Gwei(balance + slashed_balance),
             slashed_balance,
