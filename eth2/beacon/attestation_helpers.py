@@ -12,7 +12,7 @@ from eth2.beacon.helpers import (
     compute_start_slot_of_epoch,
 )
 from eth2.beacon.committee_helpers import (
-    get_epoch_committee_count,
+    get_committee_count,
     get_epoch_start_shard,
 )
 from eth2.beacon.signature_domain import SignatureDomain
@@ -39,7 +39,7 @@ def get_attestation_data_slot(state: BeaconState,
         state.validators,
         data.target_epoch,
     )
-    committee_count = get_epoch_committee_count(
+    committee_count = get_committee_count(
         len(active_validator_indices),
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,

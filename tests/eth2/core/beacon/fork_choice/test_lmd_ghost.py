@@ -17,7 +17,7 @@ from eth2.beacon.attestation_helpers import (
     get_attestation_data_slot,
 )
 from eth2.beacon.committee_helpers import (
-    get_epoch_committee_count,
+    get_committee_count,
     get_crosslink_committee,
     get_epoch_start_shard,
 )
@@ -48,7 +48,7 @@ from eth2.configs import CommitteeConfig
 @to_dict
 def _mk_attestation_inputs_in_epoch(epoch, state, config):
     active_validators_indices = get_active_validator_indices(state.validators, epoch)
-    epoch_committee_count = get_epoch_committee_count(
+    epoch_committee_count = get_committee_count(
         len(active_validators_indices),
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,
@@ -142,7 +142,7 @@ def _find_collision(state, config, index, epoch):
     validator w/ the given index.
     """
     active_validators = get_active_validator_indices(state.validators, epoch)
-    committees_per_slot = get_epoch_committee_count(
+    committees_per_slot = get_committee_count(
         len(active_validators),
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,
@@ -207,9 +207,9 @@ def _introduce_collisions(all_attestations_by_index,
     return collisions
 
 
-def _get_epoch_committee_count(state, epoch, config):
+def _get_committee_count(state, epoch, config):
     active_validators = get_active_validator_indices(state.validators, epoch)
-    return get_epoch_committee_count(
+    return get_committee_count(
         len(active_validators),
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,
@@ -250,21 +250,21 @@ def test_store_get_latest_attestation(genesis_state,
         slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH),
     )
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
-    previous_epoch_committee_count = _get_epoch_committee_count(
+    previous_epoch_committee_count = _get_committee_count(
         state,
         previous_epoch,
         config,
     )
 
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    current_epoch_committee_count = _get_epoch_committee_count(
+    current_epoch_committee_count = _get_committee_count(
         state,
         current_epoch,
         config,
     )
 
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
-    next_epoch_committee_count = _get_epoch_committee_count(
+    next_epoch_committee_count = _get_committee_count(
         state,
         next_epoch,
         config,

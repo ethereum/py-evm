@@ -39,7 +39,7 @@ from eth2.beacon.signature_domain import (
 )
 from eth2.beacon.committee_helpers import (
     get_crosslink_committee,
-    get_epoch_committee_count,
+    get_committee_count,
     get_epoch_start_shard,
     get_shard_delta,
 )
@@ -597,7 +597,7 @@ def get_crosslink_committees_at_slot(
         config: Eth2Config) -> Tuple[Tuple[Tuple[ValidatorIndex, ...], Shard], ...]:
     epoch = compute_epoch_of_slot(slot, config.SLOTS_PER_EPOCH)
     active_validators = get_active_validator_indices(state.validators, epoch)
-    committees_per_slot = get_epoch_committee_count(
+    committees_per_slot = get_committee_count(
         len(active_validators),
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,

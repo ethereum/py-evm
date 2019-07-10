@@ -14,7 +14,7 @@ from eth2.configs import (
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
     get_crosslink_committee,
-    get_epoch_committee_count,
+    get_committee_count,
     get_epoch_start_shard,
 )
 from eth2.beacon.helpers import (
@@ -64,7 +64,7 @@ def get_committee_assignment(state: BeaconState,
         )
 
     active_validators = get_active_validator_indices(state.validators, epoch)
-    committees_per_slot = get_epoch_committee_count(
+    committees_per_slot = get_committee_count(
         len(active_validators),
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,

@@ -26,7 +26,7 @@ from eth2.beacon.constants import (
 )
 from eth2.beacon.committee_helpers import (
     get_crosslink_committee,
-    get_epoch_committee_count,
+    get_committee_count,
     get_epoch_start_shard,
     get_shard_delta,
 )
@@ -360,7 +360,7 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
 
     for epoch in (previous_epoch, current_epoch):
         active_validators_indices = get_active_validator_indices(state.validators, epoch)
-        epoch_committee_count = get_epoch_committee_count(
+        epoch_committee_count = get_committee_count(
             len(active_validators_indices),
             config.SHARD_COUNT,
             config.SLOTS_PER_EPOCH,
@@ -557,7 +557,7 @@ def get_crosslink_deltas(state: BeaconState,
     )
     epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
     active_validators_indices = get_active_validator_indices(state.validators, epoch)
-    epoch_committee_count = get_epoch_committee_count(
+    epoch_committee_count = get_committee_count(
         len(active_validators_indices),
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,

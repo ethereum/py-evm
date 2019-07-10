@@ -8,7 +8,7 @@ from eth_utils import (
 
 from eth2.beacon.committee_helpers import (
     get_committees_per_slot,
-    get_epoch_committee_count,
+    get_committee_count,
     get_shard_delta,
     get_epoch_start_shard,
     _find_proposer_in_committee,
@@ -76,12 +76,12 @@ def test_get_committees_per_slot(active_validator_count,
         (40, 5, 10, 5, 5),
     ],
 )
-def test_get_epoch_committee_count(active_validator_count,
+def test_get_committee_count(active_validator_count,
                                    slots_per_epoch,
                                    target_committee_size,
                                    shard_count,
                                    expected_committee_count):
-    assert expected_committee_count == get_epoch_committee_count(
+    assert expected_committee_count == get_committee_count(
         active_validator_count=active_validator_count,
         shard_count=shard_count,
         slots_per_epoch=slots_per_epoch,

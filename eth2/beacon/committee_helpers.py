@@ -50,10 +50,10 @@ def get_committees_per_slot(active_validator_count: int,
     )
 
 
-def get_epoch_committee_count(active_validator_count: int,
-                              shard_count: int,
-                              slots_per_epoch: int,
-                              target_committee_size: int) -> int:
+def get_committee_count(active_validator_count: int,
+                        shard_count: int,
+                        slots_per_epoch: int,
+                        target_committee_size: int) -> int:
     return get_committees_per_slot(
         active_validator_count,
         shard_count,
@@ -71,7 +71,7 @@ def get_shard_delta(state: BeaconState,
     active_validator_indices = get_active_validator_indices(state.validators, epoch)
 
     return min(
-        get_epoch_committee_count(
+        get_committee_count(
             len(active_validator_indices),
             shard_count,
             slots_per_epoch,
@@ -248,7 +248,7 @@ def get_crosslink_committee(state: BeaconState,
         indices=active_validator_indices,
         seed=get_seed(state, epoch, config),
         index=target_shard,
-        count=get_epoch_committee_count(
+        count=get_committee_count(
             len(active_validator_indices),
             config.SHARD_COUNT,
             config.SLOTS_PER_EPOCH,
