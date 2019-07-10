@@ -18,7 +18,7 @@ from eth2.beacon.attestation_helpers import (
     get_attestation_data_slot,
 )
 from eth2.beacon.helpers import (
-    slot_to_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.exceptions import (
     NoCommitteeAssignment,
@@ -351,7 +351,7 @@ async def test_validator_get_committee_assigment(event_loop, event_bus):
     alice = await get_validator(event_loop=event_loop, event_bus=event_bus, indices=alice_indices)
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
-    epoch = slot_to_epoch(state.slot, state_machine.config.SLOTS_PER_EPOCH)
+    epoch = compute_epoch_of_slot(state.slot, state_machine.config.SLOTS_PER_EPOCH)
 
     assert alice.this_epoch_assignment[alice_indices[0]][0] == -1
     alice._get_this_epoch_assignment(alice_indices[0], epoch)
@@ -366,7 +366,7 @@ async def test_validator_attest(event_loop, event_bus, monkeypatch):
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
 
-    epoch = slot_to_epoch(state.slot, state_machine.config.SLOTS_PER_EPOCH)
+    epoch = compute_epoch_of_slot(state.slot, state_machine.config.SLOTS_PER_EPOCH)
     assignment = alice._get_this_epoch_assignment(alice_indices[0], epoch)
 
     attestations = await alice.attest(assignment.slot)

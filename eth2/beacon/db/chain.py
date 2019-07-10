@@ -41,7 +41,7 @@ from eth.validation import (
 )
 from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
 from eth2.beacon.helpers import (
-    slot_to_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.typing import (
     Epoch,
@@ -217,7 +217,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         try:
             justified_head_root = self._get_justified_head_root(db)
             slot = self.get_slot_by_root(justified_head_root)
-            return slot_to_epoch(slot, self.genesis_config.SLOTS_PER_EPOCH)
+            return compute_epoch_of_slot(slot, self.genesis_config.SLOTS_PER_EPOCH)
         except JustifiedHeadNotFound:
             return self.genesis_config.GENESIS_EPOCH
 

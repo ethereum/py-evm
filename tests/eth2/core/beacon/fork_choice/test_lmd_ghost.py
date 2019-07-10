@@ -30,7 +30,7 @@ from eth2.beacon.fork_choice.lmd_ghost import (
 )
 from eth2.beacon.helpers import (
     get_epoch_start_slot,
-    slot_to_epoch,
+    compute_epoch_of_slot,
     get_active_validator_indices,
 )
 from eth2.beacon.tools.builder.validator import (
@@ -199,7 +199,7 @@ def _introduce_collisions(all_attestations_by_index,
         src_index = random.choice(list(src.keys()))
         src_val = src[src_index]
         src_slot, _ = src_val
-        src_epoch = slot_to_epoch(src_slot, config.SLOTS_PER_EPOCH)
+        src_epoch = compute_epoch_of_slot(src_slot, config.SLOTS_PER_EPOCH)
         dst_epoch = src_epoch + 1
 
         collision = _find_collision(state, config, index=src_index, epoch=dst_epoch)
@@ -509,7 +509,7 @@ def _mk_attestation_for_block_with_committee(block, committee, shard, config):
         aggregation_bits=aggregation_bits,
         data=AttestationData(
             beacon_block_root=block.signing_root,
-            target_epoch=slot_to_epoch(block.slot, config.SLOTS_PER_EPOCH),
+            target_epoch=compute_epoch_of_slot(block.slot, config.SLOTS_PER_EPOCH),
             crosslink=Crosslink(
                 shard=shard,
             ),

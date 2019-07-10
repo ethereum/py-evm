@@ -49,7 +49,7 @@ from eth2.beacon.helpers import (
     get_block_root,
     get_domain,
     get_epoch_start_slot,
-    slot_to_epoch,
+    compute_epoch_of_slot,
     get_active_validator_indices,
 )
 from eth2.beacon.types.attestations import Attestation, IndexedAttestation
@@ -279,7 +279,7 @@ def sign_transaction(*,
         state,
         signature_domain,
         slots_per_epoch,
-        message_epoch=slot_to_epoch(slot, slots_per_epoch),
+        message_epoch=compute_epoch_of_slot(slot, slots_per_epoch),
     )
     return bls.sign(
         message_hash=message_hash,
@@ -397,7 +397,7 @@ def create_mock_slashable_attestation(state: BeaconState,
         beacon_block_root=beacon_block_root,
         source_epoch=state.current_justified_epoch,
         source_root=source_root,
-        target_epoch=slot_to_epoch(
+        target_epoch=compute_epoch_of_slot(
             attestation_slot,
             config.SLOTS_PER_EPOCH,
         ),
@@ -501,7 +501,7 @@ def _get_target_root(state: BeaconState,
                      config: Eth2Config,
                      beacon_block_root: Hash32) -> Hash32:
 
-    epoch = slot_to_epoch(state.slot, config.SLOTS_PER_EPOCH)
+    epoch = compute_epoch_of_slot(state.slot, config.SLOTS_PER_EPOCH)
     epoch_start_slot = get_epoch_start_slot(
         epoch,
         config.SLOTS_PER_EPOCH,
@@ -595,7 +595,7 @@ def get_crosslink_committees_at_slot(
         state: BeaconState,
         slot: Slot,
         config: Eth2Config) -> Tuple[Tuple[Tuple[ValidatorIndex, ...], Shard], ...]:
-    epoch = slot_to_epoch(slot, config.SLOTS_PER_EPOCH)
+    epoch = compute_epoch_of_slot(slot, config.SLOTS_PER_EPOCH)
     active_validators = get_active_validator_indices(state.validators, epoch)
     committees_per_slot = get_epoch_committee_count(
         len(active_validators),
@@ -633,7 +633,7 @@ def create_signed_attestation_at_slot(state: BeaconState,
         future_slot=attestation_slot,
     )
 
-    target_epoch = slot_to_epoch(
+    target_epoch = compute_epoch_of_slot(
         attestation_slot,
         config.SLOTS_PER_EPOCH,
     )
@@ -687,7 +687,7 @@ def create_mock_signed_attestations_at_slot(
 
     # Get `target_root`
     target_root = _get_target_root(state, config, beacon_block_root)
-    target_epoch = slot_to_epoch(
+    target_epoch = compute_epoch_of_slot(
         state.slot,
         config.SLOTS_PER_EPOCH,
     )

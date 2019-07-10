@@ -87,14 +87,14 @@ def test_validate_attestation_slot(attestation_slot,
         'is_valid',
     ),
     [
-        # slot_to_epoch(attestation_data.slot, slots_per_epoch) >= current_epoch
+        # compute_epoch_of_slot(attestation_data.slot, slots_per_epoch) >= current_epoch
         # attestation_data.source_epoch == state.current_justified_epoch
         (24, 2, 3, b'\x22' * 32, True),
         # attestation_data.source_epoch != state.current_justified_epoch
         (24, 3, 3, b'\x22' * 32, False),
         # attestation_data.source_root != state.current_justified_root
         (24, 2, 3, b'\x33' * 32, False),
-        # slot_to_epoch(attestation_data.slot, slots_per_epoch) < current_epoch
+        # compute_epoch_of_slot(attestation_data.slot, slots_per_epoch) < current_epoch
         # attestation_data.source_epoch == state.previous_justified_epoch
         (23, 1, 2, b'\x11' * 32, True),
         # attestation_data.source_epoch != state.previous_justified_epoch

@@ -24,7 +24,7 @@ from eth2.beacon.helpers import (
     get_block_root,
     get_block_root_at_slot,
     get_epoch_start_slot,
-    slot_to_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.epoch_processing_helpers import (
     get_base_reward,
@@ -240,7 +240,7 @@ def test_process_crosslinks(genesis_state,
                             success_in_current_epoch):
     shard_count = config.SHARD_COUNT
     current_slot = config.SLOTS_PER_EPOCH * 5 - 1
-    current_epoch = slot_to_epoch(current_slot, config.SLOTS_PER_EPOCH)
+    current_epoch = compute_epoch_of_slot(current_slot, config.SLOTS_PER_EPOCH)
     assert current_epoch - 4 >= 0
 
     previous_crosslinks = tuple(
@@ -800,7 +800,7 @@ def test_update_active_index_roots(genesis_state,
     index_root = ssz.hash_tree_root(
         get_active_validator_indices(
             state.validators,
-            slot_to_epoch(state.slot, slots_per_epoch),
+            compute_epoch_of_slot(state.slot, slots_per_epoch),
         ),
         ssz.sedes.List(ssz.uint64),
     )

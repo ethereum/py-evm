@@ -3,7 +3,7 @@ import pytest
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
 from eth2.beacon.helpers import (
-    slot_to_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.state_machines.forks.serenity.blocks import (
@@ -52,7 +52,7 @@ def test_demo(base_db,
     slots_per_epoch = 8
     config = SERENITY_CONFIG._replace(
         SLOTS_PER_EPOCH=slots_per_epoch,
-        GENESIS_EPOCH=slot_to_epoch(SERENITY_CONFIG.GENESIS_SLOT, slots_per_epoch),
+        GENESIS_EPOCH=compute_epoch_of_slot(SERENITY_CONFIG.GENESIS_SLOT, slots_per_epoch),
         TARGET_COMMITTEE_SIZE=3,
         SHARD_COUNT=2,
         MIN_ATTESTATION_INCLUSION_DELAY=2,

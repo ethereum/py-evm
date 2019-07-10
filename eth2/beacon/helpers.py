@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from eth2.beacon.types.states import BeaconState  # noqa: F401
 
 
-def slot_to_epoch(slot: Slot, slots_per_epoch: int) -> Epoch:
+def compute_epoch_of_slot(slot: Slot, slots_per_epoch: int) -> Epoch:
     return Epoch(slot // slots_per_epoch)
 
 

@@ -29,7 +29,7 @@ from eth2._utils.tuple import (
 )
 from eth2.configs import Eth2Config
 from eth2.beacon.helpers import (
-    slot_to_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.typing import (
     Epoch,
@@ -299,7 +299,7 @@ class BeaconState(ssz.Serializable):
         )
 
     def current_epoch(self, slots_per_epoch: int) -> Epoch:
-        return slot_to_epoch(self.slot, slots_per_epoch)
+        return compute_epoch_of_slot(self.slot, slots_per_epoch)
 
     def previous_epoch(self, slots_per_epoch: int, genesis_epoch: Epoch) -> Epoch:
         current_epoch = self.current_epoch(slots_per_epoch)
