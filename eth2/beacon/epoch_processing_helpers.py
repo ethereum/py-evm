@@ -11,6 +11,7 @@ from eth_typing import (
 
 from eth_utils import (
     to_tuple,
+    ValidationError,
 )
 from eth_utils.toolz import (
     curry,
@@ -106,9 +107,9 @@ def get_attesting_indices(state: BeaconState,
     return sorted(index for i, index in enumerate(committee) if has_voted(bitfield, i))
 
 
-def convert_to_indexed(state: BeaconState,
-                       attestation: Attestation,
-                       config: CommitteeConfig) -> IndexedAttestation:
+def get_indexed_attestation(state: BeaconState,
+                            attestation: Attestation,
+                            config: CommitteeConfig) -> IndexedAttestation:
     attesting_indices = get_attesting_indices(
         state,
         attestation.data,
@@ -121,14 +122,17 @@ def convert_to_indexed(state: BeaconState,
         attestation.custody_bits,
         config,
     )
-    custody_bit_0_indices = tuple(
-        index for index in attesting_indices
-        if index not in custody_bit_1_indices
-    )
+    if not custody_bit_1_indices.issubset(attesting_indices):
+        raise ValidationError(
+            f"Attestation {attestation} has custody bit 1 indices ({custody_bit_1_indices})"
+            f" that are not a subset of the attestation's attesting indices ({attesting_indices})"
+            f" diff: {custody_bit_1_indices.difference(attesting_indices)}"
+        )
+    custody_bit_0_indices = attesting_indices.difference(custody_bit_1_indices)
 
     return IndexedAttestation(
-        custody_bit_0_indices=custody_bit_0_indices,
-        custody_bit_1_indices=custody_bit_1_indices,
+        custody_bit_0_indices=sorted(custody_bit_0_indices),
+        custody_bit_1_indices=sorted(custody_bit_1_indices),
         data=attestation.data,
         signature=attestation.signature,
     )

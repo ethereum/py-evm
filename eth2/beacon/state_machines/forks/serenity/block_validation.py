@@ -36,7 +36,7 @@ from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
 )
 from eth2.beacon.epoch_processing_helpers import (
-    convert_to_indexed,
+    get_indexed_attestation,
 )
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
@@ -457,7 +457,7 @@ def validate_attestation(state: BeaconState,
     _validate_attestation_data(state, attestation.data, config)
     validate_indexed_attestation(
         state,
-        convert_to_indexed(state, attestation, CommitteeConfig(config)),
+        get_indexed_attestation(state, attestation, CommitteeConfig(config)),
         config.MAX_VALIDATORS_PER_COMMITTEE,
         config.SLOTS_PER_EPOCH,
     )
