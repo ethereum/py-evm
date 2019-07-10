@@ -113,6 +113,8 @@ deps = {
         "multiaddr>=0.0.8,<0.1.0",
         "protobuf>=3.6.1",
         "pymultihash>=0.8.2",
+        # FIXME: Change to libp2p/py-libp2p after the branch is merged.
+        "libp2p @ git+https://git@github.com/mhchia/py-libp2p@fix-pkg-and-latest-maddr"  # noqa: E501
     ],
     'bls-bindings': [
         "blspy>=0.1.8,<1",  # for `bls_chia`
