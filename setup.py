@@ -69,6 +69,7 @@ deps = {
         "Sphinx>=1.5.5,<1.8.0",
         "sphinx_rtd_theme>=0.1.9",
         "sphinxcontrib-asyncio>=0.2.0",
+        "towncrier>=19.2.0, <20",
     ],
     'dev': [
         "bumpversion>=0.5.3,<1",

@@ -44,6 +44,8 @@ doctest:
 	cd docs/; sphinx-build -T -b doctest . _build/doctest
 
 validate-docs: build-docs doctest
+	./newsfragments/validate_files.py
+	towncrier --draft
 
 docs: build-docs
 	open docs/_build/html/index.html
@@ -58,7 +60,14 @@ package: clean
 release: clean
 	CURRENT_SIGN_SETTING=$(git config commit.gpgSign)
 	git config commit.gpgSign true
-	bumpversion $(bump)
+	# Let UPCOMING_VERSION be the version that is used for the current bump
+	$(eval UPCOMING_VERSION=$(shell bumpversion $(bump) --dry-run --list | grep new_version= | sed 's/new_version=//g'))
+	# Now generate the release notes to have them included in the release commit
+	towncrier --yes --version $(UPCOMING_VERSION)
+	# We need --allow-dirty because of the generated release_notes file but it is safe because the
+	# previous dry-run runs *without* --allow-dirty which ensures it's really just the release notes
+	# file that we are allowing to sit here dirty, waiting to get included in the release commit.
+	bumpversion --allow-dirty $(bump)
 	git push upstream && git push upstream --tags
 	python setup.py sdist bdist_wheel
 	twine upload dist/*

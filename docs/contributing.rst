@@ -90,8 +90,8 @@ GitHub interface and make sure all tests are passing. In general pull requests t
 do not pass the CI build yet won't get reviewed unless explicitly requested.
 
 If the pull request introduces changes that should be reflected in the release notes,
-please add a line to the *Unreleased (from source)* section of the
-`release_notes file<https://github.com/ethereum/trinity/blob/master/docs/release_notes.rst>_`
+please add a `newsfragment` file as explained
+`here<https://github.com/ethereum/trinity/blob/master/newsfragments/README.md>_`
 
 If possible, the change to the release notes file should be included in the commit that introduces the
 feature or bugfix.
@@ -135,6 +135,9 @@ Before releasing a new version, build and test the package that will be released
 
     # smoke test the release
     trinity --ropsten
+
+    # Preview the upcoming release notes
+    towncrier --draft
 
 Push the release to github & pypi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
