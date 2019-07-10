@@ -20,6 +20,8 @@ Second = NewType('Second', int)
 
 Version = NewType('Version', bytes)
 
+Domain = NewType('Domain', bytes)
+
 
 class FromBlockParams(NamedTuple):
     slot: Slot = None

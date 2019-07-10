@@ -23,6 +23,9 @@ from eth2.beacon.typing import (
     Gwei,
     Slot,
     ValidatorIndex,
+    Version,
+    default_version,
+    Domain,
 )
 from eth2.beacon.validation import (
     validate_epoch_for_active_index_root,
@@ -226,14 +229,14 @@ def _get_fork_version(fork: Fork, epoch: Epoch) -> bytes:
         return fork.current_version
 
 
-def compute_domain(domain_type: SignatureDomain, fork_version: bytes=b'\x00' * 4) -> int:
-    return int.from_bytes(domain_type.to_bytes(4, 'little') + fork_version, 'little')
+def compute_domain(domain_type: SignatureDomain, fork_version: Version=default_version) -> Domain:
+    return Domain(domain_type.to_bytes(4, 'little') + fork_version)
 
 
 def get_domain(state: 'BeaconState',
                domain_type: SignatureDomain,
                slots_per_epoch: int,
-               message_epoch: Epoch=None) -> int:
+               message_epoch: Epoch=None) -> Domain:
     """
     Return the domain number of the current fork and ``domain_type``.
     """
