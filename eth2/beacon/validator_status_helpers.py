@@ -15,7 +15,7 @@ from eth2.beacon.committee_helpers import (
 from eth2.beacon.constants import FAR_FUTURE_EPOCH
 from eth2.beacon.epoch_processing_helpers import (
     decrease_balance,
-    get_churn_limit,
+    get_validator_churn_limit,
     compute_activation_exit_epoch,
     increase_balance,
 )
@@ -69,7 +69,7 @@ def initiate_exit_for_validator(validator: Validator,
     if validator.exit_epoch != FAR_FUTURE_EPOCH:
         return validator
 
-    churn_limit = get_churn_limit(state, config)
+    churn_limit = get_validator_churn_limit(state, config)
     exit_queue_epoch = _compute_exit_queue_epoch(state, churn_limit, config)
 
     return validator.copy(

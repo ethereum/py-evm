@@ -26,7 +26,7 @@ from eth2.beacon.epoch_processing_helpers import (
     decrease_balance,
     get_attesting_indices,
     compute_activation_exit_epoch,
-    get_churn_limit,
+    get_validator_churn_limit,
     get_matching_source_attestations,
     get_matching_target_attestations,
     get_matching_head_attestations,
@@ -163,10 +163,10 @@ def test_compute_activation_exit_epoch(activation_exit_delay):
         (100, 1, 5, 100),
     ],
 )
-def test_get_churn_limit(genesis_state,
+def test_get_validator_churn_limit(genesis_state,
                          expected_churn_limit,
                          config):
-    assert get_churn_limit(genesis_state, config) == expected_churn_limit
+    assert get_validator_churn_limit(genesis_state, config) == expected_churn_limit
 
 
 @pytest.mark.parametrize(

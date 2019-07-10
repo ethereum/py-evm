@@ -143,7 +143,7 @@ def compute_activation_exit_epoch(epoch: Epoch,
     return Epoch(epoch + 1 + activation_exit_delay)
 
 
-def get_churn_limit(state: BeaconState, config: Eth2Config) -> int:
+def get_validator_churn_limit(state: BeaconState, config: Eth2Config) -> int:
     slots_per_epoch = config.SLOTS_PER_EPOCH
     min_per_epoch_churn_limit = config.MIN_PER_EPOCH_CHURN_LIMIT
     churn_limit_quotient = config.CHURN_LIMIT_QUOTIENT

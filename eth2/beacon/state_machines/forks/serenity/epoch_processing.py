@@ -35,7 +35,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_attesting_balance,
     get_attesting_indices,
     get_base_reward,
-    get_churn_limit,
+    get_validator_churn_limit,
     compute_activation_exit_epoch,
     get_matching_head_attestations,
     get_matching_source_attestations,
@@ -687,7 +687,7 @@ def process_registry_updates(state: BeaconState, config: Eth2Config) -> BeaconSt
         validator.activation_epoch >= delayed_activation_exit_epoch
     ], key=lambda index: new_validators[index].activation_eligibility_epoch)
 
-    for index in activation_queue[:get_churn_limit(state, config)]:
+    for index in activation_queue[:get_validator_churn_limit(state, config)]:
         new_validators = update_tuple_item_with_fn(
             new_validators,
             index,

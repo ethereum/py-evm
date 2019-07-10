@@ -19,7 +19,7 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.epoch_processing_helpers import (
     compute_activation_exit_epoch,
-    get_churn_limit,
+    get_validator_churn_limit,
 )
 from eth2.beacon.validator_status_helpers import (
     _compute_exit_queue_epoch,
@@ -195,7 +195,7 @@ def test_initiate_validator_exit(genesis_state, is_already_exited, config):
     assert validator.withdrawable_epoch == FAR_FUTURE_EPOCH
 
     if is_already_exited:
-        churn_limit = get_churn_limit(state, config)
+        churn_limit = get_validator_churn_limit(state, config)
         exit_queue_epoch = _compute_exit_queue_epoch(state, churn_limit, config)
         validator = validator.copy(
             exit_epoch=exit_queue_epoch,
@@ -211,7 +211,7 @@ def test_initiate_validator_exit(genesis_state, is_already_exited, config):
     if is_already_exited:
         assert exited_validator == validator
     else:
-        churn_limit = get_churn_limit(state, config)
+        churn_limit = get_validator_churn_limit(state, config)
         exit_queue_epoch = _compute_exit_queue_epoch(state, churn_limit, config)
         assert exited_validator.exit_epoch == exit_queue_epoch
         assert exited_validator.withdrawable_epoch == (
