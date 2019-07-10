@@ -12,7 +12,7 @@ from eth2.configs import (
 )
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
-    get_epoch_start_shard,
+    get_start_shard,
     get_shard_delta,
 )
 from eth2.beacon.constants import (
@@ -369,7 +369,7 @@ def test_get_attestation_deltas(genesis_state,
         finalized_epoch=finalized_epoch,
     )
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
-    epoch_start_shard = get_epoch_start_shard(
+    epoch_start_shard = get_start_shard(
         state,
         previous_epoch,
         CommitteeConfig(config),
@@ -509,7 +509,7 @@ def test_process_rewards_and_penalties_for_crosslinks(genesis_state,
     # Record which validators attest during each slot for reward collation.
     each_slot_attestion_validators_list = []
 
-    epoch_start_shard = get_epoch_start_shard(
+    epoch_start_shard = get_start_shard(
         state,
         previous_epoch,
         CommitteeConfig(config),

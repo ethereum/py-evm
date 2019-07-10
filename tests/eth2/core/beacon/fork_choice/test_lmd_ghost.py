@@ -19,7 +19,7 @@ from eth2.beacon.attestation_helpers import (
 from eth2.beacon.committee_helpers import (
     get_committee_count,
     get_crosslink_committee,
-    get_epoch_start_shard,
+    get_start_shard,
 )
 from eth2.beacon.epoch_processing_helpers import get_attesting_indices
 from eth2.beacon.fork_choice.lmd_ghost import (
@@ -54,7 +54,7 @@ def _mk_attestation_inputs_in_epoch(epoch, state, config):
         config.SLOTS_PER_EPOCH,
         config.TARGET_COMMITTEE_SIZE,
     )
-    epoch_start_shard = get_epoch_start_shard(
+    epoch_start_shard = get_start_shard(
         state,
         epoch,
         CommitteeConfig(config),
@@ -152,7 +152,7 @@ def _find_collision(state, config, index, epoch):
         epoch,
         config.SLOTS_PER_EPOCH,
     )
-    epoch_start_shard = get_epoch_start_shard(state, epoch, CommitteeConfig(config))
+    epoch_start_shard = get_start_shard(state, epoch, CommitteeConfig(config))
 
     for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
         offset = committees_per_slot * (slot % config.SLOTS_PER_EPOCH)

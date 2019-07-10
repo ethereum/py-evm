@@ -27,7 +27,7 @@ from eth2.beacon.constants import (
 from eth2.beacon.committee_helpers import (
     get_crosslink_committee,
     get_committee_count,
-    get_epoch_start_shard,
+    get_start_shard,
     get_shard_delta,
 )
 from eth2.beacon.epoch_processing_helpers import (
@@ -366,7 +366,7 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
             config.SLOTS_PER_EPOCH,
             config.TARGET_COMMITTEE_SIZE,
         )
-        epoch_start_shard = get_epoch_start_shard(
+        epoch_start_shard = get_start_shard(
             state,
             epoch,
             CommitteeConfig(config),
@@ -563,7 +563,7 @@ def get_crosslink_deltas(state: BeaconState,
         config.SLOTS_PER_EPOCH,
         config.TARGET_COMMITTEE_SIZE,
     )
-    epoch_start_shard = get_epoch_start_shard(
+    epoch_start_shard = get_start_shard(
         state,
         epoch,
         CommitteeConfig(config),

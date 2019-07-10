@@ -10,7 +10,7 @@ from eth2.beacon.committee_helpers import (
     get_committees_per_slot,
     get_committee_count,
     get_shard_delta,
-    get_epoch_start_shard,
+    get_start_shard,
     _find_proposer_in_committee,
     _calculate_first_committee_at_slot,
     get_beacon_proposer_index,
@@ -130,7 +130,7 @@ def test_get_shard_delta(genesis_state,
         (1000, 25, 5, 50, 3, 5, None),
     ],
 )
-def test_get_epoch_start_shard(genesis_state,
+def test_get_start_shard(genesis_state,
                                current_epoch,
                                target_epoch,
                                expected_epoch_start_shard,
@@ -141,9 +141,9 @@ def test_get_epoch_start_shard(genesis_state,
 
     if expected_epoch_start_shard is None:
         with pytest.raises(ValidationError):
-            get_epoch_start_shard(state, target_epoch, CommitteeConfig(config))
+            get_start_shard(state, target_epoch, CommitteeConfig(config))
     else:
-        epoch_start_shard = get_epoch_start_shard(state, target_epoch, CommitteeConfig(config))
+        epoch_start_shard = get_start_shard(state, target_epoch, CommitteeConfig(config))
         assert epoch_start_shard == expected_epoch_start_shard
 
 
@@ -196,7 +196,7 @@ def test_calculate_first_committee_at_slot(genesis_state,
     for slot in range(state.slot, state.slot + config.SLOTS_PER_EPOCH):
         offset = committees_per_slot * (slot % slots_per_epoch)
         shard = (
-            get_epoch_start_shard(state, current_epoch, config) + offset
+            get_start_shard(state, current_epoch, config) + offset
         ) % shard_count
         committee = get_crosslink_committee(
             state,

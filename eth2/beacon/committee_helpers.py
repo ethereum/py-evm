@@ -81,9 +81,9 @@ def get_shard_delta(state: BeaconState,
     )
 
 
-def get_epoch_start_shard(state: BeaconState,
-                          epoch: Epoch,
-                          config: CommitteeConfig) -> Shard:
+def get_start_shard(state: BeaconState,
+                    epoch: Epoch,
+                    config: CommitteeConfig) -> Shard:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
     if epoch > next_epoch:
@@ -138,7 +138,7 @@ def _calculate_first_committee_at_slot(state: BeaconState,
 
     offset = committees_per_slot * (slot % slots_per_epoch)
     shard = (
-        get_epoch_start_shard(state, current_epoch, config) + offset
+        get_start_shard(state, current_epoch, config) + offset
     ) % shard_count
 
     return get_crosslink_committee(
@@ -236,7 +236,7 @@ def get_crosslink_committee(state: BeaconState,
                             shard: Shard,
                             config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     target_shard = (
-        shard + config.SHARD_COUNT - get_epoch_start_shard(state, epoch, config)
+        shard + config.SHARD_COUNT - get_start_shard(state, epoch, config)
     ) % config.SHARD_COUNT
 
     active_validator_indices = get_active_validator_indices(

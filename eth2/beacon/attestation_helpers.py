@@ -13,7 +13,7 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.committee_helpers import (
     get_committee_count,
-    get_epoch_start_shard,
+    get_start_shard,
 )
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.attestations import IndexedAttestation
@@ -46,7 +46,7 @@ def get_attestation_data_slot(state: BeaconState,
         config.TARGET_COMMITTEE_SIZE,
     )
     offset = (
-        data.crosslink.shard + config.SHARD_COUNT - get_epoch_start_shard(
+        data.crosslink.shard + config.SHARD_COUNT - get_start_shard(
             state,
             data.target_epoch,
             CommitteeConfig(config),

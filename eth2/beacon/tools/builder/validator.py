@@ -40,7 +40,7 @@ from eth2.beacon.signature_domain import (
 from eth2.beacon.committee_helpers import (
     get_crosslink_committee,
     get_committee_count,
-    get_epoch_start_shard,
+    get_start_shard,
     get_shard_delta,
 )
 from eth2.beacon.helpers import (
@@ -138,7 +138,7 @@ def _mk_some_pending_attestations_with_some_participation_in_epoch(
         config.SLOTS_PER_EPOCH,
         config.SLOTS_PER_HISTORICAL_ROOT,
     )
-    epoch_start_shard = get_epoch_start_shard(
+    epoch_start_shard = get_start_shard(
         state,
         epoch,
         CommitteeConfig(config),
@@ -606,7 +606,7 @@ def get_crosslink_committees_at_slot(
     results = []
     offset = committees_per_slot * (slot % config.SLOTS_PER_EPOCH)
     slot_start_shard = Shard((
-        get_epoch_start_shard(state, epoch, CommitteeConfig(config)) + offset
+        get_start_shard(state, epoch, CommitteeConfig(config)) + offset
     ) % config.SHARD_COUNT)
     for i in range(committees_per_slot):
         shard = (slot_start_shard + i) % config.SHARD_COUNT
