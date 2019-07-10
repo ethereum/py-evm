@@ -43,7 +43,7 @@ def compute_epoch_of_slot(slot: Slot, slots_per_epoch: int) -> Epoch:
     return Epoch(slot // slots_per_epoch)
 
 
-def get_epoch_start_slot(epoch: Epoch, slots_per_epoch: int) -> Slot:
+def compute_start_slot_of_epoch(epoch: Epoch, slots_per_epoch: int) -> Slot:
     return Slot(epoch * slots_per_epoch)
 
 
@@ -102,7 +102,7 @@ def get_block_root(state: 'BeaconState',
                    slots_per_historical_root: int) -> Hash32:
     return get_block_root_at_slot(
         state,
-        get_epoch_start_slot(epoch, slots_per_epoch),
+        compute_start_slot_of_epoch(epoch, slots_per_epoch),
         slots_per_historical_root,
     )
 

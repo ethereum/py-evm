@@ -4,7 +4,7 @@ from eth2.beacon.exceptions import (
     NoCommitteeAssignment,
 )
 from eth2.beacon.helpers import (
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 
 from eth2.beacon.tools.builder.committee_assignment import (
@@ -36,7 +36,7 @@ def test_get_committee_assignment(genesis_state,
                                   state_epoch,
                                   epoch,
                                   fixture_sm_class):
-    state_slot = get_epoch_start_slot(state_epoch, slots_per_epoch)
+    state_slot = compute_start_slot_of_epoch(state_epoch, slots_per_epoch)
     state = genesis_state.copy(
         slot=state_slot,
     )
@@ -47,7 +47,7 @@ def test_get_committee_assignment(genesis_state,
     ]
     slots = []
 
-    epoch_start_slot = get_epoch_start_slot(epoch, slots_per_epoch)
+    epoch_start_slot = compute_start_slot_of_epoch(epoch, slots_per_epoch)
 
     for validator_index in range(validator_count):
         assignment = get_committee_assignment(

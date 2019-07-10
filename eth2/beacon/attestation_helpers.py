@@ -9,7 +9,7 @@ from eth_utils import (
 from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_domain,
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 from eth2.beacon.committee_helpers import (
     get_epoch_committee_count,
@@ -53,7 +53,7 @@ def get_attestation_data_slot(state: BeaconState,
         )
     ) % config.SHARD_COUNT
     committees_per_slot = committee_count // config.SLOTS_PER_EPOCH
-    return get_epoch_start_slot(
+    return compute_start_slot_of_epoch(
         data.target_epoch,
         config.SLOTS_PER_EPOCH,
     ) + offset // committees_per_slot

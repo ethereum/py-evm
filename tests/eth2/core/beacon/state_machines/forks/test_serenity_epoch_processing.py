@@ -23,7 +23,7 @@ from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_block_root,
     get_block_root_at_slot,
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
     compute_epoch_of_slot,
 )
 from eth2.beacon.epoch_processing_helpers import (
@@ -389,7 +389,7 @@ def test_get_attestation_deltas(genesis_state,
 
     indices_to_check = set()
 
-    prev_epoch_start_slot = get_epoch_start_slot(previous_epoch, slots_per_epoch)
+    prev_epoch_start_slot = compute_start_slot_of_epoch(previous_epoch, slots_per_epoch)
     prev_epoch_attestations = tuple()
     for slot in range(prev_epoch_start_slot, prev_epoch_start_slot + slots_per_epoch):
         committee, shard = get_crosslink_committees_at_slot(
@@ -497,7 +497,7 @@ def test_process_rewards_and_penalties_for_crosslinks(genesis_state,
     )
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
 
-    prev_epoch_start_slot = get_epoch_start_slot(previous_epoch, slots_per_epoch)
+    prev_epoch_start_slot = compute_start_slot_of_epoch(previous_epoch, slots_per_epoch)
     prev_epoch_crosslink_committees = [
         get_crosslink_committees_at_slot(
             state,
@@ -714,7 +714,7 @@ def test_determine_slashing_penalty(genesis_state,
                                     total_balance,
                                     expected_penalty):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
+        slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch),
     )
     validator_index = 0
     penalty = _determine_slashing_penalty(
@@ -756,7 +756,7 @@ def test_process_slashings(genesis_state,
                            epochs_per_slashings_vector,
                            expected_penalty):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
+        slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch),
         slashings=slashings,
     )
     slashing_validator_index = 0

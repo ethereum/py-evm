@@ -18,7 +18,7 @@ from eth2.beacon.committee_helpers import (
 )
 from eth2.beacon.helpers import (
     get_active_validator_indices,
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 from eth2.configs import (
     CommitteeConfig,
@@ -136,7 +136,7 @@ def test_get_epoch_start_shard(genesis_state,
                                expected_epoch_start_shard,
                                config):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(current_epoch, config.SLOTS_PER_EPOCH),
     )
 
     if expected_epoch_start_shard is None:

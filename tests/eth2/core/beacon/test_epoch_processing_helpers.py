@@ -37,7 +37,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_base_reward,
 )
 from eth2.beacon.helpers import (
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 from eth2.beacon.types.attestation_data import (
     AttestationData,
@@ -104,7 +104,7 @@ def test_decrease_balance(genesis_state,
 def test_get_attesting_indices(genesis_state,
                                config):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(3, config.SLOTS_PER_EPOCH)
+        slot=compute_start_slot_of_epoch(3, config.SLOTS_PER_EPOCH)
     )
     target_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     target_shard = (state.start_shard + 3) % config.SHARD_COUNT
@@ -188,7 +188,7 @@ def test_get_matching_source_attestations(genesis_state,
                                           success,
                                           config):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(current_epoch, config.SLOTS_PER_EPOCH),
         current_epoch_attestations=tuple(
             PendingAttestation(
                 data=AttestationData(
@@ -229,7 +229,7 @@ def test_get_matching_source_attestations(genesis_state,
 def test_get_matching_target_attestations(genesis_state,
                                           config):
     some_epoch = config.GENESIS_EPOCH + 20
-    some_slot = get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH)
+    some_slot = compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH)
     some_target_root = b'\x33' * 32
     target_attestations = tuple(
         (
@@ -271,7 +271,7 @@ def test_get_matching_target_attestations(genesis_state,
 def test_get_matching_head_attestations(genesis_state,
                                         config):
     some_epoch = config.GENESIS_EPOCH + 20
-    some_slot = get_epoch_start_slot(
+    some_slot = compute_start_slot_of_epoch(
         some_epoch,
         config.SLOTS_PER_EPOCH
     ) + config.SLOTS_PER_EPOCH // 4
@@ -327,7 +327,7 @@ def test_get_matching_head_attestations(genesis_state,
 def test_get_unslashed_attesting_indices(genesis_state,
                                          config):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(3, config.SLOTS_PER_EPOCH)
+        slot=compute_start_slot_of_epoch(3, config.SLOTS_PER_EPOCH)
     )
     target_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     target_shard = (state.start_shard + 3) % config.SHARD_COUNT
@@ -395,7 +395,7 @@ def test_find_candidate_attestations_for_shard(genesis_state,
     shard_offset = 24
 
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH),
         start_shard=some_shard,
         current_crosslinks=tuple(
             Crosslink(
@@ -515,7 +515,7 @@ def test_find_winning_crosslink_and_attesting_indices_from_candidates(genesis_st
     some_shard = 3
 
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH),
         start_shard=some_shard,
         current_crosslinks=tuple(
             Crosslink(

@@ -48,7 +48,7 @@ from eth2.beacon.helpers import (
     get_block_root_at_slot,
     get_block_root,
     get_domain,
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
     compute_epoch_of_slot,
     get_active_validator_indices,
 )
@@ -388,7 +388,7 @@ def create_mock_slashable_attestation(state: BeaconState,
     # Get `source_root`
     source_root = get_block_root_at_slot(
         state,
-        get_epoch_start_slot(state.current_justified_epoch, config.SLOTS_PER_EPOCH),
+        compute_start_slot_of_epoch(state.current_justified_epoch, config.SLOTS_PER_EPOCH),
         config.SLOTS_PER_HISTORICAL_ROOT,
     )
     previous_crosslink = state.current_crosslinks[shard]
@@ -438,7 +438,7 @@ def create_mock_attester_slashing_is_double_vote(
         config: Eth2Config,
         keymap: Dict[BLSPubkey, int],
         attestation_epoch: Epoch) -> AttesterSlashing:
-    attestation_slot_1 = get_epoch_start_slot(attestation_epoch, config.SLOTS_PER_EPOCH)
+    attestation_slot_1 = compute_start_slot_of_epoch(attestation_epoch, config.SLOTS_PER_EPOCH)
     attestation_slot_2 = Slot(attestation_slot_1 + 1)
 
     slashable_attestation_1 = create_mock_slashable_attestation(
@@ -466,7 +466,7 @@ def create_mock_attester_slashing_is_surround_vote(
         keymap: Dict[BLSPubkey, int],
         attestation_epoch: Epoch) -> AttesterSlashing:
     # target_epoch_2 < target_epoch_1
-    attestation_slot_2 = get_epoch_start_slot(attestation_epoch, config.SLOTS_PER_EPOCH)
+    attestation_slot_2 = compute_start_slot_of_epoch(attestation_epoch, config.SLOTS_PER_EPOCH)
     attestation_slot_1 = Slot(attestation_slot_2 + config.SLOTS_PER_EPOCH)
 
     slashable_attestation_1 = create_mock_slashable_attestation(
@@ -502,7 +502,7 @@ def _get_target_root(state: BeaconState,
                      beacon_block_root: Hash32) -> Hash32:
 
     epoch = compute_epoch_of_slot(state.slot, config.SLOTS_PER_EPOCH)
-    epoch_start_slot = get_epoch_start_slot(
+    epoch_start_slot = compute_start_slot_of_epoch(
         epoch,
         config.SLOTS_PER_EPOCH,
     )
@@ -746,7 +746,7 @@ def create_mock_voluntary_exit(state: BeaconState,
             message_hash=voluntary_exit.signing_root,
             privkey=keymap[state.validators[validator_index].pubkey],
             state=state,
-            slot=get_epoch_start_slot(target_epoch, config.SLOTS_PER_EPOCH),
+            slot=compute_start_slot_of_epoch(target_epoch, config.SLOTS_PER_EPOCH),
             signature_domain=SignatureDomain.DOMAIN_VOLUNTARY_EXIT,
             slots_per_epoch=config.SLOTS_PER_EPOCH,
         )

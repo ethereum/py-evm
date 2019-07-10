@@ -21,7 +21,7 @@ from eth2.beacon.signature_domain import SignatureDomain
 
 from eth2.beacon.helpers import (
     get_domain,
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 
 from eth2.beacon.state_machines.forks.serenity.blocks import (
@@ -64,7 +64,7 @@ def test_randao_processing(sample_beacon_block_params,
     )
 
     epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    slot = get_epoch_start_slot(epoch, config.SLOTS_PER_EPOCH)
+    slot = compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH)
 
     randao_reveal = _generate_randao_reveal(
         privkey=proposer_privkey,

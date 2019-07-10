@@ -15,7 +15,7 @@ from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
 )
 from eth2.beacon.helpers import (
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 from eth2.beacon.epoch_processing_helpers import (
     get_delayed_activation_exit_epoch,
@@ -271,7 +271,7 @@ def test_slash_validator(genesis_state,
     sampling_quotient = 4
 
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(earliest_slashable_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(earliest_slashable_epoch, config.SLOTS_PER_EPOCH),
     )
     validator_count_to_slash = len(state.validators) // sampling_quotient
     assert validator_count_to_slash > 1
@@ -331,7 +331,7 @@ def test_slash_validator(genesis_state,
     expected_proposer_rewards = {}
     for epoch, coalition in slashings.items():
         state = state.copy(
-            slot=get_epoch_start_slot(epoch, config.SLOTS_PER_EPOCH)
+            slot=compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH)
         )
 
         expected_total_slashed_balance = expected_slashings[epoch]
@@ -349,7 +349,7 @@ def test_slash_validator(genesis_state,
             state = slash_validator(state, index, config)
 
     state = state.copy(
-        slot=get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH)
+        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH)
     )
     # verify result
     for epoch, coalition in slashings.items():

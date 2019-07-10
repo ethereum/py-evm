@@ -25,7 +25,7 @@ from eth2.beacon.helpers import (
     _generate_seed,
     get_active_validator_indices,
     get_block_root_at_slot,
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
     get_domain,
     _get_fork_version,
     get_total_balance,
@@ -298,7 +298,7 @@ def test_generate_seed(genesis_state,
     state = genesis_state
     epoch = 1
     state = state.copy(
-        slot=get_epoch_start_slot(epoch, committee_config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(epoch, committee_config.SLOTS_PER_EPOCH),
     )
 
     epoch_as_bytes = epoch.to_bytes(32, 'little')

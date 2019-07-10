@@ -11,7 +11,7 @@ from eth2.beacon.signature_domain import (
 )
 from eth2.beacon.helpers import (
     get_domain,
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_block_slot,
@@ -132,7 +132,7 @@ def test_randao_reveal_validation(is_valid,
                                   genesis_state,
                                   config):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH),
     )
     message_hash = epoch.to_bytes(32, byteorder="little")
     slots_per_epoch = config.SLOTS_PER_EPOCH

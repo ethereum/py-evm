@@ -29,7 +29,7 @@ from eth2.beacon.fork_choice.lmd_ghost import (
     score_block_by_root,
 )
 from eth2.beacon.helpers import (
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
     compute_epoch_of_slot,
     get_active_validator_indices,
 )
@@ -148,7 +148,7 @@ def _find_collision(state, config, index, epoch):
         config.SLOTS_PER_EPOCH,
         config.TARGET_COMMITTEE_SIZE,
     ) // config.SLOTS_PER_EPOCH
-    epoch_start_slot = get_epoch_start_slot(
+    epoch_start_slot = compute_start_slot_of_epoch(
         epoch,
         config.SLOTS_PER_EPOCH,
     )
@@ -247,7 +247,7 @@ def test_store_get_latest_attestation(genesis_state,
     """
     some_epoch = 3
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH),
     )
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
     previous_epoch_committee_count = _get_epoch_committee_count(
@@ -674,14 +674,14 @@ def test_lmd_ghost_fork_choice_scoring(sample_beacon_block_params,
     some_slot_offset = 10
 
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH) + some_slot_offset,
+        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH) + some_slot_offset,
         current_justified_epoch=some_epoch,
         current_justified_root=root_block.signing_root,
     )
     assert some_epoch >= state.current_justified_epoch
 
     # NOTE: the attestations have to be aligned to the blocks which start from ``base_slot``.
-    base_slot = get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH) + 1
+    base_slot = compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH) + 1
     block_tree = _build_block_tree(
         sample_beacon_block_params,
         root_block,

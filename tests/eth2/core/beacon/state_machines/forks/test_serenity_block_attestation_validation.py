@@ -8,7 +8,7 @@ from eth.constants import (
     ZERO_HASH32,
 )
 from eth2.beacon.helpers import (
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation_slot,
@@ -120,7 +120,7 @@ def test_validate_attestation_source_epoch_and_root(
         mocker,
         is_valid):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, slots_per_epoch) + 5,
+        slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch) + 5,
         previous_justified_epoch=previous_justified_epoch,
         current_justified_epoch=current_justified_epoch,
         previous_justified_root=previous_justified_root,
