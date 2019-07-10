@@ -134,8 +134,8 @@ def convert_to_indexed(state: BeaconState,
     )
 
 
-def get_delayed_activation_exit_epoch(epoch: Epoch,
-                                      activation_exit_delay: int) -> Epoch:
+def compute_activation_exit_epoch(epoch: Epoch,
+                                  activation_exit_delay: int) -> Epoch:
     """
     An entry or exit triggered in the ``epoch`` given by the input takes effect at
     the epoch given by the output.

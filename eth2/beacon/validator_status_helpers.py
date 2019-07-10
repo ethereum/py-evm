@@ -16,7 +16,7 @@ from eth2.beacon.constants import FAR_FUTURE_EPOCH
 from eth2.beacon.epoch_processing_helpers import (
     decrease_balance,
     get_churn_limit,
-    get_delayed_activation_exit_epoch,
+    compute_activation_exit_epoch,
     increase_balance,
 )
 from eth2.beacon.types.states import BeaconState
@@ -43,7 +43,7 @@ def _compute_exit_queue_epoch(state: BeaconState, churn_limit: int, config: Eth2
         if v.exit_epoch != FAR_FUTURE_EPOCH
     )
     exit_queue_epoch = max(
-        exit_epochs + (get_delayed_activation_exit_epoch(
+        exit_epochs + (compute_activation_exit_epoch(
             state.current_epoch(slots_per_epoch),
             config.ACTIVATION_EXIT_DELAY,
         ),)

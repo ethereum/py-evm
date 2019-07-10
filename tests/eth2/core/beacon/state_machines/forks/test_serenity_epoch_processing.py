@@ -37,7 +37,7 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _bft_threshold_met,
     _determine_new_finalized_epoch,
     _determine_slashing_penalty,
-    get_delayed_activation_exit_epoch,
+    compute_activation_exit_epoch,
     process_crosslinks,
     process_justification_and_finalization,
     process_slashings,
@@ -651,7 +651,7 @@ def test_process_registry_updates(validator_count,
     assert pre_activation_validator.activation_eligibility_epoch == FAR_FUTURE_EPOCH
     assert pre_activation_validator.activation_epoch == FAR_FUTURE_EPOCH
     assert post_activation_validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH
-    activation_epoch = get_delayed_activation_exit_epoch(
+    activation_epoch = compute_activation_exit_epoch(
         state.current_epoch(config.SLOTS_PER_EPOCH),
         config.ACTIVATION_EXIT_DELAY,
     )

@@ -18,7 +18,7 @@ from eth2.beacon.helpers import (
     compute_start_slot_of_epoch,
 )
 from eth2.beacon.epoch_processing_helpers import (
-    get_delayed_activation_exit_epoch,
+    compute_activation_exit_epoch,
     get_churn_limit,
 )
 from eth2.beacon.validator_status_helpers import (
@@ -106,7 +106,7 @@ def test_compute_exit_queue_epoch(genesis_state,
         )
 
     if is_delayed_exit_epoch_the_maximum_exit_queue_epoch:
-        expected_candidate_exit_queue_epoch = get_delayed_activation_exit_epoch(
+        expected_candidate_exit_queue_epoch = compute_activation_exit_epoch(
             state.current_epoch(config.SLOTS_PER_EPOCH),
             config.ACTIVATION_EXIT_DELAY,
         )

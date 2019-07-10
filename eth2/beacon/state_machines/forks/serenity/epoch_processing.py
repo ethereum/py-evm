@@ -36,7 +36,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_attesting_indices,
     get_base_reward,
     get_churn_limit,
-    get_delayed_activation_exit_epoch,
+    compute_activation_exit_epoch,
     get_matching_head_attestations,
     get_matching_source_attestations,
     get_matching_target_attestations,
@@ -662,7 +662,7 @@ def _update_validator_activation_epoch(state: BeaconState,
                                        validator: Validator) -> Validator:
     if validator.activation_epoch == FAR_FUTURE_EPOCH:
         return validator.copy(
-            activation_epoch=get_delayed_activation_exit_epoch(
+            activation_epoch=compute_activation_exit_epoch(
                 state.current_epoch(config.SLOTS_PER_EPOCH),
                 config.ACTIVATION_EXIT_DELAY,
             )
@@ -677,7 +677,7 @@ def process_registry_updates(state: BeaconState, config: Eth2Config) -> BeaconSt
         for validator in state.validators
     )
 
-    delayed_activation_exit_epoch = get_delayed_activation_exit_epoch(
+    delayed_activation_exit_epoch = compute_activation_exit_epoch(
         state.finalized_epoch,
         config.ACTIVATION_EXIT_DELAY,
     )

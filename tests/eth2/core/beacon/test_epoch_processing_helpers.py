@@ -25,7 +25,7 @@ from eth2.beacon.epoch_processing_helpers import (
     increase_balance,
     decrease_balance,
     get_attesting_indices,
-    get_delayed_activation_exit_epoch,
+    compute_activation_exit_epoch,
     get_churn_limit,
     get_matching_source_attestations,
     get_matching_target_attestations,
@@ -140,9 +140,9 @@ def test_get_attesting_indices(genesis_state,
     assert len(indices) == len(some_subset)
 
 
-def test_get_delayed_activation_exit_epoch(activation_exit_delay):
+def test_compute_activation_exit_epoch(activation_exit_delay):
     epoch = random.randint(0, FAR_FUTURE_EPOCH)
-    entry_exit_effect_epoch = get_delayed_activation_exit_epoch(
+    entry_exit_effect_epoch = compute_activation_exit_epoch(
         epoch,
         activation_exit_delay,
     )
