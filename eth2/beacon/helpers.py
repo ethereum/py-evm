@@ -1,6 +1,7 @@
 from typing import (
     Callable,
     Sequence,
+    Set,
     Tuple,
     TYPE_CHECKING,
 )
@@ -204,7 +205,7 @@ def get_seed(state: 'BeaconState',
 
 
 def get_total_balance(state: 'BeaconState',
-                      validator_indices: Sequence[ValidatorIndex]) -> Gwei:
+                      validator_indices: Set[ValidatorIndex]) -> Gwei:
     """
     Return the combined effective balance of an array of validators.
     """
