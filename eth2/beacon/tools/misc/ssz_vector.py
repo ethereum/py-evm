@@ -12,6 +12,7 @@ def override_vector_lengths(config: Eth2Config) -> None:
         "state_roots": config.SLOTS_PER_HISTORICAL_ROOT,
         "randao_mixes": config.EPOCHS_PER_HISTORICAL_VECTOR,
         "active_index_roots": config.EPOCHS_PER_HISTORICAL_VECTOR,
+        "compact_committees_roots": config.EPOCHS_PER_HISTORICAL_VECTOR,
         "slashed_balances": config.EPOCHS_PER_SLASHINGS_VECTOR,
         "previous_crosslinks": config.SHARD_COUNT,
         "current_crosslinks": config.SHARD_COUNT,
