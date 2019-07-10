@@ -103,6 +103,9 @@ def validate_indexed_attestation(state: BeaconState,
                                  indexed_attestation: IndexedAttestation,
                                  max_validators_per_committee: int,
                                  slots_per_epoch: int) -> None:
+    """
+    From spec: `is_valid_indexed_attestation`
+    """
     bit_0_indices = indexed_attestation.custody_bit_0_indices
     bit_1_indices = indexed_attestation.custody_bit_1_indices
 
@@ -152,7 +155,7 @@ def is_slashable_attestation_data(data_1: AttestationData, data_2: AttestationDa
     """
     return (
         # Double vote
-        (data_1 != data_2 and data_1.target_epoch == data_2.target_epoch) or
+        (data_1 != data_2 and data_1.target.epoch == data_2.target.epoch) or
         # Surround vote
-        (data_1.source_epoch < data_2.source_epoch and data_2.target_epoch < data_1.target_epoch)
+        (data_1.source.epoch < data_2.source.epoch and data_2.target.epoch < data_1.target.epoch)
     )
