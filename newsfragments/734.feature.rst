@@ -1,0 +1,2 @@
+- Move TransactionPool into its own process
+- Create ProxyPeerPool that partially exposes peer pool functionality to any process

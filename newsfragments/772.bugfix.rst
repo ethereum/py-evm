@@ -1,0 +1,1 @@
+Several very uncommon issues during syncing, would have been more likely during beam sync

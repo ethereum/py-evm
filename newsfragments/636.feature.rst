@@ -1,0 +1,1 @@
+Run UPnP Service as an isolated plugin (plus `#730 <https://github.com/ethereum/trinity/pull/730>`_ fixup)

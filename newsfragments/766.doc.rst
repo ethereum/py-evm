@@ -1,0 +1,1 @@
+Cover ``trinity.protocol`` events in API docs

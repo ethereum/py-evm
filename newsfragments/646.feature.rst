@@ -1,0 +1,1 @@
+Log the gap time between the imported header and now; don't blast screen with logs when regular syncing a lot

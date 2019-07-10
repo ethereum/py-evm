@@ -1,0 +1,1 @@
+Header syncing is now limited in how far ahead of block sync it will go
