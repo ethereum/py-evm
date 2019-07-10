@@ -32,7 +32,7 @@ Finally, we can install the ``py-evm`` package via pip.
 
 .. code:: sh
 
-  pip3 install -U trinity
+  pip3 install -U py-evm
 
 Installing on macOS
 -------------------
