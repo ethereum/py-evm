@@ -1,5 +1,7 @@
-Trinity 
-=======
+Release Notes 
+=============
+
+Trinity is moving fast. Read up on all the latest improvements.
 
 v0.1.0-alpha.25
 --------------------------
