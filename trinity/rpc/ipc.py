@@ -65,10 +65,7 @@ async def connection_loop(execute_rpc: Callable[[Any], Any],
             request_bytes = await cancel_token.cancellable_wait(reader.read(e.consumed))
             await cancel_token.cancellable_wait(write_error(
                 writer,
-                "reached limit: %d bytes, starting with '%s'" % (
-                    e.consumed,
-                    request_bytes[:20],
-                ),
+                f"reached limit: {e.consumed} bytes, starting with '{request_bytes[:20]}'",
             ))
             continue
 

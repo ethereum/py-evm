@@ -352,12 +352,13 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         while nodes_to_ask:
             self.logger.debug2("node lookup; querying %s", nodes_to_ask)
             nodes_asked.update(nodes_to_ask)
-            results = await asyncio.gather(*(
+            next_find_node_queries = (
                 _find_node(node_id, n)
                 for n
                 in nodes_to_ask
                 if not self.neighbours_callbacks.locked(n)
-            ))
+            )
+            results = await asyncio.gather(*next_find_node_queries)
             for candidates in results:
                 closest.extend(candidates)
             closest = kademlia.sort_by_distance(closest, node_id)[:kademlia.k_bucket_size]
@@ -417,12 +418,13 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             self.logger.info("bootnode: %s...%s@%s", pubkey_head, pubkey_tail, uri_tail)
 
         try:
-            bonded = await asyncio.gather(*(
+            bonding_queries = (
                 self.bond(n)
                 for n
                 in self.bootstrap_nodes
                 if (not self.ping_callbacks.locked(n) and not self.pong_callbacks.locked(n))
-            ))
+            )
+            bonded = await asyncio.gather(*bonding_queries)
             if not any(bonded):
                 self.logger.info("Failed to bond with bootstrap nodes %s", self.bootstrap_nodes)
                 return
@@ -1188,7 +1190,7 @@ class Ticket:
         self.registration_times = [now + wait_period for wait_period in wait_periods]
 
     def __repr__(self) -> str:
-        return 'Ticket(%s:%s)' % (self.node, self.topics)
+        return f"Ticket({self.node}:{self.topics})"
 
 
 @to_list

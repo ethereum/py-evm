@@ -40,10 +40,10 @@ class DefaultTransactionValidator():
         self.chain = chain
         self.vm_configuration = self.chain.vm_configuration
 
-        self._ordered_tx_classes = [
+        self._ordered_tx_classes = tuple(
             vm_class.get_transaction_class()
             for _, vm_class in self.vm_configuration
-        ]
+        )
 
         if initial_tx_validation_block_number is not None:
             self._initial_tx_class = self._get_tx_class_for_block_number(

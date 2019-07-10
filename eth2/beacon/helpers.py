@@ -69,22 +69,16 @@ def _get_historical_root(
     """
     if slot >= state_slot:
         raise ValidationError(
-            "slot ({}) should be less than state.slot ({})".format(
-                slot,
-                state_slot,
-            )
+            f"slot ({slot}) should be less than state.slot ({state_slot})"
         )
+
     if state_slot > slot + slots_per_historical_root:
         raise ValidationError(
-            "state.slot ({}) should be less than or equal to "
-            "(slot + slots_per_historical_root) ({}), "
-            "where slot={}, slots_per_historical_root={}".format(
-                state_slot,
-                slot + slots_per_historical_root,
-                slot,
-                slots_per_historical_root,
-            )
+            f"state.slot ({state_slot}) should be less than or equal to "
+            f"(slot + slots_per_historical_root) ({slot + slots_per_historical_root}), "
+            f"where slot={slot}, slots_per_historical_root={slots_per_historical_root}"
         )
+
     return historical_roots[slot % slots_per_historical_root]
 
 

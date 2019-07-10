@@ -335,8 +335,9 @@ class BeaconChain(BaseBeaconChain):
         Passthrough helper to the ``StateMachine`` class of the block descending from the
         given block.
         """
+        slot = parent_block.slot + 1 if block_params.slot is None else block_params.slot
         return self.get_state_machine_class_for_block_slot(
-            slot=parent_block.slot + 1 if block_params.slot is None else block_params.slot,
+            slot=slot,
         ).create_block_from_parent(parent_block, block_params)
 
     def get_block_by_root(self, block_root: Hash32) -> BaseBeaconBlock:

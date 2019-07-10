@@ -87,7 +87,11 @@ class RemoteTraceback(Exception):
 class ChainedExceptionWithTraceback(Exception):
 
     def __init__(self, exc: Exception, tb: TracebackType) -> None:
-        self.tb = '\n"""\n%s"""' % ''.join(traceback.format_exception(type(exc), exc, tb))
+        self.tb = (
+            '\n"""\n'
+            f"{''.join(traceback.format_exception(type(exc), exc, tb))}"
+            '"""'
+        )
         self.exc = exc
 
     def __reduce__(self) -> Any:

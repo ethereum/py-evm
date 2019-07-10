@@ -39,10 +39,10 @@ class FixUncleanShutdownPlugin(BaseMainProcessPlugin):
         logger = cls.get_logger()
         logger.info("Cleaning up unclean shutdown...")
 
-        logger.info("Searching for process id files in %s..." % trinity_config.data_dir)
+        logger.info("Searching for process id files in %s...", trinity_config.data_dir)
         pidfiles = tuple(trinity_config.pid_dir.glob('*.pid'))
         if len(pidfiles) > 1:
-            logger.info('Found %d processes from a previous run. Closing...' % len(pidfiles))
+            logger.info('Found %d processes from a previous run. Closing...', len(pidfiles))
         elif len(pidfiles) == 1:
             logger.info('Found 1 process from a previous run. Closing...')
         else:
@@ -54,11 +54,11 @@ class FixUncleanShutdownPlugin(BaseMainProcessPlugin):
             try:
                 pidfile.unlink()
                 logger.info(
-                    'Manually removed %s after killing process id %d' % (pidfile, process_id)
+                    'Manually removed %s after killing process id %d', pidfile, process_id
                 )
             except FileNotFoundError:
                 logger.debug(
-                    'pidfile %s was gone after killing process id %d' % (pidfile, process_id)
+                    'pidfile %s was gone after killing process id %d', pidfile, process_id
                 )
 
         remove_dangling_ipc_files(logger, trinity_config.ipc_dir)

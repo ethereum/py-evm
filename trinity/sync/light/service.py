@@ -206,11 +206,10 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         try:
             rlp_account = HexaryTrie.get_from_proof(header.state_root, key, proof)
         except BadTrieProof as exc:
-            raise BadLESResponse("Peer %s returned an invalid proof for account %s at block %s" % (
-                peer,
-                encode_hex(address),
-                encode_hex(block_hash),
-            )) from exc
+            raise BadLESResponse(
+                f"Peer {peer} returned an invalid proof for account {encode_hex(address)} "
+                f"at block {encode_hex(block_hash)}"
+            ) from exc
         return rlp.decode(rlp_account, sedes=Account)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
@@ -230,7 +229,9 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         try:
             account = await self.coro_get_account(block_hash, address)
         except HeaderNotFound as exc:
-            raise NoEligiblePeers("Our best peer does not have header %s" % block_hash) from exc
+            raise NoEligiblePeers(
+                f"Our best peer does not have header {block_hash}"
+            ) from exc
 
         code_hash = account.code_hash
 
@@ -268,12 +269,10 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
             raise RuntimeError("Unreachable, _raise_for_empty_code must raise its own exception")
         else:
             # a bad-acting peer sent an invalid non-empty bytecode
-            raise BadLESResponse("Peer %s sent code %s that did not match hash %s in account %s" % (
-                peer,
-                encode_hex(bytecode),
-                encode_hex(code_hash),
-                encode_hex(address),
-            ))
+            raise BadLESResponse(
+                "Peer {peer} sent code {encode_hex(bytecode)} that did not match "
+                f"hash {encode_hex(code_hash)} in account {encode_hex(address)}"
+            )
 
     async def _raise_for_empty_code(
             self,
@@ -296,7 +295,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         except HeaderNotFound:
             # We presume that the current peer is the best peer. Because
             # our best peer doesn't have the header we want, there are no eligible peers.
-            raise NoEligiblePeers("Our best peer does not have the header %s" % block_hash)
+            raise NoEligiblePeers(f"Our best peer does not have the header {block_hash}")
 
         head_number = peer.head_number
         if head_number - header.block_number > MAX_REORG_DEPTH:
@@ -305,33 +304,26 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
                 # Our node believes that the header at the reference hash is canonical,
                 # so treat the peer as malicious
                 raise BadLESResponse(
-                    "Peer %s sent empty code that did not match hash %s in account %s" % (
-                        peer,
-                        encode_hex(code_hash),
-                        encode_hex(address),
-                    )
+                    f"Peer {peer} sent empty code that did not match hash {encode_hex(code_hash)} "
+                    f"in account {encode_hex(address)}"
                 )
             else:
                 # our header isn't canonical, so treat the empty response as missing data
                 raise NoEligiblePeers(
-                    "Our best peer does not have the non-canonical header %s" % block_hash
+                    f"Our best peer does not have the non-canonical header {block_hash}"
                 )
         elif head_number - header.block_number < 0:
             # The peer claims to be behind the header we requested, but somehow served it to us.
             # Odd, it might be a race condition. Treat as if there are no eligible peers for now.
-            raise NoEligiblePeers("Our best peer's head does include header %s" % block_hash)
+            raise NoEligiblePeers(f"Our best peer's head does include header {block_hash}")
         else:
             # The peer is ahead of the current block header, but only by a bit. It might be on
             # an uncle, or we might be. So we can't tell the difference between missing and
             # malicious. We don't want to aggressively drop this peer, so treat the code as missing.
             raise NoEligiblePeers(
-                "Peer %s claims to be ahead of %s, but returned empty code with hash %s. "
-                "It is on number %d, maybe an uncle. Retry with an older block hash." % (
-                    peer,
-                    header,
-                    code_hash,
-                    head_number,
-                )
+                f"Peer {peer} claims to be ahead of {header}, but "
+                f"returned empty code with hash {code_hash}. "
+                f"It is on number {head_number}, maybe an uncle. Retry with an older block hash."
             )
 
     async def _get_block_header_by_hash(self, block_hash: Hash32, peer: LESPeer) -> BlockHeader:
@@ -356,8 +348,9 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         header = headers[0]
         if header.hash != block_hash:
             raise BadLESResponse(
-                "Received header hash (%s) does not match what we requested (%s)",
-                header.hex_hash, encode_hex(block_hash))
+                f"Received header hash ({header.hex_hash}) does not "
+                f"match what we requested ({encode_hex(block_hash)})"
+            )
         return header
 
     async def _get_proof(self,
@@ -392,4 +385,4 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
                 await peer.disconnect(DisconnectReason.subprotocol_error)
                 # reattempt after removing this peer from our pool
 
-        raise TimeoutError("Could not complete peer request in %d attempts" % MAX_REQUEST_ATTEMPTS)
+        raise TimeoutError(f"Could not complete peer request in {MAX_REQUEST_ATTEMPTS} attempts")

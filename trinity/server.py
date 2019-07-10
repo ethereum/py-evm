@@ -269,12 +269,12 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             return
 
         total_peers = len(self.peer_pool)
-        inbound_peer_count = len([
+        inbound_peer_count = len(tuple(
             peer
             for peer
             in self.peer_pool.connected_nodes.values()
             if peer.inbound
-        ])
+        ))
         if total_peers > 1 and inbound_peer_count / total_peers > DIAL_IN_OUT_RATIO:
             # make sure to have at least 1/4 outbound connections
             await peer.disconnect(DisconnectReason.too_many_peers)
