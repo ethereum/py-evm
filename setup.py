@@ -93,7 +93,7 @@ deps = {
         "py-ecc==1.6.0",
         "rlp>=1.1.0,<2.0.0",
         PYEVM_DEPENDENCY,
-        "ssz==0.1.0a8",
+        "ssz==0.1.0a10",
     ],
     'libp2p': [
         "base58>=1.0.3",
