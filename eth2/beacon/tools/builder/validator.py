@@ -585,7 +585,7 @@ def _create_mock_signed_attestation(state: BeaconState,
     return Attestation(
         aggregation_bits=aggregation_bits,
         data=attestation_data,
-        custody_bitfield=Bitfield(b'\x00' * len(aggregation_bits)),
+        custody_bits=Bitfield(b'\x00' * len(aggregation_bits)),
         signature=aggregate_signature,
     )
 

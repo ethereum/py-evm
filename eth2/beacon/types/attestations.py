@@ -35,19 +35,19 @@ class Attestation(ssz.Serializable):
     fields = [
         ('aggregation_bits', byte_list),
         ('data', AttestationData),
-        ('custody_bitfield', byte_list),
+        ('custody_bits', byte_list),
         ('signature', bytes96),
     ]
 
     def __init__(self,
                  aggregation_bits: Bitfield=default_bitfield,
                  data: AttestationData=default_attestation_data,
-                 custody_bitfield: Bitfield=default_bitfield,
+                 custody_bits: Bitfield=default_bitfield,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
         super().__init__(
             aggregation_bits,
             data,
-            custody_bitfield,
+            custody_bits,
             signature,
         )
 

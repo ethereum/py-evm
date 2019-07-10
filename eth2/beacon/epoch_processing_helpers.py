@@ -118,7 +118,7 @@ def convert_to_indexed(state: BeaconState,
     custody_bit_1_indices = get_attesting_indices(
         state,
         attestation.data,
-        attestation.custody_bitfield,
+        attestation.custody_bits,
         config,
     )
     custody_bit_0_indices = tuple(

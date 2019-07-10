@@ -9,7 +9,7 @@ from eth2.beacon.types.attestations import Attestation
 
 def mk_attestation(index, sample_attestation_params):
     return Attestation(**sample_attestation_params).copy(
-        custody_bitfield=index.to_bytes(16, byteorder="big"),
+        custody_bits=index.to_bytes(16, byteorder="big"),
     )
 
 

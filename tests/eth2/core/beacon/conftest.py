@@ -516,7 +516,7 @@ def sample_attestation_params(sample_signature, sample_attestation_data_params):
     return {
         'aggregation_bits': b'\12' * 16,
         'data': AttestationData(**sample_attestation_data_params),
-        'custody_bitfield': b'\34' * 16,
+        'custody_bits': b'\34' * 16,
         'signature': sample_signature,
     }
 
