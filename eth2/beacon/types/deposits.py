@@ -30,7 +30,9 @@ from .defaults import (
     default_tuple_of_size,
 )
 
-default_proof_tuple = default_tuple_of_size(DEPOSIT_CONTRACT_TREE_DEPTH, ZERO_HASH32)
+DEPOSIT_PROOF_VECTOR_SIZE = DEPOSIT_CONTRACT_TREE_DEPTH + 1
+
+default_proof_tuple = default_tuple_of_size(DEPOSIT_PROOF_VECTOR_SIZE, ZERO_HASH32)
 
 
 class Deposit(ssz.Serializable):
@@ -42,7 +44,7 @@ class Deposit(ssz.Serializable):
 
     fields = [
         # Merkle path to deposit root
-        ('proof', Vector(bytes32, DEPOSIT_CONTRACT_TREE_DEPTH)),
+        ('proof', Vector(bytes32, DEPOSIT_PROOF_VECTOR_SIZE)),
         ('data', DepositData),
     ]
 
