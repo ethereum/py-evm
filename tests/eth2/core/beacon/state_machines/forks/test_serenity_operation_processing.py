@@ -223,9 +223,8 @@ def test_process_attester_slashings(genesis_state,
             config,
         )
         # Check if slashed
-        assert (
-            new_state.balances[attester_index] < state.balances[attester_index]
-        )
+        assert not state.validators[attester_index].slashed
+        assert new_state.validators[attester_index].slashed
     else:
         invalid_attester_slashing = valid_attester_slashing.copy(
             attestation_2=valid_attester_slashing.attestation_2.copy(
