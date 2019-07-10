@@ -16,10 +16,13 @@ Eth2Config = NamedTuple(
         # Misc
         ('SHARD_COUNT', int),
         ('TARGET_COMMITTEE_SIZE', int),
-        ('MAX_INDICES_PER_ATTESTATION', int),
+        ('MAX_VALIDATORS_PER_COMMITTEE', int),
         ('MIN_PER_EPOCH_CHURN_LIMIT', int),
         ('CHURN_LIMIT_QUOTIENT', int),
         ('SHUFFLE_ROUND_COUNT', int),
+        # Genesis
+        ('MIN_GENESIS_ACTIVE_VALIDATOR_COUNT', int),
+        ('MIN_GENESIS_TIME', int),
         # Gwei values,
         ('MIN_DEPOSIT_AMOUNT', Gwei),
         ('MAX_EFFECTIVE_BALANCE', Gwei),
@@ -43,10 +46,12 @@ Eth2Config = NamedTuple(
         ('MIN_EPOCHS_TO_INACTIVITY_PENALTY', int),
         # State list lengths
         ('EPOCHS_PER_HISTORICAL_VECTOR', int),
-        ('EPOCHS_PER_SLASHED_BALANCES_VECTOR', int),
+        ('EPOCHS_PER_SLASHINGS_VECTOR', int),
+        ('HISTORICAL_ROOTS_LIMIT', int),
+        ('VALIDATOR_REGISTRY_LIMIT', int),
         # Rewards and penalties
         ('BASE_REWARD_FACTOR', int),
-        ('WHISTLEBLOWING_REWARD_QUOTIENT', int),
+        ('WHISTLEBLOWER_REWARD_QUOTIENT', int),
         ('PROPOSER_REWARD_QUOTIENT', int),
         ('INACTIVITY_PENALTY_QUOTIENT', int),
         ('MIN_SLASHING_PENALTY_QUOTIENT', int),
@@ -57,8 +62,6 @@ Eth2Config = NamedTuple(
         ('MAX_DEPOSITS', int),
         ('MAX_VOLUNTARY_EXITS', int),
         ('MAX_TRANSFERS', int),
-        # Genesis
-        ('GENESIS_ACTIVE_VALIDATOR_COUNT', int),
     )
 )
 

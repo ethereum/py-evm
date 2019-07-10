@@ -81,7 +81,7 @@ def process_attester_slashings(state: BeaconState,
         validate_attester_slashing(
             state,
             attester_slashing,
-            config.MAX_INDICES_PER_ATTESTATION,
+            config.MAX_VALIDATORS_PER_COMMITTEE,
             config.SLOTS_PER_EPOCH,
         )
 

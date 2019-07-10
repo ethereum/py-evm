@@ -176,7 +176,7 @@ class BeaconState(ssz.Serializable):
                 )
             if slashed_balances == default_tuple:
                 slashed_balances = default_tuple_of_size(
-                    config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
+                    config.EPOCHS_PER_SLASHINGS_VECTOR,
                     Gwei(0),
                 )
             if previous_crosslinks == default_tuple:

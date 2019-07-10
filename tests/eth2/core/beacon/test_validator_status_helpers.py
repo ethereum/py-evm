@@ -264,9 +264,9 @@ def test_set_validator_slashed(genesis_state,
 def test_slash_validator(genesis_state,
                          config):
     some_epoch = (
-        config.GENESIS_EPOCH + random.randint(1, 2**32) + config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+        config.GENESIS_EPOCH + random.randint(1, 2**32) + config.EPOCHS_PER_SLASHINGS_VECTOR
     )
-    earliest_slashable_epoch = some_epoch - config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+    earliest_slashable_epoch = some_epoch - config.EPOCHS_PER_SLASHINGS_VECTOR
     slashable_range = range(earliest_slashable_epoch, some_epoch)
     sampling_quotient = 4
 
@@ -321,7 +321,7 @@ def test_slash_validator(genesis_state,
                 lambda penalty: (
                     penalty + (
                         state.validators[index].effective_balance //
-                        config.WHISTLEBLOWING_REWARD_QUOTIENT
+                        config.WHISTLEBLOWER_REWARD_QUOTIENT
                     )
                 ),
                 default=0,
@@ -341,7 +341,7 @@ def test_slash_validator(genesis_state,
             expected_proposer_rewards,
             [proposer_index],
             lambda reward: reward + (
-                expected_total_slashed_balance // config.WHISTLEBLOWING_REWARD_QUOTIENT
+                expected_total_slashed_balance // config.WHISTLEBLOWER_REWARD_QUOTIENT
             ),
             default=0,
         )
@@ -358,10 +358,10 @@ def test_slash_validator(genesis_state,
             assert validator.exit_epoch != FAR_FUTURE_EPOCH
             assert validator.slashed
             assert validator.withdrawable_epoch == (
-                epoch + config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+                epoch + config.EPOCHS_PER_SLASHINGS_VECTOR
             )
 
-            slashed_epoch_index = epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+            slashed_epoch_index = epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
             slashed_balance = state.slashed_balances[slashed_epoch_index]
             assert slashed_balance == expected_slashed_balances[epoch]
             assert state.balances[index] == (

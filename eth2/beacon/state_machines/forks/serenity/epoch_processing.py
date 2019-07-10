@@ -716,15 +716,15 @@ def process_slashings(state: BeaconState, config: Eth2Config) -> BeaconState:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     total_balance = get_total_active_balance(state, config)
 
-    start_index = (current_epoch + 1) % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+    start_index = (current_epoch + 1) % config.EPOCHS_PER_SLASHINGS_VECTOR
     total_at_start = state.slashed_balances[start_index]
 
-    end_index = current_epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+    end_index = current_epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
     total_at_end = state.slashed_balances[end_index]
 
     total_penalties = total_at_end - total_at_start
 
-    slashing_period = config.EPOCHS_PER_SLASHED_BALANCES_VECTOR // 2
+    slashing_period = config.EPOCHS_PER_SLASHINGS_VECTOR // 2
     for index, validator in enumerate(state.validators):
         index = ValidatorIndex(index)
         if validator.slashed and current_epoch == validator.withdrawable_epoch - slashing_period:
@@ -802,9 +802,9 @@ def _compute_next_slashed_balances(state: BeaconState, config: Eth2Config) -> Tu
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
     return update_tuple_item(
         state.slashed_balances,
-        next_epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
+        next_epoch % config.EPOCHS_PER_SLASHINGS_VECTOR,
         state.slashed_balances[
-            current_epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+            current_epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
         ],
     )
 

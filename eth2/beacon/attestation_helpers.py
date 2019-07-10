@@ -101,7 +101,7 @@ def validate_indexed_attestation_aggregate_signature(state: BeaconState,
 
 def validate_indexed_attestation(state: BeaconState,
                                  indexed_attestation: IndexedAttestation,
-                                 max_indices_per_attestation: int,
+                                 max_validators_per_committee: int,
                                  slots_per_epoch: int) -> None:
     bit_0_indices = indexed_attestation.custody_bit_0_indices
     bit_1_indices = indexed_attestation.custody_bit_1_indices
@@ -111,9 +111,9 @@ def validate_indexed_attestation(state: BeaconState,
             f"Expected no custody bit 1 validators (cf. {bit_1_indices})."
         )
 
-    if len(bit_0_indices) + len(bit_1_indices) > max_indices_per_attestation:
+    if len(bit_0_indices) + len(bit_1_indices) > max_validators_per_committee:
         raise ValidationError(
-            f"Require no more than {max_indices_per_attestation} validators per attestation,"
+            f"Require no more than {max_validators_per_committee} validators per attestation,"
             f" but have {len(bit_0_indices)} 0-bit validators"
             f" and {len(bit_1_indices)} 1-bit validators."
         )

@@ -290,7 +290,7 @@ def validate_is_slashable_attestation_data(attestation_1: IndexedAttestation,
 
 def validate_attester_slashing(state: BeaconState,
                                attester_slashing: AttesterSlashing,
-                               max_indices_per_attestation: int,
+                               max_validators_per_committee: int,
                                slots_per_epoch: int) -> None:
     attestation_1 = attester_slashing.attestation_1
     attestation_2 = attester_slashing.attestation_2
@@ -303,14 +303,14 @@ def validate_attester_slashing(state: BeaconState,
     validate_indexed_attestation(
         state,
         attestation_1,
-        max_indices_per_attestation,
+        max_validators_per_committee,
         slots_per_epoch,
     )
 
     validate_indexed_attestation(
         state,
         attestation_2,
-        max_indices_per_attestation,
+        max_validators_per_committee,
         slots_per_epoch,
     )
 
@@ -458,7 +458,7 @@ def validate_attestation(state: BeaconState,
     validate_indexed_attestation(
         state,
         convert_to_indexed(state, attestation, CommitteeConfig(config)),
-        config.MAX_INDICES_PER_ATTESTATION,
+        config.MAX_VALIDATORS_PER_COMMITTEE,
         config.SLOTS_PER_EPOCH,
     )
 

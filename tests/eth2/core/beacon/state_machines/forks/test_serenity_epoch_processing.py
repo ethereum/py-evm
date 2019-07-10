@@ -673,7 +673,7 @@ def test_process_registry_updates(validator_count,
         'slots_per_epoch',
         'genesis_slot',
         'current_epoch',
-        'epochs_per_slashed_balances_vector',
+        'epochs_per_slashings_vector',
     ),
     [
         (
@@ -709,7 +709,7 @@ def test_determine_slashing_penalty(genesis_state,
                                     config,
                                     slots_per_epoch,
                                     current_epoch,
-                                    epochs_per_slashed_balances_vector,
+                                    epochs_per_slashings_vector,
                                     total_penalties,
                                     total_balance,
                                     expected_penalty):
@@ -732,7 +732,7 @@ def test_determine_slashing_penalty(genesis_state,
         'slots_per_epoch',
         'genesis_slot',
         'current_epoch',
-        'epochs_per_slashed_balances_vector',
+        'epochs_per_slashings_vector',
         'slashed_balances',
         'expected_penalty',
     ),
@@ -753,7 +753,7 @@ def test_process_slashings(genesis_state,
                            current_epoch,
                            slashed_balances,
                            slots_per_epoch,
-                           epochs_per_slashed_balances_vector,
+                           epochs_per_slashings_vector,
                            expected_penalty):
     state = genesis_state.copy(
         slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
@@ -762,7 +762,7 @@ def test_process_slashings(genesis_state,
     slashing_validator_index = 0
     validator = state.validators[slashing_validator_index].copy(
         slashed=True,
-        withdrawable_epoch=current_epoch + epochs_per_slashed_balances_vector // 2
+        withdrawable_epoch=current_epoch + epochs_per_slashings_vector // 2
     )
     state = state.update_validator(slashing_validator_index, validator)
 

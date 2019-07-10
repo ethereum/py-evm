@@ -87,8 +87,8 @@ def target_committee_size():
 
 
 @pytest.fixture
-def max_indices_per_attestation():
-    return SERENITY_CONFIG.MAX_INDICES_PER_ATTESTATION
+def max_validators_per_committee():
+    return SERENITY_CONFIG.MAX_VALIDATORS_PER_COMMITTEE
 
 
 @pytest.fixture
@@ -202,8 +202,8 @@ def epochs_per_historical_vector():
 
 
 @pytest.fixture
-def epochs_per_slashed_balances_vector():
-    return SERENITY_CONFIG.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+def epochs_per_slashings_vector():
+    return SERENITY_CONFIG.EPOCHS_PER_SLASHINGS_VECTOR
 
 
 @pytest.fixture
@@ -212,8 +212,8 @@ def base_reward_factor():
 
 
 @pytest.fixture
-def whistleblowing_reward_quotient():
-    return SERENITY_CONFIG.WHISTLEBLOWING_REWARD_QUOTIENT
+def whistleblower_reward_quotient():
+    return SERENITY_CONFIG.WHISTLEBLOWER_REWARD_QUOTIENT
 
 
 @pytest.fixture
@@ -262,8 +262,8 @@ def max_transfers():
 
 
 @pytest.fixture
-def genesis_active_validator_count():
-    return SERENITY_CONFIG.GENESIS_ACTIVE_VALIDATOR_COUNT
+def min_genesis_active_validator_count():
+    return SERENITY_CONFIG.MIN_GENESIS_ACTIVE_VALIDATOR_COUNT
 
 
 @pytest.fixture
@@ -274,7 +274,7 @@ def deposit_contract_tree_depth():
 @pytest.fixture
 def config(shard_count,
            target_committee_size,
-           max_indices_per_attestation,
+           max_validators_per_committee,
            min_per_epoch_churn_limit,
            churn_limit_quotient,
            shuffle_round_count,
@@ -297,9 +297,9 @@ def config(shard_count,
            max_epochs_per_crosslink,
            min_epochs_to_inactivity_penalty,
            epochs_per_historical_vector,
-           epochs_per_slashed_balances_vector,
+           epochs_per_slashings_vector,
            base_reward_factor,
-           whistleblowing_reward_quotient,
+           whistleblower_reward_quotient,
            proposer_reward_quotient,
            inactivity_penalty_quotient,
            min_slashing_penalty_quotient,
@@ -309,7 +309,7 @@ def config(shard_count,
            max_deposits,
            max_voluntary_exits,
            max_transfers,
-           genesis_active_validator_count):
+           min_genesis_active_validator_count):
     # adding some config validity conditions here
     # abstract out into the config object?
     assert shard_count >= slots_per_epoch
@@ -317,7 +317,7 @@ def config(shard_count,
     return Eth2Config(
         SHARD_COUNT=shard_count,
         TARGET_COMMITTEE_SIZE=target_committee_size,
-        MAX_INDICES_PER_ATTESTATION=max_indices_per_attestation,
+        MAX_VALIDATORS_PER_COMMITTEE=max_validators_per_committee,
         MIN_PER_EPOCH_CHURN_LIMIT=min_per_epoch_churn_limit,
         CHURN_LIMIT_QUOTIENT=churn_limit_quotient,
         SHUFFLE_ROUND_COUNT=shuffle_round_count,
@@ -340,9 +340,9 @@ def config(shard_count,
         MAX_EPOCHS_PER_CROSSLINK=max_epochs_per_crosslink,
         MIN_EPOCHS_TO_INACTIVITY_PENALTY=min_epochs_to_inactivity_penalty,
         EPOCHS_PER_HISTORICAL_VECTOR=epochs_per_historical_vector,
-        EPOCHS_PER_SLASHED_BALANCES_VECTOR=epochs_per_slashed_balances_vector,
+        EPOCHS_PER_SLASHINGS_VECTOR=epochs_per_slashings_vector,
         BASE_REWARD_FACTOR=base_reward_factor,
-        WHISTLEBLOWING_REWARD_QUOTIENT=whistleblowing_reward_quotient,
+        WHISTLEBLOWER_REWARD_QUOTIENT=whistleblower_reward_quotient,
         PROPOSER_REWARD_QUOTIENT=proposer_reward_quotient,
         INACTIVITY_PENALTY_QUOTIENT=inactivity_penalty_quotient,
         MIN_SLASHING_PENALTY_QUOTIENT=min_slashing_penalty_quotient,
@@ -352,7 +352,7 @@ def config(shard_count,
         MAX_DEPOSITS=max_deposits,
         MAX_VOLUNTARY_EXITS=max_voluntary_exits,
         MAX_TRANSFERS=max_transfers,
-        GENESIS_ACTIVE_VALIDATOR_COUNT=genesis_active_validator_count,
+        MIN_GENESIS_ACTIVE_VALIDATOR_COUNT=min_genesis_active_validator_count,
     )
 
 
@@ -607,7 +607,7 @@ def sample_beacon_state_params(config,
         'randao_mixes': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
         'active_index_roots': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
         # Slashings
-        'slashed_balances': (0,) * config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
+        'slashed_balances': (0,) * config.EPOCHS_PER_SLASHINGS_VECTOR,
         # Attestations
         'previous_epoch_attestations': (),
         'current_epoch_attestations': (),

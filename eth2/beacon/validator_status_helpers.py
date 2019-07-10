@@ -122,11 +122,11 @@ def slash_validator(state: BeaconState,
     state = state.update_validator_with_fn(
         index,
         _set_validator_slashed,
-        current_epoch + config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
+        current_epoch + config.EPOCHS_PER_SLASHINGS_VECTOR,
     )
 
     slashed_balance = state.validators[index].effective_balance
-    slashed_epoch = current_epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+    slashed_epoch = current_epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
     state = state.copy(
         slashed_balances=update_tuple_item_with_fn(
             state.slashed_balances,
@@ -139,10 +139,10 @@ def slash_validator(state: BeaconState,
     proposer_index = get_beacon_proposer_index(state, CommitteeConfig(config))
     if whistleblower_index is None:
         whistleblower_index = proposer_index
-    whistleblowing_reward = slashed_balance // config.WHISTLEBLOWING_REWARD_QUOTIENT
-    proposer_reward = whistleblowing_reward // config.PROPOSER_REWARD_QUOTIENT
+    whistleblower_reward = slashed_balance // config.WHISTLEBLOWER_REWARD_QUOTIENT
+    proposer_reward = whistleblower_reward // config.PROPOSER_REWARD_QUOTIENT
     state = increase_balance(state, proposer_index, proposer_reward)
-    state = increase_balance(state, whistleblower_index, whistleblowing_reward - proposer_reward)
-    state = decrease_balance(state, index, whistleblowing_reward)
+    state = increase_balance(state, whistleblower_index, whistleblower_reward - proposer_reward)
+    state = decrease_balance(state, index, whistleblower_reward)
 
     return state

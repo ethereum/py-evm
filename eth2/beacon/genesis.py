@@ -49,7 +49,7 @@ def is_genesis_trigger(deposits: Sequence[Deposit], timestamp: int, config: Eth2
         if validator.effective_balance == config.MAX_EFFECTIVE_BALANCE:
             active_validator_count += 1
 
-    return active_validator_count == config.GENESIS_ACTIVE_VALIDATOR_COUNT
+    return active_validator_count == config.MIN_GENESIS_ACTIVE_VALIDATOR_COUNT
 
 
 def genesis_state_with_active_index_roots(state: BeaconState, config: Eth2Config) -> BeaconState:
