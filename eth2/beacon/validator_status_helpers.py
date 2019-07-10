@@ -35,7 +35,7 @@ def activate_validator(validator: Validator, activation_epoch: Epoch) -> Validat
     )
 
 
-def _compute_exit_queue_epoch(state: BeaconState, churn_limit: int, config: Eth2Config) -> int:
+def _compute_exit_queue_epoch(state: BeaconState, churn_limit: int, config: Eth2Config) -> Epoch:
     slots_per_epoch = config.SLOTS_PER_EPOCH
 
     exit_epochs = tuple(
@@ -54,7 +54,7 @@ def _compute_exit_queue_epoch(state: BeaconState, churn_limit: int, config: Eth2
     ))
     if exit_queue_churn >= churn_limit:
         exit_queue_epoch += 1
-    return exit_queue_epoch
+    return Epoch(exit_queue_epoch)
 
 
 # NOTE: adding ``curry`` here gets mypy to allow use of this elsewhere.
@@ -74,7 +74,7 @@ def initiate_exit_for_validator(validator: Validator,
 
     return validator.copy(
         exit_epoch=exit_queue_epoch,
-        withdrawable_epoch=exit_queue_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY,
+        withdrawable_epoch=Epoch(exit_queue_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY),
     )
 
 
