@@ -16,6 +16,9 @@ from eth_utils.toolz import (
     valmap,
 )
 
+from eth2.beacon.attestation_helpers import (
+    get_attestation_data_slot,
+)
 from eth2.beacon.epoch_processing_helpers import (
     get_attesting_indices,
 )
@@ -35,17 +38,13 @@ from eth2.beacon.typing import (
     Slot,
     ValidatorIndex,
 )
-from eth2.configs import Eth2Config
+from eth2.configs import Eth2Config, CommitteeConfig
 
 
 # TODO(ralexstokes) integrate `AttestationPool` once it has been merged
 AttestationIndex = Dict[ValidatorIndex, AttestationData]
 PreIndex = Dict[ValidatorIndex, Tuple[Slot, AttestationData]]
 AttestationLike = Union[Attestation, PendingAttestation]
-
-
-def _slot_from_attestation_data(attestation_data: AttestationData) -> Slot:
-    return attestation_data.slot
 
 
 def _take_latest_attestation_by_slot(
@@ -73,13 +72,16 @@ class Store:
                                        state: BeaconState,
                                        attestation: AttestationLike) -> Iterable[PreIndex]:
         attestation_data = attestation.data
-        slot = _slot_from_attestation_data(attestation_data)
+        slot = get_attestation_data_slot(state, attestation_data, self._config)
 
-        # TODO(ralexstokes) the signature of get_attesting_indices
-        # changes in future versions of spec
         return (
             {index: (slot, attestation_data)}
-            for index in get_attesting_indices(state, (attestation,), self._config)
+            for index in get_attesting_indices(
+                state,
+                attestation.data,
+                attestation.aggregation_bitfield,
+                CommitteeConfig(self._config),
+            )
         )
 
     def _mk_pre_index_from_attestations(self,
@@ -156,8 +158,8 @@ class Store:
             return None
         return target_block
 
-    def _get_previous_block(self, block: BaseBeaconBlock) -> BaseBeaconBlock:
-        return self._db.get_block_by_root(block.previous_block_root, self._block_class)
+    def _get_parent_block(self, block: BaseBeaconBlock) -> BaseBeaconBlock:
+        return self._db.get_block_by_root(block.parent_root, self._block_class)
 
     def get_ancestor(self, block: BaseBeaconBlock, slot: Slot) -> BaseBeaconBlock:
         """
@@ -169,7 +171,7 @@ class Store:
         elif block.slot < slot:
             return None
         else:
-            return self.get_ancestor(self._get_previous_block(block), slot)
+            return self.get_ancestor(self._get_parent_block(block), slot)
 
 
 AttestationTarget = Tuple[ValidatorIndex, Optional[BaseBeaconBlock]]
@@ -191,7 +193,7 @@ def _find_latest_attestation_targets(state: BeaconState,
                                      config: Eth2Config) -> Iterable[AttestationTarget]:
     epoch = slot_to_epoch(state.slot, config.SLOTS_PER_EPOCH)
     active_validators = get_active_validator_indices(
-        state.validator_registry,
+        state.validators,
         epoch,
     )
     return filter(
@@ -208,7 +210,7 @@ def _get_ancestor(store: Store, block: BaseBeaconBlock, slot: Slot) -> BaseBeaco
 
 
 def _balance_for_validator(state: BeaconState, validator_index: ValidatorIndex) -> Gwei:
-    return state.validator_balances[validator_index]
+    return state.validators[validator_index].effective_balance
 
 
 def score_block_by_attestations(state: BeaconState,
