@@ -18,6 +18,8 @@ Gwei = NewType('Gwei', int)  # uint64
 Timestamp = NewType('Timestamp', int)
 Second = NewType('Second', int)
 
+Version = NewType('Version', bytes)
+
 
 class FromBlockParams(NamedTuple):
     slot: Slot = None
@@ -32,3 +34,4 @@ default_gwei = Gwei(0)
 default_timestamp = Timestamp(0)
 default_second = Second(0)
 default_bitfield = Bitfield(b'')
+default_version = Version(b'\x00' * 4)

@@ -6,10 +6,12 @@ from ssz.sedes import (
 
 from eth2.beacon.typing import (
     Epoch,
+    Version,
 )
 
 from .defaults import (
     default_epoch,
+    default_version,
 )
 
 
@@ -23,8 +25,8 @@ class Fork(ssz.Serializable):
     ]
 
     def __init__(self,
-                 previous_version: bytes=b'\x00' * 4,
-                 current_version: bytes=b'\x00' * 4,
+                 previous_version: Version=default_version,
+                 current_version: Version=default_version,
                  epoch: Epoch=default_epoch) -> None:
         super().__init__(
             previous_version=previous_version,
