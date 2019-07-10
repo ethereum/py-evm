@@ -99,17 +99,10 @@ class BasePerformanceTracker(ABC, HasExtendedDebugLogger, Generic[TRequest, TRes
         # missing: total number of missing response items
         # quality: 0-100 for how complete responses are
         return (
-            'msgs=%d  items=%d  rtt=%.2f/%.2f/%.2f  ips=%.5f  '
-            'timeouts=%d  quality=%d'
-        ) % (
-            self.total_msgs,
-            self.total_items,
-            self.round_trip_ema.value,
-            rt99,
-            rt_stddev,
-            self.items_per_second_ema.value,
-            self.total_timeouts,
-            int(self.response_quality_ema.value),
+            f"msgs={self.total_msgs}  items={self.total_items}  "
+            f"rtt={self.round_trip_ema.value:.2f}/{rt99:.2f}/{rt_stddev:.2f}  "
+            f"ips={self.items_per_second_ema.value:.5f}  "
+            f"timeouts={self.total_timeouts}  quality={int(self.response_quality_ema.value)}"
         )
 
     def record_timeout(self) -> None:

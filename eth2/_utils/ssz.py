@@ -30,7 +30,7 @@ def diff_ssz_object(left: BaseBeaconBlock,
                 sub_diff = diff_ssz_object(left_value, right_value)
                 for sub_field_name, sub_left_value, sub_right_value in sub_diff:
                     yield (
-                        "{0}.{1}".format(field_name, sub_field_name),
+                        f"{field_name}.{sub_field_name}",
                         sub_left_value,
                         sub_right_value,
                     )
@@ -67,29 +67,18 @@ def validate_ssz_equal(obj_a: BaseBeaconBlock,
     diff = diff_ssz_object(obj_a, obj_b)
     if len(diff) == 0:
         raise TypeError(
-            "{} ({!r}) != {} ({!r}) but got an empty diff".format(
-                obj_a_name,
-                obj_a,
-                obj_b_name,
-                obj_b,
-            )
+            f"{obj_a_name} ({repr(obj_a)}) != {obj_b_name} ({repr(obj_b)}) but got an empty diff"
         )
     longest_field_name = max(len(field_name) for field_name, _, _ in diff)
+    diff_error_message = "\n - ".join(
+        f"{field_name.ljust(longest_field_name, ' ')}:\n    "
+        f"(actual)  : {actual}\n    (expected): {expected}"
+        for field_name, actual, expected
+        in diff
+    )
     error_message = (
-        "Mismatch between {obj_a_name} and {obj_b_name} on {0} fields:\n - {1}".format(
-            len(diff),
-            "\n - ".join(tuple(
-                "{0}:\n    (actual)  : {1}\n    (expected): {2}".format(
-                    field_name.ljust(longest_field_name, ' '),
-                    actual,
-                    expected,
-                )
-                for field_name, actual, expected
-                in diff
-            )),
-            obj_a_name=obj_a_name,
-            obj_b_name=obj_b_name,
-        )
+        f"Mismatch between {obj_a_name} and {obj_b_name} "
+        f"on {len(diff)} fields:\n - {diff_error_message}"
     )
     raise ValidationError(error_message)
 

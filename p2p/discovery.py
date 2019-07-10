@@ -1188,7 +1188,7 @@ class Ticket:
         self.registration_times = [now + wait_period for wait_period in wait_periods]
 
     def __repr__(self) -> str:
-        return 'Ticket(%s:%s)' % (self.node, self.topics)
+        return f"Ticket({self.node}:{self.topics})"
 
 
 @to_list

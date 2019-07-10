@@ -29,13 +29,13 @@ class PidFile:
     def __enter__(self) -> None:
         if self.filepath.exists():
             raise FileExistsError(
-                "File %s already exists -- cannot run the same process twice" % self.filepath
+                f"File {self.filepath} already exists -- cannot run the same process twice"
             )
         elif self._running:
             raise RuntimeError("Cannot enter the same PidFile context twice")
         if not self.filepath.parent.is_dir():
             raise IOError(
-                "Cannot create pidfile in base directory that doesn't exist: %s" % self.filepath
+                f"Cannot create pidfile in base directory that doesn't exist: {self.filepath}"
             )
         else:
             self._running = True

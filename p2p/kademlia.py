@@ -115,10 +115,10 @@ class Node:
         return f'enode://{hexstring}@{self.address.ip}:{self.address.tcp_port}'
 
     def __str__(self) -> str:
-        return '<Node(%s@%s)>' % (self.pubkey.to_hex()[:6], self.address.ip)
+        return f"<Node({self.pubkey.to_hex()[:6]}@{self.address.ip})>"
 
     def __repr__(self) -> str:
-        return '<Node(%s@%s:%d)>' % (self.pubkey.to_hex(), self.address.ip, self.address.tcp_port)
+        return f"<Node({self.pubkey.to_hex()}@{self.address.ip}:{self.address.tcp_port})>"
 
     def distance_to(self, id: int) -> int:
         return self.id ^ id
