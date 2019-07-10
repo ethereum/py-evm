@@ -53,9 +53,6 @@ from eth2.beacon.typing import (
     Shard,
     ValidatorIndex,
 )
-from eth2.beacon.validation import (
-    validate_bitfield,
-)
 
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import (
@@ -89,22 +86,20 @@ def decrease_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> 
     )
 
 
-@to_tuple
 def get_attesting_indices(state: BeaconState,
                           attestation_data: AttestationData,
                           bitfield: Bitfield,
-                          config: CommitteeConfig) -> Iterable[ValidatorIndex]:
+                          config: CommitteeConfig) -> Set[ValidatorIndex]:
     """
     Return the sorted attesting indices corresponding to ``attestation_data`` and ``bitfield``.
     """
     committee = get_crosslink_committee(
         state,
-        attestation_data.target_epoch,
+        attestation_data.target.epoch,
         attestation_data.crosslink.shard,
         config,
     )
-    validate_bitfield(bitfield, len(committee))
-    return sorted(index for i, index in enumerate(committee) if has_voted(bitfield, i))
+    return set(index for i, index in enumerate(committee) if has_voted(bitfield, i))
 
 
 def get_indexed_attestation(state: BeaconState,
