@@ -48,6 +48,10 @@ from .eth1_data import (
     Eth1Data,
     default_eth1_data,
 )
+from .checkpoints import (
+    Checkpoint,
+    default_checkpoint,
+)
 from .crosslinks import (
     Crosslink,
     default_crosslink,
@@ -110,17 +114,14 @@ class BeaconState(ssz.Serializable):
         ('current_crosslinks', Vector(Crosslink, 1)),
 
         # Justification
-        ('previous_justified_epoch', uint64),
-        ('previous_justified_root', bytes32),
-        ('current_justified_epoch', uint64),
-        ('current_justified_root', bytes32),
         # Note: justification_bitfield is meant to be defined as an integer type,
         # so its bit operation is in Python and is easier to specify and implement.
         ('justification_bitfield', uint64),
+        ('previous_justified_checkpoint', Checkpoint),
+        ('current_justified_checkpoint', Checkpoint),
 
         # Finality
-        ('finalized_epoch', uint64),
-        ('finalized_root', bytes32),
+        ('finalized_checkpoint', Checkpoint),
     ]
 
     def __init__(
@@ -147,13 +148,10 @@ class BeaconState(ssz.Serializable):
             current_epoch_attestations: Sequence[PendingAttestation]=default_tuple,
             previous_crosslinks: Sequence[Crosslink]=default_tuple,
             current_crosslinks: Sequence[Crosslink]=default_tuple,
-            previous_justified_epoch: Epoch=default_epoch,
-            previous_justified_root: Hash32=ZERO_HASH32,
-            current_justified_epoch: Epoch=default_epoch,
-            current_justified_root: Hash32=ZERO_HASH32,
             justification_bitfield: int=0,
-            finalized_epoch: Epoch=default_epoch,
-            finalized_root: Hash32=ZERO_HASH32,
+            previous_justified_checkpoint: Checkpoint=default_checkpoint,
+            current_justified_checkpoint: Checkpoint=default_checkpoint,
+            finalized_checkpoint: Checkpoint=default_checkpoint,
             config: Eth2Config=None) -> None:
         if len(validators) != len(balances):
             raise ValueError(
@@ -219,13 +217,10 @@ class BeaconState(ssz.Serializable):
             current_epoch_attestations=current_epoch_attestations,
             previous_crosslinks=previous_crosslinks,
             current_crosslinks=current_crosslinks,
-            previous_justified_epoch=previous_justified_epoch,
-            previous_justified_root=previous_justified_root,
-            current_justified_epoch=current_justified_epoch,
-            current_justified_root=current_justified_root,
             justification_bitfield=justification_bitfield,
-            finalized_epoch=finalized_epoch,
-            finalized_root=finalized_root,
+            previous_justified_checkpoint=previous_justified_checkpoint,
+            current_justified_checkpoint=current_justified_checkpoint,
+            finalized_checkpoint=finalized_checkpoint,
         )
 
     def __repr__(self) -> str:

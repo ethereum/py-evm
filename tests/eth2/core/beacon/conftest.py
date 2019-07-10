@@ -633,14 +633,20 @@ def sample_beacon_state_params(config,
             (Crosslink(**sample_crosslink_record_params),) * config.SHARD_COUNT
         ),
         # Justification
-        'previous_justified_epoch': 0,
-        'previous_justified_root': b'\x99' * 32,
-        'current_justified_epoch': 0,
-        'current_justified_root': b'\x55' * 32,
         'justification_bitfield': 0,
+        'previous_justified_checkpoint': Checkpoint(
+            epoch=0,
+            root=b'\x99' * 32,
+        ),
+        'current_justified_checkpoint': Checkpoint(
+            epoch=0,
+            root=b'\x55' * 32,
+        ),
         # Finality
-        'finalized_epoch': 0,
-        'finalized_root': b'\x33' * 32,
+        'finalized_checkpoint': Checkpoint(
+            epoch=0,
+            root=b'\x33' * 32,
+        )
     }
 
 
