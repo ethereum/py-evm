@@ -39,6 +39,7 @@ from eth2.beacon.tools.builder.validator import (
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.typing import Shard
 from eth2.configs import CommitteeConfig
@@ -73,7 +74,9 @@ def _mk_attestation_inputs_in_epoch(epoch, state, config):
             continue
 
         attestation_data = AttestationData(
-            target_epoch=epoch,
+            target=Checkpoint(
+                epoch=epoch,
+            ),
             crosslink=Crosslink(
                 shard=shard,
             ),
@@ -163,7 +166,9 @@ def _find_collision(state, config, index, epoch):
             if index in committee:
                 # TODO(ralexstokes) refactor w/ tools/builder
                 attestation_data = AttestationData(
-                    target_epoch=epoch,
+                    target=Checkpoint(
+                        epoch=epoch,
+                    ),
                     crosslink=Crosslink(
                         shard=shard,
                     ),
@@ -509,7 +514,9 @@ def _mk_attestation_for_block_with_committee(block, committee, shard, config):
         aggregation_bits=aggregation_bits,
         data=AttestationData(
             beacon_block_root=block.signing_root,
-            target_epoch=compute_epoch_of_slot(block.slot, config.SLOTS_PER_EPOCH),
+            target=Checkpoint(
+                epoch=compute_epoch_of_slot(block.slot, config.SLOTS_PER_EPOCH),
+            ),
             crosslink=Crosslink(
                 shard=shard,
             ),
@@ -675,10 +682,12 @@ def test_lmd_ghost_fork_choice_scoring(sample_beacon_block_params,
 
     state = genesis_state.copy(
         slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH) + some_slot_offset,
-        current_justified_epoch=some_epoch,
-        current_justified_root=root_block.signing_root,
+        current_justified_checkpoint=Checkpoint(
+            epoch=some_epoch,
+            root=root_block.signing_root,
+        )
     )
-    assert some_epoch >= state.current_justified_epoch
+    assert some_epoch >= state.current_justified_checkpoint.epoch
 
     # NOTE: the attestations have to be aligned to the blocks which start from ``base_slot``.
     base_slot = compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH) + 1

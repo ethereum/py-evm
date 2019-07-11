@@ -551,7 +551,7 @@ def sample_attestation_params(sample_signature, sample_attestation_data_params):
 @pytest.fixture
 def sample_deposit_params(sample_deposit_data_params, deposit_contract_tree_depth):
     return {
-        'proof': (b'\x22' * 32,) * deposit_contract_tree_depth + 1,
+        'proof': (b'\x22' * 32,) * (deposit_contract_tree_depth + 1),
         'data': DepositData(**sample_deposit_data_params)
     }
 

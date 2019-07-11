@@ -174,18 +174,18 @@ class Validator(BaseService):
         )
         self.logger.debug(
             bold_green("Justified  epoch=%s root=%s  (current)"),
-            state.current_justified_epoch,
-            encode_hex(state.current_justified_root),
+            state.current_justified_checkpoint.epoch,
+            encode_hex(state.current_justified_checkpoint.checkpoint.root),
         )
         self.logger.debug(
             bold_green("Justified  epoch=%s root=%s  (previous)"),
-            state.previous_justified_epoch,
-            encode_hex(state.previous_justified_root),
+            state.previous_justified_checkpoint.epoch,
+            encode_hex(state.previous_justified_checkpoint.root),
         )
         self.logger.debug(
             bold_green("Finalized  epoch=%s root=%s"),
-            state.finalized_epoch,
-            encode_hex(state.finalized_root),
+            state.finalized_checkpoint.epoch,
+            encode_hex(state.finalized_checkpoint.root),
         )
         self.logger.debug(
             bold_green("current_epoch_attestations  %s"),

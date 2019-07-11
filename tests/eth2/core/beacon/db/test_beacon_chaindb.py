@@ -35,6 +35,7 @@ from eth2.beacon.state_machines.forks.serenity.blocks import (
 )
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.checkpoints import Checkpoint
 
 
 @pytest.fixture(params=[1, 10, 999])
@@ -201,7 +202,9 @@ def test_chaindb_get_finalized_head(chaindb_at_genesis,
     assert chaindb.get_justified_head(genesis_block.__class__) == genesis_block
 
     state_with_finalized_block = genesis_state.copy(
-        finalized_root=block.signing_root,
+        finalized_checkpoint=Checkpoint(
+            root=block.signing_root,
+        )
     )
     chaindb.persist_state(state_with_finalized_block)
     chaindb.persist_block(block, BeaconBlock, fork_choice_scoring)
@@ -226,8 +229,10 @@ def test_chaindb_get_justified_head(chaindb_at_genesis,
 
     # test that there is only one justified head per epoch
     state_with_bad_epoch = genesis_state.copy(
-        current_justified_root=block.signing_root,
-        current_justified_epoch=config.GENESIS_EPOCH,
+        current_justified_checkpoint=Checkpoint(
+            root=block.signing_root,
+            epoch=config.GENESIS_EPOCH,
+        )
     )
     chaindb.persist_state(state_with_bad_epoch)
     chaindb.persist_block(block, BeaconBlock, fork_choice_scoring)
@@ -237,8 +242,10 @@ def test_chaindb_get_justified_head(chaindb_at_genesis,
 
     # test that the we can update justified head if we satisfy the invariants
     state_with_justified_block = genesis_state.copy(
-        current_justified_root=block.signing_root,
-        current_justified_epoch=config.GENESIS_EPOCH + 1,
+        current_justified_checkpoint=Checkpoint(
+            root=block.signing_root,
+            epoch=config.GENESIS_EPOCH + 1,
+        )
     )
     chaindb.persist_state(state_with_justified_block)
 

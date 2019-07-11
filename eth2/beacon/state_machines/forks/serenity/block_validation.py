@@ -365,7 +365,7 @@ def _validate_checkpoint(checkpoint: Checkpoint, expected_checkpoint: Checkpoint
     if checkpoint != expected_checkpoint:
         raise ValidationError(
             f"Attestation with source checkpoint {checkpoint} did not match the expected"
-            f" source checkpoint ({expected_checkpoint})based on the specified ``target.epoch``."
+            f" source checkpoint ({expected_checkpoint}) based on the specified ``target.epoch``."
         )
 
 
@@ -417,11 +417,11 @@ def _validate_attestation_data(state: BeaconState,
         expected_checkpoint = state.current_justified_checkpoint
         parent_crosslink = state.current_crosslinks[data.crosslink.shard]
     else:
-        expected_checkpoint = state.previous_justified_checkpoint,
+        expected_checkpoint = state.previous_justified_checkpoint
         parent_crosslink = state.previous_crosslinks[data.crosslink.shard]
 
     _validate_eligible_shard_number(data.crosslink.shard, config.SHARD_COUNT)
-    _validate_eligible_target_epoch(data.target_epoch, current_epoch, previous_epoch)
+    _validate_eligible_target_epoch(data.target.epoch, current_epoch, previous_epoch)
     validate_attestation_slot(
         attestation_slot,
         state.slot,

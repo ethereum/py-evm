@@ -42,6 +42,7 @@ from eth2.beacon.helpers import (
 from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
+from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.typing import (
@@ -116,7 +117,9 @@ def test_get_attesting_indices(genesis_state,
     )
 
     data = AttestationData(
-        target_epoch=target_epoch,
+        target=Checkpoint(
+            epoch=target_epoch,
+        ),
         crosslink=Crosslink(
             shard=target_shard,
         ),
@@ -235,7 +238,9 @@ def test_get_matching_target_attestations(genesis_state,
         (
             PendingAttestation(
                 data=AttestationData(
-                    target_root=some_target_root,
+                    target=Checkpoint(
+                        root=some_target_root,
+                    ),
                 ),
             ) for _ in range(3)
         )
@@ -244,7 +249,9 @@ def test_get_matching_target_attestations(genesis_state,
         (
             PendingAttestation(
                 data=AttestationData(
-                    target_root=b'\x44' * 32,
+                    target=Checkpoint(
+                        root=b'\x44' * 32,
+                    ),
                 ),
             ) for _ in range(3)
         )
@@ -281,7 +288,9 @@ def test_get_matching_head_attestations(genesis_state,
             PendingAttestation(
                 data=AttestationData(
                     beacon_block_root=some_target_root,
-                    target_epoch=some_epoch - 1,
+                    target=Checkpoint(
+                        epoch=some_epoch - 1,
+                    ),
                     crosslink=Crosslink(
                         shard=i,
                     )
@@ -294,7 +303,9 @@ def test_get_matching_head_attestations(genesis_state,
             PendingAttestation(
                 data=AttestationData(
                     beacon_block_root=b'\x44' * 32,
-                    target_epoch=some_epoch - 1,
+                    target=Checkpoint(
+                        epoch=some_epoch - 1,
+                    ),
                 ),
             ) for _ in range(3)
         )
@@ -339,7 +350,9 @@ def test_get_unslashed_attesting_indices(genesis_state,
     )
 
     data = AttestationData(
-        target_epoch=target_epoch,
+        target=Checkpoint(
+            epoch=target_epoch,
+        ),
         crosslink=Crosslink(
             shard=target_shard,
         ),

@@ -248,7 +248,11 @@ def test_set_validator_slashed(genesis_state,
     else:
         assert not some_validator.slashed
 
-    slashed_validator = _set_validator_slashed(some_validator, some_future_epoch)
+    slashed_validator = _set_validator_slashed(
+        some_validator,
+        some_future_epoch,
+        config.EPOCHS_PER_SLASHINGS_VECTOR,
+    )
     assert slashed_validator.slashed
     assert slashed_validator.withdrawable_epoch == some_future_epoch
 

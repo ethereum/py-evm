@@ -72,6 +72,9 @@ def create_mock_genesis_state_from_validators(genesis_time: Timestamp,
 
     state_with_validators = empty_state.copy(
         eth1_deposit_index=empty_state.eth1_deposit_index + len(genesis_validators),
+        eth1_data=empty_state.eth1_data.copy(
+            deposit_count=empty_state.eth1_data.deposit_count + len(genesis_validators),
+        ),
         validators=genesis_validators,
         balances=genesis_balances,
     )

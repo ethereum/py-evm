@@ -787,12 +787,12 @@ class BeaconChainDB(BaseBeaconChainDB):
         This policy is safe because a large number of validators on the network
         will have violated a slashing condition if the invariant does not hold.
         """
-        if state.finalized_root == ZERO_HASH32:
+        if state.finalized_checkpoint.root == ZERO_HASH32:
             # ignore finality in the genesis state
             return
 
-        if state.finalized_root != self._finalized_root:
-            self._update_finalized_head(state.finalized_root)
+        if state.finalized_checkpoint.root != self._finalized_root:
+            self._update_finalized_head(state.finalized_checkpoint.root)
 
     def _update_justified_head(self, justified_root: Hash32, epoch: Epoch) -> None:
         """
@@ -816,10 +816,18 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         then return that (root, epoch) pair.
         """
-        if state.current_justified_epoch > self._highest_justified_epoch:
-            return (state.current_justified_root, state.current_justified_epoch)
-        elif state.previous_justified_epoch > self._highest_justified_epoch:
-            return (state.previous_justified_root, state.previous_justified_epoch)
+        if state.current_justified_checkpoint.epoch > self._highest_justified_epoch:
+            checkpoint = state.current_justified_checkpoint
+            return (
+                checkpoint.root,
+                checkpoint.epoch,
+            )
+        elif state.previous_justified_checkpoint.epoch > self._highest_justified_epoch:
+            checkpoint = state.previous_justified_checkpoint
+            return (
+                checkpoint.root,
+                checkpoint.epoch,
+            )
         return None
 
     def _persist_justified_head(self, state: BeaconState) -> None:

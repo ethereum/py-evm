@@ -787,12 +787,12 @@ def _compute_next_active_index_roots(state: BeaconState, config: Eth2Config) -> 
     )
 
 
-def _compute_next_compact_committee_roots(state: BeaconState,
-                                          config: Eth2Config) -> Tuple[Hash32, ...]:
+def _compute_next_compact_committees_roots(state: BeaconState,
+                                           config: Eth2Config) -> Tuple[Hash32, ...]:
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
     committee_root_position = next_epoch % config.EPOCHS_PER_HISTORICAL_VECTOR
     return update_tuple_item(
-        state.compact_commmittees_roots,
+        state.compact_committees_roots,
         committee_root_position,
         get_compact_committees_root(state, next_epoch, CommitteeConfig(config)),
     )
@@ -838,7 +838,7 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
     new_validators = _update_effective_balances(state, config)
     new_start_shard = _compute_next_start_shard(state, config)
     new_active_index_roots = _compute_next_active_index_roots(state, config)
-    new_compact_committees_roots = _compute_next_compact_committee_roots(state, config)
+    new_compact_committees_roots = _compute_next_compact_committees_roots(state, config)
     new_slashings = _compute_next_slashings(state, config)
     new_randao_mixes = _compute_next_randao_mixes(state, config)
     new_historical_roots = _compute_next_historical_roots(state, config)

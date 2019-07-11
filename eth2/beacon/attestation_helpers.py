@@ -37,7 +37,7 @@ def get_attestation_data_slot(state: BeaconState,
                               config: Eth2Config) -> Slot:
     active_validator_indices = get_active_validator_indices(
         state.validators,
-        data.target_epoch,
+        data.target.epoch,
     )
     committee_count = get_committee_count(
         len(active_validator_indices),
@@ -48,13 +48,13 @@ def get_attestation_data_slot(state: BeaconState,
     offset = (
         data.crosslink.shard + config.SHARD_COUNT - get_start_shard(
             state,
-            data.target_epoch,
+            data.target.epoch,
             CommitteeConfig(config),
         )
     ) % config.SHARD_COUNT
     committees_per_slot = committee_count // config.SLOTS_PER_EPOCH
     return compute_start_slot_of_epoch(
-        data.target_epoch,
+        data.target.epoch,
         config.SLOTS_PER_EPOCH,
     ) + offset // committees_per_slot
 

@@ -119,15 +119,15 @@ def test_get_genesis_beacon_state(
     assert state.previous_crosslinks == (Crosslink(),) * shard_count
 
     # Justification
-    assert state.previous_justified_epoch == genesis_epoch
-    assert state.previous_justified_root == ZERO_HASH32
-    assert state.current_justified_epoch == genesis_epoch
-    assert state.current_justified_root == ZERO_HASH32
+    assert state.previous_justified_checkpoint.epoch == genesis_epoch
+    assert state.previous_justified_checkpoint.root == ZERO_HASH32
+    assert state.current_justified_checkpoint.epoch == genesis_epoch
+    assert state.current_justified_checkpoint.root == ZERO_HASH32
     assert state.justification_bitfield == 0
 
     # Finalization
-    assert state.finalized_epoch == genesis_epoch
-    assert state.finalized_root == ZERO_HASH32
+    assert state.finalized_checkpoint.epoch == genesis_epoch
+    assert state.finalized_checkpoint.root == ZERO_HASH32
 
     for i in range(len(genesis_deposits)):
         assert state.validators[i].is_active(genesis_epoch)

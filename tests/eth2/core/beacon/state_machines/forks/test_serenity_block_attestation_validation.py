@@ -16,6 +16,7 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import (
     _validate_crosslink,
 )
 from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 
 
@@ -121,15 +122,23 @@ def test_validate_attestation_source_epoch_and_root(
         is_valid):
     state = genesis_state.copy(
         slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch) + 5,
-        previous_justified_epoch=previous_justified_epoch,
-        current_justified_epoch=current_justified_epoch,
-        previous_justified_root=previous_justified_root,
-        current_justified_root=current_justified_root,
+        previous_justified_checkpoint=Checkpoint(
+            epoch=previous_justified_epoch,
+            root=previous_justified_root,
+        ),
+        current_justified_checkpoint=Checkpoint(
+            epoch=current_justified_epoch,
+            root=current_justified_root,
+        ),
     )
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
-        source_epoch=attestation_source_epoch,
-        source_root=attestation_source_root,
-        target_epoch=attestation_target_epoch,
+        source=Checkpoint(
+            epoch=attestation_source_epoch,
+            root=attestation_source_root,
+        ),
+        target=Checkpoint(
+            epoch=attestation_target_epoch,
+        ),
     )
 
     mocker.patch(

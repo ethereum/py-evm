@@ -311,13 +311,10 @@ def test_get_seed(genesis_state,
         mock_get_randao_mix(
             state=state,
             epoch=(epoch + epochs_per_historical_vector - min_seed_lookahead),
-            slots_per_epoch=slots_per_epoch,
             epochs_per_historical_vector=epochs_per_historical_vector,
         ) + mock_get_active_index_root(
             state=state,
             epoch=epoch,
-            slots_per_epoch=slots_per_epoch,
-            activation_exit_delay=activation_exit_delay,
             epochs_per_historical_vector=epochs_per_historical_vector,
         ) + epoch_as_bytes
     )
