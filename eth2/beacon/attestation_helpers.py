@@ -99,13 +99,10 @@ def validate_indexed_attestation_aggregate_signature(state: BeaconState,
     )
 
 
-def validate_indexed_attestation(state: BeaconState,
+def is_valid_indexed_attestation(state: BeaconState,
                                  indexed_attestation: IndexedAttestation,
                                  max_validators_per_committee: int,
                                  slots_per_epoch: int) -> None:
-    """
-    From spec: `is_valid_indexed_attestation`
-    """
     bit_0_indices = indexed_attestation.custody_bit_0_indices
     bit_1_indices = indexed_attestation.custody_bit_1_indices
 

@@ -40,7 +40,7 @@ def validate_deposit_proof(state: BeaconState,
     is_valid_proof = verify_merkle_branch(
         leaf=deposit.data.root,
         proof=deposit.proof,
-        depth=deposit_contract_tree_depth,
+        depth=deposit_contract_tree_depth + 1,
         index=state.eth1_deposit_index,
         root=state.eth1_data.deposit_root,
     )

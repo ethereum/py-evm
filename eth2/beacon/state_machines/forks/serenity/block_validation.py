@@ -29,7 +29,7 @@ from eth2.configs import (
 )
 from eth2.beacon.attestation_helpers import (
     get_attestation_data_slot,
-    validate_indexed_attestation,
+    is_valid_indexed_attestation,
     is_slashable_attestation_data,
 )
 from eth2.beacon.committee_helpers import (
@@ -52,6 +52,7 @@ from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockHeader
+from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
@@ -300,14 +301,14 @@ def validate_attester_slashing(state: BeaconState,
         attestation_2,
     )
 
-    validate_indexed_attestation(
+    is_valid_indexed_attestation(
         state,
         attestation_1,
         max_validators_per_committee,
         slots_per_epoch,
     )
 
-    validate_indexed_attestation(
+    is_valid_indexed_attestation(
         state,
         attestation_2,
         max_validators_per_committee,
@@ -360,14 +361,11 @@ def validate_attestation_slot(attestation_slot: Slot,
         )
 
 
-FFGData = Tuple[Epoch, Hash32, Epoch]
-
-
-def _validate_ffg_data(data: AttestationData, ffg_data: FFGData) -> None:
-    if ffg_data != (data.source_epoch, data.source_root, data.target_epoch):
+def _validate_checkpoint(checkpoint: Checkpoint, expected_checkpoint: Checkpoint) -> None:
+    if checkpoint != expected_checkpoint:
         raise ValidationError(
-            f"Attestation with data {data} did not match the expected"
-            f" FFG data ({ffg_data}) based on the specified ``target_epoch``."
+            f"Attestation with source checkpoint {checkpoint} did not match the expected"
+            f" source checkpoint ({expected_checkpoint})based on the specified ``target.epoch``."
         )
 
 
@@ -415,19 +413,11 @@ def _validate_attestation_data(state: BeaconState,
 
     attestation_slot = get_attestation_data_slot(state, data, config)
 
-    if data.target_epoch == current_epoch:
-        ffg_data = (
-            state.current_justified_epoch,
-            state.current_justified_root,
-            current_epoch,
-        )
+    if data.target.epoch == current_epoch:
+        expected_checkpoint = state.current_justified_checkpoint
         parent_crosslink = state.current_crosslinks[data.crosslink.shard]
     else:
-        ffg_data = (
-            state.previous_justified_epoch,
-            state.previous_justified_root,
-            previous_epoch,
-        )
+        expected_checkpoint = state.previous_justified_checkpoint,
         parent_crosslink = state.previous_crosslinks[data.crosslink.shard]
 
     _validate_eligible_shard_number(data.crosslink.shard, config.SHARD_COUNT)
@@ -438,10 +428,10 @@ def _validate_attestation_data(state: BeaconState,
         slots_per_epoch,
         config.MIN_ATTESTATION_INCLUSION_DELAY
     )
-    _validate_ffg_data(data, ffg_data)
+    _validate_checkpoint(data.source, expected_checkpoint)
     _validate_crosslink(
         data.crosslink,
-        data.target_epoch,
+        data.target.epoch,
         parent_crosslink,
         config.MAX_EPOCHS_PER_CROSSLINK
     )
@@ -455,7 +445,7 @@ def validate_attestation(state: BeaconState,
     Raise ``ValidationError`` if it's invalid.
     """
     _validate_attestation_data(state, attestation.data, config)
-    validate_indexed_attestation(
+    is_valid_indexed_attestation(
         state,
         get_indexed_attestation(state, attestation, CommitteeConfig(config)),
         config.MAX_VALIDATORS_PER_COMMITTEE,
@@ -544,7 +534,7 @@ def validate_voluntary_exit(state: BeaconState,
 
 def _validate_amount_and_fee_magnitude(state: BeaconState, transfer: Transfer) -> None:
     threshold = state.balances[transfer.sender]
-    max_amount = max(transfer.amount, transfer.fee)
+    max_amount = max(transfer.amount + transfer.fee, transfer.amount, transfer.fee)
     if threshold < max_amount:
         raise ValidationError(
             f"Transfer amount (transfer.amount) or fee (transfer.fee) was over the allowable"
@@ -573,7 +563,7 @@ def _validate_sender_eligibility(state: BeaconState,
         transfer.amount + transfer.fee + config.MAX_EFFECTIVE_BALANCE <= sender_balance
     )
 
-    if not eligible_for_activation or is_withdrawable or is_transfer_total_allowed:
+    if (not eligible_for_activation) or is_withdrawable or is_transfer_total_allowed:
         return
 
     if eligible_for_activation:

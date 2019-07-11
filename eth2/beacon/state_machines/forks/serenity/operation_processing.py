@@ -146,7 +146,7 @@ def process_attestations(state: BeaconState,
             proposer_index=proposer_index,
         )
 
-        if attestation.data.target_epoch == current_epoch:
+        if attestation.data.target.epoch == current_epoch:
             new_current_epoch_attestations += (pending_attestation,)
         else:
             new_previous_epoch_attestations += (pending_attestation,)
