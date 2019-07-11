@@ -1,0 +1,1 @@
+Improve layout of API docs by grouping classmethods, methods and attributes.
