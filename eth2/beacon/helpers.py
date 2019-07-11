@@ -26,7 +26,7 @@ from eth2.beacon.typing import (
     ValidatorIndex,
     Version,
     default_version,
-    # Domain,
+    DomainType,
 )
 from eth2.configs import (
     CommitteeConfig,
@@ -200,14 +200,22 @@ def _get_fork_version(fork: Fork, epoch: Epoch) -> Version:
         return fork.current_version
 
 
-def compute_domain(domain_type: SignatureDomain, fork_version: Version=default_version) -> int:
-    return int.from_bytes(domain_type.to_bytes(4, 'little') + fork_version, byteorder="little")
+# TODO(ralexstokes) temp defn until we merge in upstream py_ecc
+# from py_ecc.bls.typing import Domain
+Domain = int
+
+
+def compute_domain(domain_type: DomainType, fork_version: Version=default_version) -> Domain:
+    # TODO(ralexstokes) fix this to match spec
+    return Domain(
+        int.from_bytes(domain_type + fork_version, byteorder="little")
+    )
 
 
 def get_domain(state: 'BeaconState',
-               domain_type: SignatureDomain,
+               domain_type: DomainType,
                slots_per_epoch: int,
-               message_epoch: Epoch=None) -> int:
+               message_epoch: Epoch=None) -> Domain:
     """
     Return the domain number of the current fork and ``domain_type``.
     """

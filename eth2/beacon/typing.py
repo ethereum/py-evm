@@ -20,7 +20,7 @@ Second = NewType('Second', int)
 
 Version = NewType('Version', bytes)
 
-Domain = NewType('Domain', bytes)
+DomainType = NewType('DomainType', bytes)  # bytes of length 4
 
 
 class FromBlockParams(NamedTuple):
