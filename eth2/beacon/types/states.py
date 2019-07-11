@@ -13,6 +13,7 @@ from eth_utils import (
 
 import ssz
 from ssz.sedes import (
+    Bitvector,
     List,
     Vector,
     bytes32,
@@ -28,6 +29,9 @@ from eth2._utils.tuple import (
     update_tuple_item_with_fn,
 )
 from eth2.configs import Eth2Config
+from eth2.beacon.constants import (
+    JUSTIFICATION_BITS_LENGTH,
+)
 from eth2.beacon.helpers import (
     compute_epoch_of_slot,
 )
@@ -38,6 +42,7 @@ from eth2.beacon.typing import (
     Slot,
     Timestamp,
     ValidatorIndex,
+    Bitfield,
 )
 
 from .block_headers import (
@@ -70,6 +75,9 @@ from .defaults import (
     default_tuple_of_size,
     default_shard,
 )
+
+
+default_justification_bits = Bitfield((False,) * JUSTIFICATION_BITS_LENGTH)
 
 
 class BeaconState(ssz.Serializable):
@@ -145,7 +153,7 @@ class BeaconState(ssz.Serializable):
             current_epoch_attestations: Sequence[PendingAttestation]=default_tuple,
             previous_crosslinks: Sequence[Crosslink]=default_tuple,
             current_crosslinks: Sequence[Crosslink]=default_tuple,
-            justification_bitfield: int=0,
+            justification_bits: Bitfield=default_justification_bits,
             previous_justified_checkpoint: Checkpoint=default_checkpoint,
             current_justified_checkpoint: Checkpoint=default_checkpoint,
             finalized_checkpoint: Checkpoint=default_checkpoint,
@@ -214,7 +222,7 @@ class BeaconState(ssz.Serializable):
             current_epoch_attestations=current_epoch_attestations,
             previous_crosslinks=previous_crosslinks,
             current_crosslinks=current_crosslinks,
-            justification_bitfield=justification_bitfield,
+            justification_bits=justification_bits,
             previous_justified_checkpoint=previous_justified_checkpoint,
             current_justified_checkpoint=current_justified_checkpoint,
             finalized_checkpoint=finalized_checkpoint,

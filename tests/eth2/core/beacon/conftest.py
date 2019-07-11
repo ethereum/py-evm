@@ -16,6 +16,7 @@ from eth2.beacon.constants import (
     DEPOSIT_CONTRACT_TREE_DEPTH,
     FAR_FUTURE_EPOCH,
     GWEI_PER_ETH,
+    JUSTIFICATION_BITS_LENGTH,
 )
 from eth2.beacon.fork_choice.higher_slot import (
     higher_slot_scoring,
@@ -647,7 +648,7 @@ def sample_beacon_state_params(config,
             (Crosslink(**sample_crosslink_record_params),) * config.SHARD_COUNT
         ),
         # Justification
-        'justification_bitfield': 0,
+        'justification_bits': (False,) * JUSTIFICATION_BITS_LENGTH,
         'previous_justified_checkpoint': Checkpoint(
             epoch=0,
             root=b'\x99' * 32,

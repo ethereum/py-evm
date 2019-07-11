@@ -63,6 +63,7 @@ from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
+    Bitfield,
     Epoch,
     Gwei,
     Shard,
@@ -109,14 +110,20 @@ def _is_epoch_justifiable(state: BeaconState, epoch: Epoch, config: Eth2Config) 
 
 
 def _determine_updated_justification_data(justified_epoch: Epoch,
-                                          bitfield: int,
+                                          bitfield: Bitfield,
                                           is_epoch_justifiable: bool,
                                           candidate_epoch: Epoch,
-                                          bit_offset: int) -> Tuple[Epoch, int]:
+                                          bit_offset: int) -> Tuple[Epoch, Bitfield]:
     if is_epoch_justifiable:
         return (
             candidate_epoch,
-            bitfield | (1 << bit_offset),
+            Bitfield(
+                update_tuple_item(
+                    bitfield,
+                    bit_offset,
+                    True,
+                )
+            )
         )
     else:
         return (
@@ -131,13 +138,13 @@ def _determine_updated_justifications(
         current_epoch_justifiable: bool,
         current_epoch: Epoch,
         justified_epoch: Epoch,
-        justification_bitfield: int) -> Tuple[Epoch, int]:
+        justification_bits: Bitfield) -> Tuple[Epoch, Bitfield]:
     (
         justified_epoch,
-        justification_bitfield,
+        justification_bits,
     ) = _determine_updated_justification_data(
         justified_epoch,
-        justification_bitfield,
+        justification_bits,
         previous_epoch_justifiable,
         previous_epoch,
         1,
@@ -145,10 +152,10 @@ def _determine_updated_justifications(
 
     (
         justified_epoch,
-        justification_bitfield,
+        justification_bits,
     ) = _determine_updated_justification_data(
         justified_epoch,
-        justification_bitfield,
+        justification_bits,
         current_epoch_justifiable,
         current_epoch,
         0,
@@ -156,12 +163,12 @@ def _determine_updated_justifications(
 
     return (
         justified_epoch,
-        justification_bitfield,
+        justification_bits,
     )
 
 
 def _determine_new_justified_epoch_and_bitfield(state: BeaconState,
-                                                config: Eth2Config) -> Tuple[Epoch, int]:
+                                                config: Eth2Config) -> Tuple[Epoch, Bitfield]:
     genesis_epoch = config.GENESIS_EPOCH
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, genesis_epoch)
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
@@ -179,27 +186,28 @@ def _determine_new_justified_epoch_and_bitfield(state: BeaconState,
 
     (
         new_current_justified_epoch,
-        justification_bitfield,
+        justification_bits,
     ) = _determine_updated_justifications(
         previous_epoch_justifiable,
         previous_epoch,
         current_epoch_justifiable,
         current_epoch,
         state.current_justified_checkpoint.epoch,
-        state.justification_bitfield << 1,
+        (False,) + state.justification_bits[:-1],
     )
 
     return (
         new_current_justified_epoch,
-        justification_bitfield,
+        justification_bits,
     )
 
 
-def _determine_new_justified_checkpoint_and_bitfield(state: BeaconState,
-                                                     config: Eth2Config) -> Tuple[Checkpoint, int]:
+def _determine_new_justified_checkpoint_and_bitfield(
+        state: BeaconState,
+        config: Eth2Config) -> Tuple[Checkpoint, Bitfield]:
     (
         new_current_justified_epoch,
-        justification_bitfield,
+        justification_bits,
     ) = _determine_new_justified_epoch_and_bitfield(
         state,
         config,
@@ -217,63 +225,51 @@ def _determine_new_justified_checkpoint_and_bitfield(state: BeaconState,
             epoch=new_current_justified_epoch,
             root=new_current_justified_root,
         ),
-        justification_bitfield,
+        justification_bits,
     )
 
 
-# NOTE: the type of bitfield here is an ``int``, to facilitate bitwise operations;
-# we do not use the ``Bitfield`` type seen elsewhere.
-def _bitfield_matches(bitfield: int,
-                      offset: int,
-                      modulus: int,
-                      pattern: int) -> bool:
-    return (bitfield >> offset) % modulus == pattern
+def _bitfield_matches(bitfield: Bitfield,
+                      offset: slice) -> bool:
+    return all(bitfield[offset])
 
 
 def _determine_new_finalized_epoch(last_finalized_epoch: Epoch,
                                    previous_justified_epoch: Epoch,
                                    current_justified_epoch: Epoch,
                                    current_epoch: Epoch,
-                                   justification_bitfield: int) -> Epoch:
+                                   justification_bits: Bitfield) -> Epoch:
     new_finalized_epoch = last_finalized_epoch
 
-    if _bitfield_matches(
-            justification_bitfield,
-            1,
-            8,
-            0b111,
-    ) and previous_justified_epoch + 3 == current_epoch:
+    if (
+        _bitfield_matches(justification_bits, slice(1, 4)) and
+        previous_justified_epoch + 3 == current_epoch
+    ):
         new_finalized_epoch = previous_justified_epoch
 
-    if _bitfield_matches(
-            justification_bitfield,
-            1,
-            4,
-            0b11,
-    ) and previous_justified_epoch + 2 == current_epoch:
+    if (
+        _bitfield_matches(justification_bits, slice(1, 3)) and
+        previous_justified_epoch + 2 == current_epoch
+    ):
         new_finalized_epoch = previous_justified_epoch
 
-    if _bitfield_matches(
-            justification_bitfield,
-            0,
-            8,
-            0b111,
-    ) and current_justified_epoch + 2 == current_epoch:
+    if (
+        _bitfield_matches(justification_bits, slice(0, 3)) and
+        current_justified_epoch + 2 == current_epoch
+    ):
         new_finalized_epoch = current_justified_epoch
 
-    if _bitfield_matches(
-            justification_bitfield,
-            0,
-            4,
-            0b11,
-    ) and current_justified_epoch + 1 == current_epoch:
+    if (
+        _bitfield_matches(justification_bits, slice(0, 2)) and
+        current_justified_epoch + 1 == current_epoch
+    ):
         new_finalized_epoch = current_justified_epoch
 
     return new_finalized_epoch
 
 
 def _determine_new_finalized_checkpoint(state: BeaconState,
-                                        justification_bitfield: int,
+                                        justification_bits: Bitfield,
                                         config: Eth2Config) -> Checkpoint:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
 
@@ -282,7 +278,7 @@ def _determine_new_finalized_checkpoint(state: BeaconState,
         state.previous_justified_checkpoint.epoch,
         state.current_justified_checkpoint.epoch,
         current_epoch,
-        justification_bitfield,
+        justification_bits,
     )
     if new_finalized_epoch != state.finalized_checkpoint.epoch:
         # NOTE: we only want to call ``get_block_root``
@@ -314,7 +310,7 @@ def process_justification_and_finalization(state: BeaconState, config: Eth2Confi
 
     (
         new_current_justified_checkpoint,
-        justification_bitfield,
+        justification_bits,
     ) = _determine_new_justified_checkpoint_and_bitfield(
         state,
         config,
@@ -322,12 +318,12 @@ def process_justification_and_finalization(state: BeaconState, config: Eth2Confi
 
     new_finalized_checkpoint = _determine_new_finalized_checkpoint(
         state,
-        justification_bitfield,
+        justification_bits,
         config,
     )
 
     return state.copy(
-        justification_bitfield=justification_bitfield,
+        justification_bits=justification_bits,
         previous_justified_checkpoint=state.current_justified_checkpoint,
         current_justified_checkpoint=new_current_justified_checkpoint,
         finalized_checkpoint=new_finalized_checkpoint,

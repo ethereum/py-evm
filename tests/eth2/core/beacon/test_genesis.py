@@ -6,6 +6,7 @@ from eth.constants import (
 
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
+    JUSTIFICATION_BITS_LENGTH,
 )
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
 from eth2.beacon.types.block_headers import BeaconBlockHeader
@@ -124,7 +125,7 @@ def test_get_genesis_beacon_state(
     assert state.previous_justified_checkpoint.root == ZERO_HASH32
     assert state.current_justified_checkpoint.epoch == genesis_epoch
     assert state.current_justified_checkpoint.root == ZERO_HASH32
-    assert state.justification_bitfield == 0
+    assert state.justification_bits == (False,) * JUSTIFICATION_BITS_LENGTH
 
     # Finalization
     assert state.finalized_checkpoint.epoch == genesis_epoch

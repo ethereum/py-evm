@@ -18,6 +18,7 @@ from eth2.beacon.committee_helpers import (
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
     GWEI_PER_ETH,
+    JUSTIFICATION_BITS_LENGTH,
 )
 from eth2.beacon.helpers import (
     get_active_validator_indices,
@@ -76,24 +77,25 @@ def test_bft_threshold_met(attesting_balance,
 
 
 @pytest.mark.parametrize(
-    "justification_bitfield,"
+    "justification_bits,"
     "previous_justified_epoch,"
     "current_justified_epoch,"
     "expected,",
     (
         # Rule 1
-        (0b111110, 3, 3, 3),
+        ((False, True, True, True), 3, 3, 3),
         # Rule 2
-        (0b111110, 4, 4, 4),
+        ((False, True, True, False), 4, 4, 4),
         # Rule 3
-        (0b110111, 3, 4, 4),
+        ((True, True, True, False), 3, 4, 4),
         # Rule 4
-        (0b110011, 2, 5, 5),
+        ((True, True, False, False), 2, 5, 5),
         # No finalize
-        (0b110000, 2, 2, 1),
+        ((False, False, False, False), 2, 2, 1),
+        ((True, True, True, True), 2, 2, 1),
     )
 )
-def test_get_finalized_epoch(justification_bitfield,
+def test_get_finalized_epoch(justification_bits,
                              previous_justified_epoch,
                              current_justified_epoch,
                              expected):
@@ -104,7 +106,7 @@ def test_get_finalized_epoch(justification_bitfield,
         previous_justified_epoch,
         current_justified_epoch,
         current_epoch,
-        justification_bitfield,
+        justification_bits,
     ) == expected
 
 
@@ -114,7 +116,18 @@ def test_justification_without_mock(genesis_state,
 
     state = genesis_state
     state = process_justification_and_finalization(state, config)
-    assert state.justification_bitfield == 0b0
+    assert state.justification_bits == (False,) * JUSTIFICATION_BITS_LENGTH
+
+
+def _convert_to_bitfield(bits):
+    data = bits.to_bytes(1, "little")
+    length = bits.bit_length()
+    bitfield = get_empty_bitfield(length)
+    for index in range(length):
+        value = (data[index // 8] >> index % 8) % 2
+        if value:
+            bitfield = set_voted(bitfield, index)
+    return (bitfield + (False,) * (4 - length))[0:4]
 
 
 @pytest.mark.parametrize(
@@ -124,10 +137,10 @@ def test_justification_without_mock(genesis_state,
         "previous_epoch_justifiable",
         "previous_justified_epoch",
         "current_justified_epoch",
-        "justification_bitfield",
+        "justification_bits",
         "finalized_epoch",
         "justified_epoch_after",
-        "justification_bitfield_after",
+        "justification_bits_after",
         "finalized_epoch_after",
     ),
     (
@@ -154,12 +167,14 @@ def test_process_justification_and_finalization(genesis_state,
                                                 previous_epoch_justifiable,
                                                 previous_justified_epoch,
                                                 current_justified_epoch,
-                                                justification_bitfield,
+                                                justification_bits,
                                                 finalized_epoch,
                                                 justified_epoch_after,
-                                                justification_bitfield_after,
+                                                justification_bits_after,
                                                 finalized_epoch_after,
                                                 config):
+    justification_bits = _convert_to_bitfield(justification_bits)
+    justification_bits_after = _convert_to_bitfield(justification_bits_after)
     previous_epoch = max(current_epoch - 1, 0)
     slot = (current_epoch + 1) * config.SLOTS_PER_EPOCH - 1
 
@@ -171,7 +186,7 @@ def test_process_justification_and_finalization(genesis_state,
         current_justified_checkpoint=Checkpoint(
             epoch=current_justified_epoch,
         ),
-        justification_bitfield=justification_bitfield,
+        justification_bits=justification_bits,
         finalized_checkpoint=Checkpoint(
             epoch=finalized_epoch,
         ),
@@ -207,7 +222,7 @@ def test_process_justification_and_finalization(genesis_state,
         post_state.previous_justified_checkpoint.epoch == state.current_justified_checkpoint.epoch
     )
     assert post_state.current_justified_checkpoint.epoch == justified_epoch_after
-    assert post_state.justification_bitfield == justification_bitfield_after
+    assert post_state.justification_bits == justification_bits_after
     assert post_state.finalized_checkpoint.epoch == finalized_epoch_after
 
 
