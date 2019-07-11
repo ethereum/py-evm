@@ -19,8 +19,7 @@ from eth2.beacon.tools.builder.validator import (
 @pytest.mark.slow
 @settings(
     max_examples=1,
-    # Last CI run took >10 seconds. Allow up to 15s.
-    deadline=15000,
+    deadline=None,
 )
 @given(random=st.randoms())
 @pytest.mark.parametrize(
