@@ -28,10 +28,6 @@ from eth2.beacon.typing import (
     default_version,
     Domain,
 )
-from eth2.beacon.validation import (
-    validate_epoch_for_active_index_root,
-    validate_epoch_for_randao_mix,
-)
 from eth2.configs import (
     CommitteeConfig,
 )
@@ -113,41 +109,19 @@ def get_block_root(state: 'BeaconState',
 
 def get_randao_mix(state: 'BeaconState',
                    epoch: Epoch,
-                   slots_per_epoch: int,
-                   epochs_per_historical_vector: int,
-                   perform_validation: bool=True) -> Hash32:
+                   epochs_per_historical_vector: int) -> Hash32:
     """
     Return the randao mix at a recent ``epoch``.
-
-    NOTE: There is one use of this function (``get_seed``) where
-    the ``epoch`` does not satisfy ``validate_epoch_for_randao_mix`` so
-    callers need the flexibility to specify validation.
     """
-    if perform_validation:
-        validate_epoch_for_randao_mix(
-            state.current_epoch(slots_per_epoch),
-            epoch,
-            epochs_per_historical_vector,
-        )
-
     return state.randao_mixes[epoch % epochs_per_historical_vector]
 
 
 def get_active_index_root(state: 'BeaconState',
                           epoch: Epoch,
-                          slots_per_epoch: int,
-                          activation_exit_delay: int,
                           epochs_per_historical_vector: int) -> Hash32:
     """
     Return the index root at a recent ``epoch``.
     """
-    validate_epoch_for_active_index_root(
-        state.current_epoch(slots_per_epoch),
-        epoch,
-        activation_exit_delay,
-        epochs_per_historical_vector,
-    )
-
     return state.active_index_roots[epoch % epochs_per_historical_vector]
 
 
@@ -155,7 +129,7 @@ def _epoch_for_seed(epoch: Epoch) -> Hash32:
     return Hash32(epoch.to_bytes(32, byteorder="little"))
 
 
-RandaoProvider = Callable[['BeaconState', Epoch, int, int, bool], Hash32]
+RandaoProvider = Callable[['BeaconState', Epoch, int, int], Hash32]
 ActiveIndexRootProvider = Callable[['BeaconState', Epoch, int, int, int], Hash32]
 
 
@@ -174,7 +148,6 @@ def _get_seed(state: 'BeaconState',
         ),
         committee_config.SLOTS_PER_EPOCH,
         committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
-        False,
     )
     active_index_root = active_index_root_provider(
         state,
