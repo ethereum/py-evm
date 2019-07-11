@@ -391,7 +391,10 @@ def create_mock_slashable_attestation(state: BeaconState,
     # Get `source_root`
     source_root = get_block_root_at_slot(
         state,
-        compute_start_slot_of_epoch(state.current_justified_checkpoint.epoch, config.SLOTS_PER_EPOCH),
+        compute_start_slot_of_epoch(
+            state.current_justified_checkpoint.epoch,
+            config.SLOTS_PER_EPOCH,
+        ),
         config.SLOTS_PER_HISTORICAL_ROOT,
     )
     previous_crosslink = state.current_crosslinks[shard]
