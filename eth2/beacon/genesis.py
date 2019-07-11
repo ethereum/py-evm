@@ -71,11 +71,12 @@ def genesis_state_with_active_index_roots(state: BeaconState, config: Eth2Config
         config.GENESIS_EPOCH,
         CommitteeConfig(config),
     )
-    compact_committee_roots = (
+    compact_committees_roots = (
         (committee_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
     )
     return state.copy(
         active_index_roots=active_index_roots,
+        compact_committees_roots=compact_committees_roots,
     )
 
 

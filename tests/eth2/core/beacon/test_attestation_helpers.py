@@ -331,8 +331,12 @@ def test_is_slashable_attestation_data(sample_attestation_data_params,
 
     if is_surround_vote:
         data_1 = data_1.copy(
-            source_epoch=data_2.source_epoch - 1,
-            target_epoch=data_2.target_epoch + 1,
+            source=data_1.source.copy(
+                epoch=data_2.source.epoch - 1,
+            ),
+            target=data_1.target.copy(
+                epoch=data_2.target.epoch + 1,
+            ),
         )
 
     assert is_slashable_attestation_data(

@@ -219,6 +219,16 @@ def epochs_per_slashings_vector():
 
 
 @pytest.fixture
+def historical_roots_limit():
+    return SERENITY_CONFIG.HISTORICAL_ROOTS_LIMIT
+
+
+@pytest.fixture
+def validator_registry_limit():
+    return SERENITY_CONFIG.VALIDATOR_REGISTRY_LIMIT
+
+
+@pytest.fixture
 def base_reward_factor():
     return SERENITY_CONFIG.BASE_REWARD_FACTOR
 
@@ -307,6 +317,8 @@ def config(shard_count,
            min_epochs_to_inactivity_penalty,
            epochs_per_historical_vector,
            epochs_per_slashings_vector,
+           historical_roots_limit,
+           validator_registry_limit,
            base_reward_factor,
            whistleblower_reward_quotient,
            proposer_reward_quotient,
@@ -351,6 +363,8 @@ def config(shard_count,
         MIN_EPOCHS_TO_INACTIVITY_PENALTY=min_epochs_to_inactivity_penalty,
         EPOCHS_PER_HISTORICAL_VECTOR=epochs_per_historical_vector,
         EPOCHS_PER_SLASHINGS_VECTOR=epochs_per_slashings_vector,
+        HISTORICAL_ROOTS_LIMIT=historical_roots_limit,
+        VALIDATOR_REGISTRY_LIMIT=validator_registry_limit,
         BASE_REWARD_FACTOR=base_reward_factor,
         WHISTLEBLOWER_REWARD_QUOTIENT=whistleblower_reward_quotient,
         PROPOSER_REWARD_QUOTIENT=proposer_reward_quotient,

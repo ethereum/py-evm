@@ -89,7 +89,7 @@ def validate_indexed_attestation_aggregate_signature(state: BeaconState,
         state,
         SignatureDomain.DOMAIN_ATTESTATION,
         slots_per_epoch,
-        indexed_attestation.data.target_epoch,
+        indexed_attestation.data.target.epoch,
     )
     bls.validate_multiple(
         pubkeys=pubkeys,

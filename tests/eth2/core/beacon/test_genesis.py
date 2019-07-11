@@ -14,7 +14,7 @@ from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.genesis import (
     get_genesis_block,
-    get_genesis_beacon_state,
+    initialize_beacon_state_from_eth1,
 )
 from eth2.beacon.tools.builder.initializer import (
     create_mock_deposits_and_root,
@@ -67,10 +67,10 @@ def test_get_genesis_beacon_state(
     )
     genesis_time = 10
 
-    state = get_genesis_beacon_state(
-        genesis_deposits=genesis_deposits,
-        genesis_time=genesis_time,
-        genesis_eth1_data=genesis_eth1_data,
+    state = initialize_beacon_state_from_eth1(
+        eth1_block_hash=genesis_eth1_data.block_hash,
+        eth1_timestamp=genesis_time,
+        deposits=genesis_deposits,
         config=config,
     )
 
