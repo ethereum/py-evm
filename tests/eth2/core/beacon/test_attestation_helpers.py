@@ -79,10 +79,10 @@ def _get_indices_and_signatures(validator_count, state, config, message_hash, pr
     indices.sort()
 
     privkeys = [privkeys[i] for i in indices]
-    domain_type = SignatureDomain.DOMAIN_ATTESTATION
+    signature_domain = SignatureDomain.DOMAIN_ATTESTATION
     domain = get_domain(
         state=state,
-        domain_type=domain_type,
+        signature_domain=signature_domain,
         slots_per_epoch=config.SLOTS_PER_EPOCH,
     )
     signatures = tuple(

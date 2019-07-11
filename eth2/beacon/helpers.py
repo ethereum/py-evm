@@ -205,15 +205,25 @@ def _get_fork_version(fork: Fork, epoch: Epoch) -> Version:
 Domain = int
 
 
-def compute_domain(domain_type: DomainType, fork_version: Version=default_version) -> Domain:
+def _signature_domain_to_domain_type(s: SignatureDomain) -> DomainType:
+    return DomainType(s.to_bytes(4, byteorder="little"))
+
+
+def compute_domain(signature_domain: SignatureDomain,
+                   fork_version: Version=default_version) -> Domain:
+    """
+    NOTE: we deviate from the spec here by taking the enum ``SignatureDomain`` and
+    converting before calling ``compute_domain``.
+    """
     # TODO(ralexstokes) fix this to match spec
+    domain_type = _signature_domain_to_domain_type(signature_domain)
     return Domain(
         int.from_bytes(domain_type + fork_version, byteorder="little")
     )
 
 
 def get_domain(state: 'BeaconState',
-               domain_type: DomainType,
+               signature_domain: SignatureDomain,
                slots_per_epoch: int,
                message_epoch: Epoch=None) -> Domain:
     """
@@ -221,4 +231,4 @@ def get_domain(state: 'BeaconState',
     """
     epoch = state.current_epoch(slots_per_epoch) if message_epoch is None else message_epoch
     fork_version = _get_fork_version(state.fork, epoch)
-    return compute_domain(domain_type, fork_version)
+    return compute_domain(signature_domain, fork_version)

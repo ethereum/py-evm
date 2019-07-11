@@ -220,7 +220,7 @@ def test_get_fork_version(previous_version,
         'current_version,'
         'epoch,'
         'current_epoch,'
-        'domain_type,'
+        'signature_domain,'
         'expected'
     ),
     [
@@ -246,7 +246,7 @@ def test_get_domain(previous_version,
                     current_version,
                     epoch,
                     current_epoch,
-                    domain_type,
+                    signature_domain,
                     genesis_state,
                     slots_per_epoch,
                     expected):
@@ -260,7 +260,7 @@ def test_get_domain(previous_version,
         state=state.copy(
             fork=fork,
         ),
-        domain_type=domain_type,
+        signature_domain=signature_domain,
         slots_per_epoch=slots_per_epoch,
         message_epoch=current_epoch,
     )
