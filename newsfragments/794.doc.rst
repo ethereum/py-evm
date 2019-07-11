@@ -1,0 +1,3 @@
+In the API docs display class methods, static methods and methods as one group "methods".
+While we ideally wish to separate these, Sphinx keeps them all as one group which we'll
+be following until we find a better option.

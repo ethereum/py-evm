@@ -18,3 +18,46 @@ tt, code, pre {
   margin: 0;
   padding: 0;
 }
+
+/* We instruct sphinx to order members groupwise and use the following css to add headlines.
+Notice that while the css differentiates between methods, classmethods and staticmethods,
+unfortunately, sphinx groups these all alphabetically as methods which means we only
+display them as one "methods" group. */
+
+dl.attribute:before {
+  content: "Attributes";
+}
+
+dl.method:before,
+dl.classmethod:before,
+dl.staticmethod:before {
+  content: "Methods";
+}
+
+dl.method:before,
+dl.attribute:before,
+dl.classmethod:before,
+dl.staticmethod:before {
+  background: #e7f2fa;
+  border-top: solid 3px #6ab0de;
+  color: #000;
+  display: inline-block;
+  font-weight: bold;
+  margin: 5px 0 10px 0;
+  padding: 5px;
+}
+
+/* Remove method header if a previous element already introduced it */
+dl.attribute + dl.attribute:before,
+/* We have to treat all these as just "methods" (see comment further above) */
+dl.method + dl.method:before,
+dl.classmethod + dl.method:before,
+dl.staticmethod + dl.method:before,
+dl.method + dl.classmethod:before,
+dl.classmethod + dl.classmethod:before,
+dl.staticmethod + dl.classmethod:before,
+dl.method + dl.staticmethod:before,
+dl.staticmethod + dl.staticmethod:before,
+dl.classmethod + dl.staticmethod:before {
+  display: none;
+}
