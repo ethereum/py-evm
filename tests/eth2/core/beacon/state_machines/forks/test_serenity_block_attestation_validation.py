@@ -7,6 +7,9 @@ from eth_utils import (
 from eth.constants import (
     ZERO_HASH32,
 )
+from eth2.beacon.committee_helpers import (
+    get_start_shard,
+)
 from eth2.beacon.helpers import (
     compute_start_slot_of_epoch,
 )
@@ -18,6 +21,8 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import (
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
+
+from eth2.configs import CommitteeConfig
 
 
 @pytest.mark.parametrize(
@@ -71,82 +76,69 @@ def test_validate_attestation_slot(attestation_slot,
         'current_epoch',
         'previous_justified_epoch',
         'current_justified_epoch',
-        'previous_justified_root',
-        'current_justified_root',
         'slots_per_epoch',
     ),
     [
-        (3, 1, 2, b'\x11' * 32, b'\x22' * 32, 8)
+        (3, 1, 2, 8)
     ]
 )
 @pytest.mark.parametrize(
     (
-        'attestation_slot',
         'attestation_source_epoch',
         'attestation_target_epoch',
-        'attestation_source_root',
         'is_valid',
     ),
     [
-        # compute_epoch_of_slot(attestation_data.slot, slots_per_epoch) >= current_epoch
-        # attestation_data.source_epoch == state.current_justified_epoch
-        (24, 2, 3, b'\x22' * 32, True),
-        # attestation_data.source_epoch != state.current_justified_epoch
-        (24, 3, 3, b'\x22' * 32, False),
-        # attestation_data.source_root != state.current_justified_root
-        (24, 2, 3, b'\x33' * 32, False),
-        # compute_epoch_of_slot(attestation_data.slot, slots_per_epoch) < current_epoch
-        # attestation_data.source_epoch == state.previous_justified_epoch
-        (23, 1, 2, b'\x11' * 32, True),
-        # attestation_data.source_epoch != state.previous_justified_epoch
-        (23, 2, 2, b'\x11' * 32, False),
-        # attestation_data.source_root != state.current_justified_root
-        (23, 1, 2, b'\x33' * 32, False),
+        (2, 3, True),
+        # wrong target_epoch
+        (0, 1, False),
+        # wrong source checkpoint
+        (1, 3, False),
     ]
 )
-def test_validate_attestation_source_epoch_and_root(
-        genesis_state,
-        sample_attestation_data_params,
-        attestation_slot,
-        attestation_source_epoch,
-        attestation_target_epoch,
-        attestation_source_root,
-        current_epoch,
-        previous_justified_epoch,
-        current_justified_epoch,
-        previous_justified_root,
-        current_justified_root,
-        slots_per_epoch,
-        config,
-        mocker,
-        is_valid):
+def test_validate_attestation_data(genesis_state,
+                                   sample_attestation_data_params,
+                                   attestation_source_epoch,
+                                   attestation_target_epoch,
+                                   current_epoch,
+                                   previous_justified_epoch,
+                                   current_justified_epoch,
+                                   slots_per_epoch,
+                                   config,
+                                   is_valid):
     state = genesis_state.copy(
         slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch) + 5,
         previous_justified_checkpoint=Checkpoint(
             epoch=previous_justified_epoch,
-            root=previous_justified_root,
         ),
         current_justified_checkpoint=Checkpoint(
             epoch=current_justified_epoch,
-            root=current_justified_root,
         ),
     )
+    start_shard = get_start_shard(
+        state,
+        current_epoch,
+        CommitteeConfig(config),
+    )
+    if attestation_target_epoch == current_epoch:
+        crosslinks = state.current_crosslinks
+    else:
+        crosslinks = state.previous_crosslinks
+
+    parent_crosslink = crosslinks[start_shard]
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
         source=Checkpoint(
             epoch=attestation_source_epoch,
-            root=attestation_source_root,
         ),
         target=Checkpoint(
             epoch=attestation_target_epoch,
         ),
-    )
-
-    mocker.patch(
-        'eth2.beacon.state_machines.forks.serenity.block_validation.get_attestation_data_slot',
-        return_value=attestation_slot,
-    )
-    mocker.patch(
-        'eth2.beacon.state_machines.forks.serenity.block_validation._validate_crosslink',
+        crosslink=Crosslink(
+            start_epoch=parent_crosslink.end_epoch,
+            end_epoch=attestation_target_epoch,
+            parent_root=parent_crosslink.root,
+            shard=start_shard,
+        ),
     )
 
     if is_valid:
