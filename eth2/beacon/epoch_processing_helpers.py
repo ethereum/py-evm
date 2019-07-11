@@ -187,7 +187,7 @@ def get_matching_target_attestations(state: BeaconState,
     )
 
     for a in get_matching_source_attestations(state, epoch, config):
-        if a.data.target_root == target_root:
+        if a.data.target.root == target_root:
             yield a
 
 
@@ -209,18 +209,16 @@ def get_matching_head_attestations(state: BeaconState,
             yield a
 
 
-@to_tuple
-def get_unslashed_attesting_indices(
-        state: BeaconState,
-        attestations: Sequence[PendingAttestation],
-        config: CommitteeConfig) -> Iterable[ValidatorIndex]:
+def get_unslashed_attesting_indices(state: BeaconState,
+                                    attestations: Sequence[PendingAttestation],
+                                    config: CommitteeConfig) -> Set[ValidatorIndex]:
     output: Set[ValidatorIndex] = set()
     for a in attestations:
         output = output.union(get_attesting_indices(state, a.data, a.aggregation_bits, config))
-    return sorted(
+    return set(
         filter(
             lambda index: not state.validators[index].slashed,
-            tuple(output),
+            output,
         )
     )
 
@@ -252,9 +250,6 @@ def _find_winning_crosslink_and_attesting_indices_from_candidates(
         state: BeaconState,
         candidate_attestations: Sequence[PendingAttestation],
         config: Eth2Config) -> Tuple[Crosslink, Tuple[ValidatorIndex, ...]]:
-    if not candidate_attestations:
-        return (Crosslink(), tuple())
-
     attestations_by_crosslink = groupby(
         lambda a: a.data.crosslink,
         candidate_attestations,
@@ -268,6 +263,7 @@ def _find_winning_crosslink_and_attesting_indices_from_candidates(
             pair[1],  # attestations
             config,
         ),
+        default=(Crosslink(), tuple()),
     )
 
     return (
@@ -340,7 +336,7 @@ def get_base_reward(state: BeaconState,
                     config: Eth2Config) -> Gwei:
     total_balance = get_total_active_balance(state, config)
     effective_balance = state.validators[index].effective_balance
-    return (
+    return Gwei(
         effective_balance * config.BASE_REWARD_FACTOR //
         integer_squareroot(total_balance) // BASE_REWARDS_PER_EPOCH
     )
