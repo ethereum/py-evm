@@ -574,11 +574,11 @@ def test_find_winning_crosslink_and_attesting_indices_from_candidates(genesis_st
     )
 
     if number_of_candidates == 0:
-        expected_result = (Crosslink(), tuple())
+        expected_result = (Crosslink(), set())
     else:
         expected_result = (
             candidates[0].data.crosslink,
-            tuple(sorted(full_committee)),
+            set(sorted(full_committee)),
         )
 
     result = _find_winning_crosslink_and_attesting_indices_from_candidates(
