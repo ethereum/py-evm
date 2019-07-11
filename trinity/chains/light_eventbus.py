@@ -86,7 +86,8 @@ class EventBusLightPeerChain(BaseLightPeerChain):
             await self.event_bus.request(event, TO_NETWORKING_BROADCAST_CONFIG)
         ).bytez
 
-    def _pass_or_raise(self, response: TResponse) -> TResponse:
+    @staticmethod
+    def _pass_or_raise(response: TResponse) -> TResponse:
         if response.error is not None:
             raise response.error
 
