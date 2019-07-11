@@ -101,3 +101,22 @@ The following table shows various combinations of how to use logging in Trinity 
 
 .. [5] **Increasing** the per-module log level above the general ``--file-log-level`` is not yet supported
        (See `issue 689 <https://github.com/ethereum/trinity/issues/689>`_ )
+
+
+Enabling tab completion
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Trinity can be configured to auto complete commands when the <tab> key is pressed.
+
+After installing trinity, to activate tab-completion in future bash prompts, use:
+
+.. code:: sh
+
+    register-python-argcomplete trinity >> ~/.bashrc
+
+
+For one-time activation of argcomplete for trinity, use:
+
+.. code:: sh
+
+    eval "$(register-python-argcomplete trinity)"

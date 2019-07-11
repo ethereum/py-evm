@@ -39,6 +39,7 @@ deps = {
         "mypy_extensions>=0.4.1,<1.0.0",
         "typing_extensions>=3.7.2,<4.0.0",
         "ruamel.yaml>=0.15.87",
+        "argcomplete>=1.10.0,<2",
     ],
     'test': [
         "hypothesis>=4.24.3,<5",

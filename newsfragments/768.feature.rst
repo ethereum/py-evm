@@ -1,0 +1,2 @@
+Trinity can now autocomplete CLI parameters on ``<tab>``.
+Learn how to activate autocomplete in the :doc:`docs</api/api.cli>`.
