@@ -9,7 +9,8 @@ from eth_utils import (
 )
 
 from p2p.discv5.packets import (
-    prepare_auth_header_packet,
+    AuthHeaderPacket,
+    WhoAreYouPacket,
 )
 from p2p.discv5.enr import (
     ENR,
@@ -22,6 +23,7 @@ from p2p.discv5.encryption import (
 )
 from p2p.discv5.constants import (
     AUTH_SCHEME_NAME,
+    MAGIC_SIZE,
     ZERO_NONCE,
 )
 
@@ -30,6 +32,9 @@ from tests.p2p.discv5.strategies import (
     nonce_st,
     pubkey_st,
     tag_st,
+    node_id_st,
+    id_nonce_st,
+    enr_seq_st,
 )
 
 
@@ -58,7 +63,7 @@ def test_auth_header_preparation(tag,
     )
     id_nonce_signature = b"\x00" * 32
 
-    packet = prepare_auth_header_packet(
+    packet = AuthHeaderPacket.prepare(
         tag=tag,
         auth_tag=auth_tag,
         message=message,
@@ -116,7 +121,7 @@ def test_auth_header_preparation_without_enr(tag,
     )
     id_nonce_signature = b"\x00" * 32
 
-    packet = prepare_auth_header_packet(
+    packet = AuthHeaderPacket.prepare(
         tag=tag,
         auth_tag=auth_tag,
         message=message,
@@ -137,3 +142,25 @@ def test_auth_header_preparation_without_enr(tag,
     assert is_list_like(decoded_auth_response) and len(decoded_auth_response) == 2
     assert decoded_auth_response[0] == id_nonce_signature
     assert decoded_auth_response[1] == []
+
+
+@given(
+    tag=tag_st,
+    node_id=node_id_st,
+    token=nonce_st,
+    id_nonce=id_nonce_st,
+    enr_seq=enr_seq_st,
+)
+def test_who_are_you_preparation(tag, node_id, token, id_nonce, enr_seq):
+    packet = WhoAreYouPacket.prepare(
+        tag=tag,
+        destination_node_id=node_id,
+        token=token,
+        id_nonce=id_nonce,
+        enr_sequence_number=enr_seq,
+    )
+    assert packet.tag == tag
+    assert packet.token == token
+    assert packet.id_nonce == id_nonce
+    assert packet.enr_sequence_number == enr_seq
+    assert len(packet.magic) == MAGIC_SIZE
