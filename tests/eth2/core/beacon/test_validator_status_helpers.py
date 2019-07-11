@@ -254,7 +254,10 @@ def test_set_validator_slashed(genesis_state,
         config.EPOCHS_PER_SLASHINGS_VECTOR,
     )
     assert slashed_validator.slashed
-    assert slashed_validator.withdrawable_epoch == some_future_epoch
+    assert slashed_validator.withdrawable_epoch == max(
+        slashed_validator.withdrawable_epoch,
+        some_future_epoch + config.EPOCHS_PER_SLASHINGS_VECTOR
+    )
 
 
 @pytest.mark.parametrize(
@@ -325,7 +328,7 @@ def test_slash_validator(genesis_state,
                 lambda penalty: (
                     penalty + (
                         state.validators[index].effective_balance //
-                        config.WHISTLEBLOWER_REWARD_QUOTIENT
+                        config.MIN_SLASHING_PENALTY_QUOTIENT
                     )
                 ),
                 default=0,
