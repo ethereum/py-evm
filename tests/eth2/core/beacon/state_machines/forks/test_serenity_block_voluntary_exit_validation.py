@@ -62,13 +62,11 @@ def test_validate_voluntary_exit(genesis_state,
 @pytest.mark.parametrize(
     (
         'validator_count',
-        'genesis_slot',
-        'genesis_epoch',
         'slots_per_epoch',
         'target_committee_size',
     ),
     [
-        (40, 8, 4, 2, 2),
+        (40, 2, 2),
     ]
 )
 @pytest.mark.parametrize(
@@ -102,13 +100,11 @@ def test_validate_validator_has_not_exited(genesis_state,
 @pytest.mark.parametrize(
     (
         'validator_count',
-        'genesis_slot',
-        'genesis_epoch',
         'slots_per_epoch',
         'target_committee_size',
     ),
     [
-        (40, 8, 4, 2, 2),
+        (40, 2, 2),
     ]
 )
 @pytest.mark.parametrize(

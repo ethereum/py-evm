@@ -30,6 +30,7 @@ from eth2.beacon.epoch_processing_helpers import (
     get_base_reward,
 )
 from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.typing import Gwei
@@ -164,10 +165,16 @@ def test_process_justification_and_finalization(genesis_state,
 
     state = genesis_state.copy(
         slot=slot,
-        previous_justified_epoch=previous_justified_epoch,
-        current_justified_epoch=current_justified_epoch,
+        previous_justified_checkpoint=Checkpoint(
+            epoch=previous_justified_epoch,
+        ),
+        current_justified_checkpoint=Checkpoint(
+            epoch=current_justified_epoch,
+        ),
         justification_bitfield=justification_bitfield,
-        finalized_epoch=finalized_epoch,
+        finalized_checkpoint=Checkpoint(
+            epoch=finalized_epoch,
+        ),
         block_roots=tuple(
             i.to_bytes(32, "little")
             for i in range(config.SLOTS_PER_HISTORICAL_ROOT)
@@ -196,10 +203,12 @@ def test_process_justification_and_finalization(genesis_state,
 
     post_state = process_justification_and_finalization(state, config)
 
-    assert post_state.previous_justified_epoch == state.current_justified_epoch
-    assert post_state.current_justified_epoch == justified_epoch_after
+    assert (
+        post_state.previous_justified_checkpoint.epoch == state.current_justified_checkpoint.epoch
+    )
+    assert post_state.current_justified_checkpoint.epoch == justified_epoch_after
     assert post_state.justification_bitfield == justification_bitfield_after
-    assert post_state.finalized_epoch == finalized_epoch_after
+    assert post_state.finalized_checkpoint.epoch == finalized_epoch_after
 
 
 @pytest.mark.parametrize(
@@ -366,7 +375,9 @@ def test_get_attestation_deltas(genesis_state,
                                 sample_attestation_data_params):
     state = genesis_state.copy(
         slot=current_slot,
-        finalized_epoch=finalized_epoch,
+        finalized_checkpoint=Checkpoint(
+            epoch=finalized_epoch,
+        )
     )
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
     epoch_start_shard = get_start_shard(
@@ -419,12 +430,14 @@ def test_get_attestation_deltas(genesis_state,
                     crosslink=Crosslink(
                         shard=shard,
                     ),
-                    target_epoch=previous_epoch,
-                    target_root=get_block_root(
-                        state,
-                        previous_epoch,
-                        config.SLOTS_PER_EPOCH,
-                        config.SLOTS_PER_HISTORICAL_ROOT,
+                    target=Checkpoint(
+                        epoch=previous_epoch,
+                        root=get_block_root(
+                            state,
+                            previous_epoch,
+                            config.SLOTS_PER_EPOCH,
+                            config.SLOTS_PER_HISTORICAL_ROOT,
+                        ),
                     ),
                     beacon_block_root=get_block_root_at_slot(
                         state,
@@ -549,7 +562,9 @@ def test_process_rewards_and_penalties_for_crosslinks(genesis_state,
             PendingAttestation(**sample_pending_attestation_record_params).copy(
                 aggregation_bits=participants_bitfield,
                 data=AttestationData(**sample_attestation_data_params).copy(
-                    target_epoch=previous_epoch,
+                    target=Checkpoint(
+                        epoch=previous_epoch,
+                    ),
                     crosslink=Crosslink(
                         shard=shard,
                         parent_root=Crosslink().root,
@@ -721,7 +736,6 @@ def test_determine_slashing_penalty(genesis_state,
         total_penalties,
         total_balance,
         state.validators[validator_index].effective_balance,
-        config.MIN_SLASHING_PENALTY_QUOTIENT,
     )
     assert penalty == expected_penalty
 
@@ -730,7 +744,6 @@ def test_determine_slashing_penalty(genesis_state,
     (
         'validator_count',
         'slots_per_epoch',
-        'genesis_slot',
         'current_epoch',
         'epochs_per_slashings_vector',
         'slashings',
@@ -742,9 +755,8 @@ def test_determine_slashing_penalty(genesis_state,
             4,
             8,
             8,
-            8,
             (2 * 10**9, 10**9) + (0,) * 6,
-            32 * 10**9 // 2**5,
+            9 * 10**8,
         ),
     ]
 )

@@ -185,7 +185,7 @@ def _determine_new_justified_epoch_and_bitfield(state: BeaconState,
         previous_epoch,
         current_epoch_justifiable,
         current_epoch,
-        state.current_justified_epoch,
+        state.current_justified_checkpoint.epoch,
         state.justification_bitfield << 1,
     )
 
@@ -278,13 +278,13 @@ def _determine_new_finalized_checkpoint(state: BeaconState,
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
 
     new_finalized_epoch = _determine_new_finalized_epoch(
-        state.finalized_epoch,
-        state.previous_justified_epoch,
-        state.current_justified_epoch,
+        state.finalized_checkpoint.epoch,
+        state.previous_justified_checkpoint.epoch,
+        state.current_justified_checkpoint.epoch,
         current_epoch,
         justification_bitfield,
     )
-    if new_finalized_epoch != state.finalized_epoch:
+    if new_finalized_epoch != state.finalized_checkpoint.epoch:
         # NOTE: we only want to call ``get_block_root``
         # upon some change, not unconditionally
         # Given the way it reads the block roots, it can cause
@@ -297,7 +297,7 @@ def _determine_new_finalized_checkpoint(state: BeaconState,
             config.SLOTS_PER_HISTORICAL_ROOT,
         )
     else:
-        new_finalized_root = state.finalized_root
+        new_finalized_root = state.finalized_checkpoint.root
 
     return Checkpoint(
         epoch=new_finalized_epoch,
