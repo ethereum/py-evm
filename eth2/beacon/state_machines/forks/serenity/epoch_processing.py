@@ -26,6 +26,7 @@ from eth2.beacon.constants import (
 )
 from eth2.beacon.committee_helpers import (
     get_crosslink_committee,
+    get_compact_committees_root,
     get_committee_count,
     get_start_shard,
     get_shard_delta,
@@ -502,13 +503,15 @@ def get_attestation_deltas(state: BeaconState,
             index,
             lambda balance, delta: balance + delta,
             (
-                max_attester_reward *
-                config.MIN_ATTESTATION_INCLUSION_DELAY //
-                attestation.inclusion_delay
+                max_attester_reward * (
+                    config.SLOTS_PER_EPOCH +
+                    config.MIN_ATTESTATION_INCLUSION_DELAY -
+                    attestation.inclusion_delay
+                ) // config.SLOTS_PER_EPOCH
             )
         )
 
-    finality_delay = previous_epoch - state.finalized_epoch
+    finality_delay = previous_epoch - state.finalized_checkpoint.epoch
     if finality_delay > config.MIN_EPOCHS_TO_INACTIVITY_PENALTY:
         matching_target_attesting_indices = get_unslashed_attesting_indices(
             state,
@@ -564,12 +567,12 @@ def get_crosslink_deltas(state: BeaconState,
     )
     for shard_offset in range(epoch_committee_count):
         shard = Shard((epoch_start_shard + shard_offset) % config.SHARD_COUNT)
-        crosslink_committee = get_crosslink_committee(
+        crosslink_committee = set(get_crosslink_committee(
             state,
             epoch,
             shard,
             CommitteeConfig(config),
-        )
+        ))
         _, attesting_indices = get_winning_crosslink_and_attesting_indices(
             state=state,
             epoch=epoch,
@@ -635,7 +638,7 @@ def _process_activation_eligibility_or_ejections(state: BeaconState,
 
     if (
         validator.activation_eligibility_epoch == FAR_FUTURE_EPOCH and
-        validator.effective_balance >= config.MAX_EFFECTIVE_BALANCE
+        validator.effective_balance == config.MAX_EFFECTIVE_BALANCE
     ):
         validator = validator.copy(
             activation_eligibility_epoch=current_epoch,
@@ -671,15 +674,18 @@ def process_registry_updates(state: BeaconState, config: Eth2Config) -> BeaconSt
         for validator in state.validators
     )
 
-    delayed_activation_exit_epoch = compute_activation_exit_epoch(
-        state.finalized_epoch,
+    activation_exit_epoch = compute_activation_exit_epoch(
+        state.finalized_checkpoint.epoch,
         config.ACTIVATION_EXIT_DELAY,
     )
-    activation_queue = sorted([
-        index for index, validator in enumerate(new_validators) if
-        validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH and
-        validator.activation_epoch >= delayed_activation_exit_epoch
-    ], key=lambda index: new_validators[index].activation_eligibility_epoch)
+    activation_queue = sorted(
+        (
+            index for index, validator in enumerate(new_validators) if
+            validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH and
+            validator.activation_epoch >= activation_exit_epoch
+        ),
+        key=lambda index: new_validators[index].activation_eligibility_epoch,
+    )
 
     for index in activation_queue[:get_validator_churn_limit(state, config)]:
         new_validators = update_tuple_item_with_fn(
@@ -695,35 +701,23 @@ def process_registry_updates(state: BeaconState, config: Eth2Config) -> BeaconSt
 
 def _determine_slashing_penalty(total_penalties: Gwei,
                                 total_balance: Gwei,
-                                balance: Gwei,
-                                min_slashing_penalty_quotient: int) -> Gwei:
-    collective_penalty = min(total_penalties * 3, total_balance) // total_balance
-    return Gwei(
-        max(
-            balance * collective_penalty,
-            balance // min_slashing_penalty_quotient
-        )
-    )
+                                balance: Gwei) -> Gwei:
+    return balance * min(
+        total_penalties * 3,
+        total_balance,
+    ) // total_balance
 
 
 def process_slashings(state: BeaconState, config: Eth2Config) -> BeaconState:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     total_balance = get_total_active_balance(state, config)
 
-    start_index = (current_epoch + 1) % config.EPOCHS_PER_SLASHINGS_VECTOR
-    total_at_start = state.slashings[start_index]
-
-    end_index = current_epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
-    total_at_end = state.slashings[end_index]
-
-    total_penalties = total_at_end - total_at_start
-
     slashing_period = config.EPOCHS_PER_SLASHINGS_VECTOR // 2
     for index, validator in enumerate(state.validators):
         index = ValidatorIndex(index)
-        if validator.slashed and current_epoch == validator.withdrawable_epoch - slashing_period:
+        if validator.slashed and current_epoch + slashing_period == validator.withdrawable_epoch:
             penalty = _determine_slashing_penalty(
-                total_penalties,
+                sum(state.slashings),
                 total_balance,
                 validator.effective_balance,
                 config.MIN_SLASHING_PENALTY_QUOTIENT,
@@ -791,15 +785,23 @@ def _compute_next_active_index_roots(state: BeaconState, config: Eth2Config) -> 
     )
 
 
+def _compute_next_compact_committee_roots(state: BeaconState,
+                                          config: Eth2Config) -> Tuple[Hash32, ...]:
+    next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
+    committee_root_position = next_epoch % config.EPOCHS_PER_HISTORICAL_VECTOR
+    return update_tuple_item(
+        state.compact_commmittees_roots,
+        committee_root_position,
+        get_compact_committees_root(state, next_epoch, CommitteeConfig(config)),
+    )
+
+
 def _compute_next_slashings(state: BeaconState, config: Eth2Config) -> Tuple[Gwei, ...]:
-    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
     return update_tuple_item(
         state.slashings,
         next_epoch % config.EPOCHS_PER_SLASHINGS_VECTOR,
-        state.slashings[
-            current_epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
-        ],
+        Gwei(0),
     )
 
 
@@ -826,7 +828,7 @@ def _compute_next_historical_roots(state: BeaconState, config: Eth2Config) -> Tu
             block_roots=state.block_roots,
             state_roots=state.state_roots,
         )
-        new_historical_roots = state.historical_roots + (historical_batch.root,)
+        new_historical_roots += (historical_batch.root,)
     return new_historical_roots
 
 
@@ -835,6 +837,7 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
     new_validators = _update_effective_balances(state, config)
     new_start_shard = _compute_next_start_shard(state, config)
     new_active_index_roots = _compute_next_active_index_roots(state, config)
+    new_compact_committees_roots = _compute_next_compact_committee_roots(state, config)
     new_slashings = _compute_next_slashings(state, config)
     new_randao_mixes = _compute_next_randao_mixes(state, config)
     new_historical_roots = _compute_next_historical_roots(state, config)
@@ -844,6 +847,7 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
         validators=new_validators,
         start_shard=new_start_shard,
         active_index_roots=new_active_index_roots,
+        compact_committees_roots=new_compact_committees_roots,
         slashings=new_slashings,
         randao_mixes=new_randao_mixes,
         historical_roots=new_historical_roots,
