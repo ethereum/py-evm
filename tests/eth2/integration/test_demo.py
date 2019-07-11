@@ -68,10 +68,6 @@ def test_demo(base_db,
     chaindb = BeaconChainDB(base_db, config)
     attestation_pool = AttestationPool()
 
-    # TODO(ralexstokes) clean up how the cache is populated
-    for i in range(validator_count):
-        pubkeys[i]
-
     genesis_state, genesis_block = create_mock_genesis(
         num_validators=validator_count,
         config=config,
