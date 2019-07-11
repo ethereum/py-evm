@@ -54,6 +54,7 @@ from eth2.beacon.helpers import (
 from eth2.beacon.validator_status_helpers import (
     initiate_exit_for_validator,
 )
+from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.historical_batch import HistoricalBatch
 from eth2.beacon.types.pending_attestations import PendingAttestation
@@ -192,10 +193,8 @@ def _determine_new_justified_epoch_and_bitfield(state: BeaconState,
     )
 
 
-def _determine_new_justified_checkpoint_and_bitfield(
-        state: BeaconState,
-        config: Eth2Config) -> Tuple[Epoch, Hash32, int]:
-
+def _determine_new_justified_checkpoint_and_bitfield(state: BeaconState,
+                                                     config: Eth2Config) -> Tuple[Checkpoint, int]:
     (
         new_current_justified_epoch,
         justification_bitfield,
@@ -212,8 +211,10 @@ def _determine_new_justified_checkpoint_and_bitfield(
     )
 
     return (
-        new_current_justified_epoch,
-        new_current_justified_root,
+        Checkpoint(
+            epoch=new_current_justified_epoch,
+            root=new_current_justified_root,
+        ),
         justification_bitfield,
     )
 
@@ -271,7 +272,7 @@ def _determine_new_finalized_epoch(last_finalized_epoch: Epoch,
 
 def _determine_new_finalized_checkpoint(state: BeaconState,
                                         justification_bitfield: int,
-                                        config: Eth2Config) -> Tuple[Epoch, Hash32]:
+                                        config: Eth2Config) -> Checkpoint:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
 
     new_finalized_epoch = _determine_new_finalized_epoch(
@@ -296,9 +297,9 @@ def _determine_new_finalized_checkpoint(state: BeaconState,
     else:
         new_finalized_root = state.finalized_root
 
-    return (
-        new_finalized_epoch,
-        new_finalized_root,
+    return Checkpoint(
+        epoch=new_finalized_epoch,
+        root=new_finalized_root,
     )
 
 
@@ -310,31 +311,24 @@ def process_justification_and_finalization(state: BeaconState, config: Eth2Confi
         return state
 
     (
-        new_current_justified_epoch,
-        new_current_justified_root,
+        new_current_justified_checkpoint,
         justification_bitfield,
     ) = _determine_new_justified_checkpoint_and_bitfield(
         state,
         config,
     )
 
-    (
-        new_finalized_epoch,
-        new_finalized_root,
-    ) = _determine_new_finalized_checkpoint(
+    new_finalized_checkpoint = _determine_new_finalized_checkpoint(
         state,
         justification_bitfield,
         config,
     )
 
     return state.copy(
-        previous_justified_epoch=state.current_justified_epoch,
-        previous_justified_root=state.current_justified_root,
-        current_justified_epoch=new_current_justified_epoch,
-        current_justified_root=new_current_justified_root,
         justification_bitfield=justification_bitfield,
-        finalized_epoch=new_finalized_epoch,
-        finalized_root=new_finalized_root,
+        previous_justified_checkpoint=state.current_justified_checkpoint,
+        current_justified_checkpoint=new_current_justified_checkpoint,
+        finalized_checkpoint=new_finalized_checkpoint,
     )
 
 
@@ -373,12 +367,12 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
         )
         for shard_offset in range(epoch_committee_count):
             shard = Shard((epoch_start_shard + shard_offset) % config.SHARD_COUNT)
-            crosslink_committee = get_crosslink_committee(
+            crosslink_committee = set(get_crosslink_committee(
                 state,
                 epoch,
                 shard,
                 CommitteeConfig(config),
-            )
+            ))
 
             if not crosslink_committee:
                 # empty crosslink committee this epoch
