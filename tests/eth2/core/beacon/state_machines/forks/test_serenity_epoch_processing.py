@@ -700,23 +700,22 @@ def test_process_registry_updates(validator_count,
     (
         'total_penalties',
         'total_balance',
-        'min_slashing_penalty_quotient',
         'expected_penalty',
     ),
     [
+        # total_penalties * 3 is less than total_balance
         (
             10**9,  # 1 ETH
             (32 * 10**9 * 10),
-            2**5,
-            # effective_balance // MIN_SLASHING_PENALTY_QUOTIENT,
-            32 * 10**9 // 2**5,
+            # effective_balance * total_penalties * 3 // total_balance
+            (32 * 10**9) * (3 * 10**9) // (32 * 10**9 * 10),
         ),
+        # total_balance is less than total_penalties * 3
         (
-            32 * 4 * 10**9,  # 3 * total_penalties > total_balance
+            32 * 4 * 10**9,
             (32 * 10**9 * 10),
-            2**10,  # Make MIN_SLASHING_PENALTY_QUOTIENT greater
-            # effective_balance * min(total_penalties * 3, total_balance) // total_balance,
-            32 * 10**9 * min(32 * 4 * 10**9 * 3, (32 * 10**9 * 10)) // (32 * 10**9 * 10),
+            # effective_balance * total_balance // total_balance,
+            (32 * 10**9) * (32 * 10**9 * 10) // (32 * 10**9 * 10),
         ),
     ]
 )
@@ -731,6 +730,8 @@ def test_determine_slashing_penalty(genesis_state,
     state = genesis_state.copy(
         slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch),
     )
+    # if the size of the v-set changes then update the parameters above
+    assert len(state.validators) == 10
     validator_index = 0
     penalty = _determine_slashing_penalty(
         total_penalties,
