@@ -275,6 +275,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-eth2-core
+  py36-eth2-utils:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-eth2-utils
   py36-eth2-fixtures:
     <<: *common
     docker:
@@ -361,6 +367,12 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-eth2-core
+  py37-eth2-utils:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-eth2-utils
   py37-eth2-fixtures:
     <<: *common
     docker:
