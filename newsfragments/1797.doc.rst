@@ -1,1 +1,3 @@
 Tweak layout of API docs to improve readability
+
+Group API docs by member (methods, attributes)
