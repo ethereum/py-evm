@@ -9,6 +9,10 @@ from eth_typing import (
 
 import ssz
 
+from eth2.beacon.constants import (
+    SECONDS_PER_DAY,
+    DEPOSIT_CONTRACT_TREE_DEPTH,
+)
 from eth2.beacon.deposit_helpers import (
     process_deposit,
 )
@@ -61,7 +65,7 @@ def genesis_state_with_active_index_roots(state: BeaconState, config: Eth2Config
     )
     active_index_root = ssz.hash_tree_root(
         active_validator_indices,
-        ssz.sedes.List(ssz.uint64),
+        List(ssz.uint64, config.VALIDATOR_REGISTRY_LIMIT),
     )
     active_index_roots = (
         (active_index_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
@@ -80,15 +84,19 @@ def genesis_state_with_active_index_roots(state: BeaconState, config: Eth2Config
     )
 
 
-def get_genesis_beacon_state(*,
-                             genesis_deposits: Sequence[Deposit],
-                             genesis_time: Timestamp,
-                             genesis_eth1_data: Eth1Data,
-                             config: Eth2Config) -> BeaconState:
+def _genesis_time_from_eth1_timestamp(eth1_timestamp: Timestamp) -> Timestamp:
+    return Timestamp(
+        eth1_timestamp - eth1_timestamp % SECONDS_PER_DAY + 2 * SECONDS_PER_DAY,
+    )
+
+
+def initialize_beacon_state_from_eth1(*,
+                                      eth1_block_hash: Hash32,
+                                      eth1_timestamp: Timestamp,
+                                      deposits: Sequence[Deposit],
+                                      config: Eth2Config) -> BeaconState:
     state = BeaconState(
-        genesis_time=Timestamp(
-            eth1_timestamp - eth1_timestamp % SECONDS_PER_DAY + 2 * SECONDS_PER_DAY,
-        ),
+        genesis_time=_genesis_time_from_eth1_timestamp(eth1_timestamp),
         eth1_data=Eth1Data(
             block_hash=eth1_block_hash,
             deposit_count=len(deposits),
@@ -100,7 +108,19 @@ def get_genesis_beacon_state(*,
     )
 
     # Process genesis deposits
-    for deposit in genesis_deposits:
+    for index, deposit in enumerate(deposits):
+        deposit_data_list = tuple(
+            deposit.data
+            for deposit in deposits[:index + 1]
+        )
+        state = state.copy(
+            eth1_data=state.eth1_data.copy(
+                deposit_root=ssz.hash_tree_root(
+                    deposit_data_list,
+                    List(DepositData, 2**DEPOSIT_CONTRACT_TREE_DEPTH),
+                ),
+            ),
+        )
         state = process_deposit(
             state=state,
             deposit=deposit,

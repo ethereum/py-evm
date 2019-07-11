@@ -15,6 +15,9 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
+from eth2._utils.hash import (
+    hash_eth2,
+)
 from eth2._utils.merkle.common import (
     get_merkle_proof,
 )
@@ -87,17 +90,21 @@ def create_mock_deposits_and_root(
         deposit_data_leaves += (item,)
         deposit_datas += (deposit_data,)
 
-    tree = calc_merkle_tree_from_leaves(deposit_data_leaves)
+    deposits: Tuple[Deposit, ...] = tuple()
+    for index, data in enumerate(deposit_datas):
+        length_mix_in = Hash32((index + 1).to_bytes(32, byteorder="little"))
+        tree = calc_merkle_tree_from_leaves(deposit_data_leaves[:index + 1])
 
-    deposits = tuple(
-        Deposit(
-            proof=get_merkle_proof(tree, item_index=i),
+        deposit = Deposit(
+            proof=(
+                get_merkle_proof(tree, item_index=index) + (length_mix_in,)
+            ),
             data=data,
         )
-        for i, data in enumerate(deposit_datas)
-    )
+        deposits += (deposit,)
 
-    return deposits, get_root(tree)
+    tree_root = get_root(tree)
+    return deposits, hash_eth2(tree_root + length_mix_in)
 
 
 def create_mock_deposit(state: BeaconState,
