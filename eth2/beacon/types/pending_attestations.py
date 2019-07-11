@@ -1,6 +1,6 @@
 import ssz
 from ssz.sedes import (
-    byte_list,
+    Bitlist,
     uint64,
 )
 
@@ -23,7 +23,7 @@ from .defaults import (
 class PendingAttestation(ssz.Serializable):
 
     fields = [
-        ('aggregation_bits', byte_list),
+        ('aggregation_bits', Bitlist(1)),
         ('data', AttestationData),
         ('inclusion_delay', uint64),
         ('proposer_index', uint64),

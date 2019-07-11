@@ -21,8 +21,8 @@ from .defaults import (
 class CompactCommittee(ssz.Serializable):
 
     fields = [
-        ('pubkeys', List(bytes48)),
-        ('compact_validators', List(uint64)),
+        ('pubkeys', List(bytes48, 1)),
+        ('compact_validators', List(uint64, 1)),
     ]
 
     def __init__(self,

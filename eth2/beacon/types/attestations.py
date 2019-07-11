@@ -4,7 +4,7 @@ from typing import (
 
 import ssz
 from ssz.sedes import (
-    byte_list,
+    Bitlist,
     bytes96,
     List,
     uint64,
@@ -33,14 +33,13 @@ from .defaults import (
 class Attestation(ssz.Serializable):
 
     fields = [
-        ('aggregation_bits', byte_list),
+        ('aggregation_bits', Bitlist(1)),
         ('data', AttestationData),
-        ('custody_bits', byte_list),
+        ('custody_bits', Bitlist(1)),
         ('signature', bytes96),
     ]
 
-    def __init__(self,
-                 aggregation_bits: Bitfield=default_bitfield,
+    def __init__(self, aggregation_bits: Bitfield=default_bitfield,
                  data: AttestationData=default_attestation_data,
                  custody_bits: Bitfield=default_bitfield,
                  signature: BLSSignature=EMPTY_SIGNATURE) -> None:
@@ -59,8 +58,8 @@ class IndexedAttestation(ssz.Serializable):
 
     fields = [
         # Validator indices
-        ('custody_bit_0_indices', List(uint64)),
-        ('custody_bit_1_indices', List(uint64)),
+        ('custody_bit_0_indices', List(uint64, 1)),
+        ('custody_bit_1_indices', List(uint64, 1)),
         # Attestation data
         ('data', AttestationData),
         # Aggregate signature

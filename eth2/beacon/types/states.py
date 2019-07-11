@@ -84,16 +84,16 @@ class BeaconState(ssz.Serializable):
         ('latest_block_header', BeaconBlockHeader),
         ('block_roots', Vector(bytes32, 1)),  # Needed to process attestations, older to newer  # noqa: E501
         ('state_roots', Vector(bytes32, 1)),
-        ('historical_roots', List(bytes32)),  # allow for a log-sized Merkle proof from any block to any historical block root  # noqa: E501
+        ('historical_roots', List(bytes32, 1)),  # allow for a log-sized Merkle proof from any block to any historical block root  # noqa: E501
 
         # Ethereum 1.0 chain
         ('eth1_data', Eth1Data),
-        ('eth1_data_votes', List(Eth1Data)),
+        ('eth1_data_votes', List(Eth1Data, 1)),
         ('eth1_deposit_index', uint64),
 
         # Validator registry
-        ('validators', List(Validator)),
-        ('balances', List(uint64)),
+        ('validators', List(Validator, 1)),
+        ('balances', List(uint64, 1)),
 
         # Shuffling
         ('start_shard', uint64),
@@ -105,17 +105,15 @@ class BeaconState(ssz.Serializable):
         ('slashings', Vector(uint64, 1)),  # Balances slashed at every withdrawal period  # noqa: E501
 
         # Attestations
-        ('previous_epoch_attestations', List(PendingAttestation)),
-        ('current_epoch_attestations', List(PendingAttestation)),
+        ('previous_epoch_attestations', List(PendingAttestation, 1)),
+        ('current_epoch_attestations', List(PendingAttestation, 1)),
 
         # Crosslinks
         ('previous_crosslinks', Vector(Crosslink, 1)),
         ('current_crosslinks', Vector(Crosslink, 1)),
 
         # Justification
-        # Note: justification_bitfield is meant to be defined as an integer type,
-        # so its bit operation is in Python and is easier to specify and implement.
-        ('justification_bitfield', uint64),
+        ('justification_bits', Bitvector(JUSTIFICATION_BITS_LENGTH)),
         ('previous_justified_checkpoint', Checkpoint),
         ('current_justified_checkpoint', Checkpoint),
 

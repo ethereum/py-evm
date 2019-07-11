@@ -69,12 +69,12 @@ class BeaconBlockBody(ssz.Serializable):
         ('randao_reveal', bytes96),
         ('eth1_data', Eth1Data),
         ('graffiti', bytes32),
-        ('proposer_slashings', List(ProposerSlashing)),
-        ('attester_slashings', List(AttesterSlashing)),
-        ('attestations', List(Attestation)),
-        ('deposits', List(Deposit)),
-        ('voluntary_exits', List(VoluntaryExit)),
-        ('transfers', List(Transfer)),
+        ('proposer_slashings', List(ProposerSlashing, 1)),
+        ('attester_slashings', List(AttesterSlashing, 1)),
+        ('attestations', List(Attestation, 1)),
+        ('deposits', List(Deposit, 1)),
+        ('voluntary_exits', List(VoluntaryExit, 1)),
+        ('transfers', List(Transfer, 1)),
     ]
 
     def __init__(self,

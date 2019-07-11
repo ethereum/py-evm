@@ -815,7 +815,7 @@ def test_update_active_index_roots(genesis_state,
             state.validators,
             compute_epoch_of_slot(state.slot, slots_per_epoch),
         ),
-        ssz.sedes.List(ssz.uint64),
+        ssz.sedes.List(ssz.uint64, config.VALIDATOR_REGISTRY_LIMIT),
     )
 
     target_epoch = state.next_epoch(slots_per_epoch) + activation_exit_delay
