@@ -142,5 +142,5 @@ def test_demo(base_db,
     assert state.slot == chain_length + genesis_slot
 
     # Justification assertions
-    assert state.current_justified_epoch == genesis_epoch
-    assert state.finalized_epoch == genesis_epoch
+    assert state.current_justified_checkpoint.epoch == genesis_epoch
+    assert state.finalized_checkpoint.epoch == genesis_epoch
