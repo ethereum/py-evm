@@ -1,6 +1,9 @@
 from eth_typing import (
     Hash32,
 )
+from eth_utils import (
+    encode_hex,
+)
 
 from eth.constants import (
     ZERO_HASH32,
@@ -35,6 +38,9 @@ class Checkpoint(ssz.Serializable):
             epoch=epoch,
             root=root,
         )
+
+    def __str__(self) -> str:
+        return f"({self.epoch}, {encode_hex(self.root)[0:8]})"
 
 
 default_checkpoint = Checkpoint()
