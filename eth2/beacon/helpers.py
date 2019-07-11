@@ -26,7 +26,7 @@ from eth2.beacon.typing import (
     ValidatorIndex,
     Version,
     default_version,
-    Domain,
+    # Domain,
 )
 from eth2.configs import (
     CommitteeConfig,
@@ -129,8 +129,8 @@ def _epoch_for_seed(epoch: Epoch) -> Hash32:
     return Hash32(epoch.to_bytes(32, byteorder="little"))
 
 
-RandaoProvider = Callable[['BeaconState', Epoch, int, int], Hash32]
-ActiveIndexRootProvider = Callable[['BeaconState', Epoch, int, int, int], Hash32]
+RandaoProvider = Callable[['BeaconState', Epoch, int], Hash32]
+ActiveIndexRootProvider = Callable[['BeaconState', Epoch, int], Hash32]
 
 
 def _get_seed(state: 'BeaconState',
@@ -146,14 +146,11 @@ def _get_seed(state: 'BeaconState',
             committee_config.EPOCHS_PER_HISTORICAL_VECTOR -
             committee_config.MIN_SEED_LOOKAHEAD
         ),
-        committee_config.SLOTS_PER_EPOCH,
         committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
     )
     active_index_root = active_index_root_provider(
         state,
         epoch,
-        committee_config.SLOTS_PER_EPOCH,
-        committee_config.ACTIVATION_EXIT_DELAY,
         committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
     )
     epoch_as_bytes = epoch_provider(epoch)
@@ -193,7 +190,7 @@ def get_total_balance(state: 'BeaconState',
     )
 
 
-def _get_fork_version(fork: Fork, epoch: Epoch) -> bytes:
+def _get_fork_version(fork: Fork, epoch: Epoch) -> Version:
     """
     Return the current ``fork_version`` from the given ``fork`` and ``epoch``.
     """
@@ -203,14 +200,14 @@ def _get_fork_version(fork: Fork, epoch: Epoch) -> bytes:
         return fork.current_version
 
 
-def compute_domain(domain_type: SignatureDomain, fork_version: Version=default_version) -> Domain:
-    return Domain(domain_type.to_bytes(4, 'little') + fork_version)
+def compute_domain(domain_type: SignatureDomain, fork_version: Version=default_version) -> int:
+    return int.from_bytes(domain_type.to_bytes(4, 'little') + fork_version, byteorder="little")
 
 
 def get_domain(state: 'BeaconState',
                domain_type: SignatureDomain,
                slots_per_epoch: int,
-               message_epoch: Epoch=None) -> Domain:
+               message_epoch: Epoch=None) -> int:
     """
     Return the domain number of the current fork and ``domain_type``.
     """

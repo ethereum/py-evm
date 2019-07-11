@@ -1,5 +1,6 @@
 from typing import (
     Sequence,
+    Set,
     Tuple,
 )
 
@@ -334,8 +335,8 @@ def process_justification_and_finalization(state: BeaconState, config: Eth2Confi
 
 
 def _is_threshold_met_against_committee(state: BeaconState,
-                                        attesting_indices: Sequence[ValidatorIndex],
-                                        committee: Sequence[ValidatorIndex]) -> bool:
+                                        attesting_indices: Set[ValidatorIndex],
+                                        committee: Set[ValidatorIndex]) -> bool:
     total_attesting_balance = get_total_balance(
         state,
         attesting_indices,
@@ -702,10 +703,12 @@ def process_registry_updates(state: BeaconState, config: Eth2Config) -> BeaconSt
 def _determine_slashing_penalty(total_penalties: Gwei,
                                 total_balance: Gwei,
                                 balance: Gwei) -> Gwei:
-    return balance * min(
-        total_penalties * 3,
-        total_balance,
-    ) // total_balance
+    return Gwei(
+        balance * min(
+            total_penalties * 3,
+            total_balance,
+        ) // total_balance
+    )
 
 
 def process_slashings(state: BeaconState, config: Eth2Config) -> BeaconState:
@@ -717,10 +720,9 @@ def process_slashings(state: BeaconState, config: Eth2Config) -> BeaconState:
         index = ValidatorIndex(index)
         if validator.slashed and current_epoch + slashing_period == validator.withdrawable_epoch:
             penalty = _determine_slashing_penalty(
-                sum(state.slashings),
+                Gwei(sum(state.slashings)),
                 total_balance,
                 validator.effective_balance,
-                config.MIN_SLASHING_PENALTY_QUOTIENT,
             )
             state = decrease_balance(state, index, penalty)
     return state
@@ -814,7 +816,6 @@ def _compute_next_randao_mixes(state: BeaconState, config: Eth2Config) -> Tuple[
         get_randao_mix(
             state,
             current_epoch,
-            config.SLOTS_PER_EPOCH,
             config.EPOCHS_PER_HISTORICAL_VECTOR,
         ),
     )

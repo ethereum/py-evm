@@ -249,7 +249,7 @@ def _score_crosslink(state: BeaconState,
 def _find_winning_crosslink_and_attesting_indices_from_candidates(
         state: BeaconState,
         candidate_attestations: Sequence[PendingAttestation],
-        config: Eth2Config) -> Tuple[Crosslink, Tuple[ValidatorIndex, ...]]:
+        config: Eth2Config) -> Tuple[Crosslink, Set[ValidatorIndex]]:
     attestations_by_crosslink = groupby(
         lambda a: a.data.crosslink,
         candidate_attestations,
@@ -321,7 +321,7 @@ def get_winning_crosslink_and_attesting_indices(
         state: BeaconState,
         epoch: Epoch,
         shard: Shard,
-        config: Eth2Config) -> Tuple[Hash32, Tuple[ValidatorIndex, ...]]:
+        config: Eth2Config) -> Tuple[Crosslink, Set[ValidatorIndex]]:
     candidate_attestations = _find_candidate_attestations_for_shard(state, epoch, shard, config)
 
     return _find_winning_crosslink_and_attesting_indices_from_candidates(

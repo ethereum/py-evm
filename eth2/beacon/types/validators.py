@@ -27,7 +27,7 @@ from .defaults import (
 )
 
 
-def _round_down_to_previous_multiple(amount: int, increment: int) -> int:
+def round_down_to_previous_multiple(amount: int, increment: int) -> int:
     return amount - amount % increment
 
 
@@ -99,7 +99,7 @@ class Validator(ssz.Serializable):
             withdrawal_credentials=withdrawal_credentials,
             effective_balance=Gwei(
                 min(
-                    _round_down_to_previous_multiple(
+                    round_down_to_previous_multiple(
                         amount,
                         config.EFFECTIVE_BALANCE_INCREMENT,
                     ),

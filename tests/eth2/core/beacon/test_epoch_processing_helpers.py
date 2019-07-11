@@ -164,8 +164,8 @@ def test_compute_activation_exit_epoch(activation_exit_delay):
     ],
 )
 def test_get_validator_churn_limit(genesis_state,
-                         expected_churn_limit,
-                         config):
+                                   expected_churn_limit,
+                                   config):
     assert get_validator_churn_limit(genesis_state, config) == expected_churn_limit
 
 

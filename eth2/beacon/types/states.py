@@ -69,7 +69,6 @@ from .defaults import (
     default_tuple,
     default_tuple_of_size,
     default_shard,
-    default_epoch,
 )
 
 

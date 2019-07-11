@@ -59,6 +59,7 @@ from eth2.beacon.types.attestation_data_and_custody_bits import (
 )
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BeaconBlockHeader
+from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.pending_attestations import PendingAttestation
@@ -92,8 +93,10 @@ def _mk_pending_attestation(bitfield: Bitfield=default_bitfield,
     return PendingAttestation(
         aggregation_bits=bitfield,
         data=AttestationData(
-            target_epoch=target_epoch,
-            target_root=target_root,
+            target=Checkpoint(
+                epoch=target_epoch,
+                root=target_root,
+            ),
             crosslink=Crosslink(
                 shard=shard,
                 parent_root=parent_root,
@@ -395,13 +398,17 @@ def create_mock_slashable_attestation(state: BeaconState,
 
     attestation_data = AttestationData(
         beacon_block_root=beacon_block_root,
-        source_epoch=state.current_justified_epoch,
-        source_root=source_root,
-        target_epoch=compute_epoch_of_slot(
-            attestation_slot,
-            config.SLOTS_PER_EPOCH,
+        source=Checkpoint(
+            epoch=state.current_justified_epoch,
+            root=source_root,
         ),
-        target_root=target_root,
+        target=Checkpoint(
+            epoch=compute_epoch_of_slot(
+                attestation_slot,
+                config.SLOTS_PER_EPOCH,
+            ),
+            root=target_root,
+        ),
         crosslink=previous_crosslink,
     )
 
@@ -644,10 +651,14 @@ def create_signed_attestation_at_slot(state: BeaconState,
 
     attestation_data = AttestationData(
         beacon_block_root=beacon_block_root,
-        source_epoch=state.current_justified_epoch,
-        source_root=state.current_justified_root,
-        target_root=target_root,
-        target_epoch=target_epoch,
+        source=Checkpoint(
+            epoch=state.current_justified_epoch,
+            root=state.current_justified_root,
+        ),
+        target=Checkpoint(
+            root=target_root,
+            epoch=target_epoch,
+        ),
         crosslink=Crosslink(
             shard=shard,
             parent_root=parent_crosslink.root,
@@ -699,10 +710,14 @@ def create_mock_signed_attestations_at_slot(
 
         attestation_data = AttestationData(
             beacon_block_root=beacon_block_root,
-            source_epoch=state.current_justified_epoch,
-            source_root=state.current_justified_root,
-            target_root=target_root,
-            target_epoch=target_epoch,
+            source=Checkpoint(
+                epoch=state.current_justified_epoch,
+                root=state.current_justified_root,
+            ),
+            target=Checkpoint(
+                root=target_root,
+                epoch=target_epoch,
+            ),
             crosslink=Crosslink(
                 shard=shard,
                 parent_root=parent_crosslink.root,

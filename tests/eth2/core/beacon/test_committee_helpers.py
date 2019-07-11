@@ -77,10 +77,10 @@ def test_get_committees_per_slot(active_validator_count,
     ],
 )
 def test_get_committee_count(active_validator_count,
-                                   slots_per_epoch,
-                                   target_committee_size,
-                                   shard_count,
-                                   expected_committee_count):
+                             slots_per_epoch,
+                             target_committee_size,
+                             shard_count,
+                             expected_committee_count):
     assert expected_committee_count == get_committee_count(
         active_validator_count=active_validator_count,
         shard_count=shard_count,
@@ -131,10 +131,10 @@ def test_get_shard_delta(genesis_state,
     ],
 )
 def test_get_start_shard(genesis_state,
-                               current_epoch,
-                               target_epoch,
-                               expected_epoch_start_shard,
-                               config):
+                         current_epoch,
+                         target_epoch,
+                         expected_epoch_start_shard,
+                         config):
     state = genesis_state.copy(
         slot=compute_start_slot_of_epoch(current_epoch, config.SLOTS_PER_EPOCH),
     )

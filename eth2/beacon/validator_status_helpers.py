@@ -148,6 +148,10 @@ def slash_validator(state: BeaconState,
     whistleblower_reward = Gwei(slashed_balance // config.WHISTLEBLOWER_REWARD_QUOTIENT)
     proposer_reward = Gwei(whistleblower_reward // config.PROPOSER_REWARD_QUOTIENT)
     state = increase_balance(state, proposer_index, proposer_reward)
-    state = increase_balance(state, whistleblower_index, whistleblower_reward - proposer_reward)
+    state = increase_balance(
+        state,
+        whistleblower_index,
+        Gwei(whistleblower_reward - proposer_reward),
+    )
 
     return state

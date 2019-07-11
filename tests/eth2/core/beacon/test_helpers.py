@@ -267,16 +267,14 @@ def test_get_domain(previous_version,
 
 
 def test_get_seed(genesis_state,
-                       committee_config,
-                       slots_per_epoch,
-                       min_seed_lookahead,
-                       activation_exit_delay,
-                       epochs_per_historical_vector):
+                  committee_config,
+                  slots_per_epoch,
+                  min_seed_lookahead,
+                  activation_exit_delay,
+                  epochs_per_historical_vector):
     def mock_get_randao_mix(state,
                             epoch,
-                            slots_per_epoch,
-                            epochs_per_historical_vector,
-                            perform_validation=False):
+                            epochs_per_historical_vector):
         return hash_eth2(
             state.root +
             epoch.to_bytes(32, byteorder='little') +
@@ -285,8 +283,6 @@ def test_get_seed(genesis_state,
 
     def mock_get_active_index_root(state,
                                    epoch,
-                                   slots_per_epoch,
-                                   activation_exit_delay,
                                    epochs_per_historical_vector):
         return hash_eth2(
             state.root +

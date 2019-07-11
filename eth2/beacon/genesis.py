@@ -26,6 +26,7 @@ from eth2.beacon.types.block_headers import (
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.validators import round_down_to_previous_multiple
 from eth2.beacon.typing import (
     Timestamp,
     ValidatorIndex,
@@ -35,6 +36,7 @@ from eth2.beacon.validator_status_helpers import (
 )
 from eth2.configs import (
     Eth2Config,
+    CommitteeConfig,
 )
 
 
@@ -57,12 +59,20 @@ def genesis_state_with_active_index_roots(state: BeaconState, config: Eth2Config
         state.validators,
         config.GENESIS_EPOCH,
     )
-    genesis_active_index_root = ssz.hash_tree_root(
+    active_index_root = ssz.hash_tree_root(
         active_validator_indices,
         ssz.sedes.List(ssz.uint64),
     )
     active_index_roots = (
-        (genesis_active_index_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
+        (active_index_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
+    )
+    committee_root = get_compact_committees_root(
+        state,
+        config.GENESIS_EPOCH,
+        CommitteeConfig(config),
+    )
+    compact_committee_roots = (
+        (committee_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
     )
     return state.copy(
         active_index_roots=active_index_roots,
@@ -75,8 +85,13 @@ def get_genesis_beacon_state(*,
                              genesis_eth1_data: Eth1Data,
                              config: Eth2Config) -> BeaconState:
     state = BeaconState(
-        genesis_time=genesis_time,
-        eth1_data=genesis_eth1_data,
+        genesis_time=Timestamp(
+            eth1_timestamp - eth1_timestamp % SECONDS_PER_DAY + 2 * SECONDS_PER_DAY,
+        ),
+        eth1_data=Eth1Data(
+            block_hash=eth1_block_hash,
+            deposit_count=len(deposits),
+        ),
         latest_block_header=BeaconBlockHeader(
             body_root=BeaconBlockBody().root,
         ),
@@ -94,9 +109,25 @@ def get_genesis_beacon_state(*,
     # Process genesis activations
     for validator_index in range(len(state.validators)):
         validator_index = ValidatorIndex(validator_index)
-        effective_balance = state.validators[validator_index].effective_balance
-        is_enough_effective_balance = effective_balance >= config.MAX_EFFECTIVE_BALANCE
-        if is_enough_effective_balance:
+        balance = state.balances[validator_index]
+        effective_balance = Gwei(
+            min(
+                round_down_to_previous_multiple(
+                    balance,
+                    config.EFFECTIVE_BALANCE_INCREMENT,
+                ),
+                config.MAX_EFFECTIVE_BALANCE,
+            )
+        )
+
+        state = state.update_validator_with_fn(
+            validator_index,
+            lambda v, *_: v.copy(
+                effective_balance=effective_balance,
+            ),
+        )
+
+        if effective_balance == config.MAX_EFFECTIVE_BALANCE:
             state = state.update_validator_with_fn(
                 validator_index,
                 activate_validator,

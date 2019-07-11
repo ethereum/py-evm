@@ -86,7 +86,6 @@ def process_randao(state: BeaconState,
         get_randao_mix(
             state=state,
             epoch=epoch,
-            slots_per_epoch=config.SLOTS_PER_EPOCH,
             epochs_per_historical_vector=config.EPOCHS_PER_HISTORICAL_VECTOR,
         ),
         hash_eth2(block.body.randao_reveal),

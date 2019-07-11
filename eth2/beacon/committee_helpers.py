@@ -10,6 +10,7 @@ from eth_utils import (
 )
 from eth_typing import (
     Hash32,
+    BLSPubkey,
 )
 
 import ssz
@@ -270,8 +271,8 @@ def _compute_compact_committee_for_shard_in_epoch(state: BeaconState,
                                                   config: CommitteeConfig) -> CompactCommittee:
     effective_balance_increment = config.EFFECTIVE_BALANCE_INCREMENT
 
-    pubkeys = tuple()
-    compact_validators = tuple()
+    pubkeys: Tuple[BLSPubkey, ...] = tuple()
+    compact_validators: Tuple[int, ...] = tuple()
     for index in get_crosslink_committee(state, epoch, shard, config):
         validator = state.validators[index]
         pubkeys += (validator.pubkey,)

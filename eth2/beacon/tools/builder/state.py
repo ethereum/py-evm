@@ -4,8 +4,8 @@ from typing import (
 
 from eth2.configs import Eth2Config
 from eth2.beacon.genesis import (
-    genesis_state_with_active_index_roots,
-    get_genesis_beacon_state,
+    state_with_validator_digests,
+    initialize_beacon_state_from_eth1,
 )
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.states import BeaconState
@@ -63,10 +63,10 @@ def create_mock_genesis_state_from_validators(genesis_time: Timestamp,
     _check_activated_validators(genesis_validators, config.GENESIS_EPOCH)
     _check_correct_eth1_data(genesis_eth1_data, genesis_validators)
 
-    empty_state = get_genesis_beacon_state(
-        genesis_deposits=tuple(),
-        genesis_time=genesis_time,
-        genesis_eth1_data=genesis_eth1_data,
+    empty_state = initialize_beacon_state_from_eth1(
+        eth1_block_hash=genesis_eth1_data.block_hash,
+        eth1_timestamp=genesis_time,
+        deposits=tuple(),
         config=config,
     )
 
@@ -76,7 +76,7 @@ def create_mock_genesis_state_from_validators(genesis_time: Timestamp,
         balances=genesis_balances,
     )
 
-    return genesis_state_with_active_index_roots(
+    return state_with_validator_digests(
         state_with_validators,
         config,
     )
