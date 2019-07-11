@@ -39,7 +39,7 @@ from eth2.beacon.tools.builder.initializer import (
     create_mock_genesis,
 )
 from eth2.beacon.tools.misc.ssz_vector import (
-    override_vector_lengths,
+    override_lengths,
 )
 from eth2.beacon.typing import (
     Second,
@@ -64,7 +64,7 @@ from .constants import (
     KEYS_DIR,
 )
 
-override_vector_lengths(XIAO_LONG_BAO_CONFIG)
+override_lengths(XIAO_LONG_BAO_CONFIG)
 
 
 class Client:

@@ -34,7 +34,7 @@ from eth2.beacon.tools.builder.committee_assignment import (
     get_committee_assignment,
 )
 from eth2.beacon.tools.misc.ssz_vector import (
-    override_vector_lengths,
+    override_lengths,
 )
 
 from trinity.config import (
@@ -56,7 +56,7 @@ from .helpers import (
     keymap,
 )
 
-override_vector_lengths(XIAO_LONG_BAO_CONFIG)
+override_lengths(XIAO_LONG_BAO_CONFIG)
 
 
 class FakeProtocol:

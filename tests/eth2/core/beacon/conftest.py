@@ -34,7 +34,7 @@ from eth2.beacon.genesis import (
     get_genesis_block,
 )
 from eth2.beacon.tools.misc.ssz_vector import (
-    override_vector_lengths,
+    override_lengths,
 )
 from eth2.beacon.tools.builder.state import (
     create_mock_genesis_state_from_validators,
@@ -71,8 +71,8 @@ from eth2.beacon.db.chain import (
 
 # SSZ
 @pytest.fixture(scope="function", autouse=True)
-def override_lengths(config):
-    override_vector_lengths(config)
+def override_ssz_lengths(config):
+    override_lengths(config)
 
 
 #

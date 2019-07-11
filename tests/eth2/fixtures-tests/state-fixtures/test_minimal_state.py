@@ -21,7 +21,7 @@ from eth2.configs import (
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.tools.misc.ssz_vector import (
-    override_vector_lengths,
+    override_lengths,
 )
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
@@ -117,7 +117,7 @@ def execute_state_transtion(test_case, base_db):
     config = generate_config_by_dict(dict_config)
 
     # Set Vector fields
-    override_vector_lengths(config)
+    override_lengths(config)
 
     # Set pre_state
     pre_state = from_formatted_dict(dict_initial_state, BeaconState)
