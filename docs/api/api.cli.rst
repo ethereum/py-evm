@@ -138,11 +138,12 @@ Attach a REPL to a running Trinity instance
 We can attach a REPL to a running Trinity instance to perform RPC request or
 interact with a web3 instance.
 
- .. code-block:: shell
-     usage: trinity attach [-h] [ipc_path]
-     positional arguments:
+.. code-block:: shell
+
+    usage: trinity attach [-h] [ipc_path]
+    positional arguments:
         ipc_path    Specify an IPC path
-     optional arguments:
+    optional arguments:
         -h, --help  show this help message and exit
 
 Check out the :doc:`Quickstart </guides/quickstart>` for a full example.
