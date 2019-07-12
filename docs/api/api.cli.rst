@@ -132,22 +132,20 @@ We can also generate an always up-to-date version of them by running ``trinity -
     --sync-mode {fast,full,beam,light,none}
 
 
-Builtin plugins CLI
-~~~~~~~~~~~~~~~~~~~
+Attach a REPL to a running Trinity instance
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Attach plugin**
+We can attach a REPL to a running Trinity instance to perform RPC request or
+interact with a web3 instance.
 
-Open an REPL attached to a currently running chain.
-
-.. code-block:: shell
-
-    usage: trinity attach [-h] [ipc_path]
-
-    positional arguments:
+ .. code-block:: shell
+     usage: trinity attach [-h] [ipc_path]
+     positional arguments:
         ipc_path    Specify an IPC path
-
-    optional arguments:
+     optional arguments:
         -h, --help  show this help message and exit
+
+Check out the :doc:`Quickstart </guides/quickstart>` for a full example.
 
 
 Per-module logging
