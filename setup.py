@@ -59,6 +59,9 @@ deps = {
         # only for eth2
         "ruamel.yaml==0.15.98",
     ],
+    # We have to keep some separation between trio and asyncio based tests
+    # because `pytest-asyncio` is greedy and tries to run all asyncio fixtures.
+    # See: https://github.com/ethereum/trinity/pull/790
     'test-asyncio': [
         "pytest-asyncio>=0.10.0,<0.11",
     ],
