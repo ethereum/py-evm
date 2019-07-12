@@ -154,7 +154,7 @@ def _get_slot_with_validator_selected(candidate_indices, state, config):
                 epoch,
                 index,
             )
-            if is_proposer:
+            if is_proposer and slot != 0:
                 return slot, index
         except NoCommitteeAssignment:
             continue
