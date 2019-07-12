@@ -1,0 +1,2 @@
+trinity attach can now accept path to ipc as parameter
+Learn more :doc:`docs</api/api.cli>`.

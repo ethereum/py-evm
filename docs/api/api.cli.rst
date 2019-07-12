@@ -132,6 +132,23 @@ We can also generate an always up-to-date version of them by running ``trinity -
     --sync-mode {fast,full,beam,light,none}
 
 
+Builtin plugins CLI
+~~~~~~~~~~~~~~~~~~~
+
+**Attach plugin**
+
+Open an REPL attached to a currently running chain.
+
+.. code-block:: shell
+
+    usage: trinity attach [-h] [ipc_path]
+
+    positional arguments:
+        ipc_path    Specify an IPC path
+
+    optional arguments:
+        -h, --help  show this help message and exit
+
 
 Per-module logging
 ~~~~~~~~~~~~~~~~~~
