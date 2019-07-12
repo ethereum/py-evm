@@ -317,4 +317,4 @@ def get_compact_committees_root(state: BeaconState,
             shard,
             compact_committee,
         )
-    return ssz.hash_tree_root(committees, sedes=ssz.sedes.Vector(CompactCommittee, shard_count))
+    return ssz.get_hash_tree_root(committees, sedes=ssz.sedes.Vector(CompactCommittee, shard_count))

@@ -63,7 +63,7 @@ def genesis_state_with_active_index_roots(state: BeaconState, config: Eth2Config
         state.validators,
         config.GENESIS_EPOCH,
     )
-    active_index_root = ssz.hash_tree_root(
+    active_index_root = ssz.get_hash_tree_root(
         active_validator_indices,
         List(ssz.uint64, config.VALIDATOR_REGISTRY_LIMIT),
     )
@@ -115,7 +115,7 @@ def initialize_beacon_state_from_eth1(*,
         )
         state = state.copy(
             eth1_data=state.eth1_data.copy(
-                deposit_root=ssz.hash_tree_root(
+                deposit_root=ssz.get_hash_tree_root(
                     deposit_data_list,
                     List(DepositData, 2**DEPOSIT_CONTRACT_TREE_DEPTH),
                 ),

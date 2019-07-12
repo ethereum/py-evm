@@ -825,7 +825,7 @@ def test_update_active_index_roots(genesis_state,
 
     result = _compute_next_active_index_roots(state, config)
 
-    index_root = ssz.hash_tree_root(
+    index_root = ssz.get_hash_tree_root(
         get_active_validator_indices(
             state.validators,
             compute_epoch_of_slot(state.slot, slots_per_epoch),

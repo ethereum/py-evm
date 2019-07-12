@@ -772,7 +772,7 @@ def _compute_next_active_index_roots(state: BeaconState, config: Eth2Config) -> 
         state.validators,
         Epoch(next_epoch + config.ACTIVATION_EXIT_DELAY),
     )
-    new_active_index_root = ssz.hash_tree_root(
+    new_active_index_root = ssz.get_hash_tree_root(
         validator_indices_for_new_active_index_root,
         ssz.sedes.List(ssz.uint64, config.VALIDATOR_REGISTRY_LIMIT),
     )

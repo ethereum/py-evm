@@ -58,7 +58,7 @@ def _generate_randao_reveal(privkey: int,
     """
     epoch = compute_epoch_of_slot(slot, config.SLOTS_PER_EPOCH)
 
-    message_hash = ssz.hash_tree_root(epoch, sedes=ssz.sedes.uint64)
+    message_hash = ssz.get_hash_tree_root(epoch, sedes=ssz.sedes.uint64)
 
     randao_reveal = sign_transaction(
         message_hash=message_hash,
