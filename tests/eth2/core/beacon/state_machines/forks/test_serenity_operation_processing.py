@@ -302,7 +302,7 @@ def test_process_attestations(genesis_state,
             crosslink=attestations[-1].data.crosslink.copy(
                 parent_root=Crosslink(
                     shard=333,
-                ).root,
+                ).hash_tree_root,
             )
         )
         invalid_attestation = attestations[-1].copy(

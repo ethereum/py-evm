@@ -83,7 +83,7 @@ def test_get_genesis_beacon_state(
 
     # History
     assert state.latest_block_header == BeaconBlockHeader(
-        body_root=BeaconBlockBody().root,
+        body_root=BeaconBlockBody().hash_tree_root,
     )
     assert len(state.block_roots) == slots_per_historical_root
     assert state.block_roots == (ZERO_HASH32,) * slots_per_historical_root

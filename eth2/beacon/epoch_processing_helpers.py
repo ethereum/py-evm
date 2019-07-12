@@ -287,7 +287,7 @@ def _get_attestations_for_shard(
 
 @curry
 def _crosslink_or_parent_is_valid(valid_crosslink: Crosslink, candidate: Crosslink) -> bool:
-    return valid_crosslink.root in (candidate.parent_root, candidate.root)
+    return valid_crosslink.hash_tree_root in (candidate.parent_root, candidate.hash_tree_root)
 
 
 @to_tuple

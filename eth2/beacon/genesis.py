@@ -102,7 +102,7 @@ def initialize_beacon_state_from_eth1(*,
             deposit_count=len(deposits),
         ),
         latest_block_header=BeaconBlockHeader(
-            body_root=BeaconBlockBody().root,
+            body_root=BeaconBlockBody().hash_tree_root,
         ),
         config=config,
     )

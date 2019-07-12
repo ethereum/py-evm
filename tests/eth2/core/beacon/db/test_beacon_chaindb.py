@@ -174,10 +174,10 @@ def test_chaindb_get_head_state_slot(chaindb, state):
 def test_chaindb_state(chaindb, state):
     chaindb.persist_state(state)
     state_class = BeaconState
-    result_state = chaindb.get_state_by_root(state.root, state_class)
-    assert result_state.root == state.root
+    result_state = chaindb.get_state_by_root(state.hash_tree_root, state_class)
+    assert result_state.hash_tree_root == state.hash_tree_root
     result_state = chaindb.get_state_by_slot(state.slot, state_class)
-    assert result_state.root == state.root
+    assert result_state.hash_tree_root == state.hash_tree_root
 
 
 def test_chaindb_get_finalized_head_at_genesis(chaindb_at_genesis, genesis_block):
@@ -300,14 +300,16 @@ def test_chaindb_add_attestations_root_to_block_lookup(chaindb,
                                                        block_with_attestation,
                                                        fork_choice_scoring):
     block, attestation = block_with_attestation
-    assert not chaindb.attestation_exists(attestation.root)
+    assert not chaindb.attestation_exists(attestation.hash_tree_root)
     chaindb.persist_block(block, block.__class__, fork_choice_scoring)
-    assert chaindb.attestation_exists(attestation.root)
+    assert chaindb.attestation_exists(attestation.hash_tree_root)
 
 
 def test_chaindb_get_attestation_key_by_root(chaindb, block_with_attestation, fork_choice_scoring):
     block, attestation = block_with_attestation
     with pytest.raises(AttestationRootNotFound):
-        chaindb.get_attestation_key_by_root(attestation.root)
+        chaindb.get_attestation_key_by_root(attestation.hash_tree_root)
     chaindb.persist_block(block, block.__class__, fork_choice_scoring)
-    assert chaindb.get_attestation_key_by_root(attestation.root) == (block.signing_root, 0)
+    assert chaindb.get_attestation_key_by_root(
+        attestation.hash_tree_root
+    ) == (block.signing_root, 0)

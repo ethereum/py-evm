@@ -56,7 +56,7 @@ class BeaconBlockHeader(ssz.SignedSerializable):
         return (
             f'<Block #{self.slot} '
             f'signing_root={encode_hex(self.signing_root)[2:10]} '
-            f'root={encode_hex(self.root)[2:10]}>'
+            f'hash_tree_root={encode_hex(self.hash_tree_root)[2:10]}>'
         )
 
 

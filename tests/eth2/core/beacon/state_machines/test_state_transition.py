@@ -89,7 +89,7 @@ def test_per_slot_transition(chaindb,
     assert updated_state.block_roots[roots_index] == block.parent_root
 
     # state_roots
-    assert updated_state.state_roots[roots_index] == state.root
+    assert updated_state.state_roots[roots_index] == state.hash_tree_root
 
     # historical_roots
     if updated_state.slot % st.config.SLOTS_PER_HISTORICAL_ROOT == 0:
@@ -97,6 +97,6 @@ def test_per_slot_transition(chaindb,
             block_roots=state.block_roots,
             state_roots=state.state_roots,
         )
-        assert updated_state.historical_roots[-1] == historical_batch.root
+        assert updated_state.historical_roots[-1] == historical_batch.hash_tree_root
     else:
         assert updated_state.historical_roots == state.historical_roots

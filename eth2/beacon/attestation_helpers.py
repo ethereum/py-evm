@@ -78,11 +78,11 @@ def validate_indexed_attestation_aggregate_signature(state: BeaconState,
         AttestationDataAndCustodyBit(
             data=indexed_attestation.data,
             custody_bit=False
-        ).root,
+        ).hash_tree_root,
         AttestationDataAndCustodyBit(
             data=indexed_attestation.data,
             custody_bit=True,
-        ).root,
+        ).hash_tree_root,
     )
 
     domain = get_domain(

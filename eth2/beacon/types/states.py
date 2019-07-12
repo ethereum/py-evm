@@ -229,7 +229,7 @@ class BeaconState(ssz.Serializable):
         )
 
     def __repr__(self) -> str:
-        return f"<BeaconState #{self.slot} {encode_hex(self.root)[2:10]}>"
+        return f"<BeaconState #{self.slot} {encode_hex(self.hash_tree_root)[2:10]}>"
 
     @property
     def validator_count(self) -> int:

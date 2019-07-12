@@ -752,10 +752,10 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     def _persist_state(self, state: BeaconState) -> None:
         self.db.set(
-            state.root,
+            state.hash_tree_root,
             ssz.encode(state),
         )
-        self._add_slot_to_state_root_lookup(state.slot, state.root)
+        self._add_slot_to_state_root_lookup(state.slot, state.hash_tree_root)
 
         self._persist_finalized_head(state)
         self._persist_justified_head(state)
@@ -865,7 +865,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         for index, attestation in enumerate(block.body.attestations):
             attestation_key = AttestationKey(root, index)
             db.set(
-                SchemaV1.make_attestation_root_to_block_lookup_key(attestation.root),
+                SchemaV1.make_attestation_root_to_block_lookup_key(attestation.hash_tree_root),
                 ssz.encode(attestation_key),
             )
 

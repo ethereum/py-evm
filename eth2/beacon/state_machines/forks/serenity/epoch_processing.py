@@ -825,7 +825,7 @@ def _compute_next_historical_roots(state: BeaconState, config: Eth2Config) -> Tu
             block_roots=state.block_roots,
             state_roots=state.state_roots,
         )
-        new_historical_roots += (historical_batch.root,)
+        new_historical_roots += (historical_batch.hash_tree_root,)
     return new_historical_roots
 
 

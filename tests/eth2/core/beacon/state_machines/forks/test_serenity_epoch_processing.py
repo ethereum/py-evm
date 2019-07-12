@@ -278,7 +278,7 @@ def test_process_crosslinks(genesis_state,
     parent_crosslinks = tuple(
         Crosslink(
             shard=i,
-            parent_root=previous_crosslinks[i].root,
+            parent_root=previous_crosslinks[i].hash_tree_root,
             start_epoch=current_epoch - 2,
             end_epoch=current_epoch - 1,
         )
@@ -287,7 +287,7 @@ def test_process_crosslinks(genesis_state,
     new_crosslinks = tuple(
         Crosslink(
             shard=i,
-            parent_root=parent_crosslinks[i].root,
+            parent_root=parent_crosslinks[i].hash_tree_root,
             start_epoch=current_epoch - 1,
             end_epoch=current_epoch,
         )
@@ -582,7 +582,7 @@ def test_process_rewards_and_penalties_for_crosslinks(genesis_state,
                     ),
                     crosslink=Crosslink(
                         shard=shard,
-                        parent_root=Crosslink().root,
+                        parent_root=Crosslink().hash_tree_root,
                     ),
                 ),
             )

@@ -86,7 +86,8 @@ def validate_correct_number_of_deposits(state: BeaconState,
         raise ValidationError(
             f"Incorrect number of deposits ({deposit_count_in_block})"
             f" in block (encode_hex(block_root));"
-            f" expected {expected_deposit_count} based on the state {encode_hex(state.root)}"
+            f" expected {expected_deposit_count} based on"
+            f" the state {encode_hex(state.hash_tree_root)}"
         )
 
 
@@ -99,7 +100,7 @@ def validate_unique_transfers(state: BeaconState,
 
     if transfer_count_in_block != unique_transfer_count:
         raise ValidationError(
-            f"Found duplicate transfers in the block {encode_hex(block.root)}"
+            f"Found duplicate transfers in the block {encode_hex(block.hash_tree_root)}"
         )
 
 
@@ -391,10 +392,10 @@ def _validate_crosslink(crosslink: Crosslink,
             f" max_epochs_per_crosslink {parent_crosslink.end_epoch + max_epochs_per_crosslink}."
         )
 
-    if crosslink.parent_root != parent_crosslink.root:
+    if crosslink.parent_root != parent_crosslink.hash_tree_root:
         raise ValidationError(
             f"The parent root of the crosslink {crosslink.parent_root} did not match the root of"
-            f" the expected parent's crosslink {parent_crosslink.root}."
+            f" the expected parent's crosslink {parent_crosslink.hash_tree_root}."
         )
 
     if crosslink.data_root != ZERO_HASH32:

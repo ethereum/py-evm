@@ -161,7 +161,7 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         )
 
         block = block.copy(
-            state_root=state.root,
+            state_root=state.hash_tree_root,
         )
 
         return state, block

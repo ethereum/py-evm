@@ -276,7 +276,7 @@ def test_get_seed(genesis_state,
                             epoch,
                             epochs_per_historical_vector):
         return hash_eth2(
-            state.root +
+            state.hash_tree_root +
             epoch.to_bytes(32, byteorder='little') +
             epochs_per_historical_vector.to_bytes(32, byteorder='little')
         )
@@ -285,7 +285,7 @@ def test_get_seed(genesis_state,
                                    epoch,
                                    epochs_per_historical_vector):
         return hash_eth2(
-            state.root +
+            state.hash_tree_root +
             epoch.to_bytes(32, byteorder='little') +
             slots_per_epoch.to_bytes(32, byteorder='little') +
             epochs_per_historical_vector.to_bytes(32, byteorder='little')

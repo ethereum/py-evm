@@ -86,7 +86,7 @@ def create_mock_deposits_and_root(
             privkey=privkey,
             withdrawal_credentials=credentials,
         )
-        item = deposit_data.root
+        item = deposit_data.hash_tree_root
         deposit_data_leaves += (item,)
         deposit_datas += (deposit_data,)
 
@@ -163,7 +163,7 @@ def create_mock_genesis(
     )
 
     block = get_genesis_block(
-        genesis_state_root=state.root,
+        genesis_state_root=state.hash_tree_root,
         block_class=genesis_block_class,
     )
     assert len(state.validators) == num_validators

@@ -59,4 +59,4 @@ def test_block_root_and_block_header_root_equivalence(sample_block):
     block = sample_block
     header = block.header
 
-    assert block.root == header.root
+    assert block.hash_tree_root == header.hash_tree_root

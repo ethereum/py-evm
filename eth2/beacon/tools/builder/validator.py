@@ -124,7 +124,7 @@ def mk_pending_attestation_from_committee(parent: Crosslink,
         target_epoch=target_epoch,
         shard=shard,
         start_epoch=parent.end_epoch,
-        parent_root=parent.root,
+        parent_root=parent.hash_tree_root,
         data_root=data_root,
     )
 
@@ -537,7 +537,7 @@ def _get_mock_message_and_attesting_indices(
     message_hash = AttestationDataAndCustodyBit(
         data=attestation_data,
         custody_bit=False
-    ).root
+    ).hash_tree_root
 
     committee_size = len(committee)
     assert num_voted_attesters <= committee_size
@@ -664,7 +664,7 @@ def create_signed_attestation_at_slot(state: BeaconState,
         ),
         crosslink=Crosslink(
             shard=shard,
-            parent_root=parent_crosslink.root,
+            parent_root=parent_crosslink.hash_tree_root,
             start_epoch=parent_crosslink.end_epoch,
             end_epoch=target_epoch,
         )
@@ -723,7 +723,7 @@ def create_mock_signed_attestations_at_slot(
             ),
             crosslink=Crosslink(
                 shard=shard,
-                parent_root=parent_crosslink.root,
+                parent_root=parent_crosslink.hash_tree_root,
                 start_epoch=parent_crosslink.end_epoch,
                 end_epoch=min(
                     target_epoch,

@@ -58,7 +58,7 @@ def process_block_header(state: BeaconState,
         latest_block_header=BeaconBlockHeader(
             slot=block.slot,
             parent_root=block.parent_root,
-            body_root=block.body.root,
+            body_root=block.body.hash_tree_root,
         ),
     )
 

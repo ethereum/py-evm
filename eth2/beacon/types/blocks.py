@@ -152,7 +152,7 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
             slot=self.slot,
             parent_root=self.parent_root,
             state_root=self.state_root,
-            body_root=self.body.root,
+            body_root=self.body.hash_tree_root,
             signature=self.signature,
         )
 

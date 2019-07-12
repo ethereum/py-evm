@@ -57,4 +57,4 @@ class Deposit(ssz.Serializable):
         )
 
     def __repr__(self) -> str:
-        return f"<Deposit root: {encode_hex(self.root)[0:8]} data: {self.data}>"
+        return f"<Deposit hash_tree_root: {encode_hex(self.hash_tree_root)[0:8]} data: {self.data}>"

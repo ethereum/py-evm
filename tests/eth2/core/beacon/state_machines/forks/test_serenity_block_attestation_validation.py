@@ -136,7 +136,7 @@ def test_validate_attestation_data(genesis_state,
         crosslink=Crosslink(
             start_epoch=parent_crosslink.end_epoch,
             end_epoch=attestation_target_epoch,
-            parent_root=parent_crosslink.root,
+            parent_root=parent_crosslink.hash_tree_root,
             shard=start_shard,
         ),
     )
@@ -190,7 +190,7 @@ def test_validate_crosslink(genesis_state,
     target_epoch = config.GENESIS_EPOCH + 1
     valid_crosslink = Crosslink(
         shard=some_shard,
-        parent_root=parent.root,
+        parent_root=parent.hash_tree_root,
         start_epoch=parent.end_epoch,
         end_epoch=target_epoch,
         data_root=ZERO_HASH32,

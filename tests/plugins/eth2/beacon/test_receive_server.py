@@ -578,18 +578,18 @@ def test_attestation_pool():
     pool.add(a1)
     assert len(pool._pool) == 1
     # test: `__contains__`
-    assert a1.root in pool
+    assert a1.hash_tree_root in pool
     assert a1 in pool
-    assert a2.root not in pool
+    assert a2.hash_tree_root not in pool
     assert a2 not in pool
     # test: batch_add: two attestations
     pool.batch_add([a1, a2])
     assert len(pool._pool) == 2
     # test: get
     with pytest.raises(AttestationNotFound):
-        pool.get(a3.root)
-    assert pool.get(a1.root) == a1
-    assert pool.get(a2.root) == a2
+        pool.get(a3.hash_tree_root)
+    assert pool.get(a1.hash_tree_root) == a1
+    assert pool.get(a2.hash_tree_root) == a2
     # test: get_all
     assert set([a1, a2]) == set(pool.get_all())
     # test: remove

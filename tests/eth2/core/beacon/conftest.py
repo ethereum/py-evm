@@ -723,7 +723,7 @@ def genesis_state(genesis_validators,
 @pytest.fixture
 def genesis_block(genesis_state):
     return get_genesis_block(
-        genesis_state.root,
+        genesis_state.hash_tree_root,
         SerenityBeaconBlock,
     )
 

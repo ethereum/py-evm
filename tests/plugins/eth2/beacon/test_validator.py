@@ -236,7 +236,7 @@ async def test_validator_skip_block(event_loop, event_bus):
     with pytest.raises(BlockNotFound):
         alice.chain.get_canonical_block_by_slot(slot)
     # test: the state root should change after skipping the block
-    assert state.root != post_state.root
+    assert state.hash_tree_root != post_state.hash_tree_root
     assert state.slot + 1 == post_state.slot
 
 
