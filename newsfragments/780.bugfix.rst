@@ -1,0 +1,2 @@
+Squashed bug that redownloads block bodies and logs this warning:
+``ValidationError: Cannot finish prereq BlockImportPrereqs.StoreBlockBodies of task``
