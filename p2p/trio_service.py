@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
+import functools
 import logging
 import sys
 from types import TracebackType
 from typing import Any, Callable, Awaitable, Optional, Tuple, Type, AsyncIterator
+
+from mypy_extensions import VarArg, KwArg
 
 from async_generator import asynccontextmanager
 
@@ -11,71 +14,166 @@ import trio
 import trio_typing
 
 
+class ServiceException(Exception):
+    """
+    Base class for Service exceptions
+    """
+    pass
+
+
+class LifecycleError(ServiceException):
+    """
+    Raised when an action would violate the service lifecycle rules.
+    """
+    pass
+
+
+class ServiceAPI(ABC):
+    manager: 'ManagerAPI'
+
+    @abstractmethod
+    async def run(self) -> None:
+        """
+        This method is where all of the Service class logic should be
+        implemented.  It should **not** be invoked by user code but instead run
+        with either:
+
+        .. code-block: python
+
+            # run the service and blocks until service finishes
+            await ManagerAPI.run_service(service)
+
+            # run the service in the background using a context manager
+            async with run_service(service) as manager:
+                # service runs inside context block
+                ...
+                # service cancels and stops when context exits
+            # service will have fully stopped
+        """
+        ...
+
+
 class ManagerAPI(ABC):
     @property
     @abstractmethod
-    def has_started(self) -> bool:
+    def is_started(self) -> bool:
+        """
+        Return boolean indicating if the underlying service has been started.
+        """
         ...
 
     @property
     @abstractmethod
     def is_running(self) -> bool:
+        """
+        Return boolean indicating if the underlying service is actively
+        running.  A service is considered running if it has been started and
+        has not yet been stopped.
+        """
         ...
 
     @property
     @abstractmethod
     def is_cancelled(self) -> bool:
+        """
+        Return boolean indicating if the underlying service has been cancelled.
+        This can occure externally via the `cancel()` method or internally due
+        to a task crash or a crash of the actual :meth:`ServiceAPI.run` method.
+        """
         ...
 
     @property
     @abstractmethod
     def is_stopped(self) -> bool:
+        """
+        Return boolean indicating if the underlying service is stopped.  A
+        stopped service will have completed all of the background tasks.
+        """
         ...
 
     @property
     @abstractmethod
     def did_error(self) -> bool:
+        """
+        Return boolean indicating if the underlying service threw an exception.
+        """
         ...
 
     @abstractmethod
     def cancel(self) -> None:
+        """
+        Trigger cancellation of the service.
+        """
+        ...
+
+    @abstractmethod
+    async def stop(self) -> None:
+        """
+        Trigger cancellation of the service and wait for it to stop.
+        """
         ...
 
     @abstractmethod
     async def wait_started(self) -> None:
+        """
+        Wait until the service is started.
+        """
         ...
 
     @abstractmethod
     async def wait_cancelled(self) -> None:
+        """
+        Wait until the service is cancelled.
+        """
         ...
 
     @abstractmethod
     async def wait_stopped(self) -> None:
+        """
+        Wait until the service is stopped.
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    async def run_service(cls, service: ServiceAPI) -> None:
+        """
+        Run a service
+        """
         ...
 
     @abstractmethod
-    async def _run_daemon_task(self,
-                               coro: Callable[..., Awaitable[Any]],
-                               *args: Any,
-                               name: str = None) -> None:
+    async def run(self) -> None:
+        """
+        Run a service
+        """
         ...
 
-
-LogicFnType = Callable[[ManagerAPI], Awaitable[Any]]
-
-
-class Service(ABC):
-    async def start(self, nursery: trio_typing.Nursery) -> 'ServiceManager':
-        manager = ServiceManager(self)
-        nursery.start_soon(manager.run)
-        return manager
-
+    @trio_typing.takes_callable_and_args
     @abstractmethod
-    async def run(self, manager: ManagerAPI) -> None:
+    async def run_task(self,
+                       async_fn: Callable[[VarArg()], Awaitable[Any]],
+                       *args: Any,
+                       daemon: bool = False,
+                       name: str = None) -> None:
+        """
+        Run a task in the background.  If the function throws an exception it
+        will trigger the service to be cancelled and be propogated.
+
+        If `daemon == True` then the the task is expected to run indefinitely
+        and will trigger cancellation if the task finishes.
+        """
         ...
 
 
-def as_service(logic_fn: LogicFnType) -> Type[Service]:
+LogicFnType = Callable[[ManagerAPI, VarArg(), KwArg()], Awaitable[Any]]
+
+
+class Service(ServiceAPI):
+    pass
+
+
+def as_service(service_fn: LogicFnType) -> Type[Service]:
     """
     Create a service out of a simple function
     """
@@ -84,16 +182,18 @@ def as_service(logic_fn: LogicFnType) -> Type[Service]:
             self._args = args
             self._kwargs = kwargs
 
-        async def run(self, manager: ManagerAPI) -> None:
-            await logic_fn(manager, *self._args, **self._kwargs)  # type: ignore
+        async def run(self) -> None:
+            await service_fn(self.manager, *self._args, **self._kwargs)
 
-    _Service.__name__ = logic_fn.__name__
-    _Service.__doc__ = logic_fn.__doc__
+    _Service.__name__ = service_fn.__name__
+    _Service.__doc__ = service_fn.__doc__
     return _Service
 
 
-class ServiceManager(ManagerAPI):
-    logger = logging.getLogger('p2p.trio_service.ServiceManager')
+class Manager(ManagerAPI):
+    logger = logging.getLogger('p2p.trio_service.Manager')
+
+    _service: ServiceAPI
 
     _run_error: Optional[Tuple[
         Optional[Type[BaseException]],
@@ -101,8 +201,21 @@ class ServiceManager(ManagerAPI):
         Optional[TracebackType],
     ]] = None
 
-    def __init__(self, logic: Service) -> None:
-        self.logic = logic
+    # A nursery for system tasks.  This nursery is cancelled in the event that
+    # the service is cancelled or exits.
+    _system_nursery: trio_typing.Nursery
+
+    # A nursery for sub tasks and services.  This nursery is cancelled if the
+    # service is cancelled but allowed to exit normally if the service exits.
+    _task_nursery: trio_typing.Nursery
+
+    def __init__(self, service: ServiceAPI) -> None:
+        if hasattr(service, 'manager'):
+            raise LifecycleError("Service already has a manager.")
+        else:
+            service.manager = self
+
+        self._service = service
 
         # events
         self._started = trio.Event()
@@ -112,57 +225,98 @@ class ServiceManager(ManagerAPI):
         # locks
         self._run_lock = trio.Lock()
 
-    async def _handle_cancelled(self, nursery: trio_typing.Nursery) -> None:
+    #
+    # System Tasks
+    #
+    async def _handle_cancelled(self,
+                                task_nursery: trio_typing.Nursery,
+                                ) -> None:
         """
-        Handles the case where cancellation occurs because the
-        `event.set_cancelled()` has been called, this propagates that to force
-        the nursery to be cancelled.
+        Handles the cancellation triggering cancellation of the task nursery.
         """
         self.logger.debug('%s: _handle_cancelled waiting for cancellation', self)
-        await self._cancelled.wait()
-        self.logger.debug('%s: _handle_cancelled triggering nursery cancellation', self)
-        nursery.cancel_scope.cancel()
+        await self.wait_cancelled()
+        self.logger.debug('%s: _handle_cancelled triggering task nursery cancellation', self)
+        task_nursery.cancel_scope.cancel()
+
+    async def _handle_stopped(self,
+                              system_nursery: trio_typing.Nursery) -> None:
+        """
+        Once the `_stopped` event is set this triggers cancellation of the system nursery.
+        """
+        self.logger.debug('%s: _handle_stopped waiting for stopped', self)
+        await self.wait_stopped()
+        self.logger.debug('%s: _handle_stopped triggering system nursery cancellation', self)
+        system_nursery.cancel_scope.cancel()
 
     async def _handle_run(self) -> None:
         """
+        Run and monitor the actual :meth:`ServiceAPI.run` method.
+
+        In the event that it throws an exception the service will be cancelled.
+
+        Upon a clean exit
         Triggers cancellation in the case where the service exits normally or
         throws an exception.
         """
-        self._started.set()
         try:
-            await self.logic.run(self)
+            await self._service.run()
         except Exception as err:
             self.logger.debug(
                 '%s: _handle_run got error, storing exception and setting cancelled',
                 self
             )
-            self.logger.exception('GOT THIS')
             self._run_error = sys.exc_info()
-        finally:
-            self.logger.debug('%s: _handle_run triggering service cancellation', self)
             self.cancel()
+        else:
+            # NOTE: Any service which uses daemon tasks will need to trigger
+            # cancellation in order for the service to exit since this code
+            # path does not trigger task cancellation.  It might make sense to
+            # trigger cancellation if all of the running tasks are daemon
+            # tasks.
+            self.logger.debug(
+                '%s: _handle_run exited cleanly, waiting for full stop...',
+                self
+            )
+
+    @classmethod
+    async def run_service(cls, service: ServiceAPI) -> None:
+        manager = cls(service)
+        service.manager = manager
+        await manager.run()
 
     async def run(self) -> None:
         if self._run_lock.locked():
-            raise Exception("TODO: run lock already engaged")
-        elif self.has_started:
-            raise Exception("TODO: already started. No reentrance")
+            raise LifecycleError(
+                "Cannot run a service with the run lock already engaged.  Already started?"
+            )
+        elif self.is_started:
+            raise LifecycleError("Cannot run a service which is already started.")
 
         async with self._run_lock:
+            async with trio.open_nursery() as system_nursery:
+                async with trio.open_nursery() as task_nursery:
+                    self._task_nursery = task_nursery
 
-            # Open a nursery
-            async with trio.open_nursery() as nursery:
-                self._nursery = nursery
+                    system_nursery.start_soon(
+                        self._handle_cancelled,
+                        task_nursery,
+                    )
+                    system_nursery.start_soon(
+                        self._handle_stopped,
+                        system_nursery,
+                    )
 
-                nursery.start_soon(self._handle_cancelled, nursery)
-                nursery.start_soon(self._handle_run)
+                    task_nursery.start_soon(self._handle_run)
 
-                # This wait is not strictly necessary as this context block
-                # will not exit until the background tasks have completed.
-                await self.wait_cancelled()
+                    self._started.set()
 
-        # Mark as having stopped
-        self._stopped.set()
+                    # ***BLOCKING HERE***
+                    # The code flow will block here until the background tasks have
+                    # completed or cancellation occurs.
+
+                # Mark as having stopped
+                self._stopped.set()
         self.logger.debug('%s stopped', self)
 
         # If an error occured, re-raise it here
@@ -174,7 +328,7 @@ class ServiceManager(ManagerAPI):
     # Event API mirror
     #
     @property
-    def has_started(self) -> bool:
+    def is_started(self) -> bool:
         return self._started.is_set()
 
     @property
@@ -197,9 +351,13 @@ class ServiceManager(ManagerAPI):
     # Control API
     #
     def cancel(self) -> None:
-        if not self.has_started:
-            raise Exception("TODO: never started")
+        if not self.is_started:
+            raise LifecycleError("Cannot cancel as service which was never started.")
         self._cancelled.set()
+
+    async def stop(self) -> None:
+        self.cancel()
+        await self.wait_stopped()
 
     #
     # Wait API
@@ -213,44 +371,61 @@ class ServiceManager(ManagerAPI):
     async def wait_stopped(self) -> None:
         await self._stopped.wait()
 
-    async def _run_daemon_task(self,
-                               coro: Callable[..., Awaitable[Any]],
-                               *args: Any,
-                               name: str = None) -> None:
+    async def _run_and_manage_task(self,
+                                   async_fn: Callable[..., Awaitable[Any]],
+                                   *args: Any,
+                                   daemon: bool,
+                                   name: str) -> None:
         try:
-            await coro(*args)
+            await async_fn(*args)
         except Exception as err:
             self.logger.debug(
-                "Daemon task '%s' exited with error: %s",
-                name or coro,
+                "task '%s[daemon=%s]' exited with error: %s",
+                name,
+                daemon,
                 err,
                 exc_info=True,
             )
         else:
             self.logger.debug(
-                "Daemon task '%s' exited.",
-                name or coro,
+                "task '%s[daemon=%s]' finished.",
+                name,
+                daemon,
             )
         finally:
-            self.cancel()
+            if daemon:
+                self.cancel()
 
-    def run_daemon_task(self,
-                        coro: Callable[[Any], Awaitable[Any]],
-                        *args: Any,
-                        name: str = None) -> None:
-        self._nursery.start_soon(
-            self._run_daemon_task,
-            coro,
+    def run_task(self,
+                 async_fn: Callable[..., Awaitable[Any]],
+                 *args: Any,
+                 daemon: bool = False,
+                 name: str = None) -> None:
+
+        self._task_nursery.start_soon(
+            functools.partial(
+                self._run_and_manage_task,
+                daemon=daemon,
+                name=name or repr(async_fn),
+            ),
+            async_fn,
             *args,
+            name=name,
         )
 
 
 @asynccontextmanager
-async def run_service(service: Service) -> AsyncIterator[ManagerAPI]:
+async def background_service(service: ServiceAPI) -> AsyncIterator[ManagerAPI]:
+    """
+    This is the primary API for running a service without explicitely managing
+    its lifecycle with a nursery.  The service is running within the context
+    block and will be properly cleaned up upon exiting the context block.
+    """
     async with trio.open_nursery() as nursery:
-        manager = await service.start(nursery)
+        manager = Manager(service)
+        nursery.start_soon(manager.run)
+        await manager.wait_started()
         try:
             yield manager
         finally:
-            manager.cancel()
-            await manager.wait_stopped()
+            await manager.stop()
