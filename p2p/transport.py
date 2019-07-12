@@ -1,6 +1,7 @@
 import asyncio
 import hmac
 import logging
+import secrets
 import struct
 from typing import cast
 
@@ -13,29 +14,38 @@ from cached_property import cached_property
 
 from cancel_token import CancelToken
 
-import rlp
-
 from eth_keys import datatypes
+
+from eth_utils import big_endian_to_int
 
 from eth.tools.logging import ExtendedDebugLogger
 
 from p2p import auth
 from p2p._utils import (
+    get_devp2p_cmd_id,
     roundup_16,
     sxor,
 )
+from p2p.auth import (
+    decode_authentication,
+    HandshakeResponder,
+)
 from p2p.constants import (
     CONN_IDLE_TIMEOUT,
+    ENCRYPTED_AUTH_MSG_LEN,
+    HASH_LEN,
     HEADER_LEN,
     MAC_LEN,
+    REPLY_TIMEOUT,
 )
 from p2p.exceptions import (
+    HandshakeFailure,
     DecryptionError,
     MalformedMessage,
     PeerConnectionLost,
     UnreachablePeer,
 )
-from p2p.kademlia import Node
+from p2p.kademlia import Address, Node
 
 
 class Transport:
@@ -112,6 +122,101 @@ class Transport:
             ingress_mac=ingress_mac,
         )
 
+    @classmethod
+    async def receive_connection(cls,
+                                 reader: asyncio.StreamReader,
+                                 writer: asyncio.StreamWriter,
+                                 private_key: datatypes.PrivateKey,
+                                 token: CancelToken) -> 'Transport':
+        try:
+            msg = await token.cancellable_wait(
+                reader.readexactly(ENCRYPTED_AUTH_MSG_LEN),
+                timeout=REPLY_TIMEOUT,
+            )
+        except asyncio.IncompleteReadError as err:
+            raise HandshakeFailure from err
+
+        try:
+            ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
+                msg,
+                private_key,
+            )
+        except DecryptionError as non_eip8_err:
+            # Try to decode as EIP8
+            msg_size = big_endian_to_int(msg[:2])
+            remaining_bytes = msg_size - ENCRYPTED_AUTH_MSG_LEN + 2
+
+            try:
+                msg += await token.cancellable_wait(
+                    reader.readexactly(remaining_bytes),
+                    timeout=REPLY_TIMEOUT,
+                )
+            except asyncio.IncompleteReadError as err:
+                raise HandshakeFailure from err
+
+            try:
+                ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
+                    msg,
+                    private_key,
+                )
+            except DecryptionError as eip8_err:
+                raise HandshakeFailure(
+                    f"Failed to decrypt both EIP8 handshake: {eip8_err}  and "
+                    f"non-EIP8 handshake: {non_eip8_err}"
+                )
+            else:
+                got_eip8 = True
+        else:
+            got_eip8 = False
+
+        peername = writer.get_extra_info("peername")
+        if peername is None:
+            socket = writer.get_extra_info("socket")
+            sockname = writer.get_extra_info("sockname")
+            raise HandshakeFailure(
+                "Received incoming connection with no remote information:"
+                f"socket={repr(socket)}  sockname={sockname}"
+            )
+
+        ip, socket, *_ = peername
+        remote_address = Address(ip, socket)
+
+        cls.logger.debug("Receiving handshake from %s", remote_address)
+
+        initiator_remote = Node(initiator_pubkey, remote_address)
+
+        responder = HandshakeResponder(initiator_remote, private_key, got_eip8, token)
+
+        responder_nonce = secrets.token_bytes(HASH_LEN)
+
+        auth_ack_msg = responder.create_auth_ack_message(responder_nonce)
+        auth_ack_ciphertext = responder.encrypt_auth_ack_message(auth_ack_msg)
+
+        # Use the `writer` to send the reply to the remote
+        writer.write(auth_ack_ciphertext)
+        await token.cancellable_wait(writer.drain())
+
+        # Call `HandshakeResponder.derive_shared_secrets()` and use return values to create `Peer`
+        aes_secret, mac_secret, egress_mac, ingress_mac = responder.derive_secrets(
+            initiator_nonce=initiator_nonce,
+            responder_nonce=responder_nonce,
+            remote_ephemeral_pubkey=ephem_pubkey,
+            auth_init_ciphertext=msg,
+            auth_ack_ciphertext=auth_ack_ciphertext
+        )
+
+        transport = cls(
+            remote=initiator_remote,
+            private_key=private_key,
+            reader=reader,
+            writer=writer,
+            aes_secret=aes_secret,
+            mac_secret=mac_secret,
+            egress_mac=egress_mac,
+            ingress_mac=ingress_mac,
+        )
+        return transport
+
     @cached_property
     def public_key(self) -> datatypes.PublicKey:
         return self._private_key.public_key
@@ -152,15 +257,17 @@ class Transport:
                 self, err,
             )
             raise MalformedMessage from err
+
         return msg
 
     def send(self, header: bytes, body: bytes) -> None:
-        cmd_id = rlp.decode(body[:1], sedes=rlp.sedes.big_endian_int)
+        cmd_id = get_devp2p_cmd_id(body)
         self.logger.debug2("Sending msg with cmd id %d to %s", cmd_id, self)
         if self.is_closing:
             self.logger.error(
                 "Attempted to send msg with cmd id %d to disconnected peer %s", cmd_id, self)
             return
+
         self.write(self._encrypt(header, body))
 
     def close(self) -> None:
