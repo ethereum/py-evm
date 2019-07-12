@@ -83,9 +83,6 @@ class Transport:
         mac_cipher = Cipher(algorithms.AES(mac_secret), modes.ECB(), default_backend())
         self._mac_enc = mac_cipher.encryptor().update
 
-        self._received_message_count = 0
-        self._sent_message_count = 0
-
     @classmethod
     async def connect(cls,
                       remote: Node,
@@ -131,10 +128,13 @@ class Transport:
                                  writer: asyncio.StreamWriter,
                                  private_key: datatypes.PrivateKey,
                                  token: CancelToken) -> 'Transport':
-        msg = await token.cancellable_wait(
-            reader.readexactly(ENCRYPTED_AUTH_MSG_LEN),
-            timeout=REPLY_TIMEOUT,
-        )
+        try:
+            msg = await token.cancellable_wait(
+                reader.readexactly(ENCRYPTED_AUTH_MSG_LEN),
+                timeout=REPLY_TIMEOUT,
+            )
+        except asyncio.IncompleteReadError as err:
+            raise HandshakeFailure from err
 
         try:
             ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
@@ -145,10 +145,14 @@ class Transport:
             # Try to decode as EIP8
             msg_size = big_endian_to_int(msg[:2])
             remaining_bytes = msg_size - ENCRYPTED_AUTH_MSG_LEN + 2
-            msg += await token.cancellable_wait(
-                reader.read(remaining_bytes),
-                timeout=REPLY_TIMEOUT,
-            )
+
+            try:
+                msg += await token.cancellable_wait(
+                    reader.readexactly(remaining_bytes),
+                    timeout=REPLY_TIMEOUT,
+                )
+            except asyncio.IncompleteReadError as err:
+                raise HandshakeFailure from err
 
             try:
                 ephem_pubkey, initiator_nonce, initiator_pubkey = decode_authentication(
@@ -176,6 +180,8 @@ class Transport:
 
         ip, socket, *_ = peername
         remote_address = Address(ip, socket)
+
+        cls.logger.debug("Receiving handshake from %s", remote_address)
 
         initiator_remote = Node(initiator_pubkey, remote_address)
 
@@ -252,8 +258,6 @@ class Transport:
             )
             raise MalformedMessage from err
 
-        # track total messages received
-        self._received_message_count += 1
         return msg
 
     def send(self, header: bytes, body: bytes) -> None:
@@ -263,8 +267,7 @@ class Transport:
             self.logger.error(
                 "Attempted to send msg with cmd id %d to disconnected peer %s", cmd_id, self)
             return
-        # track total messages sent
-        self._sent_message_count += 1
+
         self.write(self._encrypt(header, body))
 
     def close(self) -> None:
