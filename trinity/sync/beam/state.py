@@ -598,7 +598,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
         Request all nodes in the queue, running indefinitely
         """
         self._timer.start()
-        self.logger.info("Starting incremental state sync")
+        self.logger.info("Starting beam state sync")
         self.run_task(self._periodically_report_progress())
         with self.subscribe(self._peer_pool):
             await self.wait(self._match_node_requests_to_peers())
