@@ -38,7 +38,7 @@ deps = {
         "jsonschema==3.0.1",
         "mypy_extensions>=0.4.1,<1.0.0",
         "typing_extensions>=3.7.2,<4.0.0",
-        "ruamel.yaml>=0.15.87",
+        "ruamel.yaml==0.15.98",
         "argcomplete>=1.10.0,<2",
     ],
     'test': [
@@ -56,7 +56,7 @@ deps = {
         # only needed for p2p
         "pytest-asyncio-network-simulator==0.1.0a2;python_version>='3.6'",
         # only for eth2
-        "ruamel.yaml>=0.15.87,<0.16",
+        "ruamel.yaml==0.15.98,<0.16",
     ],
     'lint': [
         "flake8==3.5.0",
