@@ -56,7 +56,7 @@ deps = {
         # only needed for p2p
         "pytest-asyncio-network-simulator==0.1.0a2;python_version>='3.6'",
         # only for eth2
-        "ruamel.yaml==0.15.98,<0.16",
+        "ruamel.yaml==0.15.98",
     ],
     'lint': [
         "flake8==3.5.0",
