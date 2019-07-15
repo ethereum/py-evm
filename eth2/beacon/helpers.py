@@ -13,6 +13,8 @@ from eth_typing import (
     Hash32,
 )
 
+from py_ecc.bls.typing import Domain
+
 from eth2._utils.hash import (
     hash_eth2,
 )
@@ -200,11 +202,6 @@ def _get_fork_version(fork: Fork, epoch: Epoch) -> Version:
         return fork.current_version
 
 
-# TODO(ralexstokes) temp defn until we merge in upstream py_ecc
-# from py_ecc.bls.typing import Domain
-Domain = int
-
-
 def _signature_domain_to_domain_type(s: SignatureDomain) -> DomainType:
     return DomainType(s.to_bytes(4, byteorder="little"))
 
@@ -215,11 +212,8 @@ def compute_domain(signature_domain: SignatureDomain,
     NOTE: we deviate from the spec here by taking the enum ``SignatureDomain`` and
     converting before creating the domain.
     """
-    # TODO(ralexstokes) fix this to match spec
     domain_type = _signature_domain_to_domain_type(signature_domain)
-    return Domain(
-        int.from_bytes(domain_type + fork_version, byteorder="little")
-    )
+    return Domain(domain_type + fork_version)
 
 
 def get_domain(state: 'BeaconState',

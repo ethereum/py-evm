@@ -213,7 +213,7 @@ def mk_all_pending_attestations_with_full_participation_in_epoch(
 def verify_votes(
         message_hash: Hash32,
         votes: Iterable[Tuple[ValidatorIndex, BLSSignature, BLSPubkey]],
-        domain: SignatureDomain) -> Tuple[Tuple[BLSSignature, ...], Tuple[ValidatorIndex, ...]]:
+        domain: bls.typing.Domain) -> Tuple[Tuple[BLSSignature, ...], Tuple[ValidatorIndex, ...]]:
     """
     Verify the given votes.
     """

@@ -10,6 +10,10 @@ from eth2._utils.bitfield import (
     get_empty_bitfield,
     has_voted,
 )
+from eth2.beacon.helpers import (
+    compute_domain,
+)
+from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.tools.builder.validator import (
     aggregate_votes,
     verify_votes,
@@ -35,7 +39,9 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
     bit_count = 10
     pre_bitfield = get_empty_bitfield(bit_count)
     pre_sigs = ()
-    domain = 0
+    domain = compute_domain(
+        SignatureDomain.DOMAIN_ATTESTATION,
+    )
 
     random_votes = random.sample(range(bit_count), votes_count)
     message_hash = b'\x12' * 32
