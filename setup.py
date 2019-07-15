@@ -105,7 +105,7 @@ deps = {
         "py-ecc==1.6.0",
         "rlp>=1.1.0,<2.0.0",
         PYEVM_DEPENDENCY,
-        "ssz==0.1.0a11",
+        "ssz==0.1.0a12",
         "blspy>=0.1.8,<1",  # for `bls_chia`
     ],
     'libp2p': [
