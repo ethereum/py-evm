@@ -5,6 +5,7 @@ from argparse import (
 )
 import pkg_resources
 import sys
+import pathlib
 
 from trinity.config import (
     Eth1AppConfig,
@@ -43,13 +44,20 @@ class AttachPlugin(BaseMainProcessPlugin):
             'attach',
             help='open an REPL attached to a currently running chain',
         )
+        attach_parser.add_argument(
+            'ipc_path',
+            nargs='?',
+            type=pathlib.Path,
+            help='Specify an IPC path'
+        )
 
         attach_parser.set_defaults(func=cls.run_console)
 
     @classmethod
     def run_console(cls, args: Namespace, trinity_config: TrinityConfig) -> None:
         try:
-            console(trinity_config.jsonrpc_ipc_path, use_ipython=is_ipython_available())
+            ipc_path = args.ipc_path or trinity_config.jsonrpc_ipc_path
+            console(ipc_path, use_ipython=is_ipython_available())
         except FileNotFoundError as err:
             cls.get_logger().error(str(err))
             sys.exit(1)
