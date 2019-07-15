@@ -213,7 +213,7 @@ def compute_domain(signature_domain: SignatureDomain,
                    fork_version: Version=default_version) -> Domain:
     """
     NOTE: we deviate from the spec here by taking the enum ``SignatureDomain`` and
-    converting before calling ``compute_domain``.
+    converting before creating the domain.
     """
     # TODO(ralexstokes) fix this to match spec
     domain_type = _signature_domain_to_domain_type(signature_domain)
