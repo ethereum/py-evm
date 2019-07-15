@@ -8,8 +8,7 @@ from typing import (
 #
 
 # FIXME: Change to
-#   Insecure: /plaintext/1.0.0 or /plaintext/2.0.0 until
-#       https://github.com/libp2p/specs/pull/186 is finalized and implemented in py-libp2p
+#   Insecure: when /plaintext/2.0.0 is finalized and implemented in py-libp2p
 #   or
 #   Secure
 SECURITY_PROTOCOL_ID = "/insecure/1.0.0"

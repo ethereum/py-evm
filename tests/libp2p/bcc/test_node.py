@@ -4,29 +4,50 @@ from multiaddr import (
     Multiaddr,
 )
 
-from libp2p.security.insecure_security import (
-    InsecureTransport,
-)
 
-from trinity.protocol.bcc_libp2p.configs import (
-    SECURITY_PROTOCOL_ID,
-    MULTIPLEXING_PROTOCOL_ID,
-)
-from trinity.protocol.bcc_libp2p.node import (
-    Node,
-)
-
-
-@pytest.mark.asyncio
-async def test_node(privkey, unused_tcp_port_factory):
-    listen_maddr = Multiaddr(f"/ip4/127.0.0.1/tcp/{unused_tcp_port_factory()}")
-    node = Node(
-        privkey=privkey,
-        listen_maddr=listen_maddr,
-        security_protocol_ops={SECURITY_PROTOCOL_ID: InsecureTransport("plaintext")},
-        muxer_protocol_ids=[MULTIPLEXING_PROTOCOL_ID],
-        gossipsub_params=None,
+@pytest.mark.parametrize(
+    "num_nodes",
+    (
+        1,
     )
-    await node.listen()
-    assert node.host.get_addrs() == [listen_maddr.encapsulate(Multiaddr(f"/p2p/{node.peer_id}"))]
-    await node.close()
+)
+@pytest.mark.asyncio
+async def test_node(nodes):
+    node = nodes[0]
+    expected_addrs = [node.listen_maddr.encapsulate(Multiaddr(f"/p2p/{node.peer_id}"))]
+    assert node.host.get_addrs() == expected_addrs
+
+
+@pytest.mark.parametrize(
+    "num_nodes",
+    (
+        3,
+    )
+)
+@pytest.mark.asyncio
+async def test_node_dial_peer(nodes):
+    # Test: 0 <-> 1
+    await nodes[0].dial_peer(
+        nodes[1].listen_ip,
+        nodes[1].listen_port,
+        nodes[1].peer_id,
+    )
+    assert nodes[0].peer_id in nodes[1].host.get_network().connections
+    assert nodes[1].peer_id in nodes[0].host.get_network().connections
+    # Test: Reuse the old connection when connecting again
+    original_conn = nodes[1].host.get_network().connections[nodes[0].peer_id]
+    await nodes[0].dial_peer(
+        nodes[1].listen_ip,
+        nodes[1].listen_port,
+        nodes[1].peer_id,
+    )
+    assert nodes[1].host.get_network().connections[nodes[0].peer_id] is original_conn
+    # Test: 0 <-> 1 <-> 2
+    await nodes[2].dial_peer(
+        nodes[1].listen_ip,
+        nodes[1].listen_port,
+        nodes[1].peer_id,
+    )
+    assert nodes[1].peer_id in nodes[2].host.get_network().connections
+    assert nodes[2].peer_id in nodes[1].host.get_network().connections
+    assert len(nodes[1].host.get_network().connections) == 2
