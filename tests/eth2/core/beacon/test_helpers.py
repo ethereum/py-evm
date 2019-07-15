@@ -230,7 +230,7 @@ def test_get_fork_version(previous_version,
             4,
             4,
             1,
-            int.from_bytes(b'\x01\x00\x00\x00' + b'\x22' * 4, 'little'),
+            b'\x01\x00\x00\x00' + b'\x22' * 4,
         ),
         (
             b'\x11' * 4,
@@ -238,7 +238,7 @@ def test_get_fork_version(previous_version,
             4,
             4 - 1,
             1,
-            int.from_bytes(b'\x01\x00\x00\x00' + b'\x11' * 4, 'little'),
+            b'\x01\x00\x00\x00' + b'\x11' * 4,
         ),
     ]
 )
@@ -310,7 +310,7 @@ def test_get_seed(genesis_state,
     assert seed == hash_eth2(
         mock_get_randao_mix(
             state=state,
-            epoch=(epoch + epochs_per_historical_vector - min_seed_lookahead),
+            epoch=(epoch + epochs_per_historical_vector - min_seed_lookahead - 1),
             epochs_per_historical_vector=epochs_per_historical_vector,
         ) + mock_get_active_index_root(
             state=state,
