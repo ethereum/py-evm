@@ -136,15 +136,13 @@ def create_mock_deposit(state: BeaconState,
 
 
 def create_mock_genesis(
-        num_validators: int,
+        pubkeys: Sequence[BLSPubkey],
         config: Eth2Config,
         keymap: Dict[BLSPubkey, int],
         genesis_block_class: Type[BaseBeaconBlock],
         genesis_time: Timestamp=ZERO_TIMESTAMP) -> Tuple[BeaconState, BaseBeaconBlock]:
-    assert num_validators <= len(keymap)
-
     genesis_deposits, deposit_root = create_mock_deposits_and_root(
-        pubkeys=list(keymap)[:num_validators],
+        pubkeys=pubkeys,
         keymap=keymap,
         config=config,
     )
@@ -166,7 +164,7 @@ def create_mock_genesis(
         genesis_state_root=state.hash_tree_root,
         block_class=genesis_block_class,
     )
-    assert len(state.validators) == num_validators
+    assert len(state.validators) == len(pubkeys)
 
     return state, block
 

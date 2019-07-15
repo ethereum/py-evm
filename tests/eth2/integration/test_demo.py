@@ -69,7 +69,7 @@ def test_demo(base_db,
     attestation_pool = AttestationPool()
 
     genesis_state, genesis_block = create_mock_genesis(
-        num_validators=validator_count,
+        pubkeys=pubkeys[:validator_count],
         config=config,
         keymap=keymap,
         genesis_block_class=SerenityBeaconBlock,
