@@ -146,7 +146,8 @@ def _get_seed(state: 'BeaconState',
         Epoch(
             epoch +
             committee_config.EPOCHS_PER_HISTORICAL_VECTOR -
-            committee_config.MIN_SEED_LOOKAHEAD
+            committee_config.MIN_SEED_LOOKAHEAD -
+            1
         ),
         committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
     )
