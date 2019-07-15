@@ -66,6 +66,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
     Coordinate the request of needed state data: accounts, storage, bytecodes, and
     other arbitrary intermediate nodes in the trie.
     """
+    do_predictive_downloads = False
     _total_processed_nodes = 0
     _urgent_processed_nodes = 0
     _predictive_processed_nodes = 0
@@ -467,6 +468,9 @@ class BeamDownloader(BaseService, PeerSubscriber):
         Identify node hashes for nodes we might need in the future, and insert them to the
         predictive node queue.
         """
+        if not self.do_predictive_downloads:
+            return
+
         # priority is the depth of the node away from an urgent node, plus one.
         # For example, the child of an urgent node has priority 2
         if priority > 3:
