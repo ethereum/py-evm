@@ -269,6 +269,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-p2p
+  py36-p2p-trio:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-p2p-trio
   py36-eth2-core:
     <<: *common
     docker:
@@ -361,6 +367,12 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-p2p
+  py37-p2p-trio:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-p2p-trio
   py37-eth2-core:
     <<: *common
     docker:

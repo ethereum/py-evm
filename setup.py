@@ -8,6 +8,7 @@ PYEVM_DEPENDENCY = "py-evm==0.3.0a1"
 
 deps = {
     'p2p': [
+        "async-generator==1.10",
         "asyncio-cancel-token==0.1.0a2",
         "async_lru>=0.1.0,<1.0.0",
         "cached-property>=1.5.1,<2",
@@ -18,10 +19,11 @@ deps = {
         "netifaces>=0.10.7<1",
         "pysha3>=1.0.0,<2.0.0",
         "SQLAlchemy>=1.3.3,<2",
+        'trio==0.11.0,<0.12',
+        'trio-typing>=0.2.0,<0.3',
         "upnpclient>=0.0.8,<1",
     ],
     'trinity': [
-        "async-generator==1.10",
         "bloom-filter==1.3",
         "cachetools>=3.1.0,<4.0.0",
         "coincurve>=10.0.0,<11.0.0",
@@ -48,15 +50,23 @@ deps = {
         # pinned to <3.7 until async fixtures work again
         # https://github.com/pytest-dev/pytest-asyncio/issues/89
         "pytest>=3.6,<3.7",
-        "pytest-asyncio>=0.10.0,<0.11",
+        # only needed for p2p
+        "pytest-asyncio-network-simulator==0.1.0a2;python_version>='3.6'",
         "pytest-cov==2.5.1",
         "pytest-watch>=4.1.0,<5",
         "pytest-xdist==1.18.1",
         "pytest-mock==1.10.4",
-        # only needed for p2p
-        "pytest-asyncio-network-simulator==0.1.0a2;python_version>='3.6'",
         # only for eth2
         "ruamel.yaml==0.15.98",
+    ],
+    # We have to keep some separation between trio and asyncio based tests
+    # because `pytest-asyncio` is greedy and tries to run all asyncio fixtures.
+    # See: https://github.com/ethereum/trinity/pull/790
+    'test-asyncio': [
+        "pytest-asyncio>=0.10.0,<0.11",
+    ],
+    'test-trio': [
+        'pytest-trio==0.5.2',
     ],
     'lint': [
         "flake8==3.5.0",
