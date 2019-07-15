@@ -40,15 +40,19 @@ class ServiceAPI(ABC):
 
         .. code-block: python
 
-            # run the service and blocks until service finishes
-            await ManagerAPI.run_service(service)
-
-            # run the service in the background using a context manager
+            # 1. run the service in the background using a context manager
             async with run_service(service) as manager:
                 # service runs inside context block
                 ...
                 # service cancels and stops when context exits
             # service will have fully stopped
+
+            # 2. run the service blocking until completion
+            await Manager.run_service(service)
+
+            # 3. create manager and then run service blocking until completion
+            manager = Manager(service)
+            await manager.run()
         """
         ...
 
@@ -282,7 +286,6 @@ class Manager(ManagerAPI):
     @classmethod
     async def run_service(cls, service: ServiceAPI) -> None:
         manager = cls(service)
-        service.manager = manager
         await manager.run()
 
     async def run(self) -> None:
