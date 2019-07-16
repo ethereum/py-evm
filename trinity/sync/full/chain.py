@@ -580,8 +580,15 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         # Track whether the fast chain syncer completed its goal
         self.is_complete = False
 
+    async def _sync_from(self) -> BlockHeader:
+        """
+        Select which header should be the last known header.
+        Start by importing headers that are children of this tip.
+        """
+        return await self.db.coro_get_canonical_head()
+
     async def _run(self) -> None:
-        head = await self.wait(self.db.coro_get_canonical_head())
+        head = await self.wait(self._sync_from())
         self.tracker = ChainSyncPerformanceTracker(head)
 
         self._block_persist_tracker.set_finished_dependency(head)
