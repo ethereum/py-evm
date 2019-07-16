@@ -1,4 +1,4 @@
-from py_ecc import (
+from eth2._utils.bls import (
     bls,
 )
 
@@ -26,6 +26,9 @@ from eth2.beacon.typing import (
 from eth2.configs import (
     CommitteeConfig,
     Eth2Config,
+)
+from eth2.beacon.exceptions import (
+    SignatureError,
 )
 
 
@@ -56,9 +59,9 @@ def get_attestation_data_slot(state: BeaconState,
     ) + offset // committees_per_slot
 
 
-def verify_indexed_attestation_aggregate_signature(state: BeaconState,
-                                                   indexed_attestation: IndexedAttestation,
-                                                   slots_per_epoch: int) -> bool:
+def validate_indexed_attestation_aggregate_signature(state: BeaconState,
+                                                     indexed_attestation: IndexedAttestation,
+                                                     slots_per_epoch: int) -> None:
     bit_0_indices = indexed_attestation.custody_bit_0_indices
     bit_1_indices = indexed_attestation.custody_bit_1_indices
 
@@ -88,8 +91,7 @@ def verify_indexed_attestation_aggregate_signature(state: BeaconState,
         slots_per_epoch,
         indexed_attestation.data.target_epoch,
     )
-
-    return bls.verify_multiple(
+    bls.validate_multiple(
         pubkeys=pubkeys,
         message_hashes=message_hashes,
         signature=indexed_attestation.signature,
@@ -133,12 +135,14 @@ def validate_indexed_attestation(state: BeaconState,
             f"Indices should be sorted; the 1-bit indices are not: {bit_1_indices}."
         )
 
-    if not verify_indexed_attestation_aggregate_signature(state,
-                                                          indexed_attestation,
-                                                          slots_per_epoch):
+    try:
+        validate_indexed_attestation_aggregate_signature(state,
+                                                         indexed_attestation,
+                                                         slots_per_epoch)
+    except SignatureError as error:
         raise ValidationError(
-            "The aggregate signature on the indexed attestation"
-            f" {indexed_attestation} was incorrect."
+            f"Incorrect aggregate signature on the {indexed_attestation}",
+            error,
         )
 
 

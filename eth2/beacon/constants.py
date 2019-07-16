@@ -3,6 +3,7 @@ from eth.constants import (
 )
 from eth_typing import (
     BLSSignature,
+    BLSPubkey,
 )
 from eth2.beacon.typing import (
     Epoch,
@@ -11,6 +12,7 @@ from eth2.beacon.typing import (
 
 
 EMPTY_SIGNATURE = BLSSignature(b'\x00' * 96)
+EMPTY_PUBKEY = BLSPubkey(b'\x00' * 48)
 GWEI_PER_ETH = 10**9
 FAR_FUTURE_EPOCH = Epoch(2**64 - 1)
 

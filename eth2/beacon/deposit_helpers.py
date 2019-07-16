@@ -2,7 +2,7 @@ from eth_utils import (
     encode_hex,
     ValidationError,
 )
-from py_ecc import bls
+from eth2._utils.bls import bls
 
 from eth2._utils.merkle.common import (
     verify_merkle_branch,
@@ -26,6 +26,9 @@ from eth2.beacon.typing import (
     ValidatorIndex,
 )
 from eth2.configs import Eth2Config
+from eth2.beacon.exceptions import (
+    SignatureError,
+)
 
 
 def validate_deposit_proof(state: BeaconState,
@@ -72,15 +75,16 @@ def process_deposit(state: BeaconState,
     validator_pubkeys = tuple(v.pubkey for v in state.validators)
     if pubkey not in validator_pubkeys:
         # Verify the proof of possession
-        proof_is_valid = bls.verify(
-            pubkey=pubkey,
-            message_hash=deposit.data.signing_root,
-            signature=deposit.data.signature,
-            domain=bls_domain(
-                SignatureDomain.DOMAIN_DEPOSIT,
-            ),
-        )
-        if not proof_is_valid:
+        try:
+            bls.validate(
+                pubkey=pubkey,
+                message_hash=deposit.data.signing_root,
+                signature=deposit.data.signature,
+                domain=bls_domain(
+                    SignatureDomain.DOMAIN_DEPOSIT,
+                ),
+            )
+        except SignatureError:
             return state
 
         withdrawal_credentials = deposit.data.withdrawal_credentials

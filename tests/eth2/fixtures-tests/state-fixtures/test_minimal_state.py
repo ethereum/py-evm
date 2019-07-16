@@ -2,12 +2,12 @@ from pathlib import Path
 import pytest
 from ruamel.yaml import (
     YAML,
+    YAMLError,
 )
 
 from eth_utils import (
     to_tuple,
 )
-from py_ecc import bls  # noqa: F401
 from ssz.tools import (
     from_formatted_dict,
     to_formatted_dict,
@@ -28,6 +28,8 @@ from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
 from eth2.beacon.state_machines.forks.serenity import (
     SerenityStateMachine,
 )
+from eth2._utils.bls import bls
+
 
 # Test files
 ROOT_PROJECT_DIR = Path(__file__).cwd()
@@ -38,29 +40,6 @@ FIXTURE_FILE_NAMES = [
     "sanity-check_small-config_32-vals.yaml",
     "sanity-check_default-config_100-vals.yaml",
 ]
-
-
-#
-# Mock bls verification for these tests
-#
-def mock_bls_verify(message_hash, pubkey, signature, domain):
-    return True
-
-
-def mock_bls_verify_multiple(pubkeys,
-                             message_hashes,
-                             signature,
-                             domain):
-    return True
-
-
-@pytest.fixture(autouse=True)
-def mock_bls(mocker, request):
-    if 'noautofixture' in request.keywords:
-        return
-
-    mocker.patch('py_ecc.bls.verify', side_effect=mock_bls_verify)
-    mocker.patch('py_ecc.bls.verify_multiple', side_effect=mock_bls_verify_multiple)
 
 
 #
@@ -78,7 +57,7 @@ def get_all_test_cases(file_names):
             try:
                 data = yaml.load(new_text)
                 test_cases[file_name] = data['test_cases']
-            except yaml.YAMLError as exc:
+            except YAMLError as exc:
                 print(exc)
     return test_cases
 
@@ -124,6 +103,7 @@ def generate_config_by_dict(dict_config):
 
 
 def execute_state_transtion(test_case, base_db):
+    bls.use_noop_backend()
     dict_config = test_case['config']
     verify_signatures = test_case['verify_signatures']
     dict_initial_state = test_case['initial_state']

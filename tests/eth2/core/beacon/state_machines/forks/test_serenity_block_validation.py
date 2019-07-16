@@ -2,8 +2,7 @@ import pytest
 from eth_utils import (
     ValidationError,
 )
-
-from py_ecc import bls
+from eth2._utils.bls import bls
 from eth2.configs import (
     CommitteeConfig,
 )
@@ -57,8 +56,8 @@ def test_validate_block_slot(sample_beacon_state_params,
     'slots_per_epoch, shard_count,'
     'proposer_privkey, proposer_pubkey, is_valid_signature',
     (
-        (5, 5, 0, bls.privtopub(0), True, ),
-        (5, 5, 0, bls.privtopub(0)[1:] + b'\x01', False),
+        (5, 5, 56, bls.privtopub(56), True, ),
+        (5, 5, 56, bls.privtopub(56)[1:] + b'\x01', False),
         (5, 5, 123, bls.privtopub(123), True),
         (5, 5, 123, bls.privtopub(123)[1:] + b'\x01', False),
     )

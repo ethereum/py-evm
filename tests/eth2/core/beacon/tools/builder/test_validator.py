@@ -5,7 +5,7 @@ from hypothesis import (
     strategies as st,
 )
 
-from py_ecc import bls
+from eth2._utils.bls import bls
 from eth2._utils.bitfield import (
     get_empty_bitfield,
     has_voted,
@@ -75,4 +75,10 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
     assert len(voted_index) == len(votes)
 
     aggregated_pubs = bls.aggregate_pubkeys(pubs)
-    assert bls.verify(message_hash, aggregated_pubs, sigs, domain)
+
+    if votes_count != 0:
+        bls.validate(message_hash, aggregated_pubs, sigs, domain)
+    else:
+        # EMPTY_SIGNATURE is considered invalid
+        with pytest.raises(ValueError):
+            bls.validate(message_hash, aggregated_pubs, sigs, domain)

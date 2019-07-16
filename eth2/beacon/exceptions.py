@@ -43,3 +43,10 @@ class InvalidEpochError(ValidationError):
     Example: asking the ``BeaconState`` about an epoch that is not derivable given the current data.
     """
     pass
+
+
+class SignatureError(ValidationError):
+    """
+    Raised when a verification of public keys, messages, and signature fails.
+    """
+    pass

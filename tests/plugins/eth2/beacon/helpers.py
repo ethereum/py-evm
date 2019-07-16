@@ -1,7 +1,7 @@
 import importlib
 import time
 
-from py_ecc import bls
+from eth2._utils.bls import bls
 
 from eth2._utils.hash import (
     hash_eth2,

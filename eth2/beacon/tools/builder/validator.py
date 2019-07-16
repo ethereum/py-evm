@@ -17,7 +17,6 @@ from eth_typing import (
 from eth.constants import (
     ZERO_HASH32,
 )
-
 from eth_utils import (
     to_tuple,
 )
@@ -25,8 +24,7 @@ from eth_utils.toolz import (
     pipe,
     keymap as keymapper,
 )
-
-from py_ecc import bls
+from eth2._utils.bls import bls
 
 from eth2._utils.bitfield import (
     get_empty_bitfield,

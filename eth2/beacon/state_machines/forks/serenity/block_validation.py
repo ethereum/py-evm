@@ -19,11 +19,11 @@ import ssz
 from eth.constants import (
     ZERO_HASH32,
 )
-
-from py_ecc import bls
 from eth2._utils.hash import (
     hash_eth2,
 )
+from eth2._utils.bls import bls
+
 from eth2.configs import (
     CommitteeConfig,
 )
@@ -65,6 +65,9 @@ from eth2.beacon.typing import (
 )
 from eth2.configs import (
     Eth2Config,
+)
+from eth2.beacon.exceptions import (
+    SignatureError,
 )
 
 
@@ -149,18 +152,17 @@ def validate_proposer_signature(state: BeaconState,
         committee_config.SLOTS_PER_EPOCH,
     )
 
-    is_valid_signature = bls.verify(
-        pubkey=proposer_pubkey,
-        message_hash=message_hash,
-        signature=block.signature,
-        domain=domain,
-    )
-
-    if not is_valid_signature:
+    try:
+        bls.validate(
+            pubkey=proposer_pubkey,
+            message_hash=message_hash,
+            signature=block.signature,
+            domain=domain,
+        )
+    except SignatureError as error:
         raise ValidationError(
-            f"Invalid Proposer Signature on block, beacon_proposer_index={beacon_proposer_index}, "
-            f"pubkey={proposer_pubkey}, message_hash={message_hash}, "
-            f"block.signature={block.signature}, domain={domain}"
+            f"Invalid Proposer Signature on block, beacon_proposer_index={beacon_proposer_index}",
+            error,
         )
 
 
@@ -177,20 +179,15 @@ def validate_randao_reveal(state: BeaconState,
     message_hash = ssz.hash_tree_root(epoch, sedes=ssz.sedes.uint64)
     domain = get_domain(state, SignatureDomain.DOMAIN_RANDAO, slots_per_epoch)
 
-    is_randao_reveal_valid = bls.verify(
-        pubkey=proposer_pubkey,
-        message_hash=message_hash,
-        signature=cast(BLSSignature, randao_reveal),
-        domain=domain,
-    )
-
-    if not is_randao_reveal_valid:
-        raise ValidationError(
-            f"RANDAO reveal is invalid. "
-            f"proposer_index={proposer_index}, proposer_pubkey={proposer_pubkey}, "
-            f"reveal={randao_reveal}, "
-            f"message_hash={message_hash}, domain={domain}, epoch={epoch}"
+    try:
+        bls.validate(
+            pubkey=proposer_pubkey,
+            message_hash=message_hash,
+            signature=cast(BLSSignature, randao_reveal),
+            domain=domain,
         )
+    except SignatureError as error:
+        raise ValidationError("RANDAO reveal is invalid", error)
 
 
 #
@@ -262,23 +259,20 @@ def validate_block_header_signature(state: BeaconState,
                                     header: BeaconBlockHeader,
                                     pubkey: BLSPubkey,
                                     slots_per_epoch: int) -> None:
-    header_signature_is_valid = bls.verify(
-        pubkey=pubkey,
-        message_hash=header.signing_root,
-        signature=header.signature,
-        domain=get_domain(
-            state,
-            SignatureDomain.DOMAIN_BEACON_PROPOSER,
-            slots_per_epoch,
-            slot_to_epoch(header.slot, slots_per_epoch),
+    try:
+        bls.validate(
+            pubkey=pubkey,
+            message_hash=header.signing_root,
+            signature=header.signature,
+            domain=get_domain(
+                state,
+                SignatureDomain.DOMAIN_BEACON_PROPOSER,
+                slots_per_epoch,
+                slot_to_epoch(header.slot, slots_per_epoch),
+            )
         )
-    )
-    if not header_signature_is_valid:
-        raise ValidationError(
-            "Header signature is invalid: "
-            f"proposer pubkey: {pubkey}, message_hash: {header.signing_root}, "
-            f"signature: {header.signature}"
-        )
+    except SignatureError as error:
+        raise ValidationError("Header signature is invalid", error)
 
 
 #
@@ -516,18 +510,17 @@ def _validate_voluntary_exit_signature(state: BeaconState,
         slots_per_epoch,
         voluntary_exit.epoch,
     )
-    is_valid_signature = bls.verify(
-        pubkey=validator.pubkey,
-        message_hash=voluntary_exit.signing_root,
-        signature=voluntary_exit.signature,
-        domain=domain,
-    )
-
-    if not is_valid_signature:
+    try:
+        bls.validate(
+            pubkey=validator.pubkey,
+            message_hash=voluntary_exit.signing_root,
+            signature=voluntary_exit.signature,
+            domain=domain,
+        )
+    except SignatureError as error:
         raise ValidationError(
-            f"Invalid VoluntaryExit signature, validator_index={voluntary_exit.validator_index}, "
-            f"pubkey={validator.pubkey}, message_hash={voluntary_exit.signing_root},"
-            f"signature={voluntary_exit.signature}, domain={domain}"
+            f"Invalid VoluntaryExit signature, validator_index={voluntary_exit.validator_index}",
+            error,
         )
 
 
@@ -624,16 +617,17 @@ def _validate_transfer_signature(state: BeaconState,
         SignatureDomain.DOMAIN_TRANSFER,
         config.SLOTS_PER_EPOCH,
     )
-    is_valid_signature = bls.verify(
-        pubkey=transfer.pubkey,
-        message_hash=transfer.signing_root,
-        signature=transfer.signature,
-        domain=domain,
-    )
-
-    if not is_valid_signature:
+    try:
+        bls.validate(
+            pubkey=transfer.pubkey,
+            message_hash=transfer.signing_root,
+            signature=transfer.signature,
+            domain=domain,
+        )
+    except SignatureError as error:
         raise ValidationError(
-            f"Invalid signature for transfer {transfer}."
+            f"Invalid signature for transfer {transfer}",
+            error,
         )
 
 

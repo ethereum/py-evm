@@ -12,7 +12,7 @@ from eth_typing import (
     BLSPubkey,
 )
 
-from py_ecc import bls
+from eth2._utils.bls import bls
 
 from ruamel.yaml import (
     YAML,

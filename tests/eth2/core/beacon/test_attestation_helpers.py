@@ -3,7 +3,7 @@ import random
 
 import pytest
 
-from py_ecc import bls
+from eth2._utils.bls import bls
 
 from eth_utils import (
     ValidationError,
@@ -19,7 +19,7 @@ from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.attestation_helpers import (
     is_slashable_attestation_data,
     validate_indexed_attestation,
-    verify_indexed_attestation_aggregate_signature,
+    validate_indexed_attestation_aggregate_signature,
 )
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
@@ -63,11 +63,13 @@ def test_verify_indexed_attestation_signature(
         config,
     )
     valid_votes = IndexedAttestation(**valid_params)
-    assert verify_indexed_attestation_aggregate_signature(state, valid_votes, slots_per_epoch)
+
+    validate_indexed_attestation_aggregate_signature(state, valid_votes, slots_per_epoch)
 
     invalid_params = _corrupt_signature(slots_per_epoch, valid_params, state.fork)
     invalid_votes = IndexedAttestation(**invalid_params)
-    assert not verify_indexed_attestation_aggregate_signature(state, invalid_votes, slots_per_epoch)
+    with pytest.raises(ValidationError):
+        validate_indexed_attestation_aggregate_signature(state, invalid_votes, slots_per_epoch)
 
 
 def _get_indices_and_signatures(validator_count, state, config, message_hash, privkeys):

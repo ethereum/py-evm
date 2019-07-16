@@ -45,9 +45,7 @@ from eth2.beacon.typing import (
     Second,
     Timestamp,
 )
-from py_ecc import (
-    bls,
-)
+from eth2._utils.bls import bls
 from trinity._utils.shellart import (
     bold_green,
 )
