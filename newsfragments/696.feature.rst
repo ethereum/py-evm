@@ -1,1 +1,0 @@
-Expose events for Transaction and NewBlockHashes commands on the EventBus

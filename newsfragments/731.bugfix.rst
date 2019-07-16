@@ -1,1 +1,0 @@
-Prevent ``KeyError`` exception raised at ``del self._dependencies[prune_task_id]`` during syncing

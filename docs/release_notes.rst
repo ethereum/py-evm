@@ -5,6 +5,70 @@ Trinity is moving fast. Read up on all the latest improvements.
 
 .. towncrier release notes start
 
+Trinity 0.1.0-alpha.26 (2019-07-16)
+-----------------------------------
+
+Features
+~~~~~~~~
+
+- Expose certain peer pool events and move RequestServer into an isolated plugin (`#617 <https://github.com/ethereum/trinity/issues/617>`__)
+- Run UPnP Service as an isolated plugin (plus `#730 <https://github.com/ethereum/trinity/pull/730>`_ fixup) (`#636 <https://github.com/ethereum/trinity/issues/636>`__)
+- Log the gap time between the imported header and now; don't blast screen with logs when regular syncing a lot (`#646 <https://github.com/ethereum/trinity/issues/646>`__)
+- Make logging config more ergonomic, flexible and consistent (`#682 <https://github.com/ethereum/trinity/issues/682>`__)
+- In-memory ``Transport`` for use in testing. (`#693 <https://github.com/ethereum/trinity/issues/693>`__)
+- Expose events for Transaction and NewBlockHashes commands on the EventBus (`#696 <https://github.com/ethereum/trinity/issues/696>`__)
+- Use ``trinity db-shell`` to connect to a running process and inspect its database (`#728 <https://github.com/ethereum/trinity/issues/728>`__)
+- Pool management upgrades
+
+  - Move TransactionPool into its own process
+  - Create ProxyPeerPool that partially exposes peer pool functionality to any process (`#734 <https://github.com/ethereum/trinity/issues/734>`__)
+- Move responsibility for receiving handshake into ``p2p.transport.Transport`` class. (`#755 <https://github.com/ethereum/trinity/issues/755>`__)
+- Trinity can now autocomplete CLI parameters on ``<tab>``.
+  Learn how to activate autocomplete in the :doc:`docs</api/api.cli>`. (`#768 <https://github.com/ethereum/trinity/issues/768>`__)
+- Implement ``p2p.trio_service.Service`` abstraction using ``trio`` as a loose
+  replacement for the existing ``asyncio`` based ``p2p.service.BaseService``. (`#790 <https://github.com/ethereum/trinity/issues/790>`__)
+- trinity attach can now accept path to ipc as parameter
+  Learn more :doc:`docs</api/api.cli>`. (`#796 <https://github.com/ethereum/trinity/issues/796>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Header syncing is now limited in how far ahead of block sync it will go (`#704 <https://github.com/ethereum/trinity/issues/704>`__)
+- Prevent ``KeyError`` exception raised at ``del self._dependencies[prune_task_id]`` during syncing (`#731 <https://github.com/ethereum/trinity/issues/731>`__)
+- Fix a race condition in Trinity's event bus announcement ceremony (`#763 <https://github.com/ethereum/trinity/issues/763>`__)
+- Several very uncommon issues during syncing, more likely during beam sync (`#772 <https://github.com/ethereum/trinity/issues/772>`__)
+- Squashed bug that redownloads block bodies and logs this warning:
+  ``ValidationError: Cannot finish prereq BlockImportPrereqs.StoreBlockBodies of task`` (`#780 <https://github.com/ethereum/trinity/issues/780>`__)
+- When starting beam sync, download previous six block bodies, so that uncle validation can succeed.
+  Import needs to verify that new block imports don't add uncles that were already added. (`#803 <https://github.com/ethereum/trinity/issues/803>`__)
+
+
+Improved Documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Setup towncrier to generate release notes from fragment files to  ensure a higher standard
+  for release notes. (`#754 <https://github.com/ethereum/trinity/issues/754>`__)
+- Cover ``trinity.protocol`` events in API docs (`#766 <https://github.com/ethereum/trinity/issues/766>`__)
+- Cover :class:`~trinity.config.TrinityConfig`, :class:`~trinity.config.Eth1AppConfig` and
+  :class:`~trinity.config.BeaconAppConfig` in API docs. (`#775 <https://github.com/ethereum/trinity/issues/775>`__)
+- Improve layout of API docs by grouping classmethods, methods and attributes. (`#778 <https://github.com/ethereum/trinity/issues/778>`__)
+- In the API docs display class methods, static methods and methods as one group "methods".
+  While we ideally wish to separate these, Sphinx keeps them all as one group which we'll
+  be following until we find a better option. (`#794 <https://github.com/ethereum/trinity/issues/794>`__)
+
+
+Deprecations and Removals
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Plugin removals
+
+  - Remove ``BaseAsyncStopPlugin`` which isn't needed anymore now that there is no
+  hardwired ``networking`` process anymore.
+  - Remove plugin manager scopes which aren't needed anymore now that there is only
+  a single ``PluginManager``. (`#763 <https://github.com/ethereum/trinity/issues/763>`__)
+- The ``get_chain_config`` API was moved from the ``TrinityConfig`` to the ``Eth1AppConfig`` (`#771 <https://github.com/ethereum/trinity/issues/771>`__)
+
 
 v0.1.0-alpha.25
 --------------------------

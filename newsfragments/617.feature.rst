@@ -1,1 +1,0 @@
-Expose certain peer pool events and move RequestServer into an isolated plugin

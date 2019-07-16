@@ -1,6 +1,0 @@
-Plugin removals
-
-- Remove ``BaseAsyncStopPlugin`` which isn't needed anymore now that there is no
-hardwired ``networking`` process anymore.
-- Remove plugin manager scopes which aren't needed anymore now that there is only
-a single ``PluginManager``.

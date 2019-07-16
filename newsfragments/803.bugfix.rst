@@ -1,2 +1,0 @@
-When starting beam sync, download previous six block bodies, so that uncle validation can succeed.
-Import needs to verify that new block imports don't add uncles that were already added.

@@ -1,1 +1,0 @@
-The ``get_chain_config`` API was moved from the ``TrinityConfig`` to the ``Eth1AppConfig``

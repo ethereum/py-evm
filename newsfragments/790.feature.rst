@@ -1,2 +1,0 @@
-Implement ``p2p.trio_service.Service`` abstraction using ``trio`` as a loose
-replacement for the existing ``asyncio`` based ``p2p.service.BaseService``.
