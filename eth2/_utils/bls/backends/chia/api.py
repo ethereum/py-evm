@@ -19,6 +19,9 @@ from eth_utils import (
     ValidationError,
 )
 
+
+from py_ecc.bls.typing import Domain
+
 from eth2.beacon.constants import (
     EMPTY_PUBKEY,
     EMPTY_SIGNATURE,
@@ -47,13 +50,13 @@ def _signature_from_bytes(signature: BLSSignature) -> Signature:
         raise ValidationError(f"Bad signature: {signature}, {error}")
 
 
-def combine_domain(message_hash: Hash32, domain: int) -> bytes:
-    return message_hash + domain.to_bytes(8, 'big')
+def combine_domain(message_hash: Hash32, domain: Domain) -> bytes:
+    return message_hash + domain
 
 
 def sign(message_hash: Hash32,
          privkey: int,
-         domain: int) -> BLSSignature:
+         domain: Domain) -> BLSSignature:
     privkey_chia = _privkey_from_int(privkey)
     sig_chia = privkey_chia.sign_insecure(
         combine_domain(message_hash, domain)
@@ -67,7 +70,10 @@ def privtopub(k: int) -> BLSPubkey:
     return cast(BLSPubkey, privkey_chia.get_public_key().serialize())
 
 
-def verify(message_hash: Hash32, pubkey: BLSPubkey, signature: BLSSignature, domain: int) -> bool:
+def verify(message_hash: Hash32,
+           pubkey: BLSPubkey,
+           signature: BLSSignature,
+           domain: Domain) -> bool:
     pubkey_chia = _pubkey_from_bytes(pubkey)
     signature_chia = _signature_from_bytes(signature)
     signature_chia.set_aggregation_info(
@@ -106,7 +112,7 @@ def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkey:
 def verify_multiple(pubkeys: Sequence[BLSPubkey],
                     message_hashes: Sequence[Hash32],
                     signature: BLSSignature,
-                    domain: int) -> bool:
+                    domain: Domain) -> bool:
     len_msgs = len(message_hashes)
     len_pubkeys = len(pubkeys)
 

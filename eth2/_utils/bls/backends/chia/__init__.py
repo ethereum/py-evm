@@ -8,6 +8,8 @@ from eth_typing import (
     Hash32,
 )
 
+from py_ecc.bls.typing import Domain
+
 from eth2._utils.bls.backends.base import (
     BaseBLSBackend,
 )
@@ -30,14 +32,14 @@ class ChiaBackend(BaseBLSBackend):
     @staticmethod
     def sign(message_hash: Hash32,
              privkey: int,
-             domain: int) -> BLSSignature:
+             domain: Domain) -> BLSSignature:
         return sign(message_hash, privkey, domain)
 
     @staticmethod
     def verify(message_hash: Hash32,
                pubkey: BLSPubkey,
                signature: BLSSignature,
-               domain: int) -> bool:
+               domain: Domain) -> bool:
         return verify(message_hash, pubkey, signature, domain)
 
     @staticmethod
@@ -52,5 +54,5 @@ class ChiaBackend(BaseBLSBackend):
     def verify_multiple(pubkeys: Sequence[BLSPubkey],
                         message_hashes: Sequence[Hash32],
                         signature: BLSSignature,
-                        domain: int) -> bool:
+                        domain: Domain) -> bool:
         return verify_multiple(pubkeys, message_hashes, signature, domain)

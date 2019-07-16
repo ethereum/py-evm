@@ -9,6 +9,8 @@ from eth_typing import (
     Hash32,
 )
 
+from py_ecc.bls.typing import Domain
+
 from eth2.beacon.exceptions import (
     SignatureError,
 )
@@ -54,7 +56,7 @@ class Eth2BLS:
     def sign(cls,
              message_hash: Hash32,
              privkey: int,
-             domain: int) -> BLSSignature:
+             domain: Domain) -> BLSSignature:
         validate_private_key(privkey)
         return cls.backend.sign(message_hash, privkey, domain)
 
@@ -73,7 +75,7 @@ class Eth2BLS:
                message_hash: Hash32,
                pubkey: BLSPubkey,
                signature: BLSSignature,
-               domain: int) -> bool:
+               domain: Domain) -> bool:
         if cls.backend != NoOpBackend:
             validate_signature(signature)
         return cls.backend.verify(message_hash, pubkey, signature, domain)
@@ -83,7 +85,7 @@ class Eth2BLS:
                         pubkeys: Sequence[BLSPubkey],
                         message_hashes: Sequence[Hash32],
                         signature: BLSSignature,
-                        domain: int) -> bool:
+                        domain: Domain) -> bool:
         if cls.backend != NoOpBackend:
             validate_signature(signature)
         return cls.backend.verify_multiple(pubkeys, message_hashes, signature, domain)
@@ -93,7 +95,7 @@ class Eth2BLS:
                  message_hash: Hash32,
                  pubkey: BLSPubkey,
                  signature: BLSSignature,
-                 domain: int) -> None:
+                 domain: Domain) -> None:
         if not cls.verify(message_hash, pubkey, signature, domain):
             raise SignatureError(
                 f"backend {cls.backend.__name__}\n"
@@ -108,7 +110,7 @@ class Eth2BLS:
                           pubkeys: Sequence[BLSPubkey],
                           message_hashes: Sequence[Hash32],
                           signature: BLSSignature,
-                          domain: int) -> None:
+                          domain: Domain) -> None:
         if not cls.verify_multiple(pubkeys, message_hashes, signature, domain):
             raise SignatureError(
                 f"backend {cls.backend.__name__}\n"

@@ -12,6 +12,8 @@ from eth_typing import (
     Hash32,
 )
 
+from py_ecc.bls.typing import Domain
+
 
 class BaseBLSBackend(ABC):
     @staticmethod
@@ -23,7 +25,7 @@ class BaseBLSBackend(ABC):
     @abstractmethod
     def sign(message_hash: Hash32,
              privkey: int,
-             domain: int) -> BLSSignature:
+             domain: Domain) -> BLSSignature:
         pass
 
     @staticmethod
@@ -31,7 +33,7 @@ class BaseBLSBackend(ABC):
     def verify(message_hash: Hash32,
                pubkey: BLSPubkey,
                signature: BLSSignature,
-               domain: int) -> bool:
+               domain: Domain) -> bool:
         pass
 
     @staticmethod
@@ -49,5 +51,5 @@ class BaseBLSBackend(ABC):
     def verify_multiple(pubkeys: Sequence[BLSPubkey],
                         message_hashes: Sequence[Hash32],
                         signature: BLSSignature,
-                        domain: int) -> bool:
+                        domain: Domain) -> bool:
         pass

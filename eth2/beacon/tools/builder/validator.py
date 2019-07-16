@@ -24,7 +24,7 @@ from eth_utils.toolz import (
     pipe,
     keymap as keymapper,
 )
-from eth2._utils.bls import bls
+from eth2._utils.bls import bls, Domain
 
 from eth2._utils.bitfield import (
     get_empty_bitfield,
@@ -213,7 +213,7 @@ def mk_all_pending_attestations_with_full_participation_in_epoch(
 def verify_votes(
         message_hash: Hash32,
         votes: Iterable[Tuple[ValidatorIndex, BLSSignature, BLSPubkey]],
-        domain: bls.typing.Domain) -> Tuple[Tuple[BLSSignature, ...], Tuple[ValidatorIndex, ...]]:
+        domain: Domain) -> Tuple[Tuple[BLSSignature, ...], Tuple[ValidatorIndex, ...]]:
     """
     Verify the given votes.
     """
