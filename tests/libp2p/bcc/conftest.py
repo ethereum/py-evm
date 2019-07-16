@@ -14,14 +14,13 @@ def num_nodes():
 
 @pytest.fixture
 async def nodes(num_nodes):
-    _nodes = tuple(
-        NodeFactory()
-        for _ in range(num_nodes)
-    )
+    _nodes = NodeFactory.create_batch(num_nodes)
     for n in _nodes:
         asyncio.ensure_future(n.run())
         await n.events.started.wait()
-    yield _nodes
-    for n in _nodes:
-        await n.close()
-        await n.cancel()
+    try:
+        yield _nodes
+    finally:
+        for n in _nodes:
+            await n.close()
+            await n.cancel()

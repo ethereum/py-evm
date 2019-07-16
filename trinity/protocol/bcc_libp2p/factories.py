@@ -1,3 +1,8 @@
+from typing import (
+    Any,
+    Tuple,
+)
+
 import factory
 
 from libp2p.security.insecure_security import (
@@ -30,3 +35,9 @@ class NodeFactory(factory.Factory):
     listen_port = factory.LazyFunction(get_open_port)
     security_protocol_ops = {SECURITY_PROTOCOL_ID: InsecureTransport("plaintext")}
     muxer_protocol_ids = [MULTIPLEXING_PROTOCOL_ID]
+
+    @classmethod
+    def create_batch(cls, number: int) -> Tuple[Node, ...]:
+        return tuple(
+            cls() for _ in range(number)
+        )
