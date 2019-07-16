@@ -22,6 +22,7 @@ Features
 
   - Move TransactionPool into its own process
   - Create ProxyPeerPool that partially exposes peer pool functionality to any process (`#734 <https://github.com/ethereum/trinity/issues/734>`__)
+
 - Move responsibility for receiving handshake into ``p2p.transport.Transport`` class. (`#755 <https://github.com/ethereum/trinity/issues/755>`__)
 - Trinity can now autocomplete CLI parameters on ``<tab>``.
   Learn how to activate autocomplete in the :doc:`docs</api/api.cli>`. (`#768 <https://github.com/ethereum/trinity/issues/768>`__)
@@ -64,9 +65,10 @@ Deprecations and Removals
 - Plugin removals
 
   - Remove ``BaseAsyncStopPlugin`` which isn't needed anymore now that there is no
-  hardwired ``networking`` process anymore.
+    hardwired ``networking`` process anymore.
   - Remove plugin manager scopes which aren't needed anymore now that there is only
-  a single ``PluginManager``. (`#763 <https://github.com/ethereum/trinity/issues/763>`__)
+    a single ``PluginManager``. (`#763 <https://github.com/ethereum/trinity/issues/763>`__)
+
 - The ``get_chain_config`` API was moved from the ``TrinityConfig`` to the ``Eth1AppConfig`` (`#771 <https://github.com/ethereum/trinity/issues/771>`__)
 
 
