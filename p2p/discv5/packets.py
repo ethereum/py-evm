@@ -127,6 +127,39 @@ class AuthTagPacket(NamedTuple):
     auth_tag: Nonce
     encrypted_message: bytes
 
+    @classmethod
+    def prepare(cls,
+                *,
+                tag: Hash32,
+                auth_tag: Nonce,
+                message: BaseMessage,
+                initiator_key: AES128Key,
+                ) -> "AuthTagPacket":
+        encrypted_message = compute_encrypted_message(
+            initiator_key=initiator_key,
+            auth_tag=auth_tag,
+            message=message,
+            authenticated_data=tag,
+        )
+        return cls(
+            tag=tag,
+            auth_tag=auth_tag,
+            encrypted_message=encrypted_message,
+        )
+
+    @classmethod
+    def prepare_random(cls,
+                       *,
+                       tag: Hash32,
+                       auth_tag: Nonce,
+                       random_data: bytes,
+                       ) -> "AuthTagPacket":
+        return cls(
+            tag=tag,
+            auth_tag=auth_tag,
+            encrypted_message=random_data,
+        )
+
     def to_wire_bytes(self) -> bytes:
         encoded_packet = b"".join((
             self.tag,
