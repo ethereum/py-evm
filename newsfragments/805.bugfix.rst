@@ -1,0 +1,2 @@
+Don't require blspy by default, which was breaking doc builds and making standard installs more
+difficult (by requiring cmake)
