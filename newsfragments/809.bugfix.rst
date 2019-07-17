@@ -1,0 +1,1 @@
+Proper cancellation of subtasks upon cancellation of ``p2p.service.BaseService``
