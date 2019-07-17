@@ -94,43 +94,6 @@ geth_steps: &geth_steps
           - ~/.py-geth
         key: cache-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
-p2pd_steps: &p2pd_steps
-  steps:
-    - checkout
-    - restore_cache:
-        keys:
-          - cache-v1-{{ arch }}-p2pd-{{ checksum "./.circleci/install_p2pd.sh" }}
-    - run:
-        name: build libp2p daemon
-        command: ./.circleci/install_p2pd.sh
-    - save_cache:
-        paths:
-          - ~/.p2pd
-        key: cache-v1-{{ arch }}-p2pd-{{ checksum "./.circleci/install_p2pd.sh" }}
-    - restore_cache:
-        keys:
-          - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
-    - run:
-        name: install libsnappy-dev
-        command: sudo apt install -y libsnappy-dev
-    - run:
-        name: install deps
-        command: pip install --user tox codecov
-    - run:
-        name: run tests
-        command: |
-          command -v p2pd
-          ~/.local/bin/tox
-    - run:
-        name: update codecov
-        command: ~/.local/bin/codecov
-    - save_cache:
-        paths:
-          - .tox
-          - ~/.cache/pip
-          - ~/.local
-        key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
-
 jobs:
   py36-lint:
     <<: *common
@@ -263,12 +226,6 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-eth2-integration
-  py36-libp2p:
-    docker:
-      - image: circleci/python:3.6
-        environment:
-          TOXENV: py36-libp2p
-    <<: *p2pd_steps
   py36-wheel-cli:
     <<: *common
     docker:
@@ -356,11 +313,11 @@ jobs:
         environment:
           TOXENV: py37-eth2-integration
   py37-libp2p:
+    <<: *common
     docker:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-libp2p
-    <<: *p2pd_steps
   py37-wheel-cli:
     <<: *common
     docker:
