@@ -106,7 +106,6 @@ deps = {
         "rlp>=1.1.0,<2.0.0",
         PYEVM_DEPENDENCY,
         "ssz==0.1.0a10",
-        "blspy>=0.1.8,<1",  # for `bls_chia`
     ],
     'libp2p': [
         "base58>=1.0.3",

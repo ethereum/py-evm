@@ -22,6 +22,7 @@ from .backends.base import (
 )
 from .validation import (
     validate_private_key,
+    validate_signature,
 )
 
 
@@ -73,6 +74,8 @@ class Eth2BLS:
                pubkey: BLSPubkey,
                signature: BLSSignature,
                domain: int) -> bool:
+        if cls.backend != NoOpBackend:
+            validate_signature(signature)
         return cls.backend.verify(message_hash, pubkey, signature, domain)
 
     @classmethod
@@ -81,6 +84,8 @@ class Eth2BLS:
                         message_hashes: Sequence[Hash32],
                         signature: BLSSignature,
                         domain: int) -> bool:
+        if cls.backend != NoOpBackend:
+            validate_signature(signature)
         return cls.backend.verify_multiple(pubkeys, message_hashes, signature, domain)
 
     @classmethod

@@ -41,12 +41,6 @@ def _pubkey_from_bytes(pubkey: BLSPubkey) -> PublicKey:
 
 
 def _signature_from_bytes(signature: BLSSignature) -> Signature:
-    if signature == EMPTY_SIGNATURE:
-        raise ValueError(f"Invalid signature (EMPTY_SIGNATURE): {signature}")
-    elif len(signature) != 96:
-        raise ValueError(
-            f"Invalid signaute length, expect 96 got {len(signature)}. Signature: {signature}"
-        )
     try:
         return Signature.from_bytes(signature)
     except (RuntimeError, ValueError) as error:
