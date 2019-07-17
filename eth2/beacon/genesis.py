@@ -13,6 +13,9 @@ from eth2.beacon.constants import (
     SECONDS_PER_DAY,
     DEPOSIT_CONTRACT_TREE_DEPTH,
 )
+from eth2.beacon.committee_helpers import (
+    get_compact_committees_root,
+)
 from eth2.beacon.deposit_helpers import (
     process_deposit,
 )
@@ -28,10 +31,12 @@ from eth2.beacon.types.block_headers import (
     BeaconBlockHeader,
 )
 from eth2.beacon.types.deposits import Deposit
+from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import round_down_to_previous_multiple
 from eth2.beacon.typing import (
+    Gwei,
     Timestamp,
     ValidatorIndex,
 )
@@ -58,14 +63,14 @@ def is_genesis_trigger(deposits: Sequence[Deposit], timestamp: int, config: Eth2
     return active_validator_count == config.MIN_GENESIS_ACTIVE_VALIDATOR_COUNT
 
 
-def genesis_state_with_active_index_roots(state: BeaconState, config: Eth2Config) -> BeaconState:
+def state_with_validator_digests(state: BeaconState, config: Eth2Config) -> BeaconState:
     active_validator_indices = get_active_validator_indices(
         state.validators,
         config.GENESIS_EPOCH,
     )
     active_index_root = ssz.get_hash_tree_root(
         active_validator_indices,
-        List(ssz.uint64, config.VALIDATOR_REGISTRY_LIMIT),
+        ssz.List(ssz.uint64, config.VALIDATOR_REGISTRY_LIMIT),
     )
     active_index_roots = (
         (active_index_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
@@ -117,7 +122,7 @@ def initialize_beacon_state_from_eth1(*,
             eth1_data=state.eth1_data.copy(
                 deposit_root=ssz.get_hash_tree_root(
                     deposit_data_list,
-                    List(DepositData, 2**DEPOSIT_CONTRACT_TREE_DEPTH),
+                    ssz.List(DepositData, 2**DEPOSIT_CONTRACT_TREE_DEPTH),
                 ),
             ),
         )
@@ -155,7 +160,7 @@ def initialize_beacon_state_from_eth1(*,
                 config.GENESIS_EPOCH,
             )
 
-    return genesis_state_with_active_index_roots(
+    return state_with_validator_digests(
         state,
         config,
     )
