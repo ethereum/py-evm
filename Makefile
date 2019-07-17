@@ -64,6 +64,8 @@ release: clean
 	$(eval UPCOMING_VERSION=$(shell bumpversion $(bump) --dry-run --list | grep new_version= | sed 's/new_version=//g'))
 	# Now generate the release notes to have them included in the release commit
 	towncrier --yes --version $(UPCOMING_VERSION)
+	# Before we bump the version, make sure that the towncrier-generated docs will build
+	make build-docs
 	# We need --allow-dirty because of the generated release_notes file but it is safe because the
 	# previous dry-run runs *without* --allow-dirty which ensures it's really just the release notes
 	# file that we are allowing to sit here dirty, waiting to get included in the release commit.
