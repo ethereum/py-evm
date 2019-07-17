@@ -5,6 +5,22 @@ Trinity is moving fast. Read up on all the latest improvements.
 
 .. towncrier release notes start
 
+Trinity 0.1.0-alpha.27 (2019-07-17)
+-----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Don't require blspy by default, which was breaking doc builds and making standard installs more
+  difficult (by requiring cmake) (`#805 <https://github.com/ethereum/trinity/issues/805>`__)
+
+
+Misc
+~~~~
+
+- `#806 <https://github.com/ethereum/trinity/issues/806>`__
+
+
 Trinity 0.1.0-alpha.26 (2019-07-16)
 -----------------------------------
 

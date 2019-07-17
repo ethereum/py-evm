@@ -1,1 +1,0 @@
-Require that docs build before tagging & publishing a release
