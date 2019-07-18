@@ -18,10 +18,11 @@ from eth2.beacon.typing import (
     ValidatorIndex,
 )
 
-from p2p import ecies
-from p2p.constants import (
-    DEFAULT_MAX_PEERS,
+from libp2p.security.insecure_security import (
+    InsecureTransport,
 )
+
+from p2p import ecies
 
 from trinity._utils.shutdown import (
     exit_with_services,
@@ -31,12 +32,11 @@ from trinity.db.beacon.manager import (
 )
 from trinity.config import BeaconAppConfig
 from trinity.extensibility import AsyncioIsolatedPlugin
-from trinity.protocol.bcc.peer import BCCPeerPoolEventServer
-from trinity.server import BCCServer
-from trinity.sync.beacon.chain import BeaconChainSyncer
-from trinity.sync.common.chain import (
-    SyncBlockImporter,
+from trinity.protocol.bcc_libp2p.configs import (
+    SECURITY_PROTOCOL_ID,
+    MULTIPLEXING_PROTOCOL_ID,
 )
+from trinity.protocol.bcc_libp2p.node import Node
 
 from .slot_ticker import (
     SlotTicker,
@@ -76,7 +76,6 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
         beacon_app_config = trinity_config.get_app_config(BeaconAppConfig)
         db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
         base_db = db_manager.get_db()  # type: ignore
-        chain_db = db_manager.get_chaindb()  # type: ignore
         chain_config = beacon_app_config.get_chain_config()
         attestation_pool = AttestationPool()
         chain = chain_config.beacon_chain_class(
@@ -90,33 +89,12 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
         else:
             privkey = ecies.generate_privkey()
 
-        server = BCCServer(
+        libp2p_node = Node(
             privkey=privkey,
-            port=self.boot_info.args.port,
-            chain=chain,
-            chaindb=chain_db,
-            headerdb=None,
-            base_db=base_db,
-            network_id=trinity_config.network_id,
-            max_peers=DEFAULT_MAX_PEERS,
-            bootstrap_nodes=None,
-            preferred_nodes=None,
-            event_bus=self.event_bus,
-            token=None,
-        )
-
-        event_server = BCCPeerPoolEventServer(
-            self.event_bus,
-            server.peer_pool,
-            server.cancel_token
-        )
-
-        syncer = BeaconChainSyncer(
-            chain_db=chain_db,
-            peer_pool=server.peer_pool,
-            block_importer=SyncBlockImporter(chain),
-            genesis_config=chain_config.genesis_config,
-            token=server.cancel_token,
+            listen_ip="127.0.0.1",  # FIXME: Should be configurable
+            listen_port=self.boot_info.args.port,
+            security_protocol_ops={SECURITY_PROTOCOL_ID: InsecureTransport("plaintext")},
+            muxer_protocol_ids=[MULTIPLEXING_PROTOCOL_ID],
         )
 
         state = chain.get_state_by_slot(chain_config.genesis_config.GENESIS_SLOT)
@@ -130,11 +108,11 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
 
         validator = Validator(
             chain=chain,
-            peer_pool=server.peer_pool,
+            p2p_node=libp2p_node,
             validator_privkeys=validator_privkeys,
             event_bus=self.event_bus,
-            token=server.cancel_token,
-            get_ready_attestations_fn=server.receive_server.get_ready_attestations,
+            token=libp2p_node.cancel_token,
+            get_ready_attestations_fn=lambda _: tuple(),  # FIXME: BCCReceiveServer.get_ready_attestations  # noqa: E501
         )
 
         slot_ticker = SlotTicker(
@@ -142,19 +120,15 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
             genesis_time=chain_config.genesis_data.genesis_time,
             seconds_per_slot=chain_config.genesis_config.SECONDS_PER_SLOT,
             event_bus=self.event_bus,
-            token=server.cancel_token,
+            token=libp2p_node.cancel_token,
         )
 
         asyncio.ensure_future(exit_with_services(
-            server,
-            syncer,
+            self._event_bus_service,
+            libp2p_node,
             slot_ticker,
             validator,
-            event_server,
-            self._event_bus_service,
         ))
-        asyncio.ensure_future(event_server.run())
-        asyncio.ensure_future(server.run())
-        asyncio.ensure_future(syncer.run())
+        asyncio.ensure_future(libp2p_node.run())
         asyncio.ensure_future(slot_ticker.run())
         asyncio.ensure_future(validator.run())

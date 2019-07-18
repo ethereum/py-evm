@@ -11,7 +11,6 @@ from typing import (
     Iterable,
     Sequence,
     Tuple,
-    cast,
 )
 
 from lahja import EndpointAPI
@@ -69,15 +68,11 @@ from p2p.service import (
 )
 from trinity._utils.shellart import (
     bold_green,
-    bold_red,
 )
 from trinity.plugins.eth2.beacon.slot_ticker import (
     SlotTickEvent,
 )
-from trinity.protocol.bcc.peer import (
-    BCCPeer,
-    BCCPeerPool,
-)
+from trinity.protocol.bcc_libp2p.node import Node
 
 
 GetReadyAttestationsFn = Callable[[], Sequence[Attestation]]
@@ -85,7 +80,7 @@ GetReadyAttestationsFn = Callable[[], Sequence[Attestation]]
 
 class Validator(BaseService):
     chain: BeaconChain
-    peer_pool: BCCPeerPool
+    p2p_node: Node
     validator_privkeys: Dict[ValidatorIndex, int]
     event_bus: EndpointAPI
     slots_per_epoch: int
@@ -98,14 +93,14 @@ class Validator(BaseService):
     def __init__(
             self,
             chain: BeaconChain,
-            peer_pool: BCCPeerPool,
+            p2p_node: Node,
             validator_privkeys: Dict[ValidatorIndex, int],
             event_bus: EndpointAPI,
             get_ready_attestations_fn: GetReadyAttestationsFn,
             token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
-        self.peer_pool = peer_pool
+        self.p2p_node = p2p_node
         self.validator_privkeys = validator_privkeys
         self.event_bus = event_bus
         config = self.chain.get_state_machine().config
@@ -206,7 +201,7 @@ class Validator(BaseService):
         if proposer_index in self.validator_privkeys:
             has_proposed = epoch <= self.latest_proposed_epoch[proposer_index]
             if not has_proposed:
-                self.propose_block(
+                await self.propose_block(
                     proposer_index=proposer_index,
                     slot=slot,
                     state=state,
@@ -227,12 +222,12 @@ class Validator(BaseService):
 
         await self.attest(slot)
 
-    def propose_block(self,
-                      proposer_index: ValidatorIndex,
-                      slot: Slot,
-                      state: BeaconState,
-                      state_machine: BaseBeaconStateMachine,
-                      head_block: BaseBeaconBlock) -> BaseBeaconBlock:
+    async def propose_block(self,
+                            proposer_index: ValidatorIndex,
+                            slot: Slot,
+                            state: BeaconState,
+                            state_machine: BaseBeaconStateMachine,
+                            head_block: BaseBeaconBlock) -> BaseBeaconBlock:
         ready_attestations = self.get_ready_attestations()
         block = self._make_proposing_block(
             proposer_index=proposer_index,
@@ -248,11 +243,8 @@ class Validator(BaseService):
             block,
             block.body.attestations,
         )
-        for peer in self.peer_pool.connected_nodes.values():
-            peer = cast(BCCPeer, peer)
-            self.logger.debug(bold_red("Sending block=%s to peer=%s"), block, peer)
-            peer.sub_proto.send_new_block(block)
         self.chain.import_block(block)
+        await self.p2p_node.broadcast_beacon_block(block)
         return block
 
     def _make_proposing_block(self,
@@ -374,8 +366,5 @@ class Validator(BaseService):
                 self.latest_attested_epoch[validator_index] = epoch
             attestations = attestations + (attestation,)
 
-        for peer in self.peer_pool.connected_nodes.values():
-            peer = cast(BCCPeer, peer)
-            self.logger.debug(bold_red("Sending attestations=%s to peer=%s"), attestations, peer)
-            peer.sub_proto.send_attestation_records(attestations)
+        await self.p2p_node.broadcast_attestations(attestations)
         return attestations

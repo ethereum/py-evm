@@ -67,17 +67,16 @@ class FakeProtocol:
         self.inbox.append(block)
 
 
-class FakePeer:
+class FakeNode:
     def __init__(self):
-        self.sub_proto = FakeProtocol()
+        self.list_beacon_block = []
+        self.list_attestations = []
 
+    async def broadcast_beacon_block(self, block):
+        self.list_beacon_block.append(block)
 
-class FakePeerPool:
-    def __init__(self):
-        self.connected_nodes = {}
-
-    def add_peer(self, index):
-        self.connected_nodes[index] = FakePeer()
+    async def broadcast_attestations(self, attestations):
+        self.list_attestations.append(attestations)
 
 
 def get_chain_from_genesis(db, indices):
@@ -104,7 +103,6 @@ def get_chain_from_genesis(db, indices):
 async def get_validator(event_loop, event_bus, indices) -> Validator:
     chain_db = await bcc_helpers.get_chain_db()
     chain = get_chain_from_genesis(chain_db.db, indices)
-    peer_pool = FakePeerPool()
     validator_privkeys = {
         index: keymap[index_to_pubkey[index]]
         for index in indices
@@ -115,7 +113,7 @@ async def get_validator(event_loop, event_bus, indices) -> Validator:
 
     v = Validator(
         chain=chain,
-        peer_pool=peer_pool,
+        p2p_node=FakeNode(),
         validator_privkeys=validator_privkeys,
         get_ready_attestations_fn=get_ready_attestations_fn,
         event_bus=event_bus,
@@ -138,8 +136,6 @@ async def get_linked_validators(event_loop, event_bus) -> Tuple[Validator, Valid
     )
     alice = await get_validator(event_loop, event_bus, alice_indices)
     bob = await get_validator(event_loop, event_bus, bob_indices)
-    alice.peer_pool.add_peer(bob_indices[0])
-    bob.peer_pool.add_peer(alice_indices[0])
     return alice, bob
 
 
@@ -177,7 +173,7 @@ async def test_validator_propose_block_succeeds(event_loop, event_bus):
     )
 
     head = alice.chain.get_canonical_head()
-    block = alice.propose_block(
+    block = await alice.propose_block(
         proposer_index=proposer_index,
         slot=slot,
         state=state,
@@ -193,8 +189,7 @@ async def test_validator_propose_block_succeeds(event_loop, event_bus):
     assert new_head != head
 
     # test: ensure the block is broadcast to its peer
-    peer = tuple(alice.peer_pool.connected_nodes.values())[0]
-    assert block in peer.sub_proto.inbox
+    assert block in alice.node.list_beacon_block
 
 
 @pytest.mark.asyncio
@@ -212,7 +207,7 @@ async def test_validator_propose_block_fails(event_loop, event_bus):
     head = alice.chain.get_canonical_head()
     # test: if a non-proposer validator proposes a block, the block validation should fail.
     with pytest.raises(KeyError):
-        alice.propose_block(
+        await alice.propose_block(
             proposer_index=proposer_index,
             slot=slot,
             state=state,
@@ -308,7 +303,7 @@ async def test_validator_handle_first_tick(event_loop, event_bus, monkeypatch):
 
     is_proposing = None
 
-    def propose_block(proposer_index, slot, state, state_machine, head_block):
+    async def propose_block(proposer_index, slot, state, state_machine, head_block):
         nonlocal is_proposing
         is_proposing = True
 
@@ -421,7 +416,7 @@ async def test_validator_include_ready_attestations(event_loop, event_bus, monke
     )
 
     head = alice.chain.get_canonical_head()
-    block = alice.propose_block(
+    block = await alice.propose_block(
         proposer_index=proposer_index,
         slot=proposing_slot,
         state=state,

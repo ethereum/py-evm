@@ -2,6 +2,7 @@ from typing import (
     Dict,
     List,
     Optional,
+    Sequence,
 )
 
 from cancel_token import (
@@ -10,6 +11,13 @@ from cancel_token import (
 
 from eth_keys import (
     datatypes,
+)
+
+from eth2.beacon.types.attestations import (
+    Attestation,
+)
+from eth2.beacon.types.blocks import (
+    BaseBeaconBlock,
 )
 
 from libp2p import (
@@ -47,12 +55,16 @@ from multiaddr import (
     Multiaddr,
 )
 
+import ssz
+
 from p2p.service import (
     BaseService,
 )
 
 from .configs import (
     GOSSIPSUB_PROTOCOL_ID,
+    PUBSUB_TOPIC_BEACON_BLOCK,
+    PUBSUB_TOPIC_BEACON_ATTESTATION,
     GossipsubParams,
 )
 from .utils import (
@@ -113,11 +125,19 @@ class Node(BaseService):
 
     async def _run(self) -> None:
         self.logger.info(f"libp2p node up")
-        self.run_daemon_task(self.listen())
+        self.run_daemon_task(self.start())
         await self.cancellation()
 
-    async def listen(self) -> None:
+    async def start(self) -> None:
+        # host
         await self.host.get_network().listen(self.listen_maddr)
+        # TODO: Set up stream handlers for each protocol
+        # TODO: Register notifees
+
+        # pubsub
+        await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_BLOCK)
+        await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_ATTESTATION)
+        # TODO: Register topic validators
 
     async def dial_peer(self, ip: str, port: int, peer_id: ID) -> None:
         """
@@ -131,6 +151,15 @@ class Node(BaseService):
                 peer_data=peer_data,
             )
         )
+
+    async def broadcast_beacon_block(self, block: BaseBeaconBlock) -> None:
+        await self._broadcast_data(PUBSUB_TOPIC_BEACON_BLOCK, ssz.encode(block))
+
+    async def broadcast_attestations(self, attestations: Sequence[Attestation]) -> None:
+        await self._broadcast_data(PUBSUB_TOPIC_BEACON_ATTESTATION, ssz.encode(attestations))
+
+    async def _broadcast_data(self, topic: str, data: bytes) -> None:
+        await self.pubsub.publish(topic, data)
 
     @property
     def peer_id(self) -> ID:
