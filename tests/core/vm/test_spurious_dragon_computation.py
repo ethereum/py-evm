@@ -44,7 +44,6 @@ def make_computation():
 
     def _make_computation(chain) -> BaseComputation:
         state = chain.get_vm().state
-        print("State: {}".format(state))
         state.set_balance(CANONICAL_ADDRESS_A, 1000)
         computation = SpuriousDragonComputation(
             state=state,
