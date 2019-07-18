@@ -29,7 +29,7 @@ from eth2.configs import (
 )
 from eth2.beacon.attestation_helpers import (
     get_attestation_data_slot,
-    is_valid_indexed_attestation,
+    validate_indexed_attestation,
     is_slashable_attestation_data,
 )
 from eth2.beacon.committee_helpers import (
@@ -302,14 +302,14 @@ def validate_attester_slashing(state: BeaconState,
         attestation_2,
     )
 
-    is_valid_indexed_attestation(
+    validate_indexed_attestation(
         state,
         attestation_1,
         max_validators_per_committee,
         slots_per_epoch,
     )
 
-    is_valid_indexed_attestation(
+    validate_indexed_attestation(
         state,
         attestation_2,
         max_validators_per_committee,
@@ -446,7 +446,7 @@ def validate_attestation(state: BeaconState,
     Raise ``ValidationError`` if it's invalid.
     """
     _validate_attestation_data(state, attestation.data, config)
-    is_valid_indexed_attestation(
+    validate_indexed_attestation(
         state,
         get_indexed_attestation(state, attestation, CommitteeConfig(config)),
         config.MAX_VALIDATORS_PER_COMMITTEE,
