@@ -159,7 +159,9 @@ class Node(BaseService):
         await self._broadcast_data(PUBSUB_TOPIC_BEACON_ATTESTATION, ssz.encode(attestations))
 
     async def _broadcast_data(self, topic: str, data: bytes) -> None:
-        await self.pubsub.publish(topic, data)
+        # TODO: Use `pubsub.publish` when it is finished in the upstream
+        # await self.pubsub.publish(topic, data)
+        pass
 
     @property
     def peer_id(self) -> ID:
