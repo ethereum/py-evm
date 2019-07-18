@@ -15,11 +15,11 @@ from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
 )
 from eth2.beacon.helpers import (
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 from eth2.beacon.epoch_processing_helpers import (
-    get_delayed_activation_exit_epoch,
-    get_churn_limit,
+    compute_activation_exit_epoch,
+    get_validator_churn_limit,
 )
 from eth2.beacon.validator_status_helpers import (
     _compute_exit_queue_epoch,
@@ -106,7 +106,7 @@ def test_compute_exit_queue_epoch(genesis_state,
         )
 
     if is_delayed_exit_epoch_the_maximum_exit_queue_epoch:
-        expected_candidate_exit_queue_epoch = get_delayed_activation_exit_epoch(
+        expected_candidate_exit_queue_epoch = compute_activation_exit_epoch(
             state.current_epoch(config.SLOTS_PER_EPOCH),
             config.ACTIVATION_EXIT_DELAY,
         )
@@ -195,7 +195,7 @@ def test_initiate_validator_exit(genesis_state, is_already_exited, config):
     assert validator.withdrawable_epoch == FAR_FUTURE_EPOCH
 
     if is_already_exited:
-        churn_limit = get_churn_limit(state, config)
+        churn_limit = get_validator_churn_limit(state, config)
         exit_queue_epoch = _compute_exit_queue_epoch(state, churn_limit, config)
         validator = validator.copy(
             exit_epoch=exit_queue_epoch,
@@ -211,7 +211,7 @@ def test_initiate_validator_exit(genesis_state, is_already_exited, config):
     if is_already_exited:
         assert exited_validator == validator
     else:
-        churn_limit = get_churn_limit(state, config)
+        churn_limit = get_validator_churn_limit(state, config)
         exit_queue_epoch = _compute_exit_queue_epoch(state, churn_limit, config)
         assert exited_validator.exit_epoch == exit_queue_epoch
         assert exited_validator.withdrawable_epoch == (
@@ -248,9 +248,16 @@ def test_set_validator_slashed(genesis_state,
     else:
         assert not some_validator.slashed
 
-    slashed_validator = _set_validator_slashed(some_validator, some_future_epoch)
+    slashed_validator = _set_validator_slashed(
+        some_validator,
+        some_future_epoch,
+        config.EPOCHS_PER_SLASHINGS_VECTOR,
+    )
     assert slashed_validator.slashed
-    assert slashed_validator.withdrawable_epoch == some_future_epoch
+    assert slashed_validator.withdrawable_epoch == max(
+        slashed_validator.withdrawable_epoch,
+        some_future_epoch + config.EPOCHS_PER_SLASHINGS_VECTOR
+    )
 
 
 @pytest.mark.parametrize(
@@ -264,14 +271,14 @@ def test_set_validator_slashed(genesis_state,
 def test_slash_validator(genesis_state,
                          config):
     some_epoch = (
-        config.GENESIS_EPOCH + random.randint(1, 2**32) + config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+        config.GENESIS_EPOCH + random.randint(1, 2**32) + config.EPOCHS_PER_SLASHINGS_VECTOR
     )
-    earliest_slashable_epoch = some_epoch - config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+    earliest_slashable_epoch = some_epoch - config.EPOCHS_PER_SLASHINGS_VECTOR
     slashable_range = range(earliest_slashable_epoch, some_epoch)
     sampling_quotient = 4
 
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(earliest_slashable_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(earliest_slashable_epoch, config.SLOTS_PER_EPOCH),
     )
     validator_count_to_slash = len(state.validators) // sampling_quotient
     assert validator_count_to_slash > 1
@@ -300,7 +307,7 @@ def test_slash_validator(genesis_state,
         another_slashing_epoch += 1
     slashings[another_slashing_epoch] = (validator_indices_to_slash[0],)
 
-    expected_slashed_balances = {}
+    expected_slashings = {}
     expected_individual_penalties = {}
     for epoch, coalition in slashings.items():
         for index in coalition:
@@ -309,8 +316,8 @@ def test_slash_validator(genesis_state,
             assert validator.exit_epoch == FAR_FUTURE_EPOCH
             assert validator.withdrawable_epoch == FAR_FUTURE_EPOCH
 
-            expected_slashed_balances = update_in(
-                expected_slashed_balances,
+            expected_slashings = update_in(
+                expected_slashings,
                 [epoch],
                 lambda balance: balance + state.validators[index].effective_balance,
                 default=0,
@@ -321,7 +328,7 @@ def test_slash_validator(genesis_state,
                 lambda penalty: (
                     penalty + (
                         state.validators[index].effective_balance //
-                        config.WHISTLEBLOWING_REWARD_QUOTIENT
+                        config.MIN_SLASHING_PENALTY_QUOTIENT
                     )
                 ),
                 default=0,
@@ -331,17 +338,17 @@ def test_slash_validator(genesis_state,
     expected_proposer_rewards = {}
     for epoch, coalition in slashings.items():
         state = state.copy(
-            slot=get_epoch_start_slot(epoch, config.SLOTS_PER_EPOCH)
+            slot=compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH)
         )
 
-        expected_total_slashed_balance = expected_slashed_balances[epoch]
+        expected_total_slashed_balance = expected_slashings[epoch]
         proposer_index = get_beacon_proposer_index(state, CommitteeConfig(config))
 
         expected_proposer_rewards = update_in(
             expected_proposer_rewards,
             [proposer_index],
             lambda reward: reward + (
-                expected_total_slashed_balance // config.WHISTLEBLOWING_REWARD_QUOTIENT
+                expected_total_slashed_balance // config.WHISTLEBLOWER_REWARD_QUOTIENT
             ),
             default=0,
         )
@@ -349,7 +356,7 @@ def test_slash_validator(genesis_state,
             state = slash_validator(state, index, config)
 
     state = state.copy(
-        slot=get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH)
+        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH)
     )
     # verify result
     for epoch, coalition in slashings.items():
@@ -358,12 +365,12 @@ def test_slash_validator(genesis_state,
             assert validator.exit_epoch != FAR_FUTURE_EPOCH
             assert validator.slashed
             assert validator.withdrawable_epoch == (
-                epoch + config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+                epoch + config.EPOCHS_PER_SLASHINGS_VECTOR
             )
 
-            slashed_epoch_index = epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
-            slashed_balance = state.slashed_balances[slashed_epoch_index]
-            assert slashed_balance == expected_slashed_balances[epoch]
+            slashed_epoch_index = epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
+            slashed_balance = state.slashings[slashed_epoch_index]
+            assert slashed_balance == expected_slashings[epoch]
             assert state.balances[index] == (
                 config.MAX_EFFECTIVE_BALANCE -
                 expected_individual_penalties[index] +

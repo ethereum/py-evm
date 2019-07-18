@@ -15,8 +15,8 @@ from eth2.beacon.committee_helpers import (
 from eth2.beacon.constants import FAR_FUTURE_EPOCH
 from eth2.beacon.epoch_processing_helpers import (
     decrease_balance,
-    get_churn_limit,
-    get_delayed_activation_exit_epoch,
+    get_validator_churn_limit,
+    compute_activation_exit_epoch,
     increase_balance,
 )
 from eth2.beacon.types.states import BeaconState
@@ -35,7 +35,7 @@ def activate_validator(validator: Validator, activation_epoch: Epoch) -> Validat
     )
 
 
-def _compute_exit_queue_epoch(state: BeaconState, churn_limit: int, config: Eth2Config) -> int:
+def _compute_exit_queue_epoch(state: BeaconState, churn_limit: int, config: Eth2Config) -> Epoch:
     slots_per_epoch = config.SLOTS_PER_EPOCH
 
     exit_epochs = tuple(
@@ -43,7 +43,7 @@ def _compute_exit_queue_epoch(state: BeaconState, churn_limit: int, config: Eth2
         if v.exit_epoch != FAR_FUTURE_EPOCH
     )
     exit_queue_epoch = max(
-        exit_epochs + (get_delayed_activation_exit_epoch(
+        exit_epochs + (compute_activation_exit_epoch(
             state.current_epoch(slots_per_epoch),
             config.ACTIVATION_EXIT_DELAY,
         ),)
@@ -54,7 +54,7 @@ def _compute_exit_queue_epoch(state: BeaconState, churn_limit: int, config: Eth2
     ))
     if exit_queue_churn >= churn_limit:
         exit_queue_epoch += 1
-    return exit_queue_epoch
+    return Epoch(exit_queue_epoch)
 
 
 # NOTE: adding ``curry`` here gets mypy to allow use of this elsewhere.
@@ -69,12 +69,12 @@ def initiate_exit_for_validator(validator: Validator,
     if validator.exit_epoch != FAR_FUTURE_EPOCH:
         return validator
 
-    churn_limit = get_churn_limit(state, config)
+    churn_limit = get_validator_churn_limit(state, config)
     exit_queue_epoch = _compute_exit_queue_epoch(state, churn_limit, config)
 
     return validator.copy(
         exit_epoch=exit_queue_epoch,
-        withdrawable_epoch=exit_queue_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY,
+        withdrawable_epoch=Epoch(exit_queue_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY),
     )
 
 
@@ -95,10 +95,14 @@ def initiate_validator_exit(state: BeaconState,
 
 @curry
 def _set_validator_slashed(v: Validator,
-                           withdrawable_epoch: Epoch) -> Validator:
+                           current_epoch: Epoch,
+                           epochs_per_slashings_vector: int) -> Validator:
     return v.copy(
         slashed=True,
-        withdrawable_epoch=withdrawable_epoch,
+        withdrawable_epoch=max(
+            v.withdrawable_epoch,
+            Epoch(current_epoch + epochs_per_slashings_vector),
+        ),
     )
 
 
@@ -122,27 +126,32 @@ def slash_validator(state: BeaconState,
     state = state.update_validator_with_fn(
         index,
         _set_validator_slashed,
-        current_epoch + config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
+        current_epoch,
+        config.EPOCHS_PER_SLASHINGS_VECTOR,
     )
 
     slashed_balance = state.validators[index].effective_balance
-    slashed_epoch = current_epoch % config.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+    slashed_epoch = current_epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
     state = state.copy(
-        slashed_balances=update_tuple_item_with_fn(
-            state.slashed_balances,
+        slashings=update_tuple_item_with_fn(
+            state.slashings,
             slashed_epoch,
             lambda balance, slashed_balance: Gwei(balance + slashed_balance),
             slashed_balance,
         )
     )
+    state = decrease_balance(state, index, slashed_balance // config.MIN_SLASHING_PENALTY_QUOTIENT)
 
     proposer_index = get_beacon_proposer_index(state, CommitteeConfig(config))
     if whistleblower_index is None:
         whistleblower_index = proposer_index
-    whistleblowing_reward = slashed_balance // config.WHISTLEBLOWING_REWARD_QUOTIENT
-    proposer_reward = whistleblowing_reward // config.PROPOSER_REWARD_QUOTIENT
+    whistleblower_reward = Gwei(slashed_balance // config.WHISTLEBLOWER_REWARD_QUOTIENT)
+    proposer_reward = Gwei(whistleblower_reward // config.PROPOSER_REWARD_QUOTIENT)
     state = increase_balance(state, proposer_index, proposer_reward)
-    state = increase_balance(state, whistleblower_index, whistleblowing_reward - proposer_reward)
-    state = decrease_balance(state, index, whistleblowing_reward)
+    state = increase_balance(
+        state,
+        whistleblower_index,
+        Gwei(whistleblower_reward - proposer_reward),
+    )
 
     return state

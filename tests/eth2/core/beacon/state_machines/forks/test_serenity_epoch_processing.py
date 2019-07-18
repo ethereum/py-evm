@@ -12,24 +12,26 @@ from eth2.configs import (
 )
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
-    get_epoch_start_shard,
+    get_start_shard,
     get_shard_delta,
 )
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
     GWEI_PER_ETH,
+    JUSTIFICATION_BITS_LENGTH,
 )
 from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_block_root,
     get_block_root_at_slot,
-    get_epoch_start_slot,
-    slot_to_epoch,
+    compute_start_slot_of_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.epoch_processing_helpers import (
     get_base_reward,
 )
 from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.typing import Gwei
@@ -37,7 +39,7 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _bft_threshold_met,
     _determine_new_finalized_epoch,
     _determine_slashing_penalty,
-    get_delayed_activation_exit_epoch,
+    compute_activation_exit_epoch,
     process_crosslinks,
     process_justification_and_finalization,
     process_slashings,
@@ -75,24 +77,25 @@ def test_bft_threshold_met(attesting_balance,
 
 
 @pytest.mark.parametrize(
-    "justification_bitfield,"
+    "justification_bits,"
     "previous_justified_epoch,"
     "current_justified_epoch,"
     "expected,",
     (
         # Rule 1
-        (0b111110, 3, 3, 3),
+        ((False, True, True, True), 3, 3, 3),
         # Rule 2
-        (0b111110, 4, 4, 4),
+        ((False, True, True, False), 4, 4, 4),
         # Rule 3
-        (0b110111, 3, 4, 4),
+        ((True, True, True, False), 3, 4, 4),
         # Rule 4
-        (0b110011, 2, 5, 5),
+        ((True, True, False, False), 2, 5, 5),
         # No finalize
-        (0b110000, 2, 2, 1),
+        ((False, False, False, False), 2, 2, 1),
+        ((True, True, True, True), 2, 2, 1),
     )
 )
-def test_get_finalized_epoch(justification_bitfield,
+def test_get_finalized_epoch(justification_bits,
                              previous_justified_epoch,
                              current_justified_epoch,
                              expected):
@@ -103,7 +106,7 @@ def test_get_finalized_epoch(justification_bitfield,
         previous_justified_epoch,
         current_justified_epoch,
         current_epoch,
-        justification_bitfield,
+        justification_bits,
     ) == expected
 
 
@@ -113,7 +116,18 @@ def test_justification_without_mock(genesis_state,
 
     state = genesis_state
     state = process_justification_and_finalization(state, config)
-    assert state.justification_bitfield == 0b0
+    assert state.justification_bits == (False,) * JUSTIFICATION_BITS_LENGTH
+
+
+def _convert_to_bitfield(bits):
+    data = bits.to_bytes(1, "little")
+    length = bits.bit_length()
+    bitfield = get_empty_bitfield(length)
+    for index in range(length):
+        value = (data[index // 8] >> index % 8) % 2
+        if value:
+            bitfield = set_voted(bitfield, index)
+    return (bitfield + (False,) * (4 - length))[0:4]
 
 
 @pytest.mark.parametrize(
@@ -123,10 +137,10 @@ def test_justification_without_mock(genesis_state,
         "previous_epoch_justifiable",
         "previous_justified_epoch",
         "current_justified_epoch",
-        "justification_bitfield",
+        "justification_bits",
         "finalized_epoch",
         "justified_epoch_after",
-        "justification_bitfield_after",
+        "justification_bits_after",
         "finalized_epoch_after",
     ),
     (
@@ -153,21 +167,29 @@ def test_process_justification_and_finalization(genesis_state,
                                                 previous_epoch_justifiable,
                                                 previous_justified_epoch,
                                                 current_justified_epoch,
-                                                justification_bitfield,
+                                                justification_bits,
                                                 finalized_epoch,
                                                 justified_epoch_after,
-                                                justification_bitfield_after,
+                                                justification_bits_after,
                                                 finalized_epoch_after,
                                                 config):
+    justification_bits = _convert_to_bitfield(justification_bits)
+    justification_bits_after = _convert_to_bitfield(justification_bits_after)
     previous_epoch = max(current_epoch - 1, 0)
     slot = (current_epoch + 1) * config.SLOTS_PER_EPOCH - 1
 
     state = genesis_state.copy(
         slot=slot,
-        previous_justified_epoch=previous_justified_epoch,
-        current_justified_epoch=current_justified_epoch,
-        justification_bitfield=justification_bitfield,
-        finalized_epoch=finalized_epoch,
+        previous_justified_checkpoint=Checkpoint(
+            epoch=previous_justified_epoch,
+        ),
+        current_justified_checkpoint=Checkpoint(
+            epoch=current_justified_epoch,
+        ),
+        justification_bits=justification_bits,
+        finalized_checkpoint=Checkpoint(
+            epoch=finalized_epoch,
+        ),
         block_roots=tuple(
             i.to_bytes(32, "little")
             for i in range(config.SLOTS_PER_HISTORICAL_ROOT)
@@ -196,10 +218,12 @@ def test_process_justification_and_finalization(genesis_state,
 
     post_state = process_justification_and_finalization(state, config)
 
-    assert post_state.previous_justified_epoch == state.current_justified_epoch
-    assert post_state.current_justified_epoch == justified_epoch_after
-    assert post_state.justification_bitfield == justification_bitfield_after
-    assert post_state.finalized_epoch == finalized_epoch_after
+    assert (
+        post_state.previous_justified_checkpoint.epoch == state.current_justified_checkpoint.epoch
+    )
+    assert post_state.current_justified_checkpoint.epoch == justified_epoch_after
+    assert post_state.justification_bits == justification_bits_after
+    assert post_state.finalized_checkpoint.epoch == finalized_epoch_after
 
 
 @pytest.mark.parametrize(
@@ -240,7 +264,7 @@ def test_process_crosslinks(genesis_state,
                             success_in_current_epoch):
     shard_count = config.SHARD_COUNT
     current_slot = config.SLOTS_PER_EPOCH * 5 - 1
-    current_epoch = slot_to_epoch(current_slot, config.SLOTS_PER_EPOCH)
+    current_epoch = compute_epoch_of_slot(current_slot, config.SLOTS_PER_EPOCH)
     assert current_epoch - 4 >= 0
 
     previous_crosslinks = tuple(
@@ -254,7 +278,7 @@ def test_process_crosslinks(genesis_state,
     parent_crosslinks = tuple(
         Crosslink(
             shard=i,
-            parent_root=previous_crosslinks[i].root,
+            parent_root=previous_crosslinks[i].hash_tree_root,
             start_epoch=current_epoch - 2,
             end_epoch=current_epoch - 1,
         )
@@ -263,7 +287,7 @@ def test_process_crosslinks(genesis_state,
     new_crosslinks = tuple(
         Crosslink(
             shard=i,
-            parent_root=parent_crosslinks[i].root,
+            parent_root=parent_crosslinks[i].hash_tree_root,
             start_epoch=current_epoch - 1,
             end_epoch=current_epoch,
         )
@@ -366,10 +390,12 @@ def test_get_attestation_deltas(genesis_state,
                                 sample_attestation_data_params):
     state = genesis_state.copy(
         slot=current_slot,
-        finalized_epoch=finalized_epoch,
+        finalized_checkpoint=Checkpoint(
+            epoch=finalized_epoch,
+        )
     )
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
-    epoch_start_shard = get_epoch_start_shard(
+    epoch_start_shard = get_start_shard(
         state,
         previous_epoch,
         CommitteeConfig(config),
@@ -389,7 +415,7 @@ def test_get_attestation_deltas(genesis_state,
 
     indices_to_check = set()
 
-    prev_epoch_start_slot = get_epoch_start_slot(previous_epoch, slots_per_epoch)
+    prev_epoch_start_slot = compute_start_slot_of_epoch(previous_epoch, slots_per_epoch)
     prev_epoch_attestations = tuple()
     for slot in range(prev_epoch_start_slot, prev_epoch_start_slot + slots_per_epoch):
         committee, shard = get_crosslink_committees_at_slot(
@@ -407,7 +433,7 @@ def test_get_attestation_deltas(genesis_state,
             participants_bitfield = set_voted(participants_bitfield, i)
         prev_epoch_attestations += (
             PendingAttestation(**sample_pending_attestation_record_params).copy(
-                aggregation_bitfield=participants_bitfield,
+                aggregation_bits=participants_bitfield,
                 inclusion_delay=min_attestation_inclusion_delay,
                 proposer_index=get_beacon_proposer_index(
                     state.copy(
@@ -419,12 +445,14 @@ def test_get_attestation_deltas(genesis_state,
                     crosslink=Crosslink(
                         shard=shard,
                     ),
-                    target_epoch=previous_epoch,
-                    target_root=get_block_root(
-                        state,
-                        previous_epoch,
-                        config.SLOTS_PER_EPOCH,
-                        config.SLOTS_PER_HISTORICAL_ROOT,
+                    target=Checkpoint(
+                        epoch=previous_epoch,
+                        root=get_block_root(
+                            state,
+                            previous_epoch,
+                            config.SLOTS_PER_EPOCH,
+                            config.SLOTS_PER_HISTORICAL_ROOT,
+                        ),
                     ),
                     beacon_block_root=get_block_root_at_slot(
                         state,
@@ -497,7 +525,7 @@ def test_process_rewards_and_penalties_for_crosslinks(genesis_state,
     )
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
 
-    prev_epoch_start_slot = get_epoch_start_slot(previous_epoch, slots_per_epoch)
+    prev_epoch_start_slot = compute_start_slot_of_epoch(previous_epoch, slots_per_epoch)
     prev_epoch_crosslink_committees = [
         get_crosslink_committees_at_slot(
             state,
@@ -509,7 +537,7 @@ def test_process_rewards_and_penalties_for_crosslinks(genesis_state,
     # Record which validators attest during each slot for reward collation.
     each_slot_attestion_validators_list = []
 
-    epoch_start_shard = get_epoch_start_shard(
+    epoch_start_shard = get_start_shard(
         state,
         previous_epoch,
         CommitteeConfig(config),
@@ -547,12 +575,14 @@ def test_process_rewards_and_penalties_for_crosslinks(genesis_state,
             participants_bitfield = set_voted(participants_bitfield, committee.index(index))
         previous_epoch_attestations.append(
             PendingAttestation(**sample_pending_attestation_record_params).copy(
-                aggregation_bitfield=participants_bitfield,
+                aggregation_bits=participants_bitfield,
                 data=AttestationData(**sample_attestation_data_params).copy(
-                    target_epoch=previous_epoch,
+                    target=Checkpoint(
+                        epoch=previous_epoch,
+                    ),
                     crosslink=Crosslink(
                         shard=shard,
-                        parent_root=Crosslink().root,
+                        parent_root=Crosslink().hash_tree_root,
                     ),
                 ),
             )
@@ -651,7 +681,7 @@ def test_process_registry_updates(validator_count,
     assert pre_activation_validator.activation_eligibility_epoch == FAR_FUTURE_EPOCH
     assert pre_activation_validator.activation_epoch == FAR_FUTURE_EPOCH
     assert post_activation_validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH
-    activation_epoch = get_delayed_activation_exit_epoch(
+    activation_epoch = compute_activation_exit_epoch(
         state.current_epoch(config.SLOTS_PER_EPOCH),
         config.ACTIVATION_EXIT_DELAY,
     )
@@ -673,7 +703,7 @@ def test_process_registry_updates(validator_count,
         'slots_per_epoch',
         'genesis_slot',
         'current_epoch',
-        'epochs_per_slashed_balances_vector',
+        'epochs_per_slashings_vector',
     ),
     [
         (
@@ -685,23 +715,22 @@ def test_process_registry_updates(validator_count,
     (
         'total_penalties',
         'total_balance',
-        'min_slashing_penalty_quotient',
         'expected_penalty',
     ),
     [
+        # total_penalties * 3 is less than total_balance
         (
             10**9,  # 1 ETH
             (32 * 10**9 * 10),
-            2**5,
-            # effective_balance // MIN_SLASHING_PENALTY_QUOTIENT,
-            32 * 10**9 // 2**5,
+            # effective_balance * total_penalties * 3 // total_balance
+            (32 * 10**9) * (3 * 10**9) // (32 * 10**9 * 10),
         ),
+        # total_balance is less than total_penalties * 3
         (
-            32 * 4 * 10**9,  # 3 * total_penalties > total_balance
+            32 * 4 * 10**9,
             (32 * 10**9 * 10),
-            2**10,  # Make MIN_SLASHING_PENALTY_QUOTIENT greater
-            # effective_balance * min(total_penalties * 3, total_balance) // total_balance,
-            32 * 10**9 * min(32 * 4 * 10**9 * 3, (32 * 10**9 * 10)) // (32 * 10**9 * 10),
+            # effective_balance * total_balance // total_balance,
+            (32 * 10**9) * (32 * 10**9 * 10) // (32 * 10**9 * 10),
         ),
     ]
 )
@@ -709,19 +738,20 @@ def test_determine_slashing_penalty(genesis_state,
                                     config,
                                     slots_per_epoch,
                                     current_epoch,
-                                    epochs_per_slashed_balances_vector,
+                                    epochs_per_slashings_vector,
                                     total_penalties,
                                     total_balance,
                                     expected_penalty):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
+        slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch),
     )
+    # if the size of the v-set changes then update the parameters above
+    assert len(state.validators) == 10
     validator_index = 0
     penalty = _determine_slashing_penalty(
         total_penalties,
         total_balance,
         state.validators[validator_index].effective_balance,
-        config.MIN_SLASHING_PENALTY_QUOTIENT,
     )
     assert penalty == expected_penalty
 
@@ -730,10 +760,9 @@ def test_determine_slashing_penalty(genesis_state,
     (
         'validator_count',
         'slots_per_epoch',
-        'genesis_slot',
         'current_epoch',
-        'epochs_per_slashed_balances_vector',
-        'slashed_balances',
+        'epochs_per_slashings_vector',
+        'slashings',
         'expected_penalty',
     ),
     [
@@ -742,27 +771,26 @@ def test_determine_slashing_penalty(genesis_state,
             4,
             8,
             8,
-            8,
             (2 * 10**9, 10**9) + (0,) * 6,
-            32 * 10**9 // 2**5,
+            9 * 10**8,
         ),
     ]
 )
 def test_process_slashings(genesis_state,
                            config,
                            current_epoch,
-                           slashed_balances,
+                           slashings,
                            slots_per_epoch,
-                           epochs_per_slashed_balances_vector,
+                           epochs_per_slashings_vector,
                            expected_penalty):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, slots_per_epoch),
-        slashed_balances=slashed_balances,
+        slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch),
+        slashings=slashings,
     )
     slashing_validator_index = 0
     validator = state.validators[slashing_validator_index].copy(
         slashed=True,
-        withdrawable_epoch=current_epoch + epochs_per_slashed_balances_vector // 2
+        withdrawable_epoch=current_epoch + epochs_per_slashings_vector // 2
     )
     state = state.update_validator(slashing_validator_index, validator)
 
@@ -797,12 +825,12 @@ def test_update_active_index_roots(genesis_state,
 
     result = _compute_next_active_index_roots(state, config)
 
-    index_root = ssz.hash_tree_root(
+    index_root = ssz.get_hash_tree_root(
         get_active_validator_indices(
             state.validators,
-            slot_to_epoch(state.slot, slots_per_epoch),
+            compute_epoch_of_slot(state.slot, slots_per_epoch),
         ),
-        ssz.sedes.List(ssz.uint64),
+        ssz.sedes.List(ssz.uint64, config.VALIDATOR_REGISTRY_LIMIT),
     )
 
     target_epoch = state.next_epoch(slots_per_epoch) + activation_exit_delay

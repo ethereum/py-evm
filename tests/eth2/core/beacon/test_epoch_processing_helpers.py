@@ -25,8 +25,8 @@ from eth2.beacon.epoch_processing_helpers import (
     increase_balance,
     decrease_balance,
     get_attesting_indices,
-    get_delayed_activation_exit_epoch,
-    get_churn_limit,
+    compute_activation_exit_epoch,
+    get_validator_churn_limit,
     get_matching_source_attestations,
     get_matching_target_attestations,
     get_matching_head_attestations,
@@ -37,11 +37,12 @@ from eth2.beacon.epoch_processing_helpers import (
     get_base_reward,
 )
 from eth2.beacon.helpers import (
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 from eth2.beacon.types.attestation_data import (
     AttestationData,
 )
+from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.typing import (
@@ -104,7 +105,7 @@ def test_decrease_balance(genesis_state,
 def test_get_attesting_indices(genesis_state,
                                config):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(3, config.SLOTS_PER_EPOCH)
+        slot=compute_start_slot_of_epoch(3, config.SLOTS_PER_EPOCH)
     )
     target_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     target_shard = (state.start_shard + 3) % config.SHARD_COUNT
@@ -116,7 +117,9 @@ def test_get_attesting_indices(genesis_state,
     )
 
     data = AttestationData(
-        target_epoch=target_epoch,
+        target=Checkpoint(
+            epoch=target_epoch,
+        ),
         crosslink=Crosslink(
             shard=target_shard,
         ),
@@ -140,9 +143,9 @@ def test_get_attesting_indices(genesis_state,
     assert len(indices) == len(some_subset)
 
 
-def test_get_delayed_activation_exit_epoch(activation_exit_delay):
+def test_compute_activation_exit_epoch(activation_exit_delay):
     epoch = random.randint(0, FAR_FUTURE_EPOCH)
-    entry_exit_effect_epoch = get_delayed_activation_exit_epoch(
+    entry_exit_effect_epoch = compute_activation_exit_epoch(
         epoch,
         activation_exit_delay,
     )
@@ -163,10 +166,10 @@ def test_get_delayed_activation_exit_epoch(activation_exit_delay):
         (100, 1, 5, 100),
     ],
 )
-def test_get_churn_limit(genesis_state,
-                         expected_churn_limit,
-                         config):
-    assert get_churn_limit(genesis_state, config) == expected_churn_limit
+def test_get_validator_churn_limit(genesis_state,
+                                   expected_churn_limit,
+                                   config):
+    assert get_validator_churn_limit(genesis_state, config) == expected_churn_limit
 
 
 @pytest.mark.parametrize(
@@ -188,7 +191,7 @@ def test_get_matching_source_attestations(genesis_state,
                                           success,
                                           config):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(current_epoch, config.SLOTS_PER_EPOCH),
         current_epoch_attestations=tuple(
             PendingAttestation(
                 data=AttestationData(
@@ -229,13 +232,15 @@ def test_get_matching_source_attestations(genesis_state,
 def test_get_matching_target_attestations(genesis_state,
                                           config):
     some_epoch = config.GENESIS_EPOCH + 20
-    some_slot = get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH)
+    some_slot = compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH)
     some_target_root = b'\x33' * 32
     target_attestations = tuple(
         (
             PendingAttestation(
                 data=AttestationData(
-                    target_root=some_target_root,
+                    target=Checkpoint(
+                        root=some_target_root,
+                    ),
                 ),
             ) for _ in range(3)
         )
@@ -244,7 +249,9 @@ def test_get_matching_target_attestations(genesis_state,
         (
             PendingAttestation(
                 data=AttestationData(
-                    target_root=b'\x44' * 32,
+                    target=Checkpoint(
+                        root=b'\x44' * 32,
+                    ),
                 ),
             ) for _ in range(3)
         )
@@ -271,7 +278,7 @@ def test_get_matching_target_attestations(genesis_state,
 def test_get_matching_head_attestations(genesis_state,
                                         config):
     some_epoch = config.GENESIS_EPOCH + 20
-    some_slot = get_epoch_start_slot(
+    some_slot = compute_start_slot_of_epoch(
         some_epoch,
         config.SLOTS_PER_EPOCH
     ) + config.SLOTS_PER_EPOCH // 4
@@ -281,7 +288,9 @@ def test_get_matching_head_attestations(genesis_state,
             PendingAttestation(
                 data=AttestationData(
                     beacon_block_root=some_target_root,
-                    target_epoch=some_epoch - 1,
+                    target=Checkpoint(
+                        epoch=some_epoch - 1,
+                    ),
                     crosslink=Crosslink(
                         shard=i,
                     )
@@ -294,7 +303,9 @@ def test_get_matching_head_attestations(genesis_state,
             PendingAttestation(
                 data=AttestationData(
                     beacon_block_root=b'\x44' * 32,
-                    target_epoch=some_epoch - 1,
+                    target=Checkpoint(
+                        epoch=some_epoch - 1,
+                    ),
                 ),
             ) for _ in range(3)
         )
@@ -327,7 +338,7 @@ def test_get_matching_head_attestations(genesis_state,
 def test_get_unslashed_attesting_indices(genesis_state,
                                          config):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(3, config.SLOTS_PER_EPOCH)
+        slot=compute_start_slot_of_epoch(3, config.SLOTS_PER_EPOCH)
     )
     target_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     target_shard = (state.start_shard + 3) % config.SHARD_COUNT
@@ -339,7 +350,9 @@ def test_get_unslashed_attesting_indices(genesis_state,
     )
 
     data = AttestationData(
-        target_epoch=target_epoch,
+        target=Checkpoint(
+            epoch=target_epoch,
+        ),
         crosslink=Crosslink(
             shard=target_shard,
         ),
@@ -369,7 +382,7 @@ def test_get_unslashed_attesting_indices(genesis_state,
         (
             PendingAttestation(
                 data=data,
-                aggregation_bitfield=bitfield,
+                aggregation_bits=bitfield,
             ),
         ),
         CommitteeConfig(config),
@@ -395,7 +408,7 @@ def test_find_candidate_attestations_for_shard(genesis_state,
     shard_offset = 24
 
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH),
         start_shard=some_shard,
         current_crosslinks=tuple(
             Crosslink(
@@ -515,7 +528,7 @@ def test_find_winning_crosslink_and_attesting_indices_from_candidates(genesis_st
     some_shard = 3
 
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH),
         start_shard=some_shard,
         current_crosslinks=tuple(
             Crosslink(
@@ -561,11 +574,11 @@ def test_find_winning_crosslink_and_attesting_indices_from_candidates(genesis_st
     )
 
     if number_of_candidates == 0:
-        expected_result = (Crosslink(), tuple())
+        expected_result = (Crosslink(), set())
     else:
         expected_result = (
             candidates[0].data.crosslink,
-            tuple(sorted(full_committee)),
+            set(sorted(full_committee)),
         )
 
     result = _find_winning_crosslink_and_attesting_indices_from_candidates(

@@ -33,8 +33,8 @@ for i, k in enumerate(privkeys):
     keymap[pubkey] = k
 
 genesis_state, genesis_block = create_mock_genesis(
-    num_validators=NUM_VALIDATORS,
     config=XIAO_LONG_BAO_CONFIG,
+    pubkeys=keymap.keys(),
     keymap=keymap,
     genesis_block_class=SerenityBeaconBlock,
     genesis_time=int(time.time()),

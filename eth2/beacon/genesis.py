@@ -9,6 +9,13 @@ from eth_typing import (
 
 import ssz
 
+from eth2.beacon.constants import (
+    SECONDS_PER_DAY,
+    DEPOSIT_CONTRACT_TREE_DEPTH,
+)
+from eth2.beacon.committee_helpers import (
+    get_compact_committees_root,
+)
 from eth2.beacon.deposit_helpers import (
     process_deposit,
 )
@@ -24,8 +31,10 @@ from eth2.beacon.types.block_headers import (
     BeaconBlockHeader,
 )
 from eth2.beacon.types.deposits import Deposit
+from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.validators import calculate_effective_balance
 from eth2.beacon.typing import (
     Timestamp,
     ValidatorIndex,
@@ -35,6 +44,7 @@ from eth2.beacon.validator_status_helpers import (
 )
 from eth2.configs import (
     Eth2Config,
+    CommitteeConfig,
 )
 
 
@@ -49,42 +59,72 @@ def is_genesis_trigger(deposits: Sequence[Deposit], timestamp: int, config: Eth2
         if validator.effective_balance == config.MAX_EFFECTIVE_BALANCE:
             active_validator_count += 1
 
-    return active_validator_count == config.GENESIS_ACTIVE_VALIDATOR_COUNT
+    return active_validator_count == config.MIN_GENESIS_ACTIVE_VALIDATOR_COUNT
 
 
-def genesis_state_with_active_index_roots(state: BeaconState, config: Eth2Config) -> BeaconState:
+def state_with_validator_digests(state: BeaconState, config: Eth2Config) -> BeaconState:
     active_validator_indices = get_active_validator_indices(
         state.validators,
         config.GENESIS_EPOCH,
     )
-    genesis_active_index_root = ssz.hash_tree_root(
+    active_index_root = ssz.get_hash_tree_root(
         active_validator_indices,
-        ssz.sedes.List(ssz.uint64),
+        ssz.List(ssz.uint64, config.VALIDATOR_REGISTRY_LIMIT),
     )
     active_index_roots = (
-        (genesis_active_index_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
+        (active_index_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
+    )
+    committee_root = get_compact_committees_root(
+        state,
+        config.GENESIS_EPOCH,
+        CommitteeConfig(config),
+    )
+    compact_committees_roots = (
+        (committee_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
     )
     return state.copy(
         active_index_roots=active_index_roots,
+        compact_committees_roots=compact_committees_roots,
     )
 
 
-def get_genesis_beacon_state(*,
-                             genesis_deposits: Sequence[Deposit],
-                             genesis_time: Timestamp,
-                             genesis_eth1_data: Eth1Data,
-                             config: Eth2Config) -> BeaconState:
+def _genesis_time_from_eth1_timestamp(eth1_timestamp: Timestamp) -> Timestamp:
+    return Timestamp(
+        eth1_timestamp - eth1_timestamp % SECONDS_PER_DAY + 2 * SECONDS_PER_DAY,
+    )
+
+
+def initialize_beacon_state_from_eth1(*,
+                                      eth1_block_hash: Hash32,
+                                      eth1_timestamp: Timestamp,
+                                      deposits: Sequence[Deposit],
+                                      config: Eth2Config) -> BeaconState:
     state = BeaconState(
-        genesis_time=genesis_time,
-        eth1_data=genesis_eth1_data,
+        genesis_time=_genesis_time_from_eth1_timestamp(eth1_timestamp),
+        eth1_data=Eth1Data(
+            block_hash=eth1_block_hash,
+            deposit_count=len(deposits),
+        ),
         latest_block_header=BeaconBlockHeader(
-            body_root=BeaconBlockBody().root,
+            body_root=BeaconBlockBody().hash_tree_root,
         ),
         config=config,
     )
 
     # Process genesis deposits
-    for deposit in genesis_deposits:
+    for index, deposit in enumerate(deposits):
+        deposit_data_list = tuple(
+            deposit.data
+            for deposit in deposits[:index + 1]
+        )
+        state = state.copy(
+            eth1_data=state.eth1_data.copy(
+                deposit_root=ssz.get_hash_tree_root(
+                    deposit_data_list,
+                    ssz.List(DepositData, 2**DEPOSIT_CONTRACT_TREE_DEPTH),
+                ),
+            ),
+        )
         state = process_deposit(
             state=state,
             deposit=deposit,
@@ -94,16 +134,27 @@ def get_genesis_beacon_state(*,
     # Process genesis activations
     for validator_index in range(len(state.validators)):
         validator_index = ValidatorIndex(validator_index)
-        effective_balance = state.validators[validator_index].effective_balance
-        is_enough_effective_balance = effective_balance >= config.MAX_EFFECTIVE_BALANCE
-        if is_enough_effective_balance:
+        balance = state.balances[validator_index]
+        effective_balance = calculate_effective_balance(
+            balance,
+            config,
+        )
+
+        state = state.update_validator_with_fn(
+            validator_index,
+            lambda v, *_: v.copy(
+                effective_balance=effective_balance,
+            ),
+        )
+
+        if effective_balance == config.MAX_EFFECTIVE_BALANCE:
             state = state.update_validator_with_fn(
                 validator_index,
                 activate_validator,
                 config.GENESIS_EPOCH,
             )
 
-    return genesis_state_with_active_index_roots(
+    return state_with_validator_digests(
         state,
         config,
     )

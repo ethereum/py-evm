@@ -18,7 +18,7 @@ from eth2.beacon.attestation_helpers import (
     get_attestation_data_slot,
 )
 from eth2.beacon.helpers import (
-    slot_to_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.exceptions import (
     NoCommitteeAssignment,
@@ -34,7 +34,7 @@ from eth2.beacon.tools.builder.committee_assignment import (
     get_committee_assignment,
 )
 from eth2.beacon.tools.misc.ssz_vector import (
-    override_vector_lengths,
+    override_lengths,
 )
 
 from trinity.config import (
@@ -56,7 +56,7 @@ from .helpers import (
     keymap,
 )
 
-override_vector_lengths(XIAO_LONG_BAO_CONFIG)
+override_lengths(XIAO_LONG_BAO_CONFIG)
 
 
 class FakeProtocol:
@@ -154,7 +154,7 @@ def _get_slot_with_validator_selected(candidate_indices, state, config):
                 epoch,
                 index,
             )
-            if is_proposer:
+            if is_proposer and slot != 0:
                 return slot, index
         except NoCommitteeAssignment:
             continue
@@ -236,7 +236,7 @@ async def test_validator_skip_block(event_loop, event_bus):
     with pytest.raises(BlockNotFound):
         alice.chain.get_canonical_block_by_slot(slot)
     # test: the state root should change after skipping the block
-    assert state.root != post_state.root
+    assert state.hash_tree_root != post_state.hash_tree_root
     assert state.slot + 1 == post_state.slot
 
 
@@ -351,7 +351,7 @@ async def test_validator_get_committee_assigment(event_loop, event_bus):
     alice = await get_validator(event_loop=event_loop, event_bus=event_bus, indices=alice_indices)
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
-    epoch = slot_to_epoch(state.slot, state_machine.config.SLOTS_PER_EPOCH)
+    epoch = compute_epoch_of_slot(state.slot, state_machine.config.SLOTS_PER_EPOCH)
 
     assert alice.this_epoch_assignment[alice_indices[0]][0] == -1
     alice._get_this_epoch_assignment(alice_indices[0], epoch)
@@ -366,7 +366,7 @@ async def test_validator_attest(event_loop, event_bus, monkeypatch):
     state_machine = alice.chain.get_state_machine()
     state = state_machine.state
 
-    epoch = slot_to_epoch(state.slot, state_machine.config.SLOTS_PER_EPOCH)
+    epoch = compute_epoch_of_slot(state.slot, state_machine.config.SLOTS_PER_EPOCH)
     assignment = alice._get_this_epoch_assignment(alice_indices[0], epoch)
 
     attestations = await alice.attest(assignment.slot)

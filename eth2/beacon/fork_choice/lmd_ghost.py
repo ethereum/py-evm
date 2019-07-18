@@ -24,7 +24,7 @@ from eth2.beacon.epoch_processing_helpers import (
 )
 from eth2.beacon.helpers import (
     get_active_validator_indices,
-    slot_to_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.operations.attestation_pool import AttestationPool
@@ -79,7 +79,7 @@ class Store:
             for index in get_attesting_indices(
                 state,
                 attestation.data,
-                attestation.aggregation_bitfield,
+                attestation.aggregation_bits,
                 CommitteeConfig(self._config),
             )
         )
@@ -191,7 +191,7 @@ def _find_latest_attestation_target(
 def _find_latest_attestation_targets(state: BeaconState,
                                      store: Store,
                                      config: Eth2Config) -> Iterable[AttestationTarget]:
-    epoch = slot_to_epoch(state.slot, config.SLOTS_PER_EPOCH)
+    epoch = compute_epoch_of_slot(state.slot, config.SLOTS_PER_EPOCH)
     active_validators = get_active_validator_indices(
         state.validators,
         epoch,
@@ -228,7 +228,7 @@ def score_block_by_attestations(state: BeaconState,
 
 
 def score_block_by_root(block: BaseBeaconBlock) -> int:
-    return int.from_bytes(block.root[:8], byteorder='big')
+    return int.from_bytes(block.hash_tree_root[:8], byteorder='big')
 
 
 @curry

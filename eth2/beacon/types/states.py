@@ -13,6 +13,7 @@ from eth_utils import (
 
 import ssz
 from ssz.sedes import (
+    Bitvector,
     List,
     Vector,
     bytes32,
@@ -28,8 +29,11 @@ from eth2._utils.tuple import (
     update_tuple_item_with_fn,
 )
 from eth2.configs import Eth2Config
+from eth2.beacon.constants import (
+    JUSTIFICATION_BITS_LENGTH,
+)
 from eth2.beacon.helpers import (
-    slot_to_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.typing import (
     Epoch,
@@ -38,6 +42,7 @@ from eth2.beacon.typing import (
     Slot,
     Timestamp,
     ValidatorIndex,
+    Bitfield,
 )
 
 from .block_headers import (
@@ -47,6 +52,10 @@ from .block_headers import (
 from .eth1_data import (
     Eth1Data,
     default_eth1_data,
+)
+from .checkpoints import (
+    Checkpoint,
+    default_checkpoint,
 )
 from .crosslinks import (
     Crosslink,
@@ -65,8 +74,10 @@ from .defaults import (
     default_tuple,
     default_tuple_of_size,
     default_shard,
-    default_epoch,
 )
+
+
+default_justification_bits = Bitfield((False,) * JUSTIFICATION_BITS_LENGTH)
 
 
 class BeaconState(ssz.Serializable):
@@ -81,45 +92,41 @@ class BeaconState(ssz.Serializable):
         ('latest_block_header', BeaconBlockHeader),
         ('block_roots', Vector(bytes32, 1)),  # Needed to process attestations, older to newer  # noqa: E501
         ('state_roots', Vector(bytes32, 1)),
-        ('historical_roots', List(bytes32)),  # allow for a log-sized Merkle proof from any block to any historical block root  # noqa: E501
+        ('historical_roots', List(bytes32, 1)),  # allow for a log-sized Merkle proof from any block to any historical block root  # noqa: E501
 
         # Ethereum 1.0 chain
         ('eth1_data', Eth1Data),
-        ('eth1_data_votes', List(Eth1Data)),
+        ('eth1_data_votes', List(Eth1Data, 1)),
         ('eth1_deposit_index', uint64),
 
         # Validator registry
-        ('validators', List(Validator)),
-        ('balances', List(uint64)),
+        ('validators', List(Validator, 1)),
+        ('balances', List(uint64, 1)),
 
         # Shuffling
         ('start_shard', uint64),
         ('randao_mixes', Vector(bytes32, 1)),
         ('active_index_roots', Vector(bytes32, 1)),
+        ('compact_committees_roots', Vector(bytes32, 1)),
 
         # Slashings
-        ('slashed_balances', Vector(uint64, 1)),  # Balances slashed at every withdrawal period  # noqa: E501
+        ('slashings', Vector(uint64, 1)),  # Balances slashed at every withdrawal period  # noqa: E501
 
         # Attestations
-        ('previous_epoch_attestations', List(PendingAttestation)),
-        ('current_epoch_attestations', List(PendingAttestation)),
+        ('previous_epoch_attestations', List(PendingAttestation, 1)),
+        ('current_epoch_attestations', List(PendingAttestation, 1)),
 
         # Crosslinks
         ('previous_crosslinks', Vector(Crosslink, 1)),
         ('current_crosslinks', Vector(Crosslink, 1)),
 
         # Justification
-        ('previous_justified_epoch', uint64),
-        ('previous_justified_root', bytes32),
-        ('current_justified_epoch', uint64),
-        ('current_justified_root', bytes32),
-        # Note: justification_bitfield is meant to be defined as an integer type,
-        # so its bit operation is in Python and is easier to specify and implement.
-        ('justification_bitfield', uint64),
+        ('justification_bits', Bitvector(JUSTIFICATION_BITS_LENGTH)),
+        ('previous_justified_checkpoint', Checkpoint),
+        ('current_justified_checkpoint', Checkpoint),
 
         # Finality
-        ('finalized_epoch', uint64),
-        ('finalized_root', bytes32),
+        ('finalized_checkpoint', Checkpoint),
     ]
 
     def __init__(
@@ -140,18 +147,16 @@ class BeaconState(ssz.Serializable):
             start_shard: Shard=default_shard,
             randao_mixes: Sequence[Hash32]=default_tuple,
             active_index_roots: Sequence[Hash32]=default_tuple,
-            slashed_balances: Sequence[Gwei]=default_tuple,
+            compact_committees_roots: Sequence[Hash32]=default_tuple,
+            slashings: Sequence[Gwei]=default_tuple,
             previous_epoch_attestations: Sequence[PendingAttestation]=default_tuple,
             current_epoch_attestations: Sequence[PendingAttestation]=default_tuple,
             previous_crosslinks: Sequence[Crosslink]=default_tuple,
             current_crosslinks: Sequence[Crosslink]=default_tuple,
-            previous_justified_epoch: Epoch=default_epoch,
-            previous_justified_root: Hash32=ZERO_HASH32,
-            current_justified_epoch: Epoch=default_epoch,
-            current_justified_root: Hash32=ZERO_HASH32,
-            justification_bitfield: int=0,
-            finalized_epoch: Epoch=default_epoch,
-            finalized_root: Hash32=ZERO_HASH32,
+            justification_bits: Bitfield=default_justification_bits,
+            previous_justified_checkpoint: Checkpoint=default_checkpoint,
+            current_justified_checkpoint: Checkpoint=default_checkpoint,
+            finalized_checkpoint: Checkpoint=default_checkpoint,
             config: Eth2Config=None) -> None:
         if len(validators) != len(balances):
             raise ValueError(
@@ -174,9 +179,14 @@ class BeaconState(ssz.Serializable):
                     config.EPOCHS_PER_HISTORICAL_VECTOR,
                     ZERO_HASH32
                 )
-            if slashed_balances == default_tuple:
-                slashed_balances = default_tuple_of_size(
-                    config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
+            if compact_committees_roots == default_tuple:
+                compact_committees_roots = default_tuple_of_size(
+                    config.EPOCHS_PER_HISTORICAL_VECTOR,
+                    ZERO_HASH32
+                )
+            if slashings == default_tuple:
+                slashings = default_tuple_of_size(
+                    config.EPOCHS_PER_SLASHINGS_VECTOR,
                     Gwei(0),
                 )
             if previous_crosslinks == default_tuple:
@@ -206,22 +216,20 @@ class BeaconState(ssz.Serializable):
             start_shard=start_shard,
             randao_mixes=randao_mixes,
             active_index_roots=active_index_roots,
-            slashed_balances=slashed_balances,
+            compact_committees_roots=compact_committees_roots,
+            slashings=slashings,
             previous_epoch_attestations=previous_epoch_attestations,
             current_epoch_attestations=current_epoch_attestations,
             previous_crosslinks=previous_crosslinks,
             current_crosslinks=current_crosslinks,
-            previous_justified_epoch=previous_justified_epoch,
-            previous_justified_root=previous_justified_root,
-            current_justified_epoch=current_justified_epoch,
-            current_justified_root=current_justified_root,
-            justification_bitfield=justification_bitfield,
-            finalized_epoch=finalized_epoch,
-            finalized_root=finalized_root,
+            justification_bits=justification_bits,
+            previous_justified_checkpoint=previous_justified_checkpoint,
+            current_justified_checkpoint=current_justified_checkpoint,
+            finalized_checkpoint=finalized_checkpoint,
         )
 
     def __repr__(self) -> str:
-        return f"<BeaconState #{self.slot} {encode_hex(self.root)[2:10]}>"
+        return f"<BeaconState #{self.slot} {encode_hex(self.hash_tree_root)[2:10]}>"
 
     @property
     def validator_count(self) -> int:
@@ -296,7 +304,7 @@ class BeaconState(ssz.Serializable):
         )
 
     def current_epoch(self, slots_per_epoch: int) -> Epoch:
-        return slot_to_epoch(self.slot, slots_per_epoch)
+        return compute_epoch_of_slot(self.slot, slots_per_epoch)
 
     def previous_epoch(self, slots_per_epoch: int, genesis_epoch: Epoch) -> Epoch:
         current_epoch = self.current_epoch(slots_per_epoch)

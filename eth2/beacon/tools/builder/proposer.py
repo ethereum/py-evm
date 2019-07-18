@@ -24,7 +24,7 @@ from eth2.beacon.exceptions import (
     ProposerIndexError,
 )
 from eth2.beacon.helpers import (
-    slot_to_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.state_machines.base import (
     BaseBeaconStateMachine,
@@ -56,9 +56,9 @@ def _generate_randao_reveal(privkey: int,
     The current implementation requires a validator to provide the BLS signature
     over the SSZ-serialized epoch in which they are proposing a block.
     """
-    epoch = slot_to_epoch(slot, config.SLOTS_PER_EPOCH)
+    epoch = compute_epoch_of_slot(slot, config.SLOTS_PER_EPOCH)
 
-    message_hash = ssz.hash_tree_root(epoch, sedes=ssz.sedes.uint64)
+    message_hash = ssz.get_hash_tree_root(epoch, sedes=ssz.sedes.uint64)
 
     randao_reveal = sign_transaction(
         message_hash=message_hash,

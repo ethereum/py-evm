@@ -4,27 +4,27 @@ from typing_extensions import Protocol
 from eth_typing import Hash32
 
 
-Root = Hash32
+HashTreeRoot = Hash32
 
 
 class Operation(Protocol):
-    root: Root
+    hash_tree_root: HashTreeRoot
 
 
 T = TypeVar('T', bound='Operation')
 
 
 class OperationPool(Generic[T]):
-    _pool_storage: Dict[Root, T]
+    _pool_storage: Dict[HashTreeRoot, T]
 
     def __init__(self) -> None:
         self._pool_storage = {}
 
-    def get(self, root: Root) -> T:
-        return self._pool_storage[root]
+    def get(self, hash_tree_root: HashTreeRoot) -> T:
+        return self._pool_storage[hash_tree_root]
 
     def add(self, operation: T) -> None:
-        self._pool_storage[operation.root] = operation
+        self._pool_storage[operation.hash_tree_root] = operation
 
-    def __iter__(self) -> Iterator[Tuple[Root, T]]:
+    def __iter__(self) -> Iterator[Tuple[HashTreeRoot, T]]:
         return iter(self._pool_storage.items())

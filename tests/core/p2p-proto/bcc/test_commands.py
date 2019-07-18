@@ -157,13 +157,13 @@ async def test_send_single_attestation(request, event_loop):
     alice, msg_buffer = await get_command_setup(request, event_loop)
 
     attestation = Attestation(
-        aggregation_bitfield=b"\x00\x00\x00",
+        aggregation_bits=b"\x00\x00\x00",
         data=AttestationData(
             crosslink=Crosslink(
                 shard=1,
             )
         ),
-        custody_bitfield=b"\x00\x00\x00",
+        custody_bits=b"\x00\x00\x00",
     )
 
     alice.sub_proto.send_attestation_records((attestation,))
@@ -179,13 +179,13 @@ async def test_send_multiple_attestations(request, event_loop):
 
     attestations = tuple(
         Attestation(
-            aggregation_bitfield=b"\x00\x00\x00",
+            aggregation_bits=b"\x00\x00\x00",
             data=AttestationData(
                 crosslink=Crosslink(
                     shard=shard,
                 )
             ),
-            custody_bitfield=b"\x00\x00\x00",
+            custody_bits=b"\x00\x00\x00",
         ) for shard in range(10)
     )
 

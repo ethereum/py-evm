@@ -230,7 +230,7 @@ class AttestationPool:
     def __contains__(self, attestation_or_root: Union[Attestation, Hash32]) -> bool:
         attestation_root: Hash32
         if isinstance(attestation_or_root, Attestation):
-            attestation_root = attestation_or_root.root
+            attestation_root = attestation_or_root.hash_tree_root
         elif isinstance(attestation_or_root, bytes):
             attestation_root = attestation_or_root
         else:
@@ -246,7 +246,7 @@ class AttestationPool:
 
     def get(self, attestation_root: Hash32) -> Attestation:
         for attestation in self._pool:
-            if attestation.root == attestation_root:
+            if attestation.hash_tree_root == attestation_root:
                 return attestation
         raise AttestationNotFound(
             f"No attestation with root {encode_hex(attestation_root)} is found.")
@@ -417,10 +417,10 @@ class BCCReceiveServer(BaseReceiveServer):
         Check if the attestation is already in the database or the attestion pool.
         """
         try:
-            if attestation.root in self.attestation_pool:
+            if attestation.hash_tree_root in self.attestation_pool:
                 return True
             else:
-                return not self.chain.attestation_exists(attestation.root)
+                return not self.chain.attestation_exists(attestation.hash_tree_root)
         except AttestationNotFound:
             return True
 

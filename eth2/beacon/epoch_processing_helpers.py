@@ -11,6 +11,7 @@ from eth_typing import (
 
 from eth_utils import (
     to_tuple,
+    ValidationError,
 )
 from eth_utils.toolz import (
     curry,
@@ -52,9 +53,6 @@ from eth2.beacon.typing import (
     Shard,
     ValidatorIndex,
 )
-from eth2.beacon.validation import (
-    validate_bitfield,
-)
 
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import (
@@ -88,54 +86,55 @@ def decrease_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> 
     )
 
 
-@to_tuple
 def get_attesting_indices(state: BeaconState,
                           attestation_data: AttestationData,
                           bitfield: Bitfield,
-                          config: CommitteeConfig) -> Iterable[ValidatorIndex]:
+                          config: CommitteeConfig) -> Set[ValidatorIndex]:
     """
     Return the sorted attesting indices corresponding to ``attestation_data`` and ``bitfield``.
     """
     committee = get_crosslink_committee(
         state,
-        attestation_data.target_epoch,
+        attestation_data.target.epoch,
         attestation_data.crosslink.shard,
         config,
     )
-    validate_bitfield(bitfield, len(committee))
-    return sorted(index for i, index in enumerate(committee) if has_voted(bitfield, i))
+    return set(index for i, index in enumerate(committee) if has_voted(bitfield, i))
 
 
-def convert_to_indexed(state: BeaconState,
-                       attestation: Attestation,
-                       config: CommitteeConfig) -> IndexedAttestation:
+def get_indexed_attestation(state: BeaconState,
+                            attestation: Attestation,
+                            config: CommitteeConfig) -> IndexedAttestation:
     attesting_indices = get_attesting_indices(
         state,
         attestation.data,
-        attestation.aggregation_bitfield,
+        attestation.aggregation_bits,
         config,
     )
     custody_bit_1_indices = get_attesting_indices(
         state,
         attestation.data,
-        attestation.custody_bitfield,
+        attestation.custody_bits,
         config,
     )
-    custody_bit_0_indices = tuple(
-        index for index in attesting_indices
-        if index not in custody_bit_1_indices
-    )
+    if not custody_bit_1_indices.issubset(attesting_indices):
+        raise ValidationError(
+            f"Attestation {attestation} has custody bit 1 indices ({custody_bit_1_indices})"
+            f" that are not a subset of the attestation's attesting indices ({attesting_indices})"
+            f" diff: {custody_bit_1_indices.difference(attesting_indices)}"
+        )
+    custody_bit_0_indices = attesting_indices.difference(custody_bit_1_indices)
 
     return IndexedAttestation(
-        custody_bit_0_indices=custody_bit_0_indices,
-        custody_bit_1_indices=custody_bit_1_indices,
+        custody_bit_0_indices=sorted(custody_bit_0_indices),
+        custody_bit_1_indices=sorted(custody_bit_1_indices),
         data=attestation.data,
         signature=attestation.signature,
     )
 
 
-def get_delayed_activation_exit_epoch(epoch: Epoch,
-                                      activation_exit_delay: int) -> Epoch:
+def compute_activation_exit_epoch(epoch: Epoch,
+                                  activation_exit_delay: int) -> Epoch:
     """
     An entry or exit triggered in the ``epoch`` given by the input takes effect at
     the epoch given by the output.
@@ -143,7 +142,7 @@ def get_delayed_activation_exit_epoch(epoch: Epoch,
     return Epoch(epoch + 1 + activation_exit_delay)
 
 
-def get_churn_limit(state: BeaconState, config: Eth2Config) -> int:
+def get_validator_churn_limit(state: BeaconState, config: Eth2Config) -> int:
     slots_per_epoch = config.SLOTS_PER_EPOCH
     min_per_epoch_churn_limit = config.MIN_PER_EPOCH_CHURN_LIMIT
     churn_limit_quotient = config.CHURN_LIMIT_QUOTIENT
@@ -162,7 +161,7 @@ def get_churn_limit(state: BeaconState, config: Eth2Config) -> int:
 def get_total_active_balance(state: BeaconState, config: Eth2Config) -> Gwei:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     active_validator_indices = get_active_validator_indices(state.validators, current_epoch)
-    return get_total_balance(state, active_validator_indices)
+    return get_total_balance(state, set(active_validator_indices))
 
 
 def get_matching_source_attestations(state: BeaconState,
@@ -188,7 +187,7 @@ def get_matching_target_attestations(state: BeaconState,
     )
 
     for a in get_matching_source_attestations(state, epoch, config):
-        if a.data.target_root == target_root:
+        if a.data.target.root == target_root:
             yield a
 
 
@@ -210,18 +209,16 @@ def get_matching_head_attestations(state: BeaconState,
             yield a
 
 
-@to_tuple
-def get_unslashed_attesting_indices(
-        state: BeaconState,
-        attestations: Sequence[PendingAttestation],
-        config: CommitteeConfig) -> Iterable[ValidatorIndex]:
+def get_unslashed_attesting_indices(state: BeaconState,
+                                    attestations: Sequence[PendingAttestation],
+                                    config: CommitteeConfig) -> Set[ValidatorIndex]:
     output: Set[ValidatorIndex] = set()
     for a in attestations:
-        output = output.union(get_attesting_indices(state, a.data, a.aggregation_bitfield, config))
-    return sorted(
+        output = output.union(get_attesting_indices(state, a.data, a.aggregation_bits, config))
+    return set(
         filter(
             lambda index: not state.validators[index].slashed,
-            tuple(output),
+            output,
         )
     )
 
@@ -252,10 +249,7 @@ def _score_crosslink(state: BeaconState,
 def _find_winning_crosslink_and_attesting_indices_from_candidates(
         state: BeaconState,
         candidate_attestations: Sequence[PendingAttestation],
-        config: Eth2Config) -> Tuple[Crosslink, Tuple[ValidatorIndex, ...]]:
-    if not candidate_attestations:
-        return (Crosslink(), tuple())
-
+        config: Eth2Config) -> Tuple[Crosslink, Set[ValidatorIndex]]:
     attestations_by_crosslink = groupby(
         lambda a: a.data.crosslink,
         candidate_attestations,
@@ -269,6 +263,7 @@ def _find_winning_crosslink_and_attesting_indices_from_candidates(
             pair[1],  # attestations
             config,
         ),
+        default=(Crosslink(), tuple()),
     )
 
     return (
@@ -292,7 +287,7 @@ def _get_attestations_for_shard(
 
 @curry
 def _crosslink_or_parent_is_valid(valid_crosslink: Crosslink, candidate: Crosslink) -> bool:
-    return valid_crosslink.root in (candidate.parent_root, candidate.root)
+    return valid_crosslink.hash_tree_root in (candidate.parent_root, candidate.hash_tree_root)
 
 
 @to_tuple
@@ -326,7 +321,7 @@ def get_winning_crosslink_and_attesting_indices(
         state: BeaconState,
         epoch: Epoch,
         shard: Shard,
-        config: Eth2Config) -> Tuple[Hash32, Tuple[ValidatorIndex, ...]]:
+        config: Eth2Config) -> Tuple[Crosslink, Set[ValidatorIndex]]:
     candidate_attestations = _find_candidate_attestations_for_shard(state, epoch, shard, config)
 
     return _find_winning_crosslink_and_attesting_indices_from_candidates(
@@ -341,7 +336,7 @@ def get_base_reward(state: BeaconState,
                     config: Eth2Config) -> Gwei:
     total_balance = get_total_active_balance(state, config)
     effective_balance = state.validators[index].effective_balance
-    return (
+    return Gwei(
         effective_balance * config.BASE_REWARD_FACTOR //
         integer_squareroot(total_balance) // BASE_REWARDS_PER_EPOCH
     )

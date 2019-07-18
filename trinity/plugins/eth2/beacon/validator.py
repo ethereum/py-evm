@@ -26,7 +26,7 @@ from eth2.beacon.chains.base import (
     BeaconChain,
 )
 from eth2.beacon.helpers import (
-    slot_to_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.state_machines.base import (
     BaseBeaconStateMachine,
@@ -174,18 +174,18 @@ class Validator(BaseService):
         )
         self.logger.debug(
             bold_green("Justified  epoch=%s root=%s  (current)"),
-            state.current_justified_epoch,
-            encode_hex(state.current_justified_root),
+            state.current_justified_checkpoint.epoch,
+            encode_hex(state.current_justified_checkpoint.root),
         )
         self.logger.debug(
             bold_green("Justified  epoch=%s root=%s  (previous)"),
-            state.previous_justified_epoch,
-            encode_hex(state.previous_justified_root),
+            state.previous_justified_checkpoint.epoch,
+            encode_hex(state.previous_justified_checkpoint.root),
         )
         self.logger.debug(
             bold_green("Finalized  epoch=%s root=%s"),
-            state.finalized_epoch,
-            encode_hex(state.finalized_root),
+            state.finalized_checkpoint.epoch,
+            encode_hex(state.finalized_checkpoint.root),
         )
         self.logger.debug(
             bold_green("current_epoch_attestations  %s"),
@@ -203,7 +203,7 @@ class Validator(BaseService):
         )
         # `latest_proposed_epoch` is used to prevent validator from erraneously proposing twice
         # in the same epoch due to service crashing.
-        epoch = slot_to_epoch(slot, self.slots_per_epoch)
+        epoch = compute_epoch_of_slot(slot, self.slots_per_epoch)
         if proposer_index in self.validator_privkeys:
             has_proposed = epoch <= self.latest_proposed_epoch[proposer_index]
             if not has_proposed:
@@ -316,7 +316,7 @@ class Validator(BaseService):
         head = self.chain.get_canonical_head()
         state_machine = self.chain.get_state_machine()
         state = state_machine.state
-        epoch = slot_to_epoch(slot, self.slots_per_epoch)
+        epoch = compute_epoch_of_slot(slot, self.slots_per_epoch)
 
         validator_assignments = {
             validator_index: self._get_this_epoch_assignment(

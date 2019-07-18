@@ -8,9 +8,9 @@ from eth_utils import (
 
 from eth2.beacon.committee_helpers import (
     get_committees_per_slot,
-    get_epoch_committee_count,
+    get_committee_count,
     get_shard_delta,
-    get_epoch_start_shard,
+    get_start_shard,
     _find_proposer_in_committee,
     _calculate_first_committee_at_slot,
     get_beacon_proposer_index,
@@ -18,7 +18,7 @@ from eth2.beacon.committee_helpers import (
 )
 from eth2.beacon.helpers import (
     get_active_validator_indices,
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 from eth2.configs import (
     CommitteeConfig,
@@ -76,12 +76,12 @@ def test_get_committees_per_slot(active_validator_count,
         (40, 5, 10, 5, 5),
     ],
 )
-def test_get_epoch_committee_count(active_validator_count,
-                                   slots_per_epoch,
-                                   target_committee_size,
-                                   shard_count,
-                                   expected_committee_count):
-    assert expected_committee_count == get_epoch_committee_count(
+def test_get_committee_count(active_validator_count,
+                             slots_per_epoch,
+                             target_committee_size,
+                             shard_count,
+                             expected_committee_count):
+    assert expected_committee_count == get_committee_count(
         active_validator_count=active_validator_count,
         shard_count=shard_count,
         slots_per_epoch=slots_per_epoch,
@@ -130,20 +130,20 @@ def test_get_shard_delta(genesis_state,
         (1000, 25, 5, 50, 3, 5, None),
     ],
 )
-def test_get_epoch_start_shard(genesis_state,
-                               current_epoch,
-                               target_epoch,
-                               expected_epoch_start_shard,
-                               config):
+def test_get_start_shard(genesis_state,
+                         current_epoch,
+                         target_epoch,
+                         expected_epoch_start_shard,
+                         config):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(current_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(current_epoch, config.SLOTS_PER_EPOCH),
     )
 
     if expected_epoch_start_shard is None:
         with pytest.raises(ValidationError):
-            get_epoch_start_shard(state, target_epoch, CommitteeConfig(config))
+            get_start_shard(state, target_epoch, CommitteeConfig(config))
     else:
-        epoch_start_shard = get_epoch_start_shard(state, target_epoch, CommitteeConfig(config))
+        epoch_start_shard = get_start_shard(state, target_epoch, CommitteeConfig(config))
         assert epoch_start_shard == expected_epoch_start_shard
 
 
@@ -196,7 +196,7 @@ def test_calculate_first_committee_at_slot(genesis_state,
     for slot in range(state.slot, state.slot + config.SLOTS_PER_EPOCH):
         offset = committees_per_slot * (slot % slots_per_epoch)
         shard = (
-            get_epoch_start_shard(state, current_epoch, config) + offset
+            get_start_shard(state, current_epoch, config) + offset
         ) % shard_count
         committee = get_crosslink_committee(
             state,

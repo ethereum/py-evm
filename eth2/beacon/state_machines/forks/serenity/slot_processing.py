@@ -42,7 +42,7 @@ def _update_historical_root(roots: Tuple[Hash32, ...],
 def _process_slot(state: BeaconState, config: Eth2Config) -> BeaconState:
     slots_per_historical_root = config.SLOTS_PER_HISTORICAL_ROOT
 
-    previous_state_root = state.root
+    previous_state_root = state.hash_tree_root
     updated_state_roots = _update_historical_root(
         state.state_roots,
         state.slot,

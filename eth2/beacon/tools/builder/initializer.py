@@ -15,6 +15,9 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
+from eth2._utils.hash import (
+    hash_eth2,
+)
 from eth2._utils.merkle.common import (
     get_merkle_proof,
 )
@@ -28,7 +31,7 @@ from eth2.beacon.constants import (
 )
 from eth2.beacon.genesis import (
     get_genesis_block,
-    get_genesis_beacon_state,
+    initialize_beacon_state_from_eth1,
 )
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
@@ -83,21 +86,25 @@ def create_mock_deposits_and_root(
             privkey=privkey,
             withdrawal_credentials=credentials,
         )
-        item = deposit_data.root
+        item = deposit_data.hash_tree_root
         deposit_data_leaves += (item,)
         deposit_datas += (deposit_data,)
 
-    tree = calc_merkle_tree_from_leaves(deposit_data_leaves)
+    deposits: Tuple[Deposit, ...] = tuple()
+    for index, data in enumerate(deposit_datas):
+        length_mix_in = Hash32((index + 1).to_bytes(32, byteorder="little"))
+        tree = calc_merkle_tree_from_leaves(deposit_data_leaves[:index + 1])
 
-    deposits = tuple(
-        Deposit(
-            proof=get_merkle_proof(tree, item_index=i),
+        deposit = Deposit(
+            proof=(
+                get_merkle_proof(tree, item_index=index) + (length_mix_in,)
+            ),
             data=data,
         )
-        for i, data in enumerate(deposit_datas)
-    )
+        deposits += (deposit,)
 
-    return deposits, get_root(tree)
+    tree_root = get_root(tree)
+    return deposits, hash_eth2(tree_root + length_mix_in)
 
 
 def create_mock_deposit(state: BeaconState,
@@ -129,15 +136,13 @@ def create_mock_deposit(state: BeaconState,
 
 
 def create_mock_genesis(
-        num_validators: int,
+        pubkeys: Sequence[BLSPubkey],
         config: Eth2Config,
         keymap: Dict[BLSPubkey, int],
         genesis_block_class: Type[BaseBeaconBlock],
         genesis_time: Timestamp=ZERO_TIMESTAMP) -> Tuple[BeaconState, BaseBeaconBlock]:
-    assert num_validators <= len(keymap)
-
     genesis_deposits, deposit_root = create_mock_deposits_and_root(
-        pubkeys=list(keymap)[:num_validators],
+        pubkeys=pubkeys,
         keymap=keymap,
         config=config,
     )
@@ -148,18 +153,18 @@ def create_mock_genesis(
         block_hash=ZERO_HASH32,
     )
 
-    state = get_genesis_beacon_state(
-        genesis_deposits=genesis_deposits,
-        genesis_time=genesis_time,
-        genesis_eth1_data=genesis_eth1_data,
+    state = initialize_beacon_state_from_eth1(
+        eth1_block_hash=genesis_eth1_data.block_hash,
+        eth1_timestamp=genesis_time,
+        deposits=genesis_deposits,
         config=config,
     )
 
     block = get_genesis_block(
-        genesis_state_root=state.root,
+        genesis_state_root=state.hash_tree_root,
         block_class=genesis_block_class,
     )
-    assert len(state.validators) == num_validators
+    assert len(state.validators) == len(pubkeys)
 
     return state, block
 

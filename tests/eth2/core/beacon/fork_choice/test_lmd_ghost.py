@@ -17,9 +17,9 @@ from eth2.beacon.attestation_helpers import (
     get_attestation_data_slot,
 )
 from eth2.beacon.committee_helpers import (
-    get_epoch_committee_count,
+    get_committee_count,
     get_crosslink_committee,
-    get_epoch_start_shard,
+    get_start_shard,
 )
 from eth2.beacon.epoch_processing_helpers import get_attesting_indices
 from eth2.beacon.fork_choice.lmd_ghost import (
@@ -29,8 +29,8 @@ from eth2.beacon.fork_choice.lmd_ghost import (
     score_block_by_root,
 )
 from eth2.beacon.helpers import (
-    get_epoch_start_slot,
-    slot_to_epoch,
+    compute_start_slot_of_epoch,
+    compute_epoch_of_slot,
     get_active_validator_indices,
 )
 from eth2.beacon.tools.builder.validator import (
@@ -39,6 +39,7 @@ from eth2.beacon.tools.builder.validator import (
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.typing import Shard
 from eth2.configs import CommitteeConfig
@@ -48,13 +49,13 @@ from eth2.configs import CommitteeConfig
 @to_dict
 def _mk_attestation_inputs_in_epoch(epoch, state, config):
     active_validators_indices = get_active_validator_indices(state.validators, epoch)
-    epoch_committee_count = get_epoch_committee_count(
+    epoch_committee_count = get_committee_count(
         len(active_validators_indices),
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,
         config.TARGET_COMMITTEE_SIZE,
     )
-    epoch_start_shard = get_epoch_start_shard(
+    epoch_start_shard = get_start_shard(
         state,
         epoch,
         CommitteeConfig(config),
@@ -73,15 +74,17 @@ def _mk_attestation_inputs_in_epoch(epoch, state, config):
             continue
 
         attestation_data = AttestationData(
-            target_epoch=epoch,
+            target=Checkpoint(
+                epoch=epoch,
+            ),
             crosslink=Crosslink(
                 shard=shard,
             ),
         )
         committee_count = len(committee)
-        aggregation_bitfield = bitfield.get_empty_bitfield(committee_count)
+        aggregation_bits = bitfield.get_empty_bitfield(committee_count)
         for index in range(committee_count):
-            aggregation_bitfield = bitfield.set_voted(aggregation_bitfield, index)
+            aggregation_bits = bitfield.set_voted(aggregation_bits, index)
 
             for index in committee:
                 yield (
@@ -93,7 +96,7 @@ def _mk_attestation_inputs_in_epoch(epoch, state, config):
                             config,
                         ),
                         (
-                            aggregation_bitfield,
+                            aggregation_bits,
                             attestation_data,
                         ),
                     ),
@@ -118,9 +121,9 @@ def _mk_attestations_for_epoch_by_count(number_of_committee_samples,
 def _extract_attestations_from_index_keying(values):
     results = ()
     for value in values:
-        aggregation_bitfield, data = second(value)
+        aggregation_bits, data = second(value)
         attestation = Attestation(
-            aggregation_bitfield=aggregation_bitfield,
+            aggregation_bits=aggregation_bits,
             data=data,
         )
         if attestation not in results:
@@ -142,17 +145,17 @@ def _find_collision(state, config, index, epoch):
     validator w/ the given index.
     """
     active_validators = get_active_validator_indices(state.validators, epoch)
-    committees_per_slot = get_epoch_committee_count(
+    committees_per_slot = get_committee_count(
         len(active_validators),
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,
         config.TARGET_COMMITTEE_SIZE,
     ) // config.SLOTS_PER_EPOCH
-    epoch_start_slot = get_epoch_start_slot(
+    epoch_start_slot = compute_start_slot_of_epoch(
         epoch,
         config.SLOTS_PER_EPOCH,
     )
-    epoch_start_shard = get_epoch_start_shard(state, epoch, CommitteeConfig(config))
+    epoch_start_shard = get_start_shard(state, epoch, CommitteeConfig(config))
 
     for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
         offset = committees_per_slot * (slot % config.SLOTS_PER_EPOCH)
@@ -163,19 +166,21 @@ def _find_collision(state, config, index, epoch):
             if index in committee:
                 # TODO(ralexstokes) refactor w/ tools/builder
                 attestation_data = AttestationData(
-                    target_epoch=epoch,
+                    target=Checkpoint(
+                        epoch=epoch,
+                    ),
                     crosslink=Crosslink(
                         shard=shard,
                     ),
                 )
                 committee_count = len(committee)
-                aggregation_bitfield = bitfield.get_empty_bitfield(committee_count)
+                aggregation_bits = bitfield.get_empty_bitfield(committee_count)
                 for i in range(committee_count):
-                    aggregation_bitfield = bitfield.set_voted(aggregation_bitfield, i)
+                    aggregation_bits = bitfield.set_voted(aggregation_bits, i)
 
                 return {
                     index: (
-                        slot, (aggregation_bitfield, attestation_data)
+                        slot, (aggregation_bits, attestation_data)
                     )
                     for index in committee
                 }
@@ -199,7 +204,7 @@ def _introduce_collisions(all_attestations_by_index,
         src_index = random.choice(list(src.keys()))
         src_val = src[src_index]
         src_slot, _ = src_val
-        src_epoch = slot_to_epoch(src_slot, config.SLOTS_PER_EPOCH)
+        src_epoch = compute_epoch_of_slot(src_slot, config.SLOTS_PER_EPOCH)
         dst_epoch = src_epoch + 1
 
         collision = _find_collision(state, config, index=src_index, epoch=dst_epoch)
@@ -207,9 +212,9 @@ def _introduce_collisions(all_attestations_by_index,
     return collisions
 
 
-def _get_epoch_committee_count(state, epoch, config):
+def _get_committee_count(state, epoch, config):
     active_validators = get_active_validator_indices(state.validators, epoch)
-    return get_epoch_committee_count(
+    return get_committee_count(
         len(active_validators),
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,
@@ -247,24 +252,24 @@ def test_store_get_latest_attestation(genesis_state,
     """
     some_epoch = 3
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH),
     )
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
-    previous_epoch_committee_count = _get_epoch_committee_count(
+    previous_epoch_committee_count = _get_committee_count(
         state,
         previous_epoch,
         config,
     )
 
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    current_epoch_committee_count = _get_epoch_committee_count(
+    current_epoch_committee_count = _get_committee_count(
         state,
         current_epoch,
         config,
     )
 
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
-    next_epoch_committee_count = _get_epoch_committee_count(
+    next_epoch_committee_count = _get_committee_count(
         state,
         next_epoch,
         config,
@@ -501,15 +506,17 @@ def _attach_committees_to_block_tree(state,
 # TODO(ralexstokes) merge in w/ tools/builder
 def _mk_attestation_for_block_with_committee(block, committee, shard, config):
     committee_count = len(committee)
-    aggregation_bitfield = bitfield.get_empty_bitfield(committee_count)
+    aggregation_bits = bitfield.get_empty_bitfield(committee_count)
     for index in range(committee_count):
-        aggregation_bitfield = bitfield.set_voted(aggregation_bitfield, index)
+        aggregation_bits = bitfield.set_voted(aggregation_bits, index)
 
     attestation = Attestation(
-        aggregation_bitfield=aggregation_bitfield,
+        aggregation_bits=aggregation_bits,
         data=AttestationData(
             beacon_block_root=block.signing_root,
-            target_epoch=slot_to_epoch(block.slot, config.SLOTS_PER_EPOCH),
+            target=Checkpoint(
+                epoch=compute_epoch_of_slot(block.slot, config.SLOTS_PER_EPOCH),
+            ),
             crosslink=Crosslink(
                 shard=shard,
             ),
@@ -548,7 +555,7 @@ def _iter_attestation_by_validator_index(state, attestation, config):
     for index in get_attesting_indices(
             state,
             attestation.data,
-            attestation.aggregation_bitfield,
+            attestation.aggregation_bits,
             config,
     ):
         yield index
@@ -674,14 +681,16 @@ def test_lmd_ghost_fork_choice_scoring(sample_beacon_block_params,
     some_slot_offset = 10
 
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH) + some_slot_offset,
-        current_justified_epoch=some_epoch,
-        current_justified_root=root_block.signing_root,
+        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH) + some_slot_offset,
+        current_justified_checkpoint=Checkpoint(
+            epoch=some_epoch,
+            root=root_block.signing_root,
+        )
     )
-    assert some_epoch >= state.current_justified_epoch
+    assert some_epoch >= state.current_justified_checkpoint.epoch
 
     # NOTE: the attestations have to be aligned to the blocks which start from ``base_slot``.
-    base_slot = get_epoch_start_slot(some_epoch, config.SLOTS_PER_EPOCH) + 1
+    base_slot = compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH) + 1
     block_tree = _build_block_tree(
         sample_beacon_block_params,
         root_block,

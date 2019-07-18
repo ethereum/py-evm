@@ -41,7 +41,7 @@ from eth.validation import (
 )
 from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
 from eth2.beacon.helpers import (
-    slot_to_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.typing import (
     Epoch,
@@ -217,7 +217,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         try:
             justified_head_root = self._get_justified_head_root(db)
             slot = self.get_slot_by_root(justified_head_root)
-            return slot_to_epoch(slot, self.genesis_config.SLOTS_PER_EPOCH)
+            return compute_epoch_of_slot(slot, self.genesis_config.SLOTS_PER_EPOCH)
         except JustifiedHeadNotFound:
             return self.genesis_config.GENESIS_EPOCH
 
@@ -752,10 +752,10 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     def _persist_state(self, state: BeaconState) -> None:
         self.db.set(
-            state.root,
+            state.hash_tree_root,
             ssz.encode(state),
         )
-        self._add_slot_to_state_root_lookup(state.slot, state.root)
+        self._add_slot_to_state_root_lookup(state.slot, state.hash_tree_root)
 
         self._persist_finalized_head(state)
         self._persist_justified_head(state)
@@ -787,12 +787,12 @@ class BeaconChainDB(BaseBeaconChainDB):
         This policy is safe because a large number of validators on the network
         will have violated a slashing condition if the invariant does not hold.
         """
-        if state.finalized_root == ZERO_HASH32:
+        if state.finalized_checkpoint.root == ZERO_HASH32:
             # ignore finality in the genesis state
             return
 
-        if state.finalized_root != self._finalized_root:
-            self._update_finalized_head(state.finalized_root)
+        if state.finalized_checkpoint.root != self._finalized_root:
+            self._update_finalized_head(state.finalized_checkpoint.root)
 
     def _update_justified_head(self, justified_root: Hash32, epoch: Epoch) -> None:
         """
@@ -816,10 +816,18 @@ class BeaconChainDB(BaseBeaconChainDB):
 
         then return that (root, epoch) pair.
         """
-        if state.current_justified_epoch > self._highest_justified_epoch:
-            return (state.current_justified_root, state.current_justified_epoch)
-        elif state.previous_justified_epoch > self._highest_justified_epoch:
-            return (state.previous_justified_root, state.previous_justified_epoch)
+        if state.current_justified_checkpoint.epoch > self._highest_justified_epoch:
+            checkpoint = state.current_justified_checkpoint
+            return (
+                checkpoint.root,
+                checkpoint.epoch,
+            )
+        elif state.previous_justified_checkpoint.epoch > self._highest_justified_epoch:
+            checkpoint = state.previous_justified_checkpoint
+            return (
+                checkpoint.root,
+                checkpoint.epoch,
+            )
         return None
 
     def _persist_justified_head(self, state: BeaconState) -> None:
@@ -857,7 +865,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         for index, attestation in enumerate(block.body.attestations):
             attestation_key = AttestationKey(root, index)
             db.set(
-                SchemaV1.make_attestation_root_to_block_lookup_key(attestation.root),
+                SchemaV1.make_attestation_root_to_block_lookup_key(attestation.hash_tree_root),
                 ssz.encode(attestation_key),
             )
 

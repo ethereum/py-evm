@@ -6,6 +6,7 @@ from eth.constants import (
 
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
+    JUSTIFICATION_BITS_LENGTH,
 )
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
 from eth2.beacon.types.block_headers import BeaconBlockHeader
@@ -14,7 +15,8 @@ from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.genesis import (
     get_genesis_block,
-    get_genesis_beacon_state,
+    initialize_beacon_state_from_eth1,
+    _genesis_time_from_eth1_timestamp,
 )
 from eth2.beacon.tools.builder.initializer import (
     create_mock_deposits_and_root,
@@ -50,7 +52,7 @@ def test_get_genesis_beacon_state(
         genesis_slot,
         shard_count,
         slots_per_historical_root,
-        epochs_per_slashed_balances_vector,
+        epochs_per_slashings_vector,
         epochs_per_historical_vector,
         config,
         keymap):
@@ -65,23 +67,23 @@ def test_get_genesis_beacon_state(
         deposit_root=deposit_root,
         block_hash=ZERO_HASH32,
     )
-    genesis_time = 10
+    eth1_timestamp = 10
 
-    state = get_genesis_beacon_state(
-        genesis_deposits=genesis_deposits,
-        genesis_time=genesis_time,
-        genesis_eth1_data=genesis_eth1_data,
+    state = initialize_beacon_state_from_eth1(
+        eth1_block_hash=genesis_eth1_data.block_hash,
+        eth1_timestamp=eth1_timestamp,
+        deposits=genesis_deposits,
         config=config,
     )
 
     # Versioning
     assert state.slot == genesis_slot
-    assert state.genesis_time == genesis_time
+    assert state.genesis_time == _genesis_time_from_eth1_timestamp(eth1_timestamp)
     assert state.fork == Fork()
 
     # History
     assert state.latest_block_header == BeaconBlockHeader(
-        body_root=BeaconBlockBody().root,
+        body_root=BeaconBlockBody().hash_tree_root,
     )
     assert len(state.block_roots) == slots_per_historical_root
     assert state.block_roots == (ZERO_HASH32,) * slots_per_historical_root
@@ -105,8 +107,8 @@ def test_get_genesis_beacon_state(
     assert len(state.active_index_roots) == epochs_per_historical_vector
 
     # Slashings
-    assert len(state.slashed_balances) == epochs_per_slashed_balances_vector
-    assert state.slashed_balances == (Gwei(0),) * epochs_per_slashed_balances_vector
+    assert len(state.slashings) == epochs_per_slashings_vector
+    assert state.slashings == (Gwei(0),) * epochs_per_slashings_vector
 
     # Attestations
     assert len(state.previous_epoch_attestations) == 0
@@ -119,15 +121,15 @@ def test_get_genesis_beacon_state(
     assert state.previous_crosslinks == (Crosslink(),) * shard_count
 
     # Justification
-    assert state.previous_justified_epoch == genesis_epoch
-    assert state.previous_justified_root == ZERO_HASH32
-    assert state.current_justified_epoch == genesis_epoch
-    assert state.current_justified_root == ZERO_HASH32
-    assert state.justification_bitfield == 0
+    assert state.previous_justified_checkpoint.epoch == genesis_epoch
+    assert state.previous_justified_checkpoint.root == ZERO_HASH32
+    assert state.current_justified_checkpoint.epoch == genesis_epoch
+    assert state.current_justified_checkpoint.root == ZERO_HASH32
+    assert state.justification_bits == (False,) * JUSTIFICATION_BITS_LENGTH
 
     # Finalization
-    assert state.finalized_epoch == genesis_epoch
-    assert state.finalized_root == ZERO_HASH32
+    assert state.finalized_checkpoint.epoch == genesis_epoch
+    assert state.finalized_checkpoint.root == ZERO_HASH32
 
     for i in range(len(genesis_deposits)):
         assert state.validators[i].is_active(genesis_epoch)

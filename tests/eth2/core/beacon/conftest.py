@@ -16,6 +16,7 @@ from eth2.beacon.constants import (
     DEPOSIT_CONTRACT_TREE_DEPTH,
     FAR_FUTURE_EPOCH,
     GWEI_PER_ETH,
+    JUSTIFICATION_BITS_LENGTH,
 )
 from eth2.beacon.fork_choice.higher_slot import (
     higher_slot_scoring,
@@ -24,6 +25,7 @@ from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.eth1_data import Eth1Data
@@ -33,7 +35,7 @@ from eth2.beacon.genesis import (
     get_genesis_block,
 )
 from eth2.beacon.tools.misc.ssz_vector import (
-    override_vector_lengths,
+    override_lengths,
 )
 from eth2.beacon.tools.builder.state import (
     create_mock_genesis_state_from_validators,
@@ -49,6 +51,7 @@ from eth2.beacon.typing import (
     Gwei,
     ValidatorIndex,
     Timestamp,
+    Version,
 )
 from eth2.beacon.state_machines.forks.serenity import (
     SerenityStateMachine,
@@ -69,8 +72,8 @@ from eth2.beacon.db.chain import (
 
 # SSZ
 @pytest.fixture(scope="function", autouse=True)
-def override_lengths(config):
-    override_vector_lengths(config)
+def override_ssz_lengths(config):
+    override_lengths(config)
 
 
 #
@@ -87,8 +90,8 @@ def target_committee_size():
 
 
 @pytest.fixture
-def max_indices_per_attestation():
-    return SERENITY_CONFIG.MAX_INDICES_PER_ATTESTATION
+def max_validators_per_committee():
+    return SERENITY_CONFIG.MAX_VALIDATORS_PER_COMMITTEE
 
 
 @pytest.fixture
@@ -104,6 +107,16 @@ def churn_limit_quotient():
 @pytest.fixture
 def shuffle_round_count():
     return SERENITY_CONFIG.SHUFFLE_ROUND_COUNT
+
+
+@pytest.fixture
+def min_genesis_active_validator_count():
+    return SERENITY_CONFIG.MIN_GENESIS_ACTIVE_VALIDATOR_COUNT
+
+
+@pytest.fixture
+def min_genesis_time():
+    return SERENITY_CONFIG.MIN_GENESIS_TIME
 
 
 @pytest.fixture
@@ -202,8 +215,18 @@ def epochs_per_historical_vector():
 
 
 @pytest.fixture
-def epochs_per_slashed_balances_vector():
-    return SERENITY_CONFIG.EPOCHS_PER_SLASHED_BALANCES_VECTOR
+def epochs_per_slashings_vector():
+    return SERENITY_CONFIG.EPOCHS_PER_SLASHINGS_VECTOR
+
+
+@pytest.fixture
+def historical_roots_limit():
+    return SERENITY_CONFIG.HISTORICAL_ROOTS_LIMIT
+
+
+@pytest.fixture
+def validator_registry_limit():
+    return SERENITY_CONFIG.VALIDATOR_REGISTRY_LIMIT
 
 
 @pytest.fixture
@@ -212,8 +235,8 @@ def base_reward_factor():
 
 
 @pytest.fixture
-def whistleblowing_reward_quotient():
-    return SERENITY_CONFIG.WHISTLEBLOWING_REWARD_QUOTIENT
+def whistleblower_reward_quotient():
+    return SERENITY_CONFIG.WHISTLEBLOWER_REWARD_QUOTIENT
 
 
 @pytest.fixture
@@ -262,11 +285,6 @@ def max_transfers():
 
 
 @pytest.fixture
-def genesis_active_validator_count():
-    return SERENITY_CONFIG.GENESIS_ACTIVE_VALIDATOR_COUNT
-
-
-@pytest.fixture
 def deposit_contract_tree_depth():
     return DEPOSIT_CONTRACT_TREE_DEPTH
 
@@ -274,10 +292,12 @@ def deposit_contract_tree_depth():
 @pytest.fixture
 def config(shard_count,
            target_committee_size,
-           max_indices_per_attestation,
+           max_validators_per_committee,
            min_per_epoch_churn_limit,
            churn_limit_quotient,
            shuffle_round_count,
+           min_genesis_active_validator_count,
+           min_genesis_time,
            min_deposit_amount,
            max_effective_balance,
            ejection_balance,
@@ -297,9 +317,11 @@ def config(shard_count,
            max_epochs_per_crosslink,
            min_epochs_to_inactivity_penalty,
            epochs_per_historical_vector,
-           epochs_per_slashed_balances_vector,
+           epochs_per_slashings_vector,
+           historical_roots_limit,
+           validator_registry_limit,
            base_reward_factor,
-           whistleblowing_reward_quotient,
+           whistleblower_reward_quotient,
            proposer_reward_quotient,
            inactivity_penalty_quotient,
            min_slashing_penalty_quotient,
@@ -308,8 +330,7 @@ def config(shard_count,
            max_attestations,
            max_deposits,
            max_voluntary_exits,
-           max_transfers,
-           genesis_active_validator_count):
+           max_transfers):
     # adding some config validity conditions here
     # abstract out into the config object?
     assert shard_count >= slots_per_epoch
@@ -317,10 +338,12 @@ def config(shard_count,
     return Eth2Config(
         SHARD_COUNT=shard_count,
         TARGET_COMMITTEE_SIZE=target_committee_size,
-        MAX_INDICES_PER_ATTESTATION=max_indices_per_attestation,
+        MAX_VALIDATORS_PER_COMMITTEE=max_validators_per_committee,
         MIN_PER_EPOCH_CHURN_LIMIT=min_per_epoch_churn_limit,
         CHURN_LIMIT_QUOTIENT=churn_limit_quotient,
         SHUFFLE_ROUND_COUNT=shuffle_round_count,
+        MIN_GENESIS_ACTIVE_VALIDATOR_COUNT=min_genesis_active_validator_count,
+        MIN_GENESIS_TIME=min_genesis_time,
         MIN_DEPOSIT_AMOUNT=min_deposit_amount,
         MAX_EFFECTIVE_BALANCE=max_effective_balance,
         EJECTION_BALANCE=ejection_balance,
@@ -340,9 +363,11 @@ def config(shard_count,
         MAX_EPOCHS_PER_CROSSLINK=max_epochs_per_crosslink,
         MIN_EPOCHS_TO_INACTIVITY_PENALTY=min_epochs_to_inactivity_penalty,
         EPOCHS_PER_HISTORICAL_VECTOR=epochs_per_historical_vector,
-        EPOCHS_PER_SLASHED_BALANCES_VECTOR=epochs_per_slashed_balances_vector,
+        EPOCHS_PER_SLASHINGS_VECTOR=epochs_per_slashings_vector,
+        HISTORICAL_ROOTS_LIMIT=historical_roots_limit,
+        VALIDATOR_REGISTRY_LIMIT=validator_registry_limit,
         BASE_REWARD_FACTOR=base_reward_factor,
-        WHISTLEBLOWING_REWARD_QUOTIENT=whistleblowing_reward_quotient,
+        WHISTLEBLOWER_REWARD_QUOTIENT=whistleblower_reward_quotient,
         PROPOSER_REWARD_QUOTIENT=proposer_reward_quotient,
         INACTIVITY_PENALTY_QUOTIENT=inactivity_penalty_quotient,
         MIN_SLASHING_PENALTY_QUOTIENT=min_slashing_penalty_quotient,
@@ -352,7 +377,6 @@ def config(shard_count,
         MAX_DEPOSITS=max_deposits,
         MAX_VOLUNTARY_EXITS=max_voluntary_exits,
         MAX_TRANSFERS=max_transfers,
-        GENESIS_ACTIVE_VALIDATOR_COUNT=genesis_active_validator_count,
     )
 
 
@@ -377,8 +401,8 @@ def sample_signature():
 @pytest.fixture
 def sample_fork_params():
     return {
-        'previous_version': (0).to_bytes(4, 'little'),
-        'current_version': (0).to_bytes(4, 'little'),
+        'previous_version': Version((0).to_bytes(4, 'little')),
+        'current_version': Version((0).to_bytes(4, 'little')),
         'epoch': 2**32,
     }
 
@@ -412,10 +436,14 @@ def sample_crosslink_record_params():
 def sample_attestation_data_params(sample_crosslink_record_params):
     return {
         'beacon_block_root': b'\x11' * 32,
-        'source_epoch': 11,
-        'source_root': b'\x22' * 32,
-        'target_epoch': 12,
-        'target_root': b'\x33' * 32,
+        'source': Checkpoint(
+            epoch=11,
+            root=b'\x22' * 32,
+        ),
+        'target': Checkpoint(
+            epoch=12,
+            root=b'\x33' * 32,
+        ),
         'crosslink': Crosslink(**sample_crosslink_record_params),
     }
 
@@ -441,7 +469,7 @@ def sample_indexed_attestation_params(sample_signature, sample_attestation_data_
 @pytest.fixture
 def sample_pending_attestation_record_params(sample_attestation_data_params):
     return {
-        'aggregation_bitfield': b'\12' * 16,
+        'aggregation_bits': (True, False) * 4 * 16,
         'data': AttestationData(**sample_attestation_data_params),
         'inclusion_delay': 1,
         'proposer_index': ValidatorIndex(12),
@@ -514,9 +542,9 @@ def sample_attester_slashing_params(sample_indexed_attestation_params):
 @pytest.fixture
 def sample_attestation_params(sample_signature, sample_attestation_data_params):
     return {
-        'aggregation_bitfield': b'\12' * 16,
+        'aggregation_bits': (True,) * 16,
         'data': AttestationData(**sample_attestation_data_params),
-        'custody_bitfield': b'\34' * 16,
+        'custody_bits': (False,) * 16,
         'signature': sample_signature,
     }
 
@@ -524,7 +552,7 @@ def sample_attestation_params(sample_signature, sample_attestation_data_params):
 @pytest.fixture
 def sample_deposit_params(sample_deposit_data_params, deposit_contract_tree_depth):
     return {
-        'proof': (b'\x22' * 32,) * deposit_contract_tree_depth,
+        'proof': (b'\x22' * 32,) * (deposit_contract_tree_depth + 1),
         'data': DepositData(**sample_deposit_data_params)
     }
 
@@ -606,8 +634,9 @@ def sample_beacon_state_params(config,
         'start_shard': 1,
         'randao_mixes': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
         'active_index_roots': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
+        'compact_committees_roots': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
         # Slashings
-        'slashed_balances': (0,) * config.EPOCHS_PER_SLASHED_BALANCES_VECTOR,
+        'slashings': (0,) * config.EPOCHS_PER_SLASHINGS_VECTOR,
         # Attestations
         'previous_epoch_attestations': (),
         'current_epoch_attestations': (),
@@ -619,14 +648,20 @@ def sample_beacon_state_params(config,
             (Crosslink(**sample_crosslink_record_params),) * config.SHARD_COUNT
         ),
         # Justification
-        'previous_justified_epoch': 0,
-        'previous_justified_root': b'\x99' * 32,
-        'current_justified_epoch': 0,
-        'current_justified_root': b'\x55' * 32,
-        'justification_bitfield': 0,
+        'justification_bits': (False,) * JUSTIFICATION_BITS_LENGTH,
+        'previous_justified_checkpoint': Checkpoint(
+            epoch=0,
+            root=b'\x99' * 32,
+        ),
+        'current_justified_checkpoint': Checkpoint(
+            epoch=0,
+            root=b'\x55' * 32,
+        ),
         # Finality
-        'finalized_epoch': 0,
-        'finalized_root': b'\x33' * 32,
+        'finalized_checkpoint': Checkpoint(
+            epoch=0,
+            root=b'\x33' * 32,
+        )
     }
 
 
@@ -688,7 +723,7 @@ def genesis_state(genesis_validators,
 @pytest.fixture
 def genesis_block(genesis_state):
     return get_genesis_block(
-        genesis_state.root,
+        genesis_state.hash_tree_root,
         SerenityBeaconBlock,
     )
 

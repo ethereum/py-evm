@@ -3,7 +3,7 @@ import pytest
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
 from eth2.beacon.helpers import (
-    slot_to_epoch,
+    compute_epoch_of_slot,
 )
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.state_machines.forks.serenity.blocks import (
@@ -25,7 +25,7 @@ from eth2.beacon.tools.builder.validator import (
     create_mock_signed_attestations_at_slot,
 )
 from eth2.beacon.tools.misc.ssz_vector import (
-    override_vector_lengths,
+    override_lengths,
 )
 from eth2._utils.bls import bls
 
@@ -52,12 +52,12 @@ def test_demo(base_db,
     slots_per_epoch = 8
     config = SERENITY_CONFIG._replace(
         SLOTS_PER_EPOCH=slots_per_epoch,
-        GENESIS_EPOCH=slot_to_epoch(SERENITY_CONFIG.GENESIS_SLOT, slots_per_epoch),
+        GENESIS_EPOCH=compute_epoch_of_slot(SERENITY_CONFIG.GENESIS_SLOT, slots_per_epoch),
         TARGET_COMMITTEE_SIZE=3,
         SHARD_COUNT=2,
         MIN_ATTESTATION_INCLUSION_DELAY=2,
     )
-    override_vector_lengths(config)
+    override_lengths(config)
     fixture_sm_class = SerenityStateMachine.configure(
         __name__='SerenityStateMachineForTesting',
         config=config,
@@ -68,12 +68,8 @@ def test_demo(base_db,
     chaindb = BeaconChainDB(base_db, config)
     attestation_pool = AttestationPool()
 
-    # TODO(ralexstokes) clean up how the cache is populated
-    for i in range(validator_count):
-        pubkeys[i]
-
     genesis_state, genesis_block = create_mock_genesis(
-        num_validators=validator_count,
+        pubkeys=pubkeys[:validator_count],
         config=config,
         keymap=keymap,
         genesis_block_class=SerenityBeaconBlock,
@@ -146,5 +142,5 @@ def test_demo(base_db,
     assert state.slot == chain_length + genesis_slot
 
     # Justification assertions
-    assert state.current_justified_epoch == genesis_epoch
-    assert state.finalized_epoch == genesis_epoch
+    assert state.current_justified_checkpoint.epoch == genesis_epoch
+    assert state.finalized_checkpoint.epoch == genesis_epoch

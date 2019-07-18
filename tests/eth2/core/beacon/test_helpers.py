@@ -22,10 +22,10 @@ from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.validators import Validator
 
 from eth2.beacon.helpers import (
-    _generate_seed,
+    _get_seed,
     get_active_validator_indices,
     get_block_root_at_slot,
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
     get_domain,
     _get_fork_version,
     get_total_balance,
@@ -220,7 +220,7 @@ def test_get_fork_version(previous_version,
         'current_version,'
         'epoch,'
         'current_epoch,'
-        'domain_type,'
+        'signature_domain,'
         'expected'
     ),
     [
@@ -230,7 +230,7 @@ def test_get_fork_version(previous_version,
             4,
             4,
             1,
-            int.from_bytes(b'\x01\x00\x00\x00' + b'\x22' * 4, 'little'),
+            b'\x01\x00\x00\x00' + b'\x22' * 4,
         ),
         (
             b'\x11' * 4,
@@ -238,7 +238,7 @@ def test_get_fork_version(previous_version,
             4,
             4 - 1,
             1,
-            int.from_bytes(b'\x01\x00\x00\x00' + b'\x11' * 4, 'little'),
+            b'\x01\x00\x00\x00' + b'\x11' * 4,
         ),
     ]
 )
@@ -246,7 +246,7 @@ def test_get_domain(previous_version,
                     current_version,
                     epoch,
                     current_epoch,
-                    domain_type,
+                    signature_domain,
                     genesis_state,
                     slots_per_epoch,
                     expected):
@@ -260,36 +260,32 @@ def test_get_domain(previous_version,
         state=state.copy(
             fork=fork,
         ),
-        domain_type=domain_type,
+        signature_domain=signature_domain,
         slots_per_epoch=slots_per_epoch,
         message_epoch=current_epoch,
     )
 
 
-def test_generate_seed(genesis_state,
-                       committee_config,
-                       slots_per_epoch,
-                       min_seed_lookahead,
-                       activation_exit_delay,
-                       epochs_per_historical_vector):
+def test_get_seed(genesis_state,
+                  committee_config,
+                  slots_per_epoch,
+                  min_seed_lookahead,
+                  activation_exit_delay,
+                  epochs_per_historical_vector):
     def mock_get_randao_mix(state,
                             epoch,
-                            slots_per_epoch,
-                            epochs_per_historical_vector,
-                            perform_validation=False):
+                            epochs_per_historical_vector):
         return hash_eth2(
-            state.root +
+            state.hash_tree_root +
             epoch.to_bytes(32, byteorder='little') +
             epochs_per_historical_vector.to_bytes(32, byteorder='little')
         )
 
     def mock_get_active_index_root(state,
                                    epoch,
-                                   slots_per_epoch,
-                                   activation_exit_delay,
                                    epochs_per_historical_vector):
         return hash_eth2(
-            state.root +
+            state.hash_tree_root +
             epoch.to_bytes(32, byteorder='little') +
             slots_per_epoch.to_bytes(32, byteorder='little') +
             epochs_per_historical_vector.to_bytes(32, byteorder='little')
@@ -298,12 +294,12 @@ def test_generate_seed(genesis_state,
     state = genesis_state
     epoch = 1
     state = state.copy(
-        slot=get_epoch_start_slot(epoch, committee_config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(epoch, committee_config.SLOTS_PER_EPOCH),
     )
 
     epoch_as_bytes = epoch.to_bytes(32, 'little')
 
-    seed = _generate_seed(
+    seed = _get_seed(
         state=state,
         epoch=epoch,
         randao_provider=mock_get_randao_mix,
@@ -314,14 +310,11 @@ def test_generate_seed(genesis_state,
     assert seed == hash_eth2(
         mock_get_randao_mix(
             state=state,
-            epoch=(epoch + epochs_per_historical_vector - min_seed_lookahead),
-            slots_per_epoch=slots_per_epoch,
+            epoch=(epoch + epochs_per_historical_vector - min_seed_lookahead - 1),
             epochs_per_historical_vector=epochs_per_historical_vector,
         ) + mock_get_active_index_root(
             state=state,
             epoch=epoch,
-            slots_per_epoch=slots_per_epoch,
-            activation_exit_delay=activation_exit_delay,
             epochs_per_historical_vector=epochs_per_historical_vector,
         ) + epoch_as_bytes
     )

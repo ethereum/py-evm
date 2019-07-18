@@ -10,10 +10,16 @@ from eth_utils import (
 )
 from eth_typing import (
     Hash32,
+    BLSPubkey,
 )
+
+import ssz
 
 from eth2._utils.hash import (
     hash_eth2,
+)
+from eth2._utils.tuple import (
+    update_tuple_item,
 )
 from eth2.configs import (
     CommitteeConfig,
@@ -23,7 +29,7 @@ from eth2.beacon.constants import (
     MAX_INDEX_COUNT,
 )
 from eth2.beacon.helpers import (
-    generate_seed,
+    get_seed,
     get_active_validator_indices,
 )
 from eth2.beacon.typing import (
@@ -33,6 +39,7 @@ from eth2.beacon.typing import (
     Slot,
     ValidatorIndex,
 )
+from eth2.beacon.types.compact_committees import CompactCommittee
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
 
@@ -50,10 +57,10 @@ def get_committees_per_slot(active_validator_count: int,
     )
 
 
-def get_epoch_committee_count(active_validator_count: int,
-                              shard_count: int,
-                              slots_per_epoch: int,
-                              target_committee_size: int) -> int:
+def get_committee_count(active_validator_count: int,
+                        shard_count: int,
+                        slots_per_epoch: int,
+                        target_committee_size: int) -> int:
     return get_committees_per_slot(
         active_validator_count,
         shard_count,
@@ -71,7 +78,7 @@ def get_shard_delta(state: BeaconState,
     active_validator_indices = get_active_validator_indices(state.validators, epoch)
 
     return min(
-        get_epoch_committee_count(
+        get_committee_count(
             len(active_validator_indices),
             shard_count,
             slots_per_epoch,
@@ -81,9 +88,9 @@ def get_shard_delta(state: BeaconState,
     )
 
 
-def get_epoch_start_shard(state: BeaconState,
-                          epoch: Epoch,
-                          config: CommitteeConfig) -> Shard:
+def get_start_shard(state: BeaconState,
+                    epoch: Epoch,
+                    config: CommitteeConfig) -> Shard:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
     if epoch > next_epoch:
@@ -138,7 +145,7 @@ def _calculate_first_committee_at_slot(state: BeaconState,
 
     offset = committees_per_slot * (slot % slots_per_epoch)
     shard = (
-        get_epoch_start_shard(state, current_epoch, config) + offset
+        get_start_shard(state, current_epoch, config) + offset
     ) % shard_count
 
     return get_crosslink_committee(
@@ -163,7 +170,7 @@ def get_beacon_proposer_index(state: BeaconState,
 
     current_epoch = state.current_epoch(committee_config.SLOTS_PER_EPOCH)
 
-    seed = generate_seed(state, current_epoch, committee_config)
+    seed = get_seed(state, current_epoch, committee_config)
 
     return _find_proposer_in_committee(
         state.validators,
@@ -174,10 +181,10 @@ def get_beacon_proposer_index(state: BeaconState,
     )
 
 
-def _get_shuffled_index(index: int,
-                        index_count: int,
-                        seed: Hash32,
-                        shuffle_round_count: int) -> int:
+def _compute_shuffled_index(index: int,
+                            index_count: int,
+                            seed: Hash32,
+                            shuffle_round_count: int) -> int:
     """
     Return `p(index)` in a pseudorandom permutation `p` of `0...index_count-1`
     with ``seed`` as entropy.
@@ -205,14 +212,14 @@ def _get_shuffled_index(index: int,
         ) % index_count
 
         flip = (pivot + index_count - new_index) % index_count
-        hash_pos = max(new_index, flip)
-        h = hash_eth2(
+        position = max(new_index, flip)
+        source = hash_eth2(
             seed +
             current_round.to_bytes(1, 'little') +
-            (hash_pos // 256).to_bytes(4, 'little')
+            (position // 256).to_bytes(4, 'little')
         )
-        byte = h[(hash_pos % 256) // 8]
-        bit = (byte >> (hash_pos % 8)) % 2
+        byte = source[(position % 256) // 8]
+        bit = (byte >> (position % 8)) % 2
         new_index = flip if bit else new_index
 
     return new_index
@@ -226,7 +233,7 @@ def _compute_committee(indices: Sequence[ValidatorIndex],
     start = (len(indices) * index) // count
     end = (len(indices) * (index + 1)) // count
     for i in range(start, end):
-        shuffled_index = _get_shuffled_index(i, len(indices), seed, shuffle_round_count)
+        shuffled_index = _compute_shuffled_index(i, len(indices), seed, shuffle_round_count)
         yield indices[shuffled_index]
 
 
@@ -236,7 +243,7 @@ def get_crosslink_committee(state: BeaconState,
                             shard: Shard,
                             config: CommitteeConfig) -> Iterable[ValidatorIndex]:
     target_shard = (
-        shard + config.SHARD_COUNT - get_epoch_start_shard(state, epoch, config)
+        shard + config.SHARD_COUNT - get_start_shard(state, epoch, config)
     ) % config.SHARD_COUNT
 
     active_validator_indices = get_active_validator_indices(
@@ -246,9 +253,9 @@ def get_crosslink_committee(state: BeaconState,
 
     return _compute_committee(
         indices=active_validator_indices,
-        seed=generate_seed(state, epoch, config),
+        seed=get_seed(state, epoch, config),
         index=target_shard,
-        count=get_epoch_committee_count(
+        count=get_committee_count(
             len(active_validator_indices),
             config.SHARD_COUNT,
             config.SLOTS_PER_EPOCH,
@@ -256,3 +263,58 @@ def get_crosslink_committee(state: BeaconState,
         ),
         shuffle_round_count=config.SHUFFLE_ROUND_COUNT,
     )
+
+
+def _compute_compact_committee_for_shard_in_epoch(state: BeaconState,
+                                                  epoch: Epoch,
+                                                  shard: Shard,
+                                                  config: CommitteeConfig) -> CompactCommittee:
+    effective_balance_increment = config.EFFECTIVE_BALANCE_INCREMENT
+
+    pubkeys: Tuple[BLSPubkey, ...] = tuple()
+    compact_validators: Tuple[int, ...] = tuple()
+    for index in get_crosslink_committee(state, epoch, shard, config):
+        validator = state.validators[index]
+        pubkeys += (validator.pubkey,)
+        compact_balance = validator.effective_balance // effective_balance_increment
+        # `index` (top 6 bytes) + `slashed` (16th bit) + `compact_balance` (bottom 15 bits)
+        compact_validator = (index << 16) + (validator.slashed << 15) + compact_balance
+        compact_validators += (compact_validator,)
+
+    return CompactCommittee(
+        pubkeys=pubkeys,
+        compact_validators=compact_validators,
+    )
+
+
+def get_compact_committees_root(state: BeaconState,
+                                epoch: Epoch,
+                                config: CommitteeConfig) -> Hash32:
+    shard_count = config.SHARD_COUNT
+
+    committees = (CompactCommittee(),) * shard_count
+    start_shard = get_start_shard(state, epoch, config)
+    active_validator_indices = get_active_validator_indices(
+        state.validators,
+        epoch,
+    )
+    committee_count = get_committee_count(
+        len(active_validator_indices),
+        config.SHARD_COUNT,
+        config.SLOTS_PER_EPOCH,
+        config.TARGET_COMMITTEE_SIZE,
+    )
+    for committee_number in range(committee_count):
+        shard = Shard((start_shard + committee_number) % shard_count)
+        compact_committee = _compute_compact_committee_for_shard_in_epoch(
+            state,
+            epoch,
+            shard,
+            config,
+        )
+        committees = update_tuple_item(
+            committees,
+            shard,
+            compact_committee,
+        )
+    return ssz.get_hash_tree_root(committees, sedes=ssz.sedes.Vector(CompactCommittee, shard_count))

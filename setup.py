@@ -102,10 +102,11 @@ deps = {
         "eth-typing>=2.1.0,<3.0.0",
         "eth-utils>=1.3.0b0,<2.0.0",
         "lru-dict>=1.1.6",
-        "py-ecc==1.6.0",
+        "py-ecc==1.7.1",
         "rlp>=1.1.0,<2.0.0",
         PYEVM_DEPENDENCY,
-        "ssz==0.1.0a10",
+        "ssz==0.1.0a12",
+        "blspy>=0.1.8,<1",  # for `bls_chia`
     ],
     'libp2p': [
         "base58>=1.0.3",

@@ -14,12 +14,12 @@ from eth2.configs import (
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
     get_crosslink_committee,
-    get_epoch_committee_count,
-    get_epoch_start_shard,
+    get_committee_count,
+    get_start_shard,
 )
 from eth2.beacon.helpers import (
     get_active_validator_indices,
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
@@ -64,17 +64,17 @@ def get_committee_assignment(state: BeaconState,
         )
 
     active_validators = get_active_validator_indices(state.validators, epoch)
-    committees_per_slot = get_epoch_committee_count(
+    committees_per_slot = get_committee_count(
         len(active_validators),
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,
         config.TARGET_COMMITTEE_SIZE,
     ) // config.SLOTS_PER_EPOCH
-    epoch_start_slot = get_epoch_start_slot(
+    epoch_start_slot = compute_start_slot_of_epoch(
         epoch,
         config.SLOTS_PER_EPOCH,
     )
-    epoch_start_shard = get_epoch_start_shard(state, epoch, CommitteeConfig(config))
+    epoch_start_shard = get_start_shard(state, epoch, CommitteeConfig(config))
 
     for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
         offset = committees_per_slot * (slot % config.SLOTS_PER_EPOCH)

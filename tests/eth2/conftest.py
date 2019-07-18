@@ -9,8 +9,6 @@ from eth2._utils.hash import (
     hash_eth2,
 )
 
-ETH2_BLS_KEY_PYTEST_CACHE_KEY = "eth2/bls/key-cache"
-
 
 def _serialize_bls_pubkeys(key):
     """
@@ -172,14 +170,16 @@ def _key_cache(request, _should_persist_bls_keys):
 
     Keys are generated on-demand and cached after creation.
     """
+    cache_key = f"eth2/bls/key-cache/{bls.backend.__name__}"
+
     if _should_persist_bls_keys:
         backing_cache_reader = functools.partial(
             request.config.cache.get,
-            ETH2_BLS_KEY_PYTEST_CACHE_KEY,
+            cache_key,
         )
         backing_cache_writer = functools.partial(
             request.config.cache.set,
-            ETH2_BLS_KEY_PYTEST_CACHE_KEY
+            cache_key,
         )
     else:
         backing_cache_reader = None

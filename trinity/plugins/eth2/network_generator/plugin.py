@@ -12,9 +12,13 @@ import time
 from typing import (
     Any,
     Callable,
+    cast,
     Dict,
+    Sequence,
     Tuple,
 )
+
+from eth_typing import BLSPubkey
 
 from eth_utils import (
     humanize_seconds,
@@ -39,7 +43,7 @@ from eth2.beacon.tools.builder.initializer import (
     create_mock_genesis,
 )
 from eth2.beacon.tools.misc.ssz_vector import (
-    override_vector_lengths,
+    override_lengths,
 )
 from eth2.beacon.typing import (
     Second,
@@ -64,7 +68,7 @@ from .constants import (
     KEYS_DIR,
 )
 
-override_vector_lengths(XIAO_LONG_BAO_CONFIG)
+override_lengths(XIAO_LONG_BAO_CONFIG)
 
 
 class Client:
@@ -187,7 +191,7 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
     def generate_genesis_state(cls,
                                get_genesis_time: Callable[[], Timestamp],
                                network_dir: Path,
-                               keymap: Dict[Any, Any],
+                               keymap: Dict[BLSPubkey, int],
                                clients: Tuple[Client, ...]) -> None:
         logger = cls.get_logger()
         state_machine_class = XiaoLongBaoStateMachine
@@ -195,7 +199,10 @@ class NetworkGeneratorPlugin(BaseMainProcessPlugin):
         # Since create_mock_genesis takes a long time, update the real genesis_time later
         dummy_time = Timestamp(int(time.time()))
         state, _ = create_mock_genesis(
-            num_validators=len(keymap.keys()),
+            pubkeys=cast(
+                Sequence[BLSPubkey],
+                keymap.keys(),
+            ),
             config=state_machine_class.config,
             keymap=keymap,
             genesis_block_class=state_machine_class.block_class,

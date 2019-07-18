@@ -19,6 +19,7 @@ from eth2.beacon.typing import (  # noqa: F401
     default_timestamp,
     default_second,
     default_bitfield,
+    default_version,
 )
 
 if TYPE_CHECKING:

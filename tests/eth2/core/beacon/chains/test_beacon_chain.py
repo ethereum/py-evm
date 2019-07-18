@@ -104,7 +104,9 @@ def test_get_state_by_slot(valid_chain,
     with pytest.raises(StateSlotNotFound):
         valid_chain.get_state_by_slot(block_skipped_slot)
     valid_chain.chaindb.persist_state(block_skipped_state)
-    assert valid_chain.get_state_by_slot(block_skipped_slot).root == block_skipped_state.root
+    assert valid_chain.get_state_by_slot(
+        block_skipped_slot
+    ).hash_tree_root == block_skipped_state.hash_tree_root
 
     # Next, import proposed block and check if `get_state_by_slot` returns the expected state
     proposed_slot = block_skipped_slot + 1
@@ -120,7 +122,7 @@ def test_get_state_by_slot(valid_chain,
     )
     valid_chain.import_block(block)
     state = valid_chain.get_state_machine().state
-    assert valid_chain.get_state_by_slot(proposed_slot).root == state.root
+    assert valid_chain.get_state_by_slot(proposed_slot).hash_tree_root == state.hash_tree_root
 
 
 @pytest.mark.long
@@ -244,11 +246,11 @@ def test_get_attestation_root(valid_chain,
     valid_chain.import_block(block)
     # Only one attestation in attestations, so just check that one
     a0 = attestations[0]
-    assert valid_chain.get_attestation_by_root(a0.root) == a0
-    assert valid_chain.attestation_exists(a0.root)
+    assert valid_chain.get_attestation_by_root(a0.hash_tree_root) == a0
+    assert valid_chain.attestation_exists(a0.hash_tree_root)
     fake_attestation = a0.copy(
         signature=b'\x78' * 96,
     )
     with pytest.raises(AttestationRootNotFound):
-        valid_chain.get_attestation_by_root(fake_attestation.root)
-    assert not valid_chain.attestation_exists(fake_attestation.root)
+        valid_chain.get_attestation_by_root(fake_attestation.hash_tree_root)
+    assert not valid_chain.attestation_exists(fake_attestation.hash_tree_root)

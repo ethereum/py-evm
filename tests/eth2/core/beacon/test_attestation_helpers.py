@@ -18,8 +18,8 @@ from eth2.beacon.helpers import (
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.attestation_helpers import (
     is_slashable_attestation_data,
-    validate_indexed_attestation,
     validate_indexed_attestation_aggregate_signature,
+    validate_indexed_attestation,
 )
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
@@ -79,10 +79,10 @@ def _get_indices_and_signatures(validator_count, state, config, message_hash, pr
     indices.sort()
 
     privkeys = [privkeys[i] for i in indices]
-    domain_type = SignatureDomain.DOMAIN_ATTESTATION
+    signature_domain = SignatureDomain.DOMAIN_ATTESTATION
     domain = get_domain(
         state=state,
-        domain_type=domain_type,
+        signature_domain=signature_domain,
         slots_per_epoch=config.SLOTS_PER_EPOCH,
     )
     signatures = tuple(
@@ -94,14 +94,14 @@ def _get_indices_and_signatures(validator_count, state, config, message_hash, pr
 def _run_verify_indexed_vote(slots_per_epoch,
                              params,
                              state,
-                             max_indices_per_attestation,
+                             max_validators_per_committee,
                              should_succeed):
     votes = IndexedAttestation(**params)
     if should_succeed:
         validate_indexed_attestation(
             state,
             votes,
-            max_indices_per_attestation,
+            max_validators_per_committee,
             slots_per_epoch,
         )
     else:
@@ -109,7 +109,7 @@ def _run_verify_indexed_vote(slots_per_epoch,
             validate_indexed_attestation(
                 state,
                 votes,
-                max_indices_per_attestation,
+                max_validators_per_committee,
                 slots_per_epoch,
             )
 
@@ -153,10 +153,10 @@ def _corrupt_custody_bit_0_indices(params):
     return assoc(params, "custody_bit_0_indices", corrupt_custody_bit_0_indices)
 
 
-def _corrupt_custody_bit_0_indices_max(max_indices_per_attestation, params):
+def _corrupt_custody_bit_0_indices_max(max_validators_per_committee, params):
     corrupt_custody_bit_0_indices = [
         i
-        for i in range(max_indices_per_attestation + 1)
+        for i in range(max_validators_per_committee + 1)
     ]
     return assoc(params, "custody_bit_0_indices", corrupt_custody_bit_0_indices)
 
@@ -172,11 +172,11 @@ def _create_indexed_attestation_messages(params):
         AttestationDataAndCustodyBit(
             data=data,
             custody_bit=False,
-        ).root,
+        ).hash_tree_root,
         AttestationDataAndCustodyBit(
             data=data,
             custody_bit=True,
-        ).root,
+        ).hash_tree_root,
     )
 
 
@@ -216,7 +216,7 @@ def test_validate_indexed_attestation(slots_per_epoch,
                                       genesis_balances,
                                       sample_indexed_attestation_params,
                                       sample_fork_params,
-                                      max_indices_per_attestation,
+                                      max_validators_per_committee,
                                       config):
     state = genesis_state.copy(
         fork=Fork(**sample_fork_params),
@@ -237,7 +237,7 @@ def test_validate_indexed_attestation(slots_per_epoch,
     if needs_fork:
         params = param_mapper(slots_per_epoch, params, state.fork)
     elif is_testing_max_length:
-        params = param_mapper(max_indices_per_attestation, params)
+        params = param_mapper(max_validators_per_committee, params)
 
     else:
         params = param_mapper(params)
@@ -245,7 +245,7 @@ def test_validate_indexed_attestation(slots_per_epoch,
         slots_per_epoch,
         params,
         state,
-        max_indices_per_attestation,
+        max_validators_per_committee,
         should_succeed,
     )
 
@@ -268,7 +268,7 @@ def test_verify_indexed_attestation_after_fork(genesis_state,
                                                sample_indexed_attestation_params,
                                                sample_fork_params,
                                                config,
-                                               max_indices_per_attestation):
+                                               max_validators_per_committee):
     # Test that indexed data is still valid after fork
     # Indexed data slot = 10, fork slot = 15, current slot = 20
     past_fork_params = {
@@ -296,7 +296,7 @@ def test_verify_indexed_attestation_after_fork(genesis_state,
         slots_per_epoch,
         valid_params,
         state,
-        max_indices_per_attestation,
+        max_validators_per_committee,
         True,
     )
 
@@ -331,8 +331,12 @@ def test_is_slashable_attestation_data(sample_attestation_data_params,
 
     if is_surround_vote:
         data_1 = data_1.copy(
-            source_epoch=data_2.source_epoch - 1,
-            target_epoch=data_2.target_epoch + 1,
+            source=data_1.source.copy(
+                epoch=data_2.source.epoch - 1,
+            ),
+            target=data_1.target.copy(
+                epoch=data_2.target.epoch + 1,
+            ),
         )
 
     assert is_slashable_attestation_data(

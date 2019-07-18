@@ -9,11 +9,11 @@ from eth_utils import (
 from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_domain,
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 from eth2.beacon.committee_helpers import (
-    get_epoch_committee_count,
-    get_epoch_start_shard,
+    get_committee_count,
+    get_start_shard,
 )
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.attestations import IndexedAttestation
@@ -37,24 +37,24 @@ def get_attestation_data_slot(state: BeaconState,
                               config: Eth2Config) -> Slot:
     active_validator_indices = get_active_validator_indices(
         state.validators,
-        data.target_epoch,
+        data.target.epoch,
     )
-    committee_count = get_epoch_committee_count(
+    committee_count = get_committee_count(
         len(active_validator_indices),
         config.SHARD_COUNT,
         config.SLOTS_PER_EPOCH,
         config.TARGET_COMMITTEE_SIZE,
     )
     offset = (
-        data.crosslink.shard + config.SHARD_COUNT - get_epoch_start_shard(
+        data.crosslink.shard + config.SHARD_COUNT - get_start_shard(
             state,
-            data.target_epoch,
+            data.target.epoch,
             CommitteeConfig(config),
         )
     ) % config.SHARD_COUNT
     committees_per_slot = committee_count // config.SLOTS_PER_EPOCH
-    return get_epoch_start_slot(
-        data.target_epoch,
+    return compute_start_slot_of_epoch(
+        data.target.epoch,
         config.SLOTS_PER_EPOCH,
     ) + offset // committees_per_slot
 
@@ -78,18 +78,18 @@ def validate_indexed_attestation_aggregate_signature(state: BeaconState,
         AttestationDataAndCustodyBit(
             data=indexed_attestation.data,
             custody_bit=False
-        ).root,
+        ).hash_tree_root,
         AttestationDataAndCustodyBit(
             data=indexed_attestation.data,
             custody_bit=True,
-        ).root,
+        ).hash_tree_root,
     )
 
     domain = get_domain(
         state,
         SignatureDomain.DOMAIN_ATTESTATION,
         slots_per_epoch,
-        indexed_attestation.data.target_epoch,
+        indexed_attestation.data.target.epoch,
     )
     bls.validate_multiple(
         pubkeys=pubkeys,
@@ -101,8 +101,11 @@ def validate_indexed_attestation_aggregate_signature(state: BeaconState,
 
 def validate_indexed_attestation(state: BeaconState,
                                  indexed_attestation: IndexedAttestation,
-                                 max_indices_per_attestation: int,
+                                 max_validators_per_committee: int,
                                  slots_per_epoch: int) -> None:
+    """
+    Derived from spec: `is_valid_indexed_attestation`.
+    """
     bit_0_indices = indexed_attestation.custody_bit_0_indices
     bit_1_indices = indexed_attestation.custody_bit_1_indices
 
@@ -111,9 +114,9 @@ def validate_indexed_attestation(state: BeaconState,
             f"Expected no custody bit 1 validators (cf. {bit_1_indices})."
         )
 
-    if len(bit_0_indices) + len(bit_1_indices) > max_indices_per_attestation:
+    if len(bit_0_indices) + len(bit_1_indices) > max_validators_per_committee:
         raise ValidationError(
-            f"Require no more than {max_indices_per_attestation} validators per attestation,"
+            f"Require no more than {max_validators_per_committee} validators per attestation,"
             f" but have {len(bit_0_indices)} 0-bit validators"
             f" and {len(bit_1_indices)} 1-bit validators."
         )
@@ -152,7 +155,7 @@ def is_slashable_attestation_data(data_1: AttestationData, data_2: AttestationDa
     """
     return (
         # Double vote
-        (data_1 != data_2 and data_1.target_epoch == data_2.target_epoch) or
+        (data_1 != data_2 and data_1.target.epoch == data_2.target.epoch) or
         # Surround vote
-        (data_1.source_epoch < data_2.source_epoch and data_2.target_epoch < data_1.target_epoch)
+        (data_1.source.epoch < data_2.source.epoch and data_2.target.epoch < data_1.target.epoch)
     )

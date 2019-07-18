@@ -14,7 +14,7 @@ from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
 )
 from eth2.beacon.helpers import (
-    get_epoch_start_slot,
+    compute_start_slot_of_epoch,
 )
 from eth2.beacon.types.blocks import (
     BeaconBlockBody,
@@ -302,7 +302,7 @@ def test_process_attestations(genesis_state,
             crosslink=attestations[-1].data.crosslink.copy(
                 parent_root=Crosslink(
                     shard=333,
-                ).root,
+                ).hash_tree_root,
             )
         )
         invalid_attestation = attestations[-1].copy(
@@ -362,7 +362,7 @@ def test_process_voluntary_exits(genesis_state,
                                  keymap,
                                  success):
     state = genesis_state.copy(
-        slot=get_epoch_start_slot(
+        slot=compute_start_slot_of_epoch(
             config.GENESIS_EPOCH + config.PERSISTENT_COMMITTEE_PERIOD,
             config.SLOTS_PER_EPOCH,
         ),

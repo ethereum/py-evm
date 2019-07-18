@@ -35,6 +35,7 @@ from eth2.beacon.state_machines.forks.serenity.blocks import (
 )
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.checkpoints import Checkpoint
 
 
 @pytest.fixture(params=[1, 10, 999])
@@ -173,10 +174,10 @@ def test_chaindb_get_head_state_slot(chaindb, state):
 def test_chaindb_state(chaindb, state):
     chaindb.persist_state(state)
     state_class = BeaconState
-    result_state = chaindb.get_state_by_root(state.root, state_class)
-    assert result_state.root == state.root
+    result_state = chaindb.get_state_by_root(state.hash_tree_root, state_class)
+    assert result_state.hash_tree_root == state.hash_tree_root
     result_state = chaindb.get_state_by_slot(state.slot, state_class)
-    assert result_state.root == state.root
+    assert result_state.hash_tree_root == state.hash_tree_root
 
 
 def test_chaindb_get_finalized_head_at_genesis(chaindb_at_genesis, genesis_block):
@@ -201,7 +202,9 @@ def test_chaindb_get_finalized_head(chaindb_at_genesis,
     assert chaindb.get_justified_head(genesis_block.__class__) == genesis_block
 
     state_with_finalized_block = genesis_state.copy(
-        finalized_root=block.signing_root,
+        finalized_checkpoint=Checkpoint(
+            root=block.signing_root,
+        )
     )
     chaindb.persist_state(state_with_finalized_block)
     chaindb.persist_block(block, BeaconBlock, fork_choice_scoring)
@@ -226,8 +229,10 @@ def test_chaindb_get_justified_head(chaindb_at_genesis,
 
     # test that there is only one justified head per epoch
     state_with_bad_epoch = genesis_state.copy(
-        current_justified_root=block.signing_root,
-        current_justified_epoch=config.GENESIS_EPOCH,
+        current_justified_checkpoint=Checkpoint(
+            root=block.signing_root,
+            epoch=config.GENESIS_EPOCH,
+        )
     )
     chaindb.persist_state(state_with_bad_epoch)
     chaindb.persist_block(block, BeaconBlock, fork_choice_scoring)
@@ -237,8 +242,10 @@ def test_chaindb_get_justified_head(chaindb_at_genesis,
 
     # test that the we can update justified head if we satisfy the invariants
     state_with_justified_block = genesis_state.copy(
-        current_justified_root=block.signing_root,
-        current_justified_epoch=config.GENESIS_EPOCH + 1,
+        current_justified_checkpoint=Checkpoint(
+            root=block.signing_root,
+            epoch=config.GENESIS_EPOCH + 1,
+        )
     )
     chaindb.persist_state(state_with_justified_block)
 
@@ -293,14 +300,16 @@ def test_chaindb_add_attestations_root_to_block_lookup(chaindb,
                                                        block_with_attestation,
                                                        fork_choice_scoring):
     block, attestation = block_with_attestation
-    assert not chaindb.attestation_exists(attestation.root)
+    assert not chaindb.attestation_exists(attestation.hash_tree_root)
     chaindb.persist_block(block, block.__class__, fork_choice_scoring)
-    assert chaindb.attestation_exists(attestation.root)
+    assert chaindb.attestation_exists(attestation.hash_tree_root)
 
 
 def test_chaindb_get_attestation_key_by_root(chaindb, block_with_attestation, fork_choice_scoring):
     block, attestation = block_with_attestation
     with pytest.raises(AttestationRootNotFound):
-        chaindb.get_attestation_key_by_root(attestation.root)
+        chaindb.get_attestation_key_by_root(attestation.hash_tree_root)
     chaindb.persist_block(block, block.__class__, fork_choice_scoring)
-    assert chaindb.get_attestation_key_by_root(attestation.root) == (block.signing_root, 0)
+    assert chaindb.get_attestation_key_by_root(
+        attestation.hash_tree_root
+    ) == (block.signing_root, 0)

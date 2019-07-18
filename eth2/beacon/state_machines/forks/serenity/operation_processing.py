@@ -81,7 +81,7 @@ def process_attester_slashings(state: BeaconState,
         validate_attester_slashing(
             state,
             attester_slashing,
-            config.MAX_INDICES_PER_ATTESTATION,
+            config.MAX_VALIDATORS_PER_COMMITTEE,
             config.SLOTS_PER_EPOCH,
         )
 
@@ -140,13 +140,13 @@ def process_attestations(state: BeaconState,
             CommitteeConfig(config),
         )
         pending_attestation = PendingAttestation(
-            aggregation_bitfield=attestation.aggregation_bitfield,
+            aggregation_bits=attestation.aggregation_bits,
             data=attestation.data,
             inclusion_delay=state.slot - attestation_slot,
             proposer_index=proposer_index,
         )
 
-        if attestation.data.target_epoch == current_epoch:
+        if attestation.data.target.epoch == current_epoch:
             new_current_epoch_attestations += (pending_attestation,)
         else:
             new_previous_epoch_attestations += (pending_attestation,)
