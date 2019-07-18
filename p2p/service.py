@@ -313,16 +313,17 @@ class BaseService(ABC, CancellableMixin):
                 self._log_tasks("Pending tasks")
             if self._child_services:
                 self.logger.debug("Pending child services: %s", list(self._child_services))
-            self._forcibly_cancel_all_tasks()
-            # Sleep a bit because the Future.cancel() method just schedules the callbacks, so we
-            # need to give the event loop a chance to actually call them.
-            await asyncio.sleep(0.5)
+            await self._forcibly_cancel_all_tasks()
         else:
             self.logger.debug("%s finished cleanly", self)
 
-    def _forcibly_cancel_all_tasks(self) -> None:
+    async def _forcibly_cancel_all_tasks(self) -> None:
         for task in self._tasks:
             task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
     @property
     def is_cancelled(self) -> bool:
