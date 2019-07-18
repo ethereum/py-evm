@@ -27,8 +27,20 @@ from .defaults import (
 )
 
 
-def round_down_to_previous_multiple(amount: int, increment: int) -> int:
+def _round_down_to_previous_multiple(amount: int, increment: int) -> int:
     return amount - amount % increment
+
+
+def calculate_effective_balance(amount: Gwei, config: Eth2Config) -> Gwei:
+    return Gwei(
+        min(
+            _round_down_to_previous_multiple(
+                amount,
+                config.EFFECTIVE_BALANCE_INCREMENT,
+            ),
+            config.MAX_EFFECTIVE_BALANCE,
+        )
+    )
 
 
 class Validator(ssz.Serializable):
@@ -97,14 +109,9 @@ class Validator(ssz.Serializable):
         return cls(
             pubkey=pubkey,
             withdrawal_credentials=withdrawal_credentials,
-            effective_balance=Gwei(
-                min(
-                    round_down_to_previous_multiple(
-                        amount,
-                        config.EFFECTIVE_BALANCE_INCREMENT,
-                    ),
-                    config.MAX_EFFECTIVE_BALANCE,
-                )
+            effective_balance=calculate_effective_balance(
+                amount,
+                config,
             ),
             activation_eligibility_epoch=FAR_FUTURE_EPOCH,
             activation_epoch=FAR_FUTURE_EPOCH,

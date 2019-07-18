@@ -34,9 +34,8 @@ from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.validators import round_down_to_previous_multiple
+from eth2.beacon.types.validators import calculate_effective_balance
 from eth2.beacon.typing import (
-    Gwei,
     Timestamp,
     ValidatorIndex,
 )
@@ -136,14 +135,9 @@ def initialize_beacon_state_from_eth1(*,
     for validator_index in range(len(state.validators)):
         validator_index = ValidatorIndex(validator_index)
         balance = state.balances[validator_index]
-        effective_balance = Gwei(
-            min(
-                round_down_to_previous_multiple(
-                    balance,
-                    config.EFFECTIVE_BALANCE_INCREMENT,
-                ),
-                config.MAX_EFFECTIVE_BALANCE,
-            )
+        effective_balance = calculate_effective_balance(
+            balance,
+            config,
         )
 
         state = state.update_validator_with_fn(
