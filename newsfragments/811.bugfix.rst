@@ -1,0 +1,4 @@
+The recently introduced fix that ensures we do not run multiple concurrent
+handshakes to the same peer accidentially introduced a (rarely exposed) memory
+leak. This fix introduces a ``ResourceLock`` and refactores the code to use it
+to also fix the previously introduced memory leak.

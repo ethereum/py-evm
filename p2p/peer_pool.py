@@ -10,7 +10,6 @@ from typing import (
     Dict,
     Iterator,
     List,
-    Set,
     Tuple,
     Type,
 )
@@ -69,6 +68,9 @@ from p2p.peer_backend import (
 )
 from p2p.disconnect import (
     DisconnectReason,
+)
+from p2p.resource_lock import (
+    ResourceLock,
 )
 from p2p.service import (
     BaseService,
@@ -129,8 +131,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         self._connection_attempt_lock = asyncio.BoundedSemaphore(MAX_CONCURRENT_CONNECTION_ATTEMPTS)
 
         # Ensure we can only have a single concurrent handshake in flight per remote
-        self._handshake_lock = asyncio.Lock()
-        self._inflight_handshakes: Set[NodeAPI] = set()
+        self._handshake_locks = ResourceLock()
 
         self.peer_backends = self.setup_peer_backends()
         self.connection_tracker = self.setup_connection_tracker()
@@ -314,68 +315,61 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         Connect to the given remote and return a Peer instance when successful.
         Returns None if the remote is unreachable, times out or is useless.
         """
-        if remote in self.connected_nodes:
-            self.logger.debug2("Skipping %s; already connected to it", remote)
-            raise IneligiblePeer(f"Already connected to {remote}")
+        if self._handshake_locks.is_locked(remote):
+            self.logger.debug2("Skipping %s; already shaking hands", remote)
+            raise IneligiblePeer(f"Already shaking hands with {remote}")
 
-        async with self._handshake_lock:
-            if remote in self._inflight_handshakes:
-                self.logger.debug2("Skipping %s; already shaking hands", remote)
-                raise IneligiblePeer(f"Already shaking hands with {remote}")
-            else:
-                self._inflight_handshakes.add(remote)
+        async with self._handshake_locks.lock(remote):
 
-        try:
-            should_connect = await self.wait(
-                self.connection_tracker.should_connect_to(remote),
-                timeout=1,
-            )
-        except TimeoutError:
-            self.logger.warning("ConnectionTracker.should_connect_to request timed out.")
-            raise
+            if remote in self.connected_nodes:
+                self.logger.debug2("Skipping %s; already connected to it", remote)
+                raise IneligiblePeer(f"Already connected to {remote}")
 
-        if not should_connect:
-            raise IneligiblePeer(f"Peer database rejected peer candidate: {remote}")
+            try:
+                should_connect = await self.wait(
+                    self.connection_tracker.should_connect_to(remote),
+                    timeout=1,
+                )
+            except TimeoutError:
+                self.logger.warning("ConnectionTracker.should_connect_to request timed out.")
+                raise
 
-        try:
-            self.logger.debug2("Connecting to %s...", remote)
-            # We use self.wait() as well as passing our CancelToken to handshake() as a workaround
-            # for https://github.com/ethereum/py-evm/issues/670.
-            peer = await self.wait(handshake(remote, self.get_peer_factory()))
-            return peer
-        except OperationCancelled:
-            # Pass it on to instruct our main loop to stop.
-            raise
-        except BadAckMessage:
-            # This is kept separate from the
-            # `COMMON_PEER_CONNECTION_EXCEPTIONS` to be sure that we aren't
-            # silencing an error in our authentication code.
-            self.logger.error('Got bad auth ack from %r', remote)
-            # dump the full stacktrace in the debug logs
-            self.logger.debug('Got bad auth ack from %r', remote, exc_info=True)
-            raise
-        except MalformedMessage:
-            # This is kept separate from the
-            # `COMMON_PEER_CONNECTION_EXCEPTIONS` to be sure that we aren't
-            # silencing an error in how we decode messages during handshake.
-            self.logger.error('Got malformed response from %r during handshake', remote)
-            # dump the full stacktrace in the debug logs
-            self.logger.debug('Got malformed response from %r', remote, exc_info=True)
-            raise
-        except HandshakeFailure as e:
-            self.logger.debug("Could not complete handshake with %r: %s", remote, repr(e))
-            self.connection_tracker.record_failure(remote, e)
-            raise
-        except COMMON_PEER_CONNECTION_EXCEPTIONS as e:
-            self.logger.debug("Could not complete handshake with %r: %s", remote, repr(e))
-            raise
-        except Exception:
-            self.logger.exception("Unexpected error during auth/p2p handshake with %r", remote)
-            raise
-        finally:
-            async with self._handshake_lock:
-                self.logger.debug("Removing %s from connect_lock", remote)
-                self._inflight_handshakes.remove(remote)
+            if not should_connect:
+                raise IneligiblePeer(f"Peer database rejected peer candidate: {remote}")
+
+            try:
+                self.logger.debug2("Connecting to %s...", remote)
+                peer = await self.wait(handshake(remote, self.get_peer_factory()))
+                return peer
+            except OperationCancelled:
+                # Pass it on to instruct our main loop to stop.
+                raise
+            except BadAckMessage:
+                # This is kept separate from the
+                # `COMMON_PEER_CONNECTION_EXCEPTIONS` to be sure that we aren't
+                # silencing an error in our authentication code.
+                self.logger.error('Got bad auth ack from %r', remote)
+                # dump the full stacktrace in the debug logs
+                self.logger.debug('Got bad auth ack from %r', remote, exc_info=True)
+                raise
+            except MalformedMessage:
+                # This is kept separate from the
+                # `COMMON_PEER_CONNECTION_EXCEPTIONS` to be sure that we aren't
+                # silencing an error in how we decode messages during handshake.
+                self.logger.error('Got malformed response from %r during handshake', remote)
+                # dump the full stacktrace in the debug logs
+                self.logger.debug('Got malformed response from %r', remote, exc_info=True)
+                raise
+            except HandshakeFailure as e:
+                self.logger.debug("Could not complete handshake with %r: %s", remote, repr(e))
+                self.connection_tracker.record_failure(remote, e)
+                raise
+            except COMMON_PEER_CONNECTION_EXCEPTIONS as e:
+                self.logger.debug("Could not complete handshake with %r: %s", remote, repr(e))
+                raise
+            except Exception:
+                self.logger.exception("Unexpected error during auth/p2p handshake with %r", remote)
+                raise
 
     async def connect_to_nodes(self, nodes: Iterator[NodeAPI]) -> None:
         # create an generator for the nodes
