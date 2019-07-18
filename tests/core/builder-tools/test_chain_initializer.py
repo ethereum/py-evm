@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from cytoolz import pipe
+from eth_utils.toolz import pipe
 
 from eth import constants
 from eth.chains.base import Chain
@@ -62,8 +62,8 @@ def test_chain_builder_initialize_chain_with_state_simple(chain_class):
 
     assert header.state_root != constants.BLANK_ROOT_HASH
 
-    account_db = chain.get_vm().state.account_db
-    assert account_db.get_balance(ADDRESS_A) == 1
+    state = chain.get_vm().state
+    assert state.get_balance(ADDRESS_A) == 1
 
 
 def test_chain_builder_initialize_chain_with_state_multiple(chain_class):
@@ -79,9 +79,9 @@ def test_chain_builder_initialize_chain_with_state_multiple(chain_class):
 
     assert header.state_root != constants.BLANK_ROOT_HASH
 
-    account_db = chain.get_vm().state.account_db
-    assert account_db.get_balance(ADDRESS_A) == 1
-    assert account_db.get_balance(ADDRESS_B) == 2
+    state = chain.get_vm().state
+    assert state.get_balance(ADDRESS_A) == 1
+    assert state.get_balance(ADDRESS_B) == 2
 
 
 def test_chain_builder_initialize_chain_with_params(chain_class):
@@ -114,5 +114,5 @@ def test_chain_builder_initialize_chain_with_params_and_state(chain_class):
 
     assert header.state_root != constants.BLANK_ROOT_HASH
 
-    account_db = chain.get_vm().state.account_db
-    assert account_db.get_balance(ADDRESS_A) == 1
+    state = chain.get_vm().state
+    assert state.get_balance(ADDRESS_A) == 1

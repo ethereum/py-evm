@@ -1,7 +1,7 @@
 from eth_keys.datatypes import PrivateKey
 from eth_typing import Address
 
-from eth.utils.transactions import (
+from eth._utils.transactions import (
     create_transaction_signature,
 )
 

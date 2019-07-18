@@ -15,20 +15,19 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from eth.tools.logging import TraceLogger
+from eth.tools.logging import ExtendedDebugLogger
 
-from eth.utils.datatypes import Configurable
+from eth._utils.datatypes import Configurable
 
 if TYPE_CHECKING:
-    from computation import BaseComputation     # noqa: F401
-
+    from computation import BaseComputation  # noqa: F401
 
 T = TypeVar('T')
 
 
 class Opcode(Configurable, ABC):
-    mnemonic = None  # type: str
-    gas_cost = None  # type: int
+    mnemonic: str = None
+    gas_cost: int = None
 
     def __init__(self) -> None:
         if self.mnemonic is None:
@@ -44,9 +43,9 @@ class Opcode(Configurable, ABC):
         raise NotImplementedError("Must be implemented by subclasses")
 
     @property
-    def logger(self) -> TraceLogger:
+    def logger(self) -> ExtendedDebugLogger:
         logger_obj = logging.getLogger('eth.vm.logic.{0}'.format(self.mnemonic))
-        return cast(TraceLogger, logger_obj)
+        return cast(ExtendedDebugLogger, logger_obj)
 
     @classmethod
     def as_opcode(cls: Type[T],
@@ -65,7 +64,7 @@ class Opcode(Configurable, ABC):
                 """
                 computation.consume_gas(
                     gas_cost,
-                    reason=mnemonic,
+                    mnemonic,
                 )
                 return logic_fn(computation)
         else:

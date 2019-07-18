@@ -4,14 +4,12 @@ from abc import (
 )
 import contextlib
 import logging
-from typing import (  # noqa: F401
+from typing import (
     cast,
-    Callable,
     Iterator,
     Tuple,
     Type,
     TYPE_CHECKING,
-    Union,
 )
 from uuid import UUID
 
@@ -19,26 +17,26 @@ from eth_typing import (
     Address,
     Hash32,
 )
+from eth_utils.toolz import nth
 
 from eth.constants import (
     BLANK_ROOT_HASH,
     MAX_PREV_HEADER_DEPTH,
 )
-from eth.db.account import (  # noqa: F401
+from eth.db.account import (
     BaseAccountDB,
-    AccountDB,
 )
 from eth.db.backends.base import (
-    BaseDB,
+    BaseAtomicDB,
 )
 from eth.exceptions import StateRootNotFound
 from eth.tools.logging import (
-    TraceLogger,
+    ExtendedDebugLogger,
 )
 from eth.typing import (
     BaseOrSpoofTransaction,
 )
-from eth.utils.datatypes import (
+from eth._utils.datatypes import (
     Configurable,
 )
 from eth.vm.execution_context import (
@@ -53,7 +51,6 @@ if TYPE_CHECKING:
     from eth.rlp.transactions import (  # noqa: F401
         BaseTransaction,
     )
-
     from eth.vm.transaction_context import (  # noqa: F401
         BaseTransactionContext,
     )
@@ -78,25 +75,29 @@ class BaseState(Configurable, ABC):
     #
     # Set from __init__
     #
-    __slots__ = ['_db', 'execution_context', 'account_db']
+    __slots__ = ['_db', 'execution_context', '_account_db']
 
-    computation_class = None  # type: Type[BaseComputation]
-    transaction_context_class = None  # type: Type[BaseTransactionContext]
-    account_db_class = None  # type: Type[BaseAccountDB]
-    transaction_executor = None  # type: Type[BaseTransactionExecutor]
+    computation_class: Type['BaseComputation'] = None
+    transaction_context_class: Type['BaseTransactionContext'] = None
+    account_db_class: Type['BaseAccountDB'] = None
+    transaction_executor: Type['BaseTransactionExecutor'] = None
 
-    def __init__(self, db: BaseDB, execution_context: ExecutionContext, state_root: bytes) -> None:
+    def __init__(
+            self,
+            db: BaseAtomicDB,
+            execution_context: ExecutionContext,
+            state_root: bytes) -> None:
         self._db = db
         self.execution_context = execution_context
-        self.account_db = self.get_account_db_class()(self._db, state_root)
+        self._account_db = self.get_account_db_class()(db, state_root)
 
     #
     # Logging
     #
     @property
-    def logger(self) -> TraceLogger:
+    def logger(self) -> ExtendedDebugLogger:
         normal_logger = logging.getLogger('eth.vm.state.{0}'.format(self.__class__.__name__))
-        return cast(TraceLogger, normal_logger)
+        return cast(ExtendedDebugLogger, normal_logger)
 
     #
     # Block Object Properties (in opcodes)
@@ -151,42 +152,102 @@ class BaseState(Configurable, ABC):
         return cls.account_db_class
 
     @property
-    def state_root(self) -> bytes:
+    def state_root(self) -> Hash32:
         """
         Return the current ``state_root`` from the underlying database
         """
-        return self.account_db.state_root
+        return self._account_db.state_root
+
+    def make_state_root(self) -> Hash32:
+        return self._account_db.make_state_root()
+
+    def get_storage(self, address: Address, slot: int, from_journal: bool=True) -> int:
+        return self._account_db.get_storage(address, slot, from_journal)
+
+    def set_storage(self, address: Address, slot: int, value: int) -> None:
+        return self._account_db.set_storage(address, slot, value)
+
+    def delete_storage(self, address: Address) -> None:
+        self._account_db.delete_storage(address)
+
+    def delete_account(self, address: Address) -> None:
+        self._account_db.delete_account(address)
+
+    def get_balance(self, address: Address) -> int:
+        return self._account_db.get_balance(address)
+
+    def set_balance(self, address: Address, balance: int) -> None:
+        self._account_db.set_balance(address, balance)
+
+    def delta_balance(self, address: Address, delta: int) -> None:
+        self.set_balance(address, self.get_balance(address) + delta)
+
+    def get_nonce(self, address: Address) -> int:
+        return self._account_db.get_nonce(address)
+
+    def set_nonce(self, address: Address, nonce: int) -> None:
+        self._account_db.set_nonce(address, nonce)
+
+    def increment_nonce(self, address: Address) -> None:
+        self._account_db.increment_nonce(address)
+
+    def get_code(self, address: Address) -> bytes:
+        return self._account_db.get_code(address)
+
+    def set_code(self, address: Address, code: bytes) -> None:
+        self._account_db.set_code(address, code)
+
+    def get_code_hash(self, address: Address) -> Hash32:
+        return self._account_db.get_code_hash(address)
+
+    def delete_code(self, address: Address) -> None:
+        self._account_db.delete_code(address)
+
+    def has_code_or_nonce(self, address: Address) -> bool:
+        return self._account_db.account_has_code_or_nonce(address)
+
+    def account_exists(self, address: Address) -> bool:
+        return self._account_db.account_exists(address)
+
+    def touch_account(self, address: Address) -> None:
+        self._account_db.touch_account(address)
+
+    def account_is_empty(self, address: Address) -> bool:
+        return self._account_db.account_is_empty(address)
 
     #
     # Access self._chaindb
     #
-    def snapshot(self) -> Tuple[bytes, Tuple[UUID, UUID]]:
+    def snapshot(self) -> Tuple[Hash32, UUID]:
         """
         Perform a full snapshot of the current state.
 
         Snapshots are a combination of the :attr:`~state_root` at the time of the
-        snapshot and the id of the changeset from the journaled DB.
+        snapshot and the checkpoint from the journaled DB.
         """
-        return (self.state_root, self.account_db.record())
+        return self.state_root, self._account_db.record()
 
-    def revert(self, snapshot: Tuple[bytes, Tuple[UUID, UUID]]) -> None:
+    def revert(self, snapshot: Tuple[Hash32, UUID]) -> None:
         """
         Revert the VM to the state at the snapshot
         """
-        state_root, changeset_id = snapshot
+        state_root, account_snapshot = snapshot
 
         # first revert the database state root.
-        self.account_db.state_root = state_root
+        self._account_db.state_root = state_root
         # now roll the underlying database back
-        self.account_db.discard(changeset_id)
+        self._account_db.discard(account_snapshot)
 
-    def commit(self, snapshot: Tuple[bytes, Tuple[UUID, UUID]]) -> None:
+    def commit(self, snapshot: Tuple[Hash32, UUID]) -> None:
         """
         Commit the journal to the point where the snapshot was taken.  This
-        will merge in any changesets that were recorded *after* the snapshot changeset.
+        merges in any changes that were recorded since the snapshot.
         """
-        _, checkpoint_id = snapshot
-        self.account_db.commit(checkpoint_id)
+        _, account_snapshot = snapshot
+        self._account_db.commit(account_snapshot)
+
+    def persist(self) -> None:
+        self._account_db.persist()
 
     #
     # Access self.prev_hashes (Read-only)
@@ -201,12 +262,16 @@ class BaseState(Configurable, ABC):
         is_ancestor_depth_out_of_range = (
             ancestor_depth >= MAX_PREV_HEADER_DEPTH or
             ancestor_depth < 0 or
-            ancestor_depth >= len(self.execution_context.prev_hashes)
+            block_number < 0
         )
         if is_ancestor_depth_out_of_range:
             return Hash32(b'')
-        ancestor_hash = self.execution_context.prev_hashes[ancestor_depth]
-        return ancestor_hash
+
+        try:
+            return nth(ancestor_depth, self.execution_context.prev_hashes)
+        except StopIteration:
+            # Ancestor with specified depth not present
+            return Hash32(b'')
 
     #
     # Computation
@@ -239,18 +304,19 @@ class BaseState(Configurable, ABC):
     #
     # Execution
     #
-    def apply_transaction(self, transaction: 'BaseTransaction') -> Tuple[bytes, 'BaseComputation']:
+    def apply_transaction(
+            self,
+            transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
         """
         Apply transaction to the vm state
 
         :param transaction: the transaction to apply
-        :return: the new state root, and the computation
+        :return: the computation
         """
-        if self.state_root != BLANK_ROOT_HASH and not self.account_db.has_root(self.state_root):
+        if self.state_root != BLANK_ROOT_HASH and not self._account_db.has_root(self.state_root):
             raise StateRootNotFound(self.state_root)
-        computation = self.execute_transaction(transaction)
-        state_root = self.account_db.make_state_root()
-        return state_root, computation
+        else:
+            return self.execute_transaction(transaction)
 
     def get_transaction_executor(self) -> 'BaseTransactionExecutor':
         return self.transaction_executor(self)

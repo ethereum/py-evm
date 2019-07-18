@@ -48,14 +48,14 @@ class HomesteadComputation(FrontierComputation):
                     self.state.revert(snapshot)
                 else:
                     if self.logger:
-                        self.logger.trace(
+                        self.logger.debug2(
                             "SETTING CODE: %s -> length: %s | hash: %s",
                             encode_hex(self.msg.storage_address),
                             len(contract_code),
                             encode_hex(keccak(contract_code))
                         )
 
-                    self.state.account_db.set_code(self.msg.storage_address, contract_code)
+                    self.state.set_code(self.msg.storage_address, contract_code)
                     self.state.commit(snapshot)
             else:
                 self.state.commit(snapshot)

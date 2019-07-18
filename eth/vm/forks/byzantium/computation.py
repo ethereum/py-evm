@@ -1,9 +1,9 @@
-from cytoolz import (
+from eth_utils.toolz import (
     merge,
 )
 
 from eth import precompiles
-from eth.utils.address import (
+from eth._utils.address import (
     force_bytes_to_address,
 )
 from eth.vm.forks.frontier.computation import FRONTIER_PRECOMPILES

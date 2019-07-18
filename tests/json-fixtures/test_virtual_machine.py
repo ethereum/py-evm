@@ -23,9 +23,11 @@ from eth.tools.fixtures import (
     filter_fixtures,
     generate_fixture_tests,
     load_fixture,
+    setup_state,
+    verify_state,
+)
+from eth.tools._utils.normalization import (
     normalize_vmtest_fixture,
-    setup_account_db,
-    verify_account_db,
 )
 from eth.tools._utils.hashing import (
     hash_log_entries,
@@ -44,9 +46,7 @@ from eth.vm.transaction_context import (
     BaseTransactionContext,
 )
 
-
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
 
@@ -189,10 +189,10 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
     )
     vm = vm_class(header=header, chaindb=chaindb)
     state = vm.state
-    setup_account_db(fixture['pre'], state.account_db)
-    code = state.account_db.get_code(fixture['exec']['address'])
+    setup_state(fixture['pre'], state)
+    code = state.get_code(fixture['exec']['address'])
     # Update state_root manually
-    vm.block = vm.block.copy(header=vm.block.header.copy(state_root=state.state_root))
+    vm._block = vm.get_block().copy(header=vm.get_header().copy(state_root=state.state_root))
 
     message = Message(
         to=fixture['exec']['address'],
@@ -212,8 +212,8 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         transaction_context,
     )
     # Update state_root manually
-    vm.block = vm.block.copy(
-        header=vm.block.header.copy(state_root=computation.state.state_root),
+    vm._block = vm.get_block().copy(
+        header=vm.get_header().copy(state_root=computation.state.state_root),
     )
 
     if 'post' in fixture:
@@ -263,4 +263,4 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         assert isinstance(computation._error, VMError)
         expected_account_db = fixture['pre']
 
-    verify_account_db(expected_account_db, vm.state.account_db)
+    verify_state(expected_account_db, vm.state)

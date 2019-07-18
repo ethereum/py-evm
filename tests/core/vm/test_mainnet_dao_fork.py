@@ -5,7 +5,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from cytoolz import sliding_window
+from eth_utils.toolz import sliding_window
 
 from eth.chains.mainnet import (
     MainnetHomesteadVM,

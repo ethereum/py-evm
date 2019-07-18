@@ -6,22 +6,13 @@ from abc import (
 )
 import operator
 import random
-from typing import (  # noqa: F401
+from typing import (
     Any,
     Callable,
-    cast,
     Dict,
-    Generator,
     Iterable,
-    Iterator,
-    List,
-    Optional,
     Tuple,
     Type,
-    TYPE_CHECKING,
-    Union,
-    TypeVar,
-    Generic,
 )
 
 import logging
@@ -34,9 +25,16 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
 )
+from eth_utils.toolz import (
+    concatv,
+    sliding_window,
+)
+
+from eth.vm.base import (
+    BaseVM,
+)
 
 from eth.constants import (
-    BLANK_ROOT_HASH,
     EMPTY_UNCLE_HASH,
     MAX_UNCLE_DEPTH,
 )
@@ -74,22 +72,22 @@ from eth.rlp.transactions import (
     BaseUnsignedTransaction,
 )
 
-from eth.typing import (  # noqa: F401
+from eth.typing import (
     AccountState,
     BaseOrSpoofTransaction,
     StaticMethod,
 )
 
-from eth.utils.db import (
+from eth._utils.db import (
     apply_state_dict,
 )
-from eth.utils.datatypes import (
+from eth._utils.datatypes import (
     Configurable,
 )
-from eth.utils.headers import (
+from eth._utils.headers import (
     compute_gas_limit_bounds,
 )
-from eth.utils.rlp import (
+from eth._utils.rlp import (
     validate_imported_block_unchanged,
 )
 
@@ -100,7 +98,7 @@ from eth.validation import (
     validate_vm_configuration,
 )
 from eth.vm.computation import BaseComputation
-from eth.vm.state import BaseState  # noqa: F401
+from eth.vm.state import BaseState
 
 from eth._warnings import catch_and_ignore_import_warning
 with catch_and_ignore_import_warning():
@@ -116,20 +114,15 @@ with catch_and_ignore_import_warning():
         take,
     )
 
-if TYPE_CHECKING:
-    from eth.vm.base import (     # noqa: F401
-        BaseVM,
-    )
-
 
 class BaseChain(Configurable, ABC):
     """
     The base class for all Chain objects
     """
-    chaindb = None  # type: BaseChainDB
-    chaindb_class = None  # type: Type[BaseChainDB]
-    vm_configuration = None  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
-    chain_id = None  # type: int
+    chaindb: BaseChainDB = None
+    chaindb_class: Type[BaseChainDB] = None
+    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = None
+    chain_id: int = None
 
     @abstractmethod
     def __init__(self) -> None:
@@ -142,10 +135,6 @@ class BaseChain(Configurable, ABC):
     @abstractmethod
     def get_chaindb_class(cls) -> Type[BaseChainDB]:
         raise NotImplementedError("Chain classes must implement this method")
-
-    @classmethod
-    def get_vm_configuration(cls) -> Tuple[Tuple[int, Type['BaseVM']], ...]:
-        return cls.vm_configuration
 
     #
     # Chain API
@@ -272,6 +261,10 @@ class BaseChain(Configurable, ABC):
     def get_canonical_transaction(self, transaction_hash: Hash32) -> BaseTransaction:
         raise NotImplementedError("Chain classes must implement this method")
 
+    @abstractmethod
+    def get_transaction_receipt(self, transaction_hash: Hash32) -> Receipt:
+        raise NotImplementedError("Chain classes must implement this method")
+
     #
     # Execution API
     #
@@ -319,13 +312,46 @@ class BaseChain(Configurable, ABC):
     def validate_uncles(self, block: BaseBlock) -> None:
         raise NotImplementedError("Chain classes must implement this method")
 
-    @abstractmethod
+    @classmethod
     def validate_chain(
-            self,
-            parent: BlockHeader,
-            chain: Tuple[BlockHeader, ...],
+            cls,
+            root: BlockHeader,
+            descendants: Tuple[BlockHeader, ...],
             seal_check_random_sample_rate: int = 1) -> None:
-        raise NotImplementedError("Chain classes must implement this method")
+        """
+        Validate that all of the descendents are valid, given that the root header is valid.
+
+        By default, check the seal validity (Proof-of-Work on Ethereum 1.x mainnet) of all headers.
+        This can be expensive. Instead, check a random sample of seals using
+        seal_check_random_sample_rate.
+        """
+
+        all_indices = range(len(descendants))
+        if seal_check_random_sample_rate == 1:
+            indices_to_check_seal = set(all_indices)
+        else:
+            sample_size = len(all_indices) // seal_check_random_sample_rate
+            indices_to_check_seal = set(random.sample(all_indices, sample_size))
+
+        header_pairs = sliding_window(2, concatv([root], descendants))
+
+        for index, (parent, child) in enumerate(header_pairs):
+            if child.parent_hash != parent.hash:
+                raise ValidationError(
+                    "Invalid header chain; {} has parent {}, but expected {}".format(
+                        child, child.parent_hash, parent.hash))
+            should_check_seal = index in indices_to_check_seal
+            vm_class = cls.get_vm_class_for_block_number(child.block_number)
+            try:
+                vm_class.validate_header(child, parent, check_seal=should_check_seal)
+            except ValidationError as exc:
+                raise ValidationError(
+                    "%s is not a valid child of %s: %s" % (
+                        child,
+                        parent,
+                        exc,
+                    )
+                ) from exc
 
 
 class Chain(BaseChain):
@@ -336,9 +362,9 @@ class Chain(BaseChain):
     current block number.
     """
     logger = logging.getLogger("eth.chain.chain.Chain")
-    gas_estimator = None  # type: StaticMethod[Callable[[BaseState, BaseOrSpoofTransaction], int]]
+    gas_estimator: StaticMethod[Callable[[BaseState, BaseOrSpoofTransaction], int]] = None
 
-    chaindb_class = ChainDB  # type: Type[BaseChainDB]
+    chaindb_class: Type[BaseChainDB] = ChainDB
 
     def __init__(self, base_db: BaseAtomicDB) -> None:
         if not self.vm_configuration:
@@ -375,29 +401,27 @@ class Chain(BaseChain):
         """
         genesis_vm_class = cls.get_vm_class_for_block_number(BlockNumber(0))
 
-        account_db = genesis_vm_class.get_state_class().get_account_db_class()(
-            base_db,
-            BLANK_ROOT_HASH,
-        )
+        pre_genesis_header = BlockHeader(difficulty=0, block_number=-1, gas_limit=0)
+        state = genesis_vm_class.build_state(base_db, pre_genesis_header)
 
         if genesis_state is None:
             genesis_state = {}
 
         # mutation
-        apply_state_dict(account_db, genesis_state)
-        account_db.persist()
+        apply_state_dict(state, genesis_state)
+        state.persist()
 
         if 'state_root' not in genesis_params:
             # If the genesis state_root was not specified, use the value
             # computed from the initialized state database.
-            genesis_params = assoc(genesis_params, 'state_root', account_db.state_root)
-        elif genesis_params['state_root'] != account_db.state_root:
+            genesis_params = assoc(genesis_params, 'state_root', state.state_root)
+        elif genesis_params['state_root'] != state.state_root:
             # If the genesis state_root was specified, validate that it matches
             # the computed state from the initialized state database.
             raise ValidationError(
                 "The provided genesis state root does not match the computed "
                 "genesis state root.  Got {0}.  Expected {1}".format(
-                    account_db.state_root,
+                    state.state_root,
                     genesis_params['state_root'],
                 )
             )
@@ -506,7 +530,7 @@ class Chain(BaseChain):
         """
         Returns the current TIP block.
         """
-        return self.get_vm().block
+        return self.get_vm().get_block()
 
     def get_block_by_hash(self, block_hash: Hash32) -> BaseBlock:
         """
@@ -521,7 +545,7 @@ class Chain(BaseChain):
         Returns the requested block as specified by the block header.
         """
         vm = self.get_vm(block_header)
-        return vm.block
+        return vm.get_block()
 
     def get_canonical_block_by_number(self, block_number: BlockNumber) -> BaseBlock:
         """
@@ -560,7 +584,7 @@ class Chain(BaseChain):
         vm = self.get_vm(base_header)
 
         new_header, receipts, computations = vm.apply_all_transactions(transactions, base_header)
-        new_block = vm.set_block_transactions(vm.block, new_header, transactions, receipts)
+        new_block = vm.set_block_transactions(vm.get_block(), new_header, transactions, receipts)
 
         return new_block, receipts, computations
 
@@ -620,6 +644,17 @@ class Chain(BaseChain):
             data=data,
         )
 
+    def get_transaction_receipt(self, transaction_hash: Hash32) -> Receipt:
+        transaction_block_number, transaction_index = self.chaindb.get_transaction_index(
+            transaction_hash,
+        )
+        receipt = self.chaindb.get_receipt_by_index(
+            block_number=transaction_block_number,
+            receipt_index=transaction_index,
+        )
+
+        return receipt
+
     #
     # Execution API
     #
@@ -659,7 +694,7 @@ class Chain(BaseChain):
 
         - the imported block
         - a tuple of blocks which are now part of the canonical chain.
-        - a tuple of blocks which are were canonical and now are no longer canonical.
+        - a tuple of blocks which were canonical and now are no longer canonical.
         """
 
         try:
@@ -726,8 +761,8 @@ class Chain(BaseChain):
         if block.is_genesis:
             raise ValidationError("Cannot validate genesis block this way")
         VM_class = self.get_vm_class_for_block_number(BlockNumber(block.number))
-        parent_block = self.get_block_by_hash(block.header.parent_hash)
-        VM_class.validate_header(block.header, parent_block.header, check_seal=True)
+        parent_header = self.get_block_header_by_hash(block.header.parent_hash)
+        VM_class.validate_header(block.header, parent_header, check_seal=True)
         self.validate_uncles(block)
         self.validate_gaslimit(block.header)
 
@@ -824,31 +859,6 @@ class Chain(BaseChain):
             uncle_vm_class = self.get_vm_class_for_block_number(uncle.block_number)
             uncle_vm_class.validate_uncle(block, uncle, uncle_parent)
 
-    def validate_chain(
-            self,
-            parent: BlockHeader,
-            chain: Tuple[BlockHeader, ...],
-            seal_check_random_sample_rate: int = 1) -> None:
-
-        all_indices = list(range(len(chain)))
-        if seal_check_random_sample_rate == 1:
-            headers_to_check_seal = set(all_indices)
-        else:
-            sample_size = len(all_indices) // seal_check_random_sample_rate
-            headers_to_check_seal = set(random.sample(all_indices, sample_size))
-
-        for i, header in enumerate(chain):
-            if header.parent_hash != parent.hash:
-                raise ValidationError(
-                    "Invalid header chain; {} has parent {}, but expected {}".format(
-                        header, header.parent_hash, parent.hash))
-            vm_class = self.get_vm_class_for_block_number(header.block_number)
-            if i in headers_to_check_seal:
-                vm_class.validate_header(header, parent, check_seal=True)
-            else:
-                vm_class.validate_header(header, parent, check_seal=False)
-            parent = header
-
 
 @to_set
 def _extract_uncle_hashes(blocks: Iterable[BaseBlock]) -> Iterable[Hash32]:
@@ -858,7 +868,7 @@ def _extract_uncle_hashes(blocks: Iterable[BaseBlock]) -> Iterable[Hash32]:
 
 
 class MiningChain(Chain):
-    header = None  # type: BlockHeader
+    header: BlockHeader = None
 
     def __init__(self, base_db: BaseAtomicDB, header: BlockHeader=None) -> None:
         super().__init__(base_db)
@@ -871,15 +881,17 @@ class MiningChain(Chain):
         Applies the transaction to the current tip block.
 
         WARNING: Receipt and Transaction trie generation is computationally
-        heavy and incurs significant perferomance overhead.
+        heavy and incurs significant performance overhead.
         """
         vm = self.get_vm(self.header)
-        base_block = vm.block
+        base_block = vm.get_block()
 
-        new_header, receipt, computation = vm.apply_transaction(base_block.header, transaction)
+        receipt, computation = vm.apply_transaction(base_block.header, transaction)
+        header_with_receipt = vm.add_receipt_to_header(base_block.header, receipt)
 
         # since we are building the block locally, we have to persist all the incremental state
-        vm.state.account_db.persist()
+        vm.state.persist()
+        new_header = header_with_receipt.copy(state_root=vm.state.state_root)
 
         transactions = base_block.transactions + (transaction, )
         receipts = base_block.get_receipts(self.chaindb) + (receipt, )
@@ -918,39 +930,3 @@ class MiningChain(Chain):
             at_header = self.header
 
         return super().get_vm(at_header)
-
-
-# This class is a work in progress; its main purpose is to define the API of an asyncio-compatible
-# Chain implementation.
-class AsyncChain(Chain):
-    # TODO: this really belongs in the `trinity` module.
-
-    async def coro_import_block(self,
-                                block: BlockHeader,
-                                perform_validation: bool=True,
-                                ) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
-        raise NotImplementedError()
-
-    async def coro_validate_chain(
-            self,
-            parent: BlockHeader,
-            chain: Tuple[BlockHeader, ...],
-            seal_check_random_sample_rate: int = 1) -> None:
-        raise NotImplementedError()
-
-    async def coro_validate_receipt(self,
-                                    receipt: Receipt,
-                                    at_header: BlockHeader) -> None:
-        raise NotImplementedError()
-
-    async def coro_get_block_by_hash(self,
-                                     block_hash: Hash32) -> BaseBlock:
-        raise NotImplementedError()
-
-    async def coro_get_block_by_header(self,
-                                       header: BlockHeader) -> BaseBlock:
-        raise NotImplementedError()
-
-    async def coro_get_canonical_block_by_number(self,
-                                                 block_number: BlockNumber) -> BaseBlock:
-        raise NotImplementedError()

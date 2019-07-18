@@ -3,6 +3,9 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from eth_typing import (
+    Address,
+)
 from eth_utils import (
     decode_hex,
 )
@@ -14,7 +17,7 @@ from eth.constants import (
     BOMB_EXPONENTIAL_FREE_PERIODS,
 )
 from eth.rlp.headers import BlockHeader
-from eth.utils.db import (
+from eth._utils.db import (
     get_parent_header,
 )
 from eth.validation import (
@@ -71,7 +74,7 @@ def create_homestead_header_from_parent(parent_header: BlockHeader,
 def configure_homestead_header(vm: "HomesteadVM", **header_params: Any) -> BlockHeader:
     validate_header_params_for_configuration(header_params)
 
-    with vm.block.header.build_changeset(**header_params) as changeset:
+    with vm.get_header().build_changeset(**header_params) as changeset:
         if 'timestamp' in header_params and changeset.block_number > 0:
             parent_header = get_parent_header(changeset.build_rlp(), vm.chaindb)
             changeset.difficulty = compute_homestead_difficulty(
@@ -87,14 +90,14 @@ def configure_homestead_header(vm: "HomesteadVM", **header_params: Any) -> Block
         if vm.support_dao_fork and changeset.block_number == vm.get_dao_fork_block_number():
             state = vm.state
 
-            for account in dao_drain_list:
-                account = decode_hex(account)
-                balance = state.account_db.get_balance(account)
-                state.account_db.delta_balance(dao_refund_contract, balance)
-                state.account_db.set_balance(account, 0)
+            for hex_account in dao_drain_list:
+                address = Address(decode_hex(hex_account))
+                balance = state.get_balance(address)
+                state.delta_balance(dao_refund_contract, balance)
+                state.set_balance(address, 0)
 
             # Persist the changes to the database
-            state.account_db.persist()
+            state.persist()
 
             # Update state_root manually
             changeset.state_root = state.state_root
@@ -103,7 +106,7 @@ def configure_homestead_header(vm: "HomesteadVM", **header_params: Any) -> Block
     return header
 
 
-dao_refund_contract = decode_hex('0xbf4ed7b27f1d666546e30d74d50d173d20bca754')
+dao_refund_contract = Address(decode_hex('0xbf4ed7b27f1d666546e30d74d50d173d20bca754'))
 dao_drain_list = [
     "0xd4fe7bc31cedb7bfb8a345f31e668033056b2728",
     "0xb3fb0e5aba0e20e5c49d252dfd30e102b171a425",

@@ -1,9 +1,10 @@
-from typing import Tuple, Type  # noqa: F401
+from typing import Tuple, Type
 from eth_utils import decode_hex
 
 from .constants import (
     BYZANTIUM_ROPSTEN_BLOCK,
     CONSTANTINOPLE_ROPSTEN_BLOCK,
+    PETERSBURG_ROPSTEN_BLOCK,
     ROPSTEN_CHAIN_ID,
     SPURIOUS_DRAGON_ROPSTEN_BLOCK,
     TANGERINE_WHISTLE_ROPSTEN_BLOCK,
@@ -12,10 +13,11 @@ from eth import constants
 
 from eth.chains.base import Chain
 from eth.rlp.headers import BlockHeader
-from eth.vm.base import BaseVM  # noqa: F401
+from eth.vm.base import BaseVM
 from eth.vm.forks import (
     ByzantiumVM,
     ConstantinopleVM,
+    PetersburgVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
 )
@@ -27,12 +29,13 @@ ROPSTEN_VM_CONFIGURATION = (
     (SPURIOUS_DRAGON_ROPSTEN_BLOCK, SpuriousDragonVM),
     (BYZANTIUM_ROPSTEN_BLOCK, ByzantiumVM),
     (CONSTANTINOPLE_ROPSTEN_BLOCK, ConstantinopleVM),
+    (PETERSBURG_ROPSTEN_BLOCK, PetersburgVM),
 )
 
 
 class BaseRopstenChain:
-    vm_configuration = ROPSTEN_VM_CONFIGURATION  # type: Tuple[Tuple[int, Type[BaseVM]], ...]  # noqa: E501
-    chain_id = ROPSTEN_CHAIN_ID  # type: int
+    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = ROPSTEN_VM_CONFIGURATION
+    chain_id: int = ROPSTEN_CHAIN_ID
 
 
 class RopstenChain(BaseRopstenChain, Chain):

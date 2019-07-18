@@ -1,5 +1,5 @@
 from eth import constants
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     ceil32,
 )
 
@@ -14,5 +14,5 @@ def identity(computation: BaseComputation) -> BaseComputation:
 
     computation.consume_gas(gas_fee, reason="Identity Precompile")
 
-    computation.output = computation.msg.data
+    computation.output = computation.msg.data_as_bytes
     return computation

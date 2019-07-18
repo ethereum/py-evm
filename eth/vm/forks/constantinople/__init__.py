@@ -1,13 +1,13 @@
-from typing import (  # noqa: F401
+from typing import (
     Type,
 )
 
-from eth.rlp.blocks import BaseBlock  # noqa: F401
+from eth.rlp.blocks import BaseBlock
 from eth.vm.forks.byzantium import (
     ByzantiumVM,
     get_uncle_reward,
 )
-from eth.vm.state import BaseState  # noqa: F401
+from eth.vm.state import BaseState
 
 from .blocks import ConstantinopleBlock
 from .constants import EIP1234_BLOCK_REWARD
@@ -24,8 +24,8 @@ class ConstantinopleVM(ByzantiumVM):
     fork = 'constantinople'
 
     # classes
-    block_class = ConstantinopleBlock  # type: Type[BaseBlock]
-    _state_class = ConstantinopleState  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = ConstantinopleBlock
+    _state_class: Type[BaseState] = ConstantinopleState
 
     # Methods
     create_header_from_parent = staticmethod(create_constantinople_header_from_parent)  # type: ignore  # noqa: E501

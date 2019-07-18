@@ -9,14 +9,14 @@ Table of contents
    :caption: General
 
    introduction
-   quickstart
-   release_notes/index
+   guides/quickstart
+   release_notes
 
 .. toctree::
    :maxdepth: 1
    :caption: Fundamentals
 
-   cookbooks/index
+   cookbook/index
    guides/index
    api/index
 

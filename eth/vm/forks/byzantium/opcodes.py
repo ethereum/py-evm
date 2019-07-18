@@ -1,7 +1,7 @@
 import copy
 import functools
 
-from cytoolz import merge
+from eth_utils.toolz import merge
 
 from typing import (
     Any,

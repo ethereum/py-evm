@@ -24,18 +24,18 @@ from eth.constants import (
 from eth.rlp.blocks import (
     BaseBlock,
 )
-from utils.chain_plumbing import (
+from _utils.chain_plumbing import (
     FUNDED_ADDRESS,
     FUNDED_ADDRESS_PRIVATE_KEY,
     get_all_chains,
 )
-from utils.compile import (
+from _utils.compile import (
     get_compiled_contract
 )
-from utils.reporting import (
+from _utils.reporting import (
     DefaultStat,
 )
-from utils.tx import (
+from _utils.tx import (
     new_transaction,
 )
 from .base_benchmark import (
@@ -56,7 +56,7 @@ W3_TX_DEFAULTS = {'gas': 0, 'gasPrice': 0}
 
 class BaseDOSContractBenchmark(BaseBenchmark):
 
-    def __init__(self, num_blocks: int = 20, num_tx: int = 10) -> None:
+    def __init__(self, num_blocks: int = 3, num_tx: int = 3) -> None:
         super().__init__()
 
         self.num_blocks = num_blocks
@@ -122,7 +122,7 @@ class BaseDOSContractBenchmark(BaseBenchmark):
                    block_number: int,
                    num_tx: int) -> BaseBlock:
 
-        for i in range(1, num_tx + 1):
+        for _ in range(1, num_tx + 1):
             self._apply_transaction(chain)
 
         return chain.mine_block()

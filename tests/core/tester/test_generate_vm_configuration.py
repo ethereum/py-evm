@@ -9,12 +9,14 @@ from eth.chains.tester import (
 
 
 class Forks(enum.Enum):
-    Frontier = 0
-    Homestead = 1
-    TangerineWhistle = 2
-    SpuriousDragon = 3
-    Byzantium = 4
-    Custom = 5
+    Custom = 'CustomFrontier'
+    Frontier = 'Frontier'
+    Homestead = 'Homestead'
+    TangerineWhistle = 'TangerineWhistle'
+    SpuriousDragon = 'SpuriousDragon'
+    Byzantium = 'Byzantium'
+    Constantinople = 'Constantinople'
+    Petersburg = 'Petersburg'
 
 
 class CustomFrontierVM(FrontierVM):
@@ -27,7 +29,7 @@ class CustomFrontierVM(FrontierVM):
         (
             tuple(),
             {},
-            ((0, Forks.Byzantium),),
+            ((0, Forks.Petersburg),),
         ),
         (
             ((0, 'tangerine-whistle'), (1, 'spurious-dragon')),
@@ -108,6 +110,23 @@ class CustomFrontierVM(FrontierVM):
                 (3, Forks.Byzantium),
             ),
         ),
+        (
+            (
+                (0, 'frontier'),
+                (1, 'homestead'),
+                (2, 'tangerine-whistle'),
+                (3, 'byzantium'),
+                (5, 'petersburg')
+            ),
+            {},
+            (
+                (0, Forks.Frontier),
+                (1, Forks.Homestead),
+                (2, Forks.TangerineWhistle),
+                (3, Forks.Byzantium),
+                (5, Forks.Petersburg),
+            ),
+        ),
     ),
 )
 def test_generate_vm_configuration(args, kwargs, expected):
@@ -120,10 +139,9 @@ def test_generate_vm_configuration(args, kwargs, expected):
 
         assert left_block == right_block
 
-        if right_vm == Forks.Frontier:
-            assert 'Frontier' in left_vm.__name__
-        elif right_vm == Forks.Homestead:
-            assert 'Homestead' in left_vm.__name__
+        assert right_vm.value in left_vm.__name__
+
+        if right_vm == Forks.Homestead:
             dao_start_block = kwargs.get('dao_start_block')
             if dao_start_block is False:
                 assert left_vm.support_dao_fork is False
@@ -133,13 +151,3 @@ def test_generate_vm_configuration(args, kwargs, expected):
             else:
                 assert left_vm.support_dao_fork is True
                 assert left_vm.get_dao_fork_block_number() == dao_start_block
-        elif right_vm == Forks.TangerineWhistle:
-            assert 'TangerineWhistle' in left_vm.__name__
-        elif right_vm == Forks.SpuriousDragon:
-            assert 'SpuriousDragon' in left_vm.__name__
-        elif right_vm == Forks.Byzantium:
-            assert 'Byzantium' in left_vm.__name__
-        elif right_vm == Forks.Custom:
-            assert 'CustomFrontier' in left_vm.__name__
-        else:
-            assert False, "Invariant"

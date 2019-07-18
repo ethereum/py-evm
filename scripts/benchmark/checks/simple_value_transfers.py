@@ -18,22 +18,22 @@ from eth.rlp.blocks import (
 from .base_benchmark import (
     BaseBenchmark,
 )
-from utils.chain_plumbing import (
+from _utils.chain_plumbing import (
     FUNDED_ADDRESS,
     FUNDED_ADDRESS_PRIVATE_KEY,
     get_all_chains,
     SECOND_ADDRESS,
 )
-from utils.address import (
+from _utils.address import (
     generate_random_address,
 )
-from utils.reporting import (
+from _utils.reporting import (
     DefaultStat,
 )
-from utils.shellart import (
+from _utils.shellart import (
     bold_yellow,
 )
-from utils.tx import (
+from _utils.tx import (
     new_transaction,
 )
 
@@ -107,7 +107,7 @@ class SimpleValueTransferBenchmark(BaseBenchmark):
         return total_gas_used, total_num_tx
 
     def mine_block(self, chain: MiningChain, block_number: int, num_tx: int) -> BaseBlock:
-        for i in range(1, num_tx + 1):
+        for _ in range(1, num_tx + 1):
             self.apply_transaction(chain)
 
         return chain.mine_block()

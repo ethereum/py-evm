@@ -7,13 +7,13 @@ from eth.chains.base import (
 from .base_benchmark import (
     BaseBenchmark
 )
-from utils.chain_plumbing import (
+from _utils.chain_plumbing import (
     get_all_chains
 )
-from utils.format import (
+from _utils.format import (
     format_block
 )
-from utils.reporting import (
+from _utils.reporting import (
     DefaultStat
 )
 
@@ -47,7 +47,7 @@ class ImportEmptyBlocksBenchmark(BaseBenchmark):
 
         total_gas_used = 0
         for _ in range(1, number_blocks + 1):
-            block, _, _ = chain.import_block(chain.get_vm().block, False)
+            block, _, _ = chain.import_block(chain.get_vm().get_block(), False)
 
             total_gas_used = total_gas_used + block.header.gas_used
             logging.debug(format_block(block))

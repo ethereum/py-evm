@@ -1,22 +1,26 @@
 import functools
 import time
 from typing import (
+    cast,
     Any,
     Callable,
     Dict,
     Iterable,
     Tuple,
     Type,
+    Union,
 )
 
-from cytoolz import (
+from eth_utils.toolz import (
     curry,
     merge,
     pipe,
 )
 
 from eth_typing import (
+    Address,
     BlockNumber,
+    Hash32,
 )
 
 from eth_utils import (
@@ -54,6 +58,8 @@ from eth.tools._utils.normalization import (
 from eth.typing import (
     AccountState,
     GeneralState,
+    VMFork,
+    VMConfiguration,
 )
 from eth.validation import (
     validate_vm_configuration,
@@ -68,10 +74,9 @@ from eth.vm.forks import (
     SpuriousDragonVM,
     ByzantiumVM,
     ConstantinopleVM,
+    PetersburgVM,
+    IstanbulVM,
 )
-
-
-VMConfiguration = Iterable[Tuple[int, Type[BaseVM]]]
 
 
 def build(obj: Any, *applicators: Callable[..., Any]) -> Any:
@@ -136,6 +141,9 @@ def fork_at(vm_class: Type[BaseVM], at_block: int, chain_class: Type[BaseChain])
     * :func:`~eth.tools.builder.chain.spurious_dragon_at`
     * :func:`~eth.tools.builder.chain.byzantium_at`
     * :func:`~eth.tools.builder.chain.constantinople_at`
+    * :func:`~eth.tools.builder.chain.petersburg_at`
+    * :func:`~eth.tools.builder.chain.istanbul_at`
+    * :func:`~eth.tools.builder.chain.latest_mainnet_at` - whatever the latest mainnet VM is
     """
     if chain_class.vm_configuration is not None:
         base_configuration = chain_class.vm_configuration
@@ -159,7 +167,7 @@ def _is_homestead(vm_class: Type[BaseVM]) -> bool:
 
 
 @to_tuple
-def _set_vm_dao_support_false(vm_configuration: VMConfiguration) -> VMConfiguration:
+def _set_vm_dao_support_false(vm_configuration: VMConfiguration) -> Iterable[VMFork]:
     for fork_block, vm_class in vm_configuration:
         if _is_homestead(vm_class):
             yield fork_block, vm_class.configure(support_dao_fork=False)
@@ -187,7 +195,7 @@ def disable_dao_fork(chain_class: Type[BaseChain]) -> Type[BaseChain]:
 
 @to_tuple
 def _set_vm_dao_fork_block_number(dao_fork_block_number: BlockNumber,
-                                  vm_configuration: VMConfiguration) -> VMConfiguration:
+                                  vm_configuration: VMConfiguration) -> Iterable[VMFork]:
     for fork_block, vm_class in vm_configuration:
         if _is_homestead(vm_class):
             yield fork_block, vm_class.configure(
@@ -226,27 +234,34 @@ tangerine_whistle_at = fork_at(TangerineWhistleVM)
 spurious_dragon_at = fork_at(SpuriousDragonVM)
 byzantium_at = fork_at(ByzantiumVM)
 constantinople_at = fork_at(ConstantinopleVM)
+petersburg_at = fork_at(PetersburgVM)
+istanbul_at = fork_at(IstanbulVM)
 
+latest_mainnet_at = petersburg_at
 
-GENESIS_DEFAULTS = (
-    ('difficulty', 1),
-    ('extra_data', constants.GENESIS_EXTRA_DATA),
-    ('gas_limit', constants.GENESIS_GAS_LIMIT),
-    ('gas_used', 0),
-    ('bloom', 0),
-    ('mix_hash', constants.ZERO_HASH32),
-    ('nonce', constants.GENESIS_NONCE),
-    ('block_number', constants.GENESIS_BLOCK_NUMBER),
-    ('parent_hash', constants.GENESIS_PARENT_HASH),
-    ('receipt_root', constants.BLANK_ROOT_HASH),
-    ('uncles_hash', constants.EMPTY_UNCLE_HASH),
-    ('state_root', constants.BLANK_ROOT_HASH),
-    ('transaction_root', constants.BLANK_ROOT_HASH),
+GENESIS_DEFAULTS = cast(
+    Tuple[Tuple[str, Union[int, None, bytes, Address, Hash32]], ...],
+    (
+        ('difficulty', 1),
+        ('extra_data', constants.GENESIS_EXTRA_DATA),
+        ('gas_limit', constants.GENESIS_GAS_LIMIT),
+        ('gas_used', 0),
+        ('bloom', 0),
+        ('mix_hash', constants.ZERO_HASH32),
+        ('nonce', constants.GENESIS_NONCE),
+        ('block_number', constants.GENESIS_BLOCK_NUMBER),
+        ('parent_hash', constants.GENESIS_PARENT_HASH),
+        ('receipt_root', constants.BLANK_ROOT_HASH),
+        ('uncles_hash', constants.EMPTY_UNCLE_HASH),
+        ('state_root', constants.BLANK_ROOT_HASH),
+        ('transaction_root', constants.BLANK_ROOT_HASH),
+    )
 )
 
 
 @to_dict
-def _get_default_genesis_params(genesis_state: AccountState) -> Iterable[Tuple[str, object]]:
+def _get_default_genesis_params(genesis_state: AccountState,
+                                ) -> Iterable[Tuple[str, Union[int, None, bytes, Address, Hash32]]]:
     for key, value in GENESIS_DEFAULTS:
         if key == 'state_root' and genesis_state:
             # leave out the `state_root` if a genesis state was specified
@@ -257,7 +272,7 @@ def _get_default_genesis_params(genesis_state: AccountState) -> Iterable[Tuple[s
 
 
 @to_tuple
-def _mix_in_pow_mining(vm_configuration: VMConfiguration) -> VMConfiguration:
+def _mix_in_pow_mining(vm_configuration: VMConfiguration) -> Iterable[VMFork]:
     for fork_block, vm_class in vm_configuration:
         vm_class_with_pow_mining = type(vm_class.__name__, (POWMiningMixin, vm_class), {})
         yield fork_block, vm_class_with_pow_mining
@@ -289,13 +304,17 @@ class NoVMSealValidationMixin:
 
 
 @to_tuple
-def _mix_in_disable_seal_validation(vm_configuration: VMConfiguration) -> VMConfiguration:
+def _mix_in_disable_seal_validation(vm_configuration: VMConfiguration) -> Iterable[VMFork]:
     for fork_block, vm_class in vm_configuration:
-        vm_class_without_seal_validation = type(
-            vm_class.__name__,
-            (NoVMSealValidationMixin, vm_class),
-            {},
-        )
+        if issubclass(vm_class, NoVMSealValidationMixin):
+            # Seal validation already disabled, hence nothing to change
+            vm_class_without_seal_validation = vm_class
+        else:
+            vm_class_without_seal_validation = type(
+                vm_class.__name__,
+                (NoVMSealValidationMixin, vm_class),
+                {},
+            )
         yield fork_block, vm_class_without_seal_validation
 
 
@@ -313,11 +332,15 @@ def disable_pow_check(chain_class: Type[BaseChain]) -> Type[BaseChain]:
     if not chain_class.vm_configuration:
         raise ValidationError("Chain class has no vm_configuration")
 
-    chain_class_without_seal_validation = type(
-        chain_class.__name__,
-        (NoChainSealValidationMixin, chain_class),
-        {},
-    )
+    if issubclass(chain_class, NoChainSealValidationMixin):
+        # Seal validation already disabled, hence nothing to change
+        chain_class_without_seal_validation = chain_class
+    else:
+        chain_class_without_seal_validation = type(
+            chain_class.__name__,
+            (chain_class, NoChainSealValidationMixin),
+            {},
+        )
     return chain_class_without_seal_validation.configure(  # type: ignore
         vm_configuration=_mix_in_disable_seal_validation(
             chain_class_without_seal_validation.vm_configuration  # type: ignore
@@ -350,7 +373,7 @@ def genesis(chain_class: BaseChain,
     and chain state.
     """
     if state is None:
-        genesis_state = {}  # type: AccountState
+        genesis_state: AccountState = {}
     else:
         genesis_state = _fill_and_normalize_state(state)
 
@@ -362,7 +385,7 @@ def genesis(chain_class: BaseChain,
         genesis_params = merge(genesis_params_defaults, params)
 
     if db is None:
-        base_db = AtomicDB()  # type: BaseAtomicDB
+        base_db: BaseAtomicDB = AtomicDB()
     else:
         base_db = db
 

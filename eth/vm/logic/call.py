@@ -23,7 +23,7 @@ from eth.vm.opcode import (
 
 from eth.vm.computation import BaseComputation
 
-from eth.utils.address import (
+from eth._utils.address import (
     force_bytes_to_address,
 )
 
@@ -86,7 +86,7 @@ class BaseCall(Opcode, ABC):
         computation.consume_gas(child_msg_gas_fee, reason=self.mnemonic)
 
         # Pre-call checks
-        sender_balance = computation.state.account_db.get_balance(
+        sender_balance = computation.state.get_balance(
             computation.msg.storage_address
         )
 
@@ -105,18 +105,18 @@ class BaseCall(Opcode, ABC):
             else:
                 raise Exception("Invariant: Unreachable code path")
 
-            self.logger.trace(
+            self.logger.debug2(
                 "%s failure: %s",
                 self.mnemonic,
                 err_message,
             )
             computation.return_gas(child_msg_gas)
-            computation.stack_push(0)
+            computation.stack_push_int(0)
         else:
             if code_address:
-                code = computation.state.account_db.get_code(code_address)
+                code = computation.state.get_code(code_address)
             else:
-                code = computation.state.account_db.get_code(to)
+                code = computation.state.get_code(to)
 
             child_msg_kwargs = {
                 'gas': child_msg_gas,
@@ -131,14 +131,15 @@ class BaseCall(Opcode, ABC):
             if sender is not None:
                 child_msg_kwargs['sender'] = sender
 
-            child_msg = computation.prepare_child_message(**child_msg_kwargs)
+            # TODO: after upgrade to py3.6, use a TypedDict and try again
+            child_msg = computation.prepare_child_message(**child_msg_kwargs)  # type: ignore
 
             child_computation = computation.apply_child_computation(child_msg)
 
             if child_computation.is_error:
-                computation.stack_push(0)
+                computation.stack_push_int(0)
             else:
-                computation.stack_push(1)
+                computation.stack_push_int(1)
 
             if not child_computation.should_erase_return_data:
                 actual_output_size = min(memory_output_size, len(child_computation.output))
@@ -158,15 +159,15 @@ class Call(BaseCall):
                               gas: int,
                               to: Address,
                               value: int) -> int:
-        account_exists = computation.state.account_db.account_exists(to)
+        account_exists = computation.state.account_exists(to)
 
         transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
         create_gas_fee = constants.GAS_NEWACCOUNT if not account_exists else 0
         return transfer_gas_fee + create_gas_fee
 
     def get_call_params(self, computation: BaseComputation) -> CallParams:
-        gas = computation.stack_pop(type_hint=constants.UINT256)
-        to = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+        gas = computation.stack_pop1_int()
+        to = force_bytes_to_address(computation.stack_pop1_bytes())
 
         (
             value,
@@ -174,7 +175,7 @@ class Call(BaseCall):
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
-        ) = computation.stack_pop(num_items=5, type_hint=constants.UINT256)
+        ) = computation.stack_pop_ints(5)
 
         return (
             gas,
@@ -200,8 +201,8 @@ class CallCode(BaseCall):
         return constants.GAS_CALLVALUE if value else 0
 
     def get_call_params(self, computation: BaseComputation) -> CallParams:
-        gas = computation.stack_pop(type_hint=constants.UINT256)
-        code_address = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+        gas = computation.stack_pop1_int()
+        code_address = force_bytes_to_address(computation.stack_pop1_bytes())
 
         (
             value,
@@ -209,7 +210,7 @@ class CallCode(BaseCall):
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
-        ) = computation.stack_pop(num_items=5, type_hint=constants.UINT256)
+        ) = computation.stack_pop_ints(5)
 
         to = computation.msg.storage_address
         sender = computation.msg.storage_address
@@ -245,15 +246,15 @@ class DelegateCall(BaseCall):
         return 0
 
     def get_call_params(self, computation: BaseComputation) -> CallParams:
-        gas = computation.stack_pop(type_hint=constants.UINT256)
-        code_address = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+        gas = computation.stack_pop1_int()
+        code_address = force_bytes_to_address(computation.stack_pop1_bytes())
 
         (
             memory_input_start_position,
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
-        ) = computation.stack_pop(num_items=4, type_hint=constants.UINT256)
+        ) = computation.stack_pop_ints(4)
 
         to = computation.msg.storage_address
         sender = computation.msg.sender
@@ -366,8 +367,8 @@ class CallEIP161(CallEIP150):
                               to: Address,
                               value: int) -> int:
         account_is_dead = (
-            not computation.state.account_db.account_exists(to) or
-            computation.state.account_db.account_is_empty(to)
+            not computation.state.account_exists(to) or
+            computation.state.account_is_empty(to)
         )
 
         transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
@@ -380,15 +381,15 @@ class CallEIP161(CallEIP150):
 #
 class StaticCall(CallEIP161):
     def get_call_params(self, computation: BaseComputation) -> CallParams:
-        gas = computation.stack_pop(type_hint=constants.UINT256)
-        to = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+        gas = computation.stack_pop1_int()
+        to = force_bytes_to_address(computation.stack_pop1_bytes())
 
         (
             memory_input_start_position,
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
-        ) = computation.stack_pop(num_items=4, type_hint=constants.UINT256)
+        ) = computation.stack_pop_ints(4)
 
         return (
             gas,

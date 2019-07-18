@@ -1,4 +1,3 @@
-from eth import constants
 from eth.exceptions import (
     InvalidJumpDestination,
     InvalidInstruction,
@@ -16,7 +15,7 @@ def stop(computation: BaseComputation) -> None:
 
 
 def jump(computation: BaseComputation) -> None:
-    jump_dest = computation.stack_pop(type_hint=constants.UINT256)
+    jump_dest = computation.stack_pop1_int()
 
     computation.code.pc = jump_dest
 
@@ -30,7 +29,7 @@ def jump(computation: BaseComputation) -> None:
 
 
 def jumpi(computation: BaseComputation) -> None:
-    jump_dest, check_value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    jump_dest, check_value = computation.stack_pop_ints(2)
 
     if check_value:
         computation.code.pc = jump_dest
@@ -51,10 +50,10 @@ def jumpdest(computation: BaseComputation) -> None:
 def pc(computation: BaseComputation) -> None:
     pc = max(computation.code.pc - 1, 0)
 
-    computation.stack_push(pc)
+    computation.stack_push_int(pc)
 
 
 def gas(computation: BaseComputation) -> None:
     gas_remaining = computation.get_gas_remaining()
 
-    computation.stack_push(gas_remaining)
+    computation.stack_push_int(gas_remaining)

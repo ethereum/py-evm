@@ -1,3 +1,6 @@
+from eth_typing import Hash32
+
+
 class PyEVMError(Exception):
     """
     Base class for all py-evm errors.
@@ -16,7 +19,9 @@ class StateRootNotFound(PyEVMError):
     """
     Raised when the requested state root is not present in our DB.
     """
-    pass
+    @property
+    def missing_state_root(self) -> Hash32:
+        return self.args[0]
 
 
 class HeaderNotFound(PyEVMError):
@@ -35,6 +40,13 @@ class BlockNotFound(PyEVMError):
 class TransactionNotFound(PyEVMError):
     """
     Raised when the transaction with the given hash or block index does not exist.
+    """
+    pass
+
+
+class ReceiptNotFound(PyEVMError):
+    """
+    Raised when the Receipt with the given receipt index does not exist.
     """
     pass
 

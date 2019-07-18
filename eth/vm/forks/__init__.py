@@ -16,3 +16,9 @@ from .byzantium import (  # noqa: F401
 from .constantinople import (  # noqa: F401
     ConstantinopleVM,
 )
+from .petersburg import (  # noqa: F401
+    PetersburgVM,
+)
+from .istanbul import (  # noqa: F401
+    IstanbulVM,
+)

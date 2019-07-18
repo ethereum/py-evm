@@ -1,6 +1,6 @@
 import sys
 
-from cytoolz import curry
+from eth_utils.toolz import curry
 
 import pytest
 
@@ -11,7 +11,7 @@ from eth_utils import (
 
 from eth.chains.base import MiningChain
 
-from eth.utils.spoof import (
+from eth.vm.spoof import (
     SpoofTransaction,
 )
 
@@ -31,13 +31,14 @@ def new_transaction(
         private_key=None,
         gas_price=10,
         gas=100000,
-        data=b''):
+        data=b'',
+        chain_id=None):
     """
     Create and return a transaction sending amount from <from_> to <to>.
 
     The transaction will be signed with the given private key.
     """
-    nonce = vm.state.account_db.get_nonce(from_)
+    nonce = vm.state.get_nonce(from_)
     tx = vm.create_unsigned_transaction(
         nonce=nonce,
         gas_price=gas_price,
@@ -47,7 +48,10 @@ def new_transaction(
         data=data,
     )
     if private_key:
-        return tx.as_signed_transaction(private_key, chain_id=1)
+        if chain_id is None:
+            return tx.as_signed_transaction(private_key)
+        else:
+            return tx.as_signed_transaction(private_key, chain_id=chain_id)
     else:
         return SpoofTransaction(tx, from_=from_)
 
@@ -61,7 +65,7 @@ def fill_block(chain, from_, key, gas, data):
     amount = 100
 
     vm = chain.get_vm()
-    assert vm.block.header.gas_used == 0
+    assert vm.get_header().gas_used == 0
 
     while True:
         tx = new_transaction(chain.get_vm(), from_, recipient, amount, key, gas=gas, data=data)
@@ -73,4 +77,4 @@ def fill_block(chain, from_, key, gas, data):
             else:
                 raise exc
 
-    assert chain.get_vm().block.header.gas_used > 0
+    assert chain.get_vm().get_block().header.gas_used > 0

@@ -1,0 +1,2 @@
+Setup towncrier to generate release notes from fragment files to  ensure a higher standard
+for release notes.

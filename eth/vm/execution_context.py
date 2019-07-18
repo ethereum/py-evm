@@ -1,9 +1,13 @@
-from typing import Tuple
+from typing import (
+    Iterable,
+)
 
 from eth_typing import (
     Address,
     Hash32,
 )
+
+from eth._utils.generator import CachedIterable
 
 
 class ExecutionContext:
@@ -22,13 +26,13 @@ class ExecutionContext:
             block_number: int,
             difficulty: int,
             gas_limit: int,
-            prev_hashes: Tuple[Hash32, ...]) -> None:
+            prev_hashes: Iterable[Hash32]) -> None:
         self._coinbase = coinbase
         self._timestamp = timestamp
         self._block_number = block_number
         self._difficulty = difficulty
         self._gas_limit = gas_limit
-        self._prev_hashes = prev_hashes
+        self._prev_hashes = CachedIterable(prev_hashes)
 
     @property
     def coinbase(self) -> Address:
@@ -51,5 +55,5 @@ class ExecutionContext:
         return self._gas_limit
 
     @property
-    def prev_hashes(self) -> Tuple[Hash32, ...]:
+    def prev_hashes(self) -> Iterable[Hash32]:
         return self._prev_hashes

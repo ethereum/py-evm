@@ -1,5 +1,5 @@
 import copy
-from cytoolz import (
+from eth_utils.toolz import (
     merge
 )
 
@@ -11,7 +11,8 @@ from eth.vm import (
     opcode_values,
 )
 from eth.vm.forks.byzantium.opcodes import (
-    BYZANTIUM_OPCODES
+    BYZANTIUM_OPCODES,
+    ensure_no_static
 )
 from eth.vm.forks.constantinople.constants import (
     GAS_EXTCODEHASH_EIP1052
@@ -56,7 +57,7 @@ UPDATED_OPCODES = {
         gas_cost=constants.GAS_CREATE,
     )(),
     opcode_values.SSTORE: as_opcode(
-        logic_fn=sstore_eip1283,
+        logic_fn=ensure_no_static(sstore_eip1283),
         mnemonic=mnemonics.SSTORE,
         gas_cost=constants.GAS_NULL,
     ),

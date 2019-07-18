@@ -5,6 +5,4 @@ python:
   version: 3.6
   pip_install: True
   extra_requirements:
-    - p2p
-    - trinity
     - doc

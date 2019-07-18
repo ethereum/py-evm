@@ -1,6 +1,6 @@
-from typing import Optional, Type  # noqa: F401
-from eth.rlp.blocks import BaseBlock  # noqa: F401
-from eth.vm.state import BaseState  # noqa: F401
+from typing import Optional, Type
+from eth.rlp.blocks import BaseBlock
+from eth.vm.state import BaseState
 
 from eth_typing import BlockNumber
 
@@ -17,7 +17,7 @@ from .state import HomesteadState
 
 class MetaHomesteadVM(FrontierVM):
     support_dao_fork = True
-    _dao_fork_block_number = None  # type: Optional[BlockNumber]
+    _dao_fork_block_number: Optional[BlockNumber] = None
 
     @classmethod
     def get_dao_fork_block_number(cls) -> BlockNumber:
@@ -28,11 +28,11 @@ class MetaHomesteadVM(FrontierVM):
 
 class HomesteadVM(MetaHomesteadVM):
     # fork name
-    fork = 'homestead'  # type: str
+    fork: str = 'homestead'  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
 
     # classes
-    block_class = HomesteadBlock  # type: Type[BaseBlock]
-    _state_class = HomesteadState  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = HomesteadBlock
+    _state_class: Type[BaseState] = HomesteadState
 
     # method overrides
     create_header_from_parent = staticmethod(create_homestead_header_from_parent)   # type: ignore

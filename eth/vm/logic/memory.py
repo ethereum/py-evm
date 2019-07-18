@@ -1,11 +1,9 @@
-from eth import constants
-
 from eth.vm.computation import BaseComputation
 
 
 def mstore(computation: BaseComputation) -> None:
-    start_position = computation.stack_pop(type_hint=constants.UINT256)
-    value = computation.stack_pop(type_hint=constants.BYTES)
+    start_position = computation.stack_pop1_int()
+    value = computation.stack_pop1_bytes()
 
     padded_value = value.rjust(32, b'\x00')
     normalized_value = padded_value[-32:]
@@ -16,8 +14,8 @@ def mstore(computation: BaseComputation) -> None:
 
 
 def mstore8(computation: BaseComputation) -> None:
-    start_position = computation.stack_pop(type_hint=constants.UINT256)
-    value = computation.stack_pop(type_hint=constants.BYTES)
+    start_position = computation.stack_pop1_int()
+    value = computation.stack_pop1_bytes()
 
     padded_value = value.rjust(1, b'\x00')
     normalized_value = padded_value[-1:]
@@ -28,13 +26,13 @@ def mstore8(computation: BaseComputation) -> None:
 
 
 def mload(computation: BaseComputation) -> None:
-    start_position = computation.stack_pop(type_hint=constants.UINT256)
+    start_position = computation.stack_pop1_int()
 
     computation.extend_memory(start_position, 32)
 
-    value = computation.memory_read(start_position, 32)
-    computation.stack_push(value)
+    value = computation.memory_read_bytes(start_position, 32)
+    computation.stack_push_bytes(value)
 
 
 def msize(computation: BaseComputation) -> None:
-    computation.stack_push(len(computation._memory))
+    computation.stack_push_int(len(computation._memory))

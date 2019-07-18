@@ -25,7 +25,7 @@ about_fields = [
 about = {}
 
 DIR = os.path.dirname('__file__')
-with open(os.path.join(DIR, '../setup_trinity.py'), 'r') as f:
+with open(os.path.join(DIR, '../setup.py'), 'r') as f:
     for line in f:
         for field in about_fields:
             if ' ' + field + '=' in line:
@@ -181,7 +181,7 @@ texinfo_documents = [
 # -- Intersphinx configuration ------------------------------------------------
 
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.5', None),
+    'python': ('https://docs.python.org/3.6', None),
     'eth-typing': ('https://eth-typing.readthedocs.io/en/latest', None),
 }
 

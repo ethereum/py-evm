@@ -5,24 +5,23 @@ from rlp.sedes import (
 )
 
 from typing import (
-    List,
     Tuple,
 )
 
 from .sedes import (
     address,
-    int32,
+    uint32,
 )
 
 
 class Log(rlp.Serializable):
     fields = [
         ('address', address),
-        ('topics', CountableList(int32)),
+        ('topics', CountableList(uint32)),
         ('data', binary)
     ]
 
-    def __init__(self, address: bytes, topics: List[int], data: bytes) -> None:
+    def __init__(self, address: bytes, topics: Tuple[int, ...], data: bytes) -> None:
         super().__init__(address, topics, data)
 
     @property
@@ -30,5 +29,5 @@ class Log(rlp.Serializable):
         return (
             self.address,
         ) + tuple(
-            int32.serialize(topic) for topic in self.topics
+            uint32.serialize(topic) for topic in self.topics
         )

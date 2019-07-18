@@ -5,7 +5,7 @@ from eth.constants import (
     UINT_256_MAX,
 )
 
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     int_to_bytes32,
 )
 

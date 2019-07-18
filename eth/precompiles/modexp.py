@@ -9,10 +9,10 @@ from eth_utils import (
 
 from eth import constants
 
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     get_highest_bit_index,
 )
-from eth.utils.padding import (
+from eth._utils.padding import (
     pad32r,
     zpad_right,
     zpad_left,
@@ -125,12 +125,14 @@ def modexp(computation: BaseComputation) -> BaseComputation:
     """
     https://github.com/ethereum/EIPs/pull/198
     """
-    gas_fee = _compute_modexp_gas_fee(computation.msg.data)
+    data = computation.msg.data_as_bytes
+
+    gas_fee = _compute_modexp_gas_fee(data)
     computation.consume_gas(gas_fee, reason='MODEXP Precompile')
 
-    result = _modexp(computation.msg.data)
+    result = _modexp(data)
 
-    _, _, modulus_length = _extract_lengths(computation.msg.data)
+    _, _, modulus_length = _extract_lengths(data)
 
     # Modulo 0 is undefined, return zero
     # https://math.stackexchange.com/questions/516251/why-is-n-mod-0-undefined

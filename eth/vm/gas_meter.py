@@ -13,7 +13,7 @@ from eth.validation import (
     validate_uint256,
 )
 from eth.tools.logging import (
-    TraceLogger
+    ExtendedDebugLogger,
 )
 
 
@@ -33,12 +33,12 @@ RefundStrategy = Callable[[int, int], int]
 
 class GasMeter(object):
 
-    start_gas = None  # type: int
+    start_gas: int = None
 
-    gas_refunded = None  # type: int
-    gas_remaining = None  # type: int
+    gas_refunded: int = None
+    gas_remaining: int = None
 
-    logger = cast(TraceLogger, logging.getLogger('eth.gas.GasMeter'))
+    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.gas.GasMeter'))
 
     def __init__(self,
                  start_gas: int,
@@ -67,13 +67,14 @@ class GasMeter(object):
 
         self.gas_remaining -= amount
 
-        self.logger.trace(
-            'GAS CONSUMPTION: %s - %s -> %s (%s)',
-            self.gas_remaining + amount,
-            amount,
-            self.gas_remaining,
-            reason,
-        )
+        if self.logger.show_debug2:
+            self.logger.debug2(
+                'GAS CONSUMPTION: %s - %s -> %s (%s)',
+                self.gas_remaining + amount,
+                amount,
+                self.gas_remaining,
+                reason,
+            )
 
     def return_gas(self, amount: int) -> None:
         if amount < 0:
@@ -81,19 +82,21 @@ class GasMeter(object):
 
         self.gas_remaining += amount
 
-        self.logger.trace(
-            'GAS RETURNED: %s + %s -> %s',
-            self.gas_remaining - amount,
-            amount,
-            self.gas_remaining,
-        )
+        if self.logger.show_debug2:
+            self.logger.debug2(
+                'GAS RETURNED: %s + %s -> %s',
+                self.gas_remaining - amount,
+                amount,
+                self.gas_remaining,
+            )
 
     def refund_gas(self, amount: int) -> None:
         self.gas_refunded = self.refund_strategy(self.gas_refunded, amount)
 
-        self.logger.trace(
-            'GAS REFUND: %s + %s -> %s',
-            self.gas_refunded - amount,
-            amount,
-            self.gas_refunded,
-        )
+        if self.logger.show_debug2:
+            self.logger.debug2(
+                'GAS REFUND: %s + %s -> %s',
+                self.gas_refunded - amount,
+                amount,
+                self.gas_refunded,
+            )

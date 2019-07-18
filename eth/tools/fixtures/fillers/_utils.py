@@ -1,6 +1,5 @@
 import copy
 import random
-
 from typing import (
     Any,
     Dict,
@@ -9,30 +8,29 @@ from typing import (
     Type,
 )
 
+from eth_keys import keys
 from eth_typing import (
     Address,
 )
-
 from eth_utils import (
     int_to_big_endian,
 )
 
-from eth.db.backends.memory import MemoryDB
-from eth.db.account import BaseAccountDB
-
+from eth._utils.db import (
+    apply_state_dict,
+)
+from eth._utils.padding import (
+    pad32,
+)
+from eth.constants import BLANK_ROOT_HASH
+from eth.db.atomic import AtomicDB
 from eth.typing import (
     AccountState,
     TransactionDict,
 )
-
-from eth.utils.db import (
-    apply_state_dict,
+from eth.vm.state import (
+    BaseState,
 )
-from eth.utils.padding import (
-    pad32,
-)
-
-from eth_keys import keys
 
 
 def wrap_in_list(item: Any) -> List[Any]:
@@ -64,10 +62,10 @@ def add_transaction_to_group(group: Dict[str, Any],
     return new_group, indexes
 
 
-def calc_state_root(state: AccountState, account_db_class: Type[BaseAccountDB]) -> bytes:
-    account_db = account_db_class(MemoryDB())
-    apply_state_dict(account_db, state)
-    return account_db.state_root
+def calc_state_root(state_dict: AccountState, state_class: Type[BaseState]) -> bytes:
+    state = state_class(AtomicDB(), None, BLANK_ROOT_HASH)
+    apply_state_dict(state, state_dict)
+    return state.state_root
 
 
 def generate_random_keypair() -> Tuple[bytes, Address]:

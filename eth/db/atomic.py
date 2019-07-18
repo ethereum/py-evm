@@ -25,8 +25,8 @@ class AtomicDB(BaseAtomicDB):
     """
     logger = logging.getLogger("eth.db.AtomicDB")
 
-    wrapped_db = None  # type: BaseDB
-    _track_diff = None  # type: DBDiffTracker
+    wrapped_db: BaseDB = None
+    _track_diff: DBDiffTracker = None
 
     def __init__(self, wrapped_db: BaseDB = None) -> None:
         if wrapped_db is None:
@@ -59,8 +59,8 @@ class AtomicDBWriteBatch(BaseDB):
     """
     logger = logging.getLogger("eth.db.AtomicDBWriteBatch")
 
-    _write_target_db = None  # type: BaseDB
-    _track_diff = None  # type: DBDiffTracker
+    _write_target_db: BaseDB = None
+    _track_diff: DBDiffTracker = None
 
     def __init__(self, write_target_db: BaseDB) -> None:
         self._write_target_db = write_target_db
@@ -120,7 +120,7 @@ class AtomicDBWriteBatch(BaseDB):
         Although this is technically an external API, it (and this whole class) is only intended
         to be used by AtomicDB.
         """
-        readable_write_batch = cls(write_target_db)     # type: AtomicDBWriteBatch
+        readable_write_batch: AtomicDBWriteBatch = cls(write_target_db)
         try:
             yield readable_write_batch
         except Exception:

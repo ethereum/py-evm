@@ -1,10 +1,10 @@
-from cytoolz import (
+from eth_utils.toolz import (
     curry,
 )
 
 from eth import constants
 
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     unsigned_to_signed,
     signed_to_unsigned,
     ceil8,
@@ -17,50 +17,50 @@ def add(computation: BaseComputation) -> None:
     """
     Addition
     """
-    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop_ints(2)
 
     result = (left + right) & constants.UINT_256_MAX
 
-    computation.stack_push(result)
+    computation.stack_push_int(result)
 
 
 def addmod(computation: BaseComputation) -> None:
     """
     Modulo Addition
     """
-    left, right, mod = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    left, right, mod = computation.stack_pop_ints(3)
 
     if mod == 0:
         result = 0
     else:
         result = (left + right) % mod
 
-    computation.stack_push(result)
+    computation.stack_push_int(result)
 
 
 def sub(computation: BaseComputation) -> None:
     """
     Subtraction
     """
-    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop_ints(2)
 
     result = (left - right) & constants.UINT_256_MAX
 
-    computation.stack_push(result)
+    computation.stack_push_int(result)
 
 
 def mod(computation: BaseComputation) -> None:
     """
     Modulo
     """
-    value, mod = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    value, mod = computation.stack_pop_ints(2)
 
     if mod == 0:
         result = 0
     else:
         result = value % mod
 
-    computation.stack_push(result)
+    computation.stack_push_int(result)
 
 
 def smod(computation: BaseComputation) -> None:
@@ -69,7 +69,7 @@ def smod(computation: BaseComputation) -> None:
     """
     value, mod = map(
         unsigned_to_signed,
-        computation.stack_pop(num_items=2, type_hint=constants.UINT256),
+        computation.stack_pop_ints(2),
     )
 
     pos_or_neg = -1 if value < 0 else 1
@@ -79,45 +79,45 @@ def smod(computation: BaseComputation) -> None:
     else:
         result = (abs(value) % abs(mod) * pos_or_neg) & constants.UINT_256_MAX
 
-    computation.stack_push(signed_to_unsigned(result))
+    computation.stack_push_int(signed_to_unsigned(result))
 
 
 def mul(computation: BaseComputation) -> None:
     """
     Multiplication
     """
-    left, right = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    left, right = computation.stack_pop_ints(2)
 
     result = (left * right) & constants.UINT_256_MAX
 
-    computation.stack_push(result)
+    computation.stack_push_int(result)
 
 
 def mulmod(computation: BaseComputation) -> None:
     """
     Modulo Multiplication
     """
-    left, right, mod = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    left, right, mod = computation.stack_pop_ints(3)
 
     if mod == 0:
         result = 0
     else:
         result = (left * right) % mod
-    computation.stack_push(result)
+    computation.stack_push_int(result)
 
 
 def div(computation: BaseComputation) -> None:
     """
     Division
     """
-    numerator, denominator = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    numerator, denominator = computation.stack_pop_ints(2)
 
     if denominator == 0:
         result = 0
     else:
         result = (numerator // denominator) & constants.UINT_256_MAX
 
-    computation.stack_push(result)
+    computation.stack_push_int(result)
 
 
 def sdiv(computation: BaseComputation) -> None:
@@ -126,7 +126,7 @@ def sdiv(computation: BaseComputation) -> None:
     """
     numerator, denominator = map(
         unsigned_to_signed,
-        computation.stack_pop(num_items=2, type_hint=constants.UINT256),
+        computation.stack_pop_ints(2),
     )
 
     pos_or_neg = -1 if numerator * denominator < 0 else 1
@@ -136,7 +136,7 @@ def sdiv(computation: BaseComputation) -> None:
     else:
         result = (pos_or_neg * (abs(numerator) // abs(denominator)))
 
-    computation.stack_push(signed_to_unsigned(result))
+    computation.stack_push_int(signed_to_unsigned(result))
 
 
 @curry
@@ -144,7 +144,7 @@ def exp(computation: BaseComputation, gas_per_byte: int) -> None:
     """
     Exponentiation
     """
-    base, exponent = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    base, exponent = computation.stack_pop_ints(2)
 
     bit_size = exponent.bit_length()
     byte_size = ceil8(bit_size) // 8
@@ -161,14 +161,14 @@ def exp(computation: BaseComputation, gas_per_byte: int) -> None:
         reason="EXP: exponent bytes",
     )
 
-    computation.stack_push(result)
+    computation.stack_push_int(result)
 
 
 def signextend(computation: BaseComputation) -> None:
     """
     Signed Extend
     """
-    bits, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    bits, value = computation.stack_pop_ints(2)
 
     if bits <= 31:
         testbit = bits * 8 + 7
@@ -180,42 +180,42 @@ def signextend(computation: BaseComputation) -> None:
     else:
         result = value
 
-    computation.stack_push(result)
+    computation.stack_push_int(result)
 
 
 def shl(computation: BaseComputation) -> None:
     """
     Bitwise left shift
     """
-    shift_length, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    shift_length, value = computation.stack_pop_ints(2)
 
     if shift_length >= 256:
         result = 0
     else:
         result = (value << shift_length) & constants.UINT_256_MAX
 
-    computation.stack_push(result)
+    computation.stack_push_int(result)
 
 
 def shr(computation: BaseComputation) -> None:
     """
     Bitwise right shift
     """
-    shift_length, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    shift_length, value = computation.stack_pop_ints(2)
 
     if shift_length >= 256:
         result = 0
     else:
         result = (value >> shift_length) & constants.UINT_256_MAX
 
-    computation.stack_push(result)
+    computation.stack_push_int(result)
 
 
 def sar(computation: BaseComputation) -> None:
     """
     Arithmetic bitwise right shift
     """
-    shift_length, value = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    shift_length, value = computation.stack_pop_ints(2)
     value = unsigned_to_signed(value)
 
     if shift_length >= 256:
@@ -223,4 +223,4 @@ def sar(computation: BaseComputation) -> None:
     else:
         result = (value >> shift_length) & constants.UINT_256_MAX
 
-    computation.stack_push(result)
+    computation.stack_push_int(result)

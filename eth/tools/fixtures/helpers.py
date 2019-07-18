@@ -3,6 +3,7 @@ import os
 import rlp
 
 from typing import (
+    cast,
     Any,
     Dict,
     Iterable,
@@ -10,7 +11,7 @@ from typing import (
     Type,
 )
 
-from cytoolz import first
+from eth_utils.toolz import first
 
 from eth_utils import (
     to_normalized_address,
@@ -24,8 +25,8 @@ from eth.rlp.blocks import (
 from eth.chains.base import (
     BaseChain,
 )
-from eth.db.account import (
-    BaseAccountDB,
+from eth.chains.mainnet import (
+    MainnetDAOValidatorVM,
 )
 from eth.tools.builder.chain import (
     disable_pow_check,
@@ -33,41 +34,46 @@ from eth.tools.builder.chain import (
 from eth.typing import (
     AccountState,
 )
-from eth.utils.state import (
-    diff_account_db,
+from eth._utils.state import (
+    diff_state,
 )
 from eth.vm.base import (
     BaseVM,
 )
 from eth.vm.forks import (
+    PetersburgVM,
+    ConstantinopleVM,
     ByzantiumVM,
     TangerineWhistleVM,
     FrontierVM,
     HomesteadVM as BaseHomesteadVM,
     SpuriousDragonVM,
 )
+from eth.vm.state import (
+    BaseState,
+)
 
 
 #
 # State Setup
 #
-def setup_account_db(desired_state: AccountState, account_db: BaseAccountDB) -> None:
+def setup_state(desired_state: AccountState, state: BaseState) -> None:
     for account, account_data in desired_state.items():
         for slot, value in account_data['storage'].items():
-            account_db.set_storage(account, slot, value)
+            state.set_storage(account, slot, value)
 
         nonce = account_data['nonce']
         code = account_data['code']
         balance = account_data['balance']
 
-        account_db.set_nonce(account, nonce)
-        account_db.set_code(account, code)
-        account_db.set_balance(account, balance)
-    account_db.persist()
+        state.set_nonce(account, nonce)
+        state.set_code(account, code)
+        state.set_balance(account, balance)
+    state.persist()
 
 
-def verify_account_db(expected_state: AccountState, account_db: BaseAccountDB) -> None:
-    diff = diff_account_db(expected_state, account_db)
+def verify_state(expected_state: AccountState, state: BaseState) -> None:
+    diff = diff_state(expected_state, state)
     if diff:
         error_messages = []
         for account, field, actual_value, expected_value in diff:
@@ -78,7 +84,7 @@ def verify_account_db(expected_state: AccountState, account_db: BaseAccountDB) -
                         'balance',
                         actual_value,
                         expected_value,
-                        expected_value - actual_value,
+                        cast(int, actual_value) - cast(int, expected_value),
                     )
                 )
             else:
@@ -123,6 +129,14 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
         return (
             (0, ByzantiumVM),
         )
+    elif network == 'Constantinople':
+        return (
+            (0, ConstantinopleVM),
+        )
+    elif network == 'ConstantinopleFix':
+        return (
+            (0, PetersburgVM),
+        )
     elif network == 'FrontierToHomesteadAt5':
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
         return (
@@ -136,7 +150,7 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
             (5, TangerineWhistleVM),
         )
     elif network == 'HomesteadToDaoAt5':
-        HomesteadVM = BaseHomesteadVM.configure(
+        HomesteadVM = MainnetDAOValidatorVM.configure(
             support_dao_fork=True,
             _dao_fork_block_number=5,
         )
@@ -147,6 +161,11 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
         return (
             (0, SpuriousDragonVM),
             (5, ByzantiumVM),
+        )
+    elif network == 'ByzantiumToConstantinopleAt5':
+        return (
+            (0, ByzantiumVM),
+            (5, ConstantinopleVM),
         )
     else:
         raise ValueError("Network {0} does not match any known VM rules".format(network))
@@ -193,11 +212,13 @@ def new_chain_from_fixture(fixture: Dict[str, Any],
     )
 
 
-def apply_fixture_block_to_chain(block_fixture: Dict[str, Any],
-                                 chain: BaseChain) -> Tuple[BaseBlock, BaseBlock, BaseBlock]:
-    '''
+def apply_fixture_block_to_chain(
+        block_fixture: Dict[str, Any],
+        chain: BaseChain,
+        perform_validation: bool=True) -> Tuple[BaseBlock, BaseBlock, BaseBlock]:
+    """
     :return: (premined_block, mined_block, rlp_encoded_mined_block)
-    '''
+    """
     # The block to import may be in a different block-class-range than the
     # chain's current one, so we use the block number specified in the
     # fixture to look up the correct block class.
@@ -209,7 +230,7 @@ def apply_fixture_block_to_chain(block_fixture: Dict[str, Any],
 
     block = rlp.decode(block_fixture['rlp'], sedes=block_class)
 
-    mined_block, _, _ = chain.import_block(block)
+    mined_block, _, _ = chain.import_block(block, perform_validation=perform_validation)
 
     rlp_encoded_mined_block = rlp.encode(mined_block, sedes=block_class)
 

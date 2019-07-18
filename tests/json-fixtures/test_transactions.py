@@ -12,7 +12,9 @@ from eth_utils import (
 from eth.tools.fixtures import (
     generate_fixture_tests,
     load_fixture,
-    normalize_transactiontest_fixture
+)
+from eth.tools._utils.normalization import (
+    normalize_transactiontest_fixture,
 )
 from eth.vm.forks.frontier.transactions import (
     FrontierTransaction
@@ -25,6 +27,15 @@ from eth.vm.forks.spurious_dragon.transactions import (
 )
 from eth.vm.forks.byzantium.transactions import (
     ByzantiumTransaction
+)
+from eth.vm.forks.constantinople.transactions import (
+    ConstantinopleTransaction
+)
+from eth.vm.forks.petersburg.transactions import (
+    PetersburgTransaction
+)
+from eth.vm.forks.istanbul.transactions import (
+    IstanbulTransaction
 )
 
 from eth_typing.enums import (
@@ -51,7 +62,7 @@ def expand_fixtures_forks(all_fixtures):
     """
     for fixture_path, fixture_key in all_fixtures:
         fixture = load_fixture(fixture_path, fixture_key)
-        for fixture_fork, fork_states in fixture.items():
+        for fixture_fork, _ in fixture.items():
             if fixture_fork not in FIXTURE_FORK_SKIPS:
                 yield fixture_path, fixture_key, fixture_fork
 
@@ -90,7 +101,11 @@ def fixture_transaction_class(fixture_data):
     elif fork_name == ForkName.Byzantium:
         return ByzantiumTransaction
     elif fork_name == ForkName.Constantinople:
-        pytest.skip("Constantinople Transaction class has not been implemented")
+        return ConstantinopleTransaction
+    elif fork_name == "Petersburg":
+        return PetersburgTransaction
+    elif fork_name == ForkName.Istanbul:
+        return IstanbulTransaction
     elif fork_name == ForkName.Metropolis:
         pytest.skip("Metropolis Transaction class has not been implemented")
     else:
@@ -124,4 +139,4 @@ def test_transaction_fixtures(fixture, fixture_transaction_class):
 
     if 'sender' in fixture:
         assert 'hash' in fixture, "Transaction was supposed to be invalid"
-        assert is_same_address(txn.get_sender(), fixture['sender'])
+        assert is_same_address(txn.sender, fixture['sender'])

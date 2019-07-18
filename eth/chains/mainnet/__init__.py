@@ -1,7 +1,6 @@
-from typing import (    # noqa: F401
+from typing import (
     Tuple,
     Type,
-    TypeVar,
 )
 
 from eth_utils import (
@@ -13,6 +12,7 @@ from eth_utils import (
 from .constants import (
     MAINNET_CHAIN_ID,
     BYZANTIUM_MAINNET_BLOCK,
+    PETERSBURG_MAINNET_BLOCK,
     TANGERINE_WHISTLE_MAINNET_BLOCK,
     HOMESTEAD_MAINNET_BLOCK,
     SPURIOUS_DRAGON_MAINNET_BLOCK,
@@ -25,13 +25,14 @@ from eth.chains.base import (
     Chain,
 )
 from eth.rlp.headers import BlockHeader
-from eth.vm.base import BaseVM  # noqa: F401
+from eth.vm.base import BaseVM
 from eth.vm.forks import (
-    TangerineWhistleVM,
+    ByzantiumVM,
     FrontierVM,
     HomesteadVM,
+    PetersburgVM,
     SpuriousDragonVM,
-    ByzantiumVM,
+    TangerineWhistleVM,
 )
 
 
@@ -78,6 +79,7 @@ MAINNET_FORK_BLOCKS = (
     TANGERINE_WHISTLE_MAINNET_BLOCK,
     SPURIOUS_DRAGON_MAINNET_BLOCK,
     BYZANTIUM_MAINNET_BLOCK,
+    PETERSBURG_MAINNET_BLOCK,
 )
 MAINNET_VMS = (
     FrontierVM,
@@ -85,6 +87,7 @@ MAINNET_VMS = (
     TangerineWhistleVM,
     SpuriousDragonVM,
     ByzantiumVM,
+    PetersburgVM,
 )
 
 MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))
@@ -92,7 +95,7 @@ MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))
 
 class BaseMainnetChain:
     chain_id = MAINNET_CHAIN_ID
-    vm_configuration = MAINNET_VM_CONFIGURATION  # type: Tuple[Tuple[int, Type[BaseVM]], ...]
+    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = MAINNET_VM_CONFIGURATION
 
 
 class MainnetChain(BaseMainnetChain, Chain):

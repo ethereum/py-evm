@@ -1,7 +1,3 @@
-from cytoolz import (
-    merge,
-)
-
 from eth.vm.forks.byzantium.computation import (
     BYZANTIUM_PRECOMPILES
 )
@@ -15,12 +11,7 @@ from eth.vm.gas_meter import (
 
 from .opcodes import CONSTANTINOPLE_OPCODES
 
-CONSTANTINOPLE_PRECOMPILES = merge(
-    BYZANTIUM_PRECOMPILES,
-    {
-        # TODO: add new precompiles
-    },
-)
+CONSTANTINOPLE_PRECOMPILES = BYZANTIUM_PRECOMPILES
 
 
 class ConstantinopleComputation(ByzantiumComputation):

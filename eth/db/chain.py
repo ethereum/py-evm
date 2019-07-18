@@ -28,6 +28,7 @@ from eth.constants import (
 )
 from eth.exceptions import (
     HeaderNotFound,
+    ReceiptNotFound,
     TransactionNotFound,
 )
 from eth.db.header import BaseHeaderDB, HeaderDB
@@ -72,7 +73,7 @@ class TransactionKey(rlp.Serializable):
 
 
 class BaseChainDB(BaseHeaderDB):
-    db = None  # type: BaseAtomicDB
+    db: BaseAtomicDB = None
 
     @abstractmethod
     def __init__(self, db: BaseAtomicDB) -> None:
@@ -122,6 +123,12 @@ class BaseChainDB(BaseHeaderDB):
 
     @abstractmethod
     def get_block_transaction_hashes(self, block_header: BlockHeader) -> Iterable[Hash32]:
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    @abstractmethod
+    def get_receipt_by_index(self,
+                             block_number: BlockNumber,
+                             receipt_index: int) -> Receipt:
         raise NotImplementedError("ChainDB classes must implement this method")
 
     @abstractmethod
@@ -221,11 +228,11 @@ class ChainDB(HeaderDB, BaseChainDB):
     def persist_block(self,
                       block: 'BaseBlock'
                       ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
-        '''
+        """
         Persist the given block's header and uncles.
 
         Assumes all block transactions have been persisted already.
-        '''
+        """
         with self.db.atomic_batch() as db:
             return self._persist_block(db, block)
 
@@ -284,7 +291,7 @@ class ChainDB(HeaderDB, BaseChainDB):
     #
     def add_receipt(self, block_header: BlockHeader, index_key: int, receipt: Receipt) -> Hash32:
         """
-        Adds the given receipt to the provide block header.
+        Adds the given receipt to the provided block header.
 
         Returns the updated `receipts_root` for updated block header.
         """
@@ -297,7 +304,7 @@ class ChainDB(HeaderDB, BaseChainDB):
                         index_key: int,
                         transaction: 'BaseTransaction') -> Hash32:
         """
-        Adds the given transaction to the provide block header.
+        Adds the given transaction to the provided block header.
 
         Returns the updated `transactions_root` for updated block header.
         """
@@ -317,7 +324,7 @@ class ChainDB(HeaderDB, BaseChainDB):
 
     def get_block_transaction_hashes(self, block_header: BlockHeader) -> Iterable[Hash32]:
         """
-        Returns an iterable of the transaction hashes from th block specified
+        Returns an iterable of the transaction hashes from the block specified
         by the given block header.
         """
         return self._get_block_transaction_hashes(self.db, block_header)
@@ -395,11 +402,32 @@ class ChainDB(HeaderDB, BaseChainDB):
         transaction_key = rlp.decode(encoded_key, sedes=TransactionKey)
         return (transaction_key.block_number, transaction_key.index)
 
+    def get_receipt_by_index(self,
+                             block_number: BlockNumber,
+                             receipt_index: int) -> Receipt:
+        """
+        Returns the Receipt of the transaction at specified index
+        for the block header obtained by the specified block number
+        """
+        try:
+            block_header = self.get_canonical_block_header_by_number(block_number)
+        except HeaderNotFound:
+            raise ReceiptNotFound("Block {} is not in the canonical chain".format(block_number))
+
+        receipt_db = HexaryTrie(db=self.db, root_hash=block_header.receipt_root)
+        receipt_key = rlp.encode(receipt_index)
+        if receipt_key in receipt_db:
+            receipt_data = receipt_db[receipt_key]
+            return rlp.decode(receipt_data, sedes=Receipt)
+        else:
+            raise ReceiptNotFound(
+                "Receipt with index {} not found in block".format(receipt_index))
+
     @staticmethod
     def _get_block_transaction_data(db: BaseDB, transaction_root: Hash32) -> Iterable[Hash32]:
-        '''
+        """
         Returns iterable of the encoded transactions for the given block header
-        '''
+        """
         transaction_db = HexaryTrie(db, root_hash=transaction_root)
         for transaction_idx in itertools.count():
             transaction_key = rlp.encode(transaction_idx)

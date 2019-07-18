@@ -4,10 +4,10 @@ from eth.exceptions import (
     OutOfBoundsRead,
 )
 
-from eth.utils.address import (
+from eth._utils.address import (
     force_bytes_to_address,
 )
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     ceil32,
 )
 
@@ -15,43 +15,43 @@ from eth.vm.computation import BaseComputation
 
 
 def balance(computation: BaseComputation) -> None:
-    addr = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
-    balance = computation.state.account_db.get_balance(addr)
-    computation.stack_push(balance)
+    addr = force_bytes_to_address(computation.stack_pop1_bytes())
+    balance = computation.state.get_balance(addr)
+    computation.stack_push_int(balance)
 
 
 def origin(computation: BaseComputation) -> None:
-    computation.stack_push(computation.transaction_context.origin)
+    computation.stack_push_bytes(computation.transaction_context.origin)
 
 
 def address(computation: BaseComputation) -> None:
-    computation.stack_push(computation.msg.storage_address)
+    computation.stack_push_bytes(computation.msg.storage_address)
 
 
 def caller(computation: BaseComputation) -> None:
-    computation.stack_push(computation.msg.sender)
+    computation.stack_push_bytes(computation.msg.sender)
 
 
 def callvalue(computation: BaseComputation) -> None:
-    computation.stack_push(computation.msg.value)
+    computation.stack_push_int(computation.msg.value)
 
 
 def calldataload(computation: BaseComputation) -> None:
     """
     Load call data into memory.
     """
-    start_position = computation.stack_pop(type_hint=constants.UINT256)
+    start_position = computation.stack_pop1_int()
 
-    value = computation.msg.data[start_position:start_position + 32]
+    value = computation.msg.data_as_bytes[start_position:start_position + 32]
     padded_value = value.ljust(32, b'\x00')
     normalized_value = padded_value.lstrip(b'\x00')
 
-    computation.stack_push(normalized_value)
+    computation.stack_push_bytes(normalized_value)
 
 
 def calldatasize(computation: BaseComputation) -> None:
     size = len(computation.msg.data)
-    computation.stack_push(size)
+    computation.stack_push_int(size)
 
 
 def calldatacopy(computation: BaseComputation) -> None:
@@ -59,7 +59,7 @@ def calldatacopy(computation: BaseComputation) -> None:
         mem_start_position,
         calldata_start_position,
         size,
-    ) = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    ) = computation.stack_pop_ints(3)
 
     computation.extend_memory(mem_start_position, size)
 
@@ -68,7 +68,9 @@ def calldatacopy(computation: BaseComputation) -> None:
 
     computation.consume_gas(copy_gas_cost, reason="CALLDATACOPY fee")
 
-    value = computation.msg.data[calldata_start_position: calldata_start_position + size]
+    value = computation.msg.data_as_bytes[
+        calldata_start_position: calldata_start_position + size
+    ]
     padded_value = value.ljust(size, b'\x00')
 
     computation.memory_write(mem_start_position, size, padded_value)
@@ -76,7 +78,7 @@ def calldatacopy(computation: BaseComputation) -> None:
 
 def codesize(computation: BaseComputation) -> None:
     size = len(computation.code)
-    computation.stack_push(size)
+    computation.stack_push_int(size)
 
 
 def codecopy(computation: BaseComputation) -> None:
@@ -84,7 +86,7 @@ def codecopy(computation: BaseComputation) -> None:
         mem_start_position,
         code_start_position,
         size,
-    ) = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    ) = computation.stack_pop_ints(3)
 
     computation.extend_memory(mem_start_position, size)
 
@@ -105,23 +107,23 @@ def codecopy(computation: BaseComputation) -> None:
 
 
 def gasprice(computation: BaseComputation) -> None:
-    computation.stack_push(computation.transaction_context.gas_price)
+    computation.stack_push_int(computation.transaction_context.gas_price)
 
 
 def extcodesize(computation: BaseComputation) -> None:
-    account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
-    code_size = len(computation.state.account_db.get_code(account))
+    account = force_bytes_to_address(computation.stack_pop1_bytes())
+    code_size = len(computation.state.get_code(account))
 
-    computation.stack_push(code_size)
+    computation.stack_push_int(code_size)
 
 
 def extcodecopy(computation: BaseComputation) -> None:
-    account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
+    account = force_bytes_to_address(computation.stack_pop1_bytes())
     (
         mem_start_position,
         code_start_position,
         size,
-    ) = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    ) = computation.stack_pop_ints(3)
 
     computation.extend_memory(mem_start_position, size)
 
@@ -133,7 +135,7 @@ def extcodecopy(computation: BaseComputation) -> None:
         reason='EXTCODECOPY: word gas cost',
     )
 
-    code = computation.state.account_db.get_code(account)
+    code = computation.state.get_code(account)
 
     code_bytes = code[code_start_position:code_start_position + size]
     padded_code_bytes = code_bytes.ljust(size, b'\x00')
@@ -146,18 +148,18 @@ def extcodehash(computation: BaseComputation) -> None:
     Return the code hash for a given address.
     EIP: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1052.md
     """
-    account = force_bytes_to_address(computation.stack_pop(type_hint=constants.BYTES))
-    account_db = computation.state.account_db
+    account = force_bytes_to_address(computation.stack_pop1_bytes())
+    state = computation.state
 
-    if not account_db.account_exists(account):
-        computation.stack_push(constants.NULL_BYTE)
+    if state.account_is_empty(account):
+        computation.stack_push_bytes(constants.NULL_BYTE)
     else:
-        computation.stack_push(account_db.get_code_hash(account))
+        computation.stack_push_bytes(state.get_code_hash(account))
 
 
 def returndatasize(computation: BaseComputation) -> None:
     size = len(computation.return_data)
-    computation.stack_push(size)
+    computation.stack_push_int(size)
 
 
 def returndatacopy(computation: BaseComputation) -> None:
@@ -165,7 +167,7 @@ def returndatacopy(computation: BaseComputation) -> None:
         mem_start_position,
         returndata_start_position,
         size,
-    ) = computation.stack_pop(num_items=3, type_hint=constants.UINT256)
+    ) = computation.stack_pop_ints(3)
 
     if returndata_start_position + size > len(computation.return_data):
         raise OutOfBoundsRead(

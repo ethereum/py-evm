@@ -15,10 +15,10 @@ from eth import constants
 from eth.exceptions import (
     VMError,
 )
-from eth.utils.bn128 import (
+from eth._utils.bn128 import (
     validate_point,
 )
-from eth.utils.padding import (
+from eth._utils.padding import (
     pad32,
     pad32r,
 )
@@ -32,7 +32,7 @@ def ecmul(computation: BaseComputation) -> BaseComputation:
     computation.consume_gas(constants.GAS_ECMUL, reason='ECMUL Precompile')
 
     try:
-        result = _ecmull(computation.msg.data)
+        result = _ecmull(computation.msg.data_as_bytes)
     except ValidationError:
         raise VMError("Invalid ECMUL parameters")
 

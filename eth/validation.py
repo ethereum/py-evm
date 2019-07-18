@@ -19,18 +19,11 @@ from eth_typing import (
 from eth_utils import (
     ValidationError,
 )
+from eth_utils.toolz import dicttoolz
 
-from cytoolz.dicttoolz import (
-    valfilter,
-)
-from cytoolz.functoolz import (
-    partial,
-    pipe,
-)
-from cytoolz.itertoolz import (
-    isdistinct,
-    frequencies,
-)
+from eth_utils.toolz import functoolz
+
+from eth_utils.toolz import itertoolz
 
 from eth.constants import (
     GAS_LIMIT_ADJUSTMENT_FACTOR,
@@ -38,6 +31,10 @@ from eth.constants import (
     GAS_LIMIT_MINIMUM,
     SECPK1_N,
     UINT_256_MAX,
+)
+
+from eth.typing import (
+    BytesOrView,
 )
 
 if TYPE_CHECKING:
@@ -49,6 +46,14 @@ def validate_is_bytes(value: bytes, title: str="Value") -> None:
         raise ValidationError(
             "{title} must be a byte string.  Got: {0}".format(type(value), title=title)
         )
+
+
+def validate_is_bytes_or_view(value: BytesOrView, title: str="Value") -> None:
+    if isinstance(value, (bytes, memoryview)):
+        return
+    raise ValidationError(
+        "{title} must be bytes or memoryview. Got {0}".format(type(value), title=title)
+    )
 
 
 def validate_is_integer(value: Union[int, bool], title: str="Value") -> None:
@@ -185,14 +190,21 @@ def validate_uint256(value: int, title: str="Value") -> None:
         )
 
 
-def validate_stack_item(value: Union[int, bytes]) -> None:
-    if isinstance(value, bytes) and len(value) <= 32:
-        return
-    elif isinstance(value, int) and 0 <= value <= UINT_256_MAX:
+def validate_stack_int(value: int) -> None:
+    if 0 <= value <= UINT_256_MAX:
         return
     raise ValidationError(
         "Invalid Stack Item: Must be either a length 32 byte "
-        "string or a 256 bit integer. Got {0}".format(value)
+        "string or a 256 bit integer. Got {!r}".format(value)
+    )
+
+
+def validate_stack_bytes(value: bytes) -> None:
+    if len(value) <= 32:
+        return
+    raise ValidationError(
+        "Invalid Stack Item: Must be either a length 32 byte "
+        "string or a 256 bit integer. Got {!r}".format(value)
     )
 
 
@@ -201,11 +213,13 @@ validate_lt_secpk1n2 = functools.partial(validate_lte, maximum=SECPK1_N // 2 - 1
 
 
 def validate_unique(values: Iterable[Any], title: str="Value") -> None:
-    if not isdistinct(values):
-        duplicates = pipe(
+    if not itertoolz.isdistinct(values):
+        duplicates = functoolz.pipe(
             values,
-            frequencies,  # get the frequencies
-            partial(valfilter, lambda v: v > 1),  # filter to ones that occure > 1
+            itertoolz.frequencies,  # get the frequencies
+
+            # filter to ones that occure > 1
+            functoolz.partial(dicttoolz.valfilter, lambda v: v > 1),
             sorted,  # sort them
             tuple,  # cast them to an immutiable form
         )

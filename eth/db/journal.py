@@ -1,184 +1,336 @@
 import collections
-from typing import cast, Dict, Union  # noqa: F401
-import uuid
+from itertools import (
+    count,
+)
+from typing import Callable, cast, Dict, List, Set, Union
 
-from cytoolz import (
+from eth_utils.toolz import (
     first,
-    merge,
-    last,
+    nth,
 )
 from eth_utils import (
     ValidationError,
 )
 
-from eth.db.backends.base import BaseDB
+from .backends.base import BaseDB
+from .diff import DBDiff, DBDiffTracker
+from .typing import JournalDBCheckpoint
 
 
 class DeletedEntry:
     pass
 
 
-DELETED_ENTRY = DeletedEntry()
+# Track two different kinds of deletion:
+
+# 1. key in wrapped
+# 2. key modified in journal
+# 3. key deleted
+DELETE_WRAPPED = DeletedEntry()
+
+# 1. key not in wrapped
+# 2. key created in journal
+# 3. key deleted
+REVERT_TO_WRAPPED = DeletedEntry()
+
+ChangesetValue = Union[bytes, DeletedEntry]
+ChangesetDict = Dict[bytes, ChangesetValue]
+
+get_next_checkpoint = cast(Callable[[], JournalDBCheckpoint], count().__next__)
 
 
 class Journal(BaseDB):
     """
-    A Journal is an ordered list of changesets.  A changeset is a dictionary
-    of database keys and values.  The values are tracked changes that were
-    written after the changeset was created
+    A Journal provides a mechanism to track a series of changes to a dict, by inserting
+    checkpoints, and committing to them or rolling back to them, and ultimitely persisting
+    the final changes.
 
-    Changesets are referenced by a random uuid4.
+    Internally, it keeps an ordered list of reversion changesets, used to roll back
+    on demand. This is optimized for the most common path: lots of checkpoints and commits,
+    and not many discards.
+
+    Checkpoints are referenced by an internally-generated integer. This is *not* threadsafe.
     """
+    __slots__ = [
+        '_journal_data',
+        '_clears_at',
+        '_current_values',
+        '_ignore_wrapped_db',
+        '_checkpoint_stack',
+    ]
+
+    #
+    # This is a high-use class, where we sometimes prefere optimization over readability.
+    # It's most important to optimize for record, commit, and persist, which ard the most commonly
+    # used methods.
+    #
 
     def __init__(self) -> None:
-        # contains a mapping from all of the `uuid4` changeset_ids
-        # to a dictionary of key:value pairs with the recorded changes
-        # that belong to the changeset
-        self.journal_data = collections.OrderedDict()  # type: collections.OrderedDict[uuid.UUID, Dict[bytes, Union[bytes, DeletedEntry]]]  # noqa E501
+        # If the journal was persisted right now, these would be the current changes to push:
+        self._current_values: ChangesetDict = {}
+
+        # contains a mapping from all of the int checkpoints
+        # to a dictionary of key:value pairs that are used to rewind from the current values
+        # to the given checkpoint
+        self._journal_data: collections.OrderedDict[JournalDBCheckpoint, ChangesetDict] = collections.OrderedDict()  # noqa E501
+
+        # Clears are special operations that enforce that the underlying database and current
+        # changes are completely emptied out. Clears are also committable & discardable.
+        self._clears_at: Set[JournalDBCheckpoint] = set()
+
+        # If a clear was called, then any missing keys should be treated as missing
+        self._ignore_wrapped_db = False
+
+        # To speed up commits, we leave in old recorded checkpoints in self._journal_data, even
+        # on commit. Instead of dropping them, we keep a separate list of active checkpoints.
+        self._checkpoint_stack: List[JournalDBCheckpoint] = []
 
     @property
-    def root_changeset_id(self) -> uuid.UUID:
+    def root_checkpoint(self) -> JournalDBCheckpoint:
         """
-        Returns the id of the root changeset
+        Returns the starting checkpoint
         """
-        return first(self.journal_data.keys())
+        return first(self._journal_data.keys())
 
     @property
-    def latest_id(self) -> uuid.UUID:
+    def is_flattened(self) -> bool:
         """
-        Returns the id of the latest changeset
+        :return: whether there are any explicitly committed checkpoints
         """
-        return last(self.journal_data.keys())
+        return len(self._checkpoint_stack) < 2
 
     @property
-    def latest(self) -> Dict[bytes, Union[bytes, DeletedEntry]]:
+    def last_checkpoint(self) -> JournalDBCheckpoint:
         """
-        Returns the dictionary of db keys and values for the latest changeset.
+        Returns the latest checkpoint
         """
-        return self.journal_data[self.latest_id]
+        # last() was iterating through all values, so first(reversed()) gives a 12.5x speedup
+        # Interestingly, an attempt to cache this value caused a slowdown.
+        return first(reversed(self._journal_data.keys()))
 
-    @latest.setter
-    def latest(self, value: Dict[bytes, Union[bytes, DeletedEntry]]) -> None:
-        """
-        Setter for updating the *latest* changeset.
-        """
-        self.journal_data[self.latest_id] = value
+    def has_checkpoint(self, checkpoint: JournalDBCheckpoint) -> bool:
+        # another option would be to enforce monotonically-increasing checkpoints, so we can do:
+        # checkpoint_idx = bisect_left(self._checkpoint_stack, checkpoint)
+        # (then validate against length and value at index)
+        return checkpoint in self._checkpoint_stack
 
-    def is_empty(self) -> bool:
-        return len(self.journal_data) == 0
-
-    def has_changeset(self, changeset_id: uuid.UUID) -> bool:
-        return changeset_id in self.journal_data
-
-    def record_changeset(self) -> uuid.UUID:
+    def record_checkpoint(
+            self,
+            custom_checkpoint: JournalDBCheckpoint = None) -> JournalDBCheckpoint:
         """
-        Creates a new changeset. Changesets are referenced by a random uuid4
-        to prevent collisions between multiple changesets.
+        Creates a new checkpoint. Checkpoints are a sequential int chosen by Journal
+        to prevent collisions.
         """
-        changeset_id = uuid.uuid4()
-        self.journal_data[changeset_id] = {}
-        return changeset_id
+        if custom_checkpoint is not None:
+            if custom_checkpoint in self._journal_data:
+                raise ValidationError(
+                    "Tried to record with an existing checkpoint: %r" % custom_checkpoint
+                )
+            else:
+                checkpoint = custom_checkpoint
+        else:
+            checkpoint = get_next_checkpoint()
 
-    def pop_changeset(self, changeset_id: uuid.UUID) -> Dict[bytes, bytes]:
+        self._journal_data[checkpoint] = {}
+        self._checkpoint_stack.append(checkpoint)
+        return checkpoint
+
+    def discard(self, through_checkpoint_id: JournalDBCheckpoint) -> None:
+        while self._checkpoint_stack:
+            checkpoint_id = self._checkpoint_stack.pop()
+            if checkpoint_id == through_checkpoint_id:
+                break
+        else:
+            # checkpoint not found!
+            raise ValidationError("No checkpoint %s was found" % through_checkpoint_id)
+
+        # This might be optimized further by iterating the other direction and
+        # ignoring any follow-up rollbacks on the same variable.
+        for _ in range(len(self._journal_data)):
+            checkpoint_id, rollback_data = self._journal_data.popitem()
+
+            for old_key, old_value in rollback_data.items():
+                if old_value is REVERT_TO_WRAPPED:
+                    # The current value may not exist, if it was a delete followed by a clear,
+                    # so pop it off, or ignore if it is already missing
+                    self._current_values.pop(old_key, None)
+                elif old_value is DELETE_WRAPPED:
+                    self._current_values[old_key] = old_value
+                elif type(old_value) is bytes:
+                    self._current_values[old_key] = old_value
+                else:
+                    raise ValidationError("Unexpected value, must be bytes: %r" % old_value)
+
+            if checkpoint_id in self._clears_at:
+                self._clears_at.remove(checkpoint_id)
+                self._ignore_wrapped_db = False
+
+            if checkpoint_id == through_checkpoint_id:
+                break
+
+        if self._clears_at:
+            # if there is still a clear in older locations, then reinitiate the clear flag
+            self._ignore_wrapped_db = True
+
+    def clear(self) -> None:
         """
-        Returns all changes from the given changeset.  This includes all of
-        the changes from any subsequent changeset, giving precidence to
-        later changesets.
+        Treat as if the *underlying* database will also be cleared by some other mechanism.
+        We build a special empty reversion changeset just for marking that all previous data should
+        be ignored.
         """
-        if changeset_id not in self.journal_data:
-            raise KeyError("Unknown changeset: {0}".format(changeset_id))
+        checkpooint = get_next_checkpoint()
+        self._journal_data[checkpooint] = self._current_values
+        self._current_values = {}
+        self._ignore_wrapped_db = True
+        self._clears_at.add(checkpooint)
 
-        all_ids = tuple(self.journal_data.keys())
-        changeset_idx = all_ids.index(changeset_id)
-        changesets_to_pop = all_ids[changeset_idx:]
+    def has_clear(self, at_checkpoint: JournalDBCheckpoint) -> bool:
+        for reversion_changeset_id in reversed(self._journal_data.keys()):
+            if reversion_changeset_id in self._clears_at:
+                return True
+            elif at_checkpoint == reversion_changeset_id:
+                return False
+        raise ValidationError("Checkpoint %s is not in the journal" % at_checkpoint)
 
-        # we pull all of the changesets *after* the changeset we are
-        # reverting to and collapse them to a single set of keys (giving
-        # precedence to later changesets)
-        changeset_data = merge(*(
-            self.journal_data.pop(c_id)
-            for c_id
-            in changesets_to_pop
-        ))
-
-        return changeset_data
-
-    def commit_changeset(self, changeset_id: uuid.UUID) -> Dict[bytes, bytes]:
+    def commit_checkpoint(self, commit_to: JournalDBCheckpoint) -> ChangesetDict:
         """
-        Collapses all changes for the given changeset into the previous
-        changesets if it exists.
+        Collapses all changes since the given checkpoint. Can no longer discard to any of
+        the checkpoints that followed the given checkpoint.
         """
-        changeset_data = self.pop_changeset(changeset_id)
-        if not self.is_empty():
-            # we only have to merge the changes into the latest changeset if
-            # there is one.
-            self.latest = merge(
-                self.latest,
-                changeset_data,
+        # Another option would be to enforce monotonically-increasing changeset ids, so we can do:
+        # checkpoint_idx = bisect_left(self._checkpoint_stack, commit_to)
+        # (then validate against length and value at index)
+        for positions_before_last, checkpoint in enumerate(reversed(self._checkpoint_stack)):
+            if checkpoint == commit_to:
+                checkpoint_idx = -1 - positions_before_last
+                break
+        else:
+            raise ValidationError("No checkpoint %s was found" % commit_to)
+
+        if checkpoint_idx == -1 * len(self._checkpoint_stack):
+            raise ValidationError(
+                "Should not commit root changeset with commit_changeset, use pop_all() instead"
             )
-        return changeset_data
+
+        # delete committed checkpoints from the stack (but keep rollbacks for future discards)
+        del self._checkpoint_stack[checkpoint_idx:]
+
+        return self._current_values
+
+    def pop_all(self) -> ChangesetDict:
+        final_changes = self._current_values
+        self._journal_data.clear()
+        self._clears_at.clear()
+        self._current_values = {}
+        self._checkpoint_stack.clear()
+        self.record_checkpoint()
+        return final_changes
+
+    def flatten(self) -> None:
+        if self.is_flattened:
+            return
+
+        checkpoint_after_root = nth(1, self._checkpoint_stack)
+        self.commit_checkpoint(checkpoint_after_root)
 
     #
     # Database API
     #
-    def __getitem__(self, key: bytes) -> Union[bytes, DeletedEntry]:    # type: ignore # Breaks LSP
+    def __getitem__(self, key: bytes) -> ChangesetValue:    # type: ignore # Breaks LSP
         """
         For key lookups we need to iterate through the changesets in reverse
         order, returning from the first one in which the key is present.
         """
-        # Ignored from mypy because of https://github.com/python/typeshed/issues/2078
-        for changeset_data in reversed(self.journal_data.values()):
-            if key in changeset_data:
-                return changeset_data[key]
-            else:
-                continue
-
-        return None
+        # the default result (the value if not in the local values) depends on whether there
+        # was a clear
+        if self._ignore_wrapped_db:
+            default_result = REVERT_TO_WRAPPED
+        else:
+            default_result = None  # indicate that caller should check wrapped database
+        return self._current_values.get(key, default_result)
 
     def __setitem__(self, key: bytes, value: bytes) -> None:
-        self.latest[key] = value
+        # if the value has not been changed since wrapping, then simply revert to original value
+        revert_changeset = self._journal_data[self.last_checkpoint]
+        if key not in revert_changeset:
+            revert_changeset[key] = self._current_values.get(key, REVERT_TO_WRAPPED)
+        self._current_values[key] = value
 
     def _exists(self, key: bytes) -> bool:
         val = self.get(key)
-        return val is not None and val is not DELETED_ENTRY
+        return val is not None and val not in (REVERT_TO_WRAPPED, DELETE_WRAPPED)
 
     def __delitem__(self, key: bytes) -> None:
-        self.latest[key] = DELETED_ENTRY
+        raise NotImplementedError("You must delete with one of delete_local or delete_wrapped")
+
+    def delete_wrapped(self, key: bytes) -> None:
+        revert_changeset = self._journal_data[self.last_checkpoint]
+        if key not in revert_changeset:
+            revert_changeset[key] = self._current_values.get(key, REVERT_TO_WRAPPED)
+        self._current_values[key] = DELETE_WRAPPED
+
+    def delete_local(self, key: bytes) -> None:
+        revert_changeset = self._journal_data[self.last_checkpoint]
+        if key not in revert_changeset:
+            revert_changeset[key] = self._current_values.get(key, REVERT_TO_WRAPPED)
+        self._current_values[key] = REVERT_TO_WRAPPED
+
+    def diff(self) -> DBDiff:
+        tracker = DBDiffTracker()
+
+        for key, value in self._current_values.items():
+            if value is DELETE_WRAPPED:
+                del tracker[key]
+            elif value is REVERT_TO_WRAPPED:
+                pass
+            else:
+                tracker[key] = value  # type: ignore  # cast(bytes, value)
+
+        return tracker.diff()
 
 
 class JournalDB(BaseDB):
     """
     A wrapper around the basic DB objects that keeps a journal of all changes.
-    Each time a recording is started, the underlying journal creates a new
-    changeset and assigns an id to it. The journal then keeps track of all changes
-    that go into this changeset.
+    Checkpoints can be recorded at any time. You can then commit or roll back
+    to those checkpoints.
 
-    Discarding a changeset simply throws it away inculding all subsequent changesets
-    that may have followed. Commiting a changeset merges the given changeset and all
-    subsequent changesets into the previous changeset giving precidence to later
-    changesets in case of conflicting keys.
+    Discarding a checkpoint throws away all changes that happened since that
+    checkpoint.
+    Commiting a checkpoint simply removes the option of reverting back to it
+    later.
 
     Nothing is written to the underlying db until `persist()` is called.
 
     The added memory footprint for a JournalDB is one key/value stored per
-    database key which is changed.  Subsequent changes to the same key within
-    the same changeset will not increase the journal size since we only need
-    to track latest value for any given key within any given changeset.
+    database key which is changed, at each checkpoint.  Subsequent changes to the same key
+    between two checkpoints will not increase the journal size, since we
+    do not permit reverting to a place that has no checkpoint.
     """
-    wrapped_db = None
-    journal = None  # type: Journal
+    __slots__ = ['_wrapped_db', '_journal', 'record', 'commit']
 
     def __init__(self, wrapped_db: BaseDB) -> None:
-        self.wrapped_db = wrapped_db
+        self._wrapped_db = wrapped_db
+        self._journal = Journal()
+        self.record = self._journal.record_checkpoint
+        self.commit = self._journal.commit_checkpoint
         self.reset()
 
     def __getitem__(self, key: bytes) -> bytes:
 
-        val = self.journal[key]
-        if val is DELETED_ENTRY:
-            raise KeyError(key)
+        val = self._journal[key]
+        if val is DELETE_WRAPPED:
+            raise KeyError(
+                key,
+                "item is deleted in JournalDB, and will be deleted from the wrapped DB",
+            )
+        elif val is REVERT_TO_WRAPPED:
+            raise KeyError(
+                key,
+                "item is deleted in JournalDB, and is presumed gone from the wrapped DB",
+            )
         elif val is None:
-            return self.wrapped_db[key]
+            return self._wrapped_db[key]
         else:
             # mypy doesn't allow custom type guards yet so we need to cast here
             # even though we know it can only be `bytes` at this point.
@@ -189,76 +341,101 @@ class JournalDB(BaseDB):
         - replacing an existing value
         - setting a value that does not exist
         """
-        self.journal[key] = value
+        self._journal[key] = value
 
     def _exists(self, key: bytes) -> bool:
-        return key in self.journal or key in self.wrapped_db
+        val = self._journal[key]
+        if val in (REVERT_TO_WRAPPED, DELETE_WRAPPED):
+            return False
+        elif val is None:
+            return key in self._wrapped_db
+        else:
+            return True
+
+    def clear(self) -> None:
+        """
+        Remove all keys. Immediately after a clear, *all* getitem requests will return a KeyError.
+        That includes the changes pending persist and any data in the underlying database.
+
+        (This action is journaled, like all other actions)
+
+        clear will *not* persist the emptying of all keys in the underlying DB.
+        It only prevents any updates (or deletes!) before it from being persisted.
+
+        Any caller that wants to use clear must also make sure that the underlying database
+        reflects their desired end state (maybe emptied, maybe not).
+        """
+        self._journal.clear()
+
+    def has_clear(self) -> bool:
+        return self._journal.has_clear(self._journal.root_checkpoint)
 
     def __delitem__(self, key: bytes) -> None:
-        if key not in self.journal and key not in self.wrapped_db:
-            raise KeyError(key)
-        del self.journal[key]
+        if key in self._wrapped_db:
+            self._journal.delete_wrapped(key)
+        else:
+            if key in self._journal:
+                self._journal.delete_local(key)
+            else:
+                raise KeyError(key, "key could not be deleted in JournalDB, because it was missing")
 
     #
     # Snapshot API
     #
-    def _validate_changeset(self, changeset_id: uuid.UUID) -> None:
-        """
-        Checks to be sure the changeset is known by the journal
-        """
-        if not self.journal.has_changeset(changeset_id):
-            raise ValidationError("Changeset not found in journal: {0}".format(
-                str(changeset_id)
-            ))
+    def has_checkpoint(self, checkpoint: JournalDBCheckpoint) -> bool:
+        return self._journal.has_checkpoint(checkpoint)
 
-    def record(self) -> uuid.UUID:
+    def discard(self, checkpoint: JournalDBCheckpoint) -> None:
         """
-        Starts a new recording and returns an id for the associated changeset
+        Throws away all journaled data starting at the given checkpoint
         """
-        return self.journal.record_changeset()
+        self._journal.discard(checkpoint)
 
-    def discard(self, changeset_id: uuid.UUID) -> None:
-        """
-        Throws away all journaled data starting at the given changeset
-        """
-        self._validate_changeset(changeset_id)
-        self.journal.pop_changeset(changeset_id)
-
-    def commit(self, changeset_id: uuid.UUID) -> None:
-        """
-        Commits a given changeset. This merges the given changeset and all
-        subsequent changesets into the previous changeset giving precidence
-        to later changesets in case of any conflicting keys.
-
-        If this is the base changeset then all changes will be written to
-        the underlying database and the Journal starts a new recording.
-        """
-        self._validate_changeset(changeset_id)
-        journal_data = self.journal.commit_changeset(changeset_id)
-
-        if self.journal.is_empty():
-            for key, value in journal_data.items():
-                if value is not DELETED_ENTRY:
-                    self.wrapped_db[key] = value
-                else:
-                    try:
-                        del self.wrapped_db[key]
-                    except KeyError:
-                        pass
-
-            # Ensure the journal automatically restarts recording after
-            # it has been persisted to the underlying db
-            self.reset()
+    def _reapply_checkpoint_to_journal(
+            self,
+            journal_data: ChangesetDict) -> None:
+        for key, value in journal_data.items():
+            if value is DELETE_WRAPPED:
+                self._journal.delete_wrapped(key)
+            elif value is REVERT_TO_WRAPPED:
+                self._journal.delete_local(key)
+            else:
+                self._journal[key] = cast(bytes, value)
 
     def persist(self) -> None:
         """
-        Persist all changes in underlying db
+        Persist all changes in underlying db. After all changes have been written the
+        JournalDB starts a new recording.
         """
-        self.commit(self.journal.root_changeset_id)
+        journal_data = self._journal.pop_all()
+
+        for key, value in journal_data.items():
+            try:
+                if value is DELETE_WRAPPED:
+                    del self._wrapped_db[key]
+                elif value is REVERT_TO_WRAPPED:
+                    pass
+                else:
+                    self._wrapped_db[key] = cast(bytes, value)
+            except Exception:
+                self._reapply_checkpoint_to_journal(journal_data)
+                raise
+
+    def flatten(self) -> None:
+        """
+        Commit everything possible without persisting
+        """
+        self._journal.flatten()
 
     def reset(self) -> None:
         """
         Reset the entire journal.
         """
-        self.journal = Journal()
-        self.record()
+        self._journal.pop_all()
+
+    def diff(self) -> DBDiff:
+        """
+        Generate a DBDiff of all pending changes.
+        These are the changes that would occur if :meth:`persist()` were called.
+        """
+        return self._journal.diff()

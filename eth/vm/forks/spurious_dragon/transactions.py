@@ -17,7 +17,7 @@ from eth.vm.forks.homestead.transactions import (
     HomesteadUnsignedTransaction,
 )
 
-from eth.utils.transactions import (
+from eth._utils.transactions import (
     create_transaction_signature,
     extract_chain_id,
     is_eip_155_signed_transaction,

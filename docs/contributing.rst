@@ -32,7 +32,7 @@ We can run all tests with:
 
 .. code:: sh
 
-    pytest
+    pytest tests
 
 However, running the entire test suite does take a very long time so often we just want to run a subset instead, like:
 
@@ -72,37 +72,9 @@ All parameters as well as the return type of defs are expected to be typed with 
 Documentation
 ~~~~~~~~~~~~~
 
-Public APIs are expected to be annotated with docstrings as seen in the following example.
+Good documentation will lead to quicker adoption and happier users. Please check out our guide
+on `how to create documentation for the Python Ethereum ecosystem <https://github.com/ethereum/snake-charmers-tactical-manual/blob/master/documentation.md>`_.
 
-.. code:: python
-
-    def add_transaction(self,
-                        transaction: BaseTransaction,
-                        computation: BaseComputation,
-                        block: BaseBlock) -> Tuple[Block, Dict[bytes, bytes]]:
-            """
-            Add a transaction to the given block and
-            return `trie_data` to store the transaction data in chaindb in VM layer.
-
-            Update the bloom_filter, transaction trie and receipt trie roots, bloom_filter,
-            bloom, and used_gas of the block.
-
-            :param transaction: the executed transaction
-            :param computation: the Computation object with executed result
-            :param block: the Block which the transaction is added in
-
-            :return: the block and the trie_data
-            """
-
-Docstrings are written in reStructuredText and allow certain type of directives.
-
-Notice that ``:param:`` and ``:return:`` directives are being used to describe parameters and return value. Usage of ``:type:`` and ``:rtype:`` directives on the other hand is discouraged as sphinx directly reads and displays the types from the source code type definitions making any further use of ``:type:`` and ``:rtype:`` obsolete and unnecessarily verbose.
-
-Use imperative, present tense to describe APIs: “return” not “returns”
-
-One way to test if you have it right is to complete the following sentence.
-
-If you call this API it will: __________________________
 
 Pull Requests
 ~~~~~~~~~~~~~
@@ -114,10 +86,21 @@ submission.
 GitHub's documentation for working on pull requests is `available here <https://help.github.com/articles/about-pull-requests/>`_.
 
 Once you've made a pull request take a look at the Circle CI build status in the
-GitHub interface and make sure all tests are passing. In general pull requests that do not pass the CI build yet won't get reviewed unless explicitly requested.
+GitHub interface and make sure all tests are passing. In general pull requests that
+do not pass the CI build yet won't get reviewed unless explicitly requested.
+
+If the pull request introduces changes that should be reflected in the release notes,
+please add a `newsfragment` file as explained
+`here<https://github.com/ethereum/py-evm/blob/master/newsfragments/README.md>_`
+
+If possible, the change to the release notes file should be included in the commit that introduces the
+feature or bugfix.
 
 Releasing
 ~~~~~~~~~
+
+One time setup
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Pandoc is required for transforming the markdown README to the proper
 format to render correctly on pypi.
@@ -134,29 +117,44 @@ Or on OSX:
 
     brew install pandoc
 
-To release a new version:
+Final test before each release
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before releasing a new version, build and test the package that will be released:
 
 .. code:: sh
 
-    bumpversion $$VERSION_PART_TO_BUMP$$
-    git push && git push --tags
-    make release
+    git checkout master && git pull
 
-How to bumpversion
-^^^^^^^^^^^^^^^^^^
+    make package
+
+
+    # Preview the upcoming release notes
+    towncrier --draft
+
+Push the release to github & pypi
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After confirming that the release package looks okay, release a new version:
+
+.. code:: sh
+
+    make release bump=$$VERSION_PART_TO_BUMP$$
+
+
+Which version part to bump
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The version format for this repo is ``{major}.{minor}.{patch}`` for
 stable, and ``{major}.{minor}.{patch}-{stage}.{devnum}`` for unstable
 (``stage`` can be alpha or beta).
 
-To issue the next version in line, use bumpversion and specify which
-part to bump, like ``bumpversion minor`` or ``bumpversion devnum``.
+During a release, specify which part to bump, like
+``make release bump=minor`` or ``make release bump=devnum``.
 
-If you are in a beta version, ``bumpversion stage`` will switch to a
+If you are in a beta version, ``make release bump=stage`` will switch to a
 stable.
 
 To issue an unstable version when the current version is stable, specify
 the new version explicitly, like
-``bumpversion --new-version 4.0.0-alpha.1 devnum``
-
-
+``make release bump="--new-version 4.0.0-alpha.1 devnum"``

@@ -4,7 +4,8 @@ from typing import Iterable, Tuple
 
 import rlp
 
-from cytoolz import (
+from eth_utils.toolz import (
+    concat,
     first,
     sliding_window,
 )
@@ -41,7 +42,7 @@ from eth.validation import (
 
 
 class BaseHeaderDB(ABC):
-    db = None  # type: BaseAtomicDB
+    db: BaseAtomicDB = None
 
     def __init__(self, db: BaseAtomicDB) -> None:
         self.db = db
@@ -205,61 +206,81 @@ class HeaderDB(BaseHeaderDB):
             return self._persist_header_chain(db, headers)
 
     @classmethod
+    def _set_hash_scores_to_db(
+            cls,
+            db: BaseDB,
+            header: BlockHeader,
+            score: int
+    ) -> int:
+        new_score = score + header.difficulty
+
+        db.set(
+            SchemaV1.make_block_hash_to_score_lookup_key(header.hash),
+            rlp.encode(new_score, sedes=rlp.sedes.big_endian_int),
+        )
+
+        return new_score
+
+    @classmethod
     def _persist_header_chain(
             cls,
             db: BaseDB,
             headers: Iterable[BlockHeader]
     ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
+        headers_iterator = iter(headers)
+
         try:
-            first_header = first(headers)
+            first_header = first(headers_iterator)
         except StopIteration:
             return tuple(), tuple()
+
+        is_genesis = first_header.parent_hash == GENESIS_PARENT_HASH
+        if not is_genesis and not cls._header_exists(db, first_header.parent_hash):
+            raise ParentNotFound(
+                "Cannot persist block header ({}) with unknown parent ({})".format(
+                    encode_hex(first_header.hash), encode_hex(first_header.parent_hash)))
+
+        if is_genesis:
+            score = 0
         else:
+            score = cls._get_score(db, first_header.parent_hash)
 
-            for parent, child in sliding_window(2, headers):
-                if parent.hash != child.parent_hash:
-                    raise ValidationError(
-                        "Non-contiguous chain. Expected {} to have {} as parent but was {}".format(
-                            encode_hex(child.hash),
-                            encode_hex(parent.hash),
-                            encode_hex(child.parent_hash),
-                        )
+        curr_chain_head = first_header
+        db.set(
+            curr_chain_head.hash,
+            rlp.encode(curr_chain_head),
+        )
+        score = cls._set_hash_scores_to_db(db, curr_chain_head, score)
+
+        orig_headers_seq = concat([(first_header,), headers_iterator])
+        for parent, child in sliding_window(2, orig_headers_seq):
+            if parent.hash != child.parent_hash:
+                raise ValidationError(
+                    "Non-contiguous chain. Expected {} to have {} as parent but was {}".format(
+                        encode_hex(child.hash),
+                        encode_hex(parent.hash),
+                        encode_hex(child.parent_hash),
                     )
+                )
 
-            is_genesis = first_header.parent_hash == GENESIS_PARENT_HASH
-            if not is_genesis and not cls._header_exists(db, first_header.parent_hash):
-                raise ParentNotFound(
-                    "Cannot persist block header ({}) with unknown parent ({})".format(
-                        encode_hex(first_header.hash), encode_hex(first_header.parent_hash)))
-
-            if is_genesis:
-                score = 0
-            else:
-                score = cls._get_score(db, first_header.parent_hash)
-
-        for header in headers:
+            curr_chain_head = child
             db.set(
-                header.hash,
-                rlp.encode(header),
+                curr_chain_head.hash,
+                rlp.encode(curr_chain_head),
             )
 
-            score += header.difficulty
-
-            db.set(
-                SchemaV1.make_block_hash_to_score_lookup_key(header.hash),
-                rlp.encode(score, sedes=rlp.sedes.big_endian_int),
-            )
+            score = cls._set_hash_scores_to_db(db, curr_chain_head, score)
 
         try:
             previous_canonical_head = cls._get_canonical_head(db).hash
             head_score = cls._get_score(db, previous_canonical_head)
         except CanonicalHeadNotFound:
-            return cls._set_as_canonical_chain_head(db, header.hash)
+            return cls._set_as_canonical_chain_head(db, curr_chain_head.hash)
 
         if score > head_score:
-            return cls._set_as_canonical_chain_head(db, header.hash)
-        else:
-            return tuple(), tuple()
+            return cls._set_as_canonical_chain_head(db, curr_chain_head.hash)
+
+        return tuple(), tuple()
 
     @classmethod
     def _set_as_canonical_chain_head(cls, db: BaseDB, block_hash: Hash32

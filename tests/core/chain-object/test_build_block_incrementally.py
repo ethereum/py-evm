@@ -1,7 +1,7 @@
 import pytest
 
 from eth.chains.base import MiningChain
-from eth.utils.address import force_bytes_to_address
+from eth._utils.address import force_bytes_to_address
 
 from tests.core.helpers import (
     new_transaction,
@@ -62,8 +62,8 @@ def test_building_block_incrementally_with_multiple_transactions(
 
         # test that the pending block has the expected number of transactions
         vm = chain.get_vm()
-        assert len(vm.block.transactions) == expected_len
-        assert vm.block.transactions[-1] == tx
+        assert len(vm.get_block().transactions) == expected_len
+        assert vm.get_block().transactions[-1] == tx
 
         # test that the *latest* block hasn't changed
         assert chain.get_canonical_head().hash == head_hash

@@ -10,7 +10,7 @@ from eth_utils import (
 
 from eth import constants
 
-from eth.utils.padding import (
+from eth._utils.padding import (
     pad32,
     pad32r,
 )
@@ -27,16 +27,17 @@ from eth.vm.computation import (
 
 def ecrecover(computation: BaseComputation) -> BaseComputation:
     computation.consume_gas(constants.GAS_ECRECOVER, reason="ECRecover Precompile")
-    raw_message_hash = computation.msg.data[:32]
+    data = computation.msg.data_as_bytes
+    raw_message_hash = data[:32]
     message_hash = pad32r(raw_message_hash)
 
-    v_bytes = pad32r(computation.msg.data[32:64])
+    v_bytes = pad32r(data[32:64])
     v = big_endian_to_int(v_bytes)
 
-    r_bytes = pad32r(computation.msg.data[64:96])
+    r_bytes = pad32r(data[64:96])
     r = big_endian_to_int(r_bytes)
 
-    s_bytes = pad32r(computation.msg.data[96:128])
+    s_bytes = pad32r(data[96:128])
     s = big_endian_to_int(s_bytes)
 
     try:

@@ -7,7 +7,7 @@ from typing import (
     Sequence,
 )
 
-from cytoolz import merge_with
+from eth_utils.toolz import merge_with
 
 
 def merge_if_dicts(values: Sequence[Dict[Any, Any]]) -> Any:

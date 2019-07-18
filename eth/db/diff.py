@@ -3,13 +3,21 @@ from collections.abc import (
     MutableMapping,
 )
 from typing import (
+    cast,
     Dict,
     Iterable,
     Union,
+    Tuple,
     TYPE_CHECKING,
 )
 
+from eth_utils import (
+    encode_hex,
+    to_tuple,
+)
+
 from eth.db.backends.base import BaseDB
+from eth.vm.interrupt import EVMMissingData
 
 if TYPE_CHECKING:
     ABC_Mutable_Mapping = MutableMapping[bytes, Union[bytes, 'MissingReason']]
@@ -19,18 +27,12 @@ else:
     ABC_Mapping = Mapping
 
 
-class MissingReason:
-    def __init__(self, reason: str) -> None:
-        self.reason = reason
-
-    def __str__(self, reason: str) -> str:      # type: ignore
-        # Ignoring mypy type here because the function signature
-        # has been overwritten from the traditional `def __str__(self): ...`
-        return "Key is missing because it was {}".format(self.reason)
+class MissingReason(str):
+    pass
 
 
-NEVER_INSERTED = MissingReason("never inserted")
-DELETED = MissingReason("deleted")
+NEVER_INSERTED = MissingReason("Key is missing because it was never inserted")
+DELETED = MissingReason("Key is missing because it was deleted")
 
 
 class DiffMissingError(KeyError):
@@ -66,7 +68,7 @@ class DBDiffTracker(ABC_Mutable_Mapping):
     get the :class:`DBDiff` with :meth:`DBDiffTracker.diff` and use the attached methods.
     """
     def __init__(self) -> None:
-        self._changes = {}  # type: Dict[bytes, Union[bytes, MissingReason]]
+        self._changes: Dict[bytes, Union[bytes, MissingReason]] = {}
 
     def __contains__(self, key: bytes) -> bool:  # type: ignore # Breaks LSP
         result = self._changes.get(key, NEVER_INSERTED)
@@ -107,7 +109,7 @@ class DBDiff(ABC_Mapping):
     The primary usage is to apply these changes to your underlying
     database with :meth:`apply_to`.
     """
-    _changes = None  # type: Dict[bytes, Union[bytes, MissingReason]]
+    _changes: Dict[bytes, Union[bytes, MissingReason]] = None
 
     def __init__(self, changes: Dict[bytes, Union[bytes, MissingReason]] = None) -> None:
         if changes is None:
@@ -124,11 +126,60 @@ class DBDiff(ABC_Mapping):
 
     def __iter__(self) -> None:
         raise NotImplementedError(
-            "Cannot iterate through changes, use apply_to(db) to update a database"
+            "Cannot iterate through changes, use apply_to(db) to update a database. "
+            "Also, pending_keys(), deleted_keys(), and pending_items() might be of interest."
         )
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, DBDiff):
+            return False
+        else:
+            return self._changes == other._changes
+
+    def __repr__(self) -> str:
+        deleted = [
+            'key=%s' % encode_hex(key)
+            for key, val in self._changes.items()
+            if val is DELETED
+        ]
+        updated = [
+            "key=%s to val=%s" % (encode_hex(key), encode_hex(cast(bytes, val)))
+            for key, val in self._changes.items()
+            if val is not DELETED
+        ]
+        return "<DBDiff: deletions=%r, updates=%r>" % (deleted, updated)
 
     def __len__(self) -> int:
         return len(self._changes)
+
+    @to_tuple
+    def deleted_keys(self) -> Iterable[bytes]:
+        """
+        List all the keys that have been deleted.
+        """
+        for key, value in self._changes.items():
+            if value is DELETED:
+                yield key
+
+    @to_tuple
+    def pending_keys(self) -> Iterable[bytes]:
+        """
+        List all the keys who have had values change. This IGNORES
+        any keys that have been deleted.
+        """
+        for key, value in self._changes.items():
+            if value is not DELETED:
+                yield key
+
+    @to_tuple
+    def pending_items(self) -> Iterable[Tuple[bytes, bytes]]:
+        """
+        A tuple of (key, value) pairs for every key that has been updated.
+        Like :meth:`pending_keys()`, this does not return any deleted keys.
+        """
+        for key, value in self._changes.items():
+            if value is not DELETED:
+                yield key, value  # type: ignore # value can only be DELETED or actual new value
 
     def apply_to(self,
                  db: Union[BaseDB, ABC_Mutable_Mapping],
@@ -145,6 +196,8 @@ class DBDiff(ABC_Mapping):
                 if apply_deletes:
                     try:
                         del db[key]
+                    except EVMMissingData:
+                        raise
                     except KeyError:
                         pass
                 else:

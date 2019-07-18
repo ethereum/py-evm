@@ -4,7 +4,7 @@ from abc import (
     abstractmethod,
 )
 import contextlib
-import functools
+import itertools
 import logging
 from typing import (
     Any,
@@ -15,23 +15,18 @@ from typing import (
     Type,
 )
 
-import rlp
+from typing import Set
 
-from eth_bloom import (
-    BloomFilter,
-)
-
+from eth_hash.auto import keccak
 from eth_typing import (
     Address,
     Hash32,
 )
-
 from eth_utils import (
-    to_tuple,
     ValidationError,
 )
+import rlp
 
-from eth_hash.auto import keccak
 from eth.consensus.pow import (
     check_pow,
 )
@@ -40,8 +35,11 @@ from eth.constants import (
     MAX_PREV_HEADER_DEPTH,
     MAX_UNCLES,
 )
+from eth.db.backends.base import (
+    BaseAtomicDB,
+)
 from eth.db.trie import make_trie_root_and_nodes
-from eth.db.chain import BaseChainDB  # noqa: F401
+from eth.db.chain import BaseChainDB
 from eth.exceptions import (
     HeaderNotFound,
 )
@@ -53,25 +51,28 @@ from eth.rlp.headers import (
 )
 from eth.rlp.receipts import Receipt
 from eth.rlp.sedes import (
-    int32,
+    uint32,
 )
 from eth.rlp.transactions import (
     BaseTransaction,
     BaseUnsignedTransaction,
 )
-from eth.utils.datatypes import (
+from eth._utils.datatypes import (
     Configurable,
 )
-from eth.utils.db import (
+from eth._utils.db import (
     get_parent_header,
     get_block_header_by_hash,
 )
-from eth.utils.headers import (
+from eth._utils.headers import (
     generate_header_from_parent_header,
 )
 from eth.validation import (
     validate_length_lte,
     validate_gas_limit,
+)
+from eth.vm.interrupt import (
+    EVMMissingData,
 )
 from eth.vm.message import (
     Message,
@@ -81,19 +82,35 @@ from eth.vm.computation import BaseComputation
 
 
 class BaseVM(Configurable, ABC):
-    block = None  # type: BaseBlock
-    block_class = None  # type: Type[BaseBlock]
-    fork = None  # type: str
-    chaindb = None  # type: BaseChainDB
-    _state_class = None  # type: Type[BaseState]
+    block_class: Type[BaseBlock] = None
+    fork: str = None  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
+    chaindb: BaseChainDB = None
+    _state_class: Type[BaseState] = None
+
+    @abstractmethod
+    def __init__(self, header: BlockHeader, chaindb: BaseChainDB) -> None:
+        pass
 
     @property
     @abstractmethod
     def state(self) -> BaseState:
-        raise NotImplementedError("VM classes must implement this property")
+        pass
+
+    @classmethod
+    @abstractmethod
+    def build_state(cls,
+                    db: BaseAtomicDB,
+                    header: BlockHeader,
+                    previous_hashes: Iterable[Hash32] = ()
+                    ) -> BaseState:
+        pass
 
     @abstractmethod
-    def __init__(self, header: BlockHeader, chaindb: BaseChainDB) -> None:
+    def get_header(self) -> BlockHeader:
+        pass
+
+    @abstractmethod
+    def get_block(self) -> BaseBlock:
         pass
 
     #
@@ -111,7 +128,7 @@ class BaseVM(Configurable, ABC):
     def apply_transaction(self,
                           header: BlockHeader,
                           transaction: BaseTransaction
-                          ) -> Tuple[BlockHeader, Receipt, BaseComputation]:
+                          ) -> Tuple[Receipt, BaseComputation]:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
@@ -124,14 +141,14 @@ class BaseVM(Configurable, ABC):
                          value: int,
                          data: bytes,
                          code: bytes,
-                         code_address: Address=None) -> BaseComputation:
+                         code_address: Address = None) -> BaseComputation:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
     def apply_all_transactions(
-            self,
-            transactions: Tuple[BaseTransaction, ...],
-            base_header: BlockHeader
+        self,
+        transactions: Tuple[BaseTransaction, ...],
+        base_header: BlockHeader
     ) -> Tuple[BlockHeader, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:
         raise NotImplementedError("VM classes must implement this method")
 
@@ -186,6 +203,15 @@ class BaseVM(Configurable, ABC):
     #
     # Headers
     #
+    @abstractmethod
+    def add_receipt_to_header(self, old_header: BlockHeader, receipt: Receipt) -> BlockHeader:
+        """
+        Apply the receipt to the old header, and return the resulting header. This may have
+        storage-related side-effects. For example, pre-Byzantium, the state root hash
+        is included in the receipt, and so must be stored into the database.
+        """
+        pass
+
     @classmethod
     @abstractmethod
     def compute_difficulty(cls, parent_header: BlockHeader, timestamp: int) -> int:
@@ -257,7 +283,6 @@ class BaseVM(Configurable, ABC):
 
     @classmethod
     @abstractmethod
-    @to_tuple
     def get_prev_hashes(cls,
                         last_block_hash: Hash32,
                         chaindb: BaseChainDB) -> Optional[Iterable[Hash32]]:
@@ -312,8 +337,11 @@ class BaseVM(Configurable, ABC):
 
     @classmethod
     @abstractmethod
-    def validate_header(
-            cls, header: BlockHeader, parent_header: BlockHeader, check_seal: bool = True) -> None:
+    def validate_header(cls,
+                        header: BlockHeader,
+                        parent_header: BlockHeader,
+                        check_seal: bool = True
+                        ) -> None:
         raise NotImplementedError("VM classes must implement this method")
 
     @abstractmethod
@@ -337,8 +365,11 @@ class BaseVM(Configurable, ABC):
 
     @classmethod
     @abstractmethod
-    def validate_uncle(
-            cls, block: BaseBlock, uncle: BlockHeader, uncle_parent: BlockHeader) -> None:
+    def validate_uncle(cls,
+                       block: BaseBlock,
+                       uncle: BlockHeader,
+                       uncle_parent: BlockHeader
+                       ) -> None:
         raise NotImplementedError("VM classes must implement this method")
 
     #
@@ -356,6 +387,7 @@ class BaseVM(Configurable, ABC):
 
 
 class VM(BaseVM):
+    cls_logger = logging.getLogger('eth.vm.base.VM')
     """
     The :class:`~eth.vm.base.BaseVM` class represents the Chain rules for a
     specific protocol definition such as the Frontier or Homestead network.
@@ -369,20 +401,45 @@ class VM(BaseVM):
     """
 
     _state = None
+    _block = None
 
     def __init__(self, header: BlockHeader, chaindb: BaseChainDB) -> None:
         self.chaindb = chaindb
-        self.block = self.get_block_class().from_header(header=header, chaindb=self.chaindb)
+        self._initial_header = header
+
+    def get_header(self) -> BlockHeader:
+        if self._block is None:
+            return self._initial_header
+        else:
+            return self._block.header
+
+    def get_block(self) -> BaseBlock:
+        if self._block is None:
+            block_class = self.get_block_class()
+            self._block = block_class.from_header(header=self._initial_header, chaindb=self.chaindb)
+        return self._block
 
     @property
     def state(self) -> BaseState:
         if self._state is None:
-            self._state = self.get_state_class()(
-                db=self.chaindb.db,
-                execution_context=self.block.header.create_execution_context(self.previous_hashes),
-                state_root=self.block.header.state_root,
-            )
+            self._state = self.build_state(self.chaindb.db, self.get_header(), self.previous_hashes)
         return self._state
+
+    @classmethod
+    def build_state(cls,
+                    db: BaseAtomicDB,
+                    header: BlockHeader,
+                    previous_hashes: Iterable[Hash32] = ()
+                    ) -> BaseState:
+        """
+        You probably want `VM().state` instead of this.
+
+        Occasionally, you want to build custom state against a particular header and DB,
+        even if you don't have the VM initialized. This is a convenience method to do that.
+        """
+
+        execution_context = header.create_execution_context(previous_hashes)
+        return cls.get_state_class()(db, execution_context, header.state_root)
 
     #
     # Logging
@@ -397,7 +454,7 @@ class VM(BaseVM):
     def apply_transaction(self,
                           header: BlockHeader,
                           transaction: BaseTransaction
-                          ) -> Tuple[BlockHeader, Receipt, BaseComputation]:
+                          ) -> Tuple[Receipt, BaseComputation]:
         """
         Apply the transaction to the current block. This is a wrapper around
         :func:`~eth.vm.state.State.apply_transaction` with some extra orchestration logic.
@@ -406,17 +463,11 @@ class VM(BaseVM):
         :param transaction: to apply
         """
         self.validate_transaction_against_header(header, transaction)
-        state_root, computation = self.state.apply_transaction(transaction)
+        computation = self.state.apply_transaction(transaction)
         receipt = self.make_receipt(header, transaction, computation, self.state)
         self.validate_receipt(receipt)
 
-        new_header = header.copy(
-            bloom=int(BloomFilter(header.bloom) | receipt.bloom),
-            gas_used=receipt.gas_used,
-            state_root=state_root,
-        )
-
-        return new_header, receipt, computation
+        return receipt, computation
 
     def execute_bytecode(self,
                          origin: Address,
@@ -427,7 +478,7 @@ class VM(BaseVM):
                          value: int,
                          data: bytes,
                          code: bytes,
-                         code_address: Address=None,
+                         code_address: Address = None,
                          ) -> BaseComputation:
         """
         Execute raw bytecode in the context of the current state of
@@ -461,9 +512,9 @@ class VM(BaseVM):
         )
 
     def apply_all_transactions(
-            self,
-            transactions: Tuple[BaseTransaction, ...],
-            base_header: BlockHeader
+        self,
+        transactions: Tuple[BaseTransaction, ...],
+        base_header: BlockHeader
     ) -> Tuple[BlockHeader, Tuple[Receipt, ...], Tuple[BaseComputation, ...]]:
         """
         Determine the results of applying all transactions to the base header.
@@ -473,11 +524,11 @@ class VM(BaseVM):
         :param base_header: the starting header to apply transactions to
         :return: the final header, the receipts of each transaction, and the computations
         """
-        if base_header.block_number != self.block.number:
+        if base_header.block_number != self.get_header().block_number:
             raise ValidationError(
                 "This VM instance must only work on block #{}, "
                 "but the target header has block #{}".format(
-                    self.block.number,
+                    self.get_header().block_number,
                     base_header.block_number,
                 )
             )
@@ -488,11 +539,16 @@ class VM(BaseVM):
         result_header = base_header
 
         for transaction in transactions:
-            result_header, receipt, computation = self.apply_transaction(
-                previous_header,
-                transaction,
-            )
+            try:
+                snapshot = self.state.snapshot()
+                receipt, computation = self.apply_transaction(
+                    previous_header,
+                    transaction,
+                )
+            except EVMMissingData as exc:
+                self.state.revert(snapshot)
 
+            result_header = self.add_receipt_to_header(previous_header, receipt)
             previous_header = result_header
             receipts.append(receipt)
             computations.append(computation)
@@ -509,15 +565,15 @@ class VM(BaseVM):
         """
         Import the given block to the chain.
         """
-        if self.block.number != block.number:
+        if self.get_block().number != block.number:
             raise ValidationError(
                 "This VM can only import blocks at number #{}, the attempted block was #{}".format(
-                    self.block.number,
+                    self.get_block().number,
                     block.number,
                 )
             )
 
-        self.block = self.block.copy(
+        self._block = self.get_block().copy(
             header=self.configure_header(
                 coinbase=block.header.coinbase,
                 gas_limit=block.header.gas_limit,
@@ -529,18 +585,15 @@ class VM(BaseVM):
             ),
             uncles=block.uncles,
         )
+
         # we need to re-initialize the `state` to update the execution context.
-        self._state = self.get_state_class()(
-            db=self.chaindb.db,
-            execution_context=self.block.header.create_execution_context(self.previous_hashes),
-            state_root=self.block.header.state_root,
-        )
+        self._state = self.build_state(self.chaindb.db, self.get_header(), self.previous_hashes)
 
         # run all of the transactions.
-        new_header, receipts, _ = self.apply_all_transactions(block.transactions, self.block.header)
+        new_header, receipts, _ = self.apply_all_transactions(block.transactions, self.get_header())
 
-        self.block = self.set_block_transactions(
-            self.block,
+        self._block = self.set_block_transactions(
+            self.get_block(),
             new_header,
             block.transactions,
             receipts,
@@ -552,12 +605,9 @@ class VM(BaseVM):
         """
         Mine the current block. Proxies to self.pack_block method.
         """
-        packed_block = self.pack_block(self.block, *args, **kwargs)
+        packed_block = self.pack_block(self.get_block(), *args, **kwargs)
 
-        if packed_block.number == 0:
-            final_block = packed_block
-        else:
-            final_block = self.finalize_block(packed_block)
+        final_block = self.finalize_block(packed_block)
 
         # Perform validation
         self.validate_block(final_block)
@@ -587,15 +637,12 @@ class VM(BaseVM):
     #
     # Finalization
     #
-    def finalize_block(self, block: BaseBlock) -> BaseBlock:
-        """
-        Perform any finalization steps like awarding the block mining reward.
-        """
+    def _assign_block_rewards(self, block: BaseBlock) -> None:
         block_reward = self.get_block_reward() + (
             len(block.uncles) * self.get_nephew_reward()
         )
 
-        self.state.account_db.delta_balance(block.header.coinbase, block_reward)
+        self.state.delta_balance(block.header.coinbase, block_reward)
         self.logger.debug(
             "BLOCK REWARD: %s -> %s",
             block_reward,
@@ -604,16 +651,31 @@ class VM(BaseVM):
 
         for uncle in block.uncles:
             uncle_reward = self.get_uncle_reward(block.number, uncle)
-            self.state.account_db.delta_balance(uncle.coinbase, uncle_reward)
+            self.state.delta_balance(uncle.coinbase, uncle_reward)
             self.logger.debug(
                 "UNCLE REWARD REWARD: %s -> %s",
                 uncle_reward,
                 uncle.coinbase,
             )
+
+    def finalize_block(self, block: BaseBlock) -> BaseBlock:
+        """
+        Perform any finalization steps like awarding the block mining reward,
+        and persisting the final state root.
+        """
+        if block.number > 0:
+            snapshot = self.state.snapshot()
+            try:
+                self._assign_block_rewards(block)
+            except EVMMissingData as exc:
+                self.state.revert(snapshot)
+                raise
+            else:
+                self.state.commit(snapshot)
+
         # We need to call `persist` here since the state db batches
         # all writes until we tell it to write to the underlying db
-        # TODO: Refactor to only use batching/journaling for tx processing
-        self.state.account_db.persist()
+        self.state.persist()
 
         return block.copy(header=block.header.copy(state_root=self.state.state_root))
 
@@ -690,8 +752,6 @@ class VM(BaseVM):
             return cls.block_class
 
     @classmethod
-    @functools.lru_cache(maxsize=32)
-    @to_tuple
     def get_prev_hashes(cls,
                         last_block_hash: Hash32,
                         chaindb: BaseChainDB) -> Optional[Iterable[Hash32]]:
@@ -708,11 +768,11 @@ class VM(BaseVM):
                 break
 
     @property
-    def previous_hashes(self) -> Optional[Tuple[Hash32, ...]]:
+    def previous_hashes(self) -> Optional[Iterable[Hash32]]:
         """
         Convenience API for accessing the previous 255 block hashes.
         """
-        return self.get_prev_hashes(self.block.header.parent_hash, self.chaindb)
+        return self.get_prev_hashes(self.get_header().parent_hash, self.chaindb)
 
     #
     # Transactions
@@ -756,19 +816,29 @@ class VM(BaseVM):
     #
     @classmethod
     def validate_receipt(cls, receipt: Receipt) -> None:
+        already_checked: Set[Hash32] = set()
+
         for log_idx, log in enumerate(receipt.logs):
-            if log.address not in receipt.bloom_filter:
+            if log.address in already_checked:
+                continue
+            elif log.address not in receipt.bloom_filter:
                 raise ValidationError(
                     "The address from the log entry at position {0} is not "
                     "present in the provided bloom filter.".format(log_idx)
                 )
+            already_checked.add(log.address)
+
+        for log_idx, log in enumerate(receipt.logs):
             for topic_idx, topic in enumerate(log.topics):
-                if int32.serialize(topic) not in receipt.bloom_filter:
+                if topic in already_checked:
+                    continue
+                elif uint32.serialize(topic) not in receipt.bloom_filter:
                     raise ValidationError(
                         "The topic at position {0} from the log entry at "
                         "position {1} is not present in the provided bloom "
                         "filter.".format(topic_idx, log_idx)
                     )
+                already_checked.add(topic)
 
     def validate_block(self, block: BaseBlock) -> None:
         """
@@ -857,7 +927,14 @@ class VM(BaseVM):
                 )
 
             if check_seal:
-                cls.validate_seal(header)
+                try:
+                    cls.validate_seal(header)
+                except ValidationError:
+                    cls.cls_logger.warning(
+                        "Failed to validate header proof of work on header: %r",
+                        header.as_dict()
+                    )
+                    raise
 
     @classmethod
     def validate_seal(cls, header: BlockHeader) -> None:
@@ -906,15 +983,11 @@ class VM(BaseVM):
 
     @contextlib.contextmanager
     def state_in_temp_block(self) -> Iterator[BaseState]:
-        header = self.block.header
+        header = self.get_header()
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
-        prev_hashes = (header.hash, ) + self.previous_hashes
+        prev_hashes = itertools.chain((header.hash,), self.previous_hashes)
 
-        state = self.get_state_class()(
-            db=self.chaindb.db,
-            execution_context=temp_block.header.create_execution_context(prev_hashes),
-            state_root=temp_block.header.state_root,
-        )
+        state = self.build_state(self.chaindb.db, temp_block.header, prev_hashes)
 
         snapshot = state.snapshot()
         yield state

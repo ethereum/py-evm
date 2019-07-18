@@ -1,26 +1,12 @@
-from typing import (
-    Optional,
-)
+from typing import Optional
 
-from cytoolz import (
-    curry,
-)
+from eth_utils.toolz import curry
 
-from eth.exceptions import (
-    VMError,
-)
+from eth.exceptions import VMError
 
-from eth.rlp.transactions import (
-    BaseTransaction,
-)
-
-from eth.utils.spoof import (
-    SpoofTransaction,
-)
-
-from eth.vm.state import (
-    BaseState,
-)
+from eth.rlp.transactions import BaseTransaction
+from eth.vm.spoof import SpoofTransaction
+from eth.vm.state import BaseState
 
 
 def _get_computation_error(state: BaseState, transaction: SpoofTransaction) -> Optional[VMError]:

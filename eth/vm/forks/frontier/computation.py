@@ -16,7 +16,7 @@ from eth.exceptions import (
     StackDepthLimit,
 )
 
-from eth.utils.address import (
+from eth._utils.address import (
     force_bytes_to_address,
 )
 
@@ -51,24 +51,24 @@ class FrontierComputation(BaseComputation):
             raise StackDepthLimit("Stack depth limit reached")
 
         if self.msg.should_transfer_value and self.msg.value:
-            sender_balance = self.state.account_db.get_balance(self.msg.sender)
+            sender_balance = self.state.get_balance(self.msg.sender)
 
             if sender_balance < self.msg.value:
                 raise InsufficientFunds(
                     "Insufficient funds: {0} < {1}".format(sender_balance, self.msg.value)
                 )
 
-            self.state.account_db.delta_balance(self.msg.sender, -1 * self.msg.value)
-            self.state.account_db.delta_balance(self.msg.storage_address, self.msg.value)
+            self.state.delta_balance(self.msg.sender, -1 * self.msg.value)
+            self.state.delta_balance(self.msg.storage_address, self.msg.value)
 
-            self.logger.trace(
+            self.logger.debug2(
                 "TRANSFERRED: %s from %s -> %s",
                 self.msg.value,
                 encode_hex(self.msg.sender),
                 encode_hex(self.msg.storage_address),
             )
 
-        self.state.account_db.touch_account(self.msg.storage_address)
+        self.state.touch_account(self.msg.storage_address)
 
         computation = self.apply_computation(
             self.state,
@@ -101,11 +101,11 @@ class FrontierComputation(BaseComputation):
                 except OutOfGas:
                     computation.output = b''
                 else:
-                    self.logger.trace(
+                    self.logger.debug2(
                         "SETTING CODE: %s -> length: %s | hash: %s",
                         encode_hex(self.msg.storage_address),
                         len(contract_code),
                         encode_hex(keccak(contract_code))
                     )
-                    self.state.account_db.set_code(self.msg.storage_address, contract_code)
+                    self.state.set_code(self.msg.storage_address, contract_code)
             return computation

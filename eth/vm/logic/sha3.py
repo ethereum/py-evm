@@ -1,18 +1,18 @@
 from eth_hash.auto import keccak
 
 from eth import constants
-from eth.utils.numeric import (
+from eth._utils.numeric import (
     ceil32,
 )
 from eth.vm.computation import BaseComputation
 
 
 def sha3(computation: BaseComputation) -> None:
-    start_position, size = computation.stack_pop(num_items=2, type_hint=constants.UINT256)
+    start_position, size = computation.stack_pop_ints(2)
 
     computation.extend_memory(start_position, size)
 
-    sha3_bytes = computation.memory_read(start_position, size)
+    sha3_bytes = computation.memory_read_bytes(start_position, size)
     word_count = ceil32(len(sha3_bytes)) // 32
 
     gas_cost = constants.GAS_SHA3WORD * word_count
@@ -20,4 +20,4 @@ def sha3(computation: BaseComputation) -> None:
 
     result = keccak(sha3_bytes)
 
-    computation.stack_push(result)
+    computation.stack_push_bytes(result)

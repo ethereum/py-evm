@@ -18,7 +18,7 @@ from eth.db.chain import (
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.utils.padding import (
+from eth._utils.padding import (
     pad32
 )
 from eth.vm import (
@@ -42,6 +42,7 @@ NORMALIZED_ADDRESS_B = "0xcd1722f3947def4cf144679da39c4c32bdc35681"
 ADDRESS_WITH_CODE = ("0xddd722f3947def4cf144679da39c4c32bdc35681", b'pseudocode')
 EMPTY_ADDRESS_IN_STATE = NORMALIZED_ADDRESS_A
 ADDRESS_NOT_IN_STATE = NORMALIZED_ADDRESS_B
+ADDRESS_WITH_JUST_BALANCE = "0x0000000000000000000000000000000000000001"
 CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6")
 CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
 GENESIS_HEADER = BlockHeader(
@@ -83,8 +84,10 @@ def prepare_general_computation(vm_class, create_address=None, code=b''):
 
     computation = setup_computation(vm_class, create_address, code)
 
-    computation.state.account_db.touch_account(decode_hex(EMPTY_ADDRESS_IN_STATE))
-    computation.state.account_db.set_code(decode_hex(ADDRESS_WITH_CODE[0]), ADDRESS_WITH_CODE[1])
+    computation.state.touch_account(decode_hex(EMPTY_ADDRESS_IN_STATE))
+    computation.state.set_code(decode_hex(ADDRESS_WITH_CODE[0]), ADDRESS_WITH_CODE[1])
+
+    computation.state.set_balance(decode_hex(ADDRESS_WITH_JUST_BALANCE), 1)
 
     return computation
 
@@ -101,11 +104,49 @@ def prepare_general_computation(vm_class, create_address=None, code=b''):
 )
 def test_add(vm_class, val1, val2, expected):
     computation = prepare_general_computation(vm_class)
-    computation.stack_push(val1)
-    computation.stack_push(val2)
+    computation.stack_push_int(val1)
+    computation.stack_push_int(val2)
     computation.opcodes[opcode_values.ADD](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result = computation.stack_pop1_int()
+
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    'opcode_value, expected',
+    (
+        (opcode_values.COINBASE, b'\0' * 20),
+        # (opcode_values.TIMESTAMP, 1556826898),
+        (opcode_values.NUMBER, 0),
+        (opcode_values.DIFFICULTY, 17179869184),
+        (opcode_values.GASLIMIT, 5000),
+    )
+)
+def test_nullary_opcodes(VM, opcode_value, expected):
+    computation = prepare_general_computation(VM)
+    computation.opcodes[opcode_value](computation)
+
+    result = computation.stack_pop1_any()
+
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    'val1, expected',
+    (
+        (0, b''),
+        (1, b''),
+        (255, b''),
+        (256, b''),
+    )
+)
+def test_blockhash(VM, val1, expected):
+    computation = prepare_general_computation(VM)
+    computation.stack_push_int(val1)
+    computation.opcodes[opcode_values.BLOCKHASH](computation)
+
+    result = computation.stack_pop1_any()
 
     assert result == expected
 
@@ -122,11 +163,11 @@ def test_add(vm_class, val1, val2, expected):
 )
 def test_mul(vm_class, val1, val2, expected):
     computation = prepare_general_computation(vm_class)
-    computation.stack_push(val1)
-    computation.stack_push(val2)
+    computation.stack_push_int(val1)
+    computation.stack_push_int(val2)
     computation.opcodes[opcode_values.MUL](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result = computation.stack_pop1_int()
 
     assert result == expected
 
@@ -148,11 +189,11 @@ def test_mul(vm_class, val1, val2, expected):
 )
 def test_exp(vm_class, base, exponent, expected):
     computation = prepare_general_computation(vm_class)
-    computation.stack_push(exponent)
-    computation.stack_push(base)
+    computation.stack_push_int(exponent)
+    computation.stack_push_int(base)
     computation.opcodes[opcode_values.EXP](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result = computation.stack_pop1_int()
 
     assert result == expected
 
@@ -231,11 +272,11 @@ def test_exp(vm_class, base, exponent, expected):
 )
 def test_shl(vm_class, val1, val2, expected):
     computation = prepare_general_computation(vm_class)
-    computation.stack_push(decode_hex(val1))
-    computation.stack_push(decode_hex(val2))
+    computation.stack_push_bytes(decode_hex(val1))
+    computation.stack_push_bytes(decode_hex(val2))
     computation.opcodes[opcode_values.SHL](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result = computation.stack_pop1_int()
 
     assert encode_hex(pad32(int_to_big_endian(result))) == expected
 
@@ -314,11 +355,11 @@ def test_shl(vm_class, val1, val2, expected):
 )
 def test_shr(vm_class, val1, val2, expected):
     computation = prepare_general_computation(vm_class)
-    computation.stack_push(decode_hex(val1))
-    computation.stack_push(decode_hex(val2))
+    computation.stack_push_bytes(decode_hex(val1))
+    computation.stack_push_bytes(decode_hex(val2))
     computation.opcodes[opcode_values.SHR](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result = computation.stack_pop1_int()
     assert encode_hex(pad32(int_to_big_endian(result))) == expected
 
 
@@ -427,11 +468,11 @@ def test_shr(vm_class, val1, val2, expected):
 )
 def test_sar(vm_class, val1, val2, expected):
     computation = prepare_general_computation(vm_class)
-    computation.stack_push(decode_hex(val1))
-    computation.stack_push(decode_hex(val2))
+    computation.stack_push_bytes(decode_hex(val1))
+    computation.stack_push_bytes(decode_hex(val2))
     computation.opcodes[opcode_values.SAR](computation)
 
-    result = computation.stack_pop(type_hint=constants.UINT256)
+    result = computation.stack_pop1_int()
     assert encode_hex(pad32(int_to_big_endian(result))) == expected
 
 
@@ -446,6 +487,11 @@ def test_sar(vm_class, val1, val2, expected):
         (
             ConstantinopleVM,
             EMPTY_ADDRESS_IN_STATE,
+            '0x0000000000000000000000000000000000000000000000000000000000000000',
+        ),
+        (
+            ConstantinopleVM,
+            ADDRESS_WITH_JUST_BALANCE,
             '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470',
         ),
         (
@@ -459,10 +505,10 @@ def test_sar(vm_class, val1, val2, expected):
 def test_extcodehash(vm_class, address, expected):
     computation = prepare_general_computation(vm_class)
 
-    computation.stack_push(decode_hex(address))
+    computation.stack_push_bytes(decode_hex(address))
     computation.opcodes[opcode_values.EXTCODEHASH](computation)
 
-    result = computation.stack_pop(type_hint=constants.BYTES)
+    result = computation.stack_pop1_bytes()
     assert encode_hex(pad32(result)) == expected
 
 
@@ -609,9 +655,12 @@ def test_sstore(vm_class, code, gas_used, refund, original):
 
     computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, decode_hex(code))
 
-    computation.state.account_db.set_balance(CANONICAL_ADDRESS_B, 100000000000)
-    computation.state.account_db.set_storage(CANONICAL_ADDRESS_B, 0, original)
-    computation.state.account_db.persist()
+    computation.state.set_balance(CANONICAL_ADDRESS_B, 100000000000)
+    computation.state.set_storage(CANONICAL_ADDRESS_B, 0, original)
+    assert computation.state.get_storage(CANONICAL_ADDRESS_B, 0) == original
+    computation.state.persist()
+    assert computation.state.get_storage(CANONICAL_ADDRESS_B, 0, from_journal=True) == original
+    assert computation.state.get_storage(CANONICAL_ADDRESS_B, 0, from_journal=False) == original
 
     comp = computation.apply_message()
     assert comp.get_gas_refund() == refund

@@ -27,14 +27,15 @@ def test_apply_transaction(
     amount = 100
     from_ = funded_address
     tx = new_transaction(vm, from_, recipient, amount, funded_address_private_key)
-    new_header, _, computation = vm.apply_transaction(vm.block.header, tx)
+    receipt, computation = vm.apply_transaction(vm.get_header(), tx)
+    new_header = vm.add_receipt_to_header(vm.get_header(), receipt)
 
     assert not computation.is_error
     tx_gas = tx.gas_price * constants.GAS_TX
-    account_db = vm.state.account_db
-    assert account_db.get_balance(from_) == (
+    state = vm.state
+    assert state.get_balance(from_) == (
         funded_address_initial_balance - amount - tx_gas)
-    assert account_db.get_balance(recipient) == amount
+    assert state.get_balance(recipient) == amount
 
     assert new_header.gas_used == constants.GAS_TX
 
@@ -46,8 +47,8 @@ def test_mine_block_issues_block_reward(chain):
 
     block = chain.mine_block()
     vm = chain.get_vm()
-    coinbase_balance = vm.state.account_db.get_balance(block.header.coinbase)
-    assert coinbase_balance == constants.BLOCK_REWARD
+    coinbase_balance = vm.state.get_balance(block.header.coinbase)
+    assert coinbase_balance == vm.get_block_reward()
 
 
 def test_import_block(chain, funded_address, funded_address_private_key):

@@ -1,7 +1,6 @@
 import contextlib
-import io
 import logging
-from typing import (  # noqa: F401
+from typing import (
     Iterator,
     Set
 )
@@ -11,55 +10,55 @@ from eth.validation import (
 )
 from eth.vm import opcode_values
 
+PUSH1, PUSH32, STOP = opcode_values.PUSH1, opcode_values.PUSH32, opcode_values.STOP
 
-class CodeStream(object):
-    stream = None
-    depth_processed = None
+
+class CodeStream:
+    __slots__ = ['_length_cache', '_raw_code_bytes', 'invalid_positions', 'valid_positions', 'pc']
 
     logger = logging.getLogger('eth.vm.CodeStream')
 
     def __init__(self, code_bytes: bytes) -> None:
         validate_is_bytes(code_bytes, title="CodeStream bytes")
-        self.stream = io.BytesIO(code_bytes)
-        self.invalid_positions = set()  # type: Set[int]
-        self.depth_processed = 0
+        # in order to avoid method overhead when setting/accessing pc, we no longer fence
+        # the pc (Program Counter) into 0 <= pc <= len(code_bytes). We now let it float free.
+        # NOTE: Setting pc to a negative value has undefined behavior.
+        self.pc = 0
+        self._raw_code_bytes = code_bytes
+        self._length_cache = len(code_bytes)
+        self.invalid_positions: Set[int] = set()
+        self.valid_positions: Set[int] = set()
 
     def read(self, size: int) -> bytes:
-        return self.stream.read(size)
+        old_pc = self.pc
+        target_pc = old_pc + size
+        self.pc = target_pc
+        return self._raw_code_bytes[old_pc:target_pc]
 
     def __len__(self) -> int:
-        return len(self.stream.getvalue())
-
-    def __iter__(self) -> 'CodeStream':
-        return self
-
-    def __next__(self) -> int:
-        return self.next()
+        return self._length_cache
 
     def __getitem__(self, i: int) -> int:
-        return self.stream.getvalue()[i]
+        return self._raw_code_bytes[i]
 
-    def next(self) -> int:
-        next_opcode_as_byte = self.read(1)
+    def __iter__(self) -> Iterator[int]:
+        # a very performance-sensitive method
+        pc = self.pc
+        while pc < self._length_cache:
+            opcode = self._raw_code_bytes[pc]
+            self.pc = pc + 1
+            yield opcode
+            # a read might have adjusted the pc during the last yield
+            pc = self.pc
 
-        if next_opcode_as_byte:
-            return ord(next_opcode_as_byte)
-        else:
-            return opcode_values.STOP
+        yield STOP
 
     def peek(self) -> int:
-        current_pc = self.pc
-        next_opcode = next(self)
-        self.pc = current_pc
-        return next_opcode
-
-    @property
-    def pc(self) -> int:
-        return self.stream.tell()
-
-    @pc.setter
-    def pc(self, value: int) -> None:
-        self.stream.seek(min(value, len(self)))
+        pc = self.pc
+        if pc < self._length_cache:
+            return self._raw_code_bytes[pc]
+        else:
+            return STOP
 
     @contextlib.contextmanager
     def seek(self, pc: int) -> Iterator['CodeStream']:
@@ -70,30 +69,38 @@ class CodeStream(object):
         finally:
             self.pc = anchor_pc
 
-    invalid_positions = None
+    def _potentially_disqualifying_opcode_positions(self, position: int) -> Iterator[int]:
+        # Look at the last 32 positions (from 1 byte back to 32 bytes back).
+        # Don't attempt to look at negative positions.
+        deepest_lookback = min(32, position)
+        # iterate in reverse, because PUSH32 is more common than others
+        for bytes_back in range(deepest_lookback, 0, -1):
+            earlier_position = position - bytes_back
+            opcode = self._raw_code_bytes[earlier_position]
+            if PUSH1 + (bytes_back - 1) <= opcode <= PUSH32:
+                # that PUSH1, if two bytes back, isn't disqualifying
+                # PUSH32 in any of the bytes back is disqualifying
+                yield earlier_position
 
     def is_valid_opcode(self, position: int) -> bool:
-        if position >= len(self):
+        if position >= self._length_cache:
             return False
-        if position in self.invalid_positions:
+        elif position in self.invalid_positions:
             return False
-        if position <= self.depth_processed:
+        elif position in self.valid_positions:
             return True
         else:
-            i = self.depth_processed
-            while i <= position:
-                opcode = self.__getitem__(i)
-                if opcode >= opcode_values.PUSH1 and opcode <= opcode_values.PUSH32:
-                    left_bound = (i + 1)
-                    right_bound = left_bound + (opcode - 95)
-                    invalid_range = range(left_bound, right_bound)
-                    self.invalid_positions.update(invalid_range)
-                    i = right_bound
-                else:
-                    self.depth_processed = i
-                    i += 1
+            # An opcode is not valid, iff it is the "data" following a PUSH_
+            # So we look at the previous 32 bytes (PUSH32 being the largest) to see if there
+            # is a PUSH_ before the opcode in this position.
+            for disqualifier in self._potentially_disqualifying_opcode_positions(position):
+                # Now that we found a PUSH_ before this position, we check if *that* PUSH is valid
+                if self.is_valid_opcode(disqualifier):
+                    # If the PUSH_ valid, then the current position is invalid
+                    self.invalid_positions.add(position)
+                    return False
+                # Otherwise, keep looking for other potentially disqualifying PUSH_ codes
 
-            if position in self.invalid_positions:
-                return False
-            else:
-                return True
+            # We didn't find any valid PUSH_ opcodes in the 32 bytes before position; it's valid
+            self.valid_positions.add(position)
+            return True
