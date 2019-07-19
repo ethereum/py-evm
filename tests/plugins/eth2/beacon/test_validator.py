@@ -189,7 +189,7 @@ async def test_validator_propose_block_succeeds(event_loop, event_bus):
     assert new_head != head
 
     # test: ensure the block is broadcast to its peer
-    assert block in alice.node.list_beacon_block
+    assert block in alice.p2p_node.list_beacon_block
 
 
 @pytest.mark.asyncio
