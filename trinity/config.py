@@ -44,6 +44,10 @@ from eth_typing import (
     BLSPubkey,
 )
 
+from multiaddr import (
+    Multiaddr,
+)
+
 from eth2.beacon.chains.testnet import (
     TestnetChain,
 )
@@ -738,10 +742,10 @@ class BeaconAppConfig(BaseAppConfig):
         if args is not None:
             # This is quick and dirty way to get bootstrap_nodes
             trinity_config.bootstrap_nodes = tuple(
-                KademliaNode.from_uri(enode) for enode in args.bootstrap_nodes.split(',')
+                Multiaddr(maddr) for maddr in args.bootstrap_nodes.split(',')
             ) if args.bootstrap_nodes is not None else tuple()
             trinity_config.preferred_nodes = tuple(
-                KademliaNode.from_uri(enode) for enode in args.preferred_nodes.split(',')
+                Multiaddr(maddr) for maddr in args.preferred_nodes.split(',')
             ) if args.preferred_nodes is not None else tuple()
         return cls(trinity_config)
 

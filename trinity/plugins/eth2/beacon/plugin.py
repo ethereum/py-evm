@@ -60,11 +60,11 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
     def configure_parser(cls, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         arg_parser.add_argument(
             "--bootstrap_nodes",
-            help="enode://node1@0.0.0.0:1234,enode://node2@0.0.0.0:5678",
+            help="/ip4/127.0.0.1/tcp/1234/p2p/node1_peer_id,/ip4/127.0.0.1/tcp/5678/p2p/node1_peer_id",  # noqa: E501
         )
         arg_parser.add_argument(
             "--preferred_nodes",
-            help="enode://node1@0.0.0.0:1234,enode://node2@0.0.0.0:5678",
+            help="/ip4/127.0.0.1/tcp/1234/p2p/node1_peer_id,/ip4/127.0.0.1/tcp/5678/p2p/node1_peer_id",  # noqa: E501
         )
         arg_parser.add_argument(
             "--beacon-nodekey",
