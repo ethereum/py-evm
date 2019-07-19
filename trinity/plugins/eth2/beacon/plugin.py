@@ -4,6 +4,7 @@ from argparse import (
 )
 import asyncio
 from typing import (
+    Tuple,
     cast,
 )
 
@@ -14,6 +15,9 @@ from eth_keys.datatypes import (
 )
 
 from eth2.beacon.operations.attestation_pool import AttestationPool
+from eth2.beacon.types.attestations import (
+    Attestation,
+)
 from eth2.beacon.typing import (
     ValidatorIndex,
 )
@@ -106,13 +110,16 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
             validator_index = cast(ValidatorIndex, registry_pubkeys.index(pubkey))
             validator_privkeys[validator_index] = validator_keymap[pubkey]
 
+        def fake_get_ready_attestations_fn() -> Tuple[Attestation, ...]:
+            return tuple()
+
         validator = Validator(
             chain=chain,
             p2p_node=libp2p_node,
             validator_privkeys=validator_privkeys,
             event_bus=self.event_bus,
             token=libp2p_node.cancel_token,
-            get_ready_attestations_fn=lambda _: tuple(),  # FIXME: BCCReceiveServer.get_ready_attestations  # noqa: E501
+            get_ready_attestations_fn=fake_get_ready_attestations_fn,  # FIXME: BCCReceiveServer.get_ready_attestations  # noqa: E501
         )
 
         slot_ticker = SlotTicker(
