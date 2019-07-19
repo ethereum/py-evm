@@ -28,6 +28,14 @@ from eth_utils import (
     remove_0x_prefix,
 )
 
+from multiaddr import (
+    Multiaddr,
+)
+
+from trinity.protocol.bcc_libp2p.utils import (
+    peer_id_from_pubkey,
+)
+
 
 async def run(cmd):
     proc = await asyncio.create_subprocess_shell(
@@ -98,19 +106,19 @@ class Node:
 
     @property
     def logging_name(self) -> str:
-        return f"{self.name}@{remove_0x_prefix(self.node_id)[:6]}"
+        return f"{self.name}@{str(self.peer_id)[2:8]}"
 
     @property
     def root_dir(self) -> Path:
         return self.dir_root / self.name
 
     @property
-    def node_id(self) -> str:
-        return self.node_privkey.public_key.to_hex()
+    def peer_id(self) -> Multiaddr:
+        return peer_id_from_pubkey(self.node_privkey.public_key)
 
     @property
-    def enode_id(self) -> str:
-        return f"enode://{remove_0x_prefix(self.node_id)}@127.0.0.1:{self.port}"
+    def maddr(self) -> str:
+        return f"/ip4/127.0.0.1/tcp/{self.port}/p2p/{self.peer_id}"
 
     @property
     def cmd(self) -> str:
@@ -125,7 +133,7 @@ class Node:
             "-l debug2",
         ]
         if len(self.preferred_nodes) != 0:
-            preferred_nodes_str = ",".join([node.enode_id for node in self.preferred_nodes])
+            preferred_nodes_str = ",".join([node.maddr for node in self.preferred_nodes])
             _cmds.append(f"--preferred_nodes={preferred_nodes_str}")
         _cmd = " ".join(_cmds)
         return _cmd

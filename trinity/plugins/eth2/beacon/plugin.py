@@ -93,12 +93,14 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
         else:
             privkey = ecies.generate_privkey()
 
+        # TODO: Handle `bootstrap_nodes`.
         libp2p_node = Node(
             privkey=privkey,
             listen_ip="127.0.0.1",  # FIXME: Should be configurable
             listen_port=self.boot_info.args.port,
             security_protocol_ops={SECURITY_PROTOCOL_ID: InsecureTransport("plaintext")},
-            muxer_protocol_ids=[MULTIPLEXING_PROTOCOL_ID],
+            muxer_protocol_ids=(MULTIPLEXING_PROTOCOL_ID,),
+            preferred_nodes=self.boot_info.args.preferred_nodes,
         )
 
         state = chain.get_state_by_slot(chain_config.genesis_config.GENESIS_SLOT)

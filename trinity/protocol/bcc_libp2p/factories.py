@@ -1,4 +1,5 @@
 from typing import (
+    Any,
     Tuple,
 )
 
@@ -33,10 +34,18 @@ class NodeFactory(factory.Factory):
     listen_ip = "127.0.0.1"
     listen_port = factory.LazyFunction(get_open_port)
     security_protocol_ops = {SECURITY_PROTOCOL_ID: InsecureTransport("plaintext")}
-    muxer_protocol_ids = [MULTIPLEXING_PROTOCOL_ID]
+    muxer_protocol_ids = (MULTIPLEXING_PROTOCOL_ID,)
+    gossipsub_params = None
+    cancel_token = None
+    bootstrap_nodes = None
+    preferred_nodes = None
 
     @classmethod
     def create_batch(cls, number: int) -> Tuple[Node, ...]:
         return tuple(
             cls() for _ in range(number)
         )
+
+    @classmethod
+    def with_args(cls, *args: Any, **kwargs: Any) -> Node:
+        return cls(*args, **kwargs)
