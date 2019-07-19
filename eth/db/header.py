@@ -33,7 +33,7 @@ from eth.db.backends.base import (
     BaseAtomicDB,
     BaseDB,
 )
-from eth.db.schema import SchemaV1
+from eth.db.schema import SchemaV1, Schemas, ensure_schema
 from eth.rlp.headers import BlockHeader
 from eth.validation import (
     validate_block_number,
@@ -44,8 +44,12 @@ from eth.validation import (
 class BaseHeaderDB(ABC):
     db: BaseAtomicDB = None
 
-    def __init__(self, db: BaseAtomicDB) -> None:
+    def __init__(self, db: BaseAtomicDB,
+                 expected_schema: Schemas = Schemas.DEFAULT) -> None:
         self.db = db
+        self.schema = expected_schema
+
+        ensure_schema(db, expected_schema)
 
     #
     # Canonical Chain API
