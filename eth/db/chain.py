@@ -75,10 +75,6 @@ class TransactionKey(rlp.Serializable):
 class BaseChainDB(BaseHeaderDB):
     db: BaseAtomicDB = None
 
-    @abstractmethod
-    def __init__(self, db: BaseAtomicDB) -> None:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
     #
     # Header API
     #
@@ -166,9 +162,6 @@ class BaseChainDB(BaseHeaderDB):
 
 
 class ChainDB(HeaderDB, BaseChainDB):
-    def __init__(self, db: BaseAtomicDB) -> None:
-        self.db = db
-
     #
     # Header API
     #

@@ -29,6 +29,7 @@ from eth.db.account import (
 from eth.db.backends.base import (
     BaseAtomicDB,
 )
+from eth.db.schema import ensure_schema, Schemas
 from eth.exceptions import StateRootNotFound
 from eth.tools.logging import (
     ExtendedDebugLogger,
@@ -86,10 +87,13 @@ class BaseState(Configurable, ABC):
             self,
             db: BaseAtomicDB,
             execution_context: ExecutionContext,
-            state_root: bytes) -> None:
+            state_root: bytes,
+            expected_schema: Schemas = Schemas.DEFAULT) -> None:
         self._db = db
         self.execution_context = execution_context
         self._account_db = self.get_account_db_class()(db, state_root)
+
+        ensure_schema(db, expected_schema)
 
     #
     # Logging

@@ -1,9 +1,22 @@
 from abc import ABC, abstractmethod
+from enum import Enum
+
+from eth.exceptions import (
+    SchemaDoesNotMatchError,
+    SchemaNotRecognizedError,
+)
+
+from eth.db.backends.base import BaseDB
 
 from eth_typing import (
     BlockNumber,
     Hash32,
 )
+
+
+class Schemas(Enum):
+    DEFAULT = b'default'
+    TURBO = b'turbo'
 
 
 class BaseSchema(ABC):
@@ -45,3 +58,29 @@ class SchemaV1(BaseSchema):
     @staticmethod
     def make_transaction_hash_to_block_lookup_key(transaction_hash: Hash32) -> bytes:
         return b'transaction-hash-to-block:%s' % transaction_hash
+
+
+class SchemaTurbo(SchemaV1):
+    current_schema_lookup_key: bytes = b'current-schema'
+
+
+def get_schema(db: BaseDB) -> Schemas:
+    try:
+        current_schema = db[SchemaTurbo.current_schema_lookup_key]
+    except KeyError:
+        return Schemas.DEFAULT
+
+    try:
+        return Schemas(current_schema)
+    except ValueError:
+        raise SchemaNotRecognizedError(current_schema)
+
+
+def set_schema(db: BaseDB, schema: Schemas) -> None:
+    db.set(SchemaTurbo.current_schema_lookup_key, schema.value)
+
+
+def ensure_schema(db: BaseDB, expected_schema: Schemas) -> None:
+    reported_schema = get_schema(db)
+    if reported_schema != expected_schema:
+        raise SchemaDoesNotMatchError(reported_schema)

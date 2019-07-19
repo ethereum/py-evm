@@ -8,6 +8,18 @@ class PyEVMError(Exception):
     pass
 
 
+class SchemaNotRecognizedError(PyEVMError):
+    """
+    The database uses a schema which this version of py-evm does not support.
+    """
+
+
+class SchemaDoesNotMatchError(PyEVMError):
+    """
+    The database schema does not match the expected schema. It might need to be migrated.
+    """
+
+
 class VMNotFound(PyEVMError):
     """
     Raised when no VM is available for the provided block number.
