@@ -111,8 +111,8 @@ deps = {
     'libp2p': [
         "multiaddr>=0.0.8,<0.1.0",
         "pymultihash>=0.8.2",
-        # FIXME: Change to libp2p/py-libp2p after the branch is merged.
-        "libp2p @ git+https://git@github.com/mhchia/py-libp2p@9907007"  # noqa: E501
+        # FIXME: Change to PyPI after latest changes are released
+        "libp2p @ git+https://git@github.com/libp2p/py-libp2p@69a3553"
     ],
 }
 
