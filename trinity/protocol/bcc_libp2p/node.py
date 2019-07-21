@@ -52,7 +52,7 @@ from p2p.service import (
 )
 
 from .configs import (
-    PUBSUB_PROTOCOL_ID,
+    GOSSIPSUB_PROTOCOL_ID,
     GossipsubParams,
 )
 from .utils import (
@@ -96,7 +96,7 @@ class Node(BaseService):
         if gossipsub_params is None:
             gossipsub_params = GossipsubParams()
         gossipsub_router = GossipSub(
-            protocols=[PUBSUB_PROTOCOL_ID],
+            protocols=[GOSSIPSUB_PROTOCOL_ID],
             degree=gossipsub_params.DEGREE,
             degree_low=gossipsub_params.DEGREE_LOW,
             degree_high=gossipsub_params.DEGREE_HIGH,

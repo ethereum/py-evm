@@ -34,7 +34,7 @@ async def test_node_dial_peer(nodes):
     )
     assert nodes[0].peer_id in nodes[1].host.get_network().connections
     assert nodes[1].peer_id in nodes[0].host.get_network().connections
-    # Test: Reuse the old connection when connecting again
+    # Test: Second dial to a connected peer does not open a new connection
     original_conn = nodes[1].host.get_network().connections[nodes[0].peer_id]
     await nodes[0].dial_peer(
         nodes[1].listen_ip,

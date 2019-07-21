@@ -17,7 +17,7 @@ MULTISELECT_PROTOCOL_ID = "/multistream/1.0.0"
 
 MULTIPLEXING_PROTOCOL_ID = "/mplex/6.7.0"
 
-PUBSUB_PROTOCOL_ID = "/eth/serenity/gossipsub/1.0.0"
+GOSSIPSUB_PROTOCOL_ID = "/eth/serenity/gossipsub/1.0.0"
 
 PUBSUB_TOPIC_BEACON_BLOCK = "beacon_block"
 PUBSUB_TOPIC_BEACON_ATTESTATION = "beacon_attestation"
