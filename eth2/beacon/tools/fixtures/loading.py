@@ -32,7 +32,7 @@ from eth2.beacon.tools.fixtures.test_file import (
 # Eth2Config
 #
 def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
-    for key in list(dict_config):
+    for key in dict_config:
         if 'DOMAIN_' in key:
             # DOMAIN is defined in SignatureDomain
             dict_config.pop(key, None)
