@@ -11,6 +11,10 @@ from typing import (
 from eth_utils import (
     to_tuple,
 )
+from eth_utils.toolz import (
+    assoc,
+    keyfilter,
+)
 from ruamel.yaml import (
     YAML,
     YAMLError,
@@ -32,16 +36,18 @@ from eth2.beacon.tools.fixtures.test_file import (
 # Eth2Config
 #
 def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
-    for key in dict_config:
-        if 'DOMAIN_' in key:
-            # DOMAIN is defined in SignatureDomain
-            dict_config.pop(key, None)
+    config_without_domains = keyfilter(lambda name: "DOMAIN_" not in name, dict_config)
 
-    dict_config['GENESIS_EPOCH'] = compute_epoch_of_slot(
-        dict_config['GENESIS_SLOT'],
-        dict_config['SLOTS_PER_EPOCH'],
+    return Eth2Config(
+        **assoc(
+            config_without_domains,
+            "GENESIS_EPOCH",
+            compute_epoch_of_slot(
+                dict_config['GENESIS_SLOT'],
+                dict_config['SLOTS_PER_EPOCH'],
+            )
+        )
     )
-    return Eth2Config(**dict_config)
 
 
 def get_config(root_project_dir: Path, config_name: str) -> Eth2Config:
