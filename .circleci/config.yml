@@ -409,7 +409,6 @@ workflows:
       - py36-p2p-trio
       - py37-eth2-core
       - py37-eth2-utils
-      # temporarily disable fixtures tests while we update
       - py37-eth2-fixtures
       - py37-eth2-integration
       - py37-eth2-plugins
@@ -435,7 +434,6 @@ workflows:
       - py36-p2p-trio
       - py36-eth2-core
       - py36-eth2-utils
-      # temporarily disable fixtures tests while we update
       - py36-eth2-fixtures
       - py36-eth2-integration
       - py36-eth2-plugins
