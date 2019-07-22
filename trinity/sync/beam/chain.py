@@ -14,6 +14,7 @@ from eth.exceptions import (
 )
 from eth.rlp.blocks import BaseBlock
 from eth.rlp.headers import BlockHeader
+from eth.rlp.transactions import BaseTransaction
 from eth_typing import (
     Hash32,
     BlockNumber,
@@ -21,6 +22,7 @@ from eth_typing import (
 from eth_utils import (
     ValidationError,
 )
+import rlp
 
 from p2p.service import BaseService
 
@@ -38,6 +40,7 @@ from trinity.sync.common.events import (
     CollectMissingBytecode,
     CollectMissingStorage,
     DoStatelessBlockImport,
+    DoStatelessBlockPreview,
     MissingAccountCollected,
     MissingBytecodeCollected,
     MissingStorageCollected,
@@ -105,7 +108,13 @@ class BeamSyncer(BaseService):
             token=self.cancel_token,
         )
 
-        self._block_importer = BeamBlockImporter(chain, self._state_downloader, event_bus)
+        self._block_importer = BeamBlockImporter(
+            chain,
+            db,
+            self._state_downloader,
+            event_bus,
+            self.cancel_token,
+        )
         self._checkpoint_header_syncer = HeaderCheckpointSyncer(self._header_syncer)
         self._body_syncer = RegularChainBodySyncer(
             chain,
@@ -412,7 +421,7 @@ class HeaderOnlyPersist(BaseService):
             return self._final_headers
 
 
-class BeamBlockImporter(BaseBlockImporter, HasExtendedDebugLogger):
+class BeamBlockImporter(BaseBlockImporter, BaseService):
     """
     Block Importer that emits DoStatelessBlockImport and waits on the event bus for a
     StatelessBlockImportDone to show that the import is complete.
@@ -423,13 +432,22 @@ class BeamBlockImporter(BaseBlockImporter, HasExtendedDebugLogger):
     def __init__(
             self,
             chain: BaseAsyncChain,
+            db: BaseAsyncDB,
             state_getter: BeamDownloader,
-            event_bus: EndpointAPI) -> None:
+            event_bus: EndpointAPI,
+            token: CancelToken=None) -> None:
+        super().__init__(token=token)
+
         self._chain = chain
+        self._db = db
         self._state_downloader = state_getter
 
         self._blocks_imported = 0
         self._preloaded_account_state = 0
+        self._preloaded_previewed_account_state = 0
+        self._preloaded_account_time: float = 0
+        self._preloaded_previewed_account_time: float = 0
+        self._import_time: float = 0
 
         self._event_bus = event_bus
         # TODO: implement speculative execution, but at the txn level instead of block level
@@ -439,10 +457,19 @@ class BeamBlockImporter(BaseBlockImporter, HasExtendedDebugLogger):
             block: BaseBlock) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
         self.logger.info("Beam importing %s (%d txns) ...", block.header, len(block.transactions))
 
-        new_account_nodes = await self._pre_check_addresses(block)
+        parent_header = await self._chain.coro_get_block_header_by_hash(block.header.parent_hash)
+        new_account_nodes, collection_time = await self._load_address_state(
+            block.header,
+            parent_header.state_root,
+            block.transactions,
+        )
         self._preloaded_account_state += new_account_nodes
+        self._preloaded_account_time += collection_time
 
+        import_timer = Timer()
         import_done = await self._event_bus.request(DoStatelessBlockImport(block))
+        self._import_time += import_timer.elapsed
+
         if not import_done.completed:
             raise ValidationError("Block import was cancelled, probably a shutdown")
         if import_done.exception:
@@ -453,26 +480,116 @@ class BeamBlockImporter(BaseBlockImporter, HasExtendedDebugLogger):
         self._log_stats()
         return import_done.result
 
+    async def preview_transactions(
+            self,
+            header: BlockHeader,
+            transactions: Tuple[BaseTransaction, ...],
+            parent_state_root: Hash32,
+            lagging: bool = True) -> None:
+
+        self.run_task(self._preview_address_load(header, parent_state_root, transactions))
+
+        # This is a hack, so that preview executions can load ancestor block-hashes
+        self._db[header.hash] = rlp.encode(header)
+
+        if lagging:
+            # Only broadcast if the current import is lagging, to start running block previews
+            old_state_header = header.copy(state_root=parent_state_root)
+            self._event_bus.broadcast_nowait(
+                DoStatelessBlockPreview(old_state_header, transactions)
+            )
+
+    async def _preview_address_load(
+            self,
+            header: BlockHeader,
+            parent_state_root: Hash32,
+            transactions: Tuple[BaseTransaction, ...]) -> None:
+        """
+        Get account state for transaction addresses on a block being previewed in parallel.
+        """
+        new_account_nodes, collection_time = await self._load_address_state(
+            header,
+            parent_state_root,
+            transactions,
+            urgent=False,
+        )
+        self._preloaded_previewed_account_state += new_account_nodes
+        self._preloaded_previewed_account_time += collection_time
+
+    async def _load_address_state(
+            self,
+            header: BlockHeader,
+            parent_state_root: Hash32,
+            transactions: Tuple[BaseTransaction, ...],
+            urgent: bool=True) -> Tuple[int, float]:
+        """
+        Load all state needed to read transaction account status.
+        """
+
+        address_timer = Timer()
+        num_accounts, new_account_nodes = await self._request_address_nodes(
+            header,
+            parent_state_root,
+            transactions,
+            urgent,
+        )
+        collection_time = address_timer.elapsed
+
+        self.logger.debug(
+            "Previewed %s state for %d addresses in %.2fs; got %d trie nodes; urgent? %r",
+            header,
+            num_accounts,
+            collection_time,
+            new_account_nodes,
+            urgent,
+        )
+
+        return new_account_nodes, collection_time
+
     def _log_stats(self) -> None:
-        stats = {"account_preload": self._preloaded_account_state}
+        stats = {
+            "preload_nodes": self._preloaded_account_state,
+            "preload_time": self._preloaded_account_time,
+            "preload_preview_nodes": self._preloaded_previewed_account_state,
+            "preload_preview_time": self._preloaded_previewed_account_time,
+            "import_time": self._import_time,
+        }
         if self._blocks_imported:
             mean_stats = {key: val / self._blocks_imported for key, val in stats.items()}
         else:
             mean_stats = None
-        self.logger.info(
-            "Beam Download: "
+        self.logger.debug(
+            "Beam Download of %d blocks: "
             "%r, block_average: %r",
+            self._blocks_imported,
             stats,
             mean_stats,
         )
 
-    async def _pre_check_addresses(self, block: BaseBlock) -> int:
-        senders = [transaction.sender for transaction in block.transactions]
-        recipients = [transaction.to for transaction in block.transactions if transaction.to]
+    async def _request_address_nodes(
+            self,
+            header: BlockHeader,
+            parent_state_root: Hash32,
+            transactions: Tuple[BaseTransaction, ...],
+            urgent: bool=True) -> Tuple[int, int]:
+        """
+        Request any missing trie nodes needed to read account state for the given transactions.
+
+        :param urgent: are these addresses needed immediately? If False, they should they queue
+            up behind the urgent trie nodes.
+        """
+        senders = [transaction.sender for transaction in transactions]
+        recipients = [transaction.to for transaction in transactions if transaction.to]
         addresses = set(senders + recipients)
-        parent_header = await self._chain.coro_get_block_header_by_hash(block.header.parent_hash)
-        state_root_hash = parent_header.state_root
-        return await self._state_downloader.download_accounts(addresses, state_root_hash)
+        collected_nodes = await self._state_downloader.download_accounts(
+            addresses,
+            parent_state_root,
+            urgent=urgent,
+        )
+        return len(addresses), collected_nodes
+
+    async def _run(self) -> None:
+        await self.cancellation()
 
 
 class MissingDataEventHandler(BaseService):
@@ -501,29 +618,33 @@ class MissingDataEventHandler(BaseService):
 
     async def _provide_missing_account_tries(self) -> None:
         async for event in self.wait_iter(self._event_bus.stream(CollectMissingAccount)):
-            asyncio.ensure_future(self._serve_account(event))
+            self.run_task(self._serve_account(event))
 
     async def _provide_missing_bytecode(self) -> None:
         async for event in self.wait_iter(self._event_bus.stream(CollectMissingBytecode)):
-            asyncio.ensure_future(self._serve_bytecode(event))
+            self.run_task(self._serve_bytecode(event))
 
     async def _provide_missing_storage(self) -> None:
         async for event in self.wait_iter(self._event_bus.stream(CollectMissingStorage)):
-            asyncio.ensure_future(self._serve_storage(event))
+            self.run_task(self._serve_storage(event))
 
     async def _serve_account(self, event: CollectMissingAccount) -> None:
         _, num_nodes_collected = await self._state_downloader.download_account(
             event.address_hash,
             event.state_root_hash,
+            event.urgent,
         )
-        bonus_node = await self._state_downloader.ensure_nodes_present({event.missing_node_hash})
+        bonus_node = await self._state_downloader.ensure_nodes_present(
+            {event.missing_node_hash},
+            event.urgent,
+        )
         await self._event_bus.broadcast(
             MissingAccountCollected(num_nodes_collected + bonus_node),
             event.broadcast_config(),
         )
 
     async def _serve_bytecode(self, event: CollectMissingBytecode) -> None:
-        await self._state_downloader.ensure_nodes_present({event.bytecode_hash})
+        await self._state_downloader.ensure_nodes_present({event.bytecode_hash}, event.urgent)
         await self._event_bus.broadcast(MissingBytecodeCollected(), event.broadcast_config())
 
     async def _serve_storage(self, event: CollectMissingStorage) -> None:
@@ -531,8 +652,12 @@ class MissingDataEventHandler(BaseService):
             event.storage_key,
             event.storage_root_hash,
             event.account_address,
+            event.urgent,
         )
-        bonus_node = await self._state_downloader.ensure_nodes_present({event.missing_node_hash})
+        bonus_node = await self._state_downloader.ensure_nodes_present(
+            {event.missing_node_hash},
+            event.urgent,
+        )
         await self._event_bus.broadcast(
             MissingStorageCollected(num_nodes_collected + bonus_node),
             event.broadcast_config(),

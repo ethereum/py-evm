@@ -264,13 +264,14 @@ class BaseBlockImporter(ABC):
             self,
             header: BlockHeader,
             transactions: Tuple[BaseTransaction, ...],
+            parent_state_root: Hash32,
             lagging: bool = True) -> None:
         """
         Give the importer a chance to preview upcoming blocks. This can improve performance
 
         :param header: The header of the upcoming block
         :param transactions: The transactions in the upcoming block
-        :param old_state_root: The state root hash at the beginning of the upcoming block
+        :param parent_state_root: The state root hash at the beginning of the upcoming block
             (the end of the previous block)
         :param lagging: Is the upcoming block *very* far ahead of the current block?
 

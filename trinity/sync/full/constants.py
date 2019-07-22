@@ -22,4 +22,13 @@ BLOCK_QUEUE_SIZE_TARGET = 1000
 # This is specifically for blocks where execution happens locally.
 # So each block might have a pretty significant execution time, on
 #   the order of seconds.
-BLOCK_IMPORT_QUEUE_SIZE = 10
+# This is also used during Beam sync (maybe we should have a different constant?)
+# The number is derived by:
+#   - number of parallel processes running (currently 4)
+#   - how many block executions can run comfortably in a single process (~2)
+#       About half the time is spent executing, and the other half waiting on nodes
+#       This might change when we start benchmarking against remote nodes
+#   - how many blocks finish early/quickly, ~half, which doubles capacity (~2)
+#   So we multiply all these together to get 16 parallel executions to permit.
+#   The first block in the queue doesn't get previewed, which brings us to 17.
+BLOCK_IMPORT_QUEUE_SIZE = 17

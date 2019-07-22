@@ -1,0 +1,2 @@
+Beam Sync: parallel execution of blocks. When connected to a peer on a local network, can now
+keep up with mainnet (assuming a beefy machine). Also added beam stats in the logs.
