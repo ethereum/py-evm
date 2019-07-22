@@ -43,7 +43,7 @@ from tests.eth2.fixtures.path import (
 # Test files
 SANITY_FIXTURE_PATH = BASE_FIXTURE_PATH / 'sanity'
 FIXTURE_PATHES = (
-    SANITY_FIXTURE_PATH / 'slots',
+    SANITY_FIXTURE_PATH,
 )
 FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 

@@ -1,4 +1,5 @@
 from typing import (
+    Tuple,
     Type,
 )
 
@@ -25,15 +26,16 @@ def run_state_execution(test_case: StateTestCase,
                         chaindb: BeaconChainDB,
                         attestation_pool: AttestationPool,
                         state: BeaconState) -> BeaconState:
+    chaindb.persist_state(state)
     post_state = state
-    post_state = apply_advance_to_slot(
+    post_state, chaindb = apply_advance_to_slot(
         test_case,
         sm_class,
         chaindb,
         attestation_pool,
         post_state,
     )
-    post_state = apply_blocks(
+    post_state, chaindb = apply_blocks(
         test_case,
         sm_class,
         chaindb,
@@ -47,24 +49,26 @@ def apply_advance_to_slot(test_case: StateTestCase,
                           sm_class: Type[SerenityStateMachine],
                           chaindb: BeaconChainDB,
                           attestation_pool: AttestationPool,
-                          state: BeaconState) -> BeaconState:
+                          state: BeaconState) -> Tuple[BeaconState, BeaconChainDB]:
     post_state = state.copy()
     sm = sm_class(chaindb, attestation_pool, None, post_state)
     slot = test_case.pre.slot + test_case.slots
-    return advance_to_slot(sm, post_state, slot)
+    chaindb.persist_state(post_state)
+    return advance_to_slot(sm, post_state, slot), chaindb
 
 
 def apply_blocks(test_case: StateTestCase,
                  sm_class: Type[SerenityStateMachine],
                  chaindb: BeaconChainDB,
                  attestation_pool: AttestationPool,
-                 state: BeaconState) -> BeaconState:
+                 state: BeaconState) -> Tuple[BeaconState, BeaconChainDB]:
     post_state = state.copy()
     for block in test_case.blocks:
         sm = sm_class(chaindb, attestation_pool, None, post_state)
         post_state, _ = sm.import_block(block)
+        chaindb.persist_state(post_state)
 
-    return state
+    return post_state, chaindb
 
 
 def verify_state(test_case: StateTestCase, post_state: BeaconState) -> None:
@@ -77,6 +81,6 @@ def verify_state(test_case: StateTestCase, post_state: BeaconState) -> None:
         if dict_post_state[key] != value:
             raise AssertionError(
                 f"state.{key} is incorrect:\n"
-                f"\tExpected: {dict_post_state[key]}\n"
-                f"\tResult: {value}\n"
+                f"\tExpected: {value}\n"
+                f"\tResult: {dict_post_state[key]}\n"
             )
