@@ -1,22 +1,17 @@
 from typing import (
     Iterable,
 )
+
+from p2p.abc import CommandAPI
 from p2p.peer import (
     BasePeer,
     BasePeerContext,
     BasePeerFactory,
 )
-from p2p.peer_pool import (
-    BasePeerPool,
-)
-from p2p.protocol import (
-    Command,
-    _DecodedMsgType,
-)
+from p2p.peer_pool import BasePeerPool
+from p2p.typing import PayloadType
 
-from .proto import (
-    ParagonProtocol,
-)
+from .proto import ParagonProtocol
 
 
 class ParagonPeer(BasePeer):
@@ -27,7 +22,7 @@ class ParagonPeer(BasePeer):
         pass
 
     async def process_sub_proto_handshake(
-            self, cmd: Command, msg: _DecodedMsgType) -> None:
+            self, cmd: CommandAPI, msg: PayloadType) -> None:
         pass
 
     async def do_sub_proto_handshake(self) -> None:

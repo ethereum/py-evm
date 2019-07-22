@@ -5,7 +5,7 @@ from typing import (
 
 from eth_typing import BlockIdentifier
 
-from p2p.protocol import BaseRequest
+from p2p.abc import RequestAPI
 
 from trinity.protocol.common.requests import (
     BaseHeaderRequest,
@@ -40,7 +40,7 @@ class HeaderRequest(BaseHeaderRequest):
         self.request_id = request_id
 
 
-class GetBlockHeadersRequest(BaseRequest[Dict[str, Any]]):
+class GetBlockHeadersRequest(RequestAPI[Dict[str, Any]]):
     cmd_type = GetBlockHeaders
     response_type = BlockHeaders
 

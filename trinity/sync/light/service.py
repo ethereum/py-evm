@@ -21,7 +21,7 @@ from async_lru import alru_cache
 import rlp
 
 from eth_typing import (
-    Address,
+    Address as ETHAddress,
     Hash32,
 )
 
@@ -44,27 +44,26 @@ from eth.rlp.accounts import Account
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 
+from p2p.abc import CommandAPI
 from p2p.exceptions import (
     BadLESResponse,
     NoConnectedPeers,
     NoEligiblePeers,
 )
-from p2p import protocol
 from p2p.constants import (
     COMPLETION_TIMEOUT,
     MAX_REORG_DEPTH,
     MAX_REQUEST_ATTEMPTS,
     REPLY_TIMEOUT,
 )
-from p2p.p2p_proto import (
-    DisconnectReason,
-)
+from p2p.disconnect import DisconnectReason
 from p2p.peer import PeerSubscriber
 from p2p.protocol import Command
 from p2p.service import (
     BaseService,
     service_timeout,
 )
+from p2p.typing import PayloadType
 
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.les.peer import LESPeer, LESPeerPool
@@ -86,11 +85,11 @@ class BaseLightPeerChain(ABC):
         pass
 
     @abstractmethod
-    async def coro_get_account(self, block_hash: Hash32, address: Address) -> Account:
+    async def coro_get_account(self, block_hash: Hash32, address: ETHAddress) -> Account:
         pass
 
     @abstractmethod
-    async def coro_get_contract_code(self, block_hash: Hash32, address: Address) -> bytes:
+    async def coro_get_contract_code(self, block_hash: Hash32, address: ETHAddress) -> bytes:
         pass
 
 
@@ -107,10 +106,10 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         BaseService.__init__(self, token)
         self.headerdb = headerdb
         self.peer_pool = peer_pool
-        self._pending_replies: Dict[int, Callable[[protocol._DecodedMsgType], None]] = {}
+        self._pending_replies: Dict[int, Callable[[PayloadType], None]] = {}
 
     # TODO: be more specific about what messages we want.
-    subscription_msg_types: FrozenSet[Type[Command]] = frozenset({Command})
+    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset({Command})
 
     # Here we only care about replies to our requests, ignoring most msgs (which are supposed
     # to be handled by the chain syncer), so our queue should never grow too much.
@@ -134,9 +133,9 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         reply = None
         got_reply = asyncio.Event()
 
-        def callback(r: protocol._DecodedMsgType) -> None:
+        def callback(value: PayloadType) -> None:
             nonlocal reply
-            reply = r
+            reply = value
             got_reply.set()
 
         self._pending_replies[request_id] = callback
@@ -190,7 +189,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     @service_timeout(COMPLETION_TIMEOUT)
-    async def coro_get_account(self, block_hash: Hash32, address: Address) -> Account:
+    async def coro_get_account(self, block_hash: Hash32, address: ETHAddress) -> Account:
         return await self._retry_on_bad_response(
             partial(self._get_account_from_peer, block_hash, address)
         )
@@ -198,7 +197,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     async def _get_account_from_peer(
             self,
             block_hash: Hash32,
-            address: Address,
+            address: ETHAddress,
             peer: LESPeer) -> Account:
         key = keccak(address)
         proof = await self._get_proof(peer, block_hash, account_key=b'', key=key)
@@ -214,7 +213,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     @service_timeout(COMPLETION_TIMEOUT)
-    async def coro_get_contract_code(self, block_hash: Hash32, address: Address) -> bytes:
+    async def coro_get_contract_code(self, block_hash: Hash32, address: ETHAddress) -> bytes:
         """
         :param block_hash: find code as of the block with block_hash
         :param address: which contract to look up
@@ -242,7 +241,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     async def _get_contract_code_from_peer(
             self,
             block_hash: Hash32,
-            address: Address,
+            address: ETHAddress,
             code_hash: Hash32,
             peer: LESPeer) -> bytes:
         """
@@ -277,7 +276,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     async def _raise_for_empty_code(
             self,
             block_hash: Hash32,
-            address: Address,
+            address: ETHAddress,
             code_hash: Hash32,
             peer: LESPeer) -> None:
         """

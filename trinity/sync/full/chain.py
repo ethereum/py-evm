@@ -47,10 +47,10 @@ from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransaction
 
-from p2p.p2p_proto import DisconnectReason
+from p2p.abc import CommandAPI
+from p2p.disconnect import DisconnectReason
 from p2p.exceptions import BaseP2PError, PeerConnectionLost
 from p2p.peer import BasePeer, PeerSubscriber
-from p2p.protocol import Command
 from p2p.service import BaseService
 from p2p.token_bucket import TokenBucket
 
@@ -113,7 +113,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
     "If no peers are available for downloading the chain data, retry after this many seconds"
 
     # We are only interested in peers entering or leaving the pool
-    subscription_msg_types: FrozenSet[Type[Command]] = frozenset()
+    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
 
     # This is a rather arbitrary value, but when the sync is operating normally we never see
     # the msg queue grow past a few hundred items, so this should be a reasonable limit for

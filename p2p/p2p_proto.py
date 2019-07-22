@@ -1,4 +1,3 @@
-import enum
 from typing import (
     cast,
     Any,
@@ -11,14 +10,15 @@ from eth_utils.toolz import assoc
 import rlp
 from rlp import sedes
 
+from p2p.abc import TransportAPI
+from p2p.disconnect import DisconnectReason as _DisconnectReason
 from p2p.exceptions import MalformedMessage
+from p2p.typing import PayloadType
 
 from p2p.protocol import (
     Command,
     Protocol,
-    _DecodedMsgType,
 )
-from p2p.transport import Transport
 
 
 class Hello(Command):
@@ -41,35 +41,17 @@ class Hello(Command):
         return raw_payload
 
 
-@enum.unique
-class DisconnectReason(enum.Enum):
-    """More details at https://github.com/ethereum/wiki/wiki/%C3%90%CE%9EVp2p-Wire-Protocol#p2p"""
-    disconnect_requested = 0
-    tcp_sub_system_error = 1
-    bad_protocol = 2
-    useless_peer = 3
-    too_many_peers = 4
-    already_connected = 5
-    incompatible_p2p_version = 6
-    null_node_identity_received = 7
-    client_quitting = 8
-    unexpected_identity = 9
-    connected_to_self = 10
-    timeout = 11
-    subprotocol_error = 16
-
-
 class Disconnect(Command):
     _cmd_id = 1
     structure = (('reason', sedes.big_endian_int),)
 
     def get_reason_name(self, reason_id: int) -> str:
         try:
-            return DisconnectReason(reason_id).name
+            return _DisconnectReason(reason_id).name
         except ValueError:
             return "unknown reason"
 
-    def decode(self, data: bytes) -> _DecodedMsgType:
+    def decode(self, data: bytes) -> PayloadType:
         try:
             raw_decoded = cast(Dict[str, int], super().decode(data))
         except rlp.exceptions.ListDeserializationError:
@@ -95,7 +77,7 @@ class P2PProtocol(Protocol):
     cmd_length = 16
 
     def __init__(self,
-                 transport: Transport,
+                 transport: TransportAPI,
                  snappy_support: bool,
                  capabilities: Tuple[Tuple[str, int], ...],
                  listen_port: int) -> None:
@@ -116,7 +98,7 @@ class P2PProtocol(Protocol):
         header, body = Hello(self.cmd_id_offset, self.snappy_support).encode(data)
         self.transport.send(header, body)
 
-    def send_disconnect(self, reason: DisconnectReason) -> None:
+    def send_disconnect(self, reason: _DisconnectReason) -> None:
         msg: Dict[str, Any] = {"reason": reason}
         header, body = Disconnect(
             self.cmd_id_offset,

@@ -33,16 +33,9 @@ from lahja import (
 
 import ssz
 
-from p2p import protocol
-from p2p.kademlia import (
-    Node,
-)
-from p2p.peer import (
-    BasePeer,
-)
-from p2p.protocol import (
-    Command,
-)
+from p2p.abc import CommandAPI, NodeAPI
+from p2p.peer import BasePeer
+from p2p.typing import PayloadType
 
 from eth2.beacon.typing import (
     Slot,
@@ -102,7 +95,7 @@ from trinity.protocol.bcc.peer import (
 
 
 class BCCRequestServer(BaseIsolatedRequestServer):
-    subscription_msg_types: FrozenSet[Type[Command]] = frozenset({
+    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset({
         GetBeaconBlocks,
     })
 
@@ -120,9 +113,9 @@ class BCCRequestServer(BaseIsolatedRequestServer):
         self.db = db
 
     async def _handle_msg(self,
-                          remote: Node,
-                          cmd: Command,
-                          msg: protocol._DecodedMsgType) -> None:
+                          remote: NodeAPI,
+                          cmd: CommandAPI,
+                          msg: PayloadType) -> None:
 
         self.logger.debug("cmd %s" % cmd)
         if isinstance(cmd, GetBeaconBlocks):
@@ -130,7 +123,7 @@ class BCCRequestServer(BaseIsolatedRequestServer):
         else:
             raise Exception(f"Invariant: Only subscribed to {self.subscription_msg_types}")
 
-    async def _handle_get_beacon_blocks(self, remote: Node, msg: GetBeaconBlocksMessage) -> None:
+    async def _handle_get_beacon_blocks(self, remote: NodeAPI, msg: GetBeaconBlocksMessage) -> None:
 
         peer = BCCProxyPeer.from_node(remote, self.event_bus, self.broadcast_config)
 
@@ -313,7 +306,7 @@ class OrphanBlockPool:
 
 
 class BCCReceiveServer(BaseReceiveServer):
-    subscription_msg_types: FrozenSet[Type[Command]] = frozenset({
+    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset({
         Attestations,
         BeaconBlocks,
         NewBeaconBlock,
@@ -334,8 +327,8 @@ class BCCReceiveServer(BaseReceiveServer):
         self.map_request_id_block_root = {}
         self.orphan_block_pool = OrphanBlockPool()
 
-    async def _handle_msg(self, base_peer: BasePeer, cmd: Command,
-                          msg: protocol._DecodedMsgType) -> None:
+    async def _handle_msg(self, base_peer: BasePeer, cmd: CommandAPI,
+                          msg: PayloadType) -> None:
         peer = cast(BCCPeer, base_peer)
         self.logger.debug("cmd %s" % cmd)
         if isinstance(cmd, Attestations):

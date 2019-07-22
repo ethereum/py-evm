@@ -13,7 +13,7 @@ from lahja import (
 )
 import ssz
 
-from p2p.kademlia import Node
+from p2p.abc import NodeAPI
 from p2p.protocol import Protocol
 
 from eth2.beacon.types.blocks import BaseBeaconBlock
@@ -114,7 +114,7 @@ class ProxyBCCProtocol:
     """
 
     def __init__(self,
-                 remote: Node,
+                 remote: NodeAPI,
                  event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig):
         self.remote = remote

@@ -38,10 +38,8 @@ from eth.db.backends.level import LevelDB
 from eth.rlp.accounts import Account
 from eth.tools.logging import ExtendedDebugLogger
 
+from p2p.abc import CommandAPI
 from p2p.service import BaseService
-from p2p.protocol import (
-    Command,
-)
 
 from p2p.exceptions import (
     NoEligiblePeers,
@@ -102,7 +100,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self._peer_missing_nodes: Dict[ETHPeer, Set[Hash32]] = collections.defaultdict(set)
 
     # We are only interested in peers entering or leaving the pool
-    subscription_msg_types: FrozenSet[Type[Command]] = frozenset()
+    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
 
     # This is a rather arbitrary value, but when the sync is operating normally we never see
     # the msg queue grow past a few hundred items, so this should be a reasonable limit for

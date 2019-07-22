@@ -5,6 +5,11 @@ from typing import (
     Union,
 )
 
+from lahja import (
+    BroadcastConfig,
+    EndpointAPI,
+)
+
 from eth_typing import (
     BlockNumber,
     Hash32,
@@ -12,16 +17,8 @@ from eth_typing import (
 
 from eth.rlp.headers import BlockHeader
 
-from lahja import (
-    BroadcastConfig,
-    EndpointAPI,
-)
-from p2p.kademlia import (
-    Node,
-)
-from p2p.protocol import (
-    Protocol,
-)
+from p2p.abc import NodeAPI
+from p2p.protocol import Protocol
 
 from trinity.protocol.common.peer import ChainInfo
 from trinity._utils.les import gen_request_id
@@ -46,9 +43,7 @@ from .commands import (
     ContractCodeRequest,
     ContractCodes,
 )
-from .events import (
-    SendBlockHeadersEvent,
-)
+from .events import SendBlockHeadersEvent
 from . import constants
 
 if TYPE_CHECKING:
@@ -239,7 +234,7 @@ class ProxyLESProtocol:
     action performed on this class is delegated to the process that runs the peer pool.
     """
     def __init__(self,
-                 remote: Node,
+                 remote: NodeAPI,
                  event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig):
         self.remote = remote

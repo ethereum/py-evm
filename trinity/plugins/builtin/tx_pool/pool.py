@@ -18,12 +18,8 @@ from eth.rlp.transactions import (
     BaseTransactionFields
 )
 
-from p2p.kademlia import (
-    Node,
-)
-from p2p.service import (
-    BaseService
-)
+from p2p.abc import NodeAPI
+from p2p.service import BaseService
 
 from trinity.protocol.eth.peer import (
     ETHProxyPeer,
@@ -76,7 +72,7 @@ class TxPool(BaseService):
             txs = cast(List[BaseTransactionFields], event.msg)
             await self._handle_tx(event.remote, txs)
 
-    async def _handle_tx(self, sender: Node, txs: List[BaseTransactionFields]) -> None:
+    async def _handle_tx(self, sender: NodeAPI, txs: List[BaseTransactionFields]) -> None:
 
         self.logger.debug('Received %d transactions from %s', len(txs), sender)
 
@@ -111,10 +107,10 @@ class TxPool(BaseService):
             if self.tx_validation_fn(val)
         ]
 
-    def _construct_bloom_entry(self, remote: Node, tx: BaseTransactionFields) -> bytes:
+    def _construct_bloom_entry(self, remote: NodeAPI, tx: BaseTransactionFields) -> bytes:
         return f"{repr(remote)}-{tx.hash}-{self._bloom_salt}".encode()
 
-    def _add_txs_to_bloom(self, remote: Node, txs: Iterable[BaseTransactionFields]) -> None:
+    def _add_txs_to_bloom(self, remote: NodeAPI, txs: Iterable[BaseTransactionFields]) -> None:
         for val in txs:
             self._bloom.add(self._construct_bloom_entry(remote, val))
 

@@ -1,23 +1,13 @@
-from abc import ABC
 import logging
 import operator
 import struct
 from typing import (
-    Any,
     ClassVar,
-    Dict,
-    Generic,
     Iterable,
-    List,
     Sequence,
     Tuple,
     Type,
-    TypeVar,
     Union,
-)
-
-from mypy_extensions import (
-    TypedDict,
 )
 
 import snappy
@@ -31,36 +21,12 @@ from rlp import sedes
 from eth.constants import NULL_BYTE
 
 from p2p._utils import get_devp2p_cmd_id
-from p2p.exceptions import (
-    MalformedMessage,
-)
-from p2p.transport import Transport
+from p2p.abc import CommandAPI, ProtocolAPI, RequestAPI, TransportAPI
+from p2p.exceptions import MalformedMessage
+from p2p.typing import CapabilityType, CapabilitiesType, PayloadType, StructureType
 
 
-class TypedDictPayload(TypedDict):
-    pass
-
-
-PayloadType = Union[
-    Dict[str, Any],
-    List[rlp.Serializable],
-    Tuple[rlp.Serializable, ...],
-    TypedDictPayload,
-]
-
-# A payload to be delivered with a request
-TRequestPayload = TypeVar('TRequestPayload', bound=PayloadType, covariant=True)
-
-# for backwards compatibility for internal references in p2p:
-_DecodedMsgType = PayloadType
-
-
-StructureType = Union[
-    Tuple[Tuple[str, Any], ...],
-]
-
-
-class Command:
+class Command(CommandAPI):
     _cmd_id: int = None
     decode_strict = True
     structure: StructureType
@@ -176,39 +142,24 @@ class Command:
         return header, body
 
 
-class BaseRequest(ABC, Generic[TRequestPayload]):
-    """
-    Must define command_payload during init. This is the data that will
-    be sent to the peer with the request command.
-    """
-    # Defined at init time, with specific parameters:
-    command_payload: TRequestPayload
-
-    # Defined as class attributes in subclasses
-    # outbound command type
-    cmd_type: Type[Command]
-    # response command type
-    response_type: Type[Command]
-
-
-CapabilityType = Tuple[str, int]
-
-
-class Protocol(ABC):
-    transport: Transport
+class Protocol(ProtocolAPI):
+    transport: TransportAPI
     name: ClassVar[str]
     version: ClassVar[int]
     cmd_length: int = None
     # Command classes that this protocol supports.
-    _commands: Tuple[Type[Command], ...]
+    _commands: Tuple[Type[CommandAPI], ...]
 
     _logger: logging.Logger = None
 
-    def __init__(self, transport: Transport, cmd_id_offset: int, snappy_support: bool) -> None:
+    def __init__(self, transport: TransportAPI, cmd_id_offset: int, snappy_support: bool) -> None:
         self.transport = transport
         self.cmd_id_offset = cmd_id_offset
         self.snappy_support = snappy_support
-        self.commands = [cmd_class(cmd_id_offset, snappy_support) for cmd_class in self._commands]
+        self.commands = tuple(
+            cmd_class(cmd_id_offset, snappy_support)
+            for cmd_class in self._commands
+        )
         self.cmd_by_type = {type(cmd): cmd for cmd in self.commands}
         self.cmd_by_id = {cmd.cmd_id: cmd for cmd in self.commands}
 
@@ -218,12 +169,12 @@ class Protocol(ABC):
             self._logger = logging.getLogger(f"p2p.protocol.{type(self).__name__}")
         return self._logger
 
-    def send_request(self, request: BaseRequest[PayloadType]) -> None:
+    def send_request(self, request: RequestAPI[PayloadType]) -> None:
         command = self.cmd_by_type[request.cmd_type]
         header, body = command.encode(request.command_payload)
         self.transport.send(header, body)
 
-    def supports_command(self, cmd_type: Type[Command]) -> bool:
+    def supports_command(self, cmd_type: Type[CommandAPI]) -> bool:
         return cmd_type in self.cmd_by_type
 
     @classmethod
@@ -234,12 +185,10 @@ class Protocol(ABC):
         return "(%s, %d)" % (self.name, self.version)
 
 
-CapabilitiesType = Tuple[CapabilityType, ...]
-
-
 @to_tuple
-def match_protocols_with_capabilities(protocols: Sequence[Type[Protocol]],
-                                      capabilities: CapabilitiesType) -> Iterable[Type[Protocol]]:
+def match_protocols_with_capabilities(protocols: Sequence[Type[ProtocolAPI]],
+                                      capabilities: CapabilitiesType,
+                                      ) -> Iterable[Type[ProtocolAPI]]:
     """
     Return the `Protocol` classes that match with the provided `capabilities`
     according to the RLPx protocol rules.

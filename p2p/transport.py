@@ -26,6 +26,7 @@ from p2p._utils import (
     roundup_16,
     sxor,
 )
+from p2p.abc import NodeAPI, TransportAPI
 from p2p.auth import (
     decode_authentication,
     HandshakeResponder,
@@ -48,11 +49,11 @@ from p2p.exceptions import (
 from p2p.kademlia import Address, Node
 
 
-class Transport:
+class Transport(TransportAPI):
     logger = cast(ExtendedDebugLogger, logging.getLogger('p2p.connection.Transport'))
 
     def __init__(self,
-                 remote: Node,
+                 remote: NodeAPI,
                  private_key: datatypes.PrivateKey,
                  reader: asyncio.StreamReader,
                  writer: asyncio.StreamWriter,
@@ -85,9 +86,9 @@ class Transport:
 
     @classmethod
     async def connect(cls,
-                      remote: Node,
+                      remote: NodeAPI,
                       private_key: datatypes.PrivateKey,
-                      token: CancelToken) -> 'Transport':
+                      token: CancelToken) -> TransportAPI:
         """Perform the auth and P2P handshakes with the given remote.
 
         Return an instance of the given peer_class (must be a subclass of
@@ -127,7 +128,7 @@ class Transport:
                                  reader: asyncio.StreamReader,
                                  writer: asyncio.StreamWriter,
                                  private_key: datatypes.PrivateKey,
-                                 token: CancelToken) -> 'Transport':
+                                 token: CancelToken) -> TransportAPI:
         try:
             msg = await token.cancellable_wait(
                 reader.readexactly(ENCRYPTED_AUTH_MSG_LEN),

@@ -37,9 +37,9 @@ from eth_utils import humanize_seconds, to_tuple
 
 from eth.tools.logging import ExtendedDebugLogger
 
-from p2p import protocol
-from p2p.peer_backend import BasePeerBackend
+from p2p.abc import CommandAPI, NodeAPI
 from p2p.kademlia import Node
+from p2p.peer_backend import BasePeerBackend
 from p2p.peer import (
     BasePeer,
     PeerSubscriber,
@@ -94,7 +94,7 @@ class BaseEth1PeerTracker(BasePeerBackend, PeerSubscriber):
     )
 
     msg_queue_maxsize = 100
-    subscription_msg_types: FrozenSet[Type[protocol.Command]] = frozenset()
+    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
 
     def register_peer(self, peer: BasePeer) -> None:
         # prevent circular import
@@ -164,7 +164,7 @@ class BaseEth1PeerTracker(BasePeerBackend, PeerSubscriber):
 
     @abstractmethod
     def track_peer_connection(self,
-                              remote: Node,
+                              remote: NodeAPI,
                               is_outbound: bool,
                               last_connected_at: Optional[datetime.datetime],
                               genesis_hash: Hash32,
@@ -176,13 +176,13 @@ class BaseEth1PeerTracker(BasePeerBackend, PeerSubscriber):
     @abstractmethod
     async def get_peer_candidates(self,
                                   num_requested: int,
-                                  connected_remotes: Set[Node]) -> Tuple[Node, ...]:
+                                  connected_remotes: Set[NodeAPI]) -> Tuple[NodeAPI, ...]:
         pass
 
 
 class NoopEth1PeerTracker(BaseEth1PeerTracker):
     def track_peer_connection(self,
-                              remote: Node,
+                              remote: NodeAPI,
                               is_outbound: bool,
                               last_connected_at: Optional[datetime.datetime],
                               genesis_hash: Hash32,
@@ -193,7 +193,7 @@ class NoopEth1PeerTracker(BaseEth1PeerTracker):
 
     async def get_peer_candidates(self,
                                   num_requested: int,
-                                  connected_remotes: Set[Node]) -> Tuple[Node, ...]:
+                                  connected_remotes: Set[NodeAPI]) -> Tuple[NodeAPI, ...]:
         return ()
 
 
@@ -217,7 +217,7 @@ class SQLiteEth1PeerTracker(BaseEth1PeerTracker):
         self.network_id = network_id
 
     def track_peer_connection(self,
-                              remote: Node,
+                              remote: NodeAPI,
                               is_outbound: bool,
                               last_connected_at: Optional[datetime.datetime],
                               genesis_hash: Hash32,
@@ -281,7 +281,7 @@ class SQLiteEth1PeerTracker(BaseEth1PeerTracker):
 
     def _get_peer_candidates(self,
                              num_requested: int,
-                             connected_remotes: Set[Node]) -> Iterable[Node]:
+                             connected_remotes: Set[NodeAPI]) -> Iterable[NodeAPI]:
         """
         Return up to `num_requested` candidates sourced from peers whe have
         historically connected to which match the following criteria:
@@ -317,7 +317,7 @@ class SQLiteEth1PeerTracker(BaseEth1PeerTracker):
 
     async def get_peer_candidates(self,
                                   num_requested: int,
-                                  connected_remotes: Set[Node]) -> Tuple[Node, ...]:
+                                  connected_remotes: Set[NodeAPI]) -> Tuple[NodeAPI, ...]:
         # For now we fully evaluate the response in order to print debug
         # statistics.  Once this API is no longer experimental, this should be
         # adjusted to only consume a maximum of `num_requested` from the
@@ -370,7 +370,7 @@ class EventBusEth1PeerTracker(BaseEth1PeerTracker):
         self.config = config
 
     def track_peer_connection(self,
-                              remote: Node,
+                              remote: NodeAPI,
                               is_outbound: bool,
                               last_connected_at: Optional[datetime.datetime],
                               genesis_hash: Hash32,
@@ -392,7 +392,7 @@ class EventBusEth1PeerTracker(BaseEth1PeerTracker):
 
     async def get_peer_candidates(self,
                                   num_requested: int,
-                                  connected_remotes: Set[Node]) -> Tuple[Node, ...]:
+                                  connected_remotes: Set[NodeAPI]) -> Tuple[NodeAPI, ...]:
         response = await self.event_bus.request(
             GetPeerCandidatesRequest(num_requested, connected_remotes),
             self.config,

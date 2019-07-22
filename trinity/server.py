@@ -16,19 +16,14 @@ from cancel_token import CancelToken, OperationCancelled
 from eth_typing import BlockNumber
 from eth.vm.base import BaseVM
 
-from p2p.constants import (
-    DEFAULT_MAX_PEERS,
-)
+from p2p.abc import NodeAPI
+from p2p.constants import DEFAULT_MAX_PEERS
+from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
     HandshakeFailure,
     PeerConnectionLost,
 )
-from p2p.kademlia import (
-    Node,
-)
-from p2p.p2p_proto import (
-    DisconnectReason,
-)
+from p2p.kademlia import Node
 from p2p.service import BaseService
 from p2p.transport import Transport
 
@@ -71,8 +66,8 @@ class BaseServer(BaseService, Generic[TPeerPool]):
                  base_db: BaseAsyncDB,
                  network_id: int,
                  max_peers: int = DEFAULT_MAX_PEERS,
-                 bootstrap_nodes: Tuple[Node, ...] = None,
-                 preferred_nodes: Sequence[Node] = None,
+                 bootstrap_nodes: Sequence[NodeAPI] = None,
+                 preferred_nodes: Sequence[NodeAPI] = None,
                  event_bus: EndpointAPI = None,
                  token: CancelToken = None,
                  ) -> None:
@@ -245,8 +240,8 @@ class BCCServer(BaseServer[BCCPeerPool]):
                  base_db: BaseAsyncDB,
                  network_id: int,
                  max_peers: int = DEFAULT_MAX_PEERS,
-                 bootstrap_nodes: Tuple[Node, ...] = None,
-                 preferred_nodes: Sequence[Node] = None,
+                 bootstrap_nodes: Sequence[NodeAPI] = None,
+                 preferred_nodes: Sequence[NodeAPI] = None,
                  event_bus: EndpointAPI = None,
                  token: CancelToken = None,
                  ) -> None:

@@ -39,11 +39,12 @@ from eth.exceptions import (
     HeaderNotFound,
 )
 from eth.rlp.headers import BlockHeader
+
+from p2p.abc import CommandAPI
 from p2p.constants import SEAL_CHECK_RANDOM_SAMPLE_RATE
+from p2p.disconnect import DisconnectReason
 from p2p.exceptions import BaseP2PError, PeerConnectionLost
-from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeer, PeerSubscriber
-from p2p.protocol import Command
 from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
@@ -539,7 +540,7 @@ HeaderStitcher = OrderedTaskPreparation[BlockHeader, Hash32, OrderedTaskPreparat
 
 class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
     # We are only interested in peers entering or leaving the pool
-    subscription_msg_types: FrozenSet[Type[Command]] = frozenset()
+    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
     msg_queue_maxsize = 2000
 
     _filler_header_tasks: TaskQueue[Tuple[BlockHeader, int, TChainPeer]]

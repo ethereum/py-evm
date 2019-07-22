@@ -8,7 +8,7 @@ from eth_typing import (
     BlockIdentifier,
     Hash32,
 )
-from p2p.protocol import BaseRequest
+from p2p.abc import RequestAPI
 
 from trinity.protocol.eth.constants import MAX_HEADERS_FETCH
 from trinity.protocol.common.requests import (
@@ -46,7 +46,7 @@ class HeaderRequest(BaseHeaderRequest):
         self.reverse = reverse
 
 
-class GetBlockHeadersRequest(BaseRequest[Dict[str, Any]]):
+class GetBlockHeadersRequest(RequestAPI[Dict[str, Any]]):
     cmd_type = GetBlockHeaders
     response_type = BlockHeaders
 
@@ -63,7 +63,7 @@ class GetBlockHeadersRequest(BaseRequest[Dict[str, Any]]):
         }
 
 
-class GetReceiptsRequest(BaseRequest[Tuple[Hash32, ...]]):
+class GetReceiptsRequest(RequestAPI[Tuple[Hash32, ...]]):
     cmd_type = GetReceipts
     response_type = Receipts
 
@@ -71,7 +71,7 @@ class GetReceiptsRequest(BaseRequest[Tuple[Hash32, ...]]):
         self.command_payload = block_hashes
 
 
-class GetNodeDataRequest(BaseRequest[Tuple[Hash32, ...]]):
+class GetNodeDataRequest(RequestAPI[Tuple[Hash32, ...]]):
     cmd_type = GetNodeData
     response_type = NodeData
 
@@ -79,7 +79,7 @@ class GetNodeDataRequest(BaseRequest[Tuple[Hash32, ...]]):
         self.command_payload = node_hashes
 
 
-class GetBlockBodiesRequest(BaseRequest[Tuple[Hash32, ...]]):
+class GetBlockBodiesRequest(RequestAPI[Tuple[Hash32, ...]]):
     cmd_type = GetBlockBodies
     response_type = BlockBodies
 

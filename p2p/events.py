@@ -11,7 +11,7 @@ from lahja import (
     BaseRequestResponseEvent,
 )
 
-from .kademlia import Node
+from p2p.abc import NodeAPI
 
 
 class BaseDiscoveryServiceResponse(BaseEvent):
@@ -21,7 +21,7 @@ class BaseDiscoveryServiceResponse(BaseEvent):
 @dataclass
 class PeerCandidatesResponse(BaseDiscoveryServiceResponse):
 
-    candidates: Tuple[Node, ...]
+    candidates: Tuple[NodeAPI, ...]
 
 
 @dataclass

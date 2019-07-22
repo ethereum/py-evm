@@ -138,3 +138,31 @@ BLACKLIST_SECONDS_TOO_MANY_TIMEOUTS = 60 * 5  # 5 minutes
 # too quickly as well as the amount of time they will be blacklisted for doing
 # so.
 BLACKLIST_SECONDS_QUICK_DISCONNECT = 60
+
+#
+# Kademlia Constants
+#
+
+# number of bits per hop
+KADEMLIA_BITS_PER_HOP = 8
+
+# bucket size for kademlia routing table
+KADEMLIA_BUCKET_SIZE = 16
+
+# round trip message timout
+KADEMLIA_REQUEST_TIMEOUT = 7.2
+
+# Amount of time to consider a bucket idle
+KADEMLIA_IDLE_BUCKET_REFRESH_INTERVAL = 3600
+
+# Number of parallele `find_node` lookups that can be in progress
+KADEMLIA_FIND_CONCURRENCY = 3
+
+# Size of public keys in bits
+KADEMLIA_PUBLIC_KEY_SIZE = 512
+
+# Size of a node id in bits
+KADEMLIA_ID_SIZE = 256
+
+# Maximum node `id` for a kademlia node
+KADEMLIA_MAX_NODE_ID = (2 ** KADEMLIA_ID_SIZE) - 1

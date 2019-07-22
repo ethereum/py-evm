@@ -5,7 +5,7 @@ from typing import (
     Type,
 )
 
-from p2p.kademlia import Node
+from p2p.abc import NodeAPI
 from p2p.exceptions import (
     BaseP2PError,
     HandshakeFailure,
@@ -41,24 +41,24 @@ class BaseConnectionTracker(ABC):
     """
     logger = logging.getLogger('p2p.tracking.connection.ConnectionTracker')
 
-    def record_failure(self, remote: Node, failure: BaseP2PError) -> None:
+    def record_failure(self, remote: NodeAPI, failure: BaseP2PError) -> None:
         timeout_seconds = get_timeout_for_failure(failure)
         failure_name = type(failure).__name__
 
         return self.record_blacklist(remote, timeout_seconds, failure_name)
 
     @abstractmethod
-    def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
+    def record_blacklist(self, remote: NodeAPI, timeout_seconds: int, reason: str) -> None:
         pass
 
     @abstractmethod
-    async def should_connect_to(self, remote: Node) -> bool:
+    async def should_connect_to(self, remote: NodeAPI) -> bool:
         pass
 
 
 class NoopConnectionTracker(BaseConnectionTracker):
-    def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
+    def record_blacklist(self, remote: NodeAPI, timeout_seconds: int, reason: str) -> None:
         pass
 
-    async def should_connect_to(self, remote: Node) -> bool:
+    async def should_connect_to(self, remote: NodeAPI) -> bool:
         return True
