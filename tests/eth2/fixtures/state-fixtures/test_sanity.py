@@ -1,44 +1,23 @@
-from typing import (
-    Tuple,
-)
-
 from dataclasses import (
     dataclass,
-    field,
 )
 import pytest
 
 from eth_utils import (
     ValidationError,
 )
-from ssz.tools import (
-    to_formatted_dict,
-)
 
-from eth2.configs import (
-    Eth2GenesisConfig,
-)
-from eth2.beacon.db.chain import BeaconChainDB
-from eth2.beacon.operations.attestation_pool import AttestationPool
-from eth2.beacon.state_machines.forks.serenity import (
-    SerenityStateMachine,
-)
-from eth2.beacon.tools.builder.proposer import (
-    advance_to_slot,
-)
 from eth2.beacon.tools.misc.ssz_vector import (
     override_lengths,
 )
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.typing import (
-    Slot,
-)
 from eth2.beacon.tools.fixtures.config_name import (
     ONLY_MINIMAL,
 )
-from eth2.beacon.tools.fixtures.test_case import (
-    BaseStateTestCase,
+from eth2.beacon.tools.fixtures.helpers import (
+    run_state_execution,
+    verify_state,
 )
 from eth2.beacon.tools.fixtures.loading import (
     get_bls_setting,
@@ -46,8 +25,14 @@ from eth2.beacon.tools.fixtures.loading import (
     get_slots,
     get_states,
 )
+from eth2.beacon.tools.fixtures.test_case import (
+    StateTestCase,
+)
+
 from tests.eth2.fixtures.helpers import (
     get_test_cases,
+    get_chaindb_of_config,
+    get_sm_class_of_config,
 )
 from tests.eth2.fixtures.path import (
     BASE_FIXTURE_PATH,
@@ -58,7 +43,7 @@ from tests.eth2.fixtures.path import (
 # Test files
 SANITY_FIXTURE_PATH = BASE_FIXTURE_PATH / 'sanity'
 FIXTURE_PATHES = (
-    SANITY_FIXTURE_PATH,
+    SANITY_FIXTURE_PATH / 'slots',
 )
 FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 
@@ -67,9 +52,8 @@ FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 # Sanity test_format
 #
 @dataclass
-class SanityTestCase(BaseStateTestCase):
-    slots: Slot = 0
-    blocks: Tuple[BeaconBlock, ...] = field(default_factory=tuple)
+class SanityTestCase(StateTestCase):
+    pass
 
 
 #
@@ -107,38 +91,28 @@ all_test_cases = get_test_cases(
     "test_case, config",
     all_test_cases
 )
-def test_sanity_fixture(base_db, config, test_case):
-    execute_state_transtion(test_case, config, base_db)
+def test_sanity_fixture(base_db, config, test_case, empty_attestation_pool):
+    sm_class = get_sm_class_of_config(config)
+    chaindb = get_chaindb_of_config(base_db, config)
 
-
-def execute_state_transtion(test_case, config, base_db):
-    sm_class = SerenityStateMachine.configure(
-        __name__='SerenityStateMachineForTesting',
-        config=config,
-    )
-    chaindb = BeaconChainDB(base_db, Eth2GenesisConfig(config))
-    attestation_pool = AttestationPool()
-
-    post_state = test_case.pre.copy()
-
-    sm = sm_class(chaindb, attestation_pool, None, post_state)
-    slot = test_case.pre.slot + test_case.slots
-    post_state = advance_to_slot(sm, post_state, slot)
-
+    post_state = test_case.pre
     if test_case.is_valid:
-        for block in test_case.blocks:
-            sm = sm_class(chaindb, attestation_pool, None, post_state)
-            post_state, _ = sm.import_block(block)
+        post_state = run_state_execution(
+            test_case,
+            sm_class,
+            chaindb,
+            empty_attestation_pool,
+            post_state,
+        )
 
-        # Use dict diff, easier to see the diff
-        dict_post_state = to_formatted_dict(post_state, BeaconState)
-        dict_expected_state = to_formatted_dict(test_case.post, BeaconState)
-        for key, value in dict_expected_state.items():
-            if isinstance(value, list):
-                value = tuple(value)
-            assert dict_post_state[key] == value
+        verify_state(test_case, post_state)
+
     else:
         with pytest.raises(ValidationError):
-            for block in test_case.blocks:
-                sm = sm_class(chaindb, attestation_pool, None, post_state)
-                post_state, _ = sm.import_block(block)
+            run_state_execution(
+                test_case,
+                sm_class,
+                chaindb,
+                empty_attestation_pool,
+                post_state,
+            )

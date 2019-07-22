@@ -1,6 +1,7 @@
 import pytest
 from eth2._utils.bls import bls
 from eth2._utils.bls.backends import PyECCBackend
+from eth2.beacon.operations.attestation_pool import AttestationPool
 
 
 #
@@ -12,3 +13,11 @@ def mock_bls(mocker, request):
         bls.use(PyECCBackend)
     else:
         bls.use_noop_backend()
+
+
+#
+# Attestation pool
+#
+@pytest.fixture
+def empty_attestation_pool():
+    return AttestationPool()

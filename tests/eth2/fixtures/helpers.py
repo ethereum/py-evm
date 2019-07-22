@@ -3,6 +3,14 @@ import pytest
 from eth_utils import (
     to_tuple,
 )
+
+from eth2.configs import (
+    Eth2GenesisConfig,
+)
+from eth2.beacon.db.chain import BeaconChainDB
+from eth2.beacon.state_machines.forks.serenity import (
+    SerenityStateMachine,
+)
 from eth2.beacon.tools.fixtures.loading import (
     get_all_test_files,
 )
@@ -38,3 +46,17 @@ def mark_test_case(test_file, test_case):
         return pytest.param(test_case, test_file.config, id=test_id, marks=(mark,))
     else:
         return pytest.param(test_case, test_file.config, id=test_id)
+
+
+#
+# State execution
+#
+def get_sm_class_of_config(config):
+    return SerenityStateMachine.configure(
+        __name__='SerenityStateMachineForTesting',
+        config=config,
+    )
+
+
+def get_chaindb_of_config(base_db, config):
+    return BeaconChainDB(base_db, Eth2GenesisConfig(config))
