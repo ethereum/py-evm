@@ -12,7 +12,7 @@ from eth2.beacon.tools.fixtures.loading import (
 # pytest setting
 #
 def bls_setting_mark_fn(bls_setting):
-    if bls_setting is True:
+    if bls_setting:
         return pytest.mark.noautofixture
     return None
 
@@ -33,7 +33,7 @@ def get_test_cases(root_project_dir, fixture_pathes, parse_test_case_fn):
 def mark_test_case(test_file, test_case):
     test_id = f"{test_file.file_name}::{test_case.description}:{test_case.line_number}"
     mark = bls_setting_mark_fn(test_case.bls_setting)
-    if mark is not None:
+    if mark:
         return pytest.param(test_case, test_file.config, id=test_id, marks=(mark,))
     else:
         return pytest.param(test_case, test_file.config, id=test_id)
