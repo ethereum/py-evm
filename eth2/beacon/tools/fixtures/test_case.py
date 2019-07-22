@@ -43,3 +43,8 @@ class OperationCase(BaseTestCase):
     operation: OperationOrBlockHeader
     post: BeaconState
     is_valid: bool = True
+
+
+# TODO(ralexstokes) clean up
+class TestCase:
+    pass

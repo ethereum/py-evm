@@ -39,13 +39,23 @@ def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
     )
 
 
+def load_config_at_path(p: Path) -> Eth2Config:
+    yaml = YAML()
+    config_data = yaml.load(p)
+    return generate_config_by_dict(config_data)
+
+
+def load_test_case_at(p: Path) -> Dict[str, Any]:
+    y = YAML()
+    return y.load(p)
+
+
 config_cache: Dict[str, Eth2Config] = {}
 
 
 def get_config(root_project_dir: Path, config_name: ConfigName) -> Eth2Config:
     if config_name in config_cache:
         return config_cache[config_name]
-
     # TODO: change the path after the constants presets are copied to submodule
     path = root_project_dir / "tests/eth2/fixtures"
     yaml = YAML(typ="unsafe")
