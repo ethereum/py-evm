@@ -43,7 +43,7 @@ from tests.eth2.fixtures.path import (
 # Test files
 SANITY_FIXTURE_PATH = BASE_FIXTURE_PATH / 'sanity'
 FIXTURE_PATHES = (
-    SANITY_FIXTURE_PATH / 'slots',
+    SANITY_FIXTURE_PATH,
 )
 FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 
@@ -106,7 +106,6 @@ def test_sanity_fixture(base_db, config, test_case, empty_attestation_pool):
         )
 
         verify_state(test_case, post_state)
-
     else:
         with pytest.raises(ValidationError):
             run_state_execution(

@@ -8,11 +8,11 @@ from dataclasses import (
 from eth2.configs import (
     Eth2Config,
 )
-from eth2.beacon.tools.fixtures.test_case import BaseStateTestCase
+from eth2.beacon.tools.fixtures.test_case import BaseTestCase
 
 
 @dataclass
 class TestFile:
     file_name: str
     config: Eth2Config
-    test_cases: Sequence[BaseStateTestCase]
+    test_cases: Sequence[BaseTestCase]

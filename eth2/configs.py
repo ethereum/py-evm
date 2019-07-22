@@ -64,8 +64,6 @@ Eth2Config = NamedTuple(
         ('MAX_TRANSFERS', int),
         # Deposit contract
         ('DEPOSIT_CONTRACT_ADDRESS', bytes),
-        # Phase 1
-        ('EARLY_DERIVED_SECRET_PENALTY_MAX_FUTURE_EPOCHS', int)
     )
 )
 

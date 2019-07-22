@@ -47,10 +47,14 @@ from eth2.beacon.tools.fixtures.test_file import (
 #
 def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
     config_without_domains = keyfilter(lambda name: "DOMAIN_" not in name, dict_config)
+    config_without_phase_1 = keyfilter(
+        lambda name: "EARLY_DERIVED_SECRET_PENALTY_MAX_FUTURE_EPOCHS" not in name,
+        config_without_domains,
+    )
 
     return Eth2Config(
         **assoc(
-            config_without_domains,
+            config_without_phase_1,
             "GENESIS_EPOCH",
             compute_epoch_of_slot(
                 dict_config['GENESIS_SLOT'],

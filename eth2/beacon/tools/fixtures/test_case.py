@@ -15,7 +15,7 @@ from eth2.beacon.typing import (
 
 
 @dataclass
-class BaseStateTestCase:
+class BaseTestCase:
     line_number: int
     bls_setting: bool
     description: str
@@ -25,6 +25,6 @@ class BaseStateTestCase:
 
 
 @dataclass
-class StateTestCase(BaseStateTestCase):
+class StateTestCase(BaseTestCase):
     slots: Slot = Slot(0)
     blocks: Tuple[BeaconBlock, ...] = field(default_factory=tuple)

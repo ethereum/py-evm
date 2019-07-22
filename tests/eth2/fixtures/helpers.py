@@ -40,7 +40,7 @@ def get_test_cases(root_project_dir, fixture_pathes, config_names, parse_test_ca
 
 
 def mark_test_case(test_file, test_case):
-    test_id = f"{test_file.file_name}::{test_case.description}:{test_case.line_number}"
+    test_id = f"{test_file.file_name}:{test_case.line_number}\t{test_case.description}"
     mark = bls_setting_mark_fn(test_case.bls_setting)
     if mark:
         return pytest.param(test_case, test_file.config, id=test_id, marks=(mark,))
