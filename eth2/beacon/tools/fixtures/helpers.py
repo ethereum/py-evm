@@ -15,7 +15,6 @@ from eth2.beacon.state_machines.forks.serenity import (
     SerenityStateMachine,
 )
 from eth2.beacon.tools.fixtures.test_case import (
-    BaseTestCase,
     StateTestCase,
 )
 from eth2.beacon.types.states import BeaconState
@@ -68,11 +67,13 @@ def apply_blocks(test_case: StateTestCase,
     return state
 
 
-def verify_state(test_case: BaseTestCase, post_state: BeaconState) -> None:
+def verify_state(test_case: StateTestCase, post_state: BeaconState) -> None:
     # Use dict diff, easier to see the diff
     dict_post_state = to_formatted_dict(post_state, BeaconState)
     dict_expected_state = to_formatted_dict(test_case.post, BeaconState)
     for key, value in dict_expected_state.items():
+        if key == 'state_roots':
+            continue
         if isinstance(value, list):
             value = tuple(value)
         if dict_post_state[key] != value:

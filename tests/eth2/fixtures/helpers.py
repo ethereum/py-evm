@@ -36,12 +36,19 @@ def get_test_cases(root_project_dir, fixture_pathes, config_names, parse_test_ca
     )
     for test_file in test_files:
         for test_case in test_file.test_cases:
-            yield mark_test_case(test_file, test_case)
+            bls_setting = test_case.bls_setting if hasattr(test_case, 'bls_setting') else False
+            yield mark_test_case(test_file, test_case, bls_setting=bls_setting)
 
 
-def mark_test_case(test_file, test_case):
-    test_id = f"{test_file.file_name}:{test_case.line_number}\t{test_case.description}"
-    mark = bls_setting_mark_fn(test_case.bls_setting)
+def get_test_id(test_file, test_case):
+    description = test_case.description if hasattr(test_case, 'description') else ''
+    return f"{test_file.file_name}:{test_case.line_number}:{description}"
+
+
+def mark_test_case(test_file, test_case, bls_setting=False):
+    test_id = get_test_id(test_file, test_case)
+
+    mark = bls_setting_mark_fn(bls_setting)
     if mark:
         return pytest.param(test_case, test_file.config, id=test_id, marks=(mark,))
     else:

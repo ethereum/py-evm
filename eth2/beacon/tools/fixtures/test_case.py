@@ -17,14 +17,14 @@ from eth2.beacon.typing import (
 @dataclass
 class BaseTestCase:
     line_number: int
-    bls_setting: bool
-    description: str
-    pre: BeaconState
-    post: BeaconState
-    is_valid: bool = True
 
 
 @dataclass
 class StateTestCase(BaseTestCase):
+    bls_setting: bool
+    description: str
+    pre: BeaconState
+    post: BeaconState
     slots: Slot = Slot(0)
     blocks: Tuple[BeaconBlock, ...] = field(default_factory=tuple)
+    is_valid: bool = True
