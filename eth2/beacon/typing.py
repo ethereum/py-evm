@@ -13,6 +13,7 @@ Bitfield = NewType('Bitfield', Tuple[bool, ...])
 
 
 ValidatorIndex = NewType('ValidatorIndex', int)  # uint64
+CommitteeIndex = NewType('CommitteeIndex', int)  # uint64 The i-th position in a committee tuple
 
 Gwei = NewType('Gwei', int)  # uint64
 

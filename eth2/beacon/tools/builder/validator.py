@@ -68,6 +68,7 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.beacon.typing import (
     Bitfield,
+    CommitteeIndex,
     Epoch,
     Gwei,
     Shard,
@@ -241,7 +242,7 @@ def aggregate_votes(
         bitfield: Bitfield,
         sigs: Sequence[BLSSignature],
         voting_sigs: Sequence[BLSSignature],
-        attesting_indices: Sequence[ValidatorIndex]
+        attesting_indices: Sequence[CommitteeIndex]
 ) -> Tuple[Bitfield, BLSSignature]:
     """
     Aggregate the votes.
@@ -530,7 +531,7 @@ def _get_target_root(state: BeaconState,
 def _get_mock_message_and_attesting_indices(
         attestation_data: AttestationData,
         committee: Sequence[ValidatorIndex],
-        num_voted_attesters: int) -> Tuple[Hash32, Tuple[ValidatorIndex, ...]]:
+        num_voted_attesters: int) -> Tuple[Hash32, Tuple[CommitteeIndex, ...]]:
     """
     Get ``message_hash`` and voting indices of the given ``committee``.
     """
@@ -542,9 +543,8 @@ def _get_mock_message_and_attesting_indices(
     committee_size = len(committee)
     assert num_voted_attesters <= committee_size
 
-    # Index in committee
     attesting_indices = tuple(
-        ValidatorIndex(i) for i in random.sample(range(committee_size), num_voted_attesters)
+        CommitteeIndex(i) for i in random.sample(range(committee_size), num_voted_attesters)
     )
 
     return message_hash, tuple(sorted(attesting_indices))
