@@ -842,7 +842,7 @@ def process_final_updates(state: BeaconState, config: Eth2Config) -> BeaconState
             validators=new_validators,
             start_shard=new_start_shard,
         ),
-        config
+        config,
     )
     new_slashings = _compute_next_slashings(state, config)
     new_randao_mixes = _compute_next_randao_mixes(state, config)
