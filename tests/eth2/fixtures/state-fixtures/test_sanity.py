@@ -37,6 +37,9 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import (
     Slot,
 )
+from eth2.beacon.tools.fixtures.config_name import (
+    Minimal,
+)
 from eth2.beacon.tools.fixtures.test_case import (
     BaseStateTestCase,
 )
@@ -57,6 +60,9 @@ SANITY_FIXTURE_PATH = BASE_FIXTURE_PATH / 'sanity'
 FIXTURE_PATHES = (
     # SANITY_FIXTURE_PATH / 'blocks',
     SANITY_FIXTURE_PATH / 'slots',
+)
+CONFIG_NAMES = (
+    Minimal,
 )
 
 
@@ -109,7 +115,8 @@ def parse_sanity_test_case(test_case, config):
 all_test_cases = get_test_cases(
     root_project_dir=ROOT_PROJECT_DIR,
     fixture_pathes=FIXTURE_PATHES,
-    parse_test_case_fn=parse_sanity_test_case
+    config_names=CONFIG_NAMES,
+    parse_test_case_fn=parse_sanity_test_case,
 )
 
 
