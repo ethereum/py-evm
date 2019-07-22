@@ -7,6 +7,10 @@ from typing import (
     Iterable,
     Sequence,
     Tuple,
+    Type,
+)
+from ruamel.yaml import (
+    YAML,
 )
 
 from eth_utils import (
@@ -16,13 +20,15 @@ from eth_utils.toolz import (
     assoc,
     keyfilter,
 )
-from ruamel.yaml import (
-    YAML,
+from ssz.tools import (
+    from_formatted_dict,
 )
 
 from eth2.beacon.helpers import (
     compute_epoch_of_slot,
 )
+from eth2.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.types.states import BeaconState
 from eth2.configs import (
     Eth2Config,
 )
@@ -124,3 +130,39 @@ def get_all_test_files(root_project_dir: Path,
                        parse_test_case_fn: Callable[..., Any]) -> Iterable[TestFile]:
     for path in fixture_pathes:
         yield from get_files_of_dir(root_project_dir, path, config_names, parse_test_case_fn)
+
+
+#
+# Parser helpers
+#
+def get_bls_setting(test_case: Dict[str, Any]) -> bool:
+    # Default is free to choose, so we choose OFF.
+    if 'bls_setting' not in test_case or test_case['bls_setting'] == 2:
+        return False
+    else:
+        return True
+
+
+def get_states(test_case: Dict[str, Any],
+               cls_state: Type[BeaconState]) -> Tuple[BeaconState, BeaconState, bool]:
+    pre = from_formatted_dict(test_case['pre'], cls_state)
+    if test_case['post'] is not None:
+        post = from_formatted_dict(test_case['post'], cls_state)
+        is_valid = True
+    else:
+        post = None
+        is_valid = False
+
+    return pre, post, is_valid
+
+
+def get_slots(test_case: Dict[str, Any]) -> int:
+    return test_case['slots'] if 'slots' in test_case else 0
+
+
+def get_blocks(test_case: Dict[str, Any],
+               cls_block: Type[BaseBeaconBlock]) -> Tuple[BaseBeaconBlock, ...]:
+    if 'blocks' in test_case:
+        return tuple(from_formatted_dict(block, cls_block) for block in test_case['blocks'])
+    else:
+        return ()

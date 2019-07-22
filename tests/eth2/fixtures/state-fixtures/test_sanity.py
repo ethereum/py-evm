@@ -14,7 +14,6 @@ from eth_utils import (
     ValidationError,
 )
 from ssz.tools import (
-    from_formatted_dict,
     to_formatted_dict,
 )
 
@@ -38,10 +37,16 @@ from eth2.beacon.typing import (
     Slot,
 )
 from eth2.beacon.tools.fixtures.config_name import (
-    Minimal,
+    ONLY_MINIMAL,
 )
 from eth2.beacon.tools.fixtures.test_case import (
     BaseStateTestCase,
+)
+from eth2.beacon.tools.fixtures.loading import (
+    get_bls_setting,
+    get_blocks,
+    get_slots,
+    get_states,
 )
 from tests.eth2.fixtures.helpers import (
     get_test_cases,
@@ -61,9 +66,7 @@ FIXTURE_PATHES = (
     # SANITY_FIXTURE_PATH / 'blocks',
     SANITY_FIXTURE_PATH / 'slots',
 )
-CONFIG_NAMES = (
-    Minimal,
-)
+FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 
 
 #
@@ -79,33 +82,19 @@ class SanityTestCase(BaseStateTestCase):
 # Helpers for generating test suite
 #
 def parse_sanity_test_case(test_case, config):
-    # default is free to choose, so we choose OFF
-    if 'bls_setting' not in test_case or test_case['bls_setting'] == 2:
-        bls_setting = False
-    else:
-        bls_setting = True
-
     override_lengths(config)
-    pre = from_formatted_dict(test_case['pre'], BeaconState)
-    if test_case['post'] is not None:
-        post = from_formatted_dict(test_case['post'], BeaconState)
-        is_valid = True
-    else:
-        is_valid = False
 
-    if 'blocks' in test_case:
-        blocks = tuple(from_formatted_dict(block, BeaconBlock) for block in test_case['blocks'])
-    else:
-        blocks = ()
-
-    slots = test_case['slots'] if 'slots' in test_case else 0
+    bls_setting = get_bls_setting(test_case)
+    pre, post, is_valid = get_states(test_case, BeaconState)
+    blocks = get_blocks(test_case, BeaconBlock)
+    slots = get_slots(test_case)
 
     return SanityTestCase(
         line_number=test_case.lc.line,
         bls_setting=bls_setting,
         description=test_case['description'],
         pre=pre,
-        post=post if is_valid else None,
+        post=post,
         is_valid=is_valid,
         slots=slots,
         blocks=blocks,
@@ -115,7 +104,7 @@ def parse_sanity_test_case(test_case, config):
 all_test_cases = get_test_cases(
     root_project_dir=ROOT_PROJECT_DIR,
     fixture_pathes=FIXTURE_PATHES,
-    config_names=CONFIG_NAMES,
+    config_names=FILTERED_CONFIG_NAMES,
     parse_test_case_fn=parse_sanity_test_case,
 )
 
@@ -124,7 +113,7 @@ all_test_cases = get_test_cases(
     "test_case, config",
     all_test_cases
 )
-def test_state(base_db, config, test_case):
+def test_sanity_fixture(base_db, config, test_case):
     execute_state_transtion(test_case, config, base_db)
 
 
