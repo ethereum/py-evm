@@ -72,8 +72,6 @@ def verify_state(test_case: StateTestCase, post_state: BeaconState) -> None:
     dict_post_state = to_formatted_dict(post_state, BeaconState)
     dict_expected_state = to_formatted_dict(test_case.post, BeaconState)
     for key, value in dict_expected_state.items():
-        if key == 'state_roots':
-            continue
         if isinstance(value, list):
             value = tuple(value)
         if dict_post_state[key] != value:
