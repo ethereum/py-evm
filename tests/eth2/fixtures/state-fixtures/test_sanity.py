@@ -55,7 +55,7 @@ BASE_FIXTURE_PATH = ROOT_PROJECT_DIR / 'eth2-fixtures' / 'tests'
 
 SANITY_FIXTURE_PATH = BASE_FIXTURE_PATH / 'sanity'
 FIXTURE_PATHES = (
-    SANITY_FIXTURE_PATH / 'blocks',
+    # SANITY_FIXTURE_PATH / 'blocks',
     SANITY_FIXTURE_PATH / 'slots',
 )
 
@@ -132,7 +132,8 @@ def execute_state_transtion(test_case, config, base_db):
     post_state = test_case.pre.copy()
 
     sm = sm_class(chaindb, attestation_pool, None, post_state)
-    post_state = advance_to_slot(sm, post_state, test_case.slots)
+    slot = test_case.pre.slot + test_case.slots
+    post_state = advance_to_slot(sm, post_state, slot)
 
     if test_case.is_valid:
         for block in test_case.blocks:
