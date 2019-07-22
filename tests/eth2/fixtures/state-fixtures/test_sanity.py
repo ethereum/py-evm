@@ -1,5 +1,3 @@
-import os
-from pathlib import Path
 from typing import (
     Tuple,
 )
@@ -51,20 +49,16 @@ from eth2.beacon.tools.fixtures.loading import (
 from tests.eth2.fixtures.helpers import (
     get_test_cases,
 )
+from tests.eth2.fixtures.path import (
+    BASE_FIXTURE_PATH,
+    ROOT_PROJECT_DIR,
+)
 
 
 # Test files
-# ROOT_PROJECT_DIR = Path(__file__).cwd()
-ROOT_PROJECT_DIR = Path(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
-)
-
-BASE_FIXTURE_PATH = ROOT_PROJECT_DIR / 'eth2-fixtures' / 'tests'
-
 SANITY_FIXTURE_PATH = BASE_FIXTURE_PATH / 'sanity'
 FIXTURE_PATHES = (
-    # SANITY_FIXTURE_PATH / 'blocks',
-    SANITY_FIXTURE_PATH / 'slots',
+    SANITY_FIXTURE_PATH,
 )
 FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 

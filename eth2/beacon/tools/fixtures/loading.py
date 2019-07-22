@@ -101,17 +101,24 @@ def get_test_file_from_dict(data: Dict[str, Any],
 
 
 @to_tuple
-def get_files_of_dir(root_project_dir: Path,
-                     path: Path,
-                     config_names: Sequence[ConfigName],
-                     parse_test_case_fn: Callable[..., Any]) -> Iterable[TestFile]:
+def get_yaml_files_pathes(dir_path: Path) -> Iterable[str]:
+    for root, _, files in os.walk(dir_path):
+        for name in files:
+            yield os.path.join(root, name)
+
+
+@to_tuple
+def load_from_yaml_files(root_project_dir: Path,
+                         dir_path: Path,
+                         config_names: Sequence[ConfigName],
+                         parse_test_case_fn: Callable[..., Any]) -> Iterable[TestFile]:
     yaml = YAML()
-    entries = os.listdir(path)
-    for file_name in entries:
+    entries = get_yaml_files_pathes(dir_path)
+    for file_path in entries:
+        file_name = os.path.basename(file_path)
         for config_name in config_names:
             if config_name in file_name:
-                file_to_open = path / file_name
-                with open(file_to_open, 'U') as f:
+                with open(file_path, 'U') as f:
                     new_text = f.read()
                     data = yaml.load(new_text)
                     test_file = get_test_file_from_dict(
@@ -129,7 +136,7 @@ def get_all_test_files(root_project_dir: Path,
                        config_names: Sequence[ConfigName],
                        parse_test_case_fn: Callable[..., Any]) -> Iterable[TestFile]:
     for path in fixture_pathes:
-        yield from get_files_of_dir(root_project_dir, path, config_names, parse_test_case_fn)
+        yield from load_from_yaml_files(root_project_dir, path, config_names, parse_test_case_fn)
 
 
 #
