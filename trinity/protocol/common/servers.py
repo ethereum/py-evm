@@ -8,6 +8,8 @@ from typing import (
 
 from cancel_token import CancelToken, OperationCancelled
 
+from lahja import EndpointAPI
+
 from eth.exceptions import (
     HeaderNotFound,
 )
@@ -31,7 +33,6 @@ from p2p.protocol import (
 )
 from p2p.service import BaseService
 
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.events import PeerPoolMessageEvent
 from trinity.protocol.common.peer import BasePeerPool
@@ -96,7 +97,7 @@ class BaseIsolatedRequestServer(BaseService):
 
     def __init__(
             self,
-            event_bus: TrinityEventBusEndpoint,
+            event_bus: EndpointAPI,
             broadcast_config: BroadcastConfig,
             subscribed_events: Iterable[Type[PeerPoolMessageEvent]],
             token: CancelToken = None) -> None:

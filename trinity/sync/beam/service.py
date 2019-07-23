@@ -1,3 +1,5 @@
+from lahja import EndpointAPI
+
 from cancel_token import CancelToken
 
 from p2p.service import BaseService
@@ -5,9 +7,6 @@ from p2p.service import BaseService
 from trinity.chains.base import BaseAsyncChain
 from trinity.db.base import BaseAsyncDB
 from trinity.db.eth1.chain import BaseAsyncChainDB
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 from trinity.protocol.eth.peer import ETHPeerPool
 
 from .chain import BeamSyncer
@@ -21,7 +20,7 @@ class BeamSyncService(BaseService):
             chaindb: BaseAsyncChainDB,
             base_db: BaseAsyncDB,
             peer_pool: ETHPeerPool,
-            event_bus: TrinityEventBusEndpoint,
+            event_bus: EndpointAPI,
             token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain

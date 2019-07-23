@@ -21,11 +21,10 @@ from typing import (
     NamedTuple,
 )
 
+from lahja.base import EndpointAPI
+
 from trinity.config import (
     TrinityConfig
-)
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
 )
 from trinity.extensibility.events import (
     PluginStartedEvent,
@@ -70,7 +69,7 @@ class BasePlugin(ABC):
 
     @property
     @abstractmethod
-    def event_bus(self) -> TrinityEventBusEndpoint:
+    def event_bus(self) -> EndpointAPI:
         pass
 
     @property
@@ -110,7 +109,7 @@ class BasePlugin(ABC):
         """
         return self._status
 
-    def ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
+    def ready(self, manager_eventbus: EndpointAPI) -> None:
         """
         Set the ``status`` to ``PluginStatus.READY`` and delegate to
         :meth:`~trinity.extensibility.plugin.BasePlugin.on_ready`
@@ -118,7 +117,7 @@ class BasePlugin(ABC):
         self._status = PluginStatus.READY
         self.on_ready(manager_eventbus)
 
-    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
+    def on_ready(self, manager_eventbus: EndpointAPI) -> None:
         """
         Notify the plugin that it is ready to bootstrap itself.
         The ``manager_eventbus`` refers to the instance of the
@@ -176,7 +175,7 @@ class BaseMainProcessPlugin(BasePlugin):
     """
 
     @property
-    def event_bus(self) -> TrinityEventBusEndpoint:
+    def event_bus(self) -> EndpointAPI:
         raise NotImplementedError('BaseMainProcessPlugins do not have event busses')
 
 
@@ -191,7 +190,7 @@ class BaseIsolatedPlugin(BasePlugin):
     It is up to the plugin to handle these signals accordingly.
     """
     _process: Process = None
-    _event_bus: TrinityEventBusEndpoint = None
+    _event_bus: EndpointAPI = None
 
     @property
     def process(self) -> Process:

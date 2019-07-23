@@ -15,8 +15,8 @@ from eth_typing import (
     Hash32,
 )
 from lahja import (
-    AsyncioEndpoint,
     BroadcastConfig,
+    EndpointAPI,
 )
 from p2p.kademlia import (
     Node,
@@ -67,7 +67,7 @@ class ProxyETHExchangeHandler:
 
     def __init__(self,
                  remote: Node,
-                 event_bus: AsyncioEndpoint,
+                 event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig):
         self.remote = remote
         self._event_bus = event_bus

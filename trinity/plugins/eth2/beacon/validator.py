@@ -14,6 +14,8 @@ from typing import (
     cast,
 )
 
+from lahja import EndpointAPI
+
 from cancel_token import (
     CancelToken,
 )
@@ -69,9 +71,6 @@ from trinity._utils.shellart import (
     bold_green,
     bold_red,
 )
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 from trinity.plugins.eth2.beacon.slot_ticker import (
     SlotTickEvent,
 )
@@ -88,7 +87,7 @@ class Validator(BaseService):
     chain: BeaconChain
     peer_pool: BCCPeerPool
     validator_privkeys: Dict[ValidatorIndex, int]
-    event_bus: TrinityEventBusEndpoint
+    event_bus: EndpointAPI
     slots_per_epoch: int
     latest_proposed_epoch: Dict[ValidatorIndex, Epoch]
     latest_attested_epoch: Dict[ValidatorIndex, Epoch]
@@ -101,7 +100,7 @@ class Validator(BaseService):
             chain: BeaconChain,
             peer_pool: BCCPeerPool,
             validator_privkeys: Dict[ValidatorIndex, int],
-            event_bus: TrinityEventBusEndpoint,
+            event_bus: EndpointAPI,
             get_ready_attestations_fn: GetReadyAttestationsFn,
             token: CancelToken = None) -> None:
         super().__init__(token)

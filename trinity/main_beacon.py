@@ -31,12 +31,6 @@ from trinity.constants import (
 from trinity.db.beacon.manager import (
     create_db_server_manager,
 )
-from trinity.endpoint import (
-    TrinityMainEventBusEndpoint,
-)
-from trinity.extensibility import (
-    PluginManager,
-)
 from trinity.initialization import (
     ensure_beacon_dirs,
 )
@@ -73,9 +67,7 @@ def main_beacon() -> None:
 def trinity_boot(args: Namespace,
                  trinity_config: TrinityConfig,
                  extra_kwargs: Dict[str, Any],
-                 plugin_manager: PluginManager,
                  listener: logging.handlers.QueueListener,
-                 main_endpoint: TrinityMainEventBusEndpoint,
                  logger: logging.Logger) -> Tuple[multiprocessing.Process, ...]:
     # start the listener thread to handle logs produced by other processes in
     # the local logger.

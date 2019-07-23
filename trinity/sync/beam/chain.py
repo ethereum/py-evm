@@ -5,6 +5,8 @@ from typing import (
     Tuple,
 )
 
+from lahja import EndpointAPI
+
 from cancel_token import CancelToken
 from eth.constants import GENESIS_PARENT_HASH, MAX_UNCLE_DEPTH
 from eth.exceptions import (
@@ -26,7 +28,6 @@ from trinity.chains.base import BaseAsyncChain
 from trinity.db.base import BaseAsyncDB
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.eth.sync import ETHHeaderChainSyncer
 from trinity.sync.common.chain import (
@@ -85,7 +86,7 @@ class BeamSyncer(BaseService):
             db: BaseAsyncDB,
             chain_db: BaseAsyncChainDB,
             peer_pool: ETHPeerPool,
-            event_bus: TrinityEventBusEndpoint,
+            event_bus: EndpointAPI,
             force_beam_block_number: int = None,
             token: CancelToken = None) -> None:
         super().__init__(token=token)
@@ -423,7 +424,7 @@ class BeamBlockImporter(BaseBlockImporter, HasExtendedDebugLogger):
             self,
             chain: BaseAsyncChain,
             state_getter: BeamDownloader,
-            event_bus: TrinityEventBusEndpoint) -> None:
+            event_bus: EndpointAPI) -> None:
         self._chain = chain
         self._state_downloader = state_getter
 
@@ -483,7 +484,7 @@ class MissingDataEventHandler(BaseService):
     def __init__(
             self,
             state_downloader: BeamDownloader,
-            event_bus: TrinityEventBusEndpoint,
+            event_bus: EndpointAPI,
             token: CancelToken=None) -> None:
         super().__init__(token=token)
         self._state_downloader = state_downloader

@@ -2,12 +2,16 @@ import platform
 
 import websockets
 
+from lahja import EndpointAPI
+
 from eth.chains.base import (
     BaseChain,
 )
+
 from p2p.service import (
     BaseService,
 )
+
 from trinity import (
     __version__,
 )
@@ -23,9 +27,6 @@ from trinity.chains.light_eventbus import (
 )
 from trinity.db.eth1.manager import (
     create_db_consumer_manager,
-)
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
 )
 from trinity._utils.version import (
     construct_trinity_client_identifier,
@@ -49,7 +50,7 @@ class EthstatsService(BaseService):
     def __init__(
         self,
         boot_info: TrinityBootInfo,
-        event_bus: TrinityEventBusEndpoint,
+        event_bus: EndpointAPI,
         server_url: str,
         server_secret: str,
         node_id: str,

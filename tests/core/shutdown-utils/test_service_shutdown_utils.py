@@ -7,9 +7,8 @@ import pytest
 
 from p2p.service import BaseService
 
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity._utils.shutdown import (
-    exit_with_endpoint_and_services,
+    exit_with_services,
 )
 
 
@@ -26,17 +25,15 @@ class SimpleService(BaseService):
 def run_service(ready_to_kill_event):
     loop = asyncio.get_event_loop()
 
-    endpoint = TrinityEventBusEndpoint("dummy")
     service = SimpleService(ready_to_kill_event, loop=loop)
 
-    asyncio.ensure_future(exit_with_endpoint_and_services(endpoint, service))
     asyncio.ensure_future(service.run())
+    asyncio.ensure_future(exit_with_services(service))
 
     loop.run_forever()
     loop.close()
 
     assert service.is_cancelled
-    assert endpoint._running is False
 
 
 @pytest.mark.parametrize('sig', (signal.SIGINT, signal.SIGTERM))

@@ -7,6 +7,8 @@ from typing import (
     Tuple
 )
 
+from lahja import EndpointAPI
+
 from eth.db.header import (
     HeaderDB,
 )
@@ -27,9 +29,6 @@ from trinity.db.eth1.manager import (
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
 )
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 from trinity.rpc.main import (
     RPCServer,
 )
@@ -42,7 +41,7 @@ from trinity.rpc.ipc import (
     IPCServer,
 )
 from trinity._utils.shutdown import (
-    exit_with_endpoint_and_services,
+    exit_with_services,
 )
 
 
@@ -52,7 +51,7 @@ class JsonRpcServerPlugin(AsyncioIsolatedPlugin):
     def name(self) -> str:
         return "JSON-RPC API"
 
-    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
+    def on_ready(self, manager_eventbus: EndpointAPI) -> None:
         if not self.boot_info.args.disable_rpc:
             self.start()
 
@@ -103,5 +102,8 @@ class JsonRpcServerPlugin(AsyncioIsolatedPlugin):
         rpc = RPCServer(modules, self.event_bus)
         ipc_server = IPCServer(rpc, self.boot_info.trinity_config.jsonrpc_ipc_path)
 
-        asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, ipc_server))
+        asyncio.ensure_future(exit_with_services(
+            ipc_server,
+            self._event_bus_service,
+        ))
         asyncio.ensure_future(ipc_server.run())

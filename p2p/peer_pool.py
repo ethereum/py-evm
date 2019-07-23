@@ -30,8 +30,8 @@ from eth_utils.toolz import (
     take,
 )
 from lahja import (
-    AsyncioEndpoint,
     BroadcastConfig,
+    EndpointAPI,
 )
 
 from p2p._utils import clamp
@@ -107,14 +107,14 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     """
     _report_interval = 60
     _peer_boot_timeout = DEFAULT_PEER_BOOT_TIMEOUT
-    _event_bus: AsyncioEndpoint = None
+    _event_bus: EndpointAPI = None
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,
                  context: BasePeerContext,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  token: CancelToken = None,
-                 event_bus: AsyncioEndpoint = None,
+                 event_bus: EndpointAPI = None,
                  ) -> None:
         super().__init__(token)
 
@@ -141,7 +141,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     def has_event_bus(self) -> bool:
         return self._event_bus is not None
 
-    def get_event_bus(self) -> AsyncioEndpoint:
+    def get_event_bus(self) -> EndpointAPI:
         if self._event_bus is None:
             raise AttributeError("No event bus configured for this peer pool")
         return self._event_bus

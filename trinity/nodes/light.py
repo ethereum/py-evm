@@ -3,6 +3,8 @@ from typing import (
     Type,
 )
 
+from lahja import EndpointAPI
+
 from eth_keys.datatypes import PrivateKey
 from eth_utils import (
     ValidationError,
@@ -16,7 +18,6 @@ from trinity.chains.light import (
 from trinity.config import (
     TrinityConfig,
 )
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.nodes.base import Node
 from trinity.protocol.common.peer_pool_event_bus import (
     PeerPoolEventServer,
@@ -38,7 +39,7 @@ class LightNode(Node[LESPeer]):
     network_id: int = None
     nodekey: PrivateKey = None
 
-    def __init__(self, event_bus: TrinityEventBusEndpoint, trinity_config: TrinityConfig) -> None:
+    def __init__(self, event_bus: EndpointAPI, trinity_config: TrinityConfig) -> None:
         super().__init__(event_bus, trinity_config)
 
         self._nodekey = trinity_config.nodekey

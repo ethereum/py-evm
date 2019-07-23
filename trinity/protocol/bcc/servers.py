@@ -28,6 +28,7 @@ from eth_utils import (
 
 from lahja import (
     BroadcastConfig,
+    EndpointAPI,
 )
 
 import ssz
@@ -73,9 +74,6 @@ from trinity._utils.shellart import (
 from trinity.exceptions import (
     AttestationNotFound,
 )
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 from trinity.db.beacon.chain import (
     BaseAsyncBeaconChainDB,
 )
@@ -109,7 +107,7 @@ class BCCRequestServer(BaseIsolatedRequestServer):
     })
 
     def __init__(self,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig,
                  db: BaseAsyncBeaconChainDB,
                  token: CancelToken = None) -> None:

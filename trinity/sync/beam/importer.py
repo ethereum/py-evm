@@ -23,13 +23,14 @@ from eth_typing import (
     Address,
     Hash32,
 )
+
+from lahja import EndpointAPI
 from lahja.common import BroadcastConfig
 
 from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
 from trinity.chains.full import FullChain
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.sync.common.events import (
     CollectMissingAccount,
     CollectMissingBytecode,
@@ -45,13 +46,14 @@ def make_pausing_beam_chain(
         vm_config: Tuple[Tuple[int, BaseVM], ...],
         chain_id: int,
         db: BaseAtomicDB,
-        event_bus: TrinityEventBusEndpoint) -> FullChain:
+        event_bus: EndpointAPI,
+        loop: asyncio.AbstractEventLoop) -> FullChain:
     """
     Patch the py-evm chain with a VMState that pauses when state data
     is missing, and emits an event which requests the missing data.
     """
     pausing_vm_config = tuple(
-        (starting_block, pausing_vm_decorator(vm, event_bus))
+        (starting_block, pausing_vm_decorator(vm, event_bus, loop))
         for starting_block, vm in vm_config
     )
     PausingBeamChain = FullChain.configure(
@@ -66,7 +68,8 @@ TVMFuncReturn = TypeVar('TVMFuncReturn')
 
 def pausing_vm_decorator(
         original_vm_class: Type[BaseVM],
-        event_bus: TrinityEventBusEndpoint) -> Type[BaseVM]:
+        event_bus: EndpointAPI,
+        loop: asyncio.AbstractEventLoop) -> Type[BaseVM]:
     """
     Decorate a py-evm VM so that it will pause when data is missing
     """
@@ -121,7 +124,7 @@ def pausing_vm_decorator(
                             exc.address_hash,
                             exc.state_root_hash,
                         ),
-                        event_bus.event_loop,
+                        loop,
                     )
                     # TODO put in a loop to truly wait forever
                     future.result(timeout=300)
@@ -130,7 +133,7 @@ def pausing_vm_decorator(
                         request_missing_bytecode(
                             exc.missing_code_hash,
                         ),
-                        event_bus.event_loop,
+                        loop,
                     )
                     # TODO put in a loop to truly wait forever
                     future.result(timeout=300)
@@ -142,7 +145,7 @@ def pausing_vm_decorator(
                             exc.storage_root_hash,
                             exc.account_address,
                         ),
-                        event_bus.event_loop,
+                        loop,
                     )
                     # TODO put in a loop to truly wait forever
                     future.result(timeout=300)
@@ -207,7 +210,7 @@ def pausing_vm_decorator(
 
 
 def _broadcast_import_complete(
-        event_bus: TrinityEventBusEndpoint,
+        event_bus: EndpointAPI,
         block: BaseBlock,
         broadcast_config: BroadcastConfig,
         future: 'asyncio.Future[ImportBlockType]') -> None:
@@ -226,7 +229,7 @@ def _broadcast_import_complete(
 class BlockImportServer(BaseService):
     def __init__(
             self,
-            event_bus: TrinityEventBusEndpoint,
+            event_bus: EndpointAPI,
             beam_chain: BaseAsyncChain,
             token: CancelToken=None) -> None:
         super().__init__(token=token)
@@ -239,7 +242,7 @@ class BlockImportServer(BaseService):
 
     async def serve(
             self,
-            event_bus: TrinityEventBusEndpoint,
+            event_bus: EndpointAPI,
             beam_chain: BaseAsyncChain) -> None:
         """
         Listen to DoStatelessBlockImport events, and import block when received.
@@ -248,7 +251,7 @@ class BlockImportServer(BaseService):
 
         async for event in self.wait_iter(event_bus.stream(DoStatelessBlockImport)):
             # launch in new thread, so we don't block the event loop!
-            import_completion = asyncio.get_event_loop().run_in_executor(
+            import_completion = self.get_event_loop().run_in_executor(
                 # Maybe build the pausing chain inside the new process?
                 None,
                 partial(

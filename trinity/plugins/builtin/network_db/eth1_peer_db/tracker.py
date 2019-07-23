@@ -28,7 +28,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from lahja import (
     BroadcastConfig,
-    AsyncioEndpoint,
+    EndpointAPI,
 )
 
 from eth_typing import Hash32
@@ -364,7 +364,7 @@ TO_NETWORKDB_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=NETWORKDB_EVENTB
 
 class EventBusEth1PeerTracker(BaseEth1PeerTracker):
     def __init__(self,
-                 event_bus: AsyncioEndpoint,
+                 event_bus: EndpointAPI,
                  config: BroadcastConfig = TO_NETWORKDB_BROADCAST_CONFIG) -> None:
         self.event_bus = event_bus
         self.config = config

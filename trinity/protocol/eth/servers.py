@@ -21,6 +21,7 @@ from eth_utils import (
 )
 from lahja import (
     BroadcastConfig,
+    EndpointAPI,
 )
 from trie.exceptions import (
     MissingTrieNode,
@@ -33,9 +34,6 @@ from p2p.protocol import (
     Command,
 )
 
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.protocol.common.servers import (
     BaseIsolatedRequestServer,
@@ -179,7 +177,7 @@ class ETHRequestServer(BaseIsolatedRequestServer):
 
     def __init__(
             self,
-            event_bus: TrinityEventBusEndpoint,
+            event_bus: EndpointAPI,
             broadcast_config: BroadcastConfig,
             db: BaseAsyncChainDB,
             token: CancelToken = None) -> None:

@@ -1,24 +1,12 @@
-from argparse import (
-    ArgumentParser,
-    Namespace,
-    _SubParsersAction,
-)
 import logging
 from typing import (
-    Any,
-    Dict,
     Iterable,
     List,
     Type,
 )
 
-from trinity.config import (
-    TrinityConfig
-)
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-    TrinityMainEventBusEndpoint,
-)
+from lahja import EndpointAPI
+
 from trinity.extensibility.plugin import (
     BaseIsolatedPlugin,
     BasePlugin,
@@ -51,7 +39,7 @@ class PluginManager:
     """
 
     def __init__(self,
-                 endpoint: TrinityMainEventBusEndpoint,
+                 endpoint: EndpointAPI,
                  plugins: Iterable[Type[BasePlugin]]) -> None:
         self._endpoint = endpoint
         self._registered_plugins: List[Type[BasePlugin]] = list(plugins)
@@ -59,7 +47,7 @@ class PluginManager:
         self._logger = logging.getLogger("trinity.extensibility.plugin_manager.PluginManager")
 
     @property
-    def event_bus_endpoint(self) -> TrinityEventBusEndpoint:
+    def event_bus_endpoint(self) -> EndpointAPI:
         """
         Return the :class:`~lahja.endpoint.Endpoint` that the
         :class:`~trinity.extensibility.plugin_manager.PluginManager` instance uses to connect to
@@ -67,27 +55,14 @@ class PluginManager:
         """
         return self._endpoint
 
-    def amend_argparser_config(self,
-                               arg_parser: ArgumentParser,
-                               subparser: _SubParsersAction) -> None:
-        """
-        Call :meth:`~trinity.extensibility.plugin.BasePlugin.configure_parser` for every registered
-        plugin, giving them the option to amend the global parser setup.
-        """
-        for plugin_type in self._registered_plugins:
-            plugin_type.configure_parser(arg_parser, subparser)
-
-    def prepare(self,
-                args: Namespace,
-                trinity_config: TrinityConfig,
-                boot_kwargs: Dict[str, Any] = None) -> None:
+    def prepare(self, boot_info: TrinityBootInfo) -> None:
         """
         Create all plugins and call :meth:`~trinity.extensibility.plugin.BasePlugin.ready` on each
         of them.
         """
         for plugin_type in self._registered_plugins:
 
-            plugin = plugin_type(TrinityBootInfo(args, trinity_config, boot_kwargs))
+            plugin = plugin_type(boot_info)
             plugin.ready(self.event_bus_endpoint)
 
             self._plugin_store.append(plugin)

@@ -9,6 +9,7 @@ from eth_typing import (
 )
 from lahja import (
     BroadcastConfig,
+    EndpointAPI,
 )
 import ssz
 
@@ -21,9 +22,6 @@ from eth2.beacon.typing import (
     Slot,
 )
 
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 from trinity.protocol.bcc.commands import (
     Status,
     StatusMessage,
@@ -117,7 +115,7 @@ class ProxyBCCProtocol:
 
     def __init__(self,
                  remote: Node,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig):
         self.remote = remote
         self._event_bus = event_bus

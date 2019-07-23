@@ -24,12 +24,6 @@ from trinity.constants import (
 from trinity.db.eth1.manager import (
     create_db_server_manager,
 )
-from trinity.endpoint import (
-    TrinityMainEventBusEndpoint,
-)
-from trinity.extensibility import (
-    PluginManager,
-)
 from trinity.initialization import (
     ensure_eth1_dirs,
 )
@@ -61,9 +55,7 @@ def main() -> None:
 def trinity_boot(args: Namespace,
                  trinity_config: TrinityConfig,
                  extra_kwargs: Dict[str, Any],
-                 plugin_manager: PluginManager,
                  listener: logging.handlers.QueueListener,
-                 main_endpoint: TrinityMainEventBusEndpoint,
                  logger: logging.Logger) -> Tuple[multiprocessing.Process, ...]:
     # start the listener thread to handle logs produced by other processes in
     # the local logger.

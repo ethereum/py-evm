@@ -21,6 +21,7 @@ from lahja import (
     BaseEvent,
     BaseRequestResponseEvent,
     BroadcastConfig,
+    EndpointAPI,
 )
 
 from p2p.exceptions import (
@@ -42,10 +43,6 @@ from p2p.protocol import (
 )
 from p2p.service import (
     BaseService,
-)
-
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
 )
 
 from .events import (
@@ -84,7 +81,7 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
     subscription_msg_types: FrozenSet[Type[Command]] = frozenset({})
 
     def __init__(self,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  peer_pool: BasePeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
@@ -255,7 +252,7 @@ class BaseProxyPeerPool(BaseService, Generic[TProxyPeer]):
     """
 
     def __init__(self,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig,
                  token: CancelToken=None):
         super().__init__(token)
@@ -314,7 +311,7 @@ class BaseProxyPeerPool(BaseService, Generic[TProxyPeer]):
     @abstractmethod
     def convert_node_to_proxy_peer(self,
                                    remote: Node,
-                                   event_bus: TrinityEventBusEndpoint,
+                                   event_bus: EndpointAPI,
                                    broadcast_config: BroadcastConfig) -> TProxyPeer:
         pass
 

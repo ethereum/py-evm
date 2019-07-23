@@ -1,10 +1,11 @@
 from typing import Type
 
+from lahja import EndpointAPI
+
 from p2p.peer_pool import BasePeerPool
 
 from trinity.chains.full import FullChain
 from trinity.config import TrinityConfig
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.common.peer_pool_event_bus import PeerPoolEventServer
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPoolEventServer
 from trinity.server import FullServer
@@ -16,7 +17,7 @@ class FullNode(Node[ETHPeer]):
     _chain: FullChain = None
     _p2p_server: FullServer = None
 
-    def __init__(self, event_bus: TrinityEventBusEndpoint, trinity_config: TrinityConfig) -> None:
+    def __init__(self, event_bus: EndpointAPI, trinity_config: TrinityConfig) -> None:
         super().__init__(event_bus, trinity_config)
         self._bootstrap_nodes = trinity_config.bootstrap_nodes
         self._preferred_nodes = trinity_config.preferred_nodes

@@ -9,6 +9,8 @@ from typing import (
     Type,
 )
 
+from lahja import EndpointAPI
+
 from cancel_token import CancelToken
 
 from eth_typing import (
@@ -42,7 +44,6 @@ from p2p.tracking.connection import (
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.db.eth1.header import BaseAsyncHeaderDB
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.common.handlers import BaseChainExchangeHandler
 
 from trinity.plugins.builtin.network_db.connection.tracker import ConnectionTrackerClient
@@ -140,7 +141,7 @@ class BaseProxyPeer(BaseService):
 
     def __init__(self,
                  remote: Node,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  token: CancelToken = None):
 
         self.event_bus = event_bus

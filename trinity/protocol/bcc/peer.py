@@ -9,7 +9,8 @@ from eth_typing import (
     Hash32,
 )
 
-from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
+from lahja import EndpointAPI
+
 from eth2.beacon.types.blocks import (
     BeaconBlock,
 )
@@ -37,7 +38,7 @@ from p2p.exceptions import HandshakeFailure
 from p2p.kademlia import Node
 from p2p.p2p_proto import DisconnectReason
 
-from trinity.endpoint import TrinityEventBusEndpoint
+from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.protocol.bcc.handlers import BCCExchangeHandler
 
 from trinity.protocol.bcc.proto import BCCProtocol, ProxyBCCProtocol
@@ -70,7 +71,7 @@ class BCCProxyPeer(BaseProxyPeer):
 
     def __init__(self,
                  remote: Node,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  sub_proto: ProxyBCCProtocol):
 
         super().__init__(remote, event_bus)
@@ -80,7 +81,7 @@ class BCCProxyPeer(BaseProxyPeer):
     @classmethod
     def from_node(cls,
                   remote: Node,
-                  event_bus: TrinityEventBusEndpoint,
+                  event_bus: EndpointAPI,
                   broadcast_config: BroadcastConfig) -> 'BCCProxyPeer':
         return cls(remote, event_bus, ProxyBCCProtocol(remote, event_bus, broadcast_config))
 

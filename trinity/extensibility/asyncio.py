@@ -1,53 +1,45 @@
 import asyncio
 
-from lahja import ConnectionConfig
+from lahja import AsyncioEndpoint
 
-from trinity.constants import MAIN_EVENTBUS_ENDPOINT
 from trinity.extensibility.events import PluginStartedEvent
-from trinity.endpoint import TrinityEventBusEndpoint
 
 from .plugin import BaseIsolatedPlugin
 
 
 class AsyncioIsolatedPlugin(BaseIsolatedPlugin):
-    _event_bus: TrinityEventBusEndpoint = None
+    _event_bus: AsyncioEndpoint = None
+    _loop: asyncio.AbstractEventLoop
 
     @property
-    def event_bus(self) -> TrinityEventBusEndpoint:
+    def event_bus(self) -> AsyncioEndpoint:
         if self._event_bus is None:
-            self._event_bus = TrinityEventBusEndpoint(self.normalized_name)
+            raise AttributeError("Event bus is not available yet")
         return self._event_bus
 
     def _spawn_start(self) -> None:
         self._setup_logging()
 
         with self.boot_info.trinity_config.process_id_file(self.normalized_name):
-            loop = asyncio.get_event_loop()
+            self._loop = asyncio.get_event_loop()
             asyncio.ensure_future(self._prepare_start())
-            loop.run_forever()
-            loop.close()
+            self._loop.run_forever()
+            self._loop.close()
 
     async def _prepare_start(self) -> None:
-        connection_config = ConnectionConfig.from_name(
+        # prevent circular import
+        from trinity.event_bus import AsyncioEventBusService
+
+        self._event_bus_service = AsyncioEventBusService(
+            self.boot_info.trinity_config,
             self.normalized_name,
-            self.boot_info.trinity_config.ipc_dir,
         )
-        await self.event_bus.start()
-        await self.event_bus.start_server(connection_config.path)
-        await self.event_bus.connect_to_endpoints(
-            ConnectionConfig.from_name(
-                MAIN_EVENTBUS_ENDPOINT, self.boot_info.trinity_config.ipc_dir
-            )
-        )
-        # This makes the `main` process aware of this Endpoint which will then propagate the info
-        # so that every other Endpoint can connect directly to the plugin Endpoint
-        await self.event_bus.announce_endpoint()
+        asyncio.ensure_future(self._event_bus_service.run())
+        await self._event_bus_service.wait_event_bus_available()
+        self._event_bus = self._event_bus_service.get_event_bus()
+
         await self.event_bus.broadcast(
             PluginStartedEvent(type(self))
         )
-
-        # Whenever new EventBus Endpoints come up the `main` process broadcasts this event
-        # and we connect to every Endpoint directly
-        asyncio.ensure_future(self.event_bus.auto_connect_new_announced_endpoints())
 
         self.do_start()

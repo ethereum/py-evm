@@ -10,6 +10,8 @@ from eth_typing import (
     BlockNumber,
 )
 
+from lahja import EndpointAPI
+
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransactionFields
@@ -23,7 +25,6 @@ from p2p.protocol import (
     Protocol,
 )
 
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.common.peer import ChainInfo
 from trinity.rlp.block_body import BlockBody
 
@@ -171,7 +172,7 @@ class ProxyETHProtocol:
 
     def __init__(self,
                  remote: Node,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig):
         self.remote = remote
         self._event_bus = event_bus

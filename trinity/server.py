@@ -9,6 +9,7 @@ from typing import (
     Type,
     TypeVar,
 )
+from lahja import EndpointAPI
 
 from eth_keys import datatypes
 from cancel_token import CancelToken, OperationCancelled
@@ -39,7 +40,6 @@ from trinity.db.base import BaseAsyncDB
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.common.peer import BasePeerPool
 from trinity.protocol.eth.peer import ETHPeerPool
@@ -73,7 +73,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
                  max_peers: int = DEFAULT_MAX_PEERS,
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
-                 event_bus: TrinityEventBusEndpoint = None,
+                 event_bus: EndpointAPI = None,
                  token: CancelToken = None,
                  ) -> None:
         super().__init__(token)
@@ -247,7 +247,7 @@ class BCCServer(BaseServer[BCCPeerPool]):
                  max_peers: int = DEFAULT_MAX_PEERS,
                  bootstrap_nodes: Tuple[Node, ...] = None,
                  preferred_nodes: Sequence[Node] = None,
-                 event_bus: TrinityEventBusEndpoint = None,
+                 event_bus: EndpointAPI = None,
                  token: CancelToken = None,
                  ) -> None:
         super().__init__(

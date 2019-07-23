@@ -4,14 +4,13 @@ from argparse import (
 )
 import asyncio
 
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
+from lahja import EndpointAPI
+
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
 )
 from trinity._utils.shutdown import (
-    exit_with_endpoint_and_services,
+    exit_with_services,
 )
 from .nat import (
     UPnPService
@@ -28,7 +27,7 @@ class UpnpPlugin(AsyncioIsolatedPlugin):
     def name(self) -> str:
         return "Upnp"
 
-    def on_ready(self, manager_eventbus: TrinityEventBusEndpoint) -> None:
+    def on_ready(self, manager_eventbus: EndpointAPI) -> None:
         if self.boot_info.args.disable_upnp:
             self.logger.debug("UPnP plugin disabled")
         else:
@@ -47,5 +46,8 @@ class UpnpPlugin(AsyncioIsolatedPlugin):
     def do_start(self) -> None:
         port = self.boot_info.trinity_config.port
         self.upnp_service = UPnPService(port)
-        asyncio.ensure_future(exit_with_endpoint_and_services(self.event_bus, self.upnp_service))
+        asyncio.ensure_future(exit_with_services(
+            self.upnp_service,
+            self._event_bus_service,
+        ))
         asyncio.ensure_future(self.upnp_service.run())

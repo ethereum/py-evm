@@ -10,6 +10,8 @@ from typing import (
     Type,
 )
 
+from lahja import EndpointAPI
+
 
 from eth_hash.auto import keccak
 from eth_utils import (
@@ -37,7 +39,6 @@ from trie.exceptions import MissingTrieNode
 from trinity._utils.datastructures import TaskQueue
 from trinity._utils.timer import Timer
 from trinity.db.base import BaseAsyncDB
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.protocol.common.types import (
     NodeDataBundles,
 )
@@ -87,7 +88,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             self,
             db: BaseAsyncDB,
             peer_pool: ETHPeerPool,
-            event_bus: TrinityEventBusEndpoint,
+            event_bus: EndpointAPI,
             token: CancelToken = None) -> None:
         super().__init__(token)
         self._db = db

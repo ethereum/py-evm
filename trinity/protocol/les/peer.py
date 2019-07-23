@@ -12,6 +12,8 @@ from cancel_token import CancelToken
 from eth.rlp.accounts import Account
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
+from lahja import EndpointAPI
+
 from eth_typing import (
     BlockNumber,
     Hash32,
@@ -36,9 +38,6 @@ from p2p.protocol import (
 )
 
 from trinity.rlp.block_body import BlockBody
-from trinity.endpoint import (
-    TrinityEventBusEndpoint,
-)
 from trinity.exceptions import (
     WrongNetworkFailure,
     WrongGenesisFailure,
@@ -163,7 +162,7 @@ class LESProxyPeer(BaseProxyPeer):
 
     def __init__(self,
                  remote: Node,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  sub_proto: ProxyLESProtocol):
 
         super().__init__(remote, event_bus)
@@ -173,7 +172,7 @@ class LESProxyPeer(BaseProxyPeer):
     @classmethod
     def from_node(cls,
                   remote: Node,
-                  event_bus: TrinityEventBusEndpoint,
+                  event_bus: EndpointAPI,
                   broadcast_config: BroadcastConfig) -> 'LESProxyPeer':
         return cls(remote, event_bus, ProxyLESProtocol(remote, event_bus, broadcast_config))
 
@@ -188,7 +187,7 @@ class LESPeerPoolEventServer(PeerPoolEventServer[LESPeer]):
     """
 
     def __init__(self,
-                 event_bus: TrinityEventBusEndpoint,
+                 event_bus: EndpointAPI,
                  peer_pool: BasePeerPool,
                  token: CancelToken = None,
                  chain: 'BaseLightPeerChain' = None) -> None:
@@ -269,7 +268,7 @@ class LESProxyPeerPool(BaseProxyPeerPool[LESProxyPeer]):
 
     def convert_node_to_proxy_peer(self,
                                    remote: Node,
-                                   event_bus: TrinityEventBusEndpoint,
+                                   event_bus: EndpointAPI,
                                    broadcast_config: BroadcastConfig) -> LESProxyPeer:
         return LESProxyPeer.from_node(
             remote,

@@ -7,6 +7,7 @@ from typing import (
 from cancel_token import CancelToken
 from lahja import (
     BroadcastConfig,
+    EndpointAPI,
 )
 
 from p2p.kademlia import (
@@ -17,7 +18,6 @@ from p2p.protocol import (
     _DecodedMsgType,
 )
 
-from trinity.endpoint import TrinityEventBusEndpoint
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.servers import (
     BaseIsolatedRequestServer,
@@ -58,7 +58,7 @@ class LightRequestServer(BaseIsolatedRequestServer):
 
     def __init__(
             self,
-            event_bus: TrinityEventBusEndpoint,
+            event_bus: EndpointAPI,
             broadcast_config: BroadcastConfig,
             db: BaseAsyncHeaderDB,
             token: CancelToken = None) -> None:
