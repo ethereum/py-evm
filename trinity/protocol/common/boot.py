@@ -5,8 +5,8 @@ from eth_utils import ValidationError
 from eth.rlp.headers import BlockHeader
 from eth.vm.forks import HomesteadVM
 
+from p2p.disconnect import DisconnectReason
 from p2p.exceptions import PeerConnectionLost
-from p2p.p2p_proto import DisconnectReason
 from p2p.peer import BasePeerBootManager
 
 from trinity.exceptions import DAOForkCheckFailure

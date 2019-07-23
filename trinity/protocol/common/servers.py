@@ -20,17 +20,14 @@ from eth.rlp.headers import BlockHeader
 from lahja import (
     BroadcastConfig,
 )
-from p2p import protocol
+
+from p2p.abc import CommandAPI, NodeAPI
 from p2p.cancellable import CancellableMixin
-from p2p.kademlia import Node
 from p2p.peer import (
     BasePeer,
     PeerSubscriber,
 )
-from p2p.protocol import (
-    Command,
-    _DecodedMsgType,
-)
+from p2p.typing import PayloadType
 from p2p.service import BaseService
 
 from trinity.db.eth1.header import BaseAsyncHeaderDB
@@ -70,8 +67,8 @@ class BaseRequestServer(BaseService, PeerSubscriber):
     async def _quiet_handle_msg(
             self,
             peer: BasePeer,
-            cmd: protocol.Command,
-            msg: protocol._DecodedMsgType) -> None:
+            cmd: CommandAPI,
+            msg: PayloadType) -> None:
         try:
             await self._handle_msg(peer, cmd, msg)
         except OperationCancelled:
@@ -82,7 +79,7 @@ class BaseRequestServer(BaseService, PeerSubscriber):
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
     @abstractmethod
-    async def _handle_msg(self, peer: BasePeer, cmd: Command, msg: _DecodedMsgType) -> None:
+    async def _handle_msg(self, peer: BasePeer, cmd: CommandAPI, msg: PayloadType) -> None:
         """
         Identify the command, and react appropriately.
         """
@@ -120,9 +117,9 @@ class BaseIsolatedRequestServer(BaseService):
 
     async def _quiet_handle_msg(
             self,
-            remote: Node,
-            cmd: protocol.Command,
-            msg: protocol._DecodedMsgType) -> None:
+            remote: NodeAPI,
+            cmd: CommandAPI,
+            msg: PayloadType) -> None:
         try:
             await self._handle_msg(remote, cmd, msg)
         except OperationCancelled:
@@ -134,9 +131,9 @@ class BaseIsolatedRequestServer(BaseService):
 
     @abstractmethod
     async def _handle_msg(self,
-                          remote: Node,
-                          cmd: Command,
-                          msg: protocol._DecodedMsgType) -> None:
+                          remote: NodeAPI,
+                          cmd: CommandAPI,
+                          msg: PayloadType) -> None:
         pass
 
 

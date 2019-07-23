@@ -15,15 +15,13 @@ from lahja import EndpointAPI
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransactionFields
+
 from lahja import (
     BroadcastConfig,
 )
-from p2p.kademlia import (
-    Node,
-)
-from p2p.protocol import (
-    Protocol,
-)
+
+from p2p.abc import NodeAPI
+from p2p.protocol import Protocol
 
 from trinity.protocol.common.peer import ChainInfo
 from trinity.rlp.block_body import BlockBody
@@ -171,7 +169,7 @@ class ProxyETHProtocol:
     """
 
     def __init__(self,
-                 remote: Node,
+                 remote: NodeAPI,
                  event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig):
         self.remote = remote

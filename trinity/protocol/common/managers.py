@@ -18,15 +18,11 @@ from eth_utils import (
 )
 
 from p2p._utils import ensure_global_asyncio_executor
+from p2p.abc import CommandAPI, RequestAPI, TRequestPayload
 from p2p.constants import BLACKLIST_SECONDS_TOO_MANY_TIMEOUTS
 from p2p.exceptions import PeerConnectionLost
-from p2p.p2p_proto import DisconnectReason
+from p2p.disconnect import DisconnectReason
 from p2p.peer import BasePeer, PeerSubscriber
-from p2p.protocol import (
-    BaseRequest,
-    Command,
-    TRequestPayload,
-)
 from p2p.service import BaseService
 from p2p.token_bucket import TokenBucket, NotEnoughTokens
 
@@ -55,7 +51,7 @@ class ResponseCandidateStream(
     # PeerSubscriber
     #
     @property
-    def subscription_msg_types(self) -> FrozenSet[Type[Command]]:
+    def subscription_msg_types(self) -> FrozenSet[Type[CommandAPI]]:
         return frozenset({self.response_msg_type})
 
     msg_queue_maxsize = 100
@@ -69,7 +65,7 @@ class ResponseCandidateStream(
     def __init__(
             self,
             peer: BasePeer,
-            response_msg_type: Type[Command],
+            response_msg_type: Type[CommandAPI],
             token: CancelToken) -> None:
         super().__init__(token)
         self._peer = peer
@@ -83,8 +79,8 @@ class ResponseCandidateStream(
 
     async def payload_candidates(
             self,
-            request: BaseRequest[TRequestPayload],
-            tracker: BasePerformanceTracker[BaseRequest[TRequestPayload], Any],
+            request: RequestAPI[TRequestPayload],
+            tracker: BasePerformanceTracker[RequestAPI[TRequestPayload], Any],
             *,
             timeout: float = None) -> AsyncGenerator[TResponsePayload, None]:
         """
@@ -193,7 +189,7 @@ class ResponseCandidateStream(
 
         return payload
 
-    def _request(self, request: BaseRequest[TRequestPayload]) -> None:
+    def _request(self, request: RequestAPI[TRequestPayload]) -> None:
         if not self._lock.locked():
             # This is somewhat of an invariant check but since there the
             # linkage between the lock and this method are loose this sanity
@@ -252,7 +248,7 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
     def __init__(
             self,
             peer: BasePeer,
-            listening_for: Type[Command],
+            listening_for: Type[CommandAPI],
             cancel_token: CancelToken) -> None:
         self._peer = peer
         self._cancel_token = cancel_token
@@ -285,11 +281,11 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
 
     async def get_result(
             self,
-            request: BaseRequest[TRequestPayload],
+            request: RequestAPI[TRequestPayload],
             normalizer: BaseNormalizer[TResponsePayload, TResult],
             validate_result: Callable[[TResult], None],
             payload_validator: Callable[[TResponsePayload], None],
-            tracker: BasePerformanceTracker[BaseRequest[TRequestPayload], TResult],
+            tracker: BasePerformanceTracker[RequestAPI[TRequestPayload], TResult],
             timeout: float = None) -> TResult:
 
         if not self.is_operational:

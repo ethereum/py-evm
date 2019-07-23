@@ -22,7 +22,7 @@ from lahja import (
 
 from eth_utils import humanize_seconds
 
-from p2p.kademlia import Node
+from p2p.abc import NodeAPI
 from p2p.tracking.connection import BaseConnectionTracker
 
 from trinity.constants import (
@@ -65,7 +65,7 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
     #
     # Core API
     #
-    def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
+    def record_blacklist(self, remote: NodeAPI, timeout_seconds: int, reason: str) -> None:
         try:
             record = self._get_record(remote.uri())
         except NoResultFound:
@@ -78,7 +78,7 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
             )
             self._update_record(remote, scaled_expires_at, reason)
 
-    async def should_connect_to(self, remote: Node) -> bool:
+    async def should_connect_to(self, remote: NodeAPI) -> bool:
         try:
             record = self._get_record(remote.uri())
         except NoResultFound:
@@ -112,7 +112,7 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
         else:
             return True
 
-    def _create_record(self, remote: Node, expires_at: datetime.datetime, reason: str) -> None:
+    def _create_record(self, remote: NodeAPI, expires_at: datetime.datetime, reason: str) -> None:
         uri = remote.uri()
 
         record = BlacklistRecord(uri=uri, expires_at=expires_at, reason=reason)
@@ -128,7 +128,7 @@ class SQLiteConnectionTracker(BaseConnectionTracker):
             reason,
         )
 
-    def _update_record(self, remote: Node, expires_at: datetime.datetime, reason: str) -> None:
+    def _update_record(self, remote: NodeAPI, expires_at: datetime.datetime, reason: str) -> None:
         uri = remote.uri()
         record = self._get_record(uri)
 
@@ -167,13 +167,13 @@ class ConnectionTrackerClient(BaseConnectionTracker):
         self.event_bus = event_bus
         self.config = config
 
-    def record_blacklist(self, remote: Node, timeout_seconds: int, reason: str) -> None:
+    def record_blacklist(self, remote: NodeAPI, timeout_seconds: int, reason: str) -> None:
         self.event_bus.broadcast_nowait(
             BlacklistEvent(remote, timeout_seconds, reason=reason),
             self.config,
         )
 
-    async def should_connect_to(self, remote: Node) -> bool:
+    async def should_connect_to(self, remote: NodeAPI) -> bool:
         response = await self.event_bus.request(
             ShouldConnectToPeerRequest(remote),
             self.config

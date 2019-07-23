@@ -9,12 +9,8 @@ from lahja import (
     EndpointAPI,
 )
 
-from p2p.constants import (
-    DISCOVERY_EVENTBUS_ENDPOINT,
-)
-from p2p.kademlia import (
-    Node,
-)
+from p2p.abc import NodeAPI
+from p2p.constants import DISCOVERY_EVENTBUS_ENDPOINT
 from p2p.events import (
     PeerCandidatesRequest,
     RandomBootnodeRequest,
@@ -25,7 +21,7 @@ class BasePeerBackend(ABC):
     @abstractmethod
     async def get_peer_candidates(self,
                                   num_requested: int,
-                                  connected_remotes: Set[Node]) -> Tuple[Node, ...]:
+                                  connected_remotes: Set[NodeAPI]) -> Tuple[NodeAPI, ...]:
         pass
 
 
@@ -38,7 +34,7 @@ class DiscoveryPeerBackend(BasePeerBackend):
 
     async def get_peer_candidates(self,
                                   num_requested: int,
-                                  connected_remotes: Set[Node]) -> Tuple[Node, ...]:
+                                  connected_remotes: Set[NodeAPI]) -> Tuple[NodeAPI, ...]:
         await self.event_bus.wait_until_any_endpoint_subscribed_to(PeerCandidatesRequest)
         response = await self.event_bus.request(
             PeerCandidatesRequest(num_requested),
@@ -57,7 +53,7 @@ class BootnodesPeerBackend(BasePeerBackend):
 
     async def get_peer_candidates(self,
                                   num_requested: int,
-                                  connected_remotes: Set[Node]) -> Tuple[Node, ...]:
+                                  connected_remotes: Set[NodeAPI]) -> Tuple[NodeAPI, ...]:
         if len(connected_remotes) == 0:
             await self.event_bus.wait_until_any_endpoint_subscribed_to(RandomBootnodeRequest)
             response = await self.event_bus.request(

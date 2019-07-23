@@ -20,7 +20,7 @@ from eth_hash.auto import keccak
 from cancel_token import CancelToken
 
 from p2p import ecies
-from p2p import kademlia
+from p2p.abc import NodeAPI
 from p2p.constants import REPLY_TIMEOUT
 from p2p.exceptions import (
     BadAckMessage,
@@ -45,7 +45,7 @@ from .constants import (
 
 
 async def handshake(
-        remote: kademlia.Node,
+        remote: NodeAPI,
         privkey: datatypes.PrivateKey,
         token: CancelToken) -> Tuple[bytes, bytes, sha3.keccak_256, sha3.keccak_256, asyncio.StreamReader, asyncio.StreamWriter]:  # noqa: E501
     """
@@ -117,7 +117,7 @@ class HandshakeBase:
     _is_initiator = False
 
     def __init__(
-            self, remote: kademlia.Node, privkey: datatypes.PrivateKey,
+            self, remote: NodeAPI, privkey: datatypes.PrivateKey,
             use_eip8: bool, token: CancelToken) -> None:
         self.remote = remote
         self.privkey = privkey

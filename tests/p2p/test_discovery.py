@@ -15,8 +15,8 @@ from eth_keys import keys
 
 from cancel_token import CancelToken
 
+from p2p import constants
 from p2p import discovery
-from p2p import kademlia
 from p2p.tools.factories import (
     AddressFactory,
     DiscoveryProtocolFactory,
@@ -28,7 +28,7 @@ from p2p.tools.factories import (
 # Force our tests to fail quickly if they accidentally make network requests.
 @pytest.fixture(autouse=True)
 def short_timeout(monkeypatch):
-    monkeypatch.setattr(kademlia, 'k_request_timeout', 0.05)
+    monkeypatch.setattr(constants, 'KADEMLIA_REQUEST_TIMEOUT', 0.05)
 
 
 @pytest.fixture
@@ -60,7 +60,7 @@ def test_ping_pong(alice, bob):
 def _test_find_node_neighbours(use_v5, alice, bob):
     # Add some nodes to bob's routing table so that it has something to use when replying to
     # alice's find_node.
-    for _ in range(kademlia.k_bucket_size * 2):
+    for _ in range(constants.KADEMLIA_BUCKET_SIZE * 2):
         bob.update_routing_table(NodeFactory())
 
     # Connect alice's and bob's transports directly so we don't need to deal with the complexities
@@ -87,7 +87,7 @@ def _test_find_node_neighbours(use_v5, alice, bob):
         assert node == bob.this_node
         neighbours.extend(discovery._extract_nodes_from_payload(
             node.address, payload[0], bob.logger))
-    assert len(neighbours) == kademlia.k_bucket_size
+    assert len(neighbours) == constants.KADEMLIA_BUCKET_SIZE
 
 
 def test_find_node_neighbours_v4(alice, bob):

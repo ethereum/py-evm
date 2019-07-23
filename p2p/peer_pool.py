@@ -35,6 +35,7 @@ from lahja import (
 )
 
 from p2p._utils import clamp
+from p2p.abc import NodeAPI
 from p2p.constants import (
     DEFAULT_MAX_PEERS,
     DEFAULT_PEER_BOOT_TIMEOUT,
@@ -53,9 +54,6 @@ from p2p.exceptions import (
     PeerConnectionLost,
     UnreachablePeer,
 )
-from p2p.kademlia import (
-    Node,
-)
 from p2p.peer import (
     BasePeer,
     BasePeerFactory,
@@ -69,7 +67,7 @@ from p2p.peer_backend import (
     DiscoveryPeerBackend,
     BootnodesPeerBackend,
 )
-from p2p.p2p_proto import (
+from p2p.disconnect import (
     DisconnectReason,
 )
 from p2p.service import (
@@ -122,7 +120,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         self.max_peers = max_peers
         self.context = context
 
-        self.connected_nodes: Dict[Node, BasePeer] = {}
+        self.connected_nodes: Dict[NodeAPI, BasePeer] = {}
 
         self._subscribers: List[PeerSubscriber] = []
         self._event_bus = event_bus
@@ -132,7 +130,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
         # Ensure we can only have a single concurrent handshake in flight per remote
         self._handshake_lock = asyncio.Lock()
-        self._inflight_handshakes: Set[Node] = set()
+        self._inflight_handshakes: Set[NodeAPI] = set()
 
         self.peer_backends = self.setup_peer_backends()
         self.connection_tracker = self.setup_connection_tracker()
@@ -227,7 +225,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     def is_full(self) -> bool:
         return len(self) >= self.max_peers
 
-    def is_valid_connection_candidate(self, candidate: Node) -> bool:
+    def is_valid_connection_candidate(self, candidate: NodeAPI) -> bool:
         # connect to no more then 2 nodes with the same IP
         nodes_by_ip = groupby(
             operator.attrgetter('address.ip'),
@@ -311,7 +309,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     async def _cleanup(self) -> None:
         await self.stop_all_peers()
 
-    async def connect(self, remote: Node) -> BasePeer:
+    async def connect(self, remote: NodeAPI) -> BasePeer:
         """
         Connect to the given remote and return a Peer instance when successful.
         Returns None if the remote is unreachable, times out or is useless.
@@ -379,7 +377,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 self.logger.debug("Removing %s from connect_lock", remote)
                 self._inflight_handshakes.remove(remote)
 
-    async def connect_to_nodes(self, nodes: Iterator[Node]) -> None:
+    async def connect_to_nodes(self, nodes: Iterator[NodeAPI]) -> None:
         # create an generator for the nodes
         nodes_iter = iter(nodes)
 
@@ -408,7 +406,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 loop=self.get_event_loop(),
             ))
 
-    async def connect_to_node(self, node: Node) -> None:
+    async def connect_to_node(self, node: NodeAPI) -> None:
         """
         Connect to a single node quietly aborting if the peer pool is full or
         shutting down, or one of the expected peer level exceptions is raised

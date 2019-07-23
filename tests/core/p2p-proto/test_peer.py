@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from p2p.p2p_proto import DisconnectReason
+from p2p.disconnect import DisconnectReason
 
 from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.eth.proto import ETHProtocol

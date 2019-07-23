@@ -15,16 +15,12 @@ from cancel_token import CancelToken
 from p2p import auth
 from p2p import constants
 from p2p import ecies
-from p2p import kademlia
 from p2p import protocol
 from p2p.auth import decode_authentication
-from p2p.exceptions import (
-    HandshakeFailure,
-)
-from p2p.p2p_proto import (
-    DisconnectReason,
-    Hello,
-)
+from p2p.disconnect import DisconnectReason
+from p2p.exceptions import HandshakeFailure
+from p2p.kademlia import Address, Node
+from p2p.p2p_proto import Hello
 from p2p.peer import (
     BasePeer,
     BasePeerFactory,
@@ -69,10 +65,10 @@ async def get_directly_linked_peers_without_handshake(
     alice_private_key = alice_factory.privkey
     bob_private_key = bob_factory.privkey
 
-    alice_remote = kademlia.Node(
-        bob_private_key.public_key, kademlia.Address('0.0.0.0', 0, 0))
-    bob_remote = kademlia.Node(
-        alice_private_key.public_key, kademlia.Address('0.0.0.0', 0, 0))
+    alice_remote = Node(
+        bob_private_key.public_key, Address('0.0.0.0', 0, 0))
+    bob_remote = Node(
+        alice_private_key.public_key, Address('0.0.0.0', 0, 0))
 
     use_eip8 = False
     initiator = auth.HandshakeInitiator(alice_remote, alice_private_key, use_eip8, cancel_token)
@@ -123,8 +119,11 @@ async def get_directly_linked_peers_without_handshake(
     aes_secret, mac_secret, egress_mac, ingress_mac = responder.derive_secrets(
         initiator_nonce, responder_nonce, initiator_ephemeral_pubkey,
         auth_cipher, auth_ack_ciphertext)
-    assert egress_mac.digest() == alice.transport._ingress_mac.digest()
-    assert ingress_mac.digest() == alice.transport._egress_mac.digest()
+    # This property is only present on the `Transport` object but not the
+    # abstract base class so we have to tell mypy to ignore this property
+    # access
+    assert egress_mac.digest() == alice.transport._ingress_mac.digest()  # type: ignore
+    assert ingress_mac.digest() == alice.transport._egress_mac.digest()  # type: ignore
     transport = Transport(
         remote=bob_remote,
         private_key=bob_factory.privkey,

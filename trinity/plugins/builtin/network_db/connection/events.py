@@ -8,7 +8,7 @@ from lahja import (
     BaseRequestResponseEvent,
 )
 
-from p2p.kademlia import Node
+from p2p.abc import NodeAPI
 
 
 class BaseConnectionTrackerEvent(BaseEvent):
@@ -18,7 +18,7 @@ class BaseConnectionTrackerEvent(BaseEvent):
 @dataclass
 class BlacklistEvent(BaseConnectionTrackerEvent):
 
-    remote: Node
+    remote: NodeAPI
     timeout_seconds: int
     reason: str
 
@@ -32,7 +32,7 @@ class ShouldConnectToPeerResponse(BaseConnectionTrackerEvent):
 @dataclass
 class ShouldConnectToPeerRequest(BaseRequestResponseEvent[ShouldConnectToPeerResponse]):
 
-    remote: Node
+    remote: NodeAPI
 
     @staticmethod
     def expected_response_type() -> Type[ShouldConnectToPeerResponse]:

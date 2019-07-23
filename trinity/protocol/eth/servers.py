@@ -26,13 +26,9 @@ from lahja import (
 from trie.exceptions import (
     MissingTrieNode,
 )
-from p2p import protocol
-from p2p.kademlia import (
-    Node,
-)
-from p2p.protocol import (
-    Command,
-)
+
+from p2p.abc import CommandAPI, NodeAPI
+from p2p.typing import PayloadType
 
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.protocol.common.servers import (
@@ -190,9 +186,9 @@ class ETHRequestServer(BaseIsolatedRequestServer):
         self._handler = ETHPeerRequestHandler(db, self.cancel_token)
 
     async def _handle_msg(self,
-                          remote: Node,
-                          cmd: Command,
-                          msg: protocol._DecodedMsgType) -> None:
+                          remote: NodeAPI,
+                          cmd: CommandAPI,
+                          msg: PayloadType) -> None:
 
         self.logger.debug2("Peer %s requested %s", remote, cmd)
         peer = ETHProxyPeer.from_node(remote, self.event_bus, self.broadcast_config)

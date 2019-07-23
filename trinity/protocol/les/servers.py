@@ -10,13 +10,8 @@ from lahja import (
     EndpointAPI,
 )
 
-from p2p.kademlia import (
-    Node,
-)
-from p2p.protocol import (
-    Command,
-    _DecodedMsgType,
-)
+from p2p.abc import CommandAPI, NodeAPI
+from p2p.typing import PayloadType
 
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.servers import (
@@ -71,9 +66,9 @@ class LightRequestServer(BaseIsolatedRequestServer):
         self._handler = LESPeerRequestHandler(db, self.cancel_token)
 
     async def _handle_msg(self,
-                          remote: Node,
-                          cmd: Command,
-                          msg: _DecodedMsgType) -> None:
+                          remote: NodeAPI,
+                          cmd: CommandAPI,
+                          msg: PayloadType) -> None:
 
         self.logger.debug2("Peer %s requested %s", remote, cmd)
         peer = LESProxyPeer.from_node(remote, self.event_bus, self.broadcast_config)

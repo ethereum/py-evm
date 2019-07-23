@@ -7,11 +7,7 @@ from typing import (
     Type,
 )
 
-from p2p.protocol import (
-    BaseRequest,
-    Command,
-    TRequestPayload,
-)
+from p2p.abc import CommandAPI, RequestAPI, TRequestPayload
 
 from trinity._utils.decorators import classproperty
 from .trackers import (
@@ -46,9 +42,9 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
     TResult is the response data after normalization
     """
 
-    request_class: Type[BaseRequest[TRequestPayload]]
+    request_class: Type[RequestAPI[TRequestPayload]]
     tracker_class: Type[BasePerformanceTracker[Any, TResult]]
-    tracker: BasePerformanceTracker[BaseRequest[TRequestPayload], TResult]
+    tracker: BasePerformanceTracker[RequestAPI[TRequestPayload], TResult]
 
     def __init__(self, mgr: ExchangeManager[TRequestPayload, TResponsePayload, TResult]) -> None:
         self._manager = mgr
@@ -56,7 +52,7 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
 
     async def get_result(
             self,
-            request: BaseRequest[TRequestPayload],
+            request: RequestAPI[TRequestPayload],
             normalizer: BaseNormalizer[TResponsePayload, TResult],
             result_validator: BaseValidator[TResult],
             payload_validator: Callable[[TRequestPayload, TResponsePayload], None],
@@ -84,7 +80,7 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
         )
 
     @classproperty
-    def response_cmd_type(cls) -> Type[Command]:
+    def response_cmd_type(cls) -> Type[CommandAPI]:
         return cls.request_class.response_type
 
     @abstractmethod

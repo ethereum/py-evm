@@ -10,9 +10,7 @@ from eth2.beacon.typing import (
     Slot,
 )
 
-from p2p.protocol import (
-    BaseRequest,
-)
+from p2p.abc import RequestAPI
 
 from trinity.protocol.bcc.commands import (
     GetBeaconBlocks,
@@ -21,7 +19,7 @@ from trinity.protocol.bcc.commands import (
 )
 
 
-class GetBeaconBlocksRequest(BaseRequest[GetBeaconBlocksMessage]):
+class GetBeaconBlocksRequest(RequestAPI[GetBeaconBlocksMessage]):
     cmd_type = GetBeaconBlocks
     response_type = BeaconBlocks
 

@@ -18,9 +18,7 @@ from lahja import (
     BroadcastConfig,
     EndpointAPI,
 )
-from p2p.kademlia import (
-    Node,
-)
+from p2p.abc import NodeAPI
 
 from trinity.protocol.common.handlers import (
     BaseChainExchangeHandler,
@@ -66,7 +64,7 @@ class ProxyETHExchangeHandler:
     """
 
     def __init__(self,
-                 remote: Node,
+                 remote: NodeAPI,
                  event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig):
         self.remote = remote

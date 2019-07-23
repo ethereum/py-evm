@@ -33,6 +33,8 @@ from p2p._utils import (
     get_devp2p_cmd_id,
     trim_middle,
 )
+from p2p.abc import CommandAPI, NodeAPI, ProtocolAPI, TransportAPI
+from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
     DecryptionError,
     HandshakeFailure,
@@ -43,11 +45,9 @@ from p2p.exceptions import (
     UnexpectedMessage,
     UnknownProtocolCommand,
 )
-from p2p.kademlia import Node
 from p2p.service import BaseService
 from p2p.p2p_proto import (
     Disconnect,
-    DisconnectReason,
     Hello,
     P2PProtocol,
     Ping,
@@ -57,7 +57,6 @@ from p2p.protocol import (
     match_protocols_with_capabilities,
     Command,
     PayloadType,
-    Protocol,
     CapabilitiesType,
 )
 from p2p.transport import Transport
@@ -76,7 +75,7 @@ if TYPE_CHECKING:
     from p2p.peer_pool import BasePeerPool  # noqa: F401
 
 
-async def handshake(remote: Node, factory: 'BasePeerFactory') -> 'BasePeer':
+async def handshake(remote: NodeAPI, factory: 'BasePeerFactory') -> 'BasePeer':
     """
     Perform the auth and P2P handshakes with the given remote.
 
@@ -133,17 +132,17 @@ class BasePeerContext:
 class BasePeer(BaseService):
     # Must be defined in subclasses. All items here must be Protocol classes representing
     # different versions of the same P2P sub-protocol (e.g. ETH, LES, etc).
-    supported_sub_protocols: Tuple[Type[Protocol], ...] = ()
+    supported_sub_protocols: Tuple[Type[ProtocolAPI], ...] = ()
     # FIXME: Must be configurable.
     listen_port = 30303
     # Will be set upon the successful completion of a P2P handshake.
-    sub_proto: Protocol = None
+    sub_proto: ProtocolAPI = None
     disconnect_reason: DisconnectReason = None
 
     _event_bus: EndpointAPI = None
 
     def __init__(self,
-                 transport: Transport,
+                 transport: TransportAPI,
                  context: BasePeerContext,
                  inbound: bool = False,
                  event_bus: EndpointAPI = None,
@@ -181,7 +180,7 @@ class BasePeer(BaseService):
 
         # A counter of the number of messages this peer has received for each
         # message type.
-        self.received_msgs: Dict[Command, int] = collections.defaultdict(int)
+        self.received_msgs: Dict[CommandAPI, int] = collections.defaultdict(int)
 
         # Manages the boot process
         self.boot_manager = self.get_boot_manager()
@@ -213,7 +212,7 @@ class BasePeer(BaseService):
     # Proxy Transport attributes
     #
     @cached_property
-    def remote(self) -> Node:
+    def remote(self) -> NodeAPI:
         return self.transport.remote
 
     @property
@@ -236,7 +235,7 @@ class BasePeer(BaseService):
 
     @abstractmethod
     async def process_sub_proto_handshake(
-            self, cmd: Command, msg: PayloadType) -> None:
+            self, cmd: CommandAPI, msg: PayloadType) -> None:
         pass
 
     @contextlib.contextmanager
@@ -314,7 +313,7 @@ class BasePeer(BaseService):
     def capabilities(self) -> CapabilitiesType:
         return tuple(proto.as_capability() for proto in self.supported_sub_protocols)
 
-    def get_protocol_command_for(self, msg: bytes) -> Command:
+    def get_protocol_command_for(self, msg: bytes) -> CommandAPI:
         """Return the Command corresponding to the cmd_id encoded in the given msg."""
         cmd_id = get_devp2p_cmd_id(msg)
         self.logger.debug2("Got msg with cmd_id: %s", cmd_id)
@@ -363,7 +362,7 @@ class BasePeer(BaseService):
                 self.logger.debug("%r disconnected: %s", self, e)
                 return
 
-    async def read_msg(self) -> Tuple[Command, PayloadType]:
+    async def read_msg(self) -> Tuple[CommandAPI, PayloadType]:
         msg = await self.transport.recv(self.cancel_token)
         cmd = self.get_protocol_command_for(msg)
         # NOTE: This used to be a bottleneck but it doesn't seem to be so anymore. If we notice
@@ -387,7 +386,7 @@ class BasePeer(BaseService):
             self.received_msgs[cmd] += 1
             return cmd, decoded_msg
 
-    def handle_p2p_msg(self, cmd: Command, msg: PayloadType) -> None:
+    def handle_p2p_msg(self, cmd: CommandAPI, msg: PayloadType) -> None:
         """Handle the base protocol (P2P) messages."""
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
@@ -407,7 +406,7 @@ class BasePeer(BaseService):
         else:
             raise UnexpectedMessage(f"Unexpected msg: {cmd} ({msg})")
 
-    def handle_sub_proto_msg(self, cmd: Command, msg: PayloadType) -> None:
+    def handle_sub_proto_msg(self, cmd: CommandAPI, msg: PayloadType) -> None:
         cmd_type = type(cmd)
 
         if self._subscribers:
@@ -425,14 +424,14 @@ class BasePeer(BaseService):
         else:
             self.logger.warning("Peer %s has no subscribers, discarding %s msg", self, cmd)
 
-    def process_msg(self, cmd: Command, msg: PayloadType) -> None:
+    def process_msg(self, cmd: CommandAPI, msg: PayloadType) -> None:
         if cmd.is_base_protocol:
             self.handle_p2p_msg(cmd, msg)
         else:
             self.handle_sub_proto_msg(cmd, msg)
 
     async def process_p2p_handshake(
-            self, cmd: Command, msg: PayloadType) -> None:
+            self, cmd: CommandAPI, msg: PayloadType) -> None:
         msg = cast(Dict[str, Any], msg)
         if not isinstance(cmd, Hello):
             await self.disconnect(DisconnectReason.bad_protocol)
@@ -530,7 +529,7 @@ class BasePeer(BaseService):
 
 class PeerMessage(NamedTuple):
     peer: BasePeer
-    command: Command
+    command: CommandAPI
     payload: PayloadType
 
 
@@ -543,7 +542,7 @@ class PeerSubscriber(ABC):
 
     @property
     @abstractmethod
-    def subscription_msg_types(self) -> FrozenSet[Type[Command]]:
+    def subscription_msg_types(self) -> FrozenSet[Type[CommandAPI]]:
         """
         The :class:`p2p.protocol.Command` types that this class subscribes to. Any
         command which is not in this set will not be passed to this subscriber.
@@ -558,7 +557,7 @@ class PeerSubscriber(ABC):
         pass
 
     @functools.lru_cache(maxsize=64)
-    def is_subscription_command(self, cmd_type: Type[Command]) -> bool:
+    def is_subscription_command(self, cmd_type: Type[CommandAPI]) -> bool:
         return bool(self.subscription_msg_types.intersection(
             {cmd_type, Command}
         ))
@@ -703,7 +702,7 @@ class BasePeerFactory(ABC):
         self.event_bus = event_bus
 
     def create_peer(self,
-                    transport: Transport,
+                    transport: TransportAPI,
                     inbound: bool = False) -> BasePeer:
         return self.peer_class(
             transport=transport,

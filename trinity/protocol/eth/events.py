@@ -16,9 +16,8 @@ from lahja import (
     BaseEvent,
     BaseRequestResponseEvent,
 )
-from p2p.kademlia import (
-    Node,
-)
+
+from p2p.abc import NodeAPI
 
 from eth_typing import (
     BlockIdentifier,
@@ -101,7 +100,7 @@ class SendBlockHeadersEvent(BaseEvent):
     Event to proxy a ``ETHPeer.sub_proto.send_block_headers`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
-    remote: Node
+    remote: NodeAPI
     headers: Tuple[BlockHeader, ...]
 
 
@@ -111,7 +110,7 @@ class SendBlockBodiesEvent(BaseEvent):
     Event to proxy a ``ETHPeer.sub_proto.send_block_bodies`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
-    remote: Node
+    remote: NodeAPI
     blocks: List[BaseBlock]
 
 
@@ -121,7 +120,7 @@ class SendNodeDataEvent(BaseEvent):
     Event to proxy a ``ETHPeer.sub_proto.send_node_data`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
-    remote: Node
+    remote: NodeAPI
     nodes: Tuple[bytes, ...]
 
 
@@ -131,7 +130,7 @@ class SendReceiptsEvent(BaseEvent):
     Event to proxy a ``ETHPeer.sub_proto.send_receipts`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
-    remote: Node
+    remote: NodeAPI
     receipts: List[List[Receipt]]
 
 
@@ -141,7 +140,7 @@ class SendTransactionsEvent(BaseEvent):
     Event to proxy a ``ETHPeer.sub_proto.send_transactions`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
-    remote: Node
+    remote: NodeAPI
     transactions: List[BaseTransactionFields]
 
 # EXCHANGE HANDLER REQUEST / RESPONSE PAIRS
@@ -157,7 +156,7 @@ class GetBlockHeadersResponse(BaseEvent):
 @dataclass
 class GetBlockHeadersRequest(BaseRequestResponseEvent[GetBlockHeadersResponse]):
 
-    remote: Node
+    remote: NodeAPI
     block_number_or_hash: BlockIdentifier
     max_headers: int
     skip: int
@@ -179,7 +178,7 @@ class GetBlockBodiesResponse(BaseEvent):
 @dataclass
 class GetBlockBodiesRequest(BaseRequestResponseEvent[GetBlockBodiesResponse]):
 
-    remote: Node
+    remote: NodeAPI
     headers: Tuple[BlockHeader, ...]
     timeout: float
 
@@ -198,7 +197,7 @@ class GetNodeDataResponse(BaseEvent):
 @dataclass
 class GetNodeDataRequest(BaseRequestResponseEvent[GetNodeDataResponse]):
 
-    remote: Node
+    remote: NodeAPI
     node_hashes: Tuple[Hash32, ...]
     timeout: float
 
@@ -217,7 +216,7 @@ class GetReceiptsResponse(BaseEvent):
 @dataclass
 class GetReceiptsRequest(BaseRequestResponseEvent[GetReceiptsResponse]):
 
-    remote: Node
+    remote: NodeAPI
     headers: Tuple[BlockHeader, ...]
     timeout: float
 

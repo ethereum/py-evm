@@ -14,6 +14,8 @@ from typing import (
     List,
     Sized,
     Tuple,
+    Type,
+    TypeVar,
 )
 from urllib import parse as urlparse
 
@@ -30,17 +32,9 @@ from eth_keys import (
 
 from eth_hash.auto import keccak
 
+from p2p.abc import AddressAPI, NodeAPI
+from p2p import constants
 from p2p.validation import validate_enode_uri
-
-k_b = 8  # 8 bits per hop
-
-k_bucket_size = 16
-k_request_timeout = 7.2                  # timeout of message round trips
-k_idle_bucket_refresh_interval = 3600    # ping all nodes in bucket if bucket was idle
-k_find_concurrency = 3                   # parallel find node lookups
-k_pubkey_size = 512
-k_id_size = 256
-k_max_node_id = 2 ** k_id_size - 1
 
 
 def int_to_big_endian4(integer: int) -> bytes:
@@ -52,7 +46,10 @@ def enc_port(p: int) -> bytes:
     return int_to_big_endian4(p)[-2:]
 
 
-class Address:
+TAddress = TypeVar('TAddress', bound=AddressAPI)
+
+
+class Address(AddressAPI):
 
     def __init__(self, ip: str, udp_port: int, tcp_port: int = 0) -> None:
         tcp_port = tcp_port or udp_port
@@ -90,20 +87,26 @@ class Address:
         return [self._ip.packed, enc_port(self.udp_port), enc_port(self.tcp_port)]
 
     @classmethod
-    def from_endpoint(cls, ip: str, udp_port: bytes, tcp_port: bytes = b'\x00\x00') -> 'Address':
+    def from_endpoint(cls: Type[TAddress],
+                      ip: str,
+                      udp_port: bytes,
+                      tcp_port: bytes = b'\x00\x00') -> TAddress:
         return cls(ip, big_endian_to_int(udp_port), big_endian_to_int(tcp_port))
 
 
-@total_ordering
-class Node:
+TNode = TypeVar('TNode', bound=NodeAPI)
 
-    def __init__(self, pubkey: datatypes.PublicKey, address: Address) -> None:
+
+@total_ordering
+class Node(NodeAPI):
+
+    def __init__(self, pubkey: datatypes.PublicKey, address: AddressAPI) -> None:
         self.pubkey = pubkey
         self.address = address
         self.id = big_endian_to_int(keccak(pubkey.to_bytes()))
 
     @classmethod
-    def from_uri(cls, uri: str) -> 'Node':
+    def from_uri(cls: Type[TNode], uri: str) -> TNode:
         validate_enode_uri(uri)  # Be no more permissive than the validation
         parsed = urlparse.urlparse(uri)
         pubkey = keys.PublicKey(decode_hex(parsed.username))
@@ -123,19 +126,17 @@ class Node:
     def distance_to(self, id: int) -> int:
         return self.id ^ id
 
-    # mypy doesn't have support for @total_ordering
-    # https://github.com/python/mypy/issues/4610
-    def __lt__(self, other: 'Node') -> bool:
+    def __lt__(self, other: Any) -> bool:
         if not isinstance(other, self.__class__):
-            return super().__lt__(other)  # type: ignore
+            return super().__lt__(other)
         return self.id < other.id
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, self.__class__):
             return super().__eq__(other)
         return self.pubkey == other.pubkey
 
-    def __ne__(self, other: object) -> bool:
+    def __ne__(self, other: Any) -> bool:
         return not self == other
 
     def __hash__(self) -> int:
@@ -157,13 +158,12 @@ class KBucket(Sized):
     The bucket is kept sorted by time last seen—least-recently seen node at the head,
     most-recently seen at the tail.
     """
-    k = k_bucket_size
-
-    def __init__(self, start: int, end: int) -> None:
+    def __init__(self, start: int, end: int, size: int = constants.KADEMLIA_BUCKET_SIZE) -> None:
+        self.size = size
         self.start = start
         self.end = end
-        self.nodes: List[Node] = []
-        self.replacement_cache: List[Node] = []
+        self.nodes: List[NodeAPI] = []
+        self.replacement_cache: List[NodeAPI] = []
         self.last_updated = time.monotonic()
 
     @property
@@ -173,7 +173,7 @@ class KBucket(Sized):
     def distance_to(self, id: int) -> int:
         return self.midpoint ^ id
 
-    def nodes_by_distance_to(self, id: int) -> List[Node]:
+    def nodes_by_distance_to(self, id: int) -> List[NodeAPI]:
         return sorted(self.nodes, key=operator.methodcaller('distance_to', id))
 
     def split(self) -> Tuple['KBucket', 'KBucket']:
@@ -189,7 +189,7 @@ class KBucket(Sized):
             bucket.replacement_cache.append(node)
         return lower, upper
 
-    def remove_node(self, node: Node) -> None:
+    def remove_node(self, node: NodeAPI) -> None:
         if node not in self:
             return
         self.nodes.remove(node)
@@ -197,14 +197,14 @@ class KBucket(Sized):
             replacement_node = self.replacement_cache.pop()
             self.nodes.append(replacement_node)
 
-    def in_range(self, node: Node) -> bool:
+    def in_range(self, node: NodeAPI) -> bool:
         return self.start <= node.id <= self.end
 
     @property
     def is_full(self) -> bool:
-        return len(self) == self.k
+        return len(self) == self.size
 
-    def add(self, node: Node) -> Node:
+    def add(self, node: NodeAPI) -> NodeAPI:
         """Try to add the given node to this bucket.
 
         If the node is already present, it is moved to the tail of the list, and we return None.
@@ -220,7 +220,7 @@ class KBucket(Sized):
         if node in self.nodes:
             self.nodes.remove(node)
             self.nodes.append(node)
-        elif len(self) < self.k:
+        elif len(self) < self.size:
             self.nodes.append(node)
         else:
             self.replacement_cache.append(node)
@@ -228,11 +228,11 @@ class KBucket(Sized):
         return None
 
     @property
-    def head(self) -> Node:
+    def head(self) -> NodeAPI:
         """Least recently seen"""
         return self.nodes[0]
 
-    def __contains__(self, node: Node) -> bool:
+    def __contains__(self, node: NodeAPI) -> bool:
         return node in self.nodes
 
     def __len__(self) -> int:
@@ -247,12 +247,12 @@ class KBucket(Sized):
 class RoutingTable:
     logger = logging.getLogger("p2p.kademlia.RoutingTable")
 
-    def __init__(self, node: Node) -> None:
+    def __init__(self, node: NodeAPI) -> None:
         self._initialized_at = time.monotonic()
         self.this_node = node
-        self.buckets = [KBucket(0, k_max_node_id)]
+        self.buckets = [KBucket(0, constants.KADEMLIA_MAX_NODE_ID)]
 
-    def get_random_nodes(self, count: int) -> Iterator[Node]:
+    def get_random_nodes(self, count: int) -> Iterator[NodeAPI]:
         if count > len(self):
             if time.monotonic() - self._initialized_at > 30:
                 self.logger.warning(
@@ -261,7 +261,7 @@ class RoutingTable:
                     len(self),
                 )
             count = len(self)
-        seen: List[Node] = []
+        seen: List[NodeAPI] = []
         # This is a rather inneficient way of randomizing nodes from all buckets, but even if we
         # iterate over all nodes in the routing table, the time it takes would still be
         # insignificant compared to the time it takes for the network roundtrips when connecting
@@ -283,50 +283,54 @@ class RoutingTable:
 
     @property
     def idle_buckets(self) -> List[KBucket]:
-        idle_cutoff_time = time.monotonic() - k_idle_bucket_refresh_interval
+        idle_cutoff_time = time.monotonic() - constants.KADEMLIA_IDLE_BUCKET_REFRESH_INTERVAL
         return [b for b in self.buckets if b.last_updated < idle_cutoff_time]
 
     @property
     def not_full_buckets(self) -> List[KBucket]:
         return [b for b in self.buckets if not b.is_full]
 
-    def remove_node(self, node: Node) -> None:
+    def remove_node(self, node: NodeAPI) -> None:
         binary_get_bucket_for_node(self.buckets, node).remove_node(node)
 
-    def add_node(self, node: Node) -> Node:
+    def add_node(self, node: NodeAPI) -> NodeAPI:
         if node == self.this_node:
             raise ValueError("Cannot add this_node to routing table")
         bucket = binary_get_bucket_for_node(self.buckets, node)
         eviction_candidate = bucket.add(node)
         if eviction_candidate is not None:  # bucket is full
             # Split if the bucket has the local node in its range or if the depth is not congruent
-            # to 0 mod k_b
+            # to 0 mod KADEMLIA_BITS_PER_HOP
             depth = _compute_shared_prefix_bits(bucket.nodes)
-            if bucket.in_range(self.this_node) or (depth % k_b != 0 and depth != k_id_size):
+            should_split = any((
+                bucket.in_range(self.this_node),
+                (depth % constants.KADEMLIA_BITS_PER_HOP != 0 and depth != constants.KADEMLIA_ID_SIZE),  # noqa: E501
+            ))
+            if should_split:
                 self.split_bucket(self.buckets.index(bucket))
                 return self.add_node(node)  # retry
             # Nothing added, ping eviction_candidate
             return eviction_candidate
         return None  # successfully added to not full bucket
 
-    def get_bucket_for_node(self, node: Node) -> KBucket:
+    def get_bucket_for_node(self, node: NodeAPI) -> KBucket:
         return binary_get_bucket_for_node(self.buckets, node)
 
     def buckets_by_distance_to(self, id: int) -> List[KBucket]:
         return sorted(self.buckets, key=operator.methodcaller('distance_to', id))
 
-    def __contains__(self, node: Node) -> bool:
+    def __contains__(self, node: NodeAPI) -> bool:
         return node in self.get_bucket_for_node(node)
 
     def __len__(self) -> int:
         return sum(len(b) for b in self.buckets)
 
-    def __iter__(self) -> Iterable[Node]:
+    def __iter__(self) -> Iterable[NodeAPI]:
         for b in self.buckets:
             for n in b.nodes:
                 yield n
 
-    def neighbours(self, node_id: int, k: int = k_bucket_size) -> List[Node]:
+    def neighbours(self, node_id: int, k: int = constants.KADEMLIA_BUCKET_SIZE) -> List[NodeAPI]:
         """Return up to k neighbours of the given node."""
         nodes = []
         # Sorting by bucket.midpoint does not work in edge cases, so build a short list of k * 2
@@ -340,7 +344,7 @@ class RoutingTable:
         return sort_by_distance(nodes, node_id)[:k]
 
 
-def check_relayed_addr(sender: Address, addr: Address) -> bool:
+def check_relayed_addr(sender: AddressAPI, addr: AddressAPI) -> bool:
     """Check if an address relayed by the given sender is valid.
 
     Reserved and unspecified addresses are always invalid.
@@ -357,7 +361,7 @@ def check_relayed_addr(sender: Address, addr: Address) -> bool:
     return True
 
 
-def binary_get_bucket_for_node(buckets: List[KBucket], node: Node) -> KBucket:
+def binary_get_bucket_for_node(buckets: List[KBucket], node: NodeAPI) -> KBucket:
     """Given a list of ordered buckets, returns the bucket for a given node."""
     bucket_ends = [bucket.end for bucket in buckets]
     bucket_position = bisect.bisect_left(bucket_ends, node.id)
@@ -370,17 +374,17 @@ def binary_get_bucket_for_node(buckets: List[KBucket], node: Node) -> KBucket:
         raise ValueError(f"No bucket found for node with id {node.id}")
 
 
-def _compute_shared_prefix_bits(nodes: List[Node]) -> int:
+def _compute_shared_prefix_bits(nodes: List[NodeAPI]) -> int:
     """Count the number of prefix bits shared by all nodes."""
     def to_binary(x: int) -> str:  # left padded bit representation
         b = bin(x)[2:]
-        return '0' * (k_id_size - len(b)) + b
+        return '0' * (constants.KADEMLIA_ID_SIZE - len(b)) + b
 
     if len(nodes) < 2:
-        return k_id_size
+        return constants.KADEMLIA_ID_SIZE
 
     bits = [to_binary(n.id) for n in nodes]
-    for i in range(1, k_id_size + 1):
+    for i in range(1, constants.KADEMLIA_ID_SIZE + 1):
         if len(set(b[:i] for b in bits)) != 1:
             return i - 1
     # This means we have at least two nodes with the same ID, so raise an AssertionError
@@ -388,5 +392,5 @@ def _compute_shared_prefix_bits(nodes: List[Node]) -> int:
     raise AssertionError("Unable to calculate number of shared prefix bits")
 
 
-def sort_by_distance(nodes: List[Node], target_id: int) -> List[Node]:
+def sort_by_distance(nodes: List[NodeAPI], target_id: int) -> List[NodeAPI]:
     return sorted(nodes, key=operator.methodcaller('distance_to', target_id))

@@ -11,7 +11,7 @@ from lahja import (
 
 from eth_typing import Hash32
 
-from p2p.kademlia import Node
+from p2p.abc import NodeAPI
 
 
 class BasePeerDBEvent(BaseEvent):
@@ -21,7 +21,7 @@ class BasePeerDBEvent(BaseEvent):
 @dataclass
 class TrackPeerEvent(BasePeerDBEvent):
 
-    remote: Node
+    remote: NodeAPI
     is_outbound: bool
     last_connected_at: Optional[datetime.datetime]
     genesis_hash: Hash32
@@ -33,14 +33,14 @@ class TrackPeerEvent(BasePeerDBEvent):
 @dataclass
 class GetPeerCandidatesResponse(BasePeerDBEvent):
 
-    candidates: Tuple[Node, ...]
+    candidates: Tuple[NodeAPI, ...]
 
 
 @dataclass
 class GetPeerCandidatesRequest(BaseRequestResponseEvent[GetPeerCandidatesResponse]):
 
     num_requested: int
-    connected_remotes: Set[Node]
+    connected_remotes: Set[NodeAPI]
 
     @staticmethod
     def expected_response_type() -> Type[GetPeerCandidatesResponse]:

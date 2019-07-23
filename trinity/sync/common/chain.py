@@ -34,12 +34,8 @@ from p2p.constants import (
     MAX_REORG_DEPTH,
     SEAL_CHECK_RANDOM_SAMPLE_RATE,
 )
-from p2p.p2p_proto import (
-    DisconnectReason,
-)
-from p2p.service import (
-    BaseService,
-)
+from p2p.disconnect import DisconnectReason
+from p2p.service import BaseService
 
 from trinity._utils.headers import (
     skip_complete_headers,

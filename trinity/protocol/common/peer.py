@@ -23,9 +23,9 @@ from eth_utils.toolz import groupby
 from eth.constants import GENESIS_BLOCK_NUMBER
 from eth.vm.base import BaseVM
 
-from p2p.p2p_proto import DisconnectReason
+from p2p.abc import NodeAPI
+from p2p.disconnect import DisconnectReason
 from p2p.exceptions import NoConnectedPeers
-from p2p.kademlia import Node
 from p2p.peer import (
     BasePeer,
     BasePeerFactory,
@@ -140,7 +140,7 @@ class BaseProxyPeer(BaseService):
     """
 
     def __init__(self,
-                 remote: Node,
+                 remote: NodeAPI,
                  event_bus: EndpointAPI,
                  token: CancelToken = None):
 
@@ -170,7 +170,7 @@ class BaseChainPeerFactory(BasePeerFactory):
 
 
 class BaseChainPeerPool(BasePeerPool):
-    connected_nodes: Dict[Node, BaseChainPeer]  # type: ignore
+    connected_nodes: Dict[NodeAPI, BaseChainPeer]  # type: ignore
     peer_factory_class: Type[BaseChainPeerFactory]
     peer_tracker: BaseEth1PeerTracker
 

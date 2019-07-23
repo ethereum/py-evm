@@ -7,9 +7,7 @@ from typing import (
 )
 
 
-from p2p.protocol import (
-    BaseRequest,
-)
+from p2p.abc import RequestAPI
 
 from trinity._utils.ema import EMA
 from trinity._utils.logging import HasExtendedDebugLogger
@@ -21,7 +19,7 @@ from .types import (
 )
 
 
-TRequest = TypeVar('TRequest', bound=BaseRequest[Any])
+TRequest = TypeVar('TRequest', bound=RequestAPI[Any])
 
 
 class BasePerformanceTracker(ABC, HasExtendedDebugLogger, Generic[TRequest, TResult]):
