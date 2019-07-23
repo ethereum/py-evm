@@ -52,6 +52,8 @@ async def _setup_alice_and_bob_factories(
         headerdb=alice_headerdb,
         network_id=1,
         vm_configuration=tuple(),
+        client_version_string='alice',
+        listen_port=30303,
     )
 
     if alice_peer_class is ETHPeer:
@@ -77,6 +79,8 @@ async def _setup_alice_and_bob_factories(
         headerdb=bob_headerdb,
         network_id=1,
         vm_configuration=tuple(),
+        client_version_string='bob',
+        listen_port=30304,
     )
 
     if bob_peer_class is ETHPeer:

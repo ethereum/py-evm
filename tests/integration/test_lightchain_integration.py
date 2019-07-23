@@ -167,6 +167,8 @@ async def test_lightchain_integration(
         headerdb=headerdb,
         network_id=ROPSTEN_NETWORK_ID,
         vm_configuration=ROPSTEN_VM_CONFIGURATION,
+        client_version_string='trinity-test',
+        listen_port=30303,
     )
     peer_pool = LESPeerPool(
         privkey=ecies.generate_privkey(),

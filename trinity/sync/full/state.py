@@ -365,6 +365,8 @@ def _test() -> None:
         headerdb=chaindb,
         network_id=network_id,
         vm_configuration=ROPSTEN_VM_CONFIGURATION,
+        client_version_string='test',
+        listen_port=30303,
     )
     peer_pool = ETHPeerPool(
         privkey=ecies.generate_privkey(),

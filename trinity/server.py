@@ -29,6 +29,7 @@ from p2p.service import BaseService
 
 from eth2.beacon.chains.base import BeaconChain
 
+from trinity._utils.version import construct_trinity_client_identifier
 from trinity.chains.base import BaseAsyncChain
 from trinity.constants import DEFAULT_PREFERRED_NODES
 from trinity.db.base import BaseAsyncDB
@@ -193,6 +194,8 @@ class FullServer(BaseServer[ETHPeerPool]):
             headerdb=self.headerdb,
             network_id=self.network_id,
             vm_configuration=self.chain.vm_configuration,
+            client_version_string=construct_trinity_client_identifier(),
+            listen_port=self.port,
         )
         return ETHPeerPool(
             privkey=self.privkey,
@@ -210,6 +213,8 @@ class LightServer(BaseServer[LESPeerPool]):
             headerdb=self.headerdb,
             network_id=self.network_id,
             vm_configuration=self.chain.vm_configuration,
+            client_version_string=construct_trinity_client_identifier(),
+            listen_port=self.port,
         )
         return LESPeerPool(
             privkey=self.privkey,
@@ -273,6 +278,8 @@ class BCCServer(BaseServer[BCCPeerPool]):
         context = BeaconContext(
             chain_db=cast(BaseAsyncBeaconChainDB, self.chaindb),
             network_id=self.network_id,
+            client_version_string=construct_trinity_client_identifier(),
+            listen_port=self.port,
         )
         return BCCPeerPool(
             privkey=self.privkey,

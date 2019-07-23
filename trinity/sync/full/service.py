@@ -160,7 +160,9 @@ def _test() -> None:
     context = ChainContext(
         headerdb=chaindb,
         network_id=network_id,
-        vm_configuration=ROPSTEN_VM_CONFIGURATION
+        vm_configuration=ROPSTEN_VM_CONFIGURATION,
+        client_version_string='test',
+        listen_port=30303,
     )
     peer_pool = ETHPeerPool(privkey=privkey, context=context)
     if args.enode:

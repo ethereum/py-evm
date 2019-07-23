@@ -12,7 +12,7 @@ from rlp import sedes
 from p2p.abc import TransportAPI
 from p2p.disconnect import DisconnectReason as _DisconnectReason
 from p2p.exceptions import MalformedMessage
-from p2p.typing import PayloadType, CapabilitiesType
+from p2p.typing import CapabilitiesType, PayloadType
 
 from p2p.protocol import (
     Command,
@@ -77,23 +77,20 @@ class P2PProtocol(Protocol):
 
     def __init__(self,
                  transport: TransportAPI,
-                 snappy_support: bool,
-                 capabilities: CapabilitiesType,
-                 listen_port: int) -> None:
+                 snappy_support: bool) -> None:
         # For the base protocol the cmd_id_offset is always 0.
         # For the base protocol snappy compression should be disabled
         super().__init__(transport, cmd_id_offset=0, snappy_support=snappy_support)
-        self.capabilities = capabilities
-        self.listen_port = listen_port
 
-    def send_handshake(self) -> None:
-        # TODO: move import out once this is in the trinity codebase
-        from trinity._utils.version import construct_trinity_client_identifier
+    def send_handshake(self,
+                       client_version_string: str,
+                       capabilities: CapabilitiesType,
+                       listen_port: int) -> None:
         self.send_hello(
             version=self.version,
-            client_version_string=construct_trinity_client_identifier(),
-            capabilities=self.capabilities,
-            listen_port=self.listen_port,
+            client_version_string=client_version_string,
+            capabilities=capabilities,
+            listen_port=listen_port,
             remote_pubkey=self.transport.public_key.to_bytes(),
         )
 
