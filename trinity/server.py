@@ -24,8 +24,8 @@ from p2p.exceptions import (
     PeerConnectionLost,
 )
 from p2p.kademlia import Node
+from p2p.peer import receive_handshake
 from p2p.service import BaseService
-from p2p.transport import Transport
 
 from eth2.beacon.chains.base import BeaconChain
 
@@ -161,15 +161,8 @@ class BaseServer(BaseService, Generic[TPeerPool]):
 
     async def _receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        transport = await Transport.receive_connection(
-            reader=reader,
-            writer=writer,
-            private_key=self.privkey,
-            token=self.cancel_token,
-        )
-
         factory = self.peer_pool.get_peer_factory()
-        peer = factory.create_peer(transport, inbound=True)
+        peer = await receive_handshake(reader, writer, factory)
 
         if self.peer_pool.is_full:
             await peer.disconnect(DisconnectReason.too_many_peers)
@@ -190,8 +183,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             await peer.disconnect(DisconnectReason.too_many_peers)
             return
 
-        await peer.do_p2p_handshake()
-        await peer.do_sub_proto_handshake()
         await self.peer_pool.start_peer(peer)
 
 
