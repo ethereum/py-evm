@@ -20,6 +20,10 @@ from typing import (
 
 from pathlib import Path
 
+from libp2p.peer.id import (
+    ID,
+)
+
 from eth_keys.datatypes import (
     PrivateKey,
 )
@@ -113,12 +117,12 @@ class Node:
         return self.dir_root / self.name
 
     @property
-    def peer_id(self) -> Multiaddr:
+    def peer_id(self) -> ID:
         return peer_id_from_pubkey(self.node_privkey.public_key)
 
     @property
-    def maddr(self) -> str:
-        return f"/ip4/127.0.0.1/tcp/{self.port}/p2p/{self.peer_id}"
+    def maddr(self) -> Multiaddr:
+        return Multiaddr(f"/ip4/127.0.0.1/tcp/{self.port}/p2p/{self.peer_id}")
 
     @property
     def cmd(self) -> str:
@@ -133,7 +137,7 @@ class Node:
             "-l debug2",
         ]
         if len(self.preferred_nodes) != 0:
-            preferred_nodes_str = ",".join([node.maddr for node in self.preferred_nodes])
+            preferred_nodes_str = ",".join([str(node.maddr) for node in self.preferred_nodes])
             _cmds.append(f"--preferred_nodes={preferred_nodes_str}")
         _cmd = " ".join(_cmds)
         return _cmd

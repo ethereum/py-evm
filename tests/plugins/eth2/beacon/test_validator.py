@@ -59,24 +59,15 @@ from .helpers import (
 override_lengths(XIAO_LONG_BAO_CONFIG)
 
 
-class FakeProtocol:
-    def __init__(self):
-        self.inbox = []
-
-    def send_new_block(self, block):
-        self.inbox.append(block)
-
-
 class FakeNode:
     def __init__(self):
         self.list_beacon_block = []
-        self.list_attestations = []
 
     async def broadcast_beacon_block(self, block):
         self.list_beacon_block.append(block)
 
     async def broadcast_attestations(self, attestations):
-        self.list_attestations.append(attestations)
+        pass
 
 
 def get_chain_from_genesis(db, indices):

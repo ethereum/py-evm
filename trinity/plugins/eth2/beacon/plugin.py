@@ -14,16 +14,16 @@ from eth_keys.datatypes import (
     PrivateKey,
 )
 
+from libp2p.security.insecure_security import (
+    InsecureTransport,
+)
+
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestations import (
     Attestation,
 )
 from eth2.beacon.typing import (
     ValidatorIndex,
-)
-
-from libp2p.security.insecure_security import (
-    InsecureTransport,
 )
 
 from p2p import ecies

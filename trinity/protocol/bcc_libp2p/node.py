@@ -165,7 +165,7 @@ class Node(BaseService):
 
     async def dial_peer_maddr(self, maddr: Multiaddr) -> None:
         """
-        Dial the peer ``peer_id`` through the IPv4 protocol
+        Parse `maddr`, get the ip:port and PeerID, and call `dial_peer` with the parameters.
         """
         ip = maddr.value_for_protocol(protocols.P_IP4)
         port = maddr.value_for_protocol(protocols.P_TCP)
