@@ -2,6 +2,10 @@ import inspect
 
 import pytest
 
+from hypothesis import (
+    given,
+)
+
 from eth_utils import (
     keccak,
     ValidationError,
@@ -21,6 +25,11 @@ from p2p.discv5.identity_schemes import (
 from p2p.discv5.enr import (
     UnsignedENR,
     ENR,
+)
+
+from tests.p2p.discv5.strategies import (
+    id_nonce_st,
+    private_key_st,
 )
 
 
@@ -96,4 +105,88 @@ def test_enr_node_id():
     enr = unsigned_enr.to_signed_enr(private_key.to_bytes())
 
     node_id = V4IdentityScheme.extract_node_id(enr)
-    assert node_id == keccak(private_key.public_key.to_compressed_bytes())
+    assert node_id == keccak(private_key.public_key.to_bytes())
+
+
+def test_handshake_key_generation():
+    private_key, public_key = V4IdentityScheme.create_handshake_key_pair()
+    V4IdentityScheme.validate_public_key(public_key)
+    assert PrivateKey(private_key).public_key.to_compressed_bytes() == public_key
+
+
+@pytest.mark.parametrize("public_key", (
+    PrivateKey(b"\x01" * 32).public_key.to_compressed_bytes(),
+    PrivateKey(b"\x02" * 32).public_key.to_compressed_bytes(),
+))
+def test_handshake_public_key_validation_valid(public_key):
+    V4IdentityScheme.validate_handshake_public_key(public_key)
+
+
+@pytest.mark.parametrize("public_key", (
+    b"",
+    b"\x01" * 33,
+    b"\x02" * 32,
+    b"\x02" * 34,
+))
+def test_handshake_public_key_validation_invalid(public_key):
+    with pytest.raises(ValidationError):
+        V4IdentityScheme.validate_handshake_public_key(public_key)
+
+
+@given(
+    private_key=private_key_st,
+    id_nonce=id_nonce_st,
+)
+def test_id_nonce_signing(private_key, id_nonce):
+    signature = V4IdentityScheme.create_id_nonce_signature(
+        id_nonce=id_nonce,
+        private_key=private_key,
+    )
+    signature_object = NonRecoverableSignature(signature)
+    assert signature_object.verify_msg(id_nonce, PrivateKey(private_key).public_key)
+
+
+@given(
+    private_key=private_key_st,
+    id_nonce=id_nonce_st,
+)
+def test_valid_id_nonce_signature_validation(private_key, id_nonce):
+    signature = V4IdentityScheme.create_id_nonce_signature(
+        id_nonce=id_nonce,
+        private_key=private_key,
+    )
+    public_key = PrivateKey(private_key).public_key.to_compressed_bytes()
+    V4IdentityScheme.validate_id_nonce_signature(
+        id_nonce=id_nonce,
+        signature=signature,
+        public_key=public_key,
+    )
+
+
+def test_invalid_id_nonce_signature_validation():
+    id_nonce = b"\xff" * 10
+    private_key = b"\x11" * 32
+    signature = V4IdentityScheme.create_id_nonce_signature(
+        id_nonce=id_nonce,
+        private_key=private_key,
+    )
+
+    public_key = PrivateKey(private_key).public_key.to_compressed_bytes()
+    different_public_key = PrivateKey(b"\x22" * 32).public_key.to_compressed_bytes()
+    different_id_nonce = b"\x00" * 10
+    assert different_public_key != public_key
+    assert different_id_nonce != id_nonce
+
+    with pytest.raises(ValidationError):
+        V4IdentityScheme.validate_id_nonce_signature(
+            id_nonce=id_nonce,
+            signature=signature,
+            public_key=different_public_key,
+        )
+
+    with pytest.raises(ValidationError):
+        V4IdentityScheme.validate_id_nonce_signature(
+            id_nonce=different_id_nonce,
+            signature=signature,
+            public_key=public_key,
+        )

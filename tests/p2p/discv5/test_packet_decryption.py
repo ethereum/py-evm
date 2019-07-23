@@ -4,6 +4,10 @@ from hypothesis import (
     given,
 )
 
+from eth_keys.datatypes import (
+    PrivateKey,
+)
+
 from p2p.exceptions import (
     DecryptionError,
 )
@@ -38,6 +42,7 @@ def enr():
         signature=b"",
         kv_pairs={
             b"id": b"v4",
+            b"secp256k1": PrivateKey(b"\x01" * 32).public_key.to_compressed_bytes(),
         }
     )
 

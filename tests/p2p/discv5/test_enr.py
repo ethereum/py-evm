@@ -347,7 +347,6 @@ def test_serialization_roundtrip(identity_scheme_registry):
     assert recovered_enr == original_enr
 
 
-
 @pytest.mark.parametrize("invalid_kv_pairs", (
     {b"id": b"v4"},  # missing public key
     {b"id": b"v4", b"secp256k1": b"\x00"},  # invalid public key

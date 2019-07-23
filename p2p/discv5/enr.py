@@ -228,11 +228,23 @@ class BaseENR(Mapping[bytes, Any], ABC):
 
     @property
     def public_key(self) -> bytes:
-        return self.identity_scheme.extract_public_key(self)
+        try:
+            return self.identity_scheme.extract_public_key(self)
+        except KeyError:
+            raise Exception(
+                "Invariant: presence of public key in ENR has been checked in identity scheme "
+                "structure check during initialization"
+            )
 
     @property
     def node_id(self) -> bytes:
-        return self.identity_scheme.extract_node_id(self)
+        try:
+            return self.identity_scheme.extract_node_id(self)
+        except KeyError:
+            raise Exception(
+                "Invariant: presence of public key in ENR has been checked in identity scheme "
+                "structure check during initialization"
+            )
 
     def get_signing_message(self) -> bytes:
         return rlp.encode(self, ENRContentSedes)
