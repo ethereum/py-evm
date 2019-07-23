@@ -28,7 +28,7 @@ deps = {
         "cachetools>=3.1.0,<4.0.0",
         "coincurve>=10.0.0,<11.0.0",
         "dataclasses>=0.6, <1;python_version<'3.7'",
-        "eth-utils>=1.5.1,<2",
+        "eth-utils>=1.6.2,<2",
         "ipython>=6.2.1,<7.0.0",
         "plyvel==1.0.5",
         PYEVM_DEPENDENCY,
@@ -103,7 +103,6 @@ deps = {
     'eth2': [
         "cytoolz>=0.9.0,<1.0.0",
         "eth-typing>=2.1.0,<3.0.0",
-        "eth-utils>=1.3.0b0,<2.0.0",
         "lru-dict>=1.1.6",
         "py-ecc==1.7.1",
         "rlp>=1.1.0,<2.0.0",

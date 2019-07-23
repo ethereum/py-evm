@@ -1,0 +1,1 @@
+Remove ``p2p._utils.clamp`` in favor of the one from ``eth-utils>=1.5.2``
