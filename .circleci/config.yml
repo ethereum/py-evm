@@ -99,9 +99,6 @@ eth2_fixtures: &eth2_fixtures
   steps:
     - checkout
     - run:
-        name: checkout fixtures submodule
-        command: git submodule update --init --recursive
-    - run:
         name: merge pull request base
         command: ./.circleci/merge_pr.sh
     - run:
@@ -124,13 +121,8 @@ eth2_fixtures: &eth2_fixtures
     - run:
         name: download the required yaml files
         command: |
-          sudo apt-get update
-          sudo apt-get install -y git-lfs openssh-client
-          git lfs install
-          mkdir -p ~/.ssh
-          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-          ssh git@github.com git-lfs-authenticate "ethereum/trinity" download
-          cd eth2-fixtures && git lfs pull
+          wget -c https://github.com/ethereum/eth2.0-spec-tests/releases/download/v0.8.1/archive.tar.gz
+          tar zxvf archive.tar.gz -C ./eth2-fixtures
     - run:
         name: install dependencies
         command: pip install --user tox
