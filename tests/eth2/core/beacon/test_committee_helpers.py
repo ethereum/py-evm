@@ -155,14 +155,18 @@ def test_find_proposer_in_committee(genesis_validators,
     epoch = random.randint(config.GENESIS_EPOCH, 2**64)
     proposer_index = random.randint(0, len(genesis_validators))
 
-    # NOTE: not realistic to have negative balance, but should test the spirit of the function
     validators = tuple()
+    # NOTE: validators supplied to ``_find_proposer_in_committee``
+    # should at a minimum have 17 ETH as ``effective_balance``.
+    # Using 1 ETH should maintain the same spirit of the test and
+    # ensure we can know the likely candidate ahead of time.
+    one_eth_in_gwei = 1 * 10**9
     for index, validator in enumerate(genesis_validators):
         if index == proposer_index:
             validators += (validator,)
         else:
             validators += (validator.copy(
-                effective_balance=-1,
+                effective_balance=one_eth_in_gwei,
             ),)
 
     assert _find_proposer_in_committee(
