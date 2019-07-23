@@ -353,6 +353,7 @@ workflows:
       - py37-eth1-core
       - py37-wheel-cli
       - py37-p2p
+      - py36-p2p-trio
       - py37-eth2-core
       - py37-eth2-utils
       # temporarily disable fixtures tests while we update
@@ -378,6 +379,7 @@ workflows:
       - py36-eth1-core
       - py36-wheel-cli
       - py36-p2p
+      - py36-p2p-trio
       - py36-eth2-core
       - py36-eth2-utils
       # temporarily disable fixtures tests while we update

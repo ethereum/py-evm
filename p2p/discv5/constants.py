@@ -22,3 +22,6 @@ ENR_REPR_PREFIX = "enr:"  # prefix used when printing an ENR
 MAX_ENR_SIZE = 300  # maximum allowed size of an ENR
 
 WHO_ARE_YOU_MAGIC_SUFFIX = b"WHOAREYOU"
+
+# buffer size used for incoming UDP datagrams (should be larger than MAX_PACKET_SIZE)
+DATAGRAM_BUFFER_SIZE = 2048
