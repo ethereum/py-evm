@@ -1,0 +1,1 @@
+Add ``p2p.p2p_proto.P2PProtocol.send_ping`` and ``p2p.p2p_proto.P2PProtocol.send_hello`` methods.
