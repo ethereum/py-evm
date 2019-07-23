@@ -39,6 +39,8 @@ from p2p.discv5.encryption import (
 )
 from p2p.discv5.messages import (
     BaseMessage,
+    MessageTypeRegistry,
+    default_message_type_registry,
 )
 from p2p.discv5.enr import (
     ENR,
@@ -159,6 +161,18 @@ class AuthHeaderPacket(NamedTuple):
 
         return id_nonce_signature, enr
 
+    def decrypt_message(self,
+                        initiator_key: AES128Key,
+                        message_type_registry: MessageTypeRegistry = default_message_type_registry,
+                        ) -> BaseMessage:
+        return _decrypt_message(
+            initiator_key=initiator_key,
+            auth_tag=self.auth_header.auth_tag,
+            encrypted_message=self.encrypted_message,
+            authenticated_data=self.tag + rlp.encode(self.auth_header),
+            message_type_registry=message_type_registry,
+        )
+
     def to_wire_bytes(self) -> bytes:
         encoded_packet = b"".join((
             self.tag,
@@ -205,6 +219,18 @@ class AuthTagPacket(NamedTuple):
             tag=tag,
             auth_tag=auth_tag,
             encrypted_message=random_data,
+        )
+
+    def decrypt_message(self,
+                        initiator_key: AES128Key,
+                        message_type_registry: MessageTypeRegistry = default_message_type_registry,
+                        ) -> BaseMessage:
+        return _decrypt_message(
+            initiator_key=initiator_key,
+            auth_tag=self.auth_tag,
+            encrypted_message=self.encrypted_message,
+            authenticated_data=self.tag,
+            message_type_registry=message_type_registry,
         )
 
     def to_wire_bytes(self) -> bytes:
@@ -453,3 +479,32 @@ def compute_who_are_you_magic(destination_node_id: Hash32) -> Hash32:
 #
 # Packet decryption
 #
+def _decrypt_message(initiator_key: AES128Key,
+                     auth_tag: Nonce,
+                     encrypted_message: bytes,
+                     authenticated_data: bytes,
+                     message_type_registry: MessageTypeRegistry,
+                     ) -> BaseMessage:
+    plain_text = aesgcm_decrypt(
+        key=initiator_key,
+        nonce=auth_tag,
+        cipher_text=encrypted_message,
+        authenticated_data=authenticated_data,
+    )
+
+    try:
+        message_type = plain_text[0]
+    except IndexError:
+        raise ValidationError("Decrypted message is empty")
+
+    try:
+        message_class = message_type_registry[message_type]
+    except KeyError:
+        raise ValidationError(f"Unknown message type {message_type}")
+
+    try:
+        message = rlp.decode(plain_text[1:], message_class)
+    except DecodingError as error:
+        raise ValidationError("Encrypted message does not contain valid RLP") from error
+
+    return message
