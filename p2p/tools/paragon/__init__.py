@@ -14,7 +14,6 @@ from .peer import (  # noqa: F401
     ParagonPeerPool,
 )
 from .helpers import (  # noqa: F401
-    get_directly_connected_streams,
     get_directly_linked_peers,
     get_directly_linked_peers_without_handshake,
 )

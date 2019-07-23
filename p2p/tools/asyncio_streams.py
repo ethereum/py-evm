@@ -1,5 +1,5 @@
 import asyncio
-from typing import cast, Any, Callable, Tuple
+from typing import cast, Any, Callable, Dict, Tuple
 
 
 class MockTransport:
@@ -17,12 +17,22 @@ class MockStreamWriter:
     def __init__(self, write_target: Callable[..., None]) -> None:
         self._target = write_target
         self.transport = MockTransport()
+        self._extra_info: Dict[str, Any] = {}
 
     def write(self, *args: Any, **kwargs: Any) -> None:
         self._target(*args, **kwargs)
 
     def close(self) -> None:
         self.transport.close()
+
+    async def drain(self) -> None:
+        pass
+
+    def set_extra_info(self, name: str, value: Any) -> None:
+        self._extra_info[name] = value
+
+    def get_extra_info(self, name: str) -> Any:
+        return self._extra_info.get(name)
 
 
 TConnectedStreams = Tuple[

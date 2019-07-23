@@ -8,14 +8,14 @@ from eth_keys import datatypes
 
 from cancel_token import CancelToken
 
-from p2p.kademlia import Node
+from p2p.abc import NodeAPI, TransportAPI
 from p2p.tools.asyncio_streams import get_directly_connected_streams
 from p2p.exceptions import PeerConnectionLost
 
 
-class MemoryTransport:
+class MemoryTransport(TransportAPI):
     def __init__(self,
-                 remote: Node,
+                 remote: NodeAPI,
                  private_key: datatypes.PrivateKey,
                  reader: asyncio.StreamReader,
                  writer: asyncio.StreamWriter,
@@ -31,9 +31,9 @@ class MemoryTransport:
 
     @classmethod
     def connected_pair(cls,
-                       alice: Tuple[Node, datatypes.PrivateKey, CancelToken],
-                       bob: Tuple[Node, datatypes.PrivateKey, CancelToken],
-                       ) -> Tuple['MemoryTransport', 'MemoryTransport']:
+                       alice: Tuple[NodeAPI, datatypes.PrivateKey, CancelToken],
+                       bob: Tuple[NodeAPI, datatypes.PrivateKey, CancelToken],
+                       ) -> Tuple[TransportAPI, TransportAPI]:
         (
             (alice_reader, alice_writer),
             (bob_reader, bob_writer),

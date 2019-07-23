@@ -1,0 +1,1 @@
+Add a new ``p2p.tools.factories.TransportPairFactory`` for generating directly connected ``p2p.transport.Transport`` objects.

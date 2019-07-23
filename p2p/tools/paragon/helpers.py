@@ -1,5 +1,4 @@
 import asyncio
-import os
 from types import MethodType
 from typing import (
     Any,
@@ -8,18 +7,13 @@ from typing import (
     Tuple,
 )
 
-from eth_hash.auto import keccak
 
 from cancel_token import CancelToken
 
-from p2p import auth
-from p2p import constants
 from p2p import ecies
 from p2p import protocol
-from p2p.auth import decode_authentication
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import HandshakeFailure
-from p2p.kademlia import Address, Node
 from p2p.p2p_proto import Hello
 from p2p.peer import (
     BasePeer,
@@ -28,14 +22,16 @@ from p2p.peer import (
 from p2p.protocol import (
     match_protocols_with_capabilities,
 )
-from p2p.transport import Transport
 
 
 from .peer import (
     ParagonPeerFactory,
     ParagonContext,
 )
-from p2p.tools.asyncio_streams import get_directly_connected_streams
+from p2p.tools.factories import (
+    MemoryTransportPairFactory,
+    NodeFactory,
+)
 
 
 async def get_directly_linked_peers_without_handshake(
@@ -62,79 +58,20 @@ async def get_directly_linked_peers_without_handshake(
             token=cancel_token,
         )
 
-    alice_private_key = alice_factory.privkey
-    bob_private_key = bob_factory.privkey
+    alice_remote = NodeFactory(pubkey=alice_factory.privkey.public_key)
+    bob_remote = NodeFactory(pubkey=bob_factory.privkey.public_key)
 
-    alice_remote = Node(
-        bob_private_key.public_key, Address('0.0.0.0', 0, 0))
-    bob_remote = Node(
-        alice_private_key.public_key, Address('0.0.0.0', 0, 0))
-
-    use_eip8 = False
-    initiator = auth.HandshakeInitiator(alice_remote, alice_private_key, use_eip8, cancel_token)
-
-    f_alice: 'asyncio.Future[BasePeer]' = asyncio.Future()
-    handshake_finished = asyncio.Event()
-
-    (
-        (alice_reader, alice_writer),
-        (bob_reader, bob_writer),
-    ) = get_directly_connected_streams()
-
-    async def do_handshake() -> None:
-        aes_secret, mac_secret, egress_mac, ingress_mac = await auth._handshake(
-            initiator, alice_reader, alice_writer, cancel_token)
-
-        transport = Transport(
-            remote=alice_remote,
-            private_key=alice_factory.privkey,
-            reader=alice_reader,
-            writer=alice_writer,
-            aes_secret=aes_secret,
-            mac_secret=mac_secret,
-            egress_mac=egress_mac,
-            ingress_mac=ingress_mac,
-        )
-        alice = alice_factory.create_peer(transport)
-
-        f_alice.set_result(alice)
-        handshake_finished.set()
-
-    asyncio.ensure_future(do_handshake())
-
-    use_eip8 = False
-    responder = auth.HandshakeResponder(bob_remote, bob_private_key, use_eip8, cancel_token)
-    auth_cipher = await bob_reader.read(constants.ENCRYPTED_AUTH_MSG_LEN)
-
-    initiator_ephemeral_pubkey, initiator_nonce, _ = decode_authentication(
-        auth_cipher, bob_private_key)
-    responder_nonce = keccak(os.urandom(constants.HASH_LEN))
-    auth_ack_msg = responder.create_auth_ack_message(responder_nonce)
-    auth_ack_ciphertext = responder.encrypt_auth_ack_message(auth_ack_msg)
-    bob_writer.write(auth_ack_ciphertext)
-
-    await handshake_finished.wait()
-    alice = await f_alice
-
-    aes_secret, mac_secret, egress_mac, ingress_mac = responder.derive_secrets(
-        initiator_nonce, responder_nonce, initiator_ephemeral_pubkey,
-        auth_cipher, auth_ack_ciphertext)
-    # This property is only present on the `Transport` object but not the
-    # abstract base class so we have to tell mypy to ignore this property
-    # access
-    assert egress_mac.digest() == alice.transport._ingress_mac.digest()  # type: ignore
-    assert ingress_mac.digest() == alice.transport._egress_mac.digest()  # type: ignore
-    transport = Transport(
-        remote=bob_remote,
-        private_key=bob_factory.privkey,
-        reader=bob_reader,
-        writer=bob_writer,
-        aes_secret=aes_secret,
-        mac_secret=mac_secret,
-        egress_mac=egress_mac,
-        ingress_mac=ingress_mac,
+    alice_transport, bob_transport = MemoryTransportPairFactory(
+        alice_remote=alice_remote,
+        alice_private_key=alice_factory.privkey,
+        alice_token=alice_factory.cancel_token,
+        bob_remote=bob_remote,
+        bob_private_key=bob_factory.privkey,
+        bob_token=bob_factory.cancel_token,
     )
-    bob = bob_factory.create_peer(transport)
+
+    alice = alice_factory.create_peer(alice_transport)
+    bob = bob_factory.create_peer(bob_transport)
 
     return alice, bob
 
