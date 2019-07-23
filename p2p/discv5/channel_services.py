@@ -13,7 +13,7 @@ from trio.abc import (
 
 from p2p.trio_service import (
     as_service,
-    Manager,
+    ManagerAPI,
 )
 
 from p2p.discv5.constants import (
@@ -37,7 +37,7 @@ class OutgoingDatagram(NamedTuple):
 
 
 @as_service
-async def DatagramReceiver(manager: Manager,
+async def DatagramReceiver(manager: ManagerAPI,
                            socket: SocketType,
                            incoming_datagram_send_channel: SendChannel[IncomingDatagram],
                            ) -> None:
@@ -53,7 +53,7 @@ async def DatagramReceiver(manager: Manager,
 
 
 @as_service
-async def DatagramSender(manager: Manager,
+async def DatagramSender(manager: ManagerAPI,
                          outgoing_datagram_receive_channel: ReceiveChannel[OutgoingDatagram],
                          socket: SocketType,
                          ) -> None:

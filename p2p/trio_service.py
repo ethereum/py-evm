@@ -5,7 +5,7 @@ import sys
 from types import TracebackType
 from typing import Any, Callable, Awaitable, Optional, Tuple, Type, AsyncIterator
 
-from mypy_extensions import VarArg, KwArg
+from mypy_extensions import VarArg
 
 from async_generator import asynccontextmanager
 
@@ -170,7 +170,7 @@ class ManagerAPI(ABC):
         ...
 
 
-LogicFnType = Callable[[ManagerAPI, VarArg(), KwArg()], Awaitable[Any]]
+LogicFnType = Callable[..., Awaitable[Any]]
 
 
 class Service(ServiceAPI):
