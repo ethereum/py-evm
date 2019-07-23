@@ -65,6 +65,7 @@ from .events import (
     GetNodeDataEvent,
     GetNodeDataRequest,
     GetReceiptsRequest,
+    NewBlockEvent,
     NewBlockHashesEvent,
     SendBlockBodiesEvent,
     SendBlockHeadersEvent,
@@ -187,6 +188,7 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
         GetNodeData,
         Transactions,
         NewBlockHashes,
+        NewBlock,
     })
 
     async def _run(self) -> None:
@@ -277,6 +279,8 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
             await self.event_bus.broadcast(GetReceiptsEvent(remote, cmd, msg))
         elif isinstance(cmd, GetNodeData):
             await self.event_bus.broadcast(GetNodeDataEvent(remote, cmd, msg))
+        elif isinstance(cmd, NewBlock):
+            await self.event_bus.broadcast(NewBlockEvent(remote, cmd, msg))
         elif isinstance(cmd, NewBlockHashes):
             await self.event_bus.broadcast(NewBlockHashesEvent(remote, cmd, msg))
         elif isinstance(cmd, Transactions):

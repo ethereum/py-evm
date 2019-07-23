@@ -77,6 +77,14 @@ class TransactionsEvent(PeerPoolMessageEvent):
     pass
 
 
+class NewBlockEvent(PeerPoolMessageEvent):
+    """
+    Event to carry a ``NewBlock`` command from the peer pool to any process that
+    subscribes the event through the event bus.
+    """
+    pass
+
+
 class NewBlockHashesEvent(PeerPoolMessageEvent):
     """
     Event to carry a ``Transactions`` command from the peer pool to any process that
