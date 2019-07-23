@@ -18,9 +18,11 @@ from eth_keys.datatypes import (
 )
 from eth_keys.exceptions import (
     BadSignature,
+    ValidationError as EthKeysValidationError,
 )
 
 from eth_utils import (
+    encode_hex,
     keccak,
     ValidationError,
 )
@@ -67,18 +69,33 @@ class IdentityScheme(ABC):
 
     @classmethod
     @abstractmethod
-    def create_signature(cls, enr: "BaseENR", private_key: bytes) -> bytes:
-        ...
+    def create_enr_signature(cls, enr: "BaseENR", private_key: bytes) -> bytes:
+        """Create and return the signature for an ENR."""
+        pass
 
     @classmethod
     @abstractmethod
-    def validate_signature(cls, enr: "ENR") -> None:
-        ...
+    def validate_enr_structure(cls, enr: "BaseENR") -> None:
+        """Validate that the data required by the identity scheme is present and valid in an ENR."""
+        pass
 
     @classmethod
     @abstractmethod
-    def extract_node_address(cls, enr: "ENR") -> bytes:
-        ...
+    def validate_enr_signature(cls, enr: "ENR") -> None:
+        """Validate the signature of an ENR."""
+        pass
+
+    @classmethod
+    @abstractmethod
+    def extract_public_key(cls, enr: "BaseENR") -> bytes:
+        """Retrieve the public key from an ENR."""
+        pass
+
+    @classmethod
+    @abstractmethod
+    def extract_node_id(cls, enr: "BaseENR") -> bytes:
+        """Retrieve the node id from an ENR."""
+        pass
 
 
 @default_identity_scheme_registry.register
@@ -88,15 +105,28 @@ class V4IdentityScheme(IdentityScheme):
     public_key_enr_key = b"secp256k1"
 
     @classmethod
-    def create_signature(cls, enr: "BaseENR", private_key: bytes) -> bytes:
+    def create_enr_signature(cls, enr: "BaseENR", private_key: bytes) -> bytes:
         message = enr.get_signing_message()
         private_key_object = PrivateKey(private_key)
         signature = private_key_object.sign_msg_non_recoverable(message)
         return bytes(signature)
 
     @classmethod
-    def validate_signature(cls, enr: "ENR") -> None:
-        public_key = PublicKey.from_compressed_bytes(enr[cls.public_key_enr_key])
+    def validate_enr_structure(cls, enr: "BaseENR") -> None:
+        if cls.public_key_enr_key not in enr:
+            raise ValidationError(f"ENR is missing required key {cls.public_key_enr_key}")
+
+        public_key = cls.extract_public_key(enr)
+        try:
+            PublicKey.from_compressed_bytes(public_key)
+        except EthKeysValidationError as error:
+            raise ValidationError(
+                f"ENR public key {encode_hex(public_key)} is invalid: {error}"
+            ) from error
+
+    @classmethod
+    def validate_enr_signature(cls, enr: "ENR") -> None:
+        public_key_object = PublicKey.from_compressed_bytes(enr.public_key)
         message = enr.get_signing_message()
 
         try:
@@ -104,12 +134,17 @@ class V4IdentityScheme(IdentityScheme):
         except BadSignature:
             is_valid = False
         else:
-            is_valid = signature.verify_msg(message, public_key)
+            is_valid = signature.verify_msg(message, public_key_object)
 
         if not is_valid:
             raise ValidationError("Invalid signature")
 
     @classmethod
-    def extract_node_address(cls, enr: "ENR") -> bytes:
-        public_key = PublicKey.from_compressed_bytes(enr[cls.public_key_enr_key])
-        return keccak(public_key.to_bytes())
+    def extract_public_key(cls, enr: "BaseENR") -> bytes:
+        return enr[cls.public_key_enr_key]
+
+    @classmethod
+    def extract_node_id(cls, enr: "BaseENR") -> bytes:
+        public_key_object = PublicKey.from_compressed_bytes(enr.public_key)
+        uncompressed_bytes = public_key_object.to_bytes()
+        return keccak(uncompressed_bytes)

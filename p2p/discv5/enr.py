@@ -199,6 +199,7 @@ class BaseENR(Mapping[bytes, Any], ABC):
         self._identity_scheme = self._pick_identity_scheme(identity_scheme_registry)
 
         self._validate_sequence_number()
+        self.identity_scheme.validate_enr_structure(self)
 
     def _validate_sequence_number(self) -> None:
         if self.sequence_number < 0:
@@ -224,6 +225,14 @@ class BaseENR(Mapping[bytes, Any], ABC):
     @property
     def sequence_number(self) -> int:
         return self._sequence_number
+
+    @property
+    def public_key(self) -> bytes:
+        return self.identity_scheme.extract_public_key(self)
+
+    @property
+    def node_id(self) -> bytes:
+        return self.identity_scheme.extract_node_id(self)
 
     def get_signing_message(self) -> bytes:
         return rlp.encode(self, ENRContentSedes)
@@ -267,7 +276,7 @@ class BaseENR(Mapping[bytes, Any], ABC):
 class UnsignedENR(BaseENR, ENRContentSedes):
 
     def to_signed_enr(self, private_key: bytes) -> "ENR":
-        signature = self.identity_scheme.create_signature(self, private_key)
+        signature = self.identity_scheme.create_enr_signature(self, private_key)
 
         transient_identity_scheme_registry = IdentitySchemeRegistry()
         transient_identity_scheme_registry.register(self.identity_scheme)
@@ -317,10 +326,7 @@ class ENR(BaseENR, ENRSedes):
         return self._signature
 
     def validate_signature(self) -> None:
-        self.identity_scheme.validate_signature(self)
-
-    def extract_node_address(self) -> bytes:
-        return self.identity_scheme.extract_node_address(self)
+        self.identity_scheme.validate_enr_signature(self)
 
     def __eq__(self, other: Any) -> bool:
         return (
