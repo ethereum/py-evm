@@ -38,7 +38,6 @@ class BeamSyncService(BaseService):
             self.chaindb,
             self.peer_pool,
             self.event_bus,
-            force_beam_block_number=None,
             token=self.cancel_token,
         )
         await beam_syncer.run()
