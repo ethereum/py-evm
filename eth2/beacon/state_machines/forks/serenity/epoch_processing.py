@@ -213,12 +213,15 @@ def _determine_new_justified_checkpoint_and_bitfield(
         config,
     )
 
-    new_current_justified_root = get_block_root(
-        state,
-        new_current_justified_epoch,
-        config.SLOTS_PER_EPOCH,
-        config.SLOTS_PER_HISTORICAL_ROOT,
-    )
+    if new_current_justified_epoch != state.current_justified_checkpoint.epoch:
+        new_current_justified_root = get_block_root(
+            state,
+            new_current_justified_epoch,
+            config.SLOTS_PER_EPOCH,
+            config.SLOTS_PER_HISTORICAL_ROOT,
+        )
+    else:
+        new_current_justified_root = state.current_justified_checkpoint.root
 
     return (
         Checkpoint(
