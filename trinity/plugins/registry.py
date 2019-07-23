@@ -47,6 +47,7 @@ from trinity.plugins.builtin.tx_pool.plugin import (
 
 BASE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
     AttachPlugin,
+    DbShellPlugin,
     FixUncleanShutdownPlugin,
     JsonRpcServerPlugin,
     NetworkDBPlugin,
@@ -63,7 +64,6 @@ BEACON_NODE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
 
 ETH1_NODE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
     BeamChainExecutionPlugin,
-    DbShellPlugin,
     EthstatsPlugin,
     SyncerPlugin,
     TxPlugin,

@@ -12,17 +12,19 @@ from eth_utils.toolz import merge
 from eth.db.chain import ChainDB
 from eth.db.backends.level import LevelDB
 
+from eth2.beacon.db.chain import BeaconChainDB
+from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.operations.attestation_pool import AttestationPool
+
+from trinity.config import (
+    Eth1AppConfig,
+    BeaconAppConfig,
+    TrinityConfig,
+)
+from trinity.db import eth1, beacon
 from trinity._utils.log_messages import (
     create_missing_ipc_error_message,
 )
-from trinity.config import (
-    Eth1AppConfig,
-    TrinityConfig,
-)
-from trinity.db.eth1.manager import (
-    create_db_consumer_manager,
-)
-
 
 DEFAULT_BANNER: str = (
     "Trinity Console\n"
@@ -98,27 +100,12 @@ def console(ipc_path: Path,
     shell(use_ipython, namespace, banner)
 
 
-def db_shell(use_ipython: bool, database_dir: Path, trinity_config: TrinityConfig) -> None:
-
-    db_ipc_path = trinity_config.database_ipc_path
-    trinity_already_running = db_ipc_path.exists()
-    if trinity_already_running:
-        db_manager = create_db_consumer_manager(db_ipc_path)
-        db = db_manager.get_db()  # type: ignore
-    else:
-        db = LevelDB(database_dir)
-
-    chaindb = ChainDB(db)
-    head = chaindb.get_canonical_head()
-    app_config = trinity_config.get_app_config(Eth1AppConfig)
-    chain_config = app_config.get_chain_config()
-    chain = chain_config.full_chain_class(db)
-
-    greeter = f"""
-    Head: #{head.block_number}
-    Hash: {head.hex_hash}
-    State Root: {encode_hex(head.state_root)}
-    Inspecting active Trinity? {trinity_already_running}
+def db_shell(use_ipython: bool, config: Dict[str, str]) -> None:
+    greeter = """
+    Head: #%(block_number)s
+    Hash: %(hex_hash)s
+    State Root: %(state_root_hex)s
+    Inspecting active Trinity? %(trinity_already_running)s
 
     Available Context Variables:
       - `db`: base database object
@@ -126,16 +113,80 @@ def db_shell(use_ipython: bool, database_dir: Path, trinity_config: TrinityConfi
       - `trinity_config`: `TrinityConfig` instance
       - `chain_config`: `ChainConfig` instance
       - `chain`: `Chain` instance
-    """
+    """ % config
 
     namespace = {
+        'db': config.get("db"),
+        'chaindb': config.get("chaindb"),
+        'trinity_config': config.get("trinity_config"),
+        'chain_config': config.get("chain_config"),
+        'chain': config.get("chain"),
+    }
+    shell(use_ipython, namespace, DB_SHELL_BANNER + greeter)
+
+
+def get_eth1_shell_context(database_dir: Path, trinity_config: TrinityConfig) -> Dict[str, Any]:
+    app_config = trinity_config.get_app_config(Eth1AppConfig)
+    ipc_path = trinity_config.database_ipc_path
+
+    trinity_already_running = ipc_path.exists()
+    if trinity_already_running:
+        db_manager = eth1.manager.create_db_consumer_manager(ipc_path)  # type: ignore
+        db = db_manager.get_db()
+    else:
+        db = LevelDB(database_dir)
+
+    chaindb = ChainDB(db)
+    head = chaindb.get_canonical_head()
+    chain_config = app_config.get_chain_config()
+    chain = chain_config.full_chain_class(db)
+    return {
         'db': db,
         'chaindb': chaindb,
         'trinity_config': trinity_config,
         'chain_config': chain_config,
         'chain': chain,
+        'block_number': head.block_number,
+        'hex_hash': head.hex_hash,
+        'state_root_hex': encode_hex(head.state_root),
+        'trinity_already_running': trinity_already_running,
     }
-    shell(use_ipython, namespace, DB_SHELL_BANNER + greeter)
+
+
+def get_beacon_shell_context(database_dir: Path, trinity_config: TrinityConfig) -> Dict[str, Any]:
+    app_config = trinity_config.get_app_config(BeaconAppConfig)
+
+    ipc_path = trinity_config.database_ipc_path
+
+    trinity_already_running = ipc_path.exists()
+    if trinity_already_running:
+        db_manager = beacon.manager.create_db_consumer_manager(ipc_path)  # type: ignore
+        db = db_manager.get_db()
+    else:
+        db = LevelDB(database_dir)
+
+    chain_config = app_config.get_chain_config()
+    chain = chain_config.beacon_chain_class
+    attestation_pool = AttestationPool()
+    chain = chain_config.beacon_chain_class(
+        db,
+        attestation_pool,
+        chain_config.genesis_config
+    )
+
+    chaindb = BeaconChainDB(db, chain_config.genesis_config)
+    head = chaindb.get_canonical_head(BeaconBlock)
+    return {
+        'db': db,
+        'chaindb': chaindb,
+        'trinity_config': trinity_config,
+        'chain_config': chain_config,
+        'chain': chain,
+        'block_number': head.slot,
+        'hex_hash': head.hash_tree_root.hex(),
+        'state_root_hex': encode_hex(head.state_root),
+        'trinity_already_running': trinity_already_running
+    }
 
 
 def shell(use_ipython: bool, namespace: Dict[str, Any], banner: str) -> None:

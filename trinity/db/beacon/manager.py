@@ -1,3 +1,4 @@
+import multiprocessing
 from multiprocessing.managers import (
     BaseManager,
 )
@@ -9,6 +10,9 @@ from eth.db.backends.base import BaseAtomicDB
 from trinity.config import (
     BeaconAppConfig,
     TrinityConfig,
+)
+from trinity.constants import (
+    AUTH_KEY,
 )
 from trinity.db.base import AsyncDBProxy
 from trinity.db.beacon.chain import AsyncBeaconChainDBProxy
@@ -32,6 +36,9 @@ def create_db_server_manager(trinity_config: TrinityConfig,
     if not is_beacon_database_initialized(chaindb, BeaconBlock):
         initialize_beacon_database(chain_config, chaindb, base_db, BeaconBlock)
 
+    # This enables connection when clients launch from another process on the shell
+    multiprocessing.current_process().authkey = AUTH_KEY
+
     class DBManager(BaseManager):
         pass
 
@@ -53,6 +60,9 @@ def create_db_consumer_manager(ipc_path: pathlib.Path, connect: bool=True) -> Ba
     We're still using 'str' here on param ipc_path because an issue with
     multi-processing not being able to interpret 'Path' objects correctly
     """
+    # This enables connection when launched from another process on the shell
+    multiprocessing.current_process().authkey = AUTH_KEY
+
     class DBManager(BaseManager):
         pass
 

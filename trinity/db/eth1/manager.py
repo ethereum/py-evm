@@ -12,6 +12,9 @@ from trinity.config import (
     Eth1AppConfig,
     TrinityConfig,
 )
+from trinity.constants import (
+    AUTH_KEY,
+)
 from trinity.db.base import AsyncDBProxy
 from trinity.db.eth1.chain import AsyncChainDBProxy
 from trinity.db.eth1.header import (
@@ -22,8 +25,6 @@ from trinity.initialization import (
     initialize_database,
 )
 from trinity._utils.mp import TracebackRecorder
-
-AUTH_KEY = b"not secure, but only connect over IPC"
 
 
 def create_db_server_manager(trinity_config: TrinityConfig,

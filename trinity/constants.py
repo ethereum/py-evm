@@ -86,3 +86,6 @@ DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
 
 # Amount of time a peer will be blacklisted if their network or genesis hash does not match
 BLACKLIST_SECONDS_WRONG_NETWORK_OR_GENESIS = 600
+
+# Enables connection when clients launch from another process on the shell
+AUTH_KEY = b"not secure, but only connect over IPC"
