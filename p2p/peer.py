@@ -112,6 +112,29 @@ async def handshake(remote: NodeAPI, factory: 'BasePeerFactory') -> 'BasePeer':
     return peer
 
 
+async def receive_handshake(reader: asyncio.StreamReader,
+                            writer: asyncio.StreamWriter,
+                            factory: 'BasePeerFactory') -> 'BasePeer':
+    transport = await Transport.receive_connection(
+        reader=reader,
+        writer=writer,
+        private_key=factory.privkey,
+        token=factory.cancel_token,
+    )
+
+    peer = factory.create_peer(transport, inbound=True)
+
+    try:
+        await peer.do_p2p_handshake()
+        await peer.do_sub_proto_handshake()
+    except Exception:
+        transport.close()
+        await asyncio.sleep(0)
+        raise
+
+    return peer
+
+
 class BasePeerBootManager(BaseService):
     """
     The default boot manager does nothing, simply serving as a hook for other
