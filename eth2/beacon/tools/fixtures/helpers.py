@@ -3,6 +3,10 @@ from typing import (
     Type,
 )
 
+from eth_utils import (
+    encode_hex,
+    ValidationError,
+)
 from ssz.tools import (
     to_formatted_dict,
 )
@@ -65,8 +69,14 @@ def apply_blocks(test_case: StateTestCase,
     post_state = state.copy()
     for block in test_case.blocks:
         sm = sm_class(chaindb, attestation_pool, None, post_state)
-        post_state, _ = sm.import_block(block)
+        post_state, imported_block = sm.import_block(block)
         chaindb.persist_state(post_state)
+        if imported_block.state_root != block.state_root:
+            raise ValidationError(
+                f"Block did not have the expected state root:\n"
+                f"\tExpected: {encode_hex(block.state_root)}\n"
+                f"\tResult: {encode_hex(imported_block.state_root)}\n"
+            )
 
     return post_state, chaindb
 
