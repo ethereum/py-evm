@@ -152,8 +152,8 @@ SOME_SEED = b'\x33' * 32
 
 def test_find_proposer_in_committee(genesis_validators,
                                     config):
-    epoch = random.randint(config.GENESIS_EPOCH, 2**64)
-    proposer_index = random.randint(0, len(genesis_validators))
+    epoch = random.randrange(config.GENESIS_EPOCH, 2**64)
+    proposer_index = random.randrange(0, len(genesis_validators))
 
     validators = tuple()
     # NOTE: validators supplied to ``_find_proposer_in_committee``

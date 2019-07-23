@@ -124,7 +124,7 @@ def test_get_attesting_indices(genesis_state,
             shard=target_shard,
         ),
     )
-    some_subset_count = random.randint(1, len(some_committee) // 2)
+    some_subset_count = random.randrange(1, len(some_committee) // 2)
     some_subset = random.sample(some_committee, some_subset_count)
 
     bitfield = get_empty_bitfield(len(some_committee))
@@ -144,7 +144,7 @@ def test_get_attesting_indices(genesis_state,
 
 
 def test_compute_activation_exit_epoch(activation_exit_delay):
-    epoch = random.randint(0, FAR_FUTURE_EPOCH)
+    epoch = random.randrange(0, FAR_FUTURE_EPOCH)
     entry_exit_effect_epoch = compute_activation_exit_epoch(
         epoch,
         activation_exit_delay,
@@ -357,7 +357,7 @@ def test_get_unslashed_attesting_indices(genesis_state,
             shard=target_shard,
         ),
     )
-    some_subset_count = random.randint(1, len(some_committee) // 2)
+    some_subset_count = random.randrange(1, len(some_committee) // 2)
     some_subset = random.sample(some_committee, some_subset_count)
 
     bitfield = get_empty_bitfield(len(some_committee))
