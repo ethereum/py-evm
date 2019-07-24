@@ -50,7 +50,7 @@ def test_activate_validator(genesis_state,
                             validator_count,
                             pubkeys,
                             config):
-    some_future_epoch = config.GENESIS_EPOCH + random.randint(1, 2**32)
+    some_future_epoch = config.GENESIS_EPOCH + random.randrange(1, 2**32)
 
     if is_already_activated:
         assert validator_count > 0
@@ -97,7 +97,7 @@ def test_compute_exit_queue_epoch(genesis_state,
                                   config):
     state = genesis_state
     for index in random.sample(range(len(state.validators)), len(state.validators) // 4):
-        some_future_epoch = config.GENESIS_EPOCH + random.randint(1, 2**32)
+        some_future_epoch = config.GENESIS_EPOCH + random.randrange(1, 2**32)
         state = state.update_validator_with_fn(
             index,
             lambda validator, *_: validator.copy(
@@ -113,7 +113,7 @@ def test_compute_exit_queue_epoch(genesis_state,
         for index, validator in enumerate(state.validators):
             if validator.exit_epoch == FAR_FUTURE_EPOCH:
                 continue
-            some_prior_epoch = random.randint(
+            some_prior_epoch = random.randrange(
                 config.GENESIS_EPOCH,
                 expected_candidate_exit_queue_epoch,
             )
@@ -145,7 +145,7 @@ def test_compute_exit_queue_epoch(genesis_state,
             for index, validator in state.validators
             if validator.exit_epoch == expected_candidate_exit_queue_epoch
         }
-        additional_queued_validator_count = random.randint(
+        additional_queued_validator_count = random.randrange(
             len(queued_validators),
             len(state.validators),
         )
@@ -233,7 +233,7 @@ def test_set_validator_slashed(genesis_state,
                                validator_count,
                                pubkeys,
                                config):
-    some_future_epoch = config.GENESIS_EPOCH + random.randint(1, 2**32)
+    some_future_epoch = config.GENESIS_EPOCH + random.randrange(1, 2**32)
 
     assert len(genesis_state.validators) > 0
     some_validator = genesis_state.validators[0]
@@ -271,7 +271,7 @@ def test_set_validator_slashed(genesis_state,
 def test_slash_validator(genesis_state,
                          config):
     some_epoch = (
-        config.GENESIS_EPOCH + random.randint(1, 2**32) + config.EPOCHS_PER_SLASHINGS_VECTOR
+        config.GENESIS_EPOCH + random.randrange(1, 2**32) + config.EPOCHS_PER_SLASHINGS_VECTOR
     )
     earliest_slashable_epoch = some_epoch - config.EPOCHS_PER_SLASHINGS_VECTOR
     slashable_range = range(earliest_slashable_epoch, some_epoch)

@@ -58,6 +58,7 @@ deps = {
         "pytest-watch>=4.1.0,<5",
         "pytest-xdist==1.18.1",
         "pytest-mock==1.10.4",
+        "pytest-randomly==3.0.0",
         # only for eth2
         "ruamel.yaml==0.15.98",
     ],

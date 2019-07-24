@@ -130,7 +130,7 @@ def test_chaindb_get_score(chaindb, sample_beacon_block_params, fork_choice_scor
 
 
 def test_chaindb_set_score(chaindb, block, maximum_score_value):
-    score = random.randint(0, maximum_score_value)
+    score = random.randrange(0, maximum_score_value)
     chaindb.set_score(block, score)
 
     block_score = chaindb.get_score(block.signing_root)
