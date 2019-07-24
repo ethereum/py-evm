@@ -4,6 +4,8 @@ import pytest
 
 from libp2p.peer.id import ID
 
+from p2p.tools.factories import get_open_port
+
 from trinity.protocol.bcc_libp2p.factories import (
     NodeFactory,
 )
@@ -29,12 +31,12 @@ async def test_node(nodes):
     )
 )
 @pytest.mark.asyncio
-async def test_node_dial_peer(nodes, unused_tcp_port):
+async def test_node_dial_peer(nodes):
     # Test: Exception raised when dialing a wrong addr
     with pytest.raises(ConnectionRefusedError):
         await nodes[0].dial_peer(
             nodes[1].listen_ip,
-            unused_tcp_port,
+            get_open_port(),
             ID("123"),
         )
     # Test: 0 <-> 1
