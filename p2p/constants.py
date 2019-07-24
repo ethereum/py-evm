@@ -166,3 +166,7 @@ KADEMLIA_ID_SIZE = 256
 
 # Maximum node `id` for a kademlia node
 KADEMLIA_MAX_NODE_ID = (2 ** KADEMLIA_ID_SIZE) - 1
+
+
+# Reserved command length for the base `p2p` protocol
+P2P_PROTOCOL_COMMAND_LENGTH = 16

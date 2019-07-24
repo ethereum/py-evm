@@ -13,7 +13,7 @@ from typing import (
 import snappy
 
 from eth_utils import to_tuple
-from eth_utils.toolz import groupby
+from eth_utils.toolz import accumulate, groupby
 
 import rlp
 from rlp import sedes
@@ -22,6 +22,7 @@ from eth.constants import NULL_BYTE
 
 from p2p._utils import get_devp2p_cmd_id
 from p2p.abc import CommandAPI, ProtocolAPI, RequestAPI, TransportAPI
+from p2p.constants import P2P_PROTOCOL_COMMAND_LENGTH
 from p2p.exceptions import MalformedMessage
 from p2p.typing import CapabilityType, CapabilitiesType, PayloadType, StructureType
 
@@ -226,3 +227,11 @@ def _pad_to_16_byte_boundary(data: bytes) -> bytes:
     if remainder != 0:
         data += NULL_BYTE * (16 - remainder)
     return data
+
+
+def get_cmd_offsets(protocol_types: Tuple[Type[ProtocolAPI], ...]) -> Tuple[int, ...]:
+    return tuple(accumulate(
+        lambda prev_offset, protocol_class: prev_offset + protocol_class.cmd_length,
+        protocol_types,
+        P2P_PROTOCOL_COMMAND_LENGTH,
+    ))[:-1]

@@ -1,0 +1,1 @@
+Adds ``p2p.protocol.get_cmd_offsets`` helper function for computing the command id offsets for devp2p protocols
