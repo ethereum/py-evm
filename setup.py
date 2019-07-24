@@ -44,7 +44,7 @@ deps = {
         "argcomplete>=1.10.0,<2",
         "multiaddr>=0.0.8,<0.1.0",
         "pymultihash>=0.8.2",
-        # FIXME: Change to libp2p/py-libp2p after the branch is merged.
+        # FIXME: Change to PyPI when the commit is released.
         "libp2p @ git+https://git@github.com/libp2p/py-libp2p@69a3553"
     ],
     'test': [
