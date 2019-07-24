@@ -102,13 +102,6 @@ class TooManyTimeouts(BaseP2PError):
     pass
 
 
-class RemoteDisconnected(BaseP2PError):
-    """
-    Raised when a remote disconnected.
-    """
-    pass
-
-
 class NoConnectedPeers(BaseP2PError):
     """
     Raised when we are not connected to any peers.

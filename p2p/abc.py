@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import (
     Any,
     AsyncContextManager,
-    AsyncIterable,
+    AsyncIterator,
     ClassVar,
     Dict,
     Generic,
@@ -311,7 +311,7 @@ class MultiplexerAPI(ABC):
     @abstractmethod
     def stream_protocol_messages(self,
                                  protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]],
-                                 ) -> AsyncIterable[Tuple[CommandAPI, Payload]]:
+                                 ) -> AsyncIterator[Tuple[CommandAPI, Payload]]:
         ...
 
     #

@@ -41,8 +41,16 @@ async def test_peer_subscriber_filters_messages(request, event_loop):
     remote.sub_proto.send_get_sum(1234, 4321)
     remote.sub_proto.send_broadcast_data(b'value-b')
 
-    # yeild to let remote and peer transmit.
-    await asyncio.sleep(0.02)
+    # Should only be able to get two messages from the `get_sum` subscriber
+    for _ in range(2):
+        await asyncio.wait_for(get_sum_subscriber.msg_queue.get(), timeout=0.1)
 
-    assert get_sum_subscriber.queue_size == 2
-    assert all_subscriber.queue_size == 5
+    # Should be able to get five messages fromt he all subscriber
+    for _ in range(5):
+        await asyncio.wait_for(all_subscriber.msg_queue.get(), timeout=0.1)
+
+    # Should now timeout on both queues
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(get_sum_subscriber.msg_queue.get(), timeout=0.01)
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(all_subscriber.msg_queue.get(), timeout=0.01)

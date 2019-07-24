@@ -2,7 +2,6 @@ import asyncio
 import collections
 import logging
 from typing import (
-    AsyncIterable,
     AsyncIterator,
     cast,
     Dict,
@@ -15,7 +14,7 @@ from typing import (
 
 from async_generator import asynccontextmanager
 
-from cancel_token import CancelToken, OperationCancelled
+from cancel_token import CancelToken
 
 from eth_utils.toolz import cons
 
@@ -38,9 +37,7 @@ from p2p.exceptions import (
     UnknownProtocolCommand,
 )
 from p2p.p2p_proto import P2PProtocol
-from p2p.protocol import (
-    Protocol,
-)
+from p2p.protocol import Protocol
 from p2p.resource_lock import ResourceLock
 from p2p.typing import Payload
 
@@ -221,7 +218,7 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
     #
     async def stream_protocol_messages(self,
                                        protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]],
-                                       ) -> AsyncIterable[Tuple[CommandAPI, Payload]]:
+                                       ) -> AsyncIterator[Tuple[CommandAPI, Payload]]:
         """
         Stream the messages for the specified protocol.
         """
@@ -300,25 +297,22 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
             *self._protocols,
             token=token,
         ), token=token)
-        try:
-            async for protocol, cmd, msg in msg_stream:
-                # track total number of messages received for each command type.
-                self._msg_counts[type(cmd)] += 1
+        async for protocol, cmd, msg in msg_stream:
+            # track total number of messages received for each command type.
+            self._msg_counts[type(cmd)] += 1
 
-                queue = self._protocol_queues[type(protocol)]
-                try:
-                    # We must use `put_nowait` here to ensure that in the event
-                    # that a single protocol queue is full that we don't block
-                    # other protocol messages getting through.
-                    queue.put_nowait((cmd, msg))
-                except asyncio.QueueFull:
-                    self.logger.error(
-                        (
-                            "Multiplexing queue for protocol '%s' full. "
-                            "discarding message: %s"
-                        ),
-                        protocol,
-                        cmd,
-                    )
-        except OperationCancelled:
-            pass
+            queue = self._protocol_queues[type(protocol)]
+            try:
+                # We must use `put_nowait` here to ensure that in the event
+                # that a single protocol queue is full that we don't block
+                # other protocol messages getting through.
+                queue.put_nowait((cmd, msg))
+            except asyncio.QueueFull:
+                self.logger.error(
+                    (
+                        "Multiplexing queue for protocol '%s' full. "
+                        "discarding message: %s"
+                    ),
+                    protocol,
+                    cmd,
+                )

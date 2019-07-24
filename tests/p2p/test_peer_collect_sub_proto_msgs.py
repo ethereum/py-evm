@@ -22,12 +22,10 @@ async def test_peer_subscriber_filters_messages(request, event_loop):
         remote.sub_proto.send_broadcast_data(b'broadcast-b')
         remote.sub_proto.send_get_sum(7, 8)
         remote.sub_proto.send_broadcast_data(b'broadcast-c')
-        await asyncio.sleep(0.01)
+        # yield to let remote and peer transmit.
+        await asyncio.sleep(0.05)
 
     assert collector not in peer._subscribers
-
-    # yield to let remote and peer transmit.
-    await asyncio.sleep(0.01)
 
     all_messages = collector.get_messages()
     assert len(all_messages) == 4

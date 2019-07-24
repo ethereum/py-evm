@@ -33,18 +33,16 @@ from p2p._utils import (
     get_devp2p_cmd_id,
     trim_middle,
 )
-from p2p.abc import CommandAPI, NodeAPI, ProtocolAPI, TransportAPI
+from p2p.abc import CommandAPI, MultiplexerAPI, NodeAPI, ProtocolAPI, TransportAPI
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
-    DecryptionError,
     HandshakeFailure,
     MalformedMessage,
-    PeerConnectionLost,
-    RemoteDisconnected,
     TooManyPeersFailure,
     UnexpectedMessage,
     UnknownProtocolCommand,
 )
+from p2p.multiplexer import Multiplexer
 from p2p.service import BaseService
 from p2p.p2p_proto import (
     Disconnect,
@@ -67,7 +65,6 @@ from p2p.tracking.connection import (
 
 from .constants import (
     BLACKLIST_SECONDS_BAD_PROTOCOL,
-    BLACKLIST_SECONDS_QUICK_DISCONNECT,
     SNAPPY_PROTOCOL_VERSION,
 )
 
@@ -361,36 +358,17 @@ class BasePeer(BaseService):
         # The `boot` process is run in the background to allow the `run` loop
         # to continue so that all of the Peer APIs can be used within the
         # `boot` task.
+        multiplexer = Multiplexer(
+            transport=self.transport,
+            base_protocol=self.base_protocol,
+            protocols=(self.sub_proto,),
+            token=self.cancel_token,
+        )
         self.run_child_service(self.boot_manager)
-        while self.is_operational:
-            try:
-                cmd, msg = await self.read_msg()
-            except (PeerConnectionLost, TimeoutError) as err:
-                self.logger.debug(
-                    "%s stopped responding (%r), disconnecting", self.remote, err)
-                return
-            except DecryptionError as err:
-                self.logger.warning(
-                    "Unable to decrypt message from %s, disconnecting: %r",
-                    self, err,
-                    exc_info=True,
-                )
-                return
-            except MalformedMessage as err:
-                await self.disconnect(DisconnectReason.bad_protocol)
-                return
-
-            try:
-                self.process_msg(cmd, msg)
-            except RemoteDisconnected as e:
-                if self.uptime < BLACKLIST_SECONDS_QUICK_DISCONNECT:
-                    self.connection_tracker.record_blacklist(
-                        self.remote,
-                        BLACKLIST_SECONDS_QUICK_DISCONNECT,
-                        "Quick disconnect",
-                    )
-                self.logger.debug("%r disconnected: %s", self, e)
-                return
+        async with multiplexer.multiplex():
+            self.run_daemon_task(self.handle_p2p_proto_stream(multiplexer))
+            self.run_daemon_task(self.handle_sub_proto_stream(multiplexer))
+            await self.cancellation()
 
     async def read_msg(self) -> Tuple[CommandAPI, Payload]:
         msg = await self.transport.recv(self.cancel_token)
@@ -416,6 +394,11 @@ class BasePeer(BaseService):
             self.received_msgs[cmd] += 1
             return cmd, decoded_msg
 
+    async def handle_p2p_proto_stream(self, multiplexer: MultiplexerAPI) -> None:
+        """Handle the base protocol (P2P) messages."""
+        async for cmd, msg in self.wait_iter(multiplexer.stream_protocol_messages(self.base_protocol)):  # noqa: E501
+            self.handle_p2p_msg(cmd, msg)
+
     def handle_p2p_msg(self, cmd: CommandAPI, msg: Payload) -> None:
         """Handle the base protocol (P2P) messages."""
         if isinstance(cmd, Disconnect):
@@ -426,7 +409,8 @@ class BasePeer(BaseService):
                 self.logger.info('Unrecognized reason: %s', msg['reason'])
             else:
                 self.disconnect_reason = reason
-            raise RemoteDisconnected(msg['reason_name'])
+            self.cancel_nowait()
+            return
         elif isinstance(cmd, Ping):
             self.base_protocol.send_pong()
         elif isinstance(cmd, Pong):
@@ -435,6 +419,10 @@ class BasePeer(BaseService):
             pass
         else:
             raise UnexpectedMessage(f"Unexpected msg: {cmd} ({msg})")
+
+    async def handle_sub_proto_stream(self, multiplexer: MultiplexerAPI) -> None:
+        async for cmd, msg in self.wait_iter(multiplexer.stream_protocol_messages(self.sub_proto)):
+            self.handle_sub_proto_msg(cmd, msg)
 
     def handle_sub_proto_msg(self, cmd: CommandAPI, msg: Payload) -> None:
         cmd_type = type(cmd)
@@ -453,12 +441,6 @@ class BasePeer(BaseService):
                 )
         else:
             self.logger.warning("Peer %s has no subscribers, discarding %s msg", self, cmd)
-
-    def process_msg(self, cmd: CommandAPI, msg: Payload) -> None:
-        if cmd.is_base_protocol:
-            self.handle_p2p_msg(cmd, msg)
-        else:
-            self.handle_sub_proto_msg(cmd, msg)
 
     async def process_p2p_handshake(
             self, cmd: CommandAPI, msg: Payload) -> None:
