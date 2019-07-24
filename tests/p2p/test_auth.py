@@ -19,6 +19,8 @@ from p2p.p2p_proto import Hello
 from p2p.tools.paragon import (
     ParagonPeer,
     ParagonContext,
+)
+from p2p.tools.asyncio_streams import (
     get_directly_connected_streams,
 )
 from p2p.transport import Transport
