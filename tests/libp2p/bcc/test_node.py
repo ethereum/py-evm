@@ -29,12 +29,12 @@ async def test_node(nodes):
     )
 )
 @pytest.mark.asyncio
-async def test_node_dial_peer(nodes, unused_tcp_port_factory):
+async def test_node_dial_peer(nodes, unused_tcp_port):
     # Test: Exception raised when dialing a wrong addr
     with pytest.raises(ConnectionRefusedError):
         await nodes[0].dial_peer(
             nodes[1].listen_ip,
-            unused_tcp_port_factory(),
+            unused_tcp_port,
             ID("123"),
         )
     # Test: 0 <-> 1
