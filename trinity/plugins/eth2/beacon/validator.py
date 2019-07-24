@@ -244,6 +244,7 @@ class Validator(BaseService):
             block.body.attestations,
         )
         self.chain.import_block(block)
+        self.logger.debug2("Brodcasting block %s", block)
         await self.p2p_node.broadcast_beacon_block(block)
         return block
 
@@ -366,5 +367,6 @@ class Validator(BaseService):
                 self.latest_attested_epoch[validator_index] = epoch
             attestations = attestations + (attestation,)
 
+        self.logger.debug2("Brodcasting attestations %s", attestations)
         await self.p2p_node.broadcast_attestations(attestations)
         return attestations
