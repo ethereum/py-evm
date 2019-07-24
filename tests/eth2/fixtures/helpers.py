@@ -42,7 +42,7 @@ def get_test_cases(root_project_dir, fixture_pathes, config_names, parse_test_ca
 
 def get_test_id(test_file, test_case):
     description = test_case.description if hasattr(test_case, 'description') else ''
-    return f"{test_file.file_name}:{test_case.line_number}:{description}"
+    return f"{test_file.file_name}:{test_case.index}:{description}"
 
 
 def mark_test_case(test_file, test_case, bls_setting=False):
