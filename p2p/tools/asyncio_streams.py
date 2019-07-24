@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Sequence, Tuple
 
 
 class MemoryProtocol(asyncio.Protocol):
@@ -47,20 +47,20 @@ class MemoryTransport(asyncio.WriteTransport):
     # and we don't need them
     # - set_write_buffer_limits
     # - get_write_buffer_size
-    def write(self, data):
+    def write(self, data: bytes) -> None:
         self._reader.feed_data(data)
 
-    def writelines(self, list_of_data):
+    def writelines(self, list_of_data: Sequence[bytes]) -> None:
         data = b''.join(list_of_data)
         self.write(data)
 
-    def write_eof(self):
+    def write_eof(self) -> None:
         self._is_closing = True
 
-    def can_write_eof(self):
-        True
+    def can_write_eof(self) -> bool:
+        return True
 
-    def abort(self):
+    def abort(self) -> None:
         self._is_closing = True
 
 
