@@ -108,7 +108,7 @@ deps = {
         "py-ecc==1.7.1",
         "rlp>=1.1.0,<2.0.0",
         PYEVM_DEPENDENCY,
-        "ssz==0.1.0a12",
+        "ssz==0.1.3",
         "blspy>=0.1.8,<1",  # for `bls_chia`
     ],
 }

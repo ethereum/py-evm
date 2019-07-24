@@ -286,7 +286,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                 "No canonical block for block slot #{0}".format(slot)
             )
         else:
-            return ssz.decode(encoded_key, sedes=ssz.sedes.byte_list)
+            return ssz.decode(encoded_key, sedes=ssz.sedes.bytes32)
 
     def get_canonical_block_by_slot(self,
                                     slot: Slot,
@@ -645,7 +645,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         )
         db.set(
             block_slot_to_root_key,
-            ssz.encode(block.signing_root, sedes=ssz.sedes.byte_list),
+            ssz.encode(block.signing_root, sedes=ssz.sedes.bytes32),
         )
 
     @staticmethod
@@ -682,7 +682,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         slot_to_state_root_key = SchemaV1.make_slot_to_state_root_lookup_key(slot)
         self.db.set(
             slot_to_state_root_key,
-            ssz.encode(state_root, sedes=ssz.sedes.byte_list),
+            ssz.encode(state_root, sedes=ssz.sedes.bytes32),
         )
 
     def get_head_state_slot(self) -> Slot:
@@ -715,7 +715,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                 "No state root for slot #{0}".format(slot)
             )
 
-        state_root = ssz.decode(state_root_ssz, sedes=ssz.sedes.byte_list)
+        state_root = ssz.decode(state_root_ssz, sedes=ssz.sedes.bytes32)
         try:
             state_ssz = db[state_root]
         except KeyError:
