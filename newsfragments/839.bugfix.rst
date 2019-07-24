@@ -1,0 +1,1 @@
+Fix issue where test state was leaking between tests in ``tests/p2p/test_discovery.py``

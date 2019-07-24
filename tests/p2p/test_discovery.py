@@ -458,11 +458,9 @@ class MockHandler:
 
 
 class MockDiscoveryProtocol(discovery.DiscoveryProtocol):
-
-    messages = []
-
     def __init__(self, bootnodes):
         privkey = keys.PrivateKey(keccak(b"seed"))
+        self.messages = []
         super().__init__(privkey, AddressFactory(), bootnodes, CancelToken("discovery-test"))
 
     def send_ping_v4(self, node):
