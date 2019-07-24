@@ -133,13 +133,15 @@ async def TransportPairFactory(*,
     f_alice: 'asyncio.Future[TransportAPI]' = asyncio.Future()
     handshake_finished = asyncio.Event()
 
+    bob_peername = (bob_remote.address.ip, bob_remote.address.udp_port, bob_remote.address.tcp_port)
+    alice_peername = (alice_remote.address.ip, alice_remote.address.udp_port, alice_remote.address.tcp_port)  # noqa: E501
+
     (
         (alice_reader, alice_writer),
         (bob_reader, bob_writer),
-    ) = get_directly_connected_streams()
-    bob_writer.set_extra_info(  # type: ignore  # this is actually a MockStreamWriter
-        'peername',
-        (bob_remote.address.ip, bob_remote.address.udp_port, bob_remote.address.tcp_port),
+    ) = get_directly_connected_streams(
+        bob_extra_info={'peername': bob_peername},
+        alice_extra_info={'peername': alice_peername},
     )
 
     async def establish_transport() -> None:
