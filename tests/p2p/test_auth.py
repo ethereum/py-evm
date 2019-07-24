@@ -126,7 +126,11 @@ async def test_handshake():
         transport=initiator_transport,
         context=ParagonContext(),
     )
-    initiator_peer.base_protocol.send_handshake()
+    initiator_peer.base_protocol.send_handshake(
+        client_version_string=initiator_peer.context.client_version_string,
+        capabilities=initiator_peer.capabilities,
+        listen_port=initiator_peer.context.listen_port,
+    )
     responder_transport = Transport(
         remote=responder_remote,
         private_key=responder.privkey,
@@ -141,7 +145,11 @@ async def test_handshake():
         transport=responder_transport,
         context=ParagonContext(),
     )
-    responder_peer.base_protocol.send_handshake()
+    responder_peer.base_protocol.send_handshake(
+        client_version_string=responder_peer.context.client_version_string,
+        capabilities=responder_peer.capabilities,
+        listen_port=responder_peer.context.listen_port,
+    )
 
     # The handshake msgs sent by each peer (above) are going to be fed directly into their remote's
     # reader, and thus the read_msg() calls will return immediately.
@@ -236,7 +244,11 @@ async def test_handshake_eip8():
         transport=initiator_transport,
         context=ParagonContext(),
     )
-    initiator_peer.base_protocol.send_handshake()
+    initiator_peer.base_protocol.send_handshake(
+        client_version_string=initiator_peer.context.client_version_string,
+        capabilities=initiator_peer.capabilities,
+        listen_port=initiator_peer.context.listen_port,
+    )
     responder_transport = Transport(
         remote=responder_remote,
         private_key=responder.privkey,
@@ -251,7 +263,11 @@ async def test_handshake_eip8():
         transport=responder_transport,
         context=ParagonContext(),
     )
-    responder_peer.base_protocol.send_handshake()
+    responder_peer.base_protocol.send_handshake(
+        client_version_string=responder_peer.context.client_version_string,
+        capabilities=responder_peer.capabilities,
+        listen_port=responder_peer.context.listen_port,
+    )
 
     # The handshake msgs sent by each peer (above) are going to be fed directly into their remote's
     # reader, and thus the read_msg() calls will return immediately.

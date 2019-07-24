@@ -149,7 +149,12 @@ class BasePeerBootManager(BaseService):
 
 
 class BasePeerContext:
-    pass
+    client_version_string: str
+    listen_port: int
+
+    def __init__(self, client_version_string: str, listen_port: int) -> None:
+        self.client_version_string = client_version_string
+        self.listen_port = listen_port
 
 
 class BasePeer(BaseService):
@@ -187,8 +192,6 @@ class BasePeer(BaseService):
         self.base_protocol = P2PProtocol(
             transport=self.transport,
             snappy_support=False,
-            capabilities=self.capabilities,
-            listen_port=self.listen_port,
         )
 
         # Optional event bus handle
@@ -318,7 +321,11 @@ class BasePeer(BaseService):
 
         Raises HandshakeFailure if the handshake is not successful.
         """
-        self.base_protocol.send_handshake()
+        self.base_protocol.send_handshake(
+            client_version_string=self.context.client_version_string,
+            capabilities=self.capabilities,
+            listen_port=self.context.listen_port,
+        )
 
         cmd, msg = await self.read_msg()
 
@@ -480,8 +487,6 @@ class BasePeer(BaseService):
                 self.base_protocol = P2PProtocol(
                     self.transport,
                     snappy_support=snappy_support,
-                    capabilities=self.capabilities,
-                    listen_port=self.listen_port,
                 )
 
         remote_capabilities = msg['capabilities']

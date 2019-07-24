@@ -129,6 +129,8 @@ async def _setup_alice_and_bob_factories(alice_chain_db, bob_chain_db):
     alice_context = BeaconContext(
         chain_db=alice_chain_db,
         network_id=1,
+        client_version_string='alice',
+        listen_port=30303,
     )
 
     alice_factory = BCCPeerFactory(
@@ -143,6 +145,8 @@ async def _setup_alice_and_bob_factories(alice_chain_db, bob_chain_db):
     bob_context = BeaconContext(
         chain_db=bob_chain_db,
         network_id=1,
+        client_version_string='bob',
+        listen_port=30304,
     )
 
     bob_factory = BCCPeerFactory(

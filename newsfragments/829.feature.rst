@@ -1,0 +1,1 @@
+The ``p2p.p2p_proto.P2PProtocol`` class now requires that handshake parameters be passed into the ``send_handshake`` method.  These parameters are now part of the ``p2p.peer.BasePeerContext`` class.

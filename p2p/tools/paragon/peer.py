@@ -34,6 +34,11 @@ class ParagonContext(BasePeerContext):
     # used to store data specific to a certain peer class.
     paragon: str = "paragon"
 
+    def __init__(self,
+                 client_version_string: str = 'paragon-test',
+                 listen_port: int = 30303) -> None:
+        super().__init__(client_version_string, listen_port)
+
 
 class ParagonPeerFactory(BasePeerFactory):
     peer_class = ParagonPeer
