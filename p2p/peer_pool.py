@@ -23,6 +23,7 @@ from eth_keys import (
     datatypes,
 )
 from eth_utils import (
+    clamp,
     humanize_seconds,
 )
 from eth_utils.toolz import (
@@ -34,7 +35,6 @@ from lahja import (
     EndpointAPI,
 )
 
-from p2p._utils import clamp
 from p2p.abc import NodeAPI
 from p2p.constants import (
     DEFAULT_MAX_PEERS,
