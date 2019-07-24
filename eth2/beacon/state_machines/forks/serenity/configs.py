@@ -1,3 +1,6 @@
+from eth_utils import (
+    decode_hex,
+)
 from eth2.configs import Eth2Config
 from eth2.beacon.constants import (
     GWEI_PER_ETH,
@@ -60,4 +63,6 @@ SERENITY_CONFIG = Eth2Config(
     MAX_DEPOSITS=2**4,  # (= 16)
     MAX_VOLUNTARY_EXITS=2**4,  # (= 16)
     MAX_TRANSFERS=0,
+    # Deposit contract
+    DEPOSIT_CONTRACT_ADDRESS=decode_hex('0x1234567890123456789012345678901234567890'),  # TBD
 )

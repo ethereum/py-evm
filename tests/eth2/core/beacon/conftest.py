@@ -290,6 +290,11 @@ def deposit_contract_tree_depth():
 
 
 @pytest.fixture
+def deposit_contract_address():
+    return SERENITY_CONFIG.DEPOSIT_CONTRACT_ADDRESS
+
+
+@pytest.fixture
 def config(shard_count,
            target_committee_size,
            max_validators_per_committee,
@@ -330,7 +335,8 @@ def config(shard_count,
            max_attestations,
            max_deposits,
            max_voluntary_exits,
-           max_transfers):
+           max_transfers,
+           deposit_contract_address):
     # adding some config validity conditions here
     # abstract out into the config object?
     assert shard_count >= slots_per_epoch
@@ -377,6 +383,7 @@ def config(shard_count,
         MAX_DEPOSITS=max_deposits,
         MAX_VOLUNTARY_EXITS=max_voluntary_exits,
         MAX_TRANSFERS=max_transfers,
+        DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,
     )
 
 

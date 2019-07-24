@@ -181,10 +181,10 @@ def get_beacon_proposer_index(state: BeaconState,
     )
 
 
-def _compute_shuffled_index(index: int,
-                            index_count: int,
-                            seed: Hash32,
-                            shuffle_round_count: int) -> int:
+def compute_shuffled_index(index: int,
+                           index_count: int,
+                           seed: Hash32,
+                           shuffle_round_count: int) -> int:
     """
     Return `p(index)` in a pseudorandom permutation `p` of `0...index_count-1`
     with ``seed`` as entropy.
@@ -233,7 +233,7 @@ def _compute_committee(indices: Sequence[ValidatorIndex],
     start = (len(indices) * index) // count
     end = (len(indices) * (index + 1)) // count
     for i in range(start, end):
-        shuffled_index = _compute_shuffled_index(i, len(indices), seed, shuffle_round_count)
+        shuffled_index = compute_shuffled_index(i, len(indices), seed, shuffle_round_count)
         yield indices[shuffled_index]
 
 
