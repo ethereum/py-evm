@@ -1,15 +1,19 @@
 from abc import ABC, abstractmethod
 from typing import (
     Any,
+    AsyncContextManager,
+    AsyncIterable,
     ClassVar,
     Dict,
     Generic,
     List,
     Tuple,
     Type,
-    Union,
+    TYPE_CHECKING,
     TypeVar,
+    Union,
 )
+
 
 from rlp import sedes
 
@@ -18,6 +22,11 @@ from cancel_token import CancelToken
 from eth_keys import datatypes
 
 from p2p.typing import Capability, Payload, Structure
+
+if TYPE_CHECKING:
+    from p2p.p2p_proto import (  # noqa: F401
+        P2PProtocol,
+    )
 
 
 TAddress = TypeVar('TAddress', bound='AddressAPI')
@@ -239,4 +248,78 @@ class ProtocolAPI(ABC):
     @classmethod
     @abstractmethod
     def as_capability(cls) -> Capability:
+        ...
+
+
+TProtocol = TypeVar('TProtocol', bound=ProtocolAPI)
+
+
+class MultiplexerAPI(ABC):
+    #
+    # Transport API
+    #
+    @abstractmethod
+    def get_transport(self) -> TransportAPI:
+        ...
+
+    #
+    # Message Counts
+    #
+    @abstractmethod
+    def get_total_msg_count(self) -> int:
+        ...
+
+    #
+    # Proxy Transport methods
+    #
+    @property
+    @abstractmethod
+    def remote(self) -> NodeAPI:
+        ...
+
+    @property
+    @abstractmethod
+    def is_closing(self) -> bool:
+        ...
+
+    @abstractmethod
+    def close(self) -> None:
+        ...
+
+    #
+    # Protocol API
+    #
+    @abstractmethod
+    def has_protocol(self, protocol_identifier: Union[str, ProtocolAPI, Type[ProtocolAPI]]) -> bool:
+        ...
+
+    @abstractmethod
+    def get_protocol_by_name(self, name: str) -> ProtocolAPI:
+        ...
+
+    @abstractmethod
+    def get_protocol_by_type(self, protocol_class: Type[TProtocol]) -> TProtocol:
+        ...
+
+    @abstractmethod
+    def get_base_protocol(self) -> 'P2PProtocol':
+        ...
+
+    @abstractmethod
+    def get_protocols(self) -> Tuple[ProtocolAPI, ...]:
+        ...
+
+    #
+    # Streaming API
+    #
+    @abstractmethod
+    def stream_protocol_messages(self,
+                                 protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]],
+                                 ) -> AsyncIterable[Tuple[CommandAPI, PayloadType]]:
+        ...
+
+    #
+    # Message reading and streaming API
+    #
+    def multiplex(self) -> AsyncContextManager[None]:
         ...
