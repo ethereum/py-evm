@@ -13,7 +13,7 @@ from p2p.abc import TransportAPI
 from p2p.constants import P2P_PROTOCOL_COMMAND_LENGTH
 from p2p.disconnect import DisconnectReason as _DisconnectReason
 from p2p.exceptions import MalformedMessage
-from p2p.typing import CapabilitiesType, PayloadType
+from p2p.typing import Capabilities, Payload
 
 from p2p.protocol import (
     Command,
@@ -51,7 +51,7 @@ class Disconnect(Command):
         except ValueError:
             return "unknown reason"
 
-    def decode(self, data: bytes) -> PayloadType:
+    def decode(self, data: bytes) -> Payload:
         try:
             raw_decoded = cast(Dict[str, int], super().decode(data))
         except rlp.exceptions.ListDeserializationError:
@@ -85,7 +85,7 @@ class P2PProtocol(Protocol):
 
     def send_handshake(self,
                        client_version_string: str,
-                       capabilities: CapabilitiesType,
+                       capabilities: Capabilities,
                        listen_port: int) -> None:
         self.send_hello(
             version=self.version,
@@ -98,7 +98,7 @@ class P2PProtocol(Protocol):
     def send_hello(self,
                    version: int,
                    client_version_string: str,
-                   capabilities: CapabilitiesType,
+                   capabilities: Capabilities,
                    listen_port: int,
                    remote_pubkey: bytes) -> None:
         data = dict(version=version,

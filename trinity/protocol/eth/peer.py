@@ -19,7 +19,7 @@ from p2p.exceptions import (
 )
 from p2p.disconnect import DisconnectReason
 from p2p.protocol import (
-    PayloadType,
+    Payload,
 )
 
 from trinity.exceptions import (
@@ -94,7 +94,7 @@ class ETHPeer(BaseChainPeer):
             self._requests = ETHExchangeHandler(self)
         return self._requests
 
-    def handle_sub_proto_msg(self, cmd: CommandAPI, msg: PayloadType) -> None:
+    def handle_sub_proto_msg(self, cmd: CommandAPI, msg: Payload) -> None:
         if isinstance(cmd, NewBlock):
             msg = cast(Dict[str, Any], msg)
             header, _, _ = msg['block']
@@ -110,7 +110,7 @@ class ETHPeer(BaseChainPeer):
         self.sub_proto.send_handshake(await self._local_chain_info)
 
     async def process_sub_proto_handshake(
-            self, cmd: CommandAPI, msg: PayloadType) -> None:
+            self, cmd: CommandAPI, msg: Payload) -> None:
         if not isinstance(cmd, Status):
             await self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure(f"Expected a ETH Status msg, got {cmd}, disconnecting")
@@ -266,7 +266,7 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
     async def handle_native_peer_message(self,
                                          remote: NodeAPI,
                                          cmd: CommandAPI,
-                                         msg: PayloadType) -> None:
+                                         msg: Payload) -> None:
 
         if isinstance(cmd, GetBlockHeaders):
             await self.event_bus.broadcast(GetBlockHeadersEvent(remote, cmd, msg))

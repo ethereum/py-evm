@@ -9,7 +9,7 @@ from p2p.peer import (
     BasePeerFactory,
 )
 from p2p.peer_pool import BasePeerPool
-from p2p.typing import PayloadType
+from p2p.typing import Payload
 
 from .proto import ParagonProtocol
 
@@ -22,7 +22,7 @@ class ParagonPeer(BasePeer):
         pass
 
     async def process_sub_proto_handshake(
-            self, cmd: CommandAPI, msg: PayloadType) -> None:
+            self, cmd: CommandAPI, msg: Payload) -> None:
         pass
 
     async def do_sub_proto_handshake(self) -> None:

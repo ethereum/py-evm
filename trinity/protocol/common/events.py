@@ -13,7 +13,7 @@ from lahja import (
 
 from p2p.abc import CommandAPI, NodeAPI
 from p2p.disconnect import DisconnectReason
-from p2p.typing import PayloadType
+from p2p.typing import Payload
 
 
 @dataclass
@@ -90,4 +90,4 @@ class PeerPoolMessageEvent(BaseEvent):
     """
     remote: NodeAPI
     cmd: CommandAPI
-    msg: PayloadType
+    msg: Payload

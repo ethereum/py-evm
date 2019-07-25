@@ -122,7 +122,7 @@ async def get_directly_linked_peers(
 async def process_v4_p2p_handshake(
         self: BasePeer,
         cmd: protocol.Command,
-        msg: protocol.PayloadType) -> None:
+        msg: protocol.Payload) -> None:
     """
     This function is the replacement to the existing process_p2p_handshake
     function.

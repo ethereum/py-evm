@@ -9,7 +9,7 @@ from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransactionFields
 
 from p2p.protocol import Command
-from p2p.typing import PayloadType
+from p2p.typing import Payload
 
 from trinity.protocol.common.commands import BaseBlockHeaders
 from trinity.rlp.block_body import BlockBody
@@ -54,7 +54,7 @@ class BlockHeaders(BaseBlockHeaders):
     _cmd_id = 4
     structure = sedes.CountableList(BlockHeader)
 
-    def extract_headers(self, msg: PayloadType) -> Tuple[BlockHeader, ...]:
+    def extract_headers(self, msg: Payload) -> Tuple[BlockHeader, ...]:
         return tuple(msg)
 
 

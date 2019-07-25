@@ -63,7 +63,7 @@ from p2p.service import (
     BaseService,
     service_timeout,
 )
-from p2p.typing import PayloadType
+from p2p.typing import Payload
 
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.les.peer import LESPeer, LESPeerPool
@@ -106,7 +106,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         BaseService.__init__(self, token)
         self.headerdb = headerdb
         self.peer_pool = peer_pool
-        self._pending_replies: Dict[int, Callable[[PayloadType], None]] = {}
+        self._pending_replies: Dict[int, Callable[[Payload], None]] = {}
 
     # TODO: be more specific about what messages we want.
     subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset({Command})
@@ -133,7 +133,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         reply = None
         got_reply = asyncio.Event()
 
-        def callback(value: PayloadType) -> None:
+        def callback(value: Payload) -> None:
             nonlocal reply
             reply = value
             got_reply.set()

@@ -30,7 +30,7 @@ from p2p.peer import (
 )
 from p2p.peer_pool import BasePeerPool
 from p2p.service import BaseService
-from p2p.typing import PayloadType
+from p2p.typing import Payload
 
 from .events import (
     ConnectToNodeCommand,
@@ -112,7 +112,7 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
     async def handle_native_peer_message(self,
                                          remote: NodeAPI,
                                          cmd: CommandAPI,
-                                         msg: PayloadType) -> None:
+                                         msg: Payload) -> None:
         """
         Process every native peer message. Subclasses should overwrite this to forward specific
         peer messages on the event bus. The handler is called for every message that is defined in
@@ -222,7 +222,7 @@ class DefaultPeerPoolEventServer(PeerPoolEventServer[BasePeer]):
     async def handle_native_peer_message(self,
                                          remote: NodeAPI,
                                          cmd: CommandAPI,
-                                         msg: PayloadType) -> None:
+                                         msg: Payload) -> None:
         pass
 
 

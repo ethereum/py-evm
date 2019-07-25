@@ -24,13 +24,13 @@ from p2p._utils import get_devp2p_cmd_id
 from p2p.abc import CommandAPI, ProtocolAPI, RequestAPI, TransportAPI
 from p2p.constants import P2P_PROTOCOL_COMMAND_LENGTH
 from p2p.exceptions import MalformedMessage
-from p2p.typing import CapabilityType, CapabilitiesType, PayloadType, StructureType
+from p2p.typing import Capability, Capabilities, Payload, Structure
 
 
 class Command(CommandAPI):
     _cmd_id: int = None
     decode_strict = True
-    structure: StructureType
+    structure: Structure
 
     _logger: logging.Logger = None
 
@@ -52,7 +52,7 @@ class Command(CommandAPI):
     def __str__(self) -> str:
         return f"{type(self).__name__} (cmd_id={self.cmd_id})"
 
-    def encode_payload(self, data: Union[PayloadType, sedes.CountableList]) -> bytes:
+    def encode_payload(self, data: Union[Payload, sedes.CountableList]) -> bytes:
         if isinstance(data, dict):
             if not isinstance(self.structure, tuple):
                 raise ValueError(
@@ -73,7 +73,7 @@ class Command(CommandAPI):
             encoder = sedes.List([type_ for _, type_ in self.structure])
         return rlp.encode(data, sedes=encoder)
 
-    def decode_payload(self, rlp_data: bytes) -> PayloadType:
+    def decode_payload(self, rlp_data: bytes) -> Payload:
         if isinstance(self.structure, sedes.CountableList):
             decoder = self.structure
         else:
@@ -92,7 +92,7 @@ class Command(CommandAPI):
             in zip(self.structure, data)
         }
 
-    def decode(self, data: bytes) -> PayloadType:
+    def decode(self, data: bytes) -> Payload:
         packet_type = get_devp2p_cmd_id(data)
         if packet_type != self.cmd_id:
             raise MalformedMessage(f"Wrong packet type: {packet_type}, expected {self.cmd_id}")
@@ -121,7 +121,7 @@ class Command(CommandAPI):
         else:
             return raw_payload
 
-    def encode(self, data: PayloadType) -> Tuple[bytes, bytes]:
+    def encode(self, data: Payload) -> Tuple[bytes, bytes]:
         encoded_payload = self.encode_payload(data)
         compressed_payload = self.compress_payload(encoded_payload)
 
@@ -170,7 +170,7 @@ class Protocol(ProtocolAPI):
             self._logger = logging.getLogger(f"p2p.protocol.{type(self).__name__}")
         return self._logger
 
-    def send_request(self, request: RequestAPI[PayloadType]) -> None:
+    def send_request(self, request: RequestAPI[Payload]) -> None:
         command = self.cmd_by_type[request.cmd_type]
         header, body = command.encode(request.command_payload)
         self.transport.send(header, body)
@@ -179,7 +179,7 @@ class Protocol(ProtocolAPI):
         return cmd_type in self.cmd_by_type
 
     @classmethod
-    def as_capability(cls) -> CapabilityType:
+    def as_capability(cls) -> Capability:
         return (cls.name, cls.version)
 
     def __repr__(self) -> str:
@@ -188,7 +188,7 @@ class Protocol(ProtocolAPI):
 
 @to_tuple
 def match_protocols_with_capabilities(protocols: Sequence[Type[ProtocolAPI]],
-                                      capabilities: CapabilitiesType,
+                                      capabilities: Capabilities,
                                       ) -> Iterable[Type[ProtocolAPI]]:
     """
     Return the `Protocol` classes that match with the provided `capabilities`

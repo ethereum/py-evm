@@ -17,7 +17,7 @@ from cancel_token import CancelToken
 
 from eth_keys import datatypes
 
-from p2p.typing import CapabilityType, PayloadType, StructureType
+from p2p.typing import Capability, Payload, Structure
 
 
 TAddress = TypeVar('TAddress', bound='AddressAPI')
@@ -118,7 +118,7 @@ class NodeAPI(ABC):
 
 
 class CommandAPI(ABC):
-    structure: StructureType
+    structure: Structure
 
     cmd_id: int
     cmd_id_offset: int
@@ -134,19 +134,19 @@ class CommandAPI(ABC):
         ...
 
     @abstractmethod
-    def encode_payload(self, data: Union[PayloadType, sedes.CountableList]) -> bytes:
+    def encode_payload(self, data: Union[Payload, sedes.CountableList]) -> bytes:
         ...
 
     @abstractmethod
-    def decode_payload(self, rlp_data: bytes) -> PayloadType:
+    def decode_payload(self, rlp_data: bytes) -> Payload:
         ...
 
     @abstractmethod
-    def encode(self, data: PayloadType) -> Tuple[bytes, bytes]:
+    def encode(self, data: Payload) -> Tuple[bytes, bytes]:
         ...
 
     @abstractmethod
-    def decode(self, data: bytes) -> PayloadType:
+    def decode(self, data: bytes) -> Payload:
         ...
 
     @abstractmethod
@@ -159,7 +159,7 @@ class CommandAPI(ABC):
 
 
 # A payload to be delivered with a request
-TRequestPayload = TypeVar('TRequestPayload', bound=PayloadType, covariant=True)
+TRequestPayload = TypeVar('TRequestPayload', bound=Payload, covariant=True)
 
 
 class RequestAPI(ABC, Generic[TRequestPayload]):
@@ -229,7 +229,7 @@ class ProtocolAPI(ABC):
         ...
 
     @abstractmethod
-    def send_request(self, request: RequestAPI[PayloadType]) -> None:
+    def send_request(self, request: RequestAPI[Payload]) -> None:
         ...
 
     @abstractmethod
@@ -238,5 +238,5 @@ class ProtocolAPI(ABC):
 
     @classmethod
     @abstractmethod
-    def as_capability(cls) -> CapabilityType:
+    def as_capability(cls) -> Capability:
         ...

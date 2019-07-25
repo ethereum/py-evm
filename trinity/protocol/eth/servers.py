@@ -28,7 +28,7 @@ from trie.exceptions import (
 )
 
 from p2p.abc import CommandAPI, NodeAPI
-from p2p.typing import PayloadType
+from p2p.typing import Payload
 
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.protocol.common.servers import (
@@ -188,7 +188,7 @@ class ETHRequestServer(BaseIsolatedRequestServer):
     async def _handle_msg(self,
                           remote: NodeAPI,
                           cmd: CommandAPI,
-                          msg: PayloadType) -> None:
+                          msg: Payload) -> None:
 
         self.logger.debug2("Peer %s requested %s", remote, cmd)
         peer = ETHProxyPeer.from_node(remote, self.event_bus, self.broadcast_config)

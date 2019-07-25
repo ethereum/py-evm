@@ -9,7 +9,7 @@ class TypedDictPayload(TypedDict):
     pass
 
 
-PayloadType = Union[
+Payload = Union[
     Dict[str, Any],
     List[rlp.Serializable],
     Tuple[rlp.Serializable, ...],
@@ -17,10 +17,10 @@ PayloadType = Union[
 ]
 
 
-StructureType = Union[
+Structure = Union[
     Tuple[Tuple[str, Any], ...],
 ]
 
 
-CapabilityType = Tuple[str, int]
-CapabilitiesType = Tuple[CapabilityType, ...]
+Capability = Tuple[str, int]
+Capabilities = Tuple[Capability, ...]

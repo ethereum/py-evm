@@ -19,7 +19,7 @@ from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 
 from p2p.protocol import Command
-from p2p.typing import PayloadType
+from p2p.typing import Payload
 
 from trinity.protocol.common.commands import BaseBlockHeaders
 from trinity.rlp.block_body import BlockBody
@@ -64,7 +64,7 @@ class Status(Command):
                 continue
             yield key, self._deserialize_item(key, value)
 
-    def encode_payload(self, data: Union[PayloadType, sedes.CountableList]) -> bytes:
+    def encode_payload(self, data: Union[Payload, sedes.CountableList]) -> bytes:
         response = [
             (key, self._serialize_item(key, value))
             for key, value
@@ -127,7 +127,7 @@ class BlockHeaders(BaseBlockHeaders):
         ('headers', sedes.CountableList(BlockHeader)),
     )
 
-    def extract_headers(self, msg: PayloadType) -> Tuple[BlockHeader, ...]:
+    def extract_headers(self, msg: Payload) -> Tuple[BlockHeader, ...]:
         msg = cast(Dict[str, Any], msg)
         return tuple(msg['headers'])
 
@@ -191,7 +191,7 @@ class Proofs(Command):
         ('proofs', sedes.CountableList(sedes.CountableList(sedes.raw))),
     )
 
-    def decode_payload(self, rlp_data: bytes) -> PayloadType:
+    def decode_payload(self, rlp_data: bytes) -> Payload:
         decoded = super().decode_payload(rlp_data)
         decoded = cast(Dict[str, Any], decoded)
         # This is just to make Proofs messages compatible with ProofsV2, so that LightPeerChain

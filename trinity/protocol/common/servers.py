@@ -27,7 +27,7 @@ from p2p.peer import (
     BasePeer,
     PeerSubscriber,
 )
-from p2p.typing import PayloadType
+from p2p.typing import Payload
 from p2p.service import BaseService
 
 from trinity.db.eth1.header import BaseAsyncHeaderDB
@@ -68,7 +68,7 @@ class BaseRequestServer(BaseService, PeerSubscriber):
             self,
             peer: BasePeer,
             cmd: CommandAPI,
-            msg: PayloadType) -> None:
+            msg: Payload) -> None:
         try:
             await self._handle_msg(peer, cmd, msg)
         except OperationCancelled:
@@ -79,7 +79,7 @@ class BaseRequestServer(BaseService, PeerSubscriber):
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
     @abstractmethod
-    async def _handle_msg(self, peer: BasePeer, cmd: CommandAPI, msg: PayloadType) -> None:
+    async def _handle_msg(self, peer: BasePeer, cmd: CommandAPI, msg: Payload) -> None:
         """
         Identify the command, and react appropriately.
         """
@@ -119,7 +119,7 @@ class BaseIsolatedRequestServer(BaseService):
             self,
             remote: NodeAPI,
             cmd: CommandAPI,
-            msg: PayloadType) -> None:
+            msg: Payload) -> None:
         try:
             await self._handle_msg(remote, cmd, msg)
         except OperationCancelled:
@@ -133,7 +133,7 @@ class BaseIsolatedRequestServer(BaseService):
     async def _handle_msg(self,
                           remote: NodeAPI,
                           cmd: CommandAPI,
-                          msg: PayloadType) -> None:
+                          msg: Payload) -> None:
         pass
 
 

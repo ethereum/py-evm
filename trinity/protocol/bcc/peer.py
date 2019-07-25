@@ -30,7 +30,7 @@ from p2p.peer import (
     BasePeerFactory,
 )
 from p2p.peer_pool import BasePeerPool
-from p2p.protocol import PayloadType
+from p2p.protocol import Payload
 
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.protocol.bcc.handlers import BCCExchangeHandler
@@ -98,7 +98,7 @@ class BCCPeer(BasePeer):
         head = await self.chain_db.coro_get_canonical_head(BeaconBlock)
         self.sub_proto.send_handshake(genesis_root, head.slot, self.network_id)
 
-    async def process_sub_proto_handshake(self, cmd: CommandAPI, msg: PayloadType) -> None:
+    async def process_sub_proto_handshake(self, cmd: CommandAPI, msg: Payload) -> None:
         if not isinstance(cmd, Status):
             await self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure(f"Expected a BCC Status msg, got {cmd}, disconnecting")
@@ -172,7 +172,7 @@ class BCCPeerPoolEventServer(PeerPoolEventServer[BCCPeer]):
     async def handle_native_peer_message(self,
                                          remote: NodeAPI,
                                          cmd: CommandAPI,
-                                         msg: PayloadType) -> None:
+                                         msg: Payload) -> None:
 
         if isinstance(cmd, GetBeaconBlocks):
             await self.event_bus.broadcast(GetBeaconBlocksEvent(remote, cmd, msg))

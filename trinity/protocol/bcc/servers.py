@@ -35,7 +35,7 @@ import ssz
 
 from p2p.abc import CommandAPI, NodeAPI
 from p2p.peer import BasePeer
-from p2p.typing import PayloadType
+from p2p.typing import Payload
 
 from eth2.beacon.typing import (
     Slot,
@@ -115,7 +115,7 @@ class BCCRequestServer(BaseIsolatedRequestServer):
     async def _handle_msg(self,
                           remote: NodeAPI,
                           cmd: CommandAPI,
-                          msg: PayloadType) -> None:
+                          msg: Payload) -> None:
 
         self.logger.debug("cmd %s" % cmd)
         if isinstance(cmd, GetBeaconBlocks):
@@ -328,7 +328,7 @@ class BCCReceiveServer(BaseReceiveServer):
         self.orphan_block_pool = OrphanBlockPool()
 
     async def _handle_msg(self, base_peer: BasePeer, cmd: CommandAPI,
-                          msg: PayloadType) -> None:
+                          msg: Payload) -> None:
         peer = cast(BCCPeer, base_peer)
         self.logger.debug("cmd %s" % cmd)
         if isinstance(cmd, Attestations):

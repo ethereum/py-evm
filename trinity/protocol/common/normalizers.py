@@ -4,7 +4,7 @@ from typing import (
     TypeVar,
 )
 
-from p2p.protocol import PayloadType
+from p2p.protocol import Payload
 
 from .types import (
     TResponsePayload,
@@ -29,7 +29,7 @@ class BaseNormalizer(ABC, Generic[TResponsePayload, TResult]):
         raise NotImplementedError()
 
 
-TPassthrough = TypeVar('TPassthrough', bound=PayloadType)
+TPassthrough = TypeVar('TPassthrough', bound=Payload)
 
 
 class NoopNormalizer(BaseNormalizer[TPassthrough, TPassthrough]):

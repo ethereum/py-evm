@@ -56,8 +56,8 @@ from p2p.p2p_proto import (
 from p2p.protocol import (
     match_protocols_with_capabilities,
     Command,
-    PayloadType,
-    CapabilitiesType,
+    Payload,
+    Capabilities,
 )
 from p2p.transport import Transport
 from p2p.tracking.connection import (
@@ -261,7 +261,7 @@ class BasePeer(BaseService):
 
     @abstractmethod
     async def process_sub_proto_handshake(
-            self, cmd: CommandAPI, msg: PayloadType) -> None:
+            self, cmd: CommandAPI, msg: Payload) -> None:
         pass
 
     @contextlib.contextmanager
@@ -340,7 +340,7 @@ class BasePeer(BaseService):
         await self.process_p2p_handshake(cmd, msg)
 
     @property
-    def capabilities(self) -> CapabilitiesType:
+    def capabilities(self) -> Capabilities:
         return tuple(proto.as_capability() for proto in self.supported_sub_protocols)
 
     def get_protocol_command_for(self, msg: bytes) -> CommandAPI:
@@ -392,7 +392,7 @@ class BasePeer(BaseService):
                 self.logger.debug("%r disconnected: %s", self, e)
                 return
 
-    async def read_msg(self) -> Tuple[CommandAPI, PayloadType]:
+    async def read_msg(self) -> Tuple[CommandAPI, Payload]:
         msg = await self.transport.recv(self.cancel_token)
         cmd = self.get_protocol_command_for(msg)
         # NOTE: This used to be a bottleneck but it doesn't seem to be so anymore. If we notice
@@ -416,7 +416,7 @@ class BasePeer(BaseService):
             self.received_msgs[cmd] += 1
             return cmd, decoded_msg
 
-    def handle_p2p_msg(self, cmd: CommandAPI, msg: PayloadType) -> None:
+    def handle_p2p_msg(self, cmd: CommandAPI, msg: Payload) -> None:
         """Handle the base protocol (P2P) messages."""
         if isinstance(cmd, Disconnect):
             msg = cast(Dict[str, Any], msg)
@@ -436,7 +436,7 @@ class BasePeer(BaseService):
         else:
             raise UnexpectedMessage(f"Unexpected msg: {cmd} ({msg})")
 
-    def handle_sub_proto_msg(self, cmd: CommandAPI, msg: PayloadType) -> None:
+    def handle_sub_proto_msg(self, cmd: CommandAPI, msg: Payload) -> None:
         cmd_type = type(cmd)
 
         if self._subscribers:
@@ -454,14 +454,14 @@ class BasePeer(BaseService):
         else:
             self.logger.warning("Peer %s has no subscribers, discarding %s msg", self, cmd)
 
-    def process_msg(self, cmd: CommandAPI, msg: PayloadType) -> None:
+    def process_msg(self, cmd: CommandAPI, msg: Payload) -> None:
         if cmd.is_base_protocol:
             self.handle_p2p_msg(cmd, msg)
         else:
             self.handle_sub_proto_msg(cmd, msg)
 
     async def process_p2p_handshake(
-            self, cmd: CommandAPI, msg: PayloadType) -> None:
+            self, cmd: CommandAPI, msg: Payload) -> None:
         msg = cast(Dict[str, Any], msg)
         if not isinstance(cmd, Hello):
             await self.disconnect(DisconnectReason.bad_protocol)
@@ -558,7 +558,7 @@ class BasePeer(BaseService):
 class PeerMessage(NamedTuple):
     peer: BasePeer
     command: CommandAPI
-    payload: PayloadType
+    payload: Payload
 
 
 class PeerSubscriber(ABC):

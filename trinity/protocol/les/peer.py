@@ -28,7 +28,7 @@ from p2p.abc import CommandAPI, NodeAPI
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import HandshakeFailure
 from p2p.peer_pool import BasePeerPool
-from p2p.typing import PayloadType
+from p2p.typing import Payload
 
 from trinity.rlp.block_body import BlockBody
 from trinity.exceptions import (
@@ -97,7 +97,7 @@ class LESPeer(BaseChainPeer):
             self._requests = LESExchangeHandler(self)
         return self._requests
 
-    def handle_sub_proto_msg(self, cmd: CommandAPI, msg: PayloadType) -> None:
+    def handle_sub_proto_msg(self, cmd: CommandAPI, msg: Payload) -> None:
         head_info = cast(Dict[str, Union[int, Hash32, BlockNumber]], msg)
         if isinstance(cmd, Announce):
             self.head_td = cast(int, head_info['head_td'])
@@ -110,7 +110,7 @@ class LESPeer(BaseChainPeer):
         self.sub_proto.send_handshake(await self._local_chain_info)
 
     async def process_sub_proto_handshake(
-            self, cmd: CommandAPI, msg: PayloadType) -> None:
+            self, cmd: CommandAPI, msg: Payload) -> None:
         if not isinstance(cmd, (Status, StatusV2)):
             await self.disconnect(DisconnectReason.subprotocol_error)
             raise HandshakeFailure(f"Expected a LES Status msg, got {cmd}, disconnecting")
@@ -246,7 +246,7 @@ class LESPeerPoolEventServer(PeerPoolEventServer[LESPeer]):
     async def handle_native_peer_message(self,
                                          remote: NodeAPI,
                                          cmd: CommandAPI,
-                                         msg: PayloadType) -> None:
+                                         msg: Payload) -> None:
         if isinstance(cmd, GetBlockHeaders):
             await self.event_bus.broadcast(GetBlockHeadersEvent(remote, cmd, msg))
         else:
