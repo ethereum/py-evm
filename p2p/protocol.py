@@ -229,9 +229,15 @@ def _pad_to_16_byte_boundary(data: bytes) -> bytes:
     return data
 
 
-def get_cmd_offsets(protocol_types: Tuple[Type[ProtocolAPI], ...]) -> Tuple[int, ...]:
+def get_cmd_offsets(protocol_types: Sequence[Type[ProtocolAPI]]) -> Tuple[int, ...]:
+    """
+    Computes the `command_id_offsets` for each protocol.  The first offset is
+    always P2P_PROTOCOL_COMMAND_LENGTH since the first protocol always begins
+    after the base `p2p` protocol.  Each subsequent protocol is the accumulated
+    sum of all of the protocol offsets that came before it.
+    """
     return tuple(accumulate(
         lambda prev_offset, protocol_class: prev_offset + protocol_class.cmd_length,
         protocol_types,
         P2P_PROTOCOL_COMMAND_LENGTH,
-    ))[:-1]
+    ))[:-1]  # the `[:-1]` is to discard the last accumulated offset which is not needed
