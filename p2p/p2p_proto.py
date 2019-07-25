@@ -10,6 +10,7 @@ import rlp
 from rlp import sedes
 
 from p2p.abc import TransportAPI
+from p2p.constants import P2P_PROTOCOL_COMMAND_LENGTH
 from p2p.disconnect import DisconnectReason as _DisconnectReason
 from p2p.exceptions import MalformedMessage
 from p2p.typing import CapabilitiesType, PayloadType
@@ -73,7 +74,7 @@ class P2PProtocol(Protocol):
     name = 'p2p'
     version = 5
     _commands = (Hello, Ping, Pong, Disconnect)
-    cmd_length = 16
+    cmd_length = P2P_PROTOCOL_COMMAND_LENGTH
 
     def __init__(self,
                  transport: TransportAPI,
