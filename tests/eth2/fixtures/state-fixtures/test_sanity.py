@@ -59,7 +59,7 @@ class SanityTestCase(StateTestCase):
 #
 # Helpers for generating test suite
 #
-def parse_sanity_test_case(test_case, config):
+def parse_sanity_test_case(test_case, index, config):
     override_lengths(config)
 
     bls_setting = get_bls_setting(test_case)
@@ -68,7 +68,7 @@ def parse_sanity_test_case(test_case, config):
     slots = get_slots(test_case)
 
     return SanityTestCase(
-        line_number=test_case.lc.line,
+        index=index,
         bls_setting=bls_setting,
         description=test_case['description'],
         pre=pre,

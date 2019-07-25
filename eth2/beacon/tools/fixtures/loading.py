@@ -73,7 +73,7 @@ def get_config(root_project_dir: Path, config_name: ConfigName) -> Eth2Config:
 
     # TODO: change the path after the constants presets are copied to submodule
     path = root_project_dir / 'tests/eth2/fixtures'
-    yaml = YAML()
+    yaml = YAML(typ="unsafe")
     file_name = config_name + '.yaml'
     file_to_open = path / file_name
     with open(file_to_open, 'U') as f:
@@ -94,8 +94,8 @@ def get_test_file_from_dict(data: Dict[str, Any],
     config = get_config(root_project_dir, config_name)
 
     parsed_test_cases = tuple(
-        parse_test_case_fn(test_case, config)
-        for test_case in data['test_cases']
+        parse_test_case_fn(test_case, index, config)
+        for index, test_case in enumerate(data['test_cases'])
     )
     return TestFile(
         file_name=file_name,
@@ -116,7 +116,7 @@ def load_from_yaml_files(root_project_dir: Path,
                          dir_path: Path,
                          config_names: Sequence[ConfigName],
                          parse_test_case_fn: Callable[..., Any]) -> Iterable[TestFile]:
-    yaml = YAML()
+    yaml = YAML(typ="unsafe")
     entries = get_yaml_files_pathes(dir_path)
     for file_path in entries:
         file_name = os.path.basename(file_path)

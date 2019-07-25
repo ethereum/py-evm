@@ -16,7 +16,7 @@ from eth2.beacon.typing import (
 
 @dataclass
 class BaseTestCase:
-    line_number: int
+    index: int
 
 
 @dataclass
