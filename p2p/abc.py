@@ -315,7 +315,7 @@ class MultiplexerAPI(ABC):
     @abstractmethod
     def stream_protocol_messages(self,
                                  protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]],
-                                 ) -> AsyncIterable[Tuple[CommandAPI, PayloadType]]:
+                                 ) -> AsyncIterable[Tuple[CommandAPI, Payload]]:
         ...
 
     #

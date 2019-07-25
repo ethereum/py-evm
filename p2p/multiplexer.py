@@ -39,17 +39,17 @@ from p2p.exceptions import (
 )
 from p2p.p2p_proto import P2PProtocol
 from p2p.protocol import (
-    PayloadType,
     Protocol,
 )
 from p2p.resource_lock import ResourceLock
+from p2p.typing import Payload
 
 
 async def stream_transport_messages(transport: TransportAPI,
                                     base_protocol: P2PProtocol,
                                     *protocols: ProtocolAPI,
                                     token: CancelToken = None,
-                                    ) -> AsyncIterator[Tuple[ProtocolAPI, CommandAPI, PayloadType]]:
+                                    ) -> AsyncIterator[Tuple[ProtocolAPI, CommandAPI, Payload]]:
     """
     Streams 3-tuples of (Protocol, Command, Payload) over the provided `Transport`
     """
@@ -100,7 +100,7 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
     _msg_counts: DefaultDict[Type[CommandAPI], int]
 
     _protocol_locks: ResourceLock
-    _protocol_queues: Dict[Type[ProtocolAPI], 'asyncio.Queue[Tuple[CommandAPI, PayloadType]]']
+    _protocol_queues: Dict[Type[ProtocolAPI], 'asyncio.Queue[Tuple[CommandAPI, Payload]]']
 
     def __init__(self,
                  transport: TransportAPI,
@@ -234,7 +234,7 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
     #
     async def stream_protocol_messages(self,
                                        protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]],
-                                       ) -> AsyncIterable[Tuple[CommandAPI, PayloadType]]:
+                                       ) -> AsyncIterable[Tuple[CommandAPI, Payload]]:
         """
         Stream the messages for the specified protocol.
         """
@@ -253,9 +253,20 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
 
         async with self._protocol_locks.lock(protocol_class):
             msg_queue = self._protocol_queues[protocol_class]
+            if not hasattr(self, '_multiplex_token'):
+                raise Exception("Multiplexer is not multiplexed")
+            token = self._multiplex_token
 
-            while not self.is_closing:
-                yield await self.wait(msg_queue.get(), token=self._multiplex_token)
+            while not self.is_closing and not token.triggered:
+                try:
+                    # We use an optimistic strategy here of using
+                    # `get_nowait()` to reduce the number of times we yield to
+                    # the event loop.  Since this is an async generator it will
+                    # yield to the loop each time it returns a value so we
+                    # don't have to worry about this blocking other processes.
+                    yield msg_queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    yield await self.wait(msg_queue.get(), token=token)
 
     #
     # Message reading and streaming API
@@ -276,12 +287,20 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
                 loop=self.cancel_token.loop,
             ).chain(self.cancel_token)
             self._multiplex_token = multiplex_token
-            asyncio.ensure_future(self._do_multiplexing(multiplex_token))
+            fut = asyncio.ensure_future(self._do_multiplexing(multiplex_token))
             try:
                 yield
             finally:
                 multiplex_token.trigger()
                 del self._multiplex_token
+                if fut.done():
+                    fut.result()
+                else:
+                    fut.cancel()
+                    try:
+                        await fut
+                    except asyncio.CancelledError:
+                        pass
 
     async def _do_multiplexing(self, token: CancelToken) -> None:
         """
@@ -301,7 +320,10 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
 
                 queue = self._protocol_queues[type(protocol)]
                 try:
-                    await self.wait(queue.put((cmd, msg)), token=token)
+                    # We must use `put_nowait` here to ensure that in the event
+                    # that a single protocol queue is full that we don't block
+                    # other protocol messages getting through.
+                    queue.put_nowait((cmd, msg))
                 except asyncio.QueueFull:
                     self.logger.error(
                         (
