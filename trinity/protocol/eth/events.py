@@ -150,7 +150,7 @@ class SendTransactionsEvent(BaseEvent):
 class GetBlockHeadersResponse(BaseEvent):
 
     headers: Tuple[BlockHeader, ...]
-    exception: Exception = None  # noqa: E701
+    error: Exception = None
 
 
 @dataclass
@@ -172,7 +172,7 @@ class GetBlockHeadersRequest(BaseRequestResponseEvent[GetBlockHeadersResponse]):
 class GetBlockBodiesResponse(BaseEvent):
 
     bundles: BlockBodyBundles
-    exception: Exception = None  # noqa: E701
+    error: Exception = None
 
 
 @dataclass
@@ -191,7 +191,7 @@ class GetBlockBodiesRequest(BaseRequestResponseEvent[GetBlockBodiesResponse]):
 class GetNodeDataResponse(BaseEvent):
 
     bundles: NodeDataBundles
-    exception: Exception = None  # noqa: E701
+    error: Exception = None
 
 
 @dataclass
@@ -210,7 +210,7 @@ class GetNodeDataRequest(BaseRequestResponseEvent[GetNodeDataResponse]):
 class GetReceiptsResponse(BaseEvent):
 
     bundles: ReceiptsBundles
-    exception: Exception = None  # noqa: E701
+    error: Exception = None
 
 
 @dataclass

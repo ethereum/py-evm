@@ -28,6 +28,9 @@ from trinity.protocol.common.types import (
     NodeDataBundles,
     ReceiptsBundles,
 )
+from trinity._utils.errors import (
+    SupportsError,
+)
 
 from .events import (
     GetBlockBodiesRequest,
@@ -75,12 +78,12 @@ class ProxyETHExchangeHandler:
             logging.getLogger('trinity.protocol.eth.handlers.ProxyETHExchangeHandler')
         )
 
-    def raise_if_needed(self, exception: Exception) -> None:
-        if exception is not None:
+    def raise_if_needed(self, value: SupportsError) -> None:
+        if value.error is not None:
             self.logger.warning(
-                "Raised %s while fetching from peer %s", exception, self.remote.uri
+                "Raised %s while fetching from peer %s", value.error, self.remote.uri
             )
-            raise exception
+            raise value.error
 
     async def get_block_headers(self,
                                 block_number_or_hash: BlockIdentifier,
@@ -101,7 +104,7 @@ class ProxyETHExchangeHandler:
             self._broadcast_config
         )
 
-        self.raise_if_needed(response.exception)
+        self.raise_if_needed(response)
 
         self.logger.debug2(
             "ProxyETHExchangeHandler returning %s block headers from %s",
@@ -124,7 +127,7 @@ class ProxyETHExchangeHandler:
             self._broadcast_config
         )
 
-        self.raise_if_needed(response.exception)
+        self.raise_if_needed(response)
 
         self.logger.debug2(
             "ProxyETHExchangeHandler returning %s block bodies from %s",
@@ -147,7 +150,7 @@ class ProxyETHExchangeHandler:
             self._broadcast_config
         )
 
-        self.raise_if_needed(response.exception)
+        self.raise_if_needed(response)
 
         self.logger.debug2(
             "ProxyETHExchangeHandler returning %s node bundles from %s",
@@ -170,7 +173,7 @@ class ProxyETHExchangeHandler:
             self._broadcast_config
         )
 
-        self.raise_if_needed(response.exception)
+        self.raise_if_needed(response)
 
         self.logger.debug2(
             "ProxyETHExchangeHandler returning %s receipt bundles from %s",
