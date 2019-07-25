@@ -105,7 +105,7 @@ def test_sanity_fixture(base_db, config, test_case, empty_attestation_pool):
             post_state,
         )
 
-        verify_state(test_case, post_state)
+        verify_state(test_case.post, post_state)
     else:
         with pytest.raises(ValidationError):
             run_state_execution(

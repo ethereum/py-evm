@@ -81,10 +81,10 @@ def apply_blocks(test_case: StateTestCase,
     return post_state, chaindb
 
 
-def verify_state(test_case: StateTestCase, post_state: BeaconState) -> None:
+def verify_state(test_case_state: BeaconState, post_state: BeaconState) -> None:
     # Use dict diff, easier to see the diff
     dict_post_state = to_formatted_dict(post_state, BeaconState)
-    dict_expected_state = to_formatted_dict(test_case.post, BeaconState)
+    dict_expected_state = to_formatted_dict(test_case_state, BeaconState)
     for key, value in dict_expected_state.items():
         if isinstance(value, list):
             value = tuple(value)

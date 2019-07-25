@@ -28,6 +28,7 @@ from eth2.beacon.helpers import (
     compute_epoch_of_slot,
 )
 from eth2.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.states import BeaconState
 from eth2.configs import (
     Eth2Config,
@@ -177,3 +178,8 @@ def get_blocks(test_case: Dict[str, Any],
         return tuple(from_formatted_dict(block, cls_block) for block in test_case['blocks'])
     else:
         return ()
+
+
+def get_deposits(test_case: Dict[str, Any],
+                 cls_deposit: Type[Deposit]) -> Tuple[Deposit, ...]:
+    return tuple(from_formatted_dict(deposit, cls_deposit) for deposit in test_case['deposits'])
