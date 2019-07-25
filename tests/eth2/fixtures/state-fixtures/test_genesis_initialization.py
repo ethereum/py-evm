@@ -29,7 +29,7 @@ from eth2.beacon.tools.fixtures.config_name import (
     ONLY_MINIMAL,
 )
 from eth2.beacon.tools.fixtures.helpers import (
-    verify_state,
+    validate_state,
 )
 from eth2.beacon.tools.fixtures.loading import (
     get_bls_setting,
@@ -115,4 +115,4 @@ def test_genesis_initialization_fixture(config, test_case):
         config=config,
     )
 
-    verify_state(test_case.state, result_state)
+    validate_state(test_case.state, result_state)
