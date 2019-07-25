@@ -104,31 +104,29 @@ class DiscoveryProtocolFactory(factory.Factory):
 async def TransportPairFactory(*,
                                alice_remote: NodeAPI = None,
                                alice_private_key: keys.PrivateKey = None,
-                               alice_token: CancelToken = None,
                                bob_remote: NodeAPI = None,
                                bob_private_key: keys.PrivateKey = None,
-                               bob_token: CancelToken = None,
+                               token: CancelToken = None,
                                use_eip8: bool = False,
                                ) -> Tuple[TransportAPI, TransportAPI]:
+    if token is None:
+        token = CancelTokenFactory(name='TransportPairFactory')
+
     if alice_private_key is None:
         alice_private_key = PrivateKeyFactory()
     if alice_remote is None:
         alice_remote = NodeFactory(pubkey=alice_private_key.public_key)
-    if alice_token is None:
-        alice_token = CancelTokenFactory(name='alice')
 
     if bob_private_key is None:
         bob_private_key = PrivateKeyFactory()
     if bob_remote is None:
         bob_remote = NodeFactory(pubkey=bob_private_key.public_key)
-    if bob_token is None:
-        bob_token = CancelTokenFactory(name='bob')
 
     assert alice_private_key.public_key == alice_remote.pubkey
     assert bob_private_key.public_key == bob_remote.pubkey
     assert alice_private_key != bob_private_key
 
-    initiator = auth.HandshakeInitiator(bob_remote, alice_private_key, use_eip8, alice_token)
+    initiator = auth.HandshakeInitiator(bob_remote, alice_private_key, use_eip8, token)
 
     f_alice: 'asyncio.Future[TransportAPI]' = asyncio.Future()
     handshake_finished = asyncio.Event()
@@ -146,7 +144,7 @@ async def TransportPairFactory(*,
 
     async def establish_transport() -> None:
         aes_secret, mac_secret, egress_mac, ingress_mac = await auth._handshake(
-            initiator, alice_reader, alice_writer, alice_token)
+            initiator, alice_reader, alice_writer, token)
 
         transport = Transport(
             remote=alice_remote,
@@ -168,7 +166,7 @@ async def TransportPairFactory(*,
         reader=bob_reader,
         writer=bob_writer,
         private_key=bob_private_key,
-        token=bob_token,
+        token=token,
     ), timeout=1)
 
     await asyncio.wait_for(handshake_finished.wait(), timeout=0.1)
@@ -178,29 +176,23 @@ async def TransportPairFactory(*,
 
 def MemoryTransportPairFactory(alice_remote: NodeAPI = None,
                                alice_private_key: datatypes.PrivateKey = None,
-                               alice_token: CancelToken = None,
                                bob_remote: NodeAPI = None,
                                bob_private_key: datatypes.PrivateKey = None,
-                               bob_token: CancelToken = None,
                                ) -> Tuple[TransportAPI, TransportAPI]:
     if alice_remote is None:
         alice_remote = NodeFactory()
     if alice_private_key is None:
         alice_private_key = PrivateKeyFactory()
-    if alice_token is None:
-        alice_token = CancelTokenFactory(name='alice')
 
     if bob_remote is None:
         bob_remote = NodeFactory()
     if bob_private_key is None:
         bob_private_key = PrivateKeyFactory()
-    if bob_token is None:
-        bob_token = CancelTokenFactory(name='bob')
 
     # the remotes are intentionally switched since they represent the *other*
     # side of the connection.
     alice_transport, bob_transport = MemoryTransport.connected_pair(
-        alice=(bob_remote, alice_private_key, alice_token),
-        bob=(alice_remote, bob_private_key, bob_token),
+        alice=(bob_remote, alice_private_key),
+        bob=(alice_remote, bob_private_key),
     )
     return alice_transport, bob_transport

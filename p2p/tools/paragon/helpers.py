@@ -64,10 +64,8 @@ async def get_directly_linked_peers_without_handshake(
     alice_transport, bob_transport = MemoryTransportPairFactory(
         alice_remote=alice_remote,
         alice_private_key=alice_factory.privkey,
-        alice_token=alice_factory.cancel_token,
         bob_remote=bob_remote,
         bob_private_key=bob_factory.privkey,
-        bob_token=bob_factory.cancel_token,
     )
 
     alice = alice_factory.create_peer(alice_transport)

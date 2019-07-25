@@ -18,36 +18,30 @@ class MemoryTransport(TransportAPI):
                  remote: NodeAPI,
                  private_key: datatypes.PrivateKey,
                  reader: asyncio.StreamReader,
-                 writer: asyncio.StreamWriter,
-                 token: CancelToken = None) -> None:
+                 writer: asyncio.StreamWriter) -> None:
         self.remote = remote
         self._private_key = private_key
         self._reader = reader
         self._writer = writer
 
-        if token is None:
-            token = CancelToken('MemoryTransport')
-        self._token = token
-
     @classmethod
     def connected_pair(cls,
-                       alice: Tuple[NodeAPI, datatypes.PrivateKey, CancelToken],
-                       bob: Tuple[NodeAPI, datatypes.PrivateKey, CancelToken],
+                       alice: Tuple[NodeAPI, datatypes.PrivateKey],
+                       bob: Tuple[NodeAPI, datatypes.PrivateKey],
                        ) -> Tuple[TransportAPI, TransportAPI]:
         (
             (alice_reader, alice_writer),
             (bob_reader, bob_writer),
         ) = get_directly_connected_streams()
-        alice_remote, alice_private_key, alice_token = alice
-        bob_remote, bob_private_key, bob_token = bob
+        alice_remote, alice_private_key = alice
+        bob_remote, bob_private_key = bob
         alice_transport = cls(
             alice_remote,
             alice_private_key,
             alice_reader,
             alice_writer,
-            alice_token,
         )
-        bob_transport = cls(bob_remote, bob_private_key, bob_reader, bob_writer, bob_token)
+        bob_transport = cls(bob_remote, bob_private_key, bob_reader, bob_writer)
         return alice_transport, bob_transport
 
     @cached_property
