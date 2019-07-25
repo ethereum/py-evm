@@ -1,9 +1,5 @@
 from typing import (
     List,
-    TypeVar,
-)
-from typing_extensions import (
-    Protocol,
 )
 
 from lahja import EndpointAPI
@@ -37,13 +33,9 @@ from trinity.protocol.les.events import (
     GetContractCodeRequest,
     GetReceiptsRequest,
 )
-
-
-class SupportsError(Protocol):
-    error: Exception
-
-
-TResponse = TypeVar('TResponse', bound=SupportsError)
+from trinity._utils.errors import (
+    pass_or_raise,
+)
 
 
 class EventBusLightPeerChain(BaseLightPeerChain):
@@ -57,37 +49,30 @@ class EventBusLightPeerChain(BaseLightPeerChain):
 
     async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
         event = GetBlockHeaderByHashRequest(block_hash)
-        return self._pass_or_raise(
+        return pass_or_raise(
             await self.event_bus.request(event, TO_NETWORKING_BROADCAST_CONFIG)
         ).block_header
 
     async def coro_get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
         event = GetBlockBodyByHashRequest(block_hash)
-        return self._pass_or_raise(
+        return pass_or_raise(
             await self.event_bus.request(event, TO_NETWORKING_BROADCAST_CONFIG)
         ).block_body
 
     async def coro_get_receipts(self, block_hash: Hash32) -> List[Receipt]:
         event = GetReceiptsRequest(block_hash)
-        return self._pass_or_raise(
+        return pass_or_raise(
             await self.event_bus.request(event, TO_NETWORKING_BROADCAST_CONFIG)
         ).receipts
 
     async def coro_get_account(self, block_hash: Hash32, address: Address) -> Account:
         event = GetAccountRequest(block_hash, address)
-        return self._pass_or_raise(
+        return pass_or_raise(
             await self.event_bus.request(event, TO_NETWORKING_BROADCAST_CONFIG)
         ).account
 
     async def coro_get_contract_code(self, block_hash: Hash32, address: Address) -> bytes:
         event = GetContractCodeRequest(block_hash, address)
-        return self._pass_or_raise(
+        return pass_or_raise(
             await self.event_bus.request(event, TO_NETWORKING_BROADCAST_CONFIG)
         ).bytez
-
-    @staticmethod
-    def _pass_or_raise(response: TResponse) -> TResponse:
-        if response.error is not None:
-            raise response.error
-
-        return response
