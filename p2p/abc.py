@@ -60,9 +60,6 @@ class AddressAPI(ABC):
     def __eq__(self, other: Any) -> bool:
         ...
 
-    def __repr__(self) -> str:
-        return 'Address(%s:udp:%s|tcp:%s)' % (self.ip, self.udp_port, self.tcp_port)
-
     @abstractmethod
     def to_endpoint(self) -> List[bytes]:
         ...
@@ -180,37 +177,6 @@ class RequestAPI(ABC, Generic[TRequestPayload]):
     response_type: Type[CommandAPI]
 
 
-class ProtocolAPI(ABC):
-    transport: 'TransportAPI'
-    name: ClassVar[str]
-    version: ClassVar[int]
-
-    cmd_length: int
-
-    cmd_id_offset: int
-
-    commands: Tuple[CommandAPI, ...]
-    cmd_by_type: Dict[Type[CommandAPI], CommandAPI]
-    cmd_by_id: Dict[int, CommandAPI]
-
-    @abstractmethod
-    def __init__(self, transport: 'TransportAPI', cmd_id_offset: int, snappy_support: bool) -> None:
-        ...
-
-    @abstractmethod
-    def send_request(self, request: RequestAPI[PayloadType]) -> None:
-        ...
-
-    @abstractmethod
-    def supports_command(self, cmd_type: Type[CommandAPI]) -> bool:
-        ...
-
-    @classmethod
-    @abstractmethod
-    def as_capability(cls) -> CapabilityType:
-        ...
-
-
 class TransportAPI(ABC):
     remote: NodeAPI
 
@@ -242,4 +208,35 @@ class TransportAPI(ABC):
 
     @abstractmethod
     def close(self) -> None:
+        ...
+
+
+class ProtocolAPI(ABC):
+    transport: TransportAPI
+    name: ClassVar[str]
+    version: ClassVar[int]
+
+    cmd_length: int
+
+    cmd_id_offset: int
+
+    commands: Tuple[CommandAPI, ...]
+    cmd_by_type: Dict[Type[CommandAPI], CommandAPI]
+    cmd_by_id: Dict[int, CommandAPI]
+
+    @abstractmethod
+    def __init__(self, transport: TransportAPI, cmd_id_offset: int, snappy_support: bool) -> None:
+        ...
+
+    @abstractmethod
+    def send_request(self, request: RequestAPI[PayloadType]) -> None:
+        ...
+
+    @abstractmethod
+    def supports_command(self, cmd_type: Type[CommandAPI]) -> bool:
+        ...
+
+    @classmethod
+    @abstractmethod
+    def as_capability(cls) -> CapabilityType:
         ...
