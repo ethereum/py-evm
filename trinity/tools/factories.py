@@ -3,8 +3,6 @@ from typing import (
     Tuple,
 )
 
-import factory
-
 from libp2p.security.insecure_security import (
     InsecureTransport,
 )
@@ -12,6 +10,9 @@ from libp2p.security.insecure_security import (
 from trinity.protocol.bcc_libp2p.configs import (
     SECURITY_PROTOCOL_ID,
     MULTIPLEXING_PROTOCOL_ID,
+)
+from trinity.protocol.bcc_libp2p.node import (
+    Node,
 )
 
 from p2p.ecies import (
@@ -21,9 +22,10 @@ from p2p.tools.factories import (
     get_open_port,
 )
 
-from .node import (
-    Node,
-)
+try:
+    import factory
+except ImportError:
+    raise ImportError("The trinity.tools.factories module requires the `factory_boy` library.")
 
 
 class NodeFactory(factory.Factory):

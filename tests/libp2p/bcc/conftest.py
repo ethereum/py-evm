@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from trinity.protocol.bcc_libp2p.factories import (
+from trinity.tools.factories import (
     NodeFactory,
 )
 
