@@ -17,14 +17,14 @@ from ssz.tools import (
     from_formatted_dict,
 )
 
+from eth2.beacon.genesis import (
+    initialize_beacon_state_from_eth1,
+)
 from eth2.beacon.tools.misc.ssz_vector import (
     override_lengths,
 )
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.tools.builder.initializer import (
-    initialize_beacon_state_from_eth1,
-)
 from eth2.beacon.tools.fixtures.config_name import (
     ONLY_MINIMAL,
 )
@@ -60,7 +60,7 @@ FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 
 
 #
-# Sanity test_format
+#  Test format
 #
 @dataclass
 class GenesisInitializationTestCase(BaseTestCase):

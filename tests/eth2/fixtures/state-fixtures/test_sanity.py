@@ -41,15 +41,15 @@ from tests.eth2.fixtures.path import (
 
 
 # Test files
-SANITY_FIXTURE_PATH = BASE_FIXTURE_PATH / 'sanity'
-FIXTURE_PATHES = (
-    SANITY_FIXTURE_PATH,
+RUNNER_FIXTURE_PATH = BASE_FIXTURE_PATH / 'sanity'
+HANDLER_FIXTURE_PATHES = (
+    RUNNER_FIXTURE_PATH,
 )
 FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 
 
 #
-# Sanity test_format
+#  Test format
 #
 @dataclass
 class SanityTestCase(StateTestCase):
@@ -81,7 +81,7 @@ def parse_sanity_test_case(test_case, index, config):
 
 all_test_cases = get_test_cases(
     root_project_dir=ROOT_PROJECT_DIR,
-    fixture_pathes=FIXTURE_PATHES,
+    fixture_pathes=HANDLER_FIXTURE_PATHES,
     config_names=FILTERED_CONFIG_NAMES,
     parse_test_case_fn=parse_sanity_test_case,
 )
