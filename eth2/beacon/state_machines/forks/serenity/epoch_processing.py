@@ -701,13 +701,11 @@ def process_registry_updates(state: BeaconState, config: Eth2Config) -> BeaconSt
 
 def _determine_slashing_penalty(total_penalties: Gwei,
                                 total_balance: Gwei,
-                                balance: Gwei) -> Gwei:
-    return Gwei(
-        balance * min(
-            total_penalties * 3,
-            total_balance,
-        ) // total_balance
-    )
+                                balance: Gwei,
+                                increment: int) -> Gwei:
+    penalty_numerator = balance // increment * min(total_penalties * 3, total_balance)
+    penalty = penalty_numerator // total_balance * increment
+    return Gwei(penalty)
 
 
 def process_slashings(state: BeaconState, config: Eth2Config) -> BeaconState:
@@ -722,6 +720,7 @@ def process_slashings(state: BeaconState, config: Eth2Config) -> BeaconState:
                 Gwei(sum(state.slashings)),
                 total_balance,
                 validator.effective_balance,
+                config.EFFECTIVE_BALANCE_INCREMENT
             )
             state = decrease_balance(state, index, penalty)
     return state
