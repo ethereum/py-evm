@@ -22,11 +22,11 @@ def _build_test_suite_path(tests_root_path: Path,
                            test_type: TestType,
                            test_handler: TestHandler,
                            config_type: ConfigType) -> Path:
-    if len(test_type.handlers) == 1:
-        file_name = f"{test_type.name}_{config_type.name}.yaml"
-    else:
-        file_name = f"{test_type.name}_{test_handler.name}_{config_type.name}.yaml"
-    return tests_root_path / Path(test_type.name) / Path(test_handler.name) / Path(file_name)
+    return test_type.build_path(
+        tests_root_path,
+        test_handler,
+        config_type,
+    )
 
 
 def _load_test_suite(tests_root_path: Path,

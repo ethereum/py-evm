@@ -4,7 +4,7 @@ from eth2.beacon.tools.fixtures.test_gen import (
 )
 from eth2.beacon.tools.fixtures.config_types import (
     Minimal,
-    Full,
+    # Full,
 )
 from eth2.beacon.tools.fixtures.test_types.shuffling import (
     ShufflingTestType,
