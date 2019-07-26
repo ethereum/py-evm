@@ -1,9 +1,6 @@
 import asyncio
 from collections.abc import Hashable
-from typing import AsyncIterator
 import weakref
-
-from async_generator import asynccontextmanager
 
 
 class ResourceLock:
@@ -15,13 +12,11 @@ class ResourceLock:
     def __init__(self) -> None:
         self._locks = weakref.WeakKeyDictionary()
 
-    @asynccontextmanager
-    async def lock(self, resource: Hashable) -> AsyncIterator[None]:
+    def lock(self, resource: Hashable) -> asyncio.Lock:
         if resource not in self._locks:
             self._locks[resource] = asyncio.Lock()
         lock = self._locks[resource]
-        async with lock:
-            yield
+        return lock
 
     def is_locked(self, resource: Hashable) -> bool:
         if resource not in self._locks:
