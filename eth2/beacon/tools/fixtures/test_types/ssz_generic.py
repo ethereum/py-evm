@@ -1,4 +1,4 @@
-from eth2.beacon.tools.fixtures.test_type import TestType
+from . import TestType
 
 
 class SSZGeneric(TestType):

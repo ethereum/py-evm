@@ -1,55 +1,48 @@
 import pytest
 
+from eth_utils import (
+    ValidationError,
+)
 
+from eth2.beacon.tools.fixtures.test_gen import (
+    pytest_from_eth2_fixture,
+    generate_pytests_from_eth2_fixture,
+)
 from eth2.beacon.tools.fixtures.config_types import (
     Minimal,
 )
-from eth2.beacon.tools.fixtures.config_descriptor import ConfigDescriptor
-from eth2.beacon.tools.fixtures.parser import parse_tests
-from eth2.beacon.tools.fixtures.test_types import (
-    Sanity,
+from eth2.beacon.tools.fixtures.test_types.sanity import (
+    SanityTestType,
 )
 
 
-@pytest.mark.parametrize(
-    (
-        "config_type"
-    ),
-    (
+def pytest_generate_tests(metafunc):
+    generate_pytests_from_eth2_fixture(metafunc)
+
+
+@pytest_from_eth2_fixture({
+    "config_types": (
         Minimal,
-    )
-)
-@pytest.mark.parametrize(
-    (
-        "test_type"
     ),
-    (
-        Sanity,
-    )
-)
-@pytest.mark.parametrize(
-    (
-        "handler_filter"
+    "test_types": {
+        SanityTestType: lambda handler: handler.name == "slots",
+    }
+})
+def test_slots(test_case):
+    test_case.execute()
+
+
+@pytest_from_eth2_fixture({
+    "config_types": (
+        Minimal,
     ),
-    (
-        # run all handlers
-        lambda _handler: True,
-    )
-)
-def test_all_sanity_cases(tests_path,
-                          config_path_provider,
-                          config_type,
-                          test_type,
-                          handler_filter):
-    test_cases = parse_tests(
-        tests_path,
-        test_type,
-        handler_filter,
-        config_descriptor=ConfigDescriptor(
-            config_type,
-            config_path_provider,
-        ),
-    )
-    for t in test_cases:
-        print(t)
-    assert False
+    "test_types": {
+        SanityTestType: lambda handler: handler.name == "blocks",
+    }
+})
+def test_blocks(test_case):
+    if test_case.valid():
+        test_case.execute()
+    else:
+        with pytest.raises(ValidationError):
+            test_case.execute()

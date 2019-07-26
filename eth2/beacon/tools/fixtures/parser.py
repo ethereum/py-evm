@@ -1,83 +1,85 @@
 from pathlib import Path
-from typing import (
-    Callable,
-    Iterable,
-)
 
-from eth_utils.toolz import (
-    mapcat,
-    partial,
-)
-
-from eth2.beacon.tools.fixtures.config_descriptor import ConfigDescriptor
 from eth2.beacon.tools.fixtures.config_types import ConfigType
-from eth2.beacon.tools.fixtures.handlers import Handler
-from eth2.beacon.tools.fixtures.loading import load_config_at_path, load_test_case_at
-from eth2.beacon.tools.fixtures.test_type import TestType
-from eth2.beacon.tools.fixtures.test_case import TestCase
+from eth2.beacon.tools.fixtures.test_handler import TestHandler
+from eth2.beacon.tools.fixtures.loading import load_config_at_path, load_test_suite_at
+from eth2.beacon.tools.fixtures.test_types import TestType
+from eth2.beacon.tools.fixtures.test_suite import TestSuite
+from eth2.beacon.tools.misc.ssz_vector import (
+    override_lengths,
+)
 
 from eth2.configs import Eth2Config
 
 
-def _find_handler_paths_for_test_type(tests_root_path: Path,
-                                      test_type: TestType,
-                                      handler_filter: Callable[[str], bool]) -> Iterable[Path]:
-    test_type_path = tests_root_path / test_type.name()
-    for entry in test_type_path.iterdir():
-        if not entry.is_dir():
-            continue
-
-        handler_name = entry.name
-        if handler_filter(handler_name):
-            yield entry
+# NOTE: if the tests_root_path keeps changing, can turn into
+# a ``pytest.config.Option`` and supply from the command line.
+TESTS_ROOT_PATH = Path("eth2-fixtures")
+TESTS_PATH = Path("tests")
 
 
-def _find_test_suite_paths_for_handler(path: Path, config_type: ConfigType) -> Iterable[Path]:
-    for entry in path.iterdir():
-        if entry.is_dir():
-            # NOTE: assuming no deeper nesting
-            continue
+def _build_test_suite_path(tests_root_path: Path,
+                           test_type: TestType,
+                           test_handler: TestHandler,
+                           config_type: ConfigType) -> Path:
+    if len(test_type.handlers) == 1:
+        file_name = f"{test_type.name}_{config_type.name}.yaml"
+    else:
+        file_name = f"{test_type.name}_{test_handler.name}_{config_type.name}.yaml"
+    return tests_root_path / Path(test_type.name) / Path(test_handler.name) / Path(file_name)
 
-        if config_type in entry.name:
-            yield entry
 
-
-def _load_test_cases(tests_root_path: Path,
+def _load_test_suite(tests_root_path: Path,
                      test_type: TestType,
-                     handler_filter: Callable[[str], bool],
+                     test_handler: TestHandler,
                      config_type: ConfigType,
-                     config: Eth2Config) -> Iterable[TestCase]:
-    handler_paths = _find_handler_paths_for_test_type(
+                     config: Eth2Config) -> TestSuite:
+    test_suite_path = _build_test_suite_path(
         tests_root_path,
         test_type,
-        handler_filter,
+        test_handler,
+        config_type,
     )
 
-    test_suite_paths = mapcat(
-        lambda path: _find_test_suite_paths_for_handler(path, config_type),
-        handler_paths,
-    )
+    test_suite_data = load_test_suite_at(test_suite_path)
 
-    test_case_data = map(
-        load_test_case_at,
-        test_suite_paths,
-    )
-
-    return map(
-        partial(test_type, config),
-        test_case_data,
-    )
+    return TestSuite(config, test_handler, test_suite_data)
 
 
-def parse_tests(tests_root_path: Path,
-                test_type: TestType,
-                handler_filter: Callable[[Handler], bool],
-                config_descriptor: ConfigDescriptor) -> Iterable[TestCase]:
-    config = load_config_at_path(config_descriptor.path)
-    return _load_test_cases(
-        tests_root_path,
+def _search_for_dir(target_dir, p):
+    for child in p.iterdir():
+        if not child.is_dir():
+            continue
+        if child.name == target_dir.name:
+            return child
+    return None
+
+
+def _find_project_root_dir(target: Path) -> Path:
+    """
+    Search the file tree for a path with a child directory equal to ``target``.
+    """
+    p = Path('.').resolve()
+    for _ in range(1000):
+        candidate = _search_for_dir(target, p)
+        if candidate:
+            return candidate.parent
+        p = p.parent
+
+
+def parse_test_suite(test_type: TestType,
+                     test_handler: TestHandler,
+                     config_type: ConfigType) -> TestSuite:
+    project_root_dir = _find_project_root_dir(TESTS_ROOT_PATH)
+    tests_path = project_root_dir / TESTS_ROOT_PATH / TESTS_PATH
+    config_path = project_root_dir / config_type.path
+    config = load_config_at_path(config_path)
+    override_lengths(config)
+
+    return _load_test_suite(
+        tests_path,
         test_type,
-        handler_filter,
-        config_descriptor.config_type,
+        test_handler,
+        config_type,
         config,
     )

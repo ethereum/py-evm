@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Sequence, Tuple, Type, Union
 
@@ -22,16 +21,12 @@ from eth2.configs import Eth2Config
 # Eth2Config
 #
 def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
-    filtered_keys = (
-        "DOMAIN_",
-        "EARLY_DERIVED_SECRET_PENALTY_MAX_FUTURE_EPOCHS",
-    )
+    filtered_keys = ("DOMAIN_", "EARLY_DERIVED_SECRET_PENALTY_MAX_FUTURE_EPOCHS")
 
     return Eth2Config(
         **assoc(
             keyfilter(
-                lambda name: all(key not in name for key in filtered_keys),
-                dict_config,
+                lambda name: all(key not in name for key in filtered_keys), dict_config
             ),
             "GENESIS_EPOCH",
             compute_epoch_of_slot(
@@ -41,18 +36,12 @@ def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
     )
 
 
-def load_config_at_path(p: Path) -> Eth2Config:
-    yaml = YAML()
-    config_data = yaml.load(p)
-    return generate_config_by_dict(config_data)
-
-
-def load_test_case_at(p: Path) -> Dict[str, Any]:
-    y = YAML()
+def _load_yaml_at(p: Path) -> Dict[str, Any]:
+    y = YAML(typ="unsafe")
     return y.load(p)
 
 
-config_cache: Dict[str, Eth2Config] = {}
+config_cache: Dict[Path, Eth2Config] = {}
 
 
 def get_config(root_project_dir: Path, config_name: ConfigName) -> Eth2Config:
@@ -243,3 +232,19 @@ def get_output_bls_pubkey(test_case: Dict[str, Any]) -> BLSPubkey:
 
 def get_output_bls_signature(test_case: Dict[str, Any]) -> BLSSignature:
     return BLSSignature(decode_hex(test_case["output"]))
+
+
+# NOTE: should cache test suite data if users are running
+# the same test suite at different points during testing.
+def load_test_suite_at(p: Path) -> Dict[str, Any]:
+    return _load_yaml_at(p)
+
+
+def load_config_at_path(p: Path) -> Eth2Config:
+    if p in config_cache:
+        return config_cache[p]
+
+    config_data = _load_yaml_at(p)
+    config = generate_config_by_dict(config_data)
+    config_cache[p] = config
+    return config
