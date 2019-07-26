@@ -38,10 +38,12 @@ from eth2.beacon.tools.fixtures.config_name import (
     ALL_CONFIG_NAMES,
     ConfigName,
 )
+from eth2.beacon.tools.fixtures.test_case import (
+    OperationOrBlockHeader,
+)
 from eth2.beacon.tools.fixtures.test_file import (
     TestFile,
 )
-
 
 #
 # Eth2Config
@@ -183,3 +185,14 @@ def get_blocks(test_case: Dict[str, Any],
 def get_deposits(test_case: Dict[str, Any],
                  cls_deposit: Type[Deposit]) -> Tuple[Deposit, ...]:
     return tuple(from_formatted_dict(deposit, cls_deposit) for deposit in test_case['deposits'])
+
+
+def get_operation_or_header(test_case: Dict[str, Any],
+                            cls_operation_or_header: Type[OperationOrBlockHeader],
+                            operation_name: str) -> Tuple[OperationOrBlockHeader, ...]:
+    if operation_name in test_case:
+        return from_formatted_dict(test_case[operation_name], cls_operation_or_header)
+    else:
+        raise NameError(
+            f"Operation {operation_name} is not supported."
+        )
