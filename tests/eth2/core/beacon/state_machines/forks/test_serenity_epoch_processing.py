@@ -720,17 +720,17 @@ def test_process_registry_updates(validator_count,
     [
         # total_penalties * 3 is less than total_balance
         (
-            10**9,  # 1 ETH
+            32 * 10**9,  # 1 ETH
             (32 * 10**9 * 10),
             # effective_balance * total_penalties * 3 // total_balance
-            (32 * 10**9) * (3 * 10**9) // (32 * 10**9 * 10),
+            ((32 * 10**9) // 10**9) * (3 * 32 * 10**9) // (32 * 10**9 * 10) * 10**9,
         ),
         # total_balance is less than total_penalties * 3
         (
             32 * 4 * 10**9,
             (32 * 10**9 * 10),
             # effective_balance * total_balance // total_balance,
-            (32 * 10**9) * (32 * 10**9 * 10) // (32 * 10**9 * 10),
+            (32 * 10**9) // 10**9 * (32 * 10**9 * 10) // (32 * 10**9 * 10) * 10**9,
         ),
     ]
 )
@@ -752,6 +752,7 @@ def test_determine_slashing_penalty(genesis_state,
         total_penalties,
         total_balance,
         state.validators[validator_index].effective_balance,
+        config.EFFECTIVE_BALANCE_INCREMENT,
     )
     assert penalty == expected_penalty
 
@@ -771,8 +772,8 @@ def test_determine_slashing_penalty(genesis_state,
             4,
             8,
             8,
-            (2 * 10**9, 10**9) + (0,) * 6,
-            9 * 10**8,
+            (19 * 10**9, 10**9) + (0,) * 6,
+            (32 * 10**9 // 10**9 * 60 * 10**9) // (320 * 10**9) * 10**9,
         ),
     ]
 )
