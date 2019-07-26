@@ -8,10 +8,6 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth2.beacon.constants import (
-    EMPTY_SIGNATURE,
-)
-
 
 def validate_private_key(privkey: int) -> None:
     if privkey <= 0 or privkey >= curve_order:
@@ -21,9 +17,7 @@ def validate_private_key(privkey: int) -> None:
 
 
 def validate_signature(signature: BLSSignature) -> None:
-    if signature == EMPTY_SIGNATURE:
-        raise ValidationError(f"Invalid signature (EMPTY_SIGNATURE): {signature}")
-    elif len(signature) != 96:
+    if len(signature) != 96:
         raise ValidationError(
             f"Invalid signaute length, expect 96 got {len(signature)}. Signature: {signature}"
         )
