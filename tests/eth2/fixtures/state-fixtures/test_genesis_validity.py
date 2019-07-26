@@ -53,7 +53,7 @@ class GenesisValidityTestCase(BaseTestCase):
     is_valid: bool
 
 
-def parse_genesis_validity_test_case(test_case, config):
+def parse_genesis_validity_test_case(test_case, index, config):
     override_lengths(config)
 
     bls_setting = get_bls_setting(test_case)
@@ -61,7 +61,7 @@ def parse_genesis_validity_test_case(test_case, config):
     is_valid = test_case['is_valid']
 
     return GenesisValidityTestCase(
-        line_number=test_case.lc.line,
+        index=index,
         bls_setting=bls_setting,
         description=test_case['description'],
         genesis=genesis,
