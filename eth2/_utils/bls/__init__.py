@@ -8,6 +8,9 @@ from eth_typing import (
     BLSSignature,
     Hash32,
 )
+from eth_utils import (
+    ValidationError,
+)
 
 from py_ecc.bls.typing import Domain
 
@@ -77,7 +80,11 @@ class Eth2BLS:
                signature: BLSSignature,
                domain: Domain) -> bool:
         if cls.backend != NoOpBackend:
-            validate_signature(signature)
+            try:
+                validate_signature(signature)
+            except ValidationError:
+                return False
+
         return cls.backend.verify(message_hash, pubkey, signature, domain)
 
     @classmethod
@@ -87,7 +94,11 @@ class Eth2BLS:
                         signature: BLSSignature,
                         domain: Domain) -> bool:
         if cls.backend != NoOpBackend:
-            validate_signature(signature)
+            try:
+                validate_signature(signature)
+            except ValidationError:
+                return False
+
         return cls.backend.verify_multiple(pubkeys, message_hashes, signature, domain)
 
     @classmethod
