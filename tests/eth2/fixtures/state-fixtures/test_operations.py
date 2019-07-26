@@ -1,6 +1,3 @@
-from dataclasses import (
-    dataclass,
-)
 import pytest
 
 from eth_utils import (
@@ -19,7 +16,6 @@ from eth2.beacon.types.blocks import (
     BeaconBlock,
     BeaconBlockBody,
 )
-from eth2.beacon.types.block_headers import BeaconBlockHeader
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
@@ -31,14 +27,12 @@ from eth2.beacon.tools.fixtures.config_name import (
     ONLY_MINIMAL,
 )
 from eth2.beacon.tools.fixtures.helpers import (
-    run_state_execution,
     validate_state,
 )
 from eth2.beacon.state_machines.forks.serenity.operation_processing import (
     process_attestations,
     process_attester_slashings,
     process_deposits,
-    process_operations,
     process_proposer_slashings,
     process_transfers,
     process_voluntary_exits,
@@ -64,12 +58,12 @@ from tests.eth2.fixtures.path import (
 # Test files
 RUNNER_FIXTURE_PATH = BASE_FIXTURE_PATH / 'operations'
 HANDLER_FIXTURE_PATHES = (
-    # RUNNER_FIXTURE_PATH / 'proposer_slashing',  # done
-    # RUNNER_FIXTURE_PATH / 'attester_slashing',  # 2 failed, 15 passed
-    # RUNNER_FIXTURE_PATH / 'attestation',  # done
-    # RUNNER_FIXTURE_PATH / 'deposit',  # 1 failed, 8 passed
-    # RUNNER_FIXTURE_PATH / 'voluntary_exit',  # done
-    # RUNNER_FIXTURE_PATH / 'transfer',  # 6 failed, 19 passed
+    RUNNER_FIXTURE_PATH / 'proposer_slashing',  # done
+    RUNNER_FIXTURE_PATH / 'attester_slashing',  # 2 failed, 15 passed
+    RUNNER_FIXTURE_PATH / 'attestation',  # done
+    RUNNER_FIXTURE_PATH / 'deposit',  # done
+    RUNNER_FIXTURE_PATH / 'voluntary_exit',  # done
+    RUNNER_FIXTURE_PATH / 'transfer',  # done
 )
 FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 
@@ -86,7 +80,10 @@ handler_to_processing_call_map = {
 #
 # Helpers for generating test suite
 #
-def parse_operation_test_case(test_case, index, config, handler):
+def parse_operation_test_case(test_case, handler, index, config):
+    config = config._replace(
+        MAX_TRANSFERS=1,
+    )
     override_lengths(config)
 
     bls_setting = get_bls_setting(test_case)
@@ -118,11 +115,14 @@ all_test_cases = get_test_cases(
     "test_case, config",
     all_test_cases
 )
-def test_sanity_fixture(config, test_case):
+def test_operation_fixture(config, test_case):
+    config = config._replace(
+        MAX_TRANSFERS=1,
+    )
     post_state = test_case.pre
     block = BeaconBlock().copy(
         body=BeaconBlockBody(
-            **{test_case.handler + 's': (test_case.operation,)}
+            **{test_case.handler + 's': (test_case.operation,)}  # TODO: it looks awful
         )
     )
     _, operation_processing = handler_to_processing_call_map[test_case.handler]

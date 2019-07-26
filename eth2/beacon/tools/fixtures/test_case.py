@@ -31,8 +31,8 @@ OperationOrBlockHeader = Union[Operation, BeaconBlockHeader]
 
 @dataclass
 class BaseTestCase:
-    index: int
     handler: str
+    index: int
 
 
 @dataclass

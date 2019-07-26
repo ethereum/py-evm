@@ -45,6 +45,7 @@ from eth2.beacon.tools.fixtures.test_file import (
     TestFile,
 )
 
+
 #
 # Eth2Config
 #
@@ -97,7 +98,7 @@ def get_test_file_from_dict(data: Dict[str, Any],
     config = get_config(root_project_dir, config_name)
     handler = data['handler']
     parsed_test_cases = tuple(
-        parse_test_case_fn(test_case, index, config, handler)
+        parse_test_case_fn(test_case, handler, index, config)
         for index, test_case in enumerate(data['test_cases'])
     )
     return TestFile(
