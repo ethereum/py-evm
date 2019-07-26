@@ -7,12 +7,26 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth2.beacon.exceptions import (
+    SignatureError,
+)
 from eth2.beacon.tools.misc.ssz_vector import (
     override_lengths,
 )
 from eth2.beacon.types.attestations import Attestation
-from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
+from eth2.beacon.types.attester_slashings import AttesterSlashing
+from eth2.beacon.types.blocks import (
+    BeaconBlock,
+    BeaconBlockBody,
+)
+from eth2.beacon.types.block_headers import BeaconBlockHeader
+from eth2.beacon.types.deposits import Deposit
+from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.transfers import Transfer
+from eth2.beacon.types.voluntary_exits import VoluntaryExit
+
+
 from eth2.beacon.tools.fixtures.config_name import (
     ONLY_MINIMAL,
 )
@@ -22,6 +36,12 @@ from eth2.beacon.tools.fixtures.helpers import (
 )
 from eth2.beacon.state_machines.forks.serenity.operation_processing import (
     process_attestations,
+    process_attester_slashings,
+    process_deposits,
+    process_operations,
+    process_proposer_slashings,
+    process_transfers,
+    process_voluntary_exits,
 )
 from eth2.beacon.tools.fixtures.loading import (
     get_bls_setting,
@@ -34,8 +54,6 @@ from eth2.beacon.tools.fixtures.test_case import (
 
 from tests.eth2.fixtures.helpers import (
     get_test_cases,
-    get_chaindb_of_config,
-    get_sm_class_of_config,
 )
 from tests.eth2.fixtures.path import (
     BASE_FIXTURE_PATH,
@@ -46,22 +64,38 @@ from tests.eth2.fixtures.path import (
 # Test files
 RUNNER_FIXTURE_PATH = BASE_FIXTURE_PATH / 'operations'
 HANDLER_FIXTURE_PATHES = (
-    RUNNER_FIXTURE_PATH / 'attestation',
+    # RUNNER_FIXTURE_PATH / 'proposer_slashing',  # done
+    # RUNNER_FIXTURE_PATH / 'attester_slashing',  # 2 failed, 15 passed
+    # RUNNER_FIXTURE_PATH / 'attestation',  # done
+    # RUNNER_FIXTURE_PATH / 'deposit',  # 1 failed, 8 passed
+    # RUNNER_FIXTURE_PATH / 'voluntary_exit',  # done
+    # RUNNER_FIXTURE_PATH / 'transfer',  # 6 failed, 19 passed
 )
 FILTERED_CONFIG_NAMES = ONLY_MINIMAL
+
+handler_to_processing_call_map = {
+    'proposer_slashing': (ProposerSlashing, process_proposer_slashings),
+    'attester_slashing': (AttesterSlashing, process_attester_slashings),
+    'attestation': (Attestation, process_attestations),
+    'deposit': (Deposit, process_deposits),
+    'voluntary_exit': (VoluntaryExit, process_voluntary_exits),
+    'transfer': (Transfer, process_transfers),
+}
 
 
 #
 # Helpers for generating test suite
 #
-def parse_operation_test_case(test_case, index, config):
+def parse_operation_test_case(test_case, index, config, handler):
     override_lengths(config)
 
     bls_setting = get_bls_setting(test_case)
     pre, post, is_valid = get_states(test_case, BeaconState)
-    operation = get_operation_or_header(test_case, Attestation, 'attestation')
+    operation_class, _ = handler_to_processing_call_map[handler]
+    operation = get_operation_or_header(test_case, operation_class, handler)
 
     return OperationCase(
+        handler=handler,
         index=index,
         bls_setting=bls_setting,
         description=test_case['description'],
@@ -88,12 +122,14 @@ def test_sanity_fixture(config, test_case):
     post_state = test_case.pre
     block = BeaconBlock().copy(
         body=BeaconBlockBody(
-            attestations=(test_case.operation,),
+            **{test_case.handler + 's': (test_case.operation,)}
         )
     )
+    _, operation_processing = handler_to_processing_call_map[test_case.handler]
+
     if test_case.is_valid:
-        post_state = process_attestations(post_state, block, config)
+        post_state = operation_processing(post_state, block, config)
         validate_state(test_case.post, post_state)
     else:
-        with pytest.raises((ValidationError, IndexError)):
-            process_attestations(post_state, block, config)
+        with pytest.raises((ValidationError, IndexError, SignatureError)):
+            operation_processing(post_state, block, config)

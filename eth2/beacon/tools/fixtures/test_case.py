@@ -8,11 +8,12 @@ from dataclasses import (
     field,
 )
 
+
 from eth2.beacon.types.attestations import Attestation
+from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.block_headers import BeaconBlockHeader
 from eth2.beacon.types.deposits import Deposit
-from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.transfers import Transfer
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
@@ -31,6 +32,7 @@ OperationOrBlockHeader = Union[Operation, BeaconBlockHeader]
 @dataclass
 class BaseTestCase:
     index: int
+    handler: str
 
 
 @dataclass

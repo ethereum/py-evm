@@ -95,9 +95,9 @@ def get_test_file_from_dict(data: Dict[str, Any],
     assert config_name in ALL_CONFIG_NAMES
     config_name = ConfigName(config_name)
     config = get_config(root_project_dir, config_name)
-
+    handler = data['handler']
     parsed_test_cases = tuple(
-        parse_test_case_fn(test_case, index, config)
+        parse_test_case_fn(test_case, index, config, handler)
         for index, test_case in enumerate(data['test_cases'])
     )
     return TestFile(
@@ -189,10 +189,10 @@ def get_deposits(test_case: Dict[str, Any],
 
 def get_operation_or_header(test_case: Dict[str, Any],
                             cls_operation_or_header: Type[OperationOrBlockHeader],
-                            operation_name: str) -> Tuple[OperationOrBlockHeader, ...]:
-    if operation_name in test_case:
-        return from_formatted_dict(test_case[operation_name], cls_operation_or_header)
+                            handler: str) -> Tuple[OperationOrBlockHeader, ...]:
+    if handler in test_case:
+        return from_formatted_dict(test_case[handler], cls_operation_or_header)
     else:
         raise NameError(
-            f"Operation {operation_name} is not supported."
+            f"Operation {handler} is not supported."
         )
