@@ -209,15 +209,13 @@ STRUCTURE_SEDES = (
 
 
 @to_tuple
-def StructureFactory(*sedes: Tuple[str, Any],
-                     high_water_mark: int = 4,
+def StructureFactory(high_water_mark: int = 4,
                      ) -> Iterable[Tuple[str, Any]]:
-    yield from sedes
     for idx in range(high_water_mark):
         name = f"field_{idx}"
         sedes = random.choice(STRUCTURE_SEDES)
         yield (name, sedes)
-        if random.randint(idx, high_water_mark + 2) >= high_water_mark:
+        if random.randrange(idx, high_water_mark + 2) >= high_water_mark:
             break
 
 
@@ -324,7 +322,7 @@ def ProtocolFactory(name: str = None,
     if version is None:
         version = 1
     if commands is None:
-        num_commands = random.randint(1, 6)
+        num_commands = random.randrange(1, 6)
         commands = tuple(
             CommandFactory(cmd_id=cmd_id)
             for cmd_id in range(num_commands)
