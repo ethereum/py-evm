@@ -471,7 +471,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             if subscribers:
                 longest_queue = max(
                     self._subscribers, key=operator.attrgetter('queue_size'))
-                self.logger.info(
+                self.logger.debug(
                     "Peer subscribers: %d, longest queue: %s(%d)",
                     subscribers, longest_queue.__class__.__name__, longest_queue.queue_size)
 
