@@ -22,4 +22,4 @@ BLOCK_QUEUE_SIZE_TARGET = 1000
 # This is specifically for blocks where execution happens locally.
 # So each block might have a pretty significant execution time, on
 #   the order of seconds.
-BLOCK_IMPORT_QUEUE_SIZE_TARGET = 10
+BLOCK_IMPORT_QUEUE_SIZE = 10
