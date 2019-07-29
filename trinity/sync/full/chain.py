@@ -1081,42 +1081,46 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
 
         for block in unimported_blocks:
             timer = Timer()
-            _, new_canonical_blocks, old_canonical_blocks = await self.wait(
-                self._block_importer.import_block(block)
-            )
+            await self._import_block(block)
 
-            if new_canonical_blocks == (block,):
-                # simple import of a single new block.
+    async def _import_block(self, block: BaseBlock) -> None:
+        timer = Timer()
+        _, new_canonical_blocks, old_canonical_blocks = await self.wait(
+            self._block_importer.import_block(block)
+        )
 
-                # decide whether to log to info or debug, based on log rate
-                if self._import_log_limiter.can_take(1):
-                    log_fn = self.logger.info
-                    self._import_log_limiter.take_nowait(1)
-                else:
-                    log_fn = self.logger.debug
-                log_fn(
-                    "Imported block %d (%d txs) in %.2f seconds, with %s lag",
-                    block.number,
-                    len(block.transactions),
-                    timer.elapsed,
-                    humanize_seconds(time.time() - block.header.timestamp),
-                )
-            elif not new_canonical_blocks:
-                # imported block from a fork.
-                self.logger.info("Imported non-canonical block %d (%d txs) in %.2f seconds",
-                                 block.number, len(block.transactions), timer.elapsed)
-            elif old_canonical_blocks:
-                self.logger.info(
-                    "Chain Reorganization: Imported block %d (%d txs) in %.2f "
-                    "seconds, %d blocks discarded and %d new canonical blocks added",
-                    block.number,
-                    len(block.transactions),
-                    timer.elapsed,
-                    len(old_canonical_blocks),
-                    len(new_canonical_blocks),
-                )
+        if new_canonical_blocks == (block,):
+            # simple import of a single new block.
+
+            # decide whether to log to info or debug, based on log rate
+            if self._import_log_limiter.can_take(1):
+                log_fn = self.logger.info
+                self._import_log_limiter.take_nowait(1)
             else:
-                raise Exception("Invariant: unreachable code path")
+                log_fn = self.logger.debug
+            log_fn(
+                "Imported block %d (%d txs) in %.2f seconds, with %s lag",
+                block.number,
+                len(block.transactions),
+                timer.elapsed,
+                humanize_seconds(time.time() - block.header.timestamp),
+            )
+        elif not new_canonical_blocks:
+            # imported block from a fork.
+            self.logger.info("Imported non-canonical block %d (%d txs) in %.2f seconds",
+                             block.number, len(block.transactions), timer.elapsed)
+        elif old_canonical_blocks:
+            self.logger.info(
+                "Chain Reorganization: Imported block %d (%d txs) in %.2f "
+                "seconds, %d blocks discarded and %d new canonical blocks added",
+                block.number,
+                len(block.transactions),
+                timer.elapsed,
+                len(old_canonical_blocks),
+                len(new_canonical_blocks),
+            )
+        else:
+            raise Exception("Invariant: unreachable code path")
 
     @to_tuple
     def _headers_to_blocks(self, headers: Iterable[BlockHeader]) -> Iterable[BaseBlock]:
