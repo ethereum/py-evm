@@ -501,21 +501,33 @@ class MissingDataEventHandler(BaseService):
 
     async def _provide_missing_account_tries(self) -> None:
         async for event in self.wait_iter(self._event_bus.stream(CollectMissingAccount)):
-            await self._state_downloader.ensure_node_present(event.missing_node_hash)
-            await self._state_downloader.download_account(event.address_hash, event.state_root_hash)
-            await self._event_bus.broadcast(MissingAccountCollected(), event.broadcast_config())
+            asyncio.ensure_future(self._serve_account(event))
 
     async def _provide_missing_bytecode(self) -> None:
         async for event in self.wait_iter(self._event_bus.stream(CollectMissingBytecode)):
-            await self._state_downloader.ensure_node_present(event.bytecode_hash)
-            await self._event_bus.broadcast(MissingBytecodeCollected(), event.broadcast_config())
+            asyncio.ensure_future(self._serve_bytecode(event))
 
     async def _provide_missing_storage(self) -> None:
         async for event in self.wait_iter(self._event_bus.stream(CollectMissingStorage)):
-            await self._state_downloader.ensure_node_present(event.missing_node_hash)
-            await self._state_downloader.download_storage(
-                event.storage_key,
-                event.storage_root_hash,
-                event.account_address,
-            )
-            await self._event_bus.broadcast(MissingStorageCollected(), event.broadcast_config())
+            asyncio.ensure_future(self._serve_storage(event))
+
+    async def _serve_account(self, event: CollectMissingAccount) -> None:
+        await self._state_downloader.ensure_node_present(event.missing_node_hash)
+        await self._state_downloader.download_account(
+            event.address_hash,
+            event.state_root_hash,
+        )
+        await self._event_bus.broadcast(MissingAccountCollected(), event.broadcast_config())
+
+    async def _serve_bytecode(self, event: CollectMissingBytecode) -> None:
+        await self._state_downloader.ensure_node_present(event.bytecode_hash)
+        await self._event_bus.broadcast(MissingBytecodeCollected(), event.broadcast_config())
+
+    async def _serve_storage(self, event: CollectMissingStorage) -> None:
+        await self._state_downloader.ensure_node_present(event.missing_node_hash)
+        await self._state_downloader.download_storage(
+            event.storage_key,
+            event.storage_root_hash,
+            event.account_address,
+        )
+        await self._event_bus.broadcast(MissingStorageCollected(), event.broadcast_config())
