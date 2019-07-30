@@ -1,0 +1,1 @@
+Fix typing for ``eth.db.base.BaseAtomicDB.atomic_batch`` method to have more specific type than ``Any``.  Now is specified as returning a ``ContextManager[BaseDB]``.

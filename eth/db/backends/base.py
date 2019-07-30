@@ -2,23 +2,15 @@ from abc import (
     ABC,
     abstractmethod
 )
-from collections.abc import (
+
+from typing import (
+    ContextManager,
+    Iterator,
     MutableMapping,
 )
 
-from typing import (
-    Any,
-    Iterator,
-    TYPE_CHECKING,
-)
 
-if TYPE_CHECKING:
-    MM = MutableMapping[bytes, bytes]
-else:
-    MM = MutableMapping
-
-
-class BaseDB(MM, ABC):
+class BaseDB(MutableMapping[bytes, bytes], ABC):
     """
     This is an abstract key/value lookup with all :class:`bytes` values,
     with some convenience methods for databases. As much as possible,
@@ -92,5 +84,5 @@ class BaseAtomicDB(BaseDB):
             # or neither will
     """
     @abstractmethod
-    def atomic_batch(self) -> Any:
+    def atomic_batch(self) -> ContextManager[BaseDB]:
         raise NotImplementedError
