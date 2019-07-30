@@ -97,7 +97,7 @@ def setup_trinity_stderr_logging(level: int=None,
     if level is None:
         level = logging.INFO
     logger = logging.getLogger()
-    logger.setLevel(0)
+    logger.setLevel(level)
 
     handler_stream = logging.StreamHandler(sys.stderr)
     handler_stream.setLevel(level)
@@ -133,6 +133,7 @@ def setup_trinity_file_and_queue_logging(
     handler_file.setFormatter(LOG_FORMATTER)
 
     logger.addHandler(handler_file)
+    logger.setLevel(level)
 
     listener = QueueListener(
         log_queue,

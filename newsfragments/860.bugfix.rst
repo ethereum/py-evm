@@ -1,0 +1,1 @@
+Fix for ``DEBUG2`` logs always being shown irrespective of log level.
