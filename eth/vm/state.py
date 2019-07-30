@@ -253,6 +253,12 @@ class BaseState(Configurable, ABC):
     def persist(self) -> None:
         self._account_db.persist()
 
+    def persist_with_block_diff(self, block_hash: Hash32) -> None:
+        """
+        Persists all changes and also saves a record of them to the database.
+        """
+        self._account_db.persist_with_block_diff(block_hash)
+
     #
     # Access self.prev_hashes (Read-only)
     #

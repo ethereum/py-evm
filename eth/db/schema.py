@@ -62,6 +62,11 @@ class SchemaV1(BaseSchema):
 
 class SchemaTurbo(SchemaV1):
     current_schema_lookup_key: bytes = b'current-schema'
+    _block_diff_prefix = b'block-diff'
+
+    @classmethod
+    def make_block_diff_lookup_key(cls, block_hash: Hash32) -> bytes:
+        return cls._block_diff_prefix + b':' + block_hash
 
 
 def get_schema(db: BaseDB) -> Schemas:

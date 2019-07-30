@@ -19,7 +19,9 @@ from eth_typing import (
 )
 
 from eth_utils import (
+    big_endian_to_int,
     encode_hex,
+    int_to_big_endian,
     to_checksum_address,
     to_tuple,
     ValidationError,
@@ -40,6 +42,9 @@ from eth.db.backends.base import (
 )
 from eth.db.batch import (
     BatchDB,
+)
+from eth.db.block_diff import (
+    BlockDiff,
 )
 from eth.db.cache import (
     CacheDB,
@@ -564,6 +569,87 @@ class AccountDB(BaseAccountDB):
             self._batchtrie.commit_to(write_batch, apply_deletes=False)
             self._batchdb.commit_to(write_batch, apply_deletes=False)
         self._root_hash_at_last_persist = new_root_hash
+
+    def persist_with_block_diff(self, block_hash: Hash32) -> None:
+        """
+        Persists, including a diff which can be used to unwind/replay the changes this block makes.
+        """
+
+        block_diff = BlockDiff(block_hash)
+
+        # 1. Grab all the changed accounts and their previous values
+
+        changed_accounts = self._changed_accounts()
+        for deleted_key in changed_accounts.deleted_keys():
+            # TODO: test that from_journal=False works
+            # DBDiff gave me bytes, but I need an address here...
+            deleted_address = cast(Address, deleted_key)
+            current_value = self._get_encoded_account(deleted_address, from_journal=False)
+            if current_value == b'':
+                raise Exception('a non-existant account cannot be deleted')
+            block_diff.set_account_changed(deleted_address, current_value, b'')
+
+        for key, value in changed_accounts.pending_items():
+            # TODO: key -> address
+            current_value = self._get_encoded_account(cast(Address, key), from_journal=False)
+            block_diff.set_account_changed(cast(Address, key), current_value, value)
+
+        # 2. Grab all the changed storage items and their previous values.
+        dirty_stores = tuple(self._dirty_account_stores())
+        for address, store in dirty_stores:
+            diff = store.diff()
+
+            for key in diff.deleted_keys():
+                slot = big_endian_to_int(key)
+                current_slot_value = store.get(slot, from_journal=False)
+                current_slot_value_bytes = int_to_big_endian(current_slot_value)
+                # TODO: Is b'' a valid value for a storage slot?
+                block_diff.set_storage_changed(address, slot, b'', current_slot_value_bytes)
+
+            for key, new_value in diff.pending_items():
+                slot = big_endian_to_int(key)
+                old_value = store.get(slot, from_journal=False)
+                # TODO: this seems incredibly wrong
+                if old_value == 0:
+                    old_value_bytes = b''
+                else:
+                    old_value_bytes = int_to_big_endian(old_value)
+                block_diff.set_storage_changed(address, slot, old_value_bytes, new_value)
+
+        old_account_values: Dict[Address, bytes] = dict()
+        for address, _ in dirty_stores:
+            old_account_values[address] = self._get_encoded_account(address, from_journal=False)
+
+        # 3. Persist!
+        self.persist()
+
+        # 4. Grab the new storage roots
+        for address, _store in dirty_stores:
+            old_account_value = old_account_values[address]
+            new_account_value = self._get_encoded_account(address, from_journal=False)
+            block_diff.set_account_changed(address, old_account_value, new_account_value)
+
+        # 5. persist the block diff
+        block_diff.write_to(self._raw_store_db)
+
+    def _changed_accounts(self) -> DBDiff:
+        """
+        Returns all the accounts which will be written to the db when persist() is called.
+
+        Careful! If some storage items have changed then the storage roots for some accounts
+        should also change but those accounts will not show up here unless something else about
+        them also changed.
+        """
+        return self._journaltrie.diff()
+
+    def _changed_storage_items(self) -> Dict[Address, DBDiff]:
+        """
+        Returns all the storage items which will be written to the db when persist() is called.
+        """
+        return {
+            address: store.diff()
+            for address, store in self._dirty_account_stores()
+        }
 
     def _validate_generated_root(self) -> None:
         db_diff = self._journaldb.diff()

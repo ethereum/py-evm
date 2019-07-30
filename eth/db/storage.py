@@ -31,6 +31,9 @@ from eth.db.batch import (
 from eth.db.cache import (
     CacheDB,
 )
+from eth.db.diff import (
+    DBDiff
+)
 from eth.db.journal import (
     JournalDB,
 )
@@ -271,3 +274,12 @@ class AccountStorageDB:
         self._validate_flushed()
         if self._storage_lookup.has_changed_root:
             self._storage_lookup.commit_to(db)
+
+    def diff(self) -> DBDiff:
+        """
+        Returns all the changes that would be saved if persist() were called.
+
+        Note: Calling make_storage_root() wipes away changes, after it is called this method will
+        return an empty diff.
+        """
+        return self._journal_storage.diff()

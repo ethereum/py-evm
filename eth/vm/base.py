@@ -675,7 +675,11 @@ class VM(BaseVM):
 
         # We need to call `persist` here since the state db batches
         # all writes until we tell it to write to the underlying db
-        self.state.persist()
+        # self.state.persist()
+
+        # TODO: only do this if we're in turbo mode
+        # TODO: will we always know the hash here?
+        self.state.persist_with_block_diff(block.hash)
 
         return block.copy(header=block.header.copy(state_root=self.state.state_root))
 
