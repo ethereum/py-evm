@@ -160,6 +160,17 @@ def initialize_beacon_state_from_eth1(*,
     )
 
 
+def is_valid_genesis_state(state: BeaconState, config: Eth2Config) -> bool:
+    if state.genesis_time < config.MIN_GENESIS_TIME:
+        return False
+
+    validator_count = len(get_active_validator_indices(state.validators, config.GENESIS_EPOCH))
+    if validator_count < config.MIN_GENESIS_ACTIVE_VALIDATOR_COUNT:
+        return False
+
+    return True
+
+
 def get_genesis_block(genesis_state_root: Hash32,
                       block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
     return block_class(

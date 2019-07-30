@@ -17,7 +17,7 @@ from eth2.beacon.tools.fixtures.config_name import (
 )
 from eth2.beacon.tools.fixtures.helpers import (
     run_state_execution,
-    verify_state,
+    validate_state,
 )
 from eth2.beacon.tools.fixtures.loading import (
     get_bls_setting,
@@ -41,15 +41,15 @@ from tests.eth2.fixtures.path import (
 
 
 # Test files
-SANITY_FIXTURE_PATH = BASE_FIXTURE_PATH / 'sanity'
-FIXTURE_PATHES = (
-    SANITY_FIXTURE_PATH,
+RUNNER_FIXTURE_PATH = BASE_FIXTURE_PATH / 'sanity'
+HANDLER_FIXTURE_PATHES = (
+    RUNNER_FIXTURE_PATH,
 )
 FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 
 
 #
-# Sanity test_format
+#  Test format
 #
 @dataclass
 class SanityTestCase(StateTestCase):
@@ -81,7 +81,7 @@ def parse_sanity_test_case(test_case, index, config):
 
 all_test_cases = get_test_cases(
     root_project_dir=ROOT_PROJECT_DIR,
-    fixture_pathes=FIXTURE_PATHES,
+    fixture_pathes=HANDLER_FIXTURE_PATHES,
     config_names=FILTERED_CONFIG_NAMES,
     parse_test_case_fn=parse_sanity_test_case,
 )
@@ -105,7 +105,7 @@ def test_sanity_fixture(base_db, config, test_case, empty_attestation_pool):
             post_state,
         )
 
-        verify_state(test_case, post_state)
+        validate_state(test_case.post, post_state)
     else:
         with pytest.raises(ValidationError):
             run_state_execution(
