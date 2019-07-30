@@ -121,7 +121,7 @@ eth2_fixtures: &eth2_fixtures
     - run:
         name: download the required yaml files
         command: |
-          wget -c https://github.com/ethereum/eth2.0-spec-tests/releases/download/v0.8.1/archive.tar.gz
+          wget -c https://github.com/hwwhww/eth2.0-spec-tests/releases/download/v0.8.1b/archive.tar.gz
           tar zxvf archive.tar.gz -C ./eth2-fixtures
     - run:
         name: install dependencies
