@@ -58,12 +58,12 @@ from tests.eth2.fixtures.path import (
 # Test files
 RUNNER_FIXTURE_PATH = BASE_FIXTURE_PATH / 'operations'
 HANDLER_FIXTURE_PATHES = (
-    RUNNER_FIXTURE_PATH / 'proposer_slashing',  # done
-    RUNNER_FIXTURE_PATH / 'attester_slashing',  # 2 failed, 15 passed
-    RUNNER_FIXTURE_PATH / 'attestation',  # done
-    RUNNER_FIXTURE_PATH / 'deposit',  # done
-    RUNNER_FIXTURE_PATH / 'voluntary_exit',  # done
-    RUNNER_FIXTURE_PATH / 'transfer',  # done
+    RUNNER_FIXTURE_PATH / 'proposer_slashing',
+    RUNNER_FIXTURE_PATH / 'attester_slashing',
+    RUNNER_FIXTURE_PATH / 'attestation',
+    RUNNER_FIXTURE_PATH / 'deposit',
+    RUNNER_FIXTURE_PATH / 'voluntary_exit',
+    RUNNER_FIXTURE_PATH / 'transfer',
 )
 FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 
