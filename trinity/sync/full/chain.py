@@ -1168,6 +1168,11 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
             raise Exception("Invariant: unreachable code path")
 
     def _header_to_block(self, header: BlockHeader) -> BaseBlock:
+        """
+        This method converts a header that was queued up for sync into its full block
+        representation. It may not be called until after the body is marked as fully
+        downloaded, as tracked by self._block_import_tracker.
+        """
         vm_class = self.chain.get_vm_class(header)
         block_class = vm_class.get_block_class()
 
@@ -1195,7 +1200,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
                 [(q.num_in_progress(), len(q), q._maxsize) for q in (
                     self._block_body_tasks,
                 )],
-                "yes" if self._db_buffer_capacity.is_set() else "no",
+                self._db_buffer_capacity.is_set(),
                 self._import_active.locked(),
             )
 
