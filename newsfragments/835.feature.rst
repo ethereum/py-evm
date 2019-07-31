@@ -1,0 +1,1 @@
+Add ``p2p.multiplexer.Multiplexer`` for combining the commands from different devp2p sub-protocols into a single network write stream, and split the incoming network stream into individually retrievable sub-protocol commands.

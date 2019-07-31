@@ -2,7 +2,7 @@ import asyncio
 import itertools
 import random
 import socket
-from typing import Any, Generator, Iterable, Tuple, Type
+from typing import Any, Callable, Generator, Iterable, Tuple, Type
 
 from cancel_token import CancelToken
 
@@ -18,10 +18,12 @@ from eth_keys import keys
 
 from p2p import auth
 from p2p import discovery
-from p2p.abc import AddressAPI, NodeAPI, TransportAPI
+from p2p.abc import AddressAPI, NodeAPI, ProtocolAPI, TransportAPI, MultiplexerAPI
 from p2p.ecies import generate_privkey
 from p2p.kademlia import Node, Address
-from p2p.protocol import Command, Protocol
+from p2p.multiplexer import Multiplexer
+from p2p.p2p_proto import P2PProtocol
+from p2p.protocol import Command, Protocol, get_cmd_offsets
 from p2p.transport import Transport
 
 from p2p.tools.asyncio_streams import get_directly_connected_streams
@@ -335,3 +337,55 @@ def ProtocolFactory(name: str = None,
         (Protocol,),
         {'name': name, 'version': version, '_commands': commands, 'cmd_length': cmd_length},
     )
+
+
+TransportPair = Tuple[
+    TransportAPI,
+    TransportAPI,
+]
+
+
+def MultiplexerPairFactory(*,
+                           protocol_types: Tuple[Type[ProtocolAPI], ...] = (),
+                           transport_factory: Callable[..., TransportPair] = MemoryTransportPairFactory,  # noqa: E501
+                           alice_remote: NodeAPI = None,
+                           alice_private_key: keys.PrivateKey = None,
+                           bob_remote: NodeAPI = None,
+                           bob_private_key: keys.PrivateKey = None,
+                           snappy_support: bool = False,
+                           cancel_token: CancelToken = None,
+                           ) -> Tuple[MultiplexerAPI, MultiplexerAPI]:
+    alice_transport, bob_transport = transport_factory(
+        alice_remote=alice_remote,
+        alice_private_key=alice_private_key,
+        bob_remote=bob_remote,
+        bob_private_key=bob_private_key,
+    )
+    cmd_id_offsets = get_cmd_offsets(protocol_types)
+    alice_protocols = tuple(
+        protocol_class(alice_transport, offset, snappy_support)
+        for protocol_class, offset
+        in zip(protocol_types, cmd_id_offsets)
+    )
+    bob_protocols = tuple(
+        protocol_class(bob_transport, offset, snappy_support)
+        for protocol_class, offset
+        in zip(protocol_types, cmd_id_offsets)
+    )
+
+    alice_p2p_protocol = P2PProtocol(alice_transport, snappy_support)
+    alice_multiplexer = Multiplexer(
+        transport=alice_transport,
+        base_protocol=alice_p2p_protocol,
+        protocols=alice_protocols,
+        token=cancel_token,
+    )
+
+    bob_p2p_protocol = P2PProtocol(bob_transport, False)
+    bob_multiplexer = Multiplexer(
+        transport=bob_transport,
+        base_protocol=bob_p2p_protocol,
+        protocols=bob_protocols,
+        token=cancel_token,
+    )
+    return alice_multiplexer, bob_multiplexer

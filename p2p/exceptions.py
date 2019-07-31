@@ -52,6 +52,14 @@ class MalformedMessage(BaseP2PError):
     pass
 
 
+class UnknownProtocol(BaseP2PError):
+    """
+    Raised in cases where a given protocol is not present such as not part of a
+    Multiplexer connection.
+    """
+    pass
+
+
 class UnknownProtocolCommand(BaseP2PError):
     """
     Raised when the received protocal command isn't known.
