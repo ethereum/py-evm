@@ -12,7 +12,6 @@ from typing import (
     Awaitable,
     Callable,
     Dict,
-    Iterable,
     List,
     NamedTuple,
     FrozenSet,
@@ -26,7 +25,6 @@ from eth_typing import Hash32
 from eth_utils import (
     humanize_hash,
     humanize_seconds,
-    to_tuple,
     ValidationError,
 )
 from eth_utils.toolz import (
@@ -77,7 +75,7 @@ from trinity.sync.common.peers import WaitingPeers
 from trinity.sync.full.constants import (
     HEADER_QUEUE_SIZE_TARGET,
     BLOCK_QUEUE_SIZE_TARGET,
-    BLOCK_IMPORT_QUEUE_SIZE_TARGET,
+    BLOCK_IMPORT_QUEUE_SIZE,
 )
 from trinity._utils.datastructures import (
     BaseOrderedTaskPreparation,
@@ -965,6 +963,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
 
     Here, the run() method will execute the sync loop forever, until our CancelToken is triggered.
     """
+
     def __init__(self,
                  chain: BaseAsyncChain,
                  db: BaseAsyncChainDB,
@@ -980,6 +979,8 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
             id_extractor=attrgetter('hash'),
             # make sure that a block is not imported until the parent block is imported
             dependency_extractor=attrgetter('parent_hash'),
+            # Avoid problems by keeping twice as much data as the import queue size
+            max_depth=BLOCK_IMPORT_QUEUE_SIZE * 2,
         )
         self._block_importer = block_importer
 
@@ -992,12 +993,18 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
             5,  # burst up to 5 logs after a lag
         )
 
+        # the queue of blocks that are downloaded and ready to be imported
+        self._import_queue: 'asyncio.Queue[BaseBlock]' = asyncio.Queue(BLOCK_IMPORT_QUEUE_SIZE)
+
+        self._import_active = asyncio.Lock()
+
     async def _run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
         self._block_import_tracker.set_finished_dependency(head)
         self.run_daemon_task(self._launch_prerequisite_tasks())
         self.run_daemon_task(self._assign_body_download_to_peers())
         self.run_daemon_task(self._import_ready_blocks())
+        self.run_daemon_task(self._preview_ready_blocks())
         self.run_daemon_task(self._display_stats())
         await super()._run()
 
@@ -1040,17 +1047,19 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
             completed_headers,
         )
 
-    async def _import_ready_blocks(self) -> None:
+    async def _preview_ready_blocks(self) -> None:
         """
-        Wait for block bodies to be downloaded, then import the blocks.
+        Wait for block bodies to be downloaded, then compile the blocks and
+        preview them to the importer.
+
+        It's important to do this in a separate step from importing so that
+        previewing can get ahead of import by a few blocks.
         """
         await self.wait(self._got_first_header.wait())
         while self.is_operational:
-            timer = Timer()
-
             # This tracker waits for all prerequisites to be complete, and returns headers in
             # order, so that each header's parent is already persisted.
-            get_ready_coro = self._block_import_tracker.ready_tasks(BLOCK_IMPORT_QUEUE_SIZE_TARGET)
+            get_ready_coro = self._block_import_tracker.ready_tasks(1)
             completed_headers = await self.wait(get_ready_coro)
 
             if self._block_import_tracker.has_ready_tasks():
@@ -1061,80 +1070,123 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
                 # There is available capacity, let any waiting coroutines continue
                 self._db_buffer_capacity.set()
 
-            await self._import_blocks(completed_headers)
+            header = completed_headers[0]
+            block = self._header_to_block(header)
 
-            head = await self.wait(self.db.coro_get_canonical_head())
-            self.logger.info(
-                "Synced chain segment with %d blocks in %.2f seconds, new head: %s",
-                len(completed_headers),
-                timer.elapsed,
-                head,
-            )
+            # put block in short queue for import, wait here if queue is full
+            await self.wait(self._import_queue.put(block))
 
-    async def _import_blocks(self, headers: Tuple[BlockHeader, ...]) -> None:
-        """
-        Import the blocks for the corresponding headers
+            # emit block for preview, potentially execute it
 
-        :param headers: headers that have the block bodies downloaded
-        """
-        unimported_blocks = self._headers_to_blocks(headers)
-
-        for block in unimported_blocks:
-            timer = Timer()
-            _, new_canonical_blocks, old_canonical_blocks = await self.wait(
-                self._block_importer.import_block(block)
-            )
-
-            if new_canonical_blocks == (block,):
-                # simple import of a single new block.
-
-                # decide whether to log to info or debug, based on log rate
-                if self._import_log_limiter.can_take(1):
-                    log_fn = self.logger.info
-                    self._import_log_limiter.take_nowait(1)
-                else:
-                    log_fn = self.logger.debug
-                log_fn(
-                    "Imported block %d (%d txs) in %.2f seconds, with %s lag",
-                    block.number,
-                    len(block.transactions),
-                    timer.elapsed,
-                    humanize_seconds(time.time() - block.header.timestamp),
+            # We want to limit how many parallel preview blocks are importing, so
+            #   we wait for the above put() to complete before running the following...
+            num_queued_items = self._import_queue.qsize()
+            # We are targeting at least two blocks in front before running a preview execution.
+            #   Previewing a block can take a while, so it's a waste to run it
+            #   when the block is about to be actually imported.
+            # We can tell that `block` has two in front, if qsize() == 2 after
+            #   inserting it: one block is actively importing, and one is already
+            #   in the queue.
+            lagging = num_queued_items >= 2
+            if not lagging:
+                self.logger.debug(
+                    "Skipping parallel execution of %s, because import queue is ~empty",
+                    header,
                 )
-            elif not new_canonical_blocks:
-                # imported block from a fork.
-                self.logger.info("Imported non-canonical block %d (%d txs) in %.2f seconds",
-                                 block.number, len(block.transactions), timer.elapsed)
-            elif old_canonical_blocks:
+
+            # We *always* run the preview to:
+            #   - look up the addresses referenced by the transaction (sender and recipient)
+            #   - store the header (for future evm execution that might look up old block hashes)
+            # We only run the preview *execution* if we are lagging
+            # TODO should this be split into two calls then?
+            await self._block_importer.preview_transactions(
+                header,
+                block.transactions,
+                lagging,
+            )
+
+    async def _import_ready_blocks(self) -> None:
+        """
+        Wait for block bodies to be downloaded, then compile the blocks and
+        preview them to the importer.
+        """
+        await self.wait(self._got_first_header.wait())
+        while self.is_operational:
+            if self._import_queue.empty():
+                if self._import_active.locked():
+                    self._import_active.release()
+                waiting_for_next_block = Timer()
+
+            block = await self.wait(self._import_queue.get())
+            if not self._import_active.locked():
                 self.logger.info(
-                    "Chain Reorganization: Imported block %d (%d txs) in %.2f "
-                    "seconds, %d blocks discarded and %d new canonical blocks added",
-                    block.number,
-                    len(block.transactions),
-                    timer.elapsed,
-                    len(old_canonical_blocks),
-                    len(new_canonical_blocks),
+                    "Paused block import %.1fs, while collecting %s body",
+                    waiting_for_next_block.elapsed,
+                    block.header,
                 )
+                await self._import_active.acquire()
+
+            await self._import_block(block)
+
+    async def _import_block(self, block: BaseBlock) -> None:
+        timer = Timer()
+        _, new_canonical_blocks, old_canonical_blocks = await self.wait(
+            self._block_importer.import_block(block)
+        )
+
+        if new_canonical_blocks == (block,):
+            # simple import of a single new block.
+
+            # decide whether to log to info or debug, based on log rate
+            if self._import_log_limiter.can_take(1):
+                log_fn = self.logger.info
+                self._import_log_limiter.take_nowait(1)
             else:
-                raise Exception("Invariant: unreachable code path")
+                log_fn = self.logger.debug
+            log_fn(
+                "Imported block %d (%d txs) in %.2f seconds, with %s lag",
+                block.number,
+                len(block.transactions),
+                timer.elapsed,
+                humanize_seconds(time.time() - block.header.timestamp),
+            )
+        elif not new_canonical_blocks:
+            # imported block from a fork.
+            self.logger.info("Imported non-canonical block %d (%d txs) in %.2f seconds",
+                             block.number, len(block.transactions), timer.elapsed)
+        elif old_canonical_blocks:
+            self.logger.info(
+                "Chain Reorganization: Imported block %d (%d txs) in %.2f "
+                "seconds, %d blocks discarded and %d new canonical blocks added",
+                block.number,
+                len(block.transactions),
+                timer.elapsed,
+                len(old_canonical_blocks),
+                len(new_canonical_blocks),
+            )
+        else:
+            raise Exception("Invariant: unreachable code path")
 
-    @to_tuple
-    def _headers_to_blocks(self, headers: Iterable[BlockHeader]) -> Iterable[BaseBlock]:
-        for header in headers:
-            vm_class = self.chain.get_vm_class(header)
-            block_class = vm_class.get_block_class()
+    def _header_to_block(self, header: BlockHeader) -> BaseBlock:
+        """
+        This method converts a header that was queued up for sync into its full block
+        representation. It may not be called until after the body is marked as fully
+        downloaded, as tracked by self._block_import_tracker.
+        """
+        vm_class = self.chain.get_vm_class(header)
+        block_class = vm_class.get_block_class()
 
-            if _is_body_empty(header):
-                transactions: List[BaseTransaction] = []
-                uncles: List[BlockHeader] = []
-            else:
-                body = self._pending_bodies.pop(header)
-                tx_class = block_class.get_transaction_class()
-                transactions = [tx_class.from_base_transaction(tx)
-                                for tx in body.transactions]
-                uncles = body.uncles
+        if _is_body_empty(header):
+            transactions: List[BaseTransaction] = []
+            uncles: List[BlockHeader] = []
+        else:
+            body = self._pending_bodies.pop(header)
+            tx_class = block_class.get_transaction_class()
+            transactions = [tx_class.from_base_transaction(tx)
+                            for tx in body.transactions]
+            uncles = body.uncles
 
-            yield block_class(header, transactions, uncles)
+        return block_class(header, transactions, uncles)
 
     async def _display_stats(self) -> None:
         self.logger.debug("Regular sync waiting for first header to arrive")
@@ -1144,11 +1196,12 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         while self.is_operational:
             await self.sleep(5)
             self.logger.debug(
-                "(in progress, queued, max size) of bodies, receipts: %r. Write capacity? %s",
+                "(progress, queued, max) of bodies, receipts: %r. Write capacity? %s Importing? %s",
                 [(q.num_in_progress(), len(q), q._maxsize) for q in (
                     self._block_body_tasks,
                 )],
-                "yes" if self._db_buffer_capacity.is_set() else "no",
+                self._db_buffer_capacity.is_set(),
+                self._import_active.locked(),
             )
 
 

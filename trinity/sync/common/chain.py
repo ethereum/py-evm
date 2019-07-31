@@ -27,6 +27,7 @@ from eth.rlp.blocks import (
 from eth.rlp.headers import (
     BlockHeader,
 )
+from eth.rlp.transactions import BaseTransaction
 
 from eth2.beacon.types.blocks import BaseBeaconBlock
 
@@ -257,6 +258,27 @@ class BaseBlockImporter(ABC):
     async def import_block(
             self,
             block: BaseBlock) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+        pass
+
+    async def preview_transactions(
+            self,
+            header: BlockHeader,
+            transactions: Tuple[BaseTransaction, ...],
+            lagging: bool = True) -> None:
+        """
+        Give the importer a chance to preview upcoming blocks. This can improve performance
+
+        :param header: The header of the upcoming block
+        :param transactions: The transactions in the upcoming block
+        :param old_state_root: The state root hash at the beginning of the upcoming block
+            (the end of the previous block)
+        :param lagging: Is the upcoming block *very* far ahead of the current block?
+
+        The lagging parameter is used to take actions that may be resource-intensive and slow,
+        but will accelerate the block once we catch up to it. A slow preparation is a waste of
+        resources unless the upcoming block is far enough in the future.
+        """
+        # default action: none
         pass
 
 
