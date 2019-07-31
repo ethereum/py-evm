@@ -720,7 +720,7 @@ def process_slashings(state: BeaconState, config: Eth2Config) -> BeaconState:
                 Gwei(sum(state.slashings)),
                 total_balance,
                 validator.effective_balance,
-                config.EFFECTIVE_BALANCE_INCREMENT
+                config.EFFECTIVE_BALANCE_INCREMENT,
             )
             state = decrease_balance(state, index, penalty)
     return state
