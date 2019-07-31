@@ -364,8 +364,9 @@ def test_slash_validator(genesis_state,
             validator = state.validators[index]
             assert validator.exit_epoch != FAR_FUTURE_EPOCH
             assert validator.slashed
-            assert validator.withdrawable_epoch == (
-                epoch + config.EPOCHS_PER_SLASHINGS_VECTOR
+            assert validator.withdrawable_epoch == max(
+                validator.exit_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY,
+                epoch + config.EPOCHS_PER_SLASHINGS_VECTOR,
             )
 
             slashed_epoch_index = epoch % config.EPOCHS_PER_SLASHINGS_VECTOR
